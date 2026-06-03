@@ -95,6 +95,7 @@ async def _init_extension_runtime(app: FastAPI) -> None:
     await mgr.register_all(app)
     await mgr.bootstrap_all(app)
     await mgr.ready_all(app)
+    await mgr.restore_persisted_activations()
     app.state.plugin_registry = mgr.registry
     app.state.extension_registries = mgr.tenant_registries
     logger.info("Extension runtime initialized", extensions=list(mgr.extension_names))

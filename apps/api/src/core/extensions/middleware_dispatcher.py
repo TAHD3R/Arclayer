@@ -116,31 +116,44 @@ class TenantAwareExtensionMiddlewareDispatcher:
         # Restore auth context — hooks must not mutate it.
         _restore_auth_context(request, auth_snapshot)
 
-        # Determine if this is a streaming response.
-        accept = next(
-            (v.decode("latin-1") for k, v in scope.get("headers", []) if k == b"accept"),
-            "",
-        )
-        is_streaming = "text/event-stream" in accept
-
-        if is_streaming or not self._any_after_hooks(hooks):
-            # Streaming or no after_response hooks: pass through without buffering.
+        if not self._any_after_hooks(hooks):
             await self.app(scope, receive, send)
             return
 
-        # Non-streaming with after_response hooks: capture response.
+        # Capture response; pass through streaming responses detected by Content-Type.
         captured_status: list[int] = []
         captured_headers: list[list[tuple[bytes, bytes]]] = []
         captured_body: list[bytes] = []
+        passthrough_streaming = False
+
+        def _is_streaming_response(hdrs: list[tuple[bytes, bytes]]) -> bool:
+            ct = next(
+                (v.decode("latin-1").lower() for k, v in hdrs if k.lower() == b"content-type"),
+                "",
+            )
+            return ct.startswith("text/event-stream") or ct.startswith("application/octet-stream")
 
         async def _inner_send(message: Message) -> None:
+            nonlocal passthrough_streaming
             if message["type"] == "http.response.start":
+                hdrs = message.get("headers", [])
+                if _is_streaming_response(hdrs):
+                    passthrough_streaming = True
+                    await send(message)
+                    return
                 captured_status.append(message["status"])
-                captured_headers.append(message.get("headers", []))
-            elif message["type"] == "http.response.body":
+                captured_headers.append(hdrs)
+                return
+
+            if message["type"] == "http.response.body":
+                if passthrough_streaming:
+                    await send(message)
+                    return
                 captured_body.append(message.get("body", b""))
 
         await self.app(scope, receive, _inner_send)
+        if passthrough_streaming:
+            return
 
         status = captured_status[0] if captured_status else 200
         raw_headers = captured_headers[0] if captured_headers else []

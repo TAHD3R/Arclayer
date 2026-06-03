@@ -105,15 +105,25 @@ class LLMRuntime:
         self,
         *,
         litellm_base_url: str = "http://localhost:4000",
+        litellm_master_key: str | None = None,
+        litellm_timeout_seconds: float = 120.0,
+        default_max_tokens: int = 4096,
+        default_data_retention_enabled: bool = False,
         provider: BaseLLMProvider | None = None,
     ) -> None:
         self._litellm_base_url = litellm_base_url
+        self._litellm_master_key = litellm_master_key
+        self._default_max_tokens = default_max_tokens
+        self._default_data_retention_enabled = default_data_retention_enabled
         if provider is not None:
             self._provider = provider
         else:
             from src.llm.litellm_client import LiteLLMClient
 
-            self._provider = LiteLLMClient(base_url=litellm_base_url)
+            self._provider = LiteLLMClient(
+                base_url=litellm_base_url,
+                timeout_seconds=litellm_timeout_seconds,
+            )
 
     async def chat(
         self,
@@ -241,7 +251,7 @@ class LLMRuntime:
                     reservation_id=reservation.id,
                     actual_cost_micros=actual_cost,
                 )
-        except Exception:
+        except BaseException:
             if reservation is not None:
                 await budget_release(reservation_id=reservation.id)
             raise

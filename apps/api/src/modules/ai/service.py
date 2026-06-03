@@ -36,6 +36,10 @@ class AIChatService:
         self._settings = settings
         self._runtime = runtime or LLMRuntime(
             litellm_base_url=settings.ai.litellm_base_url,
+            litellm_master_key=settings.ai.litellm_master_key,
+            litellm_timeout_seconds=settings.ai.litellm_timeout_seconds,
+            default_max_tokens=settings.ai.default_max_tokens,
+            default_data_retention_enabled=settings.ai.data_retention_enabled,
         )
         if rate_limiter is not None:
             self._rate_limiter = rate_limiter
@@ -71,11 +75,11 @@ class AIChatService:
             )
             return budget
         except Exception:
-            logger.warning(
+            logger.exception(
                 "Failed to resolve budget for workspace",
                 workspace_id=str(workspace_id),
             )
-            return None
+            raise
 
     async def chat(
         self,

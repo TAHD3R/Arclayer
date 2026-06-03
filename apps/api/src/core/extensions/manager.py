@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -319,33 +320,64 @@ class ExtensionManager:
 
     # ——— Tenant-aware activation ————————————————————————————————————————
 
+    @staticmethod
+    async def _persist_activation(
+        conn: Any,
+        extension_name: str,
+        workspace_id: UUID,
+        *,
+        active: bool,
+    ) -> None:
+        """Persist activation state.  Silently skipped when the model is unavailable."""
+        try:
+            from src.models.extensions.workspace_extension_activation import (
+                WorkspaceExtensionActivation,
+                WorkspaceExtensionActivationStatus,
+            )
+        except Exception:
+            return
+
+        status = WorkspaceExtensionActivationStatus.ACTIVE if active else WorkspaceExtensionActivationStatus.INACTIVE
+        defaults: dict[str, Any] = {"status": status}
+        if active:
+            defaults["activated_at"] = datetime.now(UTC)
+            defaults["deactivated_at"] = None
+        else:
+            defaults["deactivated_at"] = datetime.now(UTC)
+
+        await WorkspaceExtensionActivation.update_or_create(
+            extension_name=extension_name,
+            workspace_id=workspace_id,
+            defaults=defaults,
+            using_db=conn,
+        )
+
     async def activate(self, extension_name: str, workspace_id: UUID) -> int:
         instance = self._extensions.get(extension_name)
         if instance is None:
             raise CoordinationError(f"Extension '{extension_name}' is not loaded")
 
-        # 1. Validate state transition.  If invalid, this raises and nothing changes.
         instance.activate(workspace_id)
 
         new_revision: int = 1
         try:
-            # 2. Persist revision bump in a transaction.
             async with in_transaction() as conn:
                 workspace = await Workspace.filter(id=workspace_id).using_db(conn).select_for_update().first()
                 if workspace is None:
                     raise CoordinationError(f"Workspace {workspace_id} not found")
                 workspace.extension_revision += 1
                 await workspace.save(update_fields=["extension_revision", "updated_at"], using_db=conn)
+                await self._persist_activation(conn, extension_name, workspace_id, active=True)
                 new_revision = workspace.extension_revision
+        except CoordinationError:
+            raise
         except Exception:
-            # DB failed — roll back the in-memory activation.
             try:
                 instance.deactivate(workspace_id)
             except Exception:
                 pass
             raise
 
-        # 3. DB succeeded — sync tenant registry.
         self._tenant_registries.set_active(extension_name, workspace_id)
         logger.info(
             "Extension activated for workspace",
@@ -360,28 +392,25 @@ class ExtensionManager:
         if instance is None:
             raise CoordinationError(f"Extension '{extension_name}' is not loaded")
 
-        # 1. Validate state transition.  If invalid, this raises and nothing changes.
         instance.deactivate(workspace_id)
 
         new_revision: int = 1
         try:
-            # 2. Persist revision bump in a transaction.
             async with in_transaction() as conn:
                 workspace = await Workspace.filter(id=workspace_id).using_db(conn).select_for_update().first()
                 if workspace is None:
                     raise CoordinationError(f"Workspace {workspace_id} not found")
                 workspace.extension_revision += 1
                 await workspace.save(update_fields=["extension_revision", "updated_at"], using_db=conn)
+                await self._persist_activation(conn, extension_name, workspace_id, active=False)
                 new_revision = workspace.extension_revision
         except Exception:
-            # DB failed — roll back the in-memory deactivation.
             try:
                 instance.activate(workspace_id)
             except Exception:
                 pass
             raise
 
-        # 3. DB succeeded — sync tenant registry.
         self._tenant_registries.set_inactive(extension_name, workspace_id)
         logger.info(
             "Extension deactivated for workspace",
@@ -390,6 +419,35 @@ class ExtensionManager:
             revision=new_revision,
         )
         return new_revision
+
+    async def restore_persisted_activations(self) -> None:
+        """Restore workspace activations from persisted state after restart."""
+        try:
+            from src.models.extensions.workspace_extension_activation import (
+                WorkspaceExtensionActivation,
+                WorkspaceExtensionActivationStatus,
+            )
+
+            activations = await WorkspaceExtensionActivation.filter(
+                status=WorkspaceExtensionActivationStatus.ACTIVE,
+            ).all()
+        except Exception:
+            logger.debug("Cannot restore activation state, DB may not be available", exc_info=True)
+            return
+
+        restored = 0
+        for record in activations:
+            instance = self._extensions.get(record.extension_name)
+            if instance is None:
+                continue
+            try:
+                instance.activate(record.workspace_id)
+            except CoordinationError:
+                continue
+            self._tenant_registries.set_active(record.extension_name, record.workspace_id)
+            restored += 1
+        if restored:
+            logger.info("Restored persisted extension activations", count=restored)
 
     def get_instance(self, name: str) -> ExtensionInstance | None:
         return self._extensions.get(name)
