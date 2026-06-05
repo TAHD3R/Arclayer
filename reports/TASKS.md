@@ -108,15 +108,21 @@
 
 **目标:** 3 个 Agent 上线，仅读权限，对话可用，事件驱动自动化（只读分析）
 
+### 3A.0 — Extension Auth Boundary (Tenant Middleware)
+- **产出:** `src/core/middleware/tenant_context.py`——在 Dispatcher 前校验 workspace membership；从 auth token/session 解析 authenticated user；从请求上下文（URL path 或 header）取得 requested workspace candidate；用 membership 校验后才写入 `request.state` 的 `workspace_id`、`user_id`、`workspace_membership_id`；替换当前仅从 URL 提取而不校验的 `WorkspaceContextMiddleware`；Extension hooks 永远看不到未授权 Workspace 请求
+- **验证:** 未授权用户构造 victim workspace URL 时，Extension hooks 不可见请求；有效 membership 可正常通过；非成员访问返回 403
+- **依赖:** Phase 2 完成
+- **Spec 引用:** reports/AI-AGENT-SPEC.html §1.4 — Dispatcher 必须在 auth/tenant 解析之后
+
 ### 3A.1 — PydanticAI + BaseAgent
 - **产出:** `apps/api/pyproject.toml` 追加 pydantic-ai 依赖；`src/modules/agents/agents/base.py`——AgentRunEngine 委托 PydanticAI Agent.run()（非手工 tool call 循环）
 - **验证:** 单元测试：Agent 创建和基础调用
-- **依赖:** Phase 1 完成
+- **依赖:** Phase 1 完成, 3A.0
 
 ### 3A.2 — Tool Registry + 4 只读工具
 - **产出:** `src/modules/agents/tools/registry.py`（MCP 格式描述 + PydanticAI 执行）；`content_tools.py`——search_content, list_content_types, get_content, analyze_content；三重校验（执行时权限重检 + Argument-Level 策略 + Prompt Injection 防护）
 - **验证:** 工具注册/列表/调用测试；权限不足时拒绝；注入防护测试
-- **依赖:** 3A.1, Phase 2 Tenant-Aware Registry
+- **依赖:** 3A.1, Phase 2 Tenant-Aware Registry, 3A.0
 
 ### 3A.3 — AgentSessionManager + Cancel
 - **产出:** `src/modules/agents/runtime/session.py`——创建/恢复/取消会话；上下文窗口裁剪；Taskiq 协作式取消；预算预留释放

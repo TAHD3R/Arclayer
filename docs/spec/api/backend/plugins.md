@@ -46,15 +46,18 @@ This spec defines Extension runtime phases, registration boundaries, and app int
   - `app.state.plugin_registry` — canonical `PluginRegistry` (`mgr.registry`)
   - `app.state.extension_registries` — tenant-aware `TenantAwareRegistrySet`
   - `app.state.extension_middleware_registry` — registry used by the Dispatcher middleware
-- Middleware order (outermost to innermost):
-  `Security → GZip → TrustedHost → HTTPSRedirect → Locale → RequestLog → CorrelationId → WorkspaceContext → Dispatcher → Routes`
+- Middleware order (post-3A.0 target, outermost to innermost):
+  `Security → GZip → TrustedHost → HTTPSRedirect → Locale → RequestLog → CorrelationId → TenantContext → Dispatcher → Routes`
+  (Current order uses `WorkspaceContextMiddleware` as interim; 3A.0 replaces it with
+  `TenantContextMiddleware` that verifies membership, not just URL extraction.)
 - Capabilities declared in `extension.json` `provides` must be registered in `arclayer_register()`.
   Mismatches raise `ExtensionRegistrationError` at startup.
 - Cross-extension resource name conflicts raise `ExtensionResourceConflictError` at registration.
 - `activate`/`deactivate` validate state transition before DB write; failed transitions do not increment revision.
-- Dispatcher runs after `WorkspaceContextMiddleware` sets `request.state.workspace_id`.
-  Extension hooks never see unactivated workspace requests.
-  Auth context (`workspace_id`, `user_id`, `organization_id`) is snapshot before hooks and restored after.
+- Dispatcher runs after tenant/auth middleware sets `request.state.workspace_id`,
+  `request.state.user_id`, and `request.state.workspace_membership_id`.
+  Extension hooks never see unauthenticated or unactivated workspace requests.
+  Auth context is snapshot before hooks and restored after.
 
 ### 4. Validation & Error Matrix
 

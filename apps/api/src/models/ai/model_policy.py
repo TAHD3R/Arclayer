@@ -43,7 +43,7 @@ class ModelPolicy(BaseModel):
     max_cost_micros_per_request = fields.BigIntField(null=True)
 
     # Provider data retention mapping (R3 blocker #4)
-    # When false, sets OpenAI "store"=false and Anthropic retention to not store.
+    # When false: OpenAI → store=false. Anthropic has no per-request param (contract-level only).
     # When true, allows provider default behavior (may use data for training).
     data_retention_enabled = fields.BooleanField(default=False)
 
