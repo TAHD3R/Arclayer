@@ -220,7 +220,7 @@ class TestLiteLLMContract:
 
     async def test_stream_response_parsing(self) -> None:
         """Verify streaming SSE chunks are parsed correctly."""
-        client = LiteLLMClient(base_url="http://test:4000")
+        client = LiteLLMClient(base_url="http://test:4000", virtual_key="test-key")
         mock_client = _MockAsyncClient()
 
         chunk1 = json.dumps({
@@ -256,7 +256,7 @@ class TestLiteLLMContract:
 
     async def test_4xx_error_handling(self) -> None:
         """Verify 4xx responses raise HTTPStatusError before response is read."""
-        client = LiteLLMClient(base_url="http://test:4000")
+        client = LiteLLMClient(base_url="http://test:4000", virtual_key="test-key")
         mock_client = _MockAsyncClient()
         err_resp = _MockResponse(400, {"error": {"message": "Bad request", "type": "invalid_request_error"}})
         mock_client.add_response(err_resp)
@@ -268,7 +268,7 @@ class TestLiteLLMContract:
 
     async def test_5xx_error_handling(self) -> None:
         """Verify 5xx responses raise HTTPStatusError."""
-        client = LiteLLMClient(base_url="http://test:4000")
+        client = LiteLLMClient(base_url="http://test:4000", virtual_key="test-key")
         mock_client = _MockAsyncClient()
         err_resp = _MockResponse(503, {"error": {"message": "Service unavailable"}})
         mock_client.add_response(err_resp)

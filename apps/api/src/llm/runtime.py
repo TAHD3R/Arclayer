@@ -6,8 +6,8 @@ R3 audit requirements:
     - SSE event set narrowed to chat-related events.
 
 Call flow:
-    1. Key resolution (Workspace-First) — deferred to task 1.6
-    2. Model policy validation — deferred to task 1.4
+    1. Key resolution (Workspace-First)
+    2. Model policy validation
     3. Budget pre-check & atomic reservation
     4. LiteLLM proxy call
     5. Budget reconciliation (commit/release)
@@ -19,10 +19,22 @@ from __future__ import annotations
 import uuid
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Literal
 from uuid import UUID
 
 from src.llm.provider import BaseLLMProvider
+
+_API_SRC_DIR = Path(__file__).resolve().parent  # apps/api/src/llm
+_REPO_ROOT = _API_SRC_DIR.parents[3]  # repo root
+
+
+def _resolve_key_path(raw: str) -> Path:
+    """Resolve a key file path relative to the repo root."""
+    path = Path(raw)
+    if path.is_absolute():
+        return path
+    return (_REPO_ROOT / path).resolve()
 
 # Pricing in microdollars per 1k tokens (µ$/1K tokens).
 # Converted from $/1M tokens: $X/1M tokens = X µ$/1K tokens.
@@ -56,6 +68,19 @@ def compute_cost_micros(model: str, prompt_tokens: int, completion_tokens: int) 
         return prompt_tokens + completion_tokens  # rough fallback at 1 µ$/token
 
     cost = (prompt_tokens * pricing["input"] + completion_tokens * pricing["output"]) / 1000.0
+    return max(int(round(cost)), 1)
+
+
+def estimate_cost_micros(model: str, prompt_tokens: int, max_tokens: int) -> int:
+    """Pre-call cost estimate in microdollars using model pricing.
+
+    Falls back to 1 µ$/token for unknown models.
+    """
+    pricing = _PRICING_MICROS_PER_1K.get(model)
+    if pricing is None:
+        return prompt_tokens + max_tokens  # rough fallback at 1 µ$/token
+
+    cost = (prompt_tokens * pricing["input"] + max_tokens * pricing["output"]) / 1000.0
     return max(int(round(cost)), 1)
 
 
@@ -97,7 +122,7 @@ class LLMRuntime:
     """Single entry point for all LLM calls.
 
     Phase 1 scope: pure chat completion. No agent tool-calling loop.
-    Key resolution and model policy are deferred to tasks 1.4/1.6.
+    Key resolution and model policy are enforced before every call.
     Budget pre-check + reconciliation is active from day one.
     """
 
@@ -109,12 +134,16 @@ class LLMRuntime:
         litellm_timeout_seconds: float = 120.0,
         default_max_tokens: int = 4096,
         default_data_retention_enabled: bool = False,
+        master_key_path: str | None = None,
+        allow_platform_key: bool = False,
         provider: BaseLLMProvider | None = None,
     ) -> None:
         self._litellm_base_url = litellm_base_url
         self._litellm_master_key = litellm_master_key
         self._default_max_tokens = default_max_tokens
         self._default_data_retention_enabled = default_data_retention_enabled
+        self._master_key_path = _resolve_key_path(master_key_path) if master_key_path else None
+        self._allow_platform_key = allow_platform_key
         if provider is not None:
             self._provider = provider
         else:
@@ -122,9 +151,57 @@ class LLMRuntime:
 
             self._provider = LiteLLMClient(
                 base_url=litellm_base_url,
-                virtual_key=litellm_master_key,
                 timeout_seconds=litellm_timeout_seconds,
             )
+
+    async def _resolve_call_context(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        context: LLMRequestContext,
+        model: str,
+        max_tokens: int | None,
+        provider_params: dict[str, Any] | None,
+    ) -> tuple[str, int, int, int, dict[str, Any]]:
+        """Resolve key + policy before a provider call.
+
+        Returns (virtual_key, prompt_tokens, estimated_cost_micros, effective_max_tokens, merged_params).
+        """
+        from src.llm.keys import resolve_litellm_key
+        from src.llm.policy import enforce_model_policy, resolve_model_policy, resolve_provider_retention_params
+        from src.llm.token_counter import estimate_tokens
+
+        provider_name = detect_provider(model)
+        prompt_tokens = estimate_tokens(messages, model=model)
+        effective_max_tokens = max_tokens if max_tokens is not None else self._default_max_tokens
+        estimated_cost = estimate_cost_micros(model, prompt_tokens, effective_max_tokens)
+
+        resolved_key = await resolve_litellm_key(
+            workspace_id=context.workspace_id,
+            user_id=context.user_id,
+            provider=provider_name,
+            master_key_path=self._master_key_path,
+            allow_platform_key=self._allow_platform_key,
+        )
+        context.grant_id = resolved_key.grant_id
+
+        policy = await resolve_model_policy(
+            workspace_id=context.workspace_id,
+            user_id=context.user_id,
+            global_data_retention_enabled=self._default_data_retention_enabled,
+        )
+        enforce_model_policy(
+            model=model,
+            max_tokens=effective_max_tokens,
+            estimated_cost_micros=estimated_cost,
+            policy=policy,
+            provider=provider_name,
+        )
+
+        retention_params = resolve_provider_retention_params(policy, provider_name)
+        merged_params = {**(provider_params or {}), **retention_params}
+
+        return resolved_key.virtual_key, prompt_tokens, estimated_cost, effective_max_tokens, merged_params
 
     async def chat(
         self,
@@ -137,28 +214,27 @@ class LLMRuntime:
         budget_id: UUID | None = None,
         provider_params: dict[str, Any] | None = None,
     ) -> ChatResult:
-        """Perform a chat completion with budget control.
-
-        Phase 1: pure LLM call, no Agent session management.
-        Budget is pre-checked and reconciled atomically when budget_id is provided.
-        When ``provider_params`` is supplied, it is merged into the provider request
-        (e.g. ``{"store": False}`` for OpenAI data retention opt-out).
-        """
-        # Estimate cost for budget reservation.
+        """Perform a chat completion with key resolution, policy enforcement, and budget control."""
         from src.llm.budget import commit as budget_commit
         from src.llm.budget import release as budget_release
         from src.llm.budget import reserve as budget_reserve
-        from src.llm.token_counter import estimate_tokens
 
-        estimated_tokens = estimate_tokens(messages, model=model)
+        virtual_key, prompt_tokens, estimated_cost, effective_max_tokens, merged_params = (
+            await self._resolve_call_context(
+                messages,
+                context=context,
+                model=model,
+                max_tokens=max_tokens,
+                provider_params=provider_params,
+            )
+        )
 
-        # Reserve budget if budget_id is provided.
         reservation = None
         if budget_id is not None:
             reservation = await budget_reserve(
                 budget_id=budget_id,
                 request_id=uuid.uuid4(),
-                estimated_cost_micros=estimated_tokens,  # 1 µ$/token fallback estimate
+                estimated_cost_micros=estimated_cost,
             )
 
         try:
@@ -166,11 +242,11 @@ class LLMRuntime:
                 messages,
                 model=model,
                 temperature=temperature,
-                max_tokens=max_tokens if max_tokens is not None else self._default_max_tokens,
-                **(provider_params or {}),
+                max_tokens=effective_max_tokens,
+                virtual_key=virtual_key,
+                **merged_params,
             )
         except Exception as exc:
-            # Release budget reservation on failure.
             if reservation is not None:
                 await budget_release(reservation_id=reservation.id)
             raise
@@ -182,7 +258,6 @@ class LLMRuntime:
 
         actual_cost = compute_cost_micros(model, prompt_tokens, completion_tokens)
 
-        # Commit budget on success.
         if reservation is not None:
             await budget_commit(
                 reservation_id=reservation.id,
@@ -210,24 +285,27 @@ class LLMRuntime:
         budget_id: UUID | None = None,
         provider_params: dict[str, Any] | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
-        """Stream a chat completion with budget control.
-
-        Yields raw provider chunks. Budget is reserved before streaming
-        and committed/released based on outcome.
-        """
+        """Stream a chat completion with key resolution, policy enforcement, and budget control."""
         from src.llm.budget import commit as budget_commit
         from src.llm.budget import release as budget_release
         from src.llm.budget import reserve as budget_reserve
-        from src.llm.token_counter import estimate_tokens
 
-        estimated_tokens = estimate_tokens(messages, model=model)
+        virtual_key, prompt_tokens, estimated_cost, effective_max_tokens, merged_params = (
+            await self._resolve_call_context(
+                messages,
+                context=context,
+                model=model,
+                max_tokens=max_tokens,
+                provider_params=provider_params,
+            )
+        )
 
         reservation = None
         if budget_id is not None:
             reservation = await budget_reserve(
                 budget_id=budget_id,
                 request_id=uuid.uuid4(),
-                estimated_cost_micros=estimated_tokens,
+                estimated_cost_micros=estimated_cost,
             )
 
         try:
@@ -236,13 +314,13 @@ class LLMRuntime:
                 messages,
                 model=model,
                 temperature=temperature,
-                max_tokens=max_tokens if max_tokens is not None else self._default_max_tokens,
-                **(provider_params or {}),
+                max_tokens=effective_max_tokens,
+                virtual_key=virtual_key,
+                **merged_params,
             ):
                 last_chunk = chunk
                 yield chunk
 
-            # Commit budget after stream completes successfully.
             if reservation is not None and last_chunk is not None:
                 usage = last_chunk.get("usage", {})
                 prompt_tokens = usage.get("prompt_tokens", 0)

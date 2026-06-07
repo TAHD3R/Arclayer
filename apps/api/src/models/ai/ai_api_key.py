@@ -39,6 +39,11 @@ class AIAPIKey(BaseModel):
     last_used_at = fields.DatetimeField(null=True)
     expires_at = fields.DatetimeField(null=True)
 
+    # Encrypted virtual key value (Fernet-encrypted, base64-encoded).
+    virtual_key_enc = fields.TextField(null=True)
+    # Arbitrary metadata for LiteLLM proxy tagging (workspace_id, owner_user_id, grant_id).
+    metadata_json = fields.JSONField(null=True, default=None)
+
     class Meta(BaseModel.Meta):
         table = "ai_api_keys"
         abstract = False

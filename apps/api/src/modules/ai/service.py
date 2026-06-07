@@ -11,8 +11,7 @@ from src.llm.errors import LLMErrorCode
 from src.llm.mock import MockLLMProvider
 from src.llm.observability import ai_request_span
 from src.llm.rate_limiter import TokenBucket
-from src.llm.runtime import LLMRequestContext, LLMRuntime, LLMRuntimeError, compute_cost_micros, detect_provider
-from src.models.ai.model_policy import ModelPolicy
+from src.llm.runtime import LLMRequestContext, LLMRuntime, LLMRuntimeError, compute_cost_micros
 
 logger = structlog.get_logger("arclayer.ai.service")
 
@@ -40,6 +39,8 @@ class AIChatService:
             litellm_timeout_seconds=settings.ai.litellm_timeout_seconds,
             default_max_tokens=settings.ai.default_max_tokens,
             default_data_retention_enabled=settings.ai.data_retention_enabled,
+            master_key_path=settings.ai.master_key_path,
+            allow_platform_key=settings.ai.allow_platform_key,
         )
         if rate_limiter is not None:
             self._rate_limiter = rate_limiter
@@ -102,8 +103,6 @@ class AIChatService:
 
         await self._check_rate_limit(str(context.workspace_id))
 
-        provider_params = self._resolve_provider_params(resolved_model)
-
         # Resolve workspace budget for non-mock calls.
         if budget_id is None and not self._settings.ai.mock_enabled:
             budget = await self._resolve_budget(context.workspace_id)
@@ -154,7 +153,6 @@ class AIChatService:
                     temperature=temperature,
                     max_tokens=max_tokens,
                     budget_id=budget_id,
-                    provider_params=provider_params,
                 )
             except LLMRuntimeError:
                 # Already mapped by the runtime; re-raise as-is.
@@ -218,8 +216,6 @@ class AIChatService:
         resolved_model = model or self._settings.ai.default_model
         await self._check_rate_limit(str(context.workspace_id))
 
-        provider_params = self._resolve_provider_params(resolved_model)
-
         # Resolve workspace budget for non-mock calls.
         if budget_id is None and not self._settings.ai.mock_enabled:
             budget = await self._resolve_budget(context.workspace_id)
@@ -281,7 +277,6 @@ class AIChatService:
                         temperature=temperature,
                         max_tokens=max_tokens,
                         budget_id=budget_id,
-                        provider_params=provider_params,
                     ):
                         choices = chunk.get("choices", [])
                         if not choices:
@@ -315,6 +310,8 @@ class AIChatService:
                                     },
                                 },
                             }
+                except LLMRuntimeError:
+                    raise
                 except httpx.ConnectError:
                     self._raise_for_connect_error()
                 except httpx.TimeoutException:
@@ -348,30 +345,6 @@ class AIChatService:
                 message="Rate limit exceeded for AI requests",
                 status_code=429,
             )
-
-    def _resolve_provider_params(self, model: str) -> dict:
-        """Resolve data retention provider parameters for a given model.
-
-        Uses a default ModelPolicy derived from AISettings.data_retention_enabled.
-        If the policy disables retention but the provider cannot be identified,
-        logs an audit warning and returns an empty dict.
-        """
-        policy = ModelPolicy(
-            id=UUID(int=0),
-            name="_default",
-            scope="workspace",
-            data_retention_enabled=self._settings.ai.data_retention_enabled,
-        )
-        provider = detect_provider(model)
-        params = policy.to_provider_params(provider)
-        if not policy.data_retention_enabled and provider == "unknown":
-            logger.warning(
-                "Data retention opt-out cannot be honored for unknown provider",
-                model=model,
-                provider=provider,
-                error_code="PROVIDER_DATA_RETENTION_NOT_HONORED",
-            )
-        return params
 
     def _raise_for_connect_error(self) -> None:
         raise LLMRuntimeError(

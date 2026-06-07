@@ -59,6 +59,10 @@ class OrganizationMemberRepository(TortoiseORMRepository):
         ws_ids = await Workspace.filter(organization_id=organization_id).values_list("id", flat=True)
         if not ws_ids:
             return
+        from src.llm.keys import revoke_user_grants_for_workspace
+
+        for ws_id in ws_ids:
+            await revoke_user_grants_for_workspace(user_id=user_id, workspace_id=ws_id)
         await WorkspaceMembership.filter(user_id=user_id, workspace_id__in=list(ws_ids)).update(
             status=WorkspaceMembershipStatus.DISABLED
         )
@@ -76,6 +80,10 @@ class OrganizationMemberRepository(TortoiseORMRepository):
         )
         if not ws_ids:
             return
+        from src.llm.keys import revoke_user_grants_for_workspace
+
+        for ws_id in ws_ids:
+            await revoke_user_grants_for_workspace(user_id=user_id, workspace_id=ws_id, using_db=conn)
         await self.using_db(
             WorkspaceMembership.filter(
                 user_id=user_id,

@@ -608,6 +608,17 @@ class AISettings(BaseSettings):
     audit_log_enabled: bool = Field(default=True)
     metrics_enabled: bool = Field(default=True)
 
+    # Key resolution (Workspace-First)
+    master_key_path: str | None = Field(
+        default="data/keys/ai-master.key",
+        description="Path to symmetric encryption key file for virtual key storage. "
+        "Relative paths are resolved from the repository root.",
+    )
+    allow_platform_key: bool = Field(
+        default=False,
+        description="Allow fallback to platform shared virtual key when no workspace/user key exists",
+    )
+
     # Provider API keys (optional — can also be set via LiteLLM config)
     openai_api_key: str | None = Field(default=None)
     anthropic_api_key: str | None = Field(default=None)

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 from tortoise import fields
-from tortoise.signals import post_save
+from tortoise.signals import post_delete, post_save, pre_save
 
 from src.common.models import BaseModel
 
@@ -222,3 +222,44 @@ class WorkspaceMembershipRole(BaseModel):
         table = "domain_workspace_membership_roles"
         abstract = False
         unique_together = (("membership_id", "role_id"),)
+
+
+@pre_save(WorkspaceMembership)
+async def _revoke_grants_on_membership_disable(  # type: ignore[no-untyped-def]
+    sender,
+    instance: WorkspaceMembership,
+    using_db,
+    update_fields,
+) -> None:
+    """Revoke active grants when membership status changes to DISABLED."""
+    if not instance.id:
+        return  # New record, not a status change.
+
+    existing = await WorkspaceMembership.filter(id=instance.id).using_db(using_db).first()
+
+    if existing is None:
+        return
+    if existing.status != WorkspaceMembershipStatus.DISABLED and instance.status == WorkspaceMembershipStatus.DISABLED:
+        from src.llm.keys import revoke_user_grants_for_workspace
+
+        await revoke_user_grants_for_workspace(
+            user_id=instance.user_id,
+            workspace_id=instance.workspace_id,
+            using_db=using_db,
+        )
+
+
+@post_delete(WorkspaceMembership)
+async def _revoke_grants_on_member_delete(  # type: ignore[no-untyped-def]
+    sender,
+    instance: WorkspaceMembership,
+    using_db,
+) -> None:
+    """Revoke all active grants when a membership is deleted."""
+    from src.llm.keys import revoke_user_grants_for_workspace
+
+    await revoke_user_grants_for_workspace(
+        user_id=instance.user_id,
+        workspace_id=instance.workspace_id,
+        using_db=using_db,
+    )
