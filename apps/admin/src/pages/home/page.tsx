@@ -1,39 +1,43 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
-import { DefaultPage } from "@/layouts/page-shell/default-page";
-import { Button } from "@arclayer/ui/button";
-import { Card, CardContent } from "@arclayer/ui/card";
+import { Thread } from "@/components/assistant-ui/thread";
+import { AIChatRuntimeProvider } from "@/components/ai/ai-chat-runtime";
+import { useAiChatStore } from "@/stores/use-ai-chat-store";
 
+/**
+ * 根 `/` 全屏对话页（Claude 式居中对话框）。
+ * 会话管理由左侧 AI Tab 承载，主页只保留当前会话的居中对话体验。
+ * Phase 1.9 前端 AI Tab（spec §4.1 任务 1.9）。
+ */
 export function HomePage() {
-  const navigate = useNavigate();
-  const { t } = useTranslation(["account", "common", "nav"]);
-  const openProjects = () => void navigate({ to: "/projects", search: { create: undefined } });
+  const { t } = useTranslation(["common"]);
+  const activeId = useAiChatStore((s) => s.activeId);
+  const conversations = useAiChatStore((s) => s.conversations);
+  const createConversation = useAiChatStore((s) => s.createConversation);
+
+  // 首次进入且无会话时自动新建一个
+  useEffect(() => {
+    if (!activeId && conversations.length === 0) {
+      createConversation();
+    }
+  }, [activeId, conversations.length, createConversation]);
+
+  if (!activeId) {
+    return (
+      <div className="flex h-full items-center justify-center text-label-secondary">
+        {t("common:AI_CHAT_EMPTY_HINT")}
+      </div>
+    );
+  }
 
   return (
-    <DefaultPage
-      title={t("nav:NAV_HOME")}
-      showFavoriteToggle={false}
-      action={
-        <Button variant="default" onClick={openProjects}>
-          {t("account:ACCOUNT_NAV_PROJECTS")}
-        </Button>
-      }
-    >
-      <Card className="max-w-3xl">
-        <CardContent className="flex flex-col gap-4 pt-6 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-1">
-            <p className="text-body font-medium text-label-primary">{t("nav:NAV_HOME")}</p>
-            <p className="text-body text-label-secondary">
-              {t("account:ACCOUNT_PAGE_PROJECTS_DESC")}
-            </p>
-          </div>
-
-          <Button variant="outline" onClick={openProjects}>
-            {t("common:GLOBAL_HOME_OPEN_PROJECTS")}
-          </Button>
-        </CardContent>
-      </Card>
-    </DefaultPage>
+    <div className="relative flex h-full min-h-0 w-full flex-col" data-page="ai-home">
+      <div className="min-h-0 flex-1">
+        <AIChatRuntimeProvider conversationId={activeId}>
+          <Thread />
+        </AIChatRuntimeProvider>
+      </div>
+    </div>
   );
 }

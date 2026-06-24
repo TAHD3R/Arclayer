@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import type { AdminNavItem } from "@/types/admin-nav";
+import { AIConversationList } from "@/components/ai/ai-conversation-list";
 import { AdminCommandTrigger } from "@/components/layout/admin-command-trigger";
 import type { FavoriteDynamicLabelIndex } from "@/components/layout/admin-side-nav/favorite-nav-items";
 import {
@@ -27,7 +28,6 @@ import {
 } from "@arclayer/ui/sidebar";
 import { Tabs, TabsList, TabsTrigger } from "@arclayer/ui/tabs";
 import { cn } from "@arclayer/lib/utils";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { useAdminCommandPalette } from "@/hooks/use-admin-command-palette";
 import type { CommandScope } from "@/lib/command/command-types";
@@ -51,7 +51,6 @@ export type AdminSidebarShellProps = {
   className?: string;
 };
 
-type SidebarTopTab = "browse" | "inbox" | "chat";
 const ACTIVE_PILL_TAP_SCALE = 0.98;
 const BROWSE_TAB_ACTIVE_MAX_WIDTH_CLASSNAME = "data-[state=active]:max-w-[7rem]";
 const GHOST_HOVER_CLASSNAME =
@@ -62,6 +61,8 @@ const SIDEBAR_CONTENT_TRANSITION = {
   duration: 0.2,
   ease: [0.22, 1, 0.36, 1],
 } as const;
+
+type AdminSidebarTopTab = "browse" | "inbox" | "chat";
 
 function getSidebarMenuTreeItemKey(item: AdminNavItem): string {
   const childrenKey = item.children?.map(getSidebarMenuTreeItemKey).join(",");
@@ -135,8 +136,8 @@ function AdminSidebarBranding() {
 }
 
 function AdminSidebarTopTabs(props: {
-  value: SidebarTopTab;
-  onValueChange: (next: SidebarTopTab) => void;
+  value: AdminSidebarTopTab;
+  onValueChange: (next: AdminSidebarTopTab) => void;
   navItems: readonly AdminNavItem[];
   showInboxBadge?: boolean;
   unreadInboxCount?: number;
@@ -429,7 +430,7 @@ function AdminSidebarTopTabs(props: {
 }
 
 function AdminSidebarContentArea(props: {
-  activeTab: SidebarTopTab;
+  activeTab: AdminSidebarTopTab;
   showMenuSkeleton: boolean;
   mainItems: readonly AdminNavItem[];
   favoriteWorkspaceBase?: string | null;
@@ -437,7 +438,6 @@ function AdminSidebarContentArea(props: {
   resolvePermissionName?: (code: string) => string | null;
   pathnameOverride?: string;
 }) {
-  const { t } = useTranslation(["common"]);
   const menuTreeKey = useMemo(
     () =>
       props.showMenuSkeleton
@@ -479,23 +479,7 @@ function AdminSidebarContentArea(props: {
     </div>
   );
 
-  const chatContent = (
-    <Empty className="min-h-0 flex-1 gap-0 px-4 py-6">
-      <EmptyHeader className="max-w-[14rem] gap-0">
-        <EmptyMedia variant="icon" className="mb-4 text-label-secondary">
-          <MessageCircle className="size-5" aria-hidden="true" />
-        </EmptyMedia>
-        <h3>
-          <EmptyTitle className="text-callout font-semibold text-label-primary">
-            <span>{t("common:SIDEBAR_CHAT_EMPTY_TITLE")}</span>
-          </EmptyTitle>
-        </h3>
-        <EmptyDescription className="mt-2 text-footnote">
-          {t("common:SIDEBAR_CHAT_EMPTY_DESC")}
-        </EmptyDescription>
-      </EmptyHeader>
-    </Empty>
-  );
+  const chatContent = <AIConversationList />;
 
   const activeContent =
     props.activeTab === "browse" ? (
@@ -546,7 +530,7 @@ export function AdminSidebarShell({
   const { t } = useTranslation("common");
   const showFailureSkeleton = showOrgNavErrorOverlay;
   const showMenuSkeleton = showNavSkeleton || showFailureSkeleton;
-  const [activeTab, setActiveTab] = useState<SidebarTopTab>("browse");
+  const [activeTab, setActiveTab] = useState<AdminSidebarTopTab>("browse");
 
   return (
     <Sidebar

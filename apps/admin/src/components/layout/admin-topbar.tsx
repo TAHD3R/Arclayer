@@ -1,7 +1,8 @@
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Fragment, forwardRef } from "react";
 import { useTranslation } from "react-i18next";
 
+import { AskAiButton } from "@/components/ai/ask-ai-button";
 import type { ProjectAvatarIdentity } from "@/components/common/project-avatar";
 import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
 import { headerTriggerButtonClassName } from "@/components/layout/admin-scope-switcher";
@@ -274,17 +275,7 @@ function TopbarTrailing() {
       >
         <span className="hidden sm:inline">{t("common:TOPBAR_FEEDBACK")}</span>
       </Button>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        tapScale={1}
-        aria-label={t("common:TOPBAR_ASK_AI")}
-        className="text-callout font-semibold"
-      >
-        <Sparkles className="size-4 shrink-0 opacity-80" aria-hidden="true" />
-        <span className="hidden sm:inline">{t("common:TOPBAR_ASK_AI")}</span>
-      </Button>
+      <AskAiButton labelKey="common:TOPBAR_ASK_AI" />
       <AdminAccountMenu variant="header" />
     </div>
   );

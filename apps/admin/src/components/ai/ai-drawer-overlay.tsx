@@ -1,0 +1,185 @@
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { PanelRightClose, PlusIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+import { Thread } from "@/components/assistant-ui/thread";
+import { AIChatRuntimeProvider } from "@/components/ai/ai-chat-runtime";
+import { useAiChatStore } from "@/stores/use-ai-chat-store";
+import { cn } from "@arclayer/lib/utils";
+import { Button } from "@arclayer/ui/button";
+import { Input } from "@arclayer/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
+
+function DrawerIconButton(props: { label: string; onClick: () => void; children: ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          aria-label={props.label}
+          onClick={props.onClick}
+          className="text-label-secondary hover:text-label-primary"
+        >
+          {props.children}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{props.label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+export function AIDrawerOverlay() {
+  const { t } = useTranslation(["common"]);
+  const drawerOpen = useAiChatStore((s) => s.drawerOpen);
+  const activeId = useAiChatStore((s) => s.activeId);
+  const conversations = useAiChatStore((s) => s.conversations);
+  const createConversation = useAiChatStore((s) => s.createConversation);
+  const renameConversation = useAiChatStore((s) => s.renameConversation);
+  const closeDrawer = useAiChatStore((s) => s.closeDrawer);
+  const activeConversation = conversations.find((conversation) => conversation.id === activeId);
+  const conversationTitle = activeConversation?.title ?? t("common:AI_CHAT_NEW_CONVERSATION");
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(conversationTitle);
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (drawerOpen && !activeId && conversations.length === 0) {
+      createConversation();
+    }
+  }, [activeId, conversations.length, createConversation, drawerOpen]);
+
+  useEffect(() => {
+    if (!editingTitle) {
+      setTitleDraft(conversationTitle);
+    }
+  }, [conversationTitle, editingTitle]);
+
+  useEffect(() => {
+    if (editingTitle) {
+      titleInputRef.current?.focus();
+      titleInputRef.current?.select();
+    }
+  }, [editingTitle]);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || editingTitle) return;
+      if (event.key === "Escape") {
+        closeDrawer();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [closeDrawer, drawerOpen, editingTitle]);
+
+  const commitTitle = () => {
+    const nextTitle = titleDraft.trim();
+    if (activeConversation && nextTitle && nextTitle !== activeConversation.title) {
+      renameConversation(activeConversation.id, nextTitle);
+    }
+    setTitleDraft(activeConversation?.title ?? conversationTitle);
+    setEditingTitle(false);
+  };
+
+  const cancelTitleEdit = () => {
+    setTitleDraft(activeConversation?.title ?? conversationTitle);
+    setEditingTitle(false);
+  };
+
+  const handleCreateConversation = () => {
+    createConversation();
+  };
+
+  return (
+    <aside
+      className={cn(
+        "my-4 mr-4 h-[calc(100vh-2rem)] shrink-0 overflow-hidden rounded-2xl transition-[width,opacity] duration-[250ms] ease-out",
+        drawerOpen ? "w-80 opacity-100" : "w-0 opacity-0",
+      )}
+      aria-hidden={!drawerOpen}
+      aria-label={t("common:AI_CHAT_ASK")}
+    >
+      {drawerOpen ? (
+        <div className="flex h-full w-80 flex-col">
+          <div className="flex h-[61px] shrink-0 items-center gap-2">
+            <DrawerIconButton label={t("common:AI_CHAT_HIDE")} onClick={closeDrawer}>
+              <PanelRightClose className="size-4" aria-hidden="true" />
+            </DrawerIconButton>
+
+            <div className="min-w-0 flex-1">
+              {editingTitle ? (
+                <Input
+                  ref={titleInputRef}
+                  value={titleDraft}
+                  aria-label={t("common:AI_CHAT_RENAME")}
+                  onChange={(event) => setTitleDraft(event.target.value)}
+                  onBlur={commitTitle}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      commitTitle();
+                    }
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      cancelTitleEdit();
+                    }
+                  }}
+                  className="h-8 rounded-md border-transparent bg-accent/50 px-2 text-headline font-semibold"
+                />
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="block min-w-0 max-w-full cursor-text truncate rounded-md px-2 py-1 text-left text-headline font-semibold text-label-primary transition-colors hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      onClick={() => setEditingTitle(true)}
+                    >
+                      {conversationTitle}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>{t("common:AI_CHAT_RENAME")}</TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-callout font-semibold text-label-secondary hover:text-label-primary"
+                >
+                  {t("common:TOPBAR_FEEDBACK")}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t("common:TOPBAR_FEEDBACK")}</TooltipContent>
+            </Tooltip>
+            <DrawerIconButton
+              label={t("common:AI_CHAT_NEW_CONVERSATION")}
+              onClick={handleCreateConversation}
+            >
+              <PlusIcon className="size-4" aria-hidden="true" />
+            </DrawerIconButton>
+          </div>
+          <div className="min-h-0 flex-1">
+            {activeId ? (
+              <AIChatRuntimeProvider conversationId={activeId}>
+                <Thread variant="sidebar" />
+              </AIChatRuntimeProvider>
+            ) : (
+              <div className="flex h-full items-center justify-center text-center text-callout text-label-secondary">
+                {t("common:AI_CHAT_EMPTY_HINT")}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </aside>
+  );
+}

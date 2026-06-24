@@ -23,4 +23,5 @@ export const STORAGE_KEYS = {
   sidebarWidthPx: "arclayer:admin:sidebarWidthPx",
   showNotificationsBadge: "arclayer:admin:showNotificationsBadge",
   sidebarItemVisibility: "arclayer:admin:sidebarItemVisibility",
+  aiChat: "arclayer:admin:aiChat",
 } as const;

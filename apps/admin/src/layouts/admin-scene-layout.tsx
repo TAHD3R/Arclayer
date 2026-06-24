@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { getUnreadNotificationPreview } from "@/api/notifications";
+import { AIDrawerOverlay } from "@/components/ai/ai-drawer-overlay";
 import { NotificationToastContent } from "@/components/common/notification-toast-content";
 import { ContentGuard, type ContentGuardProps } from "@/layouts/page-shell/content-guard";
 import { AdminSidebarShell } from "@/components/layout/admin-sidebar-shell";
@@ -11,12 +12,14 @@ import type { FavoriteDynamicLabelIndex } from "@/components/layout/admin-side-n
 import type { SidebarBrowseProject } from "@/components/layout/project-browse-menu";
 import { useNotificationActions } from "@/hooks/use-notification-actions";
 import { RouteTransition } from "@/components/layout/route-transition";
+import { useAiChatStore } from "@/stores/use-ai-chat-store";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { SidebarInset, SidebarProvider } from "@arclayer/ui/sidebar";
 import { message } from "@arclayer/ui/admin-toast";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import type { CommandScope } from "@/lib/command/command-types";
+import { cn } from "@arclayer/lib/utils";
 
 const SIDEBAR_COLLAPSED_WIDTH_PX = 56;
 const NOTIFICATION_TOAST_PREVIEW_LIMIT = 20;
@@ -67,6 +70,7 @@ export function AdminSceneLayout({
   const sidebarWidthPx = usePreferencesStore((s) => s.sidebarWidthPx);
   const setSidebarOpen = usePreferencesStore((s) => s.setSidebarOpen);
   const setSidebarWidthPx = usePreferencesStore((s) => s.setSidebarWidthPx);
+  const aiDrawerOpen = useAiChatStore((s) => s.drawerOpen);
   const sidebarOpen = sidebarCollapsible === "none" ? true : storedSidebarOpen;
   const hasHydratedNotificationPreviewRef = useRef(false);
   const seenNotificationPreviewIdsRef = useRef<Set<string>>(new Set());
@@ -186,42 +190,60 @@ export function AdminSceneLayout({
         } as CSSProperties
       }
     >
-      <div className="flex h-screen min-h-0 w-full flex-1 bg-background">
-        <AdminSidebarShell
-          showNavSkeleton={showNavSkeleton}
-          showOrgNavErrorOverlay={showOrgNavErrorOverlay}
-          mainItems={mainItems}
-          commandScope={commandScope}
-          browseProjects={browseProjects}
-          activeBrowseProjectId={activeBrowseProjectId}
-          favoriteWorkspaceBase={favoriteWorkspaceBase}
-          favoriteDynamicLabels={favoriteDynamicLabels}
-          resolvePermissionName={resolvePermissionName}
-          pathnameOverride={sidebarPathnameOverride}
-          showInboxBadge={showNotificationsBadge}
-          unreadInboxCount={notificationPreviewQuery.data?.unreadCount ?? 0}
-          collapsible={sidebarCollapsible}
-        />
+      <div
+        className={cn(
+          "flex h-screen min-h-0 w-full flex-1 transition-colors duration-[250ms] ease-out",
+          aiDrawerOpen ? "bg-muted/70" : "bg-background",
+        )}
+      >
+        <div
+          className={cn(
+            "flex min-w-0 flex-1 overflow-hidden border bg-background transition-[margin,border-radius,border-color] duration-[250ms] ease-out",
+            aiDrawerOpen
+              ? "m-4 rounded-2xl border-border"
+              : "m-0 rounded-none border-transparent shadow-none",
+          )}
+        >
+          <AdminSidebarShell
+            showNavSkeleton={showNavSkeleton}
+            showOrgNavErrorOverlay={showOrgNavErrorOverlay}
+            mainItems={mainItems}
+            commandScope={commandScope}
+            browseProjects={browseProjects}
+            activeBrowseProjectId={activeBrowseProjectId}
+            favoriteWorkspaceBase={favoriteWorkspaceBase}
+            favoriteDynamicLabels={favoriteDynamicLabels}
+            resolvePermissionName={resolvePermissionName}
+            pathnameOverride={sidebarPathnameOverride}
+            showInboxBadge={showNotificationsBadge}
+            unreadInboxCount={notificationPreviewQuery.data?.unreadCount ?? 0}
+            collapsible={sidebarCollapsible}
+            className={aiDrawerOpen ? "h-full" : undefined}
+          />
 
-        <div className="relative flex min-w-0 flex-1 flex-col">
-          {renderTopbar()}
+          <div className="relative flex min-w-0 flex-1 flex-col">
+            {renderTopbar()}
 
-          <div className="relative flex min-h-0 flex-1">
-            <SidebarInset className="w-auto flex-1 min-w-0 overflow-hidden bg-background">
-              <div className="flex min-h-0 flex-1 flex-col overflow-auto">
-                <ContentGuard
-                  loading={loading}
-                  error={error}
-                  container={guardContainer}
-                  onRetry={onRetry}
-                  loadingVariant="form"
-                >
-                  <RouteTransition className={routeTransitionClassName}>{children}</RouteTransition>
-                </ContentGuard>
-              </div>
-            </SidebarInset>
+            <div className="relative flex min-h-0 flex-1">
+              <SidebarInset className="w-auto flex-1 min-w-0 overflow-hidden bg-background">
+                <div className="flex min-h-0 flex-1 flex-col overflow-auto">
+                  <ContentGuard
+                    loading={loading}
+                    error={error}
+                    container={guardContainer}
+                    onRetry={onRetry}
+                    loadingVariant="form"
+                  >
+                    <RouteTransition className={routeTransitionClassName}>
+                      {children}
+                    </RouteTransition>
+                  </ContentGuard>
+                </div>
+              </SidebarInset>
+            </div>
           </div>
         </div>
+        <AIDrawerOverlay />
       </div>
     </SidebarProvider>
   );

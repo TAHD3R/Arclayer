@@ -87,6 +87,7 @@ const GHOST_OPEN_CLASSNAME =
 const GHOST_SELECTED_CLASSNAME = "bg-accent text-accent-foreground dark:bg-accent/50";
 const GHOST_ACTIVE_PRESS_CLASSNAME =
   "active:!bg-accent active:!text-accent-foreground dark:active:!bg-accent/50";
+const SUBPANEL_OPEN_DELAY_MS = 80;
 const SUBPANEL_CLOSE_DELAY_MS = 120;
 
 type ScopeIdentity =
@@ -450,15 +451,25 @@ function ScopeSubpanelAction(props: {
   subpanel: ReactNode;
   className?: string;
 }) {
+  const openTimeoutRef = useRef<number | null>(null);
   const closeTimeoutRef = useRef<number | null>(null);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
     return () => {
+      if (openTimeoutRef.current !== null) {
+        window.clearTimeout(openTimeoutRef.current);
+      }
       if (closeTimeoutRef.current === null) return;
       window.clearTimeout(closeTimeoutRef.current);
     };
   }, []);
+
+  const clearOpenTimeout = () => {
+    if (openTimeoutRef.current === null) return;
+    window.clearTimeout(openTimeoutRef.current);
+    openTimeoutRef.current = null;
+  };
 
   const clearCloseTimeout = () => {
     if (closeTimeoutRef.current === null) return;
@@ -467,11 +478,22 @@ function ScopeSubpanelAction(props: {
   };
 
   const openSubpanel = () => {
+    clearOpenTimeout();
     clearCloseTimeout();
     setOpen(true);
   };
 
+  const scheduleOpen = () => {
+    clearOpenTimeout();
+    clearCloseTimeout();
+    openTimeoutRef.current = window.setTimeout(() => {
+      setOpen(true);
+      openTimeoutRef.current = null;
+    }, SUBPANEL_OPEN_DELAY_MS);
+  };
+
   const scheduleClose = () => {
+    clearOpenTimeout();
     clearCloseTimeout();
     closeTimeoutRef.current = window.setTimeout(() => {
       setOpen(false);
@@ -491,30 +513,32 @@ function ScopeSubpanelAction(props: {
         <PanelMenuButton
           className={cn("rounded-none px-3 py-2.5", props.className)}
           onClick={openSubpanel}
-          onMouseEnter={openSubpanel}
+          onMouseEnter={scheduleOpen}
           onMouseLeave={scheduleClose}
-          onFocus={openSubpanel}
+          onFocus={scheduleOpen}
           onBlur={scheduleClose}
         >
           {props.children}
         </PanelMenuButton>
       </PopoverAnchor>
-      <PopoverContent
-        side="right"
-        align="start"
-        sideOffset={8}
-        className="w-60 max-w-[calc(100vw-1rem)] p-0"
-        onOpenAutoFocus={(event) => event.preventDefault()}
-        onCloseAutoFocus={(event) => event.preventDefault()}
-        onMouseDownCapture={(event) => event.stopPropagation()}
-        onPointerDownCapture={(event) => event.stopPropagation()}
-        onMouseEnter={clearCloseTimeout}
-        onMouseLeave={scheduleClose}
-        onFocusCapture={clearCloseTimeout}
-        onBlurCapture={scheduleClose}
-      >
-        {props.subpanel}
-      </PopoverContent>
+      {open ? (
+        <PopoverContent
+          side="right"
+          align="start"
+          sideOffset={8}
+          className="w-60 max-w-[calc(100vw-1rem)] p-0"
+          onOpenAutoFocus={(event) => event.preventDefault()}
+          onCloseAutoFocus={(event) => event.preventDefault()}
+          onMouseDownCapture={(event) => event.stopPropagation()}
+          onPointerDownCapture={(event) => event.stopPropagation()}
+          onMouseEnter={clearCloseTimeout}
+          onMouseLeave={scheduleClose}
+          onFocusCapture={clearCloseTimeout}
+          onBlurCapture={scheduleClose}
+        >
+          {props.subpanel}
+        </PopoverContent>
+      ) : null}
     </Popover>
   );
 }

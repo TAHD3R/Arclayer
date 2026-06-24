@@ -4,6 +4,7 @@
 
 @import "@arclayer/ui/tokens.css" layer(theme);
 @import "tailwindcss";
+@import "tw-shimmer";
 @plugin "tailwindcss-animate";
 @custom-variant dark (&:is([data-theme="dark"] *));
 
