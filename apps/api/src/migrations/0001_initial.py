@@ -1112,7 +1112,7 @@ class Migration(migrations.Migration):
                 ('error_message', fields.TextField(null=True, unique=False)),
                 ('created_by_user_id', fields.UUIDField(null=True, db_index=True)),
             ],
-            options={'table': 'content_publish_jobs', 'app': 'models', 'indexes': [Index(fields=['status', 'scheduled_at']), Index(fields=['site_id', 'created_at'])], 'pk_attr': 'id', 'table_description': 'Asynchronous publish job records for release processing.'},
+            options={'table': 'publish_jobs', 'app': 'models', 'indexes': [Index(fields=['status', 'scheduled_at']), Index(fields=['site_id', 'created_at'])], 'pk_attr': 'id', 'table_description': 'Asynchronous publish job records for release processing.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(

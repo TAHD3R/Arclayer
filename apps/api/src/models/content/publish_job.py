@@ -43,7 +43,7 @@ class PublishJobRecord(BaseModel):
         site_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "content_publish_jobs"
+        table = "publish_jobs"
         table_description = "Asynchronous publish job records for release processing."
         abstract = False
         indexes = (("status", "scheduled_at"), ("site_id", "created_at"))
