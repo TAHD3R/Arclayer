@@ -12,7 +12,6 @@ wheels/
 # MCP files
 .serena/
 .omc/
-.claude/
 
 # Virtual environments
 .venv
