@@ -94,9 +94,9 @@ async def get_monthly_usage(
     records = (
         await cast(
             Any,
-            AIUsageDaily
-            .filter(workspace_id=workspace_id, date__gte=start_date, date__lt=end_date)
-            .values("provider", "model"),
+            AIUsageDaily.filter(workspace_id=workspace_id, date__gte=start_date, date__lt=end_date).values(
+                "provider", "model"
+            ),
         )
         .annotate(
             request_count=Sum("request_count"),
