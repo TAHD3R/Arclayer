@@ -4,27 +4,27 @@ from src.modules.tenancy.schema import TenantMigration
 
 _TENANT_OWNED_TABLES = (
     "internal_settings",
-    "domain_content_model_definitions",
-    "domain_content_model_fields",
-    "domain_content_model_relations",
-    "domain_content_model_views",
-    "domain_content_items",
-    "domain_content_versions",
-    "domain_content_presentation_documents",
-    "domain_content_seo_profiles",
-    "domain_content_component_bindings",
-    "domain_content_route_bindings",
-    "domain_content_hierarchy_nodes",
-    "domain_content_releases",
-    "domain_content_published_graph",
-    "domain_content_publish_artifacts",
-    "domain_assets",
-    "domain_asset_folders",
-    "domain_asset_tags",
-    "domain_asset_tag_links",
-    "domain_asset_usages",
-    "domain_upload_sessions",
-    "domain_upload_parts",
+    "content_model_definitions",
+    "content_model_fields",
+    "content_model_relations",
+    "content_model_views",
+    "content_items",
+    "content_versions",
+    "content_presentation_documents",
+    "content_seo_profiles",
+    "content_component_bindings",
+    "content_route_bindings",
+    "content_hierarchy_nodes",
+    "content_releases",
+    "content_published_graph",
+    "content_publish_artifacts",
+    "assets",
+    "asset_folders",
+    "asset_tags",
+    "asset_tag_links",
+    "asset_usages",
+    "upload_sessions",
+    "upload_parts",
 )
 
 
@@ -58,7 +58,7 @@ BEGIN
     FOR constraint_record IN
         SELECT con.conname
         FROM pg_constraint con
-        WHERE con.conrelid = '{schema}.domain_content_model_definitions'::regclass
+        WHERE con.conrelid = '{schema}.content_model_definitions'::regclass
           AND con.contype = 'u'
         GROUP BY con.conname, con.conkey, con.conrelid
         HAVING ARRAY(
@@ -69,15 +69,15 @@ BEGIN
         ) = ARRAY['key', 'site_id', 'workspace_id']
     LOOP
         EXECUTE format(
-            'ALTER TABLE {schema}.domain_content_model_definitions DROP CONSTRAINT %I',
+            'ALTER TABLE {schema}.content_model_definitions DROP CONSTRAINT %I',
             constraint_record.conname
         );
     END LOOP;
 END $$;
 """.strip(),
-            "DROP INDEX IF EXISTS {schema}.idx_domain_content_model_definitions_key",
+            "DROP INDEX IF EXISTS {schema}.idx_content_model_definitions_key",
             """
-ALTER TABLE {schema}.domain_content_model_definitions
+ALTER TABLE {schema}.content_model_definitions
     ADD COLUMN IF NOT EXISTS singular_key VARCHAR(64),
     ADD COLUMN IF NOT EXISTS plural_key VARCHAR(64)
 """.strip(),
@@ -90,10 +90,10 @@ BEGIN
         SELECT 1
         FROM information_schema.columns
         WHERE table_schema = replace('{schema}', '"', '')
-          AND table_name = 'domain_content_model_definitions'
+          AND table_name = 'content_model_definitions'
           AND column_name = 'key'
     ) THEN
-        UPDATE {schema}.domain_content_model_definitions
+        UPDATE {schema}.content_model_definitions
         SET
             singular_key = COALESCE(singular_key, lower(trim(key))),
             plural_key = COALESCE(
@@ -108,17 +108,17 @@ BEGIN
 END $$;
 """.strip(),
             """
-ALTER TABLE {schema}.domain_content_model_definitions
+ALTER TABLE {schema}.content_model_definitions
     ALTER COLUMN singular_key SET NOT NULL,
     ALTER COLUMN plural_key SET NOT NULL
 """.strip(),
             """
-CREATE INDEX IF NOT EXISTS idx_domain_content_model_definitions_singular_key
-    ON {schema}.domain_content_model_definitions (singular_key)
+CREATE INDEX IF NOT EXISTS idx_content_model_definitions_singular_key
+    ON {schema}.content_model_definitions (singular_key)
 """.strip(),
             """
-CREATE INDEX IF NOT EXISTS idx_domain_content_model_definitions_plural_key
-    ON {schema}.domain_content_model_definitions (plural_key)
+CREATE INDEX IF NOT EXISTS idx_content_model_definitions_plural_key
+    ON {schema}.content_model_definitions (plural_key)
 """.strip(),
             """
 DO $$
@@ -126,28 +126,28 @@ BEGIN
     IF NOT EXISTS (
         SELECT 1
         FROM pg_constraint
-        WHERE conrelid = '{schema}.domain_content_model_definitions'::regclass
-          AND conname = 'uq_domain_content_model_definitions_singular_key'
+        WHERE conrelid = '{schema}.content_model_definitions'::regclass
+          AND conname = 'uq_content_model_definitions_singular_key'
     ) THEN
-        ALTER TABLE {schema}.domain_content_model_definitions
-            ADD CONSTRAINT uq_domain_content_model_definitions_singular_key
+        ALTER TABLE {schema}.content_model_definitions
+            ADD CONSTRAINT uq_content_model_definitions_singular_key
             UNIQUE (workspace_id, site_id, singular_key);
     END IF;
 
     IF NOT EXISTS (
         SELECT 1
         FROM pg_constraint
-        WHERE conrelid = '{schema}.domain_content_model_definitions'::regclass
-          AND conname = 'uq_domain_content_model_definitions_plural_key'
+        WHERE conrelid = '{schema}.content_model_definitions'::regclass
+          AND conname = 'uq_content_model_definitions_plural_key'
     ) THEN
-        ALTER TABLE {schema}.domain_content_model_definitions
-            ADD CONSTRAINT uq_domain_content_model_definitions_plural_key
+        ALTER TABLE {schema}.content_model_definitions
+            ADD CONSTRAINT uq_content_model_definitions_plural_key
             UNIQUE (workspace_id, site_id, plural_key);
     END IF;
 END $$;
 """.strip(),
             """
-ALTER TABLE {schema}.domain_content_model_definitions
+ALTER TABLE {schema}.content_model_definitions
     DROP COLUMN IF EXISTS key
 """.strip(),
         ),
@@ -157,12 +157,12 @@ ALTER TABLE {schema}.domain_content_model_definitions
         name="content_model_update_actor",
         sql=(
             """
-ALTER TABLE {schema}.domain_content_model_definitions
+ALTER TABLE {schema}.content_model_definitions
     ADD COLUMN IF NOT EXISTS updated_by_user_id UUID NULL
 """.strip(),
             """
-CREATE INDEX IF NOT EXISTS idx_domain_content_model_definitions_updated_by_user_id
-    ON {schema}.domain_content_model_definitions (updated_by_user_id)
+CREATE INDEX IF NOT EXISTS idx_content_model_definitions_updated_by_user_id
+    ON {schema}.content_model_definitions (updated_by_user_id)
 """.strip(),
         ),
     ),
@@ -171,55 +171,55 @@ CREATE INDEX IF NOT EXISTS idx_domain_content_model_definitions_updated_by_user_
         name="content_environment_scope",
         sql=(
             """
-ALTER TABLE {schema}.domain_content_model_definitions
+ALTER TABLE {schema}.content_model_definitions
     ADD COLUMN IF NOT EXISTS environment_id UUID NULL
 """.strip(),
             """
-ALTER TABLE {schema}.domain_content_items
+ALTER TABLE {schema}.content_items
     ADD COLUMN IF NOT EXISTS environment_id UUID NULL
 """.strip(),
             """
-ALTER TABLE {schema}.domain_content_route_bindings
+ALTER TABLE {schema}.content_route_bindings
     ADD COLUMN IF NOT EXISTS environment_id UUID NULL
 """.strip(),
             """
-UPDATE {schema}.domain_content_model_definitions models
+UPDATE {schema}.content_model_definitions models
 SET environment_id = env.id
-FROM public.domain_sites sites
-JOIN public.domain_project_environments env
+FROM public.sites sites
+JOIN public.project_environments env
   ON env.project_id = sites.project_id
  AND env.key = 'production'
 WHERE models.site_id = sites.id
   AND models.environment_id IS NULL
 """.strip(),
             """
-UPDATE {schema}.domain_content_items items
+UPDATE {schema}.content_items items
 SET environment_id = env.id
-FROM public.domain_sites sites
-JOIN public.domain_project_environments env
+FROM public.sites sites
+JOIN public.project_environments env
   ON env.project_id = sites.project_id
  AND env.key = 'production'
 WHERE items.site_id = sites.id
   AND items.environment_id IS NULL
 """.strip(),
             """
-UPDATE {schema}.domain_content_route_bindings bindings
+UPDATE {schema}.content_route_bindings bindings
 SET environment_id = items.environment_id
-FROM {schema}.domain_content_items items
+FROM {schema}.content_items items
 WHERE bindings.item_id = items.id
   AND bindings.environment_id IS NULL
 """.strip(),
             """
-CREATE INDEX IF NOT EXISTS idx_domain_content_model_definitions_environment_id
-    ON {schema}.domain_content_model_definitions (environment_id)
+CREATE INDEX IF NOT EXISTS idx_content_model_definitions_environment_id
+    ON {schema}.content_model_definitions (environment_id)
 """.strip(),
             """
-CREATE INDEX IF NOT EXISTS idx_domain_content_items_environment_id
-    ON {schema}.domain_content_items (environment_id)
+CREATE INDEX IF NOT EXISTS idx_content_items_environment_id
+    ON {schema}.content_items (environment_id)
 """.strip(),
             """
-CREATE INDEX IF NOT EXISTS idx_domain_content_route_bindings_environment_id
-    ON {schema}.domain_content_route_bindings (environment_id)
+CREATE INDEX IF NOT EXISTS idx_content_route_bindings_environment_id
+    ON {schema}.content_route_bindings (environment_id)
 """.strip(),
             """
 DO $$
@@ -229,37 +229,37 @@ BEGIN
     IF EXISTS (
         SELECT 1
         FROM pg_constraint
-        WHERE conrelid = '{schema}.domain_content_items'::regclass
+        WHERE conrelid = '{schema}.content_items'::regclass
           AND conname = 'uid_domain_con_model__b995f5'
     ) THEN
-        ALTER TABLE {schema}.domain_content_items
+        ALTER TABLE {schema}.content_items
             DROP CONSTRAINT uid_domain_con_model__b995f5;
     END IF;
 
     IF EXISTS (
         SELECT 1
         FROM pg_constraint
-        WHERE conrelid = '{schema}.domain_content_model_definitions'::regclass
-          AND conname = 'uq_domain_content_model_definitions_singular_key'
+        WHERE conrelid = '{schema}.content_model_definitions'::regclass
+          AND conname = 'uq_content_model_definitions_singular_key'
     ) THEN
-        ALTER TABLE {schema}.domain_content_model_definitions
-            DROP CONSTRAINT uq_domain_content_model_definitions_singular_key;
+        ALTER TABLE {schema}.content_model_definitions
+            DROP CONSTRAINT uq_content_model_definitions_singular_key;
     END IF;
 
     IF EXISTS (
         SELECT 1
         FROM pg_constraint
-        WHERE conrelid = '{schema}.domain_content_model_definitions'::regclass
-          AND conname = 'uq_domain_content_model_definitions_plural_key'
+        WHERE conrelid = '{schema}.content_model_definitions'::regclass
+          AND conname = 'uq_content_model_definitions_plural_key'
     ) THEN
-        ALTER TABLE {schema}.domain_content_model_definitions
-            DROP CONSTRAINT uq_domain_content_model_definitions_plural_key;
+        ALTER TABLE {schema}.content_model_definitions
+            DROP CONSTRAINT uq_content_model_definitions_plural_key;
     END IF;
 
     FOR constraint_record IN
         SELECT con.conname
         FROM pg_constraint con
-        WHERE con.conrelid = '{schema}.domain_content_route_bindings'::regclass
+        WHERE con.conrelid = '{schema}.content_route_bindings'::regclass
           AND con.contype = 'u'
         GROUP BY con.conname, con.conkey, con.conrelid
         HAVING ARRAY(
@@ -273,7 +273,7 @@ BEGIN
         )
     LOOP
         EXECUTE format(
-            'ALTER TABLE {schema}.domain_content_route_bindings DROP CONSTRAINT %I',
+            'ALTER TABLE {schema}.content_route_bindings DROP CONSTRAINT %I',
             constraint_record.conname
         );
     END LOOP;
@@ -281,55 +281,55 @@ BEGIN
     IF NOT EXISTS (
         SELECT 1
         FROM pg_constraint
-        WHERE conrelid = '{schema}.domain_content_model_definitions'::regclass
-          AND conname = 'uq_domain_content_model_definitions_env_singular_key'
+        WHERE conrelid = '{schema}.content_model_definitions'::regclass
+          AND conname = 'uq_content_model_definitions_env_singular_key'
     ) THEN
-        ALTER TABLE {schema}.domain_content_model_definitions
-            ADD CONSTRAINT uq_domain_content_model_definitions_env_singular_key
+        ALTER TABLE {schema}.content_model_definitions
+            ADD CONSTRAINT uq_content_model_definitions_env_singular_key
             UNIQUE (workspace_id, site_id, environment_id, singular_key);
     END IF;
 
     IF NOT EXISTS (
         SELECT 1
         FROM pg_constraint
-        WHERE conrelid = '{schema}.domain_content_model_definitions'::regclass
-          AND conname = 'uq_domain_content_model_definitions_env_plural_key'
+        WHERE conrelid = '{schema}.content_model_definitions'::regclass
+          AND conname = 'uq_content_model_definitions_env_plural_key'
     ) THEN
-        ALTER TABLE {schema}.domain_content_model_definitions
-            ADD CONSTRAINT uq_domain_content_model_definitions_env_plural_key
+        ALTER TABLE {schema}.content_model_definitions
+            ADD CONSTRAINT uq_content_model_definitions_env_plural_key
             UNIQUE (workspace_id, site_id, environment_id, plural_key);
     END IF;
 
     IF NOT EXISTS (
         SELECT 1
         FROM pg_constraint
-        WHERE conrelid = '{schema}.domain_content_items'::regclass
-          AND conname = 'uq_domain_content_items_env_slug'
+        WHERE conrelid = '{schema}.content_items'::regclass
+          AND conname = 'uq_content_items_env_slug'
     ) THEN
-        ALTER TABLE {schema}.domain_content_items
-            ADD CONSTRAINT uq_domain_content_items_env_slug
+        ALTER TABLE {schema}.content_items
+            ADD CONSTRAINT uq_content_items_env_slug
             UNIQUE (model_definition_id, environment_id, locale, slug);
     END IF;
 
     IF NOT EXISTS (
         SELECT 1
         FROM pg_constraint
-        WHERE conrelid = '{schema}.domain_content_route_bindings'::regclass
-          AND conname = 'uq_domain_content_route_bindings_env_path'
+        WHERE conrelid = '{schema}.content_route_bindings'::regclass
+          AND conname = 'uq_content_route_bindings_env_path'
     ) THEN
-        ALTER TABLE {schema}.domain_content_route_bindings
-            ADD CONSTRAINT uq_domain_content_route_bindings_env_path
+        ALTER TABLE {schema}.content_route_bindings
+            ADD CONSTRAINT uq_content_route_bindings_env_path
             UNIQUE (site_id, environment_id, locale, path);
     END IF;
 
     IF NOT EXISTS (
         SELECT 1
         FROM pg_constraint
-        WHERE conrelid = '{schema}.domain_content_route_bindings'::regclass
-          AND conname = 'uq_domain_content_route_bindings_env_item'
+        WHERE conrelid = '{schema}.content_route_bindings'::regclass
+          AND conname = 'uq_content_route_bindings_env_item'
     ) THEN
-        ALTER TABLE {schema}.domain_content_route_bindings
-            ADD CONSTRAINT uq_domain_content_route_bindings_env_item
+        ALTER TABLE {schema}.content_route_bindings
+            ADD CONSTRAINT uq_content_route_bindings_env_item
             UNIQUE (item_id, environment_id, locale);
     END IF;
 END $$;
@@ -341,21 +341,21 @@ END $$;
         name="scheduled_release_fields",
         sql=(
             """
-ALTER TABLE {schema}.domain_content_releases
+ALTER TABLE {schema}.content_releases
     ADD COLUMN IF NOT EXISTS status VARCHAR(16) NOT NULL DEFAULT 'active',
     ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMPTZ NULL
 """.strip(),
             """
-ALTER TABLE {schema}.domain_content_releases
+ALTER TABLE {schema}.content_releases
     ALTER COLUMN activated_at DROP NOT NULL
 """.strip(),
             """
-CREATE INDEX IF NOT EXISTS idx_domain_content_releases_status
-    ON {schema}.domain_content_releases (status)
+CREATE INDEX IF NOT EXISTS idx_content_releases_status
+    ON {schema}.content_releases (status)
 """.strip(),
             """
-CREATE INDEX IF NOT EXISTS idx_domain_content_releases_scheduled_at
-    ON {schema}.domain_content_releases (scheduled_at)
+CREATE INDEX IF NOT EXISTS idx_content_releases_scheduled_at
+    ON {schema}.content_releases (scheduled_at)
 """.strip(),
         ),
     ),

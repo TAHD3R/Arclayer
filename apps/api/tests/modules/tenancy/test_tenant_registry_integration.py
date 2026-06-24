@@ -104,7 +104,7 @@ async def test_workspace_tenant_context_creates_ready_schema(prepared_db) -> Non
 SELECT column_name
 FROM information_schema.columns
 WHERE table_schema = $1
-  AND table_name = 'domain_content_model_definitions'
+  AND table_name = 'content_model_definitions'
   AND column_name IN ('key', 'singular_key', 'plural_key', 'updated_by_user_id')
 ORDER BY column_name
 """.strip(),
@@ -115,7 +115,7 @@ ORDER BY column_name
 SELECT column_name, is_nullable
 FROM information_schema.columns
 WHERE table_schema = $1
-  AND table_name = 'domain_content_releases'
+  AND table_name = 'content_releases'
   AND column_name IN ('activated_at', 'scheduled_at', 'status')
 ORDER BY column_name
 """.strip(),
