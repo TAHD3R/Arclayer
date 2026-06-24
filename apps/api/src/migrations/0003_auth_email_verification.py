@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
             field=fields.DatetimeField(null=True, db_index=True, auto_now=False, auto_now_add=False),
         ),
         ops.RunSQL(
-            sql="UPDATE domain_users SET email_verified_at = updated_at WHERE email IS NOT NULL AND email_verified_at IS NULL",
-            reverse_sql="UPDATE domain_users SET email_verified_at = NULL",
+            sql="UPDATE users SET email_verified_at = updated_at WHERE email IS NOT NULL AND email_verified_at IS NULL",
+            reverse_sql="UPDATE users SET email_verified_at = NULL",
         ),
     ]
