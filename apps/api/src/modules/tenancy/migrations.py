@@ -53,10 +53,11 @@ async def _record_status(
     await conn.execute_query(
         f"""
 INSERT INTO {schema}.{_MIGRATION_TABLE_NAME} (version, checksum, applied_at, status)
-VALUES ({migration.version}, '{migration.checksum}', CURRENT_TIMESTAMP, '{status}')
+VALUES ($1, $2, CURRENT_TIMESTAMP, $3)
 ON CONFLICT (version)
 DO UPDATE SET checksum = EXCLUDED.checksum, applied_at = EXCLUDED.applied_at, status = EXCLUDED.status
-""".strip()
+""".strip(),
+        [migration.version, migration.checksum, status],
     )
 
 
