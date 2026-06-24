@@ -100,3 +100,7 @@ catalogs:
     vitest: ^4.0.18
     zod: ^4.3.6
     zustand: ^5.0.10
+
+confirmModulesPurge: false
+
+storeDir: .pnpm-store
