@@ -21,6 +21,7 @@ export const STORAGE_KEYS = {
   assetsFolderRailOpen: "arclayer:admin:assetsFolderRailOpen",
   sidebarOpen: "arclayer:admin:sidebarOpen",
   sidebarWidthPx: "arclayer:admin:sidebarWidthPx",
+  aiDrawerWidthPx: "arclayer:admin:aiDrawerWidthPx",
   showNotificationsBadge: "arclayer:admin:showNotificationsBadge",
   sidebarItemVisibility: "arclayer:admin:sidebarItemVisibility",
   aiChat: "arclayer:admin:aiChat",

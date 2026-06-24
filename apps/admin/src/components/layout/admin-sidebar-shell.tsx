@@ -438,6 +438,7 @@ function AdminSidebarContentArea(props: {
   resolvePermissionName?: (code: string) => string | null;
   pathnameOverride?: string;
 }) {
+  const showExpandedContent = useSidebarExpandedHeaderRows();
   const menuTreeKey = useMemo(
     () =>
       props.showMenuSkeleton
@@ -480,11 +481,12 @@ function AdminSidebarContentArea(props: {
   );
 
   const chatContent = <AIConversationList />;
+  const visibleTab = showExpandedContent ? props.activeTab : "browse";
 
   const activeContent =
-    props.activeTab === "browse" ? (
+    visibleTab === "browse" ? (
       browseContent
-    ) : props.activeTab === "inbox" ? (
+    ) : visibleTab === "inbox" ? (
       <AdminSidebarInbox />
     ) : (
       chatContent
@@ -495,7 +497,7 @@ function AdminSidebarContentArea(props: {
       <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
-            key={props.activeTab}
+            key={visibleTab}
             className="flex min-h-0 min-w-0 w-full flex-1"
             initial={{ opacity: 0, x: 10 }}
             animate={{ opacity: 1, x: 0 }}

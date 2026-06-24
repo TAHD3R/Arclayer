@@ -38,11 +38,20 @@ const DEFAULT_SIDEBAR_ITEM_VISIBILITY: SidebarItemVisibility = {
 const DEFAULT_SIDEBAR_WIDTH_PX = 220;
 const MIN_SIDEBAR_WIDTH_PX = 180;
 const MAX_SIDEBAR_WIDTH_PX = 320;
+const DEFAULT_AI_DRAWER_WIDTH_PX = 320;
+const MIN_AI_DRAWER_WIDTH_PX = 320;
+const MAX_AI_DRAWER_WIDTH_PX = 960;
 
 function normalizeSidebarWidthPx(input: unknown): number {
   const raw = typeof input === "number" ? input : Number(String(input));
   if (!Number.isFinite(raw)) return DEFAULT_SIDEBAR_WIDTH_PX;
   return clampInt(raw, MIN_SIDEBAR_WIDTH_PX, MAX_SIDEBAR_WIDTH_PX);
+}
+
+function normalizeAiDrawerWidthPx(input: unknown): number {
+  const raw = typeof input === "number" ? input : Number(String(input));
+  if (!Number.isFinite(raw)) return DEFAULT_AI_DRAWER_WIDTH_PX;
+  return clampInt(raw, MIN_AI_DRAWER_WIDTH_PX, MAX_AI_DRAWER_WIDTH_PX);
 }
 
 function normalizeSidebarItemVisibility(input: unknown): SidebarItemVisibility {
@@ -300,6 +309,7 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   fontWeightPreference: null,
   sidebarOpen: true,
   sidebarWidthPx: DEFAULT_SIDEBAR_WIDTH_PX,
+  aiDrawerWidthPx: DEFAULT_AI_DRAWER_WIDTH_PX,
   showNotificationsBadge: true,
   sidebarItemVisibility: DEFAULT_SIDEBAR_ITEM_VISIBILITY,
 
@@ -425,6 +435,12 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
     set({ sidebarWidthPx: next });
   },
 
+  setAiDrawerWidthPx: (widthPx) => {
+    const next = normalizeAiDrawerWidthPx(widthPx);
+    writeStorageItem(STORAGE_KEYS.aiDrawerWidthPx, String(next));
+    set({ aiDrawerWidthPx: next });
+  },
+
   setShowNotificationsBadge: (show) => {
     writeStorageItem(STORAGE_KEYS.showNotificationsBadge, String(show));
     set({ showNotificationsBadge: show });
@@ -462,6 +478,7 @@ export function initializePreferences() {
   const sidebarOpenStored = readStorageItem(STORAGE_KEYS.sidebarOpen);
   const sidebarOpen = sidebarOpenStored ? sidebarOpenStored === "true" : true;
   const sidebarWidthPx = normalizeSidebarWidthPx(readStorageItem(STORAGE_KEYS.sidebarWidthPx));
+  const aiDrawerWidthPx = normalizeAiDrawerWidthPx(readStorageItem(STORAGE_KEYS.aiDrawerWidthPx));
   const timeZonePreference = normalizeTimeZonePreference(
     readStorageItem(STORAGE_KEYS.timeZonePreference),
   );
@@ -499,6 +516,7 @@ export function initializePreferences() {
     fontWeightPreference,
     sidebarOpen,
     sidebarWidthPx,
+    aiDrawerWidthPx,
     showNotificationsBadge,
     sidebarItemVisibility,
   });

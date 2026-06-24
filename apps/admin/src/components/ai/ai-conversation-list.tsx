@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { MessageCircle, PlusIcon, Trash2 } from "lucide-react";
 
@@ -18,10 +19,9 @@ import { Button } from "@arclayer/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
 import { Item, ItemContent, ItemHeader, ItemTitle } from "@arclayer/ui/item";
 
-function formatRelative(ts: number, locale: string): string {
+function formatRelative(ts: number, formatter: Intl.RelativeTimeFormat): string {
   const diff = Date.now() - ts;
   const min = Math.floor(diff / 60_000);
-  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
   if (min < 1) return formatter.format(0, "minute");
   if (min < 60) return formatter.format(-min, "minute");
   const hr = Math.floor(min / 60);
@@ -32,6 +32,10 @@ function formatRelative(ts: number, locale: string): string {
 
 export function AIConversationList() {
   const { i18n, t } = useTranslation(["common"]);
+  const relativeTimeFormatter = useMemo(
+    () => new Intl.RelativeTimeFormat(i18n.language, { numeric: "auto" }),
+    [i18n.language],
+  );
   const conversations = useAiChatStore((s) => s.conversations);
   const activeId = useAiChatStore((s) => s.activeId);
   const drawerOpen = useAiChatStore((s) => s.drawerOpen);
@@ -127,7 +131,7 @@ export function AIConversationList() {
                           </AlertDialogTrigger>
                         </ItemHeader>
                         <span className="min-w-0 truncate text-footnote text-label-secondary">
-                          {formatRelative(conversation.updatedAt, i18n.language)}
+                          {formatRelative(conversation.updatedAt, relativeTimeFormatter)}
                         </span>
                       </ItemContent>
                     </Item>

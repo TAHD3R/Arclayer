@@ -26,6 +26,7 @@ const TRANSITION = {
   duration: 0.4,
 };
 const ACTIVATION_CLICK_SUPPRESSION_MS = 500;
+const FLOATING_PANEL_BOUNDARY_SELECTOR = "[data-floating-panel-boundary]";
 
 interface FloatingPanelContextType {
   isOpen: boolean;
@@ -220,13 +221,95 @@ export const FloatingPanelTrigger = React.forwardRef<HTMLButtonElement, Floating
 interface FloatingPanelContentProps {
   children: React.ReactNode;
   className?: string;
-  placement?: "auto" | "top" | "bottom" | "right-start";
+  placement?: FloatingPanelPlacement;
   offset?: number;
   viewportPadding?: number;
   showTitle?: boolean;
   description?: React.ReactNode;
   titleClassName?: string;
   descriptionClassName?: string;
+}
+
+type FloatingPanelPlacement = "auto" | "top" | "bottom" | "right-start";
+
+type FloatingPanelRect = Pick<DOMRect, "bottom" | "left" | "right" | "top">;
+
+type FloatingPanelBounds = {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+};
+
+function resolveFloatingPanelBounds(params: {
+  triggerEl: HTMLElement | null;
+}): FloatingPanelBounds {
+  const boundaryEl = params.triggerEl?.closest<HTMLElement>(FLOATING_PANEL_BOUNDARY_SELECTOR);
+  if (boundaryEl) {
+    const rect = boundaryEl.getBoundingClientRect();
+    return {
+      left: rect.left,
+      right: rect.right,
+      top: rect.top,
+      bottom: rect.bottom,
+    };
+  }
+
+  return {
+    left: 0,
+    right: window.innerWidth,
+    top: 0,
+    bottom: window.innerHeight,
+  };
+}
+
+export function computeFloatingPanelPosition(params: {
+  anchorRect: FloatingPanelRect;
+  bounds: FloatingPanelBounds;
+  panelWidth: number;
+  panelHeight: number;
+  placement: FloatingPanelPlacement;
+  offset: number;
+  viewportPadding: number;
+}) {
+  const { anchorRect, bounds, panelHeight, panelWidth, offset, placement, viewportPadding } = params;
+  const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+  const leftMin = bounds.left + viewportPadding;
+  const leftMax = Math.max(leftMin, bounds.right - panelWidth - viewportPadding);
+  let left = clamp(anchorRect.left, leftMin, leftMax);
+
+  if (placement === "right-start") {
+    left = clamp(anchorRect.right + offset, leftMin, leftMax);
+    const top = clamp(
+      anchorRect.top,
+      bounds.top + viewportPadding,
+      Math.max(bounds.top + viewportPadding, bounds.bottom - panelHeight - viewportPadding),
+    );
+    return { left, top };
+  }
+
+  const spaceBottom = bounds.bottom - anchorRect.bottom;
+  const spaceTop = anchorRect.top - bounds.top;
+  const wantsBottom = placement === "bottom";
+  const wantsTop = placement === "top";
+  const canBottom = spaceBottom >= panelHeight + offset + viewportPadding;
+  const canTop = spaceTop >= panelHeight + offset + viewportPadding;
+
+  let top: number;
+  if (wantsBottom) {
+    top = anchorRect.bottom + offset;
+  } else if (wantsTop) {
+    top = anchorRect.top - panelHeight - offset;
+  } else {
+    top = canBottom || !canTop ? anchorRect.bottom + offset : anchorRect.top - panelHeight - offset;
+  }
+
+  const topMin = bounds.top + viewportPadding;
+  const topMax = Math.max(topMin, bounds.bottom - panelHeight - viewportPadding);
+  top = clamp(top, topMin, topMax);
+
+  return { left, top };
 }
 
 export function FloatingPanelContent({
@@ -258,54 +341,26 @@ export function FloatingPanelContent({
       panelEl.offsetHeight || panelEl.clientHeight || panelEl.getBoundingClientRect().height;
     if (!panelWidth || !panelHeight) return;
 
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
-
-    const leftMin = viewportPadding;
-    const leftMax = Math.max(leftMin, vw - panelWidth - viewportPadding);
-    let left = clamp(anchorRect.left, leftMin, leftMax);
-
-    if (placement === "right-start") {
-      left = clamp(anchorRect.right + offset, leftMin, leftMax);
-      const top = clamp(
-        anchorRect.top,
-        viewportPadding,
-        Math.max(viewportPadding, vh - panelHeight - viewportPadding),
-      );
-      setPosition((prev) => {
-        if (prev && Math.abs(prev.left - left) < 0.5 && Math.abs(prev.top - top) < 0.5) return prev;
-        return { left, top };
-      });
-      return;
-    }
-
-    const spaceBottom = vh - anchorRect.bottom;
-    const spaceTop = anchorRect.top;
-    const wantsBottom = placement === "bottom";
-    const wantsTop = placement === "top";
-    const canBottom = spaceBottom >= panelHeight + offset + viewportPadding;
-    const canTop = spaceTop >= panelHeight + offset + viewportPadding;
-
-    let top: number;
-    if (wantsBottom) {
-      top = anchorRect.bottom + offset;
-    } else if (wantsTop) {
-      top = anchorRect.top - panelHeight - offset;
-    } else {
-      top =
-        canBottom || !canTop ? anchorRect.bottom + offset : anchorRect.top - panelHeight - offset;
-    }
-
-    const topMin = viewportPadding;
-    const topMax = Math.max(topMin, vh - panelHeight - viewportPadding);
-    top = clamp(top, topMin, topMax);
+    const bounds = resolveFloatingPanelBounds({ triggerEl });
+    const nextPosition = computeFloatingPanelPosition({
+      anchorRect,
+      bounds,
+      panelWidth,
+      panelHeight,
+      placement,
+      offset,
+      viewportPadding,
+    });
 
     setPosition((prev) => {
-      if (prev && Math.abs(prev.left - left) < 0.5 && Math.abs(prev.top - top) < 0.5) {
+      if (
+        prev &&
+        Math.abs(prev.left - nextPosition.left) < 0.5 &&
+        Math.abs(prev.top - nextPosition.top) < 0.5
+      ) {
         return prev;
       }
-      return { left, top };
+      return nextPosition;
     });
   }, [isOpen, offset, placement, triggerEl, triggerRect, viewportPadding]);
 

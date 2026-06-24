@@ -9,6 +9,7 @@
   "AI_CHAT_HIDE": "隐藏对话",
   "AI_CHAT_HISTORY": "历史对话",
   "AI_CHAT_RENAME": "重命名对话",
+  "AI_CHAT_RESIZE": "调整 AI 对话面板宽度",
   "AI_CHAT_WELCOME_MESSAGE": "你好，我是 Arclayer AI。你可以直接提问，我会结合当前页面帮你处理。",
   "AI_CHAT_DELETE_DIALOG_DESC": "即将删除“{{title}}”。删除后，该对话记录将无法恢复。",
   "AI_CHAT_DELETE_DIALOG_TITLE": "删除此对话？",

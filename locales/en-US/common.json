@@ -9,6 +9,7 @@
   "AI_CHAT_HIDE": "Hide chat",
   "AI_CHAT_HISTORY": "Chat history",
   "AI_CHAT_RENAME": "Rename conversation",
+  "AI_CHAT_RESIZE": "Resize AI chat panel",
   "AI_CHAT_WELCOME_MESSAGE": "Hi, I'm Arclayer AI. Ask me anything and I'll help with the current page.",
   "AI_CHAT_DELETE_DIALOG_DESC": "You are about to delete \"{{title}}\". This conversation cannot be restored after deletion.",
   "AI_CHAT_DELETE_DIALOG_TITLE": "Delete this conversation?",

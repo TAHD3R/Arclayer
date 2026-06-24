@@ -36,6 +36,8 @@ export interface PreferencesState {
   setSidebarOpen: (open: boolean) => void;
   sidebarWidthPx: number;
   setSidebarWidthPx: (widthPx: number) => void;
+  aiDrawerWidthPx: number;
+  setAiDrawerWidthPx: (widthPx: number) => void;
   showNotificationsBadge: boolean;
   setShowNotificationsBadge: (show: boolean) => void;
   sidebarItemVisibility: SidebarItemVisibility;

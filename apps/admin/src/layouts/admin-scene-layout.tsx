@@ -1,6 +1,7 @@
 import type { CSSProperties, PropsWithChildren, ReactNode } from "react";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { getUnreadNotificationPreview } from "@/api/notifications";
@@ -23,6 +24,9 @@ import { cn } from "@arclayer/lib/utils";
 
 const SIDEBAR_COLLAPSED_WIDTH_PX = 56;
 const NOTIFICATION_TOAST_PREVIEW_LIMIT = 20;
+const AI_DRAWER_MIN_WIDTH_PX = 320;
+const AI_DRAWER_PANEL_MARGIN_PX = 16;
+const AI_DRAWER_LAYOUT_GUTTER_PX = 64;
 type AdminSceneLayoutProps = PropsWithChildren<{
   renderTopbar: () => ReactNode;
   mainItems: readonly AdminNavItem[];
@@ -63,18 +67,72 @@ export function AdminSceneLayout({
   routeTransitionClassName = "w-full",
   children,
 }: AdminSceneLayoutProps) {
+  const { t } = useTranslation(["common"]);
   const accessToken = useAuthStore((s) => s.accessToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const showNotificationsBadge = usePreferencesStore((s) => s.showNotificationsBadge);
   const storedSidebarOpen = usePreferencesStore((s) => s.sidebarOpen);
   const sidebarWidthPx = usePreferencesStore((s) => s.sidebarWidthPx);
+  const aiDrawerWidthPx = usePreferencesStore((s) => s.aiDrawerWidthPx);
   const setSidebarOpen = usePreferencesStore((s) => s.setSidebarOpen);
   const setSidebarWidthPx = usePreferencesStore((s) => s.setSidebarWidthPx);
+  const setAiDrawerWidthPx = usePreferencesStore((s) => s.setAiDrawerWidthPx);
   const aiDrawerOpen = useAiChatStore((s) => s.drawerOpen);
   const sidebarOpen = sidebarCollapsible === "none" ? true : storedSidebarOpen;
+  const sceneContainerRef = useRef<HTMLDivElement | null>(null);
   const hasHydratedNotificationPreviewRef = useRef(false);
   const seenNotificationPreviewIdsRef = useRef<Set<string>>(new Set());
   const { archiveItem, deleteItem, markRead, openTarget } = useNotificationActions();
+
+  const getMaxAiDrawerWidth = useCallback(() => {
+    const containerWidth = sceneContainerRef.current?.clientWidth ?? window.innerWidth;
+    return Math.max(
+      AI_DRAWER_MIN_WIDTH_PX,
+      Math.floor((containerWidth - AI_DRAWER_LAYOUT_GUTTER_PX) / 2),
+    );
+  }, []);
+
+  const clampAiDrawerWidth = useCallback(
+    (widthPx: number) =>
+      Math.min(Math.max(Math.round(widthPx), AI_DRAWER_MIN_WIDTH_PX), getMaxAiDrawerWidth()),
+    [getMaxAiDrawerWidth],
+  );
+  const effectiveAiDrawerWidthPx = useMemo(
+    () => clampAiDrawerWidth(aiDrawerWidthPx),
+    [aiDrawerWidthPx, clampAiDrawerWidth],
+  );
+
+  const handleAiDrawerResizePointerDown = useCallback(
+    (event: React.PointerEvent<HTMLButtonElement>) => {
+      if (!aiDrawerOpen) return;
+      if (event.button !== 0) return;
+
+      event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+
+      const handlePointerMove = (moveEvent: PointerEvent) => {
+        const containerRect = sceneContainerRef.current?.getBoundingClientRect();
+        if (!containerRect) return;
+        const nextWidth = containerRect.right - moveEvent.clientX - AI_DRAWER_PANEL_MARGIN_PX * 2;
+        setAiDrawerWidthPx(clampAiDrawerWidth(nextWidth));
+      };
+
+      const finishResize = () => {
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+        window.removeEventListener("pointermove", handlePointerMove);
+        window.removeEventListener("pointerup", finishResize);
+        window.removeEventListener("pointercancel", finishResize);
+      };
+
+      window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointerup", finishResize);
+      window.addEventListener("pointercancel", finishResize);
+    },
+    [aiDrawerOpen, clampAiDrawerWidth, setAiDrawerWidthPx],
+  );
 
   const notificationPreviewQuery = useQuery({
     queryKey: ["notifications", "preview", sessionVersion],
@@ -191,6 +249,7 @@ export function AdminSceneLayout({
       }
     >
       <div
+        ref={sceneContainerRef}
         className={cn(
           "flex h-screen min-h-0 w-full flex-1 transition-colors duration-[250ms] ease-out",
           aiDrawerOpen ? "bg-muted/70" : "bg-background",
@@ -198,11 +257,12 @@ export function AdminSceneLayout({
       >
         <div
           className={cn(
-            "flex min-w-0 flex-1 overflow-hidden border bg-background transition-[margin,border-radius,border-color] duration-[250ms] ease-out",
+            "relative flex min-w-0 flex-1 overflow-hidden border bg-background transition-[margin,border-radius,border-color] duration-[250ms] ease-out",
             aiDrawerOpen
               ? "m-4 rounded-2xl border-border"
               : "m-0 rounded-none border-transparent shadow-none",
           )}
+          data-floating-panel-boundary={aiDrawerOpen ? "" : undefined}
         >
           <AdminSidebarShell
             showNavSkeleton={showNavSkeleton}
@@ -242,8 +302,21 @@ export function AdminSceneLayout({
               </SidebarInset>
             </div>
           </div>
+          <button
+            type="button"
+            data-sidebar="rail"
+            data-slot="sidebar-rail"
+            aria-label={t("common:AI_CHAT_RESIZE")}
+            tabIndex={-1}
+            onPointerDown={handleAiDrawerResizePointerDown}
+            className={cn(
+              "hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-[transform,background-color] ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-0.5 sm:flex",
+              "cursor-col-resize",
+              aiDrawerOpen ? "-right-4" : "pointer-events-none -right-4",
+            )}
+          />
         </div>
-        <AIDrawerOverlay />
+        <AIDrawerOverlay widthPx={effectiveAiDrawerWidthPx} />
       </div>
     </SidebarProvider>
   );

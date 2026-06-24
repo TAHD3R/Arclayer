@@ -30,7 +30,7 @@ function DrawerIconButton(props: { label: string; onClick: () => void; children:
   );
 }
 
-export function AIDrawerOverlay() {
+export function AIDrawerOverlay(props: { widthPx: number }) {
   const { t } = useTranslation(["common"]);
   const drawerOpen = useAiChatStore((s) => s.drawerOpen);
   const activeId = useAiChatStore((s) => s.activeId);
@@ -99,13 +99,14 @@ export function AIDrawerOverlay() {
     <aside
       className={cn(
         "my-4 mr-4 h-[calc(100vh-2rem)] shrink-0 overflow-hidden rounded-2xl transition-[width,opacity] duration-[250ms] ease-out",
-        drawerOpen ? "w-80 opacity-100" : "w-0 opacity-0",
+        drawerOpen ? "opacity-100" : "w-0 opacity-0",
       )}
+      style={drawerOpen ? { width: props.widthPx } : undefined}
       aria-hidden={!drawerOpen}
       aria-label={t("common:AI_CHAT_ASK")}
     >
       {drawerOpen ? (
-        <div className="flex h-full w-80 flex-col">
+        <div className="flex h-full w-full flex-col">
           <div className="flex h-[61px] shrink-0 items-center gap-2">
             <DrawerIconButton label={t("common:AI_CHAT_HIDE")} onClick={closeDrawer}>
               <PanelRightClose className="size-4" aria-hidden="true" />

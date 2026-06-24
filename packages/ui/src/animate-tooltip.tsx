@@ -39,8 +39,8 @@ type TooltipData = {
 
 type GlobalTooltipContextType = {
   showTooltip: (data: TooltipData) => void;
-  hideTooltip: () => void;
-  hideImmediate: () => void;
+  hideTooltip: (id?: string) => void;
+  hideImmediate: (id?: string) => void;
   currentTooltip: TooltipData | null;
   transition: Transition;
   globalId: string;
@@ -111,6 +111,10 @@ function initialFromSide(side: Side): Partial<Record<"x" | "y", number>> {
   return { x: -15 };
 }
 
+function isUsableTooltipReference(el: HTMLElement | null): el is HTMLElement {
+  return Boolean(el?.isConnected);
+}
+
 type TooltipProviderProps = {
   children: React.ReactNode;
   id?: string;
@@ -130,12 +134,14 @@ function TooltipProvider({
   const [currentTooltip, setCurrentTooltip] = React.useState<TooltipData | null>(null);
   const currentTooltipRef = React.useRef<TooltipData | null>(null);
   const timeoutRef = React.useRef<number | null>(null);
+  const pendingTooltipIdRef = React.useRef<string | null>(null);
   const lastCloseTimeRef = React.useRef<number>(0);
   const referenceElRef = React.useRef<HTMLElement | null>(null);
 
   const showTooltip = React.useCallback(
     (data: TooltipData) => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      pendingTooltipIdRef.current = null;
       if (currentTooltipRef.current !== null) {
         currentTooltipRef.current = data;
         setCurrentTooltip(data);
@@ -143,7 +149,10 @@ function TooltipProvider({
       }
       const now = Date.now();
       const delay = now - lastCloseTimeRef.current < closeDelay ? 0 : openDelay;
+      pendingTooltipIdRef.current = data.id;
       timeoutRef.current = window.setTimeout(() => {
+        pendingTooltipIdRef.current = null;
+        timeoutRef.current = null;
         currentTooltipRef.current = data;
         setCurrentTooltip(data);
       }, delay);
@@ -151,17 +160,35 @@ function TooltipProvider({
     [openDelay, closeDelay],
   );
 
-  const hideTooltip = React.useCallback(() => {
+  const hideTooltip = React.useCallback((id?: string) => {
+    if (
+      id &&
+      currentTooltipRef.current?.id !== id &&
+      pendingTooltipIdRef.current !== id
+    ) {
+      return;
+    }
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    pendingTooltipIdRef.current = null;
     timeoutRef.current = window.setTimeout(() => {
+      timeoutRef.current = null;
       currentTooltipRef.current = null;
       setCurrentTooltip(null);
       lastCloseTimeRef.current = Date.now();
     }, closeDelay);
   }, [closeDelay]);
 
-  const hideImmediate = React.useCallback(() => {
+  const hideImmediate = React.useCallback((id?: string) => {
+    if (
+      id &&
+      currentTooltipRef.current?.id !== id &&
+      pendingTooltipIdRef.current !== id
+    ) {
+      return;
+    }
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = null;
+    pendingTooltipIdRef.current = null;
     currentTooltipRef.current = null;
     setCurrentTooltip(null);
     lastCloseTimeRef.current = Date.now();
@@ -175,13 +202,14 @@ function TooltipProvider({
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") hideImmediate();
     };
+    const onViewportChange = () => hideImmediate();
     window.addEventListener("keydown", onKeyDown, true);
-    window.addEventListener("scroll", hideImmediate, true);
-    window.addEventListener("resize", hideImmediate, true);
+    window.addEventListener("scroll", onViewportChange, true);
+    window.addEventListener("resize", onViewportChange, true);
     return () => {
       window.removeEventListener("keydown", onKeyDown, true);
-      window.removeEventListener("scroll", hideImmediate, true);
-      window.removeEventListener("resize", hideImmediate, true);
+      window.removeEventListener("scroll", onViewportChange, true);
+      window.removeEventListener("resize", onViewportChange, true);
     };
   }, [hideImmediate]);
 
@@ -258,7 +286,8 @@ function TooltipPortal(props: TooltipPortalProps) {
 }
 
 function TooltipOverlay() {
-  const { currentTooltip, transition, globalId, referenceElRef } = useGlobalTooltip();
+  const { currentTooltip, transition, globalId, referenceElRef, hideImmediate } =
+    useGlobalTooltip();
 
   const [rendered, setRendered] = React.useState<{
     data: TooltipData | null;
@@ -293,13 +322,17 @@ function TooltipOverlay() {
   }, [currentTooltip]);
 
   React.useLayoutEffect(() => {
-    if (referenceElRef.current) {
-      refs.setReference(referenceElRef.current);
-      update();
+    if (!rendered.open) return;
+    const referenceEl = referenceElRef.current;
+    if (!isUsableTooltipReference(referenceEl)) {
+      hideImmediate(rendered.data?.id);
+      return;
     }
-  }, [referenceElRef, refs, update, rendered.data]);
+    refs.setReference(referenceEl);
+    update();
+  }, [hideImmediate, referenceElRef, refs, update, rendered.data, rendered.open]);
 
-  const ready = x != null && y != null;
+  const ready = x != null && y != null && isUsableTooltipReference(referenceElRef.current);
   const Component = rendered.data?.contentAsChild ? Slot : motion.div;
   const resolvedSide = getResolvedSide(context.placement);
 
@@ -544,7 +577,7 @@ function TooltipTrigger({
       onPointerDown?.(e);
       if (currentTooltip?.id === id) {
         suppressNextFocusRef.current = true;
-        hideImmediate();
+        hideImmediate(id);
         Promise.resolve().then(() => {
           suppressNextFocusRef.current = false;
         });
@@ -564,9 +597,9 @@ function TooltipTrigger({
   const handleMouseLeave = React.useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       onMouseLeave?.(e);
-      hideTooltip();
+      hideTooltip(id);
     },
-    [hideTooltip, onMouseLeave],
+    [hideTooltip, id, onMouseLeave],
   );
 
   const handleFocus = React.useCallback(
@@ -582,10 +615,16 @@ function TooltipTrigger({
   const handleBlur = React.useCallback(
     (e: React.FocusEvent<HTMLDivElement>) => {
       onBlur?.(e);
-      hideTooltip();
+      hideTooltip(id);
     },
-    [hideTooltip, onBlur],
+    [hideTooltip, id, onBlur],
   );
+
+  React.useEffect(() => {
+    return () => {
+      hideImmediate(id);
+    };
+  }, [hideImmediate, id]);
 
   const Component = asChild ? Slot : motion.div;
 

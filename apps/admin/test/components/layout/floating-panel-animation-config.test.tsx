@@ -124,6 +124,7 @@ vi.mock("@/components/ui/theme-transition", () => ({
 
 import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 import {
+  computeFloatingPanelPosition,
   FloatingPanelContent,
   FloatingPanelRoot,
   FloatingPanelTrigger,
@@ -347,6 +348,30 @@ describe("floating panel animation config", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("clamps panel placement inside the active floating panel boundary", () => {
+    const position = computeFloatingPanelPosition({
+      anchorRect: {
+        left: 420,
+        right: 480,
+        top: 120,
+        bottom: 152,
+      },
+      bounds: {
+        left: 100,
+        right: 500,
+        top: 80,
+        bottom: 620,
+      },
+      panelWidth: 280,
+      panelHeight: 120,
+      placement: "auto",
+      offset: 8,
+      viewportPadding: 12,
+    });
+
+    expect(position).toEqual({ left: 208, top: 160 });
   });
 
   it("disables shared layout morph on account menu and workspace switcher sidebar triggers", async () => {

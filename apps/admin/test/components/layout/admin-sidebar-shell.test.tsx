@@ -68,6 +68,7 @@ vi.mock("@/components/layout/admin-sidebar-inbox", () => ({
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
+    i18n: { language: "zh-CN" },
     t: (key: string) => {
       if (key === "common:SIDEBAR_TOGGLE") return "Toggle sidebar";
       if (key === "common:SIDEBAR_RESIZE") return "Toggle sidebar";
@@ -583,6 +584,64 @@ describe("AdminSidebarShell", () => {
 
     await user.click(screen.getByRole("tab", { name: "common:SIDEBAR_TOP_TAB_BROWSE" }));
     await waitFor(() => {
+      expect(screen.getByTestId("admin-sider-nav")).toBeInTheDocument();
+    });
+  });
+
+  it("shows browse navigation instead of inbox or chat panels while icon-collapsed", async () => {
+    const user = userEvent.setup();
+
+    const { unmount } = renderWithSidebar(
+      <AdminSidebarShell
+        showNavSkeleton={false}
+        showOrgNavErrorOverlay={false}
+        mainItems={[]}
+        collapsible="icon"
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: "Inbox" }));
+    await waitFor(() => {
+      expect(screen.getByTestId("sidebar-inbox-content")).toBeInTheDocument();
+    });
+
+    const toggleInboxSidebar = within(
+      document.querySelector<HTMLElement>('[data-slot="sidebar-header"] > div') as HTMLElement,
+    ).getByRole("button", { name: "Toggle sidebar" });
+    fireEvent.click(toggleInboxSidebar);
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("sidebar-inbox-content")).toBeNull();
+      expect(screen.getByTestId("admin-sider-nav")).toBeInTheDocument();
+    });
+
+    unmount();
+
+    renderWithSidebar(
+      <AdminSidebarShell
+        showNavSkeleton={false}
+        showOrgNavErrorOverlay={false}
+        mainItems={[]}
+        collapsible="icon"
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: "common:SIDEBAR_TOP_TAB_CHAT" }));
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "common:SIDEBAR_CHAT_EMPTY_TITLE" }),
+      ).toBeInTheDocument();
+    });
+
+    const toggleChatSidebar = within(
+      document.querySelector<HTMLElement>('[data-slot="sidebar-header"] > div') as HTMLElement,
+    ).getByRole("button", { name: "Toggle sidebar" });
+    fireEvent.click(toggleChatSidebar);
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("heading", { name: "common:SIDEBAR_CHAT_EMPTY_TITLE" }),
+      ).not.toBeInTheDocument();
       expect(screen.getByTestId("admin-sider-nav")).toBeInTheDocument();
     });
   });

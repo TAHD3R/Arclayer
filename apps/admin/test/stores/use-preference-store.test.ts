@@ -7,7 +7,7 @@ import {
   usePreferencesStore,
 } from "@/stores/use-preference-store";
 
-describe("usePreferencesStore sidebar width preference", () => {
+describe("usePreferencesStore layout width preferences", () => {
   beforeEach(() => {
     window.localStorage.clear();
     teardownPreferences();
@@ -40,5 +40,34 @@ describe("usePreferencesStore sidebar width preference", () => {
     usePreferencesStore.getState().setSidebarWidthPx(420);
     expect(usePreferencesStore.getState().sidebarWidthPx).toBe(320);
     expect(window.localStorage.getItem(STORAGE_KEYS.sidebarWidthPx)).toBe("320");
+  });
+
+  it("initializes and persists AI drawer width in localStorage", () => {
+    initializePreferences();
+
+    expect(usePreferencesStore.getState().aiDrawerWidthPx).toBe(320);
+
+    teardownPreferences();
+    window.localStorage.setItem(STORAGE_KEYS.aiDrawerWidthPx, "456");
+
+    initializePreferences();
+
+    expect(usePreferencesStore.getState().aiDrawerWidthPx).toBe(456);
+
+    usePreferencesStore.getState().setAiDrawerWidthPx(512);
+    expect(usePreferencesStore.getState().aiDrawerWidthPx).toBe(512);
+    expect(window.localStorage.getItem(STORAGE_KEYS.aiDrawerWidthPx)).toBe("512");
+  });
+
+  it("clamps persisted and updated AI drawer width into the supported range", () => {
+    window.localStorage.setItem(STORAGE_KEYS.aiDrawerWidthPx, "1200");
+
+    initializePreferences();
+
+    expect(usePreferencesStore.getState().aiDrawerWidthPx).toBe(960);
+
+    usePreferencesStore.getState().setAiDrawerWidthPx(240);
+    expect(usePreferencesStore.getState().aiDrawerWidthPx).toBe(320);
+    expect(window.localStorage.getItem(STORAGE_KEYS.aiDrawerWidthPx)).toBe("320");
   });
 });

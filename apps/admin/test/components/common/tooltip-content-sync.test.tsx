@@ -73,4 +73,43 @@ describe("Tooltip content sync", () => {
       ),
     ).not.toThrow();
   });
+
+  it("removes the overlay when the hovered trigger unmounts", async () => {
+    const user = userEvent.setup();
+
+    function ToggleTooltip() {
+      const [visible, setVisible] = React.useState(true);
+
+      return (
+        <TooltipProvider openDelay={0} closeDelay={0}>
+          {visible ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button">Trigger</button>
+              </TooltipTrigger>
+              <TooltipContent>Unmounting tooltip</TooltipContent>
+            </Tooltip>
+          ) : null}
+          <button type="button" onClick={() => setVisible(false)}>
+            Remove trigger
+          </button>
+        </TooltipProvider>
+      );
+    }
+
+    render(<ToggleTooltip />);
+
+    await user.hover(screen.getByRole("button", { name: "Trigger" }));
+    await waitFor(() => {
+      expect(document.body.querySelector('[data-slot="tooltip-content"]')).toHaveTextContent(
+        "Unmounting tooltip",
+      );
+    });
+
+    await user.click(screen.getByRole("button", { name: "Remove trigger" }));
+
+    await waitFor(() => {
+      expect(document.body.querySelector('[data-slot="tooltip-content"]')).toBeNull();
+    });
+  });
 });
