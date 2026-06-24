@@ -31,8 +31,6 @@ def build_parser() -> argparse.ArgumentParser:
         default=OutputFormat.HUMAN.value,
         help="Output format.",
     )
-    parser.add_argument("--baseline", help="Accepted baseline path. Parsed in a later phase.")
-    parser.add_argument("--write-baseline", help="Write baseline path. Implemented in a later phase.")
     parser.add_argument(
         "-o",
         "--output",
@@ -65,7 +63,7 @@ def _selector_from_args(args: argparse.Namespace) -> ScopeSelector:
 def _render_rules() -> str:
     lines = ["Registered rules:"]
     for rule in DEFAULT_REGISTRY.all():
-        lines.append(f"- {rule.id} [{rule.severity.value}] {rule.title}")
+        lines.append(f"- {rule.id} [{rule.severity.value}/{rule.stability.value}] {rule.title}")
     return "\n".join(lines)
 
 
@@ -121,7 +119,7 @@ def main(argv: list[str] | None = None) -> int:
         _write_report(output_path, rendered_report)
         print(rendered_report)
         print(f"Report artifact: {output_path}", file=sys.stderr)
-        return 1 if report.summary.blockers > 0 else 0
+        return 1 if report.summary.blocking_findings > 0 else 0
     except ValueError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 2

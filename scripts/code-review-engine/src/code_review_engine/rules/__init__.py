@@ -22,11 +22,16 @@ class ExecutableRule:
 class RuleRegistry:
     rules: tuple[ExecutableRule, ...]
 
+    def __post_init__(self) -> None:
+        errors = validate_rules(self.rules)
+        if errors:
+            raise ValueError("Invalid code review rule registry:\n- " + "\n- ".join(errors))
+
     def all(self) -> tuple[RuleMetadata, ...]:
-        return tuple(rule.metadata for rule in self.rules)
+        return tuple(rule.metadata for rule in self.rules if rule.metadata.stability != RuleStability.RETIRED)
 
     def select(self, selector: ScopeSelector) -> tuple[ExecutableRule, ...]:
-        selected = self.rules
+        selected = tuple(rule for rule in self.rules if rule.metadata.stability != RuleStability.RETIRED)
         if selector.selected_rules:
             wanted = set(selector.selected_rules)
             selected = tuple(rule for rule in selected if rule.id in wanted)
@@ -34,6 +39,54 @@ class RuleRegistry:
             if missing:
                 raise ValueError(f"Unknown rule id(s): {', '.join(missing)}")
         return tuple(rule for rule in selected if selector.scope in rule.metadata.supported_scopes)
+
+    def stability_counts(self, rules: tuple[ExecutableRule, ...] | None = None) -> dict[str, int]:
+        selected = rules if rules is not None else self.rules
+        return {
+            "blocking": sum(1 for rule in selected if rule.metadata.stability == RuleStability.BLOCKING),
+            "active": sum(1 for rule in selected if rule.metadata.stability == RuleStability.ACTIVE),
+            "prototype": sum(1 for rule in selected if rule.metadata.stability == RuleStability.PROTOTYPE),
+            "retired": sum(1 for rule in selected if rule.metadata.stability == RuleStability.RETIRED),
+        }
+
+
+def validate_rules(rules: tuple[ExecutableRule, ...]) -> tuple[str, ...]:
+    errors: list[str] = []
+    seen: set[str] = set()
+
+    for rule in rules:
+        metadata = rule.metadata
+        if metadata.id in seen:
+            errors.append(f"duplicate rule id: {metadata.id}")
+        seen.add(metadata.id)
+
+        if not metadata.id.strip():
+            errors.append("rule id must not be empty")
+        if not metadata.title.strip():
+            errors.append(f"{metadata.id}: title must not be empty")
+        if not metadata.category.strip():
+            errors.append(f"{metadata.id}: category must not be empty")
+        if not metadata.owner.strip():
+            errors.append(f"{metadata.id}: owner must not be empty")
+        if not metadata.autofix.strip():
+            errors.append(f"{metadata.id}: autofix must not be empty")
+        if not metadata.dedupe_key.strip():
+            errors.append(f"{metadata.id}: dedupe_key must not be empty")
+        if not metadata.source or any(not source.strip() for source in metadata.source):
+            errors.append(f"{metadata.id}: source must include at least one non-empty reference")
+        if not metadata.supported_scopes:
+            errors.append(f"{metadata.id}: supported_scopes must not be empty")
+        if rule.implementation is None:
+            errors.append(f"{metadata.id}: implementation is required")
+        elif getattr(rule.implementation, "rule_id", None) != metadata.id:
+            errors.append(
+                f"{metadata.id}: implementation rule_id mismatch "
+                f"({getattr(rule.implementation, 'rule_id', None)!r})"
+            )
+        if metadata.stability == RuleStability.BLOCKING and metadata.severity != Severity.BLOCKER:
+            errors.append(f"{metadata.id}: blocking stability requires BLOCKER severity")
+
+    return tuple(errors)
 
 
 _LEGACY_RULES_BY_ID = {rule.rule_id: rule for rule in ALL_RULES}
@@ -51,6 +104,7 @@ def _legacy_rule(
     dedupe_key: str,
     autofix: str = "none",
     symbol_driven: bool,
+    stability: RuleStability = RuleStability.PROTOTYPE,
 ) -> ExecutableRule:
     implementation = _LEGACY_RULES_BY_ID.get(rule_id)
     if implementation is None:
@@ -64,7 +118,7 @@ def _legacy_rule(
             severity=severity,
             supported_scopes=supported_scopes,
             source=source,
-            stability=RuleStability.PROTOTYPE,
+            stability=stability,
             owner=owner,
             autofix=autofix,
             dedupe_key=dedupe_key,
@@ -74,56 +128,8 @@ def _legacy_rule(
     )
 
 
-def _engine_rule(
-    *,
-    rule_id: str,
-    title: str,
-    severity: Severity,
-    supported_scopes: tuple[AuditScope, ...],
-    dedupe_key: str,
-) -> ExecutableRule:
-    return ExecutableRule(
-        metadata=RuleMetadata(
-            id=rule_id,
-            title=title,
-            category="engine",
-            severity=severity,
-            supported_scopes=supported_scopes,
-            source=("docs/plans/code-review-engine/spec.md",),
-            stability=RuleStability.PROTOTYPE,
-            owner="architecture",
-            autofix="none",
-            dedupe_key=dedupe_key,
-        ),
-        implementation=None,
-        symbol_driven=False,
-    )
-
-
 DEFAULT_REGISTRY = RuleRegistry(
     rules=(
-        _engine_rule(
-            rule_id="engine.scope-isolation",
-            title="Rules must stay inside the active audit scope",
-            severity=Severity.BLOCKER,
-            supported_scopes=(
-                AuditScope.FULL,
-                AuditScope.BACKEND,
-                AuditScope.FRONTEND,
-                AuditScope.MODULE,
-                AuditScope.PACKAGE,
-                AuditScope.CHANGED,
-                AuditScope.RULES,
-            ),
-            dedupe_key="engine-scope",
-        ),
-        _engine_rule(
-            rule_id="engine.rule-metadata-required",
-            title="Every rule must declare metadata",
-            severity=Severity.BLOCKER,
-            supported_scopes=(AuditScope.FULL, AuditScope.RULES),
-            dedupe_key="rule-metadata",
-        ),
         _legacy_rule(
             rule_id="service.no-direct-orm",
             title="Service layer must not call ORM models directly",

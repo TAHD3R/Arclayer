@@ -62,6 +62,7 @@ class RuleMetadata:
 class Finding:
     rule_id: str
     severity: Severity
+    rule_stability: RuleStability
     file: str
     line: int
     column: int
@@ -82,6 +83,8 @@ class ReportSummary:
     majors: int
     minors: int
     infos: int
+    blocking_findings: int
+    report_only_findings: int
 
 
 @dataclass(frozen=True)
@@ -103,6 +106,7 @@ class AuditReport:
             {
                 **asdict(finding),
                 "severity": finding.severity.value,
+                "rule_stability": finding.rule_stability.value,
                 "source": list(finding.source),
                 "related_rules": list(finding.related_rules),
             }
@@ -116,10 +120,17 @@ def build_summary(findings: tuple[Finding, ...]) -> ReportSummary:
     major_count = sum(1 for finding in findings if finding.severity == Severity.MAJOR)
     minor_count = sum(1 for finding in findings if finding.severity == Severity.MINOR)
     info_count = sum(1 for finding in findings if finding.severity == Severity.INFO)
+    blocking_count = sum(
+        1
+        for finding in findings
+        if finding.severity == Severity.BLOCKER and finding.rule_stability == RuleStability.BLOCKING
+    )
     return ReportSummary(
         total_findings=len(findings),
         blockers=blocker_count,
         majors=major_count,
         minors=minor_count,
         infos=info_count,
+        blocking_findings=blocking_count,
+        report_only_findings=len(findings) - blocking_count,
     )

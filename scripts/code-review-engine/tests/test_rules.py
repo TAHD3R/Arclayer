@@ -3,8 +3,10 @@ from __future__ import annotations
 import pytest
 
 from code_review_engine.engine import run_audit
-from code_review_engine.models import AuditScope, ScopeSelector
-from code_review_engine.rules import DEFAULT_REGISTRY
+from code_review_engine.migrated.contracts import Violation
+from code_review_engine.migrated.rules.base import AuditRule
+from code_review_engine.models import AuditScope, RuleMetadata, RuleStability, ScopeSelector, Severity
+from code_review_engine.rules import DEFAULT_REGISTRY, ExecutableRule, RuleRegistry
 
 
 def test_registry_filters_by_scope() -> None:
@@ -20,6 +22,36 @@ def test_registry_filters_by_scope() -> None:
 def test_registry_rejects_unknown_rule_id() -> None:
     with pytest.raises(ValueError, match="Unknown rule id"):
         DEFAULT_REGISTRY.select(ScopeSelector(scope=AuditScope.RULES, selected_rules=("missing.rule",)))
+
+
+def test_registry_rejects_missing_rule_implementation() -> None:
+    with pytest.raises(ValueError, match="implementation is required"):
+        RuleRegistry(
+            rules=(
+                ExecutableRule(
+                    metadata=_metadata(rule_id="custom.missing-implementation"),
+                    implementation=None,
+                    symbol_driven=False,
+                ),
+            )
+        )
+
+
+def test_registry_rejects_blocking_stability_for_non_blocker_severity() -> None:
+    with pytest.raises(ValueError, match="blocking stability requires BLOCKER severity"):
+        RuleRegistry(
+            rules=(
+                ExecutableRule(
+                    metadata=_metadata(
+                        rule_id="custom.noop",
+                        severity=Severity.MAJOR,
+                        stability=RuleStability.BLOCKING,
+                    ),
+                    implementation=_NoopRule(),
+                    symbol_driven=False,
+                ),
+            )
+        )
 
 
 def test_frontend_page_structure_allows_page_local_directories(tmp_path) -> None:
@@ -38,6 +70,34 @@ def test_frontend_page_structure_allows_page_local_directories(tmp_path) -> None
     )
 
     assert report.findings == ()
+
+
+def _metadata(
+    *,
+    rule_id: str,
+    severity: Severity = Severity.BLOCKER,
+    stability: RuleStability = RuleStability.PROTOTYPE,
+) -> RuleMetadata:
+    return RuleMetadata(
+        id=rule_id,
+        title="Fixture rule",
+        category="test",
+        severity=severity,
+        supported_scopes=(AuditScope.RULES,),
+        source=("tests/test_rules.py",),
+        stability=stability,
+        owner="quality",
+        autofix="none",
+        dedupe_key=rule_id,
+    )
+
+
+class _NoopRule(AuditRule):
+    rule_id = "custom.noop"
+    description = "Fixture noop rule."
+
+    def check(self, symbols: list[dict]) -> list[Violation]:
+        return []
 
 
 def test_openapi_single_source_flags_removed_contract_package_and_imports(tmp_path) -> None:

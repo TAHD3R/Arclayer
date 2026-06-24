@@ -7,7 +7,7 @@ from code_review_engine.migrated.contracts import Violation
 from code_review_engine.migrated.indexer import index_files, index_roots
 from code_review_engine.migrated.runtime import set_repo_root_env
 from code_review_engine.models import AuditReport, Finding, ScopeSelector, build_summary
-from code_review_engine.rules import RuleRegistry
+from code_review_engine.rules import ExecutableRule, RuleRegistry
 
 REPORT_VERSION = "0.2"
 
@@ -36,17 +36,18 @@ def _is_in_scope(selector: ScopeSelector, file_path: str, changed_files: frozens
     return True
 
 
-def _to_finding(violation: Violation, source: tuple[str, ...]) -> Finding:
+def _to_finding(violation: Violation, executable: ExecutableRule) -> Finding:
     return Finding(
         rule_id=violation.rule,
         severity=violation.severity,
+        rule_stability=executable.metadata.stability,
         file=violation.file,
         line=violation.line,
         column=1,
         symbol="",
         message=violation.message,
         evidence=violation.evidence,
-        source=source,
+        source=executable.metadata.source,
         primary=True,
         related_rules=(),
         suggested_fix="",
@@ -79,9 +80,10 @@ def run_audit(repo_root: Path, selector: ScopeSelector, registry: RuleRegistry) 
         for violation in violations:
             if not _is_in_scope(selector, violation.file, changed_files):
                 continue
-            findings.append(_to_finding(violation, executable.metadata.source))
+            findings.append(_to_finding(violation, executable))
 
     findings_tuple = _dedupe(findings)
+    rule_stability_counts = registry.stability_counts(selected_rules)
     return AuditReport(
         version=REPORT_VERSION,
         repo_root=str(repo_root),
@@ -89,7 +91,15 @@ def run_audit(repo_root: Path, selector: ScopeSelector, registry: RuleRegistry) 
         rules_applied=tuple(executed_rule_ids),
         findings=findings_tuple,
         summary=build_summary(findings_tuple),
-        metadata={"status": "migrated", "rules_total": str(len(executed_rule_ids)), "indexed_symbols": str(len(symbols))},
+        metadata={
+            "status": "ok",
+            "enforcement": "blocking-rule-stability",
+            "rules_total": str(len(executed_rule_ids)),
+            "rules_blocking": str(rule_stability_counts["blocking"]),
+            "rules_active": str(rule_stability_counts["active"]),
+            "rules_prototype": str(rule_stability_counts["prototype"]),
+            "indexed_symbols": str(len(symbols)),
+        },
     )
 
 
@@ -111,9 +121,14 @@ def _changed_python_index_files(changed_files: frozenset[str]) -> frozenset[str]
 
 def _git_lines(repo_root: Path, args: list[str]) -> tuple[str, ...]:
     try:
-        output = subprocess.check_output(["git", *args], cwd=repo_root, text=True, stderr=subprocess.DEVNULL)
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return ()
+        output = subprocess.check_output(["git", *args], cwd=repo_root, text=True, stderr=subprocess.PIPE)
+    except subprocess.CalledProcessError as exc:
+        stderr = (exc.stderr or "").strip()
+        command = "git " + " ".join(args)
+        detail = f": {stderr}" if stderr else ""
+        raise ValueError(f"Git command failed for changed-scope discovery ({command}){detail}") from exc
+    except FileNotFoundError as exc:
+        raise ValueError("Git executable is required for --scope changed") from exc
     return tuple(line.strip() for line in output.splitlines() if line.strip())
 
 
@@ -161,6 +176,7 @@ def _dedupe(findings: list[Finding]) -> tuple[Finding, ...]:
         grouped[key] = Finding(
             rule_id=current.rule_id,
             severity=current.severity,
+            rule_stability=current.rule_stability,
             file=current.file,
             line=current.line,
             column=current.column,
