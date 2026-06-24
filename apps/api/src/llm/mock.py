@@ -14,10 +14,13 @@ from __future__ import annotations
 
 import time
 import uuid
+from collections.abc import AsyncIterator
 from typing import Any
 
+from src.llm.provider import BaseLLMProvider
 
-class MockLLMProvider:
+
+class MockLLMProvider(BaseLLMProvider):
     """Fake LLM provider that returns canned responses.
 
     Used in development when no real provider API keys are configured,
@@ -51,6 +54,7 @@ class MockLLMProvider:
         temperature: float | None = None,
         max_tokens: int | None = None,
         stream: bool = False,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         """Simulate a chat completion call.
 
@@ -108,7 +112,8 @@ class MockLLMProvider:
         model: str = "mock",
         temperature: float | None = None,
         max_tokens: int | None = None,
-    ):
+        **kwargs: Any,
+    ) -> AsyncIterator[dict[str, Any]]:
         """Simulate a streaming chat completion.
 
         Yields SSE-style chunks that mirror LiteLLM's streaming response format.

@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import json
 from datetime import UTC, datetime, timedelta
+from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID, uuid4
 
@@ -64,7 +65,7 @@ class _MockResponse:
             raise httpx.HTTPStatusError(
                 f"HTTP {self.status_code}",
                 request=MagicMock(),
-                response=self,
+                response=cast(httpx.Response, self),
             )
 
     def json(self) -> dict:
@@ -301,11 +302,12 @@ class TestMockLLMIntegration:
         settings = get_settings()
         service = AIChatService(settings, runtime=mock_runtime)
         context = LLMRequestContext(workspace_id=uuid4())
-        result = await service.chat(
-            [{"role": "user", "content": "Hello"}],
-            context=context,
-            model="gpt-4o-mini",
-        )
+        with patch.object(service, "_resolve_budget", new=AsyncMock(return_value=None)):
+            result = await service.chat(
+                [{"role": "user", "content": "Hello"}],
+                context=context,
+                model="gpt-4o-mini",
+            )
 
         assert result["id"] == "mock-cid"
         assert result["model"] == "gpt-4o-mini"
@@ -351,10 +353,11 @@ class TestMockLLMIntegration:
         context = LLMRequestContext(workspace_id=uuid4())
 
         with pytest.raises(LLMRuntimeError) as exc_info:
-            await service.chat(
-                [{"role": "user", "content": "Hello"}],
-                context=context,
-            )
+            with patch.object(service, "_resolve_budget", new=AsyncMock(return_value=None)):
+                await service.chat(
+                    [{"role": "user", "content": "Hello"}],
+                    context=context,
+                )
         assert exc_info.value.code == "PROVIDER_UNAVAILABLE"
         assert exc_info.value.status_code == 503
 
@@ -684,14 +687,15 @@ class TestEndToEndChatFlow:
         )
 
         transport = ASGITransport(app=app, raise_app_exceptions=True)
-        async with AsyncClient(transport=transport, base_url="http://test") as http:
-            response = await http.post(
-                "/api/v1/chat",
-                json={
-                    "messages": [{"role": "user", "content": "Hello"}],
-                    "model": "gpt-4o-mini",
-                },
-            )
+        with patch.object(service, "_resolve_budget", new=AsyncMock(return_value=None)):
+            async with AsyncClient(transport=transport, base_url="http://test") as http:
+                response = await http.post(
+                    "/api/v1/chat",
+                    json={
+                        "messages": [{"role": "user", "content": "Hello"}],
+                        "model": "gpt-4o-mini",
+                    },
+                )
 
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         body = response.json()
@@ -727,13 +731,14 @@ class TestEndToEndChatFlow:
         )
 
         transport = ASGITransport(app=app, raise_app_exceptions=True)
-        async with AsyncClient(transport=transport, base_url="http://test") as http:
-            response = await http.post(
-                "/api/v1/chat",
-                json={
-                    "messages": [{"role": "user", "content": "Hello"}],
-                },
-            )
+        with patch.object(service, "_resolve_budget", new=AsyncMock(return_value=None)):
+            async with AsyncClient(transport=transport, base_url="http://test") as http:
+                response = await http.post(
+                    "/api/v1/chat",
+                    json={
+                        "messages": [{"role": "user", "content": "Hello"}],
+                    },
+                )
 
         assert response.status_code == 200
         body = response.json()
@@ -763,13 +768,14 @@ class TestEndToEndChatFlow:
         )
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
-        async with AsyncClient(transport=transport, base_url="http://test") as http:
-            response = await http.post(
-                "/api/v1/chat",
-                json={
-                    "messages": [{"role": "user", "content": "Hello"}],
-                },
-            )
+        with patch.object(service, "_resolve_budget", new=AsyncMock(return_value=None)):
+            async with AsyncClient(transport=transport, base_url="http://test") as http:
+                response = await http.post(
+                    "/api/v1/chat",
+                    json={
+                        "messages": [{"role": "user", "content": "Hello"}],
+                    },
+                )
 
         assert response.status_code == 402
         body = response.json()

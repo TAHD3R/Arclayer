@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib.util
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 from tortoise.transactions import in_transaction
@@ -12,7 +12,6 @@ from src.core.extensions.manifest import (
     CoordinationError,
     ExtensionManifest,
     InvalidStateTransitionError,
-    ManifestParseError,
     PackageState,
     PackageStateMachine,
     ProcessState,
@@ -165,13 +164,9 @@ class ExtensionManager:
         entry_path = (ext_dir / manifest.entry).resolve()
         ext_dir_resolved = ext_dir.resolve()
         if not str(entry_path).startswith(str(ext_dir_resolved)):
-            raise ExtensionLoadError(
-                f"Entry module '{manifest.entry}' resolves outside extension directory {ext_dir}"
-            )
+            raise ExtensionLoadError(f"Entry module '{manifest.entry}' resolves outside extension directory {ext_dir}")
         if not entry_path.is_file():
-            raise ExtensionLoadError(
-                f"Entry module '{manifest.entry}' not found in {ext_dir}"
-            )
+            raise ExtensionLoadError(f"Entry module '{manifest.entry}' not found in {ext_dir}")
 
         spec = importlib.util.spec_from_file_location(
             f"extensions.{manifest.name}",
@@ -185,9 +180,7 @@ class ExtensionManager:
 
         factory = getattr(module, "create_plugin", None)
         if factory is None:
-            raise ExtensionLoadError(
-                f"Extension '{manifest.name}' entry module does not export create_plugin()"
-            )
+            raise ExtensionLoadError(f"Extension '{manifest.name}' entry module does not export create_plugin()")
 
         plugin = factory() if callable(factory) else factory
         process_sm.transition_to(ProcessState.LOADED)
@@ -223,7 +216,7 @@ class ExtensionManager:
                 )
                 continue
 
-            plugin = instance.plugin
+            plugin = cast(Any, instance.plugin)
             if hasattr(plugin, "arclayer_register"):
                 plugin.arclayer_register(self._registry)
 
@@ -289,7 +282,7 @@ class ExtensionManager:
                 )
                 continue
 
-            plugin = instance.plugin
+            plugin = cast(Any, instance.plugin)
             if hasattr(plugin, "arclayer_bootstrap"):
                 plugin.arclayer_bootstrap(app)
 
@@ -298,7 +291,7 @@ class ExtensionManager:
     async def ready_all(self, app: Any) -> None:
         """Call arclayer_ready on each plugin."""
         for instance in self._extensions.values():
-            plugin = instance.plugin
+            plugin = cast(Any, instance.plugin)
             if hasattr(plugin, "arclayer_ready"):
                 plugin.arclayer_ready(app)
 
@@ -307,7 +300,7 @@ class ExtensionManager:
     async def destroy_all(self) -> None:
         """Transition all extensions to DESTROYED and call arclayer_destroy."""
         for instance in self._extensions.values():
-            plugin = instance.plugin
+            plugin = cast(Any, instance.plugin)
             if hasattr(plugin, "arclayer_destroy"):
                 plugin.arclayer_destroy()
 

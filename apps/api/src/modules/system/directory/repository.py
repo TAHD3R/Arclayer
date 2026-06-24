@@ -340,12 +340,11 @@ class SystemDirectoryRepository(TortoiseORMRepository):
     async def disable_user_workspace_memberships(self, *, user_id: UUID) -> int:
         from src.llm.keys import revoke_user_grants_for_workspace
 
-        memberships = await WorkspaceMembership.filter(
-            user_id=user_id, status=WorkspaceMembershipStatus.ACTIVE
-        ).all()
+        memberships = await WorkspaceMembership.filter(user_id=user_id, status=WorkspaceMembershipStatus.ACTIVE).all()
         for m in memberships:
             await revoke_user_grants_for_workspace(
-                user_id=user_id, workspace_id=m.workspace_id,
+                user_id=user_id,
+                workspace_id=m.workspace_id,
             )
         return await WorkspaceMembership.filter(user_id=user_id).update(
             status=WorkspaceMembershipStatus.DISABLED,

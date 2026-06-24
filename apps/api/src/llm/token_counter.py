@@ -9,6 +9,9 @@ or the model is unknown.
 
 from __future__ import annotations
 
+import importlib
+from typing import Any, cast
+
 # Mapping of model names to tiktoken encodings.
 _MODEL_ENCODING: dict[str, str] = {
     "gpt-4o": "o200k_base",
@@ -31,8 +34,7 @@ def count_tokens(text: str, *, model: str = "gpt-4o-mini") -> int:
     encoding_name = _MODEL_ENCODING.get(model)
     if encoding_name:
         try:
-            import tiktoken
-
+            tiktoken = cast(Any, importlib.import_module("tiktoken"))
             encoding = tiktoken.get_encoding(encoding_name)
             return len(encoding.encode(text))
         except (ImportError, ValueError):

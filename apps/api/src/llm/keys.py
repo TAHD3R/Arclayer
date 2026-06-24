@@ -122,13 +122,18 @@ async def resolve_litellm_key(
     # Tier 1: Workspace-owned Virtual Key (filter expired at query level).
     from tortoise.expressions import Q
 
-    ws_key = await AIAPIKey.filter(
-        owner_type=KeyOwnerType.WORKSPACE,
-        owner_id=workspace_id,
-        key_type=KeyType.VIRTUAL_KEY,
-        provider=provider,
-        is_active=True,
-    ).filter(Q(expires_at__gt=now) | Q(expires_at__isnull=True)).first()
+    ws_key = (
+        await AIAPIKey
+        .filter(
+            owner_type=KeyOwnerType.WORKSPACE,
+            owner_id=workspace_id,
+            key_type=KeyType.VIRTUAL_KEY,
+            provider=provider,
+            is_active=True,
+        )
+        .filter(Q(expires_at__gt=now) | Q(expires_at__isnull=True))
+        .first()
+    )
 
     if ws_key is not None:
         plain = _decrypt_key(ws_key, master_key_path)
@@ -192,12 +197,17 @@ async def resolve_litellm_key(
 
     # Tier 3: Platform shared Virtual Key (only when explicitly allowed).
     if allow_platform_key:
-        platform_key = await AIAPIKey.filter(
-            owner_type=KeyOwnerType.PLATFORM,
-            key_type=KeyType.VIRTUAL_KEY,
-            provider=provider,
-            is_active=True,
-        ).filter(Q(expires_at__gt=now) | Q(expires_at__isnull=True)).first()
+        platform_key = (
+            await AIAPIKey
+            .filter(
+                owner_type=KeyOwnerType.PLATFORM,
+                key_type=KeyType.VIRTUAL_KEY,
+                provider=provider,
+                is_active=True,
+            )
+            .filter(Q(expires_at__gt=now) | Q(expires_at__isnull=True))
+            .first()
+        )
 
         if platform_key is not None:
             plain = _decrypt_key(platform_key, master_key_path)

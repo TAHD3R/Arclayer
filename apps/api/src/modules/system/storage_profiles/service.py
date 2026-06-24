@@ -220,7 +220,7 @@ class StorageProfilesService(BaseService):
             },
         )
         record.last_test_status = status
-        record.last_test_message = message
+        cast(Any, record).last_test_message = message
         record.last_tested_at = now
         await record.save(update_fields=["last_test_status", "last_test_message", "last_tested_at", "updated_at"])
 

@@ -8,6 +8,7 @@ R3 audit requirement:
 from __future__ import annotations
 
 from datetime import date, timedelta
+from typing import Any, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from tortoise.functions import Sum
@@ -91,9 +92,12 @@ async def get_monthly_usage(
 
     # Per-model breakdown.
     records = (
-        await AIUsageDaily
-        .filter(workspace_id=workspace_id, date__gte=start_date, date__lt=end_date)
-        .values("provider", "model")
+        await cast(
+            Any,
+            AIUsageDaily
+            .filter(workspace_id=workspace_id, date__gte=start_date, date__lt=end_date)
+            .values("provider", "model"),
+        )
         .annotate(
             request_count=Sum("request_count"),
             prompt_tokens=Sum("prompt_tokens"),

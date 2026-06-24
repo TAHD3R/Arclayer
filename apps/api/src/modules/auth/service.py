@@ -771,9 +771,12 @@ class AuthService(BaseService):
                 # Revoke grants before bulk membership disable (Tortoise signals do not fire for .update()).
                 from src.llm.keys import revoke_user_grants_for_workspace
 
-                active_memberships = await WorkspaceMembership.filter(
-                    user_id=user_id, status=WorkspaceMembershipStatus.ACTIVE
-                ).using_db(conn).all()
+                active_memberships = (
+                    await WorkspaceMembership
+                    .filter(user_id=user_id, status=WorkspaceMembershipStatus.ACTIVE)
+                    .using_db(conn)
+                    .all()
+                )
                 for m in active_memberships:
                     await revoke_user_grants_for_workspace(
                         user_id=user_id,

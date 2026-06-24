@@ -36,6 +36,7 @@ def _resolve_key_path(raw: str) -> Path:
         return path
     return (_REPO_ROOT / path).resolve()
 
+
 # Pricing in microdollars per 1k tokens (µ$/1K tokens).
 # Converted from $/1M tokens: $X/1M tokens = X µ$/1K tokens.
 _PRICING_MICROS_PER_1K: dict[str, dict[str, float]] = {
@@ -219,14 +220,18 @@ class LLMRuntime:
         from src.llm.budget import release as budget_release
         from src.llm.budget import reserve as budget_reserve
 
-        virtual_key, prompt_tokens, estimated_cost, effective_max_tokens, merged_params = (
-            await self._resolve_call_context(
-                messages,
-                context=context,
-                model=model,
-                max_tokens=max_tokens,
-                provider_params=provider_params,
-            )
+        (
+            virtual_key,
+            prompt_tokens,
+            estimated_cost,
+            effective_max_tokens,
+            merged_params,
+        ) = await self._resolve_call_context(
+            messages,
+            context=context,
+            model=model,
+            max_tokens=max_tokens,
+            provider_params=provider_params,
         )
 
         reservation = None
@@ -290,14 +295,18 @@ class LLMRuntime:
         from src.llm.budget import release as budget_release
         from src.llm.budget import reserve as budget_reserve
 
-        virtual_key, prompt_tokens, estimated_cost, effective_max_tokens, merged_params = (
-            await self._resolve_call_context(
-                messages,
-                context=context,
-                model=model,
-                max_tokens=max_tokens,
-                provider_params=provider_params,
-            )
+        (
+            virtual_key,
+            prompt_tokens,
+            estimated_cost,
+            effective_max_tokens,
+            merged_params,
+        ) = await self._resolve_call_context(
+            messages,
+            context=context,
+            model=model,
+            max_tokens=max_tokens,
+            provider_params=provider_params,
         )
 
         reservation = None

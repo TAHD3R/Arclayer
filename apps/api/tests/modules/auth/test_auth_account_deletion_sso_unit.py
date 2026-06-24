@@ -26,6 +26,7 @@ class FakeUser(BaseModel):
     id: UUID
     username: str = "demo"
     email: str | None
+    email_verified_at: datetime | None = None
     display_name: str | None = None
     avatar_url: str | None = None
     status: UserStatus = UserStatus.ACTIVE

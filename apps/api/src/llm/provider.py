@@ -34,7 +34,7 @@ class BaseLLMProvider(ABC):
         """Send a chat completion request. Returns the raw provider response."""
 
     @abstractmethod
-    async def chat_stream(
+    def chat_stream(
         self,
         messages: list[dict[str, str]],
         *,

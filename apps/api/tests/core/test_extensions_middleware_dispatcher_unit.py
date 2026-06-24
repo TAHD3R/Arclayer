@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from starlette.applications import Starlette
@@ -97,7 +97,7 @@ def _build_app(registry: TenantAwareMiddlewareRegistry) -> Starlette:
     )
 
 
-def _build_app_with_ws(registry: TenantAwareMiddlewareRegistry, ws_id: uuid4) -> Starlette:
+def _build_app_with_ws(registry: TenantAwareMiddlewareRegistry, ws_id: UUID) -> Starlette:
     async def home(request: Request) -> Response:
         injected = getattr(request.state, "injected_by_hook", None)
         return JSONResponse({"ok": True, "injected": injected})

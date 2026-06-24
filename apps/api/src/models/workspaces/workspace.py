@@ -201,6 +201,10 @@ class WorkspaceMembership(BaseModel):
 
     invited_by_user_id = fields.UUIDField(null=True, db_index=True)
 
+    if TYPE_CHECKING:
+        workspace_id: UUID
+        user_id: UUID
+
     class Meta(BaseModel.Meta):
         table = "domain_workspace_memberships"
         abstract = False

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
@@ -201,6 +201,7 @@ class TestLifecycle:
         # Load
         await mgr.load_all()
         inst = mgr.get_instance("test-ext")
+        assert inst is not None
         assert inst.process.state == ProcessState.LOADED
 
         # Register
@@ -237,6 +238,7 @@ class TestLifecycle:
 
 class _FakeWorkspace:
     """Minimal fake for Workspace model in activation tests."""
+
     id: str
     extension_revision: int = 1
     updated_at: str = ""
@@ -285,6 +287,7 @@ class TestActivation:
         await mgr.activate("test-ext", ws_id)
 
         inst = mgr.get_instance("test-ext")
+        assert inst is not None
         sm = inst.get_workspace_activation(ws_id)
         assert sm.state == WorkspaceActivationState.ACTIVE
 
@@ -308,6 +311,7 @@ class TestActivation:
         await mgr.deactivate("test-ext", ws_id)
 
         inst = mgr.get_instance("test-ext")
+        assert inst is not None
         sm = inst.get_workspace_activation(ws_id)
         assert sm.state == WorkspaceActivationState.INACTIVE
 
@@ -329,6 +333,7 @@ class TestActivation:
         await mgr.activate("test-ext", ws1)
 
         inst = mgr.get_instance("test-ext")
+        assert inst is not None
         assert inst.get_workspace_activation(ws1).state == WorkspaceActivationState.ACTIVE
         assert inst.get_workspace_activation(ws2).state == WorkspaceActivationState.INACTIVE
 

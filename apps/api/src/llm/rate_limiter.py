@@ -15,6 +15,7 @@ Phase 1: simple token bucket, no hierarchical limiting.
 from __future__ import annotations
 
 import time
+from typing import Any
 
 
 class TokenBucket:
@@ -72,7 +73,7 @@ class ValkeyRateLimiter:
     def __init__(
         self,
         *,
-        valkey_client=None,
+        valkey_client: Any | None = None,
         prefix: str = "arclayer:ratelimit",
         capacity: int = 100,
         window_seconds: int = 60,
@@ -108,7 +109,10 @@ class ValkeyRateLimiter:
         rkey = f"{self._prefix}:{key}"
 
         try:
-            raw = self._valkey.raw if hasattr(self._valkey, "raw") else self._valkey
+            valkey = self._valkey
+            if valkey is None:
+                return True
+            raw: Any = valkey.raw if hasattr(valkey, "raw") else valkey
             async with raw.pipeline() as pipe:
                 pipe.zremrangebyscore(rkey, 0, window_start)
                 pipe.zcard(rkey)

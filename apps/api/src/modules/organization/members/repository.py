@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import UTC, datetime
+from typing import cast
 from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
@@ -56,7 +57,7 @@ class OrganizationMemberRepository(TortoiseORMRepository):
         ).select_related("user")
 
     async def disable_workspace_memberships(self, *, organization_id: UUID, user_id: UUID) -> None:
-        ws_ids = await Workspace.filter(organization_id=organization_id).values_list("id", flat=True)
+        ws_ids = cast(list[UUID], await Workspace.filter(organization_id=organization_id).values_list("id", flat=True))
         if not ws_ids:
             return
         from src.llm.keys import revoke_user_grants_for_workspace
@@ -74,9 +75,12 @@ class OrganizationMemberRepository(TortoiseORMRepository):
         user_id: UUID,
         conn: BaseDBAsyncClient,
     ) -> None:
-        ws_ids = await self.using_db(Workspace.filter(organization_id=organization_id), conn).values_list(
-            "id",
-            flat=True,
+        ws_ids = cast(
+            list[UUID],
+            await self.using_db(Workspace.filter(organization_id=organization_id), conn).values_list(
+                "id",
+                flat=True,
+            ),
         )
         if not ws_ids:
             return

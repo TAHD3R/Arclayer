@@ -79,7 +79,7 @@ class OrganizationSettingsRepository(TortoiseORMRepository):
         # Postgres 不合法 SQL（FROM clause reference），因此改为两段式：
         # 1) 先取 workspace_id 列表
         # 2) 再按 workspace_id__in 做批量 update
-        ws_ids = await Workspace.filter(organization_id=organization_id).values_list("id", flat=True)
+        ws_ids = cast(list[UUID], await Workspace.filter(organization_id=organization_id).values_list("id", flat=True))
         if not ws_ids:
             return
         from src.llm.keys import revoke_user_grants_for_workspace

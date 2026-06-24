@@ -61,7 +61,7 @@ def _safe_str(value: object) -> str | None:
 
 def _safe_dict(value: object) -> dict[str, object] | None:
     if isinstance(value, dict):
-        return value
+        return cast(dict[str, object], value)
     return None
 
 
