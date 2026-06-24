@@ -1,4 +1,0 @@
-interface:
-  display_name: "Arclayer Playwright Skills"
-  short_description: "Test Arclayer UI with Playwright MCP"
-  default_prompt: "Use $arclayer-playwright-skills to investigate an Arclayer Admin UI issue with Playwright MCP."
