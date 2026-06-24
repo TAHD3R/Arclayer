@@ -50,6 +50,6 @@ class OrgMembership(BaseModel):
         user_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_org_memberships"
+        table = "org_memberships"
         abstract = False
         unique_together = (("organization", "user"),)

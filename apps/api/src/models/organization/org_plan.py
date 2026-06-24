@@ -28,5 +28,5 @@ class OrgPlan(BaseModel):
     is_active = fields.BooleanField(default=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "domain_org_plans"
+        table = "org_plans"
         abstract = False

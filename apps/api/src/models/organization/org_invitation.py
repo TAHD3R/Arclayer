@@ -30,7 +30,7 @@ class OrganizationEmailInvite(BaseModel):
     revoked_at = fields.DatetimeField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "domain_organization_email_invites"
+        table = "organization_email_invites"
         abstract = False
 
 
@@ -62,7 +62,7 @@ class OrganizationInviteLink(BaseModel):
     last_used_at = fields.DatetimeField(null=True)
 
     class Meta(BaseModel.Meta):
-        table = "domain_organization_invite_links"
+        table = "organization_invite_links"
         abstract = False
 
 
@@ -80,6 +80,6 @@ class OrganizationInviteLinkUseEvent(BaseModel):
     joined_membership_id = fields.UUIDField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "domain_organization_invite_link_use_events"
+        table = "organization_invite_link_use_events"
         abstract = False
         index_together = (("link_id", "used_at"),)

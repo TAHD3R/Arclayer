@@ -34,6 +34,6 @@ class Organization(BaseModel):
     deleted_at = fields.DatetimeField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "domain_organizations"
+        table = "organizations"
         abstract = False
         unique_together = (("kind", "owner_user_id"),)

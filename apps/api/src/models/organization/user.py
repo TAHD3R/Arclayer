@@ -33,7 +33,7 @@ class User(BaseModel):
     token_version = fields.IntField(default=0, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "domain_users"
+        table = "users"
         abstract = False
 
 
@@ -46,5 +46,5 @@ class UserCredential(BaseModel):
     password_updated_at = fields.DatetimeField(auto_now_add=True)
 
     class Meta(BaseModel.Meta):
-        table = "domain_user_credentials"
+        table = "user_credentials"
         abstract = False

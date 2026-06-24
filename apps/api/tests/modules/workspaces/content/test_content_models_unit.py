@@ -791,7 +791,7 @@ def test_content_item_record_supports_translation_group_link() -> None:
 
 
 def test_translation_group_record_links_workspace_site_and_primary_item() -> None:
-    assert TranslationGroupRecord.Meta.table == "domain_content_translation_groups"
+    assert TranslationGroupRecord.Meta.table == "content_translation_groups"
     assert _field(TranslationGroupRecord, "workspace").null is False
     assert _field(TranslationGroupRecord, "site").null is False
     primary_item_id_field = _field(TranslationGroupRecord, "primary_item_id")
@@ -932,8 +932,8 @@ def test_route_binding_and_hierarchy_are_different_persistence_records() -> None
     route_fields = _field_names(RouteBindingRecord)
     hierarchy_fields = _field_names(HierarchyNodeRecord)
 
-    assert getattr(RouteBindingRecord.Meta, "table", None) == "domain_content_route_bindings"
-    assert getattr(HierarchyNodeRecord.Meta, "table", None) == "domain_content_hierarchy_nodes"
+    assert getattr(RouteBindingRecord.Meta, "table", None) == "content_route_bindings"
+    assert getattr(HierarchyNodeRecord.Meta, "table", None) == "content_hierarchy_nodes"
 
     assert "path" in route_fields
     assert "environment" in route_fields

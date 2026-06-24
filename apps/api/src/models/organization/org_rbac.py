@@ -26,7 +26,7 @@ class OrganizationRole(BaseModel):
     is_builtin = fields.BooleanField(default=False, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "domain_organization_roles"
+        table = "organization_roles"
         abstract = False
         unique_together = (("organization_id", "code"),)
 
@@ -42,7 +42,7 @@ class OrganizationPermission(BaseModel):
     is_system = fields.BooleanField(default=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "domain_organization_permissions"
+        table = "organization_permissions"
         abstract = False
 
 
@@ -62,6 +62,6 @@ class OrganizationRolePermission(BaseModel):
     )
 
     class Meta(BaseModel.Meta):
-        table = "domain_organization_role_permissions"
+        table = "organization_role_permissions"
         abstract = False
         unique_together = ("role_id", "permission_id")
