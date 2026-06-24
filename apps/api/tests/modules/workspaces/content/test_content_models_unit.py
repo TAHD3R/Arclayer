@@ -708,7 +708,7 @@ def test_content_model_storage_sync_plan_tracks_migrations_and_rollbacks() -> No
     operations = {migration.operation for migration in plan.migrations}
     assert plan.strategy == "jsonb_snapshot"
     assert plan.schema_revision == 3
-    assert plan.storage_target == "domain_content_versions.fields_snapshot"
+    assert plan.storage_target == "content_versions.fields_snapshot"
     assert {field.key: field.db_column_type for field in plan.fields} == {
         "title": "VARCHAR(255)",
         "headline": "VARCHAR(255)",

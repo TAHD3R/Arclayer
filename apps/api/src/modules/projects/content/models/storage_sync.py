@@ -12,7 +12,7 @@ from src.modules.projects.content.fields.base import FieldConfig
 from src.modules.projects.content.fields.registry import field_type_registry
 
 JSONB_STORAGE_STRATEGY = "jsonb_snapshot"
-CONTENT_FIELDS_STORAGE_TARGET = "domain_content_versions.fields_snapshot"
+CONTENT_FIELDS_STORAGE_TARGET = "content_versions.fields_snapshot"
 
 
 def build_storage_sync_snapshot(
