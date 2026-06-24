@@ -48,6 +48,7 @@ def base_test_env(monkeypatch) -> Iterator[None]:
     # - Do NOT force `TEST_*` flags here; integration fixtures control those explicitly.
     monkeypatch.setenv("DATABASE__ENABLED", "0")
     monkeypatch.setenv("VALKEY__ENABLED", "0")
+    monkeypatch.setenv("SECURITY__ENABLE_REDIS", "0")
     monkeypatch.setenv("SECURITY__ENABLE_RATE_LIMITING", "0")
     monkeypatch.setenv("TASKIQ__ENABLED", "0")
 

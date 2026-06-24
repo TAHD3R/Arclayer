@@ -330,6 +330,7 @@
   "UPLOAD_FILENAME_INVALID": "文件名不合法",
   "UPLOAD_INCOMPLETE": "仍有分片未上传",
   "UPLOAD_MERGE_FAILED": "合并分片失败",
+  "UPLOAD_MIME_NOT_ALLOWED": "文件 MIME 类型与扩展名不匹配",
   "UPLOAD_NOT_FOUND": "上传会话不存在",
   "UPLOAD_NOT_WRITABLE": "上传会话不可写",
   "UPLOAD_PART_INVALID": "分片编号不合法",

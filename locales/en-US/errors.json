@@ -330,6 +330,7 @@
   "UPLOAD_FILENAME_INVALID": "Filename is invalid",
   "UPLOAD_INCOMPLETE": "Some upload parts are still missing",
   "UPLOAD_MERGE_FAILED": "Failed to merge uploaded parts",
+  "UPLOAD_MIME_NOT_ALLOWED": "File MIME type does not match the extension",
   "UPLOAD_NOT_FOUND": "Upload session not found",
   "UPLOAD_NOT_WRITABLE": "Upload session is not writable",
   "UPLOAD_PART_INVALID": "Upload part number is invalid",
