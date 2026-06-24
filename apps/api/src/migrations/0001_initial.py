@@ -184,7 +184,7 @@ class Migration(migrations.Migration):
                 ('read_at', fields.DatetimeField(null=True, db_index=True, auto_now=False, auto_now_add=False)),
                 ('archived_at', fields.DatetimeField(null=True, db_index=True, auto_now=False, auto_now_add=False)),
             ],
-            options={'table': 'internal_notifications', 'app': 'models', 'unique_together': (('workspace_id', 'recipient_user_id', 'dedupe_key'),), 'pk_attr': 'id', 'table_description': 'Internal model for notification records.'},
+            options={'table': 'system_notifications', 'app': 'models', 'unique_together': (('workspace_id', 'recipient_user_id', 'dedupe_key'),), 'pk_attr': 'id', 'table_description': 'Internal model for notification records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -198,7 +198,7 @@ class Migration(migrations.Migration):
                 ('user_id', fields.UUIDField(db_index=True)),
                 ('email', fields.CharField(null=True, max_length=255)),
             ],
-            options={'table': 'global_oauth_identities', 'app': 'models', 'unique_together': (('provider', 'subject'),), 'pk_attr': 'id', 'table_description': 'Global model for OAuth identities.'},
+            options={'table': 'oauth_identities', 'app': 'models', 'unique_together': (('provider', 'subject'),), 'pk_attr': 'id', 'table_description': 'Global model for OAuth identities.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -349,7 +349,7 @@ class Migration(migrations.Migration):
                 ('description_i18n', fields.CharField(null=True, max_length=200)),
                 ('owner_key', fields.CharField(source_field='plugin_id', null=True, db_index=True, max_length=128)),
             ],
-            options={'table': 'internal_permissions', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Internal model for permissions.'},
+            options={'table': 'system_permissions', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Internal model for permissions.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -364,7 +364,7 @@ class Migration(migrations.Migration):
                 ('value', fields.JSONField(null=True, encoder=JSON_DUMPS, decoder=loads)),
                 ('updated_by', fields.UUIDField(null=True)),
             ],
-            options={'table': 'internal_settings', 'app': 'models', 'unique_together': (('scope_type', 'scope_id', 'namespace'),), 'pk_attr': 'id', 'table_description': 'Internal model for setting records.'},
+            options={'table': 'system_settings', 'app': 'models', 'unique_together': (('scope_type', 'scope_id', 'namespace'),), 'pk_attr': 'id', 'table_description': 'Internal model for setting records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -386,7 +386,7 @@ class Migration(migrations.Migration):
                 ('last_test_message', fields.TextField(null=True, unique=False)),
                 ('last_tested_at', fields.DatetimeField(null=True, auto_now=False, auto_now_add=False)),
             ],
-            options={'table': 'system_storage_profiles', 'app': 'models', 'unique_together': (('scope_type', 'scope_id', 'profile_key'),), 'pk_attr': 'id'},
+            options={'table': 'storage_profiles', 'app': 'models', 'unique_together': (('scope_type', 'scope_id', 'profile_key'),), 'pk_attr': 'id'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -402,7 +402,7 @@ class Migration(migrations.Migration):
                 ('signature', fields.CharField(null=True, max_length=256)),
                 ('signing_key_fingerprint', fields.CharField(null=True, max_length=128)),
             ],
-            options={'table': 'internal_sys_config_revisions', 'app': 'models', 'indexes': [Index(fields=['namespace', 'created_at'])], 'pk_attr': 'id', 'table_description': 'Internal model for system configuration revisions.'},
+            options={'table': 'system_config_revisions', 'app': 'models', 'indexes': [Index(fields=['namespace', 'created_at'])], 'pk_attr': 'id', 'table_description': 'Internal model for system configuration revisions.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -416,7 +416,7 @@ class Migration(migrations.Migration):
                 ('activated_at', fields.DatetimeField(db_index=True, auto_now=True, auto_now_add=False)),
                 ('activated_by', fields.UUIDField(null=True, db_index=True)),
             ],
-            options={'table': 'internal_sys_config_active', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Internal model for active system configuration pointers.'},
+            options={'table': 'system_config_active', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Internal model for active system configuration pointers.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -531,7 +531,7 @@ class Migration(migrations.Migration):
                 ('last_totp_counter', fields.BigIntField(null=True)),
                 ('last_totp_used_at', fields.DatetimeField(null=True, auto_now=False, auto_now_add=False)),
             ],
-            options={'table': 'global_user_two_factor', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Global model for user two-factor settings.'},
+            options={'table': 'user_two_factor', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Global model for user two-factor settings.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -545,7 +545,7 @@ class Migration(migrations.Migration):
                 ('code_hash', fields.CharField(max_length=128)),
                 ('used_at', fields.DatetimeField(null=True, db_index=True, auto_now=False, auto_now_add=False)),
             ],
-            options={'table': 'global_user_two_factor_backup_codes', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Global model for user two-factor backup codes.'},
+            options={'table': 'user_two_factor_backup_codes', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Global model for user two-factor backup codes.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -832,7 +832,7 @@ class Migration(migrations.Migration):
                 ('is_default', fields.BooleanField(default=False, db_index=True)),
                 ('is_superuser', fields.BooleanField(default=False, db_index=True)),
             ],
-            options={'table': 'internal_roles', 'app': 'models', 'unique_together': (('workspace_id', 'code'),), 'pk_attr': 'id', 'table_description': 'Internal model for roles.'},
+            options={'table': 'system_roles', 'app': 'models', 'unique_together': (('workspace_id', 'code'),), 'pk_attr': 'id', 'table_description': 'Internal model for roles.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -845,7 +845,7 @@ class Migration(migrations.Migration):
                 ('permission', fields.ForeignKeyField('models.Permission', source_field='permission_id', db_constraint=True, to_field='id', related_name='permission_roles', on_delete=OnDelete.CASCADE)),
                 ('conditions', fields.JSONField(default=list, encoder=JSON_DUMPS, decoder=loads)),
             ],
-            options={'table': 'internal_role_permissions', 'app': 'models', 'unique_together': (('role_id', 'permission_id'),), 'pk_attr': 'id', 'table_description': 'Internal model for role permissions.'},
+            options={'table': 'system_role_permissions', 'app': 'models', 'unique_together': (('role_id', 'permission_id'),), 'pk_attr': 'id', 'table_description': 'Internal model for role permissions.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -1342,7 +1342,7 @@ class Migration(migrations.Migration):
                 ('schema_version', fields.IntField(default=0)),
                 ('failure_reason', fields.TextField(null=True, unique=False)),
             ],
-            options={'table': 'tenant_workspace_registry', 'app': 'models', 'unique_together': (('workspace_id',), ('schema_name',)), 'pk_attr': 'id'},
+            options={'table': 'workspace_tenant_registry', 'app': 'models', 'unique_together': (('workspace_id',), ('schema_name',)), 'pk_attr': 'id'},
             bases=['BaseModel'],
         ),
     ]
