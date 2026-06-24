@@ -3,7 +3,7 @@ from __future__ import annotations
 from src.modules.tenancy.schema import TenantMigration
 
 _TENANT_OWNED_TABLES = (
-    "internal_settings",
+    "system_settings",
     "content_model_definitions",
     "content_model_fields",
     "content_model_relations",
