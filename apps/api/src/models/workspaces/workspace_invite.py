@@ -40,7 +40,8 @@ class WorkspaceEmailInvite(BaseModel):
     revoked_at = fields.DatetimeField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "domain_workspace_email_invites"
+        table = "workspace_email_invites"
+        table_description = "Pending workspace membership invitations sent via email."
         abstract = False
 
 
@@ -80,7 +81,8 @@ class WorkspaceInviteLink(BaseModel):
     last_used_at = fields.DatetimeField(null=True)
 
     class Meta(BaseModel.Meta):
-        table = "domain_workspace_invite_links"
+        table = "workspace_invite_links"
+        table_description = "Reusable workspace invite tokens with usage tracking."
         abstract = False
 
 
@@ -98,6 +100,7 @@ class WorkspaceInviteLinkUseEvent(BaseModel):
     joined_membership_id = fields.UUIDField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "domain_workspace_invite_link_use_events"
+        table = "workspace_invite_link_use_events"
+        table_description = "Audit trail for workspace invite link usage events."
         abstract = False
         index_together = (("link_id", "used_at"),)

@@ -42,5 +42,6 @@ class HierarchyNodeRecord(BaseModel):
         parent_item_id: UUID | None
 
     class Meta(BaseModel.Meta):
-        table = "domain_content_hierarchy_nodes"
+        table = "content_hierarchy_nodes"
+        table_description = "Tree-structured hierarchy nodes for content organization."
         abstract = False

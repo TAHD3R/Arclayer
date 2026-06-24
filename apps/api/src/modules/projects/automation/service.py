@@ -17,12 +17,12 @@ from src.core.lifecycles.dispatcher import LifecycleDispatcher
 from src.core.logging import get_logger
 from src.core.services import BaseService
 from src.models.automation.flow import (
-    AutomationFlowRecord,
+    AutomationFlow,
     AutomationFlowStatus,
+    AutomationOperation,
     AutomationOperationKind,
-    AutomationOperationRecord,
+    AutomationRun,
     AutomationRunLogLevel,
-    AutomationRunRecord,
     AutomationRunStatus,
     AutomationTriggerKind,
 )
@@ -355,7 +355,7 @@ class ProjectAutomationService(BaseService):
             results.append(await self.execute_flow(flow=flow, event=event))
         return results
 
-    async def execute_flow(self, *, flow: AutomationFlowRecord, event: Event) -> AutomationRunOut:
+    async def execute_flow(self, *, flow: AutomationFlow, event: Event) -> AutomationRunOut:
         payload = dict(event.payload or {})
         max_attempts = max(1, int(flow.retry_limit or 0) + 1)
         run = await self.repo.create_run(
@@ -486,7 +486,7 @@ class ProjectAutomationService(BaseService):
                     meta={"operationKind": kind.value},
                 )
 
-    async def _get_flow_or_raise(self, *, workspace_id: UUID, flow_id: UUID) -> AutomationFlowRecord:
+    async def _get_flow_or_raise(self, *, workspace_id: UUID, flow_id: UUID) -> AutomationFlow:
         flow = await self.repo.get_flow(workspace_id=workspace_id, flow_id=flow_id)
         if flow is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="AUTOMATION_FLOW_NOT_FOUND")
@@ -498,7 +498,7 @@ class ProjectAutomationService(BaseService):
         workspace_id: UUID,
         project_id: UUID,
         flow_id: UUID,
-    ) -> AutomationFlowRecord:
+    ) -> AutomationFlow:
         flow = await self.repo.get_project_flow(
             workspace_id=workspace_id,
             project_id=project_id,
@@ -511,8 +511,8 @@ class ProjectAutomationService(BaseService):
     async def _execute_operation(
         self,
         *,
-        run: AutomationRunRecord,
-        operation: AutomationOperationRecord,
+        run: AutomationRun,
+        operation: AutomationOperation,
         event: Event,
     ) -> dict[str, Any]:
         config = operation.config if isinstance(operation.config, dict) else {}
@@ -660,7 +660,7 @@ class ProjectAutomationService(BaseService):
         except (TypeError, ValueError):
             return None
 
-    async def _to_flow_out(self, flow: AutomationFlowRecord) -> AutomationFlowOut:
+    async def _to_flow_out(self, flow: AutomationFlow) -> AutomationFlowOut:
         operations = await self.repo.list_operations(flow_id=flow.id)
         return AutomationFlowOut(
             id=flow.id,
@@ -682,7 +682,7 @@ class ProjectAutomationService(BaseService):
         )
 
     @staticmethod
-    def _to_operation_out(operation: AutomationOperationRecord) -> AutomationOperationOut:
+    def _to_operation_out(operation: AutomationOperation) -> AutomationOperationOut:
         return AutomationOperationOut(
             id=operation.id,
             flow_id=operation.flow_id,
@@ -694,7 +694,7 @@ class ProjectAutomationService(BaseService):
             updated_at=operation.updated_at,
         )
 
-    async def _to_run_out(self, run: AutomationRunRecord, *, include_logs: bool) -> AutomationRunOut:
+    async def _to_run_out(self, run: AutomationRun, *, include_logs: bool) -> AutomationRunOut:
         logs = await self.repo.list_run_logs(workspace_id=run.workspace_id, run_id=run.id) if include_logs else []
         return AutomationRunOut(
             id=run.id,

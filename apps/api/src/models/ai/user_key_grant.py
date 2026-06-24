@@ -95,5 +95,6 @@ class UserKeyWorkspaceGrant(BaseModel):
 
     class Meta(BaseModel.Meta):
         table = "user_key_workspace_grants"
+        table_description = "Grants authorizing a user's personal API key for workspace access."
         abstract = False
         unique_together = (("user_id", "workspace_id", "api_key_id"),)

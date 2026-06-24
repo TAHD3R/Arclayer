@@ -76,5 +76,6 @@ class AssetRecord(BaseModel):
     deleted_at = fields.DatetimeField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "domain_assets"
+        table = "assets"
+        table_description = "Asset metadata and storage reference records."
         abstract = False

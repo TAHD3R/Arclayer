@@ -43,4 +43,5 @@ class AIBudgetReservation(BaseModel):
 
     class Meta(BaseModel.Meta):
         table = "ai_budget_reservations"
+        table_description = "Per-request budget hold reservation records."
         abstract = False

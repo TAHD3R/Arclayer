@@ -12,7 +12,7 @@ from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.i18n import t
 from src.core.services import BaseService
-from src.models.system.rbac import Permission, PermissionScope, Role
+from src.models.system.rbac import PermissionScope, SystemPermission, SystemRole
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.permissions import PermissionConditionSet
 from src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
@@ -90,7 +90,7 @@ class WorkspaceRBACService(BaseService):
             conn=conn,
         )
 
-    def localize_role(self, role: Role, *, locale: str) -> dict[str, object]:
+    def localize_role(self, role: SystemRole, *, locale: str) -> dict[str, object]:
         _ = locale
         if role.is_system:
             name = _localize_i18n_ref(role.name_i18n, default=role.name)
@@ -108,7 +108,7 @@ class WorkspaceRBACService(BaseService):
             "is_system": bool(role.is_system),
         }
 
-    def localize_permission(self, permission: Permission) -> dict[str, object]:
+    def localize_permission(self, permission: SystemPermission) -> dict[str, object]:
         name = _localize_i18n_ref(permission.name_i18n, default=permission.name)
         description = _localize_i18n_ref(permission.description_i18n, default=permission.description or "")
         return {
@@ -299,7 +299,7 @@ class WorkspaceRBACService(BaseService):
                 await self.ensure_workspace_system_role_grants(workspace_id=workspace_id)
                 return
 
-    async def list_permission_codes_for_role(self, *, role: Role) -> list[str]:
+    async def list_permission_codes_for_role(self, *, role: SystemRole) -> list[str]:
         if role.is_superuser:
             return sorted(
                 permission.code
@@ -315,13 +315,13 @@ class WorkspaceRBACService(BaseService):
     async def list_permission_condition_sets_for_role(
         self,
         *,
-        role: Role,
+        role: SystemRole,
     ) -> dict[str, list[PermissionConditionSet]]:
         if role.is_superuser:
             return {}
         return await self.repo.list_role_permission_condition_sets(role_id=UUID(str(role.id)))
 
-    async def list_roles_with_permission_codes(self, *, workspace_id: UUID) -> list[tuple[Role, list[str]]]:
+    async def list_roles_with_permission_codes(self, *, workspace_id: UUID) -> list[tuple[SystemRole, list[str]]]:
         await self.ensure_workspace_rbac_ready(workspace_id=workspace_id)
         roles = await self.repo.list_roles(workspace_id=workspace_id)
         return [(role, await self.list_permission_codes_for_role(role=role)) for role in roles]
@@ -382,7 +382,7 @@ class WorkspaceRBACService(BaseService):
         name: str,
         description: str | None,
         template_role_code: str | None,
-    ) -> Role:
+    ) -> SystemRole:
         cleaned_name = self._validate_role_name(name=name)
         template_permission_ids = await self._resolve_template_permission_ids(
             workspace_id=workspace_id,
@@ -439,7 +439,7 @@ class WorkspaceRBACService(BaseService):
         role_code: str,
         name: str | None,
         description: str | None,
-    ) -> Role:
+    ) -> SystemRole:
         cleaned_code = str(role_code or "").strip()
         role = await self.repo.get_role_by_code(workspace_id=workspace_id, code=cleaned_code)
         if role is None:

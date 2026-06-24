@@ -35,7 +35,8 @@ class AuditEvent(BaseModel):
     properties = fields.JSONField(null=True)
 
     class Meta(BaseModel.Meta):
-        table = "domain_analytics_audit_events"
+        table = "analytics_audit_events"
+        table_description = "Append-only audit event log for compliance and analytics."
         abstract = False
         indexes = (
             ("organization_id", "occurred_at"),

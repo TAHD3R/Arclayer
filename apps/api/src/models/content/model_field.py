@@ -30,6 +30,7 @@ class ContentModelFieldRecord(BaseModel):
         model_definition_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_content_model_fields"
+        table = "content_model_fields"
+        table_description = "Field definitions within content model schemas."
         abstract = False
         unique_together = (("model_definition_id", "key"),)

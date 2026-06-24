@@ -9,7 +9,7 @@ from tortoise.queryset import QuerySet
 from src.common.constants.users import ADMIN_USERS_ALLOWED_ORDER_FIELDS
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.organization.user import User
-from src.models.system.rbac import Role
+from src.models.system.rbac import SystemRole
 from src.models.workspaces.workspace import (
     Workspace,
     WorkspaceMembership,
@@ -135,10 +135,10 @@ class WorkspaceTeamRepository(TortoiseORMRepository):
         workspace_id: UUID,
         role_codes: list[str],
         conn: BaseDBAsyncClient | None = None,
-    ) -> list[Role]:
+    ) -> list[SystemRole]:
         if not role_codes:
             return []
-        qs = Role.filter(workspace_id=workspace_id, code__in=role_codes)
+        qs = SystemRole.filter(workspace_id=workspace_id, code__in=role_codes)
         if conn is not None:
             qs = qs.using_db(conn)
         return await qs.all()

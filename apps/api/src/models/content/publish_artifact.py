@@ -50,6 +50,7 @@ class PublishArtifactRecord(BaseModel):
         version_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_content_publish_artifacts"
+        table = "content_publish_artifacts"
+        table_description = "Static publish artifact records generated per release."
         abstract = False
         unique_together = (("release_id", "site_id", "item_id", "version_id", "artifact_kind", "locale"),)

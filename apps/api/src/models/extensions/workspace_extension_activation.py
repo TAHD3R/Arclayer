@@ -33,6 +33,7 @@ class WorkspaceExtensionActivation(BaseModel):
         workspace_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_workspace_extension_activations"
+        table = "workspace_extension_activations"
+        table_description = "Extension activation status records per workspace."
         abstract = False
         unique_together = (("extension_name", "workspace_id"),)

@@ -20,7 +20,7 @@ from src.core.services import BaseService
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.user import User
 from src.models.system.notification import NotificationCategory
-from src.models.system.rbac import Role
+from src.models.system.rbac import SystemRole
 from src.models.workspaces.workspace import (
     WorkspaceMembership,
     WorkspaceMembershipRole,
@@ -240,7 +240,7 @@ class AuthInvitationAcceptanceService(BaseService):
                 )
 
             wsm: WorkspaceMembership | None = None
-            roles: list[Role] = []
+            roles: list[SystemRole] = []
             existing_wsm = await WorkspaceMembership.get_or_none(
                 user_id=user.id, workspace_id=workspace_id, using_db=conn
             )
@@ -260,11 +260,11 @@ class AuthInvitationAcceptanceService(BaseService):
                 await wsm.save(using_db=conn, update_fields=["status"])
 
             if assigned_role_code:
-                role = await Role.get_or_none(workspace_id=workspace_id, code=assigned_role_code, using_db=conn)
+                role = await SystemRole.get_or_none(workspace_id=workspace_id, code=assigned_role_code, using_db=conn)
                 if role is not None:
                     roles = [role]
             else:
-                roles = await Role.filter(workspace_id=workspace_id, is_default=True).using_db(conn).all()
+                roles = await SystemRole.filter(workspace_id=workspace_id, is_default=True).using_db(conn).all()
 
             for role in roles:
                 await WorkspaceMembershipRole.get_or_create(using_db=conn, membership_id=wsm.id, role_id=role.id)
@@ -480,13 +480,13 @@ class AuthInvitationAcceptanceService(BaseService):
                 wsm.status = WorkspaceMembershipStatus.ACTIVE
                 await wsm.save(using_db=conn, update_fields=["status"])
 
-            roles: list[Role] = []
+            roles: list[SystemRole] = []
             if assigned_role_code:
-                role = await Role.get_or_none(workspace_id=workspace_id, code=assigned_role_code, using_db=conn)
+                role = await SystemRole.get_or_none(workspace_id=workspace_id, code=assigned_role_code, using_db=conn)
                 if role is not None:
                     roles = [role]
             else:
-                roles = await Role.filter(workspace_id=workspace_id, is_default=True).using_db(conn).all()
+                roles = await SystemRole.filter(workspace_id=workspace_id, is_default=True).using_db(conn).all()
             for role in roles:
                 await WorkspaceMembershipRole.get_or_create(using_db=conn, membership_id=wsm.id, role_id=role.id)
             await ensure_role_codes_have_admin_access(

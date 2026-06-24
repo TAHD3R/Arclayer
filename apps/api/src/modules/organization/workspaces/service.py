@@ -17,7 +17,7 @@ from src.core.i18n import t
 from src.core.services import BaseService
 from src.models.organization.org_membership import OrgRole
 from src.models.organization.user import User
-from src.models.system.rbac import Role
+from src.models.system.rbac import SystemRole
 from src.models.workspaces.workspace import Workspace, WorkspaceMembershipRole
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
@@ -530,7 +530,7 @@ class OrganizationWorkspaceService(BaseService):
     ) -> None:
         role_code = ROLE_OWNER if org_role == OrgRole.OWNER else ROLE_ADMIN
         await self.rbac_service.ensure_workspace_system_roles(workspace_id=workspace_id, conn=conn)
-        role = await Role.get_or_none(workspace_id=workspace_id, code=role_code, using_db=conn)
+        role = await SystemRole.get_or_none(workspace_id=workspace_id, code=role_code, using_db=conn)
         if role is None:
             return
         await WorkspaceMembershipRole.get_or_create(using_db=conn, membership_id=membership_id, role_id=role.id)

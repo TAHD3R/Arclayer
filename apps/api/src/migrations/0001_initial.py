@@ -45,7 +45,7 @@ class Migration(migrations.Migration):
                 ('description', fields.CharField(null=True, max_length=512)),
                 ('sort_order', fields.IntField(default=0)),
             ],
-            options={'table': 'asset_folders', 'app': 'models', 'unique_together': (('workspace_id', 'parent_id', 'name'), ('project_id', 'parent_id', 'name'), ('organization_id', 'parent_id', 'name'), ('user_id', 'parent_id', 'name')), 'pk_attr': 'id', 'table_description': 'Domain model for asset folder records.'},
+            options={'table': 'domain_asset_folders', 'app': 'models', 'unique_together': (('workspace_id', 'parent_id', 'name'), ('project_id', 'parent_id', 'name'), ('organization_id', 'parent_id', 'name'), ('user_id', 'parent_id', 'name')), 'pk_attr': 'id', 'table_description': 'Domain model for asset folder records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -78,7 +78,7 @@ class Migration(migrations.Migration):
                 ('meta', fields.JSONField(null=True, encoder=JSON_DUMPS, decoder=loads)),
                 ('deleted_at', fields.DatetimeField(null=True, db_index=True, auto_now=False, auto_now_add=False)),
             ],
-            options={'table': 'assets', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for asset records.'},
+            options={'table': 'domain_assets', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for asset records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -94,7 +94,7 @@ class Migration(migrations.Migration):
                 ('revoked_at', fields.DatetimeField(null=True, db_index=True, auto_now=False, auto_now_add=False)),
                 ('created_by_user_id', fields.UUIDField(null=True, db_index=True)),
             ],
-            options={'table': 'asset_share_links', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for asset share link records.'},
+            options={'table': 'domain_asset_share_links', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for asset share link records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -109,7 +109,7 @@ class Migration(migrations.Migration):
                 ('user_id', fields.UUIDField(null=True, db_index=True)),
                 ('name', fields.CharField(max_length=64)),
             ],
-            options={'table': 'asset_tags', 'app': 'models', 'unique_together': (('workspace_id', 'name'), ('project_id', 'name'), ('organization_id', 'name'), ('user_id', 'name')), 'pk_attr': 'id', 'table_description': 'Domain model for asset tag records.'},
+            options={'table': 'domain_asset_tags', 'app': 'models', 'unique_together': (('workspace_id', 'name'), ('project_id', 'name'), ('organization_id', 'name'), ('user_id', 'name')), 'pk_attr': 'id', 'table_description': 'Domain model for asset tag records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -121,7 +121,7 @@ class Migration(migrations.Migration):
                 ('asset', fields.ForeignKeyField('models.AssetRecord', source_field='asset_id', db_constraint=True, to_field='id', related_name='tag_links', on_delete=OnDelete.CASCADE)),
                 ('tag', fields.ForeignKeyField('models.AssetTagRecord', source_field='tag_id', db_constraint=True, to_field='id', related_name='asset_links', on_delete=OnDelete.CASCADE)),
             ],
-            options={'table': 'asset_tag_links', 'app': 'models', 'unique_together': (('asset_id', 'tag_id'),), 'pk_attr': 'id', 'table_description': 'Domain model for asset tag link records.'},
+            options={'table': 'domain_asset_tag_links', 'app': 'models', 'unique_together': (('asset_id', 'tag_id'),), 'pk_attr': 'id', 'table_description': 'Domain model for asset tag link records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -141,7 +141,7 @@ class Migration(migrations.Migration):
                 ('field_key', fields.CharField(db_index=True, max_length=128)),
                 ('created_by_user_id', fields.UUIDField(null=True, db_index=True)),
             ],
-            options={'table': 'asset_usages', 'app': 'models', 'unique_together': (('workspace_id', 'entity_type', 'entity_id', 'field_key'), ('project_id', 'entity_type', 'entity_id', 'field_key'), ('organization_id', 'entity_type', 'entity_id', 'field_key'), ('user_id', 'entity_type', 'entity_id', 'field_key')), 'pk_attr': 'id', 'table_description': 'Domain model for asset usage records.'},
+            options={'table': 'domain_asset_usages', 'app': 'models', 'unique_together': (('workspace_id', 'entity_type', 'entity_id', 'field_key'), ('project_id', 'entity_type', 'entity_id', 'field_key'), ('organization_id', 'entity_type', 'entity_id', 'field_key'), ('user_id', 'entity_type', 'entity_id', 'field_key')), 'pk_attr': 'id', 'table_description': 'Domain model for asset usage records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -162,7 +162,7 @@ class Migration(migrations.Migration):
                 ('source', fields.CharField(null=True, db_index=True, max_length=32)),
                 ('properties', fields.JSONField(null=True, encoder=JSON_DUMPS, decoder=loads)),
             ],
-            options={'table': 'analytics_audit_events', 'app': 'models', 'indexes': [Index(fields=['organization_id', 'occurred_at']), Index(fields=['workspace_id', 'occurred_at']), Index(fields=['actor_user_id', 'occurred_at']), Index(fields=['event_name', 'occurred_at']), Index(fields=['entity_type', 'entity_id', 'occurred_at'])], 'pk_attr': 'id', 'table_description': 'Domain model for audit events.'},
+            options={'table': 'domain_analytics_audit_events', 'app': 'models', 'indexes': [Index(fields=['organization_id', 'occurred_at']), Index(fields=['workspace_id', 'occurred_at']), Index(fields=['actor_user_id', 'occurred_at']), Index(fields=['event_name', 'occurred_at']), Index(fields=['entity_type', 'entity_id', 'occurred_at'])], 'pk_attr': 'id', 'table_description': 'Domain model for audit events.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -184,7 +184,7 @@ class Migration(migrations.Migration):
                 ('read_at', fields.DatetimeField(null=True, db_index=True, auto_now=False, auto_now_add=False)),
                 ('archived_at', fields.DatetimeField(null=True, db_index=True, auto_now=False, auto_now_add=False)),
             ],
-            options={'table': 'system_notifications', 'app': 'models', 'unique_together': (('workspace_id', 'recipient_user_id', 'dedupe_key'),), 'pk_attr': 'id', 'table_description': 'Internal model for notification records.'},
+            options={'table': 'internal_notifications', 'app': 'models', 'unique_together': (('workspace_id', 'recipient_user_id', 'dedupe_key'),), 'pk_attr': 'id', 'table_description': 'Internal model for notification records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -198,7 +198,7 @@ class Migration(migrations.Migration):
                 ('user_id', fields.UUIDField(db_index=True)),
                 ('email', fields.CharField(null=True, max_length=255)),
             ],
-            options={'table': 'oauth_identities', 'app': 'models', 'unique_together': (('provider', 'subject'),), 'pk_attr': 'id', 'table_description': 'Global model for OAuth identities.'},
+            options={'table': 'global_oauth_identities', 'app': 'models', 'unique_together': (('provider', 'subject'),), 'pk_attr': 'id', 'table_description': 'Global model for OAuth identities.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -215,7 +215,7 @@ class Migration(migrations.Migration):
                 ('is_active', fields.BooleanField(default=True, db_index=True)),
                 ('deleted_at', fields.DatetimeField(null=True, db_index=True, auto_now=False, auto_now_add=False)),
             ],
-            options={'table': 'organizations', 'app': 'models', 'unique_together': (('kind', 'owner_user_id'),), 'pk_attr': 'id', 'table_description': 'Domain model for organizations.'},
+            options={'table': 'domain_organizations', 'app': 'models', 'unique_together': (('kind', 'owner_user_id'),), 'pk_attr': 'id', 'table_description': 'Domain model for organizations.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -231,7 +231,7 @@ class Migration(migrations.Migration):
                 ('custom_domain_enabled', fields.BooleanField(default=False)),
                 ('is_active', fields.BooleanField(default=True, db_index=True)),
             ],
-            options={'table': 'org_plans', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for organization plans.'},
+            options={'table': 'domain_org_plans', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for organization plans.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -251,7 +251,7 @@ class Migration(migrations.Migration):
                 ('revoked_by_user_id', fields.UUIDField(null=True, db_index=True)),
                 ('revoked_at', fields.DatetimeField(null=True, db_index=True, auto_now=False, auto_now_add=False)),
             ],
-            options={'table': 'organization_email_invites', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for organization email invites.'},
+            options={'table': 'domain_organization_email_invites', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for organization email invites.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -273,7 +273,7 @@ class Migration(migrations.Migration):
                 ('last_used_by_user_id', fields.UUIDField(null=True, db_index=True)),
                 ('last_used_at', fields.DatetimeField(null=True, auto_now=False, auto_now_add=False)),
             ],
-            options={'table': 'organization_invite_links', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for organization invite links.'},
+            options={'table': 'domain_organization_invite_links', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for organization invite links.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -287,7 +287,7 @@ class Migration(migrations.Migration):
                 ('used_at', fields.DatetimeField(db_index=True, auto_now=False, auto_now_add=False)),
                 ('joined_membership_id', fields.UUIDField(null=True, db_index=True)),
             ],
-            options={'table': 'organization_invite_link_use_events', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for organization invite link use events.'},
+            options={'table': 'domain_organization_invite_link_use_events', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for organization invite link use events.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -302,7 +302,7 @@ class Migration(migrations.Migration):
                 ('description', fields.TextField(null=True, unique=False)),
                 ('is_system', fields.BooleanField(default=True, db_index=True)),
             ],
-            options={'table': 'organization_permissions', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for organization permissions.'},
+            options={'table': 'domain_organization_permissions', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for organization permissions.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -320,7 +320,7 @@ class Migration(migrations.Migration):
                 ('is_system', fields.BooleanField(default=False, db_index=True)),
                 ('is_builtin', fields.BooleanField(default=False, db_index=True)),
             ],
-            options={'table': 'organization_roles', 'app': 'models', 'unique_together': (('organization_id', 'code'),), 'pk_attr': 'id', 'table_description': 'Domain model for organization roles.'},
+            options={'table': 'domain_organization_roles', 'app': 'models', 'unique_together': (('organization_id', 'code'),), 'pk_attr': 'id', 'table_description': 'Domain model for organization roles.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -332,11 +332,11 @@ class Migration(migrations.Migration):
                 ('role', fields.ForeignKeyField('models.OrganizationRole', source_field='role_id', db_constraint=True, to_field='id', related_name='role_permissions', on_delete=OnDelete.CASCADE)),
                 ('permission', fields.ForeignKeyField('models.OrganizationPermission', source_field='permission_id', db_constraint=True, to_field='id', related_name='permission_roles', on_delete=OnDelete.CASCADE)),
             ],
-            options={'table': 'organization_role_permissions', 'app': 'models', 'unique_together': (('role_id', 'permission_id'),), 'pk_attr': 'id', 'table_description': 'Domain model for organization role permissions.'},
+            options={'table': 'domain_organization_role_permissions', 'app': 'models', 'unique_together': (('role_id', 'permission_id'),), 'pk_attr': 'id', 'table_description': 'Domain model for organization role permissions.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
-            name='Permission',
+            name='SystemPermission',
             fields=[
                 ('id', fields.UUIDField(primary_key=True, default=uuid7, unique=True, db_index=True)),
                 ('created_at', fields.DatetimeField(db_index=True, auto_now=False, auto_now_add=True)),
@@ -349,7 +349,7 @@ class Migration(migrations.Migration):
                 ('description_i18n', fields.CharField(null=True, max_length=200)),
                 ('owner_key', fields.CharField(source_field='plugin_id', null=True, db_index=True, max_length=128)),
             ],
-            options={'table': 'system_permissions', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Internal model for permissions.'},
+            options={'table': 'internal_permissions', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Internal model for permissions.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -364,11 +364,11 @@ class Migration(migrations.Migration):
                 ('value', fields.JSONField(null=True, encoder=JSON_DUMPS, decoder=loads)),
                 ('updated_by', fields.UUIDField(null=True)),
             ],
-            options={'table': 'system_settings', 'app': 'models', 'unique_together': (('scope_type', 'scope_id', 'namespace'),), 'pk_attr': 'id', 'table_description': 'Internal model for setting records.'},
+            options={'table': 'internal_settings', 'app': 'models', 'unique_together': (('scope_type', 'scope_id', 'namespace'),), 'pk_attr': 'id', 'table_description': 'Internal model for setting records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
-            name='StorageProfileRecord',
+            name='StorageProfile',
             fields=[
                 ('id', fields.UUIDField(primary_key=True, default=uuid7, unique=True, db_index=True)),
                 ('created_at', fields.DatetimeField(db_index=True, auto_now=False, auto_now_add=True)),
@@ -386,7 +386,7 @@ class Migration(migrations.Migration):
                 ('last_test_message', fields.TextField(null=True, unique=False)),
                 ('last_tested_at', fields.DatetimeField(null=True, auto_now=False, auto_now_add=False)),
             ],
-            options={'table': 'storage_profiles', 'app': 'models', 'unique_together': (('scope_type', 'scope_id', 'profile_key'),), 'pk_attr': 'id'},
+            options={'table': 'system_storage_profiles', 'app': 'models', 'unique_together': (('scope_type', 'scope_id', 'profile_key'),), 'pk_attr': 'id'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -402,7 +402,7 @@ class Migration(migrations.Migration):
                 ('signature', fields.CharField(null=True, max_length=256)),
                 ('signing_key_fingerprint', fields.CharField(null=True, max_length=128)),
             ],
-            options={'table': 'system_config_revisions', 'app': 'models', 'indexes': [Index(fields=['namespace', 'created_at'])], 'pk_attr': 'id', 'table_description': 'Internal model for system configuration revisions.'},
+            options={'table': 'internal_sys_config_revisions', 'app': 'models', 'indexes': [Index(fields=['namespace', 'created_at'])], 'pk_attr': 'id', 'table_description': 'Internal model for system configuration revisions.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -416,7 +416,7 @@ class Migration(migrations.Migration):
                 ('activated_at', fields.DatetimeField(db_index=True, auto_now=True, auto_now_add=False)),
                 ('activated_by', fields.UUIDField(null=True, db_index=True)),
             ],
-            options={'table': 'system_config_active', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Internal model for active system configuration pointers.'},
+            options={'table': 'internal_sys_config_active', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Internal model for active system configuration pointers.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -452,7 +452,7 @@ class Migration(migrations.Migration):
                 ('storage_profile_key', fields.CharField(null=True, db_index=True, max_length=128)),
                 ('s3_bucket', fields.CharField(null=True, db_index=True, max_length=255)),
             ],
-            options={'table': 'upload_sessions', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for upload session records.'},
+            options={'table': 'domain_upload_sessions', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for upload session records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -469,7 +469,7 @@ class Migration(migrations.Migration):
                 ('object_key', fields.CharField(max_length=1024)),
                 ('stored', fields.BooleanField(default=False)),
             ],
-            options={'table': 'upload_parts', 'app': 'models', 'unique_together': (('session_id', 'part_number'),), 'pk_attr': 'id', 'table_description': 'Domain model for upload part records.'},
+            options={'table': 'domain_upload_parts', 'app': 'models', 'unique_together': (('session_id', 'part_number'),), 'pk_attr': 'id', 'table_description': 'Domain model for upload part records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -488,7 +488,7 @@ class Migration(migrations.Migration):
                 ('last_login_at', fields.DatetimeField(null=True, auto_now=False, auto_now_add=False)),
                 ('token_version', fields.IntField(default=0, db_index=True)),
             ],
-            options={'table': 'users', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for users.'},
+            options={'table': 'domain_users', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for users.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -503,7 +503,7 @@ class Migration(migrations.Migration):
                 ('role_code', fields.CharField(default='member', db_index=True, max_length=64)),
                 ('status', fields.CharField(default='active', db_index=True, max_length=16)),
             ],
-            options={'table': 'org_memberships', 'app': 'models', 'unique_together': (('organization', 'user'),), 'pk_attr': 'id', 'table_description': 'Domain model for organization memberships.'},
+            options={'table': 'domain_org_memberships', 'app': 'models', 'unique_together': (('organization', 'user'),), 'pk_attr': 'id', 'table_description': 'Domain model for organization memberships.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -516,7 +516,7 @@ class Migration(migrations.Migration):
                 ('password_hash', fields.CharField(max_length=255)),
                 ('password_updated_at', fields.DatetimeField(auto_now=False, auto_now_add=True)),
             ],
-            options={'table': 'user_credentials', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for user credentials.'},
+            options={'table': 'domain_user_credentials', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for user credentials.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -531,7 +531,7 @@ class Migration(migrations.Migration):
                 ('last_totp_counter', fields.BigIntField(null=True)),
                 ('last_totp_used_at', fields.DatetimeField(null=True, auto_now=False, auto_now_add=False)),
             ],
-            options={'table': 'user_two_factor', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Global model for user two-factor settings.'},
+            options={'table': 'global_user_two_factor', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Global model for user two-factor settings.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -545,7 +545,7 @@ class Migration(migrations.Migration):
                 ('code_hash', fields.CharField(max_length=128)),
                 ('used_at', fields.DatetimeField(null=True, db_index=True, auto_now=False, auto_now_add=False)),
             ],
-            options={'table': 'user_two_factor_backup_codes', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Global model for user two-factor backup codes.'},
+            options={'table': 'global_user_two_factor_backup_codes', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Global model for user two-factor backup codes.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -570,11 +570,11 @@ class Migration(migrations.Migration):
                 ('deleted_at', fields.DatetimeField(null=True, db_index=True, auto_now=False, auto_now_add=False)),
                 ('created_by_user_id', fields.UUIDField(db_index=True)),
             ],
-            options={'table': 'workspaces', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for workspaces.'},
+            options={'table': 'domain_workspaces', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for workspaces.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
-            name='AutomationFlowRecord',
+            name='AutomationFlow',
             fields=[
                 ('id', fields.UUIDField(primary_key=True, default=uuid7, unique=True, db_index=True)),
                 ('created_at', fields.DatetimeField(db_index=True, auto_now=False, auto_now_add=True)),
@@ -591,32 +591,32 @@ class Migration(migrations.Migration):
                 ('created_by_user_id', fields.UUIDField(null=True, db_index=True)),
                 ('updated_by_user_id', fields.UUIDField(null=True, db_index=True)),
             ],
-            options={'table': 'automation_flows', 'app': 'models', 'unique_together': (('workspace_id', 'name'),), 'pk_attr': 'id', 'table_description': 'Workspace-scoped automation flow definition.'},
+            options={'table': 'domain_automation_flows', 'app': 'models', 'unique_together': (('workspace_id', 'name'),), 'pk_attr': 'id', 'table_description': 'Workspace-scoped automation flow definition.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
-            name='AutomationOperationRecord',
+            name='AutomationOperation',
             fields=[
                 ('id', fields.UUIDField(primary_key=True, default=uuid7, unique=True, db_index=True)),
                 ('created_at', fields.DatetimeField(db_index=True, auto_now=False, auto_now_add=True)),
                 ('updated_at', fields.DatetimeField(auto_now=True, auto_now_add=False)),
-                ('flow', fields.ForeignKeyField('models.AutomationFlowRecord', source_field='flow_id', db_constraint=True, to_field='id', related_name='operations', on_delete=OnDelete.CASCADE)),
+                ('flow', fields.ForeignKeyField('models.AutomationFlow', source_field='flow_id', db_constraint=True, to_field='id', related_name='operations', on_delete=OnDelete.CASCADE)),
                 ('name', fields.CharField(max_length=128)),
                 ('kind', fields.CharEnumField(db_index=True, description='WEBHOOK: webhook\nHTTP_REQUEST: http_request\nCONTENT_READ: content_read\nCONTENT_UPDATE: content_update\nRELEASE_PUBLISH: release_publish\nNOTIFICATION: notification', enum_type=AutomationOperationKind, max_length=32)),
                 ('config', fields.JSONField(null=True, encoder=JSON_DUMPS, decoder=loads)),
                 ('sort_order', fields.IntField(default=0)),
             ],
-            options={'table': 'automation_operations', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Ordered operation inside an automation flow.'},
+            options={'table': 'domain_automation_operations', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Ordered operation inside an automation flow.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
-            name='AutomationRunRecord',
+            name='AutomationRun',
             fields=[
                 ('id', fields.UUIDField(primary_key=True, default=uuid7, unique=True, db_index=True)),
                 ('created_at', fields.DatetimeField(db_index=True, auto_now=False, auto_now_add=True)),
                 ('updated_at', fields.DatetimeField(auto_now=True, auto_now_add=False)),
                 ('workspace', fields.ForeignKeyField('models.Workspace', source_field='workspace_id', db_constraint=True, to_field='id', related_name='automation_runs', on_delete=OnDelete.CASCADE)),
-                ('flow', fields.ForeignKeyField('models.AutomationFlowRecord', source_field='flow_id', db_constraint=True, to_field='id', related_name='runs', on_delete=OnDelete.CASCADE)),
+                ('flow', fields.ForeignKeyField('models.AutomationFlow', source_field='flow_id', db_constraint=True, to_field='id', related_name='runs', on_delete=OnDelete.CASCADE)),
                 ('trigger_event', fields.CharField(db_index=True, max_length=128)),
                 ('status', fields.CharEnumField(db_index=True, description='QUEUED: queued\nRUNNING: running\nSUCCEEDED: succeeded\nFAILED: failed\nDEAD_LETTER: dead_letter', enum_type=AutomationRunStatus, max_length=16)),
                 ('attempt', fields.IntField(default=1)),
@@ -627,23 +627,23 @@ class Migration(migrations.Migration):
                 ('started_at', fields.DatetimeField(null=True, db_index=True, auto_now=False, auto_now_add=False)),
                 ('completed_at', fields.DatetimeField(null=True, db_index=True, auto_now=False, auto_now_add=False)),
             ],
-            options={'table': 'automation_runs', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Execution record for one triggered flow run.'},
+            options={'table': 'domain_automation_runs', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Execution record for one triggered flow run.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
-            name='AutomationRunLogRecord',
+            name='AutomationRunLog',
             fields=[
                 ('id', fields.UUIDField(primary_key=True, default=uuid7, unique=True, db_index=True)),
                 ('created_at', fields.DatetimeField(db_index=True, auto_now=False, auto_now_add=True)),
                 ('updated_at', fields.DatetimeField(auto_now=True, auto_now_add=False)),
                 ('workspace', fields.ForeignKeyField('models.Workspace', source_field='workspace_id', db_constraint=True, to_field='id', related_name='automation_run_logs', on_delete=OnDelete.CASCADE)),
-                ('run', fields.ForeignKeyField('models.AutomationRunRecord', source_field='run_id', db_constraint=True, to_field='id', related_name='logs', on_delete=OnDelete.CASCADE)),
-                ('operation', fields.ForeignKeyField('models.AutomationOperationRecord', source_field='operation_id', null=True, db_constraint=True, to_field='id', related_name='run_logs', on_delete=OnDelete.SET_NULL)),
+                ('run', fields.ForeignKeyField('models.AutomationRun', source_field='run_id', db_constraint=True, to_field='id', related_name='logs', on_delete=OnDelete.CASCADE)),
+                ('operation', fields.ForeignKeyField('models.AutomationOperation', source_field='operation_id', null=True, db_constraint=True, to_field='id', related_name='run_logs', on_delete=OnDelete.SET_NULL)),
                 ('level', fields.CharEnumField(db_index=True, description='INFO: info\nERROR: error', enum_type=AutomationRunLogLevel, max_length=16)),
                 ('message', fields.CharField(max_length=512)),
                 ('payload', fields.JSONField(null=True, encoder=JSON_DUMPS, decoder=loads)),
             ],
-            options={'table': 'automation_run_logs', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Structured execution log row for automation run diagnostics.'},
+            options={'table': 'domain_automation_run_logs', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Structured execution log row for automation run diagnostics.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -664,7 +664,7 @@ class Migration(migrations.Migration):
                 ('is_active', fields.BooleanField(default=True, db_index=True)),
                 ('created_by_user_id', fields.UUIDField(null=True, db_index=True)),
             ],
-            options={'table': 'projects', 'app': 'models', 'unique_together': (('workspace_id', 'slug'),), 'pk_attr': 'id', 'table_description': 'Domain model for project records.'},
+            options={'table': 'domain_projects', 'app': 'models', 'unique_together': (('workspace_id', 'slug'),), 'pk_attr': 'id', 'table_description': 'Domain model for project records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -680,7 +680,7 @@ class Migration(migrations.Migration):
                 ('is_default_preview', fields.BooleanField(default=False, db_index=True)),
                 ('created_by_user_id', fields.UUIDField(null=True, db_index=True)),
             ],
-            options={'table': 'project_environments', 'app': 'models', 'unique_together': (('project_id', 'key'),), 'pk_attr': 'id', 'table_description': 'Project deployment environment identity.'},
+            options={'table': 'domain_project_environments', 'app': 'models', 'unique_together': (('project_id', 'key'),), 'pk_attr': 'id', 'table_description': 'Project deployment environment identity.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -700,7 +700,7 @@ class Migration(migrations.Migration):
                 ('status', fields.CharEnumField(db_index=True, description='PROVISIONING: provisioning\nREADY: ready\nFAILED: failed', enum_type=ProjectDatabaseInstanceStatus, max_length=12)),
                 ('created_by_user_id', fields.UUIDField(null=True, db_index=True)),
             ],
-            options={'table': 'project_database_instances', 'app': 'models', 'pk_attr': 'id'},
+            options={'table': 'domain_project_database_instances', 'app': 'models', 'pk_attr': 'id'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -714,7 +714,7 @@ class Migration(migrations.Migration):
                 ('status', fields.CharEnumField(db_index=True, description='READY: ready\nFAILED: failed', enum_type=ProjectDatabaseBackupStatus, max_length=6)),
                 ('retention_until', fields.DatetimeField(null=True, auto_now=False, auto_now_add=False)),
             ],
-            options={'table': 'project_database_backups', 'app': 'models', 'pk_attr': 'id'},
+            options={'table': 'domain_project_database_backups', 'app': 'models', 'pk_attr': 'id'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -730,7 +730,7 @@ class Migration(migrations.Migration):
                 ('expires_at', fields.DatetimeField(null=True, auto_now=False, auto_now_add=False)),
                 ('rotated_at', fields.DatetimeField(null=True, db_index=True, auto_now=False, auto_now_add=False)),
             ],
-            options={'table': 'project_database_credentials', 'app': 'models', 'unique_together': (('instance_id', 'role'),), 'pk_attr': 'id'},
+            options={'table': 'domain_project_database_credentials', 'app': 'models', 'unique_together': (('instance_id', 'role'),), 'pk_attr': 'id'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -745,7 +745,7 @@ class Migration(migrations.Migration):
                 ('status', fields.CharEnumField(db_index=True, description='APPLIED: applied\nFAILED: failed', enum_type=ProjectDatabaseMigrationStatus, max_length=7)),
                 ('applied_at', fields.DatetimeField(null=True, auto_now=False, auto_now_add=False)),
             ],
-            options={'table': 'project_database_migrations', 'app': 'models', 'pk_attr': 'id'},
+            options={'table': 'domain_project_database_migrations', 'app': 'models', 'pk_attr': 'id'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -762,7 +762,7 @@ class Migration(migrations.Migration):
                 ('switched_by_user_id', fields.UUIDField(null=True, db_index=True)),
                 ('switched_at', fields.DatetimeField(null=True, db_index=True, auto_now=False, auto_now_add=False)),
             ],
-            options={'table': 'project_environment_aliases', 'app': 'models', 'unique_together': (('project_id', 'key'),), 'pk_attr': 'id', 'table_description': 'Domain model for project environment alias records.'},
+            options={'table': 'domain_project_environment_aliases', 'app': 'models', 'unique_together': (('project_id', 'key'),), 'pk_attr': 'id', 'table_description': 'Domain model for project environment alias records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -776,7 +776,7 @@ class Migration(migrations.Migration):
                 ('role', fields.CharEnumField(default=ProjectMemberRole.EDITOR, db_index=True, description='OWNER: owner\nEDITOR: editor\nVIEWER: viewer', enum_type=ProjectMemberRole, max_length=6)),
                 ('created_by_user_id', fields.UUIDField(null=True, db_index=True)),
             ],
-            options={'table': 'project_memberships', 'app': 'models', 'unique_together': (('project_id', 'user_id'),), 'pk_attr': 'id', 'table_description': 'Project-scoped member role binding.'},
+            options={'table': 'domain_project_memberships', 'app': 'models', 'unique_together': (('project_id', 'user_id'),), 'pk_attr': 'id', 'table_description': 'Project-scoped member role binding.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -790,7 +790,7 @@ class Migration(migrations.Migration):
                 ('name', fields.CharField(default='Primary', max_length=64)),
                 ('is_active', fields.BooleanField(default=True, db_index=True)),
             ],
-            options={'table': 'project_runtimes', 'app': 'models', 'unique_together': (('project_id', 'kind'),), 'pk_attr': 'id', 'table_description': 'Domain model for project runtime records.'},
+            options={'table': 'domain_project_runtimes', 'app': 'models', 'unique_together': (('project_id', 'kind'),), 'pk_attr': 'id', 'table_description': 'Domain model for project runtime records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -813,11 +813,11 @@ class Migration(migrations.Migration):
                 ('promoted_from_deployment', fields.ForeignKeyField('models.ProjectDeploymentRecord', source_field='promoted_from_deployment_id', null=True, db_constraint=True, to_field='id', related_name='promotions', on_delete=OnDelete.SET_NULL)),
                 ('created_by_user_id', fields.UUIDField(null=True, db_index=True)),
             ],
-            options={'table': 'project_deployments', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Persisted deployment state for a project environment.'},
+            options={'table': 'domain_project_deployments', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Persisted deployment state for a project environment.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
-            name='Role',
+            name='SystemRole',
             fields=[
                 ('id', fields.UUIDField(primary_key=True, default=uuid7, unique=True, db_index=True)),
                 ('created_at', fields.DatetimeField(db_index=True, auto_now=False, auto_now_add=True)),
@@ -832,20 +832,20 @@ class Migration(migrations.Migration):
                 ('is_default', fields.BooleanField(default=False, db_index=True)),
                 ('is_superuser', fields.BooleanField(default=False, db_index=True)),
             ],
-            options={'table': 'system_roles', 'app': 'models', 'unique_together': (('workspace_id', 'code'),), 'pk_attr': 'id', 'table_description': 'Internal model for roles.'},
+            options={'table': 'internal_roles', 'app': 'models', 'unique_together': (('workspace_id', 'code'),), 'pk_attr': 'id', 'table_description': 'Internal model for roles.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
-            name='RolePermission',
+            name='SystemRolePermission',
             fields=[
                 ('id', fields.UUIDField(primary_key=True, default=uuid7, unique=True, db_index=True)),
                 ('created_at', fields.DatetimeField(db_index=True, auto_now=False, auto_now_add=True)),
                 ('updated_at', fields.DatetimeField(auto_now=True, auto_now_add=False)),
-                ('role', fields.ForeignKeyField('models.Role', source_field='role_id', db_constraint=True, to_field='id', related_name='role_permissions', on_delete=OnDelete.CASCADE)),
-                ('permission', fields.ForeignKeyField('models.Permission', source_field='permission_id', db_constraint=True, to_field='id', related_name='permission_roles', on_delete=OnDelete.CASCADE)),
+                ('role', fields.ForeignKeyField('models.SystemRole', source_field='role_id', db_constraint=True, to_field='id', related_name='role_permissions', on_delete=OnDelete.CASCADE)),
+                ('permission', fields.ForeignKeyField('models.SystemPermission', source_field='permission_id', db_constraint=True, to_field='id', related_name='permission_roles', on_delete=OnDelete.CASCADE)),
                 ('conditions', fields.JSONField(default=list, encoder=JSON_DUMPS, decoder=loads)),
             ],
-            options={'table': 'system_role_permissions', 'app': 'models', 'unique_together': (('role_id', 'permission_id'),), 'pk_attr': 'id', 'table_description': 'Internal model for role permissions.'},
+            options={'table': 'internal_role_permissions', 'app': 'models', 'unique_together': (('role_id', 'permission_id'),), 'pk_attr': 'id', 'table_description': 'Internal model for role permissions.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -864,7 +864,7 @@ class Migration(migrations.Migration):
                 ('is_active', fields.BooleanField(default=True, db_index=True)),
                 ('created_by_user_id', fields.UUIDField(null=True, db_index=True)),
             ],
-            options={'table': 'sites', 'app': 'models', 'unique_together': (('runtime_id',),), 'pk_attr': 'id', 'table_description': 'Domain model for site records.'},
+            options={'table': 'domain_sites', 'app': 'models', 'unique_together': (('runtime_id',),), 'pk_attr': 'id', 'table_description': 'Domain model for site records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -889,7 +889,7 @@ class Migration(migrations.Migration):
                 ('expires_at', fields.DatetimeField(null=True, db_index=True, auto_now=False, auto_now_add=False)),
                 ('revoked_at', fields.DatetimeField(null=True, db_index=True, auto_now=False, auto_now_add=False)),
             ],
-            options={'table': 'api_keys', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for API key records.'},
+            options={'table': 'domain_api_keys', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for API key records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -927,7 +927,7 @@ class Migration(migrations.Migration):
                 ('seo_policy', fields.JSONField(null=True, encoder=JSON_DUMPS, decoder=loads)),
                 ('workflow_policy', fields.JSONField(null=True, encoder=JSON_DUMPS, decoder=loads)),
             ],
-            options={'table': 'content_model_definitions', 'app': 'models', 'unique_together': (('workspace_id', 'site_id', 'environment_id', 'singular_key'), ('workspace_id', 'site_id', 'environment_id', 'plural_key')), 'pk_attr': 'id', 'table_description': 'Domain model for content model definition records.'},
+            options={'table': 'domain_content_model_definitions', 'app': 'models', 'unique_together': (('workspace_id', 'site_id', 'environment_id', 'singular_key'), ('workspace_id', 'site_id', 'environment_id', 'plural_key')), 'pk_attr': 'id', 'table_description': 'Domain model for content model definition records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -963,7 +963,7 @@ class Migration(migrations.Migration):
                 ('created_by_user_id', fields.UUIDField(null=True, db_index=True)),
                 ('updated_by_user_id', fields.UUIDField(null=True, db_index=True)),
             ],
-            options={'table': 'content_items', 'app': 'models', 'unique_together': (('model_definition_id', 'environment_id', 'locale', 'slug'),), 'pk_attr': 'id', 'table_description': 'Domain model for content item records.'},
+            options={'table': 'domain_content_items', 'app': 'models', 'unique_together': (('model_definition_id', 'environment_id', 'locale', 'slug'),), 'pk_attr': 'id', 'table_description': 'Domain model for content item records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -981,7 +981,7 @@ class Migration(migrations.Migration):
                 ('config', fields.JSONField(null=True, encoder=JSON_DUMPS, decoder=loads)),
                 ('sort_order', fields.IntField(default=0)),
             ],
-            options={'table': 'content_model_fields', 'app': 'models', 'unique_together': (('model_definition_id', 'key'),), 'pk_attr': 'id', 'table_description': 'Domain model for content model field records.'},
+            options={'table': 'domain_content_model_fields', 'app': 'models', 'unique_together': (('model_definition_id', 'key'),), 'pk_attr': 'id', 'table_description': 'Domain model for content model field records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -999,7 +999,7 @@ class Migration(migrations.Migration):
                 ('config', fields.JSONField(null=True, encoder=JSON_DUMPS, decoder=loads)),
                 ('sort_order', fields.IntField(default=0)),
             ],
-            options={'table': 'content_model_relations', 'app': 'models', 'unique_together': (('model_definition_id', 'key'),), 'pk_attr': 'id', 'table_description': 'Domain model for content model relation records.'},
+            options={'table': 'domain_content_model_relations', 'app': 'models', 'unique_together': (('model_definition_id', 'key'),), 'pk_attr': 'id', 'table_description': 'Domain model for content model relation records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -1016,7 +1016,7 @@ class Migration(migrations.Migration):
                 ('is_enabled', fields.BooleanField(default=True, db_index=True)),
                 ('sort_order', fields.IntField(default=0)),
             ],
-            options={'table': 'content_model_views', 'app': 'models', 'unique_together': (('model_definition_id', 'key'),), 'pk_attr': 'id', 'table_description': 'Domain model for content model view records.'},
+            options={'table': 'domain_content_model_views', 'app': 'models', 'unique_together': (('model_definition_id', 'key'),), 'pk_attr': 'id', 'table_description': 'Domain model for content model view records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -1034,7 +1034,7 @@ class Migration(migrations.Migration):
                 ('lineage_parent_release_id', fields.UUIDField(null=True, db_index=True)),
                 ('selection_count', fields.IntField(default=0)),
             ],
-            options={'table': 'content_releases', 'app': 'models', 'unique_together': (('site_id', 'release_number'),), 'pk_attr': 'id', 'table_description': 'Domain model for content release records.'},
+            options={'table': 'domain_content_releases', 'app': 'models', 'unique_together': (('site_id', 'release_number'),), 'pk_attr': 'id', 'table_description': 'Domain model for content release records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -1051,7 +1051,7 @@ class Migration(migrations.Migration):
                 ('created_by_user_id', fields.UUIDField(null=True, db_index=True)),
                 ('last_transition_by_user_id', fields.UUIDField(null=True, db_index=True)),
             ],
-            options={'table': 'content_versions', 'app': 'models', 'unique_together': (('item_id', 'version'),), 'pk_attr': 'id', 'table_description': 'Domain model for content version records.'},
+            options={'table': 'domain_content_versions', 'app': 'models', 'unique_together': (('item_id', 'version'),), 'pk_attr': 'id', 'table_description': 'Domain model for content version records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -1066,7 +1066,7 @@ class Migration(migrations.Migration):
                 ('binding_payload', fields.JSONField(null=True, encoder=JSON_DUMPS, decoder=loads)),
                 ('sort_order', fields.IntField(default=0)),
             ],
-            options={'table': 'content_component_bindings', 'app': 'models', 'unique_together': (('version_id', 'component_key', 'binding_key'),), 'pk_attr': 'id', 'table_description': 'Domain model for component binding records.'},
+            options={'table': 'domain_content_component_bindings', 'app': 'models', 'unique_together': (('version_id', 'component_key', 'binding_key'),), 'pk_attr': 'id', 'table_description': 'Domain model for component binding records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -1106,7 +1106,7 @@ class Migration(migrations.Migration):
                 ('parent_item', fields.ForeignKeyField('models.ContentItemRecord', source_field='parent_item_id', null=True, db_constraint=True, to_field='id', related_name='child_hierarchy_nodes', on_delete=OnDelete.SET_NULL)),
                 ('sort_order', fields.IntField(default=0)),
             ],
-            options={'table': 'content_hierarchy_nodes', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for hierarchy node records.'},
+            options={'table': 'domain_content_hierarchy_nodes', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for hierarchy node records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -1119,7 +1119,7 @@ class Migration(migrations.Migration):
                 ('kind', fields.CharEnumField(db_index=True, description='FORM_DATA: form_data\nRICH_TEXT_DOCUMENT: rich_text_document\nVISUAL_BLUEPRINT: visual_blueprint\nQUERY_DEFINITION: query_definition\nSLOT_MAPPING: slot_mapping\nSEO: seo', enum_type=ContentPresentationKind, max_length=32)),
                 ('payload', fields.JSONField(null=True, encoder=JSON_DUMPS, decoder=loads)),
             ],
-            options={'table': 'content_presentation_documents', 'app': 'models', 'unique_together': (('version_id', 'kind'),), 'pk_attr': 'id', 'table_description': 'Domain model for presentation document records.'},
+            options={'table': 'domain_content_presentation_documents', 'app': 'models', 'unique_together': (('version_id', 'kind'),), 'pk_attr': 'id', 'table_description': 'Domain model for presentation document records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -1138,7 +1138,7 @@ class Migration(migrations.Migration):
                 ('payload', fields.JSONField(null=True, encoder=JSON_DUMPS, decoder=loads)),
                 ('html', fields.TextField(null=True, unique=False)),
             ],
-            options={'table': 'content_publish_artifacts', 'app': 'models', 'unique_together': (('release_id', 'site_id', 'item_id', 'version_id', 'artifact_kind', 'locale'),), 'pk_attr': 'id', 'table_description': 'Domain model for publish artifact records.'},
+            options={'table': 'domain_content_publish_artifacts', 'app': 'models', 'unique_together': (('release_id', 'site_id', 'item_id', 'version_id', 'artifact_kind', 'locale'),), 'pk_attr': 'id', 'table_description': 'Domain model for publish artifact records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -1158,7 +1158,7 @@ class Migration(migrations.Migration):
                 ('hierarchy_parent_item', fields.ForeignKeyField('models.ContentItemRecord', source_field='hierarchy_parent_item_id', null=True, db_constraint=True, to_field='id', related_name='published_graph_children', on_delete=OnDelete.SET_NULL)),
                 ('hierarchy_sort_order', fields.IntField(default=0)),
             ],
-            options={'table': 'content_published_graph', 'app': 'models', 'unique_together': (('release_id', 'site_id', 'locale', 'route_path'), ('release_id', 'item_id', 'locale')), 'pk_attr': 'id', 'table_description': 'Domain model for published graph records.'},
+            options={'table': 'domain_content_published_graph', 'app': 'models', 'unique_together': (('release_id', 'site_id', 'locale', 'route_path'), ('release_id', 'item_id', 'locale')), 'pk_attr': 'id', 'table_description': 'Domain model for published graph records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -1176,7 +1176,7 @@ class Migration(migrations.Migration):
                 ('route_contract', fields.JSONField(null=True, encoder=JSON_DUMPS, decoder=loads)),
                 ('is_active', fields.BooleanField(default=True, db_index=True)),
             ],
-            options={'table': 'content_route_bindings', 'app': 'models', 'unique_together': (('site_id', 'environment_id', 'locale', 'path'), ('item_id', 'environment_id', 'locale')), 'pk_attr': 'id', 'table_description': 'Domain model for route binding records.'},
+            options={'table': 'domain_content_route_bindings', 'app': 'models', 'unique_together': (('site_id', 'environment_id', 'locale', 'path'), ('item_id', 'environment_id', 'locale')), 'pk_attr': 'id', 'table_description': 'Domain model for route binding records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -1192,7 +1192,7 @@ class Migration(migrations.Migration):
                 ('robots_directive', fields.CharField(null=True, max_length=128)),
                 ('payload', fields.JSONField(null=True, encoder=JSON_DUMPS, decoder=loads)),
             ],
-            options={'table': 'content_seo_profiles', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for SEO profiles.'},
+            options={'table': 'domain_content_seo_profiles', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for SEO profiles.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -1209,7 +1209,7 @@ class Migration(migrations.Migration):
                 ('page_blueprint_fragment_json', fields.JSONField(source_field='blocks_json', default=dict, encoder=JSON_DUMPS, decoder=loads)),
                 ('created_by_user_id', fields.UUIDField(null=True, db_index=True)),
             ],
-            options={'table': 'site_patterns', 'app': 'models', 'unique_together': (('site_id', 'code'),), 'pk_attr': 'id', 'table_description': 'Domain model for site patterns.'},
+            options={'table': 'domain_site_patterns', 'app': 'models', 'unique_together': (('site_id', 'code'),), 'pk_attr': 'id', 'table_description': 'Domain model for site patterns.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -1225,7 +1225,7 @@ class Migration(migrations.Migration):
                 ('enabled', fields.BooleanField(default=True, db_index=True)),
                 ('secret', fields.CharField(null=True, max_length=2048)),
             ],
-            options={'table': 'webhook_subscriptions', 'app': 'models', 'unique_together': (('workspace_id', 'event', 'endpoint_url'),), 'pk_attr': 'id', 'table_description': 'Domain model for webhook subscriptions.'},
+            options={'table': 'domain_webhook_subscriptions', 'app': 'models', 'unique_together': (('workspace_id', 'event', 'endpoint_url'),), 'pk_attr': 'id', 'table_description': 'Domain model for webhook subscriptions.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -1241,7 +1241,7 @@ class Migration(migrations.Migration):
                 ('error', fields.TextField(null=True, unique=False)),
                 ('duration_ms', fields.IntField(null=True)),
             ],
-            options={'table': 'webhook_deliveries', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for webhook deliveries.'},
+            options={'table': 'domain_webhook_deliveries', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for webhook deliveries.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -1262,7 +1262,7 @@ class Migration(migrations.Migration):
                 ('revoked_by_user_id', fields.UUIDField(null=True, db_index=True)),
                 ('revoked_at', fields.DatetimeField(null=True, db_index=True, auto_now=False, auto_now_add=False)),
             ],
-            options={'table': 'workspace_email_invites', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for workspace email invites.'},
+            options={'table': 'domain_workspace_email_invites', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for workspace email invites.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -1285,7 +1285,7 @@ class Migration(migrations.Migration):
                 ('last_used_by_user_id', fields.UUIDField(null=True, db_index=True)),
                 ('last_used_at', fields.DatetimeField(null=True, auto_now=False, auto_now_add=False)),
             ],
-            options={'table': 'workspace_invite_links', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for workspace invite links.'},
+            options={'table': 'domain_workspace_invite_links', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for workspace invite links.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -1299,7 +1299,7 @@ class Migration(migrations.Migration):
                 ('used_at', fields.DatetimeField(db_index=True, auto_now=False, auto_now_add=False)),
                 ('joined_membership_id', fields.UUIDField(null=True, db_index=True)),
             ],
-            options={'table': 'workspace_invite_link_use_events', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for workspace invite link use events.'},
+            options={'table': 'domain_workspace_invite_link_use_events', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for workspace invite link use events.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -1313,7 +1313,7 @@ class Migration(migrations.Migration):
                 ('status', fields.CharEnumField(default=WorkspaceMembershipStatus.ACTIVE, db_index=True, description='ACTIVE: active\nINVITED: invited\nDISABLED: disabled', enum_type=WorkspaceMembershipStatus, max_length=8)),
                 ('invited_by_user_id', fields.UUIDField(null=True, db_index=True)),
             ],
-            options={'table': 'workspace_memberships', 'app': 'models', 'unique_together': (('workspace_id', 'user_id'),), 'pk_attr': 'id', 'table_description': 'Domain model for workspace memberships.'},
+            options={'table': 'domain_workspace_memberships', 'app': 'models', 'unique_together': (('workspace_id', 'user_id'),), 'pk_attr': 'id', 'table_description': 'Domain model for workspace memberships.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -1323,9 +1323,9 @@ class Migration(migrations.Migration):
                 ('created_at', fields.DatetimeField(db_index=True, auto_now=False, auto_now_add=True)),
                 ('updated_at', fields.DatetimeField(auto_now=True, auto_now_add=False)),
                 ('membership', fields.ForeignKeyField('models.WorkspaceMembership', source_field='membership_id', db_constraint=True, to_field='id', related_name='membership_roles', on_delete=OnDelete.CASCADE)),
-                ('role', fields.ForeignKeyField('models.Role', source_field='role_id', db_constraint=True, to_field='id', related_name='workspace_membership_roles', on_delete=OnDelete.CASCADE)),
+                ('role', fields.ForeignKeyField('models.SystemRole', source_field='role_id', db_constraint=True, to_field='id', related_name='workspace_membership_roles', on_delete=OnDelete.CASCADE)),
             ],
-            options={'table': 'workspace_membership_roles', 'app': 'models', 'unique_together': (('membership_id', 'role_id'),), 'pk_attr': 'id', 'table_description': 'Domain model for workspace membership roles.'},
+            options={'table': 'domain_workspace_membership_roles', 'app': 'models', 'unique_together': (('membership_id', 'role_id'),), 'pk_attr': 'id', 'table_description': 'Domain model for workspace membership roles.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -1342,7 +1342,7 @@ class Migration(migrations.Migration):
                 ('schema_version', fields.IntField(default=0)),
                 ('failure_reason', fields.TextField(null=True, unique=False)),
             ],
-            options={'table': 'workspace_tenant_registry', 'app': 'models', 'unique_together': (('workspace_id',), ('schema_name',)), 'pk_attr': 'id'},
+            options={'table': 'tenant_workspace_registry', 'app': 'models', 'unique_together': (('workspace_id',), ('schema_name',)), 'pk_attr': 'id'},
             bases=['BaseModel'],
         ),
     ]

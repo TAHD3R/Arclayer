@@ -16,7 +16,7 @@ from src.models.organization.organization import Organization, OrganizationKind
 from src.models.organization.user import User, UserCredential, UserStatus
 from src.models.projects.membership import ProjectMemberRole, ProjectMembership
 from src.models.projects.project import ProjectRecord
-from src.models.system.rbac import Role
+from src.models.system.rbac import SystemRole
 from src.models.workspaces.workspace import (
     Workspace,
     WorkspaceMembership,
@@ -290,7 +290,7 @@ async def test_system_directory_workspace_and_project_lists_include_owner_and_ic
         user_id=owner.id,
         status=WorkspaceMembershipStatus.ACTIVE,
     )
-    owner_role = await Role.get(workspace_id=workspace.id, code="owner")
+    owner_role = await SystemRole.get(workspace_id=workspace.id, code="owner")
     await WorkspaceMembershipRole.get_or_create(membership_id=workspace_membership.id, role_id=owner_role.id)
     await ProjectMembership.create(
         project_id=project.id,
@@ -916,7 +916,7 @@ async def test_system_directory_deletes_user_account_with_owned_entities_cascade
         user_id=managed_user.id,
         status=WorkspaceMembershipStatus.ACTIVE,
     )
-    owned_workspace_role = await Role.get(workspace_id=owned_workspace.id, code="owner")
+    owned_workspace_role = await SystemRole.get(workspace_id=owned_workspace.id, code="owner")
     await WorkspaceMembershipRole.get_or_create(
         membership_id=owned_workspace_membership.id,
         role_id=owned_workspace_role.id,

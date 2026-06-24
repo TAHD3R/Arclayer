@@ -26,5 +26,6 @@ class SEOProfileRecord(BaseModel):
         version_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_content_seo_profiles"
+        table = "content_seo_profiles"
+        table_description = "SEO metadata profile records for content items."
         abstract = False

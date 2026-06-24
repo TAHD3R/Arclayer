@@ -34,6 +34,7 @@ class User(BaseModel):
 
     class Meta(BaseModel.Meta):
         table = "users"
+        table_description = "User accounts with authentication and profile data."
         abstract = False
 
 
@@ -47,4 +48,5 @@ class UserCredential(BaseModel):
 
     class Meta(BaseModel.Meta):
         table = "user_credentials"
+        table_description = "Password hashes for user authentication."
         abstract = False

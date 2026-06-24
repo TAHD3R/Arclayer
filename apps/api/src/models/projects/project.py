@@ -38,7 +38,8 @@ class ProjectRecord(BaseModel):
         workspace_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_projects"
+        table = "projects"
+        table_description = "Project records within workspaces."
         abstract = False
         unique_together = (("workspace_id", "slug"),)
 

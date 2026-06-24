@@ -10,7 +10,7 @@ from src.core.i18n import t
 from src.core.services import BaseService
 from src.models.assets.asset import AssetRecord
 from src.models.assets.upload import UploadSessionRecord
-from src.models.storage.storage_profile import StorageProfileRecord, StorageProfileTestStateRecord
+from src.models.storage.storage_profile import StorageProfile, StorageProfileTestState
 from src.models.system.setting import SettingRecord
 from src.modules.system.storage_profiles.schema import (
     StorageProfileConfigPayload,
@@ -40,7 +40,7 @@ def _ts(key: str) -> str:
 
 class StorageProfilesService(BaseService):
     async def list_profiles(self) -> StorageProfileListOut:
-        records = await StorageProfileRecord.filter(
+        records = await StorageProfile.filter(
             scope_type=SCOPE_TYPE_SYSTEM,
             scope_id=SYSTEM_SCOPE_ID,
         ).order_by("-is_default", "display_name", "created_at")
@@ -56,7 +56,7 @@ class StorageProfilesService(BaseService):
         payload: StorageProfileCreateRequest,
         updated_by: UUID | None,
     ) -> StorageProfileOut:
-        exists = await StorageProfileRecord.get_or_none(
+        exists = await StorageProfile.get_or_none(
             scope_type=SCOPE_TYPE_SYSTEM,
             scope_id=SYSTEM_SCOPE_ID,
             profile_key=payload.profile_key,
@@ -64,7 +64,7 @@ class StorageProfilesService(BaseService):
         if exists is not None:
             raise BadRequest(message=_ts("STORAGE_PROFILE_KEY_EXISTS"), error="STORAGE_PROFILE_KEY_EXISTS")
 
-        record = await StorageProfileRecord.create(
+        record = await StorageProfile.create(
             profile_key=payload.profile_key,
             scope_type=SCOPE_TYPE_SYSTEM,
             scope_id=SYSTEM_SCOPE_ID,
@@ -78,7 +78,7 @@ class StorageProfilesService(BaseService):
         if payload.is_default:
             await self._set_default_profile(record)
             await self._set_runtime_default_profile_key(record.profile_key, updated_by=updated_by)
-            record = await StorageProfileRecord.get(id=record.id)
+            record = await StorageProfile.get(id=record.id)
         return self._to_out(record)
 
     async def update_profile(
@@ -88,7 +88,7 @@ class StorageProfilesService(BaseService):
         payload: StorageProfileUpdateRequest,
         updated_by: UUID | None,
     ) -> StorageProfileOut:
-        record = await StorageProfileRecord.get_or_none(
+        record = await StorageProfile.get_or_none(
             id=profile_id,
             scope_type=SCOPE_TYPE_SYSTEM,
             scope_id=SYSTEM_SCOPE_ID,
@@ -118,14 +118,14 @@ class StorageProfilesService(BaseService):
         if payload.is_default:
             await self._set_default_profile(record)
             await self._set_runtime_default_profile_key(record.profile_key, updated_by=updated_by)
-            record = await StorageProfileRecord.get(id=record.id)
+            record = await StorageProfile.get(id=record.id)
         elif payload.is_default is False and record.profile_key == await self._get_runtime_default_profile_key():
             await self._set_runtime_default_profile_key(None, updated_by=updated_by)
 
         return self._to_out(record)
 
     async def test_profile(self, *, profile_id: UUID) -> StorageProfileTestResultOut:
-        record = await StorageProfileRecord.get_or_none(
+        record = await StorageProfile.get_or_none(
             id=profile_id,
             scope_type=SCOPE_TYPE_SYSTEM,
             scope_id=SYSTEM_SCOPE_ID,
@@ -137,7 +137,7 @@ class StorageProfilesService(BaseService):
 
     async def test_profile_by_key(self, *, profile_key: str) -> StorageProfileTestResultOut:
         normalized_key = profile_key.strip().lower()
-        record = await StorageProfileRecord.get_or_none(
+        record = await StorageProfile.get_or_none(
             scope_type=SCOPE_TYPE_SYSTEM,
             scope_id=SYSTEM_SCOPE_ID,
             profile_key=normalized_key,
@@ -156,7 +156,7 @@ class StorageProfilesService(BaseService):
         )
         return result
 
-    async def _test_record(self, record: StorageProfileRecord) -> StorageProfileTestResultOut:
+    async def _test_record(self, record: StorageProfile) -> StorageProfileTestResultOut:
         result = await self._test_config(build_storage_profile_config_from_record(record, settings=self.settings))
         await self._remember_test_state(
             profile_key=record.profile_key,
@@ -180,7 +180,7 @@ class StorageProfilesService(BaseService):
         return StorageProfileTestResultOut(ok=True, status="passed", message="Connectivity check passed")
 
     async def delete_profile(self, *, profile_id: UUID, updated_by: UUID | None) -> StorageProfileDeleteOut:
-        record = await StorageProfileRecord.get_or_none(
+        record = await StorageProfile.get_or_none(
             id=profile_id,
             scope_type=SCOPE_TYPE_SYSTEM,
             scope_id=SYSTEM_SCOPE_ID,
@@ -209,7 +209,7 @@ class StorageProfilesService(BaseService):
         message: str | None,
     ) -> None:
         now = datetime.now(tz=UTC)
-        record, _created = await StorageProfileTestStateRecord.get_or_create(
+        record, _created = await StorageProfileTestState.get_or_create(
             scope_type=SCOPE_TYPE_SYSTEM,
             scope_id=SYSTEM_SCOPE_ID,
             profile_key=profile_key,
@@ -224,8 +224,8 @@ class StorageProfilesService(BaseService):
         record.last_tested_at = now
         await record.save(update_fields=["last_test_status", "last_test_message", "last_tested_at", "updated_at"])
 
-    async def _load_test_states(self) -> dict[str, StorageProfileTestStateRecord]:
-        states = await StorageProfileTestStateRecord.filter(
+    async def _load_test_states(self) -> dict[str, StorageProfileTestState]:
+        states = await StorageProfileTestState.filter(
             scope_type=SCOPE_TYPE_SYSTEM,
             scope_id=SYSTEM_SCOPE_ID,
         )
@@ -233,7 +233,7 @@ class StorageProfilesService(BaseService):
 
     def _build_env_default_out(
         self,
-        test_state: StorageProfileTestStateRecord | None = None,
+        test_state: StorageProfileTestState | None = None,
     ) -> StorageProfileOut:
         config = build_env_storage_profile_config(self.settings)
         return StorageProfileOut(
@@ -258,8 +258,8 @@ class StorageProfilesService(BaseService):
 
     def _to_out(
         self,
-        record: StorageProfileRecord,
-        test_state: StorageProfileTestStateRecord | None = None,
+        record: StorageProfile,
+        test_state: StorageProfileTestState | None = None,
     ) -> StorageProfileOut:
         config = build_storage_profile_config_from_record(record, settings=self.settings)
         return StorageProfileOut(
@@ -312,9 +312,9 @@ class StorageProfilesService(BaseService):
             return {}
         return {"secret_access_key": secret}
 
-    async def _set_default_profile(self, record: StorageProfileRecord) -> None:
+    async def _set_default_profile(self, record: StorageProfile) -> None:
         await (
-            StorageProfileRecord
+            StorageProfile
             .filter(
                 scope_type=record.scope_type,
                 scope_id=record.scope_id,

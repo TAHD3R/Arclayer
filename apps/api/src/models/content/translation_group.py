@@ -29,5 +29,6 @@ class TranslationGroupRecord(BaseModel):
         site_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_content_translation_groups"
+        table = "content_translation_groups"
+        table_description = "Translation group records linking localized content items."
         abstract = False

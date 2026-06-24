@@ -17,6 +17,7 @@ class SettingRecord(BaseModel):
     updated_by = fields.UUIDField(null=True)
 
     class Meta(BaseModel.Meta):
-        table = "internal_settings"
+        table = "system_settings"
+        table_description = "Key-value setting records scoped by type and namespace."
         abstract = False
         unique_together = (("scope_type", "scope_id", "namespace"),)

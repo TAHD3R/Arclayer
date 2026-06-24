@@ -23,6 +23,7 @@ class SitePattern(BaseModel):
     created_by_user_id = fields.UUIDField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "domain_site_patterns"
+        table = "site_patterns"
+        table_description = "Reusable site configuration pattern templates."
         abstract = False
         unique_together = (("site_id", "code"),)

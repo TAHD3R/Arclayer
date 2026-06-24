@@ -7,7 +7,7 @@ from fastapi import Depends
 from src.config import get_settings
 from src.core.exceptions import Forbidden
 from src.core.i18n import t
-from src.models.system.rbac import Permission, PermissionScope, Role, RolePermission
+from src.models.system.rbac import PermissionScope, SystemPermission, SystemRole, SystemRolePermission
 from src.models.workspaces.workspace import WorkspaceMembershipRole
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.permissions import PermissionConditionSet, deserialize_condition_sets
@@ -20,7 +20,7 @@ from src.modules.workspaces.rbac.service import WorkspaceRBACService
 
 async def _list_user_role_codes_in_workspace(*, user_id: UUID, workspace_id: UUID) -> list[str]:
     roles = (
-        await Role
+        await SystemRole
         .filter(
             workspace_membership_roles__membership__workspace_id=workspace_id,
             workspace_membership_roles__membership__user_id=user_id,
@@ -38,12 +38,12 @@ async def _build_workspace_authz_snapshot(*, user_id: UUID, workspace_id: UUID) 
     if not role_codes:
         return AuthzSnapshot(user_id=user_id, role_codes=[], permission_codes=[], is_superuser=False)
 
-    is_superuser = await Role.filter(workspace_id=workspace_id, code__in=role_codes, is_superuser=True).exists()
+    is_superuser = await SystemRole.filter(workspace_id=workspace_id, code__in=role_codes, is_superuser=True).exists()
     if is_superuser:
-        perms = await Permission.filter(scope=PermissionScope.WORKSPACE).distinct().order_by("code").all()
+        perms = await SystemPermission.filter(scope=PermissionScope.WORKSPACE).distinct().order_by("code").all()
     else:
         perms = (
-            await Permission
+            await SystemPermission
             .filter(
                 scope=PermissionScope.WORKSPACE,
                 permission_roles__role__workspace_id=workspace_id,
@@ -56,7 +56,7 @@ async def _build_workspace_authz_snapshot(*, user_id: UUID, workspace_id: UUID) 
     permission_codes = [p.code for p in perms if p and p.code]
     permission_conditions: dict[str, list[PermissionConditionSet]] = {}
     if not is_superuser and permission_codes:
-        rows = await RolePermission.filter(
+        rows = await SystemRolePermission.filter(
             role__workspace_id=workspace_id,
             role__code__in=role_codes,
             permission__scope=PermissionScope.WORKSPACE,
@@ -89,7 +89,7 @@ async def _ensure_creator_admin_has_admin_role(*, ctx: WorkspaceContext, user_id
         return
     if ctx.workspace_membership_id is None:
         return
-    admin_role = await Role.get_or_none(workspace_id=ctx.workspace_id, code="owner", is_system=True)
+    admin_role = await SystemRole.get_or_none(workspace_id=ctx.workspace_id, code="owner", is_system=True)
     if admin_role is None:
         return
     await WorkspaceMembershipRole.get_or_create(membership_id=ctx.workspace_membership_id, role_id=admin_role.id)

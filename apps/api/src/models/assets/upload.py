@@ -63,7 +63,8 @@ class UploadSessionRecord(BaseModel):
     s3_bucket = fields.CharField(max_length=255, null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "domain_upload_sessions"
+        table = "upload_sessions"
+        table_description = "Multipart upload session tracking records."
         abstract = False
 
 
@@ -80,6 +81,7 @@ class UploadPartRecord(BaseModel):
     stored = fields.BooleanField(default=False)
 
     class Meta(BaseModel.Meta):
-        table = "domain_upload_parts"
+        table = "upload_parts"
+        table_description = "Individual part records for multipart uploads."
         abstract = False
         unique_together = (("session_id", "part_number"),)

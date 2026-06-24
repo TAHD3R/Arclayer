@@ -6,7 +6,7 @@ from src.common.models import BaseModel
 from src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
 
-class StorageProfileRecord(BaseModel):
+class StorageProfile(BaseModel):
     profile_key = fields.CharField(max_length=128, db_index=True)
     scope_type = fields.CharField(max_length=32, default=SCOPE_TYPE_SYSTEM, db_index=True)
     scope_id = fields.UUIDField(default=SYSTEM_SCOPE_ID, db_index=True)
@@ -21,12 +21,13 @@ class StorageProfileRecord(BaseModel):
     last_tested_at = fields.DatetimeField(null=True)
 
     class Meta(BaseModel.Meta):
-        table = "system_storage_profiles"
+        table = "storage_profiles"
+        table_description = "Storage provider configuration profiles."
         abstract = False
         unique_together = (("scope_type", "scope_id", "profile_key"),)
 
 
-class StorageProfileTestStateRecord(BaseModel):
+class StorageProfileTestState(BaseModel):
     scope_type = fields.CharField(max_length=32, default=SCOPE_TYPE_SYSTEM, db_index=True)
     scope_id = fields.UUIDField(default=SYSTEM_SCOPE_ID, db_index=True)
     profile_key = fields.CharField(max_length=128, db_index=True)
@@ -35,6 +36,7 @@ class StorageProfileTestStateRecord(BaseModel):
     last_tested_at = fields.DatetimeField()
 
     class Meta(BaseModel.Meta):
-        table = "system_storage_profile_test_states"
+        table = "storage_profile_test_states"
+        table_description = "Storage profile connectivity test result records."
         abstract = False
         unique_together = (("scope_type", "scope_id", "profile_key"),)

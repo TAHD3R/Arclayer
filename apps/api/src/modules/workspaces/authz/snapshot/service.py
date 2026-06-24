@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from src.models.system.rbac import Permission, PermissionScope, Role
+from src.models.system.rbac import PermissionScope, SystemPermission, SystemRole
 from src.modules.workspaces.authz.schema import AuthzSnapshot
 
 
@@ -16,7 +16,7 @@ async def get_workspace_authz_snapshot(*, user_id: UUID, workspace_id: UUID) -> 
     """
 
     roles = (
-        await Role
+        await SystemRole
         .filter(
             workspace_membership_roles__membership__workspace_id=workspace_id,
             workspace_membership_roles__membership__user_id=user_id,
@@ -32,7 +32,7 @@ async def get_workspace_authz_snapshot(*, user_id: UUID, workspace_id: UUID) -> 
 
     is_superuser = any(bool(r.is_superuser) for r in roles)
     if is_superuser:
-        perms = await Permission.filter(scope=PermissionScope.WORKSPACE).order_by("code").all()
+        perms = await SystemPermission.filter(scope=PermissionScope.WORKSPACE).order_by("code").all()
         permission_codes = [p.code for p in perms if p and p.code]
         return AuthzSnapshot(
             user_id=user_id,
@@ -42,7 +42,7 @@ async def get_workspace_authz_snapshot(*, user_id: UUID, workspace_id: UUID) -> 
         )
 
     perms = (
-        await Permission
+        await SystemPermission
         .filter(
             scope=PermissionScope.WORKSPACE,
             permission_roles__role__workspace_id=workspace_id,

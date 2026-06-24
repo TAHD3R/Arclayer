@@ -55,6 +55,7 @@ class NotificationRecord(BaseModel):
     archived_at = fields.DatetimeField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "internal_notifications"
+        table = "system_notifications"
+        table_description = "System notification records with deduplication."
         abstract = False
         unique_together = (("workspace_id", "recipient_user_id", "dedupe_key"),)

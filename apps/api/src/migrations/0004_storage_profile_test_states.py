@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
 
     operations = [
         ops.CreateModel(
-            name="StorageProfileTestStateRecord",
+            name="StorageProfileTestState",
             fields=[
                 ("id", fields.UUIDField(primary_key=True, default=uuid7, unique=True, db_index=True)),
                 ("created_at", fields.DatetimeField(db_index=True, auto_now=False, auto_now_add=True)),
@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
                 ("last_tested_at", fields.DatetimeField(auto_now=False, auto_now_add=False)),
             ],
             options={
-                "table": "storage_profile_test_states",
+                "table": "system_storage_profile_test_states",
                 "app": "models",
                 "unique_together": (("scope_type", "scope_id", "profile_key"),),
                 "pk_attr": "id",
@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
         ),
         ops.RunSQL(
             sql="""
-            INSERT INTO storage_profile_test_states (
+            INSERT INTO system_storage_profile_test_states (
                 id,
                 created_at,
                 updated_at,
@@ -60,10 +60,10 @@ class Migration(migrations.Migration):
                 last_test_status,
                 last_test_message,
                 COALESCE(last_tested_at, updated_at)
-            FROM storage_profiles
+            FROM system_storage_profiles
             WHERE last_test_status IN ('passed', 'failed')
             ON CONFLICT (scope_type, scope_id, profile_key) DO NOTHING
             """,
-            reverse_sql="DELETE FROM storage_profile_test_states",
+            reverse_sql="DELETE FROM system_storage_profile_test_states",
         ),
     ]

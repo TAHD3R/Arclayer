@@ -6,7 +6,7 @@ from typing import Any, cast
 from pydantic import SecretStr
 
 from src.config import Settings
-from src.models.storage.storage_profile import StorageProfileRecord
+from src.models.storage.storage_profile import StorageProfile
 from src.platform.storage.capabilities import ObjectStorageProviderKind
 from src.platform.storage.profile_schema import PublicAssetDeliveryMode, StorageProfileConfig
 
@@ -22,7 +22,7 @@ def _read_secret_ref(secret_ref: object, key: str) -> str | None:
 
 
 def build_storage_profile_config_from_record(
-    record: StorageProfileRecord,
+    record: StorageProfile,
     *,
     settings: Settings,
 ) -> StorageProfileConfig:
@@ -88,7 +88,7 @@ def build_env_storage_profile_config(settings: Settings) -> StorageProfileConfig
 
 
 async def get_storage_profile_by_key(*, settings: Settings, profile_key: str) -> StorageProfileConfig:
-    record = await StorageProfileRecord.get_or_none(profile_key=profile_key)
+    record = await StorageProfile.get_or_none(profile_key=profile_key)
     if record is not None:
         return build_storage_profile_config_from_record(record, settings=settings)
     if profile_key == ENV_DEFAULT_PROFILE_KEY:

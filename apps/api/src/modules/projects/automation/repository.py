@@ -9,13 +9,13 @@ from tortoise.transactions import in_transaction
 
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.automation.flow import (
-    AutomationFlowRecord,
+    AutomationFlow,
     AutomationFlowStatus,
+    AutomationOperation,
     AutomationOperationKind,
-    AutomationOperationRecord,
+    AutomationRun,
+    AutomationRunLog,
     AutomationRunLogLevel,
-    AutomationRunLogRecord,
-    AutomationRunRecord,
     AutomationRunStatus,
     AutomationTriggerKind,
 )
@@ -30,25 +30,25 @@ class AutomationRepository(TortoiseORMRepository):
         return str(project_id).strip() if project_id is not None else None
 
     @classmethod
-    def _is_workspace_scoped_flow(cls, flow: AutomationFlowRecord) -> bool:
+    def _is_workspace_scoped_flow(cls, flow: AutomationFlow) -> bool:
         return cls._project_id_from_binding(flow.credential_binding) is None
 
     @staticmethod
     def _project_filter_kwargs(*, project_id: UUID | None) -> dict[str, Any]:
         return {"credential_binding__projectId": str(project_id)} if project_id is not None else {}
 
-    async def list_flows(self, *, workspace_id: UUID) -> list[AutomationFlowRecord]:
-        flows = await AutomationFlowRecord.filter(workspace_id=workspace_id).order_by("created_at", "id").all()
+    async def list_flows(self, *, workspace_id: UUID) -> list[AutomationFlow]:
+        flows = await AutomationFlow.filter(workspace_id=workspace_id).order_by("created_at", "id").all()
         return [flow for flow in flows if self._is_workspace_scoped_flow(flow)]
 
-    async def list_project_flows(self, *, workspace_id: UUID, project_id: UUID) -> list[AutomationFlowRecord]:
-        flows = await AutomationFlowRecord.filter(workspace_id=workspace_id).order_by("created_at", "id").all()
+    async def list_project_flows(self, *, workspace_id: UUID, project_id: UUID) -> list[AutomationFlow]:
+        flows = await AutomationFlow.filter(workspace_id=workspace_id).order_by("created_at", "id").all()
         expected_project_id = str(project_id)
         return [flow for flow in flows if self._project_id_from_binding(flow.credential_binding) == expected_project_id]
 
-    async def list_enabled_flows_for_event(self, *, workspace_id: UUID, event_name: str) -> list[AutomationFlowRecord]:
+    async def list_enabled_flows_for_event(self, *, workspace_id: UUID, event_name: str) -> list[AutomationFlow]:
         flows = (
-            await AutomationFlowRecord
+            await AutomationFlow
             .filter(
                 workspace_id=workspace_id,
                 trigger_event=event_name,
@@ -65,9 +65,9 @@ class AutomationRepository(TortoiseORMRepository):
         workspace_id: UUID,
         project_id: UUID,
         event_name: str,
-    ) -> list[AutomationFlowRecord]:
+    ) -> list[AutomationFlow]:
         flows = (
-            await AutomationFlowRecord
+            await AutomationFlow
             .filter(
                 workspace_id=workspace_id,
                 trigger_event=event_name,
@@ -79,8 +79,8 @@ class AutomationRepository(TortoiseORMRepository):
         expected_project_id = str(project_id)
         return [flow for flow in flows if self._project_id_from_binding(flow.credential_binding) == expected_project_id]
 
-    async def get_flow(self, *, workspace_id: UUID, flow_id: UUID) -> AutomationFlowRecord | None:
-        flow = await AutomationFlowRecord.filter(id=flow_id, workspace_id=workspace_id).first()
+    async def get_flow(self, *, workspace_id: UUID, flow_id: UUID) -> AutomationFlow | None:
+        flow = await AutomationFlow.filter(id=flow_id, workspace_id=workspace_id).first()
         if flow is None or not self._is_workspace_scoped_flow(flow):
             return None
         return flow
@@ -91,8 +91,8 @@ class AutomationRepository(TortoiseORMRepository):
         workspace_id: UUID,
         project_id: UUID,
         flow_id: UUID,
-    ) -> AutomationFlowRecord | None:
-        flow = await AutomationFlowRecord.filter(id=flow_id, workspace_id=workspace_id).first()
+    ) -> AutomationFlow | None:
+        flow = await AutomationFlow.filter(id=flow_id, workspace_id=workspace_id).first()
         expected_project_id = str(project_id)
         if flow is None or self._project_id_from_binding(flow.credential_binding) != expected_project_id:
             return None
@@ -112,9 +112,9 @@ class AutomationRepository(TortoiseORMRepository):
         credential_binding: dict[str, Any] | None,
         created_by_user_id: UUID | None,
         operations: list[tuple[str, AutomationOperationKind, dict[str, Any] | None, int]],
-    ) -> AutomationFlowRecord:
+    ) -> AutomationFlow:
         async with in_transaction() as conn:
-            flow = await AutomationFlowRecord.create(
+            flow = await AutomationFlow.create(
                 workspace_id=workspace_id,
                 name=name,
                 description=description,
@@ -133,11 +133,11 @@ class AutomationRepository(TortoiseORMRepository):
 
     async def update_flow(
         self,
-        flow: AutomationFlowRecord,
+        flow: AutomationFlow,
         *,
         fields: dict[str, Any],
         operations: list[tuple[str, AutomationOperationKind, dict[str, Any] | None, int]] | None,
-    ) -> AutomationFlowRecord:
+    ) -> AutomationFlow:
         async with in_transaction() as conn:
             if fields:
                 for key, value in fields.items():
@@ -151,16 +151,16 @@ class AutomationRepository(TortoiseORMRepository):
         flow = await self.get_flow(workspace_id=workspace_id, flow_id=flow_id)
         if flow is None:
             return 0
-        return int(await AutomationFlowRecord.filter(id=flow.id).delete())
+        return int(await AutomationFlow.filter(id=flow.id).delete())
 
     async def delete_project_flow(self, *, workspace_id: UUID, project_id: UUID, flow_id: UUID) -> int:
         flow = await self.get_project_flow(workspace_id=workspace_id, project_id=project_id, flow_id=flow_id)
         if flow is None:
             return 0
-        return int(await AutomationFlowRecord.filter(id=flow.id).delete())
+        return int(await AutomationFlow.filter(id=flow.id).delete())
 
-    async def list_operations(self, *, flow_id: UUID) -> list[AutomationOperationRecord]:
-        return await AutomationOperationRecord.filter(flow_id=flow_id).order_by("sort_order", "created_at", "id").all()
+    async def list_operations(self, *, flow_id: UUID) -> list[AutomationOperation]:
+        return await AutomationOperation.filter(flow_id=flow_id).order_by("sort_order", "created_at", "id").all()
 
     async def replace_operations(
         self,
@@ -169,9 +169,9 @@ class AutomationRepository(TortoiseORMRepository):
         operations: list[tuple[str, AutomationOperationKind, dict[str, Any] | None, int]],
         conn: BaseDBAsyncClient,
     ) -> None:
-        await AutomationOperationRecord.filter(flow_id=flow_id).using_db(conn).delete()
+        await AutomationOperation.filter(flow_id=flow_id).using_db(conn).delete()
         for index, (name, kind, config, sort_order) in enumerate(operations):
-            await AutomationOperationRecord.create(
+            await AutomationOperation.create(
                 flow_id=flow_id,
                 name=name,
                 kind=kind,
@@ -188,8 +188,8 @@ class AutomationRepository(TortoiseORMRepository):
         trigger_event: str,
         event_payload: dict[str, Any],
         max_attempts: int,
-    ) -> AutomationRunRecord:
-        return await AutomationRunRecord.create(
+    ) -> AutomationRun:
+        return await AutomationRun.create(
             workspace_id=workspace_id,
             flow_id=flow_id,
             trigger_event=trigger_event,
@@ -201,14 +201,14 @@ class AutomationRepository(TortoiseORMRepository):
 
     async def update_run(
         self,
-        run: AutomationRunRecord,
+        run: AutomationRun,
         *,
         status: AutomationRunStatus,
         result_payload: dict[str, Any] | None = None,
         error: str | None = None,
         started_at: datetime | None = None,
         completed_at: datetime | None = None,
-    ) -> AutomationRunRecord:
+    ) -> AutomationRun:
         run.status = status
         run.result_payload = result_payload
         run.error = error
@@ -228,8 +228,8 @@ class AutomationRepository(TortoiseORMRepository):
         level: AutomationRunLogLevel,
         message: str,
         payload: dict[str, Any] | None = None,
-    ) -> AutomationRunLogRecord:
-        return await AutomationRunLogRecord.create(
+    ) -> AutomationRunLog:
+        return await AutomationRunLog.create(
             workspace_id=workspace_id,
             run_id=run_id,
             operation_id=operation_id,
@@ -238,21 +238,21 @@ class AutomationRepository(TortoiseORMRepository):
             payload=payload,
         )
 
-    async def list_runs(self, *, workspace_id: UUID, limit: int) -> list[AutomationRunRecord]:
+    async def list_runs(self, *, workspace_id: UUID, limit: int) -> list[AutomationRun]:
         safe_limit = max(1, min(int(limit or 0), 100))
-        runs = await AutomationRunRecord.filter(workspace_id=workspace_id).order_by("-created_at").limit(safe_limit * 3)
+        runs = await AutomationRun.filter(workspace_id=workspace_id).order_by("-created_at").limit(safe_limit * 3)
         return [run for run in runs if self._project_id_from_event_payload(run.event_payload) is None][:safe_limit]
 
-    async def list_project_runs(self, *, workspace_id: UUID, project_id: UUID, limit: int) -> list[AutomationRunRecord]:
+    async def list_project_runs(self, *, workspace_id: UUID, project_id: UUID, limit: int) -> list[AutomationRun]:
         safe_limit = max(1, min(int(limit or 0), 100))
-        runs = await AutomationRunRecord.filter(workspace_id=workspace_id).order_by("-created_at").limit(safe_limit * 3)
+        runs = await AutomationRun.filter(workspace_id=workspace_id).order_by("-created_at").limit(safe_limit * 3)
         expected_project_id = str(project_id)
         return [run for run in runs if self._project_id_from_event_payload(run.event_payload) == expected_project_id][
             :safe_limit
         ]
 
-    async def get_run(self, *, workspace_id: UUID, run_id: UUID) -> AutomationRunRecord | None:
-        run = await AutomationRunRecord.filter(id=run_id, workspace_id=workspace_id).first()
+    async def get_run(self, *, workspace_id: UUID, run_id: UUID) -> AutomationRun | None:
+        run = await AutomationRun.filter(id=run_id, workspace_id=workspace_id).first()
         if run is None or self._project_id_from_event_payload(run.event_payload) is not None:
             return None
         return run
@@ -263,17 +263,15 @@ class AutomationRepository(TortoiseORMRepository):
         workspace_id: UUID,
         project_id: UUID,
         run_id: UUID,
-    ) -> AutomationRunRecord | None:
-        run = await AutomationRunRecord.filter(id=run_id, workspace_id=workspace_id).first()
+    ) -> AutomationRun | None:
+        run = await AutomationRun.filter(id=run_id, workspace_id=workspace_id).first()
         expected_project_id = str(project_id)
         if run is None or self._project_id_from_event_payload(run.event_payload) != expected_project_id:
             return None
         return run
 
-    async def list_run_logs(self, *, workspace_id: UUID, run_id: UUID) -> list[AutomationRunLogRecord]:
-        return await AutomationRunLogRecord.filter(workspace_id=workspace_id, run_id=run_id).order_by(
-            "created_at", "id"
-        )
+    async def list_run_logs(self, *, workspace_id: UUID, run_id: UUID) -> list[AutomationRunLog]:
+        return await AutomationRunLog.filter(workspace_id=workspace_id, run_id=run_id).order_by("created_at", "id")
 
     @staticmethod
     def _project_id_from_event_payload(payload: dict[str, Any] | None) -> str | None:

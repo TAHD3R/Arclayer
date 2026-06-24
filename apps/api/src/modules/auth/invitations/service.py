@@ -17,7 +17,7 @@ from src.core.http.pagination import PageData, PageParams
 from src.core.i18n import get_current_locale, t
 from src.core.services import BaseService
 from src.models.organization.user import User
-from src.models.system.rbac import Permission, Role
+from src.models.system.rbac import SystemPermission, SystemRole
 from src.models.workspaces.workspace import Workspace
 from src.models.workspaces.workspace_invite import (
     WorkspaceEmailInvite,
@@ -94,11 +94,16 @@ class AuthInvitationService(BaseService):
             )
 
         # Superuser roles implicitly have all permissions.
-        if await Role.filter(workspace_id=workspace_id, code__in=codes, is_superuser=True).using_db(conn).exists():
+        if (
+            await SystemRole
+            .filter(workspace_id=workspace_id, code__in=codes, is_superuser=True)
+            .using_db(conn)
+            .exists()
+        ):
             return
 
         ok = (
-            await Permission
+            await SystemPermission
             .filter(
                 code="admin:access",
                 scope="workspace",
@@ -314,13 +319,13 @@ class AuthInvitationService(BaseService):
 
         role_out: InvitationPreviewRoleOut | None = None
         if ws is not None:
-            role_obj: Role | None = None
+            role_obj: SystemRole | None = None
             if role_code:
-                role_obj = await Role.get_or_none(workspace_id=ws.id, code=role_code)
+                role_obj = await SystemRole.get_or_none(workspace_id=ws.id, code=role_code)
             if role_obj is None:
-                role_obj = await Role.get_or_none(workspace_id=ws.id, code="viewer")
+                role_obj = await SystemRole.get_or_none(workspace_id=ws.id, code="viewer")
             if role_obj is None:
-                role_obj = await Role.filter(workspace_id=ws.id, is_default=True).order_by("code").first()
+                role_obj = await SystemRole.filter(workspace_id=ws.id, is_default=True).order_by("code").first()
             if role_obj is not None:
                 # Localize role name/description for preview UX.
                 localized = self.rbac_service.localize_role(role_obj, locale=get_current_locale())

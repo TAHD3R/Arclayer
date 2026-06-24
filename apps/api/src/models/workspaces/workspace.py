@@ -66,7 +66,8 @@ class Workspace(BaseModel):
         organization_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_workspaces"
+        table = "workspaces"
+        table_description = "Workspace records for project and site governance."
         abstract = False
 
 
@@ -96,7 +97,7 @@ async def _bootstrap_workspace_system_roles(  # type: ignore[no-untyped-def]
 
     from src.core.exceptions import Conflict
     from src.core.i18n import t
-    from src.models.system.rbac import Role
+    from src.models.system.rbac import SystemRole
     from src.modules.system.rbac.constants.service import (
         ROLE_ADMIN,
         ROLE_DESIGNER,
@@ -106,7 +107,7 @@ async def _bootstrap_workspace_system_roles(  # type: ignore[no-untyped-def]
     )
 
     # Fast path: already has any system role -> assume bootstrapped.
-    if await Role.filter(workspace_id=instance.id, is_system=True).using_db(using_db).exists():
+    if await SystemRole.filter(workspace_id=instance.id, is_system=True).using_db(using_db).exists():
         return
 
     system_defs = [
@@ -158,7 +159,7 @@ async def _bootstrap_workspace_system_roles(  # type: ignore[no-untyped-def]
     ]
 
     for d in system_defs:
-        existing = await Role.get_or_none(workspace_id=instance.id, code=d["code"], using_db=using_db)
+        existing = await SystemRole.get_or_none(workspace_id=instance.id, code=d["code"], using_db=using_db)
         if existing is not None:
             # Defensive: avoid collisions where a custom role uses a reserved system code.
             if not bool(existing.is_system):
@@ -169,7 +170,7 @@ async def _bootstrap_workspace_system_roles(  # type: ignore[no-untyped-def]
                 )
             continue
 
-        await Role.create(
+        await SystemRole.create(
             using_db=using_db,
             workspace_id=instance.id,
             code=d["code"],
@@ -206,7 +207,8 @@ class WorkspaceMembership(BaseModel):
         user_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_workspace_memberships"
+        table = "workspace_memberships"
+        table_description = "User membership records linking users to workspaces."
         abstract = False
         unique_together = (("workspace_id", "user_id"),)
 
@@ -220,10 +222,13 @@ class WorkspaceMembershipRole(BaseModel):
         related_name="membership_roles",
         on_delete=fields.CASCADE,
     )
-    role = fields.ForeignKeyField("models.Role", related_name="workspace_membership_roles", on_delete=fields.CASCADE)
+    role = fields.ForeignKeyField(
+        "models.SystemRole", related_name="workspace_membership_roles", on_delete=fields.CASCADE
+    )
 
     class Meta(BaseModel.Meta):
-        table = "domain_workspace_membership_roles"
+        table = "workspace_membership_roles"
+        table_description = "Role assignments per workspace membership."
         abstract = False
         unique_together = (("membership_id", "role_id"),)
 

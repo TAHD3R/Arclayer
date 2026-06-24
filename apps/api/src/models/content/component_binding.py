@@ -25,6 +25,7 @@ class ComponentBindingRecord(BaseModel):
         version_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_content_component_bindings"
+        table = "content_component_bindings"
+        table_description = "Component-to-content-version binding records."
         abstract = False
         unique_together = (("version_id", "component_key", "binding_key"),)

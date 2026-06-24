@@ -72,5 +72,6 @@ class ApiKeyRecord(BaseModel):
         site_id: UUID | None
 
     class Meta(BaseModel.Meta):
-        table = "domain_api_keys"
+        table = "api_keys"
+        table_description = "API key records for project-level access."
         abstract = False

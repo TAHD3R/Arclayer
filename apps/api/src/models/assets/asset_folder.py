@@ -39,7 +39,8 @@ class AssetFolderRecord(BaseModel):
         parent_id: UUID | None
 
     class Meta(BaseModel.Meta):
-        table = "domain_asset_folders"
+        table = "asset_folders"
+        table_description = "Hierarchical folder structure for assets."
         abstract = False
         unique_together = (
             ("workspace_id", "parent_id", "name"),

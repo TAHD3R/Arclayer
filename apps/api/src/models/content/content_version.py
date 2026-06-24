@@ -34,6 +34,7 @@ class ContentVersionRecord(BaseModel):
         item_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_content_versions"
+        table = "content_versions"
+        table_description = "Versioned snapshots of content item data."
         abstract = False
         unique_together = (("item_id", "version"),)

@@ -27,6 +27,7 @@ class OrganizationRole(BaseModel):
 
     class Meta(BaseModel.Meta):
         table = "organization_roles"
+        table_description = "Organization-scoped RBAC role definitions."
         abstract = False
         unique_together = (("organization_id", "code"),)
 
@@ -43,6 +44,7 @@ class OrganizationPermission(BaseModel):
 
     class Meta(BaseModel.Meta):
         table = "organization_permissions"
+        table_description = "Organization-scoped permission catalog entries."
         abstract = False
 
 
@@ -63,5 +65,6 @@ class OrganizationRolePermission(BaseModel):
 
     class Meta(BaseModel.Meta):
         table = "organization_role_permissions"
+        table_description = "Many-to-many grants linking roles to permissions."
         abstract = False
         unique_together = ("role_id", "permission_id")

@@ -16,7 +16,7 @@ class PermissionScope(StrEnum):
 
 
 # RBAC role (workspace-scoped).
-class Role(BaseModel):
+class SystemRole(BaseModel):
     """Internal model for roles.
 
     Workspace-scoped RBAC role.
@@ -48,13 +48,14 @@ class Role(BaseModel):
     is_superuser = fields.BooleanField(default=False, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "internal_roles"
+        table = "system_roles"
+        table_description = "System-level RBAC role definitions."
         abstract = False
         unique_together = (("workspace_id", "code"),)
 
 
 # RBAC permission catalog entry.
-class Permission(BaseModel):
+class SystemPermission(BaseModel):
     """Internal model for permissions.
 
     RBAC permission.
@@ -74,19 +75,23 @@ class Permission(BaseModel):
     owner_key = fields.CharField(max_length=128, null=True, db_index=True, source_field="plugin_id")
 
     class Meta(BaseModel.Meta):
-        table = "internal_permissions"
+        table = "system_permissions"
+        table_description = "System-level permission catalog entries."
         abstract = False
 
 
 # Role -> Permission link (many-to-many).
-class RolePermission(BaseModel):
+class SystemRolePermission(BaseModel):
     """Internal model for role permissions."""
 
-    role = fields.ForeignKeyField("models.Role", related_name="role_permissions", on_delete=fields.CASCADE)
-    permission = fields.ForeignKeyField("models.Permission", related_name="permission_roles", on_delete=fields.CASCADE)
+    role = fields.ForeignKeyField("models.SystemRole", related_name="role_permissions", on_delete=fields.CASCADE)
+    permission = fields.ForeignKeyField(
+        "models.SystemPermission", related_name="permission_roles", on_delete=fields.CASCADE
+    )
     conditions = fields.JSONField(default=list)
 
     class Meta(BaseModel.Meta):
-        table = "internal_role_permissions"
-        unique_together = (("role_id", "permission_id"),)
+        table = "system_role_permissions"
+        table_description = "Many-to-many grants linking system roles to permissions."
         abstract = False
+        unique_together = (("role_id", "permission_id"),)

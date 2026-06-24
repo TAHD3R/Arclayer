@@ -8,7 +8,7 @@ from tortoise.queryset import QuerySet
 
 from src.common.protocols.tortoise import PermissionMutableFields
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
-from src.models.system.rbac import Permission, PermissionScope, Role, RolePermission
+from src.models.system.rbac import PermissionScope, SystemPermission, SystemRole, SystemRolePermission
 from src.models.workspaces.workspace import Workspace
 from src.modules.permissions import PermissionConditionSet, deserialize_condition_sets, serialize_condition_sets
 
@@ -19,10 +19,10 @@ class RBACRepository(TortoiseORMRepository):
         return [UUID(str(row)) for row in rows if row is not None]
 
     # -------- Roles (workspace-scoped) --------
-    def query_roles(self, *, workspace_id: UUID) -> QuerySet[Role]:
-        return Role.filter(workspace_id=workspace_id).order_by("code")
+    def query_roles(self, *, workspace_id: UUID) -> QuerySet[SystemRole]:
+        return SystemRole.filter(workspace_id=workspace_id).order_by("code")
 
-    async def list_roles(self, *, workspace_id: UUID) -> list[Role]:
+    async def list_roles(self, *, workspace_id: UUID) -> list[SystemRole]:
         return await self.query_roles(workspace_id=workspace_id).all()
 
     async def get_role_by_code(
@@ -31,8 +31,8 @@ class RBACRepository(TortoiseORMRepository):
         workspace_id: UUID,
         code: str,
         conn: BaseDBAsyncClient | None = None,
-    ) -> Role | None:
-        return await Role.get_or_none(workspace_id=workspace_id, code=code, using_db=conn)
+    ) -> SystemRole | None:
+        return await SystemRole.get_or_none(workspace_id=workspace_id, code=code, using_db=conn)
 
     async def create_role(
         self,
@@ -47,8 +47,8 @@ class RBACRepository(TortoiseORMRepository):
         is_default: bool,
         is_superuser: bool,
         conn: BaseDBAsyncClient | None = None,
-    ) -> Role:
-        return await Role.create(
+    ) -> SystemRole:
+        return await SystemRole.create(
             using_db=conn,
             workspace_id=workspace_id,
             code=code,
@@ -63,31 +63,31 @@ class RBACRepository(TortoiseORMRepository):
 
     async def update_role(
         self,
-        role: Role,
+        role: SystemRole,
         *,
         updates: dict[str, object],
         conn: BaseDBAsyncClient | None = None,
-    ) -> Role:
+    ) -> SystemRole:
         for key, value in updates.items():
             setattr(role, key, value)
         await role.save(using_db=conn)
         return role
 
-    async def delete_role(self, role: Role, *, conn: BaseDBAsyncClient | None = None) -> int:
-        return await Role.filter(id=role.id).using_db(conn).delete()
+    async def delete_role(self, role: SystemRole, *, conn: BaseDBAsyncClient | None = None) -> int:
+        return await SystemRole.filter(id=role.id).using_db(conn).delete()
 
     # -------- Permissions (global catalog) --------
-    def query_permissions(self, *, scope: PermissionScope | None = None) -> QuerySet[Permission]:
-        qs = Permission.all()
+    def query_permissions(self, *, scope: PermissionScope | None = None) -> QuerySet[SystemPermission]:
+        qs = SystemPermission.all()
         if scope is not None:
             qs = qs.filter(scope=scope)
         return qs.order_by("code")
 
-    async def list_permissions(self, *, scope: PermissionScope | None = None) -> list[Permission]:
+    async def list_permissions(self, *, scope: PermissionScope | None = None) -> list[SystemPermission]:
         return await self.query_permissions(scope=scope).all()
 
-    async def get_permission_by_code(self, *, code: str) -> Permission | None:
-        return await Permission.get_or_none(code=code)
+    async def get_permission_by_code(self, *, code: str) -> SystemPermission | None:
+        return await SystemPermission.get_or_none(code=code)
 
     async def get_or_create_permission(
         self,
@@ -99,8 +99,8 @@ class RBACRepository(TortoiseORMRepository):
         name_i18n: str | None,
         description_i18n: str | None,
         owner_key: str | None,
-    ) -> tuple[Permission, bool]:
-        return await Permission.get_or_create(
+    ) -> tuple[SystemPermission, bool]:
+        return await SystemPermission.get_or_create(
             code=code,
             defaults={
                 "scope": scope,
@@ -114,7 +114,7 @@ class RBACRepository(TortoiseORMRepository):
 
     async def update_permission(
         self,
-        permission: Permission,
+        permission: SystemPermission,
         *,
         scope: PermissionScope,
         name: str,
@@ -147,27 +147,27 @@ class RBACRepository(TortoiseORMRepository):
             await permission.save()
         return changed
 
-    async def list_permissions_by_codes(self, *, codes: list[str]) -> list[Permission]:
+    async def list_permissions_by_codes(self, *, codes: list[str]) -> list[SystemPermission]:
         if not codes:
             return []
-        return await Permission.filter(code__in=codes).all()
+        return await SystemPermission.filter(code__in=codes).all()
 
     # -------- Role <-> Permission links --------
-    async def list_role_permissions(self, *, role_id: UUID) -> list[Permission]:
-        return await Permission.filter(permission_roles__role_id=role_id).all().order_by("code")
+    async def list_role_permissions(self, *, role_id: UUID) -> list[SystemPermission]:
+        return await SystemPermission.filter(permission_roles__role_id=role_id).all().order_by("code")
 
     async def replace_role_permissions(
         self,
         *,
-        role: Role,
+        role: SystemRole,
         permission_ids: list[UUID],
         condition_sets_by_permission_id: dict[UUID, list[PermissionConditionSet]] | None = None,
         conn: BaseDBAsyncClient | None = None,
     ) -> None:
         # Delete+recreate keeps reconciliation logic explicit and deterministic.
-        await RolePermission.filter(role_id=role.id).using_db(conn).delete()
+        await SystemRolePermission.filter(role_id=role.id).using_db(conn).delete()
         for pid in permission_ids:
-            await RolePermission.get_or_create(
+            await SystemRolePermission.get_or_create(
                 role_id=role.id,
                 permission_id=pid,
                 defaults={"conditions": serialize_condition_sets((condition_sets_by_permission_id or {}).get(pid, []))},
@@ -177,13 +177,13 @@ class RBACRepository(TortoiseORMRepository):
     async def ensure_role_permission(
         self,
         *,
-        role: Role,
-        permission: Permission,
+        role: SystemRole,
+        permission: SystemPermission,
         condition_sets: list[PermissionConditionSet] | None = None,
         conn: BaseDBAsyncClient | None = None,
     ) -> bool:
         payload = serialize_condition_sets(condition_sets or [])
-        grant, created = await RolePermission.get_or_create(
+        grant, created = await SystemRolePermission.get_or_create(
             role=role,
             permission=permission,
             defaults={"conditions": payload},
@@ -199,7 +199,7 @@ class RBACRepository(TortoiseORMRepository):
         *,
         role_id: UUID,
     ) -> dict[str, list[PermissionConditionSet]]:
-        rows = await RolePermission.filter(role_id=role_id).values("permission__code", "conditions")
+        rows = await SystemRolePermission.filter(role_id=role_id).values("permission__code", "conditions")
         out: dict[str, list[PermissionConditionSet]] = {}
         for row in rows:
             permission_code = str(row.get("permission__code") or "").strip()
@@ -215,14 +215,14 @@ class RBACRepository(TortoiseORMRepository):
         permission_id: UUID,
         conn: BaseDBAsyncClient | None = None,
     ) -> int:
-        return await RolePermission.filter(role_id=role_id, permission_id=permission_id).using_db(conn).delete()
+        return await SystemRolePermission.filter(role_id=role_id, permission_id=permission_id).using_db(conn).delete()
 
     async def list_role_permission_edges_for_workspace(self, *, workspace_id: UUID) -> list[tuple[str, str]]:
         """
         Return (permission_code, role_code) edges for a workspace.
         """
 
-        rows = await RolePermission.filter(role__workspace_id=workspace_id).values_list(
+        rows = await SystemRolePermission.filter(role__workspace_id=workspace_id).values_list(
             "permission__code",
             "role__code",
         )

@@ -27,6 +27,7 @@ class SysConfigRevision(BaseModel):
     signing_key_fingerprint = fields.CharField(max_length=128, null=True)
 
     class Meta(BaseModel.Meta):
-        table = "internal_sys_config_revisions"
+        table = "system_config_revisions"
+        table_description = "Versioned system configuration revision history."
         abstract = False
         indexes = (("namespace", "created_at"),)

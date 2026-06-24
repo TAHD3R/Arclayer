@@ -4,7 +4,7 @@ import pytest
 
 from src.common.utils.public_ids import decode_public_id
 from src.models.analytics.audit_event import AuditEvent
-from src.models.system.rbac import Role, RolePermission
+from src.models.system.rbac import SystemRole, SystemRolePermission
 from src.modules.workspaces.rbac import service as workspace_rbac_service_module
 from tests.modules.workspaces.content.test_content_items_integration import (
     _wait_latest_workspace_audit_event,
@@ -119,11 +119,11 @@ async def test_workspace_rbac_configuration_activity_readback_and_rollback(
         event_count_before = await AuditEvent.filter(event_name="system.settings.rbac.updated").count()
         rollback_create_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/rbac/roles",
-            json={"code": "rollback_role", "name": "Rollback Role"},
+            json={"code": "rollback_role", "name": "Rollback SystemRole"},
         )
         assert rollback_create_res.status_code == 500, rollback_create_res.text
         assert await AuditEvent.filter(event_name="system.settings.rbac.updated").count() == event_count_before
-        assert not await Role.filter(code="rollback_role").exists()
+        assert not await SystemRole.filter(code="rollback_role").exists()
 
         rollback_permissions_res = await client.put(
             f"/api/v1/workspaces/{workspace_id}/rbac/roles/ops_manager/permissions",
@@ -131,9 +131,9 @@ async def test_workspace_rbac_configuration_activity_readback_and_rollback(
         )
         assert rollback_permissions_res.status_code == 500, rollback_permissions_res.text
         assert await AuditEvent.filter(event_name="system.settings.rbac.updated").count() == event_count_before
-        persisted_role = await Role.get(id=created_event.entity_id)
+        persisted_role = await SystemRole.get(id=created_event.entity_id)
         persisted_permission_codes = sorted(
-            await RolePermission.filter(role_id=persisted_role.id).values_list("permission__code", flat=True)
+            await SystemRolePermission.filter(role_id=persisted_role.id).values_list("permission__code", flat=True)
         )
         assert persisted_permission_codes == ["rbac:permissions:read", "rbac:roles:read"]
 
@@ -152,4 +152,4 @@ async def test_workspace_rbac_configuration_activity_readback_and_rollback(
         )
         assert deleted_event.properties["change_kind"] == "role_deleted"
         assert deleted_event.properties["deleted"] is True
-        assert not await Role.filter(id=decode_public_id(role_id)).exists()
+        assert not await SystemRole.filter(id=decode_public_id(role_id)).exists()

@@ -27,6 +27,7 @@ class ProjectRuntimeRecord(BaseModel):
     is_active = fields.BooleanField(default=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "domain_project_runtimes"
+        table = "project_runtimes"
+        table_description = "Deployment runtime configuration per project."
         abstract = False
         unique_together = (("project_id", "kind"),)

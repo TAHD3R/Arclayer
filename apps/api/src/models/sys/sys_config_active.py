@@ -26,5 +26,6 @@ class SysConfigActive(BaseModel):
     activated_by = fields.UUIDField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "internal_sys_config_active"
+        table = "system_config_active"
+        table_description = "Active system configuration pointer records."
         abstract = False

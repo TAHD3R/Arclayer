@@ -10,7 +10,7 @@ from src.common.types.json_types import JsonObject
 from src.core.exceptions import BadRequest, NotFound
 from src.core.i18n import t
 from src.core.services import BaseService
-from src.models.system.rbac import Role
+from src.models.system.rbac import SystemRole
 from src.models.system.setting import SettingRecord
 from src.models.workspaces.workspace import (
     WorkspaceMembership,
@@ -174,7 +174,7 @@ class WorkspaceSettingsService(BaseService):
         if workspace is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
-        roles = await Role.filter(workspace_id=workspace_id).order_by("code").all()
+        roles = await SystemRole.filter(workspace_id=workspace_id).order_by("code").all()
         if not roles:
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="ROLE_CODE_NOT_FOUND")
 
@@ -199,16 +199,18 @@ class WorkspaceSettingsService(BaseService):
         if not code:
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="ROLE_CODE_NOT_FOUND")
 
-        target_role = await Role.get_or_none(workspace_id=workspace_id, code=code)
+        target_role = await SystemRole.get_or_none(workspace_id=workspace_id, code=code)
         if target_role is None:
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="ROLE_CODE_NOT_FOUND")
 
-        current_default_role = await Role.filter(workspace_id=workspace_id, is_default=True).order_by("code").first()
+        current_default_role = (
+            await SystemRole.filter(workspace_id=workspace_id, is_default=True).order_by("code").first()
+        )
         previous_default_role_code = str(current_default_role.code) if current_default_role is not None else None
 
         async with self.tx() as conn:
             await (
-                Role
+                SystemRole
                 .filter(workspace_id=workspace_id, is_default=True)
                 .using_db(conn)
                 .exclude(id=target_role.id)
@@ -252,7 +254,7 @@ class WorkspaceSettingsService(BaseService):
         if not code:
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="ROLE_CODE_NOT_FOUND")
 
-        target_role = await Role.get_or_none(workspace_id=workspace_id, code=code)
+        target_role = await SystemRole.get_or_none(workspace_id=workspace_id, code=code)
         if target_role is None:
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="ROLE_CODE_NOT_FOUND")
 

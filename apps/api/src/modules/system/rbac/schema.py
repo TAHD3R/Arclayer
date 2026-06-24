@@ -3,7 +3,7 @@ from __future__ import annotations
 from pydantic import ConfigDict, Field
 
 from src.common.schemas import BaseOut, BaseSchema
-from src.models.system.rbac import Permission, Role
+from src.models.system.rbac import SystemPermission, SystemRole
 
 
 class PermissionOut(BaseOut):
@@ -44,6 +44,6 @@ class WorkspacesSyncResult(BaseSchema):
 class RBACMatrixPayload(BaseSchema):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    roles: list[Role] = Field(default_factory=list, description="Workspace roles.")
-    permissions: list[Permission] = Field(default_factory=list, description="Workspace permissions.")
+    roles: list[SystemRole] = Field(default_factory=list, description="Workspace roles.")
+    permissions: list[SystemPermission] = Field(default_factory=list, description="Workspace permissions.")
     grants: dict[str, list[str]] = Field(default_factory=dict, description="Role grants by permission code.")

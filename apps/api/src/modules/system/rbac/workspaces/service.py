@@ -30,7 +30,7 @@ class RBACWorkspacesMixin(RBACCatalogSyncMixin):
         workspace_id: UUID,
         conn: BaseDBAsyncClient | None = None,
     ) -> None:
-        class _SystemRoleDefinition(TypedDict):
+        class _RoleDefinition(TypedDict):
             code: str
             name: str
             description: str
@@ -39,7 +39,7 @@ class RBACWorkspacesMixin(RBACCatalogSyncMixin):
             is_default: bool
             is_superuser: bool
 
-        system_defs: list[_SystemRoleDefinition] = [
+        system_defs: list[_RoleDefinition] = [
             {
                 "code": ROLE_OWNER,
                 "name": "Owner",

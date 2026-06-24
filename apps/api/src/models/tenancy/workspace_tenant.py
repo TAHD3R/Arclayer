@@ -50,6 +50,7 @@ class WorkspaceTenantRecord(BaseModel):
         organization_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "tenant_workspace_registry"
+        table = "workspace_tenant_registry"
+        table_description = "Workspace tenant registry for multi-tenant routing."
         abstract = False
         unique_together = (("workspace_id",), ("schema_name",))

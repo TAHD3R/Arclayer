@@ -68,6 +68,7 @@ class DomainBindingRecord(BaseModel):
 
     class Meta(BaseModel.Meta):
         table = "domain_bindings"
+        table_description = "Custom domain bindings with TLS certificate status."
         abstract = False
         indexes = (
             ("project_id",),

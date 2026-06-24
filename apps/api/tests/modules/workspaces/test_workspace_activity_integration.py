@@ -7,7 +7,7 @@ import pytest
 from src.config import get_settings
 from src.models.analytics.audit_event import AuditEvent
 from src.models.organization.org_membership import OrgMembership, OrgRole
-from src.models.system.rbac import Role
+from src.models.system.rbac import SystemRole
 from src.models.system.setting import SettingRecord
 from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipRole
 from src.modules.auth.repository import UserRepository
@@ -95,7 +95,7 @@ async def test_workspace_create_activity_readback_and_rollback(db_schema, monkey
 
     workspace = await Workspace.get(id=created.workspace_id)
     membership = await WorkspaceMembership.get(workspace_id=workspace.id, user_id=owner.id)
-    owner_role = await Role.get(workspace_id=workspace.id, code=ROLE_OWNER)
+    owner_role = await SystemRole.get(workspace_id=workspace.id, code=ROLE_OWNER)
     assert await WorkspaceMembershipRole.filter(membership_id=membership.id, role_id=owner_role.id).exists()
     assert await SettingRecord.filter(scope_type="workspace", scope_id=workspace.id, namespace="core").exists()
 
@@ -355,7 +355,7 @@ async def test_workspace_role_policy_activity_readback_and_rollback(db_schema, m
     org_repo = OrganizationRepository()
     user_repo = UserRepository()
 
-    org = await org_repo.create_organization(slug=f"org_{uuid4().hex}", name="Workspace Role Policy Org")
+    org = await org_repo.create_organization(slug=f"org_{uuid4().hex}", name="Workspace SystemRole Policy Org")
     owner = await user_repo.create_user(
         username=f"owner_{uuid4().hex[:8]}",
         email=f"owner_{uuid4().hex[:8]}@example.com",
@@ -430,7 +430,7 @@ async def test_workspace_role_policy_activity_readback_and_rollback(db_schema, m
     assert assign_event.properties["change"] == "regular_member_role_assignment"
     assert assign_event.properties["role_code"] == ROLE_EDITOR
     assert assign_event.properties["updated_count"] == 1
-    editor_role = await Role.get(workspace_id=workspace_id, code=ROLE_EDITOR)
+    editor_role = await SystemRole.get(workspace_id=workspace_id, code=ROLE_EDITOR)
     assert await WorkspaceMembershipRole.filter(membership_id=member_membership.id, role_id=editor_role.id).exists()
 
     original_write_required_activity_event = workspace_settings_service_module.write_required_activity_event
@@ -453,10 +453,10 @@ async def test_workspace_role_policy_activity_readback_and_rollback(db_schema, m
         )
 
     assert await AuditEvent.filter(event_name="permission.assignment.changed").count() == event_count_before
-    assert (await Role.get(workspace_id=workspace_id, code=ROLE_EDITOR)).is_default is True
-    assert (await Role.get(workspace_id=workspace_id, code=ROLE_VIEWER)).is_default is False
+    assert (await SystemRole.get(workspace_id=workspace_id, code=ROLE_EDITOR)).is_default is True
+    assert (await SystemRole.get(workspace_id=workspace_id, code=ROLE_VIEWER)).is_default is False
 
-    viewer_role = await Role.get(workspace_id=workspace_id, code=ROLE_VIEWER)
+    viewer_role = await SystemRole.get(workspace_id=workspace_id, code=ROLE_VIEWER)
     with pytest.raises(RuntimeError, match="forced activity write failure: permission.assignment.changed"):
         await settings_service.assign_role_to_regular_members(
             workspace_id=workspace_id,

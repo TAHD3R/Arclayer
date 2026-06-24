@@ -36,6 +36,7 @@ class ContentModelRelationRecord(BaseModel):
         target_model_definition_id: UUID | None
 
     class Meta(BaseModel.Meta):
-        table = "domain_content_model_relations"
+        table = "content_model_relations"
+        table_description = "Relation definitions between content models."
         abstract = False
         unique_together = (("model_definition_id", "key"),)

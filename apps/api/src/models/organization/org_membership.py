@@ -51,5 +51,6 @@ class OrgMembership(BaseModel):
 
     class Meta(BaseModel.Meta):
         table = "org_memberships"
+        table_description = "User membership records linking users to organizations."
         abstract = False
         unique_together = (("organization", "user"),)

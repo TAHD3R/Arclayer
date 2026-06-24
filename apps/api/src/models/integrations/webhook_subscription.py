@@ -32,6 +32,7 @@ class WebhookSubscription(BaseModel):
     secret = fields.CharField(max_length=2048, null=True)
 
     class Meta(BaseModel.Meta):
-        table = "domain_webhook_subscriptions"
+        table = "webhook_subscriptions"
+        table_description = "Webhook event subscription records per workspace."
         abstract = False
         unique_together = (("workspace_id", "event", "endpoint_url"),)

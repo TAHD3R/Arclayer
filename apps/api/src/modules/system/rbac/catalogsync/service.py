@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from src.config import Settings
-from src.models.system.rbac import Permission, PermissionScope
+from src.models.system.rbac import PermissionScope, SystemPermission
 from src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
 from src.modules.system.rbac.constants.service import CORE_PERMISSION_OWNER
 from src.modules.system.rbac.repository import RBACRepository
@@ -59,6 +59,6 @@ class RBACCatalogSyncMixin:
                     updated += 1
 
         known_codes = set(templates.keys())
-        await Permission.exclude(code__in=list(known_codes)).delete()
+        await SystemPermission.exclude(code__in=list(known_codes)).delete()
 
         return PermissionCatalogSyncResult(total=len(templates), created=created, updated=updated)

@@ -57,6 +57,7 @@ class PublishedGraphRecord(BaseModel):
         hierarchy_parent_item_id: UUID | None
 
     class Meta(BaseModel.Meta):
-        table = "domain_content_published_graph"
+        table = "content_published_graph"
+        table_description = "Published content graph records for live site delivery."
         abstract = False
         unique_together = (("release_id", "site_id", "locale", "route_path"), ("release_id", "item_id", "locale"))

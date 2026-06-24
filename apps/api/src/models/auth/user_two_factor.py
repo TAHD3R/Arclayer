@@ -21,7 +21,8 @@ class UserTwoFactor(BaseModel):
     last_totp_used_at = fields.DatetimeField(null=True)
 
     class Meta(BaseModel.Meta):
-        table = "global_user_two_factor"
+        table = "user_two_factor"
+        table_description = "User two-factor authentication settings."
         abstract = False
 
 
@@ -39,5 +40,6 @@ class UserTwoFactorBackupCode(BaseModel):
     used_at = fields.DatetimeField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "global_user_two_factor_backup_codes"
+        table = "user_two_factor_backup_codes"
+        table_description = "One-time backup codes for 2FA recovery."
         abstract = False

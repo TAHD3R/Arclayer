@@ -89,9 +89,9 @@ async def _ensure_creator_admin_membership(*, workspace_id: UUID, user_id: UUID)
 
 
 async def _ensure_creator_admin_has_owner_role_binding(*, workspace_id: UUID, membership_id: UUID) -> None:
-    from src.models.system.rbac import Role
+    from src.models.system.rbac import SystemRole
 
-    owner_role = await Role.get_or_none(workspace_id=workspace_id, code="owner", is_system=True)
+    owner_role = await SystemRole.get_or_none(workspace_id=workspace_id, code="owner", is_system=True)
     if owner_role is None:
         return
     await WorkspaceMembershipRole.get_or_create(membership_id=membership_id, role_id=owner_role.id)

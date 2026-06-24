@@ -43,7 +43,7 @@ class AutomationRunLogLevel(StrEnum):
     ERROR = "error"
 
 
-class AutomationFlowRecord(BaseModel):
+class AutomationFlow(BaseModel):
     """Workspace-scoped automation flow definition."""
 
     workspace = fields.ForeignKeyField(
@@ -67,16 +67,17 @@ class AutomationFlowRecord(BaseModel):
         workspace_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_automation_flows"
+        table = "automation_flows"
+        table_description = "Workspace-scoped automation flow definitions."
         abstract = False
         unique_together = (("workspace_id", "name"),)
 
 
-class AutomationOperationRecord(BaseModel):
+class AutomationOperation(BaseModel):
     """Ordered operation inside an automation flow."""
 
     flow = fields.ForeignKeyField(
-        "models.AutomationFlowRecord",
+        "models.AutomationFlow",
         related_name="operations",
         on_delete=fields.CASCADE,
     )
@@ -90,11 +91,12 @@ class AutomationOperationRecord(BaseModel):
         flow_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_automation_operations"
+        table = "automation_operations"
+        table_description = "Ordered operation steps within an automation flow."
         abstract = False
 
 
-class AutomationRunRecord(BaseModel):
+class AutomationRun(BaseModel):
     """Execution record for one triggered flow run."""
 
     workspace = fields.ForeignKeyField(
@@ -103,7 +105,7 @@ class AutomationRunRecord(BaseModel):
         on_delete=fields.CASCADE,
     )
     flow = fields.ForeignKeyField(
-        "models.AutomationFlowRecord",
+        "models.AutomationFlow",
         related_name="runs",
         on_delete=fields.CASCADE,
     )
@@ -123,11 +125,12 @@ class AutomationRunRecord(BaseModel):
         flow_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_automation_runs"
+        table = "automation_runs"
+        table_description = "Execution records for triggered automation flow runs."
         abstract = False
 
 
-class AutomationRunLogRecord(BaseModel):
+class AutomationRunLog(BaseModel):
     """Structured execution log row for automation run diagnostics."""
 
     workspace = fields.ForeignKeyField(
@@ -136,12 +139,12 @@ class AutomationRunLogRecord(BaseModel):
         on_delete=fields.CASCADE,
     )
     run = fields.ForeignKeyField(
-        "models.AutomationRunRecord",
+        "models.AutomationRun",
         related_name="logs",
         on_delete=fields.CASCADE,
     )
     operation = fields.ForeignKeyField(
-        "models.AutomationOperationRecord",
+        "models.AutomationOperation",
         related_name="run_logs",
         null=True,
         on_delete=fields.SET_NULL,
@@ -157,5 +160,6 @@ class AutomationRunLogRecord(BaseModel):
         operation_id: UUID | None
 
     class Meta(BaseModel.Meta):
-        table = "domain_automation_run_logs"
+        table = "automation_run_logs"
+        table_description = "Structured log entries for automation run diagnostics."
         abstract = False

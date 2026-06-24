@@ -45,6 +45,7 @@ class RouteBindingRecord(BaseModel):
         environment_id: UUID | None
 
     class Meta(BaseModel.Meta):
-        table = "domain_content_route_bindings"
+        table = "content_route_bindings"
+        table_description = "URL route-to-content-item binding records."
         abstract = False
         unique_together = (("site_id", "environment_id", "locale", "path"), ("item_id", "environment_id", "locale"))

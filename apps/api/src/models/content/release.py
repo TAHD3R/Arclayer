@@ -42,6 +42,7 @@ class ContentReleaseRecord(BaseModel):
         site_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_content_releases"
+        table = "content_releases"
+        table_description = "Content release records grouping items for publication."
         abstract = False
         unique_together = (("site_id", "release_number"),)

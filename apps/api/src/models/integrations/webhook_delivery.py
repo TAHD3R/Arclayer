@@ -27,5 +27,6 @@ class WebhookDelivery(BaseModel):
     duration_ms = fields.IntField(null=True)
 
     class Meta(BaseModel.Meta):
-        table = "domain_webhook_deliveries"
+        table = "webhook_deliveries"
+        table_description = "Webhook delivery attempt records with response data."
         abstract = False

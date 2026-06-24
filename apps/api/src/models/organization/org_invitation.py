@@ -31,6 +31,7 @@ class OrganizationEmailInvite(BaseModel):
 
     class Meta(BaseModel.Meta):
         table = "organization_email_invites"
+        table_description = "Pending organization membership invitations sent via email."
         abstract = False
 
 
@@ -63,6 +64,7 @@ class OrganizationInviteLink(BaseModel):
 
     class Meta(BaseModel.Meta):
         table = "organization_invite_links"
+        table_description = "Reusable organization invite tokens with usage tracking."
         abstract = False
 
 
@@ -81,5 +83,6 @@ class OrganizationInviteLinkUseEvent(BaseModel):
 
     class Meta(BaseModel.Meta):
         table = "organization_invite_link_use_events"
+        table_description = "Audit trail for organization invite link usage events."
         abstract = False
         index_together = (("link_id", "used_at"),)

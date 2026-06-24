@@ -88,7 +88,8 @@ class ContentModelDefinitionRecord(BaseModel):
         views: ReverseRelation[ContentModelViewRecord]
 
     class Meta(BaseModel.Meta):
-        table = "domain_content_model_definitions"
+        table = "content_model_definitions"
+        table_description = "Content type schema definitions (CMS models)."
         abstract = False
         unique_together = (
             ("workspace_id", "site_id", "environment_id", "singular_key"),

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from src.core.i18n import t
-from src.models.system.rbac import Permission, Role
+from src.models.system.rbac import SystemPermission, SystemRole
 
 
 def _tr(key: str, default: str) -> str:
@@ -31,7 +31,7 @@ def _localize_i18n_ref(value: str | None, *, default: str) -> str:
 
 
 class RBACLocalizationMixin:
-    def localize_role(self, role: Role, *, locale: str) -> dict[str, object]:
+    def localize_role(self, role: SystemRole, *, locale: str) -> dict[str, object]:
         _ = locale  # Reserved for future locale-specific behavior.
         if role.is_system:
             name = _localize_i18n_ref(role.name_i18n, default=role.name)
@@ -50,7 +50,7 @@ class RBACLocalizationMixin:
             "is_system": bool(role.is_system),
         }
 
-    def localize_permission(self, perm: Permission) -> dict[str, object]:
+    def localize_permission(self, perm: SystemPermission) -> dict[str, object]:
         name = _localize_i18n_ref(perm.name_i18n, default=perm.name)
         desc = _localize_i18n_ref(perm.description_i18n, default=perm.description or "")
         return {

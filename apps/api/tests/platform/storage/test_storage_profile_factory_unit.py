@@ -69,7 +69,7 @@ async def test_get_effective_storage_profile_uses_default_profile_key_override(m
         return None
 
     monkeypatch.setattr("src.settings.runtime.get_core_settings_value_cached", fake_core_settings)
-    monkeypatch.setattr("src.models.storage.storage_profile.StorageProfileRecord.get_or_none", fake_get_or_none)
+    monkeypatch.setattr("src.models.storage.storage_profile.StorageProfile.get_or_none", fake_get_or_none)
 
     profile_key, profile = await profiles.get_effective_storage_profile(Settings())
 
@@ -89,7 +89,7 @@ async def test_get_effective_storage_profile_raises_for_invalid_profile_key(
         return None
 
     monkeypatch.setattr("src.settings.runtime.get_core_settings_value_cached", fake_core_settings)
-    monkeypatch.setattr("src.models.storage.storage_profile.StorageProfileRecord.get_or_none", fake_get_or_none)
+    monkeypatch.setattr("src.models.storage.storage_profile.StorageProfile.get_or_none", fake_get_or_none)
 
     with pytest.raises(ValueError, match="unknown storage profile key"):
         await profiles.get_effective_storage_profile(Settings())

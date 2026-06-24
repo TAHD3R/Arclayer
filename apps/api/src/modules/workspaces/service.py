@@ -16,7 +16,7 @@ from src.models.assets.asset import AssetPurpose
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.organization import Organization, OrganizationKind
 from src.models.organization.user import User
-from src.models.system.rbac import Role
+from src.models.system.rbac import SystemRole
 from src.models.workspaces.workspace import (
     Workspace,
     WorkspaceIconMode,
@@ -842,7 +842,7 @@ class WorkspaceService(BaseService):
         if membership is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
-        owner_role = await Role.get_or_none(workspace_id=workspace_id, code=ROLE_OWNER)
+        owner_role = await SystemRole.get_or_none(workspace_id=workspace_id, code=ROLE_OWNER)
         if owner_role is not None:
             is_owner_member = await WorkspaceMembership.filter(
                 id=membership.id,

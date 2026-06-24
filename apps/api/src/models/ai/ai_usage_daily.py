@@ -28,5 +28,6 @@ class AIUsageDaily(BaseModel):
 
     class Meta(BaseModel.Meta):
         table = "ai_usage_daily"
+        table_description = "Daily aggregated AI usage statistics."
         abstract = False
         unique_together = (("workspace_id", "date", "source_type", "provider", "model"),)

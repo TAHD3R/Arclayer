@@ -36,5 +36,6 @@ class AIBudget(BaseModel):
 
     class Meta(BaseModel.Meta):
         table = "ai_budgets"
+        table_description = "Per-funding-source monthly budget envelope records."
         abstract = False
         unique_together = (("source_type", "source_id", "period_start"),)

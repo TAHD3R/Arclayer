@@ -35,5 +35,6 @@ class Organization(BaseModel):
 
     class Meta(BaseModel.Meta):
         table = "organizations"
+        table_description = "Organization tenant boundaries for organization-level governance."
         abstract = False
         unique_together = (("kind", "owner_user_id"),)

@@ -25,6 +25,7 @@ class PresentationDocumentRecord(BaseModel):
         version_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_content_presentation_documents"
+        table = "content_presentation_documents"
+        table_description = "Presentation-layer document records per content version."
         abstract = False
         unique_together = (("version_id", "kind"),)

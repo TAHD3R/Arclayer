@@ -12,7 +12,7 @@ from src.core.registry import create_app
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.organization import Organization
 from src.models.organization.user import User
-from src.models.system.rbac import Role
+from src.models.system.rbac import SystemRole
 from src.models.workspaces.workspace import (
     Workspace,
     WorkspaceMembership,
@@ -94,7 +94,7 @@ async def test_workspace_leave_and_delete_endpoints(prepared_db, integration_val
             invited_by_user_id=owner1.id,
         )
 
-        owner_role = await Role.get(workspace_id=target_workspace.id, code="owner")
+        owner_role = await SystemRole.get(workspace_id=target_workspace.id, code="owner")
         await WorkspaceMembershipRole.get_or_create(membership_id=owner1_wsm.id, role_id=owner_role.id)
         await WorkspaceMembershipRole.get_or_create(membership_id=owner2_wsm.id, role_id=owner_role.id)
 
@@ -227,8 +227,8 @@ async def test_workspace_danger_capabilities_report_constraints(prepared_db, int
             invited_by_user_id=None,
         )
 
-        owner_role_target = await Role.get(workspace_id=target_workspace.id, code="owner")
-        owner_role_spare = await Role.get(workspace_id=spare_workspace.id, code="owner")
+        owner_role_target = await SystemRole.get(workspace_id=target_workspace.id, code="owner")
+        owner_role_spare = await SystemRole.get(workspace_id=spare_workspace.id, code="owner")
         await WorkspaceMembershipRole.get_or_create(membership_id=owner1_target.id, role_id=owner_role_target.id)
         await WorkspaceMembershipRole.get_or_create(membership_id=owner2_target.id, role_id=owner_role_target.id)
         await WorkspaceMembershipRole.get_or_create(membership_id=owner2_spare.id, role_id=owner_role_spare.id)

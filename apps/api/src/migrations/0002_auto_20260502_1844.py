@@ -30,7 +30,7 @@ class Migration(migrations.Migration):
                 ('error_message', fields.TextField(null=True, unique=False)),
                 ('created_by_user_id', fields.UUIDField(null=True, db_index=True)),
             ],
-            options={'table': 'publish_jobs', 'app': 'models', 'indexes': [Index(fields=['status', 'scheduled_at']), Index(fields=['site_id', 'created_at'])], 'pk_attr': 'id', 'table_description': 'Domain model for release publish job tracking.'},
+            options={'table': 'domain_publish_jobs', 'app': 'models', 'indexes': [Index(fields=['status', 'scheduled_at']), Index(fields=['site_id', 'created_at'])], 'pk_attr': 'id', 'table_description': 'Domain model for release publish job tracking.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -44,7 +44,7 @@ class Migration(migrations.Migration):
                 ('primary_item_id', fields.UUIDField(null=True, db_index=True)),
                 ('primary_locale', fields.CharField(default='zh-CN', max_length=16)),
             ],
-            options={'table': 'content_translation_groups', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for content translation groups.'},
+            options={'table': 'domain_content_translation_groups', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for content translation groups.'},
             bases=['BaseModel'],
         ),
         ops.AddField(

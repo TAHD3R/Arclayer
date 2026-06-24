@@ -29,6 +29,7 @@ class ContentModelViewRecord(BaseModel):
         model_definition_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_content_model_views"
+        table = "content_model_views"
+        table_description = "Named view configurations for content models."
         abstract = False
         unique_together = (("model_definition_id", "key"),)

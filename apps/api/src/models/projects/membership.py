@@ -36,6 +36,7 @@ class ProjectMembership(BaseModel):
         user_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_project_memberships"
+        table = "project_memberships"
+        table_description = "Project-scoped member role bindings."
         abstract = False
         unique_together = (("project_id", "user_id"),)

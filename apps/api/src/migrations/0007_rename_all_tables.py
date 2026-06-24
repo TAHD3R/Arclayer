@@ -1,4 +1,7 @@
-"""Migration 0007: Rename domain_/internal_/global_/system_/tenant_ tables."""
+"""Migration 0007: Rename all legacy-prefixed tables to semantic names.
+
+Current prefixes being dropped: domain_, internal_, global_, system_, tenant_
+"""
 
 from tortoise import migrations
 from tortoise.migrations import operations as ops

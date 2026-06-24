@@ -78,7 +78,7 @@ class WorkspaceDangerService(BaseService):
         return None
 
     async def _get_owner_role_ids(self, *, workspace_id: UUID) -> list[UUID]:
-        from src.models.system.rbac import Role
+        from src.models.system.rbac import SystemRole
 
-        rows = await Role.filter(workspace_id=workspace_id, code=ROLE_OWNER).values_list("id", flat=True)
+        rows = await SystemRole.filter(workspace_id=workspace_id, code=ROLE_OWNER).values_list("id", flat=True)
         return [UUID(str(raw)) for raw in rows if raw is not None]

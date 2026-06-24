@@ -12,7 +12,7 @@ from src.core.registry import create_app
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.organization import Organization
 from src.models.organization.user import User
-from src.models.system.rbac import Role
+from src.models.system.rbac import SystemRole
 from src.models.workspaces.workspace import (
     Workspace,
     WorkspaceMembership,
@@ -82,10 +82,10 @@ async def test_workspace_role_policy_endpoints(prepared_db, integration_valkey_s
             created_by_user_id=owner_user.id,
         )
 
-        owner_role = await Role.get(workspace_id=workspace.id, code="owner")
-        admin_role = await Role.get(workspace_id=workspace.id, code="admin")
-        viewer_role = await Role.get(workspace_id=workspace.id, code="viewer")
-        editor_role = await Role.get(workspace_id=workspace.id, code="editor")
+        owner_role = await SystemRole.get(workspace_id=workspace.id, code="owner")
+        admin_role = await SystemRole.get(workspace_id=workspace.id, code="admin")
+        viewer_role = await SystemRole.get(workspace_id=workspace.id, code="viewer")
+        editor_role = await SystemRole.get(workspace_id=workspace.id, code="editor")
 
         owner_membership = await WorkspaceMembership.create(
             workspace_id=workspace.id,
@@ -144,8 +144,8 @@ async def test_workspace_role_policy_endpoints(prepared_db, integration_valkey_s
             assert patch_resp.status_code == 200, patch_resp.text
             assert patch_resp.json()["data"]["defaultRoleCode"] == "editor"
 
-            viewer_role = await Role.get(workspace_id=workspace.id, code="viewer")
-            editor_role = await Role.get(workspace_id=workspace.id, code="editor")
+            viewer_role = await SystemRole.get(workspace_id=workspace.id, code="viewer")
+            editor_role = await SystemRole.get(workspace_id=workspace.id, code="editor")
             assert bool(editor_role.is_default) is True
             assert bool(viewer_role.is_default) is False
 

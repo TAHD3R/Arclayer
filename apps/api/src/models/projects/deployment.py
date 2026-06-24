@@ -72,5 +72,6 @@ class ProjectDeploymentRecord(BaseModel):
         promoted_from_deployment_id: UUID | None
 
     class Meta(BaseModel.Meta):
-        table = "domain_project_deployments"
+        table = "project_deployments"
+        table_description = "Persisted deployment state records per environment."
         abstract = False

@@ -22,7 +22,8 @@ class AssetTagRecord(BaseModel):
     name = fields.CharField(max_length=64)
 
     class Meta(BaseModel.Meta):
-        table = "domain_asset_tags"
+        table = "asset_tags"
+        table_description = "Tag/category labels for assets."
         abstract = False
         unique_together = (
             ("workspace_id", "name"),
@@ -43,6 +44,7 @@ class AssetTagLinkRecord(BaseModel):
     tag = fields.ForeignKeyField("models.AssetTagRecord", related_name="asset_links", on_delete=fields.CASCADE)
 
     class Meta(BaseModel.Meta):
-        table = "domain_asset_tag_links"
+        table = "asset_tag_links"
+        table_description = "Many-to-many join linking assets to tags."
         abstract = False
         unique_together = (("asset_id", "tag_id"),)

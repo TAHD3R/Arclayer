@@ -31,5 +31,6 @@ class AssetShareLinkRecord(BaseModel):
     created_by_user_id = fields.UUIDField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "domain_asset_share_links"
+        table = "asset_share_links"
+        table_description = "Shareable link records for assets with access control."
         abstract = False

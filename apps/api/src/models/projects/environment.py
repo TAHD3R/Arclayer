@@ -40,7 +40,8 @@ class ProjectEnvironmentRecord(BaseModel):
         project_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_project_environments"
+        table = "project_environments"
+        table_description = "Project deployment environment identities."
         abstract = False
         unique_together = (("project_id", "key"),)
 
@@ -69,7 +70,8 @@ class ProjectEnvironmentAliasRecord(BaseModel):
         target_environment_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_project_environment_aliases"
+        table = "project_environment_aliases"
+        table_description = "Alias records for project deployment environments."
         abstract = False
         unique_together = (("project_id", "key"),)
 

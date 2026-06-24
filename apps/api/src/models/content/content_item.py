@@ -123,6 +123,7 @@ class ContentItemRecord(BaseModel):
         translation_group_id: UUID | None
 
     class Meta(BaseModel.Meta):
-        table = "domain_content_items"
+        table = "content_items"
+        table_description = "Content item records with versioned data per locale."
         abstract = False
         unique_together = (("model_definition_id", "environment_id", "locale", "slug"),)

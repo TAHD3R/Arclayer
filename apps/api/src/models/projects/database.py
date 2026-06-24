@@ -66,7 +66,8 @@ class ProjectDatabaseInstanceRecord(BaseModel):
         environment_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_project_database_instances"
+        table = "project_database_instances"
+        table_description = "Managed database instance records per project."
         abstract = False
 
 
@@ -86,7 +87,8 @@ class ProjectDatabaseCredentialRecord(BaseModel):
         instance_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_project_database_credentials"
+        table = "project_database_credentials"
+        table_description = "Encrypted database connection credentials."
         abstract = False
         unique_together = (("instance_id", "role"),)
 
@@ -106,7 +108,8 @@ class ProjectDatabaseMigrationRecord(BaseModel):
         instance_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_project_database_migrations"
+        table = "project_database_migrations"
+        table_description = "Schema migration tracking per database instance."
         abstract = False
 
 
@@ -124,5 +127,6 @@ class ProjectDatabaseBackupRecord(BaseModel):
         instance_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "domain_project_database_backups"
+        table = "project_database_backups"
+        table_description = "Database backup snapshot records."
         abstract = False

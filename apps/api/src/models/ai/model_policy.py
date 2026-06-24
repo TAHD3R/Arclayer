@@ -55,6 +55,7 @@ class ModelPolicy(BaseModel):
 
     class Meta(BaseModel.Meta):
         table = "model_policies"
+        table_description = "Access policy rules for LLM model usage."
         abstract = False
 
     def to_provider_params(self, provider: str) -> dict:

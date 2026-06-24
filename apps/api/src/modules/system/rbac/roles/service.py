@@ -6,7 +6,7 @@ from uuid import UUID
 from src.common.utils.ids import uuid7
 from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.services import BaseService
-from src.models.system.rbac import PermissionScope, Role
+from src.models.system.rbac import PermissionScope, SystemRole
 from src.modules.system.rbac.localization.service import _tr
 from src.modules.system.rbac.repository import RBACRepository
 
@@ -76,7 +76,7 @@ class RBACRolesMixin:
         name: str,
         description: str | None,
         template_role_code: str | None,
-    ) -> Role:
+    ) -> SystemRole:
         clean_name = self._validate_role_name(name=name)
         tpl_perm_ids = await self._resolve_template_permission_ids(
             workspace_id=workspace_id,
@@ -111,7 +111,7 @@ class RBACRolesMixin:
         role_code: str,
         name: str | None,
         description: str | None,
-    ) -> Role:
+    ) -> SystemRole:
         code = (role_code or "").strip()
         role = await self.repo.get_role_by_code(workspace_id=workspace_id, code=code)
         if role is None:

@@ -26,7 +26,7 @@ from src.core.http.pagination import PageData, PageParams
 from src.core.i18n import t
 from src.core.services import BaseService
 from src.models.organization.user import User
-from src.models.system.rbac import Role
+from src.models.system.rbac import SystemRole
 from src.models.workspaces.workspace_invite import (
     WorkspaceEmailInvite,
     WorkspaceInviteLink,
@@ -146,7 +146,7 @@ class WorkspaceTeamInviteMixin:
     ) -> InviteStatus:
         raise NotImplementedError
 
-    async def _get_role_by_code_in_workspace(self, *, workspace_id: UUID, role_code: str) -> Role | None: ...
+    async def _get_role_by_code_in_workspace(self, *, workspace_id: UUID, role_code: str) -> SystemRole | None: ...
 
     async def _list_recent_participants(
         self, *, link_id: UUID, limit: int = 3

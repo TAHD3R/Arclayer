@@ -18,7 +18,8 @@ class OAuthIdentity(BaseModel):
     email = fields.CharField(max_length=255, null=True)
 
     class Meta(BaseModel.Meta):
-        table = "global_oauth_identities"
+        table = "oauth_identities"
+        table_description = "External OAuth provider identity links for users."
         abstract = False
         unique_together = (("provider", "subject"),)
         index_together = (("user_id", "provider"),)

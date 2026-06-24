@@ -48,7 +48,8 @@ class SiteRecord(BaseModel):
     created_by_user_id = fields.UUIDField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "domain_sites"
+        table = "sites"
+        table_description = "Published site records bound to runtimes."
         abstract = False
         unique_together = (("runtime_id",),)
 

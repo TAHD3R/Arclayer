@@ -46,4 +46,5 @@ class AIAPIKey(BaseModel):
 
     class Meta(BaseModel.Meta):
         table = "ai_api_keys"
+        table_description = "API key records for AI provider access."
         abstract = False

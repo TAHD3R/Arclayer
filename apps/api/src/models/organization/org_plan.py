@@ -29,4 +29,5 @@ class OrgPlan(BaseModel):
 
     class Meta(BaseModel.Meta):
         table = "org_plans"
+        table_description = "Organization billing plans and quota limits."
         abstract = False

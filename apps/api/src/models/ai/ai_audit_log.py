@@ -48,4 +48,5 @@ class AIAuditLog(BaseModel):
 
     class Meta(BaseModel.Meta):
         table = "ai_audit_log"
+        table_description = "Append-only audit log for AI API calls."
         abstract = False

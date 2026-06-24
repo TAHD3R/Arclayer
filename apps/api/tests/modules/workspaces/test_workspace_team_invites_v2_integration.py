@@ -179,7 +179,7 @@ async def test_workspace_invite_link_accept_existing_creates_use_event(
         from src.models.organization.org_membership import OrgMembership, OrgRole
         from src.models.organization.user import User
         from src.models.projects.project import ProjectRecord
-        from src.models.system.rbac import Role
+        from src.models.system.rbac import SystemRole
         from src.models.workspaces.workspace import Workspace
         from src.models.workspaces.workspace_invite import WorkspaceInviteLinkUseEvent
         from src.modules.auth.repository import UserRepository
@@ -229,7 +229,7 @@ async def test_workspace_invite_link_accept_existing_creates_use_event(
         app.dependency_overrides[get_current_user] = _get_user
         app.dependency_overrides[get_current_user_id] = _get_user_id
 
-        role_admin = await Role.get_or_none(code="admin")
+        role_admin = await SystemRole.get_or_none(code="admin")
         assert role_admin is not None
 
         async with AsyncClient(

@@ -17,7 +17,7 @@ from src.core.i18n import t
 from src.core.services import BaseService
 from src.models.organization.user import User
 from src.models.system.notification import NotificationCategory
-from src.models.system.rbac import Role
+from src.models.system.rbac import SystemRole
 from src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipRole, WorkspaceMembershipStatus
 from src.modules.analytics.audit import (
     ActivityAuditPayload,
@@ -317,11 +317,11 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
             role_codes=role_codes,
         )
 
-    async def _get_role_by_code_in_workspace(self, *, workspace_id: UUID, role_code: str) -> Role | None:
+    async def _get_role_by_code_in_workspace(self, *, workspace_id: UUID, role_code: str) -> SystemRole | None:
         code = (role_code or "").strip()
         if not code:
             return None
-        return await Role.get_or_none(workspace_id=workspace_id, code=code)
+        return await SystemRole.get_or_none(workspace_id=workspace_id, code=code)
 
     async def _list_recent_participants(
         self, *, link_id: UUID, limit: int = 3

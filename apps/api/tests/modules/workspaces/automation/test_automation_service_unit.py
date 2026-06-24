@@ -11,7 +11,7 @@ from src.core.events import Event
 from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.core.lifecycles.dispatcher import LifecycleDispatcher
 from src.models.automation.flow import (
-    AutomationFlowRecord,
+    AutomationFlow,
     AutomationFlowStatus,
     AutomationOperationKind,
     AutomationRunLogLevel,
@@ -205,7 +205,7 @@ async def test_execute_flow_marks_run_succeeded_and_records_operation_logs(monke
         trigger_event="release.published",
     )
     result = await service.execute_flow(
-        flow=cast(AutomationFlowRecord, flow),
+        flow=cast(AutomationFlow, flow),
         event=Event(
             name="release.published",
             payload={"workspace_id": str(workspace_id), "project_id": str(uuid4()), "site_id": str(uuid4())},
@@ -259,7 +259,7 @@ async def test_execute_flow_marks_run_dead_letter_on_operation_failure(monkeypat
         trigger_event="project.content.item.workflow.updated",
     )
     result = await service.execute_flow(
-        flow=cast(AutomationFlowRecord, flow),
+        flow=cast(AutomationFlow, flow),
         event=Event(name="project.content.item.workflow.updated", payload={"workspace_id": str(workspace_id)}),
     )
 
