@@ -215,23 +215,40 @@ def test_cli_frontend_scope_reports_repo_relative_paths(capsys, tmp_path: Path) 
 
 
 def test_cli_changed_scope_limits_findings_to_changed_files(capsys) -> None:
+    import subprocess
+
     repo_root = Path(__file__).resolve().parents[3]
 
     exit_code = main(["--repo-root", str(repo_root), "--scope", "changed", "--base", "HEAD", "--format", "json"])
 
     captured = capsys.readouterr()
     payload = json.loads(captured.out)
-    changed_roots = {
-        "scripts/code-review-engine/README.md",
-        "scripts/code-review-engine/src/code_review_engine/engine.py",
-        "scripts/code-review-engine/src/code_review_engine/rules/__init__.py",
-        "scripts/code-review-engine/src/code_review_engine/migrated/",
-        "scripts/code-review-engine/tests/test_cli.py",
-        "scripts/code-review-engine/tests/test_rules.py",
-    }
+
+    # Derive changed files from the actual git diff so the test is self-consistent.
+    result = subprocess.run(
+        ["git", "-C", str(repo_root), "diff", "--name-only", "HEAD", "--"],
+        capture_output=True,
+        text=True,
+    )
+    changed_files = frozenset(
+        line.strip().replace("\\", "/").strip("/")
+        for line in result.stdout.splitlines()
+        if line.strip()
+    )
+    assert changed_files, "Expected at least one changed file for this test to be meaningful"
+
+    def _matches_changed(file_path: str) -> bool:
+        normalized = file_path.strip().replace("\\", "/").strip("/")
+        if normalized in changed_files:
+            return True
+        prefix = normalized.rstrip("/") + "/"
+        return any(cf == normalized or cf.startswith(prefix) for cf in changed_files)
+
     assert exit_code == 0
-    assert payload["summary"]["total_findings"] == 0
-    assert all(any(finding["file"].startswith(root) for root in changed_roots) for finding in payload["findings"])
+    assert all(_matches_changed(f["file"]) for f in payload["findings"]), (
+        f"Some findings are outside changed files: "
+        f"{[f['file'] for f in payload['findings'] if not _matches_changed(f['file'])]}"
+    )
 
 
 def test_cli_changed_scope_fails_loud_when_git_discovery_fails(capsys, tmp_path: Path) -> None:

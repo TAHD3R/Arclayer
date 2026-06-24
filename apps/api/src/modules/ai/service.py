@@ -12,6 +12,7 @@ from src.llm.mock import MockLLMProvider
 from src.llm.observability import ai_request_span
 from src.llm.rate_limiter import TokenBucket
 from src.llm.runtime import LLMRequestContext, LLMRuntime, LLMRuntimeError, compute_cost_micros
+from src.models.ai.ai_budget import AIBudget
 
 logger = structlog.get_logger("arclayer.ai.service")
 

@@ -12,6 +12,7 @@ import structlog
 
 from src.llm.errors import ERROR_CODE_STATUS, LLMErrorCode
 from src.llm.runtime import LLMRuntimeError
+from src.models.ai.model_policy import ModelPolicy
 
 logger = structlog.get_logger("arclayer.llm.policy")
 
