@@ -3,13 +3,13 @@ from __future__ import annotations
 import re
 from uuid import UUID
 
-_SCHEMA_NAME_PATTERN = re.compile(r"^cms_ws_[a-z0-9_]+$")
+_SCHEMA_NAME_PATTERN = re.compile(r"^workspace_[a-z0-9_]+$")
 _INVALID_SCHEMA_CHARACTERS = ('"', "'", ".", " ", ";")
 
 
 def build_workspace_schema_name(workspace_id: UUID) -> str:
     normalized = workspace_id.hex.lower()[:20]
-    return f"cms_ws_{normalized}"
+    return f"workspace_{normalized}"
 
 
 def validate_tenant_schema_name(schema_name: str) -> str:
@@ -23,5 +23,5 @@ def validate_tenant_schema_name(schema_name: str) -> str:
 
     normalized = candidate.lower()
     if not _SCHEMA_NAME_PATTERN.fullmatch(normalized):
-        raise ValueError("Tenant schema name must match cms_ws_[a-z0-9_]+")
+        raise ValueError("Tenant schema name must match workspace_[a-z0-9_]+")
     return normalized

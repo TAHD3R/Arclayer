@@ -94,7 +94,7 @@ async def test_project_runtime_service_reuses_attached_runtime_site(monkeypatch)
                 project_id=project_id,
                 runtime_id=runtime_id,
                 site_id=site_id,
-                schema_name="cms_ws_1234567890abcdefghij",
+                schema_name="workspace_1234567890abcdefghij",
                 isolation_mode=TenantIsolationMode.WORKSPACE_SCHEMA,
             )
         )

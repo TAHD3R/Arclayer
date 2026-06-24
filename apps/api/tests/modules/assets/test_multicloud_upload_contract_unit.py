@@ -148,7 +148,7 @@ def _tenant_context(*, project_id: UUID) -> TenantContext:
             project_id=project_id,
             runtime_id=uuid4(),
             site_id=None,
-            schema_name="cms_ws_1234567890abcdefghij",
+            schema_name="workspace_1234567890abcdefghij",
             isolation_mode=TenantIsolationMode.WORKSPACE_SCHEMA,
         ),
         scope=TenantScope.PROJECT,

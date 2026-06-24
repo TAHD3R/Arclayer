@@ -143,13 +143,13 @@ async def test_public_asset_lookup_searches_ready_tenant_schemas(monkeypatch: py
         using_db = kwargs.get("using_db")
         schema_name = getattr(using_db, "schema_name", None)
         calls.append(("asset", schema_name))
-        if schema_name == "cms_ws_ready":
+        if schema_name == "workspace_ready":
             return expected
         return None
 
     class FakeTenantQuery:
         async def values_list(self, *_args, **_kwargs):
-            return ["cms_ws_ready"]
+            return ["workspace_ready"]
 
     class FakeTenantRecord:
         @staticmethod
@@ -174,7 +174,7 @@ async def test_public_asset_lookup_searches_ready_tenant_schemas(monkeypatch: py
     found = await AssetsRepository().get_public_asset(asset_id=asset_id)
 
     assert found is expected
-    assert calls == [("asset", None), ("asset", "cms_ws_ready")]
+    assert calls == [("asset", None), ("asset", "workspace_ready")]
 
 
 @pytest.mark.asyncio

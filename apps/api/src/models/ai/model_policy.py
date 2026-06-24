@@ -54,7 +54,7 @@ class ModelPolicy(BaseModel):
     is_active = fields.BooleanField(default=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "model_policies"
+        table = "ai_model_policies"
         table_description = "Access policy rules for LLM model usage."
         abstract = False
 

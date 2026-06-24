@@ -48,12 +48,12 @@ async def test_tenant_migration_runner_locks_schema_before_creating_schema(monke
     monkeypatch.setattr(migrations, "in_transaction", fake_in_transaction)
     monkeypatch.setattr(migrations, "create_tenant_schema", fake_create_tenant_schema)
 
-    version = await TenantMigrationRunner(migrations=()).apply_all("cms_ws_abcdef1234567890abcd")
+    version = await TenantMigrationRunner(migrations=()).apply_all("workspace_abcdef1234567890abcd")
 
     assert version == 0
     assert conn.events == [
-        "lock:tenant_schema:cms_ws_abcdef1234567890abcd",
-        "create_schema:cms_ws_abcdef1234567890abcd",
+        "lock:tenant_schema:workspace_abcdef1234567890abcd",
+        "create_schema:workspace_abcdef1234567890abcd",
         "ensure_migration_table",
         "load_applied_versions",
     ]

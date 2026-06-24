@@ -31,7 +31,7 @@ def _tenant_context() -> TenantContext:
             project_id=None,
             runtime_id=None,
             site_id=None,
-            schema_name="cms_ws_1234567890abcdefghij",
+            schema_name="workspace_1234567890abcdefghij",
             isolation_mode=TenantIsolationMode.WORKSPACE_SCHEMA,
         ),
         scope=TenantScope.WORKSPACE,
@@ -74,7 +74,7 @@ async def test_bind_workspace_tenant_context_builds_and_binds(monkeypatch: pytes
 
     async def _fake_ensure(self, workspace_id, organization_id):  # type: ignore[no-untyped-def]
         class _Record:
-            schema_name = "cms_ws_1234567890abcdefghij"
+            schema_name = "workspace_1234567890abcdefghij"
             isolation_mode = "workspace_schema"
 
         return _Record()
