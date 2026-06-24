@@ -560,7 +560,7 @@ class TestSchemaContracts:
         expected_tables = {
             "ai_budgets",
             "ai_budget_reservations",
-            "model_policies",
+            "ai_model_policies",
             "user_key_workspace_grants",
             "ai_audit_log",
             "ai_api_keys",
