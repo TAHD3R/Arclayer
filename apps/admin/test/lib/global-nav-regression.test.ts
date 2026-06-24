@@ -30,7 +30,6 @@ describe("global nav regression", () => {
     expect(platformKeys).toEqual([
       "global.platform.overview",
       "global.platform.tenants",
-      "global.platform.plans",
       "global.platform.audit",
       "global.platform.jobs",
       "global.platform.configuration",
