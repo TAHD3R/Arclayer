@@ -28,6 +28,7 @@ Shared frontend/backend contracts live under `docs/spec/shared/` and should be l
 | [Services and Repositories](./services-repositories.md) | BaseService and Tortoise repository interaction boundaries, tx propagation, and event publication contracts | Active |
 | [Content Delivery API](./content-delivery-api.md) | `/content-api/v1` delivery route contracts | Active |
 | [Content Model Storage Sync](./content-model-storage-sync.md) | Content model schema-to-storage planning contracts | Active |
+| [Agents](./agents.md) | Read-only Agent runtime, tools, sessions, cancellation, and event boundaries | Active |
 | [Quality Guidelines](./quality-guidelines.md) | Service contracts, dataclass ban, JSON typing, Activity coverage, tests, review checklist | Active |
 | [Logging Guidelines](./logging-guidelines.md) | Structlog setup, request summaries, trace ids, redaction, exception logging | Active |
 

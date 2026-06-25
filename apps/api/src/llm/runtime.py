@@ -50,12 +50,14 @@ def detect_provider(model: str) -> str:
     """Detect the provider name from a model identifier.
 
     Used to route data retention policies and audit log entries.
-    Returns ``"openai"``, ``"anthropic"``, or ``"unknown"`` for unrecognized models.
+    Returns a provider key used for LLM key resolution and policy metadata.
     """
     if model.startswith("gpt") or model.startswith("o1") or model.startswith("o3"):
         return "openai"
     if model.startswith("claude"):
         return "anthropic"
+    if model.startswith("deepseek"):
+        return "deepseek"
     return model.split("/")[0] if "/" in model else "unknown"
 
 

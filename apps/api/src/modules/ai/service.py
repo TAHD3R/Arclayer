@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from uuid import UUID
 
 import httpx
@@ -11,8 +12,9 @@ from src.llm.errors import LLMErrorCode
 from src.llm.mock import MockLLMProvider
 from src.llm.observability import ai_request_span
 from src.llm.rate_limiter import TokenBucket
-from src.llm.runtime import LLMRequestContext, LLMRuntime, LLMRuntimeError, compute_cost_micros
+from src.llm.runtime import LLMRequestContext, LLMRuntime, LLMRuntimeError, compute_cost_micros, detect_provider
 from src.models.ai.ai_budget import AIBudget
+from src.modules.ai.schemas import AIReasoningEffort
 
 logger = structlog.get_logger("arclayer.ai.service")
 
@@ -89,6 +91,7 @@ class AIChatService:
         *,
         context: LLMRequestContext,
         model: str | None = None,
+        reasoning_effort: AIReasoningEffort | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
         budget_id: UUID | None = None,
@@ -120,6 +123,7 @@ class AIChatService:
                 data = await mock.chat(
                     messages,
                     model=resolved_model,
+                    **_reasoning_provider_params(resolved_model, reasoning_effort),
                     temperature=temperature,
                     max_tokens=max_tokens,
                 )
@@ -151,6 +155,7 @@ class AIChatService:
                     messages,
                     context=context,
                     model=resolved_model,
+                    provider_params=_reasoning_provider_params(resolved_model, reasoning_effort),
                     temperature=temperature,
                     max_tokens=max_tokens,
                     budget_id=budget_id,
@@ -203,6 +208,7 @@ class AIChatService:
         *,
         context: LLMRequestContext,
         model: str | None = None,
+        reasoning_effort: AIReasoningEffort | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
         budget_id: UUID | None = None,
@@ -236,6 +242,7 @@ class AIChatService:
                 async for chunk in provider.chat_stream(
                     messages,
                     model=resolved_model,
+                    **_reasoning_provider_params(resolved_model, reasoning_effort),
                     temperature=temperature,
                     max_tokens=max_tokens,
                 ):
@@ -275,6 +282,7 @@ class AIChatService:
                         messages,
                         context=context,
                         model=resolved_model,
+                        provider_params=_reasoning_provider_params(resolved_model, reasoning_effort),
                         temperature=temperature,
                         max_tokens=max_tokens,
                         budget_id=budget_id,
@@ -388,3 +396,18 @@ class AIChatService:
             message=f"Unexpected HTTP error from LLM provider (HTTP {status})",
             status_code=502,
         )
+
+
+def _reasoning_provider_params(model: str, effort: AIReasoningEffort | None) -> dict[str, Any]:
+    if effort is None:
+        return {}
+
+    provider = detect_provider(model)
+    if provider == "deepseek":
+        if effort == "low":
+            return {"thinking": {"type": "disabled"}}
+        if effort == "medium":
+            return {"thinking": {"type": "enabled"}, "reasoning_effort": "high"}
+        return {"thinking": {"type": "enabled"}, "reasoning_effort": "max"}
+
+    return {"reasoning_effort": effort}

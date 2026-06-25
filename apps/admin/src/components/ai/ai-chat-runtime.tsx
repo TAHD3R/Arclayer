@@ -7,10 +7,18 @@ import {
   type AppendMessage,
   type ThreadMessageLike,
 } from "@assistant-ui/react";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 
-import { chatStream, formatAIChatError, getAIChatErrorDetails, type AIChatMessage } from "@/api/ai";
+import {
+  chatStream,
+  cancelAIAgentRun,
+  formatAIChatError,
+  getAIChatErrorDetails,
+  sendAIAgentMessage,
+  type AIChatMessage,
+} from "@/api/ai";
 import { useAiChatStore } from "@/stores/use-ai-chat-store";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 function messageContentToText(
   content: AppendMessage["content"] | ThreadMessageLike["content"],
@@ -75,7 +83,19 @@ function createDictationAdapter() {
   });
 }
 
-export async function sendAIChatMessage(conversationId: string, text: string): Promise<void> {
+export async function sendAIChatMessage(
+  conversationId: string,
+  text: string,
+  options?: { signal?: AbortSignal },
+): Promise<void> {
+  return sendAIChatMessageWithSignal(conversationId, text, options);
+}
+
+async function sendAIChatMessageWithSignal(
+  conversationId: string,
+  text: string,
+  options?: { signal?: AbortSignal },
+): Promise<void> {
   const trimmed = text.trim();
   if (!trimmed) return;
 
@@ -102,11 +122,19 @@ export async function sendAIChatMessage(conversationId: string, text: string): P
   state.setStreaming(true);
 
   try {
-    for await (const delta of chatStream(history, { model: state.selectedModel })) {
+    for await (const delta of chatStream(history, {
+      model: state.selectedModel,
+      reasoningEffort: state.selectedReasoningEffort,
+      signal: options?.signal,
+    })) {
       useAiChatStore.getState().appendDelta(conversationId, delta);
     }
     useAiChatStore.getState().finalizeLastAssistant(conversationId);
   } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      useAiChatStore.getState().finalizeLastAssistant(conversationId);
+      return;
+    }
     const message = formatAIChatError(err);
     const details = getAIChatErrorDetails(err);
     useAiChatStore.getState().finalizeLastAssistant(conversationId, {
@@ -159,6 +187,8 @@ export function AIChatRuntimeProvider({
     (s) => s.conversations.find((c) => c.id === conversationId) ?? null,
   );
   const streaming = useAiChatStore((s) => s.streaming);
+  const activeRequestRef = useRef<AbortController | null>(null);
+  const activeAgentRunIdRef = useRef<string | null>(null);
   const dictationAdapter = useMemo(() => createDictationAdapter(), []);
   const attachmentAdapter = useMemo(
     () => new CompositeAttachmentAdapter([new SimpleTextAttachmentAdapter()]),
@@ -193,8 +223,50 @@ export function AIChatRuntimeProvider({
     setMessages: (nextMessages: readonly ThreadMessageLike[]) => {
       useAiChatStore.getState().replaceMessages(conversationId, toStoreMessages(nextMessages));
     },
+    onCancel: async () => {
+      const runId = activeAgentRunIdRef.current;
+      const projectId = useWorkspaceStore.getState().currentProjectId;
+      if (runId && projectId) {
+        await cancelAIAgentRun(projectId, runId);
+        useAiChatStore
+          .getState()
+          .setLastAssistantAgentRun(conversationId, { runId, status: "cancelled" });
+      }
+      activeRequestRef.current?.abort();
+      activeRequestRef.current = null;
+      activeAgentRunIdRef.current = null;
+    },
     onNew: async (message) => {
-      await sendAIChatMessage(conversationId, appendMessageToText(message));
+      const state = useAiChatStore.getState();
+      const text = appendMessageToText(message);
+      if (state.composerMode === "agent") {
+        const controller = new AbortController();
+        activeRequestRef.current = controller;
+        activeAgentRunIdRef.current = null;
+        try {
+          await sendAIAgentMessage(conversationId, text, {
+            signal: controller.signal,
+            onRunCreated: (runId) => {
+              activeAgentRunIdRef.current = runId;
+            },
+          });
+        } finally {
+          if (activeRequestRef.current === controller) {
+            activeRequestRef.current = null;
+          }
+          activeAgentRunIdRef.current = null;
+        }
+        return;
+      }
+      const controller = new AbortController();
+      activeRequestRef.current = controller;
+      try {
+        await sendAIChatMessageWithSignal(conversationId, text, { signal: controller.signal });
+      } finally {
+        if (activeRequestRef.current === controller) {
+          activeRequestRef.current = null;
+        }
+      }
     },
   });
 

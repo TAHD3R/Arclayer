@@ -16,6 +16,7 @@ class AutomationFlowStatus(StrEnum):
 
 class AutomationTriggerKind(StrEnum):
     PUBLISH_COMPLETED = "publish_completed"
+    CONTENT_CREATED = "content_created"
     CONTENT_TRANSITIONED = "content_transitioned"
     API_KEY_ROTATED = "api_key_rotated"
     PREVIEW_TOKEN_CREATED = "preview_token_created"
@@ -24,6 +25,7 @@ class AutomationTriggerKind(StrEnum):
 class AutomationOperationKind(StrEnum):
     WEBHOOK = "webhook"
     HTTP_REQUEST = "http_request"
+    AGENT_ANALYSIS = "agent_analysis"
     CONTENT_READ = "content_read"
     CONTENT_UPDATE = "content_update"
     RELEASE_PUBLISH = "release_publish"

@@ -2,18 +2,22 @@ from __future__ import annotations
 
 import json
 import uuid
+from typing import Annotated
 from uuid import UUID
 
 from asgi_correlation_id import correlation_id
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from starlette.responses import StreamingResponse
 
+from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.http.response import ApiResponse, ResponseModel
 from src.llm.runtime import LLMRequestContext, LLMRuntimeError
-from src.modules.ai.schemas import ChatRequest, ChatResponse, ChatUsage
+from src.modules.ai.model_catalog import AIModelCatalogUnavailableError, list_ai_model_catalog
+from src.modules.ai.schemas import AIModelCatalogResponse, ChatRequest, ChatResponse, ChatUsage
 from src.modules.ai.service import AIChatService
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.workspaces.http.service import resolve_workspace_context_by_id
 
 router = APIRouter(tags=["AI"])
 
@@ -22,30 +26,62 @@ def _get_ai_service(settings: Settings = Depends(get_settings)) -> AIChatService
     return AIChatService(settings)
 
 
-def _make_context(
-    request: Request,
-    user_id: UUID | None,
-) -> LLMRequestContext:
-    """Build an LLMRequestContext from the current request state.
+@router.get(
+    "/models",
+    summary="Available chat models",
+    description="List chat models currently exposed by the configured LiteLLM proxy.",
+)
+async def list_chat_models(
+    workspace_id: Annotated[
+        PublicUUID,
+        Query(..., alias="workspaceId", description="Workspace id used for provider key availability"),
+    ],
+    user_id: UUID = Depends(get_current_user_id),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[AIModelCatalogResponse]:
+    """Return the model catalog used by the Admin AI model selector."""
+    ctx = await resolve_workspace_context_by_id(workspace_id=workspace_id, user_id=user_id)
+    try:
+        catalog = await list_ai_model_catalog(
+            settings,
+            workspace_id=ctx.workspace_id,
+            user_id=user_id,
+        )
+    except AIModelCatalogUnavailableError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "message": str(exc),
+                "error": "AI_MODEL_CATALOG_UNAVAILABLE",
+            },
+        ) from exc
 
-    Raises HTTPException(403) if workspace_id is not present in request state.
+    return ApiResponse.success(data=catalog)
+
+
+async def _make_context(
+    request: Request,
+    user_id: UUID,
+    payload: ChatRequest,
+) -> LLMRequestContext:
+    """Build an LLMRequestContext from request state or explicit chat payload.
+
+    Raises HTTPException(403) if no workspace context is present.
     """
     raw_ws = getattr(request.state, "workspace_id", None)
-    if not raw_ws:
+    if raw_ws:
+        workspace_id = _parse_state_workspace_id(raw_ws)
+    elif payload.workspace_id is not None:
+        ctx = await resolve_workspace_context_by_id(
+            workspace_id=payload.workspace_id,
+            user_id=user_id,
+        )
+        workspace_id = ctx.workspace_id
+    else:
         raise HTTPException(
             status_code=403,
             detail={
                 "message": "User is not a member of any active workspace",
-                "error": "AUTH_NOT_WORKSPACE_MEMBER",
-            },
-        )
-    try:
-        workspace_id = UUID(str(raw_ws))
-    except (ValueError, TypeError):
-        raise HTTPException(
-            status_code=403,
-            detail={
-                "message": "Invalid workspace identifier in session",
                 "error": "AUTH_NOT_WORKSPACE_MEMBER",
             },
         )
@@ -57,6 +93,20 @@ def _make_context(
         user_id=user_id,
         correlation_id=cid,
     )
+
+
+def _parse_state_workspace_id(raw_ws: object) -> UUID:
+    """Parse workspace id injected by workspace-aware middleware."""
+    try:
+        return UUID(str(raw_ws))
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "message": "Invalid workspace identifier in session",
+                "error": "AUTH_NOT_WORKSPACE_MEMBER",
+            },
+        )
 
 
 @router.post(
@@ -73,7 +123,7 @@ async def chat_completion(
     stream: bool = Query(default=False, description="Enable SSE streaming"),
 ):
     """Execute a chat completion or start an SSE stream."""
-    context = _make_context(request, user_id)
+    context = await _make_context(request, user_id, payload)
 
     if stream:
         return await _streaming_chat(payload, context, service, settings)
@@ -92,6 +142,7 @@ async def _non_streaming_chat(
             messages=payload.messages,
             context=context,
             model=payload.model,
+            reasoning_effort=payload.reasoning_effort,
             temperature=payload.temperature,
             max_tokens=payload.max_tokens,
         )
@@ -136,6 +187,7 @@ async def _streaming_chat(
                 messages=req.messages,
                 context=ctx,
                 model=req.model,
+                reasoning_effort=req.reasoning_effort,
                 temperature=req.temperature,
                 max_tokens=req.max_tokens,
             ):

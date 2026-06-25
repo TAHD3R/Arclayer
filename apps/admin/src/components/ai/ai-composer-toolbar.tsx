@@ -4,6 +4,7 @@ import {
   AudioLinesIcon,
   CheckIcon,
   ChevronDownIcon,
+  BotIcon,
   HammerIcon,
   MessageSquareTextIcon,
   SquareIcon,
@@ -11,6 +12,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { AIAgentSelector } from "@/components/ai/ai-agent-selector";
 import { ComposerAddAttachment } from "@/components/assistant-ui/attachment";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
 import { AIModelSelector } from "@/components/ai/ai-model-selector";
@@ -46,6 +48,12 @@ const COMPOSER_MODES: readonly {
     descriptionKey: "ai:AI_CHAT_MODE_PLAN_DESC",
     icon: MessageSquareTextIcon,
   },
+  {
+    value: "agent",
+    labelKey: "ai:AI_CHAT_MODE_AGENT",
+    descriptionKey: "ai:AI_CHAT_MODE_AGENT_DESC",
+    icon: BotIcon,
+  },
 ];
 
 type AIComposerToolbarProps = {
@@ -53,6 +61,8 @@ type AIComposerToolbarProps = {
 };
 
 export function AIComposerToolbar({ compact = false }: AIComposerToolbarProps) {
+  const selectedMode = useAiChatStore((s) => s.composerMode || DEFAULT_AI_COMPOSER_MODE);
+
   return (
     <div
       className={cn(
@@ -61,6 +71,7 @@ export function AIComposerToolbar({ compact = false }: AIComposerToolbarProps) {
       )}
     >
       <ComposerAddAttachment />
+      {selectedMode === "agent" ? <AIAgentSelector compact={compact} /> : null}
       <AIComposerModeSelect />
       <div className="min-w-0 flex-1" />
       <AIModelSelector compact={compact} />
@@ -79,9 +90,12 @@ export function AIComposerContextControls({ compact = false }: AIComposerToolbar
 }
 
 export function AIComposerInputActions() {
+  const selectedMode = useAiChatStore((s) => s.composerMode || DEFAULT_AI_COMPOSER_MODE);
+
   return (
     <div className="aui-composer-action-wrapper relative flex min-h-8 min-w-0 items-center gap-1">
       <ComposerAddAttachment />
+      {selectedMode === "agent" ? <AIAgentSelector compact /> : null}
       <div className="min-w-0 flex-1" />
       <AIComposerPrimaryAction />
     </div>
@@ -104,7 +118,7 @@ function AIComposerModeSelect({ compact = false }: AIComposerToolbarProps) {
           size="sm"
           aria-label={t("ai:AI_CHAT_MODE_SELECT")}
           className={cn(
-            "h-8 min-w-0 rounded-full px-2.5 text-footnote font-semibold text-label-primary hover:bg-accent/70",
+            "h-8 min-w-0 rounded-xl px-2.5 text-footnote font-semibold text-label-primary hover:bg-accent/70",
             compact && "max-w-[8.5rem]",
           )}
         >
@@ -160,7 +174,7 @@ function AIComposerPrimaryAction() {
             type="button"
             variant="default"
             size="icon"
-            className="aui-composer-cancel size-8 rounded-full"
+            className="aui-composer-cancel size-8 !rounded-full"
             aria-label={t("ai:AI_CHAT_STOP")}
           >
             <SquareIcon className="aui-composer-cancel-icon size-3.5 fill-current" />
@@ -175,7 +189,7 @@ function AIComposerPrimaryAction() {
             type="button"
             variant="default"
             size="icon"
-            className="aui-composer-stop-dictation size-8 rounded-full"
+            className="aui-composer-stop-dictation size-8 !rounded-full"
             aria-label={t("ai:AI_CHAT_STOP_VOICE_INPUT")}
           >
             <SquareIcon className="aui-composer-stop-dictation-icon size-3.5 fill-current" />
@@ -194,7 +208,7 @@ function AIComposerPrimaryAction() {
             type="button"
             variant="default"
             size="icon"
-            className="aui-composer-send size-8 rounded-full"
+            className="aui-composer-send size-8 !rounded-full"
             aria-label={t("ai:AI_CHAT_SEND")}
           >
             <ArrowUpIcon className="aui-composer-send-icon size-4.5" />
@@ -211,7 +225,7 @@ function AIComposerPrimaryAction() {
             type="button"
             variant="default"
             size="icon"
-            className="aui-composer-dictate size-8 rounded-full"
+            className="aui-composer-dictate size-8 !rounded-full"
             aria-label={t("ai:AI_CHAT_VOICE_INPUT")}
           >
             <AudioLinesIcon className="aui-composer-dictate-icon size-4" />

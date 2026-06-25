@@ -23,6 +23,7 @@ async def test_automation_runtime_subscribes_all_trigger_events() -> None:
     snapshot = await bus.snapshot()
 
     assert "release.published" in snapshot
+    assert "content.item.created" in snapshot
     assert "project.content.item.workflow.updated" in snapshot
     assert "project.api_key.rotated" in snapshot
     assert "project.preview_token.created" in snapshot

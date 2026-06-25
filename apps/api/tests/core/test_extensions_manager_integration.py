@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
@@ -236,49 +235,34 @@ class TestLifecycle:
 # ——— Activation tests ———————————————————————————————————————————————————
 
 
-class _FakeWorkspace:
-    """Minimal fake for Workspace model in activation tests."""
+class _FakeExtensionWorkspaceRepository:
+    """Minimal repository double for activation tests."""
 
-    id: str
-    extension_revision: int = 1
-    updated_at: str = ""
+    def __init__(self) -> None:
+        self.revisions: dict[object, int] = {}
 
-    def __init__(self, ws_id: str | None = None) -> None:
-        self.id = ws_id or str(uuid4())
+    async def get_extension_revision(self, workspace_id):
+        return self.revisions.setdefault(workspace_id, 1)
 
-    async def save(self, update_fields=None, using_db=None) -> None:
-        pass
+    async def set_activation_and_increment_revision(self, extension_name, workspace_id, *, active):
+        del extension_name, active
+        revision = self.revisions.setdefault(workspace_id, 1) + 1
+        self.revisions[workspace_id] = revision
+        return revision
 
-
-class _FakeTransaction:
-    async def __aenter__(self):
-        return MagicMock()
-
-    async def __aexit__(self, *args):
-        pass
+    async def list_active_activations(self):
+        return []
 
 
 @pytest.fixture
-def _mock_db(monkeypatch):
-    """Patch in_transaction and Workspace for activation tests."""
-    import src.core.extensions.manager as mgr_mod
-
-    monkeypatch.setattr(mgr_mod, "in_transaction", _FakeTransaction())
-    # Create a mock Workspace class
-    mock_ws = MagicMock()
-    fake_ws = _FakeWorkspace()
-    mock_ws.filter.return_value.using_db.return_value.select_for_update.return_value.first = AsyncMock(
-        return_value=fake_ws
-    )
-    monkeypatch.setattr(mgr_mod, "Workspace", mock_ws)
-    yield
+def fake_workspace_repo():
+    return _FakeExtensionWorkspaceRepository()
 
 
-@pytest.mark.skip(reason="Requires Tortoise DB context — run with integration test config")
 class TestActivation:
-    async def test_activate_after_ready(self, project_root, _mock_db):
+    async def test_activate_after_ready(self, project_root, fake_workspace_repo):
         _write_plugin(project_root, "test-ext")
-        mgr = ExtensionManager(project_root)
+        mgr = ExtensionManager(project_root, workspace_repo=fake_workspace_repo)
         await mgr.load_all()
         await mgr.register_all(app=None)
         await mgr.bootstrap_all(app=None)
@@ -291,17 +275,17 @@ class TestActivation:
         sm = inst.get_workspace_activation(ws_id)
         assert sm.state == WorkspaceActivationState.ACTIVE
 
-    async def test_activate_before_ready_raises(self, project_root, _mock_db):
+    async def test_activate_before_ready_raises(self, project_root, fake_workspace_repo):
         _write_plugin(project_root, "test-ext")
-        mgr = ExtensionManager(project_root)
+        mgr = ExtensionManager(project_root, workspace_repo=fake_workspace_repo)
         await mgr.load_all()
 
         with pytest.raises(CoordinationError):
             await mgr.activate("test-ext", uuid4())
 
-    async def test_deactivate(self, project_root, _mock_db):
+    async def test_deactivate(self, project_root, fake_workspace_repo):
         _write_plugin(project_root, "test-ext")
-        mgr = ExtensionManager(project_root)
+        mgr = ExtensionManager(project_root, workspace_repo=fake_workspace_repo)
         await mgr.load_all()
         await mgr.register_all(app=None)
         await mgr.bootstrap_all(app=None)
@@ -320,9 +304,9 @@ class TestActivation:
         with pytest.raises(CoordinationError, match="not loaded"):
             await mgr.activate("nonexistent", uuid4())
 
-    async def test_cross_workspace_isolation(self, project_root, _mock_db):
+    async def test_cross_workspace_isolation(self, project_root, fake_workspace_repo):
         _write_plugin(project_root, "test-ext")
-        mgr = ExtensionManager(project_root)
+        mgr = ExtensionManager(project_root, workspace_repo=fake_workspace_repo)
         await mgr.load_all()
         await mgr.register_all(app=None)
         await mgr.bootstrap_all(app=None)
@@ -337,15 +321,31 @@ class TestActivation:
         assert inst.get_workspace_activation(ws1).state == WorkspaceActivationState.ACTIVE
         assert inst.get_workspace_activation(ws2).state == WorkspaceActivationState.INACTIVE
 
+    async def test_activate_is_idempotent(self, project_root, fake_workspace_repo):
+        _write_plugin(project_root, "test-ext")
+        mgr = ExtensionManager(project_root, workspace_repo=fake_workspace_repo)
+        await mgr.load_all()
+        await mgr.register_all(app=None)
+        await mgr.bootstrap_all(app=None)
+
+        ws_id = uuid4()
+        first_revision = await mgr.activate("test-ext", ws_id)
+        second_revision = await mgr.activate("test-ext", ws_id)
+
+        inst = mgr.get_instance("test-ext")
+        assert inst is not None
+        assert first_revision == 2
+        assert second_revision == 2
+        assert inst.get_workspace_activation(ws_id).state == WorkspaceActivationState.ACTIVE
+
 
 # ——— Tenant-aware registry integration ——————————————————————————————————
 
 
-@pytest.mark.skip(reason="Requires Tortoise DB context — run with integration test config")
 class TestTenantRegistryIntegration:
-    async def test_activate_registers_in_tenant_registry(self, project_root, _mock_db):
+    async def test_activate_registers_in_tenant_registry(self, project_root, fake_workspace_repo):
         _write_plugin(project_root, "test-ext")
-        mgr = ExtensionManager(project_root)
+        mgr = ExtensionManager(project_root, workspace_repo=fake_workspace_repo)
         await mgr.load_all()
         await mgr.register_all(app=None)
         await mgr.bootstrap_all(app=None)
@@ -357,9 +357,9 @@ class TestTenantRegistryIntegration:
         result = mgr.tenant_registries.services.resolve("my-svc", ws_id)
         assert result == "value"
 
-    async def test_deactivate_hides_from_tenant_registry(self, project_root, _mock_db):
+    async def test_deactivate_hides_from_tenant_registry(self, project_root, fake_workspace_repo):
         _write_plugin(project_root, "test-ext")
-        mgr = ExtensionManager(project_root)
+        mgr = ExtensionManager(project_root, workspace_repo=fake_workspace_repo)
         await mgr.load_all()
         await mgr.register_all(app=None)
         await mgr.bootstrap_all(app=None)

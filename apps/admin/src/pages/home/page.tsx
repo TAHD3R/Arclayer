@@ -45,6 +45,7 @@ function HomeComposer({ inputRef, onSubmitStart, onSubmitError }: HomeComposerPr
   const createConversation = useAiChatStore((s) => s.createConversation);
   const openDrawer = useAiChatStore((s) => s.openDrawer);
   const streaming = useAiChatStore((s) => s.streaming);
+  const activeRequestRef = useRef<AbortController | null>(null);
   const dictationAdapter = useMemo(() => createDictationAdapter(), []);
   const attachmentAdapter = useMemo(
     () => new CompositeAttachmentAdapter([new SimpleTextAttachmentAdapter()]),
@@ -62,6 +63,10 @@ function HomeComposer({ inputRef, onSubmitStart, onSubmitError }: HomeComposerPr
     setMessages: () => {
       // Home is an entry composer only; persisted messages live in the side panel store.
     },
+    onCancel: async () => {
+      activeRequestRef.current?.abort();
+      activeRequestRef.current = null;
+    },
     onNew: async (message) => {
       const text = appendMessageToText(message).trim();
       if (!text) return;
@@ -71,7 +76,15 @@ function HomeComposer({ inputRef, onSubmitStart, onSubmitError }: HomeComposerPr
       openDrawer();
 
       try {
-        await sendAIChatMessage(conversationId, text);
+        const controller = new AbortController();
+        activeRequestRef.current = controller;
+        try {
+          await sendAIChatMessage(conversationId, text, { signal: controller.signal });
+        } finally {
+          if (activeRequestRef.current === controller) {
+            activeRequestRef.current = null;
+          }
+        }
       } catch (err) {
         onSubmitError(formatAIChatError(err));
       }
@@ -136,7 +149,7 @@ export function HomePage() {
         workspaceId: String(workspaceId),
         archived: false,
         page: 1,
-        size: 3,
+        size: 5,
       }),
     staleTime: 30 * 1000,
     retry: false,
@@ -149,16 +162,16 @@ export function HomePage() {
     <div className="flex h-full min-h-0 w-full flex-col" data-page="ai-home">
       <div
         className={cn(
-          "mx-auto flex h-full w-full max-w-6xl flex-col px-6 py-8",
+          "mx-auto flex h-full w-full max-w-[88rem] flex-col px-6 py-8 sm:px-8 lg:px-10",
           hasRecentProjects
-            ? "justify-between gap-12 pt-10 pb-8 xl:gap-16"
+            ? "justify-start gap-12 pt-16 pb-10 xl:gap-14 xl:pt-20"
             : "justify-center gap-8",
         )}
       >
         <div
           className={cn(
-            "flex w-full flex-col items-center gap-8",
-            hasRecentProjects && "min-h-[24rem] flex-1 justify-center pb-12",
+            "flex w-full flex-col items-center gap-7",
+            hasRecentProjects && "min-h-[28rem] shrink-0 justify-center pb-3 xl:min-h-[30rem]",
           )}
         >
           <div className="flex flex-col items-center text-center">
@@ -167,7 +180,7 @@ export function HomePage() {
             </h1>
           </div>
 
-          <div className="mx-auto w-full max-w-3xl">
+          <div className="mx-auto w-full max-w-[44rem]">
             <HomeComposer
               inputRef={textareaRef}
               onSubmitStart={() => setLocalError(null)}

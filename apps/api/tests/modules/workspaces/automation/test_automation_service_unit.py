@@ -7,9 +7,13 @@ from uuid import UUID, uuid4
 
 import pytest
 
+from src.agents.session import AgentSessionManager
+from src.common.schemas import BaseSchema
 from src.core.events import Event
 from src.core.exceptions import BadRequest, ServiceUnavailable
+from src.core.http.pagination import PageData
 from src.core.lifecycles.dispatcher import LifecycleDispatcher
+from src.llm.runtime import LLMRequestContext
 from src.models.automation.flow import (
     AutomationFlow,
     AutomationFlowStatus,
@@ -18,11 +22,79 @@ from src.models.automation.flow import (
     AutomationRunStatus,
     AutomationTriggerKind,
 )
+from src.modules.ai.schemas import AIReasoningEffort
 from src.modules.projects.automation.repository import AutomationRepository
 from src.modules.projects.automation.schema import AutomationFlowCreateIn, AutomationOperationIn
 from src.modules.projects.automation.service import ProjectAutomationService
 from src.modules.tenancy.router_helpers import tenant_payload_from_context
 from src.modules.tenancy.schema import TenantContext, TenantIdentity, TenantIsolationMode, TenantScope
+
+
+class _FakeContentItem(BaseSchema):
+    id: UUID
+    model_key: str = "article"
+    title: str | None = "Hello"
+    slug: str = "hello"
+    summary: str | None = "Summary"
+    status: str = "draft"
+    visibility: str = "public"
+    locale: str = "en-US"
+    workflow_stage: str | None = "drafting"
+    publish_readiness: dict[str, bool] | None = {"ready": False}
+
+
+class _FakeContentModel:
+    id = uuid4()
+    singular_key = "article"
+    plural_key = "articles"
+    name = "Article"
+    description = None
+    category = "custom"
+    model_kind = "collection_type"
+    system_managed = False
+    capabilities = ["editorial"]
+
+
+class _FakeContentItemReadService:
+    def __init__(self, *, item_id: UUID) -> None:
+        self.item = _FakeContentItem(id=item_id)
+        self.get_calls: list[dict[str, object]] = []
+
+    async def list_items_paginated(self, **kwargs):  # type: ignore[no-untyped-def]
+        return PageData(items=[self.item], total=1, page=1, size=10, pages=1, next=None, prev=None)
+
+    async def get_item(self, **kwargs):  # type: ignore[no-untyped-def]
+        self.get_calls.append(kwargs)
+        return self.item
+
+
+class _FakeContentModelReadService:
+    async def list_models_paginated(self, **kwargs):  # type: ignore[no-untyped-def]
+        return PageData(items=[_FakeContentModel()], total=1, page=1, size=20, pages=1, next=None, prev=None)
+
+
+class _FakeChatService:
+    async def chat(
+        self,
+        *,
+        messages: list[dict[str, str]],
+        context: LLMRequestContext,
+        model: str | None = None,
+        reasoning_effort: AIReasoningEffort | None = None,
+    ) -> dict[str, Any]:
+        assert context.source == "agent"
+        assert reasoning_effort is None
+        assert any("Read-only tool context" in message["content"] for message in messages)
+        return {
+            "id": "chat_1",
+            "model": model or "gpt-4o-mini",
+            "content": "read-only automation analysis",
+            "usage": {"prompt_tokens": 10, "completion_tokens": 5},
+            "finish_reason": "stop",
+        }
+
+    async def chat_stream(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+        raise AssertionError("Automation agent analysis must use non-streaming chat")
 
 
 class _FakeRepo:
@@ -172,6 +244,19 @@ async def test_create_project_flow_out_sets_trigger_event_and_normalizes_operati
 
 
 @pytest.mark.asyncio
+async def test_project_catalog_exposes_content_created_agent_analysis_only_for_project_scope() -> None:
+    service = ProjectAutomationService(repo=cast(AutomationRepository, _FakeRepo()))
+
+    global_catalog = await service.get_global_catalog_out()
+    project_catalog = await service.get_project_catalog_out()
+
+    assert AutomationTriggerKind.CONTENT_CREATED not in {trigger.kind for trigger in global_catalog.triggers}
+    assert AutomationOperationKind.AGENT_ANALYSIS not in {operation.kind for operation in global_catalog.operations}
+    assert AutomationTriggerKind.CONTENT_CREATED in {trigger.kind for trigger in project_catalog.triggers}
+    assert AutomationOperationKind.AGENT_ANALYSIS in {operation.kind for operation in project_catalog.operations}
+
+
+@pytest.mark.asyncio
 async def test_execute_flow_marks_run_succeeded_and_records_operation_logs(monkeypatch: pytest.MonkeyPatch) -> None:
     repo = _FakeRepo()
     flow_id = uuid4()
@@ -303,6 +388,135 @@ async def test_handle_event_executes_matching_project_flows(monkeypatch: pytest.
 
     assert len(result) == 1
     assert executed == [repo.project_enabled_flows[0].id]
+
+
+@pytest.mark.asyncio
+async def test_handle_event_executes_content_created_project_flows(monkeypatch: pytest.MonkeyPatch) -> None:
+    repo = _FakeRepo()
+    workspace_id = uuid4()
+    project_id = uuid4()
+    repo.project_enabled_flows = [
+        SimpleNamespace(
+            id=uuid4(),
+            workspace_id=workspace_id,
+            project_id=project_id,
+            dead_letter_enabled=True,
+            retry_limit=0,
+            status=AutomationFlowStatus.ACTIVE,
+            trigger_event="content.item.created",
+        )
+    ]
+    service = ProjectAutomationService(repo=cast(AutomationRepository, repo))
+    executed: list[UUID] = []
+
+    async def _fake_execute_flow(*, flow, event):  # type: ignore[no-untyped-def]
+        executed.append(flow.id)
+        return SimpleNamespace(id=uuid4(), status=AutomationRunStatus.SUCCEEDED, logs=[], result_payload=None)
+
+    monkeypatch.setattr(service, "execute_flow", _fake_execute_flow)
+
+    result = await service.handle_event(
+        Event(
+            name="content.item.created",
+            payload={"workspace_id": str(workspace_id), "project_id": str(project_id), "entity_id": str(uuid4())},
+        )
+    )
+
+    assert len(result) == 1
+    assert executed == [repo.project_enabled_flows[0].id]
+
+
+@pytest.mark.asyncio
+async def test_execute_agent_analysis_runs_read_only_content_agent() -> None:
+    workspace_id = uuid4()
+    organization_id = uuid4()
+    project_id = uuid4()
+    runtime_id = uuid4()
+    environment_id = uuid4()
+    site_id = uuid4()
+    item_id = uuid4()
+    actor_user_id = uuid4()
+    item_reads = _FakeContentItemReadService(item_id=item_id)
+    tenant_context = TenantContext(
+        identity=TenantIdentity(
+            organization_id=organization_id,
+            workspace_id=workspace_id,
+            project_id=project_id,
+            runtime_id=runtime_id,
+            site_id=site_id,
+            schema_name="tenant_workspace",
+            isolation_mode=TenantIsolationMode.WORKSPACE_SCHEMA,
+        ),
+        scope=TenantScope.RUNTIME,
+    )
+    service = ProjectAutomationService(
+        repo=cast(AutomationRepository, _FakeRepo()),
+        content_read_service_factory=cast(Any, lambda _tenant_context: item_reads),
+        content_model_read_service_factory=cast(Any, lambda _tenant_context, _settings: _FakeContentModelReadService()),
+        agent_chat_service_factory=cast(Any, lambda _settings: _FakeChatService()),
+        agent_sessions=AgentSessionManager(),
+    )
+
+    result = await service._execute_agent_analysis(
+        config={},
+        event=Event(
+            name="content.item.created",
+            payload={
+                "workspace_id": str(workspace_id),
+                "project_id": str(project_id),
+                "runtime_id": str(runtime_id),
+                "environment_id": str(environment_id),
+                "site_id": str(site_id),
+                "entity_id": str(item_id),
+                "tenant": tenant_payload_from_context(tenant_context),
+            },
+            actor_user_id=str(actor_user_id),
+            trace_id="trace-agent-analysis",
+        ),
+        workspace_id=workspace_id,
+    )
+
+    assert result["status"] == "completed"
+    assert result["agentId"] == "content_analyzer"
+    assert result["itemId"] == str(item_id)
+    assert result["result"]["content"] == "read-only automation analysis"
+    assert set(result["toolOutputs"]) == {"get_content", "analyze_content"}
+    assert len(item_reads.get_calls) == 2
+    assert all(call["environment_id"] == environment_id for call in item_reads.get_calls)
+
+
+@pytest.mark.asyncio
+async def test_execute_agent_analysis_requires_project_site_item_and_actor_context() -> None:
+    service = ProjectAutomationService(repo=cast(AutomationRepository, _FakeRepo()))
+    workspace_id = uuid4()
+    tenant_context = TenantContext(
+        identity=TenantIdentity(
+            organization_id=uuid4(),
+            workspace_id=workspace_id,
+            project_id=uuid4(),
+            runtime_id=uuid4(),
+            site_id=uuid4(),
+            schema_name="tenant_workspace",
+            isolation_mode=TenantIsolationMode.WORKSPACE_SCHEMA,
+        ),
+        scope=TenantScope.RUNTIME,
+    )
+
+    with pytest.raises(BadRequest) as excinfo:
+        await service._execute_agent_analysis(
+            config={"actorUserId": str(uuid4())},
+            event=Event(
+                name="content.item.created",
+                payload={
+                    "workspace_id": str(workspace_id),
+                    "entity_id": str(uuid4()),
+                    "tenant": tenant_payload_from_context(tenant_context),
+                },
+            ),
+            workspace_id=workspace_id,
+        )
+
+    assert excinfo.value.error == "AUTOMATION_AGENT_ANALYSIS_INVALID"
 
 
 @pytest.mark.asyncio

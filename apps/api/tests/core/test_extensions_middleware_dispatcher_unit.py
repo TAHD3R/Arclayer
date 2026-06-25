@@ -13,7 +13,10 @@ from starlette.routing import Route
 from starlette.testclient import TestClient
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from src.core.extensions.middleware_dispatcher import TenantAwareExtensionMiddlewareDispatcher
+from src.core.extensions.middleware_dispatcher import (
+    TenantAwareExtensionMiddlewareDispatcher,
+    VerifiedExtensionRequestContext,
+)
 from src.core.extensions.tenant_registry import TenantAwareMiddlewareRegistry
 
 
@@ -84,6 +87,20 @@ class _FailingBeforeHook:
 
 
 # ——— Helpers ————————————————————————————————————————————————————————————
+
+
+async def _verified_context(_scope: Scope, workspace_id: UUID) -> VerifiedExtensionRequestContext:
+    return VerifiedExtensionRequestContext(
+        workspace_id=workspace_id,
+        user_id=uuid4(),
+        workspace_membership_id=uuid4(),
+        organization_id=uuid4(),
+    )
+
+
+@pytest.fixture(autouse=True)
+def _verify_extension_context(monkeypatch):
+    monkeypatch.setattr("src.core.extensions.middleware_dispatcher._resolve_verified_context", _verified_context)
 
 
 def _build_app(registry: TenantAwareMiddlewareRegistry) -> Starlette:
@@ -210,6 +227,25 @@ class TestMiddlewareDispatcher:
         reg.set_active("ext", ws_active)
 
         app = _build_app_with_ws(reg, ws_test)
+        client = TestClient(app, raise_server_exceptions=False)
+        resp = client.get("/")
+        assert resp.status_code == 200
+        assert hook.before_calls == []
+        assert hook.after_calls == []
+
+    def test_unverified_workspace_hooks_not_called(self, monkeypatch):
+        async def _unverified(_scope: Scope, _workspace_id: UUID):
+            return None
+
+        monkeypatch.setattr("src.core.extensions.middleware_dispatcher._resolve_verified_context", _unverified)
+
+        reg = TenantAwareMiddlewareRegistry()
+        ws_id = uuid4()
+        hook = _BeforeAfterHook(name="h1")
+        reg.register("ext", "h1", lambda: hook)
+        reg.set_active("ext", ws_id)
+
+        app = _build_app_with_ws(reg, ws_id)
         client = TestClient(app, raise_server_exceptions=False)
         resp = client.get("/")
         assert resp.status_code == 200

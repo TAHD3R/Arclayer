@@ -208,6 +208,7 @@ describe("HomePage", () => {
     expect(sendAIChatMessageMock).toHaveBeenCalledWith(
       state.conversations[0].id,
       "帮我总结今天的任务",
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });
 });

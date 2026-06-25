@@ -194,7 +194,7 @@ def resolve_provider_retention_params(
 
     When policy.data_retention_enabled is False:
     - OpenAI: returns {"store": False}
-    - Anthropic: no per-request param — logs audit warning, returns {}
+    - Anthropic/DeepSeek: no per-request param — logs audit warning, returns {}
     - Unknown: logs audit warning, returns {}
 
     When policy.data_retention_enabled is True: returns {} (use provider default).
@@ -208,6 +208,12 @@ def resolve_provider_retention_params(
     elif provider == "anthropic":
         logger.warning(
             "Data retention opt-out cannot be honored for Anthropic at request level",
+            provider=provider,
+            error_code="PROVIDER_DATA_RETENTION_NOT_HONORED",
+        )
+    elif provider == "deepseek":
+        logger.warning(
+            "Data retention opt-out cannot be honored for DeepSeek at request level",
             provider=provider,
             error_code="PROVIDER_DATA_RETENTION_NOT_HONORED",
         )

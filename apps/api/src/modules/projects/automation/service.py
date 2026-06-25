@@ -3,11 +3,20 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import httpx
 from tortoise.exceptions import IntegrityError
 
+from src.agents import (
+    AgentRunContext,
+    AgentRunEngine,
+    AgentRunStatus,
+    AgentSessionManager,
+    build_default_agent_registry,
+)
+from src.agents.engine import AgentChatService
+from src.agents.tools import build_read_only_content_tools
 from src.config import Settings
 from src.core.entity_manager.manager import EntityManager
 from src.core.events import Event
@@ -27,6 +36,8 @@ from src.models.automation.flow import (
     AutomationTriggerKind,
 )
 from src.models.system.notification import NotificationCategory
+from src.modules.ai.service import AIChatService
+from src.modules.projects.agents.repository import AgentRunRepository
 from src.modules.projects.automation.catalog import (
     list_global_automation_operation_kinds,
     list_global_automation_triggers,
@@ -54,6 +65,8 @@ from src.modules.projects.content.items.canonical_service import ProjectContentC
 from src.modules.projects.content.items.input_schema import ContentItemWorkflowPatchIn
 from src.modules.projects.content.items.read_service import ProjectContentCanonicalItemReadService
 from src.modules.projects.content.items.repository import ProjectContentItemsRepository
+from src.modules.projects.content.models.canonical_service import ProjectContentCanonicalModelsService
+from src.modules.projects.content.models.repository import ProjectContentModelsRepository
 from src.modules.projects.releases.service import ProjectReleasesService
 from src.modules.system.admin.notifications.catalog import create_notification_record
 from src.modules.tenancy.router_helpers import bind_tenant_context, require_tenant_context_from_payload
@@ -61,14 +74,30 @@ from src.modules.tenancy.schema import TenantContext
 
 logger = get_logger(__name__)
 DEFAULT_HTTP_TIMEOUT_S = 5.0
+DEFAULT_AGENT_ANALYSIS_PROMPT = (
+    "Analyze the newly created content item. Return read-only observations, quality risks, SEO suggestions, "
+    "and editorial next steps. Do not modify content, publish content, or claim that any mutation happened."
+)
 
 ContentReadServiceFactory = Callable[[TenantContext], ProjectContentCanonicalItemReadService]
+ContentModelReadServiceFactory = Callable[[TenantContext, Settings], ProjectContentCanonicalModelsService]
 ContentItemsServiceFactory = Callable[[TenantContext, LifecycleDispatcher | None], ProjectContentCanonicalItemsService]
 ReleaseServiceFactory = Callable[[TenantContext], ProjectReleasesService]
+AgentChatServiceFactory = Callable[[Settings], AgentChatService]
 
 
 def default_content_read_service_factory(tenant_context: TenantContext) -> ProjectContentCanonicalItemReadService:
     return ProjectContentCanonicalItemReadService(repo=ProjectContentItemsRepository(tenant_context))
+
+
+def default_content_model_read_service_factory(
+    tenant_context: TenantContext,
+    settings: Settings,
+) -> ProjectContentCanonicalModelsService:
+    return ProjectContentCanonicalModelsService(
+        repo=ProjectContentModelsRepository(tenant_context),
+        settings=settings,
+    )
 
 
 def default_content_items_service_factory(
@@ -86,6 +115,14 @@ def default_release_service_factory(tenant_context: TenantContext) -> ProjectRel
     return ProjectReleasesService(tenant_context)
 
 
+def default_agent_chat_service_factory(settings: Settings) -> AgentChatService:
+    return AIChatService(settings)
+
+
+def default_agent_session_manager() -> AgentSessionManager:
+    return AgentSessionManager(store=AgentRunRepository())
+
+
 class ProjectAutomationService(BaseService):
     def __init__(
         self,
@@ -93,15 +130,21 @@ class ProjectAutomationService(BaseService):
         repo: AutomationRepository | None = None,
         lifecycle_dispatcher: LifecycleDispatcher | None = None,
         content_read_service_factory: ContentReadServiceFactory = default_content_read_service_factory,
+        content_model_read_service_factory: ContentModelReadServiceFactory = default_content_model_read_service_factory,
         content_items_service_factory: ContentItemsServiceFactory = default_content_items_service_factory,
         release_service_factory: ReleaseServiceFactory = default_release_service_factory,
+        agent_chat_service_factory: AgentChatServiceFactory = default_agent_chat_service_factory,
+        agent_sessions: AgentSessionManager | None = None,
     ) -> None:
         super().__init__(settings)
         self.repo = repo or AutomationRepository()
         self.lifecycle_dispatcher = lifecycle_dispatcher
         self.content_read_service_factory = content_read_service_factory
+        self.content_model_read_service_factory = content_model_read_service_factory
         self.content_items_service_factory = content_items_service_factory
         self.release_service_factory = release_service_factory
+        self.agent_chat_service_factory = agent_chat_service_factory
+        self.agent_sessions = agent_sessions or default_agent_session_manager()
 
     async def get_catalog_out(self) -> AutomationCatalogOut:
         return await self.get_global_catalog_out()
@@ -519,6 +562,8 @@ class ProjectAutomationService(BaseService):
         kind = AutomationOperationKind(str(operation.kind))
         if kind in {AutomationOperationKind.WEBHOOK, AutomationOperationKind.HTTP_REQUEST}:
             result = await self._execute_http_operation(config=config, event=event)
+        elif kind == AutomationOperationKind.AGENT_ANALYSIS:
+            result = await self._execute_agent_analysis(config=config, event=event, workspace_id=run.workspace_id)
         elif kind == AutomationOperationKind.CONTENT_READ:
             result = await self._execute_content_read(config=config, event=event, workspace_id=run.workspace_id)
         elif kind == AutomationOperationKind.CONTENT_UPDATE:
@@ -549,6 +594,71 @@ class ProjectAutomationService(BaseService):
         if response.status_code < 200 or response.status_code >= 300:
             raise RuntimeError(f"HTTP_{response.status_code}")
         return {"statusCode": response.status_code}
+
+    async def _execute_agent_analysis(
+        self,
+        *,
+        config: dict[str, Any],
+        event: Event,
+        workspace_id: UUID,
+    ) -> dict[str, Any]:
+        payload = event.payload if isinstance(event.payload, dict) else {}
+        tenant_context = require_tenant_context_from_payload(payload)
+        item_id = self._uuid_from_config_or_event(config, event, "itemId", "entity_id")
+        site_id = self._uuid_or_none(payload.get("site_id")) or tenant_context.identity.site_id
+        project_id = self._uuid_or_none(payload.get("project_id")) or tenant_context.identity.project_id
+        runtime_id = self._uuid_or_none(payload.get("runtime_id")) or tenant_context.identity.runtime_id
+        environment_id = self._uuid_or_none(payload.get("environment_id"))
+        actor_user_id = self._uuid_or_none(event.actor_user_id)
+        if item_id is None or site_id is None or project_id is None or actor_user_id is None:
+            raise BadRequest(
+                "Agent analysis requires itemId, siteId, projectId, and actor user.",
+                error="AUTOMATION_AGENT_ANALYSIS_INVALID",
+            )
+
+        agent_id = "content_analyzer"
+        prompt = str(config.get("prompt") or DEFAULT_AGENT_ANALYSIS_PROMPT).strip() or DEFAULT_AGENT_ANALYSIS_PROMPT
+        state = await self._build_agent_engine(tenant_context).run(
+            context=AgentRunContext(
+                workspace_id=workspace_id,
+                project_id=project_id,
+                user_id=actor_user_id,
+                correlation_id=event.trace_id or str(config.get("correlationId") or uuid4().hex),
+                runtime_id=runtime_id,
+                site_id=site_id,
+                environment_id=environment_id,
+            ),
+            agent_id=agent_id,
+            prompt=prompt,
+            model=str(config.get("model")) if config.get("model") else None,
+            tool_inputs={
+                "get_content": {"itemId": str(item_id)},
+                "analyze_content": {"itemId": str(item_id)},
+            },
+        )
+        status = AgentRunStatus(str(state.status))
+        if status != AgentRunStatus.COMPLETED:
+            raise RuntimeError(state.error_code or f"AGENT_RUN_{status.value.upper()}")
+        return {
+            "agentRunId": str(state.id),
+            "agentId": state.agent_id,
+            "status": status.value,
+            "itemId": str(item_id),
+            "toolOutputs": state.tool_outputs,
+            "result": state.result,
+        }
+
+    def _build_agent_engine(self, tenant_context: TenantContext) -> AgentRunEngine:
+        item_reads = self.content_read_service_factory(tenant_context)
+        model_reads = self.content_model_read_service_factory(tenant_context, self.settings)
+        registry = build_default_agent_registry(
+            tools=build_read_only_content_tools(item_reads=item_reads, model_reads=model_reads),
+        )
+        return AgentRunEngine(
+            registry=registry,
+            sessions=self.agent_sessions,
+            chat_service=self.agent_chat_service_factory(self.settings),
+        )
 
     async def _execute_content_read(
         self, *, config: dict[str, Any], event: Event, workspace_id: UUID

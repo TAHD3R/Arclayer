@@ -77,6 +77,19 @@ model_list:
       supports_function_calling: true
       supports_vision: true
 
+  # --- DeepSeek Models ---
+  - model_name: deepseek-v4-pro
+    litellm_params:
+      model: deepseek/deepseek-v4-pro
+      api_key: os.environ/DEEPSEEK_API_KEY
+      rpm: 500
+      tpm: 100000
+    model_info:
+      mode: chat
+      max_tokens: 8192
+      supports_function_calling: true
+      supports_vision: false
+
   # --- Mock / Development Model ---
   # Used when no real provider keys are configured. Returns a static
   # response for development and test environments.

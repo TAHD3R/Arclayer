@@ -69,6 +69,17 @@ class ReservationStatusError(Exception):
         )
 
 
+def _affected_rows(result: Any) -> int:
+    """Return affected row count for real asyncpg and unit-test executor shapes."""
+    if isinstance(result, tuple) and result:
+        first = result[0]
+        if isinstance(first, int):
+            return first
+        if len(result) > 1 and isinstance(result[1], list):
+            return len(result[1])
+    return 0
+
+
 async def get_or_create_budget(
     *,
     source_type: BudgetSourceType,
@@ -117,7 +128,7 @@ async def reserve(
             [reserve_amount, budget_id],
         )
 
-        if not result[1]:
+        if _affected_rows(result) == 0:
             budget = await AIBudget.get(id=budget_id)
             available = budget.limit_micros - budget.spent_micros - budget.reserved_micros
             raise BudgetExceededError(
@@ -173,7 +184,7 @@ async def commit(
             [ReservationStatus.COMMITTED.value, actual_cost_micros, reservation_id, ReservationStatus.RESERVED.value],
         )
 
-        if not result[1]:
+        if _affected_rows(result) == 0:
             existing = await AIBudgetReservation.get_or_none(id=reservation_id)
             if existing is None:
                 raise ReservationNotFoundError(f"Reservation {reservation_id} not found")
@@ -185,17 +196,16 @@ async def commit(
                 target_status=ReservationStatus.COMMITTED.value,
             )
 
-        row = result[1][0]
-        reserved_micros = row["reserved_cost_micros"]
-
         await executor(
             """
             UPDATE ai_budgets
-            SET reserved_micros = reserved_micros - $1,
-                spent_micros = spent_micros + $2
-            WHERE id = (SELECT budget_id FROM ai_budget_reservations WHERE id = $3)
+            SET reserved_micros = reserved_micros - (
+                    SELECT reserved_cost_micros FROM ai_budget_reservations WHERE id = $2
+                ),
+                spent_micros = spent_micros + $1
+            WHERE id = (SELECT budget_id FROM ai_budget_reservations WHERE id = $2)
             """,
-            [reserved_micros, actual_cost_micros, reservation_id],
+            [actual_cost_micros, reservation_id],
         )
 
     if _execute is not None:
@@ -230,7 +240,7 @@ async def release(
             [ReservationStatus.RELEASED.value, reservation_id, ReservationStatus.RESERVED.value],
         )
 
-        if not result[1]:
+        if _affected_rows(result) == 0:
             existing = await AIBudgetReservation.get_or_none(id=reservation_id)
             if existing is None:
                 raise ReservationNotFoundError(f"Reservation {reservation_id} not found")
@@ -242,16 +252,15 @@ async def release(
                 target_status=ReservationStatus.RELEASED.value,
             )
 
-        row = result[1][0]
-        reserved_micros = row["reserved_cost_micros"]
-
         await executor(
             """
             UPDATE ai_budgets
-            SET reserved_micros = reserved_micros - $1
-            WHERE id = (SELECT budget_id FROM ai_budget_reservations WHERE id = $2)
+            SET reserved_micros = reserved_micros - (
+                SELECT reserved_cost_micros FROM ai_budget_reservations WHERE id = $1
+            )
+            WHERE id = (SELECT budget_id FROM ai_budget_reservations WHERE id = $1)
             """,
-            [reserved_micros, reservation_id],
+            [reservation_id],
         )
 
     if _execute is not None:
@@ -292,4 +301,4 @@ async def expire_sweep(
         [ReservationStatus.EXPIRED.value, ReservationStatus.RESERVED.value],
     )
 
-    return len(result[1])
+    return _affected_rows(result)

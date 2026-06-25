@@ -5,6 +5,58 @@ export type ClientOptions = {
 };
 
 /**
+ * AIModelCatalogItem
+ *
+ * Model option exposed to Admin UI.
+ */
+export type AiModelCatalogItem = {
+    /**
+     * Available
+     */
+    available?: boolean;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Descriptionkey
+     */
+    descriptionKey?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Labelkey
+     */
+    labelKey?: string | null;
+    /**
+     * Provider
+     */
+    provider: string;
+};
+
+/**
+ * AIModelCatalogResponse
+ *
+ * Available chat model catalog.
+ */
+export type AiModelCatalogResponse = {
+    /**
+     * Defaultmodel
+     */
+    defaultModel: string;
+    /**
+     * Models
+     */
+    models: Array<AiModelCatalogItem>;
+};
+
+/**
  * AcceptExistingInvitationRequest
  *
  * Accept an invitation with an existing logged-in account (email-bound).
@@ -931,6 +983,174 @@ export type AdminAssetUsageUpsertRequest = {
 };
 
 /**
+ * AgentCatalogOut
+ */
+export type AgentCatalogOut = {
+    /**
+     * Agents
+     */
+    agents?: Array<AgentDefinition>;
+    /**
+     * Tools
+     */
+    tools?: Array<AgentToolSpec>;
+};
+
+/**
+ * AgentDefinition
+ */
+export type AgentDefinition = {
+    /**
+     * Agentid
+     */
+    agentId: string;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Systemprompt
+     */
+    systemPrompt: string;
+    /**
+     * Toolnames
+     */
+    toolNames?: Array<string>;
+};
+
+/**
+ * AgentRunCreateRequest
+ */
+export type AgentRunCreateRequest = {
+    /**
+     * Agentid
+     */
+    agentId: string;
+    /**
+     * Model
+     */
+    model?: string | null;
+    /**
+     * Prompt
+     */
+    prompt: string;
+    /**
+     * Toolinputs
+     */
+    toolInputs?: {
+        [key: string]: {
+            [key: string]: JsonValueInput;
+        };
+    };
+};
+
+/**
+ * AgentRunEvent
+ */
+export type AgentRunEvent = {
+    /**
+     * Data
+     */
+    data?: {
+        [key: string]: JsonValueOutput;
+    };
+    event: AgentRunEventType;
+};
+
+/**
+ * AgentRunEventType
+ */
+export type AgentRunEventType = 'run.created' | 'message.delta' | 'tool.started' | 'tool.completed' | 'run.completed' | 'run.cancelled' | 'run.failed';
+
+/**
+ * AgentRunOut
+ */
+export type AgentRunOut = {
+    /**
+     * Agentid
+     */
+    agentId: string;
+    /**
+     * Cancellationrequested
+     */
+    cancellationRequested?: boolean;
+    /**
+     * Errorcode
+     */
+    errorCode?: string | null;
+    /**
+     * Errormessage
+     */
+    errorMessage?: string | null;
+    /**
+     * Events
+     */
+    events?: Array<AgentRunEvent>;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Model
+     */
+    model?: string | null;
+    /**
+     * Prompt
+     */
+    prompt: string;
+    /**
+     * Result
+     */
+    result?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    status: AgentRunStatus;
+    /**
+     * Tooloutputs
+     */
+    toolOutputs?: {
+        [key: string]: JsonValueOutput;
+    };
+};
+
+/**
+ * AgentRunStatus
+ */
+export type AgentRunStatus = 'queued' | 'running' | 'completed' | 'cancelled' | 'failed';
+
+/**
+ * AgentToolSpec
+ */
+export type AgentToolSpec = {
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Inputschema
+     */
+    inputSchema?: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Readonly
+     */
+    readOnly?: boolean;
+    /**
+     * Requiredpermission
+     */
+    requiredPermission: string;
+};
+
+/**
  * ApiKeyCreateOut
  */
 export type ApiKeyCreateOut = {
@@ -1540,7 +1760,7 @@ export type AutomationOperationIn = {
 /**
  * AutomationOperationKind
  */
-export type AutomationOperationKind = 'webhook' | 'http_request' | 'content_read' | 'content_update' | 'release_publish' | 'notification';
+export type AutomationOperationKind = 'webhook' | 'http_request' | 'agent_analysis' | 'content_read' | 'content_update' | 'release_publish' | 'notification';
 
 /**
  * AutomationOperationKindOut
@@ -1725,7 +1945,7 @@ export type AutomationRunStatus = 'queued' | 'running' | 'succeeded' | 'failed' 
 /**
  * AutomationTriggerKind
  */
-export type AutomationTriggerKind = 'publish_completed' | 'content_transitioned' | 'api_key_rotated' | 'preview_token_created';
+export type AutomationTriggerKind = 'publish_completed' | 'content_created' | 'content_transitioned' | 'api_key_rotated' | 'preview_token_created';
 
 /**
  * AutomationTriggerOut
@@ -1822,6 +2042,10 @@ export type ChatRequest = {
      * Temperature
      */
     temperature?: number | null;
+    /**
+     * Workspaceid
+     */
+    workspaceId?: string | null;
 };
 
 /**
@@ -2476,7 +2700,7 @@ export type ContentLibraryViewFiltersSchema = {
     /**
      * Editwith
      */
-    editWith?: 'writing' | 'canvas' | 'structured' | null;
+    editWith?: 'canvas' | 'writing' | 'structured' | null;
     /**
      * Locale
      */
@@ -7268,6 +7492,18 @@ export type OnboardingWorkspaceCreateRequest = {
 };
 
 /**
+ * PackageState
+ *
+ * Lifecycle states for an Extension package on disk.
+ *
+ * ABSENT  — no trace of the extension exists in the plugins/ directory.
+ * INSTALLED  — extension directory with a valid manifest is present.
+ * UNINSTALLED — manifest exists but the package is marked as removed
+ * (preserves workspace activation records until cleanup).
+ */
+export type PackageState = 'absent' | 'installed' | 'uninstalled';
+
+/**
  * PageData[AdminAssetFolderOut]
  */
 export type PageDataAdminAssetFolderOut = {
@@ -8678,6 +8914,19 @@ export type PersonalApiKeyCreateIn = {
      */
     scopes?: Array<ApiKeyScope>;
 };
+
+/**
+ * ProcessState
+ *
+ * Runtime lifecycle of an Extension in the current process.
+ *
+ * UNLOADED   — manifest parsed but code not imported.
+ * LOADED     — entry module imported, plugin instance created.
+ * REGISTERED — plugin hook called (arclayer_register), resources registered.
+ * READY      — bootstrap + ready hooks complete.
+ * DESTROYED  — shutdown hook complete, resources released.
+ */
+export type ProcessState = 'unloaded' | 'loaded' | 'registered' | 'ready' | 'destroyed';
 
 /**
  * ProjectApiKeyCreateIn
@@ -10961,6 +11210,31 @@ export type ResolveWarningV1 = {
 };
 
 /**
+ * ResponseModel[AIModelCatalogResponse]
+ */
+export type ResponseModelAiModelCatalogResponse = {
+    data?: AiModelCatalogResponse | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[AcceptExistingInvitationResult]
  */
 export type ResponseModelAcceptExistingInvitationResult = {
@@ -11240,6 +11514,56 @@ export type ResponseModelAdminAssetUsageDeleteOut = {
  */
 export type ResponseModelAdminAssetUsageOut = {
     data?: AdminAssetUsageOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[AgentCatalogOut]
+ */
+export type ResponseModelAgentCatalogOut = {
+    data?: AgentCatalogOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[AgentRunOut]
+ */
+export type ResponseModelAgentRunOut = {
+    data?: AgentRunOut | null;
     /**
      * Error
      */
@@ -15264,6 +15588,56 @@ export type ResponseModelWorkspaceEmailInviteCreateResult = {
 };
 
 /**
+ * ResponseModel[WorkspaceExtensionActivationOut]
+ */
+export type ResponseModelWorkspaceExtensionActivationOut = {
+    data?: WorkspaceExtensionActivationOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[WorkspaceExtensionListItemOut]
+ */
+export type ResponseModelWorkspaceExtensionListItemOut = {
+    data?: WorkspaceExtensionListItemOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[WorkspaceInviteLinkCreateResult]
  */
 export type ResponseModelWorkspaceInviteLinkCreateResult = {
@@ -15611,6 +15985,34 @@ export type ResponseModelListRouteBindingOut = {
      * Data
      */
     data?: Array<RouteBindingOut> | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[list[WorkspaceExtensionListItemOut]]
+ */
+export type ResponseModelListWorkspaceExtensionListItemOut = {
+    /**
+     * Data
+     */
+    data?: Array<WorkspaceExtensionListItemOut> | null;
     /**
      * Error
      */
@@ -18266,6 +18668,71 @@ export type WorkspaceEmailInviteRenewRequest = {
      * New invitation TTL in seconds (default 7 days). Set null to never expire.
      */
     expiresInSeconds?: number | null;
+};
+
+/**
+ * WorkspaceExtensionActivationOut
+ */
+export type WorkspaceExtensionActivationOut = {
+    /**
+     * Active
+     */
+    active: boolean;
+    /**
+     * Extensionrevision
+     */
+    extensionRevision: number;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
+ * WorkspaceExtensionListItemOut
+ */
+export type WorkspaceExtensionListItemOut = {
+    /**
+     * Active
+     */
+    active: boolean;
+    /**
+     * Extensionrevision
+     */
+    extensionRevision: number;
+    /**
+     * Name
+     */
+    name: string;
+    packageState: PackageState;
+    processState: ProcessState;
+    provides: WorkspaceExtensionProvidesOut;
+    /**
+     * Version
+     */
+    version: string;
+};
+
+/**
+ * WorkspaceExtensionProvidesOut
+ */
+export type WorkspaceExtensionProvidesOut = {
+    /**
+     * Contenttypes
+     */
+    contentTypes?: Array<string>;
+    /**
+     * Middlewares
+     */
+    middlewares?: Array<string>;
+    /**
+     * Providers
+     */
+    providers?: Array<string>;
+    /**
+     * Services
+     */
+    services?: Array<string>;
 };
 
 /**
@@ -21084,6 +21551,22 @@ export type AiChatCompletionResponses = {
     200: unknown;
 };
 
+export type AiListChatModelsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/chat/models';
+};
+
+export type AiListChatModelsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAiModelCatalogResponse;
+};
+
+export type AiListChatModelsResponse = AiListChatModelsResponses[keyof AiListChatModelsResponses];
+
 export type DomainWorkspacesListPersonalApiKeysData = {
     body?: never;
     path?: never;
@@ -21753,6 +22236,237 @@ export type DomainProjectsListProjectActionsResponses = {
 };
 
 export type DomainProjectsListProjectActionsResponse = DomainProjectsListProjectActionsResponses[keyof DomainProjectsListProjectActionsResponses];
+
+export type DomainProjectsListProjectAgentsData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}/agents';
+};
+
+export type DomainProjectsListProjectAgentsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectAgentsError = DomainProjectsListProjectAgentsErrors[keyof DomainProjectsListProjectAgentsErrors];
+
+export type DomainProjectsListProjectAgentsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAgentCatalogOut;
+};
+
+export type DomainProjectsListProjectAgentsResponse = DomainProjectsListProjectAgentsResponses[keyof DomainProjectsListProjectAgentsResponses];
+
+export type DomainProjectsCreateProjectAgentRunData = {
+    body: AgentRunCreateRequest;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}/agents/runs';
+};
+
+export type DomainProjectsCreateProjectAgentRunErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCreateProjectAgentRunError = DomainProjectsCreateProjectAgentRunErrors[keyof DomainProjectsCreateProjectAgentRunErrors];
+
+export type DomainProjectsCreateProjectAgentRunResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAgentRunOut;
+};
+
+export type DomainProjectsCreateProjectAgentRunResponse = DomainProjectsCreateProjectAgentRunResponses[keyof DomainProjectsCreateProjectAgentRunResponses];
+
+export type DomainProjectsStreamProjectAgentRunData = {
+    body: AgentRunCreateRequest;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}/agents/runs/stream';
+};
+
+export type DomainProjectsStreamProjectAgentRunErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsStreamProjectAgentRunError = DomainProjectsStreamProjectAgentRunErrors[keyof DomainProjectsStreamProjectAgentRunErrors];
+
+export type DomainProjectsStreamProjectAgentRunResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type DomainProjectsGetProjectAgentRunData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}/agents/runs/{run_id}';
+};
+
+export type DomainProjectsGetProjectAgentRunErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectAgentRunError = DomainProjectsGetProjectAgentRunErrors[keyof DomainProjectsGetProjectAgentRunErrors];
+
+export type DomainProjectsGetProjectAgentRunResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAgentRunOut;
+};
+
+export type DomainProjectsGetProjectAgentRunResponse = DomainProjectsGetProjectAgentRunResponses[keyof DomainProjectsGetProjectAgentRunResponses];
+
+export type DomainProjectsCancelProjectAgentRunData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}/agents/runs/{run_id}/cancel';
+};
+
+export type DomainProjectsCancelProjectAgentRunErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCancelProjectAgentRunError = DomainProjectsCancelProjectAgentRunErrors[keyof DomainProjectsCancelProjectAgentRunErrors];
+
+export type DomainProjectsCancelProjectAgentRunResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAgentRunOut;
+};
+
+export type DomainProjectsCancelProjectAgentRunResponse = DomainProjectsCancelProjectAgentRunResponses[keyof DomainProjectsCancelProjectAgentRunResponses];
 
 export type DomainProjectsListProjectApiKeysData = {
     body?: never;
@@ -29138,6 +29852,146 @@ export type DomainWorkspacesGetWorkspaceDangerCapabilitiesResponses = {
 };
 
 export type DomainWorkspacesGetWorkspaceDangerCapabilitiesResponse = DomainWorkspacesGetWorkspaceDangerCapabilitiesResponses[keyof DomainWorkspacesGetWorkspaceDangerCapabilitiesResponses];
+
+export type DomainWorkspacesListWorkspaceExtensionsData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/extensions';
+};
+
+export type DomainWorkspacesListWorkspaceExtensionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListWorkspaceExtensionsError = DomainWorkspacesListWorkspaceExtensionsErrors[keyof DomainWorkspacesListWorkspaceExtensionsErrors];
+
+export type DomainWorkspacesListWorkspaceExtensionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelListWorkspaceExtensionListItemOut;
+};
+
+export type DomainWorkspacesListWorkspaceExtensionsResponse = DomainWorkspacesListWorkspaceExtensionsResponses[keyof DomainWorkspacesListWorkspaceExtensionsResponses];
+
+export type DomainWorkspacesGetWorkspaceExtensionData = {
+    body?: never;
+    path: {
+        /**
+         * Extension Name
+         */
+        extension_name: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/extensions/{extension_name}';
+};
+
+export type DomainWorkspacesGetWorkspaceExtensionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceExtensionError = DomainWorkspacesGetWorkspaceExtensionErrors[keyof DomainWorkspacesGetWorkspaceExtensionErrors];
+
+export type DomainWorkspacesGetWorkspaceExtensionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceExtensionListItemOut;
+};
+
+export type DomainWorkspacesGetWorkspaceExtensionResponse = DomainWorkspacesGetWorkspaceExtensionResponses[keyof DomainWorkspacesGetWorkspaceExtensionResponses];
+
+export type DomainWorkspacesDeactivateWorkspaceExtensionData = {
+    body?: never;
+    path: {
+        /**
+         * Extension Name
+         */
+        extension_name: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/extensions/{extension_name}/activation';
+};
+
+export type DomainWorkspacesDeactivateWorkspaceExtensionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesDeactivateWorkspaceExtensionError = DomainWorkspacesDeactivateWorkspaceExtensionErrors[keyof DomainWorkspacesDeactivateWorkspaceExtensionErrors];
+
+export type DomainWorkspacesDeactivateWorkspaceExtensionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceExtensionActivationOut;
+};
+
+export type DomainWorkspacesDeactivateWorkspaceExtensionResponse = DomainWorkspacesDeactivateWorkspaceExtensionResponses[keyof DomainWorkspacesDeactivateWorkspaceExtensionResponses];
+
+export type DomainWorkspacesActivateWorkspaceExtensionData = {
+    body?: never;
+    path: {
+        /**
+         * Extension Name
+         */
+        extension_name: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/extensions/{extension_name}/activation';
+};
+
+export type DomainWorkspacesActivateWorkspaceExtensionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesActivateWorkspaceExtensionError = DomainWorkspacesActivateWorkspaceExtensionErrors[keyof DomainWorkspacesActivateWorkspaceExtensionErrors];
+
+export type DomainWorkspacesActivateWorkspaceExtensionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceExtensionActivationOut;
+};
+
+export type DomainWorkspacesActivateWorkspaceExtensionResponse = DomainWorkspacesActivateWorkspaceExtensionResponses[keyof DomainWorkspacesActivateWorkspaceExtensionResponses];
 
 export type DomainWorkspacesLeaveWorkspaceData = {
     body: LeaveWorkspaceRequest;

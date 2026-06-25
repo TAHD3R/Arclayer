@@ -15,6 +15,7 @@ import {
   ChevronRight,
   CreditCard,
   PanelLeftIcon,
+  PanelsTopLeft,
   Plus,
   Settings2,
   Users,
@@ -728,7 +729,9 @@ function PanelContentInner(props: {
                   className="rounded-sm"
                   {...projectAvatarPropsFromIdentity(props.selectedProject)}
                 />
-              ) : undefined
+              ) : (
+                <PanelsTopLeft className="size-4" aria-hidden="true" />
+              )
             }
             right={<ChevronRight className="size-4" aria-hidden="true" />}
           />

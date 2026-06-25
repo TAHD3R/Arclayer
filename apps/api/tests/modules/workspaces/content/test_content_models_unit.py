@@ -632,6 +632,90 @@ async def test_content_item_creation_rejects_second_single_type_for_locale() -> 
     repo.create_item.assert_not_awaited()
 
 
+@pytest.mark.asyncio
+async def test_content_item_creation_publishes_runtime_created_event(monkeypatch: pytest.MonkeyPatch) -> None:
+    workspace_id = uuid4()
+    project_id = uuid4()
+    runtime_id = uuid4()
+    environment_id = uuid4()
+    site_id = uuid4()
+    item_id = uuid4()
+    actor_user_id = uuid4()
+    model_id = uuid4()
+    model = SimpleNamespace(id=model_id, model_kind="collection_type")
+    item = SimpleNamespace(id=item_id, translation_group_id=None)
+
+    class _FakeEntityManager:
+        async def create(self, **kwargs):  # type: ignore[no-untyped-def]
+            assert kwargs["workspace_id"] == workspace_id
+            assert kwargs["site_id"] == site_id
+            assert kwargs["model_key"] == "article"
+            return SimpleNamespace(item=item)
+
+    repo = SimpleNamespace(
+        get_model_definition_by_key=AsyncMock(return_value=model),
+    )
+    service = ProjectContentCanonicalItemsService(
+        repo=cast(Any, repo),
+        entity_manager=cast(Any, _FakeEntityManager()),
+    )
+    publish_created = AsyncMock()
+    monkeypatch.setattr(service, "_publish_content_runtime_event", publish_created)
+    monkeypatch.setattr(
+        "src.modules.projects.content.items.canonical_service.resolve_item_continuation_truth",
+        lambda **_kwargs: SimpleNamespace(
+            resolved_role=None,
+            resolved_posture=None,
+            resolved_surface=None,
+            shape_state="unshaped",
+            shape_reason_code=None,
+            shape_reason_meta=None,
+        ),
+    )
+    monkeypatch.setattr(
+        "src.modules.projects.content.items.canonical_service.to_item_out",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            id=item_id,
+            model_key="article",
+            locale="en-US",
+            status="draft",
+            draft_version=1,
+            published_version=None,
+            translation_group_id=None,
+        ),
+    )
+
+    await service.create_item(
+        workspace_id=workspace_id,
+        site_id=site_id,
+        project_id=project_id,
+        runtime_id=runtime_id,
+        environment_id=environment_id,
+        actor_user_id=actor_user_id,
+        payload=ContentItemCreateIn(title="Article", locale="en-US", model_key="article"),
+    )
+
+    publish_created.assert_awaited_once_with(
+        actor_user_id=actor_user_id,
+        workspace_id=workspace_id,
+        site_id=site_id,
+        project_id=project_id,
+        runtime_id=runtime_id,
+        environment_id=environment_id,
+        entity_id=item_id,
+        entity_type="content_item",
+        event_name="content.item.created",
+        properties={
+            "model_key": "article",
+            "locale": "en-US",
+            "status": "draft",
+            "draft_version": 1,
+            "published_version": None,
+            "translation_group_id": None,
+        },
+    )
+
+
 def test_content_model_impact_preview_contract_surfaces_change_plan_artifacts() -> None:
     preview_fields = contracts_schema.ContentModelImpactPreviewOut.model_fields
     change_plan_fields = contracts_schema.ContentModelSchemaChangePlanOut.model_fields

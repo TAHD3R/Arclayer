@@ -75,7 +75,7 @@ export function AIConversationList() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="mt-4 h-9 gap-2 px-3 text-label-primary"
+                className="mt-4 h-9 !rounded-full gap-2 px-3 text-label-primary"
                 onClick={handleCreateConversation}
               >
                 <PlusIcon className="size-4" aria-hidden="true" />
@@ -120,7 +120,7 @@ export function AIConversationList() {
                               variant="ghost"
                               size="icon-sm"
                               aria-label={t("ai:AI_CHAT_DELETE_CONFIRM")}
-                              className="shrink-0 text-label-secondary hover:text-destructive"
+                              className="shrink-0 !rounded-full text-label-secondary hover:text-destructive"
                               onClick={(event) => {
                                 event.stopPropagation();
                               }}
@@ -165,7 +165,7 @@ export function AIConversationList() {
             type="button"
             variant="ghost"
             size="sm"
-            className="h-9 w-full justify-start gap-2 px-3"
+            className="h-9 w-full justify-start gap-2 !rounded-full px-3"
             onClick={handleCreateConversation}
           >
             <PlusIcon className="size-4" aria-hidden="true" />

@@ -1,7 +1,9 @@
-import { CheckIcon, ChevronDownIcon } from "lucide-react";
+import { CheckIcon, ChevronDownIcon, SparklesIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 
+import { listAIModels, type AIModelCatalogItem } from "@/api/ai";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import { Command, CommandGroup, CommandItem, CommandList } from "@arclayer/ui/command";
@@ -14,27 +16,7 @@ import {
   useAiChatStore,
   type AIReasoningEffort,
 } from "@/stores/use-ai-chat-store";
-
-export const AI_CHAT_MODELS = [
-  {
-    value: "gpt-4o-mini",
-    labelKey: "ai:AI_CHAT_MODEL_GPT_4O_MINI",
-    descriptionKey: "ai:AI_CHAT_MODEL_GPT_4O_MINI_DESC",
-    provider: "openai",
-  },
-  {
-    value: "gpt-4o",
-    labelKey: "ai:AI_CHAT_MODEL_GPT_4O",
-    descriptionKey: "ai:AI_CHAT_MODEL_GPT_4O_DESC",
-    provider: "openai",
-  },
-  {
-    value: "claude-sonnet-4-6",
-    labelKey: "ai:AI_CHAT_MODEL_CLAUDE_SONNET",
-    descriptionKey: "ai:AI_CHAT_MODEL_CLAUDE_SONNET_DESC",
-    provider: "anthropic",
-  },
-] as const;
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 const AI_REASONING_EFFORTS: readonly AIReasoningEffort[] = ["low", "medium", "high"];
 
@@ -53,8 +35,27 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
   );
   const setSelectedModel = useAiChatStore((s) => s.setSelectedModel);
   const setSelectedReasoningEffort = useAiChatStore((s) => s.setSelectedReasoningEffort);
-  const selected =
-    AI_CHAT_MODELS.find((model) => model.value === selectedModel) ?? AI_CHAT_MODELS[0];
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId ?? s.lastWorkspaceId);
+  const modelsQuery = useQuery({
+    queryKey: ["ai", "chat-models", workspaceId],
+    queryFn: ({ signal }) => listAIModels({ workspaceId: String(workspaceId), signal }),
+    enabled: Boolean(workspaceId),
+    staleTime: 60_000,
+    retry: false,
+  });
+  const models = modelsQuery.data?.models ?? [];
+  const canShowSelectedModel = modelsQuery.isSuccess && models.length > 0;
+  const selected = canShowSelectedModel
+    ? (models.find((model) => model.id === selectedModel) ?? models[0])
+    : null;
+  const triggerLabel = selected
+    ? formatModelLabel(selected, t)
+    : getModelSelectorStatusLabel({
+        hasWorkspace: Boolean(workspaceId),
+        isLoading: modelsQuery.isLoading,
+        isError: modelsQuery.isError,
+        t,
+      });
 
   useEffect(() => {
     if (!runtime) return undefined;
@@ -69,6 +70,11 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
     });
   }, [runtime, selectedModel, selectedReasoningEffort]);
 
+  useEffect(() => {
+    if (!modelsQuery.data || models.some((model) => model.id === selectedModel)) return;
+    setSelectedModel(modelsQuery.data.defaultModel);
+  }, [models, modelsQuery.data, selectedModel, setSelectedModel]);
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -79,13 +85,15 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
           aria-label={t("ai:AI_CHAT_MODEL_SELECT")}
           aria-expanded={open}
           className={cn(
-            "h-8 min-w-0 justify-start gap-2 rounded-full px-2.5 text-footnote font-semibold text-label-primary shadow-none hover:bg-accent/70",
+            "h-8 min-w-0 justify-start gap-2 rounded-2xl px-2.5 text-footnote font-semibold text-label-primary shadow-none hover:bg-accent/70",
             compact ? "max-w-[10.25rem]" : "max-w-[15rem]",
             className,
           )}
         >
-          <ModelProviderIcon provider={selected.provider} />
-          <span className="truncate">{t(selected.labelKey)}</span>
+          {selected ? <ModelProviderIcon provider={selected.provider} /> : null}
+          <span className={cn("truncate", !selected && "text-label-secondary")}>
+            {triggerLabel}
+          </span>
           <span
             className={cn(
               "hidden shrink-0 font-medium text-label-secondary sm:inline",
@@ -100,40 +108,64 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
       <PopoverContent
         align="end"
         className={cn(
-          "overflow-hidden p-0 [&_[cmdk-group-items]]:flex [&_[cmdk-group-items]]:w-full [&_[cmdk-group-items]]:flex-col [&_[cmdk-group]]:w-full [&_[cmdk-item]]:w-full [&_[cmdk-list-sizer]]:w-full",
+          "overflow-hidden rounded-2xl p-0 [&_[cmdk-group-items]]:flex [&_[cmdk-group-items]]:w-full [&_[cmdk-group-items]]:flex-col [&_[cmdk-group]]:w-full [&_[cmdk-item]]:box-border [&_[cmdk-item]]:w-full [&_[cmdk-list-sizer]]:w-full",
           compact ? "w-[23rem] max-w-[calc(100vw-2rem)]" : "w-[min(24rem,calc(100vw-2rem))]",
         )}
       >
         <Command className="w-full rounded-none">
-          <CommandList className="w-full max-h-80 p-1.5">
+          <CommandList className="box-border w-full max-h-80 px-2 py-2">
             <CommandGroup className="w-full p-0">
-              {AI_CHAT_MODELS.map((model) => (
-                <CommandItem
-                  key={model.value}
-                  value={model.value}
-                  onSelect={() => {
-                    setSelectedModel(model.value);
-                  }}
-                  className="w-full items-start gap-3 rounded-xl px-3 py-3"
-                >
-                  <ModelProviderIcon provider={model.provider} className="mt-0.5 size-5" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-callout font-semibold text-label-primary">
-                      {t(model.labelKey)}
+              {models.map((model) => {
+                const active = selected?.id === model.id;
+                return (
+                  <CommandItem
+                    key={model.id}
+                    value={model.id}
+                    onSelect={() => {
+                      setSelectedModel(model.id);
+                      setOpen(false);
+                    }}
+                    className="box-border w-full cursor-pointer items-start gap-3 rounded-xl px-3 py-3"
+                  >
+                    <ModelProviderIcon provider={model.provider} className="mt-0.5 size-5" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-callout font-semibold text-label-primary">
+                        {formatModelLabel(model, t)}
+                      </span>
+                      <span className="mt-0.5 block truncate text-footnote text-label-secondary">
+                        {formatModelDescription(model, t)}
+                      </span>
                     </span>
-                    <span className="mt-0.5 block truncate text-footnote text-label-secondary">
-                      {t(model.descriptionKey)}
-                    </span>
-                  </span>
-                  <CheckIcon
-                    className={cn(
-                      "mt-1 size-4 text-label-secondary",
-                      selectedModel === model.value ? "opacity-100" : "opacity-0",
-                    )}
-                    aria-hidden="true"
-                  />
-                </CommandItem>
-              ))}
+                    <CheckIcon
+                      className={cn(
+                        "mt-1 size-4 text-label-secondary",
+                        active ? "opacity-100" : "opacity-0",
+                      )}
+                      aria-hidden="true"
+                    />
+                  </CommandItem>
+                );
+              })}
+              {modelsQuery.isLoading ? (
+                <div className="px-3 py-3 text-footnote text-label-secondary">
+                  {t("ai:AI_CHAT_MODEL_LOADING")}
+                </div>
+              ) : null}
+              {!workspaceId ? (
+                <div className="px-3 py-3 text-footnote text-label-secondary">
+                  {t("ai:AI_CHAT_MODEL_WORKSPACE_REQUIRED")}
+                </div>
+              ) : null}
+              {modelsQuery.isError ? (
+                <div className="px-3 py-3 text-footnote text-destructive">
+                  {t("ai:AI_CHAT_MODEL_LOAD_FAILED")}
+                </div>
+              ) : null}
+              {modelsQuery.isSuccess && models.length === 0 ? (
+                <div className="px-3 py-3 text-footnote text-label-secondary">
+                  {t("ai:AI_CHAT_MODEL_EMPTY")}
+                </div>
+              ) : null}
             </CommandGroup>
           </CommandList>
           <div className="flex items-center gap-2 border-t border-border/70 p-2">
@@ -162,13 +194,28 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
   );
 }
 
-function ModelProviderIcon({
-  provider,
-  className,
-}: {
-  provider: (typeof AI_CHAT_MODELS)[number]["provider"];
-  className?: string;
-}) {
+function formatModelLabel(model: AIModelCatalogItem, t: (key: string) => string): string {
+  return model.labelKey ? t(model.labelKey) : model.label;
+}
+
+function formatModelDescription(model: AIModelCatalogItem, t: (key: string) => string): string {
+  if (model.descriptionKey) return t(model.descriptionKey);
+  return model.description ?? model.id;
+}
+
+function getModelSelectorStatusLabel(options: {
+  hasWorkspace: boolean;
+  isLoading: boolean;
+  isError: boolean;
+  t: (key: string) => string;
+}): string {
+  if (!options.hasWorkspace) return options.t("ai:AI_CHAT_MODEL_WORKSPACE_REQUIRED");
+  if (options.isLoading) return options.t("ai:AI_CHAT_MODEL_LOADING");
+  if (options.isError) return options.t("ai:AI_CHAT_MODEL_LOAD_FAILED");
+  return options.t("ai:AI_CHAT_MODEL_EMPTY");
+}
+
+function ModelProviderIcon({ provider, className }: { provider: string; className?: string }) {
   return (
     <span
       className={cn(
@@ -177,7 +224,9 @@ function ModelProviderIcon({
       )}
       aria-hidden="true"
     >
-      {provider === "anthropic" ? (
+      {provider === "deepseek" ? (
+        <SparklesIcon className="size-full" />
+      ) : provider === "anthropic" ? (
         <AnthropicIcon className="size-full" />
       ) : (
         <OpenAIIcon className="size-full" />

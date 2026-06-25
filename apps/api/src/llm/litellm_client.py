@@ -42,6 +42,14 @@ class LiteLLMClient(BaseLLMProvider):
             response.raise_for_status()
             return response.json()
 
+    async def list_models(self, *, master_key: str) -> dict[str, Any]:
+        """List models exposed by the LiteLLM proxy using the management key."""
+        headers = {"Authorization": f"Bearer {master_key}"}
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.get(f"{self._base_url}/v1/models", headers=headers)
+            response.raise_for_status()
+            return response.json()
+
     async def chat(
         self,
         messages: list[dict[str, str]],

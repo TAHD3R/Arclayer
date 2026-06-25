@@ -203,7 +203,7 @@ const ThreadScrollToBottom: FC = () => {
       <TooltipIconButton
         tooltip={t("ai:AI_CHAT_SCROLL_TO_BOTTOM")}
         variant="outline"
-        className="aui-thread-scroll-to-bottom dark:border-border dark:bg-background dark:hover:bg-accent absolute -top-12 z-10 self-center rounded-full p-4 disabled:invisible"
+        className="aui-thread-scroll-to-bottom dark:border-border dark:bg-background dark:hover:bg-accent absolute -top-12 z-10 self-center !rounded-full p-4 disabled:invisible"
       >
         <ArrowDownIcon />
       </TooltipIconButton>
@@ -256,7 +256,7 @@ const ThreadSuggestionItem: FC = () => {
       <SuggestionPrimitive.Trigger send asChild>
         <Button
           variant="ghost"
-          className="aui-thread-welcome-suggestion text-foreground hover:bg-muted border-border/60 h-auto gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-normal whitespace-nowrap transition-colors"
+          className="aui-thread-welcome-suggestion text-foreground hover:bg-muted border-border/60 h-auto gap-1.5 !rounded-full border px-3.5 py-1.5 text-sm font-normal whitespace-nowrap transition-colors"
         >
           <SuggestionPrimitive.Title className="aui-thread-welcome-suggestion-text-1" />
           <SuggestionPrimitive.Description className="aui-thread-welcome-suggestion-text-2 empty:hidden" />
@@ -581,12 +581,12 @@ const EditComposer: FC = () => {
         />
         <div className="aui-edit-composer-footer mx-2.5 mb-2.5 flex items-center gap-1.5 self-end">
           <ComposerPrimitive.Cancel asChild>
-            <Button variant="ghost" size="sm" className="h-8 rounded-full px-3.5">
+            <Button variant="ghost" size="sm" className="h-8 !rounded-full px-3.5">
               {t("common:CANCEL")}
             </Button>
           </ComposerPrimitive.Cancel>
           <ComposerPrimitive.Send asChild>
-            <Button size="sm" className="h-8 rounded-full px-3.5">
+            <Button size="sm" className="h-8 !rounded-full px-3.5">
               {t("ai:AI_CHAT_ACTION_UPDATE")}
             </Button>
           </ComposerPrimitive.Send>

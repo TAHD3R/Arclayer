@@ -179,6 +179,7 @@ class ProjectContentCanonicalItemsService(BaseService):
         entity_id: UUID,
         entity_type: str,
         event_name: str,
+        environment_id: UUID | None = None,
         properties: JsonObject | None = None,
     ) -> None:
         payload: JsonObject = {
@@ -194,6 +195,8 @@ class ProjectContentCanonicalItemsService(BaseService):
             payload["project_id"] = str(project_id)
         if runtime_id is not None:
             payload["runtime_id"] = str(runtime_id)
+        if environment_id is not None:
+            payload["environment_id"] = str(environment_id)
         payload["site_id"] = str(site_id)
         await self.publish_optional_domain_event(
             name=event_name,
@@ -321,6 +324,8 @@ class ProjectContentCanonicalItemsService(BaseService):
         site_id: UUID,
         actor_user_id: UUID | None,
         payload: ContentItemCreateIn,
+        project_id: UUID | None = None,
+        runtime_id: UUID | None = None,
         environment_id: UUID | None = None,
     ) -> ContentItemOut:
         try:
@@ -455,7 +460,29 @@ class ProjectContentCanonicalItemsService(BaseService):
             )
         else:
             status = None
-        return to_item_out(item, model, translation_status=status)
+        data = to_item_out(item, model, translation_status=status)
+        await self._publish_content_runtime_event(
+            actor_user_id=actor_user_id,
+            workspace_id=workspace_id,
+            site_id=site_id,
+            project_id=project_id,
+            runtime_id=runtime_id,
+            environment_id=environment_id,
+            entity_id=data.id,
+            entity_type="content_item",
+            event_name=CONTENT_ITEM_CREATED_EVENT,
+            properties={
+                "model_key": data.model_key,
+                "locale": data.locale,
+                "status": str(data.status),
+                "draft_version": data.draft_version,
+                "published_version": data.published_version,
+                "translation_group_id": str(data.translation_group_id)
+                if data.translation_group_id is not None
+                else None,
+            },
+        )
+        return data
 
     async def apply_bootstrap_shape(
         self,

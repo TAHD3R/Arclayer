@@ -173,6 +173,8 @@ async def create_project_content_item(
     data = await service.create_item(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        project_id=ctx.project_id,
+        runtime_id=ctx.runtime_id,
         environment_id=ctx.environment_id,
         actor_user_id=actor_user_id,
         payload=payload,

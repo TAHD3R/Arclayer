@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 import importlib.util
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 from uuid import UUID
-
-from tortoise.transactions import in_transaction
 
 from src.core.extensions.manifest import (
     CoordinationError,
@@ -23,6 +20,7 @@ from src.core.extensions.manifest import (
     parse_manifest,
 )
 from src.core.extensions.tenant_registry import TenantAwareRegistrySet
+from src.core.extensions.workspace_repository import ExtensionWorkspaceRepository
 from src.core.logging import get_logger
 from src.core.registries import (
     ComponentRegistry,
@@ -37,7 +35,6 @@ from src.core.registries import (
     ServiceRegistry,
     ValidatorRegistry,
 )
-from src.models.workspaces.workspace import Workspace
 
 logger = get_logger(__name__)
 
@@ -50,6 +47,10 @@ class ExtensionLoadError(RuntimeError):
 
 class ExtensionRegistrationError(RuntimeError):
     """Raised when an extension capability cannot be registered."""
+
+
+class ExtensionNotFoundError(CoordinationError):
+    """Raised when an operation targets an extension that is not loaded."""
 
 
 class ExtensionInstance:
@@ -77,13 +78,21 @@ class ExtensionInstance:
             self._workspace_activations[workspace_id] = WorkspaceActivationStateMachine()
         return self._workspace_activations[workspace_id]
 
+    def is_active(self, workspace_id: UUID) -> bool:
+        sm = self._workspace_activations.get(workspace_id)
+        return bool(sm is not None and sm.state is WorkspaceActivationState.ACTIVE)
+
     def activate(self, workspace_id: UUID) -> None:
         sm = self.get_workspace_activation(workspace_id)
+        if sm.state is WorkspaceActivationState.ACTIVE:
+            return
         check_can_activate(self.process.state)
         sm.transition_to(WorkspaceActivationState.ACTIVE)
 
     def deactivate(self, workspace_id: UUID) -> None:
         sm = self.get_workspace_activation(workspace_id)
+        if sm.state is WorkspaceActivationState.INACTIVE:
+            return
         sm.transition_to(WorkspaceActivationState.INACTIVE)
 
 
@@ -98,9 +107,15 @@ class ExtensionManager:
     PluginRegistry and the tenant-aware TenantAwareRegistrySet.
     """
 
-    def __init__(self, project_root: Path | str) -> None:
+    def __init__(
+        self,
+        project_root: Path | str,
+        *,
+        workspace_repo: ExtensionWorkspaceRepository | None = None,
+    ) -> None:
         self._project_root = Path(project_root)
         self._extensions: dict[str, ExtensionInstance] = {}
+        self._workspace_repo = workspace_repo or ExtensionWorkspaceRepository()
         self._tenant_registries = TenantAwareRegistrySet()
         self._registry = PluginRegistry(
             services=ServiceRegistry(),
@@ -128,6 +143,9 @@ class ExtensionManager:
     @property
     def extension_names(self) -> tuple[str, ...]:
         return tuple(self._extensions.keys())
+
+    def list_instances(self) -> tuple[ExtensionInstance, ...]:
+        return tuple(self._extensions.values())
 
     # ——— Discovery ——————————————————————————————————————————————————————
 
@@ -313,55 +331,27 @@ class ExtensionManager:
 
     # ——— Tenant-aware activation ————————————————————————————————————————
 
-    @staticmethod
-    async def _persist_activation(
-        conn: Any,
-        extension_name: str,
-        workspace_id: UUID,
-        *,
-        active: bool,
-    ) -> None:
-        """Persist activation state.  Silently skipped when the model is unavailable."""
-        try:
-            from src.models.extensions.workspace_extension_activation import (
-                WorkspaceExtensionActivation,
-                WorkspaceExtensionActivationStatus,
-            )
-        except Exception:
-            return
-
-        status = WorkspaceExtensionActivationStatus.ACTIVE if active else WorkspaceExtensionActivationStatus.INACTIVE
-        defaults: dict[str, Any] = {"status": status}
-        if active:
-            defaults["activated_at"] = datetime.now(UTC)
-            defaults["deactivated_at"] = None
-        else:
-            defaults["deactivated_at"] = datetime.now(UTC)
-
-        await WorkspaceExtensionActivation.update_or_create(
-            extension_name=extension_name,
-            workspace_id=workspace_id,
-            defaults=defaults,
-            using_db=conn,
-        )
-
     async def activate(self, extension_name: str, workspace_id: UUID) -> int:
         instance = self._extensions.get(extension_name)
         if instance is None:
-            raise CoordinationError(f"Extension '{extension_name}' is not loaded")
+            raise ExtensionNotFoundError(f"Extension '{extension_name}' is not loaded")
+
+        if instance.is_active(workspace_id):
+            revision = await self._workspace_repo.get_extension_revision(workspace_id)
+            if revision is None:
+                raise CoordinationError(f"Workspace {workspace_id} not found")
+            return revision
 
         instance.activate(workspace_id)
 
-        new_revision: int = 1
         try:
-            async with in_transaction() as conn:
-                workspace = await Workspace.filter(id=workspace_id).using_db(conn).select_for_update().first()
-                if workspace is None:
-                    raise CoordinationError(f"Workspace {workspace_id} not found")
-                workspace.extension_revision += 1
-                await workspace.save(update_fields=["extension_revision", "updated_at"], using_db=conn)
-                await self._persist_activation(conn, extension_name, workspace_id, active=True)
-                new_revision = workspace.extension_revision
+            new_revision = await self._workspace_repo.set_activation_and_increment_revision(
+                extension_name,
+                workspace_id,
+                active=True,
+            )
+            if new_revision is None:
+                raise CoordinationError(f"Workspace {workspace_id} not found")
         except CoordinationError:
             try:
                 instance.deactivate(workspace_id)
@@ -387,20 +377,24 @@ class ExtensionManager:
     async def deactivate(self, extension_name: str, workspace_id: UUID) -> int:
         instance = self._extensions.get(extension_name)
         if instance is None:
-            raise CoordinationError(f"Extension '{extension_name}' is not loaded")
+            raise ExtensionNotFoundError(f"Extension '{extension_name}' is not loaded")
+
+        if not instance.is_active(workspace_id):
+            revision = await self._workspace_repo.get_extension_revision(workspace_id)
+            if revision is None:
+                raise CoordinationError(f"Workspace {workspace_id} not found")
+            return revision
 
         instance.deactivate(workspace_id)
 
-        new_revision: int = 1
         try:
-            async with in_transaction() as conn:
-                workspace = await Workspace.filter(id=workspace_id).using_db(conn).select_for_update().first()
-                if workspace is None:
-                    raise CoordinationError(f"Workspace {workspace_id} not found")
-                workspace.extension_revision += 1
-                await workspace.save(update_fields=["extension_revision", "updated_at"], using_db=conn)
-                await self._persist_activation(conn, extension_name, workspace_id, active=False)
-                new_revision = workspace.extension_revision
+            new_revision = await self._workspace_repo.set_activation_and_increment_revision(
+                extension_name,
+                workspace_id,
+                active=False,
+            )
+            if new_revision is None:
+                raise CoordinationError(f"Workspace {workspace_id} not found")
         except CoordinationError:
             try:
                 instance.activate(workspace_id)
@@ -426,14 +420,7 @@ class ExtensionManager:
     async def restore_persisted_activations(self) -> None:
         """Restore workspace activations from persisted state after restart."""
         try:
-            from src.models.extensions.workspace_extension_activation import (
-                WorkspaceExtensionActivation,
-                WorkspaceExtensionActivationStatus,
-            )
-
-            activations = await WorkspaceExtensionActivation.filter(
-                status=WorkspaceExtensionActivationStatus.ACTIVE,
-            ).all()
+            activations = await self._workspace_repo.list_active_activations()
         except Exception:
             logger.debug("Cannot restore activation state, DB may not be available", exc_info=True)
             return

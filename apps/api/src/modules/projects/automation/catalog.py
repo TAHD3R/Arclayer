@@ -33,6 +33,12 @@ TRIGGER_DEFINITIONS: tuple[AutomationTriggerDefinition, ...] = (
         description="Runs after a project release is activated.",
     ),
     AutomationTriggerDefinition(
+        kind=AutomationTriggerKind.CONTENT_CREATED,
+        event_name="content.item.created",
+        label="Content item created",
+        description="Runs when a content item is created in a project runtime.",
+    ),
+    AutomationTriggerDefinition(
         kind=AutomationTriggerKind.CONTENT_TRANSITIONED,
         event_name="project.content.item.workflow.updated",
         label="Workflow stage changed",
@@ -67,6 +73,11 @@ OPERATION_DEFINITIONS: tuple[AutomationOperationDefinition, ...] = (
         label="HTTP request",
         description="Send a generic JSON HTTP request.",
         required_fields=("url",),
+    ),
+    AutomationOperationDefinition(
+        kind=AutomationOperationKind.AGENT_ANALYSIS,
+        label="Agent analysis",
+        description="Run a read-only project agent and store its analysis on the automation run.",
     ),
     AutomationOperationDefinition(
         kind=AutomationOperationKind.CONTENT_READ,

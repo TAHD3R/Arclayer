@@ -20,7 +20,7 @@ function DrawerIconButton(props: { label: string; onClick: () => void; children:
           size="icon-sm"
           aria-label={props.label}
           onClick={props.onClick}
-          className="text-label-secondary hover:text-label-primary"
+          className="!rounded-full text-label-secondary hover:text-label-primary"
         >
           {props.children}
         </Button>

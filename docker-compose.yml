@@ -74,12 +74,23 @@ services:
     restart: unless-stopped
     env_file:
       - ./docker/env/litellm.env
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
     ports:
       - "4000:4000"
     volumes:
       - ./docker/litellm/config.yaml:/app/config.yaml:ro
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4000/health/readiness"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:4000/health/readiness', timeout=5)",
+        ]
       interval: 15s
       timeout: 5s
       retries: 3

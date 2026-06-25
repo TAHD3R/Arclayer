@@ -4,12 +4,14 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { STORAGE_KEYS } from "@/constants/storage";
 
 export type AIChatRole = "user" | "assistant";
-export type AIComposerMode = "build" | "plan";
+export type AIComposerMode = "build" | "plan" | "agent";
 export type AIReasoningEffort = "low" | "medium" | "high";
 
 export interface AIChatMessage {
   role: AIChatRole;
   content: string;
+  agentRunId?: string;
+  agentStatus?: "running" | "completed" | "cancelled" | "failed";
   /** 标记assistant消息为错误态（显式展示，不静默吞） */
   error?: boolean;
   /** assistant-ui ErrorPrimitive 展示的产品化错误文案 */
@@ -35,6 +37,7 @@ export interface AIChatState {
   selectedModel: string;
   selectedReasoningEffort: AIReasoningEffort;
   composerMode: AIComposerMode;
+  selectedAgentId: string;
   /** 侧边 AI 面板展开状态（全局 overlay） */
   drawerOpen: boolean;
 
@@ -44,6 +47,10 @@ export interface AIChatState {
   deleteConversation: (id: string) => void;
   appendMessage: (convId: string, msg: AIChatMessage) => void;
   replaceMessages: (convId: string, messages: AIChatMessage[]) => void;
+  setLastAssistantAgentRun: (
+    convId: string,
+    run: { runId: string; status?: AIChatMessage["agentStatus"] },
+  ) => void;
   /** 流式追加 delta 到末条 assistant 消息；若无则新建 */
   appendDelta: (convId: string, delta: string) => void;
   /** 标记末条 streaming 消息为完成或错误 */
@@ -55,15 +62,17 @@ export interface AIChatState {
   setSelectedModel: (model: string) => void;
   setSelectedReasoningEffort: (effort: AIReasoningEffort) => void;
   setComposerMode: (mode: AIComposerMode) => void;
+  setSelectedAgentId: (agentId: string) => void;
   openDrawer: () => void;
   closeDrawer: () => void;
   toggleDrawer: () => void;
 }
 
 const MAX_CONVERSATIONS = 50;
-export const DEFAULT_AI_CHAT_MODEL = "gpt-4o-mini";
+export const DEFAULT_AI_CHAT_MODEL = "deepseek-v4-pro";
 export const DEFAULT_AI_REASONING_EFFORT: AIReasoningEffort = "medium";
 export const DEFAULT_AI_COMPOSER_MODE: AIComposerMode = "build";
+export const DEFAULT_AI_AGENT_ID = "content_analyzer";
 
 function newId(): string {
   return crypto.randomUUID();
@@ -79,6 +88,17 @@ function deriveTitle(text: string): string {
   return trimmed.length > 30 ? `${trimmed.slice(0, 30)}…` : trimmed;
 }
 
+function sanitizeMessageForPersistence(message: AIChatMessage): AIChatMessage {
+  return { ...message, streaming: false };
+}
+
+function sanitizeConversationForPersistence(conversation: AIConversation): AIConversation {
+  return {
+    ...conversation,
+    messages: conversation.messages.map(sanitizeMessageForPersistence),
+  };
+}
+
 export const useAiChatStore = create<AIChatState>()(
   persist(
     (set) => ({
@@ -88,6 +108,7 @@ export const useAiChatStore = create<AIChatState>()(
       selectedModel: DEFAULT_AI_CHAT_MODEL,
       selectedReasoningEffort: DEFAULT_AI_REASONING_EFFORT,
       composerMode: DEFAULT_AI_COMPOSER_MODE,
+      selectedAgentId: DEFAULT_AI_AGENT_ID,
       drawerOpen: false,
 
       createConversation: () => {
@@ -147,6 +168,23 @@ export const useAiChatStore = create<AIChatState>()(
           ),
         })),
 
+      setLastAssistantAgentRun: (convId, run) =>
+        set((state) => ({
+          conversations: state.conversations.map((c) => {
+            if (c.id !== convId) return c;
+            const messages = [...c.messages];
+            const last = messages[messages.length - 1];
+            if (last?.role === "assistant") {
+              messages[messages.length - 1] = {
+                ...last,
+                agentRunId: run.runId,
+                agentStatus: run.status ?? last.agentStatus,
+              };
+            }
+            return { ...c, messages, updatedAt: now() };
+          }),
+        })),
+
       appendDelta: (convId, delta) =>
         set((state) => ({
           conversations: state.conversations.map((c) => {
@@ -189,6 +227,7 @@ export const useAiChatStore = create<AIChatState>()(
       },
       setSelectedReasoningEffort: (effort) => set({ selectedReasoningEffort: effort }),
       setComposerMode: (mode) => set({ composerMode: mode }),
+      setSelectedAgentId: (agentId) => set({ selectedAgentId: agentId }),
 
       openDrawer: () => set({ drawerOpen: true }),
       closeDrawer: () => set({ drawerOpen: false }),
@@ -197,15 +236,24 @@ export const useAiChatStore = create<AIChatState>()(
     {
       name: STORAGE_KEYS.aiChat,
       storage: createJSONStorage(() => localStorage),
-      version: 1,
+      version: 2,
       // streaming/drawerOpen 不持久化（重载后不应处于流式中）
       partialize: (s) => ({
-        conversations: s.conversations,
+        conversations: s.conversations.map(sanitizeConversationForPersistence),
         activeId: s.activeId,
         selectedModel: s.selectedModel,
         selectedReasoningEffort: s.selectedReasoningEffort,
         composerMode: s.composerMode,
+        selectedAgentId: s.selectedAgentId,
       }),
+      migrate: (persisted) => {
+        const state = persisted as Partial<AIChatState>;
+        return {
+          ...state,
+          conversations: (state.conversations ?? []).map(sanitizeConversationForPersistence),
+          streaming: false,
+        };
+      },
     },
   ),
 );

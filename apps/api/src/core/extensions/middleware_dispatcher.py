@@ -3,10 +3,14 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
+from pydantic import BaseModel, ConfigDict
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
+from structlog.contextvars import bind_contextvars
 
+from src.common.constants.auth import TOKEN_TYPE_ACCESS
+from src.core.exceptions import APIError
 from src.core.extensions.tenant_registry import TenantAwareMiddlewareRegistry
 from src.core.logging import get_logger
 
@@ -19,15 +23,39 @@ _USER_ID_ATTR = "user_id"
 _SECURE_ATTRS = (_WS_ID_ATTR, _USER_ID_ATTR, "workspace_membership_id", "organization_id")
 
 
-def _read_workspace_id(scope: Scope) -> UUID | None:
-    """Extract workspace_id from scope state, handling both dict and State."""
+class VerifiedExtensionRequestContext(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    workspace_id: UUID
+    user_id: UUID
+    workspace_membership_id: UUID
+    organization_id: UUID
+
+
+def _read_state_value(scope: Scope, attr: str) -> Any | None:
     state = scope.get("state")
     if state is None:
         return None
     if hasattr(state, "_state"):
-        raw = state._state.get(_WS_ID_ATTR)
-    else:
-        raw = state.get(_WS_ID_ATTR) if isinstance(state, dict) else None
+        return state._state.get(attr)
+    if isinstance(state, dict):
+        return state.get(attr)
+    return None
+
+
+def _write_state_value(scope: Scope, attr: str, value: Any) -> None:
+    scope.setdefault("state", {})
+    state = scope["state"]
+    if hasattr(state, "_state"):
+        state._state[attr] = value
+        return
+    if isinstance(state, dict):
+        state[attr] = value
+
+
+def _read_workspace_id(scope: Scope) -> UUID | None:
+    """Extract workspace_id from scope state, handling both dict and State."""
+    raw = _read_state_value(scope, _WS_ID_ATTR)
     if isinstance(raw, UUID):
         return raw
     if isinstance(raw, str):
@@ -36,6 +64,93 @@ def _read_workspace_id(scope: Scope) -> UUID | None:
         except ValueError:
             return None
     return None
+
+
+def _extract_bearer_token(scope: Scope) -> str | None:
+    headers = scope.get("headers") or []
+    raw_auth = next((v for k, v in headers if k.lower() == b"authorization"), None)
+    if raw_auth is None:
+        return None
+    try:
+        auth = raw_auth.decode("latin-1").strip()
+    except UnicodeDecodeError:
+        return None
+    prefix = "bearer "
+    if not auth.lower().startswith(prefix):
+        return None
+    token = auth[len(prefix) :].strip()
+    return token or None
+
+
+def _parse_user_id(raw: object | None) -> UUID | None:
+    if raw is None:
+        return None
+    try:
+        return UUID(str(raw))
+    except (TypeError, ValueError):
+        return None
+
+
+async def _resolve_verified_context(scope: Scope, workspace_id: UUID) -> VerifiedExtensionRequestContext | None:
+    token = _extract_bearer_token(scope)
+    if token is None:
+        return None
+
+    try:
+        from src.config import get_settings
+        from src.models.organization.user import UserStatus
+        from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
+        from src.modules.auth.repository import UserRepository
+        from src.modules.auth.tokens.service import decode_token
+
+        settings = get_settings()
+        payload = decode_token(token, settings.auth)
+        if payload.get("typ") != TOKEN_TYPE_ACCESS:
+            return None
+
+        user_id = _parse_user_id(payload.get("sub"))
+        if user_id is None:
+            return None
+
+        user = await UserRepository().get_by_id(user_id)
+        if user is None or user.status != UserStatus.ACTIVE:
+            return None
+        if user.token_version != payload.get("ver"):
+            return None
+
+        workspace = await Workspace.get_or_none(id=workspace_id, deleted_at__isnull=True)
+        if workspace is None or not workspace.is_active:
+            return None
+
+        membership = await WorkspaceMembership.get_or_none(
+            workspace_id=workspace_id,
+            user_id=user_id,
+            status=WorkspaceMembershipStatus.ACTIVE,
+        )
+        if membership is None:
+            return None
+
+        return VerifiedExtensionRequestContext(
+            workspace_id=workspace_id,
+            user_id=user_id,
+            workspace_membership_id=UUID(str(membership.id)),
+            organization_id=UUID(str(workspace.organization_id)),
+        )
+    except APIError:
+        return None
+
+
+def _apply_verified_context(scope: Scope, context: VerifiedExtensionRequestContext) -> None:
+    _write_state_value(scope, _WS_ID_ATTR, context.workspace_id)
+    _write_state_value(scope, _USER_ID_ATTR, context.user_id)
+    _write_state_value(scope, "workspace_membership_id", context.workspace_membership_id)
+    _write_state_value(scope, "organization_id", context.organization_id)
+    bind_contextvars(
+        workspace_id=str(context.workspace_id),
+        organization_id=str(context.organization_id),
+        workspace_membership_id=str(context.workspace_membership_id),
+        user_id=str(context.user_id),
+    )
 
 
 def _snapshot_auth_context(request: Request) -> dict[str, Any]:
@@ -62,13 +177,17 @@ def _restore_auth_context(request: Request, snapshot: dict[str, Any]) -> None:
 class TenantAwareExtensionMiddlewareDispatcher:
     """First-party ASGI middleware that dispatches requests to Extension hooks.
 
-    Placement: after WorkspaceContextMiddleware (which sets
-    ``request.state.workspace_id``), before Extension route handlers.
+    Placement: after WorkspaceContextMiddleware (which sets a candidate
+    ``request.state.workspace_id`` from the route path), before Extension route
+    handlers.
 
     Extension hooks never see requests from workspaces where the extension is
-    not activated.  Unauthenticated requests (no ``workspace_id``) skip
-    extension hooks entirely.  Auth context is frozen before hooks run and
-    restored afterward — hooks cannot mutate workspace_id, user_id, or
+    not activated.  When hooks exist for the candidate workspace, the dispatcher
+    verifies the bearer token, active user, active workspace, and workspace
+    membership before invoking hooks.  Requests that cannot be verified skip
+    hooks and continue to the route layer, where the normal auth dependency
+    returns the user-facing 401/403.  Auth context is frozen before hooks run
+    and restored afterward — hooks cannot mutate workspace_id, user_id, or
     membership state.
 
     Streaming responses (SSE, file downloads) pass through without buffering.
@@ -98,6 +217,13 @@ class TenantAwareExtensionMiddlewareDispatcher:
         if not hooks:
             await self.app(scope, receive, send)
             return
+
+        verified_context = await _resolve_verified_context(scope, ws_id)
+        if verified_context is None:
+            logger.info("Extension hooks skipped for unverified workspace request", workspace_id=str(ws_id))
+            await self.app(scope, receive, send)
+            return
+        _apply_verified_context(scope, verified_context)
 
         request = Request(scope, receive)
 
