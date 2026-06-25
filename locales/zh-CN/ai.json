@@ -70,6 +70,7 @@
   "AI_CHAT_HOME_SEE_ALL_PROJECTS": "查看全部",
   "AI_CHAT_HOME_CREATE_PROJECT": "新建项目",
   "AI_CHAT_HOME_PROJECT_CREATED_AT": "创建于 {{date}}",
+  "AI_CHAT_HOME_PROJECT_UPDATED_AT": "更新于 {{date}}",
   "AI_CHAT_ERROR_EXPAND": "展开",
   "AI_CHAT_ERROR_COLLAPSE": "收起",
   "AI_CHAT_ERROR_NO_DETAILS": "没有更多错误详情。",

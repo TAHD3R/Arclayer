@@ -70,6 +70,7 @@
   "AI_CHAT_HOME_SEE_ALL_PROJECTS": "See all",
   "AI_CHAT_HOME_CREATE_PROJECT": "Create project",
   "AI_CHAT_HOME_PROJECT_CREATED_AT": "Created {{date}}",
+  "AI_CHAT_HOME_PROJECT_UPDATED_AT": "Updated {{date}}",
   "AI_CHAT_ERROR_EXPAND": "Expand",
   "AI_CHAT_ERROR_COLLAPSE": "Collapse",
   "AI_CHAT_ERROR_NO_DETAILS": "No additional error details.",

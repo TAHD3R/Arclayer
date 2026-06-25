@@ -15,6 +15,7 @@ import * as authApi from "@/api/auth";
 import { listProjects } from "@/api/projects";
 import { ComposerAttachments } from "@/components/assistant-ui/attachment";
 import { AIComposerToolbar } from "@/components/ai/ai-composer-toolbar";
+import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 import { appendMessageToText, sendAIChatMessage } from "@/components/ai/ai-chat-runtime";
 import { formatAIChatError } from "@/api/ai";
 import { getUserDisplayName, normalizeUserProfile } from "@/lib/auth/user-profile";
@@ -148,8 +149,9 @@ export function HomePage() {
       listProjects({
         workspaceId: String(workspaceId),
         archived: false,
+        ordering: "-updated_at",
         page: 1,
-        size: 5,
+        size: 3,
       }),
     staleTime: 30 * 1000,
     retry: false,
@@ -159,19 +161,21 @@ export function HomePage() {
   const hasRecentProjects = recentProjects.length > 0;
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col" data-page="ai-home">
+    <AdminRouteContainer pageFrame="full" className="min-h-full" innerClassName="min-h-full px-0">
       <div
+        data-page="ai-home"
         className={cn(
-          "mx-auto flex h-full w-full max-w-[88rem] flex-col px-6 py-8 sm:px-8 lg:px-10",
+          "mx-auto flex w-full max-w-[88rem] flex-col px-6 pt-8 sm:px-8 lg:px-10",
           hasRecentProjects
-            ? "justify-start gap-12 pt-16 pb-10 xl:gap-14 xl:pt-20"
-            : "justify-center gap-8",
+            ? "justify-start gap-12 pt-16 xl:gap-14 xl:pt-20"
+            : "min-h-full justify-center gap-8 py-8",
         )}
       >
         <div
           className={cn(
             "flex w-full flex-col items-center gap-7",
-            hasRecentProjects && "min-h-[28rem] shrink-0 justify-center pb-3 xl:min-h-[30rem]",
+            hasRecentProjects &&
+              "min-h-[clamp(20rem,42vh,28rem)] shrink-0 justify-center pb-3 xl:min-h-[clamp(22rem,44vh,30rem)]",
           )}
         >
           <div className="flex flex-col items-center text-center">
@@ -197,6 +201,6 @@ export function HomePage() {
           <HomeRecentProjectsSection workspaceId={workspaceId} projects={recentProjects} />
         ) : null}
       </div>
-    </div>
+    </AdminRouteContainer>
   );
 }

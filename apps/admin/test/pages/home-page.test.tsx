@@ -2,8 +2,10 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { listProjects } from "@/api/projects";
 import { HomePage } from "@/pages/home/page";
 import { DEFAULT_AI_CHAT_MODEL, useAiChatStore } from "@/stores/use-ai-chat-store";
+import type { ProjectListItem } from "@arclayer/openapi/admin-types";
 
 const { navigateMock, sendAIChatMessageMock } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
@@ -89,6 +91,10 @@ vi.mock("@/components/ai/ai-chat-runtime", () => ({
   sendAIChatMessage: (...args: unknown[]) => sendAIChatMessageMock(...args),
 }));
 
+vi.mock("@/api/projects", () => ({
+  listProjects: vi.fn(),
+}));
+
 vi.mock("@/components/ai/ai-model-selector", () => ({
   AIModelSelector: () => <div data-testid="ai-model-selector" />,
 }));
@@ -100,11 +106,21 @@ vi.mock("@arclayer/ui/tooltip", () => ({
   TooltipTrigger: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
 }));
 
+const authState = {
+  accessToken: null as string | null,
+  sessionVersion: 0,
+};
+
 vi.mock("@/stores/use-auth-store", () => ({
   useAuthStore: (
     selector: (state: { accessToken: string | null; sessionVersion: number }) => unknown,
-  ) => selector({ accessToken: null, sessionVersion: 0 }),
+  ) => selector(authState),
 }));
+
+const workspaceState = {
+  currentWorkspaceId: null as string | null,
+  lastWorkspaceId: null as string | null,
+};
 
 vi.mock("@/stores/use-workspace-store", () => ({
   useWorkspaceStore: (
@@ -112,7 +128,7 @@ vi.mock("@/stores/use-workspace-store", () => ({
       currentWorkspaceId: string | null;
       lastWorkspaceId: string | null;
     }) => unknown,
-  ) => selector({ currentWorkspaceId: null, lastWorkspaceId: null }),
+  ) => selector(workspaceState),
 }));
 
 const labels: Record<string, string> = {
@@ -131,6 +147,10 @@ const labels: Record<string, string> = {
   "ai:AI_CHAT_VOICE_INPUT": "语音输入",
   "ai:AI_CHAT_STOP_VOICE_INPUT": "停止语音输入",
   "ai:AI_CHAT_VOICE_UNSUPPORTED": "当前浏览器不支持语音输入。",
+  "ai:AI_CHAT_HOME_RECENT_PROJECTS": "最近项目",
+  "ai:AI_CHAT_HOME_SEE_ALL_PROJECTS": "查看全部",
+  "ai:AI_CHAT_HOME_CREATE_PROJECT": "新建项目",
+  "ai:AI_CHAT_HOME_PROJECT_UPDATED_AT": "更新于 2026-06-01 12:00",
 };
 
 vi.mock("react-i18next", () => ({
@@ -147,6 +167,19 @@ vi.mock("react-i18next", () => ({
 describe("HomePage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authState.accessToken = null;
+    authState.sessionVersion = 0;
+    workspaceState.currentWorkspaceId = null;
+    workspaceState.lastWorkspaceId = null;
+    vi.mocked(listProjects).mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      size: 3,
+      pages: 1,
+      next: null,
+      prev: null,
+    });
     assistantUiMockState.composerText = "";
     assistantUiMockState.runtimeStore = null;
     sendAIChatMessageMock.mockResolvedValue(undefined);
@@ -211,4 +244,54 @@ describe("HomePage", () => {
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });
+
+  it("lets the default route frame provide bottom air when recent projects render", async () => {
+    authState.accessToken = "token-1";
+    authState.sessionVersion = 1;
+    workspaceState.currentWorkspaceId = "workspace-1";
+    vi.mocked(listProjects).mockResolvedValue({
+      items: [createProjectListItem()],
+      total: 1,
+      page: 1,
+      size: 3,
+      pages: 1,
+      next: null,
+      prev: null,
+    });
+
+    const { container } = renderHomePage();
+
+    expect(await screen.findByText("最近项目")).toBeInTheDocument();
+    const routeFrame = container.querySelector('[data-slot="admin-route-frame"]');
+    const home = container.querySelector('[data-page="ai-home"]');
+    const hero = home?.firstElementChild;
+
+    expect(routeFrame).toHaveClass("pb-20");
+    expect(home).not.toHaveClass("min-h-full");
+    expect(hero).toHaveClass("min-h-[clamp(20rem,42vh,28rem)]");
+  });
 });
+
+function createProjectListItem(): ProjectListItem {
+  return {
+    id: "project-1",
+    workspaceId: "workspace-1",
+    slug: "project-1",
+    name: "Project One",
+    description: "Project description",
+    iconMode: "initials",
+    iconColor: "#337ea9",
+    iconGlyph: null,
+    iconEmoji: null,
+    iconUrl: null,
+    isActive: true,
+    archivedAt: null,
+    archivedByUserId: null,
+    createdAt: "2026-05-01T00:00:00Z",
+    updatedAt: "2026-06-01T12:00:00Z",
+    memberCount: 1,
+    membersPreview: [],
+    enterable: true,
+    primaryRuntime: null,
+  };
+}

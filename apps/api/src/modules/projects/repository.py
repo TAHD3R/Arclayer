@@ -7,7 +7,7 @@ from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.expressions import Q
 
 from src.common.utils.slug import slugify
-from src.core.exceptions import Conflict, NotFound
+from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.user import User
@@ -16,6 +16,31 @@ from src.models.projects.project import ProjectRecord
 from src.models.projects.runtime import ProjectRuntimeKind, ProjectRuntimeRecord
 from src.models.sites.site import SiteRecord
 from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
+
+_PROJECT_ALLOWED_ORDER_FIELDS = {
+    "created_at": "created_at",
+    "updated_at": "updated_at",
+    "name": "name",
+}
+
+
+def _normalize_project_ordering(value: str | None) -> list[str]:
+    fields: list[str] = []
+    for part in str(value or "").split(","):
+        raw = part.strip()
+        if not raw:
+            continue
+        desc = raw.startswith("-")
+        key = raw[1:] if desc else raw
+        mapped = _PROJECT_ALLOWED_ORDER_FIELDS.get(key)
+        if mapped is None:
+            raise BadRequest("Unsupported project ordering field", error="PROJECT_ORDERING_FIELD_UNSUPPORTED")
+        fields.append(f"-{mapped}" if desc else mapped)
+
+    if not fields:
+        fields.append("created_at")
+    fields.append("id")
+    return fields
 
 
 class ProjectRepository(TortoiseORMRepository):
@@ -26,6 +51,7 @@ class ProjectRepository(TortoiseORMRepository):
         user_id: UUID | None = None,
         q: str | None = None,
         is_active: bool | None = True,
+        ordering: str | None = None,
     ) -> Sequence[ProjectRecord]:
         qs = ProjectRecord.all()
         if workspace_id is not None:
@@ -44,7 +70,7 @@ class ProjectRepository(TortoiseORMRepository):
                 | Q(slug__icontains=normalized_query)
                 | Q(description__icontains=normalized_query)
             )
-        return await qs.order_by("created_at", "id").all()
+        return await qs.order_by(*_normalize_project_ordering(ordering)).all()
 
     async def list_visible_workspace_ids(self, *, user_id: UUID) -> list[UUID]:
         membership_workspace_ids = [

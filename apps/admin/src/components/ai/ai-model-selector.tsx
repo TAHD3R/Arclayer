@@ -6,8 +6,13 @@ import { useQuery } from "@tanstack/react-query";
 import { listAIModels, type AIModelCatalogItem } from "@/api/ai";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
-import { Command, CommandGroup, CommandItem, CommandList } from "@arclayer/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@arclayer/ui/dropdown-menu";
 import { useAssistantRuntime } from "@assistant-ui/react";
 
 import {
@@ -76,8 +81,8 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
   }, [models, modelsQuery.data, selectedModel, setSelectedModel]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
         <Button
           type="button"
           variant="ghost"
@@ -104,93 +109,90 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
           </span>
           <ChevronDownIcon className="size-3.5 shrink-0 opacity-70" aria-hidden="true" />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
         align="end"
         className={cn(
-          "overflow-hidden rounded-2xl p-0 [&_[cmdk-group-items]]:flex [&_[cmdk-group-items]]:w-full [&_[cmdk-group-items]]:flex-col [&_[cmdk-group]]:w-full [&_[cmdk-item]]:box-border [&_[cmdk-item]]:w-full [&_[cmdk-list-sizer]]:w-full",
+          "overflow-hidden rounded-2xl p-0",
           compact ? "w-[23rem] max-w-[calc(100vw-2rem)]" : "w-[min(24rem,calc(100vw-2rem))]",
         )}
       >
-        <Command className="w-full rounded-none">
-          <CommandList className="box-border w-full max-h-80 px-2 py-2">
-            <CommandGroup className="w-full p-0">
-              {models.map((model) => {
-                const active = selected?.id === model.id;
-                return (
-                  <CommandItem
-                    key={model.id}
-                    value={model.id}
-                    onSelect={() => {
-                      setSelectedModel(model.id);
-                      setOpen(false);
-                    }}
-                    className="box-border w-full cursor-pointer items-start gap-3 rounded-xl px-3 py-3"
-                  >
-                    <ModelProviderIcon provider={model.provider} className="mt-0.5 size-5" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-callout font-semibold text-label-primary">
-                        {formatModelLabel(model, t)}
-                      </span>
-                      <span className="mt-0.5 block truncate text-footnote text-label-secondary">
-                        {formatModelDescription(model, t)}
-                      </span>
-                    </span>
-                    <CheckIcon
-                      className={cn(
-                        "mt-1 size-4 text-label-secondary",
-                        active ? "opacity-100" : "opacity-0",
-                      )}
-                      aria-hidden="true"
-                    />
-                  </CommandItem>
-                );
-              })}
-              {modelsQuery.isLoading ? (
-                <div className="px-3 py-3 text-footnote text-label-secondary">
-                  {t("ai:AI_CHAT_MODEL_LOADING")}
-                </div>
-              ) : null}
-              {!workspaceId ? (
-                <div className="px-3 py-3 text-footnote text-label-secondary">
-                  {t("ai:AI_CHAT_MODEL_WORKSPACE_REQUIRED")}
-                </div>
-              ) : null}
-              {modelsQuery.isError ? (
-                <div className="px-3 py-3 text-footnote text-destructive">
-                  {t("ai:AI_CHAT_MODEL_LOAD_FAILED")}
-                </div>
-              ) : null}
-              {modelsQuery.isSuccess && models.length === 0 ? (
-                <div className="px-3 py-3 text-footnote text-label-secondary">
-                  {t("ai:AI_CHAT_MODEL_EMPTY")}
-                </div>
-              ) : null}
-            </CommandGroup>
-          </CommandList>
-          <div className="flex items-center gap-2 border-t border-border/70 p-2">
-            <span className="px-1 text-caption font-semibold text-label-secondary">
-              {t("ai:AI_CHAT_REASONING_LABEL")}
-            </span>
-            <div className="ml-auto grid grid-cols-3 rounded-lg bg-muted p-0.5">
-              {AI_REASONING_EFFORTS.map((effort) => (
-                <button
-                  key={effort}
-                  type="button"
-                  onClick={() => setSelectedReasoningEffort(effort)}
-                  className={cn(
-                    "h-6 min-w-8 rounded-md px-2.5 text-caption text-label-secondary transition-colors",
-                    selectedReasoningEffort === effort && "bg-background text-label-primary",
-                  )}
+        <div className="box-border max-h-80 w-full overflow-y-auto px-2 py-2">
+          <DropdownMenuGroup className="w-full">
+            {models.map((model) => {
+              const active = selected?.id === model.id;
+              return (
+                <DropdownMenuItem
+                  key={model.id}
+                  onSelect={() => {
+                    setSelectedModel(model.id);
+                    setOpen(false);
+                  }}
+                  className="box-border w-full cursor-pointer items-start gap-3 rounded-xl px-3 py-3"
                 >
-                  {t(`ai:AI_CHAT_REASONING_${effort.toUpperCase()}`)}
-                </button>
-              ))}
-            </div>
+                  <ModelProviderIcon provider={model.provider} className="mt-0.5 size-5" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-callout font-semibold text-label-primary">
+                      {formatModelLabel(model, t)}
+                    </span>
+                    <span className="mt-0.5 block truncate text-footnote text-label-secondary">
+                      {formatModelDescription(model, t)}
+                    </span>
+                  </span>
+                  <CheckIcon
+                    className={cn(
+                      "mt-1 size-4 text-label-secondary",
+                      active ? "opacity-100" : "opacity-0",
+                    )}
+                    aria-hidden="true"
+                  />
+                </DropdownMenuItem>
+              );
+            })}
+            {modelsQuery.isLoading ? (
+              <div className="px-3 py-3 text-footnote text-label-secondary">
+                {t("ai:AI_CHAT_MODEL_LOADING")}
+              </div>
+            ) : null}
+            {!workspaceId ? (
+              <div className="px-3 py-3 text-footnote text-label-secondary">
+                {t("ai:AI_CHAT_MODEL_WORKSPACE_REQUIRED")}
+              </div>
+            ) : null}
+            {modelsQuery.isError ? (
+              <div className="px-3 py-3 text-footnote text-destructive">
+                {t("ai:AI_CHAT_MODEL_LOAD_FAILED")}
+              </div>
+            ) : null}
+            {modelsQuery.isSuccess && models.length === 0 ? (
+              <div className="px-3 py-3 text-footnote text-label-secondary">
+                {t("ai:AI_CHAT_MODEL_EMPTY")}
+              </div>
+            ) : null}
+          </DropdownMenuGroup>
+        </div>
+        <div className="flex items-center gap-2 border-t border-border/70 p-2">
+          <span className="px-1 text-caption font-semibold text-label-secondary">
+            {t("ai:AI_CHAT_REASONING_LABEL")}
+          </span>
+          <div className="ml-auto grid grid-cols-3 rounded-lg bg-muted p-0.5">
+            {AI_REASONING_EFFORTS.map((effort) => (
+              <button
+                key={effort}
+                type="button"
+                onClick={() => setSelectedReasoningEffort(effort)}
+                className={cn(
+                  "h-6 min-w-8 rounded-md px-2.5 text-caption text-label-secondary transition-colors",
+                  selectedReasoningEffort === effort && "bg-background text-label-primary",
+                )}
+              >
+                {t(`ai:AI_CHAT_REASONING_${effort.toUpperCase()}`)}
+              </button>
+            ))}
           </div>
-        </Command>
-      </PopoverContent>
-    </Popover>
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

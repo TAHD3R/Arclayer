@@ -214,6 +214,19 @@ describe("AdminSceneLayout", () => {
     });
   });
 
+  it("lets the main page scrollbar sit on the content edge", () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+      },
+    });
+
+    const { container } = renderSceneLayout(queryClient);
+    const pageScroller = container.querySelector(".overflow-auto");
+
+    expect(pageScroller).toHaveClass("[scrollbar-gutter:auto]");
+  });
+
   it("stacks one toast per newly arrived unread preview item after a refetch", async () => {
     const queryClient = new QueryClient({
       defaultOptions: {

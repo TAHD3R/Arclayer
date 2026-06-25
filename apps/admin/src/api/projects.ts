@@ -23,6 +23,7 @@ export async function listProjects(
     size?: number;
     q?: string;
     archived?: boolean;
+    ordering?: string;
   } = {},
 ): Promise<PageData<ProjectListItem>> {
   const query = toQueryString({
@@ -31,6 +32,7 @@ export async function listProjects(
     workspaceId: params.workspaceId,
     q: params.q,
     archived: params.archived,
+    ordering: params.ordering,
   });
   return api.get<PageData<ProjectListItem>>(`/projects${query}`);
 }

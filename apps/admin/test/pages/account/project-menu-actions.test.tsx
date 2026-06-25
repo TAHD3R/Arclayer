@@ -87,6 +87,7 @@ describe("useProjectMenuActions", () => {
       memberCount: 2,
       membersPreview: [],
       createdAt: "2026-04-15T00:00:00Z",
+      updatedAt: "2026-04-16T00:00:00Z",
       enterable: true,
       primaryRuntime: null,
     };
@@ -212,6 +213,7 @@ describe("useProjectMenuActions", () => {
       memberCount: 1,
       membersPreview: [],
       createdAt: "2026-04-15T00:00:00Z",
+      updatedAt: "2026-04-16T00:00:00Z",
       enterable: true,
       primaryRuntime: null,
     };
@@ -288,6 +290,7 @@ describe("useProjectMenuActions", () => {
       memberCount: 1,
       membersPreview: [],
       createdAt: "2026-04-15T00:00:00Z",
+      updatedAt: "2026-04-16T00:00:00Z",
       enterable: true,
       primaryRuntime: null,
     };

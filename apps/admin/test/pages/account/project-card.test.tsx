@@ -60,6 +60,7 @@ describe("ProjectCard", () => {
               email: "jackson@example.com",
             },
           ],
+          updatedAt: "2026-04-20T00:00:00Z",
           enterable: true,
           primaryRuntime: null,
         }}

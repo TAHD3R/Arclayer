@@ -304,10 +304,11 @@ describe("GlobalLayout", () => {
   it("renders only route content when favorite overlay content-only mode is active", () => {
     mockSearchStr = "?arclayer_favorite_overlay=content-only";
 
-    renderWithQueryClient(<GlobalLayout />);
+    const { container } = renderWithQueryClient(<GlobalLayout />);
 
     expect(screen.queryByTestId("admin-scene-layout")).not.toBeInTheDocument();
     expect(screen.getByTestId("outlet")).toBeInTheDocument();
+    expect(container.querySelector(".overflow-auto")).toHaveClass("[scrollbar-gutter:auto]");
   });
 
   it("keeps persisted sidebar width state available to the global content-only shell", () => {
@@ -346,6 +347,7 @@ describe("GlobalLayout", () => {
           memberCount: 0,
           membersPreview: [],
           createdAt: "2026-04-22T00:00:00Z",
+          updatedAt: "2026-04-23T00:00:00Z",
           enterable: true,
           primaryRuntime: null,
         },
@@ -409,6 +411,7 @@ describe("GlobalLayout", () => {
               memberCount: 0,
               membersPreview: [],
               createdAt: "2026-04-22T00:00:00Z",
+              updatedAt: "2026-04-23T00:00:00Z",
               enterable: true,
               primaryRuntime: null,
             },

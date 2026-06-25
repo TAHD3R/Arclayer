@@ -61,6 +61,7 @@ class ProjectListItemOut(ProjectOut):
     archived_at: datetime | None = Field(default=None, description="Archived timestamp.")
     archived_by_user_id: PublicUUID | None = Field(default=None, description="Archived by user id.")
     created_at: datetime = Field(..., description="Project creation time.")
+    updated_at: datetime = Field(..., description="Project last update time.")
     enterable: bool = Field(default=True, description="Whether current user can enter this project.")
 
 

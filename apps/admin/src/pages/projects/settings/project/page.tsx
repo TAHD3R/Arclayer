@@ -70,6 +70,7 @@ function mapProjectDetailToListItem(detail: ProjectDetail): UserCenterProjectLis
     memberCount: 0,
     membersPreview: [],
     createdAt: "",
+    updatedAt: "",
     enterable: true,
     primaryRuntime: detail.primaryRuntime,
   };

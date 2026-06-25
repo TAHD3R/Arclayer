@@ -261,7 +261,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
       <div className="flex h-screen min-h-0 w-full flex-1 flex-col bg-background">
         <div className="relative flex min-h-0 flex-1">
           <SidebarInset className="w-auto min-w-0 flex-1 overflow-hidden bg-background">
-            <div className="flex-1 min-h-0 overflow-auto">
+            <div className="flex-1 min-h-0 overflow-auto [scrollbar-gutter:auto]">
               <ContentGuard
                 loading={Boolean(isWorkspaceScopeRoute && workspaceDetailQuery.isLoading)}
                 error={isWorkspaceScopeRoute ? workspaceDetailQuery.error : null}

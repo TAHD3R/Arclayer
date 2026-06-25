@@ -27,6 +27,7 @@ export type UserCenterProjectListItem = {
   memberCount: number;
   membersPreview: UserCenterProjectListItemMemberPreview[];
   createdAt: string;
+  updatedAt: string;
   enterable: boolean;
   primaryRuntime: ProjectListItem["primaryRuntime"];
 };
@@ -56,6 +57,7 @@ export function mapProjectToListItem(project: ProjectListItem): UserCenterProjec
       email: member.email,
     })),
     createdAt: project.createdAt,
+    updatedAt: project.updatedAt,
     enterable: project.enterable,
     primaryRuntime: project.primaryRuntime,
   };

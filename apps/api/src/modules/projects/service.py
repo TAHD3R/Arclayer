@@ -86,12 +86,14 @@ class ProjectService(BaseService):
         params: PageParams,
         q: str | None,
         archived: bool,
+        ordering: str | None,
     ) -> ProjectListOut:
         projects = await self.repo.list_projects(
             workspace_id=workspace_id,
             user_id=actor_user_id,
             q=q,
             is_active=not archived,
+            ordering=ordering,
         )
         workspace_ids = list({UUID(str(project.workspace_id)) for project in projects})
         workspaces = await self.workspace_repo.list_non_deleted_by_ids(workspace_ids=workspace_ids)
@@ -124,6 +126,7 @@ class ProjectService(BaseService):
                     archived_at=None if project.is_active else project.updated_at,
                     archived_by_user_id=None,
                     created_at=project.created_at,
+                    updated_at=project.updated_at,
                     enterable=True,
                 )
             )
@@ -193,6 +196,7 @@ class ProjectService(BaseService):
             archived_at=None,
             archived_by_user_id=None,
             created_at=project.created_at,
+            updated_at=project.updated_at,
             enterable=True,
         )
 

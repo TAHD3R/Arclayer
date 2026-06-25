@@ -106,6 +106,7 @@ async def require_project_team_permission(
 async def list_projects(
     q: str | None = Query(default=None, description="Search query (project name)."),
     archived: bool = Query(default=False, description="Whether to list archived projects."),
+    ordering: str | None = Query(default=None, description="Ordering fields, for example -updated_at or name."),
     params: PageParams = Depends(get_page_params),
     user_id: UUID = Depends(get_current_user_id),
     workspace_id: PublicUUID | None = Query(default=None, alias="workspaceId", description="Workspace id."),
@@ -118,6 +119,7 @@ async def list_projects(
         params=params,
         q=q,
         archived=archived,
+        ordering=ordering,
     )
     return ApiResponse.success(data=page)
 

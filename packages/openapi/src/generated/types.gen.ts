@@ -1039,6 +1039,10 @@ export type AgentRunCreateRequest = {
      */
     prompt: string;
     /**
+     * Reasoningeffort
+     */
+    reasoningEffort?: 'low' | 'medium' | 'high' | null;
+    /**
      * Toolinputs
      */
     toolInputs?: {
@@ -2038,6 +2042,10 @@ export type ChatRequest = {
      * Model
      */
     model?: string | null;
+    /**
+     * Reasoningeffort
+     */
+    reasoningEffort?: 'low' | 'medium' | 'high' | null;
     /**
      * Temperature
      */
@@ -10002,6 +10010,12 @@ export type ProjectListItemOut = {
      * Project slug.
      */
     slug: string;
+    /**
+     * Updatedat
+     *
+     * Project last update time.
+     */
+    updatedAt: string;
     /**
      * Workspaceid
      *
@@ -21554,9 +21568,25 @@ export type AiChatCompletionResponses = {
 export type AiListChatModelsData = {
     body?: never;
     path?: never;
-    query?: never;
+    query: {
+        /**
+         * Workspaceid
+         *
+         * Workspace id used for provider key availability
+         */
+        workspaceId: string;
+    };
     url: '/api/v1/chat/models';
 };
+
+export type AiListChatModelsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AiListChatModelsError = AiListChatModelsErrors[keyof AiListChatModelsErrors];
 
 export type AiListChatModelsResponses = {
     /**
@@ -21993,6 +22023,12 @@ export type DomainProjectsListProjectsData = {
          * Whether to list archived projects.
          */
         archived?: boolean;
+        /**
+         * Ordering
+         *
+         * Ordering fields, for example -updated_at or name.
+         */
+        ordering?: string | null;
         /**
          * Workspaceid
          *

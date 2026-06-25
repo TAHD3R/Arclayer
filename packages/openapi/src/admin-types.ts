@@ -340,6 +340,7 @@ export type ProjectListItem = Omit<
     }
   >;
   primaryRuntime: ProjectRuntime | null;
+  updatedAt: string;
 };
 export type ProjectCreateInput = Generated.ProjectCreateRequest;
 export type ProjectUpdateInput = Generated.ProjectUpdateRequest;

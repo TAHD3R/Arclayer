@@ -23,13 +23,36 @@ import {
   useProjectMenuActions,
   type ProjectEditingField,
 } from "../usercenter/projects/hooks/use-project-menu-actions";
-import type { UserCenterProjectsTranslateFn } from "../usercenter/projects/types";
+import type { ProjectMenuItem, UserCenterProjectsTranslateFn } from "../usercenter/projects/types";
 
 const PROJECT_NAME_MAX_LENGTH = 128;
 const PROJECT_DESCRIPTION_MAX_LENGTH = 256;
+const RECENT_PROJECT_MENU_ITEM_KEYS = ["rename", "archive", "delete"] as const;
 
 function normalizeProjectDescriptionPreview(value?: string | null) {
   return (value ?? "").replace(/\s*[\r\n]+\s*/g, " ").trim();
+}
+
+function findProjectMenuItem(
+  items: readonly ProjectMenuItem[],
+  key: string,
+): ProjectMenuItem | null {
+  for (const item of items) {
+    if (item.type === "divider") continue;
+    if (item.key === key) return item;
+    if (item.children?.length) {
+      const child = findProjectMenuItem(item.children, key);
+      if (child) return child;
+    }
+  }
+  return null;
+}
+
+function buildRecentProjectMenuItems(items: readonly ProjectMenuItem[]): ProjectMenuItem[] {
+  return RECENT_PROJECT_MENU_ITEM_KEYS.flatMap((key) => {
+    const item = findProjectMenuItem(items, key);
+    return item ? [item] : [];
+  });
 }
 
 export function HomeRecentProjectsSection({
@@ -112,7 +135,7 @@ export function HomeRecentProjectsSection({
           <ChevronRightIcon className="size-4" aria-hidden="true" />
         </Button>
       </div>
-      <div className="grid grid-flow-col auto-cols-[15rem] gap-4 overflow-x-auto pb-2 [scrollbar-width:none] sm:auto-cols-[16.5rem] md:auto-cols-[18rem] xl:grid-flow-row xl:grid-cols-[repeat(6,minmax(0,1fr))] xl:overflow-visible xl:pb-0 [&::-webkit-scrollbar]:hidden">
+      <div className="grid grid-flow-col auto-cols-[15rem] gap-4 overflow-x-auto pb-2 [scrollbar-width:none] sm:auto-cols-[16.5rem] md:auto-cols-[18rem] xl:grid-flow-row xl:grid-cols-[repeat(4,minmax(0,1fr))] xl:overflow-visible xl:pb-0 [&::-webkit-scrollbar]:hidden">
         <CreateProjectHomeCard
           label={t("ai:AI_CHAT_HOME_CREATE_PROJECT")}
           onClick={openCreateProject}
@@ -121,10 +144,10 @@ export function HomeRecentProjectsSection({
           <RecentProjectCard
             key={project.projectId}
             project={project}
-            createdLabel={t("ai:AI_CHAT_HOME_PROJECT_CREATED_AT", {
-              date: dateTime.formatDateTime(project.createdAt),
+            updatedLabel={t("ai:AI_CHAT_HOME_PROJECT_UPDATED_AT", {
+              date: dateTime.formatDateTime(project.updatedAt),
             })}
-            menuItems={projectMenuActions.buildMenuItems(project)}
+            menuItems={buildRecentProjectMenuItems(projectMenuActions.buildMenuItems(project))}
             editing={projectMenuActions.editingProjectId === project.projectId}
             editingField={projectMenuActions.editingProjectField}
             editingName={projectMenuActions.editingProjectName}
@@ -177,7 +200,7 @@ function CreateProjectHomeCard(props: { label: string; onClick: () => void }) {
 
 function RecentProjectCard(props: {
   project: UserCenterProjectListItem;
-  createdLabel: string;
+  updatedLabel: string;
   menuItems: Parameters<typeof ProjectActionsDropdown>[0]["menuItems"];
   editing: boolean;
   editingField: ProjectEditingField | null;
@@ -254,8 +277,11 @@ function RecentProjectCard(props: {
             onCancel={props.onCancelEdit}
           />
         ) : (
-          <div className="flex shrink-0 items-center overflow-hidden text-caption whitespace-nowrap text-label-secondary">
-            {props.createdLabel}
+          <div
+            className="block min-w-0 max-w-full shrink-0 truncate text-caption text-label-secondary"
+            title={props.updatedLabel}
+          >
+            {props.updatedLabel}
           </div>
         )}
       </div>
