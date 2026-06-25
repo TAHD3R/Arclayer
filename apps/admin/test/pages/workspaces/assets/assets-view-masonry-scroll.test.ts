@@ -3,12 +3,12 @@ import { createElement, useMemo } from "react";
 import { describe, expect, it } from "vitest";
 
 import {
-  resolveAssetsMasonryScrollViewport,
-  useAssetsMasonryScrollState,
-} from "@/pages/workspaces/assets/components/assets-view-masonry-scroll";
+  resolveAdminMasonryScrollViewport,
+  useAdminMasonryScrollState,
+} from "@/components/common/admin-masonry-grid";
 
 function ScrollStateProbe(props: { node: HTMLElement | null; fallbackHeight?: number }) {
-  const state = useAssetsMasonryScrollState(props.node, props.fallbackHeight ?? 500);
+  const state = useAdminMasonryScrollState(props.node, props.fallbackHeight ?? 500);
   const payload = useMemo(() => JSON.stringify(state), [state]);
   return createElement("output", { "data-testid": "scroll-state" }, payload);
 }
@@ -21,7 +21,7 @@ function readScrollState() {
   };
 }
 
-describe("resolveAssetsMasonryScrollViewport", () => {
+describe("resolveAdminMasonryScrollViewport", () => {
   it("skips non-scrolling overflow ancestors and picks the first ancestor with real scroll range", () => {
     const realViewport = document.createElement("div");
     Object.defineProperty(realViewport, "clientHeight", { configurable: true, value: 400 });
@@ -40,7 +40,7 @@ describe("resolveAssetsMasonryScrollViewport", () => {
     realViewport.appendChild(falseViewport);
     document.body.appendChild(realViewport);
 
-    const result = resolveAssetsMasonryScrollViewport(grid);
+    const result = resolveAdminMasonryScrollViewport(grid);
 
     expect(result.kind).toBe("element");
     if (result.kind === "element") expect(result.node).toBe(realViewport);
@@ -56,7 +56,7 @@ describe("resolveAssetsMasonryScrollViewport", () => {
     parent.appendChild(grid);
     document.body.appendChild(parent);
 
-    const result = resolveAssetsMasonryScrollViewport(grid);
+    const result = resolveAdminMasonryScrollViewport(grid);
 
     expect(result).toEqual({ kind: "window" });
   });

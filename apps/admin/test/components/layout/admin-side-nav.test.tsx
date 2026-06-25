@@ -309,9 +309,9 @@ const globalItems: AdminNavItem[] = [
   },
   {
     key: "global.resources",
-    label: "Resources",
+    label: "Inspiration",
     icon: LayoutGrid,
-    to: "/resources",
+    to: "/inspriation",
     insertStarredAfter: true,
   },
   {
@@ -834,8 +834,8 @@ describe("AdminSiderNav collapsed groups", () => {
       .map((button) => button.textContent?.trim())
       .filter(Boolean);
 
-    expect(buttons.indexOf("Home")).toBeLessThan(buttons.indexOf("Resources"));
-    expect(buttons.indexOf("Resources")).toBeLessThan(buttons.indexOf("en-US:nav:NAV_FAVORITES"));
+    expect(buttons.indexOf("Home")).toBeLessThan(buttons.indexOf("Inspiration"));
+    expect(buttons.indexOf("Inspiration")).toBeLessThan(buttons.indexOf("en-US:nav:NAV_FAVORITES"));
     expect(buttons.indexOf("en-US:nav:NAV_FAVORITES")).toBeLessThan(buttons.indexOf("Projects"));
   });
 

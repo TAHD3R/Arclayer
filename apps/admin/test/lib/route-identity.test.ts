@@ -9,4 +9,11 @@ describe("route identity", () => {
     expect(isGlobalPath("/system")).toBe(true);
     expect(isGlobalPath("/system/email")).toBe(true);
   });
+
+  test("uses shared global scene routes for inspiration without capturing project details", () => {
+    expect(isGlobalPath("/inspriation")).toBe(true);
+    expect(isGlobalPath("/inspriation/landing")).toBe(true);
+    expect(isGlobalPath("/projects")).toBe(true);
+    expect(isGlobalPath("/projects/project-alpha")).toBe(false);
+  });
 });

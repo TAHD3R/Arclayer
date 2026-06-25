@@ -12,6 +12,7 @@ describe("global nav regression", () => {
     const platformOverview = GLOBAL_NAV_ITEMS.find(
       (item) => item.key === "global.platform.overview",
     );
+    const resourcesItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.resources");
     const configurationItem = GLOBAL_NAV_ITEMS.find(
       (item) => item.key === "global.platform.configuration",
     );
@@ -23,6 +24,13 @@ describe("global nav regression", () => {
       to: "/projects",
     });
     expect(projectsItem?.children).toBeUndefined();
+    expect(resourcesItem).toMatchObject({
+      key: "global.resources",
+      label: "Inspiration",
+      labelKey: "nav:NAV_RESOURCES",
+      to: "/inspriation",
+    });
+    expect(resourcesItem?.disabled).toBeUndefined();
     expect(platformOverview).toMatchObject({
       key: "global.platform.overview",
       groupLabelBeforeKey: "nav:NAV_SECTION_PLATFORM",

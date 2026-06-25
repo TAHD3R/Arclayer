@@ -18,6 +18,7 @@ import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
 import { Route as NotificationsIndexRouteImport } from './routes/notifications/index'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as InvitationsIndexRouteImport } from './routes/invitations/index'
+import { Route as InspriationIndexRouteImport } from './routes/inspriation/index'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects/$projectId'
 import { Route as SystemTenantsIndexRouteImport } from './routes/system/tenants/index'
 import { Route as SystemSettingsIndexRouteImport } from './routes/system/settings/index'
@@ -106,6 +107,13 @@ const InvitationsIndexRoute = InvitationsIndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any).lazy(() =>
   import('./routes/invitations/index.lazy').then((d) => d.Route),
+)
+const InspriationIndexRoute = InspriationIndexRouteImport.update({
+  id: '/inspriation/',
+  path: '/inspriation/',
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() =>
+  import('./routes/inspriation/index.lazy').then((d) => d.Route),
 )
 const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
   id: '/projects/$projectId',
@@ -394,6 +402,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/system': typeof SystemRouteWithChildren
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
+  '/inspriation/': typeof InspriationIndexRoute
   '/invitations/': typeof InvitationsIndexRoute
   '/login/': typeof LoginIndexRoute
   '/notifications/': typeof NotificationsIndexRoute
@@ -440,6 +449,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/inspriation': typeof InspriationIndexRoute
   '/invitations': typeof InvitationsIndexRoute
   '/login': typeof LoginIndexRoute
   '/notifications': typeof NotificationsIndexRoute
@@ -489,6 +499,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/system': typeof SystemRouteWithChildren
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
+  '/inspriation/': typeof InspriationIndexRoute
   '/invitations/': typeof InvitationsIndexRoute
   '/login/': typeof LoginIndexRoute
   '/notifications/': typeof NotificationsIndexRoute
@@ -539,6 +550,7 @@ export interface FileRouteTypes {
     | '/'
     | '/system'
     | '/projects/$projectId'
+    | '/inspriation/'
     | '/invitations/'
     | '/login/'
     | '/notifications/'
@@ -585,6 +597,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/inspriation'
     | '/invitations'
     | '/login'
     | '/notifications'
@@ -633,6 +646,7 @@ export interface FileRouteTypes {
     | '/'
     | '/system'
     | '/projects/$projectId'
+    | '/inspriation/'
     | '/invitations/'
     | '/login/'
     | '/notifications/'
@@ -682,6 +696,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SystemRoute: typeof SystemRouteWithChildren
   ProjectsProjectIdRoute: typeof ProjectsProjectIdRouteWithChildren
+  InspriationIndexRoute: typeof InspriationIndexRoute
   InvitationsIndexRoute: typeof InvitationsIndexRoute
   LoginIndexRoute: typeof LoginIndexRoute
   NotificationsIndexRoute: typeof NotificationsIndexRoute
@@ -753,6 +768,13 @@ declare module '@tanstack/react-router' {
       path: '/invitations'
       fullPath: '/invitations/'
       preLoaderRoute: typeof InvitationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inspriation/': {
+      id: '/inspriation/'
+      path: '/inspriation'
+      fullPath: '/inspriation/'
+      preLoaderRoute: typeof InspriationIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/projects/$projectId': {
@@ -1134,6 +1156,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SystemRoute: SystemRouteWithChildren,
   ProjectsProjectIdRoute: ProjectsProjectIdRouteWithChildren,
+  InspriationIndexRoute: InspriationIndexRoute,
   InvitationsIndexRoute: InvitationsIndexRoute,
   LoginIndexRoute: LoginIndexRoute,
   NotificationsIndexRoute: NotificationsIndexRoute,

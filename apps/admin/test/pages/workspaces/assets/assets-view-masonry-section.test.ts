@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  getAssetsMasonryDatasetKey,
-  getAssetsMasonryMaxColumnCount,
-  getAssetsMasonryItemKey,
-} from "@/pages/workspaces/assets/components/assets-view-masonry-keys";
+  getAdminMasonryDatasetKey,
+  getAdminMasonryItemKey,
+  getAdminMasonryMaxColumnCount,
+} from "@/components/common/admin-masonry-grid";
 import {
   canRequestAssetsMasonryNextPage,
   getAssetsMasonryVirtualTotalItems,
@@ -15,28 +15,28 @@ import {
 
 describe("AssetsViewMasonrySection", () => {
   it("returns a stable fallback key when masonic asks for a missing item", () => {
-    expect(getAssetsMasonryItemKey(undefined, 7)).toBe("missing:7");
+    expect(getAdminMasonryItemKey(undefined, 7)).toBe("missing:7");
   });
 
   it("returns the real key when the masonry item exists", () => {
-    expect(getAssetsMasonryItemKey({ key: "asset-1" }, 0)).toBe("asset-1");
+    expect(getAdminMasonryItemKey({ key: "asset-1" }, 0)).toBe("asset-1");
   });
 
   it("uses query identity and ordered asset ids for the masonry dataset key", () => {
-    expect(getAssetsMasonryDatasetKey("query-key", ["a", "b", "c"])).toBe("query-key:a|b|c");
+    expect(getAdminMasonryDatasetKey("query-key", ["a", "b", "c"])).toBe("query-key:a|b|c");
   });
 
   it("caps masonry columns based on the available width", () => {
-    expect(getAssetsMasonryMaxColumnCount(0)).toBe(5);
-    expect(getAssetsMasonryMaxColumnCount(900)).toBe(3);
-    expect(getAssetsMasonryMaxColumnCount(3200)).toBe(8);
+    expect(getAdminMasonryMaxColumnCount(0)).toBe(5);
+    expect(getAdminMasonryMaxColumnCount(900)).toBe(3);
+    expect(getAdminMasonryMaxColumnCount(3200)).toBe(8);
   });
 
   it("keeps the previous column count while width is still inside the resize buffer", () => {
-    expect(getAssetsMasonryMaxColumnCount(1080, 4)).toBe(4);
-    expect(getAssetsMasonryMaxColumnCount(1060, 4)).toBe(3);
-    expect(getAssetsMasonryMaxColumnCount(1096, 3)).toBe(3);
-    expect(getAssetsMasonryMaxColumnCount(1116, 3)).toBe(4);
+    expect(getAdminMasonryMaxColumnCount(1080, 4)).toBe(4);
+    expect(getAdminMasonryMaxColumnCount(1060, 4)).toBe(3);
+    expect(getAdminMasonryMaxColumnCount(1096, 3)).toBe(3);
+    expect(getAdminMasonryMaxColumnCount(1116, 3)).toBe(4);
   });
 
   it("reserves one placeholder batch in virtual total when another page exists", () => {

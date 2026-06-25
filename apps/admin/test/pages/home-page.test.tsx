@@ -1,11 +1,13 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ComponentType, ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { listProjects } from "@/api/projects";
 import { HomePage } from "@/pages/home/page";
 import { DEFAULT_AI_CHAT_MODEL, useAiChatStore } from "@/stores/use-ai-chat-store";
 import type { ProjectListItem } from "@arclayer/openapi/admin-types";
+import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 
 const { navigateMock, sendAIChatMessageMock } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
@@ -27,12 +29,12 @@ vi.mock("@assistant-ui/react", async () => {
   const React = await import("react");
 
   return {
-    AssistantRuntimeProvider: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+    AssistantRuntimeProvider: ({ children }: { children?: ReactNode }) => <>{children}</>,
     AuiIf: ({
       children,
       condition: _condition,
     }: {
-      children?: React.ReactNode;
+      children?: ReactNode;
       condition?: (state: {
         thread: { isRunning: boolean; capabilities: { dictation: boolean } };
         composer: { dictation: null; isEmpty: boolean };
@@ -42,11 +44,11 @@ vi.mock("@assistant-ui/react", async () => {
       constructor(public adapters: unknown[]) {}
     },
     ComposerPrimitive: {
-      AddAttachment: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-      AttachmentDropzone: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+      AddAttachment: ({ children }: { children?: ReactNode }) => <>{children}</>,
+      AttachmentDropzone: ({ children }: { children?: ReactNode }) => <>{children}</>,
       Attachments: () => null,
-      Cancel: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-      Dictate: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+      Cancel: ({ children }: { children?: ReactNode }) => <>{children}</>,
+      Dictate: ({ children }: { children?: ReactNode }) => <>{children}</>,
       Input: React.forwardRef<
         HTMLTextAreaElement,
         React.TextareaHTMLAttributes<HTMLTextAreaElement>
@@ -61,7 +63,7 @@ vi.mock("@assistant-ui/react", async () => {
           }}
         />
       )),
-      Root: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+      Root: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
       Send: ({ children }: { children?: React.ReactElement }) =>
         React.isValidElement(children)
           ? React.cloneElement(children, {
@@ -72,7 +74,7 @@ vi.mock("@assistant-ui/react", async () => {
                 }),
             } as React.HTMLAttributes<HTMLElement>)
           : children,
-      StopDictation: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+      StopDictation: ({ children }: { children?: ReactNode }) => <>{children}</>,
     },
     SimpleTextAttachmentAdapter: class SimpleTextAttachmentAdapter {},
     WebSpeechDictationAdapter: {
@@ -99,11 +101,31 @@ vi.mock("@/components/ai/ai-model-selector", () => ({
   AIModelSelector: () => <div data-testid="ai-model-selector" />,
 }));
 
+vi.mock("@/components/common/admin-masonry-grid", async () => {
+  return {
+    AdminMasonryGrid: ({
+      items,
+      render: Render,
+    }: {
+      items: Array<{ key: string }>;
+      render: ComponentType<{ data: { key: string }; index: number; width: number }>;
+    }) => (
+      <div data-testid="admin-masonry-grid">
+        {items.map((item, index) => (
+          <Render key={item.key} data={item} index={index} width={260} />
+        ))}
+      </div>
+    ),
+    getAdminMasonryDatasetKey: (baseKey: string, orderedIds: readonly string[]) =>
+      `${baseKey}:${orderedIds.join("|")}`,
+  };
+});
+
 vi.mock("@arclayer/ui/tooltip", () => ({
-  Tooltip: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-  TooltipContent: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-  TooltipProvider: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-  TooltipTrigger: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+  Tooltip: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  TooltipContent: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  TooltipProvider: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  TooltipTrigger: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
 
 const authState = {
@@ -142,6 +164,35 @@ const labels: Record<string, string> = {
   "ai:AI_CHAT_HOME_INSPIRATION_TITLE": "灵感发现",
   "ai:AI_CHAT_HOME_INSPIRATION_DESC": "让 AI 给出方向",
   "ai:AI_CHAT_HOME_INSPIRATION_PROMPT": "给我一些灵感",
+  "ai:AI_CHAT_HOME_INSPIRATION_SEE_ALL": "查看全部",
+  "ai:AI_CHAT_HOME_INSPIRATION_CATEGORY_ALL": "全部",
+  "ai:AI_CHAT_HOME_INSPIRATION_CATEGORY_LANDING": "落地页",
+  "ai:AI_CHAT_HOME_INSPIRATION_CATEGORY_COMMERCE": "电商",
+  "ai:AI_CHAT_HOME_INSPIRATION_CATEGORY_CONTENT": "内容",
+  "ai:AI_CHAT_HOME_INSPIRATION_CATEGORY_PORTFOLIO": "作品集",
+  "ai:AI_CHAT_HOME_INSPIRATION_CATEGORY_DOCS": "文档",
+  "ai:AI_CHAT_HOME_INSPIRATION_CATEGORY_EVENTS": "活动",
+  "ai:AI_CHAT_HOME_INSPIRATION_CATEGORY_REAL_ESTATE": "地产",
+  "ai:AI_CHAT_HOME_INSPIRATION_TEMPLATE_EDITORIAL_STUDIO_NAME": "Editorial Studio",
+  "ai:AI_CHAT_HOME_INSPIRATION_TEMPLATE_EDITORIAL_STUDIO_DESC": "为品牌观点设计的首页。",
+  "ai:AI_CHAT_HOME_INSPIRATION_TEMPLATE_SAAS_LAUNCH_NAME": "SaaS Launch Desk",
+  "ai:AI_CHAT_HOME_INSPIRATION_TEMPLATE_SAAS_LAUNCH_DESC": "面向 B2B 产品发布。",
+  "ai:AI_CHAT_HOME_INSPIRATION_TEMPLATE_ARCHITECTURE_INDEX_NAME": "Architecture Index",
+  "ai:AI_CHAT_HOME_INSPIRATION_TEMPLATE_ARCHITECTURE_INDEX_DESC": "适合建筑事务所。",
+  "ai:AI_CHAT_HOME_INSPIRATION_TEMPLATE_HOSPITALITY_ROOM_NAME": "Hospitality Room Book",
+  "ai:AI_CHAT_HOME_INSPIRATION_TEMPLATE_HOSPITALITY_ROOM_DESC": "适合酒店和民宿。",
+  "ai:AI_CHAT_HOME_INSPIRATION_TEMPLATE_WORKSPACE_HUB_NAME": "Workspace Hub",
+  "ai:AI_CHAT_HOME_INSPIRATION_TEMPLATE_WORKSPACE_HUB_DESC": "组织服务和案例。",
+  "ai:AI_CHAT_HOME_INSPIRATION_TEMPLATE_COMMERCE_ATELIER_NAME": "Commerce Atelier",
+  "ai:AI_CHAT_HOME_INSPIRATION_TEMPLATE_COMMERCE_ATELIER_DESC": "适合设计师品牌。",
+  "ai:AI_CHAT_HOME_INSPIRATION_TEMPLATE_AGENCY_REPORT_NAME": "Agency Report",
+  "ai:AI_CHAT_HOME_INSPIRATION_TEMPLATE_AGENCY_REPORT_DESC": "展示洞察与方法论。",
+  "ai:AI_CHAT_HOME_INSPIRATION_TEMPLATE_TRAVEL_JOURNAL_NAME": "Travel Journal",
+  "ai:AI_CHAT_HOME_INSPIRATION_TEMPLATE_TRAVEL_JOURNAL_DESC": "沉浸式游记结构。",
+  "ai:AI_CHAT_HOME_INSPIRATION_TEMPLATE_CITY_EVENTS_NAME": "City Events Board",
+  "ai:AI_CHAT_HOME_INSPIRATION_TEMPLATE_CITY_EVENTS_DESC": "组织活动日程。",
+  "ai:AI_CHAT_HOME_INSPIRATION_TEMPLATE_REAL_ESTATE_NAME": "Real Estate Showcase",
+  "ai:AI_CHAT_HOME_INSPIRATION_TEMPLATE_REAL_ESTATE_DESC": "承载地产项目。",
   "ai:AI_CHAT_INPUT_PLACEHOLDER": "询问 AI…",
   "ai:AI_CHAT_SEND": "发送",
   "ai:AI_CHAT_VOICE_INPUT": "语音输入",
@@ -201,7 +252,14 @@ describe("HomePage", () => {
 
     return render(
       <QueryClientProvider client={queryClient}>
-        <HomePage />
+        <ChromeTabsProvider
+          labels={{
+            scrollLeftAriaLabel: "向左滚动",
+            scrollRightAriaLabel: "向右滚动",
+          }}
+        >
+          <HomePage />
+        </ChromeTabsProvider>
       </QueryClientProvider>,
     );
   }
@@ -269,6 +327,29 @@ describe("HomePage", () => {
     expect(routeFrame).toHaveClass("pb-20");
     expect(home).not.toHaveClass("min-h-full");
     expect(hero).toHaveClass("min-h-[clamp(20rem,42vh,28rem)]");
+  });
+
+  it("renders inspiration discovery below recent projects", async () => {
+    authState.accessToken = "token-1";
+    authState.sessionVersion = 1;
+    workspaceState.currentWorkspaceId = "workspace-1";
+    vi.mocked(listProjects).mockResolvedValue({
+      items: [createProjectListItem()],
+      total: 1,
+      page: 1,
+      size: 3,
+      pages: 1,
+      next: null,
+      prev: null,
+    });
+
+    renderHomePage();
+
+    expect(await screen.findByTestId("home-inspiration-section")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "全部" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "落地页" })).toBeInTheDocument();
+    expect(screen.getByText("Editorial Studio")).toBeInTheDocument();
+    expect(screen.getByText("SaaS Launch Desk")).toBeInTheDocument();
   });
 });
 

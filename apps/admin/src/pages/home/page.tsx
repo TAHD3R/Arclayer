@@ -19,6 +19,7 @@ import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 import { appendMessageToText, sendAIChatMessage } from "@/components/ai/ai-chat-runtime";
 import { formatAIChatError } from "@/api/ai";
 import { getUserDisplayName, normalizeUserProfile } from "@/lib/auth/user-profile";
+import { HomeInspirationSection } from "@/pages/home/home-inspiration-section";
 import { HomeRecentProjectsSection } from "@/pages/home/home-recent-projects-section";
 import { useAiChatStore } from "@/stores/use-ai-chat-store";
 import { useAuthStore } from "@/stores/use-auth-store";
@@ -198,7 +199,10 @@ export function HomePage() {
           </div>
         </div>
         {hasRecentProjects ? (
-          <HomeRecentProjectsSection workspaceId={workspaceId} projects={recentProjects} />
+          <>
+            <HomeRecentProjectsSection workspaceId={workspaceId} projects={recentProjects} />
+            <HomeInspirationSection />
+          </>
         ) : null}
       </div>
     </AdminRouteContainer>

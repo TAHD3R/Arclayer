@@ -11,29 +11,29 @@ import {
 
 import type { AdminNavItem } from "@/types/admin-nav";
 import { findActiveTrailNodes } from "@/lib/admin-nav-utils";
+import { GLOBAL_ROUTE_PATHS } from "@/lib/routing/global-routes";
 
 export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
   {
     key: "global.home",
     label: "Home",
     labelKey: "nav:NAV_HOME",
-    to: "/",
+    to: GLOBAL_ROUTE_PATHS.home,
     icon: House,
   },
   {
     key: "global.resources",
-    label: "Resources",
+    label: "Inspiration",
     labelKey: "nav:NAV_RESOURCES",
-    to: "/resources",
+    to: GLOBAL_ROUTE_PATHS.inspiration,
     icon: Rainbow,
-    disabled: true,
     insertStarredAfter: true,
   },
   {
     key: "global.projects",
     label: "All projects",
     labelKey: "nav:NAV_ALL_PROJECTS",
-    to: "/projects",
+    to: GLOBAL_ROUTE_PATHS.projects,
     icon: PanelsTopLeft,
     groupLabelBeforeKey: "nav:NAV_SECTION_PROJECTS",
   },
@@ -80,7 +80,7 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
     key: "global.platform.configuration",
     label: "Configuration",
     labelKey: "nav:NAV_GLOBAL_PLATFORM_CONFIGURATION",
-    to: "/system",
+    to: GLOBAL_ROUTE_PATHS.system,
     icon: Settings2,
   },
 ] as const;

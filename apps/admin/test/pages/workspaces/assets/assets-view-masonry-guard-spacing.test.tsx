@@ -11,10 +11,6 @@ vi.mock("masonic", () => ({
   useResizeObserver: () => vi.fn(),
 }));
 
-vi.mock("@/pages/workspaces/assets/components/assets-view-masonry-scroll", () => ({
-  useAssetsMasonryScrollState: () => ({ scrollTop: 0, isScrolling: false, height: 0 }),
-}));
-
 vi.mock("@/pages/workspaces/assets/components/assets-view-masonry-render-cell", () => ({
   AssetsViewMasonryRenderCell: () => null,
 }));

@@ -1,7 +1,22 @@
+import { GLOBAL_SCENE_ROUTES } from "@/lib/routing/global-routes";
+
 // Centralized route path predicates.
 // All path checks tolerate an optional trailing slash so they work with both
 // TanStack Router's normalized `location.pathname` (no trailing slash) and
 // the browser's raw `window.location.pathname` (may include one).
+
+function normalizePath(pathname: string): string {
+  if (pathname.length > 1 && pathname.endsWith("/")) return pathname.slice(0, -1);
+  return pathname;
+}
+
+function matchesRoute(pathname: string, route: (typeof GLOBAL_SCENE_ROUTES)[number]): boolean {
+  const normalizedPathname = normalizePath(pathname);
+  const routePath = normalizePath(route.path);
+  if (route.match === "exact") return normalizedPathname === routePath;
+  if (routePath === "/") return normalizedPathname === "/";
+  return normalizedPathname === routePath || normalizedPathname.startsWith(`${routePath}/`);
+}
 
 export function isLoginPath(pathname: string): boolean {
   return pathname === "/login" || pathname === "/login/";
@@ -24,12 +39,7 @@ export function isSystemPath(pathname: string): boolean {
 }
 
 export function isGlobalPath(pathname: string): boolean {
-  return (
-    pathname === "/" ||
-    pathname === "/projects" ||
-    pathname === "/projects/" ||
-    isSystemPath(pathname)
-  );
+  return GLOBAL_SCENE_ROUTES.some((route) => matchesRoute(pathname, route));
 }
 
 /** Auth scene paths — login & reset-password (used for layout switching). */

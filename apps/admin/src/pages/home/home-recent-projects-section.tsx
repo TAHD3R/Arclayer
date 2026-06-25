@@ -1,7 +1,7 @@
 import { useCallback, useMemo, type KeyboardEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { ChevronRightIcon, PlusIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { ProjectAvatar, projectAvatarPropsFromIdentity } from "@/components/common/project-avatar";
@@ -10,8 +10,8 @@ import { projectHomePath } from "@/lib/routing/workspace-routing";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { ProjectListItem } from "@arclayer/openapi/admin-types";
 import { cn } from "@arclayer/lib/utils";
-import { Button } from "@arclayer/ui/button";
 
+import { HomeSectionHeader } from "./home-section-header";
 import { ProjectActionDialogs } from "../usercenter/projects/components/usercenter-projects-dialogs";
 import { ProjectActionsDropdown } from "../usercenter/projects/components/project-actions-dropdown";
 import { ProjectInlineNameEditor } from "../usercenter/projects/components/project-inline-name-editor";
@@ -118,23 +118,13 @@ export function HomeRecentProjectsSection({
 
   return (
     <section className="mx-auto w-full max-w-[94rem]" aria-labelledby="home-recent-projects-title">
-      <div
-        className="relative mb-4 flex w-full items-center justify-between"
-        data-testid="home-recent-project-section"
-      >
-        <h2 id="home-recent-projects-title" className="text-title2 text-label-primary">
-          {t("ai:AI_CHAT_HOME_RECENT_PROJECTS")}
-        </h2>
-        <Button
-          type="button"
-          variant="ghost"
-          className="px-2 text-label-secondary hover:text-label-primary"
-          onClick={() => void navigate({ to: "/projects" })}
-        >
-          {t("ai:AI_CHAT_HOME_SEE_ALL_PROJECTS")}
-          <ChevronRightIcon className="size-4" aria-hidden="true" />
-        </Button>
-      </div>
+      <HomeSectionHeader
+        title={t("ai:AI_CHAT_HOME_RECENT_PROJECTS")}
+        actionLabel={t("ai:AI_CHAT_HOME_SEE_ALL_PROJECTS")}
+        titleId="home-recent-projects-title"
+        testId="home-recent-project-section"
+        onAction={() => void navigate({ to: "/projects" })}
+      />
       <div className="grid grid-flow-col auto-cols-[15rem] gap-4 overflow-x-auto pb-2 [scrollbar-width:none] sm:auto-cols-[16.5rem] md:auto-cols-[18rem] xl:grid-flow-row xl:grid-cols-[repeat(4,minmax(0,1fr))] xl:overflow-visible xl:pb-0 [&::-webkit-scrollbar]:hidden">
         <CreateProjectHomeCard
           label={t("ai:AI_CHAT_HOME_CREATE_PROJECT")}
