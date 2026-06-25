@@ -19,7 +19,7 @@ import {
   type ReasoningGroupComponent,
 } from "@assistant-ui/react";
 import { MarkdownText } from "@/components/assistant-ui/markdown-text";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@arclayer/ui/collapsible";
 import { cn } from "@arclayer/lib/utils";
 
 const ANIMATION_DURATION = 200;

@@ -298,7 +298,7 @@ describe("AdminSceneLayout", () => {
     expect(mainPanel).toHaveAttribute("data-floating-panel-boundary");
 
     const separator = screen.getByRole("button", {
-      name: "common:AI_CHAT_RESIZE",
+      name: "ai:AI_CHAT_RESIZE",
     });
     expect(separator).toHaveAttribute("data-sidebar", "rail");
     expect(separator).toHaveAttribute("data-slot", "sidebar-rail");

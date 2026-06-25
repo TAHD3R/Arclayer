@@ -11,7 +11,7 @@ from starlette.responses import StreamingResponse
 from src.config import Settings, get_settings
 from src.core.http.response import ApiResponse, ResponseModel
 from src.llm.runtime import LLMRequestContext, LLMRuntimeError
-from src.modules.ai.schemas import ChatRequest, ChatResponse, ChatUsage, ErrorDetail, ErrorResponse
+from src.modules.ai.schemas import ChatRequest, ChatResponse, ChatUsage
 from src.modules.ai.service import AIChatService
 from src.modules.auth.http.service import get_current_user_id
 
@@ -35,10 +35,8 @@ def _make_context(
         raise HTTPException(
             status_code=403,
             detail={
-                "error": {
-                    "code": "AUTH_NOT_WORKSPACE_MEMBER",
-                    "message": "User is not a member of any active workspace",
-                }
+                "message": "User is not a member of any active workspace",
+                "error": "AUTH_NOT_WORKSPACE_MEMBER",
             },
         )
     try:
@@ -47,10 +45,8 @@ def _make_context(
         raise HTTPException(
             status_code=403,
             detail={
-                "error": {
-                    "code": "AUTH_NOT_WORKSPACE_MEMBER",
-                    "message": "Invalid workspace identifier in session",
-                }
+                "message": "Invalid workspace identifier in session",
+                "error": "AUTH_NOT_WORKSPACE_MEMBER",
             },
         )
 
@@ -172,14 +168,14 @@ def _format_sse(event: str, data: dict) -> str:
 
 def _to_http_exception(exc: LLMRuntimeError) -> HTTPException:
     """Convert an LLMRuntimeError to a FastAPI HTTPException."""
-    detail = ErrorResponse(
-        error=ErrorDetail(code=exc.code, message=exc.message),
-    )
     headers = None
     if exc.code in ("RATE_LIMIT_EXCEEDED",):
         headers = {"Retry-After": "30"}
     return HTTPException(
         status_code=exc.status_code,
-        detail=detail.model_dump(),
+        detail={
+            "message": exc.message,
+            "error": exc.code,
+        },
         headers=headers,
     )

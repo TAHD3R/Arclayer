@@ -3,7 +3,7 @@
 import { type ComponentPropsWithRef, forwardRef } from "react";
 import { Slot } from "radix-ui";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@arclayer/ui/button";
 import { cn } from "@arclayer/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
 

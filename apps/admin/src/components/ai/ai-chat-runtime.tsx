@@ -1,11 +1,48 @@
 import {
   AssistantRuntimeProvider,
+  CompositeAttachmentAdapter,
+  SimpleTextAttachmentAdapter,
+  WebSpeechDictationAdapter,
   useExternalStoreRuntime,
+  type AppendMessage,
   type ThreadMessageLike,
 } from "@assistant-ui/react";
+import { useMemo } from "react";
 
-import { chatStream, type AIChatMessage } from "@/api/ai";
+import { chatStream, formatAIChatError, getAIChatErrorDetails, type AIChatMessage } from "@/api/ai";
 import { useAiChatStore } from "@/stores/use-ai-chat-store";
+
+function messageContentToText(
+  content: AppendMessage["content"] | ThreadMessageLike["content"],
+): string {
+  return typeof content === "string"
+    ? content
+    : Array.isArray(content)
+      ? content.map((part) => (part.type === "text" ? part.text : "")).join("")
+      : "";
+}
+
+function completeAttachmentContentToText(attachments: AppendMessage["attachments"]): string {
+  return (attachments ?? [])
+    .flatMap((attachment) => attachment.content ?? [])
+    .map((part) => {
+      if (part.type === "text") return part.text;
+      return "";
+    })
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+export function appendMessageToText(
+  message: Pick<AppendMessage, "content" | "attachments">,
+): string {
+  return [
+    messageContentToText(message.content),
+    completeAttachmentContentToText(message.attachments),
+  ]
+    .filter((part) => part.trim())
+    .join("\n\n");
+}
 
 /**
  * 将 assistant-ui 的 ThreadMessageLike[] 转为后端 /chat 接受的 AIChatMessage[]。
@@ -13,14 +50,96 @@ import { useAiChatStore } from "@/stores/use-ai-chat-store";
 function toChatMessages(messages: readonly ThreadMessageLike[]): AIChatMessage[] {
   return messages.map((m) => {
     const role: AIChatMessage["role"] = m.role === "assistant" ? "assistant" : "user";
-    const content =
-      typeof m.content === "string"
-        ? m.content
-        : Array.isArray(m.content)
-          ? m.content.map((part) => (part.type === "text" ? part.text : "")).join("")
-          : "";
+    const content = messageContentToText(m.content);
     return { role, content };
   });
+}
+
+function toStoreMessages(messages: readonly ThreadMessageLike[]) {
+  return messages
+    .map((m) => {
+      const role: AIChatMessage["role"] = m.role === "assistant" ? "assistant" : "user";
+      const content = messageContentToText(m.content).trim();
+      return { role, content };
+    })
+    .filter((message) => message.content);
+}
+
+function createDictationAdapter() {
+  if (typeof window === "undefined") return undefined;
+  if (!WebSpeechDictationAdapter.isSupported()) return undefined;
+  return new WebSpeechDictationAdapter({
+    language: navigator.language,
+    continuous: true,
+    interimResults: true,
+  });
+}
+
+export async function sendAIChatMessage(conversationId: string, text: string): Promise<void> {
+  const trimmed = text.trim();
+  if (!trimmed) return;
+
+  const state = useAiChatStore.getState();
+  const conversation = state.conversations.find((c) => c.id === conversationId);
+  if (!conversation) {
+    throw new Error(`AI conversation not found: ${conversationId}`);
+  }
+
+  state.appendMessage(conversationId, { role: "user", content: trimmed });
+  const history = toChatMessages([
+    ...conversation.messages
+      .filter((message) => !(message.role === "assistant" && message.error))
+      .map(
+        (message): ThreadMessageLike => ({
+          role: message.role,
+          content: message.content,
+        }),
+      ),
+    { role: "user", content: trimmed },
+  ]);
+
+  state.appendDelta(conversationId, "");
+  state.setStreaming(true);
+
+  try {
+    for await (const delta of chatStream(history, { model: state.selectedModel })) {
+      useAiChatStore.getState().appendDelta(conversationId, delta);
+    }
+    useAiChatStore.getState().finalizeLastAssistant(conversationId);
+  } catch (err) {
+    const message = formatAIChatError(err);
+    const details = getAIChatErrorDetails(err);
+    useAiChatStore.getState().finalizeLastAssistant(conversationId, {
+      error: true,
+      errorMessage: message,
+      errorDetails: details,
+    });
+  } finally {
+    useAiChatStore.getState().setStreaming(false);
+  }
+}
+
+export async function retryLatestAIChatMessage(conversationId: string): Promise<void> {
+  const state = useAiChatStore.getState();
+  const conversation = state.conversations.find((c) => c.id === conversationId);
+  if (!conversation) {
+    throw new Error(`AI conversation not found: ${conversationId}`);
+  }
+
+  let lastUserIndex = -1;
+  for (let index = conversation.messages.length - 1; index >= 0; index -= 1) {
+    if (conversation.messages[index]?.role === "user") {
+      lastUserIndex = index;
+      break;
+    }
+  }
+  const lastUserMessage = lastUserIndex >= 0 ? conversation.messages[lastUserIndex] : null;
+  if (!lastUserMessage) {
+    throw new Error(`AI conversation has no user message to retry: ${conversationId}`);
+  }
+
+  state.replaceMessages(conversationId, conversation.messages.slice(0, lastUserIndex));
+  await sendAIChatMessage(conversationId, lastUserMessage.content);
 }
 
 /**
@@ -39,52 +158,43 @@ export function AIChatRuntimeProvider({
   const conversation = useAiChatStore(
     (s) => s.conversations.find((c) => c.id === conversationId) ?? null,
   );
-  const appendMessage = useAiChatStore((s) => s.appendMessage);
-  const appendDelta = useAiChatStore((s) => s.appendDelta);
-  const finalizeLastAssistant = useAiChatStore((s) => s.finalizeLastAssistant);
-  const setStreaming = useAiChatStore((s) => s.setStreaming);
+  const streaming = useAiChatStore((s) => s.streaming);
+  const dictationAdapter = useMemo(() => createDictationAdapter(), []);
+  const attachmentAdapter = useMemo(
+    () => new CompositeAttachmentAdapter([new SimpleTextAttachmentAdapter()]),
+    [],
+  );
 
   const messages: ThreadMessageLike[] = (conversation?.messages ?? []).map((m) => ({
     role: m.role,
-    content: m.content,
+    content: m.error ? "" : m.content,
+    status:
+      m.role === "assistant" && m.error
+        ? {
+            type: "incomplete",
+            reason: "error",
+            error: formatAIChatError(m.errorMessage ?? m.content),
+          }
+        : undefined,
+    metadata:
+      m.role === "assistant" && m.error && m.errorDetails
+        ? { custom: { errorDetails: m.errorDetails } }
+        : undefined,
   }));
 
   const runtime = useExternalStoreRuntime({
     messages,
-    isRunning: false,
+    isRunning: streaming,
+    adapters: {
+      attachments: attachmentAdapter,
+      dictation: dictationAdapter,
+    },
     convertMessage: (m: ThreadMessageLike) => m,
-    setMessages: () => {
-      // store 是真源，runtime 回写由 onNew 内部 appendDelta 处理
+    setMessages: (nextMessages: readonly ThreadMessageLike[]) => {
+      useAiChatStore.getState().replaceMessages(conversationId, toStoreMessages(nextMessages));
     },
     onNew: async (message) => {
-      const text =
-        typeof message.content === "string"
-          ? message.content
-          : Array.isArray(message.content)
-            ? message.content.map((p) => (p.type === "text" ? p.text : "")).join("")
-            : "";
-
-      appendMessage(conversationId, { role: "user", content: text });
-      const history = toChatMessages([
-        ...(conversation?.messages ?? []),
-        { role: "user", content: text },
-      ]);
-
-      appendDelta(conversationId, "");
-      setStreaming(true);
-
-      try {
-        for await (const delta of chatStream(history)) {
-          appendDelta(conversationId, delta);
-        }
-        finalizeLastAssistant(conversationId);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "AI 请求失败";
-        appendDelta(conversationId, msg);
-        finalizeLastAssistant(conversationId, { error: true });
-      } finally {
-        setStreaming(false);
-      }
+      await sendAIChatMessage(conversationId, appendMessageToText(message));
     },
   });
 

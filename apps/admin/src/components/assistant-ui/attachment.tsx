@@ -9,9 +9,10 @@ import {
   useAuiState,
   useAui,
 } from "@assistant-ui/react";
+import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/shallow";
-import { Dialog, DialogTitle, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Dialog, DialogTitle, DialogContent, DialogTrigger } from "@arclayer/ui/dialog";
+import { Avatar, AvatarImage, AvatarFallback } from "@arclayer/ui/avatar";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
 import { cn } from "@arclayer/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
@@ -41,7 +42,7 @@ const useAttachmentSrc = () => {
     useShallow((s): { file?: File; src?: string } => {
       if (s.attachment.type !== "image") return {};
       if (s.attachment.file) return { file: s.attachment.file };
-      const src = s.attachment.content?.filter((c) => c.type === "image")[0]?.image;
+      const src = s.attachment.content?.find((c) => c.type === "image")?.image;
       if (!src) return {};
       return { src };
     }),
@@ -160,10 +161,12 @@ const AttachmentUI: FC = () => {
 };
 
 const AttachmentRemove: FC = () => {
+  const { t } = useTranslation(["ai", "common"]);
+
   return (
     <AttachmentPrimitive.Remove asChild>
       <TooltipIconButton
-        tooltip="Remove file"
+        tooltip={t("ai:AI_CHAT_REMOVE_ATTACHMENT")}
         className="aui-attachment-tile-remove text-muted-foreground hover:[&_svg]:text-destructive absolute end-1.5 top-1.5 size-3.5 rounded-full bg-white opacity-100 shadow-sm hover:bg-white! [&_svg]:text-black"
         side="top"
       >
@@ -190,15 +193,17 @@ export const ComposerAttachments: FC = () => {
 };
 
 export const ComposerAddAttachment: FC = () => {
+  const { t } = useTranslation(["ai", "common"]);
+
   return (
     <ComposerPrimitive.AddAttachment asChild>
       <TooltipIconButton
-        tooltip="Add Attachment"
+        tooltip={t("ai:AI_CHAT_ADD_ATTACHMENT")}
         side="bottom"
         variant="ghost"
         size="icon"
         className="aui-composer-add-attachment hover:bg-muted-foreground/15 dark:border-muted-foreground/15 dark:hover:bg-muted-foreground/30 size-7 rounded-full p-1 text-xs font-semibold"
-        aria-label="Add Attachment"
+        aria-label={t("ai:AI_CHAT_ADD_ATTACHMENT")}
       >
         <PlusIcon className="aui-attachment-add-icon size-4.5 stroke-[1.5px]" />
       </TooltipIconButton>

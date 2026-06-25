@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  ComposerAddAttachment,
-  ComposerAttachments,
-  UserMessageAttachments,
-} from "@/components/assistant-ui/attachment";
+import { ComposerAttachments, UserMessageAttachments } from "@/components/assistant-ui/attachment";
 import { MarkdownText } from "@/components/assistant-ui/markdown-text";
 import {
   Reasoning,
@@ -20,7 +16,14 @@ import {
   ToolGroupTrigger,
 } from "@/components/assistant-ui/tool-group";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
-import { Button } from "@/components/ui/button";
+import { retryLatestAIChatMessage } from "@/components/ai/ai-chat-runtime";
+import {
+  AIComposerContextControls,
+  AIComposerInputActions,
+  AIComposerToolbar,
+} from "@/components/ai/ai-composer-toolbar";
+import { useAiChatStore } from "@/stores/use-ai-chat-store";
+import { Button } from "@arclayer/ui/button";
 import { cn } from "@arclayer/lib/utils";
 import {
   ActionBarMorePrimitive,
@@ -34,26 +37,26 @@ import {
   MessagePrimitive,
   SuggestionPrimitive,
   ThreadPrimitive,
+  type MessageState,
+  useAui,
   type ToolCallMessagePartComponent,
   useAuiState,
 } from "@assistant-ui/react";
 import {
   ArrowDownIcon,
-  ArrowUpIcon,
   CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   CopyIcon,
   DownloadIcon,
-  MicIcon,
   MoreHorizontalIcon,
   PencilIcon,
   RefreshCwIcon,
-  SquareIcon,
 } from "lucide-react";
 import {
   createContext,
   useContext,
+  useState,
   type ComponentType,
   type FC,
   type PropsWithChildren,
@@ -84,9 +87,19 @@ export type ThreadProps = {
 
 const EMPTY_COMPONENTS: ThreadComponents = {};
 type ThreadVariant = NonNullable<ThreadProps["variant"]>;
+type MessageContent = MessageState["content"];
 
 const ThreadComponentsContext = createContext<ThreadComponents>(EMPTY_COMPONENTS);
 const ThreadVariantContext = createContext<ThreadVariant>("default");
+
+function messageContentToPlainText(content: MessageContent): string {
+  return content
+    .map((part) => {
+      if (part.type === "text") return part.text;
+      return "";
+    })
+    .join("");
+}
 
 // Startup exposes a loading placeholder thread; treat it as a new chat so
 // the composer mounts centered. Loads after startup keep the docked layout.
@@ -119,7 +132,7 @@ const ThreadRoot: FC<{ isEmpty: boolean; variant: ThreadVariant }> = ({ isEmpty,
         ["--thread-max-width" as string]: isSidebar ? "100%" : "44rem",
         ["--composer-bg" as string]:
           "color-mix(in oklab, var(--color-muted) 30%, var(--color-background))",
-        ["--composer-radius" as string]: isSidebar ? "1.25rem" : "1.5rem",
+        ["--composer-radius" as string]: isSidebar ? "1.5rem" : "1.5rem",
         ["--composer-padding" as string]: "8px",
       }}
     >
@@ -141,7 +154,10 @@ const ThreadRoot: FC<{ isEmpty: boolean; variant: ThreadVariant }> = ({ isEmpty,
 
           <div
             data-slot="aui_message-group"
-            className={cn("mb-14 flex flex-col empty:hidden", isSidebar ? "gap-y-5" : "gap-y-6")}
+            className={cn(
+              "flex flex-col empty:hidden",
+              isSidebar ? "gap-y-5 pb-56" : "mb-14 gap-y-6",
+            )}
           >
             <ThreadPrimitive.Messages>{() => <ThreadMessage />}</ThreadPrimitive.Messages>
           </div>
@@ -180,10 +196,12 @@ const ThreadMessage: FC = () => {
 };
 
 const ThreadScrollToBottom: FC = () => {
+  const { t } = useTranslation(["ai", "common"]);
+
   return (
     <ThreadPrimitive.ScrollToBottom asChild>
       <TooltipIconButton
-        tooltip="Scroll to bottom"
+        tooltip={t("ai:AI_CHAT_SCROLL_TO_BOTTOM")}
         variant="outline"
         className="aui-thread-scroll-to-bottom dark:border-border dark:bg-background dark:hover:bg-accent absolute -top-12 z-10 self-center rounded-full p-4 disabled:invisible"
       >
@@ -194,7 +212,7 @@ const ThreadScrollToBottom: FC = () => {
 };
 
 const ThreadWelcome: FC = () => {
-  const { t } = useTranslation(["common"]);
+  const { t } = useTranslation(["ai", "common"]);
   const variant = useContext(ThreadVariantContext);
   const isSidebar = variant === "sidebar";
 
@@ -203,7 +221,7 @@ const ThreadWelcome: FC = () => {
       <div className="aui-thread-welcome-root mb-6 flex items-start pt-2">
         <div className="min-w-0 rounded-2xl rounded-tl-md border border-border/70 bg-background px-3.5 py-3 shadow-sm">
           <p className="text-callout leading-relaxed text-label-primary">
-            {t("common:AI_CHAT_WELCOME_MESSAGE")}
+            {t("ai:AI_CHAT_WELCOME_MESSAGE")}
           </p>
         </div>
       </div>
@@ -218,7 +236,7 @@ const ThreadWelcome: FC = () => {
       )}
     >
       <h1 className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both text-2xl font-semibold duration-200">
-        {t("common:AI_CHAT_EMPTY_TITLE")}
+        {t("ai:AI_CHAT_EMPTY_TITLE")}
       </h1>
     </div>
   );
@@ -249,115 +267,78 @@ const ThreadSuggestionItem: FC = () => {
 };
 
 const Composer: FC = () => {
-  const { t } = useTranslation(["common"]);
+  const { t } = useTranslation(["ai", "common"]);
   const variant = useContext(ThreadVariantContext);
   const isSidebar = variant === "sidebar";
 
   return (
-    <ComposerPrimitive.Root className="aui-composer-root relative flex w-full min-w-0 flex-col">
+    <ComposerPrimitive.Root
+      className={cn(
+        "aui-composer-root relative flex w-full min-w-0 flex-col",
+        isSidebar && "gap-2",
+      )}
+    >
+      {isSidebar ? <AIComposerContextControls compact /> : null}
       <ComposerPrimitive.AttachmentDropzone asChild>
         <div
           data-slot="aui_composer-shell"
           className={cn(
-            "data-[dragging=true]:border-ring flex w-full min-w-0 flex-col gap-2 rounded-(--composer-radius) bg-(--composer-bg) p-(--composer-padding) shadow-[0_4px_16px_-8px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.04)] transition-[border-color,box-shadow] focus-within:shadow-[0_6px_24px_-8px_rgba(0,0,0,0.12),0_1px_2px_rgba(0,0,0,0.05)] data-[dragging=true]:border-dashed data-[dragging=true]:bg-[color-mix(in_oklab,var(--color-accent)_50%,var(--color-background))] dark:shadow-none",
+            "data-[dragging=true]:border-border flex w-full min-w-0 flex-col gap-2 rounded-(--composer-radius) bg-(--composer-bg) p-(--composer-padding) transition-colors hover:border-border focus-within:border-border data-[dragging=true]:border-dashed data-[dragging=true]:bg-[color-mix(in_oklab,var(--color-accent)_50%,var(--color-background))] dark:shadow-none",
             isSidebar
-              ? "min-h-28 border-0"
-              : "border-border/60 focus-within:border-border dark:border-muted-foreground/15 dark:focus-within:border-muted-foreground/30 border",
+              ? "min-h-[8.5rem] border border-border/60"
+              : "h-[6.5rem] min-h-[6.5rem] border border-border/60 dark:border-muted-foreground/15",
           )}
         >
           <ComposerAttachments />
           <ComposerPrimitive.Input
-            placeholder={t("common:AI_CHAT_INPUT_PLACEHOLDER")}
+            placeholder={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
             className={cn(
-              "aui-composer-input placeholder:text-muted-foreground/80 max-h-32 w-full min-w-0 resize-none bg-transparent px-2.5 py-1 text-callout outline-none",
-              isSidebar ? "min-h-16" : "min-h-10",
+              "aui-composer-input placeholder:text-muted-foreground/80 w-full min-w-0 resize-none bg-transparent px-2.5 py-1 text-callout outline-none [field-sizing:fixed]",
+              isSidebar ? "h-20 min-h-20 max-h-20" : "h-12 min-h-12 max-h-12",
             )}
             rows={1}
             autoFocus
             aria-label="Message input"
           />
-          <ComposerAction />
+          {isSidebar ? <AIComposerInputActions /> : <AIComposerToolbar />}
         </div>
       </ComposerPrimitive.AttachmentDropzone>
     </ComposerPrimitive.Root>
   );
 };
 
-const ComposerAction: FC = () => {
-  return (
-    <div className="aui-composer-action-wrapper relative flex items-center justify-between">
-      <ComposerAddAttachment />
-      <div className="flex items-center gap-1.5">
-        <AuiIf condition={(s) => s.thread.capabilities.dictation}>
-          <AuiIf condition={(s) => s.composer.dictation == null}>
-            <ComposerPrimitive.Dictate asChild>
-              <TooltipIconButton
-                tooltip="Voice input"
-                side="bottom"
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="aui-composer-dictate size-7 rounded-full"
-                aria-label="Start voice input"
-              >
-                <MicIcon className="aui-composer-dictate-icon size-4" />
-              </TooltipIconButton>
-            </ComposerPrimitive.Dictate>
-          </AuiIf>
-          <AuiIf condition={(s) => s.composer.dictation != null}>
-            <ComposerPrimitive.StopDictation asChild>
-              <TooltipIconButton
-                tooltip="Stop dictation"
-                side="bottom"
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="aui-composer-stop-dictation text-destructive size-7 rounded-full"
-                aria-label="Stop voice input"
-              >
-                <SquareIcon className="aui-composer-stop-dictation-icon size-3.5 animate-pulse fill-current" />
-              </TooltipIconButton>
-            </ComposerPrimitive.StopDictation>
-          </AuiIf>
-        </AuiIf>
-        <AuiIf condition={(s) => !s.thread.isRunning}>
-          <ComposerPrimitive.Send asChild>
-            <TooltipIconButton
-              tooltip="Send message"
-              side="bottom"
-              type="button"
-              variant="default"
-              size="icon"
-              className="aui-composer-send size-7 rounded-full"
-              aria-label="Send message"
-            >
-              <ArrowUpIcon className="aui-composer-send-icon size-4.5" />
-            </TooltipIconButton>
-          </ComposerPrimitive.Send>
-        </AuiIf>
-        <AuiIf condition={(s) => s.thread.isRunning}>
-          <ComposerPrimitive.Cancel asChild>
-            <Button
-              type="button"
-              variant="default"
-              size="icon"
-              className="aui-composer-cancel size-7 rounded-full"
-              aria-label="Stop generating"
-            >
-              <SquareIcon className="aui-composer-cancel-icon size-3.5 fill-current" />
-            </Button>
-          </ComposerPrimitive.Cancel>
-        </AuiIf>
-      </div>
-    </div>
-  );
-};
-
 const MessageError: FC = () => {
+  const { t } = useTranslation(["ai", "common"]);
+  const [expanded, setExpanded] = useState(false);
+  const rawSummary = useAuiState((s) =>
+    s.message.status?.type === "incomplete" && s.message.status.reason === "error"
+      ? s.message.status.error
+      : "",
+  );
+  const summary = typeof rawSummary === "string" ? rawSummary : "";
+  const rawDetails = useAuiState((s) => s.message.metadata.custom?.errorDetails);
+  const details = typeof rawDetails === "string" ? rawDetails.trim() : "";
+  const hasDistinctDetails = details.length > 0 && details !== summary.trim();
+
   return (
     <MessagePrimitive.Error>
-      <ErrorPrimitive.Root className="aui-message-error-root border-destructive bg-destructive/10 text-destructive dark:bg-destructive/5 mt-2 rounded-md border p-3 text-sm dark:text-red-200">
-        <ErrorPrimitive.Message className="aui-message-error-message line-clamp-2" />
+      <ErrorPrimitive.Root className="aui-message-error-root border-destructive bg-destructive/10 text-destructive dark:bg-destructive/5 mt-2 overflow-hidden rounded-xl border text-sm dark:text-red-200">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left font-semibold"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((value) => !value)}
+        >
+          <ErrorPrimitive.Message className="aui-message-error-message line-clamp-1 min-w-0 flex-1" />
+          <span className="shrink-0 text-caption font-medium opacity-80">
+            {expanded ? t("ai:AI_CHAT_ERROR_COLLAPSE") : t("ai:AI_CHAT_ERROR_EXPAND")}
+          </span>
+        </button>
+        <div className={cn("border-t border-destructive/25 px-3 py-2", !expanded && "hidden")}>
+          <pre className="aui-message-error-detail max-h-48 overflow-auto whitespace-pre-wrap break-words font-mono text-footnote leading-relaxed">
+            {hasDistinctDetails ? details : t("ai:AI_CHAT_ERROR_NO_DETAILS")}
+          </pre>
+        </div>
       </ErrorPrimitive.Root>
     </MessagePrimitive.Error>
   );
@@ -463,6 +444,9 @@ const AssistantMessage: FC = () => {
 };
 
 const AssistantActionBar: FC = () => {
+  const { t } = useTranslation(["ai", "common"]);
+  const activeId = useAiChatStore((s) => s.activeId);
+
   return (
     <ActionBarPrimitive.Root
       hideWhenRunning
@@ -470,7 +454,7 @@ const AssistantActionBar: FC = () => {
       className="aui-assistant-action-bar-root text-muted-foreground animate-in fade-in col-start-3 row-start-2 -ms-1 flex gap-1 duration-200"
     >
       <ActionBarPrimitive.Copy asChild>
-        <TooltipIconButton tooltip="Copy">
+        <TooltipIconButton tooltip={t("ai:AI_CHAT_ACTION_COPY")}>
           <AuiIf condition={(s) => s.message.isCopied}>
             <CheckIcon className="animate-in zoom-in-50 fade-in duration-200 ease-out" />
           </AuiIf>
@@ -479,14 +463,23 @@ const AssistantActionBar: FC = () => {
           </AuiIf>
         </TooltipIconButton>
       </ActionBarPrimitive.Copy>
-      <ActionBarPrimitive.Reload asChild>
-        <TooltipIconButton tooltip="Refresh">
-          <RefreshCwIcon />
-        </TooltipIconButton>
-      </ActionBarPrimitive.Reload>
+      <TooltipIconButton
+        tooltip={t("ai:AI_CHAT_ACTION_REFRESH")}
+        disabled={!activeId}
+        onClick={() => {
+          if (!activeId)
+            throw new Error("Cannot refresh AI message without an active conversation");
+          void retryLatestAIChatMessage(activeId);
+        }}
+      >
+        <RefreshCwIcon />
+      </TooltipIconButton>
       <ActionBarMorePrimitive.Root>
         <ActionBarMorePrimitive.Trigger asChild>
-          <TooltipIconButton tooltip="More" className="data-[state=open]:bg-accent">
+          <TooltipIconButton
+            tooltip={t("ai:AI_CHAT_ACTION_MORE")}
+            className="data-[state=open]:bg-accent"
+          >
             <MoreHorizontalIcon />
           </TooltipIconButton>
         </ActionBarMorePrimitive.Trigger>
@@ -499,7 +492,7 @@ const AssistantActionBar: FC = () => {
           <ActionBarPrimitive.ExportMarkdown asChild>
             <ActionBarMorePrimitive.Item className="aui-action-bar-more-item hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm outline-none select-none">
               <DownloadIcon className="size-4" />
-              Export as Markdown
+              {t("ai:AI_CHAT_ACTION_EXPORT_MARKDOWN")}
             </ActionBarMorePrimitive.Item>
           </ActionBarPrimitive.ExportMarkdown>
         </ActionBarMorePrimitive.Content>
@@ -535,22 +528,50 @@ const UserMessage: FC = () => {
 };
 
 const UserActionBar: FC = () => {
+  const { t } = useTranslation(["ai", "common"]);
+  const aui = useAui();
+  const activeId = useAiChatStore((s) => s.activeId);
+  const replaceMessages = useAiChatStore((s) => s.replaceMessages);
+  const messageIndex = useAuiState((s) => s.message.index);
+  const messageContent = useAuiState((s) => messageContentToPlainText(s.message.content));
+
+  const editInComposer = () => {
+    if (!activeId) throw new Error("Cannot edit AI message without an active conversation");
+
+    const conversation = useAiChatStore
+      .getState()
+      .conversations.find((item) => item.id === activeId);
+    if (!conversation) throw new Error(`AI conversation not found: ${activeId}`);
+
+    const message = conversation.messages[messageIndex];
+    if (!message || message.role !== "user") {
+      throw new Error(`Cannot edit non-user AI message at index ${messageIndex}`);
+    }
+
+    replaceMessages(activeId, conversation.messages.slice(0, messageIndex));
+    aui.composer().setText(message.content || messageContent);
+  };
+
   return (
     <ActionBarPrimitive.Root
       hideWhenRunning
       autohide="not-last"
       className="aui-user-action-bar-root flex flex-col items-end"
     >
-      <ActionBarPrimitive.Edit asChild>
-        <TooltipIconButton tooltip="Edit" className="aui-user-action-edit">
-          <PencilIcon />
-        </TooltipIconButton>
-      </ActionBarPrimitive.Edit>
+      <TooltipIconButton
+        tooltip={t("ai:AI_CHAT_ACTION_EDIT")}
+        className="aui-user-action-edit"
+        onClick={editInComposer}
+      >
+        <PencilIcon />
+      </TooltipIconButton>
     </ActionBarPrimitive.Root>
   );
 };
 
 const EditComposer: FC = () => {
+  const { t } = useTranslation(["ai", "common"]);
+
   return (
     <MessagePrimitive.Root data-slot="aui_edit-composer-wrapper" className="flex flex-col px-2">
       <ComposerPrimitive.Root className="aui-edit-composer-root border-border/60 dark:border-muted-foreground/15 ms-auto flex w-full max-w-[85%] flex-col rounded-(--composer-radius) border bg-(--composer-bg) shadow-[0_4px_16px_-8px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.04)] dark:shadow-none">
@@ -561,12 +582,12 @@ const EditComposer: FC = () => {
         <div className="aui-edit-composer-footer mx-2.5 mb-2.5 flex items-center gap-1.5 self-end">
           <ComposerPrimitive.Cancel asChild>
             <Button variant="ghost" size="sm" className="h-8 rounded-full px-3.5">
-              Cancel
+              {t("common:CANCEL")}
             </Button>
           </ComposerPrimitive.Cancel>
           <ComposerPrimitive.Send asChild>
             <Button size="sm" className="h-8 rounded-full px-3.5">
-              Update
+              {t("ai:AI_CHAT_ACTION_UPDATE")}
             </Button>
           </ComposerPrimitive.Send>
         </div>
@@ -576,6 +597,8 @@ const EditComposer: FC = () => {
 };
 
 const BranchPicker: FC<BranchPickerPrimitive.Root.Props> = ({ className, ...rest }) => {
+  const { t } = useTranslation(["ai", "common"]);
+
   return (
     <BranchPickerPrimitive.Root
       hideWhenSingleBranch
@@ -586,7 +609,7 @@ const BranchPicker: FC<BranchPickerPrimitive.Root.Props> = ({ className, ...rest
       {...rest}
     >
       <BranchPickerPrimitive.Previous asChild>
-        <TooltipIconButton tooltip="Previous">
+        <TooltipIconButton tooltip={t("common:PREVIOUS")}>
           <ChevronLeftIcon />
         </TooltipIconButton>
       </BranchPickerPrimitive.Previous>
@@ -594,7 +617,7 @@ const BranchPicker: FC<BranchPickerPrimitive.Root.Props> = ({ className, ...rest
         <BranchPickerPrimitive.Number /> / <BranchPickerPrimitive.Count />
       </span>
       <BranchPickerPrimitive.Next asChild>
-        <TooltipIconButton tooltip="Next">
+        <TooltipIconButton tooltip={t("common:NEXT")}>
           <ChevronRightIcon />
         </TooltipIconButton>
       </BranchPickerPrimitive.Next>

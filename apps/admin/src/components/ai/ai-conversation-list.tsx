@@ -31,7 +31,7 @@ function formatRelative(ts: number, formatter: Intl.RelativeTimeFormat): string 
 }
 
 export function AIConversationList() {
-  const { i18n, t } = useTranslation(["common"]);
+  const { i18n, t } = useTranslation(["ai", "common"]);
   const relativeTimeFormatter = useMemo(
     () => new Intl.RelativeTimeFormat(i18n.language, { numeric: "auto" }),
     [i18n.language],
@@ -79,7 +79,7 @@ export function AIConversationList() {
                 onClick={handleCreateConversation}
               >
                 <PlusIcon className="size-4" aria-hidden="true" />
-                <span>{t("common:AI_CHAT_NEW_CONVERSATION")}</span>
+                <span>{t("ai:AI_CHAT_NEW_CONVERSATION")}</span>
               </Button>
             </EmptyHeader>
           </Empty>
@@ -119,7 +119,7 @@ export function AIConversationList() {
                               type="button"
                               variant="ghost"
                               size="icon-sm"
-                              aria-label={t("common:AI_CHAT_DELETE_CONFIRM")}
+                              aria-label={t("ai:AI_CHAT_DELETE_CONFIRM")}
                               className="shrink-0 text-label-secondary hover:text-destructive"
                               onClick={(event) => {
                                 event.stopPropagation();
@@ -137,11 +137,9 @@ export function AIConversationList() {
                     </Item>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>
-                          {t("common:AI_CHAT_DELETE_DIALOG_TITLE")}
-                        </AlertDialogTitle>
+                        <AlertDialogTitle>{t("ai:AI_CHAT_DELETE_DIALOG_TITLE")}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          {t("common:AI_CHAT_DELETE_DIALOG_DESC", { title: conversation.title })}
+                          {t("ai:AI_CHAT_DELETE_DIALOG_DESC", { title: conversation.title })}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -171,7 +169,7 @@ export function AIConversationList() {
             onClick={handleCreateConversation}
           >
             <PlusIcon className="size-4" aria-hidden="true" />
-            <span>{t("common:AI_CHAT_NEW_CONVERSATION")}</span>
+            <span>{t("ai:AI_CHAT_NEW_CONVERSATION")}</span>
           </Button>
         </div>
       ) : null}

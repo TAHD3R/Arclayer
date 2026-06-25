@@ -22,6 +22,76 @@ export interface AIChatResponse {
 
 export interface AIChatOptions {
   signal?: AbortSignal;
+  model?: string;
+}
+
+const MAX_AI_ERROR_DETAIL_LENGTH = 12_000;
+
+export class AIChatRequestError extends Error {
+  readonly details: string;
+  readonly status?: number;
+
+  constructor(message: string, details: string, status?: number) {
+    super(message);
+    this.name = "AIChatRequestError";
+    this.details = details;
+    this.status = status;
+  }
+}
+
+function pickErrorMessage(input: unknown): string | null {
+  if (!input || typeof input !== "object") return null;
+  const record = input as Record<string, unknown>;
+
+  if (typeof record.message === "string" && record.message.trim()) {
+    return record.message.trim();
+  }
+
+  const nested = record.error;
+  if (nested && typeof nested === "object") {
+    const nestedRecord = nested as Record<string, unknown>;
+    if (typeof nestedRecord.message === "string" && nestedRecord.message.trim()) {
+      return nestedRecord.message.trim();
+    }
+  }
+
+  return null;
+}
+
+export function formatAIChatError(error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error || "");
+  const trimmed = raw.trim();
+
+  if (!trimmed) return "AI 请求失败";
+
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    return pickErrorMessage(parsed) ?? trimmed;
+  } catch {
+    return trimmed;
+  }
+}
+
+function formatAIChatErrorDetails(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed) return "";
+
+  const detail = (() => {
+    try {
+      return JSON.stringify(JSON.parse(trimmed) as unknown, null, 2);
+    } catch {
+      return trimmed;
+    }
+  })();
+
+  if (detail.length <= MAX_AI_ERROR_DETAIL_LENGTH) return detail;
+  return `${detail.slice(0, MAX_AI_ERROR_DETAIL_LENGTH)}\n\n[truncated error detail: showing first ${MAX_AI_ERROR_DETAIL_LENGTH} characters]`;
+}
+
+export function getAIChatErrorDetails(error: unknown): string {
+  if (error instanceof AIChatRequestError) return error.details;
+  if (error instanceof Error) return error.message;
+  return String(error || "");
 }
 
 export async function chat(
@@ -30,7 +100,7 @@ export async function chat(
 ): Promise<AIChatResponse> {
   return api.post<AIChatResponse>(
     "/chat",
-    { messages },
+    { messages, model: options?.model },
     options?.signal ? { signal: options.signal } : undefined,
   );
 }
@@ -58,13 +128,18 @@ export async function* chatStream(
   const response = await fetch(url, {
     method: "POST",
     headers,
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({ messages, model: options?.model }),
     signal: options?.signal,
   });
 
   if (!response.ok) {
     const errorBody = await response.text().catch(() => "");
-    throw new Error(errorBody || `Chat API error: ${response.status} ${response.statusText}`);
+    const raw = errorBody || `Chat API error: ${response.status} ${response.statusText}`;
+    throw new AIChatRequestError(
+      formatAIChatError(raw),
+      formatAIChatErrorDetails(raw),
+      response.status,
+    );
   }
 
   if (!response.body) {
@@ -77,6 +152,7 @@ export async function* chatStream(
   let currentEvent = "";
 
   while (true) {
+    // eslint-disable-next-line no-await-in-loop -- ReadableStream chunks must be consumed sequentially.
     const { done, value } = await reader.read();
     if (done) break;
 
@@ -95,13 +171,11 @@ export async function* chatStream(
         } else if (line.startsWith("data:")) {
           const data = line.replace(/^data:\s*/, "");
           if (data === "[DONE]") return;
+          if (currentEvent === "error") {
+            throw new AIChatRequestError(formatAIChatError(data), formatAIChatErrorDetails(data));
+          }
           try {
             const parsed = JSON.parse(data) as Record<string, unknown>;
-            if (currentEvent === "error") {
-              const message =
-                typeof parsed.message === "string" ? parsed.message : "Chat stream error";
-              throw new Error(message);
-            }
             if (currentEvent === "message.delta") {
               if (typeof parsed.content === "string") {
                 yield parsed.content;

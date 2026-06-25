@@ -779,11 +779,9 @@ class TestEndToEndChatFlow:
 
         assert response.status_code == 402
         body = response.json()
-        detail = body.get("detail", body)
-        if isinstance(detail, dict):
-            error = detail.get("error", detail)
-            assert error.get("code") == "BUDGET_EXCEEDED"
-            assert "Budget limit" in error.get("message", "")
+        envelope = body.get("detail", body)
+        assert envelope["error"] == "BUDGET_EXCEEDED"
+        assert "Budget limit" in envelope["message"]
 
     async def test_chat_endpoint_validates_request(self) -> None:
         """Verify the endpoint validates required fields."""

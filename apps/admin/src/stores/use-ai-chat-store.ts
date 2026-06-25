@@ -4,12 +4,18 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { STORAGE_KEYS } from "@/constants/storage";
 
 export type AIChatRole = "user" | "assistant";
+export type AIComposerMode = "build" | "plan";
+export type AIReasoningEffort = "low" | "medium" | "high";
 
 export interface AIChatMessage {
   role: AIChatRole;
   content: string;
   /** 标记assistant消息为错误态（显式展示，不静默吞） */
   error?: boolean;
+  /** assistant-ui ErrorPrimitive 展示的产品化错误文案 */
+  errorMessage?: string;
+  /** 展开错误时展示的原始或结构化详情 */
+  errorDetails?: string;
   /** 流式生成中的临时标记 */
   streaming?: boolean;
 }
@@ -26,6 +32,9 @@ export interface AIChatState {
   conversations: AIConversation[];
   activeId: string | null;
   streaming: boolean;
+  selectedModel: string;
+  selectedReasoningEffort: AIReasoningEffort;
+  composerMode: AIComposerMode;
   /** 侧边 AI 面板展开状态（全局 overlay） */
   drawerOpen: boolean;
 
@@ -34,17 +43,27 @@ export interface AIChatState {
   selectConversation: (id: string) => void;
   deleteConversation: (id: string) => void;
   appendMessage: (convId: string, msg: AIChatMessage) => void;
+  replaceMessages: (convId: string, messages: AIChatMessage[]) => void;
   /** 流式追加 delta 到末条 assistant 消息；若无则新建 */
   appendDelta: (convId: string, delta: string) => void;
   /** 标记末条 streaming 消息为完成或错误 */
-  finalizeLastAssistant: (convId: string, opts?: { error?: boolean }) => void;
+  finalizeLastAssistant: (
+    convId: string,
+    opts?: { error?: boolean; errorMessage?: string; errorDetails?: string },
+  ) => void;
   setStreaming: (b: boolean) => void;
+  setSelectedModel: (model: string) => void;
+  setSelectedReasoningEffort: (effort: AIReasoningEffort) => void;
+  setComposerMode: (mode: AIComposerMode) => void;
   openDrawer: () => void;
   closeDrawer: () => void;
   toggleDrawer: () => void;
 }
 
 const MAX_CONVERSATIONS = 50;
+export const DEFAULT_AI_CHAT_MODEL = "gpt-4o-mini";
+export const DEFAULT_AI_REASONING_EFFORT: AIReasoningEffort = "medium";
+export const DEFAULT_AI_COMPOSER_MODE: AIComposerMode = "build";
 
 function newId(): string {
   return crypto.randomUUID();
@@ -66,6 +85,9 @@ export const useAiChatStore = create<AIChatState>()(
       conversations: [],
       activeId: null,
       streaming: false,
+      selectedModel: DEFAULT_AI_CHAT_MODEL,
+      selectedReasoningEffort: DEFAULT_AI_REASONING_EFFORT,
+      composerMode: DEFAULT_AI_COMPOSER_MODE,
       drawerOpen: false,
 
       createConversation: () => {
@@ -118,6 +140,13 @@ export const useAiChatStore = create<AIChatState>()(
           }),
         })),
 
+      replaceMessages: (convId, messages) =>
+        set((state) => ({
+          conversations: state.conversations.map((c) =>
+            c.id === convId ? { ...c, messages, updatedAt: now() } : c,
+          ),
+        })),
+
       appendDelta: (convId, delta) =>
         set((state) => ({
           conversations: state.conversations.map((c) => {
@@ -144,6 +173,8 @@ export const useAiChatStore = create<AIChatState>()(
                 ...last,
                 streaming: false,
                 error: opts?.error ?? false,
+                errorMessage: opts?.errorMessage,
+                errorDetails: opts?.errorDetails,
               };
             }
             return { ...c, messages };
@@ -151,6 +182,13 @@ export const useAiChatStore = create<AIChatState>()(
         })),
 
       setStreaming: (b) => set({ streaming: b }),
+      setSelectedModel: (model) => {
+        const next = model.trim();
+        if (!next) return;
+        set({ selectedModel: next });
+      },
+      setSelectedReasoningEffort: (effort) => set({ selectedReasoningEffort: effort }),
+      setComposerMode: (mode) => set({ composerMode: mode }),
 
       openDrawer: () => set({ drawerOpen: true }),
       closeDrawer: () => set({ drawerOpen: false }),
@@ -164,6 +202,9 @@ export const useAiChatStore = create<AIChatState>()(
       partialize: (s) => ({
         conversations: s.conversations,
         activeId: s.activeId,
+        selectedModel: s.selectedModel,
+        selectedReasoningEffort: s.selectedReasoningEffort,
+        composerMode: s.composerMode,
       }),
     },
   ),

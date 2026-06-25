@@ -29,6 +29,13 @@ _HTTP_ERROR_MAP = {
 logger = get_logger(__name__)
 
 
+def _http_error_code_for_status(status_code: int) -> str:
+    return _HTTP_ERROR_MAP.get(
+        status_code,
+        "INTERNAL_ERROR" if status_code >= 500 else "HTTP_ERROR",
+    )
+
+
 def _exc_info_tuple(exc: BaseException) -> tuple[type[BaseException], BaseException, Any] | None:
     """
     Build an explicit exc_info tuple for logging.
@@ -64,6 +71,49 @@ def _sanitize_details(details: Any) -> Any:
     if isinstance(details, (list, tuple, set)):
         return [_sanitize_details(value) for value in details]
     return str(details)
+
+
+def _scalar_to_str(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, (str, int, float, bool)):
+        text = str(value).strip()
+        return text or None
+    return None
+
+
+def _normalize_http_exception_detail(
+    detail: Any,
+    *,
+    status_code: int,
+) -> tuple[str, str, Any | None]:
+    default_error = _http_error_code_for_status(status_code)
+
+    if isinstance(detail, dict):
+        raw_error = detail.get("error")
+        raw_details = detail.get("details")
+        raw_message = detail.get("message") or detail.get("detail")
+
+        nested_error_message: Any | None = None
+        nested_error_details: Any | None = None
+        if isinstance(raw_error, dict):
+            error = (
+                _scalar_to_str(raw_error.get("code"))
+                or _scalar_to_str(raw_error.get("error"))
+                or _scalar_to_str(raw_error.get("type"))
+                or default_error
+            )
+            nested_error_message = raw_error.get("message")
+            nested_error_details = raw_error.get("details")
+        else:
+            error = _scalar_to_str(raw_error) or default_error
+
+        message = _scalar_to_str(raw_message) or _scalar_to_str(nested_error_message) or default_error
+        details = raw_details if raw_details is not None else nested_error_details
+        return message, error, details
+
+    message = _scalar_to_str(detail) or default_error
+    return message, default_error, None
 
 
 def _build_response(
@@ -155,19 +205,10 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
         if exc.status_code >= 500:
             logger.exception("HTTPException", exc_info=_exc_info_tuple(exc), **log_fields)
 
-        message = "BAD_REQUEST"
-        error: str | None = None
-        details: Any | None = None
-
-        if isinstance(exc.detail, dict):
-            message = str(exc.detail.get("message") or exc.detail.get("detail") or message)
-            error = exc.detail.get("error")
-            details = exc.detail.get("details")
-        elif exc.detail:
-            message = str(exc.detail)
-
-        if error is None:
-            error = _HTTP_ERROR_MAP.get(exc.status_code, "INTERNAL_ERROR" if exc.status_code >= 500 else "HTTP_ERROR")
+        message, error, details = _normalize_http_exception_detail(
+            exc.detail,
+            status_code=exc.status_code,
+        )
 
         request.state.error_code = error
         request.state.error_message = message

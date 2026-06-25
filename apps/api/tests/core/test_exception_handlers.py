@@ -69,6 +69,67 @@ async def test_http_exception_handler(monkeypatch, tmp_path: Path) -> None:
     assert payload["error"] == "NOT_FOUND"
 
 
+async def test_http_exception_handler_normalizes_nested_error_detail(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    _configure_logging_env(monkeypatch, tmp_path)
+    app = create_app()
+
+    @app.get("/nested-error")
+    def nested_error() -> None:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "message": "User is not a member of any active workspace",
+                "error": {
+                    "code": "AUTH_NOT_WORKSPACE_MEMBER",
+                    "message": "User is not a member of any active workspace",
+                },
+            },
+        )
+
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with app.router.lifespan_context(app):
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get("/nested-error", headers={"X-Locale": "en-US"})
+
+    assert response.status_code == 403
+    payload = response.json()
+    assert payload["message"] == "User is not a member of any active workspace"
+    assert payload["error"] == "AUTH_NOT_WORKSPACE_MEMBER"
+    assert "unhashable type" not in response.text
+
+
+async def test_http_exception_handler_falls_back_for_non_scalar_error(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    _configure_logging_env(monkeypatch, tmp_path)
+    app = create_app()
+
+    @app.get("/bad-shape")
+    def bad_shape() -> None:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": "Bad shape",
+                "error": {"message": "Nested only"},
+            },
+        )
+
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with app.router.lifespan_context(app):
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get("/bad-shape", headers={"X-Locale": "en-US"})
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["message"] == "Bad request"
+    assert payload["error"] == "BAD_REQUEST"
+    assert "unhashable type" not in response.text
+
+
 async def test_request_validation_handler(monkeypatch, tmp_path: Path) -> None:
     _configure_logging_env(monkeypatch, tmp_path)
     app = create_app()

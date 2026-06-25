@@ -67,7 +67,7 @@ export function AdminSceneLayout({
   routeTransitionClassName = "w-full",
   children,
 }: AdminSceneLayoutProps) {
-  const { t } = useTranslation(["common"]);
+  const { t } = useTranslation(["ai", "common"]);
   const accessToken = useAuthStore((s) => s.accessToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const showNotificationsBadge = usePreferencesStore((s) => s.showNotificationsBadge);
@@ -306,7 +306,7 @@ export function AdminSceneLayout({
             type="button"
             data-sidebar="rail"
             data-slot="sidebar-rail"
-            aria-label={t("common:AI_CHAT_RESIZE")}
+            aria-label={t("ai:AI_CHAT_RESIZE")}
             tabIndex={-1}
             onPointerDown={handleAiDrawerResizePointerDown}
             className={cn(

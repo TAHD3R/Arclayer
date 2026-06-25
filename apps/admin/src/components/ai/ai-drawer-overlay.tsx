@@ -31,7 +31,7 @@ function DrawerIconButton(props: { label: string; onClick: () => void; children:
 }
 
 export function AIDrawerOverlay(props: { widthPx: number }) {
-  const { t } = useTranslation(["common"]);
+  const { t } = useTranslation(["ai", "common"]);
   const drawerOpen = useAiChatStore((s) => s.drawerOpen);
   const activeId = useAiChatStore((s) => s.activeId);
   const conversations = useAiChatStore((s) => s.conversations);
@@ -39,7 +39,7 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
   const renameConversation = useAiChatStore((s) => s.renameConversation);
   const closeDrawer = useAiChatStore((s) => s.closeDrawer);
   const activeConversation = conversations.find((conversation) => conversation.id === activeId);
-  const conversationTitle = activeConversation?.title ?? t("common:AI_CHAT_NEW_CONVERSATION");
+  const conversationTitle = activeConversation?.title ?? t("ai:AI_CHAT_NEW_CONVERSATION");
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(conversationTitle);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
@@ -103,12 +103,12 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
       )}
       style={drawerOpen ? { width: props.widthPx } : undefined}
       aria-hidden={!drawerOpen}
-      aria-label={t("common:AI_CHAT_ASK")}
+      aria-label={t("ai:AI_CHAT_ASK")}
     >
       {drawerOpen ? (
         <div className="flex h-full w-full flex-col">
           <div className="flex h-[61px] shrink-0 items-center gap-2">
-            <DrawerIconButton label={t("common:AI_CHAT_HIDE")} onClick={closeDrawer}>
+            <DrawerIconButton label={t("ai:AI_CHAT_HIDE")} onClick={closeDrawer}>
               <PanelRightClose className="size-4" aria-hidden="true" />
             </DrawerIconButton>
 
@@ -117,7 +117,7 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
                 <Input
                   ref={titleInputRef}
                   value={titleDraft}
-                  aria-label={t("common:AI_CHAT_RENAME")}
+                  aria-label={t("ai:AI_CHAT_RENAME")}
                   onChange={(event) => setTitleDraft(event.target.value)}
                   onBlur={commitTitle}
                   onKeyDown={(event) => {
@@ -143,7 +143,7 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
                       {conversationTitle}
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent>{t("common:AI_CHAT_RENAME")}</TooltipContent>
+                  <TooltipContent>{t("ai:AI_CHAT_RENAME")}</TooltipContent>
                 </Tooltip>
               )}
             </div>
@@ -162,7 +162,7 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
               <TooltipContent>{t("common:TOPBAR_FEEDBACK")}</TooltipContent>
             </Tooltip>
             <DrawerIconButton
-              label={t("common:AI_CHAT_NEW_CONVERSATION")}
+              label={t("ai:AI_CHAT_NEW_CONVERSATION")}
               onClick={handleCreateConversation}
             >
               <PlusIcon className="size-4" aria-hidden="true" />
@@ -175,7 +175,7 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
               </AIChatRuntimeProvider>
             ) : (
               <div className="flex h-full items-center justify-center text-center text-callout text-label-secondary">
-                {t("common:AI_CHAT_EMPTY_HINT")}
+                {t("ai:AI_CHAT_EMPTY_HINT")}
               </div>
             )}
           </div>

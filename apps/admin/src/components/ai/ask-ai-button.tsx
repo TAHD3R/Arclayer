@@ -4,8 +4,8 @@ import { useTranslation } from "react-i18next";
 import { useAiChatStore } from "@/stores/use-ai-chat-store";
 import { Button } from "@arclayer/ui/button";
 
-export function AskAiButton({ labelKey = "common:AI_CHAT_ASK" }: { labelKey?: string }) {
-  const { t } = useTranslation(["common"]);
+export function AskAiButton({ labelKey = "ai:AI_CHAT_ASK" }: { labelKey?: string }) {
+  const { t } = useTranslation(["ai", "common"]);
   const drawerOpen = useAiChatStore((s) => s.drawerOpen);
   const toggleDrawer = useAiChatStore((s) => s.toggleDrawer);
   const label = t(labelKey);
