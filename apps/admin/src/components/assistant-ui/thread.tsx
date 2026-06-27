@@ -288,7 +288,7 @@ const Composer: FC = () => {
         <div
           data-slot="aui_composer-shell"
           className={cn(
-            "flex w-full min-w-0 flex-col gap-2 rounded-(--composer-radius) bg-(--composer-bg) p-(--composer-padding) transition-colors hover:border-border focus-within:border-border dark:shadow-none",
+            "relative flex w-full min-w-0 flex-col gap-2 rounded-(--composer-radius) bg-(--composer-bg) p-(--composer-padding) transition-colors hover:border-border focus-within:border-border dark:shadow-none",
             isSidebar
               ? "min-h-[8.5rem] !rounded-t-none border border-border/60 backdrop-blur-xl"
               : "h-[6.5rem] min-h-[6.5rem] border border-border/60 dark:border-muted-foreground/15",

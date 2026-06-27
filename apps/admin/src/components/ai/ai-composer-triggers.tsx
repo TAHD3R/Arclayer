@@ -34,11 +34,24 @@ function composerTriggerItemClassName(index: number) {
   );
 }
 
+type AIComposerTriggersProps = {
+  placement?: "top" | "bottom";
+};
+
+function composerTriggerPopoverClassName(
+  placement: NonNullable<AIComposerTriggersProps["placement"]>,
+) {
+  return cn(
+    "absolute inset-x-3 z-20 max-h-64 overflow-y-auto rounded-xl border border-border/70 bg-popover p-1.5 text-popover-foreground shadow-lg",
+    placement === "bottom" ? "top-full mt-2" : "bottom-full mb-2",
+  );
+}
+
 function actionDirective(id: string, label: string, prompt: string) {
   return `:action[${label}]{name=${id}} ${prompt}`;
 }
 
-export function AIComposerTriggers() {
+export function AIComposerTriggers({ placement = "top" }: AIComposerTriggersProps) {
   const { t } = useTranslation(["ai"]);
   const aui = useAui();
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -179,7 +192,7 @@ export function AIComposerTriggers() {
         adapter={mention.adapter}
         isLoading={isFetchingProjects}
         aria-label={t("ai:AI_CHAT_PROJECT_MENTION_LABEL")}
-        className="absolute inset-x-3 bottom-full z-20 mb-2 max-h-64 overflow-y-auto rounded-xl border border-border/70 bg-popover p-1.5 text-popover-foreground shadow-lg"
+        className={composerTriggerPopoverClassName(placement)}
       >
         <ComposerPrimitive.Unstable_TriggerPopover.Directive {...mention.directive} />
         <ComposerPrimitive.Unstable_TriggerPopoverItems>
@@ -210,7 +223,7 @@ export function AIComposerTriggers() {
         char="/"
         adapter={slash.adapter}
         aria-label={t("ai:AI_CHAT_COMMAND_MENU_LABEL")}
-        className="absolute inset-x-3 bottom-full z-20 mb-2 max-h-64 overflow-y-auto rounded-xl border border-border/70 bg-popover p-1.5 text-popover-foreground shadow-lg"
+        className={composerTriggerPopoverClassName(placement)}
       >
         <ComposerPrimitive.Unstable_TriggerPopover.Action {...slash.action} />
         <ComposerPrimitive.Unstable_TriggerPopoverItems>

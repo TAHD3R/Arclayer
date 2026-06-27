@@ -249,7 +249,7 @@ function HomeComposer({
       <ComposerPrimitive.Unstable_TriggerPopoverRoot>
         <ComposerPrimitive.Root className="aui-home-composer-root relative flex w-full min-w-0 flex-col">
           <ComposerQueue />
-          <div className="flex min-h-[8.75rem] w-full min-w-0 flex-col gap-3 rounded-[1.75rem] border border-border/70 bg-[color-mix(in_oklab,var(--color-muted)_30%,var(--color-background))] p-3 transition-colors hover:border-border focus-within:border-border">
+          <div className="relative flex min-h-[8.75rem] w-full min-w-0 flex-col gap-3 rounded-[1.75rem] border border-border/70 bg-[color-mix(in_oklab,var(--color-muted)_30%,var(--color-background))] p-3 transition-colors hover:border-border focus-within:border-border">
             <AIComposerDirectiveChips scope="home" />
             <ComposerPrimitive.Input
               ref={inputRef}
@@ -259,7 +259,7 @@ function HomeComposer({
               aria-label={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
               className="h-20 min-h-20 max-h-20 w-full min-w-0 resize-none bg-transparent px-3 py-2 text-callout leading-relaxed text-label-primary outline-none [field-sizing:fixed] placeholder:text-label-secondary"
             />
-            <AIComposerTriggers />
+            <AIComposerTriggers placement="bottom" />
             <AIComposerToolbar />
           </div>
           <AISuggestions className="mt-3 flex w-full flex-wrap items-center justify-center gap-2 px-2" />
