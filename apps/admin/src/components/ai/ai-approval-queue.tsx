@@ -9,7 +9,7 @@ import {
   ShieldCheckIcon,
   XIcon,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -240,14 +240,23 @@ function ApprovalRow(props: {
   const display = buildApprovalDisplay(props.approval, t);
   const editTarget = editTargetForApproval(props.approval);
   const status = approvalStatusDisplay(props.approval.status, t);
+  const approvalPatchText = useMemo(
+    () => formatJsonObject(readApprovalEditPatch(props.approval)),
+    [props.approval],
+  );
+  const approvalSummary = readString(props.approval.proposedPatch.changeSummary);
   const [editing, setEditing] = useState(false);
-  const [patchText, setPatchText] = useState(() =>
-    formatJsonObject(readApprovalEditPatch(props.approval)),
-  );
-  const [summary, setSummary] = useState(() =>
-    readString(props.approval.proposedPatch.changeSummary),
-  );
+  const [patchText, setPatchText] = useState(() => approvalPatchText);
+  const [summary, setSummary] = useState(() => approvalSummary);
   const [editError, setEditError] = useState<string | null>(null);
+  const approvalEditVersion = `${props.approval.id}:${props.approval.updatedAt}`;
+
+  useEffect(() => {
+    setPatchText(approvalPatchText);
+    setSummary(approvalSummary);
+    setEditError(null);
+    setEditing(false);
+  }, [approvalEditVersion, approvalPatchText, approvalSummary]);
   const canModify = props.approval.status === "pending" && editTarget !== null;
 
   const submitModify = () => {

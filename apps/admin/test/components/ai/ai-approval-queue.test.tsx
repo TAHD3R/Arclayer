@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -435,6 +435,69 @@ describe("AIApprovalQueue", () => {
 
     expect(await screen.findByText("Proposal patch must be a JSON object.")).toBeInTheDocument();
     expect(modifyAIAgentApproval).not.toHaveBeenCalled();
+  });
+
+  it("resets approval edit drafts when a refreshed approval version arrives", async () => {
+    const user = userEvent.setup();
+    const { queryClient } = renderQueue();
+
+    await waitFor(() =>
+      expect(screen.getAllByRole("button", { name: "Edit proposal" })).toHaveLength(2),
+    );
+    await user.click(screen.getAllByRole("button", { name: "Edit proposal" })[0]);
+    const fieldsInput = screen.getByRole("textbox", { name: "Proposed fields JSON" });
+    await user.clear(fieldsInput);
+    await user.click(fieldsInput);
+    await user.paste(JSON.stringify({ title: "Unsaved stale title" }));
+
+    act(() => {
+      queryClient.setQueryData(["ai", "agent-approvals", "project-1", "actionable"], {
+        approvals: [
+          {
+            id: "approval-1",
+            requesterUserId: "user-1",
+            skillId: "content.writer",
+            action: "content_item.update_draft",
+            targetType: "content_item",
+            targetId: "item-1",
+            expectedDraftVersion: 2,
+            targetSnapshot: {
+              title: "Launch note",
+              modelKey: "article",
+              draftVersion: 2,
+            },
+            proposedPatch: {
+              fieldsSnapshot: { title: "Backend refreshed title" },
+              changeSummary: "Backend refreshed summary",
+            },
+            dryRun: {
+              willApply: false,
+              requiresApproval: true,
+              expectedDraftVersion: 2,
+              fieldChanges: [{ field: "title", before: "Old", after: "Backend refreshed title" }],
+            },
+            status: "pending",
+            expiresAt: "2026-06-27T00:00:00.000Z",
+            createdAt: "2026-06-26T00:00:00.000Z",
+            updatedAt: "2026-06-26T00:20:00.000Z",
+          },
+        ],
+      });
+    });
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("textbox", { name: "Proposed fields JSON" }),
+      ).not.toBeInTheDocument(),
+    );
+    await user.click(screen.getByRole("button", { name: "Edit proposal" }));
+
+    expect(screen.getByRole("textbox", { name: "Proposed fields JSON" })).toHaveValue(
+      JSON.stringify({ title: "Backend refreshed title" }, null, 2),
+    );
+    expect(screen.getByRole("textbox", { name: "Proposal change summary" })).toHaveValue(
+      "Backend refreshed summary",
+    );
   });
 
   it("applies approved approvals", async () => {
