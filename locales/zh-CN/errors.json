@@ -42,6 +42,8 @@
   "API_KEY_SCOPE_INVALID_FOR_PERSONAL": "API密钥作用域不合法for个人",
   "API_KEY_SCOPE_INVALID_FOR_WORKSPACE": "API密钥作用域不合法for工作空间",
   "API_KEY_SITE_MISMATCH": "API密钥站点不匹配",
+  "AI_PROVIDER_MASTER_KEY_REQUIRED": "系统未配置 AI 主密钥，无法保存 Provider 密钥",
+  "AI_PROVIDER_NOT_FOUND": "AI Provider 不存在",
   "ASSET_BULK_UPDATE_GOVERNANCE_FAILED": "部分资源不满足用途、可见性或索引规则",
   "ASSET_BULK_UPDATE_INVALID": "请至少选择一个要修改的字段",
   "ASSET_FILE_NOT_FOUND": "文件不存在",

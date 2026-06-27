@@ -6,8 +6,10 @@ import { useTranslation } from "react-i18next";
 import { Thread } from "@/components/assistant-ui/thread";
 import { AIApprovalQueue } from "@/components/ai/ai-approval-queue";
 import { AIChatRuntimeProvider } from "@/components/ai/ai-chat-runtime";
-import { AIContextRecommendations } from "@/components/ai/ai-context-recommendations";
 import { AIContentProposalCard } from "@/components/ai/ai-content-proposal-card";
+import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
+import { getUserDisplayName } from "@/lib/auth/user-profile";
+import { useAuthStore } from "@/stores/use-auth-store";
 import {
   ensureAIConversationPersistedForRuntime,
   loadAIConversations,
@@ -44,6 +46,8 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
   const drawerOpen = useAiChatStore((s) => s.drawerOpen);
   const activeId = useAiChatStore((s) => s.activeId);
   const conversations = useAiChatStore((s) => s.conversations);
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const { profile } = useCurrentUserProfile();
   const createConversation = useAiChatStore((s) => s.createConversation);
   const closeDrawer = useAiChatStore((s) => s.closeDrawer);
   const routeLocation = useRouterState({
@@ -54,6 +58,11 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
   });
   const activeConversation = conversations.find((conversation) => conversation.id === activeId);
   const conversationTitle = activeConversation?.title ?? t("ai:AI_CHAT_NEW_CONVERSATION");
+  const welcomeName =
+    profile?.displayName ??
+    profile?.username ??
+    profile?.email ??
+    getUserDisplayName(accessToken, t("ai:AI_CHAT_HOME_USER_FALLBACK"));
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(conversationTitle);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
@@ -210,10 +219,9 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
               <div className="flex h-full min-h-0 flex-col">
                 <AIContentProposalCard enabled={drawerOpen} />
                 <AIApprovalQueue enabled={drawerOpen} />
-                <AIContextRecommendations />
                 <div className="min-h-0 flex-1">
                   <AIChatRuntimeProvider conversationId={activeId}>
-                    <Thread variant="sidebar" />
+                    <Thread variant="sidebar" welcomeName={welcomeName} />
                   </AIChatRuntimeProvider>
                 </div>
               </div>

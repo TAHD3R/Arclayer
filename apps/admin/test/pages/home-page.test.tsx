@@ -15,11 +15,15 @@ const {
   ensureAIConversationPersistedForRuntimeMock,
   navigateMock,
   sendAIAgentMessageMock,
+  sendAIChatMessageMock,
+  sendAIWorkspaceActionMessageMock,
 } = vi.hoisted(() => ({
   cancelAIAgentRunMock: vi.fn(),
   ensureAIConversationPersistedForRuntimeMock: vi.fn(),
   navigateMock: vi.fn(),
   sendAIAgentMessageMock: vi.fn(),
+  sendAIChatMessageMock: vi.fn(),
+  sendAIWorkspaceActionMessageMock: vi.fn(),
 }));
 
 const assistantUiMockState = vi.hoisted(() => ({
@@ -71,6 +75,7 @@ vi.mock("@assistant-ui/react", async () => {
       Attachments: () => null,
       Cancel: ({ children }: { children?: ReactNode }) => <>{children}</>,
       Dictate: ({ children }: { children?: ReactNode }) => <>{children}</>,
+      Unstable_TriggerPopoverRoot: ({ children }: { children?: ReactNode }) => <>{children}</>,
       Input: React.forwardRef<
         HTMLTextAreaElement,
         React.TextareaHTMLAttributes<HTMLTextAreaElement>
@@ -113,6 +118,15 @@ vi.mock("@/components/assistant-ui/composer-queue", () => ({
   ComposerQueue: () => null,
 }));
 
+vi.mock("@/components/ai/ai-composer-triggers", () => ({
+  AIComposerTriggers: () => null,
+}));
+
+vi.mock("@/components/ai/ai-suggestions", () => ({
+  AI_CHAT_SUGGESTIONS: [],
+  AISuggestions: () => <div data-testid="home-ai-suggestions" />,
+}));
+
 vi.mock("@/components/ai/ai-chat-runtime", () => ({
   appendMessageToText: (message: Pick<AppendMessage, "content" | "attachments">) => {
     const content =
@@ -134,14 +148,21 @@ vi.mock("@/components/ai/ai-chat-runtime", () => ({
     if (mode === "plan") return "content_advisor";
     return selectedAgentId || "content_analyzer";
   },
+  sendAIChatMessage: (...args: unknown[]) => sendAIChatMessageMock(...args),
+  sendAIWorkspaceActionMessage: (...args: unknown[]) => sendAIWorkspaceActionMessageMock(...args),
 }));
 
 vi.mock("@/api/ai", () => ({
+  AI_AGENT_PROJECT_CONTEXT_REQUIRED: "AI_AGENT_PROJECT_CONTEXT_REQUIRED",
   cancelAIAgentRun: (...args: unknown[]) => cancelAIAgentRunMock(...args),
   ensureAIConversationPersistedForRuntime: (...args: unknown[]) =>
     ensureAIConversationPersistedForRuntimeMock(...args),
   formatAIChatError: (error: unknown) =>
-    error instanceof Error ? error.message : "Request failed",
+    error instanceof Error && error.message === "AI_AGENT_PROJECT_CONTEXT_REQUIRED"
+      ? "Agent 模式需要先进入一个项目。规划和构建模式可在工作区首页直接使用。"
+      : error instanceof Error
+        ? error.message
+        : "Request failed",
   listAIProjectAgents: vi.fn(async () => ({
     agents: [
       {
@@ -158,6 +179,7 @@ vi.mock("@/api/ai", () => ({
     skills: [],
     tools: [],
   })),
+  shouldUseAIWorkspaceAction: (message: string) => /创建.*项目|项目.*创建/.test(message),
   sendAIAgentMessage: (...args: unknown[]) => sendAIAgentMessageMock(...args),
 }));
 
@@ -325,6 +347,8 @@ describe("HomePage", () => {
     cancelAIAgentRunMock.mockResolvedValue(undefined);
     ensureAIConversationPersistedForRuntimeMock.mockResolvedValue(undefined);
     sendAIAgentMessageMock.mockResolvedValue(undefined);
+    sendAIChatMessageMock.mockResolvedValue(undefined);
+    sendAIWorkspaceActionMessageMock.mockResolvedValue(undefined);
     useAiChatStore.setState({
       conversations: [],
       activeId: null,
@@ -385,10 +409,11 @@ describe("HomePage", () => {
     renderHomePage();
 
     expect(screen.getByText("How can I help you today, 朋友?")).toBeInTheDocument();
+    expect(screen.getByTestId("home-ai-suggestions")).toBeInTheDocument();
     expect(screen.queryByText("Side panel only content")).not.toBeInTheDocument();
   });
 
-  it("creates a conversation, opens the drawer, and sends the first prompt through the selected mode agent", () => {
+  it("creates a conversation, opens the drawer, and sends the first prompt through chat mode", () => {
     workspaceState.currentWorkspaceId = "workspace-1";
     workspaceState.lastWorkspaceId = "workspace-1";
     workspaceState.currentProjectId = "project-1";
@@ -404,16 +429,64 @@ describe("HomePage", () => {
     expect(state.drawerOpen).toBe(true);
     expect(state.conversations).toHaveLength(1);
     expect(state.activeId).toBe(state.conversations[0].id);
-    expect(sendAIAgentMessageMock).toHaveBeenCalledWith(
+    expect(sendAIChatMessageMock).toHaveBeenCalledWith(
       state.conversations[0].id,
       "帮我总结今天的任务",
       expect.objectContaining({
-        agentId: "content_builder",
-        model: DEFAULT_AI_CHAT_MODEL,
-        reasoningEffort: "medium",
         signal: expect.any(AbortSignal),
       }),
     );
+    expect(sendAIAgentMessageMock).not.toHaveBeenCalled();
+  });
+
+  it("routes home project creation prompts through workspace actions", async () => {
+    workspaceState.currentWorkspaceId = "workspace-1";
+    workspaceState.lastWorkspaceId = "workspace-1";
+    useAiChatStore.setState({ composerMode: "build" });
+    renderHomePage();
+
+    fireEvent.change(screen.getByRole("textbox", { name: "询问 AI…" }), {
+      target: { value: "帮我创建一个随机项目" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+
+    const conversationId = useAiChatStore.getState().conversations[0]?.id;
+    await waitFor(() => {
+      expect(sendAIWorkspaceActionMessageMock).toHaveBeenCalledWith(
+        conversationId,
+        "帮我创建一个随机项目",
+        expect.objectContaining({
+          signal: expect.any(AbortSignal),
+        }),
+      );
+    });
+    expect(sendAIChatMessageMock).not.toHaveBeenCalled();
+    expect(sendAIAgentMessageMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps home Plan mode project creation prompts in chat planning mode", async () => {
+    workspaceState.currentWorkspaceId = "workspace-1";
+    workspaceState.lastWorkspaceId = "workspace-1";
+    useAiChatStore.setState({ composerMode: "plan" });
+    renderHomePage();
+
+    fireEvent.change(screen.getByRole("textbox", { name: "询问 AI…" }), {
+      target: { value: "帮我创建一个随机项目" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+
+    const conversationId = useAiChatStore.getState().conversations[0]?.id;
+    await waitFor(() => {
+      expect(sendAIChatMessageMock).toHaveBeenCalledWith(
+        conversationId,
+        "帮我创建一个随机项目",
+        expect.objectContaining({
+          signal: expect.any(AbortSignal),
+        }),
+      );
+    });
+    expect(sendAIWorkspaceActionMessageMock).not.toHaveBeenCalled();
+    expect(sendAIAgentMessageMock).not.toHaveBeenCalled();
   });
 
   it("queues repeated home prompts during the first agent run and reuses the same conversation", async () => {
@@ -421,6 +494,7 @@ describe("HomePage", () => {
     workspaceState.lastWorkspaceId = "workspace-1";
     workspaceState.currentProjectId = "project-1";
     workspaceState.lastProjectId = "project-1";
+    useAiChatStore.setState({ composerMode: "agent", selectedAgentId: "content_builder" });
     const pendingRuns: Array<() => void> = [];
     sendAIAgentMessageMock.mockImplementation(
       async () =>
@@ -476,6 +550,7 @@ describe("HomePage", () => {
   it("shows an explicit error instead of silently falling back without an active project", async () => {
     workspaceState.currentWorkspaceId = "workspace-1";
     workspaceState.lastWorkspaceId = "workspace-1";
+    useAiChatStore.setState({ composerMode: "agent" });
     renderHomePage();
 
     fireEvent.change(screen.getByRole("textbox", { name: "询问 AI…" }), {
@@ -484,7 +559,7 @@ describe("HomePage", () => {
     fireEvent.click(screen.getByRole("button", { name: "发送" }));
 
     await waitFor(() => {
-      expect(screen.getByText("Agent mode requires an active project context")).toBeInTheDocument();
+      expect(screen.getByText(/Agent 模式需要先进入一个项目/)).toBeInTheDocument();
     });
     const state = useAiChatStore.getState();
     expect(state.drawerOpen).toBe(false);
@@ -497,6 +572,7 @@ describe("HomePage", () => {
     workspaceState.lastWorkspaceId = "workspace-1";
     workspaceState.currentProjectId = "project-1";
     workspaceState.lastProjectId = "project-1";
+    useAiChatStore.setState({ composerMode: "agent", selectedAgentId: "content_builder" });
     renderHomePage();
 
     fireEvent.change(screen.getByRole("textbox", { name: "询问 AI…" }), {
@@ -515,6 +591,7 @@ describe("HomePage", () => {
     workspaceState.lastWorkspaceId = "workspace-1";
     workspaceState.currentProjectId = "project-1";
     workspaceState.lastProjectId = "project-1";
+    useAiChatStore.setState({ composerMode: "agent", selectedAgentId: "content_builder" });
     const pendingRun = createDeferred<void>();
     sendAIAgentMessageMock.mockImplementation(async (conversationId, text, options) => {
       useAiChatStore.getState().appendMessage(conversationId, { role: "user", content: text });
@@ -551,6 +628,7 @@ describe("HomePage", () => {
     workspaceState.lastWorkspaceId = "workspace-1";
     workspaceState.currentProjectId = "project-1";
     workspaceState.lastProjectId = "project-1";
+    useAiChatStore.setState({ composerMode: "agent", selectedAgentId: "content_builder" });
     const pendingRun = createDeferred<void>();
     sendAIAgentMessageMock.mockImplementation(async (conversationId, text, options) => {
       useAiChatStore.getState().appendMessage(conversationId, { role: "user", content: text });

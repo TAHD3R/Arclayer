@@ -1,6 +1,7 @@
 "use client";
 
 import { UserMessageAttachments } from "@/components/assistant-ui/attachment";
+import { useNavigate } from "@tanstack/react-router";
 import { MarkdownText } from "@/components/assistant-ui/markdown-text";
 import {
   Reasoning,
@@ -21,6 +22,9 @@ import {
   AIComposerInputActions,
   AIComposerToolbar,
 } from "@/components/ai/ai-composer-toolbar";
+import { AIComposerTriggers } from "@/components/ai/ai-composer-triggers";
+import { AIContextRecommendations } from "@/components/ai/ai-context-recommendations";
+import { AISuggestions } from "@/components/ai/ai-suggestions";
 import { ComposerQueue } from "@/components/assistant-ui/composer-queue";
 import { formatAIChatError, resumeAIAgentRunForConversation } from "@/api/ai";
 import { Button } from "@arclayer/ui/button";
@@ -35,7 +39,6 @@ import {
   ErrorPrimitive,
   groupPartByType,
   MessagePrimitive,
-  SuggestionPrimitive,
   ThreadPrimitive,
   type ToolCallMessagePartComponent,
   useAuiState,
@@ -48,7 +51,10 @@ import {
   ChevronRightIcon,
   CopyIcon,
   DownloadIcon,
+  FolderOpenIcon,
+  FolderPlusIcon,
   HammerIcon,
+  Layers3Icon,
   ListChecksIcon,
   MoreHorizontalIcon,
   PencilIcon,
@@ -69,6 +75,8 @@ import type {
   AIAgentArtifactStep,
   AIAgentInterrupt,
   AIAgentMessageArtifact,
+  AIWorkspaceActionArtifact,
+  AIWorkspaceActionProject,
 } from "@/stores/use-ai-chat-store";
 
 export type ThreadGroupPart = MessagePrimitive.GroupedParts.GroupPart;
@@ -93,6 +101,7 @@ export type ThreadComponents = {
 export type ThreadProps = {
   components?: ThreadComponents | undefined;
   variant?: "default" | "sidebar";
+  welcomeName?: string | undefined;
 };
 
 const EMPTY_COMPONENTS: ThreadComponents = {};
@@ -100,19 +109,26 @@ type ThreadVariant = NonNullable<ThreadProps["variant"]>;
 
 const ThreadComponentsContext = createContext<ThreadComponents>(EMPTY_COMPONENTS);
 const ThreadVariantContext = createContext<ThreadVariant>("default");
+const ThreadWelcomeNameContext = createContext<string | undefined>(undefined);
 
 // Startup exposes a loading placeholder thread; treat it as a new chat so
 // the composer mounts centered. Loads after startup keep the docked layout.
 const isNewChatView = (s: AssistantState) =>
   s.thread.messages.length === 0 && (!s.thread.isLoading || s.threads.isLoading);
 
-export const Thread: FC<ThreadProps> = ({ components = EMPTY_COMPONENTS, variant = "default" }) => {
+export const Thread: FC<ThreadProps> = ({
+  components = EMPTY_COMPONENTS,
+  variant = "default",
+  welcomeName,
+}) => {
   const isEmpty = useAuiState(isNewChatView);
 
   return (
     <ThreadComponentsContext.Provider value={components}>
       <ThreadVariantContext.Provider value={variant}>
-        <ThreadRoot isEmpty={isEmpty} variant={variant} />
+        <ThreadWelcomeNameContext.Provider value={welcomeName}>
+          <ThreadRoot isEmpty={isEmpty} variant={variant} />
+        </ThreadWelcomeNameContext.Provider>
       </ThreadVariantContext.Provider>
     </ThreadComponentsContext.Provider>
   );
@@ -139,7 +155,7 @@ const ThreadRoot: FC<{ isEmpty: boolean; variant: ThreadVariant }> = ({ isEmpty,
       <ThreadPrimitive.Viewport
         turnAnchor="top"
         data-slot="aui_thread-viewport"
-        className="relative flex flex-1 flex-col overflow-x-auto overflow-y-scroll scroll-smooth"
+        className="relative flex flex-1 flex-col overflow-x-hidden overflow-y-scroll scroll-smooth"
       >
         <div
           className={cn(
@@ -214,16 +230,18 @@ const ThreadScrollToBottom: FC = () => {
 const ThreadWelcome: FC = () => {
   const { t } = useTranslation(["ai", "common"]);
   const variant = useContext(ThreadVariantContext);
+  const welcomeName = useContext(ThreadWelcomeNameContext);
   const isSidebar = variant === "sidebar";
 
   if (isSidebar) {
     return (
-      <div className="aui-thread-welcome-root mb-6 flex items-start pt-2">
-        <div className="min-w-0 rounded-2xl rounded-tl-md border border-border/70 bg-background px-3.5 py-3 shadow-sm">
-          <p className="text-callout leading-relaxed text-label-primary">
-            {t("ai:AI_CHAT_WELCOME_MESSAGE")}
-          </p>
-        </div>
+      <div className="aui-thread-welcome-root flex min-h-[22rem] flex-1 flex-col items-center justify-center gap-4 px-4 text-center">
+        <h2 className="max-w-[22rem] text-title3 font-semibold leading-tight text-label-primary">
+          {t("ai:AI_CHAT_HOME_GREETING", {
+            name: welcomeName ?? t("ai:AI_CHAT_HOME_USER_FALLBACK"),
+          })}
+        </h2>
+        <AISuggestions className="flex w-full flex-wrap items-center justify-center gap-2" />
       </div>
     );
   }
@@ -243,27 +261,7 @@ const ThreadWelcome: FC = () => {
 };
 
 const ThreadSuggestions: FC = () => {
-  return (
-    <div className="aui-thread-welcome-suggestions flex w-full flex-wrap items-center justify-center gap-2 px-4">
-      <ThreadPrimitive.Suggestions>{() => <ThreadSuggestionItem />}</ThreadPrimitive.Suggestions>
-    </div>
-  );
-};
-
-const ThreadSuggestionItem: FC = () => {
-  return (
-    <div className="aui-thread-welcome-suggestion-display fade-in slide-in-from-bottom-2 animate-in fill-mode-both duration-200">
-      <SuggestionPrimitive.Trigger send asChild>
-        <Button
-          variant="ghost"
-          className="aui-thread-welcome-suggestion text-foreground hover:bg-muted border-border/60 h-auto gap-1.5 !rounded-full border px-3.5 py-1.5 text-sm font-normal whitespace-nowrap transition-colors"
-        >
-          <SuggestionPrimitive.Title className="aui-thread-welcome-suggestion-text-1" />
-          <SuggestionPrimitive.Description className="aui-thread-welcome-suggestion-text-2 empty:hidden" />
-        </Button>
-      </SuggestionPrimitive.Trigger>
-    </div>
-  );
+  return <AISuggestions className="flex w-full flex-wrap items-center justify-center gap-2 px-4" />;
 };
 
 const Composer: FC = () => {
@@ -272,36 +270,44 @@ const Composer: FC = () => {
   const isSidebar = variant === "sidebar";
 
   return (
-    <ComposerPrimitive.Root
-      className={cn(
-        "aui-composer-root relative flex w-full min-w-0 flex-col",
-        isSidebar && "gap-2",
-      )}
-    >
-      {isSidebar ? <AIComposerContextControls compact /> : null}
-      <ComposerQueue />
-      <div
-        data-slot="aui_composer-shell"
+    <ComposerPrimitive.Unstable_TriggerPopoverRoot>
+      <ComposerPrimitive.Root
         className={cn(
-          "flex w-full min-w-0 flex-col gap-2 rounded-(--composer-radius) bg-(--composer-bg) p-(--composer-padding) transition-colors hover:border-border focus-within:border-border dark:shadow-none",
-          isSidebar
-            ? "min-h-[8.5rem] border border-border/60"
-            : "h-[6.5rem] min-h-[6.5rem] border border-border/60 dark:border-muted-foreground/15",
+          "aui-composer-root relative flex w-full min-w-0 flex-col",
+          isSidebar && "gap-0",
         )}
       >
-        <ComposerPrimitive.Input
-          placeholder={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
+        {isSidebar ? (
+          <div className="flex min-w-0 flex-col gap-2 rounded-t-(--composer-radius) border border-b-0 border-border/60 bg-muted/55 px-2.5 pb-2 pt-2.5 shadow-sm backdrop-blur-xl">
+            <AIContextRecommendations />
+            <AIComposerContextControls compact />
+          </div>
+        ) : null}
+        <ComposerQueue />
+        <div
+          data-slot="aui_composer-shell"
           className={cn(
-            "aui-composer-input placeholder:text-muted-foreground/80 w-full min-w-0 resize-none bg-transparent px-2.5 py-1 text-callout outline-none [field-sizing:fixed]",
-            isSidebar ? "h-20 min-h-20 max-h-20" : "h-12 min-h-12 max-h-12",
+            "flex w-full min-w-0 flex-col gap-2 rounded-(--composer-radius) bg-(--composer-bg) p-(--composer-padding) transition-colors hover:border-border focus-within:border-border dark:shadow-none",
+            isSidebar
+              ? "min-h-[8.5rem] !rounded-t-none border border-border/60 backdrop-blur-xl"
+              : "h-[6.5rem] min-h-[6.5rem] border border-border/60 dark:border-muted-foreground/15",
           )}
-          rows={1}
-          autoFocus
-          aria-label="Message input"
-        />
-        {isSidebar ? <AIComposerInputActions /> : <AIComposerToolbar />}
-      </div>
-    </ComposerPrimitive.Root>
+        >
+          <ComposerPrimitive.Input
+            placeholder={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
+            className={cn(
+              "aui-composer-input placeholder:text-muted-foreground/80 w-full min-w-0 resize-none bg-transparent px-2.5 py-1 text-callout outline-none [field-sizing:fixed]",
+              isSidebar ? "h-20 min-h-20 max-h-20" : "h-12 min-h-12 max-h-12",
+            )}
+            rows={1}
+            autoFocus
+            aria-label="Message input"
+          />
+          <AIComposerTriggers />
+          {isSidebar ? <AIComposerInputActions /> : <AIComposerToolbar />}
+        </div>
+      </ComposerPrimitive.Root>
+    </ComposerPrimitive.Unstable_TriggerPopoverRoot>
   );
 };
 
@@ -346,6 +352,12 @@ const AgentArtifact: FC = () => {
   const artifact = useAuiState((s) => s.message.metadata.custom?.agentArtifact);
   if (!isAIAgentMessageArtifact(artifact)) return null;
   return <AgentArtifactCard artifact={artifact} />;
+};
+
+const WorkspaceActionArtifact: FC = () => {
+  const artifact = useAuiState((s) => s.message.metadata.custom?.workspaceAction);
+  if (!isAIWorkspaceActionArtifact(artifact)) return null;
+  return <WorkspaceActionCard artifact={artifact} />;
 };
 
 type AgentRunSummaryStatus = "running" | "completed" | "cancelled" | "failed";
@@ -594,6 +606,109 @@ const AgentBuildArtifactFooter: FC<{
   );
 };
 
+const WorkspaceActionCard: FC<{ artifact: AIWorkspaceActionArtifact }> = ({ artifact }) => {
+  const { t } = useTranslation(["ai", "common"]);
+  const navigate = useNavigate();
+  const isCreated = artifact.type === "workspace_project_created";
+  const isContentModelCreated = artifact.type === "workspace_content_model_created";
+  const isList = artifact.type === "workspace_project_list";
+  const title = isCreated
+    ? t("ai:AI_WORKSPACE_ACTION_PROJECT_CREATED_TITLE")
+    : isContentModelCreated
+      ? t("ai:AI_WORKSPACE_ACTION_CONTENT_MODEL_CREATED_TITLE")
+      : isList
+        ? t("ai:AI_WORKSPACE_ACTION_PROJECT_LIST_TITLE", { count: artifact.total })
+        : t("ai:AI_WORKSPACE_ACTION_NAVIGATION_TITLE");
+  const Icon = isContentModelCreated ? Layers3Icon : isCreated ? FolderPlusIcon : FolderOpenIcon;
+
+  const handleNavigate = () => {
+    void navigate({ to: artifact.navigation.path as never });
+  };
+
+  return (
+    <section className="mt-3 overflow-hidden rounded-lg border border-border/70 bg-muted/30 text-sm">
+      <div className="flex min-w-0 items-center justify-between gap-3 border-b border-border/60 px-3 py-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <h3 className="truncate text-sm font-semibold text-foreground">{title}</h3>
+        </div>
+        <span className="shrink-0 rounded-md border border-border/60 bg-background/70 px-2 py-0.5 text-caption font-medium text-muted-foreground">
+          {t("ai:AI_WORKSPACE_ACTION_STATUS_COMPLETED")}
+        </span>
+      </div>
+      {artifact.type === "workspace_project_created" ? (
+        <WorkspaceProjectRow project={artifact.project} />
+      ) : null}
+      {artifact.type === "workspace_content_model_created" ? (
+        <WorkspaceContentModelRow contentModel={artifact.contentModel} />
+      ) : null}
+      {artifact.type === "workspace_project_list" ? (
+        <div className="divide-y divide-border/50">
+          {artifact.projects.length ? (
+            artifact.projects.map((project) => (
+              <WorkspaceProjectRow key={project.id} project={project} />
+            ))
+          ) : (
+            <p className="px-3 py-2 text-footnote text-muted-foreground">
+              {t("ai:AI_WORKSPACE_ACTION_PROJECT_LIST_EMPTY")}
+            </p>
+          )}
+        </div>
+      ) : null}
+      <div className="flex justify-end border-t border-border/60 px-3 py-2">
+        <Button
+          type="button"
+          size="sm"
+          className="h-8 gap-1.5 rounded-md px-2.5"
+          onClick={handleNavigate}
+        >
+          <FolderOpenIcon className="size-3.5" aria-hidden="true" />
+          {artifact.navigation.label}
+        </Button>
+      </div>
+    </section>
+  );
+};
+
+const WorkspaceProjectRow: FC<{ project: AIWorkspaceActionProject }> = ({ project }) => (
+  <div className="grid gap-1 px-3 py-2.5">
+    <div className="flex min-w-0 items-center justify-between gap-3">
+      <span className="truncate text-footnote font-semibold text-foreground">{project.name}</span>
+      <span className="shrink-0 rounded-md bg-background/70 px-1.5 py-0.5 font-mono text-caption text-muted-foreground">
+        {project.slug}
+      </span>
+    </div>
+    {project.description ? (
+      <p className="line-clamp-2 text-caption leading-relaxed text-muted-foreground">
+        {project.description}
+      </p>
+    ) : null}
+  </div>
+);
+
+const WorkspaceContentModelRow: FC<{
+  contentModel: Extract<
+    AIWorkspaceActionArtifact,
+    { type: "workspace_content_model_created" }
+  >["contentModel"];
+}> = ({ contentModel }) => (
+  <div className="grid gap-1 px-3 py-2.5">
+    <div className="flex min-w-0 items-center justify-between gap-3">
+      <span className="truncate text-footnote font-semibold text-foreground">
+        {contentModel.name}
+      </span>
+      <span className="shrink-0 rounded-md bg-background/70 px-1.5 py-0.5 font-mono text-caption text-muted-foreground">
+        {contentModel.singularKey}
+      </span>
+    </div>
+    {contentModel.description ? (
+      <p className="line-clamp-2 text-caption leading-relaxed text-muted-foreground">
+        {contentModel.description}
+      </p>
+    ) : null}
+  </div>
+);
+
 function isAIAgentMessageArtifact(value: unknown): value is AIAgentMessageArtifact {
   if (!isRecord(value)) return false;
 
@@ -618,6 +733,61 @@ function isAIAgentMessageArtifact(value: unknown): value is AIAgentMessageArtifa
   }
 
   return false;
+}
+
+function isAIWorkspaceActionArtifact(value: unknown): value is AIWorkspaceActionArtifact {
+  if (!isRecord(value) || value.status !== "completed") return false;
+  if (value.type === "workspace_project_created") {
+    return isWorkspaceActionProject(value.project) && isWorkspaceActionNavigation(value.navigation);
+  }
+  if (value.type === "workspace_project_list") {
+    return (
+      Array.isArray(value.projects) &&
+      value.projects.every(isWorkspaceActionProject) &&
+      typeof value.total === "number" &&
+      isWorkspaceActionNavigation(value.navigation)
+    );
+  }
+  if (value.type === "workspace_content_model_created") {
+    return (
+      isWorkspaceActionContentModel(value.contentModel) &&
+      isWorkspaceActionNavigation(value.navigation)
+    );
+  }
+  if (value.type === "workspace_navigation") {
+    return isWorkspaceActionNavigation(value.navigation);
+  }
+  return false;
+}
+
+function isWorkspaceActionProject(value: unknown): value is AIWorkspaceActionProject {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.name === "string" &&
+    typeof value.slug === "string" &&
+    (value.description === undefined ||
+      value.description === null ||
+      typeof value.description === "string")
+  );
+}
+
+function isWorkspaceActionContentModel(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.name === "string" &&
+    typeof value.singularKey === "string" &&
+    typeof value.pluralKey === "string" &&
+    typeof value.modelKind === "string" &&
+    (value.description === undefined ||
+      value.description === null ||
+      typeof value.description === "string")
+  );
+}
+
+function isWorkspaceActionNavigation(value: unknown): value is { label: string; path: string } {
+  return isRecord(value) && typeof value.label === "string" && typeof value.path === "string";
 }
 
 function isAIAgentInterrupt(value: unknown): value is AIAgentInterrupt {
@@ -765,6 +935,7 @@ const AssistantMessage: FC = () => {
         <AgentInterrupt />
         <AgentRunSummary />
         <AgentArtifact />
+        <WorkspaceActionArtifact />
         <MessageError />
       </div>
 

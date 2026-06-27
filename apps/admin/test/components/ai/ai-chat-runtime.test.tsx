@@ -9,7 +9,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   cancelAIAgentRun,
+  chatStream,
   ensureAIConversationPersistedForRuntime,
+  executeAIWorkspaceAction,
   sendAIAgentMessage,
 } from "@/api/ai";
 import { AIChatRuntimeProvider } from "@/components/ai/ai-chat-runtime";
@@ -72,6 +74,20 @@ vi.mock("@/api/ai", async () => {
     cancelAIAgentRun: vi.fn(),
     ensureAIConversationPersistedForRuntime: vi.fn(async () => undefined),
     sendAIAgentMessage: vi.fn(async () => undefined),
+    executeAIWorkspaceAction: vi.fn(async () => ({
+      action: "create_project",
+      status: "completed",
+      content: "已在当前工作区创建项目“内容实验室”。",
+      project: {
+        id: "project-created",
+        name: "内容实验室",
+        slug: "project",
+        description: null,
+      },
+      projects: [],
+      total: null,
+      navigation: { label: "进入项目", path: "/projects/project-created" },
+    })),
     chatStream: vi.fn(async function* () {
       yield "new answer";
     }),
@@ -269,12 +285,14 @@ describe("AIChatRuntimeProvider", () => {
     });
 
     const messages = useAiChatStore.getState().conversations[0]?.messages ?? [];
-    expect(messages.map((message) => message.content)).toEqual(["first prompt", "first answer"]);
-    expect(sendAIAgentMessage).toHaveBeenCalledWith(
-      "conversation-1",
+    expect(messages.map((message) => message.content)).toEqual([
+      "first prompt",
+      "first answer",
       "second prompt",
-      expect.objectContaining({ agentId: "content_builder" }),
-    );
+      "new answer",
+    ]);
+    expect(chatStream).toHaveBeenCalled();
+    expect(sendAIAgentMessage).not.toHaveBeenCalled();
     expect(ensureAIConversationPersistedForRuntime).toHaveBeenCalled();
   });
 
@@ -299,12 +317,9 @@ describe("AIChatRuntimeProvider", () => {
     });
 
     const messages = useAiChatStore.getState().conversations[0]?.messages ?? [];
-    expect(messages).toEqual([]);
-    expect(sendAIAgentMessage).toHaveBeenCalledWith(
-      "conversation-1",
-      "revised prompt",
-      expect.objectContaining({ agentId: "content_builder" }),
-    );
+    expect(messages.map((message) => message.content)).toEqual(["revised prompt", "new answer"]);
+    expect(chatStream).toHaveBeenCalled();
+    expect(sendAIAgentMessage).not.toHaveBeenCalled();
     expect(ensureAIConversationPersistedForRuntime).toHaveBeenCalled();
   });
 
@@ -341,7 +356,7 @@ describe("AIChatRuntimeProvider", () => {
     });
   });
 
-  it("routes manual Build mode messages to the content builder agent", async () => {
+  it("routes manual Build mode messages through chat mode", async () => {
     render(
       <AIChatRuntimeProvider conversationId="conversation-1">
         <div />
@@ -354,15 +369,44 @@ describe("AIChatRuntimeProvider", () => {
       );
     });
 
-    expect(sendAIAgentMessage).toHaveBeenCalledWith(
-      "conversation-1",
-      "Build content operations",
-      expect.objectContaining({
-        agentId: "content_builder",
-        model: DEFAULT_AI_CHAT_MODEL,
-        reasoningEffort: "medium",
-      }),
+    expect(chatStream).toHaveBeenCalled();
+    expect(sendAIAgentMessage).not.toHaveBeenCalled();
+    expect(useAiChatStore.getState().conversations[0]?.messages.at(-1)).toMatchObject({
+      role: "assistant",
+      content: "new answer",
+    });
+  });
+
+  it("routes workspace project creation prompts through workspace actions", async () => {
+    useAiChatStore.setState({ composerMode: "build" });
+    render(
+      <AIChatRuntimeProvider conversationId="conversation-1">
+        <div />
+      </AIChatRuntimeProvider>,
     );
+
+    await act(async () => {
+      await assistantUiMockState.runtimeStore?.onNew?.(appendTextMessage("帮我创建一个随机项目"));
+    });
+
+    expect(executeAIWorkspaceAction).toHaveBeenCalledWith("帮我创建一个随机项目", {
+      signal: expect.any(AbortSignal),
+      projectId: "project-1",
+    });
+    expect(chatStream).not.toHaveBeenCalled();
+    expect(sendAIAgentMessage).not.toHaveBeenCalled();
+    expect(useAiChatStore.getState().conversations[0]?.messages.at(-1)).toMatchObject({
+      role: "assistant",
+      content: "已在当前工作区创建项目“内容实验室”。",
+      workspaceAction: {
+        type: "workspace_project_created",
+        project: {
+          id: "project-created",
+          name: "内容实验室",
+          slug: "project",
+        },
+      },
+    });
   });
 
   it("does not start an agent run for empty runtime messages", async () => {
@@ -401,7 +445,7 @@ describe("AIChatRuntimeProvider", () => {
     ).toEqual(["first prompt", "first answer", "second prompt", "stale answer"]);
   });
 
-  it("routes manual Plan mode messages to the content advisor agent", async () => {
+  it("routes manual Plan mode messages through chat mode", async () => {
     useAiChatStore.setState({ composerMode: "plan" });
     render(
       <AIChatRuntimeProvider conversationId="conversation-1">
@@ -415,11 +459,8 @@ describe("AIChatRuntimeProvider", () => {
       );
     });
 
-    expect(sendAIAgentMessage).toHaveBeenCalledWith(
-      "conversation-1",
-      "Plan the editorial work",
-      expect.objectContaining({ agentId: "content_advisor" }),
-    );
+    expect(chatStream).toHaveBeenCalled();
+    expect(sendAIAgentMessage).not.toHaveBeenCalled();
   });
 
   it("routes manual Agent mode messages to the selected agent", async () => {
@@ -446,6 +487,8 @@ describe("AIChatRuntimeProvider", () => {
 
   it("persists a cancelled agent run from the runtime cancel handler", async () => {
     useAiChatStore.setState({
+      composerMode: "agent",
+      selectedAgentId: "content_builder",
       conversations: [
         {
           id: "conversation-1",
@@ -492,6 +535,8 @@ describe("AIChatRuntimeProvider", () => {
 
   it("aborts the active request when backend run cancellation fails", async () => {
     useAiChatStore.setState({
+      composerMode: "agent",
+      selectedAgentId: "content_builder",
       conversations: [
         {
           id: "conversation-1",
@@ -532,6 +577,7 @@ describe("AIChatRuntimeProvider", () => {
   });
 
   it("queues composer messages while an agent run is active and drains them FIFO", async () => {
+    useAiChatStore.setState({ composerMode: "agent", selectedAgentId: "content_builder" });
     const pendingRuns: Array<() => void> = [];
     vi.mocked(sendAIAgentMessage).mockImplementation(
       async () =>
@@ -597,6 +643,7 @@ describe("AIChatRuntimeProvider", () => {
   });
 
   it("clears queued composer messages before editing a previous user message", async () => {
+    useAiChatStore.setState({ composerMode: "agent", selectedAgentId: "content_builder" });
     const pendingRuns: Array<() => void> = [];
     vi.mocked(sendAIAgentMessage).mockImplementation(
       async () =>
@@ -657,6 +704,7 @@ describe("AIChatRuntimeProvider", () => {
   });
 
   it("clears queued composer messages before regenerating a previous response", async () => {
+    useAiChatStore.setState({ composerMode: "agent", selectedAgentId: "content_builder" });
     const pendingRuns: Array<() => void> = [];
     vi.mocked(sendAIAgentMessage).mockImplementation(
       async () =>
@@ -709,6 +757,8 @@ describe("AIChatRuntimeProvider", () => {
 
   it("clears queued composer messages when the active agent run is cancelled", async () => {
     useAiChatStore.setState({
+      composerMode: "agent",
+      selectedAgentId: "content_builder",
       conversations: [
         {
           id: "conversation-1",

@@ -276,7 +276,10 @@ class AIChatService(BaseService):
                     choice = chunk["choices"][0]
                     delta = choice.get("delta", {}) if isinstance(choice.get("delta"), dict) else {}
                     content = delta.get("content", "") or ""
+                    reasoning = _extract_reasoning_delta(delta)
                     full_content += content
+                    if reasoning:
+                        yield {"event": "message.delta", "data": {"reasoning": reasoning}}
                     if content:
                         yield {"event": "message.delta", "data": {"content": content}}
                     if choice.get("finish_reason"):
@@ -320,7 +323,10 @@ class AIChatService(BaseService):
                         choice = choices[0]
                         delta = choice.get("delta", {}) if isinstance(choice.get("delta"), dict) else {}
                         content = delta.get("content", "") or ""
+                        reasoning = _extract_reasoning_delta(delta)
                         full_content += content
+                        if reasoning:
+                            yield {"event": "message.delta", "data": {"reasoning": reasoning}}
                         if content:
                             yield {"event": "message.delta", "data": {"content": content}}
                         finish_reason = choice.get("finish_reason")
@@ -456,6 +462,19 @@ class AIChatService(BaseService):
 
 def _llm_error_message(code: LLMErrorCode, *, default: str, **kwargs: Any) -> str:
     return t("errors", code.value, default=default, **kwargs)
+
+
+def _extract_reasoning_delta(delta: dict[str, Any]) -> str:
+    """Return explicit provider reasoning summaries from stream deltas.
+
+    This only surfaces fields returned by the provider/LiteLLM. It does not
+    infer or generate hidden chain-of-thought.
+    """
+    for key in ("reasoning", "reasoning_content", "thinking"):
+        value = delta.get(key)
+        if isinstance(value, str) and value:
+            return value
+    return ""
 
 
 def _reasoning_provider_params(model: str, effort: AIReasoningEffort | None) -> dict[str, Any]:

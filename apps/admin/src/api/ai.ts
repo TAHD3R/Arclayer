@@ -1,5 +1,6 @@
 import { api } from "@/lib/http";
 import { getAppConfig } from "@/lib/config/app-config";
+import { i18n } from "@/lib/i18n";
 import { useAuthStore } from "@/stores/use-auth-store";
 import {
   useAiChatStore,
@@ -11,6 +12,7 @@ import {
   type AIAgentInterrupt,
   type AIAgentMessageArtifact,
   type AIAgentRunStatus,
+  type AIWorkspaceActionArtifact,
 } from "@/stores/use-ai-chat-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
@@ -47,6 +49,92 @@ export interface AIModelCatalogResponse {
   defaultMode: AIComposerMode;
   reasoningEffort: AIReasoningEffort;
   models: AIModelCatalogItem[];
+}
+
+export type AIWorkspaceActionKind =
+  | "create_project"
+  | "create_content_model"
+  | "list_projects"
+  | "open_projects";
+
+export interface AIWorkspaceActionNavigation {
+  label: string;
+  path: string;
+}
+
+export interface AIWorkspaceActionProject {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+}
+
+export interface AIWorkspaceActionContentModel {
+  id: string;
+  workspaceId: string;
+  siteId: string;
+  singularKey: string;
+  pluralKey: string;
+  name: string;
+  description?: string | null;
+  modelKind: string;
+}
+
+export interface AIWorkspaceActionResponse {
+  action: AIWorkspaceActionKind;
+  status: "completed";
+  content: string;
+  project?: AIWorkspaceActionProject | null;
+  contentModel?: AIWorkspaceActionContentModel | null;
+  projects: AIWorkspaceActionProject[];
+  total?: number | null;
+  navigation?: AIWorkspaceActionNavigation | null;
+}
+
+export type AISystemProviderCompatibility =
+  | "openai"
+  | "anthropic"
+  | "deepseek"
+  | "openai_compatible"
+  | "anthropic_compatible";
+
+export interface AISystemProvider {
+  id: string;
+  provider: string;
+  label: string;
+  compatibility: AISystemProviderCompatibility;
+  isActive: boolean;
+  hasVirtualKey: boolean;
+  litellmKeyId?: string | null;
+  baseUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  lastUsedAt?: string | null;
+  expiresAt?: string | null;
+}
+
+export interface AISystemProviderListResponse {
+  providers: AISystemProvider[];
+}
+
+export interface AISystemProviderCreateRequest {
+  provider: string;
+  label: string;
+  compatibility: AISystemProviderCompatibility;
+  virtualKey: string;
+  litellmKeyId?: string | null;
+  baseUrl?: string | null;
+  expiresAt?: string | null;
+}
+
+export interface AISystemProviderUpdateRequest {
+  label?: string;
+  compatibility?: AISystemProviderCompatibility;
+  virtualKey?: string;
+  litellmKeyId?: string | null;
+  baseUrl?: string | null;
+  isActive?: boolean;
+  expiresAt?: string | null;
 }
 
 export interface AIUsageModelBreakdown {
@@ -134,6 +222,8 @@ export interface AIChatOptions {
   model?: string;
   reasoningEffort?: AIReasoningEffort;
 }
+
+export type AIChatStreamPart = { type: "text"; text: string } | { type: "reasoning"; text: string };
 
 export type AgentRunEventName =
   | "run.created"
@@ -324,11 +414,42 @@ type ConversationPersistOptions = Readonly<{
 }>;
 
 const MAX_AI_ERROR_DETAIL_LENGTH = 12_000;
-const AI_ERROR_MESSAGES: Record<string, string> = {
-  AUTH_NO_KEY:
-    "当前工作区还没有可用的 AI 模型密钥。请先配置 LiteLLM virtual key，或在本地开发环境启用 AI mock 模式。",
-  AUTH_NOT_WORKSPACE_MEMBER: "AI 请求缺少有效的工作区上下文，请重新进入一个工作区后再试。",
+const AI_ERROR_MESSAGE_KEYS: Record<string, { key: string; fallback: string }> = {
+  AUTH_NO_KEY: {
+    key: "AI_CHAT_ERROR_AUTH_NO_KEY",
+    fallback:
+      "当前工作区还没有可用的 AI 模型密钥。请先配置 LiteLLM virtual key，或在本地开发环境启用 AI mock 模式。",
+  },
+  AUTH_NOT_WORKSPACE_MEMBER: {
+    key: "AI_CHAT_ERROR_AUTH_NOT_WORKSPACE_MEMBER",
+    fallback: "AI 请求缺少有效的工作区上下文，请重新进入一个工作区后再试。",
+  },
+  AI_AGENT_PROJECT_CONTEXT_REQUIRED: {
+    key: "AI_CHAT_ERROR_AGENT_PROJECT_CONTEXT_REQUIRED",
+    fallback: "Agent 模式需要先进入一个项目。",
+  },
+  AI_AGENT_RESUME_PROJECT_CONTEXT_REQUIRED: {
+    key: "AI_CHAT_ERROR_AGENT_RESUME_PROJECT_CONTEXT_REQUIRED",
+    fallback: "继续 Agent 运行需要先进入原项目。",
+  },
+  AI_AGENT_APPROVAL_PROJECT_CONTEXT_REQUIRED: {
+    key: "AI_CHAT_ERROR_AGENT_APPROVAL_PROJECT_CONTEXT_REQUIRED",
+    fallback: "处理 Agent 审批需要先进入对应项目。",
+  },
+  AI_WORKSPACE_ACTION_PLAN_MODE_READ_ONLY: {
+    key: "AI_CHAT_ERROR_WORKSPACE_ACTION_PLAN_MODE_READ_ONLY",
+    fallback: "规划模式不会直接执行创建或修改操作。请切换到构建模式后再执行。",
+  },
+  AI_WORKSPACE_ACTION_PROJECT_REQUIRED: {
+    key: "AI_CHAT_ERROR_WORKSPACE_ACTION_PROJECT_REQUIRED",
+    fallback: "执行该操作需要先选择一个项目。请输入 @ 选择目标项目后再试。",
+  },
 };
+
+export const AI_AGENT_PROJECT_CONTEXT_REQUIRED = "AI_AGENT_PROJECT_CONTEXT_REQUIRED";
+export const AI_AGENT_RESUME_PROJECT_CONTEXT_REQUIRED = "AI_AGENT_RESUME_PROJECT_CONTEXT_REQUIRED";
+export const AI_AGENT_APPROVAL_PROJECT_CONTEXT_REQUIRED =
+  "AI_AGENT_APPROVAL_PROJECT_CONTEXT_REQUIRED";
 
 export class AIChatRequestError extends Error {
   readonly details: string;
@@ -346,7 +467,10 @@ function pickErrorMessage(input: unknown): string | null {
   if (!input || typeof input !== "object") return null;
   const record = input as Record<string, unknown>;
   const code = pickErrorCode(record);
-  if (code && AI_ERROR_MESSAGES[code]) return AI_ERROR_MESSAGES[code];
+  if (code) {
+    const message = translateAIErrorCode(code);
+    if (message) return message;
+  }
 
   if (typeof record.errorMessage === "string" && record.errorMessage.trim()) {
     return record.errorMessage.trim();
@@ -360,7 +484,10 @@ function pickErrorMessage(input: unknown): string | null {
   if (detail && typeof detail === "object") {
     const detailRecord = detail as Record<string, unknown>;
     const detailCode = pickErrorCode(detailRecord);
-    if (detailCode && AI_ERROR_MESSAGES[detailCode]) return AI_ERROR_MESSAGES[detailCode];
+    if (detailCode) {
+      const message = translateAIErrorCode(detailCode);
+      if (message) return message;
+    }
     if (typeof detailRecord.message === "string" && detailRecord.message.trim()) {
       return detailRecord.message.trim();
     }
@@ -400,6 +527,8 @@ export function formatAIChatError(error: unknown): string {
   const trimmed = raw.trim();
 
   if (!trimmed) return "AI 请求失败";
+  const codeMessage = translateAIErrorCode(trimmed);
+  if (codeMessage) return codeMessage;
 
   try {
     const parsed = JSON.parse(trimmed) as unknown;
@@ -407,6 +536,14 @@ export function formatAIChatError(error: unknown): string {
   } catch {
     return trimmed;
   }
+}
+
+function translateAIErrorCode(code: string): string | null {
+  const entry = AI_ERROR_MESSAGE_KEYS[code];
+  if (!entry) return null;
+  if (!i18n.isInitialized) return entry.fallback;
+  const translated = i18n.t(entry.key, { ns: "ai", defaultValue: entry.fallback });
+  return translated && translated !== entry.key ? translated : entry.fallback;
 }
 
 function formatAIChatErrorDetails(input: string): string {
@@ -463,6 +600,35 @@ export async function getAIMonthlyUsageSummary(options: {
     `/workspaces/${encodeURIComponent(options.workspaceId)}/usage?${query.toString()}`,
     options.signal ? { signal: options.signal } : undefined,
   );
+}
+
+export async function listAISystemProviders(options?: {
+  signal?: AbortSignal;
+}): Promise<AISystemProviderListResponse> {
+  return api.get<AISystemProviderListResponse>(
+    "/system/ai/providers",
+    options?.signal ? { signal: options.signal } : undefined,
+  );
+}
+
+export async function createAISystemProvider(
+  payload: AISystemProviderCreateRequest,
+): Promise<AISystemProvider> {
+  return api.post<AISystemProvider>("/system/ai/providers", payload);
+}
+
+export async function updateAISystemProvider(
+  providerId: string,
+  payload: AISystemProviderUpdateRequest,
+): Promise<AISystemProvider> {
+  return api.patch<AISystemProvider>(
+    `/system/ai/providers/${encodeURIComponent(providerId)}`,
+    payload,
+  );
+}
+
+export async function deleteAISystemProvider(providerId: string): Promise<void> {
+  await api.delete<null>(`/system/ai/providers/${encodeURIComponent(providerId)}`);
 }
 
 export async function listAIProjectAgents(options: {
@@ -629,7 +795,7 @@ export async function renameAIConversation(conversationId: string, title: string
 export async function* chatStream(
   messages: AIChatMessage[],
   options?: AIChatOptions,
-): AsyncGenerator<string> {
+): AsyncGenerator<AIChatStreamPart> {
   const response = await fetch(buildApiUrl("/chat?stream=true"), {
     method: "POST",
     headers: buildStreamHeaders(),
@@ -658,10 +824,91 @@ export async function* chatStream(
         formatAIChatErrorDetails(event.rawData),
       );
     }
-    if (event.event === "message.delta" && typeof event.data.content === "string") {
-      yield event.data.content;
+    if (event.event === "message.delta") {
+      if (typeof event.data.reasoning === "string") {
+        yield { type: "reasoning", text: event.data.reasoning };
+      }
+      if (typeof event.data.content === "string") {
+        yield { type: "text", text: event.data.content };
+      }
     }
   }
+}
+
+export function shouldUseAIWorkspaceAction(message: string): boolean {
+  const text = message.trim().toLocaleLowerCase();
+  if (!text) return false;
+  const hasContentModel = /内容模型|内容类型|content model|content type|schema model/i.test(text);
+  const hasCreateIntent = /创建|新建|建立|生成|create|start|new project/i.test(text);
+  if (hasContentModel && hasCreateIntent) return true;
+  const hasProject = /项目|projects?/i.test(text);
+  if (!hasProject) return false;
+  const hasListIntent = /查看|列出|搜索|查找|有哪些|列表|list|find|search|show/i.test(text);
+  const hasOpenIntent = /打开|进入|跳转|open|go to/i.test(text) && /列表|projects?/i.test(text);
+  return hasCreateIntent || hasListIntent || hasOpenIntent;
+}
+
+export async function executeAIWorkspaceAction(
+  message: string,
+  options?: { signal?: AbortSignal; projectId?: string | null },
+): Promise<AIWorkspaceActionResponse> {
+  const workspaceId = requireCurrentWorkspaceId();
+  return api.post<AIWorkspaceActionResponse>(
+    "/chat/workspace-actions",
+    {
+      workspaceId,
+      projectId: options?.projectId ?? undefined,
+      message,
+      mode: useAiChatStore.getState().composerMode,
+    },
+    { signal: options?.signal },
+  );
+}
+
+export function toAIWorkspaceActionArtifact(
+  response: AIWorkspaceActionResponse,
+): AIWorkspaceActionArtifact | undefined {
+  const navigation = response.navigation ?? undefined;
+  if (response.action === "create_project" && response.project && navigation) {
+    return {
+      type: "workspace_project_created",
+      status: response.status,
+      project: toWorkspaceActionProject(response.project),
+      navigation,
+    };
+  }
+  if (response.action === "list_projects" && navigation) {
+    return {
+      type: "workspace_project_list",
+      status: response.status,
+      projects: response.projects.map(toWorkspaceActionProject),
+      total: response.total ?? response.projects.length,
+      navigation,
+    };
+  }
+  if (response.action === "create_content_model" && response.contentModel && navigation) {
+    return {
+      type: "workspace_content_model_created",
+      status: response.status,
+      contentModel: {
+        id: response.contentModel.id,
+        name: response.contentModel.name,
+        singularKey: response.contentModel.singularKey,
+        pluralKey: response.contentModel.pluralKey,
+        description: response.contentModel.description,
+        modelKind: response.contentModel.modelKind,
+      },
+      navigation,
+    };
+  }
+  if (response.action === "open_projects" && navigation) {
+    return {
+      type: "workspace_navigation",
+      status: response.status,
+      navigation,
+    };
+  }
+  return undefined;
 }
 
 export async function* agentRunStream(
@@ -676,7 +923,7 @@ export async function* agentRunStream(
       body: JSON.stringify({
         agentId: options.agentId,
         prompt: options.prompt,
-        model: options.model,
+        model: normalizeAIModelForRequest(options.model),
         reasoningEffort: options.reasoningEffort,
         toolInputs: options.toolInputs ?? {},
       }),
@@ -763,7 +1010,7 @@ export async function resumeAIAgentRunForConversation(
 ): Promise<void> {
   const projectId = useWorkspaceStore.getState().currentProjectId;
   if (!projectId) {
-    throw new Error("Agent run resume requires an active project context");
+    throw new Error(AI_AGENT_RESUME_PROJECT_CONTEXT_REQUIRED);
   }
 
   const conversation = readConversation(conversationId);
@@ -824,7 +1071,7 @@ async function sendAIAgentMessageWithSignal(
   const state = useAiChatStore.getState();
   const projectId = useWorkspaceStore.getState().currentProjectId;
   if (!projectId) {
-    throw new Error("Agent mode requires an active project context");
+    throw new Error(AI_AGENT_PROJECT_CONTEXT_REQUIRED);
   }
 
   const conversation = state.conversations.find((c) => c.id === conversationId);
@@ -861,6 +1108,9 @@ async function sendAIAgentMessageWithSignal(
             threadId: readStringEventValue(event.data.threadId),
           });
         }
+      }
+      if (event.event === "message.delta" && typeof event.data.reasoning === "string") {
+        useAiChatStore.getState().appendReasoningDelta(conversationId, event.data.reasoning);
       }
       if (event.event === "message.delta" && typeof event.data.content === "string") {
         useAiChatStore.getState().appendDelta(conversationId, event.data.content);
@@ -1381,9 +1631,15 @@ function buildChatRequestBody(
     messages,
     workspaceId: readCurrentWorkspaceId(),
     mode: useAiChatStore.getState().composerMode,
-    model: options?.model,
+    model: normalizeAIModelForRequest(options?.model),
     reasoningEffort: options?.reasoningEffort,
   };
+}
+
+export function normalizeAIModelForRequest(model: string | null | undefined): string | undefined {
+  const value = model?.trim();
+  if (!value || value === "__auto__") return undefined;
+  return value;
 }
 
 export async function ensureAIConversationPersistedForRuntime(
@@ -1442,7 +1698,7 @@ function buildConversationRequestBody(conversation: AIConversation): Record<stri
     workspaceId: requireCurrentWorkspaceId(),
     title: conversation.title,
     mode: state.composerMode,
-    model: state.selectedModel,
+    model: normalizeAIModelForRequest(state.selectedModel),
     reasoningEffort: state.selectedReasoningEffort,
     messages: conversation.messages
       .filter(shouldPersistConversationMessage)
@@ -1458,11 +1714,13 @@ function toApiConversationMessage(message: StoreAIChatMessage): Record<string, u
     content: message.content,
   };
   if (message.agentRunId) payload.agentRunId = message.agentRunId;
+  if (message.reasoning) payload.reasoning = message.reasoning;
   if (message.agentStatus) payload.agentStatus = message.agentStatus;
   if (message.agentThreadId) payload.agentThreadId = message.agentThreadId;
   if (message.agentCheckpointId) payload.agentCheckpointId = message.agentCheckpointId;
   if (message.agentInterrupt) payload.agentInterrupt = message.agentInterrupt;
   if (message.agentArtifact) payload.agentArtifact = message.agentArtifact;
+  if (message.workspaceAction) payload.workspaceAction = message.workspaceAction;
   if (message.agentExecutionSummary) {
     payload.agentExecutionSummary = message.agentExecutionSummary;
   }
@@ -1475,6 +1733,7 @@ function toApiConversationMessage(message: StoreAIChatMessage): Record<string, u
 function shouldPersistConversationMessage(message: StoreAIChatMessage): boolean {
   if (message.role !== "assistant") return true;
   if (message.content.trim()) return true;
+  if (message.reasoning?.trim()) return true;
   if (
     message.agentRunId ||
     message.agentStatus ||
@@ -1482,6 +1741,7 @@ function shouldPersistConversationMessage(message: StoreAIChatMessage): boolean 
     message.agentCheckpointId ||
     message.agentInterrupt ||
     message.agentArtifact ||
+    message.workspaceAction ||
     message.agentExecutionSummary ||
     message.error ||
     message.errorMessage ||
@@ -1489,6 +1749,15 @@ function shouldPersistConversationMessage(message: StoreAIChatMessage): boolean 
   )
     return true;
   return false;
+}
+
+function toWorkspaceActionProject(project: AIWorkspaceActionProject): AIWorkspaceActionProject {
+  return {
+    id: project.id,
+    name: project.name,
+    slug: project.slug,
+    description: project.description ?? null,
+  };
 }
 
 function toStoreConversation(conversation: AIConversationResponse): AIConversation {

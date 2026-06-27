@@ -36,22 +36,25 @@ from src.modules.ai.schema import (
     ChatUsage,
 )
 from src.modules.ai.service import AIChatService
+from src.modules.ai.workspace_actions import router as workspace_actions_router
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.workspaces.http.service import resolve_workspace_context_by_id
 from src.settings.runtime import get_core_settings_value_cached
 
 router = APIRouter(tags=["AI"])
+router.include_router(workspace_actions_router)
 _CONVERSATIONS = AIConversationRepository()
 _MAX_CONVERSATIONS = 50
 _CONVERSATION_CONTEXT_FIELDS = frozenset({"project_id", "runtime_id", "site_id", "environment_id"})
 _MODE_SYSTEM_PROMPTS: dict[AgentConversationMode, str] = {
     AgentConversationMode.BUILD: (
-        "You are Arclayer Build mode. Produce directly actionable implementation guidance, "
+        "You are Arclayer Build mode. For implementation requests, produce directly actionable guidance, "
         "prefer concrete file-level steps, and surface errors instead of inventing successful outcomes. "
         "Do not claim that code or data was changed unless a tool or API result proves it."
     ),
     AgentConversationMode.PLAN: (
-        "You are Arclayer Plan mode. Clarify goals, identify risks, and propose ordered execution plans. "
+        "You are Arclayer Plan mode. For planning requests, clarify goals, identify risks, and propose "
+        "ordered execution plans. "
         "Do not perform or imply mutations. Keep recommendations grounded in the supplied workspace context."
     ),
     AgentConversationMode.AGENT: (
@@ -59,6 +62,13 @@ _MODE_SYSTEM_PROMPTS: dict[AgentConversationMode, str] = {
         "Do not simulate tool execution, approvals, or writes in plain chat."
     ),
 }
+_COMMON_RESPONSE_CONTRACT = (
+    "Reply in the same language as the user's latest message unless the user explicitly asks for another language. "
+    "If the user is greeting you, making small talk, or asking a simple direct question, answer naturally and "
+    "briefly; do not expand it into a plan, blueprint, checklist, approval workflow, validation plan, or rollback "
+    "notes. Only produce structured plans or implementation steps when the user explicitly asks for planning, "
+    "analysis, implementation, audit, troubleshooting, or concrete project work."
+)
 
 
 def _get_ai_service(settings: Settings = Depends(get_settings)) -> AIChatService:
@@ -640,9 +650,17 @@ def _mode_scoped_messages(
     agent_settings: dict[str, object] | None = None,
 ) -> list[dict[str, str]]:
     mode = _chat_mode(payload, agent_settings)
-    system_prompt = _MODE_SYSTEM_PROMPTS[mode]
+    system_prompt = _effective_system_prompt(_MODE_SYSTEM_PROMPTS[mode], agent_settings)
     client_messages = [message.model_dump(mode="json") for message in payload.messages]
     return [{"role": "system", "content": system_prompt}, *client_messages]
+
+
+def _effective_system_prompt(base_prompt: str, agent_settings: dict[str, object] | None = None) -> str:
+    prompts = [base_prompt, _COMMON_RESPONSE_CONTRACT]
+    configured_prompt = _str_setting(agent_settings, "system_prompt")
+    if configured_prompt is not None:
+        prompts.append(f"Admin-configured system prompt:\n{configured_prompt}")
+    return "\n\n".join(prompts)
 
 
 def _to_http_exception(exc: LLMRuntimeError) -> HTTPException:

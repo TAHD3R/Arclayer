@@ -35,6 +35,7 @@ import {
   createAIAgentContentDryRun,
   createAIAgentContentDraftProposal,
   createAIAgentContentModelDraftProposal,
+  executeAIWorkspaceAction,
   formatAIChatError,
   getAIMonthlyUsageSummary,
   ensureAIConversationPersistedForRuntime,
@@ -48,6 +49,8 @@ import {
   resumeAIAgentRun,
   resumeAIAgentRunForConversation,
   sendAIAgentMessage,
+  shouldUseAIWorkspaceAction,
+  toAIWorkspaceActionArtifact,
 } from "@/api/ai";
 import {
   DEFAULT_AI_AGENT_ID,
@@ -181,7 +184,7 @@ describe("AI agent API", () => {
     const fetchMock = vi.fn().mockResolvedValue(sseResponse([]));
     vi.stubGlobal("fetch", fetchMock);
 
-    const chunks: string[] = [];
+    const chunks: unknown[] = [];
     for await (const chunk of chatStream([{ role: "user", content: "Hello" }])) {
       chunks.push(chunk);
     }
@@ -193,6 +196,135 @@ describe("AI agent API", () => {
       messages: [{ role: "user", content: "Hello" }],
       workspaceId: "workspace-1",
       mode: "agent",
+    });
+  });
+
+  it("streams explicit reasoning parts separately from text deltas", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        sseResponse([
+          'event: message.delta\ndata: {"reasoning":"checking context"}\n\n',
+          'event: message.delta\ndata: {"content":"done"}\n\n',
+        ]),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const chunks: unknown[] = [];
+    for await (const chunk of chatStream([{ role: "user", content: "Hello" }])) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks).toEqual([
+      { type: "reasoning", text: "checking context" },
+      { type: "text", text: "done" },
+    ]);
+  });
+
+  it("detects workspace project action prompts", () => {
+    expect(shouldUseAIWorkspaceAction("帮我创建一个随机项目")).toBe(true);
+    expect(shouldUseAIWorkspaceAction("帮我的项目创建一个内容模型")).toBe(true);
+    expect(shouldUseAIWorkspaceAction("打开项目列表")).toBe(true);
+    expect(shouldUseAIWorkspaceAction("你好，今天能做什么？")).toBe(false);
+  });
+
+  it("executes workspace AI actions with current workspace and composer mode", async () => {
+    useAiChatStore.setState({ composerMode: "plan" });
+    apiPostMock.mockResolvedValue({
+      action: "create_project",
+      status: "completed",
+      content: "已创建项目",
+      project: {
+        id: "project-created",
+        name: "内容实验室",
+        slug: "project",
+        description: "由 AI 创建",
+      },
+      projects: [],
+      total: null,
+      navigation: { label: "进入项目", path: "/projects/project-created" },
+    });
+
+    await executeAIWorkspaceAction("帮我创建一个随机项目", { projectId: "project-target" });
+
+    expect(apiPostMock).toHaveBeenCalledWith(
+      "/chat/workspace-actions",
+      {
+        workspaceId: "workspace-1",
+        projectId: "project-target",
+        message: "帮我创建一个随机项目",
+        mode: "plan",
+      },
+      { signal: undefined },
+    );
+  });
+
+  it("converts workspace action responses into persisted assistant artifacts", () => {
+    const projectArtifact = toAIWorkspaceActionArtifact({
+      action: "create_project",
+      status: "completed",
+      content: "已创建项目",
+      project: {
+        id: "project-created",
+        name: "内容实验室",
+        slug: "project",
+        description: null,
+      },
+      projects: [],
+      total: null,
+      navigation: { label: "进入项目", path: "/projects/project-created" },
+    });
+
+    expect(projectArtifact).toEqual({
+      type: "workspace_project_created",
+      status: "completed",
+      project: {
+        id: "project-created",
+        name: "内容实验室",
+        slug: "project",
+        description: null,
+      },
+      navigation: { label: "进入项目", path: "/projects/project-created" },
+    });
+
+    const contentModelArtifact = toAIWorkspaceActionArtifact({
+      action: "create_content_model",
+      status: "completed",
+      content: "已创建内容模型",
+      project: null,
+      contentModel: {
+        id: "model-1",
+        workspaceId: "workspace-1",
+        siteId: "site-1",
+        singularKey: "article",
+        pluralKey: "articles",
+        name: "文章",
+        description: null,
+        modelKind: "collection_type",
+      },
+      projects: [],
+      total: null,
+      navigation: {
+        label: "编辑内容模型",
+        path: "/projects/project-1/content/models/edit?modelId=model-1",
+      },
+    });
+
+    expect(contentModelArtifact).toEqual({
+      type: "workspace_content_model_created",
+      status: "completed",
+      contentModel: {
+        id: "model-1",
+        name: "文章",
+        singularKey: "article",
+        pluralKey: "articles",
+        description: null,
+        modelKind: "collection_type",
+      },
+      navigation: {
+        label: "编辑内容模型",
+        path: "/projects/project-1/content/models/edit?modelId=model-1",
+      },
     });
   });
 

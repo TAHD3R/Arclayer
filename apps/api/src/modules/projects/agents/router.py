@@ -232,6 +232,7 @@ async def _registry(
         write_tools_enabled=bool_setting(agent_settings, "write_tools_enabled", False),
         approval_policy=str_setting(agent_settings, "approval_policy", "always_approve"),
         dry_run_required=bool_setting(agent_settings, "dry_run_required", True),
+        system_prompt=str_setting(agent_settings, "system_prompt", ""),
     )
 
 

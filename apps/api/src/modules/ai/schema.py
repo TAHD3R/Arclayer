@@ -62,6 +62,7 @@ class AIConversationMessage(BaseSchema):
     agent_interrupt: JsonObject | None = None
     agent_artifact: JsonObject | None = None
     agent_execution_summary: JsonObject | None = None
+    workspace_action: JsonObject | None = None
     error: bool = False
     error_message: str | None = Field(default=None, max_length=4000)
     error_details: str | None = Field(default=None, max_length=12000)

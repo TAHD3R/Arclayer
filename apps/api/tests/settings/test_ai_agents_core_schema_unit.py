@@ -20,6 +20,7 @@ def test_core_settings_schema_includes_agent_runtime_controls() -> None:
     assert agent_fields["enabled"].default is True
     assert agent_fields["default_mode"].default == "build"
     assert agent_fields["default_model"].default == "deepseek-v4-pro"
+    assert agent_fields["system_prompt"].default == ""
     assert agent_fields["conversation_retention_days"].default == 90
     assert agent_fields["monthly_budget_micros"].default == 100_000_000
     assert agent_fields["allowed_skill_ids"].default == [
@@ -77,6 +78,7 @@ def test_ai_agent_settings_schema_accepts_valid_runtime_values() -> None:
             "ai_agents": {
                 "default_mode": "agent",
                 "default_model": "openai/gpt-5-mini",
+                "system_prompt": "Respond with concise project-aware guidance.",
                 "reasoning_effort": "high",
                 "conversation_retention_days": 30,
                 "monthly_budget_micros": 25_000_000,

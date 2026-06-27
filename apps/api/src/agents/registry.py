@@ -84,15 +84,18 @@ def build_default_agent_registry(
     write_tools_enabled: bool = False,
     approval_policy: str = "always_approve",
     dry_run_required: bool = True,
+    system_prompt: str | None = None,
 ) -> AgentRegistry:
+    response_contract = _agent_response_contract(system_prompt)
     read_only_agents = (
         AgentDefinition(
             agent_id="content_analyzer",
             name="Content Analyzer",
             description="Analyzes existing content and returns read-only observations.",
-            system_prompt=(
+            system_prompt=_join_system_prompt(
                 "You are a read-only content analysis agent. Use only the supplied context. "
-                "Do not propose direct writes, mutations, publishing actions, or approval decisions."
+                "Do not propose direct writes, mutations, publishing actions, or approval decisions.",
+                response_contract,
             ),
             skill_id="content.analysis",
             tool_names=("search_content", "list_content_types", "get_content", "analyze_content"),
@@ -101,10 +104,11 @@ def build_default_agent_registry(
             agent_id="content_advisor",
             name="Content Advisor",
             description="Provides read-only editorial advice for existing content.",
-            system_prompt=(
-                "You are a read-only planning agent. Produce a staged execution plan with clear numbered "
-                "steps, risks, approval checkpoints, and verification notes. Never claim that content has "
-                "been changed."
+            system_prompt=_join_system_prompt(
+                "You are a read-only planning agent. When the user asks for planning work, produce a staged "
+                "execution plan with clear numbered steps, risks, approval checkpoints, and verification notes. "
+                "Never claim that content has been changed.",
+                response_contract,
             ),
             mode=AgentMode.PLAN,
             skill_id="content.planning",
@@ -114,10 +118,12 @@ def build_default_agent_registry(
             agent_id="content_builder",
             name="Content Builder",
             description="Builds read-only implementation blueprints for content operations.",
-            system_prompt=(
-                "You are a read-only build agent. Produce an implementation blueprint with concrete "
-                "numbered operations, required approvals, validation checks, and rollback notes. Do not "
-                "claim that content, schema, routes, assets, or settings have been changed."
+            system_prompt=_join_system_prompt(
+                "You are a read-only build agent. When the user asks for build or implementation work, produce "
+                "an implementation blueprint with concrete numbered operations, required approvals, validation "
+                "checks, and rollback notes. Do not claim that content, schema, routes, assets, or settings have "
+                "been changed.",
+                response_contract,
             ),
             mode=AgentMode.BUILD,
             skill_id="content.build",
@@ -127,9 +133,10 @@ def build_default_agent_registry(
             agent_id="content_model_advisor",
             name="Content Model Advisor",
             description="Reviews content model structure using read-only project context.",
-            system_prompt=(
+            system_prompt=_join_system_prompt(
                 "You are a read-only content model advisor. Discuss model structure and risks. "
-                "Do not create or update content models."
+                "Do not create or update content models.",
+                response_contract,
             ),
             skill_id="content.modeling",
             tool_names=("list_content_types", "get_content", "search_content"),
@@ -155,6 +162,27 @@ def build_default_agent_registry(
             dry_run_required=dry_run_required,
         ),
     )
+
+
+def _agent_response_contract(system_prompt: str | None) -> str:
+    prompts = [
+        (
+            "Reply in the same language as the user's latest message unless the user explicitly asks for another "
+            "language. If the user is greeting you, making small talk, or asking a simple direct question, answer "
+            "naturally and briefly; do not expand it into a plan, blueprint, checklist, approval workflow, "
+            "validation plan, or rollback notes. Only produce structured plans or implementation steps when the "
+            "user explicitly asks for planning, analysis, implementation, audit, troubleshooting, or concrete "
+            "project work."
+        )
+    ]
+    configured_prompt = system_prompt.strip() if isinstance(system_prompt, str) else ""
+    if configured_prompt:
+        prompts.append(f"Admin-configured system prompt:\n{configured_prompt}")
+    return "\n\n".join(prompts)
+
+
+def _join_system_prompt(*parts: str) -> str:
+    return "\n\n".join(part for part in parts if part.strip())
 
 
 def _filter_enabled_agents(

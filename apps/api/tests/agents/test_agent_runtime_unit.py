@@ -312,6 +312,15 @@ class CapturingGraphRunner:
         return _events()
 
 
+class ExplodingGraphRunner(CapturingGraphRunner):
+    def stream(self, *, initial_state: AgentGraphState, thread_id: str) -> AsyncIterator[AgentRunEvent]:
+        async def _events() -> AsyncIterator[AgentRunEvent]:
+            raise RuntimeError("graph stream exploded")
+            yield
+
+        return _events()
+
+
 class FakeAgentRunStore:
     def __init__(self) -> None:
         self.runs: dict[UUID, AgentRunState] = {}
@@ -431,6 +440,18 @@ def test_default_agent_registry_exposes_phase3a_read_only_agents() -> None:
     assert skills["content.modeler"].requires_approval is True
     assert skills["content.modeler"].enabled is False
     assert skills["content.modeler"].disabled_reason == "write_tools_disabled"
+
+
+def test_default_agent_registry_appends_configured_system_prompt() -> None:
+    registry = build_default_agent_registry(
+        tools=_tools(),
+        system_prompt="始终使用用户消息的语言回答。",
+    )
+
+    builder = registry.require_agent("content_builder")
+    assert "Reply in the same language as the user's latest message" in builder.system_prompt
+    assert "Admin-configured system prompt:" in builder.system_prompt
+    assert "始终使用用户消息的语言回答。" in builder.system_prompt
 
 
 def test_default_agent_registry_gates_write_skills_by_approval_policy() -> None:
@@ -732,6 +753,23 @@ async def test_build_agent_run_persists_structured_build_blueprint() -> None:
         "Verify rollback and validation checks before apply.",
     ]
     assert all(operation["status"] == "proposed" for operation in operations)
+
+
+@pytest.mark.asyncio
+async def test_build_agent_run_does_not_create_artifact_for_greeting() -> None:
+    sessions = AgentSessionManager()
+    engine = AgentRunEngine(
+        registry=build_default_agent_registry(tools=_tools()),
+        sessions=sessions,
+        chat_service=FakeChatService(),
+    )
+
+    state = await engine.run(context=_context(), agent_id="content_builder", prompt="你好？", model=None)
+
+    assert state.status is AgentRunStatus.COMPLETED
+    assert state.result is not None
+    result = cast(dict[str, Any], state.result)
+    assert "build" not in result
 
 
 @pytest.mark.asyncio
@@ -1169,6 +1207,31 @@ async def test_agent_run_engine_stream_invokes_graph_runner_with_langgraph_threa
 
 
 @pytest.mark.asyncio
+async def test_agent_run_engine_stream_exposes_unexpected_runtime_error() -> None:
+    sessions = AgentSessionManager()
+    engine = AgentRunEngine(
+        registry=build_default_agent_registry(tools=_tools()),
+        sessions=sessions,
+        chat_service=FakeChatService(),
+        graph_runner=ExplodingGraphRunner(),
+    )
+
+    events = [
+        event
+        async for event in engine.stream(
+            context=_context(),
+            agent_id="content_builder",
+            prompt="build content workflow",
+            model="deepseek-v4-pro",
+        )
+    ]
+
+    assert [event.event for event in events] == ["run.created", "run.failed"]
+    assert events[-1].data["code"] == "SYSTEM_INTERNAL_ERROR"
+    assert "RuntimeError: graph stream exploded" in str(events[-1].data["message"])
+
+
+@pytest.mark.asyncio
 async def test_agent_run_engine_records_llm_runtime_failure() -> None:
     sessions = AgentSessionManager()
     engine = AgentRunEngine(
@@ -1182,3 +1245,98 @@ async def test_agent_run_engine_records_llm_runtime_failure() -> None:
     assert state.status is AgentRunStatus.FAILED
     assert state.error_code == "PROVIDER_UNAVAILABLE"
     assert state.error_message == "provider unavailable"
+
+
+@pytest.mark.asyncio
+async def test_agent_run_engine_stream_records_llm_runtime_failure() -> None:
+    sessions = AgentSessionManager()
+    engine = AgentRunEngine(
+        registry=build_default_agent_registry(tools=_tools()),
+        sessions=sessions,
+        chat_service=FailingChatService(),
+    )
+
+    events = [
+        event
+        async for event in engine.stream(
+            context=_context(),
+            agent_id="content_builder",
+            prompt="build content workflow",
+            model="deepseek-v4-pro",
+        )
+    ]
+
+    assert [event.event for event in events] == ["run.created", "run.failed"]
+    assert events[-1].data["code"] == "PROVIDER_UNAVAILABLE"
+    assert events[-1].data["message"] == "provider unavailable"
+
+
+@pytest.mark.asyncio
+async def test_agent_run_engine_streams_content_builder_default_search_tool() -> None:
+    sessions = AgentSessionManager()
+    engine = AgentRunEngine(
+        registry=build_default_agent_registry(tools=_tools()),
+        sessions=sessions,
+        chat_service=FakeChatService(),
+    )
+
+    events = [
+        event
+        async for event in engine.stream(
+            context=_context(),
+            agent_id="content_builder",
+            prompt="build content workflow",
+            model="deepseek-v4-pro",
+            tool_inputs={"search_content": {"page": 1, "size": 10, "modelKey": None}},
+        )
+    ]
+
+    assert [event.event for event in events] == [
+        "run.created",
+        "tool.started",
+        "tool.completed",
+        "message.delta",
+        "message.delta",
+        "usage.partial",
+        "run.completed",
+    ]
+    assert events[-1].data["runId"] == events[0].data["runId"]
+
+
+@pytest.mark.asyncio
+async def test_agent_run_engine_streams_content_builder_with_checkpointer() -> None:
+    checkpointer = InMemorySaver()
+
+    @asynccontextmanager
+    async def _checkpointer_factory():
+        yield checkpointer
+
+    sessions = AgentSessionManager()
+    engine = AgentRunEngine(
+        registry=build_default_agent_registry(tools=_tools()),
+        sessions=sessions,
+        chat_service=FakeChatService(),
+        graph_checkpointer_factory=_checkpointer_factory,
+    )
+
+    events = [
+        event
+        async for event in engine.stream(
+            context=_context(),
+            agent_id="content_builder",
+            prompt="build content workflow",
+            model="deepseek-v4-pro",
+            tool_inputs={"search_content": {"page": 1, "size": 10, "modelKey": None}},
+        )
+    ]
+
+    assert [event.event for event in events] == [
+        "run.created",
+        "tool.started",
+        "tool.completed",
+        "message.delta",
+        "message.delta",
+        "usage.partial",
+        "run.completed",
+    ]
+    assert checkpointer.get_tuple({"configurable": {"thread_id": events[0].data["threadId"]}}) is not None

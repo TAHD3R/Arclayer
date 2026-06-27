@@ -29,6 +29,12 @@ logger = get_logger(__name__)
 _MAX_ARTIFACT_GOAL_LENGTH = 500
 _MAX_ARTIFACT_STEP_TITLE_LENGTH = 240
 _ARTIFACT_STEP_RE = re.compile(r"^\s*(?:[-*]|\d+[.)])\s+(?P<title>.+?)\s*$")
+_STRUCTURED_ARTIFACT_INTENT_RE = re.compile(
+    r"\b(plan|planning|build|implement|implementation|blueprint|audit|analyze|analyse|review|"
+    r"troubleshoot|debug|fix|generate|create|update|migrate|refactor|deploy)\b|"
+    r"(计划|规划|构建|实现|实施|蓝图|审计|分析|检查|排查|修复|生成|创建|更新|迁移|重构|部署)",
+    re.IGNORECASE,
+)
 
 
 class _AgentRunCancelled(Exception):
@@ -136,12 +142,12 @@ class AgentRunEngine:
             return await self._sessions.fail_run(run_id=state.id, code=exc.code, message=exc.message)
         except _AgentRunCancelled:
             return await self._sessions.cancel_run(run_id=state.id, context=context)
-        except Exception:
+        except Exception as exc:
             logger.exception("Agent run failed", agent_id=agent_id, run_id=str(state.id))
             return await self._sessions.fail_run(
                 run_id=state.id,
-                code="AGENT_RUN_FAILED",
-                message=t("errors", "AGENT_RUN_FAILED"),
+                code="SYSTEM_INTERNAL_ERROR",
+                message=_unexpected_agent_error_message(exc),
             )
 
         if await self._sessions.is_cancelled(run_id=state.id):
@@ -189,12 +195,12 @@ class AgentRunEngine:
             return await self._sessions.fail_run(run_id=run_id, code=exc.code, message=exc.message)
         except _AgentRunCancelled:
             return await self._sessions.cancel_run(run_id=run_id, context=context)
-        except Exception:
+        except Exception as exc:
             logger.exception("Agent run resume failed", run_id=str(run_id))
             return await self._sessions.fail_run(
                 run_id=run_id,
-                code="AGENT_RUN_FAILED",
-                message=t("errors", "AGENT_RUN_FAILED"),
+                code="SYSTEM_INTERNAL_ERROR",
+                message=_unexpected_agent_error_message(exc),
             )
 
         if await self._sessions.is_cancelled(run_id=run_id):
@@ -340,13 +346,13 @@ class AgentRunEngine:
             ).events[-1]
         except LLMRuntimeError as exc:
             yield (await self._sessions.fail_run(run_id=state.id, code=exc.code, message=exc.message)).events[-1]
-        except Exception:
+        except Exception as exc:
             logger.exception("Agent stream failed", agent_id=agent_id, run_id=str(state.id))
             yield (
                 await self._sessions.fail_run(
                     run_id=state.id,
-                    code="AGENT_RUN_FAILED",
-                    message=t("errors", "AGENT_RUN_FAILED"),
+                    code="SYSTEM_INTERNAL_ERROR",
+                    message=_unexpected_agent_error_message(exc),
                 )
             ).events[-1]
 
@@ -547,6 +553,8 @@ class AgentRunEngine:
     @classmethod
     def _agent_result(cls, *, agent_mode: AgentMode, prompt: str, result: JsonObject) -> JsonObject:
         content = str(result.get("content") or "")
+        if not _should_attach_structured_artifact(prompt=prompt, content=content):
+            return result
         if str(agent_mode) == AgentMode.PLAN:
             return {**result, "plan": _build_plan_artifact(goal=prompt, content=content)}
         if str(agent_mode) == AgentMode.BUILD:
@@ -696,6 +704,13 @@ class _AgentGraphCallbacks:
         )
 
 
+def _unexpected_agent_error_message(exc: Exception) -> str:
+    detail = str(exc).strip()
+    if detail:
+        return f"{t('errors', 'SYSTEM_INTERNAL_ERROR')}: {type(exc).__name__}: {detail}"
+    return f"{t('errors', 'SYSTEM_INTERNAL_ERROR')}: {type(exc).__name__}"
+
+
 def _build_plan_artifact(*, goal: str, content: str) -> JsonObject:
     steps = [
         {"id": f"step-{index + 1}", "title": title, "status": "planned"}
@@ -724,6 +739,10 @@ def _build_build_artifact(*, goal: str, content: str) -> JsonObject:
         "appliesChanges": False,
         "requiresApprovalBeforeApply": True,
     }
+
+
+def _should_attach_structured_artifact(*, prompt: str, content: str) -> bool:
+    return bool(_STRUCTURED_ARTIFACT_INTENT_RE.search(prompt)) and bool(_artifact_step_titles(content))
 
 
 def _artifact_step_titles(content: str) -> list[str]:

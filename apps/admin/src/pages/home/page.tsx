@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -14,15 +14,24 @@ import {
 
 import * as authApi from "@/api/auth";
 import { listProjects } from "@/api/projects";
+import { AIComposerTriggers } from "@/components/ai/ai-composer-triggers";
 import { AIComposerToolbar } from "@/components/ai/ai-composer-toolbar";
+import { AISuggestions } from "@/components/ai/ai-suggestions";
 import { ComposerQueue } from "@/components/assistant-ui/composer-queue";
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
-import { appendMessageToText, agentIdForComposerMode } from "@/components/ai/ai-chat-runtime";
 import {
+  appendMessageToText,
+  agentIdForComposerMode,
+  sendAIChatMessage,
+  sendAIWorkspaceActionMessage,
+} from "@/components/ai/ai-chat-runtime";
+import {
+  AI_AGENT_PROJECT_CONTEXT_REQUIRED,
   cancelAIAgentRun,
   ensureAIConversationPersistedForRuntime,
   formatAIChatError,
   sendAIAgentMessage,
+  shouldUseAIWorkspaceAction,
 } from "@/api/ai";
 import { getUserDisplayName, normalizeUserProfile } from "@/lib/auth/user-profile";
 import { HomeInspirationSection } from "@/pages/home/home-inspiration-section";
@@ -46,9 +55,15 @@ type HomeComposerProps = {
   inputRef: RefObject<HTMLTextAreaElement | null>;
   onSubmitStart: () => void;
   onSubmitError: (message: string) => void;
+  onWorkspaceActionComplete?: () => void;
 };
 
-function HomeComposer({ inputRef, onSubmitStart, onSubmitError }: HomeComposerProps) {
+function HomeComposer({
+  inputRef,
+  onSubmitStart,
+  onSubmitError,
+  onWorkspaceActionComplete,
+}: HomeComposerProps) {
   const { t } = useTranslation(["ai", "common"]);
   const createConversation = useAiChatStore((s) => s.createConversation);
   const openDrawer = useAiChatStore((s) => s.openDrawer);
@@ -97,9 +112,11 @@ function HomeComposer({ inputRef, onSubmitStart, onSubmitError }: HomeComposerPr
 
       onSubmitStart();
       try {
+        const state = useAiChatStore.getState();
+        const mode = state.composerMode;
         const projectId = useWorkspaceStore.getState().currentProjectId;
-        if (!projectId) {
-          throw new Error("Agent mode requires an active project context");
+        if (mode === "agent" && !projectId) {
+          throw new Error(AI_AGENT_PROJECT_CONTEXT_REQUIRED);
         }
 
         let conversationId = pendingHomeConversationIdRef.current;
@@ -114,17 +131,25 @@ function HomeComposer({ inputRef, onSubmitStart, onSubmitError }: HomeComposerPr
         activeRequestRef.current = controller;
         activeAgentRunIdRef.current = null;
         try {
-          const state = useAiChatStore.getState();
-          const agentId = agentIdForComposerMode(state.composerMode, state.selectedAgentId);
-          await sendAIAgentMessage(conversationId, trimmed, {
-            agentId,
-            model: state.selectedModel,
-            reasoningEffort: state.selectedReasoningEffort,
-            signal: controller.signal,
-            onRunCreated: (runId) => {
-              activeAgentRunIdRef.current = runId;
-            },
-          });
+          if (mode === "agent") {
+            const agentId = agentIdForComposerMode(mode, state.selectedAgentId);
+            await sendAIAgentMessage(conversationId, trimmed, {
+              agentId,
+              model: state.selectedModel,
+              reasoningEffort: state.selectedReasoningEffort,
+              signal: controller.signal,
+              onRunCreated: (runId) => {
+                activeAgentRunIdRef.current = runId;
+              },
+            });
+          } else if (mode !== "plan" && shouldUseAIWorkspaceAction(trimmed)) {
+            await sendAIWorkspaceActionMessage(conversationId, trimmed, {
+              signal: controller.signal,
+            });
+            onWorkspaceActionComplete?.();
+          } else {
+            await sendAIChatMessage(conversationId, trimmed, { signal: controller.signal });
+          }
         } finally {
           if (activeRequestRef.current === controller) {
             activeRequestRef.current = null;
@@ -143,6 +168,7 @@ function HomeComposer({ inputRef, onSubmitStart, onSubmitError }: HomeComposerPr
       createConversation,
       onSubmitError,
       onSubmitStart,
+      onWorkspaceActionComplete,
       openDrawer,
     ],
   );
@@ -207,20 +233,24 @@ function HomeComposer({ inputRef, onSubmitStart, onSubmitError }: HomeComposerPr
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <ComposerPrimitive.Root className="aui-home-composer-root relative flex w-full min-w-0 flex-col">
-        <ComposerQueue />
-        <div className="flex min-h-[8.75rem] w-full min-w-0 flex-col gap-3 rounded-[1.75rem] border border-border/70 bg-[color-mix(in_oklab,var(--color-muted)_30%,var(--color-background))] p-3 transition-colors hover:border-border focus-within:border-border">
-          <ComposerPrimitive.Input
-            ref={inputRef}
-            rows={1}
-            autoFocus
-            placeholder={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
-            aria-label={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
-            className="h-20 min-h-20 max-h-20 w-full min-w-0 resize-none bg-transparent px-3 py-2 text-callout leading-relaxed text-label-primary outline-none [field-sizing:fixed] placeholder:text-label-secondary"
-          />
-          <AIComposerToolbar />
-        </div>
-      </ComposerPrimitive.Root>
+      <ComposerPrimitive.Unstable_TriggerPopoverRoot>
+        <ComposerPrimitive.Root className="aui-home-composer-root relative flex w-full min-w-0 flex-col">
+          <ComposerQueue />
+          <div className="flex min-h-[8.75rem] w-full min-w-0 flex-col gap-3 rounded-[1.75rem] border border-border/70 bg-[color-mix(in_oklab,var(--color-muted)_30%,var(--color-background))] p-3 transition-colors hover:border-border focus-within:border-border">
+            <ComposerPrimitive.Input
+              ref={inputRef}
+              rows={1}
+              autoFocus
+              placeholder={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
+              aria-label={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
+              className="h-20 min-h-20 max-h-20 w-full min-w-0 resize-none bg-transparent px-3 py-2 text-callout leading-relaxed text-label-primary outline-none [field-sizing:fixed] placeholder:text-label-secondary"
+            />
+            <AIComposerTriggers />
+            <AIComposerToolbar />
+          </div>
+          <AISuggestions className="mt-3 flex w-full flex-wrap items-center justify-center gap-2 px-2" />
+        </ComposerPrimitive.Root>
+      </ComposerPrimitive.Unstable_TriggerPopoverRoot>
     </AssistantRuntimeProvider>
   );
 }
@@ -231,6 +261,7 @@ function HomeComposer({ inputRef, onSubmitStart, onSubmitError }: HomeComposerPr
  */
 export function HomePage() {
   const { t } = useTranslation(["ai", "common"]);
+  const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const currentWorkspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
@@ -270,6 +301,11 @@ export function HomePage() {
   });
   const recentProjects = recentProjectsQuery.data?.items ?? [];
   const hasRecentProjects = recentProjects.length > 0;
+  const refreshProjectsAfterWorkspaceAction = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ["home", "recent-projects"] });
+    void queryClient.invalidateQueries({ queryKey: ["projects"] });
+    void queryClient.invalidateQueries({ queryKey: ["scope-switcher", "projects"] });
+  }, [queryClient]);
 
   return (
     <AdminRouteContainer pageFrame="full" className="min-h-full" innerClassName="min-h-full px-0">
@@ -300,6 +336,7 @@ export function HomePage() {
               inputRef={textareaRef}
               onSubmitStart={() => setLocalError(null)}
               onSubmitError={setLocalError}
+              onWorkspaceActionComplete={refreshProjectsAfterWorkspaceAction}
             />
             {localError ? (
               <p className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-footnote text-destructive">

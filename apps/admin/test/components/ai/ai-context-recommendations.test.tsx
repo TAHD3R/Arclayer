@@ -28,6 +28,7 @@ vi.mock("@/api/ai", () => ({
     error instanceof Error ? error.message : "Request failed",
   ),
   listAIProjectAgents: vi.fn(),
+  normalizeAIModelForRequest: vi.fn((model: string | null | undefined) => model || undefined),
   sendAIAgentMessage: vi.fn(),
 }));
 
@@ -453,7 +454,7 @@ describe("AIContextRecommendations", () => {
       );
     });
     expect(useAiChatStore.getState().composerMode).toBe("plan");
-    expect(useAiChatStore.getState().selectedAgentId).toBe("content_advisor");
+    expect(useAiChatStore.getState().selectedAgentId).toBe("content_analyzer");
     expect(sendAIChatMessage).not.toHaveBeenCalled();
   });
 
@@ -496,7 +497,7 @@ describe("AIContextRecommendations", () => {
       );
     });
     expect(useAiChatStore.getState().composerMode).toBe("build");
-    expect(useAiChatStore.getState().selectedAgentId).toBe("content_builder");
+    expect(useAiChatStore.getState().selectedAgentId).toBe("content_analyzer");
     expect(sendAIChatMessage).not.toHaveBeenCalled();
   });
 

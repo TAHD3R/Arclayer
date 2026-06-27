@@ -7,16 +7,24 @@ import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 const {
   getAIMonthlyUsageSummaryMock,
+  createAISystemProviderMock,
+  deleteAISystemProviderMock,
   getSystemCoreSettingsMock,
+  listAISystemProvidersMock,
   listAIModelsMock,
   notifySuccessTextMock,
   patchSystemCoreSettingsMock,
+  updateAISystemProviderMock,
 } = vi.hoisted(() => ({
   getAIMonthlyUsageSummaryMock: vi.fn(),
+  createAISystemProviderMock: vi.fn(),
+  deleteAISystemProviderMock: vi.fn(),
   getSystemCoreSettingsMock: vi.fn(),
+  listAISystemProvidersMock: vi.fn(),
   listAIModelsMock: vi.fn(),
   patchSystemCoreSettingsMock: vi.fn(),
   notifySuccessTextMock: vi.fn(),
+  updateAISystemProviderMock: vi.fn(),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -31,8 +39,12 @@ vi.mock("@/api/settings", () => ({
 }));
 
 vi.mock("@/api/ai", () => ({
+  createAISystemProvider: (...args: unknown[]) => createAISystemProviderMock(...args),
+  deleteAISystemProvider: (...args: unknown[]) => deleteAISystemProviderMock(...args),
   getAIMonthlyUsageSummary: (...args: unknown[]) => getAIMonthlyUsageSummaryMock(...args),
+  listAISystemProviders: (...args: unknown[]) => listAISystemProvidersMock(...args),
   listAIModels: (...args: unknown[]) => listAIModelsMock(...args),
+  updateAISystemProvider: (...args: unknown[]) => updateAISystemProviderMock(...args),
 }));
 
 vi.mock("@/lib/notifications", () => ({
@@ -97,6 +109,9 @@ vi.mock("@/pages/system/components/system-setting-item", () => ({
       {message}
     </div>
   ),
+  SystemSettingInlineNote: ({ children }: { children?: React.ReactNode; className?: string }) => (
+    <p>{children}</p>
+  ),
   SystemSettingFooterActions: ({
     dirty,
     pending,
@@ -140,6 +155,49 @@ vi.mock("@/pages/system/components/system-setting-item", () => ({
   ),
 }));
 
+vi.mock("@arclayer/ui/setting-dialog", () => ({
+  SettingDialog: ({
+    open,
+    title,
+    description,
+    children,
+    footer,
+  }: {
+    open: boolean;
+    title?: React.ReactNode;
+    description?: React.ReactNode;
+    children?: React.ReactNode;
+    footer?: React.ReactNode;
+  }) =>
+    open ? (
+      <div role="dialog" aria-label={typeof title === "string" ? title : undefined}>
+        {title ? <h3>{title}</h3> : null}
+        {description ? <p>{description}</p> : null}
+        {children}
+        {footer ? <div>{footer}</div> : null}
+      </div>
+    ) : null,
+}));
+
+vi.mock("@arclayer/ui/setting-dialog-field", () => ({
+  SettingDialogFields: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  SettingDialogField: ({
+    title,
+    description,
+    children,
+  }: {
+    title?: React.ReactNode;
+    description?: React.ReactNode;
+    children?: React.ReactNode;
+  }) => (
+    <label>
+      {title ? <span>{title}</span> : null}
+      {children}
+      {description ? <span>{description}</span> : null}
+    </label>
+  ),
+}));
+
 vi.mock("@arclayer/ui/input", () => ({
   Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
 }));
@@ -148,29 +206,31 @@ vi.mock("@arclayer/ui/select", () => ({
   Select: ({
     value,
     onValueChange,
+    children,
   }: {
     value: string;
     onValueChange?: (value: string) => void;
     children?: React.ReactNode;
   }) => (
     <select value={value} onChange={(event) => onValueChange?.(event.target.value)}>
-      <option value="agent">agent</option>
-      <option value="always_approve">always_approve</option>
-      <option value="approve_bulk_only">approve_bulk_only</option>
-      <option value="approve_schema_only">approve_schema_only</option>
-      <option value="auto_approved">auto_approved</option>
-      <option value="build">build</option>
-      <option value="database">database</option>
-      <option value="high">high</option>
-      <option value="low">low</option>
-      <option value="medium">medium</option>
-      <option value="memory">memory</option>
-      <option value="plan">plan</option>
+      {children}
     </select>
   ),
   SelectContent: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-  SelectItem: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-  SelectTrigger: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+  SelectItem: ({
+    value,
+    disabled,
+    children,
+  }: {
+    value: string;
+    disabled?: boolean;
+    children?: React.ReactNode;
+  }) => (
+    <option value={value} disabled={disabled}>
+      {children}
+    </option>
+  ),
+  SelectTrigger: () => null,
   SelectValue: () => null,
 }));
 
@@ -196,6 +256,7 @@ function buildCoreSettings() {
         default_mode: "build",
         default_model: "deepseek-v4-pro",
         reasoning_effort: "medium",
+        system_prompt: "",
         conversation_retention_days: 90,
         auto_title_enabled: true,
         context_recommendations_enabled: true,
@@ -266,6 +327,10 @@ describe("SystemSettingsAgentsPage", () => {
         },
       ],
     });
+    listAISystemProvidersMock.mockResolvedValue({ providers: [] });
+    createAISystemProviderMock.mockResolvedValue(undefined);
+    updateAISystemProviderMock.mockResolvedValue(undefined);
+    deleteAISystemProviderMock.mockResolvedValue(undefined);
     patchSystemCoreSettingsMock.mockResolvedValue(buildCoreSettings());
     useWorkspaceStore.setState({
       currentWorkspaceId: "workspace-1",
@@ -381,6 +446,9 @@ describe("SystemSettingsAgentsPage", () => {
     fireEvent.change(screen.getByLabelText("settings:SETTINGS_SYSTEM_AGENTS_RETENTION_LABEL"), {
       target: { value: "45" },
     });
+    fireEvent.change(screen.getByLabelText("settings:SETTINGS_SYSTEM_AGENTS_SYSTEM_PROMPT_LABEL"), {
+      target: { value: "  始终使用用户最后一条消息的语言回答。  " },
+    });
     fireEvent.click(screen.getByRole("button", { name: "settings:SETTINGS_SAVE" }));
 
     await waitFor(() => {
@@ -389,6 +457,7 @@ describe("SystemSettingsAgentsPage", () => {
           enabled: true,
           default_model: "gpt-5-codex",
           reasoning_effort: "medium",
+          system_prompt: "始终使用用户最后一条消息的语言回答。",
           conversation_retention_days: 45,
           auto_title_enabled: true,
           context_recommendations_enabled: true,
@@ -485,6 +554,15 @@ describe("SystemSettingsAgentsPage", () => {
   });
 
   it("rejects an unavailable default model before saving runtime settings", async () => {
+    getSystemCoreSettingsMock.mockResolvedValue({
+      value: {
+        ...buildCoreSettings().value,
+        ai_agents: {
+          ...buildCoreSettings().value.ai_agents,
+          default_model: "gpt-5-codex",
+        },
+      },
+    });
     listAIModelsMock.mockResolvedValue({
       defaultModel: "deepseek-v4-pro",
       defaultMode: "build",
@@ -506,10 +584,10 @@ describe("SystemSettingsAgentsPage", () => {
     });
     renderPage();
 
-    const defaultModelInput = await screen.findByLabelText(
-      "settings:SETTINGS_SYSTEM_AGENTS_DEFAULT_MODEL_LABEL",
+    fireEvent.change(
+      await screen.findByLabelText("settings:SETTINGS_SYSTEM_AGENTS_RETENTION_LABEL"),
+      { target: { value: "45" } },
     );
-    fireEvent.change(defaultModelInput, { target: { value: "gpt-5-codex" } });
     fireEvent.click(screen.getByRole("button", { name: "settings:SETTINGS_SAVE" }));
 
     expect(
@@ -572,21 +650,31 @@ describe("SystemSettingsAgentsPage", () => {
     });
     renderPage();
 
-    fireEvent.change(
-      await screen.findByLabelText("settings:SETTINGS_SYSTEM_AGENTS_SKILL_IDS_LABEL"),
-      {
+    await screen.findByText("settings:SETTINGS_SYSTEM_AGENTS_SKILLS_LIBRARY_LABEL");
+    const uploadSkill = async (skillId: string) => {
+      const uploadButton = screen
+        .getByText("settings:SETTINGS_SYSTEM_AGENTS_SKILL_UPLOAD")
+        .closest("button");
+      expect(uploadButton).not.toBeNull();
+      fireEvent.click(uploadButton!);
+      await waitFor(() => expect(screen.getAllByRole("textbox")).toHaveLength(2));
+      fireEvent.change(screen.getAllByRole("textbox")[1], {
         target: {
-          value: [
-            "content.analysis",
-            "content.planning",
-            "content.build",
-            "content.modeling",
-            "content.writer",
-            "content.modeler",
-          ].join("\n"),
+          value: `id: ${skillId}\nname: ${skillId}\ndescription: Test skill\n---\nInstructions.`,
         },
-      },
-    );
+      });
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "settings:SETTINGS_SYSTEM_AGENTS_SKILL_ADD_TO_LIBRARY",
+        }),
+      );
+    };
+    await ["content.build", "content.modeling", "content.writer", "content.modeler"].reduce<
+      Promise<void>
+    >(async (previousUpload, skillId) => {
+      await previousUpload;
+      await uploadSkill(skillId);
+    }, Promise.resolve());
     fireEvent.click(screen.getByRole("button", { name: "settings:SETTINGS_SAVE" }));
 
     await waitFor(() => {

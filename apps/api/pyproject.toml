@@ -39,6 +39,7 @@ dependencies = [
   "httptools>=0.7.1",
   "langgraph>=1.0.4",
   "langgraph-checkpoint-postgres>=3.0.0",
+  "psycopg[binary]>=3.3.4",
 ]
 
 [dependency-groups]

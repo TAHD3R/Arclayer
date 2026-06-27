@@ -42,6 +42,8 @@
   "API_KEY_SCOPE_INVALID_FOR_PERSONAL": "API Key Scope Invalid For Personal",
   "API_KEY_SCOPE_INVALID_FOR_WORKSPACE": "API Key Scope Invalid For Workspace",
   "API_KEY_SITE_MISMATCH": "API Key Site Mismatch",
+  "AI_PROVIDER_MASTER_KEY_REQUIRED": "The system AI master key is not configured, so Provider keys cannot be saved",
+  "AI_PROVIDER_NOT_FOUND": "AI Provider not found",
   "ASSET_BULK_UPDATE_GOVERNANCE_FAILED": "Some assets do not satisfy the purpose, visibility, or indexability rules",
   "ASSET_BULK_UPDATE_INVALID": "Select at least one field to update",
   "ASSET_FILE_NOT_FOUND": "Asset file not found",

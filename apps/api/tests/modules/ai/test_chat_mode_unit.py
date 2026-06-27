@@ -34,6 +34,7 @@ def test_chat_request_build_mode_adds_actionable_build_contract() -> None:
     assert messages[0]["role"] == "system"
     assert "Build mode" in messages[0]["content"]
     assert "Do not claim that code or data was changed" in messages[0]["content"]
+    assert "Reply in the same language as the user's latest message" in messages[0]["content"]
     assert messages[1] == {"role": "user", "content": "Implement this"}
 
 
@@ -77,6 +78,16 @@ def test_chat_request_invalid_settings_default_mode_uses_build_mode() -> None:
     )
 
     assert "Build mode" in messages[0]["content"]
+
+
+def test_chat_request_appends_configured_system_prompt() -> None:
+    messages = _mode_scoped_messages(
+        _chat_request("你好", mode=AgentConversationMode.BUILD),
+        agent_settings={"system_prompt": "始终使用清晰、简洁的中文回答。"},
+    )
+
+    assert "Admin-configured system prompt:" in messages[0]["content"]
+    assert "始终使用清晰、简洁的中文回答。" in messages[0]["content"]
 
 
 def test_chat_model_payload_value_overrides_settings_default_model() -> None:

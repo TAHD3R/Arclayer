@@ -8,22 +8,42 @@ R3 audit requirement:
 from __future__ import annotations
 
 from datetime import date, timedelta
-from typing import Any, cast
+from typing import Annotated, Any, cast
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from tortoise.functions import Sum
 
 from src.common.schemas import BaseSchema
+from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
+from src.core.exceptions import Forbidden
 from src.core.http.response import ApiResponse, ResponseModel
+from src.core.i18n import t
 from src.models.ai.ai_usage_daily import AIUsageDaily
-from src.modules.workspaces.http.schema import WorkspaceContext
-from src.modules.workspaces.http.service import require_workspace_manage_access
+from src.models.organization.user import User
+from src.modules.auth.http.service import get_current_user
+from src.modules.workspaces.http.service import require_active_workspace, resolve_workspace_context_by_id
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/usage",
     tags=["domain.ai.usage"],
 )
+
+
+async def require_workspace_usage_read_access(
+    workspace_id: Annotated[PublicUUID, Path(..., description="Workspace ID.")],
+    user: User = Depends(get_current_user),
+) -> UUID:
+    """Allow workspace managers and super admins to inspect workspace usage rollups."""
+    if bool(user.is_super_admin):
+        workspace = await require_active_workspace(workspace_id=workspace_id)
+        return UUID(str(workspace.id))
+
+    ctx = await resolve_workspace_context_by_id(workspace_id=workspace_id, user_id=UUID(str(user.id)))
+    if ctx.visible_only or ctx.workspace_membership_id is None:
+        raise Forbidden(message=t("errors", "PERMISSION_DENIED"), error="WORKSPACE_ACCESS_DENIED")
+    return ctx.workspace_id
 
 
 # ── Response schemas ──────────────────────────────────────────────────
@@ -76,13 +96,12 @@ async def get_monthly_usage(
         pattern=r"^\d{4}-\d{2}$",
         description="Target month in YYYY-MM format.",
     ),
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    workspace_id: UUID = Depends(require_workspace_usage_read_access),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[MonthlyUsageSummary]:
     """Return the aggregated AI usage for the specified month."""
     _validate_period_format(period)
     year, month = _parse_period(period)
-    workspace_id = ctx.workspace_id
 
     start_date = date(year, month, 1)
     if month == 12:
@@ -149,11 +168,10 @@ async def get_daily_usage_trend(
         le=365,
         description="Number of days to include in the trend.",
     ),
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    workspace_id: UUID = Depends(require_workspace_usage_read_access),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[list[DailyUsageRecord]]:
     """Return daily usage records for the trailing N days."""
-    workspace_id = ctx.workspace_id
     start_date = date.today() - timedelta(days=days - 1)
 
     records = await AIUsageDaily.filter(workspace_id=workspace_id, date__gte=start_date).order_by("date")

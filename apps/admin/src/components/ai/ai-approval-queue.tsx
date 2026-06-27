@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
+  AI_AGENT_APPROVAL_PROJECT_CONTEXT_REQUIRED,
   approveAIAgentApproval,
   applyAIAgentApproval,
   buildAIAgentApprovalsQueryKey,
@@ -592,7 +593,7 @@ function ApprovalSuccess(props: { message: string }) {
 
 function requireProjectId(projectId: string | null): string {
   if (!projectId) {
-    throw new Error("Agent approval requires an active project context");
+    throw new Error(AI_AGENT_APPROVAL_PROJECT_CONTEXT_REQUIRED);
   }
   return projectId;
 }

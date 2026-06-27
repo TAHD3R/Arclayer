@@ -448,6 +448,12 @@ def build_core_settings_schema() -> ConfigSchema:
                         ],
                     ),
                     ConfigField(
+                        key="system_prompt",
+                        type="str",
+                        default="",
+                        label="System prompt",
+                    ),
+                    ConfigField(
                         key="conversation_retention_days",
                         type="int",
                         default=90,

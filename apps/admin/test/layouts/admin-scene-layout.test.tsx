@@ -201,7 +201,7 @@ describe("AdminSceneLayout", () => {
     expect(toastInfoMock).not.toHaveBeenCalled();
     expect(routeTransitionSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        className: "w-full",
+        className: "min-w-0 max-w-full w-full",
       }),
     );
     await waitFor(() => {
@@ -222,9 +222,9 @@ describe("AdminSceneLayout", () => {
     });
 
     const { container } = renderSceneLayout(queryClient);
-    const pageScroller = container.querySelector(".overflow-auto");
+    const pageScroller = container.querySelector(".overflow-y-auto");
 
-    expect(pageScroller).toHaveClass("[scrollbar-gutter:auto]");
+    expect(pageScroller).toHaveClass("overflow-x-hidden", "[scrollbar-gutter:auto]");
   });
 
   it("stacks one toast per newly arrived unread preview item after a refetch", async () => {

@@ -33,6 +33,48 @@ export type AIAgentMessageArtifact =
       source?: string;
     };
 
+export interface AIWorkspaceActionProject {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+}
+
+export interface AIWorkspaceActionContentModel {
+  id: string;
+  name: string;
+  singularKey: string;
+  pluralKey: string;
+  description?: string | null;
+  modelKind: string;
+}
+
+export type AIWorkspaceActionArtifact =
+  | {
+      type: "workspace_project_created";
+      status: "completed";
+      project: AIWorkspaceActionProject;
+      navigation: { label: string; path: string };
+    }
+  | {
+      type: "workspace_project_list";
+      status: "completed";
+      projects: AIWorkspaceActionProject[];
+      total: number;
+      navigation: { label: string; path: string };
+    }
+  | {
+      type: "workspace_content_model_created";
+      status: "completed";
+      contentModel: AIWorkspaceActionContentModel;
+      navigation: { label: string; path: string };
+    }
+  | {
+      type: "workspace_navigation";
+      status: "completed";
+      navigation: { label: string; path: string };
+    };
+
 export interface AIAgentInterrupt {
   kind: string;
   runId: string;
@@ -56,12 +98,14 @@ export interface AIAgentExecutionSummary {
 export interface AIChatMessage {
   role: AIChatRole;
   content: string;
+  reasoning?: string;
   agentRunId?: string;
   agentStatus?: AIAgentRunStatus;
   agentThreadId?: string;
   agentCheckpointId?: string;
   agentInterrupt?: AIAgentInterrupt;
   agentArtifact?: AIAgentMessageArtifact;
+  workspaceAction?: AIWorkspaceActionArtifact;
   agentExecutionSummary?: AIAgentExecutionSummary;
   /** 标记assistant消息为错误态（显式展示，不静默吞） */
   error?: boolean;
@@ -116,6 +160,8 @@ export interface AIChatState {
   ) => void;
   /** 流式追加 delta 到末条 assistant 消息；若无则新建 */
   appendDelta: (convId: string, delta: string) => void;
+  /** 流式追加模型显式返回的 reasoning delta；若无则新建 */
+  appendReasoningDelta: (convId: string, delta: string) => void;
   /** 标记末条 streaming 消息为完成或错误 */
   finalizeLastAssistant: (
     convId: string,
@@ -138,6 +184,7 @@ export interface AIChatState {
 
 const MAX_CONVERSATIONS = 50;
 export const DEFAULT_AI_CHAT_MODEL = "deepseek-v4-pro";
+export const AUTO_AI_CHAT_MODEL = "__auto__";
 export const DEFAULT_AI_REASONING_EFFORT: AIReasoningEffort = "medium";
 export const DEFAULT_AI_COMPOSER_MODE: AIComposerMode = "build";
 export const DEFAULT_AI_AGENT_ID = "content_analyzer";
@@ -283,6 +330,24 @@ export const useAiChatStore = create<AIChatState>()(
               messages[messages.length - 1] = { ...last, content: last.content + delta };
             } else {
               messages.push({ role: "assistant", content: delta, streaming: true });
+            }
+            return { ...c, messages, updatedAt: now() };
+          }),
+        })),
+
+      appendReasoningDelta: (convId, delta) =>
+        set((state) => ({
+          conversations: state.conversations.map((c) => {
+            if (c.id !== convId) return c;
+            const messages = [...c.messages];
+            const last = messages[messages.length - 1];
+            if (last && last.role === "assistant" && last.streaming) {
+              messages[messages.length - 1] = {
+                ...last,
+                reasoning: `${last.reasoning ?? ""}${delta}`,
+              };
+            } else {
+              messages.push({ role: "assistant", content: "", reasoning: delta, streaming: true });
             }
             return { ...c, messages, updatedAt: now() };
           }),

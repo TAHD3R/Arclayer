@@ -47,6 +47,15 @@ vi.mock("@/components/ai/ai-content-proposal-card", () => ({
   AIContentProposalCard: () => <div data-testid="content-proposal-card" />,
 }));
 
+vi.mock("@/hooks/use-current-user-profile", () => ({
+  useCurrentUserProfile: () => ({ profile: { displayName: "Philip Cole" } }),
+}));
+
+vi.mock("@/stores/use-auth-store", () => ({
+  useAuthStore: (selector: (state: { accessToken: string | null }) => unknown) =>
+    selector({ accessToken: "token-1" }),
+}));
+
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,

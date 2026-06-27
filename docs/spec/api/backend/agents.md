@@ -56,6 +56,33 @@ approval-gated write proposals.
 - `GET /api/v1/projects/{project_id}/agents/runs/{run_id}`
 - `POST /api/v1/projects/{project_id}/agents/runs/{run_id}/resume`
 - `POST /api/v1/projects/{project_id}/agents/runs/{run_id}/cancel`
+- `POST /api/v1/chat/workspace-actions`
+
+### 3.2 Workspace-Scoped AI Actions
+
+- Workspace actions handle AI instructions that target the workspace itself rather than an existing project.
+- Workspace actions must not be routed through `/projects/{project_id}/agents/**`, because those APIs require
+  an active project context by contract.
+- Supported workspace actions currently include:
+  - `create_project`: creates a real project in the current workspace using the canonical project service.
+  - `create_content_model`: creates a real content model in an explicitly selected project using the canonical
+    project content model service.
+  - `list_projects`: returns visible projects in the current workspace.
+  - `open_projects`: returns the project-list navigation target.
+- `create_project` must reuse the same permission boundary as `POST /api/v1/projects`:
+  - resolve the workspace from the authenticated user,
+  - require workspace manage access,
+  - require `system:content:manage`,
+  - call `ProjectService.create_project`.
+- `create_content_model` must require an explicit target project id, resolve the project through the existing
+  project context path, require `project:content:manage`, and call `ProjectContentCanonicalModelsService.create_model`.
+- Plan mode must not execute mutating workspace actions. Mutating workspace action requests in Plan mode must fail
+  explicitly with `AI_WORKSPACE_ACTION_PLAN_MODE_READ_ONLY`.
+- Read-only workspace actions must resolve the workspace from the authenticated user and must not expose
+  projects outside the resolved workspace.
+- Unsupported workspace action prompts must fail explicitly with `AI_WORKSPACE_ACTION_UNSUPPORTED`; clients
+  may route non-action chat prompts to `/chat`, but the workspace action endpoint itself must not silently
+  downgrade to generic model chat.
 
 ### 4. Contracts
 

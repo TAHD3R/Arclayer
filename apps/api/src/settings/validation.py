@@ -165,6 +165,7 @@ def _validate_section_semantics(section_id: str, values: JsonObject) -> None:
 
 def _validate_ai_agents_settings(values: JsonObject) -> None:
     _validate_optional_non_empty_string(values, "default_model", section_id="ai_agents")
+    _validate_optional_string(values, "system_prompt", section_id="ai_agents")
     _validate_optional_string_choice(values, "default_mode", {"build", "plan", "agent"}, section_id="ai_agents")
     _validate_optional_string_choice(
         values,
@@ -196,6 +197,12 @@ def _validate_langgraph_settings(values: JsonObject) -> None:
 def _validate_optional_non_empty_string(values: JsonObject, field: str, *, section_id: str) -> None:
     value = values.get(field)
     if value is not None and (not isinstance(value, str) or not value.strip()):
+        _raise_config_invalid(section_id=section_id, field=field)
+
+
+def _validate_optional_string(values: JsonObject, field: str, *, section_id: str) -> None:
+    value = values.get(field)
+    if value is not None and not isinstance(value, str):
         _raise_config_invalid(section_id=section_id, field=field)
 
 

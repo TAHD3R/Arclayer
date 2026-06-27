@@ -22,6 +22,10 @@ vi.mock("@/api/ai", () => ({
   resumeAIAgentRunForConversation: apiMock.resumeAIAgentRunForConversation,
 }));
 
+vi.mock("@/components/ai/ai-composer-triggers", () => ({
+  AIComposerTriggers: () => null,
+}));
+
 vi.mock("@assistant-ui/react", async () => {
   const React = await vi.importActual<typeof import("react")>("react");
   const QueueItemContext = React.createContext<{ id: string; prompt: string } | null>(null);

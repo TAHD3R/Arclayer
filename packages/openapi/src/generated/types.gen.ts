@@ -15892,6 +15892,56 @@ export type ResponseModelStorageProfileTestResultOut = {
 };
 
 /**
+ * ResponseModel[SystemAIProviderListOut]
+ */
+export type ResponseModelSystemAiProviderListOut = {
+    data?: SystemAiProviderListOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SystemAIProviderOut]
+ */
+export type ResponseModelSystemAiProviderOut = {
+    data?: SystemAiProviderOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[SystemRuntimeOut]
  */
 export type ResponseModelSystemRuntimeOut = {
@@ -18375,6 +18425,138 @@ export type StorageProfileUpdateRequest = {
      * Isdefault
      */
     isDefault?: boolean | null;
+};
+
+/**
+ * SystemAIProviderCreateRequest
+ */
+export type SystemAiProviderCreateRequest = {
+    /**
+     * Baseurl
+     */
+    baseUrl?: string | null;
+    /**
+     * Compatibility
+     */
+    compatibility?: 'openai' | 'anthropic' | 'deepseek' | 'openai_compatible' | 'anthropic_compatible';
+    /**
+     * Expiresat
+     */
+    expiresAt?: string | null;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Litellmkeyid
+     */
+    litellmKeyId?: string | null;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Virtualkey
+     */
+    virtualKey: string;
+};
+
+/**
+ * SystemAIProviderListOut
+ */
+export type SystemAiProviderListOut = {
+    /**
+     * Providers
+     */
+    providers?: Array<SystemAiProviderOut>;
+};
+
+/**
+ * SystemAIProviderOut
+ */
+export type SystemAiProviderOut = {
+    /**
+     * Baseurl
+     */
+    baseUrl?: string | null;
+    /**
+     * Compatibility
+     */
+    compatibility: 'openai' | 'anthropic' | 'deepseek' | 'openai_compatible' | 'anthropic_compatible';
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Expiresat
+     */
+    expiresAt?: string | null;
+    /**
+     * Hasvirtualkey
+     */
+    hasVirtualKey: boolean;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Isactive
+     */
+    isActive: boolean;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Lastusedat
+     */
+    lastUsedAt?: string | null;
+    /**
+     * Litellmkeyid
+     */
+    litellmKeyId?: string | null;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+};
+
+/**
+ * SystemAIProviderUpdateRequest
+ */
+export type SystemAiProviderUpdateRequest = {
+    /**
+     * Baseurl
+     */
+    baseUrl?: string | null;
+    /**
+     * Compatibility
+     */
+    compatibility?: 'openai' | 'anthropic' | 'deepseek' | 'openai_compatible' | 'anthropic_compatible' | null;
+    /**
+     * Expiresat
+     */
+    expiresAt?: string | null;
+    /**
+     * Isactive
+     */
+    isActive?: boolean | null;
+    /**
+     * Label
+     */
+    label?: string | null;
+    /**
+     * Litellmkeyid
+     */
+    litellmKeyId?: string | null;
+    /**
+     * Virtualkey
+     */
+    virtualKey?: string | null;
 };
 
 /**
@@ -29391,6 +29573,107 @@ export type InternalSystemGetActivityDetailResponses = {
 };
 
 export type InternalSystemGetActivityDetailResponse = InternalSystemGetActivityDetailResponses[keyof InternalSystemGetActivityDetailResponses];
+
+export type InternalSystemListSystemAiProvidersData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/system/ai/providers';
+};
+
+export type InternalSystemListSystemAiProvidersResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSystemAiProviderListOut;
+};
+
+export type InternalSystemListSystemAiProvidersResponse = InternalSystemListSystemAiProvidersResponses[keyof InternalSystemListSystemAiProvidersResponses];
+
+export type InternalSystemCreateSystemAiProviderData = {
+    body: SystemAiProviderCreateRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/system/ai/providers';
+};
+
+export type InternalSystemCreateSystemAiProviderErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemCreateSystemAiProviderError = InternalSystemCreateSystemAiProviderErrors[keyof InternalSystemCreateSystemAiProviderErrors];
+
+export type InternalSystemCreateSystemAiProviderResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSystemAiProviderOut;
+};
+
+export type InternalSystemCreateSystemAiProviderResponse = InternalSystemCreateSystemAiProviderResponses[keyof InternalSystemCreateSystemAiProviderResponses];
+
+export type InternalSystemDeleteSystemAiProviderData = {
+    body?: never;
+    path: {
+        /**
+         * Provider Id
+         */
+        provider_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/ai/providers/{provider_id}';
+};
+
+export type InternalSystemDeleteSystemAiProviderErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemDeleteSystemAiProviderError = InternalSystemDeleteSystemAiProviderErrors[keyof InternalSystemDeleteSystemAiProviderErrors];
+
+export type InternalSystemDeleteSystemAiProviderResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNoneType;
+};
+
+export type InternalSystemDeleteSystemAiProviderResponse = InternalSystemDeleteSystemAiProviderResponses[keyof InternalSystemDeleteSystemAiProviderResponses];
+
+export type InternalSystemUpdateSystemAiProviderData = {
+    body: SystemAiProviderUpdateRequest;
+    path: {
+        /**
+         * Provider Id
+         */
+        provider_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/ai/providers/{provider_id}';
+};
+
+export type InternalSystemUpdateSystemAiProviderErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemUpdateSystemAiProviderError = InternalSystemUpdateSystemAiProviderErrors[keyof InternalSystemUpdateSystemAiProviderErrors];
+
+export type InternalSystemUpdateSystemAiProviderResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSystemAiProviderOut;
+};
+
+export type InternalSystemUpdateSystemAiProviderResponse = InternalSystemUpdateSystemAiProviderResponses[keyof InternalSystemUpdateSystemAiProviderResponses];
 
 export type InternalSystemListProjectsData = {
     body?: never;

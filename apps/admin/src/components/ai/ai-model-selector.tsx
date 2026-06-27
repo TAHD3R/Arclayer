@@ -16,6 +16,7 @@ import {
 import { useAssistantRuntime } from "@assistant-ui/react";
 
 import {
+  AUTO_AI_CHAT_MODEL,
   DEFAULT_AI_CHAT_MODEL,
   DEFAULT_AI_REASONING_EFFORT,
   useAiChatStore,
@@ -51,17 +52,21 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
   });
   const models = modelsQuery.data?.models ?? [];
   const canShowSelectedModel = modelsQuery.isSuccess && models.length > 0;
-  const selected = canShowSelectedModel
-    ? (models.find((model) => model.id === selectedModel) ?? models[0])
-    : null;
-  const triggerLabel = selected
-    ? formatModelLabel(selected, t)
-    : getModelSelectorStatusLabel({
-        hasWorkspace: Boolean(workspaceId),
-        isLoading: modelsQuery.isLoading,
-        isError: modelsQuery.isError,
-        t,
-      });
+  const isAutoModel = selectedModel === AUTO_AI_CHAT_MODEL;
+  const selected =
+    canShowSelectedModel && !isAutoModel
+      ? (models.find((model) => model.id === selectedModel) ?? models[0])
+      : null;
+  const triggerLabel = isAutoModel
+    ? t("ai:AI_CHAT_MODEL_AUTO")
+    : selected
+      ? formatModelLabel(selected, t)
+      : getModelSelectorStatusLabel({
+          hasWorkspace: Boolean(workspaceId),
+          isLoading: modelsQuery.isLoading,
+          isError: modelsQuery.isError,
+          t,
+        });
 
   useEffect(() => {
     if (!runtime) return undefined;
@@ -69,16 +74,17 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
     return runtime.registerModelContextProvider({
       getModelContext: () => ({
         config: {
-          modelName: selectedModel,
+          modelName: isAutoModel ? undefined : selectedModel,
           reasoningEffort: selectedReasoningEffort,
         },
       }),
     });
-  }, [runtime, selectedModel, selectedReasoningEffort]);
+  }, [isAutoModel, runtime, selectedModel, selectedReasoningEffort]);
 
   useEffect(() => {
     const catalog = modelsQuery.data;
     if (!catalog) return;
+    if (selectedModel === AUTO_AI_CHAT_MODEL) return;
     if (!models.some((model) => model.id === selectedModel)) {
       setSelectedModel(catalog.defaultModel, "default");
       return;
@@ -129,6 +135,30 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
       >
         <div className="box-border max-h-80 w-full overflow-y-auto px-2 py-2">
           <DropdownMenuGroup className="w-full">
+            <DropdownMenuItem
+              onSelect={() => {
+                setSelectedModel(AUTO_AI_CHAT_MODEL);
+                setOpen(false);
+              }}
+              className="box-border w-full cursor-pointer items-start gap-3 rounded-xl px-3 py-3"
+            >
+              <SparklesIcon className="mt-0.5 size-5 shrink-0 text-label-secondary" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-callout font-semibold text-label-primary">
+                  {t("ai:AI_CHAT_MODEL_AUTO")}
+                </span>
+                <span className="mt-0.5 block truncate text-footnote text-label-secondary">
+                  {t("ai:AI_CHAT_MODEL_AUTO_DESC")}
+                </span>
+              </span>
+              <CheckIcon
+                className={cn(
+                  "mt-1 size-4 text-label-secondary",
+                  isAutoModel ? "opacity-100" : "opacity-0",
+                )}
+                aria-hidden="true"
+              />
+            </DropdownMenuItem>
             {models.map((model) => {
               const active = selected?.id === model.id;
               return (

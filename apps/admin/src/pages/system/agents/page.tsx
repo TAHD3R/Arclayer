@@ -1,17 +1,28 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { EditIcon, PlusIcon, Trash2Icon, UploadIcon } from "lucide-react";
 
 import {
+  createAISystemProvider,
+  deleteAISystemProvider,
   getAIMonthlyUsageSummary,
+  listAISystemProviders,
   listAIModels,
+  updateAISystemProvider,
   type AIMonthlyUsageSummary,
   type AIModelCatalogResponse,
+  type AISystemProvider,
+  type AISystemProviderListResponse,
+  type AISystemProviderCompatibility,
 } from "@/api/ai";
+import { Button } from "@arclayer/ui/button";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
 import { Input } from "@arclayer/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { SettingDialog } from "@arclayer/ui/setting-dialog";
+import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { Switch } from "@arclayer/ui/switch";
 import { Textarea } from "@arclayer/ui/textarea";
 
@@ -53,6 +64,7 @@ type AgentsFormValues = {
   defaultMode: AgentMode;
   defaultModel: string;
   reasoningEffort: ReasoningEffort;
+  systemPrompt: string;
   conversationRetentionDays: number;
   autoTitleEnabled: boolean;
   contextRecommendationsEnabled: boolean;
@@ -77,8 +89,21 @@ const APPROVAL_POLICY_OPTIONS: readonly ApprovalPolicy[] = [
   "auto_approved",
 ];
 const CHECKPOINTER_OPTIONS: readonly Checkpointer[] = ["database", "memory"];
-const DEFAULT_SKILL_IDS_PLACEHOLDER =
-  "content.analysis\ncontent.planning\ncontent.build\ncontent.modeling\ncontent.writer\ncontent.modeler";
+const PROVIDER_COMPATIBILITY_OPTIONS: readonly AISystemProviderCompatibility[] = [
+  "openai",
+  "openai_compatible",
+  "anthropic",
+  "anthropic_compatible",
+  "deepseek",
+];
+const PROVIDER_QUERY_KEY = ["system", "ai", "providers"] as const;
+const SKILL_TEMPLATE = [
+  "id: content.custom",
+  "name: Custom skill",
+  "description: Describe what this skill enables.",
+  "---",
+  "Write concise instructions here. Keep external data clearly separated from instructions.",
+].join("\n");
 
 function currentUsagePeriod(): string {
   const now = new Date();
@@ -133,6 +158,7 @@ function buildInitialValues(
     defaultMode: normalizeAgentMode(readStringValue(agents, "default_mode")),
     defaultModel: readStringValue(agents, "default_model") ?? "deepseek-v4-pro",
     reasoningEffort: normalizeReasoningEffort(readStringValue(agents, "reasoning_effort")),
+    systemPrompt: readStringValue(agents, "system_prompt") ?? "",
     conversationRetentionDays: readPositiveNumber(
       readNumberValue(agents, "conversation_retention_days"),
       90,
@@ -180,6 +206,17 @@ function availableModelIds(catalog: AIModelCatalogResponse | undefined): Set<str
   return new Set(catalog?.models.filter((model) => model.available).map((model) => model.id) ?? []);
 }
 
+function availableModelOptions(
+  catalog: AIModelCatalogResponse | undefined,
+  currentModel: string,
+): string[] {
+  const options = catalog?.models.filter((model) => model.available).map((model) => model.id) ?? [];
+  if (currentModel.trim() && !options.includes(currentModel)) {
+    return [currentModel, ...options];
+  }
+  return options;
+}
+
 function formatCostMicros(value: number): string {
   return new Intl.NumberFormat(undefined, {
     style: "currency",
@@ -198,6 +235,16 @@ function formatPercent(value: number): string {
     minimumFractionDigits: 0,
     style: "percent",
   }).format(value);
+}
+
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }
 
 function statusText(params: {
@@ -249,6 +296,44 @@ function SelectField<TValue extends string>(props: {
               {props.getLabel(option)}
             </SelectItem>
           ))}
+        </SelectContent>
+      </Select>
+    </SystemSettingField>
+  );
+}
+
+function ModelSelectField(props: {
+  label: string;
+  description: string;
+  value: string;
+  options: readonly string[];
+  catalog: AIModelCatalogResponse | undefined;
+  onValueChange: (value: string) => void;
+}) {
+  const { t } = useTranslation(["settings"]);
+  const labelForModel = (modelId: string) => {
+    const model = props.catalog?.models.find((item) => item.id === modelId);
+    return model?.label ?? modelId;
+  };
+
+  return (
+    <SystemSettingField label={props.label} description={props.description}>
+      <Select value={props.value} onValueChange={props.onValueChange}>
+        <SelectTrigger className="w-full sm:w-72">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent position="popper" align="start">
+          {props.options.length > 0 ? (
+            props.options.map((modelId) => (
+              <SelectItem key={modelId} value={modelId}>
+                {labelForModel(modelId)}
+              </SelectItem>
+            ))
+          ) : (
+            <SelectItem value={props.value || "unavailable"} disabled>
+              {t("settings:SETTINGS_SYSTEM_AGENTS_MODEL_CATALOG_EMPTY")}
+            </SelectItem>
+          )}
         </SelectContent>
       </Select>
     </SystemSettingField>
@@ -400,8 +485,384 @@ function AgentUsageGovernance(props: {
   );
 }
 
+type ProviderDialogState =
+  | { mode: "create"; provider: null }
+  | { mode: "edit"; provider: AISystemProvider };
+
+type ProviderFormValues = {
+  provider: string;
+  label: string;
+  compatibility: AISystemProviderCompatibility;
+  virtualKey: string;
+  litellmKeyId: string;
+  baseUrl: string;
+  isActive: boolean;
+};
+
+function buildProviderFormValues(provider: AISystemProvider | null): ProviderFormValues {
+  return {
+    provider: provider?.provider ?? "",
+    label: provider?.label ?? "",
+    compatibility: provider?.compatibility ?? "openai_compatible",
+    virtualKey: "",
+    litellmKeyId: provider?.litellmKeyId ?? "",
+    baseUrl: provider?.baseUrl ?? "",
+    isActive: provider?.isActive ?? true,
+  };
+}
+
+function AIProviderManagement(props: {
+  providersQuery: {
+    data: AISystemProviderListResponse | undefined;
+    isError: boolean;
+    isLoading: boolean;
+  };
+  pending: boolean;
+  onCreate: (values: ProviderFormValues) => void;
+  onUpdate: (providerId: string, values: ProviderFormValues) => void;
+  onDelete: (providerId: string) => void;
+}) {
+  const { t } = useTranslation(["settings", "common"]);
+  const [dialog, setDialog] = useState<ProviderDialogState | null>(null);
+  const [values, setValues] = useState<ProviderFormValues>(() => buildProviderFormValues(null));
+  const providers = props.providersQuery.data?.providers ?? [];
+
+  const openCreate = () => {
+    setValues(buildProviderFormValues(null));
+    setDialog({ mode: "create", provider: null });
+  };
+
+  const openEdit = (provider: AISystemProvider) => {
+    setValues(buildProviderFormValues(provider));
+    setDialog({ mode: "edit", provider });
+  };
+
+  const closeDialog = () => setDialog(null);
+  const submit = () => {
+    if (!dialog) return;
+    if (dialog.mode === "create") {
+      props.onCreate(values);
+      return;
+    }
+    props.onUpdate(dialog.provider.id, values);
+  };
+
+  return (
+    <div className="grid gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <SystemSettingInlineNote>
+          {t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_MANAGEMENT_NOTE")}
+        </SystemSettingInlineNote>
+        <Button type="button" size="sm" onClick={openCreate} className="gap-1.5">
+          <PlusIcon className="size-4" aria-hidden="true" />
+          {t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_CREATE")}
+        </Button>
+      </div>
+
+      {props.providersQuery.isError ? (
+        <SystemSettingInlineNote>
+          {t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_LOAD_FAILED")}
+        </SystemSettingInlineNote>
+      ) : null}
+
+      <div className="grid gap-2">
+        {providers.map((provider) => (
+          <div
+            key={provider.id}
+            className="grid gap-3 rounded-lg border border-border/70 bg-background px-3 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+          >
+            <div className="min-w-0">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <span className="truncate text-callout font-semibold text-label-primary">
+                  {provider.label}
+                </span>
+                <span className="rounded-md bg-muted px-2 py-0.5 text-caption text-label-secondary">
+                  {provider.provider}
+                </span>
+                <span className="rounded-md bg-muted px-2 py-0.5 text-caption text-label-secondary">
+                  {t(
+                    `settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_COMPAT_${provider.compatibility.toUpperCase()}`,
+                  )}
+                </span>
+              </div>
+              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-caption text-label-secondary">
+                <span>
+                  {provider.isActive
+                    ? t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_ACTIVE")
+                    : t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_INACTIVE")}
+                </span>
+                <span>
+                  {provider.hasVirtualKey
+                    ? t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_KEY_SET")
+                    : t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_KEY_MISSING")}
+                </span>
+                {provider.baseUrl ? <span>{provider.baseUrl}</span> : null}
+                {provider.updatedAt ? (
+                  <span>
+                    {t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_UPDATED_AT", {
+                      value: formatDateTime(provider.updatedAt),
+                    })}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+            <div className="flex items-center gap-1 sm:justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_EDIT")}
+                onClick={() => openEdit(provider)}
+              >
+                <EditIcon className="size-4" aria-hidden="true" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_DELETE")}
+                disabled={props.pending}
+                onClick={() => props.onDelete(provider.id)}
+              >
+                <Trash2Icon className="size-4" aria-hidden="true" />
+              </Button>
+            </div>
+          </div>
+        ))}
+        {props.providersQuery.isLoading ? (
+          <SystemSettingInlineNote>
+            {t("settings:SETTINGS_SYSTEM_AGENTS_GOVERNANCE_LOADING")}
+          </SystemSettingInlineNote>
+        ) : null}
+        {!props.providersQuery.isLoading && providers.length === 0 ? (
+          <SystemSettingInlineNote>
+            {t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDERS_EMPTY")}
+          </SystemSettingInlineNote>
+        ) : null}
+      </div>
+
+      <SettingDialog
+        open={dialog !== null}
+        onOpenChange={(open) => {
+          if (!open) closeDialog();
+        }}
+        title={
+          dialog?.mode === "edit"
+            ? t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_EDIT")
+            : t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_CREATE")
+        }
+        description={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_DIALOG_DESC")}
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={closeDialog}>
+              {t("common:CANCEL")}
+            </Button>
+            <Button
+              type="button"
+              disabled={
+                props.pending ||
+                !values.provider.trim() ||
+                !values.label.trim() ||
+                (dialog?.mode === "create" && !values.virtualKey.trim())
+              }
+              onClick={submit}
+            >
+              {t("settings:SETTINGS_SAVE")}
+            </Button>
+          </>
+        }
+      >
+        <SettingDialogFields>
+          <SettingDialogField
+            title={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_KEY_LABEL")}
+            description={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_KEY_DESC")}
+          >
+            <Input
+              value={values.provider}
+              disabled={dialog?.mode === "edit"}
+              onChange={(event) =>
+                setValues((current) => ({ ...current, provider: event.target.value }))
+              }
+              placeholder="openai"
+            />
+          </SettingDialogField>
+          <SettingDialogField title={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_NAME_LABEL")}>
+            <Input
+              value={values.label}
+              onChange={(event) =>
+                setValues((current) => ({ ...current, label: event.target.value }))
+              }
+              placeholder="OpenAI"
+            />
+          </SettingDialogField>
+          <SettingDialogField title={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_COMPAT_LABEL")}>
+            <Select
+              value={values.compatibility}
+              onValueChange={(value) =>
+                setValues((current) => ({
+                  ...current,
+                  compatibility: value as AISystemProviderCompatibility,
+                }))
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PROVIDER_COMPATIBILITY_OPTIONS.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {t(`settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_COMPAT_${option.toUpperCase()}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </SettingDialogField>
+          <SettingDialogField
+            title={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_SECRET_LABEL")}
+            description={
+              dialog?.mode === "edit"
+                ? t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_SECRET_EDIT_DESC")
+                : t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_SECRET_CREATE_DESC")
+            }
+          >
+            <Input
+              type="password"
+              value={values.virtualKey}
+              onChange={(event) =>
+                setValues((current) => ({ ...current, virtualKey: event.target.value }))
+              }
+              placeholder={dialog?.mode === "edit" ? "••••••••" : "sk-..."}
+            />
+          </SettingDialogField>
+          <SettingDialogField title={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_BASE_URL_LABEL")}>
+            <Input
+              value={values.baseUrl}
+              onChange={(event) =>
+                setValues((current) => ({ ...current, baseUrl: event.target.value }))
+              }
+              placeholder="https://api.openai.com/v1"
+            />
+          </SettingDialogField>
+          <SettingDialogField
+            title={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_LITELLM_KEY_LABEL")}
+          >
+            <Input
+              value={values.litellmKeyId}
+              onChange={(event) =>
+                setValues((current) => ({ ...current, litellmKeyId: event.target.value }))
+              }
+              placeholder="litellm-key-id"
+            />
+          </SettingDialogField>
+          <SystemSettingRow
+            title={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_ACTIVE")}
+            description={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_ACTIVE_DESC")}
+            control={
+              <Switch
+                checked={values.isActive}
+                onCheckedChange={(checked) =>
+                  setValues((current) => ({ ...current, isActive: checked }))
+                }
+              />
+            }
+          />
+        </SettingDialogFields>
+      </SettingDialog>
+    </div>
+  );
+}
+
+function SkillLibraryEditor(props: { value: string; onChange: (value: string) => void }) {
+  const { t } = useTranslation(["settings"]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [draft, setDraft] = useState(SKILL_TEMPLATE);
+  const skillIds = splitLineList(props.value);
+
+  const appendDraftSkill = () => {
+    const idLine = draft
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .find((line) => line.startsWith("id:"));
+    const skillId = idLine?.slice(3).trim();
+    if (!skillId) return;
+    const next = Array.from(new Set([...skillIds, skillId]));
+    props.onChange(next.join("\n"));
+    setDialogOpen(false);
+  };
+
+  return (
+    <div className="grid gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <SystemSettingInlineNote>
+          {t("settings:SETTINGS_SYSTEM_AGENTS_SKILLS_LIBRARY_NOTE")}
+        </SystemSettingInlineNote>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="gap-1.5"
+          onClick={() => setDialogOpen(true)}
+        >
+          <UploadIcon className="size-4" aria-hidden="true" />
+          {t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_UPLOAD")}
+        </Button>
+      </div>
+      <div className="grid gap-2">
+        {skillIds.map((skillId) => (
+          <div
+            key={skillId}
+            className="flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-background px-3 py-2"
+          >
+            <span className="min-w-0 truncate text-footnote font-semibold text-label-primary">
+              {skillId}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_REMOVE")}
+              onClick={() => props.onChange(skillIds.filter((item) => item !== skillId).join("\n"))}
+            >
+              <Trash2Icon className="size-4" aria-hidden="true" />
+            </Button>
+          </div>
+        ))}
+        {skillIds.length === 0 ? (
+          <SystemSettingInlineNote>
+            {t("settings:SETTINGS_SYSTEM_AGENTS_SKILLS_EMPTY")}
+          </SystemSettingInlineNote>
+        ) : null}
+      </div>
+      <SettingDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_DIALOG_TITLE")}
+        description={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_DIALOG_DESC")}
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+              {t("common:CANCEL")}
+            </Button>
+            <Button type="button" onClick={appendDraftSkill}>
+              {t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_ADD_TO_LIBRARY")}
+            </Button>
+          </>
+        }
+      >
+        <SettingDialogField
+          title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_SOURCE_LABEL")}
+          description={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_SOURCE_DESC")}
+        >
+          <Textarea value={draft} rows={12} onChange={(event) => setDraft(event.target.value)} />
+        </SettingDialogField>
+      </SettingDialog>
+    </div>
+  );
+}
+
 export function SystemSettingsAgentsPage() {
   const { t } = useTranslation(["settings"]);
+  const queryClient = useQueryClient();
   const { savingKey, withSavingKey } = useSavingKey();
   const coreSettingsQuery = useSystemCoreSettings();
   const patchMutation = usePatchSystemCoreSettings();
@@ -428,6 +889,46 @@ export function SystemSettingsAgentsPage() {
     retry: false,
     meta: { silent: true },
   });
+  const providersQuery = useQuery({
+    queryKey: PROVIDER_QUERY_KEY,
+    queryFn: ({ signal }) => listAISystemProviders({ signal }),
+    retry: false,
+    meta: { silent: true },
+  });
+  const refreshProviderState = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: PROVIDER_QUERY_KEY }),
+      queryClient.invalidateQueries({ queryKey: ["ai", "chat-models"] }),
+    ]);
+  };
+  const createProviderMutation = useMutation({
+    mutationFn: createAISystemProvider,
+    onSuccess: async () => {
+      await refreshProviderState();
+      notifySuccessText(t("settings:SETTINGS_SAVED"));
+    },
+  });
+  const updateProviderMutation = useMutation({
+    mutationFn: (input: {
+      providerId: string;
+      values: Parameters<typeof updateAISystemProvider>[1];
+    }) => updateAISystemProvider(input.providerId, input.values),
+    onSuccess: async () => {
+      await refreshProviderState();
+      notifySuccessText(t("settings:SETTINGS_SAVED"));
+    },
+  });
+  const deleteProviderMutation = useMutation({
+    mutationFn: deleteAISystemProvider,
+    onSuccess: async () => {
+      await refreshProviderState();
+      notifySuccessText(t("settings:SETTINGS_SAVED"));
+    },
+  });
+  const providerMutationPending =
+    createProviderMutation.isPending ||
+    updateProviderMutation.isPending ||
+    deleteProviderMutation.isPending;
 
   const initialValues = useMemo(
     () => buildInitialValues(coreSettingsQuery.coreSettings),
@@ -439,11 +940,16 @@ export function SystemSettingsAgentsPage() {
     mode: "onSubmit",
   });
   const values = form.watch();
+  const defaultModelOptions = useMemo(
+    () => availableModelOptions(modelCatalogQuery.data, values.defaultModel),
+    [modelCatalogQuery.data, values.defaultModel],
+  );
 
   const runtimeDirty = isDirty(values, initialValues, [
     "enabled",
     "defaultModel",
     "reasoningEffort",
+    "systemPrompt",
     "conversationRetentionDays",
     "autoTitleEnabled",
     "contextRecommendationsEnabled",
@@ -522,12 +1028,18 @@ export function SystemSettingsAgentsPage() {
             enabled: Boolean(nextValues.enabled),
             default_model: defaultModel,
             reasoning_effort: nextValues.reasoningEffort,
+            system_prompt: nextValues.systemPrompt.trim(),
             conversation_retention_days: conversationRetentionDays,
             auto_title_enabled: Boolean(nextValues.autoTitleEnabled),
             context_recommendations_enabled: Boolean(nextValues.contextRecommendationsEnabled),
           },
         },
-        { ...nextValues, defaultModel, conversationRetentionDays },
+        {
+          ...nextValues,
+          defaultModel,
+          systemPrompt: nextValues.systemPrompt.trim(),
+          conversationRetentionDays,
+        },
         !governanceDirty && !modesDirty && !approvalsDirty && !langGraphDirty,
       );
     });
@@ -614,6 +1126,31 @@ export function SystemSettingsAgentsPage() {
       );
     });
 
+  const createProvider = (providerValues: ProviderFormValues) => {
+    createProviderMutation.mutate({
+      provider: providerValues.provider.trim(),
+      label: providerValues.label.trim(),
+      compatibility: providerValues.compatibility,
+      virtualKey: providerValues.virtualKey,
+      litellmKeyId: providerValues.litellmKeyId.trim() || null,
+      baseUrl: providerValues.baseUrl.trim() || null,
+    });
+  };
+
+  const updateProvider = (providerId: string, providerValues: ProviderFormValues) => {
+    updateProviderMutation.mutate({
+      providerId,
+      values: {
+        label: providerValues.label.trim(),
+        compatibility: providerValues.compatibility,
+        virtualKey: providerValues.virtualKey.trim() || undefined,
+        litellmKeyId: providerValues.litellmKeyId.trim() || null,
+        baseUrl: providerValues.baseUrl.trim() || null,
+        isActive: providerValues.isActive,
+      },
+    });
+  };
+
   return (
     <ContentGuard
       loading={coreSettingsQuery.isLoading && !coreSettingsQuery.coreSettings}
@@ -690,6 +1227,20 @@ export function SystemSettingsAgentsPage() {
         </SystemSettingItem>
 
         <SystemSettingItem
+          id="agent-providers"
+          title={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDERS_TITLE")}
+          description={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDERS_DESC")}
+        >
+          <AIProviderManagement
+            providersQuery={providersQuery}
+            pending={providerMutationPending}
+            onCreate={createProvider}
+            onUpdate={updateProvider}
+            onDelete={(providerId) => deleteProviderMutation.mutate(providerId)}
+          />
+        </SystemSettingItem>
+
+        <SystemSettingItem
           id="agent-runtime"
           title={t("settings:SETTINGS_SYSTEM_AGENTS_RUNTIME_TITLE")}
           description={t("settings:SETTINGS_SYSTEM_AGENTS_RUNTIME_DESC")}
@@ -703,6 +1254,7 @@ export function SystemSettingsAgentsPage() {
                   enabled: initialValues.enabled,
                   defaultModel: initialValues.defaultModel,
                   reasoningEffort: initialValues.reasoningEffort,
+                  systemPrompt: initialValues.systemPrompt,
                   conversationRetentionDays: initialValues.conversationRetentionDays,
                   autoTitleEnabled: initialValues.autoTitleEnabled,
                   contextRecommendationsEnabled: initialValues.contextRecommendationsEnabled,
@@ -729,31 +1281,24 @@ export function SystemSettingsAgentsPage() {
               control={form.control}
               name="defaultModel"
               render={({ field }) => (
-                <SystemSettingField
+                <ModelSelectField
                   label={t("settings:SETTINGS_SYSTEM_AGENTS_DEFAULT_MODEL_LABEL")}
                   description={t("settings:SETTINGS_SYSTEM_AGENTS_DEFAULT_MODEL_DESC")}
-                  message={
-                    form.formState.errors.defaultModel?.message ? (
-                      <span className="text-footnote text-destructive">
-                        {form.formState.errors.defaultModel.message}
-                      </span>
-                    ) : null
-                  }
-                >
-                  <Input
-                    {...field}
-                    placeholder="deepseek-v4-pro"
-                    className="sm:w-72"
-                    onChange={(event) => {
-                      field.onChange(event);
-                      if (event.target.value.trim()) {
-                        form.clearErrors("defaultModel");
-                      }
-                    }}
-                  />
-                </SystemSettingField>
+                  value={field.value}
+                  options={defaultModelOptions}
+                  catalog={modelCatalogQuery.data}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    if (value.trim()) form.clearErrors("defaultModel");
+                  }}
+                />
               )}
             />
+            {form.formState.errors.defaultModel?.message ? (
+              <span className="text-footnote text-destructive">
+                {form.formState.errors.defaultModel.message}
+              </span>
+            ) : null}
             <Controller
               control={form.control}
               name="reasoningEffort"
@@ -768,6 +1313,24 @@ export function SystemSettingsAgentsPage() {
                   }
                   onValueChange={field.onChange}
                 />
+              )}
+            />
+            <Controller
+              control={form.control}
+              name="systemPrompt"
+              render={({ field }) => (
+                <SystemSettingField
+                  label={t("settings:SETTINGS_SYSTEM_AGENTS_SYSTEM_PROMPT_LABEL")}
+                  description={t("settings:SETTINGS_SYSTEM_AGENTS_SYSTEM_PROMPT_DESC")}
+                >
+                  <Textarea
+                    value={field.value}
+                    onChange={field.onChange}
+                    rows={5}
+                    className="min-h-32 resize-y"
+                    placeholder={t("settings:SETTINGS_SYSTEM_AGENTS_SYSTEM_PROMPT_PLACEHOLDER")}
+                  />
+                </SystemSettingField>
               )}
             />
             <Controller
@@ -883,10 +1446,10 @@ export function SystemSettingsAgentsPage() {
               name="allowedSkillIds"
               render={({ field }) => (
                 <SystemSettingField
-                  label={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_IDS_LABEL")}
-                  description={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_IDS_DESC")}
+                  label={t("settings:SETTINGS_SYSTEM_AGENTS_SKILLS_LIBRARY_LABEL")}
+                  description={t("settings:SETTINGS_SYSTEM_AGENTS_SKILLS_LIBRARY_DESC")}
                 >
-                  <Textarea {...field} rows={5} placeholder={DEFAULT_SKILL_IDS_PLACEHOLDER} />
+                  <SkillLibraryEditor value={field.value} onChange={field.onChange} />
                 </SystemSettingField>
               )}
             />

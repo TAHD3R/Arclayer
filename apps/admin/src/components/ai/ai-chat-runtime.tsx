@@ -13,9 +13,12 @@ import {
   chatStream,
   cancelAIAgentRun,
   ensureAIConversationPersistedForRuntime,
+  executeAIWorkspaceAction,
   formatAIChatError,
   getAIChatErrorDetails,
   sendAIAgentMessage,
+  shouldUseAIWorkspaceAction,
+  toAIWorkspaceActionArtifact,
   type AIChatMessage,
 } from "@/api/ai";
 import {
@@ -28,6 +31,9 @@ import {
   type AIAgentMessageArtifact,
   type AIChatMessage as StoreAIChatMessage,
   type AIComposerMode,
+  type AIConversation,
+  type AIWorkspaceActionArtifact,
+  type AIWorkspaceActionProject,
 } from "@/stores/use-ai-chat-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
@@ -39,6 +45,24 @@ function messageContentToText(
     : Array.isArray(content)
       ? content.map((part) => (part.type === "text" ? part.text : "")).join("")
       : "";
+}
+
+function messageContentToReasoning(content: ThreadMessageLike["content"]): string {
+  if (!Array.isArray(content)) return "";
+  return content
+    .map((part) => (part.type === "reasoning" ? part.text : ""))
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+function toRuntimeMessageContent(message: StoreAIChatMessage): ThreadMessageLike["content"] {
+  if (message.role !== "assistant") return message.content;
+
+  const parts: Array<{ type: "reasoning"; text: string } | { type: "text"; text: string }> = [];
+  const reasoning = message.reasoning?.trim();
+  if (reasoning) parts.push({ type: "reasoning", text: reasoning });
+  if (message.content) parts.push({ type: "text", text: message.content });
+  return parts.length > 0 ? parts : "";
 }
 
 function completeAttachmentContentToText(attachments: AppendMessage["attachments"]): string {
@@ -79,6 +103,7 @@ function toStoreMessages(messages: readonly ThreadMessageLike[]): StoreAIChatMes
     .map((m): StoreAIChatMessage => {
       const role: AIChatMessage["role"] = m.role === "assistant" ? "assistant" : "user";
       const content = messageContentToText(m.content).trim();
+      const reasoning = messageContentToReasoning(m.content).trim();
       if (role === "user") return { role, content };
 
       const custom = isRecord(m.metadata?.custom) ? m.metadata.custom : {};
@@ -92,10 +117,14 @@ function toStoreMessages(messages: readonly ThreadMessageLike[]): StoreAIChatMes
       const agentExecutionSummary = isAIAgentExecutionSummary(custom.agentExecutionSummary)
         ? custom.agentExecutionSummary
         : undefined;
+      const workspaceAction = isAIWorkspaceActionArtifact(custom.workspaceAction)
+        ? custom.workspaceAction
+        : undefined;
 
       return {
         role,
         content,
+        ...(reasoning ? { reasoning } : {}),
         ...(agentRunId ? { agentRunId } : {}),
         ...(agentStatus ? { agentStatus } : {}),
         ...(agentThreadId ? { agentThreadId } : {}),
@@ -106,6 +135,7 @@ function toStoreMessages(messages: readonly ThreadMessageLike[]): StoreAIChatMes
         ...(isAIAgentMessageArtifact(custom.agentArtifact)
           ? { agentArtifact: custom.agentArtifact }
           : {}),
+        ...(workspaceAction ? { workspaceAction } : {}),
         ...(agentExecutionSummary ? { agentExecutionSummary } : {}),
         ...(status ? { error: true, errorMessage: String(status.error || "") } : {}),
         ...(errorDetails ? { errorDetails } : {}),
@@ -141,9 +171,11 @@ function shouldKeepAssistantMetadata(message: StoreAIChatMessage): boolean {
       message.agentCheckpointId ||
       message.agentInterrupt ||
       message.agentArtifact ||
+      message.workspaceAction ||
       message.agentExecutionSummary ||
       message.error ||
-      message.errorDetails,
+      message.errorDetails ||
+      message.reasoning,
     )
   );
 }
@@ -201,6 +233,61 @@ function isAIAgentMessageArtifact(value: unknown): value is AIAgentMessageArtifa
   return false;
 }
 
+function isAIWorkspaceActionArtifact(value: unknown): value is AIWorkspaceActionArtifact {
+  if (!isRecord(value) || value.status !== "completed") return false;
+  if (value.type === "workspace_project_created") {
+    return isWorkspaceActionProject(value.project) && isWorkspaceActionNavigation(value.navigation);
+  }
+  if (value.type === "workspace_project_list") {
+    return (
+      Array.isArray(value.projects) &&
+      value.projects.every(isWorkspaceActionProject) &&
+      typeof value.total === "number" &&
+      isWorkspaceActionNavigation(value.navigation)
+    );
+  }
+  if (value.type === "workspace_content_model_created") {
+    return (
+      isWorkspaceActionContentModel(value.contentModel) &&
+      isWorkspaceActionNavigation(value.navigation)
+    );
+  }
+  if (value.type === "workspace_navigation") {
+    return isWorkspaceActionNavigation(value.navigation);
+  }
+  return false;
+}
+
+function isWorkspaceActionProject(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.name === "string" &&
+    typeof value.slug === "string" &&
+    (value.description === undefined ||
+      value.description === null ||
+      typeof value.description === "string")
+  );
+}
+
+function isWorkspaceActionContentModel(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.name === "string" &&
+    typeof value.singularKey === "string" &&
+    typeof value.pluralKey === "string" &&
+    typeof value.modelKind === "string" &&
+    (value.description === undefined ||
+      value.description === null ||
+      typeof value.description === "string")
+  );
+}
+
+function isWorkspaceActionNavigation(value: unknown): boolean {
+  return isRecord(value) && typeof value.label === "string" && typeof value.path === "string";
+}
+
 function isAIAgentArtifactStep(value: unknown): value is AIAgentArtifactStep {
   return (
     isRecord(value) &&
@@ -246,6 +333,53 @@ export async function sendAIChatMessage(
   options?: { signal?: AbortSignal },
 ): Promise<void> {
   return sendAIChatMessageWithSignal(conversationId, text, options);
+}
+
+export async function sendAIWorkspaceActionMessage(
+  conversationId: string,
+  text: string,
+  options?: { signal?: AbortSignal },
+): Promise<void> {
+  const trimmed = text.trim();
+  if (!trimmed) return;
+
+  const state = useAiChatStore.getState();
+  const conversation = state.conversations.find((c) => c.id === conversationId);
+  if (!conversation) {
+    throw new Error(`AI conversation not found: ${conversationId}`);
+  }
+
+  state.appendMessage(conversationId, { role: "user", content: trimmed });
+  state.setStreaming(true);
+  try {
+    await ensureAIConversationPersistedForRuntime(conversationId, { applyResponse: false });
+    const result = await executeAIWorkspaceAction(trimmed, {
+      signal: options?.signal,
+      projectId: resolveWorkspaceActionProjectId(conversation, trimmed),
+    });
+    useAiChatStore.getState().appendMessage(conversationId, {
+      role: "assistant",
+      content: result.content,
+      workspaceAction: toAIWorkspaceActionArtifact(result),
+      agentExecutionSummary: { toolNames: [`workspace.${result.action}`] },
+    });
+    await ensureAIConversationPersistedForRuntime(conversationId);
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      await ensureAIConversationPersistedForRuntime(conversationId);
+      return;
+    }
+    useAiChatStore.getState().appendMessage(conversationId, {
+      role: "assistant",
+      content: "",
+      error: true,
+      errorMessage: formatAIChatError(err),
+      errorDetails: getAIChatErrorDetails(err),
+    });
+    await ensureAIConversationPersistedForRuntime(conversationId);
+  } finally {
+    useAiChatStore.getState().setStreaming(false);
+  }
 }
 
 async function persistConversationAfterManualMessageChange(conversationId: string): Promise<void> {
@@ -300,7 +434,13 @@ async function sendAIChatMessageWithSignal(
       reasoningEffort: state.selectedReasoningEffort,
       signal: options?.signal,
     })) {
-      useAiChatStore.getState().appendDelta(conversationId, delta);
+      if (typeof delta === "string") {
+        useAiChatStore.getState().appendDelta(conversationId, delta);
+      } else if (delta.type === "reasoning") {
+        useAiChatStore.getState().appendReasoningDelta(conversationId, delta.text);
+      } else {
+        useAiChatStore.getState().appendDelta(conversationId, delta.text);
+      }
     }
     useAiChatStore.getState().finalizeLastAssistant(conversationId);
     await ensureAIConversationPersistedForRuntime(conversationId);
@@ -343,6 +483,10 @@ export async function retryLatestAIChatMessage(conversationId: string): Promise<
   }
 
   state.replaceMessages(conversationId, conversation.messages.slice(0, lastUserIndex));
+  if (shouldExecuteAIWorkspaceAction(state.composerMode, lastUserMessage.content)) {
+    await sendAIWorkspaceActionMessage(conversationId, lastUserMessage.content);
+    return;
+  }
   await sendAIChatMessage(conversationId, lastUserMessage.content);
 }
 
@@ -406,15 +550,23 @@ export function AIChatRuntimeProvider({
       try {
         const state = useAiChatStore.getState();
         const mode = state.composerMode || DEFAULT_AI_COMPOSER_MODE;
-        await sendAIAgentMessage(conversationId, trimmed, {
-          agentId: agentIdForComposerMode(mode, state.selectedAgentId),
-          model: state.selectedModel,
-          reasoningEffort: state.selectedReasoningEffort,
-          signal: controller.signal,
-          onRunCreated: (runId) => {
-            activeAgentRunIdRef.current = runId;
-          },
-        });
+        if (mode === "agent") {
+          await sendAIAgentMessage(conversationId, trimmed, {
+            agentId: agentIdForComposerMode(mode, state.selectedAgentId),
+            model: state.selectedModel,
+            reasoningEffort: state.selectedReasoningEffort,
+            signal: controller.signal,
+            onRunCreated: (runId) => {
+              activeAgentRunIdRef.current = runId;
+            },
+          });
+        } else if (shouldExecuteAIWorkspaceAction(mode, trimmed)) {
+          await sendAIWorkspaceActionMessage(conversationId, trimmed, {
+            signal: controller.signal,
+          });
+        } else {
+          await sendAIChatMessage(conversationId, trimmed, { signal: controller.signal });
+        }
       } finally {
         if (activeRequestRef.current === controller) {
           activeRequestRef.current = null;
@@ -450,7 +602,7 @@ export function AIChatRuntimeProvider({
   const messages: ThreadMessageLike[] = (conversation?.messages ?? []).map((m, index) => ({
     id: runtimeMessageId(index),
     role: m.role,
-    content: m.error ? "" : m.content,
+    content: m.error ? "" : toRuntimeMessageContent(m),
     status:
       m.role === "assistant" && m.error
         ? {
@@ -467,6 +619,7 @@ export function AIChatRuntimeProvider({
         m.agentCheckpointId ||
         m.agentInterrupt ||
         m.agentArtifact ||
+        m.workspaceAction ||
         m.agentExecutionSummary ||
         (m.error && m.errorDetails))
         ? {
@@ -478,6 +631,7 @@ export function AIChatRuntimeProvider({
               ...(m.agentCheckpointId ? { agentCheckpointId: m.agentCheckpointId } : {}),
               ...(m.agentInterrupt ? { agentInterrupt: m.agentInterrupt } : {}),
               ...(m.agentArtifact ? { agentArtifact: m.agentArtifact } : {}),
+              ...(m.workspaceAction ? { workspaceAction: m.workspaceAction } : {}),
               ...(m.agentExecutionSummary
                 ? { agentExecutionSummary: m.agentExecutionSummary }
                 : {}),
@@ -586,4 +740,44 @@ export function AIChatRuntimeProvider({
       {children}
     </AssistantRuntimeProvider>
   );
+}
+
+function shouldExecuteAIWorkspaceAction(mode: AIComposerMode, text: string): boolean {
+  if (mode === "plan") return false;
+  return shouldUseAIWorkspaceAction(text);
+}
+
+function resolveWorkspaceActionProjectId(
+  conversation: AIConversation,
+  text: string,
+): string | null {
+  const directiveProjectId = projectIdFromComposerDirective(text);
+  if (directiveProjectId) return directiveProjectId;
+  for (let index = conversation.messages.length - 1; index >= 0; index -= 1) {
+    const message = conversation.messages[index];
+    if (message?.role !== "assistant") continue;
+    const project = projectFromWorkspaceAction(message.workspaceAction);
+    if (project) return project.id;
+  }
+  return (
+    useWorkspaceStore.getState().currentProjectId ??
+    useWorkspaceStore.getState().lastProjectId ??
+    null
+  );
+}
+
+function projectIdFromComposerDirective(text: string): string | null {
+  const match = /:project\[[^\]\n]{1,1024}\]\{name=([^}\n]{1,1024})\}/u.exec(text);
+  return match?.[1]?.trim() || null;
+}
+
+function projectFromWorkspaceAction(
+  artifact: StoreAIChatMessage["workspaceAction"],
+): AIWorkspaceActionProject | null {
+  if (!artifact) return null;
+  if (artifact.type === "workspace_project_created") return artifact.project;
+  if (artifact.type === "workspace_project_list" && artifact.projects.length > 0) {
+    return artifact.projects[0];
+  }
+  return null;
 }
