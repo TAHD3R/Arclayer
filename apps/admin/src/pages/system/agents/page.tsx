@@ -553,7 +553,7 @@ function AIProviderManagement(props: {
         <SystemSettingInlineNote>
           {t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_MANAGEMENT_NOTE")}
         </SystemSettingInlineNote>
-        <Button type="button" size="sm" onClick={openCreate} className="gap-1.5">
+        <Button type="button" size="sm" tapScale={1} onClick={openCreate} className="gap-1.5">
           <PlusIcon className="size-4" aria-hidden="true" />
           {t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_CREATE")}
         </Button>

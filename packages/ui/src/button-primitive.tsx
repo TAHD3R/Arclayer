@@ -16,8 +16,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   ref,
 ) {
   const Component = asChild ? Slot : motion.button;
+  const tapProps = tapScale === 1 ? undefined : { whileTap: { scale: tapScale } };
 
-  return <Component ref={ref} whileTap={{ scale: tapScale }} {...props} />;
+  return <Component ref={ref} {...tapProps} {...props} />;
 });
 Button.displayName = "ButtonPrimitive";
 
