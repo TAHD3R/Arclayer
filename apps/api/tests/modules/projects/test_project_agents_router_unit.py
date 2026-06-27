@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import asyncio
+from collections.abc import AsyncIterator
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pytest
@@ -25,10 +28,12 @@ from src.modules.projects.agents.router import (
     get_agent_approval_service,
     get_agent_content_model_proposal_service,
     get_agent_content_writer_proposal_service,
+    stream_project_agent_run,
 )
 from src.modules.projects.agents.router import (
     router as project_agents_router,
 )
+from src.modules.projects.agents.schema import AgentRunCreateRequest
 from src.modules.projects.content.contracts.schema import ContentModelImpactPreviewOut
 from src.modules.projects.content.items.router_helpers import (
     get_project_content_canonical_item_reads,
@@ -152,6 +157,52 @@ class FakeSessions:
             prompt="inspect this",
             result=None,
             tool_outputs={},
+            cancellation_requested=True,
+            events=[AgentRunEvent(event=AgentRunEventType.RUN_CANCELLED, data={"runId": str(run_id)})],
+        )
+
+
+class DisconnectingStreamEngine:
+    def __init__(self, *, run_id: UUID) -> None:
+        self.run_id = run_id
+        self.stream_released = asyncio.Event()
+
+    async def stream(
+        self,
+        *,
+        context: AgentRunContext,
+        agent_id: str,
+        prompt: str,
+        model: str | None,
+        reasoning_effort: AIReasoningEffort | None = None,
+        tool_inputs: dict | None = None,
+    ):
+        _ = context, prompt, model, reasoning_effort, tool_inputs
+        try:
+            yield AgentRunEvent(
+                event=AgentRunEventType.RUN_CREATED,
+                data={"runId": str(self.run_id), "agentId": agent_id},
+            )
+            await asyncio.Event().wait()
+        finally:
+            self.stream_released.set()
+
+
+class RecordingCancelSessions:
+    def __init__(self) -> None:
+        self.cancelled: list[tuple[UUID, AgentRunContext]] = []
+
+    async def cancel_run(self, *, run_id, context):  # type: ignore[no-untyped-def]
+        self.cancelled.append((run_id, context))
+        return AgentRunState(
+            id=run_id,
+            workspace_id=context.workspace_id,
+            project_id=context.project_id,
+            user_id=context.user_id,
+            correlation_id=context.correlation_id,
+            agent_id="content_analyzer",
+            status=AgentRunStatus.CANCELLED,
+            prompt="inspect this",
             cancellation_requested=True,
             events=[AgentRunEvent(event=AgentRunEventType.RUN_CANCELLED, data={"runId": str(run_id)})],
         )
@@ -1191,6 +1242,59 @@ async def test_stream_project_agent_run_returns_sse_events(monkeypatch) -> None:
     assert "event: usage.partial" in res.text
     assert 'data: {"usage": {"prompt_tokens": 1, "completion_tokens": 2}}' in res.text
     assert 'data: {"content": "done"}' in res.text
+
+
+@pytest.mark.asyncio
+async def test_stream_project_agent_run_cancels_created_run_on_disconnect(monkeypatch) -> None:
+    run_id = uuid4()
+    engine = DisconnectingStreamEngine(run_id=run_id)
+    sessions = RecordingCancelSessions()
+    ctx = _route_context()
+    user_id = uuid4()
+
+    async def _engine_override(**kwargs):  # type: ignore[no-untyped-def]
+        _ = kwargs
+        return engine
+
+    async def _core_settings(_settings: Settings, *, ttl_seconds: float = 5.0) -> dict[str, object]:
+        _ = ttl_seconds
+        return {}
+
+    monkeypatch.setattr("src.modules.projects.agents.router._engine", _engine_override)
+    monkeypatch.setattr("src.modules.projects.agents.router._AGENT_SESSIONS", sessions)
+    monkeypatch.setattr("src.modules.projects.agents.router.get_core_settings_value_cached", _core_settings)
+
+    response = await stream_project_agent_run(
+        payload=AgentRunCreateRequest(agent_id="content_analyzer", prompt="inspect this"),
+        ctx=ctx,
+        user_id=user_id,
+        settings=Settings(app_env="test"),
+        item_reads=cast(Any, object()),
+        model_reads=cast(Any, object()),
+    )
+    body = cast(AsyncIterator[str | bytes | memoryview], response.body_iterator)
+
+    assert await anext(body) == f'event: run.created\ndata: {{"runId": "{run_id}", "agentId": "content_analyzer"}}\n\n'
+
+    async def next_body_chunk() -> str | bytes | memoryview:
+        return await anext(body)
+
+    pending_event = asyncio.create_task(next_body_chunk())
+    await asyncio.sleep(0)
+    pending_event.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await pending_event
+
+    assert len(sessions.cancelled) == 1
+    cancelled_run_id, cancel_context = sessions.cancelled[0]
+    assert cancelled_run_id == run_id
+    assert cancel_context.workspace_id == ctx.workspace_id
+    assert cancel_context.project_id == ctx.project_id
+    assert cancel_context.user_id == user_id
+    assert cancel_context.runtime_id == ctx.runtime_id
+    assert cancel_context.site_id == ctx.site_id
+    assert cancel_context.environment_id == ctx.environment_id
+    assert engine.stream_released.is_set()
 
 
 @pytest.mark.asyncio

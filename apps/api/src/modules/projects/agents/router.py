@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import uuid
 from typing import Annotated, cast
@@ -21,7 +22,7 @@ from src.agents.settings_policy import (
     write_skill_disabled_reason,
 )
 from src.agents.tools import build_read_only_content_tools
-from src.agents.types import AgentRunEvent
+from src.agents.types import AgentRunEvent, AgentRunEventType
 from src.common.types.json_types import JsonObject
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
@@ -603,15 +604,23 @@ async def stream_project_agent_run(
     engine = await _engine(settings=settings, item_reads=item_reads, model_reads=model_reads)
 
     async def event_generator():
-        async for event in engine.stream(
-            context=run_context,
-            agent_id=payload.agent_id,
-            prompt=payload.prompt,
-            model=payload.model,
-            reasoning_effort=payload.reasoning_effort,
-            tool_inputs=payload.tool_inputs,
-        ):
-            yield _format_sse(event)
+        stream_run_id: UUID | None = None
+        try:
+            async for event in engine.stream(
+                context=run_context,
+                agent_id=payload.agent_id,
+                prompt=payload.prompt,
+                model=payload.model,
+                reasoning_effort=payload.reasoning_effort,
+                tool_inputs=payload.tool_inputs,
+            ):
+                if event.event is AgentRunEventType.RUN_CREATED:
+                    stream_run_id = UUID(str(event.data["runId"]))
+                yield _format_sse(event)
+        except asyncio.CancelledError:
+            if stream_run_id is not None:
+                await _AGENT_SESSIONS.cancel_run(run_id=stream_run_id, context=run_context)
+            raise
 
     return StreamingResponse(
         event_generator(),
