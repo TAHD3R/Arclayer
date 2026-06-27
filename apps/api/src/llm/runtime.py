@@ -18,11 +18,13 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import AsyncIterator
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 from uuid import UUID
 
+from pydantic import Field
+
+from src.common.schemas import BaseSchema
 from src.llm.provider import BaseLLMProvider
 
 _API_SRC_DIR = Path(__file__).resolve().parent  # apps/api/src/llm
@@ -87,19 +89,17 @@ def estimate_cost_micros(model: str, prompt_tokens: int, max_tokens: int) -> int
     return max(int(round(cost)), 1)
 
 
-@dataclass
-class LLMRequestContext:
+class LLMRequestContext(BaseSchema):
     """Context bundled with every LLM call — no caller should pass raw keys."""
 
     workspace_id: UUID
     user_id: UUID | None = None
-    correlation_id: str = field(default_factory=lambda: uuid.uuid4().hex)
+    correlation_id: str = Field(default_factory=lambda: uuid.uuid4().hex)
     source: Literal["agent", "event", "api"] = "api"
     grant_id: UUID | None = None
 
 
-@dataclass
-class ChatResult:
+class ChatResult(BaseSchema):
     """Result from a chat completion call."""
 
     completion_id: str
@@ -253,7 +253,7 @@ class LLMRuntime:
                 virtual_key=virtual_key,
                 **merged_params,
             )
-        except Exception as exc:
+        except BaseException:
             if reservation is not None:
                 await budget_release(reservation_id=reservation.id)
             raise

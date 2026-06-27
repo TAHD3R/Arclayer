@@ -40,6 +40,7 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
   );
   const setSelectedModel = useAiChatStore((s) => s.setSelectedModel);
   const setSelectedReasoningEffort = useAiChatStore((s) => s.setSelectedReasoningEffort);
+  const applyRuntimeDefaults = useAiChatStore((s) => s.applyRuntimeDefaults);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId ?? s.lastWorkspaceId);
   const modelsQuery = useQuery({
     queryKey: ["ai", "chat-models", workspaceId],
@@ -76,9 +77,18 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
   }, [runtime, selectedModel, selectedReasoningEffort]);
 
   useEffect(() => {
-    if (!modelsQuery.data || models.some((model) => model.id === selectedModel)) return;
-    setSelectedModel(modelsQuery.data.defaultModel);
-  }, [models, modelsQuery.data, selectedModel, setSelectedModel]);
+    const catalog = modelsQuery.data;
+    if (!catalog) return;
+    if (!models.some((model) => model.id === selectedModel)) {
+      setSelectedModel(catalog.defaultModel, "default");
+      return;
+    }
+    applyRuntimeDefaults({
+      model: catalog.defaultModel,
+      reasoningEffort: catalog.reasoningEffort,
+      composerMode: catalog.defaultMode,
+    });
+  }, [applyRuntimeDefaults, models, modelsQuery.data, selectedModel, setSelectedModel]);
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>

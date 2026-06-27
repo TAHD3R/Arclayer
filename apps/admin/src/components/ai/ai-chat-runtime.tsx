@@ -1,23 +1,34 @@
 import {
   AssistantRuntimeProvider,
-  CompositeAttachmentAdapter,
-  SimpleTextAttachmentAdapter,
   WebSpeechDictationAdapter,
+  createMessageQueue,
   useExternalStoreRuntime,
   type AppendMessage,
+  type MessageQueueController,
   type ThreadMessageLike,
 } from "@assistant-ui/react";
-import { useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   chatStream,
   cancelAIAgentRun,
+  ensureAIConversationPersistedForRuntime,
   formatAIChatError,
   getAIChatErrorDetails,
   sendAIAgentMessage,
   type AIChatMessage,
 } from "@/api/ai";
-import { useAiChatStore } from "@/stores/use-ai-chat-store";
+import {
+  DEFAULT_AI_AGENT_ID,
+  DEFAULT_AI_COMPOSER_MODE,
+  useAiChatStore,
+  type AIAgentArtifactStep,
+  type AIAgentExecutionSummary,
+  type AIAgentInterrupt,
+  type AIAgentMessageArtifact,
+  type AIChatMessage as StoreAIChatMessage,
+  type AIComposerMode,
+} from "@/stores/use-ai-chat-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 function messageContentToText(
@@ -63,14 +74,144 @@ function toChatMessages(messages: readonly ThreadMessageLike[]): AIChatMessage[]
   });
 }
 
-function toStoreMessages(messages: readonly ThreadMessageLike[]) {
+function toStoreMessages(messages: readonly ThreadMessageLike[]): StoreAIChatMessage[] {
   return messages
-    .map((m) => {
+    .map((m): StoreAIChatMessage => {
       const role: AIChatMessage["role"] = m.role === "assistant" ? "assistant" : "user";
       const content = messageContentToText(m.content).trim();
-      return { role, content };
+      if (role === "user") return { role, content };
+
+      const custom = isRecord(m.metadata?.custom) ? m.metadata.custom : {};
+      const status =
+        m.status?.type === "incomplete" && m.status.reason === "error" ? m.status : null;
+      const agentRunId = readCustomString(custom.agentRunId);
+      const agentStatus = readAgentStatus(custom.agentStatus);
+      const agentThreadId = readCustomString(custom.agentThreadId);
+      const agentCheckpointId = readCustomString(custom.agentCheckpointId);
+      const errorDetails = readCustomString(custom.errorDetails);
+      const agentExecutionSummary = isAIAgentExecutionSummary(custom.agentExecutionSummary)
+        ? custom.agentExecutionSummary
+        : undefined;
+
+      return {
+        role,
+        content,
+        ...(agentRunId ? { agentRunId } : {}),
+        ...(agentStatus ? { agentStatus } : {}),
+        ...(agentThreadId ? { agentThreadId } : {}),
+        ...(agentCheckpointId ? { agentCheckpointId } : {}),
+        ...(isAIAgentInterrupt(custom.agentInterrupt)
+          ? { agentInterrupt: custom.agentInterrupt }
+          : {}),
+        ...(isAIAgentMessageArtifact(custom.agentArtifact)
+          ? { agentArtifact: custom.agentArtifact }
+          : {}),
+        ...(agentExecutionSummary ? { agentExecutionSummary } : {}),
+        ...(status ? { error: true, errorMessage: String(status.error || "") } : {}),
+        ...(errorDetails ? { errorDetails } : {}),
+      };
     })
-    .filter((message) => message.content);
+    .filter((message) => message.content || shouldKeepAssistantMetadata(message));
+}
+
+function readCustomString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+function readAgentStatus(value: unknown): StoreAIChatMessage["agentStatus"] | undefined {
+  if (
+    value === "running" ||
+    value === "interrupted" ||
+    value === "completed" ||
+    value === "cancelled" ||
+    value === "failed"
+  ) {
+    return value;
+  }
+  return undefined;
+}
+
+function shouldKeepAssistantMetadata(message: StoreAIChatMessage): boolean {
+  return (
+    message.role === "assistant" &&
+    Boolean(
+      message.agentRunId ||
+      message.agentStatus ||
+      message.agentThreadId ||
+      message.agentCheckpointId ||
+      message.agentInterrupt ||
+      message.agentArtifact ||
+      message.agentExecutionSummary ||
+      message.error ||
+      message.errorDetails,
+    )
+  );
+}
+
+function isAIAgentInterrupt(value: unknown): value is AIAgentInterrupt {
+  return (
+    isRecord(value) &&
+    typeof value.kind === "string" &&
+    typeof value.runId === "string" &&
+    typeof value.agentId === "string" &&
+    (value.mode === "build" || value.mode === "plan" || value.mode === "agent") &&
+    typeof value.prompt === "string" &&
+    isRecord(value.toolOutputs) &&
+    typeof value.requiredDecision === "string" &&
+    (value.interruptId === undefined || typeof value.interruptId === "string") &&
+    (value.threadId === undefined || typeof value.threadId === "string") &&
+    (value.checkpointId === undefined || typeof value.checkpointId === "string")
+  );
+}
+
+function isAIAgentExecutionSummary(value: unknown): value is AIAgentExecutionSummary {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.toolNames) &&
+    value.toolNames.every((toolName) => typeof toolName === "string") &&
+    (value.promptTokens === undefined || typeof value.promptTokens === "number") &&
+    (value.completionTokens === undefined || typeof value.completionTokens === "number") &&
+    (value.totalTokens === undefined || typeof value.totalTokens === "number")
+  );
+}
+
+function isAIAgentMessageArtifact(value: unknown): value is AIAgentMessageArtifact {
+  if (!isRecord(value)) return false;
+
+  if (value.type === "agent_execution_plan") {
+    return (
+      typeof value.goal === "string" &&
+      typeof value.status === "string" &&
+      Array.isArray(value.steps) &&
+      value.steps.every(isAIAgentArtifactStep)
+    );
+  }
+
+  if (value.type === "agent_build_blueprint") {
+    return (
+      typeof value.goal === "string" &&
+      typeof value.status === "string" &&
+      Array.isArray(value.operations) &&
+      value.operations.every(isAIAgentArtifactStep) &&
+      typeof value.appliesChanges === "boolean" &&
+      typeof value.requiresApprovalBeforeApply === "boolean"
+    );
+  }
+
+  return false;
+}
+
+function isAIAgentArtifactStep(value: unknown): value is AIAgentArtifactStep {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.title === "string" &&
+    typeof value.status === "string"
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 function createDictationAdapter() {
@@ -83,12 +224,43 @@ function createDictationAdapter() {
   });
 }
 
+export function agentIdForComposerMode(mode: AIComposerMode, selectedAgentId: string): string {
+  if (mode === "build") return "content_builder";
+  if (mode === "plan") return "content_advisor";
+  return selectedAgentId || DEFAULT_AI_AGENT_ID;
+}
+
+function runtimeMessageId(index: number): string {
+  return `ai-message-${index}`;
+}
+
+function runtimeMessageIndex(messageId: string | null): number | null {
+  if (!messageId?.startsWith("ai-message-")) return null;
+  const index = Number.parseInt(messageId.slice("ai-message-".length), 10);
+  return Number.isInteger(index) && index >= 0 ? index : null;
+}
+
 export async function sendAIChatMessage(
   conversationId: string,
   text: string,
   options?: { signal?: AbortSignal },
 ): Promise<void> {
   return sendAIChatMessageWithSignal(conversationId, text, options);
+}
+
+async function persistConversationAfterManualMessageChange(conversationId: string): Promise<void> {
+  try {
+    await ensureAIConversationPersistedForRuntime(conversationId);
+  } catch (error) {
+    useAiChatStore.getState().appendMessage(conversationId, {
+      role: "assistant",
+      content: "",
+      error: true,
+      errorMessage: formatAIChatError(error),
+      errorDetails: getAIChatErrorDetails(error),
+    });
+    throw error;
+  }
 }
 
 async function sendAIChatMessageWithSignal(
@@ -122,6 +294,7 @@ async function sendAIChatMessageWithSignal(
   state.setStreaming(true);
 
   try {
+    await ensureAIConversationPersistedForRuntime(conversationId, { applyResponse: false });
     for await (const delta of chatStream(history, {
       model: state.selectedModel,
       reasoningEffort: state.selectedReasoningEffort,
@@ -130,9 +303,11 @@ async function sendAIChatMessageWithSignal(
       useAiChatStore.getState().appendDelta(conversationId, delta);
     }
     useAiChatStore.getState().finalizeLastAssistant(conversationId);
+    await ensureAIConversationPersistedForRuntime(conversationId);
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
       useAiChatStore.getState().finalizeLastAssistant(conversationId);
+      await ensureAIConversationPersistedForRuntime(conversationId);
       return;
     }
     const message = formatAIChatError(err);
@@ -142,6 +317,7 @@ async function sendAIChatMessageWithSignal(
       errorMessage: message,
       errorDetails: details,
     });
+    await ensureAIConversationPersistedForRuntime(conversationId);
   } finally {
     useAiChatStore.getState().setStreaming(false);
   }
@@ -189,13 +365,90 @@ export function AIChatRuntimeProvider({
   const streaming = useAiChatStore((s) => s.streaming);
   const activeRequestRef = useRef<AbortController | null>(null);
   const activeAgentRunIdRef = useRef<string | null>(null);
+  const queuedMessageRunnerRef = useRef<(message: AppendMessage) => Promise<void>>(async () => {
+    throw new Error("AI message queue runner is not initialized");
+  });
+  const [, forceQueueRender] = useState(0);
   const dictationAdapter = useMemo(() => createDictationAdapter(), []);
-  const attachmentAdapter = useMemo(
-    () => new CompositeAttachmentAdapter([new SimpleTextAttachmentAdapter()]),
-    [],
+
+  const queueController = useMemo<MessageQueueController>(() => {
+    const controller = createMessageQueue({
+      run: (message) => {
+        void queuedMessageRunnerRef.current(message).finally(() => {
+          controller.notifyIdle();
+        });
+      },
+    });
+    return controller;
+  }, [conversationId]);
+
+  useEffect(() => {
+    const unsubscribe = queueController.subscribe(() => {
+      forceQueueRender((version) => version + 1);
+    });
+    return () => {
+      unsubscribe();
+      queueController.adapter.clear("cancel-run");
+    };
+  }, [queueController]);
+
+  const sendRuntimeText = useCallback(
+    async (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      if (!useAiChatStore.getState().conversations.some((item) => item.id === conversationId)) {
+        return;
+      }
+
+      const controller = new AbortController();
+      activeRequestRef.current = controller;
+      activeAgentRunIdRef.current = null;
+      try {
+        const state = useAiChatStore.getState();
+        const mode = state.composerMode || DEFAULT_AI_COMPOSER_MODE;
+        await sendAIAgentMessage(conversationId, trimmed, {
+          agentId: agentIdForComposerMode(mode, state.selectedAgentId),
+          model: state.selectedModel,
+          reasoningEffort: state.selectedReasoningEffort,
+          signal: controller.signal,
+          onRunCreated: (runId) => {
+            activeAgentRunIdRef.current = runId;
+          },
+        });
+      } finally {
+        if (activeRequestRef.current === controller) {
+          activeRequestRef.current = null;
+        }
+        activeAgentRunIdRef.current = null;
+      }
+    },
+    [conversationId],
   );
 
-  const messages: ThreadMessageLike[] = (conversation?.messages ?? []).map((m) => ({
+  const sendRuntimeMessage = useCallback(
+    async (message: AppendMessage) => {
+      await sendRuntimeText(appendMessageToText(message));
+    },
+    [sendRuntimeText],
+  );
+  queuedMessageRunnerRef.current = sendRuntimeMessage;
+
+  const runRuntimeTextOutsideQueue = useCallback(
+    async (text: string) => {
+      if (!text.trim()) return;
+
+      queueController.notifyBusy();
+      try {
+        await sendRuntimeText(text);
+      } finally {
+        queueController.notifyIdle();
+      }
+    },
+    [queueController, sendRuntimeText],
+  );
+
+  const messages: ThreadMessageLike[] = (conversation?.messages ?? []).map((m, index) => ({
+    id: runtimeMessageId(index),
     role: m.role,
     content: m.error ? "" : m.content,
     status:
@@ -207,66 +460,124 @@ export function AIChatRuntimeProvider({
           }
         : undefined,
     metadata:
-      m.role === "assistant" && m.error && m.errorDetails
-        ? { custom: { errorDetails: m.errorDetails } }
+      m.role === "assistant" &&
+      (m.agentRunId ||
+        m.agentStatus ||
+        m.agentThreadId ||
+        m.agentCheckpointId ||
+        m.agentInterrupt ||
+        m.agentArtifact ||
+        m.agentExecutionSummary ||
+        (m.error && m.errorDetails))
+        ? {
+            custom: {
+              conversationId,
+              ...(m.agentRunId ? { agentRunId: m.agentRunId } : {}),
+              ...(m.agentStatus ? { agentStatus: m.agentStatus } : {}),
+              ...(m.agentThreadId ? { agentThreadId: m.agentThreadId } : {}),
+              ...(m.agentCheckpointId ? { agentCheckpointId: m.agentCheckpointId } : {}),
+              ...(m.agentInterrupt ? { agentInterrupt: m.agentInterrupt } : {}),
+              ...(m.agentArtifact ? { agentArtifact: m.agentArtifact } : {}),
+              ...(m.agentExecutionSummary
+                ? { agentExecutionSummary: m.agentExecutionSummary }
+                : {}),
+              ...(m.error && m.errorDetails ? { errorDetails: m.errorDetails } : {}),
+            },
+          }
         : undefined,
   }));
 
   const runtime = useExternalStoreRuntime({
     messages,
     isRunning: streaming,
+    isSendDisabled: !conversation,
     adapters: {
-      attachments: attachmentAdapter,
       dictation: dictationAdapter,
     },
+    queue: queueController.adapter,
     convertMessage: (m: ThreadMessageLike) => m,
     setMessages: (nextMessages: readonly ThreadMessageLike[]) => {
       useAiChatStore.getState().replaceMessages(conversationId, toStoreMessages(nextMessages));
+      void persistConversationAfterManualMessageChange(conversationId).catch(() => undefined);
+    },
+    onReload: async (parentId) => {
+      const parentIndex = runtimeMessageIndex(parentId);
+      if (parentIndex === null) {
+        throw new Error("Cannot regenerate AI response without a parent user message");
+      }
+
+      const currentConversation = useAiChatStore
+        .getState()
+        .conversations.find((item) => item.id === conversationId);
+      if (!currentConversation) {
+        throw new Error(`AI conversation not found: ${conversationId}`);
+      }
+
+      const parentMessage = currentConversation.messages[parentIndex];
+      if (!parentMessage || parentMessage.role !== "user") {
+        throw new Error(`Cannot regenerate AI response from message ${parentId}`);
+      }
+
+      queueController.adapter.clear("reload");
+      useAiChatStore
+        .getState()
+        .replaceMessages(conversationId, currentConversation.messages.slice(0, parentIndex));
+      await persistConversationAfterManualMessageChange(conversationId);
+      await runRuntimeTextOutsideQueue(parentMessage.content);
+    },
+    onEdit: async (message) => {
+      const sourceIndex = runtimeMessageIndex(message.sourceId);
+      if (sourceIndex === null) {
+        throw new Error("Cannot edit AI message without a source message id");
+      }
+
+      const text = appendMessageToText(message).trim();
+      if (!text) {
+        throw new Error("Cannot edit AI message to empty content");
+      }
+      const currentConversation = useAiChatStore
+        .getState()
+        .conversations.find((item) => item.id === conversationId);
+      if (!currentConversation) {
+        throw new Error(`AI conversation not found: ${conversationId}`);
+      }
+
+      const sourceMessage = currentConversation.messages[sourceIndex];
+      if (!sourceMessage || sourceMessage.role !== "user") {
+        throw new Error(`Cannot edit non-user AI message ${message.sourceId}`);
+      }
+
+      queueController.adapter.clear("edit");
+      useAiChatStore
+        .getState()
+        .replaceMessages(conversationId, currentConversation.messages.slice(0, sourceIndex));
+      await persistConversationAfterManualMessageChange(conversationId);
+      await runRuntimeTextOutsideQueue(text);
     },
     onCancel: async () => {
+      queueController.adapter.clear("cancel-run");
+      const controller = activeRequestRef.current;
       const runId = activeAgentRunIdRef.current;
       const projectId = useWorkspaceStore.getState().currentProjectId;
-      if (runId && projectId) {
-        await cancelAIAgentRun(projectId, runId);
-        useAiChatStore
-          .getState()
-          .setLastAssistantAgentRun(conversationId, { runId, status: "cancelled" });
-      }
-      activeRequestRef.current?.abort();
-      activeRequestRef.current = null;
-      activeAgentRunIdRef.current = null;
-    },
-    onNew: async (message) => {
-      const state = useAiChatStore.getState();
-      const text = appendMessageToText(message);
-      if (state.composerMode === "agent") {
-        const controller = new AbortController();
-        activeRequestRef.current = controller;
-        activeAgentRunIdRef.current = null;
-        try {
-          await sendAIAgentMessage(conversationId, text, {
-            signal: controller.signal,
-            onRunCreated: (runId) => {
-              activeAgentRunIdRef.current = runId;
-            },
-          });
-        } finally {
-          if (activeRequestRef.current === controller) {
-            activeRequestRef.current = null;
-          }
-          activeAgentRunIdRef.current = null;
-        }
-        return;
-      }
-      const controller = new AbortController();
-      activeRequestRef.current = controller;
       try {
-        await sendAIChatMessageWithSignal(conversationId, text, { signal: controller.signal });
+        if (runId && projectId) {
+          await cancelAIAgentRun(projectId, runId);
+          useAiChatStore
+            .getState()
+            .setLastAssistantAgentRun(conversationId, { runId, status: "cancelled" });
+          await persistConversationAfterManualMessageChange(conversationId);
+        }
       } finally {
+        controller?.abort();
         if (activeRequestRef.current === controller) {
           activeRequestRef.current = null;
         }
+        activeAgentRunIdRef.current = null;
       }
+    },
+    onNew: async (message) => {
+      const text = appendMessageToText(message);
+      await runRuntimeTextOutsideQueue(text);
     },
   });
 

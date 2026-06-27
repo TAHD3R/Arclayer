@@ -3,21 +3,25 @@ from src.agents.registry import AgentRegistry, ReadOnlyAgentTool, build_default_
 from src.agents.session import AgentSessionManager
 from src.agents.types import (
     AgentDefinition,
+    AgentMode,
     AgentRunContext,
     AgentRunEvent,
     AgentRunState,
     AgentRunStatus,
+    AgentSkillDefinition,
     AgentToolSpec,
 )
 
 __all__ = [
     "AgentDefinition",
+    "AgentMode",
     "AgentRegistry",
     "AgentRunContext",
     "AgentRunEngine",
     "AgentRunEvent",
     "AgentRunState",
     "AgentRunStatus",
+    "AgentSkillDefinition",
     "AgentSessionManager",
     "AgentToolSpec",
     "ReadOnlyAgentTool",

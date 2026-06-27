@@ -1,9 +1,18 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import { PanelRightClose, PlusIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Thread } from "@/components/assistant-ui/thread";
+import { AIApprovalQueue } from "@/components/ai/ai-approval-queue";
 import { AIChatRuntimeProvider } from "@/components/ai/ai-chat-runtime";
+import { AIContextRecommendations } from "@/components/ai/ai-context-recommendations";
+import { AIContentProposalCard } from "@/components/ai/ai-content-proposal-card";
+import {
+  ensureAIConversationPersistedForRuntime,
+  loadAIConversations,
+  renameAIConversation,
+} from "@/api/ai";
 import { useAiChatStore } from "@/stores/use-ai-chat-store";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
@@ -36,8 +45,13 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
   const activeId = useAiChatStore((s) => s.activeId);
   const conversations = useAiChatStore((s) => s.conversations);
   const createConversation = useAiChatStore((s) => s.createConversation);
-  const renameConversation = useAiChatStore((s) => s.renameConversation);
   const closeDrawer = useAiChatStore((s) => s.closeDrawer);
+  const routeLocation = useRouterState({
+    select: (state) => ({
+      pathname: state.location.pathname,
+      search: state.location.searchStr,
+    }),
+  });
   const activeConversation = conversations.find((conversation) => conversation.id === activeId);
   const conversationTitle = activeConversation?.title ?? t("ai:AI_CHAT_NEW_CONVERSATION");
   const [editingTitle, setEditingTitle] = useState(false);
@@ -46,9 +60,31 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
 
   useEffect(() => {
     if (drawerOpen && !activeId && conversations.length === 0) {
-      createConversation();
+      const conversationId = createConversation();
+      void ensureAIConversationPersistedForRuntime(conversationId);
     }
   }, [activeId, conversations.length, createConversation, drawerOpen]);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const controller = new AbortController();
+    void loadAIConversations({ signal: controller.signal });
+    return () => controller.abort();
+  }, [drawerOpen]);
+
+  useEffect(() => {
+    if (!drawerOpen || !activeId || !activeConversation) return;
+    if (activeConversation.messages.length > 0) return;
+
+    const snapshot = activeConversation.contextSnapshot ?? {};
+    const snapshotPathname = typeof snapshot.pathname === "string" ? snapshot.pathname : null;
+    const snapshotSearch = typeof snapshot.search === "string" ? snapshot.search : "";
+    if (snapshotPathname === routeLocation.pathname && snapshotSearch === routeLocation.search) {
+      return;
+    }
+
+    void ensureAIConversationPersistedForRuntime(activeId);
+  }, [activeConversation, activeId, drawerOpen, routeLocation.pathname, routeLocation.search]);
 
   useEffect(() => {
     if (!editingTitle) {
@@ -80,7 +116,7 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
   const commitTitle = () => {
     const nextTitle = titleDraft.trim();
     if (activeConversation && nextTitle && nextTitle !== activeConversation.title) {
-      renameConversation(activeConversation.id, nextTitle);
+      void renameAIConversation(activeConversation.id, nextTitle);
     }
     setTitleDraft(activeConversation?.title ?? conversationTitle);
     setEditingTitle(false);
@@ -92,7 +128,8 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
   };
 
   const handleCreateConversation = () => {
-    createConversation();
+    const conversationId = createConversation();
+    void ensureAIConversationPersistedForRuntime(conversationId);
   };
 
   return (
@@ -170,9 +207,16 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
           </div>
           <div className="min-h-0 flex-1">
             {activeId ? (
-              <AIChatRuntimeProvider conversationId={activeId}>
-                <Thread variant="sidebar" />
-              </AIChatRuntimeProvider>
+              <div className="flex h-full min-h-0 flex-col">
+                <AIContentProposalCard enabled={drawerOpen} />
+                <AIApprovalQueue enabled={drawerOpen} />
+                <AIContextRecommendations />
+                <div className="min-h-0 flex-1">
+                  <AIChatRuntimeProvider conversationId={activeId}>
+                    <Thread variant="sidebar" />
+                  </AIChatRuntimeProvider>
+                </div>
+              </div>
             ) : (
               <div className="flex h-full items-center justify-center text-center text-callout text-label-secondary">
                 {t("ai:AI_CHAT_EMPTY_HINT")}

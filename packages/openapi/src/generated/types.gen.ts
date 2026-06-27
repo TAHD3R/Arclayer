@@ -5,6 +5,309 @@ export type ClientOptions = {
 };
 
 /**
+ * AIConversationCreateRequest
+ *
+ * Create a workspace AI conversation with an optional client-generated id.
+ */
+export type AiConversationCreateRequest = {
+    /**
+     * Contextsnapshot
+     */
+    contextSnapshot?: {
+        [key: string]: JsonValueInput;
+    };
+    /**
+     * Environmentid
+     */
+    environmentId?: string | null;
+    /**
+     * Id
+     */
+    id?: string | null;
+    /**
+     * Messages
+     */
+    messages?: Array<AiConversationMessageInput>;
+    mode?: AgentConversationMode;
+    /**
+     * Model
+     */
+    model?: string | null;
+    /**
+     * Projectid
+     */
+    projectId?: string | null;
+    /**
+     * Reasoningeffort
+     */
+    reasoningEffort?: 'low' | 'medium' | 'high' | null;
+    /**
+     * Runtimeid
+     */
+    runtimeId?: string | null;
+    /**
+     * Siteid
+     */
+    siteId?: string | null;
+    /**
+     * Title
+     */
+    title?: string | null;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * AIConversationListOut
+ */
+export type AiConversationListOut = {
+    /**
+     * Conversations
+     */
+    conversations?: Array<AiConversationOut>;
+};
+
+/**
+ * AIConversationMessage
+ *
+ * Persisted Admin AI conversation message.
+ */
+export type AiConversationMessageInput = {
+    /**
+     * Agentartifact
+     */
+    agentArtifact?: {
+        [key: string]: JsonValueInput;
+    } | null;
+    /**
+     * Agentcheckpointid
+     */
+    agentCheckpointId?: string | null;
+    /**
+     * Agentexecutionsummary
+     */
+    agentExecutionSummary?: {
+        [key: string]: JsonValueInput;
+    } | null;
+    /**
+     * Agentinterrupt
+     */
+    agentInterrupt?: {
+        [key: string]: JsonValueInput;
+    } | null;
+    /**
+     * Agentrunid
+     */
+    agentRunId?: string | null;
+    /**
+     * Agentstatus
+     */
+    agentStatus?: 'running' | 'interrupted' | 'completed' | 'cancelled' | 'failed' | null;
+    /**
+     * Agentthreadid
+     */
+    agentThreadId?: string | null;
+    /**
+     * Content
+     */
+    content: string;
+    /**
+     * Error
+     */
+    error?: boolean;
+    /**
+     * Errordetails
+     */
+    errorDetails?: string | null;
+    /**
+     * Errormessage
+     */
+    errorMessage?: string | null;
+    /**
+     * Role
+     */
+    role: 'user' | 'assistant';
+};
+
+/**
+ * AIConversationMessage
+ *
+ * Persisted Admin AI conversation message.
+ */
+export type AiConversationMessageOutput = {
+    /**
+     * Agentartifact
+     */
+    agentArtifact?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Agentcheckpointid
+     */
+    agentCheckpointId?: string | null;
+    /**
+     * Agentexecutionsummary
+     */
+    agentExecutionSummary?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Agentinterrupt
+     */
+    agentInterrupt?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Agentrunid
+     */
+    agentRunId?: string | null;
+    /**
+     * Agentstatus
+     */
+    agentStatus?: 'running' | 'interrupted' | 'completed' | 'cancelled' | 'failed' | null;
+    /**
+     * Agentthreadid
+     */
+    agentThreadId?: string | null;
+    /**
+     * Content
+     */
+    content: string;
+    /**
+     * Error
+     */
+    error?: boolean;
+    /**
+     * Errordetails
+     */
+    errorDetails?: string | null;
+    /**
+     * Errormessage
+     */
+    errorMessage?: string | null;
+    /**
+     * Role
+     */
+    role: 'user' | 'assistant';
+};
+
+/**
+ * AIConversationOut
+ *
+ * Workspace AI conversation stored by the backend.
+ */
+export type AiConversationOut = {
+    /**
+     * Contextsnapshot
+     */
+    contextSnapshot?: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Environmentid
+     */
+    environmentId?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Messages
+     */
+    messages?: Array<AiConversationMessageOutput>;
+    mode: AgentConversationMode;
+    /**
+     * Model
+     */
+    model?: string | null;
+    /**
+     * Projectid
+     */
+    projectId?: string | null;
+    /**
+     * Reasoningeffort
+     */
+    reasoningEffort?: string | null;
+    /**
+     * Runtimeid
+     */
+    runtimeId?: string | null;
+    /**
+     * Siteid
+     */
+    siteId?: string | null;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Userid
+     */
+    userId: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * AIConversationUpdateRequest
+ *
+ * Patch mutable AI conversation fields.
+ */
+export type AiConversationUpdateRequest = {
+    /**
+     * Contextsnapshot
+     */
+    contextSnapshot?: {
+        [key: string]: JsonValueInput;
+    } | null;
+    /**
+     * Environmentid
+     */
+    environmentId?: string | null;
+    /**
+     * Messages
+     */
+    messages?: Array<AiConversationMessageInput> | null;
+    mode?: AgentConversationMode | null;
+    /**
+     * Model
+     */
+    model?: string | null;
+    /**
+     * Projectid
+     */
+    projectId?: string | null;
+    /**
+     * Reasoningeffort
+     */
+    reasoningEffort?: 'low' | 'medium' | 'high' | null;
+    /**
+     * Runtimeid
+     */
+    runtimeId?: string | null;
+    /**
+     * Siteid
+     */
+    siteId?: string | null;
+    /**
+     * Title
+     */
+    title?: string | null;
+};
+
+/**
  * AIModelCatalogItem
  *
  * Model option exposed to Admin UI.
@@ -46,6 +349,7 @@ export type AiModelCatalogItem = {
  * Available chat model catalog.
  */
 export type AiModelCatalogResponse = {
+    defaultMode?: AgentConversationMode;
     /**
      * Defaultmodel
      */
@@ -54,6 +358,10 @@ export type AiModelCatalogResponse = {
      * Models
      */
     models: Array<AiModelCatalogItem>;
+    /**
+     * Reasoningeffort
+     */
+    reasoningEffort?: 'low' | 'medium' | 'high';
 };
 
 /**
@@ -983,6 +1291,135 @@ export type AdminAssetUsageUpsertRequest = {
 };
 
 /**
+ * AgentApprovalApplyOut
+ */
+export type AgentApprovalApplyOut = {
+    approval: AgentApprovalOut;
+    model?: ContentModelMutationOut | null;
+    version?: ContentVersionOut | null;
+};
+
+/**
+ * AgentApprovalDecisionRequest
+ */
+export type AgentApprovalDecisionRequest = {
+    /**
+     * Reason
+     */
+    reason?: string | null;
+};
+
+/**
+ * AgentApprovalListOut
+ */
+export type AgentApprovalListOut = {
+    /**
+     * Approvals
+     */
+    approvals?: Array<AgentApprovalOut>;
+};
+
+/**
+ * AgentApprovalOut
+ */
+export type AgentApprovalOut = {
+    /**
+     * Action
+     */
+    action: string;
+    /**
+     * Appliedat
+     */
+    appliedAt?: string | null;
+    /**
+     * Approvedat
+     */
+    approvedAt?: string | null;
+    /**
+     * Approveruserid
+     */
+    approverUserId?: string | null;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Decisionreason
+     */
+    decisionReason?: string | null;
+    /**
+     * Dryrun
+     */
+    dryRun?: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion?: number | null;
+    /**
+     * Expiredat
+     */
+    expiredAt?: string | null;
+    /**
+     * Expiresat
+     */
+    expiresAt: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Proposedpatch
+     */
+    proposedPatch?: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Rejectedat
+     */
+    rejectedAt?: string | null;
+    /**
+     * Requesteruserid
+     */
+    requesterUserId: string;
+    /**
+     * Skillid
+     */
+    skillId: string;
+    status: AgentApprovalStatus;
+    /**
+     * Targetid
+     */
+    targetId?: string | null;
+    /**
+     * Targetsnapshot
+     */
+    targetSnapshot?: {
+        [key: string]: JsonValueOutput;
+    };
+    targetType: AgentApprovalTargetType;
+    /**
+     * Toolname
+     */
+    toolName?: string | null;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+};
+
+/**
+ * AgentApprovalStatus
+ */
+export type AgentApprovalStatus = 'pending' | 'approved' | 'rejected' | 'expired' | 'applied';
+
+/**
+ * AgentApprovalTargetType
+ */
+export type AgentApprovalTargetType = 'content_item' | 'content_model';
+
+/**
  * AgentCatalogOut
  */
 export type AgentCatalogOut = {
@@ -991,10 +1428,172 @@ export type AgentCatalogOut = {
      */
     agents?: Array<AgentDefinition>;
     /**
+     * Skills
+     */
+    skills?: Array<AgentSkillDefinition>;
+    /**
      * Tools
      */
     tools?: Array<AgentToolSpec>;
 };
+
+/**
+ * AgentContentApprovalDryRunRequest
+ */
+export type AgentContentApprovalDryRunRequest = {
+    /**
+     * Action
+     */
+    action?: string;
+    /**
+     * Agentrunid
+     */
+    agentRunId?: string | null;
+    /**
+     * Changesummary
+     */
+    changeSummary?: string | null;
+    /**
+     * Expiresinseconds
+     */
+    expiresInSeconds?: number;
+    /**
+     * Fieldssnapshot
+     */
+    fieldsSnapshot?: {
+        [key: string]: JsonValueInput;
+    } | null;
+    /**
+     * Presentations
+     */
+    presentations?: Array<ContentPresentationIn> | null;
+    /**
+     * Skillid
+     */
+    skillId?: string;
+    /**
+     * Targetid
+     */
+    targetId: string;
+    targetType?: AgentApprovalTargetType;
+    /**
+     * Toolname
+     */
+    toolName?: string | null;
+};
+
+/**
+ * AgentContentApprovalModifyRequest
+ */
+export type AgentContentApprovalModifyRequest = {
+    /**
+     * Changesummary
+     */
+    changeSummary?: string | null;
+    /**
+     * Fieldssnapshot
+     */
+    fieldsSnapshot?: {
+        [key: string]: JsonValueInput;
+    } | null;
+    modelPatch?: ContentModelDefinitionPatchContract | null;
+    /**
+     * Presentations
+     */
+    presentations?: Array<ContentPresentationIn> | null;
+};
+
+/**
+ * AgentContentDraftProposalOut
+ */
+export type AgentContentDraftProposalOut = {
+    approval: AgentApprovalOut;
+    /**
+     * Model
+     */
+    model: string;
+    /**
+     * Usage
+     */
+    usage?: {
+        [key: string]: JsonValueOutput;
+    };
+};
+
+/**
+ * AgentContentDraftProposalRequest
+ */
+export type AgentContentDraftProposalRequest = {
+    /**
+     * Expiresinseconds
+     */
+    expiresInSeconds?: number;
+    /**
+     * Instruction
+     */
+    instruction: string;
+    /**
+     * Model
+     */
+    model?: string | null;
+    /**
+     * Reasoningeffort
+     */
+    reasoningEffort?: 'low' | 'medium' | 'high' | null;
+    /**
+     * Targetid
+     */
+    targetId: string;
+};
+
+/**
+ * AgentContentModelDraftProposalOut
+ */
+export type AgentContentModelDraftProposalOut = {
+    approval: AgentApprovalOut;
+    impactPreview: ContentModelImpactPreviewOut;
+    /**
+     * Model
+     */
+    model: string;
+    /**
+     * Usage
+     */
+    usage?: {
+        [key: string]: JsonValueOutput;
+    };
+};
+
+/**
+ * AgentContentModelDraftProposalRequest
+ */
+export type AgentContentModelDraftProposalRequest = {
+    /**
+     * Expiresinseconds
+     */
+    expiresInSeconds?: number;
+    /**
+     * Instruction
+     */
+    instruction: string;
+    /**
+     * Model
+     */
+    model?: string | null;
+    /**
+     * Reasoningeffort
+     */
+    reasoningEffort?: 'low' | 'medium' | 'high' | null;
+    /**
+     * Targetid
+     */
+    targetId: string;
+};
+
+/**
+ * AgentConversationMode
+ */
+export type AgentConversationMode = 'build' | 'plan' | 'agent';
 
 /**
  * AgentDefinition
@@ -1008,10 +1607,23 @@ export type AgentDefinition = {
      * Description
      */
     description: string;
+    mode?: AgentMode;
     /**
      * Name
      */
     name: string;
+    /**
+     * Readonly
+     */
+    readOnly?: boolean;
+    /**
+     * Requiresapproval
+     */
+    requiresApproval?: boolean;
+    /**
+     * Skillid
+     */
+    skillId: string;
     /**
      * Systemprompt
      */
@@ -1021,6 +1633,11 @@ export type AgentDefinition = {
      */
     toolNames?: Array<string>;
 };
+
+/**
+ * AgentMode
+ */
+export type AgentMode = 'build' | 'plan' | 'agent';
 
 /**
  * AgentRunCreateRequest
@@ -1068,7 +1685,7 @@ export type AgentRunEvent = {
 /**
  * AgentRunEventType
  */
-export type AgentRunEventType = 'run.created' | 'message.delta' | 'tool.started' | 'tool.completed' | 'run.completed' | 'run.cancelled' | 'run.failed';
+export type AgentRunEventType = 'run.created' | 'approval.required' | 'run.interrupted' | 'run.resumed' | 'message.delta' | 'tool.started' | 'tool.completed' | 'usage.partial' | 'run.completed' | 'run.cancelled' | 'run.failed';
 
 /**
  * AgentRunOut
@@ -1099,6 +1716,22 @@ export type AgentRunOut = {
      */
     id: string;
     /**
+     * Langgraphcheckpointid
+     */
+    langgraphCheckpointId?: string | null;
+    /**
+     * Langgraphcheckpointnode
+     */
+    langgraphCheckpointNode?: string | null;
+    /**
+     * Langgraphcheckpointns
+     */
+    langgraphCheckpointNs: string;
+    /**
+     * Langgraphthreadid
+     */
+    langgraphThreadId: string;
+    /**
      * Model
      */
     model?: string | null;
@@ -1122,9 +1755,76 @@ export type AgentRunOut = {
 };
 
 /**
+ * AgentRunResumeRequest
+ */
+export type AgentRunResumeRequest = {
+    /**
+     * Approved
+     */
+    approved: boolean;
+    /**
+     * Comment
+     */
+    comment?: string | null;
+    /**
+     * Metadata
+     */
+    metadata?: {
+        [key: string]: JsonValueInput;
+    };
+};
+
+/**
  * AgentRunStatus
  */
-export type AgentRunStatus = 'queued' | 'running' | 'completed' | 'cancelled' | 'failed';
+export type AgentRunStatus = 'queued' | 'running' | 'interrupted' | 'completed' | 'cancelled' | 'failed';
+
+/**
+ * AgentSkillDefinition
+ */
+export type AgentSkillDefinition = {
+    /**
+     * Agentid
+     */
+    agentId?: string | null;
+    /**
+     * Approvalpolicy
+     */
+    approvalPolicy?: string | null;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Disabledreason
+     */
+    disabledReason?: string | null;
+    /**
+     * Enabled
+     */
+    enabled?: boolean;
+    mode: AgentMode;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Readonly
+     */
+    readOnly?: boolean;
+    /**
+     * Requiresapproval
+     */
+    requiresApproval?: boolean;
+    /**
+     * Skillid
+     */
+    skillId: string;
+    /**
+     * Toolnames
+     */
+    toolNames?: Array<string>;
+};
 
 /**
  * AgentToolSpec
@@ -2023,6 +2723,22 @@ export type ChangePasswordRequest = {
 };
 
 /**
+ * ChatMessage
+ *
+ * A client-supplied message in a chat conversation.
+ */
+export type ChatMessage = {
+    /**
+     * Content
+     */
+    content: string;
+    /**
+     * Role
+     */
+    role: 'user' | 'assistant';
+};
+
+/**
  * ChatRequest
  *
  * Chat completion request body.
@@ -2035,9 +2751,8 @@ export type ChatRequest = {
     /**
      * Messages
      */
-    messages: Array<{
-        [key: string]: string;
-    }>;
+    messages: Array<ChatMessage>;
+    mode?: AgentConversationMode | null;
     /**
      * Model
      */
@@ -11224,6 +11939,56 @@ export type ResolveWarningV1 = {
 };
 
 /**
+ * ResponseModel[AIConversationListOut]
+ */
+export type ResponseModelAiConversationListOut = {
+    data?: AiConversationListOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[AIConversationOut]
+ */
+export type ResponseModelAiConversationOut = {
+    data?: AiConversationOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[AIModelCatalogResponse]
  */
 export type ResponseModelAiModelCatalogResponse = {
@@ -11549,10 +12314,135 @@ export type ResponseModelAdminAssetUsageOut = {
 };
 
 /**
+ * ResponseModel[AgentApprovalApplyOut]
+ */
+export type ResponseModelAgentApprovalApplyOut = {
+    data?: AgentApprovalApplyOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[AgentApprovalListOut]
+ */
+export type ResponseModelAgentApprovalListOut = {
+    data?: AgentApprovalListOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[AgentApprovalOut]
+ */
+export type ResponseModelAgentApprovalOut = {
+    data?: AgentApprovalOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[AgentCatalogOut]
  */
 export type ResponseModelAgentCatalogOut = {
     data?: AgentCatalogOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[AgentContentDraftProposalOut]
+ */
+export type ResponseModelAgentContentDraftProposalOut = {
+    data?: AgentContentDraftProposalOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[AgentContentModelDraftProposalOut]
+ */
+export type ResponseModelAgentContentModelDraftProposalOut = {
+    data?: AgentContentModelDraftProposalOut | null;
     /**
      * Error
      */
@@ -21565,6 +22455,131 @@ export type AiChatCompletionResponses = {
     200: unknown;
 };
 
+export type AiListAiConversationsData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Workspaceid
+         */
+        workspaceId: string;
+    };
+    url: '/api/v1/chat/conversations';
+};
+
+export type AiListAiConversationsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AiListAiConversationsError = AiListAiConversationsErrors[keyof AiListAiConversationsErrors];
+
+export type AiListAiConversationsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAiConversationListOut;
+};
+
+export type AiListAiConversationsResponse = AiListAiConversationsResponses[keyof AiListAiConversationsResponses];
+
+export type AiCreateAiConversationData = {
+    body: AiConversationCreateRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/chat/conversations';
+};
+
+export type AiCreateAiConversationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AiCreateAiConversationError = AiCreateAiConversationErrors[keyof AiCreateAiConversationErrors];
+
+export type AiCreateAiConversationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAiConversationOut;
+};
+
+export type AiCreateAiConversationResponse = AiCreateAiConversationResponses[keyof AiCreateAiConversationResponses];
+
+export type AiDeleteAiConversationData = {
+    body?: never;
+    path: {
+        /**
+         * Conversation Id
+         */
+        conversation_id: string;
+    };
+    query: {
+        /**
+         * Workspaceid
+         */
+        workspaceId: string;
+    };
+    url: '/api/v1/chat/conversations/{conversation_id}';
+};
+
+export type AiDeleteAiConversationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AiDeleteAiConversationError = AiDeleteAiConversationErrors[keyof AiDeleteAiConversationErrors];
+
+export type AiDeleteAiConversationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNoneType;
+};
+
+export type AiDeleteAiConversationResponse = AiDeleteAiConversationResponses[keyof AiDeleteAiConversationResponses];
+
+export type AiUpdateAiConversationData = {
+    body: AiConversationUpdateRequest;
+    path: {
+        /**
+         * Conversation Id
+         */
+        conversation_id: string;
+    };
+    query: {
+        /**
+         * Workspaceid
+         */
+        workspaceId: string;
+    };
+    url: '/api/v1/chat/conversations/{conversation_id}';
+};
+
+export type AiUpdateAiConversationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AiUpdateAiConversationError = AiUpdateAiConversationErrors[keyof AiUpdateAiConversationErrors];
+
+export type AiUpdateAiConversationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAiConversationOut;
+};
+
+export type AiUpdateAiConversationResponse = AiUpdateAiConversationResponses[keyof AiUpdateAiConversationResponses];
+
 export type AiListChatModelsData = {
     body?: never;
     path?: never;
@@ -22318,6 +23333,404 @@ export type DomainProjectsListProjectAgentsResponses = {
 
 export type DomainProjectsListProjectAgentsResponse = DomainProjectsListProjectAgentsResponses[keyof DomainProjectsListProjectAgentsResponses];
 
+export type DomainProjectsListProjectAgentApprovalsData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Status
+         */
+        status?: AgentApprovalStatus | null;
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}/agents/approvals';
+};
+
+export type DomainProjectsListProjectAgentApprovalsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectAgentApprovalsError = DomainProjectsListProjectAgentApprovalsErrors[keyof DomainProjectsListProjectAgentApprovalsErrors];
+
+export type DomainProjectsListProjectAgentApprovalsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAgentApprovalListOut;
+};
+
+export type DomainProjectsListProjectAgentApprovalsResponse = DomainProjectsListProjectAgentApprovalsResponses[keyof DomainProjectsListProjectAgentApprovalsResponses];
+
+export type DomainProjectsCreateProjectAgentApprovalDryRunData = {
+    /**
+     * Agent write dry-run request.
+     */
+    body: AgentContentApprovalDryRunRequest;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}/agents/approvals/dry-run';
+};
+
+export type DomainProjectsCreateProjectAgentApprovalDryRunErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCreateProjectAgentApprovalDryRunError = DomainProjectsCreateProjectAgentApprovalDryRunErrors[keyof DomainProjectsCreateProjectAgentApprovalDryRunErrors];
+
+export type DomainProjectsCreateProjectAgentApprovalDryRunResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAgentApprovalOut;
+};
+
+export type DomainProjectsCreateProjectAgentApprovalDryRunResponse = DomainProjectsCreateProjectAgentApprovalDryRunResponses[keyof DomainProjectsCreateProjectAgentApprovalDryRunResponses];
+
+export type DomainProjectsModifyProjectAgentApprovalData = {
+    /**
+     * Approval content patch.
+     */
+    body: AgentContentApprovalModifyRequest;
+    path: {
+        /**
+         * Approval Id
+         */
+        approval_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}/agents/approvals/{approval_id}';
+};
+
+export type DomainProjectsModifyProjectAgentApprovalErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsModifyProjectAgentApprovalError = DomainProjectsModifyProjectAgentApprovalErrors[keyof DomainProjectsModifyProjectAgentApprovalErrors];
+
+export type DomainProjectsModifyProjectAgentApprovalResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAgentApprovalOut;
+};
+
+export type DomainProjectsModifyProjectAgentApprovalResponse = DomainProjectsModifyProjectAgentApprovalResponses[keyof DomainProjectsModifyProjectAgentApprovalResponses];
+
+export type DomainProjectsApplyProjectAgentApprovalData = {
+    body?: never;
+    path: {
+        /**
+         * Approval Id
+         */
+        approval_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}/agents/approvals/{approval_id}/apply';
+};
+
+export type DomainProjectsApplyProjectAgentApprovalErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsApplyProjectAgentApprovalError = DomainProjectsApplyProjectAgentApprovalErrors[keyof DomainProjectsApplyProjectAgentApprovalErrors];
+
+export type DomainProjectsApplyProjectAgentApprovalResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAgentApprovalApplyOut;
+};
+
+export type DomainProjectsApplyProjectAgentApprovalResponse = DomainProjectsApplyProjectAgentApprovalResponses[keyof DomainProjectsApplyProjectAgentApprovalResponses];
+
+export type DomainProjectsApproveProjectAgentApprovalData = {
+    /**
+     * Approval decision metadata.
+     */
+    body: AgentApprovalDecisionRequest;
+    path: {
+        /**
+         * Approval Id
+         */
+        approval_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}/agents/approvals/{approval_id}/approve';
+};
+
+export type DomainProjectsApproveProjectAgentApprovalErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsApproveProjectAgentApprovalError = DomainProjectsApproveProjectAgentApprovalErrors[keyof DomainProjectsApproveProjectAgentApprovalErrors];
+
+export type DomainProjectsApproveProjectAgentApprovalResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAgentApprovalOut;
+};
+
+export type DomainProjectsApproveProjectAgentApprovalResponse = DomainProjectsApproveProjectAgentApprovalResponses[keyof DomainProjectsApproveProjectAgentApprovalResponses];
+
+export type DomainProjectsRejectProjectAgentApprovalData = {
+    /**
+     * Approval decision metadata.
+     */
+    body: AgentApprovalDecisionRequest;
+    path: {
+        /**
+         * Approval Id
+         */
+        approval_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}/agents/approvals/{approval_id}/reject';
+};
+
+export type DomainProjectsRejectProjectAgentApprovalErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsRejectProjectAgentApprovalError = DomainProjectsRejectProjectAgentApprovalErrors[keyof DomainProjectsRejectProjectAgentApprovalErrors];
+
+export type DomainProjectsRejectProjectAgentApprovalResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAgentApprovalOut;
+};
+
+export type DomainProjectsRejectProjectAgentApprovalResponse = DomainProjectsRejectProjectAgentApprovalResponses[keyof DomainProjectsRejectProjectAgentApprovalResponses];
+
+export type DomainProjectsCreateProjectAgentContentDraftProposalData = {
+    /**
+     * Content writer proposal request.
+     */
+    body: AgentContentDraftProposalRequest;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}/agents/content-draft-proposals';
+};
+
+export type DomainProjectsCreateProjectAgentContentDraftProposalErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCreateProjectAgentContentDraftProposalError = DomainProjectsCreateProjectAgentContentDraftProposalErrors[keyof DomainProjectsCreateProjectAgentContentDraftProposalErrors];
+
+export type DomainProjectsCreateProjectAgentContentDraftProposalResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAgentContentDraftProposalOut;
+};
+
+export type DomainProjectsCreateProjectAgentContentDraftProposalResponse = DomainProjectsCreateProjectAgentContentDraftProposalResponses[keyof DomainProjectsCreateProjectAgentContentDraftProposalResponses];
+
+export type DomainProjectsCreateProjectAgentContentModelDraftProposalData = {
+    /**
+     * Content modeler proposal request.
+     */
+    body: AgentContentModelDraftProposalRequest;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}/agents/content-model-draft-proposals';
+};
+
+export type DomainProjectsCreateProjectAgentContentModelDraftProposalErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCreateProjectAgentContentModelDraftProposalError = DomainProjectsCreateProjectAgentContentModelDraftProposalErrors[keyof DomainProjectsCreateProjectAgentContentModelDraftProposalErrors];
+
+export type DomainProjectsCreateProjectAgentContentModelDraftProposalResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAgentContentModelDraftProposalOut;
+};
+
+export type DomainProjectsCreateProjectAgentContentModelDraftProposalResponse = DomainProjectsCreateProjectAgentContentModelDraftProposalResponses[keyof DomainProjectsCreateProjectAgentContentModelDraftProposalResponses];
+
 export type DomainProjectsCreateProjectAgentRunData = {
     body: AgentRunCreateRequest;
     path: {
@@ -22503,6 +23916,55 @@ export type DomainProjectsCancelProjectAgentRunResponses = {
 };
 
 export type DomainProjectsCancelProjectAgentRunResponse = DomainProjectsCancelProjectAgentRunResponses[keyof DomainProjectsCancelProjectAgentRunResponses];
+
+export type DomainProjectsResumeProjectAgentRunData = {
+    body: AgentRunResumeRequest;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}/agents/runs/{run_id}/resume';
+};
+
+export type DomainProjectsResumeProjectAgentRunErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsResumeProjectAgentRunError = DomainProjectsResumeProjectAgentRunErrors[keyof DomainProjectsResumeProjectAgentRunErrors];
+
+export type DomainProjectsResumeProjectAgentRunResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAgentRunOut;
+};
+
+export type DomainProjectsResumeProjectAgentRunResponse = DomainProjectsResumeProjectAgentRunResponses[keyof DomainProjectsResumeProjectAgentRunResponses];
 
 export type DomainProjectsListProjectApiKeysData = {
     body?: never;

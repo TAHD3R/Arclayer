@@ -38,6 +38,10 @@ class AgentRunRecord(BaseModel):
     runtime_id = fields.UUIDField(null=True, db_index=True)
     site_id = fields.UUIDField(null=True, db_index=True)
     environment_id = fields.UUIDField(null=True, db_index=True)
+    langgraph_thread_id = fields.CharField(max_length=160, unique=True, db_index=True)
+    langgraph_checkpoint_ns = fields.CharField(max_length=96, default="project-agent", db_index=True)
+    langgraph_checkpoint_id = fields.CharField(max_length=192, null=True, db_index=True)
+    langgraph_checkpoint_node = fields.CharField(max_length=96, null=True, db_index=True)
 
     if TYPE_CHECKING:
         workspace_id: UUID

@@ -1,16 +1,28 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, cast
 from uuid import UUID
 
+from pydantic import ConfigDict
+
 from src.agents.types import AgentRunContext, AgentRunEvent, AgentRunState, AgentRunStatus
+from src.common.schemas import BaseSchema
 from src.common.types.json_types import JsonObject
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.agents.run import AgentRunRecord
 
 
+class ExpiredAgentRunCheckpoint(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(frozen=True)
+
+    run_id: UUID
+    thread_id: str
+
+
 class AgentRunRepository(TortoiseORMRepository):
     async def create_run(self, state: AgentRunState) -> AgentRunState:
+        assert state.langgraph_thread_id is not None
         record = await AgentRunRecord.create(
             id=state.id,
             workspace_id=state.workspace_id,
@@ -30,6 +42,10 @@ class AgentRunRepository(TortoiseORMRepository):
             runtime_id=state.runtime_id,
             site_id=state.site_id,
             environment_id=state.environment_id,
+            langgraph_thread_id=state.langgraph_thread_id,
+            langgraph_checkpoint_ns=state.langgraph_checkpoint_ns,
+            langgraph_checkpoint_id=state.langgraph_checkpoint_id,
+            langgraph_checkpoint_node=state.langgraph_checkpoint_node,
         )
         return self._to_state(record)
 
@@ -58,6 +74,9 @@ class AgentRunRepository(TortoiseORMRepository):
         record.cancellation_requested = state.cancellation_requested
         record.error_code = state.error_code
         record.error_message = state.error_message  # ty: ignore[invalid-assignment]
+        record.langgraph_checkpoint_ns = state.langgraph_checkpoint_ns
+        record.langgraph_checkpoint_id = state.langgraph_checkpoint_id
+        record.langgraph_checkpoint_node = state.langgraph_checkpoint_node
         await record.save(
             update_fields=[
                 "status",
@@ -67,10 +86,46 @@ class AgentRunRepository(TortoiseORMRepository):
                 "cancellation_requested",
                 "error_code",
                 "error_message",
+                "langgraph_checkpoint_ns",
+                "langgraph_checkpoint_id",
+                "langgraph_checkpoint_node",
                 "updated_at",
             ]
         )
         return self._to_state(record)
+
+    async def list_expired_terminal_checkpoints(
+        self,
+        *,
+        cutoff: datetime,
+        batch_size: int,
+    ) -> list[ExpiredAgentRunCheckpoint]:
+        rows = (
+            await AgentRunRecord
+            .filter(
+                updated_at__lt=cutoff,
+                status__in=[
+                    AgentRunStatus.COMPLETED,
+                    AgentRunStatus.CANCELLED,
+                    AgentRunStatus.FAILED,
+                ],
+            )
+            .order_by("updated_at", "created_at")
+            .limit(batch_size)
+            .values("id", "langgraph_thread_id")
+        )
+        return [
+            ExpiredAgentRunCheckpoint(
+                run_id=cast(UUID, row["id"]),
+                thread_id=str(row["langgraph_thread_id"]),
+            )
+            for row in rows
+        ]
+
+    async def delete_runs(self, *, run_ids: list[UUID]) -> int:
+        if not run_ids:
+            return 0
+        return int(await AgentRunRecord.filter(id__in=run_ids).delete())
 
     @staticmethod
     def _serialize_events(events: list[AgentRunEvent]) -> list[JsonObject]:
@@ -98,4 +153,8 @@ class AgentRunRepository(TortoiseORMRepository):
             runtime_id=record.runtime_id,
             site_id=record.site_id,
             environment_id=record.environment_id,
+            langgraph_thread_id=record.langgraph_thread_id,
+            langgraph_checkpoint_ns=record.langgraph_checkpoint_ns,
+            langgraph_checkpoint_id=record.langgraph_checkpoint_id,
+            langgraph_checkpoint_node=record.langgraph_checkpoint_node,
         )

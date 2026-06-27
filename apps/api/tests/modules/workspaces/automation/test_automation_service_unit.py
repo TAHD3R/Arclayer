@@ -22,7 +22,7 @@ from src.models.automation.flow import (
     AutomationRunStatus,
     AutomationTriggerKind,
 )
-from src.modules.ai.schemas import AIReasoningEffort
+from src.modules.ai.schema import AIReasoningEffort
 from src.modules.projects.automation.repository import AutomationRepository
 from src.modules.projects.automation.schema import AutomationFlowCreateIn, AutomationOperationIn
 from src.modules.projects.automation.service import ProjectAutomationService

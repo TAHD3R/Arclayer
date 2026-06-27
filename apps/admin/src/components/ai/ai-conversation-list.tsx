@@ -1,7 +1,12 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { MessageCircle, PlusIcon, Trash2 } from "lucide-react";
 
+import {
+  deleteAIConversation,
+  ensureAIConversationPersistedForRuntime,
+  loadAIConversations,
+} from "@/api/ai";
 import { useAiChatStore } from "@/stores/use-ai-chat-store";
 import { cn } from "@arclayer/lib/utils";
 import {
@@ -41,11 +46,17 @@ export function AIConversationList() {
   const drawerOpen = useAiChatStore((s) => s.drawerOpen);
   const createConversation = useAiChatStore((s) => s.createConversation);
   const selectConversation = useAiChatStore((s) => s.selectConversation);
-  const deleteConversation = useAiChatStore((s) => s.deleteConversation);
   const openDrawer = useAiChatStore((s) => s.openDrawer);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadAIConversations({ signal: controller.signal });
+    return () => controller.abort();
+  }, []);
+
   const handleCreateConversation = () => {
-    createConversation();
+    const conversationId = createConversation();
+    void ensureAIConversationPersistedForRuntime(conversationId);
     openDrawer();
   };
 
@@ -146,7 +157,9 @@ export function AIConversationList() {
                         <AlertDialogCancel>{t("common:CANCEL")}</AlertDialogCancel>
                         <AlertDialogAction
                           className="bg-destructive text-white hover:bg-destructive/90"
-                          onClick={() => deleteConversation(conversation.id)}
+                          onClick={() => {
+                            void deleteAIConversation(conversation.id);
+                          }}
                         >
                           {t("common:DELETE")}
                         </AlertDialogAction>

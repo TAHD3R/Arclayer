@@ -67,6 +67,9 @@ async def test_agent_run_repository_persists_restores_and_scopes_runs(prepared_d
     assert restored.correlation_id == "corr_agent_repo"
     assert restored.runtime_id == ctx.runtime_id
     assert [event.event for event in restored.events] == ["run.created", "run.completed"]
+    assert restored.langgraph_thread_id == f"agent-run:{state.id}"
+    assert restored.langgraph_checkpoint_id == f"{state.id}:run.completed"
+    assert restored.langgraph_checkpoint_node == "run.completed"
 
     with pytest.raises(NotFound):
         await reader.get_run(run_id=state.id, context=ctx.model_copy(update={"project_id": other_project.id}))

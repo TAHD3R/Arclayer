@@ -11,9 +11,10 @@ from tortoise.expressions import Q
 from src.config import Settings
 from src.llm.litellm_client import LiteLLMClient
 from src.llm.runtime import detect_provider
+from src.models.agents.conversation import AgentConversationMode
 from src.models.ai.ai_api_key import AIAPIKey, KeyOwnerType, KeyType
 from src.models.ai.user_key_grant import UserKeyWorkspaceGrant, is_grant_active
-from src.modules.ai.schemas import AIModelCatalogItem, AIModelCatalogResponse
+from src.modules.ai.schema import AIModelCatalogItem, AIModelCatalogResponse, AIReasoningEffort
 
 MODEL_METADATA: dict[str, dict[str, str]] = {
     "deepseek-v4-pro": {
@@ -65,6 +66,9 @@ async def list_ai_model_catalog(
     *,
     workspace_id: UUID,
     user_id: UUID,
+    default_model: str | None = None,
+    default_mode: str | None = None,
+    reasoning_effort: str | None = None,
 ) -> AIModelCatalogResponse:
     """Load the chat model catalog from LiteLLM and enrich it with product metadata."""
     if settings.ai.mock_enabled:
@@ -89,8 +93,46 @@ async def list_ai_model_catalog(
         raise AIModelCatalogUnavailableError("No selectable AI models are configured for this workspace")
 
     items = [_build_catalog_item(model_id) for model_id in visible_model_ids]
-    default_model = settings.ai.default_model if settings.ai.default_model in visible_model_ids else items[0].id
-    return AIModelCatalogResponse(default_model=default_model, models=items)
+    resolved_default_model = _resolve_default_model(
+        visible_model_ids=visible_model_ids,
+        core_default_model=default_model,
+        settings_default_model=settings.ai.default_model,
+    )
+    return AIModelCatalogResponse(
+        default_model=resolved_default_model,
+        default_mode=_resolve_default_mode(default_mode),
+        reasoning_effort=_resolve_reasoning_effort(reasoning_effort),
+        models=items,
+    )
+
+
+def _resolve_default_model(
+    *,
+    visible_model_ids: list[str],
+    core_default_model: str | None,
+    settings_default_model: str,
+) -> str:
+    if core_default_model in visible_model_ids:
+        return core_default_model
+    if settings_default_model in visible_model_ids:
+        return settings_default_model
+    return visible_model_ids[0]
+
+
+def _resolve_default_mode(default_mode: str | None) -> AgentConversationMode:
+    if default_mode == AgentConversationMode.PLAN.value:
+        return AgentConversationMode.PLAN
+    if default_mode == AgentConversationMode.AGENT.value:
+        return AgentConversationMode.AGENT
+    return AgentConversationMode.BUILD
+
+
+def _resolve_reasoning_effort(reasoning_effort: str | None) -> AIReasoningEffort:
+    if reasoning_effort == "low":
+        return "low"
+    if reasoning_effort == "high":
+        return "high"
+    return "medium"
 
 
 async def _list_litellm_model_ids(settings: Settings) -> list[str]:

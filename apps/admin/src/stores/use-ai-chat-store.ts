@@ -6,12 +6,63 @@ import { STORAGE_KEYS } from "@/constants/storage";
 export type AIChatRole = "user" | "assistant";
 export type AIComposerMode = "build" | "plan" | "agent";
 export type AIReasoningEffort = "low" | "medium" | "high";
+export type AIAgentRunStatus = "running" | "interrupted" | "completed" | "cancelled" | "failed";
+export type AIPreferenceSource = "default" | "user";
+
+export interface AIAgentArtifactStep {
+  id: string;
+  title: string;
+  status: string;
+}
+
+export type AIAgentMessageArtifact =
+  | {
+      type: "agent_execution_plan";
+      goal: string;
+      status: string;
+      steps: AIAgentArtifactStep[];
+      source?: string;
+    }
+  | {
+      type: "agent_build_blueprint";
+      goal: string;
+      status: string;
+      operations: AIAgentArtifactStep[];
+      appliesChanges: boolean;
+      requiresApprovalBeforeApply: boolean;
+      source?: string;
+    };
+
+export interface AIAgentInterrupt {
+  kind: string;
+  runId: string;
+  agentId: string;
+  mode: AIComposerMode;
+  prompt: string;
+  toolOutputs: Record<string, unknown>;
+  requiredDecision: string;
+  interruptId?: string;
+  threadId?: string;
+  checkpointId?: string;
+}
+
+export interface AIAgentExecutionSummary {
+  toolNames: string[];
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+}
 
 export interface AIChatMessage {
   role: AIChatRole;
   content: string;
   agentRunId?: string;
-  agentStatus?: "running" | "completed" | "cancelled" | "failed";
+  agentStatus?: AIAgentRunStatus;
+  agentThreadId?: string;
+  agentCheckpointId?: string;
+  agentInterrupt?: AIAgentInterrupt;
+  agentArtifact?: AIAgentMessageArtifact;
+  agentExecutionSummary?: AIAgentExecutionSummary;
   /** 标记assistant消息为错误态（显式展示，不静默吞） */
   error?: boolean;
   /** assistant-ui ErrorPrimitive 展示的产品化错误文案 */
@@ -26,6 +77,7 @@ export interface AIConversation {
   id: string;
   title: string;
   messages: AIChatMessage[];
+  contextSnapshot?: Record<string, unknown>;
   createdAt: number;
   updatedAt: number;
 }
@@ -35,8 +87,11 @@ export interface AIChatState {
   activeId: string | null;
   streaming: boolean;
   selectedModel: string;
+  selectedModelSource: AIPreferenceSource;
   selectedReasoningEffort: AIReasoningEffort;
+  selectedReasoningEffortSource: AIPreferenceSource;
   composerMode: AIComposerMode;
+  composerModeSource: AIPreferenceSource;
   selectedAgentId: string;
   /** 侧边 AI 面板展开状态（全局 overlay） */
   drawerOpen: boolean;
@@ -45,11 +100,19 @@ export interface AIChatState {
   renameConversation: (id: string, title: string) => void;
   selectConversation: (id: string) => void;
   deleteConversation: (id: string) => void;
+  replaceConversations: (conversations: AIConversation[]) => void;
+  upsertConversation: (conversation: AIConversation) => void;
   appendMessage: (convId: string, msg: AIChatMessage) => void;
   replaceMessages: (convId: string, messages: AIChatMessage[]) => void;
   setLastAssistantAgentRun: (
     convId: string,
-    run: { runId: string; status?: AIChatMessage["agentStatus"] },
+    run: {
+      runId: string;
+      status?: AIChatMessage["agentStatus"];
+      threadId?: string;
+      checkpointId?: string;
+      interrupt?: AIAgentInterrupt;
+    },
   ) => void;
   /** 流式追加 delta 到末条 assistant 消息；若无则新建 */
   appendDelta: (convId: string, delta: string) => void;
@@ -59,9 +122,14 @@ export interface AIChatState {
     opts?: { error?: boolean; errorMessage?: string; errorDetails?: string },
   ) => void;
   setStreaming: (b: boolean) => void;
-  setSelectedModel: (model: string) => void;
-  setSelectedReasoningEffort: (effort: AIReasoningEffort) => void;
-  setComposerMode: (mode: AIComposerMode) => void;
+  setSelectedModel: (model: string, source?: AIPreferenceSource) => void;
+  setSelectedReasoningEffort: (effort: AIReasoningEffort, source?: AIPreferenceSource) => void;
+  setComposerMode: (mode: AIComposerMode, source?: AIPreferenceSource) => void;
+  applyRuntimeDefaults: (defaults: {
+    model?: string;
+    reasoningEffort?: AIReasoningEffort;
+    composerMode?: AIComposerMode;
+  }) => void;
   setSelectedAgentId: (agentId: string) => void;
   openDrawer: () => void;
   closeDrawer: () => void;
@@ -88,16 +156,7 @@ function deriveTitle(text: string): string {
   return trimmed.length > 30 ? `${trimmed.slice(0, 30)}…` : trimmed;
 }
 
-function sanitizeMessageForPersistence(message: AIChatMessage): AIChatMessage {
-  return { ...message, streaming: false };
-}
-
-function sanitizeConversationForPersistence(conversation: AIConversation): AIConversation {
-  return {
-    ...conversation,
-    messages: conversation.messages.map(sanitizeMessageForPersistence),
-  };
-}
+const AI_CHAT_PERSIST_VERSION = 4;
 
 export const useAiChatStore = create<AIChatState>()(
   persist(
@@ -106,8 +165,11 @@ export const useAiChatStore = create<AIChatState>()(
       activeId: null,
       streaming: false,
       selectedModel: DEFAULT_AI_CHAT_MODEL,
+      selectedModelSource: "default",
       selectedReasoningEffort: DEFAULT_AI_REASONING_EFFORT,
+      selectedReasoningEffortSource: "default",
       composerMode: DEFAULT_AI_COMPOSER_MODE,
+      composerModeSource: "default",
       selectedAgentId: DEFAULT_AI_AGENT_ID,
       drawerOpen: false,
 
@@ -117,6 +179,7 @@ export const useAiChatStore = create<AIChatState>()(
           id,
           title: "新对话",
           messages: [],
+          contextSnapshot: {},
           createdAt: now(),
           updatedAt: now(),
         };
@@ -150,6 +213,28 @@ export const useAiChatStore = create<AIChatState>()(
           return { conversations, activeId };
         }),
 
+      replaceConversations: (conversations) =>
+        set((state) => ({
+          conversations: conversations.slice(0, MAX_CONVERSATIONS),
+          activeId:
+            state.activeId &&
+            conversations.some((conversation) => conversation.id === state.activeId)
+              ? state.activeId
+              : (conversations[0]?.id ?? null),
+        })),
+
+      upsertConversation: (conversation) =>
+        set((state) => {
+          const exists = state.conversations.some((item) => item.id === conversation.id);
+          const conversations = exists
+            ? state.conversations.map((item) => (item.id === conversation.id ? conversation : item))
+            : [conversation, ...state.conversations];
+          return {
+            conversations: conversations.slice(0, MAX_CONVERSATIONS),
+            activeId: state.activeId ?? conversation.id,
+          };
+        }),
+
       appendMessage: (convId, msg) =>
         set((state) => ({
           conversations: state.conversations.map((c) => {
@@ -179,6 +264,9 @@ export const useAiChatStore = create<AIChatState>()(
                 ...last,
                 agentRunId: run.runId,
                 agentStatus: run.status ?? last.agentStatus,
+                agentThreadId: run.threadId ?? last.agentThreadId,
+                agentCheckpointId: run.checkpointId ?? last.agentCheckpointId,
+                agentInterrupt: run.interrupt ?? last.agentInterrupt,
               };
             }
             return { ...c, messages, updatedAt: now() };
@@ -220,13 +308,38 @@ export const useAiChatStore = create<AIChatState>()(
         })),
 
       setStreaming: (b) => set({ streaming: b }),
-      setSelectedModel: (model) => {
+      setSelectedModel: (model, source = "user") => {
         const next = model.trim();
         if (!next) return;
-        set({ selectedModel: next });
+        set({ selectedModel: next, selectedModelSource: source });
       },
-      setSelectedReasoningEffort: (effort) => set({ selectedReasoningEffort: effort }),
-      setComposerMode: (mode) => set({ composerMode: mode }),
+      setSelectedReasoningEffort: (effort, source = "user") =>
+        set({ selectedReasoningEffort: effort, selectedReasoningEffortSource: source }),
+      setComposerMode: (mode, source = "user") =>
+        set({ composerMode: mode, composerModeSource: source }),
+      applyRuntimeDefaults: (defaults) =>
+        set((state) => {
+          const patch: Partial<AIChatState> = {};
+          const model = defaults.model?.trim();
+          if (model && state.selectedModelSource === "default" && state.selectedModel !== model) {
+            patch.selectedModel = model;
+          }
+          if (
+            defaults.reasoningEffort &&
+            state.selectedReasoningEffortSource === "default" &&
+            state.selectedReasoningEffort !== defaults.reasoningEffort
+          ) {
+            patch.selectedReasoningEffort = defaults.reasoningEffort;
+          }
+          if (
+            defaults.composerMode &&
+            state.composerModeSource === "default" &&
+            state.composerMode !== defaults.composerMode
+          ) {
+            patch.composerMode = defaults.composerMode;
+          }
+          return Object.keys(patch).length > 0 ? patch : state;
+        }),
       setSelectedAgentId: (agentId) => set({ selectedAgentId: agentId }),
 
       openDrawer: () => set({ drawerOpen: true }),
@@ -236,21 +349,32 @@ export const useAiChatStore = create<AIChatState>()(
     {
       name: STORAGE_KEYS.aiChat,
       storage: createJSONStorage(() => localStorage),
-      version: 2,
-      // streaming/drawerOpen 不持久化（重载后不应处于流式中）
+      version: AI_CHAT_PERSIST_VERSION,
+      // Conversations and messages are backend-owned. Local storage keeps only non-sensitive UI preferences.
       partialize: (s) => ({
-        conversations: s.conversations.map(sanitizeConversationForPersistence),
-        activeId: s.activeId,
         selectedModel: s.selectedModel,
+        selectedModelSource: s.selectedModelSource,
         selectedReasoningEffort: s.selectedReasoningEffort,
+        selectedReasoningEffortSource: s.selectedReasoningEffortSource,
         composerMode: s.composerMode,
+        composerModeSource: s.composerModeSource,
         selectedAgentId: s.selectedAgentId,
       }),
       migrate: (persisted) => {
         const state = persisted as Partial<AIChatState>;
         return {
-          ...state,
-          conversations: (state.conversations ?? []).map(sanitizeConversationForPersistence),
+          selectedModel: state.selectedModel ?? DEFAULT_AI_CHAT_MODEL,
+          selectedModelSource:
+            state.selectedModelSource ?? (state.selectedModel ? "user" : "default"),
+          selectedReasoningEffort: state.selectedReasoningEffort ?? DEFAULT_AI_REASONING_EFFORT,
+          selectedReasoningEffortSource:
+            state.selectedReasoningEffortSource ??
+            (state.selectedReasoningEffort ? "user" : "default"),
+          composerMode: state.composerMode ?? DEFAULT_AI_COMPOSER_MODE,
+          composerModeSource: state.composerModeSource ?? (state.composerMode ? "user" : "default"),
+          selectedAgentId: state.selectedAgentId ?? DEFAULT_AI_AGENT_ID,
+          conversations: [],
+          activeId: null,
           streaming: false,
         };
       },

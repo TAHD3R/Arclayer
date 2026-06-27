@@ -15,7 +15,7 @@ import asyncio
 import json
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
-from typing import cast
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID, uuid4
 
@@ -25,11 +25,12 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 from src.common.utils.public_ids import encode_uuid
-from src.config import AISettings, get_settings
+from src.config import AISettings, Settings, get_settings
 from src.llm.budget import BudgetExceededError, reserve
 from src.llm.errors import ERROR_CODE_STATUS, LLMErrorCode
 from src.llm.litellm_client import LiteLLMClient
 from src.llm.mock import MockLLMProvider
+from src.llm.provider import BaseLLMProvider
 from src.llm.runtime import ChatResult, LLMRequestContext, LLMRuntime, LLMRuntimeError
 from src.models.ai.ai_api_key import AIAPIKey
 from src.models.ai.ai_audit_log import AIAuditLog
@@ -46,7 +47,7 @@ from src.models.ai.user_key_grant import (
 from src.modules.ai.model_catalog import list_ai_model_catalog
 from src.modules.ai.router import _get_ai_service
 from src.modules.ai.router import router as ai_router
-from src.modules.ai.schemas import AIModelCatalogItem, AIModelCatalogResponse, AIReasoningEffort
+from src.modules.ai.schema import AIModelCatalogItem, AIModelCatalogResponse, AIReasoningEffort
 from src.modules.ai.service import AIChatService
 from src.modules.auth.http.service import get_current_user_id
 
@@ -133,6 +134,42 @@ class _MockStreamContext:
 
     async def __aexit__(self, *args):
         pass
+
+
+class _BlockingProvider(BaseLLMProvider):
+    def __init__(self) -> None:
+        self.chat_started = asyncio.Event()
+
+    async def health(self) -> dict[str, str]:
+        return {"status": "healthy"}
+
+    async def chat(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        model: str,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        self.chat_started.set()
+        await asyncio.Event().wait()
+        raise AssertionError("blocking provider chat should be cancelled before completion")
+
+    def chat_stream(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        model: str,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        **kwargs: Any,
+    ):
+        async def _events():
+            raise AssertionError("blocking provider stream is not used by this test")
+            yield
+
+        return _events()
 
 
 # ── 1. LiteLLM Contract Tests (mock-based) ────────────────────────────
@@ -321,6 +358,32 @@ class TestMockLLMIntegration:
         assert result["finish_reason"] == "stop"
         mock_runtime.chat.assert_awaited_once()
 
+    async def test_budget_resolution_uses_core_settings_monthly_limit(self) -> None:
+        settings = get_settings()
+        service = AIChatService(settings, runtime=AsyncMock(spec=LLMRuntime))
+        budget = SimpleNamespace(
+            id=uuid4(),
+            limit_micros=100_000_000,
+            save=AsyncMock(),
+        )
+        workspace_id = uuid4()
+
+        async def core_settings(_settings: Settings, *, ttl_seconds: float = 5.0) -> dict[str, object]:
+            return {"ai_agents": {"monthly_budget_micros": 25_000_000}}
+
+        with (
+            patch("src.modules.ai.service.get_core_settings_value_cached", new=core_settings),
+            patch("src.llm.budget.get_or_create_budget", new=AsyncMock(return_value=budget)) as get_budget,
+        ):
+            resolved = await service._resolve_budget(workspace_id)
+
+        assert resolved is budget
+        get_budget.assert_awaited_once()
+        assert get_budget.await_args is not None
+        assert get_budget.await_args.kwargs["limit_micros"] == 25_000_000
+        assert budget.limit_micros == 25_000_000
+        budget.save.assert_awaited_once_with(update_fields=["limit_micros", "updated_at"])
+
     async def test_deepseek_reasoning_effort_maps_to_provider_params(self) -> None:
         """Verify reasoning effort reaches LiteLLM as provider params."""
         settings = get_settings()
@@ -405,6 +468,46 @@ class TestMockLLMIntegration:
             await provider.chat([{"role": "user", "content": "Fail"}])
         assert exc_info.value.status_code == 503
         assert exc_info.value.error_type == "service_unavailable"
+
+
+class TestLLMRuntimeBudgetCancellation:
+    @pytest.mark.asyncio
+    async def test_chat_releases_budget_reservation_when_cancelled(self) -> None:
+        provider = _BlockingProvider()
+        runtime = LLMRuntime(provider=provider)
+        reservation_id = uuid4()
+
+        with (
+            patch.object(
+                runtime,
+                "_resolve_call_context",
+                new=AsyncMock(return_value=("virtual-key", 4, 100, 4096, {})),
+            ),
+            patch(
+                "src.llm.budget.reserve",
+                new=AsyncMock(return_value=SimpleNamespace(id=reservation_id)),
+            ) as reserve_mock,
+            patch("src.llm.budget.release", new=AsyncMock()) as release_mock,
+            patch("src.llm.budget.commit", new=AsyncMock()) as commit_mock,
+        ):
+            chat_task = asyncio.create_task(
+                runtime.chat(
+                    [{"role": "user", "content": "Hello"}],
+                    context=LLMRequestContext(workspace_id=uuid4(), user_id=uuid4()),
+                    model="gpt-4o-mini",
+                    budget_id=uuid4(),
+                )
+            )
+            await asyncio.wait_for(provider.chat_started.wait(), timeout=1)
+
+            chat_task.cancel()
+
+            with pytest.raises(asyncio.CancelledError):
+                await asyncio.wait_for(chat_task, timeout=1)
+
+        reserve_mock.assert_awaited_once()
+        release_mock.assert_awaited_once_with(reservation_id=reservation_id)
+        commit_mock.assert_not_awaited()
 
 
 # ── 3. Budget Concurrent Reservation Tests ─────────────────────────────
@@ -703,6 +806,83 @@ class TestAIModelCatalog:
         assert catalog.models[0].provider == "deepseek"
         assert catalog.models[0].label_key == "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO"
 
+    async def test_catalog_prefers_visible_core_default_model(self) -> None:
+        settings = get_settings()
+        settings.ai = settings.ai.model_copy(
+            update={
+                "default_model": "deepseek-v4-pro",
+                "litellm_master_key": "master-key",
+                "mock_enabled": False,
+            },
+        )
+
+        with (
+            patch(
+                "src.modules.ai.model_catalog.LiteLLMClient.list_models",
+                new=AsyncMock(
+                    return_value={
+                        "data": [
+                            {"id": "deepseek-v4-pro"},
+                            {"id": "gpt-4o"},
+                        ],
+                    },
+                ),
+            ),
+            patch(
+                "src.modules.ai.model_catalog._list_available_providers",
+                new=AsyncMock(return_value={"deepseek", "openai"}),
+            ),
+        ):
+            catalog = await list_ai_model_catalog(
+                settings,
+                workspace_id=uuid4(),
+                user_id=uuid4(),
+                default_model="gpt-4o",
+                default_mode="plan",
+                reasoning_effort="high",
+            )
+
+        assert catalog.default_model == "gpt-4o"
+        assert catalog.default_mode == "plan"
+        assert catalog.reasoning_effort == "high"
+        assert [model.id for model in catalog.models] == ["deepseek-v4-pro", "gpt-4o"]
+
+    async def test_catalog_ignores_unavailable_core_default_model(self) -> None:
+        settings = get_settings()
+        settings.ai = settings.ai.model_copy(
+            update={
+                "default_model": "deepseek-v4-pro",
+                "litellm_master_key": "master-key",
+                "mock_enabled": False,
+            },
+        )
+
+        with (
+            patch(
+                "src.modules.ai.model_catalog.LiteLLMClient.list_models",
+                new=AsyncMock(
+                    return_value={
+                        "data": [
+                            {"id": "deepseek-v4-pro"},
+                            {"id": "gpt-4o"},
+                        ],
+                    },
+                ),
+            ),
+            patch(
+                "src.modules.ai.model_catalog._list_available_providers",
+                new=AsyncMock(return_value={"deepseek", "openai"}),
+            ),
+        ):
+            catalog = await list_ai_model_catalog(
+                settings,
+                workspace_id=uuid4(),
+                user_id=uuid4(),
+                default_model="claude-sonnet-4-6",
+            )
+
+        assert catalog.default_model == "deepseek-v4-pro"
+
 
 # ── 6. End-to-End Chat Flow (mock-based) ──────────────────────────────
 
@@ -866,9 +1046,10 @@ class TestEndToEndChatFlow:
         """GET /api/v1/chat/models returns the backend-owned model catalog."""
         settings = get_settings()
         service = AIChatService(settings, runtime=AsyncMock(spec=LLMRuntime))
+        user_id = uuid4()
         app = _build_test_app(
             workspace_id=uuid4(),
-            user_id=uuid4(),
+            user_id=user_id,
             service=service,
             inject_workspace=False,
         )
@@ -886,19 +1067,42 @@ class TestEndToEndChatFlow:
 
         transport = ASGITransport(app=app, raise_app_exceptions=True)
         workspace_id = uuid4()
+        catalog_mock = AsyncMock(return_value=catalog)
+
+        async def _core_settings(_settings: Settings, *, ttl_seconds: float = 5.0) -> dict[str, object]:
+            _ = ttl_seconds
+            return {
+                "ai_agents": {
+                    "default_model": "gpt-4o",
+                    "default_mode": "plan",
+                    "reasoning_effort": "high",
+                }
+            }
+
         with (
             patch(
                 "src.modules.ai.router.resolve_workspace_context_by_id",
                 new=AsyncMock(return_value=SimpleNamespace(workspace_id=workspace_id)),
             ),
-            patch("src.modules.ai.router.list_ai_model_catalog", new=AsyncMock(return_value=catalog)),
+            patch("src.modules.ai.router.get_core_settings_value_cached", new=_core_settings),
+            patch("src.modules.ai.router.list_ai_model_catalog", new=catalog_mock),
         ):
             async with AsyncClient(transport=transport, base_url="http://test") as http:
                 response = await http.get(f"/api/v1/chat/models?workspaceId={encode_uuid(workspace_id)}")
 
         assert response.status_code == 200, response.text
+        catalog_mock.assert_awaited_once_with(
+            settings,
+            workspace_id=workspace_id,
+            user_id=user_id,
+            default_model="gpt-4o",
+            default_mode="plan",
+            reasoning_effort="high",
+        )
         data = response.json()["data"]
         assert data["defaultModel"] == "deepseek-v4-pro"
+        assert data["defaultMode"] == "build"
+        assert data["reasoningEffort"] == "medium"
         assert data["models"][0]["id"] == "deepseek-v4-pro"
         assert data["models"][0]["labelKey"] == "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO"
 

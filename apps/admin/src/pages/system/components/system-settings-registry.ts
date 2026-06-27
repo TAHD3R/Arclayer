@@ -1,13 +1,25 @@
 import type { LucideIcon } from "lucide-react";
-import { Bell, HardDrive, KeyRound, Mail, UserRoundPlus } from "lucide-react";
+import { Bell, Bot, HardDrive, KeyRound, Mail, UserRoundPlus } from "lucide-react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
 
-export type SystemSettingsPageKey = "access" | "storage" | "email" | "notifications" | "oauth";
+export type SystemSettingsPageKey =
+  | "access"
+  | "agents"
+  | "storage"
+  | "email"
+  | "notifications"
+  | "oauth";
 
 export type SystemSettingsItemId =
   | "oauth-provisioning"
   | "public-registration"
+  | "agent-effective-posture"
+  | "agent-usage-governance"
+  | "agent-runtime"
+  | "agent-modes-skills"
+  | "agent-write-approvals"
+  | "agent-langgraph"
   | "default-profile"
   | "profiles"
   | "create-profile"
@@ -50,6 +62,14 @@ export const SYSTEM_SETTINGS_PAGES: readonly SystemSettingsPageMeta[] = [
     descriptionKey: "settings:SETTINGS_SYSTEM_ACCESS_PAGE_DESC",
     to: "/system/settings/access",
     icon: UserRoundPlus,
+  },
+  {
+    key: "agents",
+    labelKey: "settings:SETTINGS_SYSTEM_NAV_AGENTS",
+    titleKey: "settings:SETTINGS_SYSTEM_AGENTS_PAGE_TITLE",
+    descriptionKey: "settings:SETTINGS_SYSTEM_AGENTS_PAGE_DESC",
+    to: "/system/settings/agents",
+    icon: Bot,
   },
   {
     key: "storage",
@@ -99,6 +119,48 @@ export const SYSTEM_SETTINGS_ITEMS: readonly SystemSettingsSearchItem[] = [
     titleKey: "settings:SETTINGS_SYSTEM_ACCESS_REGISTRATION_TITLE",
     descriptionKey: "settings:SETTINGS_SYSTEM_ACCESS_REGISTRATION_DESC",
     keywords: ["registration", "sign up", "allowlist"],
+  },
+  {
+    id: "agent-effective-posture",
+    page: "agents",
+    titleKey: "settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_TITLE",
+    descriptionKey: "settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_DESC",
+    keywords: ["ai", "agent", "effective", "posture", "summary", "status"],
+  },
+  {
+    id: "agent-usage-governance",
+    page: "agents",
+    titleKey: "settings:SETTINGS_SYSTEM_AGENTS_GOVERNANCE_TITLE",
+    descriptionKey: "settings:SETTINGS_SYSTEM_AGENTS_GOVERNANCE_DESC",
+    keywords: ["ai", "usage", "billing", "provider", "model", "budget"],
+  },
+  {
+    id: "agent-runtime",
+    page: "agents",
+    titleKey: "settings:SETTINGS_SYSTEM_AGENTS_RUNTIME_TITLE",
+    descriptionKey: "settings:SETTINGS_SYSTEM_AGENTS_RUNTIME_DESC",
+    keywords: ["ai", "agent", "model", "reasoning"],
+  },
+  {
+    id: "agent-modes-skills",
+    page: "agents",
+    titleKey: "settings:SETTINGS_SYSTEM_AGENTS_MODES_SKILLS_TITLE",
+    descriptionKey: "settings:SETTINGS_SYSTEM_AGENTS_MODES_SKILLS_DESC",
+    keywords: ["build", "plan", "agent", "skills"],
+  },
+  {
+    id: "agent-write-approvals",
+    page: "agents",
+    titleKey: "settings:SETTINGS_SYSTEM_AGENTS_APPROVALS_TITLE",
+    descriptionKey: "settings:SETTINGS_SYSTEM_AGENTS_APPROVALS_DESC",
+    keywords: ["approval", "dry run", "write tools"],
+  },
+  {
+    id: "agent-langgraph",
+    page: "agents",
+    titleKey: "settings:SETTINGS_SYSTEM_AGENTS_LANGGRAPH_TITLE",
+    descriptionKey: "settings:SETTINGS_SYSTEM_AGENTS_LANGGRAPH_DESC",
+    keywords: ["langgraph", "checkpoint", "interrupt", "resume"],
   },
   {
     id: "default-profile",

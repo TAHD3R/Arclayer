@@ -7,6 +7,7 @@ import { listAIModels } from "@/api/ai";
 import { AIModelSelector } from "@/components/ai/ai-model-selector";
 import {
   DEFAULT_AI_CHAT_MODEL,
+  DEFAULT_AI_COMPOSER_MODE,
   DEFAULT_AI_REASONING_EFFORT,
   useAiChatStore,
 } from "@/stores/use-ai-chat-store";
@@ -65,10 +66,16 @@ describe("AIModelSelector", () => {
     });
     useAiChatStore.setState({
       selectedModel: DEFAULT_AI_CHAT_MODEL,
+      selectedModelSource: "default",
       selectedReasoningEffort: DEFAULT_AI_REASONING_EFFORT,
+      selectedReasoningEffortSource: "default",
+      composerMode: DEFAULT_AI_COMPOSER_MODE,
+      composerModeSource: "default",
     });
     vi.mocked(listAIModels).mockResolvedValue({
       defaultModel: "deepseek-v4-pro",
+      defaultMode: "build",
+      reasoningEffort: "medium",
       models: [
         {
           id: "deepseek-v4-pro",
@@ -117,5 +124,94 @@ describe("AIModelSelector", () => {
     await user.click(await screen.findByRole("button", { name: "High" }));
 
     expect(useAiChatStore.getState().selectedReasoningEffort).toBe("high");
+  });
+
+  it("applies runtime defaults from the backend catalog until the user chooses explicitly", async () => {
+    vi.mocked(listAIModels).mockResolvedValue({
+      defaultModel: "gpt-4o-mini",
+      defaultMode: "plan",
+      reasoningEffort: "high",
+      models: [
+        {
+          id: "deepseek-v4-pro",
+          provider: "deepseek",
+          label: "DeepSeek V4 Pro",
+          labelKey: "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO",
+          description: "DeepSeek model",
+          descriptionKey: "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO_DESC",
+          available: true,
+        },
+        {
+          id: "gpt-4o-mini",
+          provider: "openai",
+          label: "GPT-4o mini",
+          labelKey: "ai:AI_CHAT_MODEL_GPT_4O_MINI",
+          description: "Fast model",
+          descriptionKey: "ai:AI_CHAT_MODEL_GPT_4O_MINI_DESC",
+          available: true,
+        },
+      ],
+    });
+
+    renderSelector();
+
+    await waitFor(() => {
+      expect(useAiChatStore.getState()).toMatchObject({
+        selectedModel: "gpt-4o-mini",
+        selectedModelSource: "default",
+        selectedReasoningEffort: "high",
+        selectedReasoningEffortSource: "default",
+        composerMode: "plan",
+        composerModeSource: "default",
+      });
+    });
+  });
+
+  it("does not overwrite explicit user runtime choices with backend defaults", async () => {
+    useAiChatStore.setState({
+      selectedModel: "deepseek-v4-pro",
+      selectedModelSource: "user",
+      selectedReasoningEffort: "low",
+      selectedReasoningEffortSource: "user",
+      composerMode: "agent",
+      composerModeSource: "user",
+    });
+    vi.mocked(listAIModels).mockResolvedValue({
+      defaultModel: "gpt-4o-mini",
+      defaultMode: "plan",
+      reasoningEffort: "high",
+      models: [
+        {
+          id: "deepseek-v4-pro",
+          provider: "deepseek",
+          label: "DeepSeek V4 Pro",
+          labelKey: "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO",
+          description: "DeepSeek model",
+          descriptionKey: "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO_DESC",
+          available: true,
+        },
+        {
+          id: "gpt-4o-mini",
+          provider: "openai",
+          label: "GPT-4o mini",
+          labelKey: "ai:AI_CHAT_MODEL_GPT_4O_MINI",
+          description: "Fast model",
+          descriptionKey: "ai:AI_CHAT_MODEL_GPT_4O_MINI_DESC",
+          available: true,
+        },
+      ],
+    });
+
+    renderSelector();
+
+    await waitFor(() => expect(listAIModels).toHaveBeenCalled());
+    expect(useAiChatStore.getState()).toMatchObject({
+      selectedModel: "deepseek-v4-pro",
+      selectedModelSource: "user",
+      selectedReasoningEffort: "low",
+      selectedReasoningEffortSource: "user",
+      composerMode: "agent",
+      composerModeSource: "user",
+    });
   });
 });

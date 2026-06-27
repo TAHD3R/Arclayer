@@ -1001,8 +1001,9 @@ class ProjectContentCanonicalItemsService(BaseService):
         item_id: UUID,
         actor_user_id: UUID | None,
         payload: ContentVersionDraftSaveIn,
+        conn: BaseDBAsyncClient | None = None,
     ) -> ContentVersionOut:
-        async with self.tx() as conn:
+        async with self.tx(conn=conn) as conn:
             item = await self._get_locked_item(
                 workspace_id=workspace_id,
                 site_id=site_id,

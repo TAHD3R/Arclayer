@@ -10,10 +10,12 @@ import {
   SquareIcon,
   type LucideIcon,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
+import { listAIProjectAgents } from "@/api/ai";
 import { AIAgentSelector } from "@/components/ai/ai-agent-selector";
-import { ComposerAddAttachment } from "@/components/assistant-ui/attachment";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
 import { AIModelSelector } from "@/components/ai/ai-model-selector";
 import {
@@ -21,6 +23,7 @@ import {
   useAiChatStore,
   type AIComposerMode,
 } from "@/stores/use-ai-chat-store";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import {
@@ -35,18 +38,21 @@ const COMPOSER_MODES: readonly {
   labelKey: string;
   descriptionKey: string;
   icon: LucideIcon;
+  agentId?: string;
 }[] = [
   {
     value: "build",
     labelKey: "ai:AI_CHAT_MODE_BUILD",
     descriptionKey: "ai:AI_CHAT_MODE_BUILD_DESC",
     icon: HammerIcon,
+    agentId: "content_builder",
   },
   {
     value: "plan",
     labelKey: "ai:AI_CHAT_MODE_PLAN",
     descriptionKey: "ai:AI_CHAT_MODE_PLAN_DESC",
     icon: MessageSquareTextIcon,
+    agentId: "content_advisor",
   },
   {
     value: "agent",
@@ -70,7 +76,6 @@ export function AIComposerToolbar({ compact = false }: AIComposerToolbarProps) {
         compact ? "gap-1" : "gap-2",
       )}
     >
-      <ComposerAddAttachment />
       {selectedMode === "agent" ? <AIAgentSelector compact={compact} /> : null}
       <AIComposerModeSelect />
       <div className="min-w-0 flex-1" />
@@ -94,7 +99,6 @@ export function AIComposerInputActions() {
 
   return (
     <div className="aui-composer-action-wrapper relative flex min-h-8 min-w-0 items-center gap-1">
-      <ComposerAddAttachment />
       {selectedMode === "agent" ? <AIAgentSelector compact /> : null}
       <div className="min-w-0 flex-1" />
       <AIComposerPrimaryAction />
@@ -104,10 +108,41 @@ export function AIComposerInputActions() {
 
 function AIComposerModeSelect({ compact = false }: AIComposerToolbarProps) {
   const { t } = useTranslation(["ai", "common"]);
+  const projectId = useWorkspaceStore((s) => s.currentProjectId);
   const selectedMode = useAiChatStore((s) => s.composerMode || DEFAULT_AI_COMPOSER_MODE);
   const setComposerMode = useAiChatStore((s) => s.setComposerMode);
+  const agentsQuery = useQuery({
+    queryKey: ["ai", "project-agents", projectId],
+    queryFn: ({ signal }) => listAIProjectAgents({ projectId: projectId ?? "", signal }),
+    enabled: Boolean(projectId),
+    staleTime: 60_000,
+    retry: false,
+  });
+  const availableAgentIds = useMemo(
+    () => new Set((agentsQuery.data?.agents ?? []).map((agent) => agent.agentId)),
+    [agentsQuery.data?.agents],
+  );
+  const hasCatalog = Boolean(agentsQuery.data);
+  const availableModes = useMemo(
+    () =>
+      COMPOSER_MODES.filter((mode) =>
+        isComposerModeAvailable({
+          availableAgentIds,
+          hasCatalog,
+          mode: mode.value,
+          modeAgentId: mode.agentId,
+        }),
+      ),
+    [availableAgentIds, hasCatalog],
+  );
   const selected = COMPOSER_MODES.find((mode) => mode.value === selectedMode) ?? COMPOSER_MODES[0];
   const SelectedIcon = selected.icon;
+
+  useEffect(() => {
+    if (!hasCatalog || availableModes.length === 0) return;
+    if (availableModes.some((mode) => mode.value === selectedMode)) return;
+    setComposerMode(availableModes[0].value, "default");
+  }, [availableModes, hasCatalog, selectedMode, setComposerMode]);
 
   return (
     <DropdownMenu>
@@ -131,9 +166,16 @@ function AIComposerModeSelect({ compact = false }: AIComposerToolbarProps) {
         {COMPOSER_MODES.map((mode) => {
           const Icon = mode.icon;
           const active = selectedMode === mode.value;
+          const available = isComposerModeAvailable({
+            availableAgentIds,
+            hasCatalog,
+            mode: mode.value,
+            modeAgentId: mode.agentId,
+          });
           return (
             <DropdownMenuItem
               key={mode.value}
+              disabled={!available}
               onSelect={() => setComposerMode(mode.value)}
               className="items-start gap-3 rounded-lg px-3 py-2.5"
             >
@@ -143,7 +185,11 @@ function AIComposerModeSelect({ compact = false }: AIComposerToolbarProps) {
                   {t(mode.labelKey)}
                 </span>
                 <span className="mt-0.5 block text-footnote text-label-secondary">
-                  {t(mode.descriptionKey)}
+                  {available
+                    ? t(mode.descriptionKey)
+                    : t("ai:AI_CHAT_MODE_UNAVAILABLE_DESC", {
+                        description: t(mode.descriptionKey),
+                      })}
                 </span>
               </span>
               <CheckIcon
@@ -159,6 +205,18 @@ function AIComposerModeSelect({ compact = false }: AIComposerToolbarProps) {
       </DropdownMenuContent>
     </DropdownMenu>
   );
+}
+
+function isComposerModeAvailable(input: {
+  availableAgentIds: ReadonlySet<string>;
+  hasCatalog: boolean;
+  mode: AIComposerMode;
+  modeAgentId?: string;
+}): boolean {
+  if (!input.hasCatalog) return true;
+  if (input.mode === "agent") return input.availableAgentIds.size > 0;
+  if (!input.modeAgentId) return true;
+  return input.availableAgentIds.has(input.modeAgentId);
 }
 
 function AIComposerPrimaryAction() {

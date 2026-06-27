@@ -103,6 +103,12 @@ def _is_type_valid(field_type: str, value: object) -> bool:
 
 
 def _validate_section_semantics(section_id: str, values: JsonObject) -> None:
+    if section_id == "ai_agents":
+        _validate_ai_agents_settings(values)
+        return
+    if section_id == "langgraph":
+        _validate_langgraph_settings(values)
+        return
     if section_id != "mail":
         return
 
@@ -155,6 +161,68 @@ def _validate_section_semantics(section_id: str, values: JsonObject) -> None:
             message=_ts("MAIL_TRANSPORT_CONFLICT", "STARTTLS 与 SSL/TLS 不能同时开启"),
             error="MAIL_TRANSPORT_CONFLICT",
         )
+
+
+def _validate_ai_agents_settings(values: JsonObject) -> None:
+    _validate_optional_non_empty_string(values, "default_model", section_id="ai_agents")
+    _validate_optional_string_choice(values, "default_mode", {"build", "plan", "agent"}, section_id="ai_agents")
+    _validate_optional_string_choice(
+        values,
+        "reasoning_effort",
+        {"low", "medium", "high"},
+        section_id="ai_agents",
+    )
+    _validate_optional_positive_integer(values, "conversation_retention_days", section_id="ai_agents")
+    _validate_optional_positive_integer(values, "monthly_budget_micros", section_id="ai_agents")
+    _validate_optional_string_choice(
+        values,
+        "approval_policy",
+        {"always_approve", "approve_bulk_only", "approve_schema_only", "auto_approved"},
+        section_id="ai_agents",
+    )
+    allowed_skill_ids = values.get("allowed_skill_ids")
+    if allowed_skill_ids is not None and (
+        not isinstance(allowed_skill_ids, list)
+        or any(not isinstance(item, str) or not item.strip() for item in allowed_skill_ids)
+    ):
+        _raise_config_invalid(section_id="ai_agents", field="allowed_skill_ids")
+
+
+def _validate_langgraph_settings(values: JsonObject) -> None:
+    _validate_optional_string_choice(values, "checkpointer", {"database", "memory"}, section_id="langgraph")
+    _validate_optional_positive_integer(values, "checkpoint_ttl_days", section_id="langgraph")
+
+
+def _validate_optional_non_empty_string(values: JsonObject, field: str, *, section_id: str) -> None:
+    value = values.get(field)
+    if value is not None and (not isinstance(value, str) or not value.strip()):
+        _raise_config_invalid(section_id=section_id, field=field)
+
+
+def _validate_optional_string_choice(
+    values: JsonObject,
+    field: str,
+    choices: set[str],
+    *,
+    section_id: str,
+) -> None:
+    value = values.get(field)
+    if value is not None and value not in choices:
+        _raise_config_invalid(section_id=section_id, field=field)
+
+
+def _validate_optional_positive_integer(values: JsonObject, field: str, *, section_id: str) -> None:
+    value = values.get(field)
+    if value is not None and (not isinstance(value, int) or isinstance(value, bool) or value <= 0):
+        _raise_config_invalid(section_id=section_id, field=field)
+
+
+def _raise_config_invalid(*, section_id: str, field: str) -> None:
+    raise BadRequest(
+        message=_ts("CONFIG_ITEM_INVALID", "配置项不合法"),
+        error="SETTINGS_CONFIG_INVALID",
+        meta={"section": section_id, "field": field},
+    )
 
 
 def iter_secret_field_paths(schema: ConfigSchema) -> list[str]:

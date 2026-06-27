@@ -410,6 +410,147 @@ def build_core_settings_schema() -> ConfigSchema:
                 ],
             ),
             ConfigSection(
+                id="ai_agents",
+                title="AI Agents",
+                fields=[
+                    ConfigField(
+                        key="enabled",
+                        type="bool",
+                        default=True,
+                        label="Enable AI agents",
+                    ),
+                    ConfigField(
+                        key="default_mode",
+                        type="str",
+                        default="build",
+                        label="Default composer mode",
+                        options=[
+                            ConfigOption(value="build", label="Build"),
+                            ConfigOption(value="plan", label="Plan"),
+                            ConfigOption(value="agent", label="Agent"),
+                        ],
+                    ),
+                    ConfigField(
+                        key="default_model",
+                        type="str",
+                        default="deepseek-v4-pro",
+                        label="Default model",
+                    ),
+                    ConfigField(
+                        key="reasoning_effort",
+                        type="str",
+                        default="medium",
+                        label="Default reasoning effort",
+                        options=[
+                            ConfigOption(value="low", label="Low"),
+                            ConfigOption(value="medium", label="Medium"),
+                            ConfigOption(value="high", label="High"),
+                        ],
+                    ),
+                    ConfigField(
+                        key="conversation_retention_days",
+                        type="int",
+                        default=90,
+                        label="Conversation retention days",
+                    ),
+                    ConfigField(
+                        key="auto_title_enabled",
+                        type="bool",
+                        default=True,
+                        label="Auto-title new conversations",
+                    ),
+                    ConfigField(
+                        key="context_recommendations_enabled",
+                        type="bool",
+                        default=True,
+                        label="Recommend actions from current page context",
+                    ),
+                    ConfigField(
+                        key="monthly_budget_micros",
+                        type="int",
+                        default=100_000_000,
+                        label="Monthly workspace AI budget",
+                    ),
+                    ConfigField(
+                        key="skills_enabled",
+                        type="bool",
+                        default=True,
+                        label="Enable agent skills",
+                    ),
+                    ConfigField(
+                        key="allowed_skill_ids",
+                        type="list",
+                        default=[
+                            "content.analysis",
+                            "content.planning",
+                            "content.build",
+                            "content.modeling",
+                            "content.writer",
+                            "content.modeler",
+                        ],
+                        label="Allowed skill ids",
+                    ),
+                    ConfigField(
+                        key="write_tools_enabled",
+                        type="bool",
+                        default=False,
+                        label="Enable write-capable tools",
+                    ),
+                    ConfigField(
+                        key="approval_policy",
+                        type="str",
+                        default="always_approve",
+                        label="Write approval policy",
+                        options=[
+                            ConfigOption(value="always_approve", label="Always approve"),
+                            ConfigOption(value="approve_bulk_only", label="Approve bulk only"),
+                            ConfigOption(value="approve_schema_only", label="Approve schema only"),
+                            ConfigOption(value="auto_approved", label="Auto-approved"),
+                        ],
+                    ),
+                    ConfigField(
+                        key="dry_run_required",
+                        type="bool",
+                        default=True,
+                        label="Require dry-run before writes",
+                    ),
+                ],
+            ),
+            ConfigSection(
+                id="langgraph",
+                title="LangGraph",
+                fields=[
+                    ConfigField(
+                        key="enabled",
+                        type="bool",
+                        default=True,
+                        label="Enable LangGraph orchestration",
+                    ),
+                    ConfigField(
+                        key="checkpointer",
+                        type="str",
+                        default="database",
+                        label="Checkpoint backend",
+                        options=[
+                            ConfigOption(value="database", label="Database"),
+                            ConfigOption(value="memory", label="Memory"),
+                        ],
+                    ),
+                    ConfigField(
+                        key="checkpoint_ttl_days",
+                        type="int",
+                        default=90,
+                        label="Checkpoint retention days",
+                    ),
+                    ConfigField(
+                        key="interrupt_resume_enabled",
+                        type="bool",
+                        default=True,
+                        label="Enable interrupt/resume approvals",
+                    ),
+                ],
+            ),
+            ConfigSection(
                 id="auth",
                 title="Auth",
                 fields=[

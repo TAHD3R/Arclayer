@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 import httpx
 import structlog
 
 from src.config import Settings
+from src.core.i18n import t
+from src.core.services import BaseService
 from src.llm.budget import BudgetExceededError
 from src.llm.errors import LLMErrorCode
 from src.llm.mock import MockLLMProvider
@@ -14,12 +16,13 @@ from src.llm.observability import ai_request_span
 from src.llm.rate_limiter import TokenBucket
 from src.llm.runtime import LLMRequestContext, LLMRuntime, LLMRuntimeError, compute_cost_micros, detect_provider
 from src.models.ai.ai_budget import AIBudget
-from src.modules.ai.schemas import AIReasoningEffort
+from src.modules.ai.schema import AIReasoningEffort
+from src.settings.runtime import get_core_settings_value_cached
 
 logger = structlog.get_logger("arclayer.ai.service")
 
 
-class AIChatService:
+class AIChatService(BaseService):
     """Chat completion service wrapping LLMRuntime with workspace context and budget controls.
 
     Responsible for:
@@ -35,6 +38,7 @@ class AIChatService:
         runtime: LLMRuntime | None = None,
         rate_limiter: TokenBucket | None = None,
     ) -> None:
+        super().__init__(settings)
         self._settings = settings
         self._runtime = runtime or LLMRuntime(
             litellm_base_url=settings.ai.litellm_base_url,
@@ -71,12 +75,16 @@ class AIChatService:
         try:
             now = datetime.now(UTC)
             period_start = now.strftime("%Y-%m-01")
+            limit_micros = await self._resolve_monthly_budget_limit_micros()
             budget = await get_or_create_budget(
                 source_type=BudgetSourceType.WORKSPACE,
                 source_id=workspace_id,
-                limit_micros=self._settings.ai.default_monthly_limit_micros,
+                limit_micros=limit_micros,
                 period_start=period_start,
             )
+            if budget.limit_micros != limit_micros:
+                budget.limit_micros = limit_micros
+                await budget.save(update_fields=["limit_micros", "updated_at"])
             return budget
         except Exception:
             logger.exception(
@@ -84,6 +92,16 @@ class AIChatService:
                 workspace_id=str(workspace_id),
             )
             raise
+
+    async def _resolve_monthly_budget_limit_micros(self) -> int:
+        core = await get_core_settings_value_cached(self._settings)
+        ai_agents = core.get("ai_agents") if isinstance(core, dict) else None
+        if isinstance(ai_agents, dict):
+            ai_agents = cast(dict[str, object], ai_agents)
+            value = ai_agents.get("monthly_budget_micros")
+            if isinstance(value, int) and not isinstance(value, bool) and value > 0:
+                return value
+        return self._settings.ai.default_monthly_limit_micros
 
     async def chat(
         self,
@@ -166,7 +184,10 @@ class AIChatService:
             except BudgetExceededError:
                 raise LLMRuntimeError(
                     code=LLMErrorCode.BUDGET_EXCEEDED,
-                    message="Budget limit exceeded for this workspace",
+                    message=_llm_error_message(
+                        LLMErrorCode.BUDGET_EXCEEDED,
+                        default="Budget limit exceeded for this workspace",
+                    ),
                     status_code=402,
                 )
             except httpx.ConnectError:
@@ -174,7 +195,10 @@ class AIChatService:
             except httpx.TimeoutException:
                 raise LLMRuntimeError(
                     code=LLMErrorCode.PROVIDER_TIMEOUT,
-                    message="LLM provider request timed out",
+                    message=_llm_error_message(
+                        LLMErrorCode.PROVIDER_TIMEOUT,
+                        default="LLM provider request timed out",
+                    ),
                     status_code=504,
                 )
             except httpx.HTTPStatusError as exc:
@@ -182,7 +206,10 @@ class AIChatService:
             except Exception:
                 raise LLMRuntimeError(
                     code=LLMErrorCode.SYSTEM_INTERNAL_ERROR,
-                    message="Unexpected error during LLM chat completion",
+                    message=_llm_error_message(
+                        LLMErrorCode.SYSTEM_INTERNAL_ERROR,
+                        default="Unexpected error during LLM chat completion",
+                    ),
                     status_code=500,
                 )
 
@@ -326,7 +353,10 @@ class AIChatService:
                 except httpx.TimeoutException:
                     raise LLMRuntimeError(
                         code=LLMErrorCode.PROVIDER_TIMEOUT,
-                        message="LLM provider streaming request timed out",
+                        message=_llm_error_message(
+                            LLMErrorCode.PROVIDER_TIMEOUT,
+                            default="LLM provider streaming request timed out",
+                        ),
                         status_code=504,
                     )
                 except httpx.HTTPStatusError as exc:
@@ -334,13 +364,19 @@ class AIChatService:
                 except BudgetExceededError:
                     raise LLMRuntimeError(
                         code=LLMErrorCode.BUDGET_EXCEEDED,
-                        message="AI budget exceeded for this workspace",
+                        message=_llm_error_message(
+                            LLMErrorCode.BUDGET_EXCEEDED,
+                            default="AI budget exceeded for this workspace",
+                        ),
                         status_code=402,
                     )
                 except Exception:
                     raise LLMRuntimeError(
                         code=LLMErrorCode.SYSTEM_INTERNAL_ERROR,
-                        message="Unexpected error during LLM chat completion",
+                        message=_llm_error_message(
+                            LLMErrorCode.SYSTEM_INTERNAL_ERROR,
+                            default="Unexpected error during LLM chat completion",
+                        ),
                         status_code=500,
                     )
 
@@ -351,14 +387,20 @@ class AIChatService:
         if not self._rate_limiter.consume(1):
             raise LLMRuntimeError(
                 code=LLMErrorCode.RATE_LIMIT_EXCEEDED,
-                message="Rate limit exceeded for AI requests",
+                message=_llm_error_message(
+                    LLMErrorCode.RATE_LIMIT_EXCEEDED,
+                    default="Rate limit exceeded for AI requests",
+                ),
                 status_code=429,
             )
 
     def _raise_for_connect_error(self) -> None:
         raise LLMRuntimeError(
             code=LLMErrorCode.SYSTEM_LITELLM_UNREACHABLE,
-            message="LiteLLM proxy is unreachable",
+            message=_llm_error_message(
+                LLMErrorCode.SYSTEM_LITELLM_UNREACHABLE,
+                default="LiteLLM proxy is unreachable",
+            ),
             status_code=503,
         )
 
@@ -373,29 +415,47 @@ class AIChatService:
         if status == 429:
             raise LLMRuntimeError(
                 code=LLMErrorCode.RATE_LIMIT_EXCEEDED,
-                message="Rate limit exceeded for LLM requests",
+                message=_llm_error_message(
+                    LLMErrorCode.RATE_LIMIT_EXCEEDED,
+                    default="Rate limit exceeded for LLM requests",
+                ),
                 status_code=429,
             )
 
         if status == 400 and ("model" in body.lower() or "not found" in body.lower()):
             raise LLMRuntimeError(
                 code=LLMErrorCode.PROVIDER_MODEL_UNAVAILABLE,
-                message="Requested model is not available",
+                message=_llm_error_message(
+                    LLMErrorCode.PROVIDER_MODEL_UNAVAILABLE,
+                    default="Requested model is not available",
+                ),
                 status_code=400,
             )
 
         if status >= 500:
             raise LLMRuntimeError(
                 code=LLMErrorCode.PROVIDER_UNAVAILABLE,
-                message=f"LLM provider returned an error (HTTP {status})",
+                message=_llm_error_message(
+                    LLMErrorCode.PROVIDER_UNAVAILABLE,
+                    default="LLM provider returned an error (HTTP {status})",
+                    status=status,
+                ),
                 status_code=503,
             )
 
         raise LLMRuntimeError(
             code=LLMErrorCode.SYSTEM_INTERNAL_ERROR,
-            message=f"Unexpected HTTP error from LLM provider (HTTP {status})",
+            message=_llm_error_message(
+                LLMErrorCode.SYSTEM_INTERNAL_ERROR,
+                default="Unexpected HTTP error from LLM provider (HTTP {status})",
+                status=status,
+            ),
             status_code=502,
         )
+
+
+def _llm_error_message(code: LLMErrorCode, *, default: str, **kwargs: Any) -> str:
+    return t("errors", code.value, default=default, **kwargs)
 
 
 def _reasoning_provider_params(model: str, effort: AIReasoningEffort | None) -> dict[str, Any]:

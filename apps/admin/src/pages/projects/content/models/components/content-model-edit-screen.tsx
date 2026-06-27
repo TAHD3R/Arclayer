@@ -64,6 +64,7 @@ import {
   type AdminContentModelFieldTypeRegistry,
   updateContentModelField,
 } from "@/api/content";
+import { AIContentModelProposalCard } from "@/components/ai/ai-content-model-proposal-card";
 import {
   buildDataTableActionsColumnMeta,
   DataTableActionsCell,
@@ -2886,6 +2887,10 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
       activeSection={activeSection}
     />
   );
+  const canUseModelProposal = props.canManageModels !== false;
+  const modelProposalCard = canUseModelProposal ? (
+    <AIContentModelProposalCard enabled projectId={props.projectId} modelId={activeModel.id} />
+  ) : null;
   const hasFields = fieldRows.length > 0;
 
   return (
@@ -2903,13 +2908,21 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
         {hasFields ? (
           <aside className="hidden min-h-full w-60 shrink-0 lg:block">
             <div className="sticky top-[var(--page-sticky-header-height,6rem)] max-h-[calc(100vh-var(--page-sticky-header-height,6rem)-1rem)] min-h-0 overflow-y-auto pb-4">
+              {modelProposalCard ? <div className="mb-3">{modelProposalCard}</div> : null}
               {renderSectionMenu()}
             </div>
           </aside>
         ) : null}
 
         <div className="min-w-0 flex-1">
-          {hasFields ? <div className="mb-5 lg:hidden">{renderSectionMenu()}</div> : null}
+          {hasFields ? (
+            <div className="mb-5 grid gap-3 lg:hidden">
+              {modelProposalCard}
+              {renderSectionMenu()}
+            </div>
+          ) : modelProposalCard ? (
+            <div className="mb-5">{modelProposalCard}</div>
+          ) : null}
           {content}
         </div>
       </div>

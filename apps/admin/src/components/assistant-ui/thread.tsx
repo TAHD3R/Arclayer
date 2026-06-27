@@ -1,6 +1,6 @@
 "use client";
 
-import { ComposerAttachments, UserMessageAttachments } from "@/components/assistant-ui/attachment";
+import { UserMessageAttachments } from "@/components/assistant-ui/attachment";
 import { MarkdownText } from "@/components/assistant-ui/markdown-text";
 import {
   Reasoning,
@@ -16,13 +16,13 @@ import {
   ToolGroupTrigger,
 } from "@/components/assistant-ui/tool-group";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
-import { retryLatestAIChatMessage } from "@/components/ai/ai-chat-runtime";
 import {
   AIComposerContextControls,
   AIComposerInputActions,
   AIComposerToolbar,
 } from "@/components/ai/ai-composer-toolbar";
-import { useAiChatStore } from "@/stores/use-ai-chat-store";
+import { ComposerQueue } from "@/components/assistant-ui/composer-queue";
+import { formatAIChatError, resumeAIAgentRunForConversation } from "@/api/ai";
 import { Button } from "@arclayer/ui/button";
 import { cn } from "@arclayer/lib/utils";
 import {
@@ -37,21 +37,23 @@ import {
   MessagePrimitive,
   SuggestionPrimitive,
   ThreadPrimitive,
-  type MessageState,
-  useAui,
   type ToolCallMessagePartComponent,
   useAuiState,
 } from "@assistant-ui/react";
 import {
   ArrowDownIcon,
+  BanIcon,
   CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   CopyIcon,
   DownloadIcon,
+  HammerIcon,
+  ListChecksIcon,
   MoreHorizontalIcon,
   PencilIcon,
   RefreshCwIcon,
+  ShieldCheckIcon,
 } from "lucide-react";
 import {
   createContext,
@@ -62,8 +64,16 @@ import {
   type PropsWithChildren,
 } from "react";
 import { useTranslation } from "react-i18next";
+import type {
+  AIAgentExecutionSummary,
+  AIAgentArtifactStep,
+  AIAgentInterrupt,
+  AIAgentMessageArtifact,
+} from "@/stores/use-ai-chat-store";
 
 export type ThreadGroupPart = MessagePrimitive.GroupedParts.GroupPart;
+
+export { ComposerQueue };
 
 /**
  * Optional component overrides for the thread. `AssistantMessage` and
@@ -87,19 +97,9 @@ export type ThreadProps = {
 
 const EMPTY_COMPONENTS: ThreadComponents = {};
 type ThreadVariant = NonNullable<ThreadProps["variant"]>;
-type MessageContent = MessageState["content"];
 
 const ThreadComponentsContext = createContext<ThreadComponents>(EMPTY_COMPONENTS);
 const ThreadVariantContext = createContext<ThreadVariant>("default");
-
-function messageContentToPlainText(content: MessageContent): string {
-  return content
-    .map((part) => {
-      if (part.type === "text") return part.text;
-      return "";
-    })
-    .join("");
-}
 
 // Startup exposes a loading placeholder thread; treat it as a new chat so
 // the composer mounts centered. Loads after startup keep the docked layout.
@@ -279,30 +279,28 @@ const Composer: FC = () => {
       )}
     >
       {isSidebar ? <AIComposerContextControls compact /> : null}
-      <ComposerPrimitive.AttachmentDropzone asChild>
-        <div
-          data-slot="aui_composer-shell"
+      <ComposerQueue />
+      <div
+        data-slot="aui_composer-shell"
+        className={cn(
+          "flex w-full min-w-0 flex-col gap-2 rounded-(--composer-radius) bg-(--composer-bg) p-(--composer-padding) transition-colors hover:border-border focus-within:border-border dark:shadow-none",
+          isSidebar
+            ? "min-h-[8.5rem] border border-border/60"
+            : "h-[6.5rem] min-h-[6.5rem] border border-border/60 dark:border-muted-foreground/15",
+        )}
+      >
+        <ComposerPrimitive.Input
+          placeholder={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
           className={cn(
-            "data-[dragging=true]:border-border flex w-full min-w-0 flex-col gap-2 rounded-(--composer-radius) bg-(--composer-bg) p-(--composer-padding) transition-colors hover:border-border focus-within:border-border data-[dragging=true]:border-dashed data-[dragging=true]:bg-[color-mix(in_oklab,var(--color-accent)_50%,var(--color-background))] dark:shadow-none",
-            isSidebar
-              ? "min-h-[8.5rem] border border-border/60"
-              : "h-[6.5rem] min-h-[6.5rem] border border-border/60 dark:border-muted-foreground/15",
+            "aui-composer-input placeholder:text-muted-foreground/80 w-full min-w-0 resize-none bg-transparent px-2.5 py-1 text-callout outline-none [field-sizing:fixed]",
+            isSidebar ? "h-20 min-h-20 max-h-20" : "h-12 min-h-12 max-h-12",
           )}
-        >
-          <ComposerAttachments />
-          <ComposerPrimitive.Input
-            placeholder={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
-            className={cn(
-              "aui-composer-input placeholder:text-muted-foreground/80 w-full min-w-0 resize-none bg-transparent px-2.5 py-1 text-callout outline-none [field-sizing:fixed]",
-              isSidebar ? "h-20 min-h-20 max-h-20" : "h-12 min-h-12 max-h-12",
-            )}
-            rows={1}
-            autoFocus
-            aria-label="Message input"
-          />
-          {isSidebar ? <AIComposerInputActions /> : <AIComposerToolbar />}
-        </div>
-      </ComposerPrimitive.AttachmentDropzone>
+          rows={1}
+          autoFocus
+          aria-label="Message input"
+        />
+        {isSidebar ? <AIComposerInputActions /> : <AIComposerToolbar />}
+      </div>
     </ComposerPrimitive.Root>
   );
 };
@@ -343,6 +341,341 @@ const MessageError: FC = () => {
     </MessagePrimitive.Error>
   );
 };
+
+const AgentArtifact: FC = () => {
+  const artifact = useAuiState((s) => s.message.metadata.custom?.agentArtifact);
+  if (!isAIAgentMessageArtifact(artifact)) return null;
+  return <AgentArtifactCard artifact={artifact} />;
+};
+
+type AgentRunSummaryStatus = "running" | "completed" | "cancelled" | "failed";
+
+export const AgentRunSummary: FC = () => {
+  const { t } = useTranslation(["ai", "common"]);
+  const rawRunId = useAuiState((s) => s.message.metadata.custom?.agentRunId);
+  const rawStatus = useAuiState((s) => s.message.metadata.custom?.agentStatus);
+  const rawThreadId = useAuiState((s) => s.message.metadata.custom?.agentThreadId);
+  const rawCheckpointId = useAuiState((s) => s.message.metadata.custom?.agentCheckpointId);
+  const rawSummary = useAuiState((s) => s.message.metadata.custom?.agentExecutionSummary);
+  const runId = typeof rawRunId === "string" && rawRunId.trim() ? rawRunId : null;
+  const status = readAgentRunSummaryStatus(rawStatus);
+  const threadId = typeof rawThreadId === "string" && rawThreadId.trim() ? rawThreadId : null;
+  const checkpointId =
+    typeof rawCheckpointId === "string" && rawCheckpointId.trim() ? rawCheckpointId : null;
+  const executionSummary = isAIAgentExecutionSummary(rawSummary) ? rawSummary : null;
+
+  if (!runId || !status) return null;
+
+  const Icon = status === "completed" ? CheckIcon : status === "running" ? RefreshCwIcon : BanIcon;
+  const tone =
+    status === "failed"
+      ? "border-destructive/35 bg-destructive/5 text-destructive"
+      : "border-border/70 bg-muted/25 text-muted-foreground";
+
+  return (
+    <section
+      className={cn("mt-3 rounded-lg border px-3 py-2 text-caption", tone)}
+      aria-label={t("ai:AI_AGENT_RUN_SUMMARY_TITLE")}
+    >
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="inline-flex min-w-0 items-center gap-1.5 font-semibold">
+          <Icon
+            className={cn("size-3.5 shrink-0", status === "running" && "animate-spin")}
+            aria-hidden="true"
+          />
+          <span className="truncate">{agentRunStatusLabel(t, status)}</span>
+        </span>
+        <span className="min-w-0 truncate font-mono text-[11px]">{runId}</span>
+        {checkpointId ? (
+          <span className="min-w-0 truncate text-[11px]">
+            {t("ai:AI_AGENT_RUN_CHECKPOINT")}: <span className="font-mono">{checkpointId}</span>
+          </span>
+        ) : threadId ? (
+          <span className="min-w-0 truncate text-[11px]">
+            {t("ai:AI_AGENT_RUN_THREAD")}: <span className="font-mono">{threadId}</span>
+          </span>
+        ) : null}
+      </div>
+      {executionSummary ? <AgentExecutionSummary summary={executionSummary} /> : null}
+    </section>
+  );
+};
+
+const AgentExecutionSummary: FC<{ summary: AIAgentExecutionSummary }> = ({ summary }) => {
+  const { t } = useTranslation(["ai", "common"]);
+  const details = [
+    summary.toolNames.length
+      ? t("ai:AI_AGENT_RUN_TOOLS", {
+          count: summary.toolNames.length,
+          names: summary.toolNames.join(", "),
+        })
+      : "",
+    summary.totalTokens !== undefined
+      ? t("ai:AI_AGENT_RUN_TOKENS", {
+          total: summary.totalTokens,
+          prompt: summary.promptTokens ?? 0,
+          completion: summary.completionTokens ?? 0,
+        })
+      : "",
+  ].filter(Boolean);
+
+  if (details.length === 0) return null;
+  return <div className="mt-1 truncate text-[11px] opacity-85">{details.join(" · ")}</div>;
+};
+
+const AgentInterrupt: FC = () => {
+  const { t } = useTranslation(["ai", "common"]);
+  const rawInterrupt = useAuiState((s) => s.message.metadata.custom?.agentInterrupt);
+  const rawConversationId = useAuiState((s) => s.message.metadata.custom?.conversationId);
+  const rawStatus = useAuiState((s) => s.message.metadata.custom?.agentStatus);
+  const interrupt = isAIAgentInterrupt(rawInterrupt) ? rawInterrupt : null;
+  const conversationId = typeof rawConversationId === "string" ? rawConversationId : null;
+  const status = typeof rawStatus === "string" ? rawStatus : "interrupted";
+  const [pending, setPending] = useState<"approve" | "reject" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!interrupt || !conversationId) return null;
+
+  const running = pending !== null || status === "running";
+  const checkpoint = interrupt.checkpointId ?? interrupt.interruptId ?? interrupt.threadId;
+
+  const handleDecision = async (approved: boolean) => {
+    const action = approved ? "approve" : "reject";
+    setPending(action);
+    setError(null);
+    try {
+      await resumeAIAgentRunForConversation(conversationId, {
+        runId: interrupt.runId,
+        approved,
+        comment: approved
+          ? t("ai:AI_AGENT_INTERRUPT_APPROVED_COMMENT")
+          : t("ai:AI_AGENT_INTERRUPT_REJECTED_COMMENT"),
+      });
+    } catch (err) {
+      setError(formatAIChatError(err));
+    } finally {
+      setPending(null);
+    }
+  };
+
+  return (
+    <section className="mt-3 overflow-hidden rounded-lg border border-border/70 bg-background text-sm">
+      <div className="flex min-w-0 items-center justify-between gap-3 border-b border-border/60 px-3 py-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <ShieldCheckIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <h3 className="truncate text-sm font-semibold text-foreground">
+            {t("ai:AI_AGENT_INTERRUPT_TITLE")}
+          </h3>
+        </div>
+        <span className="shrink-0 rounded-md border border-border/60 bg-muted/40 px-2 py-0.5 text-caption font-medium text-muted-foreground">
+          {status}
+        </span>
+      </div>
+      <div className="grid gap-2 px-3 py-2.5">
+        <dl className="grid grid-cols-[5.25rem_minmax(0,1fr)] gap-x-2 gap-y-1 text-caption">
+          <dt className="text-muted-foreground">{t("ai:AI_AGENT_INTERRUPT_AGENT")}</dt>
+          <dd className="truncate font-medium text-foreground">{interrupt.agentId}</dd>
+          <dt className="text-muted-foreground">{t("ai:AI_AGENT_INTERRUPT_MODE")}</dt>
+          <dd className="font-medium text-foreground">{interrupt.mode}</dd>
+          {checkpoint ? (
+            <>
+              <dt className="text-muted-foreground">{t("ai:AI_AGENT_INTERRUPT_CHECKPOINT")}</dt>
+              <dd className="truncate font-mono text-[11px] text-muted-foreground">{checkpoint}</dd>
+            </>
+          ) : null}
+        </dl>
+        <p className="line-clamp-3 rounded-md bg-muted/35 px-2.5 py-2 text-footnote leading-relaxed text-muted-foreground">
+          {interrupt.prompt}
+        </p>
+        {error ? (
+          <p className="rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-2 text-footnote font-medium text-destructive">
+            {error}
+          </p>
+        ) : null}
+      </div>
+      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border/60 px-3 py-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1.5 rounded-md px-2.5"
+          disabled={running}
+          onClick={() => void handleDecision(false)}
+        >
+          <BanIcon className="size-3.5" aria-hidden="true" />
+          {pending === "reject"
+            ? t("ai:AI_AGENT_INTERRUPT_REJECTING")
+            : t("ai:AI_AGENT_INTERRUPT_REJECT")}
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          className="h-8 gap-1.5 rounded-md px-2.5"
+          disabled={running}
+          onClick={() => void handleDecision(true)}
+        >
+          <CheckIcon className="size-3.5" aria-hidden="true" />
+          {pending === "approve"
+            ? t("ai:AI_AGENT_INTERRUPT_APPROVING")
+            : t("ai:AI_AGENT_INTERRUPT_APPROVE")}
+        </Button>
+      </div>
+    </section>
+  );
+};
+
+const AgentArtifactCard: FC<{ artifact: AIAgentMessageArtifact }> = ({ artifact }) => {
+  const { t } = useTranslation(["ai", "common"]);
+  const isPlan = artifact.type === "agent_execution_plan";
+  const title = isPlan
+    ? t("ai:AI_AGENT_ARTIFACT_PLAN_TITLE")
+    : t("ai:AI_AGENT_ARTIFACT_BUILD_TITLE");
+  const items = isPlan ? artifact.steps : artifact.operations;
+  const Icon = isPlan ? ListChecksIcon : HammerIcon;
+
+  return (
+    <section className="mt-3 overflow-hidden rounded-lg border border-border/70 bg-muted/30 text-sm">
+      <div className="flex min-w-0 items-center justify-between gap-3 border-b border-border/60 px-3 py-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <h3 className="truncate text-sm font-semibold text-foreground">{title}</h3>
+        </div>
+        <span className="shrink-0 rounded-md border border-border/60 bg-background/70 px-2 py-0.5 text-caption font-medium text-muted-foreground">
+          {artifact.status}
+        </span>
+      </div>
+      {artifact.goal.trim() ? (
+        <p className="border-b border-border/50 px-3 py-2 text-footnote leading-relaxed text-muted-foreground">
+          {artifact.goal}
+        </p>
+      ) : null}
+      <ol className="divide-y divide-border/50">
+        {items.map((item, index) => (
+          <li
+            key={item.id}
+            className="grid grid-cols-[1.5rem_minmax(0,1fr)_auto] items-start gap-2 px-3 py-2"
+          >
+            <span className="text-caption font-medium text-muted-foreground tabular-nums">
+              {index + 1}
+            </span>
+            <span className="min-w-0 text-footnote leading-relaxed text-foreground">
+              {item.title}
+            </span>
+            <span className="rounded-md bg-background/70 px-1.5 py-0.5 text-caption font-medium text-muted-foreground">
+              {item.status}
+            </span>
+          </li>
+        ))}
+      </ol>
+      {!isPlan ? <AgentBuildArtifactFooter artifact={artifact} /> : null}
+    </section>
+  );
+};
+
+const AgentBuildArtifactFooter: FC<{
+  artifact: Extract<AIAgentMessageArtifact, { type: "agent_build_blueprint" }>;
+}> = ({ artifact }) => {
+  const { t } = useTranslation(["ai", "common"]);
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 border-t border-border/60 px-3 py-2 text-caption text-muted-foreground">
+      <span className="font-medium">
+        {t("ai:AI_AGENT_ARTIFACT_APPLIES_CHANGES", {
+          value: artifact.appliesChanges ? "true" : "false",
+        })}
+      </span>
+      {artifact.requiresApprovalBeforeApply ? (
+        <span className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/70 px-2 py-0.5 font-medium">
+          <ShieldCheckIcon className="size-3.5" aria-hidden="true" />
+          {t("ai:AI_AGENT_ARTIFACT_APPROVAL_REQUIRED")}
+        </span>
+      ) : null}
+    </div>
+  );
+};
+
+function isAIAgentMessageArtifact(value: unknown): value is AIAgentMessageArtifact {
+  if (!isRecord(value)) return false;
+
+  if (value.type === "agent_execution_plan") {
+    return (
+      typeof value.goal === "string" &&
+      typeof value.status === "string" &&
+      Array.isArray(value.steps) &&
+      value.steps.every(isAIAgentArtifactStep)
+    );
+  }
+
+  if (value.type === "agent_build_blueprint") {
+    return (
+      typeof value.goal === "string" &&
+      typeof value.status === "string" &&
+      Array.isArray(value.operations) &&
+      value.operations.every(isAIAgentArtifactStep) &&
+      typeof value.appliesChanges === "boolean" &&
+      typeof value.requiresApprovalBeforeApply === "boolean"
+    );
+  }
+
+  return false;
+}
+
+function isAIAgentInterrupt(value: unknown): value is AIAgentInterrupt {
+  return (
+    isRecord(value) &&
+    typeof value.kind === "string" &&
+    typeof value.runId === "string" &&
+    typeof value.agentId === "string" &&
+    (value.mode === "build" || value.mode === "plan" || value.mode === "agent") &&
+    typeof value.prompt === "string" &&
+    isRecord(value.toolOutputs) &&
+    typeof value.requiredDecision === "string" &&
+    (value.interruptId === undefined || typeof value.interruptId === "string") &&
+    (value.threadId === undefined || typeof value.threadId === "string") &&
+    (value.checkpointId === undefined || typeof value.checkpointId === "string")
+  );
+}
+
+function isAIAgentExecutionSummary(value: unknown): value is AIAgentExecutionSummary {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.toolNames) &&
+    value.toolNames.every((toolName) => typeof toolName === "string") &&
+    (value.promptTokens === undefined || typeof value.promptTokens === "number") &&
+    (value.completionTokens === undefined || typeof value.completionTokens === "number") &&
+    (value.totalTokens === undefined || typeof value.totalTokens === "number")
+  );
+}
+
+function isAIAgentArtifactStep(value: unknown): value is AIAgentArtifactStep {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.title === "string" &&
+    typeof value.status === "string"
+  );
+}
+
+function readAgentRunSummaryStatus(value: unknown): AgentRunSummaryStatus | null {
+  if (value === "running" || value === "completed" || value === "cancelled" || value === "failed") {
+    return value;
+  }
+  return null;
+}
+
+function agentRunStatusLabel(
+  t: ReturnType<typeof useTranslation>["t"],
+  status: AgentRunSummaryStatus,
+): string {
+  if (status === "running") return t("ai:AI_AGENT_RUN_STATUS_RUNNING");
+  if (status === "completed") return t("ai:AI_AGENT_RUN_STATUS_COMPLETED");
+  if (status === "cancelled") return t("ai:AI_AGENT_RUN_STATUS_CANCELLED");
+  return t("ai:AI_AGENT_RUN_STATUS_FAILED");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
 
 const AssistantMessage: FC = () => {
   const {
@@ -429,6 +762,9 @@ const AssistantMessage: FC = () => {
             }
           }}
         </MessagePrimitive.GroupedParts>
+        <AgentInterrupt />
+        <AgentRunSummary />
+        <AgentArtifact />
         <MessageError />
       </div>
 
@@ -445,7 +781,6 @@ const AssistantMessage: FC = () => {
 
 const AssistantActionBar: FC = () => {
   const { t } = useTranslation(["ai", "common"]);
-  const activeId = useAiChatStore((s) => s.activeId);
 
   return (
     <ActionBarPrimitive.Root
@@ -463,17 +798,11 @@ const AssistantActionBar: FC = () => {
           </AuiIf>
         </TooltipIconButton>
       </ActionBarPrimitive.Copy>
-      <TooltipIconButton
-        tooltip={t("ai:AI_CHAT_ACTION_REFRESH")}
-        disabled={!activeId}
-        onClick={() => {
-          if (!activeId)
-            throw new Error("Cannot refresh AI message without an active conversation");
-          void retryLatestAIChatMessage(activeId);
-        }}
-      >
-        <RefreshCwIcon />
-      </TooltipIconButton>
+      <ActionBarPrimitive.Reload asChild>
+        <TooltipIconButton tooltip={t("ai:AI_CHAT_ACTION_REFRESH")}>
+          <RefreshCwIcon />
+        </TooltipIconButton>
+      </ActionBarPrimitive.Reload>
       <ActionBarMorePrimitive.Root>
         <ActionBarMorePrimitive.Trigger asChild>
           <TooltipIconButton
@@ -529,28 +858,6 @@ const UserMessage: FC = () => {
 
 const UserActionBar: FC = () => {
   const { t } = useTranslation(["ai", "common"]);
-  const aui = useAui();
-  const activeId = useAiChatStore((s) => s.activeId);
-  const replaceMessages = useAiChatStore((s) => s.replaceMessages);
-  const messageIndex = useAuiState((s) => s.message.index);
-  const messageContent = useAuiState((s) => messageContentToPlainText(s.message.content));
-
-  const editInComposer = () => {
-    if (!activeId) throw new Error("Cannot edit AI message without an active conversation");
-
-    const conversation = useAiChatStore
-      .getState()
-      .conversations.find((item) => item.id === activeId);
-    if (!conversation) throw new Error(`AI conversation not found: ${activeId}`);
-
-    const message = conversation.messages[messageIndex];
-    if (!message || message.role !== "user") {
-      throw new Error(`Cannot edit non-user AI message at index ${messageIndex}`);
-    }
-
-    replaceMessages(activeId, conversation.messages.slice(0, messageIndex));
-    aui.composer().setText(message.content || messageContent);
-  };
 
   return (
     <ActionBarPrimitive.Root
@@ -558,13 +865,11 @@ const UserActionBar: FC = () => {
       autohide="not-last"
       className="aui-user-action-bar-root flex flex-col items-end"
     >
-      <TooltipIconButton
-        tooltip={t("ai:AI_CHAT_ACTION_EDIT")}
-        className="aui-user-action-edit"
-        onClick={editInComposer}
-      >
-        <PencilIcon />
-      </TooltipIconButton>
+      <ActionBarPrimitive.Edit asChild>
+        <TooltipIconButton tooltip={t("ai:AI_CHAT_ACTION_EDIT")} className="aui-user-action-edit">
+          <PencilIcon />
+        </TooltipIconButton>
+      </ActionBarPrimitive.Edit>
     </ActionBarPrimitive.Root>
   );
 };

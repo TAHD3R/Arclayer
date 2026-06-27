@@ -1,23 +1,29 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import {
   AssistantRuntimeProvider,
   ComposerPrimitive,
-  CompositeAttachmentAdapter,
-  SimpleTextAttachmentAdapter,
   WebSpeechDictationAdapter,
+  createMessageQueue,
   useExternalStoreRuntime,
+  type AppendMessage,
+  type MessageQueueController,
   type ThreadMessageLike,
 } from "@assistant-ui/react";
 
 import * as authApi from "@/api/auth";
 import { listProjects } from "@/api/projects";
-import { ComposerAttachments } from "@/components/assistant-ui/attachment";
 import { AIComposerToolbar } from "@/components/ai/ai-composer-toolbar";
+import { ComposerQueue } from "@/components/assistant-ui/composer-queue";
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
-import { appendMessageToText, sendAIChatMessage } from "@/components/ai/ai-chat-runtime";
-import { formatAIChatError } from "@/api/ai";
+import { appendMessageToText, agentIdForComposerMode } from "@/components/ai/ai-chat-runtime";
+import {
+  cancelAIAgentRun,
+  ensureAIConversationPersistedForRuntime,
+  formatAIChatError,
+  sendAIAgentMessage,
+} from "@/api/ai";
 import { getUserDisplayName, normalizeUserProfile } from "@/lib/auth/user-profile";
 import { HomeInspirationSection } from "@/pages/home/home-inspiration-section";
 import { HomeRecentProjectsSection } from "@/pages/home/home-recent-projects-section";
@@ -48,68 +54,172 @@ function HomeComposer({ inputRef, onSubmitStart, onSubmitError }: HomeComposerPr
   const openDrawer = useAiChatStore((s) => s.openDrawer);
   const streaming = useAiChatStore((s) => s.streaming);
   const activeRequestRef = useRef<AbortController | null>(null);
+  const activeAgentRunIdRef = useRef<string | null>(null);
+  const activeConversationIdRef = useRef<string | null>(null);
+  const pendingHomeConversationIdRef = useRef<string | null>(null);
+  const queuedMessageRunnerRef = useRef<(message: AppendMessage) => Promise<void>>(async () => {
+    throw new Error("Home AI message queue runner is not initialized");
+  });
+  const [, forceQueueRender] = useState(0);
   const dictationAdapter = useMemo(() => createDictationAdapter(), []);
-  const attachmentAdapter = useMemo(
-    () => new CompositeAttachmentAdapter([new SimpleTextAttachmentAdapter()]),
-    [],
+
+  const queueController = useMemo<MessageQueueController>(() => {
+    const controller = createMessageQueue({
+      run: (message) => {
+        void queuedMessageRunnerRef.current(message).finally(() => {
+          controller.notifyIdle();
+        });
+      },
+    });
+    return controller;
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = queueController.subscribe(() => {
+      forceQueueRender((version) => version + 1);
+    });
+    return () => {
+      unsubscribe();
+      queueController.adapter.clear("cancel-run");
+    };
+  }, [queueController]);
+
+  const clearPendingHomeConversationWhenIdle = useCallback(() => {
+    if (activeRequestRef.current) return;
+    if (queueController.adapter.items.length > 0) return;
+    pendingHomeConversationIdRef.current = null;
+  }, [queueController]);
+
+  const sendHomePrompt = useCallback(
+    async (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+
+      onSubmitStart();
+      try {
+        const projectId = useWorkspaceStore.getState().currentProjectId;
+        if (!projectId) {
+          throw new Error("Agent mode requires an active project context");
+        }
+
+        let conversationId = pendingHomeConversationIdRef.current;
+        if (!conversationId) {
+          conversationId = createConversation();
+          pendingHomeConversationIdRef.current = conversationId;
+          openDrawer();
+        }
+        activeConversationIdRef.current = conversationId;
+
+        const controller = new AbortController();
+        activeRequestRef.current = controller;
+        activeAgentRunIdRef.current = null;
+        try {
+          const state = useAiChatStore.getState();
+          const agentId = agentIdForComposerMode(state.composerMode, state.selectedAgentId);
+          await sendAIAgentMessage(conversationId, trimmed, {
+            agentId,
+            model: state.selectedModel,
+            reasoningEffort: state.selectedReasoningEffort,
+            signal: controller.signal,
+            onRunCreated: (runId) => {
+              activeAgentRunIdRef.current = runId;
+            },
+          });
+        } finally {
+          if (activeRequestRef.current === controller) {
+            activeRequestRef.current = null;
+          }
+          activeAgentRunIdRef.current = null;
+          activeConversationIdRef.current = null;
+          clearPendingHomeConversationWhenIdle();
+        }
+      } catch (err) {
+        clearPendingHomeConversationWhenIdle();
+        onSubmitError(formatAIChatError(err));
+      }
+    },
+    [
+      clearPendingHomeConversationWhenIdle,
+      createConversation,
+      onSubmitError,
+      onSubmitStart,
+      openDrawer,
+    ],
+  );
+
+  const sendHomeMessage = useCallback(
+    async (message: AppendMessage) => {
+      await sendHomePrompt(appendMessageToText(message));
+    },
+    [sendHomePrompt],
+  );
+  queuedMessageRunnerRef.current = sendHomeMessage;
+
+  const runHomePromptOutsideQueue = useCallback(
+    async (text: string) => {
+      if (!text.trim()) return;
+
+      queueController.notifyBusy();
+      try {
+        await sendHomePrompt(text);
+      } finally {
+        queueController.notifyIdle();
+      }
+    },
+    [queueController, sendHomePrompt],
   );
 
   const runtime = useExternalStoreRuntime({
     messages: useMemo<ThreadMessageLike[]>(() => [], []),
     isRunning: streaming,
     adapters: {
-      attachments: attachmentAdapter,
       dictation: dictationAdapter,
     },
+    queue: queueController.adapter,
     convertMessage: (message: ThreadMessageLike) => message,
     setMessages: () => {
       // Home is an entry composer only; persisted messages live in the side panel store.
     },
     onCancel: async () => {
+      queueController.adapter.clear("cancel-run");
+      const runId = activeAgentRunIdRef.current;
+      const conversationId = activeConversationIdRef.current;
+      const projectId = useWorkspaceStore.getState().currentProjectId;
+      if (runId && projectId) {
+        await cancelAIAgentRun(projectId, runId);
+        if (conversationId) {
+          useAiChatStore
+            .getState()
+            .setLastAssistantAgentRun(conversationId, { runId, status: "cancelled" });
+          await ensureAIConversationPersistedForRuntime(conversationId);
+        }
+      }
       activeRequestRef.current?.abort();
       activeRequestRef.current = null;
+      activeAgentRunIdRef.current = null;
+      activeConversationIdRef.current = null;
+      pendingHomeConversationIdRef.current = null;
     },
     onNew: async (message) => {
-      const text = appendMessageToText(message).trim();
-      if (!text) return;
-
-      const conversationId = createConversation();
-      onSubmitStart();
-      openDrawer();
-
-      try {
-        const controller = new AbortController();
-        activeRequestRef.current = controller;
-        try {
-          await sendAIChatMessage(conversationId, text, { signal: controller.signal });
-        } finally {
-          if (activeRequestRef.current === controller) {
-            activeRequestRef.current = null;
-          }
-        }
-      } catch (err) {
-        onSubmitError(formatAIChatError(err));
-      }
+      await runHomePromptOutsideQueue(appendMessageToText(message));
     },
   });
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
       <ComposerPrimitive.Root className="aui-home-composer-root relative flex w-full min-w-0 flex-col">
-        <ComposerPrimitive.AttachmentDropzone asChild>
-          <div className="flex min-h-[8.75rem] w-full min-w-0 flex-col gap-3 rounded-[1.75rem] border border-border/70 bg-[color-mix(in_oklab,var(--color-muted)_30%,var(--color-background))] p-3 transition-colors hover:border-border focus-within:border-border">
-            <ComposerAttachments />
-            <ComposerPrimitive.Input
-              ref={inputRef}
-              rows={1}
-              autoFocus
-              placeholder={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
-              aria-label={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
-              className="h-20 min-h-20 max-h-20 w-full min-w-0 resize-none bg-transparent px-3 py-2 text-callout leading-relaxed text-label-primary outline-none [field-sizing:fixed] placeholder:text-label-secondary"
-            />
-            <AIComposerToolbar />
-          </div>
-        </ComposerPrimitive.AttachmentDropzone>
+        <ComposerQueue />
+        <div className="flex min-h-[8.75rem] w-full min-w-0 flex-col gap-3 rounded-[1.75rem] border border-border/70 bg-[color-mix(in_oklab,var(--color-muted)_30%,var(--color-background))] p-3 transition-colors hover:border-border focus-within:border-border">
+          <ComposerPrimitive.Input
+            ref={inputRef}
+            rows={1}
+            autoFocus
+            placeholder={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
+            aria-label={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
+            className="h-20 min-h-20 max-h-20 w-full min-w-0 resize-none bg-transparent px-3 py-2 text-callout leading-relaxed text-label-primary outline-none [field-sizing:fixed] placeholder:text-label-secondary"
+          />
+          <AIComposerToolbar />
+        </div>
       </ComposerPrimitive.Root>
     </AssistantRuntimeProvider>
   );

@@ -37,6 +37,8 @@ dependencies = [
   "dnspython>=2.8.0",
   "uvloop>=0.22.1",
   "httptools>=0.7.1",
+  "langgraph>=1.0.4",
+  "langgraph-checkpoint-postgres>=3.0.0",
 ]
 
 [dependency-groups]
