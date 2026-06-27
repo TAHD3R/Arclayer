@@ -50,6 +50,63 @@ class LiteLLMClient(BaseLLMProvider):
             response.raise_for_status()
             return response.json()
 
+    async def register_model(
+        self,
+        *,
+        master_key: str,
+        model_name: str,
+        provider_model: str,
+        provider_api_key: str,
+        api_base: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Register or update a LiteLLM proxy model from a Provider API key."""
+        headers = {"Authorization": f"Bearer {master_key}"}
+        litellm_params: dict[str, Any] = {
+            "model": provider_model,
+            "api_key": provider_api_key,
+        }
+        if api_base:
+            litellm_params["api_base"] = api_base
+
+        payload: dict[str, Any] = {
+            "model_name": model_name,
+            "litellm_params": litellm_params,
+        }
+        if metadata:
+            payload["model_info"] = metadata
+
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.post(
+                f"{self._base_url}/model/new",
+                json=payload,
+                headers=headers,
+            )
+            response.raise_for_status()
+            return response.json()
+
+    async def generate_key(
+        self,
+        *,
+        master_key: str,
+        models: list[str],
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Generate a LiteLLM virtual key scoped to the configured models."""
+        headers = {"Authorization": f"Bearer {master_key}"}
+        payload: dict[str, Any] = {"models": models}
+        if metadata:
+            payload["metadata"] = metadata
+
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.post(
+                f"{self._base_url}/key/generate",
+                json=payload,
+                headers=headers,
+            )
+            response.raise_for_status()
+            return response.json()
+
     async def chat(
         self,
         messages: list[dict[str, str]],

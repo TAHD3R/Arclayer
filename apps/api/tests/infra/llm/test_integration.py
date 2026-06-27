@@ -44,7 +44,7 @@ from src.models.ai.user_key_grant import (
     can_transition_grant,
     is_grant_active,
 )
-from src.modules.ai.model_catalog import list_ai_model_catalog
+from src.modules.ai.model_catalog import _system_provider_set, list_ai_model_catalog
 from src.modules.ai.router import _get_ai_service
 from src.modules.ai.router import router as ai_router
 from src.modules.ai.schema import AIModelCatalogItem, AIModelCatalogResponse, AIReasoningEffort
@@ -770,6 +770,26 @@ class TestSchemaContracts:
 
 class TestAIModelCatalog:
     """Verify the Admin model selector catalog is loaded from backend configuration."""
+
+    def test_platform_catalog_uses_only_system_provider_records(self) -> None:
+        providers = _system_provider_set(
+            [
+                {
+                    "provider": "deepseek",
+                    "metadata_json": {"source": "system.ai_providers"},
+                },
+                {
+                    "provider": "openai",
+                    "metadata_json": {"source": "legacy.platform_key"},
+                },
+                {
+                    "provider": "anthropic",
+                    "metadata_json": {},
+                },
+            ],
+        )
+
+        assert providers == {"deepseek"}
 
     async def test_catalog_loads_litellm_models_and_filters_mock(self) -> None:
         settings = get_settings()

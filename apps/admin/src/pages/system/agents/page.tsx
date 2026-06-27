@@ -1,8 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type SyntheticEvent } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { EditIcon, PlusIcon, Trash2Icon, UploadIcon } from "lucide-react";
+import { type ColumnDef, getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import {
+  EditIcon,
+  GitBranchIcon,
+  MoreHorizontalIcon,
+  PackageIcon,
+  PlusIcon,
+  PowerIcon,
+  PowerOffIcon,
+  TerminalIcon,
+  Trash2Icon,
+} from "lucide-react";
 
 import {
   createAISystemProvider,
@@ -18,6 +29,14 @@ import {
   type AISystemProviderCompatibility,
 } from "@/api/ai";
 import { Button } from "@arclayer/ui/button";
+import { DataTablePresenter } from "@arclayer/ui/data-table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuIconItem,
+  DropdownMenuTrigger,
+} from "@arclayer/ui/dropdown-menu";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
 import { Input } from "@arclayer/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
@@ -26,6 +45,11 @@ import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-di
 import { Switch } from "@arclayer/ui/switch";
 import { Textarea } from "@arclayer/ui/textarea";
 
+import {
+  buildDataTableActionsColumnMeta,
+  DataTableActionsCell,
+} from "@/components/common/data-table-actions-cell";
+import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { notifySuccessText } from "@/lib/notifications";
 import {
@@ -97,13 +121,35 @@ const PROVIDER_COMPATIBILITY_OPTIONS: readonly AISystemProviderCompatibility[] =
   "deepseek",
 ];
 const PROVIDER_QUERY_KEY = ["system", "ai", "providers"] as const;
-const SKILL_TEMPLATE = [
-  "id: content.custom",
-  "name: Custom skill",
-  "description: Describe what this skill enables.",
-  "---",
-  "Write concise instructions here. Keep external data clearly separated from instructions.",
-].join("\n");
+const SKILL_SOURCE_OPTIONS = ["inline", "github", "npx"] as const;
+type SkillSourceKind = (typeof SKILL_SOURCE_OPTIONS)[number];
+
+type SkillPackage = {
+  id: string;
+  source: SkillSourceKind;
+  locator: string;
+  raw: string;
+};
+
+type SkillFormValues = {
+  source: SkillSourceKind;
+  skillId: string;
+  githubRepo: string;
+  githubRef: string;
+  npxPackage: string;
+};
+
+const DEFAULT_SKILL_FORM_VALUES: SkillFormValues = {
+  source: "github",
+  skillId: "",
+  githubRepo: "",
+  githubRef: "",
+  npxPackage: "",
+};
+
+function stopEvent(event: Event | SyntheticEvent) {
+  event.stopPropagation();
+}
 
 function currentUsagePeriod(): string {
   const now = new Date();
@@ -202,19 +248,25 @@ function validateRequiredString(value: string): string | null {
   return trimmed ? trimmed : null;
 }
 
-function availableModelIds(catalog: AIModelCatalogResponse | undefined): Set<string> {
-  return new Set(catalog?.models.filter((model) => model.available).map((model) => model.id) ?? []);
+function availableModelIds(options: readonly string[]): Set<string> {
+  return new Set(options);
 }
 
-function availableModelOptions(
+function systemProviderModelOptions(
   catalog: AIModelCatalogResponse | undefined,
-  currentModel: string,
+  providers: AISystemProviderListResponse | undefined,
 ): string[] {
-  const options = catalog?.models.filter((model) => model.available).map((model) => model.id) ?? [];
-  if (currentModel.trim() && !options.includes(currentModel)) {
-    return [currentModel, ...options];
-  }
-  return options;
+  const activeProviders = new Set(
+    (providers?.providers ?? [])
+      .filter((provider) => provider.isActive && provider.hasVirtualKey)
+      .map((provider) => provider.provider),
+  );
+  if (activeProviders.size === 0) return [];
+  return (
+    catalog?.models
+      .filter((model) => model.available && activeProviders.has(model.provider))
+      .map((model) => model.id) ?? []
+  );
 }
 
 function formatCostMicros(value: number): string {
@@ -235,16 +287,6 @@ function formatPercent(value: number): string {
     minimumFractionDigits: 0,
     style: "percent",
   }).format(value);
-}
-
-function formatDateTime(value: string | null | undefined): string {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
 }
 
 function statusText(params: {
@@ -308,6 +350,7 @@ function ModelSelectField(props: {
   value: string;
   options: readonly string[];
   catalog: AIModelCatalogResponse | undefined;
+  disabled?: boolean;
   onValueChange: (value: string) => void;
 }) {
   const { t } = useTranslation(["settings"]);
@@ -318,7 +361,7 @@ function ModelSelectField(props: {
 
   return (
     <SystemSettingField label={props.label} description={props.description}>
-      <Select value={props.value} onValueChange={props.onValueChange}>
+      <Select value={props.value} onValueChange={props.onValueChange} disabled={props.disabled}>
         <SelectTrigger className="w-full sm:w-72">
           <SelectValue />
         </SelectTrigger>
@@ -493,9 +536,9 @@ type ProviderFormValues = {
   provider: string;
   label: string;
   compatibility: AISystemProviderCompatibility;
-  virtualKey: string;
-  litellmKeyId: string;
+  providerApiKey: string;
   baseUrl: string;
+  requestModel: string;
   isActive: boolean;
 };
 
@@ -504,11 +547,148 @@ function buildProviderFormValues(provider: AISystemProvider | null): ProviderFor
     provider: provider?.provider ?? "",
     label: provider?.label ?? "",
     compatibility: provider?.compatibility ?? "openai_compatible",
-    virtualKey: "",
-    litellmKeyId: provider?.litellmKeyId ?? "",
+    providerApiKey: "",
     baseUrl: provider?.baseUrl ?? "",
+    requestModel: provider?.requestModel ?? "",
     isActive: provider?.isActive ?? true,
   };
+}
+
+type ProviderTableMeta = {
+  pending: boolean;
+  t: (key: string, options?: Record<string, unknown>) => string;
+  onEdit: (provider: AISystemProvider) => void;
+  onToggleActive: (provider: AISystemProvider) => void;
+  onDelete: (providerId: string) => void;
+};
+
+function buildProviderColumns(meta: ProviderTableMeta): ColumnDef<AISystemProvider>[] {
+  return [
+    {
+      accessorKey: "label",
+      header: meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_NAME"),
+      cell: ({ row }) => (
+        <div className="min-w-0">
+          <div className="truncate text-footnote font-semibold text-label-primary">
+            {row.original.label}
+          </div>
+          <div className="truncate font-mono text-caption text-label-secondary">
+            {row.original.provider}
+          </div>
+        </div>
+      ),
+      meta: { title: meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_NAME") },
+    },
+    {
+      accessorKey: "requestModel",
+      header: meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_MODEL"),
+      cell: ({ row }) => (
+        <span className="font-mono text-caption text-label-primary">
+          {row.original.requestModel}
+        </span>
+      ),
+      meta: { title: meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_MODEL") },
+    },
+    {
+      accessorKey: "compatibility",
+      header: meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_COMPATIBILITY"),
+      cell: ({ row }) => (
+        <span className="rounded-md bg-muted px-2 py-0.5 text-caption text-label-secondary">
+          {meta.t(
+            `settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_COMPAT_${row.original.compatibility.toUpperCase()}`,
+          )}
+        </span>
+      ),
+      meta: { title: meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_COMPATIBILITY") },
+    },
+    {
+      id: "keyState",
+      header: meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_KEY_STATE"),
+      cell: ({ row }) => (
+        <span className="text-caption text-label-secondary">
+          {row.original.hasVirtualKey
+            ? meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_KEY_SET")
+            : meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_KEY_MISSING")}
+        </span>
+      ),
+      meta: { title: meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_KEY_STATE") },
+    },
+    {
+      id: "status",
+      header: meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_STATUS"),
+      cell: ({ row }) => (
+        <span className="text-caption text-label-secondary">
+          {row.original.isActive
+            ? meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_ACTIVE")
+            : meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_INACTIVE")}
+        </span>
+      ),
+      meta: { title: meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_STATUS") },
+    },
+    {
+      id: "actions",
+      size: 48,
+      minSize: 48,
+      maxSize: 48,
+      header: "",
+      cell: ({ row }) => {
+        const provider = row.original;
+        return (
+          <DataTableActionsCell>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant="ghost"
+                  aria-label={meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_ACTIONS_LABEL")}
+                  disabled={meta.pending}
+                  onClick={stopEvent}
+                >
+                  <MoreHorizontalIcon className="size-4" aria-hidden="true" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" onClick={stopEvent}>
+                <DropdownMenuGroup>
+                  <DropdownMenuIconItem
+                    icon={<EditIcon className="size-4" />}
+                    disabled={meta.pending}
+                    onPointerDown={() => meta.onEdit(provider)}
+                    onSelect={() => meta.onEdit(provider)}
+                  >
+                    {meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_EDIT")}
+                  </DropdownMenuIconItem>
+                  <DropdownMenuIconItem
+                    icon={
+                      provider.isActive ? (
+                        <PowerOffIcon className="size-4" />
+                      ) : (
+                        <PowerIcon className="size-4" />
+                      )
+                    }
+                    disabled={meta.pending}
+                    onSelect={() => meta.onToggleActive(provider)}
+                  >
+                    {provider.isActive
+                      ? meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_DISABLE")
+                      : meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_ENABLE")}
+                  </DropdownMenuIconItem>
+                  <DropdownMenuIconItem
+                    icon={<Trash2Icon className="size-4" />}
+                    disabled={meta.pending}
+                    onSelect={() => meta.onDelete(provider.id)}
+                  >
+                    {meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_DELETE")}
+                  </DropdownMenuIconItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </DataTableActionsCell>
+        );
+      },
+      meta: buildDataTableActionsColumnMeta("right", "right"),
+    },
+  ];
 }
 
 function AIProviderManagement(props: {
@@ -526,6 +706,28 @@ function AIProviderManagement(props: {
   const [dialog, setDialog] = useState<ProviderDialogState | null>(null);
   const [values, setValues] = useState<ProviderFormValues>(() => buildProviderFormValues(null));
   const providers = props.providersQuery.data?.providers ?? [];
+  const tableMeta = useMemo<ProviderTableMeta>(
+    () => ({
+      pending: props.pending,
+      t,
+      onEdit: (provider) => openEdit(provider),
+      onToggleActive: (provider) =>
+        props.onUpdate(provider.id, {
+          ...buildProviderFormValues(provider),
+          isActive: !provider.isActive,
+        }),
+      onDelete: props.onDelete,
+    }),
+    [props.onDelete, props.onUpdate, props.pending, t],
+  );
+  const columns = useMemo(() => buildProviderColumns(tableMeta), [tableMeta]);
+  const table = useReactTable({
+    data: providers,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    meta: tableMeta,
+  });
+  const columnMenuLabels = useMemo(() => buildDataTableToolsLabels(t), [t]);
 
   const openCreate = () => {
     setValues(buildProviderFormValues(null));
@@ -565,81 +767,17 @@ function AIProviderManagement(props: {
         </SystemSettingInlineNote>
       ) : null}
 
-      <div className="grid gap-2">
-        {providers.map((provider) => (
-          <div
-            key={provider.id}
-            className="grid gap-3 rounded-lg border border-border/70 bg-background px-3 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
-          >
-            <div className="min-w-0">
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <span className="truncate text-callout font-semibold text-label-primary">
-                  {provider.label}
-                </span>
-                <span className="rounded-md bg-muted px-2 py-0.5 text-caption text-label-secondary">
-                  {provider.provider}
-                </span>
-                <span className="rounded-md bg-muted px-2 py-0.5 text-caption text-label-secondary">
-                  {t(
-                    `settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_COMPAT_${provider.compatibility.toUpperCase()}`,
-                  )}
-                </span>
-              </div>
-              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-caption text-label-secondary">
-                <span>
-                  {provider.isActive
-                    ? t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_ACTIVE")
-                    : t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_INACTIVE")}
-                </span>
-                <span>
-                  {provider.hasVirtualKey
-                    ? t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_KEY_SET")
-                    : t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_KEY_MISSING")}
-                </span>
-                {provider.baseUrl ? <span>{provider.baseUrl}</span> : null}
-                {provider.updatedAt ? (
-                  <span>
-                    {t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_UPDATED_AT", {
-                      value: formatDateTime(provider.updatedAt),
-                    })}
-                  </span>
-                ) : null}
-              </div>
-            </div>
-            <div className="flex items-center gap-1 sm:justify-end">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_EDIT")}
-                onClick={() => openEdit(provider)}
-              >
-                <EditIcon className="size-4" aria-hidden="true" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_DELETE")}
-                disabled={props.pending}
-                onClick={() => props.onDelete(provider.id)}
-              >
-                <Trash2Icon className="size-4" aria-hidden="true" />
-              </Button>
-            </div>
-          </div>
-        ))}
-        {props.providersQuery.isLoading ? (
-          <SystemSettingInlineNote>
-            {t("settings:SETTINGS_SYSTEM_AGENTS_GOVERNANCE_LOADING")}
-          </SystemSettingInlineNote>
-        ) : null}
-        {!props.providersQuery.isLoading && providers.length === 0 ? (
-          <SystemSettingInlineNote>
-            {t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDERS_EMPTY")}
-          </SystemSettingInlineNote>
-        ) : null}
-      </div>
+      <DataTablePresenter
+        table={table}
+        emptyText={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDERS_EMPTY")}
+        className="min-w-0 max-w-full overflow-hidden"
+        surface="embedded"
+        rowHeight="tall"
+        wrapContent
+        refreshing={props.providersQuery.isLoading}
+        refreshingLabel={t("common:DATA_TABLE_REFRESHING")}
+        columnMenuLabels={columnMenuLabels}
+      />
 
       <SettingDialog
         open={dialog !== null}
@@ -663,7 +801,8 @@ function AIProviderManagement(props: {
                 props.pending ||
                 !values.provider.trim() ||
                 !values.label.trim() ||
-                (dialog?.mode === "create" && !values.virtualKey.trim())
+                !values.requestModel.trim() ||
+                (dialog?.mode === "create" && !values.providerApiKey.trim())
               }
               onClick={submit}
             >
@@ -718,18 +857,18 @@ function AIProviderManagement(props: {
             </Select>
           </SettingDialogField>
           <SettingDialogField
-            title={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_SECRET_LABEL")}
+            title={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_API_KEY_LABEL")}
             description={
               dialog?.mode === "edit"
-                ? t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_SECRET_EDIT_DESC")
-                : t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_SECRET_CREATE_DESC")
+                ? t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_API_KEY_EDIT_DESC")
+                : t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_API_KEY_CREATE_DESC")
             }
           >
             <Input
               type="password"
-              value={values.virtualKey}
+              value={values.providerApiKey}
               onChange={(event) =>
-                setValues((current) => ({ ...current, virtualKey: event.target.value }))
+                setValues((current) => ({ ...current, providerApiKey: event.target.value }))
               }
               placeholder={dialog?.mode === "edit" ? "••••••••" : "sk-..."}
             />
@@ -744,14 +883,15 @@ function AIProviderManagement(props: {
             />
           </SettingDialogField>
           <SettingDialogField
-            title={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_LITELLM_KEY_LABEL")}
+            title={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_REQUEST_MODEL_LABEL")}
+            description={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_REQUEST_MODEL_DESC")}
           >
             <Input
-              value={values.litellmKeyId}
+              value={values.requestModel}
               onChange={(event) =>
-                setValues((current) => ({ ...current, litellmKeyId: event.target.value }))
+                setValues((current) => ({ ...current, requestModel: event.target.value }))
               }
-              placeholder="litellm-key-id"
+              placeholder="gpt-4o"
             />
           </SettingDialogField>
           <SystemSettingRow
@@ -772,22 +912,143 @@ function AIProviderManagement(props: {
   );
 }
 
-function SkillLibraryEditor(props: { value: string; onChange: (value: string) => void }) {
-  const { t } = useTranslation(["settings"]);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [draft, setDraft] = useState(SKILL_TEMPLATE);
-  const skillIds = splitLineList(props.value);
+function parseSkillPackage(raw: string): SkillPackage {
+  const value = raw.trim();
+  if (value.startsWith("github:")) {
+    const body = value.slice("github:".length);
+    const [repoAndRef, skillId] = body.split(":");
+    return {
+      id: skillId?.trim() || repoAndRef.trim(),
+      source: "github",
+      locator: repoAndRef.trim(),
+      raw: value,
+    };
+  }
+  if (value.startsWith("npx:")) {
+    const body = value.slice("npx:".length);
+    const [packageName, skillId] = body.split(":");
+    return {
+      id: skillId?.trim() || packageName.trim(),
+      source: "npx",
+      locator: packageName.trim(),
+      raw: value,
+    };
+  }
+  return { id: value, source: "inline", locator: value, raw: value };
+}
 
-  const appendDraftSkill = () => {
-    const idLine = draft
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .find((line) => line.startsWith("id:"));
-    const skillId = idLine?.slice(3).trim();
-    if (!skillId) return;
-    const next = Array.from(new Set([...skillIds, skillId]));
+function serializeSkillForm(values: SkillFormValues): string | null {
+  const skillId = values.skillId.trim();
+  if (values.source === "inline") return skillId || null;
+  if (values.source === "github") {
+    const repo = values.githubRepo.trim();
+    if (!repo) return null;
+    const ref = values.githubRef.trim();
+    const locator = ref ? `${repo}#${ref}` : repo;
+    return skillId ? `github:${locator}:${skillId}` : `github:${locator}`;
+  }
+  const packageName = values.npxPackage.trim();
+  if (!packageName) return null;
+  return skillId ? `npx:${packageName}:${skillId}` : `npx:${packageName}`;
+}
+
+type SkillTableMeta = {
+  t: (key: string, options?: Record<string, unknown>) => string;
+  onDelete: (raw: string) => void;
+};
+
+function buildSkillColumns(meta: SkillTableMeta): ColumnDef<SkillPackage>[] {
+  return [
+    {
+      accessorKey: "id",
+      header: meta.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_TABLE_ID"),
+      cell: ({ row }) => (
+        <span className="font-mono text-caption text-label-primary">{row.original.id}</span>
+      ),
+      meta: { title: meta.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_TABLE_ID") },
+    },
+    {
+      accessorKey: "source",
+      header: meta.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_TABLE_SOURCE"),
+      cell: ({ row }) => {
+        const Icon =
+          row.original.source === "github"
+            ? GitBranchIcon
+            : row.original.source === "npx"
+              ? TerminalIcon
+              : PackageIcon;
+        return (
+          <span className="inline-flex items-center gap-1.5 text-caption text-label-secondary">
+            <Icon className="size-3.5" aria-hidden="true" />
+            {meta.t(
+              `settings:SETTINGS_SYSTEM_AGENTS_SKILL_SOURCE_${row.original.source.toUpperCase()}`,
+            )}
+          </span>
+        );
+      },
+      meta: { title: meta.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_TABLE_SOURCE") },
+    },
+    {
+      accessorKey: "locator",
+      header: meta.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_TABLE_LOCATOR"),
+      cell: ({ row }) => (
+        <span className="truncate text-caption text-label-secondary">{row.original.locator}</span>
+      ),
+      meta: { title: meta.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_TABLE_LOCATOR") },
+    },
+    {
+      id: "actions",
+      size: 48,
+      minSize: 48,
+      maxSize: 48,
+      header: "",
+      cell: ({ row }) => (
+        <DataTableActionsCell>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={meta.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_REMOVE")}
+            onClick={() => meta.onDelete(row.original.raw)}
+          >
+            <Trash2Icon className="size-4" aria-hidden="true" />
+          </Button>
+        </DataTableActionsCell>
+      ),
+      meta: buildDataTableActionsColumnMeta("right", "right"),
+    },
+  ];
+}
+
+function SkillLibraryEditor(props: { value: string; onChange: (value: string) => void }) {
+  const { t } = useTranslation(["settings", "common"]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [draft, setDraft] = useState<SkillFormValues>(DEFAULT_SKILL_FORM_VALUES);
+  const rawSkillItems = splitLineList(props.value);
+  const skillPackages = useMemo(() => rawSkillItems.map(parseSkillPackage), [rawSkillItems]);
+  const tableMeta = useMemo<SkillTableMeta>(
+    () => ({
+      t,
+      onDelete: (raw) => props.onChange(rawSkillItems.filter((item) => item !== raw).join("\n")),
+    }),
+    [props, rawSkillItems, t],
+  );
+  const columns = useMemo(() => buildSkillColumns(tableMeta), [tableMeta]);
+  const table = useReactTable({
+    data: skillPackages,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    meta: tableMeta,
+  });
+  const columnMenuLabels = useMemo(() => buildDataTableToolsLabels(t), [t]);
+
+  const appendSkill = () => {
+    const raw = serializeSkillForm(draft);
+    if (!raw) return;
+    const next = Array.from(new Set([...rawSkillItems, raw]));
     props.onChange(next.join("\n"));
     setDialogOpen(false);
+    setDraft(DEFAULT_SKILL_FORM_VALUES);
   };
 
   return (
@@ -803,36 +1064,19 @@ function SkillLibraryEditor(props: { value: string; onChange: (value: string) =>
           className="gap-1.5"
           onClick={() => setDialogOpen(true)}
         >
-          <UploadIcon className="size-4" aria-hidden="true" />
+          <PlusIcon className="size-4" aria-hidden="true" />
           {t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_UPLOAD")}
         </Button>
       </div>
-      <div className="grid gap-2">
-        {skillIds.map((skillId) => (
-          <div
-            key={skillId}
-            className="flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-background px-3 py-2"
-          >
-            <span className="min-w-0 truncate text-footnote font-semibold text-label-primary">
-              {skillId}
-            </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_REMOVE")}
-              onClick={() => props.onChange(skillIds.filter((item) => item !== skillId).join("\n"))}
-            >
-              <Trash2Icon className="size-4" aria-hidden="true" />
-            </Button>
-          </div>
-        ))}
-        {skillIds.length === 0 ? (
-          <SystemSettingInlineNote>
-            {t("settings:SETTINGS_SYSTEM_AGENTS_SKILLS_EMPTY")}
-          </SystemSettingInlineNote>
-        ) : null}
-      </div>
+      <DataTablePresenter
+        table={table}
+        emptyText={t("settings:SETTINGS_SYSTEM_AGENTS_SKILLS_EMPTY")}
+        className="min-w-0 max-w-full overflow-hidden"
+        surface="embedded"
+        rowHeight="short"
+        wrapContent
+        columnMenuLabels={columnMenuLabels}
+      />
       <SettingDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
@@ -843,7 +1087,7 @@ function SkillLibraryEditor(props: { value: string; onChange: (value: string) =>
             <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
               {t("common:CANCEL")}
             </Button>
-            <Button type="button" onClick={appendDraftSkill}>
+            <Button type="button" onClick={appendSkill}>
               {t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_ADD_TO_LIBRARY")}
             </Button>
           </>
@@ -853,8 +1097,71 @@ function SkillLibraryEditor(props: { value: string; onChange: (value: string) =>
           title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_SOURCE_LABEL")}
           description={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_SOURCE_DESC")}
         >
-          <Textarea value={draft} rows={12} onChange={(event) => setDraft(event.target.value)} />
+          <Select
+            value={draft.source}
+            onValueChange={(value) =>
+              setDraft((current) => ({ ...current, source: value as SkillSourceKind }))
+            }
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SKILL_SOURCE_OPTIONS.map((source) => (
+                <SelectItem key={source} value={source}>
+                  {t(`settings:SETTINGS_SYSTEM_AGENTS_SKILL_SOURCE_${source.toUpperCase()}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </SettingDialogField>
+        <SettingDialogField
+          title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_ID_LABEL")}
+          description={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_ID_DESC")}
+        >
+          <Input
+            value={draft.skillId}
+            onChange={(event) =>
+              setDraft((current) => ({ ...current, skillId: event.target.value }))
+            }
+            placeholder="content.custom"
+          />
+        </SettingDialogField>
+        {draft.source === "github" ? (
+          <>
+            <SettingDialogField
+              title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_GITHUB_REPO_LABEL")}
+            >
+              <Input
+                value={draft.githubRepo}
+                onChange={(event) =>
+                  setDraft((current) => ({ ...current, githubRepo: event.target.value }))
+                }
+                placeholder="owner/repo"
+              />
+            </SettingDialogField>
+            <SettingDialogField title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_GITHUB_REF_LABEL")}>
+              <Input
+                value={draft.githubRef}
+                onChange={(event) =>
+                  setDraft((current) => ({ ...current, githubRef: event.target.value }))
+                }
+                placeholder="main"
+              />
+            </SettingDialogField>
+          </>
+        ) : null}
+        {draft.source === "npx" ? (
+          <SettingDialogField title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_NPX_PACKAGE_LABEL")}>
+            <Input
+              value={draft.npxPackage}
+              onChange={(event) =>
+                setDraft((current) => ({ ...current, npxPackage: event.target.value }))
+              }
+              placeholder="@scope/skills"
+            />
+          </SettingDialogField>
+        ) : null}
       </SettingDialog>
     </div>
   );
@@ -969,8 +1276,8 @@ export function SystemSettingsAgentsPage() {
   });
   const values = form.watch();
   const defaultModelOptions = useMemo(
-    () => availableModelOptions(modelCatalogQuery.data, values.defaultModel),
-    [modelCatalogQuery.data, values.defaultModel],
+    () => systemProviderModelOptions(modelCatalogQuery.data, providersQuery.data),
+    [modelCatalogQuery.data, providersQuery.data],
   );
 
   const runtimeDirty = isDirty(values, initialValues, [
@@ -1030,11 +1337,19 @@ export function SystemSettingsAgentsPage() {
         form.setFocus("defaultModel");
         return;
       }
-      const selectableModels = availableModelIds(modelCatalogQuery.data);
+      const selectableModels = availableModelIds(defaultModelOptions);
       if (selectableModels.size > 0 && !selectableModels.has(defaultModel)) {
         form.setError("defaultModel", {
           type: "validate",
           message: t("settings:SETTINGS_SYSTEM_AGENTS_DEFAULT_MODEL_UNAVAILABLE"),
+        });
+        form.setFocus("defaultModel");
+        return;
+      }
+      if (selectableModels.size === 0) {
+        form.setError("defaultModel", {
+          type: "validate",
+          message: t("settings:SETTINGS_SYSTEM_AGENTS_DEFAULT_MODEL_NO_PROVIDER"),
         });
         form.setFocus("defaultModel");
         return;
@@ -1159,21 +1474,22 @@ export function SystemSettingsAgentsPage() {
       provider: providerValues.provider.trim(),
       label: providerValues.label.trim(),
       compatibility: providerValues.compatibility,
-      virtualKey: providerValues.virtualKey,
-      litellmKeyId: providerValues.litellmKeyId.trim() || null,
+      providerApiKey: providerValues.providerApiKey,
       baseUrl: providerValues.baseUrl.trim() || null,
+      requestModel: providerValues.requestModel.trim(),
     });
   };
 
   const updateProvider = (providerId: string, providerValues: ProviderFormValues) => {
+    const providerApiKey = providerValues.providerApiKey.trim();
     updateProviderMutation.mutate({
       providerId,
       values: {
         label: providerValues.label.trim(),
         compatibility: providerValues.compatibility,
-        virtualKey: providerValues.virtualKey.trim() || undefined,
-        litellmKeyId: providerValues.litellmKeyId.trim() || null,
         baseUrl: providerValues.baseUrl.trim() || null,
+        requestModel: providerValues.requestModel.trim(),
+        ...(providerApiKey ? { providerApiKey } : {}),
         isActive: providerValues.isActive,
       },
     });
@@ -1315,6 +1631,7 @@ export function SystemSettingsAgentsPage() {
                   value={field.value}
                   options={defaultModelOptions}
                   catalog={modelCatalogQuery.data}
+                  disabled={defaultModelOptions.length === 0}
                   onValueChange={(value) => {
                     field.onChange(value);
                     if (value.trim()) form.clearErrors("defaultModel");

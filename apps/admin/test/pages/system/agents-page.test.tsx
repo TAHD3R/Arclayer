@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SystemSettingsAgentsPage } from "@/pages/system/agents/page";
@@ -327,7 +327,36 @@ describe("SystemSettingsAgentsPage", () => {
         },
       ],
     });
-    listAISystemProvidersMock.mockResolvedValue({ providers: [] });
+    listAISystemProvidersMock.mockResolvedValue({
+      providers: [
+        {
+          id: "provider-deepseek",
+          provider: "deepseek",
+          label: "DeepSeek",
+          compatibility: "deepseek",
+          isActive: true,
+          hasVirtualKey: true,
+          litellmKeyId: "litellm-deepseek",
+          baseUrl: "https://api.deepseek.com/v1",
+          requestModel: "deepseek-v4-pro",
+          createdAt: "2026-06-01T00:00:00Z",
+          updatedAt: "2026-06-01T00:00:00Z",
+        },
+        {
+          id: "provider-openai",
+          provider: "openai",
+          label: "OpenAI",
+          compatibility: "openai",
+          isActive: true,
+          hasVirtualKey: true,
+          litellmKeyId: "litellm-openai",
+          baseUrl: "https://api.openai.com/v1",
+          requestModel: "gpt-5-codex",
+          createdAt: "2026-06-01T00:00:00Z",
+          updatedAt: "2026-06-01T00:00:00Z",
+        },
+      ],
+    });
     createAISystemProviderMock.mockResolvedValue(undefined);
     updateAISystemProviderMock.mockResolvedValue(undefined);
     deleteAISystemProviderMock.mockResolvedValue(undefined);
@@ -657,11 +686,14 @@ describe("SystemSettingsAgentsPage", () => {
         .closest("button");
       expect(uploadButton).not.toBeNull();
       fireEvent.click(uploadButton!);
-      await waitFor(() => expect(screen.getAllByRole("textbox")).toHaveLength(2));
-      fireEvent.change(screen.getAllByRole("textbox")[1], {
-        target: {
-          value: `id: ${skillId}\nname: ${skillId}\ndescription: Test skill\n---\nInstructions.`,
-        },
+      const dialog = await screen.findByRole("dialog", {
+        name: "settings:SETTINGS_SYSTEM_AGENTS_SKILL_DIALOG_TITLE",
+      });
+      fireEvent.change(within(dialog).getByRole("combobox"), {
+        target: { value: "inline" },
+      });
+      fireEvent.change(within(dialog).getByPlaceholderText("content.custom"), {
+        target: { value: skillId },
       });
       fireEvent.click(
         screen.getByRole("button", {

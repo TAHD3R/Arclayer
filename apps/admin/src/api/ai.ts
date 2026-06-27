@@ -107,6 +107,7 @@ export interface AISystemProvider {
   hasVirtualKey: boolean;
   litellmKeyId?: string | null;
   baseUrl?: string | null;
+  requestModel: string;
   createdAt: string;
   updatedAt: string;
   lastUsedAt?: string | null;
@@ -121,18 +122,18 @@ export interface AISystemProviderCreateRequest {
   provider: string;
   label: string;
   compatibility: AISystemProviderCompatibility;
-  virtualKey: string;
-  litellmKeyId?: string | null;
+  providerApiKey: string;
   baseUrl?: string | null;
+  requestModel: string;
   expiresAt?: string | null;
 }
 
 export interface AISystemProviderUpdateRequest {
   label?: string;
   compatibility?: AISystemProviderCompatibility;
-  virtualKey?: string;
-  litellmKeyId?: string | null;
+  providerApiKey?: string;
   baseUrl?: string | null;
+  requestModel?: string;
   isActive?: boolean;
   expiresAt?: string | null;
 }

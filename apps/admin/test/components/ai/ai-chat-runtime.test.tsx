@@ -153,7 +153,7 @@ describe("AIChatRuntimeProvider", () => {
     });
   });
 
-  it("exposes backend-supported runtime actions without attachment support", () => {
+  it("exposes backend-supported runtime actions and text attachments", () => {
     render(
       <AIChatRuntimeProvider conversationId="conversation-1">
         <div />
@@ -192,7 +192,7 @@ describe("AIChatRuntimeProvider", () => {
         checkpointId: "run-interrupt-1:run.interrupted",
       },
     });
-    expect(assistantUiMockState.runtimeStore?.adapters?.attachments).toBeUndefined();
+    expect(assistantUiMockState.runtimeStore?.adapters?.attachments).toBeDefined();
     expect(assistantUiMockState.runtimeStore?.queue).toBeDefined();
     expect(assistantUiMockState.runtimeStore?.onReload).toBeTypeOf("function");
     expect(assistantUiMockState.runtimeStore?.onEdit).toBeTypeOf("function");

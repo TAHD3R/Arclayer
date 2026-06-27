@@ -134,6 +134,7 @@ vi.mock("@/components/ai/ai-suggestions", () => ({
 }));
 
 vi.mock("@/components/ai/ai-chat-runtime", () => ({
+  applyWebSearchDirective: (text: string) => text,
   appendMessageToText: (message: Pick<AppendMessage, "content" | "attachments">) => {
     const content =
       typeof message.content === "string"

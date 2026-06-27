@@ -3,7 +3,9 @@ import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } fro
 import { useTranslation } from "react-i18next";
 import {
   AssistantRuntimeProvider,
+  CompositeAttachmentAdapter,
   ComposerPrimitive,
+  SimpleTextAttachmentAdapter,
   WebSpeechDictationAdapter,
   createMessageQueue,
   useExternalStoreRuntime,
@@ -18,9 +20,11 @@ import { AIComposerTriggers } from "@/components/ai/ai-composer-triggers";
 import { AIComposerDirectiveChips } from "@/components/ai/ai-composer-directive-chips";
 import { AIComposerToolbar } from "@/components/ai/ai-composer-toolbar";
 import { AISuggestions } from "@/components/ai/ai-suggestions";
+import { ComposerAttachments } from "@/components/assistant-ui/attachment";
 import { ComposerQueue } from "@/components/assistant-ui/composer-queue";
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 import {
+  applyWebSearchDirective,
   appendMessageToText,
   agentIdForComposerMode,
   sendAIChatMessage,
@@ -59,6 +63,10 @@ function createDictationAdapter() {
   });
 }
 
+function createAttachmentAdapter() {
+  return new CompositeAttachmentAdapter([new SimpleTextAttachmentAdapter()]);
+}
+
 type HomeComposerProps = {
   inputRef: RefObject<HTMLTextAreaElement | null>;
   onSubmitStart: () => void;
@@ -85,6 +93,7 @@ function HomeComposer({
   });
   const [, forceQueueRender] = useState(0);
   const dictationAdapter = useMemo(() => createDictationAdapter(), []);
+  const attachmentAdapter = useMemo(() => createAttachmentAdapter(), []);
 
   const queueController = useMemo<MessageQueueController>(() => {
     const controller = createMessageQueue({
@@ -115,7 +124,10 @@ function HomeComposer({
 
   const sendHomePrompt = useCallback(
     async (text: string) => {
-      const textWithDirectives = buildTextWithAIComposerDirectives("home", text.trim());
+      const textWithDirectives = buildTextWithAIComposerDirectives(
+        "home",
+        applyWebSearchDirective(text.trim()),
+      );
       const trimmed = cleanAIComposerDirectiveText(textWithDirectives);
       if (!trimmed) return;
 
@@ -213,6 +225,7 @@ function HomeComposer({
     isRunning: streaming,
     adapters: {
       dictation: dictationAdapter,
+      attachments: attachmentAdapter,
     },
     queue: queueController.adapter,
     convertMessage: (message: ThreadMessageLike) => message,
@@ -251,6 +264,7 @@ function HomeComposer({
           <ComposerQueue />
           <div className="relative flex min-h-[8.75rem] w-full min-w-0 flex-col gap-3 rounded-[1.75rem] border border-border/70 bg-[color-mix(in_oklab,var(--color-muted)_30%,var(--color-background))] p-3 transition-colors hover:border-border focus-within:border-border">
             <AIComposerDirectiveChips scope="home" />
+            <ComposerAttachments />
             <ComposerPrimitive.Input
               ref={inputRef}
               rows={1}

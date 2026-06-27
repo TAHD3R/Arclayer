@@ -55,6 +55,7 @@ MODEL_METADATA: dict[str, dict[str, str]] = {
 }
 
 MODEL_ORDER = tuple(MODEL_METADATA.keys())
+SYSTEM_AI_PROVIDER_METADATA_SOURCE = "system.ai_providers"
 
 
 class AIModelCatalogUnavailableError(Exception):
@@ -213,15 +214,30 @@ async def _list_available_providers(
                 virtual_key_enc__not_isnull=True,
             )
             .filter(Q(expires_at__gt=now) | Q(expires_at__isnull=True))
-            .values_list("provider", flat=True)
+            .values("provider", "metadata_json")
         )
-        providers.update(_provider_set(platform_providers))
+        providers.update(_system_provider_set(platform_providers))
 
     return providers
 
 
 def _provider_set(values: Iterable[object]) -> set[str]:
     return {value.strip() for value in values if isinstance(value, str) and value.strip()}
+
+
+def _system_provider_set(records: Iterable[dict[str, Any]]) -> set[str]:
+    providers: set[str] = set()
+    for record in records:
+        provider = record.get("provider")
+        metadata = record.get("metadata_json")
+        if (
+            isinstance(provider, str)
+            and provider.strip()
+            and isinstance(metadata, dict)
+            and metadata.get("source") == SYSTEM_AI_PROVIDER_METADATA_SOURCE
+        ):
+            providers.add(provider.strip())
+    return providers
 
 
 def _visible_model_ids(

@@ -5,8 +5,11 @@ import {
   CheckIcon,
   ChevronDownIcon,
   BotIcon,
+  GlobeIcon,
   HammerIcon,
   MessageSquareTextIcon,
+  PaperclipIcon,
+  PlusIcon,
   SquareIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -32,6 +35,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
+import { Switch } from "@arclayer/ui/switch";
 
 const COMPOSER_MODES: readonly {
   value: AIComposerMode;
@@ -77,6 +81,7 @@ export function AIComposerToolbar({ compact = false }: AIComposerToolbarProps) {
       )}
     >
       {selectedMode === "agent" ? <AIAgentSelector compact={compact} /> : null}
+      <AIComposerAttachmentMenu />
       <AIComposerModeSelect />
       <div className="min-w-0 flex-1" />
       <AIModelSelector compact={compact} />
@@ -88,7 +93,10 @@ export function AIComposerToolbar({ compact = false }: AIComposerToolbarProps) {
 export function AIComposerContextControls({ compact = false }: AIComposerToolbarProps) {
   return (
     <div className="flex min-w-0 items-center justify-between gap-2">
-      <AIComposerModeSelect compact={compact} />
+      <div className="flex min-w-0 items-center gap-1">
+        <AIComposerAttachmentMenu />
+        <AIComposerModeSelect compact={compact} />
+      </div>
       <AIModelSelector compact={compact} />
     </div>
   );
@@ -103,6 +111,52 @@ export function AIComposerInputActions() {
       <div className="min-w-0 flex-1" />
       <AIComposerPrimaryAction />
     </div>
+  );
+}
+
+function AIComposerAttachmentMenu() {
+  const { t } = useTranslation(["ai", "common"]);
+  const webSearchEnabled = useAiChatStore((s) => s.webSearchEnabled);
+  const setWebSearchEnabled = useAiChatStore((s) => s.setWebSearchEnabled);
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          aria-label={t("ai:AI_CHAT_COMPOSER_ADD_MENU")}
+          className="h-8 w-8 rounded-xl text-label-primary hover:bg-accent/70"
+        >
+          <PlusIcon className="size-4" aria-hidden="true" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-56 rounded-xl p-2">
+        <ComposerPrimitive.AddAttachment asChild>
+          <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2.5 text-callout">
+            <PaperclipIcon className="size-4 text-label-secondary" aria-hidden="true" />
+            <span className="min-w-0 flex-1 truncate">{t("ai:AI_CHAT_UPLOAD_FILE")}</span>
+          </DropdownMenuItem>
+        </ComposerPrimitive.AddAttachment>
+        <DropdownMenuItem
+          className="cursor-pointer rounded-lg px-3 py-2.5 text-callout"
+          onSelect={(event) => {
+            event.preventDefault();
+            setWebSearchEnabled(!webSearchEnabled);
+          }}
+        >
+          <GlobeIcon className="size-4 text-label-secondary" aria-hidden="true" />
+          <span className="min-w-0 flex-1 truncate">{t("ai:AI_CHAT_WEB_SEARCH")}</span>
+          <Switch
+            aria-hidden="true"
+            checked={webSearchEnabled}
+            className="pointer-events-none"
+            tabIndex={-1}
+          />
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

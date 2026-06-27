@@ -1,7 +1,9 @@
 import {
   AssistantRuntimeProvider,
+  CompositeAttachmentAdapter,
   WebSpeechDictationAdapter,
   createMessageQueue,
+  SimpleTextAttachmentAdapter,
   useExternalStoreRuntime,
   type AppendMessage,
   type MessageQueueController,
@@ -90,6 +92,11 @@ export function appendMessageToText(
   ]
     .filter((part) => part.trim())
     .join("\n\n");
+}
+
+export function applyWebSearchDirective(text: string): string {
+  if (!useAiChatStore.getState().webSearchEnabled) return text;
+  return ["[Web search enabled for this request.]", text].join("\n\n");
 }
 
 /**
@@ -314,6 +321,10 @@ function createDictationAdapter() {
     continuous: true,
     interimResults: true,
   });
+}
+
+function createAttachmentAdapter() {
+  return new CompositeAttachmentAdapter([new SimpleTextAttachmentAdapter()]);
 }
 
 export function agentIdForComposerMode(mode: AIComposerMode, selectedAgentId: string): string {
@@ -548,6 +559,7 @@ export function AIChatRuntimeProvider({
   });
   const [, forceQueueRender] = useState(0);
   const dictationAdapter = useMemo(() => createDictationAdapter(), []);
+  const attachmentAdapter = useMemo(() => createAttachmentAdapter(), []);
 
   const queueController = useMemo<MessageQueueController>(() => {
     const controller = createMessageQueue({
@@ -572,7 +584,10 @@ export function AIChatRuntimeProvider({
 
   const sendRuntimeText = useCallback(
     async (text: string) => {
-      const textWithDirectives = buildTextWithAIComposerDirectives("thread", text.trim());
+      const textWithDirectives = buildTextWithAIComposerDirectives(
+        "thread",
+        applyWebSearchDirective(text.trim()),
+      );
       const trimmed = cleanAIComposerDirectiveText(textWithDirectives);
       if (!trimmed) return;
       if (!useAiChatStore.getState().conversations.some((item) => item.id === conversationId)) {
@@ -685,6 +700,7 @@ export function AIChatRuntimeProvider({
     isSendDisabled: !conversation,
     adapters: {
       dictation: dictationAdapter,
+      attachments: attachmentAdapter,
     },
     queue: queueController.adapter,
     convertMessage: (m: ThreadMessageLike) => m,

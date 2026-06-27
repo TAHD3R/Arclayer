@@ -137,6 +137,7 @@ export interface AIChatState {
   composerMode: AIComposerMode;
   composerModeSource: AIPreferenceSource;
   selectedAgentId: string;
+  webSearchEnabled: boolean;
   /** 侧边 AI 面板展开状态（全局 overlay） */
   drawerOpen: boolean;
 
@@ -170,6 +171,7 @@ export interface AIChatState {
   setStreaming: (b: boolean) => void;
   setSelectedModel: (model: string, source?: AIPreferenceSource) => void;
   setComposerMode: (mode: AIComposerMode, source?: AIPreferenceSource) => void;
+  setWebSearchEnabled: (enabled: boolean) => void;
   applyRuntimeDefaults: (defaults: {
     model?: string;
     reasoningEffort?: AIReasoningEffort;
@@ -217,6 +219,7 @@ export const useAiChatStore = create<AIChatState>()(
       composerMode: DEFAULT_AI_COMPOSER_MODE,
       composerModeSource: "default",
       selectedAgentId: DEFAULT_AI_AGENT_ID,
+      webSearchEnabled: false,
       drawerOpen: false,
 
       createConversation: () => {
@@ -379,6 +382,7 @@ export const useAiChatStore = create<AIChatState>()(
       },
       setComposerMode: (mode, source = "user") =>
         set({ composerMode: mode, composerModeSource: source }),
+      setWebSearchEnabled: (enabled) => set({ webSearchEnabled: enabled }),
       applyRuntimeDefaults: (defaults) =>
         set((state) => {
           const patch: Partial<AIChatState> = {};
@@ -432,6 +436,7 @@ export const useAiChatStore = create<AIChatState>()(
           composerMode: state.composerMode ?? DEFAULT_AI_COMPOSER_MODE,
           composerModeSource: state.composerModeSource ?? (state.composerMode ? "user" : "default"),
           selectedAgentId: state.selectedAgentId ?? DEFAULT_AI_AGENT_ID,
+          webSearchEnabled: false,
           conversations: [],
           activeId: null,
           streaming: false,

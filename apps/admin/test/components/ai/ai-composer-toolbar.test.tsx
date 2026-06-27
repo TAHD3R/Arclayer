@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { listAIProjectAgents } from "@/api/ai";
@@ -16,6 +17,17 @@ vi.mock("@/components/ai/ai-model-selector", () => ({
   AIModelSelector: () => <div data-testid="ai-model-selector" />,
 }));
 
+vi.mock("@assistant-ui/react", () => {
+  const Passthrough = ({ children }: { children?: ReactNode }) => <>{children}</>;
+
+  return {
+    AuiIf: Passthrough,
+    ComposerPrimitive: {
+      AddAttachment: Passthrough,
+    },
+  };
+});
+
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, values?: Record<string, string>) => {
@@ -28,6 +40,9 @@ vi.mock("react-i18next", () => ({
         "ai:AI_CHAT_MODE_AGENT": "Project Copilot",
         "ai:AI_CHAT_MODE_AGENT_DESC": "Read project context",
         "ai:AI_CHAT_MODE_UNAVAILABLE_DESC": `${values?.description ?? ""} · Unavailable`,
+        "ai:AI_CHAT_COMPOSER_ADD_MENU": "Add context",
+        "ai:AI_CHAT_UPLOAD_FILE": "Upload file",
+        "ai:AI_CHAT_WEB_SEARCH": "Web search",
       };
       return labels[key] ?? key;
     },
@@ -96,5 +111,18 @@ describe("AIComposerContextControls", () => {
     const buildItem = await screen.findByRole("menuitem", { name: /Build/ });
     expect(buildItem).toHaveAttribute("data-disabled");
     expect(buildItem).toHaveTextContent("Unavailable");
+  });
+
+  it("toggles web search from the add context menu", async () => {
+    const user = userEvent.setup();
+    useAiChatStore.setState({ webSearchEnabled: false });
+    renderControls();
+
+    await user.click(screen.getByRole("button", { name: "Add context" }));
+    const webSearchItem = await screen.findByRole("menuitem", { name: "Web search" });
+
+    await user.click(webSearchItem);
+
+    expect(useAiChatStore.getState().webSearchEnabled).toBe(true);
   });
 });

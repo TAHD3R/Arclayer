@@ -1,6 +1,6 @@
 "use client";
 
-import { UserMessageAttachments } from "@/components/assistant-ui/attachment";
+import { ComposerAttachments, UserMessageAttachments } from "@/components/assistant-ui/attachment";
 import { useNavigate } from "@tanstack/react-router";
 import { MarkdownText } from "@/components/assistant-ui/markdown-text";
 import {
@@ -295,6 +295,7 @@ const Composer: FC = () => {
           )}
         >
           <AIComposerDirectiveChips scope="thread" />
+          <ComposerAttachments />
           <ComposerPrimitive.Input
             placeholder={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
             className={cn(

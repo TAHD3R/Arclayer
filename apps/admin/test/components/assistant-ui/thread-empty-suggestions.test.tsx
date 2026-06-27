@@ -45,6 +45,7 @@ vi.mock("@assistant-ui/react", async () => {
     AuiIf: ({ children }: { children?: ReactNode }) => <>{children}</>,
     BranchPickerPrimitive: primitive,
     ComposerPrimitive: {
+      Attachments: () => null,
       Root: Passthrough,
       Unstable_TriggerPopoverRoot: Passthrough,
       Input: (props: TextareaHTMLAttributes<HTMLTextAreaElement>) => <textarea {...props} />,

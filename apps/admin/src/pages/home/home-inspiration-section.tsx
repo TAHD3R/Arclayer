@@ -49,7 +49,7 @@ export function HomeInspirationSection() {
         onValueChange={(value) => setActiveCategory(value as SiteBuilderCategory)}
         className="sticky top-0 z-20 mb-4 min-w-0 border-b border-border/60 bg-background"
       >
-        <ChromeTabsList widthMode="content">
+        <ChromeTabsList wrapperClassName="block w-full min-w-0">
           {SITE_BUILDER_CATEGORIES.map((category) => (
             <ChromeTabsTrigger key={category.key} value={category.key}>
               {t(`ai:${category.labelKey}`)}
