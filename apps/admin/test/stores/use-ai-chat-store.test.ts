@@ -48,12 +48,12 @@ describe("useAiChatStore persistence", () => {
     expect(state).toMatchObject({
       selectedModel: DEFAULT_AI_CHAT_MODEL,
       selectedModelSource: "default",
-      selectedReasoningEffort: DEFAULT_AI_REASONING_EFFORT,
-      selectedReasoningEffortSource: "default",
       composerMode: DEFAULT_AI_COMPOSER_MODE,
       composerModeSource: "default",
       selectedAgentId: DEFAULT_AI_AGENT_ID,
     });
+    expect(state).not.toHaveProperty("selectedReasoningEffort");
+    expect(state).not.toHaveProperty("selectedReasoningEffortSource");
   });
 
   it("drops legacy locally persisted conversations during migration", async () => {
@@ -84,14 +84,14 @@ describe("useAiChatStore persistence", () => {
 
     expect(useAiChatStore.getState().conversations).toEqual([]);
     expect(useAiChatStore.getState().activeId).toBeNull();
-    expect(useAiChatStore.getState().selectedReasoningEffort).toBe("high");
-    expect(useAiChatStore.getState().selectedReasoningEffortSource).toBe("user");
+    expect(useAiChatStore.getState().selectedReasoningEffort).toBe(DEFAULT_AI_REASONING_EFFORT);
+    expect(useAiChatStore.getState().selectedReasoningEffortSource).toBe("default");
     expect(useAiChatStore.getState().composerMode).toBe("plan");
     expect(useAiChatStore.getState().composerModeSource).toBe("user");
     expect(useAiChatStore.getState().selectedAgentId).toBe("content_writer");
   });
 
-  it("applies runtime defaults only while preferences still come from defaults", () => {
+  it("always applies managed reasoning defaults while preserving explicit model and mode choices", () => {
     useAiChatStore.getState().applyRuntimeDefaults({
       model: "gpt-4o-mini",
       reasoningEffort: "high",
@@ -108,7 +108,6 @@ describe("useAiChatStore persistence", () => {
     });
 
     useAiChatStore.getState().setSelectedModel("deepseek-v4-pro");
-    useAiChatStore.getState().setSelectedReasoningEffort("low");
     useAiChatStore.getState().setComposerMode("agent");
     useAiChatStore.getState().applyRuntimeDefaults({
       model: "gpt-4o-mini",
@@ -119,8 +118,8 @@ describe("useAiChatStore persistence", () => {
     expect(useAiChatStore.getState()).toMatchObject({
       selectedModel: "deepseek-v4-pro",
       selectedModelSource: "user",
-      selectedReasoningEffort: "low",
-      selectedReasoningEffortSource: "user",
+      selectedReasoningEffort: "medium",
+      selectedReasoningEffortSource: "default",
       composerMode: "agent",
       composerModeSource: "user",
     });

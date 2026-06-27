@@ -277,7 +277,7 @@ describe("GlobalLayout", () => {
       refetch: vi.fn(),
       profile: { isSuperAdmin: true },
     } as unknown as ReturnType<typeof useCurrentUserProfile>);
-    mockPathname = "/system/jobs";
+    mockPathname = "/system/tenants";
     mockResolvedPathname = "/system";
 
     renderWithQueryClient(<GlobalLayout />);

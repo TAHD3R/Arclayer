@@ -22,7 +22,6 @@ import { Route as InspriationIndexRouteImport } from './routes/inspriation/index
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects/$projectId'
 import { Route as SystemTenantsIndexRouteImport } from './routes/system/tenants/index'
 import { Route as SystemSettingsIndexRouteImport } from './routes/system/settings/index'
-import { Route as SystemJobsIndexRouteImport } from './routes/system/jobs/index'
 import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects/$projectId/index'
 import { Route as SystemTenantsWorkspacesIndexRouteImport } from './routes/system/tenants/workspaces/index'
 import { Route as SystemTenantsUsersIndexRouteImport } from './routes/system/tenants/users/index'
@@ -129,11 +128,6 @@ const SystemTenantsIndexRoute = SystemTenantsIndexRouteImport.update({
 const SystemSettingsIndexRoute = SystemSettingsIndexRouteImport.update({
   id: '/settings/',
   path: '/settings/',
-  getParentRoute: () => SystemRoute,
-} as any)
-const SystemJobsIndexRoute = SystemJobsIndexRouteImport.update({
-  id: '/jobs/',
-  path: '/jobs/',
   getParentRoute: () => SystemRoute,
 } as any)
 const ProjectsProjectIdIndexRoute = ProjectsProjectIdIndexRouteImport.update({
@@ -418,7 +412,6 @@ export interface FileRoutesByFullPath {
   '/system/': typeof SystemIndexRoute
   '/welcome/': typeof WelcomeIndexRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
-  '/system/jobs/': typeof SystemJobsIndexRoute
   '/system/settings/': typeof SystemSettingsIndexRoute
   '/system/tenants/': typeof SystemTenantsIndexRoute
   '/projects/$projectId/activity/': typeof ProjectsProjectIdActivityIndexRoute
@@ -466,7 +459,6 @@ export interface FileRoutesByTo {
   '/system': typeof SystemIndexRoute
   '/welcome': typeof WelcomeIndexRoute
   '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
-  '/system/jobs': typeof SystemJobsIndexRoute
   '/system/settings': typeof SystemSettingsIndexRoute
   '/system/tenants': typeof SystemTenantsIndexRoute
   '/projects/$projectId/activity': typeof ProjectsProjectIdActivityIndexRoute
@@ -517,7 +509,6 @@ export interface FileRoutesById {
   '/system/': typeof SystemIndexRoute
   '/welcome/': typeof WelcomeIndexRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
-  '/system/jobs/': typeof SystemJobsIndexRoute
   '/system/settings/': typeof SystemSettingsIndexRoute
   '/system/tenants/': typeof SystemTenantsIndexRoute
   '/projects/$projectId/activity/': typeof ProjectsProjectIdActivityIndexRoute
@@ -569,7 +560,6 @@ export interface FileRouteTypes {
     | '/system/'
     | '/welcome/'
     | '/projects/$projectId/'
-    | '/system/jobs/'
     | '/system/settings/'
     | '/system/tenants/'
     | '/projects/$projectId/activity/'
@@ -617,7 +607,6 @@ export interface FileRouteTypes {
     | '/system'
     | '/welcome'
     | '/projects/$projectId'
-    | '/system/jobs'
     | '/system/settings'
     | '/system/tenants'
     | '/projects/$projectId/activity'
@@ -667,7 +656,6 @@ export interface FileRouteTypes {
     | '/system/'
     | '/welcome/'
     | '/projects/$projectId/'
-    | '/system/jobs/'
     | '/system/settings/'
     | '/system/tenants/'
     | '/projects/$projectId/activity/'
@@ -809,13 +797,6 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/system/settings/'
       preLoaderRoute: typeof SystemSettingsIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/system/jobs/': {
-      id: '/system/jobs/'
-      path: '/jobs'
-      fullPath: '/system/jobs/'
-      preLoaderRoute: typeof SystemJobsIndexRouteImport
       parentRoute: typeof SystemRoute
     }
     '/projects/$projectId/': {
@@ -1061,7 +1042,6 @@ declare module '@tanstack/react-router' {
 
 interface SystemRouteChildren {
   SystemIndexRoute: typeof SystemIndexRoute
-  SystemJobsIndexRoute: typeof SystemJobsIndexRoute
   SystemSettingsIndexRoute: typeof SystemSettingsIndexRoute
   SystemTenantsIndexRoute: typeof SystemTenantsIndexRoute
   SystemSettingsAccessIndexRoute: typeof SystemSettingsAccessIndexRoute
@@ -1077,7 +1057,6 @@ interface SystemRouteChildren {
 
 const SystemRouteChildren: SystemRouteChildren = {
   SystemIndexRoute: SystemIndexRoute,
-  SystemJobsIndexRoute: SystemJobsIndexRoute,
   SystemSettingsIndexRoute: SystemSettingsIndexRoute,
   SystemTenantsIndexRoute: SystemTenantsIndexRoute,
   SystemSettingsAccessIndexRoute: SystemSettingsAccessIndexRoute,

@@ -475,7 +475,7 @@ def build_core_settings_schema() -> ConfigSchema:
                         key="monthly_budget_micros",
                         type="int",
                         default=100_000_000,
-                        label="Monthly workspace AI budget",
+                        label="Default monthly AI budget",
                     ),
                     ConfigField(
                         key="skills_enabled",

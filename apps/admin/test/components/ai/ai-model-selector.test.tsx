@@ -30,10 +30,6 @@ vi.mock("react-i18next", () => ({
         "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO_DESC": "DeepSeek model",
         "ai:AI_CHAT_MODEL_GPT_4O_MINI": "GPT-4o mini",
         "ai:AI_CHAT_MODEL_GPT_4O_MINI_DESC": "Fast model",
-        "ai:AI_CHAT_REASONING_LABEL": "Thinking depth",
-        "ai:AI_CHAT_REASONING_LOW": "Low",
-        "ai:AI_CHAT_REASONING_MEDIUM": "Medium",
-        "ai:AI_CHAT_REASONING_HIGH": "High",
       };
       return labels[key] ?? key;
     },
@@ -116,16 +112,6 @@ describe("AIModelSelector", () => {
     });
   });
 
-  it("keeps the reasoning effort control active inside the dropdown", async () => {
-    const user = userEvent.setup();
-    renderSelector();
-
-    await user.click(await screen.findByRole("button", { name: "Select model" }));
-    await user.click(await screen.findByRole("button", { name: "High" }));
-
-    expect(useAiChatStore.getState().selectedReasoningEffort).toBe("high");
-  });
-
   it("applies runtime defaults from the backend catalog until the user chooses explicitly", async () => {
     vi.mocked(listAIModels).mockResolvedValue({
       defaultModel: "gpt-4o-mini",
@@ -167,7 +153,7 @@ describe("AIModelSelector", () => {
     });
   });
 
-  it("does not overwrite explicit user runtime choices with backend defaults", async () => {
+  it("keeps explicit model and mode choices while applying backend reasoning defaults", async () => {
     useAiChatStore.setState({
       selectedModel: "deepseek-v4-pro",
       selectedModelSource: "user",
@@ -204,14 +190,15 @@ describe("AIModelSelector", () => {
 
     renderSelector();
 
-    await waitFor(() => expect(listAIModels).toHaveBeenCalled());
-    expect(useAiChatStore.getState()).toMatchObject({
-      selectedModel: "deepseek-v4-pro",
-      selectedModelSource: "user",
-      selectedReasoningEffort: "low",
-      selectedReasoningEffortSource: "user",
-      composerMode: "agent",
-      composerModeSource: "user",
+    await waitFor(() => {
+      expect(useAiChatStore.getState()).toMatchObject({
+        selectedModel: "deepseek-v4-pro",
+        selectedModelSource: "user",
+        selectedReasoningEffort: "high",
+        selectedReasoningEffortSource: "default",
+        composerMode: "agent",
+        composerModeSource: "user",
+      });
     });
   });
 });

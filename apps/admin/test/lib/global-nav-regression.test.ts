@@ -39,7 +39,6 @@ describe("global nav regression", () => {
       "global.platform.overview",
       "global.platform.tenants",
       "global.platform.audit",
-      "global.platform.jobs",
       "global.platform.configuration",
     ]);
     expect(configurationItem).toMatchObject({

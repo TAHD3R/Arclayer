@@ -169,7 +169,6 @@ export interface AIChatState {
   ) => void;
   setStreaming: (b: boolean) => void;
   setSelectedModel: (model: string, source?: AIPreferenceSource) => void;
-  setSelectedReasoningEffort: (effort: AIReasoningEffort, source?: AIPreferenceSource) => void;
   setComposerMode: (mode: AIComposerMode, source?: AIPreferenceSource) => void;
   applyRuntimeDefaults: (defaults: {
     model?: string;
@@ -203,7 +202,7 @@ function deriveTitle(text: string): string {
   return trimmed.length > 30 ? `${trimmed.slice(0, 30)}…` : trimmed;
 }
 
-const AI_CHAT_PERSIST_VERSION = 4;
+const AI_CHAT_PERSIST_VERSION = 5;
 
 export const useAiChatStore = create<AIChatState>()(
   persist(
@@ -378,8 +377,6 @@ export const useAiChatStore = create<AIChatState>()(
         if (!next) return;
         set({ selectedModel: next, selectedModelSource: source });
       },
-      setSelectedReasoningEffort: (effort, source = "user") =>
-        set({ selectedReasoningEffort: effort, selectedReasoningEffortSource: source }),
       setComposerMode: (mode, source = "user") =>
         set({ composerMode: mode, composerModeSource: source }),
       applyRuntimeDefaults: (defaults) =>
@@ -391,10 +388,11 @@ export const useAiChatStore = create<AIChatState>()(
           }
           if (
             defaults.reasoningEffort &&
-            state.selectedReasoningEffortSource === "default" &&
-            state.selectedReasoningEffort !== defaults.reasoningEffort
+            (state.selectedReasoningEffort !== defaults.reasoningEffort ||
+              state.selectedReasoningEffortSource !== "default")
           ) {
             patch.selectedReasoningEffort = defaults.reasoningEffort;
+            patch.selectedReasoningEffortSource = "default";
           }
           if (
             defaults.composerMode &&
@@ -419,8 +417,6 @@ export const useAiChatStore = create<AIChatState>()(
       partialize: (s) => ({
         selectedModel: s.selectedModel,
         selectedModelSource: s.selectedModelSource,
-        selectedReasoningEffort: s.selectedReasoningEffort,
-        selectedReasoningEffortSource: s.selectedReasoningEffortSource,
         composerMode: s.composerMode,
         composerModeSource: s.composerModeSource,
         selectedAgentId: s.selectedAgentId,
@@ -431,10 +427,8 @@ export const useAiChatStore = create<AIChatState>()(
           selectedModel: state.selectedModel ?? DEFAULT_AI_CHAT_MODEL,
           selectedModelSource:
             state.selectedModelSource ?? (state.selectedModel ? "user" : "default"),
-          selectedReasoningEffort: state.selectedReasoningEffort ?? DEFAULT_AI_REASONING_EFFORT,
-          selectedReasoningEffortSource:
-            state.selectedReasoningEffortSource ??
-            (state.selectedReasoningEffort ? "user" : "default"),
+          selectedReasoningEffort: DEFAULT_AI_REASONING_EFFORT,
+          selectedReasoningEffortSource: "default",
           composerMode: state.composerMode ?? DEFAULT_AI_COMPOSER_MODE,
           composerModeSource: state.composerModeSource ?? (state.composerMode ? "user" : "default"),
           selectedAgentId: state.selectedAgentId ?? DEFAULT_AI_AGENT_ID,

@@ -6,7 +6,6 @@ import {
   Rainbow,
   Settings2,
   Users,
-  Wrench,
 } from "lucide-react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
@@ -68,13 +67,6 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
     to: "/system/audit-log",
     icon: ReceiptText,
     disabled: true,
-  },
-  {
-    key: "global.platform.jobs",
-    label: "Jobs",
-    labelKey: "nav:NAV_GLOBAL_PLATFORM_JOBS",
-    to: "/system/jobs",
-    icon: Wrench,
   },
   {
     key: "global.platform.configuration",
