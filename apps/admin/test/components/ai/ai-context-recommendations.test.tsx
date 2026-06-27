@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -34,6 +35,13 @@ vi.mock("@/api/ai", () => ({
 
 vi.mock("@/components/ai/ai-chat-runtime", () => ({
   sendAIChatMessage: vi.fn(),
+  sendAIWorkspaceActionMessage: vi.fn(),
+}));
+
+vi.mock("@arclayer/ui/tooltip", () => ({
+  Tooltip: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  TooltipTrigger: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  TooltipContent: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
 }));
 
 vi.mock("react-i18next", () => ({

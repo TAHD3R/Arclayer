@@ -58,7 +58,13 @@ export function AIApprovalQueue({ enabled }: AIApprovalQueueProps) {
   const projectId = useWorkspaceStore((s) => s.currentProjectId);
   const [actionSuccess, setActionSuccess] = useState<ApprovalActionSuccess | null>(null);
   const queryKey = useMemo(() => buildAIAgentApprovalsQueryKey(projectId), [projectId]);
-  const approvalsQuery = useQuery({
+  const {
+    data: approvalsData,
+    error: approvalsError,
+    isError: approvalsIsError,
+    isFetching: approvalsIsFetching,
+    isLoading: approvalsIsLoading,
+  } = useQuery({
     queryKey,
     queryFn: ({ signal }) => listAIAgentActionableApprovals({ projectId: projectId ?? "", signal }),
     enabled: enabled && Boolean(projectId),
@@ -130,8 +136,8 @@ export function AIApprovalQueue({ enabled }: AIApprovalQueueProps) {
 
   if (!enabled || !projectId) return null;
 
-  const approvals = (approvalsQuery.data?.approvals ?? []).filter(isActionableApproval);
-  if (!approvalsQuery.isLoading && !approvalsQuery.isError && approvals.length === 0) return null;
+  const approvals = (approvalsData?.approvals ?? []).filter(isActionableApproval);
+  if (!approvalsIsLoading && !approvalsIsError && approvals.length === 0) return null;
 
   const mutationError =
     approveMutation.error ?? rejectMutation.error ?? modifyMutation.error ?? applyMutation.error;
@@ -151,7 +157,7 @@ export function AIApprovalQueue({ enabled }: AIApprovalQueueProps) {
             {t("ai:AI_AGENT_APPROVAL_QUEUE")}
           </div>
           <div className="truncate text-caption text-label-secondary">
-            {approvalsQuery.isLoading
+            {approvalsIsLoading
               ? t("ai:AI_AGENT_APPROVAL_LOADING")
               : formatApprovalQueueSummary(t, {
                   pendingCount,
@@ -164,7 +170,7 @@ export function AIApprovalQueue({ enabled }: AIApprovalQueueProps) {
           variant="ghost"
           size="icon-xs"
           aria-label={t("ai:AI_AGENT_APPROVAL_REFRESH")}
-          disabled={approvalsQuery.isFetching}
+          disabled={approvalsIsFetching}
           onClick={() => {
             setActionSuccess(null);
             refreshApprovals();
@@ -172,15 +178,13 @@ export function AIApprovalQueue({ enabled }: AIApprovalQueueProps) {
           className="rounded-md text-label-secondary"
         >
           <RefreshCwIcon
-            className={cn("size-3.5", approvalsQuery.isFetching && "animate-spin")}
+            className={cn("size-3.5", approvalsIsFetching && "animate-spin")}
             aria-hidden="true"
           />
         </Button>
       </div>
 
-      {approvalsQuery.isError ? (
-        <ApprovalError message={formatAIChatError(approvalsQuery.error)} />
-      ) : null}
+      {approvalsIsError ? <ApprovalError message={formatAIChatError(approvalsError)} /> : null}
       {mutationError ? <ApprovalError message={formatAIChatError(mutationError)} /> : null}
       {actionSuccess ? (
         <ApprovalSuccess message={approvalActionSuccessMessage(actionSuccess, t)} />

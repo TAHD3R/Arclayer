@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
@@ -22,6 +23,24 @@ def test_resolve_workspace_ai_action_detects_project_create_intent() -> None:
 
 def test_resolve_workspace_ai_action_detects_content_model_create_before_project_create() -> None:
     assert workspace_actions.resolve_workspace_ai_action("帮我的项目创建一个内容模型") == "create_content_model"
+    assert workspace_actions.resolve_workspace_ai_action("生成模型") == "create_content_model"
+
+
+def test_content_model_create_request_generates_camel_case_identifier_for_chinese_default_name() -> None:
+    payload = workspace_actions._content_model_create_request("帮我的项目创建一个内容模型")
+
+    assert re.fullmatch(r"[a-z][A-Za-z0-9]*", payload.singular_key)
+    assert re.fullmatch(r"[a-z][A-Za-z0-9]*", payload.plural_key)
+    assert "_" not in payload.singular_key
+    assert payload.singular_key.startswith("contentModel")
+
+
+def test_content_model_create_request_generates_readable_camel_case_identifier() -> None:
+    payload = workspace_actions._content_model_create_request('create "Blog Post" content model')
+
+    assert payload.name == "Blog Post"
+    assert payload.singular_key == "blogPost"
+    assert payload.plural_key == "blogPosts"
 
 
 def test_resolve_workspace_ai_action_detects_project_list_intent() -> None:

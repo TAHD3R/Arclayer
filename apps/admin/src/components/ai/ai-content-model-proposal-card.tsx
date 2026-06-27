@@ -35,16 +35,19 @@ export function AIContentModelProposalCard({
   const selectedReasoningEffort = useAiChatStore((s) => s.selectedReasoningEffort);
   const [instruction, setInstruction] = useState("");
   const [createdApprovalId, setCreatedApprovalId] = useState<string | null>(null);
-  const agentsQuery = useQuery({
+  const {
+    data: agentsData,
+    error: agentsError,
+    isError: agentsIsError,
+    isLoading: agentsIsLoading,
+  } = useQuery({
     queryKey: ["ai", "project-agents", projectId],
     queryFn: ({ signal }) => listAIProjectAgents({ projectId, signal }),
     enabled,
     staleTime: 60_000,
     retry: false,
   });
-  const modelerSkill = agentsQuery.data?.skills.find(
-    (skill) => skill.skillId === "content.modeler",
-  );
+  const modelerSkill = agentsData?.skills.find((skill) => skill.skillId === "content.modeler");
   const proposalMutation = useMutation({
     mutationFn: async (input: { instruction: string }) =>
       createAIAgentContentModelDraftProposal({
@@ -68,13 +71,13 @@ export function AIContentModelProposalCard({
 
   if (!enabled) return null;
 
-  if (agentsQuery.isError) {
-    return <ProposalError message={formatAIChatError(agentsQuery.error)} className={className} />;
+  if (agentsIsError) {
+    return <ProposalError message={formatAIChatError(agentsError)} className={className} />;
   }
 
   const unavailableDescription = t("ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_TARGET");
 
-  if (agentsQuery.isLoading) {
+  if (agentsIsLoading) {
     return (
       <ProposalUnavailable
         title={t("ai:AI_AGENT_CONTENT_MODEL_PROPOSAL")}

@@ -357,13 +357,19 @@ def _message_intent(message: str | None) -> AgentConversationMode | Literal["wri
     if not message:
         return None
     normalized = message.lower()
-    if any(term in normalized for term in ("build", "implement", "blueprint")):
+    if any(term in normalized for term in ("build", "implement", "blueprint", "构建", "搭建", "实现", "落地")):
         return AgentConversationMode.BUILD
-    if any(term in normalized for term in ("plan", "strategy", "roadmap", "review", "audit")):
+    if any(
+        term in normalized
+        for term in ("plan", "strategy", "roadmap", "review", "audit", "规划", "方案", "计划", "评估")
+    ):
         return AgentConversationMode.PLAN
-    if any(term in normalized for term in ("analyze", "inspect", "check")):
+    if any(term in normalized for term in ("analyze", "inspect", "check", "分析", "检查", "审查", "总结", "梳理")):
         return AgentConversationMode.AGENT
-    if any(term in normalized for term in ("draft", "write", "change", "update", "create", "apply")):
+    if any(
+        term in normalized
+        for term in ("draft", "write", "change", "update", "create", "apply", "创建", "新建", "生成", "执行", "应用")
+    ):
         return "write"
     return None
 

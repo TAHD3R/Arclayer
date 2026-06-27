@@ -22,6 +22,7 @@ import {
   AIComposerInputActions,
   AIComposerToolbar,
 } from "@/components/ai/ai-composer-toolbar";
+import { AIComposerDirectiveChips } from "@/components/ai/ai-composer-directive-chips";
 import { AIComposerTriggers } from "@/components/ai/ai-composer-triggers";
 import { AIContextRecommendations } from "@/components/ai/ai-context-recommendations";
 import { AISuggestions } from "@/components/ai/ai-suggestions";
@@ -293,6 +294,7 @@ const Composer: FC = () => {
               : "h-[6.5rem] min-h-[6.5rem] border border-border/60 dark:border-muted-foreground/15",
           )}
         >
+          <AIComposerDirectiveChips scope="thread" />
           <ComposerPrimitive.Input
             placeholder={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
             className={cn(

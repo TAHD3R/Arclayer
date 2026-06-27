@@ -148,6 +148,12 @@ describe("AI agent API", () => {
         mode: "agent",
         model: "gpt-4o-mini",
         reasoningEffort: undefined,
+        contextSnapshot: {
+          pathname: "/",
+          search: "",
+          surface: "admin",
+          surfaceHint: "admin",
+        },
       },
       undefined,
     );
@@ -175,6 +181,12 @@ describe("AI agent API", () => {
         mode: "agent",
         model: "deepseek-v4-pro",
         reasoningEffort: "high",
+        contextSnapshot: {
+          pathname: "/",
+          search: "",
+          surface: "admin",
+          surfaceHint: "admin",
+        },
       },
       undefined,
     );
@@ -196,6 +208,12 @@ describe("AI agent API", () => {
       messages: [{ role: "user", content: "Hello" }],
       workspaceId: "workspace-1",
       mode: "agent",
+      contextSnapshot: {
+        pathname: "/",
+        search: "",
+        surface: "admin",
+        surfaceHint: "admin",
+      },
     });
   });
 

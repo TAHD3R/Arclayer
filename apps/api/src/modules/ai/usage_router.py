@@ -110,20 +110,26 @@ async def get_monthly_usage(
         end_date = date(year, month + 1, 1)
 
     # Per-model breakdown.
-    records = (
-        await cast(
-            Any,
-            AIUsageDaily.filter(workspace_id=workspace_id, date__gte=start_date, date__lt=end_date).values(
-                "provider", "model"
-            ),
-        )
+    records = await cast(
+        Any,
+        AIUsageDaily
+        .filter(workspace_id=workspace_id, date__gte=start_date, date__lt=end_date)
         .annotate(
             request_count=Sum("request_count"),
             prompt_tokens=Sum("prompt_tokens"),
             completion_tokens=Sum("completion_tokens"),
             cost_micros=Sum("cost_micros"),
         )
+        .group_by("provider", "model")
         .order_by("-cost_micros")
+        .values(
+            "provider",
+            "model",
+            "request_count",
+            "prompt_tokens",
+            "completion_tokens",
+            "cost_micros",
+        ),
     )
 
     by_model = [

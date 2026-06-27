@@ -111,7 +111,7 @@ function AIComposerModeSelect({ compact = false }: AIComposerToolbarProps) {
   const projectId = useWorkspaceStore((s) => s.currentProjectId);
   const selectedMode = useAiChatStore((s) => s.composerMode || DEFAULT_AI_COMPOSER_MODE);
   const setComposerMode = useAiChatStore((s) => s.setComposerMode);
-  const agentsQuery = useQuery({
+  const { data: agentsData } = useQuery({
     queryKey: ["ai", "project-agents", projectId],
     queryFn: ({ signal }) => listAIProjectAgents({ projectId: projectId ?? "", signal }),
     enabled: Boolean(projectId),
@@ -119,10 +119,10 @@ function AIComposerModeSelect({ compact = false }: AIComposerToolbarProps) {
     retry: false,
   });
   const availableAgentIds = useMemo(
-    () => new Set((agentsQuery.data?.agents ?? []).map((agent) => agent.agentId)),
-    [agentsQuery.data?.agents],
+    () => new Set((agentsData?.agents ?? []).map((agent) => agent.agentId)),
+    [agentsData?.agents],
   );
-  const hasCatalog = Boolean(agentsQuery.data);
+  const hasCatalog = Boolean(agentsData);
   const availableModes = useMemo(
     () =>
       COMPOSER_MODES.filter((mode) =>

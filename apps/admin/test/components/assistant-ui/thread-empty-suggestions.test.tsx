@@ -26,6 +26,10 @@ vi.mock("@/components/ai/ai-composer-triggers", () => ({
   AIComposerTriggers: () => null,
 }));
 
+vi.mock("@/components/ai/ai-composer-directive-chips", () => ({
+  AIComposerDirectiveChips: () => null,
+}));
+
 vi.mock("@assistant-ui/react", async () => {
   const Passthrough = ({ children }: { children?: ReactNode }) => <>{children}</>;
   const primitive = new Proxy(

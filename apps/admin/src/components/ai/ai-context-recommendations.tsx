@@ -20,15 +20,17 @@ import {
   sendAIAgentMessage,
 } from "@/api/ai";
 import { aiAgentUnavailableReasonKey } from "@/components/ai/ai-agent-availability";
-import { sendAIChatMessage } from "@/components/ai/ai-chat-runtime";
+import { sendAIChatMessage, sendAIWorkspaceActionMessage } from "@/components/ai/ai-chat-runtime";
 import {
   useAiChatStore,
   type AIComposerMode,
   type AIReasoningEffort,
+  type AIChatMessage,
 } from "@/stores/use-ai-chat-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 
 const MAX_CONTEXT_PROMPT_VALUE_LENGTH = 180;
 const RECOMMENDATION_SCROLL_OFFSET_PX = 180;
@@ -44,6 +46,8 @@ type RecommendationDetail = {
   requiresApproval?: boolean;
   enabled?: boolean;
   disabledReason?: string;
+  prompt?: string;
+  localAction?: "execute-workspace-plan";
 };
 
 export function AIContextRecommendations() {
@@ -61,22 +65,30 @@ export function AIContextRecommendations() {
   const setSelectedAgentId = useAiChatStore((s) => s.setSelectedAgentId);
   const currentProjectId = useWorkspaceStore((s) => s.currentProjectId);
   const contextSnapshot = activeConversation?.contextSnapshot;
-  const recommendations = readRecommendations(contextSnapshot);
+  const recommendations = withLocalRecommendations(
+    readRecommendations(contextSnapshot),
+    activeConversation?.messages ?? [],
+    t,
+  );
   const projectId = readProjectId(contextSnapshot) ?? currentProjectId;
   const needsCatalog = recommendations.some(recommendationNeedsCatalog);
-  const agentsQuery = useQuery({
+  const {
+    data: agentsCatalog,
+    isError: isAgentsCatalogError,
+    isLoading: isAgentsCatalogLoading,
+  } = useQuery({
     queryKey: ["ai", "project-agents", projectId],
     queryFn: ({ signal }) => listAIProjectAgents({ projectId: projectId ?? "", signal }),
     enabled: Boolean(projectId) && needsCatalog,
     staleTime: 60_000,
     retry: false,
   });
-  const availableAgentIds = new Set(agentsQuery.data?.agents.map((agent) => agent.agentId) ?? []);
+  const availableAgentIds = new Set(agentsCatalog?.agents.map((agent) => agent.agentId) ?? []);
   const enabledSkillIds = new Set(
-    agentsQuery.data?.skills.filter((skill) => skill.enabled).map((skill) => skill.skillId) ?? [],
+    agentsCatalog?.skills.filter((skill) => skill.enabled).map((skill) => skill.skillId) ?? [],
   );
   const disabledSkillReasons = new Map(
-    agentsQuery.data?.skills
+    agentsCatalog?.skills
       .filter((skill) => !skill.enabled)
       .map((skill) => [skill.skillId, skill.disabledReason ?? undefined]) ?? [],
   );
@@ -92,10 +104,10 @@ export function AIContextRecommendations() {
       availableAgentIds,
       disabledSkillReasons,
       enabledSkillIds,
-      hasCatalog: Boolean(agentsQuery.data),
+      hasCatalog: Boolean(agentsCatalog),
       contextSnapshot,
-      isCatalogError: agentsQuery.isError,
-      isCatalogLoading: agentsQuery.isLoading,
+      isCatalogError: isAgentsCatalogError,
+      isCatalogLoading: isAgentsCatalogLoading,
       projectId,
       recommendation,
     });
@@ -116,6 +128,14 @@ export function AIContextRecommendations() {
     const prompt = buildRecommendationPrompt(localized, contextSnapshot, t);
 
     try {
+      if (recommendation.localAction === "execute-workspace-plan") {
+        setComposerMode("build");
+        await sendAIWorkspaceActionMessage(
+          activeId,
+          recommendation.prompt ?? localized.description,
+        );
+        return;
+      }
       const proposal = await tryCreateWritableProposal({
         contextSnapshot,
         instruction: prompt,
@@ -180,41 +200,49 @@ export function AIContextRecommendations() {
               availableAgentIds,
               disabledSkillReasons,
               enabledSkillIds,
-              hasCatalog: Boolean(agentsQuery.data),
+              hasCatalog: Boolean(agentsCatalog),
               contextSnapshot,
-              isCatalogError: agentsQuery.isError,
-              isCatalogLoading: agentsQuery.isLoading,
+              isCatalogError: isAgentsCatalogError,
+              isCatalogLoading: isAgentsCatalogLoading,
               projectId,
               recommendation,
             });
             const disabled = busy || !availability.available;
+            const tooltip = buildRecommendationTitle(localized, availability, t);
             return (
-              <Button
-                key={recommendation.actionId}
-                type="button"
-                variant="ghost"
-                size="sm"
-                disabled={disabled}
-                title={buildRecommendationTitle(localized, availability, t)}
-                aria-busy={pending}
-                className={cn(
-                  "h-8 shrink-0 gap-1.5 !rounded-full px-2.5 text-footnote font-semibold shadow-none",
-                  "text-label-secondary hover:bg-accent/70 hover:text-label-primary",
-                )}
-                onClick={() => {
-                  void handleRecommendation(recommendation);
-                }}
-              >
-                {pending ? (
-                  <Loader2Icon className="size-3.5 animate-spin" aria-hidden="true" />
-                ) : (
-                  <SparklesIcon className="size-3.5" aria-hidden="true" />
-                )}
-                <span className="max-w-[10rem] truncate">{localized.label}</span>
-                {recommendation.requiresApproval ? (
-                  <ShieldCheckIcon className="size-3.5 text-label-tertiary" aria-hidden="true" />
-                ) : null}
-              </Button>
+              <Tooltip key={recommendation.actionId}>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={disabled}
+                    title={tooltip}
+                    aria-busy={pending}
+                    className={cn(
+                      "h-8 shrink-0 gap-1.5 !rounded-full px-2.5 text-footnote font-semibold shadow-none",
+                      "text-label-secondary hover:bg-accent/70 hover:text-label-primary",
+                    )}
+                    onClick={() => {
+                      void handleRecommendation(recommendation);
+                    }}
+                  >
+                    {pending ? (
+                      <Loader2Icon className="size-3.5 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <SparklesIcon className="size-3.5" aria-hidden="true" />
+                    )}
+                    <span className="max-w-[10rem] truncate">{localized.label}</span>
+                    {recommendation.requiresApproval ? (
+                      <ShieldCheckIcon
+                        className="size-3.5 text-label-tertiary"
+                        aria-hidden="true"
+                      />
+                    ) : null}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-80">{tooltip}</TooltipContent>
+              </Tooltip>
             );
           })}
         </div>
@@ -250,6 +278,43 @@ export function AIContextRecommendations() {
       ) : null}
     </div>
   );
+}
+
+function withLocalRecommendations(
+  recommendations: RecommendationDetail[],
+  messages: AIChatMessage[],
+  t: (key: string) => string,
+): RecommendationDetail[] {
+  const plannedGoal = readLatestWorkspaceActionPlanGoal(messages);
+  if (!plannedGoal) return recommendations;
+  return [
+    {
+      actionId: "execute-planned-workspace-action",
+      label: t("ai:AI_CONTEXT_ACTION_EXECUTE_PLANNED_WORKSPACE_ACTION_LABEL"),
+      description: t("ai:AI_CONTEXT_ACTION_EXECUTE_PLANNED_WORKSPACE_ACTION_DESC"),
+      mode: "build",
+      priority: 0,
+      prompt: plannedGoal,
+      localAction: "execute-workspace-plan",
+    },
+    ...recommendations,
+  ];
+}
+
+function readLatestWorkspaceActionPlanGoal(messages: AIChatMessage[]): string | null {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message?.role !== "assistant") continue;
+    const artifact = message.agentArtifact;
+    if (
+      artifact?.type === "agent_execution_plan" &&
+      artifact.source?.startsWith("workspace_action:") &&
+      artifact.goal.trim()
+    ) {
+      return artifact.goal.trim();
+    }
+  }
+  return null;
 }
 
 type WritableProposalResult = { handled: false } | { handled: true };

@@ -73,7 +73,11 @@ export function AIAgentSelector({ className, compact = false }: AIAgentSelectorP
   const projectId = useWorkspaceStore((s) => s.currentProjectId);
   const selectedAgentId = useAiChatStore((s) => s.selectedAgentId || DEFAULT_AI_AGENT_ID);
   const setSelectedAgentId = useAiChatStore((s) => s.setSelectedAgentId);
-  const agentsQuery = useQuery({
+  const {
+    data: agentsData,
+    isError: agentsIsError,
+    isLoading: agentsIsLoading,
+  } = useQuery({
     queryKey: ["ai", "project-agents", projectId],
     queryFn: ({ signal }) => listAIProjectAgents({ projectId: projectId ?? "", signal }),
     enabled: Boolean(projectId),
@@ -82,31 +86,30 @@ export function AIAgentSelector({ className, compact = false }: AIAgentSelectorP
   });
   const options = useMemo(
     () =>
-      agentsQuery.data?.agents.map((agent) => toAgentOption(agent)) ??
+      agentsData?.agents.map((agent) => toAgentOption(agent)) ??
       STATIC_AGENT_OPTIONS.map((agent) => ({
         value: agent.value,
         label: t(agent.labelKey),
         description: t(agent.descriptionKey),
         icon: agent.icon,
       })),
-    [agentsQuery.data?.agents, t],
+    [agentsData?.agents, t],
   );
   const selected = useMemo(
     () => options.find((agent) => agent.value === selectedAgentId) ?? options[0],
     [options, selectedAgentId],
   );
   useEffect(() => {
-    if (!agentsQuery.data || options.length === 0) return;
+    if (!agentsData || options.length === 0) return;
     if (options.some((agent) => agent.value === selectedAgentId)) return;
     setSelectedAgentId(options[0].value);
-  }, [agentsQuery.data, options, selectedAgentId, setSelectedAgentId]);
-  const SelectedIcon = selected?.icon ?? (agentsQuery.isError ? TriangleAlertIcon : BotIcon);
-  const disabled =
-    !projectId || agentsQuery.isLoading || agentsQuery.isError || options.length === 0;
+  }, [agentsData, options, selectedAgentId, setSelectedAgentId]);
+  const SelectedIcon = selected?.icon ?? (agentsIsError ? TriangleAlertIcon : BotIcon);
+  const disabled = !projectId || agentsIsLoading || agentsIsError || options.length === 0;
   const buttonLabel = getButtonLabel({
     projectId,
-    isLoading: agentsQuery.isLoading,
-    isError: agentsQuery.isError,
+    isLoading: agentsIsLoading,
+    isError: agentsIsError,
     hasOptions: options.length > 0,
     selectedLabel: selected?.label,
     t,

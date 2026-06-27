@@ -870,7 +870,11 @@ export function SystemSettingsAgentsPage() {
     (state) => state.currentWorkspaceId ?? state.lastWorkspaceId,
   );
   const usagePeriod = useMemo(() => currentUsagePeriod(), []);
-  const usageQuery = useQuery({
+  const {
+    data: usageData,
+    error: usageError,
+    isLoading: usageIsLoading,
+  } = useQuery({
     queryKey: ["ai", "usage", workspaceId, usagePeriod],
     queryFn: ({ signal }) =>
       getAIMonthlyUsageSummary({
@@ -882,19 +886,43 @@ export function SystemSettingsAgentsPage() {
     retry: false,
     meta: { silent: true },
   });
-  const modelCatalogQuery = useQuery({
+  const {
+    data: modelCatalogData,
+    error: modelCatalogError,
+    isLoading: modelCatalogIsLoading,
+  } = useQuery({
     queryKey: ["ai", "chat-models", workspaceId],
     queryFn: ({ signal }) => listAIModels({ workspaceId: String(workspaceId), signal }),
     enabled: Boolean(workspaceId),
     retry: false,
     meta: { silent: true },
   });
-  const providersQuery = useQuery({
+  const {
+    data: providersData,
+    isError: providersIsError,
+    isLoading: providersIsLoading,
+  } = useQuery({
     queryKey: PROVIDER_QUERY_KEY,
     queryFn: ({ signal }) => listAISystemProviders({ signal }),
     retry: false,
     meta: { silent: true },
   });
+  const usageQuery = useMemo(
+    () => ({ data: usageData, error: usageError, isLoading: usageIsLoading }),
+    [usageData, usageError, usageIsLoading],
+  );
+  const modelCatalogQuery = useMemo(
+    () => ({
+      data: modelCatalogData,
+      error: modelCatalogError,
+      isLoading: modelCatalogIsLoading,
+    }),
+    [modelCatalogData, modelCatalogError, modelCatalogIsLoading],
+  );
+  const providersQuery = useMemo(
+    () => ({ data: providersData, isError: providersIsError, isLoading: providersIsLoading }),
+    [providersData, providersIsError, providersIsLoading],
+  );
   const refreshProviderState = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: PROVIDER_QUERY_KEY }),

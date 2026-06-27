@@ -31,6 +31,7 @@ class ChatRequest(BaseSchema):
     reasoning_effort: AIReasoningEffort | None = None
     temperature: float | None = None
     max_tokens: int | None = None
+    context_snapshot: JsonObject = Field(default_factory=dict)
 
 
 class ChatUsage(BaseSchema):

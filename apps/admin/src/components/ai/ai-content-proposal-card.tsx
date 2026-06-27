@@ -36,7 +36,12 @@ export function AIContentProposalCard({ enabled }: AIContentProposalCardProps) {
   const selectedReasoningEffort = useAiChatStore((s) => s.selectedReasoningEffort);
   const [instruction, setInstruction] = useState("");
   const [createdApprovalId, setCreatedApprovalId] = useState<string | null>(null);
-  const agentsQuery = useQuery({
+  const {
+    data: agentsData,
+    error: agentsError,
+    isError: agentsIsError,
+    isLoading: agentsIsLoading,
+  } = useQuery({
     queryKey: ["ai", "project-agents", routeContext?.projectId],
     queryFn: ({ signal }) =>
       listAIProjectAgents({ projectId: routeContext?.projectId ?? "", signal }),
@@ -44,7 +49,7 @@ export function AIContentProposalCard({ enabled }: AIContentProposalCardProps) {
     staleTime: 60_000,
     retry: false,
   });
-  const writerSkill = agentsQuery.data?.skills.find((skill) => skill.skillId === "content.writer");
+  const writerSkill = agentsData?.skills.find((skill) => skill.skillId === "content.writer");
   const proposalMutation = useMutation({
     mutationFn: async (input: { context: ContentItemRouteContext; instruction: string }) =>
       createAIAgentContentDraftProposal({
@@ -67,13 +72,13 @@ export function AIContentProposalCard({ enabled }: AIContentProposalCardProps) {
 
   if (!enabled || !routeContext) return null;
 
-  if (agentsQuery.isError) {
-    return <ProposalError message={formatAIChatError(agentsQuery.error)} />;
+  if (agentsIsError) {
+    return <ProposalError message={formatAIChatError(agentsError)} />;
   }
 
   const unavailableDescription = t("ai:AI_AGENT_CONTENT_PROPOSAL_TARGET");
 
-  if (agentsQuery.isLoading) {
+  if (agentsIsLoading) {
     return (
       <ProposalUnavailable
         title={t("ai:AI_AGENT_CONTENT_PROPOSAL")}

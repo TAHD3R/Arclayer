@@ -112,7 +112,7 @@ describe("AIDrawerOverlay", () => {
     });
   });
 
-  it("does not rewrite the page context for conversations that already have messages", async () => {
+  it("refreshes the page context for conversations that already have messages", async () => {
     useAiChatStore.setState((state) => ({
       conversations: state.conversations.map((conversation) => ({
         ...conversation,
@@ -126,6 +126,8 @@ describe("AIDrawerOverlay", () => {
     view.rerender(<AIDrawerOverlay widthPx={360} />);
 
     await waitFor(() => expect(loadAIConversations).toHaveBeenCalled());
-    expect(ensureAIConversationPersistedForRuntime).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(ensureAIConversationPersistedForRuntime).toHaveBeenCalledWith("conversation-1");
+    });
   });
 });

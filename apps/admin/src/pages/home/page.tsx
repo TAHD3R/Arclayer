@@ -15,6 +15,7 @@ import {
 import * as authApi from "@/api/auth";
 import { listProjects } from "@/api/projects";
 import { AIComposerTriggers } from "@/components/ai/ai-composer-triggers";
+import { AIComposerDirectiveChips } from "@/components/ai/ai-composer-directive-chips";
 import { AIComposerToolbar } from "@/components/ai/ai-composer-toolbar";
 import { AISuggestions } from "@/components/ai/ai-suggestions";
 import { ComposerQueue } from "@/components/assistant-ui/composer-queue";
@@ -23,8 +24,15 @@ import {
   appendMessageToText,
   agentIdForComposerMode,
   sendAIChatMessage,
+  sendAIWorkspaceActionPlanMessage,
   sendAIWorkspaceActionMessage,
+  shouldPlanAIWorkspaceAction,
 } from "@/components/ai/ai-chat-runtime";
+import {
+  buildTextWithAIComposerDirectives,
+  cleanAIComposerDirectiveText,
+  clearAIComposerDirectives,
+} from "@/components/ai/ai-composer-directives";
 import {
   AI_AGENT_PROJECT_CONTEXT_REQUIRED,
   cancelAIAgentRun,
@@ -107,7 +115,8 @@ function HomeComposer({
 
   const sendHomePrompt = useCallback(
     async (text: string) => {
-      const trimmed = text.trim();
+      const textWithDirectives = buildTextWithAIComposerDirectives("home", text.trim());
+      const trimmed = cleanAIComposerDirectiveText(textWithDirectives);
       if (!trimmed) return;
 
       onSubmitStart();
@@ -142,8 +151,10 @@ function HomeComposer({
                 activeAgentRunIdRef.current = runId;
               },
             });
+          } else if (shouldPlanAIWorkspaceAction(mode, trimmed)) {
+            await sendAIWorkspaceActionPlanMessage(conversationId, textWithDirectives);
           } else if (mode !== "plan" && shouldUseAIWorkspaceAction(trimmed)) {
-            await sendAIWorkspaceActionMessage(conversationId, trimmed, {
+            await sendAIWorkspaceActionMessage(conversationId, textWithDirectives, {
               signal: controller.signal,
             });
             onWorkspaceActionComplete?.();
@@ -161,6 +172,8 @@ function HomeComposer({
       } catch (err) {
         clearPendingHomeConversationWhenIdle();
         onSubmitError(formatAIChatError(err));
+      } finally {
+        clearAIComposerDirectives("home");
       }
     },
     [
@@ -237,6 +250,7 @@ function HomeComposer({
         <ComposerPrimitive.Root className="aui-home-composer-root relative flex w-full min-w-0 flex-col">
           <ComposerQueue />
           <div className="flex min-h-[8.75rem] w-full min-w-0 flex-col gap-3 rounded-[1.75rem] border border-border/70 bg-[color-mix(in_oklab,var(--color-muted)_30%,var(--color-background))] p-3 transition-colors hover:border-border focus-within:border-border">
+            <AIComposerDirectiveChips scope="home" />
             <ComposerPrimitive.Input
               ref={inputRef}
               rows={1}
@@ -269,13 +283,13 @@ export function HomePage() {
   const [localError, setLocalError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const workspaceId = currentWorkspaceId ?? lastWorkspaceId;
-  const meQuery = useQuery({
+  const { data: me } = useQuery({
     queryKey: ["auth", "me", sessionVersion],
     enabled: Boolean(accessToken),
     queryFn: async () => authApi.me(),
     meta: { silent: true },
   });
-  const profile = useMemo(() => normalizeUserProfile(meQuery.data), [meQuery.data]);
+  const profile = useMemo(() => normalizeUserProfile(me), [me]);
   const displayName = useMemo(
     () =>
       profile.displayName ??
@@ -284,7 +298,7 @@ export function HomePage() {
       getUserDisplayName(accessToken, t("ai:AI_CHAT_HOME_USER_FALLBACK")),
     [accessToken, profile.displayName, profile.email, profile.username, t],
   );
-  const recentProjectsQuery = useQuery({
+  const { data: recentProjectsData } = useQuery({
     queryKey: ["home", "recent-projects", workspaceId, sessionVersion],
     enabled: Boolean(accessToken && workspaceId),
     queryFn: async () =>
@@ -299,7 +313,7 @@ export function HomePage() {
     retry: false,
     meta: { silent: true },
   });
-  const recentProjects = recentProjectsQuery.data?.items ?? [];
+  const recentProjects = recentProjectsData?.items ?? [];
   const hasRecentProjects = recentProjects.length > 0;
   const refreshProjectsAfterWorkspaceAction = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ["home", "recent-projects"] });

@@ -10,7 +10,14 @@ import {
   type Unstable_Mention,
   type Unstable_SlashCommand,
 } from "@assistant-ui/react";
-import { FolderIcon, FolderPlusIcon, Layers3Icon, ListIcon } from "lucide-react";
+import {
+  ClipboardCheckIcon,
+  FileSearchIcon,
+  FolderIcon,
+  FolderPlusIcon,
+  Layers3Icon,
+  RouteIcon,
+} from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -27,6 +34,10 @@ function composerTriggerItemClassName(index: number) {
   );
 }
 
+function actionDirective(id: string, label: string, prompt: string) {
+  return `:action[${label}]{name=${id}} ${prompt}`;
+}
+
 export function AIComposerTriggers() {
   const { t } = useTranslation(["ai"]);
   const aui = useAui();
@@ -36,7 +47,7 @@ export function AIComposerTriggers() {
   const lastWorkspaceId = useWorkspaceStore((s) => s.lastWorkspaceId);
   const workspaceId = currentWorkspaceId ?? lastWorkspaceId;
 
-  const projectsQuery = useQuery({
+  const { data: projectsData, isFetching: isFetchingProjects } = useQuery({
     queryKey: ["ai", "composer", "project-mentions", workspaceId, sessionVersion],
     enabled: Boolean(accessToken && workspaceId),
     queryFn: async () =>
@@ -54,14 +65,14 @@ export function AIComposerTriggers() {
 
   const projectMentions = useMemo<Unstable_Mention[]>(
     () =>
-      (projectsQuery.data?.items ?? []).map((project) => ({
+      (projectsData?.items ?? []).map((project) => ({
         id: project.id,
         type: "project",
         label: project.name,
         description: project.description ?? project.slug,
         icon: "project",
       })),
-    [projectsQuery.data?.items],
+    [projectsData?.items],
   );
 
   const mention = unstable_useMentionAdapter({
@@ -73,25 +84,84 @@ export function AIComposerTriggers() {
   const slashCommands = useMemo<Unstable_SlashCommand[]>(
     () => [
       {
-        id: "create-project",
-        label: t("ai:AI_CHAT_COMMAND_CREATE_PROJECT"),
-        description: t("ai:AI_CHAT_COMMAND_CREATE_PROJECT_DESC"),
-        icon: "create-project",
-        execute: () => aui.composer().setText(t("ai:AI_CHAT_COMMAND_CREATE_PROJECT_PROMPT")),
+        id: "launch-project",
+        label: t("ai:AI_CHAT_COMMAND_LAUNCH_PROJECT"),
+        description: t("ai:AI_CHAT_COMMAND_LAUNCH_PROJECT_DESC"),
+        icon: "launch-project",
+        execute: () =>
+          aui
+            .composer()
+            .setText(
+              actionDirective(
+                "launch-project",
+                t("ai:AI_CHAT_COMMAND_LAUNCH_PROJECT"),
+                t("ai:AI_CHAT_COMMAND_LAUNCH_PROJECT_PROMPT"),
+              ),
+            ),
       },
       {
-        id: "create-content-model",
-        label: t("ai:AI_CHAT_COMMAND_CREATE_CONTENT_MODEL"),
-        description: t("ai:AI_CHAT_COMMAND_CREATE_CONTENT_MODEL_DESC"),
-        icon: "content-model",
-        execute: () => aui.composer().setText(t("ai:AI_CHAT_COMMAND_CREATE_CONTENT_MODEL_PROMPT")),
+        id: "content-model-plan",
+        label: t("ai:AI_CHAT_COMMAND_CONTENT_MODEL_PLAN"),
+        description: t("ai:AI_CHAT_COMMAND_CONTENT_MODEL_PLAN_DESC"),
+        icon: "content-model-plan",
+        execute: () =>
+          aui
+            .composer()
+            .setText(
+              actionDirective(
+                "content-model-plan",
+                t("ai:AI_CHAT_COMMAND_CONTENT_MODEL_PLAN"),
+                t("ai:AI_CHAT_COMMAND_CONTENT_MODEL_PLAN_PROMPT"),
+              ),
+            ),
       },
       {
-        id: "list-projects",
-        label: t("ai:AI_CHAT_COMMAND_LIST_PROJECTS"),
-        description: t("ai:AI_CHAT_COMMAND_LIST_PROJECTS_DESC"),
-        icon: "list-projects",
-        execute: () => aui.composer().setText(t("ai:AI_CHAT_COMMAND_LIST_PROJECTS_PROMPT")),
+        id: "content-ops-blueprint",
+        label: t("ai:AI_CHAT_COMMAND_CONTENT_OPS_BLUEPRINT"),
+        description: t("ai:AI_CHAT_COMMAND_CONTENT_OPS_BLUEPRINT_DESC"),
+        icon: "content-ops-blueprint",
+        execute: () =>
+          aui
+            .composer()
+            .setText(
+              actionDirective(
+                "content-ops-blueprint",
+                t("ai:AI_CHAT_COMMAND_CONTENT_OPS_BLUEPRINT"),
+                t("ai:AI_CHAT_COMMAND_CONTENT_OPS_BLUEPRINT_PROMPT"),
+              ),
+            ),
+      },
+      {
+        id: "launch-readiness-audit",
+        label: t("ai:AI_CHAT_COMMAND_LAUNCH_READINESS_AUDIT"),
+        description: t("ai:AI_CHAT_COMMAND_LAUNCH_READINESS_AUDIT_DESC"),
+        icon: "launch-readiness-audit",
+        execute: () =>
+          aui
+            .composer()
+            .setText(
+              actionDirective(
+                "launch-readiness-audit",
+                t("ai:AI_CHAT_COMMAND_LAUNCH_READINESS_AUDIT"),
+                t("ai:AI_CHAT_COMMAND_LAUNCH_READINESS_AUDIT_PROMPT"),
+              ),
+            ),
+      },
+      {
+        id: "page-context-brief",
+        label: t("ai:AI_CHAT_COMMAND_PAGE_CONTEXT_BRIEF"),
+        description: t("ai:AI_CHAT_COMMAND_PAGE_CONTEXT_BRIEF_DESC"),
+        icon: "page-context-brief",
+        execute: () =>
+          aui
+            .composer()
+            .setText(
+              actionDirective(
+                "page-context-brief",
+                t("ai:AI_CHAT_COMMAND_PAGE_CONTEXT_BRIEF"),
+                t("ai:AI_CHAT_COMMAND_PAGE_CONTEXT_BRIEF_PROMPT"),
+              ),
+            ),
       },
     ],
     [aui, t],
@@ -107,7 +177,7 @@ export function AIComposerTriggers() {
       <ComposerPrimitive.Unstable_TriggerPopover
         char="@"
         adapter={mention.adapter}
-        isLoading={projectsQuery.isFetching}
+        isLoading={isFetchingProjects}
         aria-label={t("ai:AI_CHAT_PROJECT_MENTION_LABEL")}
         className="absolute inset-x-3 bottom-full z-20 mb-2 max-h-64 overflow-y-auto rounded-xl border border-border/70 bg-popover p-1.5 text-popover-foreground shadow-lg"
       >
@@ -147,11 +217,15 @@ export function AIComposerTriggers() {
           {(items) =>
             items.map((item, index) => {
               const Icon =
-                item.id === "create-project"
+                item.id === "launch-project"
                   ? FolderPlusIcon
-                  : item.id === "create-content-model"
+                  : item.id === "content-model-plan"
                     ? Layers3Icon
-                    : ListIcon;
+                    : item.id === "content-ops-blueprint"
+                      ? RouteIcon
+                      : item.id === "launch-readiness-audit"
+                        ? ClipboardCheckIcon
+                        : FileSearchIcon;
               return (
                 <ComposerPrimitive.Unstable_TriggerPopoverItem
                   key={item.id}

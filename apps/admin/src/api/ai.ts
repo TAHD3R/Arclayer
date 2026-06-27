@@ -221,6 +221,7 @@ export interface AIChatOptions {
   signal?: AbortSignal;
   model?: string;
   reasoningEffort?: AIReasoningEffort;
+  contextSnapshot?: Record<string, unknown>;
 }
 
 export type AIChatStreamPart = { type: "text"; text: string } | { type: "reasoning"; text: string };
@@ -838,8 +839,10 @@ export async function* chatStream(
 export function shouldUseAIWorkspaceAction(message: string): boolean {
   const text = message.trim().toLocaleLowerCase();
   if (!text) return false;
-  const hasContentModel = /内容模型|内容类型|content model|content type|schema model/i.test(text);
-  const hasCreateIntent = /创建|新建|建立|生成|create|start|new project/i.test(text);
+  const hasContentModel =
+    /内容模型|内容类型|content model|content type|schema model/i.test(text) ||
+    (/模型/i.test(text) && !/大模型|ai\s*model|模型选择|切换模型|选择模型/i.test(text));
+  const hasCreateIntent = /创建|新建|建立|生成|搭建|create|start|new project/i.test(text);
   if (hasContentModel && hasCreateIntent) return true;
   const hasProject = /项目|projects?/i.test(text);
   if (!hasProject) return false;
@@ -1633,6 +1636,7 @@ function buildChatRequestBody(
     mode: useAiChatStore.getState().composerMode,
     model: normalizeAIModelForRequest(options?.model),
     reasoningEffort: options?.reasoningEffort,
+    contextSnapshot: options?.contextSnapshot ?? buildPageContextSnapshot(),
   };
 }
 

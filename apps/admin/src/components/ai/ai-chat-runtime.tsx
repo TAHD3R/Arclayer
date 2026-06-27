@@ -22,6 +22,11 @@ import {
   type AIChatMessage,
 } from "@/api/ai";
 import {
+  buildTextWithAIComposerDirectives,
+  cleanAIComposerDirectiveText,
+  clearAIComposerDirectives,
+} from "@/components/ai/ai-composer-directives";
+import {
   DEFAULT_AI_AGENT_ID,
   DEFAULT_AI_COMPOSER_MODE,
   useAiChatStore,
@@ -340,8 +345,9 @@ export async function sendAIWorkspaceActionMessage(
   text: string,
   options?: { signal?: AbortSignal },
 ): Promise<void> {
-  const trimmed = text.trim();
-  if (!trimmed) return;
+  const rawText = text.trim();
+  const trimmed = cleanAIComposerDirectiveText(rawText);
+  if (!rawText || !trimmed) return;
 
   const state = useAiChatStore.getState();
   const conversation = state.conversations.find((c) => c.id === conversationId);
@@ -355,7 +361,7 @@ export async function sendAIWorkspaceActionMessage(
     await ensureAIConversationPersistedForRuntime(conversationId, { applyResponse: false });
     const result = await executeAIWorkspaceAction(trimmed, {
       signal: options?.signal,
-      projectId: resolveWorkspaceActionProjectId(conversation, trimmed),
+      projectId: resolveWorkspaceActionProjectId(conversation, rawText),
     });
     useAiChatStore.getState().appendMessage(conversationId, {
       role: "assistant",
@@ -382,6 +388,34 @@ export async function sendAIWorkspaceActionMessage(
   }
 }
 
+export async function sendAIWorkspaceActionPlanMessage(
+  conversationId: string,
+  text: string,
+): Promise<void> {
+  const rawText = text.trim();
+  const trimmed = cleanAIComposerDirectiveText(rawText);
+  if (!rawText || !trimmed) return;
+
+  const state = useAiChatStore.getState();
+  const conversation = state.conversations.find((c) => c.id === conversationId);
+  if (!conversation) {
+    throw new Error(`AI conversation not found: ${conversationId}`);
+  }
+
+  const plan = createWorkspaceActionPlan(
+    trimmed,
+    resolveWorkspaceActionProjectId(conversation, rawText),
+  );
+  state.appendMessage(conversationId, { role: "user", content: trimmed });
+  state.appendMessage(conversationId, {
+    role: "assistant",
+    content: plan.content,
+    agentArtifact: plan.artifact,
+    agentExecutionSummary: { toolNames: ["workspace.plan"] },
+  });
+  await ensureAIConversationPersistedForRuntime(conversationId);
+}
+
 async function persistConversationAfterManualMessageChange(conversationId: string): Promise<void> {
   try {
     await ensureAIConversationPersistedForRuntime(conversationId);
@@ -402,7 +436,7 @@ async function sendAIChatMessageWithSignal(
   text: string,
   options?: { signal?: AbortSignal },
 ): Promise<void> {
-  const trimmed = text.trim();
+  const trimmed = cleanAIComposerDirectiveText(text.trim());
   if (!trimmed) return;
 
   const state = useAiChatStore.getState();
@@ -538,7 +572,8 @@ export function AIChatRuntimeProvider({
 
   const sendRuntimeText = useCallback(
     async (text: string) => {
-      const trimmed = text.trim();
+      const textWithDirectives = buildTextWithAIComposerDirectives("thread", text.trim());
+      const trimmed = cleanAIComposerDirectiveText(textWithDirectives);
       if (!trimmed) return;
       if (!useAiChatStore.getState().conversations.some((item) => item.id === conversationId)) {
         return;
@@ -560,14 +595,17 @@ export function AIChatRuntimeProvider({
               activeAgentRunIdRef.current = runId;
             },
           });
+        } else if (shouldPlanAIWorkspaceAction(mode, trimmed)) {
+          await sendAIWorkspaceActionPlanMessage(conversationId, textWithDirectives);
         } else if (shouldExecuteAIWorkspaceAction(mode, trimmed)) {
-          await sendAIWorkspaceActionMessage(conversationId, trimmed, {
+          await sendAIWorkspaceActionMessage(conversationId, textWithDirectives, {
             signal: controller.signal,
           });
         } else {
           await sendAIChatMessage(conversationId, trimmed, { signal: controller.signal });
         }
       } finally {
+        clearAIComposerDirectives("thread");
         if (activeRequestRef.current === controller) {
           activeRequestRef.current = null;
         }
@@ -745,6 +783,77 @@ export function AIChatRuntimeProvider({
 function shouldExecuteAIWorkspaceAction(mode: AIComposerMode, text: string): boolean {
   if (mode === "plan") return false;
   return shouldUseAIWorkspaceAction(text);
+}
+
+export function shouldPlanAIWorkspaceAction(mode: AIComposerMode, text: string): boolean {
+  return mode === "plan" && isMutatingAIWorkspaceAction(text);
+}
+
+function isMutatingAIWorkspaceAction(text: string): boolean {
+  const normalized = text.toLocaleLowerCase();
+  const hasCreateIntent = /创建|新建|建立|生成|搭建|create|start|new project/i.test(normalized);
+  if (!hasCreateIntent) return false;
+  const hasContentModel = /内容模型|内容类型|schema model|content model|content type/i.test(
+    normalized,
+  );
+  const hasGenericModel =
+    /模型/i.test(normalized) && !/大模型|ai\s*model|模型选择|切换模型|选择模型/i.test(normalized);
+  const hasProject = /项目|project/i.test(normalized);
+  return hasProject || hasContentModel || hasGenericModel;
+}
+
+function createWorkspaceActionPlan(
+  prompt: string,
+  projectId: string | null,
+): { content: string; artifact: AIAgentMessageArtifact } {
+  const chinese = /[\u4E00-\u9FFF]/u.test(prompt);
+  const target = projectId
+    ? chinese
+      ? `目标项目：${projectId}`
+      : `Target project: ${projectId}`
+    : chinese
+      ? "目标项目：将使用当前项目，或需要先用 @ 选择项目"
+      : "Target project: current project, or select one with @ first";
+  const steps: AIAgentArtifactStep[] = chinese
+    ? [
+        { id: "confirm-target", title: target, status: "planned" },
+        {
+          id: "resolve-intent",
+          title: "识别要创建的项目或内容模型，并补齐名称与用途。",
+          status: "planned",
+        },
+        {
+          id: "execute-build",
+          title: "切换到构建模式后执行，并返回可打开的结果入口。",
+          status: "planned",
+        },
+      ]
+    : [
+        { id: "confirm-target", title: target, status: "planned" },
+        {
+          id: "resolve-intent",
+          title:
+            "Resolve whether to create a project or content model and complete required naming.",
+          status: "planned",
+        },
+        {
+          id: "execute-build",
+          title: "Switch to Build mode to execute and return the created resource link.",
+          status: "planned",
+        },
+      ];
+  return {
+    content: chinese
+      ? "我已为这次创建请求整理成可执行方案。规划模式不会直接修改工作区；确认后切换到构建模式发送同一目标，我会执行创建并返回结果入口。"
+      : "I prepared an executable proposal for this creation request. Plan mode does not mutate the workspace; switch to Build mode and send the same goal to execute it.",
+    artifact: {
+      type: "agent_execution_plan",
+      goal: prompt,
+      status: "planned",
+      steps,
+      source: "workspace_action:planned_mutation",
+    },
+  };
 }
 
 function resolveWorkspaceActionProjectId(

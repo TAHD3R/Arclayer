@@ -43,6 +43,7 @@ _CONTENT_MODEL_TERMS = (
     "content type",
     "schema model",
 )
+_AI_MODEL_TERMS = ("大模型", "ai model", "模型选择", "选择模型", "切换模型")
 _CREATE_TERMS = ("创建", "新建", "建立", "生成", "create", "start", "new project")
 _LIST_TERMS = ("查看", "列出", "搜索", "查找", "找", "有哪些", "列表", "list", "find", "search", "show")
 _OPEN_TERMS = ("打开", "进入", "跳转", "open", "go to")
@@ -63,6 +64,10 @@ _PROJECT_QUERY = re.compile(
     r"(?:查找|搜索|找|打开|查看|find|search|open|show)\s*(?P<query>[^，。,.!?！？]{1,64}?)\s*(?:项目|project)",
     re.IGNORECASE,
 )
+_ACRONYM_IDENTIFIER_BOUNDARY = re.compile(r"([A-Z]+)([A-Z][a-z])")
+_CAMEL_IDENTIFIER_BOUNDARY = re.compile(r"([a-z0-9])([A-Z])")
+_IDENTIFIER_WORD_SEPARATOR = re.compile(r"[^A-Za-z0-9]+")
+_LEADING_NON_LETTERS = re.compile(r"^[^A-Za-z]+")
 _RANDOM_PROJECT_NAMES = (
     "内容实验室",
     "品牌发布站",
@@ -169,7 +174,7 @@ async def execute_workspace_ai_action(
 
 def resolve_workspace_ai_action(message: str) -> WorkspaceAIActionKind | None:
     text = _normalized_text(message)
-    if _contains_any(text, _CONTENT_MODEL_TERMS) and _contains_any(text, _CREATE_TERMS):
+    if _is_content_model_create_intent(text):
         return "create_content_model"
     if not _contains_any(text, _PROJECT_TERMS):
         return None
@@ -180,6 +185,14 @@ def resolve_workspace_ai_action(message: str) -> WorkspaceAIActionKind | None:
     if _contains_any(text, _LIST_TERMS):
         return "list_projects"
     return None
+
+
+def _is_content_model_create_intent(text: str) -> bool:
+    if not _contains_any(text, _CREATE_TERMS):
+        return False
+    if _contains_any(text, _CONTENT_MODEL_TERMS):
+        return True
+    return "模型" in text and not _contains_any(text, _AI_MODEL_TERMS)
 
 
 def _is_mutating_action(action: WorkspaceAIActionKind) -> bool:
@@ -279,7 +292,7 @@ def _content_model_create_request(message: str) -> ContentModelDefinitionContrac
     key = _content_model_key(name)
     return ContentModelDefinitionContract(
         singular_key=key,
-        plural_key=f"{key}s",
+        plural_key=_content_model_plural_key(key),
         name=name,
         description=_content_model_description(message),
         category="custom",
@@ -323,10 +336,37 @@ def _content_model_description(message: str) -> str:
 
 
 def _content_model_key(name: str) -> str:
-    ascii_key = re.sub(r"[^a-z0-9]+", "_", name.casefold()).strip("_")
-    if ascii_key:
-        return ascii_key[:54].strip("_") or f"content_model_{uuid4().hex[:6]}"
-    return f"content_model_{uuid4().hex[:8]}"
+    if name.startswith("内容模型 "):
+        return _generated_content_model_key()
+    words = _content_model_identifier_words(name)
+    if words:
+        first, *rest = words
+        raw = "".join([first.casefold(), *(word[:1].upper() + word[1:].casefold() for word in rest)])
+        key = _LEADING_NON_LETTERS.sub("", raw)[:54]
+        if key:
+            return f"{key[:1].casefold()}{key[1:]}"
+    return _generated_content_model_key()
+
+
+def _generated_content_model_key() -> str:
+    return f"contentModel{uuid4().hex[:8]}"
+
+
+def _content_model_identifier_words(value: str) -> list[str]:
+    separated = _ACRONYM_IDENTIFIER_BOUNDARY.sub(r"\1 \2", value)
+    separated = _CAMEL_IDENTIFIER_BOUNDARY.sub(r"\1 \2", separated)
+    return [word for word in _IDENTIFIER_WORD_SEPARATOR.split(separated) if word[:1].isalpha()]
+
+
+def _content_model_plural_key(singular_key: str) -> str:
+    irregular = {"category": "categories", "person": "people"}.get(singular_key)
+    if irregular:
+        return irregular
+    if singular_key.endswith("y") and re.search(r"[^aeiou]y$", singular_key):
+        return f"{singular_key[:-1]}ies"
+    if singular_key.endswith(("s", "x", "z", "ch", "sh")):
+        return f"{singular_key}es"
+    return f"{singular_key}s"
 
 
 def _project_query(message: str) -> str | None:

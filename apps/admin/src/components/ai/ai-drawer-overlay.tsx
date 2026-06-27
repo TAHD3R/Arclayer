@@ -83,7 +83,6 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
 
   useEffect(() => {
     if (!drawerOpen || !activeId || !activeConversation) return;
-    if (activeConversation.messages.length > 0) return;
 
     const snapshot = activeConversation.contextSnapshot ?? {};
     const snapshotPathname = typeof snapshot.pathname === "string" ? snapshot.pathname : null;
