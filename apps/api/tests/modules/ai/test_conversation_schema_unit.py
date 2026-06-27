@@ -12,6 +12,7 @@ from src.models.agents.conversation import AgentConversationMode
 from src.modules.ai import router as ai_router
 from src.modules.ai.context_recommendations import enrich_conversation_context_snapshot
 from src.modules.ai.conversation_titles import generate_conversation_title
+from src.modules.ai.repository import AIConversationRepository
 from src.modules.ai.schema import AIConversationCreateRequest, AIConversationMessage, AIConversationUpdateRequest
 
 
@@ -603,3 +604,122 @@ async def test_update_conversation_title_uses_stored_context_when_snapshot_is_om
     assert response.data.title == "AI agent settings"
     assert fake_repo.updated_title == "AI agent settings"
     assert fake_repo.updated_context_snapshot is None
+
+
+@pytest.mark.asyncio
+async def test_update_conversation_passes_explicit_null_context_fields(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace_id = uuid4()
+    user_id = uuid4()
+    conversation_id = uuid4()
+    old_project_id = uuid4()
+    now = datetime(2026, 6, 27, 8, 0, tzinfo=UTC)
+    record = SimpleNamespace(
+        id=conversation_id,
+        workspace_id=workspace_id,
+        user_id=user_id,
+        title="Project chat",
+        mode=AgentConversationMode.BUILD,
+        model=None,
+        reasoning_effort=None,
+        messages=[],
+        project_id=old_project_id,
+        runtime_id=None,
+        site_id=None,
+        environment_id=None,
+        context_snapshot={},
+        created_at=now,
+        updated_at=now,
+    )
+
+    class FakeConversationRepository:
+        def __init__(self) -> None:
+            self.context_fields: set[str] | None = None
+            self.project_id: UUID | None | object = object()
+
+        async def get_for_user(self, **kwargs: Any) -> Any:
+            assert kwargs == {
+                "conversation_id": conversation_id,
+                "workspace_id": workspace_id,
+                "user_id": user_id,
+            }
+            return record
+
+        async def update_conversation(self, current_record: Any, **kwargs: Any) -> Any:
+            assert current_record is record
+            self.context_fields = kwargs["context_fields"]
+            self.project_id = kwargs["project_id"]
+            record.project_id = kwargs["project_id"]
+            return record
+
+    fake_repo = FakeConversationRepository()
+
+    async def fake_resolve_workspace_context_by_id(**kwargs: Any) -> Any:
+        assert kwargs == {"workspace_id": workspace_id, "user_id": user_id}
+        return SimpleNamespace(workspace_id=workspace_id)
+
+    async def fake_validate_conversation_context(**kwargs: Any) -> None:
+        assert kwargs["project_id"] is None
+
+    async def fake_agent_settings(_settings: Any) -> dict[str, object]:
+        return {}
+
+    monkeypatch.setattr(ai_router, "_CONVERSATIONS", fake_repo)
+    monkeypatch.setattr(ai_router, "resolve_workspace_context_by_id", fake_resolve_workspace_context_by_id)
+    monkeypatch.setattr(ai_router, "_validate_conversation_context", fake_validate_conversation_context)
+    monkeypatch.setattr(ai_router, "_agent_settings", fake_agent_settings)
+
+    response = await ai_router.update_ai_conversation(
+        conversation_id=conversation_id,
+        payload=AIConversationUpdateRequest(project_id=None),
+        workspace_id=workspace_id,
+        user_id=user_id,
+        settings=cast(Any, object()),
+    )
+
+    assert response.data is not None
+    assert response.data.project_id is None
+    assert fake_repo.project_id is None
+    assert fake_repo.context_fields == {"project_id"}
+
+
+@pytest.mark.asyncio
+async def test_repository_update_conversation_clears_explicit_context_fields() -> None:
+    saved_fields: list[str] | None = None
+    old_project_id = uuid4()
+
+    class FakeRecord:
+        project_id: UUID | None = old_project_id
+        runtime_id: UUID | None = uuid4()
+        site_id: UUID | None = uuid4()
+        environment_id: UUID | None = uuid4()
+
+        async def save(self, *, update_fields: list[str]) -> None:
+            nonlocal saved_fields
+            saved_fields = update_fields
+
+    record = FakeRecord()
+    repo = AIConversationRepository()
+
+    updated = await repo.update_conversation(
+        cast(Any, record),
+        title=None,
+        mode=None,
+        model=None,
+        reasoning_effort=None,
+        messages=None,
+        project_id=None,
+        runtime_id=None,
+        site_id=None,
+        environment_id=None,
+        context_snapshot=None,
+        context_fields={"project_id", "runtime_id", "site_id", "environment_id"},
+    )
+
+    assert updated is record
+    assert record.project_id is None
+    assert record.runtime_id is None
+    assert record.site_id is None
+    assert record.environment_id is None
+    assert saved_fields == ["updated_at", "project_id", "runtime_id", "site_id", "environment_id"]

@@ -100,8 +100,10 @@ class AIConversationRepository(TortoiseORMRepository):
         site_id: UUID | None,
         environment_id: UUID | None,
         context_snapshot: JsonObject | None,
+        context_fields: set[str] | None = None,
     ) -> AgentConversationRecord:
         update_fields = ["updated_at"]
+        explicit_context_fields = context_fields or set()
         if title is not None:
             record.title = title
             update_fields.append("title")
@@ -117,16 +119,16 @@ class AIConversationRepository(TortoiseORMRepository):
         if messages is not None:
             record.messages = _serialize_messages(messages)
             update_fields.append("messages")
-        if project_id is not None:
+        if project_id is not None or "project_id" in explicit_context_fields:
             record.project_id = project_id
             update_fields.append("project_id")
-        if runtime_id is not None:
+        if runtime_id is not None or "runtime_id" in explicit_context_fields:
             record.runtime_id = runtime_id
             update_fields.append("runtime_id")
-        if site_id is not None:
+        if site_id is not None or "site_id" in explicit_context_fields:
             record.site_id = site_id
             update_fields.append("site_id")
-        if environment_id is not None:
+        if environment_id is not None or "environment_id" in explicit_context_fields:
             record.environment_id = environment_id
             update_fields.append("environment_id")
         if context_snapshot is not None:

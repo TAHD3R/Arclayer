@@ -43,6 +43,7 @@ from src.settings.runtime import get_core_settings_value_cached
 router = APIRouter(tags=["AI"])
 _CONVERSATIONS = AIConversationRepository()
 _MAX_CONVERSATIONS = 50
+_CONVERSATION_CONTEXT_FIELDS = frozenset({"project_id", "runtime_id", "site_id", "environment_id"})
 _MODE_SYSTEM_PROMPTS: dict[AgentConversationMode, str] = {
     AgentConversationMode.BUILD: (
         "You are Arclayer Build mode. Produce directly actionable implementation guidance, "
@@ -172,6 +173,7 @@ async def create_ai_conversation(
             site_id=payload.site_id,
             environment_id=payload.environment_id,
             context_snapshot=context_snapshot,
+            context_fields=_explicit_conversation_context_fields(payload.model_fields_set),
         )
         return ApiResponse.success(data=_to_conversation_out(updated))
 
@@ -271,6 +273,7 @@ async def update_ai_conversation(
         site_id=payload.site_id,
         environment_id=payload.environment_id,
         context_snapshot=context_snapshot,
+        context_fields=_explicit_conversation_context_fields(payload.model_fields_set),
     )
     return ApiResponse.success(data=_to_conversation_out(updated))
 
@@ -400,6 +403,10 @@ def _to_conversation_out(record: AgentConversationRecord) -> AIConversationOut:
         created_at=record.created_at,
         updated_at=record.updated_at,
     )
+
+
+def _explicit_conversation_context_fields(fields_set: set[str]) -> set[str]:
+    return set(fields_set).intersection(_CONVERSATION_CONTEXT_FIELDS)
 
 
 def _stored_conversation_messages(record: AgentConversationRecord) -> list[AIConversationMessage]:

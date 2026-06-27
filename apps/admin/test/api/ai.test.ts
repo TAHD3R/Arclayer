@@ -359,6 +359,28 @@ describe("AI agent API", () => {
     );
   });
 
+  it("persists a null project id after leaving project scope", async () => {
+    useWorkspaceStore.setState({ currentProjectId: null });
+    useAiChatStore.getState().upsertConversation({
+      id: "conversation-system-1",
+      title: "System settings",
+      createdAt: 1,
+      updatedAt: 1,
+      messages: [{ role: "user", content: "Review AI settings" }],
+    });
+
+    await ensureAIConversationPersistedForRuntime("conversation-system-1", {
+      applyResponse: false,
+    });
+
+    expect(apiPatchMock).toHaveBeenLastCalledWith(
+      "/chat/conversations/conversation-system-1?workspaceId=workspace-1",
+      expect.objectContaining({
+        projectId: null,
+      }),
+    );
+  });
+
   it("loads project agent catalog from the backend", async () => {
     apiGetMock.mockResolvedValue({
       agents: [

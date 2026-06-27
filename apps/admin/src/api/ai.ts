@@ -1447,7 +1447,7 @@ function buildConversationRequestBody(conversation: AIConversation): Record<stri
     messages: conversation.messages
       .filter(shouldPersistConversationMessage)
       .map(toApiConversationMessage),
-    projectId: workspace.currentProjectId ?? undefined,
+    projectId: workspace.currentProjectId ?? null,
     contextSnapshot: buildPageContextSnapshot(),
   };
 }
