@@ -44,7 +44,13 @@ from src.models.ai.user_key_grant import (
     can_transition_grant,
     is_grant_active,
 )
-from src.modules.ai.model_catalog import _system_provider_set, list_ai_model_catalog
+from src.modules.ai.model_catalog import (
+    AI_MODEL_CATALOG_EMPTY,
+    AI_MODEL_CATALOG_MASTER_KEY_REQUIRED,
+    AIModelCatalogUnavailableError,
+    _system_provider_set,
+    list_ai_model_catalog,
+)
 from src.modules.ai.router import _get_ai_service
 from src.modules.ai.router import router as ai_router
 from src.modules.ai.schema import AIModelCatalogItem, AIModelCatalogResponse, AIReasoningEffort
@@ -826,6 +832,46 @@ class TestAIModelCatalog:
         assert catalog.models[0].provider == "deepseek"
         assert catalog.models[0].label_key == "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO"
 
+    async def test_catalog_uses_error_code_when_master_key_missing(self) -> None:
+        settings = get_settings()
+        settings.ai = settings.ai.model_copy(
+            update={
+                "litellm_master_key": None,
+                "mock_enabled": False,
+            },
+        )
+
+        with pytest.raises(AIModelCatalogUnavailableError) as exc_info:
+            await list_ai_model_catalog(settings, workspace_id=uuid4(), user_id=uuid4())
+
+        assert exc_info.value.code == AI_MODEL_CATALOG_MASTER_KEY_REQUIRED
+        assert str(exc_info.value) == AI_MODEL_CATALOG_MASTER_KEY_REQUIRED
+
+    async def test_catalog_uses_error_code_when_no_selectable_models_exist(self) -> None:
+        settings = get_settings()
+        settings.ai = settings.ai.model_copy(
+            update={
+                "litellm_master_key": "master-key",
+                "mock_enabled": False,
+            },
+        )
+
+        with (
+            patch(
+                "src.modules.ai.model_catalog.LiteLLMClient.list_models",
+                new=AsyncMock(return_value={"data": [{"id": "deepseek-v4-pro"}]}),
+            ),
+            patch(
+                "src.modules.ai.model_catalog._list_available_providers",
+                new=AsyncMock(return_value=set()),
+            ),
+            pytest.raises(AIModelCatalogUnavailableError) as exc_info,
+        ):
+            await list_ai_model_catalog(settings, workspace_id=uuid4(), user_id=uuid4())
+
+        assert exc_info.value.code == AI_MODEL_CATALOG_EMPTY
+        assert str(exc_info.value) == AI_MODEL_CATALOG_EMPTY
+
     async def test_catalog_prefers_visible_core_default_model(self) -> None:
         settings = get_settings()
         settings.ai = settings.ai.model_copy(
@@ -1125,6 +1171,40 @@ class TestEndToEndChatFlow:
         assert data["reasoningEffort"] == "medium"
         assert data["models"][0]["id"] == "deepseek-v4-pro"
         assert data["models"][0]["labelKey"] == "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO"
+
+    async def test_model_catalog_endpoint_returns_catalog_error_code(self) -> None:
+        settings = get_settings()
+        service = AIChatService(settings, runtime=AsyncMock(spec=LLMRuntime))
+        user_id = uuid4()
+        workspace_id = uuid4()
+        app = _build_test_app(
+            workspace_id=uuid4(),
+            user_id=user_id,
+            service=service,
+            inject_workspace=False,
+        )
+
+        transport = ASGITransport(app=app, raise_app_exceptions=True)
+        catalog_error = AIModelCatalogUnavailableError(AI_MODEL_CATALOG_EMPTY)
+
+        with (
+            patch(
+                "src.modules.ai.router.resolve_workspace_context_by_id",
+                new=AsyncMock(return_value=SimpleNamespace(workspace_id=workspace_id)),
+            ),
+            patch(
+                "src.modules.ai.router.list_ai_model_catalog",
+                new=AsyncMock(side_effect=catalog_error),
+            ),
+        ):
+            async with AsyncClient(transport=transport, base_url="http://test") as http:
+                response = await http.get(f"/api/v1/chat/models?workspaceId={encode_uuid(workspace_id)}")
+
+        assert response.status_code == 503, response.text
+        body = response.json()
+        envelope = body.get("detail", body)
+        assert envelope["error"] == AI_MODEL_CATALOG_EMPTY
+        assert envelope["message"] == AI_MODEL_CATALOG_EMPTY
 
     async def test_chat_endpoint_correlation_id(self) -> None:
         """Verify the response includes correlation ID metadata."""

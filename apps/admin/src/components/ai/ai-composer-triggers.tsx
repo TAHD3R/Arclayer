@@ -12,6 +12,7 @@ import {
 } from "@assistant-ui/react";
 import {
   ClipboardCheckIcon,
+  BotIcon,
   FileSearchIcon,
   FolderIcon,
   FolderPlusIcon,
@@ -21,6 +22,7 @@ import {
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
+import { listAIProjectAgents } from "@/api/ai";
 import { listProjects } from "@/api/projects";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -42,7 +44,7 @@ function composerTriggerPopoverClassName(
   placement: NonNullable<AIComposerTriggersProps["placement"]>,
 ) {
   return cn(
-    "absolute inset-x-3 z-20 max-h-64 overflow-y-auto rounded-xl border border-border/70 bg-popover p-1.5 text-popover-foreground shadow-lg",
+    "absolute inset-x-3 z-[2500] max-h-64 overflow-y-auto rounded-xl border border-border/70 bg-popover p-1.5 text-popover-foreground shadow-lg",
     placement === "bottom" ? "top-full mt-2" : "bottom-full mb-2",
   );
 }
@@ -58,6 +60,7 @@ export function AIComposerTriggers({ placement = "top" }: AIComposerTriggersProp
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const currentWorkspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const lastWorkspaceId = useWorkspaceStore((s) => s.lastWorkspaceId);
+  const currentProjectId = useWorkspaceStore((s) => s.currentProjectId);
   const workspaceId = currentWorkspaceId ?? lastWorkspaceId;
 
   const { data: projectsData, isFetching: isFetchingProjects } = useQuery({
@@ -87,9 +90,37 @@ export function AIComposerTriggers({ placement = "top" }: AIComposerTriggersProp
       })),
     [projectsData?.items],
   );
+  const { data: agentsData, isFetching: isFetchingAgents } = useQuery({
+    queryKey: ["ai", "composer", "agent-mentions", currentProjectId],
+    enabled: Boolean(accessToken && currentProjectId),
+    queryFn: ({ signal }) =>
+      listAIProjectAgents({
+        projectId: String(currentProjectId),
+        signal,
+      }),
+    staleTime: 30_000,
+    retry: false,
+    meta: { silent: true },
+  });
+
+  const agentMentions = useMemo<Unstable_Mention[]>(
+    () =>
+      (agentsData?.agents ?? []).map((agent) => ({
+        id: agent.agentId,
+        type: "agent",
+        label: agent.name,
+        description: agent.description,
+        icon: "agent",
+      })),
+    [agentsData?.agents],
+  );
+  const mentions = useMemo<Unstable_Mention[]>(
+    () => [...projectMentions, ...agentMentions],
+    [agentMentions, projectMentions],
+  );
 
   const mention = unstable_useMentionAdapter({
-    items: projectMentions,
+    items: mentions,
     includeModelContextTools: false,
     formatter: unstable_defaultDirectiveFormatter,
   });
@@ -190,7 +221,7 @@ export function AIComposerTriggers({ placement = "top" }: AIComposerTriggersProp
       <ComposerPrimitive.Unstable_TriggerPopover
         char="@"
         adapter={mention.adapter}
-        isLoading={isFetchingProjects}
+        isLoading={isFetchingProjects || isFetchingAgents}
         aria-label={t("ai:AI_CHAT_PROJECT_MENTION_LABEL")}
         className={composerTriggerPopoverClassName(placement)}
       >
@@ -204,7 +235,11 @@ export function AIComposerTriggers({ placement = "top" }: AIComposerTriggersProp
                 index={index}
                 className={composerTriggerItemClassName(index)}
               >
-                <FolderIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                {item.type === "agent" ? (
+                  <BotIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                ) : (
+                  <FolderIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                )}
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium">{item.label}</span>
                   {item.description ? (

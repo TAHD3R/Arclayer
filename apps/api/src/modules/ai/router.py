@@ -104,8 +104,8 @@ async def list_chat_models(
         raise HTTPException(
             status_code=503,
             detail={
-                "message": str(exc),
-                "error": "AI_MODEL_CATALOG_UNAVAILABLE",
+                "message": exc.code,
+                "error": exc.code,
             },
         ) from exc
 

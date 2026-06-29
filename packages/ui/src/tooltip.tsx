@@ -42,12 +42,7 @@ type TooltipContentProps = Omit<TooltipContentPrimitiveProps, "asChild"> & {
   layout?: boolean | "position" | "size" | "preserve-aspect";
 };
 
-function TooltipContent({
-  className,
-  children,
-  layout = "preserve-aspect",
-  ...props
-}: TooltipContentProps) {
+function TooltipContent({ className, children, layout = false, ...props }: TooltipContentProps) {
   return (
     <TooltipContentPrimitive
       className={cn(
@@ -57,9 +52,9 @@ function TooltipContent({
       )}
       {...props}
     >
-      <motion.div className="overflow-hidden px-3 py-1.5 text-callout text-balance">
-        <motion.div layout={layout}>{children}</motion.div>
-      </motion.div>
+      <div className="max-w-[min(20rem,calc(100vw-2rem))] overflow-hidden px-3 py-1.5 text-left text-callout whitespace-normal break-words">
+        {layout ? <motion.div layout={layout}>{children}</motion.div> : children}
+      </div>
       <TooltipArrowPrimitive
         className="size-3 fill-[hsl(220_15%_8%)] data-[side='bottom']:translate-y-[1px] data-[side='right']:translate-x-[1px] data-[side='left']:translate-x-[-1px] data-[side='top']:translate-y-[-1px]"
         tipRadius={2}

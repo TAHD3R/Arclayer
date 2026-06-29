@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 export type AIComposerDirectiveScope = "thread" | "home";
-export type AIComposerDirectiveType = "project" | "action";
+export type AIComposerDirectiveType = "project" | "agent" | "action";
 
 export interface AIComposerDirectiveChip {
   type: AIComposerDirectiveType;
@@ -100,6 +100,6 @@ export function clearAIComposerDirectives(scope: AIComposerDirectiveScope): void
 }
 
 function normalizeDirectiveType(value: string | undefined): AIComposerDirectiveType | null {
-  if (value === "project" || value === "action") return value;
+  if (value === "project" || value === "agent" || value === "action") return value;
   return null;
 }

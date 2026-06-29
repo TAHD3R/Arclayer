@@ -96,8 +96,14 @@ export async function initWorkspaceUpload(
   return api.post<UploadInitOut>(workspacePath(workspaceId, "/uploads/init"), payload);
 }
 
-export async function getWorkspaceUploadPolicy(workspaceId: string): Promise<UploadPolicyOut> {
-  return api.get<UploadPolicyOut>(workspacePath(workspaceId, "/uploads/policy"));
+export async function getWorkspaceUploadPolicy(
+  workspaceId: string,
+  purpose = "workspace_icon",
+): Promise<UploadPolicyOut> {
+  const params = new URLSearchParams({ purpose });
+  return api.get<UploadPolicyOut>(
+    workspacePath(workspaceId, `/uploads/policy?${params.toString()}`),
+  );
 }
 
 export async function getWorkspaceUploadStatus(

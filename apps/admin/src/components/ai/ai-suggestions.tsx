@@ -1,12 +1,4 @@
 import { useCallback } from "react";
-import {
-  ClipboardCheckIcon,
-  FileSearchIcon,
-  Layers3Icon,
-  RocketIcon,
-  RouteIcon,
-  type LucideIcon,
-} from "lucide-react";
 import { useAui, useAuiState } from "@assistant-ui/react";
 import { useTranslation } from "react-i18next";
 
@@ -19,7 +11,6 @@ type AISuggestion = {
   titleKey: string;
   promptKey: string;
   descriptionKey: string;
-  icon: LucideIcon;
 };
 
 export const AI_CHAT_SUGGESTIONS = [
@@ -28,35 +19,30 @@ export const AI_CHAT_SUGGESTIONS = [
     titleKey: "AI_CHAT_SUGGESTION_REVIEW_PAGE",
     promptKey: "AI_CHAT_SUGGESTION_REVIEW_PAGE_PROMPT",
     descriptionKey: "AI_CHAT_SUGGESTION_REVIEW_PAGE_DESC",
-    icon: FileSearchIcon,
   },
   {
     id: "check-content-quality",
     titleKey: "AI_CHAT_SUGGESTION_CHECK_CONTENT",
     promptKey: "AI_CHAT_SUGGESTION_CHECK_CONTENT_PROMPT",
     descriptionKey: "AI_CHAT_SUGGESTION_CHECK_CONTENT_DESC",
-    icon: ClipboardCheckIcon,
   },
   {
     id: "plan-content-model",
     titleKey: "AI_CHAT_SUGGESTION_PLAN_MODEL",
     promptKey: "AI_CHAT_SUGGESTION_PLAN_MODEL_PROMPT",
     descriptionKey: "AI_CHAT_SUGGESTION_PLAN_MODEL_DESC",
-    icon: Layers3Icon,
   },
   {
     id: "prepare-launch-checklist",
     titleKey: "AI_CHAT_SUGGESTION_LAUNCH_CHECKLIST",
     promptKey: "AI_CHAT_SUGGESTION_LAUNCH_CHECKLIST_PROMPT",
     descriptionKey: "AI_CHAT_SUGGESTION_LAUNCH_CHECKLIST_DESC",
-    icon: RocketIcon,
   },
   {
     id: "improve-page-flow",
     titleKey: "AI_CHAT_SUGGESTION_IMPROVE_FLOW",
     promptKey: "AI_CHAT_SUGGESTION_IMPROVE_FLOW_PROMPT",
     descriptionKey: "AI_CHAT_SUGGESTION_IMPROVE_FLOW_DESC",
-    icon: RouteIcon,
   },
 ] satisfies readonly AISuggestion[];
 
@@ -140,10 +126,9 @@ export function AISuggestions(props: { className?: string }) {
   return (
     <div className={props.className} data-testid="ai-suggestions">
       {suggestions.map((suggestion) => {
-        const Icon = suggestion.icon;
         const title = t(`ai:${suggestion.titleKey}`);
         const prompt = t(`ai:${suggestion.promptKey}`);
-        const description = t(`ai:${suggestion.descriptionKey}`);
+        const description = normalizeTooltipText(t(`ai:${suggestion.descriptionKey}`));
         return (
           <div
             key={suggestion.id}
@@ -158,19 +143,24 @@ export function AISuggestions(props: { className?: string }) {
                   disabled={disabled}
                   onClick={() => submitSuggestion(prompt)}
                   className={cn(
-                    "h-9 max-w-full gap-2 !rounded-full border border-border/60 bg-background/20 px-3.5 text-sm font-medium text-foreground shadow-none transition-colors hover:bg-muted",
+                    "h-9 max-w-full !rounded-full border border-border/60 bg-background/20 px-3.5 text-sm font-medium text-foreground shadow-none transition-colors hover:bg-muted",
                     running && "text-label-secondary",
                   )}
                 >
-                  <Icon className="size-4 shrink-0" aria-hidden="true" />
                   <span className="truncate">{title}</span>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent className="max-w-72">{description}</TooltipContent>
+              <TooltipContent className="max-w-72 whitespace-normal leading-snug" layout={false}>
+                {description}
+              </TooltipContent>
             </Tooltip>
           </div>
         );
       })}
     </div>
   );
+}
+
+function normalizeTooltipText(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
 }

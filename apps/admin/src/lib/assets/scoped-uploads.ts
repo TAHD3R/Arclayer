@@ -65,7 +65,7 @@ export function getScopedUploadsApi(scope: AssetScopeRef): ScopedUploadsApi {
 
   if (scope.type === "workspace") {
     return {
-      getPolicy: () => getWorkspaceUploadPolicy(rawId),
+      getPolicy: (purpose) => getWorkspaceUploadPolicy(rawId, purpose),
       init: (payload) => initWorkspaceUpload(rawId, payload),
       abort: (uploadId) => abortWorkspaceUpload(rawId, uploadId),
       uploadPart: async (params) => {

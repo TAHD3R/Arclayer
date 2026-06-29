@@ -54,6 +54,7 @@ import {
   DownloadIcon,
   FolderOpenIcon,
   FolderPlusIcon,
+  GlobeIcon,
   HammerIcon,
   Layers3Icon,
   ListChecksIcon,
@@ -79,6 +80,8 @@ import type {
   AIWorkspaceActionArtifact,
   AIWorkspaceActionProject,
 } from "@/stores/use-ai-chat-store";
+import { useAiChatStore } from "@/stores/use-ai-chat-store";
+import { sendAIWorkspaceActionMessage } from "@/components/ai/ai-chat-runtime";
 
 export type ThreadGroupPart = MessagePrimitive.GroupedParts.GroupPart;
 
@@ -541,12 +544,34 @@ const AgentInterrupt: FC = () => {
 
 const AgentArtifactCard: FC<{ artifact: AIAgentMessageArtifact }> = ({ artifact }) => {
   const { t } = useTranslation(["ai", "common"]);
+  const conversationId = useAuiState((s) => {
+    const value = s.message.metadata.custom?.conversationId;
+    return typeof value === "string" ? value : null;
+  });
+  const [executePending, setExecutePending] = useState(false);
+  const [executeError, setExecuteError] = useState<string | null>(null);
   const isPlan = artifact.type === "agent_execution_plan";
   const title = isPlan
     ? t("ai:AI_AGENT_ARTIFACT_PLAN_TITLE")
     : t("ai:AI_AGENT_ARTIFACT_BUILD_TITLE");
   const items = isPlan ? artifact.steps : artifact.operations;
   const Icon = isPlan ? ListChecksIcon : HammerIcon;
+  const canExecuteWorkspacePlan =
+    isPlan && artifact.source === "workspace_action:planned_mutation" && Boolean(conversationId);
+
+  const handleExecuteWorkspacePlan = async () => {
+    if (!conversationId) return;
+    setExecutePending(true);
+    setExecuteError(null);
+    useAiChatStore.getState().setComposerMode("build");
+    try {
+      await sendAIWorkspaceActionMessage(conversationId, artifact.goal);
+    } catch (error) {
+      setExecuteError(formatAIChatError(error));
+    } finally {
+      setExecutePending(false);
+    }
+  };
 
   return (
     <section className="mt-3 overflow-hidden rounded-lg border border-border/70 bg-muted/30 text-sm">
@@ -556,7 +581,7 @@ const AgentArtifactCard: FC<{ artifact: AIAgentMessageArtifact }> = ({ artifact 
           <h3 className="truncate text-sm font-semibold text-foreground">{title}</h3>
         </div>
         <span className="shrink-0 rounded-md border border-border/60 bg-background/70 px-2 py-0.5 text-caption font-medium text-muted-foreground">
-          {artifact.status}
+          {agentArtifactStatusLabel(t, artifact.status)}
         </span>
       </div>
       {artifact.goal.trim() ? (
@@ -577,15 +602,49 @@ const AgentArtifactCard: FC<{ artifact: AIAgentMessageArtifact }> = ({ artifact 
               {item.title}
             </span>
             <span className="rounded-md bg-background/70 px-1.5 py-0.5 text-caption font-medium text-muted-foreground">
-              {item.status}
+              {agentArtifactStatusLabel(t, item.status)}
             </span>
           </li>
         ))}
       </ol>
+      {canExecuteWorkspacePlan ? (
+        <div className="flex flex-col gap-2 border-t border-border/60 px-3 py-2">
+          {executeError ? (
+            <p className="rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-2 text-footnote font-medium text-destructive">
+              {executeError}
+            </p>
+          ) : null}
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              size="sm"
+              className="h-8 gap-1.5 rounded-md px-2.5"
+              disabled={executePending}
+              onClick={() => void handleExecuteWorkspacePlan()}
+            >
+              <CheckIcon className="size-3.5" aria-hidden="true" />
+              {executePending
+                ? t("ai:AI_WORKSPACE_ACTION_EXECUTING")
+                : t("ai:AI_WORKSPACE_ACTION_EXECUTE_PLAN")}
+            </Button>
+          </div>
+        </div>
+      ) : null}
       {!isPlan ? <AgentBuildArtifactFooter artifact={artifact} /> : null}
     </section>
   );
 };
+
+function agentArtifactStatusLabel(
+  t: ReturnType<typeof useTranslation>["t"],
+  status: string,
+): string {
+  if (status === "planned") return t("ai:AI_AGENT_ARTIFACT_STATUS_PLANNED");
+  if (status === "completed") return t("ai:AI_AGENT_ARTIFACT_STATUS_COMPLETED");
+  if (status === "running") return t("ai:AI_AGENT_ARTIFACT_STATUS_RUNNING");
+  if (status === "failed") return t("ai:AI_AGENT_ARTIFACT_STATUS_FAILED");
+  return status;
+}
 
 const AgentBuildArtifactFooter: FC<{
   artifact: Extract<AIAgentMessageArtifact, { type: "agent_build_blueprint" }>;
@@ -867,7 +926,7 @@ const AssistantMessage: FC = () => {
     <MessagePrimitive.Root
       data-slot="aui_assistant-message-root"
       data-role="assistant"
-      className="fade-in slide-in-from-bottom-1 animate-in relative duration-150"
+      className="group fade-in slide-in-from-bottom-1 animate-in relative duration-150"
     >
       <div
         data-slot="aui_assistant-message-content"
@@ -959,8 +1018,7 @@ const AssistantActionBar: FC = () => {
   return (
     <ActionBarPrimitive.Root
       hideWhenRunning
-      autohide="not-last"
-      className="aui-assistant-action-bar-root text-muted-foreground animate-in fade-in col-start-3 row-start-2 -ms-1 flex gap-1 duration-200"
+      className="aui-assistant-action-bar-root text-muted-foreground col-start-3 row-start-2 -ms-1 flex min-w-24 gap-1 opacity-0 transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100"
     >
       <ActionBarPrimitive.Copy asChild>
         <TooltipIconButton tooltip={t("ai:AI_CHAT_ACTION_COPY")}>
@@ -1005,16 +1063,25 @@ const AssistantActionBar: FC = () => {
 };
 
 const UserMessage: FC = () => {
+  const { t } = useTranslation(["ai"]);
+  const webSearchEnabled = useAuiState((s) => s.message.metadata.custom?.webSearchEnabled === true);
+
   return (
     <MessagePrimitive.Root
       data-slot="aui_user-message-root"
-      className="fade-in slide-in-from-bottom-1 animate-in grid auto-rows-auto grid-cols-[minmax(72px,1fr)_auto] content-start gap-y-2 px-2 duration-150 [contain-intrinsic-size:auto_60px] [content-visibility:auto] [&:where(>*)]:col-start-2"
+      className="group fade-in slide-in-from-bottom-1 animate-in grid auto-rows-auto grid-cols-[minmax(72px,1fr)_auto] content-start gap-y-2 px-2 duration-150 [contain-intrinsic-size:auto_60px] [content-visibility:auto] [&:where(>*)]:col-start-2"
       data-role="user"
     >
       <UserMessageAttachments />
 
       <div className="aui-user-message-content-wrapper relative col-start-2 min-w-0">
         <div className="aui-user-message-content peer bg-muted text-foreground rounded-xl px-4 py-2 wrap-break-word empty:hidden">
+          {webSearchEnabled ? (
+            <span className="mb-1.5 inline-flex max-w-full items-center gap-1.5 rounded-full border border-border/70 bg-background/70 px-2 py-1 text-caption font-semibold text-label-primary shadow-sm">
+              <GlobeIcon className="size-3.5 shrink-0 text-label-secondary" aria-hidden="true" />
+              <span className="min-w-0 truncate">{t("ai:AI_CHAT_WEB_SEARCH_ENABLED")}</span>
+            </span>
+          ) : null}
           <MessagePrimitive.Parts />
         </div>
         <div className="aui-user-action-bar-wrapper absolute start-0 top-1/2 -translate-x-full -translate-y-1/2 pe-2 peer-empty:hidden rtl:translate-x-full">
@@ -1036,8 +1103,7 @@ const UserActionBar: FC = () => {
   return (
     <ActionBarPrimitive.Root
       hideWhenRunning
-      autohide="not-last"
-      className="aui-user-action-bar-root flex flex-col items-end"
+      className="aui-user-action-bar-root flex min-h-7 min-w-7 flex-col items-end opacity-0 transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100"
     >
       <ActionBarPrimitive.Edit asChild>
         <TooltipIconButton tooltip={t("ai:AI_CHAT_ACTION_EDIT")} className="aui-user-action-edit">

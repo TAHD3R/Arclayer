@@ -13,7 +13,6 @@ from src.llm.litellm_client import LiteLLMClient
 from src.llm.runtime import detect_provider
 from src.models.agents.conversation import AgentConversationMode
 from src.models.ai.ai_api_key import AIAPIKey, KeyOwnerType, KeyType
-from src.models.ai.user_key_grant import UserKeyWorkspaceGrant, is_grant_active
 from src.modules.ai.schema import AIModelCatalogItem, AIModelCatalogResponse, AIReasoningEffort
 
 MODEL_METADATA: dict[str, dict[str, str]] = {
@@ -56,10 +55,18 @@ MODEL_METADATA: dict[str, dict[str, str]] = {
 
 MODEL_ORDER = tuple(MODEL_METADATA.keys())
 SYSTEM_AI_PROVIDER_METADATA_SOURCE = "system.ai_providers"
+AI_MODEL_CATALOG_MASTER_KEY_REQUIRED = "AI_MODEL_CATALOG_MASTER_KEY_REQUIRED"
+AI_MODEL_CATALOG_EMPTY = "AI_MODEL_CATALOG_EMPTY"
+AI_MODEL_CATALOG_LITELLM_UNREACHABLE = "AI_MODEL_CATALOG_LITELLM_UNREACHABLE"
+AI_MODEL_CATALOG_RESPONSE_INVALID = "AI_MODEL_CATALOG_RESPONSE_INVALID"
 
 
 class AIModelCatalogUnavailableError(Exception):
     """Raised when the model catalog cannot be loaded from LiteLLM."""
+
+    def __init__(self, code: str) -> None:
+        super().__init__(code)
+        self.code = code
 
 
 async def list_ai_model_catalog(
@@ -77,13 +84,9 @@ async def list_ai_model_catalog(
         available_providers = {"mock"}
     else:
         if not settings.ai.litellm_master_key:
-            raise AIModelCatalogUnavailableError("AI__LITELLM_MASTER_KEY is required to list LiteLLM models")
+            raise AIModelCatalogUnavailableError(AI_MODEL_CATALOG_MASTER_KEY_REQUIRED)
         model_ids = await _list_litellm_model_ids(settings)
-        available_providers = await _list_available_providers(
-            workspace_id=workspace_id,
-            user_id=user_id,
-            allow_platform_key=settings.ai.allow_platform_key,
-        )
+        available_providers = await _list_available_providers()
 
     visible_model_ids = _visible_model_ids(
         model_ids,
@@ -91,7 +94,7 @@ async def list_ai_model_catalog(
         mock_enabled=settings.ai.mock_enabled,
     )
     if not visible_model_ids:
-        raise AIModelCatalogUnavailableError("No selectable AI models are configured for this workspace")
+        raise AIModelCatalogUnavailableError(AI_MODEL_CATALOG_EMPTY)
 
     items = [_build_catalog_item(model_id) for model_id in visible_model_ids]
     resolved_default_model = _resolve_default_model(
@@ -144,14 +147,14 @@ async def _list_litellm_model_ids(settings: Settings) -> list[str]:
     try:
         payload = await client.list_models(master_key=str(settings.ai.litellm_master_key))
     except (httpx.HTTPError, ValueError) as exc:
-        raise AIModelCatalogUnavailableError("Failed to load LiteLLM model catalog") from exc
+        raise AIModelCatalogUnavailableError(AI_MODEL_CATALOG_LITELLM_UNREACHABLE) from exc
     return _extract_model_ids(payload)
 
 
 def _extract_model_ids(payload: dict[str, Any]) -> list[str]:
     data = payload.get("data")
     if not isinstance(data, list):
-        raise AIModelCatalogUnavailableError("LiteLLM model catalog response is malformed")
+        raise AIModelCatalogUnavailableError(AI_MODEL_CATALOG_RESPONSE_INVALID)
 
     model_ids: list[str] = []
     for item in data:
@@ -163,66 +166,20 @@ def _extract_model_ids(payload: dict[str, Any]) -> list[str]:
     return model_ids
 
 
-async def _list_available_providers(
-    *,
-    workspace_id: UUID,
-    user_id: UUID,
-    allow_platform_key: bool,
-) -> set[str]:
+async def _list_available_providers() -> set[str]:
     now = datetime.now(UTC)
-    workspace_providers = (
+    platform_providers = (
         await AIAPIKey
         .filter(
-            owner_type=KeyOwnerType.WORKSPACE,
-            owner_id=workspace_id,
+            owner_type=KeyOwnerType.PLATFORM,
             key_type=KeyType.VIRTUAL_KEY,
             is_active=True,
             virtual_key_enc__not_isnull=True,
         )
         .filter(Q(expires_at__gt=now) | Q(expires_at__isnull=True))
-        .values_list("provider", flat=True)
+        .values("provider", "metadata_json")
     )
-    providers = _provider_set(workspace_providers)
-
-    grants = await UserKeyWorkspaceGrant.filter(workspace_id=workspace_id, user_id=user_id).all()
-    granted_key_ids = [
-        grant.api_key_id for grant in grants if is_grant_active(grant.approval_state) and grant.revoked_at is None
-    ]
-    if granted_key_ids:
-        user_providers = (
-            await AIAPIKey
-            .filter(
-                id__in=granted_key_ids,
-                owner_type=KeyOwnerType.USER,
-                owner_id=user_id,
-                key_type=KeyType.VIRTUAL_KEY,
-                is_active=True,
-                virtual_key_enc__not_isnull=True,
-            )
-            .filter(Q(expires_at__gt=now) | Q(expires_at__isnull=True))
-            .values_list("provider", flat=True)
-        )
-        providers.update(_provider_set(user_providers))
-
-    if allow_platform_key:
-        platform_providers = (
-            await AIAPIKey
-            .filter(
-                owner_type=KeyOwnerType.PLATFORM,
-                key_type=KeyType.VIRTUAL_KEY,
-                is_active=True,
-                virtual_key_enc__not_isnull=True,
-            )
-            .filter(Q(expires_at__gt=now) | Q(expires_at__isnull=True))
-            .values("provider", "metadata_json")
-        )
-        providers.update(_system_provider_set(platform_providers))
-
-    return providers
-
-
-def _provider_set(values: Iterable[object]) -> set[str]:
-    return {value.strip() for value in values if isinstance(value, str) and value.strip()}
+    return _system_provider_set(platform_providers)
 
 
 def _system_provider_set(records: Iterable[dict[str, Any]]) -> set[str]:

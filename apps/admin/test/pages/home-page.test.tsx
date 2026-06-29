@@ -155,6 +155,10 @@ vi.mock("@/components/ai/ai-chat-runtime", () => ({
     if (mode === "plan") return "content_advisor";
     return selectedAgentId || "content_analyzer";
   },
+  agentIdFromComposerDirective: () => null,
+  createAIChatAttachmentAdapter: () => undefined,
+  projectIdFromComposerDirective: (text: string) =>
+    /:project\[[^\]\n]{1,1024}\]\{name=([^}\n]{1,1024})\}/u.exec(text)?.[1]?.trim() ?? null,
   sendAIChatMessage: (...args: unknown[]) => sendAIChatMessageMock(...args),
   sendAIWorkspaceActionPlanMessage: (...args: unknown[]) =>
     sendAIWorkspaceActionPlanMessageMock(...args),
@@ -574,6 +578,32 @@ describe("HomePage", () => {
     expect(state.drawerOpen).toBe(false);
     expect(state.conversations).toHaveLength(0);
     expect(sendAIAgentMessageMock).not.toHaveBeenCalled();
+  });
+
+  it("uses a project directive as the Agent mode project context on the home surface", async () => {
+    workspaceState.currentWorkspaceId = "workspace-1";
+    workspaceState.lastWorkspaceId = "workspace-1";
+    useAiChatStore.setState({ composerMode: "agent", selectedAgentId: "content_builder" });
+    renderHomePage();
+
+    fireEvent.change(screen.getByRole("textbox", { name: "询问 AI…" }), {
+      target: { value: ":project[Project One]{name=project-1} 帮我构建内容计划" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+
+    const conversationId = useAiChatStore.getState().conversations[0]?.id;
+    await waitFor(() => {
+      expect(sendAIAgentMessageMock).toHaveBeenCalledWith(
+        conversationId,
+        "帮我构建内容计划",
+        expect.objectContaining({
+          agentId: "content_builder",
+          projectId: "project-1",
+          signal: expect.any(AbortSignal),
+        }),
+      );
+    });
+    expect(screen.queryByText(/Agent 模式需要先进入一个项目/)).not.toBeInTheDocument();
   });
 
   it("ignores blank home composer submissions without entering the queue", async () => {

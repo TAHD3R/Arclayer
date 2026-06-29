@@ -30,6 +30,7 @@ vi.mock("react-i18next", () => ({
         "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO_DESC": "DeepSeek model",
         "ai:AI_CHAT_MODEL_GPT_4O_MINI": "GPT-4o mini",
         "ai:AI_CHAT_MODEL_GPT_4O_MINI_DESC": "Fast model",
+        "ai:AI_CHAT_MODEL_EMPTY": "No models configured",
       };
       return labels[key] ?? key;
     },
@@ -151,6 +152,40 @@ describe("AIModelSelector", () => {
         composerModeSource: "default",
       });
     });
+  });
+
+  it("does not display unavailable catalog models when no runtime model is configured", async () => {
+    vi.mocked(listAIModels).mockResolvedValue({
+      defaultModel: "deepseek-v4-pro",
+      defaultMode: "build",
+      reasoningEffort: "medium",
+      models: [
+        {
+          id: "deepseek-v4-pro",
+          provider: "deepseek",
+          label: "DeepSeek V4 Pro",
+          labelKey: "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO",
+          description: "DeepSeek model",
+          descriptionKey: "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO_DESC",
+          available: false,
+        },
+      ],
+    });
+
+    const user = userEvent.setup();
+    renderSelector();
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Select model" })).toHaveTextContent(
+        "No models configured",
+      );
+    });
+    expect(screen.queryByText("DeepSeek V4 Pro")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Select model" }));
+
+    expect(screen.queryByRole("menuitem", { name: /DeepSeek V4 Pro/ })).not.toBeInTheDocument();
+    expect(screen.getAllByText("No models configured").length).toBeGreaterThan(0);
   });
 
   it("keeps explicit model and mode choices while applying backend reasoning defaults", async () => {

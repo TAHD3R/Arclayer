@@ -29,6 +29,7 @@ from src.modules.workspaces.http.service import get_workspace_context
 router = APIRouter(prefix="/workspaces/{workspace_id}", tags=["domain.workspaces.uploads"])
 
 WORKSPACE_ICON_UPLOAD_PURPOSE = "workspace_icon"
+WORKSPACE_UPLOAD_PURPOSES = frozenset({WORKSPACE_ICON_UPLOAD_PURPOSE, "attachment"})
 
 
 def get_uploads_service(settings: Settings = Depends(get_settings)) -> UploadsService:
@@ -39,8 +40,8 @@ def _workspace_scope(ctx: WorkspaceContext) -> AssetScope:
     return AssetScope(type=ASSET_SCOPE_WORKSPACE, id=ctx.workspace_id)
 
 
-def _ensure_workspace_icon_upload(payload: UploadInitRequest) -> None:
-    if str(payload.purpose or "").strip() != WORKSPACE_ICON_UPLOAD_PURPOSE:
+def _ensure_workspace_upload_purpose(purpose: str | None) -> None:
+    if str(purpose or "").strip() not in WORKSPACE_UPLOAD_PURPOSES:
         raise BadRequest(
             message=t("errors", "BAD_REQUEST"),
             error="WORKSPACE_UPLOAD_PURPOSE_INVALID",
@@ -50,7 +51,7 @@ def _ensure_workspace_icon_upload(payload: UploadInitRequest) -> None:
 @router.post(
     "/uploads/init",
     response_model=ResponseModel[UploadInitOut],
-    summary="Initialize workspace icon upload session",
+    summary="Initialize workspace upload session",
     dependencies=[require_workspace_permission("system:settings:manage")],
 )
 async def init_upload(
@@ -59,8 +60,8 @@ async def init_upload(
     user=Depends(get_current_user),
     service: UploadsService = Depends(get_uploads_service),
 ) -> ResponseModel[UploadInitOut]:
-    """Initialize a workspace-scoped icon upload session."""
-    _ensure_workspace_icon_upload(payload)
+    """Initialize a workspace-scoped upload session."""
+    _ensure_workspace_upload_purpose(payload.purpose)
     session = await service.init_upload(
         scope=_workspace_scope(ctx),
         actor_user_id=user.id,
@@ -83,12 +84,14 @@ async def init_upload(
     dependencies=[require_workspace_permission("system:settings:manage")],
 )
 async def get_upload_policy(
+    purpose: str = WORKSPACE_ICON_UPLOAD_PURPOSE,
     ctx: WorkspaceContext = Depends(get_workspace_context),
     _user=Depends(get_current_user),
     service: UploadsService = Depends(get_uploads_service),
 ) -> ResponseModel[UploadPolicyOut]:
     _ = ctx
-    return ApiResponse.success(data=await service.get_upload_policy(purpose=WORKSPACE_ICON_UPLOAD_PURPOSE))
+    _ensure_workspace_upload_purpose(purpose)
+    return ApiResponse.success(data=await service.get_upload_policy(purpose=purpose))
 
 
 @router.get(

@@ -463,6 +463,37 @@ describe("AIChatRuntimeProvider", () => {
     expect(sendAIAgentMessage).not.toHaveBeenCalled();
   });
 
+  it("uses localized copy for planned workspace creation messages", async () => {
+    useAiChatStore.setState({ composerMode: "plan" });
+    render(
+      <AIChatRuntimeProvider conversationId="conversation-1">
+        <div />
+      </AIChatRuntimeProvider>,
+    );
+
+    await act(async () => {
+      await assistantUiMockState.runtimeStore?.onNew?.(
+        appendTextMessage("Create a launch project"),
+      );
+    });
+
+    const lastMessage = useAiChatStore.getState().conversations[0]?.messages.at(-1);
+    expect(chatStream).not.toHaveBeenCalled();
+    expect(lastMessage).toMatchObject({
+      role: "assistant",
+      content: expect.stringContaining("规划模式不会直接修改工作区"),
+      agentArtifact: expect.objectContaining({
+        type: "agent_execution_plan",
+        status: "planned",
+        steps: expect.arrayContaining([
+          expect.objectContaining({ title: expect.stringContaining("目标项目") }),
+          expect.objectContaining({ title: expect.stringContaining("识别要创建") }),
+        ]),
+      }),
+    });
+    expect(lastMessage?.content).not.toContain("I prepared an executable proposal");
+  });
+
   it("routes manual Agent mode messages to the selected agent", async () => {
     useAiChatStore.setState({
       composerMode: "agent",

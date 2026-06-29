@@ -3,9 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } fro
 import { useTranslation } from "react-i18next";
 import {
   AssistantRuntimeProvider,
-  CompositeAttachmentAdapter,
   ComposerPrimitive,
-  SimpleTextAttachmentAdapter,
   WebSpeechDictationAdapter,
   createMessageQueue,
   useExternalStoreRuntime,
@@ -26,7 +24,10 @@ import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 import {
   applyWebSearchDirective,
   appendMessageToText,
+  agentIdFromComposerDirective,
   agentIdForComposerMode,
+  createAIChatAttachmentAdapter,
+  projectIdFromComposerDirective,
   sendAIChatMessage,
   sendAIWorkspaceActionPlanMessage,
   sendAIWorkspaceActionMessage,
@@ -63,10 +64,6 @@ function createDictationAdapter() {
   });
 }
 
-function createAttachmentAdapter() {
-  return new CompositeAttachmentAdapter([new SimpleTextAttachmentAdapter()]);
-}
-
 type HomeComposerProps = {
   inputRef: RefObject<HTMLTextAreaElement | null>;
   onSubmitStart: () => void;
@@ -86,6 +83,7 @@ function HomeComposer({
   const streaming = useAiChatStore((s) => s.streaming);
   const activeRequestRef = useRef<AbortController | null>(null);
   const activeAgentRunIdRef = useRef<string | null>(null);
+  const activeAgentProjectIdRef = useRef<string | null>(null);
   const activeConversationIdRef = useRef<string | null>(null);
   const pendingHomeConversationIdRef = useRef<string | null>(null);
   const queuedMessageRunnerRef = useRef<(message: AppendMessage) => Promise<void>>(async () => {
@@ -93,7 +91,7 @@ function HomeComposer({
   });
   const [, forceQueueRender] = useState(0);
   const dictationAdapter = useMemo(() => createDictationAdapter(), []);
-  const attachmentAdapter = useMemo(() => createAttachmentAdapter(), []);
+  const attachmentAdapter = useMemo(() => createAIChatAttachmentAdapter("home"), []);
 
   const queueController = useMemo<MessageQueueController>(() => {
     const controller = createMessageQueue({
@@ -135,7 +133,8 @@ function HomeComposer({
       try {
         const state = useAiChatStore.getState();
         const mode = state.composerMode;
-        const projectId = useWorkspaceStore.getState().currentProjectId;
+        const directiveProjectId = projectIdFromComposerDirective(textWithDirectives);
+        const projectId = directiveProjectId ?? useWorkspaceStore.getState().currentProjectId;
         if (mode === "agent" && !projectId) {
           throw new Error(AI_AGENT_PROJECT_CONTEXT_REQUIRED);
         }
@@ -151,11 +150,16 @@ function HomeComposer({
         const controller = new AbortController();
         activeRequestRef.current = controller;
         activeAgentRunIdRef.current = null;
+        activeAgentProjectIdRef.current = null;
         try {
           if (mode === "agent") {
-            const agentId = agentIdForComposerMode(mode, state.selectedAgentId);
+            const agentId =
+              agentIdFromComposerDirective(textWithDirectives) ??
+              agentIdForComposerMode(mode, state.selectedAgentId);
+            activeAgentProjectIdRef.current = projectId ?? null;
             await sendAIAgentMessage(conversationId, trimmed, {
               agentId,
+              projectId,
               model: state.selectedModel,
               reasoningEffort: state.selectedReasoningEffort,
               signal: controller.signal,
@@ -178,6 +182,7 @@ function HomeComposer({
             activeRequestRef.current = null;
           }
           activeAgentRunIdRef.current = null;
+          activeAgentProjectIdRef.current = null;
           activeConversationIdRef.current = null;
           clearPendingHomeConversationWhenIdle();
         }
@@ -236,7 +241,8 @@ function HomeComposer({
       queueController.adapter.clear("cancel-run");
       const runId = activeAgentRunIdRef.current;
       const conversationId = activeConversationIdRef.current;
-      const projectId = useWorkspaceStore.getState().currentProjectId;
+      const projectId =
+        activeAgentProjectIdRef.current ?? useWorkspaceStore.getState().currentProjectId;
       if (runId && projectId) {
         await cancelAIAgentRun(projectId, runId);
         if (conversationId) {
@@ -249,6 +255,7 @@ function HomeComposer({
       activeRequestRef.current?.abort();
       activeRequestRef.current = null;
       activeAgentRunIdRef.current = null;
+      activeAgentProjectIdRef.current = null;
       activeConversationIdRef.current = null;
       pendingHomeConversationIdRef.current = null;
     },

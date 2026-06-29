@@ -406,6 +406,7 @@ export interface AgentRunStreamOptions extends AIChatOptions {
 export interface SendAIAgentMessageOptions {
   signal?: AbortSignal;
   onRunCreated?: (runId: string) => void;
+  projectId?: string | null;
   agentId?: string;
   model?: string;
   reasoningEffort?: AIReasoningEffort;
@@ -445,6 +446,26 @@ const AI_ERROR_MESSAGE_KEYS: Record<string, { key: string; fallback: string }> =
   AI_WORKSPACE_ACTION_PROJECT_REQUIRED: {
     key: "AI_CHAT_ERROR_WORKSPACE_ACTION_PROJECT_REQUIRED",
     fallback: "执行该操作需要先选择一个项目。请输入 @ 选择目标项目后再试。",
+  },
+  AI_MODEL_CATALOG_UNAVAILABLE: {
+    key: "AI_CHAT_ERROR_MODEL_CATALOG_UNAVAILABLE",
+    fallback: "暂时无法读取模型目录。请检查模型供应商配置后重试。",
+  },
+  AI_MODEL_CATALOG_MASTER_KEY_REQUIRED: {
+    key: "AI_CHAT_ERROR_MODEL_CATALOG_MASTER_KEY_REQUIRED",
+    fallback: "模型目录服务尚未完成配置。请先配置 LiteLLM 管理密钥。",
+  },
+  AI_MODEL_CATALOG_EMPTY: {
+    key: "AI_CHAT_ERROR_MODEL_CATALOG_EMPTY",
+    fallback: "当前没有可用于对话的模型。请在系统设置中新增并启用模型供应商。",
+  },
+  AI_MODEL_CATALOG_LITELLM_UNREACHABLE: {
+    key: "AI_CHAT_ERROR_MODEL_CATALOG_LITELLM_UNREACHABLE",
+    fallback: "暂时无法连接模型目录服务。请检查 LiteLLM 服务状态后重试。",
+  },
+  AI_MODEL_CATALOG_RESPONSE_INVALID: {
+    key: "AI_CHAT_ERROR_MODEL_CATALOG_RESPONSE_INVALID",
+    fallback: "模型目录返回的数据不符合预期。请检查 LiteLLM 模型配置。",
   },
 };
 
@@ -525,6 +546,11 @@ function pickErrorCode(record: Record<string, unknown>): string | null {
 }
 
 export function formatAIChatError(error: unknown): string {
+  if (error && typeof error === "object") {
+    const objectMessage = pickErrorMessage(error);
+    if (objectMessage) return objectMessage;
+  }
+
   const raw = error instanceof Error ? error.message : String(error || "");
   const trimmed = raw.trim();
 
@@ -1073,7 +1099,7 @@ async function sendAIAgentMessageWithSignal(
   if (!trimmed) return;
 
   const state = useAiChatStore.getState();
-  const projectId = useWorkspaceStore.getState().currentProjectId;
+  const projectId = options?.projectId ?? useWorkspaceStore.getState().currentProjectId;
   if (!projectId) {
     throw new Error(AI_AGENT_PROJECT_CONTEXT_REQUIRED);
   }

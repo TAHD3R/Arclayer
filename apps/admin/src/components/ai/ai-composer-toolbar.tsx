@@ -18,7 +18,7 @@ import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { listAIProjectAgents } from "@/api/ai";
-import { AIAgentSelector } from "@/components/ai/ai-agent-selector";
+import { AIProjectSelector } from "@/components/ai/ai-agent-selector";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
 import { AIModelSelector } from "@/components/ai/ai-model-selector";
 import {
@@ -71,8 +71,6 @@ type AIComposerToolbarProps = {
 };
 
 export function AIComposerToolbar({ compact = false }: AIComposerToolbarProps) {
-  const selectedMode = useAiChatStore((s) => s.composerMode || DEFAULT_AI_COMPOSER_MODE);
-
   return (
     <div
       className={cn(
@@ -80,7 +78,6 @@ export function AIComposerToolbar({ compact = false }: AIComposerToolbarProps) {
         compact ? "gap-1" : "gap-2",
       )}
     >
-      {selectedMode === "agent" ? <AIAgentSelector compact={compact} /> : null}
       <AIComposerAttachmentMenu />
       <AIComposerModeSelect />
       <div className="min-w-0 flex-1" />
@@ -94,7 +91,6 @@ export function AIComposerContextControls({ compact = false }: AIComposerToolbar
   return (
     <div className="flex min-w-0 items-center justify-between gap-2">
       <div className="flex min-w-0 items-center gap-1">
-        <AIComposerAttachmentMenu />
         <AIComposerModeSelect compact={compact} />
       </div>
       <AIModelSelector compact={compact} />
@@ -107,7 +103,8 @@ export function AIComposerInputActions() {
 
   return (
     <div className="aui-composer-action-wrapper relative flex min-h-8 min-w-0 items-center gap-1">
-      {selectedMode === "agent" ? <AIAgentSelector compact /> : null}
+      <AIComposerAttachmentMenu />
+      {selectedMode === "agent" ? <AIProjectSelector compact /> : null}
       <div className="min-w-0 flex-1" />
       <AIComposerPrimaryAction />
     </div>

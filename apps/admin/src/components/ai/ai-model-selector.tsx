@@ -46,26 +46,30 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
     queryKey: ["ai", "chat-models", workspaceId],
     queryFn: ({ signal }) => listAIModels({ workspaceId: String(workspaceId), signal }),
     enabled: Boolean(workspaceId),
-    staleTime: 60_000,
+    refetchOnMount: "always",
+    staleTime: 0,
     retry: false,
   });
-  const models = modelCatalog?.models ?? [];
+  const models = isModelCatalogSuccess
+    ? modelCatalog.models.filter((model) => model.available)
+    : [];
   const canShowSelectedModel = isModelCatalogSuccess && models.length > 0;
   const isAutoModel = selectedModel === AUTO_AI_CHAT_MODEL;
   const selected =
     canShowSelectedModel && !isAutoModel
       ? (models.find((model) => model.id === selectedModel) ?? models[0])
       : null;
-  const triggerLabel = isAutoModel
-    ? t("ai:AI_CHAT_MODEL_AUTO")
-    : selected
-      ? formatModelLabel(selected, t)
-      : getModelSelectorStatusLabel({
-          hasWorkspace: Boolean(workspaceId),
-          isLoading: isModelCatalogLoading,
-          isError: isModelCatalogError,
-          t,
-        });
+  const triggerLabel =
+    canShowSelectedModel && isAutoModel
+      ? t("ai:AI_CHAT_MODEL_AUTO")
+      : selected
+        ? formatModelLabel(selected, t)
+        : getModelSelectorStatusLabel({
+            hasWorkspace: Boolean(workspaceId),
+            isLoading: isModelCatalogLoading,
+            isError: isModelCatalogError,
+            t,
+          });
 
   useEffect(() => {
     if (!runtime) return undefined;
@@ -83,13 +87,22 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
   useEffect(() => {
     const catalog = modelCatalog;
     if (!catalog) return;
+    if (models.length === 0) {
+      if (selectedModel !== AUTO_AI_CHAT_MODEL) {
+        setSelectedModel(AUTO_AI_CHAT_MODEL, "default");
+      }
+      return;
+    }
+    const defaultModel = models.some((model) => model.id === catalog.defaultModel)
+      ? catalog.defaultModel
+      : models[0].id;
     if (selectedModel === AUTO_AI_CHAT_MODEL) return;
     if (!models.some((model) => model.id === selectedModel)) {
-      setSelectedModel(catalog.defaultModel, "default");
+      setSelectedModel(defaultModel, "default");
       return;
     }
     applyRuntimeDefaults({
-      model: catalog.defaultModel,
+      model: defaultModel,
       reasoningEffort: catalog.reasoningEffort,
       composerMode: catalog.defaultMode,
     });
@@ -129,30 +142,32 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
         )}
       >
         <DropdownMenuGroup className="w-full">
-          <DropdownMenuItem
-            onSelect={() => {
-              setSelectedModel(AUTO_AI_CHAT_MODEL);
-              setOpen(false);
-            }}
-            className="cursor-pointer items-start gap-3 rounded-xl px-3 py-3"
-          >
-            <AIModelBrandIcon auto className="mt-0.5 size-5" />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-callout font-semibold text-label-primary">
-                {t("ai:AI_CHAT_MODEL_AUTO")}
+          {models.length > 0 ? (
+            <DropdownMenuItem
+              onSelect={() => {
+                setSelectedModel(AUTO_AI_CHAT_MODEL);
+                setOpen(false);
+              }}
+              className="cursor-pointer items-start gap-3 rounded-xl px-3 py-3"
+            >
+              <AIModelBrandIcon auto className="mt-0.5 size-5" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-callout font-semibold text-label-primary">
+                  {t("ai:AI_CHAT_MODEL_AUTO")}
+                </span>
+                <span className="mt-0.5 block truncate text-footnote text-label-secondary">
+                  {t("ai:AI_CHAT_MODEL_AUTO_DESC")}
+                </span>
               </span>
-              <span className="mt-0.5 block truncate text-footnote text-label-secondary">
-                {t("ai:AI_CHAT_MODEL_AUTO_DESC")}
-              </span>
-            </span>
-            <CheckIcon
-              className={cn(
-                "mt-1 size-4 text-label-secondary",
-                isAutoModel ? "opacity-100" : "opacity-0",
-              )}
-              aria-hidden="true"
-            />
-          </DropdownMenuItem>
+              <CheckIcon
+                className={cn(
+                  "mt-1 size-4 text-label-secondary",
+                  isAutoModel ? "opacity-100" : "opacity-0",
+                )}
+                aria-hidden="true"
+              />
+            </DropdownMenuItem>
+          ) : null}
           {models.map((model) => {
             const active = selected?.id === model.id;
             return (

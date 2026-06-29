@@ -1,6 +1,9 @@
 import {
+  type AttachmentAdapter,
   AssistantRuntimeProvider,
+  type CompleteAttachment,
   CompositeAttachmentAdapter,
+  type PendingAttachment,
   WebSpeechDictationAdapter,
   createMessageQueue,
   SimpleTextAttachmentAdapter,
@@ -11,6 +14,9 @@ import {
 } from "@assistant-ui/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { i18n } from "@/lib/i18n";
+import { uploadSingleAssetFromFile } from "@/lib/assets/scoped-uploads";
+import type { AssetScopeRef } from "@/lib/assets/asset-scope";
 import {
   chatStream,
   cancelAIAgentRun,
@@ -27,6 +33,8 @@ import {
   buildTextWithAIComposerDirectives,
   cleanAIComposerDirectiveText,
   clearAIComposerDirectives,
+  useAIComposerDirectiveStore,
+  type AIComposerDirectiveScope,
 } from "@/components/ai/ai-composer-directives";
 import {
   DEFAULT_AI_AGENT_ID,
@@ -43,6 +51,8 @@ import {
   type AIWorkspaceActionProject,
 } from "@/stores/use-ai-chat-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+
+const WEB_SEARCH_REQUEST_MARKER = "[Web search enabled for this request.]";
 
 function messageContentToText(
   content: AppendMessage["content"] | ThreadMessageLike["content"],
@@ -63,6 +73,7 @@ function messageContentToReasoning(content: ThreadMessageLike["content"]): strin
 }
 
 function toRuntimeMessageContent(message: StoreAIChatMessage): ThreadMessageLike["content"] {
+  if (message.role === "user") return stripWebSearchDirective(message.content);
   if (message.role !== "assistant") return message.content;
 
   const parts: Array<{ type: "reasoning"; text: string } | { type: "text"; text: string }> = [];
@@ -96,7 +107,16 @@ export function appendMessageToText(
 
 export function applyWebSearchDirective(text: string): string {
   if (!useAiChatStore.getState().webSearchEnabled) return text;
-  return ["[Web search enabled for this request.]", text].join("\n\n");
+  return [WEB_SEARCH_REQUEST_MARKER, text].join("\n\n");
+}
+
+export function hasWebSearchDirective(text: string): boolean {
+  return text.trimStart().startsWith(WEB_SEARCH_REQUEST_MARKER);
+}
+
+export function stripWebSearchDirective(text: string): string {
+  if (!hasWebSearchDirective(text)) return text;
+  return text.slice(WEB_SEARCH_REQUEST_MARKER.length).replace(/^\s+/, "");
 }
 
 /**
@@ -323,8 +343,93 @@ function createDictationAdapter() {
   });
 }
 
-function createAttachmentAdapter() {
-  return new CompositeAttachmentAdapter([new SimpleTextAttachmentAdapter()]);
+class StorageImageAttachmentAdapter implements AttachmentAdapter {
+  accept = "image/*";
+
+  constructor(private readonly directiveScope: AIComposerDirectiveScope) {}
+
+  async add({ file }: { file: File }): Promise<PendingAttachment> {
+    return {
+      id: crypto.randomUUID(),
+      type: "image",
+      name: file.name,
+      file,
+      contentType: file.type,
+      status: { type: "requires-action", reason: "composer-send" },
+    };
+  }
+
+  async send(attachment: PendingAttachment): Promise<CompleteAttachment> {
+    const file = attachment.file;
+    if (!file) {
+      throw new Error("AI_ATTACHMENT_FILE_MISSING");
+    }
+    const scope = resolveAttachmentUploadScope(this.directiveScope);
+    const assetId = await uploadSingleAssetFromFile({
+      scope,
+      purpose: "attachment",
+      file,
+      t: (key) => i18n.t(key),
+    });
+    return {
+      id: attachment.id,
+      type: "image",
+      name: attachment.name,
+      contentType: attachment.contentType,
+      content: [
+        {
+          type: "text",
+          text: formatUploadedAttachmentReference({
+            assetId,
+            filename: attachment.name,
+            mime: attachment.contentType ?? file.type,
+            scope,
+          }),
+        },
+      ],
+      status: { type: "complete" },
+    };
+  }
+
+  async remove(): Promise<void> {}
+}
+
+export function createAIChatAttachmentAdapter(scope: AIComposerDirectiveScope) {
+  return new CompositeAttachmentAdapter([
+    new StorageImageAttachmentAdapter(scope),
+    new SimpleTextAttachmentAdapter(),
+  ]);
+}
+
+function resolveAttachmentUploadScope(scope: AIComposerDirectiveScope): AssetScopeRef {
+  const directives = useAIComposerDirectiveStore.getState().directivesByScope[scope];
+  const directiveProjectId = directives.find((directive) => directive.type === "project")?.id;
+  if (directiveProjectId) return { type: "project", id: directiveProjectId };
+
+  const workspaceState = useWorkspaceStore.getState();
+  if (workspaceState.currentProjectId) {
+    return { type: "project", id: workspaceState.currentProjectId };
+  }
+  const workspaceId = workspaceState.currentWorkspaceId ?? workspaceState.lastWorkspaceId;
+  if (workspaceId) return { type: "workspace", id: workspaceId };
+  throw new Error("AI_ATTACHMENT_SCOPE_REQUIRED");
+}
+
+function formatUploadedAttachmentReference(options: {
+  assetId: string;
+  filename: string;
+  mime?: string | null;
+  scope: AssetScopeRef;
+}): string {
+  const mime = options.mime ? `\nMIME: ${options.mime}` : "";
+  return [
+    `[Uploaded image attachment: ${options.filename}]`,
+    `Asset ID: ${options.assetId}`,
+    `Scope: ${options.scope.type}:${options.scope.id}`,
+    mime.trim(),
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 export function agentIdForComposerMode(mode: AIComposerMode, selectedAgentId: string): string {
@@ -554,12 +659,13 @@ export function AIChatRuntimeProvider({
   const streaming = useAiChatStore((s) => s.streaming);
   const activeRequestRef = useRef<AbortController | null>(null);
   const activeAgentRunIdRef = useRef<string | null>(null);
+  const activeAgentProjectIdRef = useRef<string | null>(null);
   const queuedMessageRunnerRef = useRef<(message: AppendMessage) => Promise<void>>(async () => {
     throw new Error("AI message queue runner is not initialized");
   });
   const [, forceQueueRender] = useState(0);
   const dictationAdapter = useMemo(() => createDictationAdapter(), []);
-  const attachmentAdapter = useMemo(() => createAttachmentAdapter(), []);
+  const attachmentAdapter = useMemo(() => createAIChatAttachmentAdapter("thread"), []);
 
   const queueController = useMemo<MessageQueueController>(() => {
     const controller = createMessageQueue({
@@ -597,12 +703,20 @@ export function AIChatRuntimeProvider({
       const controller = new AbortController();
       activeRequestRef.current = controller;
       activeAgentRunIdRef.current = null;
+      activeAgentProjectIdRef.current = null;
       try {
         const state = useAiChatStore.getState();
         const mode = state.composerMode || DEFAULT_AI_COMPOSER_MODE;
         if (mode === "agent") {
+          const directiveProjectId = projectIdFromComposerDirective(textWithDirectives);
+          const agentId =
+            agentIdFromComposerDirective(textWithDirectives) ??
+            agentIdForComposerMode(mode, state.selectedAgentId);
+          activeAgentProjectIdRef.current =
+            directiveProjectId ?? useWorkspaceStore.getState().currentProjectId ?? null;
           await sendAIAgentMessage(conversationId, trimmed, {
-            agentId: agentIdForComposerMode(mode, state.selectedAgentId),
+            agentId,
+            projectId: directiveProjectId,
             model: state.selectedModel,
             reasoningEffort: state.selectedReasoningEffort,
             signal: controller.signal,
@@ -625,6 +739,7 @@ export function AIChatRuntimeProvider({
           activeRequestRef.current = null;
         }
         activeAgentRunIdRef.current = null;
+        activeAgentProjectIdRef.current = null;
       }
     },
     [conversationId],
@@ -665,33 +780,39 @@ export function AIChatRuntimeProvider({
           }
         : undefined,
     metadata:
-      m.role === "assistant" &&
-      (m.agentRunId ||
-        m.agentStatus ||
-        m.agentThreadId ||
-        m.agentCheckpointId ||
-        m.agentInterrupt ||
-        m.agentArtifact ||
-        m.workspaceAction ||
-        m.agentExecutionSummary ||
-        (m.error && m.errorDetails))
+      m.role === "user" && hasWebSearchDirective(m.content)
         ? {
             custom: {
-              conversationId,
-              ...(m.agentRunId ? { agentRunId: m.agentRunId } : {}),
-              ...(m.agentStatus ? { agentStatus: m.agentStatus } : {}),
-              ...(m.agentThreadId ? { agentThreadId: m.agentThreadId } : {}),
-              ...(m.agentCheckpointId ? { agentCheckpointId: m.agentCheckpointId } : {}),
-              ...(m.agentInterrupt ? { agentInterrupt: m.agentInterrupt } : {}),
-              ...(m.agentArtifact ? { agentArtifact: m.agentArtifact } : {}),
-              ...(m.workspaceAction ? { workspaceAction: m.workspaceAction } : {}),
-              ...(m.agentExecutionSummary
-                ? { agentExecutionSummary: m.agentExecutionSummary }
-                : {}),
-              ...(m.error && m.errorDetails ? { errorDetails: m.errorDetails } : {}),
+              webSearchEnabled: true,
             },
           }
-        : undefined,
+        : m.role === "assistant" &&
+            (m.agentRunId ||
+              m.agentStatus ||
+              m.agentThreadId ||
+              m.agentCheckpointId ||
+              m.agentInterrupt ||
+              m.agentArtifact ||
+              m.workspaceAction ||
+              m.agentExecutionSummary ||
+              (m.error && m.errorDetails))
+          ? {
+              custom: {
+                conversationId,
+                ...(m.agentRunId ? { agentRunId: m.agentRunId } : {}),
+                ...(m.agentStatus ? { agentStatus: m.agentStatus } : {}),
+                ...(m.agentThreadId ? { agentThreadId: m.agentThreadId } : {}),
+                ...(m.agentCheckpointId ? { agentCheckpointId: m.agentCheckpointId } : {}),
+                ...(m.agentInterrupt ? { agentInterrupt: m.agentInterrupt } : {}),
+                ...(m.agentArtifact ? { agentArtifact: m.agentArtifact } : {}),
+                ...(m.workspaceAction ? { workspaceAction: m.workspaceAction } : {}),
+                ...(m.agentExecutionSummary
+                  ? { agentExecutionSummary: m.agentExecutionSummary }
+                  : {}),
+                ...(m.error && m.errorDetails ? { errorDetails: m.errorDetails } : {}),
+              },
+            }
+          : undefined,
   }));
 
   const runtime = useExternalStoreRuntime({
@@ -766,7 +887,8 @@ export function AIChatRuntimeProvider({
       queueController.adapter.clear("cancel-run");
       const controller = activeRequestRef.current;
       const runId = activeAgentRunIdRef.current;
-      const projectId = useWorkspaceStore.getState().currentProjectId;
+      const projectId =
+        activeAgentProjectIdRef.current ?? useWorkspaceStore.getState().currentProjectId;
       try {
         if (runId && projectId) {
           await cancelAIAgentRun(projectId, runId);
@@ -781,6 +903,7 @@ export function AIChatRuntimeProvider({
           activeRequestRef.current = null;
         }
         activeAgentRunIdRef.current = null;
+        activeAgentProjectIdRef.current = null;
       }
     },
     onNew: async (message) => {
@@ -822,46 +945,40 @@ function createWorkspaceActionPlan(
   prompt: string,
   projectId: string | null,
 ): { content: string; artifact: AIAgentMessageArtifact } {
-  const chinese = /[\u4E00-\u9FFF]/u.test(prompt);
   const target = projectId
-    ? chinese
-      ? `目标项目：${projectId}`
-      : `Target project: ${projectId}`
-    : chinese
-      ? "目标项目：将使用当前项目，或需要先用 @ 选择项目"
-      : "Target project: current project, or select one with @ first";
-  const steps: AIAgentArtifactStep[] = chinese
-    ? [
-        { id: "confirm-target", title: target, status: "planned" },
-        {
-          id: "resolve-intent",
-          title: "识别要创建的项目或内容模型，并补齐名称与用途。",
-          status: "planned",
-        },
-        {
-          id: "execute-build",
-          title: "切换到构建模式后执行，并返回可打开的结果入口。",
-          status: "planned",
-        },
-      ]
-    : [
-        { id: "confirm-target", title: target, status: "planned" },
-        {
-          id: "resolve-intent",
-          title:
-            "Resolve whether to create a project or content model and complete required naming.",
-          status: "planned",
-        },
-        {
-          id: "execute-build",
-          title: "Switch to Build mode to execute and return the created resource link.",
-          status: "planned",
-        },
-      ];
+    ? translateAIWorkspacePlanText(
+        "AI_WORKSPACE_ACTION_PLAN_TARGET_PROJECT",
+        "目标项目：{{projectId}}",
+        { projectId },
+      )
+    : translateAIWorkspacePlanText(
+        "AI_WORKSPACE_ACTION_PLAN_TARGET_CURRENT_OR_MENTION",
+        "目标项目：将使用当前项目，或需要先用 @ 选择项目",
+      );
+  const steps: AIAgentArtifactStep[] = [
+    { id: "confirm-target", title: target, status: "planned" },
+    {
+      id: "resolve-intent",
+      title: translateAIWorkspacePlanText(
+        "AI_WORKSPACE_ACTION_PLAN_STEP_RESOLVE_INTENT",
+        "识别要创建的项目或内容模型，并补齐名称与用途。",
+      ),
+      status: "planned",
+    },
+    {
+      id: "execute-build",
+      title: translateAIWorkspacePlanText(
+        "AI_WORKSPACE_ACTION_PLAN_STEP_EXECUTE_BUILD",
+        "切换到构建模式后执行，并返回可打开的结果入口。",
+      ),
+      status: "planned",
+    },
+  ];
   return {
-    content: chinese
-      ? "我已为这次创建请求整理成可执行方案。规划模式不会直接修改工作区；确认后切换到构建模式发送同一目标，我会执行创建并返回结果入口。"
-      : "I prepared an executable proposal for this creation request. Plan mode does not mutate the workspace; switch to Build mode and send the same goal to execute it.",
+    content: translateAIWorkspacePlanText(
+      "AI_WORKSPACE_ACTION_PLAN_MESSAGE",
+      "我已为这次创建请求整理成可执行方案。规划模式不会直接修改工作区；确认执行后会切换到构建模式并完成创建。",
+    ),
     artifact: {
       type: "agent_execution_plan",
       goal: prompt,
@@ -870,6 +987,23 @@ function createWorkspaceActionPlan(
       source: "workspace_action:planned_mutation",
     },
   };
+}
+
+function translateAIWorkspacePlanText(
+  key: string,
+  fallback: string,
+  values: Record<string, string> = {},
+): string {
+  const namespacedKey = `ai:${key}`;
+  const translated = i18n.isInitialized
+    ? i18n.t(namespacedKey, { ...values, defaultValue: fallback })
+    : fallback;
+  const text =
+    translated && translated !== namespacedKey && translated !== key ? translated : fallback;
+  return Object.entries(values).reduce(
+    (result, [name, value]) => result.replaceAll(`{{${name}}}`, value),
+    text,
+  );
 }
 
 function resolveWorkspaceActionProjectId(
@@ -891,8 +1025,13 @@ function resolveWorkspaceActionProjectId(
   );
 }
 
-function projectIdFromComposerDirective(text: string): string | null {
+export function projectIdFromComposerDirective(text: string): string | null {
   const match = /:project\[[^\]\n]{1,1024}\]\{name=([^}\n]{1,1024})\}/u.exec(text);
+  return match?.[1]?.trim() || null;
+}
+
+export function agentIdFromComposerDirective(text: string): string | null {
+  const match = /:agent\[[^\]\n]{1,1024}\]\{name=([^}\n]{1,1024})\}/u.exec(text);
   return match?.[1]?.trim() || null;
 }
 

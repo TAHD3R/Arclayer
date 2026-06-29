@@ -568,6 +568,26 @@ describe("AI agent API", () => {
     ).toContain("还没有可用的 AI 模型密钥");
   });
 
+  it("formats model catalog errors from backend codes instead of raw messages", () => {
+    expect(
+      formatAIChatError(
+        JSON.stringify({
+          detail: {
+            message: "No selectable AI models are configured for this workspace",
+            error: "AI_MODEL_CATALOG_EMPTY",
+          },
+        }),
+      ),
+    ).toContain("当前没有可用于对话的模型");
+
+    expect(
+      formatAIChatError({
+        message: "No selectable AI models are configured for this workspace",
+        error: "AI_MODEL_CATALOG_EMPTY",
+      }),
+    ).toContain("当前没有可用于对话的模型");
+  });
+
   it("stores agent run id and completion status from the stream", async () => {
     window.history.pushState({}, "", "/system/settings/agents");
     apiGetMock.mockResolvedValue({

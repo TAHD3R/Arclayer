@@ -5,7 +5,6 @@ import {
   ChevronRightIcon,
   Loader2Icon,
   ShieldCheckIcon,
-  SparklesIcon,
 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -208,7 +207,9 @@ export function AIContextRecommendations() {
               recommendation,
             });
             const disabled = busy || !availability.available;
-            const tooltip = buildRecommendationTitle(localized, availability, t);
+            const tooltip = normalizeTooltipText(
+              buildRecommendationTitle(localized, availability, t),
+            );
             return (
               <Tooltip key={recommendation.actionId}>
                 <TooltipTrigger asChild>
@@ -229,19 +230,13 @@ export function AIContextRecommendations() {
                   >
                     {pending ? (
                       <Loader2Icon className="size-3.5 animate-spin" aria-hidden="true" />
-                    ) : (
-                      <SparklesIcon className="size-3.5" aria-hidden="true" />
-                    )}
-                    <span className="max-w-[10rem] truncate">{localized.label}</span>
-                    {recommendation.requiresApproval ? (
-                      <ShieldCheckIcon
-                        className="size-3.5 text-label-tertiary"
-                        aria-hidden="true"
-                      />
                     ) : null}
+                    <span className="max-w-[10rem] truncate">{localized.label}</span>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent className="max-w-80">{tooltip}</TooltipContent>
+                <TooltipContent className="max-w-80 whitespace-normal leading-snug" layout={false}>
+                  {tooltip}
+                </TooltipContent>
               </Tooltip>
             );
           })}
@@ -278,6 +273,10 @@ export function AIContextRecommendations() {
       ) : null}
     </div>
   );
+}
+
+function normalizeTooltipText(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
 }
 
 function withLocalRecommendations(

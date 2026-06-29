@@ -1,7 +1,7 @@
 "use client";
 
 import { useAui, useAuiState } from "@assistant-ui/react";
-import { CommandIcon, FolderIcon, XIcon } from "lucide-react";
+import { BotIcon, CommandIcon, FolderIcon, GlobeIcon, XIcon, type LucideIcon } from "lucide-react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -12,6 +12,7 @@ import {
   type AIComposerDirectiveChip,
   type AIComposerDirectiveScope,
 } from "@/components/ai/ai-composer-directives";
+import { useAiChatStore } from "@/stores/use-ai-chat-store";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
@@ -28,6 +29,8 @@ export function AIComposerDirectiveChips({ scope, className }: AIComposerDirecti
   const directives = useAIComposerDirectiveStore((s) => s.directivesByScope[scope]);
   const addDirectives = useAIComposerDirectiveStore((s) => s.addDirectives);
   const removeDirective = useAIComposerDirectiveStore((s) => s.removeDirective);
+  const webSearchEnabled = useAiChatStore((s) => s.webSearchEnabled);
+  const setWebSearchEnabled = useAiChatStore((s) => s.setWebSearchEnabled);
 
   useEffect(() => {
     const parsed = parseAIComposerDirectives(composerText);
@@ -36,10 +39,19 @@ export function AIComposerDirectiveChips({ scope, className }: AIComposerDirecti
     aui.composer().setText(cleanAIComposerDirectiveText(composerText));
   }, [addDirectives, aui, composerText, scope]);
 
-  if (directives.length === 0) return null;
+  if (directives.length === 0 && !webSearchEnabled) return null;
 
   return (
     <div className={cn("flex min-w-0 flex-wrap items-center gap-1.5 px-1", className)}>
+      {webSearchEnabled ? (
+        <DirectiveChip
+          directive={{ type: "action", id: "web-search", label: t("ai:AI_CHAT_WEB_SEARCH") }}
+          label={t("ai:AI_CHAT_WEB_SEARCH_ENABLED")}
+          icon={GlobeIcon}
+          showDirectiveLabel={false}
+          onRemove={() => setWebSearchEnabled(false)}
+        />
+      ) : null}
       {directives.map((directive) => (
         <DirectiveChip
           key={`${directive.type}:${directive.id}`}
@@ -55,16 +67,26 @@ export function AIComposerDirectiveChips({ scope, className }: AIComposerDirecti
 function DirectiveChip(props: {
   directive: AIComposerDirectiveChip;
   label: string;
+  icon?: LucideIcon;
+  showDirectiveLabel?: boolean;
   onRemove: () => void;
 }) {
-  const Icon = props.directive.type === "project" ? FolderIcon : CommandIcon;
+  const Icon =
+    props.icon ??
+    (props.directive.type === "project"
+      ? FolderIcon
+      : props.directive.type === "agent"
+        ? BotIcon
+        : CommandIcon);
 
   return (
     <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-border/70 bg-background/70 px-2 py-1 text-caption font-semibold text-label-primary shadow-sm">
       <Icon className="size-3.5 shrink-0 text-label-secondary" aria-hidden="true" />
       <span className="min-w-0 truncate">
         <span className="text-label-secondary">{props.label}</span>
-        <span className="ml-1">{props.directive.label}</span>
+        {props.showDirectiveLabel === false ? null : (
+          <span className="ml-1">{props.directive.label}</span>
+        )}
       </span>
       <Tooltip>
         <TooltipTrigger asChild>
@@ -90,5 +112,6 @@ function directiveLabel(
   directive: AIComposerDirectiveChip,
 ): string {
   if (directive.type === "project") return t("ai:AI_CHAT_DIRECTIVE_PROJECT");
+  if (directive.type === "agent") return t("ai:AI_CHAT_DIRECTIVE_AGENT");
   return t("ai:AI_CHAT_DIRECTIVE_ACTION");
 }

@@ -5,7 +5,10 @@ import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { listAIProjectAgents } from "@/api/ai";
-import { AIComposerContextControls } from "@/components/ai/ai-composer-toolbar";
+import {
+  AIComposerContextControls,
+  AIComposerInputActions,
+} from "@/components/ai/ai-composer-toolbar";
 import { useAiChatStore } from "@/stores/use-ai-chat-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
@@ -24,6 +27,10 @@ vi.mock("@assistant-ui/react", () => {
     AuiIf: Passthrough,
     ComposerPrimitive: {
       AddAttachment: Passthrough,
+      Cancel: Passthrough,
+      Dictate: Passthrough,
+      Send: Passthrough,
+      StopDictation: Passthrough,
     },
   };
 });
@@ -59,6 +66,10 @@ function renderControls() {
       <AIComposerContextControls />
     </QueryClientProvider>,
   );
+}
+
+function renderInputActions() {
+  return render(<AIComposerInputActions />);
 }
 
 describe("AIComposerContextControls", () => {
@@ -116,7 +127,7 @@ describe("AIComposerContextControls", () => {
   it("toggles web search from the add context menu", async () => {
     const user = userEvent.setup();
     useAiChatStore.setState({ webSearchEnabled: false });
-    renderControls();
+    renderInputActions();
 
     await user.click(screen.getByRole("button", { name: "Add context" }));
     const webSearchItem = await screen.findByRole("menuitem", { name: "Web search" });

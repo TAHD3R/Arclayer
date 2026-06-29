@@ -1,11 +1,19 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { MessageCircle, PlusIcon, Trash2 } from "lucide-react";
+import {
+  MessageCircle,
+  MoreHorizontalIcon,
+  PencilIcon,
+  PinIcon,
+  PlusIcon,
+  Trash2,
+} from "lucide-react";
 
 import {
   deleteAIConversation,
   ensureAIConversationPersistedForRuntime,
   loadAIConversations,
+  renameAIConversation,
 } from "@/api/ai";
 import { useAiChatStore } from "@/stores/use-ai-chat-store";
 import { cn } from "@arclayer/lib/utils";
@@ -21,7 +29,22 @@ import {
   AlertDialogTrigger,
 } from "@arclayer/ui/alert-dialog";
 import { Button } from "@arclayer/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@arclayer/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuIconItem,
+  DropdownMenuTrigger,
+} from "@arclayer/ui/dropdown-menu";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
+import { Input } from "@arclayer/ui/input";
 import { Item, ItemContent, ItemHeader, ItemTitle } from "@arclayer/ui/item";
 
 function formatRelative(ts: number, formatter: Intl.RelativeTimeFormat): string {
@@ -42,11 +65,28 @@ export function AIConversationList() {
     [i18n.language],
   );
   const conversations = useAiChatStore((s) => s.conversations);
+  const pinnedConversationIds = useAiChatStore((s) => s.pinnedConversationIds);
   const activeId = useAiChatStore((s) => s.activeId);
   const drawerOpen = useAiChatStore((s) => s.drawerOpen);
   const createConversation = useAiChatStore((s) => s.createConversation);
   const selectConversation = useAiChatStore((s) => s.selectConversation);
+  const toggleConversationPinned = useAiChatStore((s) => s.toggleConversationPinned);
   const openDrawer = useAiChatStore((s) => s.openDrawer);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
+  const [renameError, setRenameError] = useState<string | null>(null);
+  const [renamePending, setRenamePending] = useState(false);
+  const pinnedIdSet = useMemo(() => new Set(pinnedConversationIds), [pinnedConversationIds]);
+  const sortedConversations = useMemo(
+    () =>
+      [...conversations].sort((a, b) => {
+        const aPinned = pinnedIdSet.has(a.id);
+        const bPinned = pinnedIdSet.has(b.id);
+        if (aPinned !== bPinned) return aPinned ? -1 : 1;
+        return b.updatedAt - a.updatedAt;
+      }),
+    [conversations, pinnedIdSet],
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -63,6 +103,32 @@ export function AIConversationList() {
   const handleSelectConversation = (id: string) => {
     selectConversation(id);
     openDrawer();
+  };
+  const renamingConversation = conversations.find((conversation) => conversation.id === renamingId);
+
+  const openRenameDialog = (conversation: (typeof conversations)[number]) => {
+    setRenamingId(conversation.id);
+    setRenameDraft(conversation.title);
+    setRenameError(null);
+  };
+
+  const submitRename = async () => {
+    if (!renamingConversation) return;
+    const title = renameDraft.trim();
+    if (!title) {
+      setRenameError(t("ai:AI_CHAT_RENAME_REQUIRED"));
+      return;
+    }
+    setRenamePending(true);
+    setRenameError(null);
+    try {
+      await renameAIConversation(renamingConversation.id, title);
+      setRenamingId(null);
+    } catch (error) {
+      setRenameError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setRenamePending(false);
+    }
   };
 
   return (
@@ -86,7 +152,7 @@ export function AIConversationList() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="mt-4 h-9 !rounded-full gap-2 px-3 text-label-primary"
+                className="mt-4 h-9 gap-2 px-3 text-label-primary"
                 onClick={handleCreateConversation}
               >
                 <PlusIcon className="size-4" aria-hidden="true" />
@@ -97,7 +163,7 @@ export function AIConversationList() {
         ) : (
           <div className="w-full min-w-0 px-1 py-1">
             <ul className="flex flex-col gap-0.5">
-              {conversations.map((conversation) => (
+              {sortedConversations.map((conversation) => (
                 <li key={conversation.id}>
                   <AlertDialog>
                     <Item
@@ -119,27 +185,68 @@ export function AIConversationList() {
                       }}
                     >
                       <ItemContent className="min-w-0 gap-1">
-                        <ItemHeader className="gap-3">
+                        <ItemHeader className="min-w-0 items-center gap-1">
                           <ItemTitle className="min-w-0 flex-1">
-                            <span className="min-w-0 truncate text-headline text-label-primary">
-                              {conversation.title}
+                            <span className="flex min-w-0 items-center gap-1.5 text-headline text-label-primary">
+                              {pinnedIdSet.has(conversation.id) ? (
+                                <PinIcon
+                                  className="size-3.5 shrink-0 text-label-secondary"
+                                  aria-hidden="true"
+                                />
+                              ) : null}
+                              <span className="min-w-0 flex-1 truncate">{conversation.title}</span>
                             </span>
                           </ItemTitle>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={t("ai:AI_CHAT_DELETE_CONFIRM")}
-                              className="shrink-0 !rounded-full text-label-secondary hover:text-destructive"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                              }}
-                              onKeyDown={(event) => event.stopPropagation()}
-                            >
-                              <Trash2 className="size-4" aria-hidden="true" />
-                            </Button>
-                          </AlertDialogTrigger>
+                          <div className="ml-0.5 flex shrink-0 items-center gap-0.5">
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={t("ai:AI_CHAT_DELETE_CONFIRM")}
+                                className="size-7 shrink-0 !rounded-full text-label-secondary hover:text-destructive"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                }}
+                                onKeyDown={(event) => event.stopPropagation()}
+                              >
+                                <Trash2 className="size-4" aria-hidden="true" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label={t("ai:AI_CHAT_CONVERSATION_MORE")}
+                                  className="size-7 shrink-0 !rounded-full text-label-secondary hover:text-label-primary"
+                                  onClick={(event) => event.stopPropagation()}
+                                  onKeyDown={(event) => event.stopPropagation()}
+                                >
+                                  <MoreHorizontalIcon className="size-4" aria-hidden="true" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-36 rounded-xl p-1.5">
+                                <DropdownMenuIconItem
+                                  icon={<PinIcon className="size-4" />}
+                                  onClick={(event) => event.stopPropagation()}
+                                  onSelect={() => toggleConversationPinned(conversation.id)}
+                                >
+                                  {pinnedIdSet.has(conversation.id)
+                                    ? t("ai:AI_CHAT_UNPIN")
+                                    : t("ai:AI_CHAT_PIN")}
+                                </DropdownMenuIconItem>
+                                <DropdownMenuIconItem
+                                  icon={<PencilIcon className="size-4" />}
+                                  onClick={(event) => event.stopPropagation()}
+                                  onSelect={() => openRenameDialog(conversation)}
+                                >
+                                  {t("ai:AI_CHAT_RENAME")}
+                                </DropdownMenuIconItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </ItemHeader>
                         <span className="min-w-0 truncate text-footnote text-label-secondary">
                           {formatRelative(conversation.updatedAt, relativeTimeFormatter)}
@@ -178,7 +285,7 @@ export function AIConversationList() {
             type="button"
             variant="ghost"
             size="sm"
-            className="h-9 w-full justify-start gap-2 !rounded-full px-3"
+            className="h-9 w-full justify-start gap-2 !rounded-md px-3"
             onClick={handleCreateConversation}
           >
             <PlusIcon className="size-4" aria-hidden="true" />
@@ -186,6 +293,49 @@ export function AIConversationList() {
           </Button>
         </div>
       ) : null}
+      <Dialog
+        open={Boolean(renamingConversation)}
+        onOpenChange={(open) => !open && setRenamingId(null)}
+      >
+        <DialogContent className="sm:max-w-110">
+          <DialogHeader>
+            <DialogTitle>{t("ai:AI_CHAT_RENAME")}</DialogTitle>
+            <DialogDescription>{t("ai:AI_CHAT_RENAME_DESC")}</DialogDescription>
+          </DialogHeader>
+          <form
+            className="grid gap-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void submitRename();
+            }}
+          >
+            <Input
+              value={renameDraft}
+              onChange={(event) => setRenameDraft(event.target.value)}
+              aria-label={t("ai:AI_CHAT_RENAME")}
+              autoFocus
+            />
+            {renameError ? (
+              <p className="text-footnote font-medium text-destructive" role="alert">
+                {renameError}
+              </p>
+            ) : null}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setRenamingId(null)}
+                disabled={renamePending}
+              >
+                {t("common:CANCEL")}
+              </Button>
+              <Button type="submit" disabled={renamePending}>
+                {t("common:CONFIRM")}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import {
   BotIcon,
   CheckIcon,
   ChevronDownIcon,
+  FolderIcon,
   HammerIcon,
   MessageSquareTextIcon,
   SearchIcon,
@@ -13,6 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { listAIProjectAgents, type AIAgentCatalogItem } from "@/api/ai";
+import { getProjectDetail, listProjects } from "@/api/projects";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import { Command, CommandGroup, CommandItem, CommandList } from "@arclayer/ui/command";
@@ -66,6 +68,137 @@ type AIAgentSelectorProps = {
   className?: string;
   compact?: boolean;
 };
+
+type AIProjectOption = {
+  value: string;
+  label: string;
+  description: string;
+};
+
+export function AIProjectSelector({ className, compact = false }: AIAgentSelectorProps) {
+  const { t } = useTranslation(["ai"]);
+  const [open, setOpen] = useState(false);
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId ?? s.lastWorkspaceId);
+  const projectId = useWorkspaceStore((s) => s.currentProjectId);
+  const setCurrentProjectId = useWorkspaceStore((s) => s.setCurrentProjectId);
+  const { data: projectsData, isLoading: projectsLoading } = useQuery({
+    queryKey: ["ai", "project-selector", workspaceId],
+    queryFn: () =>
+      listProjects({
+        workspaceId: String(workspaceId),
+        archived: false,
+        ordering: "-updated_at",
+        page: 1,
+        size: 12,
+      }),
+    enabled: Boolean(workspaceId),
+    staleTime: 30_000,
+    retry: false,
+  });
+  const { data: currentProject } = useQuery({
+    queryKey: ["project", "detail", projectId],
+    queryFn: () => getProjectDetail(String(projectId)),
+    enabled: Boolean(projectId),
+    staleTime: 60_000,
+    retry: false,
+  });
+  const options = useMemo<AIProjectOption[]>(
+    () =>
+      (projectsData?.items ?? []).map((project) => ({
+        value: project.id,
+        label: project.name,
+        description: project.description ?? project.slug,
+      })),
+    [projectsData?.items],
+  );
+  const selected =
+    options.find((project) => project.value === projectId) ??
+    (currentProject
+      ? {
+          value: currentProject.project.id,
+          label: currentProject.project.name,
+          description: currentProject.project.description ?? currentProject.project.slug,
+        }
+      : null);
+  const buttonLabel = selected?.label ?? t("ai:AI_CHAT_PROJECT_SELECT");
+  const disabled = !workspaceId;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          aria-label={t("ai:AI_CHAT_PROJECT_SELECT")}
+          aria-expanded={open}
+          disabled={disabled}
+          className={cn(
+            "h-8 min-w-0 justify-start gap-2 rounded-xl px-2.5 text-footnote font-semibold text-label-primary hover:bg-accent/70",
+            compact ? "max-w-[11rem]" : "max-w-[14rem]",
+            className,
+          )}
+        >
+          <FolderIcon className="size-3.5 shrink-0 text-label-secondary" aria-hidden="true" />
+          <span className={cn("truncate", !selected && "text-label-secondary")}>
+            {projectsLoading ? t("ai:AI_CHAT_PROJECT_LOADING") : buttonLabel}
+          </span>
+          <ChevronDownIcon className="size-3.5 shrink-0 opacity-70" aria-hidden="true" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className={cn(
+          "overflow-hidden rounded-xl p-2 [&_[cmdk-group-items]]:flex [&_[cmdk-group-items]]:w-full [&_[cmdk-group-items]]:flex-col [&_[cmdk-group]]:w-full [&_[cmdk-item]]:w-full [&_[cmdk-list-sizer]]:w-full",
+          compact ? "w-[22rem] max-w-[calc(100vw-2rem)]" : "w-[min(24rem,calc(100vw-2rem))]",
+        )}
+      >
+        <Command className="w-full rounded-none">
+          <CommandList className="max-h-80 w-full p-0">
+            <CommandGroup className="w-full p-0">
+              {options.map((project) => {
+                const active = projectId === project.value;
+                return (
+                  <CommandItem
+                    key={project.value}
+                    value={project.value}
+                    onSelect={() => {
+                      setCurrentProjectId(project.value);
+                      setOpen(false);
+                    }}
+                    className="w-full cursor-pointer items-start gap-3 rounded-xl px-3 py-3"
+                  >
+                    <FolderIcon className="mt-0.5 size-5 text-label-secondary" aria-hidden="true" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-callout font-semibold text-label-primary">
+                        {project.label}
+                      </span>
+                      <span className="mt-0.5 block truncate text-footnote text-label-secondary">
+                        {project.description}
+                      </span>
+                    </span>
+                    <CheckIcon
+                      className={cn(
+                        "mt-1 size-4 text-label-secondary",
+                        active ? "opacity-100" : "opacity-0",
+                      )}
+                      aria-hidden="true"
+                    />
+                  </CommandItem>
+                );
+              })}
+              {!projectsLoading && options.length === 0 ? (
+                <div className="px-3 py-3 text-footnote text-label-secondary">
+                  {t("ai:AI_CHAT_PROJECT_EMPTY")}
+                </div>
+              ) : null}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export function AIAgentSelector({ className, compact = false }: AIAgentSelectorProps) {
   const { t } = useTranslation(["ai"]);

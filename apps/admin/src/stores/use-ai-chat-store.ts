@@ -129,6 +129,7 @@ export interface AIConversation {
 export interface AIChatState {
   conversations: AIConversation[];
   activeId: string | null;
+  pinnedConversationIds: string[];
   streaming: boolean;
   selectedModel: string;
   selectedModelSource: AIPreferenceSource;
@@ -143,6 +144,7 @@ export interface AIChatState {
 
   createConversation: () => string;
   renameConversation: (id: string, title: string) => void;
+  toggleConversationPinned: (id: string) => void;
   selectConversation: (id: string) => void;
   deleteConversation: (id: string) => void;
   replaceConversations: (conversations: AIConversation[]) => void;
@@ -211,6 +213,7 @@ export const useAiChatStore = create<AIChatState>()(
     (set) => ({
       conversations: [],
       activeId: null,
+      pinnedConversationIds: [],
       streaming: false,
       selectedModel: DEFAULT_AI_CHAT_MODEL,
       selectedModelSource: "default",
@@ -253,13 +256,27 @@ export const useAiChatStore = create<AIChatState>()(
           };
         }),
 
+      toggleConversationPinned: (id) =>
+        set((state) => {
+          const pinned = new Set(state.pinnedConversationIds);
+          if (pinned.has(id)) {
+            pinned.delete(id);
+          } else {
+            pinned.add(id);
+          }
+          return { pinnedConversationIds: [...pinned] };
+        }),
+
       selectConversation: (id) => set({ activeId: id }),
 
       deleteConversation: (id) =>
         set((state) => {
           const conversations = state.conversations.filter((c) => c.id !== id);
           const activeId = state.activeId === id ? (conversations[0]?.id ?? null) : state.activeId;
-          return { conversations, activeId };
+          const pinnedConversationIds = state.pinnedConversationIds.filter(
+            (conversationId) => conversationId !== id,
+          );
+          return { conversations, activeId, pinnedConversationIds };
         }),
 
       replaceConversations: (conversations) =>
@@ -424,6 +441,7 @@ export const useAiChatStore = create<AIChatState>()(
         composerMode: s.composerMode,
         composerModeSource: s.composerModeSource,
         selectedAgentId: s.selectedAgentId,
+        pinnedConversationIds: s.pinnedConversationIds,
       }),
       migrate: (persisted) => {
         const state = persisted as Partial<AIChatState>;
@@ -436,6 +454,7 @@ export const useAiChatStore = create<AIChatState>()(
           composerMode: state.composerMode ?? DEFAULT_AI_COMPOSER_MODE,
           composerModeSource: state.composerModeSource ?? (state.composerMode ? "user" : "default"),
           selectedAgentId: state.selectedAgentId ?? DEFAULT_AI_AGENT_ID,
+          pinnedConversationIds: state.pinnedConversationIds ?? [],
           webSearchEnabled: false,
           conversations: [],
           activeId: null,

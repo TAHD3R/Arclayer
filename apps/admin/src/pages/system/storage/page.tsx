@@ -137,7 +137,13 @@ type StorageLimitsFormValues = {
   recycleBinRetentionDays: number;
 };
 
-type UploadPolicyPurposeKey = "library" | "avatar" | "workspaceIcon" | "siteLogo" | "favicon";
+type UploadPolicyPurposeKey =
+  | "library"
+  | "avatar"
+  | "workspaceIcon"
+  | "siteLogo"
+  | "favicon"
+  | "attachment";
 type UploadPurposePolicyFormValues = {
   maxSizeMb: number;
   allowedExtensions: string;
@@ -211,6 +217,11 @@ const UPLOAD_POLICY_FORM_PURPOSES = [
     payloadKey: "favicon",
     labelKey: "settings:SETTINGS_STORAGE_UPLOAD_POLICY_FAVICON_LABEL",
   },
+  {
+    key: "attachment",
+    payloadKey: "attachment",
+    labelKey: "settings:SETTINGS_STORAGE_UPLOAD_POLICY_ATTACHMENT_LABEL",
+  },
 ] as const satisfies readonly {
   key: UploadPolicyPurposeKey;
   payloadKey: string;
@@ -266,6 +277,10 @@ const DEFAULT_UPLOAD_POLICY_FORM_VALUES: UploadPolicyFormValues = {
     favicon: {
       maxSizeMb: 2,
       allowedExtensions: "ico, png",
+    },
+    attachment: {
+      maxSizeMb: 50,
+      allowedExtensions: DEFAULT_IMAGE_UPLOAD_EXTENSIONS,
     },
   },
 };
@@ -408,6 +423,7 @@ function cloneDefaultUploadPolicyFormValues(): UploadPolicyFormValues {
       workspaceIcon: { ...DEFAULT_UPLOAD_POLICY_FORM_VALUES.purposes.workspaceIcon },
       siteLogo: { ...DEFAULT_UPLOAD_POLICY_FORM_VALUES.purposes.siteLogo },
       favicon: { ...DEFAULT_UPLOAD_POLICY_FORM_VALUES.purposes.favicon },
+      attachment: { ...DEFAULT_UPLOAD_POLICY_FORM_VALUES.purposes.attachment },
     },
   };
 }
@@ -484,6 +500,10 @@ function buildUploadPolicyInitialValues(
       favicon: readUploadPurposePolicy(
         readRecordValue(purposes, "favicon"),
         fallback.purposes.favicon,
+      ),
+      attachment: readUploadPurposePolicy(
+        readRecordValue(purposes, "attachment"),
+        fallback.purposes.attachment,
       ),
     },
   };

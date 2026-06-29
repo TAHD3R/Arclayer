@@ -129,6 +129,12 @@ export type AiConversationMessageInput = {
      * Role
      */
     role: 'user' | 'assistant';
+    /**
+     * Workspaceaction
+     */
+    workspaceAction?: {
+        [key: string]: JsonValueInput;
+    } | null;
 };
 
 /**
@@ -191,6 +197,12 @@ export type AiConversationMessageOutput = {
      * Role
      */
     role: 'user' | 'assistant';
+    /**
+     * Workspaceaction
+     */
+    workspaceAction?: {
+        [key: string]: JsonValueOutput;
+    } | null;
 };
 
 /**
@@ -2744,6 +2756,12 @@ export type ChatMessage = {
  * Chat completion request body.
  */
 export type ChatRequest = {
+    /**
+     * Contextsnapshot
+     */
+    contextSnapshot?: {
+        [key: string]: JsonValueInput;
+    };
     /**
      * Maxtokens
      */
@@ -16417,6 +16435,31 @@ export type ResponseModelWebhookSubscriptionOut = {
 };
 
 /**
+ * ResponseModel[WorkspaceAIActionResponse]
+ */
+export type ResponseModelWorkspaceAiActionResponse = {
+    data?: WorkspaceAiActionResponse | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[WorkspaceAssignRoleToMembersResult]
  */
 export type ResponseModelWorkspaceAssignRoleToMembersResult = {
@@ -18448,17 +18491,17 @@ export type SystemAiProviderCreateRequest = {
      */
     label: string;
     /**
-     * Litellmkeyid
-     */
-    litellmKeyId?: string | null;
-    /**
      * Provider
      */
     provider: string;
     /**
-     * Virtualkey
+     * Providerapikey
      */
-    virtualKey: string;
+    providerApiKey: string;
+    /**
+     * Requestmodel
+     */
+    requestModel: string;
 };
 
 /**
@@ -18520,6 +18563,10 @@ export type SystemAiProviderOut = {
      */
     provider: string;
     /**
+     * Requestmodel
+     */
+    requestModel: string;
+    /**
      * Updatedat
      */
     updatedAt: string;
@@ -18550,13 +18597,13 @@ export type SystemAiProviderUpdateRequest = {
      */
     label?: string | null;
     /**
-     * Litellmkeyid
+     * Providerapikey
      */
-    litellmKeyId?: string | null;
+    providerApiKey?: string | null;
     /**
-     * Virtualkey
+     * Requestmodel
      */
-    virtualKey?: string | null;
+    requestModel?: string | null;
 };
 
 /**
@@ -19439,6 +19486,100 @@ export type WebhookSubscriptionOut = {
      * Id
      */
     id: string;
+};
+
+/**
+ * WorkspaceAIActionNavigation
+ */
+export type WorkspaceAiActionNavigation = {
+    /**
+     * Label
+     *
+     * Product label for the target navigation.
+     */
+    label: string;
+    /**
+     * Path
+     *
+     * Admin route path.
+     */
+    path: string;
+};
+
+/**
+ * WorkspaceAIActionRequest
+ */
+export type WorkspaceAiActionRequest = {
+    /**
+     * Message
+     *
+     * Latest user instruction.
+     */
+    message: string;
+    /**
+     * Composer mode that triggered this workspace action.
+     */
+    mode?: AgentConversationMode;
+    /**
+     * Projectid
+     *
+     * Optional target project for project-scoped workspace actions.
+     */
+    projectId?: string | null;
+    /**
+     * Workspaceid
+     *
+     * Workspace that owns this AI action.
+     */
+    workspaceId: string;
+};
+
+/**
+ * WorkspaceAIActionResponse
+ */
+export type WorkspaceAiActionResponse = {
+    /**
+     * Action
+     *
+     * Resolved workspace AI action.
+     */
+    action: 'create_project' | 'create_content_model' | 'list_projects' | 'open_projects';
+    /**
+     * Content
+     *
+     * Assistant-facing response text.
+     */
+    content: string;
+    /**
+     * Created or primary content model.
+     */
+    contentModel?: ContentModelMutationOut | null;
+    /**
+     * Recommended navigation.
+     */
+    navigation?: WorkspaceAiActionNavigation | null;
+    /**
+     * Created or primary project.
+     */
+    project?: ProjectListItemOut | null;
+    /**
+     * Projects
+     *
+     * Project search results.
+     */
+    projects?: Array<ProjectListItemOut>;
+    /**
+     * Status
+     *
+     * Action execution status.
+     */
+    status?: 'completed';
+    /**
+     * Total
+     *
+     * Total matched projects for list actions.
+     */
+    total?: number | null;
 };
 
 /**
@@ -22793,6 +22934,31 @@ export type AiListChatModelsResponses = {
 };
 
 export type AiListChatModelsResponse = AiListChatModelsResponses[keyof AiListChatModelsResponses];
+
+export type AiExecuteWorkspaceAiActionData = {
+    body: WorkspaceAiActionRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/chat/workspace-actions';
+};
+
+export type AiExecuteWorkspaceAiActionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AiExecuteWorkspaceAiActionError = AiExecuteWorkspaceAiActionErrors[keyof AiExecuteWorkspaceAiActionErrors];
+
+export type AiExecuteWorkspaceAiActionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceAiActionResponse;
+};
+
+export type AiExecuteWorkspaceAiActionResponse = AiExecuteWorkspaceAiActionResponses[keyof AiExecuteWorkspaceAiActionResponses];
 
 export type DomainWorkspacesListPersonalApiKeysData = {
     body?: never;
