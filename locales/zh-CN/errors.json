@@ -53,6 +53,7 @@
   "AI_MODEL_CATALOG_EMPTY": "当前没有可用于对话的模型。请在系统设置中新增并启用模型供应商",
   "AI_MODEL_CATALOG_LITELLM_UNREACHABLE": "暂时无法连接模型目录服务。请检查 LiteLLM 服务状态后重试",
   "AI_MODEL_CATALOG_RESPONSE_INVALID": "模型目录返回的数据不符合预期。请检查 LiteLLM 模型配置",
+  "AI_WORKSPACE_ACTION_PLANNER_PROVIDER_REJECTED": "工作区 Agent 规划请求被模型供应商拒绝。请检查模型工具调用能力与供应商配置",
   "ASSET_BULK_UPDATE_GOVERNANCE_FAILED": "部分资源不满足用途、可见性或索引规则",
   "ASSET_BULK_UPDATE_INVALID": "请至少选择一个要修改的字段",
   "ASSET_FILE_NOT_FOUND": "文件不存在",

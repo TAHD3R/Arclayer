@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import json
 import re
 from datetime import UTC, datetime
+from typing import cast
 from uuid import UUID, uuid4
 
+import httpx
 import pytest
 
 from src.common.types.json_types import JsonObject
 from src.config import Settings
 from src.core.exceptions import BadRequest
+from src.llm.runtime import LLMRuntime
 from src.models.agents.conversation import AgentConversationMode
 from src.models.workspaces.workspace import WorkspaceKind
 from src.modules.ai import workspace_actions
@@ -74,87 +78,111 @@ def test_content_model_create_request_generates_readable_camel_case_identifier()
     assert payload.plural_key == "blogPosts"
 
 
-def test_parse_planner_decision_accepts_tool_call() -> None:
-    decision = workspace_actions._parse_planner_decision(
-        """
+def test_parse_planner_tool_decision_accepts_tool_call() -> None:
+    decision = workspace_actions._parse_planner_tool_decision([
         {
-          "kind": "tool_call",
-          "confidence": 0.95,
-          "tool_call": {
-            "tool_name": "open_projects",
-            "arguments": {}
-          },
-          "missing_fields": [],
-          "requires_confirmation": false,
-          "user_visible_plan": "打开项目列表。"
+            "type": "function",
+            "function": {
+                "name": "workspace_open_projects",
+                "arguments": json.dumps({"user_visible_plan": "打开项目列表。"}, ensure_ascii=False),
+            },
         }
-        """
-    )
+    ])
 
     assert decision.kind == "tool_call"
     assert decision.tool_call is not None
     assert decision.tool_call.tool_name == "open_projects"
+    assert decision.user_visible_plan == "打开项目列表。"
 
 
-def test_parse_planner_decision_accepts_chat_route() -> None:
-    decision = workspace_actions._parse_planner_decision(
-        """
+def test_parse_planner_tool_decision_accepts_chat_route() -> None:
+    decision = workspace_actions._parse_planner_tool_decision([
         {
-          "kind": "chat",
-          "confidence": 0.9,
-          "tool_call": null,
-          "missing_fields": [],
-          "requires_confirmation": false,
-          "user_visible_plan": "交给常规对话。"
+            "type": "function",
+            "function": {
+                "name": "workspace_route_chat",
+                "arguments": json.dumps({"user_visible_plan": "交给常规对话。"}, ensure_ascii=False),
+            },
         }
-        """
-    )
+    ])
 
     assert decision.kind == "chat"
     assert decision.tool_call is None
 
 
-def test_parse_planner_decision_rejects_tool_route_without_tool_call() -> None:
+def test_parse_planner_tool_decision_rejects_missing_tool_call() -> None:
     with pytest.raises(BadRequest) as exc_info:
-        workspace_actions._parse_planner_decision(
-            """
-            {
-              "kind": "tool_call",
-              "confidence": 0.7,
-              "tool_call": null,
-              "missing_fields": [],
-              "requires_confirmation": false,
-              "user_visible_plan": "缺少工具。"
-            }
-            """
-        )
+        workspace_actions._parse_planner_tool_decision([])
 
     assert exc_info.value.error == "AI_WORKSPACE_ACTION_PLAN_INVALID"
 
 
-def test_planner_response_format_uses_closed_tool_argument_schemas() -> None:
-    response_format = workspace_actions._planner_response_format()
-    schema = response_format["response_format"]["json_schema"]["schema"]
-    tool_call_options = schema["properties"]["tool_call"]["anyOf"]
-    tool_schemas = [option for option in tool_call_options if option.get("type") == "object"]
+def test_planner_tool_provider_params_register_workspace_tools() -> None:
+    provider_params = workspace_actions._planner_tool_provider_params()
+    tools = provider_params["tools"]
 
-    assert schema["additionalProperties"] is False
-    assert "minimum" not in schema["properties"]["confidence"]
-    assert "maximum" not in schema["properties"]["confidence"]
-    assert {item["properties"]["tool_name"]["enum"][0] for item in tool_schemas} == {
-        "create_project",
-        "create_content_model",
-        "list_projects",
-        "open_projects",
+    assert "tool_choice" not in provider_params
+    assert {item["function"]["name"] for item in tools} == {
+        "workspace_create_project",
+        "workspace_create_content_model",
+        "workspace_list_projects",
+        "workspace_open_projects",
+        "workspace_route_chat",
+        "workspace_request_clarification",
     }
-    for item in tool_schemas:
-        assert item["additionalProperties"] is False
-        assert item["properties"]["arguments"]["additionalProperties"] is False
+    for item in tools:
+        assert item["type"] == "function"
+        assert item["function"]["parameters"]["additionalProperties"] is False
 
-    create_project_schema = next(
-        item for item in tool_schemas if item["properties"]["tool_name"]["enum"] == ["create_project"]
+    create_project_schema = next(item for item in tools if item["function"]["name"] == "workspace_create_project")
+    assert create_project_schema["function"]["parameters"]["required"] == [
+        "name",
+        "description",
+        "user_visible_plan",
+    ]
+
+
+def test_planner_messages_serializes_schema_mode_values() -> None:
+    payload = WorkspaceAIActionRequest(
+        workspace_id=uuid4(),
+        message="帮我创建一个 SaaS 落地页",
+        mode=AgentConversationMode.PLAN,
     )
-    assert create_project_schema["properties"]["arguments"]["required"] == ["name", "description"]
+
+    messages = workspace_actions._planner_messages(payload)
+    user_content = json.loads(messages[1]["content"])
+
+    assert payload.mode == "plan"
+    assert user_content["context"]["mode"] == "plan"
+
+
+@pytest.mark.asyncio
+async def test_workspace_action_planner_exposes_provider_rejection() -> None:
+    class RejectingRuntime:
+        async def chat(self, *args, **kwargs):
+            request = httpx.Request("POST", "http://litellm.local/v1/chat/completions")
+            response = httpx.Response(
+                400,
+                request=request,
+                text='{"error":{"message":"Thinking mode does not support this tool_choice"}}',
+            )
+            raise httpx.HTTPStatusError("bad request", request=request, response=response)
+
+    planner = workspace_actions.WorkspaceActionPlanner(Settings(), runtime=cast(LLMRuntime, RejectingRuntime()))
+
+    with pytest.raises(workspace_actions.APIError) as exc_info:
+        await planner.plan(
+            payload=WorkspaceAIActionRequest(
+                workspace_id=uuid4(),
+                message="帮我创建一个 SaaS 落地页",
+                mode=AgentConversationMode.BUILD,
+            ),
+            user_id=uuid4(),
+        )
+
+    assert exc_info.value.error == "AI_WORKSPACE_ACTION_PLANNER_PROVIDER_REJECTED"
+    assert exc_info.value.status_code == 400
+    assert "Thinking mode does not support this tool_choice" in exc_info.value.message
 
 
 @pytest.mark.asyncio

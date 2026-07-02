@@ -53,6 +53,7 @@
   "AI_MODEL_CATALOG_EMPTY": "No chat models are available. Add and enable a model provider in System Settings",
   "AI_MODEL_CATALOG_LITELLM_UNREACHABLE": "Cannot reach the model catalog service right now. Check LiteLLM and try again",
   "AI_MODEL_CATALOG_RESPONSE_INVALID": "The model catalog response was not valid. Check the LiteLLM model configuration",
+  "AI_WORKSPACE_ACTION_PLANNER_PROVIDER_REJECTED": "The workspace Agent planning request was rejected by the model provider. Check tool-calling support and provider configuration",
   "ASSET_BULK_UPDATE_GOVERNANCE_FAILED": "Some assets do not satisfy the purpose, visibility, or indexability rules",
   "ASSET_BULK_UPDATE_INVALID": "Select at least one field to update",
   "ASSET_FILE_NOT_FOUND": "Asset file not found",

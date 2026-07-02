@@ -19489,6 +19489,42 @@ export type WebhookSubscriptionOut = {
 };
 
 /**
+ * WorkspaceAIActionExecutionStep
+ */
+export type WorkspaceAiActionExecutionStep = {
+    /**
+     * Detail
+     *
+     * Optional step detail.
+     */
+    detail?: string | null;
+    /**
+     * Id
+     *
+     * Stable step id for UI rendering.
+     */
+    id: string;
+    /**
+     * Status
+     *
+     * Step execution status.
+     */
+    status: 'planned' | 'running' | 'completed';
+    /**
+     * Title
+     *
+     * User-facing step label.
+     */
+    title: string;
+    /**
+     * Toolname
+     *
+     * Tool associated with this step.
+     */
+    toolName?: string | null;
+};
+
+/**
  * WorkspaceAIActionNavigation
  */
 export type WorkspaceAiActionNavigation = {
@@ -19543,7 +19579,7 @@ export type WorkspaceAiActionResponse = {
      *
      * Resolved workspace AI action.
      */
-    action: 'create_project' | 'create_content_model' | 'list_projects' | 'open_projects';
+    action?: 'create_project' | 'create_content_model' | 'list_projects' | 'open_projects' | null;
     /**
      * Content
      *
@@ -19555,9 +19591,27 @@ export type WorkspaceAiActionResponse = {
      */
     contentModel?: ContentModelMutationOut | null;
     /**
+     * Executionsteps
+     *
+     * Planner and tool execution steps for UI rendering.
+     */
+    executionSteps?: Array<WorkspaceAiActionExecutionStep>;
+    /**
+     * Kind
+     *
+     * Planner route selected for the latest message.
+     */
+    kind?: 'tool_call' | 'chat' | 'clarification';
+    /**
      * Recommended navigation.
      */
     navigation?: WorkspaceAiActionNavigation | null;
+    /**
+     * Plan
+     *
+     * User-facing planner summary.
+     */
+    plan?: string | null;
     /**
      * Created or primary project.
      */
@@ -19573,13 +19627,45 @@ export type WorkspaceAiActionResponse = {
      *
      * Action execution status.
      */
-    status?: 'completed';
+    status?: 'completed' | 'planned' | 'routed_to_chat' | 'needs_clarification';
+    /**
+     * Toolcalls
+     *
+     * Workspace tool calls selected by the planner.
+     */
+    toolCalls?: Array<WorkspaceAiActionToolCallOut>;
     /**
      * Total
      *
      * Total matched projects for list actions.
      */
     total?: number | null;
+};
+
+/**
+ * WorkspaceAIActionToolCallOut
+ */
+export type WorkspaceAiActionToolCallOut = {
+    /**
+     * Arguments
+     *
+     * Validated public arguments.
+     */
+    arguments?: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Status
+     *
+     * Tool call status.
+     */
+    status: 'planned' | 'running' | 'completed';
+    /**
+     * Toolname
+     *
+     * Executed or planned workspace tool name.
+     */
+    toolName: string;
 };
 
 /**

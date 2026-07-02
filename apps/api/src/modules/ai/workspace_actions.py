@@ -5,6 +5,7 @@ import re
 from typing import Any, Literal, cast
 from uuid import UUID, uuid4
 
+import httpx
 from fastapi import APIRouter, Depends, status
 from pydantic import Field, ValidationError
 
@@ -52,6 +53,12 @@ _CAMEL_IDENTIFIER_BOUNDARY = re.compile(r"([a-z0-9])([A-Z])")
 _IDENTIFIER_WORD_SEPARATOR = re.compile(r"[^A-Za-z0-9]+")
 _LEADING_NON_LETTERS = re.compile(r"^[^A-Za-z]+")
 _SUPPORTED_WORKSPACE_TOOLS = ("create_project", "create_content_model", "list_projects", "open_projects")
+_PLANNER_TOOL_TO_ACTION: dict[str, WorkspaceAIActionKind] = {
+    "workspace_create_project": "create_project",
+    "workspace_create_content_model": "create_content_model",
+    "workspace_list_projects": "list_projects",
+    "workspace_open_projects": "open_projects",
+}
 
 
 class WorkspaceAIPlannerToolCall(BaseSchema):
@@ -178,12 +185,18 @@ class WorkspaceActionPlanner:
                 model=self._settings.ai.default_model,
                 temperature=0,
                 max_tokens=900,
-                provider_params=_planner_response_format(),
+                provider_params=_planner_tool_provider_params(),
             )
         except LLMRuntimeError as exc:
             raise APIError(exc.message, error=exc.code, status_code=exc.status_code) from exc
+        except httpx.HTTPStatusError as exc:
+            raise APIError(
+                _provider_error_message(exc),
+                error="AI_WORKSPACE_ACTION_PLANNER_PROVIDER_REJECTED",
+                status_code=exc.response.status_code,
+            ) from exc
 
-        return _parse_planner_decision(result.content)
+        return _parse_planner_tool_decision(result.tool_calls)
 
 
 @router.post(
@@ -210,7 +223,7 @@ async def execute_workspace_ai_action(
         )
     action = decision.tool_call.tool_name
 
-    if payload.mode == AgentConversationMode.PLAN and _is_mutating_action(action):
+    if _conversation_mode_value(payload.mode) == AgentConversationMode.PLAN.value and _is_mutating_action(action):
         return ApiResponse.success(data=_planned_action_response(decision))
 
     ctx = await resolve_workspace_context_by_id(workspace_id=payload.workspace_id, user_id=user_id)
@@ -272,6 +285,10 @@ def _validate_tool_arguments[T: BaseSchema](schema: type[T], arguments: JsonObje
 
 def _is_mutating_action(action: WorkspaceAIActionKind) -> bool:
     return action in {"create_project", "create_content_model"}
+
+
+def _conversation_mode_value(mode: AgentConversationMode | str) -> str:
+    return mode.value if isinstance(mode, AgentConversationMode) else mode
 
 
 def _project_create_request(
@@ -639,44 +656,62 @@ def _completed_steps(
 def _planner_messages(payload: WorkspaceAIActionRequest) -> list[dict[str, str]]:
     tool_catalog = [
         {
-            "name": "create_project",
+            "name": "workspace_create_project",
             "description": "Create a new workspace project. Use this for project, website, landing page, app, portal, dashboard, or similar build requests that need a new project container.",
             "arguments": {
                 "name": "Concise product-ready project name inferred from the instruction.",
                 "description": "One sentence describing the project's purpose and operating scope.",
+                "user_visible_plan": "Concise plan shown to the user.",
             },
         },
         {
-            "name": "create_content_model",
+            "name": "workspace_create_content_model",
             "description": "Create a content model inside an existing target project. Requires project_id from context.",
             "arguments": {
                 "name": "Content model display name.",
                 "description": "One sentence describing what records this model manages.",
+                "user_visible_plan": "Concise plan shown to the user.",
             },
         },
         {
-            "name": "list_projects",
+            "name": "workspace_list_projects",
             "description": "Find or list projects in the current workspace.",
-            "arguments": {"query": "Optional search text, or null for all recent projects."},
+            "arguments": {
+                "query": "Optional search text, or null for all recent projects.",
+                "user_visible_plan": "Concise plan shown to the user.",
+            },
         },
         {
-            "name": "open_projects",
+            "name": "workspace_open_projects",
             "description": "Navigate to the project list without creating or changing anything.",
-            "arguments": {},
+            "arguments": {"user_visible_plan": "Concise plan shown to the user."},
+        },
+        {
+            "name": "workspace_route_chat",
+            "description": "Use this when the user message should continue as normal assistant chat instead of a workspace action.",
+            "arguments": {"user_visible_plan": "Short routing reason shown internally."},
+        },
+        {
+            "name": "workspace_request_clarification",
+            "description": "Use this when a supported workspace action is likely but required details cannot be inferred.",
+            "arguments": {
+                "user_visible_plan": "Question or clarification message shown to the user.",
+                "missing_fields": "Required details that are missing.",
+            },
         },
     ]
     system = (
         "You are Arclayer's workspace action planner. Decide whether the latest user message should call a "
-        "workspace tool, continue as normal chat, or ask a clarification question. Use the tool catalog only; "
-        "do not invent tool names. Produce product-ready Chinese copy when the user writes Chinese, and product-ready "
-        "English copy when the user writes English. For tool calls, fill arguments completely from the user's intent "
-        "and the available context. If a required argument cannot be inferred, return clarification instead of guessing. "
-        "Return only JSON that matches the supplied schema."
+        "workspace tool, continue as normal chat, or ask a clarification question. You must select exactly one "
+        "provided tool. Produce product-ready Chinese copy when the user writes Chinese, and product-ready English "
+        "copy when the user writes English. For mutating workspace tools, fill arguments completely from the user's "
+        "intent and the available context. If a required argument cannot be inferred, call "
+        "workspace_request_clarification instead of guessing."
     )
     context = {
         "workspace_id": str(payload.workspace_id),
         "project_id": str(payload.project_id) if payload.project_id else None,
-        "mode": payload.mode.value,
+        "mode": _conversation_mode_value(payload.mode),
         "tools": tool_catalog,
     }
     return [
@@ -685,140 +720,184 @@ def _planner_messages(payload: WorkspaceAIActionRequest) -> list[dict[str, str]]
     ]
 
 
-def _planner_response_format() -> dict[str, Any]:
-    tool_call_schemas = [
-        _planner_tool_call_schema(
-            tool_name="create_project",
-            arguments={
-                "name": {
-                    "type": "string",
-                    "description": "Concise product-ready project name inferred from the instruction.",
-                },
-                "description": {
-                    "type": "string",
-                    "description": "One sentence describing the project's purpose and operating scope.",
-                },
-            },
-            required_arguments=["name", "description"],
-        ),
-        _planner_tool_call_schema(
-            tool_name="create_content_model",
-            arguments={
-                "name": {
-                    "type": ["string", "null"],
-                    "description": "Content model display name, or null when the user did not provide enough naming context.",
-                },
-                "description": {
-                    "type": ["string", "null"],
-                    "description": "One sentence describing what records this model manages, or null when unavailable.",
-                },
-            },
-            required_arguments=["name", "description"],
-        ),
-        _planner_tool_call_schema(
-            tool_name="list_projects",
-            arguments={
-                "query": {
-                    "type": ["string", "null"],
-                    "description": "Optional project search text, or null for recent projects.",
-                },
-            },
-            required_arguments=["query"],
-        ),
-        _planner_tool_call_schema(
-            tool_name="open_projects",
-            arguments={},
-            required_arguments=[],
-        ),
-    ]
+def _planner_tool_provider_params() -> dict[str, Any]:
     return {
-        "response_format": {
-            "type": "json_schema",
-            "json_schema": {
-                "name": "workspace_action_planner_decision",
-                "strict": True,
-                "schema": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "required": [
-                        "kind",
-                        "confidence",
-                        "tool_call",
-                        "missing_fields",
-                        "requires_confirmation",
-                        "user_visible_plan",
-                    ],
-                    "properties": {
-                        "kind": {"type": "string", "enum": ["tool_call", "chat", "clarification"]},
-                        "confidence": {"type": "number"},
-                        "tool_call": {
-                            "anyOf": [
-                                {"type": "null"},
-                                *tool_call_schemas,
-                            ]
-                        },
-                        "missing_fields": {"type": "array", "items": {"type": "string"}},
-                        "requires_confirmation": {"type": "boolean"},
-                        "user_visible_plan": {"type": "string"},
+        "tools": [
+            _planner_function_tool(
+                name="workspace_create_project",
+                description="Create a new workspace project for a website, landing page, app, portal, dashboard, or similar build request.",
+                properties={
+                    "name": {"type": "string", "description": "Product-ready project display name."},
+                    "description": {"type": "string", "description": "One sentence describing the project purpose."},
+                    "user_visible_plan": {"type": "string", "description": "Concise plan shown to the user."},
+                },
+                required=["name", "description", "user_visible_plan"],
+            ),
+            _planner_function_tool(
+                name="workspace_create_content_model",
+                description="Create a content model inside the target project.",
+                properties={
+                    "name": {"type": "string", "description": "Content model display name."},
+                    "description": {
+                        "type": "string",
+                        "description": "One sentence describing what records this model manages.",
+                    },
+                    "user_visible_plan": {"type": "string", "description": "Concise plan shown to the user."},
+                },
+                required=["user_visible_plan"],
+            ),
+            _planner_function_tool(
+                name="workspace_list_projects",
+                description="Find or list projects in the current workspace.",
+                properties={
+                    "query": {"type": "string", "description": "Optional project search text."},
+                    "user_visible_plan": {"type": "string", "description": "Concise plan shown to the user."},
+                },
+                required=["user_visible_plan"],
+            ),
+            _planner_function_tool(
+                name="workspace_open_projects",
+                description="Navigate to the project list without creating or changing anything.",
+                properties={
+                    "user_visible_plan": {"type": "string", "description": "Concise plan shown to the user."},
+                },
+                required=["user_visible_plan"],
+            ),
+            _planner_function_tool(
+                name="workspace_route_chat",
+                description="Continue as normal assistant chat when no workspace tool should run.",
+                properties={
+                    "user_visible_plan": {"type": "string", "description": "Short routing reason."},
+                },
+                required=["user_visible_plan"],
+            ),
+            _planner_function_tool(
+                name="workspace_request_clarification",
+                description="Ask the user for missing details before running a supported workspace action.",
+                properties={
+                    "user_visible_plan": {"type": "string", "description": "Clarification question shown to the user."},
+                    "missing_fields": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Required details that are missing.",
                     },
                 },
-            },
-        }
+                required=["user_visible_plan", "missing_fields"],
+            ),
+        ],
     }
 
 
-def _planner_tool_call_schema(
+def _provider_error_message(exc: httpx.HTTPStatusError) -> str:
+    response_text = exc.response.text.strip()
+    if response_text:
+        return f"Workspace action planner provider rejected the request: {response_text[:1000]}"
+    return f"Workspace action planner provider rejected the request with HTTP {exc.response.status_code}."
+
+
+def _planner_function_tool(
     *,
-    tool_name: WorkspaceAIActionKind,
-    arguments: dict[str, Any],
-    required_arguments: list[str],
+    name: str,
+    description: str,
+    properties: dict[str, Any],
+    required: list[str],
 ) -> dict[str, Any]:
     return {
-        "type": "object",
-        "additionalProperties": False,
-        "required": ["tool_name", "arguments"],
-        "properties": {
-            "tool_name": {"type": "string", "enum": [tool_name]},
-            "arguments": {
+        "type": "function",
+        "function": {
+            "name": name,
+            "description": description,
+            "parameters": {
                 "type": "object",
                 "additionalProperties": False,
-                "required": required_arguments,
-                "properties": arguments,
+                "properties": properties,
+                "required": required,
             },
         },
     }
 
 
-def _parse_planner_decision(content: str) -> WorkspaceAIPlannerDecision:
-    try:
-        raw = json.loads(_strip_json_code_fence(content))
-        decision = WorkspaceAIPlannerDecision.model_validate(raw)
-    except (json.JSONDecodeError, ValidationError) as exc:
+def _parse_planner_tool_decision(tool_calls: list[dict[str, Any]]) -> WorkspaceAIPlannerDecision:
+    if len(tool_calls) != 1:
         raise BadRequest(
-            "Workspace action planner returned invalid structured output",
-            error="AI_WORKSPACE_ACTION_PLAN_INVALID",
-        ) from exc
-    if decision.kind == "tool_call" and decision.tool_call is None:
-        raise BadRequest(
-            "Workspace action planner returned a tool route without a tool call",
+            "Workspace action planner must return exactly one tool call",
             error="AI_WORKSPACE_ACTION_PLAN_INVALID",
         )
-    if decision.kind != "tool_call" and decision.tool_call is not None:
+
+    tool_name, raw_arguments = _planner_tool_call_payload(tool_calls[0])
+    user_visible_plan = _take_string(raw_arguments, "user_visible_plan") or "已整理工作区操作计划。"
+
+    if tool_name == "workspace_route_chat":
+        return WorkspaceAIPlannerDecision(
+            kind="chat",
+            confidence=1,
+            tool_call=None,
+            user_visible_plan=user_visible_plan,
+        )
+
+    if tool_name == "workspace_request_clarification":
+        raw_missing_fields = raw_arguments.get("missing_fields", [])
+        missing_fields = [item for item in raw_missing_fields if isinstance(item, str)]
+        return WorkspaceAIPlannerDecision(
+            kind="clarification",
+            confidence=1,
+            tool_call=None,
+            missing_fields=missing_fields,
+            user_visible_plan=user_visible_plan,
+        )
+
+    action = _PLANNER_TOOL_TO_ACTION.get(tool_name)
+    if action is None:
         raise BadRequest(
-            "Workspace action planner returned a tool call for a non-tool route",
+            "Workspace action planner returned an unsupported tool",
             error="AI_WORKSPACE_ACTION_PLAN_INVALID",
         )
-    return decision
+
+    return WorkspaceAIPlannerDecision(
+        kind="tool_call",
+        confidence=1,
+        tool_call=WorkspaceAIPlannerToolCall(
+            tool_name=action,
+            arguments=cast(JsonObject, raw_arguments),
+        ),
+        user_visible_plan=user_visible_plan,
+    )
 
 
-def _strip_json_code_fence(content: str) -> str:
-    stripped = content.strip()
-    if not stripped.startswith("```"):
-        return stripped
-    lines = stripped.splitlines()
-    if len(lines) >= 3 and lines[0].startswith("```") and lines[-1].strip() == "```":
-        return "\n".join(lines[1:-1]).strip()
-    return stripped
+def _planner_tool_call_payload(tool_call: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    function_call = tool_call.get("function")
+    raw_name = function_call.get("name") if isinstance(function_call, dict) else tool_call.get("name")
+    if not isinstance(raw_name, str):
+        raise BadRequest(
+            "Workspace action planner returned a tool call without a function name",
+            error="AI_WORKSPACE_ACTION_PLAN_INVALID",
+        )
+
+    raw_arguments = (
+        function_call.get("arguments") if isinstance(function_call, dict) else tool_call.get("arguments", {})
+    )
+    if isinstance(raw_arguments, str):
+        try:
+            parsed_arguments = json.loads(raw_arguments or "{}")
+        except json.JSONDecodeError as exc:
+            raise BadRequest(
+                "Workspace action planner returned invalid tool arguments",
+                error="AI_WORKSPACE_ACTION_PLAN_INVALID",
+            ) from exc
+    else:
+        parsed_arguments = raw_arguments
+
+    if not isinstance(parsed_arguments, dict):
+        raise BadRequest(
+            "Workspace action planner returned non-object tool arguments",
+            error="AI_WORKSPACE_ACTION_PLAN_INVALID",
+        )
+    return raw_name, parsed_arguments
+
+
+def _take_string(arguments: dict[str, Any], key: str) -> str | None:
+    value = arguments.pop(key, None)
+    return value if isinstance(value, str) and value.strip() else None
 
 
 def _is_chinese(message: str) -> bool:

@@ -105,6 +105,7 @@ class ChatResult(BaseSchema):
     completion_id: str
     model: str
     content: str
+    tool_calls: list[dict[str, Any]] = Field(default_factory=list)
     prompt_tokens: int
     completion_tokens: int
     cost_micros: int
@@ -259,6 +260,7 @@ class LLMRuntime:
             raise
 
         choice = data["choices"][0]
+        message = choice["message"]
         usage = data.get("usage", {})
         prompt_tokens = usage.get("prompt_tokens", 0)
         completion_tokens = usage.get("completion_tokens", 0)
@@ -274,7 +276,8 @@ class LLMRuntime:
         return ChatResult(
             completion_id=data["id"],
             model=data.get("model", model),
-            content=choice["message"]["content"],
+            content=message.get("content") or "",
+            tool_calls=message.get("tool_calls") or [],
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
             cost_micros=actual_cost,
