@@ -599,7 +599,15 @@ const AgentArtifactCard: FC<{ artifact: AIAgentMessageArtifact }> = ({ artifact 
               {index + 1}
             </span>
             <span className="min-w-0 text-footnote leading-relaxed text-foreground">
-              {item.title}
+              <span>{item.title}</span>
+              {item.toolName || item.detail ? (
+                <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-caption text-muted-foreground">
+                  {item.toolName ? (
+                    <span className="min-w-0 truncate font-mono">{item.toolName}</span>
+                  ) : null}
+                  {item.detail ? <span className="min-w-0 truncate">{item.detail}</span> : null}
+                </span>
+              ) : null}
             </span>
             <span className="rounded-md bg-background/70 px-1.5 py-0.5 text-caption font-medium text-muted-foreground">
               {agentArtifactStatusLabel(t, item.status)}

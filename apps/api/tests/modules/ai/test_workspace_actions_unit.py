@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
+from src.common.types.json_types import JsonObject
 from src.config import Settings
 from src.core.exceptions import BadRequest
 from src.models.agents.conversation import AgentConversationMode
@@ -17,33 +18,43 @@ from src.modules.projects.schema import ProjectCreateRequest, ProjectListItemOut
 from src.modules.workspaces.http.schema import WorkspaceAccessType, WorkspaceContext
 
 
-def test_resolve_workspace_ai_action_detects_project_create_intent() -> None:
-    assert workspace_actions.resolve_workspace_ai_action("帮我创建一个随机项目") == "create_project"
+def _install_planner(monkeypatch: pytest.MonkeyPatch, decision: workspace_actions.WorkspaceAIPlannerDecision) -> None:
+    class FakeWorkspaceActionPlanner:
+        def __init__(self, settings):
+            pass
+
+        async def plan(self, *, payload, user_id):
+            return decision
+
+    monkeypatch.setattr(workspace_actions, "WorkspaceActionPlanner", FakeWorkspaceActionPlanner)
 
 
-def test_resolve_workspace_ai_action_detects_landing_page_create_intent() -> None:
-    assert workspace_actions.resolve_workspace_ai_action("帮我创建一个SaaS落地页") == "create_project"
-    assert (
-        workspace_actions._project_create_request(
-            WorkspaceAIActionRequest(workspace_id=uuid4(), message="帮我创建一个SaaS落地页")
-        ).name
-        == "SaaS 落地页"
+def _tool_decision(
+    tool_name: workspace_actions.WorkspaceAIActionKind,
+    arguments: JsonObject,
+) -> workspace_actions.WorkspaceAIPlannerDecision:
+    return workspace_actions.WorkspaceAIPlannerDecision(
+        kind="tool_call",
+        confidence=0.94,
+        tool_call=workspace_actions.WorkspaceAIPlannerToolCall(
+            tool_name=tool_name,
+            arguments=arguments,
+        ),
+        user_visible_plan=f"准备调用 workspace.{tool_name}。",
     )
 
 
-def test_project_create_request_generates_domain_description_from_instruction() -> None:
+def test_project_create_request_uses_structured_planner_arguments() -> None:
     payload = workspace_actions._project_create_request(
-        WorkspaceAIActionRequest(workspace_id=uuid4(), message="帮我创建一个SaaS落地页")
+        WorkspaceAIActionRequest(workspace_id=uuid4(), message="搭一个产品官网"),
+        workspace_actions.WorkspaceCreateProjectArgs(
+            name="产品官网",
+            description="用于展示产品价值、功能亮点与转化入口的品牌官网项目。",
+        ),
     )
 
-    assert payload.name == "SaaS 落地页"
-    assert payload.description is not None
-    assert "SaaS 产品落地页" in payload.description
-
-
-def test_resolve_workspace_ai_action_detects_content_model_create_before_project_create() -> None:
-    assert workspace_actions.resolve_workspace_ai_action("帮我的项目创建一个内容模型") == "create_content_model"
-    assert workspace_actions.resolve_workspace_ai_action("生成模型") == "create_content_model"
+    assert payload.name == "产品官网"
+    assert payload.description == "用于展示产品价值、功能亮点与转化入口的品牌官网项目。"
 
 
 def test_content_model_create_request_generates_camel_case_identifier_for_chinese_default_name() -> None:
@@ -63,16 +74,87 @@ def test_content_model_create_request_generates_readable_camel_case_identifier()
     assert payload.plural_key == "blogPosts"
 
 
-def test_resolve_workspace_ai_action_detects_project_list_intent() -> None:
-    assert workspace_actions.resolve_workspace_ai_action("查看当前工作区有哪些项目") == "list_projects"
+def test_parse_planner_decision_accepts_tool_call() -> None:
+    decision = workspace_actions._parse_planner_decision(
+        """
+        {
+          "kind": "tool_call",
+          "confidence": 0.95,
+          "tool_call": {
+            "tool_name": "open_projects",
+            "arguments": {}
+          },
+          "missing_fields": [],
+          "requires_confirmation": false,
+          "user_visible_plan": "打开项目列表。"
+        }
+        """
+    )
+
+    assert decision.kind == "tool_call"
+    assert decision.tool_call is not None
+    assert decision.tool_call.tool_name == "open_projects"
 
 
-def test_resolve_workspace_ai_action_detects_project_open_intent() -> None:
-    assert workspace_actions.resolve_workspace_ai_action("打开项目列表") == "open_projects"
+def test_parse_planner_decision_accepts_chat_route() -> None:
+    decision = workspace_actions._parse_planner_decision(
+        """
+        {
+          "kind": "chat",
+          "confidence": 0.9,
+          "tool_call": null,
+          "missing_fields": [],
+          "requires_confirmation": false,
+          "user_visible_plan": "交给常规对话。"
+        }
+        """
+    )
+
+    assert decision.kind == "chat"
+    assert decision.tool_call is None
 
 
-def test_resolve_workspace_ai_action_ignores_generic_chat() -> None:
-    assert workspace_actions.resolve_workspace_ai_action("你好，今天状态怎么样？") is None
+def test_parse_planner_decision_rejects_tool_route_without_tool_call() -> None:
+    with pytest.raises(BadRequest) as exc_info:
+        workspace_actions._parse_planner_decision(
+            """
+            {
+              "kind": "tool_call",
+              "confidence": 0.7,
+              "tool_call": null,
+              "missing_fields": [],
+              "requires_confirmation": false,
+              "user_visible_plan": "缺少工具。"
+            }
+            """
+        )
+
+    assert exc_info.value.error == "AI_WORKSPACE_ACTION_PLAN_INVALID"
+
+
+def test_planner_response_format_uses_closed_tool_argument_schemas() -> None:
+    response_format = workspace_actions._planner_response_format()
+    schema = response_format["response_format"]["json_schema"]["schema"]
+    tool_call_options = schema["properties"]["tool_call"]["anyOf"]
+    tool_schemas = [option for option in tool_call_options if option.get("type") == "object"]
+
+    assert schema["additionalProperties"] is False
+    assert "minimum" not in schema["properties"]["confidence"]
+    assert "maximum" not in schema["properties"]["confidence"]
+    assert {item["properties"]["tool_name"]["enum"][0] for item in tool_schemas} == {
+        "create_project",
+        "create_content_model",
+        "list_projects",
+        "open_projects",
+    }
+    for item in tool_schemas:
+        assert item["additionalProperties"] is False
+        assert item["properties"]["arguments"]["additionalProperties"] is False
+
+    create_project_schema = next(
+        item for item in tool_schemas if item["properties"]["tool_name"]["enum"] == ["create_project"]
+    )
+    assert create_project_schema["properties"]["arguments"]["required"] == ["name", "description"]
 
 
 @pytest.mark.asyncio
@@ -117,11 +199,21 @@ async def test_execute_workspace_ai_action_creates_project_with_canonical_servic
         fake_ensure_workspace_permission_granted,
     )
     monkeypatch.setattr(workspace_actions, "ProjectService", FakeProjectService)
+    _install_planner(
+        monkeypatch,
+        _tool_decision(
+            "create_project",
+            {
+                "name": "SaaS 落地页",
+                "description": "用于展示 SaaS 产品价值、功能亮点与转化入口的落地页项目。",
+            },
+        ),
+    )
 
     response = await execute_workspace_ai_action(
         WorkspaceAIActionRequest(
             workspace_id=workspace_id,
-            message="帮我创建一个随机项目",
+            message="帮我创建一个 SaaS 落地页",
             mode=AgentConversationMode.BUILD,
         ),
         user_id=user_id,
@@ -134,29 +226,46 @@ async def test_execute_workspace_ai_action_creates_project_with_canonical_servic
     created_workspace_id, payload, actor_user_id = create_call
     assert created_workspace_id == workspace_id
     assert payload.workspace_id == workspace_id
+    assert payload.name == "SaaS 落地页"
+    assert payload.description == "用于展示 SaaS 产品价值、功能亮点与转化入口的落地页项目。"
     assert payload.slug is None
     assert actor_user_id == user_id
     assert response.data is not None
     assert response.data.action == "create_project"
+    assert response.data.kind == "tool_call"
+    assert response.data.tool_calls[0].tool_name == "workspace.create_project"
     assert response.data.project is not None
     assert response.data.navigation is not None
     assert response.data.navigation.path == f"/projects/{response.data.project.id}"
 
 
 @pytest.mark.asyncio
-async def test_execute_workspace_ai_action_rejects_plan_mode_mutations() -> None:
-    with pytest.raises(BadRequest) as exc_info:
-        await execute_workspace_ai_action(
-            WorkspaceAIActionRequest(
-                workspace_id=uuid4(),
-                message="帮我创建一个随机项目",
-                mode=AgentConversationMode.PLAN,
-            ),
-            user_id=uuid4(),
-            settings=Settings(),
-        )
+async def test_execute_workspace_ai_action_plans_mutation_in_plan_mode(monkeypatch) -> None:
+    _install_planner(
+        monkeypatch,
+        _tool_decision(
+            "create_project",
+            {
+                "name": "产品官网",
+                "description": "用于展示产品价值、功能亮点与转化入口的品牌官网项目。",
+            },
+        ),
+    )
 
-    assert exc_info.value.error == "AI_WORKSPACE_ACTION_PLAN_MODE_READ_ONLY"
+    response = await execute_workspace_ai_action(
+        WorkspaceAIActionRequest(
+            workspace_id=uuid4(),
+            message="搭一个产品官网",
+            mode=AgentConversationMode.PLAN,
+        ),
+        user_id=uuid4(),
+        settings=Settings(),
+    )
+
+    assert response.data is not None
+    assert response.data.status == "planned"
+    assert response.data.action == "create_project"
+    assert response.data.tool_calls[0].status == "planned"
 
 
 @pytest.mark.asyncio
@@ -171,6 +280,16 @@ async def test_execute_workspace_ai_action_requires_project_for_content_model(mo
         workspace_actions,
         "resolve_workspace_context_by_id",
         fake_resolve_workspace_context_by_id,
+    )
+    _install_planner(
+        monkeypatch,
+        _tool_decision(
+            "create_content_model",
+            {
+                "name": "文章",
+                "description": "用于管理文章内容的集合模型。",
+            },
+        ),
     )
 
     with pytest.raises(BadRequest) as exc_info:
@@ -199,7 +318,7 @@ async def test_execute_workspace_ai_action_creates_content_model_for_target_proj
     async def fake_resolve_workspace_context_by_id(*, workspace_id, user_id):
         return _workspace_context(workspace_id=workspace_id, organization_id=organization_id)
 
-    async def fake_create_content_model(*, payload, user_id, settings):
+    async def fake_create_content_model(*, payload, user_id, settings, arguments):
         nonlocal create_call
         create_call = payload
         return ContentModelMutationOut.model_construct(
@@ -226,6 +345,16 @@ async def test_execute_workspace_ai_action_creates_content_model_for_target_proj
         fake_resolve_workspace_context_by_id,
     )
     monkeypatch.setattr(workspace_actions, "_create_content_model", fake_create_content_model)
+    _install_planner(
+        monkeypatch,
+        _tool_decision(
+            "create_content_model",
+            {
+                "name": "内容模型 09F9",
+                "description": "用于管理自定义内容记录的集合模型。",
+            },
+        ),
+    )
 
     response = await execute_workspace_ai_action(
         WorkspaceAIActionRequest(
@@ -285,6 +414,10 @@ async def test_execute_workspace_ai_action_lists_projects_without_manage_permiss
     )
     monkeypatch.setattr(workspace_actions, "require_workspace_manage_access", fail_manage_access)
     monkeypatch.setattr(workspace_actions, "ProjectService", FakeProjectService)
+    _install_planner(
+        monkeypatch,
+        _tool_decision("list_projects", {"query": "Launch"}),
+    )
 
     response = await execute_workspace_ai_action(
         WorkspaceAIActionRequest(
@@ -306,19 +439,30 @@ async def test_execute_workspace_ai_action_lists_projects_without_manage_permiss
 
 
 @pytest.mark.asyncio
-async def test_execute_workspace_ai_action_rejects_unsupported_prompt() -> None:
-    with pytest.raises(BadRequest) as exc_info:
-        await execute_workspace_ai_action(
-            WorkspaceAIActionRequest(
-                workspace_id=uuid4(),
-                message="你好",
-                mode=AgentConversationMode.BUILD,
-            ),
-            user_id=uuid4(),
-            settings=Settings(),
-        )
+async def test_execute_workspace_ai_action_routes_normal_chat(monkeypatch) -> None:
+    _install_planner(
+        monkeypatch,
+        workspace_actions.WorkspaceAIPlannerDecision(
+            kind="chat",
+            confidence=0.91,
+            tool_call=None,
+            user_visible_plan="这条消息不需要工作区工具，交给常规对话处理。",
+        ),
+    )
 
-    assert exc_info.value.error == "AI_WORKSPACE_ACTION_UNSUPPORTED"
+    response = await execute_workspace_ai_action(
+        WorkspaceAIActionRequest(
+            workspace_id=uuid4(),
+            message="你好",
+            mode=AgentConversationMode.BUILD,
+        ),
+        user_id=uuid4(),
+        settings=Settings(),
+    )
+
+    assert response.data is not None
+    assert response.data.kind == "chat"
+    assert response.data.status == "routed_to_chat"
 
 
 def _workspace_context(*, workspace_id, organization_id) -> WorkspaceContext:

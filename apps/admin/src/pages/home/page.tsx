@@ -30,10 +30,7 @@ import {
   agentIdForComposerMode,
   createAIChatAttachmentAdapter,
   projectIdFromComposerDirective,
-  sendAIChatMessage,
-  sendAIWorkspaceActionPlanMessage,
   sendAIWorkspaceActionMessage,
-  shouldPlanAIWorkspaceAction,
 } from "@/components/ai/ai-chat-runtime";
 import {
   buildTextWithAIComposerDirectives,
@@ -46,7 +43,6 @@ import {
   ensureAIConversationPersistedForRuntime,
   formatAIChatError,
   sendAIAgentMessage,
-  shouldUseAIWorkspaceAction,
   type AIWorkspaceActionResponse,
 } from "@/api/ai";
 import { getUserDisplayName, normalizeUserProfile } from "@/lib/auth/user-profile";
@@ -200,15 +196,11 @@ function HomeComposer({
                 activeAgentRunIdRef.current = runId;
               },
             });
-          } else if (shouldPlanAIWorkspaceAction(mode, trimmed)) {
-            await sendAIWorkspaceActionPlanMessage(conversationId, textWithDirectives);
-          } else if (mode !== "plan" && shouldUseAIWorkspaceAction(trimmed)) {
+          } else {
             const result = await sendAIWorkspaceActionMessage(conversationId, textWithDirectives, {
               signal: controller.signal,
             });
             onWorkspaceActionComplete?.(result);
-          } else {
-            await sendAIChatMessage(conversationId, trimmed, { signal: controller.signal });
           }
         } finally {
           if (activeRequestRef.current === controller) {

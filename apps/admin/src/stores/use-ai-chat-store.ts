@@ -13,6 +13,8 @@ export interface AIAgentArtifactStep {
   id: string;
   title: string;
   status: string;
+  detail?: string | null;
+  toolName?: string | null;
 }
 
 export type AIAgentMessageArtifact =

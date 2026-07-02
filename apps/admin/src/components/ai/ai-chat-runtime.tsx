@@ -25,7 +25,6 @@ import {
   formatAIChatError,
   getAIChatErrorDetails,
   sendAIAgentMessage,
-  shouldUseAIWorkspaceAction,
   toAIWorkspaceActionArtifact,
   type AIChatMessage,
   type AIWorkspaceActionResponse,
@@ -480,14 +479,23 @@ export async function sendAIWorkspaceActionMessage(
       signal: options?.signal,
       projectId: resolveWorkspaceActionProjectId(conversation, rawText),
     });
+    if (result.kind === "chat") {
+      await streamAIChatAssistantResponse(conversationId, { signal: options?.signal });
+      return null;
+    }
+
+    const agentArtifact = toWorkspaceActionAgentArtifact(result, trimmed);
     useAiChatStore.getState().appendMessage(conversationId, {
       role: "assistant",
       content: result.content,
       workspaceAction: toAIWorkspaceActionArtifact(result),
-      agentExecutionSummary: { toolNames: [`workspace.${result.action}`] },
+      ...(agentArtifact ? { agentArtifact } : {}),
+      agentExecutionSummary: {
+        toolNames: result.toolCalls.map((toolCall) => toolCall.toolName),
+      },
     });
     await ensureAIConversationPersistedForRuntime(conversationId);
-    return result;
+    return result.status === "completed" ? result : null;
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
       await ensureAIConversationPersistedForRuntime(conversationId);
@@ -511,28 +519,33 @@ export async function sendAIWorkspaceActionPlanMessage(
   conversationId: string,
   text: string,
 ): Promise<void> {
-  const rawText = text.trim();
-  const trimmed = cleanAIComposerDirectiveText(rawText);
-  if (!rawText || !trimmed) return;
+  await sendAIWorkspaceActionMessage(conversationId, text);
+}
 
-  const state = useAiChatStore.getState();
-  const conversation = state.conversations.find((c) => c.id === conversationId);
-  if (!conversation) {
-    throw new Error(`AI conversation not found: ${conversationId}`);
-  }
-
-  const plan = createWorkspaceActionPlan(
-    trimmed,
-    resolveWorkspaceActionProjectId(conversation, rawText),
-  );
-  state.appendMessage(conversationId, { role: "user", content: trimmed });
-  state.appendMessage(conversationId, {
-    role: "assistant",
-    content: plan.content,
-    agentArtifact: plan.artifact,
-    agentExecutionSummary: { toolNames: ["workspace.plan"] },
-  });
-  await ensureAIConversationPersistedForRuntime(conversationId);
+function toWorkspaceActionAgentArtifact(
+  result: AIWorkspaceActionResponse,
+  goal: string,
+): AIAgentMessageArtifact | undefined {
+  if (result.kind === "chat") return undefined;
+  if (result.executionSteps.length === 0) return undefined;
+  return {
+    type: "agent_execution_plan",
+    goal,
+    status: result.status === "planned" ? "planned" : "completed",
+    steps: result.executionSteps.map(
+      (step): AIAgentArtifactStep => ({
+        id: step.id,
+        title: step.title,
+        status: step.status,
+        ...(step.detail ? { detail: step.detail } : {}),
+        ...(step.toolName ? { toolName: step.toolName } : {}),
+      }),
+    ),
+    source:
+      result.status === "planned"
+        ? "workspace_action:planned_mutation"
+        : "workspace_action:tool_call",
+  };
 }
 
 async function persistConversationAfterManualMessageChange(conversationId: string): Promise<void> {
@@ -565,8 +578,21 @@ async function sendAIChatMessageWithSignal(
   }
 
   state.appendMessage(conversationId, { role: "user", content: trimmed });
-  const history = toChatMessages([
-    ...conversation.messages
+  await streamAIChatAssistantResponse(conversationId, options);
+}
+
+async function streamAIChatAssistantResponse(
+  conversationId: string,
+  options?: { signal?: AbortSignal },
+): Promise<void> {
+  const state = useAiChatStore.getState();
+  const conversation = state.conversations.find((c) => c.id === conversationId);
+  if (!conversation) {
+    throw new Error(`AI conversation not found: ${conversationId}`);
+  }
+
+  const history = toChatMessages(
+    conversation.messages
       .filter((message) => !(message.role === "assistant" && message.error))
       .map(
         (message): ThreadMessageLike => ({
@@ -574,8 +600,7 @@ async function sendAIChatMessageWithSignal(
           content: message.content,
         }),
       ),
-    { role: "user", content: trimmed },
-  ]);
+  );
 
   state.appendDelta(conversationId, "");
   state.setStreaming(true);
@@ -636,11 +661,7 @@ export async function retryLatestAIChatMessage(conversationId: string): Promise<
   }
 
   state.replaceMessages(conversationId, conversation.messages.slice(0, lastUserIndex));
-  if (shouldExecuteAIWorkspaceAction(state.composerMode, lastUserMessage.content)) {
-    await sendAIWorkspaceActionMessage(conversationId, lastUserMessage.content);
-    return;
-  }
-  await sendAIChatMessage(conversationId, lastUserMessage.content);
+  await sendAIWorkspaceActionMessage(conversationId, lastUserMessage.content);
 }
 
 /**
@@ -727,14 +748,10 @@ export function AIChatRuntimeProvider({
               activeAgentRunIdRef.current = runId;
             },
           });
-        } else if (shouldPlanAIWorkspaceAction(mode, trimmed)) {
-          await sendAIWorkspaceActionPlanMessage(conversationId, textWithDirectives);
-        } else if (shouldExecuteAIWorkspaceAction(mode, trimmed)) {
+        } else {
           await sendAIWorkspaceActionMessage(conversationId, textWithDirectives, {
             signal: controller.signal,
           });
-        } else {
-          await sendAIChatMessage(conversationId, trimmed, { signal: controller.signal });
         }
       } finally {
         clearAIComposerDirectives("thread");
@@ -919,97 +936,6 @@ export function AIChatRuntimeProvider({
     <AssistantRuntimeProvider key={conversationId} runtime={runtime}>
       {children}
     </AssistantRuntimeProvider>
-  );
-}
-
-function shouldExecuteAIWorkspaceAction(mode: AIComposerMode, text: string): boolean {
-  if (mode === "plan") return false;
-  return shouldUseAIWorkspaceAction(text);
-}
-
-export function shouldPlanAIWorkspaceAction(mode: AIComposerMode, text: string): boolean {
-  return mode === "plan" && isMutatingAIWorkspaceAction(text);
-}
-
-function isMutatingAIWorkspaceAction(text: string): boolean {
-  const normalized = text.toLocaleLowerCase();
-  const hasCreateIntent = /创建|新建|建立|生成|搭建|create|start|new project/i.test(normalized);
-  if (!hasCreateIntent) return false;
-  const hasContentModel = /内容模型|内容类型|schema model|content model|content type/i.test(
-    normalized,
-  );
-  const hasGenericModel =
-    /模型/i.test(normalized) && !/大模型|ai\s*model|模型选择|切换模型|选择模型/i.test(normalized);
-  const hasProject = /项目|project/i.test(normalized);
-  const hasProjectArtifact =
-    /落地页|着陆页|官网|网站|站点|页面|应用|后台|仪表盘|landing page|homepage|website|site|web app|app|dashboard|portal/i.test(
-      normalized,
-    );
-  return hasProject || hasProjectArtifact || hasContentModel || hasGenericModel;
-}
-
-function createWorkspaceActionPlan(
-  prompt: string,
-  projectId: string | null,
-): { content: string; artifact: AIAgentMessageArtifact } {
-  const target = projectId
-    ? translateAIWorkspacePlanText(
-        "AI_WORKSPACE_ACTION_PLAN_TARGET_PROJECT",
-        "目标项目：{{projectId}}",
-        { projectId },
-      )
-    : translateAIWorkspacePlanText(
-        "AI_WORKSPACE_ACTION_PLAN_TARGET_CURRENT_OR_MENTION",
-        "目标项目：将使用当前项目，或需要先用 @ 选择项目",
-      );
-  const steps: AIAgentArtifactStep[] = [
-    { id: "confirm-target", title: target, status: "planned" },
-    {
-      id: "resolve-intent",
-      title: translateAIWorkspacePlanText(
-        "AI_WORKSPACE_ACTION_PLAN_STEP_RESOLVE_INTENT",
-        "识别要创建的项目或内容模型，并补齐名称与用途。",
-      ),
-      status: "planned",
-    },
-    {
-      id: "execute-build",
-      title: translateAIWorkspacePlanText(
-        "AI_WORKSPACE_ACTION_PLAN_STEP_EXECUTE_BUILD",
-        "切换到构建模式后执行，并返回可打开的结果入口。",
-      ),
-      status: "planned",
-    },
-  ];
-  return {
-    content: translateAIWorkspacePlanText(
-      "AI_WORKSPACE_ACTION_PLAN_MESSAGE",
-      "我已为这次创建请求整理成可执行方案。规划模式不会直接修改工作区；确认执行后会切换到构建模式并完成创建。",
-    ),
-    artifact: {
-      type: "agent_execution_plan",
-      goal: prompt,
-      status: "planned",
-      steps,
-      source: "workspace_action:planned_mutation",
-    },
-  };
-}
-
-function translateAIWorkspacePlanText(
-  key: string,
-  fallback: string,
-  values: Record<string, string> = {},
-): string {
-  const namespacedKey = `ai:${key}`;
-  const translated = i18n.isInitialized
-    ? i18n.t(namespacedKey, { ...values, defaultValue: fallback })
-    : fallback;
-  const text =
-    translated && translated !== namespacedKey && translated !== key ? translated : fallback;
-  return Object.entries(values).reduce(
-    (result, [name, value]) => result.replaceAll(`{{${name}}}`, value),
-    text,
   );
 }
 

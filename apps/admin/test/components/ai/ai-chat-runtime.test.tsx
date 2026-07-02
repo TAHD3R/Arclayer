@@ -75,18 +75,14 @@ vi.mock("@/api/ai", async () => {
     ensureAIConversationPersistedForRuntime: vi.fn(async () => undefined),
     sendAIAgentMessage: vi.fn(async () => undefined),
     executeAIWorkspaceAction: vi.fn(async () => ({
-      action: "create_project",
-      status: "completed",
-      content: "已在当前工作区创建项目“内容实验室”。",
-      project: {
-        id: "project-created",
-        name: "内容实验室",
-        slug: "project",
-        description: null,
-      },
+      kind: "chat",
+      action: null,
+      status: "routed_to_chat",
+      content: "",
+      executionSteps: [],
+      toolCalls: [],
       projects: [],
       total: null,
-      navigation: { label: "进入项目", path: "/projects/project-created" },
     })),
     chatStream: vi.fn(async function* () {
       yield "new answer";
@@ -379,6 +375,38 @@ describe("AIChatRuntimeProvider", () => {
 
   it("routes workspace project creation prompts through workspace actions", async () => {
     useAiChatStore.setState({ composerMode: "build" });
+    vi.mocked(executeAIWorkspaceAction).mockResolvedValueOnce({
+      kind: "tool_call",
+      action: "create_project",
+      status: "completed",
+      content: "已在当前工作区创建项目“内容实验室”。",
+      plan: "创建一个内容实验室项目。",
+      executionSteps: [
+        { id: "planner", title: "理解指令并选择工作区工具", status: "completed" },
+        {
+          id: "tool-call",
+          title: "调用 workspace.create_project",
+          status: "completed",
+          toolName: "workspace.create_project",
+        },
+      ],
+      toolCalls: [
+        {
+          toolName: "workspace.create_project",
+          status: "completed",
+          arguments: { name: "内容实验室" },
+        },
+      ],
+      project: {
+        id: "project-created",
+        name: "内容实验室",
+        slug: "project",
+        description: null,
+      },
+      projects: [],
+      total: null,
+      navigation: { label: "进入项目", path: "/projects/project-created" },
+    });
     render(
       <AIChatRuntimeProvider conversationId="conversation-1">
         <div />
@@ -465,6 +493,36 @@ describe("AIChatRuntimeProvider", () => {
 
   it("uses localized copy for planned workspace creation messages", async () => {
     useAiChatStore.setState({ composerMode: "plan" });
+    vi.mocked(executeAIWorkspaceAction).mockResolvedValueOnce({
+      kind: "tool_call",
+      action: "create_project",
+      status: "planned",
+      content: "我已整理好执行方案。规划模式不会直接修改工作区。",
+      plan: "规划创建一个发布项目。",
+      executionSteps: [
+        {
+          id: "planner",
+          title: "理解指令并选择工作区工具",
+          status: "completed",
+          detail: "规划创建一个发布项目。",
+        },
+        {
+          id: "tool.create_project",
+          title: "准备调用 workspace.create_project",
+          status: "planned",
+          toolName: "workspace.create_project",
+        },
+      ],
+      toolCalls: [
+        {
+          toolName: "workspace.create_project",
+          status: "planned",
+          arguments: { name: "发布项目" },
+        },
+      ],
+      projects: [],
+      total: null,
+    });
     render(
       <AIChatRuntimeProvider conversationId="conversation-1">
         <div />
@@ -486,8 +544,8 @@ describe("AIChatRuntimeProvider", () => {
         type: "agent_execution_plan",
         status: "planned",
         steps: expect.arrayContaining([
-          expect.objectContaining({ title: expect.stringContaining("目标项目") }),
-          expect.objectContaining({ title: expect.stringContaining("识别要创建") }),
+          expect.objectContaining({ title: expect.stringContaining("理解指令") }),
+          expect.objectContaining({ toolName: "workspace.create_project" }),
         ]),
       }),
     });

@@ -204,7 +204,6 @@ vi.mock("@/api/ai", () => ({
     skills: [],
     tools: [],
   })),
-  shouldUseAIWorkspaceAction: (message: string) => /创建.*项目|项目.*创建/.test(message),
   sendAIAgentMessage: (...args: unknown[]) => sendAIAgentMessageMock(...args),
 }));
 
@@ -445,7 +444,7 @@ describe("HomePage", () => {
     expect(screen.queryByText("Side panel only content")).not.toBeInTheDocument();
   });
 
-  it("creates a conversation, opens the drawer, and sends the first prompt through chat mode", () => {
+  it("creates a conversation, opens the drawer, and sends the first prompt through the workspace orchestrator", () => {
     workspaceState.currentWorkspaceId = "workspace-1";
     workspaceState.lastWorkspaceId = "workspace-1";
     workspaceState.currentProjectId = "project-1";
@@ -461,13 +460,14 @@ describe("HomePage", () => {
     expect(state.drawerOpen).toBe(true);
     expect(state.conversations).toHaveLength(1);
     expect(state.activeId).toBe(state.conversations[0].id);
-    expect(sendAIChatMessageMock).toHaveBeenCalledWith(
+    expect(sendAIWorkspaceActionMessageMock).toHaveBeenCalledWith(
       state.conversations[0].id,
       "帮我总结今天的任务",
       expect.objectContaining({
         signal: expect.any(AbortSignal),
       }),
     );
+    expect(sendAIChatMessageMock).not.toHaveBeenCalled();
     expect(sendAIAgentMessageMock).not.toHaveBeenCalled();
   });
 
@@ -476,9 +476,12 @@ describe("HomePage", () => {
     workspaceState.lastWorkspaceId = "workspace-1";
     useAiChatStore.setState({ composerMode: "build" });
     sendAIWorkspaceActionMessageMock.mockResolvedValueOnce({
+      kind: "tool_call",
       action: "create_project",
       status: "completed",
       content: "已在当前工作区创建项目“随机项目”。",
+      executionSteps: [],
+      toolCalls: [],
       project: {
         id: "project-1",
         workspaceId: "workspace-1",
@@ -531,13 +534,16 @@ describe("HomePage", () => {
 
     const conversationId = useAiChatStore.getState().conversations[0]?.id;
     await waitFor(() => {
-      expect(sendAIWorkspaceActionPlanMessageMock).toHaveBeenCalledWith(
+      expect(sendAIWorkspaceActionMessageMock).toHaveBeenCalledWith(
         conversationId,
         "帮我创建一个随机项目",
+        expect.objectContaining({
+          signal: expect.any(AbortSignal),
+        }),
       );
     });
     expect(sendAIChatMessageMock).not.toHaveBeenCalled();
-    expect(sendAIWorkspaceActionMessageMock).not.toHaveBeenCalled();
+    expect(sendAIWorkspaceActionPlanMessageMock).not.toHaveBeenCalled();
     expect(sendAIAgentMessageMock).not.toHaveBeenCalled();
   });
 

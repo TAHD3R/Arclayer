@@ -62,6 +62,28 @@ export interface AIWorkspaceActionNavigation {
   path: string;
 }
 
+export type AIWorkspaceActionResolutionKind = "tool_call" | "chat" | "clarification";
+
+export type AIWorkspaceActionStatus =
+  | "completed"
+  | "planned"
+  | "routed_to_chat"
+  | "needs_clarification";
+
+export interface AIWorkspaceActionExecutionStep {
+  id: string;
+  title: string;
+  status: string;
+  detail?: string | null;
+  toolName?: string | null;
+}
+
+export interface AIWorkspaceActionToolCall {
+  toolName: string;
+  status: string;
+  arguments: Record<string, unknown>;
+}
+
 export interface AIWorkspaceActionProject {
   id: string;
   workspaceId?: string | null;
@@ -82,9 +104,13 @@ export interface AIWorkspaceActionContentModel {
 }
 
 export interface AIWorkspaceActionResponse {
-  action: AIWorkspaceActionKind;
-  status: "completed";
+  kind: AIWorkspaceActionResolutionKind;
+  action?: AIWorkspaceActionKind | null;
+  status: AIWorkspaceActionStatus;
   content: string;
+  plan?: string | null;
+  executionSteps: AIWorkspaceActionExecutionStep[];
+  toolCalls: AIWorkspaceActionToolCall[];
   project?: AIWorkspaceActionProject | null;
   contentModel?: AIWorkspaceActionContentModel | null;
   projects: AIWorkspaceActionProject[];
@@ -864,25 +890,6 @@ export async function* chatStream(
   }
 }
 
-export function shouldUseAIWorkspaceAction(message: string): boolean {
-  const text = message.trim().toLocaleLowerCase();
-  if (!text) return false;
-  const hasContentModel =
-    /内容模型|内容类型|content model|content type|schema model/i.test(text) ||
-    (/模型/i.test(text) && !/大模型|ai\s*model|模型选择|切换模型|选择模型/i.test(text));
-  const hasCreateIntent = /创建|新建|建立|生成|搭建|create|start|new project/i.test(text);
-  if (hasContentModel && hasCreateIntent) return true;
-  const hasProject = /项目|projects?/i.test(text);
-  const hasProjectArtifact =
-    /落地页|着陆页|官网|网站|站点|页面|应用|后台|仪表盘|landing page|homepage|website|site|web app|app|dashboard|portal/i.test(
-      text,
-    );
-  if (!hasProject && !hasProjectArtifact) return false;
-  const hasListIntent = /查看|列出|搜索|查找|有哪些|列表|list|find|search|show/i.test(text);
-  const hasOpenIntent = /打开|进入|跳转|open|go to/i.test(text) && /列表|projects?/i.test(text);
-  return hasCreateIntent || hasListIntent || hasOpenIntent;
-}
-
 export async function executeAIWorkspaceAction(
   message: string,
   options?: { signal?: AbortSignal; projectId?: string | null },
@@ -903,6 +910,7 @@ export async function executeAIWorkspaceAction(
 export function toAIWorkspaceActionArtifact(
   response: AIWorkspaceActionResponse,
 ): AIWorkspaceActionArtifact | undefined {
+  if (response.kind !== "tool_call" || response.status !== "completed") return undefined;
   const navigation = response.navigation ?? undefined;
   if (response.action === "create_project" && response.project && navigation) {
     return {

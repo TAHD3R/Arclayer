@@ -49,7 +49,6 @@ import {
   resumeAIAgentRun,
   resumeAIAgentRunForConversation,
   sendAIAgentMessage,
-  shouldUseAIWorkspaceAction,
   toAIWorkspaceActionArtifact,
 } from "@/api/ai";
 import {
@@ -239,19 +238,15 @@ describe("AI agent API", () => {
     ]);
   });
 
-  it("detects workspace project action prompts", () => {
-    expect(shouldUseAIWorkspaceAction("帮我创建一个随机项目")).toBe(true);
-    expect(shouldUseAIWorkspaceAction("帮我的项目创建一个内容模型")).toBe(true);
-    expect(shouldUseAIWorkspaceAction("打开项目列表")).toBe(true);
-    expect(shouldUseAIWorkspaceAction("你好，今天能做什么？")).toBe(false);
-  });
-
   it("executes workspace AI actions with current workspace and composer mode", async () => {
     useAiChatStore.setState({ composerMode: "plan" });
     apiPostMock.mockResolvedValue({
+      kind: "tool_call",
       action: "create_project",
       status: "completed",
       content: "已创建项目",
+      executionSteps: [],
+      toolCalls: [],
       project: {
         id: "project-created",
         name: "内容实验室",
@@ -279,9 +274,12 @@ describe("AI agent API", () => {
 
   it("converts workspace action responses into persisted assistant artifacts", () => {
     const projectArtifact = toAIWorkspaceActionArtifact({
+      kind: "tool_call",
       action: "create_project",
       status: "completed",
       content: "已创建项目",
+      executionSteps: [],
+      toolCalls: [],
       project: {
         id: "project-created",
         name: "内容实验室",
@@ -306,9 +304,12 @@ describe("AI agent API", () => {
     });
 
     const contentModelArtifact = toAIWorkspaceActionArtifact({
+      kind: "tool_call",
       action: "create_content_model",
       status: "completed",
       content: "已创建内容模型",
+      executionSteps: [],
+      toolCalls: [],
       project: null,
       contentModel: {
         id: "model-1",
