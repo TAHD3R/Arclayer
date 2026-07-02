@@ -3767,9 +3767,9 @@ export const domainWorkspacesUnarchiveWorkspace = <ThrowOnError extends boolean 
 });
 
 /**
- * Initialize workspace icon upload session
+ * Initialize workspace upload session
  *
- * Initialize a workspace-scoped icon upload session.
+ * Initialize a workspace-scoped upload session.
  */
 export const domainWorkspacesInitUpload = <ThrowOnError extends boolean = false>(options: Options<DomainWorkspacesInitUploadData, ThrowOnError>) => (options.client ?? client).post<DomainWorkspacesInitUploadResponses, DomainWorkspacesInitUploadErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],

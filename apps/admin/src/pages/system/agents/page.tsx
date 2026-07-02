@@ -1,12 +1,10 @@
-import { useEffect, useMemo, useState, type SyntheticEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type ColumnDef, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import {
   EditIcon,
   GitBranchIcon,
-  MoreHorizontalIcon,
   PackageIcon,
   PlusIcon,
   PowerIcon,
@@ -28,15 +26,8 @@ import {
   type AISystemProviderListResponse,
   type AISystemProviderCompatibility,
 } from "@/api/ai";
+import { BaseTag } from "@/components/ui/tags";
 import { Button } from "@arclayer/ui/button";
-import { DataTablePresenter } from "@arclayer/ui/data-table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuIconItem,
-  DropdownMenuTrigger,
-} from "@arclayer/ui/dropdown-menu";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
 import { Input } from "@arclayer/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
@@ -45,11 +36,6 @@ import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-di
 import { Switch } from "@arclayer/ui/switch";
 import { Textarea } from "@arclayer/ui/textarea";
 
-import {
-  buildDataTableActionsColumnMeta,
-  DataTableActionsCell,
-} from "@/components/common/data-table-actions-cell";
-import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { notifySuccessText } from "@/lib/notifications";
 import {
@@ -146,10 +132,6 @@ const DEFAULT_SKILL_FORM_VALUES: SkillFormValues = {
   githubRef: "",
   npxPackage: "",
 };
-
-function stopEvent(event: Event | SyntheticEvent) {
-  event.stopPropagation();
-}
 
 function currentUsagePeriod(): string {
   const now = new Date();
@@ -303,6 +285,33 @@ function statusText(params: {
   return params.value;
 }
 
+function MetricTag(props: {
+  children: string;
+  color?: "default" | "green" | "blue" | "red" | "gold";
+}) {
+  return (
+    <BaseTag color={props.color} textStyle="footnote" className="max-w-full">
+      {props.children}
+    </BaseTag>
+  );
+}
+
+function MetricDatum(props: {
+  label: string;
+  value: string;
+  color?: "default" | "green" | "blue" | "red" | "gold";
+  className?: string;
+}) {
+  return (
+    <span
+      className={`inline-flex min-w-0 max-w-full items-center gap-1.5 ${props.className ?? ""}`}
+    >
+      <span className="shrink-0 text-headline text-label-primary">{props.label}</span>
+      <MetricTag color={props.color}>{props.value}</MetricTag>
+    </span>
+  );
+}
+
 function SettingBooleanControl(props: {
   title: string;
   description: string;
@@ -429,67 +438,61 @@ function AgentUsageGovernance(props: {
         })}
       >
         <div className="grid gap-2 text-footnote text-label-primary sm:grid-cols-2">
-          <span>
-            {t("settings:SETTINGS_SYSTEM_AGENTS_USAGE_COST", {
-              value: statusText({
-                loading: props.usageQuery.isLoading,
-                error: props.usageQuery.error,
-                unavailable: formatCostMicros(0),
-                loadingText: t("settings:SETTINGS_SYSTEM_AGENTS_GOVERNANCE_LOADING"),
-                errorText: t("settings:SETTINGS_SYSTEM_AGENTS_GOVERNANCE_ERROR"),
-                value: usage ? formatCostMicros(usage.totalCostMicros) : "",
-              }),
+          <MetricDatum
+            label={t("settings:SETTINGS_SYSTEM_AGENTS_USAGE_COST_LABEL")}
+            value={statusText({
+              loading: props.usageQuery.isLoading,
+              error: props.usageQuery.error,
+              unavailable: formatCostMicros(0),
+              loadingText: t("settings:SETTINGS_SYSTEM_AGENTS_GOVERNANCE_LOADING"),
+              errorText: t("settings:SETTINGS_SYSTEM_AGENTS_GOVERNANCE_ERROR"),
+              value: usage ? formatCostMicros(usage.totalCostMicros) : "",
             })}
-          </span>
-          <span>
-            {t("settings:SETTINGS_SYSTEM_AGENTS_USAGE_BUDGET", {
-              value: formatCostMicros(monthlyBudgetMicros),
+          />
+          <MetricDatum
+            label={t("settings:SETTINGS_SYSTEM_AGENTS_USAGE_BUDGET_LABEL")}
+            value={formatCostMicros(monthlyBudgetMicros)}
+          />
+          <MetricDatum
+            label={t("settings:SETTINGS_SYSTEM_AGENTS_USAGE_BUDGET_USED_LABEL")}
+            value={statusText({
+              loading: props.usageQuery.isLoading,
+              error: props.usageQuery.error,
+              unavailable: formatPercent(0),
+              loadingText: t("settings:SETTINGS_SYSTEM_AGENTS_GOVERNANCE_LOADING"),
+              errorText: t("settings:SETTINGS_SYSTEM_AGENTS_GOVERNANCE_ERROR"),
+              value: usage ? formatPercent(budgetUsedRatio) : "",
             })}
-          </span>
-          <span>
-            {t("settings:SETTINGS_SYSTEM_AGENTS_USAGE_BUDGET_USED", {
-              value: statusText({
-                loading: props.usageQuery.isLoading,
-                error: props.usageQuery.error,
-                unavailable: formatPercent(0),
-                loadingText: t("settings:SETTINGS_SYSTEM_AGENTS_GOVERNANCE_LOADING"),
-                errorText: t("settings:SETTINGS_SYSTEM_AGENTS_GOVERNANCE_ERROR"),
-                value: usage ? formatPercent(budgetUsedRatio) : "",
-              }),
-            })}
-          </span>
-          <span>
-            {t(
+            color={budgetUsedRatio > 1 ? "red" : budgetUsedRatio > 0.8 ? "gold" : "blue"}
+          />
+          <MetricDatum
+            label={t(
               budgetRemainingMicros < 0
-                ? "settings:SETTINGS_SYSTEM_AGENTS_USAGE_BUDGET_OVER"
-                : "settings:SETTINGS_SYSTEM_AGENTS_USAGE_BUDGET_REMAINING",
-              {
-                value: statusText({
-                  loading: props.usageQuery.isLoading,
-                  error: props.usageQuery.error,
-                  unavailable: formatCostMicros(monthlyBudgetMicros),
-                  loadingText: t("settings:SETTINGS_SYSTEM_AGENTS_GOVERNANCE_LOADING"),
-                  errorText: t("settings:SETTINGS_SYSTEM_AGENTS_GOVERNANCE_ERROR"),
-                  value: usage ? formatCostMicros(Math.abs(budgetRemainingMicros)) : "",
-                }),
-              },
+                ? "settings:SETTINGS_SYSTEM_AGENTS_USAGE_BUDGET_OVER_LABEL"
+                : "settings:SETTINGS_SYSTEM_AGENTS_USAGE_BUDGET_REMAINING_LABEL",
             )}
-          </span>
-          <span>
-            {t("settings:SETTINGS_SYSTEM_AGENTS_USAGE_REQUESTS", {
-              value: usage ? formatInteger(usage.totalRequests) : "0",
+            value={statusText({
+              loading: props.usageQuery.isLoading,
+              error: props.usageQuery.error,
+              unavailable: formatCostMicros(monthlyBudgetMicros),
+              loadingText: t("settings:SETTINGS_SYSTEM_AGENTS_GOVERNANCE_LOADING"),
+              errorText: t("settings:SETTINGS_SYSTEM_AGENTS_GOVERNANCE_ERROR"),
+              value: usage ? formatCostMicros(Math.abs(budgetRemainingMicros)) : "",
             })}
-          </span>
-          <span>
-            {t("settings:SETTINGS_SYSTEM_AGENTS_USAGE_PROMPT_TOKENS", {
-              value: usage ? formatInteger(usage.totalPromptTokens) : "0",
-            })}
-          </span>
-          <span>
-            {t("settings:SETTINGS_SYSTEM_AGENTS_USAGE_COMPLETION_TOKENS", {
-              value: usage ? formatInteger(usage.totalCompletionTokens) : "0",
-            })}
-          </span>
+            color={budgetRemainingMicros < 0 ? "red" : "green"}
+          />
+          <MetricDatum
+            label={t("settings:SETTINGS_SYSTEM_AGENTS_USAGE_REQUESTS_LABEL")}
+            value={usage ? formatInteger(usage.totalRequests) : "0"}
+          />
+          <MetricDatum
+            label={t("settings:SETTINGS_SYSTEM_AGENTS_USAGE_PROMPT_TOKENS_LABEL")}
+            value={usage ? formatInteger(usage.totalPromptTokens) : "0"}
+          />
+          <MetricDatum
+            label={t("settings:SETTINGS_SYSTEM_AGENTS_USAGE_COMPLETION_TOKENS_LABEL")}
+            value={usage ? formatInteger(usage.totalCompletionTokens) : "0"}
+          />
         </div>
       </SystemSettingRow>
       <SystemSettingRow
@@ -497,31 +500,34 @@ function AgentUsageGovernance(props: {
         description={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_DESC")}
       >
         <div className="grid gap-2 text-footnote text-label-primary sm:grid-cols-2">
-          <span>
-            {t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_MODELS", {
-              value: statusText({
-                loading: props.modelCatalogQuery.isLoading,
-                error: props.modelCatalogQuery.error,
-                unavailable: "0",
-                loadingText: t("settings:SETTINGS_SYSTEM_AGENTS_GOVERNANCE_LOADING"),
-                errorText: t("settings:SETTINGS_SYSTEM_AGENTS_GOVERNANCE_ERROR"),
-                value: String(availableModels),
-              }),
+          <MetricDatum
+            label={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_MODELS_LABEL")}
+            value={statusText({
+              loading: props.modelCatalogQuery.isLoading,
+              error: props.modelCatalogQuery.error,
+              unavailable: "0",
+              loadingText: t("settings:SETTINGS_SYSTEM_AGENTS_GOVERNANCE_LOADING"),
+              errorText: t("settings:SETTINGS_SYSTEM_AGENTS_GOVERNANCE_ERROR"),
+              value: String(availableModels),
             })}
-          </span>
-          <span>
-            {t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_DEFAULT_MODEL", {
-              value:
-                catalog?.defaultModel ?? t("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_MODEL_EMPTY"),
-            })}
-          </span>
-          <span className="sm:col-span-2">
-            {t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_KEYS", {
-              value: providers.length
+            color="blue"
+          />
+          <MetricDatum
+            label={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_DEFAULT_MODEL_LABEL")}
+            value={
+              catalog?.defaultModel ?? t("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_MODEL_EMPTY")
+            }
+          />
+          <MetricDatum
+            label={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_KEYS_LABEL")}
+            value={
+              providers.length
                 ? providers.join(", ")
-                : t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_KEYS_EMPTY"),
-            })}
-          </span>
+                : t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_KEYS_EMPTY")
+            }
+            color={providers.length ? "green" : "default"}
+            className="sm:col-span-2"
+          />
         </div>
       </SystemSettingRow>
     </div>
@@ -554,141 +560,164 @@ function buildProviderFormValues(provider: AISystemProvider | null): ProviderFor
   };
 }
 
-type ProviderTableMeta = {
+type SettingsTranslate = (key: string, options?: Record<string, unknown>) => string;
+
+function ProviderCompatibilityTag(props: {
+  compatibility: AISystemProviderCompatibility;
+  t: SettingsTranslate;
+}) {
+  return (
+    <BaseTag color="blue">
+      {props.t(
+        `settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_COMPAT_${props.compatibility.toUpperCase()}`,
+      )}
+    </BaseTag>
+  );
+}
+
+function ProviderConnectionTag(props: { connected: boolean; t: SettingsTranslate }) {
+  return (
+    <BaseTag color={props.connected ? "green" : "gold"}>
+      {props.connected
+        ? props.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_KEY_SET")
+        : props.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_KEY_MISSING")}
+    </BaseTag>
+  );
+}
+
+function ProviderStatusTag(props: { active: boolean; t: SettingsTranslate }) {
+  return (
+    <BaseTag color={props.active ? "green" : "default"}>
+      {props.active
+        ? props.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_ACTIVE")
+        : props.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_INACTIVE")}
+    </BaseTag>
+  );
+}
+
+function ProviderManagementTable(props: {
+  providers: readonly AISystemProvider[];
+  loading: boolean;
   pending: boolean;
-  t: (key: string, options?: Record<string, unknown>) => string;
+  t: SettingsTranslate;
   onEdit: (provider: AISystemProvider) => void;
   onToggleActive: (provider: AISystemProvider) => void;
   onDelete: (providerId: string) => void;
-};
+}) {
+  const emptyText = props.loading
+    ? props.t("common:DATA_TABLE_REFRESHING")
+    : props.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDERS_EMPTY");
 
-function buildProviderColumns(meta: ProviderTableMeta): ColumnDef<AISystemProvider>[] {
-  return [
-    {
-      accessorKey: "label",
-      header: meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_NAME"),
-      cell: ({ row }) => (
-        <div className="min-w-0">
-          <div className="truncate text-footnote font-semibold text-label-primary">
-            {row.original.label}
-          </div>
-          <div className="truncate font-mono text-caption text-label-secondary">
-            {row.original.provider}
-          </div>
-        </div>
-      ),
-      meta: { title: meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_NAME") },
-    },
-    {
-      accessorKey: "requestModel",
-      header: meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_MODEL"),
-      cell: ({ row }) => (
-        <span className="font-mono text-caption text-label-primary">
-          {row.original.requestModel}
-        </span>
-      ),
-      meta: { title: meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_MODEL") },
-    },
-    {
-      accessorKey: "compatibility",
-      header: meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_COMPATIBILITY"),
-      cell: ({ row }) => (
-        <span className="rounded-md bg-muted px-2 py-0.5 text-caption text-label-secondary">
-          {meta.t(
-            `settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_COMPAT_${row.original.compatibility.toUpperCase()}`,
-          )}
-        </span>
-      ),
-      meta: { title: meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_COMPATIBILITY") },
-    },
-    {
-      id: "keyState",
-      header: meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_KEY_STATE"),
-      cell: ({ row }) => (
-        <span className="text-caption text-label-secondary">
-          {row.original.hasVirtualKey
-            ? meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_KEY_SET")
-            : meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_KEY_MISSING")}
-        </span>
-      ),
-      meta: { title: meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_KEY_STATE") },
-    },
-    {
-      id: "status",
-      header: meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_STATUS"),
-      cell: ({ row }) => (
-        <span className="text-caption text-label-secondary">
-          {row.original.isActive
-            ? meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_ACTIVE")
-            : meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_INACTIVE")}
-        </span>
-      ),
-      meta: { title: meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_STATUS") },
-    },
-    {
-      id: "actions",
-      size: 48,
-      minSize: 48,
-      maxSize: 48,
-      header: "",
-      cell: ({ row }) => {
-        const provider = row.original;
-        return (
-          <DataTableActionsCell>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  size="icon-sm"
-                  variant="ghost"
-                  aria-label={meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_ACTIONS_LABEL")}
-                  disabled={meta.pending}
-                  onClick={stopEvent}
-                >
-                  <MoreHorizontalIcon className="size-4" aria-hidden="true" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" onClick={stopEvent}>
-                <DropdownMenuGroup>
-                  <DropdownMenuIconItem
-                    icon={<EditIcon className="size-4" />}
-                    disabled={meta.pending}
-                    onPointerDown={() => meta.onEdit(provider)}
-                    onSelect={() => meta.onEdit(provider)}
-                  >
-                    {meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_EDIT")}
-                  </DropdownMenuIconItem>
-                  <DropdownMenuIconItem
-                    icon={
-                      provider.isActive ? (
-                        <PowerOffIcon className="size-4" />
+  return (
+    <div className="min-w-0 overflow-x-auto rounded-md border border-border/45 bg-background">
+      <table className="min-w-full text-callout">
+        <thead className="border-b border-border/60 text-left text-callout font-semibold text-label-secondary/90">
+          <tr>
+            <th className="px-3 py-3">
+              {props.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_NAME")}
+            </th>
+            <th className="px-3 py-3">
+              {props.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_MODEL")}
+            </th>
+            <th className="px-3 py-3">
+              {props.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_COMPATIBILITY")}
+            </th>
+            <th className="px-3 py-3">
+              {props.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_KEY_STATE")}
+            </th>
+            <th className="px-3 py-3">
+              {props.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TABLE_STATUS")}
+            </th>
+            <th className="w-px px-3 py-3">
+              <span className="sr-only">
+                {props.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_ACTIONS_LABEL")}
+              </span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {props.providers.length ? (
+            props.providers.map((provider) => (
+              <tr key={provider.id} className="border-b border-border/45 last:border-b-0">
+                <td className="px-3 py-4">
+                  <div className="min-w-0">
+                    <div className="truncate text-footnote font-semibold text-label-primary">
+                      {provider.label}
+                    </div>
+                    <div className="truncate font-mono text-caption text-label-secondary">
+                      {provider.provider}
+                    </div>
+                  </div>
+                </td>
+                <td className="px-3 py-4">
+                  <span className="font-mono text-caption text-label-primary">
+                    {provider.requestModel}
+                  </span>
+                </td>
+                <td className="px-3 py-4">
+                  <ProviderCompatibilityTag compatibility={provider.compatibility} t={props.t} />
+                </td>
+                <td className="px-3 py-4">
+                  <ProviderConnectionTag connected={provider.hasVirtualKey} t={props.t} />
+                </td>
+                <td className="px-3 py-4">
+                  <ProviderStatusTag active={provider.isActive} t={props.t} />
+                </td>
+                <td className="px-3 py-4">
+                  <div className="flex items-center justify-end gap-1">
+                    <Button
+                      type="button"
+                      size="icon-sm"
+                      variant="ghost"
+                      aria-label={props.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_EDIT")}
+                      disabled={props.pending}
+                      onClick={() => props.onEdit(provider)}
+                    >
+                      <EditIcon className="size-4" aria-hidden="true" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon-sm"
+                      variant="ghost"
+                      aria-label={
+                        provider.isActive
+                          ? props.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_DISABLE")
+                          : props.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_ENABLE")
+                      }
+                      disabled={props.pending}
+                      onClick={() => props.onToggleActive(provider)}
+                    >
+                      {provider.isActive ? (
+                        <PowerOffIcon className="size-4" aria-hidden="true" />
                       ) : (
-                        <PowerIcon className="size-4" />
-                      )
-                    }
-                    disabled={meta.pending}
-                    onSelect={() => meta.onToggleActive(provider)}
-                  >
-                    {provider.isActive
-                      ? meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_DISABLE")
-                      : meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_ENABLE")}
-                  </DropdownMenuIconItem>
-                  <DropdownMenuIconItem
-                    icon={<Trash2Icon className="size-4" />}
-                    disabled={meta.pending}
-                    onSelect={() => meta.onDelete(provider.id)}
-                  >
-                    {meta.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_DELETE")}
-                  </DropdownMenuIconItem>
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </DataTableActionsCell>
-        );
-      },
-      meta: buildDataTableActionsColumnMeta("right", "right"),
-    },
-  ];
+                        <PowerIcon className="size-4" aria-hidden="true" />
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon-sm"
+                      variant="ghost"
+                      aria-label={props.t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_DELETE")}
+                      disabled={props.pending}
+                      onClick={() => props.onDelete(provider.id)}
+                    >
+                      <Trash2Icon className="size-4" aria-hidden="true" />
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan={6} className="h-28 px-6 text-center text-label-secondary">
+                {emptyText}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 function AIProviderManagement(props: {
@@ -706,28 +735,6 @@ function AIProviderManagement(props: {
   const [dialog, setDialog] = useState<ProviderDialogState | null>(null);
   const [values, setValues] = useState<ProviderFormValues>(() => buildProviderFormValues(null));
   const providers = props.providersQuery.data?.providers ?? [];
-  const tableMeta = useMemo<ProviderTableMeta>(
-    () => ({
-      pending: props.pending,
-      t,
-      onEdit: (provider) => openEdit(provider),
-      onToggleActive: (provider) =>
-        props.onUpdate(provider.id, {
-          ...buildProviderFormValues(provider),
-          isActive: !provider.isActive,
-        }),
-      onDelete: props.onDelete,
-    }),
-    [props.onDelete, props.onUpdate, props.pending, t],
-  );
-  const columns = useMemo(() => buildProviderColumns(tableMeta), [tableMeta]);
-  const table = useReactTable({
-    data: providers,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    meta: tableMeta,
-  });
-  const columnMenuLabels = useMemo(() => buildDataTableToolsLabels(t), [t]);
 
   const openCreate = () => {
     setValues(buildProviderFormValues(null));
@@ -740,6 +747,13 @@ function AIProviderManagement(props: {
   };
 
   const closeDialog = () => setDialog(null);
+  const toggleProviderActive = (provider: AISystemProvider) => {
+    props.onUpdate(provider.id, {
+      ...buildProviderFormValues(provider),
+      isActive: !provider.isActive,
+    });
+  };
+
   const submit = () => {
     if (!dialog) return;
     if (dialog.mode === "create") {
@@ -767,16 +781,14 @@ function AIProviderManagement(props: {
         </SystemSettingInlineNote>
       ) : null}
 
-      <DataTablePresenter
-        table={table}
-        emptyText={t("settings:SETTINGS_SYSTEM_AGENTS_PROVIDERS_EMPTY")}
-        className="min-w-0 max-w-full overflow-hidden"
-        surface="embedded"
-        rowHeight="tall"
-        wrapContent
-        refreshing={props.providersQuery.isLoading}
-        refreshingLabel={t("common:DATA_TABLE_REFRESHING")}
-        columnMenuLabels={columnMenuLabels}
+      <ProviderManagementTable
+        providers={providers}
+        loading={props.providersQuery.isLoading}
+        pending={props.pending}
+        t={t}
+        onEdit={openEdit}
+        onToggleActive={toggleProviderActive}
+        onDelete={props.onDelete}
       />
 
       <SettingDialog
@@ -952,95 +964,99 @@ function serializeSkillForm(values: SkillFormValues): string | null {
   return skillId ? `npx:${packageName}:${skillId}` : `npx:${packageName}`;
 }
 
-type SkillTableMeta = {
-  t: (key: string, options?: Record<string, unknown>) => string;
-  onDelete: (raw: string) => void;
-};
+function SkillSourceIcon(props: { source: SkillSourceKind }) {
+  const Icon =
+    props.source === "github" ? GitBranchIcon : props.source === "npx" ? TerminalIcon : PackageIcon;
 
-function buildSkillColumns(meta: SkillTableMeta): ColumnDef<SkillPackage>[] {
-  return [
-    {
-      accessorKey: "id",
-      header: meta.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_TABLE_ID"),
-      cell: ({ row }) => (
-        <span className="font-mono text-caption text-label-primary">{row.original.id}</span>
-      ),
-      meta: { title: meta.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_TABLE_ID") },
-    },
-    {
-      accessorKey: "source",
-      header: meta.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_TABLE_SOURCE"),
-      cell: ({ row }) => {
-        const Icon =
-          row.original.source === "github"
-            ? GitBranchIcon
-            : row.original.source === "npx"
-              ? TerminalIcon
-              : PackageIcon;
-        return (
-          <span className="inline-flex items-center gap-1.5 text-caption text-label-secondary">
-            <Icon className="size-3.5" aria-hidden="true" />
-            {meta.t(
-              `settings:SETTINGS_SYSTEM_AGENTS_SKILL_SOURCE_${row.original.source.toUpperCase()}`,
-            )}
-          </span>
-        );
-      },
-      meta: { title: meta.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_TABLE_SOURCE") },
-    },
-    {
-      accessorKey: "locator",
-      header: meta.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_TABLE_LOCATOR"),
-      cell: ({ row }) => (
-        <span className="truncate text-caption text-label-secondary">{row.original.locator}</span>
-      ),
-      meta: { title: meta.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_TABLE_LOCATOR") },
-    },
-    {
-      id: "actions",
-      size: 48,
-      minSize: 48,
-      maxSize: 48,
-      header: "",
-      cell: ({ row }) => (
-        <DataTableActionsCell>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label={meta.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_REMOVE")}
-            onClick={() => meta.onDelete(row.original.raw)}
-          >
-            <Trash2Icon className="size-4" aria-hidden="true" />
-          </Button>
-        </DataTableActionsCell>
-      ),
-      meta: buildDataTableActionsColumnMeta("right", "right"),
-    },
-  ];
+  return <Icon className="size-3.5" aria-hidden="true" />;
+}
+
+function SkillSourceTag(props: { source: SkillSourceKind; t: SettingsTranslate }) {
+  return (
+    <BaseTag icon={<SkillSourceIcon source={props.source} />}>
+      {props.t(`settings:SETTINGS_SYSTEM_AGENTS_SKILL_SOURCE_${props.source.toUpperCase()}`)}
+    </BaseTag>
+  );
+}
+
+function SkillPackageTable(props: {
+  packages: readonly SkillPackage[];
+  t: SettingsTranslate;
+  onDelete: (raw: string) => void;
+}) {
+  return (
+    <div className="min-w-0 overflow-x-auto rounded-md border border-border/45 bg-background">
+      <table className="min-w-full text-callout">
+        <thead className="border-b border-border/60 text-left text-callout font-semibold text-label-secondary/90">
+          <tr>
+            <th className="px-3 py-3">
+              {props.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_TABLE_ID")}
+            </th>
+            <th className="px-3 py-3">
+              {props.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_TABLE_SOURCE")}
+            </th>
+            <th className="px-3 py-3">
+              {props.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_TABLE_LOCATOR")}
+            </th>
+            <th className="w-px px-3 py-3">
+              <span className="sr-only">
+                {props.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_REMOVE")}
+              </span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {props.packages.length ? (
+            props.packages.map((skillPackage) => (
+              <tr key={skillPackage.raw} className="border-b border-border/45 last:border-b-0">
+                <td className="px-3 py-3">
+                  <span className="font-mono text-caption text-label-primary">
+                    {skillPackage.id}
+                  </span>
+                </td>
+                <td className="px-3 py-3">
+                  <SkillSourceTag source={skillPackage.source} t={props.t} />
+                </td>
+                <td className="px-3 py-3">
+                  <span className="truncate text-caption text-label-secondary">
+                    {skillPackage.locator}
+                  </span>
+                </td>
+                <td className="px-3 py-3">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={props.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_REMOVE")}
+                    onClick={() => props.onDelete(skillPackage.raw)}
+                  >
+                    <Trash2Icon className="size-4" aria-hidden="true" />
+                  </Button>
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan={4} className="h-28 px-6 text-center text-label-secondary">
+                {props.t("settings:SETTINGS_SYSTEM_AGENTS_SKILLS_EMPTY")}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 function SkillLibraryEditor(props: { value: string; onChange: (value: string) => void }) {
   const { t } = useTranslation(["settings", "common"]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [draft, setDraft] = useState<SkillFormValues>(DEFAULT_SKILL_FORM_VALUES);
-  const rawSkillItems = splitLineList(props.value);
+  const rawSkillItems = useMemo(() => splitLineList(props.value), [props.value]);
   const skillPackages = useMemo(() => rawSkillItems.map(parseSkillPackage), [rawSkillItems]);
-  const tableMeta = useMemo<SkillTableMeta>(
-    () => ({
-      t,
-      onDelete: (raw) => props.onChange(rawSkillItems.filter((item) => item !== raw).join("\n")),
-    }),
-    [props, rawSkillItems, t],
-  );
-  const columns = useMemo(() => buildSkillColumns(tableMeta), [tableMeta]);
-  const table = useReactTable({
-    data: skillPackages,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    meta: tableMeta,
-  });
-  const columnMenuLabels = useMemo(() => buildDataTableToolsLabels(t), [t]);
+  const deleteSkill = (raw: string) => {
+    props.onChange(rawSkillItems.filter((item) => item !== raw).join("\n"));
+  };
 
   const appendSkill = () => {
     const raw = serializeSkillForm(draft);
@@ -1068,15 +1084,7 @@ function SkillLibraryEditor(props: { value: string; onChange: (value: string) =>
           {t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_UPLOAD")}
         </Button>
       </div>
-      <DataTablePresenter
-        table={table}
-        emptyText={t("settings:SETTINGS_SYSTEM_AGENTS_SKILLS_EMPTY")}
-        className="min-w-0 max-w-full overflow-hidden"
-        surface="embedded"
-        rowHeight="short"
-        wrapContent
-        columnMenuLabels={columnMenuLabels}
-      />
+      <SkillPackageTable packages={skillPackages} t={t} onDelete={deleteSkill} />
       <SettingDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
@@ -1093,75 +1101,81 @@ function SkillLibraryEditor(props: { value: string; onChange: (value: string) =>
           </>
         }
       >
-        <SettingDialogField
-          title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_SOURCE_LABEL")}
-          description={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_SOURCE_DESC")}
-        >
-          <Select
-            value={draft.source}
-            onValueChange={(value) =>
-              setDraft((current) => ({ ...current, source: value as SkillSourceKind }))
-            }
+        <SettingDialogFields>
+          <SettingDialogField
+            title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_SOURCE_LABEL")}
+            description={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_SOURCE_DESC")}
           >
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {SKILL_SOURCE_OPTIONS.map((source) => (
-                <SelectItem key={source} value={source}>
-                  {t(`settings:SETTINGS_SYSTEM_AGENTS_SKILL_SOURCE_${source.toUpperCase()}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </SettingDialogField>
-        <SettingDialogField
-          title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_ID_LABEL")}
-          description={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_ID_DESC")}
-        >
-          <Input
-            value={draft.skillId}
-            onChange={(event) =>
-              setDraft((current) => ({ ...current, skillId: event.target.value }))
-            }
-            placeholder="content.custom"
-          />
-        </SettingDialogField>
-        {draft.source === "github" ? (
-          <>
-            <SettingDialogField
-              title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_GITHUB_REPO_LABEL")}
-            >
-              <Input
-                value={draft.githubRepo}
-                onChange={(event) =>
-                  setDraft((current) => ({ ...current, githubRepo: event.target.value }))
-                }
-                placeholder="owner/repo"
-              />
-            </SettingDialogField>
-            <SettingDialogField title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_GITHUB_REF_LABEL")}>
-              <Input
-                value={draft.githubRef}
-                onChange={(event) =>
-                  setDraft((current) => ({ ...current, githubRef: event.target.value }))
-                }
-                placeholder="main"
-              />
-            </SettingDialogField>
-          </>
-        ) : null}
-        {draft.source === "npx" ? (
-          <SettingDialogField title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_NPX_PACKAGE_LABEL")}>
-            <Input
-              value={draft.npxPackage}
-              onChange={(event) =>
-                setDraft((current) => ({ ...current, npxPackage: event.target.value }))
+            <Select
+              value={draft.source}
+              onValueChange={(value) =>
+                setDraft((current) => ({ ...current, source: value as SkillSourceKind }))
               }
-              placeholder="@scope/skills"
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SKILL_SOURCE_OPTIONS.map((source) => (
+                  <SelectItem key={source} value={source}>
+                    {t(`settings:SETTINGS_SYSTEM_AGENTS_SKILL_SOURCE_${source.toUpperCase()}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </SettingDialogField>
+          <SettingDialogField
+            title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_ID_LABEL")}
+            description={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_ID_DESC")}
+          >
+            <Input
+              value={draft.skillId}
+              onChange={(event) =>
+                setDraft((current) => ({ ...current, skillId: event.target.value }))
+              }
+              placeholder="content.custom"
             />
           </SettingDialogField>
-        ) : null}
+          {draft.source === "github" ? (
+            <>
+              <SettingDialogField
+                title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_GITHUB_REPO_LABEL")}
+              >
+                <Input
+                  value={draft.githubRepo}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, githubRepo: event.target.value }))
+                  }
+                  placeholder="owner/repo"
+                />
+              </SettingDialogField>
+              <SettingDialogField
+                title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_GITHUB_REF_LABEL")}
+              >
+                <Input
+                  value={draft.githubRef}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, githubRef: event.target.value }))
+                  }
+                  placeholder="main"
+                />
+              </SettingDialogField>
+            </>
+          ) : null}
+          {draft.source === "npx" ? (
+            <SettingDialogField
+              title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_NPX_PACKAGE_LABEL")}
+            >
+              <Input
+                value={draft.npxPackage}
+                onChange={(event) =>
+                  setDraft((current) => ({ ...current, npxPackage: event.target.value }))
+                }
+                placeholder="@scope/skills"
+              />
+            </SettingDialogField>
+          ) : null}
+        </SettingDialogFields>
       </SettingDialog>
     </div>
   );
@@ -1793,6 +1807,7 @@ export function SystemSettingsAgentsPage() {
                 <SystemSettingField
                   label={t("settings:SETTINGS_SYSTEM_AGENTS_SKILLS_LIBRARY_LABEL")}
                   description={t("settings:SETTINGS_SYSTEM_AGENTS_SKILLS_LIBRARY_DESC")}
+                  labelControls={false}
                 >
                   <SkillLibraryEditor value={field.value} onChange={field.onChange} />
                 </SystemSettingField>

@@ -174,7 +174,7 @@ export function SystemSettingRow(props: {
   return (
     <div className={cn("flex min-w-0 items-start justify-between gap-4 py-2", props.className)}>
       <div className="min-w-0 flex-1">
-        <div className="text-headline font-semibold text-label-primary">{props.title}</div>
+        <div className="text-headline text-label-primary">{props.title}</div>
         {props.description ? (
           <div className="mt-1 text-label-secondary">{props.description}</div>
         ) : null}
@@ -191,18 +191,29 @@ export function SystemSettingField(props: {
   message?: ReactNode;
   children: ReactNode;
   className?: string;
+  labelControls?: boolean;
 }) {
-  return (
-    <label className={cn("grid gap-2 py-2", props.className)}>
+  const content = (
+    <>
       <span>
         <span className="block text-headline font-semibold text-label-primary">{props.label}</span>
         {props.description ? (
           <span className="mt-1 block text-label-secondary">{props.description}</span>
         ) : null}
       </span>
-      {props.children}
+      <span className="pointer-events-none grid min-w-0 [&>*]:pointer-events-auto">
+        {props.children}
+      </span>
       {props.message}
-    </label>
+    </>
+  );
+
+  if (props.labelControls === false) {
+    return <div className={cn("grid gap-2 py-2", props.className)}>{content}</div>;
+  }
+
+  return (
+    <label className={cn("pointer-events-none grid gap-2 py-2", props.className)}>{content}</label>
   );
 }
 

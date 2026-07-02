@@ -381,12 +381,14 @@ describe("SystemSettingsAgentsPage", () => {
       screen.getByText("settings:SETTINGS_SYSTEM_AGENTS_GOVERNANCE_TITLE"),
     ).toBeInTheDocument();
     expect(screen.getByText("settings:SETTINGS_SYSTEM_AGENTS_USAGE_TITLE")).toBeInTheDocument();
-    expect(screen.getByText("settings:SETTINGS_SYSTEM_AGENTS_USAGE_BUDGET")).toBeInTheDocument();
     expect(
-      screen.getByText("settings:SETTINGS_SYSTEM_AGENTS_USAGE_BUDGET_USED"),
+      screen.getByText("settings:SETTINGS_SYSTEM_AGENTS_USAGE_BUDGET_LABEL"),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("settings:SETTINGS_SYSTEM_AGENTS_USAGE_BUDGET_REMAINING"),
+      screen.getByText("settings:SETTINGS_SYSTEM_AGENTS_USAGE_BUDGET_USED_LABEL"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("settings:SETTINGS_SYSTEM_AGENTS_USAGE_BUDGET_REMAINING_LABEL"),
     ).toBeInTheDocument();
     expect(screen.getByText("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TITLE")).toBeInTheDocument();
     expect(screen.getByText("settings:SETTINGS_SYSTEM_AGENTS_RUNTIME_TITLE")).toBeInTheDocument();
@@ -421,7 +423,7 @@ describe("SystemSettingsAgentsPage", () => {
     renderPage();
 
     expect(
-      await screen.findByText("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_WRITES_POLICY_UNSUPPORTED"),
+      await screen.findByText("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_WRITES_UNSUPPORTED_VALUE"),
     ).toBeInTheDocument();
   });
 
@@ -441,7 +443,7 @@ describe("SystemSettingsAgentsPage", () => {
     renderPage();
 
     expect(
-      await screen.findByText("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_WRITES_DRY_RUN_REQUIRED"),
+      await screen.findByText("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_WRITES_NEEDS_DRY_RUN_VALUE"),
     ).toBeInTheDocument();
   });
 
@@ -461,7 +463,7 @@ describe("SystemSettingsAgentsPage", () => {
     renderPage();
 
     expect(
-      await screen.findByText("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_WRITES_SCHEMA_ONLY"),
+      await screen.findByText("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_SCHEMA_PROPOSALS_LABEL"),
     ).toBeInTheDocument();
   });
 
@@ -536,10 +538,10 @@ describe("SystemSettingsAgentsPage", () => {
     renderPage();
 
     expect(
-      await screen.findByText("settings:SETTINGS_SYSTEM_AGENTS_USAGE_BUDGET_OVER"),
+      await screen.findByText("settings:SETTINGS_SYSTEM_AGENTS_USAGE_BUDGET_OVER_LABEL"),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText("settings:SETTINGS_SYSTEM_AGENTS_USAGE_BUDGET_REMAINING"),
+      screen.queryByText("settings:SETTINGS_SYSTEM_AGENTS_USAGE_BUDGET_REMAINING_LABEL"),
     ).not.toBeInTheDocument();
   });
 

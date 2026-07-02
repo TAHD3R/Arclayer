@@ -33390,7 +33390,12 @@ export type DomainWorkspacesGetUploadPolicyData = {
          */
         workspace_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Purpose
+         */
+        purpose?: string;
+    };
     url: '/api/v1/workspaces/{workspace_id}/uploads/policy';
 };
 
