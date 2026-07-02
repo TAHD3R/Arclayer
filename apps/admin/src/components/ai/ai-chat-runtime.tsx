@@ -28,6 +28,7 @@ import {
   shouldUseAIWorkspaceAction,
   toAIWorkspaceActionArtifact,
   type AIChatMessage,
+  type AIWorkspaceActionResponse,
 } from "@/api/ai";
 import {
   buildTextWithAIComposerDirectives,
@@ -460,10 +461,10 @@ export async function sendAIWorkspaceActionMessage(
   conversationId: string,
   text: string,
   options?: { signal?: AbortSignal },
-): Promise<void> {
+): Promise<AIWorkspaceActionResponse | null> {
   const rawText = text.trim();
   const trimmed = cleanAIComposerDirectiveText(rawText);
-  if (!rawText || !trimmed) return;
+  if (!rawText || !trimmed) return null;
 
   const state = useAiChatStore.getState();
   const conversation = state.conversations.find((c) => c.id === conversationId);
@@ -486,10 +487,11 @@ export async function sendAIWorkspaceActionMessage(
       agentExecutionSummary: { toolNames: [`workspace.${result.action}`] },
     });
     await ensureAIConversationPersistedForRuntime(conversationId);
+    return result;
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
       await ensureAIConversationPersistedForRuntime(conversationId);
-      return;
+      return null;
     }
     useAiChatStore.getState().appendMessage(conversationId, {
       role: "assistant",
@@ -499,6 +501,7 @@ export async function sendAIWorkspaceActionMessage(
       errorDetails: getAIChatErrorDetails(err),
     });
     await ensureAIConversationPersistedForRuntime(conversationId);
+    return null;
   } finally {
     useAiChatStore.getState().setStreaming(false);
   }
@@ -938,7 +941,11 @@ function isMutatingAIWorkspaceAction(text: string): boolean {
   const hasGenericModel =
     /模型/i.test(normalized) && !/大模型|ai\s*model|模型选择|切换模型|选择模型/i.test(normalized);
   const hasProject = /项目|project/i.test(normalized);
-  return hasProject || hasContentModel || hasGenericModel;
+  const hasProjectArtifact =
+    /落地页|着陆页|官网|网站|站点|页面|应用|后台|仪表盘|landing page|homepage|website|site|web app|app|dashboard|portal/i.test(
+      normalized,
+    );
+  return hasProject || hasProjectArtifact || hasContentModel || hasGenericModel;
 }
 
 function createWorkspaceActionPlan(

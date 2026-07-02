@@ -37,17 +37,11 @@ import {
 } from "@/components/common/project-avatar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
 import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
-import { createNameSeedProjectSlugState } from "@/lib/project-slug";
 import { projectHomePath, projectsHomePath } from "@/lib/routing/workspace-routing";
-import {
-  ProjectCreateDialog,
-  type CreateProjectFormValues,
-} from "@/pages/usercenter/projects/components/usercenter-projects-dialogs";
 import {
   mapProjectToListItem,
   type UserCenterProjectListItem,
 } from "@/pages/usercenter/projects/project-list-items";
-import { useUserCenterProjectsMutations } from "@/pages/usercenter/projects/hooks/use-usercenter-projects-mutations";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { MyWorkspace, Project } from "@arclayer/openapi/admin-types";
@@ -1076,7 +1070,7 @@ export function AdminScopeSwitcher({
   showSidebarToggle = true,
   forceVisible = false,
 }: AdminScopeSwitcherProps = {}) {
-  const { t } = useTranslation(["common", "account", "team"]);
+  const { t } = useTranslation(["common", "account", "team", "ai"]);
   const navigate = useNavigate();
   const settingsScreen = useSettingsScreen();
   const { toggleSidebar } = useSidebar();
@@ -1091,26 +1085,6 @@ export function AdminScopeSwitcher({
   const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
   const setCurrentProjectId = useWorkspaceStore((state) => state.setCurrentProjectId);
   const setCurrentContext = useWorkspaceStore((state) => state.setCurrentContext);
-
-  const [projectCreateOpen, setProjectCreateOpen] = useState(false);
-  const [projectCreateValues, setProjectCreateValues] = useState<CreateProjectFormValues>(() => {
-    const seed = createNameSeedProjectSlugState("");
-    return {
-      workspaceId: "",
-      name: "",
-      slug: seed.value,
-      slugSource: seed.source,
-      description: "",
-    };
-  });
-
-  const projectMutations = useUserCenterProjectsMutations({
-    workspaceId: undefined,
-    t,
-    onCreateSuccess: () => undefined,
-    onArchiveSuccess: () => undefined,
-    onDeleteSuccess: () => undefined,
-  });
 
   const workspacesQuery = useQuery({
     queryKey: ["me", "workspaces", "switcher", sessionVersion],
@@ -1151,14 +1125,6 @@ export function AdminScopeSwitcher({
     setCurrentWorkspaceId,
     workspacesQuery.isSuccess,
   ]);
-
-  useEffect(() => {
-    if (!selectedWorkspaceId) return;
-    setProjectCreateValues((prev) => ({
-      ...prev,
-      workspaceId: prev.workspaceId || selectedWorkspaceId,
-    }));
-  }, [selectedWorkspaceId]);
 
   const workspaceDetailQuery = useQuery({
     queryKey: ["workspace", "detail", selectedWorkspaceId, sessionVersion],
@@ -1302,11 +1268,10 @@ export function AdminScopeSwitcher({
               void navigate({ to: projectHomePath(project.projectId) as never });
             }}
             onOpenProjectCreateDialog={() => {
-              setProjectCreateValues((prev) => ({
-                ...prev,
-                workspaceId: selectedWorkspaceId ?? prev.workspaceId,
-              }));
-              setProjectCreateOpen(true);
+              void navigate({
+                to: "/" as never,
+                search: { prompt: t("ai:AI_CHAT_CREATE_PROJECT_PROMPT") } as never,
+              });
             }}
             onOpenWorkspaceCreateDialog={() => {
               void navigate({
@@ -1336,35 +1301,6 @@ export function AdminScopeSwitcher({
           />
         </FloatingPanelContent>
       </FloatingPanelRoot>
-
-      <ProjectCreateDialog
-        t={t}
-        createDialog={{
-          open: projectCreateOpen,
-          workspaceId: selectedWorkspaceId ?? undefined,
-          setOpen: setProjectCreateOpen,
-          values: projectCreateValues,
-          setValues: setProjectCreateValues,
-          pending: projectMutations.createMutation.isPending,
-          onSubmit: async (values) => {
-            const created = await projectMutations.createMutation.mutateAsync(values);
-            const resetSlugState = createNameSeedProjectSlugState("");
-            setProjectCreateOpen(false);
-            setProjectCreateValues({
-              workspaceId: selectedWorkspaceId ?? values.workspaceId,
-              name: "",
-              slug: resetSlugState.value,
-              slugSource: resetSlugState.source,
-              description: "",
-            });
-            setCurrentContext({
-              workspaceId: created.workspaceId,
-              projectId: created.id,
-            });
-            void navigate({ to: projectHomePath(created.id) as never });
-          },
-        }}
-      />
     </>
   );
 }

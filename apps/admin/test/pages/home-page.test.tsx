@@ -14,6 +14,7 @@ const {
   cancelAIAgentRunMock,
   ensureAIConversationPersistedForRuntimeMock,
   navigateMock,
+  searchMock,
   sendAIAgentMessageMock,
   sendAIChatMessageMock,
   sendAIWorkspaceActionPlanMessageMock,
@@ -22,6 +23,7 @@ const {
   cancelAIAgentRunMock: vi.fn(),
   ensureAIConversationPersistedForRuntimeMock: vi.fn(),
   navigateMock: vi.fn(),
+  searchMock: vi.fn(),
   sendAIAgentMessageMock: vi.fn(),
   sendAIChatMessageMock: vi.fn(),
   sendAIWorkspaceActionPlanMessageMock: vi.fn(),
@@ -39,6 +41,7 @@ const assistantUiMockState = vi.hoisted(() => ({
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigateMock,
+  useSearch: () => searchMock(),
 }));
 
 vi.mock("@assistant-ui/react", async () => {
@@ -109,6 +112,13 @@ vi.mock("@assistant-ui/react", async () => {
       isSupported: () => false,
     },
     useAssistantRuntime: () => null,
+    useAui: () => ({
+      composer: () => ({
+        setText: (text: string) => {
+          assistantUiMockState.composerText = text;
+        },
+      }),
+    }),
     useExternalStoreRuntime: (store: unknown) => {
       assistantUiMockState.runtimeStore = store as typeof assistantUiMockState.runtimeStore;
       return store;
@@ -262,6 +272,8 @@ const workspaceState = {
   lastWorkspaceId: null as string | null,
   currentProjectId: null as string | null,
   lastProjectId: null as string | null,
+  setCurrentWorkspaceId: vi.fn(),
+  setCurrentProjectId: vi.fn(),
 };
 
 type WorkspaceSelector = (state: {
@@ -269,6 +281,8 @@ type WorkspaceSelector = (state: {
   lastWorkspaceId: string | null;
   currentProjectId: string | null;
   lastProjectId: string | null;
+  setCurrentWorkspaceId: (workspaceId: string | null) => void;
+  setCurrentProjectId: (projectId: string | null) => void;
 }) => unknown;
 
 vi.mock("@/stores/use-workspace-store", () => ({
@@ -342,12 +356,15 @@ vi.mock("react-i18next", () => ({
 describe("HomePage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    searchMock.mockReturnValue({});
     authState.accessToken = null;
     authState.sessionVersion = 0;
     workspaceState.currentWorkspaceId = null;
     workspaceState.lastWorkspaceId = null;
     workspaceState.currentProjectId = null;
     workspaceState.lastProjectId = null;
+    workspaceState.setCurrentWorkspaceId.mockReset();
+    workspaceState.setCurrentProjectId.mockReset();
     vi.mocked(listProjects).mockResolvedValue({
       items: [],
       total: 0,
@@ -458,6 +475,23 @@ describe("HomePage", () => {
     workspaceState.currentWorkspaceId = "workspace-1";
     workspaceState.lastWorkspaceId = "workspace-1";
     useAiChatStore.setState({ composerMode: "build" });
+    sendAIWorkspaceActionMessageMock.mockResolvedValueOnce({
+      action: "create_project",
+      status: "completed",
+      content: "已在当前工作区创建项目“随机项目”。",
+      project: {
+        id: "project-1",
+        workspaceId: "workspace-1",
+        name: "随机项目",
+        slug: "random-project",
+        description: "用于测试",
+      },
+      projects: [],
+      navigation: {
+        label: "进入项目",
+        path: "/projects/project-1",
+      },
+    });
     renderHomePage();
 
     fireEvent.change(screen.getByRole("textbox", { name: "询问 AI…" }), {
@@ -477,6 +511,11 @@ describe("HomePage", () => {
     });
     expect(sendAIChatMessageMock).not.toHaveBeenCalled();
     expect(sendAIAgentMessageMock).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(workspaceState.setCurrentWorkspaceId).toHaveBeenCalledWith("workspace-1");
+      expect(workspaceState.setCurrentProjectId).toHaveBeenCalledWith("project-1");
+      expect(navigateMock).toHaveBeenCalledWith({ to: "/projects/project-1" });
+    });
   });
 
   it("keeps home Plan mode project creation prompts in a workspace action plan", async () => {

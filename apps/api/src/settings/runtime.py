@@ -115,26 +115,37 @@ async def get_effective_settings(settings: Settings) -> Settings:
     Build an "effective" Settings instance by overlaying core settings (DB) onto env Settings.
 
     Current scope:
-    - Only `storage.*` is applied (admin-configurable).
+    - `domains.base_domain` is applied to `saas.base_domain`.
+    - `storage.*` is applied (admin-configurable).
     - Deployment-level paths (local_root_dir/local_tmp_dir) remain env-driven.
     """
 
     core = await get_core_settings_value_cached(settings)
+    settings_updates: dict[str, object] = {}
+    storage_updates: dict[str, object] = {}
+
+    domains_section = core.get("domains") if isinstance(core, dict) else None
+    if isinstance(domains_section, dict):
+        domains = cast(dict[str, Any], domains_section)
+        base_domain = _safe_str(domains.get("base_domain"))
+        if base_domain:
+            settings_updates["saas"] = settings.saas.model_copy(
+                update={"base_domain": base_domain.strip().lower().strip(".")}
+            )
+
     storage_section = core.get("storage") if isinstance(core, dict) else None
     if not isinstance(storage_section, dict):
-        return settings
+        return settings.model_copy(update=settings_updates) if settings_updates else settings
     storage = cast(dict[str, Any], storage_section)
-
-    updates: dict[str, object] = {}
 
     if "default_profile_key" in storage:
         default_profile_key = _safe_str(storage.get("default_profile_key"))
         if default_profile_key:
-            updates["default_profile_key"] = default_profile_key
+            storage_updates["default_profile_key"] = default_profile_key
 
     upload_policy_payload = _safe_dict(storage.get("upload_policy"))
     if upload_policy_payload is not None:
-        updates["upload_policy"] = UploadPolicySettings.model_validate(upload_policy_payload)
+        storage_updates["upload_policy"] = UploadPolicySettings.model_validate(upload_policy_payload)
 
     # Upload policy legacy overrides.
     for key in [
@@ -149,7 +160,7 @@ async def get_effective_settings(settings: Settings) -> Settings:
         if key in storage:
             v = _safe_int(storage.get(key))
             if v is not None:
-                updates[key] = v
+                storage_updates[key] = v
 
     if upload_policy_payload is None:
         policy = settings.storage.upload_policy.model_copy(deep=True)
@@ -184,9 +195,12 @@ async def get_effective_settings(settings: Settings) -> Settings:
                 "upload_max_favicon_size_mb",
             ]
         ):
-            updates["upload_policy"] = policy.model_copy(update={"defaults": defaults, "purposes": purposes})
+            storage_updates["upload_policy"] = policy.model_copy(update={"defaults": defaults, "purposes": purposes})
 
-    if not updates:
+    if storage_updates:
+        settings_updates["storage"] = settings.storage.model_copy(update=storage_updates)
+
+    if not settings_updates:
         return settings
 
-    return settings.model_copy(update={"storage": settings.storage.model_copy(update=updates)})
+    return settings.model_copy(update=settings_updates)

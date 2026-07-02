@@ -57,6 +57,9 @@ def test_core_settings_schema_includes_langgraph_persistence_controls() -> None:
         ({"ai_agents": {"allowed_skill_ids": ["content.analysis", "  "]}}, "ai_agents", "allowed_skill_ids"),
         ({"langgraph": {"checkpointer": "filesystem"}}, "langgraph", "checkpointer"),
         ({"langgraph": {"checkpoint_ttl_days": 0}}, "langgraph", "checkpoint_ttl_days"),
+        ({"domains": {"base_domain": "*.example.com"}}, "domains", "base_domain"),
+        ({"domains": {"admin_subdomain": "-app"}}, "domains", "admin_subdomain"),
+        ({"domains": {"reserved_labels": ["api", "bad_label"]}}, "domains", "reserved_labels"),
     ],
 )
 def test_ai_agent_settings_schema_rejects_invalid_runtime_values(
@@ -88,6 +91,12 @@ def test_ai_agent_settings_schema_accepts_valid_runtime_values() -> None:
             "langgraph": {
                 "checkpointer": "database",
                 "checkpoint_ttl_days": 30,
+            },
+            "domains": {
+                "base_domain": "arclayer.io",
+                "admin_subdomain": "app",
+                "auto_assign_project_subdomains": True,
+                "reserved_labels": ["app", "api", "preview"],
             },
         },
     )

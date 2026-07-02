@@ -75,7 +75,10 @@ export function HomeRecentProjectsSection({
   const projectItems = useMemo(() => projects.map(mapProjectToListItem), [projects]);
 
   const openCreateProject = () => {
-    void navigate({ to: "/projects", search: { create: "1" } });
+    void navigate({
+      to: "/" as never,
+      search: { prompt: t("ai:AI_CHAT_CREATE_PROJECT_PROMPT") } as never,
+    });
   };
 
   const enterProject = useCallback(

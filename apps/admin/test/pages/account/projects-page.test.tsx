@@ -87,7 +87,7 @@ vi.mock("@/stores/use-workspace-store", () => ({
 }));
 
 vi.mock("@/pages/usercenter/projects/components/usercenter-projects-dialogs", () => ({
-  UserCenterProjectsDialogs: () => null,
+  ProjectActionDialogs: () => null,
 }));
 
 vi.mock("@/pages/usercenter/projects/components/usercenter-projects-toolbar", () => ({

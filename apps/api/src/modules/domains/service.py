@@ -17,6 +17,7 @@ from src.modules.domains.platform import build_platform_hostname
 from src.modules.domains.repository import DomainBindingRepository
 from src.modules.domains.schema import DomainBindingDnsInstructionOut, domain_datetime_to_ms
 from src.platform.cache.valkey import ValkeyClientLike
+from src.settings.runtime import get_effective_settings
 
 _CACHE_KEY_PREFIX = "site:resolve:host"
 _TXT_PREFIX = "arclayer-site-verification="
@@ -81,7 +82,8 @@ class DomainBindingService(BaseService):
         if existing is not None:
             return existing
 
-        hostname = build_platform_hostname(project_slug, project_id, self.settings.saas.base_domain)
+        effective_settings = await get_effective_settings(self.settings)
+        hostname = build_platform_hostname(project_slug, project_id, effective_settings.saas.base_domain)
         is_primary = not await self._repo.has_primary_binding(project_id=project_id, conn=conn)
         binding = await self._repo.create_platform_binding(
             workspace_id=workspace_id,
@@ -109,7 +111,8 @@ class DomainBindingService(BaseService):
         environment_id: UUID | None = None,
     ) -> DomainBindingRecord:
         try:
-            normalized = validate_custom_hostname(hostname, self.settings.saas.base_domain)
+            effective_settings = await get_effective_settings(self.settings)
+            normalized = validate_custom_hostname(hostname, effective_settings.saas.base_domain)
         except HostnameValidationError as exc:
             self._raise_hostname_conflict(exc)
 

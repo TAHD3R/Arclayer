@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from typing import cast
 from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.common.types.json_types import JsonObject
+from src.common.utils.slug import slugify
 from src.config import Settings
 from src.core.exceptions import BadRequest, NotFound
 from src.core.http.pagination import PageParams, paginate_items
@@ -14,7 +16,7 @@ from src.models.organization.user import User
 from src.models.workspaces.workspace import Workspace
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
-from src.modules.projects.repository import ProjectRepository
+from src.modules.projects.repository import PROJECT_RESERVED_SLUGS, ProjectRepository
 from src.modules.projects.runtime.site.service import ProjectRuntimeSiteService
 from src.modules.projects.schema import (
     ProjectArchiveResult,
@@ -31,6 +33,7 @@ from src.modules.projects.schema import (
     ProjectSlugAvailabilityOut,
     ProjectUpdateRequest,
 )
+from src.settings.runtime import get_core_settings_value_cached
 
 
 class ProjectService(BaseService):
@@ -142,6 +145,7 @@ class ProjectService(BaseService):
         actor_user_id: UUID,
     ) -> ProjectListItemOut:
         await self._require_workspace(workspace_id=workspace_id)
+        reserved_slugs = await self._reserved_project_slugs()
         async with self.tx() as conn:
             project = await self.repo.create_project(
                 workspace_id=workspace_id,
@@ -149,6 +153,7 @@ class ProjectService(BaseService):
                 slug=self._normalize_slug(payload.slug),
                 description=(payload.description or "").strip() or None,
                 actor_user_id=actor_user_id,
+                reserved_slugs=reserved_slugs,
                 conn=conn,
             )
             project_id = UUID(str(project.id))
@@ -241,6 +246,7 @@ class ProjectService(BaseService):
             )
             if field in payload.model_fields_set
         )
+        reserved_slugs = await self._reserved_project_slugs()
         async with self.tx() as conn:
             project = await self.repo.update_project(
                 project_id=project_id,
@@ -256,6 +262,7 @@ class ProjectService(BaseService):
                 icon_fields_provided=bool(
                     {"icon_mode", "icon_color", "icon_glyph", "icon_emoji", "icon_url"} & payload.model_fields_set
                 ),
+                reserved_slugs=reserved_slugs,
                 conn=conn,
             )
             await self._write_project_activity_event(
@@ -341,10 +348,12 @@ class ProjectService(BaseService):
         exclude_project_id: UUID | None = None,
     ) -> ProjectSlugAvailabilityOut:
         await self._require_workspace(workspace_id=workspace_id)
+        reserved_slugs = await self._reserved_project_slugs()
         normalized_slug, reason = await self.repo.check_slug_availability(
             workspace_id=workspace_id,
             slug=slug,
             exclude_project_id=exclude_project_id,
+            reserved_slugs=reserved_slugs,
         )
         return ProjectSlugAvailabilityOut(
             normalized_slug=normalized_slug,
@@ -366,10 +375,24 @@ class ProjectService(BaseService):
     def _normalize_slug(self, slug: str | None) -> str | None:
         if slug is None:
             return None
-        normalized = slug.strip().lower()
+        normalized = slugify(slug)[:64]
         if not normalized:
             raise BadRequest("Project slug is required", error="PROJECT_SLUG_REQUIRED")
         return normalized
+
+    async def _reserved_project_slugs(self) -> frozenset[str]:
+        core = await get_core_settings_value_cached(self.settings)
+        domains = core.get("domains") if isinstance(core, dict) else None
+        configured_labels = (
+            cast(dict[str, object], domains).get("reserved_labels") if isinstance(domains, dict) else None
+        )
+        if not isinstance(configured_labels, list):
+            return PROJECT_RESERVED_SLUGS
+
+        normalized = {
+            slug for label in configured_labels if isinstance(label, str) for slug in [slugify(label)[:64]] if slug
+        }
+        return frozenset({*PROJECT_RESERVED_SLUGS, *normalized})
 
     def _build_project_out(self, *, project) -> ProjectOut:
         return ProjectOut(

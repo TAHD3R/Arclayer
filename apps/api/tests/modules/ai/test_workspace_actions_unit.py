@@ -21,6 +21,26 @@ def test_resolve_workspace_ai_action_detects_project_create_intent() -> None:
     assert workspace_actions.resolve_workspace_ai_action("帮我创建一个随机项目") == "create_project"
 
 
+def test_resolve_workspace_ai_action_detects_landing_page_create_intent() -> None:
+    assert workspace_actions.resolve_workspace_ai_action("帮我创建一个SaaS落地页") == "create_project"
+    assert (
+        workspace_actions._project_create_request(
+            WorkspaceAIActionRequest(workspace_id=uuid4(), message="帮我创建一个SaaS落地页")
+        ).name
+        == "SaaS 落地页"
+    )
+
+
+def test_project_create_request_generates_domain_description_from_instruction() -> None:
+    payload = workspace_actions._project_create_request(
+        WorkspaceAIActionRequest(workspace_id=uuid4(), message="帮我创建一个SaaS落地页")
+    )
+
+    assert payload.name == "SaaS 落地页"
+    assert payload.description is not None
+    assert "SaaS 产品落地页" in payload.description
+
+
 def test_resolve_workspace_ai_action_detects_content_model_create_before_project_create() -> None:
     assert workspace_actions.resolve_workspace_ai_action("帮我的项目创建一个内容模型") == "create_content_model"
     assert workspace_actions.resolve_workspace_ai_action("生成模型") == "create_content_model"

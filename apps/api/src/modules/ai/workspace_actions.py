@@ -43,6 +43,25 @@ _CONTENT_MODEL_TERMS = (
     "content type",
     "schema model",
 )
+_PROJECT_ARTIFACT_TERMS = (
+    "落地页",
+    "着陆页",
+    "官网",
+    "网站",
+    "站点",
+    "页面",
+    "应用",
+    "后台",
+    "仪表盘",
+    "landing page",
+    "homepage",
+    "website",
+    "site",
+    "web app",
+    "app",
+    "dashboard",
+    "portal",
+)
 _AI_MODEL_TERMS = ("大模型", "ai model", "模型选择", "选择模型", "切换模型")
 _CREATE_TERMS = ("创建", "新建", "建立", "生成", "create", "start", "new project")
 _LIST_TERMS = ("查看", "列出", "搜索", "查找", "找", "有哪些", "列表", "list", "find", "search", "show")
@@ -75,6 +94,23 @@ _RANDOM_PROJECT_NAMES = (
     "活动工作台",
     "产品展示台",
 )
+_CREATE_PROJECT_PREFIXES = (
+    "帮我",
+    "请",
+    "给我",
+    "为我",
+    "我们",
+    "创建",
+    "新建",
+    "建立",
+    "生成",
+    "搭建",
+    "做",
+    "一个",
+    "一個",
+    "新的",
+)
+_CREATE_PROJECT_SUFFIXES = ("项目", "project", "projects")
 
 
 class WorkspaceAIActionRequest(BaseSchema):
@@ -176,7 +212,9 @@ def resolve_workspace_ai_action(message: str) -> WorkspaceAIActionKind | None:
     text = _normalized_text(message)
     if _is_content_model_create_intent(text):
         return "create_content_model"
-    if not _contains_any(text, _PROJECT_TERMS):
+    has_project_target = _contains_any(text, _PROJECT_TERMS)
+    has_project_artifact_target = _contains_any(text, _PROJECT_ARTIFACT_TERMS)
+    if not has_project_target and not has_project_artifact_target:
         return None
     if _contains_any(text, _CREATE_TERMS):
         return "create_project"
@@ -214,6 +252,9 @@ def _project_name(message: str) -> str:
     explicit_name = _explicit_project_name(message)
     if explicit_name:
         return explicit_name[:128]
+    inferred_name = _inferred_project_name(message)
+    if inferred_name:
+        return inferred_name[:128]
     suffix = uuid4().hex[:4].upper()
     template = _RANDOM_PROJECT_NAMES[int(uuid4().hex[:2], 16) % len(_RANDOM_PROJECT_NAMES)]
     return f"{template} {suffix}"
@@ -237,7 +278,41 @@ def _project_description(message: str) -> str:
     cleaned = " ".join(message.strip().split())
     if not cleaned:
         return "由 Arclayer AI 创建的工作区项目。"
-    return f"由 Arclayer AI 根据指令“{cleaned[:96]}”创建。"
+    name = _explicit_project_name(message) or _inferred_project_name(message)
+    if _is_chinese(message):
+        if _contains_any(_normalized_text(message), ("saas", "落地页", "着陆页", "landing page")):
+            return "用于搭建和发布 SaaS 产品落地页，承载品牌介绍、核心卖点、转化入口与上线配置。"
+        if name:
+            return f"用于在当前工作区搭建和管理{name}相关的内容、资源与发布流程。"
+        return "用于在当前工作区搭建和管理新的站点、内容与发布流程。"
+    if name:
+        return f"Workspace project for building, managing, and publishing {name}."
+    return "Workspace project created by Arclayer AI for content, assets, and publishing workflows."
+
+
+def _inferred_project_name(message: str) -> str | None:
+    cleaned = _clean_project_name(message)
+    if not cleaned or _contains_any(_normalized_text(cleaned), _RANDOM_TERMS):
+        return None
+    for token in _CREATE_PROJECT_PREFIXES:
+        cleaned = cleaned.replace(token, "")
+    for token in _CREATE_PROJECT_SUFFIXES:
+        cleaned = re.sub(rf"\b{re.escape(token)}\b", "", cleaned, flags=re.IGNORECASE)
+    cleaned = " ".join(cleaned.split()).strip(" -_")
+    if not cleaned:
+        return None
+    if _is_chinese(message):
+        if _contains_any(_normalized_text(cleaned), ("saas", "落地页", "着陆页")):
+            return "SaaS 落地页"
+        if len(cleaned) <= 24:
+            return cleaned
+    else:
+        lowered = cleaned.casefold()
+        if "landing page" in lowered and "saas" in lowered:
+            return "SaaS Landing Page"
+        if len(cleaned) <= 48:
+            return cleaned[:1].upper() + cleaned[1:]
+    return None
 
 
 async def _create_content_model(

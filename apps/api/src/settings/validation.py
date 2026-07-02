@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import cast
 
 from src.common.types.json_types import JsonObject
@@ -109,6 +110,9 @@ def _validate_section_semantics(section_id: str, values: JsonObject) -> None:
     if section_id == "langgraph":
         _validate_langgraph_settings(values)
         return
+    if section_id == "domains":
+        _validate_domains_settings(values)
+        return
     if section_id != "mail":
         return
 
@@ -192,6 +196,47 @@ def _validate_ai_agents_settings(values: JsonObject) -> None:
 def _validate_langgraph_settings(values: JsonObject) -> None:
     _validate_optional_string_choice(values, "checkpointer", {"database", "memory"}, section_id="langgraph")
     _validate_optional_positive_integer(values, "checkpoint_ttl_days", section_id="langgraph")
+
+
+_DOMAIN_LABEL_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
+
+
+def _validate_domains_settings(values: JsonObject) -> None:
+    base_domain = values.get("base_domain")
+    if base_domain is not None:
+        if not isinstance(base_domain, str) or not _is_valid_base_domain(base_domain):
+            _raise_config_invalid(section_id="domains", field="base_domain")
+
+    admin_subdomain = values.get("admin_subdomain")
+    if admin_subdomain is not None:
+        if not isinstance(admin_subdomain, str) or not _is_valid_domain_label(admin_subdomain):
+            _raise_config_invalid(section_id="domains", field="admin_subdomain")
+
+    auto_assign = values.get("auto_assign_project_subdomains")
+    if auto_assign is not None and not isinstance(auto_assign, bool):
+        _raise_config_invalid(section_id="domains", field="auto_assign_project_subdomains")
+
+    reserved_labels = values.get("reserved_labels")
+    if reserved_labels is not None:
+        if not isinstance(reserved_labels, list) or any(
+            not isinstance(item, str) or not _is_valid_domain_label(item) for item in reserved_labels
+        ):
+            _raise_config_invalid(section_id="domains", field="reserved_labels")
+
+
+def _is_valid_base_domain(value: str) -> bool:
+    normalized = value.strip().lower().strip(".")
+    if not normalized or normalized.startswith("*.") or "*" in normalized:
+        return False
+    if len(normalized) > 253:
+        return False
+    labels = normalized.split(".")
+    return len(labels) >= 2 and all(_is_valid_domain_label(label) for label in labels)
+
+
+def _is_valid_domain_label(value: str) -> bool:
+    normalized = value.strip().lower()
+    return bool(_DOMAIN_LABEL_RE.fullmatch(normalized))
 
 
 def _validate_optional_non_empty_string(values: JsonObject, field: str, *, section_id: str) -> None:

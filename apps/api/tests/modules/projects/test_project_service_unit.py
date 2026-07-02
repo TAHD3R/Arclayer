@@ -7,8 +7,13 @@ from uuid import uuid4
 import pytest
 
 from src.config import get_settings
+from src.modules.projects.repository import ProjectRepository
 from src.modules.projects.schema import ProjectCreateRequest
 from src.modules.projects.service import ProjectService
+
+
+async def _async_value(value):
+    return value
 
 
 class _FakeProject:
@@ -153,6 +158,7 @@ async def test_create_project_bootstraps_memberships_provisions_runtime_site_and
 
     monkeypatch.setattr(service, "tx", fake_tx)
     monkeypatch.setattr(service, "_require_workspace", fake_require_workspace)
+    monkeypatch.setattr(service, "_reserved_project_slugs", lambda: _async_value(frozenset()))
     monkeypatch.setattr(service, "_write_project_activity_event", fake_write_project_activity_event)
     monkeypatch.setattr(service.repo, "create_project", fake_create_project)
     monkeypatch.setattr(service.repo, "bootstrap_project_memberships", fake_bootstrap_project_memberships)
@@ -205,6 +211,56 @@ async def test_create_project_bootstraps_memberships_provisions_runtime_site_and
     assert out.id == project.id
     assert out.member_count == 1
     assert len(out.members_preview) == 1
+
+
+@pytest.mark.asyncio
+async def test_reserved_project_slugs_include_system_domain_labels(monkeypatch) -> None:
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
+    settings = get_settings()
+    service = ProjectService(settings)
+
+    async def fake_core_settings(_settings):
+        return {"domains": {"reserved_labels": ["app", "Launch"]}}
+
+    monkeypatch.setattr(
+        "src.modules.projects.service.get_core_settings_value_cached",
+        fake_core_settings,
+    )
+
+    assert "api" in await service._reserved_project_slugs()
+    assert "launch" in await service._reserved_project_slugs()
+
+
+@pytest.mark.asyncio
+async def test_project_slug_availability_uses_configured_reserved_labels() -> None:
+    repo = ProjectRepository()
+
+    normalized_slug, reason = await repo.check_slug_availability(
+        workspace_id=uuid4(),
+        slug="Launch",
+        reserved_slugs=frozenset({"launch"}),
+    )
+
+    assert normalized_slug == "launch"
+    assert reason == "reserved"
+
+
+@pytest.mark.asyncio
+async def test_next_available_project_slug_skips_reserved_labels(monkeypatch) -> None:
+    repo = ProjectRepository()
+
+    async def fake_slug_exists(**kwargs):
+        return False
+
+    monkeypatch.setattr(repo, "slug_exists", fake_slug_exists)
+
+    slug = await repo._next_available_slug(
+        workspace_id=uuid4(),
+        name="api",
+        reserved_slugs=frozenset({"api"}),
+    )
+
+    assert slug == "api-2"
 
 
 @pytest.mark.asyncio

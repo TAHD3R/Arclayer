@@ -1,24 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import {
-  archiveProject,
-  checkProjectSlugAvailability,
-  createProject,
-  deleteProject,
-  patchProject,
-  unarchiveProject,
-} from "@/api/projects";
-import { ApiError } from "@/lib/http";
-import { notifyError, notifyErrorText, notifySuccessText } from "@/lib/notifications";
+import { archiveProject, deleteProject, patchProject, unarchiveProject } from "@/api/projects";
+import { notifyError, notifySuccessText } from "@/lib/notifications";
 
 import type { UserCenterProjectsTranslateFn } from "../types";
-
-export type CreateProjectPayload = {
-  workspaceId: string;
-  name: string;
-  slug: string;
-  description?: string;
-};
 
 type DeleteProjectPayload = {
   projectId: string;
@@ -42,13 +27,12 @@ export type UpdateProjectPayload = {
 interface UseUserCenterProjectsMutationsOptions {
   workspaceId?: string;
   t: UserCenterProjectsTranslateFn;
-  onCreateSuccess: () => void;
   onArchiveSuccess: () => void;
   onDeleteSuccess: () => void;
 }
 
 export function useUserCenterProjectsMutations(options: UseUserCenterProjectsMutationsOptions) {
-  const { workspaceId, t, onCreateSuccess, onArchiveSuccess, onDeleteSuccess } = options;
+  const { workspaceId, t, onArchiveSuccess, onDeleteSuccess } = options;
   const queryClient = useQueryClient();
 
   const tableScope = workspaceId ? `workspace:${workspaceId}` : "all";
@@ -65,54 +49,6 @@ export function useUserCenterProjectsMutations(options: UseUserCenterProjectsMut
       queryClient.invalidateQueries({ queryKey: globalNavProjectsKey }),
     ]);
   };
-
-  const createMutation = useMutation({
-    mutationFn: async (payload: CreateProjectPayload) => {
-      const nextName = payload.name.trim();
-      const nextSlug = payload.slug.trim();
-
-      if (!payload.workspaceId) {
-        throw new Error("PROJECT_WORKSPACE_REQUIRED");
-      }
-      if (!nextName) {
-        throw new Error("PROJECT_NAME_REQUIRED");
-      }
-      if (!nextSlug) {
-        throw new Error("PROJECT_SLUG_REQUIRED");
-      }
-
-      const availability = await checkProjectSlugAvailability(payload.workspaceId, nextSlug);
-      if (!availability.available || !availability.normalizedSlug) {
-        if (availability.reason === "reserved") {
-          throw new Error("PROJECT_SLUG_RESERVED");
-        }
-        if (availability.reason === "exists") {
-          throw new Error("PROJECT_SLUG_EXISTS");
-        }
-        throw new Error("PROJECT_SLUG_INVALID");
-      }
-
-      return createProject({
-        workspaceId: payload.workspaceId,
-        name: nextName,
-        slug: availability.normalizedSlug,
-        description: payload.description,
-      });
-    },
-    onSuccess: async () => {
-      notifySuccessText(t("common:ACTION_SUCCESS"));
-      onCreateSuccess();
-      await invalidateProjectTables();
-    },
-    onError: (error) => {
-      const message = resolveProjectCreateErrorMessage(error, t);
-      if (message) {
-        notifyErrorText(message);
-        return;
-      }
-      notifyError(error);
-    },
-  });
 
   const archiveMutation = useMutation({
     mutationFn: async (projectId: string) => archiveProject(projectId),
@@ -158,38 +94,9 @@ export function useUserCenterProjectsMutations(options: UseUserCenterProjectsMut
   });
 
   return {
-    createMutation,
     archiveMutation,
     unarchiveMutation,
     deleteMutation,
     updateMutation,
   } as const;
-}
-
-function resolveProjectCreateErrorMessage(
-  error: unknown,
-  t: UserCenterProjectsTranslateFn,
-): string | null {
-  const errorCode =
-    error instanceof ApiError ? error.error : error instanceof Error ? error.message : null;
-  if (!errorCode) return null;
-  if (errorCode === "PROJECT_WORKSPACE_REQUIRED") {
-    return t("account:ACCOUNT_PROJECTS_FIELD_WORKSPACE_REQUIRED");
-  }
-  if (errorCode === "PROJECT_NAME_REQUIRED") {
-    return t("account:ACCOUNT_PROJECTS_FIELD_NAME_REQUIRED");
-  }
-  if (errorCode === "PROJECT_SLUG_REQUIRED") {
-    return t("account:ACCOUNT_PROJECTS_FIELD_SLUG_REQUIRED");
-  }
-  if (errorCode === "PROJECT_SLUG_RESERVED") {
-    return t("account:ACCOUNT_PROJECTS_FIELD_SLUG_RESERVED");
-  }
-  if (errorCode === "PROJECT_SLUG_EXISTS") {
-    return t("account:ACCOUNT_PROJECTS_FIELD_SLUG_EXISTS");
-  }
-  if (errorCode === "PROJECT_SLUG_INVALID") {
-    return t("account:ACCOUNT_PROJECTS_FIELD_SLUG_INVALID");
-  }
-  return null;
 }

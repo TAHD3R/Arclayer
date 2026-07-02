@@ -1,11 +1,12 @@
 import type { LucideIcon } from "lucide-react";
-import { Bell, Bot, HardDrive, KeyRound, Mail, UserRoundPlus } from "lucide-react";
+import { Bell, Bot, Globe2, HardDrive, KeyRound, Mail, UserRoundPlus } from "lucide-react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
 
 export type SystemSettingsPageKey =
   | "access"
   | "agents"
+  | "domains"
   | "storage"
   | "email"
   | "notifications"
@@ -20,6 +21,8 @@ export type SystemSettingsItemId =
   | "agent-modes-skills"
   | "agent-write-approvals"
   | "agent-langgraph"
+  | "platform-domains"
+  | "reserved-labels"
   | "default-profile"
   | "profiles"
   | "create-profile"
@@ -70,6 +73,14 @@ export const SYSTEM_SETTINGS_PAGES: readonly SystemSettingsPageMeta[] = [
     descriptionKey: "settings:SETTINGS_SYSTEM_AGENTS_PAGE_DESC",
     to: "/system/settings/agents",
     icon: Bot,
+  },
+  {
+    key: "domains",
+    labelKey: "settings:SETTINGS_SYSTEM_NAV_DOMAINS",
+    titleKey: "settings:SETTINGS_SYSTEM_DOMAINS_PAGE_TITLE",
+    descriptionKey: "settings:SETTINGS_SYSTEM_DOMAINS_PAGE_DESC",
+    to: "/system/settings/domains",
+    icon: Globe2,
   },
   {
     key: "storage",
@@ -161,6 +172,20 @@ export const SYSTEM_SETTINGS_ITEMS: readonly SystemSettingsSearchItem[] = [
     titleKey: "settings:SETTINGS_SYSTEM_AGENTS_LANGGRAPH_TITLE",
     descriptionKey: "settings:SETTINGS_SYSTEM_AGENTS_LANGGRAPH_DESC",
     keywords: ["langgraph", "checkpoint", "interrupt", "resume"],
+  },
+  {
+    id: "platform-domains",
+    page: "domains",
+    titleKey: "settings:SETTINGS_SYSTEM_DOMAINS_PLATFORM_TITLE",
+    descriptionKey: "settings:SETTINGS_SYSTEM_DOMAINS_PLATFORM_DESC",
+    keywords: ["domain", "dns", "base domain", "subdomain", "hostname"],
+  },
+  {
+    id: "reserved-labels",
+    page: "domains",
+    titleKey: "settings:SETTINGS_SYSTEM_DOMAINS_RESERVED_TITLE",
+    descriptionKey: "settings:SETTINGS_SYSTEM_DOMAINS_RESERVED_DESC",
+    keywords: ["domain", "reserved", "subdomain", "hostname", "labels"],
   },
   {
     id: "default-profile",

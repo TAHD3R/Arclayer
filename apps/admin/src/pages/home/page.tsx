@@ -6,11 +6,13 @@ import {
   ComposerPrimitive,
   WebSpeechDictationAdapter,
   createMessageQueue,
+  useAui,
   useExternalStoreRuntime,
   type AppendMessage,
   type MessageQueueController,
   type ThreadMessageLike,
 } from "@assistant-ui/react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 
 import * as authApi from "@/api/auth";
 import { listProjects } from "@/api/projects";
@@ -45,6 +47,7 @@ import {
   formatAIChatError,
   sendAIAgentMessage,
   shouldUseAIWorkspaceAction,
+  type AIWorkspaceActionResponse,
 } from "@/api/ai";
 import { getUserDisplayName, normalizeUserProfile } from "@/lib/auth/user-profile";
 import { HomeInspirationSection } from "@/pages/home/home-inspiration-section";
@@ -66,13 +69,43 @@ function createDictationAdapter() {
 
 type HomeComposerProps = {
   inputRef: RefObject<HTMLTextAreaElement | null>;
+  initialPrompt?: string;
+  onInitialPromptApplied?: () => void;
   onSubmitStart: () => void;
   onSubmitError: (message: string) => void;
-  onWorkspaceActionComplete?: () => void;
+  onWorkspaceActionComplete?: (result: AIWorkspaceActionResponse | null) => void;
 };
+
+function HomeComposerInitialPrompt(props: {
+  inputRef: RefObject<HTMLTextAreaElement | null>;
+  prompt?: string;
+  onApplied?: () => void;
+}) {
+  const { inputRef, onApplied, prompt: rawPrompt } = props;
+  const aui = useAui();
+  const appliedPromptRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const prompt = rawPrompt?.trim();
+    if (!prompt) {
+      appliedPromptRef.current = null;
+      return;
+    }
+    if (appliedPromptRef.current === prompt) return;
+
+    appliedPromptRef.current = prompt;
+    aui.composer().setText(prompt);
+    inputRef.current?.focus();
+    onApplied?.();
+  }, [aui, inputRef, onApplied, rawPrompt]);
+
+  return null;
+}
 
 function HomeComposer({
   inputRef,
+  initialPrompt,
+  onInitialPromptApplied,
   onSubmitStart,
   onSubmitError,
   onWorkspaceActionComplete,
@@ -170,10 +203,10 @@ function HomeComposer({
           } else if (shouldPlanAIWorkspaceAction(mode, trimmed)) {
             await sendAIWorkspaceActionPlanMessage(conversationId, textWithDirectives);
           } else if (mode !== "plan" && shouldUseAIWorkspaceAction(trimmed)) {
-            await sendAIWorkspaceActionMessage(conversationId, textWithDirectives, {
+            const result = await sendAIWorkspaceActionMessage(conversationId, textWithDirectives, {
               signal: controller.signal,
             });
-            onWorkspaceActionComplete?.();
+            onWorkspaceActionComplete?.(result);
           } else {
             await sendAIChatMessage(conversationId, trimmed, { signal: controller.signal });
           }
@@ -266,6 +299,11 @@ function HomeComposer({
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
+      <HomeComposerInitialPrompt
+        inputRef={inputRef}
+        prompt={initialPrompt}
+        onApplied={onInitialPromptApplied}
+      />
       <ComposerPrimitive.Unstable_TriggerPopoverRoot>
         <ComposerPrimitive.Root className="aui-home-composer-root relative flex w-full min-w-0 flex-col">
           <ComposerQueue />
@@ -296,11 +334,15 @@ function HomeComposer({
  */
 export function HomePage() {
   const { t } = useTranslation(["ai", "common"]);
+  const { prompt: initialPrompt } = useSearch({ from: "/" });
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const currentWorkspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const lastWorkspaceId = useWorkspaceStore((s) => s.lastWorkspaceId);
+  const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
+  const setCurrentProjectId = useWorkspaceStore((s) => s.setCurrentProjectId);
   const [localError, setLocalError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const workspaceId = currentWorkspaceId ?? lastWorkspaceId;
@@ -336,11 +378,24 @@ export function HomePage() {
   });
   const recentProjects = recentProjectsData?.items ?? [];
   const hasRecentProjects = recentProjects.length > 0;
-  const refreshProjectsAfterWorkspaceAction = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ["home", "recent-projects"] });
-    void queryClient.invalidateQueries({ queryKey: ["projects"] });
-    void queryClient.invalidateQueries({ queryKey: ["scope-switcher", "projects"] });
-  }, [queryClient]);
+  const handleWorkspaceActionComplete = useCallback(
+    (result: AIWorkspaceActionResponse | null) => {
+      void queryClient.invalidateQueries({ queryKey: ["home", "recent-projects"] });
+      void queryClient.invalidateQueries({ queryKey: ["projects"] });
+      void queryClient.invalidateQueries({ queryKey: ["scope-switcher", "projects"] });
+      if (result?.action !== "create_project" || !result.project) return;
+
+      if (result.project.workspaceId) {
+        setCurrentWorkspaceId(result.project.workspaceId);
+      }
+      setCurrentProjectId(result.project.id);
+      void navigate({ to: (result.navigation?.path ?? `/projects/${result.project.id}`) as never });
+    },
+    [navigate, queryClient, setCurrentProjectId, setCurrentWorkspaceId],
+  );
+  const clearInitialPrompt = useCallback(() => {
+    void navigate({ to: "/" as never, search: {} as never, replace: true });
+  }, [navigate]);
 
   return (
     <AdminRouteContainer pageFrame="full" className="min-h-full" innerClassName="min-h-full px-0">
@@ -369,9 +424,11 @@ export function HomePage() {
           <div className="mx-auto w-full max-w-[44rem]">
             <HomeComposer
               inputRef={textareaRef}
+              initialPrompt={initialPrompt}
+              onInitialPromptApplied={clearInitialPrompt}
               onSubmitStart={() => setLocalError(null)}
               onSubmitError={setLocalError}
-              onWorkspaceActionComplete={refreshProjectsAfterWorkspaceAction}
+              onWorkspaceActionComplete={handleWorkspaceActionComplete}
             />
             {localError ? (
               <p className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-footnote text-destructive">

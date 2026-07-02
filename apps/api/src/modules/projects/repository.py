@@ -22,6 +22,22 @@ _PROJECT_ALLOWED_ORDER_FIELDS = {
     "updated_at": "updated_at",
     "name": "name",
 }
+PROJECT_RESERVED_SLUGS = frozenset({
+    "admin",
+    "api",
+    "www",
+    "auth",
+    "login",
+    "dashboard",
+    "studio",
+    "preview",
+    "editor",
+    "debug",
+    "assets",
+    "static",
+    "system",
+})
+_PROJECT_SLUG_MAX_LENGTH = 64
 
 
 def _normalize_project_ordering(value: str | None) -> list[str]:
@@ -156,14 +172,20 @@ class ProjectRepository(TortoiseORMRepository):
         *,
         workspace_id: UUID,
         name: str,
+        reserved_slugs: frozenset[str],
         conn: BaseDBAsyncClient | None = None,
     ) -> str:
-        base_slug = slugify(name)[:64] or "project"
+        base_slug = slugify(name)[:_PROJECT_SLUG_MAX_LENGTH] or "project"
         slug = base_slug
         suffix = 2
-        while await self.slug_exists(workspace_id=workspace_id, slug=slug, conn=conn):
+        while slug in reserved_slugs or await self.slug_exists(
+            workspace_id=workspace_id,
+            slug=slug,
+            conn=conn,
+        ):
             suffix_text = f"-{suffix}"
-            slug = f"{base_slug[: max(1, 64 - len(suffix_text))]}{suffix_text}"
+            max_base_length = max(1, _PROJECT_SLUG_MAX_LENGTH - len(suffix_text))
+            slug = f"{base_slug[:max_base_length].rstrip('-')}{suffix_text}"
             suffix += 1
         return slug
 
@@ -173,22 +195,12 @@ class ProjectRepository(TortoiseORMRepository):
         workspace_id: UUID,
         slug: str,
         exclude_project_id: UUID | None = None,
+        reserved_slugs: frozenset[str] = PROJECT_RESERVED_SLUGS,
     ) -> tuple[str | None, str | None]:
-        normalized_slug = slugify(slug)[:64]
+        normalized_slug = slugify(slug)[:_PROJECT_SLUG_MAX_LENGTH]
         if not normalized_slug or normalized_slug == "asset":
             return None, "invalid"
-        if normalized_slug in {
-            "admin",
-            "api",
-            "www",
-            "studio",
-            "preview",
-            "editor",
-            "debug",
-            "assets",
-            "static",
-            "system",
-        }:
+        if normalized_slug in reserved_slugs:
             return normalized_slug, "reserved"
         exists = await self.slug_exists(
             workspace_id=workspace_id,
@@ -207,9 +219,17 @@ class ProjectRepository(TortoiseORMRepository):
         slug: str | None,
         description: str | None,
         actor_user_id: UUID | None,
+        reserved_slugs: frozenset[str] = PROJECT_RESERVED_SLUGS,
         conn: BaseDBAsyncClient | None = None,
     ) -> ProjectRecord:
-        resolved_slug = slug or await self._next_available_slug(workspace_id=workspace_id, name=name, conn=conn)
+        resolved_slug = slug or await self._next_available_slug(
+            workspace_id=workspace_id,
+            name=name,
+            reserved_slugs=reserved_slugs,
+            conn=conn,
+        )
+        if resolved_slug in reserved_slugs:
+            raise BadRequest("Project slug is reserved", error="PROJECT_SLUG_RESERVED")
         if await self.slug_exists(workspace_id=workspace_id, slug=resolved_slug, conn=conn):
             raise Conflict("Project slug already exists", error="PROJECT_SLUG_EXISTS")
 
@@ -292,6 +312,7 @@ class ProjectRepository(TortoiseORMRepository):
         icon_emoji: str | None,
         icon_url: str | None,
         icon_fields_provided: bool,
+        reserved_slugs: frozenset[str] = PROJECT_RESERVED_SLUGS,
         conn: BaseDBAsyncClient | None = None,
     ) -> ProjectRecord:
         project = (
@@ -306,6 +327,8 @@ class ProjectRepository(TortoiseORMRepository):
             update_fields.append("name")
 
         if slug is not None:
+            if slug in reserved_slugs:
+                raise BadRequest("Project slug is reserved", error="PROJECT_SLUG_RESERVED")
             if await self.slug_exists(
                 workspace_id=UUID(str(project.workspace_id)),
                 slug=slug,
@@ -404,7 +427,11 @@ class ProjectRepository(TortoiseORMRepository):
 
         return await ProjectRecord.create(
             workspace_id=workspace_id,
-            slug=await self._next_available_slug(workspace_id=workspace_id, name=workspace.name or "Project"),
+            slug=await self._next_available_slug(
+                workspace_id=workspace_id,
+                name=workspace.name or "Project",
+                reserved_slugs=PROJECT_RESERVED_SLUGS,
+            ),
             name=(workspace.name or "Project")[:128],
             description=workspace.description,
             icon_mode=workspace.icon_mode,

@@ -134,7 +134,6 @@ export function useProjectMenuActions({
   const mutations = useUserCenterProjectsMutations({
     workspaceId,
     t,
-    onCreateSuccess: () => undefined,
     onArchiveSuccess: () => {
       setConfirmArchive(null);
       onArchiveSuccess?.();

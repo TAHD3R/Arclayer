@@ -288,6 +288,7 @@
   "PROJECT_SITE_NOT_FOUND": "项目站点不存在",
   "PROJECT_SLUG_EXISTS": "项目标识存在",
   "PROJECT_SLUG_REQUIRED": "项目标识必填",
+  "PROJECT_SLUG_RESERVED": "项目地址标识已被系统保留",
   "PUBLISH_ARTIFACTS_MISSING": "发布artifacts缺失",
   "PUBLISH_JOB_NOT_FOUND": "发布jobnot不存在",
   "PUBLISH_JOB_RETRY_UNAVAILABLE": "发布jobretry不可用",

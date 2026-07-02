@@ -3,13 +3,11 @@ import { act, renderHook } from "@testing-library/react";
 import type { PropsWithChildren } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { checkProjectSlugAvailability, createProject } from "@/api/projects";
+import { archiveProject } from "@/api/projects";
 import { useUserCenterProjectsMutations } from "@/pages/usercenter/projects/hooks/use-usercenter-projects-mutations";
 
 vi.mock("@/api/projects", () => ({
   archiveProject: vi.fn(),
-  checkProjectSlugAvailability: vi.fn(),
-  createProject: vi.fn(),
   deleteProject: vi.fn(),
   getProjectDangerCapabilities: vi.fn(),
   patchProject: vi.fn(),
@@ -18,7 +16,6 @@ vi.mock("@/api/projects", () => ({
 
 vi.mock("@/lib/notifications", () => ({
   notifyError: vi.fn(),
-  notifyErrorText: vi.fn(),
   notifySuccessText: vi.fn(),
 }));
 
@@ -31,35 +28,13 @@ function createWrapper(queryClient: QueryClient) {
 describe("useUserCenterProjectsMutations", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(checkProjectSlugAvailability).mockResolvedValue({
-      normalizedSlug: "project-alpha",
-      available: true,
-      reason: null,
-    });
-    vi.mocked(createProject).mockResolvedValue({
-      id: "project-1",
-      workspaceId: "ws-1",
-      slug: "project-alpha",
-      name: "Project Alpha",
-      description: null,
-      iconMode: "initials",
-      iconColor: "#337ea9",
-      iconGlyph: null,
-      iconEmoji: null,
-      iconUrl: null,
-      isActive: true,
-      primaryRuntime: null,
-      memberCount: 1,
-      membersPreview: [],
-      archivedAt: null,
-      archivedByUserId: null,
-      createdAt: "2026-04-19T00:00:00Z",
-      updatedAt: "2026-04-20T00:00:00Z",
-      enterable: true,
+    vi.mocked(archiveProject).mockResolvedValue({
+      projectId: "project-1",
+      isActive: false,
     });
   });
 
-  it("invalidates table, card, and global nav project queries after create", async () => {
+  it("invalidates table, card, and global nav project queries after archive", async () => {
     const queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -68,27 +43,24 @@ describe("useUserCenterProjectsMutations", () => {
     });
     const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
     const wrapper = createWrapper(queryClient);
+    const onArchiveSuccess = vi.fn();
 
     const { result } = renderHook(
       () =>
         useUserCenterProjectsMutations({
           workspaceId: "ws-1",
           t: ((key: string) => key) as never,
-          onCreateSuccess: vi.fn(),
-          onArchiveSuccess: vi.fn(),
+          onArchiveSuccess,
           onDeleteSuccess: vi.fn(),
         }),
       { wrapper },
     );
 
     await act(async () => {
-      await result.current.createMutation.mutateAsync({
-        workspaceId: "ws-1",
-        name: "Project Alpha",
-        slug: "project-alpha",
-      });
+      await result.current.archiveMutation.mutateAsync("project-1");
     });
 
+    expect(onArchiveSuccess).toHaveBeenCalledTimes(1);
     expect(invalidateQueries).toHaveBeenCalledWith({
       queryKey: ["dataTable", "projects-active:workspace:ws-1"],
     });

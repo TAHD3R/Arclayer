@@ -30,6 +30,7 @@ import { Route as SystemSettingsStorageIndexRouteImport } from './routes/system/
 import { Route as SystemSettingsOauthIndexRouteImport } from './routes/system/settings/oauth/index'
 import { Route as SystemSettingsNotificationsIndexRouteImport } from './routes/system/settings/notifications/index'
 import { Route as SystemSettingsEmailIndexRouteImport } from './routes/system/settings/email/index'
+import { Route as SystemSettingsDomainsIndexRouteImport } from './routes/system/settings/domains/index'
 import { Route as SystemSettingsAgentsIndexRouteImport } from './routes/system/settings/agents/index'
 import { Route as SystemSettingsAccessIndexRouteImport } from './routes/system/settings/access/index'
 import { Route as ProjectsProjectIdSettingsIndexRouteImport } from './routes/projects/$projectId/settings/index'
@@ -176,6 +177,12 @@ const SystemSettingsEmailIndexRoute =
   SystemSettingsEmailIndexRouteImport.update({
     id: '/settings/email/',
     path: '/settings/email/',
+    getParentRoute: () => SystemRoute,
+  } as any)
+const SystemSettingsDomainsIndexRoute =
+  SystemSettingsDomainsIndexRouteImport.update({
+    id: '/settings/domains/',
+    path: '/settings/domains/',
     getParentRoute: () => SystemRoute,
   } as any)
 const SystemSettingsAgentsIndexRoute =
@@ -420,6 +427,7 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/settings/': typeof ProjectsProjectIdSettingsIndexRoute
   '/system/settings/access/': typeof SystemSettingsAccessIndexRoute
   '/system/settings/agents/': typeof SystemSettingsAgentsIndexRoute
+  '/system/settings/domains/': typeof SystemSettingsDomainsIndexRoute
   '/system/settings/email/': typeof SystemSettingsEmailIndexRoute
   '/system/settings/notifications/': typeof SystemSettingsNotificationsIndexRoute
   '/system/settings/oauth/': typeof SystemSettingsOauthIndexRoute
@@ -467,6 +475,7 @@ export interface FileRoutesByTo {
   '/projects/$projectId/settings': typeof ProjectsProjectIdSettingsIndexRoute
   '/system/settings/access': typeof SystemSettingsAccessIndexRoute
   '/system/settings/agents': typeof SystemSettingsAgentsIndexRoute
+  '/system/settings/domains': typeof SystemSettingsDomainsIndexRoute
   '/system/settings/email': typeof SystemSettingsEmailIndexRoute
   '/system/settings/notifications': typeof SystemSettingsNotificationsIndexRoute
   '/system/settings/oauth': typeof SystemSettingsOauthIndexRoute
@@ -517,6 +526,7 @@ export interface FileRoutesById {
   '/projects/$projectId/settings/': typeof ProjectsProjectIdSettingsIndexRoute
   '/system/settings/access/': typeof SystemSettingsAccessIndexRoute
   '/system/settings/agents/': typeof SystemSettingsAgentsIndexRoute
+  '/system/settings/domains/': typeof SystemSettingsDomainsIndexRoute
   '/system/settings/email/': typeof SystemSettingsEmailIndexRoute
   '/system/settings/notifications/': typeof SystemSettingsNotificationsIndexRoute
   '/system/settings/oauth/': typeof SystemSettingsOauthIndexRoute
@@ -568,6 +578,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/settings/'
     | '/system/settings/access/'
     | '/system/settings/agents/'
+    | '/system/settings/domains/'
     | '/system/settings/email/'
     | '/system/settings/notifications/'
     | '/system/settings/oauth/'
@@ -615,6 +626,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/settings'
     | '/system/settings/access'
     | '/system/settings/agents'
+    | '/system/settings/domains'
     | '/system/settings/email'
     | '/system/settings/notifications'
     | '/system/settings/oauth'
@@ -664,6 +676,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/settings/'
     | '/system/settings/access/'
     | '/system/settings/agents/'
+    | '/system/settings/domains/'
     | '/system/settings/email/'
     | '/system/settings/notifications/'
     | '/system/settings/oauth/'
@@ -853,6 +866,13 @@ declare module '@tanstack/react-router' {
       path: '/settings/email'
       fullPath: '/system/settings/email/'
       preLoaderRoute: typeof SystemSettingsEmailIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/settings/domains/': {
+      id: '/system/settings/domains/'
+      path: '/settings/domains'
+      fullPath: '/system/settings/domains/'
+      preLoaderRoute: typeof SystemSettingsDomainsIndexRouteImport
       parentRoute: typeof SystemRoute
     }
     '/system/settings/agents/': {
@@ -1046,6 +1066,7 @@ interface SystemRouteChildren {
   SystemTenantsIndexRoute: typeof SystemTenantsIndexRoute
   SystemSettingsAccessIndexRoute: typeof SystemSettingsAccessIndexRoute
   SystemSettingsAgentsIndexRoute: typeof SystemSettingsAgentsIndexRoute
+  SystemSettingsDomainsIndexRoute: typeof SystemSettingsDomainsIndexRoute
   SystemSettingsEmailIndexRoute: typeof SystemSettingsEmailIndexRoute
   SystemSettingsNotificationsIndexRoute: typeof SystemSettingsNotificationsIndexRoute
   SystemSettingsOauthIndexRoute: typeof SystemSettingsOauthIndexRoute
@@ -1061,6 +1082,7 @@ const SystemRouteChildren: SystemRouteChildren = {
   SystemTenantsIndexRoute: SystemTenantsIndexRoute,
   SystemSettingsAccessIndexRoute: SystemSettingsAccessIndexRoute,
   SystemSettingsAgentsIndexRoute: SystemSettingsAgentsIndexRoute,
+  SystemSettingsDomainsIndexRoute: SystemSettingsDomainsIndexRoute,
   SystemSettingsEmailIndexRoute: SystemSettingsEmailIndexRoute,
   SystemSettingsNotificationsIndexRoute: SystemSettingsNotificationsIndexRoute,
   SystemSettingsOauthIndexRoute: SystemSettingsOauthIndexRoute,

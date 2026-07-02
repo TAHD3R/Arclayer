@@ -22,6 +22,31 @@ def test_core_settings_schema_uses_profile_key_and_upload_limits() -> None:
     assert "s3_bucket" not in storage_keys
 
 
+def test_core_settings_schema_includes_domain_controls() -> None:
+    domains_section = next(section for section in CORE_SETTINGS_SCHEMA.sections if section.id == "domains")
+    domain_keys = {field.key for field in domains_section.fields}
+
+    assert "base_domain" in domain_keys
+    assert "admin_subdomain" in domain_keys
+    assert "auto_assign_project_subdomains" in domain_keys
+    assert "reserved_labels" in domain_keys
+
+
+@pytest.mark.asyncio
+async def test_get_effective_settings_applies_domain_base_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fake_core_settings(_settings: Settings, *, ttl_seconds: float = 5.0) -> dict[str, object]:
+        _ = ttl_seconds
+        return {"domains": {"base_domain": "Arclayer.IO."}}
+
+    monkeypatch.setattr(runtime, "get_core_settings_value_cached", fake_core_settings)
+
+    effective = await runtime.get_effective_settings(Settings())
+
+    assert effective.saas.base_domain == "arclayer.io"
+
+
 @pytest.mark.asyncio
 async def test_get_effective_settings_applies_profile_key_and_upload_limit_overrides(
     monkeypatch: pytest.MonkeyPatch,

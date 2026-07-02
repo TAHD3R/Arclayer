@@ -6,7 +6,6 @@ import { useTranslation } from "react-i18next";
 
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
-import { createNameSeedProjectSlugState } from "@/lib/project-slug";
 import { projectHomePath } from "@/lib/routing/workspace-routing";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { Button } from "@arclayer/ui/button";
@@ -16,10 +15,8 @@ import {
   useDataTableWrapHeadersPreference,
 } from "@arclayer/ui/data-table";
 
-import {
-  UserCenterProjectsDialogs,
-  type CreateProjectFormValues,
-} from "./components/usercenter-projects-dialogs";
+import { ProjectIconDialog } from "./components/project-icon-dialog";
+import { ProjectActionDialogs } from "./components/usercenter-projects-dialogs";
 import { ProjectsCreateCard } from "./components/projects-create-card";
 import { UserCenterProjectsToolbar } from "./components/usercenter-projects-toolbar";
 import { ProjectsContentSection } from "./components/projects-content-section";
@@ -37,7 +34,7 @@ export function ProjectsPage() {
   const { create } = useSearch({ from: "/projects/" });
   const autoOpenCreate = create === "1";
 
-  const { t } = useTranslation(["account", "common"]);
+  const { t } = useTranslation(["account", "common", "ai"]);
   const projectT = useCallback<UserCenterProjectsTranslateFn>(
     (key, options) => t(key, options),
     [t],
@@ -51,29 +48,21 @@ export function ProjectsPage() {
 
   const [tab, setTab] = useState<UserCenterProjectsTab>("active");
   const [viewMode, setViewMode] = useState<UserCenterProjectsViewMode>("card");
-  const [createOpen, setCreateOpen] = useState(autoOpenCreate);
-  const [createValues, setCreateValues] = useState<CreateProjectFormValues>(() => {
-    const initialSlugState = createNameSeedProjectSlugState("");
-    return {
-      workspaceId: currentWorkspaceId ?? "",
-      name: "",
-      slug: initialSlugState.value,
-      slugSource: initialSlugState.source,
-      description: "",
-    };
-  });
+  const openCreateProjectWithAI = useCallback(
+    (replace = false) => {
+      void navigate({
+        to: "/" as never,
+        search: { prompt: t("ai:AI_CHAT_CREATE_PROJECT_PROMPT") } as never,
+        replace,
+      });
+    },
+    [navigate, t],
+  );
 
   useEffect(() => {
     if (!autoOpenCreate) return;
-    setCreateOpen(true);
-  }, [autoOpenCreate]);
-
-  useEffect(() => {
-    setCreateValues((prev) => ({
-      ...prev,
-      workspaceId: prev.workspaceId || currentWorkspaceId || "",
-    }));
-  }, [currentWorkspaceId]);
+    openCreateProjectWithAI(true);
+  }, [autoOpenCreate, openCreateProjectWithAI]);
 
   const handleEnterProject = useCallback(
     (project: UserCenterProjectListItem) => {
@@ -94,8 +83,8 @@ export function ProjectsPage() {
   );
 
   const handleOpenCreate = useCallback(() => {
-    setCreateOpen(true);
-  }, []);
+    openCreateProjectWithAI();
+  }, [openCreateProjectWithAI]);
 
   const projectMenuActions = useProjectMenuActions({
     workspaceId: currentWorkspaceId ?? undefined,
@@ -268,31 +257,13 @@ export function ProjectsPage() {
         </div>
       </DefaultPage>
 
-      <UserCenterProjectsDialogs
+      {projectMenuActions.iconDialog ? (
+        <ProjectIconDialog t={projectT} dialog={projectMenuActions.iconDialog} />
+      ) : null}
+      <ProjectActionDialogs
         t={projectT}
-        createDialog={{
-          open: createOpen,
-          workspaceId: currentWorkspaceId ?? undefined,
-          setOpen: setCreateOpen,
-          values: createValues,
-          setValues: setCreateValues,
-          pending: projectMenuActions.mutations.createMutation.isPending,
-          onSubmit: async (values) => {
-            await projectMenuActions.mutations.createMutation.mutateAsync(values);
-            setCreateOpen(false);
-            const resetSlugState = createNameSeedProjectSlugState("");
-            setCreateValues({
-              workspaceId: currentWorkspaceId ?? "",
-              name: "",
-              slug: resetSlugState.value,
-              slugSource: resetSlugState.source,
-              description: "",
-            });
-          },
-        }}
         archiveDialog={projectMenuActions.archiveDialog}
         deleteDialog={projectMenuActions.deleteDialog}
-        iconDialog={projectMenuActions.iconDialog}
       />
     </ChromeTabs>
   );

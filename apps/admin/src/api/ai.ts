@@ -64,6 +64,7 @@ export interface AIWorkspaceActionNavigation {
 
 export interface AIWorkspaceActionProject {
   id: string;
+  workspaceId?: string | null;
   name: string;
   slug: string;
   description?: string | null;
@@ -872,7 +873,11 @@ export function shouldUseAIWorkspaceAction(message: string): boolean {
   const hasCreateIntent = /创建|新建|建立|生成|搭建|create|start|new project/i.test(text);
   if (hasContentModel && hasCreateIntent) return true;
   const hasProject = /项目|projects?/i.test(text);
-  if (!hasProject) return false;
+  const hasProjectArtifact =
+    /落地页|着陆页|官网|网站|站点|页面|应用|后台|仪表盘|landing page|homepage|website|site|web app|app|dashboard|portal/i.test(
+      text,
+    );
+  if (!hasProject && !hasProjectArtifact) return false;
   const hasListIntent = /查看|列出|搜索|查找|有哪些|列表|list|find|search|show/i.test(text);
   const hasOpenIntent = /打开|进入|跳转|open|go to/i.test(text) && /列表|projects?/i.test(text);
   return hasCreateIntent || hasListIntent || hasOpenIntent;
@@ -1785,6 +1790,7 @@ function shouldPersistConversationMessage(message: StoreAIChatMessage): boolean 
 function toWorkspaceActionProject(project: AIWorkspaceActionProject): AIWorkspaceActionProject {
   return {
     id: project.id,
+    ...(project.workspaceId ? { workspaceId: project.workspaceId } : {}),
     name: project.name,
     slug: project.slug,
     description: project.description ?? null,
