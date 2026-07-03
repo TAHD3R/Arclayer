@@ -4,6 +4,7 @@ import { memo, useCallback, useRef, useState, type FC, type PropsWithChildren } 
 import { ChevronDownIcon, LoaderIcon } from "lucide-react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { useScrollLock } from "@assistant-ui/react";
+import { useTranslation } from "react-i18next";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@arclayer/ui/collapsible";
 import { cn } from "@arclayer/lib/utils";
 
@@ -86,7 +87,10 @@ function ToolGroupTrigger({
   count: number;
   active?: boolean;
 }) {
-  const label = `${count} tool ${count === 1 ? "call" : "calls"}`;
+  const { t } = useTranslation(["ai", "common"]);
+  const label = active
+    ? t("ai:AI_CHAT_TOOL_CALLS_ACTIVE", { count })
+    : t("ai:AI_CHAT_TOOL_CALLS_TITLE", { count });
 
   return (
     <CollapsibleTrigger
@@ -115,12 +119,12 @@ function ToolGroupTrigger({
           "group-data-[variant=muted]/tool-group-root:grow",
         )}
       >
-        <span className="text-xs">{label}</span>
+        <span className="text-callout font-semibold">{label}</span>
         {active && (
           <span
             aria-hidden
             data-slot="tool-group-trigger-shimmer"
-            className="aui-tool-group-trigger-shimmer shimmer pointer-events-none absolute inset-0 text-xs motion-reduce:animate-none"
+            className="aui-tool-group-trigger-shimmer shimmer pointer-events-none absolute inset-0 text-callout font-semibold motion-reduce:animate-none"
           >
             {label}
           </span>

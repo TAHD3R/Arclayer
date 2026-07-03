@@ -48,6 +48,18 @@ def _tool_decision(
     )
 
 
+def _tool_calls_decision(
+    tool_calls: list[workspace_actions.WorkspaceAIPlannerToolCall],
+) -> workspace_actions.WorkspaceAIPlannerDecision:
+    return workspace_actions.WorkspaceAIPlannerDecision(
+        kind="tool_call",
+        confidence=0.94,
+        tool_call=tool_calls[0],
+        tool_calls=tool_calls,
+        user_visible_plan="准备执行多个工作区工具。",
+    )
+
+
 def test_project_create_request_uses_structured_planner_arguments() -> None:
     payload = workspace_actions._project_create_request(
         WorkspaceAIActionRequest(workspace_id=uuid4(), message="搭一个产品官网"),
@@ -92,7 +104,46 @@ def test_parse_planner_tool_decision_accepts_tool_call() -> None:
     assert decision.kind == "tool_call"
     assert decision.tool_call is not None
     assert decision.tool_call.tool_name == "open_projects"
+    assert len(decision.tool_calls) == 1
     assert decision.user_visible_plan == "打开项目列表。"
+
+
+def test_parse_planner_tool_decision_accepts_multiple_content_model_tool_calls() -> None:
+    decision = workspace_actions._parse_planner_tool_decision([
+        {
+            "type": "function",
+            "function": {
+                "name": "workspace_create_content_model",
+                "arguments": json.dumps(
+                    {
+                        "name": "新闻文章",
+                        "description": "管理品牌新闻和发布内容。",
+                        "user_visible_plan": "创建官网所需的内容模型。",
+                    },
+                    ensure_ascii=False,
+                ),
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "workspace_create_content_model",
+                "arguments": json.dumps(
+                    {
+                        "name": "案例展示",
+                        "description": "管理客户案例和项目成果。",
+                        "user_visible_plan": "创建官网所需的内容模型。",
+                    },
+                    ensure_ascii=False,
+                ),
+            },
+        },
+    ])
+
+    assert decision.kind == "tool_call"
+    assert decision.tool_call is not None
+    assert decision.tool_call.tool_name == "create_content_model"
+    assert [tool_call.arguments["name"] for tool_call in decision.tool_calls] == ["新闻文章", "案例展示"]
 
 
 def test_parse_planner_tool_decision_accepts_chat_route() -> None:
@@ -108,6 +159,31 @@ def test_parse_planner_tool_decision_accepts_chat_route() -> None:
 
     assert decision.kind == "chat"
     assert decision.tool_call is None
+
+
+def test_parse_planner_tool_decision_accepts_refine_plan() -> None:
+    decision = workspace_actions._parse_planner_tool_decision([
+        {
+            "type": "function",
+            "function": {
+                "name": "workspace_refine_plan",
+                "arguments": json.dumps(
+                    {
+                        "title": "企业官网细化方案",
+                        "summary": "继续拆解企业官网的页面结构、实施步骤和风险处理。",
+                        "steps": ["确认页面范围", "规划内容模块", "拆分上线检查"],
+                        "user_visible_plan": "细化上一步企业官网方案。",
+                    },
+                    ensure_ascii=False,
+                ),
+            },
+        }
+    ])
+
+    assert decision.kind == "tool_call"
+    assert decision.tool_call is not None
+    assert decision.tool_call.tool_name == "refine_plan"
+    assert decision.user_visible_plan == "细化上一步企业官网方案。"
 
 
 def test_parse_planner_tool_decision_rejects_missing_tool_call() -> None:
@@ -127,6 +203,7 @@ def test_planner_tool_provider_params_register_workspace_tools() -> None:
         "workspace_create_content_model",
         "workspace_list_projects",
         "workspace_open_projects",
+        "workspace_refine_plan",
         "workspace_route_chat",
         "workspace_request_clarification",
     }
@@ -154,6 +231,32 @@ def test_planner_messages_serializes_schema_mode_values() -> None:
 
     assert payload.mode == "plan"
     assert user_content["context"]["mode"] == "plan"
+
+
+def test_planner_messages_include_recent_conversation_context() -> None:
+    payload = WorkspaceAIActionRequest(
+        workspace_id=uuid4(),
+        message="再细化一下方案",
+        mode=AgentConversationMode.PLAN,
+        conversation_context=[
+            workspace_actions.WorkspaceAIActionContextMessage(
+                role="user",
+                content="帮我创建一个企业官网",
+            ),
+            workspace_actions.WorkspaceAIActionContextMessage(
+                role="assistant",
+                content="[Workspace action plan]\nGoal: 帮我创建一个企业官网",
+            ),
+        ],
+    )
+
+    messages = workspace_actions._planner_messages(payload)
+    user_content = json.loads(messages[1]["content"])
+
+    assert user_content["context"]["conversation_context"] == [
+        {"role": "user", "content": "帮我创建一个企业官网"},
+        {"role": "assistant", "content": "[Workspace action plan]\nGoal: 帮我创建一个企业官网"},
+    ]
 
 
 @pytest.mark.asyncio
@@ -297,6 +400,71 @@ async def test_execute_workspace_ai_action_plans_mutation_in_plan_mode(monkeypat
 
 
 @pytest.mark.asyncio
+async def test_execute_workspace_ai_action_keeps_clarification_out_of_plan_steps(monkeypatch) -> None:
+    _install_planner(
+        monkeypatch,
+        workspace_actions.WorkspaceAIPlannerDecision(
+            kind="clarification",
+            confidence=0.86,
+            missing_fields=["公司/品牌名称", "所属行业或业务方向"],
+            user_visible_plan="需要先明确官网的核心信息。",
+        ),
+    )
+
+    response = await execute_workspace_ai_action(
+        WorkspaceAIActionRequest(
+            workspace_id=uuid4(),
+            message="帮我创建一个官网",
+            mode=AgentConversationMode.PLAN,
+        ),
+        user_id=uuid4(),
+        settings=Settings(),
+    )
+
+    assert response.data is not None
+    assert response.data.kind == "clarification"
+    assert response.data.content == "需要先明确官网的核心信息。"
+    assert response.data.execution_steps == []
+
+
+@pytest.mark.asyncio
+async def test_execute_workspace_ai_action_refines_existing_plan(monkeypatch) -> None:
+    _install_planner(
+        monkeypatch,
+        _tool_decision(
+            "refine_plan",
+            {
+                "title": "企业官网细化方案",
+                "summary": "继续拆解企业官网的页面结构、实施步骤和风险处理。",
+                "steps": ["确认页面范围", "规划内容模块", "拆分上线检查"],
+            },
+        ),
+    )
+
+    response = await execute_workspace_ai_action(
+        WorkspaceAIActionRequest(
+            workspace_id=uuid4(),
+            message="再细化一下方案",
+            mode=AgentConversationMode.PLAN,
+        ),
+        user_id=uuid4(),
+        settings=Settings(),
+    )
+
+    assert response.data is not None
+    assert response.data.kind == "tool_call"
+    assert response.data.action == "refine_plan"
+    assert response.data.status == "planned"
+    assert response.data.content == "继续拆解企业官网的页面结构、实施步骤和风险处理。"
+    assert response.data.tool_calls[0].tool_name == "workspace.refine_plan"
+    assert [step.title for step in response.data.execution_steps[1:]] == [
+        "确认页面范围",
+        "规划内容模块",
+        "拆分上线检查",
+    ]
+
+
+@pytest.mark.asyncio
 async def test_execute_workspace_ai_action_requires_project_for_content_model(monkeypatch) -> None:
     workspace_id = uuid4()
     organization_id = uuid4()
@@ -403,6 +571,79 @@ async def test_execute_workspace_ai_action_creates_content_model_for_target_proj
     assert response.data.content_model.id == model_id
     assert response.data.navigation is not None
     assert response.data.navigation.path == f"/projects/{project_id}/content/models/edit?modelId={model_id}"
+
+
+@pytest.mark.asyncio
+async def test_execute_workspace_ai_action_creates_multiple_content_models(monkeypatch) -> None:
+    workspace_id = uuid4()
+    user_id = uuid4()
+    project_id = uuid4()
+    created_names: list[str] = []
+
+    async def fake_create_content_model(*, payload, user_id, settings, arguments):
+        created_names.append(arguments.name or "")
+        key = f"model{len(created_names)}"
+        return ContentModelMutationOut.model_construct(
+            id=uuid4(),
+            workspace_id=payload.workspace_id,
+            site_id=uuid4(),
+            singular_key=key,
+            plural_key=f"{key}s",
+            name=arguments.name,
+            description=arguments.description,
+            protocol_key=None,
+            protocol_version=1,
+            system_managed=False,
+            system_field_keys=[],
+            model_kind="collection_type",
+            draft_contract_revision=1,
+            published_contract_revision=None,
+            impact={},
+        )
+
+    monkeypatch.setattr(workspace_actions, "_create_content_model", fake_create_content_model)
+    _install_planner(
+        monkeypatch,
+        _tool_calls_decision([
+            workspace_actions.WorkspaceAIPlannerToolCall(
+                tool_name="create_content_model",
+                arguments={
+                    "name": "新闻文章",
+                    "description": "管理品牌新闻和发布内容。",
+                },
+            ),
+            workspace_actions.WorkspaceAIPlannerToolCall(
+                tool_name="create_content_model",
+                arguments={
+                    "name": "案例展示",
+                    "description": "管理客户案例和项目成果。",
+                },
+            ),
+        ]),
+    )
+
+    response = await execute_workspace_ai_action(
+        WorkspaceAIActionRequest(
+            workspace_id=workspace_id,
+            project_id=project_id,
+            message="帮我创建一批必要的内容模型吧",
+            mode=AgentConversationMode.BUILD,
+        ),
+        user_id=user_id,
+        settings=Settings(),
+    )
+
+    assert created_names == ["新闻文章", "案例展示"]
+    assert response.data is not None
+    assert response.data.action == "create_content_model"
+    assert response.data.content_model is not None
+    assert [model.name for model in response.data.content_models] == ["新闻文章", "案例展示"]
+    assert [tool_call.tool_name for tool_call in response.data.tool_calls] == [
+        "workspace.create_content_model",
+        "workspace.create_content_model",
+    ]
+    assert response.data.navigation is not None
+    assert response.data.navigation.path == f"/projects/{project_id}/content/models"
 
 
 @pytest.mark.asyncio

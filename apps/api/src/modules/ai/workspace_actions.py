@@ -34,7 +34,13 @@ from src.modules.tenancy.router_helpers import resolve_project_tenant_context
 from src.modules.workspaces.authz.http.service import ensure_workspace_permission_granted
 from src.modules.workspaces.http.service import require_workspace_manage_access, resolve_workspace_context_by_id
 
-WorkspaceAIActionKind = Literal["create_project", "create_content_model", "list_projects", "open_projects"]
+WorkspaceAIActionKind = Literal[
+    "create_project",
+    "create_content_model",
+    "list_projects",
+    "open_projects",
+    "refine_plan",
+]
 WorkspaceAIActionResolutionKind = Literal["tool_call", "chat", "clarification"]
 WorkspaceAIActionStatus = Literal["completed", "planned", "routed_to_chat", "needs_clarification"]
 WorkspaceAIActionStepStatus = Literal["planned", "running", "completed"]
@@ -52,12 +58,12 @@ _ACRONYM_IDENTIFIER_BOUNDARY = re.compile(r"([A-Z]+)([A-Z][a-z])")
 _CAMEL_IDENTIFIER_BOUNDARY = re.compile(r"([a-z0-9])([A-Z])")
 _IDENTIFIER_WORD_SEPARATOR = re.compile(r"[^A-Za-z0-9]+")
 _LEADING_NON_LETTERS = re.compile(r"^[^A-Za-z]+")
-_SUPPORTED_WORKSPACE_TOOLS = ("create_project", "create_content_model", "list_projects", "open_projects")
 _PLANNER_TOOL_TO_ACTION: dict[str, WorkspaceAIActionKind] = {
     "workspace_create_project": "create_project",
     "workspace_create_content_model": "create_content_model",
     "workspace_list_projects": "list_projects",
     "workspace_open_projects": "open_projects",
+    "workspace_refine_plan": "refine_plan",
 }
 
 
@@ -71,7 +77,11 @@ class WorkspaceAIPlannerDecision(BaseSchema):
     confidence: float = Field(default=0, ge=0, le=1, description="Planner confidence from 0 to 1.")
     tool_call: WorkspaceAIPlannerToolCall | None = Field(
         default=None,
-        description="Selected tool call when kind is tool_call.",
+        description="First selected tool call when kind is tool_call.",
+    )
+    tool_calls: list[WorkspaceAIPlannerToolCall] = Field(
+        default_factory=list,
+        description="Ordered workspace tool calls selected by the planner.",
     )
     missing_fields: list[str] = Field(default_factory=list, description="Required details missing from the request.")
     requires_confirmation: bool = Field(
@@ -113,6 +123,22 @@ class WorkspaceOpenProjectsArgs(BaseSchema):
     pass
 
 
+class WorkspaceRefinePlanArgs(BaseSchema):
+    title: str = Field(..., min_length=1, max_length=128, description="Product-ready refined plan title.")
+    summary: str = Field(..., min_length=1, max_length=1000, description="Refined plan summary.")
+    steps: list[str] = Field(
+        ...,
+        min_length=2,
+        max_length=8,
+        description="Concrete next execution steps inferred from the conversation.",
+    )
+
+
+class WorkspaceAIActionContextMessage(BaseSchema):
+    role: Literal["user", "assistant"] = Field(..., description="Conversation message role.")
+    content: str = Field(..., min_length=1, max_length=1600, description="Conversation context content.")
+
+
 class WorkspaceAIActionRequest(BaseSchema):
     workspace_id: PublicUUID = Field(..., description="Workspace that owns this AI action.")
     project_id: PublicUUID | None = Field(
@@ -123,6 +149,11 @@ class WorkspaceAIActionRequest(BaseSchema):
     mode: AgentConversationMode = Field(
         default=AgentConversationMode.BUILD,
         description="Composer mode that triggered this workspace action.",
+    )
+    conversation_context: list[WorkspaceAIActionContextMessage] = Field(
+        default_factory=list,
+        max_length=8,
+        description="Recent conversation context used for follow-up workspace action planning.",
     )
 
 
@@ -150,6 +181,10 @@ class WorkspaceAIActionResponse(BaseSchema):
     )
     project: ProjectListItemOut | None = Field(default=None, description="Created or primary project.")
     content_model: ContentModelMutationOut | None = Field(default=None, description="Created or primary content model.")
+    content_models: list[ContentModelMutationOut] = Field(
+        default_factory=list,
+        description="Created content models for batch workspace actions.",
+    )
     projects: list[ProjectListItemOut] = Field(default_factory=list, description="Project search results.")
     total: int | None = Field(default=None, ge=0, description="Total matched projects for list actions.")
     navigation: WorkspaceAIActionNavigation | None = Field(default=None, description="Recommended navigation.")
@@ -216,12 +251,29 @@ async def execute_workspace_ai_action(
     if decision.kind == "clarification":
         return ApiResponse.success(data=_clarification_response(decision))
 
-    if decision.tool_call is None:
+    tool_calls = _decision_tool_calls(decision)
+    if not tool_calls:
         raise BadRequest(
             "Workspace action planner did not provide a tool call",
             error="AI_WORKSPACE_ACTION_PLAN_INVALID",
         )
-    action = decision.tool_call.tool_name
+    if len(tool_calls) > 1:
+        return ApiResponse.success(
+            data=await _execute_workspace_ai_tool_calls(
+                payload=payload,
+                user_id=user_id,
+                settings=settings,
+                decision=decision,
+                tool_calls=tool_calls,
+            )
+        )
+
+    tool_call = tool_calls[0]
+    action = tool_call.tool_name
+
+    if action == "refine_plan":
+        args = _validate_tool_arguments(WorkspaceRefinePlanArgs, tool_call.arguments)
+        return ApiResponse.success(data=_refined_plan_response(payload.message, decision, args))
 
     if _conversation_mode_value(payload.mode) == AgentConversationMode.PLAN.value and _is_mutating_action(action):
         return ApiResponse.success(data=_planned_action_response(decision))
@@ -232,7 +284,7 @@ async def execute_workspace_ai_action(
 
     service = ProjectService(settings)
     if action == "create_project":
-        args = _validate_tool_arguments(WorkspaceCreateProjectArgs, decision.tool_call.arguments)
+        args = _validate_tool_arguments(WorkspaceCreateProjectArgs, tool_call.arguments)
         ctx = await require_workspace_manage_access(ctx)
         await ensure_workspace_permission_granted("system:content:manage", user_id=user_id, ctx=ctx)
         project = await service.create_project(
@@ -252,12 +304,12 @@ async def execute_workspace_ai_action(
             payload=payload,
             user_id=user_id,
             settings=settings,
-            arguments=_validate_tool_arguments(WorkspaceCreateContentModelArgs, decision.tool_call.arguments),
+            arguments=_validate_tool_arguments(WorkspaceCreateContentModelArgs, tool_call.arguments),
         )
         return ApiResponse.success(data=_created_content_model_response(content_model, payload, decision))
 
     if action == "list_projects":
-        args = _validate_tool_arguments(WorkspaceListProjectsArgs, decision.tool_call.arguments)
+        args = _validate_tool_arguments(WorkspaceListProjectsArgs, tool_call.arguments)
         page = await service.list_projects(
             workspace_id=ctx.workspace_id,
             actor_user_id=user_id,
@@ -268,8 +320,44 @@ async def execute_workspace_ai_action(
         )
         return ApiResponse.success(data=_project_list_response(page.items, page.total, payload.message, decision, args))
 
-    _validate_tool_arguments(WorkspaceOpenProjectsArgs, decision.tool_call.arguments)
+    _validate_tool_arguments(WorkspaceOpenProjectsArgs, tool_call.arguments)
     return ApiResponse.success(data=_open_projects_response(payload.message, decision))
+
+
+async def _execute_workspace_ai_tool_calls(
+    *,
+    payload: WorkspaceAIActionRequest,
+    user_id: UUID,
+    settings: Settings,
+    decision: WorkspaceAIPlannerDecision,
+    tool_calls: list[WorkspaceAIPlannerToolCall],
+) -> WorkspaceAIActionResponse:
+    if _conversation_mode_value(payload.mode) == AgentConversationMode.PLAN.value and any(
+        _is_mutating_action(tool_call.tool_name) for tool_call in tool_calls
+    ):
+        return _planned_action_response(decision)
+
+    if all(tool_call.tool_name == "create_content_model" for tool_call in tool_calls):
+        if payload.project_id is None:
+            raise BadRequest(
+                "A target project is required to create content models",
+                error="AI_WORKSPACE_ACTION_PROJECT_REQUIRED",
+            )
+        content_models = [
+            await _create_content_model(
+                payload=payload,
+                user_id=user_id,
+                settings=settings,
+                arguments=_validate_tool_arguments(WorkspaceCreateContentModelArgs, tool_call.arguments),
+            )
+            for tool_call in tool_calls
+        ]
+        return _created_content_models_response(content_models, payload, decision, tool_calls)
+
+    raise BadRequest(
+        "Workspace action planner produced multiple tool calls for an unsupported action group",
+        error="AI_WORKSPACE_ACTION_PLAN_INVALID",
+    )
 
 
 def _validate_tool_arguments[T: BaseSchema](schema: type[T], arguments: JsonObject) -> T:
@@ -285,6 +373,23 @@ def _validate_tool_arguments[T: BaseSchema](schema: type[T], arguments: JsonObje
 
 def _is_mutating_action(action: WorkspaceAIActionKind) -> bool:
     return action in {"create_project", "create_content_model"}
+
+
+def _workspace_tool_label(action: WorkspaceAIActionKind) -> str:
+    labels: dict[WorkspaceAIActionKind, str] = {
+        "create_project": "项目创建",
+        "create_content_model": "内容模型创建",
+        "list_projects": "项目检索",
+        "open_projects": "项目列表导航",
+        "refine_plan": "方案细化",
+    }
+    return labels[action]
+
+
+def _decision_tool_calls(decision: WorkspaceAIPlannerDecision) -> list[WorkspaceAIPlannerToolCall]:
+    if decision.tool_calls:
+        return decision.tool_calls
+    return [decision.tool_call] if decision.tool_call is not None else []
 
 
 def _conversation_mode_value(mode: AgentConversationMode | str) -> str:
@@ -492,10 +597,50 @@ def _created_content_model_response(
             )
         ],
         content_model=content_model,
+        content_models=[content_model],
         navigation=WorkspaceAIActionNavigation(
             label=label,
             path=f"/projects/{payload.project_id}/content/models/edit?modelId={content_model.id}",
         ),
+    )
+
+
+def _created_content_models_response(
+    content_models: list[ContentModelMutationOut],
+    payload: WorkspaceAIActionRequest,
+    decision: WorkspaceAIPlannerDecision,
+    tool_calls: list[WorkspaceAIPlannerToolCall],
+) -> WorkspaceAIActionResponse:
+    if not content_models:
+        raise BadRequest(
+            "Workspace action planner did not create any content models",
+            error="AI_WORKSPACE_ACTION_PLAN_INVALID",
+        )
+
+    names = "、".join(content_model.name for content_model in content_models[:5])
+    if _is_chinese(payload.message):
+        content = f"已在目标项目中创建 {len(content_models)} 个内容模型：{names}。你可以进入内容模型继续配置字段、关系和工作流。"
+        label = "查看内容模型"
+    else:
+        content = f"Created {len(content_models)} content models in the target project: {names}."
+        label = "View content models"
+    return WorkspaceAIActionResponse(
+        kind="tool_call",
+        action="create_content_model",
+        content=content,
+        plan=decision.user_visible_plan,
+        execution_steps=_completed_steps_for_tool_calls(tool_calls, "创建内容模型并生成访问入口"),
+        tool_calls=[
+            WorkspaceAIActionToolCallOut(
+                tool_name=f"workspace.{tool_call.tool_name}",
+                status="completed",
+                arguments=tool_call.arguments,
+            )
+            for tool_call in tool_calls
+        ],
+        content_model=content_models[0],
+        content_models=content_models,
+        navigation=WorkspaceAIActionNavigation(label=label, path=f"/projects/{payload.project_id}/content/models"),
     )
 
 
@@ -529,6 +674,44 @@ def _project_list_response(
         projects=items,
         total=total,
         navigation=WorkspaceAIActionNavigation(label=label, path="/projects"),
+    )
+
+
+def _refined_plan_response(
+    message: str,
+    decision: WorkspaceAIPlannerDecision,
+    arguments: WorkspaceRefinePlanArgs,
+) -> WorkspaceAIActionResponse:
+    return WorkspaceAIActionResponse(
+        kind="tool_call",
+        action="refine_plan",
+        status="planned",
+        content=arguments.summary,
+        plan=arguments.summary,
+        execution_steps=[
+            WorkspaceAIActionExecutionStep(
+                id="planner",
+                title="读取上下文并细化执行方案",
+                status="completed",
+                detail=decision.user_visible_plan or None,
+            ),
+            *[
+                WorkspaceAIActionExecutionStep(
+                    id=f"refine.{index + 1}",
+                    title=step,
+                    status="planned",
+                    tool_name="workspace.refine_plan",
+                )
+                for index, step in enumerate(arguments.steps)
+            ],
+        ],
+        tool_calls=[
+            WorkspaceAIActionToolCallOut(
+                tool_name="workspace.refine_plan",
+                status="completed",
+                arguments=cast(JsonObject, arguments.model_dump(mode="json")),
+            )
+        ],
     )
 
 
@@ -581,26 +764,20 @@ def _clarification_response(decision: WorkspaceAIPlannerDecision) -> WorkspaceAI
         status="needs_clarification",
         content=content,
         plan=content,
-        execution_steps=[
-            WorkspaceAIActionExecutionStep(
-                id="clarify",
-                title=content,
-                status="completed",
-                detail=", ".join(decision.missing_fields) or None,
-            )
-        ],
+        execution_steps=[],
     )
 
 
 def _planned_action_response(decision: WorkspaceAIPlannerDecision) -> WorkspaceAIActionResponse:
-    if decision.tool_call is None:
+    tool_calls = _decision_tool_calls(decision)
+    if not tool_calls:
         raise BadRequest(
             "Workspace action planner did not provide a tool call",
             error="AI_WORKSPACE_ACTION_PLAN_INVALID",
         )
     return WorkspaceAIActionResponse(
         kind="tool_call",
-        action=decision.tool_call.tool_name,
+        action=tool_calls[0].tool_name,
         status="planned",
         content=decision.user_visible_plan or "我已整理好执行方案。规划模式不会修改工作区。",
         plan=decision.user_visible_plan,
@@ -611,19 +788,23 @@ def _planned_action_response(decision: WorkspaceAIPlannerDecision) -> WorkspaceA
                 status="completed",
                 detail=decision.user_visible_plan or None,
             ),
-            WorkspaceAIActionExecutionStep(
-                id=f"tool.{decision.tool_call.tool_name}",
-                title=f"准备调用 workspace.{decision.tool_call.tool_name}",
-                status="planned",
-                tool_name=f"workspace.{decision.tool_call.tool_name}",
-            ),
+            *[
+                WorkspaceAIActionExecutionStep(
+                    id=f"tool.{index + 1}.{tool_call.tool_name}",
+                    title=f"准备执行{_workspace_tool_label(tool_call.tool_name)}",
+                    status="planned",
+                    tool_name=f"workspace.{tool_call.tool_name}",
+                )
+                for index, tool_call in enumerate(tool_calls)
+            ],
         ],
         tool_calls=[
             WorkspaceAIActionToolCallOut(
-                tool_name=f"workspace.{decision.tool_call.tool_name}",
+                tool_name=f"workspace.{tool_call.tool_name}",
                 status="planned",
-                arguments=decision.tool_call.arguments,
+                arguments=tool_call.arguments,
             )
+            for tool_call in tool_calls
         ],
     )
 
@@ -632,6 +813,7 @@ def _completed_steps(
     decision: WorkspaceAIPlannerDecision, final_step_title: str
 ) -> list[WorkspaceAIActionExecutionStep]:
     tool_name = f"workspace.{decision.tool_call.tool_name}" if decision.tool_call else None
+    tool_label = _workspace_tool_label(decision.tool_call.tool_name) if decision.tool_call else "工作区工具"
     return [
         WorkspaceAIActionExecutionStep(
             id="planner",
@@ -641,10 +823,37 @@ def _completed_steps(
         ),
         WorkspaceAIActionExecutionStep(
             id="tool-call",
-            title=f"调用 {tool_name}",
+            title=f"执行{tool_label}",
             status="completed",
             tool_name=tool_name,
         ),
+        WorkspaceAIActionExecutionStep(
+            id="result",
+            title=final_step_title,
+            status="completed",
+        ),
+    ]
+
+
+def _completed_steps_for_tool_calls(
+    tool_calls: list[WorkspaceAIPlannerToolCall],
+    final_step_title: str,
+) -> list[WorkspaceAIActionExecutionStep]:
+    return [
+        WorkspaceAIActionExecutionStep(
+            id="planner",
+            title="理解指令并选择工作区工具",
+            status="completed",
+        ),
+        *[
+            WorkspaceAIActionExecutionStep(
+                id=f"tool-call.{index + 1}",
+                title=f"执行{_workspace_tool_label(tool_call.tool_name)}",
+                status="completed",
+                tool_name=f"workspace.{tool_call.tool_name}",
+            )
+            for index, tool_call in enumerate(tool_calls)
+        ],
         WorkspaceAIActionExecutionStep(
             id="result",
             title=final_step_title,
@@ -687,6 +896,16 @@ def _planner_messages(payload: WorkspaceAIActionRequest) -> list[dict[str, str]]
             "arguments": {"user_visible_plan": "Concise plan shown to the user."},
         },
         {
+            "name": "workspace_refine_plan",
+            "description": "Refine the prior workspace plan using conversation context. Use this for follow-up requests such as expanding, detailing, adjusting, or breaking down an existing plan.",
+            "arguments": {
+                "title": "Product-ready refined plan title.",
+                "summary": "Concise refined plan summary in the user's language.",
+                "steps": "Concrete next execution steps.",
+                "user_visible_plan": "Concise plan shown to the user.",
+            },
+        },
+        {
             "name": "workspace_route_chat",
             "description": "Use this when the user message should continue as normal assistant chat instead of a workspace action.",
             "arguments": {"user_visible_plan": "Short routing reason shown internally."},
@@ -702,16 +921,21 @@ def _planner_messages(payload: WorkspaceAIActionRequest) -> list[dict[str, str]]
     ]
     system = (
         "You are Arclayer's workspace action planner. Decide whether the latest user message should call a "
-        "workspace tool, continue as normal chat, or ask a clarification question. You must select exactly one "
-        "provided tool. Produce product-ready Chinese copy when the user writes Chinese, and product-ready English "
+        "workspace tool, continue as normal chat, or ask a clarification question. You must select at least one "
+        "provided tool. Use exactly one control tool for normal chat routing or clarification. For batch content "
+        "model requests, call workspace_create_content_model once per model in the intended execution order. "
+        "Produce product-ready Chinese copy when the user writes Chinese, and product-ready English "
         "copy when the user writes English. For mutating workspace tools, fill arguments completely from the user's "
         "intent and the available context. If a required argument cannot be inferred, call "
-        "workspace_request_clarification instead of guessing."
+        "workspace_request_clarification instead of guessing. For follow-up requests that refer to the prior plan "
+        "or result, use conversation_context to continue the workspace action instead of treating the message as a "
+        "standalone generic chat."
     )
     context = {
         "workspace_id": str(payload.workspace_id),
         "project_id": str(payload.project_id) if payload.project_id else None,
         "mode": _conversation_mode_value(payload.mode),
+        "conversation_context": [item.model_dump(mode="json") for item in payload.conversation_context[-8:]],
         "tools": tool_catalog,
     }
     return [
@@ -762,6 +986,24 @@ def _planner_tool_provider_params() -> dict[str, Any]:
                     "user_visible_plan": {"type": "string", "description": "Concise plan shown to the user."},
                 },
                 required=["user_visible_plan"],
+            ),
+            _planner_function_tool(
+                name="workspace_refine_plan",
+                description="Refine the previous workspace plan using conversation context.",
+                properties={
+                    "title": {"type": "string", "description": "Product-ready refined plan title."},
+                    "summary": {
+                        "type": "string",
+                        "description": "Concise refined plan summary in the user's language.",
+                    },
+                    "steps": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Concrete next execution steps.",
+                    },
+                    "user_visible_plan": {"type": "string", "description": "Concise plan shown to the user."},
+                },
+                required=["title", "summary", "steps", "user_visible_plan"],
             ),
             _planner_function_tool(
                 name="workspace_route_chat",
@@ -818,16 +1060,21 @@ def _planner_function_tool(
 
 
 def _parse_planner_tool_decision(tool_calls: list[dict[str, Any]]) -> WorkspaceAIPlannerDecision:
-    if len(tool_calls) != 1:
+    if not tool_calls:
         raise BadRequest(
-            "Workspace action planner must return exactly one tool call",
+            "Workspace action planner must return at least one tool call",
             error="AI_WORKSPACE_ACTION_PLAN_INVALID",
         )
 
-    tool_name, raw_arguments = _planner_tool_call_payload(tool_calls[0])
-    user_visible_plan = _take_string(raw_arguments, "user_visible_plan") or "已整理工作区操作计划。"
+    first_tool_name, first_arguments = _planner_tool_call_payload(tool_calls[0])
+    user_visible_plan = _take_string(first_arguments, "user_visible_plan") or "已整理工作区操作计划。"
 
-    if tool_name == "workspace_route_chat":
+    if first_tool_name == "workspace_route_chat":
+        if len(tool_calls) != 1:
+            raise BadRequest(
+                "Workspace action planner cannot combine chat routing with workspace tools",
+                error="AI_WORKSPACE_ACTION_PLAN_INVALID",
+            )
         return WorkspaceAIPlannerDecision(
             kind="chat",
             confidence=1,
@@ -835,8 +1082,13 @@ def _parse_planner_tool_decision(tool_calls: list[dict[str, Any]]) -> WorkspaceA
             user_visible_plan=user_visible_plan,
         )
 
-    if tool_name == "workspace_request_clarification":
-        raw_missing_fields = raw_arguments.get("missing_fields", [])
+    if first_tool_name == "workspace_request_clarification":
+        if len(tool_calls) != 1:
+            raise BadRequest(
+                "Workspace action planner cannot combine clarification with workspace tools",
+                error="AI_WORKSPACE_ACTION_PLAN_INVALID",
+            )
+        raw_missing_fields = first_arguments.get("missing_fields", [])
         missing_fields = [item for item in raw_missing_fields if isinstance(item, str)]
         return WorkspaceAIPlannerDecision(
             kind="clarification",
@@ -846,6 +1098,19 @@ def _parse_planner_tool_decision(tool_calls: list[dict[str, Any]]) -> WorkspaceA
             user_visible_plan=user_visible_plan,
         )
 
+    parsed_calls = [_parse_planner_tool_call(tool_call) for tool_call in tool_calls]
+    first_call = parsed_calls[0]
+    return WorkspaceAIPlannerDecision(
+        kind="tool_call",
+        confidence=1,
+        tool_call=first_call,
+        tool_calls=parsed_calls,
+        user_visible_plan=user_visible_plan,
+    )
+
+
+def _parse_planner_tool_call(tool_call: dict[str, Any]) -> WorkspaceAIPlannerToolCall:
+    tool_name, raw_arguments = _planner_tool_call_payload(tool_call)
     action = _PLANNER_TOOL_TO_ACTION.get(tool_name)
     if action is None:
         raise BadRequest(
@@ -853,14 +1118,9 @@ def _parse_planner_tool_decision(tool_calls: list[dict[str, Any]]) -> WorkspaceA
             error="AI_WORKSPACE_ACTION_PLAN_INVALID",
         )
 
-    return WorkspaceAIPlannerDecision(
-        kind="tool_call",
-        confidence=1,
-        tool_call=WorkspaceAIPlannerToolCall(
-            tool_name=action,
-            arguments=cast(JsonObject, raw_arguments),
-        ),
-        user_visible_plan=user_visible_plan,
+    return WorkspaceAIPlannerToolCall(
+        tool_name=action,
+        arguments=cast(JsonObject, raw_arguments),
     )
 
 

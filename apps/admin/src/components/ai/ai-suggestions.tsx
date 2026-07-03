@@ -5,6 +5,12 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@arclayer/ui/button";
 import { cn } from "@arclayer/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
+import {
+  useAiChatStore,
+  type AIAgentMessageArtifact,
+  type AIWorkspaceActionArtifact,
+} from "@/stores/use-ai-chat-store";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 type AISuggestion = {
   id: string;
@@ -44,6 +50,18 @@ export const AI_CHAT_SUGGESTIONS = [
     promptKey: "AI_CHAT_SUGGESTION_IMPROVE_FLOW_PROMPT",
     descriptionKey: "AI_CHAT_SUGGESTION_IMPROVE_FLOW_DESC",
   },
+  {
+    id: "refine-plan",
+    titleKey: "AI_CHAT_SUGGESTION_REFINE_PLAN",
+    promptKey: "AI_CHAT_SUGGESTION_REFINE_PLAN_PROMPT",
+    descriptionKey: "AI_CHAT_SUGGESTION_REFINE_PLAN_DESC",
+  },
+  {
+    id: "plan-next-step",
+    titleKey: "AI_CHAT_SUGGESTION_PLAN_NEXT_STEP",
+    promptKey: "AI_CHAT_SUGGESTION_PLAN_NEXT_STEP_PROMPT",
+    descriptionKey: "AI_CHAT_SUGGESTION_PLAN_NEXT_STEP_DESC",
+  },
 ] satisfies readonly AISuggestion[];
 
 const CONTENT_SUGGESTIONS = [
@@ -51,40 +69,46 @@ const CONTENT_SUGGESTIONS = [
   "plan-content-model",
   "prepare-launch-checklist",
 ];
-const SYSTEM_AI_SUGGESTIONS = [
-  "review-current-page",
-  "improve-page-flow",
-  "prepare-launch-checklist",
-];
-const GENERAL_SUGGESTIONS = [
-  "review-current-page",
-  "plan-content-model",
-  "prepare-launch-checklist",
-];
 
-function selectSuggestions(latestUserText: string): readonly AISuggestion[] {
-  const normalized = latestUserText.toLocaleLowerCase();
-  if (/模型|schema|model/.test(normalized)) {
-    return bySuggestionIds(["plan-content-model", "improve-page-flow", "prepare-launch-checklist"]);
+type AISuggestionSource = "thread" | "message";
+
+type AISuggestionsProps = {
+  className?: string;
+  source?: AISuggestionSource;
+  agentArtifact?: AIAgentMessageArtifact | null;
+  workspaceAction?: AIWorkspaceActionArtifact | null;
+};
+
+function selectSuggestions(input: {
+  source: AISuggestionSource;
+  agentArtifact?: AIAgentMessageArtifact | null;
+  workspaceAction?: AIWorkspaceActionArtifact | null;
+  currentProjectId?: string | null;
+  pathname?: string;
+}): readonly AISuggestion[] {
+  const artifactSuggestions = suggestionIdsForArtifacts(input.agentArtifact, input.workspaceAction);
+  if (artifactSuggestions.length > 0) return bySuggestionIds(artifactSuggestions);
+  if (input.source === "message") return [];
+  if (!input.currentProjectId || !input.pathname?.startsWith("/projects/")) return [];
+  if (input.pathname.includes("/content")) return bySuggestionIds(CONTENT_SUGGESTIONS);
+  return bySuggestionIds(["review-current-page", "plan-content-model", "prepare-launch-checklist"]);
+}
+
+function suggestionIdsForArtifacts(
+  agentArtifact?: AIAgentMessageArtifact | null,
+  workspaceAction?: AIWorkspaceActionArtifact | null,
+): readonly string[] {
+  if (agentArtifact?.type === "agent_execution_plan") {
+    if (agentArtifact.status === "planned") return ["refine-plan", "plan-next-step"];
+    return ["plan-next-step"];
   }
-  if (/发布|上线|launch|seo|风险/.test(normalized)) {
-    return bySuggestionIds([
-      "prepare-launch-checklist",
-      "check-content-quality",
-      "review-current-page",
-    ]);
+  if (workspaceAction?.type === "workspace_project_created") {
+    return ["plan-content-model", "prepare-launch-checklist"];
   }
-  if (/内容|文案|entry|content/.test(normalized)) {
-    return bySuggestionIds(["check-content-quality", "plan-content-model", "review-current-page"]);
+  if (workspaceAction?.type === "workspace_content_model_created") {
+    return ["prepare-launch-checklist", "check-content-quality"];
   }
-  if (typeof window === "undefined") return AI_CHAT_SUGGESTIONS.slice(0, 3);
-  const pathname = window.location.pathname;
-  const ids = pathname.includes("/content")
-    ? CONTENT_SUGGESTIONS
-    : pathname.startsWith("/system/settings/agents")
-      ? SYSTEM_AI_SUGGESTIONS
-      : GENERAL_SUGGESTIONS;
-  return bySuggestionIds(ids);
+  return [];
 }
 
 function bySuggestionIds(ids: readonly string[]): readonly AISuggestion[] {
@@ -93,20 +117,28 @@ function bySuggestionIds(ids: readonly string[]): readonly AISuggestion[] {
     .filter((suggestion): suggestion is AISuggestion => Boolean(suggestion));
 }
 
-export function AISuggestions(props: { className?: string }) {
+export function AISuggestions(props: AISuggestionsProps) {
   const { t } = useTranslation(["ai"]);
   const aui = useAui();
   const disabled = useAuiState((s) => s.thread.isDisabled);
   const running = useAuiState((s) => s.thread.isRunning);
-  const latestUserText = useAuiState((s) => {
-    const messages = Array.isArray(s.thread.messages) ? s.thread.messages : [];
-    const latestUser = [...messages].reverse().find((message) => message.role === "user");
-    const content = latestUser?.content;
-    if (typeof content === "string") return content;
-    if (!Array.isArray(content)) return "";
-    return content.map((part) => (part.type === "text" ? part.text : "")).join("");
+  const currentProjectId = useWorkspaceStore((s) => s.currentProjectId);
+  const activeConversation = useAiChatStore((s) =>
+    s.conversations.find((conversation) => conversation.id === s.activeId),
+  );
+  const latestAssistant = [...(activeConversation?.messages ?? [])]
+    .reverse()
+    .find((message) => message.role === "assistant");
+  const source = props.source ?? "thread";
+  const suggestions = selectSuggestions({
+    source,
+    agentArtifact:
+      props.agentArtifact ?? (source === "thread" ? latestAssistant?.agentArtifact : null),
+    workspaceAction:
+      props.workspaceAction ?? (source === "thread" ? latestAssistant?.workspaceAction : null),
+    currentProjectId,
+    pathname: typeof window === "undefined" ? "" : window.location.pathname,
   });
-  const suggestions = selectSuggestions(latestUserText ?? "");
   const submitSuggestion = useCallback(
     (prompt: string) => {
       if (disabled) return;
@@ -122,6 +154,8 @@ export function AISuggestions(props: { className?: string }) {
     },
     [aui, disabled],
   );
+
+  if (suggestions.length === 0) return null;
 
   return (
     <div className={props.className} data-testid="ai-suggestions">

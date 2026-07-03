@@ -385,7 +385,7 @@ describe("AIChatRuntimeProvider", () => {
         { id: "planner", title: "理解指令并选择工作区工具", status: "completed" },
         {
           id: "tool-call",
-          title: "调用 workspace.create_project",
+          title: "执行项目创建",
           status: "completed",
           toolName: "workspace.create_project",
         },
@@ -403,6 +403,7 @@ describe("AIChatRuntimeProvider", () => {
         slug: "project",
         description: null,
       },
+      contentModels: [],
       projects: [],
       total: null,
       navigation: { label: "进入项目", path: "/projects/project-created" },
@@ -420,6 +421,9 @@ describe("AIChatRuntimeProvider", () => {
     expect(executeAIWorkspaceAction).toHaveBeenCalledWith("帮我创建一个随机项目", {
       signal: expect.any(AbortSignal),
       projectId: "project-1",
+      conversationContext: expect.arrayContaining([
+        expect.objectContaining({ role: "user", content: "first prompt" }),
+      ]),
     });
     expect(chatStream).not.toHaveBeenCalled();
     expect(sendAIAgentMessage).not.toHaveBeenCalled();
@@ -435,6 +439,39 @@ describe("AIChatRuntimeProvider", () => {
         },
       },
     });
+  });
+
+  it("keeps workspace clarification copy as assistant text instead of a plan artifact", async () => {
+    useAiChatStore.setState({ composerMode: "plan" });
+    vi.mocked(executeAIWorkspaceAction).mockResolvedValueOnce({
+      kind: "clarification",
+      action: null,
+      status: "needs_clarification",
+      content: "需要先明确官网的核心信息。",
+      plan: "需要先明确官网的核心信息。",
+      executionSteps: [],
+      toolCalls: [],
+      contentModels: [],
+      projects: [],
+      total: null,
+    });
+    render(
+      <AIChatRuntimeProvider conversationId="conversation-1">
+        <div />
+      </AIChatRuntimeProvider>,
+    );
+
+    await act(async () => {
+      await assistantUiMockState.runtimeStore?.onNew?.(appendTextMessage("帮我创建一个官网"));
+    });
+
+    const lastMessage = useAiChatStore.getState().conversations[0]?.messages.at(-1);
+    expect(lastMessage).toMatchObject({
+      role: "assistant",
+      content: "需要先明确官网的核心信息。",
+    });
+    expect(lastMessage?.agentArtifact).toBeUndefined();
+    expect(lastMessage?.workspaceAction).toBeUndefined();
   });
 
   it("does not start an agent run for empty runtime messages", async () => {
@@ -508,7 +545,7 @@ describe("AIChatRuntimeProvider", () => {
         },
         {
           id: "tool.create_project",
-          title: "准备调用 workspace.create_project",
+          title: "准备执行项目创建",
           status: "planned",
           toolName: "workspace.create_project",
         },
@@ -520,6 +557,7 @@ describe("AIChatRuntimeProvider", () => {
           arguments: { name: "发布项目" },
         },
       ],
+      contentModels: [],
       projects: [],
       total: null,
     });

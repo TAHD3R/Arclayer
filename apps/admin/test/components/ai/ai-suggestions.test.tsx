@@ -11,6 +11,21 @@ const assistantUiMock = vi.hoisted(() => ({
   threadState: { isDisabled: false, isRunning: false },
 }));
 
+const storeMock = vi.hoisted(() => ({
+  aiState: {
+    activeId: "conversation-1",
+    conversations: [
+      {
+        id: "conversation-1",
+        messages: [],
+      },
+    ],
+  },
+  workspaceState: {
+    currentProjectId: null as string | null,
+  },
+}));
+
 vi.mock("@assistant-ui/react", () => ({
   useAui: () => ({
     thread: () => ({
@@ -27,6 +42,16 @@ vi.mock("@assistant-ui/react", () => ({
       thread: { isDisabled: boolean; isRunning: boolean; messages: unknown[] };
     }) => unknown,
   ) => selector({ thread: { ...assistantUiMock.threadState, messages: [] } }),
+}));
+
+vi.mock("@/stores/use-ai-chat-store", () => ({
+  useAiChatStore: (selector: (state: typeof storeMock.aiState) => unknown) =>
+    selector(storeMock.aiState),
+}));
+
+vi.mock("@/stores/use-workspace-store", () => ({
+  useWorkspaceStore: (selector: (state: typeof storeMock.workspaceState) => unknown) =>
+    selector(storeMock.workspaceState),
 }));
 
 vi.mock("lucide-react", () => ({
@@ -77,6 +102,14 @@ vi.mock("react-i18next", () => ({
         "ai:AI_CHAT_SUGGESTION_IMPROVE_FLOW_PROMPT":
           "请审视当前页面的信息结构和操作流，指出可以提升效率、可读性和操作确定性的改进点。",
         "ai:AI_CHAT_SUGGESTION_IMPROVE_FLOW_DESC": "从当前页面出发，找出更高效的操作路径。",
+        "ai:AI_CHAT_SUGGESTION_REFINE_PLAN": "细化执行方案",
+        "ai:AI_CHAT_SUGGESTION_REFINE_PLAN_PROMPT":
+          "请基于上一步方案，继续细化目标、页面结构、内容模块、实施步骤和风险处理。",
+        "ai:AI_CHAT_SUGGESTION_REFINE_PLAN_DESC": "在已有计划上继续拆解可执行细节。",
+        "ai:AI_CHAT_SUGGESTION_PLAN_NEXT_STEP": "规划下一步",
+        "ai:AI_CHAT_SUGGESTION_PLAN_NEXT_STEP_PROMPT":
+          "请结合刚才的结果和当前项目上下文，推荐下一步最值得执行的动作，并说明原因。",
+        "ai:AI_CHAT_SUGGESTION_PLAN_NEXT_STEP_DESC": "基于当前结果推荐后续动作。",
       };
       return labels[key] ?? key;
     },
@@ -87,16 +120,24 @@ describe("AISuggestions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     assistantUiMock.threadState = { isDisabled: false, isRunning: false };
+    storeMock.workspaceState.currentProjectId = null;
+    storeMock.aiState.conversations = [{ id: "conversation-1", messages: [] }];
+    window.history.pushState({}, "", "/");
   });
 
-  it("renders the shared quick action suggestions", () => {
+  it("does not render generic suggestions without actionable context", () => {
     render(<AISuggestions />);
 
-    for (const suggestion of AI_CHAT_SUGGESTIONS) {
-      expect(
-        screen.queryByRole("button", { name: new RegExp(suggestion.titleKey) }),
-      ).not.toBeInTheDocument();
-    }
+    expect(screen.queryByTestId("ai-suggestions")).not.toBeInTheDocument();
+    expect(AI_CHAT_SUGGESTIONS.length).toBeGreaterThan(0);
+  });
+
+  it("renders project-aware suggestions on project pages", () => {
+    storeMock.workspaceState.currentProjectId = "project-1";
+    window.history.pushState({}, "", "/projects/project-1");
+
+    render(<AISuggestions />);
+
     expect(screen.getByRole("button", { name: "梳理当前页面" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "规划内容模型" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "生成发布清单" })).toBeInTheDocument();
@@ -105,6 +146,8 @@ describe("AISuggestions", () => {
   });
 
   it("sends the selected prompt through the assistant runtime", () => {
+    storeMock.workspaceState.currentProjectId = "project-1";
+    window.history.pushState({}, "", "/projects/project-1");
     render(<AISuggestions />);
 
     fireEvent.click(screen.getByRole("button", { name: "规划内容模型" }));
@@ -123,6 +166,8 @@ describe("AISuggestions", () => {
 
   it("fills the composer instead of appending while the thread is running", () => {
     assistantUiMock.threadState = { isDisabled: false, isRunning: true };
+    storeMock.workspaceState.currentProjectId = "project-1";
+    window.history.pushState({}, "", "/projects/project-1");
     render(<AISuggestions />);
 
     fireEvent.click(screen.getByRole("button", { name: "生成发布清单" }));
@@ -131,5 +176,23 @@ describe("AISuggestions", () => {
     expect(assistantUiMock.setText).toHaveBeenCalledWith(
       "请为当前项目生成发布前检查清单，覆盖内容、资源、SEO、权限和回滚准备。",
     );
+  });
+
+  it("renders message-level next steps from a planned workspace artifact", () => {
+    render(
+      <AISuggestions
+        source="message"
+        agentArtifact={{
+          type: "agent_execution_plan",
+          goal: "帮我创建一个企业官网",
+          status: "planned",
+          steps: [],
+          source: "workspace_action:planned_mutation",
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "细化执行方案" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "规划下一步" })).toBeInTheDocument();
   });
 });

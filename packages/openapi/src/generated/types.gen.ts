@@ -19489,6 +19489,24 @@ export type WebhookSubscriptionOut = {
 };
 
 /**
+ * WorkspaceAIActionContextMessage
+ */
+export type WorkspaceAiActionContextMessage = {
+    /**
+     * Content
+     *
+     * Conversation context content.
+     */
+    content: string;
+    /**
+     * Role
+     *
+     * Conversation message role.
+     */
+    role: 'user' | 'assistant';
+};
+
+/**
  * WorkspaceAIActionExecutionStep
  */
 export type WorkspaceAiActionExecutionStep = {
@@ -19547,6 +19565,12 @@ export type WorkspaceAiActionNavigation = {
  */
 export type WorkspaceAiActionRequest = {
     /**
+     * Conversationcontext
+     *
+     * Recent conversation context used for follow-up workspace action planning.
+     */
+    conversationContext?: Array<WorkspaceAiActionContextMessage>;
+    /**
      * Message
      *
      * Latest user instruction.
@@ -19579,7 +19603,7 @@ export type WorkspaceAiActionResponse = {
      *
      * Resolved workspace AI action.
      */
-    action?: 'create_project' | 'create_content_model' | 'list_projects' | 'open_projects' | null;
+    action?: 'create_project' | 'create_content_model' | 'list_projects' | 'open_projects' | 'refine_plan' | null;
     /**
      * Content
      *
@@ -19590,6 +19614,12 @@ export type WorkspaceAiActionResponse = {
      * Created or primary content model.
      */
     contentModel?: ContentModelMutationOut | null;
+    /**
+     * Contentmodels
+     *
+     * Created content models for batch workspace actions.
+     */
+    contentModels?: Array<ContentModelMutationOut>;
     /**
      * Executionsteps
      *

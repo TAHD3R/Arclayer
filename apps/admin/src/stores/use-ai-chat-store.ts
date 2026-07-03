@@ -72,6 +72,12 @@ export type AIWorkspaceActionArtifact =
       navigation: { label: string; path: string };
     }
   | {
+      type: "workspace_content_models_created";
+      status: "completed";
+      contentModels: AIWorkspaceActionContentModel[];
+      navigation: { label: string; path: string };
+    }
+  | {
       type: "workspace_navigation";
       status: "completed";
       navigation: { label: string; path: string };
@@ -100,6 +106,7 @@ export interface AIAgentExecutionSummary {
 export interface AIChatMessage {
   role: AIChatRole;
   content: string;
+  createdAt?: number;
   reasoning?: string;
   agentRunId?: string;
   agentStatus?: AIAgentRunStatus;
@@ -307,7 +314,8 @@ export const useAiChatStore = create<AIChatState>()(
         set((state) => ({
           conversations: state.conversations.map((c) => {
             if (c.id !== convId) return c;
-            const messages = [...c.messages, msg];
+            const message = { ...msg, createdAt: msg.createdAt ?? now() };
+            const messages = [...c.messages, message];
             const title =
               c.messages.length === 0 && msg.role === "user" ? deriveTitle(msg.content) : c.title;
             return { ...c, messages, title, updatedAt: now() };
@@ -350,7 +358,12 @@ export const useAiChatStore = create<AIChatState>()(
             if (last && last.role === "assistant" && last.streaming) {
               messages[messages.length - 1] = { ...last, content: last.content + delta };
             } else {
-              messages.push({ role: "assistant", content: delta, streaming: true });
+              messages.push({
+                role: "assistant",
+                content: delta,
+                streaming: true,
+                createdAt: now(),
+              });
             }
             return { ...c, messages, updatedAt: now() };
           }),
@@ -368,7 +381,13 @@ export const useAiChatStore = create<AIChatState>()(
                 reasoning: `${last.reasoning ?? ""}${delta}`,
               };
             } else {
-              messages.push({ role: "assistant", content: "", reasoning: delta, streaming: true });
+              messages.push({
+                role: "assistant",
+                content: "",
+                reasoning: delta,
+                streaming: true,
+                createdAt: now(),
+              });
             }
             return { ...c, messages, updatedAt: now() };
           }),

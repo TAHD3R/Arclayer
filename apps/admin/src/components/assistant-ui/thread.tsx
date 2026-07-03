@@ -30,8 +30,8 @@ import { ComposerQueue } from "@/components/assistant-ui/composer-queue";
 import { formatAIChatError, resumeAIAgentRunForConversation } from "@/api/ai";
 import { Button } from "@arclayer/ui/button";
 import { cn } from "@arclayer/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import {
-  ActionBarMorePrimitive,
   ActionBarPrimitive,
   AuiIf,
   type AssistantState,
@@ -48,20 +48,23 @@ import {
   ArrowDownIcon,
   BanIcon,
   CheckIcon,
+  CheckCircle2Icon,
+  ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  CircleDashedIcon,
   CopyIcon,
-  DownloadIcon,
   FolderOpenIcon,
   FolderPlusIcon,
   GlobeIcon,
   HammerIcon,
   Layers3Icon,
   ListChecksIcon,
-  MoreHorizontalIcon,
   PencilIcon,
   RefreshCwIcon,
   ShieldCheckIcon,
+  WrenchIcon,
+  XCircleIcon,
 } from "lucide-react";
 import {
   createContext,
@@ -110,6 +113,7 @@ export type ThreadProps = {
 
 const EMPTY_COMPONENTS: ThreadComponents = {};
 type ThreadVariant = NonNullable<ThreadProps["variant"]>;
+const ASSISTANT_ARTIFACT_TEXT_COLLAPSE_THRESHOLD = 120;
 
 const ThreadComponentsContext = createContext<ThreadComponents>(EMPTY_COMPONENTS);
 const ThreadVariantContext = createContext<ThreadVariant>("default");
@@ -381,8 +385,13 @@ export const AgentRunSummary: FC = () => {
   const checkpointId =
     typeof rawCheckpointId === "string" && rawCheckpointId.trim() ? rawCheckpointId : null;
   const executionSummary = isAIAgentExecutionSummary(rawSummary) ? rawSummary : null;
+  const hasRunStatus = Boolean(runId && status);
+  const hasExecutionSummary = Boolean(
+    executionSummary &&
+    (executionSummary.toolNames.length > 0 || executionSummary.totalTokens !== undefined),
+  );
 
-  if (!runId || !status) return null;
+  if (!hasRunStatus && !hasExecutionSummary) return null;
 
   const Icon = status === "completed" ? CheckIcon : status === "running" ? RefreshCwIcon : BanIcon;
   const tone =
@@ -392,53 +401,81 @@ export const AgentRunSummary: FC = () => {
 
   return (
     <section
-      className={cn("mt-3 rounded-lg border px-3 py-2 text-caption", tone)}
+      className={cn(
+        hasRunStatus
+          ? cn("mt-3 rounded-lg border px-3 py-2 text-caption", tone)
+          : "mt-3 text-muted-foreground",
+      )}
       aria-label={t("ai:AI_AGENT_RUN_SUMMARY_TITLE")}
     >
-      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-        <span className="inline-flex min-w-0 items-center gap-1.5 font-semibold">
-          <Icon
-            className={cn("size-3.5 shrink-0", status === "running" && "animate-spin")}
-            aria-hidden="true"
-          />
-          <span className="truncate">{agentRunStatusLabel(t, status)}</span>
-        </span>
-        <span className="min-w-0 truncate font-mono text-[11px]">{runId}</span>
-        {checkpointId ? (
-          <span className="min-w-0 truncate text-[11px]">
-            {t("ai:AI_AGENT_RUN_CHECKPOINT")}: <span className="font-mono">{checkpointId}</span>
+      {hasRunStatus && runId && status ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="inline-flex min-w-0 items-center gap-1.5 font-semibold">
+            <Icon
+              className={cn("size-3.5 shrink-0", status === "running" && "animate-spin")}
+              aria-hidden="true"
+            />
+            <span className="truncate">{agentRunStatusLabel(t, status)}</span>
           </span>
-        ) : threadId ? (
-          <span className="min-w-0 truncate text-[11px]">
-            {t("ai:AI_AGENT_RUN_THREAD")}: <span className="font-mono">{threadId}</span>
-          </span>
-        ) : null}
-      </div>
-      {executionSummary ? <AgentExecutionSummary summary={executionSummary} /> : null}
+          <span className="min-w-0 truncate font-mono text-[11px]">{runId}</span>
+          {checkpointId ? (
+            <span className="min-w-0 truncate text-[11px]">
+              {t("ai:AI_AGENT_RUN_CHECKPOINT")}: <span className="font-mono">{checkpointId}</span>
+            </span>
+          ) : threadId ? (
+            <span className="min-w-0 truncate text-[11px]">
+              {t("ai:AI_AGENT_RUN_THREAD")}: <span className="font-mono">{threadId}</span>
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+      {executionSummary ? (
+        <AgentExecutionSummary summary={executionSummary} attachedToRunStatus={hasRunStatus} />
+      ) : null}
     </section>
   );
 };
 
-const AgentExecutionSummary: FC<{ summary: AIAgentExecutionSummary }> = ({ summary }) => {
+const AgentExecutionSummary: FC<{
+  summary: AIAgentExecutionSummary;
+  attachedToRunStatus: boolean;
+}> = ({ summary, attachedToRunStatus }) => {
   const { t } = useTranslation(["ai", "common"]);
-  const details = [
-    summary.toolNames.length
-      ? t("ai:AI_AGENT_RUN_TOOLS", {
-          count: summary.toolNames.length,
-          names: summary.toolNames.join(", "),
-        })
-      : "",
+  const toolNames = summary.toolNames.map((toolName) => workspaceToolDisplayName(t, toolName));
+  const tokenText =
     summary.totalTokens !== undefined
       ? t("ai:AI_AGENT_RUN_TOKENS", {
           total: summary.totalTokens,
           prompt: summary.promptTokens ?? 0,
           completion: summary.completionTokens ?? 0,
         })
-      : "",
-  ].filter(Boolean);
+      : "";
 
-  if (details.length === 0) return null;
-  return <div className="mt-1 truncate text-[11px] opacity-85">{details.join(" · ")}</div>;
+  if (toolNames.length === 0 && !tokenText) return null;
+
+  return (
+    <div className={cn("min-w-0", attachedToRunStatus && toolNames.length > 0 && "mt-1")}>
+      {toolNames.length > 0 ? (
+        <ToolGroupRoot variant="ghost">
+          <ToolGroupTrigger count={toolNames.length} className="max-w-full py-1" />
+          <ToolGroupContent className="text-[11px]">
+            <ul className="grid gap-1">
+              {toolNames.map((toolName, index) => (
+                <li key={`${toolName}-${index}`} className="flex min-w-0 items-center gap-2">
+                  <WrenchIcon
+                    className="size-3.5 shrink-0 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                  <span className="truncate text-callout">{toolName}</span>
+                </li>
+              ))}
+            </ul>
+          </ToolGroupContent>
+        </ToolGroupRoot>
+      ) : null}
+      {tokenText ? <div className="truncate text-[11px] opacity-85">{tokenText}</div> : null}
+    </div>
+  );
 };
 
 const AgentInterrupt: FC = () => {
@@ -591,28 +628,7 @@ const AgentArtifactCard: FC<{ artifact: AIAgentMessageArtifact }> = ({ artifact 
       ) : null}
       <ol className="divide-y divide-border/50">
         {items.map((item, index) => (
-          <li
-            key={item.id}
-            className="grid grid-cols-[1.5rem_minmax(0,1fr)_auto] items-start gap-2 px-3 py-2"
-          >
-            <span className="text-caption font-medium text-muted-foreground tabular-nums">
-              {index + 1}
-            </span>
-            <span className="min-w-0 text-footnote leading-relaxed text-foreground">
-              <span>{item.title}</span>
-              {item.toolName || item.detail ? (
-                <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-caption text-muted-foreground">
-                  {item.toolName ? (
-                    <span className="min-w-0 truncate font-mono">{item.toolName}</span>
-                  ) : null}
-                  {item.detail ? <span className="min-w-0 truncate">{item.detail}</span> : null}
-                </span>
-              ) : null}
-            </span>
-            <span className="rounded-md bg-background/70 px-1.5 py-0.5 text-caption font-medium text-muted-foreground">
-              {agentArtifactStatusLabel(t, item.status)}
-            </span>
-          </li>
+          <AgentArtifactStepRow key={item.id} item={item} index={index} />
         ))}
       </ol>
       {canExecuteWorkspacePlan ? (
@@ -643,6 +659,83 @@ const AgentArtifactCard: FC<{ artifact: AIAgentMessageArtifact }> = ({ artifact 
   );
 };
 
+const AgentArtifactStepRow: FC<{ item: AIAgentArtifactStep; index: number }> = ({
+  item,
+  index,
+}) => {
+  const { t } = useTranslation(["ai", "common"]);
+
+  return (
+    <li className="grid grid-cols-[1.5rem_minmax(0,1fr)_1.25rem] items-start gap-2 px-3 py-2">
+      <span className="text-caption font-medium text-muted-foreground tabular-nums">
+        {index + 1}
+      </span>
+      <span className="min-w-0 text-footnote leading-relaxed text-foreground">
+        <TooltipText value={item.title} className="font-medium" />
+        {item.toolName || item.detail ? (
+          <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-caption text-muted-foreground">
+            {item.toolName ? (
+              <TooltipText
+                value={workspaceToolDisplayName(t, item.toolName)}
+                className="font-medium"
+              />
+            ) : null}
+            {item.detail ? <TooltipText value={item.detail} /> : null}
+          </span>
+        ) : null}
+      </span>
+      <AgentArtifactStepStatus status={item.status} />
+    </li>
+  );
+};
+
+const TooltipText: FC<{ value: string; className?: string }> = ({ value, className }) => (
+  <Tooltip side="top">
+    <TooltipTrigger asChild>
+      <span className={cn("block min-w-0 truncate", className)}>{value}</span>
+    </TooltipTrigger>
+    <TooltipContent>{value}</TooltipContent>
+  </Tooltip>
+);
+
+const AgentArtifactStepStatus: FC<{ status: string }> = ({ status }) => {
+  const { t } = useTranslation(["ai", "common"]);
+  const label = agentArtifactStatusLabel(t, status);
+  const Icon =
+    status === "completed"
+      ? CheckCircle2Icon
+      : status === "failed"
+        ? XCircleIcon
+        : status === "running"
+          ? RefreshCwIcon
+          : CircleDashedIcon;
+  const tone =
+    status === "completed"
+      ? "text-emerald-500"
+      : status === "failed"
+        ? "text-destructive"
+        : status === "running"
+          ? "text-muted-foreground"
+          : "text-muted-foreground/80";
+
+  return (
+    <Tooltip side="top">
+      <TooltipTrigger asChild>
+        <span
+          className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center"
+          aria-label={label}
+        >
+          <Icon
+            className={cn("size-4", tone, status === "running" && "animate-spin")}
+            aria-hidden="true"
+          />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+};
+
 function agentArtifactStatusLabel(
   t: ReturnType<typeof useTranslation>["t"],
   status: string,
@@ -654,6 +747,16 @@ function agentArtifactStatusLabel(
   return status;
 }
 
+function workspaceToolDisplayName(
+  t: ReturnType<typeof useTranslation>["t"],
+  toolName: string,
+): string {
+  const normalized = toolName.replace(/^workspace[._]/, "");
+  const key = `ai:AI_WORKSPACE_TOOL_${normalized.toUpperCase()}_LABEL`;
+  const translated = t(key);
+  return translated === key ? toolName : translated;
+}
+
 const AgentBuildArtifactFooter: FC<{
   artifact: Extract<AIAgentMessageArtifact, { type: "agent_build_blueprint" }>;
 }> = ({ artifact }) => {
@@ -663,7 +766,9 @@ const AgentBuildArtifactFooter: FC<{
     <div className="flex flex-wrap items-center gap-2 border-t border-border/60 px-3 py-2 text-caption text-muted-foreground">
       <span className="font-medium">
         {t("ai:AI_AGENT_ARTIFACT_APPLIES_CHANGES", {
-          value: artifact.appliesChanges ? "true" : "false",
+          value: artifact.appliesChanges
+            ? t("ai:AI_AGENT_ARTIFACT_APPLIES_CHANGES_YES")
+            : t("ai:AI_AGENT_ARTIFACT_APPLIES_CHANGES_NO"),
         })}
       </span>
       {artifact.requiresApprovalBeforeApply ? (
@@ -680,7 +785,9 @@ const WorkspaceActionCard: FC<{ artifact: AIWorkspaceActionArtifact }> = ({ arti
   const { t } = useTranslation(["ai", "common"]);
   const navigate = useNavigate();
   const isCreated = artifact.type === "workspace_project_created";
-  const isContentModelCreated = artifact.type === "workspace_content_model_created";
+  const isContentModelCreated =
+    artifact.type === "workspace_content_model_created" ||
+    artifact.type === "workspace_content_models_created";
   const isList = artifact.type === "workspace_project_list";
   const title = isCreated
     ? t("ai:AI_WORKSPACE_ACTION_PROJECT_CREATED_TITLE")
@@ -711,6 +818,13 @@ const WorkspaceActionCard: FC<{ artifact: AIWorkspaceActionArtifact }> = ({ arti
       ) : null}
       {artifact.type === "workspace_content_model_created" ? (
         <WorkspaceContentModelRow contentModel={artifact.contentModel} />
+      ) : null}
+      {artifact.type === "workspace_content_models_created" ? (
+        <div className="divide-y divide-border/50">
+          {artifact.contentModels.map((contentModel) => (
+            <WorkspaceContentModelRow key={contentModel.id} contentModel={contentModel} />
+          ))}
+        </div>
       ) : null}
       {artifact.type === "workspace_project_list" ? (
         <div className="divide-y divide-border/50">
@@ -824,6 +938,13 @@ function isAIWorkspaceActionArtifact(value: unknown): value is AIWorkspaceAction
       isWorkspaceActionNavigation(value.navigation)
     );
   }
+  if (value.type === "workspace_content_models_created") {
+    return (
+      Array.isArray(value.contentModels) &&
+      value.contentModels.every(isWorkspaceActionContentModel) &&
+      isWorkspaceActionNavigation(value.navigation)
+    );
+  }
   if (value.type === "workspace_navigation") {
     return isWorkspaceActionNavigation(value.navigation);
   }
@@ -917,6 +1038,48 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+const AssistantMarkdownText: FC = () => {
+  const { t } = useTranslation(["ai", "common"]);
+  const [open, setOpen] = useState(false);
+  const rawArtifact = useAuiState((s) => s.message.metadata.custom?.agentArtifact);
+  const isRunning = useAuiState((s) => s.message.status?.type === "running");
+  const text = useAuiState((s) => (s.part.type === "text" ? s.part.text : ""));
+  const shouldCollapse =
+    isAIAgentMessageArtifact(rawArtifact) &&
+    !isRunning &&
+    text.trim().length > ASSISTANT_ARTIFACT_TEXT_COLLAPSE_THRESHOLD;
+
+  if (!shouldCollapse) return <MarkdownText />;
+
+  return (
+    <div className="group/assistant-body">
+      <div
+        className={cn(
+          "transition-[max-height] duration-200 ease-out motion-reduce:transition-none",
+          open
+            ? "max-h-none"
+            : "max-h-[4.75rem] overflow-hidden [mask-image:linear-gradient(to_bottom,black_62%,transparent)]",
+        )}
+      >
+        <MarkdownText />
+      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="mt-1 h-7 gap-1 rounded-md px-2 text-callout font-semibold text-muted-foreground hover:text-foreground"
+        onClick={() => setOpen((value) => !value)}
+      >
+        {open ? t("ai:AI_CHAT_MESSAGE_COLLAPSE_BODY") : t("ai:AI_CHAT_MESSAGE_EXPAND_BODY")}
+        <ChevronDownIcon
+          className={cn("size-3.5 transition-transform duration-200", open && "rotate-180")}
+          aria-hidden="true"
+        />
+      </Button>
+    </div>
+  );
+};
+
 const AssistantMessage: FC = () => {
   const {
     ToolFallback: ToolFallbackComponent = ToolFallback,
@@ -941,6 +1104,7 @@ const AssistantMessage: FC = () => {
         // [contain-intrinsic-size:auto_24px] fixes issue #4104, don't change without checking for regressions
         className="text-foreground px-2 leading-relaxed wrap-break-word [contain-intrinsic-size:auto_24px] [content-visibility:auto]"
       >
+        <AssistantMessageHeader />
         <MessagePrimitive.GroupedParts
           groupBy={groupPartByType({
             reasoning: ["group-chainOfThought", "group-reasoning"],
@@ -980,7 +1144,7 @@ const AssistantMessage: FC = () => {
                 );
               }
               case "text":
-                return <MarkdownText />;
+                return <AssistantMarkdownText />;
               case "reasoning":
                 return <Reasoning {...part} />;
               case "tool-call":
@@ -1006,6 +1170,7 @@ const AssistantMessage: FC = () => {
         <AgentRunSummary />
         <AgentArtifact />
         <WorkspaceActionArtifact />
+        <AssistantMessageSuggestions />
         <MessageError />
       </div>
 
@@ -1017,6 +1182,56 @@ const AssistantMessage: FC = () => {
         <AssistantActionBar />
       </div>
     </MessagePrimitive.Root>
+  );
+};
+
+const AssistantMessageHeader: FC = () => {
+  const { t, i18n } = useTranslation(["ai", "common"]);
+  const rawCreatedAt = useAuiState((s) => s.message.metadata.custom?.createdAt);
+  const createdAt = typeof rawCreatedAt === "number" ? new Date(rawCreatedAt) : null;
+  const formattedTime = createdAt
+    ? createdAt.toLocaleTimeString(i18n.language, {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "";
+  const createdAtIso = createdAt?.toISOString();
+
+  return (
+    <div className="mb-2 flex min-w-0 items-center justify-between gap-3 text-footnote">
+      <div className="flex min-w-0 items-center gap-2 text-label-primary">
+        <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-border/70 bg-muted/50 text-[11px] font-semibold">
+          A
+        </span>
+        <span className="truncate font-semibold">{t("ai:AI_CHAT_ASSISTANT_NAME")}</span>
+      </div>
+      {formattedTime && createdAtIso ? (
+        <time
+          className="shrink-0 text-caption text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+          dateTime={createdAtIso}
+        >
+          {formattedTime}
+        </time>
+      ) : null}
+    </div>
+  );
+};
+
+const AssistantMessageSuggestions: FC = () => {
+  const rawArtifact = useAuiState((s) => s.message.metadata.custom?.agentArtifact);
+  const rawWorkspaceAction = useAuiState((s) => s.message.metadata.custom?.workspaceAction);
+  const agentArtifact = isAIAgentMessageArtifact(rawArtifact) ? rawArtifact : null;
+  const workspaceAction = isAIWorkspaceActionArtifact(rawWorkspaceAction)
+    ? rawWorkspaceAction
+    : null;
+
+  return (
+    <AISuggestions
+      source="message"
+      agentArtifact={agentArtifact}
+      workspaceAction={workspaceAction}
+      className="mt-3 flex w-full flex-wrap items-center gap-2"
+    />
   );
 };
 
@@ -1043,29 +1258,6 @@ const AssistantActionBar: FC = () => {
           <RefreshCwIcon />
         </TooltipIconButton>
       </ActionBarPrimitive.Reload>
-      <ActionBarMorePrimitive.Root>
-        <ActionBarMorePrimitive.Trigger asChild>
-          <TooltipIconButton
-            tooltip={t("ai:AI_CHAT_ACTION_MORE")}
-            className="data-[state=open]:bg-accent"
-          >
-            <MoreHorizontalIcon />
-          </TooltipIconButton>
-        </ActionBarMorePrimitive.Trigger>
-        <ActionBarMorePrimitive.Content
-          side="bottom"
-          align="start"
-          sideOffset={6}
-          className="aui-action-bar-more-content bg-popover/95 text-popover-foreground data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=closed]:animate-out data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[8rem] overflow-hidden rounded-xl border p-1.5 shadow-lg backdrop-blur-sm"
-        >
-          <ActionBarPrimitive.ExportMarkdown asChild>
-            <ActionBarMorePrimitive.Item className="aui-action-bar-more-item hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm outline-none select-none">
-              <DownloadIcon className="size-4" />
-              {t("ai:AI_CHAT_ACTION_EXPORT_MARKDOWN")}
-            </ActionBarMorePrimitive.Item>
-          </ActionBarPrimitive.ExportMarkdown>
-        </ActionBarMorePrimitive.Content>
-      </ActionBarMorePrimitive.Root>
     </ActionBarPrimitive.Root>
   );
 };

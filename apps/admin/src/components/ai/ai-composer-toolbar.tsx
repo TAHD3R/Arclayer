@@ -264,6 +264,7 @@ function isComposerModeAvailable(input: {
   mode: AIComposerMode;
   modeAgentId?: string;
 }): boolean {
+  if (input.mode === "build" || input.mode === "plan") return true;
   if (!input.hasCatalog) return true;
   if (input.mode === "agent") return input.availableAgentIds.size > 0;
   if (!input.modeAgentId) return true;

@@ -27,6 +27,7 @@ import {
   sendAIAgentMessage,
   toAIWorkspaceActionArtifact,
   type AIChatMessage,
+  type AIWorkspaceActionContextMessage,
   type AIWorkspaceActionResponse,
 } from "@/api/ai";
 import {
@@ -66,10 +67,11 @@ function messageContentToText(
 
 function messageContentToReasoning(content: ThreadMessageLike["content"]): string {
   if (!Array.isArray(content)) return "";
-  return content
-    .map((part) => (part.type === "reasoning" ? part.text : ""))
-    .filter(Boolean)
-    .join("\n\n");
+  const reasoningParts: string[] = [];
+  for (const part of content) {
+    if (part.type === "reasoning" && part.text) reasoningParts.push(part.text);
+  }
+  return reasoningParts.join("\n\n");
 }
 
 function toRuntimeMessageContent(message: StoreAIChatMessage): ThreadMessageLike["content"] {
@@ -84,14 +86,13 @@ function toRuntimeMessageContent(message: StoreAIChatMessage): ThreadMessageLike
 }
 
 function completeAttachmentContentToText(attachments: AppendMessage["attachments"]): string {
-  return (attachments ?? [])
-    .flatMap((attachment) => attachment.content ?? [])
-    .map((part) => {
-      if (part.type === "text") return part.text;
-      return "";
-    })
-    .filter(Boolean)
-    .join("\n\n");
+  const textParts: string[] = [];
+  for (const attachment of attachments ?? []) {
+    for (const part of attachment.content ?? []) {
+      if (part.type === "text" && part.text) textParts.push(part.text);
+    }
+  }
+  return textParts.join("\n\n");
 }
 
 export function appendMessageToText(
@@ -119,65 +120,145 @@ export function stripWebSearchDirective(text: string): string {
   return text.slice(WEB_SEARCH_REQUEST_MARKER.length).replace(/^\s+/, "");
 }
 
-/**
- * 将 assistant-ui 的 ThreadMessageLike[] 转为后端 /chat 接受的 AIChatMessage[]。
- */
-function toChatMessages(messages: readonly ThreadMessageLike[]): AIChatMessage[] {
-  return messages.map((m) => {
-    const role: AIChatMessage["role"] = m.role === "assistant" ? "assistant" : "user";
-    const content = messageContentToText(m.content);
-    return { role, content };
-  });
+function toChatHistoryMessages(messages: readonly StoreAIChatMessage[]): AIChatMessage[] {
+  return messages.map((message) => ({
+    role: message.role,
+    content: storeMessageContentForHistory(message),
+  }));
+}
+
+function storeMessageContentForHistory(message: StoreAIChatMessage): string {
+  if (message.role === "user") return stripWebSearchDirective(message.content);
+  return [message.content, workspaceActionHistoryBlock(message), agentArtifactHistoryBlock(message)]
+    .filter((part) => part.trim())
+    .join("\n\n");
+}
+
+function workspaceActionHistoryBlock(message: StoreAIChatMessage): string {
+  const artifact = message.workspaceAction;
+  if (!artifact) return "";
+  if (artifact.type === "workspace_project_created") {
+    return [
+      "[Workspace action: project created]",
+      `Project: ${artifact.project.name}`,
+      `Project ID: ${artifact.project.id}`,
+      artifact.project.description ? `Description: ${artifact.project.description}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+  if (artifact.type === "workspace_content_model_created") {
+    return [
+      "[Workspace action: content model created]",
+      `Model: ${artifact.contentModel.name}`,
+      `Keys: ${artifact.contentModel.singularKey}/${artifact.contentModel.pluralKey}`,
+    ].join("\n");
+  }
+  if (artifact.type === "workspace_project_list") {
+    return [
+      "[Workspace action: project list]",
+      `Projects: ${artifact.projects.map((project) => project.name).join(", ")}`,
+    ].join("\n");
+  }
+  return "[Workspace action: navigation prepared]";
+}
+
+function agentArtifactHistoryBlock(message: StoreAIChatMessage): string {
+  const artifact = message.agentArtifact;
+  if (!artifact) return "";
+  if (artifact.type === "agent_execution_plan") {
+    return [
+      "[Workspace action plan]",
+      `Goal: ${artifact.goal}`,
+      `Status: ${artifact.status}`,
+      ...artifact.steps.map((step, index) => `${index + 1}. ${step.title}`),
+    ].join("\n");
+  }
+  return [
+    "[Agent build blueprint]",
+    `Goal: ${artifact.goal}`,
+    `Status: ${artifact.status}`,
+    ...artifact.operations.map((step, index) => `${index + 1}. ${step.title}`),
+  ].join("\n");
+}
+
+function buildWorkspaceActionConversationContext(
+  conversation: AIConversation,
+): AIWorkspaceActionContextMessage[] {
+  const context: AIWorkspaceActionContextMessage[] = [];
+  for (let index = conversation.messages.length - 1; index >= 0; index -= 1) {
+    const message = conversation.messages[index];
+    if (!message.content && !message.agentArtifact && !message.workspaceAction) continue;
+    const content = storeMessageContentForHistory(message).slice(0, 1600);
+    if (!content.trim()) continue;
+    context.unshift({ role: message.role, content });
+    if (context.length >= 8) break;
+  }
+  return context;
 }
 
 function toStoreMessages(messages: readonly ThreadMessageLike[]): StoreAIChatMessage[] {
-  return messages
-    .map((m): StoreAIChatMessage => {
-      const role: AIChatMessage["role"] = m.role === "assistant" ? "assistant" : "user";
-      const content = messageContentToText(m.content).trim();
-      const reasoning = messageContentToReasoning(m.content).trim();
-      if (role === "user") return { role, content };
+  const storeMessages: StoreAIChatMessage[] = [];
+  for (const m of messages) {
+    const role: AIChatMessage["role"] = m.role === "assistant" ? "assistant" : "user";
+    const content = messageContentToText(m.content).trim();
+    const reasoning = messageContentToReasoning(m.content).trim();
+    const message =
+      role === "user" ? { role, content } : assistantThreadMessageToStore(m, content, reasoning);
+    if (message.content || shouldKeepAssistantMetadata(message)) storeMessages.push(message);
+  }
+  return storeMessages;
+}
 
-      const custom = isRecord(m.metadata?.custom) ? m.metadata.custom : {};
-      const status =
-        m.status?.type === "incomplete" && m.status.reason === "error" ? m.status : null;
-      const agentRunId = readCustomString(custom.agentRunId);
-      const agentStatus = readAgentStatus(custom.agentStatus);
-      const agentThreadId = readCustomString(custom.agentThreadId);
-      const agentCheckpointId = readCustomString(custom.agentCheckpointId);
-      const errorDetails = readCustomString(custom.errorDetails);
-      const agentExecutionSummary = isAIAgentExecutionSummary(custom.agentExecutionSummary)
-        ? custom.agentExecutionSummary
-        : undefined;
-      const workspaceAction = isAIWorkspaceActionArtifact(custom.workspaceAction)
-        ? custom.workspaceAction
-        : undefined;
+function assistantThreadMessageToStore(
+  message: ThreadMessageLike,
+  content: string,
+  reasoning: string,
+): StoreAIChatMessage {
+  const custom = isRecord(message.metadata?.custom) ? message.metadata.custom : {};
+  const status =
+    message.status?.type === "incomplete" && message.status.reason === "error"
+      ? message.status
+      : null;
+  const agentRunId = readCustomString(custom.agentRunId);
+  const createdAt = readCustomNumber(custom.createdAt);
+  const agentStatus = readAgentStatus(custom.agentStatus);
+  const agentThreadId = readCustomString(custom.agentThreadId);
+  const agentCheckpointId = readCustomString(custom.agentCheckpointId);
+  const errorDetails = readCustomString(custom.errorDetails);
+  const agentExecutionSummary = isAIAgentExecutionSummary(custom.agentExecutionSummary)
+    ? custom.agentExecutionSummary
+    : undefined;
+  const workspaceAction = isAIWorkspaceActionArtifact(custom.workspaceAction)
+    ? custom.workspaceAction
+    : undefined;
 
-      return {
-        role,
-        content,
-        ...(reasoning ? { reasoning } : {}),
-        ...(agentRunId ? { agentRunId } : {}),
-        ...(agentStatus ? { agentStatus } : {}),
-        ...(agentThreadId ? { agentThreadId } : {}),
-        ...(agentCheckpointId ? { agentCheckpointId } : {}),
-        ...(isAIAgentInterrupt(custom.agentInterrupt)
-          ? { agentInterrupt: custom.agentInterrupt }
-          : {}),
-        ...(isAIAgentMessageArtifact(custom.agentArtifact)
-          ? { agentArtifact: custom.agentArtifact }
-          : {}),
-        ...(workspaceAction ? { workspaceAction } : {}),
-        ...(agentExecutionSummary ? { agentExecutionSummary } : {}),
-        ...(status ? { error: true, errorMessage: String(status.error || "") } : {}),
-        ...(errorDetails ? { errorDetails } : {}),
-      };
-    })
-    .filter((message) => message.content || shouldKeepAssistantMetadata(message));
+  return {
+    role: "assistant",
+    content,
+    ...(createdAt ? { createdAt } : {}),
+    ...(reasoning ? { reasoning } : {}),
+    ...(agentRunId ? { agentRunId } : {}),
+    ...(agentStatus ? { agentStatus } : {}),
+    ...(agentThreadId ? { agentThreadId } : {}),
+    ...(agentCheckpointId ? { agentCheckpointId } : {}),
+    ...(isAIAgentInterrupt(custom.agentInterrupt) ? { agentInterrupt: custom.agentInterrupt } : {}),
+    ...(isAIAgentMessageArtifact(custom.agentArtifact)
+      ? { agentArtifact: custom.agentArtifact }
+      : {}),
+    ...(workspaceAction ? { workspaceAction } : {}),
+    ...(agentExecutionSummary ? { agentExecutionSummary } : {}),
+    ...(status ? { error: true, errorMessage: String(status.error || "") } : {}),
+    ...(errorDetails ? { errorDetails } : {}),
+  };
 }
 
 function readCustomString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+function readCustomNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 function readAgentStatus(value: unknown): StoreAIChatMessage["agentStatus"] | undefined {
@@ -478,6 +559,7 @@ export async function sendAIWorkspaceActionMessage(
     const result = await executeAIWorkspaceAction(trimmed, {
       signal: options?.signal,
       projectId: resolveWorkspaceActionProjectId(conversation, rawText),
+      conversationContext: buildWorkspaceActionConversationContext(conversation),
     });
     if (result.kind === "chat") {
       await streamAIChatAssistantResponse(conversationId, { signal: options?.signal });
@@ -526,7 +608,7 @@ function toWorkspaceActionAgentArtifact(
   result: AIWorkspaceActionResponse,
   goal: string,
 ): AIAgentMessageArtifact | undefined {
-  if (result.kind === "chat") return undefined;
+  if (result.kind !== "tool_call") return undefined;
   if (result.executionSteps.length === 0) return undefined;
   return {
     type: "agent_execution_plan",
@@ -591,15 +673,8 @@ async function streamAIChatAssistantResponse(
     throw new Error(`AI conversation not found: ${conversationId}`);
   }
 
-  const history = toChatMessages(
-    conversation.messages
-      .filter((message) => !(message.role === "assistant" && message.error))
-      .map(
-        (message): ThreadMessageLike => ({
-          role: message.role,
-          content: message.content,
-        }),
-      ),
+  const history = toChatHistoryMessages(
+    conversation.messages.filter((message) => !(message.role === "assistant" && message.error)),
   );
 
   state.appendDelta(conversationId, "");
@@ -819,6 +894,7 @@ export function AIChatRuntimeProvider({
           ? {
               custom: {
                 conversationId,
+                ...(m.createdAt ? { createdAt: m.createdAt } : {}),
                 ...(m.agentRunId ? { agentRunId: m.agentRunId } : {}),
                 ...(m.agentStatus ? { agentStatus: m.agentStatus } : {}),
                 ...(m.agentThreadId ? { agentThreadId: m.agentThreadId } : {}),
@@ -832,7 +908,14 @@ export function AIChatRuntimeProvider({
                 ...(m.error && m.errorDetails ? { errorDetails: m.errorDetails } : {}),
               },
             }
-          : undefined,
+          : m.role === "assistant"
+            ? {
+                custom: {
+                  conversationId,
+                  ...(m.createdAt ? { createdAt: m.createdAt } : {}),
+                },
+              }
+            : undefined,
   }));
 
   const runtime = useExternalStoreRuntime({

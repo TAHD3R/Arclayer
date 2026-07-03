@@ -55,7 +55,8 @@ export type AIWorkspaceActionKind =
   | "create_project"
   | "create_content_model"
   | "list_projects"
-  | "open_projects";
+  | "open_projects"
+  | "refine_plan";
 
 export interface AIWorkspaceActionNavigation {
   label: string;
@@ -113,9 +114,15 @@ export interface AIWorkspaceActionResponse {
   toolCalls: AIWorkspaceActionToolCall[];
   project?: AIWorkspaceActionProject | null;
   contentModel?: AIWorkspaceActionContentModel | null;
+  contentModels: AIWorkspaceActionContentModel[];
   projects: AIWorkspaceActionProject[];
   total?: number | null;
   navigation?: AIWorkspaceActionNavigation | null;
+}
+
+export interface AIWorkspaceActionContextMessage {
+  role: "user" | "assistant";
+  content: string;
 }
 
 export type AISystemProviderCompatibility =
@@ -892,7 +899,11 @@ export async function* chatStream(
 
 export async function executeAIWorkspaceAction(
   message: string,
-  options?: { signal?: AbortSignal; projectId?: string | null },
+  options?: {
+    signal?: AbortSignal;
+    projectId?: string | null;
+    conversationContext?: AIWorkspaceActionContextMessage[];
+  },
 ): Promise<AIWorkspaceActionResponse> {
   const workspaceId = requireCurrentWorkspaceId();
   return api.post<AIWorkspaceActionResponse>(
@@ -902,6 +913,7 @@ export async function executeAIWorkspaceAction(
       projectId: options?.projectId ?? undefined,
       message,
       mode: useAiChatStore.getState().composerMode,
+      conversationContext: options?.conversationContext ?? [],
     },
     { signal: options?.signal },
   );
@@ -929,18 +941,23 @@ export function toAIWorkspaceActionArtifact(
       navigation,
     };
   }
+  if (
+    response.action === "create_content_model" &&
+    response.contentModels.length > 1 &&
+    navigation
+  ) {
+    return {
+      type: "workspace_content_models_created",
+      status: response.status,
+      contentModels: response.contentModels.map(toWorkspaceActionContentModel),
+      navigation,
+    };
+  }
   if (response.action === "create_content_model" && response.contentModel && navigation) {
     return {
       type: "workspace_content_model_created",
       status: response.status,
-      contentModel: {
-        id: response.contentModel.id,
-        name: response.contentModel.name,
-        singularKey: response.contentModel.singularKey,
-        pluralKey: response.contentModel.pluralKey,
-        description: response.contentModel.description,
-        modelKind: response.contentModel.modelKind,
-      },
+      contentModel: toWorkspaceActionContentModel(response.contentModel),
       navigation,
     };
   }
@@ -952,6 +969,21 @@ export function toAIWorkspaceActionArtifact(
     };
   }
   return undefined;
+}
+
+function toWorkspaceActionContentModel(
+  contentModel: AIWorkspaceActionContentModel,
+): AIWorkspaceActionContentModel {
+  return {
+    id: contentModel.id,
+    workspaceId: contentModel.workspaceId,
+    siteId: contentModel.siteId,
+    name: contentModel.name,
+    singularKey: contentModel.singularKey,
+    pluralKey: contentModel.pluralKey,
+    description: contentModel.description,
+    modelKind: contentModel.modelKind,
+  };
 }
 
 export async function* agentRunStream(

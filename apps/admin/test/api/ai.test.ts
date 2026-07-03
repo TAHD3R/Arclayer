@@ -253,6 +253,7 @@ describe("AI agent API", () => {
         slug: "project",
         description: "由 AI 创建",
       },
+      contentModels: [],
       projects: [],
       total: null,
       navigation: { label: "进入项目", path: "/projects/project-created" },
@@ -267,6 +268,7 @@ describe("AI agent API", () => {
         projectId: "project-target",
         message: "帮我创建一个随机项目",
         mode: "plan",
+        conversationContext: [],
       },
       { signal: undefined },
     );
@@ -286,6 +288,7 @@ describe("AI agent API", () => {
         slug: "project",
         description: null,
       },
+      contentModels: [],
       projects: [],
       total: null,
       navigation: { label: "进入项目", path: "/projects/project-created" },
@@ -321,6 +324,7 @@ describe("AI agent API", () => {
         description: null,
         modelKind: "collection_type",
       },
+      contentModels: [],
       projects: [],
       total: null,
       navigation: {
@@ -334,6 +338,8 @@ describe("AI agent API", () => {
       status: "completed",
       contentModel: {
         id: "model-1",
+        workspaceId: "workspace-1",
+        siteId: "site-1",
         name: "文章",
         singularKey: "article",
         pluralKey: "articles",
@@ -343,6 +349,85 @@ describe("AI agent API", () => {
       navigation: {
         label: "编辑内容模型",
         path: "/projects/project-1/content/models/edit?modelId=model-1",
+      },
+    });
+
+    const contentModelsArtifact = toAIWorkspaceActionArtifact({
+      kind: "tool_call",
+      action: "create_content_model",
+      status: "completed",
+      content: "已创建内容模型",
+      executionSteps: [],
+      toolCalls: [],
+      project: null,
+      contentModel: {
+        id: "model-1",
+        workspaceId: "workspace-1",
+        siteId: "site-1",
+        singularKey: "article",
+        pluralKey: "articles",
+        name: "文章",
+        description: null,
+        modelKind: "collection_type",
+      },
+      contentModels: [
+        {
+          id: "model-1",
+          workspaceId: "workspace-1",
+          siteId: "site-1",
+          singularKey: "article",
+          pluralKey: "articles",
+          name: "文章",
+          description: null,
+          modelKind: "collection_type",
+        },
+        {
+          id: "model-2",
+          workspaceId: "workspace-1",
+          siteId: "site-1",
+          singularKey: "caseStudy",
+          pluralKey: "caseStudies",
+          name: "案例展示",
+          description: "管理客户案例。",
+          modelKind: "collection_type",
+        },
+      ],
+      projects: [],
+      total: null,
+      navigation: {
+        label: "查看内容模型",
+        path: "/projects/project-1/content/models",
+      },
+    });
+
+    expect(contentModelsArtifact).toEqual({
+      type: "workspace_content_models_created",
+      status: "completed",
+      contentModels: [
+        {
+          id: "model-1",
+          workspaceId: "workspace-1",
+          siteId: "site-1",
+          singularKey: "article",
+          pluralKey: "articles",
+          name: "文章",
+          description: null,
+          modelKind: "collection_type",
+        },
+        {
+          id: "model-2",
+          workspaceId: "workspace-1",
+          siteId: "site-1",
+          singularKey: "caseStudy",
+          pluralKey: "caseStudies",
+          name: "案例展示",
+          description: "管理客户案例。",
+          modelKind: "collection_type",
+        },
+      ],
+      navigation: {
+        label: "查看内容模型",
+        path: "/projects/project-1/content/models",
       },
     });
   });

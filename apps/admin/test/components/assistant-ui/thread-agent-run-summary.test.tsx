@@ -26,6 +26,10 @@ vi.mock("@/components/ai/ai-composer-triggers", () => ({
   AIComposerTriggers: () => null,
 }));
 
+vi.mock("@/components/ai/ai-suggestions", () => ({
+  AISuggestions: () => null,
+}));
+
 vi.mock("@assistant-ui/react", async () => {
   const React = await vi.importActual<typeof import("react")>("react");
   const QueueItemContext = React.createContext<{ id: string; prompt: string } | null>(null);
@@ -98,6 +102,7 @@ vi.mock("@assistant-ui/react", async () => {
       Suggestions: () => null,
     },
     groupPartByType: vi.fn(),
+    useScrollLock: () => vi.fn(),
     useAuiState: (selector: (state: unknown) => unknown) =>
       selector({
         composer: {
@@ -129,6 +134,8 @@ vi.mock("react-i18next", () => ({
         "ai:AI_AGENT_RUN_STATUS_COMPLETED": "Agent completed",
         "ai:AI_AGENT_RUN_CHECKPOINT": "Checkpoint",
         "ai:AI_AGENT_RUN_THREAD": "Thread",
+        "ai:AI_CHAT_TOOL_CALLS_TITLE": `${String(values?.count ?? 0)} tool calls`,
+        "ai:AI_CHAT_TOOL_CALLS_ACTIVE": `${String(values?.count ?? 0)} tool calls running`,
         "ai:AI_AGENT_RUN_TOOLS": `${String(values?.count ?? 0)} tools: ${String(values?.names ?? "")}`,
         "ai:AI_AGENT_RUN_TOKENS": `${String(values?.total ?? 0)} tokens (${String(
           values?.prompt ?? 0,
@@ -179,7 +186,7 @@ describe("AgentRunSummary", () => {
     expect(screen.getByLabelText("Agent run status")).toHaveTextContent("run-failed-1:run.failed");
   });
 
-  it("renders tool and token telemetry from agent metadata", () => {
+  it("renders tool and token telemetry from agent metadata", async () => {
     assistantUiMockState.customMetadata = {
       agentRunId: "run-completed-1",
       agentStatus: "completed",
@@ -195,7 +202,10 @@ describe("AgentRunSummary", () => {
 
     const summary = screen.getByLabelText("Agent run status");
     expect(summary).toHaveTextContent("Agent completed");
-    expect(summary).toHaveTextContent("2 tools: get_content, search_content");
+    expect(summary).toHaveTextContent("2 tool calls");
+    await userEvent.click(screen.getByRole("button", { name: /2 tool calls/i }));
+    expect(summary).toHaveTextContent("get_content");
+    expect(summary).toHaveTextContent("search_content");
     expect(summary).toHaveTextContent("34 tokens (14 prompt, 20 completion)");
   });
 

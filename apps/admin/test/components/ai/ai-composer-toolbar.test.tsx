@@ -103,16 +103,7 @@ describe("AIComposerContextControls", () => {
     });
   });
 
-  it("syncs an unavailable selected mode to the first available backend mode", async () => {
-    renderControls();
-
-    await waitFor(() => {
-      expect(useAiChatStore.getState().composerMode).toBe("plan");
-    });
-    expect(screen.getByRole("button", { name: "Select work mode" })).toHaveTextContent("Plan");
-  });
-
-  it("disables modes whose required backend agent is not enabled", async () => {
+  it("keeps build and plan available without matching project agents", async () => {
     const user = userEvent.setup();
     renderControls();
 
@@ -120,8 +111,13 @@ describe("AIComposerContextControls", () => {
     await user.click(screen.getByRole("button", { name: "Select work mode" }));
 
     const buildItem = await screen.findByRole("menuitem", { name: /Build/ });
-    expect(buildItem).toHaveAttribute("data-disabled");
-    expect(buildItem).toHaveTextContent("Unavailable");
+    const planItem = await screen.findByRole("menuitem", { name: /Plan/ });
+    const agentItem = await screen.findByRole("menuitem", { name: /Project Copilot/ });
+
+    expect(useAiChatStore.getState().composerMode).toBe("build");
+    expect(buildItem).not.toHaveAttribute("data-disabled");
+    expect(planItem).not.toHaveAttribute("data-disabled");
+    expect(agentItem).not.toHaveAttribute("data-disabled");
   });
 
   it("toggles web search from the add context menu", async () => {
