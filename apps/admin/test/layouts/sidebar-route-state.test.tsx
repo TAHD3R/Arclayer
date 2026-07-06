@@ -233,15 +233,12 @@ describe("sidebar route state wiring", () => {
     expect(props.favoriteWorkspaceBase).toBe("/projects/ws-1");
     expect(props.mainItems.map((item) => item.key)).toEqual([
       "dashboard",
+      "editor",
       "activity",
       "assets",
-      "content.library",
-      "content.models",
-      "website.analytics",
-      "settings.site",
-      "apps.manage",
-      "apps.market",
-      "automations",
+      "website.domain",
+      "content",
+      "seo",
       "settings.project",
     ]);
   });
@@ -377,7 +374,8 @@ describe("sidebar route state wiring", () => {
       const topbar = latestSceneProps().renderTopbar?.();
       expect(topbar?.props.breadcrumbs?.map((item) => item.label)).toEqual([
         "nav:NAV_GROUP_WEBSITE",
-        "Content Model",
+        "Content",
+        "Content Models",
         "Article",
       ]);
     });

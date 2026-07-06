@@ -42,6 +42,22 @@ export interface AIWorkspaceActionProject {
   description?: string | null;
 }
 
+export interface AIWorkspaceActionProjectCreateSummary {
+  appEntryPath?: string | null;
+  componentBindingCount?: number | null;
+  contentItemCount?: number | null;
+  contentModelCount?: number | null;
+  domainHostname?: string | null;
+  editorPath?: string | null;
+  homepageItemId?: string | null;
+  homepageTitle?: string | null;
+  hierarchyNodeCount?: number | null;
+  releaseNumber?: number | null;
+  releaseReady?: boolean | null;
+  routePath?: string | null;
+  sourceFileCount?: number | null;
+}
+
 export interface AIWorkspaceActionContentModel {
   id: string;
   name: string;
@@ -51,11 +67,80 @@ export interface AIWorkspaceActionContentModel {
   modelKind: string;
 }
 
+export type AIWorkspaceActionContentModelAction =
+  | "list_content_models"
+  | "create_content_model"
+  | "update_content_model"
+  | "delete_content_model";
+
+export interface AIWorkspaceActionContentModelUpdate {
+  action: AIWorkspaceActionContentModelAction;
+  contentModel?: AIWorkspaceActionContentModel | null;
+  contentModels: AIWorkspaceActionContentModel[];
+  contentModelItems: AIWorkspaceActionContentModel[];
+  modelCount?: number | null;
+  deletedContentModelId?: string | null;
+}
+
+export interface AIWorkspaceActionSourceUpdate {
+  action:
+    | "read_project_source"
+    | "write_project_source_file"
+    | "delete_project_source_file"
+    | "update_project_source_settings";
+  filePath?: string | null;
+  fileCount?: number | null;
+  released: boolean;
+  releaseNumber?: number | null;
+}
+
+export interface AIWorkspaceActionContentItem {
+  id: string;
+  title?: string | null;
+  slug: string;
+  modelKey?: string | null;
+  status: string;
+  derivedStatus?: string | null;
+}
+
+export type AIWorkspaceActionContentItemAction =
+  | "list_content_items"
+  | "create_content_item"
+  | "update_content_item"
+  | "update_homepage"
+  | "delete_content_item";
+
+export interface AIWorkspaceActionContentItemUpdate {
+  action: AIWorkspaceActionContentItemAction;
+  contentItem?: AIWorkspaceActionContentItem | null;
+  contentItems: AIWorkspaceActionContentItem[];
+  itemCount?: number | null;
+  deletedContentItemId?: string | null;
+  versionNumber?: number | null;
+  versionState?: string | null;
+  published: boolean;
+}
+
+export interface AIWorkspaceActionSettingsUpdate {
+  changedFields: string[];
+  fieldCount: number;
+}
+
+export interface AIWorkspaceActionSiteUpdate {
+  action:
+    | AIWorkspaceActionContentItemAction
+    | "write_project_source_file"
+    | "delete_project_source_file";
+  content: AIWorkspaceActionContentItemUpdate;
+  source: AIWorkspaceActionSourceUpdate;
+}
+
 export type AIWorkspaceActionArtifact =
   | {
       type: "workspace_project_created";
       status: "completed";
       project: AIWorkspaceActionProject;
+      summary?: AIWorkspaceActionProjectCreateSummary;
       navigation: { label: string; path: string };
     }
   | {
@@ -75,6 +160,36 @@ export type AIWorkspaceActionArtifact =
       type: "workspace_content_models_created";
       status: "completed";
       contentModels: AIWorkspaceActionContentModel[];
+      navigation: { label: string; path: string };
+    }
+  | {
+      type: "workspace_content_model_updated";
+      status: "completed";
+      contentModel: AIWorkspaceActionContentModelUpdate;
+      navigation: { label: string; path: string };
+    }
+  | {
+      type: "workspace_project_source_updated";
+      status: "completed";
+      source: AIWorkspaceActionSourceUpdate;
+      navigation: { label: string; path: string };
+    }
+  | {
+      type: "workspace_content_item_updated";
+      status: "completed";
+      content: AIWorkspaceActionContentItemUpdate;
+      navigation: { label: string; path: string };
+    }
+  | {
+      type: "workspace_site_updated";
+      status: "completed";
+      site: AIWorkspaceActionSiteUpdate;
+      navigation: { label: string; path: string };
+    }
+  | {
+      type: "workspace_site_settings_updated";
+      status: "completed";
+      settings: AIWorkspaceActionSettingsUpdate;
       navigation: { label: string; path: string };
     }
   | {

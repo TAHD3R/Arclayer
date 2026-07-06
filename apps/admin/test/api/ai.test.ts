@@ -256,7 +256,7 @@ describe("AI agent API", () => {
       contentModels: [],
       projects: [],
       total: null,
-      navigation: { label: "进入项目", path: "/projects/project-created" },
+      navigation: { label: "打开编辑器", path: "/projects/project-created/editor" },
     });
 
     await executeAIWorkspaceAction("帮我创建一个随机项目", { projectId: "project-target" });
@@ -281,17 +281,107 @@ describe("AI agent API", () => {
       status: "completed",
       content: "已创建项目",
       executionSteps: [],
-      toolCalls: [],
+      toolCalls: [
+        {
+          toolName: "workspace.create_site_structure",
+          status: "completed",
+          arguments: {
+            routePath: "/",
+            hierarchyRootItemId: "item-home",
+            hierarchyNodeCount: 1,
+            componentBindings: [
+              { componentKey: "landing.hero", bindingKey: "headline" },
+              { componentKey: "landing.hero", bindingKey: "subheading" },
+              { componentKey: "landing.hero", bindingKey: "primaryCtaLabel" },
+              { componentKey: "landing.sections", bindingKey: "sections" },
+            ],
+          },
+        },
+        {
+          toolName: "workspace.publish_project_release",
+          status: "completed",
+          arguments: {
+            releaseId: "release-1",
+            releaseNumber: 1,
+            selectionCount: 1,
+          },
+        },
+      ],
       project: {
         id: "project-created",
         name: "内容实验室",
         slug: "project",
         description: null,
       },
-      contentModels: [],
+      domain: {
+        hostname: "project.arclayer.localhost",
+      },
+      contentModels: [
+        {
+          id: "model-page",
+          workspaceId: "workspace-1",
+          siteId: "site-1",
+          singularKey: "page",
+          pluralKey: "pages",
+          name: "Page",
+          description: "Routable website pages",
+          modelKind: "collection",
+        },
+        {
+          id: "model-block",
+          workspaceId: "workspace-1",
+          siteId: "site-1",
+          singularKey: "reusableBlock",
+          pluralKey: "reusableBlocks",
+          name: "Reusable block",
+          description: "Shared site sections",
+          modelKind: "component",
+        },
+      ],
+      contentItem: {
+        id: "item-home",
+        workspaceId: "workspace-1",
+        siteId: "site-1",
+        modelId: "model-page",
+        modelKey: "page",
+        title: "Homepage",
+        slug: "home",
+        locale: "en-US",
+        status: "published",
+        derivedStatus: "published",
+      },
+      contentItems: [
+        {
+          id: "item-home",
+          workspaceId: "workspace-1",
+          siteId: "site-1",
+          modelId: "model-page",
+          modelKey: "page",
+          title: "Homepage",
+          slug: "home",
+          locale: "en-US",
+          status: "published",
+          derivedStatus: "published",
+        },
+      ],
       projects: [],
+      sourceManifest: {
+        files: [
+          {
+            path: "src/App.tsx",
+            role: "entry",
+            language: "typescriptreact",
+          },
+          {
+            path: "src/index.css",
+            role: "style",
+            language: "css",
+          },
+        ],
+      },
+      release: null,
       total: null,
-      navigation: { label: "进入项目", path: "/projects/project-created" },
+      navigation: { label: "打开编辑器", path: "/projects/project-created/editor" },
     });
 
     expect(projectArtifact).toEqual({
@@ -303,7 +393,22 @@ describe("AI agent API", () => {
         slug: "project",
         description: null,
       },
-      navigation: { label: "进入项目", path: "/projects/project-created" },
+      summary: {
+        appEntryPath: "src/App.tsx",
+        componentBindingCount: 4,
+        contentItemCount: 1,
+        contentModelCount: 2,
+        domainHostname: "project.arclayer.localhost",
+        editorPath: "/projects/project-created/editor",
+        homepageItemId: "item-home",
+        homepageTitle: "Homepage",
+        hierarchyNodeCount: 1,
+        releaseNumber: 1,
+        releaseReady: true,
+        routePath: "/",
+        sourceFileCount: 2,
+      },
+      navigation: { label: "打开编辑器", path: "/projects/project-created/editor" },
     });
 
     const contentModelArtifact = toAIWorkspaceActionArtifact({
@@ -428,6 +533,587 @@ describe("AI agent API", () => {
       navigation: {
         label: "查看内容模型",
         path: "/projects/project-1/content/models",
+      },
+    });
+
+    const contentModelUpdateArtifact = toAIWorkspaceActionArtifact({
+      kind: "tool_call",
+      action: "update_content_model",
+      status: "completed",
+      content: "已更新内容模型",
+      executionSteps: [],
+      toolCalls: [
+        {
+          toolName: "workspace.update_content_model",
+          status: "completed",
+          arguments: { modelId: "model-2", name: "案例展示" },
+        },
+      ],
+      project: null,
+      contentModel: {
+        id: "model-2",
+        workspaceId: "workspace-1",
+        siteId: "site-1",
+        singularKey: "caseStudy",
+        pluralKey: "caseStudies",
+        name: "案例展示",
+        description: "管理客户案例。",
+        modelKind: "collection_type",
+      },
+      contentModels: [
+        {
+          id: "model-2",
+          workspaceId: "workspace-1",
+          siteId: "site-1",
+          singularKey: "caseStudy",
+          pluralKey: "caseStudies",
+          name: "案例展示",
+          description: "管理客户案例。",
+          modelKind: "collection_type",
+        },
+      ],
+      contentModelItems: [
+        {
+          id: "model-2",
+          workspaceId: "workspace-1",
+          siteId: "site-1",
+          singularKey: "caseStudy",
+          pluralKey: "caseStudies",
+          name: "案例展示",
+          description: "管理客户案例。",
+          modelKind: "collection_type",
+        },
+      ],
+      projects: [],
+      total: 2,
+      navigation: {
+        label: "编辑内容模型",
+        path: "/projects/project-1/content/models/edit?modelId=model-2",
+      },
+    });
+
+    expect(contentModelUpdateArtifact).toEqual({
+      type: "workspace_content_model_updated",
+      status: "completed",
+      contentModel: {
+        action: "update_content_model",
+        contentModel: {
+          id: "model-2",
+          workspaceId: "workspace-1",
+          siteId: "site-1",
+          singularKey: "caseStudy",
+          pluralKey: "caseStudies",
+          name: "案例展示",
+          description: "管理客户案例。",
+          modelKind: "collection_type",
+        },
+        contentModels: [
+          {
+            id: "model-2",
+            workspaceId: "workspace-1",
+            siteId: "site-1",
+            singularKey: "caseStudy",
+            pluralKey: "caseStudies",
+            name: "案例展示",
+            description: "管理客户案例。",
+            modelKind: "collection_type",
+          },
+        ],
+        contentModelItems: [
+          {
+            id: "model-2",
+            workspaceId: "workspace-1",
+            siteId: "site-1",
+            singularKey: "caseStudy",
+            pluralKey: "caseStudies",
+            name: "案例展示",
+            description: "管理客户案例。",
+            modelKind: "collection_type",
+          },
+        ],
+        modelCount: 2,
+        deletedContentModelId: null,
+      },
+      navigation: {
+        label: "编辑内容模型",
+        path: "/projects/project-1/content/models/edit?modelId=model-2",
+      },
+    });
+
+    const contentModelListArtifact = toAIWorkspaceActionArtifact({
+      kind: "tool_call",
+      action: "list_content_models",
+      status: "completed",
+      content: "已读取内容模型",
+      executionSteps: [],
+      toolCalls: [
+        {
+          toolName: "workspace.list_content_models",
+          status: "completed",
+          arguments: { query: "case" },
+        },
+      ],
+      project: null,
+      contentModel: null,
+      contentModels: [],
+      contentModelItems: [
+        {
+          id: "model-2",
+          workspaceId: "workspace-1",
+          siteId: "site-1",
+          singularKey: "caseStudy",
+          pluralKey: "caseStudies",
+          name: "案例展示",
+          description: "管理客户案例。",
+          modelKind: "collection_type",
+        },
+      ],
+      projects: [],
+      total: 1,
+      navigation: {
+        label: "查看内容模型",
+        path: "/projects/project-1/content/models",
+      },
+    });
+
+    expect(contentModelListArtifact).toMatchObject({
+      type: "workspace_content_model_updated",
+      contentModel: {
+        action: "list_content_models",
+        modelCount: 1,
+        contentModelItems: [
+          expect.objectContaining({
+            id: "model-2",
+            singularKey: "caseStudy",
+          }),
+        ],
+      },
+    });
+
+    const contentModelDeleteArtifact = toAIWorkspaceActionArtifact({
+      kind: "tool_call",
+      action: "delete_content_model",
+      status: "completed",
+      content: "已删除内容模型",
+      executionSteps: [],
+      toolCalls: [
+        {
+          toolName: "workspace.delete_content_model",
+          status: "completed",
+          arguments: { modelId: "model-2" },
+        },
+      ],
+      project: null,
+      contentModel: null,
+      contentModels: [],
+      contentModelItems: [],
+      deletedContentModelId: "model-2",
+      projects: [],
+      total: 1,
+      navigation: {
+        label: "查看内容模型",
+        path: "/projects/project-1/content/models",
+      },
+    });
+
+    expect(contentModelDeleteArtifact).toEqual({
+      type: "workspace_content_model_updated",
+      status: "completed",
+      contentModel: {
+        action: "delete_content_model",
+        contentModel: null,
+        contentModels: [],
+        contentModelItems: [],
+        modelCount: 1,
+        deletedContentModelId: "model-2",
+      },
+      navigation: {
+        label: "查看内容模型",
+        path: "/projects/project-1/content/models",
+      },
+    });
+
+    const sourceArtifact = toAIWorkspaceActionArtifact({
+      kind: "tool_call",
+      action: "write_project_source_file",
+      status: "completed",
+      content: "已写入项目源码文件并发布新版本。",
+      executionSteps: [],
+      toolCalls: [],
+      project: null,
+      contentModels: [],
+      projects: [],
+      sourceFile: {
+        path: "src/App.tsx",
+        role: "entry",
+        language: "typescriptreact",
+        contents: "export function App() { return null; }\n",
+      },
+      release: {
+        release: {
+          releaseNumber: 9,
+        },
+      },
+      total: null,
+      navigation: {
+        label: "打开编辑器",
+        path: "/projects/project-1/editor",
+      },
+    });
+
+    expect(sourceArtifact).toEqual({
+      type: "workspace_project_source_updated",
+      status: "completed",
+      source: {
+        action: "write_project_source_file",
+        filePath: "src/App.tsx",
+        fileCount: null,
+        released: true,
+        releaseNumber: 9,
+      },
+      navigation: {
+        label: "打开编辑器",
+        path: "/projects/project-1/editor",
+      },
+    });
+
+    const readSourceArtifact = toAIWorkspaceActionArtifact({
+      kind: "tool_call",
+      action: "read_project_source",
+      status: "completed",
+      content: "已读取目标项目源码：`src/App.tsx`。",
+      executionSteps: [],
+      toolCalls: [],
+      project: null,
+      contentModels: [],
+      projects: [],
+      sourceFile: {
+        path: "src/App.tsx",
+        role: "entry",
+        language: "typescriptreact",
+        contents: "export function App() { return null; }\n",
+      },
+      total: null,
+      navigation: {
+        label: "打开编辑器",
+        path: "/projects/project-1/editor",
+      },
+    });
+
+    expect(readSourceArtifact).toEqual({
+      type: "workspace_project_source_updated",
+      status: "completed",
+      source: {
+        action: "read_project_source",
+        filePath: "src/App.tsx",
+        fileCount: null,
+        released: false,
+        releaseNumber: null,
+      },
+      navigation: {
+        label: "打开编辑器",
+        path: "/projects/project-1/editor",
+      },
+    });
+
+    const contentItemArtifact = toAIWorkspaceActionArtifact({
+      kind: "tool_call",
+      action: "update_homepage",
+      status: "completed",
+      content: "已更新首页内容。",
+      executionSteps: [],
+      toolCalls: [],
+      project: null,
+      contentModels: [],
+      projects: [],
+      contentItem: {
+        id: "item-home",
+        workspaceId: "workspace-1",
+        siteId: "site-1",
+        modelId: "model-page",
+        modelKey: "page",
+        title: "Homepage",
+        slug: "home",
+        locale: "en-US",
+        status: "published",
+        derivedStatus: "published",
+      },
+      contentItems: [
+        {
+          id: "item-home",
+          workspaceId: "workspace-1",
+          siteId: "site-1",
+          modelId: "model-page",
+          modelKey: "page",
+          title: "Homepage",
+          slug: "home",
+          locale: "en-US",
+          status: "published",
+          derivedStatus: "published",
+        },
+      ],
+      contentVersion: {
+        itemId: "item-home",
+        versionNumber: 3,
+        state: "published",
+        changeSummary: "Refresh hero copy",
+      },
+      total: 1,
+      navigation: {
+        label: "打开编辑器",
+        path: "/projects/project-1/editor",
+      },
+    });
+
+    expect(contentItemArtifact).toEqual({
+      type: "workspace_content_item_updated",
+      status: "completed",
+      content: {
+        action: "update_homepage",
+        contentItem: {
+          id: "item-home",
+          workspaceId: "workspace-1",
+          siteId: "site-1",
+          modelId: "model-page",
+          modelKey: "page",
+          title: "Homepage",
+          slug: "home",
+          locale: "en-US",
+          status: "published",
+          derivedStatus: "published",
+        },
+        contentItems: [
+          {
+            id: "item-home",
+            workspaceId: "workspace-1",
+            siteId: "site-1",
+            modelId: "model-page",
+            modelKey: "page",
+            title: "Homepage",
+            slug: "home",
+            locale: "en-US",
+            status: "published",
+            derivedStatus: "published",
+          },
+        ],
+        itemCount: 1,
+        deletedContentItemId: null,
+        versionNumber: 3,
+        versionState: "published",
+        published: true,
+      },
+      navigation: {
+        label: "打开编辑器",
+        path: "/projects/project-1/editor",
+      },
+    });
+
+    const siteArtifact = toAIWorkspaceActionArtifact({
+      kind: "tool_call",
+      action: "update_homepage",
+      status: "completed",
+      content: "已更新首页内容、源码并发布新版本。",
+      executionSteps: [],
+      toolCalls: [],
+      project: null,
+      contentModels: [],
+      projects: [],
+      contentItem: {
+        id: "item-home",
+        workspaceId: "workspace-1",
+        siteId: "site-1",
+        modelId: "model-page",
+        modelKey: "page",
+        title: "Homepage",
+        slug: "home",
+        locale: "en-US",
+        status: "published",
+        derivedStatus: "published",
+      },
+      contentItems: [
+        {
+          id: "item-home",
+          workspaceId: "workspace-1",
+          siteId: "site-1",
+          modelId: "model-page",
+          modelKey: "page",
+          title: "Homepage",
+          slug: "home",
+          locale: "en-US",
+          status: "published",
+          derivedStatus: "published",
+        },
+      ],
+      contentVersion: {
+        itemId: "item-home",
+        versionNumber: 4,
+        state: "published",
+        changeSummary: "Refresh hero copy and source",
+      },
+      sourceManifest: {
+        files: [
+          { path: "src/App.tsx", role: "entry", language: "typescriptreact" },
+          { path: "src/index.css", role: "style", language: "css" },
+        ],
+      },
+      release: {
+        release: {
+          releaseNumber: 12,
+        },
+      },
+      total: 1,
+      navigation: {
+        label: "打开编辑器",
+        path: "/projects/project-1/editor",
+      },
+    });
+
+    expect(siteArtifact).toEqual({
+      type: "workspace_site_updated",
+      status: "completed",
+      site: {
+        action: "update_homepage",
+        content: {
+          action: "update_homepage",
+          contentItem: {
+            id: "item-home",
+            workspaceId: "workspace-1",
+            siteId: "site-1",
+            modelId: "model-page",
+            modelKey: "page",
+            title: "Homepage",
+            slug: "home",
+            locale: "en-US",
+            status: "published",
+            derivedStatus: "published",
+          },
+          contentItems: [
+            {
+              id: "item-home",
+              workspaceId: "workspace-1",
+              siteId: "site-1",
+              modelId: "model-page",
+              modelKey: "page",
+              title: "Homepage",
+              slug: "home",
+              locale: "en-US",
+              status: "published",
+              derivedStatus: "published",
+            },
+          ],
+          itemCount: 1,
+          deletedContentItemId: null,
+          versionNumber: 4,
+          versionState: "published",
+          published: true,
+        },
+        source: {
+          action: "write_project_source_file",
+          filePath: null,
+          fileCount: 2,
+          released: true,
+          releaseNumber: 12,
+        },
+      },
+      navigation: {
+        label: "打开编辑器",
+        path: "/projects/project-1/editor",
+      },
+    });
+
+    const settingsArtifact = toAIWorkspaceActionArtifact({
+      kind: "tool_call",
+      action: "update_site_settings",
+      status: "completed",
+      content: "已更新网站配置。",
+      executionSteps: [],
+      toolCalls: [
+        {
+          toolName: "workspace.update_site_settings",
+          status: "completed",
+          arguments: {
+            siteName: "ArcLayer 企业站",
+            defaultTitle: "ArcLayer 企业站",
+            googleAnalyticsMeasurementId: "G-1234567890",
+          },
+        },
+      ],
+      project: null,
+      contentModels: [],
+      projects: [],
+      siteSettings: {
+        value: {
+          site: { name: "ArcLayer 企业站" },
+        },
+      },
+      total: null,
+      navigation: {
+        label: "打开网站配置",
+        path: "/projects/project-1/seo/site",
+      },
+    });
+
+    expect(settingsArtifact).toEqual({
+      type: "workspace_site_settings_updated",
+      status: "completed",
+      settings: {
+        changedFields: ["defaultTitle", "googleAnalyticsMeasurementId", "siteName"],
+        fieldCount: 3,
+      },
+      navigation: {
+        label: "打开网站配置",
+        path: "/projects/project-1/seo/site",
+      },
+    });
+
+    const sourceSettingsArtifact = toAIWorkspaceActionArtifact({
+      kind: "tool_call",
+      action: "update_site_settings",
+      status: "completed",
+      content: "已更新项目源码配置。",
+      executionSteps: [],
+      toolCalls: [
+        {
+          toolName: "workspace.update_project_source_settings",
+          status: "completed",
+          arguments: {
+            framework: "astro",
+            sourceProvider: "git",
+            buildCommand: "pnpm astro build",
+          },
+        },
+      ],
+      project: null,
+      contentModels: [],
+      projects: [],
+      siteSettings: {
+        value: {
+          project_source: {
+            framework: "astro",
+            source_provider: "git",
+          },
+        },
+      },
+      total: null,
+      navigation: {
+        label: "打开项目配置",
+        path: "/projects/project-1/settings/general",
+      },
+    });
+
+    expect(sourceSettingsArtifact).toEqual({
+      type: "workspace_project_source_updated",
+      status: "completed",
+      source: {
+        action: "update_project_source_settings",
+        filePath: null,
+        fileCount: null,
+        released: false,
+        releaseNumber: null,
+      },
+      navigation: {
+        label: "打开项目配置",
+        path: "/projects/project-1/settings/general",
       },
     });
   });

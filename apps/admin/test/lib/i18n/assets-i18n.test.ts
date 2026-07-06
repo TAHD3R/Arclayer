@@ -15,6 +15,7 @@ describe("assets i18n", () => {
     expect(i18n.t("assets:ASSET_EDIT_ALT_NAME_TOOLTIP")).toBe(
       "原文件名通常来自上传文件。替代名称会在资源选择、替换和插入时作为辅助识别名称展示给编辑者。",
     );
+    expect(i18n.t("assets:ASSET_PURPOSE_ARTICLE_COVER")).toBe("内容封面");
 
     await i18n.changeLanguage("en-US");
     expect(i18n.t("assets:ASSET_EDIT_ALT_NAME")).toBe("Alt name");
@@ -24,6 +25,7 @@ describe("assets i18n", () => {
     expect(i18n.t("assets:ASSET_EDIT_ALT_NAME_TOOLTIP")).toBe(
       "Original filenames usually come from the uploaded file. Alt name appears as a clearer reference when editors choose, replace, and insert this asset.",
     );
+    expect(i18n.t("assets:ASSET_PURPOSE_ARTICLE_COVER")).toBe("Content cover");
     await i18n.changeLanguage(DEFAULT_LOCALE);
   });
 });

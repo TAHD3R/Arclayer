@@ -17,7 +17,7 @@ import { Checkbox } from "@arclayer/ui/checkbox";
 
 import { ContentModelsRowActions } from "./content-models-row-actions";
 import type { ContentModelsTableRow } from "../types";
-import { getContentModelFieldCount } from "../utils";
+import { getContentModelFieldCount, getContentModelPurposeLabelKey } from "../utils";
 import { readContentModelFieldRows } from "../fields";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
@@ -244,7 +244,7 @@ export function buildContentModelsTableColumns(params: {
           <ContentModelKindTag
             kind={modelKind}
             textStyle="caption"
-            label={params.t(`content:CONTENT_MODELS_KIND_${modelKind.toUpperCase()}`)}
+            label={params.t(getContentModelPurposeLabelKey(row.original))}
           />
         );
       },

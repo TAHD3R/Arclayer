@@ -6,11 +6,15 @@ import { Accordion } from "@arclayer/ui/accordion";
 import { Input } from "@arclayer/ui/input";
 import { SettingAccordionItem } from "@arclayer/ui/setting-accordion-item";
 import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
-import { SettingPanel } from "@arclayer/ui/setting-panel";
 import { Textarea } from "@arclayer/ui/textarea";
 
 import { SettingSwitchBlock } from "@/components/settings/setting-switch-block";
 import { isValidEmail } from "@/lib/settings/general/utils";
+import {
+  SystemSettingItem,
+  SystemSettingRow,
+  SystemSettingStack,
+} from "@/pages/system/components/system-setting-item";
 import type { JsonValueInput } from "@arclayer/openapi/admin-types";
 import type {
   GeneralSettingsFormValues,
@@ -120,6 +124,32 @@ function buildDefaultLocalePatch(
   return { site_localization: { default_locale: nextLocale, locale: nextLocale } };
 }
 
+function WebsiteConfigScopeSection() {
+  const { t } = useTranslation();
+  return (
+    <SystemSettingItem
+      id="website-config-scope"
+      title={t("settings:SETTINGS_SITE_SCOPE_PANEL_TITLE")}
+      description={t("settings:SETTINGS_SITE_SCOPE_PANEL_DESC")}
+    >
+      <div className="grid gap-3">
+        <SystemSettingRow
+          title={t("settings:SETTINGS_SITE_SCOPE_RUNTIME_TITLE")}
+          description={t("settings:SETTINGS_SITE_SCOPE_RUNTIME_DESC")}
+        />
+        <SystemSettingRow
+          title={t("settings:SETTINGS_SITE_SCOPE_WEBSITE_OPS_TITLE")}
+          description={t("settings:SETTINGS_SITE_SCOPE_WEBSITE_OPS_DESC")}
+        />
+        <SystemSettingRow
+          title={t("settings:SETTINGS_SITE_SCOPE_PROJECT_OWNED_TITLE")}
+          description={t("settings:SETTINGS_SITE_SCOPE_PROJECT_OWNED_DESC")}
+        />
+      </div>
+    </SystemSettingItem>
+  );
+}
+
 type SiteSettingsTabProps = GeneralSettingsTabBaseProps & {
   assetProjectId: string | null;
 };
@@ -168,6 +198,9 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
   const isSupportInboxDirty = values.siteContactEmail !== initialValues.siteContactEmail;
   const isTitlePolicyDirty =
     JSON.stringify(values.seoTitlePolicy) !== JSON.stringify(initialValues.seoTitlePolicy);
+  const isSearchDiscoveryDirty =
+    values.seoIndexingEnabled !== initialValues.seoIndexingEnabled ||
+    values.seoSitemapEnabled !== initialValues.seoSitemapEnabled;
 
   const handleLocalizedToggle = (
     enabledName: "siteNameI18nEnabled" | "siteDescriptionI18nEnabled",
@@ -346,17 +379,31 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
       }
     });
 
+  const saveSearchDiscovery = () =>
+    withSavingKey("seoSearchDiscovery", async () => {
+      const indexingEnabled = Boolean(form.getValues("seoIndexingEnabled"));
+      const sitemapEnabled = Boolean(form.getValues("seoSitemapEnabled"));
+      await patch({
+        seo: {
+          robots_directive: indexingEnabled ? "index,follow" : "noindex,nofollow",
+          sitemap_enabled: sitemapEnabled,
+        },
+      });
+    });
+
   const siteIdentitySummary = useMemo(
     () => formatSummaryText(effectiveSiteName),
     [effectiveSiteName],
   );
 
   return (
-    <div className="space-y-8">
-      <SettingPanel
+    <SystemSettingStack>
+      <WebsiteConfigScopeSection />
+
+      <SystemSettingItem
+        id="website-identity"
         title={t("settings:SETTINGS_SITE_BASICS_IDENTITY_PANEL_TITLE")}
         description={t("settings:SETTINGS_SITE_BASICS_IDENTITY_PANEL_DESC")}
-        bordered={false}
       >
         <SettingActionGroup>
           <Accordion type="single" collapsible className="px-0">
@@ -602,12 +649,12 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
             </SettingAccordionItem>
           </Accordion>
         </SettingActionGroup>
-      </SettingPanel>
+      </SystemSettingItem>
 
-      <SettingPanel
+      <SystemSettingItem
+        id="website-browser"
         title={t("settings:SETTINGS_SITE_BASICS_BROWSER_PANEL_TITLE")}
         description={t("settings:SETTINGS_SITE_BASICS_BROWSER_PANEL_DESC")}
-        bordered={false}
       >
         <SettingActionGroup>
           <Accordion type="single" collapsible className="px-0">
@@ -659,6 +706,31 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
               urlField="siteFaviconUrl"
             />
 
+            <SiteBrandAssetAccordionItem
+              assetField="seoOgImageAssetId"
+              currentAssetId={values.seoOgImageAssetId}
+              currentUrl={values.seoOgImageUrl}
+              description={t("settings:SETTINGS_SITE_OG_IMAGE_DESC")}
+              disabled={disabled}
+              fieldKey="seo_og_image"
+              form={form}
+              initialAssetId={initialValues.seoOgImageAssetId}
+              initialUrl={initialValues.seoOgImageUrl}
+              patch={patch}
+              patchField="og_image"
+              patchSection="seo"
+              removeAriaLabel={t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
+              resetKey="reset:seoOgImageUrl"
+              saveKey="seoOgImageUrl"
+              savingKey={savingKey}
+              title={t("settings:SETTINGS_SITE_OG_IMAGE_LABEL")}
+              uploadAriaLabel={t("settings:SETTINGS_ASSET_PICKER_SELECT")}
+              uploadPurpose="site_logo"
+              withSavingKey={withSavingKey}
+              assetProjectId={props.assetProjectId}
+              urlField="seoOgImageUrl"
+            />
+
             <SettingAccordionItem
               value="site_title_pattern"
               variant="action"
@@ -707,9 +779,78 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
                 )}
               />
             </SettingAccordionItem>
+
+            <SettingAccordionItem
+              value="site_search_discovery"
+              variant="action"
+              title={t("settings:SETTINGS_SITE_SEARCH_DISCOVERY_LABEL")}
+              description={t("settings:SETTINGS_SITE_SEARCH_DISCOVERY_DESC")}
+              showSummary
+              summary={
+                values.seoIndexingEnabled
+                  ? t("settings:SETTINGS_SITE_SEARCH_DISCOVERY_INDEXING_ALLOWED")
+                  : t("settings:SETTINGS_SITE_SEARCH_DISCOVERY_INDEXING_BLOCKED")
+              }
+              disabled={disabled}
+              confirmText={t("settings:SETTINGS_SAVE")}
+              confirmLoading={savingKey === "seoSearchDiscovery"}
+              onConfirm={saveSearchDiscovery}
+              onReset={
+                isSearchDiscoveryDirty
+                  ? () =>
+                      withSavingKey("reset:seoSearchDiscovery", async () => {
+                        form.setValue("seoIndexingEnabled", initialValues.seoIndexingEnabled, {
+                          shouldDirty: false,
+                        });
+                        form.setValue("seoSitemapEnabled", initialValues.seoSitemapEnabled, {
+                          shouldDirty: false,
+                        });
+                        await patch({
+                          seo: {
+                            robots_directive: initialValues.seoIndexingEnabled
+                              ? "index,follow"
+                              : "noindex,nofollow",
+                            sitemap_enabled: initialValues.seoSitemapEnabled,
+                          },
+                        });
+                      })
+                  : undefined
+              }
+              resetText={t("settings:SETTINGS_RESET")}
+              resetLoading={savingKey === "reset:seoSearchDiscovery"}
+            >
+              <div className="grid gap-4">
+                <Controller
+                  control={form.control}
+                  name="seoIndexingEnabled"
+                  render={({ field }) => (
+                    <SettingSwitchBlock
+                      checked={Boolean(field.value)}
+                      disabled={disabled}
+                      label={t("settings:SETTINGS_SITE_SEARCH_INDEXING_LABEL")}
+                      description={t("settings:SETTINGS_SITE_SEARCH_INDEXING_DESC")}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
+                <Controller
+                  control={form.control}
+                  name="seoSitemapEnabled"
+                  render={({ field }) => (
+                    <SettingSwitchBlock
+                      checked={Boolean(field.value)}
+                      disabled={disabled}
+                      label={t("settings:SETTINGS_SITE_SITEMAP_LABEL")}
+                      description={t("settings:SETTINGS_SITE_SITEMAP_DESC")}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
+              </div>
+            </SettingAccordionItem>
           </Accordion>
         </SettingActionGroup>
-      </SettingPanel>
-    </div>
+      </SystemSettingItem>
+    </SystemSettingStack>
   );
 }

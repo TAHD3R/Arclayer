@@ -13,6 +13,7 @@ import {
   type AIAgentMessageArtifact,
   type AIAgentRunStatus,
   type AIWorkspaceActionArtifact,
+  type AIWorkspaceActionProjectCreateSummary,
 } from "@/stores/use-ai-chat-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
@@ -54,8 +55,20 @@ export interface AIModelCatalogResponse {
 export type AIWorkspaceActionKind =
   | "create_project"
   | "create_content_model"
+  | "list_content_models"
+  | "update_content_model"
+  | "delete_content_model"
+  | "list_content_items"
+  | "create_content_item"
+  | "update_content_item"
+  | "update_homepage"
+  | "delete_content_item"
   | "list_projects"
   | "open_projects"
+  | "read_project_source"
+  | "write_project_source_file"
+  | "delete_project_source_file"
+  | "update_site_settings"
   | "refine_plan";
 
 export interface AIWorkspaceActionNavigation {
@@ -93,6 +106,10 @@ export interface AIWorkspaceActionProject {
   description?: string | null;
 }
 
+export interface AIWorkspaceActionDomain {
+  hostname: string;
+}
+
 export interface AIWorkspaceActionContentModel {
   id: string;
   workspaceId: string;
@@ -104,6 +121,58 @@ export interface AIWorkspaceActionContentModel {
   modelKind: string;
 }
 
+export type AIWorkspaceActionContentModelAction =
+  | "list_content_models"
+  | "create_content_model"
+  | "update_content_model"
+  | "delete_content_model";
+
+export interface AIWorkspaceActionContentItem {
+  id: string;
+  workspaceId: string;
+  siteId: string;
+  modelId?: string | null;
+  modelKey?: string | null;
+  title?: string | null;
+  slug: string;
+  locale: string;
+  status: string;
+  derivedStatus?: string | null;
+}
+
+export interface AIWorkspaceActionContentVersion {
+  itemId: string;
+  versionNumber: number;
+  state: string;
+  changeSummary?: string | null;
+}
+
+export interface AIWorkspaceActionSourceFile {
+  path: string;
+  role?: string | null;
+  language?: string | null;
+  contents?: string | null;
+}
+
+export interface AIWorkspaceActionSourceManifest {
+  files?: AIWorkspaceActionSourceFile[];
+}
+
+export interface AIWorkspaceActionSourceFileDelete {
+  path: string;
+  deleted?: boolean;
+}
+
+export interface AIWorkspaceActionRelease {
+  release?: {
+    releaseNumber?: number | null;
+  } | null;
+}
+
+export interface AIWorkspaceActionSiteSettings {
+  value?: Record<string, unknown>;
+}
+
 export interface AIWorkspaceActionResponse {
   kind: AIWorkspaceActionResolutionKind;
   action?: AIWorkspaceActionKind | null;
@@ -113,8 +182,20 @@ export interface AIWorkspaceActionResponse {
   executionSteps: AIWorkspaceActionExecutionStep[];
   toolCalls: AIWorkspaceActionToolCall[];
   project?: AIWorkspaceActionProject | null;
+  domain?: AIWorkspaceActionDomain | null;
   contentModel?: AIWorkspaceActionContentModel | null;
   contentModels: AIWorkspaceActionContentModel[];
+  contentModelItems?: AIWorkspaceActionContentModel[];
+  deletedContentModelId?: string | null;
+  contentItem?: AIWorkspaceActionContentItem | null;
+  contentItems?: AIWorkspaceActionContentItem[];
+  contentVersion?: AIWorkspaceActionContentVersion | null;
+  deletedContentItemId?: string | null;
+  sourceManifest?: AIWorkspaceActionSourceManifest | null;
+  sourceFile?: AIWorkspaceActionSourceFile | null;
+  sourceFileDelete?: AIWorkspaceActionSourceFileDelete | null;
+  release?: AIWorkspaceActionRelease | null;
+  siteSettings?: AIWorkspaceActionSiteSettings | null;
   projects: AIWorkspaceActionProject[];
   total?: number | null;
   navigation?: AIWorkspaceActionNavigation | null;
@@ -902,6 +983,7 @@ export async function executeAIWorkspaceAction(
   options?: {
     signal?: AbortSignal;
     projectId?: string | null;
+    mode?: AIComposerMode;
     conversationContext?: AIWorkspaceActionContextMessage[];
   },
 ): Promise<AIWorkspaceActionResponse> {
@@ -912,7 +994,7 @@ export async function executeAIWorkspaceAction(
       workspaceId,
       projectId: options?.projectId ?? undefined,
       message,
-      mode: useAiChatStore.getState().composerMode,
+      mode: options?.mode ?? useAiChatStore.getState().composerMode,
       conversationContext: options?.conversationContext ?? [],
     },
     { signal: options?.signal },
@@ -925,10 +1007,29 @@ export function toAIWorkspaceActionArtifact(
   if (response.kind !== "tool_call" || response.status !== "completed") return undefined;
   const navigation = response.navigation ?? undefined;
   if (response.action === "create_project" && response.project && navigation) {
+    const siteStructureSummary = toWorkspaceProjectSiteStructureSummary(response);
+    const releaseSummary = toWorkspaceProjectReleaseSummary(response);
     return {
       type: "workspace_project_created",
       status: response.status,
       project: toWorkspaceActionProject(response.project),
+      summary: {
+        ...siteStructureSummary,
+        ...releaseSummary,
+        appEntryPath: toWorkspaceProjectAppEntryPath(response),
+        contentItemCount:
+          response.contentItems?.length ??
+          (response.contentItem || response.contentVersion ? 1 : null),
+        contentModelCount: response.contentModels?.length ?? (response.contentModel ? 1 : null),
+        domainHostname: response.domain?.hostname ?? null,
+        editorPath: `/projects/${response.project.id}/editor`,
+        homepageItemId: toWorkspaceProjectHomepageItemId(response),
+        homepageTitle:
+          response.contentItem?.title ??
+          response.contentItems?.find((item) => item.title?.trim())?.title ??
+          null,
+        sourceFileCount: response.sourceManifest?.files?.length ?? null,
+      },
       navigation,
     };
   }
@@ -961,6 +1062,70 @@ export function toAIWorkspaceActionArtifact(
       navigation,
     };
   }
+  if (isWorkspaceActionContentModelUpdateResponse(response) && navigation) {
+    return {
+      type: "workspace_content_model_updated",
+      status: response.status,
+      contentModel: toWorkspaceActionContentModelUpdate(response),
+      navigation,
+    };
+  }
+  if (isWorkspaceActionSiteUpdateResponse(response) && navigation) {
+    return {
+      type: "workspace_site_updated",
+      status: response.status,
+      site: {
+        action: toWorkspaceActionSiteUpdateAction(response.action),
+        content: toWorkspaceActionContentItemUpdate(response),
+        source: toWorkspaceActionSourceUpdate(response),
+      },
+      navigation,
+    };
+  }
+  if (isWorkspaceActionProjectSourceSettingsUpdateResponse(response) && navigation) {
+    return {
+      type: "workspace_project_source_updated",
+      status: response.status,
+      source: toWorkspaceActionSourceUpdate(response),
+      navigation,
+    };
+  }
+  if (response.action === "update_site_settings" && navigation) {
+    return {
+      type: "workspace_site_settings_updated",
+      status: response.status,
+      settings: toWorkspaceActionSettingsUpdate(response),
+      navigation,
+    };
+  }
+  if (
+    (response.action === "write_project_source_file" ||
+      response.action === "delete_project_source_file" ||
+      response.action === "read_project_source") &&
+    navigation
+  ) {
+    return {
+      type: "workspace_project_source_updated",
+      status: response.status,
+      source: toWorkspaceActionSourceUpdate(response),
+      navigation,
+    };
+  }
+  if (
+    (response.action === "list_content_items" ||
+      response.action === "create_content_item" ||
+      response.action === "update_content_item" ||
+      response.action === "update_homepage" ||
+      response.action === "delete_content_item") &&
+    navigation
+  ) {
+    return {
+      type: "workspace_content_item_updated",
+      status: response.status,
+      content: toWorkspaceActionContentItemUpdate(response),
+      navigation,
+    };
+  }
   if (response.action === "open_projects" && navigation) {
     return {
       type: "workspace_navigation",
@@ -969,6 +1134,254 @@ export function toAIWorkspaceActionArtifact(
     };
   }
   return undefined;
+}
+
+function toWorkspaceProjectSiteStructureSummary(
+  response: AIWorkspaceActionResponse,
+): Partial<AIWorkspaceActionProjectCreateSummary> {
+  const siteStructureToolCall = response.toolCalls.find(
+    (toolCall) => toolCall.toolName === "workspace.create_site_structure",
+  );
+  if (!siteStructureToolCall) return {};
+  const args = siteStructureToolCall.arguments;
+  const routePath =
+    typeof args.routePath === "string" && args.routePath.trim() ? args.routePath : null;
+  const hierarchyNodeCount =
+    typeof args.hierarchyNodeCount === "number"
+      ? args.hierarchyNodeCount
+      : typeof args.hierarchyRootItemId === "string" && args.hierarchyRootItemId.trim()
+        ? 1
+        : null;
+  const componentBindingCount = Array.isArray(args.componentBindings)
+    ? args.componentBindings.length
+    : typeof args.componentBindingCount === "number"
+      ? args.componentBindingCount
+      : null;
+  return {
+    componentBindingCount,
+    hierarchyNodeCount,
+    routePath,
+  };
+}
+
+function toWorkspaceProjectReleaseSummary(
+  response: AIWorkspaceActionResponse,
+): Pick<AIWorkspaceActionProjectCreateSummary, "releaseNumber" | "releaseReady"> {
+  const releaseNumber = response.release?.release?.releaseNumber;
+  if (typeof releaseNumber === "number") return { releaseNumber, releaseReady: true };
+
+  const releaseToolCall = response.toolCalls.find(
+    (toolCall) => toolCall.toolName === "workspace.publish_project_release",
+  );
+  const toolReleaseNumber = releaseToolCall?.arguments.releaseNumber;
+  if (typeof toolReleaseNumber === "number") {
+    return { releaseNumber: toolReleaseNumber, releaseReady: true };
+  }
+
+  return {
+    releaseNumber: null,
+    releaseReady: null,
+  };
+}
+
+function toWorkspaceProjectHomepageItemId(response: AIWorkspaceActionResponse): string | null {
+  if (response.contentItem?.id) return response.contentItem.id;
+  const homepage = response.contentItems?.find((item) => {
+    const slug = item.slug.trim().toLowerCase();
+    return slug === "home" || slug === "homepage" || slug === "index";
+  });
+  return homepage?.id ?? response.contentVersion?.itemId ?? null;
+}
+
+function toWorkspaceProjectAppEntryPath(response: AIWorkspaceActionResponse): string | null {
+  return (
+    response.sourceManifest?.files?.find((file) => file.role === "entry")?.path ??
+    response.sourceManifest?.files?.find((file) => file.path.endsWith("/App.tsx"))?.path ??
+    response.sourceManifest?.files?.find((file) => file.path.endsWith("/main.tsx"))?.path ??
+    null
+  );
+}
+
+function isWorkspaceActionContentModelUpdateResponse(response: AIWorkspaceActionResponse): boolean {
+  return (
+    response.action === "list_content_models" ||
+    response.action === "update_content_model" ||
+    response.action === "delete_content_model" ||
+    Boolean(response.deletedContentModelId) ||
+    Boolean(response.contentModelItems?.length)
+  );
+}
+
+function isWorkspaceActionSiteUpdateResponse(response: AIWorkspaceActionResponse): boolean {
+  const hasContentResult = Boolean(
+    response.contentItem ||
+    response.contentVersion ||
+    response.deletedContentItemId ||
+    (response.contentItems?.length ?? 0) > 0,
+  );
+  const hasSourceResult = Boolean(
+    response.sourceManifest || response.sourceFile || response.sourceFileDelete,
+  );
+  return (
+    hasContentResult &&
+    hasSourceResult &&
+    (response.action === "update_homepage" ||
+      response.action === "update_content_item" ||
+      response.action === "create_content_item" ||
+      response.action === "write_project_source_file" ||
+      response.action === "delete_project_source_file")
+  );
+}
+
+const WORKSPACE_ACTION_SOURCE_SETTINGS_FIELDS = new Set([
+  "artifactStrategy",
+  "buildCommand",
+  "framework",
+  "outputDirectory",
+  "packageManager",
+  "rootDirectory",
+  "sourceProvider",
+]);
+
+function isWorkspaceActionProjectSourceSettingsUpdateResponse(
+  response: AIWorkspaceActionResponse,
+): boolean {
+  if (response.action !== "update_site_settings") return false;
+  const settingsToolCall = response.toolCalls.find(
+    (toolCall) =>
+      toolCall.toolName === "workspace.update_site_settings" ||
+      toolCall.toolName === "workspace.update_project_source_settings",
+  );
+  const changedFields = Object.keys(settingsToolCall?.arguments ?? {});
+  return (
+    changedFields.length > 0 &&
+    changedFields.every((field) => WORKSPACE_ACTION_SOURCE_SETTINGS_FIELDS.has(field))
+  );
+}
+
+function toWorkspaceActionSourceUpdate(
+  response: AIWorkspaceActionResponse,
+): Extract<AIWorkspaceActionArtifact, { type: "workspace_project_source_updated" }>["source"] {
+  return {
+    action: toWorkspaceActionSourceAction(response.action),
+    filePath: response.sourceFile?.path ?? response.sourceFileDelete?.path ?? null,
+    fileCount: response.sourceManifest?.files?.length ?? null,
+    released: Boolean(response.release),
+    releaseNumber: response.release?.release?.releaseNumber ?? null,
+  };
+}
+
+function toWorkspaceActionSourceAction(
+  action: AIWorkspaceActionKind | null | undefined,
+): Extract<
+  AIWorkspaceActionArtifact,
+  { type: "workspace_project_source_updated" }
+>["source"]["action"] {
+  if (
+    action === "read_project_source" ||
+    action === "write_project_source_file" ||
+    action === "delete_project_source_file"
+  ) {
+    return action;
+  }
+  if (action === "update_site_settings") return "update_project_source_settings";
+  return "write_project_source_file";
+}
+
+function toWorkspaceActionContentItemUpdate(
+  response: AIWorkspaceActionResponse,
+): Extract<AIWorkspaceActionArtifact, { type: "workspace_content_item_updated" }>["content"] {
+  const contentItems = (response.contentItems ?? []).map(toWorkspaceActionContentItem);
+  return {
+    action: toWorkspaceActionContentItemAction(response.action),
+    contentItem: response.contentItem ? toWorkspaceActionContentItem(response.contentItem) : null,
+    contentItems,
+    itemCount: response.total ?? contentItems.length,
+    deletedContentItemId: response.deletedContentItemId ?? null,
+    versionNumber: response.contentVersion?.versionNumber ?? null,
+    versionState: response.contentVersion?.state ?? null,
+    published: response.contentVersion?.state === "published",
+  };
+}
+
+function toWorkspaceActionContentItemAction(
+  action: AIWorkspaceActionKind | null | undefined,
+): Extract<
+  AIWorkspaceActionArtifact,
+  { type: "workspace_content_item_updated" }
+>["content"]["action"] {
+  if (
+    action === "list_content_items" ||
+    action === "create_content_item" ||
+    action === "update_content_item" ||
+    action === "update_homepage" ||
+    action === "delete_content_item"
+  ) {
+    return action;
+  }
+  return "update_homepage";
+}
+
+function toWorkspaceActionSiteUpdateAction(
+  action: AIWorkspaceActionKind | null | undefined,
+): Extract<AIWorkspaceActionArtifact, { type: "workspace_site_updated" }>["site"]["action"] {
+  if (
+    action === "create_content_item" ||
+    action === "update_content_item" ||
+    action === "update_homepage" ||
+    action === "write_project_source_file" ||
+    action === "delete_project_source_file"
+  ) {
+    return action;
+  }
+  return "update_homepage";
+}
+
+function toWorkspaceActionContentModelUpdate(
+  response: AIWorkspaceActionResponse,
+): Extract<AIWorkspaceActionArtifact, { type: "workspace_content_model_updated" }>["contentModel"] {
+  const contentModels = response.contentModels.map(toWorkspaceActionContentModel);
+  const contentModelItems = (response.contentModelItems ?? []).map(toWorkspaceActionContentModel);
+  return {
+    action: toWorkspaceActionContentModelAction(response.action),
+    contentModel: response.contentModel
+      ? toWorkspaceActionContentModel(response.contentModel)
+      : null,
+    contentModels,
+    contentModelItems,
+    modelCount: response.total ?? contentModelItems.length,
+    deletedContentModelId: response.deletedContentModelId ?? null,
+  };
+}
+
+function toWorkspaceActionContentModelAction(
+  action: AIWorkspaceActionKind | null | undefined,
+): Extract<
+  AIWorkspaceActionArtifact,
+  { type: "workspace_content_model_updated" }
+>["contentModel"]["action"] {
+  if (
+    action === "list_content_models" ||
+    action === "create_content_model" ||
+    action === "update_content_model" ||
+    action === "delete_content_model"
+  ) {
+    return action;
+  }
+  return "update_content_model";
+}
+
+function toWorkspaceActionSettingsUpdate(
+  response: AIWorkspaceActionResponse,
+): Extract<AIWorkspaceActionArtifact, { type: "workspace_site_settings_updated" }>["settings"] {
+  const settingsToolCall = response.toolCalls.find(
+    (toolCall) => toolCall.toolName === "workspace.update_site_settings",
+  );
+  const changedFields = Object.keys(settingsToolCall?.arguments ?? {}).sort();
+  return {
+    changedFields,
+    fieldCount: changedFields.length,
+  };
 }
 
 function toWorkspaceActionContentModel(
@@ -983,6 +1396,23 @@ function toWorkspaceActionContentModel(
     pluralKey: contentModel.pluralKey,
     description: contentModel.description,
     modelKind: contentModel.modelKind,
+  };
+}
+
+function toWorkspaceActionContentItem(
+  contentItem: AIWorkspaceActionContentItem,
+): AIWorkspaceActionContentItem {
+  return {
+    id: contentItem.id,
+    workspaceId: contentItem.workspaceId,
+    siteId: contentItem.siteId,
+    modelId: contentItem.modelId,
+    modelKey: contentItem.modelKey,
+    title: contentItem.title,
+    slug: contentItem.slug,
+    locale: contentItem.locale,
+    status: contentItem.status,
+    derivedStatus: contentItem.derivedStatus,
   };
 }
 

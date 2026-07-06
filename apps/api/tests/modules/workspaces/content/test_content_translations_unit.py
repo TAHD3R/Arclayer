@@ -10,7 +10,7 @@ from pydantic import ValidationError
 
 from src.core.entity_manager.manager import EntityManager
 from src.core.events import Event
-from src.models.content._enums import ContentWorkflowStage
+from src.models.content._enums import ContentVersionState, ContentWorkflowStage
 from src.modules.projects.content.items.canonical_service import ProjectContentCanonicalItemsService
 from src.modules.projects.content.items.input_schema import ContentItemCreateIn, ContentTranslationCreateIn
 from src.modules.projects.content.items.repository import ProjectContentItemsRepository
@@ -186,6 +186,90 @@ async def test_create_translation_links_new_locale_to_source_translation_group(m
     assert publisher.events[0].payload["project_id"] == str(project_id)
     assert publisher.events[0].payload["runtime_id"] == str(runtime_id)
     assert publisher.events[0].payload["translated_item_id"] == str(translated_item.id)
+
+
+@pytest.mark.asyncio
+async def test_create_translation_syncs_routable_path_to_target_locale_route_binding(monkeypatch) -> None:
+    workspace_id = uuid4()
+    site_id = uuid4()
+    actor_user_id = uuid4()
+    model = _model_definition(model_id=uuid4())
+    model.capabilities = ["queryable", "routable"]
+    model.singular_key = "page"
+    group_id = uuid4()
+    source_item = _content_item(
+        item_id=uuid4(),
+        workspace_id=workspace_id,
+        site_id=site_id,
+        model=model,
+        locale="en-US",
+    )
+    source_item.draft_version = 2
+    translated_item = _content_item(
+        item_id=uuid4(),
+        workspace_id=workspace_id,
+        site_id=site_id,
+        model=model,
+        locale="fr-FR",
+        translation_group_id=group_id,
+    )
+    source_version = SimpleNamespace(
+        id=uuid4(),
+        item_id=source_item.id,
+        version=2,
+        state=ContentVersionState.DRAFT,
+        fields_snapshot={"title": "About", "path": "/about"},
+    )
+    translated_version = SimpleNamespace(id=uuid4(), item_id=translated_item.id, version=1)
+    group = SimpleNamespace(id=group_id, primary_item_id=source_item.id, primary_locale="en-US")
+    conn = object()
+    repo = SimpleNamespace(
+        get_item_with_model=AsyncMock(side_effect=[source_item, translated_item]),
+        ensure_translation_group_for_item=AsyncMock(return_value=group),
+        get_translation_item_by_locale=AsyncMock(return_value=None),
+        create_item=AsyncMock(return_value=translated_item),
+        get_version_by_number=AsyncMock(return_value=source_version),
+        create_version=AsyncMock(return_value=translated_version),
+        replace_presentations=AsyncMock(),
+        replace_seo_profile=AsyncMock(),
+        replace_component_bindings=AsyncMock(),
+        update_item_fields=AsyncMock(return_value=translated_item),
+        list_translation_items=AsyncMock(return_value=[source_item, translated_item]),
+    )
+    service = ProjectContentCanonicalItemsService(
+        repo=cast(ProjectContentItemsRepository, repo),
+        entity_manager=cast(EntityManager, SimpleNamespace()),
+    )
+    sync_route = AsyncMock()
+    monkeypatch.setattr(
+        "src.modules.projects.content.items.canonical_service.upsert_route_binding_record",
+        sync_route,
+    )
+    monkeypatch.setattr(service, "tx", lambda: _FakeTransaction(conn))
+    monkeypatch.setattr(service.reads, "build_version_out", AsyncMock(return_value=SimpleNamespace(presentations=[])))
+    monkeypatch.setattr(service, "_publish_content_runtime_event", AsyncMock())
+
+    await service.create_translation(
+        workspace_id=workspace_id,
+        site_id=site_id,
+        environment_id=None,
+        item_id=source_item.id,
+        actor_user_id=actor_user_id,
+        payload=ContentTranslationCreateIn(target_locale="fr-FR"),
+    )
+
+    create_version_args = repo.create_version.await_args
+    assert create_version_args is not None
+    create_version_kwargs = create_version_args.kwargs
+    assert create_version_kwargs["fields_snapshot"]["path"] == "/about"
+    sync_route.assert_awaited_once()
+    route_await_args = sync_route.await_args
+    assert route_await_args is not None
+    route_kwargs = route_await_args.kwargs
+    assert route_kwargs["item_id"] == translated_item.id
+    assert route_kwargs["payload"].locale == "fr-FR"
+    assert route_kwargs["payload"].path == "/about"
+    assert route_kwargs["payload"].is_active is True
 
 
 def test_content_translation_payload_normalizes_locale_codes() -> None:

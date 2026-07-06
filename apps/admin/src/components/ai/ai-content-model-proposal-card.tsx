@@ -1,17 +1,15 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangleIcon, NetworkIcon, WandSparklesIcon } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
-  buildAIAgentApprovalsQueryKey,
-  createAIAgentContentModelDraftProposal,
+  executeAIWorkspaceAction,
   formatAIChatError,
-  listAIProjectAgents,
+  type AIWorkspaceActionContentModel,
+  type AIWorkspaceActionResponse,
 } from "@/api/ai";
-import { aiAgentUnavailableReasonKey } from "@/components/ai/ai-agent-availability";
 import { buildContentModelsQueryKey } from "@/api/content";
-import { useAiChatStore } from "@/stores/use-ai-chat-store";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import { Textarea } from "@arclayer/ui/textarea";
@@ -31,78 +29,38 @@ export function AIContentModelProposalCard({
 }: AIContentModelProposalCardProps) {
   const { t } = useTranslation(["ai"]);
   const queryClient = useQueryClient();
-  const selectedModel = useAiChatStore((s) => s.selectedModel);
-  const selectedReasoningEffort = useAiChatStore((s) => s.selectedReasoningEffort);
   const [instruction, setInstruction] = useState("");
-  const [createdApprovalId, setCreatedApprovalId] = useState<string | null>(null);
-  const {
-    data: agentsData,
-    error: agentsError,
-    isError: agentsIsError,
-    isLoading: agentsIsLoading,
-  } = useQuery({
-    queryKey: ["ai", "project-agents", projectId],
-    queryFn: ({ signal }) => listAIProjectAgents({ projectId, signal }),
-    enabled,
-    staleTime: 60_000,
-    retry: false,
-  });
-  const modelerSkill = agentsData?.skills.find((skill) => skill.skillId === "content.modeler");
-  const proposalMutation = useMutation({
-    mutationFn: async (input: { instruction: string }) =>
-      createAIAgentContentModelDraftProposal({
-        projectId,
-        payload: {
-          targetId: modelId,
-          instruction: input.instruction,
-          model: selectedModel,
-          reasoningEffort: selectedReasoningEffort,
+  const [resultMessage, setResultMessage] = useState<string | null>(null);
+  const updateMutation = useMutation({
+    mutationFn: async (input: { instruction: string }) => {
+      const response = await executeAIWorkspaceAction(
+        [
+          t("ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_ACTION_PREFIX", { modelId }),
+          "",
+          input.instruction,
+        ].join("\n"),
+        {
+          mode: "build",
+          projectId,
         },
-      }),
-    onSuccess: (result) => {
+      );
+      const updatedModel = resolveWorkspaceUpdatedModel(response);
+      if (!updatedModel) {
+        throw new Error(t("ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_NO_UPDATE"));
+      }
+      return { response, updatedModel };
+    },
+    onSuccess: ({ response }) => {
       setInstruction("");
-      setCreatedApprovalId(result.approval.id);
-      void queryClient.invalidateQueries({
-        queryKey: buildAIAgentApprovalsQueryKey(projectId),
-      });
+      setResultMessage(response.content || t("ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_UPDATED"));
       void queryClient.invalidateQueries({ queryKey: buildContentModelsQueryKey(projectId) });
     },
   });
 
   if (!enabled) return null;
 
-  if (agentsIsError) {
-    return <ProposalError message={formatAIChatError(agentsError)} className={className} />;
-  }
-
-  const unavailableDescription = t("ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_TARGET");
-
-  if (agentsIsLoading) {
-    return (
-      <ProposalUnavailable
-        title={t("ai:AI_AGENT_CONTENT_MODEL_PROPOSAL")}
-        message={t("ai:AI_CONTEXT_RECOMMENDATION_CATALOG_LOADING", {
-          description: unavailableDescription,
-        })}
-        className={className}
-      />
-    );
-  }
-
-  if (!modelerSkill?.enabled) {
-    return (
-      <ProposalUnavailable
-        title={t("ai:AI_AGENT_CONTENT_MODEL_PROPOSAL")}
-        message={t(aiAgentUnavailableReasonKey(modelerSkill?.disabledReason), {
-          description: unavailableDescription,
-        })}
-        className={className}
-      />
-    );
-  }
-
   const trimmedInstruction = instruction.trim();
-  const pending = proposalMutation.isPending;
+  const pending = updateMutation.isPending;
 
   return (
     <section
@@ -119,9 +77,7 @@ export function AIContentModelProposalCard({
             {t("ai:AI_AGENT_CONTENT_MODEL_PROPOSAL")}
           </div>
           <div className="truncate text-caption text-label-secondary">
-            {createdApprovalId
-              ? t("ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_CREATED")
-              : t("ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_TARGET")}
+            {resultMessage ?? t("ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_TARGET")}
           </div>
         </div>
       </div>
@@ -134,7 +90,7 @@ export function AIContentModelProposalCard({
           disabled={pending}
           onChange={(event) => {
             setInstruction(event.target.value);
-            if (createdApprovalId) setCreatedApprovalId(null);
+            if (resultMessage) setResultMessage(null);
           }}
           className="min-h-24 resize-none rounded-md text-footnote"
         />
@@ -143,7 +99,7 @@ export function AIContentModelProposalCard({
             type="button"
             size="sm"
             disabled={!trimmedInstruction || pending}
-            onClick={() => proposalMutation.mutate({ instruction: trimmedInstruction })}
+            onClick={() => updateMutation.mutate({ instruction: trimmedInstruction })}
             className="h-8 shrink-0 gap-1.5 rounded-md px-2.5 text-footnote font-semibold"
           >
             <WandSparklesIcon className="size-3.5" aria-hidden="true" />
@@ -153,11 +109,24 @@ export function AIContentModelProposalCard({
           </Button>
         </div>
       </div>
-      {proposalMutation.isError ? (
-        <ProposalError message={formatAIChatError(proposalMutation.error)} />
+      {updateMutation.isError ? (
+        <ProposalError message={formatAIChatError(updateMutation.error)} />
       ) : null}
     </section>
   );
+}
+
+function resolveWorkspaceUpdatedModel(
+  response: AIWorkspaceActionResponse,
+): AIWorkspaceActionContentModel | null {
+  if (
+    response.kind !== "tool_call" ||
+    response.status !== "completed" ||
+    response.action !== "update_content_model"
+  ) {
+    return null;
+  }
+  return response.contentModel ?? response.contentModels[0] ?? null;
 }
 
 function ProposalError(props: { message: string; className?: string }) {
@@ -171,24 +140,5 @@ function ProposalError(props: { message: string; className?: string }) {
       <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
       <span className="min-w-0 break-words">{props.message}</span>
     </div>
-  );
-}
-
-function ProposalUnavailable(props: { title: string; message: string; className?: string }) {
-  return (
-    <section
-      aria-label={props.title}
-      className={cn(
-        "flex items-start gap-2 rounded-lg border border-border/60",
-        "bg-background/80 px-2.5 py-2 text-caption text-label-secondary",
-        props.className,
-      )}
-    >
-      <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-      <div className="min-w-0">
-        <div className="text-footnote font-semibold text-label-primary">{props.title}</div>
-        <div className="break-words">{props.message}</div>
-      </div>
-    </section>
   );
 }

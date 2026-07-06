@@ -20,22 +20,30 @@ describe("buildAdminTopbarBreadcrumbs", () => {
     ]);
   });
 
-  it("maps project assets to Website > Assets", () => {
+  it("keeps project assets outside the Website operations group", () => {
     const breadcrumbs = buildAdminTopbarBreadcrumbs(
       resolveProjectSceneNavItems("project-alpha"),
       "/projects/project-alpha/assets",
     );
 
+    expect(breadcrumbs.map((item) => item.labelKey)).toEqual(["nav:NAV_ASSETS"]);
+  });
+
+  it("maps project releases to Website > Releases", () => {
+    const breadcrumbs = buildAdminTopbarBreadcrumbs(
+      resolveProjectSceneNavItems("project-alpha"),
+      "/projects/project-alpha/website/releases",
+    );
+
     expect(breadcrumbs.map((item) => item.labelKey)).toEqual([
       "nav:NAV_GROUP_WEBSITE",
-      "nav:NAV_ASSETS",
+      "nav:NAV_WEBSITE_RELEASES",
     ]);
     expect(breadcrumbs[0]?.menuItems?.map((item) => item.labelKey)).toEqual([
-      "nav:NAV_ASSETS",
-      "nav:NAV_CONTENT_LIBRARY",
-      "nav:NAV_CONTENT_MODELS",
-      "nav:NAV_SECTION_ANALYTICS",
-      "nav:NAV_SETTINGS_SITE",
+      "nav:NAV_WEBSITE_DOMAIN",
+      "nav:NAV_WEBSITE_RELEASES",
+      "nav:NAV_CONTENT",
+      "nav:NAV_SECTION_SEO",
     ]);
   });
 });

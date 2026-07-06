@@ -1,34 +1,37 @@
 http:
   routers:
-    # Convenience route: allow calling API endpoints through the Admin host.
-    # This prevents accidental 404s when hitting `http://app.<base>/api/*` directly
-    # and provides a safe fallback when Vite proxy is disabled in SaaS mode.
+    # Convenience route: allow API calls through the Admin host when a browser
+    # or test follows relative /api URLs from https://app.arclayer.localhost.
     admin-api:
       entryPoints:
-        - web
+        - websecure
       rule: "Host(`app.arclayer.localhost`) && PathPrefix(`/api/`)"
       service: api
+      tls: {}
       priority: 20
 
     api:
       entryPoints:
-        - web
+        - websecure
       rule: "Host(`api.arclayer.localhost`)"
       service: api
+      tls: {}
       priority: 10
 
     admin:
       entryPoints:
-        - web
+        - websecure
       rule: "Host(`app.arclayer.localhost`)"
       service: admin
+      tls: {}
       priority: 10
 
     traefik-dashboard:
       entryPoints:
-        - web
+        - websecure
       rule: "Host(`traefik.arclayer.localhost`)"
       service: api@internal
+      tls: {}
       priority: 10
 
   services:
@@ -43,3 +46,13 @@ http:
         passHostHeader: true
         servers:
           - url: "http://host.docker.internal:5173"
+
+tls:
+  certificates:
+    - certFile: /certs/arclayer.localhost.pem
+      keyFile: /certs/arclayer.localhost-key.pem
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /certs/arclayer.localhost.pem
+        keyFile: /certs/arclayer.localhost-key.pem

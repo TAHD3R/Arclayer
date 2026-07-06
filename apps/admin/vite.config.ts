@@ -38,6 +38,8 @@ export default defineConfig(({ mode, command }) => {
   const enableProxy = !appConfig.apiBaseUrl.trim();
   const hmrPort = parseOptionalPort(env.VITE_HMR_PORT);
   const hmrClientPort = parseOptionalPort(env.VITE_HMR_CLIENT_PORT);
+  const hmrHost = env.VITE_HMR_HOST?.trim() || undefined;
+  const hmrProtocol = env.VITE_HMR_PROTOCOL?.trim() || undefined;
 
   const appName = "admin";
   const appVersion = process.env.npm_package_version || undefined;
@@ -95,8 +97,10 @@ export default defineConfig(({ mode, command }) => {
       strictPort: true,
       // Keep HMR on Vite defaults unless the developer explicitly declares an override.
       hmr:
-        hmrPort || hmrClientPort
+        hmrPort || hmrClientPort || hmrHost || hmrProtocol
           ? {
+              ...(hmrProtocol ? { protocol: hmrProtocol } : {}),
+              ...(hmrHost ? { host: hmrHost } : {}),
               ...(hmrPort ? { port: hmrPort } : {}),
               ...(hmrClientPort ? { clientPort: hmrClientPort } : {}),
             }

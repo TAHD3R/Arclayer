@@ -544,7 +544,7 @@ describe("content-library-article-editor-page", () => {
 
     await waitFor(() => {
       expect(mocked.patchContentItemVersion).toHaveBeenCalledWith("project-1", "content-1", 3, {
-        changeSummary: "Update article draft",
+        changeSummary: "Update content draft",
         fieldsSnapshot: {
           title: "Launch memo",
           summary: "Updated summary",
@@ -606,7 +606,7 @@ describe("content-library-article-editor-page", () => {
     await waitFor(() => {
       expect(mocked.saveContentItemDraftVersion).toHaveBeenCalledWith("project-1", "content-1", {
         expectedVersion: 5,
-        changeSummary: "Update article draft",
+        changeSummary: "Update content draft",
         fieldsSnapshot: {
           title: "Launch memo",
           summary: "Published base summary",
@@ -661,7 +661,7 @@ describe("content-library-article-editor-page", () => {
 
     await waitFor(() => {
       expect(mocked.patchContentItemVersion).toHaveBeenCalledWith("project-1", "content-1", 3, {
-        changeSummary: "Update article draft",
+        changeSummary: "Update content draft",
         fieldsSnapshot: {
           title: "Launch memo",
           summary: "Loaded summary",

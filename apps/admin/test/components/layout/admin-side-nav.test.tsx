@@ -254,10 +254,10 @@ const redirectedPreferenceItems: AdminNavItem[] = [
     icon: LayoutGrid,
     children: [
       {
-        key: "settings.site",
-        label: "Site Settings",
+        key: "seo.site",
+        label: "Website Config",
         icon: Settings,
-        to: "/w/ws-1/settings/site",
+        to: "/w/ws-1/seo/site",
       },
     ],
   },
@@ -1111,11 +1111,11 @@ describe("AdminSiderNav collapsed groups", () => {
     );
   });
 
-  it("keeps the content branch active after Site Settings redirects to its favorited child route", async () => {
+  it("keeps the content branch active after Website Config navigates to its favorited route", async () => {
     const user = userEvent.setup();
     mockPathname = "/w/ws-1/";
     useFavoritesStore.setState({
-      paths: ["/w/ws-1/settings/site/basics", "/w/ws-1/settings/workspace/basics"],
+      paths: ["/w/ws-1/seo/site", "/w/ws-1/settings/workspace/basics"],
       sectionExpanded: false,
     });
 
@@ -1125,11 +1125,11 @@ describe("AdminSiderNav collapsed groups", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "Content" }));
-    await user.click(screen.getByRole("button", { name: "Site Settings" }));
+    await user.click(screen.getByRole("button", { name: "Website Config" }));
 
-    expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-1/settings/site" });
+    expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-1/seo/site" });
 
-    mockPathname = "/w/ws-1/settings/site/basics";
+    mockPathname = "/w/ws-1/seo/site";
     view.rerender(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
@@ -1305,10 +1305,10 @@ describe("AdminSiderNav collapsed groups", () => {
     const view = renderTreeNav({
       items: workspaceItems,
       favoriteWorkspaceBase: "/projects/ws-1",
-      pathnameOverride: "/projects/ws-1/content/general",
+      pathnameOverride: "/projects/ws-1/seo/site",
     });
 
-    expect(screen.getByRole("button", { name: "en-US:nav:NAV_SETTINGS_SITE" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_WEBSITE_CONFIG" })).toHaveAttribute(
       "data-active",
       "true",
     );
@@ -1343,7 +1343,7 @@ describe("AdminSiderNav collapsed groups", () => {
       "data-active",
       "true",
     );
-    expect(screen.getByRole("button", { name: "en-US:nav:NAV_SETTINGS_SITE" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_WEBSITE_CONFIG" })).toHaveAttribute(
       "data-active",
       "false",
     );

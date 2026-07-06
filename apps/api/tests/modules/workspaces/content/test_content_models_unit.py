@@ -42,7 +42,11 @@ from src.modules.projects.content.items.domain_helpers import (
     read_summary_field,
     read_title_field,
 )
-from src.modules.projects.content.items.input_schema import ContentItemCreateIn
+from src.modules.projects.content.items.input_schema import (
+    ContentItemCreateIn,
+    ContentVersionDraftSaveIn,
+    ContentVersionPatchIn,
+)
 from src.modules.projects.content.items.repository import ProjectContentItemsRepository
 from src.modules.projects.content.models.field_type_registry import (
     clear_custom_content_model_field_types,
@@ -54,6 +58,7 @@ from src.modules.projects.content.models.field_type_registry import (
 )
 from src.modules.projects.content.models.protocol_registry import list_official_model_protocols
 from src.modules.projects.content.models.storage_sync import build_storage_sync_plan
+from src.modules.projects.content.routing.service import build_duplicate_route_path_base
 
 REPO_ROOT = Path(__file__).resolve().parents[6]
 MIGRATION_BASELINE = REPO_ROOT / "apps/api/src/migrations/0001_initial.py"
@@ -74,6 +79,19 @@ def _assert_char_enum_field(model: type[Any], name: str, enum_type: type[Any]) -
     field = _field(model, name)
     assert isinstance(field, CharEnumFieldInstance)
     assert field.enum_type is enum_type
+
+
+def test_build_duplicate_route_path_base_derives_static_page_paths() -> None:
+    assert build_duplicate_route_path_base("/") == "/home-copy"
+    assert build_duplicate_route_path_base("/about") == "/about-copy"
+    assert build_duplicate_route_path_base("/company/about") == "/company/about-copy"
+
+
+def test_build_duplicate_route_path_base_rejects_dynamic_page_paths() -> None:
+    with pytest.raises(Conflict) as exc:
+        build_duplicate_route_path_base("/blog/:slug")
+
+    assert exc.value.error == "CONTENT_ROUTE_DUPLICATE_DYNAMIC_UNSUPPORTED"
 
 
 def test_model_definition_contract_is_explicit_and_template_free() -> None:
@@ -630,6 +648,562 @@ async def test_content_item_creation_rejects_second_single_type_for_locale() -> 
         locale="en-US",
     )
     repo.create_item.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_content_item_draft_save_syncs_routable_path_to_route_binding(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace_id = uuid4()
+    site_id = uuid4()
+    environment_id = uuid4()
+    item_id = uuid4()
+    actor_user_id = uuid4()
+    conn = object()
+    conn = object()
+    model = SimpleNamespace(capabilities=["routable"], fields=[])
+    item = SimpleNamespace(
+        id=item_id,
+        model_definition=model,
+        capability_pack_ids=[],
+        locale="en-US",
+        draft_version=0,
+        published_version=None,
+    )
+    version = SimpleNamespace(id=uuid4(), item_id=item_id, version=1)
+    repo = SimpleNamespace(
+        get_item_with_model=AsyncMock(return_value=item),
+        create_version=AsyncMock(return_value=version),
+        replace_presentations=AsyncMock(),
+        replace_seo_profile=AsyncMock(),
+        replace_component_bindings=AsyncMock(),
+        update_item_fields=AsyncMock(return_value=item),
+    )
+    service = ProjectContentCanonicalItemsService(
+        repo=cast(Any, repo),
+        entity_manager=cast(Any, EntityManager(items_repo=cast(ProjectContentItemsRepository, repo))),
+    )
+    sync_route = AsyncMock()
+    monkeypatch.setattr(
+        "src.modules.projects.content.items.canonical_service.upsert_route_binding_record",
+        sync_route,
+    )
+    build_version_out = AsyncMock(return_value=SimpleNamespace(version_number=1))
+    monkeypatch.setattr(service.reads, "build_version_out", build_version_out)
+
+    await service.save_draft_version(
+        workspace_id=workspace_id,
+        site_id=site_id,
+        environment_id=environment_id,
+        item_id=item_id,
+        actor_user_id=actor_user_id,
+        payload=ContentVersionDraftSaveIn(
+            fields_snapshot={"title": "About", "path": "/about"},
+            change_summary="Update page path",
+        ),
+        conn=cast(Any, conn),
+    )
+
+    sync_route.assert_awaited_once()
+    route_await_args = sync_route.await_args
+    assert route_await_args is not None
+    route_kwargs = route_await_args.kwargs
+    assert route_kwargs["workspace_id"] == workspace_id
+    assert route_kwargs["site_id"] == site_id
+    assert route_kwargs["environment_id"] == environment_id
+    assert route_kwargs["item_id"] == item_id
+    assert route_kwargs["item"] is item
+    assert route_kwargs["conn"] is conn
+    assert route_kwargs["payload"].locale == "en-US"
+    assert route_kwargs["payload"].path == "/about"
+    assert route_kwargs["payload"].is_active is True
+
+
+@pytest.mark.asyncio
+async def test_content_item_duplicate_derives_routable_path_and_syncs_route_binding(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace_id = uuid4()
+    site_id = uuid4()
+    environment_id = uuid4()
+    item_id = uuid4()
+    duplicated_item_id = uuid4()
+    actor_user_id = uuid4()
+    conn = object()
+    model = SimpleNamespace(
+        id=uuid4(),
+        capabilities=["routable"],
+        fields=[],
+        singular_key="page",
+    )
+    source_item = SimpleNamespace(
+        id=item_id,
+        model_definition=model,
+        model_definition_id=model.id,
+        capability_pack_ids=[],
+        locale="en-US",
+        draft_version=1,
+        published_version=None,
+        title="About",
+        slug="about",
+        status=ContentItemStatus.DRAFT,
+        visibility=ContentItemVisibility.PUBLIC,
+        bootstrap_preset_key=None,
+        bootstrap_preset_state=ContentBootstrapPresetState.NONE,
+    )
+    created_duplicate = SimpleNamespace(id=duplicated_item_id)
+    duplicated_item = SimpleNamespace(
+        id=duplicated_item_id,
+        model_definition=model,
+        capability_pack_ids=[],
+        locale="en-US",
+    )
+    source_version = SimpleNamespace(
+        id=uuid4(),
+        item_id=item_id,
+        version=1,
+        fields_snapshot={"title": "About", "path": "/about"},
+    )
+    duplicated_version = SimpleNamespace(id=uuid4(), item_id=duplicated_item_id, version=1)
+    repo = SimpleNamespace(
+        get_item_with_model=AsyncMock(side_effect=[source_item, duplicated_item]),
+        create_item=AsyncMock(return_value=created_duplicate),
+        ensure_translation_group_for_item=AsyncMock(),
+        get_version_by_number=AsyncMock(return_value=source_version),
+        create_version=AsyncMock(return_value=duplicated_version),
+        replace_presentations=AsyncMock(),
+        replace_seo_profile=AsyncMock(),
+        replace_component_bindings=AsyncMock(),
+        update_item_fields=AsyncMock(return_value=created_duplicate),
+    )
+    service = ProjectContentCanonicalItemsService(
+        repo=cast(Any, repo),
+        entity_manager=cast(Any, EntityManager(items_repo=cast(ProjectContentItemsRepository, repo))),
+    )
+    derive_path = AsyncMock(return_value="/about-copy")
+    sync_route = AsyncMock()
+    monkeypatch.setattr(
+        "src.modules.projects.content.items.canonical_service.resolve_duplicate_route_path",
+        derive_path,
+    )
+    monkeypatch.setattr(
+        "src.modules.projects.content.items.canonical_service.upsert_route_binding_record",
+        sync_route,
+    )
+    monkeypatch.setattr(
+        "src.modules.projects.content.items.canonical_service.resolve_item_continuation_truth",
+        lambda **_kwargs: SimpleNamespace(
+            resolved_role="page",
+            resolved_posture="page",
+            resolved_surface="canvas",
+            shape_state="ready",
+            shape_reason_code=None,
+            shape_reason_meta=None,
+        ),
+    )
+    monkeypatch.setattr(
+        "src.modules.projects.content.items.canonical_service.to_item_out",
+        lambda *_args, **_kwargs: SimpleNamespace(id=duplicated_item_id, title="About copy", slug="about-copy"),
+    )
+    monkeypatch.setattr(service.reads, "build_version_out", AsyncMock(return_value=SimpleNamespace(presentations=[])))
+    monkeypatch.setattr(service, "_publish_content_runtime_event", AsyncMock())
+
+    class _FakeTx:
+        async def __aenter__(self) -> object:
+            return conn
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+    monkeypatch.setattr(service, "tx", lambda: _FakeTx())
+
+    await service.duplicate_item(
+        workspace_id=workspace_id,
+        site_id=site_id,
+        environment_id=environment_id,
+        item_id=item_id,
+        actor_user_id=actor_user_id,
+    )
+
+    derive_path.assert_awaited_once_with(
+        site_id=site_id,
+        environment_id=environment_id,
+        locale="en-US",
+        source_path="/about",
+        conn=conn,
+    )
+    create_version_args = repo.create_version.await_args
+    assert create_version_args is not None
+    create_version_kwargs = create_version_args.kwargs
+    assert create_version_kwargs["fields_snapshot"]["path"] == "/about-copy"
+    sync_route.assert_awaited_once()
+    route_await_args = sync_route.await_args
+    assert route_await_args is not None
+    route_kwargs = route_await_args.kwargs
+    assert route_kwargs["item_id"] == duplicated_item_id
+    assert route_kwargs["payload"].locale == "en-US"
+    assert route_kwargs["payload"].path == "/about-copy"
+    assert route_kwargs["payload"].is_active is True
+
+
+@pytest.mark.asyncio
+async def test_content_item_archive_deactivates_routable_route_bindings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace_id = uuid4()
+    site_id = uuid4()
+    environment_id = uuid4()
+    item_id = uuid4()
+    actor_user_id = uuid4()
+    conn = object()
+    model = SimpleNamespace(capabilities=["routable"], fields=[], singular_key="page")
+    item = SimpleNamespace(
+        id=item_id,
+        model_definition=model,
+        capability_pack_ids=[],
+        locale="en-US",
+        draft_version=1,
+        published_version=None,
+        status=ContentItemStatus.DRAFT,
+    )
+    version = SimpleNamespace(
+        id=uuid4(),
+        item_id=item_id,
+        version=1,
+        state=ContentVersionState.DRAFT,
+    )
+    archived_version = SimpleNamespace(
+        id=version.id,
+        item_id=item_id,
+        version=1,
+        state=ContentVersionState.ARCHIVED,
+    )
+    archived_item = SimpleNamespace(
+        id=item_id,
+        model_definition=model,
+        capability_pack_ids=[],
+        locale="en-US",
+        status=ContentItemStatus.ARCHIVED,
+    )
+    repo = SimpleNamespace(
+        get_item_with_model=AsyncMock(return_value=item),
+        get_version_by_number=AsyncMock(return_value=version),
+        update_version_fields=AsyncMock(return_value=archived_version),
+        update_item_fields=AsyncMock(return_value=archived_item),
+    )
+    service = ProjectContentCanonicalItemsService(
+        repo=cast(Any, repo),
+        entity_manager=cast(Any, EntityManager(items_repo=cast(ProjectContentItemsRepository, repo))),
+    )
+    set_route_active = AsyncMock()
+    monkeypatch.setattr(
+        "src.modules.projects.content.items.canonical_service.set_route_bindings_active_for_item",
+        set_route_active,
+    )
+    monkeypatch.setattr(
+        "src.modules.projects.content.items.canonical_service.to_item_out",
+        lambda *_args, **_kwargs: SimpleNamespace(id=item_id, status=ContentItemStatus.ARCHIVED),
+    )
+    monkeypatch.setattr(service, "_publish_content_runtime_event", AsyncMock())
+
+    class _FakeTx:
+        async def __aenter__(self) -> object:
+            return conn
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+    monkeypatch.setattr(service, "tx", lambda: _FakeTx())
+
+    await service.archive_item(
+        workspace_id=workspace_id,
+        site_id=site_id,
+        environment_id=environment_id,
+        item_id=item_id,
+        actor_user_id=actor_user_id,
+    )
+
+    set_route_active.assert_awaited_once_with(
+        workspace_id=workspace_id,
+        site_id=site_id,
+        environment_id=environment_id,
+        item_id=item_id,
+        is_active=False,
+        conn=conn,
+    )
+
+
+@pytest.mark.asyncio
+async def test_content_item_unarchive_reactivates_routable_route_binding(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace_id = uuid4()
+    site_id = uuid4()
+    environment_id = uuid4()
+    item_id = uuid4()
+    actor_user_id = uuid4()
+    conn = object()
+    model = SimpleNamespace(capabilities=["routable"], fields=[], singular_key="page")
+    item = SimpleNamespace(
+        id=item_id,
+        model_definition=model,
+        capability_pack_ids=[],
+        locale="en-US",
+        draft_version=1,
+        published_version=None,
+        status=ContentItemStatus.ARCHIVED,
+    )
+    version = SimpleNamespace(
+        id=uuid4(),
+        item_id=item_id,
+        version=1,
+        state=ContentVersionState.ARCHIVED,
+        fields_snapshot={"title": "About", "path": "/about"},
+    )
+    draft_version = SimpleNamespace(
+        id=version.id,
+        item_id=item_id,
+        version=1,
+        state=ContentVersionState.DRAFT,
+        fields_snapshot=version.fields_snapshot,
+    )
+    unarchived_item = SimpleNamespace(
+        id=item_id,
+        model_definition=model,
+        capability_pack_ids=[],
+        locale="en-US",
+        status=ContentItemStatus.DRAFT,
+    )
+    repo = SimpleNamespace(
+        get_item_with_model=AsyncMock(return_value=item),
+        get_version_by_number=AsyncMock(return_value=version),
+        update_version_fields=AsyncMock(return_value=draft_version),
+        update_item_fields=AsyncMock(return_value=unarchived_item),
+    )
+    service = ProjectContentCanonicalItemsService(
+        repo=cast(Any, repo),
+        entity_manager=cast(Any, EntityManager(items_repo=cast(ProjectContentItemsRepository, repo))),
+    )
+    sync_route = AsyncMock()
+    monkeypatch.setattr(
+        "src.modules.projects.content.items.canonical_service.upsert_route_binding_record",
+        sync_route,
+    )
+    monkeypatch.setattr(
+        "src.modules.projects.content.items.canonical_service.to_item_out",
+        lambda *_args, **_kwargs: SimpleNamespace(id=item_id, status=ContentItemStatus.DRAFT),
+    )
+    monkeypatch.setattr(service, "_publish_content_runtime_event", AsyncMock())
+
+    class _FakeTx:
+        async def __aenter__(self) -> object:
+            return conn
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+    monkeypatch.setattr(service, "tx", lambda: _FakeTx())
+
+    await service.unarchive_item(
+        workspace_id=workspace_id,
+        site_id=site_id,
+        environment_id=environment_id,
+        item_id=item_id,
+        actor_user_id=actor_user_id,
+    )
+
+    sync_route.assert_awaited_once()
+    route_await_args = sync_route.await_args
+    assert route_await_args is not None
+    route_kwargs = route_await_args.kwargs
+    assert route_kwargs["workspace_id"] == workspace_id
+    assert route_kwargs["site_id"] == site_id
+    assert route_kwargs["environment_id"] == environment_id
+    assert route_kwargs["item_id"] == item_id
+    assert route_kwargs["item"] is unarchived_item
+    assert route_kwargs["conn"] is conn
+    assert route_kwargs["payload"].locale == "en-US"
+    assert route_kwargs["payload"].path == "/about"
+    assert route_kwargs["payload"].is_active is True
+
+
+@pytest.mark.asyncio
+async def test_content_item_restore_version_syncs_routable_path_to_route_binding(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace_id = uuid4()
+    site_id = uuid4()
+    environment_id = uuid4()
+    item_id = uuid4()
+    actor_user_id = uuid4()
+    conn = object()
+    model = SimpleNamespace(capabilities=["routable"], fields=[], singular_key="page")
+    item = SimpleNamespace(
+        id=item_id,
+        model_definition=model,
+        capability_pack_ids=[],
+        locale="en-US",
+        draft_version=2,
+        published_version=None,
+    )
+    source_version = SimpleNamespace(
+        id=uuid4(),
+        item_id=item_id,
+        version=1,
+        state=ContentVersionState.PUBLISHED,
+    )
+    restored_version = SimpleNamespace(
+        id=uuid4(),
+        item_id=item_id,
+        version=3,
+        state=ContentVersionState.DRAFT,
+    )
+    source_out = SimpleNamespace(
+        version_number=1,
+        fields_snapshot={"title": "About", "path": "/restored"},
+        presentations=[],
+    )
+    restored_out = SimpleNamespace(version_number=3)
+    repo = SimpleNamespace(
+        get_item_with_model=AsyncMock(return_value=item),
+        get_version_by_number=AsyncMock(return_value=source_version),
+        create_version=AsyncMock(return_value=restored_version),
+        replace_presentations=AsyncMock(),
+        replace_seo_profile=AsyncMock(),
+        replace_component_bindings=AsyncMock(),
+        update_item_fields=AsyncMock(return_value=item),
+    )
+    service = ProjectContentCanonicalItemsService(
+        repo=cast(Any, repo),
+        entity_manager=cast(Any, EntityManager(items_repo=cast(ProjectContentItemsRepository, repo))),
+    )
+    sync_route = AsyncMock()
+    monkeypatch.setattr(
+        "src.modules.projects.content.items.canonical_service.upsert_route_binding_record",
+        sync_route,
+    )
+    build_version_out = AsyncMock(side_effect=[source_out, restored_out])
+    monkeypatch.setattr(service.reads, "build_version_out", build_version_out)
+    monkeypatch.setattr(service, "_write_content_item_activity_event", AsyncMock())
+
+    class _FakeTx:
+        async def __aenter__(self) -> object:
+            return conn
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+    monkeypatch.setattr(service, "tx", lambda: _FakeTx())
+
+    await service.restore_version_to_draft(
+        workspace_id=workspace_id,
+        site_id=site_id,
+        environment_id=environment_id,
+        item_id=item_id,
+        version_number=1,
+        actor_user_id=actor_user_id,
+    )
+
+    sync_route.assert_awaited_once()
+    route_await_args = sync_route.await_args
+    assert route_await_args is not None
+    route_kwargs = route_await_args.kwargs
+    assert route_kwargs["workspace_id"] == workspace_id
+    assert route_kwargs["site_id"] == site_id
+    assert route_kwargs["environment_id"] == environment_id
+    assert route_kwargs["item_id"] == item_id
+    assert route_kwargs["item"] is item
+    assert route_kwargs["conn"] is conn
+    assert route_kwargs["payload"].locale == "en-US"
+    assert route_kwargs["payload"].path == "/restored"
+    assert route_kwargs["payload"].is_active is True
+
+
+@pytest.mark.asyncio
+async def test_content_item_draft_patch_syncs_routable_path_to_route_binding(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace_id = uuid4()
+    site_id = uuid4()
+    environment_id = uuid4()
+    item_id = uuid4()
+    actor_user_id = uuid4()
+    conn = object()
+    model = SimpleNamespace(capabilities=["routable"], fields=[], singular_key="page")
+    item = SimpleNamespace(
+        id=item_id,
+        model_definition=model,
+        capability_pack_ids=[],
+        locale="en-US",
+        draft_version=2,
+        published_version=None,
+        status=ContentItemStatus.DRAFT,
+    )
+    version = SimpleNamespace(
+        id=uuid4(),
+        item_id=item_id,
+        version=2,
+        state=ContentVersionState.DRAFT,
+        fields_snapshot={"title": "About", "path": "/old"},
+    )
+    updated_version = SimpleNamespace(
+        id=version.id,
+        item_id=item_id,
+        version=2,
+        state=ContentVersionState.DRAFT,
+        fields_snapshot={"title": "About", "path": "/about"},
+    )
+    repo = SimpleNamespace(
+        get_item_with_model=AsyncMock(return_value=item),
+        get_version_by_number=AsyncMock(return_value=version),
+        update_version_fields=AsyncMock(return_value=updated_version),
+        update_item_fields=AsyncMock(return_value=item),
+    )
+    service = ProjectContentCanonicalItemsService(
+        repo=cast(Any, repo),
+        entity_manager=cast(Any, EntityManager(items_repo=cast(ProjectContentItemsRepository, repo))),
+    )
+    sync_route = AsyncMock()
+    monkeypatch.setattr(
+        "src.modules.projects.content.items.canonical_service.upsert_route_binding_record",
+        sync_route,
+    )
+    build_version_out = AsyncMock(return_value=SimpleNamespace(version_number=2))
+    monkeypatch.setattr(service.reads, "build_version_out", build_version_out)
+    monkeypatch.setattr(service, "_write_content_item_activity_event", AsyncMock())
+
+    class _FakeTx:
+        async def __aenter__(self) -> object:
+            return conn
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+    monkeypatch.setattr(service, "tx", lambda: _FakeTx())
+
+    await service.patch_version(
+        workspace_id=workspace_id,
+        site_id=site_id,
+        environment_id=environment_id,
+        item_id=item_id,
+        version_number=2,
+        actor_user_id=actor_user_id,
+        payload=ContentVersionPatchIn(fields_snapshot={"title": "About", "path": "/about"}),
+    )
+
+    sync_route.assert_awaited_once()
+    route_await_args = sync_route.await_args
+    assert route_await_args is not None
+    route_kwargs = route_await_args.kwargs
+    assert route_kwargs["workspace_id"] == workspace_id
+    assert route_kwargs["site_id"] == site_id
+    assert route_kwargs["environment_id"] == environment_id
+    assert route_kwargs["item_id"] == item_id
+    assert route_kwargs["item"] is item
+    assert route_kwargs["conn"] is conn
+    assert route_kwargs["payload"].locale == "en-US"
+    assert route_kwargs["payload"].path == "/about"
+    assert route_kwargs["payload"].is_active is True
 
 
 @pytest.mark.asyncio

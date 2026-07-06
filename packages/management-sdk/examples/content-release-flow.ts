@@ -7,29 +7,50 @@ const sdk = createManagementSdk({
 
 async function run() {
   try {
-    const impact = await sdk.releases.publishImpact({
-      projectId: "project_public_id",
-    });
-    const previewContract = await sdk.releases.publishPreviewContract({
-      projectId: "project_public_id",
-    });
-    const dryRun = await sdk.releases.dryRun({
-      projectId: "project_public_id",
-    });
-    const release = await sdk.releases.publish({
-      projectId: "project_public_id",
-    });
+    const project = sdk.forProject("project_public_id");
 
-    const previewToken = await sdk.site.createPreviewToken({
+    const models = await project.content.models.list({ page: 1, size: 20 });
+    const bootstrap = await project.site.bootstrapSite({
+      homepage: {
+        fields: {
+          heroHeadline: "Managed by Arclayer",
+        },
+        path: "/",
+        publish: true,
+        title: "Home",
+      },
+      publishRelease: true,
+      sourceOperations: [
+        {
+          body: {
+            contents: "export const headline = 'Managed by Arclayer';\n",
+            language: "typescript",
+            role: "content",
+          },
+          filePath: "src/arclayer/generated-content.ts",
+          kind: "upsert",
+        },
+      ],
+    });
+    const impact = await project.releases.publishImpact();
+    const previewContract = await project.releases.publishPreviewContract();
+    const dryRun = await project.releases.dryRun();
+    const release = await project.releases.publish();
+
+    const previewToken = await project.site.createPreviewToken({
       body: {
         ttlSeconds: 900,
       },
-      projectId: "project_public_id",
     });
 
     console.log(
+      models.total,
+      bootstrap.homepage.item.data.id,
+      bootstrap.sourceManifest?.data.files?.length,
       impact.data.readinessSummary?.ready,
       previewContract.data.routePointers?.length,
+      bootstrap.releaseDryRun.data.readinessSummary.ready,
+      bootstrap.release?.data.release.releaseNumber,
       dryRun.data.readinessSummary.ready,
       release.data.release.releaseNumber,
       previewToken.data.token,

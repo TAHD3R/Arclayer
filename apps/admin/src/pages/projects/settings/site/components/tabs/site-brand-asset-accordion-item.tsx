@@ -11,8 +11,8 @@ import type { GeneralSettingsFormValues, WithSavingKeyFn } from "@/types/setting
 import type { JsonValueInput } from "@arclayer/openapi/admin-types";
 import { formatSummaryText, normalizeOptionalString } from "./site-settings-tab-helpers";
 
-type AssetFieldName = "siteLogoAssetId" | "siteFaviconAssetId";
-type UrlFieldName = "siteLogoUrl" | "siteFaviconUrl";
+type AssetFieldName = "siteLogoAssetId" | "siteFaviconAssetId" | "seoOgImageAssetId";
+type UrlFieldName = "siteLogoUrl" | "siteFaviconUrl" | "seoOgImageUrl";
 type UploadPurpose = "site_logo" | "favicon";
 
 type SiteBrandAssetAccordionItemProps = {
@@ -26,7 +26,8 @@ type SiteBrandAssetAccordionItemProps = {
   initialAssetId: string;
   initialUrl: string;
   patch: (patch: Record<string, JsonValueInput>) => Promise<void>;
-  patchField: "logo" | "favicon";
+  patchField: "logo" | "favicon" | "og_image";
+  patchSection?: "site" | "seo";
   removeAriaLabel: string;
   resetKey: string;
   saveKey: string;
@@ -61,7 +62,7 @@ export function SiteBrandAssetAccordionItem(props: SiteBrandAssetAccordionItemPr
         : normalizeOptionalString(props.form.getValues(props.urlField));
 
       await props.patch({
-        site: {
+        [props.patchSection ?? "site"]: {
           [`${props.patchField}_asset_id`]: nextAssetId,
           [`${props.patchField}_url`]: nextUrl,
         },
@@ -79,7 +80,7 @@ export function SiteBrandAssetAccordionItem(props: SiteBrandAssetAccordionItemPr
         shouldValidate: true,
       });
       await props.patch({
-        site: {
+        [props.patchSection ?? "site"]: {
           [`${props.patchField}_asset_id`]: normalizeOptionalString(props.initialAssetId),
           [`${props.patchField}_url`]: normalizeOptionalString(props.initialUrl),
         },

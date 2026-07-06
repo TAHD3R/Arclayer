@@ -1,16 +1,31 @@
+import * as React from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
+import { saveContentItemDraftVersion } from "@/api/content";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { projectContentLibraryFocusedItemHref } from "@/lib/routing/project-content-routing";
+import { notifyError, notifySuccessText } from "@/lib/notifications";
+import {
+  buildContentLibraryItemsQueryKey,
+  buildContentStructuredSurfaceSnapshotQueryKey,
+  type ContentStructuredSurfaceSnapshot,
+  loadContentStructuredSurfaceSnapshot,
+} from "@/pages/projects/content/library/runtime";
 import {
   getContentTypeDescription,
   getContentTypeLabel,
 } from "@/pages/projects/content/content-type-presentation";
-import type { AdminContentItem } from "@arclayer/openapi/admin-types";
+import type {
+  AdminContentItem,
+  AdminContentVersion,
+  JsonValueInput,
+} from "@arclayer/openapi/admin-types";
 import { Button } from "@arclayer/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
+import { Textarea } from "@arclayer/ui/textarea";
 
-const STRUCTURED_REQUIRED_CAPABILITIES = ["queryable", "has_relations"] as const;
+const STRUCTURED_REQUIRED_CAPABILITIES = ["queryable"] as const;
 
 function hasStructuredCapabilities(item: AdminContentItem) {
   return STRUCTURED_REQUIRED_CAPABILITIES.every((capability) =>
@@ -24,11 +39,8 @@ function getMissingStructuredCapabilities(item: AdminContentItem) {
   );
 }
 
-function getStructuredCapabilityLabel(
-  capability: (typeof STRUCTURED_REQUIRED_CAPABILITIES)[number],
-) {
-  if (capability === "queryable") return "CONTENT_MODELS_CAPABILITY_QUERYABLE_LABEL";
-  return "CONTENT_MODELS_CAPABILITY_HAS_RELATIONS_LABEL";
+function getStructuredCapabilityLabel() {
+  return "CONTENT_MODELS_CAPABILITY_QUERYABLE_LABEL";
 }
 
 function ItemFact(props: { label: string; value: string }) {
@@ -40,8 +52,141 @@ function ItemFact(props: { label: string; value: string }) {
   );
 }
 
+function formatFieldValue(value: unknown): string {
+  if (value === null) return "null";
+  if (value === undefined) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return JSON.stringify(value, null, 2);
+}
+
+function formatFieldsJson(version: AdminContentVersion | null): string {
+  return JSON.stringify(version?.fieldsSnapshot ?? {}, null, 2);
+}
+
+function parseFieldsJson(value: string): Record<string, JsonValueInput> {
+  const parsed = JSON.parse(value) as unknown;
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("CONTENT_STRUCTURED_SURFACE_FIELDS_INVALID_OBJECT");
+  }
+  return parsed as Record<string, JsonValueInput>;
+}
+
+function getFieldEntries(version: AdminContentVersion | null): Array<[string, unknown]> {
+  const snapshot = version?.fieldsSnapshot ?? {};
+  return Object.entries(snapshot).filter(([key]) => Boolean(key.trim()));
+}
+
+function StructuredFieldsSnapshotCard(props: {
+  error: boolean;
+  fieldError: string | null;
+  fieldsDraft: string;
+  loading: boolean;
+  onFieldsDraftChange: (value: string) => void;
+  onSaveFields: () => void;
+  saving: boolean;
+  version: AdminContentVersion | null;
+}) {
+  const { t } = useTranslation("content");
+  const fields = getFieldEntries(props.version);
+  const versionLabel = props.version?.versionNumber
+    ? `v${props.version.versionNumber}`
+    : t("CONTENT_STRUCTURED_SURFACE_FIELDS_VERSION_NONE");
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t("CONTENT_STRUCTURED_SURFACE_FIELDS_TITLE")}</CardTitle>
+        <CardDescription>
+          {t("CONTENT_STRUCTURED_SURFACE_FIELDS_DESC", { version: versionLabel })}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {props.loading ? (
+          <div
+            className="rounded-2xl border border-border/60 bg-muted/30 px-4 py-4 text-sm text-muted-foreground"
+            data-testid="content-structured-surface-fields-loading"
+          >
+            {t("CONTENT_STRUCTURED_SURFACE_FIELDS_LOADING")}
+          </div>
+        ) : null}
+        {props.error ? (
+          <div
+            className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-4 text-sm text-destructive"
+            data-testid="content-structured-surface-fields-error"
+          >
+            {t("CONTENT_STRUCTURED_SURFACE_FIELDS_ERROR")}
+          </div>
+        ) : null}
+        {!props.loading && !props.error && fields.length === 0 ? (
+          <div
+            className="rounded-2xl border border-border/60 bg-muted/30 px-4 py-4 text-sm text-muted-foreground"
+            data-testid="content-structured-surface-fields-empty"
+          >
+            {t("CONTENT_STRUCTURED_SURFACE_FIELDS_EMPTY")}
+          </div>
+        ) : null}
+        {!props.loading && !props.error && fields.length > 0 ? (
+          <dl className="grid gap-3" data-testid="content-structured-surface-fields">
+            {fields.map(([key, value]) => (
+              <div
+                key={key}
+                className="grid gap-2 rounded-2xl border border-border/60 bg-background px-4 py-3 md:grid-cols-[180px_minmax(0,1fr)]"
+              >
+                <dt className="break-all text-footnote font-medium text-label-secondary">{key}</dt>
+                <dd className="min-w-0 whitespace-pre-wrap break-words font-mono text-footnote text-label-primary">
+                  {formatFieldValue(value)}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+        {!props.loading && !props.error ? (
+          <div className="mt-5 grid gap-3">
+            <div className="grid gap-1.5">
+              <label
+                htmlFor="content-structured-fields-json"
+                className="text-footnote font-medium text-label-secondary"
+              >
+                {t("CONTENT_STRUCTURED_SURFACE_FIELDS_JSON_LABEL")}
+              </label>
+              <Textarea
+                id="content-structured-fields-json"
+                value={props.fieldsDraft}
+                onChange={(event) => props.onFieldsDraftChange(event.target.value)}
+                className="min-h-56 font-mono text-footnote"
+                aria-invalid={props.fieldError ? true : undefined}
+              />
+              {props.fieldError ? (
+                <p
+                  className="text-footnote text-destructive"
+                  data-testid="content-structured-surface-fields-validation"
+                >
+                  {props.fieldError}
+                </p>
+              ) : (
+                <p className="text-footnote text-label-secondary">
+                  {t("CONTENT_STRUCTURED_SURFACE_FIELDS_JSON_HELP")}
+                </p>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button type="button" onClick={props.onSaveFields} disabled={props.saving}>
+                {props.saving
+                  ? t("CONTENT_STRUCTURED_SURFACE_FIELDS_SAVING")
+                  : t("CONTENT_STRUCTURED_SURFACE_FIELDS_SAVE")}
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function ContentStructuredSurfacePage(props: { projectId: string; item: AdminContentItem }) {
   const { t } = useTranslation("content");
+  const queryClient = useQueryClient();
   const itemLabel = props.item.title?.trim() || props.item.slug;
   const contentTypeLabel = getContentTypeLabel({
     modelKey: props.item.modelKey,
@@ -56,6 +201,62 @@ export function ContentStructuredSurfacePage(props: { projectId: string; item: A
     }) ?? t("CONTENT_TYPE_CATEGORY_DESC");
   const libraryHref = projectContentLibraryFocusedItemHref(props.projectId, props.item.id);
   const missingCapabilities = getMissingStructuredCapabilities(props.item);
+  const snapshotQuery = useQuery({
+    queryKey: buildContentStructuredSurfaceSnapshotQueryKey(props.projectId, props.item.id),
+    queryFn: () => loadContentStructuredSurfaceSnapshot(props.projectId, props.item),
+    retry: false,
+    meta: { silent: true },
+  });
+  const displayVersion =
+    snapshotQuery.data?.draftVersion ?? snapshotQuery.data?.publishedVersion ?? null;
+  const [fieldsDraft, setFieldsDraft] = React.useState(() => formatFieldsJson(displayVersion));
+  const [fieldError, setFieldError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    setFieldsDraft(formatFieldsJson(displayVersion));
+    setFieldError(null);
+  }, [displayVersion]);
+
+  const fieldsMutation = useMutation({
+    mutationFn: async (fieldsSnapshot: Record<string, JsonValueInput>) =>
+      saveContentItemDraftVersion(props.projectId, props.item.id, {
+        expectedVersion: snapshotQuery.data?.draftVersion?.versionNumber ?? null,
+        changeSummary: t("CONTENT_STRUCTURED_SURFACE_FIELDS_CHANGE_SUMMARY"),
+        fieldsSnapshot,
+        presentations: [
+          {
+            kind: "form_data",
+            payload: fieldsSnapshot,
+          },
+        ],
+      }),
+    onSuccess: async (version) => {
+      notifySuccessText(t("CONTENT_STRUCTURED_SURFACE_FIELDS_SAVE_SUCCESS"));
+      setFieldsDraft(formatFieldsJson(version));
+      queryClient.setQueryData<ContentStructuredSurfaceSnapshot>(
+        buildContentStructuredSurfaceSnapshotQueryKey(props.projectId, props.item.id),
+        (current) => ({
+          draftVersion: version,
+          publishedVersion:
+            current?.publishedVersion ?? snapshotQuery.data?.publishedVersion ?? null,
+        }),
+      );
+      await queryClient.invalidateQueries({
+        queryKey: buildContentLibraryItemsQueryKey(props.projectId),
+      });
+    },
+    onError: (error) => notifyError(error),
+  });
+
+  const handleSaveFields = React.useCallback(() => {
+    try {
+      const fieldsSnapshot = parseFieldsJson(fieldsDraft);
+      setFieldError(null);
+      fieldsMutation.mutate(fieldsSnapshot);
+    } catch {
+      setFieldError(t("CONTENT_STRUCTURED_SURFACE_FIELDS_INVALID_JSON"));
+    }
+  }, [fieldsDraft, fieldsMutation, t]);
 
   return (
     <DefaultPage
@@ -92,6 +293,20 @@ export function ContentStructuredSurfacePage(props: { projectId: string; item: A
           </CardContent>
         </Card>
 
+        <StructuredFieldsSnapshotCard
+          version={displayVersion}
+          loading={snapshotQuery.isLoading}
+          error={snapshotQuery.isError}
+          fieldsDraft={fieldsDraft}
+          fieldError={fieldError}
+          saving={fieldsMutation.isPending}
+          onFieldsDraftChange={(value) => {
+            setFieldsDraft(value);
+            setFieldError(null);
+          }}
+          onSaveFields={handleSaveFields}
+        />
+
         <Card>
           <CardHeader>
             <CardTitle>{t("CONTENT_STRUCTURED_SURFACE_NEXT_TITLE")}</CardTitle>
@@ -127,9 +342,7 @@ export function ContentStructuredSurfacePage(props: { projectId: string; item: A
                 label={t("CONTENT_STRUCTURED_SURFACE_BOUNDARY_MISSING_LABEL")}
                 value={
                   missingCapabilities.length > 0
-                    ? missingCapabilities
-                        .map((capability) => t(getStructuredCapabilityLabel(capability)))
-                        .join(" / ")
+                    ? missingCapabilities.map(() => t(getStructuredCapabilityLabel())).join(" / ")
                     : t("CONTENT_STRUCTURED_SURFACE_BOUNDARY_READY")
                 }
               />

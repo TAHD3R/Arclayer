@@ -169,6 +169,23 @@ export function buildContentLibraryRoleFacetOptions(): ContentLibraryFacetOption
   ];
 }
 
+export function isContentLibraryPageRow(
+  row: Pick<ContentLibraryTableRow, "modelKey" | "resolvedRole" | "role">,
+): boolean {
+  return row.role === "page" || row.resolvedRole === "page" || row.modelKey === "page";
+}
+
+export function isContentLibraryReusableSectionRow(
+  row: Pick<ContentLibraryTableRow, "modelKey" | "resolvedRole" | "role">,
+): boolean {
+  return (
+    row.role === "reusable-section" ||
+    row.resolvedRole === "reusable-section" ||
+    row.modelKey === "reusableBlock" ||
+    row.modelKey === "reusable-section"
+  );
+}
+
 export function parseContentLibraryViewState(
   value: string | null | undefined,
 ): ContentLibraryViewState {

@@ -267,6 +267,76 @@ describe("content-library-row-actions", () => {
     ).toBeInTheDocument();
   });
 
+  it("routes reusable section actions through content fields instead of page settings", async () => {
+    const user = userEvent.setup();
+    const onOpenFullEditor = vi.fn();
+    const onOpenStructuredFields = vi.fn();
+    const onEditVisibility = vi.fn();
+
+    render(
+      <ContentLibraryRowActions
+        row={buildRow({
+          editWith: "canvas",
+          role: "reusable-section",
+          resolvedRole: "reusable-section",
+          modelKey: "reusable-section",
+        })}
+        onOpen={vi.fn()}
+        onOpenFullEditor={onOpenFullEditor}
+        onOpenStructuredFields={onOpenStructuredFields}
+        onEditVisibility={onEditVisibility}
+        onEditPermalink={vi.fn()}
+        onEditSeo={vi.fn()}
+        onOpenPageSettings={vi.fn()}
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
+        onArchive={vi.fn()}
+        onUnarchive={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByLabelText("CONTENT_LIBRARY_ROW_ACTIONS"));
+
+    expect(
+      screen.getByRole("menuitem", { name: "CONTENT_LIBRARY_ACTION_OPEN_STRUCTURED_EDITOR" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: "CONTENT_LIBRARY_ACTION_EDIT_FIELDS" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: "CONTENT_LIBRARY_ACTION_EDIT_VISIBILITY" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("menuitem", { name: "CONTENT_LIBRARY_ACTION_EDIT_PERMALINK" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("menuitem", { name: "CONTENT_LIBRARY_ACTION_EDIT_SEO" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("menuitem", { name: "CONTENT_LIBRARY_ACTION_PAGE_SETTINGS" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("menuitem", { name: "CONTENT_LIBRARY_ACTION_OPEN_STRUCTURED_EDITOR" }),
+    );
+    await user.click(screen.getByLabelText("CONTENT_LIBRARY_ROW_ACTIONS"));
+    await user.click(screen.getByRole("menuitem", { name: "CONTENT_LIBRARY_ACTION_EDIT_FIELDS" }));
+    await user.click(screen.getByLabelText("CONTENT_LIBRARY_ROW_ACTIONS"));
+    await user.click(
+      screen.getByRole("menuitem", { name: "CONTENT_LIBRARY_ACTION_EDIT_VISIBILITY" }),
+    );
+
+    expect(onOpenFullEditor).toHaveBeenCalledWith(
+      expect.objectContaining({ role: "reusable-section" }),
+    );
+    expect(onOpenStructuredFields).toHaveBeenCalledWith(
+      expect.objectContaining({ role: "reusable-section" }),
+    );
+    expect(onEditVisibility).toHaveBeenCalledWith(
+      expect.objectContaining({ role: "reusable-section" }),
+    );
+  });
+
   it("releases the persisted visible state after closing the menu by clicking outside", async () => {
     const user = userEvent.setup();
 

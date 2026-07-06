@@ -110,6 +110,19 @@ vi.mock("react-i18next", () => ({
         "ai:AI_CHAT_SUGGESTION_PLAN_NEXT_STEP_PROMPT":
           "请结合刚才的结果和当前项目上下文，推荐下一步最值得执行的动作，并说明原因。",
         "ai:AI_CHAT_SUGGESTION_PLAN_NEXT_STEP_DESC": "基于当前结果推荐后续动作。",
+        "ai:AI_CHAT_SUGGESTION_EDIT_HOMEPAGE": "编辑首页",
+        "ai:AI_CHAT_SUGGESTION_EDIT_HOMEPAGE_PROMPT":
+          "请基于刚创建的项目，直接更新首页 Hero 和第一个内容区块。保持首页内容条目、可复用区块模型、组件绑定、路由和 React+Vite 源码一致。",
+        "ai:AI_CHAT_SUGGESTION_EDIT_HOMEPAGE_DESC":
+          "让 AI 在项目创建后执行真实的首页内容与源码更新。",
+        "ai:AI_CHAT_SUGGESTION_UPDATE_SITE_SOURCE": "调整源码",
+        "ai:AI_CHAT_SUGGESTION_UPDATE_SITE_SOURCE_PROMPT":
+          "请读取当前项目的 React+Vite 源码树，然后优化首页实现，同时保持生成内容绑定可读，并与网站配置一致。",
+        "ai:AI_CHAT_SUGGESTION_UPDATE_SITE_SOURCE_DESC": "让 AI 检查并更新可读取的项目源码树。",
+        "ai:AI_CHAT_SUGGESTION_VERIFY_AND_PUBLISH": "检查发布",
+        "ai:AI_CHAT_SUGGESTION_VERIFY_AND_PUBLISH_PROMPT":
+          "请检查当前项目的域名、品牌就绪、SEO 默认值、首页内容和源码发布准备。如果全部就绪，发布一个项目版本并返回版本号。",
+        "ai:AI_CHAT_SUGGESTION_VERIFY_AND_PUBLISH_DESC": "让 AI 验证建站链路，并在就绪时发布版本。",
       };
       return labels[key] ?? key;
     },
@@ -194,5 +207,46 @@ describe("AISuggestions", () => {
 
     expect(screen.getByRole("button", { name: "细化执行方案" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "规划下一步" })).toBeInTheDocument();
+  });
+
+  it("renders site-builder next steps after project creation", () => {
+    render(
+      <AISuggestions
+        source="message"
+        workspaceAction={{
+          type: "workspace_project_created",
+          status: "completed",
+          project: {
+            id: "project-1",
+            name: "企业官网",
+            slug: "enterprise",
+          },
+          summary: {
+            editorPath: "/projects/project-1/editor",
+            homepageItemId: "item-home",
+            routePath: "/",
+            sourceFileCount: 2,
+          },
+          navigation: { label: "进入项目", path: "/projects/project-1" },
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "编辑首页" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "调整源码" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "检查发布" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "规划内容模型" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "编辑首页" }));
+
+    expect(assistantUiMock.append).toHaveBeenCalledWith({
+      content: [
+        {
+          type: "text",
+          text: "请基于刚创建的项目，直接更新首页 Hero 和第一个内容区块。保持首页内容条目、可复用区块模型、组件绑定、路由和 React+Vite 源码一致。",
+        },
+      ],
+      runConfig: assistantUiMock.composerState.runConfig,
+    });
   });
 });

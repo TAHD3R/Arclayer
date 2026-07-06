@@ -30,11 +30,16 @@ describe("workspace nav regression", () => {
   test("keeps workspace nav aligned with live workspace routes", () => {
     expect(listWorkspaceNavTargets()).toEqual([
       "/",
+      "/editor",
       "/activity",
       "/assets",
+      "/website/domain",
+      "/website/releases",
       "/content/library",
       "/content/models",
-      "/content/general",
+      "/seo/site",
+      "/seo/google-analytics",
+      "/seo/audit",
       "/settings/general",
     ]);
   });
@@ -52,43 +57,51 @@ describe("workspace nav regression", () => {
   test("keeps workspace nav tree aligned with the approved IA", () => {
     expect(ADMIN_NAV_ITEMS.map((item) => item.key)).toEqual([
       "dashboard",
+      "editor",
       "activity",
       "assets",
-      "content.library",
-      "content.models",
-      "website.analytics",
-      "settings.site",
-      "apps.manage",
-      "apps.market",
-      "automations",
+      "website.domain",
+      "website.releases",
+      "content",
+      "seo",
       "settings.project",
     ]);
 
-    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "assets")).toMatchObject({
+    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "assets")).not.toHaveProperty(
+      "groupLabelBeforeKey",
+    );
+    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "website.domain")).toMatchObject({
       groupLabelBeforeKey: "nav:NAV_GROUP_WEBSITE",
     });
-    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "website.analytics")).toMatchObject({
-      labelKey: "nav:NAV_SECTION_ANALYTICS",
+    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "website.domain")).toMatchObject({
+      labelKey: "nav:NAV_WEBSITE_DOMAIN",
+      to: "/website/domain",
+    });
+    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "website.releases")).toMatchObject({
+      labelKey: "nav:NAV_WEBSITE_RELEASES",
+      to: "/website/releases",
+    });
+    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "content")).toMatchObject({
+      labelKey: "nav:NAV_CONTENT",
       children: [
-        expect.objectContaining({ key: "analytics.highlights", disabled: true }),
-        expect.objectContaining({ key: "analytics.real-time", disabled: true }),
-        expect.objectContaining({ key: "analytics.traffic", disabled: true }),
-        expect.objectContaining({ key: "analytics.insights", disabled: true }),
+        expect.objectContaining({ key: "content.library", to: "/content/library" }),
+        expect.objectContaining({ key: "content.models", to: "/content/models" }),
       ],
     });
-    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "apps.manage")).toMatchObject({
-      groupLabelBeforeKey: "nav:NAV_SECTION_APPS",
-    });
-    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "settings.site")).toMatchObject({
-      labelKey: "nav:NAV_SETTINGS_SITE",
+    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "seo")).toMatchObject({
+      labelKey: "nav:NAV_SECTION_SEO",
+      children: [
+        expect.objectContaining({ key: "seo.site", to: "/seo/site" }),
+        expect.objectContaining({ key: "seo.google-analytics", to: "/seo/google-analytics" }),
+        expect.objectContaining({ key: "seo.audit", to: "/seo/audit" }),
+      ],
     });
     expect(ADMIN_NAV_ITEMS.find((item) => item.key === "settings.project")).toMatchObject({
       groupLabelBeforeKey: "nav:NAV_SECTION_CONFIGURATION",
     });
 
-    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "website.analytics")?.children).toHaveLength(
-      4,
-    );
+    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "content")?.children).toHaveLength(2);
+    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "seo")?.children).toHaveLength(3);
   });
 
   test("returns the project-first workspace nav tree", () => {
@@ -96,18 +109,18 @@ describe("workspace nav regression", () => {
 
     expect(projectNav.map((item) => item.key)).toEqual([
       "dashboard",
+      "editor",
       "activity",
       "assets",
-      "content.library",
-      "content.models",
-      "website.analytics",
-      "settings.site",
-      "apps.manage",
-      "apps.market",
-      "automations",
+      "website.domain",
+      "website.releases",
+      "content",
+      "seo",
       "settings.project",
     ]);
-    expect(listWorkspaceNavTargets(projectNav)).toContain("/content/general");
+    expect(listWorkspaceNavTargets(projectNav)).toContain("/website/domain");
+    expect(listWorkspaceNavTargets(projectNav)).toContain("/website/releases");
+    expect(listWorkspaceNavTargets(projectNav)).toContain("/seo/site");
     expect(listWorkspaceNavTargets(projectNav)).toContain("/settings/general");
   });
 });

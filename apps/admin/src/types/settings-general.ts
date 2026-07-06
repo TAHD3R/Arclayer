@@ -19,8 +19,10 @@ export type GeneralSettingsFormValues = {
   siteLogoAssetId: string;
   siteFaviconUrl: string;
   siteFaviconAssetId: string;
-  siteAvatarPlaceholderUrl: string;
-  siteAvatarPlaceholderAssetId: string;
+  seoOgImageUrl: string;
+  seoOgImageAssetId: string;
+  seoIndexingEnabled: boolean;
+  seoSitemapEnabled: boolean;
   siteContactEmail: string;
   supportedLocales: string[];
   defaultLocale: string;

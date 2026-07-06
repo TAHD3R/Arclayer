@@ -43,6 +43,7 @@ from src.modules.projects.content.items.domain_helpers import (
     extract_component_bindings,
     extract_seo_payload,
     item_fields_for_transition,
+    item_has_capability,
     normalize_bootstrap_shape,
     normalize_capability_pack_ids,
     normalize_initial_status,
@@ -74,6 +75,12 @@ from src.modules.projects.content.items.workflow_policy import (
     resolve_workflow_actor,
     resolve_workflow_policy,
     validate_workflow_transition,
+)
+from src.modules.projects.content.routing.schema import RouteBindingUpsertIn
+from src.modules.projects.content.routing.service import (
+    resolve_duplicate_route_path,
+    set_route_bindings_active_for_item,
+    upsert_route_binding_record,
 )
 from src.modules.tenancy.router_helpers import tenant_payload_from_context
 
@@ -118,6 +125,15 @@ def _compare_version_payloads(
     changes = _compare_mapping("fields", before.fields_snapshot, after.fields_snapshot)
     changes.extend(_compare_mapping("presentations", _presentation_payloads(before), _presentation_payloads(after)))
     return changes
+
+
+def _draft_route_path(fields_snapshot: JsonObject) -> str | None:
+    if "path" not in fields_snapshot:
+        return None
+    path = fields_snapshot["path"]
+    if not isinstance(path, str) or not path.strip():
+        raise Conflict("Routable content item path must be a non-empty string", error="CONTENT_ROUTE_PATH_INVALID")
+    return path
 
 
 class ProjectContentCanonicalItemsService(BaseService):
@@ -263,6 +279,76 @@ class ProjectContentCanonicalItemsService(BaseService):
         if version is None:
             raise NotFound("Content version not found", error="CONTENT_ITEM_VERSION_NOT_FOUND")
         return version
+
+    async def _sync_draft_route_binding(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        environment_id: UUID | None,
+        item: ContentItemRecord,
+        fields_snapshot: JsonObject,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        if not item_has_capability(item, "routable"):
+            return
+        route_path = _draft_route_path(fields_snapshot)
+        if route_path is None:
+            return
+        await upsert_route_binding_record(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            environment_id=environment_id,
+            item_id=item.id,
+            item=item,
+            payload=RouteBindingUpsertIn(locale=str(item.locale or "zh-CN"), path=route_path, is_active=True),
+            conn=conn,
+        )
+
+    async def _prepare_duplicated_fields_snapshot(
+        self,
+        *,
+        site_id: UUID,
+        environment_id: UUID | None,
+        item: ContentItemRecord,
+        fields_snapshot: JsonObject,
+        conn: BaseDBAsyncClient,
+    ) -> JsonObject:
+        duplicated_fields = dict(fields_snapshot)
+        if not item_has_capability(item, "routable"):
+            return duplicated_fields
+        route_path = _draft_route_path(duplicated_fields)
+        if route_path is None:
+            return duplicated_fields
+        duplicated_fields["path"] = await resolve_duplicate_route_path(
+            site_id=site_id,
+            environment_id=environment_id,
+            locale=str(item.locale or "zh-CN"),
+            source_path=route_path,
+            conn=conn,
+        )
+        return duplicated_fields
+
+    async def _set_route_bindings_active(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        environment_id: UUID | None,
+        item: ContentItemRecord,
+        is_active: bool,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        if not item_has_capability(item, "routable"):
+            return
+        await set_route_bindings_active_for_item(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            environment_id=environment_id,
+            item_id=item.id,
+            is_active=is_active,
+            conn=conn,
+        )
 
     @staticmethod
     def _translation_status_from_items(
@@ -659,11 +745,18 @@ class ProjectContentCanonicalItemsService(BaseService):
                     version_number=int(source_item.draft_version),
                     conn=conn,
                 )
+                duplicated_fields_snapshot = await self._prepare_duplicated_fields_snapshot(
+                    site_id=site_id,
+                    environment_id=environment_id,
+                    item=source_item,
+                    fields_snapshot=source_version.fields_snapshot or {},
+                    conn=conn,
+                )
                 duplicated_version = await self.repo.create_version(
                     item_id=duplicated_item.id,
                     version=1,
                     state=str(ContentVersionState.DRAFT),
-                    fields_snapshot=source_version.fields_snapshot or {},
+                    fields_snapshot=duplicated_fields_snapshot,
                     change_summary=None,
                     actor_user_id=actor_user_id,
                     last_transition_by_user_id=actor_user_id,
@@ -681,6 +774,21 @@ class ProjectContentCanonicalItemsService(BaseService):
                 duplicated_item = await self.repo.update_item_fields(
                     duplicated_item,
                     fields={"draft_version": 1, "updated_by_user_id": actor_user_id},
+                    conn=conn,
+                )
+                duplicated_item = await self._get_locked_item(
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    environment_id=environment_id,
+                    item_id=duplicated_item.id,
+                    conn=conn,
+                )
+                await self._sync_draft_route_binding(
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    environment_id=environment_id,
+                    item=duplicated_item,
+                    fields_snapshot=duplicated_fields_snapshot,
                     conn=conn,
                 )
 
@@ -794,11 +902,12 @@ class ProjectContentCanonicalItemsService(BaseService):
                     version_number=source_version_number,
                     conn=conn,
                 )
+                translated_fields_snapshot = source_version.fields_snapshot or {}
                 translated_version = await self.repo.create_version(
                     item_id=translated_item.id,
                     version=1,
                     state=str(ContentVersionState.DRAFT),
-                    fields_snapshot=source_version.fields_snapshot or {},
+                    fields_snapshot=translated_fields_snapshot,
                     change_summary=None,
                     actor_user_id=actor_user_id,
                     last_transition_by_user_id=actor_user_id,
@@ -816,6 +925,21 @@ class ProjectContentCanonicalItemsService(BaseService):
                 translated_item = await self.repo.update_item_fields(
                     translated_item,
                     fields={"draft_version": 1, "updated_by_user_id": actor_user_id},
+                    conn=conn,
+                )
+                translated_item = await self._get_locked_item(
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    environment_id=environment_id,
+                    item_id=translated_item.id,
+                    conn=conn,
+                )
+                await self._sync_draft_route_binding(
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    environment_id=environment_id,
+                    item=translated_item,
+                    fields_snapshot=translated_fields_snapshot,
                     conn=conn,
                 )
             translations = await self.repo.list_translation_items(
@@ -979,6 +1103,14 @@ class ProjectContentCanonicalItemsService(BaseService):
                     conn=conn,
                 )
                 data = to_item_out(item, item.model_definition)
+            await self._set_route_bindings_active(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                environment_id=environment_id,
+                item=item,
+                is_active=False,
+                conn=conn,
+            )
         await self._publish_content_runtime_event(
             actor_user_id=actor_user_id,
             workspace_id=workspace_id,
@@ -1056,6 +1188,14 @@ class ProjectContentCanonicalItemsService(BaseService):
                     ),
                     "updated_by_user_id": actor_user_id,
                 },
+                conn=conn,
+            )
+            await self._sync_draft_route_binding(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                environment_id=environment_id,
+                item=item,
+                fields_snapshot=fields_snapshot,
                 conn=conn,
             )
             return await self.reads.build_version_out(version=version, conn=conn)
@@ -1402,6 +1542,14 @@ class ProjectContentCanonicalItemsService(BaseService):
                 },
                 conn=conn,
             )
+            await self._sync_draft_route_binding(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                environment_id=environment_id,
+                item=item,
+                fields_snapshot=source_out.fields_snapshot,
+                conn=conn,
+            )
             await self._write_content_item_activity_event(
                 event_name=CONTENT_ITEM_RESTORED_EVENT,
                 workspace_id=workspace_id,
@@ -1443,6 +1591,7 @@ class ProjectContentCanonicalItemsService(BaseService):
                 raise Conflict("Content item is not archived", error="CONTENT_ITEM_NOT_ARCHIVED")
 
             current_version = int(item.draft_version or 0)
+            version = None
             if current_version > 0:
                 version = await self._get_locked_version(
                     item_id=item.id,
@@ -1469,6 +1618,15 @@ class ProjectContentCanonicalItemsService(BaseService):
                 },
                 conn=conn,
             )
+            if version is not None:
+                await self._sync_draft_route_binding(
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    environment_id=environment_id,
+                    item=item,
+                    fields_snapshot=version.fields_snapshot if isinstance(version.fields_snapshot, dict) else {},
+                    conn=conn,
+                )
             data = to_item_out(item, item.model_definition)
         await self._publish_content_runtime_event(
             actor_user_id=actor_user_id,
@@ -1545,6 +1703,15 @@ class ProjectContentCanonicalItemsService(BaseService):
             )
             if item_fields:
                 await self.repo.update_item_fields(item, fields=item_fields, conn=conn)
+            if "fields_snapshot" in version_fields:
+                await self._sync_draft_route_binding(
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    environment_id=environment_id,
+                    item=item,
+                    fields_snapshot=version.fields_snapshot,
+                    conn=conn,
+                )
             if has_version_changes or has_presentation_changes or item_fields:
                 await self._write_content_item_activity_event(
                     event_name=CONTENT_ITEM_UPDATED_EVENT,

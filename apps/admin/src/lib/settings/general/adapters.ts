@@ -30,10 +30,20 @@ export function buildGeneralSettingsInitialValues(params: {
   const siteLogoAssetId = pickString(projectValue, ["site", "logo_asset_id"]) ?? "";
   const siteFaviconUrl = pickString(projectValue, ["site", "favicon_url"]) ?? "";
   const siteFaviconAssetId = pickString(projectValue, ["site", "favicon_asset_id"]) ?? "";
-  const siteAvatarPlaceholderUrl =
-    pickString(projectValue, ["site", "avatar_placeholder_url"]) ?? "";
-  const siteAvatarPlaceholderAssetId =
-    pickString(projectValue, ["site", "avatar_placeholder_asset_id"]) ?? "";
+  const seoOgImageUrl =
+    pickString(projectValue, ["seo", "og_image_url"]) ??
+    pickString(projectValue, ["seo", "open_graph_image_url"]) ??
+    "";
+  const seoOgImageAssetId =
+    pickString(projectValue, ["seo", "og_image_asset_id"]) ??
+    pickString(projectValue, ["seo", "open_graph_image_asset_id"]) ??
+    "";
+  const robotsDirective =
+    pickString(projectValue, ["seo", "robots_directive"]) ??
+    pickString(projectValue, ["seo", "default_robots_directive"]) ??
+    "index,follow";
+  const seoIndexingEnabled = !robotsDirective.toLowerCase().includes("noindex");
+  const seoSitemapEnabled = pickBool(projectValue, ["seo", "sitemap_enabled"]) ?? true;
   const siteContactEmail = pickString(projectValue, ["site", "contact_email"]) ?? "";
 
   const defaultLocale =
@@ -130,8 +140,10 @@ export function buildGeneralSettingsInitialValues(params: {
     siteLogoAssetId,
     siteFaviconUrl,
     siteFaviconAssetId,
-    siteAvatarPlaceholderUrl,
-    siteAvatarPlaceholderAssetId,
+    seoOgImageUrl,
+    seoOgImageAssetId,
+    seoIndexingEnabled,
+    seoSitemapEnabled,
     siteContactEmail,
     supportedLocales,
     defaultLocale,

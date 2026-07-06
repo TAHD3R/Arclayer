@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 
-const ARTICLE_EDITOR_SEARCH_ROOT_SELECTOR = '[aria-label="Article body"]';
+const ARTICLE_EDITOR_SEARCH_ROOT_SELECTOR = '[aria-label="Content body"]';
 const ARTICLE_EDITOR_SEARCH_MATCH_HIGHLIGHT = "article-editor-search-match";
 const ARTICLE_EDITOR_SEARCH_ACTIVE_HIGHLIGHT = "article-editor-search-active-match";
 

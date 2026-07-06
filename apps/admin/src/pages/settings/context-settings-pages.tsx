@@ -7,6 +7,8 @@ import { useWorkspacePermissionAccess } from "@/hooks/use-workspace-permission-a
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { ProjectSettingsPage as ProjectSettingsSurface } from "@/pages/projects/settings/project/page";
 import { GeneralLocalizationSettingsPage } from "@/pages/projects/settings/site/localization/page";
+import { ProjectDeploymentsPage as ProjectWebsiteReleasesSurface } from "@/pages/projects/deployments/page";
+import { ProjectDomainSettingsPage as ProjectWebsiteDomainSurface } from "@/pages/projects/settings/domain/page";
 import { WorkspacePermissionsSettingsPage } from "@/pages/workspaces/settings/workspace/permissions/page";
 import { WorkspaceSettingsBasicsView } from "@/pages/workspaces/settings/workspace/basics/components/workspace-settings-basics-view";
 import { TeamInvitationsPage } from "@/pages/workspaces/team/invitations/page";
@@ -169,7 +171,7 @@ function ProjectStandalonePage(props: { titleKey: string; descriptionKey?: strin
 }
 
 export function ProjectDomainSettingsPage(props: { projectId: string }) {
-  return <ProjectSettingsSurface activeTab="domain" projectId={props.projectId} />;
+  return <ProjectWebsiteDomainSurface projectId={props.projectId} />;
 }
 
 export function ProjectSeoSettingsPage() {
@@ -185,7 +187,7 @@ export function ProjectEnvironmentsSettingsPage(props: { projectId: string }) {
 }
 
 export function ProjectDeploymentsSettingsPage(props: { projectId: string }) {
-  return <ProjectSettingsSurface activeTab="deployments" projectId={props.projectId} />;
+  return <ProjectWebsiteReleasesSurface projectId={props.projectId} />;
 }
 
 export function ProjectDatabasesSettingsPage(props: { projectId: string }) {

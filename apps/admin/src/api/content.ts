@@ -1,11 +1,14 @@
 import { projectPath, toQueryString } from "@/lib/api";
 import { api } from "@/lib/http";
 import type {
+  AdminContentComponentBindingList,
+  AdminContentHierarchyNode,
   AdminContentItem,
   AdminContentLibraryViewsState,
   AdminContentModel,
   AdminContentModelJsonPreview,
   AdminContentModelImpactPreview,
+  AdminContentRouteBinding,
   AdminContentTranslationGroup,
   AdminContentSeoProfile,
   AdminContentVersion,
@@ -28,6 +31,7 @@ import type {
   PatchAdminContentLibraryViewPayload,
   ReorderAdminContentModelFieldsPayload,
   SaveAdminContentDraftVersionPayload,
+  UpsertAdminContentRouteBindingPayload,
 } from "@arclayer/openapi/admin-types";
 
 const CONTENT_LIST_PAGE_SIZE = 200;
@@ -305,6 +309,29 @@ export async function saveContentItemDraftVersion(
   );
 }
 
+export async function upsertContentRouteBinding(
+  projectId: string,
+  itemId: string,
+  payload: UpsertAdminContentRouteBindingPayload,
+): Promise<AdminContentRouteBinding> {
+  return api.put<AdminContentRouteBinding>(
+    projectPath(projectId, `/content/routing/bindings/${itemId}`),
+    payload,
+  );
+}
+
+export async function listContentRouteBindings(
+  projectId: string,
+): Promise<AdminContentRouteBinding[]> {
+  return api.get<AdminContentRouteBinding[]>(projectPath(projectId, "/content/routing/bindings"));
+}
+
+export async function listContentHierarchyNodes(
+  projectId: string,
+): Promise<AdminContentHierarchyNode[]> {
+  return api.get<AdminContentHierarchyNode[]>(projectPath(projectId, "/content/routing/hierarchy"));
+}
+
 export async function getContentItemVersion(
   projectId: string,
   itemId: string,
@@ -312,6 +339,16 @@ export async function getContentItemVersion(
 ): Promise<AdminContentVersion> {
   return api.get<AdminContentVersion>(
     projectPath(projectId, `/content/items/${itemId}/versions/${versionNumber}`),
+  );
+}
+
+export async function listContentVersionComponentBindings(
+  projectId: string,
+  itemId: string,
+  versionNumber: number,
+): Promise<AdminContentComponentBindingList> {
+  return api.get<AdminContentComponentBindingList>(
+    projectPath(projectId, `/content/items/${itemId}/versions/${versionNumber}/bindings`),
   );
 }
 

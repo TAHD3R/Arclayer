@@ -26,6 +26,14 @@ const IRREGULAR_PLURALS = new Map<string, string>([
   ["person", "people"],
 ]);
 
+export type ContentModelStarterTemplateKey =
+  | "blank"
+  | "page"
+  | "reusableBlock"
+  | "landingSection"
+  | "contentCollection"
+  | "taxonomy";
+
 export function buildContentModelsTableId(projectId: string): string {
   return `project-content-models:${projectId}`;
 }
@@ -124,7 +132,12 @@ export function buildCreateContentTypePayload(values: {
   pluralKey: string;
   description: string | null;
   modelKind: AdminContentModelKind;
+  starterTemplate?: ContentModelStarterTemplateKey;
 }): CreateAdminContentModelPayload {
+  if (values.starterTemplate && values.starterTemplate !== "blank") {
+    return buildStarterTemplatePayload(values);
+  }
+
   const isComponent = values.modelKind === "component";
   return {
     name: values.name,
@@ -138,6 +151,277 @@ export function buildCreateContentTypePayload(values: {
     routing: { mode: "none" },
     workflow: { states: ["draft"], initialState: "draft" },
     views: [],
+  };
+}
+
+function withModelIdentity(
+  payload: CreateAdminContentModelPayload,
+  values: {
+    name: string;
+    singularKey: string;
+    pluralKey: string;
+    description: string | null;
+  },
+): CreateAdminContentModelPayload {
+  return {
+    ...payload,
+    name: values.name,
+    singularKey: values.singularKey,
+    pluralKey: values.pluralKey,
+    description: values.description,
+  };
+}
+
+function buildStarterTemplatePayload(values: {
+  name: string;
+  singularKey: string;
+  pluralKey: string;
+  description: string | null;
+  modelKind: AdminContentModelKind;
+  starterTemplate?: ContentModelStarterTemplateKey;
+}): CreateAdminContentModelPayload {
+  switch (values.starterTemplate) {
+    case "page":
+      return withModelIdentity(buildSitePageContentModelPayload(), values);
+    case "reusableBlock":
+      return withModelIdentity(buildReusableBlockContentModelPayload(), values);
+    case "landingSection":
+      return withModelIdentity(buildLandingSectionTemplatePayload(), values);
+    case "contentCollection":
+      return withModelIdentity(buildContentCollectionTemplatePayload(), values);
+    case "taxonomy":
+      return withModelIdentity(buildTaxonomyTemplatePayload(), values);
+    case "blank":
+    case undefined:
+      break;
+  }
+
+  return buildCreateContentTypePayload({ ...values, starterTemplate: "blank" });
+}
+
+function buildLandingSectionTemplatePayload(): CreateAdminContentModelPayload {
+  return {
+    singularKey: "landingSection",
+    pluralKey: "landingSections",
+    name: "Landing Section",
+    description:
+      "Visual landing-page section contract for hero, proof, feature, CTA, and FAQ blocks.",
+    category: "site_builder",
+    modelKind: "component",
+    defaultEditor: "visual",
+    defaultRole: "reusable-section",
+    defaultPosture: "composition",
+    defaultSurface: "canvas",
+    capabilities: ["versioned", "visual_editable", "has_slots", "localizable"],
+    fields: [
+      { key: "title", label: "Title", scalar: "text", required: true },
+      { key: "sectionKey", label: "Section key", scalar: "text", required: true },
+      { key: "headline", label: "Headline", scalar: "text", required: false },
+      { key: "body", label: "Body", scalar: "long_text", required: false },
+      { key: "mediaAssetId", label: "Media asset", scalar: "text", required: false },
+      { key: "ctaLabel", label: "CTA label", scalar: "text", required: false },
+      { key: "ctaHref", label: "CTA link", scalar: "text", required: false },
+      { key: "variant", label: "Variant", scalar: "text", required: false },
+    ],
+    relations: [],
+    routing: { mode: "none" },
+    workflow: { states: ["draft", "published"], initialState: "draft" },
+    views: [],
+    presentation: { allowedKinds: ["form_data", "visual_blueprint", "slot_mapping"] },
+    starterPackPolicy: { mode: "section" },
+    surfacePolicy: { allowedSurfaces: ["canvas", "structured"] },
+  };
+}
+
+function buildContentCollectionTemplatePayload(): CreateAdminContentModelPayload {
+  return {
+    singularKey: "siteRecord",
+    pluralKey: "siteRecords",
+    name: "Site Records",
+    description:
+      "Structured website records for case studies, team profiles, resources, or other repeatable site content.",
+    category: "content_library",
+    modelKind: "collection_type",
+    defaultEditor: "form",
+    defaultRole: "data",
+    defaultPosture: "structured",
+    defaultSurface: "structured",
+    capabilities: ["versioned", "queryable", "publishable", "localizable"],
+    fields: [
+      { key: "title", label: "Title", scalar: "text", required: true },
+      { key: "slug", label: "Slug", scalar: "text", required: true },
+      { key: "summary", label: "Summary", scalar: "long_text", required: false },
+      { key: "body", label: "Body", scalar: "long_text", required: false },
+      { key: "imageAssetId", label: "Image asset", scalar: "text", required: false },
+    ],
+    relations: [],
+    routing: { mode: "single", slugField: "slug" },
+    workflow: { states: ["draft", "published"], initialState: "draft" },
+    views: [
+      {
+        key: "records",
+        label: "Records",
+        type: "table",
+        config: { columns: ["title", "slug"] },
+      },
+    ],
+    presentation: { allowedKinds: ["form_data", "seo"] },
+    seo: { titleField: "title", descriptionField: "summary" },
+    starterPackPolicy: { mode: "custom" },
+    surfacePolicy: { allowedSurfaces: ["structured"] },
+  };
+}
+
+function buildTaxonomyTemplatePayload(): CreateAdminContentModelPayload {
+  return {
+    singularKey: "category",
+    pluralKey: "categories",
+    name: "Category",
+    description: "Taxonomy model for grouping pages, reusable blocks, and website records.",
+    category: "content_library",
+    modelKind: "collection_type",
+    defaultEditor: "form",
+    defaultRole: "taxonomy",
+    defaultPosture: "structured",
+    defaultSurface: "structured",
+    capabilities: ["versioned", "queryable", "has_relations", "publishable", "localizable"],
+    fields: [
+      { key: "name", label: "Name", scalar: "text", required: true },
+      { key: "slug", label: "Slug", scalar: "text", required: true },
+      { key: "description", label: "Description", scalar: "long_text", required: false },
+    ],
+    relations: [],
+    routing: { mode: "single", slugField: "slug" },
+    workflow: { states: ["draft", "published"], initialState: "draft" },
+    views: [
+      {
+        key: "categories",
+        label: "Categories",
+        type: "table",
+        config: { columns: ["name", "slug"] },
+      },
+    ],
+    presentation: { allowedKinds: ["form_data", "seo"] },
+    seo: { titleField: "name", descriptionField: "description" },
+    starterPackPolicy: { mode: "category" },
+    surfacePolicy: { allowedSurfaces: ["structured"] },
+  };
+}
+
+export function isSitePageContentModel(
+  model: Pick<AdminContentModel, "capabilities" | "singularKey">,
+): boolean {
+  return model.singularKey === "page" || model.capabilities.includes("routable");
+}
+
+export function isReusableBlockContentModel(
+  model: Pick<AdminContentModel, "defaultPosture" | "defaultRole" | "singularKey">,
+): boolean {
+  return (
+    model.singularKey === "reusableBlock" ||
+    model.singularKey === "reusable-section" ||
+    model.defaultRole === "reusable-section" ||
+    model.defaultPosture === "composition"
+  );
+}
+
+export function getContentModelPurposeLabelKey(model: AdminContentModel): string {
+  if (isSitePageContentModel(model)) return "content:CONTENT_MODELS_PURPOSE_PAGE_MODEL";
+  if (isReusableBlockContentModel(model)) return "content:CONTENT_MODELS_PURPOSE_REUSABLE_BLOCK";
+  if (model.category === "site_builder") return "content:CONTENT_MODELS_PURPOSE_SITE_BUILDER";
+  if (model.modelKind === "single_type") return "content:CONTENT_MODELS_PURPOSE_GLOBAL_DOCUMENT";
+  if (model.modelKind === "component") return "content:CONTENT_MODELS_PURPOSE_REUSABLE_BLOCK";
+  return "content:CONTENT_MODELS_PURPOSE_CONTENT_COLLECTION";
+}
+
+export function buildSitePageContentModelPayload(): CreateAdminContentModelPayload {
+  return {
+    singularKey: "page",
+    pluralKey: "pages",
+    name: "Page",
+    description: "Route-owned pages for the website editor, preview, SEO, and releases.",
+    category: "site_builder",
+    modelKind: "collection_type",
+    defaultEditor: "visual",
+    defaultRole: "page",
+    defaultPosture: "page",
+    defaultSurface: "canvas",
+    capabilities: [
+      "versioned",
+      "queryable",
+      "routable",
+      "treeable",
+      "visual_editable",
+      "has_slots",
+      "publishable",
+      "seo_managed",
+    ],
+    fields: [
+      { key: "title", label: "Title", scalar: "text", required: true },
+      { key: "path", label: "Path", scalar: "text", required: true },
+      { key: "routePattern", label: "Route pattern", scalar: "text", required: false },
+      { key: "heroHeadline", label: "Hero headline", scalar: "text", required: false },
+      { key: "heroSubheading", label: "Hero subheading", scalar: "long_text", required: false },
+      { key: "sections", label: "Sections", scalar: "json", required: false },
+    ],
+    relations: [],
+    routing: { mode: "localized", slugField: "path" },
+    workflow: { states: ["draft", "published"], initialState: "draft" },
+    views: [
+      {
+        key: "pages",
+        label: "Pages",
+        type: "table",
+        config: { columns: ["title", "path"] },
+      },
+    ],
+    presentation: { allowedKinds: ["form_data", "visual_blueprint", "slot_mapping", "seo"] },
+    seo: { titleField: "title" },
+    starterPackPolicy: { mode: "page" },
+    surfacePolicy: { allowedSurfaces: ["canvas", "structured"] },
+  };
+}
+
+export function buildReusableBlockContentModelPayload(): CreateAdminContentModelPayload {
+  return {
+    singularKey: "reusableBlock",
+    pluralKey: "reusableBlocks",
+    name: "Reusable Block",
+    description:
+      "Reusable visual block for page sections, layout fragments, and AI-assisted composition.",
+    category: "site_builder",
+    modelKind: "collection_type",
+    defaultEditor: "visual",
+    defaultRole: "reusable-section",
+    defaultPosture: "composition",
+    defaultSurface: "canvas",
+    capabilities: [
+      "versioned",
+      "queryable",
+      "visual_editable",
+      "has_slots",
+      "publishable",
+      "localizable",
+    ],
+    fields: [
+      { key: "title", label: "Title", scalar: "text", required: true },
+      { key: "sectionKey", label: "Section key", scalar: "text", required: true },
+      { key: "propsDefaults", label: "Props defaults", scalar: "json", required: false },
+    ],
+    relations: [],
+    routing: { mode: "none" },
+    workflow: { states: ["draft", "published"], initialState: "draft" },
+    views: [
+      {
+        key: "blocks",
+        label: "Reusable blocks",
+        type: "table",
+        config: { columns: ["title", "sectionKey"] },
+      },
+    ],
+    presentation: { allowedKinds: ["form_data", "visual_blueprint", "slot_mapping"] },
+    starterPackPolicy: { mode: "section" },
+    surfacePolicy: { allowedSurfaces: ["canvas", "structured"] },
   };
 }
 

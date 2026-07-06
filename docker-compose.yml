@@ -132,26 +132,19 @@ services:
     image: traefik:v3.6.9
     container_name: arclayer-traefik
     restart: unless-stopped
+    command:
+      - --configFile=/etc/traefik/traefik.yml
     ports:
       - "80:80"
       - "443:443"
     env_file:
       - ./docker/env/traefik.env
     volumes:
-      - traefik_acme:/acme
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./docker/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./docker/traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - ./docker/traefik/certs:/certs:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    networks:
-      - arclayer
-
-  routes:
-    image: alpine:3.20
-    container_name: arclayer-routes
-    restart: unless-stopped
-    command: sleep infinity
-    label_file:
-      - ./docker/traefik/routes.labels
     networks:
       - arclayer
 
@@ -161,7 +154,6 @@ volumes:
   meilisearch_data:
   rustfs_data:
   mailpit_data:
-  traefik_acme:
 
 networks:
   arclayer:

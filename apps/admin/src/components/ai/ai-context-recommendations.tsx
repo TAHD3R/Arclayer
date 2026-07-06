@@ -20,6 +20,7 @@ import {
 } from "@/api/ai";
 import { aiAgentUnavailableReasonKey } from "@/components/ai/ai-agent-availability";
 import { sendAIChatMessage, sendAIWorkspaceActionMessage } from "@/components/ai/ai-chat-runtime";
+import { invalidateAIWorkspaceActionQueries } from "@/components/ai/ai-workspace-action-cache";
 import {
   useAiChatStore,
   type AIComposerMode,
@@ -129,10 +130,13 @@ export function AIContextRecommendations() {
     try {
       if (recommendation.localAction === "execute-workspace-plan") {
         setComposerMode("build");
-        await sendAIWorkspaceActionMessage(
+        const result = await sendAIWorkspaceActionMessage(
           activeId,
           recommendation.prompt ?? localized.description,
         );
+        await invalidateAIWorkspaceActionQueries(queryClient, result, {
+          fallbackProjectId: useWorkspaceStore.getState().currentProjectId,
+        });
         return;
       }
       const proposal = await tryCreateWritableProposal({
@@ -307,7 +311,7 @@ function readLatestWorkspaceActionPlanGoal(messages: AIChatMessage[]): string | 
     const artifact = message.agentArtifact;
     if (
       artifact?.type === "agent_execution_plan" &&
-      artifact.source?.startsWith("workspace_action:") &&
+      artifact.source === "workspace_action:planned_mutation" &&
       artifact.goal.trim()
     ) {
       return artifact.goal.trim();

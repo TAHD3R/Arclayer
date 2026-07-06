@@ -51,7 +51,7 @@ vi.mock(
   }),
 );
 
-function buildRow(): ContentLibraryTableRow {
+function buildRow(overrides: Partial<ContentLibraryTableRow> = {}): ContentLibraryTableRow {
   return {
     id: "content-1",
     workspaceId: "ws-1",
@@ -81,6 +81,7 @@ function buildRow(): ContentLibraryTableRow {
     draftVersion: 3,
     publishedVersion: 2,
     updatedAt: "2026-04-19T02:00:00Z",
+    ...overrides,
   };
 }
 
@@ -107,5 +108,57 @@ describe("content-library-preview-panel", () => {
       screen.getAllByText("CONTENT_LIBRARY_DIAGNOSTIC_BOOTSTRAP_CUSTOMIZED").length,
     ).toBeGreaterThan(0);
     expect(screen.getByTestId("content-library-detail-summary-strip")).toBeInTheDocument();
+  });
+
+  test("treats reusable section canvas content as block content instead of page settings", () => {
+    render(
+      <ContentLibraryPreviewPanel
+        projectId="project-1"
+        row={buildRow({
+          modelId: "model-section",
+          modelKey: "reusable-section",
+          modelName: "Reusable Section",
+          modelDescription: "Shared visual sections",
+          modelCategory: "site_builder",
+          modelCapabilities: ["visual_editable", "has_slots", "publishable"],
+          title: "Hero section",
+          name: "Hero section",
+          summary: "",
+          runtime: "visual",
+          context: "site_builder",
+          libraryGroup: "site-content",
+          editWith: "canvas",
+          role: "reusable-section",
+          resolvedRole: "reusable-section",
+          resolvedPosture: "composition",
+          resolvedSurface: "canvas",
+        })}
+        onClose={vi.fn()}
+        onOpenPage={vi.fn()}
+        onEditPermalink={vi.fn()}
+        onEditSeo={vi.fn()}
+        onEditVisibility={vi.fn()}
+        onOpenPageSettings={vi.fn()}
+        onOpenStructuredFields={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("CONTENT_LIBRARY_PREVIEW_REUSABLE_NEXT_TITLE")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_LIBRARY_PREVIEW_SUMMARY_EMPTY_REUSABLE")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_EDIT_FIELDS" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_EDIT_VISIBILITY" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "CONTENT_LIBRARY_ACTION_EDIT_PERMALINK" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "CONTENT_LIBRARY_ACTION_EDIT_SEO" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "CONTENT_LIBRARY_ACTION_PAGE_SETTINGS" }),
+    ).not.toBeInTheDocument();
   });
 });

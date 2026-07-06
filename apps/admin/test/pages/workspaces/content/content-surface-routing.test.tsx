@@ -132,6 +132,51 @@ describe("content surface routing", () => {
     expect(screen.queryByTestId("content-item-continuation-state")).not.toBeInTheDocument();
   });
 
+  test("routes reusable section canvas items into the structured field surface", async () => {
+    getContentItemMock.mockResolvedValue({
+      id: "item-reusable",
+      workspaceId: "ws-1",
+      siteId: "site-1",
+      modelId: "model-section",
+      modelKey: "reusable-section",
+      slug: "shared-hero",
+      title: "Shared hero",
+      status: "draft",
+      visibility: "private",
+      locale: "en-US",
+      bootstrapPresetState: "selected",
+      capabilityPackIds: ["queryable", "visual_editable", "has_slots", "publishable"],
+      resolvedRole: "reusable-section",
+      resolvedPosture: "composition",
+      resolvedSurface: "canvas",
+      shapeState: "ready",
+      draftVersion: 1,
+      updatedAt: "2026-04-04T00:00:00Z",
+      role: "reusable-section",
+      continuationTarget: {
+        surface: "canvas",
+        route: "/w/ws-1/content/library/item-reusable",
+        blocked: false,
+        reasonCode: null,
+        reasonMeta: null,
+        recoveryActions: [],
+      },
+    });
+
+    render(<ContentLibraryItemResolverPage projectId="project-1" itemId="item-reusable" />, {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("content-structured-surface")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("content-structured-surface")).toHaveTextContent(
+      "structured:item-reusable",
+    );
+    expect(screen.queryByTestId("content-site-builder-shell")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("content-item-continuation-state")).not.toBeInTheDocument();
+  });
+
   test("keeps blocked items on the recovery surface", async () => {
     getContentItemMock.mockResolvedValue({
       id: "item-blocked",

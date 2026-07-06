@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
+import type { AIWorkspaceActionContentModel } from "@/api/ai";
 import {
   buildContentModelsQueryKey,
   createContentModel,
@@ -13,11 +14,11 @@ import { useRouteTransitionState } from "@/components/layout/route-transition";
 import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
+import { notifyError, notifySuccessText } from "@/lib/notifications";
 import {
   projectContentModelsEditPath,
   projectContentModelsPath,
 } from "@/lib/routing/project-content-routing";
-import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { Button } from "@arclayer/ui/button";
 
 import { ContentModelsActionDialogs } from "./components/content-models-action-dialogs";
@@ -126,6 +127,21 @@ export function ContentModelEditPage({
     },
     [navigate, projectId],
   );
+  const navigateToModelId = React.useCallback(
+    (targetModelId: string) => {
+      void navigate({ to: projectContentModelsEditPath(projectId, targetModelId) });
+    },
+    [navigate, projectId],
+  );
+
+  const handleAiModelCreated = React.useCallback(
+    async (model: AIWorkspaceActionContentModel) => {
+      await refreshModels();
+      setCreateDialogOpen(false);
+      navigateToModelId(model.id);
+    },
+    [navigateToModelId, refreshModels],
+  );
 
   const createMutation = useMutation({
     mutationFn: (values: CreateContentTypeSubmitValues) =>
@@ -209,6 +225,7 @@ export function ContentModelEditPage({
       <CreateContentTypeDialog
         open={createDialogOpen}
         pending={createMutation.isPending}
+        projectId={projectId}
         onOpenChange={(open) => {
           if (open) {
             setCreateDialogOpen(true);
@@ -222,6 +239,7 @@ export function ContentModelEditPage({
         onSubmit={async (values) => {
           await createMutation.mutateAsync(values);
         }}
+        onAiCreated={handleAiModelCreated}
       />
       <ContentModelsActionDialogs
         duplicateDialog={{

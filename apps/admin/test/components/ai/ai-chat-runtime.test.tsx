@@ -1,4 +1,5 @@
 import { act, render, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type {
   AppendMessage,
   ExternalThreadQueueAdapter,
@@ -64,6 +65,27 @@ function appendTextMessage(text: string): AppendMessage {
     runConfig: undefined,
     metadata: { custom: {} },
   };
+}
+
+function createTestQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
+
+function renderRuntime(conversationId = "conversation-1") {
+  const queryClient = createTestQueryClient();
+  const view = render(
+    <QueryClientProvider client={queryClient}>
+      <AIChatRuntimeProvider conversationId={conversationId}>
+        <div />
+      </AIChatRuntimeProvider>
+    </QueryClientProvider>,
+  );
+  return { queryClient, ...view };
 }
 
 vi.mock("@/api/ai", async () => {
@@ -150,11 +172,7 @@ describe("AIChatRuntimeProvider", () => {
   });
 
   it("exposes backend-supported runtime actions and text attachments", () => {
-    render(
-      <AIChatRuntimeProvider conversationId="conversation-1">
-        <div />
-      </AIChatRuntimeProvider>,
-    );
+    renderRuntime();
 
     expect(assistantUiMockState.runtimeStore?.messages.map((message) => message.id)).toEqual([
       "ai-message-0",
@@ -195,11 +213,7 @@ describe("AIChatRuntimeProvider", () => {
   });
 
   it("preserves agent run metadata when assistant-ui writes messages back to the store", () => {
-    render(
-      <AIChatRuntimeProvider conversationId="conversation-1">
-        <div />
-      </AIChatRuntimeProvider>,
-    );
+    renderRuntime();
 
     act(() => {
       assistantUiMockState.runtimeStore?.setMessages?.([
@@ -242,15 +256,126 @@ describe("AIChatRuntimeProvider", () => {
     expect(ensureAIConversationPersistedForRuntime).toHaveBeenCalledWith("conversation-1");
   });
 
+  it("preserves site settings workspace actions when assistant-ui writes messages back", () => {
+    renderRuntime();
+
+    act(() => {
+      assistantUiMockState.runtimeStore?.setMessages?.([
+        { role: "user", content: "更新网站配置" },
+        {
+          role: "assistant",
+          content: "已更新网站配置。",
+          metadata: {
+            custom: {
+              workspaceAction: {
+                type: "workspace_site_settings_updated",
+                status: "completed",
+                settings: {
+                  changedFields: ["defaultTitle", "googleAnalyticsMeasurementId", "siteName"],
+                  fieldCount: 3,
+                },
+                navigation: {
+                  label: "打开网站配置",
+                  path: "/projects/project-1/seo/site",
+                },
+              },
+            },
+          },
+        },
+      ] as ThreadMessageLike[]);
+    });
+
+    expect(useAiChatStore.getState().conversations[0]?.messages.at(-1)).toMatchObject({
+      role: "assistant",
+      content: "已更新网站配置。",
+      workspaceAction: {
+        type: "workspace_site_settings_updated",
+        settings: {
+          changedFields: ["defaultTitle", "googleAnalyticsMeasurementId", "siteName"],
+          fieldCount: 3,
+        },
+        navigation: {
+          label: "打开网站配置",
+          path: "/projects/project-1/seo/site",
+        },
+      },
+    });
+    expect(ensureAIConversationPersistedForRuntime).toHaveBeenCalledWith("conversation-1");
+  });
+
+  it("keeps site settings workspace action details in later workspace context", async () => {
+    useAiChatStore.setState({
+      composerMode: "build",
+      conversations: [
+        {
+          id: "conversation-1",
+          title: "Conversation",
+          createdAt: 1,
+          updatedAt: 1,
+          messages: [
+            { role: "user", content: "把站点名改成 Arclayer 企业站" },
+            {
+              role: "assistant",
+              content: "已更新网站配置。",
+              workspaceAction: {
+                type: "workspace_site_settings_updated",
+                status: "completed",
+                settings: {
+                  changedFields: ["siteName", "defaultTitle"],
+                  fieldCount: 2,
+                },
+                navigation: {
+                  label: "打开网站配置",
+                  path: "/projects/project-1/seo/site",
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+    vi.mocked(executeAIWorkspaceAction).mockResolvedValueOnce({
+      kind: "tool_call",
+      action: "read_project_source",
+      status: "completed",
+      content: "已读取项目源码。",
+      executionSteps: [],
+      toolCalls: [],
+      sourceManifest: {
+        files: [{ path: "src/App.tsx", role: "entry", language: "typescriptreact" }],
+      },
+      contentModels: [],
+      projects: [],
+      total: null,
+      navigation: { label: "打开编辑器", path: "/projects/project-1/editor" },
+    });
+    renderRuntime();
+
+    await act(async () => {
+      await assistantUiMockState.runtimeStore?.onNew?.(appendTextMessage("读取现在的源码"));
+    });
+
+    expect(executeAIWorkspaceAction).toHaveBeenCalledWith(
+      "读取现在的源码",
+      expect.objectContaining({
+        conversationContext: expect.arrayContaining([
+          expect.objectContaining({
+            role: "assistant",
+            content: expect.stringContaining("[Workspace action: site settings updated]"),
+          }),
+        ]),
+      }),
+    );
+    const context =
+      vi.mocked(executeAIWorkspaceAction).mock.calls[0]?.[1]?.conversationContext?.[1]?.content;
+    expect(context).toContain("Changed: siteName, defaultTitle");
+  });
+
   it("surfaces backend persistence failures after assistant-ui writes messages back", async () => {
     vi.mocked(ensureAIConversationPersistedForRuntime).mockRejectedValueOnce(
       new Error("Conversation persistence failed"),
     );
-    render(
-      <AIChatRuntimeProvider conversationId="conversation-1">
-        <div />
-      </AIChatRuntimeProvider>,
-    );
+    renderRuntime();
 
     act(() => {
       assistantUiMockState.runtimeStore?.setMessages?.([
@@ -270,11 +395,7 @@ describe("AIChatRuntimeProvider", () => {
   });
 
   it("regenerates from the parent user message and persists the updated conversation", async () => {
-    render(
-      <AIChatRuntimeProvider conversationId="conversation-1">
-        <div />
-      </AIChatRuntimeProvider>,
-    );
+    renderRuntime();
 
     await act(async () => {
       await assistantUiMockState.runtimeStore?.onReload?.("ai-message-2", {});
@@ -293,11 +414,7 @@ describe("AIChatRuntimeProvider", () => {
   });
 
   it("edits a user message through the runtime handler before sending again", async () => {
-    render(
-      <AIChatRuntimeProvider conversationId="conversation-1">
-        <div />
-      </AIChatRuntimeProvider>,
-    );
+    renderRuntime();
 
     await act(async () => {
       await assistantUiMockState.runtimeStore?.onEdit?.({
@@ -323,11 +440,7 @@ describe("AIChatRuntimeProvider", () => {
     vi.mocked(ensureAIConversationPersistedForRuntime).mockRejectedValueOnce(
       new Error("Conversation persistence failed"),
     );
-    render(
-      <AIChatRuntimeProvider conversationId="conversation-1">
-        <div />
-      </AIChatRuntimeProvider>,
-    );
+    renderRuntime();
 
     await expect(
       assistantUiMockState.runtimeStore?.onEdit?.({
@@ -353,11 +466,7 @@ describe("AIChatRuntimeProvider", () => {
   });
 
   it("routes manual Build mode messages through chat mode", async () => {
-    render(
-      <AIChatRuntimeProvider conversationId="conversation-1">
-        <div />
-      </AIChatRuntimeProvider>,
-    );
+    renderRuntime();
 
     await act(async () => {
       await assistantUiMockState.runtimeStore?.onNew?.(
@@ -396,6 +505,21 @@ describe("AIChatRuntimeProvider", () => {
           status: "completed",
           arguments: { name: "内容实验室" },
         },
+        {
+          toolName: "workspace.create_site_structure",
+          status: "completed",
+          arguments: {
+            routePath: "/",
+            hierarchyRootItemId: "item-home",
+            hierarchyNodeCount: 1,
+            componentBindings: [
+              { componentKey: "landing.hero", bindingKey: "headline" },
+              { componentKey: "landing.hero", bindingKey: "subheading" },
+              { componentKey: "landing.hero", bindingKey: "primaryCtaLabel" },
+              { componentKey: "landing.sections", bindingKey: "sections" },
+            ],
+          },
+        },
       ],
       project: {
         id: "project-created",
@@ -403,16 +527,68 @@ describe("AIChatRuntimeProvider", () => {
         slug: "project",
         description: null,
       },
-      contentModels: [],
+      domain: { hostname: "project.arclayer.localhost" },
+      contentModels: [
+        {
+          id: "model-page",
+          workspaceId: "workspace-1",
+          siteId: "site-1",
+          singularKey: "page",
+          pluralKey: "pages",
+          name: "Page",
+          description: "Routable website pages",
+          modelKind: "collection",
+        },
+        {
+          id: "model-block",
+          workspaceId: "workspace-1",
+          siteId: "site-1",
+          singularKey: "reusableBlock",
+          pluralKey: "reusableBlocks",
+          name: "Reusable block",
+          description: "Shared site sections",
+          modelKind: "component",
+        },
+      ],
+      contentItem: {
+        id: "item-home",
+        workspaceId: "workspace-1",
+        siteId: "site-1",
+        modelId: "model-page",
+        modelKey: "page",
+        title: "Homepage",
+        slug: "home",
+        locale: "en-US",
+        status: "published",
+        derivedStatus: "published",
+      },
+      contentItems: [
+        {
+          id: "item-home",
+          workspaceId: "workspace-1",
+          siteId: "site-1",
+          modelId: "model-page",
+          modelKey: "page",
+          title: "Homepage",
+          slug: "home",
+          locale: "en-US",
+          status: "published",
+          derivedStatus: "published",
+        },
+      ],
+      sourceManifest: {
+        files: [
+          { path: "src/App.tsx", role: "entry", language: "typescriptreact" },
+          { path: "src/arclayer/site-config.ts", role: "config", language: "typescript" },
+        ],
+      },
+      release: { release: { releaseNumber: 1 } },
       projects: [],
       total: null,
-      navigation: { label: "进入项目", path: "/projects/project-created" },
+      navigation: { label: "打开编辑器", path: "/projects/project-created/editor" },
     });
-    render(
-      <AIChatRuntimeProvider conversationId="conversation-1">
-        <div />
-      </AIChatRuntimeProvider>,
-    );
+    const { queryClient } = renderRuntime();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
     await act(async () => {
       await assistantUiMockState.runtimeStore?.onNew?.(appendTextMessage("帮我创建一个随机项目"));
@@ -437,12 +613,42 @@ describe("AIChatRuntimeProvider", () => {
           name: "内容实验室",
           slug: "project",
         },
+        summary: {
+          appEntryPath: "src/App.tsx",
+          componentBindingCount: 4,
+          contentItemCount: 1,
+          contentModelCount: 2,
+          domainHostname: "project.arclayer.localhost",
+          editorPath: "/projects/project-created/editor",
+          homepageItemId: "item-home",
+          homepageTitle: "Homepage",
+          hierarchyNodeCount: 1,
+          releaseNumber: 1,
+          releaseReady: true,
+          routePath: "/",
+          sourceFileCount: 2,
+        },
       },
     });
+    const invalidatedKeys = invalidateSpy.mock.calls.map(([options]) => options?.queryKey);
+    expect(invalidatedKeys).toContainEqual(["projects-cards"]);
+    expect(invalidatedKeys).toContainEqual(["global-nav", "projects"]);
+    expect(invalidatedKeys).toContainEqual(["project", "detail", "project-created"]);
+    expect(invalidatedKeys).toContainEqual(["project", "source", "project-created"]);
+    expect(invalidatedKeys).toContainEqual(["project", "domains", "project-created"]);
+    expect(invalidatedKeys).toContainEqual(["project", "releases", "project-created"]);
+    expect(invalidatedKeys).toContainEqual(["content", "models", "project-created"]);
+    expect(invalidatedKeys).toContainEqual([
+      "content-library-runtime",
+      "items",
+      "all",
+      "project-created",
+    ]);
+    expect(invalidatedKeys).not.toContainEqual(["project", "source", "project-1"]);
   });
 
   it("keeps workspace clarification copy as assistant text instead of a plan artifact", async () => {
-    useAiChatStore.setState({ composerMode: "plan" });
+    useAiChatStore.setState({ composerMode: "build" });
     vi.mocked(executeAIWorkspaceAction).mockResolvedValueOnce({
       kind: "clarification",
       action: null,
@@ -455,11 +661,7 @@ describe("AIChatRuntimeProvider", () => {
       projects: [],
       total: null,
     });
-    render(
-      <AIChatRuntimeProvider conversationId="conversation-1">
-        <div />
-      </AIChatRuntimeProvider>,
-    );
+    renderRuntime();
 
     await act(async () => {
       await assistantUiMockState.runtimeStore?.onNew?.(appendTextMessage("帮我创建一个官网"));
@@ -475,11 +677,7 @@ describe("AIChatRuntimeProvider", () => {
   });
 
   it("does not start an agent run for empty runtime messages", async () => {
-    render(
-      <AIChatRuntimeProvider conversationId="conversation-1">
-        <div />
-      </AIChatRuntimeProvider>,
-    );
+    renderRuntime();
     const beforeMessages = useAiChatStore.getState().conversations[0]?.messages;
 
     await act(async () => {
@@ -492,11 +690,7 @@ describe("AIChatRuntimeProvider", () => {
   });
 
   it("disables sending when the runtime has no current conversation", async () => {
-    render(
-      <AIChatRuntimeProvider conversationId="missing-conversation">
-        <div />
-      </AIChatRuntimeProvider>,
-    );
+    renderRuntime("missing-conversation");
 
     expect(assistantUiMockState.runtimeStore?.isSendDisabled).toBe(true);
 
@@ -512,11 +706,7 @@ describe("AIChatRuntimeProvider", () => {
 
   it("routes manual Plan mode messages through chat mode", async () => {
     useAiChatStore.setState({ composerMode: "plan" });
-    render(
-      <AIChatRuntimeProvider conversationId="conversation-1">
-        <div />
-      </AIChatRuntimeProvider>,
-    );
+    renderRuntime();
 
     await act(async () => {
       await assistantUiMockState.runtimeStore?.onNew?.(
@@ -525,69 +715,65 @@ describe("AIChatRuntimeProvider", () => {
     });
 
     expect(chatStream).toHaveBeenCalled();
+    expect(executeAIWorkspaceAction).not.toHaveBeenCalled();
     expect(sendAIAgentMessage).not.toHaveBeenCalled();
   });
 
-  it("uses localized copy for planned workspace creation messages", async () => {
-    useAiChatStore.setState({ composerMode: "plan" });
+  it("keeps read-only workspace action plans non-executable", async () => {
+    useAiChatStore.setState({ composerMode: "build" });
     vi.mocked(executeAIWorkspaceAction).mockResolvedValueOnce({
       kind: "tool_call",
-      action: "create_project",
+      action: "refine_plan",
       status: "planned",
-      content: "我已整理好执行方案。规划模式不会直接修改工作区。",
-      plan: "规划创建一个发布项目。",
+      content: "继续拆解企业官网的页面结构、实施步骤和风险处理。",
+      plan: "企业官网细化方案。",
       executionSteps: [
         {
           id: "planner",
           title: "理解指令并选择工作区工具",
           status: "completed",
-          detail: "规划创建一个发布项目。",
+          detail: "企业官网细化方案。",
         },
         {
-          id: "tool.create_project",
-          title: "准备执行项目创建",
+          id: "step-1",
+          title: "确认页面范围",
           status: "planned",
-          toolName: "workspace.create_project",
+          toolName: "workspace.refine_plan",
         },
       ],
       toolCalls: [
         {
-          toolName: "workspace.create_project",
+          toolName: "workspace.refine_plan",
           status: "planned",
-          arguments: { name: "发布项目" },
+          arguments: { title: "企业官网细化方案" },
         },
       ],
       contentModels: [],
       projects: [],
       total: null,
     });
-    render(
-      <AIChatRuntimeProvider conversationId="conversation-1">
-        <div />
-      </AIChatRuntimeProvider>,
-    );
+    renderRuntime();
 
     await act(async () => {
-      await assistantUiMockState.runtimeStore?.onNew?.(
-        appendTextMessage("Create a launch project"),
-      );
+      await assistantUiMockState.runtimeStore?.onNew?.(appendTextMessage("再细化一下企业官网计划"));
     });
 
     const lastMessage = useAiChatStore.getState().conversations[0]?.messages.at(-1);
     expect(chatStream).not.toHaveBeenCalled();
     expect(lastMessage).toMatchObject({
       role: "assistant",
-      content: expect.stringContaining("规划模式不会直接修改工作区"),
+      content: expect.stringContaining("继续拆解企业官网"),
       agentArtifact: expect.objectContaining({
         type: "agent_execution_plan",
         status: "planned",
+        source: "workspace_action:read_only_plan",
         steps: expect.arrayContaining([
           expect.objectContaining({ title: expect.stringContaining("理解指令") }),
-          expect.objectContaining({ toolName: "workspace.create_project" }),
+          expect.objectContaining({ toolName: "workspace.refine_plan" }),
         ]),
       }),
     });
-    expect(lastMessage?.content).not.toContain("I prepared an executable proposal");
+    expect(lastMessage?.agentArtifact?.source).not.toBe("workspace_action:planned_mutation");
   });
 
   it("routes manual Agent mode messages to the selected agent", async () => {
@@ -595,11 +781,7 @@ describe("AIChatRuntimeProvider", () => {
       composerMode: "agent",
       selectedAgentId: "content_model_advisor",
     });
-    render(
-      <AIChatRuntimeProvider conversationId="conversation-1">
-        <div />
-      </AIChatRuntimeProvider>,
-    );
+    renderRuntime();
 
     await act(async () => {
       await assistantUiMockState.runtimeStore?.onNew?.(appendTextMessage("Review this model"));
@@ -635,11 +817,7 @@ describe("AIChatRuntimeProvider", () => {
         resolveRun = resolve;
       });
     });
-    render(
-      <AIChatRuntimeProvider conversationId="conversation-1">
-        <div />
-      </AIChatRuntimeProvider>,
-    );
+    renderRuntime();
 
     act(() => {
       void assistantUiMockState.runtimeStore?.onNew?.(appendTextMessage("Build a draft"));
@@ -683,11 +861,7 @@ describe("AIChatRuntimeProvider", () => {
         options?.signal?.addEventListener("abort", () => resolve(), { once: true });
       });
     });
-    render(
-      <AIChatRuntimeProvider conversationId="conversation-1">
-        <div />
-      </AIChatRuntimeProvider>,
-    );
+    renderRuntime();
 
     act(() => {
       void assistantUiMockState.runtimeStore?.onNew?.(appendTextMessage("Build a draft"));
@@ -712,11 +886,7 @@ describe("AIChatRuntimeProvider", () => {
           pendingRuns.push(resolve);
         }),
     );
-    render(
-      <AIChatRuntimeProvider conversationId="conversation-1">
-        <div />
-      </AIChatRuntimeProvider>,
-    );
+    renderRuntime();
 
     act(() => {
       assistantUiMockState.runtimeStore?.queue?.enqueue(appendTextMessage("first queued prompt"), {
@@ -778,11 +948,7 @@ describe("AIChatRuntimeProvider", () => {
           pendingRuns.push(resolve);
         }),
     );
-    render(
-      <AIChatRuntimeProvider conversationId="conversation-1">
-        <div />
-      </AIChatRuntimeProvider>,
-    );
+    renderRuntime();
 
     act(() => {
       assistantUiMockState.runtimeStore?.queue?.enqueue(appendTextMessage("active prompt"), {
@@ -839,11 +1005,7 @@ describe("AIChatRuntimeProvider", () => {
           pendingRuns.push(resolve);
         }),
     );
-    render(
-      <AIChatRuntimeProvider conversationId="conversation-1">
-        <div />
-      </AIChatRuntimeProvider>,
-    );
+    renderRuntime();
 
     act(() => {
       assistantUiMockState.runtimeStore?.queue?.enqueue(appendTextMessage("active prompt"), {
@@ -905,11 +1067,7 @@ describe("AIChatRuntimeProvider", () => {
         resolveRun = resolve;
       });
     });
-    render(
-      <AIChatRuntimeProvider conversationId="conversation-1">
-        <div />
-      </AIChatRuntimeProvider>,
-    );
+    renderRuntime();
 
     act(() => {
       assistantUiMockState.runtimeStore?.queue?.enqueue(appendTextMessage("first prompt"), {

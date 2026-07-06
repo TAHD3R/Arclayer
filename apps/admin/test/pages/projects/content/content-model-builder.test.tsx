@@ -9,7 +9,10 @@ import { ContentModelsControlCenterPage } from "@/pages/projects/content/models/
 import { ContentModelEditPage } from "@/pages/projects/content/models/edit-page";
 import {
   buildDuplicateContentModelPayload,
+  buildReusableBlockContentModelPayload,
+  buildSitePageContentModelPayload,
   getContentModelFieldCount,
+  getContentModelPurposeLabelKey,
   toContentModelsTableQuery,
 } from "@/pages/projects/content/models/utils";
 import type { AdminContentModel } from "@arclayer/openapi/admin-types";
@@ -18,6 +21,8 @@ import { TooltipProvider } from "@arclayer/ui/tooltip";
 
 const createContentModelMock = vi.fn();
 const deleteContentModelMock = vi.fn();
+const executeAIWorkspaceActionMock = vi.fn();
+const listAIProjectAgentsMock = vi.fn();
 const buildContentModelFieldTypesQueryKeyMock = vi.fn((projectId: string) => [
   "content",
   "field-types",
@@ -46,6 +51,15 @@ vi.mock("@/api/content", () => ({
   listAllContentModels: (...args: unknown[]) => listAllContentModelsMock(...args),
   listContentModels: (...args: unknown[]) => listContentModelsMock(...args),
 }));
+
+vi.mock("@/api/ai", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/api/ai")>();
+  return {
+    ...actual,
+    executeAIWorkspaceAction: (...args: unknown[]) => executeAIWorkspaceActionMock(...args),
+    listAIProjectAgents: (...args: unknown[]) => listAIProjectAgentsMock(...args),
+  };
+});
 
 vi.mock("@/lib/notifications", () => ({
   notifyError: vi.fn(),
@@ -224,7 +238,7 @@ async function findCreateInput(label: string) {
     input = queryCreateInput(label);
     expect(input).not.toBeNull();
   });
-  if (!input) throw new Error(`Missing create content type input: ${label}`);
+  if (!input) throw new Error(`Missing create model input: ${label}`);
   return input;
 }
 
@@ -238,6 +252,8 @@ describe("content model builder", () => {
   beforeEach(() => {
     createContentModelMock.mockReset();
     deleteContentModelMock.mockReset();
+    executeAIWorkspaceActionMock.mockReset();
+    listAIProjectAgentsMock.mockReset();
     buildContentModelFieldTypesQueryKeyMock.mockClear();
     getContentModelFieldTypeRegistryMock.mockReset();
     listAllContentModelsMock.mockReset();
@@ -253,6 +269,7 @@ describe("content model builder", () => {
       next: null,
       prev: null,
     });
+    listAIProjectAgentsMock.mockResolvedValue({ agents: [], tools: [], skills: [] });
     listAllContentModelsMock.mockResolvedValue([]);
     getContentModelFieldTypeRegistryMock.mockResolvedValue({ fieldTypes: [] });
   });
@@ -273,6 +290,323 @@ describe("content model builder", () => {
       search: { create: true },
     });
     expect(createContentModelMock).not.toHaveBeenCalled();
+  });
+
+  test("surfaces a website structure blueprint above model table operations", async () => {
+    listContentModelsMock.mockResolvedValue({
+      items: [
+        buildModel({
+          id: "model-page",
+          singularKey: "page",
+          pluralKey: "pages",
+          name: "Page",
+          category: "site_builder",
+          capabilities: ["visual_editable", "routable", "publishable"],
+          defaultEditor: "visual",
+        }),
+        buildModel({
+          id: "model-author",
+          singularKey: "author",
+          pluralKey: "authors",
+          name: "Author",
+          category: "custom",
+          capabilities: ["queryable", "publishable"],
+          defaultEditor: "form",
+        }),
+        buildModel({
+          id: "model-reusable-block",
+          singularKey: "reusableBlock",
+          pluralKey: "reusableBlocks",
+          name: "Reusable Block",
+          category: "site_builder",
+          capabilities: ["visual_editable", "has_slots", "publishable", "localizable"],
+          defaultEditor: "visual",
+          defaultRole: "reusable-section",
+          defaultPosture: "composition",
+          defaultSurface: "canvas",
+        }),
+      ],
+      total: 3,
+      page: 1,
+      size: 50,
+      pages: 1,
+      next: null,
+      prev: null,
+    });
+
+    render(<ContentModelsControlCenterPage projectId="project-1" />, {
+      wrapper: createWrapper(),
+    });
+
+    await screen.findByRole("button", { name: "row-click-model-page" });
+    const summary = screen.getByTestId("content-models-blueprint-summary");
+    expect(summary.className).toContain("bg-background");
+    expect(summary.className).not.toContain("bg-card");
+    expect(summary.className).not.toContain("shadow-sm");
+    expect(summary.className).not.toContain("rounded-lg");
+
+    expect(
+      within(summary).getByRole("heading", {
+        name: "content:CONTENT_MODELS_BLUEPRINT_TITLE",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByText("content:CONTENT_MODELS_BLUEPRINT_METRIC_PAGE_MODELS"),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByText("content:CONTENT_MODELS_BLUEPRINT_METRIC_SITE_BUILDER"),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByText("content:CONTENT_MODELS_BLUEPRINT_METRIC_REUSABLE_BLOCKS"),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByText("content:CONTENT_MODELS_BLUEPRINT_METRIC_PUBLISHABLE"),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByRole("list", {
+        name: "content:CONTENT_MODELS_WORKFLOW_LABEL",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByText("content:CONTENT_MODELS_WORKFLOW_PAGE_MODEL_LABEL"),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByText("content:CONTENT_MODELS_WORKFLOW_VISUAL_LABEL"),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByText("content:CONTENT_MODELS_WORKFLOW_PUBLISH_LABEL"),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByText("content:CONTENT_MODELS_WORKFLOW_AI_LABEL"),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByText("content:CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_TITLE"),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByText("content:CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_DESC"),
+    ).toBeInTheDocument();
+    const aiContractList = within(summary).getByTestId("content-models-ai-contract-list");
+    expect(
+      within(aiContractList).getByText(
+        "content:CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_STABLE_KEYS_TITLE",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(aiContractList).getByText(
+        "content:CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_FIELD_SCHEMA_TITLE",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(aiContractList).getByText(
+        "content:CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_ROUTE_SURFACE_TITLE",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(aiContractList).getByText(
+        "content:CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_RELEASE_SOURCE_TITLE",
+      ),
+    ).toBeInTheDocument();
+    const workflowLinks = within(summary).getByTestId("content-models-workflow-links");
+    expect(
+      within(workflowLinks).getByRole("link", {
+        name: "content:CONTENT_MODELS_WORKFLOW_LINK_EDITOR",
+      }),
+    ).toHaveAttribute("href", "/projects/project-1/editor");
+    expect(
+      within(workflowLinks).getByRole("link", {
+        name: "content:CONTENT_MODELS_WORKFLOW_LINK_CONTENT_LIBRARY",
+      }),
+    ).toHaveAttribute("href", "/projects/project-1/content/library");
+    expect(
+      within(workflowLinks).getByRole("link", {
+        name: "content:CONTENT_MODELS_WORKFLOW_LINK_WEBSITE_CONTROL",
+      }),
+    ).toHaveAttribute("href", "/projects/project-1/website/domain");
+    expect(
+      within(workflowLinks).getByRole("link", {
+        name: "content:CONTENT_MODELS_WORKFLOW_LINK_WEBSITE_CONFIG",
+      }),
+    ).toHaveAttribute("href", "/projects/project-1/seo/site");
+    expect(within(summary).getAllByText("1")).toHaveLength(2);
+    expect(within(summary).getByText("2")).toBeInTheDocument();
+    expect(within(summary).getByText("3")).toBeInTheDocument();
+
+    fireEvent.click(
+      within(summary).getByRole("button", {
+        name: "content:CONTENT_MODELS_BLUEPRINT_ACTION_OPEN_PAGE_MODEL",
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledWith({
+      to: "/projects/project-1/content/models/edit?modelId=model-page",
+    });
+  });
+
+  test("creates the site page model from the website structure blueprint", async () => {
+    const user = userEvent.setup();
+    const createdModel = buildModel({
+      id: "model-page",
+      singularKey: "page",
+      pluralKey: "pages",
+      name: "Page",
+      category: "site_builder",
+      capabilities: [
+        "versioned",
+        "queryable",
+        "routable",
+        "treeable",
+        "visual_editable",
+        "has_slots",
+        "publishable",
+        "seo_managed",
+      ],
+      defaultEditor: "visual",
+      defaultRole: "page",
+      defaultPosture: "page",
+      defaultSurface: "canvas",
+    });
+    createContentModelMock.mockResolvedValue(createdModel);
+
+    render(<ContentModelsControlCenterPage projectId="project-1" />, {
+      wrapper: createWrapper(),
+    });
+
+    const summary = await screen.findByTestId("content-models-blueprint-summary");
+    await user.click(
+      within(summary).getByRole("button", {
+        name: "content:CONTENT_MODELS_BLUEPRINT_ACTION_CREATE_MODEL",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(listAllContentModelsMock).toHaveBeenCalledWith("project-1");
+      expect(createContentModelMock).toHaveBeenCalledWith(
+        "project-1",
+        buildSitePageContentModelPayload(),
+      );
+    });
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith({
+        to: "/projects/project-1/content/models/edit?modelId=model-page",
+      });
+    });
+  });
+
+  test("creates the reusable block model from the website structure blueprint", async () => {
+    const user = userEvent.setup();
+    const createdModel = buildModel({
+      id: "model-reusable-block",
+      singularKey: "reusableBlock",
+      pluralKey: "reusableBlocks",
+      name: "Reusable Block",
+      category: "site_builder",
+      capabilities: ["visual_editable", "has_slots", "publishable", "localizable"],
+      defaultEditor: "visual",
+      defaultRole: "reusable-section",
+      defaultPosture: "composition",
+      defaultSurface: "canvas",
+    });
+    createContentModelMock.mockResolvedValue(createdModel);
+
+    render(<ContentModelsControlCenterPage projectId="project-1" />, {
+      wrapper: createWrapper(),
+    });
+
+    const summary = await screen.findByTestId("content-models-blueprint-summary");
+    await user.click(
+      within(summary).getByRole("button", {
+        name: "content:CONTENT_MODELS_BLUEPRINT_ACTION_CREATE_REUSABLE_BLOCK_MODEL",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(listAllContentModelsMock).toHaveBeenCalledWith("project-1");
+      expect(createContentModelMock).toHaveBeenCalledWith(
+        "project-1",
+        buildReusableBlockContentModelPayload(),
+      );
+    });
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith({
+        to: "/projects/project-1/content/models/edit?modelId=model-reusable-block",
+      });
+    });
+  });
+
+  test("opens an existing site page model instead of creating a duplicate blueprint model", async () => {
+    const user = userEvent.setup();
+    const existingPageModel = buildModel({
+      id: "model-page",
+      singularKey: "page",
+      pluralKey: "pages",
+      name: "Page",
+      category: "site_builder",
+      capabilities: ["routable", "visual_editable", "publishable"],
+      defaultEditor: "visual",
+    });
+    listAllContentModelsMock.mockResolvedValue([existingPageModel]);
+
+    render(<ContentModelsControlCenterPage projectId="project-1" />, {
+      wrapper: createWrapper(),
+    });
+
+    const summary = await screen.findByTestId("content-models-blueprint-summary");
+    await user.click(
+      within(summary).getByRole("button", {
+        name: "content:CONTENT_MODELS_BLUEPRINT_ACTION_CREATE_MODEL",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(createContentModelMock).not.toHaveBeenCalled();
+      expect(navigateMock).toHaveBeenCalledWith({
+        to: "/projects/project-1/content/models/edit?modelId=model-page",
+      });
+    });
+  });
+
+  test("opens an existing reusable block model instead of creating a duplicate blueprint model", async () => {
+    const user = userEvent.setup();
+    const existingReusableBlockModel = buildModel({
+      id: "model-reusable-block",
+      singularKey: "reusableBlock",
+      pluralKey: "reusableBlocks",
+      name: "Reusable Block",
+      category: "site_builder",
+      capabilities: ["visual_editable", "has_slots", "publishable", "localizable"],
+      defaultEditor: "visual",
+      defaultRole: "reusable-section",
+      defaultPosture: "composition",
+      defaultSurface: "canvas",
+    });
+    listContentModelsMock.mockResolvedValue({
+      items: [existingReusableBlockModel],
+      total: 1,
+      page: 1,
+      size: 50,
+      pages: 1,
+      next: null,
+      prev: null,
+    });
+
+    render(<ContentModelsControlCenterPage projectId="project-1" />, {
+      wrapper: createWrapper(),
+    });
+
+    await screen.findByRole("button", { name: "row-click-model-reusable-block" });
+    const summary = await screen.findByTestId("content-models-blueprint-summary");
+    await user.click(
+      within(summary).getByRole("button", {
+        name: "content:CONTENT_MODELS_BLUEPRINT_ACTION_OPEN_REUSABLE_BLOCK_MODEL",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(createContentModelMock).not.toHaveBeenCalled();
+      expect(navigateMock).toHaveBeenCalledWith({
+        to: "/projects/project-1/content/models/edit?modelId=model-reusable-block",
+      });
+    });
   });
 
   test("creates from the edit route dialog and stays on the new model editor", async () => {
@@ -312,13 +646,16 @@ describe("content model builder", () => {
     ).toHaveClass("sr-only");
     expect(screen.getByText("CONTENT_MODELS_CREATE_STARTER_TEMPLATE_TITLE")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_TEMPLATE_BLANK_LABEL" }),
+      screen.getByRole("button", { name: /CONTENT_MODELS_CREATE_TEMPLATE_BLANK_LABEL/ }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_TEMPLATE_BLOG_POSTS_LABEL" }),
+      screen.getByRole("button", { name: /CONTENT_MODELS_CREATE_TEMPLATE_PAGE_LABEL/ }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_TEMPLATE_TEAM_MEMBERS_LABEL" }),
+      screen.getByRole("button", { name: /CONTENT_MODELS_CREATE_TEMPLATE_REUSABLE_BLOCK_LABEL/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /CONTENT_MODELS_CREATE_TEMPLATE_LANDING_SECTION_LABEL/ }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("radio", { name: /CONTENT_MODELS_KIND_COLLECTION_TYPE/ }),
@@ -343,7 +680,7 @@ describe("content model builder", () => {
     fireEvent.change(
       await findCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_LABEL"),
       {
-        target: { value: "Editorial entries." },
+        target: { value: "Editorial records." },
       },
     );
 
@@ -360,7 +697,7 @@ describe("content model builder", () => {
         name: "Blog Post",
         singularKey: "blogPost",
         pluralKey: "blogPosts",
-        description: "Editorial entries.",
+        description: "Editorial records.",
         modelKind: "collection_type",
         fields: [],
         relations: [],
@@ -379,6 +716,98 @@ describe("content model builder", () => {
     expect(queryClient.getQueryState(staleTableQueryKey)?.isInvalidated).toBe(true);
   });
 
+  test("creates site-builder starter templates with visual publishing contracts", async () => {
+    createContentModelMock.mockResolvedValue(
+      buildModel({
+        id: "model-page",
+        singularKey: "page",
+        pluralKey: "pages",
+        name: "Page",
+      }),
+    );
+
+    render(<ContentModelEditPage projectId="project-1" createOpen />, {
+      wrapper: createWrapper(),
+    });
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: /CONTENT_MODELS_CREATE_TEMPLATE_PAGE_LABEL/,
+      }),
+    );
+    await openCreateDetailsView();
+
+    expect(await findCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL")).toHaveValue(
+      "Page",
+    );
+    expect(await findCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL")).toHaveValue(
+      "page",
+    );
+    expect(await findCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_LABEL")).toHaveValue(
+      "pages",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_CONFIRM" }));
+
+    await waitFor(() => {
+      expect(createContentModelMock).toHaveBeenCalledWith("project-1", {
+        ...buildSitePageContentModelPayload(),
+        description: "Route-owned pages for preview, SEO, visual editing, and releases.",
+      });
+    });
+  });
+
+  test("creates site record templates for repeatable website data", async () => {
+    createContentModelMock.mockResolvedValue(
+      buildModel({
+        id: "model-site-record",
+        singularKey: "siteRecord",
+        pluralKey: "siteRecords",
+        name: "Site Records",
+      }),
+    );
+
+    render(<ContentModelEditPage projectId="project-1" createOpen />, {
+      wrapper: createWrapper(),
+    });
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: /CONTENT_MODELS_CREATE_TEMPLATE_CONTENT_COLLECTION_LABEL/,
+      }),
+    );
+    await openCreateDetailsView();
+
+    expect(await findCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL")).toHaveValue(
+      "Site Records",
+    );
+    expect(await findCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL")).toHaveValue(
+      "siteRecord",
+    );
+    expect(await findCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_LABEL")).toHaveValue(
+      "siteRecords",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_CONFIRM" }));
+
+    await waitFor(() => {
+      expect(createContentModelMock).toHaveBeenCalledWith(
+        "project-1",
+        expect.objectContaining({
+          category: "content_library",
+          defaultEditor: "form",
+          defaultSurface: "structured",
+          description: "Repeatable website records for case studies, resources, team, or listings.",
+          modelKind: "collection_type",
+          name: "Site Records",
+          pluralKey: "siteRecords",
+          routing: { mode: "single", slugField: "slug" },
+          singularKey: "siteRecord",
+        }),
+      );
+    });
+  });
+
   test("create flow renders localized fallback title and skips model list query", () => {
     render(<ContentModelEditPage projectId="project-1" createOpen />, {
       wrapper: createWrapper(),
@@ -388,8 +817,33 @@ describe("content model builder", () => {
     expect(listAllContentModelsMock).not.toHaveBeenCalled();
   });
 
-  test("ai tab shows a chat interface and disables the primary action", async () => {
+  test("ai tab creates a content model through workspace actions", async () => {
     const user = userEvent.setup();
+    executeAIWorkspaceActionMock.mockResolvedValue({
+      kind: "tool_call",
+      action: "create_content_model",
+      status: "completed",
+      content: "Created Customer Story model.",
+      executionSteps: [],
+      toolCalls: [],
+      contentModel: {
+        id: "model-ai",
+        workspaceId: "workspace-1",
+        siteId: "site-1",
+        name: "Customer Story",
+        singularKey: "customerStory",
+        pluralKey: "customerStories",
+        description: "Stories.",
+        modelKind: "collection_type",
+      },
+      contentModels: [],
+      projects: [],
+      total: null,
+      navigation: {
+        label: "Open model",
+        path: "/projects/project-1/content/models/model-ai",
+      },
+    });
     render(<ContentModelEditPage projectId="project-1" createOpen />, {
       wrapper: createWrapper(),
     });
@@ -403,9 +857,49 @@ describe("content model builder", () => {
     expect(
       screen.getByPlaceholderText("CONTENT_MODELS_CREATE_AI_CHAT_INPUT_PLACEHOLDER"),
     ).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_MODELS_CREATE_AI_PROMPT_LABEL")).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", {
+        name: "CONTENT_MODELS_CREATE_AI_PROMPT_PAGE_MODEL_LABEL",
+      }),
+    );
     expect(
-      screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_AI_NOT_AVAILABLE" }),
-    ).toBeDisabled();
+      screen.getByPlaceholderText("CONTENT_MODELS_CREATE_AI_CHAT_INPUT_PLACEHOLDER"),
+    ).toHaveValue("CONTENT_MODELS_CREATE_AI_PROMPT_PAGE_MODEL_TEXT");
+    expect(
+      screen.getByRole("button", {
+        name: "CONTENT_MODELS_CREATE_AI_PROMPT_REUSABLE_BLOCK_LABEL",
+      }),
+    ).toBeInTheDocument();
+
+    await user.clear(
+      screen.getByPlaceholderText("CONTENT_MODELS_CREATE_AI_CHAT_INPUT_PLACEHOLDER"),
+    );
+    await user.type(
+      screen.getByPlaceholderText("CONTENT_MODELS_CREATE_AI_CHAT_INPUT_PLACEHOLDER"),
+      "Create a customer story record set with logo and CTA fields.",
+    );
+    await user.click(screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_AI_CHAT_SEND" }));
+
+    await waitFor(() => {
+      expect(executeAIWorkspaceActionMock).toHaveBeenCalledWith(
+        [
+          "CONTENT_MODELS_CREATE_AI_ACTION_PREFIX",
+          "",
+          "Create a customer story record set with logo and CTA fields.",
+        ].join("\n"),
+        {
+          mode: "build",
+          projectId: "project-1",
+          signal: expect.any(AbortSignal),
+        },
+      );
+    });
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith({
+        to: "/projects/project-1/content/models/edit?modelId=model-ai",
+      });
+    });
   });
 
   test("closes the edit route create dialog without saving and returns to models", async () => {
@@ -448,7 +942,7 @@ describe("content model builder", () => {
     );
   });
 
-  test("disables create entry points when project content model write access is missing", () => {
+  test("disables create actions when project content model write access is missing", () => {
     permissionAccessMock.hasAction.mockReturnValue(false);
 
     render(<ContentModelsControlCenterPage projectId="project-1" />, {
@@ -458,6 +952,17 @@ describe("content model builder", () => {
     expect(
       screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_CONTENT_TYPE_ACTION" }),
     ).toBeDisabled();
+    expect(
+      within(screen.getByTestId("content-models-blueprint-summary")).getByRole("button", {
+        name: "content:CONTENT_MODELS_BLUEPRINT_ACTION_CREATE_MODEL",
+      }),
+    ).toBeDisabled();
+    expect(
+      within(screen.getByTestId("content-models-blueprint-summary")).getByRole("button", {
+        name: "content:CONTENT_MODELS_BLUEPRINT_ACTION_CREATE_REUSABLE_BLOCK_MODEL",
+      }),
+    ).toBeDisabled();
+    expect(createContentModelMock).not.toHaveBeenCalled();
     expect(screen.getByTestId("content-models-no-access")).toBeInTheDocument();
   });
 
@@ -552,6 +1057,51 @@ describe("content model builder", () => {
         }),
       ),
     ).toBe(3);
+  });
+
+  test("maps model purposes to site-builder vocabulary", () => {
+    expect(
+      getContentModelPurposeLabelKey(
+        buildModel({
+          singularKey: "page",
+          category: "site_builder",
+          capabilities: ["routable", "visual_editable"],
+          modelKind: "collection_type",
+        }),
+      ),
+    ).toBe("content:CONTENT_MODELS_PURPOSE_PAGE_MODEL");
+
+    expect(
+      getContentModelPurposeLabelKey(
+        buildModel({
+          singularKey: "reusableBlock",
+          category: "site_builder",
+          defaultRole: "reusable-section",
+          defaultPosture: "composition",
+          modelKind: "collection_type",
+        }),
+      ),
+    ).toBe("content:CONTENT_MODELS_PURPOSE_REUSABLE_BLOCK");
+
+    expect(
+      getContentModelPurposeLabelKey(
+        buildModel({
+          singularKey: "footer",
+          category: "content_library",
+          modelKind: "single_type",
+        }),
+      ),
+    ).toBe("content:CONTENT_MODELS_PURPOSE_GLOBAL_DOCUMENT");
+
+    expect(
+      getContentModelPurposeLabelKey(
+        buildModel({
+          singularKey: "customerStory",
+          category: "content_library",
+          modelKind: "collection_type",
+        }),
+      ),
+    ).toBe("content:CONTENT_MODELS_PURPOSE_CONTENT_COLLECTION");
   });
 
   test("builds a duplicate payload with localized name and unique identifiers", () => {

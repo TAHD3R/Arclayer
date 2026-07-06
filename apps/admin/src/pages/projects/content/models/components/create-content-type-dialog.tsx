@@ -2,9 +2,12 @@ import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { CircleHelp, Sparkles } from "lucide-react";
 
-import { useAIChat } from "@/hooks/use-ai-chat";
+import {
+  executeAIWorkspaceAction,
+  type AIWorkspaceActionContentModel,
+  type AIWorkspaceActionResponse,
+} from "@/api/ai";
 
-import { BaseTag } from "@/components/ui/tags";
 import { Button } from "@arclayer/ui/button";
 import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@arclayer/ui/chrome-tabs";
 import { FieldLabel } from "@arclayer/ui/field";
@@ -21,6 +24,7 @@ import {
   CONTENT_MODEL_DESCRIPTION_MAX_LENGTH,
   CONTENT_MODEL_IDENTIFIER_MAX_LENGTH,
   CONTENT_MODEL_NAME_MAX_LENGTH,
+  type ContentModelStarterTemplateKey,
   createGeneratedIdentifier,
   createManualIdentifier,
   syncGeneratedIdentifiersWithName,
@@ -38,43 +42,125 @@ const DEFAULT_VALUES: CreateContentTypeFormValues = {
 type CreateContentTypeDialogProps = {
   open: boolean;
   pending?: boolean;
+  projectId: string;
   onOpenChange: (open: boolean) => void;
+  onAiCreated: (model: AIWorkspaceActionContentModel) => Promise<void> | void;
   onSubmit: (values: CreateContentTypeSubmitValues) => Promise<void> | void;
 };
 
 type FormErrors = Partial<Record<"name" | "singularKey" | "pluralKey", string>>;
 type CreateDialogView = "start" | "details";
 type CreateDialogMode = "manual" | "ai";
-type StarterTemplateKey =
-  | "blank"
-  | "blogPosts"
-  | "authors"
-  | "categories"
-  | "projects"
-  | "clients"
-  | "teamMembers"
-  | "listings"
-  | "events"
-  | "menuItems"
-  | "songs"
-  | "shows"
-  | "recipes";
 
-const STARTER_TEMPLATES: Array<{ key: StarterTemplateKey; labelKey: string }> = [
-  { key: "blank", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_BLANK_LABEL" },
-  { key: "blogPosts", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_BLOG_POSTS_LABEL" },
-  { key: "authors", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_AUTHORS_LABEL" },
-  { key: "categories", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_CATEGORIES_LABEL" },
-  { key: "projects", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_PROJECTS_LABEL" },
-  { key: "clients", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_CLIENTS_LABEL" },
-  { key: "teamMembers", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_TEAM_MEMBERS_LABEL" },
-  { key: "listings", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_LISTINGS_LABEL" },
-  { key: "events", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_EVENTS_LABEL" },
-  { key: "menuItems", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_MENU_ITEMS_LABEL" },
-  { key: "songs", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_SONGS_LABEL" },
-  { key: "shows", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_SHOWS_LABEL" },
-  { key: "recipes", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_RECIPES_LABEL" },
+type StarterTemplateDefinition = {
+  key: ContentModelStarterTemplateKey;
+  labelKey: string;
+  descriptionKey: string;
+  modelKind: CreateContentTypeFormValues["modelKind"];
+  values: Pick<CreateContentTypeFormValues, "name" | "description"> & {
+    singularKey: string;
+    pluralKey: string;
+  };
+};
+
+type AiPromptSuggestion = {
+  key: string;
+  labelKey: string;
+  promptKey: string;
+};
+
+const STARTER_TEMPLATES: StarterTemplateDefinition[] = [
+  {
+    key: "blank",
+    labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_BLANK_LABEL",
+    descriptionKey: "CONTENT_MODELS_CREATE_TEMPLATE_BLANK_DESC",
+    modelKind: "collection_type",
+    values: { name: "", singularKey: "", pluralKey: "", description: "" },
+  },
+  {
+    key: "page",
+    labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_PAGE_LABEL",
+    descriptionKey: "CONTENT_MODELS_CREATE_TEMPLATE_PAGE_DESC",
+    modelKind: "collection_type",
+    values: {
+      name: "Page",
+      singularKey: "page",
+      pluralKey: "pages",
+      description: "Route-owned pages for preview, SEO, visual editing, and releases.",
+    },
+  },
+  {
+    key: "reusableBlock",
+    labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_REUSABLE_BLOCK_LABEL",
+    descriptionKey: "CONTENT_MODELS_CREATE_TEMPLATE_REUSABLE_BLOCK_DESC",
+    modelKind: "collection_type",
+    values: {
+      name: "Reusable Block",
+      singularKey: "reusableBlock",
+      pluralKey: "reusableBlocks",
+      description: "Reusable sections that can be referenced by pages and AI composition.",
+    },
+  },
+  {
+    key: "landingSection",
+    labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_LANDING_SECTION_LABEL",
+    descriptionKey: "CONTENT_MODELS_CREATE_TEMPLATE_LANDING_SECTION_DESC",
+    modelKind: "component",
+    values: {
+      name: "Landing Section",
+      singularKey: "landingSection",
+      pluralKey: "landingSections",
+      description: "A visual section contract for hero, proof, feature, CTA, and FAQ blocks.",
+    },
+  },
+  {
+    key: "contentCollection",
+    labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_CONTENT_COLLECTION_LABEL",
+    descriptionKey: "CONTENT_MODELS_CREATE_TEMPLATE_CONTENT_COLLECTION_DESC",
+    modelKind: "collection_type",
+    values: {
+      name: "Site Records",
+      singularKey: "siteRecord",
+      pluralKey: "siteRecords",
+      description: "Repeatable website records for case studies, resources, team, or listings.",
+    },
+  },
+  {
+    key: "taxonomy",
+    labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_TAXONOMY_ITEM_LABEL",
+    descriptionKey: "CONTENT_MODELS_CREATE_TEMPLATE_TAXONOMY_ITEM_DESC",
+    modelKind: "collection_type",
+    values: {
+      name: "Category",
+      singularKey: "category",
+      pluralKey: "categories",
+      description: "Taxonomy for grouping pages, reusable blocks, and structured site records.",
+    },
+  },
 ];
+
+const AI_PROMPT_SUGGESTIONS: AiPromptSuggestion[] = [
+  {
+    key: "page-model",
+    labelKey: "CONTENT_MODELS_CREATE_AI_PROMPT_PAGE_MODEL_LABEL",
+    promptKey: "CONTENT_MODELS_CREATE_AI_PROMPT_PAGE_MODEL_TEXT",
+  },
+  {
+    key: "reusable-block",
+    labelKey: "CONTENT_MODELS_CREATE_AI_PROMPT_REUSABLE_BLOCK_LABEL",
+    promptKey: "CONTENT_MODELS_CREATE_AI_PROMPT_REUSABLE_BLOCK_TEXT",
+  },
+  {
+    key: "customer-stories",
+    labelKey: "CONTENT_MODELS_CREATE_AI_PROMPT_CUSTOMER_STORIES_LABEL",
+    promptKey: "CONTENT_MODELS_CREATE_AI_PROMPT_CUSTOMER_STORIES_TEXT",
+  },
+  {
+    key: "landing-sections",
+    labelKey: "CONTENT_MODELS_CREATE_AI_PROMPT_LANDING_SECTIONS_LABEL",
+    promptKey: "CONTENT_MODELS_CREATE_AI_PROMPT_LANDING_SECTIONS_TEXT",
+  },
+] as const;
 
 const MODEL_KIND_OPTIONS = ["collection_type", "single_type", "component"] as const;
 
@@ -140,7 +226,8 @@ function ModelKindOption(props: {
   );
 }
 
-function StarterTemplateTag(props: {
+function StarterTemplateOption(props: {
+  description: string;
   label: string;
   selected: boolean;
   disabled: boolean;
@@ -151,16 +238,18 @@ function StarterTemplateTag(props: {
       type="button"
       disabled={props.disabled}
       aria-pressed={props.selected}
-      className="inline-flex rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:opacity-60"
+      className={[
+        "min-w-0 rounded-md border px-3 py-3 text-left transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25",
+        props.selected
+          ? "border-primary/45 bg-primary/10"
+          : "border-border/70 bg-surface hover:border-border hover:bg-accent/35",
+        "disabled:cursor-not-allowed disabled:opacity-60",
+      ].join(" ")}
       onClick={props.onSelect}
     >
-      <BaseTag
-        color={props.selected ? "blue" : "default"}
-        textStyle="footnote"
-        className="cursor-pointer rounded-md transition-colors"
-      >
-        {props.label}
-      </BaseTag>
+      <span className="block text-callout font-semibold text-label-primary">{props.label}</span>
+      <span className="mt-1 block text-caption text-label-secondary">{props.description}</span>
     </button>
   );
 }
@@ -189,9 +278,9 @@ function CreateDialogTabs(props: {
 function ManualStartView(props: {
   values: CreateContentTypeFormValues;
   pending: boolean;
-  selectedTemplate: StarterTemplateKey;
+  selectedTemplate: ContentModelStarterTemplateKey;
   onModelKindChange: (modelKind: CreateContentTypeFormValues["modelKind"]) => void;
-  onTemplateChange: (templateKey: StarterTemplateKey) => void;
+  onTemplateChange: (templateKey: ContentModelStarterTemplateKey) => void;
 }) {
   const { t } = useTranslation("content");
 
@@ -201,11 +290,12 @@ function ManualStartView(props: {
         title={t("CONTENT_MODELS_CREATE_STARTER_TEMPLATE_TITLE")}
         description={t("CONTENT_MODELS_CREATE_STARTER_TEMPLATE_DESC")}
       >
-        <div className="flex flex-wrap gap-2">
+        <div className="grid gap-2 md:grid-cols-2">
           {STARTER_TEMPLATES.map((template) => (
-            <StarterTemplateTag
+            <StarterTemplateOption
               key={template.key}
               label={t(template.labelKey)}
+              description={t(template.descriptionKey)}
               selected={props.selectedTemplate === template.key}
               disabled={props.pending}
               onSelect={() => props.onTemplateChange(template.key)}
@@ -244,10 +334,32 @@ function ManualStartView(props: {
   );
 }
 
-function AiChatView() {
+function resolveAiCreatedContentModel(
+  response: AIWorkspaceActionResponse,
+): AIWorkspaceActionContentModel | null {
+  if (
+    response.kind !== "tool_call" ||
+    response.status !== "completed" ||
+    response.action !== "create_content_model"
+  ) {
+    return null;
+  }
+  return response.contentModel ?? response.contentModels[0] ?? null;
+}
+
+function AiChatView(props: {
+  projectId: string;
+  onCreated: (model: AIWorkspaceActionContentModel) => Promise<void> | void;
+}) {
   const { t } = useTranslation("content");
+  const { onCreated, projectId } = props;
   const [input, setInput] = React.useState("");
-  const { messages, isLoading, error, sendMessage, cancel } = useAIChat();
+  const [messages, setMessages] = React.useState<
+    Array<{ role: "assistant" | "user"; content: string }>
+  >([]);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const abortRef = React.useRef<AbortController | null>(null);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -258,8 +370,44 @@ function AiChatView() {
     const trimmed = input.trim();
     if (!trimmed || isLoading) return;
     setInput("");
-    void sendMessage(trimmed);
-  }, [input, isLoading, sendMessage]);
+    setError(null);
+    setMessages((current) => [...current, { role: "user", content: trimmed }]);
+    const abortController = new AbortController();
+    abortRef.current = abortController;
+    setIsLoading(true);
+
+    void executeAIWorkspaceAction(`${t("CONTENT_MODELS_CREATE_AI_ACTION_PREFIX")}\n\n${trimmed}`, {
+      mode: "build",
+      projectId,
+      signal: abortController.signal,
+    })
+      .then(async (response) => {
+        const assistantContent =
+          response.content || response.plan || t("CONTENT_MODELS_CREATE_AI_ACTION_EMPTY_RESPONSE");
+        setMessages((current) => [...current, { role: "assistant", content: assistantContent }]);
+
+        const createdModel = resolveAiCreatedContentModel(response);
+        if (!createdModel) {
+          setError(t("CONTENT_MODELS_CREATE_AI_ACTION_NO_MODEL"));
+          return;
+        }
+        await onCreated(createdModel);
+      })
+      .catch((cause) => {
+        if (cause instanceof DOMException && cause.name === "AbortError") return;
+        setError(cause instanceof Error ? cause.message : t("CONTENT_MODELS_CREATE_AI_CHAT_ERROR"));
+      })
+      .finally(() => {
+        setIsLoading(false);
+        abortRef.current = null;
+      });
+  }, [input, isLoading, onCreated, projectId, t]);
+
+  const cancel = React.useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setIsLoading(false);
+  }, []);
 
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -273,6 +421,25 @@ function AiChatView() {
 
   return (
     <div className="flex min-h-72 flex-col gap-3">
+      <div className="grid gap-2">
+        <div className="text-footnote font-medium text-label-secondary">
+          {t("CONTENT_MODELS_CREATE_AI_PROMPT_LABEL")}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {AI_PROMPT_SUGGESTIONS.map((suggestion) => (
+            <button
+              key={suggestion.key}
+              type="button"
+              disabled={isLoading}
+              className="rounded-md border border-border bg-background px-2.5 py-1.5 text-caption font-medium text-label-secondary transition-colors hover:bg-accent hover:text-label-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={() => setInput(t(suggestion.promptKey))}
+            >
+              {t(suggestion.labelKey)}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Messages area */}
       <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-border bg-surface p-3">
         {messages.length === 0 && !error ? (
@@ -474,7 +641,9 @@ function DetailsView(props: {
 export function CreateContentTypeDialog({
   open,
   pending = false,
+  projectId,
   onOpenChange,
+  onAiCreated,
   onSubmit,
 }: CreateContentTypeDialogProps) {
   const { t } = useTranslation("content");
@@ -482,7 +651,8 @@ export function CreateContentTypeDialog({
   const [errors, setErrors] = React.useState<FormErrors>({});
   const [view, setView] = React.useState<CreateDialogView>("start");
   const [mode, setMode] = React.useState<CreateDialogMode>("manual");
-  const [selectedTemplate, setSelectedTemplate] = React.useState<StarterTemplateKey>("blank");
+  const [selectedTemplate, setSelectedTemplate] =
+    React.useState<ContentModelStarterTemplateKey>("blank");
   const singularInputId = React.useId();
   const pluralInputId = React.useId();
 
@@ -538,9 +708,24 @@ export function CreateContentTypeDialog({
         pluralKey,
         description,
         modelKind: values.modelKind,
+        starterTemplate: selectedTemplate,
       }),
     });
-  }, [onSubmit, validate, values]);
+  }, [onSubmit, selectedTemplate, validate, values]);
+
+  const applyStarterTemplate = React.useCallback((templateKey: ContentModelStarterTemplateKey) => {
+    const template = STARTER_TEMPLATES.find((item) => item.key === templateKey);
+    if (!template) throw new Error(`Unknown content model starter template: ${templateKey}`);
+    setSelectedTemplate(template.key);
+    setErrors({});
+    setValues({
+      name: template.values.name,
+      singularKey: createGeneratedIdentifier(template.values.singularKey),
+      pluralKey: createGeneratedIdentifier(template.values.pluralKey),
+      description: template.values.description,
+      modelKind: template.modelKind,
+    });
+  }, []);
 
   const tabs =
     view === "start" ? <CreateDialogTabs mode={mode} onModeChange={setMode} /> : undefined;
@@ -560,13 +745,11 @@ export function CreateContentTypeDialog({
         <Button variant="ghost" disabled={pending} onClick={() => onOpenChange(false)}>
           {t("CONTENT_MODELS_CANCEL_ACTION")}
         </Button>
-        {mode === "ai" ? (
-          <Button disabled>{t("CONTENT_MODELS_CREATE_AI_NOT_AVAILABLE")}</Button>
-        ) : (
+        {mode === "manual" ? (
           <Button disabled={pending} onClick={() => setView("details")}>
             {t("CONTENT_MODELS_CREATE_CONTINUE_ACTION")}
           </Button>
-        )}
+        ) : null}
       </>
     );
 
@@ -598,10 +781,10 @@ export function CreateContentTypeDialog({
               pending={pending}
               selectedTemplate={selectedTemplate}
               onModelKindChange={(modelKind) => setValues((current) => ({ ...current, modelKind }))}
-              onTemplateChange={setSelectedTemplate}
+              onTemplateChange={applyStarterTemplate}
             />
           ) : (
-            <AiChatView />
+            <AiChatView projectId={projectId} onCreated={onAiCreated} />
           )
         ) : (
           <DetailsView

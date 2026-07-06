@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
-import { Accordion } from "@arclayer/ui/accordion";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Code2, Database, Search, Server, Settings2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { Accordion } from "@arclayer/ui/accordion";
 import { checkProjectSlugAvailability, getProjectDetail, patchProject } from "@/api/projects";
+import { getProjectCoreSettings, patchProjectCoreSettings } from "@/api/settings";
 import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
 import { ProjectAvatar, projectAvatarPropsFromIdentity } from "@/components/common/project-avatar";
 import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
@@ -14,37 +16,36 @@ import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { ProjectIconDialog } from "@/pages/usercenter/projects/components/project-icon-dialog";
 import type { ProjectIconDialogValues } from "@/pages/usercenter/projects/hooks/use-project-menu-actions";
 import type { UserCenterProjectListItem } from "@/pages/usercenter/projects/project-list-items";
+import {
+  SystemSettingItem,
+  SystemSettingStack,
+} from "@/pages/system/components/system-setting-item";
 import type { ProjectDetail, ProjectUpdateInput } from "@arclayer/openapi/admin-types";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
-import {
-  ChromeTabs,
-  ChromeTabsContent,
-  ChromeTabsList,
-  ChromeTabsTrigger,
-} from "@arclayer/ui/chrome-tabs";
 import { Input } from "@arclayer/ui/input";
 import { SettingAccordionItem } from "@arclayer/ui/setting-accordion-item";
 import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
 import { SettingActionItem } from "@arclayer/ui/setting-action-item";
-import { SettingPanel } from "@arclayer/ui/setting-panel";
 import { Textarea } from "@arclayer/ui/textarea";
+import { cn } from "@arclayer/lib/utils";
 
-import { ProjectDeploymentsPage } from "../../deployments/page";
 import { ProjectApiKeysSettingsPage } from "../api-keys/page";
 import { ProjectDatabasesPage } from "../databases/page";
-import { ProjectDomainSettingsPage } from "../domain/page";
 import { ProjectEnvironmentsPage } from "../environments/page";
+import {
+  DEFAULT_PROJECT_SOURCE_SETTINGS,
+  ProjectSourceSettingsSection,
+  buildProjectSourcePatch,
+  parseProjectSourceSettings,
+  type ProjectSourceSettingsDraft,
+  validateProjectSourceSettings,
+} from "./components/project-source-settings-section";
 
 const PROJECT_NAME_MAX_LENGTH = 128;
 const PROJECT_DESCRIPTION_MAX_LENGTH = 256;
+const PROJECT_CORE_SETTINGS_QUERY_KEY = "project-core-settings";
 
-type ProjectSettingsTabKey =
-  | "general"
-  | "api"
-  | "domain"
-  | "environments"
-  | "deployments"
-  | "databases";
+type ProjectSettingsTabKey = "general" | "api" | "environments" | "databases";
 
 type ProjectSettingsPageProps = {
   activeTab: ProjectSettingsTabKey;
@@ -101,12 +102,8 @@ function resolveProjectSettingsTabNavigation(projectId: string, tab: ProjectSett
   switch (tab) {
     case "api":
       return { to: "/projects/$projectId/settings/api" as const, params };
-    case "domain":
-      return { to: "/projects/$projectId/settings/domain" as const, params };
     case "environments":
       return { to: "/projects/$projectId/settings/environments" as const, params };
-    case "deployments":
-      return { to: "/projects/$projectId/settings/deployments" as const, params };
     case "databases":
       return { to: "/projects/$projectId/settings/databases" as const, params };
     case "general":
@@ -115,9 +112,201 @@ function resolveProjectSettingsTabNavigation(projectId: string, tab: ProjectSett
   }
 }
 
+function buildProjectSettingsNavItems(): Array<{
+  key: string;
+  tab: ProjectSettingsTabKey;
+  labelKey: string;
+  descriptionKey: string;
+  keywords: readonly string[];
+  icon: typeof Settings2;
+}> {
+  return [
+    {
+      key: "project.general",
+      tab: "general",
+      labelKey: "account:SETTINGS_NAV_PROJECT_GENERAL",
+      descriptionKey: "account:SETTINGS_PROJECT_DESC",
+      keywords: ["identity", "slug", "source", "framework", "build"],
+      icon: Settings2,
+    },
+    {
+      key: "project.api",
+      tab: "api",
+      labelKey: "account:SETTINGS_NAV_PROJECT_API",
+      descriptionKey: "account:SETTINGS_NAV_PROJECT_API_DESC",
+      keywords: ["api", "keys", "tokens", "integration"],
+      icon: Code2,
+    },
+    {
+      key: "project.environments",
+      tab: "environments",
+      labelKey: "account:SETTINGS_PROJECT_ENVIRONMENTS_TITLE",
+      descriptionKey: "account:SETTINGS_PROJECT_ENVIRONMENTS_DESC",
+      keywords: ["environment", "preview", "production", "runtime"],
+      icon: Server,
+    },
+    {
+      key: "project.databases",
+      tab: "databases",
+      labelKey: "account:SETTINGS_PROJECT_DATABASES_TITLE",
+      descriptionKey: "account:SETTINGS_PROJECT_DATABASES_DESC",
+      keywords: ["database", "postgres", "credentials", "storage"],
+      icon: Database,
+    },
+  ];
+}
+
+type ProjectSettingsNavItem = ReturnType<typeof buildProjectSettingsNavItems>[number];
+
+const PROJECT_SETTINGS_SCOPE_ROWS = [
+  {
+    key: "project-ops",
+    titleKey: "account:SETTINGS_PROJECT_SCOPE_PROJECT_OPS_TITLE",
+    summaryKey: "account:SETTINGS_PROJECT_SCOPE_PROJECT_OPS_SUMMARY",
+    descriptionKey: "account:SETTINGS_PROJECT_SCOPE_PROJECT_OPS_DESC",
+    statusKey: "account:SETTINGS_PROJECT_SCOPE_STATUS_HERE",
+    target: null,
+  },
+  {
+    key: "website-ops",
+    titleKey: "account:SETTINGS_PROJECT_SCOPE_WEBSITE_OPS_TITLE",
+    summaryKey: "account:SETTINGS_PROJECT_SCOPE_WEBSITE_OPS_SUMMARY",
+    descriptionKey: "account:SETTINGS_PROJECT_SCOPE_WEBSITE_OPS_DESC",
+    statusKey: "account:SETTINGS_PROJECT_SCOPE_STATUS_MOVED",
+    target: "website-domain",
+  },
+  {
+    key: "builder-ops",
+    titleKey: "account:SETTINGS_PROJECT_SCOPE_BUILDER_OPS_TITLE",
+    summaryKey: "account:SETTINGS_PROJECT_SCOPE_BUILDER_OPS_SUMMARY",
+    descriptionKey: "account:SETTINGS_PROJECT_SCOPE_BUILDER_OPS_DESC",
+    statusKey: "account:SETTINGS_PROJECT_SCOPE_STATUS_LINKED",
+    target: "editor",
+  },
+] as const;
+
+type ProjectSettingsScopeTarget = NonNullable<
+  (typeof PROJECT_SETTINGS_SCOPE_ROWS)[number]["target"]
+>;
+
+function resolveProjectSettingsScopeNavigation(
+  projectId: string,
+  target: ProjectSettingsScopeTarget,
+) {
+  const params = { projectId };
+  switch (target) {
+    case "editor":
+      return { to: "/projects/$projectId/editor" as const, params };
+    case "website-domain":
+    default:
+      return { to: "/projects/$projectId/website/domain" as const, params };
+  }
+}
+
+function normalizeSettingsSearchTerm(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function useProjectSettingsNavSearch(items: ProjectSettingsNavItem[], query: string) {
+  const { t, i18n } = useTranslation(["account"]);
+
+  return useMemo(() => {
+    const term = normalizeSettingsSearchTerm(query);
+    if (!term) return items;
+    return items.filter((item) =>
+      [t(item.labelKey), t(item.descriptionKey), item.tab, item.key, ...item.keywords]
+        .join(" ")
+        .toLowerCase()
+        .includes(term),
+    );
+  }, [i18n.language, i18n.resolvedLanguage, items, query, t]);
+}
+
+function ProjectSettingsSideNav(props: {
+  activeTab: ProjectSettingsTabKey;
+  items: readonly ProjectSettingsNavItem[];
+  onSelect: (tab: ProjectSettingsTabKey) => void;
+}) {
+  const { t } = useTranslation(["account"]);
+  if (props.items.length === 0) {
+    return (
+      <div className="rounded-md border border-border bg-muted/20 px-3 py-4 text-footnote text-label-secondary">
+        {t("account:SETTINGS_PROJECT_SEARCH_EMPTY")}
+      </div>
+    );
+  }
+
+  return (
+    <nav aria-label={t("account:SETTINGS_PROJECT_TITLE")}>
+      <ul className="flex flex-col gap-1">
+        {props.items.map((item) => {
+          const Icon = item.icon;
+          const active = item.tab === props.activeTab;
+          return (
+            <li key={item.key}>
+              <button
+                type="button"
+                data-active={active ? "true" : "false"}
+                className={cn(
+                  "flex h-9 w-full min-w-0 items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-callout transition-colors",
+                  "text-label-secondary hover:bg-accent hover:text-label-primary",
+                  active && "bg-accent font-semibold text-label-primary",
+                )}
+                onClick={() => props.onSelect(item.tab)}
+              >
+                <Icon className="size-4 shrink-0" />
+                <span className="min-w-0 flex-1 truncate">{t(item.labelKey)}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
+
 function FieldMessage(props: { message: string | null }) {
   if (!props.message) return null;
   return <div className="text-footnote text-destructive">{props.message}</div>;
+}
+
+function ProjectSettingsScopeSection(props: { projectId: string }) {
+  const { t } = useTranslation(["account"]);
+  const navigate = useNavigate();
+
+  return (
+    <SystemSettingItem
+      id="project-settings-scope"
+      title={t("account:SETTINGS_PROJECT_SCOPE_TITLE")}
+      description={t("account:SETTINGS_PROJECT_SCOPE_DESC")}
+    >
+      <SettingActionGroup>
+        {PROJECT_SETTINGS_SCOPE_ROWS.map((item) => (
+          <SettingActionItem
+            key={item.key}
+            as={item.target ? "button" : "div"}
+            showChevron={Boolean(item.target)}
+            title={t(item.titleKey)}
+            summary={t(item.summaryKey)}
+            description={t(item.descriptionKey)}
+            onTrigger={
+              item.target
+                ? () =>
+                    void navigate(
+                      resolveProjectSettingsScopeNavigation(props.projectId, item.target),
+                    )
+                : undefined
+            }
+            right={
+              <span className="rounded-sm border border-border bg-background px-2 py-1 text-caption font-medium text-label-secondary">
+                {t(item.statusKey)}
+              </span>
+            }
+          />
+        ))}
+      </SettingActionGroup>
+    </SystemSettingItem>
+  );
 }
 
 function ProjectGeneralSettingsTab(props: { projectId: string }) {
@@ -131,6 +320,13 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
   const [descriptionDraft, setDescriptionDraft] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
   const [slugError, setSlugError] = useState<string | null>(null);
+  const [sourceDraft, setSourceDraft] = useState<ProjectSourceSettingsDraft>(
+    DEFAULT_PROJECT_SOURCE_SETTINGS,
+  );
+  const [sourceInitial, setSourceInitial] = useState<ProjectSourceSettingsDraft>(
+    DEFAULT_PROJECT_SOURCE_SETTINGS,
+  );
+  const [sourceError, setSourceError] = useState<string | null>(null);
   const [iconDialogProject, setIconDialogProject] = useState<UserCenterProjectListItem | null>(
     null,
   );
@@ -150,6 +346,14 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
     meta: { silent: true },
   });
 
+  const projectCoreQuery = useQuery({
+    queryKey: [PROJECT_CORE_SETTINGS_QUERY_KEY, projectId],
+    enabled: Boolean(projectId),
+    queryFn: async () => getProjectCoreSettings(projectId),
+    retry: false,
+    meta: { silent: true },
+  });
+
   useEffect(() => {
     const project = detailQuery.data?.project;
     if (!project) return;
@@ -159,6 +363,14 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
     setNameError(null);
     setSlugError(null);
   }, [detailQuery.data]);
+
+  useEffect(() => {
+    if (!projectCoreQuery.data) return;
+    const next = parseProjectSourceSettings(projectCoreQuery.data);
+    setSourceInitial(next);
+    setSourceDraft(next);
+    setSourceError(null);
+  }, [projectCoreQuery.data]);
 
   const updateProjectMutation = useMutation({
     mutationFn: async (patch: ProjectUpdateInput) => patchProject(projectId, patch),
@@ -174,11 +386,34 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
     onError: (error) => notifyError(error),
   });
 
+  const updateProjectSourceMutation = useMutation({
+    mutationFn: async (draft: ProjectSourceSettingsDraft) =>
+      patchProjectCoreSettings(projectId, buildProjectSourcePatch(draft)),
+    onSuccess: async (detail) => {
+      const next = parseProjectSourceSettings(detail);
+      setSourceInitial(next);
+      setSourceDraft(next);
+      setSourceError(null);
+      notifySuccessText(t("common:ACTION_SUCCESS"));
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: [PROJECT_CORE_SETTINGS_QUERY_KEY, projectId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["project", "source", projectId],
+        }),
+      ]);
+    },
+    onError: (error) => notifyError(error),
+  });
+
   const project = detailQuery.data?.project ?? null;
   const permissionReady =
     permissionAccess.authzQuery.isFetched && permissionAccess.actionsQuery.isFetched;
   const canManageProject = permissionReady && permissionAccess.hasAction("project:settings:manage");
   const disabled = updateProjectMutation.isPending || !canManageProject;
+  const sourceDisabled =
+    disabled || projectCoreQuery.isLoading || updateProjectSourceMutation.isPending;
 
   const handlePatchProject = useCallback(
     async (patch: ProjectUpdateInput) => {
@@ -238,6 +473,17 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
       await handlePatchProject({ description: descriptionDraft.trim() || null });
     });
 
+  const saveProjectSource = () =>
+    withSavingKey("project:source", async () => {
+      const validationError = validateProjectSourceSettings(sourceDraft, t);
+      if (validationError) {
+        setSourceError(validationError);
+        throw new Error("FORM_VALIDATION_FAILED");
+      }
+      setSourceError(null);
+      await updateProjectSourceMutation.mutateAsync(sourceDraft);
+    });
+
   const loadError = detailQuery.isError
     ? detailQuery.error
     : !detailQuery.isLoading && !detailQuery.data
@@ -258,8 +504,11 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
         />
       ) : null}
 
-      <div className="grid gap-8">
-        <SettingPanel
+      <SystemSettingStack>
+        <ProjectSettingsScopeSection projectId={projectId} />
+
+        <SystemSettingItem
+          id="project-identity"
           title={t("account:SETTINGS_NAV_PROJECT_GENERAL")}
           description={t("account:SETTINGS_PROJECT_DESC")}
         >
@@ -305,7 +554,7 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
                 }}
                 resetText={t("settings:SETTINGS_RESET")}
               >
-                <div className="space-y-2">
+                <div className="grid gap-2">
                   <Input
                     value={nameDraft}
                     maxLength={PROJECT_NAME_MAX_LENGTH}
@@ -343,7 +592,7 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
                 }}
                 resetText={t("settings:SETTINGS_RESET")}
               >
-                <div className="space-y-2">
+                <div className="grid gap-2">
                   <Input
                     value={slugDraft}
                     onChange={(event) => {
@@ -385,8 +634,25 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
               </SettingAccordionItem>
             </Accordion>
           </SettingActionGroup>
-        </SettingPanel>
-      </div>
+        </SystemSettingItem>
+
+        <ProjectSourceSettingsSection
+          draft={sourceDraft}
+          initial={sourceInitial}
+          disabled={sourceDisabled}
+          pending={savingKey === "project:source" || updateProjectSourceMutation.isPending}
+          error={projectCoreQuery.isError ? t("settings:SETTINGS_LOAD_FAILED_DESC") : sourceError}
+          onChange={(patch) => {
+            setSourceDraft((current) => ({ ...current, ...patch }));
+            setSourceError(null);
+          }}
+          onReset={() => {
+            setSourceDraft(sourceInitial);
+            setSourceError(null);
+          }}
+          onSave={saveProjectSource}
+        />
+      </SystemSettingStack>
 
       {iconDialogProject ? (
         <ProjectIconDialog
@@ -415,67 +681,58 @@ export function ProjectSettingsPage(props: ProjectSettingsPageProps) {
   const { activeTab, projectId } = props;
   const { t } = useTranslation(["account"]);
   const navigate = useNavigate();
+  const navItems = useMemo(() => buildProjectSettingsNavItems(), []);
+  const [query, setQuery] = useState("");
+  const filteredNavItems = useProjectSettingsNavSearch(navItems, query);
+
+  const content = (() => {
+    switch (activeTab) {
+      case "api":
+        return <ProjectApiKeysSettingsPage projectId={projectId} embedded />;
+      case "environments":
+        return <ProjectEnvironmentsPage projectId={projectId} embedded />;
+      case "databases":
+        return <ProjectDatabasesPage projectId={projectId} embedded />;
+      case "general":
+      default:
+        return <ProjectGeneralSettingsTab projectId={projectId} />;
+    }
+  })();
 
   return (
-    <ChromeTabs
-      value={activeTab}
-      onValueChange={(next) => {
-        void navigate(
-          resolveProjectSettingsTabNavigation(projectId, next as ProjectSettingsTabKey),
-        );
-      }}
+    <DefaultPage
+      title={t("account:SETTINGS_PROJECT_TITLE")}
+      description={t("account:SETTINGS_PROJECT_DESC")}
+      showFavoriteToggle={false}
+      headerBehavior="sticky"
+      contentContainerClassName="min-h-full [--page-sticky-header-height:6rem]"
     >
-      <DefaultPage
-        title={t("account:SETTINGS_PROJECT_TITLE")}
-        description={t("account:SETTINGS_PROJECT_DESC")}
-        headerVisibility="always"
-        extra={
-          <ChromeTabsList>
-            <ChromeTabsTrigger value="general">
-              {t("account:SETTINGS_NAV_PROJECT_GENERAL")}
-            </ChromeTabsTrigger>
-            <ChromeTabsTrigger value="api">
-              {t("account:SETTINGS_NAV_PROJECT_API")}
-            </ChromeTabsTrigger>
-            <ChromeTabsTrigger value="domain">
-              {t("account:SETTINGS_NAV_PROJECT_DOMAIN")}
-            </ChromeTabsTrigger>
-            <ChromeTabsTrigger value="environments">
-              {t("account:SETTINGS_PROJECT_ENVIRONMENTS_TITLE")}
-            </ChromeTabsTrigger>
-            <ChromeTabsTrigger value="deployments">
-              {t("account:SETTINGS_PROJECT_DEPLOYMENTS_TITLE")}
-            </ChromeTabsTrigger>
-            <ChromeTabsTrigger value="databases">
-              {t("account:SETTINGS_PROJECT_DATABASES_TITLE")}
-            </ChromeTabsTrigger>
-          </ChromeTabsList>
-        }
-      >
-        <ChromeTabsContent value="general">
-          <ProjectGeneralSettingsTab projectId={projectId} />
-        </ChromeTabsContent>
+      <div className="flex min-h-full w-full gap-8">
+        <aside className="hidden min-h-full w-72 shrink-0 lg:block">
+          <div className="sticky top-[var(--page-sticky-header-height,6rem)] flex max-h-[calc(100vh-var(--page-sticky-header-height,6rem)-1rem)] min-h-0 w-full flex-col gap-4 overflow-y-auto pb-4">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-label-tertiary" />
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={t("account:SETTINGS_PROJECT_SEARCH_PLACEHOLDER")}
+                className="pl-9"
+                autoComplete="off"
+              />
+            </div>
+            <ProjectSettingsSideNav
+              items={filteredNavItems}
+              activeTab={activeTab}
+              onSelect={(nextTab) => {
+                setQuery("");
+                void navigate(resolveProjectSettingsTabNavigation(projectId, nextTab));
+              }}
+            />
+          </div>
+        </aside>
 
-        <ChromeTabsContent value="api">
-          <ProjectApiKeysSettingsPage projectId={projectId} embedded />
-        </ChromeTabsContent>
-
-        <ChromeTabsContent value="domain">
-          <ProjectDomainSettingsPage projectId={projectId} embedded />
-        </ChromeTabsContent>
-
-        <ChromeTabsContent value="environments">
-          <ProjectEnvironmentsPage projectId={projectId} embedded />
-        </ChromeTabsContent>
-
-        <ChromeTabsContent value="deployments">
-          <ProjectDeploymentsPage projectId={projectId} embedded />
-        </ChromeTabsContent>
-
-        <ChromeTabsContent value="databases">
-          <ProjectDatabasesPage projectId={projectId} embedded />
-        </ChromeTabsContent>
-      </DefaultPage>
-    </ChromeTabs>
+        <div className="min-w-0 flex-1">{content}</div>
+      </div>
+    </DefaultPage>
   );
 }

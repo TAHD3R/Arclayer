@@ -21,7 +21,7 @@ const resolveToken = async (token: ManagementSdkOptions["token"]): Promise<strin
 export const createManagementHeaders = async (
   options: ManagementSdkOptions,
   extra?: HeadersInit,
-): Promise<Headers> => {
+): Promise<Record<string, string>> => {
   const headers = new Headers(options.headers);
   if (extra) {
     new Headers(extra).forEach((value, key) => {
@@ -34,7 +34,11 @@ export const createManagementHeaders = async (
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  return headers;
+  const result: Record<string, string> = {};
+  headers.forEach((value, key) => {
+    result[key] = value;
+  });
+  return result;
 };
 
 const readRequestId = (response: Response): string | null =>
@@ -72,12 +76,13 @@ const toError = <T>(input: {
 export const normalizeManagementResult = <T>(
   response: Response,
   payload: unknown,
+  options: { allowNullData?: boolean } = {},
 ): ManagementResult<T> => {
   const envelope = toEnvelope<T>(payload);
   if (!response.ok || envelope?.error) {
     throw toError({ body: envelope, envelope, response });
   }
-  if (envelope?.data === undefined || envelope.data === null) {
+  if (envelope?.data === undefined || (!options.allowNullData && envelope.data === null)) {
     throw toError({
       body: envelope,
       envelope: {
@@ -90,7 +95,7 @@ export const normalizeManagementResult = <T>(
   }
 
   return {
-    data: envelope.data,
+    data: envelope.data as T,
     message: envelope.message || "OK",
     meta: envelope.meta ?? null,
     requestId: readRequestId(response),

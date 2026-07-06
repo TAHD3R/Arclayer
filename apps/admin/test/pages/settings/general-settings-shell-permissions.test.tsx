@@ -1,6 +1,6 @@
 import type { PropsWithChildren, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GeneralSettingsShell } from "@/pages/projects/settings/site/components/general-settings-shell";
@@ -9,6 +9,7 @@ const getProjectCoreSettingsMock = vi.fn();
 const patchProjectCoreSettingsMock = vi.fn();
 const getMyProjectAuthzMock = vi.fn();
 const listProjectPermissionActionsMock = vi.fn();
+const navigateMock = vi.fn();
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -17,7 +18,7 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => vi.fn(),
+  useNavigate: () => navigateMock,
 }));
 
 vi.mock("@/api/settings", () => ({
@@ -77,8 +78,15 @@ vi.mock("@arclayer/ui/chrome-tabs", () => ({
 }));
 
 vi.mock("@/pages/projects/settings/site/components/tabs/site-settings-tab", () => ({
-  SiteSettingsTab: (props: { disabled: boolean }) => (
-    <div data-testid="site-settings-tab" data-disabled={String(props.disabled)} />
+  SiteSettingsTab: (props: {
+    disabled: boolean;
+    patch: (patch: Record<string, unknown>) => Promise<void>;
+  }) => (
+    <div data-testid="site-settings-tab" data-disabled={String(props.disabled)}>
+      <button type="button" onClick={() => void props.patch({ site: { name: "Updated site" } })}>
+        save website config
+      </button>
+    </div>
   ),
 }));
 
@@ -96,7 +104,10 @@ function renderWithQuery(node: React.ReactElement) {
     },
   });
 
-  return render(<QueryClientProvider client={queryClient}>{node}</QueryClientProvider>);
+  return {
+    queryClient,
+    ...render(<QueryClientProvider client={queryClient}>{node}</QueryClientProvider>),
+  };
 }
 
 describe("GeneralSettingsShell permission consumption", () => {
@@ -105,6 +116,7 @@ describe("GeneralSettingsShell permission consumption", () => {
     patchProjectCoreSettingsMock.mockReset();
     getMyProjectAuthzMock.mockReset();
     listProjectPermissionActionsMock.mockReset();
+    navigateMock.mockReset();
 
     getProjectCoreSettingsMock.mockResolvedValue({
       namespace: "core",
@@ -160,12 +172,39 @@ describe("GeneralSettingsShell permission consumption", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("site-settings-tab")).toHaveAttribute("data-disabled", "false");
-      expect(screen.getByTestId("localization-settings-tab")).toHaveAttribute(
-        "data-disabled",
-        "false",
-      );
     });
     expect(screen.queryByTestId("general-settings-read-only-notice")).not.toBeInTheDocument();
+  });
+
+  it("invalidates generated project source after saving Website Config", async () => {
+    patchProjectCoreSettingsMock.mockResolvedValueOnce({
+      namespace: "core",
+      value: {
+        site: {
+          name: "Updated site",
+        },
+      },
+    });
+    const { queryClient } = renderWithQuery(
+      <GeneralSettingsShell activeTab="basics" projectId="project-1" embedded={false} />,
+    );
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    fireEvent.click(await screen.findByRole("button", { name: "save website config" }));
+
+    await waitFor(() => {
+      expect(patchProjectCoreSettingsMock).toHaveBeenCalledWith("project-1", {
+        site: {
+          name: "Updated site",
+        },
+      });
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ["settings", "project", "core", "project-1"],
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ["project", "source", "project-1"],
+    });
   });
 
   it("shows read-only guidance and disables save surfaces without site management access", async () => {
@@ -183,10 +222,6 @@ describe("GeneralSettingsShell permission consumption", () => {
       "settings:SETTINGS_SITE_SETTINGS_READ_ONLY_DESC",
     );
     expect(screen.getByTestId("site-settings-tab")).toHaveAttribute("data-disabled", "true");
-    expect(screen.getByTestId("localization-settings-tab")).toHaveAttribute(
-      "data-disabled",
-      "true",
-    );
   });
 
   it("keeps site settings controls closed while project permissions warm up", async () => {
@@ -198,11 +233,47 @@ describe("GeneralSettingsShell permission consumption", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("site-settings-tab")).toHaveAttribute("data-disabled", "true");
-      expect(screen.getByTestId("localization-settings-tab")).toHaveAttribute(
-        "data-disabled",
-        "true",
-      );
     });
     expect(screen.queryByTestId("general-settings-read-only-notice")).not.toBeInTheDocument();
+  });
+
+  it("keeps localization inside the website config SEO route", async () => {
+    renderWithQuery(
+      <GeneralSettingsShell activeTab="basics" projectId="project-1" embedded={false} />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: /settings:SETTINGS_SITE_SETTINGS_TAB_LOCALIZATION/,
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledWith({
+      to: "/projects/$projectId/seo/site/localization",
+      params: { projectId: "project-1" },
+    });
+  });
+
+  it("filters website config side navigation without hiding the active settings stack", async () => {
+    renderWithQuery(
+      <GeneralSettingsShell activeTab="basics" projectId="project-1" embedded={false} />,
+    );
+
+    fireEvent.change(
+      await screen.findByPlaceholderText("settings:SETTINGS_SITE_SEARCH_PLACEHOLDER"),
+      {
+        target: { value: "localization" },
+      },
+    );
+
+    expect(
+      screen.getByRole("button", {
+        name: /settings:SETTINGS_SITE_SETTINGS_TAB_LOCALIZATION/,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /settings:SETTINGS_SITE_SETTINGS_TAB_BASICS/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("site-settings-tab")).toBeInTheDocument();
   });
 });

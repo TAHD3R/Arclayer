@@ -6,15 +6,25 @@ import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useDataTable } from "@arclayer/ui/data-table";
 import {
+  BookOpenIcon,
+  GlobeIcon,
+  MonitorIcon,
+  RocketIcon,
+  SettingsIcon,
+  type LucideIcon,
+} from "lucide-react";
+import {
   archiveContentItem,
   bulkPublishContentItems,
   bulkUnpublishContentItems,
   createContentLibraryView,
+  createContentItem,
   createContentItemTranslation,
   deleteContentLibraryView,
   deleteContentItem,
   duplicateContentItem,
   moveContentLibraryView,
+  saveContentItemDraftVersion,
   updateContentLibraryView,
   unarchiveContentItem,
 } from "@/api/content";
@@ -50,6 +60,7 @@ import {
   projectContentModelsPath,
 } from "@/lib/routing/project-content-routing";
 import { getContentTypeLabel } from "../content-type-presentation";
+import { isReusableBlockContentModel } from "../models/utils";
 import { useContentLibraryTableColumns } from "./components/content-library-table-columns";
 import { ContentLibraryActionDialogs } from "./components/content-library-action-dialogs";
 import { ContentLibraryCreateContentDialog } from "./components/content-library-create-content-dialog";
@@ -97,6 +108,8 @@ import {
   CONTENT_LIBRARY_DEFAULT_VIEW_STATE,
   contentLibraryTableId,
   findContentLibrarySavedView,
+  isContentLibraryPageRow,
+  isContentLibraryReusableSectionRow,
   isSameContentLibraryViewState,
   normalizeContentLibraryViewState,
   parseContentLibraryViewState,
@@ -121,13 +134,373 @@ function ContentLibraryPrimaryAction(props: {
         onClick={props.onNavigateModels}
         disabled={!canManageContent}
       >
-        {t("CONTENT_LIBRARY_ACTION_MANAGE_TYPES")}
+        {t("CONTENT_LIBRARY_ACTION_CONTENT_MODELS")}
       </Button>
       <ContentLibraryNewContentButton
         onClick={props.onNavigateCreate}
         disabled={!canManageContent}
+        labelKey="CONTENT_LIBRARY_ACTION_NEW_SITE_CONTENT"
       />
     </div>
+  );
+}
+
+type ContentLibraryWorkbenchSummary = {
+  changedCount: number;
+  homepageCount: number;
+  modelCount: number;
+  publishedCount: number;
+  reusableBlockCount: number;
+  siteContentCount: number;
+  sitePageCount: number;
+};
+
+type ContentLibraryWorkflowState = "active" | "pending" | "ready";
+
+type ContentLibraryWorkflowStep = {
+  description: string;
+  id: string;
+  label: string;
+  state: ContentLibraryWorkflowState;
+};
+
+type ContentLibraryWorkflowLink = {
+  href: string;
+  icon: LucideIcon;
+  id: string;
+  label: string;
+};
+
+const CONTENT_LIBRARY_HOMEPAGE_SLUGS = new Set(["home", "homepage", "index"]);
+
+function isContentLibraryHomepageRow(
+  row: Pick<ContentLibraryTableRow, "modelKey" | "resolvedRole" | "role" | "slug">,
+): boolean {
+  const slug = String(row.slug || "")
+    .trim()
+    .toLowerCase();
+  return isContentLibraryPageRow(row) && CONTENT_LIBRARY_HOMEPAGE_SLUGS.has(slug);
+}
+
+function buildContentLibraryWorkbenchSummary(
+  rows: readonly ContentLibraryTableRow[],
+  models: readonly AdminContentModel[],
+): ContentLibraryWorkbenchSummary {
+  return rows.reduce<ContentLibraryWorkbenchSummary>(
+    (summary, row) => {
+      const isSiteContent = row.libraryGroup === "site-content" || row.context === "site_builder";
+      const isPage = isContentLibraryPageRow(row);
+      const isReusableBlock = isContentLibraryReusableSectionRow(row);
+      const isHomepage = isSiteContent && isContentLibraryHomepageRow(row);
+      return {
+        changedCount:
+          summary.changedCount +
+          (row.derivedStatus === "draft" || row.derivedStatus === "changed" ? 1 : 0),
+        homepageCount: summary.homepageCount + (isHomepage ? 1 : 0),
+        modelCount: summary.modelCount,
+        publishedCount: summary.publishedCount + (row.derivedStatus === "published" ? 1 : 0),
+        reusableBlockCount: summary.reusableBlockCount + (isSiteContent && isReusableBlock ? 1 : 0),
+        siteContentCount: summary.siteContentCount + (isSiteContent ? 1 : 0),
+        sitePageCount: summary.sitePageCount + (isSiteContent && isPage ? 1 : 0),
+      };
+    },
+    {
+      changedCount: 0,
+      homepageCount: 0,
+      modelCount: models.length,
+      publishedCount: 0,
+      reusableBlockCount: 0,
+      siteContentCount: 0,
+      sitePageCount: 0,
+    },
+  );
+}
+
+function isSitePageModel(model: AdminContentModel): boolean {
+  return (
+    model.singularKey === "page" || model.defaultRole === "page" || model.defaultPosture === "page"
+  );
+}
+
+function buildContentLibraryWorkflowSteps(
+  summary: ContentLibraryWorkbenchSummary,
+  t: (key: string) => string,
+): ContentLibraryWorkflowStep[] {
+  const hasStructure = summary.modelCount > 0;
+  const hasSitePage = summary.sitePageCount > 0;
+  const hasDraftChanges = summary.changedCount > 0;
+  const hasPublishedContent = summary.publishedCount > 0;
+
+  return [
+    {
+      id: "structure",
+      label: t("CONTENT_LIBRARY_WORKFLOW_STRUCTURE_LABEL"),
+      description: t("CONTENT_LIBRARY_WORKFLOW_STRUCTURE_DESC"),
+      state: hasStructure ? "ready" : "active",
+    },
+    {
+      id: "page",
+      label: t("CONTENT_LIBRARY_WORKFLOW_PAGE_LABEL"),
+      description: t("CONTENT_LIBRARY_WORKFLOW_PAGE_DESC"),
+      state: hasSitePage ? "ready" : hasStructure ? "active" : "pending",
+    },
+    {
+      id: "draft",
+      label: t("CONTENT_LIBRARY_WORKFLOW_DRAFT_LABEL"),
+      description: t("CONTENT_LIBRARY_WORKFLOW_DRAFT_DESC"),
+      state: hasDraftChanges ? "active" : hasPublishedContent ? "ready" : "pending",
+    },
+    {
+      id: "release",
+      label: t("CONTENT_LIBRARY_WORKFLOW_RELEASE_LABEL"),
+      description: t("CONTENT_LIBRARY_WORKFLOW_RELEASE_DESC"),
+      state: hasDraftChanges
+        ? "pending"
+        : hasPublishedContent
+          ? "ready"
+          : hasSitePage
+            ? "active"
+            : "pending",
+    },
+  ];
+}
+
+function ContentLibraryWorkflowStrip(props: {
+  steps: readonly ContentLibraryWorkflowStep[];
+  t: (key: string) => string;
+}) {
+  const stateClassName: Record<ContentLibraryWorkflowState, string> = {
+    active: "border-primary bg-primary/5 text-primary",
+    pending: "border-border bg-muted/40 text-label-secondary",
+    ready: "border-positive/30 bg-positive/5 text-positive",
+  };
+
+  return (
+    <ol
+      className="grid gap-2 md:grid-cols-4"
+      aria-label={props.t("CONTENT_LIBRARY_WORKFLOW_LABEL")}
+    >
+      {props.steps.map((step, index) => (
+        <li
+          key={step.id}
+          className="min-w-0 rounded-md border border-border bg-background px-3 py-3"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-mono text-caption text-label-tertiary">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <span
+              className={`rounded-sm border px-2 py-0.5 text-caption font-medium ${stateClassName[step.state]}`}
+            >
+              {props.t(`CONTENT_LIBRARY_WORKFLOW_STATE_${step.state.toUpperCase()}`)}
+            </span>
+          </div>
+          <p className="mt-3 text-caption font-semibold text-foreground">{step.label}</p>
+          <p className="mt-1 text-footnote text-label-secondary">{step.description}</p>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function buildContentLibraryWorkflowLinks(
+  projectId: string,
+  t: (key: string) => string,
+): ContentLibraryWorkflowLink[] {
+  return [
+    {
+      href: `/projects/${projectId}/editor`,
+      icon: MonitorIcon,
+      id: "editor",
+      label: t("CONTENT_LIBRARY_WORKFLOW_LINK_EDITOR"),
+    },
+    {
+      href: `/projects/${projectId}/content/models`,
+      icon: BookOpenIcon,
+      id: "models",
+      label: t("CONTENT_LIBRARY_WORKFLOW_LINK_MODELS"),
+    },
+    {
+      href: `/projects/${projectId}/website/domain`,
+      icon: GlobeIcon,
+      id: "website-control",
+      label: t("CONTENT_LIBRARY_WORKFLOW_LINK_WEBSITE_CONTROL"),
+    },
+    {
+      href: `/projects/${projectId}/website/releases`,
+      icon: RocketIcon,
+      id: "releases",
+      label: t("CONTENT_LIBRARY_WORKFLOW_LINK_RELEASES"),
+    },
+    {
+      href: `/projects/${projectId}/seo/site`,
+      icon: SettingsIcon,
+      id: "website-config",
+      label: t("CONTENT_LIBRARY_WORKFLOW_LINK_WEBSITE_CONFIG"),
+    },
+  ];
+}
+
+function ContentLibraryWorkflowLinks(props: {
+  links: readonly ContentLibraryWorkflowLink[];
+  t: (key: string) => string;
+}) {
+  return (
+    <nav
+      aria-label={props.t("CONTENT_LIBRARY_WORKFLOW_LINKS_LABEL")}
+      className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5"
+      data-testid="content-library-workflow-links"
+    >
+      {props.links.map((link) => {
+        const Icon = link.icon;
+        return (
+          <a
+            key={link.id}
+            href={link.href}
+            className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-footnote font-medium text-label-primary transition-colors hover:bg-muted"
+          >
+            <Icon className="size-4 shrink-0 text-label-secondary" aria-hidden="true" />
+            <span className="min-w-0 flex-1 truncate">{link.label}</span>
+          </a>
+        );
+      })}
+    </nav>
+  );
+}
+
+function ContentLibraryWorkbenchSummaryPanel(props: {
+  canManageContent?: boolean;
+  creatingReusableBlock?: boolean;
+  creatingSitePage?: boolean;
+  homepagePage: ContentLibraryTableRow | null;
+  hasReusableBlockModel: boolean;
+  hasSitePageModel: boolean;
+  onCreateReusableBlock: () => void;
+  onCreateSitePage: () => void;
+  onManageModels: () => void;
+  onOpenSitePage: (row: ContentLibraryTableRow) => void;
+  projectId: string;
+  summary: ContentLibraryWorkbenchSummary;
+  t: (key: string, options?: Record<string, unknown>) => string;
+}) {
+  const nextActionKey =
+    props.summary.modelCount === 0
+      ? "CONTENT_LIBRARY_WORKBENCH_NEXT_MODELS"
+      : props.summary.homepageCount === 0
+        ? "CONTENT_LIBRARY_WORKBENCH_NEXT_HOMEPAGE"
+        : props.summary.changedCount > 0
+          ? "CONTENT_LIBRARY_WORKBENCH_NEXT_DRAFTS"
+          : "CONTENT_LIBRARY_WORKBENCH_NEXT_READY";
+  const canManageContent = props.canManageContent !== false;
+  const createSitePageDisabled =
+    !canManageContent || !props.hasSitePageModel || props.creatingSitePage === true;
+  const createReusableBlockDisabled =
+    !canManageContent || !props.hasReusableBlockModel || props.creatingReusableBlock === true;
+  const workflowSteps = buildContentLibraryWorkflowSteps(props.summary, props.t);
+  const metricItems = [
+    {
+      id: "homepage",
+      label: props.t("CONTENT_LIBRARY_WORKBENCH_METRIC_HOMEPAGE"),
+      value: props.summary.homepageCount,
+    },
+    {
+      id: "site-pages",
+      label: props.t("CONTENT_LIBRARY_WORKBENCH_METRIC_SITE_PAGES"),
+      value: props.summary.sitePageCount,
+    },
+    {
+      id: "reusable-blocks",
+      label: props.t("CONTENT_LIBRARY_WORKBENCH_METRIC_REUSABLE_BLOCKS"),
+      value: props.summary.reusableBlockCount,
+    },
+    {
+      id: "site-content",
+      label: props.t("CONTENT_LIBRARY_WORKBENCH_METRIC_SITE_CONTENT"),
+      value: props.summary.siteContentCount,
+    },
+    {
+      id: "published",
+      label: props.t("CONTENT_LIBRARY_WORKBENCH_METRIC_PUBLISHED"),
+      value: props.summary.publishedCount,
+    },
+    {
+      id: "drafts",
+      label: props.t("CONTENT_LIBRARY_WORKBENCH_METRIC_DRAFTS"),
+      value: props.summary.changedCount,
+    },
+  ];
+
+  return (
+    <section
+      aria-label={props.t("CONTENT_LIBRARY_WORKBENCH_TITLE")}
+      className="mb-6 border-y border-border bg-background py-5"
+      data-testid="content-library-workbench-summary"
+    >
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(420px,0.9fr)]">
+        <div className="min-w-0 space-y-3">
+          <div className="space-y-1">
+            <h2 className="font-heading text-lg font-semibold text-foreground">
+              {props.t("CONTENT_LIBRARY_WORKBENCH_TITLE")}
+            </h2>
+            <p className="max-w-2xl text-footnote text-label-secondary">
+              {props.t("CONTENT_LIBRARY_WORKBENCH_DESC")}
+            </p>
+          </div>
+          <div className="rounded-md border border-border bg-muted/40 px-3 py-2">
+            <p className="text-caption font-medium text-foreground">
+              {props.t("CONTENT_LIBRARY_WORKBENCH_NEXT_LABEL")}
+            </p>
+            <p className="mt-1 text-footnote text-label-secondary">{props.t(nextActionKey)}</p>
+          </div>
+          <ContentLibraryWorkflowLinks
+            links={buildContentLibraryWorkflowLinks(props.projectId, props.t)}
+            t={props.t}
+          />
+          <ContentLibraryWorkflowStrip steps={workflowSteps} t={props.t} />
+          <div className="flex flex-wrap items-center gap-2">
+            {props.homepagePage ? (
+              <Button
+                type="button"
+                variant="default"
+                onClick={() => props.onOpenSitePage(props.homepagePage as ContentLibraryTableRow)}
+              >
+                {props.t("CONTENT_LIBRARY_WORKBENCH_ACTION_CONTINUE_HOMEPAGE")}
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="default"
+                disabled={createSitePageDisabled}
+                onClick={props.onCreateSitePage}
+              >
+                {props.t("CONTENT_LIBRARY_WORKBENCH_ACTION_CREATE_HOMEPAGE")}
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              disabled={createReusableBlockDisabled}
+              onClick={props.onCreateReusableBlock}
+            >
+              {props.t("CONTENT_LIBRARY_WORKBENCH_ACTION_CREATE_REUSABLE_BLOCK")}
+            </Button>
+            <Button type="button" variant="outline" onClick={props.onManageModels}>
+              {props.t("CONTENT_LIBRARY_WORKBENCH_ACTION_STRUCTURE")}
+            </Button>
+          </div>
+        </div>
+        <dl className="grid grid-cols-2 gap-2 lg:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4">
+          {metricItems.map((item) => (
+            <div key={item.id} className="rounded-md border border-border bg-background px-3 py-3">
+              <dt className="text-caption text-label-secondary">{item.label}</dt>
+              <dd className="mt-2 font-heading text-2xl font-semibold text-foreground">
+                {item.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
   );
 }
 
@@ -549,6 +922,24 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
     () => buildContentLibraryRows(itemsQuery.data ?? [], models),
     [itemsQuery.data, models],
   );
+  const workbenchSummary = React.useMemo(
+    () => buildContentLibraryWorkbenchSummary(rows, models),
+    [models, rows],
+  );
+  const sitePageModel = React.useMemo(() => models.find(isSitePageModel) ?? null, [models]);
+  const reusableBlockModel = React.useMemo(
+    () => models.find(isReusableBlockContentModel) ?? null,
+    [models],
+  );
+  const homepagePage = React.useMemo(
+    () =>
+      rows.find(
+        (row) =>
+          (row.libraryGroup === "site-content" || row.context === "site_builder") &&
+          isContentLibraryHomepageRow(row),
+      ) ?? null,
+    [rows],
+  );
   const previewRow = React.useMemo(
     () => rows.find((row) => row.id === previewRowId) ?? null,
     [previewRowId, rows],
@@ -774,6 +1165,93 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
       setDeleteRow(null);
       await queryClient.invalidateQueries({
         queryKey: buildContentLibraryItemsQueryKey(projectId ? String(projectId) : null),
+      });
+    },
+    onError: (error) => notifyError(error),
+  });
+  const createSitePageMutation = useMutation({
+    mutationFn: async () => {
+      if (!projectId) throw new Error("PROJECT_NOT_SELECTED");
+      if (!sitePageModel) throw new Error("CONTENT_LIBRARY_SITE_PAGE_MODEL_REQUIRED");
+      const item = await createContentItem(String(projectId), {
+        title: t("content:CONTENT_LIBRARY_WORKBENCH_DEFAULT_PAGE_TITLE"),
+        modelKey: sitePageModel.singularKey,
+      });
+
+      await saveContentItemDraftVersion(String(projectId), item.id, {
+        expectedVersion: item.draftVersion ?? 0,
+        changeSummary: t("content:CONTENT_LIBRARY_WORKBENCH_DEFAULT_PAGE_CHANGE_SUMMARY"),
+        fieldsSnapshot: {
+          title: t("content:CONTENT_LIBRARY_WORKBENCH_DEFAULT_PAGE_TITLE"),
+          path: "/",
+        },
+        presentations: [
+          {
+            kind: "form_data",
+            payload: {
+              title: t("content:CONTENT_LIBRARY_WORKBENCH_DEFAULT_PAGE_TITLE"),
+              path: "/",
+            },
+          },
+        ],
+      });
+      return item;
+    },
+    onSuccess: async (item) => {
+      notifySuccessText(t("content:CONTENT_LIBRARY_WORKBENCH_CREATE_PAGE_SUCCESS"));
+      await queryClient.invalidateQueries({
+        queryKey: buildContentLibraryItemsQueryKey(projectId ? String(projectId) : null),
+      });
+      void navigate({
+        search: getContentLibraryPreservedSearch({
+          view: search.view,
+          focusItemId: item.id,
+        }),
+        replace: true,
+      });
+    },
+    onError: (error) => notifyError(error),
+  });
+  const createReusableBlockMutation = useMutation({
+    mutationFn: async () => {
+      if (!projectId) throw new Error("PROJECT_NOT_SELECTED");
+      if (!reusableBlockModel) throw new Error("CONTENT_LIBRARY_REUSABLE_BLOCK_MODEL_REQUIRED");
+      const title = t("content:CONTENT_LIBRARY_WORKBENCH_DEFAULT_REUSABLE_BLOCK_TITLE");
+      const sectionKey = "reusable-section";
+      const fieldsSnapshot = {
+        title,
+        sectionKey,
+        propsDefaults: {},
+      };
+      const item = await createContentItem(String(projectId), {
+        title,
+        modelKey: reusableBlockModel.singularKey,
+      });
+
+      await saveContentItemDraftVersion(String(projectId), item.id, {
+        expectedVersion: item.draftVersion ?? 0,
+        changeSummary: t("content:CONTENT_LIBRARY_WORKBENCH_DEFAULT_REUSABLE_BLOCK_CHANGE_SUMMARY"),
+        fieldsSnapshot,
+        presentations: [
+          {
+            kind: "form_data",
+            payload: fieldsSnapshot,
+          },
+        ],
+      });
+      return item;
+    },
+    onSuccess: async (item) => {
+      notifySuccessText(t("content:CONTENT_LIBRARY_WORKBENCH_CREATE_REUSABLE_BLOCK_SUCCESS"));
+      await queryClient.invalidateQueries({
+        queryKey: buildContentLibraryItemsQueryKey(projectId ? String(projectId) : null),
+      });
+      void navigate({
+        search: getContentLibraryPreservedSearch({
+          view: search.view,
+          focusItemId: item.id,
+        }),
+        replace: true,
       });
     },
     onError: (error) => notifyError(error),
@@ -1027,6 +1505,8 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
       duplicateMutation.isPending ||
       createTranslationMutation.isPending ||
       deleteMutation.isPending ||
+      createSitePageMutation.isPending ||
+      createReusableBlockMutation.isPending ||
       archiveSelectionMutation.isPending ||
       deleteSelectionMutation.isPending,
     selectedRowIds: selection.selectedIds,
@@ -1378,6 +1858,8 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
     itemsQuery.isFetching ||
     viewsQuery.isFetching ||
     archiveMutation.isPending ||
+    createSitePageMutation.isPending ||
+    createReusableBlockMutation.isPending ||
     archiveSelectionMutation.isPending ||
     publishSelectionMutation.isPending ||
     unpublishSelectionMutation.isPending ||
@@ -1458,6 +1940,23 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
               description={t("content:CONTENT_LIBRARY_NO_ACCESS_DESC")}
             />
           ) : null}
+          <ContentLibraryWorkbenchSummaryPanel
+            t={(key, options) => t(`content:${key}`, options)}
+            summary={workbenchSummary}
+            homepagePage={homepagePage}
+            canManageContent={canManageContent}
+            creatingSitePage={createSitePageMutation.isPending}
+            creatingReusableBlock={createReusableBlockMutation.isPending}
+            hasSitePageModel={Boolean(sitePageModel)}
+            hasReusableBlockModel={Boolean(reusableBlockModel)}
+            projectId={String(projectId)}
+            onCreateSitePage={() => void createSitePageMutation.mutateAsync()}
+            onCreateReusableBlock={() => void createReusableBlockMutation.mutateAsync()}
+            onManageModels={() =>
+              void navigate({ to: projectContentModelsPath(String(projectId)) })
+            }
+            onOpenSitePage={handleOpenFullEditor}
+          />
           <AdminDataTableSection
             table={tableHook.table}
             emptyText={t("content:CONTENT_LIBRARY_EMPTY_TABLE")}

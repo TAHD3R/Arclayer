@@ -13,9 +13,11 @@
     "api": "turbo run dev --filter=@arclayer/api",
     "api:test": "pnpm -C apps/api test",
     "api:check": "turbo run lint format typecheck test --filter=@arclayer/api",
+    "sdk:check": "turbo run typecheck test --filter=@arclayer/management-sdk",
     "cli:check": "turbo run lint format typecheck test build --filter=@arclayer/cli",
+    "local:https-cert": "bash scripts/local-https/create-cert.sh",
     "code-review-engine": "pnpm -C scripts/code-review-engine run cli",
-    "docker": "docker compose up -d",
+    "docker": "docker compose up -d --remove-orphans",
     "docker:devtools": "docker compose --profile devtools up -d"
   },
   "devDependencies": {

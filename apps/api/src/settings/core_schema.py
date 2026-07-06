@@ -338,6 +338,84 @@ def build_core_settings_schema() -> ConfigSchema:
                         description="Structured title composition policy (parts tokens/literals).",
                         description_i18n="settings:SEO_TITLE_POLICY_V1_DESC",
                     ),
+                    ConfigField(
+                        key="robots_directive",
+                        type="str",
+                        default="index,follow",
+                        label="Robots directive",
+                        description="Site-wide default robots directive. Page-level SEO can override it.",
+                    ),
+                    ConfigField(
+                        key="sitemap_enabled",
+                        type="bool",
+                        default=True,
+                        label="Enable sitemap.xml",
+                        description="Expose published public routes through sitemap.xml.",
+                    ),
+                ],
+            ),
+            ConfigSection(
+                id="project_source",
+                title="Project source",
+                fields=[
+                    ConfigField(
+                        key="framework",
+                        type="str",
+                        default="react_vite",
+                        label="Project framework",
+                        options=[
+                            ConfigOption(value="react_vite", label="React + Vite"),
+                            ConfigOption(value="astro", label="Astro"),
+                        ],
+                    ),
+                    ConfigField(
+                        key="source_provider",
+                        type="str",
+                        default="managed",
+                        label="Source provider",
+                        options=[
+                            ConfigOption(value="managed", label="Managed source"),
+                            ConfigOption(value="git", label="Git repository"),
+                        ],
+                    ),
+                    ConfigField(
+                        key="package_manager",
+                        type="str",
+                        default="pnpm",
+                        label="Package manager",
+                        options=[
+                            ConfigOption(value="pnpm", label="pnpm"),
+                            ConfigOption(value="npm", label="npm"),
+                        ],
+                    ),
+                    ConfigField(
+                        key="root_directory",
+                        type="str",
+                        default=".",
+                        label="Root directory",
+                    ),
+                    ConfigField(
+                        key="build_command",
+                        type="str",
+                        default="pnpm build",
+                        label="Build command",
+                    ),
+                    ConfigField(
+                        key="output_directory",
+                        type="str",
+                        default="dist",
+                        label="Output directory",
+                    ),
+                    ConfigField(
+                        key="artifact_strategy",
+                        type="str",
+                        default="object_storage",
+                        label="Artifact strategy",
+                        options=[
+                            ConfigOption(value="object_storage", label="Object storage"),
+                            ConfigOption(value="container_image", label="Container image"),
+                        ],
+                    ),
                 ],
             ),
             ConfigSection(

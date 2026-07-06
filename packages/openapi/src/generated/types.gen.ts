@@ -11176,6 +11176,150 @@ export type ProjectSlugAvailabilityOut = {
 };
 
 /**
+ * ProjectSourceFileDeleteOut
+ */
+export type ProjectSourceFileDeleteOut = {
+    /**
+     * Deleted
+     *
+     * Whether the file delete marker or row deletion was applied.
+     */
+    deleted: boolean;
+    /**
+     * Path
+     *
+     * Deleted project-relative source file path.
+     */
+    path: string;
+    /**
+     * Projectid
+     *
+     * Project id.
+     */
+    projectId: string;
+};
+
+/**
+ * ProjectSourceFileOut
+ */
+export type ProjectSourceFileOut = {
+    /**
+     * Contents
+     *
+     * UTF-8 source file contents.
+     */
+    contents: string;
+    /**
+     * Language
+     *
+     * Editor language id.
+     */
+    language: string;
+    /**
+     * Path
+     *
+     * Project-relative source file path.
+     */
+    path: string;
+    /**
+     * Role
+     *
+     * File role in the generated project scaffold.
+     */
+    role: 'config' | 'entry' | 'runtime' | 'content' | 'style' | 'types' | 'source';
+};
+
+/**
+ * ProjectSourceFileUpsertIn
+ */
+export type ProjectSourceFileUpsertIn = {
+    /**
+     * Contents
+     *
+     * UTF-8 source file contents.
+     */
+    contents: string;
+    /**
+     * Language
+     *
+     * Optional editor language id override.
+     */
+    language?: string | null;
+    /**
+     * Role
+     *
+     * Optional source file role override.
+     */
+    role?: 'config' | 'entry' | 'runtime' | 'content' | 'style' | 'types' | 'source' | null;
+};
+
+/**
+ * ProjectSourceManifestOut
+ */
+export type ProjectSourceManifestOut = {
+    /**
+     * Artifactstrategy
+     *
+     * Configured deployment artifact strategy.
+     */
+    artifactStrategy: 'object_storage' | 'container_image';
+    /**
+     * Buildcommand
+     *
+     * Configured build command.
+     */
+    buildCommand: string;
+    /**
+     * Files
+     *
+     * Readable scaffold files derived from project metadata and source settings.
+     */
+    files?: Array<ProjectSourceFileOut>;
+    /**
+     * Framework
+     *
+     * Configured project framework.
+     */
+    framework: 'react_vite' | 'astro';
+    /**
+     * Outputdirectory
+     *
+     * Configured build output directory.
+     */
+    outputDirectory: string;
+    /**
+     * Packagemanager
+     *
+     * Configured package manager.
+     */
+    packageManager: 'pnpm' | 'npm';
+    /**
+     * Projectid
+     *
+     * Project id.
+     */
+    projectId: string;
+    /**
+     * Rootdirectory
+     *
+     * Configured project root directory.
+     */
+    rootDirectory: string;
+    /**
+     * Sourcekind
+     *
+     * Current source materialization kind. Generated scaffold is deterministic and not yet a persisted Git tree.
+     */
+    sourceKind?: 'generated_scaffold' | 'managed_source';
+    /**
+     * Sourceprovider
+     *
+     * Configured source provider.
+     */
+    sourceProvider: 'managed' | 'git';
+};
+
+/**
  * ProjectUpdateRequest
  */
 export type ProjectUpdateRequest = {
@@ -15214,6 +15358,81 @@ export type ResponseModelProjectSettingsDetail = {
  */
 export type ResponseModelProjectSlugAvailabilityOut = {
     data?: ProjectSlugAvailabilityOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectSourceFileDeleteOut]
+ */
+export type ResponseModelProjectSourceFileDeleteOut = {
+    data?: ProjectSourceFileDeleteOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectSourceFileOut]
+ */
+export type ResponseModelProjectSourceFileOut = {
+    data?: ProjectSourceFileOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectSourceManifestOut]
+ */
+export type ResponseModelProjectSourceManifestOut = {
+    data?: ProjectSourceManifestOut | null;
     /**
      * Error
      */
@@ -19603,7 +19822,7 @@ export type WorkspaceAiActionResponse = {
      *
      * Resolved workspace AI action.
      */
-    action?: 'create_project' | 'create_content_model' | 'list_projects' | 'open_projects' | 'refine_plan' | null;
+    action?: 'create_project' | 'create_content_model' | 'list_content_models' | 'update_content_model' | 'delete_content_model' | 'list_content_items' | 'create_content_item' | 'update_content_item' | 'update_homepage' | 'delete_content_item' | 'list_projects' | 'open_projects' | 'read_project_source' | 'write_project_source_file' | 'delete_project_source_file' | 'update_site_settings' | 'refine_plan' | null;
     /**
      * Content
      *
@@ -19611,15 +19830,51 @@ export type WorkspaceAiActionResponse = {
      */
     content: string;
     /**
+     * Primary content item returned by actions.
+     */
+    contentItem?: ContentItemOut | null;
+    /**
+     * Contentitems
+     *
+     * Readable content items returned by content item read actions.
+     */
+    contentItems?: Array<ContentItemOut>;
+    /**
      * Created or primary content model.
      */
     contentModel?: ContentModelMutationOut | null;
+    /**
+     * Contentmodelitems
+     *
+     * Readable content models returned by content model read actions.
+     */
+    contentModelItems?: Array<ContentModelOut>;
     /**
      * Contentmodels
      *
      * Created content models for batch workspace actions.
      */
     contentModels?: Array<ContentModelMutationOut>;
+    /**
+     * Draft content version returned by content item write actions.
+     */
+    contentVersion?: ContentVersionOut | null;
+    /**
+     * Deletedcontentitemid
+     *
+     * Deleted content item id returned by delete actions.
+     */
+    deletedContentItemId?: string | null;
+    /**
+     * Deletedcontentmodelid
+     *
+     * Deleted content model id returned by delete actions.
+     */
+    deletedContentModelId?: string | null;
+    /**
+     * Primary or preview-ready project domain binding returned by project actions.
+     */
+    domain?: DomainBindingOut | null;
     /**
      * Executionsteps
      *
@@ -19652,6 +19907,26 @@ export type WorkspaceAiActionResponse = {
      * Project search results.
      */
     projects?: Array<ProjectListItemOut>;
+    /**
+     * Project release returned when an action explicitly publishes after a mutation.
+     */
+    release?: ReleasePublishOut | null;
+    /**
+     * Project core settings returned after an AI site settings update.
+     */
+    siteSettings?: ProjectSettingsDetail | null;
+    /**
+     * Project source file returned by source read or write actions.
+     */
+    sourceFile?: ProjectSourceFileOut | null;
+    /**
+     * Project source file deletion result returned by source delete actions.
+     */
+    sourceFileDelete?: ProjectSourceFileDeleteOut | null;
+    /**
+     * Readable project source manifest returned by project source actions.
+     */
+    sourceManifest?: ProjectSourceManifestOut | null;
     /**
      * Status
      *
@@ -29215,6 +29490,146 @@ export type DomainProjectsCreateProjectSitePreviewTokenResponses = {
 };
 
 export type DomainProjectsCreateProjectSitePreviewTokenResponse = DomainProjectsCreateProjectSitePreviewTokenResponses[keyof DomainProjectsCreateProjectSitePreviewTokenResponses];
+
+export type DomainProjectsDeleteProjectSourceFileData = {
+    body?: never;
+    path: {
+        /**
+         * File Path
+         */
+        file_path: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/source/files/{file_path}';
+};
+
+export type DomainProjectsDeleteProjectSourceFileErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsDeleteProjectSourceFileError = DomainProjectsDeleteProjectSourceFileErrors[keyof DomainProjectsDeleteProjectSourceFileErrors];
+
+export type DomainProjectsDeleteProjectSourceFileResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectSourceFileDeleteOut;
+};
+
+export type DomainProjectsDeleteProjectSourceFileResponse = DomainProjectsDeleteProjectSourceFileResponses[keyof DomainProjectsDeleteProjectSourceFileResponses];
+
+export type DomainProjectsGetProjectSourceFileData = {
+    body?: never;
+    path: {
+        /**
+         * File Path
+         */
+        file_path: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/source/files/{file_path}';
+};
+
+export type DomainProjectsGetProjectSourceFileErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectSourceFileError = DomainProjectsGetProjectSourceFileErrors[keyof DomainProjectsGetProjectSourceFileErrors];
+
+export type DomainProjectsGetProjectSourceFileResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectSourceFileOut;
+};
+
+export type DomainProjectsGetProjectSourceFileResponse = DomainProjectsGetProjectSourceFileResponses[keyof DomainProjectsGetProjectSourceFileResponses];
+
+export type DomainProjectsUpsertProjectSourceFileData = {
+    body: ProjectSourceFileUpsertIn;
+    path: {
+        /**
+         * File Path
+         */
+        file_path: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/source/files/{file_path}';
+};
+
+export type DomainProjectsUpsertProjectSourceFileErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsUpsertProjectSourceFileError = DomainProjectsUpsertProjectSourceFileErrors[keyof DomainProjectsUpsertProjectSourceFileErrors];
+
+export type DomainProjectsUpsertProjectSourceFileResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectSourceFileOut;
+};
+
+export type DomainProjectsUpsertProjectSourceFileResponse = DomainProjectsUpsertProjectSourceFileResponses[keyof DomainProjectsUpsertProjectSourceFileResponses];
+
+export type DomainProjectsGetProjectSourceManifestData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/source/manifest';
+};
+
+export type DomainProjectsGetProjectSourceManifestErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectSourceManifestError = DomainProjectsGetProjectSourceManifestErrors[keyof DomainProjectsGetProjectSourceManifestErrors];
+
+export type DomainProjectsGetProjectSourceManifestResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectSourceManifestOut;
+};
+
+export type DomainProjectsGetProjectSourceManifestResponse = DomainProjectsGetProjectSourceManifestResponses[keyof DomainProjectsGetProjectSourceManifestResponses];
 
 export type DomainProjectsUnarchiveProjectData = {
     body?: never;

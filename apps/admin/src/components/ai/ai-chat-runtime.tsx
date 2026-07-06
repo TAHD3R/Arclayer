@@ -12,6 +12,7 @@ import {
   type MessageQueueController,
   type ThreadMessageLike,
 } from "@assistant-ui/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { i18n } from "@/lib/i18n";
@@ -37,6 +38,7 @@ import {
   useAIComposerDirectiveStore,
   type AIComposerDirectiveScope,
 } from "@/components/ai/ai-composer-directives";
+import { invalidateAIWorkspaceActionQueries } from "@/components/ai/ai-workspace-action-cache";
 import {
   DEFAULT_AI_AGENT_ID,
   DEFAULT_AI_COMPOSER_MODE,
@@ -143,6 +145,29 @@ function workspaceActionHistoryBlock(message: StoreAIChatMessage): string {
       `Project: ${artifact.project.name}`,
       `Project ID: ${artifact.project.id}`,
       artifact.project.description ? `Description: ${artifact.project.description}` : "",
+      artifact.summary?.editorPath ? `Editor: ${artifact.summary.editorPath}` : "",
+      artifact.summary?.domainHostname ? `Domain: ${artifact.summary.domainHostname}` : "",
+      artifact.summary?.homepageItemId
+        ? `Homepage item ID: ${artifact.summary.homepageItemId}`
+        : "",
+      artifact.summary?.homepageTitle ? `Homepage: ${artifact.summary.homepageTitle}` : "",
+      artifact.summary?.routePath ? `Route: ${artifact.summary.routePath}` : "",
+      artifact.summary?.contentModelCount !== null &&
+      artifact.summary?.contentModelCount !== undefined
+        ? `Content models: ${artifact.summary.contentModelCount}`
+        : "",
+      artifact.summary?.contentItemCount !== null &&
+      artifact.summary?.contentItemCount !== undefined
+        ? `Content items: ${artifact.summary.contentItemCount}`
+        : "",
+      artifact.summary?.releaseNumber ? `Release: ${artifact.summary.releaseNumber}` : "",
+      artifact.summary?.releaseReady !== null && artifact.summary?.releaseReady !== undefined
+        ? `Release ready: ${artifact.summary.releaseReady ? "yes" : "no"}`
+        : "",
+      artifact.summary?.appEntryPath ? `App entry: ${artifact.summary.appEntryPath}` : "",
+      artifact.summary?.sourceFileCount !== null && artifact.summary?.sourceFileCount !== undefined
+        ? `Source files: ${artifact.summary.sourceFileCount}`
+        : "",
     ]
       .filter(Boolean)
       .join("\n");
@@ -154,11 +179,101 @@ function workspaceActionHistoryBlock(message: StoreAIChatMessage): string {
       `Keys: ${artifact.contentModel.singularKey}/${artifact.contentModel.pluralKey}`,
     ].join("\n");
   }
+  if (artifact.type === "workspace_content_models_created") {
+    return [
+      "[Workspace action: content models created]",
+      `Models: ${artifact.contentModels.length}`,
+      ...artifact.contentModels.map(
+        (model) => `- ${model.name}: ${model.singularKey}/${model.pluralKey}`,
+      ),
+    ].join("\n");
+  }
+  if (artifact.type === "workspace_content_model_updated") {
+    const model =
+      artifact.contentModel.contentModel ??
+      artifact.contentModel.contentModels[0] ??
+      artifact.contentModel.contentModelItems[0] ??
+      null;
+    return [
+      "[Workspace action: content model updated]",
+      `Action: ${artifact.contentModel.action}`,
+      model ? `Model: ${model.name}` : "",
+      model ? `Keys: ${model.singularKey}/${model.pluralKey}` : "",
+      artifact.contentModel.modelCount !== null && artifact.contentModel.modelCount !== undefined
+        ? `Models: ${artifact.contentModel.modelCount}`
+        : "",
+      artifact.contentModel.deletedContentModelId
+        ? `Deleted model ID: ${artifact.contentModel.deletedContentModelId}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
   if (artifact.type === "workspace_project_list") {
     return [
       "[Workspace action: project list]",
       `Projects: ${artifact.projects.map((project) => project.name).join(", ")}`,
     ].join("\n");
+  }
+  if (artifact.type === "workspace_project_source_updated") {
+    return [
+      `[Workspace action: project source ${artifact.source.action}]`,
+      artifact.source.filePath ? `File: ${artifact.source.filePath}` : "",
+      artifact.source.fileCount !== null && artifact.source.fileCount !== undefined
+        ? `Files: ${artifact.source.fileCount}`
+        : "",
+      artifact.source.released ? `Release: ${artifact.source.releaseNumber ?? "published"}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+  if (artifact.type === "workspace_site_updated") {
+    const item = artifact.site.content.contentItem;
+    return [
+      "[Workspace action: site updated]",
+      `Action: ${artifact.site.action}`,
+      item ? `Content item: ${item.title || item.slug}` : "",
+      item ? `Content item ID: ${item.id}` : "",
+      artifact.site.content.versionNumber ? `Version: ${artifact.site.content.versionNumber}` : "",
+      artifact.site.content.published ? "State: published" : "",
+      `Source action: ${artifact.site.source.action}`,
+      artifact.site.source.filePath ? `Source file: ${artifact.site.source.filePath}` : "",
+      artifact.site.source.fileCount !== null && artifact.site.source.fileCount !== undefined
+        ? `Source files: ${artifact.site.source.fileCount}`
+        : "",
+      artifact.site.source.released
+        ? `Release: ${artifact.site.source.releaseNumber ?? "published"}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+  if (artifact.type === "workspace_site_settings_updated") {
+    return [
+      "[Workspace action: site settings updated]",
+      artifact.settings.fieldCount ? `Fields: ${artifact.settings.fieldCount}` : "",
+      artifact.settings.changedFields.length
+        ? `Changed: ${artifact.settings.changedFields.join(", ")}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+  if (artifact.type === "workspace_content_item_updated") {
+    const item = artifact.content.contentItem;
+    return [
+      "[Workspace action: content item updated]",
+      `Action: ${artifact.content.action}`,
+      item ? `Content item: ${item.title || item.slug}` : "",
+      item ? `Content item ID: ${item.id}` : "",
+      artifact.content.versionNumber ? `Version: ${artifact.content.versionNumber}` : "",
+      artifact.content.published ? "State: published" : "",
+      artifact.content.deletedContentItemId
+        ? `Deleted item ID: ${artifact.content.deletedContentItemId}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
   }
   return "[Workspace action: navigation prepared]";
 }
@@ -349,7 +464,11 @@ function isAIAgentMessageArtifact(value: unknown): value is AIAgentMessageArtifa
 function isAIWorkspaceActionArtifact(value: unknown): value is AIWorkspaceActionArtifact {
   if (!isRecord(value) || value.status !== "completed") return false;
   if (value.type === "workspace_project_created") {
-    return isWorkspaceActionProject(value.project) && isWorkspaceActionNavigation(value.navigation);
+    return (
+      isWorkspaceActionProject(value.project) &&
+      (value.summary === undefined || isWorkspaceActionProjectCreateSummary(value.summary)) &&
+      isWorkspaceActionNavigation(value.navigation)
+    );
   }
   if (value.type === "workspace_project_list") {
     return (
@@ -365,10 +484,176 @@ function isAIWorkspaceActionArtifact(value: unknown): value is AIWorkspaceAction
       isWorkspaceActionNavigation(value.navigation)
     );
   }
+  if (value.type === "workspace_content_models_created") {
+    return (
+      Array.isArray(value.contentModels) &&
+      value.contentModels.every(isWorkspaceActionContentModel) &&
+      isWorkspaceActionNavigation(value.navigation)
+    );
+  }
+  if (value.type === "workspace_content_model_updated") {
+    return (
+      isWorkspaceActionContentModelUpdate(value.contentModel) &&
+      isWorkspaceActionNavigation(value.navigation)
+    );
+  }
+  if (value.type === "workspace_project_source_updated") {
+    return (
+      isWorkspaceActionSourceUpdate(value.source) && isWorkspaceActionNavigation(value.navigation)
+    );
+  }
+  if (value.type === "workspace_content_item_updated") {
+    return (
+      isWorkspaceActionContentItemUpdate(value.content) &&
+      isWorkspaceActionNavigation(value.navigation)
+    );
+  }
+  if (value.type === "workspace_site_updated") {
+    return isWorkspaceActionSiteUpdate(value.site) && isWorkspaceActionNavigation(value.navigation);
+  }
+  if (value.type === "workspace_site_settings_updated") {
+    return (
+      isWorkspaceActionSettingsUpdate(value.settings) &&
+      isWorkspaceActionNavigation(value.navigation)
+    );
+  }
   if (value.type === "workspace_navigation") {
     return isWorkspaceActionNavigation(value.navigation);
   }
   return false;
+}
+
+function isWorkspaceActionProjectCreateSummary(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    (value.contentItemCount === undefined ||
+      value.contentItemCount === null ||
+      typeof value.contentItemCount === "number") &&
+    (value.contentModelCount === undefined ||
+      value.contentModelCount === null ||
+      typeof value.contentModelCount === "number") &&
+    (value.domainHostname === undefined ||
+      value.domainHostname === null ||
+      typeof value.domainHostname === "string") &&
+    (value.homepageTitle === undefined ||
+      value.homepageTitle === null ||
+      typeof value.homepageTitle === "string") &&
+    (value.releaseNumber === undefined ||
+      value.releaseNumber === null ||
+      typeof value.releaseNumber === "number") &&
+    (value.sourceFileCount === undefined ||
+      value.sourceFileCount === null ||
+      typeof value.sourceFileCount === "number")
+  );
+}
+
+function isWorkspaceActionContentItemUpdate(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    (value.action === "list_content_items" ||
+      value.action === "create_content_item" ||
+      value.action === "update_content_item" ||
+      value.action === "update_homepage" ||
+      value.action === "delete_content_item") &&
+    (value.contentItem === undefined ||
+      value.contentItem === null ||
+      isWorkspaceActionContentItem(value.contentItem)) &&
+    Array.isArray(value.contentItems) &&
+    value.contentItems.every(isWorkspaceActionContentItem) &&
+    (value.itemCount === undefined ||
+      value.itemCount === null ||
+      typeof value.itemCount === "number") &&
+    (value.deletedContentItemId === undefined ||
+      value.deletedContentItemId === null ||
+      typeof value.deletedContentItemId === "string") &&
+    (value.versionNumber === undefined ||
+      value.versionNumber === null ||
+      typeof value.versionNumber === "number") &&
+    (value.versionState === undefined ||
+      value.versionState === null ||
+      typeof value.versionState === "string") &&
+    typeof value.published === "boolean"
+  );
+}
+
+function isWorkspaceActionSiteUpdate(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    (value.action === "update_homepage" ||
+      value.action === "update_content_item" ||
+      value.action === "create_content_item" ||
+      value.action === "write_project_source_file" ||
+      value.action === "delete_project_source_file") &&
+    isWorkspaceActionContentItemUpdate(value.content) &&
+    isWorkspaceActionSourceUpdate(value.source)
+  );
+}
+
+function isWorkspaceActionContentModelUpdate(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    (value.action === "list_content_models" ||
+      value.action === "create_content_model" ||
+      value.action === "update_content_model" ||
+      value.action === "delete_content_model") &&
+    (value.contentModel === undefined ||
+      value.contentModel === null ||
+      isWorkspaceActionContentModel(value.contentModel)) &&
+    Array.isArray(value.contentModels) &&
+    value.contentModels.every(isWorkspaceActionContentModel) &&
+    Array.isArray(value.contentModelItems) &&
+    value.contentModelItems.every(isWorkspaceActionContentModel) &&
+    (value.modelCount === undefined ||
+      value.modelCount === null ||
+      typeof value.modelCount === "number") &&
+    (value.deletedContentModelId === undefined ||
+      value.deletedContentModelId === null ||
+      typeof value.deletedContentModelId === "string")
+  );
+}
+
+function isWorkspaceActionContentItem(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.slug === "string" &&
+    typeof value.status === "string" &&
+    (value.title === undefined || value.title === null || typeof value.title === "string") &&
+    (value.modelKey === undefined ||
+      value.modelKey === null ||
+      typeof value.modelKey === "string") &&
+    (value.derivedStatus === undefined ||
+      value.derivedStatus === null ||
+      typeof value.derivedStatus === "string")
+  );
+}
+
+function isWorkspaceActionSourceUpdate(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    (value.action === "read_project_source" ||
+      value.action === "write_project_source_file" ||
+      value.action === "delete_project_source_file") &&
+    (value.filePath === undefined ||
+      value.filePath === null ||
+      typeof value.filePath === "string") &&
+    (value.fileCount === undefined ||
+      value.fileCount === null ||
+      typeof value.fileCount === "number") &&
+    typeof value.released === "boolean" &&
+    (value.releaseNumber === undefined ||
+      value.releaseNumber === null ||
+      typeof value.releaseNumber === "number")
+  );
+}
+
+function isWorkspaceActionSettingsUpdate(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.changedFields) &&
+    value.changedFields.every((field) => typeof field === "string") &&
+    typeof value.fieldCount === "number"
+  );
 }
 
 function isWorkspaceActionProject(value: unknown): boolean {
@@ -601,7 +886,7 @@ export async function sendAIWorkspaceActionPlanMessage(
   conversationId: string,
   text: string,
 ): Promise<void> {
-  await sendAIWorkspaceActionMessage(conversationId, text);
+  await sendAIChatMessage(conversationId, text);
 }
 
 function toWorkspaceActionAgentArtifact(
@@ -625,7 +910,7 @@ function toWorkspaceActionAgentArtifact(
     ),
     source:
       result.status === "planned"
-        ? "workspace_action:planned_mutation"
+        ? "workspace_action:read_only_plan"
         : "workspace_action:tool_call",
   };
 }
@@ -752,6 +1037,7 @@ export function AIChatRuntimeProvider({
   conversationId: string;
   children: React.ReactNode;
 }) {
+  const queryClient = useQueryClient();
   const conversation = useAiChatStore(
     (s) => s.conversations.find((c) => c.id === conversationId) ?? null,
   );
@@ -806,7 +1092,11 @@ export function AIChatRuntimeProvider({
       try {
         const state = useAiChatStore.getState();
         const mode = state.composerMode || DEFAULT_AI_COMPOSER_MODE;
-        if (mode === "agent") {
+        if (mode === "plan") {
+          await sendAIChatMessageWithSignal(conversationId, textWithDirectives, {
+            signal: controller.signal,
+          });
+        } else if (mode === "agent") {
           const directiveProjectId = projectIdFromComposerDirective(textWithDirectives);
           const agentId =
             agentIdFromComposerDirective(textWithDirectives) ??
@@ -824,8 +1114,11 @@ export function AIChatRuntimeProvider({
             },
           });
         } else {
-          await sendAIWorkspaceActionMessage(conversationId, textWithDirectives, {
+          const result = await sendAIWorkspaceActionMessage(conversationId, textWithDirectives, {
             signal: controller.signal,
+          });
+          await invalidateAIWorkspaceActionQueries(queryClient, result, {
+            fallbackProjectId: useWorkspaceStore.getState().currentProjectId,
           });
         }
       } finally {
@@ -837,7 +1130,7 @@ export function AIChatRuntimeProvider({
         activeAgentProjectIdRef.current = null;
       }
     },
-    [conversationId],
+    [conversationId, queryClient],
   );
 
   const sendRuntimeMessage = useCallback(

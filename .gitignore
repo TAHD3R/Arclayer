@@ -37,6 +37,11 @@ wheels/
 .env.test.local
 .env.production.local
 
+# Local TLS certificates
+docker/traefik/certs/*.pem
+docker/traefik/certs/*.crt
+docker/traefik/certs/*.key
+
 # Logs
 logs
 *.log

@@ -1,6 +1,7 @@
 "use client";
 
 import { ComposerAttachments, UserMessageAttachments } from "@/components/assistant-ui/attachment";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { MarkdownText } from "@/components/assistant-ui/markdown-text";
 import {
@@ -47,6 +48,7 @@ import {
 import {
   ArrowDownIcon,
   BanIcon,
+  BookOpenIcon,
   CheckIcon,
   CheckCircle2Icon,
   ChevronDownIcon,
@@ -62,9 +64,12 @@ import {
   ListChecksIcon,
   PencilIcon,
   RefreshCwIcon,
+  RocketIcon,
+  SettingsIcon,
   ShieldCheckIcon,
   WrenchIcon,
   XCircleIcon,
+  type LucideIcon,
 } from "lucide-react";
 import {
   createContext,
@@ -81,10 +86,13 @@ import type {
   AIAgentInterrupt,
   AIAgentMessageArtifact,
   AIWorkspaceActionArtifact,
+  AIWorkspaceActionContentModel,
   AIWorkspaceActionProject,
 } from "@/stores/use-ai-chat-store";
 import { useAiChatStore } from "@/stores/use-ai-chat-store";
 import { sendAIWorkspaceActionMessage } from "@/components/ai/ai-chat-runtime";
+import { invalidateAIWorkspaceActionQueries } from "@/components/ai/ai-workspace-action-cache";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 export type ThreadGroupPart = MessagePrimitive.GroupedParts.GroupPart;
 
@@ -581,6 +589,7 @@ const AgentInterrupt: FC = () => {
 
 const AgentArtifactCard: FC<{ artifact: AIAgentMessageArtifact }> = ({ artifact }) => {
   const { t } = useTranslation(["ai", "common"]);
+  const queryClient = useQueryClient();
   const conversationId = useAuiState((s) => {
     const value = s.message.metadata.custom?.conversationId;
     return typeof value === "string" ? value : null;
@@ -602,7 +611,10 @@ const AgentArtifactCard: FC<{ artifact: AIAgentMessageArtifact }> = ({ artifact 
     setExecuteError(null);
     useAiChatStore.getState().setComposerMode("build");
     try {
-      await sendAIWorkspaceActionMessage(conversationId, artifact.goal);
+      const result = await sendAIWorkspaceActionMessage(conversationId, artifact.goal);
+      await invalidateAIWorkspaceActionQueries(queryClient, result, {
+        fallbackProjectId: useWorkspaceStore.getState().currentProjectId,
+      });
     } catch (error) {
       setExecuteError(formatAIChatError(error));
     } finally {
@@ -757,6 +769,59 @@ function workspaceToolDisplayName(
   return translated === key ? toolName : translated;
 }
 
+type WorkspaceActionQuickAction = {
+  icon: LucideIcon;
+  label: string;
+  path: string;
+  primary?: boolean;
+};
+
+function buildProjectCreatedQuickActions(
+  artifact: Extract<AIWorkspaceActionArtifact, { type: "workspace_project_created" }>,
+  t: ReturnType<typeof useTranslation>["t"],
+): WorkspaceActionQuickAction[] {
+  const projectBasePath = `/projects/${artifact.project.id}`;
+  const editorPath = artifact.summary?.editorPath ?? `${projectBasePath}/editor`;
+  const quickActions: WorkspaceActionQuickAction[] = [
+    {
+      icon: PencilIcon,
+      label: t("ai:AI_WORKSPACE_ACTION_PROJECT_OPEN_EDITOR"),
+      path: editorPath,
+      primary: true,
+    },
+    {
+      icon: GlobeIcon,
+      label: t("ai:AI_WORKSPACE_ACTION_PROJECT_OPEN_WEBSITE_CONTROL"),
+      path: `${projectBasePath}/website/domain`,
+    },
+    {
+      icon: BookOpenIcon,
+      label: t("ai:AI_WORKSPACE_ACTION_PROJECT_OPEN_CONTENT_LIBRARY"),
+      path: `${projectBasePath}/content/library`,
+    },
+    {
+      icon: RocketIcon,
+      label: t("ai:AI_WORKSPACE_ACTION_PROJECT_OPEN_RELEASES"),
+      path: `${projectBasePath}/website/releases`,
+    },
+    {
+      icon: SettingsIcon,
+      label: t("ai:AI_WORKSPACE_ACTION_PROJECT_OPEN_PROJECT_SETTINGS"),
+      path: `${projectBasePath}/settings/general`,
+    },
+  ];
+
+  if (!quickActions.some((action) => action.path === artifact.navigation.path)) {
+    quickActions.push({
+      icon: FolderOpenIcon,
+      label: artifact.navigation.label,
+      path: artifact.navigation.path,
+    });
+  }
+
+  return quickActions;
+}
+
 const AgentBuildArtifactFooter: FC<{
   artifact: Extract<AIAgentMessageArtifact, { type: "agent_build_blueprint" }>;
 }> = ({ artifact }) => {
@@ -788,19 +853,53 @@ const WorkspaceActionCard: FC<{ artifact: AIWorkspaceActionArtifact }> = ({ arti
   const isContentModelCreated =
     artifact.type === "workspace_content_model_created" ||
     artifact.type === "workspace_content_models_created";
+  const isContentModelUpdated = artifact.type === "workspace_content_model_updated";
   const isList = artifact.type === "workspace_project_list";
+  const isSourceUpdated = artifact.type === "workspace_project_source_updated";
+  const isContentItemUpdated = artifact.type === "workspace_content_item_updated";
+  const isSiteUpdated = artifact.type === "workspace_site_updated";
+  const isSiteSettingsUpdated = artifact.type === "workspace_site_settings_updated";
   const title = isCreated
     ? t("ai:AI_WORKSPACE_ACTION_PROJECT_CREATED_TITLE")
     : isContentModelCreated
       ? t("ai:AI_WORKSPACE_ACTION_CONTENT_MODEL_CREATED_TITLE")
-      : isList
-        ? t("ai:AI_WORKSPACE_ACTION_PROJECT_LIST_TITLE", { count: artifact.total })
-        : t("ai:AI_WORKSPACE_ACTION_NAVIGATION_TITLE");
-  const Icon = isContentModelCreated ? Layers3Icon : isCreated ? FolderPlusIcon : FolderOpenIcon;
+      : isContentModelUpdated
+        ? workspaceContentModelActionTitle(t, artifact.contentModel.action)
+        : isSiteSettingsUpdated
+          ? t("ai:AI_WORKSPACE_ACTION_SITE_SETTINGS_UPDATED_TITLE")
+          : isSiteUpdated
+            ? t("ai:AI_WORKSPACE_ACTION_SITE_UPDATED_TITLE")
+            : isContentItemUpdated
+              ? t("ai:AI_WORKSPACE_ACTION_CONTENT_ITEM_UPDATED_TITLE")
+              : isSourceUpdated
+                ? workspaceSourceActionTitle(t, artifact.source.action)
+                : isList
+                  ? t("ai:AI_WORKSPACE_ACTION_PROJECT_LIST_TITLE", { count: artifact.total })
+                  : t("ai:AI_WORKSPACE_ACTION_NAVIGATION_TITLE");
+  const Icon = isSiteSettingsUpdated
+    ? GlobeIcon
+    : isSiteUpdated
+      ? HammerIcon
+      : isSourceUpdated
+        ? WrenchIcon
+        : isContentItemUpdated
+          ? PencilIcon
+          : isContentModelCreated || isContentModelUpdated
+            ? Layers3Icon
+            : isCreated
+              ? FolderPlusIcon
+              : FolderOpenIcon;
 
   const handleNavigate = () => {
     void navigate({ to: artifact.navigation.path as never });
   };
+  const handleNavigateTo = (path: string) => {
+    void navigate({ to: path as never });
+  };
+  const quickActions =
+    artifact.type === "workspace_project_created"
+      ? buildProjectCreatedQuickActions(artifact, t)
+      : null;
 
   return (
     <section className="mt-3 overflow-hidden rounded-lg border border-border/70 bg-muted/30 text-sm">
@@ -814,7 +913,7 @@ const WorkspaceActionCard: FC<{ artifact: AIWorkspaceActionArtifact }> = ({ arti
         </span>
       </div>
       {artifact.type === "workspace_project_created" ? (
-        <WorkspaceProjectRow project={artifact.project} />
+        <WorkspaceProjectRow project={artifact.project} summary={artifact.summary} />
       ) : null}
       {artifact.type === "workspace_content_model_created" ? (
         <WorkspaceContentModelRow contentModel={artifact.contentModel} />
@@ -825,6 +924,9 @@ const WorkspaceActionCard: FC<{ artifact: AIWorkspaceActionArtifact }> = ({ arti
             <WorkspaceContentModelRow key={contentModel.id} contentModel={contentModel} />
           ))}
         </div>
+      ) : null}
+      {artifact.type === "workspace_content_model_updated" ? (
+        <WorkspaceContentModelUpdateRow contentModel={artifact.contentModel} />
       ) : null}
       {artifact.type === "workspace_project_list" ? (
         <div className="divide-y divide-border/50">
@@ -839,42 +941,168 @@ const WorkspaceActionCard: FC<{ artifact: AIWorkspaceActionArtifact }> = ({ arti
           )}
         </div>
       ) : null}
-      <div className="flex justify-end border-t border-border/60 px-3 py-2">
-        <Button
-          type="button"
-          size="sm"
-          className="h-8 gap-1.5 rounded-md px-2.5"
-          onClick={handleNavigate}
-        >
-          <FolderOpenIcon className="size-3.5" aria-hidden="true" />
-          {artifact.navigation.label}
-        </Button>
-      </div>
+      {artifact.type === "workspace_project_source_updated" ? (
+        <WorkspaceSourceUpdateRow source={artifact.source} />
+      ) : null}
+      {artifact.type === "workspace_content_item_updated" ? (
+        <WorkspaceContentItemUpdateRow content={artifact.content} />
+      ) : null}
+      {artifact.type === "workspace_site_updated" ? (
+        <div className="divide-y divide-border/50">
+          <WorkspaceContentItemUpdateRow content={artifact.site.content} />
+          <WorkspaceSourceUpdateRow source={artifact.site.source} />
+        </div>
+      ) : null}
+      {artifact.type === "workspace_site_settings_updated" ? (
+        <WorkspaceSiteSettingsUpdateRow settings={artifact.settings} />
+      ) : null}
+      {quickActions ? (
+        <div className="flex flex-wrap justify-end gap-2 border-t border-border/60 px-3 py-2">
+          {quickActions.map((action) => {
+            const QuickActionIcon = action.icon;
+            return (
+              <Button
+                key={action.path}
+                type="button"
+                size="sm"
+                variant={action.primary ? "default" : "outline"}
+                className="h-8 gap-1.5 rounded-md px-2.5"
+                onClick={() => handleNavigateTo(action.path)}
+              >
+                <QuickActionIcon className="size-3.5" aria-hidden="true" />
+                {action.label}
+              </Button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="flex justify-end border-t border-border/60 px-3 py-2">
+          <Button
+            type="button"
+            size="sm"
+            className="h-8 gap-1.5 rounded-md px-2.5"
+            onClick={handleNavigate}
+          >
+            <FolderOpenIcon className="size-3.5" aria-hidden="true" />
+            {artifact.navigation.label}
+          </Button>
+        </div>
+      )}
     </section>
   );
 };
 
-const WorkspaceProjectRow: FC<{ project: AIWorkspaceActionProject }> = ({ project }) => (
-  <div className="grid gap-1 px-3 py-2.5">
-    <div className="flex min-w-0 items-center justify-between gap-3">
-      <span className="truncate text-footnote font-semibold text-foreground">{project.name}</span>
-      <span className="shrink-0 rounded-md bg-background/70 px-1.5 py-0.5 font-mono text-caption text-muted-foreground">
-        {project.slug}
-      </span>
+const WorkspaceProjectRow: FC<{
+  project: AIWorkspaceActionProject;
+  summary?: Extract<AIWorkspaceActionArtifact, { type: "workspace_project_created" }>["summary"];
+}> = ({ project, summary }) => {
+  const { t } = useTranslation(["ai"]);
+  return (
+    <div className="grid gap-1 px-3 py-2.5">
+      <div className="flex min-w-0 items-center justify-between gap-3">
+        <span className="truncate text-footnote font-semibold text-foreground">{project.name}</span>
+        <span className="shrink-0 rounded-md bg-background/70 px-1.5 py-0.5 font-mono text-caption text-muted-foreground">
+          {project.slug}
+        </span>
+      </div>
+      {summary?.domainHostname ||
+      summary?.homepageTitle ||
+      summary?.routePath ||
+      summary?.contentModelCount ||
+      summary?.contentItemCount ||
+      summary?.hierarchyNodeCount ||
+      summary?.componentBindingCount ||
+      summary?.releaseNumber ||
+      (summary?.releaseReady !== null && summary?.releaseReady !== undefined) ||
+      summary?.appEntryPath ||
+      summary?.sourceFileCount ? (
+        <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-caption leading-relaxed text-muted-foreground">
+          {summary.domainHostname ? (
+            <span className="truncate">{summary.domainHostname}</span>
+          ) : null}
+          {summary.homepageTitle ? (
+            <span>
+              {t("ai:AI_WORKSPACE_ACTION_PROJECT_HOMEPAGE_BADGE", {
+                title: summary.homepageTitle,
+              })}
+            </span>
+          ) : null}
+          {summary.routePath ? (
+            <span>
+              {t("ai:AI_WORKSPACE_ACTION_PROJECT_ROUTE_BADGE", {
+                path: summary.routePath,
+              })}
+            </span>
+          ) : null}
+          {summary.contentModelCount ? (
+            <span>
+              {t("ai:AI_WORKSPACE_ACTION_PROJECT_CONTENT_MODEL_COUNT", {
+                count: summary.contentModelCount,
+              })}
+            </span>
+          ) : null}
+          {summary.contentItemCount ? (
+            <span>
+              {t("ai:AI_WORKSPACE_ACTION_PROJECT_CONTENT_ITEM_COUNT", {
+                count: summary.contentItemCount,
+              })}
+            </span>
+          ) : null}
+          {summary.hierarchyNodeCount ? (
+            <span>
+              {t("ai:AI_WORKSPACE_ACTION_PROJECT_HIERARCHY_NODE_COUNT", {
+                count: summary.hierarchyNodeCount,
+              })}
+            </span>
+          ) : null}
+          {summary.componentBindingCount ? (
+            <span>
+              {t("ai:AI_WORKSPACE_ACTION_PROJECT_COMPONENT_BINDING_COUNT", {
+                count: summary.componentBindingCount,
+              })}
+            </span>
+          ) : null}
+          {summary.releaseNumber ? (
+            <span>
+              {t("ai:AI_WORKSPACE_ACTION_PROJECT_RELEASE_BADGE", {
+                number: summary.releaseNumber,
+              })}
+            </span>
+          ) : null}
+          {summary.releaseReady !== null && summary.releaseReady !== undefined ? (
+            <span>
+              {summary.releaseReady
+                ? t("ai:AI_WORKSPACE_ACTION_PROJECT_RELEASE_READY")
+                : t("ai:AI_WORKSPACE_ACTION_PROJECT_RELEASE_NOT_READY")}
+            </span>
+          ) : null}
+          {summary.appEntryPath ? (
+            <span>
+              {t("ai:AI_WORKSPACE_ACTION_PROJECT_APP_ENTRY_BADGE", {
+                path: summary.appEntryPath,
+              })}
+            </span>
+          ) : null}
+          {summary.sourceFileCount ? (
+            <span>
+              {t("ai:AI_WORKSPACE_ACTION_PROJECT_SOURCE_FILE_COUNT", {
+                count: summary.sourceFileCount,
+              })}
+            </span>
+          ) : null}
+        </p>
+      ) : null}
+      {project.description ? (
+        <p className="line-clamp-2 text-caption leading-relaxed text-muted-foreground">
+          {project.description}
+        </p>
+      ) : null}
     </div>
-    {project.description ? (
-      <p className="line-clamp-2 text-caption leading-relaxed text-muted-foreground">
-        {project.description}
-      </p>
-    ) : null}
-  </div>
-);
+  );
+};
 
 const WorkspaceContentModelRow: FC<{
-  contentModel: Extract<
-    AIWorkspaceActionArtifact,
-    { type: "workspace_content_model_created" }
-  >["contentModel"];
+  contentModel: AIWorkspaceActionContentModel;
 }> = ({ contentModel }) => (
   <div className="grid gap-1 px-3 py-2.5">
     <div className="flex min-w-0 items-center justify-between gap-3">
@@ -892,6 +1120,226 @@ const WorkspaceContentModelRow: FC<{
     ) : null}
   </div>
 );
+
+const WorkspaceContentModelUpdateRow: FC<{
+  contentModel: Extract<
+    AIWorkspaceActionArtifact,
+    { type: "workspace_content_model_updated" }
+  >["contentModel"];
+}> = ({ contentModel }) => {
+  const { t } = useTranslation(["ai"]);
+  const primary =
+    contentModel.contentModel ??
+    contentModel.contentModels[0] ??
+    contentModel.contentModelItems[0] ??
+    null;
+  const title =
+    primary?.name ??
+    contentModel.deletedContentModelId ??
+    t("ai:AI_WORKSPACE_ACTION_CONTENT_MODEL_FALLBACK");
+  const badge = contentModel.deletedContentModelId
+    ? t("ai:AI_WORKSPACE_ACTION_CONTENT_MODEL_DELETED_BADGE")
+    : workspaceContentModelActionLabel(t, contentModel.action);
+
+  return (
+    <div className="grid gap-1 px-3 py-2.5">
+      <div className="flex min-w-0 items-center justify-between gap-3">
+        <span className="truncate text-footnote font-semibold text-foreground">{title}</span>
+        <span className="shrink-0 rounded-md bg-background/70 px-1.5 py-0.5 text-caption font-medium text-muted-foreground">
+          {badge}
+        </span>
+      </div>
+      <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-caption leading-relaxed text-muted-foreground">
+        <span className="truncate">{workspaceContentModelActionLabel(t, contentModel.action)}</span>
+        {primary?.singularKey ? <span className="font-mono">{primary.singularKey}</span> : null}
+        {contentModel.modelCount !== null && contentModel.modelCount !== undefined ? (
+          <span>
+            {t("ai:AI_WORKSPACE_ACTION_CONTENT_MODEL_COUNT", {
+              count: contentModel.modelCount,
+            })}
+          </span>
+        ) : null}
+      </p>
+    </div>
+  );
+};
+
+const WorkspaceContentItemUpdateRow: FC<{
+  content: Extract<
+    AIWorkspaceActionArtifact,
+    { type: "workspace_content_item_updated" }
+  >["content"];
+}> = ({ content }) => {
+  const { t } = useTranslation(["ai"]);
+  const item = content.contentItem ?? content.contentItems[0] ?? null;
+  const title =
+    item?.title ||
+    item?.slug ||
+    content.deletedContentItemId ||
+    t("ai:AI_WORKSPACE_ACTION_CONTENT_ITEM_FALLBACK");
+  const badge = content.deletedContentItemId
+    ? t("ai:AI_WORKSPACE_ACTION_CONTENT_ITEM_DELETED_BADGE")
+    : content.published
+      ? t("ai:AI_WORKSPACE_ACTION_CONTENT_ITEM_PUBLISHED_BADGE")
+      : content.versionNumber
+        ? t("ai:AI_WORKSPACE_ACTION_CONTENT_ITEM_DRAFT_BADGE", {
+            number: content.versionNumber,
+          })
+        : workspaceContentItemActionLabel(t, content.action);
+
+  return (
+    <div className="grid gap-1 px-3 py-2.5">
+      <div className="flex min-w-0 items-center justify-between gap-3">
+        <span className="truncate text-footnote font-semibold text-foreground">{title}</span>
+        <span className="shrink-0 rounded-md bg-background/70 px-1.5 py-0.5 text-caption font-medium text-muted-foreground">
+          {badge}
+        </span>
+      </div>
+      <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-caption leading-relaxed text-muted-foreground">
+        <span className="truncate">{workspaceContentItemActionLabel(t, content.action)}</span>
+        {item?.modelKey ? <span className="font-mono">{item.modelKey}</span> : null}
+        {content.itemCount !== null && content.itemCount !== undefined ? (
+          <span>
+            {t("ai:AI_WORKSPACE_ACTION_CONTENT_ITEM_COUNT", { count: content.itemCount })}
+          </span>
+        ) : null}
+      </p>
+    </div>
+  );
+};
+
+function workspaceContentItemActionLabel(
+  t: ReturnType<typeof useTranslation>["t"],
+  action: Extract<
+    AIWorkspaceActionArtifact,
+    { type: "workspace_content_item_updated" }
+  >["content"]["action"],
+): string {
+  if (action === "list_content_items") return t("ai:AI_WORKSPACE_ACTION_CONTENT_ITEM_LISTED");
+  if (action === "create_content_item") return t("ai:AI_WORKSPACE_ACTION_CONTENT_ITEM_CREATED");
+  if (action === "update_homepage") return t("ai:AI_WORKSPACE_ACTION_CONTENT_ITEM_HOMEPAGE");
+  if (action === "delete_content_item") return t("ai:AI_WORKSPACE_ACTION_CONTENT_ITEM_DELETED");
+  return t("ai:AI_WORKSPACE_ACTION_CONTENT_ITEM_UPDATED");
+}
+
+function workspaceContentModelActionTitle(
+  t: ReturnType<typeof useTranslation>["t"],
+  action: Extract<
+    AIWorkspaceActionArtifact,
+    { type: "workspace_content_model_updated" }
+  >["contentModel"]["action"],
+): string {
+  if (action === "list_content_models") return t("ai:AI_WORKSPACE_ACTION_CONTENT_MODEL_READ_TITLE");
+  if (action === "delete_content_model") {
+    return t("ai:AI_WORKSPACE_ACTION_CONTENT_MODEL_DELETED_TITLE");
+  }
+  if (action === "create_content_model") {
+    return t("ai:AI_WORKSPACE_ACTION_CONTENT_MODEL_CREATED_TITLE");
+  }
+  return t("ai:AI_WORKSPACE_ACTION_CONTENT_MODEL_UPDATED_TITLE");
+}
+
+function workspaceContentModelActionLabel(
+  t: ReturnType<typeof useTranslation>["t"],
+  action: Extract<
+    AIWorkspaceActionArtifact,
+    { type: "workspace_content_model_updated" }
+  >["contentModel"]["action"],
+): string {
+  if (action === "list_content_models") return t("ai:AI_WORKSPACE_ACTION_CONTENT_MODEL_LISTED");
+  if (action === "create_content_model") return t("ai:AI_WORKSPACE_ACTION_CONTENT_MODEL_CREATED");
+  if (action === "delete_content_model") return t("ai:AI_WORKSPACE_ACTION_CONTENT_MODEL_DELETED");
+  return t("ai:AI_WORKSPACE_ACTION_CONTENT_MODEL_UPDATED");
+}
+
+const WorkspaceSourceUpdateRow: FC<{
+  source: Extract<
+    AIWorkspaceActionArtifact,
+    { type: "workspace_project_source_updated" }
+  >["source"];
+}> = ({ source }) => {
+  const { t } = useTranslation(["ai"]);
+  const badge =
+    source.action === "read_project_source"
+      ? t("ai:AI_WORKSPACE_ACTION_SOURCE_READ_BADGE")
+      : source.action === "delete_project_source_file"
+        ? t("ai:AI_WORKSPACE_ACTION_SOURCE_DELETED_BADGE")
+        : source.action === "update_project_source_settings"
+          ? t("ai:AI_WORKSPACE_ACTION_SOURCE_SETTINGS_BADGE")
+          : source.released
+            ? t("ai:AI_WORKSPACE_ACTION_SOURCE_RELEASED_BADGE", {
+                number: source.releaseNumber ?? "-",
+              })
+            : t("ai:AI_WORKSPACE_ACTION_SOURCE_DRAFT_BADGE");
+  return (
+    <div className="grid gap-1 px-3 py-2.5">
+      <div className="flex min-w-0 items-center justify-between gap-3">
+        <span className="truncate text-footnote font-semibold text-foreground">
+          {source.filePath ??
+            (source.action === "update_project_source_settings"
+              ? t("ai:AI_WORKSPACE_ACTION_SOURCE_SETTINGS_LABEL")
+              : t("ai:AI_WORKSPACE_ACTION_SOURCE_MANIFEST_LABEL"))}
+        </span>
+        <span className="shrink-0 rounded-md bg-background/70 px-1.5 py-0.5 font-mono text-caption text-muted-foreground">
+          {badge}
+        </span>
+      </div>
+      {source.fileCount !== null && source.fileCount !== undefined ? (
+        <p className="text-caption leading-relaxed text-muted-foreground">
+          {t("ai:AI_WORKSPACE_ACTION_SOURCE_FILE_COUNT", { count: source.fileCount })}
+        </p>
+      ) : null}
+    </div>
+  );
+};
+
+function workspaceSourceActionTitle(
+  t: ReturnType<typeof useTranslation>["t"],
+  action: Extract<
+    AIWorkspaceActionArtifact,
+    { type: "workspace_project_source_updated" }
+  >["source"]["action"],
+): string {
+  if (action === "read_project_source") return t("ai:AI_WORKSPACE_ACTION_SOURCE_READ_TITLE");
+  if (action === "delete_project_source_file")
+    return t("ai:AI_WORKSPACE_ACTION_SOURCE_DELETED_TITLE");
+  if (action === "update_project_source_settings")
+    return t("ai:AI_WORKSPACE_ACTION_SOURCE_SETTINGS_UPDATED_TITLE");
+  return t("ai:AI_WORKSPACE_ACTION_SOURCE_UPDATED_TITLE");
+}
+
+const WorkspaceSiteSettingsUpdateRow: FC<{
+  settings: Extract<
+    AIWorkspaceActionArtifact,
+    { type: "workspace_site_settings_updated" }
+  >["settings"];
+}> = ({ settings }) => {
+  const { t } = useTranslation(["ai"]);
+  const previewFields = settings.changedFields.slice(0, 5);
+  return (
+    <div className="grid gap-1 px-3 py-2.5">
+      <div className="flex min-w-0 items-center justify-between gap-3">
+        <span className="truncate text-footnote font-semibold text-foreground">
+          {t("ai:AI_WORKSPACE_ACTION_SITE_SETTINGS_CONFIG_LABEL")}
+        </span>
+        <span className="shrink-0 rounded-md bg-background/70 px-1.5 py-0.5 text-caption font-medium text-muted-foreground">
+          {t("ai:AI_WORKSPACE_ACTION_SITE_SETTINGS_FIELD_COUNT", {
+            count: settings.fieldCount,
+          })}
+        </span>
+      </div>
+      {previewFields.length ? (
+        <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-caption leading-relaxed text-muted-foreground">
+          {previewFields.map((field) => (
+            <span key={field} className="font-mono">
+              {field}
+            </span>
+          ))}
+        </p>
+      ) : null}
+    </div>
+  );
+};
 
 function isAIAgentMessageArtifact(value: unknown): value is AIAgentMessageArtifact {
   if (!isRecord(value)) return false;
@@ -922,7 +1370,11 @@ function isAIAgentMessageArtifact(value: unknown): value is AIAgentMessageArtifa
 function isAIWorkspaceActionArtifact(value: unknown): value is AIWorkspaceActionArtifact {
   if (!isRecord(value) || value.status !== "completed") return false;
   if (value.type === "workspace_project_created") {
-    return isWorkspaceActionProject(value.project) && isWorkspaceActionNavigation(value.navigation);
+    return (
+      isWorkspaceActionProject(value.project) &&
+      (value.summary === undefined || isWorkspaceActionProjectCreateSummary(value.summary)) &&
+      isWorkspaceActionNavigation(value.navigation)
+    );
   }
   if (value.type === "workspace_project_list") {
     return (
@@ -945,10 +1397,164 @@ function isAIWorkspaceActionArtifact(value: unknown): value is AIWorkspaceAction
       isWorkspaceActionNavigation(value.navigation)
     );
   }
+  if (value.type === "workspace_content_model_updated") {
+    return (
+      isWorkspaceActionContentModelUpdate(value.contentModel) &&
+      isWorkspaceActionNavigation(value.navigation)
+    );
+  }
+  if (value.type === "workspace_project_source_updated") {
+    return (
+      isWorkspaceActionSourceUpdate(value.source) && isWorkspaceActionNavigation(value.navigation)
+    );
+  }
+  if (value.type === "workspace_content_item_updated") {
+    return (
+      isWorkspaceActionContentItemUpdate(value.content) &&
+      isWorkspaceActionNavigation(value.navigation)
+    );
+  }
+  if (value.type === "workspace_site_updated") {
+    return isWorkspaceActionSiteUpdate(value.site) && isWorkspaceActionNavigation(value.navigation);
+  }
+  if (value.type === "workspace_site_settings_updated") {
+    return (
+      isWorkspaceActionSettingsUpdate(value.settings) &&
+      isWorkspaceActionNavigation(value.navigation)
+    );
+  }
   if (value.type === "workspace_navigation") {
     return isWorkspaceActionNavigation(value.navigation);
   }
   return false;
+}
+
+function isWorkspaceActionProjectCreateSummary(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    (value.appEntryPath === undefined ||
+      value.appEntryPath === null ||
+      typeof value.appEntryPath === "string") &&
+    (value.componentBindingCount === undefined ||
+      value.componentBindingCount === null ||
+      typeof value.componentBindingCount === "number") &&
+    (value.contentItemCount === undefined ||
+      value.contentItemCount === null ||
+      typeof value.contentItemCount === "number") &&
+    (value.contentModelCount === undefined ||
+      value.contentModelCount === null ||
+      typeof value.contentModelCount === "number") &&
+    (value.domainHostname === undefined ||
+      value.domainHostname === null ||
+      typeof value.domainHostname === "string") &&
+    (value.editorPath === undefined ||
+      value.editorPath === null ||
+      typeof value.editorPath === "string") &&
+    (value.homepageItemId === undefined ||
+      value.homepageItemId === null ||
+      typeof value.homepageItemId === "string") &&
+    (value.homepageTitle === undefined ||
+      value.homepageTitle === null ||
+      typeof value.homepageTitle === "string") &&
+    (value.hierarchyNodeCount === undefined ||
+      value.hierarchyNodeCount === null ||
+      typeof value.hierarchyNodeCount === "number") &&
+    (value.releaseNumber === undefined ||
+      value.releaseNumber === null ||
+      typeof value.releaseNumber === "number") &&
+    (value.releaseReady === undefined ||
+      value.releaseReady === null ||
+      typeof value.releaseReady === "boolean") &&
+    (value.routePath === undefined ||
+      value.routePath === null ||
+      typeof value.routePath === "string") &&
+    (value.sourceFileCount === undefined ||
+      value.sourceFileCount === null ||
+      typeof value.sourceFileCount === "number")
+  );
+}
+
+function isWorkspaceActionContentItemUpdate(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    (value.action === "list_content_items" ||
+      value.action === "create_content_item" ||
+      value.action === "update_content_item" ||
+      value.action === "update_homepage" ||
+      value.action === "delete_content_item") &&
+    (value.contentItem === undefined ||
+      value.contentItem === null ||
+      isWorkspaceActionContentItem(value.contentItem)) &&
+    Array.isArray(value.contentItems) &&
+    value.contentItems.every(isWorkspaceActionContentItem) &&
+    (value.itemCount === undefined ||
+      value.itemCount === null ||
+      typeof value.itemCount === "number") &&
+    (value.deletedContentItemId === undefined ||
+      value.deletedContentItemId === null ||
+      typeof value.deletedContentItemId === "string") &&
+    (value.versionNumber === undefined ||
+      value.versionNumber === null ||
+      typeof value.versionNumber === "number") &&
+    (value.versionState === undefined ||
+      value.versionState === null ||
+      typeof value.versionState === "string") &&
+    typeof value.published === "boolean"
+  );
+}
+
+function isWorkspaceActionSiteUpdate(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    (value.action === "update_homepage" ||
+      value.action === "update_content_item" ||
+      value.action === "create_content_item" ||
+      value.action === "write_project_source_file" ||
+      value.action === "delete_project_source_file") &&
+    isWorkspaceActionContentItemUpdate(value.content) &&
+    isWorkspaceActionSourceUpdate(value.source)
+  );
+}
+
+function isWorkspaceActionSettingsUpdate(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.changedFields) &&
+    value.changedFields.every((field) => typeof field === "string") &&
+    typeof value.fieldCount === "number"
+  );
+}
+
+function isWorkspaceActionContentItem(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.slug === "string" &&
+    typeof value.status === "string" &&
+    (value.title === undefined || value.title === null || typeof value.title === "string") &&
+    (value.modelKey === undefined ||
+      value.modelKey === null ||
+      typeof value.modelKey === "string") &&
+    (value.derivedStatus === undefined ||
+      value.derivedStatus === null ||
+      typeof value.derivedStatus === "string")
+  );
+}
+
+function isWorkspaceActionSourceUpdate(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    (value.filePath === undefined ||
+      value.filePath === null ||
+      typeof value.filePath === "string") &&
+    (value.fileCount === undefined ||
+      value.fileCount === null ||
+      typeof value.fileCount === "number") &&
+    typeof value.released === "boolean" &&
+    (value.releaseNumber === undefined ||
+      value.releaseNumber === null ||
+      typeof value.releaseNumber === "number")
+  );
 }
 
 function isWorkspaceActionProject(value: unknown): value is AIWorkspaceActionProject {
@@ -974,6 +1580,29 @@ function isWorkspaceActionContentModel(value: unknown): boolean {
     (value.description === undefined ||
       value.description === null ||
       typeof value.description === "string")
+  );
+}
+
+function isWorkspaceActionContentModelUpdate(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    (value.action === "list_content_models" ||
+      value.action === "create_content_model" ||
+      value.action === "update_content_model" ||
+      value.action === "delete_content_model") &&
+    (value.contentModel === undefined ||
+      value.contentModel === null ||
+      isWorkspaceActionContentModel(value.contentModel)) &&
+    Array.isArray(value.contentModels) &&
+    value.contentModels.every(isWorkspaceActionContentModel) &&
+    Array.isArray(value.contentModelItems) &&
+    value.contentModelItems.every(isWorkspaceActionContentModel) &&
+    (value.modelCount === undefined ||
+      value.modelCount === null ||
+      typeof value.modelCount === "number") &&
+    (value.deletedContentModelId === undefined ||
+      value.deletedContentModelId === null ||
+      typeof value.deletedContentModelId === "string")
   );
 }
 

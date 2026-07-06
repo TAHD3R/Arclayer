@@ -254,8 +254,8 @@ describe("resolveFavoriteNavItems", () => {
 
     expect(flattenFavoriteNavItems(favorites)).toEqual([
       expect.objectContaining({
-        path: "/projects/ws-1/content/general",
-        label: "nav:NAV_SETTINGS_SITE",
+        path: "/projects/ws-1/seo/site",
+        label: "nav:NAV_WEBSITE_CONFIG",
         isCurrentWorkspace: true,
       }),
       expect.objectContaining({
@@ -266,7 +266,7 @@ describe("resolveFavoriteNavItems", () => {
     ]);
   });
 
-  it("canonicalizes migrated project site settings favorites onto the current content routes", () => {
+  it("canonicalizes migrated project site settings favorites onto the current website routes", () => {
     const favorites = resolveFavoriteNavItems({
       favorites: [
         {
@@ -279,6 +279,11 @@ describe("resolveFavoriteNavItems", () => {
           type: "item",
           path: "/projects/ws-9/settings/domain",
         },
+        {
+          id: "item:/projects/ws-9/settings/deployments",
+          type: "item",
+          path: "/projects/ws-9/settings/deployments",
+        },
       ],
       items: [],
       t: ((key: string) => key) as TFunction,
@@ -286,12 +291,16 @@ describe("resolveFavoriteNavItems", () => {
 
     expect(flattenFavoriteNavItems(favorites)).toEqual([
       expect.objectContaining({
-        path: "/projects/ws-9/content/localization",
-        label: "nav:NAV_SETTINGS_SITE",
+        path: "/projects/ws-9/seo/site/localization",
+        label: "nav:NAV_WEBSITE_CONFIG",
       }),
       expect.objectContaining({
-        path: "/projects/ws-9/content/domain",
-        label: "nav:NAV_SETTINGS_SITE",
+        path: "/projects/ws-9/website/domain",
+        label: "nav:NAV_WEBSITE_DOMAIN",
+      }),
+      expect.objectContaining({
+        path: "/projects/ws-9/website/releases",
+        label: "nav:NAV_WEBSITE_RELEASES",
       }),
     ]);
   });

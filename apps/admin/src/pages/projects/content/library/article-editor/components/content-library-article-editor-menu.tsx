@@ -48,7 +48,7 @@ import { serializeArticleEditorToMarkdown } from "../lib/content-library-article
 
 function slugifyFilename(value: string) {
   const trimmed = value.trim().toLowerCase();
-  if (!trimmed) return "article";
+  if (!trimmed) return "content";
   return trimmed
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+/g, "")

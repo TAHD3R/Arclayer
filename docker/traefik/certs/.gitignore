@@ -1,0 +1,7 @@
+*.pem
+*.crt
+*.key
+!.gitignore
+!README.md
+!openssl-ca.cnf
+!openssl-san.cnf

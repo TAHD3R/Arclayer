@@ -41,6 +41,50 @@ def _resolver() -> Any:
     )
 
 
+@pytest.mark.asyncio
+async def test_resolve_ignores_inactive_route_bindings() -> None:
+    resolver = _resolver()
+    binding = SimpleNamespace(
+        path="/about",
+        route_contract={"mode": "static"},
+        is_active=False,
+        item=SimpleNamespace(id=uuid4(), draft_version=1, published_version=1),
+    )
+
+    async def _list_content_route_bindings(*, site_id):  # type: ignore[no-untyped-def]
+        return [binding]
+
+    async def _load_snapshot_for_item(**_kwargs):  # type: ignore[no-untyped-def]
+        raise AssertionError("inactive route binding should not load snapshots")
+
+    resolver._repo = SimpleNamespace(list_content_route_bindings=_list_content_route_bindings)  # type: ignore[attr-defined]
+    resolver._load_snapshot_for_item = _load_snapshot_for_item  # type: ignore[method-assign]
+
+    assert await resolver.resolve(site_id=uuid4(), pathname="/about", mode="preview") is None
+
+
+@pytest.mark.asyncio
+async def test_preview_delivery_ignores_inactive_route_bindings() -> None:
+    resolver = _resolver()
+    binding = SimpleNamespace(
+        path="/about",
+        route_contract={"mode": "static"},
+        is_active=False,
+        item=SimpleNamespace(id=uuid4(), draft_version=1, published_version=1),
+    )
+
+    async def _list_content_route_bindings(*, site_id):  # type: ignore[no-untyped-def]
+        return [binding]
+
+    async def _load_snapshot_for_item(**_kwargs):  # type: ignore[no-untyped-def]
+        raise AssertionError("inactive route binding should not load snapshots")
+
+    resolver._repo = SimpleNamespace(list_content_route_bindings=_list_content_route_bindings)  # type: ignore[attr-defined]
+    resolver._load_snapshot_for_item = _load_snapshot_for_item  # type: ignore[method-assign]
+
+    assert await resolver.resolve_delivery_path(site_id=uuid4(), pathname="/about", perspective="preview") is None
+
+
 def test_resolve_json_path_reads_nested_dicts() -> None:
     assert _resolve_json_path({"article": {"title": "Hello"}}, ["article", "title"]) == "Hello"
     assert _resolve_json_path({"article": {"title": "Hello"}}, ["article", "slug"]) is None

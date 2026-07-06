@@ -15,6 +15,7 @@ const mocked = vi.hoisted(() => ({
   listAllContentItems: vi.fn(),
   listAllContentModels: vi.fn(),
   getContentItemVersion: vi.fn(),
+  createContentItem: vi.fn(),
   loadContentLibraryArticleEditorSnapshot: vi.fn(),
   getContentSeoProfile: vi.fn(),
   getProjectPublishImpact: vi.fn(),
@@ -51,6 +52,7 @@ vi.mock("@/api/content", () => ({
   listAllContentItems: (...args: unknown[]) => mocked.listAllContentItems(...args),
   listAllContentModels: (...args: unknown[]) => mocked.listAllContentModels(...args),
   getContentItemVersion: (...args: unknown[]) => mocked.getContentItemVersion(...args),
+  createContentItem: (...args: unknown[]) => mocked.createContentItem(...args),
   getContentSeoProfile: (...args: unknown[]) => mocked.getContentSeoProfile(...args),
   getProjectPublishImpact: (...args: unknown[]) => mocked.getProjectPublishImpact(...args),
   getContentLibraryViews: (...args: unknown[]) => mocked.getContentLibraryViews(...args),
@@ -469,9 +471,13 @@ vi.mock("@/pages/projects/content/library/components/content-library-action-dial
 }));
 
 vi.mock("@/pages/projects/content/library/components/content-library-new-content-button", () => ({
-  ContentLibraryNewContentButton: (props: { onClick: () => void; disabled?: boolean }) => (
+  ContentLibraryNewContentButton: (props: {
+    onClick: () => void;
+    disabled?: boolean;
+    labelKey?: string;
+  }) => (
     <button type="button" onClick={props.onClick} disabled={props.disabled}>
-      CONTENT_LIBRARY_ACTION_NEW_CONTENT
+      {props.labelKey ?? "CONTENT_LIBRARY_ACTION_NEW_CONTENT"}
     </button>
   ),
 }));
@@ -578,6 +584,42 @@ describe("ContentLibraryPage", () => {
       siteId: "site-1",
       token: "preview-token",
       expiresAtMs: 123,
+    });
+    mocked.createContentItem.mockResolvedValue({
+      id: "content-home",
+      workspaceId: "project-1",
+      siteId: "site-1",
+      modelId: "model-page",
+      modelKey: "page",
+      slug: "home",
+      title: "Home",
+      status: "draft",
+      visibility: "public",
+      locale: "zh-CN",
+      bootstrapPresetKey: "page",
+      bootstrapPresetState: "selected",
+      capabilityPackIds: ["publishable", "routable", "seo_managed"],
+      resolvedRole: "page",
+      resolvedPosture: "page",
+      resolvedSurface: "canvas",
+      derivedStatus: "draft",
+      runtime: "visual",
+      context: "site_builder",
+      libraryGroup: "site-content",
+      editWith: "canvas",
+      role: "page",
+      draftVersion: 1,
+      publishedVersion: null,
+      updatedAt: "2026-03-28T00:00:00Z",
+    });
+    mocked.saveContentItemDraftVersion.mockResolvedValue({
+      itemId: "content-home",
+      versionNumber: 1,
+      state: "draft",
+      createdAt: "2026-03-28T00:00:00Z",
+      fieldsSnapshot: {},
+      presentations: [],
+      changeSummary: null,
     });
     mocked.getProjectCoreSettings.mockResolvedValue({
       namespace: "core",
@@ -1432,14 +1474,14 @@ describe("ContentLibraryPage", () => {
     expect(mocked.setSidebarOpen).not.toHaveBeenCalled();
   });
 
-  test("exposes a content-types handoff action in the page header", async () => {
+  test("exposes a content-models handoff action in the page header", async () => {
     const user = userEvent.setup();
 
     renderWithQuery(<ContentLibraryPage />);
 
     await waitFor(() => {
       expect(
-        screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_NEW_CONTENT" }),
+        screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_NEW_SITE_CONTENT" }),
       ).toBeInTheDocument();
     });
 
@@ -1447,7 +1489,7 @@ describe("ContentLibraryPage", () => {
 
     await user.click(
       within(screen.getByTestId("page-action")).getByRole("button", {
-        name: "CONTENT_LIBRARY_ACTION_MANAGE_TYPES",
+        name: "CONTENT_LIBRARY_ACTION_CONTENT_MODELS",
       }),
     );
 
@@ -1463,7 +1505,7 @@ describe("ContentLibraryPage", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_NEW_CONTENT" }),
+        screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_NEW_SITE_CONTENT" }),
       ).toBeInTheDocument();
     });
 
@@ -1471,7 +1513,7 @@ describe("ContentLibraryPage", () => {
 
     await user.click(
       within(screen.getByTestId("page-action")).getByRole("button", {
-        name: "CONTENT_LIBRARY_ACTION_NEW_CONTENT",
+        name: "CONTENT_LIBRARY_ACTION_NEW_SITE_CONTENT",
       }),
     );
 
@@ -1496,12 +1538,12 @@ describe("ContentLibraryPage", () => {
     expect(screen.getByText("content:CONTENT_LIBRARY_NO_ACCESS_DESC")).toBeInTheDocument();
     expect(
       within(screen.getByTestId("page-action")).getByRole("button", {
-        name: "CONTENT_LIBRARY_ACTION_NEW_CONTENT",
+        name: "CONTENT_LIBRARY_ACTION_NEW_SITE_CONTENT",
       }),
     ).toBeDisabled();
     expect(
       within(screen.getByTestId("page-action")).getByRole("button", {
-        name: "CONTENT_LIBRARY_ACTION_MANAGE_TYPES",
+        name: "CONTENT_LIBRARY_ACTION_CONTENT_MODELS",
       }),
     ).toBeDisabled();
   });
@@ -1516,12 +1558,12 @@ describe("ContentLibraryPage", () => {
     expect(screen.queryByText("content:CONTENT_LIBRARY_NO_ACCESS_DESC")).not.toBeInTheDocument();
     expect(
       within(screen.getByTestId("page-action")).getByRole("button", {
-        name: "CONTENT_LIBRARY_ACTION_NEW_CONTENT",
+        name: "CONTENT_LIBRARY_ACTION_NEW_SITE_CONTENT",
       }),
     ).toBeDisabled();
     expect(
       within(screen.getByTestId("page-action")).getByRole("button", {
-        name: "CONTENT_LIBRARY_ACTION_MANAGE_TYPES",
+        name: "CONTENT_LIBRARY_ACTION_CONTENT_MODELS",
       }),
     ).toBeDisabled();
   });
@@ -1725,10 +1767,277 @@ describe("ContentLibraryPage", () => {
     ).not.toBeInTheDocument();
   });
 
+  test("surfaces a site-builder workbench summary above table operations", async () => {
+    renderWithQuery(<ContentLibraryPage />);
+
+    await screen.findByRole("button", { name: "row:Homepage" });
+    const summary = screen.getByTestId("content-library-workbench-summary");
+
+    expect(
+      within(summary).getByRole("heading", {
+        name: "content:CONTENT_LIBRARY_WORKBENCH_TITLE",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByText("content:CONTENT_LIBRARY_WORKBENCH_METRIC_HOMEPAGE"),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByText("content:CONTENT_LIBRARY_WORKBENCH_METRIC_SITE_PAGES"),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByText("content:CONTENT_LIBRARY_WORKBENCH_METRIC_SITE_CONTENT"),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByText("content:CONTENT_LIBRARY_WORKBENCH_METRIC_REUSABLE_BLOCKS"),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByText("content:CONTENT_LIBRARY_WORKBENCH_METRIC_PUBLISHED"),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByText("content:CONTENT_LIBRARY_WORKBENCH_METRIC_DRAFTS"),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByRole("list", {
+        name: "content:CONTENT_LIBRARY_WORKFLOW_LABEL",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByText("content:CONTENT_LIBRARY_WORKFLOW_STRUCTURE_LABEL"),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByText("content:CONTENT_LIBRARY_WORKFLOW_PAGE_LABEL"),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByText("content:CONTENT_LIBRARY_WORKFLOW_DRAFT_LABEL"),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByText("content:CONTENT_LIBRARY_WORKFLOW_RELEASE_LABEL"),
+    ).toBeInTheDocument();
+    const workflowLinks = within(summary).getByTestId("content-library-workflow-links");
+    expect(
+      within(workflowLinks).getByRole("link", {
+        name: "content:CONTENT_LIBRARY_WORKFLOW_LINK_EDITOR",
+      }),
+    ).toHaveAttribute("href", "/projects/project-1/editor");
+    expect(
+      within(workflowLinks).getByRole("link", {
+        name: "content:CONTENT_LIBRARY_WORKFLOW_LINK_MODELS",
+      }),
+    ).toHaveAttribute("href", "/projects/project-1/content/models");
+    expect(
+      within(workflowLinks).getByRole("link", {
+        name: "content:CONTENT_LIBRARY_WORKFLOW_LINK_WEBSITE_CONTROL",
+      }),
+    ).toHaveAttribute("href", "/projects/project-1/website/domain");
+    expect(
+      within(workflowLinks).getByRole("link", {
+        name: "content:CONTENT_LIBRARY_WORKFLOW_LINK_RELEASES",
+      }),
+    ).toHaveAttribute("href", "/projects/project-1/website/releases");
+    expect(
+      within(workflowLinks).getByRole("link", {
+        name: "content:CONTENT_LIBRARY_WORKFLOW_LINK_WEBSITE_CONFIG",
+      }),
+    ).toHaveAttribute("href", "/projects/project-1/seo/site");
+    expect(within(summary).getAllByText("1")).toHaveLength(5);
+    expect(
+      within(summary).getByRole("button", {
+        name: "content:CONTENT_LIBRARY_WORKBENCH_ACTION_CONTINUE_HOMEPAGE",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByRole("button", {
+        name: "content:CONTENT_LIBRARY_WORKBENCH_ACTION_STRUCTURE",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByRole("button", {
+        name: "content:CONTENT_LIBRARY_WORKBENCH_ACTION_CREATE_REUSABLE_BLOCK",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  test("creates a routable homepage directly from the site content workbench", async () => {
+    const user = userEvent.setup();
+    mocked.listAllContentItems.mockResolvedValue([]);
+
+    renderWithQuery(<ContentLibraryPage />);
+
+    const summary = await screen.findByTestId("content-library-workbench-summary");
+    await user.click(
+      within(summary).getByRole("button", {
+        name: "content:CONTENT_LIBRARY_WORKBENCH_ACTION_CREATE_HOMEPAGE",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(mocked.createContentItem).toHaveBeenCalledWith("project-1", {
+        title: "content:CONTENT_LIBRARY_WORKBENCH_DEFAULT_PAGE_TITLE",
+        modelKey: "page",
+      });
+      expect(mocked.saveContentItemDraftVersion).toHaveBeenCalledWith("project-1", "content-home", {
+        expectedVersion: 1,
+        changeSummary: "content:CONTENT_LIBRARY_WORKBENCH_DEFAULT_PAGE_CHANGE_SUMMARY",
+        fieldsSnapshot: {
+          title: "content:CONTENT_LIBRARY_WORKBENCH_DEFAULT_PAGE_TITLE",
+          path: "/",
+        },
+        presentations: [
+          {
+            kind: "form_data",
+            payload: {
+              title: "content:CONTENT_LIBRARY_WORKBENCH_DEFAULT_PAGE_TITLE",
+              path: "/",
+            },
+          },
+        ],
+      });
+    });
+    expect(mocked.navigate).toHaveBeenCalledWith({
+      search: { focusItemId: "content-home" },
+      replace: true,
+    });
+  });
+
+  test("creates a reusable block directly from the site content workbench", async () => {
+    const user = userEvent.setup();
+    mocked.createContentItem.mockResolvedValue({
+      id: "content-block",
+      workspaceId: "project-1",
+      siteId: "site-1",
+      modelId: "model-section",
+      modelKey: "reusable-section",
+      slug: "reusable-section",
+      title: "Reusable block",
+      status: "draft",
+      visibility: "public",
+      locale: "zh-CN",
+      bootstrapPresetKey: "reusable-block",
+      bootstrapPresetState: "selected",
+      capabilityPackIds: ["publishable"],
+      resolvedRole: "reusable-section",
+      resolvedPosture: "composition",
+      resolvedSurface: "canvas",
+      derivedStatus: "draft",
+      runtime: "visual",
+      context: "site_builder",
+      libraryGroup: "site-content",
+      editWith: "canvas",
+      role: "reusable-section",
+      draftVersion: 1,
+      publishedVersion: null,
+      updatedAt: "2026-03-28T00:00:00Z",
+    });
+
+    renderWithQuery(<ContentLibraryPage />);
+
+    const summary = await screen.findByTestId("content-library-workbench-summary");
+    await user.click(
+      within(summary).getByRole("button", {
+        name: "content:CONTENT_LIBRARY_WORKBENCH_ACTION_CREATE_REUSABLE_BLOCK",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(mocked.createContentItem).toHaveBeenCalledWith("project-1", {
+        title: "content:CONTENT_LIBRARY_WORKBENCH_DEFAULT_REUSABLE_BLOCK_TITLE",
+        modelKey: "reusable-section",
+      });
+      expect(mocked.saveContentItemDraftVersion).toHaveBeenCalledWith(
+        "project-1",
+        "content-block",
+        {
+          expectedVersion: 1,
+          changeSummary: "content:CONTENT_LIBRARY_WORKBENCH_DEFAULT_REUSABLE_BLOCK_CHANGE_SUMMARY",
+          fieldsSnapshot: {
+            title: "content:CONTENT_LIBRARY_WORKBENCH_DEFAULT_REUSABLE_BLOCK_TITLE",
+            sectionKey: "reusable-section",
+            propsDefaults: {},
+          },
+          presentations: [
+            {
+              kind: "form_data",
+              payload: {
+                title: "content:CONTENT_LIBRARY_WORKBENCH_DEFAULT_REUSABLE_BLOCK_TITLE",
+                sectionKey: "reusable-section",
+                propsDefaults: {},
+              },
+            },
+          ],
+        },
+      );
+    });
+    expect(mocked.navigate).toHaveBeenCalledWith({
+      search: { focusItemId: "content-block" },
+      replace: true,
+    });
+  });
+
+  test("requires a page model before the workbench can create site page content", async () => {
+    mocked.listAllContentItems.mockResolvedValue([]);
+    mocked.listAllContentModels.mockResolvedValue([
+      {
+        id: "model-article",
+        workspaceId: "ws-1",
+        siteId: "site-1",
+        singularKey: "article",
+        pluralKey: "articles",
+        name: "Article",
+        description: "Long-form editorial records",
+        category: "content_library",
+        capabilities: ["rich_text_editable", "publishable"],
+        defaultEditor: "rich_text",
+      },
+    ]);
+
+    renderWithQuery(<ContentLibraryPage />);
+
+    const summary = await screen.findByTestId("content-library-workbench-summary");
+    expect(
+      within(summary).getByRole("button", {
+        name: "content:CONTENT_LIBRARY_WORKBENCH_ACTION_CREATE_HOMEPAGE",
+      }),
+    ).toBeDisabled();
+    expect(mocked.createContentItem).not.toHaveBeenCalled();
+  });
+
+  test("requires a reusable block model before the workbench can create block content", async () => {
+    mocked.listAllContentModels.mockResolvedValue([
+      {
+        id: "model-page",
+        workspaceId: "ws-1",
+        siteId: "site-1",
+        singularKey: "page",
+        pluralKey: "pages",
+        name: "Page",
+        description: "Primary site pages and landing flows",
+        category: "site_builder",
+        capabilities: ["visual_editable", "publishable", "routable"],
+        defaultEditor: "visual",
+      },
+    ]);
+
+    renderWithQuery(<ContentLibraryPage />);
+
+    const summary = await screen.findByTestId("content-library-workbench-summary");
+    expect(
+      within(summary).getByRole("button", {
+        name: "content:CONTENT_LIBRARY_WORKBENCH_ACTION_CREATE_REUSABLE_BLOCK",
+      }),
+    ).toBeDisabled();
+    expect(mocked.createContentItem).not.toHaveBeenCalled();
+  });
+
   test("keeps the workbench canvas on the page background instead of a card surface", async () => {
     const { container } = renderWithQuery(<ContentLibraryPage />);
 
     await screen.findByRole("button", { name: "row:Homepage" });
+
+    const summary = screen.getByTestId("content-library-workbench-summary");
+    expect(summary.className).toContain("bg-background");
+    expect(summary.className).not.toContain("bg-card");
+    expect(summary.className).not.toContain("shadow-sm");
+    expect(summary.className).not.toContain("rounded-lg");
 
     const splitPane = container.querySelector(
       "div.flex.min-h-0.flex-1.overflow-hidden.bg-background",

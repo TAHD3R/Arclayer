@@ -43,6 +43,10 @@ class RouteMatchResult(BaseModel):
     pattern: ParsedRoutePattern
 
 
+ROUTE_PATH_MAX_LENGTH = 512
+ROUTE_DUPLICATE_SUFFIX = "-copy"
+
+
 def _normalize_route_path(path: str) -> str:
     pathname = normalize_path(path)
     if "?" in pathname or "#" in pathname or "\\" in pathname:
@@ -141,6 +145,8 @@ def route_sort_key(record: RouteBindingRecord) -> tuple[int, int, int, int, int,
 
 
 def match_route_binding(record: RouteBindingRecord, pathname: str) -> dict[str, str] | None:
+    if getattr(record, "is_active", True) is False:
+        return None
     pattern = parse_route_pattern(record.path)
     if pattern.mode == "static":
         return {} if pattern.path == pathname else None
@@ -195,6 +201,73 @@ def _to_hierarchy_node_out(record: HierarchyNodeRecord) -> HierarchyNodeOut:
         item_id=record.item_id,
         parent_item_id=record.parent_item_id,
         sort_order=record.sort_order,
+    )
+
+
+def _append_route_path_suffix(path: str, suffix: str) -> str:
+    if len(path) + len(suffix) <= ROUTE_PATH_MAX_LENGTH:
+        return f"{path}{suffix}"
+    prefix = path[: ROUTE_PATH_MAX_LENGTH - len(suffix)].rstrip("/") or "/"
+    return f"{prefix}{suffix}"
+
+
+def build_duplicate_route_path_base(path: str) -> str:
+    pattern = parse_route_pattern(path)
+    if pattern.mode != "static":
+        raise Conflict(
+            "Dynamic content route duplication requires an explicit route path",
+            error="CONTENT_ROUTE_DUPLICATE_DYNAMIC_UNSUPPORTED",
+        )
+    if pattern.path == "/":
+        return "/home-copy"
+    parent, _, leaf = pattern.path.rpartition("/")
+    parent_path = parent if parent else ""
+    return _append_route_path_suffix(f"{parent_path}/{leaf}", ROUTE_DUPLICATE_SUFFIX)
+
+
+async def resolve_duplicate_route_path(
+    *,
+    site_id: UUID,
+    environment_id: UUID | None,
+    locale: str,
+    source_path: str,
+    conn: BaseDBAsyncClient,
+) -> str:
+    base_path = build_duplicate_route_path_base(source_path)
+    existing_rows = (
+        await RouteBindingRecord
+        .filter(site_id=site_id, environment_id=environment_id, locale=locale, path__startswith=base_path)
+        .using_db(conn)
+        .all()
+    )
+    existing_paths = {str(row.path) for row in existing_rows}
+    candidate = base_path
+    index = 2
+    while candidate in existing_paths:
+        candidate = _append_route_path_suffix(base_path, f"-{index}")
+        index += 1
+    return candidate
+
+
+async def set_route_bindings_active_for_item(
+    *,
+    workspace_id: UUID,
+    site_id: UUID,
+    environment_id: UUID | None,
+    item_id: UUID,
+    is_active: bool,
+    conn: BaseDBAsyncClient,
+) -> int:
+    return (
+        await RouteBindingRecord
+        .filter(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            environment_id=environment_id,
+            item_id=item_id,
+        )
+        .using_db(conn)
+        .update(is_active=is_active)
     )
 
 
@@ -265,6 +338,69 @@ async def _ensure_no_pattern_conflict(
             raise Conflict("Content route pattern conflict", error="CONTENT_ROUTE_PATTERN_CONFLICT")
 
 
+async def upsert_route_binding_record(
+    *,
+    workspace_id: UUID,
+    site_id: UUID,
+    environment_id: UUID | None,
+    item_id: UUID,
+    payload: RouteBindingUpsertIn,
+    conn: BaseDBAsyncClient,
+    item: ContentItemRecord | None = None,
+) -> RouteBindingRecord:
+    locale = payload.locale.strip() or "zh-CN"
+    contract = build_route_contract(payload)
+    pattern = parse_route_pattern(payload.path, route_mode=payload.route_mode)
+    resolved_item = item or await _get_item_with_model(
+        workspace_id=workspace_id,
+        site_id=site_id,
+        environment_id=environment_id,
+        item_id=item_id,
+        conn=conn,
+    )
+    if not item_has_capability(resolved_item, "routable"):
+        raise Conflict("Content item is not routable", error="CONTENT_ITEM_NOT_ROUTABLE")
+    await _ensure_no_pattern_conflict(
+        site_id=site_id,
+        environment_id=environment_id,
+        locale=locale,
+        item_id=item_id,
+        pattern=pattern,
+        conn=conn,
+    )
+    record = (
+        await RouteBindingRecord
+        .filter(site_id=site_id, environment_id=environment_id, item_id=item_id, locale=locale)
+        .using_db(conn)
+        .select_for_update()
+        .first()
+    )
+    if record is None:
+        try:
+            return await RouteBindingRecord.create(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                environment_id=environment_id,
+                item_id=item_id,
+                locale=locale,
+                path=pattern.path,
+                route_contract=contract,
+                is_active=payload.is_active,
+                using_db=conn,
+            )
+        except IntegrityError as exc:
+            raise Conflict("Content route conflict", error="CONTENT_ROUTE_CONFLICT") from exc
+
+    record.path = pattern.path
+    record.route_contract = contract
+    record.is_active = payload.is_active
+    try:
+        await record.save(update_fields=["path", "route_contract", "is_active"], using_db=conn)
+    except IntegrityError as exc:
+        raise Conflict("Content route conflict", error="CONTENT_ROUTE_CONFLICT") from exc
+    return record
+
+
 class ProjectContentRoutingService(BaseService):
     def __init__(self, tenant_context: TenantContext) -> None:
         super().__init__()
@@ -295,57 +431,15 @@ class ProjectContentRoutingService(BaseService):
         item_id: UUID,
         payload: RouteBindingUpsertIn,
     ) -> RouteBindingOut:
-        locale = payload.locale.strip() or "zh-CN"
-        contract = build_route_contract(payload)
-        pattern = parse_route_pattern(payload.path, route_mode=payload.route_mode)
         async with self.tenant_db.connection() as conn:
-            item = await _get_item_with_model(
+            record = await upsert_route_binding_record(
                 workspace_id=workspace_id,
                 site_id=site_id,
                 environment_id=environment_id,
                 item_id=item_id,
+                payload=payload,
                 conn=conn,
             )
-            if not item_has_capability(item, "routable"):
-                raise Conflict("Content item is not routable", error="CONTENT_ITEM_NOT_ROUTABLE")
-            await _ensure_no_pattern_conflict(
-                site_id=site_id,
-                environment_id=environment_id,
-                locale=locale,
-                item_id=item_id,
-                pattern=pattern,
-                conn=conn,
-            )
-            record = (
-                await RouteBindingRecord
-                .filter(site_id=site_id, environment_id=environment_id, item_id=item_id, locale=locale)
-                .using_db(conn)
-                .select_for_update()
-                .first()
-            )
-            if record is None:
-                try:
-                    record = await RouteBindingRecord.create(
-                        workspace_id=workspace_id,
-                        site_id=site_id,
-                        environment_id=environment_id,
-                        item_id=item_id,
-                        locale=locale,
-                        path=pattern.path,
-                        route_contract=contract,
-                        is_active=payload.is_active,
-                        using_db=conn,
-                    )
-                except IntegrityError as exc:
-                    raise Conflict("Content route conflict", error="CONTENT_ROUTE_CONFLICT") from exc
-            else:
-                record.path = pattern.path
-                record.route_contract = contract
-                record.is_active = payload.is_active
-                try:
-                    await record.save(update_fields=["path", "route_contract", "is_active"], using_db=conn)
-                except IntegrityError as exc:
-                    raise Conflict("Content route conflict", error="CONTENT_ROUTE_CONFLICT") from exc
         return _to_route_binding_out(record)
 
     async def list_hierarchy_nodes(self, *, workspace_id: UUID, site_id: UUID) -> list[HierarchyNodeOut]:

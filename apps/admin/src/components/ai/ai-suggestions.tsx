@@ -62,6 +62,24 @@ export const AI_CHAT_SUGGESTIONS = [
     promptKey: "AI_CHAT_SUGGESTION_PLAN_NEXT_STEP_PROMPT",
     descriptionKey: "AI_CHAT_SUGGESTION_PLAN_NEXT_STEP_DESC",
   },
+  {
+    id: "edit-homepage",
+    titleKey: "AI_CHAT_SUGGESTION_EDIT_HOMEPAGE",
+    promptKey: "AI_CHAT_SUGGESTION_EDIT_HOMEPAGE_PROMPT",
+    descriptionKey: "AI_CHAT_SUGGESTION_EDIT_HOMEPAGE_DESC",
+  },
+  {
+    id: "update-site-source",
+    titleKey: "AI_CHAT_SUGGESTION_UPDATE_SITE_SOURCE",
+    promptKey: "AI_CHAT_SUGGESTION_UPDATE_SITE_SOURCE_PROMPT",
+    descriptionKey: "AI_CHAT_SUGGESTION_UPDATE_SITE_SOURCE_DESC",
+  },
+  {
+    id: "verify-and-publish",
+    titleKey: "AI_CHAT_SUGGESTION_VERIFY_AND_PUBLISH",
+    promptKey: "AI_CHAT_SUGGESTION_VERIFY_AND_PUBLISH_PROMPT",
+    descriptionKey: "AI_CHAT_SUGGESTION_VERIFY_AND_PUBLISH_DESC",
+  },
 ] satisfies readonly AISuggestion[];
 
 const CONTENT_SUGGESTIONS = [
@@ -103,7 +121,7 @@ function suggestionIdsForArtifacts(
     return ["plan-next-step"];
   }
   if (workspaceAction?.type === "workspace_project_created") {
-    return ["plan-content-model", "prepare-launch-checklist"];
+    return ["edit-homepage", "update-site-source", "verify-and-publish"];
   }
   if (workspaceAction?.type === "workspace_content_model_created") {
     return ["prepare-launch-checklist", "check-content-quality"];

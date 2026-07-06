@@ -6,17 +6,24 @@ const sdk = createManagementSdk({
 });
 
 async function run() {
-  const models = await sdk.content.models.list({
-    page: 1,
-    projectId: "project_public_id",
-    size: 20,
+  const project = sdk.forProject("project_public_id");
+
+  const overview = await project.getOverview();
+  const source = await project.source.getStructure();
+  const action = await project.ai.executeWorkspaceAction({
+    body: {
+      message: "Read the project source and summarize the editable site structure.",
+      mode: "build",
+      workspaceId: "workspace_public_id",
+    },
   });
 
-  const published = await sdk.releases.publish({
-    projectId: "project_public_id",
-  });
-
-  console.log(models.items.length, published.requestId);
+  console.log(
+    overview.site.data.siteId,
+    source.data.tree.map((node) => node.path),
+    source.data.appEntryFile?.path,
+    action.data.navigation?.path,
+  );
 }
 
 void run();

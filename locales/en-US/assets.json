@@ -183,7 +183,7 @@
   "ASSET_PREVIEW_LOAD_FAILED": "Failed to load image.",
   "ASSET_PREVIEW_UNAVAILABLE": "No preview available",
   "ASSET_PREVIEW_UNSUPPORTED_DESC": "This file type does not have an inline preview yet. Use the original file actions to inspect or download it.",
-  "ASSET_PURPOSE_ARTICLE_COVER": "Article cover",
+  "ASSET_PURPOSE_ARTICLE_COVER": "Content cover",
   "ASSET_PURPOSE_ATTACHMENT": "Attachment",
   "ASSET_PURPOSE_AVATAR": "Avatar",
   "ASSET_PURPOSE_FAVICON": "Favicon",

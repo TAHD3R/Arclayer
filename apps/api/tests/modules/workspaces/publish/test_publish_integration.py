@@ -5,6 +5,7 @@ import pytest
 from src.common.utils.public_ids import decode_public_id
 from src.models.content.publish_artifact import PublishArtifactRecord
 from src.models.content.published_graph import PublishedGraphRecord
+from src.models.content.route_binding import RouteBindingRecord
 from tests.modules.projects.helpers import (
     bind_project_hierarchy,
     bind_project_route,
@@ -13,6 +14,7 @@ from tests.modules.projects.helpers import (
 )
 from tests.modules.workspaces.content.test_content_items_integration import (
     _bootstrap_shape_payload,
+    _tenant_conn,
     _workspace_client,
 )
 
@@ -27,9 +29,9 @@ def _item_payload(slug: str, title: str) -> dict:
     }
 
 
-def _draft_payload(title: str, *, path: str) -> dict:
+def _draft_payload(title: str, *, path: str, expected_version: int = 0) -> dict:
     return {
-        "expectedVersion": 0,
+        "expectedVersion": expected_version,
         "changeSummary": "initial draft",
         "fieldsSnapshot": {"title": title, "path": path},
         "presentations": [
@@ -108,9 +110,13 @@ async def _setup_publishable_items(client, project_id: str) -> tuple[str, str]:
 
 
 async def _publish_item(client, project_id: str, item_id: str, title: str, *, path: str) -> None:
+    item_detail_res = await client.get(f"/api/v1/projects/{project_id}/content/items/{item_id}")
+    assert item_detail_res.status_code == 200, item_detail_res.text
+    draft_version = int(item_detail_res.json()["data"]["draftVersion"])
+
     draft_res = await client.post(
         f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
-        json=_draft_payload(title, path=path),
+        json=_draft_payload(title, path=path, expected_version=draft_version),
     )
     assert draft_res.status_code == 201, draft_res.text
 
@@ -124,10 +130,25 @@ async def _publish_item(client, project_id: str, item_id: str, title: str, *, pa
     assert workflow_res.status_code == 200, workflow_res.text
 
     publish_res = await client.post(
-        f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/publish",
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/{draft_version + 1}/publish",
         json={},
     )
     assert publish_res.status_code == 200, publish_res.text
+
+
+async def _published_graph_rows(workspace_id: str, item_ids: list) -> list[PublishedGraphRecord]:  # type: ignore[type-arg]
+    async with _tenant_conn(workspace_id) as conn:
+        return await PublishedGraphRecord.filter(item_id__in=item_ids).using_db(conn).all()
+
+
+async def _publish_artifact_rows(workspace_id: str, item_ids: list) -> list[PublishArtifactRecord]:  # type: ignore[type-arg]
+    async with _tenant_conn(workspace_id) as conn:
+        return await PublishArtifactRecord.filter(item_id__in=item_ids).using_db(conn).all()
+
+
+async def _delete_route_bindings(workspace_id: str, item_id: str) -> None:
+    async with _tenant_conn(workspace_id) as conn:
+        await RouteBindingRecord.filter(item_id=decode_public_id(item_id)).using_db(conn).delete()
 
 
 @pytest.mark.asyncio
@@ -156,12 +177,12 @@ async def test_publish_builds_published_graph_from_routes_and_hierarchy(
 
         root_uuid = decode_public_id(root_item_id)
         child_uuid = decode_public_id(child_item_id)
-        graph_rows = await PublishedGraphRecord.filter(item_id__in=[root_uuid, child_uuid]).all()
+        graph_rows = await _published_graph_rows(workspace_id, [root_uuid, child_uuid])
         assert len(graph_rows) == 2
         child_row = next(row for row in graph_rows if row.item_id == child_uuid)
         assert child_row.hierarchy_parent_item_id == root_uuid
 
-        artifact_rows = await PublishArtifactRecord.filter(item_id__in=[root_uuid, child_uuid]).all()
+        artifact_rows = await _publish_artifact_rows(workspace_id, [root_uuid, child_uuid])
         assert len(artifact_rows) >= 5
         artifact_kinds = {row.artifact_kind for row in artifact_rows}
         assert "route_manifest" in artifact_kinds
@@ -180,6 +201,7 @@ async def test_publish_returns_blocking_impact_when_route_missing(
         project_id, _runtime_id = await project_context_ids(client, workspace_id)
         root_item_id, _ = await _setup_publishable_items(client, project_id)
         await _publish_item(client, project_id, root_item_id, "Home", path="/")
+        await _delete_route_bindings(workspace_id, root_item_id)
 
         impact_res = await client.get(f"/api/v1/projects/{project_id}/publish/impact")
         assert impact_res.status_code == 200, impact_res.text
@@ -188,3 +210,47 @@ async def test_publish_returns_blocking_impact_when_route_missing(
         publish_res = await client.post(f"/api/v1/projects/{project_id}/releases/publish", json={})
         assert publish_res.status_code == 409, publish_res.text
         assert publish_res.json()["error"] == "PUBLISH_VALIDATION_FAILED"
+
+
+@pytest.mark.asyncio
+async def test_publish_ignores_inactive_route_bindings(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
+        project_id, _runtime_id = await project_context_ids(client, workspace_id)
+        root_item_id, _ = await _setup_publishable_items(client, project_id)
+        await _publish_item(client, project_id, root_item_id, "Home", path="/")
+
+        inactive_route_res = await client.put(
+            f"/api/v1/projects/{project_id}/content/routing/bindings/{root_item_id}",
+            json={"locale": "en-US", "path": "/", "isActive": False},
+        )
+        assert inactive_route_res.status_code == 200, inactive_route_res.text
+
+        impact_res = await client.get(f"/api/v1/projects/{project_id}/publish/impact")
+        assert impact_res.status_code == 200, impact_res.text
+        impact = impact_res.json()["data"]
+        assert impact["missingRoutes"] == [root_item_id]
+        assert impact["blockedItems"] == [
+            {
+                "itemId": root_item_id,
+                "reasonCode": "MISSING_ROUTE",
+                "shapeState": "ready",
+                "surface": "canvas",
+                "reasonMeta": {"locale": "en-US"},
+                "workflowStage": "approved",
+            }
+        ]
+
+        dry_run_res = await client.get(f"/api/v1/projects/{project_id}/releases/dry-run")
+        assert dry_run_res.status_code == 200, dry_run_res.text
+        assert dry_run_res.json()["data"]["readinessSummary"]["ready"] is False
+
+        publish_res = await client.post(f"/api/v1/projects/{project_id}/releases/publish", json={})
+        assert publish_res.status_code == 409, publish_res.text
+        assert publish_res.json()["error"] == "PUBLISH_VALIDATION_FAILED"
+
+        root_uuid = decode_public_id(root_item_id)
+        assert await _published_graph_rows(workspace_id, [root_uuid]) == []
+        assert await _publish_artifact_rows(workspace_id, [root_uuid]) == []

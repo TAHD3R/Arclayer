@@ -16,7 +16,7 @@ function renderSearchDialog() {
   render(
     <>
       <div data-testid="content-library-article-editor-body">
-        <div aria-label="Article body">Hello world. Hello editor. A final hello.</div>
+        <div aria-label="Content body">Hello world. Hello editor. A final hello.</div>
       </div>
       <ContentLibraryArticleEditorSearchOverlay open onOpenChange={onOpenChange} />
     </>,

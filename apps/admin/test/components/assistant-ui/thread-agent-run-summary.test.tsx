@@ -16,11 +16,23 @@ const apiMock = vi.hoisted(() => ({
   ),
   resumeAIAgentRunForConversation: vi.fn(),
 }));
+const routerMock = vi.hoisted(() => ({
+  navigate: vi.fn(),
+}));
 
 vi.mock("@/api/ai", () => ({
   formatAIChatError: apiMock.formatAIChatError,
   resumeAIAgentRunForConversation: apiMock.resumeAIAgentRunForConversation,
 }));
+
+vi.mock("@tanstack/react-router", async () => {
+  const actual =
+    await vi.importActual<typeof import("@tanstack/react-router")>("@tanstack/react-router");
+  return {
+    ...actual,
+    useNavigate: () => routerMock.navigate,
+  };
+});
 
 vi.mock("@/components/ai/ai-composer-triggers", () => ({
   AIComposerTriggers: () => null,
@@ -153,6 +165,28 @@ vi.mock("react-i18next", () => ({
         "ai:AI_CHAT_QUEUE_LABEL": "Queued",
         "ai:AI_CHAT_QUEUE_REMOVE": "Remove queued message",
         "ai:AI_CHAT_QUEUE_RUN_NEXT": "Run this message next",
+        "ai:AI_WORKSPACE_ACTION_PROJECT_APP_ENTRY_BADGE": `Entry ${String(values?.path ?? "")}`,
+        "ai:AI_WORKSPACE_ACTION_PROJECT_CONTENT_ITEM_COUNT": `${String(
+          values?.count ?? 0,
+        )} content items`,
+        "ai:AI_WORKSPACE_ACTION_PROJECT_CONTENT_MODEL_COUNT": `${String(
+          values?.count ?? 0,
+        )} content models`,
+        "ai:AI_WORKSPACE_ACTION_PROJECT_CREATED_TITLE": "Workspace project created",
+        "ai:AI_WORKSPACE_ACTION_PROJECT_HOMEPAGE_BADGE": `Homepage: ${String(values?.title ?? "")}`,
+        "ai:AI_WORKSPACE_ACTION_PROJECT_OPEN_CONTENT_LIBRARY": "Content library",
+        "ai:AI_WORKSPACE_ACTION_PROJECT_OPEN_EDITOR": "Open editor",
+        "ai:AI_WORKSPACE_ACTION_PROJECT_OPEN_PROJECT_SETTINGS": "Project settings",
+        "ai:AI_WORKSPACE_ACTION_PROJECT_OPEN_RELEASES": "Releases",
+        "ai:AI_WORKSPACE_ACTION_PROJECT_OPEN_WEBSITE_CONTROL": "Website control",
+        "ai:AI_WORKSPACE_ACTION_PROJECT_RELEASE_BADGE": `Release ${String(values?.number ?? "")}`,
+        "ai:AI_WORKSPACE_ACTION_PROJECT_RELEASE_NOT_READY": "Release not ready",
+        "ai:AI_WORKSPACE_ACTION_PROJECT_RELEASE_READY": "Release ready",
+        "ai:AI_WORKSPACE_ACTION_PROJECT_ROUTE_BADGE": `Route ${String(values?.path ?? "")}`,
+        "ai:AI_WORKSPACE_ACTION_PROJECT_SOURCE_FILE_COUNT": `${String(
+          values?.count ?? 0,
+        )} source files`,
+        "ai:AI_WORKSPACE_ACTION_STATUS_COMPLETED": "Completed",
       };
       return labels[key] ?? key;
     },
@@ -169,6 +203,7 @@ describe("AgentRunSummary", () => {
     assistantUiMockState.steerQueueItem.mockClear();
     apiMock.formatAIChatError.mockClear();
     apiMock.resumeAIAgentRunForConversation.mockReset();
+    routerMock.navigate.mockClear();
   });
 
   it("renders failed agent run trace details from assistant metadata", () => {
@@ -220,6 +255,76 @@ describe("AgentRunSummary", () => {
     render(<AgentRunSummary />);
 
     expect(screen.queryByLabelText("Agent run status")).not.toBeInTheDocument();
+  });
+});
+
+describe("WorkspaceActionArtifact", () => {
+  beforeEach(() => {
+    assistantUiMockState.customMetadata = {};
+    assistantUiMockState.queueItems = [];
+    routerMock.navigate.mockClear();
+  });
+
+  it("renders project-created shortcuts into the site-builder workflow", async () => {
+    const user = userEvent.setup();
+    assistantUiMockState.customMetadata = {
+      workspaceAction: {
+        type: "workspace_project_created",
+        status: "completed",
+        project: {
+          id: "project-created",
+          name: "Enterprise Landing",
+          slug: "enterprise",
+          description: null,
+        },
+        summary: {
+          appEntryPath: "src/App.tsx",
+          contentItemCount: 1,
+          contentModelCount: 2,
+          domainHostname: "enterprise.arclayer.localhost",
+          editorPath: "/projects/project-created/editor",
+          homepageItemId: "item-home",
+          homepageTitle: "Homepage",
+          releaseNumber: 3,
+          releaseReady: true,
+          routePath: "/",
+          sourceFileCount: 4,
+        },
+        navigation: { label: "Project overview", path: "/projects/project-created" },
+      },
+    };
+
+    render(<Thread />);
+
+    expect(screen.getByText("Workspace project created")).toBeInTheDocument();
+    expect(screen.getByText("enterprise.arclayer.localhost")).toBeInTheDocument();
+    expect(screen.getByText("Release ready")).toBeInTheDocument();
+    expect(screen.getByText("Entry src/App.tsx")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Open editor/i }));
+    expect(routerMock.navigate).toHaveBeenLastCalledWith({
+      to: "/projects/project-created/editor",
+    });
+
+    await user.click(screen.getByRole("button", { name: /Website control/i }));
+    expect(routerMock.navigate).toHaveBeenLastCalledWith({
+      to: "/projects/project-created/website/domain",
+    });
+
+    await user.click(screen.getByRole("button", { name: /Content library/i }));
+    expect(routerMock.navigate).toHaveBeenLastCalledWith({
+      to: "/projects/project-created/content/library",
+    });
+
+    await user.click(screen.getByRole("button", { name: /Releases/i }));
+    expect(routerMock.navigate).toHaveBeenLastCalledWith({
+      to: "/projects/project-created/website/releases",
+    });
+
+    await user.click(screen.getByRole("button", { name: /Project settings/i }));
+    expect(routerMock.navigate).toHaveBeenLastCalledWith({
+      to: "/projects/project-created/settings/general",
+    });
   });
 });
 

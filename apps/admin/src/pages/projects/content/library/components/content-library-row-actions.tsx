@@ -27,6 +27,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arcla
 import { cn } from "@arclayer/lib/utils";
 
 import type { ContentLibraryTableRow } from "../types";
+import { isContentLibraryReusableSectionRow } from "../utils";
 
 export function ContentLibraryRowActions(props: {
   row: ContentLibraryTableRow;
@@ -53,9 +54,12 @@ export function ContentLibraryRowActions(props: {
   const canManageContent = props.canManageContent !== false;
   const openLabel = t("CONTENT_LIBRARY_ACTION_OPEN");
   const openTooltip = t("CONTENT_LIBRARY_ACTION_OPEN_ITEM");
+  const isReusableSection = isContentLibraryReusableSectionRow(props.row);
   const showWritingActions = props.row.editWith === "writing" || props.row.role === "article";
-  const showPageActions = props.row.editWith === "canvas" || props.row.role === "page";
-  const showStructuredActions = props.row.editWith === "structured";
+  const showPageActions =
+    !isReusableSection && (props.row.editWith === "canvas" || props.row.role === "page");
+  const showReusableSectionActions = isReusableSection;
+  const showStructuredActions = !isReusableSection && props.row.editWith === "structured";
   const archiveAction =
     props.row.derivedStatus === "archived"
       ? {
@@ -186,6 +190,34 @@ export function ContentLibraryRowActions(props: {
                 onSelect={() => props.onOpenPageSettings?.(props.row)}
               >
                 {t("CONTENT_LIBRARY_ACTION_PAGE_SETTINGS")}
+              </DropdownMenuIconItem>
+              <DropdownMenuSeparator />
+            </>
+          ) : null}
+          {showReusableSectionActions ? (
+            <>
+              {props.onOpenFullEditor ? (
+                <DropdownMenuIconItem
+                  icon={<ArrowUpRight className="size-4" />}
+                  disabled={props.pending || !canManageContent}
+                  onSelect={() => props.onOpenFullEditor?.(props.row)}
+                >
+                  {t("CONTENT_LIBRARY_ACTION_OPEN_STRUCTURED_EDITOR")}
+                </DropdownMenuIconItem>
+              ) : null}
+              <DropdownMenuIconItem
+                icon={<Braces className="size-4" />}
+                disabled={props.pending || !canManageContent}
+                onSelect={() => props.onOpenStructuredFields?.(props.row)}
+              >
+                {t("CONTENT_LIBRARY_ACTION_EDIT_FIELDS")}
+              </DropdownMenuIconItem>
+              <DropdownMenuIconItem
+                icon={<Eye className="size-4" />}
+                disabled={props.pending || !canManageContent}
+                onSelect={() => props.onEditVisibility?.(props.row)}
+              >
+                {t("CONTENT_LIBRARY_ACTION_EDIT_VISIBILITY")}
               </DropdownMenuIconItem>
               <DropdownMenuSeparator />
             </>

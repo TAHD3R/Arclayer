@@ -10,7 +10,7 @@ import pytest
 from src.common.types.json_types import JsonObject
 from src.config import get_settings
 from src.modules.projects.settings.service import ProjectSettingsService
-from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from src.settings.core_schema import CORE_SETTINGS_NAMESPACE, CORE_SETTINGS_SCHEMA
 from src.settings.scopes import SCOPE_TYPE_PROJECT
 
 
@@ -27,6 +27,21 @@ class _FakeSettingRecord:
 
 class _FakeConn:
     pass
+
+
+def test_project_core_settings_schema_declares_project_source_contract() -> None:
+    source_section = next(section for section in CORE_SETTINGS_SCHEMA.sections if section.id == "project_source")
+    fields = {field.key: field for field in source_section.fields}
+
+    assert fields["framework"].default == "react_vite"
+    assert [option.value for option in fields["framework"].options] == ["react_vite", "astro"]
+    assert fields["source_provider"].default == "managed"
+    assert [option.value for option in fields["source_provider"].options] == ["managed", "git"]
+    assert fields["package_manager"].default == "pnpm"
+    assert fields["root_directory"].default == "."
+    assert fields["build_command"].default == "pnpm build"
+    assert fields["output_directory"].default == "dist"
+    assert fields["artifact_strategy"].default == "object_storage"
 
 
 @pytest.mark.asyncio

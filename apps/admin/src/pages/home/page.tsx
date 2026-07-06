@@ -32,6 +32,7 @@ import {
   projectIdFromComposerDirective,
   sendAIWorkspaceActionMessage,
 } from "@/components/ai/ai-chat-runtime";
+import { invalidateAIWorkspaceActionQueries } from "@/components/ai/ai-workspace-action-cache";
 import {
   buildTextWithAIComposerDirectives,
   cleanAIComposerDirectiveText,
@@ -372,9 +373,9 @@ export function HomePage() {
   const hasRecentProjects = recentProjects.length > 0;
   const handleWorkspaceActionComplete = useCallback(
     (result: AIWorkspaceActionResponse | null) => {
-      void queryClient.invalidateQueries({ queryKey: ["home", "recent-projects"] });
-      void queryClient.invalidateQueries({ queryKey: ["projects"] });
-      void queryClient.invalidateQueries({ queryKey: ["scope-switcher", "projects"] });
+      void invalidateAIWorkspaceActionQueries(queryClient, result, {
+        fallbackProjectId: useWorkspaceStore.getState().currentProjectId,
+      });
       if (result?.action !== "create_project" || !result.project) return;
 
       if (result.project.workspaceId) {

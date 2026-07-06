@@ -1,4 +1,4 @@
-import { FolderTree, LayoutTemplate } from "lucide-react";
+import { Blocks, FolderTree, LayoutTemplate } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
@@ -14,9 +14,10 @@ import { ContentLibraryDetailSummaryStrip } from "./content-library-detail-summa
 import type { ContentLibraryTableRow } from "../types";
 import { ContentLibraryArticleEditorShell } from "../article-editor/components/content-library-article-editor-shell";
 import { useContentLibraryArticleEditor } from "../article-editor/hooks/use-content-library-article-editor";
+import { isContentLibraryReusableSectionRow } from "../utils";
 
 function ContentLibrarySummaryPreview(props: {
-  icon: "page" | "structured";
+  icon: "page" | "reusable" | "structured";
   row: ContentLibraryTableRow;
   title: string;
   description: string;
@@ -29,12 +30,15 @@ function ContentLibrarySummaryPreview(props: {
   className?: string;
 }) {
   const { t } = useTranslation("content");
-  const Icon = props.icon === "page" ? LayoutTemplate : FolderTree;
+  const Icon =
+    props.icon === "page" ? LayoutTemplate : props.icon === "reusable" ? Blocks : FolderTree;
   const summary =
     props.row.summary?.trim() ||
     (props.icon === "page"
       ? t("CONTENT_LIBRARY_ROW_SUMMARY_EMPTY_PAGE")
-      : t("CONTENT_LIBRARY_PREVIEW_SUMMARY_EMPTY_STRUCTURED"));
+      : props.icon === "reusable"
+        ? t("CONTENT_LIBRARY_PREVIEW_SUMMARY_EMPTY_REUSABLE")
+        : t("CONTENT_LIBRARY_PREVIEW_SUMMARY_EMPTY_STRUCTURED"));
 
   return (
     <aside
@@ -88,12 +92,16 @@ function ContentLibrarySummaryPreview(props: {
             <CardTitle>
               {props.icon === "page"
                 ? t("CONTENT_LIBRARY_PREVIEW_PAGE_NEXT_TITLE")
-                : t("CONTENT_LIBRARY_PREVIEW_STRUCTURED_NEXT_TITLE")}
+                : props.icon === "reusable"
+                  ? t("CONTENT_LIBRARY_PREVIEW_REUSABLE_NEXT_TITLE")
+                  : t("CONTENT_LIBRARY_PREVIEW_STRUCTURED_NEXT_TITLE")}
             </CardTitle>
             <CardDescription>
               {props.icon === "page"
                 ? t("CONTENT_LIBRARY_PREVIEW_PAGE_NEXT_DESC")
-                : t("CONTENT_LIBRARY_PREVIEW_STRUCTURED_NEXT_DESC")}
+                : props.icon === "reusable"
+                  ? t("CONTENT_LIBRARY_PREVIEW_REUSABLE_NEXT_DESC")
+                  : t("CONTENT_LIBRARY_PREVIEW_STRUCTURED_NEXT_DESC")}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
@@ -132,7 +140,7 @@ function ContentLibrarySummaryPreview(props: {
                 {t("CONTENT_LIBRARY_ACTION_PAGE_SETTINGS")}
               </Button>
             ) : null}
-            {props.icon === "structured" && props.onOpenStructuredFields ? (
+            {props.icon !== "page" && props.onOpenStructuredFields ? (
               <Button
                 type="button"
                 onClick={props.onOpenStructuredFields}
@@ -229,6 +237,21 @@ export function ContentLibraryPreviewPanel(props: {
       fallbackDescription: props.row.modelDescription,
       t,
     }) ?? t("CONTENT_TYPE_CATEGORY_DESC");
+
+  if (isContentLibraryReusableSectionRow(props.row)) {
+    return (
+      <ContentLibrarySummaryPreview
+        icon="reusable"
+        row={props.row}
+        title={contentTypeTitle}
+        description={contentTypeDescription}
+        readOnly={props.readOnly}
+        onEditVisibility={props.onEditVisibility}
+        onOpenStructuredFields={props.onOpenStructuredFields}
+        className={props.className}
+      />
+    );
+  }
 
   if (props.row.editWith === "canvas" || props.row.role === "page") {
     return (

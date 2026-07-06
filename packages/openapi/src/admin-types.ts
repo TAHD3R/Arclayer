@@ -372,6 +372,10 @@ export type WorkspaceManageTemplate = Generated.WorkspaceManageTemplate;
 export type ProjectPermissionAction = Generated.ProjectPermissionActionOut;
 export type ProjectSettingsDetail = Generated.ProjectSettingsDetail;
 export type ProjectSettingsPatch = Generated.ProjectSettingsPatch;
+export type ProjectSourceFileDelete = Generated.ProjectSourceFileDeleteOut;
+export type ProjectSourceFile = Generated.ProjectSourceFileOut;
+export type ProjectSourceFileUpsertInput = Generated.ProjectSourceFileUpsertIn;
+export type ProjectSourceManifest = Generated.ProjectSourceManifestOut;
 export type WorkspacePermissionAction = Omit<
   Generated.WorkspacePermissionActionOut,
   "permissionCodes" | "subjectKinds"
@@ -626,6 +630,12 @@ export type AdminContentVersion = Omit<
 };
 export type SaveAdminContentDraftVersionPayload = Generated.ContentVersionDraftSaveIn;
 export type PatchAdminContentVersionPayload = Generated.ContentVersionPatchIn;
+export type AdminContentRouteBinding = Generated.RouteBindingOut;
+export type UpsertAdminContentRouteBindingPayload = Generated.RouteBindingUpsertIn;
+export type AdminContentHierarchyNode = Generated.HierarchyNodeOut;
+export type UpsertAdminContentHierarchyNodePayload = Generated.HierarchyNodeUpsertIn;
+export type AdminContentComponentBinding = Generated.ContentComponentBindingOut;
+export type AdminContentComponentBindingList = Generated.ContentComponentBindingListOut;
 export type AdminContentSeoProfile = Generated.ContentSeoProfileOut;
 export type AdminPublishImpact = RequiredDefined<
   Generated.PublishReadinessOut,

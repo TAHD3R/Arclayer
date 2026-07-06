@@ -5,6 +5,7 @@ import { Button } from "@arclayer/ui/button";
 
 export function ContentLibraryNewContentButton(props: {
   onClick: () => void;
+  labelKey?: string;
   visible?: boolean;
   disabled?: boolean;
 }) {
@@ -14,7 +15,7 @@ export function ContentLibraryNewContentButton(props: {
   return (
     <Button size="lg" onClick={props.onClick} disabled={props.disabled}>
       <Plus className="size-4" aria-hidden="true" />
-      {t("CONTENT_LIBRARY_ACTION_NEW_CONTENT")}
+      {t(props.labelKey ?? "CONTENT_LIBRARY_ACTION_NEW_CONTENT")}
     </Button>
   );
 }

@@ -29,12 +29,38 @@ describe("resolveNotificationTarget", () => {
     expect(resolveNotificationTarget(makeNotification("/o/org-1/extensions"))).toBeNull();
   });
 
-  it("normalizes legacy workspace site settings to website content settings", () => {
+  it("normalizes legacy workspace site settings to website config settings", () => {
     expect(
       resolveNotificationTarget(makeNotification("/w/project-1/settings/site/basics")),
     ).toEqual({
       type: "navigate",
-      to: "/projects/project-1/content/general",
+      to: "/projects/project-1/seo/site",
+    });
+  });
+
+  it("normalizes legacy project domain targets to the website domain console", () => {
+    expect(resolveNotificationTarget(makeNotification("/w/project-1/settings/domain"))).toEqual({
+      type: "navigate",
+      to: "/projects/project-1/website/domain",
+    });
+    expect(
+      resolveNotificationTarget(makeNotification("/projects/project-1/content/domain")),
+    ).toEqual({
+      type: "navigate",
+      to: "/projects/project-1/website/domain",
+    });
+  });
+
+  it("normalizes legacy project deployment targets to website releases", () => {
+    expect(
+      resolveNotificationTarget(makeNotification("/projects/project-1/settings/deployments")),
+    ).toEqual({
+      type: "navigate",
+      to: "/projects/project-1/website/releases",
+    });
+    expect(resolveNotificationTarget(makeNotification("/w/project-1/deployments"))).toEqual({
+      type: "navigate",
+      to: "/projects/project-1/website/releases",
     });
   });
 });

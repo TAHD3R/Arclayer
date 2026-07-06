@@ -439,13 +439,13 @@ export function useContentLibraryArticleEditor(params: {
               params.itemId,
               currentVersionNumberRef.current,
               {
-                changeSummary: "Update article draft",
+                changeSummary: "Update content draft",
                 ...payload,
               },
             )
           : saveContentItemDraftVersion(params.projectId, params.itemId, {
               expectedVersion: currentVersionNumberRef.current,
-              changeSummary: "Update article draft",
+              changeSummary: "Update content draft",
               ...payload,
             });
 

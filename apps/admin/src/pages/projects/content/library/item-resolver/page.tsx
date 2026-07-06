@@ -30,6 +30,7 @@ import { ContentLibraryDetailSummaryStrip } from "../components/content-library-
 import { ContentLibraryArticleEditorPage } from "../article-editor/page";
 import { ContentSiteBuilderPage } from "../../site-builder/page";
 import { ContentStructuredSurfacePage } from "../../structured/page";
+import { isContentLibraryReusableSectionRow } from "../utils";
 
 function getContinuationSurfaceLabel(
   item: Pick<AdminContentItem, "resolvedSurface">,
@@ -263,6 +264,10 @@ export function ContentLibraryItemResolverPage(props: { projectId: string; itemI
   }
 
   if (intent?.surface === "structured") {
+    return <ContentStructuredSurfacePage projectId={props.projectId} item={item} />;
+  }
+
+  if (isContentLibraryReusableSectionRow(item)) {
     return <ContentStructuredSurfacePage projectId={props.projectId} item={item} />;
   }
 

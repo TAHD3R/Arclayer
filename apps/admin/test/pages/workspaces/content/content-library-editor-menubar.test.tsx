@@ -143,12 +143,13 @@ vi.mock(
   "@/pages/projects/content/library/article-editor/components/content-library-article-editor-export-dialog",
   () => ({
     ContentLibraryArticleEditorExportDialog: ({
+      defaultFilename,
       open,
     }: {
       defaultFilename: string;
       open: boolean;
       onOpenChange: (open: boolean) => void;
-    }) => (open ? <div>export-dialog-open</div> : null),
+    }) => (open ? <div>export-dialog-open:{defaultFilename}</div> : null),
   }),
 );
 
@@ -294,7 +295,31 @@ describe("content-library-editor-menubar", () => {
     expect(screen.getByText("import-dialog-open")).toBeInTheDocument();
 
     await user.click(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_EXPORT"));
-    expect(screen.getByText("export-dialog-open")).toBeInTheDocument();
+    expect(screen.getByText("export-dialog-open:launch-memo")).toBeInTheDocument();
+  });
+
+  it("uses content as the export filename fallback when title and slug are empty", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ContentLibraryArticleEditorMenuBar
+        itemTitle=" "
+        mode="page"
+        onDelete={vi.fn()}
+        onDuplicate={vi.fn()}
+        onImportDocument={vi.fn()}
+        onOpenSeo={vi.fn()}
+        onSlugChange={vi.fn()}
+        onVisibilityChange={vi.fn()}
+        slug=""
+        status="draft"
+        visibility="public"
+      />,
+    );
+
+    await user.click(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_EXPORT"));
+
+    expect(screen.getByText("export-dialog-open:content")).toBeInTheDocument();
   });
 
   it("filters menu items from the search input", async () => {

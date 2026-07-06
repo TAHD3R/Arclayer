@@ -34,7 +34,7 @@ export function ContentLibraryArticleEditorBody(props: {
       >
         <PlateFloatingToolbar />
         <Editor
-          aria-label="Article body"
+          aria-label="Content body"
           className={cn(
             "w-full overflow-visible text-label-primary placeholder:text-label-tertiary **:data-slate-placeholder:!top-1 **:data-slate-placeholder:!left-0 **:data-slate-placeholder:!translate-y-0 [&_.slate-blockWrapper]:overflow-visible",
             getContentLibraryArticleEditorBodyEditorClass(props.mode),

@@ -35,6 +35,11 @@ export type ContentLibraryArticleEditorSnapshot = {
   bodyPresentation: AdminContentPresentation | null;
 };
 
+export type ContentStructuredSurfaceSnapshot = {
+  draftVersion: AdminContentVersion | null;
+  publishedVersion: AdminContentVersion | null;
+};
+
 export type ContentLibraryArticleEditorSaveState = "hidden" | "saving" | "saved" | "error";
 
 export type ContentLibraryArticleEditorViewState = "draft" | "published" | "preview";
@@ -141,6 +146,13 @@ export function buildContentLibraryItemTranslationsQueryKey(
   return ["content-library-runtime", "item", projectId, itemId, "translations"] as const;
 }
 
+export function buildContentStructuredSurfaceSnapshotQueryKey(
+  projectId: string | null,
+  itemId: string | null,
+) {
+  return ["content-library-runtime", "item", projectId, itemId, "structured-snapshot"] as const;
+}
+
 export function loadContentLibraryItems(projectId: string): Promise<AdminContentItem[]> {
   return listAllContentItems(projectId);
 }
@@ -164,6 +176,25 @@ export function loadContentLibraryItemRuntime(
 
 export function loadContentLibraryItemTranslations(projectId: string, itemId: string) {
   return listContentItemTranslations(projectId, itemId);
+}
+
+export async function loadContentStructuredSurfaceSnapshot(
+  projectId: string,
+  item: AdminContentItem,
+): Promise<ContentStructuredSurfaceSnapshot> {
+  const [draftVersion, publishedVersion] = await Promise.all([
+    item.draftVersion > 0
+      ? getContentItemVersion(projectId, item.id, item.draftVersion)
+      : Promise.resolve(null),
+    item.publishedVersion
+      ? getContentItemVersion(projectId, item.id, item.publishedVersion)
+      : Promise.resolve(null),
+  ]);
+
+  return {
+    draftVersion,
+    publishedVersion,
+  };
 }
 
 export function loadContentLibraryVersionHistory(
