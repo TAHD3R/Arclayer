@@ -456,48 +456,13 @@ describe("ProjectEditorPage", () => {
     expect(screen.getAllByText("https://launch.example.com")).not.toHaveLength(0);
     expect(screen.getByText("G-LAUNCH1234")).toBeInTheDocument();
     expect(screen.getAllByText("src/arclayer/site-config.ts")).not.toHaveLength(0);
-    const readiness = screen.getByTestId("project-editor-readiness");
-    expect(screen.getByLabelText("account:PROJECT_EDITOR_READINESS_LABEL")).toBe(readiness);
-    expect(screen.getByText("account:PROJECT_EDITOR_READINESS_DOMAIN_LABEL")).toBeInTheDocument();
-    expect(screen.getByText("account:PROJECT_EDITOR_READINESS_CONFIG_LABEL")).toBeInTheDocument();
-    expect(screen.getByText("account:PROJECT_EDITOR_READINESS_CONTENT_LABEL")).toBeInTheDocument();
-    expect(screen.getByText("account:PROJECT_EDITOR_READINESS_RELEASE_LABEL")).toBeInTheDocument();
-    expect(screen.getByText("account:PROJECT_EDITOR_READINESS_SOURCE_LABEL")).toBeInTheDocument();
-    expect(screen.getAllByText("account:PROJECT_EDITOR_READINESS_STATE_READY")).toHaveLength(5);
+    expect(screen.queryByTestId("project-editor-readiness")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("account:PROJECT_EDITOR_READINESS_DOMAIN_LABEL"),
+    ).not.toBeInTheDocument();
     expect(screen.getAllByText("account:PROJECT_EDITOR_RELEASE_VALUE")).not.toHaveLength(0);
     expect(screen.getByText("account:PROJECT_EDITOR_RELEASE_READINESS_READY")).toBeInTheDocument();
-    const workflowLinks = screen.getByTestId("project-editor-workflow-links");
-    expect(screen.getByLabelText("account:PROJECT_EDITOR_WORKFLOW_LABEL")).toBe(workflowLinks);
-    expect(
-      within(workflowLinks).getByText("account:PROJECT_EDITOR_WORKFLOW_EDITOR"),
-    ).toBeInTheDocument();
-    expect(
-      within(workflowLinks).getByText("account:PROJECT_EDITOR_WORKFLOW_CONTENT"),
-    ).toBeInTheDocument();
-    expect(
-      within(workflowLinks).getByText("account:PROJECT_EDITOR_WORKFLOW_WEBSITE"),
-    ).toBeInTheDocument();
-    expect(
-      within(workflowLinks).getByText("account:PROJECT_EDITOR_WORKFLOW_CONFIG"),
-    ).toBeInTheDocument();
-    expect(
-      within(workflowLinks).getByText("account:PROJECT_EDITOR_WORKFLOW_SETTINGS"),
-    ).toBeInTheDocument();
-    expect(
-      within(workflowLinks).getByRole("link", { name: /PROJECT_EDITOR_WORKFLOW_EDITOR/ }),
-    ).toHaveAttribute("href", "/projects/project-1/editor");
-    expect(
-      within(workflowLinks).getByRole("link", { name: /PROJECT_EDITOR_WORKFLOW_CONTENT/ }),
-    ).toHaveAttribute("href", "/projects/project-1/content/library");
-    expect(
-      within(workflowLinks).getByRole("link", { name: /PROJECT_EDITOR_WORKFLOW_WEBSITE/ }),
-    ).toHaveAttribute("href", "/projects/project-1/website/domain");
-    expect(
-      within(workflowLinks).getByRole("link", { name: /PROJECT_EDITOR_WORKFLOW_CONFIG/ }),
-    ).toHaveAttribute("href", "/projects/project-1/website/config");
-    expect(
-      within(workflowLinks).getByRole("link", { name: /PROJECT_EDITOR_WORKFLOW_SETTINGS/ }),
-    ).toHaveAttribute("href", "/projects/project-1/settings/general");
+    expect(screen.queryByTestId("project-editor-workflow-links")).not.toBeInTheDocument();
     const siteStructure = screen.getByTestId("project-editor-site-structure");
     expect(
       within(siteStructure).getByText("account:PROJECT_EDITOR_SITE_STRUCTURE_TITLE"),
@@ -741,7 +706,9 @@ describe("ProjectEditorPage", () => {
       screen.getByRole("treeitem", { name: /index\.astro src\/pages\/index\.astro/ }),
     ).toHaveAttribute("aria-selected", "true");
     expect(await screen.findByText(/ReactIsland client:load/)).toBeInTheDocument();
-    expect(screen.getAllByText("account:PROJECT_EDITOR_READINESS_STATE_READY")).toHaveLength(5);
+    expect(
+      screen.queryByText("account:PROJECT_EDITOR_READINESS_STATE_READY"),
+    ).not.toBeInTheDocument();
     expect(getProjectSourceFileMock).toHaveBeenCalledWith("project-1", "src/pages/index.astro");
   });
 

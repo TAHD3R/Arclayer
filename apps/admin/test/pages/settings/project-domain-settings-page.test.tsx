@@ -275,23 +275,8 @@ describe("ProjectDomainSettingsPage", () => {
     expect(screen.getByTestId("website-control-release-card")).toHaveTextContent(
       "WEBSITE_CONTROL_RELEASE_SELECTION_COUNT:4",
     );
-    expect(screen.getByTestId("website-control-workflow-panel")).toHaveTextContent(
-      "WEBSITE_CONTROL_WORKFLOW_TITLE",
-    );
-    expect(screen.getByText("WEBSITE_CONTROL_WORKFLOW_LINK_EDITOR")).toBeInTheDocument();
-    expect(screen.getByText("WEBSITE_CONTROL_WORKFLOW_LINK_CONTENT")).toBeInTheDocument();
-    expect(screen.getByText("WEBSITE_CONTROL_WORKFLOW_LINK_CONFIG")).toBeInTheDocument();
-    expect(screen.getByText("WEBSITE_CONTROL_WORKFLOW_LINK_RELEASES")).toBeInTheDocument();
-    expect(
-      Array.from(screen.getByTestId("website-control-workflow-links").querySelectorAll("a")).map(
-        (link) => link.getAttribute("href"),
-      ),
-    ).toEqual([
-      "/projects/project-1/editor",
-      "/projects/project-1/content/library",
-      "/projects/project-1/website/config",
-      "/projects/project-1/website/releases",
-    ]);
+    expect(screen.queryByTestId("website-control-workflow-panel")).not.toBeInTheDocument();
+    expect(screen.queryByText("WEBSITE_CONTROL_WORKFLOW_LINK_EDITOR")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /WEBSITE_CONTROL_OPEN_WEBSITE_CONFIG/ }));
     expect(navigateMock).toHaveBeenCalledWith({

@@ -2,16 +2,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowRight,
-  BookOpen,
   CheckCheck,
   Globe,
   type LucideIcon,
   LoaderCircle,
-  Monitor,
   Palette,
   Plus,
   Rocket,
-  Settings2,
   ShieldAlert,
   ShieldCheck,
   Trash2,
@@ -173,50 +170,6 @@ function formatReleaseTitle(release: AdminRelease | null, fallback: string): str
 
 type WebsiteReadinessState = "ready" | "pending" | "blocked";
 
-type WebsiteControlWorkflowLink = {
-  description: string;
-  href: string;
-  icon: LucideIcon;
-  id: string;
-  label: string;
-};
-
-function buildWebsiteControlWorkflowLinks(
-  projectId: string,
-  t: (key: string) => string,
-): WebsiteControlWorkflowLink[] {
-  return [
-    {
-      description: t("WEBSITE_CONTROL_WORKFLOW_LINK_EDITOR_DESC"),
-      href: `/projects/${projectId}/editor`,
-      icon: Monitor,
-      id: "editor",
-      label: t("WEBSITE_CONTROL_WORKFLOW_LINK_EDITOR"),
-    },
-    {
-      description: t("WEBSITE_CONTROL_WORKFLOW_LINK_CONTENT_DESC"),
-      href: `/projects/${projectId}/content/library`,
-      icon: BookOpen,
-      id: "content-library",
-      label: t("WEBSITE_CONTROL_WORKFLOW_LINK_CONTENT"),
-    },
-    {
-      description: t("WEBSITE_CONTROL_WORKFLOW_LINK_CONFIG_DESC"),
-      href: `/projects/${projectId}/website/config`,
-      icon: Settings2,
-      id: "website-config",
-      label: t("WEBSITE_CONTROL_WORKFLOW_LINK_CONFIG"),
-    },
-    {
-      description: t("WEBSITE_CONTROL_WORKFLOW_LINK_RELEASES_DESC"),
-      href: `/projects/${projectId}/website/releases`,
-      icon: Rocket,
-      id: "releases",
-      label: t("WEBSITE_CONTROL_WORKFLOW_LINK_RELEASES"),
-    },
-  ];
-}
-
 function WebsiteReadinessItem(props: {
   label: string;
   detail: string;
@@ -361,58 +314,6 @@ function WebsiteControlCard(props: {
         <ArrowRight size={15} />
       </Button>
     </div>
-  );
-}
-
-function WebsiteControlWorkflowPanel(props: { links: readonly WebsiteControlWorkflowLink[] }) {
-  const { t } = useTranslation("account");
-  return (
-    <section
-      aria-label={t("WEBSITE_CONTROL_WORKFLOW_LABEL")}
-      className="grid gap-4 rounded-lg border border-border bg-background px-4 py-4"
-      data-testid="website-control-workflow-panel"
-    >
-      <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-caption font-medium uppercase tracking-normal text-label-tertiary">
-            <Globe size={14} />
-            {t("WEBSITE_CONTROL_WORKFLOW_EYEBROW")}
-          </div>
-          <h2 className="mt-2 text-headline font-semibold text-label-primary">
-            {t("WEBSITE_CONTROL_WORKFLOW_TITLE")}
-          </h2>
-          <p className="mt-1 max-w-3xl text-footnote text-label-secondary">
-            {t("WEBSITE_CONTROL_WORKFLOW_DESC")}
-          </p>
-        </div>
-      </div>
-      <nav
-        aria-label={t("WEBSITE_CONTROL_WORKFLOW_LINKS_LABEL")}
-        className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4"
-        data-testid="website-control-workflow-links"
-      >
-        {props.links.map((link) => {
-          const Icon = link.icon;
-          return (
-            <a
-              key={link.id}
-              href={link.href}
-              className="flex min-w-0 items-start gap-2 rounded-md border border-border bg-card px-3 py-3 text-left transition-colors hover:bg-muted"
-            >
-              <Icon className="mt-0.5 size-4 shrink-0 text-label-secondary" aria-hidden="true" />
-              <span className="min-w-0">
-                <span className="block truncate text-footnote font-medium text-label-primary">
-                  {link.label}
-                </span>
-                <span className="mt-1 line-clamp-2 block text-caption1 text-label-secondary">
-                  {link.description}
-                </span>
-              </span>
-            </a>
-          );
-        })}
-      </nav>
-    </section>
   );
 }
 
@@ -707,10 +608,6 @@ export function ProjectDomainSettingsPage(props: { projectId: string; embedded?:
     [projectCoreQuery.data],
   );
   const brandReadiness = useMemo(() => resolveBrandReadiness(websiteConfig), [websiteConfig]);
-  const workflowLinks = useMemo(
-    () => buildWebsiteControlWorkflowLinks(props.projectId, t),
-    [props.projectId, t],
-  );
   const permissionReady = permissionAccess.authzQuery.isFetched;
   const canManageDomains =
     Boolean(props.projectId) &&
@@ -764,7 +661,6 @@ export function ProjectDomainSettingsPage(props: { projectId: string; embedded?:
             dryRun={releaseDryRunMutation.data ?? null}
             dryRunPending={releaseDryRunMutation.isPending}
           />
-          <WebsiteControlWorkflowPanel links={workflowLinks} />
           <div className="grid gap-4 xl:grid-cols-3">
             <WebsiteControlCard
               icon={Globe}

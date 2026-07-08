@@ -35470,7 +35470,7 @@ export type ExternalContentApiSitesResolveSiteByHostData = {
         /**
          * Host
          *
-         * Request host (e.g. philipcole.arclayer.app, localhost:3100).
+         * Request host (e.g. launch.arclayer.localhost, localhost:3100).
          */
         host?: string | null;
     };

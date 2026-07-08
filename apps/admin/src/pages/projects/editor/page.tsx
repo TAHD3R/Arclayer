@@ -9,7 +9,6 @@ import {
   Globe,
   Monitor,
   RefreshCw,
-  type LucideIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -79,24 +78,6 @@ type ProjectEditorSourceTreeNode = {
 type ProjectEditorSourceKind = NonNullable<ProjectSourceManifest["sourceKind"]>;
 type ProjectEditorSourceFramework = NonNullable<ProjectSourceManifest["framework"]>;
 
-type ProjectEditorReadinessState = "ready" | "attention";
-
-type ProjectEditorReadinessItem = {
-  description: string;
-  id: string;
-  label: string;
-  state: ProjectEditorReadinessState;
-  value: string;
-};
-
-type ProjectEditorWorkflowLink = {
-  href: string;
-  icon: LucideIcon;
-  id: string;
-  label: string;
-  value: string;
-};
-
 type ProjectEditorRuntimeBindingItem = {
   description: string;
   id: string;
@@ -132,49 +113,6 @@ type ProjectEditorBlueprintSummary = Pick<
   ProjectEditorHomePageSnapshot,
   "blueprintNodeCount" | "blueprintNodeTypes" | "blueprintRootId"
 >;
-
-function buildProjectEditorWorkflowLinks(
-  projectId: string,
-  t: (key: string) => string,
-): ProjectEditorWorkflowLink[] {
-  return [
-    {
-      href: `/projects/${projectId}/editor`,
-      icon: Monitor,
-      id: "editor",
-      label: t("account:PROJECT_EDITOR_WORKFLOW_EDITOR"),
-      value: `/projects/${projectId}/editor`,
-    },
-    {
-      href: `/projects/${projectId}/content/library`,
-      icon: FileCode2,
-      id: "content",
-      label: t("account:PROJECT_EDITOR_WORKFLOW_CONTENT"),
-      value: `/projects/${projectId}/content/library`,
-    },
-    {
-      href: `/projects/${projectId}/website/domain`,
-      icon: Globe,
-      id: "website",
-      label: t("account:PROJECT_EDITOR_WORKFLOW_WEBSITE"),
-      value: `/projects/${projectId}/website/domain`,
-    },
-    {
-      href: `/projects/${projectId}/website/config`,
-      icon: GitBranch,
-      id: "config",
-      label: t("account:PROJECT_EDITOR_WORKFLOW_CONFIG"),
-      value: `/projects/${projectId}/website/config`,
-    },
-    {
-      href: `/projects/${projectId}/settings/general`,
-      icon: Code2,
-      id: "settings",
-      label: t("account:PROJECT_EDITOR_WORKFLOW_SETTINGS"),
-      value: `/projects/${projectId}/settings/general`,
-    },
-  ];
-}
 
 function normalizePreviewUrl(hostname: string | null): string | null {
   return toOpenableProjectDomainUrl(hostname);
@@ -555,140 +493,6 @@ function resolveProjectEditorSiteOutline(
   };
 }
 
-function buildProjectEditorReadiness(input: {
-  contentSummary: ProjectEditorContentSummary;
-  previewUrl: string | null;
-  releaseSnapshot: ProjectEditorReleaseSnapshot;
-  siteOutline: ProjectEditorSiteOutline;
-  sourceFramework: ProjectEditorSourceFramework | null;
-  sourceFiles: readonly ProjectSourceFile[];
-  t: (key: string, options?: Record<string, unknown>) => string;
-}): ProjectEditorReadinessItem[] {
-  const hasAppEntry = selectSourceEntryFile(input.sourceFiles, input.sourceFramework) !== null;
-  const hasSiteConfig = Boolean(input.siteOutline.configPath);
-  const sourceFileCount = input.sourceFiles.length;
-
-  return [
-    {
-      id: "domain",
-      label: input.t("account:PROJECT_EDITOR_READINESS_DOMAIN_LABEL"),
-      description: input.t("account:PROJECT_EDITOR_READINESS_DOMAIN_DESC"),
-      state: input.previewUrl ? "ready" : "attention",
-      value: input.previewUrl ?? input.t("account:PROJECT_EDITOR_NO_DOMAIN"),
-    },
-    {
-      id: "config",
-      label: input.t("account:PROJECT_EDITOR_READINESS_CONFIG_LABEL"),
-      description: input.t("account:PROJECT_EDITOR_READINESS_CONFIG_DESC"),
-      state: hasSiteConfig ? "ready" : "attention",
-      value: input.siteOutline.configPath ?? input.t("account:PROJECT_EDITOR_SOURCE_NO_FILE"),
-    },
-    {
-      id: "content",
-      label: input.t("account:PROJECT_EDITOR_READINESS_CONTENT_LABEL"),
-      description: input.t("account:PROJECT_EDITOR_READINESS_CONTENT_DESC"),
-      state: input.contentSummary.sitePages > 0 ? "ready" : "attention",
-      value: input.t("account:PROJECT_EDITOR_READINESS_CONTENT_VALUE", {
-        count: input.contentSummary.sitePages,
-      }),
-    },
-    {
-      id: "release",
-      label: input.t("account:PROJECT_EDITOR_READINESS_RELEASE_LABEL"),
-      description: input.t("account:PROJECT_EDITOR_READINESS_RELEASE_DESC"),
-      state: input.releaseSnapshot.activeRelease ? "ready" : "attention",
-      value: input.releaseSnapshot.activeRelease
-        ? input.t("account:PROJECT_EDITOR_RELEASE_VALUE", {
-            count: input.releaseSnapshot.activeRelease.releaseNumber,
-          })
-        : input.t("account:PROJECT_EDITOR_RELEASE_EMPTY"),
-    },
-    {
-      id: "source",
-      label: input.t("account:PROJECT_EDITOR_READINESS_SOURCE_LABEL"),
-      description: input.t("account:PROJECT_EDITOR_READINESS_SOURCE_DESC"),
-      state: hasAppEntry && sourceFileCount > 0 ? "ready" : "attention",
-      value: input.t("account:PROJECT_EDITOR_READINESS_SOURCE_VALUE", {
-        count: sourceFileCount,
-      }),
-    },
-  ];
-}
-
-function ProjectEditorReadinessStrip(props: {
-  items: readonly ProjectEditorReadinessItem[];
-  t: (key: string, options?: Record<string, unknown>) => string;
-}) {
-  const stateClassName: Record<ProjectEditorReadinessState, string> = {
-    attention: "border-amber-500/30 bg-amber-500/6 text-amber-700 dark:text-amber-300",
-    ready: "border-positive/30 bg-positive/5 text-positive",
-  };
-
-  return (
-    <section
-      aria-label={props.t("account:PROJECT_EDITOR_READINESS_LABEL")}
-      className="grid gap-2 rounded-lg border border-border bg-card px-3 py-3 md:grid-cols-2 xl:grid-cols-5"
-      data-testid="project-editor-readiness"
-    >
-      {props.items.map((item) => (
-        <div
-          key={item.id}
-          className="min-w-0 rounded-md border border-border bg-background px-3 py-3"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <p className="truncate text-caption font-semibold text-label-primary">{item.label}</p>
-            <span
-              className={`shrink-0 rounded-sm border px-2 py-0.5 text-caption2 font-medium ${stateClassName[item.state]}`}
-            >
-              {props.t(`account:PROJECT_EDITOR_READINESS_STATE_${item.state.toUpperCase()}`)}
-            </span>
-          </div>
-          <p className="mt-2 truncate text-footnote font-medium text-label-primary">{item.value}</p>
-          <p className="mt-1 line-clamp-2 text-caption1 text-label-secondary">{item.description}</p>
-        </div>
-      ))}
-    </section>
-  );
-}
-
-function ProjectEditorWorkflowLinks(props: {
-  links: readonly ProjectEditorWorkflowLink[];
-  t: (key: string) => string;
-}) {
-  return (
-    <section
-      aria-label={props.t("account:PROJECT_EDITOR_WORKFLOW_LABEL")}
-      className="rounded-lg border border-border bg-card px-3 py-3"
-      data-testid="project-editor-workflow-links"
-    >
-      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-5">
-        {props.links.map((link) => {
-          const Icon = link.icon;
-          return (
-            <a
-              key={link.id}
-              href={link.href}
-              className="group flex min-w-0 items-center gap-3 rounded-md border border-border bg-background px-3 py-2.5 transition-colors hover:bg-muted"
-            >
-              <span className="grid size-8 shrink-0 place-items-center rounded-md border border-border bg-card text-label-secondary group-hover:text-label-primary">
-                <Icon size={15} />
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-footnote font-semibold text-label-primary">
-                  {link.label}
-                </span>
-                <span className="block truncate text-caption2 text-label-secondary">
-                  {link.value}
-                </span>
-              </span>
-            </a>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
 function buildProjectEditorRuntimeBindings(input: {
   releaseSnapshot: ProjectEditorReleaseSnapshot;
   siteOutline: ProjectEditorSiteOutline;
@@ -1014,19 +818,6 @@ export function ProjectEditorPage(props: { projectId: string }) {
     }),
     [componentBindingsQuery.data, hierarchyNodesQuery.data, routeBindingsQuery.data],
   );
-  const readinessItems = useMemo(
-    () =>
-      buildProjectEditorReadiness({
-        contentSummary,
-        previewUrl,
-        releaseSnapshot,
-        siteOutline,
-        sourceFramework,
-        sourceFiles,
-        t,
-      }),
-    [contentSummary, previewUrl, releaseSnapshot, siteOutline, sourceFiles, sourceFramework, t],
-  );
   const runtimeBindings = useMemo(
     () =>
       buildProjectEditorRuntimeBindings({
@@ -1036,10 +827,6 @@ export function ProjectEditorPage(props: { projectId: string }) {
         t,
       }),
     [releaseSnapshot, siteOutline, sourceFiles, t],
-  );
-  const workflowLinks = useMemo(
-    () => buildProjectEditorWorkflowLinks(props.projectId, t),
-    [props.projectId, t],
   );
   const selectedSourceFile = useMemo(
     () =>
@@ -1180,10 +967,6 @@ export function ProjectEditorPage(props: { projectId: string }) {
               {t("common:REFRESH")}
             </Button>
           </div>
-
-          <ProjectEditorReadinessStrip items={readinessItems} t={t} />
-
-          <ProjectEditorWorkflowLinks links={workflowLinks} t={t} />
 
           <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
             <div

@@ -16,7 +16,12 @@ import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { BaseTag } from "@/components/ui/tags";
+import {
+  SystemSettingItem,
+  SystemSettingStack,
+} from "@/pages/system/components/system-setting-item";
 import { Button } from "@arclayer/ui/button";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
 import { Input } from "@arclayer/ui/input";
 import { Textarea } from "@arclayer/ui/textarea";
 import type { ApiKeyCreateOut, ApiKeyOut, DeliveryKeyPerspective } from "@arclayer/openapi";
@@ -157,7 +162,7 @@ function ApiKeyRow(props: {
             disabled={props.pending}
             onClick={() => props.onCopyMask(props.item.tokenMask)}
           >
-            <Copy size={16} />
+            <Copy data-icon="inline-start" />
             {t("SETTINGS_PROJECT_API_KEYS_COPY_MASK")}
           </Button>
           <Button
@@ -167,7 +172,7 @@ function ApiKeyRow(props: {
             disabled={props.pending || Boolean(props.item.revokedAt)}
             onClick={() => props.onRotate(props.item.id)}
           >
-            <RefreshCw size={16} />
+            <RefreshCw data-icon="inline-start" />
             {t("SETTINGS_PROJECT_API_KEYS_ROTATE")}
           </Button>
           <Button
@@ -177,7 +182,7 @@ function ApiKeyRow(props: {
             disabled={props.pending || Boolean(props.item.revokedAt)}
             onClick={() => props.onRevoke(props.item.id)}
           >
-            <Trash2 size={16} />
+            <Trash2 data-icon="inline-start" />
             {t("SETTINGS_PROJECT_API_KEYS_REVOKE")}
           </Button>
         </div>
@@ -343,78 +348,87 @@ export function ProjectApiKeysSettingsPage(props: { projectId: string; embedded?
             {t("account:SETTINGS_PROJECT_READ_ONLY_DESC")}
           </div>
         ) : null}
-        <div className="grid gap-6">
+        <SystemSettingStack>
           <SecretRevealPanel reveal={secretReveal} onDismiss={() => setSecretReveal(null)} />
 
-          <form
-            className="rounded-[28px] border border-border/60 bg-card/60 p-5"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (!name.trim() || !canManageApiKeys) return;
-              void createMutation.mutateAsync();
-            }}
+          <SystemSettingItem
+            id="project-api-key-create"
+            title={t("account:SETTINGS_PROJECT_API_KEYS_CREATE_TITLE")}
+            description={t("account:SETTINGS_PROJECT_API_KEYS_CREATE_DESC")}
           >
-            <div className="flex flex-wrap items-start gap-3">
-              <div className="flex size-10 items-center justify-center rounded-2xl border border-border/60 bg-background/80">
-                <KeyRound size={18} className="text-muted-foreground" />
-              </div>
-              <div className="max-w-2xl">
-                <div className="text-sm font-semibold text-foreground">
-                  {t("account:SETTINGS_PROJECT_API_KEYS_CREATE_TITLE")}
-                </div>
-                <div className="mt-1 text-sm text-muted-foreground">
-                  {t("account:SETTINGS_PROJECT_API_KEYS_CREATE_DESC")}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto] lg:items-start">
-              <Input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder={t("account:SETTINGS_PROJECT_API_KEYS_NAME_PLACEHOLDER")}
-                autoComplete="off"
-                disabled={!canManageApiKeys}
-              />
-              <Textarea
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                placeholder={t("account:SETTINGS_PROJECT_API_KEYS_DESC_PLACEHOLDER")}
-                className="min-h-24"
-                disabled={!canManageApiKeys}
-              />
-              <Button
-                type="submit"
-                loading={createMutation.isPending}
-                disabled={!name.trim() || !canManageApiKeys}
-                className="lg:self-start"
-              >
-                {t("account:SETTINGS_PROJECT_API_KEYS_CREATE_ACTION")}
-              </Button>
-            </div>
-          </form>
-
-          <div className="grid gap-3" data-testid="project-api-keys-settings-list">
-            {sortedItems.length > 0 ? (
-              sortedItems.map((item) => (
-                <ApiKeyRow
-                  key={item.id}
-                  item={item}
-                  reveal={secretReveal}
-                  pending={pending || !canManageApiKeys}
-                  onCopyMask={(value) => void handleCopyMask(value)}
-                  onRotate={(keyId) => void rotateMutation.mutateAsync(keyId)}
-                  onRevoke={(keyId) => void revokeMutation.mutateAsync(keyId)}
-                  formatDateTime={(value) => formatDateTime(value, { includeTime: true })}
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (!name.trim() || !canManageApiKeys) return;
+                void createMutation.mutateAsync();
+              }}
+            >
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto] lg:items-start">
+                <Input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder={t("account:SETTINGS_PROJECT_API_KEYS_NAME_PLACEHOLDER")}
+                  autoComplete="off"
+                  disabled={!canManageApiKeys}
                 />
-              ))
-            ) : (
-              <div className="rounded-[28px] border border-dashed border-border/70 bg-background/80 px-5 py-8 text-sm text-muted-foreground">
-                {t("account:SETTINGS_PROJECT_API_KEYS_EMPTY")}
+                <Textarea
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  placeholder={t("account:SETTINGS_PROJECT_API_KEYS_DESC_PLACEHOLDER")}
+                  className="min-h-24"
+                  disabled={!canManageApiKeys}
+                />
+                <Button
+                  type="submit"
+                  loading={createMutation.isPending}
+                  disabled={!name.trim() || !canManageApiKeys}
+                  className="lg:self-start"
+                >
+                  <KeyRound data-icon="inline-start" />
+                  {t("account:SETTINGS_PROJECT_API_KEYS_CREATE_ACTION")}
+                </Button>
               </div>
+            </form>
+          </SystemSettingItem>
+
+          <SystemSettingItem
+            id="project-api-keys"
+            title={t("account:SETTINGS_NAV_PROJECT_API_KEYS")}
+            description={t("account:SETTINGS_PROJECT_API_KEYS_DESC")}
+          >
+            {sortedItems.length > 0 ? (
+              <div className="grid gap-3" data-testid="project-api-keys-settings-list">
+                {sortedItems.map((item) => (
+                  <ApiKeyRow
+                    key={item.id}
+                    item={item}
+                    reveal={secretReveal}
+                    pending={pending || !canManageApiKeys}
+                    onCopyMask={(value) => void handleCopyMask(value)}
+                    onRotate={(keyId) => void rotateMutation.mutateAsync(keyId)}
+                    onRevoke={(keyId) => void revokeMutation.mutateAsync(keyId)}
+                    formatDateTime={(value) => formatDateTime(value, { includeTime: true })}
+                  />
+                ))}
+              </div>
+            ) : (
+              <Empty
+                className="min-h-56 border border-dashed border-border bg-background"
+                data-testid="project-api-keys-settings-list"
+              >
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <KeyRound />
+                  </EmptyMedia>
+                  <EmptyTitle className="text-title3">
+                    {t("account:SETTINGS_PROJECT_API_KEYS_EMPTY")}
+                  </EmptyTitle>
+                  <EmptyDescription>{t("account:SETTINGS_PROJECT_API_KEYS_DESC")}</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
             )}
-          </div>
-        </div>
+          </SystemSettingItem>
+        </SystemSettingStack>
       </div>
     </ContentGuard>
   );

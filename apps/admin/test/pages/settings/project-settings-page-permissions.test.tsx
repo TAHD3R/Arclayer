@@ -242,12 +242,9 @@ describe("ProjectSettingsPage permission consumption", () => {
       0,
     );
     expect(screen.getByTestId("project-icon-action")).toBeDisabled();
-    expect(screen.getByTestId("accordion-project_name")).toHaveAttribute("data-disabled", "true");
-    expect(screen.getByTestId("accordion-project_slug")).toHaveAttribute("data-disabled", "true");
-    expect(screen.getByTestId("accordion-project_description")).toHaveAttribute(
-      "data-disabled",
-      "true",
-    );
+    expect(screen.getByTestId("project-name-input")).toBeDisabled();
+    expect(screen.getByTestId("project-slug-input")).toBeDisabled();
+    expect(screen.getByTestId("project-description-input")).toBeDisabled();
   });
 
   it("keeps project settings controls closed while permissions warm up", async () => {
@@ -257,12 +254,9 @@ describe("ProjectSettingsPage permission consumption", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("project-icon-action")).toBeDisabled();
-      expect(screen.getByTestId("accordion-project_name")).toHaveAttribute("data-disabled", "true");
-      expect(screen.getByTestId("accordion-project_slug")).toHaveAttribute("data-disabled", "true");
-      expect(screen.getByTestId("accordion-project_description")).toHaveAttribute(
-        "data-disabled",
-        "true",
-      );
+      expect(screen.getByTestId("project-name-input")).toBeDisabled();
+      expect(screen.getByTestId("project-slug-input")).toBeDisabled();
+      expect(screen.getByTestId("project-description-input")).toBeDisabled();
     });
     expect(screen.queryByText("account:SETTINGS_PROJECT_READ_ONLY_DESC")).not.toBeInTheDocument();
   });
@@ -300,7 +294,7 @@ describe("ProjectSettingsPage permission consumption", () => {
     renderWithQuery(<ProjectSettingsPage activeTab="general" projectId="project-1" />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("accordion-project_name")).toBeInTheDocument();
+      expect(screen.getByTestId("project-name-input")).toBeInTheDocument();
     });
     expect(screen.queryByDisplayValue("pnpm build")).not.toBeInTheDocument();
     expect(screen.queryByTestId("project-source-framework-evaluation")).not.toBeInTheDocument();

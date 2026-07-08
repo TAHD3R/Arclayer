@@ -204,27 +204,10 @@ describe("ProjectReleasesPage", () => {
     expect(
       screen.getByText("account:SETTINGS_PROJECT_RELEASES_HISTORY_COUNT:2"),
     ).toBeInTheDocument();
-    expect(screen.getByTestId("project-releases-workflow-panel")).toHaveTextContent(
-      "SETTINGS_PROJECT_RELEASES_WORKFLOW_TITLE",
-    );
-    expect(screen.getByText("SETTINGS_PROJECT_RELEASES_WORKFLOW_LINK_EDITOR")).toBeInTheDocument();
-    expect(screen.getByText("SETTINGS_PROJECT_RELEASES_WORKFLOW_LINK_CONTENT")).toBeInTheDocument();
+    expect(screen.queryByTestId("project-releases-workflow-panel")).not.toBeInTheDocument();
     expect(
-      screen.getByText("SETTINGS_PROJECT_RELEASES_WORKFLOW_LINK_WEBSITE_CONTROL"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("SETTINGS_PROJECT_RELEASES_WORKFLOW_LINK_WEBSITE_CONFIG"),
-    ).toBeInTheDocument();
-    expect(
-      Array.from(screen.getByTestId("project-releases-workflow-links").querySelectorAll("a")).map(
-        (link) => link.getAttribute("href"),
-      ),
-    ).toEqual([
-      "/projects/project-1/editor",
-      "/projects/project-1/content/library",
-      "/projects/project-1/website/domain",
-      "/projects/project-1/website/config",
-    ]);
+      screen.queryByText("SETTINGS_PROJECT_RELEASES_WORKFLOW_LINK_EDITOR"),
+    ).not.toBeInTheDocument();
   });
 
   it("publishes a new website release", async () => {

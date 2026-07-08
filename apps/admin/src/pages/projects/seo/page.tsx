@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { BarChart3 } from "lucide-react";
 
 import { getProjectCoreSettings, patchProjectCoreSettings } from "@/api/settings";
 import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
@@ -18,8 +19,17 @@ import {
   SystemSettingStack,
 } from "@/pages/system/components/system-setting-item";
 import type { JsonValueInput } from "@arclayer/openapi/admin-types";
+import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { Switch } from "@arclayer/ui/switch";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@arclayer/ui/empty";
 
 type GoogleAnalyticsFormValues = {
   enabled: boolean;
@@ -78,7 +88,6 @@ export function ProjectGoogleAnalyticsPage(props: { projectId: string }) {
   const runtimeReady = Boolean(
     values.enabled && validateGoogleAnalyticsMeasurementId(normalizedMeasurementId),
   );
-
   useEffect(() => {
     if (!projectCoreQuery.data) return;
     if (form.formState.isDirty) return;
@@ -106,6 +115,8 @@ export function ProjectGoogleAnalyticsPage(props: { projectId: string }) {
     permissionAccess.authzQuery.isFetched && permissionAccess.actionsQuery.isFetched;
   const canManageSettings =
     permissionReady && permissionAccess.hasAction("project:settings:manage");
+  const showSetupEmptyState =
+    !initialValues.enabled && !initialValues.measurementId && !dirty && permissionReady;
   const disabled = projectCoreQuery.isFetching || patchMutation.isPending || !canManageSettings;
   const measurementIdError = form.formState.errors.measurementId?.message ?? null;
   const loadError = projectCoreQuery.isError
@@ -162,6 +173,33 @@ export function ProjectGoogleAnalyticsPage(props: { projectId: string }) {
           />
         ) : null}
         <SystemSettingStack>
+          {showSetupEmptyState ? (
+            <Empty className="min-h-72 border border-dashed border-border bg-background">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <BarChart3 className="size-6" />
+                </EmptyMedia>
+                <EmptyTitle className="text-title3">
+                  {t("account:PROJECT_SEO_GOOGLE_ANALYTICS_EMPTY_TITLE")}
+                </EmptyTitle>
+                <EmptyDescription className="text-footnote">
+                  {t("account:PROJECT_SEO_GOOGLE_ANALYTICS_EMPTY_DESC")}
+                </EmptyDescription>
+              </EmptyHeader>
+              {canManageSettings ? (
+                <EmptyContent>
+                  <Button
+                    type="button"
+                    onClick={() =>
+                      document.getElementById("google-analytics-measurement-id")?.focus()
+                    }
+                  >
+                    {t("account:PROJECT_SEO_GOOGLE_ANALYTICS_EMPTY_ACTION")}
+                  </Button>
+                </EmptyContent>
+              ) : null}
+            </Empty>
+          ) : null}
           <SystemSettingItem
             id="google-analytics"
             title={t("nav:NAV_GOOGLE_ANALYTICS")}
@@ -202,6 +240,7 @@ export function ProjectGoogleAnalyticsPage(props: { projectId: string }) {
                 }
               >
                 <Input
+                  id="google-analytics-measurement-id"
                   {...form.register("measurementId")}
                   disabled={disabled}
                   placeholder="G-XXXXXXXXXX"

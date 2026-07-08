@@ -363,70 +363,13 @@ describe("content model builder", () => {
       within(summary).getByText("content:CONTENT_MODELS_BLUEPRINT_METRIC_PUBLISHABLE"),
     ).toBeInTheDocument();
     expect(
-      within(summary).getByRole("list", {
+      within(summary).queryByRole("list", {
         name: "content:CONTENT_MODELS_WORKFLOW_LABEL",
       }),
-    ).toBeInTheDocument();
+    ).not.toBeInTheDocument();
     expect(
-      within(summary).getByText("content:CONTENT_MODELS_WORKFLOW_PAGE_MODEL_LABEL"),
-    ).toBeInTheDocument();
-    expect(
-      within(summary).getByText("content:CONTENT_MODELS_WORKFLOW_VISUAL_LABEL"),
-    ).toBeInTheDocument();
-    expect(
-      within(summary).getByText("content:CONTENT_MODELS_WORKFLOW_PUBLISH_LABEL"),
-    ).toBeInTheDocument();
-    expect(
-      within(summary).getByText("content:CONTENT_MODELS_WORKFLOW_AI_LABEL"),
-    ).toBeInTheDocument();
-    expect(
-      within(summary).getByText("content:CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_TITLE"),
-    ).toBeInTheDocument();
-    expect(
-      within(summary).getByText("content:CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_DESC"),
-    ).toBeInTheDocument();
-    const aiContractList = within(summary).getByTestId("content-models-ai-contract-list");
-    expect(
-      within(aiContractList).getByText(
-        "content:CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_STABLE_KEYS_TITLE",
-      ),
-    ).toBeInTheDocument();
-    expect(
-      within(aiContractList).getByText(
-        "content:CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_FIELD_SCHEMA_TITLE",
-      ),
-    ).toBeInTheDocument();
-    expect(
-      within(aiContractList).getByText(
-        "content:CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_ROUTE_SURFACE_TITLE",
-      ),
-    ).toBeInTheDocument();
-    expect(
-      within(aiContractList).getByText(
-        "content:CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_RELEASE_SOURCE_TITLE",
-      ),
-    ).toBeInTheDocument();
-    const workflowLinks = within(summary).getByTestId("content-models-workflow-links");
-    expect(
-      within(workflowLinks).getByRole("link", {
-        name: "content:CONTENT_MODELS_WORKFLOW_LINK_EDITOR",
-      }),
-    ).toHaveAttribute("href", "/projects/project-1/editor");
-    expect(
-      within(workflowLinks).getByRole("link", {
-        name: "content:CONTENT_MODELS_WORKFLOW_LINK_CONTENT_LIBRARY",
-      }),
-    ).toHaveAttribute("href", "/projects/project-1/content/library");
-    expect(
-      within(workflowLinks).getByRole("link", {
-        name: "content:CONTENT_MODELS_WORKFLOW_LINK_WEBSITE_CONTROL",
-      }),
-    ).toHaveAttribute("href", "/projects/project-1/website/domain");
-    expect(
-      within(workflowLinks).getByRole("link", {
-        name: "content:CONTENT_MODELS_WORKFLOW_LINK_WEBSITE_CONFIG",
-      }),
-    ).toHaveAttribute("href", "/projects/project-1/website/config");
+      within(summary).queryByText("content:CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_TITLE"),
+    ).not.toBeInTheDocument();
     expect(within(summary).getAllByText("1")).toHaveLength(2);
     expect(within(summary).getByText("2")).toBeInTheDocument();
     expect(within(summary).getByText("3")).toBeInTheDocument();

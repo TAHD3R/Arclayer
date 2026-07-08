@@ -1,29 +1,18 @@
-import { useMemo, useState, type ReactNode } from "react";
 import { Controller, useWatch } from "react-hook-form";
 import { Globe2, Search, Share2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { JsonValueInput } from "@arclayer/openapi/admin-types";
-import { Button } from "@arclayer/ui/button";
-import {
-  Drawer,
-  DrawerBody,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from "@arclayer/ui/drawer";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@arclayer/ui/field";
 import { Input } from "@arclayer/ui/input";
-import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { Textarea } from "@arclayer/ui/textarea";
 
 import { SettingSwitchBlock } from "@/components/settings/setting-switch-block";
 import { isValidEmail } from "@/lib/settings/general/utils";
 import {
+  SystemSettingField,
+  SystemSettingFooterActions,
   SystemSettingItem,
-  SystemSettingRow,
   SystemSettingStack,
 } from "@/pages/system/components/system-setting-item";
 import type {
@@ -35,8 +24,6 @@ import { getFieldErrorMessage } from "../form-helpers";
 import { LocalizedStringDictField } from "./localized-string-dict-field";
 import { SiteBrandAssetSettingRow } from "./site-brand-asset-accordion-item";
 import {
-  formatSummaryText,
-  formatTitlePolicySummary,
   normalizeLocalizedStringMapForSave,
   normalizeOptionalString,
   normalizeTitlePolicyForSave,
@@ -169,128 +156,6 @@ function renderTitlePolicy(input: {
   return title || input.siteName || input.pageTitle;
 }
 
-function SettingEditRow(props: {
-  title: ReactNode;
-  description?: ReactNode;
-  summary: ReactNode;
-  disabled?: boolean;
-  onEdit: () => void;
-}) {
-  const { t } = useTranslation(["settings", "common"]);
-  return (
-    <SystemSettingRow
-      title={props.title}
-      description={props.description}
-      control={
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={props.disabled}
-          onClick={props.onEdit}
-        >
-          {t("settings:SETTINGS_EDIT")}
-        </Button>
-      }
-    >
-      <div className="break-words text-callout text-label-secondary">{props.summary}</div>
-    </SystemSettingRow>
-  );
-}
-
-function SaveDialog(props: {
-  open: boolean;
-  title: ReactNode;
-  description?: ReactNode;
-  disabled?: boolean;
-  pending?: boolean;
-  resetPending?: boolean;
-  showReset?: boolean;
-  children: ReactNode;
-  onOpenChange: (open: boolean) => void;
-  onReset?: () => void;
-  onSave: () => void;
-}) {
-  const { t } = useTranslation(["settings"]);
-  return (
-    <SettingDialog
-      open={props.open}
-      onOpenChange={props.onOpenChange}
-      title={props.title}
-      description={props.description}
-      footer={
-        <>
-          {props.showReset && props.onReset ? (
-            <Button
-              type="button"
-              variant="outline"
-              loading={props.resetPending}
-              disabled={props.disabled || props.pending || props.resetPending}
-              onClick={props.onReset}
-            >
-              {t("settings:SETTINGS_RESET")}
-            </Button>
-          ) : null}
-          <Button
-            type="button"
-            loading={props.pending}
-            disabled={props.disabled || props.pending || props.resetPending}
-            onClick={props.onSave}
-          >
-            {t("settings:SETTINGS_SAVE")}
-          </Button>
-        </>
-      }
-    >
-      {props.children}
-    </SettingDialog>
-  );
-}
-
-function DiscoveryPreviewDrawer(props: {
-  description: string;
-  faviconUrl: string;
-  indexingAllowed: boolean;
-  open: boolean;
-  publicUrl: string;
-  siteName: string;
-  socialImageUrl: string;
-  title: string;
-  onOpenChange: (open: boolean) => void;
-}) {
-  const { t } = useTranslation(["settings"]);
-  return (
-    <Drawer direction="right" open={props.open} onOpenChange={props.onOpenChange}>
-      <DrawerContent className="sm:max-w-xl">
-        <DrawerHeader>
-          <DrawerTitle>{t("settings:SETTINGS_SITE_DISCOVERY_DRAWER_TITLE")}</DrawerTitle>
-          <DrawerDescription>{t("settings:SETTINGS_SITE_DISCOVERY_DRAWER_DESC")}</DrawerDescription>
-        </DrawerHeader>
-        <DrawerBody className="flex max-w-none flex-col gap-5">
-          <SearchResultMockup
-            title={props.title}
-            description={props.description}
-            publicUrl={props.publicUrl}
-            faviconUrl={props.faviconUrl}
-            indexingAllowed={props.indexingAllowed}
-          />
-          <SocialPreviewMockup
-            title={props.siteName}
-            description={props.description}
-            publicUrl={props.publicUrl}
-            imageUrl={props.socialImageUrl}
-          />
-        </DrawerBody>
-        <DrawerFooter>
-          <Button type="button" variant="outline" onClick={() => props.onOpenChange(false)}>
-            {t("common:CLOSE")}
-          </Button>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
-  );
-}
-
 function SearchResultMockup(props: {
   description: string;
   faviconUrl: string;
@@ -389,25 +254,19 @@ function BrowserDiscoveryMockup(props: {
   title: string;
 }) {
   const { t } = useTranslation(["settings"]);
-  const [drawerOpen, setDrawerOpen] = useState(false);
   return (
-    <>
-      <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="min-w-0">
-            <div className="text-headline font-semibold text-label-primary">
-              {t("settings:SETTINGS_SITE_DISCOVERY_PREVIEW_TITLE")}
-            </div>
-            <div className="mt-1 text-callout text-label-secondary">
-              {props.indexingAllowed
-                ? t("settings:SETTINGS_SITE_SEARCH_DISCOVERY_INDEXING_ALLOWED")
-                : t("settings:SETTINGS_SITE_SEARCH_DISCOVERY_INDEXING_BLOCKED")}
-            </div>
-          </div>
-          <Button type="button" variant="outline" size="sm" onClick={() => setDrawerOpen(true)}>
-            {t("settings:SETTINGS_SITE_DISCOVERY_PREVIEW_OPEN")}
-          </Button>
+    <div className="flex flex-col gap-4">
+      <div className="min-w-0">
+        <div className="text-headline font-semibold text-label-primary">
+          {t("settings:SETTINGS_SITE_DISCOVERY_PREVIEW_TITLE")}
         </div>
+        <div className="mt-1 text-callout text-label-secondary">
+          {props.indexingAllowed
+            ? t("settings:SETTINGS_SITE_SEARCH_DISCOVERY_INDEXING_ALLOWED")
+            : t("settings:SETTINGS_SITE_SEARCH_DISCOVERY_INDEXING_BLOCKED")}
+        </div>
+      </div>
+      <div className="grid gap-4">
         <SearchResultMockup
           title={props.title}
           description={props.description}
@@ -415,26 +274,20 @@ function BrowserDiscoveryMockup(props: {
           faviconUrl={props.faviconUrl}
           indexingAllowed={props.indexingAllowed}
         />
+        <SocialPreviewMockup
+          title={props.siteName}
+          description={props.description}
+          publicUrl={props.publicUrl}
+          imageUrl={props.socialImageUrl}
+        />
       </div>
-      <DiscoveryPreviewDrawer
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
-        title={props.title}
-        description={props.description}
-        publicUrl={props.publicUrl}
-        faviconUrl={props.faviconUrl}
-        socialImageUrl={props.socialImageUrl}
-        siteName={props.siteName}
-        indexingAllowed={props.indexingAllowed}
-      />
-    </>
+    </div>
   );
 }
 
 export function SiteSettingsTab(props: SiteSettingsTabProps) {
   const { disabled, form, initialValues, patch, savingKey, withSavingKey } = props;
   const { t } = useTranslation(["settings", "setup", "common"]);
-  const [dialog, setDialog] = useState<string | null>(null);
   const watchedValues = useWatch({ control: form.control }) as Partial<GeneralSettingsFormValues>;
   const values = { ...initialValues, ...watchedValues };
 
@@ -508,111 +361,106 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
     form.clearErrors([rawName, dictName]);
   };
 
-  const closeDialog = () => setDialog(null);
+  const siteIdentityDirty =
+    isSiteNameDirty ||
+    isSiteSubtitleDirty ||
+    isSiteDescriptionDirty ||
+    isSiteUrlDirty ||
+    isSupportInboxDirty;
+  const browserDiscoveryDirty = isTitlePolicyDirty || isSearchDiscoveryDirty;
 
-  const saveSiteName = () =>
-    withSavingKey("siteName", async () => {
+  const resetSiteIdentity = () => {
+    form.setValue("siteName", initialValues.siteName, { shouldDirty: false });
+    form.setValue("siteNameI18nEnabled", initialValues.siteNameI18nEnabled, {
+      shouldDirty: false,
+    });
+    form.setValue("siteNameI18n", initialValues.siteNameI18n, { shouldDirty: false });
+    form.setValue("siteSubtitle", initialValues.siteSubtitle, { shouldDirty: false });
+    form.setValue("siteDescription", initialValues.siteDescription, { shouldDirty: false });
+    form.setValue("siteDescriptionI18nEnabled", initialValues.siteDescriptionI18nEnabled, {
+      shouldDirty: false,
+    });
+    form.setValue("siteDescriptionI18n", initialValues.siteDescriptionI18n, {
+      shouldDirty: false,
+    });
+    form.setValue("siteUrl", initialValues.siteUrl, { shouldDirty: false });
+    form.setValue("siteContactEmail", initialValues.siteContactEmail, { shouldDirty: false });
+    form.clearErrors([
+      "siteName",
+      "siteNameI18n",
+      "siteSubtitle",
+      "siteDescription",
+      "siteDescriptionI18n",
+      "siteUrl",
+      "siteContactEmail",
+    ]);
+  };
+
+  const resetBrowserDiscovery = () => {
+    form.setValue("seoTitlePolicy", initialValues.seoTitlePolicy, { shouldDirty: false });
+    form.setValue("seoIndexingEnabled", initialValues.seoIndexingEnabled, { shouldDirty: false });
+    form.setValue("seoSitemapEnabled", initialValues.seoSitemapEnabled, { shouldDirty: false });
+    form.clearErrors("seoTitlePolicy");
+  };
+
+  const saveSiteIdentity = () =>
+    withSavingKey("siteIdentity", async () => {
       const nextLocale = String(form.getValues("defaultLocale") || values.defaultLocale).trim();
-      if (!form.getValues("siteNameI18nEnabled")) {
-        const nextName = String(form.getValues("siteName") || "").trim();
-        if (!nextName) {
-          form.setError("siteName", {
+      const siteNameI18nEnabled = Boolean(form.getValues("siteNameI18nEnabled"));
+      const siteDescriptionI18nEnabled = Boolean(form.getValues("siteDescriptionI18nEnabled"));
+      const subtitle = String(form.getValues("siteSubtitle") || "");
+      const url = String(form.getValues("siteUrl") || "").trim();
+      const contactEmail = String(form.getValues("siteContactEmail") || "").trim();
+
+      let name = String(form.getValues("siteName") || "").trim();
+      let nameI18n: Record<string, string> | null = null;
+      if (siteNameI18nEnabled) {
+        const nextMap = normalizeLocalizedStringMapForSave(form.getValues("siteNameI18n") || {});
+        const resolvedName = resolveDefaultLocaleValue(nextMap, nextLocale);
+        if (!resolvedName) {
+          form.setError("siteNameI18n", {
             type: "validate",
-            message: t("setup:SETUP_VALIDATION_SITE_NAME_REQUIRED"),
+            message: t("settings:SETTINGS_I18N_VALIDATION_DEFAULT_REQUIRED"),
           });
           throw new Error("FORM_VALIDATION_FAILED");
         }
-        form.clearErrors(["siteName", "siteNameI18n"]);
-        await patch(
-          Object.assign({}, buildDefaultLocalePatch(nextLocale, initialValues.defaultLocale), {
-            site: { name: nextName, name_i18n: null },
-          }),
-        );
-        closeDialog();
-        return;
-      }
-
-      const nextMap = normalizeLocalizedStringMapForSave(form.getValues("siteNameI18n") || {});
-      const resolvedName = resolveDefaultLocaleValue(nextMap, nextLocale);
-      if (!resolvedName) {
-        form.setError("siteNameI18n", {
+        name = resolvedName;
+        nameI18n = nextMap;
+        form.setValue("siteNameI18n", nextMap, { shouldDirty: true });
+        form.setValue("siteName", resolvedName, { shouldDirty: true });
+      } else if (!name) {
+        form.setError("siteName", {
           type: "validate",
-          message: t("settings:SETTINGS_I18N_VALIDATION_DEFAULT_REQUIRED"),
+          message: t("setup:SETUP_VALIDATION_SITE_NAME_REQUIRED"),
         });
         throw new Error("FORM_VALIDATION_FAILED");
       }
-      form.setValue("siteNameI18n", nextMap, { shouldDirty: true });
-      form.setValue("siteName", resolvedName, { shouldDirty: true });
-      form.clearErrors(["siteName", "siteNameI18n"]);
-      await patch(
-        Object.assign({}, buildDefaultLocalePatch(nextLocale, initialValues.defaultLocale), {
-          site: { name: resolvedName, name_i18n: nextMap },
-        }),
-      );
-      closeDialog();
-    });
 
-  const saveSiteSubtitle = () =>
-    withSavingKey("siteSubtitle", async () => {
-      const nextValue = String(form.getValues("siteSubtitle") || "");
-      if (nextValue.length > TAGLINE_MAX_LENGTH) {
+      let description = String(form.getValues("siteDescription") || "");
+      let descriptionI18n: Record<string, string> | null = null;
+      if (siteDescriptionI18nEnabled) {
+        const nextMap = normalizeLocalizedStringMapForSave(
+          form.getValues("siteDescriptionI18n") || {},
+        );
+        description = resolveDefaultLocaleValue(nextMap, nextLocale) || description;
+        descriptionI18n = Object.keys(nextMap).length ? nextMap : null;
+        form.setValue("siteDescriptionI18n", nextMap, { shouldDirty: true });
+      } else if (description.length > DESCRIPTION_MAX_LENGTH) {
+        form.setError("siteDescription", {
+          type: "validate",
+          message: t("setup:SETUP_VALIDATION_SITE_DESC_MAX"),
+        });
+        throw new Error("FORM_VALIDATION_FAILED");
+      }
+
+      if (subtitle.length > TAGLINE_MAX_LENGTH) {
         form.setError("siteSubtitle", {
           type: "validate",
           message: t("setup:SETUP_VALIDATION_SITE_DESC_MAX"),
         });
         throw new Error("FORM_VALIDATION_FAILED");
       }
-      form.clearErrors("siteSubtitle");
-      await patch({ site: { subtitle: normalizeOptionalString(nextValue) } });
-      closeDialog();
-    });
-
-  const saveSiteDescription = () =>
-    withSavingKey("siteDescription", async () => {
-      const nextLocale = String(form.getValues("defaultLocale") || values.defaultLocale).trim();
-      if (!form.getValues("siteDescriptionI18nEnabled")) {
-        const nextValue = String(form.getValues("siteDescription") || "");
-        if (nextValue.length > DESCRIPTION_MAX_LENGTH) {
-          form.setError("siteDescription", {
-            type: "validate",
-            message: t("setup:SETUP_VALIDATION_SITE_DESC_MAX"),
-          });
-          throw new Error("FORM_VALIDATION_FAILED");
-        }
-        form.clearErrors(["siteDescription", "siteDescriptionI18n"]);
-        await patch(
-          Object.assign({}, buildDefaultLocalePatch(nextLocale, initialValues.defaultLocale), {
-            site: {
-              description: normalizeOptionalString(nextValue),
-              description_i18n: null,
-            },
-          }),
-        );
-        closeDialog();
-        return;
-      }
-
-      const nextMap = normalizeLocalizedStringMapForSave(
-        form.getValues("siteDescriptionI18n") || {},
-      );
-      const resolved = resolveDefaultLocaleValue(nextMap, nextLocale);
-      form.setValue("siteDescriptionI18n", nextMap, { shouldDirty: true });
-      form.clearErrors(["siteDescription", "siteDescriptionI18n"]);
-      await patch(
-        Object.assign({}, buildDefaultLocalePatch(nextLocale, initialValues.defaultLocale), {
-          site: {
-            description: normalizeOptionalString(resolved || form.getValues("siteDescription")),
-            description_i18n: Object.keys(nextMap).length ? nextMap : null,
-          },
-        }),
-      );
-      closeDialog();
-    });
-
-  const saveSiteUrl = () =>
-    withSavingKey("siteUrl", async () => {
-      const nextValue = String(form.getValues("siteUrl") || "").trim();
-      if (!nextValue) {
+      if (!url) {
         form.setError("siteUrl", {
           type: "validate",
           message: t("setup:SETUP_VALIDATION_SITE_URL_REQUIRED"),
@@ -620,9 +468,10 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
         throw new Error("FORM_VALIDATION_FAILED");
       }
       try {
-        const url = new URL(nextValue);
-        if (url.protocol !== "http:" && url.protocol !== "https:")
+        const parsedUrl = new URL(url);
+        if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
           throw new Error("INVALID_PROTOCOL");
+        }
       } catch {
         form.setError("siteUrl", {
           type: "validate",
@@ -630,28 +479,39 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
         });
         throw new Error("FORM_VALIDATION_FAILED");
       }
-      form.clearErrors("siteUrl");
-      await patch({ site: { url: nextValue } });
-      closeDialog();
-    });
-
-  const saveSupportInbox = () =>
-    withSavingKey("siteContactEmail", async () => {
-      const nextValue = String(form.getValues("siteContactEmail") || "").trim();
-      if (nextValue && !isValidEmail(nextValue)) {
+      if (contactEmail && !isValidEmail(contactEmail)) {
         form.setError("siteContactEmail", {
           type: "validate",
           message: t("settings:SETTINGS_VALIDATION_EMAIL_INVALID"),
         });
         throw new Error("FORM_VALIDATION_FAILED");
       }
-      form.clearErrors("siteContactEmail");
-      await patch({ site: { contact_email: normalizeOptionalString(nextValue) } });
-      closeDialog();
+
+      form.clearErrors([
+        "siteName",
+        "siteNameI18n",
+        "siteSubtitle",
+        "siteDescription",
+        "siteDescriptionI18n",
+        "siteUrl",
+        "siteContactEmail",
+      ]);
+      await patch({
+        ...buildDefaultLocalePatch(nextLocale, initialValues.defaultLocale),
+        site: {
+          name,
+          name_i18n: nameI18n,
+          subtitle: normalizeOptionalString(subtitle),
+          description: normalizeOptionalString(description),
+          description_i18n: descriptionI18n,
+          url,
+          contact_email: normalizeOptionalString(contactEmail),
+        },
+      });
     });
 
-  const saveTitlePattern = () =>
-    withSavingKey("seoTitlePolicy", async () => {
+  const saveBrowserDiscovery = () =>
+    withSavingKey("browserDiscovery", async () => {
       try {
         const next = normalizeTitlePolicyForSave(
           form.getValues("seoTitlePolicy") ?? initialValues.seoTitlePolicy,
@@ -659,8 +519,15 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
         );
         form.setValue("seoTitlePolicy", next, { shouldDirty: true });
         form.clearErrors("seoTitlePolicy");
-        await patch({ seo: { title_policy_v1: toApiTitlePolicy(next) } });
-        closeDialog();
+        const indexingEnabled = Boolean(form.getValues("seoIndexingEnabled"));
+        const sitemapEnabled = Boolean(form.getValues("seoSitemapEnabled"));
+        await patch({
+          seo: {
+            title_policy_v1: toApiTitlePolicy(next),
+            robots_directive: indexingEnabled ? "index,follow" : "noindex,nofollow",
+            sitemap_enabled: sitemapEnabled,
+          },
+        });
       } catch (error) {
         form.setError("seoTitlePolicy", {
           type: "validate",
@@ -673,302 +540,58 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
       }
     });
 
-  const saveSearchDiscovery = () =>
-    withSavingKey("seoSearchDiscovery", async () => {
-      const indexingEnabled = Boolean(form.getValues("seoIndexingEnabled"));
-      const sitemapEnabled = Boolean(form.getValues("seoSitemapEnabled"));
-      await patch({
-        seo: {
-          robots_directive: indexingEnabled ? "index,follow" : "noindex,nofollow",
-          sitemap_enabled: sitemapEnabled,
-        },
-      });
-      closeDialog();
-    });
-
-  const resetSiteName = () =>
-    withSavingKey("reset:siteName", async () => {
-      form.setValue("siteName", initialValues.siteName, { shouldDirty: false });
-      form.setValue("siteNameI18nEnabled", initialValues.siteNameI18nEnabled, {
-        shouldDirty: false,
-      });
-      form.setValue("siteNameI18n", initialValues.siteNameI18n, { shouldDirty: false });
-      form.clearErrors(["siteName", "siteNameI18n"]);
-      await patch({
-        site: {
-          name: initialValues.siteName,
-          name_i18n: initialValues.siteNameI18nEnabled ? initialValues.siteNameI18n : null,
-        },
-      });
-      closeDialog();
-    });
-
-  const resetSiteDescription = () =>
-    withSavingKey("reset:siteDescription", async () => {
-      form.setValue("siteDescription", initialValues.siteDescription, { shouldDirty: false });
-      form.setValue("siteDescriptionI18nEnabled", initialValues.siteDescriptionI18nEnabled, {
-        shouldDirty: false,
-      });
-      form.setValue("siteDescriptionI18n", initialValues.siteDescriptionI18n, {
-        shouldDirty: false,
-      });
-      form.clearErrors(["siteDescription", "siteDescriptionI18n"]);
-      await patch({
-        site: {
-          description: normalizeOptionalString(initialValues.siteDescription),
-          description_i18n: initialValues.siteDescriptionI18nEnabled
-            ? initialValues.siteDescriptionI18n
-            : null,
-        },
-      });
-      closeDialog();
-    });
-
-  const resetSimpleSiteField = (
-    key: "siteSubtitle" | "siteUrl" | "siteContactEmail",
-    patchBody: Record<string, JsonValueInput>,
-  ) =>
-    withSavingKey(`reset:${key}`, async () => {
-      form.setValue(key, initialValues[key], { shouldDirty: false });
-      form.clearErrors(key);
-      await patch(patchBody);
-      closeDialog();
-    });
-
-  const resetTitlePolicy = () =>
-    withSavingKey("reset:seoTitlePolicy", async () => {
-      form.setValue("seoTitlePolicy", initialValues.seoTitlePolicy, { shouldDirty: false });
-      form.clearErrors("seoTitlePolicy");
-      await patch({ seo: { title_policy_v1: toApiTitlePolicy(initialValues.seoTitlePolicy) } });
-      closeDialog();
-    });
-
-  const resetSearchDiscovery = () =>
-    withSavingKey("reset:seoSearchDiscovery", async () => {
-      form.setValue("seoIndexingEnabled", initialValues.seoIndexingEnabled, { shouldDirty: false });
-      form.setValue("seoSitemapEnabled", initialValues.seoSitemapEnabled, { shouldDirty: false });
-      await patch({
-        seo: {
-          robots_directive: initialValues.seoIndexingEnabled ? "index,follow" : "noindex,nofollow",
-          sitemap_enabled: initialValues.seoSitemapEnabled,
-        },
-      });
-      closeDialog();
-    });
-
-  const siteIdentitySummary = useMemo(
-    () => formatSummaryText(effectiveSiteName),
-    [effectiveSiteName],
-  );
-
   return (
-    <>
-      <SystemSettingStack>
-        <SystemSettingItem
-          id="website-identity"
-          title={t("settings:SETTINGS_SITE_BASICS_IDENTITY_PANEL_TITLE")}
-          description={t("settings:SETTINGS_SITE_BASICS_IDENTITY_PANEL_DESC")}
-        >
-          <div className="flex flex-col divide-y divide-border">
-            <SettingEditRow
-              title={t("settings:SETTINGS_SITE_NAME_LABEL")}
-              description={t("settings:SETTINGS_SITE_NAME_DESC")}
-              summary={siteIdentitySummary}
-              disabled={disabled}
-              onEdit={() => setDialog("siteName")}
-            />
-            <SettingEditRow
-              title={t("settings:SETTINGS_SITE_SUBTITLE_LABEL")}
-              description={t("settings:SETTINGS_SITE_SUBTITLE_DESC")}
-              summary={formatSummaryText(values.siteSubtitle)}
-              disabled={disabled}
-              onEdit={() => setDialog("siteSubtitle")}
-            />
-            <SettingEditRow
-              title={t("settings:SETTINGS_SITE_DESCRIPTION_LABEL")}
-              description={t("settings:SETTINGS_SITE_DESCRIPTION_DESC")}
-              summary={formatSummaryText(effectiveSiteDescription)}
-              disabled={disabled}
-              onEdit={() => setDialog("siteDescription")}
-            />
-            <SettingEditRow
-              title={t("settings:SETTINGS_SITE_PUBLIC_URL_LABEL")}
-              description={t("settings:SETTINGS_SITE_PUBLIC_URL_DESC")}
-              summary={formatSummaryText(values.siteUrl)}
-              disabled={disabled}
-              onEdit={() => setDialog("siteUrl")}
-            />
-            <SettingEditRow
-              title={t("settings:SETTINGS_SITE_CONTACT_EMAIL_LABEL")}
-              description={t("settings:SETTINGS_SITE_CONTACT_EMAIL_DESC")}
-              summary={formatSummaryText(values.siteContactEmail)}
-              disabled={disabled}
-              onEdit={() => setDialog("siteContactEmail")}
-            />
-          </div>
-        </SystemSettingItem>
-
-        <SystemSettingItem
-          id="website-browser"
-          title={t("settings:SETTINGS_SITE_BASICS_BROWSER_PANEL_TITLE")}
-          description={t("settings:SETTINGS_SITE_BASICS_BROWSER_PANEL_DESC")}
-        >
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)]">
-            <div className="flex min-w-0 flex-col divide-y divide-border">
-              <SiteBrandAssetSettingRow
-                assetField="siteLogoAssetId"
-                currentAssetId={values.siteLogoAssetId}
-                currentUrl={values.siteLogoUrl}
-                description={t("settings:SETTINGS_SITE_LOGO_DESC")}
-                disabled={disabled}
-                fieldKey="site_logo"
-                form={form}
-                initialAssetId={initialValues.siteLogoAssetId}
-                initialUrl={initialValues.siteLogoUrl}
-                patch={patch}
-                patchField="logo"
-                removeAriaLabel={t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
-                resetKey="reset:siteLogoUrl"
-                saveKey="siteLogoUrl"
-                savingKey={savingKey}
-                title={t("settings:SETTINGS_SITE_LOGO_LABEL")}
-                uploadAriaLabel={t("settings:SETTINGS_ASSET_PICKER_SELECT")}
-                uploadPurpose="site_logo"
-                withSavingKey={withSavingKey}
-                assetProjectId={props.assetProjectId}
-                urlField="siteLogoUrl"
-              />
-              <SiteBrandAssetSettingRow
-                assetField="siteFaviconAssetId"
-                currentAssetId={values.siteFaviconAssetId}
-                currentUrl={values.siteFaviconUrl}
-                description={t("settings:SETTINGS_SITE_FAVICON_DESC")}
-                disabled={disabled}
-                fieldKey="site_favicon"
-                form={form}
-                initialAssetId={initialValues.siteFaviconAssetId}
-                initialUrl={initialValues.siteFaviconUrl}
-                patch={patch}
-                patchField="favicon"
-                removeAriaLabel={t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
-                resetKey="reset:siteFaviconUrl"
-                saveKey="siteFaviconUrl"
-                savingKey={savingKey}
-                title={t("settings:SETTINGS_SITE_FAVICON_LABEL")}
-                uploadAriaLabel={t("settings:SETTINGS_ASSET_PICKER_SELECT")}
-                uploadPurpose="favicon"
-                withSavingKey={withSavingKey}
-                assetProjectId={props.assetProjectId}
-                urlField="siteFaviconUrl"
-              />
-              <SiteBrandAssetSettingRow
-                assetField="seoOgImageAssetId"
-                currentAssetId={values.seoOgImageAssetId}
-                currentUrl={values.seoOgImageUrl}
-                description={t("settings:SETTINGS_SITE_OG_IMAGE_DESC")}
-                disabled={disabled}
-                fieldKey="seo_og_image"
-                form={form}
-                initialAssetId={initialValues.seoOgImageAssetId}
-                initialUrl={initialValues.seoOgImageUrl}
-                patch={patch}
-                patchField="og_image"
-                patchSection="seo"
-                removeAriaLabel={t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
-                resetKey="reset:seoOgImageUrl"
-                saveKey="seoOgImageUrl"
-                savingKey={savingKey}
-                title={t("settings:SETTINGS_SITE_OG_IMAGE_LABEL")}
-                uploadAriaLabel={t("settings:SETTINGS_ASSET_PICKER_SELECT")}
-                uploadPurpose="site_logo"
-                withSavingKey={withSavingKey}
-                assetProjectId={props.assetProjectId}
-                urlField="seoOgImageUrl"
-              />
-              <SettingEditRow
-                title={t("settings:SETTINGS_SEO_TITLE_FORMAT_TITLE")}
-                description={t("settings:SETTINGS_SEO_TITLE_FORMAT_DESC")}
-                summary={formatTitlePolicySummary(values.seoTitlePolicy)}
-                disabled={disabled}
-                onEdit={() => setDialog("seoTitlePolicy")}
-              />
-              <SettingEditRow
-                title={t("settings:SETTINGS_SITE_SEARCH_DISCOVERY_LABEL")}
-                description={t("settings:SETTINGS_SITE_SEARCH_DISCOVERY_DESC")}
-                summary={
-                  values.seoIndexingEnabled
-                    ? t("settings:SETTINGS_SITE_SEARCH_DISCOVERY_INDEXING_ALLOWED")
-                    : t("settings:SETTINGS_SITE_SEARCH_DISCOVERY_INDEXING_BLOCKED")
-                }
-                disabled={disabled}
-                onEdit={() => setDialog("seoSearchDiscovery")}
-              />
-            </div>
-            <BrowserDiscoveryMockup
-              title={searchPreviewTitle}
-              description={effectiveSiteDescription}
-              publicUrl={values.siteUrl}
-              faviconUrl={values.siteFaviconUrl}
-              socialImageUrl={values.seoOgImageUrl}
-              siteName={effectiveSiteName}
-              indexingAllowed={values.seoIndexingEnabled}
-            />
-          </div>
-        </SystemSettingItem>
-      </SystemSettingStack>
-
-      <SaveDialog
-        open={dialog === "siteName"}
-        onOpenChange={(open) => setDialog(open ? "siteName" : null)}
-        title={t("settings:SETTINGS_SITE_NAME_LABEL")}
-        description={t("settings:SETTINGS_SITE_NAME_DESC")}
-        disabled={disabled}
-        pending={savingKey === "siteName"}
-        resetPending={savingKey === "reset:siteName"}
-        showReset={isSiteNameDirty}
-        onReset={() => void resetSiteName()}
-        onSave={() => void saveSiteName()}
-      >
-        <LocalizedFieldEditor
-          defaultLocale={values.defaultLocale}
-          dictName="siteNameI18n"
-          disabled={disabled}
-          enabled={values.siteNameI18nEnabled}
-          enabledLabel={t("settings:SETTINGS_SITE_NAME_LOCALIZED_TITLE")}
-          enabledDescription={t("settings:SETTINGS_SITE_NAME_LOCALIZED_DESC")}
-          error={siteNameError}
-          form={form}
-          inputName="siteName"
-          placeholder={t("settings:SETTINGS_SITE_NAME_PLACEHOLDER")}
-          rawValue={values.siteName}
-          supportedLocales={supportedLocales}
-          onToggle={(checked) =>
-            handleLocalizedToggle("siteNameI18nEnabled", "siteNameI18n", "siteName", checked)
-          }
-        />
-      </SaveDialog>
-
-      <SaveDialog
-        open={dialog === "siteSubtitle"}
-        onOpenChange={(open) => setDialog(open ? "siteSubtitle" : null)}
-        title={t("settings:SETTINGS_SITE_SUBTITLE_LABEL")}
-        description={t("settings:SETTINGS_SITE_SUBTITLE_DESC")}
-        disabled={disabled}
-        pending={savingKey === "siteSubtitle"}
-        resetPending={savingKey === "reset:siteSubtitle"}
-        showReset={isSiteSubtitleDirty}
-        onReset={() =>
-          void resetSimpleSiteField("siteSubtitle", {
-            site: { subtitle: normalizeOptionalString(initialValues.siteSubtitle) },
-          })
+    <SystemSettingStack>
+      <SystemSettingItem
+        id="website-identity"
+        title={t("settings:SETTINGS_SITE_BASICS_IDENTITY_PANEL_TITLE")}
+        description={t("settings:SETTINGS_SITE_BASICS_IDENTITY_PANEL_DESC")}
+        footer={
+          <SystemSettingFooterActions
+            dirty={siteIdentityDirty}
+            pending={savingKey === "siteIdentity"}
+            onReset={resetSiteIdentity}
+            onSave={() => void saveSiteIdentity()}
+          />
         }
-        onSave={() => void saveSiteSubtitle()}
       >
-        <FieldGroup>
-          <Field data-invalid={Boolean(siteSubtitleError)}>
-            <FieldLabel htmlFor="site-subtitle-input">
-              {t("settings:SETTINGS_SITE_SUBTITLE_LABEL")}
-            </FieldLabel>
+        <div className="grid gap-5">
+          <SystemSettingField
+            label={t("settings:SETTINGS_SITE_NAME_LABEL")}
+            description={t("settings:SETTINGS_SITE_NAME_DESC")}
+            labelControls={false}
+          >
+            <LocalizedFieldEditor
+              defaultLocale={values.defaultLocale}
+              dictName="siteNameI18n"
+              disabled={disabled}
+              enabled={values.siteNameI18nEnabled}
+              enabledLabel={t("settings:SETTINGS_SITE_NAME_LOCALIZED_TITLE")}
+              enabledDescription={t("settings:SETTINGS_SITE_NAME_LOCALIZED_DESC")}
+              error={siteNameError}
+              form={form}
+              inputName="siteName"
+              placeholder={t("settings:SETTINGS_SITE_NAME_PLACEHOLDER")}
+              rawValue={values.siteName}
+              supportedLocales={supportedLocales}
+              onToggle={(checked) =>
+                handleLocalizedToggle("siteNameI18nEnabled", "siteNameI18n", "siteName", checked)
+              }
+            />
+          </SystemSettingField>
+
+          <SystemSettingField
+            label={t("settings:SETTINGS_SITE_SUBTITLE_LABEL")}
+            description={t("settings:SETTINGS_SITE_SUBTITLE_DESC")}
+            message={
+              <div className="flex items-center justify-between gap-3 text-caption text-label-secondary">
+                <FieldMessage message={siteSubtitleError} />
+                <span>
+                  {values.siteSubtitle.length}/{TAGLINE_MAX_LENGTH}
+                </span>
+              </div>
+            }
+          >
             <Input
               id="site-subtitle-input"
               {...form.register("siteSubtitle")}
@@ -976,73 +599,45 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
               placeholder={t("settings:SETTINGS_SITE_SUBTITLE_PLACEHOLDER")}
               aria-invalid={Boolean(siteSubtitleError)}
               autoComplete="off"
+              disabled={disabled}
             />
-            <div className="flex items-center justify-between gap-3 text-caption text-label-secondary">
-              <FieldMessage message={siteSubtitleError} />
-              <span>
-                {values.siteSubtitle.length}/{TAGLINE_MAX_LENGTH}
-              </span>
-            </div>
-          </Field>
-        </FieldGroup>
-      </SaveDialog>
+          </SystemSettingField>
 
-      <SaveDialog
-        open={dialog === "siteDescription"}
-        onOpenChange={(open) => setDialog(open ? "siteDescription" : null)}
-        title={t("settings:SETTINGS_SITE_DESCRIPTION_LABEL")}
-        description={t("settings:SETTINGS_SITE_DESCRIPTION_DESC")}
-        disabled={disabled}
-        pending={savingKey === "siteDescription"}
-        resetPending={savingKey === "reset:siteDescription"}
-        showReset={isSiteDescriptionDirty}
-        onReset={() => void resetSiteDescription()}
-        onSave={() => void saveSiteDescription()}
-      >
-        <LocalizedFieldEditor
-          defaultLocale={values.defaultLocale}
-          dictName="siteDescriptionI18n"
-          disabled={disabled}
-          enabled={values.siteDescriptionI18nEnabled}
-          enabledLabel={t("settings:SETTINGS_SITE_DESCRIPTION_LOCALIZED_TITLE")}
-          enabledDescription={t("settings:SETTINGS_SITE_DESCRIPTION_LOCALIZED_DESC")}
-          error={siteDescriptionError}
-          form={form}
-          inputName="siteDescription"
-          multiline
-          placeholder={t("settings:SETTINGS_SITE_DESCRIPTION_PLACEHOLDER")}
-          rawValue={values.siteDescription}
-          supportedLocales={supportedLocales}
-          onToggle={(checked) =>
-            handleLocalizedToggle(
-              "siteDescriptionI18nEnabled",
-              "siteDescriptionI18n",
-              "siteDescription",
-              checked,
-            )
-          }
-        />
-      </SaveDialog>
+          <SystemSettingField
+            label={t("settings:SETTINGS_SITE_DESCRIPTION_LABEL")}
+            description={t("settings:SETTINGS_SITE_DESCRIPTION_DESC")}
+            labelControls={false}
+          >
+            <LocalizedFieldEditor
+              defaultLocale={values.defaultLocale}
+              dictName="siteDescriptionI18n"
+              disabled={disabled}
+              enabled={values.siteDescriptionI18nEnabled}
+              enabledLabel={t("settings:SETTINGS_SITE_DESCRIPTION_LOCALIZED_TITLE")}
+              enabledDescription={t("settings:SETTINGS_SITE_DESCRIPTION_LOCALIZED_DESC")}
+              error={siteDescriptionError}
+              form={form}
+              inputName="siteDescription"
+              multiline
+              placeholder={t("settings:SETTINGS_SITE_DESCRIPTION_PLACEHOLDER")}
+              rawValue={values.siteDescription}
+              supportedLocales={supportedLocales}
+              onToggle={(checked) =>
+                handleLocalizedToggle(
+                  "siteDescriptionI18nEnabled",
+                  "siteDescriptionI18n",
+                  "siteDescription",
+                  checked,
+                )
+              }
+            />
+          </SystemSettingField>
 
-      <SaveDialog
-        open={dialog === "siteUrl"}
-        onOpenChange={(open) => setDialog(open ? "siteUrl" : null)}
-        title={t("settings:SETTINGS_SITE_PUBLIC_URL_LABEL")}
-        description={t("settings:SETTINGS_SITE_PUBLIC_URL_DESC")}
-        disabled={disabled}
-        pending={savingKey === "siteUrl"}
-        resetPending={savingKey === "reset:siteUrl"}
-        showReset={isSiteUrlDirty}
-        onReset={() =>
-          void resetSimpleSiteField("siteUrl", { site: { url: initialValues.siteUrl } })
-        }
-        onSave={() => void saveSiteUrl()}
-      >
-        <FieldGroup>
-          <Field data-invalid={Boolean(siteUrlError)}>
-            <FieldLabel htmlFor="site-url-input">
-              {t("settings:SETTINGS_SITE_PUBLIC_URL_LABEL")}
-            </FieldLabel>
+          <SystemSettingField
+            label={t("settings:SETTINGS_SITE_PUBLIC_URL_LABEL")}
+            description={t("settings:SETTINGS_SITE_PUBLIC_URL_DESC")}
+            message={<FieldMessage message={siteUrlError} />}
+          >
             <Input
               id="site-url-input"
               {...form.register("siteUrl")}
@@ -1051,33 +646,15 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
               placeholder={t("settings:SETTINGS_SITE_PUBLIC_URL_PLACEHOLDER")}
               aria-invalid={Boolean(siteUrlError)}
               autoComplete="off"
+              disabled={disabled}
             />
-            <FieldMessage message={siteUrlError} />
-          </Field>
-        </FieldGroup>
-      </SaveDialog>
+          </SystemSettingField>
 
-      <SaveDialog
-        open={dialog === "siteContactEmail"}
-        onOpenChange={(open) => setDialog(open ? "siteContactEmail" : null)}
-        title={t("settings:SETTINGS_SITE_CONTACT_EMAIL_LABEL")}
-        description={t("settings:SETTINGS_SITE_CONTACT_EMAIL_DESC")}
-        disabled={disabled}
-        pending={savingKey === "siteContactEmail"}
-        resetPending={savingKey === "reset:siteContactEmail"}
-        showReset={isSupportInboxDirty}
-        onReset={() =>
-          void resetSimpleSiteField("siteContactEmail", {
-            site: { contact_email: normalizeOptionalString(initialValues.siteContactEmail) },
-          })
-        }
-        onSave={() => void saveSupportInbox()}
-      >
-        <FieldGroup>
-          <Field data-invalid={Boolean(siteContactEmailError)}>
-            <FieldLabel htmlFor="site-contact-email-input">
-              {t("settings:SETTINGS_SITE_CONTACT_EMAIL_LABEL")}
-            </FieldLabel>
+          <SystemSettingField
+            label={t("settings:SETTINGS_SITE_CONTACT_EMAIL_LABEL")}
+            description={t("settings:SETTINGS_SITE_CONTACT_EMAIL_DESC")}
+            message={<FieldMessage message={siteContactEmailError} />}
+          >
             <Input
               id="site-contact-email-input"
               {...form.register("siteContactEmail")}
@@ -1087,89 +664,162 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
               placeholder={t("settings:SETTINGS_SITE_CONTACT_EMAIL_PLACEHOLDER")}
               aria-invalid={Boolean(siteContactEmailError)}
               autoComplete="off"
+              disabled={disabled}
             />
-            <FieldMessage message={siteContactEmailError} />
-          </Field>
-        </FieldGroup>
-      </SaveDialog>
+          </SystemSettingField>
+        </div>
+      </SystemSettingItem>
 
-      <SaveDialog
-        open={dialog === "seoTitlePolicy"}
-        onOpenChange={(open) => setDialog(open ? "seoTitlePolicy" : null)}
-        title={t("settings:SETTINGS_SEO_TITLE_FORMAT_TITLE")}
-        description={t("settings:SETTINGS_SEO_TITLE_FORMAT_DESC")}
-        disabled={disabled}
-        pending={savingKey === "seoTitlePolicy"}
-        resetPending={savingKey === "reset:seoTitlePolicy"}
-        showReset={isTitlePolicyDirty}
-        onReset={() => void resetTitlePolicy()}
-        onSave={() => void saveTitlePattern()}
-      >
-        <Controller
-          control={form.control}
-          name="seoTitlePolicy"
-          render={({ field }) => (
-            <FieldGroup>
-              <Field data-invalid={Boolean(titlePolicyError)}>
-                <FieldLabel>{t("settings:SETTINGS_SEO_TITLE_FORMAT_TITLE")}</FieldLabel>
-                <SiteTitlePatternField
-                  value={field.value}
-                  onChange={field.onChange}
-                  siteName={effectiveSiteName}
-                  siteSubtitle={values.siteSubtitle}
-                />
-                <FieldMessage message={titlePolicyError} />
-              </Field>
-            </FieldGroup>
-          )}
-        />
-      </SaveDialog>
-
-      <SaveDialog
-        open={dialog === "seoSearchDiscovery"}
-        onOpenChange={(open) => setDialog(open ? "seoSearchDiscovery" : null)}
-        title={t("settings:SETTINGS_SITE_SEARCH_DISCOVERY_LABEL")}
-        description={t("settings:SETTINGS_SITE_SEARCH_DISCOVERY_DESC")}
-        disabled={disabled}
-        pending={savingKey === "seoSearchDiscovery"}
-        resetPending={savingKey === "reset:seoSearchDiscovery"}
-        showReset={isSearchDiscoveryDirty}
-        onReset={() => void resetSearchDiscovery()}
-        onSave={() => void saveSearchDiscovery()}
-      >
-        <FieldGroup>
-          <Controller
-            control={form.control}
-            name="seoIndexingEnabled"
-            render={({ field }) => (
-              <Field>
-                <SettingSwitchBlock
-                  checked={Boolean(field.value)}
-                  disabled={disabled}
-                  label={t("settings:SETTINGS_SITE_SEARCH_INDEXING_LABEL")}
-                  description={t("settings:SETTINGS_SITE_SEARCH_INDEXING_DESC")}
-                  onCheckedChange={field.onChange}
-                />
-              </Field>
-            )}
+      <SystemSettingItem
+        id="website-browser"
+        title={t("settings:SETTINGS_SITE_BASICS_BROWSER_PANEL_TITLE")}
+        description={t("settings:SETTINGS_SITE_BASICS_BROWSER_PANEL_DESC")}
+        footer={
+          <SystemSettingFooterActions
+            dirty={browserDiscoveryDirty}
+            pending={savingKey === "browserDiscovery"}
+            onReset={resetBrowserDiscovery}
+            onSave={() => void saveBrowserDiscovery()}
           />
-          <Controller
-            control={form.control}
-            name="seoSitemapEnabled"
-            render={({ field }) => (
-              <Field>
-                <SettingSwitchBlock
-                  checked={Boolean(field.value)}
-                  disabled={disabled}
-                  label={t("settings:SETTINGS_SITE_SITEMAP_LABEL")}
-                  description={t("settings:SETTINGS_SITE_SITEMAP_DESC")}
-                  onCheckedChange={field.onChange}
+        }
+      >
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)]">
+          <div className="flex min-w-0 flex-col divide-y divide-border">
+            <SiteBrandAssetSettingRow
+              assetField="siteLogoAssetId"
+              currentAssetId={values.siteLogoAssetId}
+              currentUrl={values.siteLogoUrl}
+              description={t("settings:SETTINGS_SITE_LOGO_DESC")}
+              disabled={disabled}
+              fieldKey="site_logo"
+              form={form}
+              initialAssetId={initialValues.siteLogoAssetId}
+              initialUrl={initialValues.siteLogoUrl}
+              patch={patch}
+              patchField="logo"
+              removeAriaLabel={t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
+              resetKey="reset:siteLogoUrl"
+              saveKey="siteLogoUrl"
+              savingKey={savingKey}
+              title={t("settings:SETTINGS_SITE_LOGO_LABEL")}
+              uploadAriaLabel={t("settings:SETTINGS_ASSET_PICKER_SELECT")}
+              uploadPurpose="site_logo"
+              withSavingKey={withSavingKey}
+              assetProjectId={props.assetProjectId}
+              urlField="siteLogoUrl"
+            />
+            <SiteBrandAssetSettingRow
+              assetField="siteFaviconAssetId"
+              currentAssetId={values.siteFaviconAssetId}
+              currentUrl={values.siteFaviconUrl}
+              description={t("settings:SETTINGS_SITE_FAVICON_DESC")}
+              disabled={disabled}
+              fieldKey="site_favicon"
+              form={form}
+              initialAssetId={initialValues.siteFaviconAssetId}
+              initialUrl={initialValues.siteFaviconUrl}
+              patch={patch}
+              patchField="favicon"
+              removeAriaLabel={t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
+              resetKey="reset:siteFaviconUrl"
+              saveKey="siteFaviconUrl"
+              savingKey={savingKey}
+              title={t("settings:SETTINGS_SITE_FAVICON_LABEL")}
+              uploadAriaLabel={t("settings:SETTINGS_ASSET_PICKER_SELECT")}
+              uploadPurpose="favicon"
+              withSavingKey={withSavingKey}
+              assetProjectId={props.assetProjectId}
+              urlField="siteFaviconUrl"
+            />
+            <SiteBrandAssetSettingRow
+              assetField="seoOgImageAssetId"
+              currentAssetId={values.seoOgImageAssetId}
+              currentUrl={values.seoOgImageUrl}
+              description={t("settings:SETTINGS_SITE_OG_IMAGE_DESC")}
+              disabled={disabled}
+              fieldKey="seo_og_image"
+              form={form}
+              initialAssetId={initialValues.seoOgImageAssetId}
+              initialUrl={initialValues.seoOgImageUrl}
+              patch={patch}
+              patchField="og_image"
+              patchSection="seo"
+              removeAriaLabel={t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
+              resetKey="reset:seoOgImageUrl"
+              saveKey="seoOgImageUrl"
+              savingKey={savingKey}
+              title={t("settings:SETTINGS_SITE_OG_IMAGE_LABEL")}
+              uploadAriaLabel={t("settings:SETTINGS_ASSET_PICKER_SELECT")}
+              uploadPurpose="site_logo"
+              withSavingKey={withSavingKey}
+              assetProjectId={props.assetProjectId}
+              urlField="seoOgImageUrl"
+            />
+            <div className="grid gap-4 py-4">
+              <Controller
+                control={form.control}
+                name="seoTitlePolicy"
+                render={({ field }) => (
+                  <SystemSettingField
+                    label={t("settings:SETTINGS_SEO_TITLE_FORMAT_TITLE")}
+                    description={t("settings:SETTINGS_SEO_TITLE_FORMAT_DESC")}
+                    message={<FieldMessage message={titlePolicyError} />}
+                    labelControls={false}
+                  >
+                    <SiteTitlePatternField
+                      value={field.value}
+                      onChange={field.onChange}
+                      siteName={effectiveSiteName}
+                      siteSubtitle={values.siteSubtitle}
+                    />
+                  </SystemSettingField>
+                )}
+              />
+              <FieldGroup>
+                <Controller
+                  control={form.control}
+                  name="seoIndexingEnabled"
+                  render={({ field }) => (
+                    <Field>
+                      <SettingSwitchBlock
+                        checked={Boolean(field.value)}
+                        disabled={disabled}
+                        label={t("settings:SETTINGS_SITE_SEARCH_INDEXING_LABEL")}
+                        description={t("settings:SETTINGS_SITE_SEARCH_INDEXING_DESC")}
+                        onCheckedChange={field.onChange}
+                      />
+                    </Field>
+                  )}
                 />
-              </Field>
-            )}
+                <Controller
+                  control={form.control}
+                  name="seoSitemapEnabled"
+                  render={({ field }) => (
+                    <Field>
+                      <SettingSwitchBlock
+                        checked={Boolean(field.value)}
+                        disabled={disabled}
+                        label={t("settings:SETTINGS_SITE_SITEMAP_LABEL")}
+                        description={t("settings:SETTINGS_SITE_SITEMAP_DESC")}
+                        onCheckedChange={field.onChange}
+                      />
+                    </Field>
+                  )}
+                />
+              </FieldGroup>
+            </div>
+          </div>
+          <BrowserDiscoveryMockup
+            title={searchPreviewTitle}
+            description={effectiveSiteDescription}
+            publicUrl={values.siteUrl}
+            faviconUrl={values.siteFaviconUrl}
+            socialImageUrl={values.seoOgImageUrl}
+            siteName={effectiveSiteName}
+            indexingAllowed={values.seoIndexingEnabled}
           />
-        </FieldGroup>
-      </SaveDialog>
-    </>
+        </div>
+      </SystemSettingItem>
+    </SystemSettingStack>
   );
 }

@@ -1,17 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  BookOpen,
-  CheckCircle2,
-  Globe2,
-  History,
-  LoaderCircle,
-  Monitor,
-  RotateCcw,
-  Rocket,
-  Settings2,
-  ShieldAlert,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { CheckCircle2, History, LoaderCircle, RotateCcw, Rocket, ShieldAlert } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -34,52 +22,8 @@ import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import type { AdminRelease, AdminReleaseDryRun } from "@arclayer/openapi/admin-types";
 
-type ProjectReleaseWorkflowLink = {
-  description: string;
-  href: string;
-  icon: LucideIcon;
-  id: string;
-  label: string;
-};
-
 function releaseStatusLabelKey(status: string): string {
   return `SETTINGS_PROJECT_RELEASES_STATUS_${status.toUpperCase()}`;
-}
-
-function buildProjectReleaseWorkflowLinks(
-  projectId: string,
-  t: (key: string) => string,
-): ProjectReleaseWorkflowLink[] {
-  return [
-    {
-      description: t("SETTINGS_PROJECT_RELEASES_WORKFLOW_LINK_EDITOR_DESC"),
-      href: `/projects/${projectId}/editor`,
-      icon: Monitor,
-      id: "editor",
-      label: t("SETTINGS_PROJECT_RELEASES_WORKFLOW_LINK_EDITOR"),
-    },
-    {
-      description: t("SETTINGS_PROJECT_RELEASES_WORKFLOW_LINK_CONTENT_DESC"),
-      href: `/projects/${projectId}/content/library`,
-      icon: BookOpen,
-      id: "content-library",
-      label: t("SETTINGS_PROJECT_RELEASES_WORKFLOW_LINK_CONTENT"),
-    },
-    {
-      description: t("SETTINGS_PROJECT_RELEASES_WORKFLOW_LINK_WEBSITE_CONTROL_DESC"),
-      href: `/projects/${projectId}/website/domain`,
-      icon: Globe2,
-      id: "website-control",
-      label: t("SETTINGS_PROJECT_RELEASES_WORKFLOW_LINK_WEBSITE_CONTROL"),
-    },
-    {
-      description: t("SETTINGS_PROJECT_RELEASES_WORKFLOW_LINK_WEBSITE_CONFIG_DESC"),
-      href: `/projects/${projectId}/website/config`,
-      icon: Settings2,
-      id: "website-config",
-      label: t("SETTINGS_PROJECT_RELEASES_WORKFLOW_LINK_WEBSITE_CONFIG"),
-    },
-  ];
 }
 
 function ReleaseStatusTag(props: { release: AdminRelease }) {
@@ -171,94 +115,6 @@ function ReleaseImpactDetails(props: { dryRun: AdminReleaseDryRun | null }) {
         </div>
       </div>
     </div>
-  );
-}
-
-function ProjectReleaseWorkflowPanel(props: {
-  activeRelease: AdminRelease | null;
-  dryRun: AdminReleaseDryRun | null;
-  links: readonly ProjectReleaseWorkflowLink[];
-}) {
-  const { t } = useTranslation("account");
-  const readiness = props.dryRun?.readinessSummary ?? null;
-  const stateLabel = readiness
-    ? readiness.ready
-      ? t("SETTINGS_PROJECT_RELEASES_READY")
-      : t("SETTINGS_PROJECT_RELEASES_BLOCKED")
-    : t("SETTINGS_PROJECT_RELEASES_READINESS_IDLE");
-  const releaseLabel = props.activeRelease
-    ? t("SETTINGS_PROJECT_RELEASES_ACTIVE_RELEASE", {
-        count: props.activeRelease.releaseNumber,
-      })
-    : t("SETTINGS_PROJECT_RELEASES_NO_ACTIVE_RELEASE");
-
-  return (
-    <section
-      aria-label={t("SETTINGS_PROJECT_RELEASES_WORKFLOW_LABEL")}
-      className="grid gap-4 border-y border-border bg-background py-5"
-      data-testid="project-releases-workflow-panel"
-    >
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.7fr)]">
-        <div className="min-w-0 space-y-2 px-1">
-          <div className="flex items-center gap-2 text-caption font-medium uppercase tracking-normal text-label-tertiary">
-            <Globe2 size={14} />
-            {t("SETTINGS_PROJECT_RELEASES_WORKFLOW_EYEBROW")}
-          </div>
-          <h2 className="text-title3 font-semibold text-label-primary">
-            {t("SETTINGS_PROJECT_RELEASES_WORKFLOW_TITLE")}
-          </h2>
-          <p className="max-w-3xl text-callout text-label-secondary">
-            {t("SETTINGS_PROJECT_RELEASES_WORKFLOW_DESC")}
-          </p>
-        </div>
-
-        <div className="grid gap-2 rounded-md border border-border bg-muted/20 px-3 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-footnote text-label-secondary">
-              {t("SETTINGS_PROJECT_RELEASES_WORKFLOW_STATE_RELEASE")}
-            </span>
-            <span className="truncate text-footnote font-medium text-label-primary">
-              {releaseLabel}
-            </span>
-          </div>
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-footnote text-label-secondary">
-              {t("SETTINGS_PROJECT_RELEASES_WORKFLOW_STATE_READINESS")}
-            </span>
-            <span className="truncate text-footnote font-medium text-label-primary">
-              {stateLabel}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <nav
-        aria-label={t("SETTINGS_PROJECT_RELEASES_WORKFLOW_LINKS_LABEL")}
-        className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4"
-        data-testid="project-releases-workflow-links"
-      >
-        {props.links.map((link) => {
-          const Icon = link.icon;
-          return (
-            <a
-              key={link.id}
-              href={link.href}
-              className="flex min-w-0 items-start gap-2 rounded-md border border-border bg-card px-3 py-3 text-left transition-colors hover:bg-muted"
-            >
-              <Icon className="mt-0.5 size-4 shrink-0 text-label-secondary" aria-hidden="true" />
-              <span className="min-w-0">
-                <span className="block truncate text-footnote font-medium text-label-primary">
-                  {link.label}
-                </span>
-                <span className="mt-1 line-clamp-2 block text-caption1 text-label-secondary">
-                  {link.description}
-                </span>
-              </span>
-            </a>
-          );
-        })}
-      </nav>
-    </section>
   );
 }
 
@@ -407,10 +263,6 @@ export function ProjectReleasesPage(props: { projectId: string; embedded?: boole
   const canRollback = permissionReady && permissionAccess.hasAction("project:release:rollback");
   const releases = releasesQuery.data ?? [];
   const activeRelease = useMemo(() => selectActiveRelease(releases), [releases]);
-  const workflowLinks = useMemo(
-    () => buildProjectReleaseWorkflowLinks(props.projectId, t),
-    [props.projectId, t],
-  );
   const pending = publishMutation.isPending || rollbackMutation.isPending || dryRunQuery.isFetching;
 
   const content = (
@@ -484,12 +336,6 @@ export function ProjectReleasesPage(props: { projectId: string; embedded?: boole
             <ReleaseImpactDetails dryRun={dryRunQuery.data ?? null} />
           </div>
         </section>
-
-        <ProjectReleaseWorkflowPanel
-          activeRelease={activeRelease}
-          dryRun={dryRunQuery.data ?? null}
-          links={workflowLinks}
-        />
 
         <section className="grid gap-4">
           <div className="flex items-center justify-between gap-3">

@@ -1797,49 +1797,10 @@ describe("ContentLibraryPage", () => {
       within(summary).getByText("content:CONTENT_LIBRARY_WORKBENCH_METRIC_DRAFTS"),
     ).toBeInTheDocument();
     expect(
-      within(summary).getByRole("list", {
+      within(summary).queryByRole("list", {
         name: "content:CONTENT_LIBRARY_WORKFLOW_LABEL",
       }),
-    ).toBeInTheDocument();
-    expect(
-      within(summary).getByText("content:CONTENT_LIBRARY_WORKFLOW_STRUCTURE_LABEL"),
-    ).toBeInTheDocument();
-    expect(
-      within(summary).getByText("content:CONTENT_LIBRARY_WORKFLOW_PAGE_LABEL"),
-    ).toBeInTheDocument();
-    expect(
-      within(summary).getByText("content:CONTENT_LIBRARY_WORKFLOW_DRAFT_LABEL"),
-    ).toBeInTheDocument();
-    expect(
-      within(summary).getByText("content:CONTENT_LIBRARY_WORKFLOW_RELEASE_LABEL"),
-    ).toBeInTheDocument();
-    const workflowLinks = within(summary).getByTestId("content-library-workflow-links");
-    expect(
-      within(workflowLinks).getByRole("link", {
-        name: "content:CONTENT_LIBRARY_WORKFLOW_LINK_EDITOR",
-      }),
-    ).toHaveAttribute("href", "/projects/project-1/editor");
-    expect(
-      within(workflowLinks).getByRole("link", {
-        name: "content:CONTENT_LIBRARY_WORKFLOW_LINK_MODELS",
-      }),
-    ).toHaveAttribute("href", "/projects/project-1/content/models");
-    expect(
-      within(workflowLinks).getByRole("link", {
-        name: "content:CONTENT_LIBRARY_WORKFLOW_LINK_WEBSITE_CONTROL",
-      }),
-    ).toHaveAttribute("href", "/projects/project-1/website/domain");
-    expect(
-      within(workflowLinks).getByRole("link", {
-        name: "content:CONTENT_LIBRARY_WORKFLOW_LINK_RELEASES",
-      }),
-    ).toHaveAttribute("href", "/projects/project-1/website/releases");
-    expect(
-      within(workflowLinks).getByRole("link", {
-        name: "content:CONTENT_LIBRARY_WORKFLOW_LINK_WEBSITE_CONFIG",
-      }),
-    ).toHaveAttribute("href", "/projects/project-1/website/config");
-    expect(within(summary).getAllByText("1")).toHaveLength(5);
+    ).not.toBeInTheDocument();
     expect(
       within(summary).getByRole("button", {
         name: "content:CONTENT_LIBRARY_WORKBENCH_ACTION_CONTINUE_HOMEPAGE",

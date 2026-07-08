@@ -2,14 +2,7 @@ import * as React from "react";
 import type { RowSelectionState } from "@tanstack/react-table";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import {
-  BookOpenIcon,
-  GlobeIcon,
-  MonitorIcon,
-  PlusIcon,
-  SettingsIcon,
-  type LucideIcon,
-} from "lucide-react";
+import { PlusIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -84,28 +77,6 @@ type ContentModelsBlueprintSummary = {
   structuredModelCount: number;
 };
 
-type ContentModelsWorkflowState = "active" | "pending" | "ready";
-
-type ContentModelsWorkflowStep = {
-  description: string;
-  id: string;
-  label: string;
-  state: ContentModelsWorkflowState;
-};
-
-type ContentModelsWorkflowLink = {
-  href: string;
-  icon: LucideIcon;
-  id: string;
-  label: string;
-};
-
-type ContentModelsAiContractItem = {
-  description: string;
-  id: string;
-  title: string;
-};
-
 function buildContentModelsBlueprintSummary(
   models: readonly ContentModelsTableRow[],
 ): ContentModelsBlueprintSummary {
@@ -137,188 +108,6 @@ function buildContentModelsBlueprintSummary(
   );
 }
 
-function buildContentModelsWorkflowSteps(
-  summary: ContentModelsBlueprintSummary,
-  t: (key: string) => string,
-): ContentModelsWorkflowStep[] {
-  const hasPageModel = summary.pageModelCount > 0;
-  const hasReusableBlockModel = summary.reusableBlockModelCount > 0;
-  const hasVisualStructure = hasPageModel && hasReusableBlockModel;
-  const hasPublishableModel = summary.publishableModelCount > 0;
-  const isAiReady = hasPageModel && hasVisualStructure && hasPublishableModel;
-
-  return [
-    {
-      id: "page-model",
-      label: t("CONTENT_MODELS_WORKFLOW_PAGE_MODEL_LABEL"),
-      description: t("CONTENT_MODELS_WORKFLOW_PAGE_MODEL_DESC"),
-      state: hasPageModel ? "ready" : "active",
-    },
-    {
-      id: "visual-editing",
-      label: t("CONTENT_MODELS_WORKFLOW_VISUAL_LABEL"),
-      description: t("CONTENT_MODELS_WORKFLOW_VISUAL_DESC"),
-      state: hasVisualStructure ? "ready" : hasPageModel ? "active" : "pending",
-    },
-    {
-      id: "publishing",
-      label: t("CONTENT_MODELS_WORKFLOW_PUBLISH_LABEL"),
-      description: t("CONTENT_MODELS_WORKFLOW_PUBLISH_DESC"),
-      state: hasPublishableModel ? "ready" : hasVisualStructure ? "active" : "pending",
-    },
-    {
-      id: "ai-ready",
-      label: t("CONTENT_MODELS_WORKFLOW_AI_LABEL"),
-      description: t("CONTENT_MODELS_WORKFLOW_AI_DESC"),
-      state: isAiReady ? "ready" : hasPageModel ? "active" : "pending",
-    },
-  ];
-}
-
-function ContentModelsWorkflowStrip(props: {
-  steps: readonly ContentModelsWorkflowStep[];
-  t: (key: string) => string;
-}) {
-  const stateClassName: Record<ContentModelsWorkflowState, string> = {
-    active: "border-primary bg-primary/5 text-primary",
-    pending: "border-border bg-muted/40 text-label-secondary",
-    ready: "border-positive/30 bg-positive/5 text-positive",
-  };
-
-  return (
-    <ol className="grid gap-2 md:grid-cols-4" aria-label={props.t("CONTENT_MODELS_WORKFLOW_LABEL")}>
-      {props.steps.map((step, index) => (
-        <li
-          key={step.id}
-          className="min-w-0 rounded-md border border-border bg-background px-3 py-3"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <span className="font-mono text-caption text-label-tertiary">
-              {String(index + 1).padStart(2, "0")}
-            </span>
-            <span
-              className={`rounded-sm border px-2 py-0.5 text-caption font-medium ${stateClassName[step.state]}`}
-            >
-              {props.t(`CONTENT_MODELS_WORKFLOW_STATE_${step.state.toUpperCase()}`)}
-            </span>
-          </div>
-          <p className="mt-3 text-caption font-semibold text-foreground">{step.label}</p>
-          <p className="mt-1 text-footnote text-label-secondary">{step.description}</p>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-function buildContentModelsWorkflowLinks(
-  projectId: string,
-  t: (key: string) => string,
-): ContentModelsWorkflowLink[] {
-  return [
-    {
-      href: `/projects/${projectId}/editor`,
-      icon: MonitorIcon,
-      id: "editor",
-      label: t("CONTENT_MODELS_WORKFLOW_LINK_EDITOR"),
-    },
-    {
-      href: `/projects/${projectId}/content/library`,
-      icon: BookOpenIcon,
-      id: "content-library",
-      label: t("CONTENT_MODELS_WORKFLOW_LINK_CONTENT_LIBRARY"),
-    },
-    {
-      href: `/projects/${projectId}/website/domain`,
-      icon: GlobeIcon,
-      id: "website-control",
-      label: t("CONTENT_MODELS_WORKFLOW_LINK_WEBSITE_CONTROL"),
-    },
-    {
-      href: `/projects/${projectId}/website/config`,
-      icon: SettingsIcon,
-      id: "website-config",
-      label: t("CONTENT_MODELS_WORKFLOW_LINK_WEBSITE_CONFIG"),
-    },
-  ];
-}
-
-function ContentModelsWorkflowLinks(props: {
-  links: readonly ContentModelsWorkflowLink[];
-  t: (key: string) => string;
-}) {
-  return (
-    <nav
-      aria-label={props.t("CONTENT_MODELS_WORKFLOW_LINKS_LABEL")}
-      className="grid gap-2 sm:grid-cols-2"
-      data-testid="content-models-workflow-links"
-    >
-      {props.links.map((link) => {
-        const Icon = link.icon;
-        return (
-          <a
-            key={link.id}
-            href={link.href}
-            className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-footnote font-medium text-label-primary transition-colors hover:bg-muted"
-          >
-            <Icon className="size-4 shrink-0 text-label-secondary" aria-hidden="true" />
-            <span className="min-w-0 flex-1 truncate">{link.label}</span>
-          </a>
-        );
-      })}
-    </nav>
-  );
-}
-
-function buildContentModelsAiContractItems(
-  t: (key: string) => string,
-): ContentModelsAiContractItem[] {
-  return [
-    {
-      id: "stable-keys",
-      title: t("CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_STABLE_KEYS_TITLE"),
-      description: t("CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_STABLE_KEYS_DESC"),
-    },
-    {
-      id: "field-schema",
-      title: t("CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_FIELD_SCHEMA_TITLE"),
-      description: t("CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_FIELD_SCHEMA_DESC"),
-    },
-    {
-      id: "route-surface",
-      title: t("CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_ROUTE_SURFACE_TITLE"),
-      description: t("CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_ROUTE_SURFACE_DESC"),
-    },
-    {
-      id: "release-source",
-      title: t("CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_RELEASE_SOURCE_TITLE"),
-      description: t("CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_RELEASE_SOURCE_DESC"),
-    },
-  ];
-}
-
-function ContentModelsAiContractList(props: {
-  items: readonly ContentModelsAiContractItem[];
-  t: (key: string) => string;
-}) {
-  return (
-    <ul
-      aria-label={props.t("CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_CHECKLIST_LABEL")}
-      className="mt-3 grid gap-2 sm:grid-cols-2"
-      data-testid="content-models-ai-contract-list"
-    >
-      {props.items.map((item) => (
-        <li
-          key={item.id}
-          className="min-w-0 rounded-sm border border-border bg-background px-3 py-2"
-        >
-          <p className="text-caption font-semibold text-foreground">{item.title}</p>
-          <p className="mt-1 text-footnote text-label-secondary">{item.description}</p>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function ContentModelsBlueprintPanel(props: {
   canManageModels: boolean;
   creatingPageModel: boolean;
@@ -332,14 +121,6 @@ function ContentModelsBlueprintPanel(props: {
   summary: ContentModelsBlueprintSummary;
   t: (key: string) => string;
 }) {
-  const nextActionKey =
-    props.summary.pageModelCount === 0
-      ? "CONTENT_MODELS_BLUEPRINT_NEXT_PAGE_MODEL"
-      : props.summary.reusableBlockModelCount === 0
-        ? "CONTENT_MODELS_BLUEPRINT_NEXT_SITE_BUILDER"
-        : props.summary.publishableModelCount === 0
-          ? "CONTENT_MODELS_BLUEPRINT_NEXT_PUBLISHABLE"
-          : "CONTENT_MODELS_BLUEPRINT_NEXT_READY";
   const metrics = [
     {
       id: "page-models",
@@ -379,32 +160,6 @@ function ContentModelsBlueprintPanel(props: {
               {props.t("CONTENT_MODELS_BLUEPRINT_DESC")}
             </p>
           </div>
-          <div className="rounded-md border border-border bg-muted/40 px-3 py-2">
-            <p className="text-caption font-medium text-foreground">
-              {props.t("CONTENT_MODELS_BLUEPRINT_NEXT_LABEL")}
-            </p>
-            <p className="mt-1 text-footnote text-label-secondary">{props.t(nextActionKey)}</p>
-          </div>
-          <div className="rounded-md border border-border bg-muted/20 px-3 py-2">
-            <p className="text-caption font-medium text-foreground">
-              {props.t("CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_TITLE")}
-            </p>
-            <p className="mt-1 text-footnote text-label-secondary">
-              {props.t("CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_DESC")}
-            </p>
-            <ContentModelsAiContractList
-              items={buildContentModelsAiContractItems(props.t)}
-              t={props.t}
-            />
-          </div>
-          <ContentModelsWorkflowLinks
-            links={buildContentModelsWorkflowLinks(props.projectId, props.t)}
-            t={props.t}
-          />
-          <ContentModelsWorkflowStrip
-            steps={buildContentModelsWorkflowSteps(props.summary, props.t)}
-            t={props.t}
-          />
           <div className="flex flex-wrap items-center gap-2">
             {props.pageModel ? (
               <Button
