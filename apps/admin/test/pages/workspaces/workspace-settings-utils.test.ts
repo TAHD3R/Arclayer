@@ -10,7 +10,7 @@ describe("resolveWorkspaceSettingsTabNavigation", () => {
       "?arclayer_favorite_overlay=content-only",
     );
 
-    expect(navigation.to).toBe("/projects/$projectId/seo/site");
+    expect(navigation.to).toBe("/projects/$projectId/website/config");
     expect(navigation.params).toEqual({ projectId: "project-1" });
     expect(navigation.search?.({})).toEqual({
       arclayer_favorite_overlay: "content-only",

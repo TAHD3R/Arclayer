@@ -28,6 +28,7 @@ import {
   NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
   NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
   NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
+  NAV_SUB_ITEM_INTERACTIVE_BG_CLASSNAME,
 } from "./nav-node-styles";
 import {
   NAV_ITEM_BUTTON_PADDING_CLASSNAME,
@@ -307,7 +308,7 @@ export function NodeExpandedGroupSub({
           DISABLED_ITEM_CLASSNAME,
           "bg-transparent focus-visible:bg-transparent data-[active=true]:bg-transparent [&:not([data-highlight])]:hover:bg-transparent",
         )
-      : cn(NAV_ITEM_INTERACTIVE_BG_CLASSNAME, "focus-visible:bg-accent hover:cursor-pointer"),
+      : cn(NAV_SUB_ITEM_INTERACTIVE_BG_CLASSNAME, "focus-visible:bg-accent hover:cursor-pointer"),
   );
 
   return (

@@ -150,7 +150,7 @@ def build_core_settings_schema() -> ConfigSchema:
                     ConfigField(
                         key="base_domain",
                         type="str",
-                        default="arclayer.app",
+                        default="arclayer.localhost",
                         label="Platform primary domain",
                         label_i18n="settings:DOMAINS_BASE_DOMAIN_LABEL",
                         description="Primary domain used for platform-managed project addresses.",
@@ -186,6 +186,8 @@ def build_core_settings_schema() -> ConfigSchema:
                             "editor",
                             "system",
                             "static",
+                            "storage",
+                            "rustfs",
                             "assets",
                             "cdn",
                             "media",

@@ -289,13 +289,13 @@ describe("ProjectDomainSettingsPage", () => {
     ).toEqual([
       "/projects/project-1/editor",
       "/projects/project-1/content/library",
-      "/projects/project-1/seo/site",
+      "/projects/project-1/website/config",
       "/projects/project-1/website/releases",
     ]);
 
     await user.click(screen.getByRole("button", { name: /WEBSITE_CONTROL_OPEN_WEBSITE_CONFIG/ }));
     expect(navigateMock).toHaveBeenCalledWith({
-      to: "/projects/$projectId/seo/site",
+      to: "/projects/$projectId/website/config",
       params: { projectId: "project-1" },
     });
 

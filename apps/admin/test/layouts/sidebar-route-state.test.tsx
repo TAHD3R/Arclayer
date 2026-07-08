@@ -237,8 +237,10 @@ describe("sidebar route state wiring", () => {
       "activity",
       "assets",
       "website.domain",
+      "website.releases",
       "content",
       "seo",
+      "website.config",
       "settings.project",
     ]);
   });

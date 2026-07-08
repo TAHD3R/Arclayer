@@ -248,11 +248,11 @@ class SaasSettings(BaseSettings):
     )
 
     base_domain: str = Field(
-        default="arclayer.app",
+        default="arclayer.localhost",
         description="Base domain for published site hostnames and platform-managed subdomains.",
     )
     admin_url: str = Field(
-        default="https://admin.arclayer.app",
+        default="https://app.arclayer.localhost",
         description="Admin console URL.",
     )
     free_tier_page_limit: int = Field(default=20, ge=1, description="Max pages for free tier.")

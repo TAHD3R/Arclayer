@@ -1,12 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Code2, Database, Search, Server, Settings2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { Accordion } from "@arclayer/ui/accordion";
 import { checkProjectSlugAvailability, getProjectDetail, patchProject } from "@/api/projects";
-import { getProjectCoreSettings, patchProjectCoreSettings } from "@/api/settings";
 import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
 import { ProjectAvatar, projectAvatarPropsFromIdentity } from "@/components/common/project-avatar";
 import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
@@ -18,32 +16,24 @@ import type { ProjectIconDialogValues } from "@/pages/usercenter/projects/hooks/
 import type { UserCenterProjectListItem } from "@/pages/usercenter/projects/project-list-items";
 import {
   SystemSettingItem,
+  SystemSettingRow,
   SystemSettingStack,
 } from "@/pages/system/components/system-setting-item";
 import type { ProjectDetail, ProjectUpdateInput } from "@arclayer/openapi/admin-types";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
+import { Button } from "@arclayer/ui/button";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@arclayer/ui/field";
 import { Input } from "@arclayer/ui/input";
-import { SettingAccordionItem } from "@arclayer/ui/setting-accordion-item";
-import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
-import { SettingActionItem } from "@arclayer/ui/setting-action-item";
+import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { Textarea } from "@arclayer/ui/textarea";
 import { cn } from "@arclayer/lib/utils";
 
 import { ProjectApiKeysSettingsPage } from "../api-keys/page";
 import { ProjectDatabasesPage } from "../databases/page";
 import { ProjectEnvironmentsPage } from "../environments/page";
-import {
-  DEFAULT_PROJECT_SOURCE_SETTINGS,
-  ProjectSourceSettingsSection,
-  buildProjectSourcePatch,
-  parseProjectSourceSettings,
-  type ProjectSourceSettingsDraft,
-  validateProjectSourceSettings,
-} from "./components/project-source-settings-section";
 
 const PROJECT_NAME_MAX_LENGTH = 128;
 const PROJECT_DESCRIPTION_MAX_LENGTH = 256;
-const PROJECT_CORE_SETTINGS_QUERY_KEY = "project-core-settings";
 
 type ProjectSettingsTabKey = "general" | "api" | "environments" | "databases";
 
@@ -126,7 +116,7 @@ function buildProjectSettingsNavItems(): Array<{
       tab: "general",
       labelKey: "account:SETTINGS_NAV_PROJECT_GENERAL",
       descriptionKey: "account:SETTINGS_PROJECT_DESC",
-      keywords: ["identity", "slug", "source", "framework", "build"],
+      keywords: ["identity", "slug", "description"],
       icon: Settings2,
     },
     {
@@ -157,51 +147,6 @@ function buildProjectSettingsNavItems(): Array<{
 }
 
 type ProjectSettingsNavItem = ReturnType<typeof buildProjectSettingsNavItems>[number];
-
-const PROJECT_SETTINGS_SCOPE_ROWS = [
-  {
-    key: "project-ops",
-    titleKey: "account:SETTINGS_PROJECT_SCOPE_PROJECT_OPS_TITLE",
-    summaryKey: "account:SETTINGS_PROJECT_SCOPE_PROJECT_OPS_SUMMARY",
-    descriptionKey: "account:SETTINGS_PROJECT_SCOPE_PROJECT_OPS_DESC",
-    statusKey: "account:SETTINGS_PROJECT_SCOPE_STATUS_HERE",
-    target: null,
-  },
-  {
-    key: "website-ops",
-    titleKey: "account:SETTINGS_PROJECT_SCOPE_WEBSITE_OPS_TITLE",
-    summaryKey: "account:SETTINGS_PROJECT_SCOPE_WEBSITE_OPS_SUMMARY",
-    descriptionKey: "account:SETTINGS_PROJECT_SCOPE_WEBSITE_OPS_DESC",
-    statusKey: "account:SETTINGS_PROJECT_SCOPE_STATUS_MOVED",
-    target: "website-domain",
-  },
-  {
-    key: "builder-ops",
-    titleKey: "account:SETTINGS_PROJECT_SCOPE_BUILDER_OPS_TITLE",
-    summaryKey: "account:SETTINGS_PROJECT_SCOPE_BUILDER_OPS_SUMMARY",
-    descriptionKey: "account:SETTINGS_PROJECT_SCOPE_BUILDER_OPS_DESC",
-    statusKey: "account:SETTINGS_PROJECT_SCOPE_STATUS_LINKED",
-    target: "editor",
-  },
-] as const;
-
-type ProjectSettingsScopeTarget = NonNullable<
-  (typeof PROJECT_SETTINGS_SCOPE_ROWS)[number]["target"]
->;
-
-function resolveProjectSettingsScopeNavigation(
-  projectId: string,
-  target: ProjectSettingsScopeTarget,
-) {
-  const params = { projectId };
-  switch (target) {
-    case "editor":
-      return { to: "/projects/$projectId/editor" as const, params };
-    case "website-domain":
-    default:
-      return { to: "/projects/$projectId/website/domain" as const, params };
-  }
-}
 
 function normalizeSettingsSearchTerm(value: string): string {
   return value.trim().toLowerCase();
@@ -267,45 +212,92 @@ function ProjectSettingsSideNav(props: {
 
 function FieldMessage(props: { message: string | null }) {
   if (!props.message) return null;
-  return <div className="text-footnote text-destructive">{props.message}</div>;
+  return <FieldError>{props.message}</FieldError>;
 }
 
-function ProjectSettingsScopeSection(props: { projectId: string }) {
-  const { t } = useTranslation(["account"]);
-  const navigate = useNavigate();
-
+function ProjectSettingEditRow(props: {
+  title: ReactNode;
+  description?: ReactNode;
+  summary: ReactNode;
+  disabled?: boolean;
+  right?: ReactNode;
+  testId?: string;
+  buttonTestId?: string;
+  onEdit: () => void;
+}) {
+  const { t } = useTranslation(["settings"]);
   return (
-    <SystemSettingItem
-      id="project-settings-scope"
-      title={t("account:SETTINGS_PROJECT_SCOPE_TITLE")}
-      description={t("account:SETTINGS_PROJECT_SCOPE_DESC")}
+    <div
+      data-testid={props.testId}
+      data-state={props.testId ? "closed" : undefined}
+      data-disabled={props.disabled ? "true" : undefined}
     >
-      <SettingActionGroup>
-        {PROJECT_SETTINGS_SCOPE_ROWS.map((item) => (
-          <SettingActionItem
-            key={item.key}
-            as={item.target ? "button" : "div"}
-            showChevron={Boolean(item.target)}
-            title={t(item.titleKey)}
-            summary={t(item.summaryKey)}
-            description={t(item.descriptionKey)}
-            onTrigger={
-              item.target
-                ? () =>
-                    void navigate(
-                      resolveProjectSettingsScopeNavigation(props.projectId, item.target),
-                    )
-                : undefined
-            }
-            right={
-              <span className="rounded-sm border border-border bg-background px-2 py-1 text-caption font-medium text-label-secondary">
-                {t(item.statusKey)}
-              </span>
-            }
-          />
-        ))}
-      </SettingActionGroup>
-    </SystemSettingItem>
+      <SystemSettingRow
+        title={props.title}
+        description={props.description}
+        control={
+          <div className="flex items-center gap-3">
+            {props.right}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              data-testid={props.buttonTestId}
+              disabled={props.disabled}
+              onClick={props.onEdit}
+            >
+              {t("settings:SETTINGS_EDIT")}
+            </Button>
+          </div>
+        }
+      >
+        <div className="break-words text-callout text-label-secondary">{props.summary}</div>
+      </SystemSettingRow>
+    </div>
+  );
+}
+
+function ProjectSettingDialog(props: {
+  open: boolean;
+  title: ReactNode;
+  description?: ReactNode;
+  disabled?: boolean;
+  pending?: boolean;
+  children: ReactNode;
+  onOpenChange: (open: boolean) => void;
+  onReset: () => void;
+  onSave: () => void;
+}) {
+  const { t } = useTranslation(["settings"]);
+  return (
+    <SettingDialog
+      open={props.open}
+      onOpenChange={props.onOpenChange}
+      title={props.title}
+      description={props.description}
+      footer={
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={props.disabled || props.pending}
+            onClick={props.onReset}
+          >
+            {t("settings:SETTINGS_RESET")}
+          </Button>
+          <Button
+            type="button"
+            loading={props.pending}
+            disabled={props.disabled || props.pending}
+            onClick={props.onSave}
+          >
+            {t("settings:SETTINGS_SAVE")}
+          </Button>
+        </>
+      }
+    >
+      {props.children}
+    </SettingDialog>
   );
 }
 
@@ -320,13 +312,8 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
   const [descriptionDraft, setDescriptionDraft] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
   const [slugError, setSlugError] = useState<string | null>(null);
-  const [sourceDraft, setSourceDraft] = useState<ProjectSourceSettingsDraft>(
-    DEFAULT_PROJECT_SOURCE_SETTINGS,
-  );
-  const [sourceInitial, setSourceInitial] = useState<ProjectSourceSettingsDraft>(
-    DEFAULT_PROJECT_SOURCE_SETTINGS,
-  );
-  const [sourceError, setSourceError] = useState<string | null>(null);
+  const [descriptionError, setDescriptionError] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<"name" | "slug" | "description" | null>(null);
   const [iconDialogProject, setIconDialogProject] = useState<UserCenterProjectListItem | null>(
     null,
   );
@@ -346,14 +333,6 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
     meta: { silent: true },
   });
 
-  const projectCoreQuery = useQuery({
-    queryKey: [PROJECT_CORE_SETTINGS_QUERY_KEY, projectId],
-    enabled: Boolean(projectId),
-    queryFn: async () => getProjectCoreSettings(projectId),
-    retry: false,
-    meta: { silent: true },
-  });
-
   useEffect(() => {
     const project = detailQuery.data?.project;
     if (!project) return;
@@ -362,15 +341,8 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
     setDescriptionDraft(project.description ?? "");
     setNameError(null);
     setSlugError(null);
+    setDescriptionError(null);
   }, [detailQuery.data]);
-
-  useEffect(() => {
-    if (!projectCoreQuery.data) return;
-    const next = parseProjectSourceSettings(projectCoreQuery.data);
-    setSourceInitial(next);
-    setSourceDraft(next);
-    setSourceError(null);
-  }, [projectCoreQuery.data]);
 
   const updateProjectMutation = useMutation({
     mutationFn: async (patch: ProjectUpdateInput) => patchProject(projectId, patch),
@@ -386,35 +358,11 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
     onError: (error) => notifyError(error),
   });
 
-  const updateProjectSourceMutation = useMutation({
-    mutationFn: async (draft: ProjectSourceSettingsDraft) =>
-      patchProjectCoreSettings(projectId, buildProjectSourcePatch(draft)),
-    onSuccess: async (detail) => {
-      const next = parseProjectSourceSettings(detail);
-      setSourceInitial(next);
-      setSourceDraft(next);
-      setSourceError(null);
-      notifySuccessText(t("common:ACTION_SUCCESS"));
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: [PROJECT_CORE_SETTINGS_QUERY_KEY, projectId],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["project", "source", projectId],
-        }),
-      ]);
-    },
-    onError: (error) => notifyError(error),
-  });
-
   const project = detailQuery.data?.project ?? null;
   const permissionReady =
     permissionAccess.authzQuery.isFetched && permissionAccess.actionsQuery.isFetched;
   const canManageProject = permissionReady && permissionAccess.hasAction("project:settings:manage");
   const disabled = updateProjectMutation.isPending || !canManageProject;
-  const sourceDisabled =
-    disabled || projectCoreQuery.isLoading || updateProjectSourceMutation.isPending;
-
   const handlePatchProject = useCallback(
     async (patch: ProjectUpdateInput) => {
       await updateProjectMutation.mutateAsync(patch);
@@ -470,18 +418,17 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
 
   const saveProjectDescription = () =>
     withSavingKey("project:description", async () => {
-      await handlePatchProject({ description: descriptionDraft.trim() || null });
-    });
-
-  const saveProjectSource = () =>
-    withSavingKey("project:source", async () => {
-      const validationError = validateProjectSourceSettings(sourceDraft, t);
-      if (validationError) {
-        setSourceError(validationError);
+      if (descriptionDraft.length > PROJECT_DESCRIPTION_MAX_LENGTH) {
+        setDescriptionError(
+          t("account:ACCOUNT_PROJECTS_FIELD_DESCRIPTION_MAX", {
+            max: PROJECT_DESCRIPTION_MAX_LENGTH,
+          }),
+        );
         throw new Error("FORM_VALIDATION_FAILED");
       }
-      setSourceError(null);
-      await updateProjectSourceMutation.mutateAsync(sourceDraft);
+      setDescriptionError(null);
+      await handlePatchProject({ description: descriptionDraft.trim() || null });
+      setDialog(null);
     });
 
   const loadError = detailQuery.isError
@@ -505,15 +452,13 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
       ) : null}
 
       <SystemSettingStack>
-        <ProjectSettingsScopeSection projectId={projectId} />
-
         <SystemSettingItem
           id="project-identity"
           title={t("account:SETTINGS_NAV_PROJECT_GENERAL")}
           description={t("account:SETTINGS_PROJECT_DESC")}
         >
-          <SettingActionGroup>
-            <SettingActionItem
+          <div className="flex flex-col divide-y divide-border">
+            <ProjectSettingEditRow
               title={t("common:ORG_WORKSPACES_ACTION_CHANGE_ICON")}
               summary={project ? project.iconMode : t("common:LOADING")}
               description={
@@ -522,7 +467,8 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
                   : undefined
               }
               disabled={disabled || !project}
-              onTrigger={openIconDialog}
+              buttonTestId="project-icon-action"
+              onEdit={openIconDialog}
               right={
                 project ? (
                   <ProjectAvatar
@@ -533,126 +479,148 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
                 ) : null
               }
             />
-
-            <Accordion type="single" collapsible className="px-0">
-              <SettingAccordionItem
-                value="project_name"
-                variant="action"
-                title={t("account:ACCOUNT_PROJECTS_FIELD_NAME")}
-                description={t("account:ACCOUNT_PROJECTS_FIELD_NAME_DESC")}
-                summary={nameDraft.trim()}
-                showSummary
-                placeholder={t("settings:SETTINGS_NOT_SET")}
-                disabled={disabled}
-                contentLayout="inline"
-                confirmText={t("settings:SETTINGS_SAVE")}
-                confirmLoading={savingKey === "project:name"}
-                onConfirm={saveProjectName}
-                onReset={() => {
-                  setNameDraft(project?.name ?? "");
-                  setNameError(null);
-                }}
-                resetText={t("settings:SETTINGS_RESET")}
-              >
-                <div className="grid gap-2">
-                  <Input
-                    value={nameDraft}
-                    maxLength={PROJECT_NAME_MAX_LENGTH}
-                    onChange={(event) => {
-                      setNameDraft(event.target.value);
-                      setNameError(null);
-                    }}
-                    placeholder={t("account:ACCOUNT_PROJECTS_FIELD_NAME_PLACEHOLDER")}
-                  />
-                  <div className="flex items-center justify-between gap-3 text-caption text-label-secondary">
-                    <FieldMessage message={nameError} />
-                    <span>
-                      {nameDraft.length}/{PROJECT_NAME_MAX_LENGTH}
-                    </span>
-                  </div>
-                </div>
-              </SettingAccordionItem>
-
-              <SettingAccordionItem
-                value="project_slug"
-                variant="action"
-                title={t("account:ACCOUNT_PROJECTS_FIELD_SLUG")}
-                description={t("account:ACCOUNT_PROJECTS_FIELD_SLUG_HELP")}
-                summary={slugDraft.trim()}
-                showSummary
-                placeholder={t("settings:SETTINGS_NOT_SET")}
-                disabled={disabled || !project}
-                contentLayout="inline"
-                confirmText={t("settings:SETTINGS_SAVE")}
-                confirmLoading={savingKey === "project:slug"}
-                onConfirm={saveProjectSlug}
-                onReset={() => {
-                  setSlugDraft(project?.slug ?? "");
-                  setSlugError(null);
-                }}
-                resetText={t("settings:SETTINGS_RESET")}
-              >
-                <div className="grid gap-2">
-                  <Input
-                    value={slugDraft}
-                    onChange={(event) => {
-                      setSlugDraft(event.target.value);
-                      setSlugError(null);
-                    }}
-                    placeholder={t("account:ACCOUNT_PROJECTS_FIELD_SLUG_PLACEHOLDER")}
-                    autoComplete="off"
-                  />
-                  <FieldMessage message={slugError} />
-                </div>
-              </SettingAccordionItem>
-
-              <SettingAccordionItem
-                value="project_description"
-                variant="action"
-                title={t("account:ACCOUNT_PROJECTS_FIELD_DESCRIPTION")}
-                description={t("account:ACCOUNT_PROJECTS_FIELD_DESCRIPTION_DESC")}
-                summary={descriptionDraft.trim()}
-                showSummary
-                placeholder={t("settings:SETTINGS_NOT_SET")}
-                disabled={disabled}
-                confirmText={t("settings:SETTINGS_SAVE")}
-                confirmLoading={savingKey === "project:description"}
-                onConfirm={saveProjectDescription}
-                onReset={() => setDescriptionDraft(project?.description ?? "")}
-                resetText={t("settings:SETTINGS_RESET")}
-              >
-                <Textarea
-                  rows={4}
-                  maxLength={PROJECT_DESCRIPTION_MAX_LENGTH}
-                  value={descriptionDraft}
-                  onChange={(event) => setDescriptionDraft(event.target.value)}
-                  placeholder={t("account:ACCOUNT_PROJECTS_FIELD_DESCRIPTION_PLACEHOLDER")}
-                />
-                <div className="text-right text-caption text-label-secondary">
-                  {descriptionDraft.length}/{PROJECT_DESCRIPTION_MAX_LENGTH}
-                </div>
-              </SettingAccordionItem>
-            </Accordion>
-          </SettingActionGroup>
+            <ProjectSettingEditRow
+              title={t("account:ACCOUNT_PROJECTS_FIELD_NAME")}
+              description={t("account:ACCOUNT_PROJECTS_FIELD_NAME_DESC")}
+              summary={nameDraft.trim() || t("settings:SETTINGS_NOT_SET")}
+              disabled={disabled}
+              testId="accordion-project_name"
+              onEdit={() => setDialog("name")}
+            />
+            <ProjectSettingEditRow
+              title={t("account:ACCOUNT_PROJECTS_FIELD_SLUG")}
+              description={t("account:ACCOUNT_PROJECTS_FIELD_SLUG_HELP")}
+              summary={slugDraft.trim() || t("settings:SETTINGS_NOT_SET")}
+              disabled={disabled || !project}
+              testId="accordion-project_slug"
+              onEdit={() => setDialog("slug")}
+            />
+            <ProjectSettingEditRow
+              title={t("account:ACCOUNT_PROJECTS_FIELD_DESCRIPTION")}
+              description={t("account:ACCOUNT_PROJECTS_FIELD_DESCRIPTION_DESC")}
+              summary={descriptionDraft.trim() || t("settings:SETTINGS_NOT_SET")}
+              disabled={disabled}
+              testId="accordion-project_description"
+              onEdit={() => setDialog("description")}
+            />
+          </div>
         </SystemSettingItem>
-
-        <ProjectSourceSettingsSection
-          draft={sourceDraft}
-          initial={sourceInitial}
-          disabled={sourceDisabled}
-          pending={savingKey === "project:source" || updateProjectSourceMutation.isPending}
-          error={projectCoreQuery.isError ? t("settings:SETTINGS_LOAD_FAILED_DESC") : sourceError}
-          onChange={(patch) => {
-            setSourceDraft((current) => ({ ...current, ...patch }));
-            setSourceError(null);
-          }}
-          onReset={() => {
-            setSourceDraft(sourceInitial);
-            setSourceError(null);
-          }}
-          onSave={saveProjectSource}
-        />
       </SystemSettingStack>
+
+      <ProjectSettingDialog
+        open={dialog === "name"}
+        onOpenChange={(open) => setDialog(open ? "name" : null)}
+        title={t("account:ACCOUNT_PROJECTS_FIELD_NAME")}
+        description={t("account:ACCOUNT_PROJECTS_FIELD_NAME_DESC")}
+        disabled={disabled}
+        pending={savingKey === "project:name"}
+        onSave={() => void saveProjectName()}
+        onReset={() => {
+          setNameDraft(project?.name ?? "");
+          setNameError(null);
+        }}
+      >
+        <FieldGroup>
+          <Field data-invalid={Boolean(nameError)}>
+            <FieldLabel htmlFor="project-name-input">
+              {t("account:ACCOUNT_PROJECTS_FIELD_NAME")}
+            </FieldLabel>
+            <Input
+              id="project-name-input"
+              value={nameDraft}
+              maxLength={PROJECT_NAME_MAX_LENGTH}
+              onChange={(event) => {
+                setNameDraft(event.target.value);
+                setNameError(null);
+              }}
+              placeholder={t("account:ACCOUNT_PROJECTS_FIELD_NAME_PLACEHOLDER")}
+              aria-invalid={Boolean(nameError)}
+              autoComplete="off"
+            />
+            <div className="flex items-center justify-between gap-3 text-caption text-label-secondary">
+              <FieldMessage message={nameError} />
+              <span>
+                {nameDraft.length}/{PROJECT_NAME_MAX_LENGTH}
+              </span>
+            </div>
+          </Field>
+        </FieldGroup>
+      </ProjectSettingDialog>
+
+      <ProjectSettingDialog
+        open={dialog === "slug"}
+        onOpenChange={(open) => setDialog(open ? "slug" : null)}
+        title={t("account:ACCOUNT_PROJECTS_FIELD_SLUG")}
+        description={t("account:ACCOUNT_PROJECTS_FIELD_SLUG_HELP")}
+        disabled={disabled || !project}
+        pending={savingKey === "project:slug"}
+        onSave={() => void saveProjectSlug()}
+        onReset={() => {
+          setSlugDraft(project?.slug ?? "");
+          setSlugError(null);
+        }}
+      >
+        <FieldGroup>
+          <Field data-invalid={Boolean(slugError)}>
+            <FieldLabel htmlFor="project-slug-input">
+              {t("account:ACCOUNT_PROJECTS_FIELD_SLUG")}
+            </FieldLabel>
+            <Input
+              id="project-slug-input"
+              value={slugDraft}
+              onChange={(event) => {
+                setSlugDraft(event.target.value);
+                setSlugError(null);
+              }}
+              placeholder={t("account:ACCOUNT_PROJECTS_FIELD_SLUG_PLACEHOLDER")}
+              aria-invalid={Boolean(slugError)}
+              autoComplete="off"
+              spellCheck={false}
+            />
+            <FieldMessage message={slugError} />
+          </Field>
+        </FieldGroup>
+      </ProjectSettingDialog>
+
+      <ProjectSettingDialog
+        open={dialog === "description"}
+        onOpenChange={(open) => setDialog(open ? "description" : null)}
+        title={t("account:ACCOUNT_PROJECTS_FIELD_DESCRIPTION")}
+        description={t("account:ACCOUNT_PROJECTS_FIELD_DESCRIPTION_DESC")}
+        disabled={disabled}
+        pending={savingKey === "project:description"}
+        onSave={() => void saveProjectDescription()}
+        onReset={() => {
+          setDescriptionDraft(project?.description ?? "");
+          setDescriptionError(null);
+        }}
+      >
+        <FieldGroup>
+          <Field data-invalid={Boolean(descriptionError)}>
+            <FieldLabel htmlFor="project-description-input">
+              {t("account:ACCOUNT_PROJECTS_FIELD_DESCRIPTION")}
+            </FieldLabel>
+            <Textarea
+              id="project-description-input"
+              rows={4}
+              maxLength={PROJECT_DESCRIPTION_MAX_LENGTH}
+              value={descriptionDraft}
+              onChange={(event) => {
+                setDescriptionDraft(event.target.value);
+                setDescriptionError(null);
+              }}
+              placeholder={t("account:ACCOUNT_PROJECTS_FIELD_DESCRIPTION_PLACEHOLDER")}
+              aria-invalid={Boolean(descriptionError)}
+            />
+            <div className="flex items-center justify-between gap-3 text-caption text-label-secondary">
+              <FieldMessage message={descriptionError} />
+              <span>
+                {descriptionDraft.length}/{PROJECT_DESCRIPTION_MAX_LENGTH}
+              </span>
+            </div>
+          </Field>
+        </FieldGroup>
+      </ProjectSettingDialog>
 
       {iconDialogProject ? (
         <ProjectIconDialog

@@ -15,6 +15,8 @@ import { Route as ContentLocalizationRoute } from "@/routes/projects/$projectId/
 import { Route as DeploymentsRoute } from "@/routes/projects/$projectId/deployments/index";
 import { Route as SettingsDeploymentsRoute } from "@/routes/projects/$projectId/settings/deployments/index";
 import { Route as SettingsDomainRoute } from "@/routes/projects/$projectId/settings/domain/index";
+import { Route as SeoSiteRoute } from "@/routes/projects/$projectId/seo/site/index";
+import { Route as SeoSiteLocalizationRoute } from "@/routes/projects/$projectId/seo/site/localization/index";
 
 function expectRedirect(
   route: unknown,
@@ -48,7 +50,7 @@ describe("legacy project website config content routes", () => {
 
   it("redirects the old content general settings route into Website Config", () => {
     expectRedirect(ContentGeneralRoute, {
-      to: "/projects/$projectId/seo/site",
+      to: "/projects/$projectId/website/config",
       params: { projectId: "project-1" },
       replace: true,
     });
@@ -56,7 +58,23 @@ describe("legacy project website config content routes", () => {
 
   it("redirects the old content localization settings route into Website Config", () => {
     expectRedirect(ContentLocalizationRoute, {
-      to: "/projects/$projectId/seo/site/localization",
+      to: "/projects/$projectId/website/config",
+      params: { projectId: "project-1" },
+      replace: true,
+    });
+  });
+
+  it("redirects the old SEO website config route into Website Config", () => {
+    expectRedirect(SeoSiteRoute, {
+      to: "/projects/$projectId/website/config",
+      params: { projectId: "project-1" },
+      replace: true,
+    });
+  });
+
+  it("redirects the old SEO localization route into Website Config", () => {
+    expectRedirect(SeoSiteLocalizationRoute, {
+      to: "/projects/$projectId/website/config",
       params: { projectId: "project-1" },
       replace: true,
     });

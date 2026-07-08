@@ -166,13 +166,15 @@ describe("GeneralSettingsShell permission consumption", () => {
   });
 
   it("keeps tabs editable when site management access is granted", async () => {
-    renderWithQuery(
-      <GeneralSettingsShell activeTab="basics" projectId="project-1" embedded={false} />,
-    );
+    renderWithQuery(<GeneralSettingsShell projectId="project-1" embedded={false} />);
 
     await waitFor(() => {
       expect(screen.getByTestId("site-settings-tab")).toHaveAttribute("data-disabled", "false");
     });
+    expect(screen.getByTestId("localization-settings-tab")).toHaveAttribute(
+      "data-disabled",
+      "false",
+    );
     expect(screen.queryByTestId("general-settings-read-only-notice")).not.toBeInTheDocument();
   });
 
@@ -186,7 +188,7 @@ describe("GeneralSettingsShell permission consumption", () => {
       },
     });
     const { queryClient } = renderWithQuery(
-      <GeneralSettingsShell activeTab="basics" projectId="project-1" embedded={false} />,
+      <GeneralSettingsShell projectId="project-1" embedded={false} />,
     );
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
@@ -214,22 +216,22 @@ describe("GeneralSettingsShell permission consumption", () => {
       permissionCodes: ["system:settings:read"],
     });
 
-    renderWithQuery(
-      <GeneralSettingsShell activeTab="basics" projectId="project-1" embedded={false} />,
-    );
+    renderWithQuery(<GeneralSettingsShell projectId="project-1" embedded={false} />);
 
     expect(await screen.findByTestId("general-settings-read-only-notice")).toHaveTextContent(
       "settings:SETTINGS_SITE_SETTINGS_READ_ONLY_DESC",
     );
     expect(screen.getByTestId("site-settings-tab")).toHaveAttribute("data-disabled", "true");
+    expect(screen.getByTestId("localization-settings-tab")).toHaveAttribute(
+      "data-disabled",
+      "true",
+    );
   });
 
   it("keeps site settings controls closed while project permissions warm up", async () => {
     getMyProjectAuthzMock.mockImplementationOnce(() => new Promise(() => {}));
 
-    renderWithQuery(
-      <GeneralSettingsShell activeTab="basics" projectId="project-1" embedded={false} />,
-    );
+    renderWithQuery(<GeneralSettingsShell projectId="project-1" embedded={false} />);
 
     await waitFor(() => {
       expect(screen.getByTestId("site-settings-tab")).toHaveAttribute("data-disabled", "true");
@@ -237,43 +239,15 @@ describe("GeneralSettingsShell permission consumption", () => {
     expect(screen.queryByTestId("general-settings-read-only-notice")).not.toBeInTheDocument();
   });
 
-  it("keeps localization inside the website config SEO route", async () => {
-    renderWithQuery(
-      <GeneralSettingsShell activeTab="basics" projectId="project-1" embedded={false} />,
-    );
+  it("renders site identity and localization in one website config page", async () => {
+    renderWithQuery(<GeneralSettingsShell projectId="project-1" embedded={false} />);
 
-    fireEvent.click(
-      await screen.findByRole("button", {
-        name: /settings:SETTINGS_SITE_SETTINGS_TAB_LOCALIZATION/,
-      }),
-    );
-
-    expect(navigateMock).toHaveBeenCalledWith({
-      to: "/projects/$projectId/seo/site/localization",
-      params: { projectId: "project-1" },
+    await waitFor(() => {
+      expect(screen.getByTestId("site-settings-tab")).toBeInTheDocument();
     });
-  });
-
-  it("filters website config side navigation without hiding the active settings stack", async () => {
-    renderWithQuery(
-      <GeneralSettingsShell activeTab="basics" projectId="project-1" embedded={false} />,
-    );
-
-    fireEvent.change(
-      await screen.findByPlaceholderText("settings:SETTINGS_SITE_SEARCH_PLACEHOLDER"),
-      {
-        target: { value: "localization" },
-      },
-    );
-
-    expect(
-      screen.getByRole("button", {
-        name: /settings:SETTINGS_SITE_SETTINGS_TAB_LOCALIZATION/,
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /settings:SETTINGS_SITE_SETTINGS_TAB_BASICS/ }),
-    ).not.toBeInTheDocument();
     expect(screen.getByTestId("site-settings-tab")).toBeInTheDocument();
+    expect(screen.getByTestId("localization-settings-tab")).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("settings:SETTINGS_SITE_SEARCH_PLACEHOLDER")).toBeNull();
+    expect(navigateMock).not.toHaveBeenCalled();
   });
 });

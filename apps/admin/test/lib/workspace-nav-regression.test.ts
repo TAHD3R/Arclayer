@@ -37,9 +37,9 @@ describe("workspace nav regression", () => {
       "/website/releases",
       "/content/library",
       "/content/models",
-      "/seo/site",
       "/seo/google-analytics",
       "/seo/audit",
+      "/website/config",
       "/settings/general",
     ]);
   });
@@ -64,13 +64,11 @@ describe("workspace nav regression", () => {
       "website.releases",
       "content",
       "seo",
+      "website.config",
       "settings.project",
     ]);
 
-    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "assets")).not.toHaveProperty(
-      "groupLabelBeforeKey",
-    );
-    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "website.domain")).toMatchObject({
+    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "assets")).toMatchObject({
       groupLabelBeforeKey: "nav:NAV_GROUP_WEBSITE",
     });
     expect(ADMIN_NAV_ITEMS.find((item) => item.key === "website.domain")).toMatchObject({
@@ -91,17 +89,20 @@ describe("workspace nav regression", () => {
     expect(ADMIN_NAV_ITEMS.find((item) => item.key === "seo")).toMatchObject({
       labelKey: "nav:NAV_SECTION_SEO",
       children: [
-        expect.objectContaining({ key: "seo.site", to: "/seo/site" }),
         expect.objectContaining({ key: "seo.google-analytics", to: "/seo/google-analytics" }),
         expect.objectContaining({ key: "seo.audit", to: "/seo/audit" }),
       ],
+    });
+    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "website.config")).toMatchObject({
+      labelKey: "nav:NAV_WEBSITE_CONFIG",
+      to: "/website/config",
     });
     expect(ADMIN_NAV_ITEMS.find((item) => item.key === "settings.project")).toMatchObject({
       groupLabelBeforeKey: "nav:NAV_SECTION_CONFIGURATION",
     });
 
     expect(ADMIN_NAV_ITEMS.find((item) => item.key === "content")?.children).toHaveLength(2);
-    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "seo")?.children).toHaveLength(3);
+    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "seo")?.children).toHaveLength(2);
   });
 
   test("returns the project-first workspace nav tree", () => {
@@ -116,11 +117,12 @@ describe("workspace nav regression", () => {
       "website.releases",
       "content",
       "seo",
+      "website.config",
       "settings.project",
     ]);
     expect(listWorkspaceNavTargets(projectNav)).toContain("/website/domain");
     expect(listWorkspaceNavTargets(projectNav)).toContain("/website/releases");
-    expect(listWorkspaceNavTargets(projectNav)).toContain("/seo/site");
+    expect(listWorkspaceNavTargets(projectNav)).toContain("/website/config");
     expect(listWorkspaceNavTargets(projectNav)).toContain("/settings/general");
   });
 });

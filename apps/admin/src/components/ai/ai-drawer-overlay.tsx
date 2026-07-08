@@ -69,8 +69,7 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
 
   useEffect(() => {
     if (drawerOpen && !activeId && conversations.length === 0) {
-      const conversationId = createConversation();
-      void ensureAIConversationPersistedForRuntime(conversationId);
+      createConversation();
     }
   }, [activeId, conversations.length, createConversation, drawerOpen]);
 
@@ -83,6 +82,7 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
 
   useEffect(() => {
     if (!drawerOpen || !activeId || !activeConversation) return;
+    if (activeConversation.messages.length === 0) return;
 
     const snapshot = activeConversation.contextSnapshot ?? {};
     const snapshotPathname = typeof snapshot.pathname === "string" ? snapshot.pathname : null;
@@ -136,8 +136,8 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
   };
 
   const handleCreateConversation = () => {
-    const conversationId = createConversation();
-    void ensureAIConversationPersistedForRuntime(conversationId);
+    if (activeConversation?.messages.length === 0) return;
+    createConversation();
   };
 
   return (

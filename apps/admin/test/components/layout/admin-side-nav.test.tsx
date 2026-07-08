@@ -254,10 +254,10 @@ const redirectedPreferenceItems: AdminNavItem[] = [
     icon: LayoutGrid,
     children: [
       {
-        key: "seo.site",
+        key: "website.config",
         label: "Website Config",
         icon: Settings,
-        to: "/w/ws-1/seo/site",
+        to: "/w/ws-1/website/config",
       },
     ],
   },
@@ -1115,7 +1115,7 @@ describe("AdminSiderNav collapsed groups", () => {
     const user = userEvent.setup();
     mockPathname = "/w/ws-1/";
     useFavoritesStore.setState({
-      paths: ["/w/ws-1/seo/site", "/w/ws-1/settings/workspace/basics"],
+      paths: ["/w/ws-1/website/config", "/w/ws-1/settings/workspace/basics"],
       sectionExpanded: false,
     });
 
@@ -1127,9 +1127,9 @@ describe("AdminSiderNav collapsed groups", () => {
     await user.click(screen.getByRole("button", { name: "Content" }));
     await user.click(screen.getByRole("button", { name: "Website Config" }));
 
-    expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-1/seo/site" });
+    expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-1/website/config" });
 
-    mockPathname = "/w/ws-1/seo/site";
+    mockPathname = "/w/ws-1/website/config";
     view.rerender(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
@@ -1305,7 +1305,7 @@ describe("AdminSiderNav collapsed groups", () => {
     const view = renderTreeNav({
       items: workspaceItems,
       favoriteWorkspaceBase: "/projects/ws-1",
-      pathnameOverride: "/projects/ws-1/seo/site",
+      pathnameOverride: "/projects/ws-1/website/config",
     });
 
     expect(screen.getByRole("button", { name: "en-US:nav:NAV_WEBSITE_CONFIG" })).toHaveAttribute(

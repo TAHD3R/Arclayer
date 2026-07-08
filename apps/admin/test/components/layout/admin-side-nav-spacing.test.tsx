@@ -326,7 +326,7 @@ describe("AdminSiderNav spacing", () => {
     expect(iconWrapper?.className).not.toContain("group-data-[collapsible=icon]:mx-auto");
   });
 
-  it("keeps expanded children aligned with their parent and removes hover background styling", async () => {
+  it("keeps expanded children aligned with their parent and uses menu item hover styling", async () => {
     const user = userEvent.setup();
 
     renderWithQueryClient(

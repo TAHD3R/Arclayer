@@ -41,6 +41,7 @@ import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { buildGeneralSettingsInitialValues } from "@/lib/settings/general/adapters";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { toOpenableProjectDomainUrl } from "@/lib/projects/domain-routing";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
@@ -201,7 +202,7 @@ function buildWebsiteControlWorkflowLinks(
     },
     {
       description: t("WEBSITE_CONTROL_WORKFLOW_LINK_CONFIG_DESC"),
-      href: `/projects/${projectId}/seo/site`,
+      href: `/projects/${projectId}/website/config`,
       icon: Settings2,
       id: "website-config",
       label: t("WEBSITE_CONTROL_WORKFLOW_LINK_CONFIG"),
@@ -696,6 +697,7 @@ export function ProjectDomainSettingsPage(props: { projectId: string; embedded?:
     deleteMutation.isPending;
   const domains = domainsQuery.data ?? [];
   const previewDomain = useMemo(() => selectPreviewDomain(domains), [domains]);
+  const previewDomainUrl = toOpenableProjectDomainUrl(previewDomain?.hostname);
   const activeRelease = useMemo(
     () => selectActiveRelease(releasesQuery.data ?? []),
     [releasesQuery.data],
@@ -754,7 +756,9 @@ export function ProjectDomainSettingsPage(props: { projectId: string; embedded?:
 
         <section className="grid gap-4" aria-label={t("account:WEBSITE_CONTROL_TITLE")}>
           <WebsiteReadinessStrip
-            domainReady={Boolean(previewDomain?.isVerified && previewDomain.isActive)}
+            domainReady={Boolean(
+              previewDomain?.isVerified && previewDomain.isActive && previewDomainUrl,
+            )}
             brandReady={brandReadiness.ready}
             releaseReady={Boolean(activeRelease?.isActive)}
             dryRun={releaseDryRunMutation.data ?? null}
@@ -773,13 +777,13 @@ export function ProjectDomainSettingsPage(props: { projectId: string; embedded?:
                   : t("account:WEBSITE_CONTROL_DOMAIN_EMPTY_DESC")
               }
               actionLabel={
-                previewDomain?.isVerified && previewDomain.isActive
+                previewDomain?.isVerified && previewDomain.isActive && previewDomainUrl
                   ? t("account:WEBSITE_CONTROL_OPEN_SITE")
                   : t("account:WEBSITE_CONTROL_MANAGE_DOMAINS")
               }
               onAction={() => {
-                if (previewDomain?.isVerified && previewDomain.isActive) {
-                  window.open(`https://${previewDomain.hostname}`, "_blank", "noopener,noreferrer");
+                if (previewDomain?.isVerified && previewDomain.isActive && previewDomainUrl) {
+                  window.open(previewDomainUrl, "_blank", "noopener,noreferrer");
                   return;
                 }
                 document.getElementById("project-domain-create-input")?.focus();
@@ -804,7 +808,7 @@ export function ProjectDomainSettingsPage(props: { projectId: string; embedded?:
               actionLabel={t("account:WEBSITE_CONTROL_OPEN_WEBSITE_CONFIG")}
               onAction={() =>
                 void navigate({
-                  to: "/projects/$projectId/seo/site",
+                  to: "/projects/$projectId/website/config",
                   params: { projectId: props.projectId },
                 })
               }
@@ -987,9 +991,6 @@ export function ProjectDomainSettingsPage(props: { projectId: string; embedded?:
       title={t("account:SETTINGS_NAV_PROJECT_DOMAIN")}
       description={t("account:SETTINGS_PROJECT_DOMAINS_DESC")}
       showFavoriteToggle={false}
-      pageFrame="full"
-      className="min-h-full"
-      contentClassName="min-h-full"
       contentContainerClassName="min-h-full"
     >
       {content}

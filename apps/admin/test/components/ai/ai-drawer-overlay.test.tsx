@@ -97,7 +97,7 @@ describe("AIDrawerOverlay", () => {
     });
   });
 
-  it("refreshes an empty active conversation when the current page changes", async () => {
+  it("does not persist an empty active conversation when the current page changes", async () => {
     const view = renderDrawer();
 
     await waitFor(() => expect(loadAIConversations).toHaveBeenCalled());
@@ -107,9 +107,7 @@ describe("AIDrawerOverlay", () => {
     window.history.pushState({}, "", "/system/settings/agents");
     view.rerender(<AIDrawerOverlay widthPx={360} />);
 
-    await waitFor(() => {
-      expect(ensureAIConversationPersistedForRuntime).toHaveBeenCalledWith("conversation-1");
-    });
+    expect(ensureAIConversationPersistedForRuntime).not.toHaveBeenCalled();
   });
 
   it("refreshes the page context for conversations that already have messages", async () => {
@@ -129,5 +127,24 @@ describe("AIDrawerOverlay", () => {
     await waitFor(() => {
       expect(ensureAIConversationPersistedForRuntime).toHaveBeenCalledWith("conversation-1");
     });
+  });
+
+  it("opens with a local draft conversation without persisting it", async () => {
+    useAiChatStore.setState({
+      conversations: [],
+      activeId: null,
+      streaming: false,
+      drawerOpen: true,
+    });
+
+    renderDrawer();
+
+    await waitFor(() => expect(loadAIConversations).toHaveBeenCalled());
+    await waitFor(() => {
+      expect(useAiChatStore.getState().activeId).toBeTruthy();
+    });
+    expect(useAiChatStore.getState().conversations).toHaveLength(1);
+    expect(useAiChatStore.getState().conversations[0]?.messages).toHaveLength(0);
+    expect(ensureAIConversationPersistedForRuntime).not.toHaveBeenCalled();
   });
 });

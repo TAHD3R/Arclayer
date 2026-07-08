@@ -40,6 +40,7 @@ import { Route as ProjectsProjectIdAssetsIndexRouteImport } from './routes/proje
 import { Route as ProjectsProjectIdActivityIndexRouteImport } from './routes/projects/$projectId/activity/index'
 import { Route as ProjectsProjectIdWebsiteReleasesIndexRouteImport } from './routes/projects/$projectId/website/releases/index'
 import { Route as ProjectsProjectIdWebsiteDomainIndexRouteImport } from './routes/projects/$projectId/website/domain/index'
+import { Route as ProjectsProjectIdWebsiteConfigIndexRouteImport } from './routes/projects/$projectId/website/config/index'
 import { Route as ProjectsProjectIdSettingsSeoIndexRouteImport } from './routes/projects/$projectId/settings/seo/index'
 import { Route as ProjectsProjectIdSettingsRuntimeIndexRouteImport } from './routes/projects/$projectId/settings/runtime/index'
 import { Route as ProjectsProjectIdSettingsLocalizationIndexRouteImport } from './routes/projects/$projectId/settings/localization/index'
@@ -263,6 +264,16 @@ const ProjectsProjectIdWebsiteDomainIndexRoute =
     getParentRoute: () => ProjectsProjectIdRoute,
   } as any).lazy(() =>
     import('./routes/projects/$projectId/website/domain/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const ProjectsProjectIdWebsiteConfigIndexRoute =
+  ProjectsProjectIdWebsiteConfigIndexRouteImport.update({
+    id: '/website/config/',
+    path: '/website/config/',
+    getParentRoute: () => ProjectsProjectIdRoute,
+  } as any).lazy(() =>
+    import('./routes/projects/$projectId/website/config/index.lazy').then(
       (d) => d.Route,
     ),
   )
@@ -506,6 +517,7 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/settings/localization/': typeof ProjectsProjectIdSettingsLocalizationIndexRoute
   '/projects/$projectId/settings/runtime/': typeof ProjectsProjectIdSettingsRuntimeIndexRoute
   '/projects/$projectId/settings/seo/': typeof ProjectsProjectIdSettingsSeoIndexRoute
+  '/projects/$projectId/website/config/': typeof ProjectsProjectIdWebsiteConfigIndexRoute
   '/projects/$projectId/website/domain/': typeof ProjectsProjectIdWebsiteDomainIndexRoute
   '/projects/$projectId/website/releases/': typeof ProjectsProjectIdWebsiteReleasesIndexRoute
   '/projects/$projectId/content/library/$itemId/': typeof ProjectsProjectIdContentLibraryItemIdIndexRoute
@@ -561,6 +573,7 @@ export interface FileRoutesByTo {
   '/projects/$projectId/settings/localization': typeof ProjectsProjectIdSettingsLocalizationIndexRoute
   '/projects/$projectId/settings/runtime': typeof ProjectsProjectIdSettingsRuntimeIndexRoute
   '/projects/$projectId/settings/seo': typeof ProjectsProjectIdSettingsSeoIndexRoute
+  '/projects/$projectId/website/config': typeof ProjectsProjectIdWebsiteConfigIndexRoute
   '/projects/$projectId/website/domain': typeof ProjectsProjectIdWebsiteDomainIndexRoute
   '/projects/$projectId/website/releases': typeof ProjectsProjectIdWebsiteReleasesIndexRoute
   '/projects/$projectId/content/library/$itemId': typeof ProjectsProjectIdContentLibraryItemIdIndexRoute
@@ -619,6 +632,7 @@ export interface FileRoutesById {
   '/projects/$projectId/settings/localization/': typeof ProjectsProjectIdSettingsLocalizationIndexRoute
   '/projects/$projectId/settings/runtime/': typeof ProjectsProjectIdSettingsRuntimeIndexRoute
   '/projects/$projectId/settings/seo/': typeof ProjectsProjectIdSettingsSeoIndexRoute
+  '/projects/$projectId/website/config/': typeof ProjectsProjectIdWebsiteConfigIndexRoute
   '/projects/$projectId/website/domain/': typeof ProjectsProjectIdWebsiteDomainIndexRoute
   '/projects/$projectId/website/releases/': typeof ProjectsProjectIdWebsiteReleasesIndexRoute
   '/projects/$projectId/content/library/$itemId/': typeof ProjectsProjectIdContentLibraryItemIdIndexRoute
@@ -678,6 +692,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/settings/localization/'
     | '/projects/$projectId/settings/runtime/'
     | '/projects/$projectId/settings/seo/'
+    | '/projects/$projectId/website/config/'
     | '/projects/$projectId/website/domain/'
     | '/projects/$projectId/website/releases/'
     | '/projects/$projectId/content/library/$itemId/'
@@ -733,6 +748,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/settings/localization'
     | '/projects/$projectId/settings/runtime'
     | '/projects/$projectId/settings/seo'
+    | '/projects/$projectId/website/config'
     | '/projects/$projectId/website/domain'
     | '/projects/$projectId/website/releases'
     | '/projects/$projectId/content/library/$itemId'
@@ -790,6 +806,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/settings/localization/'
     | '/projects/$projectId/settings/runtime/'
     | '/projects/$projectId/settings/seo/'
+    | '/projects/$projectId/website/config/'
     | '/projects/$projectId/website/domain/'
     | '/projects/$projectId/website/releases/'
     | '/projects/$projectId/content/library/$itemId/'
@@ -1029,6 +1046,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdWebsiteDomainIndexRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
+    '/projects/$projectId/website/config/': {
+      id: '/projects/$projectId/website/config/'
+      path: '/website/config'
+      fullPath: '/projects/$projectId/website/config/'
+      preLoaderRoute: typeof ProjectsProjectIdWebsiteConfigIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
     '/projects/$projectId/settings/seo/': {
       id: '/projects/$projectId/settings/seo/'
       path: '/settings/seo'
@@ -1263,6 +1287,7 @@ interface ProjectsProjectIdRouteChildren {
   ProjectsProjectIdSettingsLocalizationIndexRoute: typeof ProjectsProjectIdSettingsLocalizationIndexRoute
   ProjectsProjectIdSettingsRuntimeIndexRoute: typeof ProjectsProjectIdSettingsRuntimeIndexRoute
   ProjectsProjectIdSettingsSeoIndexRoute: typeof ProjectsProjectIdSettingsSeoIndexRoute
+  ProjectsProjectIdWebsiteConfigIndexRoute: typeof ProjectsProjectIdWebsiteConfigIndexRoute
   ProjectsProjectIdWebsiteDomainIndexRoute: typeof ProjectsProjectIdWebsiteDomainIndexRoute
   ProjectsProjectIdWebsiteReleasesIndexRoute: typeof ProjectsProjectIdWebsiteReleasesIndexRoute
   ProjectsProjectIdContentLibraryItemIdIndexRoute: typeof ProjectsProjectIdContentLibraryItemIdIndexRoute
@@ -1318,6 +1343,8 @@ const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
     ProjectsProjectIdSettingsRuntimeIndexRoute,
   ProjectsProjectIdSettingsSeoIndexRoute:
     ProjectsProjectIdSettingsSeoIndexRoute,
+  ProjectsProjectIdWebsiteConfigIndexRoute:
+    ProjectsProjectIdWebsiteConfigIndexRoute,
   ProjectsProjectIdWebsiteDomainIndexRoute:
     ProjectsProjectIdWebsiteDomainIndexRoute,
   ProjectsProjectIdWebsiteReleasesIndexRoute:

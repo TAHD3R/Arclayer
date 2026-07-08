@@ -18,6 +18,14 @@ http:
       tls: {}
       priority: 10
 
+    project-sites:
+      entryPoints:
+        - websecure
+      rule: "HostRegexp(`^.+\\.arclayer\\.localhost$`)"
+      service: api
+      tls: {}
+      priority: 1
+
     admin:
       entryPoints:
         - websecure
@@ -34,6 +42,22 @@ http:
       tls: {}
       priority: 10
 
+    storage:
+      entryPoints:
+        - websecure
+      rule: "Host(`storage.arclayer.localhost`)"
+      service: rustfs-api
+      tls: {}
+      priority: 10
+
+    rustfs-console:
+      entryPoints:
+        - websecure
+      rule: "Host(`rustfs.arclayer.localhost`)"
+      service: rustfs-console
+      tls: {}
+      priority: 10
+
   services:
     api:
       loadBalancer:
@@ -46,6 +70,18 @@ http:
         passHostHeader: true
         servers:
           - url: "http://host.docker.internal:5173"
+
+    rustfs-api:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: "http://rustfs:9000"
+
+    rustfs-console:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: "http://rustfs:9001"
 
 tls:
   certificates:

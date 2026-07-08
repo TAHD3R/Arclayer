@@ -1005,8 +1005,7 @@ const WorkspaceProjectRow: FC<{
           {project.slug}
         </span>
       </div>
-      {summary?.domainHostname ||
-      summary?.homepageTitle ||
+      {summary?.homepageTitle ||
       summary?.routePath ||
       summary?.contentModelCount ||
       summary?.contentItemCount ||
@@ -1017,9 +1016,6 @@ const WorkspaceProjectRow: FC<{
       summary?.appEntryPath ||
       summary?.sourceFileCount ? (
         <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-caption leading-relaxed text-muted-foreground">
-          {summary.domainHostname ? (
-            <span className="truncate">{summary.domainHostname}</span>
-          ) : null}
           {summary.homepageTitle ? (
             <span>
               {t("ai:AI_WORKSPACE_ACTION_PROJECT_HOMEPAGE_BADGE", {

@@ -234,7 +234,7 @@ function buildContentModelsWorkflowLinks(
       label: t("CONTENT_MODELS_WORKFLOW_LINK_WEBSITE_CONTROL"),
     },
     {
-      href: `/projects/${projectId}/seo/site`,
+      href: `/projects/${projectId}/website/config`,
       icon: SettingsIcon,
       id: "website-config",
       label: t("CONTENT_MODELS_WORKFLOW_LINK_WEBSITE_CONFIG"),

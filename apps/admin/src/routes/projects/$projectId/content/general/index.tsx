@@ -4,7 +4,7 @@ export const Route = createFileRoute("/projects/$projectId/content/general/")({
   staticData: { titleKey: "nav:NAV_WEBSITE_CONFIG" },
   beforeLoad: ({ params }) => {
     throw redirect({
-      to: "/projects/$projectId/seo/site",
+      to: "/projects/$projectId/website/config",
       params,
       replace: true,
     });

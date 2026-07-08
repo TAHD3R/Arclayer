@@ -822,7 +822,7 @@ function FavoriteFolderRow(props: {
           INTERACTIVE_TRANSITION_CLASSNAME,
           NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
           NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
-          "focus-visible:bg-accent",
+          "focus-visible:bg-sidebar-accent",
           "text-callout data-[dragging=true]:opacity-15",
           "data-[folder-drop-target=true]:animate-pulse",
         )}

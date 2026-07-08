@@ -1,10 +1,11 @@
 import { normalizePath } from "@/lib/admin-nav-utils";
 
 const LEGACY_PROJECT_SETTINGS_REWRITES: Array<[RegExp, string]> = [
-  [/^(\/(?:w|projects)\/[^/]+)\/settings\/site\/basics$/, "$1/seo/site"],
-  [/^(\/(?:w|projects)\/[^/]+)\/settings\/site\/localization$/, "$1/seo/site/localization"],
-  [/^(\/(?:w|projects)\/[^/]+)\/settings\/site$/, "$1/seo/site"],
-  [/^(\/(?:w|projects)\/[^/]+)\/settings\/localization$/, "$1/seo/site/localization"],
+  [/^(\/(?:w|projects)\/[^/]+)\/settings\/site\/basics$/, "$1/website/config"],
+  [/^(\/(?:w|projects)\/[^/]+)\/settings\/site\/localization$/, "$1/website/config"],
+  [/^(\/(?:w|projects)\/[^/]+)\/settings\/site$/, "$1/website/config"],
+  [/^(\/(?:w|projects)\/[^/]+)\/settings\/localization$/, "$1/website/config"],
+  [/^(\/(?:w|projects)\/[^/]+)\/seo\/site(?:\/localization)?$/, "$1/website/config"],
   [/^(\/(?:w|projects)\/[^/]+)\/settings\/domain$/, "$1/website/domain"],
   [/^(\/(?:w|projects)\/[^/]+)\/content\/domain$/, "$1/website/domain"],
   [/^(\/(?:w|projects)\/[^/]+)\/settings\/deployments$/, "$1/website/releases"],

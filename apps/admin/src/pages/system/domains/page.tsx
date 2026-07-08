@@ -30,7 +30,7 @@ import {
   splitLineList,
 } from "@/pages/system/system-settings-form-utils";
 
-const DEFAULT_BASE_DOMAIN = "arclayer.app";
+const DEFAULT_BASE_DOMAIN = "arclayer.localhost";
 const DEFAULT_ADMIN_SUBDOMAIN = "app";
 const DOMAIN_LABEL_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const BUILTIN_RESERVED_LABELS = [
@@ -46,6 +46,8 @@ const BUILTIN_RESERVED_LABELS = [
   "editor",
   "system",
   "static",
+  "storage",
+  "rustfs",
   "assets",
   "cdn",
   "media",

@@ -1838,7 +1838,7 @@ describe("ContentLibraryPage", () => {
       within(workflowLinks).getByRole("link", {
         name: "content:CONTENT_LIBRARY_WORKFLOW_LINK_WEBSITE_CONFIG",
       }),
-    ).toHaveAttribute("href", "/projects/project-1/seo/site");
+    ).toHaveAttribute("href", "/projects/project-1/website/config");
     expect(within(summary).getAllByText("1")).toHaveLength(5);
     expect(
       within(summary).getByRole("button", {

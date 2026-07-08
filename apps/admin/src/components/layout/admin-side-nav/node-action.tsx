@@ -15,6 +15,7 @@ import {
   NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
   NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
   NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
+  NAV_SUB_ITEM_INTERACTIVE_BG_CLASSNAME,
 } from "./nav-node-styles";
 import {
   NAV_ITEM_BUTTON_PADDING_CLASSNAME,
@@ -51,7 +52,7 @@ function NodeActionSub({
           NAV_ITEM_RADIUS_CLASSNAME,
           INTERACTIVE_TRANSITION_CLASSNAME,
           NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
-          NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
+          NAV_SUB_ITEM_INTERACTIVE_BG_CLASSNAME,
           "focus-visible:bg-accent",
           "text-callout",
           isActive && "font-semibold text-label-primary!",

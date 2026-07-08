@@ -20,13 +20,16 @@ describe("buildAdminTopbarBreadcrumbs", () => {
     ]);
   });
 
-  it("keeps project assets outside the Website operations group", () => {
+  it("maps project assets into the Website group", () => {
     const breadcrumbs = buildAdminTopbarBreadcrumbs(
       resolveProjectSceneNavItems("project-alpha"),
       "/projects/project-alpha/assets",
     );
 
-    expect(breadcrumbs.map((item) => item.labelKey)).toEqual(["nav:NAV_ASSETS"]);
+    expect(breadcrumbs.map((item) => item.labelKey)).toEqual([
+      "nav:NAV_GROUP_WEBSITE",
+      "nav:NAV_ASSETS",
+    ]);
   });
 
   it("maps project releases to Website > Releases", () => {
@@ -40,10 +43,12 @@ describe("buildAdminTopbarBreadcrumbs", () => {
       "nav:NAV_WEBSITE_RELEASES",
     ]);
     expect(breadcrumbs[0]?.menuItems?.map((item) => item.labelKey)).toEqual([
+      "nav:NAV_ASSETS",
       "nav:NAV_WEBSITE_DOMAIN",
       "nav:NAV_WEBSITE_RELEASES",
       "nav:NAV_CONTENT",
       "nav:NAV_SECTION_SEO",
+      "nav:NAV_WEBSITE_CONFIG",
     ]);
   });
 });

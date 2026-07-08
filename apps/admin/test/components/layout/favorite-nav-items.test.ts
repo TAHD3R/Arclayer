@@ -254,7 +254,7 @@ describe("resolveFavoriteNavItems", () => {
 
     expect(flattenFavoriteNavItems(favorites)).toEqual([
       expect.objectContaining({
-        path: "/projects/ws-1/seo/site",
+        path: "/projects/ws-1/website/config",
         label: "nav:NAV_WEBSITE_CONFIG",
         isCurrentWorkspace: true,
       }),
@@ -291,7 +291,7 @@ describe("resolveFavoriteNavItems", () => {
 
     expect(flattenFavoriteNavItems(favorites)).toEqual([
       expect.objectContaining({
-        path: "/projects/ws-9/seo/site/localization",
+        path: "/projects/ws-9/website/config",
         label: "nav:NAV_WEBSITE_CONFIG",
       }),
       expect.objectContaining({

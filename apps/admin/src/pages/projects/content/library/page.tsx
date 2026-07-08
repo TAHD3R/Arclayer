@@ -333,7 +333,7 @@ function buildContentLibraryWorkflowLinks(
       label: t("CONTENT_LIBRARY_WORKFLOW_LINK_RELEASES"),
     },
     {
-      href: `/projects/${projectId}/seo/site`,
+      href: `/projects/${projectId}/website/config`,
       icon: SettingsIcon,
       id: "website-config",
       label: t("CONTENT_LIBRARY_WORKFLOW_LINK_WEBSITE_CONFIG"),

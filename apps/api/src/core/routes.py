@@ -11,6 +11,7 @@ from src.modules.permissions.router import router as permissions_router
 from src.modules.projects.router import router as projects_router
 from src.modules.projects.runtime.router import router as content_runtime_router
 from src.modules.sites.content_api.router import router as content_sites_router
+from src.modules.sites.public_host_router import project_host_routing_middleware
 from src.modules.sites.router import router as sites_router
 from src.modules.system.router import router as system_router
 from src.modules.tenancy.router import router as tenancy_router
@@ -128,3 +129,7 @@ def register_routes(app: FastAPI, settings: Settings) -> None:
     include_router_with_global_prefix_prepended(app, tenancy_router, settings=settings, prefix="/tenancy")
     include_router_with_global_prefix_prepended(app, workspaces_router, settings=settings)
     include_router_with_global_prefix_prepended(app, projects_router, settings=settings)
+
+    # Host-based public project pages run as a 404 fallback so regular API routes,
+    # docs routes, and test-local routes keep their normal routing precedence.
+    app.middleware("http")(project_host_routing_middleware)

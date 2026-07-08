@@ -1021,7 +1021,7 @@ export function toAIWorkspaceActionArtifact(
           response.contentItems?.length ??
           (response.contentItem || response.contentVersion ? 1 : null),
         contentModelCount: response.contentModels?.length ?? (response.contentModel ? 1 : null),
-        domainHostname: response.domain?.hostname ?? null,
+        domainHostname: null,
         editorPath: `/projects/${response.project.id}/editor`,
         homepageItemId: toWorkspaceProjectHomepageItemId(response),
         homepageTitle:

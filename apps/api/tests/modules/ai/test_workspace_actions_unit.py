@@ -1230,7 +1230,7 @@ async def test_execute_workspace_ai_action_creates_project_with_canonical_servic
             },
             {
                 "componentKey": "landing.sections",
-                "bindingKey": "sections",
+                "bindingKey": "items",
                 "payload": {"field": "sections"},
             },
         ],
@@ -1252,7 +1252,7 @@ async def test_execute_workspace_ai_action_creates_project_with_canonical_servic
         "release",
         "editor",
     ]
-    assert response.data.execution_steps[2].detail == "saas-landing.arclayer.localhost"
+    assert response.data.execution_steps[2].detail == "已登记平台域名，可在网站控制中查看"
     assert response.data.execution_steps[3].detail == "16 个源码文件 · React+Vite"
     assert response.data.execution_steps[3].tool_name == "workspace.read_project_source"
     assert response.data.execution_steps[4].tool_name == "workspace.create_content_model"
@@ -1274,7 +1274,7 @@ async def test_execute_workspace_ai_action_creates_project_with_canonical_servic
     assert response.data.source_manifest.files == source_manifest.files
     assert "首页内容" in response.data.content
     assert "React+Vite 项目源码文件" in response.data.content
-    assert "saas-landing.arclayer.localhost" in response.data.content
+    assert "saas-landing.arclayer.localhost" not in response.data.content
     assert response.data.navigation is not None
     assert response.data.navigation.path == f"/projects/{response.data.project.id}/editor"
 
@@ -1515,7 +1515,7 @@ async def test_bootstrap_created_project_content_syncs_homepage_route_binding(mo
         },
         {
             "componentKey": "landing.sections",
-            "bindingKey": "sections",
+            "bindingKey": "items",
             "payload": {"field": "sections"},
         },
     ]
@@ -2756,7 +2756,7 @@ async def test_update_content_item_saves_routable_path_in_canonical_draft(monkey
     bindings = cast(list[dict[str, Any]], slot_payload["bindings"])
     assert bindings[3] == {
         "componentKey": "landing.sections",
-        "bindingKey": "sections",
+        "bindingKey": "items",
         "payload": {"field": "sections"},
     }
 

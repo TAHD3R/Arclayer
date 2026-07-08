@@ -16,6 +16,12 @@ export const NAV_ITEM_INTERACTIVE_BG_CLASSNAME = cn(
   "data-[active=true]:bg-accent dark:data-[active=true]:bg-accent/50",
 );
 
+export const NAV_SUB_ITEM_INTERACTIVE_BG_CLASSNAME = cn(
+  NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
+  "[&:not([data-highlight])]:hover:bg-accent! dark:[&:not([data-highlight])]:hover:bg-accent/50!",
+  "[&:not([data-highlight])]:data-[state=open]:hover:bg-accent! dark:[&:not([data-highlight])]:data-[state=open]:hover:bg-accent/50!",
+);
+
 export const NAV_ITEM_COLLAPSE_HIDE_CLASSNAME = cn(
   "max-w-full overflow-hidden whitespace-nowrap",
   "origin-left transform-gpu will-change-[max-width,opacity]",

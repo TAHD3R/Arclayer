@@ -34,7 +34,7 @@ describe("resolveNotificationTarget", () => {
       resolveNotificationTarget(makeNotification("/w/project-1/settings/site/basics")),
     ).toEqual({
       type: "navigate",
-      to: "/projects/project-1/seo/site",
+      to: "/projects/project-1/website/config",
     });
   });
 

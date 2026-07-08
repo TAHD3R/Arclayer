@@ -223,7 +223,7 @@ describe("ProjectReleasesPage", () => {
       "/projects/project-1/editor",
       "/projects/project-1/content/library",
       "/projects/project-1/website/domain",
-      "/projects/project-1/seo/site",
+      "/projects/project-1/website/config",
     ]);
   });
 

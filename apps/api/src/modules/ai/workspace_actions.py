@@ -1320,7 +1320,7 @@ def _site_builder_page_presentations(fields: JsonObject) -> list[ContentPresenta
                     },
                     {
                         "componentKey": "landing.sections",
-                        "bindingKey": "sections",
+                        "bindingKey": "items",
                         "payload": {"field": "sections"},
                     },
                 ]
@@ -2811,17 +2811,15 @@ def _created_project_response(
     site_structure_arguments = _created_project_site_structure_arguments(content_bootstrap)
     framework_label = _project_source_framework_label(source_manifest.framework)
     if _is_chinese(message):
-        domain_hint = f"，预览域名为 {domain.hostname}" if domain is not None else ""
         content = (
             f"已在当前工作区创建项目“{project.name}”，并生成 {len(source_manifest.files)} 个 {framework_label} 项目源码文件、"
-            f"页面模型、可复用区块模型和首页内容{domain_hint}。你可以进入编辑器查看站点预览、内容和源码。"
+            "页面模型、可复用区块模型和首页内容。你可以进入编辑器查看站点预览、内容和源码。"
         )
         label = "打开编辑器"
     else:
-        domain_hint = f" Preview domain: {domain.hostname}." if domain is not None else ""
         content = (
             f'Created "{project.name}" in this workspace with {len(source_manifest.files)} {framework_label} source files, '
-            f"a page model, a reusable block model, and home page content.{domain_hint}"
+            "a page model, a reusable block model, and home page content."
         )
         label = "Open editor"
     return WorkspaceAIActionResponse(
@@ -2964,7 +2962,7 @@ def _created_project_completed_steps(
     content_bootstrap: _CreatedProjectContentBootstrap,
     site_structure_arguments: JsonObject,
 ) -> list[WorkspaceAIActionExecutionStep]:
-    domain_detail = domain.hostname if domain is not None else "未返回预览域名"
+    domain_detail = "已登记平台域名，可在网站控制中查看" if domain is not None else "未登记项目域名"
     route_path = site_structure_arguments.get("routePath")
     bindings = site_structure_arguments.get("componentBindings")
     component_binding_count = len(bindings) if isinstance(bindings, list) else 0
@@ -2988,7 +2986,7 @@ def _created_project_completed_steps(
         ),
         WorkspaceAIActionExecutionStep(
             id="domain",
-            title="生成项目访问域名",
+            title="登记项目域名",
             status="completed",
             detail=domain_detail,
         ),
@@ -3679,7 +3677,7 @@ def _updated_site_settings_response(
     navigation_path = (
         f"/projects/{payload.project_id}/settings/general"
         if updates_source_settings
-        else f"/projects/{payload.project_id}/seo/site"
+        else f"/projects/{payload.project_id}/website/config"
     )
     execution_result_title = (
         "更新项目源码配置并生成项目配置入口"

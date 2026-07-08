@@ -31,7 +31,7 @@ export type WorkspaceSettingsPageProps = {
 };
 
 export type WorkspaceSettingsTabNavigation = {
-  to: "/projects/$projectId/settings/general" | "/projects/$projectId/seo/site";
+  to: "/projects/$projectId/settings/general" | "/projects/$projectId/website/config";
   params: { projectId: string };
   search?: (prev: Record<string, unknown>) => Record<string, unknown>;
 };

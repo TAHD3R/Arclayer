@@ -43,6 +43,7 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
     labelKey: "nav:NAV_ASSETS",
     to: "/assets",
     icon: Images,
+    groupLabelBeforeKey: "nav:NAV_GROUP_WEBSITE",
   },
   {
     key: "website.domain",
@@ -51,7 +52,6 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
     to: "/website/domain",
     activeMatchPaths: ["/content/domain", "/settings/domain"],
     icon: Globe,
-    groupLabelBeforeKey: "nav:NAV_GROUP_WEBSITE",
   },
   {
     key: "website.releases",
@@ -93,14 +93,6 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
     defaultExpanded: true,
     children: [
       {
-        key: "seo.site",
-        label: "Website Config",
-        labelKey: "nav:NAV_WEBSITE_CONFIG",
-        to: "/seo/site",
-        activeMatchPaths: ["/seo/site/localization", "/content/general", "/content/localization"],
-        icon: Globe,
-      },
-      {
         key: "seo.google-analytics",
         label: "Google Analytics",
         labelKey: "nav:NAV_GOOGLE_ANALYTICS",
@@ -115,6 +107,20 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
         icon: Search,
       },
     ],
+  },
+  {
+    key: "website.config",
+    label: "Website Config",
+    labelKey: "nav:NAV_WEBSITE_CONFIG",
+    to: "/website/config",
+    activeMatchPaths: [
+      "/seo/site",
+      "/seo/site/localization",
+      "/content/general",
+      "/content/localization",
+      "/settings/localization",
+    ],
+    icon: Globe,
   },
   {
     key: "settings.project",

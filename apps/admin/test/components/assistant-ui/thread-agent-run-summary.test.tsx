@@ -297,7 +297,7 @@ describe("WorkspaceActionArtifact", () => {
     render(<Thread />);
 
     expect(screen.getByText("Workspace project created")).toBeInTheDocument();
-    expect(screen.getByText("enterprise.arclayer.localhost")).toBeInTheDocument();
+    expect(screen.queryByText("enterprise.arclayer.localhost")).not.toBeInTheDocument();
     expect(screen.getByText("Release ready")).toBeInTheDocument();
     expect(screen.getByText("Entry src/App.tsx")).toBeInTheDocument();
 

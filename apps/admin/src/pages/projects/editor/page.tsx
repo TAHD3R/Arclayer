@@ -26,6 +26,7 @@ import { getProjectDetail } from "@/api/projects";
 import { listProjectDomains } from "@/api/project-settings";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
+import { toOpenableProjectDomainUrl } from "@/lib/projects/domain-routing";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import type {
@@ -159,11 +160,11 @@ function buildProjectEditorWorkflowLinks(
       value: `/projects/${projectId}/website/domain`,
     },
     {
-      href: `/projects/${projectId}/seo/site`,
+      href: `/projects/${projectId}/website/config`,
       icon: GitBranch,
       id: "config",
       label: t("account:PROJECT_EDITOR_WORKFLOW_CONFIG"),
-      value: `/projects/${projectId}/seo/site`,
+      value: `/projects/${projectId}/website/config`,
     },
     {
       href: `/projects/${projectId}/settings/general`,
@@ -176,9 +177,7 @@ function buildProjectEditorWorkflowLinks(
 }
 
 function normalizePreviewUrl(hostname: string | null): string | null {
-  const value = (hostname ?? "").trim();
-  if (!value) return null;
-  return `https://${value}`;
+  return toOpenableProjectDomainUrl(hostname);
 }
 
 function sourceEntryCandidates(framework: ProjectEditorSourceFramework | null): readonly string[] {
@@ -1112,9 +1111,6 @@ export function ProjectEditorPage(props: { projectId: string }) {
       title={t("nav:NAV_PROJECT_EDITOR")}
       description={t("account:PROJECT_EDITOR_DESC")}
       showFavoriteToggle={false}
-      pageFrame="full"
-      className="min-h-full"
-      contentClassName="min-h-full"
       contentContainerClassName="min-h-full"
       action={
         previewUrl ? (

@@ -398,7 +398,7 @@ describe("AI agent API", () => {
         componentBindingCount: 4,
         contentItemCount: 1,
         contentModelCount: 2,
-        domainHostname: "project.arclayer.localhost",
+        domainHostname: null,
         editorPath: "/projects/project-created/editor",
         homepageItemId: "item-home",
         homepageTitle: "Homepage",
@@ -1049,7 +1049,7 @@ describe("AI agent API", () => {
       total: null,
       navigation: {
         label: "打开网站配置",
-        path: "/projects/project-1/seo/site",
+        path: "/projects/project-1/website/config",
       },
     });
 
@@ -1062,7 +1062,7 @@ describe("AI agent API", () => {
       },
       navigation: {
         label: "打开网站配置",
-        path: "/projects/project-1/seo/site",
+        path: "/projects/project-1/website/config",
       },
     });
 

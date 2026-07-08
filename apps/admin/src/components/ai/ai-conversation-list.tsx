@@ -9,12 +9,7 @@ import {
   Trash2,
 } from "lucide-react";
 
-import {
-  deleteAIConversation,
-  ensureAIConversationPersistedForRuntime,
-  loadAIConversations,
-  renameAIConversation,
-} from "@/api/ai";
+import { deleteAIConversation, loadAIConversations, renameAIConversation } from "@/api/ai";
 import { useAiChatStore } from "@/stores/use-ai-chat-store";
 import { cn } from "@arclayer/lib/utils";
 import {
@@ -77,15 +72,19 @@ export function AIConversationList() {
   const [renameError, setRenameError] = useState<string | null>(null);
   const [renamePending, setRenamePending] = useState(false);
   const pinnedIdSet = useMemo(() => new Set(pinnedConversationIds), [pinnedConversationIds]);
+  const visibleConversations = useMemo(
+    () => conversations.filter((conversation) => conversation.messages.length > 0),
+    [conversations],
+  );
   const sortedConversations = useMemo(
     () =>
-      [...conversations].sort((a, b) => {
+      [...visibleConversations].sort((a, b) => {
         const aPinned = pinnedIdSet.has(a.id);
         const bPinned = pinnedIdSet.has(b.id);
         if (aPinned !== bPinned) return aPinned ? -1 : 1;
         return b.updatedAt - a.updatedAt;
       }),
-    [conversations, pinnedIdSet],
+    [pinnedIdSet, visibleConversations],
   );
 
   useEffect(() => {
@@ -95,8 +94,10 @@ export function AIConversationList() {
   }, []);
 
   const handleCreateConversation = () => {
-    const conversationId = createConversation();
-    void ensureAIConversationPersistedForRuntime(conversationId);
+    const activeConversation = conversations.find((conversation) => conversation.id === activeId);
+    if (!activeConversation || activeConversation.messages.length > 0) {
+      createConversation();
+    }
     openDrawer();
   };
 
@@ -134,7 +135,7 @@ export function AIConversationList() {
   return (
     <div className="flex h-full min-h-0 w-full flex-col">
       <div className="min-h-0 w-full min-w-0 flex-1 overflow-auto scrollbar-none">
-        {conversations.length === 0 ? (
+        {visibleConversations.length === 0 ? (
           <Empty className="min-h-full gap-0 px-4 py-6">
             <EmptyHeader className="max-w-[14rem] gap-0">
               <EmptyMedia variant="icon" className="mb-4 text-label-secondary">
@@ -279,7 +280,7 @@ export function AIConversationList() {
           </div>
         )}
       </div>
-      {conversations.length > 0 ? (
+      {visibleConversations.length > 0 ? (
         <div className="flex w-full min-w-0 shrink-0 items-center border-t border-border/60 px-2 py-2">
           <Button
             type="button"

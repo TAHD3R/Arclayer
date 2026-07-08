@@ -26,6 +26,7 @@ import {
   NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
   NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
   NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
+  NAV_SUB_ITEM_INTERACTIVE_BG_CLASSNAME,
 } from "./nav-node-styles";
 import { iconSlot } from "./nav-icon-slot";
 
@@ -83,7 +84,7 @@ function NodeLeafSub({
                   DISABLED_ITEM_CLASSNAME,
                   "bg-transparent focus-visible:bg-transparent data-[active=true]:bg-transparent [&:not([data-highlight])]:hover:bg-transparent",
                 )
-              : cn(NAV_ITEM_INTERACTIVE_BG_CLASSNAME, "focus-visible:bg-accent"),
+              : cn(NAV_SUB_ITEM_INTERACTIVE_BG_CLASSNAME, "focus-visible:bg-accent"),
           )}
         >
           <div className="flex min-w-0 flex-1 items-center gap-2">

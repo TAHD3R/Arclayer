@@ -381,7 +381,7 @@ describe("ProjectEditorPage", () => {
     });
     listProjectDomainsMock.mockResolvedValue([
       {
-        hostname: "launch-site.arclayer.localhost",
+        hostname: "launch.example.com",
         id: "domain-1",
         isActive: true,
         isPrimary: true,
@@ -454,7 +454,6 @@ describe("ProjectEditorPage", () => {
     expect(screen.getAllByText("Configured Launch")).not.toHaveLength(0);
     expect(screen.getByText("A launch site generated from project settings.")).toBeInTheDocument();
     expect(screen.getAllByText("https://launch.example.com")).not.toHaveLength(0);
-    expect(screen.getAllByText("https://launch-site.arclayer.localhost")).not.toHaveLength(0);
     expect(screen.getByText("G-LAUNCH1234")).toBeInTheDocument();
     expect(screen.getAllByText("src/arclayer/site-config.ts")).not.toHaveLength(0);
     const readiness = screen.getByTestId("project-editor-readiness");
@@ -495,7 +494,7 @@ describe("ProjectEditorPage", () => {
     ).toHaveAttribute("href", "/projects/project-1/website/domain");
     expect(
       within(workflowLinks).getByRole("link", { name: /PROJECT_EDITOR_WORKFLOW_CONFIG/ }),
-    ).toHaveAttribute("href", "/projects/project-1/seo/site");
+    ).toHaveAttribute("href", "/projects/project-1/website/config");
     expect(
       within(workflowLinks).getByRole("link", { name: /PROJECT_EDITOR_WORKFLOW_SETTINGS/ }),
     ).toHaveAttribute("href", "/projects/project-1/settings/general");
@@ -548,7 +547,7 @@ describe("ProjectEditorPage", () => {
     expect(screen.getByText("content:CONTENT_LIBRARY_WORKBENCH_METRIC_DRAFTS")).toBeInTheDocument();
     expect(screen.getByTitle("account:PROJECT_EDITOR_SITE_PREVIEW")).toHaveAttribute(
       "src",
-      "https://launch-site.arclayer.localhost",
+      "https://launch.example.com",
     );
     expect(screen.getByText("account:PROJECT_EDITOR_SOURCE_TITLE")).toBeInTheDocument();
     expect(
@@ -638,6 +637,24 @@ describe("ProjectEditorPage", () => {
     expect(
       screen.queryByRole("button", { name: "account:PROJECT_EDITOR_SOURCE_CREATE_FILE" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("does not iframe local platform hostnames that are not routed by the dev stack", async () => {
+    listProjectDomainsMock.mockResolvedValueOnce([
+      {
+        hostname: "launch-site.arclayer.localhost",
+        id: "domain-1",
+        isActive: true,
+        isPrimary: true,
+        isVerified: true,
+      },
+    ]);
+
+    const { container } = renderWithQuery(<ProjectEditorPage projectId="project-1" />);
+
+    expect(await screen.findByText("Launch site")).toBeInTheDocument();
+    expect(container.querySelector("iframe")).toBeNull();
+    expect(screen.getByText("account:PROJECT_EDITOR_NO_DOMAIN_TITLE")).toBeInTheDocument();
   });
 
   it("loads selected source contents from the source file endpoint", async () => {

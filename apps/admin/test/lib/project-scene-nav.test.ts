@@ -23,6 +23,7 @@ describe("resolveProjectSceneNavItems", () => {
       "website.releases",
       "content",
       "seo",
+      "website.config",
       "settings.project",
     ]);
     expect(items[0]).toMatchObject({
@@ -32,11 +33,11 @@ describe("resolveProjectSceneNavItems", () => {
     expect(items.find((item) => item.key === "assets")).toMatchObject({
       labelKey: "nav:NAV_ASSETS",
       to: "/projects/project-alpha/assets",
+      groupLabelBeforeKey: "nav:NAV_GROUP_WEBSITE",
     });
     expect(items.find((item) => item.key === "website.domain")).toMatchObject({
       labelKey: "nav:NAV_WEBSITE_DOMAIN",
       to: "/projects/project-alpha/website/domain",
-      groupLabelBeforeKey: "nav:NAV_GROUP_WEBSITE",
     });
     expect(items.find((item) => item.key === "website.releases")).toMatchObject({
       labelKey: "nav:NAV_WEBSITE_RELEASES",
@@ -58,13 +59,16 @@ describe("resolveProjectSceneNavItems", () => {
     expect(items.find((item) => item.key === "seo")).toMatchObject({
       labelKey: "nav:NAV_SECTION_SEO",
       children: [
-        expect.objectContaining({ key: "seo.site", to: "/projects/project-alpha/seo/site" }),
         expect.objectContaining({
           key: "seo.google-analytics",
           to: "/projects/project-alpha/seo/google-analytics",
         }),
         expect.objectContaining({ key: "seo.audit", to: "/projects/project-alpha/seo/audit" }),
       ],
+    });
+    expect(items.find((item) => item.key === "website.config")).toMatchObject({
+      labelKey: "nav:NAV_WEBSITE_CONFIG",
+      to: "/projects/project-alpha/website/config",
     });
     expect(items.find((item) => item.key === "settings.project")).toMatchObject({
       groupLabelBeforeKey: "nav:NAV_SECTION_CONFIGURATION",

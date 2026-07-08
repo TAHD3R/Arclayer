@@ -74,7 +74,7 @@ function buildProjectReleaseWorkflowLinks(
     },
     {
       description: t("SETTINGS_PROJECT_RELEASES_WORKFLOW_LINK_WEBSITE_CONFIG_DESC"),
-      href: `/projects/${projectId}/seo/site`,
+      href: `/projects/${projectId}/website/config`,
       icon: Settings2,
       id: "website-config",
       label: t("SETTINGS_PROJECT_RELEASES_WORKFLOW_LINK_WEBSITE_CONFIG"),
@@ -551,9 +551,6 @@ export function ProjectReleasesPage(props: { projectId: string; embedded?: boole
           title={t("account:SETTINGS_PROJECT_RELEASES_TITLE")}
           description={t("account:SETTINGS_PROJECT_RELEASES_DESC")}
           showFavoriteToggle={false}
-          pageFrame="full"
-          className="min-h-full"
-          contentClassName="min-h-full"
           contentContainerClassName="min-h-full"
         >
           {content}
