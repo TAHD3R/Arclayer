@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
+import { Button } from "@arclayer/ui/button";
 import type { PropsWithChildren, ReactElement } from "react";
 
 class ResizeObserverMock {
@@ -78,6 +79,7 @@ describe("DefaultPage", () => {
     const shell = document.querySelector('[data-slot="default-page-shell"]');
     const body = shell?.querySelector('[data-slot="page-main-region"]');
     const content = body?.querySelector('[data-slot="page-content"]');
+    const routeFrame = document.querySelector('[data-slot="admin-route-frame"]');
 
     expect(title).toHaveClass("text-title", "text-label-primary");
     expect(titleCluster).toHaveClass("items-end");
@@ -107,7 +109,35 @@ describe("DefaultPage", () => {
     expect(shell).not.toHaveClass("flex-1");
     expect(body).toHaveClass("flex", "min-h-0", "min-w-0", "w-full", "flex-1", "flex-col");
     expect(content).toHaveClass("min-h-0", "min-w-0", "w-full", "flex-1");
+    expect(routeFrame).toHaveClass("pb-20");
     expect(document.querySelector('[data-slot="columns-page-shell"]')).toBeNull();
+  });
+
+  it("normalizes primary and secondary text buttons in the page action slot", () => {
+    render(
+      <DefaultPage
+        title="Content"
+        action={
+          <>
+            <Button variant="outline" size="sm">
+              Secondary
+            </Button>
+            <Button size="lg">Primary</Button>
+          </>
+        }
+      >
+        <div>Body</div>
+      </DefaultPage>,
+    );
+
+    const actions = document.querySelector('[data-slot="page-header-actions"]');
+
+    expect(actions).toHaveClass(
+      "[&_[data-slot=button][data-size=default]]:h-10",
+      "[&_[data-slot=button][data-size=sm]]:h-10",
+    );
+    expect(screen.getByRole("button", { name: "Secondary" })).toHaveAttribute("data-size", "sm");
+    expect(screen.getByRole("button", { name: "Primary" })).toHaveAttribute("data-size", "lg");
   });
 
   it("truncates overflowing page titles and exposes the full title in a tooltip", () => {

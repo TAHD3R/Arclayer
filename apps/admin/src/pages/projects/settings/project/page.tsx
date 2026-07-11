@@ -712,12 +712,11 @@ export function ProjectSettingsPage(props: ProjectSettingsPageProps) {
     <DefaultPage
       title={t("account:SETTINGS_PROJECT_TITLE")}
       description={t("account:SETTINGS_PROJECT_DESC")}
-      showFavoriteToggle={false}
       headerBehavior="sticky"
-      contentContainerClassName="min-h-full [--page-sticky-header-height:6rem]"
+      contentContainerClassName="[--page-sticky-header-height:6rem]"
     >
-      <div className="flex min-h-full w-full gap-8">
-        <aside className="hidden min-h-full w-72 shrink-0 lg:block">
+      <div className="flex w-full gap-8">
+        <aside className="hidden w-72 shrink-0 lg:block">
           <div className="sticky top-[var(--page-sticky-header-height,6rem)] flex max-h-[calc(100vh-var(--page-sticky-header-height,6rem)-1rem)] min-h-0 w-full flex-col gap-4 overflow-y-auto pb-4">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-label-tertiary" />

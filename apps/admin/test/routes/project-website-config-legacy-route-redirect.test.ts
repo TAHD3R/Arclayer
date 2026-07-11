@@ -17,6 +17,8 @@ import { Route as SettingsDeploymentsRoute } from "@/routes/projects/$projectId/
 import { Route as SettingsDomainRoute } from "@/routes/projects/$projectId/settings/domain/index";
 import { Route as SeoSiteRoute } from "@/routes/projects/$projectId/seo/site/index";
 import { Route as SeoSiteLocalizationRoute } from "@/routes/projects/$projectId/seo/site/localization/index";
+import { Route as WebsiteDomainRoute } from "@/routes/projects/$projectId/website/domain/index";
+import { Route as WebsiteReleasesRoute } from "@/routes/projects/$projectId/website/releases/index";
 
 function expectRedirect(
   route: unknown,
@@ -80,33 +82,49 @@ describe("legacy project website config content routes", () => {
     });
   });
 
-  it("redirects the old content domain route into Website Domain", () => {
+  it("redirects the old content domain route into Domains", () => {
     expectRedirect(ContentDomainRoute, {
-      to: "/projects/$projectId/website/domain",
+      to: "/projects/$projectId/website/project-releases",
       params: { projectId: "project-1" },
       replace: true,
     });
   });
 
-  it("redirects the old project settings domain route into Website Domain", () => {
+  it("redirects the old project settings domain route into Domains", () => {
     expectRedirect(SettingsDomainRoute, {
-      to: "/projects/$projectId/website/domain",
+      to: "/projects/$projectId/website/project-releases",
       params: { projectId: "project-1" },
       replace: true,
     });
   });
 
-  it("redirects the old deployments route into Website Releases", () => {
+  it("redirects the old deployments route into Domains", () => {
     expectRedirect(DeploymentsRoute, {
-      to: "/projects/$projectId/website/releases",
+      to: "/projects/$projectId/website/project-releases",
       params: { projectId: "project-1" },
       replace: true,
     });
   });
 
-  it("redirects the old project settings deployments route into Website Releases", () => {
+  it("redirects the old project settings deployments route into Domains", () => {
     expectRedirect(SettingsDeploymentsRoute, {
-      to: "/projects/$projectId/website/releases",
+      to: "/projects/$projectId/website/project-releases",
+      params: { projectId: "project-1" },
+      replace: true,
+    });
+  });
+
+  it("redirects the former Website Domain route into Domains", () => {
+    expectRedirect(WebsiteDomainRoute, {
+      to: "/projects/$projectId/website/project-releases",
+      params: { projectId: "project-1" },
+      replace: true,
+    });
+  });
+
+  it("redirects the former Website Releases route into Domains", () => {
+    expectRedirect(WebsiteReleasesRoute, {
+      to: "/projects/$projectId/website/project-releases",
       params: { projectId: "project-1" },
       replace: true,
     });

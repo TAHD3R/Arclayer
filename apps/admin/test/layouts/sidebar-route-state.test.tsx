@@ -234,13 +234,12 @@ describe("sidebar route state wiring", () => {
     expect(props.mainItems.map((item) => item.key)).toEqual([
       "dashboard",
       "editor",
-      "activity",
       "assets",
-      "website.domain",
-      "website.releases",
+      "website.domains",
       "content",
       "seo",
       "website.config",
+      "activity",
       "settings.project",
     ]);
   });

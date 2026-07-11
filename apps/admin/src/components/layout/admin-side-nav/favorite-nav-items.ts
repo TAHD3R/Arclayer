@@ -198,6 +198,7 @@ export function resolveFavoriteNavItems(params: {
 
   const walk = (nodes: readonly FavoriteNode[]): FavoriteNavNode[] => {
     const next: FavoriteNavNode[] = [];
+    const resolvedPaths = new Set<string>();
     for (const node of nodes) {
       if (node.type === "item") {
         const resolved = resolveFavoriteItem(
@@ -206,7 +207,10 @@ export function resolveFavoriteNavItems(params: {
           workspaceBase,
           params.dynamicLabels,
         );
-        if (resolved) next.push(resolved);
+        if (resolved && !resolvedPaths.has(resolved.path)) {
+          resolvedPaths.add(resolved.path);
+          next.push(resolved);
+        }
         continue;
       }
 

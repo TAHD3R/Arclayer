@@ -88,6 +88,7 @@
   "NAV_SECTION_APPS": "Apps",
   "NAV_SECTION_BILLING_SUBSCRIPTION": "Billing & Subscription",
   "NAV_SECTION_CONFIGURATION": "Configuration",
+  "NAV_SECTION_PROJECT": "Project",
   "NAV_SECTION_CONTENT": "Content",
   "NAV_SECTION_CUSTOMERS_LEADS": "Customers & Leads",
   "NAV_SECTION_MARKETING": "Marketing",
@@ -118,5 +119,6 @@
   "NAV_SEO_ANALYSIS": "SEO Analysis",
   "NAV_WEBSITE_CONFIG": "Website Config",
   "NAV_WEBSITE_DOMAIN": "Domain",
+  "NAV_WEBSITE_DOMAINS": "Domains",
   "NAV_WEBSITE_RELEASES": "Releases"
 }

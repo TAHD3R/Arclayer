@@ -17,13 +17,12 @@ describe("resolveProjectSceneNavItems", () => {
     expect(items.map((item) => item.key)).toEqual([
       "dashboard",
       "editor",
-      "activity",
       "assets",
-      "website.domain",
-      "website.releases",
+      "website.domains",
       "content",
       "seo",
       "website.config",
+      "activity",
       "settings.project",
     ]);
     expect(items[0]).toMatchObject({
@@ -35,13 +34,9 @@ describe("resolveProjectSceneNavItems", () => {
       to: "/projects/project-alpha/assets",
       groupLabelBeforeKey: "nav:NAV_GROUP_WEBSITE",
     });
-    expect(items.find((item) => item.key === "website.domain")).toMatchObject({
-      labelKey: "nav:NAV_WEBSITE_DOMAIN",
-      to: "/projects/project-alpha/website/domain",
-    });
-    expect(items.find((item) => item.key === "website.releases")).toMatchObject({
-      labelKey: "nav:NAV_WEBSITE_RELEASES",
-      to: "/projects/project-alpha/website/releases",
+    expect(items.find((item) => item.key === "website.domains")).toMatchObject({
+      labelKey: "nav:NAV_WEBSITE_DOMAINS",
+      to: "/projects/project-alpha/website/project-releases",
     });
     expect(items.find((item) => item.key === "content")).toMatchObject({
       labelKey: "nav:NAV_CONTENT",
@@ -70,8 +65,8 @@ describe("resolveProjectSceneNavItems", () => {
       labelKey: "nav:NAV_WEBSITE_CONFIG",
       to: "/projects/project-alpha/website/config",
     });
-    expect(items.find((item) => item.key === "settings.project")).toMatchObject({
-      groupLabelBeforeKey: "nav:NAV_SECTION_CONFIGURATION",
+    expect(items.find((item) => item.key === "activity")).toMatchObject({
+      groupLabelBeforeKey: "nav:NAV_SECTION_PROJECT",
     });
     expect(flatten(items).some((item) => item.key.startsWith("global.projects"))).toBe(false);
   });

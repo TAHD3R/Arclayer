@@ -31,15 +31,14 @@ describe("workspace nav regression", () => {
     expect(listWorkspaceNavTargets()).toEqual([
       "/",
       "/editor",
-      "/activity",
       "/assets",
-      "/website/domain",
-      "/website/releases",
+      "/website/project-releases",
       "/content/library",
       "/content/models",
       "/seo/google-analytics",
       "/seo/audit",
       "/website/config",
+      "/activity",
       "/settings/general",
     ]);
   });
@@ -58,26 +57,21 @@ describe("workspace nav regression", () => {
     expect(ADMIN_NAV_ITEMS.map((item) => item.key)).toEqual([
       "dashboard",
       "editor",
-      "activity",
       "assets",
-      "website.domain",
-      "website.releases",
+      "website.domains",
       "content",
       "seo",
       "website.config",
+      "activity",
       "settings.project",
     ]);
 
     expect(ADMIN_NAV_ITEMS.find((item) => item.key === "assets")).toMatchObject({
       groupLabelBeforeKey: "nav:NAV_GROUP_WEBSITE",
     });
-    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "website.domain")).toMatchObject({
-      labelKey: "nav:NAV_WEBSITE_DOMAIN",
-      to: "/website/domain",
-    });
-    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "website.releases")).toMatchObject({
-      labelKey: "nav:NAV_WEBSITE_RELEASES",
-      to: "/website/releases",
+    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "website.domains")).toMatchObject({
+      labelKey: "nav:NAV_WEBSITE_DOMAINS",
+      to: "/website/project-releases",
     });
     expect(ADMIN_NAV_ITEMS.find((item) => item.key === "content")).toMatchObject({
       labelKey: "nav:NAV_CONTENT",
@@ -97,8 +91,8 @@ describe("workspace nav regression", () => {
       labelKey: "nav:NAV_WEBSITE_CONFIG",
       to: "/website/config",
     });
-    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "settings.project")).toMatchObject({
-      groupLabelBeforeKey: "nav:NAV_SECTION_CONFIGURATION",
+    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "activity")).toMatchObject({
+      groupLabelBeforeKey: "nav:NAV_SECTION_PROJECT",
     });
 
     expect(ADMIN_NAV_ITEMS.find((item) => item.key === "content")?.children).toHaveLength(2);
@@ -111,17 +105,15 @@ describe("workspace nav regression", () => {
     expect(projectNav.map((item) => item.key)).toEqual([
       "dashboard",
       "editor",
-      "activity",
       "assets",
-      "website.domain",
-      "website.releases",
+      "website.domains",
       "content",
       "seo",
       "website.config",
+      "activity",
       "settings.project",
     ]);
-    expect(listWorkspaceNavTargets(projectNav)).toContain("/website/domain");
-    expect(listWorkspaceNavTargets(projectNav)).toContain("/website/releases");
+    expect(listWorkspaceNavTargets(projectNav)).toContain("/website/project-releases");
     expect(listWorkspaceNavTargets(projectNav)).toContain("/website/config");
     expect(listWorkspaceNavTargets(projectNav)).toContain("/settings/general");
   });

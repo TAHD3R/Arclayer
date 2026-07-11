@@ -4,7 +4,7 @@ export const Route = createFileRoute("/projects/$projectId/settings/domain/")({
   staticData: { titleKey: "account:SETTINGS_NAV_PROJECT_DOMAIN" },
   beforeLoad: ({ params }) => {
     throw redirect({
-      to: "/projects/$projectId/website/domain",
+      to: "/projects/$projectId/website/project-releases",
       params,
       replace: true,
     });

@@ -45,9 +45,11 @@ vi.mock("@/layouts/page-shell/default-page", () => ({
   DefaultPage: ({
     title,
     description,
+    action,
     children,
-  }: PropsWithChildren<{ title: string; description: string }>) => (
+  }: PropsWithChildren<{ title: string; description: string; action?: ReactNode }>) => (
     <div data-testid="default-page" data-title={title} data-description={description}>
+      <div data-testid="default-page-action">{action}</div>
       {children}
     </div>
   ),
@@ -160,6 +162,22 @@ describe("ProjectDomainSettingsPage", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText("WEBSITE_CONTROL_READINESS_TITLE")).not.toBeInTheDocument();
     expect(screen.queryByText("WEBSITE_CONTROL_BRAND_ASSETS_READY")).not.toBeInTheDocument();
+    expect(screen.getByTestId("default-page-action")).toContainElement(
+      screen.getByTestId("project-domain-add-trigger"),
+    );
+  });
+
+  it("renders website publishing as a domain attachment", async () => {
+    renderWithQuery(
+      <ProjectDomainSettingsPage
+        projectId="project-1"
+        attachment={<div data-testid="release-attachment-content" />}
+      />,
+    );
+
+    expect(await screen.findByTestId("project-domain-release-attachment")).toContainElement(
+      screen.getByTestId("release-attachment-content"),
+    );
   });
 
   it("creates a custom domain through the add dialog", async () => {

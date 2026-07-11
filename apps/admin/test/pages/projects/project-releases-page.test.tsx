@@ -1,6 +1,6 @@
 import type { PropsWithChildren, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -51,9 +51,11 @@ vi.mock("@/layouts/page-shell/default-page", () => ({
   DefaultPage: ({
     title,
     description,
+    action,
     children,
-  }: PropsWithChildren<{ title: string; description?: string }>) => (
+  }: PropsWithChildren<{ title: string; description?: string; action?: ReactNode }>) => (
     <div data-testid="default-page" data-title={title} data-description={description}>
+      <div data-testid="default-page-action">{action}</div>
       {children}
     </div>
   ),
@@ -205,6 +207,12 @@ describe("ProjectReleasesPage", () => {
     expect(screen.getByTestId("project-release-readiness")).toHaveTextContent("4");
     expect(screen.getByText("SETTINGS_PROJECT_RELEASES_RELEASE_NUMBER:6")).toBeInTheDocument();
     expect(screen.getByText("SETTINGS_PROJECT_RELEASES_HISTORY_COUNT:2")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("default-page-action")).getByTestId("project-release-check"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("default-page-action")).getByTestId("project-release-publish"),
+    ).toBeInTheDocument();
     expect(screen.queryByTestId("project-releases-workflow-panel")).not.toBeInTheDocument();
     expect(
       screen.queryByText("SETTINGS_PROJECT_RELEASES_WORKFLOW_LINK_EDITOR"),

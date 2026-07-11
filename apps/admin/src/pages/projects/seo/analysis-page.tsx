@@ -294,9 +294,8 @@ export function ProjectSeoAnalysisPage(props: { projectId: string }) {
     <DefaultPage
       title={t("nav:NAV_SEO_ANALYSIS")}
       description={t("account:PROJECT_SEO_AUDIT_DESC")}
-      showFavoriteToggle={false}
       headerBehavior="sticky"
-      contentContainerClassName="min-h-full [--page-sticky-header-height:6rem]"
+      contentContainerClassName="[--page-sticky-header-height:6rem]"
     >
       <ContentGuard
         loading={

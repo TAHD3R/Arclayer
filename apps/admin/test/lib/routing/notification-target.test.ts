@@ -38,29 +38,29 @@ describe("resolveNotificationTarget", () => {
     });
   });
 
-  it("normalizes legacy project domain targets to the website domain console", () => {
+  it("normalizes legacy project domain targets to project and releases", () => {
     expect(resolveNotificationTarget(makeNotification("/w/project-1/settings/domain"))).toEqual({
       type: "navigate",
-      to: "/projects/project-1/website/domain",
+      to: "/projects/project-1/website/project-releases",
     });
     expect(
       resolveNotificationTarget(makeNotification("/projects/project-1/content/domain")),
     ).toEqual({
       type: "navigate",
-      to: "/projects/project-1/website/domain",
+      to: "/projects/project-1/website/project-releases",
     });
   });
 
-  it("normalizes legacy project deployment targets to website releases", () => {
+  it("normalizes legacy project deployment targets to project and releases", () => {
     expect(
       resolveNotificationTarget(makeNotification("/projects/project-1/settings/deployments")),
     ).toEqual({
       type: "navigate",
-      to: "/projects/project-1/website/releases",
+      to: "/projects/project-1/website/project-releases",
     });
     expect(resolveNotificationTarget(makeNotification("/w/project-1/deployments"))).toEqual({
       type: "navigate",
-      to: "/projects/project-1/website/releases",
+      to: "/projects/project-1/website/project-releases",
     });
   });
 });

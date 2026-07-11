@@ -1,6 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCheck, ExternalLink, Globe2, LoaderCircle, ShieldCheck, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import {
+  CheckCheck,
+  CircleDot,
+  ExternalLink,
+  Globe2,
+  LoaderCircle,
+  Plus,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
+import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -19,7 +28,14 @@ import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { toOpenableProjectDomainUrl } from "@/lib/projects/domain-routing";
 import { Button } from "@arclayer/ui/button";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@arclayer/ui/empty";
 import { Input } from "@arclayer/ui/input";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
@@ -89,11 +105,11 @@ function DomainSummary({ domains }: { domains: readonly ProjectDomainBinding[] }
 
   return (
     <section
-      className="flex flex-col gap-4 border-y border-border py-5 sm:flex-row sm:items-center sm:justify-between"
+      className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5 sm:flex-row sm:items-center sm:justify-between"
       aria-label={t("SETTINGS_PROJECT_DOMAINS_PRIMARY")}
     >
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-label-secondary">
+        <div className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-label-secondary">
           <Globe2 aria-hidden="true" />
         </div>
         <div className="min-w-0">
@@ -117,8 +133,14 @@ function DomainSummary({ domains }: { domains: readonly ProjectDomainBinding[] }
   );
 }
 
-function DnsVerificationRow({ domain }: { domain: ProjectDomainBinding }) {
+function DnsVerificationRow(props: {
+  canManage: boolean;
+  domain: ProjectDomainBinding;
+  pending: boolean;
+  onVerify: (bindingId: string) => void;
+}) {
   const { t } = useTranslation("account");
+  const { domain } = props;
   if (domain.source !== "custom" || domain.isVerified || !domain.dns) return null;
 
   return (
@@ -126,32 +148,79 @@ function DnsVerificationRow({ domain }: { domain: ProjectDomainBinding }) {
       data-testid={`project-domain-dns-${domain.bindingId}`}
       className="hover:bg-transparent"
     >
-      <TableCell colSpan={5} className="bg-muted/40 px-4 py-4">
-        <div className="grid gap-3 lg:grid-cols-[12rem_minmax(0,1fr)_minmax(0,1fr)] lg:items-center">
-          <div>
-            <div className="text-caption font-semibold text-label-primary">
-              {t("SETTINGS_PROJECT_DOMAINS_DNS_TITLE")}
+      <TableCell colSpan={5} className="bg-muted/30 p-0">
+        <div className="relative grid gap-6 px-5 py-5 pl-12">
+          <div className="absolute bottom-5 left-6 top-5 w-px bg-border" aria-hidden="true" />
+
+          <section
+            className="relative grid gap-3"
+            aria-labelledby={`dns-record-${domain.bindingId}`}
+          >
+            <CircleDot
+              className="absolute -left-[2.05rem] top-0.5 size-4 bg-muted text-primary"
+              aria-hidden="true"
+            />
+            <div>
+              <h3
+                id={`dns-record-${domain.bindingId}`}
+                className="text-headline font-semibold text-label-primary"
+              >
+                {t("SETTINGS_PROJECT_DOMAINS_DNS_STEP_ADD")}
+              </h3>
+              <p className="mt-1 text-footnote text-label-secondary">
+                {t("SETTINGS_PROJECT_DOMAINS_DNS_DESC")}
+              </p>
             </div>
-            <div className="text-footnote text-label-secondary">
-              {t("SETTINGS_PROJECT_DOMAINS_DNS_DESC")}
+            <div className="grid overflow-hidden rounded-lg border border-border bg-card lg:grid-cols-[6rem_minmax(12rem,0.8fr)_minmax(16rem,1.2fr)]">
+              <div className="border-b border-border px-3 py-3 lg:border-b-0 lg:border-r">
+                <div className="text-footnote text-label-secondary">
+                  {t("SETTINGS_PROJECT_DOMAINS_DNS_TYPE")}
+                </div>
+                <code className="mt-1 block font-mono text-footnote text-label-primary">TXT</code>
+              </div>
+              <div className="min-w-0 border-b border-border px-3 py-3 lg:border-b-0 lg:border-r">
+                <div className="text-footnote text-label-secondary">
+                  {t("SETTINGS_PROJECT_DOMAINS_DNS_NAME")}
+                </div>
+                <code className="mt-1 block overflow-x-auto font-mono text-footnote text-label-primary">
+                  {domain.dns.txtRecordName}
+                </code>
+              </div>
+              <div className="min-w-0 px-3 py-3">
+                <div className="text-footnote text-label-secondary">
+                  {t("SETTINGS_PROJECT_DOMAINS_DNS_VALUE")}
+                </div>
+                <code className="mt-1 block overflow-x-auto font-mono text-footnote text-label-primary">
+                  {domain.dns.txtRecordValue}
+                </code>
+              </div>
             </div>
-          </div>
-          <div className="min-w-0">
-            <div className="text-footnote text-label-secondary">
-              {t("SETTINGS_PROJECT_DOMAINS_DNS_NAME")}
+          </section>
+
+          <section className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <CircleDot
+              className="absolute -left-[2.05rem] top-0.5 size-4 bg-muted text-label-tertiary"
+              aria-hidden="true"
+            />
+            <div>
+              <h3 className="text-headline font-semibold text-label-primary">
+                {t("SETTINGS_PROJECT_DOMAINS_DNS_STEP_VERIFY")}
+              </h3>
+              <p className="mt-1 text-footnote text-label-secondary">
+                {t("SETTINGS_PROJECT_DOMAINS_DNS_VERIFY_DESC")}
+              </p>
             </div>
-            <code className="mt-1 block truncate font-mono text-footnote text-label-primary">
-              {domain.dns.txtRecordName}
-            </code>
-          </div>
-          <div className="min-w-0">
-            <div className="text-footnote text-label-secondary">
-              {t("SETTINGS_PROJECT_DOMAINS_DNS_VALUE")}
-            </div>
-            <code className="mt-1 block truncate font-mono text-footnote text-label-primary">
-              {domain.dns.txtRecordValue}
-            </code>
-          </div>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={props.pending || !props.canManage}
+              onClick={() => props.onVerify(domain.bindingId)}
+              data-testid={`project-domain-verify-${domain.bindingId}`}
+            >
+              <CheckCheck aria-hidden="true" />
+              {t("SETTINGS_PROJECT_DOMAINS_VERIFY")}
+            </Button>
+          </section>
         </div>
       </TableCell>
     </TableRow>
@@ -162,6 +231,7 @@ type DomainTableProps = {
   canManage: boolean;
   domains: readonly ProjectDomainBinding[];
   pending: boolean;
+  onAdd: () => void;
   onDelete: (domain: ProjectDomainBinding) => void;
   onToggle: (domain: ProjectDomainBinding) => void;
   onVerify: (bindingId: string) => void;
@@ -179,6 +249,12 @@ function DomainTable(props: DomainTableProps) {
           <EmptyTitle>{t("SETTINGS_PROJECT_DOMAINS_EMPTY_TITLE")}</EmptyTitle>
           <EmptyDescription>{t("SETTINGS_PROJECT_DOMAINS_EMPTY")}</EmptyDescription>
         </EmptyHeader>
+        <EmptyContent>
+          <Button type="button" disabled={!props.canManage} onClick={props.onAdd}>
+            <Plus aria-hidden="true" />
+            {t("SETTINGS_PROJECT_DOMAINS_ADD")}
+          </Button>
+        </EmptyContent>
       </Empty>
     );
   }
@@ -214,7 +290,6 @@ function DomainRows(props: DomainTableProps & { domain: ProjectDomainBinding }) 
   const { t } = useTranslation("account");
   const { domain } = props;
   const canDelete = domain.source === "custom" && props.canManage;
-  const canVerify = domain.source === "custom" && !domain.isVerified && props.canManage;
 
   return (
     <>
@@ -246,19 +321,6 @@ function DomainRows(props: DomainTableProps & { domain: ProjectDomainBinding }) 
         </TableCell>
         <TableCell className="px-4">
           <div className="flex items-center justify-end gap-2">
-            {canVerify ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={props.pending}
-                onClick={() => props.onVerify(domain.bindingId)}
-                data-testid={`project-domain-verify-${domain.bindingId}`}
-              >
-                <CheckCheck aria-hidden="true" />
-                {t("SETTINGS_PROJECT_DOMAINS_VERIFY")}
-              </Button>
-            ) : null}
             <Button
               type="button"
               variant="ghost"
@@ -288,12 +350,23 @@ function DomainRows(props: DomainTableProps & { domain: ProjectDomainBinding }) 
           </div>
         </TableCell>
       </TableRow>
-      <DnsVerificationRow domain={domain} />
+      <DnsVerificationRow
+        canManage={props.canManage}
+        domain={domain}
+        pending={props.pending}
+        onVerify={props.onVerify}
+      />
     </>
   );
 }
 
-export function ProjectDomainSettingsPage(props: { projectId: string; embedded?: boolean }) {
+type ProjectDomainSettingsPageProps = {
+  projectId: string;
+  attachment?: ReactNode;
+  embedded?: boolean;
+};
+
+export function ProjectDomainSettingsPage(props: ProjectDomainSettingsPageProps) {
   const { t } = useTranslation(["account", "common"]);
   const queryClient = useQueryClient();
   const permissionAccess = useProjectPermissionAccess(props.projectId);
@@ -356,9 +429,18 @@ export function ProjectDomainSettingsPage(props: { projectId: string; embedded?:
   const canManage = permissionReady && permissionAccess.hasAction("project:domains:manage");
   const domains = domainsQuery.data ?? [];
   const pending = verifyMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
-  const customDomainCount = useMemo(
-    () => domains.filter((domain) => domain.source === "custom").length,
-    [domains],
+  const customDomainCount = domains.filter((domain) => domain.source === "custom").length;
+  const addDomainButton = (
+    <Button
+      type="button"
+      size={props.embedded ? "sm" : "default"}
+      disabled={!canManage}
+      onClick={() => setAddDialogOpen(true)}
+      data-testid="project-domain-add-trigger"
+    >
+      <Plus aria-hidden="true" />
+      {t("account:SETTINGS_PROJECT_DOMAINS_ADD")}
+    </Button>
   );
 
   const content = (
@@ -389,25 +471,32 @@ export function ProjectDomainSettingsPage(props: { projectId: string; embedded?:
                 })}
               </p>
             </div>
-            <Button
-              type="button"
-              size="sm"
-              disabled={!canManage}
-              onClick={() => setAddDialogOpen(true)}
-              data-testid="project-domain-add-trigger"
-            >
-              {t("account:SETTINGS_PROJECT_DOMAINS_ADD")}
-            </Button>
+            {props.embedded ? addDomainButton : null}
           </div>
           <DomainTable
             canManage={canManage}
             domains={domains}
             pending={pending}
+            onAdd={() => setAddDialogOpen(true)}
             onDelete={setDeleteTarget}
             onToggle={(domain) => void updateMutation.mutateAsync(domain)}
             onVerify={(bindingId) => void verifyMutation.mutateAsync(bindingId)}
           />
         </section>
+        {props.attachment ? (
+          <section
+            className="relative ml-3 border-l border-border pl-8 sm:ml-5 sm:pl-10"
+            data-testid="project-domain-release-attachment"
+          >
+            <div
+              className="absolute -left-3 top-0 flex size-6 items-center justify-center rounded-full border border-border bg-card text-primary"
+              aria-hidden="true"
+            >
+              <CircleDot className="size-3" />
+            </div>
+            {props.attachment}
+          </section>
+        ) : null}
       </div>
     </ContentGuard>
   );
@@ -420,8 +509,7 @@ export function ProjectDomainSettingsPage(props: { projectId: string; embedded?:
         <DefaultPage
           title={t("account:SETTINGS_PROJECT_DOMAINS_TITLE")}
           description={t("account:SETTINGS_PROJECT_DOMAINS_DESC")}
-          showFavoriteToggle={false}
-          contentContainerClassName="min-h-full"
+          action={addDomainButton}
         >
           {content}
         </DefaultPage>

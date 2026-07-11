@@ -1,6 +1,6 @@
 import type { PropsWithChildren, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -272,6 +272,9 @@ describe("GeneralSettingsShell permission consumption", () => {
     await waitFor(() => {
       expect(screen.getByTestId("site-settings-tab")).toBeInTheDocument();
     });
+    expect(
+      within(screen.getByTestId("default-page-extra")).getByTestId("website-settings-tab-identity"),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("site-settings-tab")).toHaveAttribute("data-section", "identity");
     expect(screen.queryByTestId("localization-settings-tab")).not.toBeInTheDocument();
     await user.click(screen.getByTestId("website-settings-tab-discovery"));

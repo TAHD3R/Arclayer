@@ -64,7 +64,6 @@ import {
   ListChecksIcon,
   PencilIcon,
   RefreshCwIcon,
-  RocketIcon,
   SettingsIcon,
   ShieldCheckIcon,
   WrenchIcon,
@@ -791,18 +790,13 @@ function buildProjectCreatedQuickActions(
     },
     {
       icon: GlobeIcon,
-      label: t("ai:AI_WORKSPACE_ACTION_PROJECT_OPEN_WEBSITE_CONTROL"),
-      path: `${projectBasePath}/website/domain`,
+      label: t("ai:AI_WORKSPACE_ACTION_PROJECT_OPEN_DOMAINS"),
+      path: `${projectBasePath}/website/project-releases`,
     },
     {
       icon: BookOpenIcon,
       label: t("ai:AI_WORKSPACE_ACTION_PROJECT_OPEN_CONTENT_LIBRARY"),
       path: `${projectBasePath}/content/library`,
-    },
-    {
-      icon: RocketIcon,
-      label: t("ai:AI_WORKSPACE_ACTION_PROJECT_OPEN_RELEASES"),
-      path: `${projectBasePath}/website/releases`,
     },
     {
       icon: SettingsIcon,

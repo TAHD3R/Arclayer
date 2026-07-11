@@ -8,7 +8,7 @@ import {
   RotateCcw,
   Rocket,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -52,8 +52,37 @@ function selectActiveRelease(releases: readonly AdminRelease[]) {
   return releases.find((release) => release.isActive) ?? null;
 }
 
-function ReleaseHeader(props: {
-  activeRelease: AdminRelease | null;
+function ReleaseSummary(props: { activeRelease: AdminRelease | null }) {
+  const { t } = useTranslation("account");
+  return (
+    <section className="flex items-center gap-4 rounded-lg border border-border bg-muted/30 p-4">
+      <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted text-label-secondary">
+        <Rocket aria-hidden="true" />
+      </div>
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-title3 font-semibold text-label-primary">
+            {props.activeRelease
+              ? t("SETTINGS_PROJECT_RELEASES_ACTIVE_RELEASE", {
+                  count: props.activeRelease.releaseNumber,
+                })
+              : t("SETTINGS_PROJECT_RELEASES_NO_ACTIVE_RELEASE")}
+          </h2>
+          {props.activeRelease ? <ReleaseStatusTag release={props.activeRelease} /> : null}
+        </div>
+        <p className="mt-1 text-footnote text-label-secondary">
+          {props.activeRelease
+            ? t("SETTINGS_PROJECT_RELEASES_ACTIVE_SUMMARY", {
+                count: props.activeRelease.selectionCount ?? 0,
+              })
+            : t("SETTINGS_PROJECT_RELEASES_EMPTY_DESC")}
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function ReleaseActions(props: {
   canPublish: boolean;
   checking: boolean;
   publishing: boolean;
@@ -63,55 +92,29 @@ function ReleaseHeader(props: {
 }) {
   const { t } = useTranslation("account");
   return (
-    <section className="flex flex-col gap-5 border-y border-border py-5 lg:flex-row lg:items-center lg:justify-between">
-      <div className="flex min-w-0 items-center gap-4">
-        <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted text-label-secondary">
-          <Rocket aria-hidden="true" />
-        </div>
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-title3 font-semibold text-label-primary">
-              {props.activeRelease
-                ? t("SETTINGS_PROJECT_RELEASES_ACTIVE_RELEASE", {
-                    count: props.activeRelease.releaseNumber,
-                  })
-                : t("SETTINGS_PROJECT_RELEASES_NO_ACTIVE_RELEASE")}
-            </h2>
-            {props.activeRelease ? <ReleaseStatusTag release={props.activeRelease} /> : null}
-          </div>
-          <p className="mt-1 text-footnote text-label-secondary">
-            {props.activeRelease
-              ? t("SETTINGS_PROJECT_RELEASES_ACTIVE_SUMMARY", {
-                  count: props.activeRelease.selectionCount ?? 0,
-                })
-              : t("SETTINGS_PROJECT_RELEASES_EMPTY_DESC")}
-          </p>
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          loading={props.checking}
-          disabled={props.publishing}
-          onClick={props.onCheck}
-          data-testid="project-release-check"
-        >
-          <CheckCircle2 aria-hidden="true" />
-          {t("SETTINGS_PROJECT_RELEASES_CHECK")}
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          disabled={!props.canPublish || !props.ready || props.checking || props.publishing}
-          onClick={props.onPublish}
-          data-testid="project-release-publish"
-        >
-          {t("SETTINGS_PROJECT_RELEASES_PUBLISH")}
-        </Button>
-      </div>
-    </section>
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        loading={props.checking}
+        disabled={props.publishing}
+        onClick={props.onCheck}
+        data-testid="project-release-check"
+      >
+        <CheckCircle2 aria-hidden="true" />
+        {t("SETTINGS_PROJECT_RELEASES_CHECK")}
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        disabled={!props.canPublish || !props.ready || props.checking || props.publishing}
+        onClick={props.onPublish}
+        data-testid="project-release-publish"
+      >
+        {t("SETTINGS_PROJECT_RELEASES_PUBLISH")}
+      </Button>
+    </>
   );
 }
 
@@ -135,7 +138,10 @@ function ReadinessPanel(props: { dryRun: AdminReleaseDryRun | null; pending: boo
   const impact = props.dryRun?.impact;
 
   return (
-    <section className="grid gap-4" data-testid="project-release-readiness">
+    <section
+      className="grid gap-4 rounded-lg border border-border p-4"
+      data-testid="project-release-readiness"
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-headline font-semibold text-label-primary">
@@ -297,7 +303,12 @@ function ReleaseHistory(props: ReleaseHistoryProps) {
   );
 }
 
-export function ProjectReleasesPage(props: { projectId: string; embedded?: boolean }) {
+type ProjectReleasesPageProps = {
+  projectId: string;
+  embedded?: boolean;
+};
+
+export function ProjectReleasesPage(props: ProjectReleasesPageProps) {
   const { t } = useTranslation(["account", "common"]);
   const queryClient = useQueryClient();
   const permissionAccess = useProjectPermissionAccess(props.projectId);
@@ -357,9 +368,19 @@ export function ProjectReleasesPage(props: { projectId: string; embedded?: boole
   const canPublish = permissionReady && permissionAccess.hasAction("project:release:publish");
   const canRollback = permissionReady && permissionAccess.hasAction("project:release:rollback");
   const releases = releasesQuery.data ?? [];
-  const activeRelease = useMemo(() => selectActiveRelease(releases), [releases]);
+  const activeRelease = selectActiveRelease(releases);
   const ready = Boolean(dryRunQuery.data?.readinessSummary.ready);
   const pending = publishMutation.isPending || rollbackMutation.isPending;
+  const releaseActions = (
+    <ReleaseActions
+      canPublish={canPublish}
+      checking={dryRunQuery.isFetching}
+      publishing={publishMutation.isPending}
+      ready={ready}
+      onCheck={() => void dryRunQuery.refetch()}
+      onPublish={() => setPublishDialogOpen(true)}
+    />
+  );
 
   const content = (
     <ContentGuard
@@ -382,15 +403,7 @@ export function ProjectReleasesPage(props: { projectId: string; embedded?: boole
             description={t("account:SETTINGS_PROJECT_RELEASES_READ_ONLY_DESC")}
           />
         ) : null}
-        <ReleaseHeader
-          activeRelease={activeRelease}
-          canPublish={canPublish}
-          checking={dryRunQuery.isFetching}
-          publishing={publishMutation.isPending}
-          ready={ready}
-          onCheck={() => void dryRunQuery.refetch()}
-          onPublish={() => setPublishDialogOpen(true)}
-        />
+        <ReleaseSummary activeRelease={activeRelease} />
         <ReadinessPanel dryRun={dryRunQuery.data ?? null} pending={dryRunQuery.isFetching} />
         <ReleaseHistory
           releases={releases}
@@ -406,13 +419,37 @@ export function ProjectReleasesPage(props: { projectId: string; embedded?: boole
   return (
     <>
       {props.embedded ? (
-        content
+        <section
+          className="grid gap-5"
+          aria-labelledby="project-domain-release-title"
+          data-testid="project-domain-release-content"
+        >
+          <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex min-w-0 gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-label-secondary">
+                <Rocket aria-hidden="true" />
+              </div>
+              <div>
+                <h2
+                  id="project-domain-release-title"
+                  className="text-title3 font-semibold text-label-primary"
+                >
+                  {t("account:SETTINGS_PROJECT_DOMAINS_RELEASE_TITLE")}
+                </h2>
+                <p className="mt-1 max-w-2xl text-footnote text-label-secondary">
+                  {t("account:SETTINGS_PROJECT_DOMAINS_RELEASE_DESC")}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 sm:justify-end">{releaseActions}</div>
+          </header>
+          <div className="rounded-xl border border-border bg-card p-4 sm:p-5">{content}</div>
+        </section>
       ) : (
         <DefaultPage
           title={t("account:SETTINGS_PROJECT_RELEASES_TITLE")}
           description={t("account:SETTINGS_PROJECT_RELEASES_DESC")}
-          showFavoriteToggle={false}
-          contentContainerClassName="min-h-full"
+          action={releaseActions}
         >
           {content}
         </DefaultPage>

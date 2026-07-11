@@ -177,6 +177,7 @@ vi.mock("react-i18next", () => ({
         "ai:AI_WORKSPACE_ACTION_PROJECT_OPEN_CONTENT_LIBRARY": "Content library",
         "ai:AI_WORKSPACE_ACTION_PROJECT_OPEN_EDITOR": "Open editor",
         "ai:AI_WORKSPACE_ACTION_PROJECT_OPEN_PROJECT_SETTINGS": "Project settings",
+        "ai:AI_WORKSPACE_ACTION_PROJECT_OPEN_DOMAINS": "Domains",
         "ai:AI_WORKSPACE_ACTION_PROJECT_OPEN_RELEASES": "Releases",
         "ai:AI_WORKSPACE_ACTION_PROJECT_OPEN_WEBSITE_CONTROL": "Website control",
         "ai:AI_WORKSPACE_ACTION_PROJECT_RELEASE_BADGE": `Release ${String(values?.number ?? "")}`,
@@ -306,19 +307,14 @@ describe("WorkspaceActionArtifact", () => {
       to: "/projects/project-created/editor",
     });
 
-    await user.click(screen.getByRole("button", { name: /Website control/i }));
+    await user.click(screen.getByRole("button", { name: /Domains/i }));
     expect(routerMock.navigate).toHaveBeenLastCalledWith({
-      to: "/projects/project-created/website/domain",
+      to: "/projects/project-created/website/project-releases",
     });
 
     await user.click(screen.getByRole("button", { name: /Content library/i }));
     expect(routerMock.navigate).toHaveBeenLastCalledWith({
       to: "/projects/project-created/content/library",
-    });
-
-    await user.click(screen.getByRole("button", { name: /Releases/i }));
-    expect(routerMock.navigate).toHaveBeenLastCalledWith({
-      to: "/projects/project-created/website/releases",
     });
 
     await user.click(screen.getByRole("button", { name: /Project settings/i }));

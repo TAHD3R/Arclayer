@@ -295,12 +295,8 @@ describe("resolveFavoriteNavItems", () => {
         label: "nav:NAV_WEBSITE_CONFIG",
       }),
       expect.objectContaining({
-        path: "/projects/ws-9/website/domain",
-        label: "nav:NAV_WEBSITE_DOMAIN",
-      }),
-      expect.objectContaining({
-        path: "/projects/ws-9/website/releases",
-        label: "nav:NAV_WEBSITE_RELEASES",
+        path: "/projects/ws-9/website/project-releases",
+        label: "nav:NAV_WEBSITE_DOMAINS",
       }),
     ]);
   });

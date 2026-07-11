@@ -20,6 +20,9 @@ import { ContentGuard, type ContentGuardProps } from "@/layouts/page-shell/conte
 import { ApiError } from "@/lib/http";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
 
+const PAGE_HEADER_ACTIONS_CLASSNAME =
+  "inline-flex items-center gap-2.5 [&_[data-slot=button][data-size=default]]:h-10 [&_[data-slot=button][data-size=sm]]:h-10";
+
 export type BasePageProps = {
   title?: ReactNode;
   titleTooltip?: string;
@@ -284,7 +287,11 @@ export function PageMainRegion(props: {
                       ))}
                     </div>
                   ) : null}
-                  {props.action}
+                  {props.action ? (
+                    <div className={PAGE_HEADER_ACTIONS_CLASSNAME} data-slot="page-header-actions">
+                      {props.action}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             ) : null}

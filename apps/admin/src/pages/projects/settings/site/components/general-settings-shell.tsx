@@ -106,6 +106,24 @@ export function GeneralSettingsShell({ projectId, embedded = false }: GeneralSet
     projectCoreQuery.isLoading,
   ]);
 
+  const renderTabsList = (wrapperClassName?: string) => (
+    <ChromeTabsList
+      aria-label={t("settings:SETTINGS_SITE_SETTINGS_TITLE")}
+      className="border-b border-border"
+      wrapperClassName={wrapperClassName}
+    >
+      <ChromeTabsTrigger value="identity" data-testid="website-settings-tab-identity">
+        {t("settings:SETTINGS_SITE_BASICS_IDENTITY_PANEL_TITLE")}
+      </ChromeTabsTrigger>
+      <ChromeTabsTrigger value="discovery" data-testid="website-settings-tab-discovery">
+        {t("settings:SETTINGS_SITE_BASICS_BROWSER_PANEL_TITLE")}
+      </ChromeTabsTrigger>
+      <ChromeTabsTrigger value="localization" data-testid="website-settings-tab-localization">
+        {t("settings:SETTINGS_SITE_LOCALIZATION_PANEL_TITLE")}
+      </ChromeTabsTrigger>
+    </ChromeTabsList>
+  );
+
   const content = (
     <ContentGuard
       loading={projectCoreQuery.isLoading && !projectCoreQuery.data}
@@ -121,79 +139,72 @@ export function GeneralSettingsShell({ projectId, embedded = false }: GeneralSet
         />
       ) : null}
       <Form {...form}>
-        <ChromeTabs
-          value={activeSection}
-          onValueChange={(value) => setActiveSection(value as WebsiteSettingsSection)}
-          className="flex min-w-0 flex-col"
-        >
-          <ChromeTabsList
-            aria-label={t("settings:SETTINGS_SITE_SETTINGS_TITLE")}
-            className="border-b border-border"
-            wrapperClassName="mb-8"
-          >
-            <ChromeTabsTrigger value="identity" data-testid="website-settings-tab-identity">
-              {t("settings:SETTINGS_SITE_BASICS_IDENTITY_PANEL_TITLE")}
-            </ChromeTabsTrigger>
-            <ChromeTabsTrigger value="discovery" data-testid="website-settings-tab-discovery">
-              {t("settings:SETTINGS_SITE_BASICS_BROWSER_PANEL_TITLE")}
-            </ChromeTabsTrigger>
-            <ChromeTabsTrigger value="localization" data-testid="website-settings-tab-localization">
-              {t("settings:SETTINGS_SITE_LOCALIZATION_PANEL_TITLE")}
-            </ChromeTabsTrigger>
-          </ChromeTabsList>
-
-          {activeSection === "identity" ? (
-            <SiteSettingsTab
-              section="identity"
-              assetProjectId={projectId}
-              form={form}
-              initialValues={initialValues}
-              disabled={projectDisabled}
-              savingKey={savingKey}
-              withSavingKey={withSavingKey}
-              patch={patchProject}
-            />
-          ) : null}
-          {activeSection === "discovery" ? (
-            <SiteSettingsTab
-              section="discovery"
-              assetProjectId={projectId}
-              form={form}
-              initialValues={initialValues}
-              disabled={projectDisabled}
-              savingKey={savingKey}
-              withSavingKey={withSavingKey}
-              patch={patchProject}
-            />
-          ) : null}
-          {activeSection === "localization" ? (
-            <LocalizationSettingsTab
-              form={form}
-              initialValues={initialValues}
-              disabled={projectDisabled}
-              savingKey={savingKey}
-              withSavingKey={withSavingKey}
-              patch={patchProject}
-            />
-          ) : null}
-        </ChromeTabs>
+        {activeSection === "identity" ? (
+          <SiteSettingsTab
+            section="identity"
+            assetProjectId={projectId}
+            form={form}
+            initialValues={initialValues}
+            disabled={projectDisabled}
+            savingKey={savingKey}
+            withSavingKey={withSavingKey}
+            patch={patchProject}
+          />
+        ) : null}
+        {activeSection === "discovery" ? (
+          <SiteSettingsTab
+            section="discovery"
+            assetProjectId={projectId}
+            form={form}
+            initialValues={initialValues}
+            disabled={projectDisabled}
+            savingKey={savingKey}
+            withSavingKey={withSavingKey}
+            patch={patchProject}
+          />
+        ) : null}
+        {activeSection === "localization" ? (
+          <LocalizationSettingsTab
+            form={form}
+            initialValues={initialValues}
+            disabled={projectDisabled}
+            savingKey={savingKey}
+            withSavingKey={withSavingKey}
+            patch={patchProject}
+          />
+        ) : null}
       </Form>
     </ContentGuard>
   );
 
   if (embedded) {
-    return content;
+    return (
+      <ChromeTabs
+        value={activeSection}
+        onValueChange={(value) => setActiveSection(value as WebsiteSettingsSection)}
+        className="flex min-w-0 flex-col"
+      >
+        {renderTabsList("mb-8")}
+        {content}
+      </ChromeTabs>
+    );
   }
 
   return (
-    <DefaultPage
-      title={t("settings:SETTINGS_SITE_SETTINGS_TITLE")}
-      description={t("settings:SETTINGS_SITE_SETTINGS_DESC")}
-      showFavoriteToggle={false}
-      headerBehavior="sticky"
-      contentContainerClassName="min-h-full [--page-sticky-header-height:6rem]"
+    <ChromeTabs
+      value={activeSection}
+      onValueChange={(value) => setActiveSection(value as WebsiteSettingsSection)}
+      className="flex min-w-0 flex-col"
     >
-      {content}
-    </DefaultPage>
+      <DefaultPage
+        title={t("settings:SETTINGS_SITE_SETTINGS_TITLE")}
+        description={t("settings:SETTINGS_SITE_SETTINGS_DESC")}
+        extra={renderTabsList()}
+        headerBehavior="sticky"
+        contentContainerClassName="[--page-sticky-header-height:6rem]"
+      >
+        {content}
+      </DefaultPage>
+    </ChromeTabs>
   );
 }

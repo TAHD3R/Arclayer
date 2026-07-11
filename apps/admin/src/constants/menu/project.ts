@@ -7,7 +7,6 @@ import {
   Images,
   LayoutDashboard,
   LibraryBig,
-  Rocket,
   Search,
   Settings2,
 } from "lucide-react";
@@ -28,13 +27,6 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
     labelKey: "nav:NAV_PROJECT_EDITOR",
     to: "/editor",
     icon: Edit3,
-  },
-  {
-    key: "activity",
-    label: "Activity",
-    labelKey: "nav:NAV_SETTINGS_MAINTENANCE_ACTIVITY",
-    to: "/activity",
-    icon: History,
     insertStarredAfter: true,
   },
   {
@@ -46,20 +38,19 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
     groupLabelBeforeKey: "nav:NAV_GROUP_WEBSITE",
   },
   {
-    key: "website.domain",
-    label: "Domain",
-    labelKey: "nav:NAV_WEBSITE_DOMAIN",
-    to: "/website/domain",
-    activeMatchPaths: ["/content/domain", "/settings/domain"],
+    key: "website.domains",
+    label: "Domains",
+    labelKey: "nav:NAV_WEBSITE_DOMAINS",
+    to: "/website/project-releases",
+    activeMatchPaths: [
+      "/website/domain",
+      "/website/releases",
+      "/content/domain",
+      "/settings/domain",
+      "/deployments",
+      "/settings/deployments",
+    ],
     icon: Globe,
-  },
-  {
-    key: "website.releases",
-    label: "Releases",
-    labelKey: "nav:NAV_WEBSITE_RELEASES",
-    to: "/website/releases",
-    activeMatchPaths: ["/deployments", "/settings/deployments"],
-    icon: Rocket,
   },
   {
     key: "content",
@@ -123,6 +114,14 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
     icon: Globe,
   },
   {
+    key: "activity",
+    label: "Activity",
+    labelKey: "nav:NAV_SETTINGS_MAINTENANCE_ACTIVITY",
+    to: "/activity",
+    icon: History,
+    groupLabelBeforeKey: "nav:NAV_SECTION_PROJECT",
+  },
+  {
     key: "settings.project",
     label: "Project Settings",
     labelKey: "nav:NAV_SETTINGS_PROJECT",
@@ -134,7 +133,6 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
       "/settings/databases",
     ],
     icon: Settings2,
-    groupLabelBeforeKey: "nav:NAV_SECTION_CONFIGURATION",
   },
 ] as const;
 

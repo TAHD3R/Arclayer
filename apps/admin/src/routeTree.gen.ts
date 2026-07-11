@@ -39,6 +39,7 @@ import { Route as ProjectsProjectIdDeploymentsIndexRouteImport } from './routes/
 import { Route as ProjectsProjectIdAssetsIndexRouteImport } from './routes/projects/$projectId/assets/index'
 import { Route as ProjectsProjectIdActivityIndexRouteImport } from './routes/projects/$projectId/activity/index'
 import { Route as ProjectsProjectIdWebsiteReleasesIndexRouteImport } from './routes/projects/$projectId/website/releases/index'
+import { Route as ProjectsProjectIdWebsiteProjectReleasesIndexRouteImport } from './routes/projects/$projectId/website/project-releases/index'
 import { Route as ProjectsProjectIdWebsiteDomainIndexRouteImport } from './routes/projects/$projectId/website/domain/index'
 import { Route as ProjectsProjectIdWebsiteConfigIndexRouteImport } from './routes/projects/$projectId/website/config/index'
 import { Route as ProjectsProjectIdSettingsSeoIndexRouteImport } from './routes/projects/$projectId/settings/seo/index'
@@ -252,8 +253,14 @@ const ProjectsProjectIdWebsiteReleasesIndexRoute =
     id: '/website/releases/',
     path: '/website/releases/',
     getParentRoute: () => ProjectsProjectIdRoute,
+  } as any)
+const ProjectsProjectIdWebsiteProjectReleasesIndexRoute =
+  ProjectsProjectIdWebsiteProjectReleasesIndexRouteImport.update({
+    id: '/website/project-releases/',
+    path: '/website/project-releases/',
+    getParentRoute: () => ProjectsProjectIdRoute,
   } as any).lazy(() =>
-    import('./routes/projects/$projectId/website/releases/index.lazy').then(
+    import('./routes/projects/$projectId/website/project-releases/index.lazy').then(
       (d) => d.Route,
     ),
   )
@@ -262,11 +269,7 @@ const ProjectsProjectIdWebsiteDomainIndexRoute =
     id: '/website/domain/',
     path: '/website/domain/',
     getParentRoute: () => ProjectsProjectIdRoute,
-  } as any).lazy(() =>
-    import('./routes/projects/$projectId/website/domain/index.lazy').then(
-      (d) => d.Route,
-    ),
-  )
+  } as any)
 const ProjectsProjectIdWebsiteConfigIndexRoute =
   ProjectsProjectIdWebsiteConfigIndexRouteImport.update({
     id: '/website/config/',
@@ -519,6 +522,7 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/settings/seo/': typeof ProjectsProjectIdSettingsSeoIndexRoute
   '/projects/$projectId/website/config/': typeof ProjectsProjectIdWebsiteConfigIndexRoute
   '/projects/$projectId/website/domain/': typeof ProjectsProjectIdWebsiteDomainIndexRoute
+  '/projects/$projectId/website/project-releases/': typeof ProjectsProjectIdWebsiteProjectReleasesIndexRoute
   '/projects/$projectId/website/releases/': typeof ProjectsProjectIdWebsiteReleasesIndexRoute
   '/projects/$projectId/content/library/$itemId/': typeof ProjectsProjectIdContentLibraryItemIdIndexRoute
   '/projects/$projectId/content/models/edit/': typeof ProjectsProjectIdContentModelsEditIndexRoute
@@ -575,6 +579,7 @@ export interface FileRoutesByTo {
   '/projects/$projectId/settings/seo': typeof ProjectsProjectIdSettingsSeoIndexRoute
   '/projects/$projectId/website/config': typeof ProjectsProjectIdWebsiteConfigIndexRoute
   '/projects/$projectId/website/domain': typeof ProjectsProjectIdWebsiteDomainIndexRoute
+  '/projects/$projectId/website/project-releases': typeof ProjectsProjectIdWebsiteProjectReleasesIndexRoute
   '/projects/$projectId/website/releases': typeof ProjectsProjectIdWebsiteReleasesIndexRoute
   '/projects/$projectId/content/library/$itemId': typeof ProjectsProjectIdContentLibraryItemIdIndexRoute
   '/projects/$projectId/content/models/edit': typeof ProjectsProjectIdContentModelsEditIndexRoute
@@ -634,6 +639,7 @@ export interface FileRoutesById {
   '/projects/$projectId/settings/seo/': typeof ProjectsProjectIdSettingsSeoIndexRoute
   '/projects/$projectId/website/config/': typeof ProjectsProjectIdWebsiteConfigIndexRoute
   '/projects/$projectId/website/domain/': typeof ProjectsProjectIdWebsiteDomainIndexRoute
+  '/projects/$projectId/website/project-releases/': typeof ProjectsProjectIdWebsiteProjectReleasesIndexRoute
   '/projects/$projectId/website/releases/': typeof ProjectsProjectIdWebsiteReleasesIndexRoute
   '/projects/$projectId/content/library/$itemId/': typeof ProjectsProjectIdContentLibraryItemIdIndexRoute
   '/projects/$projectId/content/models/edit/': typeof ProjectsProjectIdContentModelsEditIndexRoute
@@ -694,6 +700,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/settings/seo/'
     | '/projects/$projectId/website/config/'
     | '/projects/$projectId/website/domain/'
+    | '/projects/$projectId/website/project-releases/'
     | '/projects/$projectId/website/releases/'
     | '/projects/$projectId/content/library/$itemId/'
     | '/projects/$projectId/content/models/edit/'
@@ -750,6 +757,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/settings/seo'
     | '/projects/$projectId/website/config'
     | '/projects/$projectId/website/domain'
+    | '/projects/$projectId/website/project-releases'
     | '/projects/$projectId/website/releases'
     | '/projects/$projectId/content/library/$itemId'
     | '/projects/$projectId/content/models/edit'
@@ -808,6 +816,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/settings/seo/'
     | '/projects/$projectId/website/config/'
     | '/projects/$projectId/website/domain/'
+    | '/projects/$projectId/website/project-releases/'
     | '/projects/$projectId/website/releases/'
     | '/projects/$projectId/content/library/$itemId/'
     | '/projects/$projectId/content/models/edit/'
@@ -1037,6 +1046,13 @@ declare module '@tanstack/react-router' {
       path: '/website/releases'
       fullPath: '/projects/$projectId/website/releases/'
       preLoaderRoute: typeof ProjectsProjectIdWebsiteReleasesIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/website/project-releases/': {
+      id: '/projects/$projectId/website/project-releases/'
+      path: '/website/project-releases'
+      fullPath: '/projects/$projectId/website/project-releases/'
+      preLoaderRoute: typeof ProjectsProjectIdWebsiteProjectReleasesIndexRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
     '/projects/$projectId/website/domain/': {
@@ -1289,6 +1305,7 @@ interface ProjectsProjectIdRouteChildren {
   ProjectsProjectIdSettingsSeoIndexRoute: typeof ProjectsProjectIdSettingsSeoIndexRoute
   ProjectsProjectIdWebsiteConfigIndexRoute: typeof ProjectsProjectIdWebsiteConfigIndexRoute
   ProjectsProjectIdWebsiteDomainIndexRoute: typeof ProjectsProjectIdWebsiteDomainIndexRoute
+  ProjectsProjectIdWebsiteProjectReleasesIndexRoute: typeof ProjectsProjectIdWebsiteProjectReleasesIndexRoute
   ProjectsProjectIdWebsiteReleasesIndexRoute: typeof ProjectsProjectIdWebsiteReleasesIndexRoute
   ProjectsProjectIdContentLibraryItemIdIndexRoute: typeof ProjectsProjectIdContentLibraryItemIdIndexRoute
   ProjectsProjectIdContentModelsEditIndexRoute: typeof ProjectsProjectIdContentModelsEditIndexRoute
@@ -1347,6 +1364,8 @@ const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
     ProjectsProjectIdWebsiteConfigIndexRoute,
   ProjectsProjectIdWebsiteDomainIndexRoute:
     ProjectsProjectIdWebsiteDomainIndexRoute,
+  ProjectsProjectIdWebsiteProjectReleasesIndexRoute:
+    ProjectsProjectIdWebsiteProjectReleasesIndexRoute,
   ProjectsProjectIdWebsiteReleasesIndexRoute:
     ProjectsProjectIdWebsiteReleasesIndexRoute,
   ProjectsProjectIdContentLibraryItemIdIndexRoute:

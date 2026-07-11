@@ -163,9 +163,8 @@ export function ProjectGoogleAnalyticsPage(props: { projectId: string }) {
     <DefaultPage
       title={t("nav:NAV_GOOGLE_ANALYTICS")}
       description={t("account:PROJECT_SEO_GOOGLE_ANALYTICS_DESC")}
-      showFavoriteToggle={false}
       headerBehavior="sticky"
-      contentContainerClassName="min-h-full [--page-sticky-header-height:6rem]"
+      contentContainerClassName="[--page-sticky-header-height:6rem]"
     >
       <ContentGuard
         loading={
@@ -194,7 +193,7 @@ export function ProjectGoogleAnalyticsPage(props: { projectId: string }) {
                 type="button"
                 onClick={() =>
                   void navigate({
-                    to: "/projects/$projectId/website/domain",
+                    to: "/projects/$projectId/website/project-releases",
                     params: { projectId: props.projectId },
                   })
                 }

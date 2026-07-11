@@ -106,7 +106,7 @@ describe("ProjectGoogleAnalyticsPage", () => {
       }),
     );
     expect(navigateMock).toHaveBeenCalledWith({
-      to: "/projects/$projectId/website/domain",
+      to: "/projects/$projectId/website/project-releases",
       params: { projectId: "project-1" },
     });
   });

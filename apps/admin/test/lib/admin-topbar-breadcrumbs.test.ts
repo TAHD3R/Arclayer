@@ -32,20 +32,19 @@ describe("buildAdminTopbarBreadcrumbs", () => {
     ]);
   });
 
-  it("maps project releases to Website > Releases", () => {
+  it("maps project and releases to the Website group", () => {
     const breadcrumbs = buildAdminTopbarBreadcrumbs(
       resolveProjectSceneNavItems("project-alpha"),
-      "/projects/project-alpha/website/releases",
+      "/projects/project-alpha/website/project-releases",
     );
 
     expect(breadcrumbs.map((item) => item.labelKey)).toEqual([
       "nav:NAV_GROUP_WEBSITE",
-      "nav:NAV_WEBSITE_RELEASES",
+      "nav:NAV_WEBSITE_DOMAINS",
     ]);
     expect(breadcrumbs[0]?.menuItems?.map((item) => item.labelKey)).toEqual([
       "nav:NAV_ASSETS",
-      "nav:NAV_WEBSITE_DOMAIN",
-      "nav:NAV_WEBSITE_RELEASES",
+      "nav:NAV_WEBSITE_DOMAINS",
       "nav:NAV_CONTENT",
       "nav:NAV_SECTION_SEO",
       "nav:NAV_WEBSITE_CONFIG",

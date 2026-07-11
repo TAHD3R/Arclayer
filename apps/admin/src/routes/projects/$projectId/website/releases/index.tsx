@@ -1,5 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/projects/$projectId/website/releases/")({
-  staticData: { titleKey: "nav:NAV_WEBSITE_RELEASES" },
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/projects/$projectId/website/project-releases",
+      params,
+      replace: true,
+    });
+  },
 });
