@@ -13,7 +13,9 @@ type StringTagsFieldProps = {
   placeholder?: string;
   disabled?: boolean;
   autoFocus?: boolean;
+  ariaLabel?: string;
   id?: string;
+  name?: string;
   separators?: RegExp;
   normalizeValue?: (value: string) => string;
 };
@@ -47,7 +49,9 @@ export function StringTagsField({
   placeholder,
   disabled = false,
   autoFocus = false,
+  ariaLabel,
   id,
+  name,
   separators = DEFAULT_SEPARATORS,
   normalizeValue = (item) => item.trim(),
 }: StringTagsFieldProps) {
@@ -98,6 +102,8 @@ export function StringTagsField({
 
       <input
         id={id}
+        name={name}
+        aria-label={ariaLabel}
         value={draft}
         disabled={disabled}
         autoFocus={autoFocus}

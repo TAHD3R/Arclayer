@@ -14,14 +14,24 @@ import {
   listProjectEnvironments,
 } from "@/api/project-environments";
 import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
-import { BaseTag, lucideTagIcon } from "@/components/ui/tags";
+import { BaseTag } from "@/components/ui/tags";
 import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { Button } from "@arclayer/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@arclayer/ui/empty";
+import { NativeSelect, NativeSelectOption } from "@arclayer/ui/native-select";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
 
 import type {
   ProjectDatabaseCredentialOut,
@@ -63,77 +73,64 @@ function DatabaseRow(props: {
   const maskedConnectionString = buildMaskedConnectionString(props.database, appCredential);
 
   return (
-    <div
-      className="rounded-[22px] border border-border/60 bg-background/80 px-4 py-4"
-      data-testid={`project-database-row-${props.database.id}`}
-    >
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0 space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold text-foreground">
-              {props.database.environmentName}
-            </span>
-            <DatabaseStatusTag status={props.database.status} />
-            <BaseTag color="default">{props.database.engine}</BaseTag>
-            <BaseTag color="default">{props.database.isolationMode}</BaseTag>
-          </div>
-          <div className="grid gap-2 text-sm text-label-secondary md:grid-cols-2 xl:grid-cols-4">
-            <div className="min-w-0">
-              <div className="text-caption text-label-secondary">
-                {t("account:SETTINGS_PROJECT_DATABASES_HOST")}
-              </div>
-              <div className="mt-1 truncate text-label-primary">{props.database.host}</div>
-            </div>
-            <div className="min-w-0">
-              <div className="text-caption text-label-secondary">
-                {t("account:SETTINGS_PROJECT_DATABASES_DATABASE_NAME")}
-              </div>
-              <div className="mt-1 truncate text-label-primary">{props.database.databaseName}</div>
-            </div>
-            <div className="min-w-0">
-              <div className="text-caption text-label-secondary">
-                {t("account:SETTINGS_PROJECT_DATABASES_SCHEMA_NAME")}
-              </div>
-              <div className="mt-1 truncate text-label-primary">{props.database.schemaName}</div>
-            </div>
-            <div className="min-w-0">
-              <div className="text-caption text-label-secondary">
-                {t("account:SETTINGS_PROJECT_DATABASES_CONNECTION")}
-              </div>
-              <div className="mt-1 truncate text-label-primary">{maskedConnectionString}</div>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {(props.database.credentials ?? []).map((credential: ProjectDatabaseCredentialOut) => (
-              <div
-                key={`${props.database.id}-${credential.role}`}
-                className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 px-3 py-2"
-              >
-                <BaseTag color="default">{credential.role}</BaseTag>
-                <span className="text-sm text-label-secondary">{credential.username}</span>
-                <BaseTag color={credential.secretSet ? "green" : "gold"}>
-                  {credential.secretSet
-                    ? t("account:SETTINGS_PROJECT_DATABASES_SECRET_SET")
-                    : t("account:SETTINGS_PROJECT_DATABASES_SECRET_EMPTY")}
-                </BaseTag>
-                {props.canManage ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    disabled={props.pending}
-                    onClick={() => props.onRotate(props.database.id, credential.role)}
-                  >
-                    <KeyRound size={16} />
-                    {t("account:SETTINGS_PROJECT_DATABASES_ROTATE")}
-                  </Button>
-                ) : null}
-              </div>
-            ))}
-          </div>
+    <TableRow data-testid={`project-database-row-${props.database.id}`}>
+      <TableCell className="px-4 py-4">
+        <div className="font-medium text-label-primary">{props.database.environmentName}</div>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span className="font-mono text-footnote text-label-secondary">
+            {props.database.environmentKey}
+          </span>
+          <DatabaseStatusTag status={props.database.status} />
         </div>
-      </div>
-    </div>
+      </TableCell>
+      <TableCell>
+        <div className="font-medium text-label-primary">{props.database.databaseName}</div>
+        <div className="mt-1 flex flex-wrap gap-2">
+          <BaseTag color="default">{props.database.engine}</BaseTag>
+          <BaseTag color="default">{props.database.isolationMode}</BaseTag>
+        </div>
+      </TableCell>
+      <TableCell className="max-w-72">
+        <div className="truncate text-label-primary">
+          {props.database.host}:{props.database.port}
+        </div>
+        <code className="mt-1 block truncate font-mono text-footnote text-label-secondary">
+          {maskedConnectionString}
+        </code>
+      </TableCell>
+      <TableCell className="px-4">
+        <div className="flex flex-col items-end gap-2">
+          {(props.database.credentials ?? []).map((credential: ProjectDatabaseCredentialOut) => (
+            <div
+              key={`${props.database.id}-${credential.role}`}
+              className="flex items-center gap-2"
+            >
+              <BaseTag color={credential.secretSet ? "green" : "gold"}>{credential.role}</BaseTag>
+              <BaseTag color="default">
+                {credential.secretSet
+                  ? t("account:SETTINGS_PROJECT_DATABASES_SECRET_SET")
+                  : t("account:SETTINGS_PROJECT_DATABASES_SECRET_EMPTY")}
+              </BaseTag>
+              <span className="max-w-36 truncate text-footnote text-label-secondary">
+                {credential.username}
+              </span>
+              {props.canManage ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={props.pending}
+                  onClick={() => props.onRotate(props.database.id, credential.role)}
+                >
+                  <KeyRound aria-hidden="true" />
+                  {t("account:SETTINGS_PROJECT_DATABASES_ROTATE")}
+                </Button>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -225,13 +222,9 @@ export function ProjectDatabasesPage(props: { projectId: string; embedded?: bool
             }
           : undefined
       }
-      empty={permissionReady && databases.length === 0}
-      emptyTitle={t("account:SETTINGS_PROJECT_DATABASES_EMPTY_TITLE")}
-      emptyDescription={t("account:SETTINGS_PROJECT_DATABASES_EMPTY_DESC")}
-      emptyExtra={props.embedded ? createDatabaseButton : undefined}
     >
       <div className="grid gap-4">
-        {props.embedded && createDatabaseButton ? (
+        {props.embedded && createDatabaseButton && databases.length > 0 ? (
           <div className="flex justify-end">{createDatabaseButton}</div>
         ) : null}
 
@@ -242,24 +235,53 @@ export function ProjectDatabasesPage(props: { projectId: string; embedded?: bool
           />
         ) : null}
 
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-4 text-sm text-label-secondary">
-          <BaseTag color="default" icon={lucideTagIcon(Database)}>
-            {t("account:SETTINGS_PROJECT_DATABASES_MASKED")}
-          </BaseTag>
-          <span>{t("account:SETTINGS_PROJECT_DATABASES_MASKED_DESC")}</span>
-        </div>
-
-        {databases.map((database) => (
-          <DatabaseRow
-            key={database.id}
-            database={database}
-            canManage={canManage}
-            pending={createMutation.isPending || rotateMutation.isPending}
-            onRotate={(databaseId, role) => {
-              void rotateMutation.mutateAsync({ databaseId, role });
-            }}
-          />
-        ))}
+        {permissionReady && databases.length === 0 ? (
+          <Empty
+            className="min-h-72 border border-dashed border-border"
+            data-testid="project-databases-empty"
+          >
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Database />
+              </EmptyMedia>
+              <EmptyTitle>{t("account:SETTINGS_PROJECT_DATABASES_EMPTY_TITLE")}</EmptyTitle>
+              <EmptyDescription>
+                {t("account:SETTINGS_PROJECT_DATABASES_EMPTY_DESC")}
+              </EmptyDescription>
+            </EmptyHeader>
+            {createDatabaseButton ? <EmptyContent>{createDatabaseButton}</EmptyContent> : null}
+          </Empty>
+        ) : (
+          <div className="overflow-hidden rounded-lg border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="px-4">
+                    {t("account:SETTINGS_PROJECT_DATABASES_TARGET_ENVIRONMENT")}
+                  </TableHead>
+                  <TableHead>{t("account:SETTINGS_PROJECT_DATABASES_DATABASE_NAME")}</TableHead>
+                  <TableHead>{t("account:SETTINGS_PROJECT_DATABASES_CONNECTION")}</TableHead>
+                  <TableHead className="px-4 text-right">
+                    {t("account:SETTINGS_PROJECT_DATABASES_CREDENTIALS")}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {databases.map((database) => (
+                  <DatabaseRow
+                    key={database.id}
+                    database={database}
+                    canManage={canManage}
+                    pending={createMutation.isPending || rotateMutation.isPending}
+                    onRotate={(databaseId, role) => {
+                      void rotateMutation.mutateAsync({ databaseId, role });
+                    }}
+                  />
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
     </ContentGuard>
   );
@@ -286,6 +308,7 @@ export function ProjectDatabasesPage(props: { projectId: string; embedded?: bool
       <SettingDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
+        preventInitialFocus={false}
         title={t("account:SETTINGS_PROJECT_DATABASES_CREATE_TITLE")}
         description={t("account:SETTINGS_PROJECT_DATABASES_CREATE_DESC")}
         footer={
@@ -316,21 +339,34 @@ export function ProjectDatabasesPage(props: { projectId: string; embedded?: bool
             title={t("account:SETTINGS_PROJECT_DATABASES_TARGET_ENVIRONMENT")}
             description={t("account:SETTINGS_PROJECT_DATABASES_TARGET_ENVIRONMENT_DESC")}
           >
-            <select
+            <NativeSelect
+              id="project-database-environment"
+              name="environmentId"
               aria-label={t("account:SETTINGS_PROJECT_DATABASES_TARGET_ENVIRONMENT")}
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground"
+              className="w-full"
               value={environmentId}
               onChange={(event) => setEnvironmentId(event.target.value)}
             >
-              <option value="" disabled>
+              <NativeSelectOption value="" disabled>
                 {t("account:SETTINGS_PROJECT_DATABASES_TARGET_ENVIRONMENT")}
-              </option>
+              </NativeSelectOption>
               {environments.map((environment: ProjectEnvironmentOut) => (
-                <option key={environment.id} value={environment.id}>
+                <NativeSelectOption key={environment.id} value={environment.id}>
                   {environment.name}
-                </option>
+                </NativeSelectOption>
               ))}
-            </select>
+            </NativeSelect>
+          </SettingDialogField>
+          <SettingDialogField
+            title={t("account:SETTINGS_PROJECT_DATABASES_ENGINE")}
+            description={t("account:SETTINGS_PROJECT_DATABASES_ENGINE_DESC")}
+          >
+            <div className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-3">
+              <BaseTag color="default">PostgreSQL</BaseTag>
+              <span className="text-footnote text-label-secondary">
+                {t("account:SETTINGS_PROJECT_DATABASES_ISOLATION_DATABASE")}
+              </span>
+            </div>
           </SettingDialogField>
         </SettingDialogFields>
       </SettingDialog>

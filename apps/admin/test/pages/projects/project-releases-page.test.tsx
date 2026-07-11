@@ -196,14 +196,15 @@ describe("ProjectReleasesPage", () => {
     renderWithQuery(<ProjectReleasesPage projectId="project-1" />);
 
     expect(
-      await screen.findByText("account:SETTINGS_PROJECT_RELEASES_ACTIVE_RELEASE:7"),
+      await screen.findByText("SETTINGS_PROJECT_RELEASES_ACTIVE_RELEASE:7"),
     ).toBeInTheDocument();
     expect(screen.getAllByText("SETTINGS_PROJECT_RELEASES_READY")).not.toHaveLength(0);
-    expect(screen.getByText("SETTINGS_PROJECT_RELEASES_SELECTED_COUNT:4")).toBeInTheDocument();
+    expect(screen.getByTestId("project-release-readiness")).toHaveTextContent(
+      "SETTINGS_PROJECT_RELEASES_SELECTION_COUNT",
+    );
+    expect(screen.getByTestId("project-release-readiness")).toHaveTextContent("4");
     expect(screen.getByText("SETTINGS_PROJECT_RELEASES_RELEASE_NUMBER:6")).toBeInTheDocument();
-    expect(
-      screen.getByText("account:SETTINGS_PROJECT_RELEASES_HISTORY_COUNT:2"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("SETTINGS_PROJECT_RELEASES_HISTORY_COUNT:2")).toBeInTheDocument();
     expect(screen.queryByTestId("project-releases-workflow-panel")).not.toBeInTheDocument();
     expect(
       screen.queryByText("SETTINGS_PROJECT_RELEASES_WORKFLOW_LINK_EDITOR"),
@@ -215,6 +216,11 @@ describe("ProjectReleasesPage", () => {
     renderWithQuery(<ProjectReleasesPage projectId="project-1" />);
 
     await user.click(await screen.findByTestId("project-release-publish"));
+    expect(publishProjectReleaseMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId("setting-dialog")).toHaveTextContent(
+      "account:SETTINGS_PROJECT_RELEASES_PUBLISH_DIALOG_TITLE",
+    );
+    await user.click(screen.getByTestId("project-release-publish-confirm"));
 
     await waitFor(() => {
       expect(publishProjectReleaseMock).toHaveBeenCalledWith("project-1");

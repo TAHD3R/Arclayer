@@ -40,10 +40,6 @@ import type { ContentModelsFilters, ContentModelsTableQuery, ContentModelsTableR
 import {
   buildContentModelsTableId,
   buildDuplicateContentModelPayload,
-  buildReusableBlockContentModelPayload,
-  buildSitePageContentModelPayload,
-  isReusableBlockContentModel,
-  isSitePageContentModel,
   toContentModelsTableQuery,
 } from "./utils";
 
@@ -67,153 +63,6 @@ function readModelTableSelection(
 
 function writeModelTableSelection(selection: AssetSelectionState): RowSelectionState {
   return Object.fromEntries(Array.from(selection.selectedIds, (id) => [id, true]));
-}
-
-type ContentModelsBlueprintSummary = {
-  pageModelCount: number;
-  publishableModelCount: number;
-  reusableBlockModelCount: number;
-  siteBuilderModelCount: number;
-  structuredModelCount: number;
-};
-
-function buildContentModelsBlueprintSummary(
-  models: readonly ContentModelsTableRow[],
-): ContentModelsBlueprintSummary {
-  return models.reduce<ContentModelsBlueprintSummary>(
-    (summary, model) => {
-      const isSiteBuilder =
-        model.category === "site_builder" ||
-        model.capabilities.includes("visual_editable") ||
-        model.capabilities.includes("routable");
-      const isPage = isSitePageContentModel(model);
-      const isReusableBlock = isReusableBlockContentModel(model);
-      const isStructured = !isSiteBuilder && model.modelKind !== "component";
-      return {
-        pageModelCount: summary.pageModelCount + (isPage ? 1 : 0),
-        publishableModelCount:
-          summary.publishableModelCount + (model.capabilities.includes("publishable") ? 1 : 0),
-        reusableBlockModelCount: summary.reusableBlockModelCount + (isReusableBlock ? 1 : 0),
-        siteBuilderModelCount: summary.siteBuilderModelCount + (isSiteBuilder ? 1 : 0),
-        structuredModelCount: summary.structuredModelCount + (isStructured ? 1 : 0),
-      };
-    },
-    {
-      pageModelCount: 0,
-      publishableModelCount: 0,
-      reusableBlockModelCount: 0,
-      siteBuilderModelCount: 0,
-      structuredModelCount: 0,
-    },
-  );
-}
-
-function ContentModelsBlueprintPanel(props: {
-  canManageModels: boolean;
-  creatingPageModel: boolean;
-  creatingReusableBlockModel: boolean;
-  pageModel: ContentModelsTableRow | null;
-  reusableBlockModel: ContentModelsTableRow | null;
-  onCreatePageModel: () => void;
-  onCreateReusableBlockModel: () => void;
-  onOpenModel: (model: ContentModelsTableRow) => void;
-  projectId: string;
-  summary: ContentModelsBlueprintSummary;
-  t: (key: string) => string;
-}) {
-  const metrics = [
-    {
-      id: "page-models",
-      label: props.t("CONTENT_MODELS_BLUEPRINT_METRIC_PAGE_MODELS"),
-      value: props.summary.pageModelCount,
-    },
-    {
-      id: "site-builder",
-      label: props.t("CONTENT_MODELS_BLUEPRINT_METRIC_SITE_BUILDER"),
-      value: props.summary.siteBuilderModelCount,
-    },
-    {
-      id: "reusable-blocks",
-      label: props.t("CONTENT_MODELS_BLUEPRINT_METRIC_REUSABLE_BLOCKS"),
-      value: props.summary.reusableBlockModelCount,
-    },
-    {
-      id: "publishable",
-      label: props.t("CONTENT_MODELS_BLUEPRINT_METRIC_PUBLISHABLE"),
-      value: props.summary.publishableModelCount,
-    },
-  ];
-
-  return (
-    <section
-      aria-label={props.t("CONTENT_MODELS_BLUEPRINT_TITLE")}
-      className="mb-6 border-y border-border bg-background py-5"
-      data-testid="content-models-blueprint-summary"
-    >
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(420px,0.9fr)]">
-        <div className="min-w-0 space-y-3">
-          <div className="space-y-1">
-            <h2 className="font-heading text-lg font-semibold text-foreground">
-              {props.t("CONTENT_MODELS_BLUEPRINT_TITLE")}
-            </h2>
-            <p className="max-w-2xl text-footnote text-label-secondary">
-              {props.t("CONTENT_MODELS_BLUEPRINT_DESC")}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {props.pageModel ? (
-              <Button
-                type="button"
-                variant="default"
-                onClick={() => props.onOpenModel(props.pageModel as ContentModelsTableRow)}
-              >
-                {props.t("CONTENT_MODELS_BLUEPRINT_ACTION_OPEN_PAGE_MODEL")}
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                variant="default"
-                disabled={!props.canManageModels || props.creatingPageModel}
-                onClick={props.onCreatePageModel}
-              >
-                <PlusIcon className="size-4" />
-                {props.t("CONTENT_MODELS_BLUEPRINT_ACTION_CREATE_MODEL")}
-              </Button>
-            )}
-            {props.reusableBlockModel ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => props.onOpenModel(props.reusableBlockModel as ContentModelsTableRow)}
-              >
-                {props.t("CONTENT_MODELS_BLUEPRINT_ACTION_OPEN_REUSABLE_BLOCK_MODEL")}
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                variant="outline"
-                disabled={!props.canManageModels || props.creatingReusableBlockModel}
-                onClick={props.onCreateReusableBlockModel}
-              >
-                <PlusIcon className="size-4" />
-                {props.t("CONTENT_MODELS_BLUEPRINT_ACTION_CREATE_REUSABLE_BLOCK_MODEL")}
-              </Button>
-            )}
-          </div>
-        </div>
-        <dl className="grid grid-cols-2 gap-2 lg:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4">
-          {metrics.map((item) => (
-            <div key={item.id} className="rounded-md border border-border bg-background px-3 py-3">
-              <dt className="text-caption text-label-secondary">{item.label}</dt>
-              <dd className="mt-2 font-heading text-2xl font-semibold text-foreground">
-                {item.value}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-    </section>
-  );
 }
 
 export function ContentModelsControlCenterPage({ projectId }: ContentModelsControlCenterPageProps) {
@@ -300,44 +149,6 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
     onError: notifyError,
   });
 
-  const createSitePageModelMutation = useMutation({
-    mutationFn: async () => {
-      const existingModels = await listAllContentModels(projectId);
-      const existingPageModel = existingModels.find(isSitePageContentModel);
-      if (existingPageModel) return { created: false, model: existingPageModel };
-
-      const model = await createContentModel(projectId, buildSitePageContentModelPayload());
-      return { created: true, model };
-    },
-    onSuccess: async ({ created, model }) => {
-      if (created) {
-        await refreshModels();
-        notifySuccessText(t("content:CONTENT_MODELS_BLUEPRINT_CREATE_SUCCESS"));
-      }
-      openModelEditor(model);
-    },
-    onError: notifyError,
-  });
-
-  const createReusableBlockModelMutation = useMutation({
-    mutationFn: async () => {
-      const existingModels = await listAllContentModels(projectId);
-      const existingReusableBlockModel = existingModels.find(isReusableBlockContentModel);
-      if (existingReusableBlockModel) return { created: false, model: existingReusableBlockModel };
-
-      const model = await createContentModel(projectId, buildReusableBlockContentModelPayload());
-      return { created: true, model };
-    },
-    onSuccess: async ({ created, model }) => {
-      if (created) {
-        await refreshModels();
-        notifySuccessText(t("content:CONTENT_MODELS_BLUEPRINT_CREATE_REUSABLE_BLOCK_SUCCESS"));
-      }
-      openModelEditor(model);
-    },
-    onError: notifyError,
-  });
-
   const deleteMutation = useMutation({
     mutationFn: async (modelId: string) => deleteContentModel(projectId, modelId),
     onError: notifyError,
@@ -392,19 +203,6 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
   const selectedCount = selectedModels.length;
   const hasActiveQuery = Boolean(tableHook.searchInput.trim()) || Object.keys(filters).length > 0;
   const orderedModelIds = tableHook.table.getRowModel().rows.map((row) => row.original.id);
-  const visibleModels = tableHook.table.getRowModel().rows.map((row) => row.original);
-  const blueprintSummary = React.useMemo(
-    () => buildContentModelsBlueprintSummary(visibleModels),
-    [visibleModels],
-  );
-  const firstSiteModel = React.useMemo(
-    () => visibleModels.find((model) => isSitePageContentModel(model)) ?? null,
-    [visibleModels],
-  );
-  const reusableBlockModel = React.useMemo(
-    () => visibleModels.find((model) => isReusableBlockContentModel(model)) ?? null,
-    [visibleModels],
-  );
   const openCreateModel = React.useCallback(() => {
     void navigate({
       to: "/projects/$projectId/content/models/edit",
@@ -480,19 +278,6 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
             data-testid="content-models-no-access"
           />
         ) : null}
-        <ContentModelsBlueprintPanel
-          t={(key) => t(`content:${key}`)}
-          summary={blueprintSummary}
-          canManageModels={canManageModels}
-          creatingPageModel={createSitePageModelMutation.isPending}
-          creatingReusableBlockModel={createReusableBlockModelMutation.isPending}
-          onCreatePageModel={() => void createSitePageModelMutation.mutateAsync()}
-          onCreateReusableBlockModel={() => void createReusableBlockModelMutation.mutateAsync()}
-          onOpenModel={openModelEditor}
-          pageModel={firstSiteModel}
-          projectId={projectId}
-          reusableBlockModel={reusableBlockModel}
-        />
         <AdminDataTableSection
           table={tableHook.table}
           emptyText={t("content:CONTENT_MODELS_TABLE_EMPTY_TEXT")}

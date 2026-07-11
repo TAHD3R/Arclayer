@@ -12,8 +12,6 @@ import { isValidEmail } from "@/lib/settings/general/utils";
 import {
   SystemSettingField,
   SystemSettingFooterActions,
-  SystemSettingItem,
-  SystemSettingStack,
 } from "@/pages/system/components/system-setting-item";
 import type {
   GeneralSettingsFormValues,
@@ -54,6 +52,7 @@ type LocalizedFieldProps = {
 
 type SiteSettingsTabProps = GeneralSettingsTabBaseProps & {
   assetProjectId: string | null;
+  section: "identity" | "discovery";
 };
 
 function FieldMessage({ message }: { message: string | null }) {
@@ -540,21 +539,17 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
       }
     });
 
-  return (
-    <SystemSettingStack>
-      <SystemSettingItem
-        id="website-identity"
-        title={t("settings:SETTINGS_SITE_BASICS_IDENTITY_PANEL_TITLE")}
-        description={t("settings:SETTINGS_SITE_BASICS_IDENTITY_PANEL_DESC")}
-        footer={
-          <SystemSettingFooterActions
-            dirty={siteIdentityDirty}
-            pending={savingKey === "siteIdentity"}
-            onReset={resetSiteIdentity}
-            onSave={() => void saveSiteIdentity()}
-          />
-        }
-      >
+  if (props.section === "identity") {
+    return (
+      <section id="website-identity" className="grid gap-6">
+        <header>
+          <h2 className="text-title2 font-semibold text-label-primary">
+            {t("settings:SETTINGS_SITE_BASICS_IDENTITY_PANEL_TITLE")}
+          </h2>
+          <p className="mt-1 max-w-2xl text-body text-label-secondary">
+            {t("settings:SETTINGS_SITE_BASICS_IDENTITY_PANEL_DESC")}
+          </p>
+        </header>
         <div className="grid gap-5">
           <SystemSettingField
             label={t("settings:SETTINGS_SITE_NAME_LABEL")}
@@ -668,158 +663,172 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
             />
           </SystemSettingField>
         </div>
-      </SystemSettingItem>
-
-      <SystemSettingItem
-        id="website-browser"
-        title={t("settings:SETTINGS_SITE_BASICS_BROWSER_PANEL_TITLE")}
-        description={t("settings:SETTINGS_SITE_BASICS_BROWSER_PANEL_DESC")}
-        footer={
+        <div className="border-t border-border pt-4">
           <SystemSettingFooterActions
-            dirty={browserDiscoveryDirty}
-            pending={savingKey === "browserDiscovery"}
-            onReset={resetBrowserDiscovery}
-            onSave={() => void saveBrowserDiscovery()}
-          />
-        }
-      >
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)]">
-          <div className="flex min-w-0 flex-col divide-y divide-border">
-            <SiteBrandAssetSettingRow
-              assetField="siteLogoAssetId"
-              currentAssetId={values.siteLogoAssetId}
-              currentUrl={values.siteLogoUrl}
-              description={t("settings:SETTINGS_SITE_LOGO_DESC")}
-              disabled={disabled}
-              fieldKey="site_logo"
-              form={form}
-              initialAssetId={initialValues.siteLogoAssetId}
-              initialUrl={initialValues.siteLogoUrl}
-              patch={patch}
-              patchField="logo"
-              removeAriaLabel={t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
-              resetKey="reset:siteLogoUrl"
-              saveKey="siteLogoUrl"
-              savingKey={savingKey}
-              title={t("settings:SETTINGS_SITE_LOGO_LABEL")}
-              uploadAriaLabel={t("settings:SETTINGS_ASSET_PICKER_SELECT")}
-              uploadPurpose="site_logo"
-              withSavingKey={withSavingKey}
-              assetProjectId={props.assetProjectId}
-              urlField="siteLogoUrl"
-            />
-            <SiteBrandAssetSettingRow
-              assetField="siteFaviconAssetId"
-              currentAssetId={values.siteFaviconAssetId}
-              currentUrl={values.siteFaviconUrl}
-              description={t("settings:SETTINGS_SITE_FAVICON_DESC")}
-              disabled={disabled}
-              fieldKey="site_favicon"
-              form={form}
-              initialAssetId={initialValues.siteFaviconAssetId}
-              initialUrl={initialValues.siteFaviconUrl}
-              patch={patch}
-              patchField="favicon"
-              removeAriaLabel={t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
-              resetKey="reset:siteFaviconUrl"
-              saveKey="siteFaviconUrl"
-              savingKey={savingKey}
-              title={t("settings:SETTINGS_SITE_FAVICON_LABEL")}
-              uploadAriaLabel={t("settings:SETTINGS_ASSET_PICKER_SELECT")}
-              uploadPurpose="favicon"
-              withSavingKey={withSavingKey}
-              assetProjectId={props.assetProjectId}
-              urlField="siteFaviconUrl"
-            />
-            <SiteBrandAssetSettingRow
-              assetField="seoOgImageAssetId"
-              currentAssetId={values.seoOgImageAssetId}
-              currentUrl={values.seoOgImageUrl}
-              description={t("settings:SETTINGS_SITE_OG_IMAGE_DESC")}
-              disabled={disabled}
-              fieldKey="seo_og_image"
-              form={form}
-              initialAssetId={initialValues.seoOgImageAssetId}
-              initialUrl={initialValues.seoOgImageUrl}
-              patch={patch}
-              patchField="og_image"
-              patchSection="seo"
-              removeAriaLabel={t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
-              resetKey="reset:seoOgImageUrl"
-              saveKey="seoOgImageUrl"
-              savingKey={savingKey}
-              title={t("settings:SETTINGS_SITE_OG_IMAGE_LABEL")}
-              uploadAriaLabel={t("settings:SETTINGS_ASSET_PICKER_SELECT")}
-              uploadPurpose="site_logo"
-              withSavingKey={withSavingKey}
-              assetProjectId={props.assetProjectId}
-              urlField="seoOgImageUrl"
-            />
-            <div className="grid gap-4 py-4">
-              <Controller
-                control={form.control}
-                name="seoTitlePolicy"
-                render={({ field }) => (
-                  <SystemSettingField
-                    label={t("settings:SETTINGS_SEO_TITLE_FORMAT_TITLE")}
-                    description={t("settings:SETTINGS_SEO_TITLE_FORMAT_DESC")}
-                    message={<FieldMessage message={titlePolicyError} />}
-                    labelControls={false}
-                  >
-                    <SiteTitlePatternField
-                      value={field.value}
-                      onChange={field.onChange}
-                      siteName={effectiveSiteName}
-                      siteSubtitle={values.siteSubtitle}
-                    />
-                  </SystemSettingField>
-                )}
-              />
-              <FieldGroup>
-                <Controller
-                  control={form.control}
-                  name="seoIndexingEnabled"
-                  render={({ field }) => (
-                    <Field>
-                      <SettingSwitchBlock
-                        checked={Boolean(field.value)}
-                        disabled={disabled}
-                        label={t("settings:SETTINGS_SITE_SEARCH_INDEXING_LABEL")}
-                        description={t("settings:SETTINGS_SITE_SEARCH_INDEXING_DESC")}
-                        onCheckedChange={field.onChange}
-                      />
-                    </Field>
-                  )}
-                />
-                <Controller
-                  control={form.control}
-                  name="seoSitemapEnabled"
-                  render={({ field }) => (
-                    <Field>
-                      <SettingSwitchBlock
-                        checked={Boolean(field.value)}
-                        disabled={disabled}
-                        label={t("settings:SETTINGS_SITE_SITEMAP_LABEL")}
-                        description={t("settings:SETTINGS_SITE_SITEMAP_DESC")}
-                        onCheckedChange={field.onChange}
-                      />
-                    </Field>
-                  )}
-                />
-              </FieldGroup>
-            </div>
-          </div>
-          <BrowserDiscoveryMockup
-            title={searchPreviewTitle}
-            description={effectiveSiteDescription}
-            publicUrl={values.siteUrl}
-            faviconUrl={values.siteFaviconUrl}
-            socialImageUrl={values.seoOgImageUrl}
-            siteName={effectiveSiteName}
-            indexingAllowed={values.seoIndexingEnabled}
+            dirty={siteIdentityDirty}
+            pending={savingKey === "siteIdentity"}
+            onReset={resetSiteIdentity}
+            onSave={() => void saveSiteIdentity()}
           />
         </div>
-      </SystemSettingItem>
-    </SystemSettingStack>
+      </section>
+    );
+  }
+
+  return (
+    <section id="website-browser" className="grid gap-6">
+      <header>
+        <h2 className="text-title2 font-semibold text-label-primary">
+          {t("settings:SETTINGS_SITE_BASICS_BROWSER_PANEL_TITLE")}
+        </h2>
+        <p className="mt-1 max-w-2xl text-body text-label-secondary">
+          {t("settings:SETTINGS_SITE_BASICS_BROWSER_PANEL_DESC")}
+        </p>
+      </header>
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)]">
+        <div className="flex min-w-0 flex-col divide-y divide-border">
+          <SiteBrandAssetSettingRow
+            assetField="siteLogoAssetId"
+            currentAssetId={values.siteLogoAssetId}
+            currentUrl={values.siteLogoUrl}
+            description={t("settings:SETTINGS_SITE_LOGO_DESC")}
+            disabled={disabled}
+            fieldKey="site_logo"
+            form={form}
+            initialAssetId={initialValues.siteLogoAssetId}
+            initialUrl={initialValues.siteLogoUrl}
+            patch={patch}
+            patchField="logo"
+            removeAriaLabel={t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
+            resetKey="reset:siteLogoUrl"
+            saveKey="siteLogoUrl"
+            savingKey={savingKey}
+            title={t("settings:SETTINGS_SITE_LOGO_LABEL")}
+            uploadAriaLabel={t("settings:SETTINGS_ASSET_PICKER_SELECT")}
+            uploadPurpose="site_logo"
+            withSavingKey={withSavingKey}
+            assetProjectId={props.assetProjectId}
+            urlField="siteLogoUrl"
+          />
+          <SiteBrandAssetSettingRow
+            assetField="siteFaviconAssetId"
+            currentAssetId={values.siteFaviconAssetId}
+            currentUrl={values.siteFaviconUrl}
+            description={t("settings:SETTINGS_SITE_FAVICON_DESC")}
+            disabled={disabled}
+            fieldKey="site_favicon"
+            form={form}
+            initialAssetId={initialValues.siteFaviconAssetId}
+            initialUrl={initialValues.siteFaviconUrl}
+            patch={patch}
+            patchField="favicon"
+            removeAriaLabel={t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
+            resetKey="reset:siteFaviconUrl"
+            saveKey="siteFaviconUrl"
+            savingKey={savingKey}
+            title={t("settings:SETTINGS_SITE_FAVICON_LABEL")}
+            uploadAriaLabel={t("settings:SETTINGS_ASSET_PICKER_SELECT")}
+            uploadPurpose="favicon"
+            withSavingKey={withSavingKey}
+            assetProjectId={props.assetProjectId}
+            urlField="siteFaviconUrl"
+          />
+          <SiteBrandAssetSettingRow
+            assetField="seoOgImageAssetId"
+            currentAssetId={values.seoOgImageAssetId}
+            currentUrl={values.seoOgImageUrl}
+            description={t("settings:SETTINGS_SITE_OG_IMAGE_DESC")}
+            disabled={disabled}
+            fieldKey="seo_og_image"
+            form={form}
+            initialAssetId={initialValues.seoOgImageAssetId}
+            initialUrl={initialValues.seoOgImageUrl}
+            patch={patch}
+            patchField="og_image"
+            patchSection="seo"
+            removeAriaLabel={t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
+            resetKey="reset:seoOgImageUrl"
+            saveKey="seoOgImageUrl"
+            savingKey={savingKey}
+            title={t("settings:SETTINGS_SITE_OG_IMAGE_LABEL")}
+            uploadAriaLabel={t("settings:SETTINGS_ASSET_PICKER_SELECT")}
+            uploadPurpose="site_logo"
+            withSavingKey={withSavingKey}
+            assetProjectId={props.assetProjectId}
+            urlField="seoOgImageUrl"
+          />
+          <div className="grid gap-4 py-4">
+            <Controller
+              control={form.control}
+              name="seoTitlePolicy"
+              render={({ field }) => (
+                <SystemSettingField
+                  label={t("settings:SETTINGS_SEO_TITLE_FORMAT_TITLE")}
+                  description={t("settings:SETTINGS_SEO_TITLE_FORMAT_DESC")}
+                  message={<FieldMessage message={titlePolicyError} />}
+                  labelControls={false}
+                >
+                  <SiteTitlePatternField
+                    value={field.value}
+                    onChange={field.onChange}
+                    siteName={effectiveSiteName}
+                    siteSubtitle={values.siteSubtitle}
+                  />
+                </SystemSettingField>
+              )}
+            />
+            <FieldGroup>
+              <Controller
+                control={form.control}
+                name="seoIndexingEnabled"
+                render={({ field }) => (
+                  <Field>
+                    <SettingSwitchBlock
+                      checked={Boolean(field.value)}
+                      disabled={disabled}
+                      label={t("settings:SETTINGS_SITE_SEARCH_INDEXING_LABEL")}
+                      description={t("settings:SETTINGS_SITE_SEARCH_INDEXING_DESC")}
+                      onCheckedChange={field.onChange}
+                    />
+                  </Field>
+                )}
+              />
+              <Controller
+                control={form.control}
+                name="seoSitemapEnabled"
+                render={({ field }) => (
+                  <Field>
+                    <SettingSwitchBlock
+                      checked={Boolean(field.value)}
+                      disabled={disabled}
+                      label={t("settings:SETTINGS_SITE_SITEMAP_LABEL")}
+                      description={t("settings:SETTINGS_SITE_SITEMAP_DESC")}
+                      onCheckedChange={field.onChange}
+                    />
+                  </Field>
+                )}
+              />
+            </FieldGroup>
+          </div>
+        </div>
+        <BrowserDiscoveryMockup
+          title={searchPreviewTitle}
+          description={effectiveSiteDescription}
+          publicUrl={values.siteUrl}
+          faviconUrl={values.siteFaviconUrl}
+          socialImageUrl={values.seoOgImageUrl}
+          siteName={effectiveSiteName}
+          indexingAllowed={values.seoIndexingEnabled}
+        />
+      </div>
+      <div className="border-t border-border pt-4">
+        <SystemSettingFooterActions
+          dirty={browserDiscoveryDirty}
+          pending={savingKey === "browserDiscovery"}
+          onReset={resetBrowserDiscovery}
+          onSave={() => void saveBrowserDiscovery()}
+        />
+      </div>
+    </section>
   );
 }

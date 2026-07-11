@@ -3,7 +3,7 @@ import { Controller, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@arclayer/ui/button";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@arclayer/ui/field";
+import { Field, FieldError, FieldGroup } from "@arclayer/ui/field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { StringTagsField } from "@arclayer/ui/string-tags-field";
@@ -21,11 +21,6 @@ import {
   buildDateFormatOptions,
   buildTimezoneOptions,
 } from "@/lib/settings/general/localization-options";
-import {
-  SystemSettingItem,
-  SystemSettingRow,
-  SystemSettingStack,
-} from "@/pages/system/components/system-setting-item";
 import type { GeneralSettingsTabBaseProps } from "@/types/settings-general";
 import { getFieldErrorMessage, validateFormFields } from "../form-helpers";
 
@@ -53,10 +48,15 @@ function SettingEditRow(props: {
 }) {
   const { t } = useTranslation(["settings"]);
   return (
-    <SystemSettingRow
-      title={props.title}
-      description={props.description}
-      control={
+    <div className="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_minmax(10rem,16rem)_auto] sm:items-center">
+      <div className="min-w-0">
+        <div className="text-headline font-medium text-label-primary">{props.title}</div>
+        {props.description ? (
+          <div className="mt-1 text-footnote text-label-secondary">{props.description}</div>
+        ) : null}
+      </div>
+      <div className="break-words text-callout text-label-secondary">{props.summary}</div>
+      <div className="sm:text-right">
         <Button
           type="button"
           variant="outline"
@@ -66,10 +66,8 @@ function SettingEditRow(props: {
         >
           {t("settings:SETTINGS_EDIT")}
         </Button>
-      }
-    >
-      <div className="break-words text-callout text-label-secondary">{props.summary}</div>
-    </SystemSettingRow>
+      </div>
+    </div>
   );
 }
 
@@ -91,6 +89,7 @@ function SaveDialog(props: {
     <SettingDialog
       open={props.open}
       onOpenChange={props.onOpenChange}
+      preventInitialFocus={false}
       title={props.title}
       description={props.description}
       footer={
@@ -322,51 +321,53 @@ export function LocalizationSettingsTab({
 
   return (
     <>
-      <SystemSettingStack>
-        <SystemSettingItem
-          id="website-localization"
-          title={t("settings:SETTINGS_SITE_LOCALIZATION_PANEL_TITLE")}
-          description={t("settings:SETTINGS_SITE_LOCALIZATION_PANEL_DESC")}
-        >
-          <div className="flex flex-col divide-y divide-border">
-            <SettingEditRow
-              title={t("settings:SITE_LOCALIZATION_SUPPORTED_LOCALES_LABEL")}
-              description={t("settings:SITE_LOCALIZATION_SUPPORTED_LOCALES_DESC")}
-              summary={(supportedLocales || []).join(", ") || t("settings:SETTINGS_NOT_SET")}
-              disabled={disabled}
-              onEdit={() => setDialog("supportedLocales")}
-            />
-            <SettingEditRow
-              title={t("settings:SITE_LOCALIZATION_DEFAULT_LOCALE_LABEL")}
-              description={t("settings:SITE_LOCALIZATION_DEFAULT_LOCALE_DESC")}
-              summary={localeLabel || t("settings:SETTINGS_NOT_SET")}
-              disabled={disabled}
-              onEdit={() => setDialog("defaultLocale")}
-            />
-            <SettingEditRow
-              title={t("settings:SITE_LOCALIZATION_FALLBACK_LOCALE_LABEL")}
-              description={t("settings:SITE_LOCALIZATION_FALLBACK_LOCALE_DESC")}
-              summary={fallbackLocaleLabel || t("settings:SETTINGS_NOT_SET")}
-              disabled={disabled}
-              onEdit={() => setDialog("fallbackLocale")}
-            />
-            <SettingEditRow
-              title={t("setup:SETUP_FIELD_TIMEZONE_TITLE")}
-              description={t("settings:SETTINGS_SITE_TIMEZONE_DESC")}
-              summary={timezoneLabel}
-              disabled={disabled}
-              onEdit={() => setDialog("timezone")}
-            />
-            <SettingEditRow
-              title={t("setup:SETUP_FIELD_DATE_FORMAT_TITLE")}
-              description={t("settings:SETTINGS_SITE_DATE_FORMAT_DESC")}
-              summary={dateFormatLabel}
-              disabled={disabled}
-              onEdit={() => setDialog("dateFormat")}
-            />
-          </div>
-        </SystemSettingItem>
-      </SystemSettingStack>
+      <section id="website-localization" className="grid gap-6">
+        <header>
+          <h2 className="text-title2 font-semibold text-label-primary">
+            {t("settings:SETTINGS_SITE_LOCALIZATION_PANEL_TITLE")}
+          </h2>
+          <p className="mt-1 max-w-2xl text-body text-label-secondary">
+            {t("settings:SETTINGS_SITE_LOCALIZATION_PANEL_DESC")}
+          </p>
+        </header>
+        <div className="flex flex-col divide-y divide-border border-y border-border">
+          <SettingEditRow
+            title={t("settings:SITE_LOCALIZATION_SUPPORTED_LOCALES_LABEL")}
+            description={t("settings:SITE_LOCALIZATION_SUPPORTED_LOCALES_DESC")}
+            summary={(supportedLocales || []).join(", ") || t("settings:SETTINGS_NOT_SET")}
+            disabled={disabled}
+            onEdit={() => setDialog("supportedLocales")}
+          />
+          <SettingEditRow
+            title={t("settings:SITE_LOCALIZATION_DEFAULT_LOCALE_LABEL")}
+            description={t("settings:SITE_LOCALIZATION_DEFAULT_LOCALE_DESC")}
+            summary={localeLabel || t("settings:SETTINGS_NOT_SET")}
+            disabled={disabled}
+            onEdit={() => setDialog("defaultLocale")}
+          />
+          <SettingEditRow
+            title={t("settings:SITE_LOCALIZATION_FALLBACK_LOCALE_LABEL")}
+            description={t("settings:SITE_LOCALIZATION_FALLBACK_LOCALE_DESC")}
+            summary={fallbackLocaleLabel || t("settings:SETTINGS_NOT_SET")}
+            disabled={disabled}
+            onEdit={() => setDialog("fallbackLocale")}
+          />
+          <SettingEditRow
+            title={t("setup:SETUP_FIELD_TIMEZONE_TITLE")}
+            description={t("settings:SETTINGS_SITE_TIMEZONE_DESC")}
+            summary={timezoneLabel}
+            disabled={disabled}
+            onEdit={() => setDialog("timezone")}
+          />
+          <SettingEditRow
+            title={t("setup:SETUP_FIELD_DATE_FORMAT_TITLE")}
+            description={t("settings:SETTINGS_SITE_DATE_FORMAT_DESC")}
+            summary={dateFormatLabel}
+            disabled={disabled}
+            onEdit={() => setDialog("dateFormat")}
+          />
+        </div>
+      </section>
 
       <SaveDialog
         open={dialog === "supportedLocales"}
@@ -399,8 +400,13 @@ export function LocalizationSettingsTab({
           render={({ field }) => (
             <FieldGroup>
               <Field data-invalid={Boolean(supportedLocalesError)}>
-                <FieldLabel>{t("settings:SITE_LOCALIZATION_SUPPORTED_LOCALES_LABEL")}</FieldLabel>
+                <div className="text-body font-medium text-label-primary">
+                  {t("settings:SITE_LOCALIZATION_SUPPORTED_LOCALES_LABEL")}
+                </div>
                 <StringTagsField
+                  id="website-supported-locales"
+                  name="supportedLocales"
+                  ariaLabel={t("settings:SITE_LOCALIZATION_SUPPORTED_LOCALES_LABEL")}
                   value={field.value ?? []}
                   onChange={(next) => field.onChange(uniqLocales(next))}
                   placeholder="e.g. zh-CN, en-US, fr-FR"
@@ -433,13 +439,19 @@ export function LocalizationSettingsTab({
           render={({ field }) => (
             <FieldGroup>
               <Field data-invalid={Boolean(defaultLocaleError)}>
-                <FieldLabel>{t("settings:SITE_LOCALIZATION_DEFAULT_LOCALE_LABEL")}</FieldLabel>
+                <div className="text-body font-medium text-label-primary">
+                  {t("settings:SITE_LOCALIZATION_DEFAULT_LOCALE_LABEL")}
+                </div>
                 <Select
                   value={field.value || undefined}
                   onValueChange={field.onChange}
                   disabled={disabled}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger
+                    id="website-default-locale"
+                    aria-label={t("settings:SITE_LOCALIZATION_DEFAULT_LOCALE_LABEL")}
+                    className="w-full"
+                  >
                     <SelectValue placeholder={t("common:SELECT")} />
                   </SelectTrigger>
                   <SelectContent position="popper" align="start">
@@ -476,13 +488,19 @@ export function LocalizationSettingsTab({
           render={({ field }) => (
             <FieldGroup>
               <Field data-invalid={Boolean(fallbackLocaleError)}>
-                <FieldLabel>{t("settings:SITE_LOCALIZATION_FALLBACK_LOCALE_LABEL")}</FieldLabel>
+                <div className="text-body font-medium text-label-primary">
+                  {t("settings:SITE_LOCALIZATION_FALLBACK_LOCALE_LABEL")}
+                </div>
                 <Select
                   value={field.value || undefined}
                   onValueChange={field.onChange}
                   disabled={disabled}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger
+                    id="website-fallback-locale"
+                    aria-label={t("settings:SITE_LOCALIZATION_FALLBACK_LOCALE_LABEL")}
+                    className="w-full"
+                  >
                     <SelectValue placeholder={t("common:SELECT")} />
                   </SelectTrigger>
                   <SelectContent position="popper" align="start">
@@ -514,8 +532,11 @@ export function LocalizationSettingsTab({
       >
         <FieldGroup>
           <Field data-invalid={Boolean(timezoneError)}>
-            <FieldLabel>{t("setup:SETUP_FIELD_TIMEZONE_TITLE")}</FieldLabel>
+            <div className="text-body font-medium text-label-primary">
+              {t("setup:SETUP_FIELD_TIMEZONE_TITLE")}
+            </div>
             <TimezoneLocalizationControl
+              controlId="website-timezone"
               selectValue={String(timezone || "")}
               switchChecked={useBrowserTimeZone}
               switchLabel={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_TITLE")}
@@ -548,8 +569,11 @@ export function LocalizationSettingsTab({
       >
         <FieldGroup>
           <Field data-invalid={Boolean(dateFormatError)}>
-            <FieldLabel>{t("setup:SETUP_FIELD_DATE_FORMAT_TITLE")}</FieldLabel>
+            <div className="text-body font-medium text-label-primary">
+              {t("setup:SETUP_FIELD_DATE_FORMAT_TITLE")}
+            </div>
             <DateTimeFormatLocalizationControl
+              controlId="website-date-format"
               selectValue={String(dateFormat || "")}
               switchChecked={useRelativeDateTime}
               switchLabel={t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_TITLE")}

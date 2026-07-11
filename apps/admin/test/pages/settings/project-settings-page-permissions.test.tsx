@@ -1,6 +1,7 @@
 import type { PropsWithChildren, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProjectSettingsPage } from "@/pages/projects/settings/project/page";
@@ -8,6 +9,9 @@ import { ProjectSettingsPage } from "@/pages/projects/settings/project/page";
 const getProjectDetailMock = vi.fn();
 const patchProjectMock = vi.fn();
 const checkProjectSlugAvailabilityMock = vi.fn();
+const getProjectDangerCapabilitiesMock = vi.fn();
+const archiveProjectMock = vi.fn();
+const deleteProjectMock = vi.fn();
 const getMyProjectAuthzMock = vi.fn();
 const listProjectPermissionActionsMock = vi.fn();
 const navigateMock = vi.fn();
@@ -24,7 +28,10 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@/api/projects", () => ({
+  archiveProject: (...args: unknown[]) => archiveProjectMock(...args),
+  deleteProject: (...args: unknown[]) => deleteProjectMock(...args),
   getProjectDetail: (...args: unknown[]) => getProjectDetailMock(...args),
+  getProjectDangerCapabilities: (...args: unknown[]) => getProjectDangerCapabilitiesMock(...args),
   patchProject: (...args: unknown[]) => patchProjectMock(...args),
   checkProjectSlugAvailability: (...args: unknown[]) => checkProjectSlugAvailabilityMock(...args),
 }));
@@ -164,6 +171,21 @@ vi.mock("@arclayer/ui/input", () => ({
   Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
 }));
 
+vi.mock("@arclayer/ui/setting-dialog", () => ({
+  SettingDialog: ({
+    open,
+    title,
+    footer,
+    children,
+  }: PropsWithChildren<{ open: boolean; title: ReactNode; footer?: ReactNode }>) =>
+    open ? (
+      <div role="dialog" aria-label={String(title)}>
+        {children}
+        {footer}
+      </div>
+    ) : null,
+}));
+
 function renderWithQuery(node: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -183,6 +205,9 @@ describe("ProjectSettingsPage permission consumption", () => {
     getProjectDetailMock.mockReset();
     patchProjectMock.mockReset();
     checkProjectSlugAvailabilityMock.mockReset();
+    getProjectDangerCapabilitiesMock.mockReset();
+    archiveProjectMock.mockReset();
+    deleteProjectMock.mockReset();
     getMyProjectAuthzMock.mockReset();
     listProjectPermissionActionsMock.mockReset();
     navigateMock.mockReset();
@@ -212,6 +237,15 @@ describe("ProjectSettingsPage permission consumption", () => {
       normalizedSlug: "launch-site",
       reason: null,
     });
+    getProjectDangerCapabilitiesMock.mockResolvedValue({
+      projectId: "project-1",
+      workspaceId: "workspace-1",
+      confirmDeleteName: "Launch site",
+      archiveAction: { enabled: true, blockedReason: null },
+      deleteAction: { enabled: true, blockedReason: null },
+    });
+    archiveProjectMock.mockResolvedValue({ projectId: "project-1", isActive: false });
+    deleteProjectMock.mockResolvedValue({ projectId: "project-1", deleted: true });
     getMyProjectAuthzMock.mockResolvedValue({
       projectId: "project-1",
       workspaceId: "workspace-1",
@@ -300,5 +334,42 @@ describe("ProjectSettingsPage permission consumption", () => {
     expect(screen.queryByTestId("project-source-framework-evaluation")).not.toBeInTheDocument();
     expect(screen.queryByTestId("project-source-runtime-binding")).not.toBeInTheDocument();
     expect(screen.queryByTestId("project-source-workflow-contract")).not.toBeInTheDocument();
+  });
+
+  it("archives the project only after explicit confirmation", async () => {
+    const user = userEvent.setup();
+    renderWithQuery(<ProjectSettingsPage activeTab="general" projectId="project-1" />);
+
+    await user.click(await screen.findByTestId("project-archive-trigger"));
+    expect(archiveProjectMock).not.toHaveBeenCalled();
+    await user.click(screen.getByTestId("project-archive-confirm"));
+
+    await waitFor(() => {
+      expect(archiveProjectMock).toHaveBeenCalledWith("project-1");
+      expect(navigateMock).toHaveBeenCalledWith({ to: "/projects" });
+    });
+  });
+
+  it("requires the exact backend-provided project name before permanent deletion", async () => {
+    const user = userEvent.setup();
+    renderWithQuery(<ProjectSettingsPage activeTab="general" projectId="project-1" />);
+
+    await user.click(await screen.findByTestId("project-delete-trigger"));
+    const confirm = screen.getByTestId("project-delete-confirm");
+    const nameInput = screen.getByLabelText(
+      "account:ACCOUNT_PROJECTS_DELETE_CONFIRM_INPUT_PLACEHOLDER",
+    );
+
+    expect(confirm).toBeDisabled();
+    await user.type(nameInput, "Launch");
+    expect(confirm).toBeDisabled();
+    await user.type(nameInput, " site");
+    expect(confirm).toBeEnabled();
+    await user.click(confirm);
+
+    await waitFor(() => {
+      expect(deleteProjectMock).toHaveBeenCalledWith("project-1", "Launch site");
+      expect(navigateMock).toHaveBeenCalledWith({ to: "/projects" });
+    });
   });
 });

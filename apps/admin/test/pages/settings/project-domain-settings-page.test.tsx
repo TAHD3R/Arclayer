@@ -1,6 +1,6 @@
 import type { PropsWithChildren, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -11,13 +11,8 @@ const createProjectDomainMock = vi.fn();
 const verifyProjectDomainMock = vi.fn();
 const updateProjectDomainMock = vi.fn();
 const deleteProjectDomainMock = vi.fn();
-const getProjectCoreSettingsMock = vi.fn();
-const listProjectReleasesMock = vi.fn();
-const getProjectReleaseDryRunMock = vi.fn();
-const publishProjectReleaseMock = vi.fn();
 const notifyErrorMock = vi.fn();
 const notifySuccessTextMock = vi.fn();
-const navigateMock = vi.fn();
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -34,26 +29,10 @@ vi.mock("@/api/project-settings", () => ({
   deleteProjectDomain: (...args: unknown[]) => deleteProjectDomainMock(...args),
 }));
 
-vi.mock("@/api/settings", () => ({
-  getProjectCoreSettings: (...args: unknown[]) => getProjectCoreSettingsMock(...args),
-}));
-
-vi.mock("@/api/project-releases", () => ({
-  buildProjectReleasesQueryKey: (projectId: string) => ["project", "releases", projectId],
-  getProjectReleaseDryRun: (...args: unknown[]) => getProjectReleaseDryRunMock(...args),
-  listProjectReleases: (...args: unknown[]) => listProjectReleasesMock(...args),
-  publishProjectRelease: (...args: unknown[]) => publishProjectReleaseMock(...args),
-}));
-
-vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => navigateMock,
-}));
-
 vi.mock("@/hooks/use-workspace-permission-access", () => ({
   useProjectPermissionAccess: () => ({
     authzQuery: { isFetched: true },
-    hasAction: (code: string) =>
-      code === "project:domains:manage" || code === "project:release:publish",
+    hasAction: (code: string) => code === "project:domains:manage",
   }),
 }));
 
@@ -150,25 +129,6 @@ const CUSTOM_ROW = {
   },
 };
 
-const ACTIVE_RELEASE = {
-  activatedAt: "2026-07-05T10:10:00.000Z",
-  createdAt: "2026-07-05T10:00:00.000Z",
-  createdByUserId: null,
-  id: "release-1",
-  isActive: true,
-  lineage: {
-    parentReleaseId: null,
-    parentReleaseNumber: null,
-  },
-  releaseNumber: 7,
-  scheduledAt: null,
-  selectionCount: 4,
-  siteId: "site-1",
-  status: "active",
-  updatedAt: "2026-07-05T10:10:00.000Z",
-  workspaceId: "workspace-1",
-};
-
 describe("ProjectDomainSettingsPage", () => {
   beforeEach(() => {
     listProjectDomainsMock.mockReset();
@@ -176,188 +136,42 @@ describe("ProjectDomainSettingsPage", () => {
     verifyProjectDomainMock.mockReset();
     updateProjectDomainMock.mockReset();
     deleteProjectDomainMock.mockReset();
-    getProjectCoreSettingsMock.mockReset();
-    listProjectReleasesMock.mockReset();
-    getProjectReleaseDryRunMock.mockReset();
-    publishProjectReleaseMock.mockReset();
     notifyErrorMock.mockReset();
     notifySuccessTextMock.mockReset();
-    navigateMock.mockReset();
 
     listProjectDomainsMock.mockResolvedValue([PLATFORM_ROW, CUSTOM_ROW]);
     createProjectDomainMock.mockResolvedValue({ binding: CUSTOM_ROW });
     verifyProjectDomainMock.mockResolvedValue({ binding: { ...CUSTOM_ROW, isVerified: true } });
     updateProjectDomainMock.mockResolvedValue({ ...CUSTOM_ROW, isActive: false });
     deleteProjectDomainMock.mockResolvedValue({ bindingId: CUSTOM_ROW.bindingId });
-    getProjectCoreSettingsMock.mockResolvedValue({
-      value: {
-        site: {
-          favicon_url: "https://cdn.example.com/favicon.ico",
-          logo_url: "https://cdn.example.com/logo.svg",
-          name: "Launch Brand",
-        },
-      },
-    });
-    listProjectReleasesMock.mockResolvedValue([ACTIVE_RELEASE]);
-    getProjectReleaseDryRunMock.mockResolvedValue({
-      impact: {
-        blockedItems: [],
-        missingRoutes: [],
-        readinessSummary: {
-          blockedItemCount: 0,
-          blockerCodes: [],
-          ready: true,
-          selectedItemCount: 4,
-        },
-        unpublishedDependencies: [],
-        unresolvedRelations: [],
-      },
-      readinessSummary: {
-        blockedItemCount: 0,
-        blockerCodes: [],
-        ready: true,
-        selectedItemCount: 4,
-      },
-    });
-    publishProjectReleaseMock.mockResolvedValue({
-      graphNodes: 4,
-      impact: {
-        blockedItems: [],
-        missingRoutes: [],
-        readinessSummary: {
-          blockedItemCount: 0,
-          blockerCodes: [],
-          ready: true,
-          selectedItemCount: 4,
-        },
-        unpublishedDependencies: [],
-        unresolvedRelations: [],
-      },
-      job: null,
-      release: { ...ACTIVE_RELEASE, releaseNumber: 8 },
-      selectionCount: 4,
-    });
   });
 
-  it("renders website control cards for domain, brand, and release state", async () => {
-    const user = userEvent.setup();
+  it("renders a domain-focused management surface", async () => {
     renderWithQuery(<ProjectDomainSettingsPage projectId="project-1" />);
 
-    expect(await screen.findByTestId("website-control-domain-card")).toHaveTextContent(
+    expect(await screen.findByTestId("project-domain-settings-list")).toHaveTextContent(
       "launch-1234abcd.arclayer.app",
     );
-    expect(screen.getByTestId("website-control-readiness-strip")).toHaveTextContent(
-      "WEBSITE_CONTROL_READINESS_TITLE",
-    );
-    expect(screen.getByTestId("website-control-readiness-strip")).toHaveTextContent(
-      "WEBSITE_CONTROL_DOMAIN_ROUTE_READY",
-    );
-    expect(screen.getByTestId("website-control-readiness-strip")).toHaveTextContent(
-      "WEBSITE_CONTROL_RELEASE_ACTIVE",
-    );
-    expect(screen.getByTestId("website-control-readiness-strip")).toHaveTextContent(
-      "WEBSITE_CONTROL_RELEASE_CHECK_NOT_RUN",
-    );
-    expect(screen.getByTestId("website-control-brand-card")).toHaveTextContent("Launch Brand");
-    expect(screen.getByTestId("website-control-brand-card")).toHaveTextContent(
-      "WEBSITE_CONTROL_BRAND_ASSETS_READY",
-    );
-    expect(screen.getByTestId("website-control-brand-checklist")).toHaveTextContent(
-      "WEBSITE_CONTROL_BRAND_SITE_NAME",
-    );
-    expect(screen.getByTestId("website-control-brand-checklist")).toHaveTextContent(
-      "WEBSITE_CONTROL_BRAND_LOGO",
-    );
-    expect(screen.getByTestId("website-control-brand-checklist")).toHaveTextContent(
-      "WEBSITE_CONTROL_BRAND_FAVICON",
-    );
-    expect(screen.getByTestId("website-control-release-card")).toHaveTextContent("#7");
-    expect(screen.getByTestId("website-control-release-card")).toHaveTextContent(
-      "WEBSITE_CONTROL_RELEASE_SELECTION_COUNT:4",
-    );
-    expect(screen.queryByTestId("website-control-workflow-panel")).not.toBeInTheDocument();
-    expect(screen.queryByText("WEBSITE_CONTROL_WORKFLOW_LINK_EDITOR")).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: /WEBSITE_CONTROL_OPEN_WEBSITE_CONFIG/ }));
-    expect(navigateMock).toHaveBeenCalledWith({
-      to: "/projects/$projectId/website/config",
-      params: { projectId: "project-1" },
-    });
-
-    await user.click(screen.getByRole("button", { name: /WEBSITE_CONTROL_OPEN_RELEASES/ }));
-    expect(navigateMock).toHaveBeenCalledWith({
-      to: "/projects/$projectId/website/releases",
-      params: { projectId: "project-1" },
-    });
+    expect(
+      screen.getByRole("columnheader", { name: "SETTINGS_PROJECT_DOMAINS_ROUTING" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("columnheader", { name: "SETTINGS_PROJECT_DOMAINS_TLS" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("WEBSITE_CONTROL_READINESS_TITLE")).not.toBeInTheDocument();
+    expect(screen.queryByText("WEBSITE_CONTROL_BRAND_ASSETS_READY")).not.toBeInTheDocument();
   });
 
-  it("requires both logo and favicon before brand readiness is marked ready", async () => {
-    getProjectCoreSettingsMock.mockResolvedValueOnce({
-      value: {
-        site: {
-          logo_url: "https://cdn.example.com/logo.svg",
-          name: "Launch Brand",
-        },
-      },
-    });
-
-    renderWithQuery(<ProjectDomainSettingsPage projectId="project-1" />);
-
-    expect(await screen.findByTestId("website-control-brand-card")).toHaveTextContent(
-      "WEBSITE_CONTROL_BRAND_ASSETS_MISSING",
-    );
-    expect(screen.getByTestId("website-control-readiness-strip")).toHaveTextContent(
-      "WEBSITE_CONTROL_BRAND_ASSETS_MISSING",
-    );
-  });
-
-  it("checks release readiness and publishes from the website control card", async () => {
+  it("creates a custom domain through the add dialog", async () => {
     const user = userEvent.setup();
     renderWithQuery(<ProjectDomainSettingsPage projectId="project-1" />);
 
-    await user.click(await screen.findByTestId("website-control-release-check"));
+    await user.click(await screen.findByTestId("project-domain-add-trigger"));
+    await user.type(screen.getByTestId("project-domain-create-input"), "docs.example.com");
+    await user.click(screen.getByTestId("project-domain-create-submit"));
     await waitFor(() => {
-      expect(getProjectReleaseDryRunMock).toHaveBeenCalledWith("project-1");
+      expect(createProjectDomainMock).toHaveBeenCalledWith("project-1", "docs.example.com");
     });
-    expect(
-      await within(screen.getByTestId("website-control-release-card")).findByText(
-        "WEBSITE_CONTROL_RELEASE_READY",
-      ),
-    ).toBeInTheDocument();
-    expect(
-      within(screen.getByTestId("website-control-release-card")).getByText(
-        "WEBSITE_CONTROL_RELEASE_SELECTED_COUNT:4",
-      ),
-    ).toBeInTheDocument();
-
-    await user.click(screen.getByTestId("website-control-release-publish"));
-    await waitFor(() => {
-      expect(publishProjectReleaseMock).toHaveBeenCalledWith("project-1");
-    });
-    expect(notifySuccessTextMock).toHaveBeenCalledWith(
-      "account:WEBSITE_CONTROL_RELEASE_PUBLISHED:8",
-    );
-  });
-
-  it("does not treat non-active releases as the published website state", async () => {
-    listProjectReleasesMock.mockResolvedValueOnce([
-      {
-        ...ACTIVE_RELEASE,
-        id: "release-scheduled",
-        isActive: false,
-        status: "scheduled",
-      },
-    ]);
-
-    renderWithQuery(<ProjectDomainSettingsPage projectId="project-1" />);
-
-    expect(await screen.findByTestId("website-control-release-card")).toHaveTextContent(
-      "WEBSITE_CONTROL_RELEASE_EMPTY_TITLE",
-    );
-    expect(screen.getByTestId("website-control-release-card")).not.toHaveTextContent("#7");
-    expect(screen.getByTestId("website-control-readiness-strip")).toHaveTextContent(
-      "WEBSITE_CONTROL_RELEASE_MISSING",
-    );
   });
 
   it("renders platform row and custom DNS instructions", async () => {
@@ -407,6 +221,8 @@ describe("ProjectDomainSettingsPage", () => {
     renderWithQuery(<ProjectDomainSettingsPage projectId="project-1" />);
 
     await user.click(await screen.findByTestId("project-domain-delete-custom-binding"));
+    expect(deleteProjectDomainMock).not.toHaveBeenCalled();
+    await user.click(screen.getByTestId("project-domain-delete-confirm"));
 
     await waitFor(() => {
       expect(deleteProjectDomainMock).toHaveBeenCalledWith("project-1", "custom-binding");

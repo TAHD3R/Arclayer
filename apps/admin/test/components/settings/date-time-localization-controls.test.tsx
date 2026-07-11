@@ -10,6 +10,7 @@ describe("date-time-localization-controls", () => {
   it("disables timezone selection when browser timezone mode is enabled", () => {
     render(
       <TimezoneLocalizationControl
+        controlId="test-timezone"
         selectValue="America/Denver"
         switchChecked
         switchDescription="Use browser timezone"
@@ -29,6 +30,7 @@ describe("date-time-localization-controls", () => {
   it("disables date format selection when relative datetime mode is enabled", () => {
     render(
       <DateTimeFormatLocalizationControl
+        controlId="test-date-format"
         selectValue="FULL_DATE_TIME"
         switchChecked
         switchDescription="Use relative datetime"

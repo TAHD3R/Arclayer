@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, CheckCircle2, CircleAlert } from "lucide-react";
 
 import { getProjectCoreSettings, patchProjectCoreSettings } from "@/api/settings";
 import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
@@ -11,25 +11,10 @@ import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { pickBool, pickString } from "@/lib/settings/general/utils";
-import {
-  SystemSettingField,
-  SystemSettingFooterActions,
-  SystemSettingItem,
-  SystemSettingRow,
-  SystemSettingStack,
-} from "@/pages/system/components/system-setting-item";
 import type { JsonValueInput } from "@arclayer/openapi/admin-types";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { Switch } from "@arclayer/ui/switch";
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@arclayer/ui/empty";
 
 type GoogleAnalyticsFormValues = {
   enabled: boolean;
@@ -115,8 +100,6 @@ export function ProjectGoogleAnalyticsPage(props: { projectId: string }) {
     permissionAccess.authzQuery.isFetched && permissionAccess.actionsQuery.isFetched;
   const canManageSettings =
     permissionReady && permissionAccess.hasAction("project:settings:manage");
-  const showSetupEmptyState =
-    !initialValues.enabled && !initialValues.measurementId && !dirty && permissionReady;
   const disabled = projectCoreQuery.isFetching || patchMutation.isPending || !canManageSettings;
   const measurementIdError = form.formState.errors.measurementId?.message ?? null;
   const loadError = projectCoreQuery.isError
@@ -172,128 +155,144 @@ export function ProjectGoogleAnalyticsPage(props: { projectId: string }) {
             description={t("account:PROJECT_SEO_GOOGLE_ANALYTICS_READ_ONLY_DESC")}
           />
         ) : null}
-        <SystemSettingStack>
-          {showSetupEmptyState ? (
-            <Empty className="min-h-72 border border-dashed border-border bg-background">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <BarChart3 className="size-6" />
-                </EmptyMedia>
-                <EmptyTitle className="text-title3">
-                  {t("account:PROJECT_SEO_GOOGLE_ANALYTICS_EMPTY_TITLE")}
-                </EmptyTitle>
-                <EmptyDescription className="text-footnote">
-                  {t("account:PROJECT_SEO_GOOGLE_ANALYTICS_EMPTY_DESC")}
-                </EmptyDescription>
-              </EmptyHeader>
-              {canManageSettings ? (
-                <EmptyContent>
-                  <Button
-                    type="button"
-                    onClick={() =>
-                      document.getElementById("google-analytics-measurement-id")?.focus()
-                    }
-                  >
-                    {t("account:PROJECT_SEO_GOOGLE_ANALYTICS_EMPTY_ACTION")}
-                  </Button>
-                </EmptyContent>
-              ) : null}
-            </Empty>
-          ) : null}
-          <SystemSettingItem
+        <div className="grid gap-8">
+          <section
+            className="grid border-y border-border md:grid-cols-[minmax(12rem,0.7fr)_minmax(0,1fr)_minmax(0,1fr)]"
+            data-testid="google-analytics-runtime-linkage"
+          >
+            <div className="flex items-start gap-3 px-4 py-4 md:border-r md:border-border">
+              {runtimeReady ? (
+                <CheckCircle2 className="mt-0.5 size-5 text-positive" />
+              ) : (
+                <CircleAlert className="mt-0.5 size-5 text-warning" />
+              )}
+              <div>
+                <div className="text-footnote text-label-secondary">
+                  {t("account:PROJECT_SEO_GOOGLE_ANALYTICS_RUNTIME_STATUS_TITLE")}
+                </div>
+                <div className="mt-1 font-semibold text-label-primary">
+                  {runtimeReady
+                    ? t("account:PROJECT_SEO_GOOGLE_ANALYTICS_RUNTIME_STATUS_READY")
+                    : t("account:PROJECT_SEO_GOOGLE_ANALYTICS_RUNTIME_STATUS_MISSING")}
+                </div>
+                <p className="mt-1 text-footnote text-label-secondary">
+                  {runtimeReady
+                    ? t("account:PROJECT_SEO_GOOGLE_ANALYTICS_RUNTIME_STATUS_READY_DESC")
+                    : t("account:PROJECT_SEO_GOOGLE_ANALYTICS_RUNTIME_STATUS_MISSING_DESC")}
+                </p>
+              </div>
+            </div>
+            <div className="border-t border-border px-4 py-4 md:border-r md:border-t-0">
+              <div className="text-headline font-medium text-label-primary">
+                {t("account:PROJECT_SEO_GOOGLE_ANALYTICS_RUNTIME_SOURCE_TITLE")}
+              </div>
+              <p className="mt-1 text-footnote text-label-secondary">
+                {t("account:PROJECT_SEO_GOOGLE_ANALYTICS_RUNTIME_SOURCE_DESC")}
+              </p>
+            </div>
+            <div className="border-t border-border px-4 py-4 md:border-t-0">
+              <div className="text-headline font-medium text-label-primary">
+                {t("account:PROJECT_SEO_GOOGLE_ANALYTICS_RUNTIME_SEO_TITLE")}
+              </div>
+              <p className="mt-1 text-footnote text-label-secondary">
+                {t("account:PROJECT_SEO_GOOGLE_ANALYTICS_RUNTIME_SEO_DESC")}
+              </p>
+            </div>
+          </section>
+
+          <form
             id="google-analytics"
-            title={t("nav:NAV_GOOGLE_ANALYTICS")}
-            description={t("account:PROJECT_SEO_GOOGLE_ANALYTICS_PANEL_DESC")}
-            footer={
-              <SystemSettingFooterActions
-                dirty={dirty}
-                pending={patchMutation.isPending}
-                onReset={() => {
+            className="grid gap-6"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (dirty) void persist();
+            }}
+          >
+            <header className="flex items-start gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-muted text-label-secondary">
+                <BarChart3 aria-hidden="true" size={20} />
+              </div>
+              <div>
+                <h2 className="text-title2 font-semibold text-label-primary">
+                  {t("nav:NAV_GOOGLE_ANALYTICS")}
+                </h2>
+                <p className="mt-1 text-body text-label-secondary">
+                  {t("account:PROJECT_SEO_GOOGLE_ANALYTICS_PANEL_DESC")}
+                </p>
+              </div>
+            </header>
+
+            <div className="flex items-center justify-between gap-4 border-y border-border py-4">
+              <div>
+                <label
+                  htmlFor="google-analytics-enabled"
+                  className="text-headline font-medium text-label-primary"
+                >
+                  {t("account:PROJECT_SEO_GOOGLE_ANALYTICS_ENABLE_TITLE")}
+                </label>
+                <p className="mt-1 text-footnote text-label-secondary">
+                  {t("account:PROJECT_SEO_GOOGLE_ANALYTICS_ENABLE_DESC")}
+                </p>
+              </div>
+              <Switch
+                id="google-analytics-enabled"
+                aria-label={t("account:PROJECT_SEO_GOOGLE_ANALYTICS_ENABLE_TITLE")}
+                checked={Boolean(values.enabled)}
+                disabled={disabled}
+                onCheckedChange={(checked) =>
+                  form.setValue("enabled", Boolean(checked), { shouldDirty: true })
+                }
+              />
+            </div>
+
+            <div className="grid max-w-2xl gap-2">
+              <label
+                htmlFor="google-analytics-measurement-id"
+                className="text-headline font-medium text-label-primary"
+              >
+                {t("account:PROJECT_SEO_GOOGLE_ANALYTICS_MEASUREMENT_LABEL")}
+              </label>
+              <p className="text-footnote text-label-secondary">
+                {t("account:PROJECT_SEO_GOOGLE_ANALYTICS_MEASUREMENT_DESC")}
+              </p>
+              <Input
+                id="google-analytics-measurement-id"
+                {...form.register("measurementId")}
+                disabled={disabled}
+                placeholder="G-XXXXXXXXXX"
+                autoCapitalize="characters"
+                autoComplete="off"
+                aria-invalid={Boolean(measurementIdError)}
+                onChange={(event) => {
+                  form.setValue("measurementId", event.target.value.toUpperCase(), {
+                    shouldDirty: true,
+                  });
+                  form.clearErrors("measurementId");
+                }}
+              />
+              {measurementIdError ? (
+                <span className="text-footnote text-destructive">{measurementIdError}</span>
+              ) : null}
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-border pt-4">
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={!dirty || patchMutation.isPending}
+                onClick={() => {
                   form.reset(initialValues);
                   form.clearErrors("measurementId");
                 }}
-                onSave={() => void persist()}
-              />
-            }
-          >
-            <div className="grid gap-3">
-              <SystemSettingRow
-                title={t("account:PROJECT_SEO_GOOGLE_ANALYTICS_ENABLE_TITLE")}
-                description={t("account:PROJECT_SEO_GOOGLE_ANALYTICS_ENABLE_DESC")}
-                control={
-                  <Switch
-                    checked={Boolean(values.enabled)}
-                    disabled={disabled}
-                    onCheckedChange={(checked) =>
-                      form.setValue("enabled", Boolean(checked), { shouldDirty: true })
-                    }
-                  />
-                }
-              />
-              <SystemSettingField
-                label={t("account:PROJECT_SEO_GOOGLE_ANALYTICS_MEASUREMENT_LABEL")}
-                description={t("account:PROJECT_SEO_GOOGLE_ANALYTICS_MEASUREMENT_DESC")}
-                message={
-                  measurementIdError ? (
-                    <span className="text-footnote text-destructive">{measurementIdError}</span>
-                  ) : null
-                }
               >
-                <Input
-                  id="google-analytics-measurement-id"
-                  {...form.register("measurementId")}
-                  disabled={disabled}
-                  placeholder="G-XXXXXXXXXX"
-                  autoCapitalize="characters"
-                  autoComplete="off"
-                  onChange={(event) => {
-                    form.setValue("measurementId", event.target.value.toUpperCase(), {
-                      shouldDirty: true,
-                    });
-                    form.clearErrors("measurementId");
-                  }}
-                />
-              </SystemSettingField>
+                {t("settings:SETTINGS_RESET")}
+              </Button>
+              <Button type="submit" loading={patchMutation.isPending} disabled={!dirty || disabled}>
+                {t("settings:SETTINGS_SAVE")}
+              </Button>
             </div>
-          </SystemSettingItem>
-          <SystemSettingItem
-            id="analytics-runtime-linkage"
-            title={t("account:PROJECT_SEO_GOOGLE_ANALYTICS_RUNTIME_TITLE")}
-            description={t("account:PROJECT_SEO_GOOGLE_ANALYTICS_RUNTIME_DESC")}
-          >
-            <div className="grid gap-2" data-testid="google-analytics-runtime-linkage">
-              <SystemSettingRow
-                title={t("account:PROJECT_SEO_GOOGLE_ANALYTICS_RUNTIME_STATUS_TITLE")}
-                description={
-                  runtimeReady
-                    ? t("account:PROJECT_SEO_GOOGLE_ANALYTICS_RUNTIME_STATUS_READY_DESC")
-                    : t("account:PROJECT_SEO_GOOGLE_ANALYTICS_RUNTIME_STATUS_MISSING_DESC")
-                }
-                control={
-                  <span
-                    className={
-                      runtimeReady
-                        ? "rounded-sm border border-positive/30 bg-positive/5 px-2 py-0.5 text-caption font-medium text-positive"
-                        : "rounded-sm border border-warning/30 bg-warning/5 px-2 py-0.5 text-caption font-medium text-warning"
-                    }
-                  >
-                    {runtimeReady
-                      ? t("account:PROJECT_SEO_GOOGLE_ANALYTICS_RUNTIME_STATUS_READY")
-                      : t("account:PROJECT_SEO_GOOGLE_ANALYTICS_RUNTIME_STATUS_MISSING")}
-                  </span>
-                }
-              />
-              <SystemSettingRow
-                title={t("account:PROJECT_SEO_GOOGLE_ANALYTICS_RUNTIME_SOURCE_TITLE")}
-                description={t("account:PROJECT_SEO_GOOGLE_ANALYTICS_RUNTIME_SOURCE_DESC")}
-              />
-              <SystemSettingRow
-                title={t("account:PROJECT_SEO_GOOGLE_ANALYTICS_RUNTIME_SEO_TITLE")}
-                description={t("account:PROJECT_SEO_GOOGLE_ANALYTICS_RUNTIME_SEO_DESC")}
-              />
-            </div>
-          </SystemSettingItem>
-        </SystemSettingStack>
+          </form>
+        </div>
       </ContentGuard>
     </DefaultPage>
   );

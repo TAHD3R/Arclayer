@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { LocalizationOption } from "@/lib/settings/general/localization-options";
 
 type LocalizationSwitchControlProps = {
+  controlId: string;
   onSelectChange: (value: string) => void;
   onSwitchChange: (checked: boolean) => void;
   options: LocalizationOption[];
@@ -19,15 +20,27 @@ function LocalizationSwitchControl(props: LocalizationSwitchControlProps) {
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
         <span className="text-body text-label-primary">{props.switchLabel}</span>
-        <Switch checked={props.switchChecked} onCheckedChange={props.onSwitchChange} />
+        <Switch
+          id={`${props.controlId}-switch`}
+          name={`${props.controlId}Auto`}
+          aria-label={props.switchLabel}
+          checked={props.switchChecked}
+          onCheckedChange={props.onSwitchChange}
+        />
       </div>
       <div className="text-callout text-label-secondary">{props.switchDescription}</div>
       <Select
+        name={props.controlId}
         value={props.selectValue}
         disabled={props.switchChecked}
         onValueChange={props.onSelectChange}
       >
-        <SelectTrigger className="w-full" size="default">
+        <SelectTrigger
+          id={`${props.controlId}-select`}
+          aria-label={props.switchLabel}
+          className="w-full"
+          size="default"
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent position="popper" align="start">

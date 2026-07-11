@@ -10,10 +10,6 @@ import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { buildGeneralSettingsInitialValues } from "@/lib/settings/general/adapters";
 import { pickBool, pickString } from "@/lib/settings/general/utils";
-import {
-  SystemSettingItem,
-  SystemSettingStack,
-} from "@/pages/system/components/system-setting-item";
 import { cn } from "@arclayer/lib/utils";
 import type {
   AdminRelease,
@@ -68,12 +64,12 @@ function isValidMeasurementId(value: string): boolean {
 function statusClassName(status: SeoAnalysisStatus): string {
   switch (status) {
     case "ready":
-      return "border-emerald-500/20 bg-emerald-500/6 text-emerald-700 dark:text-emerald-300";
+      return "text-positive";
     case "warning":
-      return "border-amber-500/20 bg-amber-500/6 text-amber-700 dark:text-amber-300";
+      return "text-warning";
     case "missing":
     default:
-      return "border-border bg-muted/30 text-label-secondary";
+      return "text-label-secondary";
   }
 }
 
@@ -214,16 +210,13 @@ function SeoAnalysisCheckRow(props: { check: SeoAnalysisCheck }) {
   const { t } = useTranslation(["account"]);
   return (
     <li
-      className={cn(
-        "flex items-start gap-3 rounded-md border px-4 py-3",
-        statusClassName(props.check.status),
-      )}
+      className="grid gap-3 px-4 py-4 md:grid-cols-[1.25rem_minmax(12rem,0.7fr)_minmax(0,1fr)] md:items-start"
       data-testid={`seo-analysis-check-${props.check.key}`}
     >
-      <div className="mt-0.5 shrink-0">
+      <div className={cn("mt-0.5 shrink-0", statusClassName(props.check.status))}>
         <SeoAnalysisStatusIcon status={props.check.status} />
       </div>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
           <span className="text-callout font-semibold text-label-primary">
             {t(props.check.titleKey)}
@@ -234,8 +227,8 @@ function SeoAnalysisCheckRow(props: { check: SeoAnalysisCheck }) {
             </code>
           ) : null}
         </div>
-        <p className="mt-1 text-footnote text-label-secondary">{t(props.check.descriptionKey)}</p>
       </div>
+      <p className="text-footnote text-label-secondary">{t(props.check.descriptionKey)}</p>
     </li>
   );
 }
@@ -326,48 +319,58 @@ export function ProjectSeoAnalysisPage(props: { projectId: string }) {
             : undefined
         }
       >
-        <SystemSettingStack>
-          <SystemSettingItem
-            id="seo-analysis"
-            title={t("nav:NAV_SEO_ANALYSIS")}
-            description={t("account:PROJECT_SEO_AUDIT_PANEL_DESC")}
+        <div id="seo-analysis" className="grid gap-6">
+          <header>
+            <h2 className="text-title2 font-semibold text-label-primary">
+              {t("nav:NAV_SEO_ANALYSIS")}
+            </h2>
+            <p className="mt-1 max-w-2xl text-body text-label-secondary">
+              {t("account:PROJECT_SEO_AUDIT_PANEL_DESC")}
+            </p>
+          </header>
+          <section
+            className="grid border-y border-border md:grid-cols-3"
+            aria-label={t("account:PROJECT_SEO_ANALYSIS_SCORE_LABEL")}
           >
-            <div className="grid gap-4">
-              <div className="grid gap-3 md:grid-cols-3">
-                <div className="rounded-md border border-border bg-muted/20 px-4 py-3">
-                  <div className="text-footnote text-label-secondary">
-                    {t("account:PROJECT_SEO_ANALYSIS_SCORE_LABEL")}
-                  </div>
-                  <div className="mt-1 text-title-3 font-semibold text-label-primary">
-                    {readyCount}/{checks.length}
-                  </div>
-                </div>
-                <div className="rounded-md border border-border bg-muted/20 px-4 py-3">
-                  <div className="text-footnote text-label-secondary">
-                    {t("account:PROJECT_SEO_ANALYSIS_DOMAIN_LABEL")}
-                  </div>
-                  <div className="mt-1 truncate text-headline font-semibold text-label-primary">
-                    {primaryDomain?.hostname ?? t("account:PROJECT_SEO_ANALYSIS_NOT_READY")}
-                  </div>
-                </div>
-                <div className="rounded-md border border-border bg-muted/20 px-4 py-3">
-                  <div className="text-footnote text-label-secondary">
-                    {t("account:PROJECT_SEO_ANALYSIS_WARNINGS_LABEL")}
-                  </div>
-                  <div className="mt-1 text-title-3 font-semibold text-label-primary">
-                    {warningCount}
-                  </div>
-                </div>
+            <div className="px-4 py-4 md:border-r md:border-border">
+              <div className="text-footnote text-label-secondary">
+                {t("account:PROJECT_SEO_ANALYSIS_SCORE_LABEL")}
               </div>
-
-              <ul className="grid gap-2">
-                {checks.map((check) => (
-                  <SeoAnalysisCheckRow key={check.key} check={check} />
-                ))}
-              </ul>
+              <div className="mt-1 text-title2 font-semibold text-label-primary">
+                {readyCount}/{checks.length}
+              </div>
             </div>
-          </SystemSettingItem>
-        </SystemSettingStack>
+            <div className="border-t border-border px-4 py-4 md:border-r md:border-t-0">
+              <div className="text-footnote text-label-secondary">
+                {t("account:PROJECT_SEO_ANALYSIS_DOMAIN_LABEL")}
+              </div>
+              <div className="mt-1 truncate text-headline font-semibold text-label-primary">
+                {primaryDomain?.hostname ?? t("account:PROJECT_SEO_ANALYSIS_NOT_READY")}
+              </div>
+            </div>
+            <div className="border-t border-border px-4 py-4 md:border-t-0">
+              <div className="text-footnote text-label-secondary">
+                {t("account:PROJECT_SEO_ANALYSIS_WARNINGS_LABEL")}
+              </div>
+              <div className="mt-1 text-title2 font-semibold text-label-primary">
+                {warningCount}
+              </div>
+            </div>
+          </section>
+
+          <div>
+            <div className="grid gap-3 border-b border-border px-4 pb-3 text-footnote font-medium text-label-secondary md:grid-cols-[1.25rem_minmax(12rem,0.7fr)_minmax(0,1fr)]">
+              <span aria-hidden="true" />
+              <span>{t("account:PROJECT_SEO_ANALYSIS_CHECK_LABEL")}</span>
+              <span>{t("account:PROJECT_SEO_ANALYSIS_RESULT_LABEL")}</span>
+            </div>
+            <ul className="divide-y divide-border border-b border-border">
+              {checks.map((check) => (
+                <SeoAnalysisCheckRow key={check.key} check={check} />
+              ))}
+            </ul>
+          </div>
+        </div>
       </ContentGuard>
     </DefaultPage>
   );

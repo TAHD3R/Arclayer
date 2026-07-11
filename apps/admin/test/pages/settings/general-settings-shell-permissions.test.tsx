@@ -1,6 +1,7 @@
 import type { PropsWithChildren, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GeneralSettingsShell } from "@/pages/projects/settings/site/components/general-settings-shell";
@@ -80,9 +81,14 @@ vi.mock("@arclayer/ui/chrome-tabs", () => ({
 vi.mock("@/pages/projects/settings/site/components/tabs/site-settings-tab", () => ({
   SiteSettingsTab: (props: {
     disabled: boolean;
+    section: string;
     patch: (patch: Record<string, unknown>) => Promise<void>;
   }) => (
-    <div data-testid="site-settings-tab" data-disabled={String(props.disabled)}>
+    <div
+      data-testid="site-settings-tab"
+      data-disabled={String(props.disabled)}
+      data-section={props.section}
+    >
       <button type="button" onClick={() => void props.patch({ site: { name: "Updated site" } })}>
         save website config
       </button>
@@ -166,11 +172,13 @@ describe("GeneralSettingsShell permission consumption", () => {
   });
 
   it("keeps tabs editable when site management access is granted", async () => {
+    const user = userEvent.setup();
     renderWithQuery(<GeneralSettingsShell projectId="project-1" embedded={false} />);
 
     await waitFor(() => {
       expect(screen.getByTestId("site-settings-tab")).toHaveAttribute("data-disabled", "false");
     });
+    await user.click(screen.getByTestId("website-settings-tab-localization"));
     expect(screen.getByTestId("localization-settings-tab")).toHaveAttribute(
       "data-disabled",
       "false",
@@ -210,6 +218,7 @@ describe("GeneralSettingsShell permission consumption", () => {
   });
 
   it("shows read-only guidance and disables save surfaces without site management access", async () => {
+    const user = userEvent.setup();
     getMyProjectAuthzMock.mockResolvedValueOnce({
       workspaceId: "workspace-1",
       isSuperuser: false,
@@ -222,6 +231,7 @@ describe("GeneralSettingsShell permission consumption", () => {
       "settings:SETTINGS_SITE_SETTINGS_READ_ONLY_DESC",
     );
     expect(screen.getByTestId("site-settings-tab")).toHaveAttribute("data-disabled", "true");
+    await user.click(screen.getByTestId("website-settings-tab-localization"));
     expect(screen.getByTestId("localization-settings-tab")).toHaveAttribute(
       "data-disabled",
       "true",
@@ -239,13 +249,18 @@ describe("GeneralSettingsShell permission consumption", () => {
     expect(screen.queryByTestId("general-settings-read-only-notice")).not.toBeInTheDocument();
   });
 
-  it("renders site identity and localization in one website config page", async () => {
+  it("separates identity, discovery, and localization into focused workspaces", async () => {
+    const user = userEvent.setup();
     renderWithQuery(<GeneralSettingsShell projectId="project-1" embedded={false} />);
 
     await waitFor(() => {
       expect(screen.getByTestId("site-settings-tab")).toBeInTheDocument();
     });
-    expect(screen.getByTestId("site-settings-tab")).toBeInTheDocument();
+    expect(screen.getByTestId("site-settings-tab")).toHaveAttribute("data-section", "identity");
+    expect(screen.queryByTestId("localization-settings-tab")).not.toBeInTheDocument();
+    await user.click(screen.getByTestId("website-settings-tab-discovery"));
+    expect(screen.getByTestId("site-settings-tab")).toHaveAttribute("data-section", "discovery");
+    await user.click(screen.getByTestId("website-settings-tab-localization"));
     expect(screen.getByTestId("localization-settings-tab")).toBeInTheDocument();
     expect(screen.queryByPlaceholderText("settings:SETTINGS_SITE_SEARCH_PLACEHOLDER")).toBeNull();
     expect(navigateMock).not.toHaveBeenCalled();

@@ -9,7 +9,6 @@ import { ContentModelsControlCenterPage } from "@/pages/projects/content/models/
 import { ContentModelEditPage } from "@/pages/projects/content/models/edit-page";
 import {
   buildDuplicateContentModelPayload,
-  buildReusableBlockContentModelPayload,
   buildSitePageContentModelPayload,
   getContentModelFieldCount,
   getContentModelPurposeLabelKey,
@@ -292,238 +291,9 @@ describe("content model builder", () => {
     expect(createContentModelMock).not.toHaveBeenCalled();
   });
 
-  test("surfaces a website structure blueprint above model table operations", async () => {
+  test("keeps model table operations free of a separate blueprint summary", async () => {
     listContentModelsMock.mockResolvedValue({
-      items: [
-        buildModel({
-          id: "model-page",
-          singularKey: "page",
-          pluralKey: "pages",
-          name: "Page",
-          category: "site_builder",
-          capabilities: ["visual_editable", "routable", "publishable"],
-          defaultEditor: "visual",
-        }),
-        buildModel({
-          id: "model-author",
-          singularKey: "author",
-          pluralKey: "authors",
-          name: "Author",
-          category: "custom",
-          capabilities: ["queryable", "publishable"],
-          defaultEditor: "form",
-        }),
-        buildModel({
-          id: "model-reusable-block",
-          singularKey: "reusableBlock",
-          pluralKey: "reusableBlocks",
-          name: "Reusable Block",
-          category: "site_builder",
-          capabilities: ["visual_editable", "has_slots", "publishable", "localizable"],
-          defaultEditor: "visual",
-          defaultRole: "reusable-section",
-          defaultPosture: "composition",
-          defaultSurface: "canvas",
-        }),
-      ],
-      total: 3,
-      page: 1,
-      size: 50,
-      pages: 1,
-      next: null,
-      prev: null,
-    });
-
-    render(<ContentModelsControlCenterPage projectId="project-1" />, {
-      wrapper: createWrapper(),
-    });
-
-    await screen.findByRole("button", { name: "row-click-model-page" });
-    const summary = screen.getByTestId("content-models-blueprint-summary");
-    expect(summary.className).toContain("bg-background");
-    expect(summary.className).not.toContain("bg-card");
-    expect(summary.className).not.toContain("shadow-sm");
-    expect(summary.className).not.toContain("rounded-lg");
-
-    expect(
-      within(summary).getByRole("heading", {
-        name: "content:CONTENT_MODELS_BLUEPRINT_TITLE",
-      }),
-    ).toBeInTheDocument();
-    expect(
-      within(summary).getByText("content:CONTENT_MODELS_BLUEPRINT_METRIC_PAGE_MODELS"),
-    ).toBeInTheDocument();
-    expect(
-      within(summary).getByText("content:CONTENT_MODELS_BLUEPRINT_METRIC_SITE_BUILDER"),
-    ).toBeInTheDocument();
-    expect(
-      within(summary).getByText("content:CONTENT_MODELS_BLUEPRINT_METRIC_REUSABLE_BLOCKS"),
-    ).toBeInTheDocument();
-    expect(
-      within(summary).getByText("content:CONTENT_MODELS_BLUEPRINT_METRIC_PUBLISHABLE"),
-    ).toBeInTheDocument();
-    expect(
-      within(summary).queryByRole("list", {
-        name: "content:CONTENT_MODELS_WORKFLOW_LABEL",
-      }),
-    ).not.toBeInTheDocument();
-    expect(
-      within(summary).queryByText("content:CONTENT_MODELS_BLUEPRINT_AI_CONTRACT_TITLE"),
-    ).not.toBeInTheDocument();
-    expect(within(summary).getAllByText("1")).toHaveLength(2);
-    expect(within(summary).getByText("2")).toBeInTheDocument();
-    expect(within(summary).getByText("3")).toBeInTheDocument();
-
-    fireEvent.click(
-      within(summary).getByRole("button", {
-        name: "content:CONTENT_MODELS_BLUEPRINT_ACTION_OPEN_PAGE_MODEL",
-      }),
-    );
-
-    expect(navigateMock).toHaveBeenCalledWith({
-      to: "/projects/project-1/content/models/edit?modelId=model-page",
-    });
-  });
-
-  test("creates the site page model from the website structure blueprint", async () => {
-    const user = userEvent.setup();
-    const createdModel = buildModel({
-      id: "model-page",
-      singularKey: "page",
-      pluralKey: "pages",
-      name: "Page",
-      category: "site_builder",
-      capabilities: [
-        "versioned",
-        "queryable",
-        "routable",
-        "treeable",
-        "visual_editable",
-        "has_slots",
-        "publishable",
-        "seo_managed",
-      ],
-      defaultEditor: "visual",
-      defaultRole: "page",
-      defaultPosture: "page",
-      defaultSurface: "canvas",
-    });
-    createContentModelMock.mockResolvedValue(createdModel);
-
-    render(<ContentModelsControlCenterPage projectId="project-1" />, {
-      wrapper: createWrapper(),
-    });
-
-    const summary = await screen.findByTestId("content-models-blueprint-summary");
-    await user.click(
-      within(summary).getByRole("button", {
-        name: "content:CONTENT_MODELS_BLUEPRINT_ACTION_CREATE_MODEL",
-      }),
-    );
-
-    await waitFor(() => {
-      expect(listAllContentModelsMock).toHaveBeenCalledWith("project-1");
-      expect(createContentModelMock).toHaveBeenCalledWith(
-        "project-1",
-        buildSitePageContentModelPayload(),
-      );
-    });
-    await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith({
-        to: "/projects/project-1/content/models/edit?modelId=model-page",
-      });
-    });
-  });
-
-  test("creates the reusable block model from the website structure blueprint", async () => {
-    const user = userEvent.setup();
-    const createdModel = buildModel({
-      id: "model-reusable-block",
-      singularKey: "reusableBlock",
-      pluralKey: "reusableBlocks",
-      name: "Reusable Block",
-      category: "site_builder",
-      capabilities: ["visual_editable", "has_slots", "publishable", "localizable"],
-      defaultEditor: "visual",
-      defaultRole: "reusable-section",
-      defaultPosture: "composition",
-      defaultSurface: "canvas",
-    });
-    createContentModelMock.mockResolvedValue(createdModel);
-
-    render(<ContentModelsControlCenterPage projectId="project-1" />, {
-      wrapper: createWrapper(),
-    });
-
-    const summary = await screen.findByTestId("content-models-blueprint-summary");
-    await user.click(
-      within(summary).getByRole("button", {
-        name: "content:CONTENT_MODELS_BLUEPRINT_ACTION_CREATE_REUSABLE_BLOCK_MODEL",
-      }),
-    );
-
-    await waitFor(() => {
-      expect(listAllContentModelsMock).toHaveBeenCalledWith("project-1");
-      expect(createContentModelMock).toHaveBeenCalledWith(
-        "project-1",
-        buildReusableBlockContentModelPayload(),
-      );
-    });
-    await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith({
-        to: "/projects/project-1/content/models/edit?modelId=model-reusable-block",
-      });
-    });
-  });
-
-  test("opens an existing site page model instead of creating a duplicate blueprint model", async () => {
-    const user = userEvent.setup();
-    const existingPageModel = buildModel({
-      id: "model-page",
-      singularKey: "page",
-      pluralKey: "pages",
-      name: "Page",
-      category: "site_builder",
-      capabilities: ["routable", "visual_editable", "publishable"],
-      defaultEditor: "visual",
-    });
-    listAllContentModelsMock.mockResolvedValue([existingPageModel]);
-
-    render(<ContentModelsControlCenterPage projectId="project-1" />, {
-      wrapper: createWrapper(),
-    });
-
-    const summary = await screen.findByTestId("content-models-blueprint-summary");
-    await user.click(
-      within(summary).getByRole("button", {
-        name: "content:CONTENT_MODELS_BLUEPRINT_ACTION_CREATE_MODEL",
-      }),
-    );
-
-    await waitFor(() => {
-      expect(createContentModelMock).not.toHaveBeenCalled();
-      expect(navigateMock).toHaveBeenCalledWith({
-        to: "/projects/project-1/content/models/edit?modelId=model-page",
-      });
-    });
-  });
-
-  test("opens an existing reusable block model instead of creating a duplicate blueprint model", async () => {
-    const user = userEvent.setup();
-    const existingReusableBlockModel = buildModel({
-      id: "model-reusable-block",
-      singularKey: "reusableBlock",
-      pluralKey: "reusableBlocks",
-      name: "Reusable Block",
-      category: "site_builder",
-      capabilities: ["visual_editable", "has_slots", "publishable", "localizable"],
-      defaultEditor: "visual",
-      defaultRole: "reusable-section",
-      defaultPosture: "composition",
-      defaultSurface: "canvas",
-    });
-    listContentModelsMock.mockResolvedValue({
-      items: [existingReusableBlockModel],
+      items: [buildModel({ id: "model-page", singularKey: "page", pluralKey: "pages" })],
       total: 1,
       page: 1,
       size: 50,
@@ -536,20 +306,8 @@ describe("content model builder", () => {
       wrapper: createWrapper(),
     });
 
-    await screen.findByRole("button", { name: "row-click-model-reusable-block" });
-    const summary = await screen.findByTestId("content-models-blueprint-summary");
-    await user.click(
-      within(summary).getByRole("button", {
-        name: "content:CONTENT_MODELS_BLUEPRINT_ACTION_OPEN_REUSABLE_BLOCK_MODEL",
-      }),
-    );
-
-    await waitFor(() => {
-      expect(createContentModelMock).not.toHaveBeenCalled();
-      expect(navigateMock).toHaveBeenCalledWith({
-        to: "/projects/project-1/content/models/edit?modelId=model-reusable-block",
-      });
-    });
+    await screen.findByRole("button", { name: "row-click-model-page" });
+    expect(screen.queryByTestId("content-models-blueprint-summary")).not.toBeInTheDocument();
   });
 
   test("creates from the edit route dialog and stays on the new model editor", async () => {
@@ -895,16 +653,7 @@ describe("content model builder", () => {
     expect(
       screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_CONTENT_TYPE_ACTION" }),
     ).toBeDisabled();
-    expect(
-      within(screen.getByTestId("content-models-blueprint-summary")).getByRole("button", {
-        name: "content:CONTENT_MODELS_BLUEPRINT_ACTION_CREATE_MODEL",
-      }),
-    ).toBeDisabled();
-    expect(
-      within(screen.getByTestId("content-models-blueprint-summary")).getByRole("button", {
-        name: "content:CONTENT_MODELS_BLUEPRINT_ACTION_CREATE_REUSABLE_BLOCK_MODEL",
-      }),
-    ).toBeDisabled();
+    expect(screen.queryByTestId("content-models-blueprint-summary")).not.toBeInTheDocument();
     expect(createContentModelMock).not.toHaveBeenCalled();
     expect(screen.getByTestId("content-models-no-access")).toBeInTheDocument();
   });

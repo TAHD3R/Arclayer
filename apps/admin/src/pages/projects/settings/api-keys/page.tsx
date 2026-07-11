@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, KeyRound, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
+import { Copy, KeyRound, Plus, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -9,229 +9,304 @@ import {
   revokeProjectApiKey,
   rotateProjectApiKey,
 } from "@/api/project-settings";
+import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
+import { BaseTag } from "@/components/ui/tags";
+import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
+import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { copyToClipboard } from "@/lib/clipboard";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
-import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
-import { BaseTag } from "@/components/ui/tags";
-import {
-  SystemSettingItem,
-  SystemSettingStack,
-} from "@/pages/system/components/system-setting-item";
 import { Button } from "@arclayer/ui/button";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
+import { Checkbox } from "@arclayer/ui/checkbox";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@arclayer/ui/empty";
 import { Input } from "@arclayer/ui/input";
+import { NativeSelect, NativeSelectOption } from "@arclayer/ui/native-select";
+import { SettingDialog } from "@arclayer/ui/setting-dialog";
+import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
 import { Textarea } from "@arclayer/ui/textarea";
-import type { ApiKeyCreateOut, ApiKeyOut, DeliveryKeyPerspective } from "@arclayer/openapi";
+import type {
+  ApiKeyCreateOut,
+  ApiKeyFamily,
+  ApiKeyOut,
+  ApiKeyScope,
+  DeliveryKeyPerspective,
+} from "@arclayer/openapi";
 
 const PROJECT_API_KEYS_QUERY_KEY_PREFIX = ["project", "api-keys"] as const;
+const DELIVERY_SCOPES = ["delivery.read", "graphql.read"] as const satisfies readonly ApiKeyScope[];
+const SERVICE_SCOPES = [
+  "content.read",
+  "content.write",
+  "models.read",
+  "models.write",
+  "keys.read",
+  "keys.write",
+  "settings.read",
+  "settings.write",
+] as const satisfies readonly ApiKeyScope[];
 
-type SecretReveal = {
-  keyId: string;
-  secretToken: string;
+type ProjectKeyFamily = Extract<ApiKeyFamily, "delivery" | "workspace_service">;
+type SecretReveal = { keyId: string; secretToken: string };
+type Confirmation = { action: "rotate" | "revoke"; key: ApiKeyOut };
+type CreateForm = {
+  family: ProjectKeyFamily;
+  name: string;
+  description: string;
+  scopes: ApiKeyScope[];
+  perspective: DeliveryKeyPerspective;
+  expiresAt: string;
 };
+
+function newCreateForm(): CreateForm {
+  return {
+    family: "delivery",
+    name: "",
+    description: "",
+    scopes: ["delivery.read"],
+    perspective: "published",
+    expiresAt: "",
+  };
+}
 
 function buildProjectApiKeysQueryKey(projectId: string) {
   return [...PROJECT_API_KEYS_QUERY_KEY_PREFIX, projectId] as const;
 }
 
-function ApiKeyFamilyTag(props: { item: ApiKeyOut }) {
-  const { t } = useTranslation("account");
-  const label =
-    props.item.family === "delivery"
-      ? t("SETTINGS_PROJECT_API_KEYS_FAMILY_DELIVERY")
-      : t("SETTINGS_PROJECT_API_KEYS_FAMILY_SERVICE");
-  const color = props.item.family === "delivery" ? "blue" : "default";
-  return <BaseTag color={color}>{label}</BaseTag>;
+function isExpired(item: ApiKeyOut) {
+  return Boolean(item.expiresAt && new Date(item.expiresAt).getTime() <= Date.now());
 }
 
-function ApiKeyStatusTag(props: { item: ApiKeyOut }) {
+function ApiKeyFamilyTag({ item }: { item: ApiKeyOut }) {
   const { t } = useTranslation("account");
-  if (props.item.revokedAt) {
+  return (
+    <BaseTag color={item.family === "delivery" ? "blue" : "default"}>
+      {item.family === "delivery"
+        ? t("SETTINGS_PROJECT_API_KEYS_FAMILY_DELIVERY")
+        : t("SETTINGS_PROJECT_API_KEYS_FAMILY_SERVICE")}
+    </BaseTag>
+  );
+}
+
+function ApiKeyStatusTag({ item }: { item: ApiKeyOut }) {
+  const { t } = useTranslation("account");
+  if (item.revokedAt) {
     return <BaseTag color="default">{t("SETTINGS_PROJECT_API_KEYS_STATUS_REVOKED")}</BaseTag>;
   }
-  if (props.item.expiresAt && new Date(props.item.expiresAt).getTime() < Date.now()) {
+  if (isExpired(item)) {
     return <BaseTag color="gold">{t("SETTINGS_PROJECT_API_KEYS_STATUS_EXPIRED")}</BaseTag>;
   }
   return <BaseTag color="green">{t("SETTINGS_PROJECT_API_KEYS_STATUS_ACTIVE")}</BaseTag>;
 }
 
-function perspectiveKey(perspective: DeliveryKeyPerspective | null | undefined) {
-  return perspective === "preview"
-    ? "SETTINGS_PROJECT_API_KEYS_PERSPECTIVE_PREVIEW"
-    : "SETTINGS_PROJECT_API_KEYS_PERSPECTIVE_PUBLISHED";
-}
-
-function ApiKeyScopes(props: { item: ApiKeyOut }) {
-  const { t } = useTranslation("account");
-  const scopes = props.item.scopes ?? [];
-  if (scopes.length === 0) {
-    return (
-      <div className="text-sm text-muted-foreground">
-        {t("SETTINGS_PROJECT_API_KEYS_SCOPES_EMPTY")}
-      </div>
-    );
-  }
-  return (
-    <div className="flex flex-wrap gap-2">
-      {scopes.map((scope) => (
-        <BaseTag key={scope} color="default">
-          {scope}
-        </BaseTag>
-      ))}
-    </div>
-  );
-}
-
-function SecretRevealPanel(props: { reveal: SecretReveal | null; onDismiss: () => void }) {
+function SecretRevealPanel(props: {
+  reveal: SecretReveal;
+  onCopy: (secret: string) => void;
+  onDismiss: () => void;
+}) {
   const { t } = useTranslation(["account", "common"]);
-
-  if (!props.reveal) return null;
-
   return (
-    <div className="rounded-[28px] border border-sky-200/80 bg-sky-50/80 p-5 dark:border-sky-900/70 dark:bg-sky-950/30">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="max-w-2xl">
-          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-            <ShieldCheck size={16} className="text-sky-600 dark:text-sky-400" />
-            {t("account:SETTINGS_PROJECT_API_KEYS_SECRET_TITLE")}
+    <section className="border-y border-border bg-muted/40 px-4 py-4" aria-live="polite">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md bg-background text-label-primary">
+            <ShieldCheck aria-hidden="true" size={18} />
           </div>
-          <div className="mt-1 text-sm text-muted-foreground">
-            {t("account:SETTINGS_PROJECT_API_KEYS_SECRET_DESC")}
+          <div className="min-w-0">
+            <div className="text-headline font-semibold text-label-primary">
+              {t("account:SETTINGS_PROJECT_API_KEYS_SECRET_TITLE")}
+            </div>
+            <div className="text-footnote text-label-secondary">
+              {t("account:SETTINGS_PROJECT_API_KEYS_SECRET_DESC")}
+            </div>
+            <code className="mt-2 block select-all break-all font-mono text-footnote text-label-primary">
+              {props.reveal.secretToken}
+            </code>
           </div>
         </div>
-        <Button type="button" variant="ghost" size="sm" onClick={props.onDismiss}>
-          {t("common:CLOSE")}
-        </Button>
-      </div>
-
-      <div className="mt-4 rounded-2xl border border-border/60 bg-background/90 px-4 py-3">
-        <div className="text-xs font-medium text-muted-foreground">
-          {t("account:SETTINGS_PROJECT_API_KEYS_SECRET_VALUE")}
+        <div className="flex shrink-0 items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => props.onCopy(props.reveal.secretToken)}
+          >
+            <Copy aria-hidden="true" />
+            {t("account:SETTINGS_PROJECT_API_KEYS_COPY_SECRET")}
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={props.onDismiss}>
+            {t("common:CLOSE")}
+          </Button>
         </div>
-        <code className="mt-2 block break-all text-sm font-medium text-foreground">
-          {props.reveal.secretToken}
-        </code>
       </div>
-    </div>
+    </section>
   );
 }
 
-function ApiKeyRow(props: {
-  item: ApiKeyOut;
-  reveal: SecretReveal | null;
-  onCopyMask: (tokenMask: string) => void;
-  onRotate: (keyId: string) => void;
-  onRevoke: (keyId: string) => void;
+type ApiKeysTableProps = {
+  items: readonly ApiKeyOut[];
+  canManage: boolean;
   pending: boolean;
   formatDateTime: (value: string | null | undefined) => string;
-}) {
+  onConfirm: (confirmation: Confirmation) => void;
+};
+
+function ApiKeysTable(props: ApiKeysTableProps) {
   const { t } = useTranslation("account");
-  const createdAt = props.formatDateTime(props.item.createdAt);
-  const lastUsedAt = props.formatDateTime(props.item.lastUsedAt);
-  const expiresAt = props.formatDateTime(props.item.expiresAt);
-  const revokedAt = props.formatDateTime(props.item.revokedAt);
-  const revealMatches = props.reveal?.keyId === props.item.id;
+  if (props.items.length === 0) return null;
 
   return (
-    <div className="rounded-[24px] border border-border/60 bg-background/80 px-5 py-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="truncate text-sm font-semibold text-foreground">
-              {props.item.name}
-            </span>
-            <ApiKeyFamilyTag item={props.item} />
-            <ApiKeyStatusTag item={props.item} />
-            {props.item.family === "delivery" && props.item.deliveryPerspective ? (
-              <BaseTag color="blue">{t(perspectiveKey(props.item.deliveryPerspective))}</BaseTag>
-            ) : null}
-          </div>
-          <div className="mt-1 text-sm text-muted-foreground">
-            {props.item.description || t("SETTINGS_PROJECT_API_KEYS_DESCRIPTION_EMPTY")}
-          </div>
-        </div>
+    <div
+      className="overflow-x-auto rounded-lg border border-border"
+      data-testid="project-api-keys-settings-list"
+    >
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="min-w-64 px-4">{t("SETTINGS_PROJECT_API_KEYS_KEY")}</TableHead>
+            <TableHead className="min-w-56">{t("SETTINGS_PROJECT_API_KEYS_SCOPES")}</TableHead>
+            <TableHead className="min-w-48">{t("SETTINGS_PROJECT_API_KEYS_MASK")}</TableHead>
+            <TableHead className="min-w-52">{t("SETTINGS_PROJECT_API_KEYS_ACTIVITY")}</TableHead>
+            <TableHead className="min-w-40 px-4 text-right">
+              {t("SETTINGS_PROJECT_API_KEYS_ACTIONS")}
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {props.items.map((item) => (
+            <ApiKeyTableRow key={item.id} item={item} {...props} />
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
 
+function ApiKeyTableRow(props: ApiKeysTableProps & { item: ApiKeyOut }) {
+  const { t } = useTranslation("account");
+  const inactive = Boolean(props.item.revokedAt) || isExpired(props.item);
+  return (
+    <TableRow data-testid={`project-api-key-row-${props.item.id}`}>
+      <TableCell className="px-4 py-4 align-top">
         <div className="flex flex-wrap items-center gap-2">
+          <span className="font-medium text-label-primary">{props.item.name}</span>
+          <ApiKeyFamilyTag item={props.item} />
+          <ApiKeyStatusTag item={props.item} />
+        </div>
+        <div className="mt-1 max-w-72 text-footnote text-label-secondary">
+          {props.item.description || t("SETTINGS_PROJECT_API_KEYS_DESCRIPTION_EMPTY")}
+        </div>
+        {props.item.family === "delivery" && props.item.deliveryPerspective ? (
+          <div className="mt-2 text-footnote text-label-secondary">
+            {t("SETTINGS_PROJECT_API_KEYS_PERSPECTIVE_LABEL")}:{" "}
+            {props.item.deliveryPerspective === "preview"
+              ? t("SETTINGS_PROJECT_API_KEYS_PERSPECTIVE_PREVIEW")
+              : t("SETTINGS_PROJECT_API_KEYS_PERSPECTIVE_PUBLISHED")}
+          </div>
+        ) : null}
+      </TableCell>
+      <TableCell className="align-top">
+        <div className="flex max-w-72 flex-wrap gap-1.5">
+          {(props.item.scopes ?? []).map((scope) => (
+            <BaseTag key={scope} color="default">
+              {scope}
+            </BaseTag>
+          ))}
+        </div>
+      </TableCell>
+      <TableCell className="align-top">
+        <code className="font-mono text-footnote text-label-primary">{props.item.tokenMask}</code>
+        <div className="mt-1 text-footnote text-label-secondary">
+          {t("SETTINGS_PROJECT_API_KEYS_CREATED_AT")}: {props.formatDateTime(props.item.createdAt)}
+        </div>
+      </TableCell>
+      <TableCell className="align-top text-footnote">
+        <div className="text-label-primary">
+          {t("SETTINGS_PROJECT_API_KEYS_LAST_USED")}: {props.formatDateTime(props.item.lastUsedAt)}
+        </div>
+        <div className="mt-1 text-label-secondary">
+          {t("SETTINGS_PROJECT_API_KEYS_EXPIRES_AT")}: {props.formatDateTime(props.item.expiresAt)}
+        </div>
+        {props.item.revokedAt ? (
+          <div className="mt-1 text-label-secondary">
+            {t("SETTINGS_PROJECT_API_KEYS_REVOKED_AT_LABEL", {
+              value: props.formatDateTime(props.item.revokedAt),
+            })}
+          </div>
+        ) : null}
+      </TableCell>
+      <TableCell className="px-4 align-top">
+        <div className="flex items-center justify-end gap-1">
           <Button
             type="button"
-            variant="outline"
-            size="sm"
-            disabled={props.pending}
-            onClick={() => props.onCopyMask(props.item.tokenMask)}
+            variant="ghost"
+            size="icon"
+            aria-label={t("SETTINGS_PROJECT_API_KEYS_ROTATE")}
+            disabled={!props.canManage || props.pending || inactive}
+            onClick={() => props.onConfirm({ action: "rotate", key: props.item })}
+            data-testid={`project-api-key-rotate-${props.item.id}`}
           >
-            <Copy data-icon="inline-start" />
-            {t("SETTINGS_PROJECT_API_KEYS_COPY_MASK")}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={props.pending || Boolean(props.item.revokedAt)}
-            onClick={() => props.onRotate(props.item.id)}
-          >
-            <RefreshCw data-icon="inline-start" />
-            {t("SETTINGS_PROJECT_API_KEYS_ROTATE")}
+            <RefreshCw aria-hidden="true" />
           </Button>
           <Button
             type="button"
             variant="ghost"
-            size="sm"
-            disabled={props.pending || Boolean(props.item.revokedAt)}
-            onClick={() => props.onRevoke(props.item.id)}
+            size="icon"
+            aria-label={t("SETTINGS_PROJECT_API_KEYS_REVOKE")}
+            disabled={!props.canManage || props.pending || inactive}
+            onClick={() => props.onConfirm({ action: "revoke", key: props.item })}
+            data-testid={`project-api-key-revoke-${props.item.id}`}
           >
-            <Trash2 data-icon="inline-start" />
-            {t("SETTINGS_PROJECT_API_KEYS_REVOKE")}
+            <Trash2 aria-hidden="true" />
           </Button>
         </div>
-      </div>
+      </TableCell>
+    </TableRow>
+  );
+}
 
-      <div className="mt-4 grid gap-3 text-sm text-muted-foreground md:grid-cols-2 xl:grid-cols-4">
-        <div>
-          <div className="text-xs font-medium">{t("SETTINGS_PROJECT_API_KEYS_MASK")}</div>
-          <div className="mt-1 break-all text-foreground">{props.item.tokenMask}</div>
-        </div>
-        <div>
-          <div className="text-xs font-medium">{t("SETTINGS_PROJECT_API_KEYS_CREATED_AT")}</div>
-          <div className="mt-1 text-foreground">{createdAt}</div>
-        </div>
-        <div>
-          <div className="text-xs font-medium">{t("SETTINGS_PROJECT_API_KEYS_LAST_USED")}</div>
-          <div className="mt-1 text-foreground">{lastUsedAt}</div>
-        </div>
-        <div>
-          <div className="text-xs font-medium">{t("SETTINGS_PROJECT_API_KEYS_EXPIRES_AT")}</div>
-          <div className="mt-1 text-foreground">{expiresAt}</div>
-        </div>
-      </div>
-
-      {props.item.revokedAt ? (
-        <div className="mt-4 text-sm text-muted-foreground">
-          {t("SETTINGS_PROJECT_API_KEYS_REVOKED_AT_LABEL", { value: revokedAt })}
-        </div>
-      ) : null}
-
-      <div className="mt-4">
-        <div className="text-xs font-medium text-muted-foreground">
-          {t("SETTINGS_PROJECT_API_KEYS_SCOPES")}
-        </div>
-        <div className="mt-2">
-          <ApiKeyScopes item={props.item} />
-        </div>
-      </div>
-
-      {revealMatches ? (
-        <div className="mt-4 rounded-2xl border border-border/60 bg-muted/20 px-4 py-3">
-          <div className="text-xs font-medium text-muted-foreground">
-            {t("SETTINGS_PROJECT_API_KEYS_SECRET_INLINE")}
-          </div>
-          <code className="mt-2 block break-all text-sm text-foreground">
-            {props.reveal?.secretToken}
-          </code>
-        </div>
-      ) : null}
+function ScopeSelector(props: {
+  family: ProjectKeyFamily;
+  scopes: readonly ApiKeyScope[];
+  onChange: (scope: ApiKeyScope, checked: boolean) => void;
+}) {
+  const { t } = useTranslation("account");
+  const options = props.family === "delivery" ? DELIVERY_SCOPES : SERVICE_SCOPES;
+  return (
+    <div className="grid gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-2">
+      {options.map((scope) => {
+        const inputId = `project-api-key-scope-${scope.replace(".", "-")}`;
+        return (
+          <label
+            key={scope}
+            htmlFor={inputId}
+            className="flex cursor-pointer items-start gap-3 bg-background px-3 py-3"
+          >
+            <Checkbox
+              id={inputId}
+              checked={props.scopes.includes(scope)}
+              onCheckedChange={(checked) => props.onChange(scope, Boolean(checked))}
+              aria-label={t(
+                `SETTINGS_PROJECT_API_KEYS_SCOPE_${scope.replace(".", "_").toUpperCase()}`,
+              )}
+            />
+            <span className="min-w-0">
+              <span className="block text-footnote font-medium text-label-primary">{scope}</span>
+              <span className="block text-footnote text-label-secondary">
+                {t(`SETTINGS_PROJECT_API_KEYS_SCOPE_${scope.replace(".", "_").toUpperCase()}`)}
+              </span>
+            </span>
+          </label>
+        );
+      })}
     </div>
   );
 }
@@ -241,9 +316,9 @@ export function ProjectApiKeysSettingsPage(props: { projectId: string; embedded?
   const queryClient = useQueryClient();
   const { formatDateTime } = useAdminDateTimeFormatter({ projectId: props.projectId });
   const permissionAccess = useProjectPermissionAccess(props.projectId);
-
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [form, setForm] = useState<CreateForm>(newCreateForm);
+  const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const [secretReveal, setSecretReveal] = useState<SecretReveal | null>(null);
   const queryKey = buildProjectApiKeysQueryKey(props.projectId);
 
@@ -252,71 +327,82 @@ export function ProjectApiKeysSettingsPage(props: { projectId: string; embedded?
     enabled: Boolean(props.projectId),
     queryFn: async () => listProjectApiKeys(props.projectId),
   });
+  const permissionReady =
+    permissionAccess.authzQuery.isFetched && permissionAccess.actionsQuery.isFetched;
+  const canManage = permissionReady && permissionAccess.hasAction("project:api-keys:manage");
+  const items = useMemo(
+    () =>
+      [...(apiKeysQuery.data ?? [])].sort((left, right) => {
+        if (Boolean(left.revokedAt) !== Boolean(right.revokedAt)) return left.revokedAt ? 1 : -1;
+        return right.createdAt.localeCompare(left.createdAt);
+      }),
+    [apiKeysQuery.data],
+  );
+  const expiresTimestamp = form.expiresAt ? new Date(form.expiresAt).getTime() : null;
+  const expiryInvalid =
+    expiresTimestamp !== null &&
+    (!Number.isFinite(expiresTimestamp) || expiresTimestamp <= Date.now());
+  const canCreate =
+    canManage && Boolean(form.name.trim()) && form.scopes.length > 0 && !expiryInvalid;
 
-  const invalidate = async () => {
-    await queryClient.invalidateQueries({ queryKey });
+  const invalidate = async () => queryClient.invalidateQueries({ queryKey });
+  const showSecret = (result: ApiKeyCreateOut) => {
+    setSecretReveal({ keyId: result.key.id, secretToken: result.secretToken });
   };
-
   const createMutation = useMutation({
     mutationFn: async () =>
       createProjectApiKey(props.projectId, {
-        family: "delivery",
-        name: name.trim(),
-        description: description.trim() || null,
-        scopes: ["delivery.read", "graphql.read"],
-        deliveryPerspective: "published",
+        family: form.family,
+        name: form.name.trim(),
+        description: form.description.trim() || null,
+        scopes: form.scopes,
+        expiresAt: form.expiresAt ? new Date(form.expiresAt).toISOString() : null,
+        deliveryPerspective: form.family === "delivery" ? form.perspective : null,
       }),
     onSuccess: async (result: ApiKeyCreateOut) => {
-      setName("");
-      setDescription("");
-      setSecretReveal({ keyId: result.key.id, secretToken: result.secretToken });
+      showSecret(result);
+      setCreateOpen(false);
+      setForm(newCreateForm());
       notifySuccessText(t("account:SETTINGS_PROJECT_API_KEYS_CREATED"));
       await invalidate();
     },
-    onError: (error) => notifyError(error),
+    onError: notifyError,
   });
-
   const rotateMutation = useMutation({
     mutationFn: async (keyId: string) => rotateProjectApiKey(props.projectId, keyId),
     onSuccess: async (result: ApiKeyCreateOut) => {
-      setSecretReveal({ keyId: result.key.id, secretToken: result.secretToken });
+      showSecret(result);
+      setConfirmation(null);
       notifySuccessText(t("account:SETTINGS_PROJECT_API_KEYS_ROTATED"));
       await invalidate();
     },
-    onError: (error) => notifyError(error),
+    onError: notifyError,
   });
-
   const revokeMutation = useMutation({
     mutationFn: async (keyId: string) => revokeProjectApiKey(props.projectId, keyId),
     onSuccess: async () => {
+      setConfirmation(null);
       notifySuccessText(t("account:SETTINGS_PROJECT_API_KEYS_REVOKED"));
       await invalidate();
     },
-    onError: (error) => notifyError(error),
+    onError: notifyError,
   });
-
   const pending = createMutation.isPending || rotateMutation.isPending || revokeMutation.isPending;
-  const items = apiKeysQuery.data ?? [];
-  const permissionReady = permissionAccess.authzQuery.isFetched;
-  const canManageApiKeys =
-    Boolean(props.projectId) &&
-    permissionReady &&
-    permissionAccess.hasAction("project:api-keys:manage");
 
-  const sortedItems = useMemo(
-    () =>
-      [...items].sort((left, right) => {
-        if (left.revokedAt && !right.revokedAt) return 1;
-        if (!left.revokedAt && right.revokedAt) return -1;
-        return right.createdAt.localeCompare(left.createdAt);
-      }),
-    [items],
-  );
-
-  const handleCopyMask = async (value: string) => {
+  const openCreate = () => {
+    setForm(newCreateForm());
+    setCreateOpen(true);
+  };
+  const createButton = canManage ? (
+    <Button type="button" onClick={openCreate} data-testid="project-api-key-create-trigger">
+      <Plus aria-hidden="true" />
+      {t("account:SETTINGS_PROJECT_API_KEYS_CREATE_ACTION")}
+    </Button>
+  ) : null;
+  const copySecret = async (secret: string) => {
     try {
-      await copyToClipboard(value);
-      notifySuccessText(t("account:SETTINGS_PROJECT_API_KEYS_MASK_COPIED"));
+      await copyToClipboard(secret);
+      notifySuccessText(t("account:SETTINGS_PROJECT_API_KEYS_SECRET_COPIED"));
     } catch (error) {
       notifyError(error);
     }
@@ -325,129 +411,298 @@ export function ProjectApiKeysSettingsPage(props: { projectId: string; embedded?
   const content = (
     <ContentGuard
       loading={apiKeysQuery.isLoading}
-      loadingVariant="form"
+      loadingVariant="table"
       error={apiKeysQuery.error}
       onRetry={apiKeysQuery.isError ? () => void apiKeysQuery.refetch() : undefined}
     >
-      <div className="grid gap-6">
-        {!props.embedded ? null : (
-          <div className="max-w-3xl">
-            <div className="text-sm font-semibold text-foreground">
-              {t("account:SETTINGS_NAV_PROJECT_API_KEYS")}
+      <div className="grid gap-4">
+        <div className="flex flex-col gap-3 border-y border-border py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="text-footnote text-label-secondary">
+              {t("account:SETTINGS_PROJECT_API_KEYS_INVENTORY")}
             </div>
-            <div className="mt-1 text-sm text-muted-foreground">
-              {t("account:SETTINGS_PROJECT_API_KEYS_DESC")}
+            <div className="text-title3 font-semibold text-label-primary">
+              {t("account:SETTINGS_PROJECT_API_KEYS_COUNT", { count: items.length })}
             </div>
           </div>
-        )}
-        {permissionReady && !canManageApiKeys ? (
-          <div
-            className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground"
+          {createButton}
+        </div>
+        {permissionReady && !canManage ? (
+          <AccessNoticeAlert
             data-testid="project-api-keys-read-only-notice"
-          >
-            {t("account:SETTINGS_PROJECT_READ_ONLY_DESC")}
-          </div>
+            description={t("account:SETTINGS_PROJECT_READ_ONLY_DESC")}
+          />
         ) : null}
-        <SystemSettingStack>
-          <SecretRevealPanel reveal={secretReveal} onDismiss={() => setSecretReveal(null)} />
-
-          <SystemSettingItem
-            id="project-api-key-create"
-            title={t("account:SETTINGS_PROJECT_API_KEYS_CREATE_TITLE")}
-            description={t("account:SETTINGS_PROJECT_API_KEYS_CREATE_DESC")}
+        {secretReveal ? (
+          <SecretRevealPanel
+            reveal={secretReveal}
+            onCopy={(value) => void copySecret(value)}
+            onDismiss={() => setSecretReveal(null)}
+          />
+        ) : null}
+        {permissionReady && items.length === 0 ? (
+          <Empty
+            className="min-h-64 border border-dashed border-border"
+            data-testid="project-api-keys-settings-list"
           >
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (!name.trim() || !canManageApiKeys) return;
-                void createMutation.mutateAsync();
-              }}
-            >
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto] lg:items-start">
-                <Input
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  placeholder={t("account:SETTINGS_PROJECT_API_KEYS_NAME_PLACEHOLDER")}
-                  autoComplete="off"
-                  disabled={!canManageApiKeys}
-                />
-                <Textarea
-                  value={description}
-                  onChange={(event) => setDescription(event.target.value)}
-                  placeholder={t("account:SETTINGS_PROJECT_API_KEYS_DESC_PLACEHOLDER")}
-                  className="min-h-24"
-                  disabled={!canManageApiKeys}
-                />
-                <Button
-                  type="submit"
-                  loading={createMutation.isPending}
-                  disabled={!name.trim() || !canManageApiKeys}
-                  className="lg:self-start"
-                >
-                  <KeyRound data-icon="inline-start" />
-                  {t("account:SETTINGS_PROJECT_API_KEYS_CREATE_ACTION")}
-                </Button>
-              </div>
-            </form>
-          </SystemSettingItem>
-
-          <SystemSettingItem
-            id="project-api-keys"
-            title={t("account:SETTINGS_NAV_PROJECT_API_KEYS")}
-            description={t("account:SETTINGS_PROJECT_API_KEYS_DESC")}
-          >
-            {sortedItems.length > 0 ? (
-              <div className="grid gap-3" data-testid="project-api-keys-settings-list">
-                {sortedItems.map((item) => (
-                  <ApiKeyRow
-                    key={item.id}
-                    item={item}
-                    reveal={secretReveal}
-                    pending={pending || !canManageApiKeys}
-                    onCopyMask={(value) => void handleCopyMask(value)}
-                    onRotate={(keyId) => void rotateMutation.mutateAsync(keyId)}
-                    onRevoke={(keyId) => void revokeMutation.mutateAsync(keyId)}
-                    formatDateTime={(value) => formatDateTime(value, { includeTime: true })}
-                  />
-                ))}
-              </div>
-            ) : (
-              <Empty
-                className="min-h-56 border border-dashed border-border bg-background"
-                data-testid="project-api-keys-settings-list"
-              >
-                <EmptyHeader>
-                  <EmptyMedia variant="icon">
-                    <KeyRound />
-                  </EmptyMedia>
-                  <EmptyTitle className="text-title3">
-                    {t("account:SETTINGS_PROJECT_API_KEYS_EMPTY")}
-                  </EmptyTitle>
-                  <EmptyDescription>{t("account:SETTINGS_PROJECT_API_KEYS_DESC")}</EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            )}
-          </SystemSettingItem>
-        </SystemSettingStack>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <KeyRound />
+              </EmptyMedia>
+              <EmptyTitle>{t("account:SETTINGS_PROJECT_API_KEYS_EMPTY")}</EmptyTitle>
+              <EmptyDescription>
+                {t("account:SETTINGS_PROJECT_API_KEYS_EMPTY_DESC")}
+              </EmptyDescription>
+            </EmptyHeader>
+            {createButton ? <EmptyContent>{createButton}</EmptyContent> : null}
+          </Empty>
+        ) : (
+          <ApiKeysTable
+            items={items}
+            canManage={canManage}
+            pending={pending}
+            formatDateTime={(value) => formatDateTime(value, { includeTime: true })}
+            onConfirm={setConfirmation}
+          />
+        )}
       </div>
     </ContentGuard>
   );
 
-  if (props.embedded) {
-    return content;
-  }
-
   return (
-    <DefaultPage
-      title={t("account:SETTINGS_NAV_PROJECT_API_KEYS")}
-      description={t("account:SETTINGS_PROJECT_API_KEYS_DESC")}
-      showFavoriteToggle={false}
-      pageFrame="full"
-      className="min-h-full"
-      contentClassName="min-h-full"
-      contentContainerClassName="min-h-full"
-    >
-      {content}
-    </DefaultPage>
+    <>
+      {props.embedded ? (
+        content
+      ) : (
+        <DefaultPage
+          title={t("account:SETTINGS_NAV_PROJECT_API_KEYS")}
+          description={t("account:SETTINGS_PROJECT_API_KEYS_DESC")}
+          showFavoriteToggle={false}
+          pageFrame="full"
+          className="min-h-full"
+          contentClassName="min-h-full"
+          contentContainerClassName="min-h-full"
+        >
+          {content}
+        </DefaultPage>
+      )}
+
+      <SettingDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        preventInitialFocus={false}
+        title={t("account:SETTINGS_PROJECT_API_KEYS_CREATE_TITLE")}
+        description={t("account:SETTINGS_PROJECT_API_KEYS_CREATE_DESC")}
+        footer={
+          <div className="flex w-full justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={createMutation.isPending}
+              onClick={() => setCreateOpen(false)}
+            >
+              {t("common:CANCEL")}
+            </Button>
+            <Button
+              type="button"
+              loading={createMutation.isPending}
+              disabled={!canCreate}
+              onClick={() => void createMutation.mutateAsync()}
+              data-testid="project-api-key-create-submit"
+            >
+              {t("account:SETTINGS_PROJECT_API_KEYS_CREATE_ACTION")}
+            </Button>
+          </div>
+        }
+      >
+        <SettingDialogFields>
+          <SettingDialogField
+            title={t("account:SETTINGS_PROJECT_API_KEYS_FAMILY_LABEL")}
+            description={t("account:SETTINGS_PROJECT_API_KEYS_FAMILY_DESC")}
+          >
+            <NativeSelect
+              id="project-api-key-family"
+              name="family"
+              aria-label={t("account:SETTINGS_PROJECT_API_KEYS_FAMILY_LABEL")}
+              className="w-full"
+              value={form.family}
+              onChange={(event) => {
+                const family = event.target.value as ProjectKeyFamily;
+                setForm((current) => ({
+                  ...current,
+                  family,
+                  scopes: family === "delivery" ? ["delivery.read"] : ["content.read"],
+                }));
+              }}
+            >
+              <NativeSelectOption value="delivery">
+                {t("account:SETTINGS_PROJECT_API_KEYS_FAMILY_DELIVERY")}
+              </NativeSelectOption>
+              <NativeSelectOption value="workspace_service">
+                {t("account:SETTINGS_PROJECT_API_KEYS_FAMILY_SERVICE")}
+              </NativeSelectOption>
+            </NativeSelect>
+          </SettingDialogField>
+          <SettingDialogField title={t("account:SETTINGS_PROJECT_API_KEYS_NAME")}>
+            <Input
+              id="project-api-key-name"
+              name="name"
+              aria-label={t("account:SETTINGS_PROJECT_API_KEYS_NAME")}
+              value={form.name}
+              maxLength={128}
+              autoComplete="off"
+              placeholder={t("account:SETTINGS_PROJECT_API_KEYS_NAME_PLACEHOLDER")}
+              onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+            />
+          </SettingDialogField>
+          <SettingDialogField
+            title={t("account:SETTINGS_PROJECT_API_KEYS_DESCRIPTION")}
+            description={t("account:SETTINGS_PROJECT_API_KEYS_DESCRIPTION_DESC")}
+          >
+            <Textarea
+              id="project-api-key-description"
+              name="description"
+              aria-label={t("account:SETTINGS_PROJECT_API_KEYS_DESCRIPTION")}
+              value={form.description}
+              maxLength={512}
+              className="min-h-20"
+              placeholder={t("account:SETTINGS_PROJECT_API_KEYS_DESC_PLACEHOLDER")}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, description: event.target.value }))
+              }
+            />
+          </SettingDialogField>
+          <SettingDialogField
+            title={t("account:SETTINGS_PROJECT_API_KEYS_SCOPES")}
+            description={t("account:SETTINGS_PROJECT_API_KEYS_SCOPES_DESC")}
+            error={
+              form.scopes.length === 0
+                ? t("account:SETTINGS_PROJECT_API_KEYS_SCOPES_REQUIRED")
+                : undefined
+            }
+          >
+            <ScopeSelector
+              family={form.family}
+              scopes={form.scopes}
+              onChange={(scope, checked) =>
+                setForm((current) => ({
+                  ...current,
+                  scopes: checked
+                    ? [...current.scopes, scope]
+                    : current.scopes.filter((value) => value !== scope),
+                }))
+              }
+            />
+          </SettingDialogField>
+          {form.family === "delivery" ? (
+            <SettingDialogField
+              title={t("account:SETTINGS_PROJECT_API_KEYS_PERSPECTIVE_LABEL")}
+              description={t("account:SETTINGS_PROJECT_API_KEYS_PERSPECTIVE_DESC")}
+            >
+              <NativeSelect
+                id="project-api-key-perspective"
+                name="deliveryPerspective"
+                aria-label={t("account:SETTINGS_PROJECT_API_KEYS_PERSPECTIVE_LABEL")}
+                className="w-full"
+                value={form.perspective}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    perspective: event.target.value as DeliveryKeyPerspective,
+                  }))
+                }
+              >
+                <NativeSelectOption value="published">
+                  {t("account:SETTINGS_PROJECT_API_KEYS_PERSPECTIVE_PUBLISHED")}
+                </NativeSelectOption>
+                <NativeSelectOption value="preview">
+                  {t("account:SETTINGS_PROJECT_API_KEYS_PERSPECTIVE_PREVIEW")}
+                </NativeSelectOption>
+              </NativeSelect>
+            </SettingDialogField>
+          ) : null}
+          <SettingDialogField
+            title={t("account:SETTINGS_PROJECT_API_KEYS_EXPIRES_AT")}
+            description={t("account:SETTINGS_PROJECT_API_KEYS_EXPIRES_DESC")}
+            error={
+              expiryInvalid ? t("account:SETTINGS_PROJECT_API_KEYS_EXPIRES_INVALID") : undefined
+            }
+          >
+            <Input
+              id="project-api-key-expires-at"
+              name="expiresAt"
+              aria-label={t("account:SETTINGS_PROJECT_API_KEYS_EXPIRES_AT")}
+              type="datetime-local"
+              value={form.expiresAt}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, expiresAt: event.target.value }))
+              }
+            />
+          </SettingDialogField>
+        </SettingDialogFields>
+      </SettingDialog>
+
+      <SettingDialog
+        open={Boolean(confirmation)}
+        onOpenChange={(open) => {
+          if (!open) setConfirmation(null);
+        }}
+        preventInitialFocus={false}
+        title={
+          confirmation?.action === "rotate"
+            ? t("account:SETTINGS_PROJECT_API_KEYS_ROTATE_CONFIRM_TITLE")
+            : t("account:SETTINGS_PROJECT_API_KEYS_REVOKE_CONFIRM_TITLE")
+        }
+        description={
+          confirmation
+            ? t(
+                confirmation.action === "rotate"
+                  ? "account:SETTINGS_PROJECT_API_KEYS_ROTATE_CONFIRM_DESC"
+                  : "account:SETTINGS_PROJECT_API_KEYS_REVOKE_CONFIRM_DESC",
+                { name: confirmation.key.name },
+              )
+            : undefined
+        }
+        footer={
+          <div className="flex w-full justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={pending}
+              onClick={() => setConfirmation(null)}
+            >
+              {t("common:CANCEL")}
+            </Button>
+            <Button
+              type="button"
+              variant={confirmation?.action === "revoke" ? "destructive" : "default"}
+              loading={rotateMutation.isPending || revokeMutation.isPending}
+              disabled={!confirmation}
+              data-testid="project-api-key-confirm-submit"
+              onClick={() => {
+                if (!confirmation) return;
+                if (confirmation.action === "rotate")
+                  void rotateMutation.mutateAsync(confirmation.key.id);
+                else void revokeMutation.mutateAsync(confirmation.key.id);
+              }}
+            >
+              {confirmation?.action === "rotate"
+                ? t("account:SETTINGS_PROJECT_API_KEYS_ROTATE")
+                : t("account:SETTINGS_PROJECT_API_KEYS_REVOKE")}
+            </Button>
+          </div>
+        }
+      >
+        <div className="border-y border-border py-3">
+          <div className="text-footnote text-label-secondary">
+            {t("account:SETTINGS_PROJECT_API_KEYS_KEY")}
+          </div>
+          <div className="mt-1 font-medium text-label-primary">{confirmation?.key.name}</div>
+          <code className="mt-1 block font-mono text-footnote text-label-secondary">
+            {confirmation?.key.tokenMask}
+          </code>
+        </div>
+      </SettingDialog>
+    </>
   );
 }

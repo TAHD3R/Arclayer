@@ -1,5 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, History, LoaderCircle, RotateCcw, Rocket, ShieldAlert } from "lucide-react";
+import {
+  CheckCircle2,
+  CircleAlert,
+  Clock3,
+  History,
+  LoaderCircle,
+  RotateCcw,
+  Rocket,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -18,186 +26,276 @@ import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { Button } from "@arclayer/ui/button";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
 import type { AdminRelease, AdminReleaseDryRun } from "@arclayer/openapi/admin-types";
 
-function releaseStatusLabelKey(status: string): string {
+function releaseStatusLabelKey(status: string) {
   return `SETTINGS_PROJECT_RELEASES_STATUS_${status.toUpperCase()}`;
 }
 
-function ReleaseStatusTag(props: { release: AdminRelease }) {
+function ReleaseStatusTag({ release }: { release: AdminRelease }) {
   const { t } = useTranslation("account");
-  const color = props.release.isActive
+  const color = release.isActive
     ? "green"
-    : props.release.status === "scheduled"
+    : release.status === "scheduled"
       ? "gold"
-      : props.release.status === "cancelled"
+      : release.status === "cancelled"
         ? "red"
         : "default";
-  return <BaseTag color={color}>{t(releaseStatusLabelKey(props.release.status))}</BaseTag>;
+  return <BaseTag color={color}>{t(releaseStatusLabelKey(release.status))}</BaseTag>;
 }
 
-function ReadinessOverview(props: { dryRun: AdminReleaseDryRun | null; pending: boolean }) {
-  const { t } = useTranslation("account");
-  const summary = props.dryRun?.readinessSummary ?? null;
-
-  if (props.pending) {
-    return (
-      <div className="flex items-center gap-2 text-callout text-label-secondary">
-        <LoaderCircle className="animate-spin" size={16} />
-        {t("SETTINGS_PROJECT_RELEASES_CHECKING")}
-      </div>
-    );
-  }
-
-  if (!summary) {
-    return (
-      <div className="flex items-center gap-2 text-callout text-label-secondary">
-        <ShieldAlert size={16} />
-        {t("SETTINGS_PROJECT_RELEASES_READINESS_IDLE")}
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <BaseTag color={summary.ready ? "green" : "gold"}>
-        {summary.ready
-          ? t("SETTINGS_PROJECT_RELEASES_READY")
-          : t("SETTINGS_PROJECT_RELEASES_BLOCKED")}
-      </BaseTag>
-      <BaseTag color="default">
-        {t("SETTINGS_PROJECT_RELEASES_SELECTED_COUNT", {
-          count: summary.selectedItemCount ?? 0,
-        })}
-      </BaseTag>
-      {(summary.blockedItemCount ?? 0) > 0 ? (
-        <BaseTag color="gold">
-          {t("SETTINGS_PROJECT_RELEASES_BLOCKED_COUNT", {
-            count: summary.blockedItemCount ?? 0,
-          })}
-        </BaseTag>
-      ) : null}
-    </div>
-  );
+function selectActiveRelease(releases: readonly AdminRelease[]) {
+  return releases.find((release) => release.isActive) ?? null;
 }
 
-function ReleaseImpactDetails(props: { dryRun: AdminReleaseDryRun | null }) {
-  const { t } = useTranslation("account");
-  const impact = props.dryRun?.impact;
-  if (!impact) return null;
-
-  const missingRoutes = impact.missingRoutes?.length ?? 0;
-  const unpublishedDependencies = impact.unpublishedDependencies?.length ?? 0;
-  const unresolvedRelations = impact.unresolvedRelations?.length ?? 0;
-
-  return (
-    <div className="grid gap-3 border-t border-border pt-4 md:grid-cols-3">
-      <div>
-        <div className="text-title3 font-semibold text-label-primary">{missingRoutes}</div>
-        <div className="mt-1 text-footnote text-label-secondary">
-          {t("SETTINGS_PROJECT_RELEASES_MISSING_ROUTES")}
-        </div>
-      </div>
-      <div>
-        <div className="text-title3 font-semibold text-label-primary">
-          {unpublishedDependencies}
-        </div>
-        <div className="mt-1 text-footnote text-label-secondary">
-          {t("SETTINGS_PROJECT_RELEASES_UNPUBLISHED_DEPENDENCIES")}
-        </div>
-      </div>
-      <div>
-        <div className="text-title3 font-semibold text-label-primary">{unresolvedRelations}</div>
-        <div className="mt-1 text-footnote text-label-secondary">
-          {t("SETTINGS_PROJECT_RELEASES_UNRESOLVED_RELATIONS")}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ReleaseRow(props: {
-  canRollback: boolean;
-  formatDateTime: (value: string | null | undefined) => string;
-  onRollback: (release: AdminRelease) => void;
-  pending: boolean;
-  release: AdminRelease;
+function ReleaseHeader(props: {
+  activeRelease: AdminRelease | null;
+  canPublish: boolean;
+  checking: boolean;
+  publishing: boolean;
+  ready: boolean;
+  onCheck: () => void;
+  onPublish: () => void;
 }) {
   const { t } = useTranslation("account");
-  const canRollback =
-    props.canRollback && !props.release.isActive && props.release.status !== "cancelled";
-
   return (
-    <div className="grid gap-4 border-b border-border px-4 py-4 last:border-b-0">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0 space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-headline font-semibold text-label-primary">
-              {t("SETTINGS_PROJECT_RELEASES_RELEASE_NUMBER", {
-                count: props.release.releaseNumber,
-              })}
-            </span>
-            <ReleaseStatusTag release={props.release} />
-            {props.release.isActive ? (
-              <BaseTag color="green">{t("SETTINGS_PROJECT_RELEASES_ACTIVE")}</BaseTag>
-            ) : null}
-            {props.release.lineage?.parentReleaseNumber ? (
-              <BaseTag color="default">
-                {t("SETTINGS_PROJECT_RELEASES_PARENT", {
-                  count: props.release.lineage.parentReleaseNumber,
-                })}
-              </BaseTag>
-            ) : null}
-          </div>
-
-          <div className="grid gap-3 text-left sm:grid-cols-3">
-            <div>
-              <div className="text-footnote text-label-secondary">
-                {t("SETTINGS_PROJECT_RELEASES_SELECTION_COUNT")}
-              </div>
-              <div className="mt-1 text-callout text-label-primary">
-                {props.release.selectionCount ?? 0}
-              </div>
-            </div>
-            <div>
-              <div className="text-footnote text-label-secondary">
-                {t("SETTINGS_PROJECT_RELEASES_CREATED")}
-              </div>
-              <div className="mt-1 text-callout text-label-primary">
-                {props.formatDateTime(props.release.createdAt)}
-              </div>
-            </div>
-            <div>
-              <div className="text-footnote text-label-secondary">
-                {t("SETTINGS_PROJECT_RELEASES_ACTIVATED")}
-              </div>
-              <div className="mt-1 text-callout text-label-primary">
-                {props.formatDateTime(props.release.activatedAt)}
-              </div>
-            </div>
-          </div>
+    <section className="flex flex-col gap-5 border-y border-border py-5 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex min-w-0 items-center gap-4">
+        <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted text-label-secondary">
+          <Rocket aria-hidden="true" />
         </div>
-
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-title3 font-semibold text-label-primary">
+              {props.activeRelease
+                ? t("SETTINGS_PROJECT_RELEASES_ACTIVE_RELEASE", {
+                    count: props.activeRelease.releaseNumber,
+                  })
+                : t("SETTINGS_PROJECT_RELEASES_NO_ACTIVE_RELEASE")}
+            </h2>
+            {props.activeRelease ? <ReleaseStatusTag release={props.activeRelease} /> : null}
+          </div>
+          <p className="mt-1 text-footnote text-label-secondary">
+            {props.activeRelease
+              ? t("SETTINGS_PROJECT_RELEASES_ACTIVE_SUMMARY", {
+                  count: props.activeRelease.selectionCount ?? 0,
+                })
+              : t("SETTINGS_PROJECT_RELEASES_EMPTY_DESC")}
+          </p>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
         <Button
           type="button"
           variant="outline"
           size="sm"
-          disabled={!canRollback || props.pending}
-          onClick={() => props.onRollback(props.release)}
-          data-testid={`project-release-rollback-${props.release.id}`}
+          loading={props.checking}
+          disabled={props.publishing}
+          onClick={props.onCheck}
+          data-testid="project-release-check"
         >
-          <RotateCcw size={16} />
-          {t("SETTINGS_PROJECT_RELEASES_ROLLBACK")}
+          <CheckCircle2 aria-hidden="true" />
+          {t("SETTINGS_PROJECT_RELEASES_CHECK")}
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          disabled={!props.canPublish || !props.ready || props.checking || props.publishing}
+          onClick={props.onPublish}
+          data-testid="project-release-publish"
+        >
+          <Rocket aria-hidden="true" />
+          {t("SETTINGS_PROJECT_RELEASES_PUBLISH")}
         </Button>
       </div>
+    </section>
+  );
+}
+
+type CheckMetricProps = {
+  count: number;
+  label: string;
+};
+
+function CheckMetric({ count, label }: CheckMetricProps) {
+  return (
+    <div className="min-w-0 px-4 py-4 first:pl-0 last:pr-0">
+      <div className="font-mono text-title3 font-semibold text-label-primary">{count}</div>
+      <div className="mt-1 text-footnote text-label-secondary">{label}</div>
     </div>
   );
 }
 
-function selectActiveRelease(releases: readonly AdminRelease[]): AdminRelease | null {
-  return releases.find((release) => release.isActive) ?? null;
+function ReadinessPanel(props: { dryRun: AdminReleaseDryRun | null; pending: boolean }) {
+  const { t } = useTranslation("account");
+  const summary = props.dryRun?.readinessSummary;
+  const impact = props.dryRun?.impact;
+
+  return (
+    <section className="grid gap-4" data-testid="project-release-readiness">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-headline font-semibold text-label-primary">
+            {t("SETTINGS_PROJECT_RELEASES_READINESS_TITLE")}
+          </h2>
+          <p className="mt-1 text-footnote text-label-secondary">
+            {t("SETTINGS_PROJECT_RELEASES_READINESS_SHORT_DESC")}
+          </p>
+        </div>
+        {props.pending ? (
+          <div className="flex items-center gap-2 text-footnote text-label-secondary">
+            <LoaderCircle className="animate-spin" aria-hidden="true" />
+            {t("SETTINGS_PROJECT_RELEASES_CHECKING")}
+          </div>
+        ) : summary ? (
+          <div className="flex items-center gap-2">
+            {summary.ready ? (
+              <CheckCircle2 className="text-positive" aria-hidden="true" />
+            ) : (
+              <CircleAlert className="text-warning" aria-hidden="true" />
+            )}
+            <span className="text-callout font-medium text-label-primary">
+              {summary.ready
+                ? t("SETTINGS_PROJECT_RELEASES_READY")
+                : t("SETTINGS_PROJECT_RELEASES_BLOCKED")}
+            </span>
+          </div>
+        ) : null}
+      </div>
+
+      {summary && impact ? (
+        <div className="grid divide-y divide-border border-y border-border sm:grid-cols-4 sm:divide-x sm:divide-y-0">
+          <CheckMetric
+            count={summary.selectedItemCount ?? 0}
+            label={t("SETTINGS_PROJECT_RELEASES_SELECTION_COUNT")}
+          />
+          <CheckMetric
+            count={impact.missingRoutes?.length ?? 0}
+            label={t("SETTINGS_PROJECT_RELEASES_MISSING_ROUTES")}
+          />
+          <CheckMetric
+            count={impact.unpublishedDependencies?.length ?? 0}
+            label={t("SETTINGS_PROJECT_RELEASES_UNPUBLISHED_DEPENDENCIES")}
+          />
+          <CheckMetric
+            count={impact.unresolvedRelations?.length ?? 0}
+            label={t("SETTINGS_PROJECT_RELEASES_UNRESOLVED_RELATIONS")}
+          />
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+type ReleaseHistoryProps = {
+  canRollback: boolean;
+  formatDateTime: (value: string | null | undefined) => string;
+  pending: boolean;
+  releases: readonly AdminRelease[];
+  onRollback: (release: AdminRelease) => void;
+};
+
+function ReleaseHistory(props: ReleaseHistoryProps) {
+  const { t } = useTranslation("account");
+  return (
+    <section className="grid gap-4">
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <h2 className="flex items-center gap-2 text-headline font-semibold text-label-primary">
+            <History aria-hidden="true" />
+            {t("SETTINGS_PROJECT_RELEASES_HISTORY_TITLE")}
+          </h2>
+          <p className="mt-1 text-footnote text-label-secondary">
+            {t("SETTINGS_PROJECT_RELEASES_HISTORY_SHORT_DESC")}
+          </p>
+        </div>
+        <span className="text-footnote text-label-secondary">
+          {t("SETTINGS_PROJECT_RELEASES_HISTORY_COUNT", { count: props.releases.length })}
+        </span>
+      </div>
+
+      {props.releases.length === 0 ? (
+        <Empty
+          className="border border-dashed border-border"
+          data-testid="project-releases-empty-state"
+        >
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <History />
+            </EmptyMedia>
+            <EmptyTitle>{t("SETTINGS_PROJECT_RELEASES_EMPTY_TITLE")}</EmptyTitle>
+            <EmptyDescription>{t("SETTINGS_PROJECT_RELEASES_EMPTY_DESC")}</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      ) : (
+        <div
+          className="overflow-hidden rounded-lg border border-border"
+          data-testid="project-releases-list"
+        >
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="px-4">{t("SETTINGS_PROJECT_RELEASES_VERSION")}</TableHead>
+                <TableHead>{t("SETTINGS_PROJECT_RELEASES_SELECTION_COUNT")}</TableHead>
+                <TableHead>{t("SETTINGS_PROJECT_RELEASES_CREATED")}</TableHead>
+                <TableHead>{t("SETTINGS_PROJECT_RELEASES_ACTIVATED")}</TableHead>
+                <TableHead className="px-4 text-right">
+                  {t("SETTINGS_PROJECT_RELEASES_ACTIONS")}
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {props.releases.map((release) => {
+                const canRollback =
+                  props.canRollback && !release.isActive && release.status !== "cancelled";
+                return (
+                  <TableRow key={release.id}>
+                    <TableCell className="px-4 py-4">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-label-primary">
+                          {t("SETTINGS_PROJECT_RELEASES_RELEASE_NUMBER", {
+                            count: release.releaseNumber,
+                          })}
+                        </span>
+                        <ReleaseStatusTag release={release} />
+                      </div>
+                      {release.lineage?.parentReleaseNumber ? (
+                        <div className="mt-1 text-footnote text-label-secondary">
+                          {t("SETTINGS_PROJECT_RELEASES_PARENT", {
+                            count: release.lineage.parentReleaseNumber,
+                          })}
+                        </div>
+                      ) : null}
+                    </TableCell>
+                    <TableCell>{release.selectionCount ?? 0}</TableCell>
+                    <TableCell>{props.formatDateTime(release.createdAt)}</TableCell>
+                    <TableCell>{props.formatDateTime(release.activatedAt)}</TableCell>
+                    <TableCell className="px-4 text-right">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={!canRollback || props.pending}
+                        onClick={() => props.onRollback(release)}
+                        data-testid={`project-release-rollback-${release.id}`}
+                      >
+                        <RotateCcw aria-hidden="true" />
+                        {t("SETTINGS_PROJECT_RELEASES_ROLLBACK")}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </section>
+  );
 }
 
 export function ProjectReleasesPage(props: { projectId: string; embedded?: boolean }) {
@@ -205,18 +303,18 @@ export function ProjectReleasesPage(props: { projectId: string; embedded?: boole
   const queryClient = useQueryClient();
   const permissionAccess = useProjectPermissionAccess(props.projectId);
   const { formatDateTime } = useAdminDateTimeFormatter({ projectId: props.projectId });
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [rollbackTarget, setRollbackTarget] = useState<AdminRelease | null>(null);
 
   const releasesQuery = useQuery({
     queryKey: buildProjectReleasesQueryKey(props.projectId),
     enabled: Boolean(props.projectId),
-    queryFn: async () => listProjectReleases(props.projectId),
+    queryFn: () => listProjectReleases(props.projectId),
   });
-
   const dryRunQuery = useQuery({
     queryKey: [...buildProjectReleasesQueryKey(props.projectId), "dry-run"],
     enabled: Boolean(props.projectId),
-    queryFn: async () => getProjectReleaseDryRun(props.projectId),
+    queryFn: () => getProjectReleaseDryRun(props.projectId),
     meta: { silent: true },
   });
 
@@ -227,8 +325,9 @@ export function ProjectReleasesPage(props: { projectId: string; embedded?: boole
   };
 
   const publishMutation = useMutation({
-    mutationFn: async () => publishProjectRelease(props.projectId),
+    mutationFn: () => publishProjectRelease(props.projectId),
     onSuccess: async (result) => {
+      setPublishDialogOpen(false);
       notifySuccessText(
         t("account:SETTINGS_PROJECT_RELEASES_PUBLISHED", {
           count: result.release.releaseNumber,
@@ -236,14 +335,11 @@ export function ProjectReleasesPage(props: { projectId: string; embedded?: boole
       );
       await invalidate();
     },
-    onError: (error) => notifyError(error),
+    onError: notifyError,
   });
-
   const rollbackMutation = useMutation({
-    mutationFn: async () => {
-      if (!rollbackTarget) {
-        throw new Error("ROLLBACK_RELEASE_REQUIRED");
-      }
+    mutationFn: () => {
+      if (!rollbackTarget) throw new Error("ROLLBACK_RELEASE_REQUIRED");
       return rollbackProjectRelease(props.projectId, rollbackTarget.id);
     },
     onSuccess: async (result) => {
@@ -255,7 +351,7 @@ export function ProjectReleasesPage(props: { projectId: string; embedded?: boole
       setRollbackTarget(null);
       await invalidate();
     },
-    onError: (error) => notifyError(error),
+    onError: notifyError,
   });
 
   const permissionReady = permissionAccess.authzQuery.isFetched;
@@ -263,7 +359,8 @@ export function ProjectReleasesPage(props: { projectId: string; embedded?: boole
   const canRollback = permissionReady && permissionAccess.hasAction("project:release:rollback");
   const releases = releasesQuery.data ?? [];
   const activeRelease = useMemo(() => selectActiveRelease(releases), [releases]);
-  const pending = publishMutation.isPending || rollbackMutation.isPending || dryRunQuery.isFetching;
+  const ready = Boolean(dryRunQuery.data?.readinessSummary.ready);
+  const pending = publishMutation.isPending || rollbackMutation.isPending;
 
   const content = (
     <ContentGuard
@@ -286,104 +383,23 @@ export function ProjectReleasesPage(props: { projectId: string; embedded?: boole
             description={t("account:SETTINGS_PROJECT_RELEASES_READ_ONLY_DESC")}
           />
         ) : null}
-
-        <section className="grid gap-4 border-y border-border bg-background py-5">
-          <div className="flex flex-col gap-4 px-1 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0 space-y-2">
-              <div className="flex items-center gap-2 text-caption font-medium uppercase tracking-normal text-label-tertiary">
-                <Rocket size={14} />
-                {t("account:SETTINGS_PROJECT_RELEASES_READINESS_EYEBROW")}
-              </div>
-              <h2 className="text-title3 font-semibold text-label-primary">
-                {activeRelease
-                  ? t("account:SETTINGS_PROJECT_RELEASES_ACTIVE_RELEASE", {
-                      count: activeRelease.releaseNumber,
-                    })
-                  : t("account:SETTINGS_PROJECT_RELEASES_NO_ACTIVE_RELEASE")}
-              </h2>
-              <p className="max-w-3xl text-callout text-label-secondary">
-                {t("account:SETTINGS_PROJECT_RELEASES_READINESS_DESC")}
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                loading={dryRunQuery.isFetching}
-                disabled={publishMutation.isPending}
-                onClick={() => void dryRunQuery.refetch()}
-                data-testid="project-release-check"
-              >
-                <CheckCircle2 size={16} />
-                {t("account:SETTINGS_PROJECT_RELEASES_CHECK")}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                loading={publishMutation.isPending}
-                disabled={!canPublish || pending}
-                onClick={() => void publishMutation.mutateAsync()}
-                data-testid="project-release-publish"
-              >
-                <Rocket size={16} />
-                {t("account:SETTINGS_PROJECT_RELEASES_PUBLISH")}
-              </Button>
-            </div>
-          </div>
-          <div className="grid gap-4 px-1">
-            <ReadinessOverview dryRun={dryRunQuery.data ?? null} pending={dryRunQuery.isFetching} />
-            <ReleaseImpactDetails dryRun={dryRunQuery.data ?? null} />
-          </div>
-        </section>
-
-        <section className="grid gap-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2 text-headline font-semibold text-label-primary">
-                <History size={16} />
-                {t("account:SETTINGS_PROJECT_RELEASES_HISTORY_TITLE")}
-              </div>
-              <p className="mt-1 text-footnote text-label-secondary">
-                {t("account:SETTINGS_PROJECT_RELEASES_HISTORY_DESC")}
-              </p>
-            </div>
-            <BaseTag color="default">
-              {t("account:SETTINGS_PROJECT_RELEASES_HISTORY_COUNT", {
-                count: releases.length,
-              })}
-            </BaseTag>
-          </div>
-
-          {releases.length > 0 ? (
-            <div
-              className="overflow-hidden rounded-lg border border-border bg-card"
-              data-testid="project-releases-list"
-            >
-              {releases.map((release) => (
-                <ReleaseRow
-                  key={release.id}
-                  release={release}
-                  pending={pending}
-                  canRollback={canRollback}
-                  formatDateTime={formatDateTime}
-                  onRollback={setRollbackTarget}
-                />
-              ))}
-            </div>
-          ) : (
-            <div
-              className="grid gap-2 rounded-lg border border-dashed border-border bg-card px-5 py-8 text-callout text-label-secondary"
-              data-testid="project-releases-empty-state"
-            >
-              <div className="flex items-center gap-2 text-headline text-label-primary">
-                <Rocket size={16} />
-                {t("account:SETTINGS_PROJECT_RELEASES_EMPTY_TITLE")}
-              </div>
-              <p>{t("account:SETTINGS_PROJECT_RELEASES_EMPTY_DESC")}</p>
-            </div>
-          )}
-        </section>
+        <ReleaseHeader
+          activeRelease={activeRelease}
+          canPublish={canPublish}
+          checking={dryRunQuery.isFetching}
+          publishing={publishMutation.isPending}
+          ready={ready}
+          onCheck={() => void dryRunQuery.refetch()}
+          onPublish={() => setPublishDialogOpen(true)}
+        />
+        <ReadinessPanel dryRun={dryRunQuery.data ?? null} pending={dryRunQuery.isFetching} />
+        <ReleaseHistory
+          releases={releases}
+          canRollback={canRollback}
+          pending={pending}
+          formatDateTime={formatDateTime}
+          onRollback={setRollbackTarget}
+        />
       </div>
     </ContentGuard>
   );
@@ -404,20 +420,57 @@ export function ProjectReleasesPage(props: { projectId: string; embedded?: boole
       )}
 
       <SettingDialog
+        open={publishDialogOpen}
+        onOpenChange={setPublishDialogOpen}
+        preventInitialFocus={false}
+        title={t("account:SETTINGS_PROJECT_RELEASES_PUBLISH_DIALOG_TITLE")}
+        description={t("account:SETTINGS_PROJECT_RELEASES_PUBLISH_DIALOG_DESC")}
+        footer={
+          <div className="flex w-full justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={() => setPublishDialogOpen(false)}>
+              {t("common:CANCEL")}
+            </Button>
+            <Button
+              type="button"
+              loading={publishMutation.isPending}
+              disabled={!ready}
+              onClick={() => void publishMutation.mutateAsync()}
+              data-testid="project-release-publish-confirm"
+            >
+              <Rocket aria-hidden="true" />
+              {t("account:SETTINGS_PROJECT_RELEASES_PUBLISH")}
+            </Button>
+          </div>
+        }
+      >
+        <SettingDialogFields>
+          <SettingDialogField
+            title={t("account:SETTINGS_PROJECT_RELEASES_PUBLISH_SELECTION")}
+            description={t("account:SETTINGS_PROJECT_RELEASES_PUBLISH_SELECTION_DESC")}
+          >
+            <div className="flex items-center gap-3 rounded-md border border-border bg-muted/40 px-3 py-3">
+              <CheckCircle2 className="text-positive" aria-hidden="true" />
+              <span className="text-callout font-medium text-label-primary">
+                {t("account:SETTINGS_PROJECT_RELEASES_SELECTED_COUNT", {
+                  count: dryRunQuery.data?.readinessSummary.selectedItemCount ?? 0,
+                })}
+              </span>
+            </div>
+          </SettingDialogField>
+        </SettingDialogFields>
+      </SettingDialog>
+
+      <SettingDialog
         open={Boolean(rollbackTarget)}
         onOpenChange={(open) => {
           if (!open) setRollbackTarget(null);
         }}
+        preventInitialFocus={false}
         title={t("account:SETTINGS_PROJECT_RELEASES_ROLLBACK_DIALOG_TITLE")}
         description={t("account:SETTINGS_PROJECT_RELEASES_ROLLBACK_DIALOG_DESC")}
         footer={
           <div className="flex w-full justify-end gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              disabled={rollbackMutation.isPending}
-              onClick={() => setRollbackTarget(null)}
-            >
+            <Button type="button" variant="ghost" onClick={() => setRollbackTarget(null)}>
               {t("common:CANCEL")}
             </Button>
             <Button
@@ -427,13 +480,13 @@ export function ProjectReleasesPage(props: { projectId: string; embedded?: boole
               onClick={() => void rollbackMutation.mutateAsync()}
               data-testid="project-release-rollback-confirm"
             >
-              <RotateCcw size={16} />
+              <RotateCcw aria-hidden="true" />
               {t("account:SETTINGS_PROJECT_RELEASES_ROLLBACK")}
             </Button>
           </div>
         }
       >
-        <SettingDialogFields className="py-2">
+        <SettingDialogFields>
           <SettingDialogField
             title={t("account:SETTINGS_PROJECT_RELEASES_ROLLBACK_TARGET")}
             description={
@@ -444,12 +497,15 @@ export function ProjectReleasesPage(props: { projectId: string; embedded?: boole
                 : ""
             }
           >
-            <div className="rounded-md border border-border bg-background px-3 py-2 text-callout text-label-primary">
-              {rollbackTarget
-                ? t("account:SETTINGS_PROJECT_RELEASES_RELEASE_NUMBER", {
-                    count: rollbackTarget.releaseNumber,
-                  })
-                : "-"}
+            <div className="flex items-center gap-3 rounded-md border border-border bg-muted/40 px-3 py-3">
+              <Clock3 aria-hidden="true" />
+              <span className="text-callout font-medium text-label-primary">
+                {rollbackTarget
+                  ? t("account:SETTINGS_PROJECT_RELEASES_RELEASE_NUMBER", {
+                      count: rollbackTarget.releaseNumber,
+                    })
+                  : "-"}
+              </span>
             </div>
           </SettingDialogField>
         </SettingDialogFields>
