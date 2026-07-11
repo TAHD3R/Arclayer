@@ -11,6 +11,9 @@ const patchProjectCoreSettingsMock = vi.fn();
 const getMyProjectAuthzMock = vi.fn();
 const listProjectPermissionActionsMock = vi.fn();
 const navigateMock = vi.fn();
+const chromeTabsController = vi.hoisted(() => ({
+  onValueChange: null as ((value: string) => void) | null,
+}));
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -62,18 +65,31 @@ vi.mock("@arclayer/ui/form", () => ({
 }));
 
 vi.mock("@arclayer/ui/chrome-tabs", () => ({
-  ChromeTabs: (props: PropsWithChildren<{ value: string }>) => (
-    <div data-testid="chrome-tabs" data-value={props.value}>
-      {props.children}
-    </div>
-  ),
-  ChromeTabsContent: (props: PropsWithChildren<{ value: string }>) => (
-    <div data-testid={`chrome-tabs-content-${props.value}`}>{props.children}</div>
-  ),
-  ChromeTabsList: (props: PropsWithChildren) => <div>{props.children}</div>,
-  ChromeTabsTrigger: (props: PropsWithChildren<{ value: string }>) => (
-    <button type="button" data-value={props.value}>
-      {props.children}
+  ChromeTabs: ({
+    value,
+    onValueChange,
+    children,
+  }: PropsWithChildren<{ value: string; onValueChange: (value: string) => void }>) => {
+    chromeTabsController.onValueChange = onValueChange;
+    return (
+      <div data-testid="chrome-tabs" data-value={value}>
+        {children}
+      </div>
+    );
+  },
+  ChromeTabsList: ({ children }: PropsWithChildren) => <div>{children}</div>,
+  ChromeTabsTrigger: ({
+    value,
+    children,
+    ...props
+  }: PropsWithChildren<{ value: string; "data-testid"?: string }>) => (
+    <button
+      {...props}
+      type="button"
+      data-value={value}
+      onClick={() => chromeTabsController.onValueChange?.(value)}
+    >
+      {children}
     </button>
   ),
 }));

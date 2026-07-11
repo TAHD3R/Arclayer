@@ -16,6 +16,10 @@ export function buildProjectEnvironmentsQueryKey(projectId: string) {
   return ["project", "environments", projectId] as const;
 }
 
+export function buildProjectEnvironmentStateQueryKey(projectId: string) {
+  return [...buildProjectEnvironmentsQueryKey(projectId), "state"] as const;
+}
+
 export async function listProjectEnvironments(projectId: string): Promise<ProjectEnvironmentOut[]> {
   const data = await getProjectEnvironmentState(projectId);
   return data.items ?? [];

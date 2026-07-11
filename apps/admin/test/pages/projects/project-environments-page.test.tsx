@@ -24,6 +24,12 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("@/api/project-environments", () => ({
   buildProjectEnvironmentsQueryKey: (projectId: string) => ["project", "environments", projectId],
+  buildProjectEnvironmentStateQueryKey: (projectId: string) => [
+    "project",
+    "environments",
+    projectId,
+    "state",
+  ],
   getProjectEnvironmentState: (...args: unknown[]) => listProjectEnvironmentsMock(...args),
   patchProjectEnvironment: (...args: unknown[]) => patchProjectEnvironmentMock(...args),
   cloneProjectEnvironment: (...args: unknown[]) => cloneProjectEnvironmentMock(...args),
@@ -248,7 +254,7 @@ describe("ProjectEnvironmentsPage", () => {
 
     renderWithQuery(<ProjectEnvironmentsPage projectId="project-1" />);
 
-    expect(await screen.findByTestId("guard-empty")).toBeInTheDocument();
+    expect(await screen.findByTestId("project-environments-empty")).toBeInTheDocument();
     expect(
       screen.getByText("account:SETTINGS_PROJECT_ENVIRONMENTS_EMPTY_TITLE"),
     ).toBeInTheDocument();
@@ -305,10 +311,10 @@ describe("ProjectEnvironmentsPage", () => {
         name: "account:SETTINGS_PROJECT_ENVIRONMENTS_CLONE",
       }),
     );
-    fireEvent.change(
+    await user.click(
       screen.getByRole("combobox", { name: "account:SETTINGS_PROJECT_ENVIRONMENTS_TARGET" }),
-      { target: { value: "env-stage" } },
     );
+    await user.click(screen.getByRole("option", { name: /^Staging/ }));
     fireEvent.click(
       screen.getByRole("button", {
         name: "account:SETTINGS_PROJECT_ENVIRONMENTS_CLONE_CONFIRM",
@@ -340,10 +346,10 @@ describe("ProjectEnvironmentsPage", () => {
       }),
     );
     expect(promoteProjectEnvironmentMock).not.toHaveBeenCalled();
-    fireEvent.change(
+    await user.click(
       screen.getByRole("combobox", { name: "account:SETTINGS_PROJECT_ENVIRONMENTS_TARGET" }),
-      { target: { value: "env-prod" } },
     );
+    await user.click(screen.getByRole("option", { name: /^Production/ }));
     fireEvent.click(
       screen.getByRole("button", {
         name: "account:SETTINGS_PROJECT_ENVIRONMENTS_PROMOTE_CONFIRM",
@@ -360,6 +366,7 @@ describe("ProjectEnvironmentsPage", () => {
   });
 
   it("switches a stable alias to another environment", async () => {
+    const user = userEvent.setup();
     switchProjectEnvironmentAliasMock.mockResolvedValue({
       id: "alias-preview",
       key: "preview",
@@ -367,17 +374,17 @@ describe("ProjectEnvironmentsPage", () => {
     });
     renderWithQuery(<ProjectEnvironmentsPage projectId="project-1" />);
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole("button", {
         name: "account:SETTINGS_PROJECT_ENVIRONMENTS_ALIAS_SWITCH",
       }),
     );
-    fireEvent.change(
+    await user.click(
       screen.getByRole("combobox", {
         name: "account:SETTINGS_PROJECT_ENVIRONMENTS_ALIAS_TARGET",
       }),
-      { target: { value: "env-stage" } },
     );
+    await user.click(screen.getByRole("option", { name: /^Staging/ }));
     fireEvent.click(
       screen.getByRole("button", {
         name: "account:SETTINGS_PROJECT_ENVIRONMENTS_ALIAS_SWITCH_CONFIRM",

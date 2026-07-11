@@ -1,13 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  CheckCheck,
-  ExternalLink,
-  Globe2,
-  LoaderCircle,
-  Plus,
-  ShieldCheck,
-  Trash2,
-} from "lucide-react";
+import { CheckCheck, ExternalLink, Globe2, LoaderCircle, ShieldCheck, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -179,10 +171,7 @@ function DomainTable(props: DomainTableProps) {
   const { t } = useTranslation("account");
   if (props.domains.length === 0) {
     return (
-      <Empty
-        className="border border-dashed border-border"
-        data-testid="project-domain-empty-state"
-      >
+      <Empty data-testid="project-domain-empty-state">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <Globe2 />
@@ -407,7 +396,6 @@ export function ProjectDomainSettingsPage(props: { projectId: string; embedded?:
               onClick={() => setAddDialogOpen(true)}
               data-testid="project-domain-add-trigger"
             >
-              <Plus aria-hidden="true" />
               {t("account:SETTINGS_PROJECT_DOMAINS_ADD")}
             </Button>
           </div>

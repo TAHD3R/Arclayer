@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, MoreVertical, PencilLine, Rocket, Star } from "lucide-react";
+import { Copy, MoreVertical, PencilLine, Rocket, Server, Star } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
+  buildProjectEnvironmentStateQueryKey,
   buildProjectEnvironmentsQueryKey,
   cloneProjectEnvironment,
   getProjectEnvironmentState,
@@ -26,7 +27,9 @@ import {
   DropdownMenuIconItem,
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
 import { Input } from "@arclayer/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { Switch } from "@arclayer/ui/switch";
@@ -160,7 +163,7 @@ export function ProjectEnvironmentsPage(props: { projectId: string; embedded?: b
   const [includeContent, setIncludeContent] = useState(true);
 
   const environmentsQuery = useQuery({
-    queryKey: buildProjectEnvironmentsQueryKey(props.projectId),
+    queryKey: buildProjectEnvironmentStateQueryKey(props.projectId),
     enabled: Boolean(props.projectId),
     queryFn: async () => getProjectEnvironmentState(props.projectId),
   });
@@ -272,9 +275,6 @@ export function ProjectEnvironmentsPage(props: { projectId: string; embedded?: b
       loadingVariant="form"
       error={environmentsQuery.error}
       onRetry={environmentsQuery.isError ? () => void environmentsQuery.refetch() : undefined}
-      empty={permissionReady && environments.length === 0}
-      emptyTitle={t("account:SETTINGS_PROJECT_ENVIRONMENTS_EMPTY_TITLE")}
-      emptyDescription={t("account:SETTINGS_PROJECT_ENVIRONMENTS_EMPTY_DESC")}
     >
       <div className="grid gap-4">
         {permissionReady && !canManage ? (
@@ -284,45 +284,59 @@ export function ProjectEnvironmentsPage(props: { projectId: string; embedded?: b
           />
         ) : null}
 
-        <div className="overflow-hidden rounded-lg border border-border">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="px-4">
-                  {t("account:SETTINGS_PROJECT_ENVIRONMENTS_TITLE")}
-                </TableHead>
-                <TableHead>
-                  {t("account:SETTINGS_PROJECT_ENVIRONMENTS_ACTIVE_DEPLOYMENT")}
-                </TableHead>
-                <TableHead>{t("account:SETTINGS_PROJECT_ENVIRONMENTS_PRIMARY_DOMAIN")}</TableHead>
-                <TableHead className="px-4 text-right">
-                  {t("account:SETTINGS_PROJECT_ENVIRONMENTS_ACTIONS")}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {environments.map((environment) => (
-                <EnvironmentRow
-                  key={environment.id}
-                  environment={environment}
-                  activeDeployment={resolveActiveDeployment(
-                    deploymentsQuery.data ?? [],
-                    environment.id,
-                  )}
-                  canManage={canManage}
-                  domain={environment.isProduction ? primaryDomain : null}
-                  onCopy={(mode, source) => {
-                    setCopyOperation({ mode, source });
-                    setTargetEnvironmentId("");
-                    setIncludeContent(true);
-                  }}
-                  onEdit={setEditingEnvironment}
-                  pending={pending}
-                />
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        {permissionReady && environments.length === 0 ? (
+          <Empty className="min-h-72" data-testid="project-environments-empty">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Server />
+              </EmptyMedia>
+              <EmptyTitle>{t("account:SETTINGS_PROJECT_ENVIRONMENTS_EMPTY_TITLE")}</EmptyTitle>
+              <EmptyDescription>
+                {t("account:SETTINGS_PROJECT_ENVIRONMENTS_EMPTY_DESC")}
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          <div className="overflow-hidden rounded-lg border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="px-4">
+                    {t("account:SETTINGS_PROJECT_ENVIRONMENTS_TITLE")}
+                  </TableHead>
+                  <TableHead>
+                    {t("account:SETTINGS_PROJECT_ENVIRONMENTS_ACTIVE_DEPLOYMENT")}
+                  </TableHead>
+                  <TableHead>{t("account:SETTINGS_PROJECT_ENVIRONMENTS_PRIMARY_DOMAIN")}</TableHead>
+                  <TableHead className="px-4 text-right">
+                    {t("account:SETTINGS_PROJECT_ENVIRONMENTS_ACTIONS")}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {environments.map((environment) => (
+                  <EnvironmentRow
+                    key={environment.id}
+                    environment={environment}
+                    activeDeployment={resolveActiveDeployment(
+                      deploymentsQuery.data ?? [],
+                      environment.id,
+                    )}
+                    canManage={canManage}
+                    domain={environment.isProduction ? primaryDomain : null}
+                    onCopy={(mode, source) => {
+                      setCopyOperation({ mode, source });
+                      setTargetEnvironmentId("");
+                      setIncludeContent(true);
+                    }}
+                    onEdit={setEditingEnvironment}
+                    pending={pending}
+                  />
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
 
         {aliases.length > 0 ? (
           <section aria-labelledby="project-environment-aliases-title" className="space-y-3 pt-2">
@@ -526,23 +540,25 @@ export function ProjectEnvironmentsPage(props: { projectId: string; embedded?: b
                 : t("account:SETTINGS_PROJECT_ENVIRONMENTS_CLONE_TARGET_DESC")
             }
           >
-            <select
-              aria-label={t("account:SETTINGS_PROJECT_ENVIRONMENTS_TARGET")}
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground"
-              value={targetEnvironmentId}
-              onChange={(event) => setTargetEnvironmentId(event.target.value)}
-            >
-              <option value="" disabled>
-                {t("account:SETTINGS_PROJECT_ENVIRONMENTS_TARGET_PLACEHOLDER")}
-              </option>
-              {environments
-                .filter((environment) => environment.id !== copyOperation?.source.id)
-                .map((environment) => (
-                  <option key={environment.id} value={environment.id}>
-                    {environment.name} ({environment.key})
-                  </option>
-                ))}
-            </select>
+            <Select value={targetEnvironmentId} onValueChange={setTargetEnvironmentId}>
+              <SelectTrigger
+                className="w-full"
+                aria-label={t("account:SETTINGS_PROJECT_ENVIRONMENTS_TARGET")}
+              >
+                <SelectValue
+                  placeholder={t("account:SETTINGS_PROJECT_ENVIRONMENTS_TARGET_PLACEHOLDER")}
+                />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                {environments
+                  .filter((environment) => environment.id !== copyOperation?.source.id)
+                  .map((environment) => (
+                    <SelectItem key={environment.id} value={environment.id}>
+                      {environment.name} ({environment.key})
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
           </SettingDialogField>
           <SettingDialogField
             title={t("account:SETTINGS_PROJECT_ENVIRONMENTS_INCLUDE_CONTENT")}
@@ -597,18 +613,21 @@ export function ProjectEnvironmentsPage(props: { projectId: string; embedded?: b
             title={t("account:SETTINGS_PROJECT_ENVIRONMENTS_ALIAS_TARGET")}
             description={t("account:SETTINGS_PROJECT_ENVIRONMENTS_ALIAS_TARGET_DESC")}
           >
-            <select
-              aria-label={t("account:SETTINGS_PROJECT_ENVIRONMENTS_ALIAS_TARGET")}
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground"
-              value={targetEnvironmentId}
-              onChange={(event) => setTargetEnvironmentId(event.target.value)}
-            >
-              {environments.map((environment) => (
-                <option key={environment.id} value={environment.id}>
-                  {environment.name} ({environment.key})
-                </option>
-              ))}
-            </select>
+            <Select value={targetEnvironmentId} onValueChange={setTargetEnvironmentId}>
+              <SelectTrigger
+                className="w-full"
+                aria-label={t("account:SETTINGS_PROJECT_ENVIRONMENTS_ALIAS_TARGET")}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                {environments.map((environment) => (
+                  <SelectItem key={environment.id} value={environment.id}>
+                    {environment.name} ({environment.key})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </SettingDialogField>
         </SettingDialogFields>
       </SettingDialog>

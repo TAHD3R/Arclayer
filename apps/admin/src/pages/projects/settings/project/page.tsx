@@ -6,7 +6,6 @@ import { useTranslation } from "react-i18next";
 
 import {
   archiveProject,
-  checkProjectSlugAvailability,
   deleteProject,
   getProjectDangerCapabilities,
   getProjectDetail,
@@ -226,10 +225,8 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
   const { savingKey, withSavingKey } = useSavingKey();
   const permissionAccess = useProjectPermissionAccess(projectId);
   const [nameDraft, setNameDraft] = useState("");
-  const [slugDraft, setSlugDraft] = useState("");
   const [descriptionDraft, setDescriptionDraft] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
-  const [slugError, setSlugError] = useState<string | null>(null);
   const [descriptionError, setDescriptionError] = useState<string | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -265,10 +262,8 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
     const project = detailQuery.data?.project;
     if (!project) return;
     setNameDraft(project.name);
-    setSlugDraft(project.slug);
     setDescriptionDraft(project.description ?? "");
     setNameError(null);
-    setSlugError(null);
     setDescriptionError(null);
   }, [detailQuery.data]);
 
@@ -338,32 +333,23 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
 
   const resetIdentityDraft = () => {
     setNameDraft(project?.name ?? "");
-    setSlugDraft(project?.slug ?? "");
     setDescriptionDraft(project?.description ?? "");
     setNameError(null);
-    setSlugError(null);
     setDescriptionError(null);
   };
 
   const identityDirty = project
-    ? nameDraft !== project.name ||
-      slugDraft !== project.slug ||
-      descriptionDraft !== (project.description ?? "")
+    ? nameDraft !== project.name || descriptionDraft !== (project.description ?? "")
     : false;
 
   const saveProjectIdentity = () =>
     withSavingKey("project:identity", async () => {
       if (!project) throw new Error("PROJECT_DETAIL_REQUIRED");
       const nextName = nameDraft.trim();
-      const nextSlug = slugDraft.trim();
       const nextDescription = descriptionDraft.trim();
 
       if (!nextName) {
         setNameError(t("account:ACCOUNT_PROJECTS_FIELD_NAME_REQUIRED"));
-        throw new Error("FORM_VALIDATION_FAILED");
-      }
-      if (!nextSlug) {
-        setSlugError(t("account:ACCOUNT_PROJECTS_FIELD_SLUG_REQUIRED"));
         throw new Error("FORM_VALIDATION_FAILED");
       }
       if (descriptionDraft.length > PROJECT_DESCRIPTION_MAX_LENGTH) {
@@ -375,33 +361,10 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
         throw new Error("FORM_VALIDATION_FAILED");
       }
 
-      let normalizedSlug = project.slug;
-      if (nextSlug !== project.slug) {
-        const availability = await checkProjectSlugAvailability(
-          project.workspaceId,
-          nextSlug,
-          projectId,
-        );
-        if (!availability.available || !availability.normalizedSlug) {
-          const errorKey =
-            availability.reason === "reserved"
-              ? "account:ACCOUNT_PROJECTS_FIELD_SLUG_RESERVED"
-              : availability.reason === "exists"
-                ? "account:ACCOUNT_PROJECTS_FIELD_SLUG_EXISTS"
-                : "account:ACCOUNT_PROJECTS_FIELD_SLUG_INVALID";
-          setSlugError(t(errorKey));
-          throw new Error("FORM_VALIDATION_FAILED");
-        }
-        normalizedSlug = availability.normalizedSlug;
-        setSlugDraft(normalizedSlug);
-      }
-
       setNameError(null);
-      setSlugError(null);
       setDescriptionError(null);
       await handlePatchProject({
         name: nextName,
-        slug: normalizedSlug,
         description: nextDescription || null,
       });
     });
@@ -473,7 +436,7 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
           </Button>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid gap-5">
           <div className="grid content-start gap-2">
             <div className="flex items-center justify-between gap-3">
               <label htmlFor="project-name-input" className="text-headline text-label-primary">
@@ -504,32 +467,7 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
             <FieldMessage message={nameError} />
           </div>
 
-          <div className="grid content-start gap-2">
-            <label htmlFor="project-slug-input" className="text-headline text-label-primary">
-              {t("account:ACCOUNT_PROJECTS_FIELD_SLUG")}
-            </label>
-            <p className="text-footnote text-label-secondary">
-              {t("account:ACCOUNT_PROJECTS_FIELD_SLUG_HELP")}
-            </p>
-            <Input
-              id="project-slug-input"
-              name="slug"
-              data-testid="project-slug-input"
-              value={slugDraft}
-              disabled={disabled || !project}
-              onChange={(event) => {
-                setSlugDraft(event.target.value);
-                setSlugError(null);
-              }}
-              placeholder={t("account:ACCOUNT_PROJECTS_FIELD_SLUG_PLACEHOLDER")}
-              aria-invalid={Boolean(slugError)}
-              autoComplete="off"
-              spellCheck={false}
-            />
-            <FieldMessage message={slugError} />
-          </div>
-
-          <div className="grid gap-2 md:col-span-2">
+          <div className="grid gap-2">
             <div className="flex items-center justify-between gap-3">
               <label
                 htmlFor="project-description-input"

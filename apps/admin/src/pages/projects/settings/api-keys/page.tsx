@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, KeyRound, Plus, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
+import { Copy, KeyRound, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -19,6 +19,7 @@ import { copyToClipboard } from "@/lib/clipboard";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { Button } from "@arclayer/ui/button";
 import { Checkbox } from "@arclayer/ui/checkbox";
+import { DateTimeField } from "@arclayer/ui/date-time-range-field";
 import {
   Empty,
   EmptyContent,
@@ -28,7 +29,7 @@ import {
   EmptyTitle,
 } from "@arclayer/ui/empty";
 import { Input } from "@arclayer/ui/input";
-import { NativeSelect, NativeSelectOption } from "@arclayer/ui/native-select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
@@ -395,7 +396,6 @@ export function ProjectApiKeysSettingsPage(props: { projectId: string; embedded?
   };
   const createButton = canManage ? (
     <Button type="button" onClick={openCreate} data-testid="project-api-key-create-trigger">
-      <Plus aria-hidden="true" />
       {t("account:SETTINGS_PROJECT_API_KEYS_CREATE_ACTION")}
     </Button>
   ) : null;
@@ -441,10 +441,7 @@ export function ProjectApiKeysSettingsPage(props: { projectId: string; embedded?
           />
         ) : null}
         {permissionReady && items.length === 0 ? (
-          <Empty
-            className="min-h-64 border border-dashed border-border"
-            data-testid="project-api-keys-settings-list"
-          >
+          <Empty className="min-h-64" data-testid="project-api-keys-settings-list">
             <EmptyHeader>
               <EmptyMedia variant="icon">
                 <KeyRound />
@@ -520,14 +517,10 @@ export function ProjectApiKeysSettingsPage(props: { projectId: string; embedded?
             title={t("account:SETTINGS_PROJECT_API_KEYS_FAMILY_LABEL")}
             description={t("account:SETTINGS_PROJECT_API_KEYS_FAMILY_DESC")}
           >
-            <NativeSelect
-              id="project-api-key-family"
-              name="family"
-              aria-label={t("account:SETTINGS_PROJECT_API_KEYS_FAMILY_LABEL")}
-              className="w-full"
+            <Select
               value={form.family}
-              onChange={(event) => {
-                const family = event.target.value as ProjectKeyFamily;
+              onValueChange={(value) => {
+                const family = value as ProjectKeyFamily;
                 setForm((current) => ({
                   ...current,
                   family,
@@ -535,13 +528,22 @@ export function ProjectApiKeysSettingsPage(props: { projectId: string; embedded?
                 }));
               }}
             >
-              <NativeSelectOption value="delivery">
-                {t("account:SETTINGS_PROJECT_API_KEYS_FAMILY_DELIVERY")}
-              </NativeSelectOption>
-              <NativeSelectOption value="workspace_service">
-                {t("account:SETTINGS_PROJECT_API_KEYS_FAMILY_SERVICE")}
-              </NativeSelectOption>
-            </NativeSelect>
+              <SelectTrigger
+                id="project-api-key-family"
+                className="w-full"
+                aria-label={t("account:SETTINGS_PROJECT_API_KEYS_FAMILY_LABEL")}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                <SelectItem value="delivery">
+                  {t("account:SETTINGS_PROJECT_API_KEYS_FAMILY_DELIVERY")}
+                </SelectItem>
+                <SelectItem value="workspace_service">
+                  {t("account:SETTINGS_PROJECT_API_KEYS_FAMILY_SERVICE")}
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </SettingDialogField>
           <SettingDialogField title={t("account:SETTINGS_PROJECT_API_KEYS_NAME")}>
             <Input
@@ -599,26 +601,31 @@ export function ProjectApiKeysSettingsPage(props: { projectId: string; embedded?
               title={t("account:SETTINGS_PROJECT_API_KEYS_PERSPECTIVE_LABEL")}
               description={t("account:SETTINGS_PROJECT_API_KEYS_PERSPECTIVE_DESC")}
             >
-              <NativeSelect
-                id="project-api-key-perspective"
-                name="deliveryPerspective"
-                aria-label={t("account:SETTINGS_PROJECT_API_KEYS_PERSPECTIVE_LABEL")}
-                className="w-full"
+              <Select
                 value={form.perspective}
-                onChange={(event) =>
+                onValueChange={(value) =>
                   setForm((current) => ({
                     ...current,
-                    perspective: event.target.value as DeliveryKeyPerspective,
+                    perspective: value as DeliveryKeyPerspective,
                   }))
                 }
               >
-                <NativeSelectOption value="published">
-                  {t("account:SETTINGS_PROJECT_API_KEYS_PERSPECTIVE_PUBLISHED")}
-                </NativeSelectOption>
-                <NativeSelectOption value="preview">
-                  {t("account:SETTINGS_PROJECT_API_KEYS_PERSPECTIVE_PREVIEW")}
-                </NativeSelectOption>
-              </NativeSelect>
+                <SelectTrigger
+                  id="project-api-key-perspective"
+                  className="w-full"
+                  aria-label={t("account:SETTINGS_PROJECT_API_KEYS_PERSPECTIVE_LABEL")}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent position="popper">
+                  <SelectItem value="published">
+                    {t("account:SETTINGS_PROJECT_API_KEYS_PERSPECTIVE_PUBLISHED")}
+                  </SelectItem>
+                  <SelectItem value="preview">
+                    {t("account:SETTINGS_PROJECT_API_KEYS_PERSPECTIVE_PREVIEW")}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </SettingDialogField>
           ) : null}
           <SettingDialogField
@@ -628,15 +635,12 @@ export function ProjectApiKeysSettingsPage(props: { projectId: string; embedded?
               expiryInvalid ? t("account:SETTINGS_PROJECT_API_KEYS_EXPIRES_INVALID") : undefined
             }
           >
-            <Input
+            <DateTimeField
               id="project-api-key-expires-at"
               name="expiresAt"
-              aria-label={t("account:SETTINGS_PROJECT_API_KEYS_EXPIRES_AT")}
-              type="datetime-local"
+              ariaLabel={t("account:SETTINGS_PROJECT_API_KEYS_EXPIRES_AT")}
               value={form.expiresAt}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, expiresAt: event.target.value }))
-              }
+              onChange={(value) => setForm((current) => ({ ...current, expiresAt: value ?? "" }))}
             />
           </SettingDialogField>
         </SettingDialogFields>

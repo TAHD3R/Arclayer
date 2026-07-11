@@ -108,7 +108,6 @@ function ReleaseHeader(props: {
           onClick={props.onPublish}
           data-testid="project-release-publish"
         >
-          <Rocket aria-hidden="true" />
           {t("SETTINGS_PROJECT_RELEASES_PUBLISH")}
         </Button>
       </div>

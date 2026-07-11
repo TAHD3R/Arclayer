@@ -147,9 +147,15 @@ describe("ProjectApiKeysSettingsPage", () => {
     renderPage();
 
     await user.click(await screen.findByTestId("project-api-key-create-trigger"));
-    await user.selectOptions(
-      screen.getByLabelText("account:SETTINGS_PROJECT_API_KEYS_FAMILY_LABEL"),
-      "workspace_service",
+    await user.click(
+      screen.getByRole("combobox", {
+        name: "account:SETTINGS_PROJECT_API_KEYS_FAMILY_LABEL",
+      }),
+    );
+    await user.click(
+      screen.getByRole("option", {
+        name: "account:SETTINGS_PROJECT_API_KEYS_FAMILY_SERVICE",
+      }),
     );
 
     expect(
@@ -176,9 +182,15 @@ describe("ProjectApiKeysSettingsPage", () => {
       "Preview site",
     );
     await user.click(screen.getByLabelText("SETTINGS_PROJECT_API_KEYS_SCOPE_GRAPHQL_READ"));
-    await user.selectOptions(
-      screen.getByLabelText("account:SETTINGS_PROJECT_API_KEYS_PERSPECTIVE_LABEL"),
-      "preview",
+    await user.click(
+      screen.getByRole("combobox", {
+        name: "account:SETTINGS_PROJECT_API_KEYS_PERSPECTIVE_LABEL",
+      }),
+    );
+    await user.click(
+      screen.getByRole("option", {
+        name: "account:SETTINGS_PROJECT_API_KEYS_PERSPECTIVE_PREVIEW",
+      }),
     );
     await user.type(
       screen.getByLabelText("account:SETTINGS_PROJECT_API_KEYS_EXPIRES_AT"),

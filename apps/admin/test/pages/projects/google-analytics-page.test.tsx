@@ -1,13 +1,16 @@
 import type { PropsWithChildren } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProjectGoogleAnalyticsPage } from "@/pages/projects/seo/page";
 
 const getProjectCoreSettingsMock = vi.fn();
 const patchProjectCoreSettingsMock = vi.fn();
+const listProjectDomainsMock = vi.fn();
 const hasActionMock = vi.fn();
+const navigateMock = vi.fn();
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -18,6 +21,14 @@ vi.mock("react-i18next", () => ({
 vi.mock("@/api/settings", () => ({
   getProjectCoreSettings: (...args: unknown[]) => getProjectCoreSettingsMock(...args),
   patchProjectCoreSettings: (...args: unknown[]) => patchProjectCoreSettingsMock(...args),
+}));
+
+vi.mock("@/api/project-settings", () => ({
+  listProjectDomains: (...args: unknown[]) => listProjectDomainsMock(...args),
+}));
+
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => navigateMock,
 }));
 
 vi.mock("@/hooks/use-workspace-permission-access", () => ({
@@ -66,8 +77,38 @@ describe("ProjectGoogleAnalyticsPage", () => {
   beforeEach(() => {
     getProjectCoreSettingsMock.mockReset();
     patchProjectCoreSettingsMock.mockReset();
+    listProjectDomainsMock.mockReset();
     hasActionMock.mockReset();
+    navigateMock.mockReset();
     hasActionMock.mockReturnValue(true);
+    listProjectDomainsMock.mockResolvedValue([
+      {
+        bindingId: "domain-1",
+        hostname: "www.example.com",
+        source: "custom",
+        isVerified: true,
+        isActive: true,
+      },
+    ]);
+  });
+
+  it("requires an active verified custom domain before analytics configuration", async () => {
+    const user = userEvent.setup();
+    listProjectDomainsMock.mockResolvedValueOnce([]);
+    getProjectCoreSettingsMock.mockResolvedValue({ value: {} });
+
+    renderWithQuery(<ProjectGoogleAnalyticsPage projectId="project-1" />);
+
+    expect(await screen.findByTestId("google-analytics-domain-required")).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", {
+        name: "account:PROJECT_SEO_GOOGLE_ANALYTICS_DOMAIN_REQUIRED_ACTION",
+      }),
+    );
+    expect(navigateMock).toHaveBeenCalledWith({
+      to: "/projects/$projectId/website/domain",
+      params: { projectId: "project-1" },
+    });
   });
 
   it("shows runtime linkage when analytics can be injected into the site source", async () => {

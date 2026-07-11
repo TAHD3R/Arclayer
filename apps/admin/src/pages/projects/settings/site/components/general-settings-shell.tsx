@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Globe2, Languages, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
@@ -10,6 +9,7 @@ import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-acc
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import type { JsonValueInput } from "@arclayer/openapi/admin-types";
 import { Form } from "@arclayer/ui/form";
+import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@arclayer/ui/chrome-tabs";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
@@ -121,68 +121,30 @@ export function GeneralSettingsShell({ projectId, embedded = false }: GeneralSet
         />
       ) : null}
       <Form {...form}>
-        <div className="flex min-w-0 flex-col gap-6">
-          <div
-            role="tablist"
+        <ChromeTabs
+          value={activeSection}
+          onValueChange={(value) => setActiveSection(value as WebsiteSettingsSection)}
+          className="flex min-w-0 flex-col"
+        >
+          <ChromeTabsList
             aria-label={t("settings:SETTINGS_SITE_SETTINGS_TITLE")}
-            className="grid gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-3"
+            className="border-b border-border"
+            wrapperClassName="mb-8"
           >
-            {[
-              {
-                key: "identity" as const,
-                icon: Globe2,
-                title: t("settings:SETTINGS_SITE_BASICS_IDENTITY_PANEL_TITLE"),
-                description: t("settings:SETTINGS_SITE_BASICS_IDENTITY_PANEL_DESC"),
-              },
-              {
-                key: "discovery" as const,
-                icon: Search,
-                title: t("settings:SETTINGS_SITE_BASICS_BROWSER_PANEL_TITLE"),
-                description: t("settings:SETTINGS_SITE_BASICS_BROWSER_PANEL_DESC"),
-              },
-              {
-                key: "localization" as const,
-                icon: Languages,
-                title: t("settings:SETTINGS_SITE_LOCALIZATION_PANEL_TITLE"),
-                description: t("settings:SETTINGS_SITE_LOCALIZATION_PANEL_DESC"),
-              },
-            ].map((item) => {
-              const Icon = item.icon;
-              const selected = activeSection === item.key;
-              return (
-                <button
-                  key={item.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={selected}
-                  data-testid={`website-settings-tab-${item.key}`}
-                  className={
-                    selected
-                      ? "flex min-w-0 items-start gap-3 bg-background px-4 py-4 text-left"
-                      : "flex min-w-0 items-start gap-3 bg-muted/50 px-4 py-4 text-left hover:bg-background"
-                  }
-                  onClick={() => setActiveSection(item.key)}
-                >
-                  <Icon
-                    className="mt-0.5 size-4 shrink-0 text-label-secondary"
-                    aria-hidden="true"
-                  />
-                  <span className="min-w-0">
-                    <span className="block text-headline font-medium text-label-primary">
-                      {item.title}
-                    </span>
-                    <span className="mt-1 line-clamp-2 block text-footnote text-label-secondary">
-                      {item.description}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+            <ChromeTabsTrigger value="identity" data-testid="website-settings-tab-identity">
+              {t("settings:SETTINGS_SITE_BASICS_IDENTITY_PANEL_TITLE")}
+            </ChromeTabsTrigger>
+            <ChromeTabsTrigger value="discovery" data-testid="website-settings-tab-discovery">
+              {t("settings:SETTINGS_SITE_BASICS_BROWSER_PANEL_TITLE")}
+            </ChromeTabsTrigger>
+            <ChromeTabsTrigger value="localization" data-testid="website-settings-tab-localization">
+              {t("settings:SETTINGS_SITE_LOCALIZATION_PANEL_TITLE")}
+            </ChromeTabsTrigger>
+          </ChromeTabsList>
 
-          {activeSection === "identity" || activeSection === "discovery" ? (
+          {activeSection === "identity" ? (
             <SiteSettingsTab
-              section={activeSection}
+              section="identity"
               assetProjectId={projectId}
               form={form}
               initialValues={initialValues}
@@ -191,7 +153,20 @@ export function GeneralSettingsShell({ projectId, embedded = false }: GeneralSet
               withSavingKey={withSavingKey}
               patch={patchProject}
             />
-          ) : (
+          ) : null}
+          {activeSection === "discovery" ? (
+            <SiteSettingsTab
+              section="discovery"
+              assetProjectId={projectId}
+              form={form}
+              initialValues={initialValues}
+              disabled={projectDisabled}
+              savingKey={savingKey}
+              withSavingKey={withSavingKey}
+              patch={patchProject}
+            />
+          ) : null}
+          {activeSection === "localization" ? (
             <LocalizationSettingsTab
               form={form}
               initialValues={initialValues}
@@ -200,8 +175,8 @@ export function GeneralSettingsShell({ projectId, embedded = false }: GeneralSet
               withSavingKey={withSavingKey}
               patch={patchProject}
             />
-          )}
-        </div>
+          ) : null}
+        </ChromeTabs>
       </Form>
     </ContentGuard>
   );

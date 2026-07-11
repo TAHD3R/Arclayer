@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Database, KeyRound, Plus } from "lucide-react";
+import { Database, KeyRound } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -28,7 +28,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@arclayer/ui/empty";
-import { NativeSelect, NativeSelectOption } from "@arclayer/ui/native-select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
@@ -204,7 +204,6 @@ export function ProjectDatabasesPage(props: { projectId: string; embedded?: bool
         setCreateOpen(true);
       }}
     >
-      <Plus size={16} />
       {t("account:SETTINGS_PROJECT_DATABASES_CREATE_ACTION")}
     </Button>
   ) : null;
@@ -236,10 +235,7 @@ export function ProjectDatabasesPage(props: { projectId: string; embedded?: bool
         ) : null}
 
         {permissionReady && databases.length === 0 ? (
-          <Empty
-            className="min-h-72 border border-dashed border-border"
-            data-testid="project-databases-empty"
-          >
+          <Empty className="min-h-72" data-testid="project-databases-empty">
             <EmptyHeader>
               <EmptyMedia variant="icon">
                 <Database />
@@ -339,23 +335,24 @@ export function ProjectDatabasesPage(props: { projectId: string; embedded?: bool
             title={t("account:SETTINGS_PROJECT_DATABASES_TARGET_ENVIRONMENT")}
             description={t("account:SETTINGS_PROJECT_DATABASES_TARGET_ENVIRONMENT_DESC")}
           >
-            <NativeSelect
-              id="project-database-environment"
-              name="environmentId"
-              aria-label={t("account:SETTINGS_PROJECT_DATABASES_TARGET_ENVIRONMENT")}
-              className="w-full"
-              value={environmentId}
-              onChange={(event) => setEnvironmentId(event.target.value)}
-            >
-              <NativeSelectOption value="" disabled>
-                {t("account:SETTINGS_PROJECT_DATABASES_TARGET_ENVIRONMENT")}
-              </NativeSelectOption>
-              {environments.map((environment: ProjectEnvironmentOut) => (
-                <NativeSelectOption key={environment.id} value={environment.id}>
-                  {environment.name}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+            <Select value={environmentId} onValueChange={setEnvironmentId}>
+              <SelectTrigger
+                id="project-database-environment"
+                className="w-full"
+                aria-label={t("account:SETTINGS_PROJECT_DATABASES_TARGET_ENVIRONMENT")}
+              >
+                <SelectValue
+                  placeholder={t("account:SETTINGS_PROJECT_DATABASES_TARGET_ENVIRONMENT")}
+                />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                {environments.map((environment: ProjectEnvironmentOut) => (
+                  <SelectItem key={environment.id} value={environment.id}>
+                    {environment.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </SettingDialogField>
           <SettingDialogField
             title={t("account:SETTINGS_PROJECT_DATABASES_ENGINE")}

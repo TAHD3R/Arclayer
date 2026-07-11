@@ -277,7 +277,7 @@ describe("ProjectSettingsPage permission consumption", () => {
     );
     expect(screen.getByTestId("project-icon-action")).toBeDisabled();
     expect(screen.getByTestId("project-name-input")).toBeDisabled();
-    expect(screen.getByTestId("project-slug-input")).toBeDisabled();
+    expect(screen.queryByTestId("project-slug-input")).not.toBeInTheDocument();
     expect(screen.getByTestId("project-description-input")).toBeDisabled();
   });
 
@@ -289,7 +289,7 @@ describe("ProjectSettingsPage permission consumption", () => {
     await waitFor(() => {
       expect(screen.getByTestId("project-icon-action")).toBeDisabled();
       expect(screen.getByTestId("project-name-input")).toBeDisabled();
-      expect(screen.getByTestId("project-slug-input")).toBeDisabled();
+      expect(screen.queryByTestId("project-slug-input")).not.toBeInTheDocument();
       expect(screen.getByTestId("project-description-input")).toBeDisabled();
     });
     expect(screen.queryByText("account:SETTINGS_PROJECT_READ_ONLY_DESC")).not.toBeInTheDocument();
@@ -334,6 +334,7 @@ describe("ProjectSettingsPage permission consumption", () => {
     expect(screen.queryByTestId("project-source-framework-evaluation")).not.toBeInTheDocument();
     expect(screen.queryByTestId("project-source-runtime-binding")).not.toBeInTheDocument();
     expect(screen.queryByTestId("project-source-workflow-contract")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("project-slug-input")).not.toBeInTheDocument();
   });
 
   it("archives the project only after explicit confirmation", async () => {

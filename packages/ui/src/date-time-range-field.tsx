@@ -11,6 +11,16 @@ type DateTimeRangeFieldProps = {
   disabled?: boolean;
 };
 
+type DateTimeFieldProps = {
+  value?: string;
+  onChange: (nextValue?: string) => void;
+  placeholder?: string;
+  ariaLabel?: string;
+  disabled?: boolean;
+  id?: string;
+  name?: string;
+};
+
 function formatLocalDateSegment(value: number) {
   return String(value).padStart(2, "0");
 }
@@ -36,6 +46,22 @@ export function dateTimeLocalValueToIso(value?: string): string | undefined {
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) return undefined;
   return date.toISOString();
+}
+
+export function DateTimeField(props: DateTimeFieldProps) {
+  return (
+    <Input
+      id={props.id}
+      name={props.name}
+      type="datetime-local"
+      step={60}
+      value={isoToDateTimeLocalValue(props.value)}
+      placeholder={props.placeholder}
+      aria-label={props.ariaLabel}
+      disabled={props.disabled}
+      onChange={(event) => props.onChange(dateTimeLocalValueToIso(event.target.value))}
+    />
+  );
 }
 
 export function DateTimeRangeField(props: DateTimeRangeFieldProps) {
