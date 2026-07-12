@@ -69,7 +69,7 @@ const buildLabels = (overrides: Record<string, string> = {}) =>
   buildDataTableToolsLabels((key) => overrides[key] ?? key);
 
 describe("PageExtraToolbar alignment", () => {
-  it("keeps projects tabs vertically centered with trailing actions", () => {
+  it("places project controls below the tabs with filters left and view mode right", () => {
     renderWithChromeTabs(
       <UserCenterProjectsToolbar
         t={(key) =>
@@ -103,9 +103,30 @@ describe("PageExtraToolbar alignment", () => {
       />,
     );
 
-    const toolbar = getToolbarFromTablist();
-    expect(toolbar).toHaveClass("items-center");
-    expect(toolbar).not.toHaveClass("items-start");
+    const tablist = screen.getByRole("tablist");
+    const tabsRow = tablist.closest('[data-slot="projects-tabs-row"]');
+    const controlsRow = screen
+      .getByPlaceholderText("Search projects")
+      .closest('[data-slot="projects-controls-row"]');
+
+    expect(tabsRow).not.toBeNull();
+    expect(controlsRow).not.toBeNull();
+    expect(tabsRow).not.toBe(controlsRow);
+
+    const search = screen.getByPlaceholderText("Search projects");
+    const filters = search.closest("div.flex.flex-1");
+    const sort = screen.getByRole("combobox", {
+      name: "account:ACCOUNT_PROJECTS_SORT_LABEL",
+    });
+    const viewMode = screen.getByRole("radiogroup", {
+      name: "common:VIEW_MODE_CARD, common:VIEW_MODE_TABLE",
+    });
+
+    expect(filters).toContainElement(sort);
+    expect(filters).not.toContainElement(viewMode);
+    expect(sort).toHaveAttribute("data-size", "default");
+    expect(search.closest('[data-slot="input-group"]')).toHaveClass("w-[min(100%,18rem)]");
+    expect(viewMode.parentElement).toHaveClass("justify-end");
   });
 
   it("keeps invitation tabs vertically centered with trailing tools and search", () => {

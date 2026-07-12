@@ -78,9 +78,8 @@ function toSorting(value: UserCenterProjectsSortValue): SortingState {
 
 export function UserCenterProjectsToolbar(props: UserCenterProjectsToolbarProps) {
   return (
-    <PageExtraToolbar
-      className="items-center"
-      leading={
+    <div className="flex flex-col gap-3" data-slot="projects-toolbar">
+      <div className="flex items-center" data-slot="projects-tabs-row">
         <ChromeTabsList className="w-auto">
           <ChromeTabsTrigger value="active">
             {props.t("account:ACCOUNT_PROJECTS_TAB_ACTIVE")}
@@ -89,64 +88,72 @@ export function UserCenterProjectsToolbar(props: UserCenterProjectsToolbarProps)
             {props.t("account:ACCOUNT_PROJECTS_TAB_ARCHIVED")}
           </ChromeTabsTrigger>
         </ChromeTabsList>
-      }
-      trailing={
-        <>
-          <Select
-            value={toSortValue(props.sorting)}
-            onValueChange={(next) =>
-              props.onSortingChange?.(toSorting(next as UserCenterProjectsSortValue))
-            }
-          >
-            <SelectTrigger
-              size="sm"
-              className="w-40 min-w-40"
-              aria-label={props.t("account:ACCOUNT_PROJECTS_SORT_LABEL")}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent
-              align="end"
-              position="popper"
-              className="w-(--radix-select-trigger-width) min-w-(--radix-select-trigger-width)"
-            >
-              <SelectGroup>
-                {PROJECT_SORT_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {props.t(option.labelKey)}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+      </div>
 
-          {props.viewMode === "table" ? (
-            <DataTableToolbarTools
-              table={props.table}
-              rowHeight={props.rowHeight}
-              onRowHeightChange={props.onRowHeightChange}
-              wrapHeaders={props.wrapHeaders}
-              onWrapHeadersChange={props.onWrapHeadersChange}
-              onRefresh={props.onRefresh}
-              refreshing={props.refreshing}
-              onResetColumnVisibility={props.onResetColumnVisibility}
-              labels={props.labels}
-              components={{ IconButton: DataTableToolbarAntdIconButton }}
-            />
-          ) : null}
+      <div data-slot="projects-controls-row">
+        <PageExtraToolbar
+          className="items-center"
+          leading={
+            <>
+              <DataTableSearchInput
+                value={props.searchInput}
+                onChange={props.onSearchInputChange}
+                placeholder={props.t("account:ACCOUNT_PROJECTS_SEARCH_PLACEHOLDER")}
+                clearLabel={props.t("common:CLEAR")}
+                className="w-[min(100%,18rem)]"
+              />
 
-          <ViewModeToggle t={props.t} value={props.viewMode} onChange={props.onViewModeChange} />
+              <Select
+                value={toSortValue(props.sorting)}
+                onValueChange={(next) =>
+                  props.onSortingChange?.(toSorting(next as UserCenterProjectsSortValue))
+                }
+              >
+                <SelectTrigger
+                  size="default"
+                  className="w-40 min-w-40"
+                  aria-label={props.t("account:ACCOUNT_PROJECTS_SORT_LABEL")}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent
+                  align="start"
+                  position="popper"
+                  className="w-(--radix-select-trigger-width) min-w-(--radix-select-trigger-width)"
+                >
+                  <SelectGroup>
+                    {PROJECT_SORT_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {props.t(option.labelKey)}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
 
-          <DataTableSearchInput
-            value={props.searchInput}
-            onChange={props.onSearchInputChange}
-            placeholder={props.t("account:ACCOUNT_PROJECTS_SEARCH_PLACEHOLDER")}
-            clearLabel={props.t("common:CLEAR")}
-          />
-        </>
-      }
-      leadingClassName="items-center"
-      trailingClassName="justify-end"
-    />
+              {props.viewMode === "table" ? (
+                <DataTableToolbarTools
+                  table={props.table}
+                  rowHeight={props.rowHeight}
+                  onRowHeightChange={props.onRowHeightChange}
+                  wrapHeaders={props.wrapHeaders}
+                  onWrapHeadersChange={props.onWrapHeadersChange}
+                  onRefresh={props.onRefresh}
+                  refreshing={props.refreshing}
+                  onResetColumnVisibility={props.onResetColumnVisibility}
+                  labels={props.labels}
+                  components={{ IconButton: DataTableToolbarAntdIconButton }}
+                />
+              ) : null}
+            </>
+          }
+          trailing={
+            <ViewModeToggle t={props.t} value={props.viewMode} onChange={props.onViewModeChange} />
+          }
+          leadingClassName="items-center"
+          trailingClassName="justify-end"
+        />
+      </div>
+    </div>
   );
 }
