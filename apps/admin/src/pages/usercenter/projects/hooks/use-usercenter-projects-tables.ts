@@ -24,7 +24,7 @@ export function useUserCenterProjectsTables(options: UseUserCenterProjectsTables
   const activeTableHook = useDataTable<UserCenterProjectListItem>({
     tableId: activeTableId,
     columns,
-    initialState: { pageSize: 10 },
+    initialState: { pageSize: 10, sorting: [{ id: "createdAt", desc: true }] },
     fetcher: async (params) => {
       const result = await listProjects({
         workspaceId,
@@ -49,7 +49,7 @@ export function useUserCenterProjectsTables(options: UseUserCenterProjectsTables
   const archivedTableHook = useDataTable<UserCenterProjectListItem>({
     tableId: archivedTableId,
     columns,
-    initialState: { pageSize: 10 },
+    initialState: { pageSize: 10, sorting: [{ id: "createdAt", desc: true }] },
     fetcher: async (params) => {
       const result = await listProjects({
         workspaceId,

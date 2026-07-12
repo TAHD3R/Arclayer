@@ -409,30 +409,24 @@ export function useProjectMenuActions({
           label: t("account:ACCOUNT_PROJECTS_ACTION_MANAGE"),
           onClick: () => onManageProject(project),
         },
+        { key: "edit-divider", label: "", type: "divider" },
         {
-          key: "edit-project",
+          key: "rename",
           icon: <Pencil className="size-4" />,
-          label: t("account:ACCOUNT_PROJECTS_ACTION_EDIT_PROJECT"),
-          children: [
-            {
-              key: "rename",
-              icon: <Pencil className="size-4" />,
-              label: t("account:ACCOUNT_PROJECTS_ACTION_RENAME"),
-              onClick: () => startRenameProject(project),
-            },
-            {
-              key: "edit-description",
-              icon: <Pencil className="size-4" />,
-              label: t("account:ACCOUNT_PROJECTS_ACTION_EDIT_DESCRIPTION"),
-              onClick: () => startEditProjectDescription(project),
-            },
-            {
-              key: "change-icon",
-              icon: <Palette className="size-4" />,
-              label: t("account:ACCOUNT_PROJECTS_ACTION_CHANGE_ICON"),
-              onClick: () => openIconDialog(project),
-            },
-          ],
+          label: t("account:ACCOUNT_PROJECTS_ACTION_RENAME"),
+          onClick: () => startRenameProject(project),
+        },
+        {
+          key: "edit-description",
+          icon: <Pencil className="size-4" />,
+          label: t("account:ACCOUNT_PROJECTS_ACTION_EDIT_DESCRIPTION"),
+          onClick: () => startEditProjectDescription(project),
+        },
+        {
+          key: "change-icon",
+          icon: <Palette className="size-4" />,
+          label: t("account:ACCOUNT_PROJECTS_ACTION_CHANGE_ICON"),
+          onClick: () => openIconDialog(project),
         },
         {
           key: "archive-trash-divider",
@@ -440,30 +434,19 @@ export function useProjectMenuActions({
           type: "divider",
         },
         {
-          key: "archive-trash",
+          key: "archive",
           icon: <Archive className="size-4" />,
-          label: t("account:ACCOUNT_PROJECTS_ACTION_ARCHIVE_TRASH"),
-          children: [
-            {
-              key: "archive",
-              icon: <Archive className="size-4" />,
-              label: t("account:ACCOUNT_PROJECTS_ACTION_ARCHIVE"),
-              disabled: archiveDisabled,
-              onClick: () => {
-                void requestArchiveProject(project);
-              },
-            },
-            {
-              key: "delete",
-              danger: true,
-              icon: <Trash2 className="size-4" />,
-              label: t("account:ACCOUNT_PROJECTS_ACTION_DELETE"),
-              disabled: deleteDisabled,
-              onClick: () => {
-                void requestDeleteProject(project);
-              },
-            },
-          ],
+          label: t("account:ACCOUNT_PROJECTS_ACTION_ARCHIVE"),
+          disabled: archiveDisabled,
+          onClick: () => void requestArchiveProject(project),
+        },
+        {
+          key: "delete",
+          danger: true,
+          icon: <Trash2 className="size-4" />,
+          label: t("account:ACCOUNT_PROJECTS_ACTION_DELETE"),
+          disabled: deleteDisabled,
+          onClick: () => void requestDeleteProject(project),
         },
       ];
     },

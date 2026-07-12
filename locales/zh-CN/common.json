@@ -320,7 +320,7 @@
   "SELECT_NONE": "全不选",
   "SETTINGS_SAVED": "已保存",
   "SIDEBAR_BROWSE_PROJECT_DESCRIPTION_FALLBACK": "暂无描述",
-  "SIDEBAR_CHAT_EMPTY_DESC": "开始一个对话后，它会保留在这里，方便你随时继续。",
+  "SIDEBAR_CHAT_EMPTY_DESC": "有想法就聊聊，之后随时回来接着说。",
   "SIDEBAR_CHAT_EMPTY_TITLE": "暂无对话",
   "SIDEBAR_RAIL_TOOLTIP": "展开或收起侧边栏",
   "SIDEBAR_RAIL_TOOLTIP_SHORTCUT": "点击或 {{shortcut}}",

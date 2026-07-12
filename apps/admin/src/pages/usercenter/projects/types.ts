@@ -6,6 +6,14 @@ export type UserCenterProjectsTab = "active" | "archived";
 
 export type UserCenterProjectsViewMode = "card" | "table";
 
+export type UserCenterProjectsSortValue =
+  | "-created_at"
+  | "created_at"
+  | "name"
+  | "-name"
+  | "member_count"
+  | "-member_count";
+
 export type UserCenterProjectsTranslateFn = (
   key: string,
   options?: Record<string, unknown>,

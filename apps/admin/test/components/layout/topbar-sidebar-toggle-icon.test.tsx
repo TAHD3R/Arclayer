@@ -216,6 +216,11 @@ describe("topbar sidebar toggle icon", () => {
     expect(assetsButton.querySelector("svg,img")).toBeNull();
 
     await user.click(projectButton);
+    const projectMenu = screen.getByRole("menu");
+    expect(projectMenu).toHaveClass(
+      "max-h-[min(28rem,var(--radix-dropdown-menu-content-available-height))]",
+    );
+    expect(projectMenu.querySelector(".overflow-y-auto")).not.toBeNull();
     await user.click(await screen.findByRole("menuitem", { name: /Project Beta/ }));
     expect(handleProjectSelect).toHaveBeenCalledWith("project-beta");
 

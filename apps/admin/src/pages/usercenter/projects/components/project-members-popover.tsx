@@ -125,7 +125,7 @@ export function ProjectMembersPopover({
         align="start"
         sideOffset={8}
         collisionPadding={16}
-        className="flex w-80 max-w-[90vw] max-h-(--radix-popover-content-available-height) flex-col overflow-hidden p-3"
+        className="flex max-h-(--radix-popover-content-available-height) w-80 max-w-[calc(100vw-2rem)] flex-col overflow-hidden p-3"
         onOpenAutoFocus={(event) => event.preventDefault()}
         onCloseAutoFocus={(event) => event.preventDefault()}
       >

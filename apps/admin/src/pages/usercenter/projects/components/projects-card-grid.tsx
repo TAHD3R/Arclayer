@@ -20,6 +20,7 @@ interface ProjectsCardGridProps {
   workspaceId?: string;
   archived: boolean;
   searchInput: string;
+  ordering?: string;
   buildMenuItems: (project: UserCenterProjectListItem) => ProjectMenuItem[];
   onPrepareProjectMenu?: (projectId: string) => void;
   editingProjectId: string | null;
@@ -46,6 +47,7 @@ export function ProjectsCardGrid(props: ProjectsCardGridProps) {
     workspaceId,
     archived,
     searchInput,
+    ordering,
     buildMenuItems,
     onPrepareProjectMenu,
     editingProjectId,
@@ -69,7 +71,7 @@ export function ProjectsCardGrid(props: ProjectsCardGridProps) {
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const query = useInfiniteQuery({
-    queryKey: ["projects-cards", scope, archived, searchInput],
+    queryKey: ["projects-cards", scope, archived, searchInput, ordering],
     queryFn: async ({ pageParam }) =>
       listProjects({
         workspaceId,
@@ -77,6 +79,7 @@ export function ProjectsCardGrid(props: ProjectsCardGridProps) {
         size: PAGE_SIZE,
         q: searchInput || undefined,
         archived,
+        ordering,
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => lastPage.next ?? undefined,

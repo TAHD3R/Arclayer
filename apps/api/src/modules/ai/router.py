@@ -8,6 +8,7 @@ from uuid import UUID
 from asgi_correlation_id import correlation_id
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from starlette.responses import StreamingResponse
+from tortoise.expressions import Q
 
 from src.common.types.json_types import JsonObject
 from src.common.types.public_uuid import PublicUUID
@@ -119,6 +120,7 @@ async def list_chat_models(
 )
 async def list_ai_conversations(
     workspace_id: Annotated[PublicUUID, Query(..., alias="workspaceId")],
+    archived: Annotated[bool, Query(description="Return archived conversations")] = False,
     user_id: UUID = Depends(get_current_user_id),
 ) -> ResponseModel[AIConversationListOut]:
     ctx = await resolve_workspace_context_by_id(workspace_id=workspace_id, user_id=user_id)
@@ -126,6 +128,7 @@ async def list_ai_conversations(
         workspace_id=ctx.workspace_id,
         user_id=user_id,
         limit=_MAX_CONVERSATIONS,
+        archived=archived,
     )
     return ApiResponse.success(data=AIConversationListOut(conversations=[_to_conversation_out(r) for r in records]))
 
@@ -183,6 +186,7 @@ async def create_ai_conversation(
             site_id=payload.site_id,
             environment_id=payload.environment_id,
             context_snapshot=context_snapshot,
+            archived=None,
             context_fields=_explicit_conversation_context_fields(payload.model_fields_set),
         )
         return ApiResponse.success(data=_to_conversation_out(updated))
@@ -283,6 +287,7 @@ async def update_ai_conversation(
         site_id=payload.site_id,
         environment_id=payload.environment_id,
         context_snapshot=context_snapshot,
+        archived=payload.archived,
         context_fields=_explicit_conversation_context_fields(payload.model_fields_set),
     )
     return ApiResponse.success(data=_to_conversation_out(updated))
@@ -372,6 +377,7 @@ async def _validate_conversation_context(
         and not await ProjectRecord.filter(
             id=project_id,
             workspace_id=workspace_id,
+            is_active=True,
         ).exists()
     ):
         raise _invalid_conversation_context("projectId")
@@ -380,22 +386,37 @@ async def _validate_conversation_context(
         and not await ProjectRuntimeRecord.filter(
             id=runtime_id,
             project__workspace_id=workspace_id,
+            project__is_active=True,
         ).exists()
     ):
         raise _invalid_conversation_context("runtimeId")
-    if site_id is not None and not await SiteRecord.filter(id=site_id, workspace_id=workspace_id).exists():
-        raise _invalid_conversation_context("siteId")
+    if site_id is not None:
+        site_exists = await (
+            SiteRecord
+            .filter(id=site_id, workspace_id=workspace_id)
+            .filter(Q(project_id__isnull=True) | Q(project__is_active=True))
+            .exists()
+        )
+        if not site_exists:
+            raise _invalid_conversation_context("siteId")
     if (
         environment_id is not None
         and not await ProjectEnvironmentRecord.filter(
             id=environment_id,
             project__workspace_id=workspace_id,
+            project__is_active=True,
         ).exists()
     ):
         raise _invalid_conversation_context("environmentId")
 
 
 def _to_conversation_out(record: AgentConversationRecord) -> AIConversationOut:
+    context_snapshot = dict(record.context_snapshot) if isinstance(record.context_snapshot, dict) else {}
+    project = getattr(record, "project", None)
+    project_name = getattr(project, "name", None)
+    project_archived_at = getattr(project, "updated_at", None) if getattr(project, "is_active", True) is False else None
+    if isinstance(project_name, str) and project_name.strip():
+        context_snapshot["projectName"] = project_name
     return AIConversationOut(
         id=record.id,
         workspace_id=record.workspace_id,
@@ -409,7 +430,9 @@ def _to_conversation_out(record: AgentConversationRecord) -> AIConversationOut:
         runtime_id=record.runtime_id,
         site_id=record.site_id,
         environment_id=record.environment_id,
-        context_snapshot=record.context_snapshot if isinstance(record.context_snapshot, dict) else {},
+        context_snapshot=context_snapshot,
+        archived_at=getattr(record, "archived_at", None),
+        project_archived_at=project_archived_at,
         created_at=record.created_at,
         updated_at=record.updated_at,
     )

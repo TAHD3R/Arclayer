@@ -327,6 +327,8 @@ export interface AIConversationResponse {
   contextSnapshot?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
+  archivedAt?: string | null;
+  projectArchivedAt?: string | null;
 }
 
 export interface AIConversationListResponse {
@@ -900,19 +902,55 @@ export async function applyAIAgentApproval(options: {
   );
 }
 
-export async function loadAIConversations(options?: { signal?: AbortSignal }): Promise<void> {
+export async function loadAIConversations(options?: {
+  signal?: AbortSignal;
+  archived?: boolean;
+}): Promise<void> {
   const workspaceId = readCurrentWorkspaceId();
   if (!workspaceId) return;
 
-  const query = new URLSearchParams({ workspaceId });
+  const query = new URLSearchParams({
+    workspaceId,
+    archived: String(options?.archived ?? false),
+  });
   const response = await api.get<AIConversationListResponse>(
     `/chat/conversations?${query.toString()}`,
     options?.signal ? { signal: options.signal } : undefined,
   );
-  if (response.conversations.length === 0 && useAiChatStore.getState().conversations.length > 0) {
+  if (options?.archived) {
+    for (const conversation of response.conversations) {
+      useAiChatStore.getState().upsertConversation(toStoreConversation(conversation));
+    }
     return;
   }
   useAiChatStore.getState().replaceConversations(response.conversations.map(toStoreConversation));
+}
+
+export async function setAIConversationArchived(
+  conversationId: string,
+  archived: boolean,
+): Promise<void> {
+  await ensureAIConversationPersisted(conversationId);
+  const workspaceId = requireCurrentWorkspaceId();
+  const query = new URLSearchParams({ workspaceId });
+  const response = await api.patch<AIConversationResponse>(
+    `/chat/conversations/${encodeURIComponent(conversationId)}?${query.toString()}`,
+    { archived },
+  );
+  const store = useAiChatStore.getState();
+  store.upsertConversation(toStoreConversation(response));
+  if (!archived || store.activeId !== conversationId) return;
+
+  const nextConversation = useAiChatStore
+    .getState()
+    .conversations.find(
+      (conversation) => !conversation.archivedAt && conversation.id !== conversationId,
+    );
+  if (nextConversation) {
+    store.selectConversation(nextConversation.id);
+    return;
+  }
+  store.createConversation();
 }
 
 export async function deleteAIConversation(conversationId: string): Promise<void> {
@@ -2275,6 +2313,10 @@ function toStoreConversation(conversation: AIConversationResponse): AIConversati
     contextSnapshot: conversation.contextSnapshot,
     createdAt: Date.parse(conversation.createdAt),
     updatedAt: Date.parse(conversation.updatedAt),
+    archivedAt: conversation.archivedAt ? Date.parse(conversation.archivedAt) : null,
+    projectArchivedAt: conversation.projectArchivedAt
+      ? Date.parse(conversation.projectArchivedAt)
+      : null,
   };
 }
 

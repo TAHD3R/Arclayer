@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import cast
 from uuid import UUID
+
+from tortoise.expressions import Q
 
 from src.common.types.json_types import JsonObject
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
@@ -17,10 +19,21 @@ class AIConversationRepository(TortoiseORMRepository):
         workspace_id: UUID,
         user_id: UUID,
         limit: int,
+        archived: bool,
     ) -> list[AgentConversationRecord]:
+        archive_filter = (
+            Q(archived_at__not_isnull=True) | Q(project__is_active=False)
+            if archived
+            else Q(archived_at__isnull=True) & (Q(project_id__isnull=True) | Q(project__is_active=True))
+        )
         return await (
             AgentConversationRecord
-            .filter(workspace_id=workspace_id, user_id=user_id)
+            .filter(
+                workspace_id=workspace_id,
+                user_id=user_id,
+            )
+            .filter(archive_filter)
+            .select_related("project")
             .order_by("-updated_at", "-created_at")
             .limit(limit)
         )
@@ -32,11 +45,16 @@ class AIConversationRepository(TortoiseORMRepository):
         workspace_id: UUID,
         user_id: UUID,
     ) -> AgentConversationRecord | None:
-        return await AgentConversationRecord.filter(
-            id=conversation_id,
-            workspace_id=workspace_id,
-            user_id=user_id,
-        ).first()
+        return await (
+            AgentConversationRecord
+            .filter(
+                id=conversation_id,
+                workspace_id=workspace_id,
+                user_id=user_id,
+            )
+            .select_related("project")
+            .first()
+        )
 
     async def create_conversation(
         self,
@@ -100,6 +118,7 @@ class AIConversationRepository(TortoiseORMRepository):
         site_id: UUID | None,
         environment_id: UUID | None,
         context_snapshot: JsonObject | None,
+        archived: bool | None,
         context_fields: set[str] | None = None,
     ) -> AgentConversationRecord:
         update_fields = ["updated_at"]
@@ -134,6 +153,9 @@ class AIConversationRepository(TortoiseORMRepository):
         if context_snapshot is not None:
             record.context_snapshot = context_snapshot
             update_fields.append("context_snapshot")
+        if archived is not None:
+            record.archived_at = datetime.now(UTC) if archived else None
+            update_fields.append("archived_at")
         await record.save(update_fields=update_fields)
         return record
 

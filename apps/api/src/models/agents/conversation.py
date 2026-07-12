@@ -40,6 +40,7 @@ class AgentConversationRecord(BaseModel):
     runtime_id = fields.UUIDField(null=True, db_index=True)
     site_id = fields.UUIDField(null=True, db_index=True)
     environment_id = fields.UUIDField(null=True, db_index=True)
+    archived_at = fields.DatetimeField(null=True, db_index=True)
 
     if TYPE_CHECKING:
         workspace_id: UUID

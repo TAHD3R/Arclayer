@@ -6,6 +6,7 @@ from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pytest
+from fastapi import HTTPException
 from pydantic import ValidationError
 
 from src.models.agents.conversation import AgentConversationMode
@@ -45,6 +46,44 @@ def test_ai_conversation_create_request_accepts_camel_case_context() -> None:
 def test_ai_conversation_message_rejects_non_chat_roles() -> None:
     with pytest.raises(ValidationError):
         AIConversationMessage.model_validate({"role": "system", "content": "hidden instruction"})
+
+
+def test_ai_conversation_update_request_accepts_archive_state() -> None:
+    payload = AIConversationUpdateRequest.model_validate({"archived": True})
+
+    assert payload.archived is True
+
+
+@pytest.mark.asyncio
+async def test_conversation_context_rejects_archived_projects(monkeypatch: pytest.MonkeyPatch) -> None:
+    project_id = uuid4()
+    workspace_id = uuid4()
+    captured_filters: dict[str, object] = {}
+
+    class FakeProjectQuery:
+        async def exists(self) -> bool:
+            return False
+
+    def fake_filter(**filters: object) -> FakeProjectQuery:
+        captured_filters.update(filters)
+        return FakeProjectQuery()
+
+    monkeypatch.setattr(ai_router.ProjectRecord, "filter", fake_filter)
+
+    with pytest.raises(HTTPException):
+        await ai_router._validate_conversation_context(
+            workspace_id=workspace_id,
+            project_id=project_id,
+            runtime_id=None,
+            site_id=None,
+            environment_id=None,
+        )
+
+    assert captured_filters == {
+        "id": project_id,
+        "workspace_id": workspace_id,
+        "is_active": True,
+    }
 
 
 def test_ai_conversation_message_accepts_agent_artifact() -> None:
@@ -714,6 +753,7 @@ async def test_repository_update_conversation_clears_explicit_context_fields() -
         site_id=None,
         environment_id=None,
         context_snapshot=None,
+        archived=None,
         context_fields={"project_id", "runtime_id", "site_id", "environment_id"},
     )
 
@@ -723,3 +763,98 @@ async def test_repository_update_conversation_clears_explicit_context_fields() -
     assert record.site_id is None
     assert record.environment_id is None
     assert saved_fields == ["updated_at", "project_id", "runtime_id", "site_id", "environment_id"]
+
+
+@pytest.mark.asyncio
+async def test_repository_update_conversation_archives_and_restores() -> None:
+    saved_fields: list[str] | None = None
+
+    class FakeRecord:
+        archived_at: datetime | None = None
+
+        async def save(self, *, update_fields: list[str]) -> None:
+            nonlocal saved_fields
+            saved_fields = update_fields
+
+    record = FakeRecord()
+    repo = AIConversationRepository()
+    common = {
+        "title": None,
+        "mode": None,
+        "model": None,
+        "reasoning_effort": None,
+        "messages": None,
+        "project_id": None,
+        "runtime_id": None,
+        "site_id": None,
+        "environment_id": None,
+        "context_snapshot": None,
+    }
+
+    await repo.update_conversation(cast(Any, record), archived=True, **common)
+    assert record.archived_at is not None
+    assert saved_fields == ["updated_at", "archived_at"]
+
+    await repo.update_conversation(cast(Any, record), archived=False, **common)
+    assert record.archived_at is None
+    assert saved_fields == ["updated_at", "archived_at"]
+
+
+def test_conversation_output_includes_archived_at_and_real_project_name() -> None:
+    now = datetime(2026, 7, 13, 3, 0, tzinfo=UTC)
+    record = SimpleNamespace(
+        id=uuid4(),
+        workspace_id=uuid4(),
+        user_id=uuid4(),
+        title="Project planning",
+        mode=AgentConversationMode.PLAN,
+        model=None,
+        reasoning_effort=None,
+        messages=[],
+        project_id=uuid4(),
+        project=SimpleNamespace(name="Enterprise website"),
+        runtime_id=None,
+        site_id=None,
+        environment_id=None,
+        context_snapshot={"surface": "project"},
+        archived_at=now,
+        created_at=now,
+        updated_at=now,
+    )
+
+    output = ai_router._to_conversation_out(cast(Any, record))
+
+    assert output.archived_at == now
+    assert output.context_snapshot["projectName"] == "Enterprise website"
+
+
+def test_conversation_output_includes_inherited_project_archive_state() -> None:
+    now = datetime(2026, 7, 13, 4, 0, tzinfo=UTC)
+    record = SimpleNamespace(
+        id=uuid4(),
+        workspace_id=uuid4(),
+        user_id=uuid4(),
+        title="Archived project planning",
+        mode=AgentConversationMode.PLAN,
+        model=None,
+        reasoning_effort=None,
+        messages=[],
+        project_id=uuid4(),
+        project=SimpleNamespace(
+            name="Archived website",
+            is_active=False,
+            updated_at=now,
+        ),
+        runtime_id=None,
+        site_id=None,
+        environment_id=None,
+        context_snapshot={},
+        archived_at=None,
+        created_at=now,
+        updated_at=now,
+    )
+
+    output = ai_router._to_conversation_out(cast(Any, record))
+
+    assert output.archived_at is None
+    assert output.project_archived_at == now

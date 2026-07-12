@@ -138,7 +138,7 @@ const PANEL_WIDTH_CLASSNAME = "w-60";
 const SUBMENU_PANEL_WIDTH_CLASSNAME = "w-60";
 const SUBMENU_CLOSE_DELAY_MS = 120;
 const MENU_ITEM_CLASSNAME = cn(
-  "group transition-[background-color,color] duration-200",
+  "group rounded-none px-4 transition-[background-color,color] duration-200",
   "hover:bg-accent hover:text-label-primary",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
 );
@@ -234,7 +234,7 @@ function RootMenu(props: {
   const { t } = useTranslation("account");
   return (
     <>
-      <div className="p-1">
+      <div className="py-1">
         <MenuAction
           icon={<Settings />}
           label={t("ACCOUNT_MENU_ACCOUNT")}
@@ -278,7 +278,7 @@ function RootMenu(props: {
         />
       </div>
       <MenuDivider />
-      <div className="p-1">
+      <div className="py-1">
         <AccountSubmenuAction
           panelOpen={props.panelOpen}
           icon={<LifeBuoy />}
@@ -307,7 +307,7 @@ function RootMenu(props: {
         />
       </div>
       <MenuDivider />
-      <div className="pb-4 px-1 pt-1">
+      <div className="pb-4 pt-1">
         <MenuAction icon={<LogOut />} label={t("ACCOUNT_LOGOUT")} onClick={props.onLogout} />
       </div>
     </>
@@ -539,7 +539,7 @@ function AccountSubmenuAction(props: {
         side="right"
         align="start"
         sideOffset={8}
-        className={cn(SUBMENU_PANEL_WIDTH_CLASSNAME, "p-1")}
+        className={cn(SUBMENU_PANEL_WIDTH_CLASSNAME, "p-0")}
         onOpenAutoFocus={(event) => event.preventDefault()}
         onCloseAutoFocus={(event) => event.preventDefault()}
         onMouseDownCapture={(event) => event.stopPropagation()}

@@ -432,6 +432,7 @@ describe("HomePage", () => {
           messages: [{ role: "assistant", content: "Side panel only content" }],
           createdAt: 1,
           updatedAt: 1,
+          archivedAt: null,
         },
       ],
       activeId: "conv-1",

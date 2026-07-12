@@ -227,6 +227,22 @@ describe("GlobalLayout", () => {
     expect(screen.getByTestId("admin-topbar")).toHaveAttribute("data-leading-mode", "none");
   });
 
+  it("clears stale project context when returning to a global route", async () => {
+    useWorkspaceStore.setState({
+      currentWorkspaceId: "workspace-alpha",
+      currentProjectId: "project-alpha",
+      lastWorkspaceId: "workspace-alpha",
+      lastProjectId: "project-alpha",
+    });
+
+    renderWithQueryClient(<GlobalLayout />);
+
+    await waitFor(() => {
+      expect(useWorkspaceStore.getState().currentProjectId).toBeNull();
+    });
+    expect(useWorkspaceStore.getState().lastProjectId).toBe("project-alpha");
+  });
+
   it("keeps all projects visible while hiding platform from non-super-admin global navigation", () => {
     renderWithQueryClient(<GlobalLayout />);
 

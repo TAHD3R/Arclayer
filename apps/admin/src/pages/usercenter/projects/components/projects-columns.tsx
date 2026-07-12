@@ -94,6 +94,7 @@ export function useUserCenterProjectsColumns(
               </div>
               <ProjectActionsDropdown
                 menuItems={buildMenuItems(item)}
+                ariaLabel={t("common:MORE")}
                 onPrepareMenu={() => options.onPrepareProjectMenu(item.projectId)}
               />
             </div>
@@ -106,6 +107,7 @@ export function useUserCenterProjectsColumns(
         id: "members",
         meta: {
           title: t("account:ACCOUNT_PROJECTS_TABLE_MEMBERS"),
+          sortKey: "member_count",
           kind: "meta",
         },
         header: t("account:ACCOUNT_PROJECTS_TABLE_MEMBERS"),

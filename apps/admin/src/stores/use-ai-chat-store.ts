@@ -248,6 +248,8 @@ export interface AIConversation {
   contextSnapshot?: Record<string, unknown>;
   createdAt: number;
   updatedAt: number;
+  archivedAt: number | null;
+  projectArchivedAt?: number | null;
 }
 
 export interface AIChatState {
@@ -358,6 +360,8 @@ export const useAiChatStore = create<AIChatState>()(
           contextSnapshot: {},
           createdAt: now(),
           updatedAt: now(),
+          archivedAt: null,
+          projectArchivedAt: null,
         };
         set((state) => ({
           conversations: [conv, ...state.conversations].slice(0, MAX_CONVERSATIONS),

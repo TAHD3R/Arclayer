@@ -49,6 +49,7 @@ import {
   resumeAIAgentRun,
   resumeAIAgentRunForConversation,
   sendAIAgentMessage,
+  setAIConversationArchived,
   toAIWorkspaceActionArtifact,
 } from "@/api/ai";
 import {
@@ -98,6 +99,8 @@ function conversationResponse(payload: Record<string, unknown>) {
     contextSnapshot: payload.contextSnapshot ?? {},
     createdAt: "2026-06-26T00:00:00.000Z",
     updatedAt: "2026-06-26T00:00:01.000Z",
+    archivedAt: payload.archivedAt ?? null,
+    projectArchivedAt: payload.projectArchivedAt ?? null,
   };
 }
 
@@ -1186,7 +1189,7 @@ describe("AI agent API", () => {
     await loadAIConversations();
 
     expect(apiGetMock).toHaveBeenCalledWith(
-      "/chat/conversations?workspaceId=workspace-1",
+      "/chat/conversations?workspaceId=workspace-1&archived=false",
       undefined,
     );
     expect(useAiChatStore.getState().conversations[0]?.contextSnapshot).toMatchObject({
@@ -1196,12 +1199,112 @@ describe("AI agent API", () => {
     });
   });
 
+  it("loads archived conversations without replacing the regular conversation list", async () => {
+    useAiChatStore.getState().upsertConversation({
+      id: "conversation-regular",
+      title: "Regular conversation",
+      messages: [{ role: "user", content: "Keep this conversation" }],
+      createdAt: 1,
+      updatedAt: 1,
+      archivedAt: null,
+    });
+    apiGetMock.mockResolvedValue({
+      conversations: [
+        conversationResponse({
+          id: "conversation-archived",
+          title: "Archived conversation",
+          archivedAt: "2026-06-26T00:00:02.000Z",
+        }),
+      ],
+    });
+
+    await loadAIConversations({ archived: true });
+
+    expect(apiGetMock).toHaveBeenCalledWith(
+      "/chat/conversations?workspaceId=workspace-1&archived=true",
+      undefined,
+    );
+    expect(useAiChatStore.getState().conversations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "conversation-regular", archivedAt: null }),
+        expect.objectContaining({
+          id: "conversation-archived",
+          archivedAt: Date.parse("2026-06-26T00:00:02.000Z"),
+        }),
+      ]),
+    );
+  });
+
+  it("maps inherited project archive state into the conversation store", async () => {
+    apiGetMock.mockResolvedValue({
+      conversations: [
+        conversationResponse({
+          id: "conversation-project-archived",
+          projectArchivedAt: "2026-06-26T00:00:04.000Z",
+        }),
+      ],
+    });
+
+    await loadAIConversations({ archived: true });
+
+    expect(useAiChatStore.getState().conversations[0]?.projectArchivedAt).toBe(
+      Date.parse("2026-06-26T00:00:04.000Z"),
+    );
+  });
+
+  it("archives the active conversation and selects the next regular conversation", async () => {
+    useAiChatStore.setState({
+      conversations: [
+        {
+          id: "conversation-active",
+          title: "Active conversation",
+          messages: [{ role: "user", content: "Archive this" }],
+          createdAt: 1,
+          updatedAt: 2,
+          archivedAt: null,
+        },
+        {
+          id: "conversation-next",
+          title: "Next conversation",
+          messages: [{ role: "user", content: "Keep this" }],
+          createdAt: 1,
+          updatedAt: 1,
+          archivedAt: null,
+        },
+      ],
+      activeId: "conversation-active",
+    });
+    apiPatchMock.mockResolvedValue(
+      conversationResponse({
+        id: "conversation-active",
+        title: "Active conversation",
+        messages: [{ role: "user", content: "Archive this" }],
+        archivedAt: "2026-06-26T00:00:03.000Z",
+      }),
+    );
+
+    await setAIConversationArchived("conversation-active", true);
+
+    expect(apiPatchMock).toHaveBeenCalledWith(
+      "/chat/conversations/conversation-active?workspaceId=workspace-1",
+      { archived: true },
+    );
+    expect(useAiChatStore.getState().activeId).toBe("conversation-next");
+    expect(
+      useAiChatStore
+        .getState()
+        .conversations.find((conversation) => conversation.id === "conversation-active")
+        ?.archivedAt,
+    ).toBe(Date.parse("2026-06-26T00:00:03.000Z"));
+  });
+
   it("persists metadata-only assistant messages required for agent recovery", async () => {
     useAiChatStore.getState().upsertConversation({
       id: "conversation-metadata-1",
       title: "Agent recovery",
       createdAt: 1,
       updatedAt: 1,
+      archivedAt: null,
       messages: [
         { role: "user", content: "Recover the agent run" },
         {
@@ -1288,6 +1391,7 @@ describe("AI agent API", () => {
       title: "System settings",
       createdAt: 1,
       updatedAt: 1,
+      archivedAt: null,
       messages: [{ role: "user", content: "Review AI settings" }],
     });
 
@@ -1822,6 +1926,7 @@ describe("AI agent API", () => {
       title: "Build draft changes",
       createdAt: 1,
       updatedAt: 1,
+      archivedAt: null,
       messages: [
         { role: "user", content: "Build draft changes" },
         {
@@ -1910,6 +2015,7 @@ describe("AI agent API", () => {
       title: "Build draft changes",
       createdAt: 1,
       updatedAt: 1,
+      archivedAt: null,
       messages: [
         { role: "user", content: "Build draft changes" },
         {

@@ -103,17 +103,8 @@ describe("useProjectMenuActions", () => {
     );
 
     const menuItems = result.current.buildMenuItems(project);
-    const editGroup = menuItems.find(
+    const changeIconItem = menuItems.find(
       (item): item is Exclude<(typeof menuItems)[number], { type: "divider" }> =>
-        item.type !== "divider" && item.key === "edit-project",
-    );
-    expect(editGroup).toBeDefined();
-    if (!editGroup) throw new Error("Expected edit-project menu group");
-
-    const changeIconItem = editGroup.children?.find(
-      (
-        item,
-      ): item is Exclude<NonNullable<typeof editGroup.children>[number], { type: "divider" }> =>
         item.type !== "divider" && item.key === "change-icon",
     );
     expect(changeIconItem).toBeDefined();
@@ -229,23 +220,12 @@ describe("useProjectMenuActions", () => {
     );
 
     const menuItems = result.current.buildMenuItems(project);
-    const archiveGroup = menuItems.find(
+    const archiveItem = menuItems.find(
       (item): item is Exclude<(typeof menuItems)[number], { type: "divider" }> =>
-        item.type !== "divider" && item.key === "archive-trash",
-    );
-    expect(archiveGroup).toBeDefined();
-    if (!archiveGroup) throw new Error("Expected archive-trash menu group");
-
-    const archiveItem = archiveGroup.children?.find(
-      (
-        item,
-      ): item is Exclude<NonNullable<typeof archiveGroup.children>[number], { type: "divider" }> =>
         item.type !== "divider" && item.key === "archive",
     );
-    const deleteItem = archiveGroup.children?.find(
-      (
-        item,
-      ): item is Exclude<NonNullable<typeof archiveGroup.children>[number], { type: "divider" }> =>
+    const deleteItem = menuItems.find(
+      (item): item is Exclude<(typeof menuItems)[number], { type: "divider" }> =>
         item.type !== "divider" && item.key === "delete",
     );
 

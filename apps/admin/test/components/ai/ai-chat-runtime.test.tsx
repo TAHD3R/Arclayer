@@ -123,6 +123,7 @@ describe("AIChatRuntimeProvider", () => {
           title: "Conversation",
           createdAt: 1,
           updatedAt: 1,
+          archivedAt: null,
           messages: [
             { role: "user", content: "first prompt" },
             {
@@ -312,6 +313,7 @@ describe("AIChatRuntimeProvider", () => {
           title: "Conversation",
           createdAt: 1,
           updatedAt: 1,
+          archivedAt: null,
           messages: [
             { role: "user", content: "把站点名改成 Arclayer 企业站" },
             {
@@ -804,6 +806,7 @@ describe("AIChatRuntimeProvider", () => {
           title: "Conversation",
           createdAt: 1,
           updatedAt: 1,
+          archivedAt: null,
           messages: [],
         },
       ],
@@ -848,6 +851,7 @@ describe("AIChatRuntimeProvider", () => {
           title: "Conversation",
           createdAt: 1,
           updatedAt: 1,
+          archivedAt: null,
           messages: [],
         },
       ],
@@ -1054,6 +1058,7 @@ describe("AIChatRuntimeProvider", () => {
           title: "Conversation",
           createdAt: 1,
           updatedAt: 1,
+          archivedAt: null,
           messages: [],
         },
       ],

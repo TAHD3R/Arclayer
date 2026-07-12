@@ -320,7 +320,7 @@
   "SELECT_NONE": "Select none",
   "SETTINGS_SAVED": "已保存",
   "SIDEBAR_BROWSE_PROJECT_DESCRIPTION_FALLBACK": "No description",
-  "SIDEBAR_CHAT_EMPTY_DESC": "Start a chat and it will stay here so you can continue later.",
+  "SIDEBAR_CHAT_EMPTY_DESC": "Start with an idea, then pick up right where you left off.",
   "SIDEBAR_CHAT_EMPTY_TITLE": "No chat yet",
   "SIDEBAR_RAIL_TOOLTIP": "Collapse or expand the sidebar",
   "SIDEBAR_RAIL_TOOLTIP_SHORTCUT": "Click or {{shortcut}}",

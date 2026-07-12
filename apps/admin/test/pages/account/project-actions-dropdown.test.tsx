@@ -66,7 +66,7 @@ const menuItems: ProjectMenuItem[] = [
 function ProjectDropdownHarness() {
   return (
     <div className="p-8">
-      <ProjectActionsDropdown menuItems={menuItems} />
+      <ProjectActionsDropdown menuItems={menuItems} ariaLabel="More" />
     </div>
   );
 }
@@ -123,7 +123,7 @@ describe("ProjectActionsDropdown", () => {
       const sidebarContainer = view.container.querySelector<HTMLElement>(
         '[data-slot="sidebar-container"]',
       );
-      const trigger = screen.getByRole("button", { name: "" });
+      const trigger = screen.getByRole("button", { name: "More" });
 
       expect(sidebar).not.toBeNull();
       expect(sidebarContainer).not.toBeNull();

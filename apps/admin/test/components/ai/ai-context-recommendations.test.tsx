@@ -258,6 +258,7 @@ describe("AIContextRecommendations", () => {
           },
           createdAt: Date.now(),
           updatedAt: Date.now(),
+          archivedAt: null,
         },
       ],
     });
@@ -535,6 +536,7 @@ describe("AIContextRecommendations", () => {
           },
           createdAt: Date.now(),
           updatedAt: Date.now(),
+          archivedAt: null,
         },
       ],
     });
@@ -607,6 +609,7 @@ describe("AIContextRecommendations", () => {
           },
           createdAt: Date.now(),
           updatedAt: Date.now(),
+          archivedAt: null,
         },
       ],
     });

@@ -42,6 +42,7 @@ interface ProjectsContentSectionProps {
   disableProjectNavigation?: boolean;
   onCardClick?: (project: UserCenterProjectListItem) => void;
   toolbar?: ReactNode;
+  ordering?: string;
 }
 
 export function ProjectsContentSection(props: ProjectsContentSectionProps) {
@@ -51,6 +52,7 @@ export function ProjectsContentSection(props: ProjectsContentSectionProps) {
         workspaceId={props.workspaceId}
         archived={props.archived}
         searchInput={props.searchInput}
+        ordering={props.ordering}
         buildMenuItems={props.buildMenuItems}
         onPrepareProjectMenu={props.onPrepareProjectMenu}
         editingProjectId={props.editingProjectId}

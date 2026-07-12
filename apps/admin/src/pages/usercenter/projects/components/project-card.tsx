@@ -135,7 +135,11 @@ export function ProjectCard({
               {isFavorited ? t("common:FAVORITE_REMOVE_TOOLTIP") : t("common:FAVORITE_ADD_TOOLTIP")}
             </TooltipContent>
           </Tooltip>
-          <ProjectActionsDropdown menuItems={menuItems} onPrepareMenu={onPrepareMenu} />
+          <ProjectActionsDropdown
+            menuItems={menuItems}
+            ariaLabel={t("common:MORE")}
+            onPrepareMenu={onPrepareMenu}
+          />
         </div>
       </div>
 

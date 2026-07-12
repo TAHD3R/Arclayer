@@ -212,6 +212,10 @@ export type AiConversationMessageOutput = {
  */
 export type AiConversationOut = {
     /**
+     * Archivedat
+     */
+    archivedAt?: string | null;
+    /**
      * Contextsnapshot
      */
     contextSnapshot?: {
@@ -238,6 +242,10 @@ export type AiConversationOut = {
      * Model
      */
     model?: string | null;
+    /**
+     * Projectarchivedat
+     */
+    projectArchivedAt?: string | null;
     /**
      * Projectid
      */
@@ -278,6 +286,10 @@ export type AiConversationOut = {
  * Patch mutable AI conversation fields.
  */
 export type AiConversationUpdateRequest = {
+    /**
+     * Archived
+     */
+    archived?: boolean | null;
     /**
      * Contextsnapshot
      */
@@ -24711,6 +24723,12 @@ export type AiListAiConversationsData = {
          * Workspaceid
          */
         workspaceId: string;
+        /**
+         * Archived
+         *
+         * Return archived conversations
+         */
+        archived?: boolean;
     };
     url: '/api/v1/chat/conversations';
 };

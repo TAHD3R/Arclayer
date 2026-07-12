@@ -251,6 +251,7 @@ function RecentProjectCard(props: {
           />
           <ProjectActionsDropdown
             menuItems={props.menuItems}
+            ariaLabel={props.t("common:MORE")}
             onPrepareMenu={props.onPrepareMenu}
             buttonClassName="size-7 rounded-full opacity-0 transition-opacity group-hover/card:opacity-100 group-focus-within/card:opacity-100 data-[state=open]:opacity-100"
           />

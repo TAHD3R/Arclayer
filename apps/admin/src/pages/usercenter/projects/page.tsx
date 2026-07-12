@@ -166,6 +166,8 @@ export function ProjectsPage() {
       refreshing={currentTableConfig.tableHook.isFetching}
       onResetColumnVisibility={currentTableConfig.tableHook.resetColumnVisibility}
       labels={toolsLabels}
+      sorting={currentTableConfig.tableHook.sorting}
+      onSortingChange={currentTableConfig.tableHook.setSorting}
     />
   );
 
@@ -212,6 +214,7 @@ export function ProjectsPage() {
               workspaceId={currentWorkspaceId ?? undefined}
               archived={false}
               searchInput={activeTableHook.searchInput}
+              ordering={activeTableHook.requestParams?.ordering}
               buildMenuItems={projectMenuActions.buildMenuItems}
               onPrepareProjectMenu={handlePrepareProjectMenu}
               editingProjectId={projectMenuActions.editingProjectId}
@@ -241,6 +244,7 @@ export function ProjectsPage() {
               workspaceId={currentWorkspaceId ?? undefined}
               archived
               searchInput={archivedTableHook.searchInput}
+              ordering={archivedTableHook.requestParams?.ordering}
               buildMenuItems={projectMenuActions.buildMenuItems}
               onPrepareProjectMenu={handlePrepareProjectMenu}
               editingProjectId={projectMenuActions.editingProjectId}

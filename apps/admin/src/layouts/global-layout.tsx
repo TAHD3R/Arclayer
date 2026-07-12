@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 import { listProjects } from "@/api/projects";
 import { AdminTopbar } from "@/components/layout/admin-topbar";
@@ -42,9 +42,14 @@ export function GlobalLayout() {
   const setSidebarWidthPx = usePreferencesStore((state) => state.setSidebarWidthPx);
   const currentWorkspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const lastWorkspaceId = useWorkspaceStore((state) => state.lastWorkspaceId);
+  const setCurrentProjectId = useWorkspaceStore((state) => state.setCurrentProjectId);
   const { isSuperAdmin } = useCurrentUserProfile();
   const contentOnlyMode = isFavoriteOverlayContentOnly(searchStr);
   const effectiveWorkspaceId = currentWorkspaceId ?? lastWorkspaceId;
+
+  useEffect(() => {
+    setCurrentProjectId(null);
+  }, [setCurrentProjectId]);
 
   const projectsQuery = useQuery({
     queryKey: ["global-nav", "projects", effectiveWorkspaceId, sessionVersion],

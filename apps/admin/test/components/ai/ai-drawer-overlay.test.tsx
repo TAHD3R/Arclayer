@@ -25,6 +25,7 @@ vi.mock("@/api/ai", () => ({
   ensureAIConversationPersistedForRuntime: vi.fn(async () => undefined),
   loadAIConversations: vi.fn(async () => undefined),
   renameAIConversation: vi.fn(async () => undefined),
+  setAIConversationArchived: vi.fn(async () => undefined),
 }));
 
 vi.mock("@/components/assistant-ui/thread", () => ({
@@ -93,6 +94,7 @@ describe("AIDrawerOverlay", () => {
           },
           createdAt: 1,
           updatedAt: 1,
+          archivedAt: null,
         },
       ],
       activeId: "conversation-1",

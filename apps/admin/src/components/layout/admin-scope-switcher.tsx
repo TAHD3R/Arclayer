@@ -63,12 +63,6 @@ import { useSidebar } from "@arclayer/ui/sidebar";
 const SIDEBAR_TRIGGER_HEIGHT_CLASSNAME = "!h-9";
 const HEADER_TRIGGER_HEIGHT_CLASSNAME = "!h-9";
 const INTERACTION_EASING = "ease-[cubic-bezier(0.22,1,0.36,1)]";
-const PICKER_VISIBLE_ROWS = 6;
-const PICKER_ITEM_MIN_HEIGHT_REM = 3;
-const PICKER_SECTION_VERTICAL_PADDING_REM = 0.5;
-const PICKER_MAX_HEIGHT_STYLE = {
-  maxHeight: `min(calc(${PICKER_VISIBLE_ROWS} * ${PICKER_ITEM_MIN_HEIGHT_REM}rem + ${PICKER_SECTION_VERTICAL_PADDING_REM}rem), calc(100vh - 15rem))`,
-} as const;
 const INTERACTION_TRANSITION_CLASSNAME = cn(
   "transition-[background-color,color,transform,opacity]",
   "duration-200",
@@ -521,7 +515,8 @@ function ScopeSubpanelAction(props: {
           side="right"
           align="start"
           sideOffset={8}
-          className="w-60 max-w-[calc(100vw-1rem)] p-0"
+          collisionPadding={16}
+          className="flex max-h-(--radix-popover-content-available-height) w-60 max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-xl p-0"
           onOpenAutoFocus={(event) => event.preventDefault()}
           onCloseAutoFocus={(event) => event.preventDefault()}
           onMouseDownCapture={(event) => event.stopPropagation()}
@@ -734,18 +729,6 @@ function PanelContentInner(props: {
         </ScopeSubpanelAction>
         <PanelMenuButton
           className="rounded-none px-3 py-2.5"
-          onClick={() => {
-            closeFloatingPanel();
-            props.onOpenWorkspaceInvite();
-          }}
-        >
-          <PanelMenuItemContent
-            icon={<Users className="size-4" aria-hidden="true" />}
-            text={t("team:TEAM_INVITE_MEMBER")}
-          />
-        </PanelMenuButton>
-        <PanelMenuButton
-          className="rounded-none px-3 py-2.5"
           disabled={!canOpenProjectSettings}
           onClick={() => {
             closeFloatingPanel();
@@ -793,6 +776,18 @@ function PanelContentInner(props: {
         </PanelMenuButton>
         <PanelMenuButton
           className="rounded-none px-3 py-2.5"
+          onClick={() => {
+            closeFloatingPanel();
+            props.onOpenWorkspaceInvite();
+          }}
+        >
+          <PanelMenuItemContent
+            icon={<Users className="size-4" aria-hidden="true" />}
+            text={t("team:TEAM_INVITE_MEMBER")}
+          />
+        </PanelMenuButton>
+        <PanelMenuButton
+          className="rounded-none px-3 py-2.5"
           disabled={!canOpenWorkspaceSettings}
           onClick={() => {
             closeFloatingPanel();
@@ -812,9 +807,8 @@ function PanelContentInner(props: {
     if (props.projectsLoading) {
       return <PanelPickerSkeleton rows={4} />;
     }
-    const shouldScroll = filteredProjects.length > PICKER_VISIBLE_ROWS;
     return (
-      <div className="py-1.5">
+      <div className="flex min-h-0 flex-col py-1.5">
         <div className="px-3 pb-2">
           <Input
             value={projectSearch}
@@ -822,10 +816,7 @@ function PanelContentInner(props: {
             placeholder={t("common:WORKSPACE_SWITCHER_PROJECT_SEARCH_PLACEHOLDER")}
           />
         </div>
-        <div
-          style={shouldScroll ? PICKER_MAX_HEIGHT_STYLE : undefined}
-          className={cn(shouldScroll && "overflow-y-auto overscroll-contain")}
-        >
+        <div className="min-h-0 w-full flex-1 overflow-y-auto overscroll-contain scrollbar-none">
           {filteredProjects.length === 0 ? (
             <PickerEmptyState text={t("common:WORKSPACE_SWITCHER_PROJECT_EMPTY")} />
           ) : null}
@@ -867,9 +858,8 @@ function PanelContentInner(props: {
     if (props.workspacesLoading) {
       return <PanelPickerSkeleton rows={4} />;
     }
-    const shouldScroll = filteredWorkspaces.length > PICKER_VISIBLE_ROWS;
     return (
-      <div className="py-1.5">
+      <div className="flex min-h-0 flex-col py-1.5">
         <div className="px-3 pb-2">
           <Input
             value={workspaceSearch}
@@ -877,10 +867,7 @@ function PanelContentInner(props: {
             placeholder={t("common:WORKSPACE_SWITCHER_WORKSPACE_SEARCH_PLACEHOLDER")}
           />
         </div>
-        <div
-          style={shouldScroll ? PICKER_MAX_HEIGHT_STYLE : undefined}
-          className={cn(shouldScroll && "overflow-y-auto overscroll-contain")}
-        >
+        <div className="min-h-0 w-full flex-1 overflow-y-auto overscroll-contain scrollbar-none">
           {filteredWorkspaces.length === 0 ? (
             <PickerEmptyState text={t("common:WORKSPACE_SWITCHER_WORKSPACE_EMPTY")} />
           ) : null}

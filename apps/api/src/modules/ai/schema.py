@@ -99,6 +99,7 @@ class AIConversationUpdateRequest(BaseSchema):
     site_id: PublicUUID | None = None
     environment_id: PublicUUID | None = None
     context_snapshot: JsonObject | None = None
+    archived: bool | None = None
 
 
 class AIConversationOut(BaseSchema):
@@ -117,6 +118,8 @@ class AIConversationOut(BaseSchema):
     site_id: UUID | None = None
     environment_id: UUID | None = None
     context_snapshot: JsonObject = Field(default_factory=dict)
+    archived_at: datetime | None = None
+    project_archived_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 

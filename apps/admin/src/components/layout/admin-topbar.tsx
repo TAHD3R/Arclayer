@@ -135,7 +135,12 @@ function TopbarProjectBreadcrumb(props: {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{button}</DropdownMenuTrigger>
-      <DropdownMenuContent align="start" sideOffset={8} className="w-[calc(100vw-2rem)] max-w-72">
+      <DropdownMenuContent
+        align="start"
+        sideOffset={8}
+        collisionPadding={16}
+        className="max-h-[min(28rem,var(--radix-dropdown-menu-content-available-height))] w-[calc(100vw-2rem)] max-w-72"
+      >
         <ProjectBrowseMenuContent
           projects={props.menu.projects}
           activeProjectId={props.menu.activeProjectId}
