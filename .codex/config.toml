@@ -1,0 +1,14 @@
+#:schema https://developers.openai.com/codex/config-schema.json
+
+[mcp_servers.postgres]
+command = "uvx"
+args = ["--python", "3.13", "--from", "postgres-mcp==0.3.0", "postgres-mcp", "--access-mode=restricted", "--transport=stdio"]
+# Select the target database explicitly in the environment that launches Codex.
+# Secrets are intentionally not copied from apps/api/.env into tracked config.
+env_vars = ["DATABASE_URI"]
+enabled = true
+
+# The first launch may need to resolve the pinned Python tool environment.
+startup_timeout_sec = 60
+# Analysis queries can legitimately take longer than simple schema inspection.
+tool_timeout_sec = 120

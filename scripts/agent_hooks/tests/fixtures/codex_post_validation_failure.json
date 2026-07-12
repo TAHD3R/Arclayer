@@ -1,0 +1,11 @@
+{
+  "hook_event_name": "PostToolUse",
+  "session_id": "codex-failed-session",
+  "turn_id": "turn-1",
+  "tool_use_id": "tool-failure",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "rtk proxy /bin/sh -c '<wrapped command>'"
+  },
+  "tool_response": "tests failed\n"
+}

@@ -63,7 +63,7 @@ Do not:
 For medium+ tasks, architecture questions, or multi-file refactors:
 
 1. `GitNexus` for discovery and impact
-2. `code-review-graph` for review context and blast radius
+2. `code-review-engine` changed audit for repository-rule review context
 3. `serena` for symbol-level precision
 
 Prefer live repo truth if indexes are stale or unavailable.

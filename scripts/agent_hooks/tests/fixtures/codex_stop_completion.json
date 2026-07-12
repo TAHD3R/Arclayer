@@ -1,0 +1,7 @@
+{
+  "hook_event_name": "Stop",
+  "session_id": "codex-session",
+  "turn_id": "turn-1",
+  "stop_hook_active": false,
+  "last_assistant_message": "已完成项目 Hooks 重构；`rtk pnpm hooks:test` 已通过。"
+}
