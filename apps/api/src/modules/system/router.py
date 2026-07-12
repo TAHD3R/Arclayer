@@ -11,6 +11,9 @@ from src.modules.auth.limits.service import REGISTER_RATE_LIMIT
 from src.modules.auth.schema import TokenPair
 from src.modules.auth.service import AuthService
 from src.modules.auth.sessions.request_context import build_auth_request_context
+from src.modules.commerce.system_router import router as system_commerce_router
+from src.modules.feedback.system_router import router as system_feedback_router
+from src.modules.observability.system_router import router as system_observability_router
 from src.modules.system.ai_providers.router import router as system_ai_providers_router
 from src.modules.system.directory.router import router as system_directory_router
 from src.modules.system.jobs.router import router as system_jobs_router
@@ -106,3 +109,6 @@ router.include_router(system_mail_router, prefix="/mail")
 router.include_router(system_jobs_router, prefix="/jobs")
 router.include_router(system_rbac_router, prefix="/rbac")
 router.include_router(system_activity_router, prefix="/activity")
+router.include_router(system_commerce_router, prefix="/commerce")
+router.include_router(system_feedback_router, prefix="/feedback")
+router.include_router(system_observability_router, prefix="/observability")

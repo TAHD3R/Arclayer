@@ -16,6 +16,8 @@ import zhAppearance from "@locales/zh-CN/appearance.json";
 import zhRbac from "@locales/zh-CN/rbac.json";
 import zhContent from "@locales/zh-CN/content.json";
 import zhAi from "@locales/zh-CN/ai.json";
+import zhPlatform from "@locales/zh-CN/platform.json";
+import zhCommerce from "@locales/zh-CN/commerce.json";
 
 import enCommon from "@locales/en-US/common.json";
 import enNav from "@locales/en-US/nav.json";
@@ -35,6 +37,8 @@ import enAppearance from "@locales/en-US/appearance.json";
 import enRbac from "@locales/en-US/rbac.json";
 import enContent from "@locales/en-US/content.json";
 import enAi from "@locales/en-US/ai.json";
+import enPlatform from "@locales/en-US/platform.json";
+import enCommerce from "@locales/en-US/commerce.json";
 
 import type { AppLocale } from "@arclayer/web/i18n";
 
@@ -57,6 +61,8 @@ export const I18N_NAMESPACES = [
   "errors",
   "auth",
   "ai",
+  "platform",
+  "commerce",
 ] as const;
 
 export const i18nResources = {
@@ -79,6 +85,8 @@ export const i18nResources = {
     errors: zhErrors,
     auth: zhAuth,
     ai: zhAi,
+    platform: zhPlatform,
+    commerce: zhCommerce,
   },
   "en-US": {
     common: enCommon,
@@ -99,6 +107,8 @@ export const i18nResources = {
     errors: enErrors,
     auth: enAuth,
     ai: enAi,
+    platform: enPlatform,
+    commerce: enCommerce,
   },
 } as const;
 

@@ -88,6 +88,7 @@ function DialogOverlay({ className, ...props }: DialogOverlayProps) {
 type DialogContentProps = DialogContentPrimitiveProps & {
   showCloseButton?: boolean;
   closeButtonClassName?: string;
+  closeButtonLabel?: string;
 };
 
 function DialogContent({
@@ -95,6 +96,7 @@ function DialogContent({
   children,
   showCloseButton = true,
   closeButtonClassName,
+  closeButtonLabel,
   onInteractOutside,
   ...props
 }: DialogContentProps) {
@@ -131,7 +133,7 @@ function DialogContent({
           {children}
           {showCloseButton && (
             <DialogClosePrimitive asChild>
-              <OverlayCloseButton className={closeButtonClassName} />
+              <OverlayCloseButton className={closeButtonClassName} srLabel={closeButtonLabel} />
             </DialogClosePrimitive>
           )}
         </DialogContentPrimitive>

@@ -69,6 +69,20 @@ class ReservationStatusError(Exception):
         )
 
 
+class ReservationRequestConflictError(Exception):
+    """Raised when one request id is reused with different reservation inputs."""
+
+    def __init__(self, request_id: UUID) -> None:
+        self.request_id = request_id
+        super().__init__(f"Reservation request {request_id} was reused with different inputs")
+
+
+def _reservation_advisory_lock_key(request_id: UUID) -> int:
+    """Map a request UUID to a signed Postgres advisory-transaction lock key."""
+
+    return int.from_bytes(request_id.bytes[:8], byteorder="big", signed=True)
+
+
 def _affected_rows(result: Any) -> int:
     """Return affected row count for real asyncpg and unit-test executor shapes."""
     if isinstance(result, tuple) and result:
@@ -105,18 +119,29 @@ async def reserve(
     budget_id: UUID,
     request_id: UUID,
     estimated_cost_micros: int,
+    workspace_id: UUID | None = None,
     ttl_seconds: int = 300,
     _execute: QueryExecutor | None = None,
 ) -> AIBudgetReservation:
     """Atomically reserve budget for an LLM call.
 
-    Uses a single UPDATE...RETURNING pattern to prevent race conditions
-    under concurrent callers.  The budget UPDATE and reservation INSERT
-    are wrapped in a single database transaction.
+    Uses a transaction-scoped request lock plus UPDATE...RETURNING to prevent
+    both duplicate request reservations and budget overspend under concurrency.
     """
     reserve_amount = estimated_cost_micros
 
     async def _perform(executor: QueryExecutor, conn: Any) -> AIBudgetReservation:
+        if conn is not None:
+            existing = await AIBudgetReservation.get_or_none(request_id=request_id, using_db=conn)
+            if existing is not None:
+                same_request = (
+                    UUID(str(existing.budget_id)) == budget_id
+                    and int(existing.estimated_cost_micros) == estimated_cost_micros
+                )
+                if not same_request:
+                    raise ReservationRequestConflictError(request_id)
+                return existing
+
         result = await executor(
             """
             UPDATE ai_budgets
@@ -137,6 +162,26 @@ async def reserve(
                 requested_micros=reserve_amount,
             )
 
+        credit_account_id = None
+        credit_value_micros = None
+        reserved_credits = None
+        if workspace_id is not None:
+            if conn is None:
+                raise RuntimeError("workspace credit reservations require a database transaction")
+            from src.config import get_settings
+            from src.modules.commerce.credits import reserve_workspace_credits
+
+            credit_details = await reserve_workspace_credits(
+                settings=get_settings(),
+                conn=conn,
+                workspace_id=workspace_id,
+                request_id=request_id,
+                estimated_cost_micros=estimated_cost_micros,
+            )
+            credit_account_id = credit_details.account_id
+            credit_value_micros = credit_details.credit_value_micros
+            reserved_credits = credit_details.reserved_credits
+
         expires_at = datetime.now(UTC) + timedelta(seconds=ttl_seconds)
         reservation = await AIBudgetReservation.create(
             id=uuid.uuid4(),
@@ -144,6 +189,9 @@ async def reserve(
             request_id=request_id,
             estimated_cost_micros=estimated_cost_micros,
             reserved_cost_micros=reserve_amount,
+            credit_account_id=credit_account_id,
+            credit_value_micros=credit_value_micros,
+            reserved_credits=reserved_credits,
             status=ReservationStatus.RESERVED,
             expires_at=expires_at,
             using_db=conn,
@@ -156,6 +204,10 @@ async def reserve(
     from tortoise.transactions import in_transaction as _tx
 
     async with _tx() as conn:
+        await conn.execute_query(
+            "SELECT pg_advisory_xact_lock($1)",
+            [_reservation_advisory_lock_key(request_id)],
+        )
         return await _perform(conn.execute_query, conn)
 
 
@@ -173,7 +225,7 @@ async def commit(
     The status transition and budget counter update are atomic.
     """
 
-    async def _perform(executor: QueryExecutor) -> None:
+    async def _perform(executor: QueryExecutor, conn: Any, *, integrate_credits: bool) -> None:
         result = await executor(
             """
             UPDATE ai_budget_reservations
@@ -185,7 +237,7 @@ async def commit(
         )
 
         if _affected_rows(result) == 0:
-            existing = await AIBudgetReservation.get_or_none(id=reservation_id)
+            existing = await AIBudgetReservation.get_or_none(id=reservation_id, using_db=conn)
             if existing is None:
                 raise ReservationNotFoundError(f"Reservation {reservation_id} not found")
             if existing.status == ReservationStatus.COMMITTED:
@@ -208,13 +260,25 @@ async def commit(
             [actual_cost_micros, reservation_id],
         )
 
+        if integrate_credits:
+            from src.config import get_settings
+            from src.modules.commerce.credits import commit_workspace_credits
+
+            reservation = await AIBudgetReservation.get(id=reservation_id, using_db=conn)
+            await commit_workspace_credits(
+                settings=get_settings(),
+                conn=conn,
+                reservation=reservation,
+                actual_cost_micros=actual_cost_micros,
+            )
+
     if _execute is not None:
-        return await _perform(_execute)
+        return await _perform(_execute, None, integrate_credits=False)
 
     from tortoise.transactions import in_transaction as _tx_fn
 
     async with _tx_fn() as conn:
-        return await _perform(conn.execute_query)
+        return await _perform(conn.execute_query, conn, integrate_credits=True)
 
 
 async def release(
@@ -229,7 +293,7 @@ async def release(
     The status transition and budget counter update are atomic.
     """
 
-    async def _perform(executor: QueryExecutor) -> None:
+    async def _perform(executor: QueryExecutor, conn: Any, *, integrate_credits: bool) -> None:
         result = await executor(
             """
             UPDATE ai_budget_reservations
@@ -241,7 +305,7 @@ async def release(
         )
 
         if _affected_rows(result) == 0:
-            existing = await AIBudgetReservation.get_or_none(id=reservation_id)
+            existing = await AIBudgetReservation.get_or_none(id=reservation_id, using_db=conn)
             if existing is None:
                 raise ReservationNotFoundError(f"Reservation {reservation_id} not found")
             if existing.status == ReservationStatus.RELEASED:
@@ -263,13 +327,25 @@ async def release(
             [reservation_id],
         )
 
+        if integrate_credits:
+            from src.config import get_settings
+            from src.modules.commerce.credits import release_workspace_credits
+
+            reservation = await AIBudgetReservation.get(id=reservation_id, using_db=conn)
+            await release_workspace_credits(
+                settings=get_settings(),
+                conn=conn,
+                reservation=reservation,
+                reason="provider_request_released",
+            )
+
     if _execute is not None:
-        return await _perform(_execute)
+        return await _perform(_execute, None, integrate_credits=False)
 
     from tortoise.transactions import in_transaction as _tx_fn
 
     async with _tx_fn() as conn:
-        return await _perform(conn.execute_query)
+        return await _perform(conn.execute_query, conn, integrate_credits=True)
 
 
 async def expire_sweep(
@@ -291,14 +367,61 @@ async def expire_sweep(
             SET status = $1
             WHERE status = $2 AND expires_at < NOW()
             RETURNING id, budget_id, reserved_cost_micros
+        ), expired_by_budget AS (
+            SELECT budget_id, SUM(reserved_cost_micros) AS reserved_cost_micros
+            FROM expired
+            GROUP BY budget_id
+        ), updated_budgets AS (
+            UPDATE ai_budgets
+            SET reserved_micros = ai_budgets.reserved_micros - e.reserved_cost_micros
+            FROM expired_by_budget e
+            WHERE ai_budgets.id = e.budget_id
+            RETURNING ai_budgets.id
         )
-        UPDATE ai_budgets
-        SET reserved_micros = ai_budgets.reserved_micros - e.reserved_cost_micros
-        FROM expired e
-        WHERE ai_budgets.id = e.budget_id
-        RETURNING e.id
+        SELECT id FROM expired
         """,
         [ReservationStatus.EXPIRED.value, ReservationStatus.RESERVED.value],
     )
 
-    return _affected_rows(result)
+    expired_count = _affected_rows(result)
+    if _execute is None:
+        await _release_expired_credit_holds()
+    return expired_count
+
+
+async def _release_expired_credit_holds() -> None:
+    """Reconcile credit holds for reservations just transitioned to expired."""
+
+    from tortoise.transactions import in_transaction
+
+    from src.config import get_settings
+    from src.models.commerce.billing import CreditLedgerEntryType
+    from src.modules.commerce.credits import release_workspace_credits
+
+    reservation_ids = await AIBudgetReservation.filter(
+        status=ReservationStatus.EXPIRED,
+        credit_account_id__not_isnull=True,
+        credits_reconciled_at__isnull=True,
+    ).values_list("id", flat=True)
+    for reservation_id in reservation_ids:
+        async with in_transaction() as conn:
+            reservation = (
+                await AIBudgetReservation
+                .filter(
+                    id=reservation_id,
+                    status=ReservationStatus.EXPIRED,
+                    credits_reconciled_at__isnull=True,
+                )
+                .using_db(conn)
+                .select_for_update()
+                .first()
+            )
+            if reservation is None:
+                continue
+            await release_workspace_credits(
+                settings=get_settings(),
+                conn=conn,
+                reservation=reservation,
+                reason="reservation_expired",
+                entry_type=CreditLedgerEntryType.EXPIRATION,
+            )

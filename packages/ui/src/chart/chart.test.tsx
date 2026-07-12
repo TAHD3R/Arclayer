@@ -12,6 +12,8 @@ vi.mock("recharts", async () => {
 });
 
 import {
+  Area,
+  AreaChart,
   ChartContainer,
   ChartLegendContent,
   ChartStyle,
@@ -46,6 +48,8 @@ describe("chart exports", () => {
     expect(ChartTooltipContent).toBeTypeOf("function");
     expect(ChartLegendContent).toBeTypeOf("function");
     expect(ChartStyle).toBeTypeOf("function");
+    expect(Area).toBeTruthy();
+    expect(AreaChart).toBeTruthy();
   });
 
   it("renders chart style variables for plain and themed colors", () => {

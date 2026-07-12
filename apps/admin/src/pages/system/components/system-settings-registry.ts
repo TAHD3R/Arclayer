@@ -1,11 +1,21 @@
 import type { LucideIcon } from "lucide-react";
-import { Bell, Bot, Globe2, HardDrive, KeyRound, Mail, UserRoundPlus } from "lucide-react";
+import {
+  Bell,
+  Bot,
+  CreditCard,
+  Globe2,
+  HardDrive,
+  KeyRound,
+  Mail,
+  UserRoundPlus,
+} from "lucide-react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
 
 export type SystemSettingsPageKey =
   | "access"
   | "agents"
+  | "billing"
   | "domains"
   | "storage"
   | "email"
@@ -21,6 +31,8 @@ export type SystemSettingsItemId =
   | "agent-modes-skills"
   | "agent-write-approvals"
   | "agent-langgraph"
+  | "commerce-plan-catalog"
+  | "commerce-credit-economics"
   | "platform-domains"
   | "reserved-labels"
   | "default-profile"
@@ -73,6 +85,14 @@ export const SYSTEM_SETTINGS_PAGES: readonly SystemSettingsPageMeta[] = [
     descriptionKey: "settings:SETTINGS_SYSTEM_AGENTS_PAGE_DESC",
     to: "/system/settings/agents",
     icon: Bot,
+  },
+  {
+    key: "billing",
+    labelKey: "commerce:SETTINGS_TITLE",
+    titleKey: "commerce:SETTINGS_TITLE",
+    descriptionKey: "commerce:SETTINGS_DESCRIPTION",
+    to: "/system/settings/billing",
+    icon: CreditCard,
   },
   {
     key: "domains",
@@ -172,6 +192,20 @@ export const SYSTEM_SETTINGS_ITEMS: readonly SystemSettingsSearchItem[] = [
     titleKey: "settings:SETTINGS_SYSTEM_AGENTS_LANGGRAPH_TITLE",
     descriptionKey: "settings:SETTINGS_SYSTEM_AGENTS_LANGGRAPH_DESC",
     keywords: ["langgraph", "checkpoint", "interrupt", "resume"],
+  },
+  {
+    id: "commerce-plan-catalog",
+    page: "billing",
+    titleKey: "commerce:SETTINGS_CATALOG_TITLE",
+    descriptionKey: "commerce:SETTINGS_CATALOG_DESCRIPTION",
+    keywords: ["billing", "plans", "subscription", "pricing"],
+  },
+  {
+    id: "commerce-credit-economics",
+    page: "billing",
+    titleKey: "commerce:SETTINGS_CREDIT_VALUE",
+    descriptionKey: "commerce:SETTINGS_CREDIT_VALUE_DESC",
+    keywords: ["credits", "ai", "cost", "microdollars"],
   },
   {
     id: "platform-domains",

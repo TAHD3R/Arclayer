@@ -224,6 +224,7 @@ class AgentRunEngine:
                 messages=self._messages(system_prompt=system_prompt, prompt=prompt, tool_outputs=tool_outputs),
                 context=LLMRequestContext(
                     workspace_id=context.workspace_id,
+                    project_id=context.project_id,
                     user_id=context.user_id,
                     correlation_id=context.correlation_id,
                     source="agent",
@@ -450,6 +451,7 @@ class AgentRunEngine:
             messages=self._messages(system_prompt=system_prompt, prompt=prompt, tool_outputs=tool_outputs),
             context=LLMRequestContext(
                 workspace_id=context.workspace_id,
+                project_id=context.project_id,
                 user_id=context.user_id,
                 correlation_id=context.correlation_id,
                 source="agent",

@@ -1,0 +1,272 @@
+from __future__ import annotations
+
+import asyncio
+from datetime import UTC, datetime
+from types import SimpleNamespace
+from uuid import UUID, uuid4
+
+import pytest
+from fastapi import FastAPI
+from httpx import ASGITransport, AsyncClient
+from structlog.contextvars import bind_contextvars
+
+from src.common.utils.public_ids import encode_uuid
+from src.core.events import events
+from src.core.registry import create_app
+from src.models.ai.ai_audit_log import AIAuditLog, AuditLogSource, AuditLogStatus
+from src.models.analytics.audit_event import AuditEvent
+from src.models.observability.http_request_metric import HTTPRequestMetricHourly
+from src.models.organization.organization import Organization
+from src.models.organization.user import User
+from src.models.projects.project import ProjectRecord
+from src.models.workspaces.workspace import Workspace
+from src.modules.auth.http.service import require_super_admin
+from src.modules.observability.http_metrics import HTTP_REQUEST_METRIC_EVENT, record_http_request_metric
+from src.modules.observability.system_router import router as system_observability_router
+
+pytestmark = pytest.mark.integration
+
+
+def _system_observability_app() -> FastAPI:
+    app = FastAPI()
+    app.include_router(system_observability_router, prefix="/api/v1/system/observability")
+
+    async def super_admin_override():
+        return SimpleNamespace(id=uuid4(), is_super_admin=True)
+
+    app.dependency_overrides[require_super_admin] = super_admin_override
+    return app
+
+
+async def _wait_for_metric(*, route_template: str, project_id: UUID) -> HTTPRequestMetricHourly:
+    for _ in range(100):
+        metric = await HTTPRequestMetricHourly.get_or_none(
+            route_template=route_template,
+            project_id=project_id,
+        )
+        if metric is not None:
+            return metric
+        await asyncio.sleep(0.01)
+    raise AssertionError(f"HTTP metric was not persisted for route {route_template}")
+
+
+async def _create_ai_audit(
+    *,
+    workspace_id: UUID | None,
+    project_id: UUID | None,
+    user_id: UUID,
+    duration_ms: int,
+    status: AuditLogStatus = AuditLogStatus.SUCCESS,
+) -> None:
+    await AIAuditLog.create(
+        correlation_id=uuid4(),
+        workspace_id=workspace_id,
+        project_id=project_id,
+        user_id=user_id,
+        source=AuditLogSource.API,
+        provider="openai",
+        model="gpt-4o-mini",
+        request_type="chat",
+        prompt_tokens=10,
+        completion_tokens=5,
+        cost_micros=1_500,
+        duration_ms=duration_ms,
+        status=status,
+    )
+
+
+@pytest.mark.asyncio
+async def test_system_observability_api_executes_empty_postgres_aggregates(db_schema) -> None:
+    _ = db_schema
+    app = _system_observability_app()
+    transport = ASGITransport(app=app, raise_app_exceptions=True)
+
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        overview_response = await client.get("/api/v1/system/observability/overview?days=30")
+        trend_response = await client.get(
+            "/api/v1/system/observability/trends",
+            params={"days": 30, "metric": "httpRequests"},
+        )
+
+    assert overview_response.status_code == 200, overview_response.text
+    overview = overview_response.json()["data"]
+    assert overview["http"] == {
+        "requests": 0,
+        "errorRequests": 0,
+        "errorRate": 0.0,
+        "avgLatencyMs": 0.0,
+        "maxLatencyMs": 0,
+    }
+    assert overview["ai"]["requests"] == 0
+    assert overview["operations"] == {
+        "auditEvents": 0,
+        "openFeedback": 0,
+        "activeSubscriptions": 0,
+    }
+    for coverage in overview["dataAvailability"].values():
+        assert coverage == {
+            "supported": True,
+            "attributedRecords": 0,
+            "totalRecords": 0,
+            "coverageRate": 0.0,
+        }
+
+    assert trend_response.status_code == 200, trend_response.text
+    trend = trend_response.json()["data"]
+    assert trend["points"] == []
+    assert trend["total"] == 0
+
+
+@pytest.mark.asyncio
+async def test_lifespan_persists_real_request_and_project_filters_all_telemetry(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    _ = prepared_db
+    _ = integration_valkey_settings
+    app = create_app()
+    request_scope: dict[str, UUID] = {}
+    current_user: User | None = None
+    probe_template = "/api/v1/observability-runtime-probe/{project_id}"
+
+    @app.get(probe_template, tags=["test.observability.runtime"])
+    async def observability_runtime_probe(project_id: UUID) -> dict[str, bool]:
+        assert project_id == request_scope["project_id"]
+        bind_contextvars(
+            workspace_id=str(request_scope["workspace_id"]),
+            project_id=str(project_id),
+        )
+        return {"ok": True}
+
+    async def super_admin_override() -> User:
+        assert current_user is not None
+        return current_user
+
+    app.dependency_overrides[require_super_admin] = super_admin_override
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+
+    async with app.router.lifespan_context(app):
+        snapshot = await app.state.event_bus.snapshot()
+        subscribers = snapshot[HTTP_REQUEST_METRIC_EVENT]
+        assert [entry["subscriber_id"] for entry in subscribers] == ["core.observability.http"]
+        assert subscribers[0]["name"] == "http-request-metric-writer"
+
+        current_user = await User.create(
+            username=f"observability-{uuid4().hex[:10]}",
+            email=f"observability-{uuid4().hex[:10]}@example.test",
+            is_super_admin=True,
+        )
+        organization = await Organization.create(
+            slug=f"observability-{uuid4().hex}",
+            name="Observability integration",
+            owner_user_id=current_user.id,
+        )
+        workspace = await Workspace.create(
+            organization_id=organization.id,
+            name="Observed workspace",
+            created_by_user_id=current_user.id,
+        )
+        project = await ProjectRecord.create(
+            workspace_id=workspace.id,
+            slug="observed-project",
+            name="Observed project",
+            created_by_user_id=current_user.id,
+        )
+        other_project = await ProjectRecord.create(
+            workspace_id=workspace.id,
+            slug="other-project",
+            name="Other project",
+            created_by_user_id=current_user.id,
+        )
+        request_scope.update(workspace_id=workspace.id, project_id=project.id)
+        app.state.system_initialized = True
+
+        await record_http_request_metric(
+            workspace_id=workspace.id,
+            project_id=other_project.id,
+            route_template="/api/v1/projects/{project_id}/other",
+            method="GET",
+            status_code=503,
+            duration_ms=90,
+        )
+        await _create_ai_audit(
+            workspace_id=workspace.id,
+            project_id=project.id,
+            user_id=current_user.id,
+            duration_ms=20,
+        )
+        await _create_ai_audit(
+            workspace_id=workspace.id,
+            project_id=other_project.id,
+            user_id=current_user.id,
+            duration_ms=80,
+            status=AuditLogStatus.ERROR,
+        )
+        await _create_ai_audit(
+            workspace_id=None,
+            project_id=None,
+            user_id=current_user.id,
+            duration_ms=40,
+        )
+        now = datetime.now(UTC)
+        await AuditEvent.create(
+            occurred_at=now,
+            event_name="project.observability.first",
+            workspace_id=workspace.id,
+            project_id=project.id,
+        )
+        await AuditEvent.create(
+            occurred_at=now,
+            event_name="project.observability.second",
+            workspace_id=workspace.id,
+            project_id=other_project.id,
+        )
+
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            probe_response = await client.get(f"/api/v1/observability-runtime-probe/{project.id}")
+            assert probe_response.status_code == 200, probe_response.text
+            metric = await _wait_for_metric(route_template=probe_template, project_id=project.id)
+            assert metric.workspace_id == workspace.id
+            assert metric.request_count == 1
+            assert metric.scope_key == f"project:{project.id}"
+
+            unfiltered_response = await client.get("/api/v1/system/observability/overview?days=1")
+            assert unfiltered_response.status_code == 200, unfiltered_response.text
+            unfiltered = unfiltered_response.json()["data"]
+            assert unfiltered["http"]["requests"] == 2
+            assert unfiltered["ai"]["requests"] == 3
+            assert unfiltered["dataAvailability"]["aiProjectAttribution"] == {
+                "supported": True,
+                "attributedRecords": 2,
+                "totalRecords": 2,
+                "coverageRate": 1.0,
+            }
+
+            project_params = {"days": 1, "projectId": encode_uuid(project.id)}
+            project_response = await client.get(
+                "/api/v1/system/observability/overview",
+                params=project_params,
+            )
+            assert project_response.status_code == 200, project_response.text
+            project_overview = project_response.json()["data"]
+            assert project_overview["http"]["requests"] == 1
+            assert project_overview["http"]["errorRequests"] == 0
+            assert project_overview["ai"]["requests"] == 1
+            assert project_overview["ai"]["promptTokens"] == 10
+            assert project_overview["operations"]["auditEvents"] == 1
+            assert project_overview["resources"]["activeProjects"] == 1
+
+            for metric_name in ("httpRequests", "requests", "auditEvents"):
+                trend_response = await client.get(
+                    "/api/v1/system/observability/trends",
+                    params={**project_params, "metric": metric_name},
+                )
+                assert trend_response.status_code == 200, trend_response.text
+                assert trend_response.json()["data"]["total"] == 1
+
+        await asyncio.sleep(0)
+        persisted_requests = sum(int(row.request_count) for row in await HTTPRequestMetricHourly.all())
+        assert persisted_requests == 2
+
+    app.dependency_overrides.clear()
+    assert events.bus is app.state.event_bus

@@ -52,6 +52,11 @@ Do not:
 - Active frontend scope: `apps/admin` and Admin-facing surfaces in `packages/ui`
 - `DESIGN.md` is the primary visual language source
 - For design-sensitive changes, align with `docs/guidelines/frontend-design.md`
+- Reuse `@arclayer/ui` first; install missing generic primitives through the configured shadcn Registry instead of hand-building substitutes
+- Use `lucide-react` for icons and `@arclayer/ui/chart` (Recharts) for charts; do not add competing icon or chart stacks
+- Use the shared Boneyard route boundary and package scripts for route skeleton capture; keep page-local loading/error/empty states explicit
+- All new product copy must use stable i18n keys with both `zh-CN` and `en-US` resources
+- Treat `docs/spec/admin/frontend/product-ui-toolchain.md` as the canonical UI toolchain contract
 
 ## Repo Intelligence Workflow
 

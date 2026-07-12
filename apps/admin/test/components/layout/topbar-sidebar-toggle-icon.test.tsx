@@ -17,6 +17,16 @@ vi.mock("@/components/layout/admin-account-menu", () => ({
   AdminAccountMenu: () => <div data-testid="account-menu" />,
 }));
 
+vi.mock("@/components/feedback/feedback-dialog", () => ({
+  FeedbackDialog: ({ trigger }: { trigger: React.ReactNode }) => <>{trigger}</>,
+}));
+
+vi.mock("@/components/commerce/workspace-credits-control", () => ({
+  WorkspaceCreditsControl: ({ className }: { className?: string }) => (
+    <div data-testid="workspace-credits-control" className={className} />
+  ),
+}));
+
 vi.mock("@/components/layout/admin-scope-switcher", () => ({
   AdminScopeSwitcher: () => <div data-testid="workspace-switcher" />,
   headerTriggerButtonClassName: "group/panel-trigger hover:bg-accent/60",
@@ -89,7 +99,25 @@ describe("topbar sidebar toggle icon", () => {
     expect(feedbackButton).toHaveAttribute("data-size", "sm");
     expect(askAiButton).toHaveAttribute("data-variant", "outline");
     expect(askAiButton).toHaveAttribute("data-size", "sm");
+    expect(feedbackButton).toHaveClass("min-h-12", "min-w-12", "sm:min-h-0", "sm:min-w-0");
+    expect(askAiButton).toHaveClass("min-h-12", "min-w-12", "sm:min-h-0", "sm:min-w-0");
+    expect(screen.getByTestId("workspace-credits-control")).toHaveClass(
+      "min-h-12",
+      "min-w-12",
+      "sm:min-h-0",
+      "sm:min-w-0",
+    );
     expect(screen.getByTestId("account-menu")).toBeInTheDocument();
+
+    const topbarContent = screen.getByRole("banner").firstElementChild;
+    expect(topbarContent).toHaveClass(
+      "flex-col",
+      "items-stretch",
+      "gap-2",
+      "sm:flex-row",
+      "sm:items-center",
+      "sm:gap-4",
+    );
   });
 
   it("AdminTopbar 在项目范围显示项目名称与真实导航 breadcrumb", async () => {
@@ -245,7 +273,7 @@ describe("topbar sidebar toggle icon", () => {
     expect(screen.getByTestId("account-menu")).toBeInTheDocument();
   });
 
-  it("AdminTopbar 将右侧操作区排列为反馈、AI 与账号菜单", () => {
+  it("AdminTopbar 将右侧操作区排列为反馈、AI、Credits 与账号菜单", () => {
     renderWithSidebar(<AdminTopbar />);
 
     const trailing = screen.getByTestId("account-menu").parentElement;
@@ -254,7 +282,12 @@ describe("topbar sidebar toggle icon", () => {
 
     const children = Array.from(trailing.children);
     expect(children.map((child) => child.textContent || child.getAttribute("data-testid"))).toEqual(
-      ["common:TOPBAR_FEEDBACK", "common:TOPBAR_ASK_AI", "account-menu"],
+      [
+        "common:TOPBAR_FEEDBACK",
+        "common:TOPBAR_ASK_AI",
+        "workspace-credits-control",
+        "account-menu",
+      ],
     );
   });
 });

@@ -22,6 +22,10 @@ import { Route as InspriationIndexRouteImport } from './routes/inspriation/index
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects/$projectId'
 import { Route as SystemTenantsIndexRouteImport } from './routes/system/tenants/index'
 import { Route as SystemSettingsIndexRouteImport } from './routes/system/settings/index'
+import { Route as SystemOverviewIndexRouteImport } from './routes/system/overview/index'
+import { Route as SystemObservabilityIndexRouteImport } from './routes/system/observability/index'
+import { Route as SystemFeedbackIndexRouteImport } from './routes/system/feedback/index'
+import { Route as SystemAuditLogIndexRouteImport } from './routes/system/audit-log/index'
 import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects/$projectId/index'
 import { Route as SystemTenantsWorkspacesIndexRouteImport } from './routes/system/tenants/workspaces/index'
 import { Route as SystemTenantsUsersIndexRouteImport } from './routes/system/tenants/users/index'
@@ -31,8 +35,13 @@ import { Route as SystemSettingsOauthIndexRouteImport } from './routes/system/se
 import { Route as SystemSettingsNotificationsIndexRouteImport } from './routes/system/settings/notifications/index'
 import { Route as SystemSettingsEmailIndexRouteImport } from './routes/system/settings/email/index'
 import { Route as SystemSettingsDomainsIndexRouteImport } from './routes/system/settings/domains/index'
+import { Route as SystemSettingsBillingIndexRouteImport } from './routes/system/settings/billing/index'
 import { Route as SystemSettingsAgentsIndexRouteImport } from './routes/system/settings/agents/index'
 import { Route as SystemSettingsAccessIndexRouteImport } from './routes/system/settings/access/index'
+import { Route as SystemObservabilityRequestsIndexRouteImport } from './routes/system/observability/requests/index'
+import { Route as SystemObservabilityOverviewIndexRouteImport } from './routes/system/observability/overview/index'
+import { Route as SystemObservabilityAiUsageIndexRouteImport } from './routes/system/observability/ai-usage/index'
+import { Route as SystemObservabilityActivityIndexRouteImport } from './routes/system/observability/activity/index'
 import { Route as ProjectsProjectIdSettingsIndexRouteImport } from './routes/projects/$projectId/settings/index'
 import { Route as ProjectsProjectIdEditorIndexRouteImport } from './routes/projects/$projectId/editor/index'
 import { Route as ProjectsProjectIdDeploymentsIndexRouteImport } from './routes/projects/$projectId/deployments/index'
@@ -140,6 +149,27 @@ const SystemSettingsIndexRoute = SystemSettingsIndexRouteImport.update({
   path: '/settings/',
   getParentRoute: () => SystemRoute,
 } as any)
+const SystemOverviewIndexRoute = SystemOverviewIndexRouteImport.update({
+  id: '/overview/',
+  path: '/overview/',
+  getParentRoute: () => SystemRoute,
+} as any)
+const SystemObservabilityIndexRoute =
+  SystemObservabilityIndexRouteImport.update({
+    id: '/observability/',
+    path: '/observability/',
+    getParentRoute: () => SystemRoute,
+  } as any)
+const SystemFeedbackIndexRoute = SystemFeedbackIndexRouteImport.update({
+  id: '/feedback/',
+  path: '/feedback/',
+  getParentRoute: () => SystemRoute,
+} as any)
+const SystemAuditLogIndexRoute = SystemAuditLogIndexRouteImport.update({
+  id: '/audit-log/',
+  path: '/audit-log/',
+  getParentRoute: () => SystemRoute,
+} as any)
 const ProjectsProjectIdIndexRoute = ProjectsProjectIdIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -194,6 +224,12 @@ const SystemSettingsDomainsIndexRoute =
     path: '/settings/domains/',
     getParentRoute: () => SystemRoute,
   } as any)
+const SystemSettingsBillingIndexRoute =
+  SystemSettingsBillingIndexRouteImport.update({
+    id: '/settings/billing/',
+    path: '/settings/billing/',
+    getParentRoute: () => SystemRoute,
+  } as any)
 const SystemSettingsAgentsIndexRoute =
   SystemSettingsAgentsIndexRouteImport.update({
     id: '/settings/agents/',
@@ -204,6 +240,30 @@ const SystemSettingsAccessIndexRoute =
   SystemSettingsAccessIndexRouteImport.update({
     id: '/settings/access/',
     path: '/settings/access/',
+    getParentRoute: () => SystemRoute,
+  } as any)
+const SystemObservabilityRequestsIndexRoute =
+  SystemObservabilityRequestsIndexRouteImport.update({
+    id: '/observability/requests/',
+    path: '/observability/requests/',
+    getParentRoute: () => SystemRoute,
+  } as any)
+const SystemObservabilityOverviewIndexRoute =
+  SystemObservabilityOverviewIndexRouteImport.update({
+    id: '/observability/overview/',
+    path: '/observability/overview/',
+    getParentRoute: () => SystemRoute,
+  } as any)
+const SystemObservabilityAiUsageIndexRoute =
+  SystemObservabilityAiUsageIndexRouteImport.update({
+    id: '/observability/ai-usage/',
+    path: '/observability/ai-usage/',
+    getParentRoute: () => SystemRoute,
+  } as any)
+const SystemObservabilityActivityIndexRoute =
+  SystemObservabilityActivityIndexRouteImport.update({
+    id: '/observability/activity/',
+    path: '/observability/activity/',
     getParentRoute: () => SystemRoute,
   } as any)
 const ProjectsProjectIdSettingsIndexRoute =
@@ -482,6 +542,10 @@ export interface FileRoutesByFullPath {
   '/system/': typeof SystemIndexRoute
   '/welcome/': typeof WelcomeIndexRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
+  '/system/audit-log/': typeof SystemAuditLogIndexRoute
+  '/system/feedback/': typeof SystemFeedbackIndexRoute
+  '/system/observability/': typeof SystemObservabilityIndexRoute
+  '/system/overview/': typeof SystemOverviewIndexRoute
   '/system/settings/': typeof SystemSettingsIndexRoute
   '/system/tenants/': typeof SystemTenantsIndexRoute
   '/projects/$projectId/activity/': typeof ProjectsProjectIdActivityIndexRoute
@@ -489,8 +553,13 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/deployments/': typeof ProjectsProjectIdDeploymentsIndexRoute
   '/projects/$projectId/editor/': typeof ProjectsProjectIdEditorIndexRoute
   '/projects/$projectId/settings/': typeof ProjectsProjectIdSettingsIndexRoute
+  '/system/observability/activity/': typeof SystemObservabilityActivityIndexRoute
+  '/system/observability/ai-usage/': typeof SystemObservabilityAiUsageIndexRoute
+  '/system/observability/overview/': typeof SystemObservabilityOverviewIndexRoute
+  '/system/observability/requests/': typeof SystemObservabilityRequestsIndexRoute
   '/system/settings/access/': typeof SystemSettingsAccessIndexRoute
   '/system/settings/agents/': typeof SystemSettingsAgentsIndexRoute
+  '/system/settings/billing/': typeof SystemSettingsBillingIndexRoute
   '/system/settings/domains/': typeof SystemSettingsDomainsIndexRoute
   '/system/settings/email/': typeof SystemSettingsEmailIndexRoute
   '/system/settings/notifications/': typeof SystemSettingsNotificationsIndexRoute
@@ -539,6 +608,10 @@ export interface FileRoutesByTo {
   '/system': typeof SystemIndexRoute
   '/welcome': typeof WelcomeIndexRoute
   '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
+  '/system/audit-log': typeof SystemAuditLogIndexRoute
+  '/system/feedback': typeof SystemFeedbackIndexRoute
+  '/system/observability': typeof SystemObservabilityIndexRoute
+  '/system/overview': typeof SystemOverviewIndexRoute
   '/system/settings': typeof SystemSettingsIndexRoute
   '/system/tenants': typeof SystemTenantsIndexRoute
   '/projects/$projectId/activity': typeof ProjectsProjectIdActivityIndexRoute
@@ -546,8 +619,13 @@ export interface FileRoutesByTo {
   '/projects/$projectId/deployments': typeof ProjectsProjectIdDeploymentsIndexRoute
   '/projects/$projectId/editor': typeof ProjectsProjectIdEditorIndexRoute
   '/projects/$projectId/settings': typeof ProjectsProjectIdSettingsIndexRoute
+  '/system/observability/activity': typeof SystemObservabilityActivityIndexRoute
+  '/system/observability/ai-usage': typeof SystemObservabilityAiUsageIndexRoute
+  '/system/observability/overview': typeof SystemObservabilityOverviewIndexRoute
+  '/system/observability/requests': typeof SystemObservabilityRequestsIndexRoute
   '/system/settings/access': typeof SystemSettingsAccessIndexRoute
   '/system/settings/agents': typeof SystemSettingsAgentsIndexRoute
+  '/system/settings/billing': typeof SystemSettingsBillingIndexRoute
   '/system/settings/domains': typeof SystemSettingsDomainsIndexRoute
   '/system/settings/email': typeof SystemSettingsEmailIndexRoute
   '/system/settings/notifications': typeof SystemSettingsNotificationsIndexRoute
@@ -599,6 +677,10 @@ export interface FileRoutesById {
   '/system/': typeof SystemIndexRoute
   '/welcome/': typeof WelcomeIndexRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
+  '/system/audit-log/': typeof SystemAuditLogIndexRoute
+  '/system/feedback/': typeof SystemFeedbackIndexRoute
+  '/system/observability/': typeof SystemObservabilityIndexRoute
+  '/system/overview/': typeof SystemOverviewIndexRoute
   '/system/settings/': typeof SystemSettingsIndexRoute
   '/system/tenants/': typeof SystemTenantsIndexRoute
   '/projects/$projectId/activity/': typeof ProjectsProjectIdActivityIndexRoute
@@ -606,8 +688,13 @@ export interface FileRoutesById {
   '/projects/$projectId/deployments/': typeof ProjectsProjectIdDeploymentsIndexRoute
   '/projects/$projectId/editor/': typeof ProjectsProjectIdEditorIndexRoute
   '/projects/$projectId/settings/': typeof ProjectsProjectIdSettingsIndexRoute
+  '/system/observability/activity/': typeof SystemObservabilityActivityIndexRoute
+  '/system/observability/ai-usage/': typeof SystemObservabilityAiUsageIndexRoute
+  '/system/observability/overview/': typeof SystemObservabilityOverviewIndexRoute
+  '/system/observability/requests/': typeof SystemObservabilityRequestsIndexRoute
   '/system/settings/access/': typeof SystemSettingsAccessIndexRoute
   '/system/settings/agents/': typeof SystemSettingsAgentsIndexRoute
+  '/system/settings/billing/': typeof SystemSettingsBillingIndexRoute
   '/system/settings/domains/': typeof SystemSettingsDomainsIndexRoute
   '/system/settings/email/': typeof SystemSettingsEmailIndexRoute
   '/system/settings/notifications/': typeof SystemSettingsNotificationsIndexRoute
@@ -660,6 +747,10 @@ export interface FileRouteTypes {
     | '/system/'
     | '/welcome/'
     | '/projects/$projectId/'
+    | '/system/audit-log/'
+    | '/system/feedback/'
+    | '/system/observability/'
+    | '/system/overview/'
     | '/system/settings/'
     | '/system/tenants/'
     | '/projects/$projectId/activity/'
@@ -667,8 +758,13 @@ export interface FileRouteTypes {
     | '/projects/$projectId/deployments/'
     | '/projects/$projectId/editor/'
     | '/projects/$projectId/settings/'
+    | '/system/observability/activity/'
+    | '/system/observability/ai-usage/'
+    | '/system/observability/overview/'
+    | '/system/observability/requests/'
     | '/system/settings/access/'
     | '/system/settings/agents/'
+    | '/system/settings/billing/'
     | '/system/settings/domains/'
     | '/system/settings/email/'
     | '/system/settings/notifications/'
@@ -717,6 +813,10 @@ export interface FileRouteTypes {
     | '/system'
     | '/welcome'
     | '/projects/$projectId'
+    | '/system/audit-log'
+    | '/system/feedback'
+    | '/system/observability'
+    | '/system/overview'
     | '/system/settings'
     | '/system/tenants'
     | '/projects/$projectId/activity'
@@ -724,8 +824,13 @@ export interface FileRouteTypes {
     | '/projects/$projectId/deployments'
     | '/projects/$projectId/editor'
     | '/projects/$projectId/settings'
+    | '/system/observability/activity'
+    | '/system/observability/ai-usage'
+    | '/system/observability/overview'
+    | '/system/observability/requests'
     | '/system/settings/access'
     | '/system/settings/agents'
+    | '/system/settings/billing'
     | '/system/settings/domains'
     | '/system/settings/email'
     | '/system/settings/notifications'
@@ -776,6 +881,10 @@ export interface FileRouteTypes {
     | '/system/'
     | '/welcome/'
     | '/projects/$projectId/'
+    | '/system/audit-log/'
+    | '/system/feedback/'
+    | '/system/observability/'
+    | '/system/overview/'
     | '/system/settings/'
     | '/system/tenants/'
     | '/projects/$projectId/activity/'
@@ -783,8 +892,13 @@ export interface FileRouteTypes {
     | '/projects/$projectId/deployments/'
     | '/projects/$projectId/editor/'
     | '/projects/$projectId/settings/'
+    | '/system/observability/activity/'
+    | '/system/observability/ai-usage/'
+    | '/system/observability/overview/'
+    | '/system/observability/requests/'
     | '/system/settings/access/'
     | '/system/settings/agents/'
+    | '/system/settings/billing/'
     | '/system/settings/domains/'
     | '/system/settings/email/'
     | '/system/settings/notifications/'
@@ -929,6 +1043,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SystemSettingsIndexRouteImport
       parentRoute: typeof SystemRoute
     }
+    '/system/overview/': {
+      id: '/system/overview/'
+      path: '/overview'
+      fullPath: '/system/overview/'
+      preLoaderRoute: typeof SystemOverviewIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/observability/': {
+      id: '/system/observability/'
+      path: '/observability'
+      fullPath: '/system/observability/'
+      preLoaderRoute: typeof SystemObservabilityIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/feedback/': {
+      id: '/system/feedback/'
+      path: '/feedback'
+      fullPath: '/system/feedback/'
+      preLoaderRoute: typeof SystemFeedbackIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/audit-log/': {
+      id: '/system/audit-log/'
+      path: '/audit-log'
+      fullPath: '/system/audit-log/'
+      preLoaderRoute: typeof SystemAuditLogIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
     '/projects/$projectId/': {
       id: '/projects/$projectId/'
       path: '/'
@@ -992,6 +1134,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SystemSettingsDomainsIndexRouteImport
       parentRoute: typeof SystemRoute
     }
+    '/system/settings/billing/': {
+      id: '/system/settings/billing/'
+      path: '/settings/billing'
+      fullPath: '/system/settings/billing/'
+      preLoaderRoute: typeof SystemSettingsBillingIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
     '/system/settings/agents/': {
       id: '/system/settings/agents/'
       path: '/settings/agents'
@@ -1004,6 +1153,34 @@ declare module '@tanstack/react-router' {
       path: '/settings/access'
       fullPath: '/system/settings/access/'
       preLoaderRoute: typeof SystemSettingsAccessIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/observability/requests/': {
+      id: '/system/observability/requests/'
+      path: '/observability/requests'
+      fullPath: '/system/observability/requests/'
+      preLoaderRoute: typeof SystemObservabilityRequestsIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/observability/overview/': {
+      id: '/system/observability/overview/'
+      path: '/observability/overview'
+      fullPath: '/system/observability/overview/'
+      preLoaderRoute: typeof SystemObservabilityOverviewIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/observability/ai-usage/': {
+      id: '/system/observability/ai-usage/'
+      path: '/observability/ai-usage'
+      fullPath: '/system/observability/ai-usage/'
+      preLoaderRoute: typeof SystemObservabilityAiUsageIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/observability/activity/': {
+      id: '/system/observability/activity/'
+      path: '/observability/activity'
+      fullPath: '/system/observability/activity/'
+      preLoaderRoute: typeof SystemObservabilityActivityIndexRouteImport
       parentRoute: typeof SystemRoute
     }
     '/projects/$projectId/settings/': {
@@ -1242,10 +1419,19 @@ declare module '@tanstack/react-router' {
 
 interface SystemRouteChildren {
   SystemIndexRoute: typeof SystemIndexRoute
+  SystemAuditLogIndexRoute: typeof SystemAuditLogIndexRoute
+  SystemFeedbackIndexRoute: typeof SystemFeedbackIndexRoute
+  SystemObservabilityIndexRoute: typeof SystemObservabilityIndexRoute
+  SystemOverviewIndexRoute: typeof SystemOverviewIndexRoute
   SystemSettingsIndexRoute: typeof SystemSettingsIndexRoute
   SystemTenantsIndexRoute: typeof SystemTenantsIndexRoute
+  SystemObservabilityActivityIndexRoute: typeof SystemObservabilityActivityIndexRoute
+  SystemObservabilityAiUsageIndexRoute: typeof SystemObservabilityAiUsageIndexRoute
+  SystemObservabilityOverviewIndexRoute: typeof SystemObservabilityOverviewIndexRoute
+  SystemObservabilityRequestsIndexRoute: typeof SystemObservabilityRequestsIndexRoute
   SystemSettingsAccessIndexRoute: typeof SystemSettingsAccessIndexRoute
   SystemSettingsAgentsIndexRoute: typeof SystemSettingsAgentsIndexRoute
+  SystemSettingsBillingIndexRoute: typeof SystemSettingsBillingIndexRoute
   SystemSettingsDomainsIndexRoute: typeof SystemSettingsDomainsIndexRoute
   SystemSettingsEmailIndexRoute: typeof SystemSettingsEmailIndexRoute
   SystemSettingsNotificationsIndexRoute: typeof SystemSettingsNotificationsIndexRoute
@@ -1258,10 +1444,19 @@ interface SystemRouteChildren {
 
 const SystemRouteChildren: SystemRouteChildren = {
   SystemIndexRoute: SystemIndexRoute,
+  SystemAuditLogIndexRoute: SystemAuditLogIndexRoute,
+  SystemFeedbackIndexRoute: SystemFeedbackIndexRoute,
+  SystemObservabilityIndexRoute: SystemObservabilityIndexRoute,
+  SystemOverviewIndexRoute: SystemOverviewIndexRoute,
   SystemSettingsIndexRoute: SystemSettingsIndexRoute,
   SystemTenantsIndexRoute: SystemTenantsIndexRoute,
+  SystemObservabilityActivityIndexRoute: SystemObservabilityActivityIndexRoute,
+  SystemObservabilityAiUsageIndexRoute: SystemObservabilityAiUsageIndexRoute,
+  SystemObservabilityOverviewIndexRoute: SystemObservabilityOverviewIndexRoute,
+  SystemObservabilityRequestsIndexRoute: SystemObservabilityRequestsIndexRoute,
   SystemSettingsAccessIndexRoute: SystemSettingsAccessIndexRoute,
   SystemSettingsAgentsIndexRoute: SystemSettingsAgentsIndexRoute,
+  SystemSettingsBillingIndexRoute: SystemSettingsBillingIndexRoute,
   SystemSettingsDomainsIndexRoute: SystemSettingsDomainsIndexRoute,
   SystemSettingsEmailIndexRoute: SystemSettingsEmailIndexRoute,
   SystemSettingsNotificationsIndexRoute: SystemSettingsNotificationsIndexRoute,

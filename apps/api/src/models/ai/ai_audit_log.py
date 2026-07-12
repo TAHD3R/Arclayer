@@ -33,6 +33,7 @@ class AIAuditLog(BaseModel):
 
     correlation_id = fields.UUIDField(db_index=True)
     workspace_id = fields.UUIDField(null=True, db_index=True)
+    project_id = fields.UUIDField(null=True, db_index=True)
     user_id = fields.UUIDField(null=True, db_index=True)
     source = fields.CharEnumField(AuditLogSource, db_index=True)
     provider = fields.CharField(max_length=50)

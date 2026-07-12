@@ -31,6 +31,7 @@ class AuditEventOut(BaseOut, TimestampMixin):
     event_name: str = Field(..., description="Event name.")
 
     workspace_id: PublicUUID | None = Field(default=None, description="Workspace id.")
+    project_id: PublicUUID | None = Field(default=None, description="Project id.")
 
     actor_user_id: PublicUUID | None = Field(default=None, description="Actor user id.")
     subject_user_id: PublicUUID | None = Field(default=None, description="Subject user id.")
@@ -71,6 +72,12 @@ class AuditEventListQuery(BaseSchema):
         alias="workspaceId",
         description="Filter: workspace id.",
         validation_alias=AliasChoices("workspaceId", "workspace_id"),
+    )
+    project_id: PublicUUID | None = Field(
+        default=None,
+        alias="projectId",
+        description="Filter: project id.",
+        validation_alias=AliasChoices("projectId", "project_id"),
     )
     actor_user_id: PublicUUID | None = Field(
         default=None,

@@ -5,6 +5,7 @@ from typing import Any
 from uuid import UUID
 
 from pydantic import ConfigDict, Field
+from structlog.contextvars import get_contextvars
 from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.common.schemas import BaseSchema
@@ -23,6 +24,7 @@ class ActivityAuditPayload(BaseSchema):
     actor_user_id: UUID | None = None
     organization_id: UUID | None = None
     workspace_id: UUID | None = None
+    project_id: UUID | None = None
     subject_user_id: UUID | None = None
     entity_type: str | None = Field(default=None, max_length=64)
     entity_id: UUID | None = None
@@ -47,11 +49,20 @@ async def write_required_activity_event(
         max_string_length=audit.max_string_length,
         max_depth=audit.max_depth,
     )
+    context = get_contextvars()
+    contextual_project_id = context.get("tenant_project_id") or context.get("project_id")
+    project_id = payload.project_id
+    if project_id is None and contextual_project_id is not None:
+        try:
+            project_id = UUID(str(contextual_project_id))
+        except ValueError:
+            project_id = None
     row: dict[str, Any] = {
         "occurred_at": payload.occurred_at,
         "event_name": payload.event_name,
         "organization_id": payload.organization_id,
         "workspace_id": payload.workspace_id,
+        "project_id": project_id,
         "actor_user_id": payload.actor_user_id,
         "subject_user_id": payload.subject_user_id,
         "entity_type": payload.entity_type,
@@ -74,6 +85,7 @@ def activity_properties_from_payload(payload: dict[str, Any]) -> JsonObject:
             "organization_id",
             "org_id",
             "workspace_id",
+            "project_id",
             "actor_user_id",
             "subject_user_id",
             "entity_type",

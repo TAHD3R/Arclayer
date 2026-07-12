@@ -9,6 +9,8 @@ R3 audit requirements:
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import TYPE_CHECKING
+from uuid import UUID
 
 from tortoise import fields
 
@@ -38,8 +40,16 @@ class AIBudgetReservation(BaseModel):
     estimated_cost_micros = fields.BigIntField()  # Pre-call estimate
     reserved_cost_micros = fields.BigIntField()  # Amount actually reserved
     actual_cost_micros = fields.BigIntField(null=True)  # Post-call actual (only when committed)
+    credit_account_id = fields.UUIDField(null=True, db_index=True)
+    credit_value_micros = fields.BigIntField(null=True)
+    reserved_credits = fields.BigIntField(null=True)
+    actual_credits = fields.BigIntField(null=True)
+    credits_reconciled_at = fields.DatetimeField(null=True, db_index=True)
     status = fields.CharEnumField(ReservationStatus, default=ReservationStatus.RESERVED, db_index=True)
     expires_at = fields.DatetimeField()
+
+    if TYPE_CHECKING:
+        budget_id: UUID
 
     class Meta(BaseModel.Meta):
         table = "ai_budget_reservations"

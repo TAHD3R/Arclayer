@@ -122,6 +122,7 @@ export type HighlightItemProps<T extends React.ElementType = "div"> = React.Comp
   exitDelay?: number;
   asChild?: boolean;
   forceUpdateBounds?: boolean;
+  emitAriaSelected?: boolean;
 };
 
 export function getNonOverridingDataAttributes(

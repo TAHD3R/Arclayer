@@ -377,6 +377,52 @@ export type AiModelCatalogResponse = {
 };
 
 /**
+ * AIObservabilitySummaryOut
+ */
+export type AiObservabilitySummaryOut = {
+    /**
+     * Completiontokens
+     */
+    completionTokens: number;
+    /**
+     * Costmicros
+     */
+    costMicros: number;
+    /**
+     * Errorrate
+     */
+    errorRate: number;
+    /**
+     * Errorrequests
+     */
+    errorRequests: number;
+    /**
+     * P50Latencyms
+     */
+    p50LatencyMs: number;
+    /**
+     * P95Latencyms
+     */
+    p95LatencyMs: number;
+    /**
+     * P99Latencyms
+     */
+    p99LatencyMs: number;
+    /**
+     * Prompttokens
+     */
+    promptTokens: number;
+    /**
+     * Requests
+     */
+    requests: number;
+    /**
+     * Totaltokens
+     */
+    totalTokens: number;
+};
+
+/**
  * AcceptExistingInvitationRequest
  *
  * Accept an invitation with an existing logged-in account (email-bound).
@@ -2034,6 +2080,12 @@ export type AuditEventOut = {
      */
     occurredAt: string;
     /**
+     * Projectid
+     *
+     * Project id.
+     */
+    projectId?: string | null;
+    /**
      * Properties
      *
      * Sanitized event properties.
@@ -2715,6 +2767,11 @@ export type AvatarUploadInitRequest = {
 };
 
 /**
+ * BillingCycle
+ */
+export type BillingCycle = 'monthly' | 'yearly';
+
+/**
  * ChangePasswordRequest
  *
  * Change password request.
@@ -2787,6 +2844,151 @@ export type ChatRequest = {
      * Workspaceid
      */
     workspaceId?: string | null;
+};
+
+/**
+ * CommercePlanCatalogOut
+ */
+export type CommercePlanCatalogOut = {
+    /**
+     * Billingmode
+     */
+    billingMode?: string;
+    /**
+     * Items
+     */
+    items: Array<CommercePlanOut>;
+};
+
+/**
+ * CommercePlanOut
+ */
+export type CommercePlanOut = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Creditgrantamount
+     */
+    creditGrantAmount: number;
+    creditRefreshInterval: CreditRefreshInterval;
+    /**
+     * Creditvaluemicros
+     */
+    creditValueMicros: number;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Features
+     */
+    features: Array<PlanFeature>;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Isactive
+     */
+    isActive: boolean;
+    /**
+     * Isdefault
+     */
+    isDefault: boolean;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Pricemonthlymicros
+     */
+    priceMonthlyMicros: number;
+    /**
+     * Priceyearlymicros
+     */
+    priceYearlyMicros: number;
+    /**
+     * Sortorder
+     */
+    sortOrder: number;
+    tier: CommercePlanTier;
+    /**
+     * Updatedat
+     *
+     * Updated at.
+     */
+    updatedAt: string;
+};
+
+/**
+ * CommercePlanTier
+ */
+export type CommercePlanTier = 'free' | 'premium' | 'enterprise';
+
+/**
+ * CommercePlanUpsertRequest
+ */
+export type CommercePlanUpsertRequest = {
+    /**
+     * Creditgrantamount
+     */
+    creditGrantAmount: number;
+    creditRefreshInterval: CreditRefreshInterval;
+    /**
+     * Creditvaluemicros
+     */
+    creditValueMicros: number;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Features
+     */
+    features?: Array<PlanFeature>;
+    /**
+     * Isactive
+     */
+    isActive?: boolean;
+    /**
+     * Isdefault
+     */
+    isDefault?: boolean;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Pricemonthlymicros
+     */
+    priceMonthlyMicros: number;
+    /**
+     * Priceyearlymicros
+     */
+    priceYearlyMicros: number;
+    /**
+     * Sortorder
+     */
+    sortOrder?: number;
+    tier: CommercePlanTier;
 };
 
 /**
@@ -5721,6 +5923,91 @@ export type ContentWorkflowTransitionContract = {
 };
 
 /**
+ * CreditLedgerEntryType
+ */
+export type CreditLedgerEntryType = 'period_grant' | 'reservation' | 'commit' | 'release' | 'adjustment' | 'expiration';
+
+/**
+ * CreditLedgerOut
+ */
+export type CreditLedgerOut = {
+    /**
+     * Accountid
+     */
+    accountId: string;
+    /**
+     * Actoruserid
+     */
+    actorUserId: string | null;
+    /**
+     * Balanceaftercredits
+     */
+    balanceAfterCredits: number;
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Deltabalancecredits
+     */
+    deltaBalanceCredits: number;
+    /**
+     * Deltareservedcredits
+     */
+    deltaReservedCredits: number;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Descriptionkey
+     */
+    descriptionKey: string;
+    /**
+     * Details
+     */
+    details: {
+        [key: string]: JsonValueOutput;
+    };
+    entryType: CreditLedgerEntryType;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Referenceid
+     */
+    referenceId: string | null;
+    /**
+     * Referencetype
+     */
+    referenceType: string;
+    /**
+     * Reservedaftercredits
+     */
+    reservedAfterCredits: number;
+    /**
+     * Updatedat
+     *
+     * Updated at.
+     */
+    updatedAt: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * CreditRefreshInterval
+ */
+export type CreditRefreshInterval = 'daily' | 'monthly' | 'yearly' | 'none';
+
+/**
  * DailyUsageRecord
  *
  * Single day of aggregated AI usage.
@@ -6972,6 +7259,302 @@ export type EmailCheckRequest = {
 };
 
 /**
+ * FeedbackCategory
+ */
+export type FeedbackCategory = 'bug' | 'feature_request' | 'usability' | 'performance' | 'billing' | 'other';
+
+/**
+ * FeedbackContextType
+ */
+export type FeedbackContextType = 'global' | 'workspace' | 'project' | 'ai_conversation';
+
+/**
+ * FeedbackMessageCreate
+ */
+export type FeedbackMessageCreate = {
+    /**
+     * Body
+     */
+    body: string;
+    kind: FeedbackMessageKind;
+};
+
+/**
+ * FeedbackMessageKind
+ */
+export type FeedbackMessageKind = 'reply' | 'internal_note';
+
+/**
+ * FeedbackMessageOut
+ */
+export type FeedbackMessageOut = {
+    author: FeedbackUserOut;
+    /**
+     * Body
+     */
+    body: string;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    kind: FeedbackMessageKind;
+};
+
+/**
+ * FeedbackPriority
+ */
+export type FeedbackPriority = 'low' | 'normal' | 'high' | 'urgent';
+
+/**
+ * FeedbackSource
+ */
+export type FeedbackSource = 'header' | 'ai_sidebar' | 'feedback_center';
+
+/**
+ * FeedbackStatus
+ */
+export type FeedbackStatus = 'new' | 'triaged' | 'in_progress' | 'waiting_for_customer' | 'resolved' | 'closed';
+
+/**
+ * FeedbackSubmitRequest
+ */
+export type FeedbackSubmitRequest = {
+    category?: FeedbackCategory;
+    /**
+     * Clientrequestid
+     */
+    clientRequestId: string;
+    /**
+     * Context
+     */
+    context?: {
+        [key: string]: JsonValueInput;
+    };
+    contextType: FeedbackContextType;
+    /**
+     * Contexturl
+     */
+    contextUrl?: string | null;
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Projectid
+     */
+    projectId?: string | null;
+    /**
+     * Rating
+     */
+    rating?: number | null;
+    source: FeedbackSource;
+    /**
+     * Workspaceid
+     */
+    workspaceId?: string | null;
+};
+
+/**
+ * FeedbackTicketDetailOut
+ */
+export type FeedbackTicketDetailOut = {
+    assignee: FeedbackUserOut | null;
+    category: FeedbackCategory;
+    /**
+     * Clientrequestid
+     */
+    clientRequestId: string;
+    /**
+     * Closedat
+     */
+    closedAt: string | null;
+    /**
+     * Context
+     */
+    context: {
+        [key: string]: JsonValueOutput;
+    };
+    contextType: FeedbackContextType;
+    /**
+     * Contexturl
+     */
+    contextUrl: string | null;
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Firstresponseat
+     */
+    firstResponseAt: string | null;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Lastactivityat
+     */
+    lastActivityAt: string;
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Messages
+     */
+    messages: Array<FeedbackMessageOut>;
+    priority: FeedbackPriority;
+    /**
+     * Projectid
+     */
+    projectId: string | null;
+    /**
+     * Rating
+     */
+    rating: number | null;
+    reporter: FeedbackUserOut;
+    /**
+     * Resolvedat
+     */
+    resolvedAt: string | null;
+    source: FeedbackSource;
+    status: FeedbackStatus;
+    /**
+     * Updatedat
+     *
+     * Updated at.
+     */
+    updatedAt: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string | null;
+};
+
+/**
+ * FeedbackTicketListItemOut
+ */
+export type FeedbackTicketListItemOut = {
+    assignee: FeedbackUserOut | null;
+    category: FeedbackCategory;
+    /**
+     * Clientrequestid
+     */
+    clientRequestId: string;
+    /**
+     * Closedat
+     */
+    closedAt: string | null;
+    contextType: FeedbackContextType;
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Firstresponseat
+     */
+    firstResponseAt: string | null;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Lastactivityat
+     */
+    lastActivityAt: string;
+    /**
+     * Messagecount
+     */
+    messageCount: number;
+    /**
+     * Messagepreview
+     */
+    messagePreview: string;
+    priority: FeedbackPriority;
+    /**
+     * Projectid
+     */
+    projectId: string | null;
+    /**
+     * Rating
+     */
+    rating: number | null;
+    reporter: FeedbackUserOut;
+    /**
+     * Resolvedat
+     */
+    resolvedAt: string | null;
+    source: FeedbackSource;
+    status: FeedbackStatus;
+    /**
+     * Updatedat
+     *
+     * Updated at.
+     */
+    updatedAt: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string | null;
+};
+
+/**
+ * FeedbackTicketUpdate
+ */
+export type FeedbackTicketUpdate = {
+    /**
+     * Assigneeuserid
+     */
+    assigneeUserId?: string | null;
+    /**
+     * Clearassignee
+     */
+    clearAssignee?: boolean;
+    priority?: FeedbackPriority | null;
+    status?: FeedbackStatus | null;
+};
+
+/**
+ * FeedbackUserOut
+ */
+export type FeedbackUserOut = {
+    /**
+     * Avatarurl
+     */
+    avatarUrl: string | null;
+    /**
+     * Displayname
+     */
+    displayName: string | null;
+    /**
+     * Email
+     */
+    email: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Username
+     */
+    username: string;
+};
+
+/**
  * ForgotPasswordRequest
  *
  * Forgot password request.
@@ -6983,6 +7566,32 @@ export type ForgotPasswordRequest = {
      * Email address.
      */
     email: string;
+};
+
+/**
+ * HTTPObservabilitySummaryOut
+ */
+export type HttpObservabilitySummaryOut = {
+    /**
+     * Avglatencyms
+     */
+    avgLatencyMs: number;
+    /**
+     * Errorrate
+     */
+    errorRate: number;
+    /**
+     * Errorrequests
+     */
+    errorRequests: number;
+    /**
+     * Maxlatencyms
+     */
+    maxLatencyMs: number;
+    /**
+     * Requests
+     */
+    requests: number;
 };
 
 /**
@@ -8161,6 +8770,142 @@ export type OAuthLinkedIdentityOut = {
 export type ObjectStorageProviderKind = 'local' | 'aws_s3' | 'minio' | 'cloudflare_r2' | 'aliyun_oss' | 'volcengine_tos';
 
 /**
+ * ObservabilityAttributionCoverageOut
+ */
+export type ObservabilityAttributionCoverageOut = {
+    /**
+     * Attributedrecords
+     */
+    attributedRecords: number;
+    /**
+     * Coveragerate
+     */
+    coverageRate: number;
+    /**
+     * Supported
+     */
+    supported: boolean;
+    /**
+     * Totalrecords
+     */
+    totalRecords: number;
+};
+
+/**
+ * ObservabilityDataAvailabilityOut
+ */
+export type ObservabilityDataAvailabilityOut = {
+    aiProjectAttribution: ObservabilityAttributionCoverageOut;
+    auditProjectAttribution: ObservabilityAttributionCoverageOut;
+    httpProjectAttribution: ObservabilityAttributionCoverageOut;
+};
+
+/**
+ * ObservabilityOperationsOut
+ */
+export type ObservabilityOperationsOut = {
+    /**
+     * Activesubscriptions
+     */
+    activeSubscriptions: number;
+    /**
+     * Auditevents
+     */
+    auditEvents: number;
+    /**
+     * Openfeedback
+     */
+    openFeedback: number;
+};
+
+/**
+ * ObservabilityOverviewOut
+ */
+export type ObservabilityOverviewOut = {
+    ai: AiObservabilitySummaryOut;
+    dataAvailability: ObservabilityDataAvailabilityOut;
+    http: HttpObservabilitySummaryOut;
+    operations: ObservabilityOperationsOut;
+    period: ObservabilityPeriodOut;
+    resources: ObservabilityResourcesOut;
+};
+
+/**
+ * ObservabilityPeriodOut
+ */
+export type ObservabilityPeriodOut = {
+    /**
+     * Days
+     */
+    days: number;
+    /**
+     * Enddate
+     */
+    endDate: string;
+    /**
+     * Startdate
+     */
+    startDate: string;
+};
+
+/**
+ * ObservabilityResourcesOut
+ */
+export type ObservabilityResourcesOut = {
+    /**
+     * Activemembers
+     */
+    activeMembers?: number | null;
+    /**
+     * Activeprojects
+     */
+    activeProjects: number;
+    /**
+     * Activeusers
+     */
+    activeUsers?: number | null;
+    /**
+     * Activeworkspaces
+     */
+    activeWorkspaces?: number | null;
+};
+
+/**
+ * ObservabilityTrendMetric
+ */
+export type ObservabilityTrendMetric = 'httpRequests' | 'httpErrors' | 'httpLatency' | 'requests' | 'errors' | 'latency' | 'tokens' | 'cost' | 'auditEvents';
+
+/**
+ * ObservabilityTrendOut
+ */
+export type ObservabilityTrendOut = {
+    metric: ObservabilityTrendMetric;
+    period: ObservabilityPeriodOut;
+    /**
+     * Points
+     */
+    points: Array<ObservabilityTrendPointOut>;
+    /**
+     * Total
+     */
+    total: number | number;
+};
+
+/**
+ * ObservabilityTrendPointOut
+ */
+export type ObservabilityTrendPointOut = {
+    /**
+     * Date
+     */
+    date: string;
+    /**
+     * Value
+     */
+    value: number | number;
+};
+
+/**
  * OnboardingProfileOut
  *
  * Current user's onboarding profile signals.
@@ -8629,6 +9374,54 @@ export type PageDataContentVersionOut = {
 };
 
 /**
+ * PageData[CreditLedgerOut]
+ */
+export type PageDataCreditLedgerOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<CreditLedgerOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
  * PageData[DirectoryProjectListItemOut]
  */
 export type PageDataDirectoryProjectListItemOut = {
@@ -8782,6 +9575,54 @@ export type PageDataDomainBindingOut = {
      * Current page items.
      */
     items?: Array<DomainBindingOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
+ * PageData[FeedbackTicketListItemOut]
+ */
+export type PageDataFeedbackTicketListItemOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<FeedbackTicketListItemOut>;
     /**
      * Next
      *
@@ -9070,6 +9911,54 @@ export type PageDataSettingsNamespaceSummary = {
      * Current page items.
      */
     items?: Array<SettingsNamespaceSummary>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
+ * PageData[SubscriptionChangeRequestOut]
+ */
+export type PageDataSubscriptionChangeRequestOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<SubscriptionChangeRequestOut>;
     /**
      * Next
      *
@@ -9654,6 +10543,32 @@ export type PersonalApiKeyCreateIn = {
      * Scopes
      */
     scopes?: Array<ApiKeyScope>;
+};
+
+/**
+ * PlanFeature
+ */
+export type PlanFeature = {
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Included
+     */
+    included?: boolean;
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Value
+     */
+    value?: string | number | null;
 };
 
 /**
@@ -13001,6 +13916,56 @@ export type ResponseModelAutomationRunOut = {
 };
 
 /**
+ * ResponseModel[CommercePlanCatalogOut]
+ */
+export type ResponseModelCommercePlanCatalogOut = {
+    data?: CommercePlanCatalogOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[CommercePlanOut]
+ */
+export type ResponseModelCommercePlanOut = {
+    data?: CommercePlanOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[ContentApiEntryListOut]
  */
 export type ResponseModelContentApiEntryListOut = {
@@ -13751,6 +14716,31 @@ export type ResponseModelEmailCheckOut = {
 };
 
 /**
+ * ResponseModel[FeedbackTicketDetailOut]
+ */
+export type ResponseModelFeedbackTicketDetailOut = {
+    data?: FeedbackTicketDetailOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[HierarchyNodeOut]
  */
 export type ResponseModelHierarchyNodeOut = {
@@ -14179,6 +15169,56 @@ export type ResponseModelOAuthLinkedIdentityListOut = {
 };
 
 /**
+ * ResponseModel[ObservabilityOverviewOut]
+ */
+export type ResponseModelObservabilityOverviewOut = {
+    data?: ObservabilityOverviewOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ObservabilityTrendOut]
+ */
+export type ResponseModelObservabilityTrendOut = {
+    data?: ObservabilityTrendOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[OnboardingProfileOut]
  */
 export type ResponseModelOnboardingProfileOut = {
@@ -14429,6 +15469,31 @@ export type ResponseModelPageDataContentVersionOut = {
 };
 
 /**
+ * ResponseModel[PageData[CreditLedgerOut]]
+ */
+export type ResponseModelPageDataCreditLedgerOut = {
+    data?: PageDataCreditLedgerOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[PageData[DirectoryProjectListItemOut]]
  */
 export type ResponseModelPageDataDirectoryProjectListItemOut = {
@@ -14508,6 +15573,31 @@ export type ResponseModelPageDataDirectoryWorkspaceListItemOut = {
  */
 export type ResponseModelPageDataDomainBindingOut = {
     data?: PageDataDomainBindingOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PageData[FeedbackTicketListItemOut]]
+ */
+export type ResponseModelPageDataFeedbackTicketListItemOut = {
+    data?: PageDataFeedbackTicketListItemOut | null;
     /**
      * Error
      */
@@ -14658,6 +15748,31 @@ export type ResponseModelPageDataPublishJobOut = {
  */
 export type ResponseModelPageDataSettingsNamespaceSummary = {
     data?: PageDataSettingsNamespaceSummary | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PageData[SubscriptionChangeRequestOut]]
+ */
+export type ResponseModelPageDataSubscriptionChangeRequestOut = {
+    data?: PageDataSubscriptionChangeRequestOut | null;
     /**
      * Error
      */
@@ -16129,6 +17244,31 @@ export type ResponseModelStorageProfileTestResultOut = {
 };
 
 /**
+ * ResponseModel[SubscriptionChangeRequestOut]
+ */
+export type ResponseModelSubscriptionChangeRequestOut = {
+    data?: SubscriptionChangeRequestOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[SystemAIProviderListOut]
  */
 export type ResponseModelSystemAiProviderListOut = {
@@ -16704,6 +17844,31 @@ export type ResponseModelWorkspaceAssignRoleToMembersResult = {
 };
 
 /**
+ * ResponseModel[WorkspaceCommerceOverviewOut]
+ */
+export type ResponseModelWorkspaceCommerceOverviewOut = {
+    data?: WorkspaceCommerceOverviewOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[WorkspaceDangerCapabilitiesOut]
  */
 export type ResponseModelWorkspaceDangerCapabilitiesOut = {
@@ -16908,6 +18073,31 @@ export type ResponseModelWorkspaceManageArchiveResult = {
  */
 export type ResponseModelWorkspaceManageListItemOut = {
     data?: WorkspaceManageListItemOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[WorkspacePlanCatalogOut]
+ */
+export type ResponseModelWorkspacePlanCatalogOut = {
+    data?: WorkspacePlanCatalogOut | null;
     /**
      * Error
      */
@@ -18690,6 +19880,109 @@ export type StorageProfileUpdateRequest = {
 };
 
 /**
+ * SubscriptionChangeRequestCreate
+ */
+export type SubscriptionChangeRequestCreate = {
+    billingInterval: BillingCycle;
+    /**
+     * Plancode
+     */
+    planCode: string;
+    /**
+     * Reason
+     */
+    reason?: string | null;
+};
+
+/**
+ * SubscriptionChangeRequestOut
+ */
+export type SubscriptionChangeRequestOut = {
+    billingInterval: BillingCycle;
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Plancode
+     */
+    planCode: string;
+    /**
+     * Planname
+     */
+    planName: string;
+    /**
+     * Reason
+     */
+    reason: string | null;
+    /**
+     * Requestedbyuserid
+     */
+    requestedByUserId: string;
+    /**
+     * Reviewnote
+     */
+    reviewNote: string | null;
+    /**
+     * Reviewedat
+     */
+    reviewedAt: string | null;
+    /**
+     * Reviewedbyuserid
+     */
+    reviewedByUserId: string | null;
+    status: SubscriptionChangeRequestStatus;
+    /**
+     * Updatedat
+     *
+     * Updated at.
+     */
+    updatedAt: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * SubscriptionChangeRequestReject
+ */
+export type SubscriptionChangeRequestReject = {
+    /**
+     * Reviewnote
+     */
+    reviewNote: string;
+};
+
+/**
+ * SubscriptionChangeRequestReview
+ */
+export type SubscriptionChangeRequestReview = {
+    /**
+     * Reviewnote
+     */
+    reviewNote?: string | null;
+};
+
+/**
+ * SubscriptionChangeRequestStatus
+ */
+export type SubscriptionChangeRequestStatus = 'pending' | 'approved' | 'rejected' | 'canceled';
+
+/**
+ * SubscriptionStatus
+ */
+export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled';
+
+/**
  * SystemAIProviderCreateRequest
  */
 export type SystemAiProviderCreateRequest = {
@@ -20016,6 +21309,89 @@ export type WorkspaceAssignRoleToMembersResult = {
 };
 
 /**
+ * WorkspaceCommerceOverviewOut
+ */
+export type WorkspaceCommerceOverviewOut = {
+    /**
+     * Billingmode
+     */
+    billingMode?: string;
+    credits: WorkspaceCreditsOut;
+    pendingChangeRequest: SubscriptionChangeRequestOut | null;
+    plan: CommercePlanOut;
+    subscription: WorkspaceSubscriptionOut;
+    usage: WorkspaceCommerceUsageOut;
+};
+
+/**
+ * WorkspaceCommerceUsageOut
+ */
+export type WorkspaceCommerceUsageOut = {
+    /**
+     * Completiontokens
+     */
+    completionTokens: number;
+    /**
+     * Periodcostmicros
+     */
+    periodCostMicros: number;
+    /**
+     * Prompttokens
+     */
+    promptTokens: number;
+    /**
+     * Requests
+     */
+    requests: number;
+};
+
+/**
+ * WorkspaceCreditsOut
+ */
+export type WorkspaceCreditsOut = {
+    /**
+     * Available
+     */
+    available: number;
+    /**
+     * Balance
+     */
+    balance: number;
+    /**
+     * Lifetimegranted
+     */
+    lifetimeGranted: number;
+    /**
+     * Lifetimespent
+     */
+    lifetimeSpent: number;
+    /**
+     * Nextrefreshat
+     */
+    nextRefreshAt: string | null;
+    /**
+     * Periodend
+     */
+    periodEnd: string;
+    /**
+     * Periodgranted
+     */
+    periodGranted: number;
+    /**
+     * Periodspent
+     */
+    periodSpent: number;
+    /**
+     * Periodstart
+     */
+    periodStart: string;
+    /**
+     * Reserved
+     */
+    reserved: number;
+};
+
+/**
  * WorkspaceDangerActionOut
  */
 export type WorkspaceDangerActionOut = {
@@ -20911,6 +22287,102 @@ export type WorkspacePermissionOut = {
 };
 
 /**
+ * WorkspacePlanCatalogOut
+ */
+export type WorkspacePlanCatalogOut = {
+    /**
+     * Billingmode
+     */
+    billingMode?: string;
+    /**
+     * Items
+     */
+    items: Array<WorkspacePlanOptionOut>;
+};
+
+/**
+ * WorkspacePlanOptionOut
+ */
+export type WorkspacePlanOptionOut = {
+    /**
+     * Canselect
+     */
+    canSelect: boolean;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Creditgrantamount
+     */
+    creditGrantAmount: number;
+    creditRefreshInterval: CreditRefreshInterval;
+    /**
+     * Creditvaluemicros
+     */
+    creditValueMicros: number;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Features
+     */
+    features: Array<PlanFeature>;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Isactive
+     */
+    isActive: boolean;
+    /**
+     * Iscurrent
+     */
+    isCurrent: boolean;
+    /**
+     * Isdefault
+     */
+    isDefault: boolean;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Pricemonthlymicros
+     */
+    priceMonthlyMicros: number;
+    /**
+     * Priceyearlymicros
+     */
+    priceYearlyMicros: number;
+    /**
+     * Sortorder
+     */
+    sortOrder: number;
+    tier: CommercePlanTier;
+    /**
+     * Updatedat
+     *
+     * Updated at.
+     */
+    updatedAt: string;
+};
+
+/**
  * WorkspacePrimaryProjectOut
  */
 export type WorkspacePrimaryProjectOut = {
@@ -21058,6 +22530,68 @@ export type WorkspaceSettingsPatch = {
     patch?: {
         [key: string]: JsonValueInput;
     };
+};
+
+/**
+ * WorkspaceSubscriptionOut
+ */
+export type WorkspaceSubscriptionOut = {
+    billingInterval: BillingCycle;
+    /**
+     * Cancelatperiodend
+     */
+    cancelAtPeriodEnd: boolean;
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Currentperiodend
+     */
+    currentPeriodEnd: string;
+    /**
+     * Currentperiodstart
+     */
+    currentPeriodStart: string;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    status: SubscriptionStatus;
+    /**
+     * Updatedat
+     *
+     * Updated at.
+     */
+    updatedAt: string;
+};
+
+/**
+ * WorkspaceSubscriptionSetRequest
+ */
+export type WorkspaceSubscriptionSetRequest = {
+    billingInterval?: BillingCycle;
+    /**
+     * Cancelatperiodend
+     */
+    cancelAtPeriodEnd?: boolean;
+    /**
+     * Currentperiodend
+     */
+    currentPeriodEnd?: string | null;
+    /**
+     * Currentperiodstart
+     */
+    currentPeriodStart?: string | null;
+    /**
+     * Plancode
+     */
+    planCode: string;
+    status?: SubscriptionStatus;
 };
 
 /**
@@ -23350,6 +24884,99 @@ export type AiExecuteWorkspaceAiActionResponses = {
 };
 
 export type AiExecuteWorkspaceAiActionResponse = AiExecuteWorkspaceAiActionResponses[keyof AiExecuteWorkspaceAiActionResponses];
+
+export type DomainFeedbackSubmitFeedbackData = {
+    body: FeedbackSubmitRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/feedback';
+};
+
+export type DomainFeedbackSubmitFeedbackErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainFeedbackSubmitFeedbackError = DomainFeedbackSubmitFeedbackErrors[keyof DomainFeedbackSubmitFeedbackErrors];
+
+export type DomainFeedbackSubmitFeedbackResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelFeedbackTicketDetailOut;
+};
+
+export type DomainFeedbackSubmitFeedbackResponse = DomainFeedbackSubmitFeedbackResponses[keyof DomainFeedbackSubmitFeedbackResponses];
+
+export type DomainFeedbackListMyFeedbackData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/feedback/mine';
+};
+
+export type DomainFeedbackListMyFeedbackErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainFeedbackListMyFeedbackError = DomainFeedbackListMyFeedbackErrors[keyof DomainFeedbackListMyFeedbackErrors];
+
+export type DomainFeedbackListMyFeedbackResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataFeedbackTicketListItemOut;
+};
+
+export type DomainFeedbackListMyFeedbackResponse = DomainFeedbackListMyFeedbackResponses[keyof DomainFeedbackListMyFeedbackResponses];
+
+export type DomainFeedbackGetMyFeedbackDetailData = {
+    body?: never;
+    path: {
+        /**
+         * Ticket Id
+         */
+        ticket_id: string;
+    };
+    query?: never;
+    url: '/api/v1/feedback/mine/{ticket_id}';
+};
+
+export type DomainFeedbackGetMyFeedbackDetailErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainFeedbackGetMyFeedbackDetailError = DomainFeedbackGetMyFeedbackDetailErrors[keyof DomainFeedbackGetMyFeedbackDetailErrors];
+
+export type DomainFeedbackGetMyFeedbackDetailResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelFeedbackTicketDetailOut;
+};
+
+export type DomainFeedbackGetMyFeedbackDetailResponse = DomainFeedbackGetMyFeedbackDetailResponses[keyof DomainFeedbackGetMyFeedbackDetailResponses];
 
 export type DomainWorkspacesListPersonalApiKeysData = {
     body?: never;
@@ -30192,6 +31819,10 @@ export type InternalSystemListActivityData = {
          */
         workspaceId?: string | null;
         /**
+         * Projectid
+         */
+        projectId?: string | null;
+        /**
          * Actoruserid
          */
         actorUserId?: string | null;
@@ -30371,6 +32002,198 @@ export type InternalSystemUpdateSystemAiProviderResponses = {
 };
 
 export type InternalSystemUpdateSystemAiProviderResponse = InternalSystemUpdateSystemAiProviderResponses[keyof InternalSystemUpdateSystemAiProviderResponses];
+
+export type InternalSystemListCommercePlansData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Includeinactive
+         */
+        includeInactive?: boolean;
+    };
+    url: '/api/v1/system/commerce/plans';
+};
+
+export type InternalSystemListCommercePlansErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemListCommercePlansError = InternalSystemListCommercePlansErrors[keyof InternalSystemListCommercePlansErrors];
+
+export type InternalSystemListCommercePlansResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelCommercePlanCatalogOut;
+};
+
+export type InternalSystemListCommercePlansResponse = InternalSystemListCommercePlansResponses[keyof InternalSystemListCommercePlansResponses];
+
+export type InternalSystemUpsertCommercePlanData = {
+    body: CommercePlanUpsertRequest;
+    path: {
+        /**
+         * Code
+         */
+        code: string;
+    };
+    query?: never;
+    url: '/api/v1/system/commerce/plans/{code}';
+};
+
+export type InternalSystemUpsertCommercePlanErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemUpsertCommercePlanError = InternalSystemUpsertCommercePlanErrors[keyof InternalSystemUpsertCommercePlanErrors];
+
+export type InternalSystemUpsertCommercePlanResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelCommercePlanOut;
+};
+
+export type InternalSystemUpsertCommercePlanResponse = InternalSystemUpsertCommercePlanResponses[keyof InternalSystemUpsertCommercePlanResponses];
+
+export type InternalSystemListSubscriptionChangeRequestsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Status
+         */
+        status?: SubscriptionChangeRequestStatus | null;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/system/commerce/subscription-change-requests';
+};
+
+export type InternalSystemListSubscriptionChangeRequestsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemListSubscriptionChangeRequestsError = InternalSystemListSubscriptionChangeRequestsErrors[keyof InternalSystemListSubscriptionChangeRequestsErrors];
+
+export type InternalSystemListSubscriptionChangeRequestsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataSubscriptionChangeRequestOut;
+};
+
+export type InternalSystemListSubscriptionChangeRequestsResponse = InternalSystemListSubscriptionChangeRequestsResponses[keyof InternalSystemListSubscriptionChangeRequestsResponses];
+
+export type InternalSystemApproveSubscriptionChangeRequestData = {
+    body: SubscriptionChangeRequestReview;
+    path: {
+        /**
+         * Request Id
+         */
+        request_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/commerce/subscription-change-requests/{request_id}/approve';
+};
+
+export type InternalSystemApproveSubscriptionChangeRequestErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemApproveSubscriptionChangeRequestError = InternalSystemApproveSubscriptionChangeRequestErrors[keyof InternalSystemApproveSubscriptionChangeRequestErrors];
+
+export type InternalSystemApproveSubscriptionChangeRequestResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSubscriptionChangeRequestOut;
+};
+
+export type InternalSystemApproveSubscriptionChangeRequestResponse = InternalSystemApproveSubscriptionChangeRequestResponses[keyof InternalSystemApproveSubscriptionChangeRequestResponses];
+
+export type InternalSystemRejectSubscriptionChangeRequestData = {
+    body: SubscriptionChangeRequestReject;
+    path: {
+        /**
+         * Request Id
+         */
+        request_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/commerce/subscription-change-requests/{request_id}/reject';
+};
+
+export type InternalSystemRejectSubscriptionChangeRequestErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemRejectSubscriptionChangeRequestError = InternalSystemRejectSubscriptionChangeRequestErrors[keyof InternalSystemRejectSubscriptionChangeRequestErrors];
+
+export type InternalSystemRejectSubscriptionChangeRequestResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSubscriptionChangeRequestOut;
+};
+
+export type InternalSystemRejectSubscriptionChangeRequestResponse = InternalSystemRejectSubscriptionChangeRequestResponses[keyof InternalSystemRejectSubscriptionChangeRequestResponses];
+
+export type InternalSystemSetWorkspaceSubscriptionData = {
+    body: WorkspaceSubscriptionSetRequest;
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/commerce/workspaces/{workspace_id}/subscription';
+};
+
+export type InternalSystemSetWorkspaceSubscriptionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemSetWorkspaceSubscriptionError = InternalSystemSetWorkspaceSubscriptionErrors[keyof InternalSystemSetWorkspaceSubscriptionErrors];
+
+export type InternalSystemSetWorkspaceSubscriptionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceCommerceOverviewOut;
+};
+
+export type InternalSystemSetWorkspaceSubscriptionResponse = InternalSystemSetWorkspaceSubscriptionResponses[keyof InternalSystemSetWorkspaceSubscriptionResponses];
 
 export type InternalSystemListProjectsData = {
     body?: never;
@@ -31492,6 +33315,162 @@ export type InternalSystemRestoreWorkspaceResponses = {
 
 export type InternalSystemRestoreWorkspaceResponse = InternalSystemRestoreWorkspaceResponses[keyof InternalSystemRestoreWorkspaceResponses];
 
+export type InternalSystemListPlatformFeedbackData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Status
+         */
+        status?: FeedbackStatus | null;
+        /**
+         * Priority
+         */
+        priority?: FeedbackPriority | null;
+        /**
+         * Source
+         */
+        source?: FeedbackSource | null;
+        /**
+         * Category
+         */
+        category?: FeedbackCategory | null;
+        /**
+         * Workspaceid
+         */
+        workspaceId?: string | null;
+        /**
+         * Assigneeuserid
+         */
+        assigneeUserId?: string | null;
+        /**
+         * Search
+         */
+        search?: string | null;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/system/feedback';
+};
+
+export type InternalSystemListPlatformFeedbackErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemListPlatformFeedbackError = InternalSystemListPlatformFeedbackErrors[keyof InternalSystemListPlatformFeedbackErrors];
+
+export type InternalSystemListPlatformFeedbackResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataFeedbackTicketListItemOut;
+};
+
+export type InternalSystemListPlatformFeedbackResponse = InternalSystemListPlatformFeedbackResponses[keyof InternalSystemListPlatformFeedbackResponses];
+
+export type InternalSystemGetPlatformFeedbackDetailData = {
+    body?: never;
+    path: {
+        /**
+         * Ticket Id
+         */
+        ticket_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/feedback/{ticket_id}';
+};
+
+export type InternalSystemGetPlatformFeedbackDetailErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemGetPlatformFeedbackDetailError = InternalSystemGetPlatformFeedbackDetailErrors[keyof InternalSystemGetPlatformFeedbackDetailErrors];
+
+export type InternalSystemGetPlatformFeedbackDetailResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelFeedbackTicketDetailOut;
+};
+
+export type InternalSystemGetPlatformFeedbackDetailResponse = InternalSystemGetPlatformFeedbackDetailResponses[keyof InternalSystemGetPlatformFeedbackDetailResponses];
+
+export type InternalSystemUpdatePlatformFeedbackData = {
+    body: FeedbackTicketUpdate;
+    path: {
+        /**
+         * Ticket Id
+         */
+        ticket_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/feedback/{ticket_id}';
+};
+
+export type InternalSystemUpdatePlatformFeedbackErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemUpdatePlatformFeedbackError = InternalSystemUpdatePlatformFeedbackErrors[keyof InternalSystemUpdatePlatformFeedbackErrors];
+
+export type InternalSystemUpdatePlatformFeedbackResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelFeedbackTicketDetailOut;
+};
+
+export type InternalSystemUpdatePlatformFeedbackResponse = InternalSystemUpdatePlatformFeedbackResponses[keyof InternalSystemUpdatePlatformFeedbackResponses];
+
+export type InternalSystemAddPlatformFeedbackMessageData = {
+    body: FeedbackMessageCreate;
+    path: {
+        /**
+         * Ticket Id
+         */
+        ticket_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/feedback/{ticket_id}/messages';
+};
+
+export type InternalSystemAddPlatformFeedbackMessageErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemAddPlatformFeedbackMessageError = InternalSystemAddPlatformFeedbackMessageErrors[keyof InternalSystemAddPlatformFeedbackMessageErrors];
+
+export type InternalSystemAddPlatformFeedbackMessageResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelFeedbackTicketDetailOut;
+};
+
+export type InternalSystemAddPlatformFeedbackMessageResponse = InternalSystemAddPlatformFeedbackMessageResponses[keyof InternalSystemAddPlatformFeedbackMessageResponses];
+
 export type InternalSystemListSystemJobsData = {
     body?: never;
     path?: never;
@@ -31633,6 +33612,83 @@ export type InternalSystemSendTestEmailResponses = {
 };
 
 export type InternalSystemSendTestEmailResponse = InternalSystemSendTestEmailResponses[keyof InternalSystemSendTestEmailResponses];
+
+export type InternalSystemGetPlatformObservabilityOverviewData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Days
+         */
+        days?: number;
+        /**
+         * Workspaceid
+         */
+        workspaceId?: string | null;
+        /**
+         * Projectid
+         */
+        projectId?: string | null;
+    };
+    url: '/api/v1/system/observability/overview';
+};
+
+export type InternalSystemGetPlatformObservabilityOverviewErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemGetPlatformObservabilityOverviewError = InternalSystemGetPlatformObservabilityOverviewErrors[keyof InternalSystemGetPlatformObservabilityOverviewErrors];
+
+export type InternalSystemGetPlatformObservabilityOverviewResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelObservabilityOverviewOut;
+};
+
+export type InternalSystemGetPlatformObservabilityOverviewResponse = InternalSystemGetPlatformObservabilityOverviewResponses[keyof InternalSystemGetPlatformObservabilityOverviewResponses];
+
+export type InternalSystemGetPlatformObservabilityTrendData = {
+    body?: never;
+    path?: never;
+    query?: {
+        metric?: ObservabilityTrendMetric;
+        /**
+         * Days
+         */
+        days?: number;
+        /**
+         * Workspaceid
+         */
+        workspaceId?: string | null;
+        /**
+         * Projectid
+         */
+        projectId?: string | null;
+    };
+    url: '/api/v1/system/observability/trends';
+};
+
+export type InternalSystemGetPlatformObservabilityTrendErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemGetPlatformObservabilityTrendError = InternalSystemGetPlatformObservabilityTrendErrors[keyof InternalSystemGetPlatformObservabilityTrendErrors];
+
+export type InternalSystemGetPlatformObservabilityTrendResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelObservabilityTrendOut;
+};
+
+export type InternalSystemGetPlatformObservabilityTrendResponse = InternalSystemGetPlatformObservabilityTrendResponses[keyof InternalSystemGetPlatformObservabilityTrendResponses];
 
 export type InternalSystemListPermissionsData = {
     body?: never;
@@ -32220,6 +34276,10 @@ export type DomainWorkspacesListWorkspaceActivityData = {
          */
         workspaceId?: string | null;
         /**
+         * Projectid
+         */
+        projectId?: string | null;
+        /**
          * Actoruserid
          */
         actorUserId?: string | null;
@@ -32298,6 +34358,147 @@ export type DomainWorkspacesArchiveWorkspaceResponses = {
 };
 
 export type DomainWorkspacesArchiveWorkspaceResponse = DomainWorkspacesArchiveWorkspaceResponses[keyof DomainWorkspacesArchiveWorkspaceResponses];
+
+export type DomainWorkspacesListWorkspaceCreditLedgerData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/commerce/credits/ledger';
+};
+
+export type DomainWorkspacesListWorkspaceCreditLedgerErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListWorkspaceCreditLedgerError = DomainWorkspacesListWorkspaceCreditLedgerErrors[keyof DomainWorkspacesListWorkspaceCreditLedgerErrors];
+
+export type DomainWorkspacesListWorkspaceCreditLedgerResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataCreditLedgerOut;
+};
+
+export type DomainWorkspacesListWorkspaceCreditLedgerResponse = DomainWorkspacesListWorkspaceCreditLedgerResponses[keyof DomainWorkspacesListWorkspaceCreditLedgerResponses];
+
+export type DomainWorkspacesGetWorkspaceCommerceOverviewData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/commerce/overview';
+};
+
+export type DomainWorkspacesGetWorkspaceCommerceOverviewErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceCommerceOverviewError = DomainWorkspacesGetWorkspaceCommerceOverviewErrors[keyof DomainWorkspacesGetWorkspaceCommerceOverviewErrors];
+
+export type DomainWorkspacesGetWorkspaceCommerceOverviewResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceCommerceOverviewOut;
+};
+
+export type DomainWorkspacesGetWorkspaceCommerceOverviewResponse = DomainWorkspacesGetWorkspaceCommerceOverviewResponses[keyof DomainWorkspacesGetWorkspaceCommerceOverviewResponses];
+
+export type DomainWorkspacesListWorkspacePlansData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/commerce/plans';
+};
+
+export type DomainWorkspacesListWorkspacePlansErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListWorkspacePlansError = DomainWorkspacesListWorkspacePlansErrors[keyof DomainWorkspacesListWorkspacePlansErrors];
+
+export type DomainWorkspacesListWorkspacePlansResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspacePlanCatalogOut;
+};
+
+export type DomainWorkspacesListWorkspacePlansResponse = DomainWorkspacesListWorkspacePlansResponses[keyof DomainWorkspacesListWorkspacePlansResponses];
+
+export type DomainWorkspacesCreateWorkspaceSubscriptionChangeRequestData = {
+    body: SubscriptionChangeRequestCreate;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/commerce/subscription-change-requests';
+};
+
+export type DomainWorkspacesCreateWorkspaceSubscriptionChangeRequestErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateWorkspaceSubscriptionChangeRequestError = DomainWorkspacesCreateWorkspaceSubscriptionChangeRequestErrors[keyof DomainWorkspacesCreateWorkspaceSubscriptionChangeRequestErrors];
+
+export type DomainWorkspacesCreateWorkspaceSubscriptionChangeRequestResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelSubscriptionChangeRequestOut;
+};
+
+export type DomainWorkspacesCreateWorkspaceSubscriptionChangeRequestResponse = DomainWorkspacesCreateWorkspaceSubscriptionChangeRequestResponses[keyof DomainWorkspacesCreateWorkspaceSubscriptionChangeRequestResponses];
 
 export type DomainWorkspacesGetWorkspaceDangerCapabilitiesData = {
     body?: never;
@@ -32566,6 +34767,89 @@ export type DomainWorkspacesSeedDemoNotificationsResponses = {
 };
 
 export type DomainWorkspacesSeedDemoNotificationsResponse = DomainWorkspacesSeedDemoNotificationsResponses[keyof DomainWorkspacesSeedDemoNotificationsResponses];
+
+export type DomainWorkspacesGetWorkspaceObservabilityOverviewData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Days
+         */
+        days?: number;
+        /**
+         * Projectid
+         */
+        projectId?: string | null;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/observability/overview';
+};
+
+export type DomainWorkspacesGetWorkspaceObservabilityOverviewErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceObservabilityOverviewError = DomainWorkspacesGetWorkspaceObservabilityOverviewErrors[keyof DomainWorkspacesGetWorkspaceObservabilityOverviewErrors];
+
+export type DomainWorkspacesGetWorkspaceObservabilityOverviewResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelObservabilityOverviewOut;
+};
+
+export type DomainWorkspacesGetWorkspaceObservabilityOverviewResponse = DomainWorkspacesGetWorkspaceObservabilityOverviewResponses[keyof DomainWorkspacesGetWorkspaceObservabilityOverviewResponses];
+
+export type DomainWorkspacesGetWorkspaceObservabilityTrendData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        metric?: ObservabilityTrendMetric;
+        /**
+         * Days
+         */
+        days?: number;
+        /**
+         * Projectid
+         */
+        projectId?: string | null;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/observability/trends';
+};
+
+export type DomainWorkspacesGetWorkspaceObservabilityTrendErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceObservabilityTrendError = DomainWorkspacesGetWorkspaceObservabilityTrendErrors[keyof DomainWorkspacesGetWorkspaceObservabilityTrendErrors];
+
+export type DomainWorkspacesGetWorkspaceObservabilityTrendResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelObservabilityTrendOut;
+};
+
+export type DomainWorkspacesGetWorkspaceObservabilityTrendResponse = DomainWorkspacesGetWorkspaceObservabilityTrendResponses[keyof DomainWorkspacesGetWorkspaceObservabilityTrendResponses];
 
 export type DomainWorkspacesListActionsData = {
     body?: never;

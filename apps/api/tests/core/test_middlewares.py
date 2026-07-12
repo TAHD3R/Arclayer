@@ -361,6 +361,49 @@ async def test_guard_custom_penetration_pattern(monkeypatch, tmp_path: Path) -> 
     assert "Suspicious activity detected" in response.text
 
 
+async def test_guard_suspicious_log_redacts_credential_headers(monkeypatch, tmp_path: Path) -> None:
+    _configure_logging_env(monkeypatch, tmp_path)
+    guard_log = tmp_path / "guard.log"
+    monkeypatch.setenv("SECURITY__ENABLED", "1")
+    monkeypatch.setenv("SECURITY__ENABLE_PENETRATION_DETECTION", "1")
+    monkeypatch.setenv("SECURITY__ENABLE_IP_BANNING", "0")
+    monkeypatch.setenv("SECURITY__CUSTOM_PENETRATION_PATTERNS", '["dangerous_probe"]')
+    monkeypatch.setenv("SECURITY__CUSTOM_LOG_FILE", str(guard_log))
+    get_settings.cache_clear()
+
+    app = create_app()
+
+    @app.get("/credential-log-probe")
+    async def credential_log_probe() -> dict[str, str]:
+        return {"ok": "1"}
+
+    sensitive_values = {
+        "authorization": "Bearer synthetic-authorization-value",
+        "cookie": "session=synthetic-cookie-value",
+        "set-cookie": "csrf=synthetic-set-cookie-value",
+    }
+    async with asgi_client(app) as client:
+        response = await client.get(
+            "/credential-log-probe",
+            params={"term": "dangerous_probe"},
+            headers={
+                "Authorization": sensitive_values["authorization"],
+                "Cookie": sensitive_values["cookie"],
+                "Set-Cookie": sensitive_values["set-cookie"],
+            },
+        )
+
+    assert response.status_code == 400
+    log_content = guard_log.read_text(encoding="utf-8")
+    normalized_log = log_content.lower()
+    assert "authorization" in normalized_log
+    assert "cookie" in normalized_log
+    assert "set-cookie" in normalized_log
+    assert log_content.count("[REDACTED]") >= len(sensitive_values)
+    for value in sensitive_values.values():
+        assert value not in log_content
+
+
 async def test_guard_auto_ip_ban(monkeypatch, tmp_path: Path) -> None:
     _configure_logging_env(monkeypatch, tmp_path)
     monkeypatch.setenv("SECURITY__ENABLED", "1")

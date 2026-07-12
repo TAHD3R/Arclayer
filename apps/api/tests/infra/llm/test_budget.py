@@ -12,13 +12,14 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime, timedelta
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
 
 from src.llm.budget import (
     BudgetExceededError,
+    ReservationRequestConflictError,
     ReservationStatusError,
     commit,
     expire_sweep,
@@ -118,6 +119,70 @@ class TestGetOrCreateBudget:
 
 
 class TestReserve:
+    @pytest.mark.asyncio
+    async def test_reserve_reuses_same_request_without_second_budget_hold(self):
+        budget = _make_budget()
+        request_id = uuid4()
+        reservation = _make_reservation(
+            budget,
+            request_id=request_id,
+            estimated_cost_micros=5000,
+        )
+        reservation.budget_id = budget.id
+        connection = MagicMock()
+        connection.execute_query = AsyncMock(return_value=([], []))
+        transaction = MagicMock()
+        transaction.__aenter__ = AsyncMock(return_value=connection)
+        transaction.__aexit__ = AsyncMock(return_value=None)
+
+        with (
+            patch("tortoise.transactions.in_transaction", return_value=transaction),
+            patch(
+                "src.llm.budget.AIBudgetReservation.get_or_none",
+                new=AsyncMock(return_value=reservation),
+            ),
+        ):
+            result = await reserve(
+                budget_id=budget.id,
+                request_id=request_id,
+                estimated_cost_micros=5000,
+            )
+
+        assert result is reservation
+        connection.execute_query.assert_awaited_once()
+        assert connection.execute_query.await_args is not None
+        assert "pg_advisory_xact_lock" in connection.execute_query.await_args.args[0]
+
+    @pytest.mark.asyncio
+    async def test_reserve_rejects_request_id_reused_with_different_cost(self):
+        budget = _make_budget()
+        request_id = uuid4()
+        reservation = _make_reservation(
+            budget,
+            request_id=request_id,
+            estimated_cost_micros=4000,
+        )
+        reservation.budget_id = budget.id
+        connection = MagicMock()
+        connection.execute_query = AsyncMock(return_value=([], []))
+        transaction = MagicMock()
+        transaction.__aenter__ = AsyncMock(return_value=connection)
+        transaction.__aexit__ = AsyncMock(return_value=None)
+
+        with (
+            patch("tortoise.transactions.in_transaction", return_value=transaction),
+            patch(
+                "src.llm.budget.AIBudgetReservation.get_or_none",
+                new=AsyncMock(return_value=reservation),
+            ),
+            pytest.raises(ReservationRequestConflictError),
+        ):
+            await reserve(
+                budget_id=budget.id,
+                request_id=request_id,
+                estimated_cost_micros=5000,
+            )
+
     @pytest.mark.asyncio
     async def test_reserve_succeeds_with_sufficient_budget(self):
         budget = _make_budget()
@@ -281,12 +346,31 @@ class TestExpireSweep:
         execute = _mock_execute((["id"], [{"id": "aaa"}, {"id": "bbb"}]))
         count = await expire_sweep(_execute=execute)
         assert count == 2
+        assert execute.await_args is not None
+        sql = execute.await_args.args[0]
+        assert "SUM(reserved_cost_micros)" in sql
+        assert "GROUP BY budget_id" in sql
 
     @pytest.mark.asyncio
     async def test_expire_sweep_empty_returns_zero(self):
         execute = _mock_execute((["id"], []))
         count = await expire_sweep(_execute=execute)
         assert count == 0
+
+    @pytest.mark.asyncio
+    async def test_expire_sweep_retries_previously_unreconciled_credit_holds(self):
+        execute = _mock_execute((["id"], []))
+        with (
+            patch("src.llm.budget._default_executor", return_value=execute),
+            patch(
+                "src.llm.budget._release_expired_credit_holds",
+                new=AsyncMock(),
+            ) as reconcile,
+        ):
+            count = await expire_sweep()
+
+        assert count == 0
+        reconcile.assert_awaited_once()
 
 
 # -- Concurrent Reservation Safety --

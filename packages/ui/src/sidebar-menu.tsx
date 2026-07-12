@@ -161,7 +161,10 @@ function SidebarMenuSubButton({
   const Comp = asChild ? Slot.Root : "a";
 
   return (
-    <HighlightItem activeClassName="bg-sidebar-accent text-sidebar-accent-foreground rounded-md">
+    <HighlightItem
+      emitAriaSelected={false}
+      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground rounded-md"
+    >
       <Comp
         data-slot="sidebar-menu-sub-button"
         data-sidebar="menu-sub-button"

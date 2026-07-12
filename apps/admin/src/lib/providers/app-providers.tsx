@@ -25,7 +25,11 @@ export function AppProviders({ children }: PropsWithChildren) {
         >
           <TooltipProvider>
             {children}
-            <Toaster position="bottom-center" />
+            <Toaster
+              position="bottom-center"
+              containerAriaLabel={t("TOAST_NOTIFICATIONS")}
+              toastOptions={{ closeButtonAriaLabel: t("CLOSE") }}
+            />
           </TooltipProvider>
         </ChromeTabsProvider>
       </QueryClientProvider>

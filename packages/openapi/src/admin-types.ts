@@ -191,6 +191,72 @@ export type ActivityEvent = Omit<Generated.AuditEventOut, "actor" | "subject"> &
 };
 export type ListActivityParams = QueryOf<Generated.InternalSystemListActivityData>;
 
+export type BillingCycle = Generated.BillingCycle;
+export type CommercePlanTier = Generated.CommercePlanTier;
+export type CreditRefreshInterval = Generated.CreditRefreshInterval;
+export type SubscriptionStatus = Generated.SubscriptionStatus;
+export type SubscriptionChangeRequestStatus = Generated.SubscriptionChangeRequestStatus;
+export type PlanFeature = RequiredPresent<
+  Generated.PlanFeature,
+  "description" | "included" | "value"
+>;
+export type CommercePlan = Omit<Generated.CommercePlanOut, "features"> & {
+  features: PlanFeature[];
+};
+export type CommercePlanUpsert = Omit<Required<Generated.CommercePlanUpsertRequest>, "features"> & {
+  features: PlanFeature[];
+};
+export type WorkspacePlanOption = Omit<Generated.WorkspacePlanOptionOut, "features"> & {
+  features: PlanFeature[];
+};
+export type WorkspacePlanCatalog = Omit<
+  Generated.WorkspacePlanCatalogOut,
+  "billingMode" | "items"
+> & {
+  billingMode: string;
+  items: WorkspacePlanOption[];
+};
+export type SystemPlanCatalog = Omit<Generated.CommercePlanCatalogOut, "billingMode" | "items"> & {
+  billingMode: string;
+  items: CommercePlan[];
+};
+export type SubscriptionChangeRequest = Generated.SubscriptionChangeRequestOut;
+export type CreditLedgerEntryType = Generated.CreditLedgerEntryType;
+export type CreditLedgerEntry = Generated.CreditLedgerOut;
+export type WorkspaceCommerceOverview = Omit<
+  Generated.WorkspaceCommerceOverviewOut,
+  "billingMode" | "plan"
+> & {
+  billingMode: string;
+  plan: CommercePlan;
+};
+
+export type FeedbackSource = Generated.FeedbackSource;
+export type FeedbackContextType = Generated.FeedbackContextType;
+export type FeedbackCategory = Generated.FeedbackCategory;
+export type FeedbackStatus = Generated.FeedbackStatus;
+export type FeedbackPriority = Generated.FeedbackPriority;
+export type FeedbackMessageKind = Generated.FeedbackMessageKind;
+export type FeedbackUser = Generated.FeedbackUserOut;
+export type FeedbackListItem = Generated.FeedbackTicketListItemOut;
+export type FeedbackMessage = Generated.FeedbackMessageOut;
+export type FeedbackDetail = Generated.FeedbackTicketDetailOut;
+export type SubmitFeedbackPayload = Generated.FeedbackSubmitRequest;
+export type UpdateFeedbackPayload = Generated.FeedbackTicketUpdate;
+export type CreateFeedbackMessagePayload = Generated.FeedbackMessageCreate;
+
+export type ObservabilityPeriod = Generated.ObservabilityPeriodOut;
+export type ObservabilityTrendMetric = Generated.ObservabilityTrendMetric;
+export type ObservabilityTrendPoint = Generated.ObservabilityTrendPointOut;
+export type SystemObservabilityTrend = Generated.ObservabilityTrendOut;
+export type SystemObservabilityOverview = Omit<Generated.ObservabilityOverviewOut, "resources"> & {
+  resources: {
+    activeWorkspaces: number;
+    activeProjects: number;
+    activeUsers: number;
+  };
+};
+
 export type SystemRuntime = Generated.SystemRuntimeOut;
 export type SystemInstanceSetupStatus = Generated.SystemInstanceSetupOut["status"];
 export type SystemBootstrapPayload = Omit<Generated.SystemBootstrapRequest, "displayName"> & {

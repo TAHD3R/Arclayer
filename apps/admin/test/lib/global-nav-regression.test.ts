@@ -39,6 +39,8 @@ describe("global nav regression", () => {
       "global.platform.overview",
       "global.platform.tenants",
       "global.platform.audit",
+      "global.platform.feedback",
+      "global.platform.observability",
       "global.platform.configuration",
     ]);
     expect(configurationItem).toMatchObject({
@@ -49,6 +51,16 @@ describe("global nav regression", () => {
     const tenantsItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.platform.tenants");
     expect(tenantsItem?.to).toBe("/system/tenants");
     expect(tenantsItem?.disabled).toBeUndefined();
+    const observabilityItem = GLOBAL_NAV_ITEMS.find(
+      (item) => item.key === "global.platform.observability",
+    );
+    expect(observabilityItem?.children?.map((item) => item.to)).toEqual([
+      "/system/observability/overview",
+      "/system/observability/requests",
+      "/system/observability/ai-usage",
+      "/system/observability/activity",
+    ]);
+    expect(platformOverview?.disabled).toBeUndefined();
   });
 
   test("only exposes platform to super admins while keeping projects visible", () => {

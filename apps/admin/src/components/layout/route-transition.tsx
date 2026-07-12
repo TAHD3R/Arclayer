@@ -1,5 +1,6 @@
 import { useProgress } from "@bprogress/react";
 import { useRouterState } from "@tanstack/react-router";
+import { Skeleton as BoneyardSkeleton } from "boneyard-js/react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import {
   createContext,
@@ -13,8 +14,9 @@ import {
 import clsx from "clsx";
 
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { toBoneyardRouteName } from "@/lib/boneyard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
-import { Skeleton } from "@arclayer/ui/skeleton";
+import { Skeleton as UISkeleton } from "@arclayer/ui/skeleton";
 
 type RouteTransitionProps = PropsWithChildren<{
   className?: string;
@@ -63,41 +65,43 @@ function useRouteLoadingProgress(isRouteLoading: boolean) {
 
 function DefaultRoutePending() {
   return (
-    <DefaultPage
-      showFavoriteToggle={false}
-      title={<Skeleton className="h-8 w-44 rounded-lg" />}
-      description={
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-[32rem] max-w-full" />
-          <Skeleton className="h-4 w-[24rem] max-w-full" />
-        </div>
-      }
-    >
-      <div className="space-y-6">
-        <div className="space-y-3">
-          <Skeleton className="h-4 w-full max-w-[52rem]" />
-          <Skeleton className="h-4 w-full max-w-[48rem]" />
-          <Skeleton className="h-4 w-full max-w-[50rem]" />
-          <Skeleton className="h-4 w-full max-w-[44rem]" />
-          <Skeleton className="h-4 w-full max-w-[46rem]" />
-          <Skeleton className="h-4 w-full max-w-[40rem]" />
-        </div>
+    <div aria-live="polite" className="min-h-full" role="status">
+      <DefaultPage
+        showFavoriteToggle={false}
+        title={<UISkeleton className="h-8 w-44 rounded-lg" />}
+        description={
+          <div className="flex flex-col gap-2">
+            <UISkeleton className="h-4 w-[32rem] max-w-full" />
+            <UISkeleton className="h-4 w-[24rem] max-w-full" />
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-3">
+            <UISkeleton className="h-4 w-full max-w-[52rem]" />
+            <UISkeleton className="h-4 w-full max-w-[48rem]" />
+            <UISkeleton className="h-4 w-full max-w-[50rem]" />
+            <UISkeleton className="h-4 w-full max-w-[44rem]" />
+            <UISkeleton className="h-4 w-full max-w-[46rem]" />
+            <UISkeleton className="h-4 w-full max-w-[40rem]" />
+          </div>
 
-        <div className="space-y-3">
-          <Skeleton className="h-5 w-40" />
-          <Skeleton className="h-4 w-full max-w-[54rem]" />
-          <Skeleton className="h-4 w-full max-w-[42rem]" />
-          <Skeleton className="h-4 w-full max-w-[49rem]" />
-        </div>
+          <div className="flex flex-col gap-3">
+            <UISkeleton className="h-5 w-40" />
+            <UISkeleton className="h-4 w-full max-w-[54rem]" />
+            <UISkeleton className="h-4 w-full max-w-[42rem]" />
+            <UISkeleton className="h-4 w-full max-w-[49rem]" />
+          </div>
 
-        <div className="space-y-3">
-          <Skeleton className="h-5 w-36" />
-          <Skeleton className="h-4 w-full max-w-[52rem]" />
-          <Skeleton className="h-4 w-full max-w-[45rem]" />
-          <Skeleton className="h-4 w-full max-w-[47rem]" />
+          <div className="flex flex-col gap-3">
+            <UISkeleton className="h-5 w-36" />
+            <UISkeleton className="h-4 w-full max-w-[52rem]" />
+            <UISkeleton className="h-4 w-full max-w-[45rem]" />
+            <UISkeleton className="h-4 w-full max-w-[47rem]" />
+          </div>
         </div>
-      </div>
-    </DefaultPage>
+      </DefaultPage>
+    </div>
   );
 }
 
@@ -110,18 +114,20 @@ export function RouteTransition({
 }: RouteTransitionProps) {
   const reducedMotion = usePrefersReducedMotion();
 
-  const { currentPathname, resolvedPathname, isPagePending, isRouteLoading } = useRouterState({
-    select: (s) => ({
-      // We intentionally only key by pathname so that search changes (filters, pagination, etc.)
-      // do not trigger a full route transition animation.
-      currentPathname: s.location.pathname,
-      resolvedPathname: s.resolvedLocation?.pathname ?? s.location.pathname,
-      // Matches can stay pending even after `isLoading` flips; mirror router internals.
-      isPagePending: s.isLoading || s.matches.some((d) => d.status === "pending"),
-      isRouteLoading: s.isLoading,
-    }),
-    structuralSharing: true,
-  });
+  const { currentPathname, currentRouteId, resolvedPathname, isPagePending, isRouteLoading } =
+    useRouterState({
+      select: (s) => ({
+        // We intentionally only key by pathname so that search changes (filters, pagination, etc.)
+        // do not trigger a full route transition animation.
+        currentPathname: s.location.pathname,
+        resolvedPathname: s.resolvedLocation?.pathname ?? s.location.pathname,
+        // Matches can stay pending even after `isLoading` flips; mirror router internals.
+        isPagePending: s.isLoading || s.matches.some((d) => d.status === "pending"),
+        isRouteLoading: s.isLoading,
+        currentRouteId: s.matches.at(-1)?.routeId,
+      }),
+      structuralSharing: true,
+    });
   useRouteLoadingProgress(isRouteLoading);
 
   // Key route animations by the last resolved pathname, but keep children live.
@@ -170,9 +176,8 @@ export function RouteTransition({
   }, [displayedPathname, hasUnresolvedPathSwitch, isPagePending, resolvedPathname]);
 
   const [showPending, setShowPending] = useState(false);
-  const pendingOverlayInitial =
-    isCrossRoutePending || hasUnresolvedPathSwitch ? { opacity: 1 } : { opacity: 0 };
   const shouldShowPending = showPending || hasUnresolvedPathSwitch;
+  const skeletonName = toBoneyardRouteName(currentRouteId, currentPathname);
   const pendingShownAtRef = useRef<number | null>(null);
   const showPendingTimerRef = useRef<number | null>(null);
   const hidePendingTimerRef = useRef<number | null>(null);
@@ -241,60 +246,52 @@ export function RouteTransition({
     <MotionConfig transition={transition}>
       <div className={clsx("relative flex min-h-0 min-w-0 w-full flex-1 flex-col", className)}>
         <RouteTransitionContext.Provider value={routeTransitionState}>
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={displayedPathname}
-              className="flex min-h-0 min-w-0 w-full flex-1 flex-col"
-              initial={
-                reducedMotion
-                  ? { opacity: 1 }
-                  : variant === "fade"
-                    ? { opacity: 0 }
-                    : { opacity: 0, y: 6 }
-              }
-              animate={variant === "fade" ? { opacity: 1 } : { opacity: 1, y: 0 }}
-              exit={
-                reducedMotion
-                  ? { opacity: 1 }
-                  : variant === "fade"
-                    ? { opacity: 0 }
-                    : { opacity: 0, y: -6 }
-              }
-              onAnimationStart={() => {
-                setRouteAnimationSettled(false);
-              }}
-              onAnimationComplete={() => {
-                if (
-                  displayedPathname === displayedPathnameRef.current &&
-                  displayedPathname === resolvedPathnameRef.current &&
-                  !isPagePendingRef.current
-                ) {
-                  setRouteAnimationSettled(true);
+          <BoneyardSkeleton
+            animate={reducedMotion ? "solid" : "shimmer"}
+            className="admin-route-boneyard min-h-0 min-w-0 w-full flex-1 bg-background"
+            fallback={<DefaultRoutePending />}
+            loading={shouldShowPending}
+            name={skeletonName}
+            select="viewport"
+            transition={reducedMotion ? false : 180}
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={displayedPathname}
+                className="flex min-h-0 min-w-0 w-full flex-1 flex-col"
+                initial={
+                  reducedMotion
+                    ? { opacity: 1 }
+                    : variant === "fade"
+                      ? { opacity: 0 }
+                      : { opacity: 0, y: 6 }
                 }
-              }}
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
+                animate={variant === "fade" ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                exit={
+                  reducedMotion
+                    ? { opacity: 1 }
+                    : variant === "fade"
+                      ? { opacity: 0 }
+                      : { opacity: 0, y: -6 }
+                }
+                onAnimationStart={() => {
+                  setRouteAnimationSettled(false);
+                }}
+                onAnimationComplete={() => {
+                  if (
+                    displayedPathname === displayedPathnameRef.current &&
+                    displayedPathname === resolvedPathnameRef.current &&
+                    !isPagePendingRef.current
+                  ) {
+                    setRouteAnimationSettled(true);
+                  }
+                }}
+              >
+                {children}
+              </motion.div>
+            </AnimatePresence>
+          </BoneyardSkeleton>
         </RouteTransitionContext.Provider>
-
-        <AnimatePresence>
-          {shouldShowPending ? (
-            <motion.div
-              className="absolute inset-0 z-10 cursor-progress"
-              // Avoid using opacity on the container to keep Skeleton readable.
-              style={{ background: "var(--color-background)" }}
-              initial={pendingOverlayInitial}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              aria-busy
-              aria-live="polite"
-              role="status"
-            >
-              <DefaultRoutePending />
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
       </div>
     </MotionConfig>
   );

@@ -23,6 +23,7 @@ type SettingDialogProps = {
   preventInitialFocus?: boolean;
   showCloseButton?: boolean;
   closeButtonClassName?: string;
+  closeButtonLabel?: string;
 };
 
 /**
@@ -43,6 +44,7 @@ export function SettingDialog({
   preventInitialFocus = true,
   showCloseButton = true,
   closeButtonClassName,
+  closeButtonLabel,
 }: SettingDialogProps) {
   const [titleSnapshot, setTitleSnapshot] = useState<ReactNode>(title);
   const [descriptionSnapshot, setDescriptionSnapshot] = useState<ReactNode>(description);
@@ -65,6 +67,7 @@ export function SettingDialog({
         )}
         showCloseButton={showCloseButton}
         closeButtonClassName={closeButtonClassName}
+        closeButtonLabel={closeButtonLabel}
         onOpenAutoFocus={
           preventInitialFocus
             ? (event) => {

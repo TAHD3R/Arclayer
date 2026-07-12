@@ -238,6 +238,16 @@ async def require_workspace_manage_access(
     return ctx
 
 
+async def require_workspace_member_access(
+    ctx: WorkspaceContext = Depends(get_workspace_context),
+) -> WorkspaceContext:
+    """Allow workspace members to read tenant-scoped operational and commercial data."""
+
+    if ctx.access_type != WorkspaceAccessType.MEMBER:
+        raise Forbidden(message=t("errors", "PERMISSION_DENIED"), error="WORKSPACE_ACCESS_DENIED")
+    return ctx
+
+
 async def require_team_workspace_manage_access(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
 ) -> WorkspaceContext:

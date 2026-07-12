@@ -1,5 +1,3 @@
-import * as React from "react";
-
 import { CHART_THEMES } from "./chart.constants";
 import type { ChartConfig } from "./chart.types";
 

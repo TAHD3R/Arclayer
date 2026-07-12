@@ -17,6 +17,7 @@ from src.llm.rate_limiter import TokenBucket
 from src.llm.runtime import LLMRequestContext, LLMRuntime, LLMRuntimeError, compute_cost_micros, detect_provider
 from src.models.ai.ai_budget import AIBudget
 from src.modules.ai.schema import AIReasoningEffort
+from src.modules.commerce.credits import CreditsExceededError, CreditsUnavailableError
 from src.settings.runtime import get_core_settings_value_cached
 
 logger = structlog.get_logger("arclayer.ai.service")
@@ -134,6 +135,7 @@ class AIChatService(BaseService):
             async with ai_request_span(
                 correlation_id=context.correlation_id,
                 workspace_id=str(context.workspace_id),
+                project_id=str(context.project_id) if context.project_id else None,
                 model=resolved_model,
                 source=context.source,
             ) as span_metrics:
@@ -165,6 +167,7 @@ class AIChatService(BaseService):
         async with ai_request_span(
             correlation_id=context.correlation_id,
             workspace_id=str(context.workspace_id),
+            project_id=str(context.project_id) if context.project_id else None,
             model=resolved_model,
             source=context.source,
         ) as span_metrics:
@@ -187,6 +190,15 @@ class AIChatService(BaseService):
                     message=_llm_error_message(
                         LLMErrorCode.BUDGET_EXCEEDED,
                         default="Budget limit exceeded for this workspace",
+                    ),
+                    status_code=402,
+                )
+            except (CreditsExceededError, CreditsUnavailableError):
+                raise LLMRuntimeError(
+                    code=LLMErrorCode.AI_CREDITS_EXHAUSTED,
+                    message=_llm_error_message(
+                        LLMErrorCode.AI_CREDITS_EXHAUSTED,
+                        default="This workspace has no AI credits available",
                     ),
                     status_code=402,
                 )
@@ -261,6 +273,7 @@ class AIChatService(BaseService):
             async with ai_request_span(
                 correlation_id=context.correlation_id,
                 workspace_id=str(context.workspace_id),
+                project_id=str(context.project_id) if context.project_id else None,
                 model=resolved_model,
                 source=context.source,
             ) as span_metrics:
@@ -303,6 +316,7 @@ class AIChatService(BaseService):
             async with ai_request_span(
                 correlation_id=context.correlation_id,
                 workspace_id=str(context.workspace_id),
+                project_id=str(context.project_id) if context.project_id else None,
                 model=resolved_model,
                 source=context.source,
             ) as span_metrics:
@@ -373,6 +387,15 @@ class AIChatService(BaseService):
                         message=_llm_error_message(
                             LLMErrorCode.BUDGET_EXCEEDED,
                             default="AI budget exceeded for this workspace",
+                        ),
+                        status_code=402,
+                    )
+                except (CreditsExceededError, CreditsUnavailableError):
+                    raise LLMRuntimeError(
+                        code=LLMErrorCode.AI_CREDITS_EXHAUSTED,
+                        message=_llm_error_message(
+                            LLMErrorCode.AI_CREDITS_EXHAUSTED,
+                            default="This workspace has no AI credits available",
                         ),
                         status_code=402,
                     )

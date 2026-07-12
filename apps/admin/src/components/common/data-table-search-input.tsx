@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { Search, X } from "lucide-react";
 
 import {
@@ -22,14 +23,18 @@ export function DataTableSearchInput({
   clearLabel,
   className,
 }: DataTableSearchInputProps) {
+  const inputId = useId();
+
   return (
     <InputGroup className={className ?? "w-[min(100%,22.5rem)]"}>
       <InputGroupAddon>
         <Search className="size-4 text-label-secondary" />
       </InputGroupAddon>
       <InputGroupInput
+        id={inputId}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        aria-label={placeholder}
         placeholder={placeholder}
         className="truncate"
       />

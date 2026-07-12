@@ -93,6 +93,7 @@ class LLMRequestContext(BaseSchema):
     """Context bundled with every LLM call — no caller should pass raw keys."""
 
     workspace_id: UUID
+    project_id: UUID | None = None
     user_id: UUID | None = None
     correlation_id: str = Field(default_factory=lambda: uuid.uuid4().hex)
     source: Literal["agent", "event", "api"] = "api"
@@ -243,6 +244,7 @@ class LLMRuntime:
                 budget_id=budget_id,
                 request_id=uuid.uuid4(),
                 estimated_cost_micros=estimated_cost,
+                workspace_id=context.workspace_id,
             )
 
         try:
@@ -320,10 +322,12 @@ class LLMRuntime:
                 budget_id=budget_id,
                 request_id=uuid.uuid4(),
                 estimated_cost_micros=estimated_cost,
+                workspace_id=context.workspace_id,
             )
 
         try:
             last_chunk = None
+            reservation_settled = False
             async for chunk in self._provider.chat_stream(
                 messages,
                 model=model,
@@ -333,9 +337,21 @@ class LLMRuntime:
                 **merged_params,
             ):
                 last_chunk = chunk
+                choices = chunk.get("choices", [])
+                is_terminal = any(choice.get("finish_reason") for choice in choices)
+                if reservation is not None and not reservation_settled and is_terminal:
+                    usage = chunk.get("usage", {})
+                    prompt_tokens = usage.get("prompt_tokens", 0)
+                    completion_tokens = usage.get("completion_tokens", 0)
+                    actual_cost = compute_cost_micros(model, prompt_tokens, completion_tokens)
+                    await budget_commit(
+                        reservation_id=reservation.id,
+                        actual_cost_micros=actual_cost,
+                    )
+                    reservation_settled = True
                 yield chunk
 
-            if reservation is not None and last_chunk is not None:
+            if reservation is not None and not reservation_settled and last_chunk is not None:
                 usage = last_chunk.get("usage", {})
                 prompt_tokens = usage.get("prompt_tokens", 0)
                 completion_tokens = usage.get("completion_tokens", 0)
@@ -344,7 +360,11 @@ class LLMRuntime:
                     reservation_id=reservation.id,
                     actual_cost_micros=actual_cost,
                 )
+                reservation_settled = True
+            elif reservation is not None and last_chunk is None:
+                await budget_release(reservation_id=reservation.id)
+                reservation_settled = True
         except BaseException:
-            if reservation is not None:
+            if reservation is not None and not reservation_settled:
                 await budget_release(reservation_id=reservation.id)
             raise

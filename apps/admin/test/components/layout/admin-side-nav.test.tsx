@@ -415,7 +415,7 @@ describe("AdminSiderNav collapsed groups", () => {
 
     render(
       <SidebarProvider defaultOpen={false} className="h-screen">
-        <Sidebar collapsible="icon" animateOnHover={false}>
+        <Sidebar collapsible="icon">
           <SidebarMenuButton ref={buttonRef}>Ref check</SidebarMenuButton>
         </Sidebar>
       </SidebarProvider>,
@@ -423,6 +423,27 @@ describe("AdminSiderNav collapsed groups", () => {
 
     expect(buttonRef.current).toBeInstanceOf(HTMLButtonElement);
     expect(buttonRef.current).toHaveTextContent("Ref check");
+    expect(buttonRef.current).not.toHaveAttribute("aria-selected");
+  });
+
+  it("keeps every sidebar list direct child and list item semantically valid", () => {
+    const { container } = renderTreeNav({
+      items: treeItems,
+      favoriteWorkspaceBase: "/w/ws-1",
+    });
+
+    const rootList = screen.getByRole("button", { name: "Content" }).closest("ul");
+
+    expect(rootList).not.toBeNull();
+    expect(Array.from(rootList?.children ?? []).every((child) => child.tagName === "LI")).toBe(
+      true,
+    );
+    expect(container.querySelectorAll("ul > div")).toHaveLength(0);
+    expect(
+      Array.from(container.querySelectorAll("li")).every((item) =>
+        ["UL", "OL", "MENU"].includes(item.parentElement?.tagName ?? ""),
+      ),
+    ).toBe(true);
   });
 
   it("keeps collapsed leaf items free of tooltip overlays", async () => {

@@ -287,22 +287,26 @@ describe("AdminScopeSwitcher", () => {
 
     renderWithQueryClient(<AdminScopeSwitcher variant="header" />);
 
-    const trigger = await screen.findByRole("button", { name: "Select scope" });
+    const trigger = await screen.findByRole("button", { name: /Select scope/ });
 
     await waitFor(() => {
       expect(within(trigger).getByText("Workspace Alpha")).toBeInTheDocument();
     });
+    expect(trigger).not.toHaveAttribute("aria-label");
+    expect(trigger).toHaveAccessibleName("Workspace Alpha Select scope");
     expect(within(trigger).queryByText("Project Alpha")).toBeNull();
   });
 
   it("shows project identity on concrete project routes", async () => {
     renderWithQueryClient(<AdminScopeSwitcher />);
 
-    const trigger = await screen.findByRole("button", { name: "Select scope" });
+    const trigger = await screen.findByRole("button", { name: /Select scope/ });
 
     await waitFor(() => {
       expect(within(trigger).getByText("Project Alpha")).toBeInTheDocument();
     });
+    expect(trigger).not.toHaveAttribute("aria-label");
+    expect(trigger).toHaveAccessibleName("Project Alpha Select scope");
     expect(within(trigger).queryByText("Workspace Alpha")).toBeNull();
   });
 
@@ -310,7 +314,7 @@ describe("AdminScopeSwitcher", () => {
     const user = userEvent.setup();
     renderWithQueryClient(<AdminScopeSwitcher />);
 
-    await user.click(await screen.findByRole("button", { name: "Select scope" }));
+    await user.click(await screen.findByRole("button", { name: /Select scope/ }));
 
     const panel = getLatestDialog();
     expect(within(panel).getByText("Project")).toBeInTheDocument();
@@ -334,7 +338,7 @@ describe("AdminScopeSwitcher", () => {
 
     renderWithQueryClient(<AdminScopeSwitcher />);
 
-    const trigger = await screen.findByRole("button", { name: "Select scope" });
+    const trigger = await screen.findByRole("button", { name: /Select scope/ });
     await waitFor(() => {
       expect(within(trigger).getByText("Project Alpha")).toBeInTheDocument();
     });
@@ -363,7 +367,7 @@ describe("AdminScopeSwitcher", () => {
       </>,
     );
 
-    await user.click(await screen.findByRole("button", { name: "Select scope" }));
+    await user.click(await screen.findByRole("button", { name: /Select scope/ }));
     const panel = getLatestDialog();
     await user.click(within(panel).getByRole("button", { name: /Invite members/ }));
 
@@ -382,7 +386,7 @@ describe("AdminScopeSwitcher", () => {
     const user = userEvent.setup();
     renderWithQueryClient(<AdminScopeSwitcher />);
 
-    await user.click(await screen.findByRole("button", { name: "Select scope" }));
+    await user.click(await screen.findByRole("button", { name: /Select scope/ }));
     let panel = getLatestDialog();
     await user.click(within(panel).getByRole("button", { name: /Project Alpha/ }));
 
@@ -410,7 +414,7 @@ describe("AdminScopeSwitcher", () => {
     const user = userEvent.setup();
     renderWithQueryClient(<AdminScopeSwitcher />);
 
-    await user.click(await screen.findByRole("button", { name: "Select scope" }));
+    await user.click(await screen.findByRole("button", { name: /Select scope/ }));
     let panel = getLatestDialog();
     await user.click(within(panel).getByRole("button", { name: /Workspace Alpha/ }));
 
@@ -428,7 +432,7 @@ describe("AdminScopeSwitcher", () => {
     const user = userEvent.setup();
     renderWithQueryClient(<AdminScopeSwitcher />);
 
-    await user.click(await screen.findByRole("button", { name: "Select scope" }));
+    await user.click(await screen.findByRole("button", { name: /Select scope/ }));
     const panel = getLatestDialog();
     await user.click(within(panel).getByRole("button", { name: /Workspace Alpha/ }));
 

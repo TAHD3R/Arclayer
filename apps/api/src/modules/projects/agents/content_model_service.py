@@ -103,6 +103,7 @@ class AgentContentModelProposalService(BaseService):
             ],
             context=LLMRequestContext(
                 workspace_id=workspace_id,
+                project_id=project_id,
                 user_id=requester_user_id,
                 correlation_id=correlation_id,
                 source="agent",

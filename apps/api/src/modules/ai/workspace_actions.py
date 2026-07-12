@@ -588,6 +588,7 @@ class WorkspaceActionPlanner:
                 _planner_messages(payload),
                 context=LLMRequestContext(
                     workspace_id=payload.workspace_id,
+                    project_id=payload.project_id,
                     user_id=user_id,
                     source="agent",
                 ),

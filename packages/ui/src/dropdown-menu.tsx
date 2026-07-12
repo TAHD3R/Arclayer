@@ -91,7 +91,7 @@ function DropdownMenuContent({ sideOffset = 4, className, ...props }: DropdownMe
     <DropdownMenuContentPrimitive
       sideOffset={sideOffset}
       className={cn(
-        "bg-popover text-popover-foreground flex max-h-(--radix-dropdown-menu-content-available-height) min-w-32 origin-[--radix-dropdown-menu-content-transform-origin] flex-col overflow-hidden rounded-md border p-1 outline-none duration-200 ease-out motion-reduce:transition-none will-change-[opacity,transform] data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
+        "bg-popover text-popover-foreground flex max-h-(--radix-dropdown-menu-content-available-height) min-w-32 origin-[--radix-dropdown-menu-content-transform-origin] flex-col overflow-hidden rounded-md border p-1 outline-none duration-200 ease-out motion-reduce:animate-none! motion-reduce:transition-none! will-change-[opacity,transform] data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
         DROPDOWN_MENU_LAYER_Z_INDEX_CLASSNAME,
         OVERLAY_LAYER_SHADOW_CLASSNAME,
         className,
@@ -317,7 +317,7 @@ function DropdownMenuSubContent({ className, ...props }: DropdownMenuSubContentP
   return (
     <DropdownMenuSubContentPrimitive
       className={cn(
-        "bg-popover text-popover-foreground flex max-h-(--radix-dropdown-menu-content-available-height) min-w-32 origin-[--radix-dropdown-menu-content-transform-origin] flex-col items-stretch overflow-hidden rounded-md border p-1 outline-none duration-200 ease-out motion-reduce:transition-none will-change-[opacity,transform] data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
+        "bg-popover text-popover-foreground flex max-h-(--radix-dropdown-menu-content-available-height) min-w-32 origin-[--radix-dropdown-menu-content-transform-origin] flex-col items-stretch overflow-hidden rounded-md border p-1 outline-none duration-200 ease-out motion-reduce:animate-none! motion-reduce:transition-none! will-change-[opacity,transform] data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
         DROPDOWN_MENU_LAYER_Z_INDEX_CLASSNAME,
         OVERLAY_LAYER_SHADOW_CLASSNAME,
         className,

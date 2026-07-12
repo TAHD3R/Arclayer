@@ -1,0 +1,896 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
+from typing import Any
+from uuid import UUID
+
+from tortoise.backends.base.client import BaseDBAsyncClient
+from tortoise.transactions import in_transaction
+
+from src.common.utils.ids import uuid7
+from src.config import Settings
+from src.core.exceptions import BadRequest, Conflict, NotFound
+from src.core.http.pagination import PageData, PageParams
+from src.core.i18n import t
+from src.models.ai.ai_usage_daily import AIUsageDaily
+from src.models.commerce.billing import (
+    BillingCycle,
+    CommercePlan,
+    CommercePlanTier,
+    CreditLedgerEntryType,
+    CreditRefreshInterval,
+    SubscriptionChangeRequestStatus,
+    SubscriptionStatus,
+    WorkspaceCreditAccount,
+    WorkspaceCreditLedger,
+    WorkspaceSubscription,
+    WorkspaceSubscriptionChangeRequest,
+)
+from src.models.workspaces.workspace import Workspace
+from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
+from src.modules.commerce.schema import (
+    CommercePlanOut,
+    CommercePlanUpsertRequest,
+    CreditLedgerOut,
+    PlanFeature,
+    SubscriptionChangeRequestCreate,
+    SubscriptionChangeRequestOut,
+    WorkspaceCommerceOverviewOut,
+    WorkspaceCommerceUsageOut,
+    WorkspaceCreditsOut,
+    WorkspaceSubscriptionOut,
+    WorkspaceSubscriptionSetRequest,
+)
+
+_BILLING_MODE = "operator_managed"
+_ACTIVE_SUBSCRIPTION_STATUSES = {SubscriptionStatus.TRIALING, SubscriptionStatus.ACTIVE}
+_PLAN_CATALOG_LOCK_CODE = "free"
+
+_DEFAULT_PLANS: tuple[dict[str, Any], ...] = (
+    {
+        "code": _PLAN_CATALOG_LOCK_CODE,
+        "tier": CommercePlanTier.FREE,
+        "name": "PLAN_DEFAULT_FREE_NAME",
+        "description": "PLAN_DEFAULT_FREE_DESCRIPTION",
+        "name_i18n_key": "PLAN_DEFAULT_FREE_NAME",
+        "description_i18n_key": "PLAN_DEFAULT_FREE_DESCRIPTION",
+        "credit_grant_amount": 70,
+        "credit_refresh_interval": CreditRefreshInterval.DAILY,
+        "credit_value_micros": 1_000,
+        "price_monthly_micros": 0,
+        "price_yearly_micros": 0,
+        "currency": "USD",
+        "features": [
+            {
+                "key": "ai_credits",
+                "label": "PLAN_DEFAULT_FREE_FEATURE_AI_CREDITS",
+                "labelI18nKey": "PLAN_DEFAULT_FREE_FEATURE_AI_CREDITS",
+                "included": True,
+                "value": 70,
+            },
+            {
+                "key": "workspace",
+                "label": "PLAN_DEFAULT_FREE_FEATURE_WORKSPACE",
+                "labelI18nKey": "PLAN_DEFAULT_FREE_FEATURE_WORKSPACE",
+                "included": True,
+            },
+        ],
+        "is_active": True,
+        "is_default": True,
+        "sort_order": 10,
+    },
+    {
+        "code": "premium",
+        "tier": CommercePlanTier.PREMIUM,
+        "name": "PLAN_DEFAULT_PREMIUM_NAME",
+        "description": "PLAN_DEFAULT_PREMIUM_DESCRIPTION",
+        "name_i18n_key": "PLAN_DEFAULT_PREMIUM_NAME",
+        "description_i18n_key": "PLAN_DEFAULT_PREMIUM_DESCRIPTION",
+        "credit_grant_amount": 10_000,
+        "credit_refresh_interval": CreditRefreshInterval.MONTHLY,
+        "credit_value_micros": 1_000,
+        "price_monthly_micros": 19_000_000,
+        "price_yearly_micros": 190_000_000,
+        "currency": "USD",
+        "features": [
+            {
+                "key": "ai_credits",
+                "label": "PLAN_DEFAULT_PREMIUM_FEATURE_AI_CREDITS",
+                "labelI18nKey": "PLAN_DEFAULT_PREMIUM_FEATURE_AI_CREDITS",
+                "included": True,
+                "value": 10_000,
+            },
+            {
+                "key": "priority_support",
+                "label": "PLAN_DEFAULT_PREMIUM_FEATURE_PRIORITY_SUPPORT",
+                "labelI18nKey": "PLAN_DEFAULT_PREMIUM_FEATURE_PRIORITY_SUPPORT",
+                "included": True,
+            },
+        ],
+        "is_active": True,
+        "is_default": False,
+        "sort_order": 20,
+    },
+)
+
+
+def _billing_period(now: datetime, cycle: BillingCycle) -> tuple[datetime, datetime]:
+    start = now
+    if cycle == BillingCycle.YEARLY:
+        try:
+            return start, start.replace(year=start.year + 1)
+        except ValueError:
+            return start, start.replace(year=start.year + 1, day=28)
+    if start.month == 12:
+        return start, start.replace(year=start.year + 1, month=1)
+    return start, start.replace(month=start.month + 1)
+
+
+def _credit_period(
+    now: datetime,
+    interval: CreditRefreshInterval,
+    *,
+    none_period_end: datetime | None = None,
+) -> tuple[datetime, datetime]:
+    if interval == CreditRefreshInterval.DAILY:
+        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        return start, start + timedelta(days=1)
+    if interval == CreditRefreshInterval.YEARLY:
+        start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        return start, start.replace(year=start.year + 1)
+    if interval == CreditRefreshInterval.NONE:
+        if none_period_end is None or none_period_end <= now:
+            raise ValueError("none refresh intervals require a future subscription period end")
+        return now, none_period_end
+    start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if start.month == 12:
+        return start, start.replace(year=start.year + 1, month=1)
+    return start, start.replace(month=start.month + 1)
+
+
+def _localized_plan_features(raw_features: object) -> list[PlanFeature]:
+    if not isinstance(raw_features, list):
+        raise ValueError("commerce plan features must be a list")
+    features: list[PlanFeature] = []
+    for raw_feature in raw_features:
+        if not isinstance(raw_feature, dict):
+            raise ValueError("commerce plan features must contain objects")
+        feature = dict(raw_feature)
+        label_key = feature.pop("labelI18nKey", None)
+        description_key = feature.pop("descriptionI18nKey", None)
+        if isinstance(label_key, str):
+            feature["label"] = t("commerce", label_key)
+        if isinstance(description_key, str):
+            feature["description"] = t("commerce", description_key)
+        features.append(PlanFeature.model_validate(feature))
+    return features
+
+
+def _plan_out(plan: CommercePlan) -> CommercePlanOut:
+    name_key = plan.name_i18n_key
+    description_key = plan.description_i18n_key
+    return CommercePlanOut(
+        id=plan.id,
+        created_at=plan.created_at,
+        updated_at=plan.updated_at,
+        code=plan.code,
+        tier=plan.tier,
+        name=_plan_name(plan),
+        description=t("commerce", description_key) if description_key else plan.description,
+        credit_grant_amount=int(plan.credit_grant_amount),
+        credit_refresh_interval=plan.credit_refresh_interval,
+        credit_value_micros=int(plan.credit_value_micros),
+        price_monthly_micros=int(plan.price_monthly_micros),
+        price_yearly_micros=int(plan.price_yearly_micros),
+        currency=plan.currency,
+        features=_localized_plan_features(plan.features),
+        is_active=bool(plan.is_active),
+        is_default=bool(plan.is_default),
+        sort_order=int(plan.sort_order),
+    )
+
+
+def _plan_name(plan: CommercePlan) -> str:
+    return t("commerce", plan.name_i18n_key) if plan.name_i18n_key else plan.name
+
+
+def _ledger_out(row: WorkspaceCreditLedger) -> CreditLedgerOut:
+    return CreditLedgerOut(
+        id=row.id,
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+        workspace_id=row.workspace_id,
+        account_id=row.account_id,
+        entry_type=row.entry_type,
+        delta_balance_credits=int(row.delta_balance_credits),
+        delta_reserved_credits=int(row.delta_reserved_credits),
+        balance_after_credits=int(row.balance_after_credits),
+        reserved_after_credits=int(row.reserved_after_credits),
+        reference_type=row.reference_type,
+        reference_id=row.reference_id,
+        actor_user_id=row.actor_user_id,
+        description_key=row.description_key,
+        description=t("commerce", row.description_key),
+        details=row.details,
+    )
+
+
+def _subscription_out(subscription: WorkspaceSubscription) -> WorkspaceSubscriptionOut:
+    return WorkspaceSubscriptionOut(
+        id=subscription.id,
+        created_at=subscription.created_at,
+        updated_at=subscription.updated_at,
+        status=subscription.status,
+        billing_interval=subscription.billing_cycle,
+        current_period_start=subscription.current_period_start,
+        current_period_end=subscription.current_period_end,
+        cancel_at_period_end=subscription.cancel_at_period_end,
+    )
+
+
+def _change_request_out(row: WorkspaceSubscriptionChangeRequest) -> SubscriptionChangeRequestOut:
+    # Callers prefetch the relation so localized plan fields are fully hydrated.
+    return SubscriptionChangeRequestOut(
+        id=row.id,
+        workspace_id=row.workspace_id,
+        requested_by_user_id=row.requested_by_user_id,
+        plan_code=row.requested_plan.code,
+        plan_name=_plan_name(row.requested_plan),
+        billing_interval=row.billing_cycle,
+        reason=row.reason,
+        status=row.status,
+        reviewed_by_user_id=row.reviewed_by_user_id,
+        reviewed_at=row.reviewed_at,
+        review_note=row.review_note,
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+    )
+
+
+class CommerceService:
+    def __init__(self, settings: Settings) -> None:
+        self._settings = settings
+
+    async def ensure_plan_catalog(self, *, conn: BaseDBAsyncClient | None = None) -> None:
+        for definition in _DEFAULT_PLANS:
+            code = str(definition["code"])
+            defaults = {key: value for key, value in definition.items() if key != "code"}
+            await CommercePlan.get_or_create(code=code, defaults=defaults, using_db=conn)
+
+    async def list_plans(self, *, include_inactive: bool) -> list[CommercePlanOut]:
+        await self.ensure_plan_catalog()
+        query = CommercePlan.all()
+        if not include_inactive:
+            query = query.filter(is_active=True)
+        rows = await query.order_by("sort_order", "code")
+        return [_plan_out(row) for row in rows]
+
+    async def upsert_plan(self, *, code: str, payload: CommercePlanUpsertRequest) -> CommercePlanOut:
+        async with in_transaction() as conn:
+            await self.ensure_plan_catalog(conn=conn)
+            # A stable seeded row serializes catalog-wide default-plan changes,
+            # including concurrent creation of different plan codes.
+            catalog_lock = (
+                await CommercePlan.filter(code=_PLAN_CATALOG_LOCK_CODE).using_db(conn).select_for_update().first()
+            )
+            if catalog_lock is None:
+                raise RuntimeError("Commerce plan catalog lock row is missing")
+            if payload.is_default:
+                await CommercePlan.filter(is_default=True).using_db(conn).update(is_default=False)
+            values = payload.model_dump(mode="python")
+            values["features"] = [feature.model_dump(mode="json") for feature in payload.features]
+            values["name_i18n_key"] = None
+            values["description_i18n_key"] = None
+            plan = await CommercePlan.get_or_none(code=code, using_db=conn)
+            if plan is None:
+                plan = await CommercePlan.create(code=code, using_db=conn, **values)
+            else:
+                for field, value in values.items():
+                    setattr(plan, field, value)
+                await plan.save(using_db=conn)
+            if not await CommercePlan.filter(is_default=True, is_active=True).using_db(conn).exists():
+                raise Conflict(
+                    message=t("errors", "COMMERCE_DEFAULT_PLAN_REQUIRED"),
+                    error="COMMERCE_DEFAULT_PLAN_REQUIRED",
+                )
+            await write_required_activity_event(
+                settings=self._settings,
+                conn=conn,
+                payload=ActivityAuditPayload(
+                    event_name="commerce.plan.updated",
+                    entity_type="commerce_plan",
+                    entity_id=plan.id,
+                    properties={"code": plan.code, "is_active": bool(plan.is_active)},
+                ),
+            )
+        return _plan_out(plan)
+
+    async def _default_plan(self, *, conn: BaseDBAsyncClient) -> CommercePlan:
+        await self.ensure_plan_catalog(conn=conn)
+        plan = await CommercePlan.filter(is_default=True, is_active=True).using_db(conn).first()
+        if plan is None:
+            raise Conflict(
+                message=t("errors", "COMMERCE_DEFAULT_PLAN_REQUIRED"),
+                error="COMMERCE_DEFAULT_PLAN_REQUIRED",
+            )
+        return plan
+
+    async def _write_ledger(
+        self,
+        *,
+        conn: BaseDBAsyncClient,
+        account: WorkspaceCreditAccount,
+        entry_type: CreditLedgerEntryType,
+        delta_balance: int,
+        delta_reserved: int,
+        reference_type: str,
+        reference_id: UUID | None,
+        idempotency_key: str,
+        actor_user_id: UUID | None,
+        description_key: str,
+        details: dict[str, Any],
+    ) -> None:
+        await WorkspaceCreditLedger.get_or_create(
+            idempotency_key=idempotency_key,
+            using_db=conn,
+            defaults={
+                "workspace_id": account.workspace_id,
+                "account_id": account.id,
+                "entry_type": entry_type,
+                "delta_balance_credits": delta_balance,
+                "delta_reserved_credits": delta_reserved,
+                "balance_after_credits": account.balance_credits,
+                "reserved_after_credits": account.reserved_credits,
+                "reference_type": reference_type,
+                "reference_id": reference_id,
+                "actor_user_id": actor_user_id,
+                "description_key": description_key,
+                "details": details,
+            },
+        )
+
+    async def _refresh_account(
+        self,
+        *,
+        conn: BaseDBAsyncClient,
+        account: WorkspaceCreditAccount,
+        plan: CommercePlan,
+        now: datetime,
+        actor_user_id: UUID | None,
+        reference_type: str,
+        reference_id: UUID | None,
+        none_period_end: datetime | None = None,
+    ) -> None:
+        period_start, period_end = _credit_period(
+            now,
+            plan.credit_refresh_interval,
+            none_period_end=none_period_end,
+        )
+        operation_key = str(reference_id) if reference_id is not None else period_start.isoformat()
+        unreserved_balance = max(int(account.balance_credits) - int(account.reserved_credits), 0)
+        if unreserved_balance:
+            account.balance_credits -= unreserved_balance
+            await self._write_ledger(
+                conn=conn,
+                account=account,
+                entry_type=CreditLedgerEntryType.EXPIRATION,
+                delta_balance=-unreserved_balance,
+                delta_reserved=0,
+                reference_type=reference_type,
+                reference_id=reference_id,
+                idempotency_key=(
+                    f"credit-expiration:{account.workspace_id}:{reference_type}:{operation_key}:{plan.code}"
+                ),
+                actor_user_id=actor_user_id,
+                description_key="LEDGER_PERIOD_EXPIRATION",
+                details={"planCode": plan.code},
+            )
+        grant = int(plan.credit_grant_amount)
+        account.balance_credits += grant
+        account.lifetime_granted_credits += grant
+        account.period_granted_credits = grant
+        account.period_spent_credits = 0
+        account.period_start = period_start
+        account.period_end = period_end
+        await account.save(using_db=conn)
+        await self._write_ledger(
+            conn=conn,
+            account=account,
+            entry_type=CreditLedgerEntryType.PERIOD_GRANT,
+            delta_balance=grant,
+            delta_reserved=0,
+            reference_type=reference_type,
+            reference_id=reference_id,
+            idempotency_key=f"credit-grant:{account.workspace_id}:{reference_type}:{operation_key}:{plan.code}",
+            actor_user_id=actor_user_id,
+            description_key="LEDGER_PERIOD_GRANT",
+            details={
+                "planCode": plan.code,
+                "creditValueMicros": int(plan.credit_value_micros),
+                "refreshInterval": plan.credit_refresh_interval.value,
+            },
+        )
+
+    async def _ensure_workspace_billing(
+        self,
+        *,
+        workspace_id: UUID,
+        conn: BaseDBAsyncClient,
+        now: datetime,
+    ) -> tuple[WorkspaceSubscription, WorkspaceCreditAccount, CommercePlan]:
+        workspace = await Workspace.filter(id=workspace_id).using_db(conn).select_for_update().first()
+        if workspace is None:
+            raise NotFound(
+                message=t("errors", "WORKSPACE_NOT_FOUND"),
+                error="WORKSPACE_NOT_FOUND",
+            )
+        subscription = (
+            await WorkspaceSubscription.filter(workspace_id=workspace_id).using_db(conn).select_for_update().first()
+        )
+        if subscription is None:
+            plan = await self._default_plan(conn=conn)
+            billing_start, billing_end = _billing_period(now, BillingCycle.MONTHLY)
+            subscription = await WorkspaceSubscription.create(
+                workspace_id=workspace_id,
+                plan_id=plan.id,
+                status=SubscriptionStatus.ACTIVE,
+                billing_cycle=BillingCycle.MONTHLY,
+                current_period_start=billing_start,
+                current_period_end=billing_end,
+                using_db=conn,
+            )
+            subscription.plan = plan
+        else:
+            plan = await CommercePlan.get(id=subscription.plan_id, using_db=conn)
+            subscription.plan = plan
+
+        if now >= subscription.current_period_end:
+            if subscription.cancel_at_period_end:
+                subscription.status = SubscriptionStatus.CANCELED
+            elif subscription.status in _ACTIVE_SUBSCRIPTION_STATUSES:
+                start, end = _billing_period(now, subscription.billing_cycle)
+                subscription.current_period_start = start
+                subscription.current_period_end = end
+            await subscription.save(using_db=conn)
+
+        account = (
+            await WorkspaceCreditAccount.filter(workspace_id=workspace_id).using_db(conn).select_for_update().first()
+        )
+        if account is None:
+            credit_start, credit_end = _credit_period(
+                now,
+                plan.credit_refresh_interval,
+                none_period_end=subscription.current_period_end,
+            )
+            account = await WorkspaceCreditAccount.create(
+                workspace_id=workspace_id,
+                subscription_id=subscription.id,
+                period_start=credit_start,
+                period_end=credit_end,
+                using_db=conn,
+            )
+            await self._refresh_account(
+                conn=conn,
+                account=account,
+                plan=plan,
+                now=now,
+                actor_user_id=None,
+                reference_type="subscription",
+                reference_id=subscription.id,
+                none_period_end=subscription.current_period_end,
+            )
+        elif now >= account.period_end and subscription.status in _ACTIVE_SUBSCRIPTION_STATUSES:
+            if plan.credit_refresh_interval == CreditRefreshInterval.NONE:
+                account.period_start = subscription.current_period_start
+                account.period_end = subscription.current_period_end
+                account.period_granted_credits = 0
+                account.period_spent_credits = 0
+                await account.save(using_db=conn)
+            else:
+                await self._refresh_account(
+                    conn=conn,
+                    account=account,
+                    plan=plan,
+                    now=now,
+                    actor_user_id=None,
+                    reference_type="period_refresh",
+                    reference_id=None,
+                )
+        return subscription, account, plan
+
+    async def ensure_workspace_billing(
+        self,
+        *,
+        workspace_id: UUID,
+    ) -> tuple[WorkspaceSubscription, WorkspaceCreditAccount, CommercePlan]:
+        async with in_transaction() as conn:
+            return await self._ensure_workspace_billing(
+                workspace_id=workspace_id,
+                conn=conn,
+                now=datetime.now(UTC),
+            )
+
+    async def ensure_workspace_billing_in_transaction(
+        self,
+        *,
+        workspace_id: UUID,
+        conn: BaseDBAsyncClient,
+    ) -> tuple[WorkspaceSubscription, WorkspaceCreditAccount, CommercePlan]:
+        return await self._ensure_workspace_billing(
+            workspace_id=workspace_id,
+            conn=conn,
+            now=datetime.now(UTC),
+        )
+
+    async def write_credit_ledger_entry(
+        self,
+        *,
+        conn: BaseDBAsyncClient,
+        account: WorkspaceCreditAccount,
+        entry_type: CreditLedgerEntryType,
+        delta_balance: int,
+        delta_reserved: int,
+        reference_type: str,
+        reference_id: UUID | None,
+        idempotency_key: str,
+        actor_user_id: UUID | None,
+        description_key: str,
+        details: dict[str, Any],
+    ) -> None:
+        await self._write_ledger(
+            conn=conn,
+            account=account,
+            entry_type=entry_type,
+            delta_balance=delta_balance,
+            delta_reserved=delta_reserved,
+            reference_type=reference_type,
+            reference_id=reference_id,
+            idempotency_key=idempotency_key,
+            actor_user_id=actor_user_id,
+            description_key=description_key,
+            details=details,
+        )
+
+    async def get_overview(self, *, workspace_id: UUID) -> WorkspaceCommerceOverviewOut:
+        subscription, account, plan = await self.ensure_workspace_billing(workspace_id=workspace_id)
+        usage_rows = await AIUsageDaily.filter(
+            workspace_id=workspace_id,
+            date__gte=account.period_start.date(),
+            date__lt=account.period_end.date(),
+        )
+        pending = (
+            await WorkspaceSubscriptionChangeRequest
+            .filter(
+                workspace_id=workspace_id,
+                status=SubscriptionChangeRequestStatus.PENDING,
+            )
+            .prefetch_related("requested_plan")
+            .order_by("-created_at")
+            .first()
+        )
+        return WorkspaceCommerceOverviewOut(
+            billing_mode=_BILLING_MODE,
+            plan=_plan_out(plan),
+            subscription=_subscription_out(subscription),
+            credits=WorkspaceCreditsOut(
+                balance=int(account.balance_credits),
+                reserved=int(account.reserved_credits),
+                available=max(int(account.balance_credits) - int(account.reserved_credits), 0),
+                lifetime_granted=int(account.lifetime_granted_credits),
+                lifetime_spent=int(account.lifetime_spent_credits),
+                period_granted=int(account.period_granted_credits),
+                period_spent=int(account.period_spent_credits),
+                period_start=account.period_start,
+                period_end=account.period_end,
+                next_refresh_at=(
+                    None if plan.credit_refresh_interval == CreditRefreshInterval.NONE else account.period_end
+                ),
+            ),
+            usage=WorkspaceCommerceUsageOut(
+                period_cost_micros=sum(int(row.cost_micros) for row in usage_rows),
+                requests=sum(int(row.request_count) for row in usage_rows),
+                prompt_tokens=sum(int(row.prompt_tokens) for row in usage_rows),
+                completion_tokens=sum(int(row.completion_tokens) for row in usage_rows),
+            ),
+            pending_change_request=_change_request_out(pending) if pending is not None else None,
+        )
+
+    async def list_credit_ledger(
+        self,
+        *,
+        workspace_id: UUID,
+        params: PageParams,
+    ) -> PageData[CreditLedgerOut]:
+        query = WorkspaceCreditLedger.filter(workspace_id=workspace_id).order_by("-created_at", "-id")
+        total = int(await query.count())
+        rows = await query.limit(params.limit).offset(params.offset)
+        pages = (total + params.size - 1) // params.size if total else 0
+        return PageData(
+            items=[_ledger_out(row) for row in rows],
+            total=total,
+            page=params.page,
+            size=params.size,
+            pages=pages,
+            next=params.page + 1 if params.page < pages else None,
+            prev=params.page - 1 if params.page > 1 and pages else None,
+        )
+
+    async def create_change_request(
+        self,
+        *,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        payload: SubscriptionChangeRequestCreate,
+    ) -> SubscriptionChangeRequestOut:
+        async with in_transaction() as conn:
+            subscription, _, current_plan = await self._ensure_workspace_billing(
+                workspace_id=workspace_id,
+                conn=conn,
+                now=datetime.now(UTC),
+            )
+            requested_plan = await CommercePlan.get_or_none(code=payload.plan_code, is_active=True, using_db=conn)
+            if requested_plan is None:
+                raise NotFound(
+                    message=t("errors", "COMMERCE_PLAN_NOT_FOUND"),
+                    error="COMMERCE_PLAN_NOT_FOUND",
+                )
+            if requested_plan.id == current_plan.id and payload.billing_interval == subscription.billing_cycle:
+                raise BadRequest(
+                    message=t("errors", "COMMERCE_PLAN_ALREADY_ACTIVE"),
+                    error="COMMERCE_PLAN_ALREADY_ACTIVE",
+                )
+            existing = (
+                await WorkspaceSubscriptionChangeRequest
+                .filter(
+                    workspace_id=workspace_id,
+                    status=SubscriptionChangeRequestStatus.PENDING,
+                )
+                .using_db(conn)
+                .first()
+            )
+            if existing is not None:
+                raise Conflict(
+                    message=t("errors", "SUBSCRIPTION_CHANGE_REQUEST_PENDING"),
+                    error="SUBSCRIPTION_CHANGE_REQUEST_PENDING",
+                )
+            row = await WorkspaceSubscriptionChangeRequest.create(
+                workspace_id=workspace_id,
+                requested_plan_id=requested_plan.id,
+                requested_by_user_id=actor_user_id,
+                billing_cycle=payload.billing_interval,
+                reason=payload.reason,
+                using_db=conn,
+            )
+            row.requested_plan = requested_plan
+            workspace = await Workspace.get(id=workspace_id, using_db=conn)
+            await write_required_activity_event(
+                settings=self._settings,
+                conn=conn,
+                payload=ActivityAuditPayload(
+                    event_name="commerce.subscription_change.requested",
+                    actor_user_id=actor_user_id,
+                    organization_id=workspace.organization_id,
+                    workspace_id=workspace_id,
+                    entity_type="subscription_change_request",
+                    entity_id=row.id,
+                    properties={"planCode": requested_plan.code, "billingInterval": str(payload.billing_interval)},
+                ),
+            )
+        return _change_request_out(row)
+
+    async def _apply_subscription(
+        self,
+        *,
+        conn: BaseDBAsyncClient,
+        workspace_id: UUID,
+        plan: CommercePlan,
+        actor_user_id: UUID,
+        payload: WorkspaceSubscriptionSetRequest,
+        reference_type: str,
+        reference_id: UUID | None,
+    ) -> tuple[WorkspaceSubscription, WorkspaceCreditAccount]:
+        now = datetime.now(UTC)
+        subscription, account, _ = await self._ensure_workspace_billing(
+            workspace_id=workspace_id,
+            conn=conn,
+            now=now,
+        )
+        billing_start, billing_end = _billing_period(now, payload.billing_interval)
+        subscription.plan_id = plan.id
+        subscription.status = payload.status
+        subscription.billing_cycle = payload.billing_interval
+        subscription.current_period_start = payload.current_period_start or billing_start
+        subscription.current_period_end = payload.current_period_end or billing_end
+        subscription.cancel_at_period_end = payload.cancel_at_period_end
+        await subscription.save(using_db=conn)
+        await self._refresh_account(
+            conn=conn,
+            account=account,
+            plan=plan,
+            now=now,
+            actor_user_id=actor_user_id,
+            reference_type=reference_type,
+            reference_id=reference_id,
+            none_period_end=subscription.current_period_end,
+        )
+        return subscription, account
+
+    async def set_workspace_subscription(
+        self,
+        *,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        payload: WorkspaceSubscriptionSetRequest,
+    ) -> WorkspaceCommerceOverviewOut:
+        async with in_transaction() as conn:
+            await self.ensure_plan_catalog(conn=conn)
+            plan = await CommercePlan.get_or_none(code=payload.plan_code, is_active=True, using_db=conn)
+            if plan is None:
+                raise NotFound(
+                    message=t("errors", "COMMERCE_PLAN_NOT_FOUND"),
+                    error="COMMERCE_PLAN_NOT_FOUND",
+                )
+            subscription, _ = await self._apply_subscription(
+                conn=conn,
+                workspace_id=workspace_id,
+                plan=plan,
+                actor_user_id=actor_user_id,
+                payload=payload,
+                reference_type="operator_change",
+                reference_id=uuid7(),
+            )
+            workspace = await Workspace.get(id=workspace_id, using_db=conn)
+            await write_required_activity_event(
+                settings=self._settings,
+                conn=conn,
+                payload=ActivityAuditPayload(
+                    event_name="commerce.subscription.updated",
+                    actor_user_id=actor_user_id,
+                    organization_id=workspace.organization_id,
+                    workspace_id=workspace_id,
+                    entity_type="workspace_subscription",
+                    entity_id=subscription.id,
+                    properties={"planCode": plan.code, "status": str(payload.status)},
+                ),
+            )
+        return await self.get_overview(workspace_id=workspace_id)
+
+    async def list_change_requests(
+        self,
+        *,
+        params: PageParams,
+        status: SubscriptionChangeRequestStatus | None,
+    ) -> PageData[SubscriptionChangeRequestOut]:
+        query = WorkspaceSubscriptionChangeRequest.all().prefetch_related("requested_plan")
+        if status is not None:
+            query = query.filter(status=status)
+        total = int(await query.count())
+        rows = await query.order_by("-created_at").limit(params.limit).offset(params.offset)
+        items = [_change_request_out(row) for row in rows]
+        pages = (total + params.size - 1) // params.size if total else 0
+        return PageData(
+            items=items,
+            total=total,
+            page=params.page,
+            size=params.size,
+            pages=pages,
+            next=params.page + 1 if params.page < pages else None,
+            prev=params.page - 1 if params.page > 1 and pages else None,
+        )
+
+    async def approve_change_request(
+        self,
+        *,
+        request_id: UUID,
+        actor_user_id: UUID,
+        review_note: str | None,
+    ) -> SubscriptionChangeRequestOut:
+        async with in_transaction() as conn:
+            row = (
+                await WorkspaceSubscriptionChangeRequest
+                .filter(id=request_id)
+                .using_db(conn)
+                .select_for_update()
+                .first()
+            )
+            if row is None:
+                raise NotFound(
+                    message=t("errors", "SUBSCRIPTION_CHANGE_REQUEST_NOT_FOUND"),
+                    error="SUBSCRIPTION_CHANGE_REQUEST_NOT_FOUND",
+                )
+            if row.status != SubscriptionChangeRequestStatus.PENDING:
+                raise Conflict(
+                    message=t("errors", "SUBSCRIPTION_CHANGE_REQUEST_ALREADY_REVIEWED"),
+                    error="SUBSCRIPTION_CHANGE_REQUEST_ALREADY_REVIEWED",
+                )
+            plan = await CommercePlan.filter(id=row.requested_plan_id).using_db(conn).select_for_update().first()
+            if plan is None:
+                raise RuntimeError(f"Commerce plan {row.requested_plan_id} not found")
+            row.requested_plan = plan
+            if not plan.is_active:
+                raise Conflict(
+                    message=t("errors", "SUBSCRIPTION_CHANGE_REQUEST_PLAN_INACTIVE"),
+                    error="SUBSCRIPTION_CHANGE_REQUEST_PLAN_INACTIVE",
+                )
+            payload = WorkspaceSubscriptionSetRequest(
+                plan_code=plan.code,
+                status=SubscriptionStatus.ACTIVE,
+                billing_interval=row.billing_cycle,
+            )
+            await self._apply_subscription(
+                conn=conn,
+                workspace_id=row.workspace_id,
+                plan=plan,
+                actor_user_id=actor_user_id,
+                payload=payload,
+                reference_type="subscription_change_request",
+                reference_id=row.id,
+            )
+            now = datetime.now(UTC)
+            row.status = SubscriptionChangeRequestStatus.APPROVED
+            row.reviewed_by_user_id = actor_user_id
+            row.reviewed_at = now
+            row.review_note = review_note
+            await row.save(using_db=conn)
+            workspace = await Workspace.get(id=row.workspace_id, using_db=conn)
+            await write_required_activity_event(
+                settings=self._settings,
+                conn=conn,
+                payload=ActivityAuditPayload(
+                    event_name="commerce.subscription_change.approved",
+                    actor_user_id=actor_user_id,
+                    organization_id=workspace.organization_id,
+                    workspace_id=row.workspace_id,
+                    entity_type="subscription_change_request",
+                    entity_id=row.id,
+                    properties={"planCode": plan.code},
+                ),
+            )
+        return _change_request_out(row)
+
+    async def reject_change_request(
+        self,
+        *,
+        request_id: UUID,
+        actor_user_id: UUID,
+        review_note: str,
+    ) -> SubscriptionChangeRequestOut:
+        async with in_transaction() as conn:
+            row = (
+                await WorkspaceSubscriptionChangeRequest
+                .filter(id=request_id)
+                .using_db(conn)
+                .select_for_update()
+                .prefetch_related("requested_plan")
+                .first()
+            )
+            if row is None:
+                raise NotFound(
+                    message=t("errors", "SUBSCRIPTION_CHANGE_REQUEST_NOT_FOUND"),
+                    error="SUBSCRIPTION_CHANGE_REQUEST_NOT_FOUND",
+                )
+            if row.status != SubscriptionChangeRequestStatus.PENDING:
+                raise Conflict(
+                    message=t("errors", "SUBSCRIPTION_CHANGE_REQUEST_ALREADY_REVIEWED"),
+                    error="SUBSCRIPTION_CHANGE_REQUEST_ALREADY_REVIEWED",
+                )
+            row.status = SubscriptionChangeRequestStatus.REJECTED
+            row.reviewed_by_user_id = actor_user_id
+            row.reviewed_at = datetime.now(UTC)
+            row.review_note = review_note
+            await row.save(using_db=conn)
+            workspace = await Workspace.get(id=row.workspace_id, using_db=conn)
+            await write_required_activity_event(
+                settings=self._settings,
+                conn=conn,
+                payload=ActivityAuditPayload(
+                    event_name="commerce.subscription_change.rejected",
+                    actor_user_id=actor_user_id,
+                    organization_id=workspace.organization_id,
+                    workspace_id=row.workspace_id,
+                    entity_type="subscription_change_request",
+                    entity_id=row.id,
+                    properties={"planCode": row.requested_plan.code},
+                ),
+            )
+        return _change_request_out(row)

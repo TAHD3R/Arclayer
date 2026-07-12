@@ -22,6 +22,7 @@ Admin specs define concrete contracts for route files, page composition, compone
 | [State Management](./state-management.md) | Local, URL, server, form, and global UI state ownership | Active |
 | [Quality Guidelines](./quality-guidelines.md) | Admin quality gate, design verification, i18n, convention checks | Active |
 | [Type Safety](./type-safety.md) | Generated OpenAPI type usage, UI projections, assertion boundaries | Active |
+| [Product UI Toolchain](./product-ui-toolchain.md) | Canonical components, forms, icons, charts, Boneyard skeletons, motion, and product i18n | Active |
 
 ---
 
@@ -33,6 +34,8 @@ Admin specs define concrete contracts for route files, page composition, compone
 | [Shared Error Contracts](../../shared/error-contracts.md) | Stable error-code handling in UI |
 | [Shared Identity & Access Contracts](../../shared/identity-access-contracts.md) | Auth, route guard, tenant, workspace, project, and permission semantics |
 | [Shared Schema & Field Contracts](../../shared/schema-field-contracts.md) | Schema-driven UI and field semantics |
+| [Workspace Commercialization](../../shared/workspace-commercialization.md) | Plan, subscription, Credits, and upgrade UX semantics |
+| [Feedback & Observability](../../shared/feedback-observability.md) | Feedback lifecycle, audit log, and observability page semantics |
 
 ## Monorepo Contracts
 

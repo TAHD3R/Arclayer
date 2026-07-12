@@ -6,6 +6,7 @@ import { AnimatePresence, motion, type HTMLMotionProps } from "motion/react";
 
 import { getStrictContext } from "@arclayer/lib/get-strict-context";
 import { useControlledState } from "@arclayer/hooks/use-controlled-state";
+import { usePrefersReducedMotion } from "@arclayer/hooks/use-prefers-reduced-motion";
 
 type PopoverContextType = {
   isOpen: boolean;
@@ -79,6 +80,7 @@ function PopoverContent({
   ...props
 }: PopoverContentProps) {
   const { isOpen } = usePopover();
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   return (
     <PopoverPrimitive.Portal forceMount container={container}>
@@ -105,10 +107,10 @@ function PopoverContent({
         <motion.div
           key="popover-content"
           data-slot="popover-content"
-          initial={{ opacity: 0, scale: 0.95 }}
+          initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={transition}
+          exit={prefersReducedMotion ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 }}
+          transition={prefersReducedMotion ? { duration: 0 } : transition}
           style={{
             willChange: "opacity, transform",
             pointerEvents: isOpen ? "auto" : "none",

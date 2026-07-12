@@ -6,6 +6,7 @@ from src.config import Settings
 from src.modules.ai.router import router as ai_router
 from src.modules.assets.router import router as public_assets_router
 from src.modules.auth.router import router as auth_router
+from src.modules.feedback.router import router as feedback_router
 from src.modules.library.router import router as public_library_router
 from src.modules.permissions.router import router as permissions_router
 from src.modules.projects.router import router as projects_router
@@ -128,6 +129,7 @@ def register_routes(app: FastAPI, settings: Settings) -> None:
     include_router_with_global_prefix_prepended(app, permissions_router, settings=settings, prefix="/permissions")
     include_router_with_global_prefix_prepended(app, tenancy_router, settings=settings, prefix="/tenancy")
     include_router_with_global_prefix_prepended(app, workspaces_router, settings=settings)
+    include_router_with_global_prefix_prepended(app, feedback_router, settings=settings)
     include_router_with_global_prefix_prepended(app, projects_router, settings=settings)
 
     # Host-based public project pages run as a 404 fallback so regular API routes,

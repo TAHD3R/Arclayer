@@ -46,6 +46,8 @@ Default writing style:
 - Every data-driven page must define explicit loading, empty, and error behavior.
 - Use `ContentGuard` and shared page-shell patterns instead of bespoke state wrappers.
 - Skeletons should resemble the eventual layout closely enough to avoid misleading jumps.
+- Admin route transitions use the shared Boneyard boundary; feature pages must not create a second route-level skeleton system.
+- Boneyard captures complement, rather than replace, explicit domain loading/error/empty states.
 
 ## 4. Overlay and Form Rules
 
@@ -100,6 +102,7 @@ For Antd popups rendered inside dialog-like overlays:
 
 - Default to stable `lucide-react` icons or existing shared icons from `@arclayer/ui/icons`.
 - Do not import or reference the removed `@arclayer/ui/icons/lucide-animated` barrel.
+- Compose charts through `@arclayer/ui/chart` instead of importing Recharts in feature pages.
 - Keep motion restrained and state-driven. Small hover or open-state feedback is enough.
 - Avoid layering multiple icon motion effects in feature code when the component already communicates state.
 
@@ -130,6 +133,8 @@ For Antd popups rendered inside dialog-like overlays:
 - Labels, descriptions, and ARIA attributes must be present when semantics are not obvious from native HTML.
 - Error, disabled, and destructive states must communicate intent clearly instead of relying on color alone.
 
+Product copy must use i18n keys with both supported locales. Use direct, sentence-case labels and distinguish commercial terms such as plan, billing period, granted credits, used credits, reserved credits, and available credits.
+
 ## 11. PR Checklist
 
 - [ ] The page uses the shared page-shell primitives instead of a custom shell without justification.
@@ -139,5 +144,8 @@ For Antd popups rendered inside dialog-like overlays:
 - [ ] No new Antd `Spin` usage was introduced in Admin feature UI.
 - [ ] Tag-like UI uses the semantic tag system.
 - [ ] New icons do not depend on the removed `lucide-animated` barrel.
+- [ ] Charts use `@arclayer/ui/chart` and expose exact values accessibly.
+- [ ] Route loading remains compatible with the shared Boneyard boundary.
+- [ ] New product copy exists in both `zh-CN` and `en-US` resources.
 - [ ] Typography and color usage follow shared semantic tokens.
 - [ ] Accessibility basics remain intact for focus, keyboard flow, labels, and destructive confirmations.

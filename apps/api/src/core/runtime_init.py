@@ -15,6 +15,7 @@ from src.core.lifecycles.subscribers.timestamps import auto_timestamps
 from src.core.lifecycles.subscribers.validators import require_target_context
 from src.core.logging import get_logger
 from src.modules.analytics.ingest.service import ActivityIngestor
+from src.modules.observability.http_metrics import HTTP_REQUEST_METRIC_EVENT, persist_http_request_metric_event
 from src.modules.projects.automation.runtime import AutomationRuntime
 from src.modules.projects.webhooks.service import WebhookService
 from src.modules.sites.search.runtime import register_content_search_runtime
@@ -100,6 +101,15 @@ async def init_domain_runtime(app: FastAPI, settings: Settings, *, event_bus: Ev
     if not settings.database.enabled:
         return
 
+    if settings.observability.enabled:
+        await event_bus.subscribe(
+            subscriber_id="core.observability.http",
+            event_name=HTTP_REQUEST_METRIC_EVENT,
+            handler=persist_http_request_metric_event,
+            priority=-50,
+            name="http-request-metric-writer",
+        )
+
     # ── Lifecycle + EntityManager + Webhook infrastructure ──────────────
     lifecycle_dispatcher = LifecycleDispatcher()
     await lifecycle_dispatcher.register(
@@ -163,6 +173,11 @@ async def init_domain_runtime(app: FastAPI, settings: Settings, *, event_bus: Ev
 
 
 async def close_domain_runtime(app: FastAPI, *, event_bus: EventBus) -> None:
+    await event_bus.unsubscribe(
+        subscriber_id="core.observability.http",
+        event_name=HTTP_REQUEST_METRIC_EVENT,
+        handler=persist_http_request_metric_event,
+    )
     ingestor: ActivityIngestor | None = getattr(app.state, "activity_ingestor", None)
     if ingestor is not None:
         try:

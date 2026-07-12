@@ -391,7 +391,7 @@ describe("floating panel animation config", () => {
     });
 
     const workspaceTrigger = screen.getByRole("button", {
-      name: "common:WORKSPACE_SWITCHER_SELECT_SCOPE",
+      name: "Workspace Alpha common:WORKSPACE_SWITCHER_SELECT_SCOPE",
     });
 
     expect(accountTrigger).not.toHaveAttribute("data-layout-id");

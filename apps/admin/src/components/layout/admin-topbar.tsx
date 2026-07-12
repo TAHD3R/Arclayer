@@ -1,10 +1,12 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, MessageSquareText } from "lucide-react";
 import { Fragment, forwardRef } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AskAiButton } from "@/components/ai/ask-ai-button";
 import type { ProjectAvatarIdentity } from "@/components/common/project-avatar";
 import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
+import { FeedbackDialog } from "@/components/feedback/feedback-dialog";
+import { WorkspaceCreditsControl } from "@/components/commerce/workspace-credits-control";
 import { headerTriggerButtonClassName } from "@/components/layout/admin-scope-switcher";
 import {
   ProjectBrowseMenuContent,
@@ -29,7 +31,8 @@ import {
   DropdownMenuIconItem,
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
-const TOPBAR_CONTENT_PADDING_CLASSNAME = "px-6 py-3";
+const TOPBAR_CONTENT_PADDING_CLASSNAME = "px-4 py-2 sm:px-6 sm:py-3";
+const MOBILE_TOPBAR_TOUCH_TARGET_CLASSNAME = "min-h-12 min-w-12 sm:min-h-0 sm:min-w-0";
 
 type AdminTopbarLeadingMode = "none" | "logo" | "back";
 export type AdminTopbarProject = ProjectAvatarIdentity & {
@@ -66,6 +69,7 @@ function TopbarLeading(props: {
           onClick={props.onBack}
           className={cn(
             headerTriggerButtonClassName,
+            MOBILE_TOPBAR_TOUCH_TARGET_CLASSNAME,
             "text-callout font-semibold text-label-primary",
             "active:border-border/60 active:bg-accent/70 active:text-label-primary",
           )}
@@ -102,7 +106,11 @@ const TopbarBreadcrumbButton = forwardRef<HTMLButtonElement, TopbarBreadcrumbBut
         type={type}
         tapScale={1}
         aria-label={label}
-        className={cn(topbarBreadcrumbButtonClassName, className)}
+        className={cn(
+          topbarBreadcrumbButtonClassName,
+          MOBILE_TOPBAR_TOUCH_TARGET_CLASSNAME,
+          className,
+        )}
         {...buttonProps}
       >
         <span className="min-w-0 truncate">{label}</span>
@@ -264,18 +272,28 @@ function TopbarTrailing() {
   const { t } = useTranslation(["common"]);
 
   return (
-    <div className="min-w-0 flex items-center justify-end gap-2">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        tapScale={1}
-        aria-label={t("common:TOPBAR_FEEDBACK")}
-        className="text-callout font-semibold"
-      >
-        <span className="hidden sm:inline">{t("common:TOPBAR_FEEDBACK")}</span>
-      </Button>
-      <AskAiButton labelKey="common:TOPBAR_ASK_AI" />
+    <div className="flex w-full min-w-0 items-center justify-end gap-2 sm:w-auto">
+      <FeedbackDialog
+        source="header"
+        trigger={
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            tapScale={1}
+            aria-label={t("common:TOPBAR_FEEDBACK")}
+            className={cn(MOBILE_TOPBAR_TOUCH_TARGET_CLASSNAME, "text-callout font-semibold")}
+          >
+            <MessageSquareText aria-hidden="true" />
+            <span className="hidden sm:inline">{t("common:TOPBAR_FEEDBACK")}</span>
+          </Button>
+        }
+      />
+      <AskAiButton
+        labelKey="common:TOPBAR_ASK_AI"
+        className={MOBILE_TOPBAR_TOUCH_TARGET_CLASSNAME}
+      />
+      <WorkspaceCreditsControl className={MOBILE_TOPBAR_TOUCH_TARGET_CLASSNAME} />
       <AdminAccountMenu variant="header" />
     </div>
   );
@@ -297,7 +315,7 @@ export function AdminTopbar(props: {
     <header className={cn("relative z-30 inset-y-auto", "bg-header", props.className)}>
       <div
         className={cn(
-          "flex items-center gap-4",
+          "flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-4",
           "justify-between",
           TOPBAR_CONTENT_PADDING_CLASSNAME,
         )}

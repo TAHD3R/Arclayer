@@ -6,6 +6,7 @@ import { AnimatePresence, motion, type HTMLMotionProps } from "motion/react";
 
 import { getStrictContext } from "@arclayer/lib/get-strict-context";
 import { useControlledState } from "@arclayer/hooks/use-controlled-state";
+import { usePrefersReducedMotion } from "@arclayer/hooks/use-prefers-reduced-motion";
 
 type SheetContextType = {
   isOpen: boolean;
@@ -65,16 +66,18 @@ function SheetOverlay({
   ...props
 }: SheetOverlayProps) {
   const { isOpen } = useSheet();
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const visibleState = { opacity: 1, filter: "blur(0px)" } as const;
 
   return (
     <SheetPrimitive.Overlay asChild forceMount>
       <motion.div
         key="sheet-overlay"
         data-slot="sheet-overlay"
-        initial={{ opacity: 0, filter: "blur(4px)" }}
-        animate={{ opacity: 1, filter: "blur(0px)" }}
-        exit={{ opacity: 0, filter: "blur(4px)" }}
-        transition={transition}
+        initial={prefersReducedMotion ? false : { opacity: 0, filter: "blur(4px)" }}
+        animate={visibleState}
+        exit={prefersReducedMotion ? visibleState : { opacity: 0, filter: "blur(4px)" }}
+        transition={prefersReducedMotion ? { duration: 0 } : transition}
         style={{ pointerEvents: isOpen ? "auto" : "none", ...props.style }}
         {...props}
       />
@@ -97,6 +100,7 @@ function SheetContent({
   ...props
 }: SheetContentProps) {
   const { isOpen } = useSheet();
+  const prefersReducedMotion = usePrefersReducedMotion();
   const axis = side === "left" || side === "right" ? "x" : "y";
 
   const offscreen: Record<Side, { x?: string; y?: string; opacity: number }> = {
@@ -119,16 +123,16 @@ function SheetContent({
         key="sheet-content"
         data-slot="sheet-content"
         data-side={side}
-        initial={offscreen[side]}
+        initial={prefersReducedMotion ? false : offscreen[side]}
         animate={{ [axis]: 0, opacity: 1 }}
-        exit={offscreen[side]}
+        exit={prefersReducedMotion ? { [axis]: 0, opacity: 1 } : offscreen[side]}
         style={{
           position: "fixed",
           pointerEvents: isOpen ? "auto" : "none",
           ...positionStyle[side],
           ...style,
         }}
-        transition={transition}
+        transition={prefersReducedMotion ? { duration: 0 } : transition}
       >
         {children}
       </motion.div>

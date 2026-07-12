@@ -22,6 +22,7 @@ class AuditEvent(BaseModel):
 
     organization_id = fields.UUIDField(null=True, db_index=True)
     workspace_id = fields.UUIDField(null=True, db_index=True)
+    project_id = fields.UUIDField(null=True, db_index=True)
 
     actor_user_id = fields.UUIDField(null=True, db_index=True)
     subject_user_id = fields.UUIDField(null=True, db_index=True)
@@ -41,6 +42,7 @@ class AuditEvent(BaseModel):
         indexes = (
             ("organization_id", "occurred_at"),
             ("workspace_id", "occurred_at"),
+            ("project_id", "occurred_at"),
             ("actor_user_id", "occurred_at"),
             ("event_name", "occurred_at"),
             ("entity_type", "entity_id", "occurred_at"),

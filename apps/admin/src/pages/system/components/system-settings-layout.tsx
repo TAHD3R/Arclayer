@@ -47,7 +47,7 @@ function normalizeSearchTerm(value: string): string {
 }
 
 function useSearchResults(query: string): SearchResult[] {
-  const { t, i18n } = useTranslation(["settings"]);
+  const { t, i18n } = useTranslation(["settings", "commerce"]);
 
   return useMemo(() => {
     const pages = SYSTEM_SETTINGS_PAGES.map<SearchResult>((page) => {
@@ -142,7 +142,7 @@ function SearchResults(props: { query: string; results: SearchResult[]; onClose:
 }
 
 export function SystemSettingsLayout(props: SystemSettingsLayoutProps) {
-  const { t } = useTranslation(["settings"]);
+  const { t } = useTranslation(["settings", "commerce"]);
   const [query, setQuery] = useState("");
   const currentUserQuery = useCurrentUserProfile();
   const pathname = useRouterState({
@@ -190,8 +190,11 @@ export function SystemSettingsLayout(props: SystemSettingsLayoutProps) {
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-label-tertiary" />
               <Input
+                id="system-settings-search"
+                name="systemSettingsSearch"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
+                aria-label={t("settings:SETTINGS_SYSTEM_SEARCH_PLACEHOLDER")}
                 placeholder={t("settings:SETTINGS_SYSTEM_SEARCH_PLACEHOLDER")}
                 className="pl-9"
                 autoComplete="off"

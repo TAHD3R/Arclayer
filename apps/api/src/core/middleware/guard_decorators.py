@@ -13,3 +13,9 @@ guard_decorator = SecurityDecorator(SecurityConfig())
 
 def guard_rate_limit(requests: int, window: int = 60) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     return guard_decorator.rate_limit(requests=requests, window=window)
+
+
+def guard_bypass_penetration_detection() -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """Skip only Guard's penetration-pattern scan for a route."""
+
+    return guard_decorator.bypass(checks=["penetration"])

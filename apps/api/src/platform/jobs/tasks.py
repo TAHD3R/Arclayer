@@ -8,6 +8,7 @@ from src.platform.jobs.ai_conversation_retention import ai_conversation_retentio
 from src.platform.jobs.ai_usage import aggregate_daily_usage
 from src.platform.jobs.analytics_retention import analytics_audit_log_retention_cleanup
 from src.platform.jobs.assets_thumbnails import ASSET_THUMBNAILS_JOB_NAME, generate_asset_thumbnails
+from src.platform.jobs.observability_retention import observability_http_metrics_retention_cleanup
 from src.platform.jobs.scheduled_publish import check_scheduled_publishes, execute_scheduled_publish
 from src.platform.jobs.taskiq_app import broker
 
@@ -36,6 +37,22 @@ async def task_generate_asset_thumbnails(
 async def task_analytics_audit_log_retention_cleanup() -> None:
     settings = get_settings()
     await analytics_audit_log_retention_cleanup({"settings": settings})
+
+
+@broker.task(
+    task_name="core:observability:http_metrics_retention_cleanup",
+    schedule=[
+        {
+            # Daily cleanup runs after the audit-log retention window (UTC).
+            "cron": "40 3 * * *",
+            "args": [],
+            "kwargs": {},
+        }
+    ],
+)
+async def task_observability_http_metrics_retention_cleanup() -> None:
+    settings = get_settings()
+    await observability_http_metrics_retention_cleanup({"settings": settings})
 
 
 @broker.task(

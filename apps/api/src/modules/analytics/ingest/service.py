@@ -249,6 +249,7 @@ class ActivityIngestor:
 
         org_id = _coerce_uuid(payload.get("organization_id") or payload.get("org_id") or ctx.get("organization_id"))
         ws_id = _coerce_uuid(payload.get("workspace_id") or ctx.get("workspace_id"))
+        project_id = _coerce_uuid(payload.get("project_id") or ctx.get("project_id") or ctx.get("tenant_project_id"))
 
         actor_user_id = _coerce_uuid(event.actor_user_id or payload.get("actor_user_id") or ctx.get("user_id"))
         subject_user_id = _coerce_uuid(payload.get("subject_user_id"))
@@ -271,6 +272,7 @@ class ActivityIngestor:
                 "organization_id",
                 "org_id",
                 "workspace_id",
+                "project_id",
                 "actor_user_id",
                 "subject_user_id",
                 "entity_type",
@@ -289,6 +291,7 @@ class ActivityIngestor:
             "event_name": event.name,
             "organization_id": org_id,
             "workspace_id": ws_id,
+            "project_id": project_id,
             "actor_user_id": actor_user_id,
             "subject_user_id": subject_user_id,
             "entity_type": entity_type,

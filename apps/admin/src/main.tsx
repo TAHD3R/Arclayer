@@ -12,6 +12,9 @@ import { useAuthStore } from "@/stores/use-auth-store";
 import { initializePreferences, usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { queryClient } from "@/lib/query/query-client-instance";
+import { configureAdminBoneyard } from "@/lib/boneyard";
+
+configureAdminBoneyard();
 
 async function bootstrap() {
   initializePreferences();

@@ -5,6 +5,7 @@ import { Dialog as DialogPrimitive } from "radix-ui";
 import { AnimatePresence, motion, type HTMLMotionProps } from "motion/react";
 
 import { useControlledState } from "@arclayer/hooks/use-controlled-state";
+import { usePrefersReducedMotion } from "@arclayer/hooks/use-prefers-reduced-motion";
 import { getStrictContext } from "@arclayer/lib/get-strict-context";
 
 type DialogContextType = {
@@ -59,15 +60,17 @@ function DialogOverlay({
   ...props
 }: DialogOverlayProps) {
   const { isOpen } = useDialog();
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const visibleState = { opacity: 1, filter: "blur(0px)" } as const;
 
   return (
     <DialogPrimitive.Overlay data-slot="dialog-overlay" asChild forceMount>
       <motion.div
         key="dialog-overlay"
-        initial={{ opacity: 0, filter: "blur(4px)" }}
-        animate={{ opacity: 1, filter: "blur(0px)" }}
-        exit={{ opacity: 0, filter: "blur(4px)" }}
-        transition={transition}
+        initial={prefersReducedMotion ? false : { opacity: 0, filter: "blur(4px)" }}
+        animate={visibleState}
+        exit={prefersReducedMotion ? visibleState : { opacity: 0, filter: "blur(4px)" }}
+        transition={prefersReducedMotion ? { duration: 0 } : transition}
         style={{ pointerEvents: isOpen ? "auto" : "none", ...props.style }}
         {...props}
       />
@@ -96,6 +99,7 @@ function DialogContent({
   ...props
 }: DialogContentProps) {
   const { isOpen } = useDialog();
+  const prefersReducedMotion = usePrefersReducedMotion();
   const initialOffset =
     from === "top"
       ? ({ y: -14 } as const)
@@ -118,12 +122,16 @@ function DialogContent({
       <motion.div
         key="dialog-content"
         data-slot="dialog-content"
-        initial={{
-          opacity: 0,
-          filter: "blur(4px)",
-          scale: 0.98,
-          ...initialOffset,
-        }}
+        initial={
+          prefersReducedMotion
+            ? false
+            : {
+                opacity: 0,
+                filter: "blur(4px)",
+                scale: 0.98,
+                ...initialOffset,
+              }
+        }
         animate={{
           opacity: 1,
           filter: "blur(0px)",
@@ -131,13 +139,17 @@ function DialogContent({
           x: 0,
           y: 0,
         }}
-        exit={{
-          opacity: 0,
-          filter: "blur(4px)",
-          scale: 0.98,
-          ...initialOffset,
-        }}
-        transition={transition}
+        exit={
+          prefersReducedMotion
+            ? { opacity: 1, filter: "blur(0px)", scale: 1, x: 0, y: 0 }
+            : {
+                opacity: 0,
+                filter: "blur(4px)",
+                scale: 0.98,
+                ...initialOffset,
+              }
+        }
+        transition={prefersReducedMotion ? { duration: 0 } : transition}
         style={{ pointerEvents: isOpen ? "auto" : "none", ...props.style }}
         {...props}
       />

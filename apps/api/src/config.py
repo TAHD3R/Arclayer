@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal, cast
 
-from pydantic import BaseModel, Field, PostgresDsn, SecretStr, computed_field, field_validator
+from pydantic import BaseModel, Field, PostgresDsn, SecretStr, computed_field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.settings.env_models import (
@@ -53,6 +53,8 @@ _DEFAULT_LIBRARY_UPLOAD_EXTENSIONS = [
     "otf",
     "eot",
 ]
+
+MAX_OBSERVABILITY_RETENTION_DAYS = 3650
 
 
 class UploadPurposePolicySettings(BaseModel):
@@ -548,6 +550,33 @@ class AnalyticsSettings(BaseSettings):
     audit_log: AnalyticsAuditLogSettings = Field(default_factory=AnalyticsAuditLogSettings)
 
 
+class ObservabilitySettings(BaseSettings):
+    """Persisted operational-metrics policy exposed through environment configuration."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="OBSERVABILITY__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    enabled: bool = Field(default=True)
+    retention_enabled: bool = Field(default=True)
+    retention_days: int = Field(default=365, ge=1, le=MAX_OBSERVABILITY_RETENTION_DAYS)
+    max_query_days: int = Field(default=365, ge=1, le=MAX_OBSERVABILITY_RETENTION_DAYS)
+    retention_batch_size: int = Field(default=5000, ge=100, le=100_000)
+    retention_max_delete_per_run: int = Field(default=100_000, ge=100, le=10_000_000)
+
+    @model_validator(mode="after")
+    def validate_query_window(self) -> "ObservabilitySettings":
+        if self.max_query_days > self.retention_days:
+            raise ValueError("observability max_query_days cannot exceed retention_days")
+        return self
+
+
 class AISettings(BaseSettings):
     """AI/LLM infrastructure settings.
 
@@ -690,6 +719,7 @@ class Settings(BaseSettings):
     project_databases: ProjectDatabaseProvisioningSettings = Field(default_factory=ProjectDatabaseProvisioningSettings)
     valkey: ValkeySettings = Field(default_factory=ValkeySettings)
     analytics: AnalyticsSettings = Field(default_factory=AnalyticsSettings)
+    observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
     taskiq: TaskiqSettings = Field(default_factory=TaskiqSettings)
     middleware: MiddlewareSettings = Field(default_factory=MiddlewareSettings)
     auth: AuthSettings = Field(default_factory=AuthSettings)

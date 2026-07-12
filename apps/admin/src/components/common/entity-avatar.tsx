@@ -16,6 +16,7 @@ type EntityAvatarProps = {
   style?: CSSProperties;
   fallbackLabel: string;
   shape: EntityAvatarShape;
+  decorative?: boolean;
 };
 
 type PublicEntityAvatarProps = Omit<EntityAvatarProps, "fallbackLabel" | "shape">;
@@ -55,15 +56,35 @@ function normalizeHexColor(value?: string | null) {
     .join("")}`;
 }
 
-function isBrightHexColor(color: string) {
+function relativeLuminance(color: string): number {
   const normalized = normalizeHexColor(color);
-  if (!normalized) return false;
+  if (!normalized) return 0;
 
-  const red = Number.parseInt(normalized.slice(1, 3), 16);
-  const green = Number.parseInt(normalized.slice(3, 5), 16);
-  const blue = Number.parseInt(normalized.slice(5, 7), 16);
+  const toLinear = (channel: number): number => {
+    const srgb = channel / 255;
+    return srgb <= 0.04045 ? srgb / 12.92 : ((srgb + 0.055) / 1.055) ** 2.4;
+  };
+  const red = toLinear(Number.parseInt(normalized.slice(1, 3), 16));
+  const green = toLinear(Number.parseInt(normalized.slice(3, 5), 16));
+  const blue = toLinear(Number.parseInt(normalized.slice(5, 7), 16));
 
-  return (red * 299 + green * 587 + blue * 114) / 1000 > 130;
+  return red * 0.2126 + green * 0.7152 + blue * 0.0722;
+}
+
+function contrastRatio(firstColor: string, secondColor: string): number {
+  const lighter = Math.max(relativeLuminance(firstColor), relativeLuminance(secondColor));
+  const darker = Math.min(relativeLuminance(firstColor), relativeLuminance(secondColor));
+
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function resolveAvatarForegroundColor(backgroundColor: string): string {
+  const lightForeground = "#ffffff";
+  const darkForeground = "#000000";
+  const lightContrast = contrastRatio(backgroundColor, lightForeground);
+  const darkContrast = contrastRatio(backgroundColor, darkForeground);
+
+  return darkContrast >= lightContrast ? darkForeground : lightForeground;
 }
 
 function EntityAvatar(props: EntityAvatarProps) {
@@ -81,10 +102,16 @@ function EntityAvatar(props: EntityAvatarProps) {
         props.className,
       )}
       style={{ width: size, height: size, ...props.style }}
-      aria-label={label}
+      aria-label={props.decorative ? undefined : label}
+      aria-hidden={props.decorative ? true : undefined}
     >
       {canRenderImage ? (
-        <img src={src} alt={label} className="size-full object-cover" onError={markImageFailed} />
+        <img
+          src={src}
+          alt={props.decorative ? "" : label}
+          className="size-full object-cover"
+          onError={markImageFailed}
+        />
       ) : (
         <span>{initialsFromName(label)}</span>
       )}
@@ -120,8 +147,9 @@ export function WorkspaceAvatar(props: WorkspaceAvatarProps) {
   const size = props.size ?? 32;
   const kind = resolveWorkspaceAvatarKind(props, src);
   const backgroundColor = normalizeHexColor(props.iconColor);
-  const foregroundColor =
-    backgroundColor && isBrightHexColor(backgroundColor) ? "#0f172a" : "#ffffff";
+  const foregroundColor = backgroundColor
+    ? resolveAvatarForegroundColor(backgroundColor)
+    : undefined;
   const GlyphIcon = kind === "glyph" ? getWorkspaceGlyphIcon(props.iconGlyph) : null;
   const emoji = kind === "emoji" ? props.iconEmoji?.trim() : "";
   const hasCustomSurface = kind !== "image" && backgroundColor;
@@ -145,10 +173,16 @@ export function WorkspaceAvatar(props: WorkspaceAvatarProps) {
           : null),
         ...props.style,
       }}
-      aria-label={label}
+      aria-label={props.decorative ? undefined : label}
+      aria-hidden={props.decorative ? true : undefined}
     >
       {kind === "image" && canRenderImage ? (
-        <img src={src} alt={label} className="size-full object-cover" onError={markImageFailed} />
+        <img
+          src={src}
+          alt={props.decorative ? "" : label}
+          className="size-full object-cover"
+          onError={markImageFailed}
+        />
       ) : kind === "emoji" && emoji ? (
         <span>{emoji}</span>
       ) : kind === "glyph" && GlyphIcon ? (

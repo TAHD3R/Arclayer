@@ -47,6 +47,10 @@ vi.mock("@/components/ai/ai-content-proposal-card", () => ({
   AIContentProposalCard: () => <div data-testid="content-proposal-card" />,
 }));
 
+vi.mock("@/components/feedback/feedback-dialog", () => ({
+  FeedbackDialog: ({ trigger }: { trigger: ReactNode }) => <>{trigger}</>,
+}));
+
 vi.mock("@/hooks/use-current-user-profile", () => ({
   useCurrentUserProfile: () => ({ profile: { displayName: "Philip Cole" } }),
 }));

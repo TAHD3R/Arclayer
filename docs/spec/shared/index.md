@@ -22,6 +22,8 @@ Backend and frontend specs should link to these files instead of duplicating the
 | [Conditional Permissions](./conditional-permissions.md) | Permission-grant condition metadata, supported fields, operators, and validation rules | Active |
 | [Identity & Access Contracts](./identity-access-contracts.md) | Auth tokens, Content API credentials, tenant/workspace/project context, permission codes | Active |
 | [Schema & Field Contracts](./schema-field-contracts.md) | Pydantic/OpenAPI/schema field semantics shared by backend and frontend | Active |
+| [Workspace Commercialization](./workspace-commercialization.md) | Plan catalog, subscriptions, AI Credits accounting, and upgrade workflows | Active |
+| [Feedback & Observability](./feedback-observability.md) | Feedback lifecycle, audit views, request telemetry, and scoped observability | Active |
 
 ## Shared Layer Rules
 

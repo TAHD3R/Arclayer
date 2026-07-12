@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+import re
 import secrets
 import time
 from contextvars import ContextVar
@@ -22,6 +24,7 @@ from guard_core.handlers.ratelimit_handler import RateLimitManager
 from guard_core.protocols.request_protocol import GuardRequest
 from guard_core.protocols.response_protocol import GuardResponse
 from starlette.responses import JSONResponse
+from starlette.types import ASGIApp
 
 from src.config import Settings
 from src.core.http.response import ApiResponse as ResponseBuilder
@@ -31,8 +34,52 @@ from src.settings.env_models import SecuritySettings
 
 _pending_csrf_cookie: ContextVar[str | None] = ContextVar("pending_csrf_cookie", default=None)
 
+_GUARD_SENSITIVE_HEADER_PATTERN = re.compile(
+    r"""
+    (?P<prefix>['"](?:authorization|cookie|set-cookie)['"]\s*:\s*)
+    (?P<value>'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*")
+    """,
+    flags=re.IGNORECASE | re.VERBOSE,
+)
+_GUARD_REDACTED_VALUE = "[REDACTED]"
+
+
+class _GuardSensitiveHeaderFilter(logging.Filter):
+    """Redact credential-bearing request headers from Guard's rendered log messages."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        message = record.getMessage()
+
+        def _redact(match: re.Match[str]) -> str:
+            value = match.group("value")
+            return f"{match.group('prefix')}{value[0]}{_GUARD_REDACTED_VALUE}{value[-1]}"
+
+        redacted_message = _GUARD_SENSITIVE_HEADER_PATTERN.sub(_redact, message)
+        if redacted_message != message:
+            record.msg = redacted_message
+            record.args = ()
+        return True
+
+
+def _install_guard_sensitive_header_filter(logger: logging.Logger) -> None:
+    redaction_filter = next(
+        (item for item in logger.filters if isinstance(item, _GuardSensitiveHeaderFilter)),
+        None,
+    )
+    if redaction_filter is None:
+        redaction_filter = _GuardSensitiveHeaderFilter()
+        logger.addFilter(redaction_filter)
+
+    for handler in logger.handlers:
+        if not any(isinstance(item, _GuardSensitiveHeaderFilter) for item in handler.filters):
+            handler.addFilter(redaction_filter)
+
 
 class ArclayerSecurityMiddleware(SecurityMiddleware):
+    def __init__(self, app: ASGIApp, *, config: GuardSecurityConfig) -> None:
+        super().__init__(app, config=config)
+        _install_guard_sensitive_header_filter(self.logger)
+
     async def refresh_cloud_ip_ranges(self) -> None:
         if not self.config.block_cloud_providers:
             return

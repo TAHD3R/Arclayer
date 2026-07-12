@@ -312,7 +312,7 @@ export function NodeExpandedGroupSub({
   );
 
   return (
-    <Collapsible open={visibleOpen}>
+    <Collapsible open={visibleOpen} asChild>
       <SidebarMenuSubItem className="group/nav-item">
         <WithBlockedTooltip tooltip={blockedTooltip}>
           <SidebarMenuSubButton
@@ -390,7 +390,7 @@ export function NodeExpandedGroupRoot({
 
   if (!isCollapsed) {
     return (
-      <Collapsible open={visibleOpen}>
+      <Collapsible open={visibleOpen} asChild>
         <SidebarMenuItem className="group/nav-item">
           <WithBlockedTooltip tooltip={blockedTooltip}>
             <div data-active={isTrailActive ? "true" : "false"} className={expandedRowClassName}>
@@ -431,7 +431,7 @@ export function NodeExpandedGroupRoot({
   }
 
   return (
-    <Collapsible open={dropdownEnabled ? false : visibleOpen}>
+    <Collapsible open={dropdownEnabled ? false : visibleOpen} asChild>
       <SidebarMenuItem
         className="group/nav-item"
         onPointerEnter={() => {

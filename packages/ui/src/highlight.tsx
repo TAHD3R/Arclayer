@@ -372,6 +372,7 @@ type HighlightItemProps<T extends React.ElementType = "div"> = React.ComponentPr
   exitDelay?: number;
   asChild?: boolean;
   forceUpdateBounds?: boolean;
+  emitAriaSelected?: boolean;
 };
 
 function HighlightItemImpl<T extends React.ElementType = "div">(
@@ -388,6 +389,7 @@ function HighlightItemImpl<T extends React.ElementType = "div">(
     exitDelay,
     asChild = false,
     forceUpdateBounds,
+    emitAriaSelected = true,
     ...props
   }: HighlightItemProps<T>,
   ref: React.ForwardedRef<HTMLElement>,
@@ -478,7 +480,7 @@ function HighlightItemImpl<T extends React.ElementType = "div">(
 
   const dataAttributes = {
     "data-active": isActive ? "true" : "false",
-    "aria-selected": isActive,
+    ...(emitAriaSelected ? { "aria-selected": isActive } : null),
     "data-disabled": isDisabled,
     "data-value": childValue,
     "data-highlight": true,

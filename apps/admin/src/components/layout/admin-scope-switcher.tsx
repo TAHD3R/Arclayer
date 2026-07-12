@@ -635,6 +635,7 @@ function TriggerIdentityAvatar(props: {
       <ProjectAvatar
         name={props.identity.name}
         size={props.size}
+        decorative
         className={cn("shrink-0", props.className)}
         {...projectAvatarPropsFromIdentity(props.identity.identity)}
       />
@@ -644,6 +645,7 @@ function TriggerIdentityAvatar(props: {
     <WorkspaceAvatar
       name={props.identity.name}
       size={props.size}
+      decorative
       className={cn("shrink-0", props.className)}
       {...workspaceAvatarPropsFromIdentity(props.identity.identity)}
     />
@@ -936,7 +938,6 @@ function HeaderScopeTrigger(props: {
   return (
     <FloatingPanelTrigger
       title={props.triggerText}
-      aria-label={props.label}
       disableLayoutId
       className={cn(headerTriggerButtonClassName, props.disabled && "opacity-60")}
       disabled={props.disabled}
@@ -948,6 +949,7 @@ function HeaderScopeTrigger(props: {
           className="text-callout font-semibold text-label-primary"
         />
       </div>
+      <span className="sr-only">{props.label}</span>
       <ChevronDown
         className={cn(
           "size-4 shrink-0 opacity-70 transition-transform duration-200",
@@ -971,7 +973,6 @@ function SidebarScopeTrigger(props: {
   return (
     <FloatingPanelTrigger
       title={props.triggerText}
-      aria-label={props.label}
       disableLayoutId
       className={cn(
         sidebarTriggerButtonClassName,
@@ -987,6 +988,7 @@ function SidebarScopeTrigger(props: {
           className="text-callout font-semibold text-label-primary"
         />
       </div>
+      <span className="sr-only">{props.label}</span>
       <span
         className={cn(
           "ml-auto flex size-4 shrink-0 items-center justify-center",

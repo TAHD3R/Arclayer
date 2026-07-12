@@ -10,6 +10,8 @@ from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.ai.usage_router import router as workspace_usage_router
 from src.modules.analytics.workspaces.router import router as workspace_activity_router
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.commerce.workspace_router import router as workspace_commerce_router
+from src.modules.observability.workspace_router import router as workspace_observability_router
 from src.modules.system.admin.router import router as workspace_admin_router
 from src.modules.workspaces.api_keys.router import me_api_keys_router
 from src.modules.workspaces.authz.http.service import require_workspace_permission
@@ -49,6 +51,8 @@ router.include_router(workspace_admin_router)
 router.include_router(workspace_activity_router)
 router.include_router(workspace_usage_router)
 router.include_router(workspace_extensions_router)
+router.include_router(workspace_commerce_router)
+router.include_router(workspace_observability_router)
 
 
 @router.get(

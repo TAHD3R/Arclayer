@@ -171,3 +171,14 @@ body,
   color: inherit;
   border-radius: 4px;
 }
+
+/* Boneyard owns the generated bone geometry; this scoped rule only preserves
+   the Admin route shell's flex sizing around its internal content wrapper. */
+.admin-route-boneyard > [data-boneyard-content="true"] {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  flex: 1 1 0%;
+  flex-direction: column;
+}

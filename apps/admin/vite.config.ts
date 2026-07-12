@@ -3,6 +3,7 @@ import { defineConfig, loadEnv, searchForWorkspaceRoot } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
+import { boneyardPlugin } from "boneyard-js/vite";
 
 import { compression } from "vite-plugin-compression2";
 
@@ -44,6 +45,8 @@ export default defineConfig(({ mode, command }) => {
   const appName = "admin";
   const appVersion = process.env.npm_package_version || undefined;
   const isBuild = command === "build";
+  const isBoneyardCaptureEnabled =
+    command === "serve" && env.VITE_BONEYARD_CAPTURE?.trim().toLowerCase() === "true";
 
   const plugins = [
     injectPreferences({
@@ -68,6 +71,18 @@ export default defineConfig(({ mode, command }) => {
     react(),
     tailwindcss(),
   ];
+
+  if (isBoneyardCaptureEnabled) {
+    plugins.push(
+      boneyardPlugin({
+        out: "./src/bones",
+        framework: "react",
+        breakpoints: [375, 768, 1280],
+        wait: 1200,
+        debug: env.VITE_BONEYARD_DEBUG?.trim().toLowerCase() === "true",
+      }),
+    );
+  }
 
   if (isBuild) {
     plugins.push(injectBuildMeta({ appName, version: appVersion }));

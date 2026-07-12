@@ -230,10 +230,9 @@ class AppFactory:
 
         self.app.add_middleware(WorkspaceContextMiddleware)
 
-        self.app.add_middleware(CorrelationIdMiddleware)
-
-        # Place request logging inside CorrelationIdMiddleware so the summary line
-        # can reliably include `trace_id` (the correlation middleware may reset contextvars on return).
+        # Add request logging before CorrelationIdMiddleware. Starlette inserts
+        # each new middleware at the front, so CorrelationIdMiddleware will wrap
+        # this layer and keep its context available through request finalization.
         from src.core.middleware.request_log import RequestLogMiddleware
 
         self.app.add_middleware(
@@ -241,7 +240,12 @@ class AppFactory:
             trace_header_name=self.settings.logging.trace_header_name,
             omit_paths=self.settings.logging.request_log_omit_paths,
             omit_path_prefixes=self.settings.logging.request_log_omit_path_prefixes,
+            api_path_prefix=self.settings.application.api_prefix,
+            database_enabled=self.settings.database.enabled,
+            observability_enabled=self.settings.observability.enabled,
         )
+
+        self.app.add_middleware(CorrelationIdMiddleware)
         from src.core.middleware.locale import LocaleMiddleware
 
         self.app.add_middleware(LocaleMiddleware)

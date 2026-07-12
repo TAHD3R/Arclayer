@@ -28,6 +28,7 @@ class AIRequestMetrics:
 
     correlation_id: str
     workspace_id: str | None = None
+    project_id: str | None = None
     user_id: str | None = None
     model: str = ""
     source: str = "api"
@@ -64,6 +65,7 @@ def log_request_complete(metrics: AIRequestMetrics) -> None:
         "ai.request.complete",
         correlation_id=metrics.correlation_id,
         workspace_id=metrics.workspace_id,
+        project_id=metrics.project_id,
         user_id=metrics.user_id,
         model=metrics.model,
         source=metrics.source,
@@ -170,6 +172,7 @@ async def write_audit_log_entry(metrics: AIRequestMetrics) -> None:
         await AIAuditLog.create(
             correlation_id=cid,
             workspace_id=UUID(metrics.workspace_id) if metrics.workspace_id else None,
+            project_id=UUID(metrics.project_id) if metrics.project_id else None,
             user_id=UUID(metrics.user_id) if metrics.user_id else None,
             source=source_enum,
             provider=provider,
@@ -194,6 +197,7 @@ async def write_audit_log_entry(metrics: AIRequestMetrics) -> None:
 async def ai_request_span(
     correlation_id: str,
     workspace_id: str | None = None,
+    project_id: str | None = None,
     model: str = "",
     source: str = "api",
 ) -> AsyncIterator[AIRequestMetrics]:
@@ -206,6 +210,7 @@ async def ai_request_span(
     metrics = AIRequestMetrics(
         correlation_id=correlation_id,
         workspace_id=workspace_id,
+        project_id=project_id,
         model=model,
         source=source,
     )

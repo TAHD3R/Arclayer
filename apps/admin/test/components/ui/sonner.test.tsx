@@ -23,14 +23,22 @@ describe("shared Toaster", () => {
   it("defaults to a top-right placement and shared typography classes", async () => {
     const { Toaster } = await import("@arclayer/ui/sonner");
 
-    render(<Toaster richColors />);
+    render(
+      <Toaster
+        richColors
+        containerAriaLabel="Notifications"
+        toastOptions={{ closeButtonAriaLabel: "Close" }}
+      />,
+    );
 
     expect(capturedProps?.position).toBe("top-right");
     expect(capturedProps?.expand).toBe(false);
     expect(capturedProps?.visibleToasts).toBe(3);
     expect(capturedProps?.closeButton).toBe(true);
+    expect(capturedProps?.containerAriaLabel).toBe("Notifications");
     expect(capturedProps?.className).toBe("toaster group ");
     expect(capturedProps?.toastOptions).toMatchObject({
+      closeButtonAriaLabel: "Close",
       classNames: {
         toast:
           "rounded-md border border-border/70 bg-popover text-popover-foreground !items-start !gap-3 !px-4 !py-3 !shadow-none [&_[data-content]]:pr-7",

@@ -864,7 +864,11 @@ const SidebarMenuButton = React.forwardRef<HTMLButtonElement, SidebarMenuButtonP
     const { isMobile, state, hoverIntent } = useSidebar();
 
     const button = (
-      <HighlightItem asChild activeClassName={sidebarMenuButtonActiveVariants({ variant })}>
+      <HighlightItem
+        asChild
+        emitAriaSelected={false}
+        activeClassName={sidebarMenuButtonActiveVariants({ variant })}
+      >
         <Comp
           ref={ref}
           data-slot="sidebar-menu-button"

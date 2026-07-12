@@ -7,6 +7,7 @@ import { Thread } from "@/components/assistant-ui/thread";
 import { AIApprovalQueue } from "@/components/ai/ai-approval-queue";
 import { AIChatRuntimeProvider } from "@/components/ai/ai-chat-runtime";
 import { AIContentProposalCard } from "@/components/ai/ai-content-proposal-card";
+import { FeedbackDialog } from "@/components/feedback/feedback-dialog";
 import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
 import { getUserDisplayName } from "@/lib/auth/user-profile";
 import { useAuthStore } from "@/stores/use-auth-store";
@@ -193,8 +194,10 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
               )}
             </div>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
+            <FeedbackDialog
+              source="ai_sidebar"
+              conversationId={activeId}
+              trigger={
                 <Button
                   type="button"
                   variant="ghost"
@@ -203,9 +206,8 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
                 >
                   {t("common:TOPBAR_FEEDBACK")}
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent>{t("common:TOPBAR_FEEDBACK")}</TooltipContent>
-            </Tooltip>
+              }
+            />
             <DrawerIconButton
               label={t("ai:AI_CHAT_NEW_CONVERSATION")}
               onClick={handleCreateConversation}
