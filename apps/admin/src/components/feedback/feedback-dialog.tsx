@@ -1,67 +1,24 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
-import { Controller, useForm } from "react-hook-form";
-import { useRef, useState, type ReactElement } from "react";
+import { ShieldCheckIcon, XIcon } from "lucide-react";
+import { useRef, useState, type FormEvent, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 
-import {
-  submitFeedback,
-  type FeedbackCategory,
-  type FeedbackContextType,
-  type FeedbackSource,
-} from "@/api/feedback";
+import { submitFeedback, type FeedbackContextType, type FeedbackSource } from "@/api/feedback";
 import { getErrorMessage, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { Button } from "@arclayer/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@arclayer/ui/dialog";
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@arclayer/ui/field";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@arclayer/ui/select";
+import { FieldError } from "@arclayer/ui/field";
+import { Popover, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
 import { Textarea } from "@arclayer/ui/textarea";
-import { ToggleGroup, ToggleGroupItem } from "@arclayer/ui/toggle-group";
 
-const FEEDBACK_CATEGORIES: readonly FeedbackCategory[] = [
-  "bug",
-  "feature_request",
-  "usability",
-  "performance",
-  "billing",
-  "other",
-];
+const FEEDBACK_MIN_LENGTH = 10;
+const FEEDBACK_MAX_LENGTH = 4000;
 
-const CATEGORY_KEYS: Record<FeedbackCategory, string> = {
-  bug: "platform:CATEGORY_BUG",
-  feature_request: "platform:CATEGORY_FEATURE_REQUEST",
-  usability: "platform:CATEGORY_USABILITY",
-  performance: "platform:CATEGORY_PERFORMANCE",
-  billing: "platform:CATEGORY_BILLING",
-  other: "platform:CATEGORY_OTHER",
-};
-
-type FeedbackFormValues = {
-  category: FeedbackCategory;
-  message: string;
-  rating: string;
-};
-
-type FeedbackDialogProps = {
+type FeedbackSubmissionOptions = {
   source: FeedbackSource;
-  trigger: ReactElement;
   conversationId?: string | null;
+  onSuccess: () => void;
 };
 
 function resolveContextType(input: {
@@ -75,10 +32,9 @@ function resolveContextType(input: {
   return "global";
 }
 
-export function FeedbackDialog({ source, trigger, conversationId }: FeedbackDialogProps) {
-  const { t } = useTranslation(["platform", "common"]);
+function useFeedbackSubmission(options: FeedbackSubmissionOptions) {
+  const { t } = useTranslation(["platform"]);
   const queryClient = useQueryClient();
-  const [open, setOpen] = useState(false);
   const clientRequestIdRef = useRef<string | null>(null);
   const workspaceId = useWorkspaceStore(
     (state) => state.currentWorkspaceId ?? state.lastWorkspaceId,
@@ -87,157 +43,173 @@ export function FeedbackDialog({ source, trigger, conversationId }: FeedbackDial
   const contextUrl = useRouterState({
     select: (state) => `${state.location.pathname}${state.location.searchStr}`,
   });
-  const form = useForm<FeedbackFormValues>({
-    defaultValues: { category: "usability", message: "", rating: "" },
-  });
-
   const mutation = useMutation({
-    mutationFn: submitFeedback,
+    mutationFn: (message: string) => {
+      clientRequestIdRef.current ??= crypto.randomUUID();
+      return submitFeedback({
+        clientRequestId: clientRequestIdRef.current,
+        source: options.source,
+        contextType: resolveContextType({
+          conversationId: options.conversationId,
+          projectId,
+          workspaceId,
+        }),
+        ...(workspaceId ? { workspaceId } : {}),
+        ...(projectId ? { projectId } : {}),
+        category: "usability",
+        message,
+        contextUrl,
+        context: {
+          ...(options.conversationId ? { conversationId: options.conversationId } : {}),
+          route: contextUrl,
+        },
+      });
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["system", "feedback", "list"] });
       notifySuccessText(t("platform:FEEDBACK_DIALOG_SUCCESS"));
       clientRequestIdRef.current = null;
-      form.reset();
-      setOpen(false);
+      options.onSuccess();
     },
   });
 
-  const submit = form.handleSubmit((values) => {
-    const contextType = resolveContextType({ conversationId, projectId, workspaceId });
-    clientRequestIdRef.current ??= crypto.randomUUID();
-    mutation.mutate({
-      clientRequestId: clientRequestIdRef.current,
-      source,
-      contextType,
-      ...(workspaceId ? { workspaceId } : {}),
-      ...(projectId ? { projectId } : {}),
-      category: values.category,
-      message: values.message.trim(),
-      ...(values.rating ? { rating: Number(values.rating) } : {}),
-      contextUrl,
-      context: {
-        ...(conversationId ? { conversationId } : {}),
-        route: contextUrl,
-      },
-    });
+  return mutation;
+}
+
+function validateFeedback(message: string, t: (key: string, values?: { count: number }) => string) {
+  if (!message) return t("platform:FEEDBACK_VALIDATION_REQUIRED");
+  if (message.length < FEEDBACK_MIN_LENGTH) {
+    return t("platform:FEEDBACK_VALIDATION_MIN_LENGTH", { count: FEEDBACK_MIN_LENGTH });
+  }
+  if (message.length > FEEDBACK_MAX_LENGTH) {
+    return t("platform:FEEDBACK_VALIDATION_MAX_LENGTH", { count: FEEDBACK_MAX_LENGTH });
+  }
+  return null;
+}
+
+type FeedbackComposerProps = FeedbackSubmissionOptions & {
+  onCancel?: () => void;
+  variant: "header" | "ai";
+};
+
+function FeedbackComposer({ onCancel, variant, ...submissionOptions }: FeedbackComposerProps) {
+  const { t } = useTranslation(["platform", "common"]);
+  const [message, setMessage] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const mutation = useFeedbackSubmission({
+    ...submissionOptions,
+    onSuccess: () => {
+      setMessage("");
+      setValidationError(null);
+      submissionOptions.onSuccess();
+    },
   });
+  const isAI = variant === "ai";
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const normalizedMessage = message.trim();
+    const nextError = validateFeedback(normalizedMessage, t);
+    setValidationError(nextError);
+    if (nextError) return;
+    mutation.mutate(normalizedMessage);
+  };
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        setOpen(nextOpen);
-        if (!nextOpen) mutation.reset();
-      }}
-    >
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-xl" closeButtonLabel={t("common:CLOSE")}>
-        <DialogHeader>
-          <DialogTitle>{t("platform:FEEDBACK_DIALOG_TITLE")}</DialogTitle>
-          <DialogDescription>{t("platform:FEEDBACK_DIALOG_DESCRIPTION")}</DialogDescription>
-        </DialogHeader>
+    <form className="flex min-w-0 flex-col" onSubmit={submit}>
+      {isAI ? (
+        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+          <div className="flex min-w-0 items-center gap-2 text-footnote font-semibold text-primary">
+            <ShieldCheckIcon aria-hidden="true" />
+            <span className="truncate">{t("platform:FEEDBACK_AI_TITLE")}</span>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t("common:CLOSE")}
+            onClick={onCancel}
+          >
+            <XIcon aria-hidden="true" />
+          </Button>
+        </div>
+      ) : null}
 
-        <form className="flex flex-col gap-6" onSubmit={(event) => void submit(event)}>
-          <FieldGroup>
-            <Controller
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <Field>
-                  <FieldLabel htmlFor="feedback-category">
-                    {t("platform:FEEDBACK_DIALOG_CATEGORY_LABEL")}
-                  </FieldLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger id="feedback-category">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {FEEDBACK_CATEGORIES.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {t(CATEGORY_KEYS[category])}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                  <FieldDescription>
-                    {t("platform:FEEDBACK_DIALOG_CATEGORY_DESCRIPTION")}
-                  </FieldDescription>
-                </Field>
-              )}
-            />
+      <div className={isAI ? "p-4 pb-2" : "p-4 pb-3"}>
+        <Textarea
+          value={message}
+          rows={isAI ? 4 : 5}
+          autoFocus
+          aria-label={t("platform:FEEDBACK_DIALOG_MESSAGE_LABEL")}
+          aria-invalid={Boolean(validationError)}
+          placeholder={t(
+            isAI ? "platform:FEEDBACK_AI_PLACEHOLDER" : "platform:FEEDBACK_HEADER_PLACEHOLDER",
+          )}
+          onChange={(event) => {
+            setMessage(event.target.value);
+            if (validationError) setValidationError(null);
+            if (mutation.error) mutation.reset();
+          }}
+          onKeyDown={(event) => {
+            if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+              event.currentTarget.form?.requestSubmit();
+            }
+          }}
+          className="min-h-28 resize-none bg-background text-callout md:text-callout"
+        />
+        {validationError ? <FieldError className="mt-2">{validationError}</FieldError> : null}
+        {mutation.error ? (
+          <FieldError className="mt-2">{getErrorMessage(mutation.error)}</FieldError>
+        ) : null}
+      </div>
 
-            <Field data-invalid={Boolean(form.formState.errors.message)}>
-              <FieldLabel htmlFor="feedback-message">
-                {t("platform:FEEDBACK_DIALOG_MESSAGE_LABEL")}
-              </FieldLabel>
-              <Textarea
-                id="feedback-message"
-                rows={6}
-                aria-invalid={Boolean(form.formState.errors.message)}
-                placeholder={t("platform:FEEDBACK_DIALOG_MESSAGE_PLACEHOLDER")}
-                {...form.register("message", {
-                  required: t("platform:FEEDBACK_VALIDATION_REQUIRED"),
-                  minLength: {
-                    value: 10,
-                    message: t("platform:FEEDBACK_VALIDATION_MIN_LENGTH", { count: 10 }),
-                  },
-                  maxLength: {
-                    value: 4000,
-                    message: t("platform:FEEDBACK_VALIDATION_MAX_LENGTH", { count: 4000 }),
-                  },
-                })}
-              />
-              <FieldDescription>
-                {t("platform:FEEDBACK_DIALOG_MESSAGE_DESCRIPTION")}
-              </FieldDescription>
-              <FieldError errors={[form.formState.errors.message]} />
-            </Field>
-
-            <Controller
-              control={form.control}
-              name="rating"
-              render={({ field }) => (
-                <Field>
-                  <FieldLabel>{t("platform:FEEDBACK_DIALOG_RATING_LABEL")}</FieldLabel>
-                  <ToggleGroup
-                    type="single"
-                    variant="outline"
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    aria-label={t("platform:FEEDBACK_DIALOG_RATING_LABEL")}
-                  >
-                    {[1, 2, 3, 4, 5].map((rating) => (
-                      <ToggleGroupItem
-                        key={rating}
-                        value={String(rating)}
-                        aria-label={t(`platform:RATING_${rating}`)}
-                      >
-                        {rating}
-                      </ToggleGroupItem>
-                    ))}
-                  </ToggleGroup>
-                  <FieldDescription>
-                    {t("platform:FEEDBACK_DIALOG_RATING_DESCRIPTION")}
-                  </FieldDescription>
-                </Field>
-              )}
-            />
-
-            {mutation.error ? <FieldError>{getErrorMessage(mutation.error)}</FieldError> : null}
-          </FieldGroup>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+      <div className="flex items-center justify-between gap-3 px-4 pb-4">
+        <p className="min-w-0 text-footnote leading-snug text-label-secondary">
+          {t(
+            isAI ? "platform:FEEDBACK_AI_CONTEXT_ATTACHED" : "platform:FEEDBACK_HEADER_DESCRIPTION",
+          )}
+        </p>
+        <div className="flex shrink-0 items-center gap-1">
+          {isAI ? (
+            <Button type="button" variant="ghost" onClick={onCancel}>
               {t("common:CANCEL")}
             </Button>
-            <Button type="submit" loading={mutation.isPending} disabled={mutation.isPending}>
-              {t("platform:ACTION_SUBMIT_FEEDBACK")}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          ) : null}
+          <Button type="submit" loading={mutation.isPending} disabled={mutation.isPending}>
+            {t(isAI ? "platform:FEEDBACK_AI_SEND" : "platform:ACTION_SUBMIT_FEEDBACK")}
+          </Button>
+        </div>
+      </div>
+    </form>
+  );
+}
+
+export function HeaderFeedbackPopover(props: { trigger: ReactElement }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>{props.trigger}</PopoverTrigger>
+      <PopoverContent align="end" sideOffset={8} className="w-[min(30rem,calc(100vw-2rem))] p-0">
+        <FeedbackComposer source="header" variant="header" onSuccess={() => setOpen(false)} />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+export function AIConversationFeedbackPanel(props: {
+  conversationId?: string | null;
+  onCancel: () => void;
+  onSubmitted: () => void;
+}) {
+  return (
+    <section className="overflow-hidden rounded-lg border border-border bg-popover shadow-sm">
+      <FeedbackComposer
+        source="ai_sidebar"
+        variant="ai"
+        conversationId={props.conversationId}
+        onCancel={props.onCancel}
+        onSuccess={props.onSubmitted}
+      />
+    </section>
   );
 }

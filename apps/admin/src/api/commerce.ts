@@ -2,11 +2,11 @@ import { api } from "@/lib/http";
 import { toQueryString, workspacePath } from "@/lib/api";
 import type {
   BillingCycle,
+  BillingRedirect,
   CommercePlan,
   CommercePlanUpsert,
   CreditLedgerEntry,
   PageData,
-  SubscriptionChangeRequest,
   SystemPlanCatalog,
   WorkspaceCommerceOverview,
   WorkspacePlanCatalog,
@@ -14,6 +14,7 @@ import type {
 
 export type {
   BillingCycle,
+  BillingRedirect,
   CommercePlan,
   CommercePlanTier,
   CommercePlanUpsert,
@@ -21,7 +22,6 @@ export type {
   CreditLedgerEntryType,
   CreditRefreshInterval,
   PlanFeature,
-  SubscriptionChangeRequest,
   SubscriptionStatus,
   SystemPlanCatalog,
   WorkspaceCommerceOverview,
@@ -47,13 +47,22 @@ export function listWorkspaceCommercePlans(
   });
 }
 
-export function requestWorkspacePlanChange(
+export function createWorkspaceCheckoutSession(
   workspaceId: string,
-  payload: { planCode: string; billingInterval: BillingCycle; reason?: string },
-): Promise<SubscriptionChangeRequest> {
-  return api.post<SubscriptionChangeRequest>(
-    workspacePath(workspaceId, "/commerce/subscription-change-requests"),
+  payload: { planCode: string; billingInterval: BillingCycle },
+): Promise<BillingRedirect> {
+  return api.post<BillingRedirect>(
+    workspacePath(workspaceId, "/commerce/checkout-session"),
     payload,
+  );
+}
+
+export function createWorkspaceCustomerPortalSession(
+  workspaceId: string,
+): Promise<BillingRedirect> {
+  return api.post<BillingRedirect>(
+    workspacePath(workspaceId, "/commerce/customer-portal-session"),
+    {},
   );
 }
 
@@ -83,43 +92,4 @@ export function upsertSystemCommercePlan(
   payload: CommercePlanUpsert,
 ): Promise<CommercePlan> {
   return api.put<CommercePlan>(`/system/commerce/plans/${encodeURIComponent(code)}`, payload);
-}
-
-export function listSystemSubscriptionChangeRequests(
-  params: {
-    status?: SubscriptionChangeRequest["status"];
-    page?: number;
-    size?: number;
-  } = {},
-  signal?: AbortSignal,
-): Promise<PageData<SubscriptionChangeRequest>> {
-  const query = toQueryString({
-    status: params.status,
-    page: params.page ?? 1,
-    size: params.size ?? 20,
-  });
-  return api.get<PageData<SubscriptionChangeRequest>>(
-    `/system/commerce/subscription-change-requests${query}`,
-    { signal },
-  );
-}
-
-export function approveSystemSubscriptionChangeRequest(
-  requestId: string,
-  reviewNote: string,
-): Promise<SubscriptionChangeRequest> {
-  return api.post<SubscriptionChangeRequest>(
-    `/system/commerce/subscription-change-requests/${encodeURIComponent(requestId)}/approve`,
-    { reviewNote: reviewNote.trim() || undefined },
-  );
-}
-
-export function rejectSystemSubscriptionChangeRequest(
-  requestId: string,
-  reviewNote: string,
-): Promise<SubscriptionChangeRequest> {
-  return api.post<SubscriptionChangeRequest>(
-    `/system/commerce/subscription-change-requests/${encodeURIComponent(requestId)}/reject`,
-    { reviewNote: reviewNote.trim() },
-  );
 }

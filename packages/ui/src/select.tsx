@@ -122,8 +122,8 @@ function SelectTrigger({
 function SelectContent({
   className,
   children,
-  position = "item-aligned",
-  align = "center",
+  position = "popper",
+  align = "start",
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Content>) {
   const portalContext = React.useContext(SelectPortalContext);

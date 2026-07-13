@@ -259,6 +259,34 @@ class SaasSettings(BaseSettings):
     free_tier_storage_mb: int = Field(default=500, ge=1, description="Max storage (MiB) for free tier.")
 
 
+class BillingSettings(BaseSettings):
+    """External subscription billing provider configuration."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="BILLING__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    provider: Literal["disabled", "stripe"] = Field(default="disabled")
+    stripe_secret_key: SecretStr = Field(default=SecretStr(""))
+    stripe_webhook_secret: SecretStr = Field(default=SecretStr(""))
+    stripe_api_base_url: str = Field(default="https://api.stripe.com/v1")
+    webhook_tolerance_seconds: int = Field(default=300, ge=30, le=3_600)
+
+    @property
+    def checkout_enabled(self) -> bool:
+        return self.provider == "stripe" and bool(self.stripe_secret_key.get_secret_value())
+
+    @property
+    def webhook_enabled(self) -> bool:
+        return self.checkout_enabled and bool(self.stripe_webhook_secret.get_secret_value())
+
+
 class SecuritySettings(BaseSettings):
     """
     Security settings for runtime secrets and FastAPI Guard integration.
@@ -286,8 +314,8 @@ class SecuritySettings(BaseSettings):
             description="Path prefixes whose unsafe browser requests require CSRF validation.",
         )
         exempt_path_prefixes: list[str] = Field(
-            default_factory=lambda: ["/content-api"],
-            description="Path prefixes for token-authenticated machine APIs that bypass CSRF validation.",
+            default_factory=lambda: ["/content-api", "/api/v1/commerce/webhooks"],
+            description="Path prefixes for machine-authenticated or signed APIs that bypass browser CSRF validation.",
         )
         trusted_origins: list[str] = Field(
             default_factory=list,

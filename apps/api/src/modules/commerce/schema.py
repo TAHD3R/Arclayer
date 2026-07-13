@@ -13,7 +13,6 @@ from src.models.commerce.billing import (
     CommercePlanTier,
     CreditLedgerEntryType,
     CreditRefreshInterval,
-    SubscriptionChangeRequestStatus,
     SubscriptionStatus,
 )
 
@@ -51,6 +50,13 @@ class CommercePlanUpsertRequest(BaseSchema):
             raise ValueError("currency must be a three-letter ISO code")
         return normalized
 
+    @field_validator("price_monthly_micros", "price_yearly_micros")
+    @classmethod
+    def validate_provider_price_precision(cls, value: int) -> int:
+        if value % 10_000:
+            raise ValueError("plan prices must be representable in whole currency cents")
+        return value
+
 
 class CommercePlanOut(BaseOut, TimestampMixin):
     code: str
@@ -70,7 +76,9 @@ class CommercePlanOut(BaseOut, TimestampMixin):
 
 
 class CommercePlanCatalogOut(BaseSchema):
-    billing_mode: str = "operator_managed"
+    billing_mode: str = "external_checkout"
+    billing_provider: str
+    checkout_enabled: bool
     items: list[CommercePlanOut]
 
 
@@ -80,7 +88,9 @@ class WorkspacePlanOptionOut(CommercePlanOut):
 
 
 class WorkspacePlanCatalogOut(BaseSchema):
-    billing_mode: str = "operator_managed"
+    billing_mode: str = "external_checkout"
+    billing_provider: str
+    checkout_enabled: bool
     items: list[WorkspacePlanOptionOut]
 
 
@@ -112,40 +122,23 @@ class WorkspaceCommerceUsageOut(BaseSchema):
     completion_tokens: int
 
 
-class SubscriptionChangeRequestCreate(BaseSchema):
-    plan_code: PlanCode
-    billing_interval: BillingCycle
-    reason: str | None = Field(default=None, max_length=1000)
-
-
-class SubscriptionChangeRequestReview(BaseSchema):
-    review_note: str | None = Field(default=None, max_length=1000)
-
-
-class SubscriptionChangeRequestReject(BaseSchema):
-    review_note: str = Field(min_length=1, max_length=1000)
-
-
-class SubscriptionChangeRequestOut(BaseOut, TimestampMixin):
-    workspace_id: PublicUUID
-    requested_by_user_id: PublicUUID
-    plan_code: str
-    plan_name: str
-    billing_interval: BillingCycle
-    reason: str | None
-    status: SubscriptionChangeRequestStatus
-    reviewed_by_user_id: PublicUUID | None
-    reviewed_at: datetime | None
-    review_note: str | None
-
-
 class WorkspaceCommerceOverviewOut(BaseSchema):
-    billing_mode: str = "operator_managed"
+    billing_mode: str = "external_checkout"
+    billing_provider: str
+    checkout_enabled: bool
     plan: CommercePlanOut
     subscription: WorkspaceSubscriptionOut
     credits: WorkspaceCreditsOut
     usage: WorkspaceCommerceUsageOut
-    pending_change_request: SubscriptionChangeRequestOut | None
+
+
+class CheckoutSessionCreate(BaseSchema):
+    plan_code: PlanCode
+    billing_interval: BillingCycle
+
+
+class BillingRedirectOut(BaseSchema):
+    url: str
 
 
 class WorkspaceSubscriptionSetRequest(BaseSchema):

@@ -100,13 +100,6 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
         to: "/system/observability/ai-usage",
         icon: Bot,
       },
-      {
-        key: "global.platform.observability.activity",
-        label: "Activity Trends",
-        labelKey: "nav:NAV_GLOBAL_PLATFORM_OBSERVABILITY_ACTIVITY",
-        to: "/system/observability/activity",
-        icon: ChartNoAxesCombined,
-      },
     ],
   },
   {

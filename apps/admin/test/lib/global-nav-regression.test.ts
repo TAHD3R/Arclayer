@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import { GLOBAL_NAV_ITEMS, resolveGlobalNavItems } from "@/constants/menu/global";
+import { findActiveTrailNodes } from "@/lib/admin-nav-utils";
 
 describe("global nav regression", () => {
   test("registers all projects and platform global entries", () => {
@@ -58,7 +59,6 @@ describe("global nav regression", () => {
       "/system/observability/overview",
       "/system/observability/requests",
       "/system/observability/ai-usage",
-      "/system/observability/activity",
     ]);
     expect(platformOverview?.disabled).toBeUndefined();
   });
@@ -89,5 +89,14 @@ describe("global nav regression", () => {
     });
     expect(projectsItem?.groupBehavior).toBeUndefined();
     expect(projectsItem?.children).toBeUndefined();
+  });
+
+  test("marks the observability overview child active when it shares the parent target", () => {
+    const trail = findActiveTrailNodes(GLOBAL_NAV_ITEMS, "/system/observability/overview");
+
+    expect(trail.map((item) => item.key)).toEqual([
+      "global.platform.observability",
+      "global.platform.observability.overview",
+    ]);
   });
 });

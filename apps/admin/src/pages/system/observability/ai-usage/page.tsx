@@ -11,6 +11,7 @@ import type { ObservabilityPeriodDays } from "../components/period-select";
 import { ObservabilityTrendCard } from "../components/trend-card";
 import { formatCompactNumber, formatCostMicros } from "../formatters";
 import { useSystemObservabilityOverview, useSystemObservabilityTrend } from "../hooks";
+import { AIUsageGroupsTable } from "./ai-usage-groups-table";
 
 export function SystemObservabilityAIUsagePage() {
   const { t, i18n } = useTranslation("platform");
@@ -26,7 +27,6 @@ export function SystemObservabilityAIUsagePage() {
     <DefaultPage
       title={t("OBSERVABILITY_AI_TITLE")}
       description={t("OBSERVABILITY_AI_DESCRIPTION")}
-      showFavoriteToggle={false}
       action={
         <ObservabilityPageControls
           days={days}
@@ -101,6 +101,18 @@ export function SystemObservabilityAIUsagePage() {
                 valueKind="cost"
               />
             </div>
+
+            <section className="flex flex-col gap-3" aria-labelledby="ai-usage-groups-title">
+              <div>
+                <h2 id="ai-usage-groups-title" className="text-headline text-label-primary">
+                  {t("AI_USAGE_TABLE_TITLE")}
+                </h2>
+                <p className="mt-1 text-callout text-label-secondary">
+                  {t("AI_USAGE_TABLE_DESCRIPTION")}
+                </p>
+              </div>
+              <AIUsageGroupsTable days={days} />
+            </section>
           </div>
         ) : null}
       </ContentGuard>

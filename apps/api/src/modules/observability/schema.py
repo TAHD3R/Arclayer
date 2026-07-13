@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from enum import StrEnum
 
 from pydantic import Field
@@ -92,3 +92,29 @@ class ObservabilityTrendOut(BaseSchema):
     period: ObservabilityPeriodOut
     points: list[ObservabilityTrendPointOut]
     total: int | float
+
+
+class HTTPRequestGroupOut(BaseSchema):
+    route_template: str
+    method: str
+    status_class: int = Field(ge=0, le=5)
+    requests: int = Field(ge=0)
+    error_requests: int = Field(ge=0)
+    error_rate: float = Field(ge=0, le=1)
+    avg_latency_ms: float = Field(ge=0)
+    max_latency_ms: int = Field(ge=0)
+    last_seen_at: datetime
+
+
+class AIUsageGroupOut(BaseSchema):
+    provider: str
+    model: str
+    requests: int = Field(ge=0)
+    error_requests: int = Field(ge=0)
+    error_rate: float = Field(ge=0, le=1)
+    prompt_tokens: int = Field(ge=0)
+    completion_tokens: int = Field(ge=0)
+    total_tokens: int = Field(ge=0)
+    cost_micros: int = Field(ge=0)
+    avg_latency_ms: float = Field(ge=0)
+    last_seen_at: datetime

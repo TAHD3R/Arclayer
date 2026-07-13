@@ -1,17 +1,15 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends
 
 from src.config import Settings, get_settings
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
-from src.core.i18n import t
-from src.models.organization.user import User
-from src.modules.auth.http.service import get_current_user
+from src.modules.commerce.billing_service import build_billing_service
 from src.modules.commerce.schema import (
+    BillingRedirectOut,
+    CheckoutSessionCreate,
     CreditLedgerOut,
-    SubscriptionChangeRequestCreate,
-    SubscriptionChangeRequestOut,
     WorkspaceCommerceOverviewOut,
     WorkspacePlanCatalogOut,
     WorkspacePlanOptionOut,
@@ -46,7 +44,13 @@ async def list_workspace_plans(
         )
         for plan in plans
     ]
-    return ApiResponse.success(data=WorkspacePlanCatalogOut(items=items))
+    return ApiResponse.success(
+        data=WorkspacePlanCatalogOut(
+            billing_provider=settings.billing.provider,
+            checkout_enabled=settings.billing.checkout_enabled,
+            items=items,
+        )
+    )
 
 
 @router.get(
@@ -62,6 +66,36 @@ async def get_workspace_commerce_overview(
     return ApiResponse.success(data=overview)
 
 
+@router.post(
+    "/checkout-session",
+    response_model=ResponseModel[BillingRedirectOut],
+    summary="Create a provider-hosted checkout session",
+)
+async def create_workspace_checkout_session(
+    payload: CheckoutSessionCreate,
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[BillingRedirectOut]:
+    redirect = await build_billing_service(settings).create_checkout(
+        workspace_id=ctx.workspace_id,
+        payload=payload,
+    )
+    return ApiResponse.success(data=redirect)
+
+
+@router.post(
+    "/customer-portal-session",
+    response_model=ResponseModel[BillingRedirectOut],
+    summary="Create a provider-hosted customer portal session",
+)
+async def create_workspace_customer_portal_session(
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[BillingRedirectOut]:
+    redirect = await build_billing_service(settings).create_portal(workspace_id=ctx.workspace_id)
+    return ApiResponse.success(data=redirect)
+
+
 @router.get(
     "/credits/ledger",
     response_model=ResponseModel[PageData[CreditLedgerOut]],
@@ -74,23 +108,3 @@ async def list_workspace_credit_ledger(
 ) -> ResponseModel[PageData[CreditLedgerOut]]:
     page = await CommerceService(settings).list_credit_ledger(workspace_id=ctx.workspace_id, params=params)
     return ApiResponse.success(data=page)
-
-
-@router.post(
-    "/subscription-change-requests",
-    response_model=ResponseModel[SubscriptionChangeRequestOut],
-    status_code=status.HTTP_201_CREATED,
-    summary="Request a workspace plan change",
-)
-async def create_workspace_subscription_change_request(
-    payload: SubscriptionChangeRequestCreate,
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
-    user: User = Depends(get_current_user),
-    settings: Settings = Depends(get_settings),
-) -> ResponseModel[SubscriptionChangeRequestOut]:
-    row = await CommerceService(settings).create_change_request(
-        workspace_id=ctx.workspace_id,
-        actor_user_id=user.id,
-        payload=payload,
-    )
-    return ApiResponse.success(message=t("commerce", "API_CHANGE_REQUEST_SUBMITTED"), data=row)

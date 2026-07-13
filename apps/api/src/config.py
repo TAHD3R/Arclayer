@@ -7,6 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.settings.env_models import (
     AuthSettings,
+    BillingSettings,
     EmailSettings,
     PublicIdSettings,
     SaasSettings,
@@ -723,6 +724,7 @@ class Settings(BaseSettings):
     taskiq: TaskiqSettings = Field(default_factory=TaskiqSettings)
     middleware: MiddlewareSettings = Field(default_factory=MiddlewareSettings)
     auth: AuthSettings = Field(default_factory=AuthSettings)
+    billing: BillingSettings = Field(default_factory=BillingSettings)
     public_id: PublicIdSettings = Field(default_factory=PublicIdSettings)
     email: EmailSettings = Field(default_factory=EmailSettings, validation_alias="MAIL")
     saas: SaasSettings = Field(default_factory=SaasSettings)

@@ -3,6 +3,7 @@ export const SETTINGS_SCREENS = [
   "personal.preferences",
   "personal.notifications",
   "workspace.general",
+  "workspace.plan-usage",
   "workspace.members",
   "workspace.invitations",
   "workspace.roles",

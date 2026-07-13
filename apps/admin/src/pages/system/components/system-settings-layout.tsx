@@ -154,7 +154,7 @@ export function SystemSettingsLayout(props: SystemSettingsLayoutProps) {
 
   if (currentUserQuery.isLoading && !currentUserQuery.profile) {
     return (
-      <DefaultPage title={t("settings:SETTINGS_SYSTEM_TITLE")} showFavoriteToggle={false}>
+      <DefaultPage title={t("settings:SETTINGS_SYSTEM_TITLE")}>
         <ContentGuard loading loadingVariant="form" />
       </DefaultPage>
     );
@@ -162,7 +162,7 @@ export function SystemSettingsLayout(props: SystemSettingsLayoutProps) {
 
   if (currentUserQuery.isError) {
     return (
-      <DefaultPage title={t("settings:SETTINGS_SYSTEM_TITLE")} showFavoriteToggle={false}>
+      <DefaultPage title={t("settings:SETTINGS_SYSTEM_TITLE")}>
         <ContentGuard
           loading={false}
           error={currentUserQuery.error}
@@ -180,7 +180,6 @@ export function SystemSettingsLayout(props: SystemSettingsLayoutProps) {
     <DefaultPage
       title={t(activePage.titleKey)}
       description={t(activePage.descriptionKey)}
-      showFavoriteToggle={false}
       headerBehavior="sticky"
       contentContainerClassName="min-h-full [--page-sticky-header-height:6rem]"
     >

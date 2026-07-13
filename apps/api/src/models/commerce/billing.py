@@ -108,6 +108,21 @@ class WorkspaceSubscription(BaseModel):
         abstract = False
 
 
+class BillingProviderEventReceipt(BaseModel):
+    """Durable claim proving that one external billing event was applied once."""
+
+    provider = fields.CharField(max_length=32)
+    event_id = fields.CharField(max_length=255)
+    workspace_id = fields.UUIDField(db_index=True)
+
+    class Meta(BaseModel.Meta):
+        table = "commerce_billing_provider_event_receipts"
+        table_description = "Idempotency receipts for signed external billing events."
+        abstract = False
+        unique_together = (("provider", "event_id"),)
+        indexes = (("workspace_id", "created_at"),)
+
+
 class WorkspaceCreditAccount(BaseModel):
     """Transactional credit balance cache for a workspace."""
 

@@ -1,16 +1,16 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Clock3 } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Check, ExternalLink, ShieldCheck } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
+  createWorkspaceCheckoutSession,
+  createWorkspaceCustomerPortalSession,
   listWorkspaceCommercePlans,
-  requestWorkspacePlanChange,
   type BillingCycle,
   type WorkspacePlanOption,
 } from "@/api/commerce";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
-import { notifySuccessText } from "@/lib/notifications";
 import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 import { Badge } from "@arclayer/ui/badge";
 import { Button } from "@arclayer/ui/button";
@@ -36,7 +36,6 @@ type PlanSelectionDialogProps = {
   workspaceId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  pendingPlanCode?: string | null;
 };
 
 function planPrice(plan: WorkspacePlanOption, cycle: BillingCycle): number {
@@ -56,12 +55,11 @@ function PlanCard(props: {
   cycle: BillingCycle;
   locale: string;
   pending: boolean;
-  pendingPlanCode?: string | null;
+  disabled: boolean;
   onSelect: (plan: WorkspacePlanOption) => void;
 }) {
   const { t } = useTranslation(["commerce"]);
   const price = planPrice(props.plan, props.cycle);
-  const isRequested = props.pendingPlanCode === props.plan.code;
 
   return (
     <Card className="flex min-w-0 flex-col">
@@ -73,8 +71,6 @@ function PlanCard(props: {
           </div>
           {props.plan.isCurrent ? (
             <Badge variant="secondary">{t("commerce:PLAN_CURRENT")}</Badge>
-          ) : isRequested ? (
-            <Badge variant="outline">{t("commerce:PLAN_PENDING")}</Badge>
           ) : null}
         </div>
 
@@ -130,29 +126,28 @@ function PlanCard(props: {
           type="button"
           className="w-full"
           variant={props.plan.isCurrent ? "outline" : "default"}
-          disabled={!props.plan.canSelect || props.plan.isCurrent || isRequested || props.pending}
+          disabled={
+            !props.plan.canSelect || props.plan.isCurrent || props.pending || props.disabled
+          }
           loading={props.pending}
           onClick={() => props.onSelect(props.plan)}
         >
           {props.plan.isCurrent
             ? t("commerce:PLAN_CURRENT")
-            : isRequested
-              ? t("commerce:PLAN_PENDING")
-              : t("commerce:PLAN_REQUEST_CHANGE")}
+            : price === 0
+              ? t("commerce:PLAN_MANAGE_SUBSCRIPTION")
+              : t("commerce:PLAN_CHECKOUT_ACTION")}
+          {!props.plan.isCurrent ? (
+            <ExternalLink data-icon="inline-end" aria-hidden="true" />
+          ) : null}
         </Button>
       </CardFooter>
     </Card>
   );
 }
 
-export function PlanSelectionDialog({
-  workspaceId,
-  open,
-  onOpenChange,
-  pendingPlanCode,
-}: PlanSelectionDialogProps) {
+export function PlanSelectionDialog({ workspaceId, open, onOpenChange }: PlanSelectionDialogProps) {
   const { t, i18n } = useTranslation(["commerce", "common"]);
-  const queryClient = useQueryClient();
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
   const catalogQuery = useQuery({
     queryKey: ["commerce", "workspace", workspaceId, "plans"],
@@ -165,26 +160,16 @@ export function PlanSelectionDialog({
     [catalogQuery.data?.items],
   );
 
-  const requestMutation = useMutation({
-    mutationFn: (plan: WorkspacePlanOption) =>
-      requestWorkspacePlanChange(workspaceId, {
-        planCode: plan.code,
-        billingInterval: cycle,
-      }),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ["commerce", "workspace", workspaceId, "overview"],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["commerce", "workspace", workspaceId, "plans"],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["system", "commerce", "subscription-change-requests"],
-        }),
-      ]);
-      notifySuccessText(t("commerce:PLAN_REQUEST_SUCCESS"));
-      onOpenChange(false);
+  const checkoutMutation = useMutation({
+    mutationFn: async (plan: WorkspacePlanOption) => {
+      const redirect =
+        planPrice(plan, cycle) === 0
+          ? await createWorkspaceCustomerPortalSession(workspaceId)
+          : await createWorkspaceCheckoutSession(workspaceId, {
+              planCode: plan.code,
+              billingInterval: cycle,
+            });
+      window.location.assign(redirect.url);
     },
   });
 
@@ -210,14 +195,22 @@ export function PlanSelectionDialog({
           </div>
 
           <Alert>
-            <Clock3 aria-hidden="true" />
-            <AlertTitle>{t("commerce:OPERATOR_MANAGED_TITLE")}</AlertTitle>
-            <AlertDescription>{t("commerce:OPERATOR_MANAGED_DESCRIPTION")}</AlertDescription>
+            <ShieldCheck aria-hidden="true" />
+            <AlertTitle>
+              {catalogQuery.data?.checkoutEnabled
+                ? t("commerce:EXTERNAL_CHECKOUT_TITLE")
+                : t("commerce:BILLING_PROVIDER_UNAVAILABLE_TITLE")}
+            </AlertTitle>
+            <AlertDescription>
+              {catalogQuery.data?.checkoutEnabled
+                ? t("commerce:EXTERNAL_CHECKOUT_DESCRIPTION")
+                : t("commerce:BILLING_PROVIDER_UNAVAILABLE_DESCRIPTION")}
+            </AlertDescription>
           </Alert>
 
           <ContentGuard
             loading={catalogQuery.isLoading}
-            error={catalogQuery.error ?? requestMutation.error}
+            error={catalogQuery.error ?? checkoutMutation.error}
             empty={!catalogQuery.isLoading && !catalogQuery.error && plans.length === 0}
             onRetry={() => void catalogQuery.refetch()}
             loadingVariant="masonry"
@@ -231,10 +224,10 @@ export function PlanSelectionDialog({
                   cycle={cycle}
                   locale={i18n.resolvedLanguage ?? i18n.language}
                   pending={
-                    requestMutation.isPending && requestMutation.variables?.code === plan.code
+                    checkoutMutation.isPending && checkoutMutation.variables?.code === plan.code
                   }
-                  pendingPlanCode={pendingPlanCode}
-                  onSelect={(selectedPlan) => requestMutation.mutate(selectedPlan)}
+                  disabled={!catalogQuery.data?.checkoutEnabled}
+                  onSelect={(selectedPlan) => checkoutMutation.mutate(selectedPlan)}
                 />
               ))}
             </div>

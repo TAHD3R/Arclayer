@@ -5,17 +5,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getWorkspaceCommerceOverview } from "@/api/commerce";
 import { WorkspaceCreditsControl } from "@/components/commerce/workspace-credits-control";
+import {
+  SettingsScreenProvider,
+  useSettingsScreen,
+} from "@/components/layout/settings-screen-provider";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 vi.mock("@/api/commerce", () => ({ getWorkspaceCommerceOverview: vi.fn() }));
-vi.mock("@/components/commerce/plan-selection-dialog", () => ({
-  PlanSelectionDialog: (props: { open: boolean; workspaceId: string }) =>
-    props.open ? <div data-testid="plan-dialog">{props.workspaceId}</div> : null,
-}));
-vi.mock("@/components/commerce/credit-ledger-dialog", () => ({
-  CreditLedgerDialog: (props: { open: boolean; workspaceId: string }) =>
-    props.open ? <div data-testid="ledger-dialog">{props.workspaceId}</div> : null,
-}));
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, values?: { count?: string; plan?: string }) =>
@@ -26,7 +22,9 @@ vi.mock("react-i18next", () => ({
 
 function createOverview() {
   return {
-    billingMode: "operator_managed",
+    billingMode: "external_checkout",
+    billingProvider: "stripe",
+    checkoutEnabled: true,
     plan: {
       id: "plan-1",
       code: "premium",
@@ -74,7 +72,6 @@ function createOverview() {
       promptTokens: 1_000,
       completionTokens: 500,
     },
-    pendingChangeRequest: null,
   };
 }
 
@@ -84,9 +81,19 @@ function renderControl() {
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <WorkspaceCreditsControl />
+      <SettingsScreenProvider>
+        <WorkspaceCreditsControl />
+        <SettingsStateProbe />
+      </SettingsScreenProvider>
     </QueryClientProvider>,
   );
+}
+
+function SettingsStateProbe() {
+  const settings = useSettingsScreen();
+  return settings.state.open ? (
+    <div data-testid="settings-screen">{settings.state.screen}</div>
+  ) : null;
 }
 
 describe("WorkspaceCreditsControl", () => {
@@ -119,7 +126,7 @@ describe("WorkspaceCreditsControl", () => {
     expect(screen.getByLabelText("commerce:CREDITS_LOADING")).toBeInTheDocument();
   });
 
-  it("shows available credits, hover details, and opens the real plan flow", async () => {
+  it("shows available credits, hover details, and opens the unified Plan & Usage screen", async () => {
     const user = userEvent.setup();
     vi.mocked(getWorkspaceCommerceOverview).mockResolvedValue(createOverview());
     renderControl();
@@ -128,9 +135,8 @@ describe("WorkspaceCreditsControl", () => {
       name: /commerce:CREDITS_BUTTON_LABEL:7,750/,
     });
     expect(trigger).not.toHaveAttribute("aria-label");
-    expect(trigger).toHaveAccessibleName(
-      /7,750.*commerce:PLAN_VIEW_ACTION.*commerce:CREDITS_BUTTON_LABEL:7,750/,
-    );
+    expect(trigger).toHaveAccessibleName(/7,750.*commerce:CREDITS_BUTTON_LABEL:7,750/);
+    expect(trigger).not.toHaveAccessibleName(/commerce:PLAN_UPGRADE_ACTION/);
     await user.hover(trigger);
     expect(await screen.findByText("Premium")).toBeInTheDocument();
     expect(screen.getByText("commerce:CREDITS_BALANCE")).toBeInTheDocument();
@@ -141,30 +147,20 @@ describe("WorkspaceCreditsControl", () => {
     expect(screen.getByText("2,000")).toBeInTheDocument();
     expect(screen.getByText("commerce:CREDITS_PERIOD_GRANT_VALUE:10,000")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "commerce:LEDGER_VIEW_ACTION" }));
-    expect(screen.getByTestId("ledger-dialog")).toHaveTextContent("workspace-1");
+    expect(screen.getByTestId("settings-screen")).toHaveTextContent("workspace.plan-usage");
 
     await user.click(trigger);
-    expect(screen.getByTestId("plan-dialog")).toHaveTextContent("workspace-1");
+    expect(screen.getByTestId("settings-screen")).toHaveTextContent("workspace.plan-usage");
   });
 
-  it("uses the localized plan name in the pending change notice", async () => {
-    const user = userEvent.setup();
+  it("shows the upgrade affordance only for the Free plan", async () => {
     vi.mocked(getWorkspaceCommerceOverview).mockResolvedValue({
       ...createOverview(),
-      pendingChangeRequest: {
-        id: "request-1",
-        workspaceId: "workspace-1",
-        requestedByUserId: "user-1",
-        planCode: "premium",
-        planName: "高级版",
-        billingInterval: "yearly",
-        reason: null,
-        status: "pending",
-        reviewedByUserId: null,
-        reviewedAt: null,
-        reviewNote: null,
-        createdAt: "2026-07-12T00:00:00Z",
-        updatedAt: "2026-07-12T00:00:00Z",
+      plan: {
+        ...createOverview().plan,
+        code: "free",
+        tier: "free",
+        name: "Free",
       },
     });
     renderControl();
@@ -172,9 +168,7 @@ describe("WorkspaceCreditsControl", () => {
     const trigger = await screen.findByRole("button", {
       name: /commerce:CREDITS_BUTTON_LABEL:7,750/,
     });
-    await user.hover(trigger);
-
-    expect(await screen.findByText("commerce:PLAN_PENDING_DESCRIPTION:高级版")).toBeInTheDocument();
+    expect(trigger).toHaveAccessibleName(/7,750.*commerce:PLAN_UPGRADE_ACTION/);
   });
 
   it("surfaces the request error and keeps an explicit retry action", async () => {

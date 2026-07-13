@@ -141,9 +141,19 @@ export function PlanEditorDialog(props: PlanEditorDialogProps) {
         message: t("commerce:SETTINGS_VALIDATION_NON_NEGATIVE"),
       });
     }
+    if (priceMonthlyMicros !== null && priceMonthlyMicros % 10_000 !== 0) {
+      form.setError("priceMonthly", {
+        message: t("commerce:SETTINGS_VALIDATION_CURRENCY_PRECISION"),
+      });
+    }
     if (priceYearlyMicros === null) {
       form.setError("priceYearly", {
         message: t("commerce:SETTINGS_VALIDATION_NON_NEGATIVE"),
+      });
+    }
+    if (priceYearlyMicros !== null && priceYearlyMicros % 10_000 !== 0) {
+      form.setError("priceYearly", {
+        message: t("commerce:SETTINGS_VALIDATION_CURRENCY_PRECISION"),
       });
     }
     if (sortOrder === null) {
@@ -154,7 +164,9 @@ export function PlanEditorDialog(props: PlanEditorDialogProps) {
       creditValueMicros === null ||
       priceMonthlyMicros === null ||
       priceYearlyMicros === null ||
-      sortOrder === null
+      sortOrder === null ||
+      priceMonthlyMicros % 10_000 !== 0 ||
+      priceYearlyMicros % 10_000 !== 0
     ) {
       return;
     }

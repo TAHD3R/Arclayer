@@ -89,7 +89,8 @@ function findActiveTrail(items: readonly AdminNavItem[], pathname: string): stri
         const isExact = isExactMatch(candidate, pathname);
         const isTrail = isPrefixMatch(candidate, pathname);
         const score = isExact ? 1000 + candidate.length : isTrail ? 100 + candidate.length : 0;
-        if (score > 0 && score > bestScore) {
+        const isMoreSpecificTrail = score === bestScore && nextParents.length > bestKeys.length;
+        if (score > 0 && (score > bestScore || isMoreSpecificTrail)) {
           bestScore = score;
           bestKeys = nextParents;
         }

@@ -18,7 +18,7 @@ vi.mock("@/components/layout/admin-account-menu", () => ({
 }));
 
 vi.mock("@/components/feedback/feedback-dialog", () => ({
-  FeedbackDialog: ({ trigger }: { trigger: React.ReactNode }) => <>{trigger}</>,
+  HeaderFeedbackPopover: ({ trigger }: { trigger: React.ReactNode }) => <>{trigger}</>,
 }));
 
 vi.mock("@/components/commerce/workspace-credits-control", () => ({

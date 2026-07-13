@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { AdminNavItem } from "@/types/admin-nav";
 import {
   collectDefaultExpandedGroupKeys,
+  findActiveTrail,
   findPreferredGroupTarget,
 } from "@/components/layout/admin-side-nav/nav-utils";
 
@@ -49,6 +50,21 @@ describe("findPreferredGroupTarget", () => {
   it("returns null when the group has no routable descendants", () => {
     const item = makeItem("group", undefined, [makeItem("placeholder")]);
     expect(findPreferredGroupTarget(item, new Set(["group"]))).toBeNull();
+  });
+});
+
+describe("findActiveTrail", () => {
+  it("prefers the deeper child when a group and child share the exact target", () => {
+    const items = [
+      makeItem("observability", "/system/observability/overview", [
+        makeItem("observability.overview", "/system/observability/overview"),
+      ]),
+    ];
+
+    expect(findActiveTrail(items, "/system/observability/overview")).toEqual([
+      "observability",
+      "observability.overview",
+    ]);
   });
 });
 

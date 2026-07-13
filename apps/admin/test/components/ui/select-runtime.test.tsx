@@ -19,6 +19,34 @@ vi.mock("react-i18next", () => ({
 }));
 
 describe("shared Select", () => {
+  it("uses popper positioning by default so content opens beside the trigger", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Select value="one" onValueChange={() => undefined}>
+        <SelectTrigger>
+          <SelectValue placeholder="Pick one" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="one">One</SelectItem>
+          <SelectItem value="two">Two</SelectItem>
+        </SelectContent>
+      </Select>,
+    );
+
+    await user.click(screen.getByRole("combobox"));
+
+    await waitFor(() => {
+      expect(document.querySelector("[data-radix-select-viewport]")).toHaveClass(
+        "min-w-(--radix-select-trigger-width)",
+      );
+      expect(document.querySelector("[data-slot='select-content']")).toHaveAttribute(
+        "data-side",
+        "bottom",
+      );
+    });
+  });
+
   it("opens inside a settings dialog under StrictMode without triggering an infinite update loop", async () => {
     const user = userEvent.setup();
     expect(() =>

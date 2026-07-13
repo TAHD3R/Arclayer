@@ -8,6 +8,9 @@ import { listSystemFeedback } from "@/api/feedback";
 import { SystemFeedbackCenterPage } from "@/pages/system/feedback/page";
 
 vi.mock("@/api/feedback", () => ({ listSystemFeedback: vi.fn() }));
+vi.mock("@/hooks/use-admin-date-time-formatter", () => ({
+  useAdminDateTimeFormatter: () => ({ formatDateTime: (value: string) => `date:${value}` }),
+}));
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, values?: Record<string, unknown>) => {
@@ -197,15 +200,15 @@ describe("SystemFeedbackCenterPage", () => {
     const row = viewButton.closest("tr");
     expect(row).not.toBeNull();
     expect(row).not.toHaveAttribute("tabindex");
-    expect(within(row!).getByText(ITEM.messagePreview)).toBeInTheDocument();
+    expect(within(row!).getByText(ITEM.messagePreview)).toHaveClass("truncate");
 
     viewButton.focus();
     await user.keyboard("{Enter}");
     expect(screen.getByRole("dialog")).toHaveTextContent("detail:feedback-1");
   });
 
-  it("sends status, search, and pagination filters to the live query", async () => {
-    vi.mocked(listSystemFeedback).mockResolvedValue(page([ITEM], { total: 21, pages: 2, next: 2 }));
+  it("sends status and search filters through the shared DataTable query", async () => {
+    vi.mocked(listSystemFeedback).mockResolvedValue(page());
     const user = userEvent.setup();
     renderPage();
     await screen.findByText(ITEM.messagePreview);
@@ -230,11 +233,6 @@ describe("SystemFeedbackCenterPage", () => {
       { timeout: 1_000 },
     );
 
-    await user.click(screen.getByRole("button", { name: "common:NEXT" }));
-    await waitFor(() =>
-      expect(listSystemFeedback).toHaveBeenLastCalledWith(
-        expect.objectContaining({ page: 2, search: "publishing", status: "new" }),
-      ),
-    );
+    expect(screen.getByText("Reporter One")).toHaveClass("truncate");
   });
 });

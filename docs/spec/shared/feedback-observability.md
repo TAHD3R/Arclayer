@@ -54,6 +54,7 @@ Supported request metrics include `requests`, `errors`, `errorRate`, `avgLatency
 |---|---|---|
 | `GET /system/observability/overview` | super admin | Platform KPI summary for an explicit time range |
 | `GET /system/observability/trends` | super admin | Platform time series for one supported metric |
+| `GET /system/observability/request-groups` | super admin | Paginated HTTP aggregates grouped by route template, method, and status class |
 | `GET /workspaces/{workspaceId}/observability/overview` | workspace member | Workspace-scoped KPI summary |
 | `GET /workspaces/{workspaceId}/observability/trends` | workspace member | Workspace time series, optionally filtered by authorized project |
 | Existing `/system/activity` and `/workspaces/{workspaceId}/activity` | authorized caller | Canonical audit-log lists and detail |
@@ -66,7 +67,7 @@ Supported request metrics include `requests`, `errors`, `errorRate`, `avgLatency
 ### 6. Admin information architecture
 
 - Platform Overview summarizes tenants, active projects, commercial state, feedback queue health, AI consumption, and operational health from live endpoints.
-- Audit Log is a filterable, paginated canonical event view with actor, action, scope, target, correlation id, timestamp, and sanitized metadata detail.
+- Audit Log is a system operations analysis workbench with separate request and event views. The request view exposes persisted route/method/status aggregates, error rate, latency, and last-seen time; the event view is a filterable, paginated canonical event table with actor, action, scope, target, correlation id, timestamp, and sanitized metadata detail.
 - Feedback Center exposes queue filters, ticket detail, assignment, status/priority updates, replies, and internal notes.
 - Observability is a parent navigation group with focused child pages for overview, requests/reliability, AI usage/cost, and activity rather than one overloaded dashboard.
 - Every chart has an accessible Recharts layer, localized units, a textual summary, and an explicit loading/error/empty state.

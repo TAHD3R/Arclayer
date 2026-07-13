@@ -87,6 +87,14 @@ async def test_system_observability_api_executes_empty_postgres_aggregates(db_sc
             "/api/v1/system/observability/trends",
             params={"days": 30, "metric": "httpRequests"},
         )
+        request_groups_response = await client.get(
+            "/api/v1/system/observability/request-groups",
+            params={"days": 30, "page": 1, "size": 20},
+        )
+        ai_usage_groups_response = await client.get(
+            "/api/v1/system/observability/ai-usage-groups",
+            params={"days": 30, "page": 1, "size": 20},
+        )
 
     assert overview_response.status_code == 200, overview_response.text
     overview = overview_response.json()["data"]
@@ -115,6 +123,26 @@ async def test_system_observability_api_executes_empty_postgres_aggregates(db_sc
     trend = trend_response.json()["data"]
     assert trend["points"] == []
     assert trend["total"] == 0
+    assert request_groups_response.status_code == 200, request_groups_response.text
+    assert request_groups_response.json()["data"] == {
+        "items": [],
+        "total": 0,
+        "page": 1,
+        "size": 20,
+        "pages": 0,
+        "next": None,
+        "prev": None,
+    }
+    assert ai_usage_groups_response.status_code == 200, ai_usage_groups_response.text
+    assert ai_usage_groups_response.json()["data"] == {
+        "items": [],
+        "total": 0,
+        "page": 1,
+        "size": 20,
+        "pages": 0,
+        "next": None,
+        "prev": None,
+    }
 
 
 @pytest.mark.asyncio

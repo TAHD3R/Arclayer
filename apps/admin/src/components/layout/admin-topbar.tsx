@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { AskAiButton } from "@/components/ai/ask-ai-button";
 import type { ProjectAvatarIdentity } from "@/components/common/project-avatar";
 import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
-import { FeedbackDialog } from "@/components/feedback/feedback-dialog";
+import { HeaderFeedbackPopover } from "@/components/feedback/feedback-dialog";
 import { WorkspaceCreditsControl } from "@/components/commerce/workspace-credits-control";
 import { headerTriggerButtonClassName } from "@/components/layout/admin-scope-switcher";
 import {
@@ -278,8 +278,7 @@ function TopbarTrailing() {
 
   return (
     <div className="flex w-full min-w-0 items-center justify-end gap-2 sm:w-auto">
-      <FeedbackDialog
-        source="header"
+      <HeaderFeedbackPopover
         trigger={
           <Button
             type="button"

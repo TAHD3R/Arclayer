@@ -663,6 +663,7 @@ function PanelContentInner(props: {
   onOpenWorkspaceCreateDialog: () => void;
   onOpenProjectSettings: () => void;
   onOpenWorkspaceSettings: () => void;
+  onOpenWorkspacePlanUsage: () => void;
   onOpenWorkspaceInvite: () => void;
 }) {
   const { t } = useTranslation(["common", "team", "account", "nav"]);
@@ -768,7 +769,14 @@ function PanelContentInner(props: {
             right={<ChevronRight className="size-4" aria-hidden="true" />}
           />
         </ScopeSubpanelAction>
-        <PanelMenuButton className="rounded-none px-3 py-2.5" disabled>
+        <PanelMenuButton
+          className="rounded-none px-3 py-2.5"
+          disabled={!canOpenWorkspaceSettings}
+          onClick={() => {
+            closeFloatingPanel();
+            props.onOpenWorkspacePlanUsage();
+          }}
+        >
           <PanelMenuItemContent
             icon={<CreditCard className="size-4" aria-hidden="true" />}
             text={t("common:WORKSPACE_SWITCHER_BILLING_USAGE")}
@@ -1278,6 +1286,11 @@ export function AdminScopeSwitcher({
               if (!selectedWorkspaceId) return;
               setCurrentWorkspaceId(selectedWorkspaceId);
               settingsScreen.openSettings({ screen: "workspace.general" });
+            }}
+            onOpenWorkspacePlanUsage={() => {
+              if (!selectedWorkspaceId) return;
+              setCurrentWorkspaceId(selectedWorkspaceId);
+              settingsScreen.openSettings({ screen: "workspace.plan-usage" });
             }}
             onOpenWorkspaceInvite={() => {
               if (!selectedWorkspaceId) return;

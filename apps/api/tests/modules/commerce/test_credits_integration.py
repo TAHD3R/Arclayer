@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
@@ -8,18 +9,18 @@ from tortoise.transactions import in_transaction
 
 from src.config import get_settings
 from src.core.exceptions import Conflict
-from src.core.http.pagination import PageParams
+from src.models.analytics.audit_event import AuditEvent
 from src.models.commerce.billing import (
     BillingCycle,
+    BillingProviderEventReceipt,
     CommercePlan,
     CommercePlanTier,
     CreditLedgerEntryType,
     CreditRefreshInterval,
-    SubscriptionChangeRequestStatus,
+    SubscriptionStatus,
     WorkspaceCreditAccount,
     WorkspaceCreditLedger,
     WorkspaceSubscription,
-    WorkspaceSubscriptionChangeRequest,
 )
 from src.models.workspaces.workspace import Workspace
 from src.modules.commerce.credits import CreditsExceededError, reserve_workspace_credits
@@ -115,91 +116,64 @@ async def test_plan_update_cannot_remove_the_active_default_plan(
     assert await CommercePlan.filter(is_active=True, is_default=True).count() == 1
 
 
-async def test_approve_change_request_rejects_an_inactive_target_plan(db_schema) -> None:
+async def test_provider_subscription_event_applies_once_and_persists_external_authority(db_schema) -> None:
     _ = db_schema
     organization = await OrganizationRepository().create_organization(
         slug=f"commerce-{uuid4().hex}",
-        name="Commerce inactive approval",
+        name="Commerce provider event",
     )
     workspace = await Workspace.create(
         organization_id=organization.id,
-        name="Commerce inactive approval",
-        is_active=True,
-        created_by_user_id=uuid4(),
-    )
-    service = CommerceService(get_settings())
-    subscription, account, current_plan = await service.ensure_workspace_billing(workspace_id=workspace.id)
-    requested_plan = await CommercePlan.get(code="premium")
-    request = await WorkspaceSubscriptionChangeRequest.create(
-        workspace_id=workspace.id,
-        requested_plan_id=requested_plan.id,
-        requested_by_user_id=uuid4(),
-        billing_cycle=BillingCycle.YEARLY,
-    )
-    requested_plan.is_active = False
-    await requested_plan.save(update_fields=["is_active", "updated_at"])
-
-    with pytest.raises(Conflict) as captured:
-        await service.approve_change_request(
-            request_id=request.id,
-            actor_user_id=uuid4(),
-            review_note="Plan retired before approval",
-        )
-
-    assert captured.value.status_code == 409
-    assert captured.value.error == "SUBSCRIPTION_CHANGE_REQUEST_PLAN_INACTIVE"
-    await request.refresh_from_db()
-    await subscription.refresh_from_db()
-    await account.refresh_from_db()
-    assert request.status == SubscriptionChangeRequestStatus.PENDING
-    assert subscription.plan_id == current_plan.id
-    assert account.balance_credits == 70
-    assert not await WorkspaceCreditLedger.filter(
-        workspace_id=workspace.id,
-        reference_type="subscription_change_request",
-        reference_id=request.id,
-    ).exists()
-
-
-async def test_pending_change_request_outputs_include_localized_plan_name(db_schema) -> None:
-    _ = db_schema
-    organization = await OrganizationRepository().create_organization(
-        slug=f"commerce-{uuid4().hex}",
-        name="Commerce change request",
-    )
-    workspace = await Workspace.create(
-        organization_id=organization.id,
-        name="Commerce change request",
+        name="Commerce provider event",
         is_active=True,
         created_by_user_id=uuid4(),
     )
     service = CommerceService(get_settings())
     await service.ensure_workspace_billing(workspace_id=workspace.id)
-    premium_plan = await CommercePlan.get(code="premium")
-    await WorkspaceSubscriptionChangeRequest.create(
+    period_start = datetime.now(UTC).replace(microsecond=0)
+    period_end = period_start + timedelta(days=30)
+    payload = {
+        "workspace_id": workspace.id,
+        "plan_code": "premium",
+        "status": SubscriptionStatus.ACTIVE,
+        "billing_interval": BillingCycle.MONTHLY,
+        "current_period_start": period_start,
+        "current_period_end": period_end,
+        "cancel_at_period_end": False,
+        "provider": "stripe",
+        "external_customer_id": "cus_test",
+        "external_subscription_id": "sub_test",
+        "event_id": "evt_checkout_complete",
+    }
+
+    await service.apply_provider_subscription(**payload)
+    await service.apply_provider_subscription(**payload)
+
+    subscription = await WorkspaceSubscription.get(workspace_id=workspace.id).prefetch_related("plan")
+    account = await WorkspaceCreditAccount.get(workspace_id=workspace.id)
+    provider_grants = await WorkspaceCreditLedger.filter(
         workspace_id=workspace.id,
-        requested_plan_id=premium_plan.id,
-        requested_by_user_id=uuid4(),
-        billing_cycle=BillingCycle.YEARLY,
-    )
-
-    overview = await service.get_overview(workspace_id=workspace.id)
-    requests = await service.list_change_requests(
-        params=PageParams(page=1, size=20),
-        status=SubscriptionChangeRequestStatus.PENDING,
-    )
-
-    assert overview.pending_change_request is not None
-    assert overview.pending_change_request.plan_code == "premium"
-    assert overview.pending_change_request.plan_name == "高级版"
-    assert len(requests.items) == 1
-    assert requests.items[0].plan_code == "premium"
-    assert requests.items[0].plan_name == "高级版"
-
-    overview_payload = overview.model_dump(mode="json", by_alias=True)
-    requests_payload = requests.model_dump(mode="json", by_alias=True)
-    assert overview_payload["pendingChangeRequest"]["planName"] == "高级版"
-    assert requests_payload["items"][0]["planName"] == "高级版"
+        entry_type=CreditLedgerEntryType.PERIOD_GRANT,
+        reference_type="provider_event",
+    ).all()
+    receipts = await BillingProviderEventReceipt.filter(
+        provider="stripe",
+        event_id="evt_checkout_complete",
+    ).all()
+    audit_events = await AuditEvent.filter(
+        workspace_id=workspace.id,
+        event_name="commerce.subscription.provider_updated",
+    ).all()
+    assert subscription.plan.code == "premium"
+    assert subscription.billing_provider == "stripe"
+    assert subscription.external_customer_id == "cus_test"
+    assert subscription.external_subscription_id == "sub_test"
+    assert subscription.current_period_start == period_start
+    assert subscription.current_period_end == period_end
+    assert account.balance_credits == 10_000
+    assert len(provider_grants) == 1
+    assert len(receipts) == 1
+    assert len(audit_events) == 1
 
 
 async def test_concurrent_credit_reservations_cannot_make_available_balance_negative(db_schema) -> None:

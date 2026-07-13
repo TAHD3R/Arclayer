@@ -192,10 +192,10 @@ export type ActivityEvent = Omit<Generated.AuditEventOut, "actor" | "subject"> &
 export type ListActivityParams = QueryOf<Generated.InternalSystemListActivityData>;
 
 export type BillingCycle = Generated.BillingCycle;
+export type BillingRedirect = Generated.BillingRedirectOut;
 export type CommercePlanTier = Generated.CommercePlanTier;
 export type CreditRefreshInterval = Generated.CreditRefreshInterval;
 export type SubscriptionStatus = Generated.SubscriptionStatus;
-export type SubscriptionChangeRequestStatus = Generated.SubscriptionChangeRequestStatus;
 export type PlanFeature = RequiredPresent<
   Generated.PlanFeature,
   "description" | "included" | "value"
@@ -220,7 +220,6 @@ export type SystemPlanCatalog = Omit<Generated.CommercePlanCatalogOut, "billingM
   billingMode: string;
   items: CommercePlan[];
 };
-export type SubscriptionChangeRequest = Generated.SubscriptionChangeRequestOut;
 export type CreditLedgerEntryType = Generated.CreditLedgerEntryType;
 export type CreditLedgerEntry = Generated.CreditLedgerOut;
 export type WorkspaceCommerceOverview = Omit<
@@ -248,6 +247,8 @@ export type CreateFeedbackMessagePayload = Generated.FeedbackMessageCreate;
 export type ObservabilityPeriod = Generated.ObservabilityPeriodOut;
 export type ObservabilityTrendMetric = Generated.ObservabilityTrendMetric;
 export type ObservabilityTrendPoint = Generated.ObservabilityTrendPointOut;
+export type HTTPRequestGroup = Generated.HttpRequestGroupOut;
+export type AIUsageGroup = Generated.AiUsageGroupOut;
 export type SystemObservabilityTrend = Generated.ObservabilityTrendOut;
 export type SystemObservabilityOverview = Omit<Generated.ObservabilityOverviewOut, "resources"> & {
   resources: {

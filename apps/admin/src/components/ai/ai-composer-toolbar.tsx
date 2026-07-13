@@ -124,20 +124,20 @@ function AIComposerAttachmentMenu() {
           variant="ghost"
           size="icon-sm"
           aria-label={t("ai:AI_CHAT_COMPOSER_ADD_MENU")}
-          className="h-8 w-8 rounded-xl text-label-primary hover:bg-accent/70"
+          className="h-8 w-8 rounded-md text-label-primary hover:bg-accent/70"
         >
           <PlusIcon className="size-4" aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-56 rounded-xl p-2">
+      <DropdownMenuContent align="start" className="w-56">
         <ComposerPrimitive.AddAttachment asChild>
-          <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2.5 text-callout">
+          <DropdownMenuItem className="cursor-pointer">
             <PaperclipIcon className="size-4 text-label-secondary" aria-hidden="true" />
             <span className="min-w-0 flex-1 truncate">{t("ai:AI_CHAT_UPLOAD_FILE")}</span>
           </DropdownMenuItem>
         </ComposerPrimitive.AddAttachment>
         <DropdownMenuItem
-          className="cursor-pointer rounded-lg px-3 py-2.5 text-callout"
+          className="cursor-pointer"
           onSelect={(event) => {
             event.preventDefault();
             setWebSearchEnabled(!webSearchEnabled);
@@ -204,7 +204,7 @@ function AIComposerModeSelect({ compact = false }: AIComposerToolbarProps) {
           size="sm"
           aria-label={t("ai:AI_CHAT_MODE_SELECT")}
           className={cn(
-            "h-8 min-w-0 rounded-xl px-2.5 text-footnote font-semibold text-label-primary hover:bg-accent/70",
+            "h-8 min-w-0 rounded-md px-2.5 text-footnote font-semibold text-label-primary hover:bg-accent/70",
             compact && "max-w-[8.5rem]",
           )}
         >
@@ -213,7 +213,7 @@ function AIComposerModeSelect({ compact = false }: AIComposerToolbarProps) {
           <ChevronDownIcon className="size-3.5 opacity-70" aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-72 rounded-xl p-2">
+      <DropdownMenuContent align="start" className="w-72">
         {COMPOSER_MODES.map((mode) => {
           const Icon = mode.icon;
           const active = selectedMode === mode.value;
@@ -228,7 +228,7 @@ function AIComposerModeSelect({ compact = false }: AIComposerToolbarProps) {
               key={mode.value}
               disabled={!available}
               onSelect={() => setComposerMode(mode.value)}
-              className="items-start gap-3 rounded-lg px-3 py-2.5"
+              className="items-start gap-3"
             >
               <Icon className="mt-0.5 size-4 text-label-secondary" aria-hidden="true" />
               <span className="min-w-0 flex-1">

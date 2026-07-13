@@ -3,12 +3,14 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime, time, timedelta
 from decimal import Decimal
+from math import ceil
 from uuid import UUID
 
 from tortoise import connections
 
 from src.config import Settings
 from src.core.exceptions import BadRequest, NotFound
+from src.core.http.pagination import PageData, PageParams
 from src.core.i18n import t
 from src.models.analytics.audit_event import AuditEvent
 from src.models.commerce.billing import SubscriptionStatus, WorkspaceSubscription
@@ -18,7 +20,9 @@ from src.models.projects.project import ProjectRecord
 from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
 from src.modules.observability.schema import (
     AIObservabilitySummaryOut,
+    AIUsageGroupOut,
     HTTPObservabilitySummaryOut,
+    HTTPRequestGroupOut,
     ObservabilityAttributionCoverageOut,
     ObservabilityDataAvailabilityOut,
     ObservabilityOperationsOut,
@@ -158,6 +162,97 @@ class ObservabilityService:
             max_latency_ms=_int(row.get("duration_max_ms")),
         )
 
+    async def list_http_request_groups(
+        self,
+        *,
+        days: int,
+        params: PageParams,
+        route_query: str | None,
+        method: str | None,
+        status_class: int | None,
+        workspace_id: UUID | None,
+        project_id: UUID | None,
+    ) -> PageData[HTTPRequestGroupOut]:
+        self._validate_days(days)
+        workspace_id, project_id = await self.resolve_scope(
+            workspace_id=workspace_id,
+            project_id=project_id,
+        )
+        start, end, _ = _period(days)
+        where, values = _scope_where(
+            alias="m",
+            start=start,
+            end=end,
+            time_column="bucket_start",
+            workspace_id=workspace_id,
+            project_id=project_id,
+        )
+        clauses = [where]
+        normalized_query = route_query.strip() if route_query else ""
+        if normalized_query:
+            values.append(f"%{normalized_query}%")
+            clauses.append(f"m.route_template ILIKE ${len(values)}")
+        if method:
+            values.append(method.upper())
+            clauses.append(f"m.method = ${len(values)}")
+        if status_class is not None:
+            values.append(status_class)
+            clauses.append(f"m.status_class = ${len(values)}")
+        filter_sql = " AND ".join(clauses)
+        connection = connections.get("default")
+        count_rows = await connection.execute_query_dict(
+            "SELECT COUNT(*) AS total FROM ("
+            "SELECT m.route_template, m.method, m.status_class "
+            f"FROM observability_http_request_metrics_hourly m WHERE {filter_sql} "
+            "GROUP BY m.route_template, m.method, m.status_class"
+            ") grouped",
+            values,
+        )
+        total = _int(count_rows[0].get("total")) if count_rows else 0
+        pages = ceil(total / params.size) if total else 0
+        items: list[HTTPRequestGroupOut] = []
+        if total and params.page <= pages:
+            page_values = [*values, params.limit, params.offset]
+            limit_placeholder = len(page_values) - 1
+            offset_placeholder = len(page_values)
+            rows = await connection.execute_query_dict(
+                "SELECT m.route_template, m.method, m.status_class, "
+                "SUM(m.request_count) AS requests, SUM(m.error_count) AS error_requests, "
+                "SUM(m.duration_total_ms) AS duration_total_ms, "
+                "MAX(m.duration_max_ms) AS max_latency_ms, "
+                "MAX(m.bucket_start) + INTERVAL '1 hour' AS last_seen_at "
+                f"FROM observability_http_request_metrics_hourly m WHERE {filter_sql} "
+                "GROUP BY m.route_template, m.method, m.status_class "
+                "ORDER BY requests DESC, m.route_template, m.method, m.status_class "
+                f"LIMIT ${limit_placeholder} OFFSET ${offset_placeholder}",
+                page_values,
+            )
+            for row in rows:
+                requests = _int(row.get("requests"))
+                errors = _int(row.get("error_requests"))
+                items.append(
+                    HTTPRequestGroupOut(
+                        route_template=str(row["route_template"]),
+                        method=str(row["method"]),
+                        status_class=_int(row.get("status_class")),
+                        requests=requests,
+                        error_requests=errors,
+                        error_rate=round(errors / requests, 6) if requests else 0,
+                        avg_latency_ms=(round(_number(row.get("duration_total_ms")) / requests, 2) if requests else 0),
+                        max_latency_ms=_int(row.get("max_latency_ms")),
+                        last_seen_at=row["last_seen_at"],
+                    )
+                )
+        return PageData[HTTPRequestGroupOut](
+            items=items,
+            total=total,
+            page=params.page,
+            size=params.size,
+            pages=pages,
+            next=params.page + 1 if params.page < pages else None,
+            prev=min(params.page - 1, pages) if pages and params.page > 1 else None,
+        )
+
     async def _ai_summary(
         self,
         *,
@@ -209,6 +304,98 @@ class ObservabilityService:
             completion_tokens=completion_tokens,
             total_tokens=prompt_tokens + completion_tokens,
             cost_micros=_int(row.get("cost_micros")),
+        )
+
+    async def list_ai_usage_groups(
+        self,
+        *,
+        days: int,
+        params: PageParams,
+        query: str | None,
+        provider: str | None,
+        workspace_id: UUID | None,
+        project_id: UUID | None,
+    ) -> PageData[AIUsageGroupOut]:
+        self._validate_days(days)
+        workspace_id, project_id = await self.resolve_scope(
+            workspace_id=workspace_id,
+            project_id=project_id,
+        )
+        start, end, _ = _period(days)
+        where, values = _scope_where(
+            alias="a",
+            start=start,
+            end=end,
+            time_column="created_at",
+            workspace_id=workspace_id,
+            project_id=project_id,
+        )
+        clauses = [where]
+        normalized_query = query.strip() if query else ""
+        if normalized_query:
+            values.append(f"%{normalized_query}%")
+            clauses.append(f"(a.provider ILIKE ${len(values)} OR a.model ILIKE ${len(values)})")
+        normalized_provider = provider.strip() if provider else ""
+        if normalized_provider:
+            values.append(normalized_provider)
+            clauses.append(f"a.provider = ${len(values)}")
+        filter_sql = " AND ".join(clauses)
+        connection = connections.get("default")
+        count_rows = await connection.execute_query_dict(
+            "SELECT COUNT(*) AS total FROM ("
+            "SELECT a.provider, a.model FROM ai_audit_log a "
+            f"WHERE {filter_sql} GROUP BY a.provider, a.model"
+            ") grouped",
+            values,
+        )
+        total = _int(count_rows[0].get("total")) if count_rows else 0
+        pages = ceil(total / params.size) if total else 0
+        items: list[AIUsageGroupOut] = []
+        if total and params.page <= pages:
+            page_values = [*values, params.limit, params.offset]
+            limit_placeholder = len(page_values) - 1
+            offset_placeholder = len(page_values)
+            rows = await connection.execute_query_dict(
+                "SELECT a.provider, a.model, COUNT(*) AS requests, "
+                "COUNT(*) FILTER (WHERE a.status <> 'success') AS error_requests, "
+                "COALESCE(SUM(a.prompt_tokens), 0) AS prompt_tokens, "
+                "COALESCE(SUM(a.completion_tokens), 0) AS completion_tokens, "
+                "COALESCE(SUM(a.cost_micros), 0) AS cost_micros, "
+                "COALESCE(AVG(a.duration_ms) FILTER (WHERE a.duration_ms IS NOT NULL), 0) AS avg_latency_ms, "
+                "MAX(a.created_at) AS last_seen_at FROM ai_audit_log a "
+                f"WHERE {filter_sql} GROUP BY a.provider, a.model "
+                "ORDER BY cost_micros DESC, requests DESC, a.provider, a.model "
+                f"LIMIT ${limit_placeholder} OFFSET ${offset_placeholder}",
+                page_values,
+            )
+            for row in rows:
+                requests = _int(row.get("requests"))
+                errors = _int(row.get("error_requests"))
+                prompt_tokens = _int(row.get("prompt_tokens"))
+                completion_tokens = _int(row.get("completion_tokens"))
+                items.append(
+                    AIUsageGroupOut(
+                        provider=str(row["provider"]),
+                        model=str(row["model"]),
+                        requests=requests,
+                        error_requests=errors,
+                        error_rate=round(errors / requests, 6) if requests else 0,
+                        prompt_tokens=prompt_tokens,
+                        completion_tokens=completion_tokens,
+                        total_tokens=prompt_tokens + completion_tokens,
+                        cost_micros=_int(row.get("cost_micros")),
+                        avg_latency_ms=round(_number(row.get("avg_latency_ms")), 2),
+                        last_seen_at=row["last_seen_at"],
+                    )
+                )
+        return PageData[AIUsageGroupOut](
+            items=items,
+            total=total,
+            page=params.page,
+            size=params.size,
+            pages=pages,
+            next=params.page + 1 if params.page < pages else None,
+            prev=min(params.page - 1, pages) if pages and params.page > 1 else None,
         )
 
     async def _resources(

@@ -29,7 +29,9 @@ vi.mock("@/api/ai", () => ({
 }));
 
 vi.mock("@/components/assistant-ui/thread", () => ({
-  Thread: () => <div data-testid="thread" />,
+  Thread: ({ composerAccessory }: { composerAccessory?: ReactNode }) => (
+    <div data-testid="thread">{composerAccessory}</div>
+  ),
 }));
 
 vi.mock("@/components/ai/ai-approval-queue", () => ({
@@ -49,7 +51,7 @@ vi.mock("@/components/ai/ai-content-proposal-card", () => ({
 }));
 
 vi.mock("@/components/feedback/feedback-dialog", () => ({
-  FeedbackDialog: ({ trigger }: { trigger: ReactNode }) => <>{trigger}</>,
+  AIConversationFeedbackPanel: () => <div data-testid="ai-feedback-panel" />,
 }));
 
 vi.mock("@/hooks/use-current-user-profile", () => ({

@@ -4,17 +4,18 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  createWorkspaceCheckoutSession,
+  createWorkspaceCustomerPortalSession,
   listWorkspaceCommercePlans,
-  requestWorkspacePlanChange,
   type WorkspacePlanOption,
 } from "@/api/commerce";
 import { PlanSelectionDialog } from "@/components/commerce/plan-selection-dialog";
 
 vi.mock("@/api/commerce", () => ({
+  createWorkspaceCheckoutSession: vi.fn(),
+  createWorkspaceCustomerPortalSession: vi.fn(),
   listWorkspaceCommercePlans: vi.fn(),
-  requestWorkspacePlanChange: vi.fn(),
 }));
-vi.mock("@/lib/notifications", () => ({ notifySuccessText: vi.fn() }));
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, values?: { count?: number }) =>
@@ -22,6 +23,8 @@ vi.mock("react-i18next", () => ({
     i18n: { language: "en-US", resolvedLanguage: "en-US" },
   }),
 }));
+
+const locationAssign = vi.fn();
 
 function plan(input: Partial<WorkspacePlanOption> & Pick<WorkspacePlanOption, "code" | "name">) {
   return {
@@ -46,29 +49,28 @@ function plan(input: Partial<WorkspacePlanOption> & Pick<WorkspacePlanOption, "c
   } satisfies WorkspacePlanOption;
 }
 
-function renderDialog(onOpenChange = vi.fn()) {
+function renderDialog() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
   render(
     <QueryClientProvider client={queryClient}>
-      <PlanSelectionDialog
-        workspaceId="workspace-1"
-        open
-        onOpenChange={onOpenChange}
-        pendingPlanCode="enterprise"
-      />
+      <PlanSelectionDialog workspaceId="workspace-1" open onOpenChange={vi.fn()} />
     </QueryClientProvider>,
   );
-  return { invalidateQueries, onOpenChange };
 }
 
 describe("PlanSelectionDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...window.location, assign: locationAssign },
+    });
     vi.mocked(listWorkspaceCommercePlans).mockResolvedValue({
-      billingMode: "operator_managed",
+      billingMode: "external_checkout",
+      billingProvider: "stripe",
+      checkoutEnabled: true,
       items: [
         plan({
           code: "free",
@@ -79,63 +81,55 @@ describe("PlanSelectionDialog", () => {
           sortOrder: 1,
         }),
         plan({ code: "premium", name: "Premium", sortOrder: 2 }),
-        plan({ code: "enterprise", name: "Enterprise", tier: "enterprise", sortOrder: 3 }),
       ],
     });
-    vi.mocked(requestWorkspacePlanChange).mockResolvedValue({
-      id: "request-1",
-      workspaceId: "workspace-1",
-      requestedByUserId: "user-1",
-      planCode: "premium",
-      planName: "高级版",
-      billingInterval: "monthly",
-      reason: null,
-      status: "pending",
-      reviewedByUserId: null,
-      reviewedAt: null,
-      reviewNote: null,
-      createdAt: "2026-07-12T00:00:00Z",
-      updatedAt: "2026-07-12T00:00:00Z",
+    vi.mocked(createWorkspaceCheckoutSession).mockResolvedValue({
+      url: "https://checkout.stripe.test/session",
+    });
+    vi.mocked(createWorkspaceCustomerPortalSession).mockResolvedValue({
+      url: "https://billing.stripe.test/portal",
     });
   });
 
-  it("marks the current and pending plans without presenting either as selectable", async () => {
+  it("marks the current plan and explains provider-hosted checkout", async () => {
     renderDialog();
 
-    const freeCard = (await screen.findByText("Free")).closest(
-      "[data-slot], .rounded-xl",
-    )?.parentElement;
-    expect(screen.getByText("Enterprise")).toBeInTheDocument();
-    expect(screen.getAllByText("commerce:PLAN_PENDING")).toHaveLength(2);
-    const currentButtons = screen.getAllByRole("button", { name: "commerce:PLAN_CURRENT" });
-    expect(currentButtons).toHaveLength(1);
-    expect(currentButtons[0]).toBeDisabled();
-    expect(screen.getByRole("button", { name: "commerce:PLAN_PENDING" })).toBeDisabled();
-    expect(freeCard).not.toBeUndefined();
+    expect(await screen.findByText("Free")).toBeVisible();
+    expect(screen.getByText("commerce:EXTERNAL_CHECKOUT_TITLE")).toBeVisible();
+    expect(screen.getByRole("button", { name: "commerce:PLAN_CURRENT" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /commerce:PLAN_CHECKOUT_ACTION/ })).toBeEnabled();
   });
 
-  it("submits the selected plan with the active billing interval and closes after success", async () => {
+  it("creates a checkout session for the selected interval and redirects without applying locally", async () => {
     const user = userEvent.setup();
-    const { invalidateQueries, onOpenChange } = renderDialog();
+    renderDialog();
 
-    const premiumTitle = await screen.findByText("Premium");
-    const premiumCard = premiumTitle.closest(".rounded-xl") as HTMLElement | null;
-    expect(premiumCard).not.toBeNull();
-    const requestButton = within(premiumCard!).getByRole("button", {
-      name: "commerce:PLAN_REQUEST_CHANGE",
-    });
+    const premiumCard = (await screen.findByText("Premium")).closest(".rounded-xl") as HTMLElement;
     await user.click(screen.getByRole("tab", { name: "commerce:BILLING_YEARLY" }));
-    await user.click(requestButton);
+    await user.click(
+      within(premiumCard).getByRole("button", { name: /commerce:PLAN_CHECKOUT_ACTION/ }),
+    );
 
-    await waitFor(() =>
-      expect(requestWorkspacePlanChange).toHaveBeenCalledWith("workspace-1", {
+    await waitFor(() => {
+      expect(createWorkspaceCheckoutSession).toHaveBeenCalledWith("workspace-1", {
         planCode: "premium",
         billingInterval: "yearly",
-      }),
-    );
-    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
-    expect(invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["system", "commerce", "subscription-change-requests"],
+      });
     });
+    expect(locationAssign).toHaveBeenCalledWith("https://checkout.stripe.test/session");
+  });
+
+  it("disables selection explicitly when no provider is configured", async () => {
+    vi.mocked(listWorkspaceCommercePlans).mockResolvedValue({
+      billingMode: "external_checkout",
+      billingProvider: "disabled",
+      checkoutEnabled: false,
+      items: [plan({ code: "premium", name: "Premium" })],
+    });
+    renderDialog();
+
+    expect(await screen.findByText("commerce:BILLING_PROVIDER_UNAVAILABLE_TITLE")).toBeVisible();
+    expect(await screen.findByText("Premium")).toBeVisible();
+    expect(screen.getByRole("button", { name: /commerce:PLAN_CHECKOUT_ACTION/ })).toBeDisabled();
   });
 });

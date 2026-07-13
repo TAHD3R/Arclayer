@@ -15,10 +15,6 @@ vi.mock("@/api/commerce", () => ({
   upsertSystemCommercePlan: vi.fn(),
 }));
 
-vi.mock("@/pages/system/billing/change-request-review", () => ({
-  SubscriptionChangeRequestReview: () => <div data-testid="change-request-review" />,
-}));
-
 vi.mock("@/lib/notifications", () => ({
   notifyErrorText: vi.fn(),
   notifySuccessText: vi.fn(),
@@ -40,8 +36,8 @@ const savedPlan: CommercePlan = {
   creditGrantAmount: 0,
   creditRefreshInterval: "monthly",
   creditValueMicros: 1_000,
-  priceMonthlyMicros: 1,
-  priceYearlyMicros: 123_456_789,
+  priceMonthlyMicros: 10_000,
+  priceYearlyMicros: 123_450_000,
   currency: "USD",
   features: [],
   isActive: true,
@@ -66,18 +62,20 @@ describe("SystemSettingsBillingPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(listSystemCommercePlans).mockResolvedValue({
-      billingMode: "operator_managed",
+      billingMode: "external_checkout",
+      billingProvider: "stripe",
+      checkoutEnabled: true,
       items: [],
     });
     vi.mocked(upsertSystemCommercePlan).mockResolvedValue(savedPlan);
   });
 
-  it("opens the plan editor from an empty catalog and preserves microdollar precision", async () => {
+  it("opens the plan editor from an empty catalog and saves provider-compatible prices", async () => {
     const user = userEvent.setup();
     renderPage();
 
     expect(await screen.findByText("commerce:SETTINGS_EMPTY_TITLE")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "commerce:SETTINGS_ADD_PLAN" }));
+    await user.click(screen.getAllByRole("button", { name: "commerce:SETTINGS_ADD_PLAN" })[0]);
 
     const dialog = await screen.findByRole("dialog");
     const scope = within(dialog);
@@ -90,9 +88,9 @@ describe("SystemSettingsBillingPage", () => {
       "A plan with exact microdollar prices.",
     );
     await user.clear(scope.getByLabelText("commerce:SETTINGS_PRICE_MONTHLY"));
-    await user.type(scope.getByLabelText("commerce:SETTINGS_PRICE_MONTHLY"), "0.000001");
+    await user.type(scope.getByLabelText("commerce:SETTINGS_PRICE_MONTHLY"), "0.01");
     await user.clear(scope.getByLabelText("commerce:SETTINGS_PRICE_YEARLY"));
-    await user.type(scope.getByLabelText("commerce:SETTINGS_PRICE_YEARLY"), "123.456789");
+    await user.type(scope.getByLabelText("commerce:SETTINGS_PRICE_YEARLY"), "123.45");
     await user.click(scope.getByRole("button", { name: "commerce:SETTINGS_SAVE" }));
 
     await waitFor(() => {
@@ -103,8 +101,8 @@ describe("SystemSettingsBillingPage", () => {
         creditGrantAmount: 0,
         creditRefreshInterval: "monthly",
         creditValueMicros: 1_000,
-        priceMonthlyMicros: 1,
-        priceYearlyMicros: 123_456_789,
+        priceMonthlyMicros: 10_000,
+        priceYearlyMicros: 123_450_000,
         currency: "USD",
         isActive: true,
         isDefault: false,
@@ -112,5 +110,29 @@ describe("SystemSettingsBillingPage", () => {
         features: [],
       });
     });
+  });
+
+  it("rejects plan prices with precision smaller than one currency cent", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(await screen.findByText("commerce:SETTINGS_EMPTY_TITLE")).toBeInTheDocument();
+    await user.click(screen.getAllByRole("button", { name: "commerce:SETTINGS_ADD_PLAN" })[0]);
+
+    const scope = within(await screen.findByRole("dialog"));
+    await user.type(scope.getByLabelText("commerce:SETTINGS_PLAN_CODE"), "precision-plan");
+    await user.type(scope.getByLabelText("commerce:SETTINGS_PLAN_NAME"), "Precision plan");
+    await user.type(
+      scope.getByLabelText("commerce:SETTINGS_PLAN_DESCRIPTION"),
+      "A plan with unsupported sub-cent precision.",
+    );
+    await user.clear(scope.getByLabelText("commerce:SETTINGS_PRICE_MONTHLY"));
+    await user.type(scope.getByLabelText("commerce:SETTINGS_PRICE_MONTHLY"), "0.000001");
+    await user.click(scope.getByRole("button", { name: "commerce:SETTINGS_SAVE" }));
+
+    expect(
+      await scope.findByText("commerce:SETTINGS_VALIDATION_CURRENCY_PRECISION"),
+    ).toBeInTheDocument();
+    expect(upsertSystemCommercePlan).not.toHaveBeenCalled();
   });
 });

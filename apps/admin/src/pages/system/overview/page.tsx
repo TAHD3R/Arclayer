@@ -41,7 +41,6 @@ export function SystemPlatformOverviewPage() {
     <DefaultPage
       title={t("OVERVIEW_TITLE")}
       description={t("OVERVIEW_DESCRIPTION")}
-      showFavoriteToggle={false}
       action={
         <div className="flex items-center gap-2">
           <ObservabilityPeriodSelect value={days} onChange={setDays} />

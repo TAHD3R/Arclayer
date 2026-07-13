@@ -323,13 +323,33 @@ describe("AdminScopeSwitcher", () => {
     expect(within(panel).getByRole("button", { name: /Workspace Alpha/ })).toBeInTheDocument();
     expect(within(panel).getByRole("button", { name: "Project Settings" })).toBeInTheDocument();
     expect(within(panel).getByRole("button", { name: "Workspace Settings" })).toBeInTheDocument();
-    expect(within(panel).getByRole("button", { name: "Billing & Usage" })).toHaveClass(
+    expect(within(panel).getByRole("button", { name: "Billing & Usage" })).not.toHaveClass(
       "pointer-events-none",
     );
     expect(within(panel).getByRole("button", { name: /Invite members/ })).not.toHaveClass(
       "pointer-events-none",
     );
     expect(within(panel).getAllByRole("button", { name: /Invite members/ })).toHaveLength(1);
+  });
+
+  it("opens the workspace Plan & Usage screen from the scope panel", async () => {
+    const user = userEvent.setup();
+    renderWithQueryClient(
+      <>
+        <AdminScopeSwitcher />
+        <SettingsScreenProbe />
+      </>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: /Select scope/ }));
+    const panel = getLatestDialog();
+    await user.click(within(panel).getByRole("button", { name: "Billing & Usage" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(screen.getByTestId("settings-screen-state")).toHaveTextContent("workspace.plan-usage");
+    });
+    expect(useWorkspaceStore.getState().currentWorkspaceId).toBe("ws-alpha");
   });
 
   it("uses route project detail for the panel project when the active project is not listed yet", async () => {

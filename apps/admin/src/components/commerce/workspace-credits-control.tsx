@@ -1,15 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { Bolt, CalendarClock, CircleAlert, Gift, History, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { CalendarClock, CircleAlert, Coins, Gift, History, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { getWorkspaceCommerceOverview } from "@/api/commerce";
-import { CreditLedgerDialog } from "@/components/commerce/credit-ledger-dialog";
-import { PlanSelectionDialog } from "@/components/commerce/plan-selection-dialog";
+import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
 import { getErrorMessage } from "@/lib/notifications";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { cn } from "@arclayer/lib/utils";
-import { Alert, AlertDescription } from "@arclayer/ui/alert";
 import { Button } from "@arclayer/ui/button";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@arclayer/ui/hover-card";
 import { Progress } from "@arclayer/ui/progress";
@@ -23,8 +20,7 @@ function usagePercent(spent: number, granted: number): number {
 
 export function WorkspaceCreditsControl(props: { className?: string } = {}) {
   const { t, i18n } = useTranslation(["commerce"]);
-  const [plansOpen, setPlansOpen] = useState(false);
-  const [ledgerOpen, setLedgerOpen] = useState(false);
+  const settingsScreen = useSettingsScreen();
   const workspaceId = useWorkspaceStore(
     (state) => state.currentWorkspaceId ?? state.lastWorkspaceId,
   );
@@ -47,7 +43,8 @@ export function WorkspaceCreditsControl(props: { className?: string } = {}) {
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const number = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
   const date = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
-  const pendingPlanCode = overview?.pendingChangeRequest?.planCode ?? null;
+  const isFreePlan = overview?.plan.code === "free";
+  const openPlanUsage = () => settingsScreen.openSettings({ screen: "workspace.plan-usage" });
 
   const trigger = (
     <Button
@@ -56,12 +53,16 @@ export function WorkspaceCreditsControl(props: { className?: string } = {}) {
       size="sm"
       tapScale={1}
       className={cn("text-callout font-semibold", props.className)}
-      onClick={() => setPlansOpen(true)}
+      onClick={openPlanUsage}
     >
-      {overview ? <Bolt aria-hidden="true" /> : <CircleAlert aria-hidden="true" />}
+      {overview ? <Coins aria-hidden="true" /> : <CircleAlert aria-hidden="true" />}
       <span>{overview ? number.format(overview.credits.available) : "—"}</span>
-      <Separator orientation="vertical" className="h-4" />
-      <span className="hidden lg:inline">{t("commerce:PLAN_VIEW_ACTION")}</span>
+      {isFreePlan ? (
+        <>
+          <Separator orientation="vertical" className="h-4" />
+          <span className="hidden lg:inline">{t("commerce:PLAN_UPGRADE_ACTION")}</span>
+        </>
+      ) : null}
       <span className="sr-only">
         {overview
           ? t("commerce:CREDITS_BUTTON_LABEL", {
@@ -159,18 +160,7 @@ export function WorkspaceCreditsControl(props: { className?: string } = {}) {
                 </div>
               </div>
 
-              {overview.pendingChangeRequest ? (
-                <Alert>
-                  <CalendarClock aria-hidden="true" />
-                  <AlertDescription>
-                    {t("commerce:PLAN_PENDING_DESCRIPTION", {
-                      plan: overview.pendingChangeRequest.planName,
-                    })}
-                  </AlertDescription>
-                </Alert>
-              ) : null}
-
-              <Button type="button" variant="outline" onClick={() => setLedgerOpen(true)}>
+              <Button type="button" variant="outline" onClick={openPlanUsage}>
                 <History data-icon="inline-start" aria-hidden="true" />
                 {t("commerce:LEDGER_VIEW_ACTION")}
               </Button>
@@ -190,18 +180,6 @@ export function WorkspaceCreditsControl(props: { className?: string } = {}) {
           )}
         </HoverCardContent>
       </HoverCard>
-
-      <PlanSelectionDialog
-        workspaceId={workspaceId}
-        open={plansOpen}
-        onOpenChange={setPlansOpen}
-        pendingPlanCode={pendingPlanCode}
-      />
-      <CreditLedgerDialog
-        workspaceId={workspaceId}
-        open={ledgerOpen}
-        onOpenChange={setLedgerOpen}
-      />
     </>
   );
 }

@@ -65,7 +65,6 @@ const ACCOUNT_MENU_RESOURCE_URLS = {
   documentation: "https://docs.arclayer.com",
   changelog: "https://arclayer.com/changelog",
   helpCenter: "https://arclayer.com/help",
-  subscription: "https://arclayer.com/pricing",
 } as const;
 
 type AccountMenuResource = keyof typeof ACCOUNT_MENU_RESOURCE_URLS;
@@ -655,7 +654,7 @@ function useAdminAccountMenuModel(): AdminAccountMenuModel {
       settingsScreen.openSettings({ screen: "workspace.general" });
     },
     onSubscription: () => {
-      window.open(ACCOUNT_MENU_RESOURCE_URLS.subscription, "_blank", "noopener,noreferrer");
+      settingsScreen.openSettings({ screen: "workspace.plan-usage" });
     },
     onThemePreferenceChange: async (next) => {
       await setThemePreferenceWithTransition(next, { direction: "ltr" });

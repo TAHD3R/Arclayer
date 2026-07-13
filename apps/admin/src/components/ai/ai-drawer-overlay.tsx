@@ -7,7 +7,7 @@ import { Thread } from "@/components/assistant-ui/thread";
 import { AIApprovalQueue } from "@/components/ai/ai-approval-queue";
 import { AIChatRuntimeProvider } from "@/components/ai/ai-chat-runtime";
 import { AIContentProposalCard } from "@/components/ai/ai-content-proposal-card";
-import { FeedbackDialog } from "@/components/feedback/feedback-dialog";
+import { AIConversationFeedbackPanel } from "@/components/feedback/feedback-dialog";
 import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
 import { getUserDisplayName } from "@/lib/auth/user-profile";
 import { useAuthStore } from "@/stores/use-auth-store";
@@ -32,7 +32,7 @@ function DrawerIconButton(props: { label: string; onClick: () => void; children:
           size="icon-sm"
           aria-label={props.label}
           onClick={props.onClick}
-          className="!rounded-full text-label-secondary hover:text-label-primary"
+          className="text-label-secondary hover:text-label-primary"
         >
           {props.children}
         </Button>
@@ -65,6 +65,7 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
     profile?.email ??
     getUserDisplayName(accessToken, t("ai:AI_CHAT_HOME_USER_FALLBACK"));
   const [editingTitle, setEditingTitle] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [titleDraft, setTitleDraft] = useState(conversationTitle);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -176,7 +177,7 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
                       cancelTitleEdit();
                     }
                   }}
-                  className="h-8 rounded-md border-transparent bg-accent/50 px-2 text-headline font-semibold"
+                  className="h-8 rounded-md border-transparent bg-accent/50 px-2 text-headline font-semibold md:text-headline"
                 />
               ) : (
                 <Tooltip>
@@ -194,20 +195,16 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
               )}
             </div>
 
-            <FeedbackDialog
-              source="ai_sidebar"
-              conversationId={activeId}
-              trigger={
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="text-callout font-semibold text-label-secondary hover:text-label-primary"
-                >
-                  {t("common:TOPBAR_FEEDBACK")}
-                </Button>
-              }
-            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-callout font-semibold text-label-secondary hover:text-label-primary"
+              aria-expanded={feedbackOpen}
+              onClick={() => setFeedbackOpen((current) => !current)}
+            >
+              {t("common:TOPBAR_FEEDBACK")}
+            </Button>
             <DrawerIconButton
               label={t("ai:AI_CHAT_NEW_CONVERSATION")}
               onClick={handleCreateConversation}
@@ -222,7 +219,19 @@ export function AIDrawerOverlay(props: { widthPx: number }) {
                 <AIApprovalQueue enabled={drawerOpen} />
                 <div className="min-h-0 flex-1">
                   <AIChatRuntimeProvider conversationId={activeId}>
-                    <Thread variant="sidebar" welcomeName={welcomeName} />
+                    <Thread
+                      variant="sidebar"
+                      welcomeName={welcomeName}
+                      composerAccessory={
+                        feedbackOpen ? (
+                          <AIConversationFeedbackPanel
+                            conversationId={activeId}
+                            onCancel={() => setFeedbackOpen(false)}
+                            onSubmitted={() => setFeedbackOpen(false)}
+                          />
+                        ) : null
+                      }
+                    />
                   </AIChatRuntimeProvider>
                 </div>
               </div>

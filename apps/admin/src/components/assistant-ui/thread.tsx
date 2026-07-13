@@ -25,7 +25,6 @@ import {
 } from "@/components/ai/ai-composer-toolbar";
 import { AIComposerDirectiveChips } from "@/components/ai/ai-composer-directive-chips";
 import { AIComposerTriggers } from "@/components/ai/ai-composer-triggers";
-import { AIContextRecommendations } from "@/components/ai/ai-context-recommendations";
 import { AISuggestions } from "@/components/ai/ai-suggestions";
 import { ComposerQueue } from "@/components/assistant-ui/composer-queue";
 import { formatAIChatError, resumeAIAgentRunForConversation } from "@/api/ai";
@@ -77,6 +76,7 @@ import {
   type ComponentType,
   type FC,
   type PropsWithChildren,
+  type ReactNode,
 } from "react";
 import { useTranslation } from "react-i18next";
 import type {
@@ -114,6 +114,7 @@ export type ThreadComponents = {
 
 export type ThreadProps = {
   components?: ThreadComponents | undefined;
+  composerAccessory?: ReactNode;
   variant?: "default" | "sidebar";
   welcomeName?: string | undefined;
 };
@@ -133,6 +134,7 @@ const isNewChatView = (s: AssistantState) =>
 
 export const Thread: FC<ThreadProps> = ({
   components = EMPTY_COMPONENTS,
+  composerAccessory,
   variant = "default",
   welcomeName,
 }) => {
@@ -142,14 +144,18 @@ export const Thread: FC<ThreadProps> = ({
     <ThreadComponentsContext.Provider value={components}>
       <ThreadVariantContext.Provider value={variant}>
         <ThreadWelcomeNameContext.Provider value={welcomeName}>
-          <ThreadRoot isEmpty={isEmpty} variant={variant} />
+          <ThreadRoot composerAccessory={composerAccessory} isEmpty={isEmpty} variant={variant} />
         </ThreadWelcomeNameContext.Provider>
       </ThreadVariantContext.Provider>
     </ThreadComponentsContext.Provider>
   );
 };
 
-const ThreadRoot: FC<{ isEmpty: boolean; variant: ThreadVariant }> = ({ isEmpty, variant }) => {
+const ThreadRoot: FC<{
+  composerAccessory?: ReactNode;
+  isEmpty: boolean;
+  variant: ThreadVariant;
+}> = ({ composerAccessory, isEmpty, variant }) => {
   const { Welcome = ThreadWelcome } = useContext(ThreadComponentsContext);
   const isSidebar = variant === "sidebar";
 
@@ -202,6 +208,7 @@ const ThreadRoot: FC<{ isEmpty: boolean; variant: ThreadVariant }> = ({ isEmpty,
             )}
           >
             <ThreadScrollToBottom />
+            {composerAccessory}
             <Composer />
             {!isSidebar ? (
               <AuiIf condition={(s) => isNewChatView(s) && s.composer.isEmpty}>
@@ -293,8 +300,7 @@ const Composer: FC = () => {
         )}
       >
         {isSidebar ? (
-          <div className="flex min-w-0 flex-col gap-2 rounded-t-(--composer-radius) border border-b-0 border-border/60 bg-muted/55 px-2.5 pb-2 pt-2.5 shadow-sm backdrop-blur-xl">
-            <AIContextRecommendations />
+          <div className="flex min-w-0 flex-col gap-2 rounded-t-(--composer-radius) border border-b-0 border-border/60 bg-muted px-2.5 pb-2 pt-2.5 shadow-sm">
             <AIComposerContextControls compact />
           </div>
         ) : null}
@@ -304,7 +310,7 @@ const Composer: FC = () => {
           className={cn(
             "relative flex w-full min-w-0 flex-col gap-2 rounded-(--composer-radius) bg-(--composer-bg) p-(--composer-padding) transition-colors hover:border-border focus-within:border-border dark:shadow-none",
             isSidebar
-              ? "min-h-[8.5rem] !rounded-t-none border border-border/60 backdrop-blur-xl"
+              ? "min-h-[8.5rem] !rounded-t-none border border-border/60 bg-muted"
               : "h-[6.5rem] min-h-[6.5rem] border border-border/60 dark:border-muted-foreground/15",
           )}
         >
@@ -313,7 +319,7 @@ const Composer: FC = () => {
           <ComposerPrimitive.Input
             placeholder={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
             className={cn(
-              "aui-composer-input placeholder:text-muted-foreground/80 w-full min-w-0 resize-none bg-transparent px-2.5 py-1 text-callout outline-none [field-sizing:fixed]",
+              "aui-composer-input w-full min-w-0 resize-none bg-transparent px-2.5 py-1 text-callout text-label-primary outline-none [field-sizing:fixed] placeholder:text-label-secondary",
               isSidebar ? "h-20 min-h-20 max-h-20" : "h-12 min-h-12 max-h-12",
             )}
             rows={1}
@@ -404,14 +410,14 @@ export const AgentRunSummary: FC = () => {
   const tone =
     status === "failed"
       ? "border-destructive/35 bg-destructive/5 text-destructive"
-      : "border-border/70 bg-muted/25 text-muted-foreground";
+      : "border-border/70 bg-muted/25 text-label-secondary";
 
   return (
     <section
       className={cn(
         hasRunStatus
           ? cn("mt-3 rounded-lg border px-3 py-2 text-caption", tone)
-          : "mt-3 text-muted-foreground",
+          : "mt-3 text-label-secondary",
       )}
       aria-label={t("ai:AI_AGENT_RUN_SUMMARY_TITLE")}
     >
@@ -470,7 +476,7 @@ const AgentExecutionSummary: FC<{
               {toolNames.map((toolName, index) => (
                 <li key={`${toolName}-${index}`} className="flex min-w-0 items-center gap-2">
                   <WrenchIcon
-                    className="size-3.5 shrink-0 text-muted-foreground"
+                    className="size-3.5 shrink-0 text-label-secondary"
                     aria-hidden="true"
                   />
                   <span className="truncate text-callout">{toolName}</span>
@@ -524,29 +530,29 @@ const AgentInterrupt: FC = () => {
     <section className="mt-3 overflow-hidden rounded-lg border border-border/70 bg-background text-sm">
       <div className="flex min-w-0 items-center justify-between gap-3 border-b border-border/60 px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
-          <ShieldCheckIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <h3 className="truncate text-sm font-semibold text-foreground">
+          <ShieldCheckIcon className="size-4 shrink-0 text-label-secondary" aria-hidden="true" />
+          <h3 className="truncate text-sm font-semibold text-label-primary">
             {t("ai:AI_AGENT_INTERRUPT_TITLE")}
           </h3>
         </div>
-        <span className="shrink-0 rounded-md border border-border/60 bg-muted/40 px-2 py-0.5 text-caption font-medium text-muted-foreground">
+        <span className="shrink-0 rounded-md border border-border/60 bg-muted/40 px-2 py-0.5 text-caption font-medium text-label-secondary">
           {status}
         </span>
       </div>
       <div className="grid gap-2 px-3 py-2.5">
         <dl className="grid grid-cols-[5.25rem_minmax(0,1fr)] gap-x-2 gap-y-1 text-caption">
-          <dt className="text-muted-foreground">{t("ai:AI_AGENT_INTERRUPT_AGENT")}</dt>
-          <dd className="truncate font-medium text-foreground">{interrupt.agentId}</dd>
-          <dt className="text-muted-foreground">{t("ai:AI_AGENT_INTERRUPT_MODE")}</dt>
-          <dd className="font-medium text-foreground">{interrupt.mode}</dd>
+          <dt className="text-label-secondary">{t("ai:AI_AGENT_INTERRUPT_AGENT")}</dt>
+          <dd className="truncate font-medium text-label-primary">{interrupt.agentId}</dd>
+          <dt className="text-label-secondary">{t("ai:AI_AGENT_INTERRUPT_MODE")}</dt>
+          <dd className="font-medium text-label-primary">{interrupt.mode}</dd>
           {checkpoint ? (
             <>
-              <dt className="text-muted-foreground">{t("ai:AI_AGENT_INTERRUPT_CHECKPOINT")}</dt>
-              <dd className="truncate font-mono text-[11px] text-muted-foreground">{checkpoint}</dd>
+              <dt className="text-label-secondary">{t("ai:AI_AGENT_INTERRUPT_CHECKPOINT")}</dt>
+              <dd className="truncate font-mono text-[11px] text-label-secondary">{checkpoint}</dd>
             </>
           ) : null}
         </dl>
-        <p className="line-clamp-3 rounded-md bg-muted/35 px-2.5 py-2 text-footnote leading-relaxed text-muted-foreground">
+        <p className="line-clamp-3 rounded-md bg-muted/35 px-2.5 py-2 text-footnote leading-relaxed text-label-secondary">
           {interrupt.prompt}
         </p>
         {error ? (
@@ -625,15 +631,15 @@ const AgentArtifactCard: FC<{ artifact: AIAgentMessageArtifact }> = ({ artifact 
     <section className="mt-3 overflow-hidden rounded-lg border border-border/70 bg-muted/30 text-sm">
       <div className="flex min-w-0 items-center justify-between gap-3 border-b border-border/60 px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
-          <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <h3 className="truncate text-sm font-semibold text-foreground">{title}</h3>
+          <Icon className="size-4 shrink-0 text-label-secondary" aria-hidden="true" />
+          <h3 className="truncate text-sm font-semibold text-label-primary">{title}</h3>
         </div>
-        <span className="shrink-0 rounded-md border border-border/60 bg-background/70 px-2 py-0.5 text-caption font-medium text-muted-foreground">
+        <span className="shrink-0 rounded-md border border-border/60 bg-background/70 px-2 py-0.5 text-caption font-medium text-label-secondary">
           {agentArtifactStatusLabel(t, artifact.status)}
         </span>
       </div>
       {artifact.goal.trim() ? (
-        <p className="border-b border-border/50 px-3 py-2 text-footnote leading-relaxed text-muted-foreground">
+        <p className="border-b border-border/50 px-3 py-2 text-footnote leading-relaxed text-label-secondary">
           {artifact.goal}
         </p>
       ) : null}
@@ -678,13 +684,13 @@ const AgentArtifactStepRow: FC<{ item: AIAgentArtifactStep; index: number }> = (
 
   return (
     <li className="grid grid-cols-[1.5rem_minmax(0,1fr)_1.25rem] items-start gap-2 px-3 py-2">
-      <span className="text-caption font-medium text-muted-foreground tabular-nums">
+      <span className="text-caption font-medium text-label-secondary tabular-nums">
         {index + 1}
       </span>
-      <span className="min-w-0 text-footnote leading-relaxed text-foreground">
+      <span className="min-w-0 text-footnote leading-relaxed text-label-primary">
         <TooltipText value={item.title} className="font-medium" />
         {item.toolName || item.detail ? (
-          <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-caption text-muted-foreground">
+          <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-caption text-label-secondary">
             {item.toolName ? (
               <TooltipText
                 value={workspaceToolDisplayName(t, item.toolName)}
@@ -726,8 +732,8 @@ const AgentArtifactStepStatus: FC<{ status: string }> = ({ status }) => {
       : status === "failed"
         ? "text-destructive"
         : status === "running"
-          ? "text-muted-foreground"
-          : "text-muted-foreground/80";
+          ? "text-label-secondary"
+          : "text-label-tertiary";
 
   return (
     <Tooltip side="top">
@@ -822,7 +828,7 @@ const AgentBuildArtifactFooter: FC<{
   const { t } = useTranslation(["ai", "common"]);
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-t border-border/60 px-3 py-2 text-caption text-muted-foreground">
+    <div className="flex flex-wrap items-center gap-2 border-t border-border/60 px-3 py-2 text-caption text-label-secondary">
       <span className="font-medium">
         {t("ai:AI_AGENT_ARTIFACT_APPLIES_CHANGES", {
           value: artifact.appliesChanges
@@ -899,10 +905,10 @@ const WorkspaceActionCard: FC<{ artifact: AIWorkspaceActionArtifact }> = ({ arti
     <section className="mt-3 overflow-hidden rounded-lg border border-border/70 bg-muted/30 text-sm">
       <div className="flex min-w-0 items-center justify-between gap-3 border-b border-border/60 px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
-          <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <h3 className="truncate text-sm font-semibold text-foreground">{title}</h3>
+          <Icon className="size-4 shrink-0 text-label-secondary" aria-hidden="true" />
+          <h3 className="truncate text-sm font-semibold text-label-primary">{title}</h3>
         </div>
-        <span className="shrink-0 rounded-md border border-border/60 bg-background/70 px-2 py-0.5 text-caption font-medium text-muted-foreground">
+        <span className="shrink-0 rounded-md border border-border/60 bg-background/70 px-2 py-0.5 text-caption font-medium text-label-secondary">
           {t("ai:AI_WORKSPACE_ACTION_STATUS_COMPLETED")}
         </span>
       </div>
@@ -929,7 +935,7 @@ const WorkspaceActionCard: FC<{ artifact: AIWorkspaceActionArtifact }> = ({ arti
               <WorkspaceProjectRow key={project.id} project={project} />
             ))
           ) : (
-            <p className="px-3 py-2 text-footnote text-muted-foreground">
+            <p className="px-3 py-2 text-footnote text-label-secondary">
               {t("ai:AI_WORKSPACE_ACTION_PROJECT_LIST_EMPTY")}
             </p>
           )}
@@ -994,8 +1000,10 @@ const WorkspaceProjectRow: FC<{
   return (
     <div className="grid gap-1 px-3 py-2.5">
       <div className="flex min-w-0 items-center justify-between gap-3">
-        <span className="truncate text-footnote font-semibold text-foreground">{project.name}</span>
-        <span className="shrink-0 rounded-md bg-background/70 px-1.5 py-0.5 font-mono text-caption text-muted-foreground">
+        <span className="truncate text-footnote font-semibold text-label-primary">
+          {project.name}
+        </span>
+        <span className="shrink-0 rounded-md bg-background/70 px-1.5 py-0.5 font-mono text-caption text-label-secondary">
           {project.slug}
         </span>
       </div>
@@ -1009,7 +1017,7 @@ const WorkspaceProjectRow: FC<{
       (summary?.releaseReady !== null && summary?.releaseReady !== undefined) ||
       summary?.appEntryPath ||
       summary?.sourceFileCount ? (
-        <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-caption leading-relaxed text-muted-foreground">
+        <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-caption leading-relaxed text-label-secondary">
           {summary.homepageTitle ? (
             <span>
               {t("ai:AI_WORKSPACE_ACTION_PROJECT_HOMEPAGE_BADGE", {
@@ -1083,7 +1091,7 @@ const WorkspaceProjectRow: FC<{
         </p>
       ) : null}
       {project.description ? (
-        <p className="line-clamp-2 text-caption leading-relaxed text-muted-foreground">
+        <p className="line-clamp-2 text-caption leading-relaxed text-label-secondary">
           {project.description}
         </p>
       ) : null}
@@ -1096,15 +1104,15 @@ const WorkspaceContentModelRow: FC<{
 }> = ({ contentModel }) => (
   <div className="grid gap-1 px-3 py-2.5">
     <div className="flex min-w-0 items-center justify-between gap-3">
-      <span className="truncate text-footnote font-semibold text-foreground">
+      <span className="truncate text-footnote font-semibold text-label-primary">
         {contentModel.name}
       </span>
-      <span className="shrink-0 rounded-md bg-background/70 px-1.5 py-0.5 font-mono text-caption text-muted-foreground">
+      <span className="shrink-0 rounded-md bg-background/70 px-1.5 py-0.5 font-mono text-caption text-label-secondary">
         {contentModel.singularKey}
       </span>
     </div>
     {contentModel.description ? (
-      <p className="line-clamp-2 text-caption leading-relaxed text-muted-foreground">
+      <p className="line-clamp-2 text-caption leading-relaxed text-label-secondary">
         {contentModel.description}
       </p>
     ) : null}
@@ -1134,12 +1142,12 @@ const WorkspaceContentModelUpdateRow: FC<{
   return (
     <div className="grid gap-1 px-3 py-2.5">
       <div className="flex min-w-0 items-center justify-between gap-3">
-        <span className="truncate text-footnote font-semibold text-foreground">{title}</span>
-        <span className="shrink-0 rounded-md bg-background/70 px-1.5 py-0.5 text-caption font-medium text-muted-foreground">
+        <span className="truncate text-footnote font-semibold text-label-primary">{title}</span>
+        <span className="shrink-0 rounded-md bg-background/70 px-1.5 py-0.5 text-caption font-medium text-label-secondary">
           {badge}
         </span>
       </div>
-      <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-caption leading-relaxed text-muted-foreground">
+      <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-caption leading-relaxed text-label-secondary">
         <span className="truncate">{workspaceContentModelActionLabel(t, contentModel.action)}</span>
         {primary?.singularKey ? <span className="font-mono">{primary.singularKey}</span> : null}
         {contentModel.modelCount !== null && contentModel.modelCount !== undefined ? (
@@ -1180,12 +1188,12 @@ const WorkspaceContentItemUpdateRow: FC<{
   return (
     <div className="grid gap-1 px-3 py-2.5">
       <div className="flex min-w-0 items-center justify-between gap-3">
-        <span className="truncate text-footnote font-semibold text-foreground">{title}</span>
-        <span className="shrink-0 rounded-md bg-background/70 px-1.5 py-0.5 text-caption font-medium text-muted-foreground">
+        <span className="truncate text-footnote font-semibold text-label-primary">{title}</span>
+        <span className="shrink-0 rounded-md bg-background/70 px-1.5 py-0.5 text-caption font-medium text-label-secondary">
           {badge}
         </span>
       </div>
-      <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-caption leading-relaxed text-muted-foreground">
+      <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-caption leading-relaxed text-label-secondary">
         <span className="truncate">{workspaceContentItemActionLabel(t, content.action)}</span>
         {item?.modelKey ? <span className="font-mono">{item.modelKey}</span> : null}
         {content.itemCount !== null && content.itemCount !== undefined ? (
@@ -1264,18 +1272,18 @@ const WorkspaceSourceUpdateRow: FC<{
   return (
     <div className="grid gap-1 px-3 py-2.5">
       <div className="flex min-w-0 items-center justify-between gap-3">
-        <span className="truncate text-footnote font-semibold text-foreground">
+        <span className="truncate text-footnote font-semibold text-label-primary">
           {source.filePath ??
             (source.action === "update_project_source_settings"
               ? t("ai:AI_WORKSPACE_ACTION_SOURCE_SETTINGS_LABEL")
               : t("ai:AI_WORKSPACE_ACTION_SOURCE_MANIFEST_LABEL"))}
         </span>
-        <span className="shrink-0 rounded-md bg-background/70 px-1.5 py-0.5 font-mono text-caption text-muted-foreground">
+        <span className="shrink-0 rounded-md bg-background/70 px-1.5 py-0.5 font-mono text-caption text-label-secondary">
           {badge}
         </span>
       </div>
       {source.fileCount !== null && source.fileCount !== undefined ? (
-        <p className="text-caption leading-relaxed text-muted-foreground">
+        <p className="text-caption leading-relaxed text-label-secondary">
           {t("ai:AI_WORKSPACE_ACTION_SOURCE_FILE_COUNT", { count: source.fileCount })}
         </p>
       ) : null}
@@ -1309,17 +1317,17 @@ const WorkspaceSiteSettingsUpdateRow: FC<{
   return (
     <div className="grid gap-1 px-3 py-2.5">
       <div className="flex min-w-0 items-center justify-between gap-3">
-        <span className="truncate text-footnote font-semibold text-foreground">
+        <span className="truncate text-footnote font-semibold text-label-primary">
           {t("ai:AI_WORKSPACE_ACTION_SITE_SETTINGS_CONFIG_LABEL")}
         </span>
-        <span className="shrink-0 rounded-md bg-background/70 px-1.5 py-0.5 text-caption font-medium text-muted-foreground">
+        <span className="shrink-0 rounded-md bg-background/70 px-1.5 py-0.5 text-caption font-medium text-label-secondary">
           {t("ai:AI_WORKSPACE_ACTION_SITE_SETTINGS_FIELD_COUNT", {
             count: settings.fieldCount,
           })}
         </span>
       </div>
       {previewFields.length ? (
-        <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-caption leading-relaxed text-muted-foreground">
+        <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-caption leading-relaxed text-label-secondary">
           {previewFields.map((field) => (
             <span key={field} className="font-mono">
               {field}
@@ -1686,7 +1694,7 @@ const AssistantMarkdownText: FC = () => {
         type="button"
         variant="ghost"
         size="sm"
-        className="mt-1 h-7 gap-1 rounded-md px-2 text-callout font-semibold text-muted-foreground hover:text-foreground"
+        className="mt-1 h-7 gap-1 rounded-md px-2 text-callout font-semibold text-label-secondary hover:text-label-primary"
         onClick={() => setOpen((value) => !value)}
       >
         {open ? t("ai:AI_CHAT_MESSAGE_COLLAPSE_BODY") : t("ai:AI_CHAT_MESSAGE_EXPAND_BODY")}
@@ -1721,7 +1729,7 @@ const AssistantMessage: FC = () => {
       <div
         data-slot="aui_assistant-message-content"
         // [contain-intrinsic-size:auto_24px] fixes issue #4104, don't change without checking for regressions
-        className="text-foreground px-2 leading-relaxed wrap-break-word [contain-intrinsic-size:auto_24px] [content-visibility:auto]"
+        className="px-2 text-callout leading-relaxed text-label-primary wrap-break-word [contain-intrinsic-size:auto_24px] [content-visibility:auto]"
       >
         <AssistantMessageHeader />
         <MessagePrimitive.GroupedParts
@@ -1826,7 +1834,7 @@ const AssistantMessageHeader: FC = () => {
       </div>
       {formattedTime && createdAtIso ? (
         <time
-          className="shrink-0 text-caption text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+          className="shrink-0 text-caption text-label-secondary opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
           dateTime={createdAtIso}
         >
           {formattedTime}
@@ -1860,7 +1868,7 @@ const AssistantActionBar: FC = () => {
   return (
     <ActionBarPrimitive.Root
       hideWhenRunning
-      className="aui-assistant-action-bar-root text-muted-foreground col-start-3 row-start-2 -ms-1 flex min-w-24 gap-1 opacity-0 transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100"
+      className="aui-assistant-action-bar-root col-start-3 row-start-2 -ms-1 flex min-w-24 gap-1 text-label-secondary opacity-0 transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100"
     >
       <ActionBarPrimitive.Copy asChild>
         <TooltipIconButton tooltip={t("ai:AI_CHAT_ACTION_COPY")}>
@@ -1894,7 +1902,7 @@ const UserMessage: FC = () => {
       <UserMessageAttachments />
 
       <div className="aui-user-message-content-wrapper relative col-start-2 min-w-0">
-        <div className="aui-user-message-content peer bg-muted text-foreground rounded-xl px-4 py-2 wrap-break-word empty:hidden">
+        <div className="aui-user-message-content peer rounded-xl bg-muted px-4 py-2 text-callout text-label-primary wrap-break-word empty:hidden">
           {webSearchEnabled ? (
             <span className="mb-1.5 inline-flex max-w-full items-center gap-1.5 rounded-full border border-border/70 bg-background/70 px-2 py-1 text-caption font-semibold text-label-primary shadow-sm">
               <GlobeIcon className="size-3.5 shrink-0 text-label-secondary" aria-hidden="true" />
@@ -1940,7 +1948,7 @@ const EditComposer: FC = () => {
     <MessagePrimitive.Root data-slot="aui_edit-composer-wrapper" className="flex flex-col px-2">
       <ComposerPrimitive.Root className="aui-edit-composer-root border-border/60 dark:border-muted-foreground/15 ms-auto flex w-full max-w-[85%] flex-col rounded-(--composer-radius) border bg-(--composer-bg) shadow-[0_4px_16px_-8px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.04)] dark:shadow-none">
         <ComposerPrimitive.Input
-          className="aui-edit-composer-input text-foreground min-h-14 w-full resize-none bg-transparent px-4 pt-3 pb-1 text-base outline-none"
+          className="aui-edit-composer-input text-label-primary min-h-14 w-full resize-none bg-transparent px-4 pt-3 pb-1 text-base outline-none"
           autoFocus
         />
         <div className="aui-edit-composer-footer mx-2.5 mb-2.5 flex items-center gap-1.5 self-end">
@@ -1967,7 +1975,7 @@ const BranchPicker: FC<BranchPickerPrimitive.Root.Props> = ({ className, ...rest
     <BranchPickerPrimitive.Root
       hideWhenSingleBranch
       className={cn(
-        "aui-branch-picker-root text-muted-foreground -ms-2 me-2 inline-flex items-center text-xs",
+        "aui-branch-picker-root text-label-secondary -ms-2 me-2 inline-flex items-center text-xs",
         className,
       )}
       {...rest}

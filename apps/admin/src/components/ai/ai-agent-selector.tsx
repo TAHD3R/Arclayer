@@ -134,7 +134,7 @@ export function AIProjectSelector({ className, compact = false }: AIAgentSelecto
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            "h-8 min-w-0 justify-start gap-2 rounded-xl px-2.5 text-footnote font-semibold text-label-primary hover:bg-accent/70",
+            "h-8 min-w-0 justify-start gap-2 rounded-md px-2.5 text-footnote font-semibold text-label-primary hover:bg-accent/70",
             compact ? "max-w-[11rem]" : "max-w-[14rem]",
             className,
           )}
@@ -149,7 +149,7 @@ export function AIProjectSelector({ className, compact = false }: AIAgentSelecto
       <PopoverContent
         align="start"
         className={cn(
-          "overflow-hidden rounded-xl p-2 [&_[cmdk-group-items]]:flex [&_[cmdk-group-items]]:w-full [&_[cmdk-group-items]]:flex-col [&_[cmdk-group]]:w-full [&_[cmdk-item]]:w-full [&_[cmdk-list-sizer]]:w-full",
+          "overflow-hidden p-1 [&_[cmdk-group-items]]:flex [&_[cmdk-group-items]]:w-full [&_[cmdk-group-items]]:flex-col [&_[cmdk-group]]:w-full [&_[cmdk-item]]:w-full [&_[cmdk-list-sizer]]:w-full",
           compact ? "w-[22rem] max-w-[calc(100vw-2rem)]" : "w-[min(24rem,calc(100vw-2rem))]",
         )}
       >
@@ -166,7 +166,7 @@ export function AIProjectSelector({ className, compact = false }: AIAgentSelecto
                       setCurrentProjectId(project.value);
                       setOpen(false);
                     }}
-                    className="w-full cursor-pointer items-start gap-3 rounded-xl px-3 py-3"
+                    className="w-full cursor-pointer items-start gap-3"
                   >
                     <FolderIcon className="mt-0.5 size-5 text-label-secondary" aria-hidden="true" />
                     <span className="min-w-0 flex-1">
@@ -259,7 +259,7 @@ export function AIAgentSelector({ className, compact = false }: AIAgentSelectorP
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            "h-8 min-w-0 justify-start gap-2 rounded-xl px-2.5 text-footnote font-semibold text-label-primary hover:bg-accent/70",
+            "h-8 min-w-0 justify-start gap-2 rounded-md px-2.5 text-footnote font-semibold text-label-primary hover:bg-accent/70",
             compact ? "max-w-[11rem]" : "max-w-[14rem]",
             className,
           )}
@@ -290,7 +290,7 @@ export function AIAgentSelector({ className, compact = false }: AIAgentSelectorP
                       setSelectedAgentId(agent.value);
                       setOpen(false);
                     }}
-                    className="w-full cursor-pointer items-start gap-3 rounded-xl px-3 py-3"
+                    className="w-full cursor-pointer items-start gap-3"
                   >
                     <Icon className="mt-0.5 size-5 text-label-secondary" aria-hidden="true" />
                     <span className="min-w-0 flex-1">

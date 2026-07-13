@@ -40,7 +40,8 @@ export function findActiveTrailNodes(items: AdminNavItem[], pathname: string): A
         const exact = isExactMatch(candidate, pathname);
         const prefix = isPrefixMatch(candidate, pathname);
         const score = exact ? 1000 + candidate.length : prefix ? 100 + candidate.length : 0;
-        if (score > 0 && score > bestScore) {
+        const isMoreSpecificTrail = score === bestScore && nextParents.length > bestTrail.length;
+        if (score > 0 && (score > bestScore || isMoreSpecificTrail)) {
           bestScore = score;
           bestTrail = nextParents;
         }

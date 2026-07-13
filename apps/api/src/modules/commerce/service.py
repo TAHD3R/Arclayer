@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from uuid import UUID
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.transactions import in_transaction
@@ -15,16 +15,15 @@ from src.core.i18n import t
 from src.models.ai.ai_usage_daily import AIUsageDaily
 from src.models.commerce.billing import (
     BillingCycle,
+    BillingProviderEventReceipt,
     CommercePlan,
     CommercePlanTier,
     CreditLedgerEntryType,
     CreditRefreshInterval,
-    SubscriptionChangeRequestStatus,
     SubscriptionStatus,
     WorkspaceCreditAccount,
     WorkspaceCreditLedger,
     WorkspaceSubscription,
-    WorkspaceSubscriptionChangeRequest,
 )
 from src.models.workspaces.workspace import Workspace
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
@@ -33,8 +32,6 @@ from src.modules.commerce.schema import (
     CommercePlanUpsertRequest,
     CreditLedgerOut,
     PlanFeature,
-    SubscriptionChangeRequestCreate,
-    SubscriptionChangeRequestOut,
     WorkspaceCommerceOverviewOut,
     WorkspaceCommerceUsageOut,
     WorkspaceCreditsOut,
@@ -42,7 +39,7 @@ from src.modules.commerce.schema import (
     WorkspaceSubscriptionSetRequest,
 )
 
-_BILLING_MODE = "operator_managed"
+_BILLING_MODE = "external_checkout"
 _ACTIVE_SUBSCRIPTION_STATUSES = {SubscriptionStatus.TRIALING, SubscriptionStatus.ACTIVE}
 _PLAN_CATALOG_LOCK_CODE = "free"
 
@@ -225,25 +222,6 @@ def _subscription_out(subscription: WorkspaceSubscription) -> WorkspaceSubscript
         current_period_start=subscription.current_period_start,
         current_period_end=subscription.current_period_end,
         cancel_at_period_end=subscription.cancel_at_period_end,
-    )
-
-
-def _change_request_out(row: WorkspaceSubscriptionChangeRequest) -> SubscriptionChangeRequestOut:
-    # Callers prefetch the relation so localized plan fields are fully hydrated.
-    return SubscriptionChangeRequestOut(
-        id=row.id,
-        workspace_id=row.workspace_id,
-        requested_by_user_id=row.requested_by_user_id,
-        plan_code=row.requested_plan.code,
-        plan_name=_plan_name(row.requested_plan),
-        billing_interval=row.billing_cycle,
-        reason=row.reason,
-        status=row.status,
-        reviewed_by_user_id=row.reviewed_by_user_id,
-        reviewed_at=row.reviewed_at,
-        review_note=row.review_note,
-        created_at=row.created_at,
-        updated_at=row.updated_at,
     )
 
 
@@ -558,18 +536,10 @@ class CommerceService:
             date__gte=account.period_start.date(),
             date__lt=account.period_end.date(),
         )
-        pending = (
-            await WorkspaceSubscriptionChangeRequest
-            .filter(
-                workspace_id=workspace_id,
-                status=SubscriptionChangeRequestStatus.PENDING,
-            )
-            .prefetch_related("requested_plan")
-            .order_by("-created_at")
-            .first()
-        )
         return WorkspaceCommerceOverviewOut(
             billing_mode=_BILLING_MODE,
+            billing_provider=self._settings.billing.provider,
+            checkout_enabled=self._settings.billing.checkout_enabled,
             plan=_plan_out(plan),
             subscription=_subscription_out(subscription),
             credits=WorkspaceCreditsOut(
@@ -592,7 +562,6 @@ class CommerceService:
                 prompt_tokens=sum(int(row.prompt_tokens) for row in usage_rows),
                 completion_tokens=sum(int(row.completion_tokens) for row in usage_rows),
             ),
-            pending_change_request=_change_request_out(pending) if pending is not None else None,
         )
 
     async def list_credit_ledger(
@@ -615,79 +584,20 @@ class CommerceService:
             prev=params.page - 1 if params.page > 1 and pages else None,
         )
 
-    async def create_change_request(
-        self,
-        *,
-        workspace_id: UUID,
-        actor_user_id: UUID,
-        payload: SubscriptionChangeRequestCreate,
-    ) -> SubscriptionChangeRequestOut:
-        async with in_transaction() as conn:
-            subscription, _, current_plan = await self._ensure_workspace_billing(
-                workspace_id=workspace_id,
-                conn=conn,
-                now=datetime.now(UTC),
-            )
-            requested_plan = await CommercePlan.get_or_none(code=payload.plan_code, is_active=True, using_db=conn)
-            if requested_plan is None:
-                raise NotFound(
-                    message=t("errors", "COMMERCE_PLAN_NOT_FOUND"),
-                    error="COMMERCE_PLAN_NOT_FOUND",
-                )
-            if requested_plan.id == current_plan.id and payload.billing_interval == subscription.billing_cycle:
-                raise BadRequest(
-                    message=t("errors", "COMMERCE_PLAN_ALREADY_ACTIVE"),
-                    error="COMMERCE_PLAN_ALREADY_ACTIVE",
-                )
-            existing = (
-                await WorkspaceSubscriptionChangeRequest
-                .filter(
-                    workspace_id=workspace_id,
-                    status=SubscriptionChangeRequestStatus.PENDING,
-                )
-                .using_db(conn)
-                .first()
-            )
-            if existing is not None:
-                raise Conflict(
-                    message=t("errors", "SUBSCRIPTION_CHANGE_REQUEST_PENDING"),
-                    error="SUBSCRIPTION_CHANGE_REQUEST_PENDING",
-                )
-            row = await WorkspaceSubscriptionChangeRequest.create(
-                workspace_id=workspace_id,
-                requested_plan_id=requested_plan.id,
-                requested_by_user_id=actor_user_id,
-                billing_cycle=payload.billing_interval,
-                reason=payload.reason,
-                using_db=conn,
-            )
-            row.requested_plan = requested_plan
-            workspace = await Workspace.get(id=workspace_id, using_db=conn)
-            await write_required_activity_event(
-                settings=self._settings,
-                conn=conn,
-                payload=ActivityAuditPayload(
-                    event_name="commerce.subscription_change.requested",
-                    actor_user_id=actor_user_id,
-                    organization_id=workspace.organization_id,
-                    workspace_id=workspace_id,
-                    entity_type="subscription_change_request",
-                    entity_id=row.id,
-                    properties={"planCode": requested_plan.code, "billingInterval": str(payload.billing_interval)},
-                ),
-            )
-        return _change_request_out(row)
-
     async def _apply_subscription(
         self,
         *,
         conn: BaseDBAsyncClient,
         workspace_id: UUID,
         plan: CommercePlan,
-        actor_user_id: UUID,
+        actor_user_id: UUID | None,
         payload: WorkspaceSubscriptionSetRequest,
         reference_type: str,
         reference_id: UUID | None,
+        refresh_credits: bool = True,
+        billing_provider: str | None = None,
+        external_customer_id: str | None = None,
+        external_subscription_id: str | None = None,
     ) -> tuple[WorkspaceSubscription, WorkspaceCreditAccount]:
         now = datetime.now(UTC)
         subscription, account, _ = await self._ensure_workspace_billing(
@@ -702,18 +612,134 @@ class CommerceService:
         subscription.current_period_start = payload.current_period_start or billing_start
         subscription.current_period_end = payload.current_period_end or billing_end
         subscription.cancel_at_period_end = payload.cancel_at_period_end
+        if billing_provider is not None:
+            subscription.billing_provider = billing_provider
+        if external_customer_id is not None:
+            subscription.external_customer_id = external_customer_id
+        if external_subscription_id is not None:
+            subscription.external_subscription_id = external_subscription_id
         await subscription.save(using_db=conn)
-        await self._refresh_account(
-            conn=conn,
-            account=account,
-            plan=plan,
-            now=now,
-            actor_user_id=actor_user_id,
-            reference_type=reference_type,
-            reference_id=reference_id,
-            none_period_end=subscription.current_period_end,
-        )
+        if refresh_credits:
+            await self._refresh_account(
+                conn=conn,
+                account=account,
+                plan=plan,
+                now=now,
+                actor_user_id=actor_user_id,
+                reference_type=reference_type,
+                reference_id=reference_id,
+                none_period_end=subscription.current_period_end,
+            )
         return subscription, account
+
+    async def _apply_claimed_provider_subscription(
+        self,
+        *,
+        conn: BaseDBAsyncClient,
+        workspace_id: UUID,
+        plan_code: str,
+        status: SubscriptionStatus,
+        billing_interval: BillingCycle,
+        current_period_start: datetime,
+        current_period_end: datetime,
+        cancel_at_period_end: bool,
+        provider: str,
+        external_customer_id: str,
+        external_subscription_id: str,
+        event_id: str,
+    ) -> None:
+        reference_id = uuid5(NAMESPACE_URL, f"{provider}:{event_id}")
+        await self.ensure_plan_catalog(conn=conn)
+        plan = await CommercePlan.get_or_none(code=plan_code, is_active=True, using_db=conn)
+        if plan is None:
+            raise NotFound(error="COMMERCE_PLAN_NOT_FOUND")
+        current, _, current_plan = await self._ensure_workspace_billing(
+            workspace_id=workspace_id,
+            conn=conn,
+            now=datetime.now(UTC),
+        )
+        refresh_credits = status in _ACTIVE_SUBSCRIPTION_STATUSES and (
+            current_plan.id != plan.id or current_period_start > current.current_period_start
+        )
+        subscription, _ = await self._apply_subscription(
+            conn=conn,
+            workspace_id=workspace_id,
+            plan=plan,
+            actor_user_id=None,
+            payload=WorkspaceSubscriptionSetRequest(
+                plan_code=plan_code,
+                status=status,
+                billing_interval=billing_interval,
+                current_period_start=current_period_start,
+                current_period_end=current_period_end,
+                cancel_at_period_end=cancel_at_period_end,
+            ),
+            reference_type="provider_event",
+            reference_id=reference_id,
+            refresh_credits=refresh_credits,
+            billing_provider=provider,
+            external_customer_id=external_customer_id,
+            external_subscription_id=external_subscription_id,
+        )
+        workspace = await Workspace.get(id=workspace_id, using_db=conn)
+        await write_required_activity_event(
+            settings=self._settings,
+            conn=conn,
+            payload=ActivityAuditPayload(
+                event_name="commerce.subscription.provider_updated",
+                organization_id=workspace.organization_id,
+                workspace_id=workspace_id,
+                entity_type="workspace_subscription",
+                entity_id=subscription.id,
+                properties={
+                    "provider": provider,
+                    "providerEventId": event_id,
+                    "planCode": plan.code,
+                    "status": str(status),
+                },
+            ),
+        )
+
+    async def apply_provider_subscription(
+        self,
+        *,
+        workspace_id: UUID,
+        plan_code: str,
+        status: SubscriptionStatus,
+        billing_interval: BillingCycle,
+        current_period_start: datetime,
+        current_period_end: datetime,
+        cancel_at_period_end: bool,
+        provider: str,
+        external_customer_id: str,
+        external_subscription_id: str,
+        event_id: str,
+    ) -> WorkspaceCommerceOverviewOut:
+        async with in_transaction() as conn:
+            receipt, is_new_event = await BillingProviderEventReceipt.get_or_create(
+                provider=provider,
+                event_id=event_id,
+                using_db=conn,
+                defaults={"workspace_id": workspace_id},
+            )
+            if receipt.workspace_id != workspace_id:
+                raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+            if is_new_event:
+                await self._apply_claimed_provider_subscription(
+                    conn=conn,
+                    workspace_id=workspace_id,
+                    plan_code=plan_code,
+                    status=status,
+                    billing_interval=billing_interval,
+                    current_period_start=current_period_start,
+                    current_period_end=current_period_end,
+                    cancel_at_period_end=cancel_at_period_end,
+                    provider=provider,
+                    external_customer_id=external_customer_id,
+                    external_subscription_id=external_subscription_id,
+                    event_id=event_id,
+                )
+        return await self.get_overview(workspace_id=workspace_id)
 
     async def set_workspace_subscription(
         self,
@@ -754,143 +780,3 @@ class CommerceService:
                 ),
             )
         return await self.get_overview(workspace_id=workspace_id)
-
-    async def list_change_requests(
-        self,
-        *,
-        params: PageParams,
-        status: SubscriptionChangeRequestStatus | None,
-    ) -> PageData[SubscriptionChangeRequestOut]:
-        query = WorkspaceSubscriptionChangeRequest.all().prefetch_related("requested_plan")
-        if status is not None:
-            query = query.filter(status=status)
-        total = int(await query.count())
-        rows = await query.order_by("-created_at").limit(params.limit).offset(params.offset)
-        items = [_change_request_out(row) for row in rows]
-        pages = (total + params.size - 1) // params.size if total else 0
-        return PageData(
-            items=items,
-            total=total,
-            page=params.page,
-            size=params.size,
-            pages=pages,
-            next=params.page + 1 if params.page < pages else None,
-            prev=params.page - 1 if params.page > 1 and pages else None,
-        )
-
-    async def approve_change_request(
-        self,
-        *,
-        request_id: UUID,
-        actor_user_id: UUID,
-        review_note: str | None,
-    ) -> SubscriptionChangeRequestOut:
-        async with in_transaction() as conn:
-            row = (
-                await WorkspaceSubscriptionChangeRequest
-                .filter(id=request_id)
-                .using_db(conn)
-                .select_for_update()
-                .first()
-            )
-            if row is None:
-                raise NotFound(
-                    message=t("errors", "SUBSCRIPTION_CHANGE_REQUEST_NOT_FOUND"),
-                    error="SUBSCRIPTION_CHANGE_REQUEST_NOT_FOUND",
-                )
-            if row.status != SubscriptionChangeRequestStatus.PENDING:
-                raise Conflict(
-                    message=t("errors", "SUBSCRIPTION_CHANGE_REQUEST_ALREADY_REVIEWED"),
-                    error="SUBSCRIPTION_CHANGE_REQUEST_ALREADY_REVIEWED",
-                )
-            plan = await CommercePlan.filter(id=row.requested_plan_id).using_db(conn).select_for_update().first()
-            if plan is None:
-                raise RuntimeError(f"Commerce plan {row.requested_plan_id} not found")
-            row.requested_plan = plan
-            if not plan.is_active:
-                raise Conflict(
-                    message=t("errors", "SUBSCRIPTION_CHANGE_REQUEST_PLAN_INACTIVE"),
-                    error="SUBSCRIPTION_CHANGE_REQUEST_PLAN_INACTIVE",
-                )
-            payload = WorkspaceSubscriptionSetRequest(
-                plan_code=plan.code,
-                status=SubscriptionStatus.ACTIVE,
-                billing_interval=row.billing_cycle,
-            )
-            await self._apply_subscription(
-                conn=conn,
-                workspace_id=row.workspace_id,
-                plan=plan,
-                actor_user_id=actor_user_id,
-                payload=payload,
-                reference_type="subscription_change_request",
-                reference_id=row.id,
-            )
-            now = datetime.now(UTC)
-            row.status = SubscriptionChangeRequestStatus.APPROVED
-            row.reviewed_by_user_id = actor_user_id
-            row.reviewed_at = now
-            row.review_note = review_note
-            await row.save(using_db=conn)
-            workspace = await Workspace.get(id=row.workspace_id, using_db=conn)
-            await write_required_activity_event(
-                settings=self._settings,
-                conn=conn,
-                payload=ActivityAuditPayload(
-                    event_name="commerce.subscription_change.approved",
-                    actor_user_id=actor_user_id,
-                    organization_id=workspace.organization_id,
-                    workspace_id=row.workspace_id,
-                    entity_type="subscription_change_request",
-                    entity_id=row.id,
-                    properties={"planCode": plan.code},
-                ),
-            )
-        return _change_request_out(row)
-
-    async def reject_change_request(
-        self,
-        *,
-        request_id: UUID,
-        actor_user_id: UUID,
-        review_note: str,
-    ) -> SubscriptionChangeRequestOut:
-        async with in_transaction() as conn:
-            row = (
-                await WorkspaceSubscriptionChangeRequest
-                .filter(id=request_id)
-                .using_db(conn)
-                .select_for_update()
-                .prefetch_related("requested_plan")
-                .first()
-            )
-            if row is None:
-                raise NotFound(
-                    message=t("errors", "SUBSCRIPTION_CHANGE_REQUEST_NOT_FOUND"),
-                    error="SUBSCRIPTION_CHANGE_REQUEST_NOT_FOUND",
-                )
-            if row.status != SubscriptionChangeRequestStatus.PENDING:
-                raise Conflict(
-                    message=t("errors", "SUBSCRIPTION_CHANGE_REQUEST_ALREADY_REVIEWED"),
-                    error="SUBSCRIPTION_CHANGE_REQUEST_ALREADY_REVIEWED",
-                )
-            row.status = SubscriptionChangeRequestStatus.REJECTED
-            row.reviewed_by_user_id = actor_user_id
-            row.reviewed_at = datetime.now(UTC)
-            row.review_note = review_note
-            await row.save(using_db=conn)
-            workspace = await Workspace.get(id=row.workspace_id, using_db=conn)
-            await write_required_activity_event(
-                settings=self._settings,
-                conn=conn,
-                payload=ActivityAuditPayload(
-                    event_name="commerce.subscription_change.rejected",
-                    actor_user_id=actor_user_id,
-                    organization_id=workspace.organization_id,
-                    workspace_id=row.workspace_id,
-                    entity_type="subscription_change_request",
-                    entity_id=row.id,
-                    properties={"planCode": row.requested_plan.code},
-                ),
-            )
-        return _change_request_out(row)

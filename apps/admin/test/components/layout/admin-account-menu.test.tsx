@@ -348,18 +348,16 @@ describe("AdminAccountMenu", () => {
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
-  it("点击 Subscription 会打开订阅产品链接", async () => {
+  it("点击 Subscription 会打开工作空间套餐与用量设置", async () => {
     const user = userEvent.setup();
     renderWithProviders(<AdminAccountMenu />);
 
     await openAccountMenu(user);
     await user.click(screen.getByRole("button", { name: "ACCOUNT_MENU_SUBSCRIPTION" }));
 
-    expect(openMock).toHaveBeenCalledWith(
-      "https://arclayer.com/pricing",
-      "_blank",
-      "noopener,noreferrer",
-    );
+    expect(screen.getByTestId("settings-open")).toHaveTextContent("true");
+    expect(screen.getByTestId("settings-screen")).toHaveTextContent("workspace.plan-usage");
+    expect(openMock).not.toHaveBeenCalled();
   });
 
   it("在 /workspaces 打开个人设置时复用同一套 provider contract", async () => {

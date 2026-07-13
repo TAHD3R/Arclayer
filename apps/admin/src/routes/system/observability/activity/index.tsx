@@ -1,8 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import { SystemObservabilityActivityPage } from "@/pages/system/observability/activity/page";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/system/observability/activity/")({
-  staticData: { titleKey: "platform:OBSERVABILITY_ACTIVITY_TITLE" },
-  component: SystemObservabilityActivityPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/system/audit-log", replace: true });
+  },
 });

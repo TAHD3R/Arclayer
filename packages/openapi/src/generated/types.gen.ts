@@ -435,6 +435,56 @@ export type AiObservabilitySummaryOut = {
 };
 
 /**
+ * AIUsageGroupOut
+ */
+export type AiUsageGroupOut = {
+    /**
+     * Avglatencyms
+     */
+    avgLatencyMs: number;
+    /**
+     * Completiontokens
+     */
+    completionTokens: number;
+    /**
+     * Costmicros
+     */
+    costMicros: number;
+    /**
+     * Errorrate
+     */
+    errorRate: number;
+    /**
+     * Errorrequests
+     */
+    errorRequests: number;
+    /**
+     * Lastseenat
+     */
+    lastSeenAt: string;
+    /**
+     * Model
+     */
+    model: string;
+    /**
+     * Prompttokens
+     */
+    promptTokens: number;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Requests
+     */
+    requests: number;
+    /**
+     * Totaltokens
+     */
+    totalTokens: number;
+};
+
+/**
  * AcceptExistingInvitationRequest
  *
  * Accept an invitation with an existing logged-in account (email-bound).
@@ -2784,6 +2834,16 @@ export type AvatarUploadInitRequest = {
 export type BillingCycle = 'monthly' | 'yearly';
 
 /**
+ * BillingRedirectOut
+ */
+export type BillingRedirectOut = {
+    /**
+     * Url
+     */
+    url: string;
+};
+
+/**
  * ChangePasswordRequest
  *
  * Change password request.
@@ -2859,6 +2919,17 @@ export type ChatRequest = {
 };
 
 /**
+ * CheckoutSessionCreate
+ */
+export type CheckoutSessionCreate = {
+    billingInterval: BillingCycle;
+    /**
+     * Plancode
+     */
+    planCode: string;
+};
+
+/**
  * CommercePlanCatalogOut
  */
 export type CommercePlanCatalogOut = {
@@ -2866,6 +2937,14 @@ export type CommercePlanCatalogOut = {
      * Billingmode
      */
     billingMode?: string;
+    /**
+     * Billingprovider
+     */
+    billingProvider: string;
+    /**
+     * Checkoutenabled
+     */
+    checkoutEnabled: boolean;
     /**
      * Items
      */
@@ -7607,6 +7686,48 @@ export type HttpObservabilitySummaryOut = {
 };
 
 /**
+ * HTTPRequestGroupOut
+ */
+export type HttpRequestGroupOut = {
+    /**
+     * Avglatencyms
+     */
+    avgLatencyMs: number;
+    /**
+     * Errorrate
+     */
+    errorRate: number;
+    /**
+     * Errorrequests
+     */
+    errorRequests: number;
+    /**
+     * Lastseenat
+     */
+    lastSeenAt: string;
+    /**
+     * Maxlatencyms
+     */
+    maxLatencyMs: number;
+    /**
+     * Method
+     */
+    method: string;
+    /**
+     * Requests
+     */
+    requests: number;
+    /**
+     * Routetemplate
+     */
+    routeTemplate: string;
+    /**
+     * Statusclass
+     */
+    statusClass: number;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -9002,6 +9123,54 @@ export type OnboardingWorkspaceCreateRequest = {
 export type PackageState = 'absent' | 'installed' | 'uninstalled';
 
 /**
+ * PageData[AIUsageGroupOut]
+ */
+export type PageDataAiUsageGroupOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<AiUsageGroupOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
  * PageData[AdminAssetFolderOut]
  */
 export type PageDataAdminAssetFolderOut = {
@@ -9674,6 +9843,54 @@ export type PageDataFeedbackTicketListItemOut = {
 };
 
 /**
+ * PageData[HTTPRequestGroupOut]
+ */
+export type PageDataHttpRequestGroupOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<HttpRequestGroupOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
  * PageData[MyInvitationOut]
  */
 export type PageDataMyInvitationOut = {
@@ -9923,54 +10140,6 @@ export type PageDataSettingsNamespaceSummary = {
      * Current page items.
      */
     items?: Array<SettingsNamespaceSummary>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
- * PageData[SubscriptionChangeRequestOut]
- */
-export type PageDataSubscriptionChangeRequestOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<SubscriptionChangeRequestOut>;
     /**
      * Next
      *
@@ -13928,6 +14097,31 @@ export type ResponseModelAutomationRunOut = {
 };
 
 /**
+ * ResponseModel[BillingRedirectOut]
+ */
+export type ResponseModelBillingRedirectOut = {
+    data?: BillingRedirectOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[CommercePlanCatalogOut]
  */
 export type ResponseModelCommercePlanCatalogOut = {
@@ -15281,6 +15475,31 @@ export type ResponseModelOnboardingWorkspaceCreateOut = {
 };
 
 /**
+ * ResponseModel[PageData[AIUsageGroupOut]]
+ */
+export type ResponseModelPageDataAiUsageGroupOut = {
+    data?: PageDataAiUsageGroupOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[PageData[AdminAssetFolderOut]]
  */
 export type ResponseModelPageDataAdminAssetFolderOut = {
@@ -15631,6 +15850,31 @@ export type ResponseModelPageDataFeedbackTicketListItemOut = {
 };
 
 /**
+ * ResponseModel[PageData[HTTPRequestGroupOut]]
+ */
+export type ResponseModelPageDataHttpRequestGroupOut = {
+    data?: PageDataHttpRequestGroupOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[PageData[MyInvitationOut]]
  */
 export type ResponseModelPageDataMyInvitationOut = {
@@ -15760,31 +16004,6 @@ export type ResponseModelPageDataPublishJobOut = {
  */
 export type ResponseModelPageDataSettingsNamespaceSummary = {
     data?: PageDataSettingsNamespaceSummary | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PageData[SubscriptionChangeRequestOut]]
- */
-export type ResponseModelPageDataSubscriptionChangeRequestOut = {
-    data?: PageDataSubscriptionChangeRequestOut | null;
     /**
      * Error
      */
@@ -17235,31 +17454,6 @@ export type ResponseModelStorageProfileOut = {
  */
 export type ResponseModelStorageProfileTestResultOut = {
     data?: StorageProfileTestResultOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SubscriptionChangeRequestOut]
- */
-export type ResponseModelSubscriptionChangeRequestOut = {
-    data?: SubscriptionChangeRequestOut | null;
     /**
      * Error
      */
@@ -19892,104 +20086,6 @@ export type StorageProfileUpdateRequest = {
 };
 
 /**
- * SubscriptionChangeRequestCreate
- */
-export type SubscriptionChangeRequestCreate = {
-    billingInterval: BillingCycle;
-    /**
-     * Plancode
-     */
-    planCode: string;
-    /**
-     * Reason
-     */
-    reason?: string | null;
-};
-
-/**
- * SubscriptionChangeRequestOut
- */
-export type SubscriptionChangeRequestOut = {
-    billingInterval: BillingCycle;
-    /**
-     * Createdat
-     *
-     * Created at.
-     */
-    createdAt: string;
-    /**
-     * Id
-     *
-     * ID
-     */
-    id: string;
-    /**
-     * Plancode
-     */
-    planCode: string;
-    /**
-     * Planname
-     */
-    planName: string;
-    /**
-     * Reason
-     */
-    reason: string | null;
-    /**
-     * Requestedbyuserid
-     */
-    requestedByUserId: string;
-    /**
-     * Reviewnote
-     */
-    reviewNote: string | null;
-    /**
-     * Reviewedat
-     */
-    reviewedAt: string | null;
-    /**
-     * Reviewedbyuserid
-     */
-    reviewedByUserId: string | null;
-    status: SubscriptionChangeRequestStatus;
-    /**
-     * Updatedat
-     *
-     * Updated at.
-     */
-    updatedAt: string;
-    /**
-     * Workspaceid
-     */
-    workspaceId: string;
-};
-
-/**
- * SubscriptionChangeRequestReject
- */
-export type SubscriptionChangeRequestReject = {
-    /**
-     * Reviewnote
-     */
-    reviewNote: string;
-};
-
-/**
- * SubscriptionChangeRequestReview
- */
-export type SubscriptionChangeRequestReview = {
-    /**
-     * Reviewnote
-     */
-    reviewNote?: string | null;
-};
-
-/**
- * SubscriptionChangeRequestStatus
- */
-export type SubscriptionChangeRequestStatus = 'pending' | 'approved' | 'rejected' | 'canceled';
-
-/**
  * SubscriptionStatus
  */
 export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled';
@@ -21328,8 +21424,15 @@ export type WorkspaceCommerceOverviewOut = {
      * Billingmode
      */
     billingMode?: string;
+    /**
+     * Billingprovider
+     */
+    billingProvider: string;
+    /**
+     * Checkoutenabled
+     */
+    checkoutEnabled: boolean;
     credits: WorkspaceCreditsOut;
-    pendingChangeRequest: SubscriptionChangeRequestOut | null;
     plan: CommercePlanOut;
     subscription: WorkspaceSubscriptionOut;
     usage: WorkspaceCommerceUsageOut;
@@ -22306,6 +22409,14 @@ export type WorkspacePlanCatalogOut = {
      * Billingmode
      */
     billingMode?: string;
+    /**
+     * Billingprovider
+     */
+    billingProvider: string;
+    /**
+     * Checkoutenabled
+     */
+    checkoutEnabled: boolean;
     /**
      * Items
      */
@@ -24902,6 +25013,37 @@ export type AiExecuteWorkspaceAiActionResponses = {
 };
 
 export type AiExecuteWorkspaceAiActionResponse = AiExecuteWorkspaceAiActionResponses[keyof AiExecuteWorkspaceAiActionResponses];
+
+export type DomainCommerceBillingReceiveStripeWebhookData = {
+    body?: never;
+    headers: {
+        /**
+         * Stripe-Signature
+         */
+        'Stripe-Signature': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/commerce/webhooks/stripe';
+};
+
+export type DomainCommerceBillingReceiveStripeWebhookErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainCommerceBillingReceiveStripeWebhookError = DomainCommerceBillingReceiveStripeWebhookErrors[keyof DomainCommerceBillingReceiveStripeWebhookErrors];
+
+export type DomainCommerceBillingReceiveStripeWebhookResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNoneType;
+};
+
+export type DomainCommerceBillingReceiveStripeWebhookResponse = DomainCommerceBillingReceiveStripeWebhookResponses[keyof DomainCommerceBillingReceiveStripeWebhookResponses];
 
 export type DomainFeedbackSubmitFeedbackData = {
     body: FeedbackSubmitRequest;
@@ -32081,108 +32223,6 @@ export type InternalSystemUpsertCommercePlanResponses = {
 
 export type InternalSystemUpsertCommercePlanResponse = InternalSystemUpsertCommercePlanResponses[keyof InternalSystemUpsertCommercePlanResponses];
 
-export type InternalSystemListSubscriptionChangeRequestsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Status
-         */
-        status?: SubscriptionChangeRequestStatus | null;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/system/commerce/subscription-change-requests';
-};
-
-export type InternalSystemListSubscriptionChangeRequestsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemListSubscriptionChangeRequestsError = InternalSystemListSubscriptionChangeRequestsErrors[keyof InternalSystemListSubscriptionChangeRequestsErrors];
-
-export type InternalSystemListSubscriptionChangeRequestsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataSubscriptionChangeRequestOut;
-};
-
-export type InternalSystemListSubscriptionChangeRequestsResponse = InternalSystemListSubscriptionChangeRequestsResponses[keyof InternalSystemListSubscriptionChangeRequestsResponses];
-
-export type InternalSystemApproveSubscriptionChangeRequestData = {
-    body: SubscriptionChangeRequestReview;
-    path: {
-        /**
-         * Request Id
-         */
-        request_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/commerce/subscription-change-requests/{request_id}/approve';
-};
-
-export type InternalSystemApproveSubscriptionChangeRequestErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemApproveSubscriptionChangeRequestError = InternalSystemApproveSubscriptionChangeRequestErrors[keyof InternalSystemApproveSubscriptionChangeRequestErrors];
-
-export type InternalSystemApproveSubscriptionChangeRequestResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSubscriptionChangeRequestOut;
-};
-
-export type InternalSystemApproveSubscriptionChangeRequestResponse = InternalSystemApproveSubscriptionChangeRequestResponses[keyof InternalSystemApproveSubscriptionChangeRequestResponses];
-
-export type InternalSystemRejectSubscriptionChangeRequestData = {
-    body: SubscriptionChangeRequestReject;
-    path: {
-        /**
-         * Request Id
-         */
-        request_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/commerce/subscription-change-requests/{request_id}/reject';
-};
-
-export type InternalSystemRejectSubscriptionChangeRequestErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemRejectSubscriptionChangeRequestError = InternalSystemRejectSubscriptionChangeRequestErrors[keyof InternalSystemRejectSubscriptionChangeRequestErrors];
-
-export type InternalSystemRejectSubscriptionChangeRequestResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSubscriptionChangeRequestOut;
-};
-
-export type InternalSystemRejectSubscriptionChangeRequestResponse = InternalSystemRejectSubscriptionChangeRequestResponses[keyof InternalSystemRejectSubscriptionChangeRequestResponses];
-
 export type InternalSystemSetWorkspaceSubscriptionData = {
     body: WorkspaceSubscriptionSetRequest;
     path: {
@@ -33631,6 +33671,64 @@ export type InternalSystemSendTestEmailResponses = {
 
 export type InternalSystemSendTestEmailResponse = InternalSystemSendTestEmailResponses[keyof InternalSystemSendTestEmailResponses];
 
+export type InternalSystemListPlatformAiUsageGroupsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Days
+         */
+        days?: number;
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Provider
+         */
+        provider?: string | null;
+        /**
+         * Workspaceid
+         */
+        workspaceId?: string | null;
+        /**
+         * Projectid
+         */
+        projectId?: string | null;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/system/observability/ai-usage-groups';
+};
+
+export type InternalSystemListPlatformAiUsageGroupsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemListPlatformAiUsageGroupsError = InternalSystemListPlatformAiUsageGroupsErrors[keyof InternalSystemListPlatformAiUsageGroupsErrors];
+
+export type InternalSystemListPlatformAiUsageGroupsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataAiUsageGroupOut;
+};
+
+export type InternalSystemListPlatformAiUsageGroupsResponse = InternalSystemListPlatformAiUsageGroupsResponses[keyof InternalSystemListPlatformAiUsageGroupsResponses];
+
 export type InternalSystemGetPlatformObservabilityOverviewData = {
     body?: never;
     path?: never;
@@ -33668,6 +33766,68 @@ export type InternalSystemGetPlatformObservabilityOverviewResponses = {
 };
 
 export type InternalSystemGetPlatformObservabilityOverviewResponse = InternalSystemGetPlatformObservabilityOverviewResponses[keyof InternalSystemGetPlatformObservabilityOverviewResponses];
+
+export type InternalSystemListPlatformHttpRequestGroupsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Days
+         */
+        days?: number;
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Method
+         */
+        method?: string | null;
+        /**
+         * Statusclass
+         */
+        statusClass?: number | null;
+        /**
+         * Workspaceid
+         */
+        workspaceId?: string | null;
+        /**
+         * Projectid
+         */
+        projectId?: string | null;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/system/observability/request-groups';
+};
+
+export type InternalSystemListPlatformHttpRequestGroupsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemListPlatformHttpRequestGroupsError = InternalSystemListPlatformHttpRequestGroupsErrors[keyof InternalSystemListPlatformHttpRequestGroupsErrors];
+
+export type InternalSystemListPlatformHttpRequestGroupsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataHttpRequestGroupOut;
+};
+
+export type InternalSystemListPlatformHttpRequestGroupsResponse = InternalSystemListPlatformHttpRequestGroupsResponses[keyof InternalSystemListPlatformHttpRequestGroupsResponses];
 
 export type InternalSystemGetPlatformObservabilityTrendData = {
     body?: never;
@@ -34377,6 +34537,38 @@ export type DomainWorkspacesArchiveWorkspaceResponses = {
 
 export type DomainWorkspacesArchiveWorkspaceResponse = DomainWorkspacesArchiveWorkspaceResponses[keyof DomainWorkspacesArchiveWorkspaceResponses];
 
+export type DomainWorkspacesCreateWorkspaceCheckoutSessionData = {
+    body: CheckoutSessionCreate;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/commerce/checkout-session';
+};
+
+export type DomainWorkspacesCreateWorkspaceCheckoutSessionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateWorkspaceCheckoutSessionError = DomainWorkspacesCreateWorkspaceCheckoutSessionErrors[keyof DomainWorkspacesCreateWorkspaceCheckoutSessionErrors];
+
+export type DomainWorkspacesCreateWorkspaceCheckoutSessionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelBillingRedirectOut;
+};
+
+export type DomainWorkspacesCreateWorkspaceCheckoutSessionResponse = DomainWorkspacesCreateWorkspaceCheckoutSessionResponses[keyof DomainWorkspacesCreateWorkspaceCheckoutSessionResponses];
+
 export type DomainWorkspacesListWorkspaceCreditLedgerData = {
     body?: never;
     path: {
@@ -34421,6 +34613,38 @@ export type DomainWorkspacesListWorkspaceCreditLedgerResponses = {
 };
 
 export type DomainWorkspacesListWorkspaceCreditLedgerResponse = DomainWorkspacesListWorkspaceCreditLedgerResponses[keyof DomainWorkspacesListWorkspaceCreditLedgerResponses];
+
+export type DomainWorkspacesCreateWorkspaceCustomerPortalSessionData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/commerce/customer-portal-session';
+};
+
+export type DomainWorkspacesCreateWorkspaceCustomerPortalSessionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateWorkspaceCustomerPortalSessionError = DomainWorkspacesCreateWorkspaceCustomerPortalSessionErrors[keyof DomainWorkspacesCreateWorkspaceCustomerPortalSessionErrors];
+
+export type DomainWorkspacesCreateWorkspaceCustomerPortalSessionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelBillingRedirectOut;
+};
+
+export type DomainWorkspacesCreateWorkspaceCustomerPortalSessionResponse = DomainWorkspacesCreateWorkspaceCustomerPortalSessionResponses[keyof DomainWorkspacesCreateWorkspaceCustomerPortalSessionResponses];
 
 export type DomainWorkspacesGetWorkspaceCommerceOverviewData = {
     body?: never;
@@ -34485,38 +34709,6 @@ export type DomainWorkspacesListWorkspacePlansResponses = {
 };
 
 export type DomainWorkspacesListWorkspacePlansResponse = DomainWorkspacesListWorkspacePlansResponses[keyof DomainWorkspacesListWorkspacePlansResponses];
-
-export type DomainWorkspacesCreateWorkspaceSubscriptionChangeRequestData = {
-    body: SubscriptionChangeRequestCreate;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/commerce/subscription-change-requests';
-};
-
-export type DomainWorkspacesCreateWorkspaceSubscriptionChangeRequestErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesCreateWorkspaceSubscriptionChangeRequestError = DomainWorkspacesCreateWorkspaceSubscriptionChangeRequestErrors[keyof DomainWorkspacesCreateWorkspaceSubscriptionChangeRequestErrors];
-
-export type DomainWorkspacesCreateWorkspaceSubscriptionChangeRequestResponses = {
-    /**
-     * Successful Response
-     */
-    201: ResponseModelSubscriptionChangeRequestOut;
-};
-
-export type DomainWorkspacesCreateWorkspaceSubscriptionChangeRequestResponse = DomainWorkspacesCreateWorkspaceSubscriptionChangeRequestResponses[keyof DomainWorkspacesCreateWorkspaceSubscriptionChangeRequestResponses];
 
 export type DomainWorkspacesGetWorkspaceDangerCapabilitiesData = {
     body?: never;

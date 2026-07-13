@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Bot, CircleAlert, Clock3, Gauge, Network } from "lucide-react";
+import { CircleAlert, Clock3, Gauge, Network } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
+import { RequestGroupsTable } from "@/pages/system/audit-log/request-groups-table";
 
 import { ObservabilityMetricCard, ObservabilityMetricSection } from "../components/metric-card";
 import { ObservabilityPageControls } from "../components/page-controls";
@@ -20,18 +21,7 @@ export function SystemObservabilityRequestsPage() {
   const httpRequests = useSystemObservabilityTrend(days, "httpRequests");
   const httpErrors = useSystemObservabilityTrend(days, "httpErrors");
   const httpLatency = useSystemObservabilityTrend(days, "httpLatency");
-  const aiRequests = useSystemObservabilityTrend(days, "requests");
-  const aiErrors = useSystemObservabilityTrend(days, "errors");
-  const aiLatency = useSystemObservabilityTrend(days, "latency");
-  const queries = [
-    overview,
-    httpRequests,
-    httpErrors,
-    httpLatency,
-    aiRequests,
-    aiErrors,
-    aiLatency,
-  ];
+  const queries = [overview, httpRequests, httpErrors, httpLatency];
 
   const refresh = () => {
     void Promise.all(queries.map((query) => query.refetch()));
@@ -41,7 +31,6 @@ export function SystemObservabilityRequestsPage() {
     <DefaultPage
       title={t("OBSERVABILITY_REQUESTS_TITLE")}
       description={t("OBSERVABILITY_REQUESTS_DESCRIPTION")}
-      showFavoriteToggle={false}
       action={
         <ObservabilityPageControls
           days={days}
@@ -118,69 +107,17 @@ export function SystemObservabilityRequestsPage() {
               />
             </div>
 
-            <ObservabilityMetricSection title={t("SECTION_AI_EFFICIENCY")}>
-              <ObservabilityMetricCard
-                label={t("METRIC_AI_REQUESTS")}
-                value={formatInteger(overview.data.ai.requests, locale)}
-                icon={Bot}
-              />
-              <ObservabilityMetricCard
-                label={t("METRIC_AI_ERRORS")}
-                value={formatInteger(overview.data.ai.errorRequests, locale)}
-                icon={CircleAlert}
-              />
-              <ObservabilityMetricCard
-                label={t("METRIC_ERROR_RATE")}
-                value={formatPercent(overview.data.ai.errorRate, locale)}
-                icon={Gauge}
-              />
-              <ObservabilityMetricCard
-                label={t("METRIC_P50_LATENCY")}
-                value={formatLatency(overview.data.ai.p50LatencyMs, locale)}
-                icon={Clock3}
-              />
-              <ObservabilityMetricCard
-                label={t("METRIC_P95_LATENCY")}
-                value={formatLatency(overview.data.ai.p95LatencyMs, locale)}
-                icon={Clock3}
-              />
-              <ObservabilityMetricCard
-                label={t("METRIC_P99_LATENCY")}
-                value={formatLatency(overview.data.ai.p99LatencyMs, locale)}
-                icon={Clock3}
-              />
-            </ObservabilityMetricSection>
-
-            <div className="grid gap-4 xl:grid-cols-3">
-              <ObservabilityTrendCard
-                title={t("TREND_REQUESTS")}
-                description={t(`PERIOD_${days}_DAYS`)}
-                points={aiRequests.data?.points}
-                loading={aiRequests.isLoading}
-                error={aiRequests.error}
-                onRetry={() => void aiRequests.refetch()}
-                valueKind="count"
-              />
-              <ObservabilityTrendCard
-                title={t("TREND_ERRORS")}
-                description={t(`PERIOD_${days}_DAYS`)}
-                points={aiErrors.data?.points}
-                loading={aiErrors.isLoading}
-                error={aiErrors.error}
-                onRetry={() => void aiErrors.refetch()}
-                valueKind="count"
-                color="var(--destructive)"
-              />
-              <ObservabilityTrendCard
-                title={t("TREND_LATENCY")}
-                description={t(`PERIOD_${days}_DAYS`)}
-                points={aiLatency.data?.points}
-                loading={aiLatency.isLoading}
-                error={aiLatency.error}
-                onRetry={() => void aiLatency.refetch()}
-                valueKind="latency"
-              />
-            </div>
+            <section className="flex flex-col gap-3" aria-labelledby="request-groups-title">
+              <div>
+                <h2 id="request-groups-title" className="text-headline text-label-primary">
+                  {t("AUDIT_REQUEST_TABLE_TITLE")}
+                </h2>
+                <p className="mt-1 text-callout text-label-secondary">
+                  {t("REQUEST_GROUPS_DESCRIPTION")}
+                </p>
+              </div>
+              <RequestGroupsTable days={days} />
+            </section>
           </div>
         ) : null}
       </ContentGuard>

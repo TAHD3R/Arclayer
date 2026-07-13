@@ -1,6 +1,6 @@
 # Workspace Commercialization Contracts
 
-This code-spec defines the shared plan, subscription, AI Credits, billing-change, and usage contracts for Arclayer workspaces.
+This code-spec defines the shared plan, subscription, AI Credits, provider checkout, and usage contracts for Arclayer workspaces.
 
 ## Scenario: Commercial plans and AI consumption at workspace scope
 
@@ -22,7 +22,8 @@ This code-spec defines the shared plan, subscription, AI Credits, billing-change
 | Reservation | Temporary credit hold created before an AI request |
 | Commit | Final credit debit based on actual model cost |
 | Release | Return of a reservation when the AI request fails or is cancelled |
-| Change request | Workspace-owner request to move to another plan; pending until the configured commercial workflow completes |
+| Checkout session | Short-lived provider-hosted payment URL; creating one never changes the local subscription |
+| Provider event | Signed external billing event that is the only authority for applying paid subscription state |
 
 ### 3. Money and credit invariants
 
@@ -47,8 +48,11 @@ committed_credits = ceil(actual_cost_micros / credit_value_micros)
 - Subscription lifecycle states are explicit: `trialing`, `active`, `past_due`, and `canceled`. Scheduled cancellation is represented independently by `cancelAtPeriodEnd`; unsupported transitions fail with a stable conflict error.
 - Credit refresh intervals are `daily`, `monthly`, `yearly`, and `none`. A `none` plan grants once when applied and returns `nextRefreshAt: null` rather than implying renewal.
 - Period rollover grants the configured credits exactly once for a workspace, plan, and period. A retry must return the existing result.
-- Upgrades apply only after the configured commercial workflow succeeds. This repository's baseline mode is `operator_managed`: a workspace owner submits a change request and a platform operator approves or rejects it.
-- Operator-managed mode never claims that payment succeeded. Approval is the authoritative commercial event and must write an audit event.
+- Paid upgrades use `external_checkout`. The workspace owner is redirected to the configured billing provider and the local subscription changes only after a signature-verified provider event.
+- Checkout creation, provider return URLs, and frontend refreshes are never authoritative subscription events and must not apply plans or grant credits.
+- The baseline provider is Stripe. If provider credentials are absent, checkout is explicitly disabled and the API returns `BILLING_PROVIDER_NOT_CONFIGURED`; it must not fall back to manual approval or simulated success.
+- Signed provider webhook paths are exempt from browser CSRF checks; provider signature verification remains mandatory.
+- Provider events are claimed transactionally by provider and event ID. Replaying the same event or subscription period cannot duplicate subscription changes, credit grants, or audit events.
 
 ### 5. Required API surface
 
@@ -61,10 +65,9 @@ All routes are under the Admin API global `/api/v1` prefix and use typed respons
 | `GET /workspaces/{workspaceId}/commerce/overview` | workspace member | Read active plan, subscription, credit balance, period, and usage summary |
 | `GET /workspaces/{workspaceId}/commerce/plans` | workspace member | List active plans with current/selectable state for the plan dialog |
 | `GET /workspaces/{workspaceId}/commerce/credits/ledger` | workspace manager | Read the paginated immutable ledger |
-| `POST /workspaces/{workspaceId}/commerce/subscription-change-requests` | workspace owner/manager | Request a plan and billing-interval change |
-| `GET /system/commerce/subscription-change-requests` | super admin | Triage pending and historical change requests |
-| `POST /system/commerce/subscription-change-requests/{id}/approve` | super admin | Atomically apply the plan, period grant, ledger, and audit event |
-| `POST /system/commerce/subscription-change-requests/{id}/reject` | super admin | Reject with an operator-visible reason and audit event |
+| `POST /workspaces/{workspaceId}/commerce/checkout-session` | workspace manager | Create a real provider-hosted subscription checkout URL without changing local state |
+| `POST /workspaces/{workspaceId}/commerce/customer-portal-session` | workspace manager | Create a provider-hosted subscription management URL |
+| `POST /commerce/webhooks/stripe` | Stripe | Verify the signature and apply subscription lifecycle state idempotently |
 | `PUT /system/commerce/workspaces/{workspaceId}/subscription` | super admin | Correct or administer a subscription explicitly |
 
 Public workspace and request identifiers use the repository `PublicUUID` contract. External payloads use camelCase through the shared Pydantic alias contract.
@@ -81,22 +84,26 @@ Public workspace and request identifiers use the repository `PublicUUID` contrac
 | AI provider call fails | Release the reservation and record the failed request audit; do not debit committed credits |
 | Actual charge is lower than reserved | Commit actual credits and release the difference atomically |
 | Actual charge exceeds reservation | Atomically charge the additional credits or fail explicitly before presenting a successful AI result |
-| Duplicate period grant or approval | Return the existing operation outcome without a second grant |
+| Duplicate provider event or period grant | Return the existing operation outcome without a second grant |
+| Missing provider configuration | `503` with `BILLING_PROVIDER_NOT_CONFIGURED`; never fabricate a checkout URL |
+| Invalid or expired webhook signature | Reject with a stable `400`; do not mutate subscriptions, credits, ledger, or audit state |
 
 ### 7. Admin product experience
 
 - The Header credit control shows available credits and the active plan for the current workspace.
 - Hover/focus reveals balance, reserved/used credits, current period, next refresh, and a clear usage-detail action.
-- Activation opens a plan-selection dialog that renders live catalog data, supports monthly/yearly comparison, identifies the current plan, and explains the configured approval workflow.
-- In operator-managed mode, the primary action creates a pending change request and confirms submission; it must not display “payment successful” or “plan upgraded” before approval.
-- System settings expose catalog fields and change-request administration to super admins with explicit validation and audit feedback.
+- Activation opens the workspace `Plan & Usage` settings screen. It combines plan status, current-period credits, AI request/token/cost usage, and an immutable ledger DataTable.
+- Plan comparison supports monthly/yearly pricing, identifies the current plan, and redirects paid selection to provider checkout. Free-plan cancellation or downgrade is handled through the provider portal.
+- The Header credit control, account menu, and workspace scope switcher all open the same `Plan & Usage` screen; credit details are not a standalone dialog.
+- System settings expose the plan catalog as the shared DataTable and show whether external checkout is configured. There is no plan-change approval queue.
 - Credit-ledger rows persist a stable `descriptionKey`; API responses resolve a localized `description` without rewriting immutable history.
 
 ### 8. Tests required
 
 - Atomic concurrent reservation tests proving balance cannot go negative.
 - Idempotent reserve/commit/release and period-grant tests.
-- Plan transition and change-request authorization/state-machine tests.
+- Checkout/portal authorization, exact provider amount conversion, signed webhook, and subscription lifecycle tests.
+- Idempotent provider-event replay tests proving the same event cannot grant credits twice.
 - HTTP 402 and localized error tests for exhausted credits.
 - AI runtime integration tests proving successful calls commit and failed calls release.
-- Frontend tests for loading/error/no-workspace, hover/focus content, plan interval selection, pending request, current plan, and exhausted-credit behavior.
+- Frontend tests for loading/error/no-workspace, hover/focus content, provider unavailable state, checkout interval selection, current plan, embedded ledger, and exhausted-credit behavior.

@@ -118,7 +118,7 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
           aria-label={t("ai:AI_CHAT_MODEL_SELECT")}
           aria-expanded={open}
           className={cn(
-            "h-8 min-w-0 justify-start gap-2 rounded-2xl px-2.5 text-footnote font-semibold text-label-primary shadow-none hover:bg-accent/70",
+            "h-8 min-w-0 justify-start gap-2 rounded-md px-2.5 text-footnote font-semibold text-label-primary shadow-none hover:bg-accent/70",
             compact ? "max-w-[10.25rem]" : "max-w-[15rem]",
             className,
           )}
@@ -137,7 +137,7 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
       <DropdownMenuContent
         align="end"
         className={cn(
-          "max-h-80 overflow-y-auto rounded-2xl p-2",
+          "max-h-80 overflow-y-auto",
           compact ? "w-[23rem] max-w-[calc(100vw-2rem)]" : "w-[min(24rem,calc(100vw-2rem))]",
         )}
       >
@@ -148,7 +148,7 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
                 setSelectedModel(AUTO_AI_CHAT_MODEL);
                 setOpen(false);
               }}
-              className="cursor-pointer items-start gap-3 rounded-xl px-3 py-3"
+              className="cursor-pointer items-start gap-3"
             >
               <AIModelBrandIcon auto className="mt-0.5 size-5" />
               <span className="min-w-0 flex-1">
@@ -177,7 +177,7 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
                   setSelectedModel(model.id);
                   setOpen(false);
                 }}
-                className="cursor-pointer items-start gap-3 rounded-xl px-3 py-3"
+                className="cursor-pointer items-start gap-3"
               >
                 <AIModelBrandIcon
                   provider={model.provider}

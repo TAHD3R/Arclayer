@@ -5,6 +5,7 @@ import { UserNotificationSettingsView } from "@/pages/usercenter/notifications/c
 import { UserProfileView } from "@/pages/usercenter/profile/components/user-profile-view";
 import type { SettingsScreen, SettingsScreenPayload } from "@/lib/settings/settings-screen";
 import { WorkspaceSettingsBasicsView } from "@/pages/workspaces/settings/workspace/basics/components/workspace-settings-basics-view";
+import { WorkspacePlanUsageView } from "@/pages/workspaces/settings/workspace/plan-usage/plan-usage-view";
 import { TeamInvitationsPage } from "@/pages/workspaces/team/invitations/page";
 import { TeamMembersView } from "@/pages/workspaces/team/members/components/team-members-view";
 import { TeamRolesPage } from "@/pages/workspaces/team/roles/page";
@@ -40,6 +41,10 @@ function WorkspaceGeneralOverlayView() {
 
 function WorkspaceMembersOverlayView() {
   return <TeamMembersView workspaceIdOverride={useEffectiveWorkspaceId()} embedded />;
+}
+
+function WorkspacePlanUsageOverlayView() {
+  return <WorkspacePlanUsageView workspaceId={useEffectiveWorkspaceId()} />;
 }
 
 function WorkspaceInvitationsOverlayView() {
@@ -81,6 +86,13 @@ export const WORKSPACE_SETTINGS_OVERLAY_ITEMS: readonly UsercenterOverlayItem[] 
     titleKey: "settings:SETTINGS_WORKSPACE_GENERAL_TITLE",
     descriptionKey: "settings:SETTINGS_WORKSPACE_GENERAL_DESC",
     render: () => <WorkspaceGeneralOverlayView />,
+  },
+  {
+    screen: "workspace.plan-usage",
+    labelKey: "account:SETTINGS_NAV_WORKSPACE_PLAN_USAGE",
+    titleKey: "account:SETTINGS_WORKSPACE_PLAN_USAGE_TITLE",
+    descriptionKey: "account:SETTINGS_WORKSPACE_PLAN_USAGE_DESCRIPTION",
+    render: () => <WorkspacePlanUsageOverlayView />,
   },
   {
     screen: "workspace.members",

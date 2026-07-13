@@ -1,5 +1,6 @@
 import {
   Bell,
+  CreditCard,
   MailPlus,
   Shield,
   SlidersHorizontal,
@@ -49,6 +50,13 @@ export const SETTINGS_WORKSPACE_NAV_ITEMS: readonly SettingsNavItem[] = [
     labelKey: "account:SETTINGS_NAV_WORKSPACE_GENERAL",
     icon: SquareStack,
     groupLabelBeforeKey: "account:SETTINGS_NAV_SECTION_WORKSPACE",
+  },
+  {
+    key: "settings.workspace.plan-usage",
+    screen: "workspace.plan-usage",
+    label: "Plan & Usage",
+    labelKey: "account:SETTINGS_NAV_WORKSPACE_PLAN_USAGE",
+    icon: CreditCard,
   },
   {
     key: "settings.workspace.members",
