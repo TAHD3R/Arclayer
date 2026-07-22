@@ -51,11 +51,31 @@ vi.mock("@/pages/system/observability/components/period-select", () => ({
   ObservabilityPeriodSelect: ({ value }: { value: number }) => <div>period:{value}</div>,
 }));
 vi.mock("@/pages/system/observability/components/system-summary-metrics", () => ({
-  SystemSummaryMetrics: ({
-    overview,
+  useSystemSummaryWidgets: (overview?: { resources: { activeWorkspaces: number } }) =>
+    overview
+      ? [
+          {
+            id: "summary-workspaces",
+            title: "summary",
+            content: <div>summary-workspaces:{overview.resources.activeWorkspaces}</div>,
+          },
+        ]
+      : [],
+}));
+vi.mock("@/pages/system/observability/components/dashboard-layout", () => ({
+  ConfigurableDashboard: ({
+    widgets,
+    ariaLabel,
   }: {
-    overview: { resources: { activeWorkspaces: number } };
-  }) => <div>summary-workspaces:{overview.resources.activeWorkspaces}</div>,
+    widgets: Array<{ id: string; content: React.ReactNode }>;
+    ariaLabel: string;
+  }) => (
+    <section aria-label={ariaLabel}>
+      {widgets.map((widget) => (
+        <div key={widget.id}>{widget.content}</div>
+      ))}
+    </section>
+  ),
 }));
 vi.mock("@/pages/system/observability/components/trend-card", () => ({
   ObservabilityTrendCard: ({

@@ -21,6 +21,7 @@ type UpdateSystemDirectoryUserPayload = {
   email?: string | null;
   displayName?: string | null;
   avatarAssetId?: string | null;
+  isSuperAdmin?: boolean;
 };
 
 type ResetSystemDirectoryUserPasswordPayload = {

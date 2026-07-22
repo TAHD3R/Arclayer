@@ -4,12 +4,19 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { listSystemActivity } from "@/api/activity";
-import { listSystemHTTPRequestGroups } from "@/api/platform-observability";
+import {
+  listSystemHTTPRequestGroups,
+  listSystemHTTPRequestRecords,
+} from "@/api/platform-observability";
 import { AuditEventsTable } from "@/pages/system/audit-log/audit-events-table";
 import { RequestGroupsTable } from "@/pages/system/audit-log/request-groups-table";
+import { RequestRecordsTable } from "@/pages/system/audit-log/request-records-table";
 
 vi.mock("@/api/activity", () => ({ listSystemActivity: vi.fn() }));
-vi.mock("@/api/platform-observability", () => ({ listSystemHTTPRequestGroups: vi.fn() }));
+vi.mock("@/api/platform-observability", () => ({
+  listSystemHTTPRequestGroups: vi.fn(),
+  listSystemHTTPRequestRecords: vi.fn(),
+}));
 vi.mock("@/hooks/use-admin-date-time-formatter", () => ({
   useAdminDateTimeFormatter: () => ({ formatDateTime: (value: string) => `date:${value}` }),
 }));
@@ -38,6 +45,8 @@ describe("system audit data tables", () => {
           errorRequests: 3,
           errorRate: 0.025,
           avgLatencyMs: 42,
+          p95LatencyMs: 120,
+          p99LatencyMs: 170,
           maxLatencyMs: 180,
           lastSeenAt: "2026-07-13T02:00:00Z",
         },
@@ -73,6 +82,29 @@ describe("system audit data tables", () => {
       next: null,
       prev: null,
     } as never);
+    vi.mocked(listSystemHTTPRequestRecords).mockResolvedValue({
+      items: [
+        {
+          id: "record-1",
+          occurredAt: "2026-07-13T03:00:00Z",
+          traceId: "trace-1",
+          actorUserId: "user-1",
+          actor: { id: "user-1", displayName: "Alex", username: "alex", avatarUrl: null },
+          workspaceId: "workspace-1",
+          projectId: "project-1",
+          routeTemplate: "/api/v1/projects/{project_id}/content/items",
+          method: "PATCH",
+          statusCode: 503,
+          durationMs: 88,
+        },
+      ],
+      total: 1,
+      page: 1,
+      size: 20,
+      pages: 1,
+      next: null,
+      prev: null,
+    });
   });
 
   it("renders request aggregates through DataTable and forwards route/method/status filters", async () => {
@@ -111,10 +143,32 @@ describe("system audit data tables", () => {
     renderWithQueryClient(<AuditEventsTable onSelect={onSelect} />);
 
     expect(await screen.findByText("deployment.promoted")).toHaveClass("truncate");
-    expect(screen.getAllByText("deployment", { selector: "span" })).toHaveLength(2);
+    expect(screen.getByText("deployment", { selector: "span" })).toBeVisible();
+    expect(screen.getByText("platform:AUDIT_ENTITY_DEPLOYMENT · deployment-1")).toBeVisible();
     expect(screen.getByText("trace-1")).toHaveClass("truncate");
     await user.click(screen.getByText("deployment.promoted"));
 
     expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: "event-1" }));
+  });
+
+  it("renders raw request evidence and opens the selected record", async () => {
+    const onSelect = vi.fn();
+    const user = userEvent.setup();
+    renderWithQueryClient(
+      <RequestRecordsTable
+        days={30}
+        workspaceLabelById={{ "workspace-1": "Production" }}
+        projectLabelById={{ "project-1": "Website" }}
+        onSelect={onSelect}
+      />,
+    );
+
+    expect(await screen.findByText("/api/v1/projects/{project_id}/content/items")).toBeVisible();
+    expect(screen.getByText("503")).toBeVisible();
+    expect(screen.getByText("Website")).toBeVisible();
+    expect(screen.getByText("trace-1")).toBeVisible();
+    await user.click(screen.getByText("/api/v1/projects/{project_id}/content/items"));
+
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: "record-1" }));
   });
 });

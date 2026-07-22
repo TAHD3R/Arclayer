@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { listSystemAIUsageGroups } from "@/api/platform-observability";
 import { AIUsageGroupsTable } from "@/pages/system/observability/ai-usage/ai-usage-groups-table";
+import type { AIUsageGroup } from "@arclayer/openapi/admin-types";
 
 vi.mock("@/api/platform-observability", () => ({ listSystemAIUsageGroups: vi.fn() }));
 vi.mock("@/hooks/use-admin-date-time-formatter", () => ({
@@ -17,11 +18,11 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-function renderTable() {
+function renderTable(onSelect?: (group: AIUsageGroup) => void) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <AIUsageGroupsTable days={30} />
+      <AIUsageGroupsTable days={30} onSelect={onSelect} />
     </QueryClientProvider>,
   );
 }
@@ -72,5 +73,17 @@ describe("system observability AI usage table", () => {
         expect.objectContaining({ days: 30, q: "gpt" }),
       );
     });
+  });
+
+  it("opens the selected aggregate from the table row", async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    renderTable(onSelect);
+
+    await user.click(await screen.findByText("gpt-5"));
+
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: "openai", model: "gpt-5" }),
+    );
   });
 });

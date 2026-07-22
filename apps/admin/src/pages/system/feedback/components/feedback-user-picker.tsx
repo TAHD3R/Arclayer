@@ -138,6 +138,10 @@ export function FeedbackUserPicker(props: {
                       username: user.username || user.email || user.userId,
                       displayName: user.displayName ?? null,
                       avatarUrl: user.avatarUrl ?? null,
+                      status: user.status,
+                      isSuperAdmin: Boolean(user.isSuperAdmin),
+                      lastLoginAt: user.lastLoginAt ?? null,
+                      createdAt: user.createdAt,
                     };
                     return (
                       <CommandItem

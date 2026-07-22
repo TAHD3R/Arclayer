@@ -43,6 +43,7 @@ import { useSavingKey } from "@arclayer/hooks/use-saving-key";
 
 import { listMailProviders, sendTestEmail, switchMailProvider } from "@/api/mail";
 import type { MailProviderId, MailProviderInfo } from "@/api/mail";
+import { listSystemPlugins, SYSTEM_PLUGINS_QUERY_KEY } from "@/api/plugins";
 import {
   buildDataTableActionsColumnMeta,
   DataTableActionsCell,
@@ -59,6 +60,12 @@ import {
   SystemSettingRow,
   SystemSettingStack,
 } from "@/pages/system/components/system-setting-item";
+import { EmailTemplateManager } from "@/pages/system/email/email-template-manager";
+import {
+  findEmailProviderDefinition,
+  resolveEmailProviderDefinitions,
+  type EmailProviderDefinition,
+} from "@/pages/system/email/email-provider-definitions";
 import {
   getSystemSettingsSection,
   getSystemSettingsSecrets,
@@ -88,16 +95,7 @@ type EmailFormValues = {
   mailFromName: string;
   mailStarttls: boolean;
   mailSslTls: boolean;
-  resendApiKey: string;
-  resendMailFrom: string;
-  resendMailFromName: string;
-  cloudflareApiToken: string;
-  cloudflareMailFrom: string;
-  cloudflareMailFromName: string;
-  cloudflareApiUrl: string;
-  sesRegion: string;
-  sesMailFrom: string;
-  sesMailFromName: string;
+  providerConfig: Record<string, Record<string, string>>;
   fallbackChain: string;
   retryMaxAttempts: string;
   retryBackoffSeconds: string;
@@ -124,51 +122,29 @@ type MailProviderTableMeta = {
   t: (key: string, options?: Record<string, unknown>) => string;
 };
 
-const EMAIL_PROVIDER_OPTIONS: Array<{ value: MailProviderId; labelKey: string }> = [
-  { value: "smtp", labelKey: "SETTINGS_MESSAGING_MAIL_PROVIDER_SMTP" },
-  { value: "resend", labelKey: "SETTINGS_MESSAGING_MAIL_PROVIDER_RESEND" },
-  { value: "cloudflare", labelKey: "SETTINGS_MESSAGING_MAIL_PROVIDER_CLOUDFLARE" },
-  { value: "ses", labelKey: "SETTINGS_MESSAGING_MAIL_PROVIDER_SES" },
-];
 const MAIL_PROVIDER_QUERY_KEY = ["system", "mail", "providers"] as const;
 const PROVIDER_FIELD_WIDTH_CLASSNAME = "w-72 max-w-full";
-const PROVIDER_CONFIG_FIELDS: Record<MailProviderId, readonly (keyof EmailFormValues)[]> = {
-  smtp: [
-    "mailServer",
-    "mailPort",
-    "mailUsername",
-    "mailPassword",
-    "mailUseCredentials",
-    "mailFrom",
-    "mailFromName",
-    "mailStarttls",
-    "mailSslTls",
-  ],
-  resend: ["resendApiKey", "resendMailFrom", "resendMailFromName"],
-  cloudflare: [
-    "cloudflareApiToken",
-    "cloudflareApiUrl",
-    "cloudflareMailFrom",
-    "cloudflareMailFromName",
-  ],
-  ses: ["sesRegion", "sesMailFrom", "sesMailFromName"],
-};
 
 function normalizeProvider(value: string | null): MailProviderId {
-  if (value === "resend" || value === "cloudflare" || value === "ses") return value;
-  return "smtp";
+  return value?.trim().toLowerCase() || "smtp";
 }
 
-function getProviderLabel(provider: MailProviderId, t: (key: string) => string): string {
-  const option = EMAIL_PROVIDER_OPTIONS.find((item) => item.value === provider);
-  return option ? t(`settings:${option.labelKey}`) : provider;
+function getProviderLabel(
+  provider: MailProviderId,
+  definitions: readonly EmailProviderDefinition[],
+  t: (key: string) => string,
+): string {
+  const definition = findEmailProviderDefinition(definitions, provider);
+  return definition ? t(definition.labelKey) : provider;
 }
 
 function parseProviderList(value: string): MailProviderId[] {
   const seen = new Set<MailProviderId>();
   const providers: MailProviderId[] = [];
   for (const rawItem of value.split(/\r?\n|,/)) {
-    const provider = normalizeProvider(rawItem.trim().toLowerCase());
+    const normalized = rawItem.trim().toLowerCase();
+    if (!normalized) continue;
+    const provider = normalizeProvider(normalized);
     if (seen.has(provider)) continue;
     seen.add(provider);
     providers.push(provider);
@@ -182,13 +158,11 @@ function serializeProviderList(providers: readonly MailProviderId[]): string {
 
 function buildInitialValues(
   input: ReturnType<typeof useSystemCoreSettings>["coreSettings"],
+  definitions: readonly EmailProviderDefinition[],
 ): EmailFormValues {
   const mail = getSystemSettingsSection(input, "mail");
   const providers = readRecordValue(mail, "providers");
   const smtp = readRecordValue(providers, "smtp");
-  const resend = readRecordValue(providers, "resend");
-  const cloudflare = readRecordValue(providers, "cloudflare");
-  const ses = readRecordValue(providers, "ses");
   const retry = readRecordValue(mail, "retry");
   const fallbackChain = mail.fallback_chain;
   const retryBackoff = retry.backoff_seconds;
@@ -214,17 +188,22 @@ function buildInitialValues(
       "Arclayer",
     mailStarttls: readBooleanValue(smtp, "starttls") ?? Boolean(readBooleanValue(mail, "starttls")),
     mailSslTls: readBooleanValue(smtp, "ssl_tls") ?? Boolean(readBooleanValue(mail, "ssl_tls")),
-    resendApiKey: "",
-    resendMailFrom: readStringValue(resend, "mail_from") ?? "noreply@example.com",
-    resendMailFromName: readStringValue(resend, "mail_from_name") ?? "Arclayer",
-    cloudflareApiToken: "",
-    cloudflareMailFrom: readStringValue(cloudflare, "mail_from") ?? "noreply@example.com",
-    cloudflareMailFromName: readStringValue(cloudflare, "mail_from_name") ?? "Arclayer",
-    cloudflareApiUrl:
-      readStringValue(cloudflare, "api_url") ?? "https://api.mailchannels.net/tx/v1/send",
-    sesRegion: readStringValue(ses, "region") ?? "",
-    sesMailFrom: readStringValue(ses, "mail_from") ?? "noreply@example.com",
-    sesMailFromName: readStringValue(ses, "mail_from_name") ?? "Arclayer",
+    providerConfig: Object.fromEntries(
+      definitions
+        .filter((definition) => !definition.builtIn)
+        .map((definition) => {
+          const provider = readRecordValue(providers, definition.providerId);
+          return [
+            definition.providerId,
+            Object.fromEntries(
+              definition.fields.map((field) => [
+                field.name,
+                field.secret ? "" : (readStringValue(provider, field.name) ?? field.defaultValue),
+              ]),
+            ),
+          ];
+        }),
+    ),
     fallbackChain: Array.isArray(fallbackChain)
       ? fallbackChain.filter((item): item is string => typeof item === "string").join("\n")
       : "",
@@ -266,14 +245,15 @@ function ToggleField(props: {
 function FallbackProvidersField(props: {
   value: string;
   onChange: (value: string) => void;
+  definitions: readonly EmailProviderDefinition[];
   disabled?: boolean;
   t: (key: string) => string;
 }) {
   const anchor = useComboboxAnchor();
   const selectedProviders = parseProviderList(props.value);
-  const providerOptions = EMAIL_PROVIDER_OPTIONS.map((option) => ({
-    value: option.value,
-    label: props.t(`settings:${option.labelKey}`),
+  const providerOptions = props.definitions.map((definition) => ({
+    value: definition.providerId,
+    label: props.t(definition.labelKey),
   }));
   const selectedProviderOptions = providerOptions.filter((option) =>
     selectedProviders.includes(option.value),
@@ -296,7 +276,7 @@ function FallbackProvidersField(props: {
         <ComboboxChips ref={anchor} className="w-full">
           {selectedProviders.map((provider) => (
             <ComboboxChip key={provider} onClick={(event) => event.stopPropagation()}>
-              {getProviderLabel(provider, props.t)}
+              {getProviderLabel(provider, props.definitions, props.t)}
             </ComboboxChip>
           ))}
           <ComboboxValue>
@@ -389,65 +369,65 @@ function buildSmtpPatch(values: EmailFormValues, t: (key: string) => string) {
 }
 
 function isProviderConfigDirty(
-  provider: MailProviderId,
+  definition: EmailProviderDefinition,
   values: EmailFormValues,
   initialValues: EmailFormValues,
 ): boolean {
-  return PROVIDER_CONFIG_FIELDS[provider].some((field) => {
-    if (field === "mailPassword" || field === "resendApiKey" || field === "cloudflareApiToken") {
-      return Boolean(String(values[field] || "").trim());
-    }
-    return values[field] !== initialValues[field];
-  });
+  if (definition.builtIn) {
+    return (
+      values.mailServer !== initialValues.mailServer ||
+      values.mailPort !== initialValues.mailPort ||
+      values.mailUsername !== initialValues.mailUsername ||
+      Boolean(values.mailPassword.trim()) ||
+      values.mailUseCredentials !== initialValues.mailUseCredentials ||
+      values.mailFrom !== initialValues.mailFrom ||
+      values.mailFromName !== initialValues.mailFromName ||
+      values.mailStarttls !== initialValues.mailStarttls ||
+      values.mailSslTls !== initialValues.mailSslTls
+    );
+  }
+  const current = values.providerConfig[definition.providerId] ?? {};
+  const initial = initialValues.providerConfig[definition.providerId] ?? {};
+  return definition.fields.some((field) =>
+    field.secret
+      ? Boolean(current[field.name]?.trim())
+      : current[field.name] !== initial[field.name],
+  );
 }
 
 function buildProviderPatch(
-  provider: MailProviderId,
+  definition: EmailProviderDefinition,
   values: EmailFormValues,
-  secrets: { hasResendSecret: boolean; hasCloudflareSecret: boolean },
+  secretStates: Readonly<Record<string, boolean>>,
+  t: (key: string, options?: Record<string, unknown>) => string,
 ) {
   const providerPatch: Record<string, unknown> = {};
-  if (provider === "resend") {
-    if (!values.resendApiKey.trim() && !secrets.hasResendSecret) {
-      throw new Error("RESEND_API_KEY_REQUIRED");
+  const providerValues = values.providerConfig[definition.providerId] ?? {};
+  for (const field of definition.fields) {
+    const value = String(providerValues[field.name] ?? "").trim();
+    const hasStoredSecret = secretStates[`${definition.providerId}.${field.name}`] === true;
+    if (field.required && !value && !(field.secret && hasStoredSecret)) {
+      throw new Error(
+        t("settings:SETTINGS_SYSTEM_EMAIL_PROVIDER_REQUIRED_FIELD", {
+          field: t(field.labelKey),
+        }),
+      );
     }
-    providerPatch.mail_from = values.resendMailFrom.trim() || "noreply@example.com";
-    providerPatch.mail_from_name = values.resendMailFromName.trim() || "Arclayer";
-    const apiKey = values.resendApiKey.trim();
-    if (apiKey) providerPatch.api_key = apiKey;
-  }
-  if (provider === "cloudflare") {
-    if (!values.cloudflareApiToken.trim() && !secrets.hasCloudflareSecret) {
-      throw new Error("CLOUDFLARE_API_TOKEN_REQUIRED");
-    }
-    providerPatch.mail_from = values.cloudflareMailFrom.trim() || "noreply@example.com";
-    providerPatch.mail_from_name = values.cloudflareMailFromName.trim() || "Arclayer";
-    providerPatch.api_url =
-      values.cloudflareApiUrl.trim() || "https://api.mailchannels.net/tx/v1/send";
-    const apiToken = values.cloudflareApiToken.trim();
-    if (apiToken) providerPatch.api_token = apiToken;
-  }
-  if (provider === "ses") {
-    if (!values.sesRegion.trim()) {
-      throw new Error("SES_REGION_REQUIRED");
-    }
-    providerPatch.region = values.sesRegion.trim();
-    providerPatch.mail_from = values.sesMailFrom.trim() || "noreply@example.com";
-    providerPatch.mail_from_name = values.sesMailFromName.trim() || "Arclayer";
+    if (field.secret && !value) continue;
+    providerPatch[field.name] = value || field.defaultValue || null;
   }
   return providerPatch;
 }
 
 function ProviderConfigFields(props: {
-  provider: MailProviderId;
+  definition: EmailProviderDefinition;
   form: UseFormReturn<EmailFormValues>;
   hasMailPasswordSecret: boolean;
-  hasResendSecret: boolean;
-  hasCloudflareSecret: boolean;
+  secretStates: Readonly<Record<string, boolean>>;
   t: (key: string) => string;
 }) {
   const { form, t } = props;
-  if (props.provider === "smtp") {
+  if (props.definition.builtIn) {
     return (
       <>
         <Controller
@@ -559,126 +539,50 @@ function ProviderConfigFields(props: {
     );
   }
 
-  if (props.provider === "resend") {
-    return (
-      <>
-        <Controller
-          control={form.control}
-          name="resendApiKey"
-          render={({ field }) => (
-            <FormField
-              label={t("settings:SETTINGS_MESSAGING_MAIL_RESEND_API_KEY")}
-              description={
-                props.hasResendSecret
-                  ? t("settings:SETTINGS_MESSAGING_MAIL_PROVIDER_SECRET_SET")
-                  : t("settings:SETTINGS_MESSAGING_MAIL_PROVIDER_SECRET_NOT_SET")
-              }
-            >
-              <Input {...field} type="password" autoComplete="new-password" />
-            </FormField>
-          )}
-        />
-        <Controller
-          control={form.control}
-          name="resendMailFrom"
-          render={({ field }) => (
-            <FormField label={t("settings:SETTINGS_MESSAGING_MAIL_FROM")}>
-              <Input {...field} value={String(field.value)} autoComplete="off" />
-            </FormField>
-          )}
-        />
-        <Controller
-          control={form.control}
-          name="resendMailFromName"
-          render={({ field }) => (
-            <FormField label={t("settings:SETTINGS_MESSAGING_MAIL_FROM_NAME")}>
-              <Input {...field} value={String(field.value)} autoComplete="off" />
-            </FormField>
-          )}
-        />
-      </>
-    );
-  }
-
-  if (props.provider === "cloudflare") {
-    return (
-      <>
-        <Controller
-          control={form.control}
-          name="cloudflareApiToken"
-          render={({ field }) => (
-            <FormField
-              label={t("settings:SETTINGS_MESSAGING_MAIL_CLOUDFLARE_API_TOKEN")}
-              description={
-                props.hasCloudflareSecret
-                  ? t("settings:SETTINGS_MESSAGING_MAIL_PROVIDER_SECRET_SET")
-                  : t("settings:SETTINGS_MESSAGING_MAIL_PROVIDER_SECRET_NOT_SET")
-              }
-            >
-              <Input {...field} type="password" autoComplete="new-password" />
-            </FormField>
-          )}
-        />
-        <Controller
-          control={form.control}
-          name="cloudflareApiUrl"
-          render={({ field }) => (
-            <FormField label={t("settings:SETTINGS_MESSAGING_MAIL_CLOUDFLARE_API_URL")}>
-              <Input {...field} autoComplete="off" />
-            </FormField>
-          )}
-        />
-        <Controller
-          control={form.control}
-          name="cloudflareMailFrom"
-          render={({ field }) => (
-            <FormField label={t("settings:SETTINGS_MESSAGING_MAIL_FROM")}>
-              <Input {...field} value={String(field.value)} autoComplete="off" />
-            </FormField>
-          )}
-        />
-        <Controller
-          control={form.control}
-          name="cloudflareMailFromName"
-          render={({ field }) => (
-            <FormField label={t("settings:SETTINGS_MESSAGING_MAIL_FROM_NAME")}>
-              <Input {...field} value={String(field.value)} autoComplete="off" />
-            </FormField>
-          )}
-        />
-      </>
-    );
-  }
-
   return (
     <>
-      <Controller
-        control={form.control}
-        name="sesRegion"
-        render={({ field }) => (
-          <FormField label={t("settings:SETTINGS_MESSAGING_MAIL_SES_REGION")}>
-            <Input {...field} placeholder="us-east-1" autoComplete="off" />
-          </FormField>
-        )}
-      />
-      <Controller
-        control={form.control}
-        name="sesMailFrom"
-        render={({ field }) => (
-          <FormField label={t("settings:SETTINGS_MESSAGING_MAIL_FROM")}>
-            <Input {...field} value={String(field.value)} autoComplete="off" />
-          </FormField>
-        )}
-      />
-      <Controller
-        control={form.control}
-        name="sesMailFromName"
-        render={({ field }) => (
-          <FormField label={t("settings:SETTINGS_MESSAGING_MAIL_FROM_NAME")}>
-            <Input {...field} value={String(field.value)} autoComplete="off" />
-          </FormField>
-        )}
-      />
+      {props.definition.fields.map((providerField) => {
+        const name = `providerConfig.${props.definition.providerId}.${providerField.name}` as const;
+        const hasStoredSecret =
+          props.secretStates[`${props.definition.providerId}.${providerField.name}`] === true;
+        return (
+          <Controller
+            key={providerField.name}
+            control={form.control}
+            name={name}
+            render={({ field }) => (
+              <FormField
+                label={t(providerField.labelKey)}
+                description={
+                  providerField.secret
+                    ? t(
+                        hasStoredSecret
+                          ? "settings:SETTINGS_MESSAGING_MAIL_PROVIDER_SECRET_SET"
+                          : "settings:SETTINGS_MESSAGING_MAIL_PROVIDER_SECRET_NOT_SET",
+                      )
+                    : providerField.descriptionKey
+                      ? t(providerField.descriptionKey)
+                      : undefined
+                }
+              >
+                <Input
+                  {...field}
+                  value={String(field.value ?? "")}
+                  type={
+                    providerField.secret
+                      ? "password"
+                      : providerField.format === "email"
+                        ? "email"
+                        : "text"
+                  }
+                  autoComplete={providerField.secret ? "new-password" : "off"}
+                  placeholder={providerField.placeholder ?? undefined}
+                />
+              </FormField>
+            )}
+          />
+        );
+      })}
     </>
   );
 }
@@ -855,10 +759,31 @@ export function SystemSettingsEmailPage() {
     retry: false,
     meta: { silent: true },
   });
+  const pluginsQuery = useQuery({
+    queryKey: SYSTEM_PLUGINS_QUERY_KEY,
+    queryFn: ({ signal }) => listSystemPlugins(signal),
+    retry: false,
+  });
+  const providerDefinitions = useMemo(
+    () => resolveEmailProviderDefinitions(pluginsQuery.data ?? []),
+    [pluginsQuery.data],
+  );
   const secrets = getSystemSettingsSecrets(coreSettingsQuery.coreSettings);
   const hasMailPasswordSecret = Boolean(secrets["mail.password"]);
-  const hasResendSecret = Boolean(secrets["mail.providers.resend.api_key"]);
-  const hasCloudflareSecret = Boolean(secrets["mail.providers.cloudflare.api_token"]);
+  const providerSecretStates = useMemo(
+    () =>
+      Object.fromEntries(
+        providerDefinitions.flatMap((definition) =>
+          definition.fields
+            .filter((field) => field.secret)
+            .map((field) => [
+              `${definition.providerId}.${field.name}`,
+              Boolean(secrets[`mail.providers.${definition.providerId}.${field.name}`]),
+            ]),
+        ),
+      ) as Record<string, boolean>,
+    [providerDefinitions, secrets],
+  );
   const [providerDrawer, setProviderDrawer] = useState<ProviderDrawerState>({
     open: false,
     provider: null,
@@ -870,8 +795,8 @@ export function SystemSettingsEmailPage() {
   >({});
 
   const initialValues = useMemo(
-    () => buildInitialValues(coreSettingsQuery.coreSettings),
-    [coreSettingsQuery.coreSettings],
+    () => buildInitialValues(coreSettingsQuery.coreSettings, providerDefinitions),
+    [coreSettingsQuery.coreSettings, providerDefinitions],
   );
 
   const form = useForm<EmailFormValues>({
@@ -881,6 +806,9 @@ export function SystemSettingsEmailPage() {
   const values = form.watch();
   const mailProvider = values.mailProvider;
   const editingProvider = providerDrawer.provider;
+  const editingDefinition = editingProvider
+    ? findEmailProviderDefinition(providerDefinitions, editingProvider)
+    : null;
   const providerDrawerOpen = providerDrawer.open && editingProvider !== null;
 
   useEffect(() => {
@@ -932,7 +860,7 @@ export function SystemSettingsEmailPage() {
         form.reset({ ...form.getValues(), mailProvider: provider });
         notifySuccessText(
           t("settings:SETTINGS_SYSTEM_EMAIL_PROVIDER_ACTIVATED", {
-            provider: getProviderLabel(provider, t),
+            provider: getProviderLabel(provider, providerDefinitions, t),
           }),
         );
       } catch (error) {
@@ -943,7 +871,12 @@ export function SystemSettingsEmailPage() {
   const saveProviderConfig = (provider: MailProviderId) =>
     withSavingKey(`mail.${provider}.config`, async () => {
       const values = form.getValues();
-      if (provider === "smtp") {
+      const definition = findEmailProviderDefinition(providerDefinitions, provider);
+      if (!definition) {
+        notifyErrorText(t("settings:SETTINGS_SYSTEM_EMAIL_PROVIDER_DEFINITION_MISSING"));
+        return;
+      }
+      if (definition.builtIn) {
         try {
           const { patchValue, port } = buildSmtpPatch(values, t);
           await persistPatch(
@@ -957,13 +890,19 @@ export function SystemSettingsEmailPage() {
       }
 
       try {
-        const providerPatch = buildProviderPatch(provider, values, {
-          hasResendSecret,
-          hasCloudflareSecret,
-        });
+        const providerPatch = buildProviderPatch(definition, values, providerSecretStates, t);
+        const nextProviderConfig = {
+          ...values.providerConfig[provider],
+          ...Object.fromEntries(
+            definition.fields.filter((field) => field.secret).map((field) => [field.name, ""]),
+          ),
+        };
         await persistPatch(
           { mail: { providers: { [provider]: providerPatch } } },
-          { ...values, resendApiKey: "", cloudflareApiToken: "" },
+          {
+            ...values,
+            providerConfig: { ...values.providerConfig, [provider]: nextProviderConfig },
+          },
         );
         await providersQuery.refetch();
       } catch (error) {
@@ -1004,8 +943,8 @@ export function SystemSettingsEmailPage() {
     });
 
   const enabledDirty = values.mailEnabled !== initialValues.mailEnabled;
-  const providerConfigDirty = editingProvider
-    ? isProviderConfigDirty(editingProvider, values, initialValues)
+  const providerConfigDirty = editingDefinition
+    ? isProviderConfigDirty(editingDefinition, values, initialValues)
     : false;
   const deliveryDirty =
     values.fallbackChain !== initialValues.fallbackChain ||
@@ -1052,12 +991,17 @@ export function SystemSettingsEmailPage() {
       <ContentGuard
         loading={
           (coreSettingsQuery.isLoading && !coreSettingsQuery.coreSettings) ||
-          (values.mailEnabled && providersQuery.isLoading && !providersQuery.data)
+          (values.mailEnabled &&
+            ((providersQuery.isLoading && !providersQuery.data) || pluginsQuery.isLoading))
         }
-        error={coreSettingsQuery.error ?? providersQuery.error}
+        error={
+          coreSettingsQuery.error ??
+          (values.mailEnabled ? (providersQuery.error ?? pluginsQuery.error) : null)
+        }
         onRetry={() => {
           void coreSettingsQuery.refetch();
           void providersQuery.refetch();
+          void pluginsQuery.refetch();
         }}
       >
         <SystemSettingStack>
@@ -1085,6 +1029,8 @@ export function SystemSettingsEmailPage() {
               }
             />
           </SystemSettingItem>
+
+          <EmailTemplateManager />
 
           {values.mailEnabled ? (
             <>
@@ -1182,6 +1128,7 @@ export function SystemSettingsEmailPage() {
                             <FallbackProvidersField
                               value={field.value}
                               onChange={(next) => field.onChange(next)}
+                              definitions={providerDefinitions}
                               t={t}
                             />
                           </div>
@@ -1244,7 +1191,7 @@ export function SystemSettingsEmailPage() {
             <DrawerTitle className="text-title3 font-semibold text-label-primary">
               {editingProvider
                 ? t("settings:SETTINGS_SYSTEM_EMAIL_PROVIDER_CONFIG_DIALOG_TITLE", {
-                    provider: getProviderLabel(editingProvider, t),
+                    provider: getProviderLabel(editingProvider, providerDefinitions, t),
                   })
                 : t("settings:SETTINGS_SYSTEM_EMAIL_PROVIDER_CONFIGURE_ACTION")}
             </DrawerTitle>
@@ -1254,15 +1201,18 @@ export function SystemSettingsEmailPage() {
           </DrawerHeader>
           <DrawerBody className="min-h-0 flex-1 overflow-auto md:max-w-none">
             <SettingDialogFields>
-              {editingProvider ? (
+              {editingDefinition ? (
                 <ProviderConfigFields
-                  provider={editingProvider}
+                  definition={editingDefinition}
                   form={form}
                   hasMailPasswordSecret={hasMailPasswordSecret}
-                  hasResendSecret={hasResendSecret}
-                  hasCloudflareSecret={hasCloudflareSecret}
+                  secretStates={providerSecretStates}
                   t={t}
                 />
+              ) : editingProvider ? (
+                <div className="text-body text-destructive">
+                  {t("settings:SETTINGS_SYSTEM_EMAIL_PROVIDER_DEFINITION_MISSING")}
+                </div>
               ) : null}
             </SettingDialogFields>
           </DrawerBody>

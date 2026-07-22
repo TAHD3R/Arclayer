@@ -17,4 +17,25 @@ describe("system settings registry", () => {
       "agent-langgraph",
     ]);
   });
+
+  it("routes storage actions to the rendered profiles section", () => {
+    const storageAnchors = SYSTEM_SETTINGS_ITEMS.filter((item) => item.page === "storage").map(
+      (item) => [item.id, item.anchorId ?? item.id],
+    );
+
+    expect(storageAnchors).toEqual([
+      ["default-profile", "profiles"],
+      ["profiles", "profiles"],
+      ["create-profile", "profiles"],
+      ["upload-limits", "upload-limits"],
+    ]);
+  });
+
+  it("indexes only rendered notification settings sections", () => {
+    const notificationItemIds = SYSTEM_SETTINGS_ITEMS.filter(
+      (item) => item.page === "notifications",
+    ).map((item) => item.anchorId ?? item.id);
+
+    expect(notificationItemIds).toEqual(["notification-policy", "global-notification-broadcast"]);
+  });
 });

@@ -1,17 +1,10 @@
 import { useTranslation } from "react-i18next";
 
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@arclayer/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@arclayer/ui/tabs";
 
-export type ObservabilityPeriodDays = 7 | 30 | 90;
+export type ObservabilityPeriodDays = 7 | 14 | 30 | 90;
 
-const PERIODS: readonly ObservabilityPeriodDays[] = [7, 30, 90];
+const PERIODS: readonly ObservabilityPeriodDays[] = [7, 14, 30, 90];
 
 export function ObservabilityPeriodSelect(props: {
   value: ObservabilityPeriodDays;
@@ -20,22 +13,22 @@ export function ObservabilityPeriodSelect(props: {
   const { t } = useTranslation("platform");
 
   return (
-    <Select
+    <Tabs
       value={String(props.value)}
       onValueChange={(value) => props.onChange(Number(value) as ObservabilityPeriodDays)}
     >
-      <SelectTrigger aria-label={t("PERIOD_LABEL")}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectGroup>
-          {PERIODS.map((days) => (
-            <SelectItem key={days} value={String(days)}>
-              {t(`PERIOD_${days}_DAYS`)}
-            </SelectItem>
-          ))}
-        </SelectGroup>
-      </SelectContent>
-    </Select>
+      <TabsList aria-label={t("PERIOD_LABEL")} className="h-9">
+        {PERIODS.map((days) => (
+          <TabsTrigger
+            key={days}
+            value={String(days)}
+            className="min-w-9 px-2.5 font-mono tabular-nums"
+            aria-label={t(`PERIOD_${days}_DAYS`)}
+          >
+            {days}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+    </Tabs>
   );
 }

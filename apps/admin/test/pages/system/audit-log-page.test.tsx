@@ -3,16 +3,20 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { listSystemDirectoryWorkspaces } from "@/api/system-directory";
+import { listSystemDirectoryProjects, listSystemDirectoryWorkspaces } from "@/api/system-directory";
 import { SystemAuditLogPage } from "@/pages/system/audit-log/page";
 import type { ActivityEvent } from "@arclayer/openapi/admin-types";
+import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 
 const observability = vi.hoisted(() => ({
   overviewRefetch: vi.fn(async () => undefined),
   trendRefetch: vi.fn(async () => undefined),
 }));
 
-vi.mock("@/api/system-directory", () => ({ listSystemDirectoryWorkspaces: vi.fn() }));
+vi.mock("@/api/system-directory", () => ({
+  listSystemDirectoryProjects: vi.fn(),
+  listSystemDirectoryWorkspaces: vi.fn(),
+}));
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
@@ -50,6 +54,8 @@ vi.mock("@/pages/system/observability/hooks", () => ({
         errorRequests: 4,
         errorRate: 4 / 120,
         avgLatencyMs: 32,
+        p95LatencyMs: 64,
+        p99LatencyMs: 96,
       },
     },
     isLoading: false,
@@ -86,8 +92,32 @@ vi.mock("@/pages/system/observability/components/page-controls", () => ({
     </button>
   ),
 }));
+vi.mock("@/pages/system/observability/components/dashboard-layout", () => ({
+  ConfigurableDashboard: ({
+    widgets,
+    ariaLabel,
+  }: {
+    widgets: Array<{ id: string; content: React.ReactNode }>;
+    ariaLabel: string;
+  }) => (
+    <section aria-label={ariaLabel}>
+      {widgets.map((widget) => (
+        <div key={widget.id}>{widget.content}</div>
+      ))}
+    </section>
+  ),
+}));
 vi.mock("@/pages/system/audit-log/request-groups-table", () => ({
   RequestGroupsTable: ({ days }: { days: number }) => <div>request-groups:{days}</div>,
+}));
+vi.mock("@/pages/system/audit-log/request-records-table", () => ({
+  RequestRecordsTable: ({ days }: { days: number }) => <div>request-records:{days}</div>,
+}));
+vi.mock("@/pages/system/audit-log/request-record-detail-dialog", () => ({
+  RequestRecordDetailDialog: () => null,
+}));
+vi.mock("@/pages/system/audit-log/request-group-detail-dialog", () => ({
+  RequestGroupDetailDialog: () => null,
 }));
 vi.mock("@/pages/system/audit-log/audit-events-table", () => ({
   AuditEventsTable: ({ onSelect }: { onSelect: (event: ActivityEvent) => void }) => (
@@ -127,7 +157,11 @@ function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <SystemAuditLogPage />
+      <ChromeTabsProvider
+        labels={{ scrollLeftAriaLabel: "scroll left", scrollRightAriaLabel: "scroll right" }}
+      >
+        <SystemAuditLogPage />
+      </ChromeTabsProvider>
     </QueryClientProvider>,
   );
 }
@@ -144,15 +178,33 @@ describe("SystemAuditLogPage", () => {
       next: null,
       prev: null,
     } as never);
+    vi.mocked(listSystemDirectoryProjects).mockResolvedValue({
+      items: [{ projectId: "project-1", name: "Website", workspaceId: "workspace-1" }],
+      total: 1,
+      page: 1,
+      size: 100,
+      pages: 1,
+      next: null,
+      prev: null,
+    } as never);
   });
 
-  it("opens on the request analysis workbench with persisted metrics and route groups", async () => {
+  it("opens on the raw request record workbench", async () => {
     renderPage();
 
     expect(screen.getByRole("heading", { name: "platform:AUDIT_TITLE" })).toBeInTheDocument();
+    expect(screen.getByText("request-records:30")).toBeInTheDocument();
+  });
+
+  it("switches to request analysis with true tail-latency metrics", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole("tab", { name: "platform:AUDIT_VIEW_REQUEST_ANALYSIS" }));
     expect(screen.getByText("request-groups:30")).toBeInTheDocument();
     expect(screen.getByText("trend:platform:TREND_HTTP_REQUESTS")).toBeInTheDocument();
     expect(screen.getByText(/platform:METRIC_HTTP_REQUESTS:120/)).toBeInTheDocument();
+    expect(screen.getByText(/platform:METRIC_HTTP_P99_LATENCY:96/)).toBeInTheDocument();
   });
 
   it("switches to canonical events and opens correlated event detail", async () => {

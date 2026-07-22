@@ -46,14 +46,12 @@ export type SystemSettingsItemId =
   | "delivery-policy"
   | "test-email"
   | "notification-policy"
-  | "notification-email-templates"
-  | "google"
-  | "github"
-  | "microsoft"
-  | "discord";
+  | "global-notification-broadcast"
+  | "oauth-providers";
 
 export type SystemSettingsSearchItem = {
   id: SystemSettingsItemId;
+  anchorId?: SystemSettingsItemId;
   page: SystemSettingsPageKey;
   titleKey: string;
   descriptionKey: string;
@@ -223,6 +221,7 @@ export const SYSTEM_SETTINGS_ITEMS: readonly SystemSettingsSearchItem[] = [
   },
   {
     id: "default-profile",
+    anchorId: "profiles",
     page: "storage",
     titleKey: "settings:SETTINGS_SYSTEM_STORAGE_DEFAULT_LABEL",
     descriptionKey: "settings:SETTINGS_SYSTEM_STORAGE_DEFAULT_DESC",
@@ -237,6 +236,7 @@ export const SYSTEM_SETTINGS_ITEMS: readonly SystemSettingsSearchItem[] = [
   },
   {
     id: "create-profile",
+    anchorId: "profiles",
     page: "storage",
     titleKey: "settings:SETTINGS_SYSTEM_STORAGE_CREATE_ACTION",
     descriptionKey: "settings:SETTINGS_SYSTEM_STORAGE_CREATE_DESC",
@@ -299,39 +299,18 @@ export const SYSTEM_SETTINGS_ITEMS: readonly SystemSettingsSearchItem[] = [
     keywords: ["invite", "notification"],
   },
   {
-    id: "notification-email-templates",
+    id: "global-notification-broadcast",
     page: "notifications",
-    titleKey: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_EMAIL_TITLE",
-    descriptionKey: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_EMAIL_DESC",
-    keywords: ["email", "templates"],
+    titleKey: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_BROADCAST_TITLE",
+    descriptionKey: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_BROADCAST_DESC",
+    keywords: ["broadcast", "email", "notification"],
   },
   {
-    id: "google",
+    id: "oauth-providers",
     page: "oauth",
-    titleKey: "settings:SETTINGS_SYSTEM_OAUTH_GOOGLE_TITLE",
+    titleKey: "settings:SETTINGS_SYSTEM_OAUTH_PAGE_TITLE",
     descriptionKey: "settings:SETTINGS_SYSTEM_OAUTH_PROVIDER_DIALOG_DESC",
-    keywords: ["google", "oauth"],
-  },
-  {
-    id: "github",
-    page: "oauth",
-    titleKey: "settings:SETTINGS_SYSTEM_OAUTH_GITHUB_TITLE",
-    descriptionKey: "settings:SETTINGS_SYSTEM_OAUTH_PROVIDER_DIALOG_DESC",
-    keywords: ["github", "oauth"],
-  },
-  {
-    id: "microsoft",
-    page: "oauth",
-    titleKey: "settings:SETTINGS_SYSTEM_OAUTH_MICROSOFT_TITLE",
-    descriptionKey: "settings:SETTINGS_SYSTEM_OAUTH_PROVIDER_DIALOG_DESC",
-    keywords: ["microsoft", "oauth"],
-  },
-  {
-    id: "discord",
-    page: "oauth",
-    titleKey: "settings:SETTINGS_SYSTEM_OAUTH_DISCORD_TITLE",
-    descriptionKey: "settings:SETTINGS_SYSTEM_OAUTH_PROVIDER_DIALOG_DESC",
-    keywords: ["discord", "oauth"],
+    keywords: ["oauth", "sso", "provider"],
   },
 ] as const;
 

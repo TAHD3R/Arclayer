@@ -35,14 +35,22 @@ vi.mock("@/pages/system/observability/components/page-controls", () => ({
     <button onClick={onRefresh}>refresh:{days}</button>
   ),
 }));
-vi.mock("@/pages/system/observability/components/metric-card", () => ({
-  ObservabilityMetricSection: ({
-    title,
-    children,
+vi.mock("@/pages/system/observability/components/dashboard-layout", () => ({
+  ConfigurableDashboard: ({
+    widgets,
+    ariaLabel,
   }: {
-    title: string;
-    children?: React.ReactNode;
-  }) => <section aria-label={title}>{children}</section>,
+    widgets: Array<{ id: string; content: React.ReactNode }>;
+    ariaLabel: string;
+  }) => (
+    <section aria-label={ariaLabel}>
+      {widgets.map((widget) => (
+        <div key={widget.id}>{widget.content}</div>
+      ))}
+    </section>
+  ),
+}));
+vi.mock("@/pages/system/observability/components/metric-card", () => ({
   ObservabilityMetricCard: ({ label, value }: { label: string; value: string }) => (
     <div>
       {label}:{value}
@@ -98,7 +106,7 @@ describe("SystemObservabilityOverviewPage", () => {
     });
   });
 
-  it("separates service health and commercial operations while requesting four live trends", () => {
+  it("combines health and commercial widgets with four live trends", () => {
     render(<SystemObservabilityOverviewPage />);
 
     expect(overviewHook).toHaveBeenCalledWith(30);
@@ -108,10 +116,10 @@ describe("SystemObservabilityOverviewPage", () => {
       [30, "cost"],
       [30, "auditEvents"],
     ]);
-    expect(screen.getByRole("region", { name: "SECTION_SERVICE_HEALTH" })).toBeInTheDocument();
     expect(
-      screen.getByRole("region", { name: "SECTION_COMMERCIAL_OPERATIONS" }),
+      screen.getByRole("region", { name: "OBSERVABILITY_OVERVIEW_TITLE" }),
     ).toBeInTheDocument();
+    expect(screen.getByText(/METRIC_OPEN_FEEDBACK:7/)).toBeInTheDocument();
     expect(screen.getByText("trend:TREND_HTTP_ERRORS:1")).toBeInTheDocument();
     expect(screen.getByText("trend:TREND_ERRORS:1")).toBeInTheDocument();
     expect(screen.getByText("trend:TREND_COST:1")).toBeInTheDocument();

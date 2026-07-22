@@ -14,9 +14,18 @@ import {
   uploadSystemDirectoryUserAvatarPart,
 } from "@/api/system-directory";
 import { PasswordRequirementChecklist } from "@/components/auth/password-requirement-checklist";
+import { AvatarUploadCompletionNotice } from "@/components/common/avatar-upload-completion-notice";
 import { AvatarUploadSlot } from "@/components/common/avatar-upload-slot";
 import { PASSWORD_PATTERN } from "@/lib/auth/form-feedback";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
+import {
+  abortAssetUploadBeforeCompletion,
+  AssetUploadCleanupError,
+  completeAssetUpload,
+  createAssetUploadCompletionCheckpoint,
+  getAssetUploadCompletionCheckpoint,
+  type AssetUploadCompletionCheckpoint,
+} from "@/lib/assets/upload-completion";
 import { uploadPresignedPart } from "@/lib/assets/storage-transfer";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError } from "@/lib/notifications";
@@ -50,6 +59,7 @@ export type UserActionTarget = Pick<
   | "avatar_url"
   | "hasPassword"
   | "twoFactorEnabled"
+  | "isSuperAdmin"
   | "linkedOauthProviders"
 > & {
   linkedOauthProviders: string[];
@@ -87,6 +97,7 @@ async function uploadDirectoryUserAvatarFile(params: {
   signal?: AbortSignal;
 }): Promise<string> {
   let uploadId: string | null = null;
+  let completionStarted = false;
   try {
     const init = await initSystemDirectoryUserAvatarUpload(params.userId, {
       purpose: "avatar",
@@ -142,15 +153,23 @@ async function uploadDirectoryUserAvatarFile(params: {
       });
     }, Promise.resolve());
 
-    const done = await completeSystemDirectoryUserAvatarUpload(params.userId, init.uploadId);
-    return done.assetId;
+    const checkpoint = createAssetUploadCompletionCheckpoint({
+      uploadId: init.uploadId,
+      complete: async () => {
+        const done = await completeSystemDirectoryUserAvatarUpload(params.userId, init.uploadId);
+        return done.assetId;
+      },
+    });
+    completionStarted = true;
+    return await completeAssetUpload(checkpoint);
   } catch (error) {
-    if (uploadId) {
-      try {
-        await abortSystemDirectoryUserAvatarUpload(params.userId, uploadId);
-      } catch {
-        // Keep original upload failure visible to the caller.
-      }
+    if (uploadId && !completionStarted) {
+      const incompleteUploadId = uploadId;
+      return await abortAssetUploadBeforeCompletion({
+        uploadId: incompleteUploadId,
+        uploadError: error,
+        abort: async () => abortSystemDirectoryUserAvatarUpload(params.userId, incompleteUploadId),
+      });
     }
     throw error;
   }
@@ -170,6 +189,9 @@ export function EditAccountDialog(props: {
   const { t } = useTranslation(["settings", "common", "assets"]);
   const avatarFileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [avatarUploading, setAvatarUploading] = React.useState(false);
+  const [avatarCompletionCheckpoints, setAvatarCompletionCheckpoints] = React.useState<
+    Readonly<Record<string, AssetUploadCompletionCheckpoint>>
+  >({});
 
   const schema = React.useMemo(
     () =>
@@ -214,26 +236,76 @@ export function EditAccountDialog(props: {
     props.user?.displayName?.trim()?.slice(0, 1) ||
     props.user?.username?.trim()?.slice(0, 1) ||
     "?";
+  const avatarCompletionCheckpoint = props.user
+    ? (avatarCompletionCheckpoints[props.user.userId] ?? null)
+    : null;
   const avatarBusy = props.pending || avatarUploading;
+  const avatarSelectionLocked = avatarBusy || Boolean(avatarCompletionCheckpoint);
+
+  const clearAvatarCompletionCheckpoint = (userId: string) => {
+    setAvatarCompletionCheckpoints((current) => {
+      if (!current[userId]) return current;
+      const next = { ...current };
+      delete next[userId];
+      return next;
+    });
+  };
+
+  const handleAvatarUploadError = (userId: string, error: unknown) => {
+    const checkpoint = getAssetUploadCompletionCheckpoint(error);
+    if (checkpoint) {
+      setAvatarCompletionCheckpoints((current) => ({
+        ...current,
+        [userId]: checkpoint,
+      }));
+      return;
+    }
+    if (error instanceof AssetUploadCleanupError) {
+      notifyError(
+        new Error(t("settings:SETTINGS_SYSTEM_DIRECTORY_EDIT_ACCOUNT_AVATAR_CLEANUP_FAILED"), {
+          cause: error,
+        }),
+      );
+      return;
+    }
+    notifyError(error);
+  };
+
+  const applyCompletedAvatar = (userId: string, assetId: string) => {
+    form.setValue("avatarAssetId", assetId, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    clearAvatarCompletionCheckpoint(userId);
+  };
 
   const handleAvatarFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.currentTarget.value = "";
-    if (!file || !props.user || avatarBusy) return;
+    if (!file || !props.user || avatarSelectionLocked) return;
     if (!file.type?.startsWith("image/")) {
       notifyError(new Error(t("assets:ASSET_UPLOAD_IMAGE_ONLY_REQUIRED")));
       return;
     }
 
+    const userId = props.user.userId;
     setAvatarUploading(true);
-    void uploadDirectoryUserAvatarFile({ userId: props.user.userId, file })
+    void uploadDirectoryUserAvatarFile({ userId, file })
       .then((assetId) => {
-        form.setValue("avatarAssetId", assetId, {
-          shouldDirty: true,
-          shouldValidate: true,
-        });
+        applyCompletedAvatar(userId, assetId);
       })
-      .catch((error) => notifyError(error))
+      .catch((error) => handleAvatarUploadError(userId, error))
+      .finally(() => setAvatarUploading(false));
+  };
+
+  const handleContinueAvatarCompletion = () => {
+    if (!props.user || !avatarCompletionCheckpoint || avatarBusy) return;
+
+    const userId = props.user.userId;
+    setAvatarUploading(true);
+    void completeAssetUpload(avatarCompletionCheckpoint)
+      .then((assetId) => applyCompletedAvatar(userId, assetId))
+      .catch((error) => handleAvatarUploadError(userId, error))
       .finally(() => setAvatarUploading(false));
   };
 
@@ -251,7 +323,7 @@ export function EditAccountDialog(props: {
       <SettingDialog
         open={props.open}
         onOpenChange={(open) => {
-          if (!props.pending) props.onOpenChange(open);
+          if (!avatarBusy) props.onOpenChange(open);
         }}
         title={t("settings:SETTINGS_SYSTEM_DIRECTORY_EDIT_ACCOUNT_TITLE")}
         description={t("settings:SETTINGS_SYSTEM_DIRECTORY_EDIT_ACCOUNT_DESC")}
@@ -266,7 +338,7 @@ export function EditAccountDialog(props: {
             </Button>
             <Button
               loading={props.pending}
-              disabled={avatarUploading}
+              disabled={avatarUploading || Boolean(avatarCompletionCheckpoint)}
               onClick={() => void onSubmit()}
             >
               {t("common:CONFIRM")}
@@ -282,19 +354,21 @@ export function EditAccountDialog(props: {
               title={t("settings:SETTINGS_SYSTEM_DIRECTORY_EDIT_ACCOUNT_AVATAR")}
               description={t("settings:SETTINGS_SYSTEM_DIRECTORY_EDIT_ACCOUNT_AVATAR_DESC")}
             >
-              <div className="ml-1">
+              <div className="ml-1 flex flex-wrap items-start gap-4">
                 <input
                   ref={avatarFileInputRef}
                   type="file"
                   accept="image/*"
                   className="hidden"
                   tabIndex={-1}
+                  aria-label={t("settings:SETTINGS_SYSTEM_DIRECTORY_EDIT_ACCOUNT_AVATAR_PICK")}
+                  disabled={avatarSelectionLocked}
                   onChange={handleAvatarFileChange}
                 />
                 <AvatarUploadSlot
                   shape="circle"
                   size={72}
-                  disabled={avatarBusy}
+                  disabled={avatarSelectionLocked}
                   loading={avatarUploading}
                   src={avatarPreviewUrl}
                   fallback={<span className="text-title3">{avatarFallback}</span>}
@@ -311,6 +385,19 @@ export function EditAccountDialog(props: {
                     });
                   }}
                 />
+                {avatarCompletionCheckpoint ? (
+                  <AvatarUploadCompletionNotice
+                    className="max-w-sm flex-1"
+                    description={t(
+                      "settings:SETTINGS_SYSTEM_DIRECTORY_EDIT_ACCOUNT_AVATAR_COMPLETION_PENDING",
+                    )}
+                    actionLabel={t(
+                      "settings:SETTINGS_SYSTEM_DIRECTORY_EDIT_ACCOUNT_AVATAR_COMPLETION_ACTION",
+                    )}
+                    pending={avatarUploading}
+                    onContinue={handleContinueAvatarCompletion}
+                  />
+                ) : null}
               </div>
             </SettingDialogField>
 
@@ -510,13 +597,22 @@ export function ConfirmUserActionDialog(props: {
   );
 }
 
-export function getUserActionAvailability(user: UserActionTarget | null) {
+export function getUserActionAvailability(
+  user: UserActionTarget | null,
+  currentUserId?: string | null,
+) {
   const linkedProviders = resolveLinkedProviders(user);
+  const isCurrentUser = Boolean(user && currentUserId && user.userId === currentUserId);
   return {
     canSendResetPasswordEmail: Boolean(user?.email?.trim()),
     canDisableTwoFactor: Boolean(user?.twoFactorEnabled),
     linkedProviders,
-    canUnlinkOAuth: linkedProviders.length > 0,
     canResetPassword: Boolean(user?.hasPassword || linkedProviders.length > 0),
+    canDisableAccount: !isCurrentUser && user?.status !== "disabled",
+    canEnableAccount: user?.status === "disabled",
+    canDeleteAccount: !isCurrentUser,
+    canGrantSuperAdmin: Boolean(user && !user.isSuperAdmin),
+    canRevokeSuperAdmin: Boolean(user?.isSuperAdmin && !isCurrentUser),
+    isCurrentUser,
   } as const;
 }

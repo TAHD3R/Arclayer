@@ -31,11 +31,10 @@ export async function updateStorageProfile(
   );
 }
 
-export async function testStorageProfile(profile: {
-  id: string;
-  profileKey: string;
-}): Promise<StorageProfileTestResultOut> {
-  if (profile.profileKey === "env-default") {
+export async function testStorageProfile(
+  profile: Pick<StorageProfileOut, "configSource" | "id" | "profileKey">,
+): Promise<StorageProfileTestResultOut> {
+  if (profile.configSource === "environment") {
     return api.post<StorageProfileTestResultOut>(
       `/system/storage-profiles/by-key/${encodeURIComponent(profile.profileKey)}/test`,
     );

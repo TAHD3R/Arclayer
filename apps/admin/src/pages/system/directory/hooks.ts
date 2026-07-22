@@ -198,11 +198,13 @@ export function useSystemDirectoryUserGovernance() {
       email?: string | null;
       displayName?: string | null;
       avatarAssetId?: string | null;
+      isSuperAdmin?: boolean;
     }) => {
       return updateSystemDirectoryUser(params.userId, {
         email: params.email,
         displayName: params.displayName,
         avatarAssetId: params.avatarAssetId,
+        isSuperAdmin: params.isSuperAdmin,
       });
     },
     onSuccess: async () => {
@@ -311,6 +313,22 @@ export function useSystemDirectoryUserGovernance() {
     onError: (error) => notifyError(error),
   });
 
+  const setSuperAdminMutation = useMutation({
+    mutationFn: async (params: { userId: string; isSuperAdmin: boolean }) =>
+      updateSystemDirectoryUser(params.userId, {
+        isSuperAdmin: params.isSuperAdmin,
+      }),
+    onSuccess: async (_data, variables) => {
+      notifySuccessText(
+        variables.isSuperAdmin
+          ? t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_GRANT_SUPER_ADMIN_SUCCESS")
+          : t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_REVOKE_SUPER_ADMIN_SUCCESS"),
+      );
+      await invalidateSystemDirectoryUsers(queryClient);
+    },
+    onError: (error) => notifyError(error),
+  });
+
   return {
     editProfileMutation,
     resetPasswordMutation,
@@ -321,6 +339,7 @@ export function useSystemDirectoryUserGovernance() {
     disableUsersMutation,
     enableUsersMutation,
     deleteUserMutation,
+    setSuperAdminMutation,
   } as const;
 }
 

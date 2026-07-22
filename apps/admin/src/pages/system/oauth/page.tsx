@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
@@ -6,6 +7,12 @@ import { Input } from "@arclayer/ui/input";
 import { Switch } from "@arclayer/ui/switch";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
 
+import {
+  listSystemPlugins,
+  SYSTEM_PLUGINS_QUERY_KEY,
+  type SystemConnectorDefinition,
+  type SystemPlugin,
+} from "@/api/plugins";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { getFieldErrorMessage, validateFormFields } from "@/lib/forms/rhf-form-helpers";
 import { notifySuccessText } from "@/lib/notifications";
@@ -26,35 +33,15 @@ import {
 } from "@/pages/system/hooks/use-system-core-settings";
 import { FieldMessage, normalizeOptionalString } from "@/pages/system/system-settings-form-utils";
 
-const OAUTH_PROVIDERS = [
-  {
-    key: "google",
-    sectionKey: "oauth_google",
-    titleKey: "settings:SETTINGS_SYSTEM_OAUTH_GOOGLE_TITLE",
-  },
-  {
-    key: "github",
-    sectionKey: "oauth_github",
-    titleKey: "settings:SETTINGS_SYSTEM_OAUTH_GITHUB_TITLE",
-  },
-  {
-    key: "microsoft",
-    sectionKey: "oauth_microsoft",
-    titleKey: "settings:SETTINGS_SYSTEM_OAUTH_MICROSOFT_TITLE",
-  },
-  {
-    key: "discord",
-    sectionKey: "oauth_discord",
-    titleKey: "settings:SETTINGS_SYSTEM_OAUTH_DISCORD_TITLE",
-  },
-] as const;
-
-type OAuthProvider = (typeof OAUTH_PROVIDERS)[number];
-type OAuthProviderKey = OAuthProvider["key"];
+type OAuthProvider = {
+  key: string;
+  sectionKey: string;
+  titleKey: string;
+};
 
 type OAuthFormValues = {
   providers: Record<
-    OAuthProviderKey,
+    string,
     {
       enabled: boolean;
       clientId: string;
@@ -65,10 +52,11 @@ type OAuthFormValues = {
 
 function buildInitialValues(
   input: ReturnType<typeof useSystemCoreSettings>["coreSettings"],
+  providers: readonly OAuthProvider[],
 ): OAuthFormValues {
   return {
     providers: Object.fromEntries(
-      OAUTH_PROVIDERS.map((provider) => {
+      providers.map((provider) => {
         const section = getSystemSettingsSection(input, provider.sectionKey);
         return [
           provider.key,
@@ -81,6 +69,26 @@ function buildInitialValues(
       }),
     ) as OAuthFormValues["providers"],
   };
+}
+
+function toOAuthProvider(definition: SystemConnectorDefinition): OAuthProvider | null {
+  const admin = definition.admin;
+  if (definition.kind !== "oauth" || !definition.key.startsWith("oauth.")) return null;
+  if (!admin?.settingsSection) return null;
+  return {
+    key: definition.key.slice("oauth.".length),
+    sectionKey: admin.settingsSection,
+    titleKey: admin.labelKey,
+  };
+}
+
+function resolveOAuthProviders(plugins: readonly SystemPlugin[]): OAuthProvider[] {
+  return plugins.flatMap((plugin) =>
+    plugin.connectorDefinitions.flatMap((definition) => {
+      const provider = toOAuthProvider(definition);
+      return provider ? [provider] : [];
+    }),
+  );
 }
 
 function ProviderField(props: {
@@ -104,22 +112,31 @@ export function SystemSettingsOAuthPage() {
   const { t } = useTranslation(["settings"]);
   const { savingKey, withSavingKey } = useSavingKey();
   const coreSettingsQuery = useSystemCoreSettings();
+  const pluginsQuery = useQuery({
+    queryKey: SYSTEM_PLUGINS_QUERY_KEY,
+    queryFn: ({ signal }) => listSystemPlugins(signal),
+    retry: false,
+  });
+  const providers = useMemo(
+    () => resolveOAuthProviders(pluginsQuery.data ?? []),
+    [pluginsQuery.data],
+  );
   const patchMutation = usePatchSystemCoreSettings();
   const secrets = getSystemSettingsSecrets(coreSettingsQuery.coreSettings);
   const secretStates = useMemo(
     () =>
       Object.fromEntries(
-        OAUTH_PROVIDERS.map((provider) => [
+        providers.map((provider) => [
           provider.key,
           Boolean(secrets[`${provider.sectionKey}.client_secret`]),
         ]),
-      ) as Record<OAuthProviderKey, boolean>,
-    [secrets],
+      ) as Record<string, boolean>,
+    [providers, secrets],
   );
 
   const initialValues = useMemo(
-    () => buildInitialValues(coreSettingsQuery.coreSettings),
-    [coreSettingsQuery.coreSettings],
+    () => buildInitialValues(coreSettingsQuery.coreSettings, providers),
+    [coreSettingsQuery.coreSettings, providers],
   );
 
   const form = useForm<OAuthFormValues>({
@@ -129,10 +146,10 @@ export function SystemSettingsOAuthPage() {
   const values = form.watch();
 
   useEffect(() => {
-    if (!coreSettingsQuery.coreSettings) return;
+    if (!coreSettingsQuery.coreSettings || pluginsQuery.isLoading) return;
     if (form.formState.isDirty) return;
     form.reset(initialValues);
-  }, [coreSettingsQuery.coreSettings, form, initialValues]);
+  }, [coreSettingsQuery.coreSettings, form, initialValues, pluginsQuery.isLoading]);
 
   const persistPatch = async (patch: Record<string, unknown>, nextValues: OAuthFormValues) => {
     await patchMutation.mutateAsync(patch);
@@ -193,14 +210,22 @@ export function SystemSettingsOAuthPage() {
 
   return (
     <ContentGuard
-      loading={coreSettingsQuery.isLoading && !coreSettingsQuery.coreSettings}
-      error={coreSettingsQuery.error}
-      onRetry={() => void coreSettingsQuery.refetch()}
+      loading={
+        (coreSettingsQuery.isLoading && !coreSettingsQuery.coreSettings) || pluginsQuery.isLoading
+      }
+      error={coreSettingsQuery.error ?? pluginsQuery.error}
+      onRetry={() => {
+        void coreSettingsQuery.refetch();
+        void pluginsQuery.refetch();
+      }}
+      empty={providers.length === 0}
+      emptyTitle={t("settings:SETTINGS_SYSTEM_OAUTH_EMPTY_TITLE")}
+      emptyDescription={t("settings:SETTINGS_SYSTEM_OAUTH_EMPTY_DESC")}
     >
       <SystemSettingStack>
-        {OAUTH_PROVIDERS.map((provider) => {
-          const providerValues = values.providers[provider.key];
+        {providers.map((provider) => {
           const initialProviderValues = initialValues.providers[provider.key];
+          const providerValues = values.providers[provider.key] ?? initialProviderValues;
           const enabledName = `providers.${provider.key}.enabled` as const;
           const clientIdName = `providers.${provider.key}.clientId` as const;
           const clientSecretName = `providers.${provider.key}.clientSecret` as const;

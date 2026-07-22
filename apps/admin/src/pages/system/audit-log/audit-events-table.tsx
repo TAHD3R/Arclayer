@@ -8,11 +8,21 @@ import { BaseTag } from "@/components/ui/tags";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
 import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
+import { ActivityUserPill } from "@/pages/workspaces/shared/activity/components/activity-user-pill";
 import { useDataTable } from "@arclayer/ui/data-table";
 import type { ActivityEvent } from "@arclayer/openapi/admin-types";
 
+import {
+  auditEventName,
+  auditScopeLabel,
+  auditSourceLabel,
+  auditTargetLabel,
+} from "./audit-event-presenters";
+
 type AuditEventsTableProps = {
   onSelect: (event: ActivityEvent) => void;
+  workspaceLabelById?: Readonly<Record<string, string>>;
+  projectLabelById?: Readonly<Record<string, string>>;
 };
 
 function TruncatedValue(props: { children: string; mono?: boolean }) {
@@ -30,11 +40,11 @@ function TruncatedValue(props: { children: string; mono?: boolean }) {
   );
 }
 
-function actorLabel(event: ActivityEvent) {
-  return event.actor?.displayName ?? event.actor?.username ?? event.actorUserId ?? "—";
-}
-
-export function AuditEventsTable({ onSelect }: AuditEventsTableProps) {
+export function AuditEventsTable({
+  onSelect,
+  workspaceLabelById = {},
+  projectLabelById = {},
+}: AuditEventsTableProps) {
   const { t } = useTranslation(["platform", "activity", "common"]);
   const dateTime = useAdminDateTimeFormatter({ workspaceId: null });
   const columns = useMemo<ColumnDef<ActivityEvent, unknown>[]>(
@@ -43,7 +53,12 @@ export function AuditEventsTable({ onSelect }: AuditEventsTableProps) {
         id: "event",
         header: t("platform:AUDIT_EVENT_NAME"),
         meta: { title: t("platform:AUDIT_EVENT_NAME"), kind: "primary" },
-        cell: ({ row }) => <TruncatedValue mono children={row.original.eventName} />,
+        cell: ({ row }) => (
+          <div className="min-w-0">
+            <TruncatedValue children={auditEventName(t, row.original.eventName)} />
+            <TruncatedValue mono children={row.original.eventName} />
+          </div>
+        ),
         size: 300,
         minSize: 220,
       },
@@ -51,47 +66,70 @@ export function AuditEventsTable({ onSelect }: AuditEventsTableProps) {
         id: "source",
         header: t("platform:AUDIT_EVENT_SOURCE"),
         meta: { title: t("platform:AUDIT_EVENT_SOURCE"), kind: "meta" },
-        cell: ({ row }) => <BaseTag>{row.original.source ?? "—"}</BaseTag>,
+        cell: ({ row }) => <BaseTag>{auditSourceLabel(t, row.original.source)}</BaseTag>,
         size: 130,
       },
       {
         id: "actor",
         header: t("platform:AUDIT_EVENT_ACTOR"),
         meta: { title: t("platform:AUDIT_EVENT_ACTOR"), kind: "meta" },
-        cell: ({ row }) => <TruncatedValue children={actorLabel(row.original)} />,
+        cell: ({ row }) => (
+          <a
+            href="/system/tenants/users"
+            className="block min-w-0 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <ActivityUserPill
+              user={row.original.actor}
+              secondary={row.original.actorUserId ?? undefined}
+            />
+          </a>
+        ),
         size: 180,
       },
       {
         id: "scope",
         header: t("platform:AUDIT_EVENT_SCOPE"),
         meta: { title: t("platform:AUDIT_EVENT_SCOPE"), kind: "meta" },
-        cell: ({ row }) => (
-          <TruncatedValue
-            mono
-            children={
-              row.original.projectId ?? row.original.workspaceId ?? t("platform:AUDIT_GLOBAL_SCOPE")
-            }
-          />
-        ),
+        cell: ({ row }) => {
+          const label = auditScopeLabel(t, row.original, workspaceLabelById, projectLabelById);
+          const href = row.original.projectId
+            ? "/system/tenants/projects"
+            : row.original.workspaceId
+              ? "/system/tenants/workspaces"
+              : null;
+          return href ? (
+            <a
+              href={href}
+              className="block truncate rounded-sm text-label-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              title={label}
+              onClick={(event) => event.stopPropagation()}
+            >
+              {label}
+            </a>
+          ) : (
+            <TruncatedValue children={label} />
+          );
+        },
         size: 220,
       },
       {
         id: "entity",
         header: t("platform:AUDIT_EVENT_TARGET"),
         meta: { title: t("platform:AUDIT_EVENT_TARGET"), kind: "meta" },
-        cell: ({ row }) => (
-          <div className="flex min-w-0 items-center gap-2">
-            {row.original.entityType ? <BaseTag>{row.original.entityType}</BaseTag> : null}
-            <TruncatedValue mono children={row.original.entityId ?? "—"} />
-          </div>
-        ),
+        cell: ({ row }) => <TruncatedValue children={auditTargetLabel(t, row.original)} />,
         size: 260,
       },
       {
         id: "trace",
         header: t("platform:AUDIT_EVENT_TRACE"),
         meta: { title: t("platform:AUDIT_EVENT_TRACE"), kind: "meta" },
-        cell: ({ row }) => <TruncatedValue mono children={row.original.traceId ?? "—"} />,
+        cell: ({ row }) => (
+          <TruncatedValue
+            mono
+            children={row.original.traceId ?? t("platform:AUDIT_EVENT_TRACE_MISSING")}
+          />
+        ),
         size: 180,
       },
       {
@@ -104,7 +142,7 @@ export function AuditEventsTable({ onSelect }: AuditEventsTableProps) {
         size: 180,
       },
     ],
-    [dateTime, t],
+    [dateTime, projectLabelById, t, workspaceLabelById],
   );
   const tableHook = useDataTable<ActivityEvent>({
     tableId: "system-audit-events",

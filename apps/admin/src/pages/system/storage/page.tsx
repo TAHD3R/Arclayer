@@ -92,8 +92,7 @@ import { Input } from "@arclayer/ui/input";
 import { NumberInput } from "@arclayer/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
-import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
-import { Switch } from "@arclayer/ui/switch";
+import { SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import type {
   ObjectStorageProviderKind,
   StorageProfileConfigPayloadInput,
@@ -126,7 +125,6 @@ type StorageProfileFormValues = {
   secretAccessKey: string;
   forcePathStyle: boolean;
   presignExpiresSeconds: number;
-  isDefault: boolean;
 };
 
 type StorageLimitsFormValues = {
@@ -149,6 +147,7 @@ type UploadPurposePolicyFormValues = {
   allowedExtensions: string;
 };
 type UploadPolicyFormValues = {
+  allowedExtensions: string;
   defaults: UploadPurposePolicyFormValues;
   purposes: Record<UploadPolicyPurposeKey, UploadPurposePolicyFormValues>;
 };
@@ -185,7 +184,6 @@ type StorageProfileTableMeta = {
 };
 
 const STORAGE_PROFILE_KEY_PATTERN = /^[a-z0-9][a-z0-9_-]{1,127}$/;
-const ENV_DEFAULT_PROFILE_KEY = "env-default";
 const STORAGE_LIMIT_FIELDS = [
   "uploadChunkSizeMb",
   "uploadSessionTtlSeconds",
@@ -229,6 +227,7 @@ const UPLOAD_POLICY_FORM_PURPOSES = [
 }[];
 const DEFAULT_IMAGE_UPLOAD_EXTENSIONS = "jpg, jpeg, png, webp, gif, bmp, tif, tiff, avif";
 const DEFAULT_LIBRARY_UPLOAD_EXTENSIONS = `${DEFAULT_IMAGE_UPLOAD_EXTENSIONS}, zip, pdf, mp4, webm, mov, m4v, woff2, woff, ttf, otf, eot`;
+const DEFAULT_GLOBAL_UPLOAD_EXTENSIONS = `${DEFAULT_LIBRARY_UPLOAD_EXTENSIONS}, ico`;
 const UPLOAD_EXTENSION_OPTIONS: readonly UploadExtensionOption[] = [
   "jpg",
   "jpeg",
@@ -253,6 +252,7 @@ const UPLOAD_EXTENSION_OPTIONS: readonly UploadExtensionOption[] = [
   "eot",
 ].map((ext) => ({ value: ext, label: `.${ext}` }));
 const DEFAULT_UPLOAD_POLICY_FORM_VALUES: UploadPolicyFormValues = {
+  allowedExtensions: DEFAULT_GLOBAL_UPLOAD_EXTENSIONS,
   defaults: {
     maxSizeMb: 2048,
     allowedExtensions: DEFAULT_LIBRARY_UPLOAD_EXTENSIONS,
@@ -387,7 +387,6 @@ function createDefaultFormValues(
     secretAccessKey: "",
     forcePathStyle: option.defaultForcePathStyle,
     presignExpiresSeconds: 900,
-    isDefault: false,
   };
 }
 
@@ -410,12 +409,12 @@ function buildFormValues(profile: StorageProfileOut): StorageProfileFormValues {
     secretAccessKey: "",
     forcePathStyle: Boolean(profile.config.forcePathStyle),
     presignExpiresSeconds: profile.config.presignExpiresSeconds ?? 900,
-    isDefault: profile.isDefault,
   };
 }
 
 function cloneDefaultUploadPolicyFormValues(): UploadPolicyFormValues {
   return {
+    allowedExtensions: DEFAULT_UPLOAD_POLICY_FORM_VALUES.allowedExtensions,
     defaults: { ...DEFAULT_UPLOAD_POLICY_FORM_VALUES.defaults },
     purposes: {
       library: { ...DEFAULT_UPLOAD_POLICY_FORM_VALUES.purposes.library },
@@ -447,6 +446,18 @@ function parseExtensionsInput(value: string): string[] {
   return result;
 }
 
+function constrainUploadPurposeExtensions(
+  value: UploadPurposePolicyFormValues,
+  globallyAllowed: ReadonlySet<string>,
+): UploadPurposePolicyFormValues {
+  return {
+    ...value,
+    allowedExtensions: formatExtensionsInput(
+      parseExtensionsInput(value.allowedExtensions).filter((ext) => globallyAllowed.has(ext)),
+    ),
+  };
+}
+
 function readUploadPurposePolicy(
   record: ReturnType<typeof readRecordValue>,
   fallback: UploadPurposePolicyFormValues,
@@ -459,15 +470,15 @@ function readUploadPurposePolicy(
   };
 }
 
-function getExtensionOptions(value: string): UploadExtensionOption[] {
-  const selected = parseExtensionsInput(value);
+function getExtensionOptions(availableExtensions: string): UploadExtensionOption[] {
+  const available = parseExtensionsInput(availableExtensions);
   const optionByValue = new Map(UPLOAD_EXTENSION_OPTIONS.map((option) => [option.value, option]));
-  for (const ext of selected) {
+  for (const ext of available) {
     if (!optionByValue.has(ext)) {
       optionByValue.set(ext, { value: ext, label: `.${ext}` });
     }
   }
-  return Array.from(optionByValue.values());
+  return available.map((ext) => optionByValue.get(ext) ?? { value: ext, label: `.${ext}` });
 }
 
 function buildUploadPolicyInitialValues(
@@ -475,33 +486,43 @@ function buildUploadPolicyInitialValues(
 ): UploadPolicyFormValues {
   const fallback = cloneDefaultUploadPolicyFormValues();
   const policy = readRecordValue(storage, "upload_policy");
-  const defaults = readUploadPurposePolicy(readRecordValue(policy, "defaults"), fallback.defaults);
+  const allowedExtensions = readStringArrayValue(policy, "allowed_extensions").length
+    ? formatExtensionsInput(readStringArrayValue(policy, "allowed_extensions"))
+    : fallback.allowedExtensions;
+  const globallyAllowed = new Set(parseExtensionsInput(allowedExtensions));
+  const readConstrainedPurpose = (
+    record: ReturnType<typeof readRecordValue>,
+    purposeFallback: UploadPurposePolicyFormValues,
+  ) =>
+    constrainUploadPurposeExtensions(
+      readUploadPurposePolicy(record, purposeFallback),
+      globallyAllowed,
+    );
+  const defaults = readConstrainedPurpose(readRecordValue(policy, "defaults"), fallback.defaults);
   const purposes = readRecordValue(policy, "purposes");
 
   return {
+    allowedExtensions,
     defaults,
     purposes: {
-      library: readUploadPurposePolicy(
+      library: readConstrainedPurpose(
         readRecordValue(purposes, "library"),
         fallback.purposes.library,
       ),
-      avatar: readUploadPurposePolicy(
-        readRecordValue(purposes, "avatar"),
-        fallback.purposes.avatar,
-      ),
-      workspaceIcon: readUploadPurposePolicy(
+      avatar: readConstrainedPurpose(readRecordValue(purposes, "avatar"), fallback.purposes.avatar),
+      workspaceIcon: readConstrainedPurpose(
         readRecordValue(purposes, "workspace_icon"),
         fallback.purposes.workspaceIcon,
       ),
-      siteLogo: readUploadPurposePolicy(
+      siteLogo: readConstrainedPurpose(
         readRecordValue(purposes, "site_logo"),
         fallback.purposes.siteLogo,
       ),
-      favicon: readUploadPurposePolicy(
+      favicon: readConstrainedPurpose(
         readRecordValue(purposes, "favicon"),
         fallback.purposes.favicon,
       ),
-      attachment: readUploadPurposePolicy(
+      attachment: readConstrainedPurpose(
         readRecordValue(purposes, "attachment"),
         fallback.purposes.attachment,
       ),
@@ -520,6 +541,7 @@ function buildUploadPolicyPayload(value: UploadPolicyFormValues) {
     ]),
   );
   return {
+    allowed_extensions: parseExtensionsInput(value.allowedExtensions),
     defaults: {
       max_size_mb: value.defaults.maxSizeMb,
       allowed_extensions: parseExtensionsInput(value.defaults.allowedExtensions),
@@ -542,7 +564,13 @@ function buildStorageLimitsInitialValues(
 }
 
 function isReadOnlyProfile(profile: StorageProfileOut): boolean {
-  return profile.profileKey === ENV_DEFAULT_PROFILE_KEY;
+  return profile.configSource === "environment";
+}
+
+function formatProfileDisplayName(profile: StorageProfileOut, t: (key: string) => string): string {
+  return isReadOnlyProfile(profile)
+    ? t("settings:SETTINGS_SYSTEM_STORAGE_ENVIRONMENT_DEFAULT_NAME")
+    : profile.displayName;
 }
 
 function buildStorageProfileConfigPayload(
@@ -677,16 +705,21 @@ function StorageExtensionOptionContent(props: { option: UploadExtensionOption })
 
 function StorageExtensionSelect(props: {
   value: string;
+  availableExtensions: string;
   onChange: (value: string) => void;
   ariaLabel: string;
   placeholder: string;
 }) {
   const anchor = useComboboxAnchor();
   const selectedExtensions = parseExtensionsInput(props.value);
-  const options = useMemo(() => getExtensionOptions(props.value), [props.value]);
+  const options = useMemo(
+    () => getExtensionOptions(props.availableExtensions),
+    [props.availableExtensions],
+  );
+  const availableValues = useMemo(() => new Set(options.map((option) => option.value)), [options]);
   const selectedOptions = options.filter((option) => selectedExtensions.includes(option.value));
   const addTypedExtensions = (raw: string) => {
-    const typedExtensions = parseExtensionsInput(raw);
+    const typedExtensions = parseExtensionsInput(raw).filter((ext) => availableValues.has(ext));
     if (!typedExtensions.length) return;
     props.onChange(formatExtensionsInput([...selectedExtensions, ...typedExtensions]));
   };
@@ -749,6 +782,7 @@ function StorageExtensionSelect(props: {
 function StorageUploadPolicyRow(props: {
   label: string;
   value: UploadPurposePolicyFormValues;
+  availableExtensions: string;
   onChange: (value: Partial<UploadPurposePolicyFormValues>) => void;
   maxSizeLabel: string;
   extensionsLabel: string;
@@ -771,6 +805,7 @@ function StorageUploadPolicyRow(props: {
         <span className="text-caption text-label-secondary md:hidden">{props.extensionsLabel}</span>
         <StorageExtensionSelect
           value={props.value.allowedExtensions}
+          availableExtensions={props.availableExtensions}
           onChange={(next) => props.onChange({ allowedExtensions: next })}
           ariaLabel={`${props.label} ${props.extensionsLabel}`}
           placeholder={props.extensionsPlaceholder}
@@ -785,6 +820,19 @@ function StorageUploadPolicyEditor(props: {
   onChange: (value: UploadPolicyFormValues) => void;
   t: (key: string, options?: Record<string, unknown>) => string;
 }) {
+  const updateAllowedExtensions = (allowedExtensions: string) => {
+    const globallyAllowed = new Set(parseExtensionsInput(allowedExtensions));
+    props.onChange({
+      allowedExtensions,
+      defaults: constrainUploadPurposeExtensions(props.value.defaults, globallyAllowed),
+      purposes: Object.fromEntries(
+        UPLOAD_POLICY_FORM_PURPOSES.map((purpose) => [
+          purpose.key,
+          constrainUploadPurposeExtensions(props.value.purposes[purpose.key], globallyAllowed),
+        ]),
+      ) as UploadPolicyFormValues["purposes"],
+    });
+  };
   const updateDefaults = (patch: Partial<UploadPurposePolicyFormValues>) => {
     props.onChange({
       ...props.value,
@@ -806,6 +854,23 @@ function StorageUploadPolicyEditor(props: {
 
   return (
     <div className="grid gap-3 py-2">
+      <div className="grid gap-2 border-b border-border/70 pb-4">
+        <div>
+          <div className="text-headline font-semibold text-label-primary">
+            {props.t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_GLOBAL_EXTENSIONS_LABEL")}
+          </div>
+          <div className="text-label-secondary">
+            {props.t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_GLOBAL_EXTENSIONS_DESC")}
+          </div>
+        </div>
+        <StorageExtensionSelect
+          value={props.value.allowedExtensions}
+          availableExtensions={DEFAULT_GLOBAL_UPLOAD_EXTENSIONS}
+          onChange={updateAllowedExtensions}
+          ariaLabel={props.t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_GLOBAL_EXTENSIONS_LABEL")}
+          placeholder={props.t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_EXTENSIONS_PLACEHOLDER")}
+        />
+      </div>
       <div className="grid gap-1">
         <div className="text-headline font-semibold text-label-primary">
           {props.t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_TYPES_TITLE")}
@@ -823,6 +888,7 @@ function StorageUploadPolicyEditor(props: {
         <StorageUploadPolicyRow
           label={props.t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_DEFAULTS_LABEL")}
           value={props.value.defaults}
+          availableExtensions={props.value.allowedExtensions}
           onChange={updateDefaults}
           maxSizeLabel={props.t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_MAX_SIZE_MB")}
           extensionsLabel={props.t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_ALLOWED_EXTENSIONS")}
@@ -835,6 +901,7 @@ function StorageUploadPolicyEditor(props: {
             key={purpose.key}
             label={props.t(purpose.labelKey)}
             value={props.value.purposes[purpose.key]}
+            availableExtensions={props.value.allowedExtensions}
             onChange={(patch) => updatePurpose(purpose.key, patch)}
             maxSizeLabel={props.t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_MAX_SIZE_MB")}
             extensionsLabel={props.t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_ALLOWED_EXTENSIONS")}
@@ -859,7 +926,7 @@ function buildStorageProfileColumns(meta: StorageProfileTableMeta): ColumnDef<St
         <div className="min-w-0">
           <div className="flex min-w-0 items-center gap-2">
             <span className="truncate text-callout font-semibold text-label-primary">
-              {row.original.displayName}
+              {formatProfileDisplayName(row.original, meta.t)}
             </span>
             {row.original.profileKey === meta.defaultProfileKey || row.original.isDefault ? (
               <BaseTag color="blue" icon={lucideTagIcon(RadioTower)} textStyle="footnote">
@@ -1055,6 +1122,7 @@ export function SystemSettingsStoragePage() {
   });
 
   const profiles = profilesQuery.data ?? [];
+  const selectableProfiles = profiles.filter((profile) => profile.isActive);
   const defaultProfile =
     profiles.find((profile) => profile.profileKey === limitsInitialValues.defaultProfileKey) ??
     profiles.find((profile) => profile.isDefault) ??
@@ -1157,10 +1225,9 @@ export function SystemSettingsStoragePage() {
       ...values,
       profileKey: "",
       displayName: t("settings:SETTINGS_SYSTEM_STORAGE_DUPLICATE_NAME", {
-        name: profile.displayName,
+        name: formatProfileDisplayName(profile, t),
       }),
       secretAccessKey: "",
-      isDefault: false,
     });
   };
 
@@ -1272,8 +1339,6 @@ export function SystemSettingsStoragePage() {
           payload: {
             displayName: nextValues.displayName,
             config,
-            isActive: true,
-            isDefault: nextValues.isDefault,
           },
         });
       } else {
@@ -1283,7 +1348,6 @@ export function SystemSettingsStoragePage() {
           displayName: nextValues.displayName,
           config,
           isActive: true,
-          isDefault: nextValues.isDefault,
         });
       }
       await invalidateProfiles();
@@ -1494,9 +1558,9 @@ export function SystemSettingsStoragePage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent position="popper" align="end">
-                        {profiles.map((profile) => (
+                        {selectableProfiles.map((profile) => (
                           <SelectItem key={profile.id} value={profile.profileKey}>
-                            {profile.displayName}
+                            {formatProfileDisplayName(profile, t)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -1837,22 +1901,6 @@ export function SystemSettingsStoragePage() {
                   />
                 </>
               ) : null}
-
-              <Controller
-                control={form.control}
-                name="isDefault"
-                render={({ field }) => (
-                  <SettingDialogField
-                    title={t("settings:SETTINGS_SYSTEM_STORAGE_DEFAULT_LABEL")}
-                    description={t("settings:SETTINGS_SYSTEM_STORAGE_DEFAULT_DESC")}
-                    className="grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-1"
-                    headerClassName="col-start-1"
-                    controlClassName="col-start-2 row-start-1 w-auto pt-0.5"
-                  >
-                    <Switch checked={Boolean(field.value)} onCheckedChange={field.onChange} />
-                  </SettingDialogField>
-                )}
-              />
             </SettingDialogFields>
           </DrawerBody>
           <DrawerFooter className="md:max-w-none">

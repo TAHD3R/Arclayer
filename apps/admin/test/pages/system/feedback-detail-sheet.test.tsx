@@ -3,18 +3,12 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  addSystemFeedbackMessage,
-  getSystemFeedback,
-  updateSystemFeedback,
-  type FeedbackDetail,
-} from "@/api/feedback";
+import { getSystemFeedback, updateSystemFeedback, type FeedbackDetail } from "@/api/feedback";
 import { FeedbackDetailSheet } from "@/pages/system/feedback/components/feedback-detail-sheet";
 
 vi.mock("@/api/feedback", () => ({
   getSystemFeedback: vi.fn(),
   updateSystemFeedback: vi.fn(),
-  addSystemFeedbackMessage: vi.fn(),
 }));
 vi.mock("@/lib/notifications", () => ({
   notifyError: vi.fn(),
@@ -71,6 +65,10 @@ vi.mock("@/pages/system/feedback/components/feedback-user-picker", () => ({
             username: "owner",
             displayName: "Owner Two",
             avatarUrl: null,
+            status: "active",
+            isSuperAdmin: true,
+            lastLoginAt: null,
+            createdAt: "2026-01-10T08:30:00Z",
           })
         }
       >
@@ -88,7 +86,8 @@ const DETAIL: FeedbackDetail = {
   clientRequestId: "request-1",
   source: "header",
   contextType: "project",
-  category: "usability",
+  intent: "problem",
+  legacyCategory: null,
   message: "Publishing needs clearer confirmation after a release is created.",
   rating: 4,
   status: "new",
@@ -103,6 +102,10 @@ const DETAIL: FeedbackDetail = {
     username: "reporter",
     displayName: "Reporter One",
     avatarUrl: null,
+    status: "active",
+    isSuperAdmin: false,
+    lastLoginAt: "2026-07-11T08:30:00Z",
+    createdAt: "2026-01-12T08:30:00Z",
   },
   assignee: null,
   messages: [],
@@ -130,13 +133,12 @@ describe("FeedbackDetailSheet", () => {
     vi.clearAllMocks();
     vi.mocked(getSystemFeedback).mockResolvedValue(DETAIL);
     vi.mocked(updateSystemFeedback).mockResolvedValue(DETAIL);
-    vi.mocked(addSystemFeedbackMessage).mockResolvedValue(DETAIL);
   });
 
   it("updates status, priority, assignment, and explicit assignment clearing", async () => {
     const user = userEvent.setup();
     renderSheet();
-    expect(await screen.findAllByText(DETAIL.message)).toHaveLength(2);
+    expect(await screen.findByText(DETAIL.message)).toBeVisible();
     expect(screen.getByLabelText("platform:FEEDBACK_COLUMN_ASSIGNEE")).toHaveTextContent(
       "assign owner",
     );
@@ -167,35 +169,14 @@ describe("FeedbackDetailSheet", () => {
     );
   });
 
-  it("validates and sends both reporter replies and internal notes", async () => {
-    const user = userEvent.setup();
+  it("shows technical submission context without conversation or reply controls", async () => {
     renderSheet();
-    expect(await screen.findAllByText(DETAIL.message)).toHaveLength(2);
-
-    await user.click(screen.getByRole("button", { name: "platform:ACTION_SEND" }));
-    expect(screen.getByText("platform:FEEDBACK_VALIDATION_REQUIRED")).toBeInTheDocument();
-    expect(addSystemFeedbackMessage).not.toHaveBeenCalled();
-
-    const messageInput = screen.getByRole("textbox", {
-      name: "platform:FEEDBACK_DETAIL_ADD_MESSAGE",
-    });
-    await user.type(messageInput, "Thanks — the release confirmation is being improved.");
-    await user.click(screen.getByRole("button", { name: "platform:ACTION_SEND" }));
-    await waitFor(() =>
-      expect(addSystemFeedbackMessage).toHaveBeenCalledWith("feedback-1", {
-        kind: "reply",
-        body: "Thanks — the release confirmation is being improved.",
-      }),
-    );
-
-    await user.click(screen.getByRole("radio", { name: "platform:FEEDBACK_INTERNAL_NOTE" }));
-    await user.type(messageInput, "Escalate to the release workflow owner.");
-    await user.click(screen.getByRole("button", { name: "platform:ACTION_SEND" }));
-    await waitFor(() =>
-      expect(addSystemFeedbackMessage).toHaveBeenLastCalledWith("feedback-1", {
-        kind: "internal_note",
-        body: "Escalate to the release workflow owner.",
-      }),
-    );
+    await screen.findByText(DETAIL.message);
+    await userEvent.setup().click(screen.getByText("platform:FEEDBACK_DETAIL_TECHNICAL_CONTEXT"));
+    expect(screen.getByText("request-1")).toBeVisible();
+    expect(screen.getByText("workspace-1")).toBeVisible();
+    expect(screen.getByText("project-1")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "platform:ACTION_SEND" })).not.toBeInTheDocument();
+    expect(screen.queryByText("platform:FEEDBACK_DETAIL_ACTIVITY")).not.toBeInTheDocument();
   });
 });

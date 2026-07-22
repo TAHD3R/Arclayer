@@ -1,6 +1,6 @@
 import { api } from "@/lib/http";
 
-export type MailProviderId = "smtp" | "resend" | "cloudflare" | "ses";
+export type MailProviderId = string;
 
 export type MailProviderInfo = {
   provider_id: MailProviderId;
@@ -57,4 +57,71 @@ function normalizeMailProviderInfo(provider: RawMailProviderInfo): MailProviderI
     last_test_message: provider.last_test_message ?? provider.lastTestMessage ?? null,
     last_tested_at: provider.last_tested_at ?? provider.lastTestedAt ?? null,
   };
+}
+
+export type MailTemplate = {
+  id: string;
+  key: string;
+  locale: string;
+  name: string;
+  description?: string | null;
+  subjectTemplate: string;
+  htmlTemplate: string;
+  textTemplate: string;
+  variables: string[];
+  isEnabled: boolean;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MailTemplateInput = Omit<MailTemplate, "id" | "version" | "createdAt" | "updatedAt">;
+
+export type MailTemplatePatch = Partial<
+  Pick<
+    MailTemplate,
+    | "name"
+    | "description"
+    | "subjectTemplate"
+    | "htmlTemplate"
+    | "textTemplate"
+    | "variables"
+    | "isEnabled"
+  >
+>;
+
+export type MailTemplatePreview = {
+  subject: string;
+  html: string;
+  text: string;
+};
+
+export const MAIL_TEMPLATES_QUERY_KEY = ["system", "mail", "templates"] as const;
+
+export async function listMailTemplates(signal?: AbortSignal): Promise<MailTemplate[]> {
+  return api.get<MailTemplate[]>("/system/mail/templates", { signal });
+}
+
+export async function createMailTemplate(input: MailTemplateInput): Promise<MailTemplate> {
+  return api.post<MailTemplate>("/system/mail/templates", input);
+}
+
+export async function updateMailTemplate(
+  templateId: string,
+  patch: MailTemplatePatch,
+): Promise<MailTemplate> {
+  return api.patch<MailTemplate>(`/system/mail/templates/${templateId}`, patch);
+}
+
+export async function deleteMailTemplate(templateId: string): Promise<void> {
+  await api.delete(`/system/mail/templates/${templateId}`);
+}
+
+export async function previewMailTemplate(input: {
+  subjectTemplate: string;
+  htmlTemplate: string;
+  textTemplate: string;
+  variables: Record<string, unknown>;
+}): Promise<MailTemplatePreview> {
+  return api.post<MailTemplatePreview>("/system/mail/templates/preview", input);
 }

@@ -7,6 +7,7 @@ import { SystemSettingsEmailPage } from "@/pages/system/email/page";
 
 const {
   getSystemCoreSettingsMock,
+  listSystemPluginsMock,
   listMailProvidersMock,
   notifyErrorMock,
   notifyErrorTextMock,
@@ -16,6 +17,7 @@ const {
   switchMailProviderMock,
 } = vi.hoisted(() => ({
   getSystemCoreSettingsMock: vi.fn(),
+  listSystemPluginsMock: vi.fn(),
   patchSystemCoreSettingsMock: vi.fn(),
   listMailProvidersMock: vi.fn(),
   switchMailProviderMock: vi.fn(),
@@ -33,6 +35,7 @@ vi.mock("react-i18next", () => ({
         "settings:MAIL_SEND_FAILED": "Mail send failed",
       };
       if (options?.provider) return `${key}:${String(options.provider)}`;
+      if (options?.field) return `${key}:${String(options.field)}`;
       return translations[key] ?? key;
     },
   }),
@@ -42,6 +45,11 @@ vi.mock("@/api/mail", () => ({
   listMailProviders: () => listMailProvidersMock(),
   switchMailProvider: (...args: unknown[]) => switchMailProviderMock(...args),
   sendTestEmail: (...args: unknown[]) => sendTestEmailMock(...args),
+}));
+
+vi.mock("@/api/plugins", () => ({
+  SYSTEM_PLUGINS_QUERY_KEY: ["system", "plugins"],
+  listSystemPlugins: () => listSystemPluginsMock(),
 }));
 
 vi.mock("@/api/settings", () => ({
@@ -69,6 +77,10 @@ vi.mock("@/layouts/page-shell/content-guard", () => ({
     if (error) return <div>error</div>;
     return <div>{children}</div>;
   },
+}));
+
+vi.mock("@/pages/system/email/email-template-manager", () => ({
+  EmailTemplateManager: () => <div data-testid="email-template-manager" />,
 }));
 
 vi.mock("@/components/ui/tags", () => ({
@@ -339,10 +351,77 @@ function buildProviders() {
   ];
 }
 
+function buildEmailPlugin() {
+  const senderSchema = {
+    mail_from: {
+      type: "string",
+      format: "email",
+      title: "settings:SETTINGS_MESSAGING_MAIL_FROM",
+      default: "noreply@example.com",
+    },
+    mail_from_name: {
+      type: "string",
+      title: "settings:SETTINGS_MESSAGING_MAIL_FROM_NAME",
+      default: "Arclayer",
+    },
+  };
+  return {
+    name: "arclayer-email",
+    version: "1.0.0",
+    packageState: "installed",
+    processState: "ready",
+    provides: {
+      services: [],
+      middlewares: [],
+      providers: [],
+      connectors: ["email.resend"],
+      contentTypes: [],
+    },
+    permissions: ["system:mail"],
+    configSchema: {},
+    admin: null,
+    connectorDefinitions: [
+      {
+        key: "email.resend",
+        kind: "email",
+        version: "1.0.0",
+        trustLevel: "official",
+        capabilities: ["send"],
+        configSchema: {
+          ...senderSchema,
+          api_url: {
+            type: "string",
+            format: "uri",
+            title: "settings:SETTINGS_MESSAGING_MAIL_RESEND_API_URL",
+            default: "https://api.resend.com/emails",
+          },
+        },
+        secretSchema: {
+          api_key: {
+            type: "string",
+            title: "settings:SETTINGS_MESSAGING_MAIL_RESEND_API_KEY",
+            "x-required": true,
+          },
+        },
+        scopes: [],
+        webhookEvents: [],
+        healthContract: ["configuration"],
+        admin: {
+          labelKey: "settings:SETTINGS_MESSAGING_MAIL_PROVIDER_RESEND",
+          descriptionKey: "settings:SETTINGS_MESSAGING_MAIL_RESEND_DESC",
+          settingsSection: "mail",
+          iconKey: "resend",
+        },
+      },
+    ],
+  };
+}
+
 describe("SystemSettingsEmailPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getSystemCoreSettingsMock.mockResolvedValue(buildCoreSettings(true));
+    listSystemPluginsMock.mockResolvedValue([buildEmailPlugin()]);
     patchSystemCoreSettingsMock.mockResolvedValue(buildCoreSettings(true));
     listMailProvidersMock.mockResolvedValue(buildProviders());
     switchMailProviderMock.mockResolvedValue(buildProviders());
@@ -400,6 +479,64 @@ describe("SystemSettingsEmailPage", () => {
     expect(patchSystemCoreSettingsMock).not.toHaveBeenCalledWith({ mail: { provider: "resend" } });
     expect(notifySuccessTextMock).toHaveBeenCalledWith(
       "settings:SETTINGS_SYSTEM_EMAIL_PROVIDER_ACTIVATED:settings:SETTINGS_MESSAGING_MAIL_PROVIDER_RESEND",
+    );
+  });
+
+  it("preserves a plugin-defined provider id and renders its schema fields", async () => {
+    const plugin = buildEmailPlugin();
+    const connector = plugin.connectorDefinitions[0];
+    listSystemPluginsMock.mockResolvedValue([
+      {
+        ...plugin,
+        provides: { ...plugin.provides, connectors: ["email.mailgun"] },
+        connectorDefinitions: [
+          {
+            ...connector,
+            key: "email.mailgun",
+            configSchema: {
+              domain: {
+                type: "string",
+                title: "settings:MAILGUN_DOMAIN",
+                "x-required": true,
+              },
+            },
+            secretSchema: {},
+            admin: {
+              ...connector.admin,
+              labelKey: "settings:MAILGUN_LABEL",
+              descriptionKey: "settings:MAILGUN_DESC",
+            },
+          },
+        ],
+      },
+    ]);
+    listMailProvidersMock.mockResolvedValue([
+      buildProviders()[0],
+      {
+        provider_id: "mailgun",
+        label: "Mailgun",
+        active: false,
+        configured: true,
+        available: true,
+      },
+    ]);
+
+    renderPage();
+
+    expect(await screen.findByText("Mailgun")).toBeInTheDocument();
+    fireEvent.click(
+      screen.getAllByText("settings:SETTINGS_SYSTEM_EMAIL_PROVIDER_CONFIGURE_ACTION_SHORT")[1],
+    );
+    expect(screen.getByText("settings:MAILGUN_DOMAIN")).toBeInTheDocument();
+    fireEvent.click(
+      screen.getAllByText("settings:SETTINGS_SYSTEM_EMAIL_PROVIDER_SET_ACTIVE_ACTION")[1],
+    );
+
+    await waitFor(() => {
+      expect(switchMailProviderMock).toHaveBeenCalledWith({ provider: "mailgun" });
+    });
+    expect(notifySuccessTextMock).toHaveBeenCalledWith(
+      "settings:SETTINGS_SYSTEM_EMAIL_PROVIDER_ACTIVATED:settings:MAILGUN_LABEL",
     );
   });
 
@@ -557,6 +694,7 @@ describe("SystemSettingsEmailPage", () => {
             resend: {
               mail_from: "ops@example.com",
               mail_from_name: "Resend Sender",
+              api_url: "https://api.resend.com/emails",
             },
           },
         },
@@ -603,10 +741,10 @@ describe("SystemSettingsEmailPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "settings:SETTINGS_SAVE" }));
 
     await waitFor(() => {
-      expect(notifyErrorMock).toHaveBeenCalledWith(expect.any(Error));
+      expect(notifyErrorTextMock).toHaveBeenCalledWith(
+        "settings:SETTINGS_SYSTEM_EMAIL_PROVIDER_REQUIRED_FIELD:settings:SETTINGS_MESSAGING_MAIL_RESEND_API_KEY",
+      );
     });
-    const notifiedError = notifyErrorMock.mock.calls[0][0] as Error;
-    expect(notifiedError.message).toBe("settings:RESEND_API_KEY_REQUIRED");
   });
 
   it("localizes provider row errors and uses short menu labels", async () => {

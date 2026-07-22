@@ -2,7 +2,10 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ColumnDef } from "@tanstack/react-table";
 
-import { listSystemHTTPRequestGroups } from "@/api/platform-observability";
+import {
+  listSystemHTTPRequestGroups,
+  type HTTPRequestGroupWithPercentiles,
+} from "@/api/platform-observability";
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { BaseTag } from "@/components/ui/tags";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
@@ -11,10 +14,9 @@ import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
 import { cn } from "@arclayer/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { useDataTable } from "@arclayer/ui/data-table";
-import type { HTTPRequestGroup } from "@arclayer/openapi/admin-types";
-
 type RequestGroupsTableProps = {
   days: number;
+  onSelect?: (group: HTTPRequestGroupWithPercentiles) => void;
 };
 
 const METHOD_OPTIONS = ["ALL", "GET", "POST", "PUT", "PATCH", "DELETE"] as const;
@@ -35,7 +37,7 @@ function TruncatedValue(props: { children: string; className?: string }) {
   );
 }
 
-export function RequestGroupsTable({ days }: RequestGroupsTableProps) {
+export function RequestGroupsTable({ days, onSelect }: RequestGroupsTableProps) {
   const { t, i18n } = useTranslation(["platform", "common"]);
   const [method, setMethod] = useState<(typeof METHOD_OPTIONS)[number]>("ALL");
   const [statusClass, setStatusClass] = useState<(typeof STATUS_OPTIONS)[number]>("ALL");
@@ -52,7 +54,7 @@ export function RequestGroupsTable({ days }: RequestGroupsTableProps) {
       }),
     [i18n.language, i18n.resolvedLanguage],
   );
-  const columns = useMemo<ColumnDef<HTTPRequestGroup, unknown>[]>(
+  const columns = useMemo<ColumnDef<HTTPRequestGroupWithPercentiles, unknown>[]>(
     () => [
       {
         id: "route",
@@ -115,12 +117,27 @@ export function RequestGroupsTable({ days }: RequestGroupsTableProps) {
         size: 140,
       },
       {
-        id: "maxLatency",
-        header: t("platform:METRIC_HTTP_MAX_LATENCY"),
-        meta: { title: t("platform:METRIC_HTTP_MAX_LATENCY"), kind: "meta" },
+        id: "p95Latency",
+        header: t("platform:METRIC_HTTP_P95_LATENCY"),
+        meta: { title: t("platform:METRIC_HTTP_P95_LATENCY"), kind: "meta" },
         cell: ({ row }) => (
           <span className="block text-right tabular-nums">
-            {number.format(row.original.maxLatencyMs)} ms
+            {row.original.p95LatencyMs === null
+              ? "—"
+              : `${number.format(row.original.p95LatencyMs)} ms`}
+          </span>
+        ),
+        size: 140,
+      },
+      {
+        id: "p99Latency",
+        header: t("platform:METRIC_HTTP_P99_LATENCY"),
+        meta: { title: t("platform:METRIC_HTTP_P99_LATENCY"), kind: "meta" },
+        cell: ({ row }) => (
+          <span className="block text-right tabular-nums">
+            {row.original.p99LatencyMs === null
+              ? "—"
+              : `${number.format(row.original.p99LatencyMs)} ms`}
           </span>
         ),
         size: 140,
@@ -138,7 +155,7 @@ export function RequestGroupsTable({ days }: RequestGroupsTableProps) {
     [dateTime, number, percent, t],
   );
   const tableHook = useDataTable<
-    HTTPRequestGroup,
+    HTTPRequestGroupWithPercentiles,
     {
       days: number;
       method?: string;
@@ -222,6 +239,8 @@ export function RequestGroupsTable({ days }: RequestGroupsTableProps) {
       refreshing={tableHook.isFetching && !tableHook.isLoading}
       infiniteScroll={tableHook.infiniteScroll}
       toolbar={toolbar}
+      rowClassName={onSelect ? () => "cursor-pointer" : undefined}
+      onRowClick={onSelect ? (row) => onSelect(row.original) : undefined}
     />
   );
 }

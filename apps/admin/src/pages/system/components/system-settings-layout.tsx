@@ -113,7 +113,7 @@ function SearchResults(props: { query: string; results: SearchResult[]; onClose:
         const target =
           result.type === "page"
             ? result.page.to
-            : (`/system/settings/${result.item.page}#${result.item.id}` as const);
+            : (`/system/settings/${result.item.page}#${result.item.anchorId ?? result.item.id}` as const);
         return (
           <button
             key={result.type === "page" ? `page:${result.page.key}` : `item:${result.item.id}`}

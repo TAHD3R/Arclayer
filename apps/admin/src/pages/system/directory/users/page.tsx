@@ -7,14 +7,17 @@ import {
   KeyRound,
   ListFilter,
   Lock,
-  MoreVertical,
   Mail,
+  MoreVertical,
+  ShieldMinus,
+  ShieldPlus,
   ShieldCheck as ShieldCheckIcon,
   ShieldOff,
   ShieldCheck,
   Trash2,
   UserCheck,
   UserMinus,
+  UserRoundCog,
 } from "lucide-react";
 
 import type { SystemDirectoryUser } from "@arclayer/openapi/admin-types";
@@ -36,13 +39,13 @@ import {
 } from "@arclayer/ui/dropdown-menu";
 import { Filters, type Filter, type FilterFieldConfig } from "@arclayer/ui/filters";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
 
 import {
   createActionsColumn,
   createCustomColumn,
   createDateColumn,
   createSelectionColumn,
-  createTruncatedTextColumn,
   createUserIdentityCell,
   renderCountTag,
   renderTag,
@@ -174,7 +177,9 @@ type ConfirmActionKind =
   | "disableTwoFactor"
   | "delete"
   | "sendResetPasswordEmail"
-  | "unlinkOAuth";
+  | "unlinkOAuth"
+  | "grantSuperAdmin"
+  | "revokeSuperAdmin";
 
 function toActionTarget(user: SystemDirectoryUser): UserActionTarget {
   return {
@@ -185,6 +190,7 @@ function toActionTarget(user: SystemDirectoryUser): UserActionTarget {
     status: user.status,
     avatarUrl: user.avatarUrl,
     avatar_url: user.avatar_url,
+    isSuperAdmin: user.isSuperAdmin,
     hasPassword: user.hasPassword,
     twoFactorEnabled: user.twoFactorEnabled,
     linkedOauthProviders: user.linkedOauthProviders ?? user.linked_oauth_providers ?? [],
@@ -194,6 +200,8 @@ function toActionTarget(user: SystemDirectoryUser): UserActionTarget {
 export function SystemDirectoryUsersPage() {
   const { t } = useTranslation(["common", "settings"]);
   const dateTime = useSystemDirectoryDateTimeFormatter();
+  const currentUser = useCurrentUserProfile();
+  const currentUserId = currentUser.profile?.id ?? null;
   const governance = useSystemDirectoryUserGovernance();
   const [filters, setFilters] = useState<
     OperatorAwareFilterState<UserFilterField, UserFilterValue>
@@ -256,11 +264,6 @@ export function SystemDirectoryUsersPage() {
         t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_USER"),
         { id: "user", sortKey: "username", kind: "primary", size: 260, minSize: 220 },
       ),
-      createTruncatedTextColumn<SystemDirectoryUser>(
-        t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_EMAIL"),
-        (row) => row.email,
-        { id: "email", size: 240, minSize: 220 },
-      ),
       createCustomColumn<SystemDirectoryUser>(
         t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_STATUS"),
         (row) => {
@@ -302,6 +305,31 @@ export function SystemDirectoryUsersPage() {
         { id: "superAdmin", sortKey: "is_super_admin", size: 170, minSize: 150 },
       ),
       createCustomColumn<SystemDirectoryUser>(
+        t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_SECURITY"),
+        (row) => {
+          const providers = row.linkedOauthProviders ?? row.linked_oauth_providers ?? [];
+          const methods = [
+            ...(row.hasPassword ? [t("settings:SETTINGS_SYSTEM_DIRECTORY_SECURITY_PASSWORD")] : []),
+            ...providers,
+          ];
+          return (
+            <div className="min-w-0 space-y-0.5">
+              <div className="truncate text-sm text-foreground">
+                {methods.length > 0
+                  ? methods.join(", ")
+                  : t("settings:SETTINGS_SYSTEM_DIRECTORY_SECURITY_NO_SIGN_IN_METHOD")}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {row.twoFactorEnabled
+                  ? t("settings:SETTINGS_SYSTEM_DIRECTORY_SECURITY_TWO_FACTOR_ON")
+                  : t("settings:SETTINGS_SYSTEM_DIRECTORY_SECURITY_TWO_FACTOR_OFF")}
+              </div>
+            </div>
+          );
+        },
+        { id: "security", size: 190, minSize: 170 },
+      ),
+      createCustomColumn<SystemDirectoryUser>(
         t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_WORKSPACES"),
         (row) => renderCountTag(row.workspaceMembershipCount),
         { id: "workspaces" },
@@ -323,7 +351,7 @@ export function SystemDirectoryUsersPage() {
         renderActions: (row) => {
           const target = toActionTarget(row);
           const isDisabled = row.status === "disabled";
-          const availability = getUserActionAvailability(target);
+          const availability = getUserActionAvailability(target, currentUserId);
           return (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -338,7 +366,7 @@ export function SystemDirectoryUsersPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuIconItem
-                  icon={<KeyRound className="size-4" />}
+                  icon={<UserRoundCog className="size-4" />}
                   onSelect={() => openEditDialog(target)}
                 >
                   {t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_EDIT_ACCOUNT")}
@@ -385,7 +413,30 @@ export function SystemDirectoryUsersPage() {
                 <DropdownMenuSeparator />
                 <DropdownMenuIconItem
                   icon={
+                    row.isSuperAdmin ? (
+                      <ShieldMinus className="size-4" />
+                    ) : (
+                      <ShieldPlus className="size-4" />
+                    )
+                  }
+                  disabled={row.isSuperAdmin ? !availability.canRevokeSuperAdmin : false}
+                  onSelect={() =>
+                    openConfirmDialog(row.isSuperAdmin ? "revokeSuperAdmin" : "grantSuperAdmin", [
+                      target,
+                    ])
+                  }
+                >
+                  {row.isSuperAdmin
+                    ? t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_REVOKE_SUPER_ADMIN")
+                    : t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_GRANT_SUPER_ADMIN")}
+                </DropdownMenuIconItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuIconItem
+                  icon={
                     isDisabled ? <UserCheck className="size-4" /> : <UserMinus className="size-4" />
+                  }
+                  disabled={
+                    isDisabled ? !availability.canEnableAccount : !availability.canDisableAccount
                   }
                   onSelect={() => openConfirmDialog(isDisabled ? "enable" : "disable", [target])}
                 >
@@ -397,6 +448,7 @@ export function SystemDirectoryUsersPage() {
                 <DropdownMenuIconItem
                   icon={<Trash2 className="size-4" />}
                   variant="destructive"
+                  disabled={!availability.canDeleteAccount}
                   onSelect={() => openConfirmDialog("delete", [target])}
                 >
                   {t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DELETE_ACCOUNT")}
@@ -407,7 +459,7 @@ export function SystemDirectoryUsersPage() {
         },
       }),
     ],
-    [dateTime, t],
+    [currentUserId, dateTime, t],
   );
 
   const usersExtraQuery = useMemo(() => {
@@ -636,7 +688,9 @@ export function SystemDirectoryUsersPage() {
     .rows.map((row) => toActionTarget(row.original));
   const selectedUserIds = selectedUsers.map((user) => user.userId);
   const selectedDisabledUsers = selectedUsers.filter((user) => user.status === "disabled");
-  const selectedEnabledUsers = selectedUsers.filter((user) => user.status !== "disabled");
+  const selectedEnabledUsers = selectedUsers.filter(
+    (user) => user.status !== "disabled" && user.userId !== currentUserId,
+  );
   const confirmConfig = useMemo(() => {
     if (!confirmAction) return null;
     const count = confirmAction.users.length;
@@ -683,6 +737,22 @@ export function SystemDirectoryUsersPage() {
         variant: "destructive" as const,
       };
     }
+    if (confirmAction.kind === "grantSuperAdmin") {
+      return {
+        title: t("settings:SETTINGS_SYSTEM_DIRECTORY_CONFIRM_GRANT_SUPER_ADMIN_TITLE"),
+        description: t("settings:SETTINGS_SYSTEM_DIRECTORY_CONFIRM_GRANT_SUPER_ADMIN_DESC"),
+        confirmLabel: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_GRANT_SUPER_ADMIN"),
+        variant: "default" as const,
+      };
+    }
+    if (confirmAction.kind === "revokeSuperAdmin") {
+      return {
+        title: t("settings:SETTINGS_SYSTEM_DIRECTORY_CONFIRM_REVOKE_SUPER_ADMIN_TITLE"),
+        description: t("settings:SETTINGS_SYSTEM_DIRECTORY_CONFIRM_REVOKE_SUPER_ADMIN_DESC"),
+        confirmLabel: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_REVOKE_SUPER_ADMIN"),
+        variant: "destructive" as const,
+      };
+    }
     if (confirmAction.kind === "disable") {
       return {
         title: t("settings:SETTINGS_SYSTEM_DIRECTORY_CONFIRM_DISABLE_TITLE"),
@@ -720,7 +790,8 @@ export function SystemDirectoryUsersPage() {
     governance.unlinkOAuthIdentityMutation.isPending ||
     governance.disableUsersMutation.isPending ||
     governance.enableUsersMutation.isPending ||
-    governance.deleteUserMutation.isPending;
+    governance.deleteUserMutation.isPending ||
+    governance.setSuperAdminMutation.isPending;
 
   return (
     <>
@@ -838,6 +909,16 @@ export function SystemDirectoryUsersPage() {
               await governance.unlinkOAuthIdentityMutation.mutateAsync({
                 userId: userIds[0]!,
                 provider: confirmAction.provider ?? "",
+              });
+              return;
+            }
+            if (
+              confirmAction.kind === "grantSuperAdmin" ||
+              confirmAction.kind === "revokeSuperAdmin"
+            ) {
+              await governance.setSuperAdminMutation.mutateAsync({
+                userId: userIds[0]!,
+                isSuperAdmin: confirmAction.kind === "grantSuperAdmin",
               });
               return;
             }

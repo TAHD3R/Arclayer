@@ -26,7 +26,13 @@ function TruncatedValue(props: { children: string; mono?: boolean }) {
   );
 }
 
-export function AIUsageGroupsTable({ days }: { days: number }) {
+export function AIUsageGroupsTable({
+  days,
+  onSelect,
+}: {
+  days: number;
+  onSelect?: (group: AIUsageGroup) => void;
+}) {
   const { t, i18n } = useTranslation(["platform", "common"]);
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const dateTime = useAdminDateTimeFormatter({ workspaceId: null });
@@ -163,6 +169,8 @@ export function AIUsageGroupsTable({ days }: { days: number }) {
           }
         />
       }
+      rowClassName={onSelect ? () => "cursor-pointer" : undefined}
+      onRowClick={onSelect ? (row) => onSelect(row.original) : undefined}
     />
   );
 }

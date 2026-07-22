@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { CircleAlert, Clock3, Gauge, Network } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { RequestGroupsTable } from "@/pages/system/audit-log/request-groups-table";
+import { RequestGroupDetailDialog } from "@/pages/system/audit-log/request-group-detail-dialog";
+import type { HTTPRequestGroupWithPercentiles } from "@/api/platform-observability";
 
-import { ObservabilityMetricCard, ObservabilityMetricSection } from "../components/metric-card";
+import { ConfigurableDashboard, type DashboardWidget } from "../components/dashboard-layout";
+import { ObservabilityMetricCard } from "../components/metric-card";
 import { ObservabilityPageControls } from "../components/page-controls";
 import type { ObservabilityPeriodDays } from "../components/period-select";
 import { ObservabilityTrendCard } from "../components/trend-card";
@@ -17,6 +20,7 @@ export function SystemObservabilityRequestsPage() {
   const { t, i18n } = useTranslation("platform");
   const locale = i18n.resolvedLanguage;
   const [days, setDays] = useState<ObservabilityPeriodDays>(30);
+  const [selectedGroup, setSelectedGroup] = useState<HTTPRequestGroupWithPercentiles | null>(null);
   const overview = useSystemObservabilityOverview(days);
   const httpRequests = useSystemObservabilityTrend(days, "httpRequests");
   const httpErrors = useSystemObservabilityTrend(days, "httpErrors");
@@ -26,6 +30,172 @@ export function SystemObservabilityRequestsPage() {
   const refresh = () => {
     void Promise.all(queries.map((query) => query.refetch()));
   };
+  const widgets = useMemo<DashboardWidget[]>(() => {
+    if (!overview.data) return [];
+    return [
+      {
+        id: "requests",
+        title: t("METRIC_HTTP_REQUESTS"),
+        content: (
+          <ObservabilityMetricCard
+            label={t("METRIC_HTTP_REQUESTS")}
+            value={formatInteger(overview.data.http.requests, locale)}
+            icon={Network}
+          />
+        ),
+      },
+      {
+        id: "errors",
+        title: t("METRIC_HTTP_ERRORS"),
+        content: (
+          <ObservabilityMetricCard
+            label={t("METRIC_HTTP_ERRORS")}
+            value={formatInteger(overview.data.http.errorRequests, locale)}
+            icon={CircleAlert}
+          />
+        ),
+      },
+      {
+        id: "error-rate",
+        title: t("METRIC_ERROR_RATE"),
+        content: (
+          <ObservabilityMetricCard
+            label={t("METRIC_ERROR_RATE")}
+            value={formatPercent(overview.data.http.errorRate, locale)}
+            icon={Gauge}
+          />
+        ),
+      },
+      {
+        id: "average-latency",
+        title: t("METRIC_HTTP_AVG_LATENCY"),
+        content: (
+          <ObservabilityMetricCard
+            label={t("METRIC_HTTP_AVG_LATENCY")}
+            value={formatLatency(overview.data.http.avgLatencyMs, locale)}
+            icon={Clock3}
+          />
+        ),
+      },
+      {
+        id: "p95-latency",
+        title: t("METRIC_HTTP_P95_LATENCY"),
+        content: (
+          <ObservabilityMetricCard
+            label={t("METRIC_HTTP_P95_LATENCY")}
+            value={
+              overview.data.http.p95LatencyMs === null
+                ? "—"
+                : formatLatency(overview.data.http.p95LatencyMs, locale)
+            }
+            icon={Gauge}
+          />
+        ),
+      },
+      {
+        id: "p99-latency",
+        title: t("METRIC_HTTP_P99_LATENCY"),
+        content: (
+          <ObservabilityMetricCard
+            label={t("METRIC_HTTP_P99_LATENCY")}
+            value={
+              overview.data.http.p99LatencyMs === null
+                ? "—"
+                : formatLatency(overview.data.http.p99LatencyMs, locale)
+            }
+            icon={Gauge}
+          />
+        ),
+      },
+      {
+        id: "maximum-latency",
+        title: t("METRIC_HTTP_MAX_LATENCY"),
+        content: (
+          <ObservabilityMetricCard
+            label={t("METRIC_HTTP_MAX_LATENCY")}
+            value={formatLatency(overview.data.http.maxLatencyMs, locale)}
+            icon={Clock3}
+          />
+        ),
+      },
+      {
+        id: "request-trend",
+        title: t("TREND_HTTP_REQUESTS"),
+        defaultSpan: 4,
+        defaultHeight: 400,
+        content: (
+          <ObservabilityTrendCard
+            title={t("TREND_HTTP_REQUESTS")}
+            description={t(`PERIOD_${days}_DAYS`)}
+            points={httpRequests.data?.points}
+            loading={httpRequests.isLoading}
+            error={httpRequests.error}
+            onRetry={() => void httpRequests.refetch()}
+            valueKind="count"
+          />
+        ),
+      },
+      {
+        id: "error-trend",
+        title: t("TREND_HTTP_ERRORS"),
+        defaultSpan: 4,
+        defaultHeight: 400,
+        content: (
+          <ObservabilityTrendCard
+            title={t("TREND_HTTP_ERRORS")}
+            description={t(`PERIOD_${days}_DAYS`)}
+            points={httpErrors.data?.points}
+            loading={httpErrors.isLoading}
+            error={httpErrors.error}
+            onRetry={() => void httpErrors.refetch()}
+            valueKind="count"
+            color="var(--destructive)"
+          />
+        ),
+      },
+      {
+        id: "latency-trend",
+        title: t("TREND_HTTP_LATENCY"),
+        defaultSpan: 4,
+        defaultHeight: 400,
+        content: (
+          <ObservabilityTrendCard
+            title={t("TREND_HTTP_LATENCY")}
+            description={t(`PERIOD_${days}_DAYS`)}
+            points={httpLatency.data?.points}
+            loading={httpLatency.isLoading}
+            error={httpLatency.error}
+            onRetry={() => void httpLatency.refetch()}
+            valueKind="latency"
+          />
+        ),
+      },
+      {
+        id: "request-groups",
+        title: t("AUDIT_REQUEST_TABLE_TITLE"),
+        defaultSpan: 12,
+        defaultHeight: 640,
+        content: (
+          <section
+            className="flex h-full min-h-0 flex-col gap-3 rounded-lg border bg-card p-4"
+            aria-labelledby="request-groups-title"
+          >
+            <div>
+              <h2 id="request-groups-title" className="text-headline text-label-primary">
+                {t("AUDIT_REQUEST_TABLE_TITLE")}
+              </h2>
+              <p className="mt-1 text-callout text-label-secondary">
+                {t("REQUEST_GROUPS_DESCRIPTION")}
+              </p>
+            </div>
+            <div className="min-h-0 flex-1">
+              <RequestGroupsTable days={days} onSelect={setSelectedGroup} />
+            </div>
+          </section>
+        ),
+      },
+    ];
+  }, [days, httpErrors, httpLatency, httpRequests, locale, overview.data, t]);
 
   return (
     <DefaultPage
@@ -47,80 +217,21 @@ export function SystemObservabilityRequestsPage() {
         loadingVariant="form"
       >
         {overview.data ? (
-          <div className="flex flex-col gap-8 pb-8">
-            <ObservabilityMetricSection title={t("SECTION_HTTP_RELIABILITY")}>
-              <ObservabilityMetricCard
-                label={t("METRIC_HTTP_REQUESTS")}
-                value={formatInteger(overview.data.http.requests, locale)}
-                icon={Network}
-              />
-              <ObservabilityMetricCard
-                label={t("METRIC_HTTP_ERRORS")}
-                value={formatInteger(overview.data.http.errorRequests, locale)}
-                icon={CircleAlert}
-              />
-              <ObservabilityMetricCard
-                label={t("METRIC_ERROR_RATE")}
-                value={formatPercent(overview.data.http.errorRate, locale)}
-                icon={Gauge}
-              />
-              <ObservabilityMetricCard
-                label={t("METRIC_HTTP_AVG_LATENCY")}
-                value={formatLatency(overview.data.http.avgLatencyMs, locale)}
-                icon={Clock3}
-              />
-              <ObservabilityMetricCard
-                label={t("METRIC_HTTP_MAX_LATENCY")}
-                value={formatLatency(overview.data.http.maxLatencyMs, locale)}
-                icon={Clock3}
-              />
-            </ObservabilityMetricSection>
-
-            <div className="grid gap-4 xl:grid-cols-3">
-              <ObservabilityTrendCard
-                title={t("TREND_HTTP_REQUESTS")}
-                description={t(`PERIOD_${days}_DAYS`)}
-                points={httpRequests.data?.points}
-                loading={httpRequests.isLoading}
-                error={httpRequests.error}
-                onRetry={() => void httpRequests.refetch()}
-                valueKind="count"
-              />
-              <ObservabilityTrendCard
-                title={t("TREND_HTTP_ERRORS")}
-                description={t(`PERIOD_${days}_DAYS`)}
-                points={httpErrors.data?.points}
-                loading={httpErrors.isLoading}
-                error={httpErrors.error}
-                onRetry={() => void httpErrors.refetch()}
-                valueKind="count"
-                color="var(--destructive)"
-              />
-              <ObservabilityTrendCard
-                title={t("TREND_HTTP_LATENCY")}
-                description={t(`PERIOD_${days}_DAYS`)}
-                points={httpLatency.data?.points}
-                loading={httpLatency.isLoading}
-                error={httpLatency.error}
-                onRetry={() => void httpLatency.refetch()}
-                valueKind="latency"
-              />
-            </div>
-
-            <section className="flex flex-col gap-3" aria-labelledby="request-groups-title">
-              <div>
-                <h2 id="request-groups-title" className="text-headline text-label-primary">
-                  {t("AUDIT_REQUEST_TABLE_TITLE")}
-                </h2>
-                <p className="mt-1 text-callout text-label-secondary">
-                  {t("REQUEST_GROUPS_DESCRIPTION")}
-                </p>
-              </div>
-              <RequestGroupsTable days={days} />
-            </section>
-          </div>
+          <ConfigurableDashboard
+            dashboardId="system-observability-requests"
+            widgets={widgets}
+            ariaLabel={t("OBSERVABILITY_REQUESTS_TITLE")}
+            className="pb-8"
+          />
         ) : null}
       </ContentGuard>
+      <RequestGroupDetailDialog
+        open={Boolean(selectedGroup)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedGroup(null);
+        }}
+        group={selectedGroup}
+      />
     </DefaultPage>
   );
 }

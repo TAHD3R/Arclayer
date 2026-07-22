@@ -21,10 +21,44 @@ export type {
 
 export type SystemObservabilityTrendMetric = ObservabilityTrendMetric;
 
+export type HTTPRequestGroupWithPercentiles = HTTPRequestGroup & {
+  p95LatencyMs: number | null;
+  p99LatencyMs: number | null;
+};
+
+export type HTTPRequestRecord = {
+  id: string;
+  occurredAt: string;
+  traceId: string | null;
+  actorUserId: string | null;
+  actor: {
+    id: string;
+    username: string | null;
+    displayName: string | null;
+    avatarUrl: string | null;
+  } | null;
+  workspaceId: string | null;
+  projectId: string | null;
+  routeTemplate: string;
+  method: string;
+  statusCode: number;
+  durationMs: number;
+};
+
+export type SystemObservabilityOverviewWithTailLatency = Omit<
+  SystemObservabilityOverview,
+  "http"
+> & {
+  http: SystemObservabilityOverview["http"] & {
+    p95LatencyMs: number | null;
+    p99LatencyMs: number | null;
+  };
+};
+
 export async function getSystemObservabilityOverview(
   days: number,
-): Promise<SystemObservabilityOverview> {
-  return api.get<SystemObservabilityOverview>(
+): Promise<SystemObservabilityOverviewWithTailLatency> {
+  return api.get<SystemObservabilityOverviewWithTailLatency>(
     `/system/observability/overview${toQueryString({ days })}`,
   );
 }
@@ -70,9 +104,33 @@ export async function listSystemHTTPRequestGroups(
     statusClass?: number;
   },
   signal?: AbortSignal,
-): Promise<PageData<HTTPRequestGroup>> {
-  return api.get<PageData<HTTPRequestGroup>>(
+): Promise<PageData<HTTPRequestGroupWithPercentiles>> {
+  return api.get<PageData<HTTPRequestGroupWithPercentiles>>(
     `/system/observability/request-groups${toQueryString({
+      days: params.days,
+      page: params.page ?? 1,
+      size: params.size ?? 20,
+      q: params.q,
+      method: params.method,
+      statusClass: params.statusClass,
+    })}`,
+    { signal },
+  );
+}
+
+export async function listSystemHTTPRequestRecords(
+  params: {
+    days: number;
+    page?: number;
+    size?: number;
+    q?: string;
+    method?: string;
+    statusClass?: number;
+  },
+  signal?: AbortSignal,
+): Promise<PageData<HTTPRequestRecord>> {
+  return api.get<PageData<HTTPRequestRecord>>(
+    `/system/observability/request-records${toQueryString({
       days: params.days,
       page: params.page ?? 1,
       size: params.size ?? 20,

@@ -406,14 +406,18 @@ function renderPage() {
   );
 }
 
+const DATABASE_PROFILE_ID = "48c8c1c3-d41d-47c7-a9cc-b18bb69abfd3";
+const ENVIRONMENT_PROFILE_ID = "e3cf0fc0-73b5-4c3a-aa85-a3dff5184868";
+
 function buildProfile(overrides: Partial<Record<string, unknown>> = {}) {
   return {
-    id: "profile-1",
+    id: DATABASE_PROFILE_ID,
     createdAt: "2026-04-25T10:00:00Z",
     updatedAt: "2026-04-25T10:00:00Z",
     displayName: "Primary storage",
     profileKey: "primary-storage",
     provider: "aws_s3",
+    configSource: "database",
     scopeId: "system",
     scopeType: "system",
     isActive: true,
@@ -455,7 +459,7 @@ describe("SystemSettingsStoragePage", () => {
       status: "passed",
       message: "Connectivity check passed",
     });
-    deleteStorageProfileMock.mockResolvedValue({ id: "profile-1", deleted: true });
+    deleteStorageProfileMock.mockResolvedValue({ id: DATABASE_PROFILE_ID, deleted: true });
   });
 
   it("renders loading state while profiles are pending", () => {
@@ -507,11 +511,60 @@ describe("SystemSettingsStoragePage", () => {
     ).toBeTruthy();
   });
 
+  it("offers only active profiles as new default selections", async () => {
+    listStorageProfilesMock.mockResolvedValue([
+      buildProfile(),
+      buildProfile({
+        id: "1b13d145-3e42-45f0-8ee9-2667bbfdb80b",
+        profileKey: "inactive-storage",
+        displayName: "Inactive storage",
+        isActive: false,
+        isDefault: false,
+      }),
+    ]);
+
+    const { container } = renderPage();
+
+    expect(await screen.findAllByText("Inactive storage")).not.toHaveLength(0);
+    expect(container.querySelector('[data-value="primary-storage"]')).not.toBeNull();
+    expect(container.querySelector('[data-value="inactive-storage"]')).toBeNull();
+  });
+
+  it("persists the selected default only through Core Settings", async () => {
+    getSystemCoreSettingsMock.mockResolvedValue({
+      value: { storage: { default_profile_key: "primary-storage" } },
+      secrets: {},
+    });
+    listStorageProfilesMock.mockResolvedValue([
+      buildProfile(),
+      buildProfile({
+        id: "27ac8de2-9be2-48ad-a3c0-1b7d0dbd1456",
+        profileKey: "minio",
+        displayName: "MinIO storage",
+        isDefault: false,
+      }),
+    ]);
+
+    renderPage();
+
+    expect(await screen.findAllByText("MinIO storage")).not.toHaveLength(0);
+    fireEvent.click(screen.getByText("select-minio"));
+    fireEvent.click(screen.getByRole("button", { name: "settings:SETTINGS_SAVE" }));
+
+    await waitFor(() => {
+      expect(patchSystemCoreSettingsMock).toHaveBeenCalledWith({
+        storage: { default_profile_key: "minio" },
+      });
+    });
+    expect(updateStorageProfileMock).not.toHaveBeenCalled();
+  });
+
   it("renders read-only state for the environment default profile", async () => {
     listStorageProfilesMock.mockResolvedValue([
       buildProfile({
-        id: "00000000-0000-0000-0000-000000000000",
+        id: ENVIRONMENT_PROFILE_ID,
         profileKey: "env-default",
+        configSource: "environment",
         displayName: "Environment Default",
         provider: "local",
         config: {
@@ -530,7 +583,9 @@ describe("SystemSettingsStoragePage", () => {
 
     renderPage();
 
-    expect(await screen.findAllByText("Environment Default")).not.toHaveLength(0);
+    expect(
+      await screen.findAllByText("settings:SETTINGS_SYSTEM_STORAGE_ENVIRONMENT_DEFAULT_NAME"),
+    ).not.toHaveLength(0);
     expect(
       screen.queryByText("settings:SETTINGS_SYSTEM_STORAGE_BADGE_ENVIRONMENT"),
     ).not.toBeInTheDocument();
@@ -550,11 +605,62 @@ describe("SystemSettingsStoragePage", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("keeps a database profile editable when its key resembles the environment profile", async () => {
+    listStorageProfilesMock.mockResolvedValue([
+      buildProfile({
+        profileKey: "env-default",
+        configSource: "database",
+      }),
+    ]);
+
+    renderPage();
+
+    expect(await screen.findAllByText("Primary storage")).not.toHaveLength(0);
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "settings:SETTINGS_SYSTEM_STORAGE_ACTIONS_LABEL",
+      }),
+    );
+    expect(
+      screen.getByText("settings:SETTINGS_SYSTEM_STORAGE_EDIT_ACTION").closest('[role="menuitem"]'),
+    ).not.toHaveAttribute("aria-disabled");
+    expect(screen.getByText("settings:SETTINGS_SYSTEM_STORAGE_DELETE_ACTION")).toBeInTheDocument();
+  });
+
+  it("keeps default selection out of profile update payloads", async () => {
+    listStorageProfilesMock.mockResolvedValue([buildProfile()]);
+
+    renderPage();
+
+    expect(await screen.findAllByText("Primary storage")).not.toHaveLength(0);
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "settings:SETTINGS_SYSTEM_STORAGE_ACTIONS_LABEL",
+      }),
+    );
+    fireEvent.click(screen.getByText("settings:SETTINGS_SYSTEM_STORAGE_EDIT_ACTION"));
+    expect(
+      await screen.findByText("settings:SETTINGS_SYSTEM_STORAGE_EDIT_DIALOG_TITLE"),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "settings:SETTINGS_SAVE" }));
+
+    await waitFor(() => {
+      expect(updateStorageProfileMock).toHaveBeenCalledWith(
+        DATABASE_PROFILE_ID,
+        expect.any(Object),
+      );
+    });
+    const updatePayload = updateStorageProfileMock.mock.calls[0][1];
+    expect(updatePayload).not.toHaveProperty("isDefault");
+    expect(updatePayload).not.toHaveProperty("isActive");
+  });
+
   it("keeps environment default test success visible after testing", async () => {
     listStorageProfilesMock.mockResolvedValue([
       buildProfile({
-        id: "00000000-0000-0000-0000-000000000000",
+        id: ENVIRONMENT_PROFILE_ID,
         profileKey: "env-default",
+        configSource: "environment",
         displayName: "Environment Default",
         provider: "local",
         lastTestStatus: null,
@@ -672,6 +778,7 @@ describe("SystemSettingsStoragePage", () => {
           upload_session_ttl_seconds: 3600,
           recycle_bin_retention_days: 90,
           upload_policy: {
+            allowed_extensions: ["jpg", "png", "pdf", "webp", "ico"],
             defaults: {
               max_size_mb: 2048,
               allowed_extensions: ["jpg", "png", "pdf"],
@@ -724,6 +831,7 @@ describe("SystemSettingsStoragePage", () => {
             upload_session_ttl_seconds: 3600,
             recycle_bin_retention_days: 90,
             upload_policy: expect.objectContaining({
+              allowed_extensions: ["jpg", "png", "pdf", "webp", "ico"],
               defaults: {
                 max_size_mb: 2048,
                 allowed_extensions: ["jpg", "png", "pdf", "webp"],
@@ -745,11 +853,100 @@ describe("SystemSettingsStoragePage", () => {
     });
   });
 
+  it("limits purpose format choices to the global allow-list", async () => {
+    listStorageProfilesMock.mockResolvedValue([buildProfile()]);
+    getSystemCoreSettingsMock.mockResolvedValue({
+      value: {
+        storage: {
+          upload_policy: {
+            allowed_extensions: ["jpg", "png"],
+            defaults: { max_size_mb: 2048, allowed_extensions: ["jpg", "png"] },
+            purposes: {
+              avatar: { max_size_mb: 10, allowed_extensions: ["jpg"] },
+            },
+          },
+        },
+      },
+      secrets: {},
+    });
+
+    renderPage();
+
+    const globalExtensions = await screen.findByLabelText(
+      "settings:SETTINGS_STORAGE_UPLOAD_POLICY_GLOBAL_EXTENSIONS_LABEL",
+    );
+    const globalChips = globalExtensions.closest('[data-slot="combobox-chips"]');
+    await waitFor(() => {
+      expect(globalChips?.querySelectorAll('[data-slot="combobox-chip-remove"]')).toHaveLength(2);
+    });
+    const avatarExtensions = await screen.findByLabelText(
+      "settings:SETTINGS_STORAGE_UPLOAD_POLICY_AVATAR_LABEL settings:SETTINGS_STORAGE_UPLOAD_POLICY_ALLOWED_EXTENSIONS",
+    );
+    fireEvent.change(avatarExtensions, { target: { value: "pdf" } });
+    fireEvent.keyDown(avatarExtensions, { key: "Enter" });
+
+    const avatarChips = avatarExtensions.closest('[data-slot="combobox-chips"]');
+    expect(avatarChips?.textContent).toContain(".jpg");
+    expect(avatarChips?.textContent).not.toContain(".pdf");
+    expect(patchSystemCoreSettingsMock).not.toHaveBeenCalled();
+  });
+
+  it("removes globally disabled formats from defaults and purpose policies", async () => {
+    listStorageProfilesMock.mockResolvedValue([buildProfile()]);
+    getSystemCoreSettingsMock.mockResolvedValue({
+      value: {
+        storage: {
+          upload_policy: {
+            allowed_extensions: ["jpg", "png", "pdf"],
+            defaults: { max_size_mb: 2048, allowed_extensions: ["jpg", "pdf"] },
+            purposes: {
+              attachment: { max_size_mb: 100, allowed_extensions: ["jpg", "pdf"] },
+            },
+          },
+        },
+      },
+      secrets: {},
+    });
+
+    renderPage();
+
+    const globalExtensions = await screen.findByLabelText(
+      "settings:SETTINGS_STORAGE_UPLOAD_POLICY_GLOBAL_EXTENSIONS_LABEL",
+    );
+    const globalChips = globalExtensions.closest('[data-slot="combobox-chips"]');
+    await waitFor(() => {
+      expect(globalChips?.querySelectorAll('[data-slot="combobox-chip-remove"]')).toHaveLength(3);
+    });
+    fireEvent.focus(globalExtensions);
+    fireEvent.keyDown(globalExtensions, { key: "Backspace" });
+    await waitFor(() => {
+      expect(globalChips?.querySelectorAll('[data-slot="combobox-chip-remove"]')).toHaveLength(2);
+      expect(globalChips?.textContent).not.toContain(".pdf");
+    });
+    fireEvent.click(screen.getByRole("button", { name: "settings:SETTINGS_SAVE" }));
+
+    await waitFor(() => {
+      expect(patchSystemCoreSettingsMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          storage: expect.objectContaining({
+            upload_policy: expect.objectContaining({
+              allowed_extensions: ["jpg", "png"],
+              defaults: { max_size_mb: 2048, allowed_extensions: ["jpg"] },
+              purposes: expect.objectContaining({
+                attachment: { max_size_mb: 100, allowed_extensions: ["jpg"] },
+              }),
+            }),
+          }),
+        }),
+      );
+    });
+  });
+
   it("creates aws_s3 profiles with endpoint and tests the created profile once", async () => {
     listStorageProfilesMock.mockResolvedValue([]);
     createStorageProfileMock.mockResolvedValue(
       buildProfile({
-        id: "created-profile",
+        id: "68f9d563-079e-4988-86a8-aa5d8066a7a9",
         profileKey: "rustfs-main",
         displayName: "RustFS Main",
         isDefault: false,
@@ -805,7 +1002,9 @@ describe("SystemSettingsStoragePage", () => {
     await waitFor(() => {
       expect(createStorageProfileMock).toHaveBeenCalled();
     });
-    expect(createStorageProfileMock.mock.calls[0][0]).toEqual(
+    const createPayload = createStorageProfileMock.mock.calls[0][0];
+    expect(createPayload).not.toHaveProperty("isDefault");
+    expect(createPayload).toEqual(
       expect.objectContaining({
         profileKey: "rustfs-main",
         provider: "aws_s3",

@@ -1,15 +1,15 @@
-import { useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
-import { Button } from "@arclayer/ui/button";
 import {
-  ObservabilityPeriodSelect,
-  type ObservabilityPeriodDays,
-} from "@/pages/system/observability/components/period-select";
-import { SystemSummaryMetrics } from "@/pages/system/observability/components/system-summary-metrics";
+  ConfigurableDashboard,
+  type DashboardWidget,
+} from "@/pages/system/observability/components/dashboard-layout";
+import { ObservabilityPageControls } from "@/pages/system/observability/components/page-controls";
+import type { ObservabilityPeriodDays } from "@/pages/system/observability/components/period-select";
+import { useSystemSummaryWidgets } from "@/pages/system/observability/components/system-summary-metrics";
 import { ObservabilityTrendCard } from "@/pages/system/observability/components/trend-card";
 import {
   useSystemObservabilityOverview,
@@ -24,36 +24,96 @@ export function SystemPlatformOverviewPage() {
   const aiRequests = useSystemObservabilityTrend(days, "requests");
   const cost = useSystemObservabilityTrend(days, "cost");
   const auditEvents = useSystemObservabilityTrend(days, "auditEvents");
-  const refreshing = [overview, httpRequests, aiRequests, cost, auditEvents].some(
-    (query) => query.isFetching,
+  const queries = [overview, httpRequests, aiRequests, cost, auditEvents];
+  const summaryWidgets = useSystemSummaryWidgets(overview.data);
+  const widgets = useMemo<DashboardWidget[]>(
+    () => [
+      ...summaryWidgets,
+      {
+        id: "http-request-trend",
+        title: t("TREND_HTTP_REQUESTS"),
+        defaultSpan: 6,
+        defaultHeight: 400,
+        content: (
+          <ObservabilityTrendCard
+            title={t("TREND_HTTP_REQUESTS")}
+            description={t(`PERIOD_${days}_DAYS`)}
+            points={httpRequests.data?.points}
+            loading={httpRequests.isLoading}
+            error={httpRequests.error}
+            onRetry={() => void httpRequests.refetch()}
+            valueKind="count"
+          />
+        ),
+      },
+      {
+        id: "ai-request-trend",
+        title: t("TREND_REQUESTS"),
+        defaultSpan: 6,
+        defaultHeight: 400,
+        content: (
+          <ObservabilityTrendCard
+            title={t("TREND_REQUESTS")}
+            description={t(`PERIOD_${days}_DAYS`)}
+            points={aiRequests.data?.points}
+            loading={aiRequests.isLoading}
+            error={aiRequests.error}
+            onRetry={() => void aiRequests.refetch()}
+            valueKind="count"
+          />
+        ),
+      },
+      {
+        id: "ai-cost-trend",
+        title: t("TREND_COST"),
+        defaultSpan: 6,
+        defaultHeight: 400,
+        content: (
+          <ObservabilityTrendCard
+            title={t("TREND_COST")}
+            description={t(`PERIOD_${days}_DAYS`)}
+            points={cost.data?.points}
+            loading={cost.isLoading}
+            error={cost.error}
+            onRetry={() => void cost.refetch()}
+            valueKind="cost"
+          />
+        ),
+      },
+      {
+        id: "audit-event-trend",
+        title: t("TREND_AUDIT_EVENTS"),
+        defaultSpan: 6,
+        defaultHeight: 400,
+        content: (
+          <ObservabilityTrendCard
+            title={t("TREND_AUDIT_EVENTS")}
+            description={t(`PERIOD_${days}_DAYS`)}
+            points={auditEvents.data?.points}
+            loading={auditEvents.isLoading}
+            error={auditEvents.error}
+            onRetry={() => void auditEvents.refetch()}
+            valueKind="count"
+          />
+        ),
+      },
+    ],
+    [aiRequests, auditEvents, cost, days, httpRequests, summaryWidgets, t],
   );
 
-  const refresh = () =>
-    Promise.all([
-      overview.refetch(),
-      httpRequests.refetch(),
-      aiRequests.refetch(),
-      cost.refetch(),
-      auditEvents.refetch(),
-    ]);
+  const refresh = () => Promise.all(queries.map((query) => query.refetch()));
 
   return (
     <DefaultPage
       title={t("OVERVIEW_TITLE")}
       description={t("OVERVIEW_DESCRIPTION")}
       action={
-        <div className="flex items-center gap-2">
-          <ObservabilityPeriodSelect value={days} onChange={setDays} />
-          <Button
-            variant="outline"
-            size="icon"
-            loading={refreshing}
-            aria-label={t("ACTION_REFRESH")}
-            onClick={() => void refresh()}
-          >
-            <RefreshCw data-icon="inline-start" />
-          </Button>
-        </div>
+        <ObservabilityPageControls
+          days={days}
+          onDaysChange={setDays}
+          refreshing={queries.some((query) => query.isFetching)}
+          onRefresh={() => void refresh()}
+        />
       }
     >
       <ContentGuard
@@ -63,52 +123,12 @@ export function SystemPlatformOverviewPage() {
         loadingVariant="form"
       >
         {overview.data ? (
-          <div className="flex flex-col gap-8 pb-8">
-            <SystemSummaryMetrics overview={overview.data} />
-            <section className="flex flex-col gap-3" aria-label={t("OBSERVABILITY_OVERVIEW_TITLE")}>
-              <h2 className="text-title3 font-semibold text-label-primary">
-                {t("OBSERVABILITY_OVERVIEW_TITLE")}
-              </h2>
-              <div className="grid gap-4 xl:grid-cols-2">
-                <ObservabilityTrendCard
-                  title={t("TREND_HTTP_REQUESTS")}
-                  description={t(`PERIOD_${days}_DAYS`)}
-                  points={httpRequests.data?.points}
-                  loading={httpRequests.isLoading}
-                  error={httpRequests.error}
-                  onRetry={() => void httpRequests.refetch()}
-                  valueKind="count"
-                />
-                <ObservabilityTrendCard
-                  title={t("TREND_REQUESTS")}
-                  description={t(`PERIOD_${days}_DAYS`)}
-                  points={aiRequests.data?.points}
-                  loading={aiRequests.isLoading}
-                  error={aiRequests.error}
-                  onRetry={() => void aiRequests.refetch()}
-                  valueKind="count"
-                />
-                <ObservabilityTrendCard
-                  title={t("TREND_COST")}
-                  description={t(`PERIOD_${days}_DAYS`)}
-                  points={cost.data?.points}
-                  loading={cost.isLoading}
-                  error={cost.error}
-                  onRetry={() => void cost.refetch()}
-                  valueKind="cost"
-                />
-                <ObservabilityTrendCard
-                  title={t("TREND_AUDIT_EVENTS")}
-                  description={t(`PERIOD_${days}_DAYS`)}
-                  points={auditEvents.data?.points}
-                  loading={auditEvents.isLoading}
-                  error={auditEvents.error}
-                  onRetry={() => void auditEvents.refetch()}
-                  valueKind="count"
-                />
-              </div>
-            </section>
-          </div>
+          <ConfigurableDashboard
+            dashboardId="system-platform-overview"
+            widgets={widgets}
+            ariaLabel={t("OVERVIEW_TITLE")}
+            className="pb-8"
+          />
         ) : null}
       </ContentGuard>
     </DefaultPage>

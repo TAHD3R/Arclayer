@@ -86,13 +86,33 @@ describe("ObservabilityTrendCard", () => {
       />,
     );
 
-    expect(screen.getByRole("img", { name: "Requests" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Requests. TREND_OPEN_DETAIL" })).toBeInTheDocument();
     const table = screen.getByRole("table", { name: "TREND_TABLE_CAPTION:Requests" });
     const rows = within(table).getAllByRole("row");
     expect(rows).toHaveLength(3);
     expect(rows[1]).toHaveTextContent("Jul 1");
     expect(rows[1]).toHaveTextContent("1,234");
     expect(rows[2]).toHaveTextContent("9,876");
+  });
+
+  it("opens exact point detail from the keyboard", async () => {
+    const user = userEvent.setup();
+    render(
+      <ObservabilityTrendCard
+        {...BASE_PROPS}
+        points={[
+          { date: "2026-07-01", value: 12 },
+          { date: "2026-07-02", value: 34 },
+        ]}
+      />,
+    );
+
+    const chart = screen.getByRole("button", { name: "Requests. TREND_OPEN_DETAIL" });
+    chart.focus();
+    await user.keyboard("{Enter}");
+
+    expect(await screen.findByRole("dialog")).toHaveTextContent("Jul 2");
+    expect(screen.getByRole("dialog")).toHaveTextContent("34");
   });
 
   it("disables chart motion when reduced motion is requested", () => {

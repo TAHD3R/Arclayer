@@ -4,10 +4,17 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { FeedbackPage } from "@/api/feedback";
-import { listSystemFeedback } from "@/api/feedback";
+import { listSystemFeedback, updateSystemFeedback } from "@/api/feedback";
 import { SystemFeedbackCenterPage } from "@/pages/system/feedback/page";
 
-vi.mock("@/api/feedback", () => ({ listSystemFeedback: vi.fn() }));
+vi.mock("@/api/feedback", () => ({
+  listSystemFeedback: vi.fn(),
+  updateSystemFeedback: vi.fn(),
+}));
+vi.mock("@/lib/notifications", () => ({
+  notifyError: vi.fn(),
+  notifySuccessText: vi.fn(),
+}));
 vi.mock("@/hooks/use-admin-date-time-formatter", () => ({
   useAdminDateTimeFormatter: () => ({ formatDateTime: (value: string) => `date:${value}` }),
 }));
@@ -15,6 +22,7 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, values?: Record<string, unknown>) => {
       if (typeof values?.message === "string") return `${key}:${values.message}`;
+      if (typeof values?.count === "number") return `${key}:${values.count}`;
       if (values?.page && values?.pages) return `${key}:${values.page}/${values.pages}`;
       return key;
     },
@@ -113,7 +121,8 @@ const ITEM = {
   clientRequestId: "request-1",
   source: "header",
   contextType: "project",
-  category: "usability",
+  intent: "problem",
+  legacyCategory: null,
   messagePreview: "Publishing needs clearer confirmation",
   rating: 4,
   status: "new",
@@ -126,8 +135,22 @@ const ITEM = {
     username: "reporter",
     displayName: "Reporter One",
     avatarUrl: null,
+    status: "active",
+    isSuperAdmin: false,
+    lastLoginAt: "2026-07-11T08:30:00Z",
+    createdAt: "2026-01-12T08:30:00Z",
   },
-  assignee: null,
+  assignee: {
+    id: "admin-1",
+    email: "owner@example.com",
+    username: "owner",
+    displayName: "Owner One",
+    avatarUrl: null,
+    status: "active",
+    isSuperAdmin: true,
+    lastLoginAt: "2026-07-12T07:30:00Z",
+    createdAt: "2025-12-12T08:30:00Z",
+  },
   messageCount: 0,
   lastActivityAt: "2026-07-12T08:30:00Z",
   firstResponseAt: null,
@@ -168,6 +191,17 @@ describe("SystemFeedbackCenterPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal("PointerEvent", MouseEvent);
+    vi.mocked(updateSystemFeedback).mockImplementation(
+      async (_id, payload) =>
+        ({
+          ...ITEM,
+          ...payload,
+          message: ITEM.messagePreview,
+          contextUrl: null,
+          context: {},
+          messages: [],
+        }) as never,
+    );
   });
 
   it("exposes loading, error retry, and empty states", async () => {
@@ -195,29 +229,68 @@ describe("SystemFeedbackCenterPage", () => {
     renderPage();
 
     const viewButton = await screen.findByRole("button", {
-      name: `platform:FEEDBACK_ACTION_VIEW_ARIA:${ITEM.messagePreview}`,
+      name: "platform:FEEDBACK_ACTION_DETAILS",
     });
     const row = viewButton.closest("tr");
     expect(row).not.toBeNull();
     expect(row).not.toHaveAttribute("tabindex");
     expect(within(row!).getByText(ITEM.messagePreview)).toHaveClass("truncate");
+    expect(screen.queryByText("platform:FEEDBACK_ACTION_VIEW")).not.toBeInTheDocument();
 
     viewButton.focus();
     await user.keyboard("{Enter}");
     expect(screen.getByRole("dialog")).toHaveTextContent("detail:feedback-1");
   });
 
-  it("sends status and search filters through the shared DataTable query", async () => {
+  it("shows user identity cards and supports row plus bulk handling actions", async () => {
+    vi.mocked(listSystemFeedback).mockResolvedValue(page());
+    const user = userEvent.setup();
+    renderPage();
+
+    const reporter = await screen.findByRole("button", { name: "Reporter One" });
+    expect(screen.getByRole("button", { name: "Owner One" })).toBeVisible();
+    await user.hover(reporter);
+    expect(await screen.findByText("reporter@example.com")).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "platform:FEEDBACK_ACTION_MORE" }));
+    await user.click(screen.getByRole("menuitem", { name: "platform:FEEDBACK_ACTION_START" }));
+    await waitFor(() =>
+      expect(updateSystemFeedback).toHaveBeenCalledWith("feedback-1", {
+        status: "in_progress",
+      }),
+    );
+    expect(await screen.findByText("platform:STATUS_IN_PROGRESS")).toBeVisible();
+
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: `platform:FEEDBACK_SELECT_ROW:${ITEM.messagePreview}`,
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.getByText("platform:FEEDBACK_SELECTED_COUNT:1")).toBeVisible(),
+    );
+    await user.click(screen.getByRole("button", { name: "platform:FEEDBACK_ACTION_RESOLVE" }));
+    await waitFor(() =>
+      expect(updateSystemFeedback).toHaveBeenLastCalledWith("feedback-1", {
+        status: "resolved",
+      }),
+    );
+  });
+
+  it("sends ordering and search through the shared DataTable query", async () => {
     vi.mocked(listSystemFeedback).mockResolvedValue(page());
     const user = userEvent.setup();
     renderPage();
     await screen.findByText(ITEM.messagePreview);
 
-    await user.click(screen.getByRole("combobox", { name: "platform:FEEDBACK_COLUMN_STATUS" }));
-    await user.click(screen.getByRole("option", { name: "platform:STATUS_NEW" }));
+    expect(screen.getByRole("button", { name: "platform:FEEDBACK_FILTER_TITLE" })).toBeVisible();
+    await user.click(screen.getByRole("combobox", { name: "platform:FEEDBACK_ORDER_LABEL" }));
+    await user.click(
+      screen.getByRole("option", { name: "platform:FEEDBACK_ORDER_CREATED_NEWEST" }),
+    );
     await waitFor(() =>
       expect(listSystemFeedback).toHaveBeenLastCalledWith(
-        expect.objectContaining({ status: "new", page: 1 }),
+        expect.objectContaining({ ordering: "-created_at", page: 1 }),
       ),
     );
 
@@ -228,11 +301,11 @@ describe("SystemFeedbackCenterPage", () => {
     await waitFor(
       () =>
         expect(listSystemFeedback).toHaveBeenLastCalledWith(
-          expect.objectContaining({ search: "publishing", status: "new" }),
+          expect.objectContaining({ search: "publishing", ordering: "-created_at" }),
         ),
       { timeout: 1_000 },
     );
 
-    expect(screen.getByText("Reporter One")).toHaveClass("truncate");
+    expect(await screen.findByText("Reporter One")).toHaveClass("truncate");
   });
 });
