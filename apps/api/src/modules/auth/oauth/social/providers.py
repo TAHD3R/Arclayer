@@ -1,82 +1,90 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Protocol, runtime_checkable
 
-from pydantic import BaseModel, ConfigDict
+import httpx
+from pydantic import BaseModel, ConfigDict, Field
 
-OAuthProviderKind = Literal["google", "github", "microsoft", "discord"]
+from src.core.connectors import ConnectorKind
+from src.core.exceptions import ServiceUnavailable
+from src.core.registries import ConnectorRegistry
 
 
 class OAuthProviderDefinition(BaseModel):
-    model_config = ConfigDict(frozen=True)
-    key: OAuthProviderKind
-    section_id: str
-    title: str
-    label: str
-    icon_key: str
-    authorize_url: str
-    token_url: str
-    userinfo_url: str
-    scope: str
-    uses_pkce: bool = True
-    userinfo_auth_header: str = "authorization"
-    userinfo_accept: str | None = None
-    prompt: str | None = None
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    key: str = Field(..., pattern=r"^[a-z][a-z0-9_-]*$", max_length=64)
+    section_id: str = Field(..., pattern=r"^oauth_[a-z][a-z0-9_]*$", max_length=96)
+    title_key: str = Field(..., min_length=3, max_length=160)
+    label: str = Field(..., min_length=1, max_length=120)
+    icon_key: str = Field(..., pattern=r"^[a-z][a-z0-9_-]*$", max_length=64)
 
 
-OAUTH_PROVIDER_DEFINITIONS: tuple[OAuthProviderDefinition, ...] = (
-    OAuthProviderDefinition(
-        key="google",
-        section_id="oauth_google",
-        title="Google OAuth",
-        label="Continue with Google",
-        icon_key="google",
-        authorize_url="https://accounts.google.com/o/oauth2/v2/auth",
-        token_url="https://oauth2.googleapis.com/token",
-        userinfo_url="https://openidconnect.googleapis.com/v1/userinfo",
-        scope="openid email profile",
-        prompt="select_account",
-    ),
-    OAuthProviderDefinition(
-        key="github",
-        section_id="oauth_github",
-        title="GitHub OAuth",
-        label="Continue with GitHub",
-        icon_key="github",
-        authorize_url="https://github.com/login/oauth/authorize",
-        token_url="https://github.com/login/oauth/access_token",
-        userinfo_url="https://api.github.com/user",
-        scope="read:user user:email",
-        userinfo_accept="application/vnd.github+json",
-    ),
-    OAuthProviderDefinition(
-        key="microsoft",
-        section_id="oauth_microsoft",
-        title="Microsoft OAuth",
-        label="Continue with Microsoft",
-        icon_key="microsoft",
-        authorize_url="https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
-        token_url="https://login.microsoftonline.com/common/oauth2/v2.0/token",
-        userinfo_url="https://graph.microsoft.com/oidc/userinfo",
-        scope="openid email profile offline_access User.Read",
-        prompt="select_account",
-    ),
-    OAuthProviderDefinition(
-        key="discord",
-        section_id="oauth_discord",
-        title="Discord OAuth",
-        label="Continue with Discord",
-        icon_key="discord",
-        authorize_url="https://discord.com/oauth2/authorize",
-        token_url="https://discord.com/api/oauth2/token",
-        userinfo_url="https://discord.com/api/users/@me",
-        scope="identify email",
-    ),
-)
+class OAuthProviderProfile(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
-OAUTH_PROVIDER_BY_KEY: dict[str, OAuthProviderDefinition] = {item.key: item for item in OAUTH_PROVIDER_DEFINITIONS}
+    subject: str
+    email: str | None = None
+    email_verified: bool
+    display_name: str | None = None
+    avatar_url: str | None = None
 
 
-def get_oauth_provider_definition(provider: str) -> OAuthProviderDefinition | None:
+@runtime_checkable
+class OAuthProviderConnector(Protocol):
+    definition: OAuthProviderDefinition
+
+    def build_authorize_url(
+        self,
+        *,
+        client_id: str,
+        redirect_uri: str,
+        state: str,
+        code_challenge: str,
+    ) -> str: ...
+
+    async def exchange_access_token(
+        self,
+        *,
+        client: httpx.AsyncClient,
+        client_id: str,
+        client_secret: str,
+        code: str,
+        code_verifier: str,
+        redirect_uri: str,
+    ) -> str: ...
+
+    async def fetch_profile(
+        self,
+        *,
+        client: httpx.AsyncClient,
+        access_token: str,
+    ) -> OAuthProviderProfile: ...
+
+
+def get_oauth_provider_connector(
+    connector_registry: ConnectorRegistry,
+    provider: str,
+) -> OAuthProviderConnector | None:
     provider_key = (provider or "").strip().lower()
-    return OAUTH_PROVIDER_BY_KEY.get(provider_key)
+    registration = connector_registry.resolve(f"oauth.{provider_key}")
+    if registration is None:
+        return None
+    connector = registration.factory()
+    if not isinstance(connector, OAuthProviderConnector):
+        raise ServiceUnavailable(error="OAUTH_CONNECTOR_INVALID")
+    return connector
+
+
+def list_oauth_provider_connectors(
+    connector_registry: ConnectorRegistry,
+) -> tuple[OAuthProviderConnector, ...]:
+    connectors: list[OAuthProviderConnector] = []
+    for registration in connector_registry.list_registrations():
+        if registration.definition.kind is not ConnectorKind.OAUTH:
+            continue
+        connector = registration.factory()
+        if not isinstance(connector, OAuthProviderConnector):
+            raise ServiceUnavailable(error="OAUTH_CONNECTOR_INVALID")
+        connectors.append(connector)
+    return tuple(connectors)

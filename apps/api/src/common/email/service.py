@@ -9,18 +9,36 @@ from src.common.email.errors import raise_mail_delivery_error
 from src.common.email.helpers import raise_if_fatal, valid_recipient
 from src.common.email.provider import EmailMessage, SendResult
 from src.common.email.providers.smtp import SmtpEmailProvider
+from src.common.email.template_renderer import (
+    EmailTemplateRenderError,
+    EmailTemplateSourceError,
+)
+from src.common.email.template_runtime import (
+    EmailTemplateDisabledError,
+    EmailTemplateNotFoundError,
+    EmailTemplateRuntime,
+)
+from src.common.types.json_types import JsonObject
 from src.common.utils.ids import uuid7
 from src.config import Settings
-from src.core.i18n import t
 from src.core.logging import get_logger
+from src.core.registries import ConnectorRegistry
 from src.models.system.setting import SettingRecord
 from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 from src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
 
 class EmailService:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        connector_registry: ConnectorRegistry | None = None,
+        template_runtime: EmailTemplateRuntime | None = None,
+    ) -> None:
         self.settings = settings
+        self.connector_registry = connector_registry
+        self.template_runtime = template_runtime or EmailTemplateRuntime()
         self.logger = get_logger(__name__)
 
     async def is_enabled(self) -> bool:
@@ -52,29 +70,6 @@ class EmailService:
         # to override env when configured.
         return bool(self.settings.email.enabled)
 
-    async def _is_template_enabled(self, template_key: str) -> bool:
-        """
-        Determine whether an optional email template is enabled.
-
-        Notes:
-        - If no preference is configured, default to enabled (backward compatible).
-        - If an allowlist is configured, require template_key to be present.
-        """
-
-        mail = await self._get_core_mail_config()
-        prefs = mail.get("preferences")
-        if not isinstance(prefs, dict):
-            return True
-        enabled = prefs.get("enabled_templates")
-        if enabled is None:
-            return True
-        if not isinstance(enabled, list):
-            return True
-        enabled_set = {str(x) for x in enabled if isinstance(x, str) and x.strip()}
-        if not enabled_set:
-            return False
-        return template_key in enabled_set
-
     async def _build_connection_config(self) -> ConnectionConfig:
         mail = await self._get_core_mail_config()
         return SmtpEmailProvider(settings=self.settings, config=mail).build_connection_config()
@@ -88,11 +83,33 @@ class EmailService:
             settings=self.settings,
             config=mail,
             smtp_fast_mail_factory=self._get_fast_mail,
+            connector_registry=self.connector_registry,
         )
 
     async def _send(self, message: EmailMessage) -> SendResult:
         service = await self._get_dynamic_mail_service()
         return await service.send(message)
+
+    async def _template_message(
+        self,
+        *,
+        recipient: str,
+        template_key: str,
+        locale: str | None,
+        variables: JsonObject,
+    ) -> EmailMessage:
+        rendered = await self.template_runtime.render(
+            key=template_key,
+            locale=locale,
+            variables=variables,
+        )
+        return EmailMessage.single(
+            recipient=recipient,
+            subject=rendered.subject,
+            html_body=rendered.html,
+            text_body=rendered.text,
+            template_id=template_key,
+        )
 
     async def send_reset_password(
         self,
@@ -122,76 +139,18 @@ class EmailService:
         cid = uuid7().hex
         token_hint = f"{reset_token[:6]}...{reset_token[-4:]}" if len(reset_token) >= 10 else reset_token
         try:
-            subject = t("auth", "RESET_EMAIL_SUBJECT", locale=locale)
             base = (self.settings.application.frontend_base_url or "").strip()
             base = base.rstrip("/") if base else ""
             reset_url = f"{base}/reset-password?token={reset_token}" if base else None
-
-            if reset_url:
-                plain_body = t(
-                    "auth",
-                    "RESET_EMAIL_PLAIN_WITH_LINK",
-                    default="重置链接：{reset_url}\n重置码：{reset_token}\n有效期：{expires_in} 秒。\n如非本人操作，请忽略本邮件。",
-                    locale=locale,
-                    reset_url=reset_url,
-                    reset_token=reset_token,
-                    expires_in=expires_in,
-                )
-            else:
-                plain_body = t(
-                    "auth",
-                    "RESET_EMAIL_PLAIN",
-                    default="重置码：{reset_token}，{expires_in} 秒后失效。",
-                    locale=locale,
-                    reset_token=reset_token,
-                    expires_in=expires_in,
-                )
-
-            title = t("auth", "RESET_EMAIL_TITLE", locale=locale)
-            intro = t(
-                "auth",
-                "RESET_EMAIL_INTRO",
-                default="我们收到了重置密码请求，请点击下方按钮继续。",
-                locale=locale,
-            )
-            cta = t("auth", "RESET_EMAIL_CTA", locale=locale)
-            fallback = t(
-                "auth",
-                "RESET_EMAIL_FALLBACK",
-                default="如果按钮无法使用，你也可以使用以下重置码：",
-                locale=locale,
-            )
-            expires_notice = t(
-                "auth",
-                "RESET_EMAIL_EXPIRES",
-                default="该链接/重置码将在 {expires_in} 秒后失效。",
-                locale=locale,
-                expires_in=expires_in,
-            )
-            ignore_notice = t(
-                "auth",
-                "RESET_EMAIL_IGNORE",
-                default="如非本人操作，请忽略本邮件。",
-                locale=locale,
-            )
-            message = EmailMessage.single(
+            message = await self._template_message(
                 recipient=recipient,
-                subject=subject,
-                text_body=plain_body,
-                template_id="reset_password",
-                template_vars={
-                    "title": title,
-                    "intro": intro,
-                    "cta": cta,
-                    "fallback": fallback,
-                    "expires_notice": expires_notice,
-                    "ignore_notice": ignore_notice,
+                template_key="reset_password",
+                locale=locale,
+                variables={
                     "reset_url": reset_url,
                     "reset_token": reset_token,
                     "expires_in": expires_in,
                 },
-                html_template="reset_password.html",
-                plain_template="reset_password.txt",
             )
             await self._send(message)
             self.logger.info(
@@ -202,6 +161,13 @@ class EmailService:
                 token_hint=token_hint,
                 user_id=user_id,
             )
+        except (
+            EmailTemplateNotFoundError,
+            EmailTemplateDisabledError,
+            EmailTemplateSourceError,
+            EmailTemplateRenderError,
+        ):
+            raise
         except BaseException as exc:
             raise_if_fatal(exc)
             self.logger.exception(
@@ -229,14 +195,6 @@ class EmailService:
                 user_id=user_id,
             )
             return
-        if not await self._is_template_enabled("welcome_email"):
-            self.logger.info(
-                "Attempt to send welcome email while template is disabled",
-                recipient=recipient,
-                type="welcome",
-                user_id=user_id,
-            )
-            return
         if not valid_recipient(recipient):
             self.logger.warning(
                 "Recipient email is invalid, skip sending mail",
@@ -247,40 +205,11 @@ class EmailService:
             return
         cid = uuid7().hex
         try:
-            subject = t(
-                "auth",
-                "WELCOME_EMAIL_SUBJECT",
-                default="欢迎加入 Arclayer",
-                locale=locale,
-            )
-            plain_body = t(
-                "auth",
-                "WELCOME_EMAIL_PLAIN",
-                default="欢迎加入 Arclayer，{username}。",
-                locale=locale,
-                username=username,
-            )
-            title = t(
-                "auth",
-                "WELCOME_EMAIL_TITLE",
-                default="欢迎加入 Arclayer",
-                locale=locale,
-            )
-            intro = t(
-                "auth",
-                "WELCOME_EMAIL_INTRO",
-                default="你好，{username}，你的账号已创建成功。",
-                locale=locale,
-                username=username,
-            )
-            message = EmailMessage.single(
+            message = await self._template_message(
                 recipient=recipient,
-                subject=subject,
-                text_body=plain_body,
-                template_id="welcome",
-                template_vars={"username": username, "title": title, "intro": intro},
-                html_template="welcome.html",
-                plain_template="welcome.txt",
+                template_key="welcome",
+                locale=locale,
+                variables={"username": username},
             )
             await self._send(message)
             self.logger.info(
@@ -290,6 +219,13 @@ class EmailService:
                 cid=cid,
                 user_id=user_id,
             )
+        except (
+            EmailTemplateNotFoundError,
+            EmailTemplateDisabledError,
+            EmailTemplateSourceError,
+            EmailTemplateRenderError,
+        ):
+            raise
         except BaseException as exc:
             raise_if_fatal(exc)
             self.logger.exception(
@@ -329,25 +265,11 @@ class EmailService:
 
         cid = uuid7().hex
         try:
-            subject = t(
-                "auth",
-                "EMAIL_CHANGE_CODE_SUBJECT",
-                default="验证你的新邮箱",
-                locale=locale,
-            )
-            plain_body = t(
-                "auth",
-                "EMAIL_CHANGE_CODE_PLAIN",
-                default="你的验证码是：{code}\n有效期：{expires_in} 秒。\n如非本人操作，请忽略本邮件。",
-                locale=locale,
-                code=code,
-                expires_in=expires_in,
-            )
-            message = EmailMessage.single(
+            message = await self._template_message(
                 recipient=recipient,
-                subject=subject,
-                text_body=plain_body,
-                template_id="email_change_code",
+                template_key="email_change_code",
+                locale=locale,
+                variables={"code": code, "expires_in": expires_in},
             )
             await self._send(message)
             self.logger.info(
@@ -357,6 +279,13 @@ class EmailService:
                 cid=cid,
                 user_id=user_id,
             )
+        except (
+            EmailTemplateNotFoundError,
+            EmailTemplateDisabledError,
+            EmailTemplateSourceError,
+            EmailTemplateRenderError,
+        ):
+            raise
         except BaseException as exc:
             raise_if_fatal(exc)
             self.logger.exception(
@@ -398,44 +327,15 @@ class EmailService:
         try:
             base = (self.settings.application.frontend_base_url or "").strip().rstrip("/")
             verification_url = f"{base}/login?mode=register&verify_token={verification_token}" if base else None
-            subject = t(
-                "auth",
-                "REGISTER_VERIFY_EMAIL_SUBJECT",
-                default="Verify your email",
-                locale=locale,
-            )
-            if verification_url:
-                plain_body = t(
-                    "auth",
-                    "REGISTER_VERIFY_EMAIL_PLAIN_WITH_LINK",
-                    default=(
-                        "Verify your email: {verification_url}\n"
-                        "This link expires in {expires_in} seconds.\n"
-                        "If you did not create this account, you can ignore this email."
-                    ),
-                    locale=locale,
-                    verification_url=verification_url,
-                    verification_token=verification_token,
-                    expires_in=expires_in,
-                )
-            else:
-                plain_body = t(
-                    "auth",
-                    "REGISTER_VERIFY_EMAIL_PLAIN",
-                    default=(
-                        "Your verification token is: {verification_token}\n"
-                        "This token expires in {expires_in} seconds.\n"
-                        "If you did not create this account, you can ignore this email."
-                    ),
-                    locale=locale,
-                    verification_token=verification_token,
-                    expires_in=expires_in,
-                )
-            message = EmailMessage.single(
+            message = await self._template_message(
                 recipient=recipient,
-                subject=subject,
-                text_body=plain_body,
-                template_id="registration_verification",
+                template_key="registration_verification",
+                locale=locale,
+                variables={
+                    "verification_url": verification_url,
+                    "verification_token": verification_token,
+                    "expires_in": expires_in,
+                },
             )
             await self._send(message)
             self.logger.info(
@@ -445,6 +345,13 @@ class EmailService:
                 cid=cid,
                 user_id=user_id,
             )
+        except (
+            EmailTemplateNotFoundError,
+            EmailTemplateDisabledError,
+            EmailTemplateSourceError,
+            EmailTemplateRenderError,
+        ):
+            raise
         except BaseException as exc:
             raise_if_fatal(exc)
             self.logger.exception(
@@ -491,29 +398,11 @@ class EmailService:
 
         cid = uuid7().hex
         try:
-            subject = t(
-                "auth",
-                "LOGIN_CODE_SUBJECT",
-                default="Your Arclayer login code",
-                locale=locale,
-            )
-            plain_body = t(
-                "auth",
-                "LOGIN_CODE_PLAIN",
-                default=(
-                    "Your Arclayer login code is: {code}\n"
-                    "This code expires in {expires_in} seconds.\n"
-                    "If you did not request this code, you can ignore this email."
-                ),
-                locale=locale,
-                code=code,
-                expires_in=expires_in,
-            )
-            message = EmailMessage.single(
+            message = await self._template_message(
                 recipient=recipient,
-                subject=subject,
-                text_body=plain_body,
-                template_id="login_code",
+                template_key="login_code",
+                locale=locale,
+                variables={"code": code, "expires_in": expires_in},
             )
             await self._send(message)
             self.logger.info(
@@ -523,6 +412,13 @@ class EmailService:
                 cid=cid,
                 user_id=user_id,
             )
+        except (
+            EmailTemplateNotFoundError,
+            EmailTemplateDisabledError,
+            EmailTemplateSourceError,
+            EmailTemplateRenderError,
+        ):
+            raise
         except BaseException as exc:
             raise_if_fatal(exc)
             self.logger.exception(
@@ -574,50 +470,18 @@ class EmailService:
         cid = uuid7().hex
         timestamp = (occurred_at or datetime.now(UTC)).astimezone(UTC).isoformat()
         try:
-            subject = t(
-                "auth",
-                "SECURITY_ALERT_EMAIL_SUBJECT",
-                default="Security alert for your Arclayer account",
-                locale=locale,
-            )
-            ignore_notice = t(
-                "auth",
-                "SECURITY_ALERT_EMAIL_IGNORE",
-                default="If this was you, no action is needed. If you do not recognize this activity, reset your password and review active sessions.",
-                locale=locale,
-            )
-            plain_body = t(
-                "auth",
-                "SECURITY_ALERT_EMAIL_PLAIN",
-                default=(
-                    "{title}\n\n{intro}\n\nEvent: {event_label}\nTime: {occurred_at}\nIP: {ip_address}\n"
-                    "Device: {user_agent}\n\n{ignore_notice}"
-                ),
-                locale=locale,
-                title=title,
-                intro=intro,
-                event_label=event_label,
-                occurred_at=timestamp,
-                ip_address=ip_address or "-",
-                user_agent=user_agent or "-",
-                ignore_notice=ignore_notice,
-            )
-            message = EmailMessage.single(
+            message = await self._template_message(
                 recipient=recipient,
-                subject=subject,
-                text_body=plain_body,
-                template_id="security_alert",
-                template_vars={
+                template_key="security_alert",
+                locale=locale,
+                variables={
                     "title": title,
                     "intro": intro,
                     "event_label": event_label,
                     "occurred_at": timestamp,
                     "ip_address": ip_address or "-",
                     "user_agent": user_agent or "-",
-                    "ignore_notice": ignore_notice,
                 },
-                html_template="security_alert.html",
-                plain_template="security_alert.txt",
             )
             await self._send(message)
             self.logger.info(
@@ -627,6 +491,13 @@ class EmailService:
                 cid=cid,
                 user_id=user_id,
             )
+        except (
+            EmailTemplateNotFoundError,
+            EmailTemplateDisabledError,
+            EmailTemplateSourceError,
+            EmailTemplateRenderError,
+        ):
+            raise
         except BaseException as exc:
             raise_if_fatal(exc)
             self.logger.exception(
@@ -658,15 +529,6 @@ class EmailService:
                 invited_by_user_id=invited_by_user_id,
             )
             return
-        if not await self._is_template_enabled("registration_prompt"):
-            self.logger.info(
-                "Attempt to send invitation email while template is disabled",
-                recipient=recipient,
-                type="invitation",
-                organization_name=organization_name,
-                invited_by_user_id=invited_by_user_id,
-            )
-            return
         if not valid_recipient(recipient):
             self.logger.warning(
                 "Recipient email is invalid, skip sending mail",
@@ -681,104 +543,16 @@ class EmailService:
         token_hint = f"{invite_token[:6]}...{invite_token[-4:]}" if len(invite_token) >= 10 else invite_token
         try:
             org_display = (organization_name or "workspace").strip() or "workspace"
-            subject = t(
-                "auth",
-                "INVITE_EMAIL_SUBJECT",
-                default="邀请加入工作空间 {workspace_name}",
-                locale=locale,
-                workspace_name=org_display,
-            )
-            title = t(
-                "auth",
-                "INVITE_EMAIL_TITLE",
-                default="你已被邀请加入工作空间 {workspace_name}",
-                locale=locale,
-                workspace_name=org_display,
-            )
-            intro = t(
-                "auth",
-                "INVITE_EMAIL_INTRO",
-                default="请使用下方链接完成账号创建并加入工作空间。",
-                locale=locale,
-            )
-            cta = t(
-                "auth",
-                "INVITE_EMAIL_CTA",
-                default="接受邀请",
-                locale=locale,
-            )
-            fallback = t(
-                "auth",
-                "INVITE_EMAIL_FALLBACK",
-                default="如果按钮无法使用，你也可以使用以下 Token：",
-                locale=locale,
-            )
-
-            if expires_at is None:
-                expires_notice = t(
-                    "auth",
-                    "INVITE_EMAIL_EXPIRES_NEVER",
-                    default="该邀请链接不会过期。",
-                    locale=locale,
-                )
-            else:
-                expires_notice = t(
-                    "auth",
-                    "INVITE_EMAIL_EXPIRES_AT",
-                    default="该邀请链接将于 {expires_at} 过期（UTC）。",
-                    locale=locale,
-                    expires_at=expires_at.astimezone(UTC).isoformat(),
-                )
-
-            ignore_notice = t(
-                "auth",
-                "INVITE_EMAIL_IGNORE",
-                default="如非本人操作，请忽略本邮件。",
-                locale=locale,
-            )
-
-            if invite_url:
-                plain_body = t(
-                    "auth",
-                    "INVITE_EMAIL_PLAIN_WITH_LINK",
-                    default="工作空间：{workspace_name}\n邀请链接：{invite_url}\nToken：{invite_token}\n{expires_notice}\n{ignore_notice}",
-                    locale=locale,
-                    workspace_name=org_display,
-                    invite_url=invite_url,
-                    invite_token=invite_token,
-                    expires_notice=expires_notice,
-                    ignore_notice=ignore_notice,
-                )
-            else:
-                plain_body = t(
-                    "auth",
-                    "INVITE_EMAIL_PLAIN",
-                    default="工作空间：{workspace_name}\nToken：{invite_token}\n{expires_notice}\n{ignore_notice}",
-                    locale=locale,
-                    workspace_name=org_display,
-                    invite_token=invite_token,
-                    expires_notice=expires_notice,
-                    ignore_notice=ignore_notice,
-                )
-
-            message = EmailMessage.single(
+            message = await self._template_message(
                 recipient=recipient,
-                subject=subject,
-                text_body=plain_body,
-                template_id="invitation",
-                template_vars={
-                    "title": title,
-                    "intro": intro,
-                    "cta": cta,
-                    "fallback": fallback,
-                    "expires_notice": expires_notice,
-                    "ignore_notice": ignore_notice,
+                template_key="invitation",
+                locale=locale,
+                variables={
+                    "organization_name": org_display,
                     "invite_url": invite_url,
                     "invite_token": invite_token,
-                    "workspace_name": org_display,
+                    "expires_at": expires_at.astimezone(UTC).isoformat() if expires_at else "",
                 },
-                html_template="invitation.html",
-                plain_template="invitation.txt",
             )
             await self._send(message)
 
@@ -791,6 +565,13 @@ class EmailService:
                 organization_name=org_display,
                 invited_by_user_id=invited_by_user_id,
             )
+        except (
+            EmailTemplateNotFoundError,
+            EmailTemplateDisabledError,
+            EmailTemplateSourceError,
+            EmailTemplateRenderError,
+        ):
+            raise
         except BaseException as exc:
             raise_if_fatal(exc)
             self.logger.exception(
@@ -816,28 +597,11 @@ class EmailService:
         invited_by_user_id: str | None = None,
         locale: str | None = None,
     ) -> None:
-        """
-        Send a workspace-scoped invitation email.
-
-        Notes:
-        - We intentionally reuse the generic invitation templates (invitation.html/txt) so
-          the email rendering stays simple, while the wording is workspace-specific.
-        - Gated by the same template key as the legacy invitation flow ("registration_prompt")
-          to avoid surprising operators who configured an allowlist.
-        """
+        """Send a workspace-scoped invitation email."""
 
         if not await self._enabled():
             self.logger.info(
                 "Attempt to send workspace invitation email while email sending is disabled",
-                recipient=recipient,
-                type="workspace_invitation",
-                workspace_name=workspace_name,
-                invited_by_user_id=invited_by_user_id,
-            )
-            return
-        if not await self._is_template_enabled("registration_prompt"):
-            self.logger.info(
-                "Attempt to send workspace invitation email while template is disabled",
                 recipient=recipient,
                 type="workspace_invitation",
                 workspace_name=workspace_name,
@@ -859,109 +623,17 @@ class EmailService:
         try:
             workspace_display = (workspace_name or "workspace").strip() or "workspace"
             inviter_display = (inviter_name or "").strip() or None
-
-            subject = t(
-                "team",
-                "TEAM_INVITE_EMAIL_SUBJECT",
-                default="邀请加入工作区 {workspace_name}",
-                locale=locale,
-                workspace_name=workspace_display,
-            )
-            title = t(
-                "team",
-                "TEAM_INVITE_EMAIL_TITLE",
-                default="你已被邀请加入工作区 {workspace_name}",
-                locale=locale,
-                workspace_name=workspace_display,
-            )
-            intro = (
-                t(
-                    "team",
-                    "TEAM_INVITE_EMAIL_INTRO_WITH_INVITER",
-                    default="{inviter} 邀请你加入工作区。",
-                    locale=locale,
-                    inviter=inviter_display,
-                )
-                if inviter_display
-                else t(
-                    "team",
-                    "TEAM_INVITE_EMAIL_INTRO",
-                    default="你已被邀请加入工作区。",
-                    locale=locale,
-                )
-            )
-            cta = t("team", "TEAM_INVITE_EMAIL_CTA", locale=locale)
-            fallback = t(
-                "team",
-                "TEAM_INVITE_EMAIL_FALLBACK",
-                default="如果按钮无法使用，你也可以使用以下 Token：",
-                locale=locale,
-            )
-
-            if expires_at is None:
-                expires_notice = t(
-                    "team",
-                    "TEAM_INVITE_EMAIL_EXPIRES_NEVER",
-                    default="该邀请链接不会过期。",
-                    locale=locale,
-                )
-            else:
-                expires_notice = t(
-                    "team",
-                    "TEAM_INVITE_EMAIL_EXPIRES_AT",
-                    default="该邀请链接将于 {expires_at} 过期（UTC）。",
-                    locale=locale,
-                    expires_at=expires_at.astimezone(UTC).isoformat(),
-                )
-
-            ignore_notice = t(
-                "team",
-                "TEAM_INVITE_EMAIL_IGNORE",
-                default="如非本人操作，请忽略本邮件。",
-                locale=locale,
-            )
-
-            if invite_url:
-                plain_body = t(
-                    "team",
-                    "TEAM_INVITE_EMAIL_PLAIN_WITH_LINK",
-                    default="工作区：{workspace_name}\n邀请链接：{invite_url}\nToken：{invite_token}\n{expires_notice}\n{ignore_notice}",
-                    locale=locale,
-                    workspace_name=workspace_display,
-                    invite_url=invite_url,
-                    invite_token=invite_token,
-                    expires_notice=expires_notice,
-                    ignore_notice=ignore_notice,
-                )
-            else:
-                plain_body = t(
-                    "team",
-                    "TEAM_INVITE_EMAIL_PLAIN",
-                    default="工作区：{workspace_name}\nToken：{invite_token}\n{expires_notice}\n{ignore_notice}",
-                    locale=locale,
-                    workspace_name=workspace_display,
-                    invite_token=invite_token,
-                    expires_notice=expires_notice,
-                    ignore_notice=ignore_notice,
-                )
-
-            message = EmailMessage.single(
+            message = await self._template_message(
                 recipient=recipient,
-                subject=subject,
-                text_body=plain_body,
-                template_id="workspace_invitation",
-                template_vars={
-                    "title": title,
-                    "intro": intro,
-                    "cta": cta,
-                    "fallback": fallback,
-                    "expires_notice": expires_notice,
-                    "ignore_notice": ignore_notice,
+                template_key="workspace_invitation",
+                locale=locale,
+                variables={
+                    "workspace_name": workspace_display,
+                    "inviter_name": inviter_display,
                     "invite_url": invite_url,
                     "invite_token": invite_token,
+                    "expires_at": expires_at.astimezone(UTC).isoformat() if expires_at else "",
                 },
-                html_template="invitation.html",
-                plain_template="invitation.txt",
             )
             await self._send(message)
 
@@ -974,6 +646,13 @@ class EmailService:
                 workspace_name=workspace_display,
                 invited_by_user_id=invited_by_user_id,
             )
+        except (
+            EmailTemplateNotFoundError,
+            EmailTemplateDisabledError,
+            EmailTemplateSourceError,
+            EmailTemplateRenderError,
+        ):
+            raise
         except BaseException as exc:
             raise_if_fatal(exc)
             self.logger.exception(
@@ -998,17 +677,38 @@ class EmailService:
         if not valid_recipient(recipient):
             raise ValueError("INVALID_EMAIL")
 
-        subject = t("settings", "MAIL_TEST_SUBJECT", locale=locale)
-        plain_body = t(
-            "settings",
-            "MAIL_TEST_BODY",
-            default="这是一封测试邮件。如果你收到了它，说明 SMTP 配置已生效。",
-            locale=locale,
-        )
-        message = EmailMessage.single(
+        message = await self._template_message(
             recipient=recipient,
-            subject=subject,
-            text_body=plain_body,
-            template_id="test",
+            template_key="test",
+            locale=locale,
+            variables={},
+        )
+        return await self._send(message)
+
+    async def send_notification(
+        self,
+        *,
+        recipient: str,
+        title: str,
+        body: str | None,
+        action_to: str | None,
+        action_label: str | None,
+        locale: str | None = None,
+    ) -> SendResult:
+        if not await self._enabled():
+            raise RuntimeError("MAIL_DISABLED")
+        if not valid_recipient(recipient):
+            raise ValueError("INVALID_EMAIL")
+
+        message = await self._template_message(
+            recipient=recipient,
+            template_key="notification",
+            locale=locale,
+            variables={
+                "title": title,
+                "body": body,
+                "action_to": action_to,
+                "action_label": action_label,
+            },
         )
         return await self._send(message)

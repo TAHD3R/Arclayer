@@ -2,6 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.core.connectors import (
+    ConnectorDefinition,
+    ConnectorFactory,
+    ConnectorRegistration,
+    ConnectorRegistrationError,
+)
 from src.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -22,7 +28,7 @@ class PluginRegistry:  # noqa: B903 - mutable runtime registry container; datacl
 
     Contains all sub-registries that plugins can populate with their
     services, controllers, content types, middlewares, policies,
-    custom fields, providers, components, validators, and sanitizers.
+    custom fields, providers, Connectors, components, validators, and sanitizers.
     """
 
     services: ServiceRegistry
@@ -32,6 +38,7 @@ class PluginRegistry:  # noqa: B903 - mutable runtime registry container; datacl
     policies: PolicyRegistry
     custom_fields: CustomFieldRegistry
     providers: ProviderRegistry
+    connectors: ConnectorRegistry
     components: ComponentRegistry
     validators: ValidatorRegistry
     sanitizers: SanitizerRegistry
@@ -46,6 +53,7 @@ class PluginRegistry:  # noqa: B903 - mutable runtime registry container; datacl
         policies: PolicyRegistry,
         custom_fields: CustomFieldRegistry,
         providers: ProviderRegistry,
+        connectors: ConnectorRegistry,
         components: ComponentRegistry,
         validators: ValidatorRegistry,
         sanitizers: SanitizerRegistry,
@@ -57,6 +65,7 @@ class PluginRegistry:  # noqa: B903 - mutable runtime registry container; datacl
         self.policies = policies
         self.custom_fields = custom_fields
         self.providers = providers
+        self.connectors = connectors
         self.components = components
         self.validators = validators
         self.sanitizers = sanitizers
@@ -148,6 +157,36 @@ class ProviderRegistry(Registry):
 
     def resolve(self, name: str) -> Any | None:
         return super().get(name)
+
+
+class ConnectorRegistry(Registry):
+    """Registry of typed external integration definitions and factories."""
+
+    def register(
+        self,
+        *,
+        extension: str,
+        definition: ConnectorDefinition,
+        factory: ConnectorFactory,
+    ) -> None:
+        if definition.key in self:
+            current = self[definition.key]
+            owner = current.extension if isinstance(current, ConnectorRegistration) else "unknown"
+            raise ConnectorRegistrationError(
+                f"Connector '{definition.key}' is already registered by extension '{owner}'"
+            )
+        self[definition.key] = ConnectorRegistration(
+            extension=extension,
+            definition=definition,
+            factory=factory,
+        )
+
+    def resolve(self, key: str) -> ConnectorRegistration | None:
+        registration = super().get(key)
+        return registration if isinstance(registration, ConnectorRegistration) else None
+
+    def list_registrations(self) -> tuple[ConnectorRegistration, ...]:
+        return tuple(item for item in self.values() if isinstance(item, ConnectorRegistration))
 
 
 class ComponentRegistry(Registry):

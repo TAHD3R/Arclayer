@@ -25,6 +25,7 @@ from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable, Unauthorized
 from src.core.http.pagination import PageData, PageParams
 from src.core.i18n import t
+from src.core.registries import ConnectorRegistry
 from src.core.services import BaseService
 from src.models.organization.org_membership import OrgMembership
 from src.models.organization.user import User
@@ -104,6 +105,7 @@ class AuthService(BaseService):
         settings: Settings,
         *,
         valkey: ValkeyClientLike | None = None,
+        connector_registry: ConnectorRegistry | None = None,
         user_repo: UserRepositoryLike | None = None,
         two_factor: _TwoFactorReauthLike | None = None,
         onboarding_service: WorkspaceFirstOnboardingService | None = None,
@@ -119,7 +121,10 @@ class AuthService(BaseService):
         self.email_change_store = EmailChangeStore(valkey) if valkey else None
         self.registration_email_verification_store = RegistrationEmailVerificationStore(valkey) if valkey else None
         self.password_removal_store = PasswordRemovalCodeStore(valkey) if valkey else None
-        self.email_service = EmailService(settings)
+        self.email_service = EmailService(
+            settings,
+            connector_registry=connector_registry,
+        )
         self.invitation_service = AuthInvitationService(settings)
         self.location_lookup = AuthSessionLocationLookup(settings)
         self.oauth_repo = OAuthSocialRepository()

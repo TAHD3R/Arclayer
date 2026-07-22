@@ -3,8 +3,10 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from src.config import Settings, get_settings
+from src.core.extensions.dependencies import get_connector_registry
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
+from src.core.registries import ConnectorRegistry
 from src.modules.commerce.billing_service import build_billing_service
 from src.modules.commerce.schema import (
     BillingRedirectOut,
@@ -75,8 +77,9 @@ async def create_workspace_checkout_session(
     payload: CheckoutSessionCreate,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     settings: Settings = Depends(get_settings),
+    connector_registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> ResponseModel[BillingRedirectOut]:
-    redirect = await build_billing_service(settings).create_checkout(
+    redirect = await build_billing_service(settings, connector_registry).create_checkout(
         workspace_id=ctx.workspace_id,
         payload=payload,
     )
@@ -91,8 +94,9 @@ async def create_workspace_checkout_session(
 async def create_workspace_customer_portal_session(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     settings: Settings = Depends(get_settings),
+    connector_registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> ResponseModel[BillingRedirectOut]:
-    redirect = await build_billing_service(settings).create_portal(workspace_id=ctx.workspace_id)
+    redirect = await build_billing_service(settings, connector_registry).create_portal(workspace_id=ctx.workspace_id)
     return ApiResponse.success(data=redirect)
 
 

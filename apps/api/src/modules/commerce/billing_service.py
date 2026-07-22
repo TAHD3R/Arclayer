@@ -4,22 +4,12 @@ from uuid import UUID
 
 from src.config import Settings
 from src.core.exceptions import BadRequest, ServiceUnavailable
+from src.core.registries import ConnectorRegistry
 from src.core.services.base import BaseService
-from src.models.commerce.billing import BillingCycle, CommercePlan, SubscriptionStatus
-from src.modules.commerce.billing_provider import BillingProvider
+from src.models.commerce.billing import BillingCycle, CommercePlan
+from src.modules.commerce.billing_connector import BillingConnector
 from src.modules.commerce.schema import BillingRedirectOut, CheckoutSessionCreate
 from src.modules.commerce.service import CommerceService
-
-_STRIPE_STATUS_MAP = {
-    "trialing": SubscriptionStatus.TRIALING,
-    "active": SubscriptionStatus.ACTIVE,
-    "past_due": SubscriptionStatus.PAST_DUE,
-    "unpaid": SubscriptionStatus.PAST_DUE,
-    "paused": SubscriptionStatus.PAST_DUE,
-    "canceled": SubscriptionStatus.CANCELED,
-    "incomplete": SubscriptionStatus.PAST_DUE,
-    "incomplete_expired": SubscriptionStatus.CANCELED,
-}
 
 
 class BillingService(BaseService):
@@ -27,7 +17,7 @@ class BillingService(BaseService):
         self,
         *,
         settings: Settings,
-        provider: BillingProvider,
+        provider: BillingConnector,
         commerce: CommerceService | None = None,
     ) -> None:
         super().__init__(settings)
@@ -76,46 +66,15 @@ class BillingService(BaseService):
         )
         return BillingRedirectOut(url=session.url)
 
-    async def handle_webhook(self, *, payload: bytes, signature: str) -> None:
-        provider_subscription = await self._provider.subscription_from_webhook(
-            payload=payload,
-            signature=signature,
-        )
-        if provider_subscription is None:
-            return
-        try:
-            workspace_id = UUID(provider_subscription.workspace_id)
-            billing_cycle = BillingCycle(provider_subscription.billing_cycle)
-            status = _STRIPE_STATUS_MAP[provider_subscription.status]
-        except (ValueError, KeyError) as exc:
-            raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID") from exc
-        await self._commerce.apply_provider_subscription(
-            workspace_id=workspace_id,
-            plan_code=provider_subscription.plan_code,
-            status=status,
-            billing_interval=billing_cycle,
-            current_period_start=provider_subscription.current_period_start,
-            current_period_end=provider_subscription.current_period_end,
-            cancel_at_period_end=provider_subscription.cancel_at_period_end,
-            provider="stripe",
-            external_customer_id=provider_subscription.customer_id,
-            external_subscription_id=provider_subscription.subscription_id,
-            event_id=provider_subscription.event_id,
-        )
 
-
-def build_billing_service(settings: Settings) -> BillingService:
+def build_billing_service(settings: Settings, connector_registry: ConnectorRegistry) -> BillingService:
     billing = settings.billing
     if not billing.checkout_enabled:
         raise ServiceUnavailable(error="BILLING_PROVIDER_NOT_CONFIGURED")
-    if billing.provider != "stripe":
+    registration = connector_registry.resolve(f"billing.{billing.provider}")
+    if registration is None:
         raise ServiceUnavailable(error="BILLING_PROVIDER_NOT_SUPPORTED")
-    from src.modules.commerce.billing_provider import StripeBillingProvider
-
-    provider = StripeBillingProvider(
-        secret_key=billing.stripe_secret_key.get_secret_value(),
-        webhook_secret=billing.stripe_webhook_secret.get_secret_value(),
-        api_base_url=billing.stripe_api_base_url,
-        webhook_tolerance_seconds=billing.webhook_tolerance_seconds,
-    )
-    return BillingService(settings=settings, provider=provider)
+    connector = registration.factory()
+    if not isinstance(connector, BillingConnector):
+        raise ServiceUnavailable(error="BILLING_CONNECTOR_INVALID")
+    return BillingService(settings=settings, provider=connector)

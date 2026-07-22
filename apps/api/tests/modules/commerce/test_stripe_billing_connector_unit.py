@@ -2,19 +2,35 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import importlib.util
 import json
 import time
+from pathlib import Path
+from typing import Any, cast
 from uuid import uuid4
 
 import httpx
 import pytest
 
 from src.core.exceptions import BadRequest
-from src.modules.commerce.billing_provider import StripeBillingProvider
+from src.modules.commerce.billing_connector import BillingConnector
 
 
-def _provider(handler: httpx.MockTransport) -> StripeBillingProvider:
-    return StripeBillingProvider(
+def _load_stripe_connector_type() -> type:
+    plugin_path = Path(__file__).resolve().parents[5] / "plugins" / "arclayer-stripe" / "src" / "plugin.py"
+    spec = importlib.util.spec_from_file_location("test_arclayer_stripe_plugin", plugin_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Unable to load Stripe Connector from {plugin_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return cast(type, module.__dict__["StripeBillingConnector"])
+
+
+StripeBillingConnector: Any = _load_stripe_connector_type()
+
+
+def _provider(handler: httpx.MockTransport) -> BillingConnector:
+    return StripeBillingConnector(
         secret_key="sk_test_unit",
         webhook_secret="whsec_unit",
         api_base_url="https://stripe.test/v1",
@@ -107,36 +123,74 @@ async def test_stripe_webhook_requires_valid_signature_and_parses_subscription_s
     payload = json.dumps(event, separators=(",", ":")).encode()
     provider = _provider(httpx.MockTransport(lambda _request: httpx.Response(500)))
 
-    result = await provider.subscription_from_webhook(
-        payload=payload,
-        signature=_signature(payload),
-    )
+    envelope = provider.verify_webhook(payload=payload, signature=_signature(payload))
+    result = await provider.subscription_from_event(payload=payload, envelope=envelope)
 
     assert result is not None
     assert result.event_id == "evt_123"
-    assert result.workspace_id == workspace_id
+    assert str(result.workspace_id) == workspace_id
     assert result.plan_code == "premium"
     assert result.subscription_id == "sub_123"
 
     with pytest.raises(BadRequest) as captured:
-        await provider.subscription_from_webhook(
-            payload=payload,
-            signature=f"t={int(time.time())},v1=invalid",
-        )
+        provider.verify_webhook(payload=payload, signature=f"t={int(time.time())},v1=invalid")
     assert captured.value.error == "BILLING_WEBHOOK_SIGNATURE_INVALID"
 
 
 @pytest.mark.asyncio
 async def test_checkout_webhook_rejects_subscription_id_that_is_not_a_stripe_identifier() -> None:
     event = {
-        "id": "evt_invalid_subscription",
+        "id": "evt_invalidsubscription",
         "type": "checkout.session.completed",
         "data": {"object": {"subscription": "../customers/cus_test"}},
     }
     payload = json.dumps(event, separators=(",", ":")).encode()
     provider = _provider(httpx.MockTransport(lambda _request: httpx.Response(500)))
+    envelope = provider.verify_webhook(payload=payload, signature=_signature(payload))
 
     with pytest.raises(BadRequest) as captured:
-        await provider.subscription_from_webhook(payload=payload, signature=_signature(payload))
+        await provider.subscription_from_event(payload=payload, envelope=envelope)
 
     assert captured.value.error == "BILLING_WEBHOOK_PAYLOAD_INVALID"
+
+
+@pytest.mark.asyncio
+async def test_checkout_webhook_verification_defers_subscription_fetch_to_worker_processing() -> None:
+    workspace_id = str(uuid4())
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(
+            200,
+            json={
+                "id": "sub_deferred123",
+                "customer": "cus_deferred123",
+                "status": "active",
+                "metadata": {
+                    "workspace_id": workspace_id,
+                    "plan_code": "premium",
+                    "billing_cycle": "monthly",
+                },
+                "current_period_start": 1_788_000_000,
+                "current_period_end": 1_790_678_400,
+                "cancel_at_period_end": False,
+            },
+        )
+
+    event = {
+        "id": "evt_deferred123",
+        "type": "checkout.session.completed",
+        "livemode": False,
+        "data": {"object": {"subscription": "sub_deferred123"}},
+    }
+    payload = json.dumps(event, separators=(",", ":")).encode()
+    provider = _provider(httpx.MockTransport(handler))
+
+    envelope = provider.verify_webhook(payload=payload, signature=_signature(payload))
+
+    assert requests == []
+    result = await provider.subscription_from_event(payload=payload, envelope=envelope)
+    assert result is not None
+    assert result.subscription_id == "sub_deferred123"
+    assert [request.url.path for request in requests] == ["/v1/subscriptions/sub_deferred123"]

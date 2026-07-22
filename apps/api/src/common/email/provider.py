@@ -17,9 +17,6 @@ class EmailMessage(BaseModel):
     html_body: str | None = None
     text_body: str | None = None
     template_id: str | None = None
-    template_vars: JsonObject = Field(default_factory=dict)
-    html_template: str | None = None
-    plain_template: str | None = None
     reply_to: str | None = None
     attachments: tuple[Any, ...] = ()
     metadata: JsonObject = Field(default_factory=dict)
@@ -33,9 +30,6 @@ class EmailMessage(BaseModel):
         html_body: str | None = None,
         text_body: str | None = None,
         template_id: str | None = None,
-        template_vars: JsonObject | None = None,
-        html_template: str | None = None,
-        plain_template: str | None = None,
         metadata: JsonObject | None = None,
     ) -> EmailMessage:
         return cls(
@@ -44,9 +38,6 @@ class EmailMessage(BaseModel):
             html_body=html_body,
             text_body=text_body,
             template_id=template_id,
-            template_vars=template_vars or {},
-            html_template=html_template,
-            plain_template=plain_template,
             metadata=metadata or {},
         )
 

@@ -24,6 +24,7 @@ from src.core.extensions.workspace_repository import ExtensionWorkspaceRepositor
 from src.core.logging import get_logger
 from src.core.registries import (
     ComponentRegistry,
+    ConnectorRegistry,
     ContentTypeRegistry,
     ControllerRegistry,
     CustomFieldRegistry,
@@ -125,6 +126,7 @@ class ExtensionManager:
             policies=PolicyRegistry(),
             custom_fields=CustomFieldRegistry(),
             providers=ProviderRegistry(),
+            connectors=ConnectorRegistry(),
             components=ComponentRegistry(),
             validators=ValidatorRegistry(),
             sanitizers=SanitizerRegistry(),
@@ -277,6 +279,14 @@ class ExtensionManager:
                     f"by extension '{instance.name}' in arclayer_register()"
                 )
             self._tenant_registries.providers.register(instance.name, prov_name, lambda prov=prov: prov)
+
+        for connector_key in manifest.provides.connectors:
+            registration = self._registry.connectors.resolve(connector_key)
+            if registration is None or registration.extension != instance.name:
+                raise ExtensionRegistrationError(
+                    f"Connector '{connector_key}' declared in manifest but not registered "
+                    f"by extension '{instance.name}' in arclayer_register()"
+                )
 
         for ct_name in manifest.provides.content_types:
             definition = self._registry.content_types.resolve(ct_name)

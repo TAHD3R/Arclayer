@@ -7,9 +7,11 @@ from starlette.responses import RedirectResponse
 
 from src.config import Settings, get_settings
 from src.core.exceptions import ServiceUnavailable
+from src.core.extensions.dependencies import get_connector_registry
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import t
 from src.core.middleware.guard_decorators import guard_rate_limit
+from src.core.registries import ConnectorRegistry
 from src.models.auth.oauth_identity import OAuthIdentity
 from src.models.organization.user import User, UserCredential
 from src.modules.auth.http.service import get_current_user
@@ -45,23 +47,33 @@ _SSO_LINK_STATE_KEY_PREFIX = "auth:sso:link_state:"
 def get_auth_service(
     request: Request,
     settings: Settings = Depends(get_settings),
+    connector_registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> AuthService:
     try:
         valkey = get_valkey(request)
     except RuntimeError:
         valkey = None
-    return AuthService(settings, valkey=valkey)
+    return AuthService(
+        settings,
+        valkey=valkey,
+        connector_registry=connector_registry,
+    )
 
 
 def get_login_service(
     request: Request,
     settings: Settings = Depends(get_settings),
+    connector_registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> AuthLoginService:
     try:
         valkey = get_valkey(request)
     except RuntimeError:
         valkey = None
-    auth_service = AuthService(settings, valkey=valkey)
+    auth_service = AuthService(
+        settings,
+        valkey=valkey,
+        connector_registry=connector_registry,
+    )
     two_factor = AuthTwoFactorService(settings)
     return AuthLoginService(settings, valkey=valkey, auth_service=auth_service, two_factor=two_factor)
 
@@ -70,23 +82,30 @@ def get_sso_service(
     request: Request,
     settings: Settings = Depends(get_settings),
     login_service: AuthLoginService = Depends(get_login_service),
+    connector_registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> AuthSSOService:
     try:
         valkey = get_valkey(request)
     except RuntimeError:
         valkey = None
-    return AuthSSOService(settings, valkey=valkey, login_service=login_service)
+    return AuthSSOService(
+        settings,
+        valkey=valkey,
+        login_service=login_service,
+        connector_registry=connector_registry,
+    )
 
 
 def get_oauth_social_service(
     request: Request,
     settings: Settings = Depends(get_settings),
+    connector_registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> OAuthSocialService:
     try:
         valkey = get_valkey(request)
     except RuntimeError as exc:
         raise ServiceUnavailable(error="VALKEY_UNAVAILABLE") from exc
-    return OAuthSocialService(settings, valkey=valkey)
+    return OAuthSocialService(settings, valkey=valkey, connector_registry=connector_registry)
 
 
 @guard_rate_limit(*SSO_PROVIDERS_RATE_LIMIT)

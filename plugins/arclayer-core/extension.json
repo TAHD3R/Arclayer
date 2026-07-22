@@ -10,8 +10,13 @@
     "services": ["health", "system-info"],
     "middlewares": [],
     "providers": [],
+    "connectors": [],
     "content_types": ["user-profile"]
   },
   "permissions": [],
-  "config_schema": {}
+  "config_schema": {},
+  "admin": {
+    "label_key": "settings:SETTINGS_SYSTEM_PLUGIN_CORE_NAME",
+    "description_key": "settings:SETTINGS_SYSTEM_PLUGIN_CORE_DESC"
+  }
 }

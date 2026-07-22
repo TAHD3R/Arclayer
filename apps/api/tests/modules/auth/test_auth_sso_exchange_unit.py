@@ -9,6 +9,7 @@ import pytest
 
 from src.config import get_settings
 from src.core.exceptions import BadRequest
+from src.core.registries import ConnectorRegistry
 from src.modules.auth.schema import TokenPair
 from src.modules.auth.sessions.request_context import AuthRequestContext
 from src.modules.auth.sso.repository import _valkey_getdel_best_effort, issue_exchange_code
@@ -168,7 +169,12 @@ async def test_auth_sso_exchange_code_is_one_time() -> None:
     settings = get_settings()
     valkey = _FakeValkey()
     login = _FakeLoginService()
-    service = AuthSSOService(settings, valkey=valkey, login_service=login)
+    service = AuthSSOService(
+        settings,
+        valkey=valkey,
+        login_service=login,
+        connector_registry=ConnectorRegistry(),
+    )
 
     user_id = uuid4()
     code = await issue_exchange_code(

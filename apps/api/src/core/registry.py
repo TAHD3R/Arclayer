@@ -29,9 +29,12 @@ from src.core.middleware.guard_integration import (
     initialize_guard_runtime,
 )
 from src.core.routes import register_routes
-from src.core.runtime_init import close_domain_runtime, init_domain_runtime
+from src.core.runtime_init import (
+    close_domain_runtime,
+    init_analytics_connector_runtime,
+    init_domain_runtime,
+)
 from src.platform.cache.valkey import close_valkey, init_valkey
-from src.platform.jobs.client import close_taskiq_client, init_taskiq_client
 
 logger = get_logger(__name__)
 _FATAL_REGISTRY_ERRORS: tuple[type[BaseException], ...] = (
@@ -134,12 +137,19 @@ def _build_lifespan(settings: Settings):
             # skip heavyweight startup steps and still exercise routers/middlewares safely.
             if settings.app_env == "test" and not settings.database.enabled and not settings.valkey.enabled:
                 await _init_extension_runtime(app)
+                if event_bus is None:
+                    raise RuntimeError("event_bus unavailable during analytics Connector init")
+                await init_analytics_connector_runtime(app, event_bus=event_bus)
                 yield
                 await _close_extension_runtime(app)
                 return
 
             await init_orm(settings)
             await verify_db_ready(settings)
+            if settings.database.enabled:
+                from src.modules.system.mail.template_defaults import ensure_default_email_templates
+
+                await ensure_default_email_templates()
             # Cache "initialized" flag for lightweight request guards.
             try:
                 from src.models.organization.user import User
@@ -156,8 +166,8 @@ def _build_lifespan(settings: Settings):
                 raise RuntimeError("event_bus unavailable during domain runtime init")
             await init_domain_runtime(app, settings, event_bus=event_bus)
             await init_valkey(app, settings)
-            await init_taskiq_client(app, settings)
             await _init_extension_runtime(app)
+            await init_analytics_connector_runtime(app, event_bus=event_bus)
             yield
         finally:
             await _close_extension_runtime(app)
@@ -177,7 +187,6 @@ def _build_lifespan(settings: Settings):
                     pass
             await close_guard_runtime(app)
             await close_orm()
-            await close_taskiq_client(app)
             await close_valkey(app)
 
     return lifespan

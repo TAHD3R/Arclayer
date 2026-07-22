@@ -14,10 +14,14 @@ from src.modules.auth.sessions.request_context import build_auth_request_context
 from src.modules.commerce.system_router import router as system_commerce_router
 from src.modules.feedback.system_router import router as system_feedback_router
 from src.modules.observability.system_router import router as system_observability_router
+from src.modules.system.admin.notifications.system_router import router as system_notifications_router
+from src.modules.system.agents.router import assignments_router as system_agent_assignments_router
+from src.modules.system.agents.router import router as system_agents_router
 from src.modules.system.ai_providers.router import router as system_ai_providers_router
 from src.modules.system.directory.router import router as system_directory_router
 from src.modules.system.jobs.router import router as system_jobs_router
 from src.modules.system.mail.router import router as system_mail_router
+from src.modules.system.plugins.router import router as system_plugins_router
 from src.modules.system.rbac.router import router as system_rbac_router
 from src.modules.system.schema import (
     SystemBootstrapRequest,
@@ -103,9 +107,13 @@ async def bootstrap_instance(
 # rather than the org-scoped RBAC engine.
 router.include_router(system_settings_router, prefix="/settings")
 router.include_router(system_ai_providers_router, prefix="/ai")
+router.include_router(system_agents_router, prefix="/agents")
+router.include_router(system_agent_assignments_router, prefix="/agent-assignments")
 router.include_router(system_storage_profiles_router, prefix="/storage-profiles")
 router.include_router(system_directory_router, prefix="/directory")
 router.include_router(system_mail_router, prefix="/mail")
+router.include_router(system_notifications_router, prefix="/notifications")
+router.include_router(system_plugins_router, prefix="/plugins")
 router.include_router(system_jobs_router, prefix="/jobs")
 router.include_router(system_rbac_router, prefix="/rbac")
 router.include_router(system_activity_router, prefix="/activity")

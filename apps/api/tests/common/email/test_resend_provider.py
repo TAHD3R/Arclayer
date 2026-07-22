@@ -1,25 +1,36 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import httpx
 import pytest
 
+from src.common.email.connector import EmailConnector
 from src.common.email.provider import EmailMessage
-from src.common.email.providers.resend import ResendEmailProvider
 from src.config import Settings
+from src.core.extensions.manager import ExtensionManager
 
 
 @pytest.mark.asyncio
-async def test_resend_provider_posts_expected_payload() -> None:
+async def test_resend_connector_posts_expected_payload(monkeypatch: pytest.MonkeyPatch) -> None:
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
         requests.append(request)
         return httpx.Response(200, json={"id": "email_123"})
 
-    def client_factory() -> httpx.AsyncClient:
-        return httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **_kwargs: client)
 
-    provider = ResendEmailProvider(
+    project_root = Path(__file__).resolve().parents[5]
+    manager = ExtensionManager(project_root)
+    await manager.load_extension(project_root / "plugins" / "arclayer-email")
+    await manager.register_all(app=None)
+    registration = manager.registry.connectors.resolve("email.resend")
+    assert registration is not None
+    connector = registration.factory()
+    assert isinstance(connector, EmailConnector)
+    provider = connector.create_provider(
         settings=Settings(),
         config={
             "providers": {
@@ -30,7 +41,6 @@ async def test_resend_provider_posts_expected_payload() -> None:
                 }
             }
         },
-        http_client_factory=client_factory,
     )
 
     result = await provider.send(

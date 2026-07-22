@@ -14,6 +14,7 @@ from src.config import get_settings
 from src.modules.auth.oauth.social.schema import OAuthStatePayload
 from src.modules.auth.oauth.social.service import OAuthSocialService
 from src.platform.cache.valkey import ValkeyClientLike
+from tests.modules.auth.oauth_connector_test_context import build_official_oauth_connector_registry
 
 
 class _FakeValkey(ValkeyClientLike):
@@ -207,10 +208,14 @@ async def test_oauth_social_start_supports_microsoft_and_discord(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     settings = get_settings()
-    service = OAuthSocialService(settings, valkey=_FakeValkey())
+    service = OAuthSocialService(
+        settings,
+        valkey=_FakeValkey(),
+        connector_registry=await build_official_oauth_connector_registry(),
+    )
     request = _build_start_request()
 
-    async def _fake_load_config() -> dict[str, object]:
+    async def _fake_load_config(_section_ids: tuple[str, ...]) -> dict[str, object]:
         return {
             "oauth_microsoft": {"enabled": True, "client_id": "mid", "client_secret": "msecret"},
             "oauth_discord": {"enabled": True, "client_id": "did", "client_secret": "dsecret"},
@@ -243,7 +248,11 @@ async def test_oauth_social_blocks_new_user_auto_provision_when_public_register_
     old_allow = settings.auth.allow_public_register
     settings.auth.allow_public_register = False
 
-    service = OAuthSocialService(settings, valkey=_FakeValkey())
+    service = OAuthSocialService(
+        settings,
+        valkey=_FakeValkey(),
+        connector_registry=await build_official_oauth_connector_registry(),
+    )
     request = _build_callback_request("google")
 
     payload_json = OAuthStatePayload(
@@ -252,7 +261,7 @@ async def test_oauth_social_blocks_new_user_auto_provision_when_public_register_
         code_verifier="verifier",
     ).model_dump_json()
 
-    async def _fake_load_config() -> dict[str, object]:
+    async def _fake_load_config(_section_ids: tuple[str, ...]) -> dict[str, object]:
         return {
             "oauth_google": {"enabled": True, "client_id": "cid", "client_secret": "secret"},
             "oauth_provisioning": {"auto_provision_enabled": True, "auto_accept_email_invites": False},
@@ -310,7 +319,11 @@ async def test_oauth_social_allows_existing_user_signin_when_public_register_dis
     old_allow = settings.auth.allow_public_register
     settings.auth.allow_public_register = False
 
-    service = OAuthSocialService(settings, valkey=_FakeValkey())
+    service = OAuthSocialService(
+        settings,
+        valkey=_FakeValkey(),
+        connector_registry=await build_official_oauth_connector_registry(),
+    )
     request = _build_callback_request("google")
 
     payload_json = OAuthStatePayload(
@@ -322,7 +335,7 @@ async def test_oauth_social_allows_existing_user_signin_when_public_register_dis
     existing_user_id = uuid4()
     created_identity: dict[str, UUID | None] = {"user_id": None}
 
-    async def _fake_load_config() -> dict[str, object]:
+    async def _fake_load_config(_section_ids: tuple[str, ...]) -> dict[str, object]:
         return {
             "oauth_google": {"enabled": True, "client_id": "cid", "client_secret": "secret"},
             "oauth_provisioning": {"auto_provision_enabled": False, "auto_accept_email_invites": False},
@@ -382,7 +395,11 @@ async def test_oauth_social_blocks_new_user_when_auto_provision_disabled_even_if
     old_allow = settings.auth.allow_public_register
     settings.auth.allow_public_register = True
 
-    service = OAuthSocialService(settings, valkey=_FakeValkey())
+    service = OAuthSocialService(
+        settings,
+        valkey=_FakeValkey(),
+        connector_registry=await build_official_oauth_connector_registry(),
+    )
     request = _build_callback_request("google")
 
     payload_json = OAuthStatePayload(
@@ -391,7 +408,7 @@ async def test_oauth_social_blocks_new_user_when_auto_provision_disabled_even_if
         code_verifier="verifier",
     ).model_dump_json()
 
-    async def _fake_load_config() -> dict[str, object]:
+    async def _fake_load_config(_section_ids: tuple[str, ...]) -> dict[str, object]:
         return {
             "oauth_google": {"enabled": True, "client_id": "cid", "client_secret": "secret"},
             "oauth_provisioning": {"auto_provision_enabled": False, "auto_accept_email_invites": False},
@@ -449,7 +466,11 @@ async def test_oauth_social_auto_provisions_new_user_when_all_gates_enabled(
     old_allow = settings.auth.allow_public_register
     settings.auth.allow_public_register = True
 
-    service = OAuthSocialService(settings, valkey=_FakeValkey())
+    service = OAuthSocialService(
+        settings,
+        valkey=_FakeValkey(),
+        connector_registry=await build_official_oauth_connector_registry(),
+    )
     request = _build_callback_request("google")
 
     payload_json = OAuthStatePayload(
@@ -462,7 +483,7 @@ async def test_oauth_social_auto_provisions_new_user_when_all_gates_enabled(
     created_identity: dict[str, UUID | None] = {"user_id": None}
     create_user_called = {"count": 0}
 
-    async def _fake_load_config() -> dict[str, object]:
+    async def _fake_load_config(_section_ids: tuple[str, ...]) -> dict[str, object]:
         return {
             "oauth_google": {"enabled": True, "client_id": "cid", "client_secret": "secret"},
             "oauth_provisioning": {"auto_provision_enabled": True, "auto_accept_email_invites": False},
@@ -547,7 +568,11 @@ async def test_oauth_social_callback_supports_additional_builtin_providers(
     old_allow = settings.auth.allow_public_register
     settings.auth.allow_public_register = True
 
-    service = OAuthSocialService(settings, valkey=_FakeValkey())
+    service = OAuthSocialService(
+        settings,
+        valkey=_FakeValkey(),
+        connector_registry=await build_official_oauth_connector_registry(),
+    )
     request = _build_callback_request(provider)
 
     payload_json = OAuthStatePayload(
@@ -558,7 +583,7 @@ async def test_oauth_social_callback_supports_additional_builtin_providers(
 
     created_user: dict[str, str | None] = {"email": None, "avatar_url": None}
 
-    async def _fake_load_config() -> dict[str, object]:
+    async def _fake_load_config(_section_ids: tuple[str, ...]) -> dict[str, object]:
         return {
             section_key: {"enabled": True, "client_id": "cid", "client_secret": "secret"},
             "oauth_provisioning": {"auto_provision_enabled": True, "auto_accept_email_invites": False},

@@ -10,6 +10,7 @@ from src.common.types.json_types import JsonObject, JsonValue
 from src.config import Settings
 from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.core.i18n import t
+from src.core.registries import ConnectorRegistry
 from src.core.services import BaseService
 from src.models.system.setting import SettingRecord
 from src.modules.system.mail.schema import MailProviderInfo, MailTestResult
@@ -19,9 +20,19 @@ from src.settings.validation import merge_deep
 
 
 class AdminMailService(BaseService):
-    def __init__(self, settings: Settings, *, email_service: EmailService | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        connector_registry: ConnectorRegistry | None = None,
+        email_service: EmailService | None = None,
+    ) -> None:
         super().__init__(settings)
-        self.email_service = email_service or EmailService(settings)
+        self.connector_registry = connector_registry
+        self.email_service = email_service or EmailService(
+            settings,
+            connector_registry=connector_registry,
+        )
 
     async def send_test_email(self, *, recipient: str, locale: str | None = None) -> MailTestResult:
         mail = await self._get_core_mail_config()
@@ -65,7 +76,11 @@ class AdminMailService(BaseService):
         return await self.list_providers()
 
     def _dynamic_mail_service_factory(self, config: JsonObject) -> DynamicMailService:
-        return DynamicMailService(settings=self.settings, config=config)
+        return DynamicMailService(
+            settings=self.settings,
+            config=config,
+            connector_registry=self.connector_registry,
+        )
 
     async def _get_core_mail_config(self) -> JsonObject:
         getter = getattr(self.email_service, "_get_core_mail_config", None)

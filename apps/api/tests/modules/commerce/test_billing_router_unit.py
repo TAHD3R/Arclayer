@@ -12,7 +12,7 @@ import pytest
 
 from src.config import get_settings
 from src.core.registry import create_app
-from src.modules.commerce.service import CommerceService
+from src.modules.commerce.billing_event_acceptance_service import BillingEventAcceptanceService
 from tests.utils.asgi_client import asgi_client
 
 
@@ -75,22 +75,23 @@ async def test_signed_stripe_webhook_bypasses_browser_csrf_and_reaches_commerce_
 ) -> None:
     _configure_env(monkeypatch, tmp_path)
     payload = _event_payload()
-    apply_subscription = AsyncMock()
+    signature = _signature(payload)
+    accept_event = AsyncMock()
 
-    with patch.object(CommerceService, "apply_provider_subscription", new=apply_subscription):
+    with patch.object(BillingEventAcceptanceService, "accept", new=accept_event):
         async with asgi_client(create_app()) as client:
             response = await client.post(
                 "/api/v1/commerce/webhooks/stripe",
                 content=payload,
                 headers={
                     "Content-Type": "application/json",
-                    "Stripe-Signature": _signature(payload),
+                    "Stripe-Signature": signature,
                 },
             )
 
     assert response.status_code == 200
     assert response.json()["data"] is None
-    apply_subscription.assert_awaited_once()
+    accept_event.assert_awaited_once_with(payload=payload, signature=signature)
 
 
 @pytest.mark.asyncio
@@ -100,19 +101,15 @@ async def test_stripe_webhook_rejects_invalid_signature_before_subscription_muta
 ) -> None:
     _configure_env(monkeypatch, tmp_path)
     payload = _event_payload()
-    apply_subscription = AsyncMock()
-
-    with patch.object(CommerceService, "apply_provider_subscription", new=apply_subscription):
-        async with asgi_client(create_app()) as client:
-            response = await client.post(
-                "/api/v1/commerce/webhooks/stripe",
-                content=payload,
-                headers={"Content-Type": "application/json", "Stripe-Signature": "t=1,v1=invalid"},
-            )
+    async with asgi_client(create_app()) as client:
+        response = await client.post(
+            "/api/v1/commerce/webhooks/stripe",
+            content=payload,
+            headers={"Content-Type": "application/json", "Stripe-Signature": "t=1,v1=invalid"},
+        )
 
     assert response.status_code == 400
     assert response.json()["error"] == "BILLING_WEBHOOK_SIGNATURE_EXPIRED"
-    apply_subscription.assert_not_awaited()
 
 
 @pytest.mark.asyncio

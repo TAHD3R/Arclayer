@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+from src.common.types.json_types import JsonObject
 from src.core.lifecycles.specs import LifecycleAction, LifecycleEvent, LifecycleSubscriber
 from src.core.logging import get_logger
 
@@ -132,7 +133,7 @@ class LifecycleDispatcher:
         item_id: Any | None = None,
         result: Any = None,
         actor_id: Any | None = None,
-        state: dict[str, Any] | None = None,
+        state: JsonObject | None = None,
     ) -> None:
         event = LifecycleEvent(
             action=action,

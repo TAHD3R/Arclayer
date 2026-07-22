@@ -23,6 +23,7 @@ from src.modules.auth.repository import UserRepository
 from src.modules.auth.tokens.service import hash_password
 from src.platform.cache.valkey import ValkeyClientLike
 from src.settings.crypto import ensure_master_key
+from tests.modules.auth.oauth_connector_test_context import build_official_oauth_connector_registry
 
 pytestmark = pytest.mark.integration
 
@@ -168,7 +169,11 @@ async def _prepare_link_service(monkeypatch, *, base_dir: Path) -> tuple[OAuthSo
     ensure_master_key(Path(settings.security.master_key_path))
     user = await _create_user(password="pass1234")
     valkey = cast(ValkeyClientLike, _FakeValkey())
-    service = OAuthSocialService(settings, valkey=valkey)
+    service = OAuthSocialService(
+        settings,
+        valkey=valkey,
+        connector_registry=await build_official_oauth_connector_registry(),
+    )
     request = _build_callback_request("google")
     payload_json = OAuthStatePayload(
         provider="google",
@@ -177,7 +182,7 @@ async def _prepare_link_service(monkeypatch, *, base_dir: Path) -> tuple[OAuthSo
         link_user_id=str(user.id),
     ).model_dump_json()
 
-    async def _fake_load_config() -> dict[str, object]:
+    async def _fake_load_config(_section_ids: tuple[str, ...]) -> dict[str, object]:
         return {
             "oauth_google": {"enabled": True, "client_id": "cid", "client_secret": "secret"},
             "oauth_provisioning": {"auto_provision_enabled": True, "auto_accept_email_invites": False},

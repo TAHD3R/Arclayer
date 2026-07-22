@@ -4,9 +4,10 @@ import json
 import re
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from src.common.types.json_types import JsonObject
 
 
 class PackageState(StrEnum):
@@ -110,7 +111,18 @@ class ExtensionProvides(BaseModel):
     services: list[str] = Field(default_factory=list)
     middlewares: list[str] = Field(default_factory=list)
     providers: list[str] = Field(default_factory=list)
+    connectors: list[str] = Field(default_factory=list)
     content_types: list[str] = Field(default_factory=list)
+
+
+class ExtensionAdmin(BaseModel):
+    """Optional Admin presentation metadata owned by the extension manifest."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    label_key: str = Field(..., min_length=3, max_length=160)
+    description_key: str = Field(..., min_length=3, max_length=160)
+    settings_path: str | None = Field(default=None, pattern=r"^/system(?:/[a-z0-9_-]+)+$")
 
 
 class ExtensionManifest(BaseModel):
@@ -128,7 +140,8 @@ class ExtensionManifest(BaseModel):
     requires: ExtensionRequires = Field(default_factory=ExtensionRequires)
     provides: ExtensionProvides = Field(default_factory=ExtensionProvides)
     permissions: list[str] = Field(default_factory=list)
-    config_schema: dict[str, Any] = Field(default_factory=dict)
+    config_schema: JsonObject = Field(default_factory=dict)
+    admin: ExtensionAdmin | None = None
 
     @model_validator(mode="after")
     def _validate_version(self) -> ExtensionManifest:

@@ -10,8 +10,9 @@ from fastapi import Request
 from src.config import Settings
 from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.core.i18n import t
+from src.core.registries import ConnectorRegistry
 from src.core.services import BaseService
-from src.modules.auth.oauth.social.providers import OAUTH_PROVIDER_DEFINITIONS
+from src.modules.auth.oauth.social.providers import list_oauth_provider_connectors
 from src.modules.auth.schema import TokenPair
 from src.modules.auth.sessions.request_context import AuthRequestContext
 from src.modules.auth.sso.repository import consume_exchange_payload
@@ -67,10 +68,12 @@ class AuthSSOService(BaseService):
         *,
         valkey: ValkeyClientLike | None,
         login_service: LoginIssuerLike,
+        connector_registry: ConnectorRegistry,
     ) -> None:
         super().__init__(settings)
         self.valkey = valkey
         self.login_service = login_service
+        self.connector_registry = connector_registry
 
     async def list_providers(self, request: Request, *, redirect: str | None = None) -> list[dict[str, Any]]:
         # Derive API prefix from the current request path. Example:
@@ -132,7 +135,8 @@ class AuthSSOService(BaseService):
             return True
 
         out: list[dict[str, Any]] = []
-        for provider in OAUTH_PROVIDER_DEFINITIONS:
+        for connector in list_oauth_provider_connectors(self.connector_registry):
+            provider = connector.definition
             if not _enabled(provider.section_id):
                 continue
             out.append({

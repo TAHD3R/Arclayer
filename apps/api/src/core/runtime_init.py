@@ -2,28 +2,35 @@ from __future__ import annotations
 
 import asyncio
 from typing import Any
-from uuid import UUID
 
 from fastapi import FastAPI
 
-from src.common.constants.assets import ASSET_UPLOADED_EVENT
+from src.common.email.service import EmailService
 from src.config import Settings
-from src.core.events import Event, EventBus
+from src.core.events import EventBus
 from src.core.lifecycles.dispatcher import LifecycleDispatcher
 from src.core.lifecycles.specs import LifecycleAction
 from src.core.lifecycles.subscribers.timestamps import auto_timestamps
 from src.core.lifecycles.subscribers.validators import require_target_context
 from src.core.logging import get_logger
+from src.modules.ai.agent_catalog_service import AgentCatalogService
+from src.modules.analytics.connector_runtime import AnalyticsConnectorRuntime
 from src.modules.analytics.ingest.service import ActivityIngestor
+from src.modules.jobs.registry import get_job_type_registry
 from src.modules.observability.http_metrics import HTTP_REQUEST_METRIC_EVENT, persist_http_request_metric_event
 from src.modules.projects.automation.runtime import AutomationRuntime
+from src.modules.projects.permissions.service import get_project_action_catalog
 from src.modules.projects.webhooks.service import WebhookService
 from src.modules.sites.search.runtime import register_content_search_runtime
+from src.modules.system.admin.notifications.event_runtime import NotificationEventRuntime
+from src.modules.system.admin.notifications.repository import NotificationRepository
+from src.modules.system.agents.definition_service import SUPPORTED_TOOL_GRANTS
 from src.modules.system.rbac.service import RBACService
+from src.modules.workspaces.permissions import get_permission_action_registry
 from src.modules.workspaces.rbac.service import WorkspaceRBACService
-from src.platform.jobs.assets_thumbnails import generate_asset_thumbnails
-from src.platform.jobs.client import is_taskiq_enabled, try_dedupe_enqueue, try_enqueue_task
-from src.platform.jobs.tasks import task_generate_asset_thumbnails
+from src.modules.workspaces.skills.official_catalog_repository import OfficialSkillCatalogRepository
+from src.modules.workspaces.skills.official_catalog_source import PackagedOfficialSkillCatalogSource
+from src.modules.workspaces.skills.official_catalog_sync import OfficialSkillCatalogSyncService
 
 logger = get_logger(__name__)
 _FATAL_RUNTIME_INIT_ERRORS: tuple[type[BaseException], ...] = (
@@ -40,6 +47,13 @@ def _raise_if_fatal(exc: BaseException) -> None:
 
 
 async def init_domain_runtime(app: FastAPI, settings: Settings, *, event_bus: EventBus) -> None:
+    job_type_registry = get_job_type_registry(settings)
+    job_type_registry.validate_permission_actions(
+        workspace_actions=get_permission_action_registry().keys(),
+        project_actions=get_project_action_catalog().keys(),
+    )
+    app.state.job_type_registry = job_type_registry
+
     ingestor = ActivityIngestor(settings)
     app.state.activity_ingestor = ingestor
     try:
@@ -47,56 +61,6 @@ async def init_domain_runtime(app: FastAPI, settings: Settings, *, event_bus: Ev
     except BaseException as exc:
         _raise_if_fatal(exc)
         logger.warning("Activity ingestor init failed (ignored)", action="init_activity_ingestor", error=str(exc))
-
-    async def _on_asset_uploaded(event: Event) -> None:
-        try:
-            raw_asset_id = (event.payload or {}).get("asset_id")
-            raw_project_id = (event.payload or {}).get("project_id")
-            raw_tenant_payload = (event.payload or {}).get("tenant")
-            tenant_payload = raw_tenant_payload if isinstance(raw_tenant_payload, dict) else None
-            if not raw_asset_id or not raw_project_id:
-                return
-
-            asset_id = UUID(str(raw_asset_id))
-            project_id = UUID(str(raw_project_id))
-            if settings.taskiq.enabled and is_taskiq_enabled(app):
-                dedupe_ok = await try_dedupe_enqueue(
-                    app,
-                    dedupe_key=f"taskiq:dedupe:asset-thumbs:{asset_id}",
-                    ttl_seconds=60 * 60,
-                )
-                if dedupe_ok:
-                    enqueued = await try_enqueue_task(
-                        task_generate_asset_thumbnails,
-                        str(asset_id),
-                        str(project_id),
-                        tenant_payload,
-                    )
-                    if enqueued:
-                        return
-
-            await generate_asset_thumbnails(
-                {"settings": settings},
-                str(asset_id),
-                str(project_id),
-                tenant_payload,
-            )
-        except BaseException as exc:
-            _raise_if_fatal(exc)
-            logger.warning(
-                "Core asset processor failed",
-                action="process_asset_upload",
-                error_event=ASSET_UPLOADED_EVENT,
-                error=str(exc),
-            )
-
-    await event_bus.subscribe(
-        subscriber_id="core",
-        event_name=ASSET_UPLOADED_EVENT,
-        handler=_on_asset_uploaded,
-        priority=0,
-        name="core:thumbnail-generator",
-    )
 
     if not settings.database.enabled:
         return
@@ -109,6 +73,16 @@ async def init_domain_runtime(app: FastAPI, settings: Settings, *, event_bus: Ev
             priority=-50,
             name="http-request-metric-writer",
         )
+
+    extension_manager = getattr(app.state, "extension_manager", None)
+    connector_registry = extension_manager.registry.connectors if extension_manager is not None else None
+    notification_event_runtime = NotificationEventRuntime(
+        settings,
+        audience_reader=NotificationRepository(),
+        email_sender=EmailService(settings, connector_registry=connector_registry),
+    )
+    app.state.notification_event_runtime = notification_event_runtime
+    await notification_event_runtime.start(event_bus=event_bus)
 
     # ── Lifecycle + EntityManager + Webhook infrastructure ──────────────
     lifecycle_dispatcher = LifecycleDispatcher()
@@ -146,7 +120,14 @@ async def init_domain_runtime(app: FastAPI, settings: Settings, *, event_bus: Ev
 
     rbac = RBACService(settings)
     await rbac.sync_permission_catalog()
+    await OfficialSkillCatalogSyncService(
+        repository=OfficialSkillCatalogRepository(),
+        source=PackagedOfficialSkillCatalogSource(),
+        supported_tool_ids=frozenset(SUPPORTED_TOOL_GRANTS),
+        settings=settings,
+    ).sync()
     await WorkspaceRBACService(settings).ensure_all_workspaces_ready()
+    await AgentCatalogService(settings).ensure_all_workspaces_ready()
 
     webhook_service = WebhookService(settings)
     await lifecycle_dispatcher.register(
@@ -172,6 +153,15 @@ async def init_domain_runtime(app: FastAPI, settings: Settings, *, event_bus: Ev
     app.state.webhook_service = webhook_service
 
 
+async def init_analytics_connector_runtime(app: FastAPI, *, event_bus: EventBus) -> None:
+    extension_manager = getattr(app.state, "extension_manager", None)
+    if extension_manager is None:
+        return
+    runtime = AnalyticsConnectorRuntime(extension_manager.registry.connectors)
+    app.state.analytics_connector_runtime = runtime
+    await runtime.start(event_bus=event_bus)
+
+
 async def close_domain_runtime(app: FastAPI, *, event_bus: EventBus) -> None:
     await event_bus.unsubscribe(
         subscriber_id="core.observability.http",
@@ -187,6 +177,18 @@ async def close_domain_runtime(app: FastAPI, *, event_bus: EventBus) -> None:
             logger.warning(
                 "Activity ingestor shutdown failed (ignored)", action="close_activity_ingestor", error=str(exc)
             )
+
+    notification_event_runtime: NotificationEventRuntime | None = getattr(app.state, "notification_event_runtime", None)
+    if notification_event_runtime is not None:
+        await notification_event_runtime.stop(event_bus=event_bus)
+
+    analytics_connector_runtime: AnalyticsConnectorRuntime | None = getattr(
+        app.state,
+        "analytics_connector_runtime",
+        None,
+    )
+    if analytics_connector_runtime is not None:
+        await analytics_connector_runtime.stop()
 
     webhook_service: Any | None = getattr(app.state, "webhook_service", None)
     if webhook_service is not None:

@@ -3,14 +3,13 @@ from __future__ import annotations
 import inspect
 import time
 from collections.abc import Awaitable, Callable
-from pathlib import Path
 from typing import cast
 
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
 from fastapi_mail.schemas import MultipartSubtypeEnum
 from pydantic import EmailStr, SecretStr, TypeAdapter, ValidationError
 
-from src.common.email.helpers import default_template_dir, pick_bool, pick_int, pick_str, to_name_email
+from src.common.email.helpers import pick_bool, pick_int, pick_str, to_name_email
 from src.common.email.provider import EmailMessage, EmailProvider, SendResult
 from src.common.types.json_types import JsonObject
 from src.config import Settings
@@ -52,11 +51,7 @@ class SmtpEmailProvider(EmailProvider):
         started = time.perf_counter()
         fm = await self._build_fast_mail()
         schema = self._build_message_schema(message)
-        await fm.send_message(
-            schema,
-            html_template=message.html_template,
-            plain_template=message.plain_template,
-        )
+        await fm.send_message(schema)
         return SendResult(
             success=True,
             provider_id=self.provider_id,
@@ -105,8 +100,6 @@ class SmtpEmailProvider(EmailProvider):
 
         password_secret = _secret_from_value(merged.get("password"), base.password)
 
-        configured_template_dir = base.template_dir or default_template_dir()
-        template_dir: Path | None = configured_template_dir if configured_template_dir.is_dir() else None
         return ConnectionConfig(
             MAIL_USERNAME=username if use_credentials else "",
             MAIL_PASSWORD=(password_secret if use_credentials and password_secret is not None else SecretStr("")),
@@ -119,12 +112,11 @@ class SmtpEmailProvider(EmailProvider):
             USE_CREDENTIALS=use_credentials,
             VALIDATE_CERTS=validate_certs,
             SUPPRESS_SEND=suppress_send,
-            TEMPLATE_FOLDER=template_dir,
         )
 
     @staticmethod
     def _build_message_schema(message: EmailMessage) -> MessageSchema:
-        has_html = bool(message.html_body or message.html_template)
+        has_html = bool(message.html_body)
         body = message.html_body or message.text_body or ""
         subtype = MessageType.html if has_html else MessageType.plain
         alternative_body: str | None = None
@@ -132,15 +124,11 @@ class SmtpEmailProvider(EmailProvider):
         if message.html_body and message.text_body:
             alternative_body = message.text_body
             multipart_subtype = MultipartSubtypeEnum.alternative
-        if message.html_template and message.text_body:
-            alternative_body = message.text_body
-            multipart_subtype = MultipartSubtypeEnum.alternative
         return MessageSchema(
             subject=message.subject,
             recipients=[to_name_email(recipient) for recipient in message.to],
             body=body,
             subtype=subtype,
-            template_body=message.template_vars or None,
             alternative_body=alternative_body,
             multipart_subtype=multipart_subtype,
         )

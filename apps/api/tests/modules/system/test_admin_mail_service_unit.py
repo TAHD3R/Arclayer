@@ -87,10 +87,17 @@ def test_validate_config_schema_rejects_invalid_mail_provider() -> None:
     with pytest.raises(BadRequest) as exc:
         validate_config_schema(
             CORE_SETTINGS_SCHEMA,
-            {"mail": {"provider": "unknown"}},
+            {"mail": {"provider": "invalid.provider"}},
         )
 
     assert exc.value.error == "MAIL_PROVIDER_INVALID"
+
+
+def test_validate_config_schema_accepts_plugin_mail_provider_id() -> None:
+    validate_config_schema(
+        CORE_SETTINGS_SCHEMA,
+        {"mail": {"provider": "postmark"}},
+    )
 
 
 def test_validate_config_schema_accepts_mail_provider_retry_settings() -> None:

@@ -1,0 +1,179 @@
+"""Official PostHog analytics Connector."""
+
+from __future__ import annotations
+
+from typing import Self
+
+import httpx
+from pydantic import AnyHttpUrl, Field, SecretStr, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from src.core.connectors import (
+    ConnectorAdminMetadata,
+    ConnectorDefinition,
+    ConnectorKind,
+    ConnectorTrustLevel,
+)
+from src.core.events import Event
+from src.core.exceptions import ServiceUnavailable
+from src.core.logging import get_logger
+from src.core.registries import PluginRegistry
+from src.modules.analytics.ingest.service import sanitize_properties
+
+logger = get_logger(__name__)
+
+_CONNECTOR_KEY = "analytics.posthog"
+_EXTENSION_NAME = "arclayer-posthog"
+_MAX_PROPERTY_KEYS = 50
+_MAX_STRING_LENGTH = 512
+_MAX_PROPERTY_DEPTH = 5
+
+
+class PostHogPluginSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="POSTHOG__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        validate_default=True,
+    )
+
+    enabled: bool = False
+    project_api_key: SecretStr = Field(default=SecretStr(""))
+    host: AnyHttpUrl = Field(default="https://us.i.posthog.com")
+    timeout_seconds: float = Field(default=10, ge=1, le=30)
+
+    @model_validator(mode="after")
+    def validate_enabled_configuration(self) -> Self:
+        if self.enabled and not self.project_api_key.get_secret_value():
+            raise ValueError("POSTHOG__PROJECT_API_KEY is required when POSTHOG__ENABLED=true")
+        return self
+
+
+PostHogPluginSettings.model_rebuild(
+    _types_namespace={
+        "AnyHttpUrl": AnyHttpUrl,
+        "SecretStr": SecretStr,
+        "Self": Self,
+    }
+)
+
+
+class PostHogAnalyticsConnector:
+    def __init__(
+        self,
+        settings: PostHogPluginSettings,
+        *,
+        client: httpx.AsyncClient | None = None,
+    ) -> None:
+        self._settings = settings
+        self._owns_client = client is None
+        self._client = client or httpx.AsyncClient(timeout=settings.timeout_seconds)
+
+    @property
+    def enabled(self) -> bool:
+        return self._settings.enabled
+
+    async def capture_event(self, event: Event) -> None:
+        sanitized_payload = sanitize_properties(
+            event.payload,
+            max_keys=_MAX_PROPERTY_KEYS,
+            max_string_length=_MAX_STRING_LENGTH,
+            max_depth=_MAX_PROPERTY_DEPTH,
+        )
+        properties = {
+            **(sanitized_payload if isinstance(sanitized_payload, dict) else {}),
+            "distinct_id": event.actor_user_id or event.trace_id or "system",
+            "$lib": "arclayer-api",
+            "event_version": event.version,
+        }
+        if event.source:
+            properties["event_source"] = event.source
+        if event.trace_id:
+            properties["trace_id"] = event.trace_id
+        groups = {
+            key: str(value)
+            for key, value in {
+                "workspace": event.payload.get("workspaceId") or event.payload.get("workspace_id"),
+                "project": event.payload.get("projectId") or event.payload.get("project_id"),
+            }.items()
+            if value is not None
+        }
+        if groups:
+            properties["$groups"] = groups
+
+        response = await self._client.post(
+            f"{str(self._settings.host).rstrip('/')}/capture/",
+            json={
+                "api_key": self._settings.project_api_key.get_secret_value(),
+                "event": event.name,
+                "properties": properties,
+                "timestamp": event.occurred_at.isoformat(),
+            },
+        )
+        try:
+            response.raise_for_status()
+            body = response.json()
+        except (httpx.HTTPError, ValueError) as exc:
+            raise ServiceUnavailable(error="POSTHOG_DELIVERY_FAILED") from exc
+        if not isinstance(body, dict) or body.get("status") != 1:
+            raise ServiceUnavailable(error="POSTHOG_INVALID_RESPONSE")
+
+    async def close(self) -> None:
+        if self._owns_client:
+            await self._client.aclose()
+
+
+class PostHogExtension:
+    name = _EXTENSION_NAME
+
+    def create_connector(self) -> PostHogAnalyticsConnector:
+        return PostHogAnalyticsConnector(PostHogPluginSettings())
+
+    def arclayer_register(self, registry: PluginRegistry) -> None:
+        registry.connectors.register(
+            extension=self.name,
+            definition=ConnectorDefinition(
+                key=_CONNECTOR_KEY,
+                kind=ConnectorKind.ANALYTICS,
+                version="1.0.0",
+                trust_level=ConnectorTrustLevel.OFFICIAL,
+                capabilities=("capture", "identify_by_actor", "group_properties"),
+                config_schema={
+                    "enabled": {"type": "boolean", "default": False},
+                    "host": {
+                        "type": "string",
+                        "format": "uri",
+                        "default": "https://us.i.posthog.com",
+                    },
+                    "timeoutSeconds": {
+                        "type": "number",
+                        "minimum": 1,
+                        "maximum": 30,
+                        "default": 10,
+                    },
+                },
+                secret_schema={
+                    "projectApiKey": {
+                        "type": "string",
+                        "writeOnly": True,
+                        "x-required-when-enabled": True,
+                    }
+                },
+                scopes=("domain_events",),
+                health_contract=("configured", "reachable"),
+                admin=ConnectorAdminMetadata(
+                    label_key="settings:SETTINGS_SYSTEM_PLUGIN_POSTHOG_NAME",
+                    description_key="settings:SETTINGS_SYSTEM_PLUGIN_POSTHOG_DESC",
+                    settings_section="analytics_posthog",
+                    icon_key="posthog",
+                ),
+            ),
+            factory=self.create_connector,
+        )
+        logger.info("PostHog analytics Connector registered", connector=_CONNECTOR_KEY)
+
+
+def create_plugin() -> PostHogExtension:
+    return PostHogExtension()

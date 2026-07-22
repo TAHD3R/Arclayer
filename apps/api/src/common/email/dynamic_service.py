@@ -8,12 +8,14 @@ from typing import cast
 from fastapi_mail import FastMail
 from pydantic import BaseModel, ConfigDict
 
+from src.common.email.connector import get_email_connector, list_email_connectors
 from src.common.email.helpers import pick_int, pick_str, raise_if_fatal
 from src.common.email.provider import EmailMessage, EmailProvider, SendResult
-from src.common.email.providers import create_email_provider, supported_email_provider_ids
+from src.common.email.providers import BUILT_IN_EMAIL_PROVIDER_IDS, create_builtin_email_provider
 from src.common.types.json_types import JsonObject
 from src.config import Settings
 from src.core.logging import get_logger
+from src.core.registries import ConnectorRegistry
 
 DEFAULT_EMAIL_PROVIDER_ID = "smtp"
 DEFAULT_RETRY_ATTEMPTS = 3
@@ -40,6 +42,7 @@ class DynamicMailService:
         settings: Settings,
         config: JsonObject,
         smtp_fast_mail_factory: Callable[[], FastMail | Awaitable[FastMail]] | None = None,
+        connector_registry: ConnectorRegistry | None = None,
         providers: dict[str, EmailProvider] | None = None,
         sleep: Callable[[float], Awaitable[object]] | None = None,
     ) -> None:
@@ -47,6 +50,7 @@ class DynamicMailService:
         self.config = config
         self.logger = get_logger(__name__)
         self._smtp_fast_mail_factory = smtp_fast_mail_factory
+        self._connector_registry = connector_registry
         self._providers = providers
         self._sleep = sleep or asyncio.sleep
 
@@ -86,7 +90,7 @@ class DynamicMailService:
     async def get_available_providers(self) -> list[ProviderInfo]:
         active_provider_id = self.active_provider_id
         infos: list[ProviderInfo] = []
-        for provider_id in supported_email_provider_ids():
+        for provider_id in self._provider_ids():
             provider = self._get_provider(provider_id)
             try:
                 await provider.is_available()
@@ -178,16 +182,30 @@ class DynamicMailService:
         normalized = self._normalize_provider_id(provider_id)
         if self._providers is not None and normalized in self._providers:
             return self._providers[normalized]
-        return create_email_provider(
-            normalized,
-            settings=self.settings,
-            config=self.config,
-            smtp_fast_mail_factory=self._smtp_fast_mail_factory,
-        )
+        if normalized in BUILT_IN_EMAIL_PROVIDER_IDS:
+            return create_builtin_email_provider(
+                normalized,
+                settings=self.settings,
+                config=self.config,
+                smtp_fast_mail_factory=self._smtp_fast_mail_factory,
+            )
+        if self._connector_registry is None:
+            raise ValueError(f"Email Connector registry is required for provider: {provider_id}")
+        connector = get_email_connector(self._connector_registry, normalized)
+        if connector is None:
+            raise ValueError(f"Unsupported email provider: {provider_id}")
+        return connector.create_provider(settings=self.settings, config=self.config)
 
-    @staticmethod
-    def _normalize_provider_id(provider_id: str) -> str:
+    def _provider_ids(self) -> tuple[str, ...]:
+        provider_ids = list(BUILT_IN_EMAIL_PROVIDER_IDS)
+        if self._providers is not None:
+            provider_ids.extend(self._providers)
+        if self._connector_registry is not None:
+            provider_ids.extend(connector.provider_id for connector in list_email_connectors(self._connector_registry))
+        return tuple(dict.fromkeys(provider_ids))
+
+    def _normalize_provider_id(self, provider_id: str) -> str:
         normalized = provider_id.strip().lower()
-        if normalized not in supported_email_provider_ids():
+        if normalized not in self._provider_ids():
             raise ValueError(f"Unsupported email provider: {provider_id}")
         return normalized

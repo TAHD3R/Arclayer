@@ -6,6 +6,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.common.types.json_types import JsonObject
+
 
 class LifecycleAction(StrEnum):
     BEFORE_CREATE = "before_create"
@@ -28,7 +30,7 @@ class LifecycleEvent(BaseModel):
     data: dict[str, object] = Field(default_factory=dict)
     result: object | None = None
     actor_id: UUID | None = None
-    state: dict[str, object] = Field(default_factory=dict)
+    state: JsonObject = Field(default_factory=dict)
 
 
 LifecycleSubscriber = Callable[[LifecycleEvent], Awaitable[None]]

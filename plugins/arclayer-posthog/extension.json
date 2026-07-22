@@ -1,0 +1,30 @@
+{
+  "name": "arclayer-posthog",
+  "version": "1.0.0",
+  "entry": "src/plugin.py",
+  "requires": {
+    "platform": ">=1.0.0",
+    "python": ">=3.12"
+  },
+  "provides": {
+    "services": [],
+    "middlewares": [],
+    "providers": [],
+    "connectors": ["analytics.posthog"],
+    "content_types": []
+  },
+  "permissions": ["analytics:write"],
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "enabled": { "type": "boolean", "default": false },
+      "host": { "type": "string", "format": "uri", "default": "https://us.i.posthog.com" },
+      "timeoutSeconds": { "type": "number", "minimum": 1, "maximum": 30, "default": 10 }
+    },
+    "additionalProperties": false
+  },
+  "admin": {
+    "label_key": "settings:SETTINGS_SYSTEM_PLUGIN_POSTHOG_NAME",
+    "description_key": "settings:SETTINGS_SYSTEM_PLUGIN_POSTHOG_DESC"
+  }
+}

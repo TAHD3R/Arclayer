@@ -7,7 +7,7 @@ import inspect
 import secrets
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
-from typing import Any, TypedDict, cast
+from typing import Any, cast
 from urllib.parse import urlencode
 from uuid import UUID
 
@@ -22,20 +22,14 @@ from src.common.types.json_types import JsonObject
 from src.config import Settings
 from src.core.exceptions import BadRequest, Forbidden
 from src.core.i18n import t
+from src.core.registries import ConnectorRegistry
 from src.core.services import BaseService
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.auth.oauth.social.providers import (
-    OAUTH_PROVIDER_DEFINITIONS,
-    OAuthProviderDefinition,
-    get_oauth_provider_definition,
+    get_oauth_provider_connector,
 )
 from src.modules.auth.oauth.social.repository import OAuthSocialRepository
 from src.modules.auth.oauth.social.schema import (
-    DiscordUser,
-    GitHubEmailItem,
-    GitHubUser,
-    GoogleUserInfo,
-    MicrosoftUserInfo,
     OAuthLinkedIdentityListOut,
     OAuthLinkedIdentityOut,
     OAuthStatePayload,
@@ -51,14 +45,6 @@ _FATAL_OAUTH_ERRORS: tuple[type[BaseException], ...] = (
     KeyboardInterrupt,
     SystemExit,
 )
-
-
-class OAuthProviderProfile(TypedDict):
-    subject: str
-    email: str | None
-    email_verified: bool
-    display_name: str | None
-    avatar_url: str | None
 
 
 def _raise_if_fatal(exc: BaseException) -> None:
@@ -139,15 +125,26 @@ class OAuthSocialService(BaseService):
     - OAuth callback issues a one-time exchange code, then the frontend exchanges it for a token pair.
     """
 
-    def __init__(self, settings: Settings, *, valkey: ValkeyClientLike) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        valkey: ValkeyClientLike,
+        connector_registry: ConnectorRegistry,
+    ) -> None:
         super().__init__(settings)
         self.valkey = valkey
+        self.connector_registry = connector_registry
         self.repo = OAuthSocialRepository()
 
         # Local import to avoid auth module cycles at import time.
         from src.modules.auth.service import AuthService
 
-        self.auth_service = AuthService(settings, valkey=valkey)
+        self.auth_service = AuthService(
+            settings,
+            valkey=valkey,
+            connector_registry=connector_registry,
+        )
 
     async def start(
         self,
@@ -160,14 +157,15 @@ class OAuthSocialService(BaseService):
         provider_key = (provider or "").strip().lower()
         safe_redirect = redirect if _is_safe_redirect(redirect) else None
 
-        provider_definition = get_oauth_provider_definition(provider_key)
-        if provider_definition is None:
+        provider_connector = get_oauth_provider_connector(self.connector_registry, provider_key)
+        if provider_connector is None:
             raise BadRequest(
                 message=t("auth", "SSO_PROVIDER_INVALID"),
                 error="SSO_PROVIDER_INVALID",
             )
+        provider_definition = provider_connector.definition
 
-        config = await self._load_core_oauth_config()
+        config = await self._load_core_oauth_config((provider_definition.section_id,))
 
         link_user_id: str | None = None
         raw_link_state = (link_state or "").strip()
@@ -211,21 +209,13 @@ class OAuthSocialService(BaseService):
             raise Forbidden(message=t("auth", "SSO_UNAVAILABLE"), error="SSO_UNAVAILABLE")
 
         callback_url = str(request.url_for("auth_sso_oauth_callback", provider=provider_definition.key))
-        params: dict[str, str] = {
-            "client_id": client_id,
-            "redirect_uri": callback_url,
-            "response_type": "code",
-            "scope": provider_definition.scope,
-            "state": state,
-        }
-        if provider_definition.uses_pkce:
-            params["code_challenge"] = code_challenge
-            params["code_challenge_method"] = "S256"
-        if provider_definition.key == "google":
-            params["access_type"] = "online"
-        if provider_definition.prompt:
-            params["prompt"] = provider_definition.prompt
-        return RedirectResponse(url=f"{provider_definition.authorize_url}?{urlencode(params)}", status_code=302)
+        authorize_url = provider_connector.build_authorize_url(
+            client_id=client_id,
+            redirect_uri=callback_url,
+            state=state,
+            code_challenge=code_challenge,
+        )
+        return RedirectResponse(url=authorize_url, status_code=302)
 
     async def callback(
         self,
@@ -241,9 +231,10 @@ class OAuthSocialService(BaseService):
 
         frontend_base = await self._resolve_frontend_base_url()
 
-        provider_definition = get_oauth_provider_definition(provider_key)
-        if provider_definition is None:
+        provider_connector = get_oauth_provider_connector(self.connector_registry, provider_key)
+        if provider_connector is None:
             return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=None)
+        provider_definition = provider_connector.definition
         if not raw_code or not raw_state:
             return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=None)
 
@@ -266,7 +257,7 @@ class OAuthSocialService(BaseService):
         redirect = payload.redirect if _is_safe_redirect(payload.redirect) else None
         link_user_id = (payload.link_user_id or "").strip() or None
 
-        config = await self._load_core_oauth_config()
+        config = await self._load_core_oauth_config((provider_definition.section_id,))
 
         subject: str = ""
         email: str | None = None
@@ -288,33 +279,26 @@ class OAuthSocialService(BaseService):
 
                 stage = f"exchange_{provider_definition.key}_code"
                 callback_url = str(request.url_for("auth_sso_oauth_callback", provider=provider_definition.key))
-                token_res = await self._exchange_provider_token(
+                access_token = await provider_connector.exchange_access_token(
                     client=client,
-                    provider=provider_definition,
                     client_id=client_id.strip(),
                     client_secret=client_secret_raw.strip(),
                     code=raw_code,
                     code_verifier=payload.code_verifier,
                     redirect_uri=callback_url,
                 )
-                token_res.raise_for_status()
-                token = token_res.json()
-                access_token = token.get("access_token")
-                if not isinstance(access_token, str) or not access_token:
-                    return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
 
                 stage = f"fetch_{provider_definition.key}_userinfo"
-                profile = await self._fetch_provider_profile(
+                profile = await provider_connector.fetch_profile(
                     client=client,
-                    provider=provider_definition,
                     access_token=access_token,
                 )
                 stage = f"parse_{provider_definition.key}_userinfo"
-                subject = profile["subject"]
-                email = profile["email"]
-                email_verified = profile["email_verified"]
-                display_name = profile["display_name"]
-                avatar_url = profile["avatar_url"]
+                subject = profile.subject
+                email = profile.email
+                email_verified = profile.email_verified
+                display_name = profile.display_name
+                avatar_url = profile.avatar_url
 
             stage = "validate_subject"
             if not subject:
@@ -574,122 +558,17 @@ class OAuthSocialService(BaseService):
             )
         return ""
 
-    async def _load_core_oauth_config(self) -> dict[str, Any]:
+    async def _load_core_oauth_config(self, section_ids: tuple[str, ...]) -> dict[str, Any]:
         core = await get_core_settings_value_cached(self.settings, ttl_seconds=2.0)
         if not isinstance(core, dict):
             return {}
         # Keep only the sections owned by sys oauth namespace.
         out: dict[str, Any] = {}
-        section_ids = [item.section_id for item in OAUTH_PROVIDER_DEFINITIONS]
         for key in [*section_ids, "oauth_provisioning", "auth"]:
             val = core.get(key)
             if isinstance(val, dict):
                 out[key] = val
         return out
-
-    async def _exchange_provider_token(
-        self,
-        *,
-        client: httpx.AsyncClient,
-        provider: OAuthProviderDefinition,
-        client_id: str,
-        client_secret: str,
-        code: str,
-        code_verifier: str,
-        redirect_uri: str,
-    ) -> httpx.Response:
-        data = {
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "code": code,
-            "grant_type": "authorization_code",
-            "redirect_uri": redirect_uri,
-        }
-        if provider.uses_pkce:
-            data["code_verifier"] = code_verifier
-        return await client.post(provider.token_url, data=data, headers={"accept": "application/json"})
-
-    async def _fetch_provider_profile(
-        self,
-        *,
-        client: httpx.AsyncClient,
-        provider: OAuthProviderDefinition,
-        access_token: str,
-    ) -> OAuthProviderProfile:
-        headers = {"authorization": f"Bearer {access_token}"}
-        if provider.userinfo_accept:
-            headers["accept"] = provider.userinfo_accept
-
-        userinfo_res = await client.get(provider.userinfo_url, headers=headers)
-        userinfo_res.raise_for_status()
-        payload = userinfo_res.json()
-
-        if provider.key == "google":
-            info = GoogleUserInfo.model_validate(payload)
-            return {
-                "subject": info.sub,
-                "email": (info.email or "").strip().lower() or None,
-                "email_verified": bool(info.email_verified),
-                "display_name": info.name,
-                "avatar_url": info.picture,
-            }
-
-        if provider.key == "microsoft":
-            info = MicrosoftUserInfo.model_validate(payload)
-            email = (info.email or info.preferred_username or "").strip().lower() or None
-            return {
-                "subject": info.sub,
-                "email": email,
-                "email_verified": bool(email),
-                "display_name": info.name,
-                "avatar_url": None,
-            }
-
-        if provider.key == "discord":
-            info = DiscordUser.model_validate(payload)
-            avatar_url = None
-            if info.avatar:
-                avatar_url = f"https://cdn.discordapp.com/avatars/{info.id}/{info.avatar}.png"
-            return {
-                "subject": info.id,
-                "email": (info.email or "").strip().lower() or None,
-                "email_verified": bool(info.verified),
-                "display_name": info.global_name or info.username,
-                "avatar_url": avatar_url,
-            }
-
-        user = GitHubUser.model_validate(payload)
-        subject = str(user.id)
-        display_name = user.name or user.login
-        avatar_url = user.avatar_url
-
-        emails_res = await client.get(
-            "https://api.github.com/user/emails",
-            headers={
-                "authorization": f"Bearer {access_token}",
-                "accept": "application/vnd.github+json",
-            },
-        )
-        emails_res.raise_for_status()
-        emails_payload = emails_res.json()
-        emails: list[GitHubEmailItem] = []
-        if isinstance(emails_payload, list):
-            for row in emails_payload:
-                try:
-                    emails.append(GitHubEmailItem.model_validate(row))
-                except ValidationError:
-                    continue
-
-        chosen = next((item for item in emails if bool(item.primary) and bool(item.verified)), None)
-        if chosen is None:
-            chosen = next((item for item in emails if bool(item.verified)), None)
-        return {
-            "subject": subject,
-            "email": (chosen.email or "").strip().lower() if chosen is not None else None,
-            "email_verified": bool(chosen.verified) if chosen is not None else False,
-            "display_name": display_name,
-            "avatar_url": avatar_url,
-        }
 
     async def _is_public_register_allowed(self, *, email: str | None) -> bool:
         from src.modules.auth.registration.service import get_public_register_policy

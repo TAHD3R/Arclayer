@@ -9,10 +9,12 @@ from src.common.constants.assets import ASSET_SCOPE_USER
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.exceptions import BadRequest, Forbidden, Unauthorized
+from src.core.extensions.dependencies import get_connector_registry
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import get_current_locale, t
 from src.core.middleware.guard_decorators import guard_rate_limit
+from src.core.registries import ConnectorRegistry
 from src.models.organization.user import User
 from src.modules.assets.admin.uploads.schema import (
     UploadAbortOut,
@@ -121,12 +123,17 @@ router = APIRouter(tags=["global.auth"])
 def _get_auth_service(
     request: Request,
     settings: Settings = Depends(get_settings),
+    connector_registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> AuthService:
     try:
         valkey = get_valkey(request)
     except RuntimeError:
         valkey = None
-    return AuthService(settings, valkey=valkey)
+    return AuthService(
+        settings,
+        valkey=valkey,
+        connector_registry=connector_registry,
+    )
 
 
 def _get_auth_session_service(
@@ -155,12 +162,17 @@ def _get_auth_two_factor_capability_service(
 def _get_auth_login_service(
     request: Request,
     settings: Settings = Depends(get_settings),
+    connector_registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> AuthLoginService:
     try:
         valkey = get_valkey(request)
     except RuntimeError:
         valkey = None
-    auth_service = AuthService(settings, valkey=valkey)
+    auth_service = AuthService(
+        settings,
+        valkey=valkey,
+        connector_registry=connector_registry,
+    )
     two_factor_service = AuthTwoFactorService(settings)
     return AuthLoginService(settings, valkey=valkey, auth_service=auth_service, two_factor=two_factor_service)
 

@@ -9,7 +9,7 @@ import pytest
 
 from src.config import get_settings
 from src.models.commerce.billing import BillingCycle, CommercePlan
-from src.modules.commerce.billing_provider import BillingProvider, CheckoutSession
+from src.modules.commerce.billing_connector import BillingConnector, CheckoutSession
 from src.modules.commerce.billing_service import BillingService
 from src.modules.commerce.schema import CheckoutSessionCreate
 from src.modules.commerce.service import CommerceService
@@ -40,7 +40,7 @@ async def test_checkout_creation_does_not_mutate_local_subscription() -> None:
     )
     service = BillingService(
         settings=get_settings(),
-        provider=cast(BillingProvider, provider),
+        provider=cast(BillingConnector, provider),
         commerce=cast(CommerceService, commerce),
     )
 
