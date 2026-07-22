@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 
 import { FieldError } from "@arclayer/ui/field";
 import { Input } from "@arclayer/ui/input";
+import { Button } from "@arclayer/ui/button";
 
 import {
   SystemSettingField,
@@ -33,10 +34,11 @@ type SiteIdentitySettingsSectionProps = {
     description: string | null;
     name: string | null;
     subtitle: string | null;
-    url: string | null;
   };
   form: GeneralSettingsTabBaseProps["form"];
   pending: boolean;
+  projectId: string | null;
+  publicUrl: string;
   supportedLocales: string[];
   values: GeneralSettingsFormValues;
   onLocalizedToggle: LocalizedToggleHandler;
@@ -151,18 +153,22 @@ export function SiteIdentitySettingsSection(props: SiteIdentitySettingsSectionPr
             <SystemSettingField
               label={t("settings:SETTINGS_SITE_PUBLIC_URL_LABEL")}
               description={t("settings:SETTINGS_SITE_PUBLIC_URL_DESC")}
-              message={<FieldMessage message={props.errors.url} />}
             >
-              <Input
-                id="site-url-input"
-                {...props.form.register("siteUrl")}
-                type="url"
-                inputMode="url"
-                placeholder={t("settings:SETTINGS_SITE_PUBLIC_URL_PLACEHOLDER")}
-                aria-invalid={Boolean(props.errors.url)}
-                autoComplete="off"
-                disabled={props.disabled}
-              />
+              <div
+                className="flex min-h-11 flex-col gap-3 rounded-lg border border-border bg-muted/20 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+                data-testid="website-resolved-public-url"
+              >
+                <span className="min-w-0 truncate font-mono text-footnote text-label-primary">
+                  {props.publicUrl || t("settings:SETTINGS_SITE_PREVIEW_ADDRESS_UNAVAILABLE")}
+                </span>
+                {props.projectId ? (
+                  <Button type="button" variant="outline" size="sm" asChild>
+                    <a href={`/projects/${encodeURIComponent(props.projectId)}/website/domain`}>
+                      {t("settings:SETTINGS_SITE_PUBLIC_URL_MANAGE_DOMAINS")}
+                    </a>
+                  </Button>
+                ) : null}
+              </div>
             </SystemSettingField>
 
             <SystemSettingField
@@ -200,7 +206,7 @@ export function SiteIdentitySettingsSection(props: SiteIdentitySettingsSectionPr
           siteName={props.effectiveSiteName}
           siteSubtitle={props.values.siteSubtitle}
           description={props.effectiveDescription}
-          publicUrl={props.values.siteUrl}
+          publicUrl={props.publicUrl}
           siteContactEmail={props.values.siteContactEmail}
           logoUrl={props.values.siteLogoUrl}
           faviconUrl={props.values.siteFaviconUrl}

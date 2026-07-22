@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 
 import { getProjectCoreSettings, patchProjectCoreSettings } from "@/api/settings";
+import { listProjectDomains, projectDomainsQueryKey } from "@/api/project-settings";
 import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
 import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
@@ -15,6 +16,7 @@ import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
 
 import { buildGeneralSettingsInitialValues } from "@/lib/settings/general/adapters";
+import { resolveProjectPrimaryDomainUrl } from "@/lib/projects/domain-routing";
 import type { GeneralSettingsFormValues, GeneralSettingsPatchFn } from "@/types/settings-general";
 import { LocalizationSettingsTab } from "./tabs/localization-settings-tab";
 import { SiteSettingsTab } from "./tabs/site-settings-tab";
@@ -40,6 +42,17 @@ export function GeneralSettingsShell({ projectId, embedded = false }: GeneralSet
     staleTime: 5 * 60 * 1000,
     meta: { silent: true },
   });
+  const projectDomainsQuery = useQuery({
+    queryKey: projectDomainsQueryKey(projectId),
+    enabled: Boolean(projectId),
+    queryFn: () => listProjectDomains(projectId),
+    staleTime: 5 * 60 * 1000,
+    meta: { silent: true },
+  });
+  const resolvedPublicUrl = useMemo(
+    () => resolveProjectPrimaryDomainUrl(projectDomainsQuery.data ?? []) ?? "",
+    [projectDomainsQuery.data],
+  );
 
   const initialValues = useMemo<GeneralSettingsFormValues>(
     () =>
@@ -94,6 +107,7 @@ export function GeneralSettingsShell({ projectId, embedded = false }: GeneralSet
     projectCoreQuery.isFetching || saveProjectMutation.isPending || !canManageSiteSettings;
   const loadError = useMemo(() => {
     if (projectCoreQuery.isError) return projectCoreQuery.error;
+    if (projectDomainsQuery.isError) return projectDomainsQuery.error;
     if (!projectCoreQuery.isLoading && !projectCoreQuery.data) {
       return new Error(t("settings:SETTINGS_LOAD_FAILED_DESC"));
     }
@@ -104,6 +118,8 @@ export function GeneralSettingsShell({ projectId, embedded = false }: GeneralSet
     projectCoreQuery.error,
     projectCoreQuery.isError,
     projectCoreQuery.isLoading,
+    projectDomainsQuery.error,
+    projectDomainsQuery.isError,
   ]);
 
   const renderTabsList = (wrapperClassName?: string) => (
@@ -126,10 +142,17 @@ export function GeneralSettingsShell({ projectId, embedded = false }: GeneralSet
 
   const content = (
     <ContentGuard
-      loading={projectCoreQuery.isLoading && !projectCoreQuery.data}
+      loading={
+        (projectCoreQuery.isLoading && !projectCoreQuery.data) ||
+        (projectDomainsQuery.isLoading && !projectDomainsQuery.data)
+      }
       loadingVariant="form"
       error={loadError}
-      onRetry={loadError ? () => void projectCoreQuery.refetch() : undefined}
+      onRetry={
+        loadError
+          ? () => void Promise.all([projectCoreQuery.refetch(), projectDomainsQuery.refetch()])
+          : undefined
+      }
     >
       {permissionReady && !canManageSiteSettings ? (
         <AccessNoticeAlert
@@ -149,6 +172,7 @@ export function GeneralSettingsShell({ projectId, embedded = false }: GeneralSet
             savingKey={savingKey}
             withSavingKey={withSavingKey}
             patch={patchProject}
+            resolvedPublicUrl={resolvedPublicUrl}
           />
         ) : null}
         {activeSection === "discovery" ? (
@@ -161,6 +185,7 @@ export function GeneralSettingsShell({ projectId, embedded = false }: GeneralSet
             savingKey={savingKey}
             withSavingKey={withSavingKey}
             patch={patchProject}
+            resolvedPublicUrl={resolvedPublicUrl}
           />
         ) : null}
         {activeSection === "localization" ? (

@@ -1419,3 +1419,24 @@ The full Admin typecheck is not accepted for this checkpoint because a
 concurrent Observability route test contains two unrelated `SearchRoute`
 conversion errors. Typed identity/defaults facades, optimistic concurrency,
 stable errors, Activity evidence, and Agent grants remain backend gates.
+
+## 42. Website Config resolved-domain ownership
+
+Website Config must not present a manual public URL beside Domains. The Admin
+loads the existing project Domain bindings with the Domains query key and
+projects exactly one display address: active and verified primary first, then
+the first active verified binding, otherwise unavailable. Pending, disabled,
+and unverified bindings are never presented as routable.
+
+The Identity workspace renders this address as read-only operational context
+with a “Manage domains” route. Identity and Browser/Discovery previews use the
+same value. The identity mutation omits legacy `site.url`; it cannot silently
+fall back to that field when Domain loading fails or no routable binding
+exists. Domain load failure participates in the page error state, and Retry
+reloads both Core Settings and Domain bindings.
+
+The shared resolver keeps local platform domains visible in the preview while
+the separate openable-link policy continues to suppress unsupported external
+navigation to `.arclayer.localhost`. This frontend convergence does not replace
+the still-required typed backend website/runtime facade, optimistic
+concurrency, Activity evidence, or Agent grants.

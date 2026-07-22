@@ -68,6 +68,7 @@ function SiteSettingsHarness(props: { disabled?: boolean; section: "identity" | 
         form={form}
         initialValues={initialValues}
         patch={patchMock}
+        resolvedPublicUrl="https://www.primary.example.com"
         savingKey={null}
         section={props.section}
         withSavingKey={async (_key, task) => task()}
@@ -90,6 +91,13 @@ describe("SiteSettingsTab", () => {
     expect(within(preview).getAllByText("Studio North").length).toBeGreaterThan(0);
     expect(preview).toHaveTextContent("Independent editorial work from Shanghai.");
     expect(preview).toHaveTextContent("hello@studio.example.com");
+    expect(preview).toHaveTextContent("www.primary.example.com");
+    expect(screen.getByTestId("website-resolved-public-url")).toHaveTextContent(
+      "https://www.primary.example.com",
+    );
+    expect(
+      screen.queryByPlaceholderText("settings:SETTINGS_SITE_PUBLIC_URL_PLACEHOLDER"),
+    ).not.toBeInTheDocument();
 
     const nameInput = screen.getByPlaceholderText("settings:SETTINGS_SITE_NAME_PLACEHOLDER");
     await user.clear(nameInput);
@@ -106,7 +114,6 @@ describe("SiteSettingsTab", () => {
           subtitle: "Stories with a point of view",
           description: "Independent editorial work from Shanghai.",
           description_i18n: null,
-          url: "https://studio.example.com",
           contact_email: "hello@studio.example.com",
         },
       });
@@ -119,6 +126,7 @@ describe("SiteSettingsTab", () => {
 
     const preview = screen.getByTestId("website-discovery-preview");
     expect(preview).toHaveTextContent("Independent editorial work from Shanghai.");
+    expect(preview).toHaveTextContent("www.primary.example.com");
     expect(preview).toHaveTextContent(
       "settings:SETTINGS_SEO_TITLE_FORMAT_SAMPLE_PAGE_TITLE - Studio North",
     );

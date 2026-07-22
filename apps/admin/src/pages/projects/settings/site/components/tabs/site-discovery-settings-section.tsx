@@ -25,6 +25,7 @@ type SiteDiscoverySettingsSectionProps = {
   form: GeneralSettingsTabBaseProps["form"];
   initialValues: GeneralSettingsFormValues;
   pending: boolean;
+  publicUrl: string;
   savingKey: string | null;
   searchPreviewTitle: string;
   titlePolicyError: string | null;
@@ -200,7 +201,7 @@ export function SiteDiscoverySettingsSection(props: SiteDiscoverySettingsSection
           siteName={props.effectiveSiteName}
           siteSubtitle={props.values.siteSubtitle}
           description={props.effectiveDescription}
-          publicUrl={props.values.siteUrl}
+          publicUrl={props.publicUrl}
           siteContactEmail={props.values.siteContactEmail}
           logoUrl={props.values.siteLogoUrl}
           faviconUrl={props.values.siteFaviconUrl}

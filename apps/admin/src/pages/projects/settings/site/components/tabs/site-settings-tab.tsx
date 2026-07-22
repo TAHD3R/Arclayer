@@ -25,6 +25,7 @@ const TAGLINE_MAX_LENGTH = 200;
 
 type SiteSettingsTabProps = GeneralSettingsTabBaseProps & {
   assetProjectId: string | null;
+  resolvedPublicUrl: string;
   section: "identity" | "discovery";
 };
 
@@ -85,7 +86,6 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
       values.siteDescriptionI18nEnabled ? "siteDescriptionI18n" : "siteDescription",
     ),
     siteSubtitle: getFieldErrorMessage(form, "siteSubtitle"),
-    siteUrl: getFieldErrorMessage(form, "siteUrl"),
     siteContactEmail: getFieldErrorMessage(form, "siteContactEmail"),
     titlePolicy: getFieldErrorMessage(form, "seoTitlePolicy"),
   };
@@ -99,7 +99,6 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
     values.siteDescriptionI18nEnabled !== initialValues.siteDescriptionI18nEnabled ||
     JSON.stringify(values.siteDescriptionI18n) !==
       JSON.stringify(initialValues.siteDescriptionI18n) ||
-    values.siteUrl !== initialValues.siteUrl ||
     values.siteContactEmail !== initialValues.siteContactEmail;
   const browserDiscoveryDirty =
     JSON.stringify(values.seoTitlePolicy) !== JSON.stringify(initialValues.seoTitlePolicy) ||
@@ -142,7 +141,6 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
     form.setValue("siteDescriptionI18n", initialValues.siteDescriptionI18n, {
       shouldDirty: false,
     });
-    form.setValue("siteUrl", initialValues.siteUrl, { shouldDirty: false });
     form.setValue("siteContactEmail", initialValues.siteContactEmail, { shouldDirty: false });
     form.clearErrors([
       "siteName",
@@ -150,7 +148,6 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
       "siteSubtitle",
       "siteDescription",
       "siteDescriptionI18n",
-      "siteUrl",
       "siteContactEmail",
     ]);
   };
@@ -168,7 +165,6 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
       const siteNameI18nEnabled = Boolean(form.getValues("siteNameI18nEnabled"));
       const siteDescriptionI18nEnabled = Boolean(form.getValues("siteDescriptionI18nEnabled"));
       const subtitle = String(form.getValues("siteSubtitle") || "");
-      const url = String(form.getValues("siteUrl") || "").trim();
       const contactEmail = String(form.getValues("siteContactEmail") || "").trim();
 
       let name = String(form.getValues("siteName") || "").trim();
@@ -219,25 +215,6 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
         });
         throw new Error("FORM_VALIDATION_FAILED");
       }
-      if (!url) {
-        form.setError("siteUrl", {
-          type: "validate",
-          message: t("setup:SETUP_VALIDATION_SITE_URL_REQUIRED"),
-        });
-        throw new Error("FORM_VALIDATION_FAILED");
-      }
-      try {
-        const parsedUrl = new URL(url);
-        if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
-          throw new Error("INVALID_PROTOCOL");
-        }
-      } catch {
-        form.setError("siteUrl", {
-          type: "validate",
-          message: t("setup:SETUP_VALIDATION_SITE_URL_INVALID"),
-        });
-        throw new Error("FORM_VALIDATION_FAILED");
-      }
       if (contactEmail && !isValidEmail(contactEmail)) {
         form.setError("siteContactEmail", {
           type: "validate",
@@ -252,7 +229,6 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
         "siteSubtitle",
         "siteDescription",
         "siteDescriptionI18n",
-        "siteUrl",
         "siteContactEmail",
       ]);
       await patch({
@@ -263,7 +239,6 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
           subtitle: normalizeOptionalString(subtitle),
           description: normalizeOptionalString(description),
           description_i18n: descriptionI18n,
-          url,
           contact_email: normalizeOptionalString(contactEmail),
         },
       });
@@ -311,12 +286,13 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
           description: errors.siteDescription,
           name: errors.siteName,
           subtitle: errors.siteSubtitle,
-          url: errors.siteUrl,
         }}
         form={form}
         pending={savingKey === "siteIdentity"}
         supportedLocales={supportedLocales}
         values={values}
+        projectId={props.assetProjectId}
+        publicUrl={props.resolvedPublicUrl}
         onLocalizedToggle={handleLocalizedToggle}
         onReset={resetSiteIdentity}
         onSave={() => void saveSiteIdentity()}
@@ -338,6 +314,7 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
       searchPreviewTitle={searchPreviewTitle}
       titlePolicyError={errors.titlePolicy}
       values={values}
+      publicUrl={props.resolvedPublicUrl}
       withSavingKey={withSavingKey}
       patch={patch}
       onReset={resetBrowserDiscovery}

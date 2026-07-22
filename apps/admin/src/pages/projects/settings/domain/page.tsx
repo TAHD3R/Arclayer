@@ -16,6 +16,7 @@ import {
   createProjectDomain,
   deleteProjectDomain,
   listProjectDomains,
+  projectDomainsQueryKey,
   type ProjectDomainBinding,
   updateProjectDomain,
   verifyProjectDomain,
@@ -26,7 +27,10 @@ import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-acc
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { toOpenableProjectDomainUrl } from "@/lib/projects/domain-routing";
+import {
+  selectResolvedProjectDomain,
+  toOpenableProjectDomainUrl,
+} from "@/lib/projects/domain-routing";
 import { Button } from "@arclayer/ui/button";
 import {
   Empty,
@@ -40,12 +44,6 @@ import { Input } from "@arclayer/ui/input";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
-
-const DOMAIN_QUERY_KEY_PREFIX = ["project", "domains"] as const;
-
-function buildProjectDomainsQueryKey(projectId: string) {
-  return [...DOMAIN_QUERY_KEY_PREFIX, projectId] as const;
-}
 
 function DomainSourceTag({ domain }: { domain: ProjectDomainBinding }) {
   const { t } = useTranslation("account");
@@ -90,17 +88,9 @@ function DomainCertificateTag({ domain }: { domain: ProjectDomainBinding }) {
   return <BaseTag color={color}>{labels[domain.certificateStatus] ?? labels.pending}</BaseTag>;
 }
 
-function selectPrimaryDomain(domains: readonly ProjectDomainBinding[]) {
-  return (
-    domains.find((domain) => domain.isPrimary && domain.isVerified && domain.isActive) ??
-    domains.find((domain) => domain.isVerified && domain.isActive) ??
-    null
-  );
-}
-
 function DomainSummary({ domains }: { domains: readonly ProjectDomainBinding[] }) {
   const { t } = useTranslation("account");
-  const primaryDomain = selectPrimaryDomain(domains);
+  const primaryDomain = selectResolvedProjectDomain(domains);
   const domainUrl = toOpenableProjectDomainUrl(primaryDomain?.hostname);
 
   return (
@@ -373,7 +363,7 @@ export function ProjectDomainSettingsPage(props: ProjectDomainSettingsPageProps)
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [hostname, setHostname] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<ProjectDomainBinding | null>(null);
-  const queryKey = buildProjectDomainsQueryKey(props.projectId);
+  const queryKey = projectDomainsQueryKey(props.projectId);
 
   const domainsQuery = useQuery({
     queryKey,

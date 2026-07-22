@@ -1113,7 +1113,7 @@ used to describe the full user goal as complete.
 | 7 | Productized Taskiq workload topology and task catalog | In progress | Durable jobs, broker routing, workers, scheduler leadership, recovery, and owning-domain job verticals are implemented/tested. Production deployment and health evidence remain required. |
 | 8 | Connector-based commercialization and Stripe | In progress | Connector registry, Stripe plugin, durable billing event path, and Billing surfaces exist. Provider migration parity, replay/reconciliation, entitlement, and production webhook evidence remain Wave 6 gates. |
 | 9 | Productized no-release/prelaunch experience | In progress | `arclayer-prelaunch-v2` now provides the final responsive light/dark visitor treatment, localized public site identity, escaped external values, stable static first frame, and explicit missing-identity state without fake published success. Release activation convergence remains. |
-| 10 | Website Config redesign and ownership | In progress | Identity, discovery, and localization workspaces now have responsive live visitor previews, complete read-only behavior, generated-source invalidation, bilingual copy, and browser-verified UX acceptance. Typed domain facades, optimistic concurrency, Activity evidence, and consuming the Domains-owned resolved primary URL remain open. |
+| 10 | Website Config redesign and ownership | In progress | Identity, discovery, and localization workspaces have responsive live visitor previews, complete read-only behavior, generated-source invalidation, and bilingual copy. Admin now consumes the Domains-owned active primary address and no longer writes the legacy manual `site.url`; typed website/SEO/localization facades, runtime URL convergence, optimistic concurrency, and Activity evidence remain open. |
 | 11 | Project General redesign and ownership | In progress | Project identity, context/access/lifecycle boundaries, danger actions, responsive navigation, bilingual copy, and browser acceptance are complete. Typed identity/defaults commands with optimistic concurrency and Activity evidence remain open. |
 
 Boneyard and motion are cross-cutting rather than a twelfth capability. The
@@ -2021,3 +2021,34 @@ gates, and responsive UX slice. The overall capability remains `In progress`
 until the broad Project patch is replaced or narrowed by typed identity and
 project-default commands with optimistic version/ETag, stable errors, Activity
 evidence, and explicit Agent grants.
+
+## 47. Wave 4 Website Config domain-ownership convergence (2026-07-23)
+
+Live-source review found a remaining ownership split inside the accepted
+Website Config workbench: Domains already owned verified/active bindings and
+primary selection, while Website Config still rendered and saved the legacy
+Core Settings `site.url` as a second editable public address.
+
+This slice makes four frontend ownership cuts:
+
+1. one shared Domain projection selects an active, verified primary binding,
+   then the first active verified binding, and otherwise returns no public URL;
+2. Domains management and Website Config use that same projection and the same
+   React Query key, so verification, activation, and primary changes invalidate
+   one authority;
+3. Website Config replaces the manual URL input with a read-only resolved
+   address and a direct “Manage domains” route. Identity and discovery previews
+   consume only that address and never fall back to legacy `site.url`;
+4. identity Save no longer validates or writes `site.url`. A missing routable
+   binding stays an explicit unavailable state, and a Domain query failure is a
+   page error whose retry reloads both settings and bindings.
+
+Focused verification passes 4 Admin test files / 20 tests, targeted Oxlint,
+targeted Oxfmt, and explicit-file diff checks. The full Admin typecheck is
+currently blocked only by concurrent Access Restriction, User Center workspace,
+and Observability route-test diagnostics; none are in this slice.
+
+This accepts Admin-side consumption of the Domains-owned primary address. It
+does not claim the full Website Config capability complete: typed
+website/SEO/localization facades, runtime/source canonical URL convergence,
+optimistic version/ETag, Activity evidence, and Agent grants remain required.

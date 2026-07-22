@@ -16,6 +16,12 @@ export type ProjectDomainCreateOut = DomainBindingCreateOut;
 export type ProjectDomainVerifyOut = DomainBindingVerifyOut;
 export type ProjectDomainDeleteOut = DomainBindingDeleteOut;
 
+export const PROJECT_DOMAINS_QUERY_KEY = ["project", "domains"] as const;
+
+export function projectDomainsQueryKey(projectId: string) {
+  return [...PROJECT_DOMAINS_QUERY_KEY, projectId] as const;
+}
+
 export async function listProjectDomains(projectId: string): Promise<ProjectDomainBinding[]> {
   const query = toQueryString({ page: 1, size: 100 });
   const page = await api.get<{ items?: ProjectDomainBinding[] }>(

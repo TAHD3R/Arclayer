@@ -22,6 +22,7 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@/api/project-settings", () => ({
+  projectDomainsQueryKey: (projectId: string) => ["project", "domains", projectId],
   listProjectDomains: (...args: unknown[]) => listProjectDomainsMock(...args),
   createProjectDomain: (...args: unknown[]) => createProjectDomainMock(...args),
   verifyProjectDomain: (...args: unknown[]) => verifyProjectDomainMock(...args),

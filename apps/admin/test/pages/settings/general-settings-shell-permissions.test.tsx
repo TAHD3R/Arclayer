@@ -10,6 +10,7 @@ const getProjectCoreSettingsMock = vi.fn();
 const patchProjectCoreSettingsMock = vi.fn();
 const getMyProjectAuthzMock = vi.fn();
 const listProjectPermissionActionsMock = vi.fn();
+const listProjectDomainsMock = vi.fn();
 const navigateMock = vi.fn();
 const chromeTabsController = vi.hoisted(() => ({
   onValueChange: null as ((value: string) => void) | null,
@@ -28,6 +29,11 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("@/api/settings", () => ({
   getProjectCoreSettings: (...args: unknown[]) => getProjectCoreSettingsMock(...args),
   patchProjectCoreSettings: (...args: unknown[]) => patchProjectCoreSettingsMock(...args),
+}));
+
+vi.mock("@/api/project-settings", () => ({
+  listProjectDomains: (...args: unknown[]) => listProjectDomainsMock(...args),
+  projectDomainsQueryKey: (projectId: string) => ["project", "domains", projectId],
 }));
 
 vi.mock("@/api/workspaces", () => ({
@@ -97,6 +103,7 @@ vi.mock("@arclayer/ui/chrome-tabs", () => ({
 vi.mock("@/pages/projects/settings/site/components/tabs/site-settings-tab", () => ({
   SiteSettingsTab: (props: {
     disabled: boolean;
+    resolvedPublicUrl: string;
     section: string;
     patch: (patch: Record<string, unknown>) => Promise<void>;
   }) => (
@@ -104,6 +111,7 @@ vi.mock("@/pages/projects/settings/site/components/tabs/site-settings-tab", () =
       data-testid="site-settings-tab"
       data-disabled={String(props.disabled)}
       data-section={props.section}
+      data-public-url={props.resolvedPublicUrl}
     >
       <button type="button" onClick={() => void props.patch({ site: { name: "Updated site" } })}>
         save website config
@@ -138,6 +146,7 @@ describe("GeneralSettingsShell permission consumption", () => {
     patchProjectCoreSettingsMock.mockReset();
     getMyProjectAuthzMock.mockReset();
     listProjectPermissionActionsMock.mockReset();
+    listProjectDomainsMock.mockReset();
     navigateMock.mockReset();
 
     getProjectCoreSettingsMock.mockResolvedValue({
@@ -185,6 +194,14 @@ describe("GeneralSettingsShell permission consumption", () => {
         permissionCodes: ["system:settings:manage"],
       },
     ]);
+    listProjectDomainsMock.mockResolvedValue([
+      {
+        hostname: "primary.example.com",
+        isActive: true,
+        isPrimary: true,
+        isVerified: true,
+      },
+    ]);
   });
 
   it("keeps tabs editable when site management access is granted", async () => {
@@ -194,12 +211,34 @@ describe("GeneralSettingsShell permission consumption", () => {
     await waitFor(() => {
       expect(screen.getByTestId("site-settings-tab")).toHaveAttribute("data-disabled", "false");
     });
+    expect(screen.getByTestId("site-settings-tab")).toHaveAttribute(
+      "data-public-url",
+      "https://primary.example.com",
+    );
     await user.click(screen.getByTestId("website-settings-tab-localization"));
     expect(screen.getByTestId("localization-settings-tab")).toHaveAttribute(
       "data-disabled",
       "false",
     );
     expect(screen.queryByTestId("general-settings-read-only-notice")).not.toBeInTheDocument();
+  });
+
+  it("does not fall back to the legacy site URL without a routable domain", async () => {
+    listProjectDomainsMock.mockResolvedValueOnce([
+      {
+        hostname: "pending.example.com",
+        isActive: true,
+        isPrimary: true,
+        isVerified: false,
+      },
+    ]);
+
+    renderWithQuery(<GeneralSettingsShell projectId="project-1" embedded={false} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("site-settings-tab")).toHaveAttribute("data-public-url", "");
+    });
+    expect(listProjectDomainsMock).toHaveBeenCalledWith("project-1");
   });
 
   it("invalidates generated project source after saving Website Config", async () => {
