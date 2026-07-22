@@ -140,6 +140,7 @@ class ContentModelKind(StrEnum):
 class ContentPresentationKind(StrEnum):
     FORM_DATA = "form_data"
     RICH_TEXT_DOCUMENT = "rich_text_document"
+    WIREFRAME = "wireframe"
     VISUAL_BLUEPRINT = "visual_blueprint"
     QUERY_DEFINITION = "query_definition"
     SLOT_MAPPING = "slot_mapping"

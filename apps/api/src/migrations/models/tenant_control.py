@@ -25,6 +25,36 @@ _TENANT_OWNED_TABLES = (
     "asset_usages",
     "upload_sessions",
     "upload_parts",
+    "knowledge_bases",
+    "knowledge_access_policies",
+    "knowledge_sources",
+    "knowledge_source_versions",
+    "knowledge_source_version_states",
+    "knowledge_chunks",
+    "skill_packages",
+    "skill_versions",
+    "skill_resources",
+    "skill_validation_results",
+    "skill_installations",
+    "skill_github_imports",
+    "skill_update_previews",
+    "skill_installation_removals",
+    "design_systems",
+    "design_system_versions",
+    "design_system_version_states",
+    "design_system_validation_results",
+    "workspace_design_system_defaults",
+    "workspace_design_system_default_commands",
+    "content_structure_revisions",
+    "site_revision_manifests",
+    "site_revision_statuses",
+    "builder_initialization_commands",
+    "builder_change_sets",
+    "builder_change_set_commands",
+    "builder_change_set_approvals",
+    "builder_generations",
+    "builder_composition_sagas",
+    "design_system_concept_generations",
 )
 
 # system_settings is cloned into tenant schemas with the same name as the
@@ -362,6 +392,427 @@ CREATE INDEX IF NOT EXISTS idx_content_releases_status
 CREATE INDEX IF NOT EXISTS idx_content_releases_scheduled_at
     ON {schema}.content_releases (scheduled_at)
 """.strip(),
+        ),
+    ),
+    TenantMigration.create(
+        version=7,
+        name="workspace_knowledge_tables",
+        sql=tuple(
+            _clone_public_table_sql(table_name)
+            for table_name in (
+                "knowledge_bases",
+                "knowledge_access_policies",
+                "knowledge_sources",
+                "knowledge_source_versions",
+                "knowledge_source_version_states",
+                "knowledge_chunks",
+            )
+        ),
+    ),
+    TenantMigration.create(
+        version=8,
+        name="workspace_knowledge_index_job_handoff",
+        sql=(
+            """
+ALTER TABLE {schema}.knowledge_source_version_states
+    ADD COLUMN IF NOT EXISTS index_job_id UUID NULL
+""".strip(),
+            """
+CREATE INDEX IF NOT EXISTS idx_knowledge_version_states_index_job_id
+    ON {schema}.knowledge_source_version_states (index_job_id)
+            """.strip(),
+        ),
+    ),
+    TenantMigration.create(
+        version=9,
+        name="workspace_knowledge_version_provenance_identity",
+        sql=(
+            """
+DO $$
+DECLARE
+    constraint_record record;
+BEGIN
+    FOR constraint_record IN
+        SELECT con.conname
+        FROM pg_constraint con
+        WHERE con.conrelid = '{schema}.knowledge_source_versions'::regclass
+          AND con.contype = 'u'
+        GROUP BY con.conname, con.conkey, con.conrelid
+        HAVING ARRAY(
+            SELECT attr.attname::text
+            FROM unnest(con.conkey) AS column_id
+            JOIN pg_attribute attr ON attr.attrelid = con.conrelid AND attr.attnum = column_id
+            ORDER BY attr.attname
+        ) = ARRAY['normalized_content_hash', 'source_id']
+    LOOP
+        EXECUTE format(
+            'ALTER TABLE {schema}.knowledge_source_versions DROP CONSTRAINT %I',
+            constraint_record.conname
+        );
+    END LOOP;
+END $$;
+""".strip(),
+        ),
+    ),
+    TenantMigration.create(
+        version=10,
+        name="workspace_skill_tables",
+        sql=tuple(
+            _clone_public_table_sql(table_name)
+            for table_name in (
+                "skill_packages",
+                "skill_versions",
+                "skill_resources",
+                "skill_validation_results",
+                "skill_installations",
+            )
+        ),
+    ),
+    TenantMigration.create(
+        version=11,
+        name="workspace_skill_github_imports",
+        sql=(_clone_public_table_sql("skill_github_imports"),),
+    ),
+    TenantMigration.create(
+        version=12,
+        name="workspace_skill_update_previews",
+        sql=(_clone_public_table_sql("skill_update_previews"),),
+    ),
+    TenantMigration.create(
+        version=13,
+        name="workspace_skill_installation_removals",
+        sql=(_clone_public_table_sql("skill_installation_removals"),),
+    ),
+    TenantMigration.create(
+        version=14,
+        name="workspace_skill_package_archive_evidence",
+        sql=(
+            _clone_public_table_sql("skill_package_archives"),
+            """
+ALTER TABLE {schema}.skill_packages
+    ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ NULL,
+    ADD COLUMN IF NOT EXISTS archived_by_user_id UUID NULL
+""".strip(),
+            """
+CREATE INDEX IF NOT EXISTS idx_skill_packages_archived_at
+    ON {schema}.skill_packages (archived_at)
+""".strip(),
+            """
+CREATE INDEX IF NOT EXISTS idx_skill_packages_archived_by_user_id
+    ON {schema}.skill_packages (archived_by_user_id)
+""".strip(),
+        ),
+    ),
+    TenantMigration.create(
+        version=15,
+        name="workspace_design_system_foundation",
+        sql=tuple(
+            _clone_public_table_sql(table_name)
+            for table_name in (
+                "design_systems",
+                "design_system_versions",
+                "design_system_validation_results",
+                "workspace_design_system_defaults",
+                "workspace_design_system_default_commands",
+            )
+        ),
+    ),
+    TenantMigration.create(
+        version=16,
+        name="project_design_system_authority",
+        sql=(
+            """
+ALTER TABLE {schema}.design_systems
+    ADD COLUMN IF NOT EXISTS forked_from_system_id UUID NULL,
+    ADD COLUMN IF NOT EXISTS forked_from_version_id UUID NULL,
+    ADD COLUMN IF NOT EXISTS forked_from_manifest_checksum VARCHAR(71) NULL
+""".strip(),
+            """
+CREATE INDEX IF NOT EXISTS idx_design_systems_forked_from_system_id
+    ON {schema}.design_systems (forked_from_system_id)
+""".strip(),
+            """
+CREATE INDEX IF NOT EXISTS idx_design_systems_forked_from_version_id
+    ON {schema}.design_systems (forked_from_version_id)
+""".strip(),
+            _clone_public_table_sql("project_design_system_assignments"),
+            _clone_public_table_sql("project_design_system_commands"),
+        ),
+    ),
+    TenantMigration.create(
+        version=17,
+        name="site_builder_foundation",
+        sql=tuple(
+            _clone_public_table_sql(table_name)
+            for table_name in (
+                "content_structure_revisions",
+                "site_revision_manifests",
+                "site_revision_statuses",
+                "builder_initialization_commands",
+            )
+        ),
+    ),
+    TenantMigration.create(
+        version=18,
+        name="builder_change_set_preview",
+        sql=tuple(
+            _clone_public_table_sql(table_name)
+            for table_name in (
+                "builder_change_sets",
+                "builder_change_set_commands",
+            )
+        ),
+    ),
+    TenantMigration.create(
+        version=19,
+        name="builder_change_set_approval",
+        sql=(_clone_public_table_sql("builder_change_set_approvals"),),
+    ),
+    TenantMigration.create(
+        version=20,
+        name="builder_generation",
+        sql=(_clone_public_table_sql("builder_generations"),),
+    ),
+    TenantMigration.create(
+        version=21,
+        name="design_system_version_lifecycle",
+        sql=(
+            _clone_public_table_sql("design_system_version_states"),
+            """
+INSERT INTO {schema}.design_system_version_states (
+    id,
+    created_at,
+    updated_at,
+    design_system_version_id,
+    workspace_id,
+    status,
+    status_revision,
+    superseded_by_version_id,
+    status_changed_at,
+    status_changed_by_user_id
+)
+SELECT
+    version.id,
+    version.created_at,
+    COALESCE(latest_validation.created_at, version.created_at),
+    version.id,
+    version.workspace_id,
+    COALESCE(latest_validation.status, 'candidate'),
+    CASE
+        WHEN version.source = 'fork' THEN GREATEST(1, validation_count.total)
+        ELSE 1 + validation_count.total
+    END,
+    NULL,
+    COALESCE(latest_validation.created_at, version.created_at),
+    COALESCE(latest_validation.actor_user_id, version.created_by_user_id)
+FROM {schema}.design_system_versions AS version
+LEFT JOIN LATERAL (
+    SELECT validation.status, validation.created_at, validation.actor_user_id
+    FROM {schema}.design_system_validation_results AS validation
+    WHERE validation.design_system_version_id = version.id
+      AND validation.profile = 'foundation'
+    ORDER BY validation.created_at DESC, validation.id DESC
+    LIMIT 1
+) AS latest_validation ON TRUE
+LEFT JOIN LATERAL (
+    SELECT COUNT(*)::INT AS total
+    FROM {schema}.design_system_validation_results AS validation
+    WHERE validation.design_system_version_id = version.id
+      AND validation.profile = 'foundation'
+) AS validation_count ON TRUE
+ON CONFLICT (design_system_version_id) DO NOTHING
+""".strip(),
+        ),
+    ),
+    TenantMigration.create(
+        version=22,
+        name="design_system_concept_generation",
+        sql=(_clone_public_table_sql("design_system_concept_generations"),),
+    ),
+    TenantMigration.create(
+        version=23,
+        name="design_system_concept_generation_agent_context",
+        sql=(
+            """
+ALTER TABLE {schema}.design_system_concept_generations
+    ALTER COLUMN agent_run_id DROP NOT NULL,
+    ADD COLUMN IF NOT EXISTS agent_assignment_id UUID NULL,
+    ADD COLUMN IF NOT EXISTS agent_id UUID NULL,
+    ADD COLUMN IF NOT EXISTS agent_version_id UUID NULL,
+    ADD COLUMN IF NOT EXISTS builder_context JSONB NULL,
+    ADD COLUMN IF NOT EXISTS design_system_context JSONB NULL
+""".strip(),
+            """
+CREATE INDEX IF NOT EXISTS idx_design_system_concept_generations_agent_assignment_id
+    ON {schema}.design_system_concept_generations (agent_assignment_id)
+""".strip(),
+            """
+CREATE INDEX IF NOT EXISTS idx_design_system_concept_generations_agent_id
+    ON {schema}.design_system_concept_generations (agent_id)
+""".strip(),
+            """
+CREATE INDEX IF NOT EXISTS idx_design_system_concept_generations_agent_version_id
+    ON {schema}.design_system_concept_generations (agent_version_id)
+            """.strip(),
+        ),
+    ),
+    TenantMigration.create(
+        version=24,
+        name="builder_agent_generation_context",
+        sql=(
+            """
+ALTER TABLE {schema}.builder_change_sets
+    ADD COLUMN IF NOT EXISTS agent_assignment_id UUID NULL,
+    ADD COLUMN IF NOT EXISTS agent_id UUID NULL,
+    ADD COLUMN IF NOT EXISTS agent_version_id UUID NULL
+""".strip(),
+            """
+ALTER TABLE {schema}.builder_generations
+    ALTER COLUMN agent_run_id DROP NOT NULL,
+    ADD COLUMN IF NOT EXISTS agent_assignment_id UUID NULL,
+    ADD COLUMN IF NOT EXISTS agent_id UUID NULL,
+    ADD COLUMN IF NOT EXISTS agent_version_id UUID NULL,
+    ADD COLUMN IF NOT EXISTS builder_context JSONB NULL,
+    ADD COLUMN IF NOT EXISTS composition_context JSONB NULL
+""".strip(),
+            """
+ALTER TABLE {schema}.content_structure_revisions
+    ADD COLUMN IF NOT EXISTS agent_assignment_id UUID NULL,
+    ADD COLUMN IF NOT EXISTS agent_id UUID NULL,
+    ADD COLUMN IF NOT EXISTS agent_version_id UUID NULL
+""".strip(),
+            """
+ALTER TABLE {schema}.site_revision_manifests
+    ADD COLUMN IF NOT EXISTS agent_assignment_id UUID NULL,
+    ADD COLUMN IF NOT EXISTS agent_id UUID NULL,
+    ADD COLUMN IF NOT EXISTS agent_version_id UUID NULL
+""".strip(),
+            *(
+                f"""
+CREATE INDEX IF NOT EXISTS idx_{table_name}_{column_name}
+    ON {{schema}}.{table_name} ({column_name})
+""".strip()
+                for table_name in (
+                    "builder_change_sets",
+                    "builder_generations",
+                    "content_structure_revisions",
+                    "site_revision_manifests",
+                )
+                for column_name in (
+                    "agent_assignment_id",
+                    "agent_id",
+                    "agent_version_id",
+                )
+            ),
+        ),
+    ),
+    TenantMigration.create(
+        version=25,
+        name="builder_global_section_version_pins",
+        sql=(
+            """
+ALTER TABLE {schema}.site_revision_manifests
+    ADD COLUMN IF NOT EXISTS global_section_version_pins JSONB NOT NULL DEFAULT '[]'::JSONB
+            """.strip(),
+        ),
+    ),
+    TenantMigration.create(
+        version=26,
+        name="builder_generation_typed_targets",
+        sql=(
+            """
+DO $migration$
+DECLARE
+    old_name TEXT := 'selected_page_ids';
+    new_name TEXT := 'targets';
+    old_column_exists BOOLEAN;
+    new_column_exists BOOLEAN;
+BEGIN
+    SELECT EXISTS (
+        SELECT 1
+        FROM pg_attribute
+        WHERE attrelid = '{schema}.builder_generations'::regclass
+          AND attname = old_name
+          AND NOT attisdropped
+    ) INTO old_column_exists;
+    SELECT EXISTS (
+        SELECT 1
+        FROM pg_attribute
+        WHERE attrelid = '{schema}.builder_generations'::regclass
+          AND attname = new_name
+          AND NOT attisdropped
+    ) INTO new_column_exists;
+    IF old_column_exists AND NOT new_column_exists THEN
+        EXECUTE format(
+            'ALTER TABLE %s.builder_generations RENAME COLUMN %I TO %I',
+            '{schema}',
+            old_name,
+            new_name
+        );
+    END IF;
+END
+$migration$
+""".strip(),
+            """
+DO $migration$
+DECLARE
+    old_name TEXT := 'wireframe_context';
+    new_name TEXT := 'composition_context';
+    old_column_exists BOOLEAN;
+    new_column_exists BOOLEAN;
+BEGIN
+    SELECT EXISTS (
+        SELECT 1
+        FROM pg_attribute
+        WHERE attrelid = '{schema}.builder_generations'::regclass
+          AND attname = old_name
+          AND NOT attisdropped
+    ) INTO old_column_exists;
+    SELECT EXISTS (
+        SELECT 1
+        FROM pg_attribute
+        WHERE attrelid = '{schema}.builder_generations'::regclass
+          AND attname = new_name
+          AND NOT attisdropped
+    ) INTO new_column_exists;
+    IF old_column_exists AND NOT new_column_exists THEN
+        EXECUTE format(
+            'ALTER TABLE %s.builder_generations RENAME COLUMN %I TO %I',
+            '{schema}',
+            old_name,
+            new_name
+        );
+    END IF;
+END
+$migration$
+            """.strip(),
+        ),
+    ),
+    TenantMigration.create(
+        version=27,
+        name="builder_composition_saga",
+        sql=(
+            _clone_public_table_sql("builder_composition_sagas"),
+            """
+ALTER TABLE {schema}.builder_generations
+    ADD COLUMN IF NOT EXISTS composition_saga_id UUID NULL,
+    ADD COLUMN IF NOT EXISTS composition_saga_phase VARCHAR(16) NULL,
+    ADD COLUMN IF NOT EXISTS planning_context JSONB NULL
+""".strip(),
+            """
+CREATE INDEX IF NOT EXISTS idx_builder_generations_composition_saga_id
+    ON {schema}.builder_generations (composition_saga_id)
+""".strip(),
+        ),
+    ),
+    TenantMigration.create(
+        version=28,
+        name="builder_design_generation_context",
+        sql=(
+            """
+ALTER TABLE {schema}.builder_generations
+    ADD COLUMN IF NOT EXISTS design_context JSONB NULL
+            """.strip(),
         ),
     ),
 )

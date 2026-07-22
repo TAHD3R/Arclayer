@@ -18,6 +18,7 @@ class NotificationCategory(StrEnum):
     TEAM = "team"
     SECURITY = "security"
     TASK = "task"
+    SYSTEM = "system"
 
 
 # Notification inbox record (per-user).

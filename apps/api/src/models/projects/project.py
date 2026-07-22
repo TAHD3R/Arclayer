@@ -7,6 +7,7 @@ from tortoise import fields
 from tortoise.signals import post_save
 
 from src.common.models.base import BaseModel
+from src.models.projects._enums import ProjectAuthoringMode, ProjectAuthoringState
 from src.models.workspaces.workspace import WorkspaceIconMode
 
 
@@ -31,6 +32,22 @@ class ProjectRecord(BaseModel):
     icon_glyph = fields.CharField(max_length=64, null=True)
     icon_emoji = fields.CharField(max_length=32, null=True)
     icon_url = fields.CharField(max_length=1024, null=True)
+    authoring_mode = fields.CharEnumField(
+        ProjectAuthoringMode,
+        max_length=32,
+        null=True,
+        db_index=True,
+    )
+    authoring_state = fields.CharEnumField(
+        ProjectAuthoringState,
+        max_length=32,
+        default=ProjectAuthoringState.MIGRATION_REQUIRED,
+        db_default=ProjectAuthoringState.MIGRATION_REQUIRED,
+        db_index=True,
+    )
+    authoring_revision = fields.IntField(default=1, db_default=1)
+    authoring_resolved_by_user_id = fields.UUIDField(null=True, db_index=True)
+    authoring_resolved_at = fields.DatetimeField(null=True)
     is_active = fields.BooleanField(default=True, db_index=True)
     created_by_user_id = fields.UUIDField(null=True, db_index=True)
 

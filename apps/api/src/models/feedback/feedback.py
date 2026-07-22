@@ -10,6 +10,7 @@ from src.common.models.base import BaseModel
 class FeedbackSource(StrEnum):
     HEADER = "header"
     AI_SIDEBAR = "ai_sidebar"
+    CONTENT_GUARD = "content_guard"
     FEEDBACK_CENTER = "feedback_center"
 
 
@@ -17,16 +18,27 @@ class FeedbackContextType(StrEnum):
     GLOBAL = "global"
     WORKSPACE = "workspace"
     PROJECT = "project"
+    # Retained only so historical tickets remain readable after the public
+    # Conversation authority is removed. New API input excludes this value.
     AI_CONVERSATION = "ai_conversation"
 
 
 class FeedbackCategory(StrEnum):
+    """Legacy category retained only for historical ticket projection."""
+
     BUG = "bug"
     FEATURE_REQUEST = "feature_request"
     USABILITY = "usability"
     PERFORMANCE = "performance"
     BILLING = "billing"
     OTHER = "other"
+
+
+class FeedbackIntent(StrEnum):
+    PROBLEM = "problem"
+    IDEA = "idea"
+    QUESTION = "question"
+    PRAISE = "praise"
 
 
 class FeedbackStatus(StrEnum):
@@ -64,6 +76,7 @@ class FeedbackTicket(BaseModel):
     project_id = fields.UUIDField(null=True, db_index=True)
     source = fields.CharEnumField(FeedbackSource, db_index=True)
     context_type = fields.CharEnumField(FeedbackContextType, db_index=True)
+    intent = fields.CharEnumField(FeedbackIntent, null=True, db_index=True)
     category = fields.CharEnumField(FeedbackCategory, default=FeedbackCategory.OTHER, db_index=True)
     message = fields.TextField()
     rating = fields.SmallIntField(null=True)

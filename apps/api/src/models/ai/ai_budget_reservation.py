@@ -36,6 +36,13 @@ class AIBudgetReservation(BaseModel):
         related_name="reservations",
         on_delete=fields.CASCADE,
     )
+    agent_run = fields.ForeignKeyField(
+        "models.AgentRunV1Record",
+        related_name="budget_reservations",
+        on_delete=fields.CASCADE,
+        null=True,
+        db_index=True,
+    )
     request_id = fields.UUIDField(unique=True, db_index=True)
     estimated_cost_micros = fields.BigIntField()  # Pre-call estimate
     reserved_cost_micros = fields.BigIntField()  # Amount actually reserved
@@ -50,6 +57,7 @@ class AIBudgetReservation(BaseModel):
 
     if TYPE_CHECKING:
         budget_id: UUID
+        agent_run_id: UUID | None
 
     class Meta(BaseModel.Meta):
         table = "ai_budget_reservations"

@@ -34,3 +34,28 @@ class HTTPRequestMetricHourly(BaseModel):
             ),
         )
         indexes = (("workspace_id", "bucket_start"), ("project_id", "bucket_start"))
+
+
+class HTTPRequestRecord(BaseModel):
+    """One completed HTTP request used for incident tracing and exact latency percentiles."""
+
+    occurred_at = fields.DatetimeField(db_index=True)
+    trace_id = fields.CharField(max_length=128, null=True, db_index=True)
+    actor_user_id = fields.UUIDField(null=True, db_index=True)
+    workspace_id = fields.UUIDField(null=True, db_index=True)
+    project_id = fields.UUIDField(null=True, db_index=True)
+    route_template = fields.CharField(max_length=512)
+    method = fields.CharField(max_length=8)
+    status_code = fields.SmallIntField()
+    duration_ms = fields.IntField()
+
+    class Meta(BaseModel.Meta):
+        table = "observability_http_request_records"
+        table_description = "Completed HTTP requests retained for tracing and latency percentiles."
+        abstract = False
+        indexes = (
+            ("workspace_id", "occurred_at"),
+            ("project_id", "occurred_at"),
+            ("route_template", "method", "occurred_at"),
+            ("status_code", "occurred_at"),
+        )

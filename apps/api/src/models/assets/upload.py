@@ -13,6 +13,7 @@ class UploadStatus(StrEnum):
     INITIATED = "initiated"
     UPLOADING = "uploading"
     COMPLETING = "completing"
+    STORAGE_FINALIZED = "storage_finalized"
     COMPLETED = "completed"
     ABORTED = "aborted"
     EXPIRED = "expired"
@@ -37,10 +38,26 @@ class UploadSessionRecord(BaseModel):
 
     chunk_size = fields.IntField(default=0)
     total_parts = fields.IntField(default=0)
-    status = fields.CharEnumField(UploadStatus, default=UploadStatus.INITIATED, db_index=True)
+    status = fields.CharEnumField(
+        UploadStatus,
+        max_length=32,
+        default=UploadStatus.INITIATED,
+        db_index=True,
+    )
     expires_at = fields.DatetimeField(db_index=True)
     asset_id = fields.UUIDField(null=True, db_index=True)
     reserved_asset_id = fields.UUIDField(null=True, db_index=True)
+
+    # Completion ownership is fenced independently from the generic update timestamp.
+    completion_claim_token = fields.UUIDField(null=True, unique=True)
+    completion_generation = fields.BigIntField(default=0, db_default=0)
+    completion_heartbeat_at = fields.DatetimeField(null=True)
+    completion_lease_until = fields.DatetimeField(null=True)
+
+    # Durable storage evidence survives claim takeover and the terminal DB commit.
+    storage_finalized_at = fields.DatetimeField(null=True)
+    storage_checksum_sha256 = fields.CharField(max_length=64, null=True)
+    finalized_storage_bucket = fields.CharField(max_length=255, null=True)
 
     # Resolved metadata used for immutable public URLs / object keys.
     resolved_slug = fields.CharField(max_length=128, null=True)
@@ -66,6 +83,7 @@ class UploadSessionRecord(BaseModel):
         table = "upload_sessions"
         table_description = "Multipart upload session tracking records."
         abstract = False
+        indexes = (("completion_lease_until",),)
 
 
 # Upload part record (multipart upload chunk).
