@@ -290,7 +290,7 @@ describe("DefaultPage", () => {
       "top-0",
       "z-20",
       "-mx-[var(--admin-route-gutter-x)]",
-      "min-h-[var(--page-sticky-header-height,6rem)]",
+      "min-h-24",
       "bg-background/95",
       "px-[var(--admin-route-gutter-x)]",
       "py-2",

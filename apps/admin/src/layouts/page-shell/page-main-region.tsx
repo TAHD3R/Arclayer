@@ -254,7 +254,7 @@ export function PageMainRegion(props: {
             className={clsx(
               "mb-4",
               stickyHeader &&
-                "sticky top-0 z-20 -mx-[var(--admin-route-gutter-x)] min-h-[var(--page-sticky-header-height,6rem)] bg-background/95 px-[var(--admin-route-gutter-x)] py-2 backdrop-blur supports-[backdrop-filter]:bg-background/88",
+                "sticky top-0 z-20 -mx-[var(--admin-route-gutter-x)] min-h-24 bg-background/95 px-[var(--admin-route-gutter-x)] py-2 backdrop-blur supports-[backdrop-filter]:bg-background/88",
             )}
           >
             {props.title || props.action || paneToggles.length > 0 ? (
