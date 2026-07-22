@@ -7,19 +7,24 @@ from fastapi import APIRouter, Depends, Query
 from src.config import Settings, get_settings
 from src.core.http.pagination import DependsPagination, PageData, PageParams
 from src.core.http.response import ApiResponse, ResponseModel
+from src.modules.ai.agent_catalog_router import router as workspace_agent_catalog_router
+from src.modules.ai.runtime_http_router import router as workspace_ai_runtime_router
 from src.modules.ai.usage_router import router as workspace_usage_router
 from src.modules.analytics.workspaces.router import router as workspace_activity_router
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.commerce.workspace_router import router as workspace_commerce_router
+from src.modules.jobs.router import router as workspace_jobs_router
 from src.modules.observability.workspace_router import router as workspace_observability_router
 from src.modules.system.admin.router import router as workspace_admin_router
 from src.modules.workspaces.api_keys.router import me_api_keys_router
 from src.modules.workspaces.authz.http.service import require_workspace_permission
 from src.modules.workspaces.authz.router import router as workspace_authz_router
 from src.modules.workspaces.danger_service import WorkspaceDangerService
+from src.modules.workspaces.design_systems.router import router as workspace_design_systems_router
 from src.modules.workspaces.extensions.router import router as workspace_extensions_router
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import get_workspace_context, require_workspace_manage_access
+from src.modules.workspaces.knowledge.router import router as workspace_knowledge_router
 from src.modules.workspaces.rbac.router import router as workspace_rbac_router
 from src.modules.workspaces.schema import (
     LeaveWorkspaceRequest,
@@ -37,6 +42,7 @@ from src.modules.workspaces.schema import (
 )
 from src.modules.workspaces.service import WorkspaceService
 from src.modules.workspaces.settings.router import router as workspace_settings_router
+from src.modules.workspaces.skills.router import router as workspace_skills_router
 from src.modules.workspaces.team.router import router as workspace_team_router
 from src.modules.workspaces.uploads_router import router as workspace_uploads_router
 
@@ -50,9 +56,15 @@ router.include_router(workspace_uploads_router)
 router.include_router(workspace_admin_router)
 router.include_router(workspace_activity_router)
 router.include_router(workspace_usage_router)
+router.include_router(workspace_ai_runtime_router)
+router.include_router(workspace_agent_catalog_router)
 router.include_router(workspace_extensions_router)
 router.include_router(workspace_commerce_router)
 router.include_router(workspace_observability_router)
+router.include_router(workspace_jobs_router)
+router.include_router(workspace_knowledge_router)
+router.include_router(workspace_skills_router)
+router.include_router(workspace_design_systems_router)
 
 
 @router.get(

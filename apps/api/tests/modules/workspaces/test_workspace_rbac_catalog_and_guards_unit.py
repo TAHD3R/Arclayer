@@ -7,6 +7,7 @@ from fastapi import APIRouter
 from fastapi.params import Depends
 from fastapi.routing import APIRoute
 
+from src.modules.jobs.router import router as workspace_jobs_router
 from src.modules.organization.rbac.catalog import get_organization_permission_catalog
 from src.modules.projects.api_keys.router import router as project_api_keys_router
 from src.modules.projects.assets.router import router as project_assets_router
@@ -90,6 +91,7 @@ def test_workspace_catalog_includes_content_site_permissions_with_defaults() -> 
         "system:domains:manage": {"owner", "admin"},
         "system:notifications:read": {"owner", "admin", "editor", "designer", "viewer"},
         "system:notifications:manage": {"owner", "admin"},
+        "system:jobs:read": {"owner", "admin", "editor", "designer", "viewer"},
     }
 
     for code, expected_roles in expected_defaults.items():
@@ -143,6 +145,22 @@ def test_workspace_action_catalog_includes_delivery_and_workspace_actions() -> N
     assert registry["release:rollback"].permission_codes == ("system:content:publish",)
     assert "delivery:graphql:read" in registry
     assert registry["delivery:graphql:read"].subject_kinds == ("delivery_api_key",)
+
+
+def test_workspace_jobs_router_uses_granular_read_permission() -> None:
+    expected_routes = {
+        ("GET", "/workspaces/{workspace_id}/jobs"),
+        ("GET", "/workspaces/{workspace_id}/jobs/{job_id}"),
+        ("POST", "/workspaces/{workspace_id}/jobs/{job_id}/cancel"),
+    }
+
+    for method, path in expected_routes:
+        assert _route_permissions(workspace_jobs_router, path=path, method=method) == {"system:jobs:read"}
+        assert "require_workspace_manage_access" in _route_dependency_call_names(
+            workspace_jobs_router,
+            path=path,
+            method=method,
+        )
 
 
 def test_organization_permission_catalog_is_derived_from_unified_registry() -> None:

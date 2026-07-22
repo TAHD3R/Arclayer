@@ -1,0 +1,1 @@
+"""Workspace Skill package authority."""
