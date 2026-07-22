@@ -13,7 +13,7 @@ export const AUTH_PANE_STACK_CLASS = "grid gap-12";
 export const AUTH_PANE_ROOT_CLASS = "grid gap-12";
 export const AUTH_PANE_CONTENT_CLASS = "grid gap-2";
 export const AUTH_FIELD_CLASS = "gap-2";
-export const AUTH_FIELD_TITLE_CLASS = "text-headline text-label-primary";
+export const AUTH_FIELD_TITLE_CLASS = "select-none text-headline text-label-primary";
 export const AUTH_INPUT_GROUP_CLASS = cn(
   "h-10 min-w-0 rounded-md border-border/80 bg-card ",
   "has-[[data-slot=input-group-control]:focus-visible]:border-primary",
@@ -32,7 +32,8 @@ export const AUTH_OTP_SLOT_CLASS = cn(
   "text-callout font-semibold text-label-primary transition-colors",
 );
 export const AUTH_INLINE_NOTICE_CLASS = cn("text-callout text-label-secondary");
-export const AUTH_PANE_META_CLASS = "grid gap-2.5 text-center text-callout text-label-secondary";
+export const AUTH_PANE_META_CLASS =
+  "grid select-none gap-2.5 text-center text-callout text-label-secondary";
 
 export function AuthPaneHeader(props: {
   titleKey: string;

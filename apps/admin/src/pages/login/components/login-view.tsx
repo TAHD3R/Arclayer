@@ -58,6 +58,8 @@ export function LoginView({
   registerLoading = false,
   registerResendLoading = false,
   publicRegisterEnabled = true,
+  invitationRegistration = false,
+  invitationEmail = null,
   challenge,
   onLoginTwoFactorSubmit,
   onCancelTwoFactorChallenge,
@@ -158,6 +160,7 @@ export function LoginView({
                   loading={loginLoading}
                   resendLoading={loginResendLoading}
                   loginSeed={loginSeed}
+                  emailLocked={Boolean(invitationEmail)}
                   redirect={redirect}
                   onForgotPassword={(email) => onModeChange("forgot-password", { email })}
                   onSwitchToEmailCode={(email, _keepSession, passwordLoginAvailable) =>
@@ -203,6 +206,8 @@ export function LoginView({
                   loading={registerLoading}
                   resendLoading={registerResendLoading}
                   registerSeed={registerSeed}
+                  invitationRegistration={invitationRegistration}
+                  emailLocked={Boolean(invitationEmail)}
                   redirect={redirect}
                   pendingOAuthProvider={pendingOAuthProvider}
                   onStartOAuth={onStartOAuth}

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { cloneElement, type AnchorHTMLAttributes, type ReactElement, type ReactNode } from "react";
 import { beforeAll, describe, expect, test, vi } from "vitest";
 
@@ -217,7 +218,8 @@ describe("LoginView auth pane hierarchy", () => {
     expect(screen.queryByText("auth:LEGAL_CONTINUE")).not.toBeInTheDocument();
   });
 
-  test("renders register pane as a single-step form with oauth, intro, and legal copy", () => {
+  test("renders register pane as a single-step form with oauth, intro, and legal copy", async () => {
+    const user = userEvent.setup();
     renderLoginView({ mode: "register" });
 
     expect(screen.queryByRole("link", { name: "Arclayer" })).not.toBeInTheDocument();
@@ -239,11 +241,13 @@ describe("LoginView auth pane hierarchy", () => {
     expect(screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER")).toBeInTheDocument();
     expect(registerIntro).not.toBeNull();
     expect(registerIntro).toHaveClass("text-callout", "text-label-secondary");
+    expect(registerIntro?.parentElement).toHaveClass("select-none");
     expect(registerIntro).toContainElement(signInAction);
     expect(signInAction).toHaveClass("!px-1", "!text-callout", "font-normal");
     expect(legalCopy).toBeInTheDocument();
     expect(submitButton.querySelector("svg")).toBeNull();
     expect(legalText).toHaveClass("text-callout");
+    expect(legalText?.parentElement).toHaveClass("select-none");
     expect(
       oauthSection.compareDocumentPosition(emailField) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
@@ -256,8 +260,17 @@ describe("LoginView auth pane hierarchy", () => {
     expect(
       registerIntro!.compareDocumentPosition(legalCopy) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Terms of Service" })).toHaveClass("px-1");
-    expect(screen.getByRole("button", { name: "Privacy Policy" })).toHaveClass("px-1");
+    const termsButton = screen.getByRole("button", { name: "Terms of Service" });
+    const privacyButton = screen.getByRole("button", { name: "Privacy Policy" });
+    expect(termsButton).toHaveClass("px-1", "text-label-secondary");
+    expect(privacyButton).toHaveClass("px-1", "text-label-secondary");
+    expect(termsButton).not.toHaveClass("text-primary");
+    expect(privacyButton).not.toHaveClass("text-primary");
+    expect(screen.getByText("auth:FIELD_EMAIL_LABEL")).toHaveClass("select-none");
+    expect(screen.getByText("auth:FIELD_PASSWORD_LABEL")).toHaveClass("select-none");
+
+    await user.click(termsButton);
+    expect(document.querySelector("[data-slot='dialog-overlay']")).toHaveClass("backdrop-blur-xs");
   });
 
   test("keeps seeded register mode in a single step", () => {

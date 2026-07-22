@@ -18,7 +18,6 @@ import {
   AUTH_FIELD_CLASS,
   AUTH_INPUT_CLASS,
   AUTH_INPUT_GROUP_CLASS,
-  AUTH_PANE_CONTENT_CLASS,
   AUTH_PANE_META_CLASS,
   AUTH_PANE_ROOT_CLASS,
   AuthButtonLabel,
@@ -39,6 +38,7 @@ type LoginPaneProps = {
   loading: boolean;
   resendLoading: boolean;
   loginSeed?: LoginPaneSeed | null;
+  emailLocked?: boolean;
   redirect?: string;
   pendingOAuthProvider?: string | null;
   onStartOAuth?: (input: { provider: string; startUrl: string; keepSession: boolean }) => void;
@@ -159,7 +159,7 @@ export function LoginPane(props: LoginPaneProps) {
   return (
     <div className={AUTH_PANE_ROOT_CLASS}>
       <AuthPaneHeader titleKey="auth:LOGIN_PAGE_TITLE" variants={variants} />
-      <div className={AUTH_PANE_CONTENT_CLASS}>
+      <div className="grid gap-5">
         <motion.div variants={variants} className="empty:hidden">
           <AuthOauthButtons
             disabled={inactiveControlDisabled}
@@ -174,7 +174,7 @@ export function LoginPane(props: LoginPaneProps) {
             }
           />
         </motion.div>
-        <form onSubmit={handleSubmit} className="grid gap-2" autoComplete="on">
+        <form onSubmit={handleSubmit} className="grid gap-5" autoComplete="on">
           <motion.div variants={variants}>
             <Field className={AUTH_FIELD_CLASS}>
               <FieldContent className="gap-2.5">
@@ -200,7 +200,7 @@ export function LoginPane(props: LoginPaneProps) {
                   inputClassName={AUTH_INPUT_CLASS}
                   placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
                   startIcon={<Mail size={16} />}
-                  disabled={inactiveControlDisabled}
+                  disabled={inactiveControlDisabled || props.emailLocked}
                   spellCheck={false}
                   {...form.register("email")}
                 />
@@ -268,7 +268,7 @@ export function LoginPane(props: LoginPaneProps) {
           </motion.div>
         </form>
         {props.publicRegisterEnabled ? (
-          <div className="grid mt-4 gap-2">
+          <div className="grid gap-2">
             <motion.div variants={variants} className={AUTH_PANE_META_CLASS}>
               <div className="text-callout text-label-secondary">
                 <span>{t("auth:NO_ACCOUNT")} </span>

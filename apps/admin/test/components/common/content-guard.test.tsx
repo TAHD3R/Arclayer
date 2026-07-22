@@ -3,9 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { ApiError } from "@/lib/http";
-import { usePreferencesStore } from "@/stores/use-preference-store";
-import type { IllustrationProps } from "@arclayer/ui/illustrations";
-import type { ComponentType } from "react";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -13,39 +10,11 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@arclayer/ui/illustrations", () => {
-  function createIllustration(label: string): ComponentType<IllustrationProps> {
-    return function MockIllustration(props: IllustrationProps) {
-      return (
-        <div
-          data-testid={label}
-          data-reduced-motion={String(Boolean(props.reducedMotion))}
-          data-class-name={props.className ?? ""}
-        />
-      );
-    };
-  }
-
-  return {
-    Illust401LockedTerminal: createIllustration("illustration-401"),
-    Illust403ForbiddenGateway: createIllustration("illustration-403"),
-    Illust404BrokenLink: createIllustration("illustration-404"),
-    Illust422MalformedPacket: createIllustration("illustration-422"),
-    Illust429OverloadedGauge: createIllustration("illustration-429"),
-    Illust500CrashedServer: createIllustration("illustration-500"),
-    IllustEmptyContainer: createIllustration("illustration-empty"),
-  };
-});
-
 describe("ContentGuard", () => {
-  beforeEach(() => {
-    usePreferencesStore.setState({ reduceMotion: false });
-  });
+  beforeEach(() => vi.clearAllMocks());
 
-  it("passes admin reduced-motion preference into route-guard illustrations", () => {
-    usePreferencesStore.setState({ reduceMotion: true });
-
-    render(
+  it("uses the shared Empty icon treatment instead of custom illustrations", () => {
+    const { container } = render(
       <ContentGuard
         loading={false}
         error={new ApiError({ status: 403, message: "forbidden" })}
@@ -53,7 +22,11 @@ describe("ContentGuard", () => {
       />,
     );
 
-    expect(screen.getByTestId("illustration-403")).toHaveAttribute("data-reduced-motion", "true");
+    expect(container.querySelector("[data-slot='empty-icon']")).toHaveAttribute(
+      "data-variant",
+      "icon",
+    );
+    expect(container.querySelector("[data-slot='empty-icon'] svg")).toBeInTheDocument();
   });
 
   it("supports flush wrapper spacing for full-height page content surfaces", () => {
@@ -68,5 +41,33 @@ describe("ContentGuard", () => {
     const wrapper = container.firstElementChild;
     expect(wrapper).toHaveClass("py-0");
     expect(wrapper).not.toHaveClass("py-10");
+  });
+
+  it("offers reporting for server errors but not authorization errors", () => {
+    const { rerender } = render(
+      <ContentGuard loading={false} error={new ApiError({ status: 403, message: "forbidden" })} />,
+    );
+
+    expect(screen.queryByRole("button", { name: "common:REPORT_PROBLEM" })).not.toBeInTheDocument();
+
+    rerender(
+      <ContentGuard
+        loading={false}
+        error={
+          new ApiError({
+            status: 500,
+            message: "server error",
+            error: "INTERNAL_ERROR",
+            meta: { traceId: "req_456" },
+          })
+        }
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "common:REPORT_PROBLEM" })).toBeVisible();
+    const actions = screen
+      .getByRole("button", { name: "common:REPORT_PROBLEM" })
+      .closest("[data-slot='empty-content']");
+    expect(actions).toHaveClass("flex-row", "flex-wrap");
   });
 });

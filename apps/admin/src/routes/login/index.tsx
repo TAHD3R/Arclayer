@@ -5,6 +5,7 @@ import type { LoginMode } from "@/lib/auth/auth-mode";
 
 type LoginSearch = {
   redirect?: string;
+  invite?: string;
   mode?: LoginMode;
   oauth_code?: string;
   oauth_error?: string;
@@ -33,6 +34,7 @@ export const Route = createFileRoute("/login/")({
     const oauth_code = typeof search.oauth_code === "string" ? search.oauth_code : undefined;
     const oauth_error = typeof search.oauth_error === "string" ? search.oauth_error : undefined;
     const verify_token = typeof search.verify_token === "string" ? search.verify_token : undefined;
+    const invite = typeof search.invite === "string" ? search.invite.trim() : "";
 
     // Never allow redirect to point back to auth pages (prevents recursive /login?redirect=/login?... loops).
     const safeRedirect = (() => {
@@ -44,6 +46,7 @@ export const Route = createFileRoute("/login/")({
 
     return {
       ...(safeRedirect ? { redirect: safeRedirect } : {}),
+      ...(invite ? { invite } : {}),
       mode,
       ...(oauth_code ? { oauth_code } : {}),
       ...(oauth_error ? { oauth_error } : {}),

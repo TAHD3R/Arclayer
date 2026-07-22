@@ -1,15 +1,12 @@
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import { listSSOProviders } from "@/api/auth-sso";
-import { STORAGE_KEYS } from "@/constants/storage";
-import { normalizeOAuthProvider, resolveOAuthProviderMeta } from "@/lib/auth/oauth-provider-meta";
+import { resolveOAuthProviderMeta } from "@/lib/auth/oauth-provider-meta";
 import { notifyErrorText } from "@/lib/notifications";
-import { readStorageItem, writeStorageItem } from "@/lib/storage";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import type { AuthSSOProvider } from "@arclayer/openapi/admin-types";
-import { Badge } from "@arclayer/ui/badge";
 import { Button } from "@arclayer/ui/button";
 import { Separator } from "@arclayer/ui/separator";
 import { cn } from "@arclayer/lib/utils";
@@ -46,10 +43,6 @@ export function AuthOauthButtons({
   const { t } = useTranslation();
   const themeMode = usePreferencesStore((s) => s.themeMode);
   const isDark = themeMode === "dark";
-  const [lastUsedProvider, setLastUsedProvider] = useState(() =>
-    normalizeOAuthProvider(readStorageItem(STORAGE_KEYS.authLastSsoProvider)),
-  );
-
   const providersQuery = useQuery({
     queryKey: ["auth", "sso", "providers", redirect],
     queryFn: async () => listSSOProviders({ redirect }),
@@ -84,15 +77,12 @@ export function AuthOauthButtons({
     key: provider.provider,
     fullLabel: provider.fullLabel,
     icon: provider.icon,
-    isLastUsed: provider.provider === lastUsedProvider,
     isLoading: provider.provider === loadingProvider,
     onClick: () => {
       if (!provider.startUrl) {
         notifyErrorText(t("auth:OAUTH_ERROR_GENERIC"));
         return;
       }
-      writeStorageItem(STORAGE_KEYS.authLastSsoProvider, provider.provider);
-      setLastUsedProvider(provider.provider);
       if (onProviderStart) {
         onProviderStart({
           provider: provider.provider,
@@ -111,14 +101,13 @@ export function AuthOauthButtons({
 
   const isBusy = disabled || (showProviders && providersQuery.isLoading);
   const isSingleInlineLeadingAction = inlineLeadingActions.length === 1;
-  const lastUsedLabel = t("auth:OAUTH_LAST_USED");
   const dividerSpacingClassName = dividerPlacement === "after" ? "pt-3" : "py-2";
   const divider = (
     <div
       className={`flex items-center gap-3 text-footnote text-label-secondary ${dividerSpacingClassName}`}
     >
       <Separator className="flex-1" />
-      <span className="shrink-0">{t(dividerLabelKey)}</span>
+      <span className="shrink-0 select-none">{t(dividerLabelKey)}</span>
       <Separator className="flex-1" />
     </div>
   );
@@ -128,14 +117,6 @@ export function AuthOauthButtons({
 
     return (
       <>
-        {action.isLastUsed ? (
-          <Badge
-            variant="outline"
-            className="pointer-events-none absolute -top-2 right-2 border-primary/20 bg-popover px-1.5 font-semibold text-primary"
-          >
-            {lastUsedLabel}
-          </Badge>
-        ) : null}
         {action.icon ? (
           <span className="inline-flex shrink-0 items-center justify-center self-center">
             {action.icon}
@@ -213,7 +194,7 @@ export function AuthOauthButtons({
           {providerActions.map((action) => (
             <Button
               key={action.key}
-              className="relative h-10 w-full justify-center rounded-md  px-4 "
+              className="h-10 w-full justify-center rounded-md px-4"
               variant="outline"
               size="lg"
               disabled={isBusy || action.isLoading}

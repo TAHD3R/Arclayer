@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
@@ -15,25 +15,20 @@ import {
   notifySuccessText,
 } from "@/lib/notifications";
 import { ApiError } from "@/lib/http";
-import { queryClient } from "@/lib/query/query-client-instance";
 
 import { formatInvitationExpiresRelative, resolveRoleText } from "../utils";
-import type { WizardStep, JoinMode } from "../types";
+import type { WizardStep } from "../types";
 
 export function useAcceptInvite(rawToken: string | null) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const accessToken = useAuthStore((s) => s.accessToken);
-  const keepSession = useAuthStore((s) => s.keepSession);
-  const applyLogin = useAuthStore((s) => s.applyLogin);
   const clearAuth = useAuthStore((s) => s.clear);
   const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
   const setCurrentProjectId = useWorkspaceStore((s) => s.setCurrentProjectId);
   const clearWorkspace = useWorkspaceStore((s) => s.clearWorkspace);
 
   const [step, setStep] = useState<WizardStep>(0);
-  const [mode, setMode] = useState<JoinMode>("login");
-  const modeInitializedRef = useRef(false);
   const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -43,7 +38,6 @@ export function useAcceptInvite(rawToken: string | null) {
 
   useEffect(() => {
     setStep(0);
-    modeInitializedRef.current = false;
   }, [token]);
 
   const previewQuery = useQuery({
@@ -65,47 +59,6 @@ export function useAcceptInvite(rawToken: string | null) {
   const acceptExistingMutation = useMutation({
     mutationFn: async () => invitationApi.acceptExistingInvitation(token),
   });
-
-  const registerAcceptMutation = useMutation({
-    mutationFn: async (payload: {
-      email?: string;
-      username: string;
-      displayName?: string;
-      password: string;
-      confirmPassword: string;
-    }) =>
-      invitationApi.acceptInvitation({
-        token,
-        email: payload.email,
-        username: payload.username,
-        password: payload.password,
-        confirmPassword: payload.confirmPassword,
-        displayName: payload.displayName,
-      }),
-  });
-
-  const loginMutation = useMutation({
-    mutationFn: async (payload: { password: string }) => {
-      const email = previewQuery.data?.invitation.email || "";
-      return authApi.login({ email, password: payload.password });
-    },
-  });
-
-  const forgotPasswordMutation = useMutation({
-    mutationFn: async () => {
-      const email = previewQuery.data?.invitation.email || "";
-      return authApi.forgotPassword({ email });
-    },
-  });
-
-  // --- Mode initialization ---
-
-  useEffect(() => {
-    if (modeInitializedRef.current) return;
-    if (!previewQuery.data) return;
-    modeInitializedRef.current = true;
-    setMode(previewQuery.data.userExists ? "login" : "register");
-  }, [previewQuery.data]);
 
   // --- Computed values ---
 
@@ -159,7 +112,16 @@ export function useAcceptInvite(rawToken: string | null) {
 
   const onBackToLogin = async () => {
     const redirect = token ? `/invitations?token=${encodeURIComponent(token)}` : undefined;
-    await navigate({ to: "/login", search: redirect ? { redirect } : undefined, replace: true });
+    const mode = previewQuery.data?.userExists === false ? "register" : "login";
+    await navigate({
+      to: "/login",
+      search: {
+        ...(redirect ? { redirect } : {}),
+        ...(token ? { invite: token } : {}),
+        mode,
+      },
+      replace: true,
+    });
   };
 
   const applyToken = async (nextToken: string) => {
@@ -168,8 +130,12 @@ export function useAcceptInvite(rawToken: string | null) {
     await navigate({ to: "/invitations", search: { token: trimmed }, replace: true });
   };
 
-  const onContinue = () => {
+  const onContinue = async () => {
     if (previewQuery.isError || !previewQuery.data) return;
+    if (!isLoggedIn) {
+      await onBackToLogin();
+      return;
+    }
     setStep(1);
   };
 
@@ -226,82 +192,11 @@ export function useAcceptInvite(rawToken: string | null) {
     }
   };
 
-  const onLoginAndJoin = async (values: { password: string; keepSession: boolean }) => {
-    if (!previewQuery.data) return;
-    if (!previewQuery.data.invitation.email) {
-      await onBackToLogin();
-      return;
-    }
-    try {
-      const tokens = await loginMutation.mutateAsync({ password: values.password });
-      applyLogin(tokens, { keepSession: values.keepSession });
-      void queryClient.cancelQueries();
-      queryClient.clear();
-      const accepted = await acceptExistingMutation.mutateAsync();
-      await applyJoinedWorkspace({
-        workspaceId: accepted.workspaceId,
-        projectId: accepted.projectId,
-      });
-    } catch (err) {
-      if (err instanceof ApiError && err.error === "INVITE_EMAIL_DOMAIN_FORBIDDEN") {
-        notifyErrorText(t("invite:INVITE_EMAIL_DOMAIN_FORBIDDEN"));
-      } else {
-        notifyError(err);
-      }
-    }
-  };
-
-  const onRegisterAndJoin = async (values: {
-    email?: string;
-    username: string;
-    displayName?: string;
-    password: string;
-    confirmPassword: string;
-  }) => {
-    if (!previewQuery.data) return;
-    try {
-      const tokens = await registerAcceptMutation.mutateAsync(values);
-      applyLogin(tokens, { keepSession: true });
-      void queryClient.cancelQueries();
-      queryClient.clear();
-      if (!previewQuery.data.workspace) return;
-      await applyJoinedWorkspace({
-        workspaceId: previewQuery.data.workspace.id,
-      });
-    } catch (err) {
-      if (err instanceof ApiError && err.error === "EMAIL_EXISTS") {
-        notifyErrorText(t("invite:INVITE_EMAIL_EXISTS_SWITCH_TO_LOGIN"));
-        setMode("login");
-        setStep(1);
-        return;
-      }
-      if (err instanceof ApiError && err.error === "INVITE_EMAIL_DOMAIN_FORBIDDEN") {
-        notifyErrorText(t("invite:INVITE_EMAIL_DOMAIN_FORBIDDEN"));
-        return;
-      }
-      notifyError(err);
-    }
-  };
-
-  const onForgotPassword = async () => {
-    try {
-      const payload = await forgotPasswordMutation.mutateAsync();
-      notifySuccessText(t("auth:RESET_SENT"));
-      if (payload?.reset_token) {
-        void navigate({ to: "/reset-password", search: { token: payload.reset_token } });
-      }
-    } catch (err) {
-      notifyError(err);
-    }
-  };
-
   return {
     t,
     token,
     step,
     setStep,
-    mode,
-    setMode,
     tokenDialogOpen,
     setTokenDialogOpen,
     confirmOpen,
@@ -309,9 +204,6 @@ export function useAcceptInvite(rawToken: string | null) {
     previewQuery,
     meQuery,
     acceptExistingMutation,
-    registerAcceptMutation,
-    loginMutation,
-    forgotPasswordMutation,
     targetName,
     inviteBusinessFailure,
     inviterLabel,
@@ -322,15 +214,11 @@ export function useAcceptInvite(rawToken: string | null) {
     hasBoundEmail,
     myEmail,
     emailMatches,
-    keepSession,
     onBackToLogin,
     applyToken,
     onContinue,
     onLogoutAndSwitch,
     joinAsExistingLoggedIn,
     handleConfirmJoin,
-    onLoginAndJoin,
-    onRegisterAndJoin,
-    onForgotPassword,
   };
 }

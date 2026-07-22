@@ -18,6 +18,12 @@ import {
 } from "@/api/workspaces";
 import { OnboardingLayout } from "@/layouts/onboarding-layout";
 import { uploadSingleAssetFromFile } from "@/lib/assets/scoped-uploads";
+import {
+  AssetUploadCleanupError,
+  completeAssetUpload,
+  getAssetUploadCompletionCheckpoint,
+  type AssetUploadCompletionCheckpoint,
+} from "@/lib/assets/upload-completion";
 import { DEFAULT_LOCALE, detectBrowserLocale, normalizeLocale } from "@/lib/i18n";
 import { DEFAULT_DATE_FORMAT, DEFAULT_TIMEZONE } from "@/lib/time/datetime-config";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
@@ -67,6 +73,11 @@ const CREATE_WORKSPACE_STEPS: readonly WelcomeOnboardingStepId[] = [
   "teamType",
   "heardAboutUs",
 ];
+const INVITATION_STEPS: readonly WelcomeOnboardingStepId[] = [
+  "profile",
+  "teamType",
+  "heardAboutUs",
+];
 
 function getBrowserTimeZone() {
   try {
@@ -112,18 +123,32 @@ function hasDryRunSearch(search: { dryRun?: unknown }): boolean {
 }
 
 export function WelcomeOnboardingPage() {
-  const { t } = useTranslation(["onboarding", "common", "assets"]);
+  const { t } = useTranslation(["onboarding", "common", "assets", "account"]);
   const navigate = useNavigate();
-  const search = useSearch({ strict: false }) as { dryRun?: "1"; mode?: "create-workspace" };
+  const search = useSearch({ strict: false }) as {
+    dryRun?: "1";
+    mode?: "create-workspace" | "invitation";
+    redirect?: string;
+  };
   const queryClient = useQueryClient();
   const reduceMotion = usePreferencesStore((state) => state.reduceMotion);
   const setCurrentContext = useWorkspaceStore((state) => state.setCurrentContext);
   const browserTimezone = useMemo(() => getBrowserTimeZone(), []);
   const mode: WelcomeMode = import.meta.env.DEV && hasDryRunSearch(search) ? "dry-run" : "real";
   const isDryRun = mode === "dry-run";
-  const flowMode: OnboardingFlowMode =
-    !isDryRun && search.mode === "create-workspace" ? "create-workspace" : "first-run";
-  const visibleSteps = flowMode === "create-workspace" ? CREATE_WORKSPACE_STEPS : FIRST_RUN_STEPS;
+  const flowMode: OnboardingFlowMode = !isDryRun
+    ? search.mode === "create-workspace"
+      ? "create-workspace"
+      : search.mode === "invitation"
+        ? "invitation"
+        : "first-run"
+    : "first-run";
+  const visibleSteps =
+    flowMode === "create-workspace"
+      ? CREATE_WORKSPACE_STEPS
+      : flowMode === "invitation"
+        ? INVITATION_STEPS
+        : FIRST_RUN_STEPS;
 
   const [step, setStep] = useState<WelcomeOnboardingStepId>(() =>
     flowMode === "create-workspace" ? "workspace" : "profile",
@@ -159,6 +184,8 @@ export function WelcomeOnboardingPage() {
   const [selectedTeamType, setSelectedTeamType] = useState<string | null>(null);
   const [selectedHeardAboutUs, setSelectedHeardAboutUs] = useState<string | null>(null);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
+  const [avatarCompletionCheckpoint, setAvatarCompletionCheckpoint] =
+    useState<AssetUploadCompletionCheckpoint | null>(null);
   const [workspaceIconPreviewUrl, setWorkspaceIconPreviewUrl] = useState<string | null>(null);
   const [workspaceIconFile, setWorkspaceIconFile] = useState<File | null>(null);
   const [workspaceNameTouched, setWorkspaceNameTouched] = useState(false);
@@ -169,7 +196,7 @@ export function WelcomeOnboardingPage() {
   const workspacesQuery = useQuery({
     queryKey: ["me", "workspaces", "welcome-onboarding"],
     queryFn: listMyWorkspaces,
-    enabled: !isDryRun && flowMode === "first-run",
+    enabled: !isDryRun && flowMode !== "create-workspace",
     retry: false,
     meta: { silent: true },
   });
@@ -183,7 +210,7 @@ export function WelcomeOnboardingPage() {
   const onboardingProfileQuery = useQuery({
     queryKey: ["me", "onboarding-profile", "welcome-onboarding"],
     queryFn: authApi.getMyOnboardingProfile,
-    enabled: !isDryRun && flowMode === "first-run",
+    enabled: !isDryRun && flowMode !== "create-workspace",
     retry: false,
     meta: { silent: true },
   });
@@ -396,16 +423,37 @@ export function WelcomeOnboardingPage() {
 
   const avatarUploadMutation = useMutation({
     mutationFn: async (file: File) => uploadAvatarFile(file),
-    onSuccess: async (assetId) => {
-      const updated = await authApi.updateMyProfile({ avatarAssetId: assetId });
-      setProfileDraft((current) => ({
-        ...current,
-        avatarUrl: updated.avatarUrl ?? updated.avatar_url ?? current.avatarUrl,
-        avatarAssetId: updated.avatarAssetId ?? updated.avatar_asset_id ?? assetId,
-      }));
-    },
-    onError: notifyError,
+    onSuccess: persistCompletedAvatar,
+    onError: handleAvatarUploadError,
   });
+  const avatarCompletionMutation = useMutation({
+    mutationFn: completeAssetUpload,
+    onSuccess: persistCompletedAvatar,
+    onError: handleAvatarUploadError,
+  });
+
+  async function persistCompletedAvatar(assetId: string) {
+    const updated = await authApi.updateMyProfile({ avatarAssetId: assetId });
+    setProfileDraft((current) => ({
+      ...current,
+      avatarUrl: updated.avatarUrl ?? updated.avatar_url ?? current.avatarUrl,
+      avatarAssetId: updated.avatarAssetId ?? updated.avatar_asset_id ?? assetId,
+    }));
+    setAvatarCompletionCheckpoint(null);
+  }
+
+  function handleAvatarUploadError(error: unknown) {
+    const checkpoint = getAssetUploadCompletionCheckpoint(error);
+    if (checkpoint) {
+      setAvatarCompletionCheckpoint(checkpoint);
+      return;
+    }
+    if (error instanceof AssetUploadCleanupError) {
+      notifyError(new Error(t("account:ME_PROFILE_AVATAR_CLEANUP_FAILED"), { cause: error }));
+      return;
+    }
+    notifyError(error);
+  }
 
   const submitStepMutation = useMutation({
     mutationFn: async () => {
@@ -631,6 +679,17 @@ export function WelcomeOnboardingPage() {
     await navigate({ to: projectsHomePath() as never, replace: true });
   }
 
+  async function completeInvitationFlow() {
+    await authApi.patchMyOnboardingProfile({
+      heard_about_us: selectedHeardAboutUs,
+    });
+    await invalidateWorkspaceQueries();
+    await navigate({
+      to: (search.redirect || projectsHomePath()) as never,
+      replace: true,
+    });
+  }
+
   async function submitCustomizeStep() {
     if (step === "teamType") {
       goNextStep();
@@ -645,6 +704,11 @@ export function WelcomeOnboardingPage() {
 
     if (flowMode === "create-workspace") {
       await completeCreateWorkspaceFlow();
+      return;
+    }
+
+    if (flowMode === "invitation") {
+      await completeInvitationFlow();
       return;
     }
 
@@ -696,7 +760,14 @@ export function WelcomeOnboardingPage() {
   const handleAvatarFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.currentTarget.value = "";
-    if (!file) return;
+    if (
+      !file ||
+      avatarCompletionCheckpoint ||
+      avatarUploadMutation.isPending ||
+      avatarCompletionMutation.isPending
+    ) {
+      return;
+    }
 
     if (isDryRun) {
       if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
@@ -707,6 +778,12 @@ export function WelcomeOnboardingPage() {
     }
 
     avatarUploadMutation.mutate(file);
+  };
+
+  const handleContinueAvatarCompletion = () => {
+    const checkpoint = avatarCompletionCheckpoint;
+    if (!checkpoint || avatarCompletionMutation.isPending) return;
+    avatarCompletionMutation.mutate(checkpoint);
   };
 
   const handleWorkspaceIconFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -729,18 +806,25 @@ export function WelcomeOnboardingPage() {
     !isDryRun &&
     (workspacesQuery.isLoading ||
       profileQuery.isLoading ||
-      (flowMode === "first-run" && onboardingProfileQuery.isLoading));
+      (flowMode !== "create-workspace" && onboardingProfileQuery.isLoading));
   const isError =
     !isDryRun &&
     (workspacesQuery.isError ||
       profileQuery.isError ||
-      (flowMode === "first-run" && onboardingProfileQuery.isError));
-  const isPending = submitStepMutation.isPending || avatarUploadMutation.isPending;
+      (flowMode !== "create-workspace" && onboardingProfileQuery.isError));
+  const isPending =
+    submitStepMutation.isPending ||
+    avatarUploadMutation.isPending ||
+    avatarCompletionMutation.isPending;
   const finalButtonLabel =
     step === "team"
       ? t("onboarding:WELCOME_INVITE_MEMBERS")
       : step === "heardAboutUs"
-        ? t("onboarding:WELCOME_FINAL_CTA")
+        ? t(
+            flowMode === "invitation"
+              ? "onboarding:WELCOME_INVITATION_FINAL_CTA"
+              : "onboarding:WELCOME_FINAL_CTA",
+          )
         : t("onboarding:WELCOME_CONTINUE");
   const isQuestionnaireStep = step === "teamType" || step === "heardAboutUs";
   const contentMaxClassName = isQuestionnaireStep ? "max-w-4xl" : "max-w-xl";
@@ -790,6 +874,8 @@ export function WelcomeOnboardingPage() {
         accept="image/*"
         className="hidden"
         tabIndex={-1}
+        aria-label={t("account:ME_PROFILE_AVATAR_CHANGE")}
+        disabled={isPending || Boolean(avatarCompletionCheckpoint)}
         onChange={handleAvatarFileChange}
       />
       <input
@@ -822,7 +908,9 @@ export function WelcomeOnboardingPage() {
                 jobRoleOptions={jobRoleOptions}
                 companySizeOptions={companySizeOptions}
                 displayNameError={displayNameError}
-                avatarBusy={avatarUploadMutation.isPending}
+                avatarBusy={avatarUploadMutation.isPending || avatarCompletionMutation.isPending}
+                avatarCompletionRequired={Boolean(avatarCompletionCheckpoint)}
+                avatarCompletionBusy={avatarCompletionMutation.isPending}
                 onDisplayNameChange={(displayName) =>
                   setProfileDraft((current) => ({ ...current, displayName }))
                 }
@@ -836,6 +924,7 @@ export function WelcomeOnboardingPage() {
                   setProfileDraft((current) => ({ ...current, subscribedProductUpdates }))
                 }
                 onPickAvatar={() => avatarFileInputRef.current?.click()}
+                onContinueAvatarCompletion={handleContinueAvatarCompletion}
                 onRemoveAvatar={() => {
                   if (isDryRun) {
                     setProfileDraft((current) => ({ ...current, avatarUrl: null }));
@@ -920,7 +1009,11 @@ export function WelcomeOnboardingPage() {
                 variant={isQuestionnaireStep ? "ghost" : "default"}
                 className="h-11 px-4"
                 loading={isPending}
-                disabled={(step === "profile" && isProfileStepDisabled) || isPending}
+                disabled={
+                  (step === "profile" &&
+                    (isProfileStepDisabled || Boolean(avatarCompletionCheckpoint))) ||
+                  isPending
+                }
                 onClick={() => submitStepMutation.mutate()}
               >
                 {finalButtonLabel}

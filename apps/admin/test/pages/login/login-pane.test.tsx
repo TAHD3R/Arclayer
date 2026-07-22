@@ -73,7 +73,7 @@ describe("LoginPane oauth section", () => {
     const oauthWrapper = container.querySelector(".empty\\:hidden");
     const contentGroup = oauthWrapper?.parentElement;
     expect(oauthWrapper).toHaveClass("empty:hidden");
-    expect(contentGroup).toHaveClass("grid", "gap-2");
+    expect(contentGroup).toHaveClass("grid", "gap-5");
     expect(contentGroup?.parentElement).toHaveClass("grid", "gap-12");
     expect(screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER")).toBeInTheDocument();
     expect(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL")).toBeInTheDocument();
@@ -84,6 +84,14 @@ describe("LoginPane oauth section", () => {
       screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_ACTION" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "auth:FORGOT_PASSWORD" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "auth:FORGOT_PASSWORD" })).toHaveAttribute(
+      "data-variant",
+      "ghost",
+    );
+    expect(screen.getByRole("button", { name: "auth:FORGOT_PASSWORD" })).toHaveClass(
+      "text-label-secondary",
+      "hover:bg-transparent",
+    );
     expect(screen.getByRole("button", { name: "auth:LOGIN_BUTTON" })).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" }),

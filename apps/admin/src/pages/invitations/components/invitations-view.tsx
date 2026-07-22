@@ -10,10 +10,8 @@ import { Card } from "@arclayer/ui/card";
 import { InviteTokenInputDialog } from "./invite-token-input-dialog";
 
 import { useAcceptInvite } from "../hooks/use-accept-invite";
-import type { JoinMode } from "../types";
 import { InvitePreviewPane } from "./invite-preview-pane";
 import { InviteLoggedInPane } from "./invite-logged-in-pane";
-import { InviteGuestJoinPane } from "./invite-guest-join-pane";
 import { InviteConfirmJoinDialog } from "./invite-confirm-join-dialog";
 
 export function InvitationsView(props: { token: string | null }) {
@@ -21,12 +19,6 @@ export function InvitationsView(props: { token: string | null }) {
   const reducedMotion = usePrefersReducedMotion();
 
   const prevStepRef = useRef(state.step);
-  const prevJoinModeRef = useRef<JoinMode>(state.mode);
-
-  const modeDirection =
-    state.mode === prevJoinModeRef.current ? 0 : state.mode === "register" ? 1 : -1;
-  const modeEnterX = modeDirection > 0 ? 8 : modeDirection < 0 ? -8 : 0;
-  const modeExitX = modeDirection > 0 ? -8 : modeDirection < 0 ? 8 : 0;
 
   const stepDirection =
     state.step === prevStepRef.current ? 0 : state.step > prevStepRef.current ? 1 : -1;
@@ -36,9 +28,6 @@ export function InvitationsView(props: { token: string | null }) {
   useEffect(() => {
     prevStepRef.current = state.step;
   }, [state.step]);
-  useEffect(() => {
-    prevJoinModeRef.current = state.mode;
-  }, [state.mode]);
 
   const transition = reducedMotion
     ? ({ duration: 0.01 } as const)
@@ -176,53 +165,25 @@ export function InvitationsView(props: { token: string | null }) {
                       />
                     ) : null,
                   )
-                : state.isLoggedIn
-                  ? renderGuarded(
-                      joinLoading,
-                      state.previewQuery.data?.workspace ? (
-                        <InviteLoggedInPane
-                          t={state.t}
-                          data={state.previewQuery.data}
-                          meEmail={state.meQuery.data?.email}
-                          targetName={state.targetName}
-                          roleResolved={state.roleResolved}
-                          hasBoundEmail={state.hasBoundEmail}
-                          emailMatches={state.emailMatches}
-                          acceptLoading={state.acceptExistingMutation.isPending}
-                          onJoin={state.joinAsExistingLoggedIn}
-                          onLogoutAndSwitch={state.onLogoutAndSwitch}
-                          v={v}
-                          staggerContainer={staggerContainer}
-                        />
-                      ) : null,
-                    )
-                  : renderGuarded(
-                      state.previewQuery.isLoading,
-                      state.previewQuery.data?.workspace ? (
-                        <InviteGuestJoinPane
-                          t={state.t}
-                          mode={state.mode}
-                          setMode={state.setMode}
-                          onBack={() => state.setStep(0)}
-                          reducedMotion={reducedMotion}
-                          previewData={state.previewQuery.data}
-                          hasBoundEmail={state.hasBoundEmail}
-                          keepSession={state.keepSession}
-                          loginLoading={
-                            state.loginMutation.isPending || state.acceptExistingMutation.isPending
-                          }
-                          registerLoading={state.registerAcceptMutation.isPending}
-                          forgotLoading={state.forgotPasswordMutation.isPending}
-                          onLoginAndJoin={state.onLoginAndJoin}
-                          onRegisterAndJoin={state.onRegisterAndJoin}
-                          onForgotPassword={state.onForgotPassword}
-                          onBackToLogin={state.onBackToLogin}
-                          v={v}
-                          modeEnterX={modeEnterX}
-                          modeExitX={modeExitX}
-                        />
-                      ) : null,
-                    )}
+                : renderGuarded(
+                    joinLoading,
+                    state.isLoggedIn && state.previewQuery.data?.workspace ? (
+                      <InviteLoggedInPane
+                        t={state.t}
+                        data={state.previewQuery.data}
+                        meEmail={state.meQuery.data?.email}
+                        targetName={state.targetName}
+                        roleResolved={state.roleResolved}
+                        hasBoundEmail={state.hasBoundEmail}
+                        emailMatches={state.emailMatches}
+                        acceptLoading={state.acceptExistingMutation.isPending}
+                        onJoin={state.joinAsExistingLoggedIn}
+                        onLogoutAndSwitch={state.onLogoutAndSwitch}
+                        v={v}
+                        staggerContainer={staggerContainer}
+                      />
+                    ) : null,
+                  )}
             </div>
           </motion.div>
         </AnimatePresence>

@@ -1,4 +1,4 @@
-import { Lock, Mail } from "lucide-react";
+import { Lock, Mail, UserRound } from "lucide-react";
 import { motion, type Variants } from "motion/react";
 import type { FormEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -39,6 +39,8 @@ type RegisterPaneProps = {
   resendLoading: boolean;
   redirect?: string;
   registerSeed?: RegisterPaneSeed | null;
+  invitationRegistration?: boolean;
+  emailLocked?: boolean;
   pendingOAuthProvider?: string | null;
   onStartOAuth?: (input: { provider: string; startUrl: string; keepSession: boolean }) => void;
   onSwitchToLogin: (email?: string, step?: "password") => void;
@@ -72,20 +74,46 @@ export function RegisterPane(props: RegisterPaneProps) {
   const [emailExists, setEmailExists] = useState(false);
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(
-      z.object({
-        email: z
-          .string()
-          .min(1, t("auth:VALIDATION_EMAIL_REQUIRED"))
-          .email(t("auth:VALIDATION_EMAIL_INVALID")),
-        password: z
-          .string()
-          .min(1, t("auth:VALIDATION_PASSWORD_REQUIRED"))
-          .regex(PASSWORD_PATTERN, t("auth:PASSWORD_INVALID")),
-      }),
+      z
+        .object({
+          email: z
+            .string()
+            .min(1, t("auth:VALIDATION_EMAIL_REQUIRED"))
+            .email(t("auth:VALIDATION_EMAIL_INVALID")),
+          password: z
+            .string()
+            .min(1, t("auth:VALIDATION_PASSWORD_REQUIRED"))
+            .regex(PASSWORD_PATTERN, t("auth:PASSWORD_INVALID")),
+          username: z.string().optional(),
+        })
+        .superRefine((value, context) => {
+          if (!props.invitationRegistration) return;
+          const username = value.username?.trim() ?? "";
+          if (!username) {
+            context.addIssue({
+              code: "custom",
+              path: ["username"],
+              message: t("auth:VALIDATION_USERNAME_REQUIRED"),
+            });
+            return;
+          }
+          if (
+            username.length < 6 ||
+            username.length > 18 ||
+            !/^[a-zA-Z0-9_\u4e00-\u9fa5]+$/.test(username)
+          ) {
+            context.addIssue({
+              code: "custom",
+              path: ["username"],
+              message: t("auth:VALIDATION_INVITE_USERNAME_INVALID"),
+            });
+          }
+        }),
     ),
     defaultValues: {
       email: "",
       password: "",
+      username: "",
     },
     mode: "onSubmit",
   });
@@ -103,6 +131,7 @@ export function RegisterPane(props: RegisterPaneProps) {
     resetRef.current({
       email: seedEmail,
       password: "",
+      username: "",
     });
     setEmailExists(false);
   }, [seedEmail]);
@@ -112,6 +141,7 @@ export function RegisterPane(props: RegisterPaneProps) {
     resetRef.current({
       email: props.verification.email,
       password: "",
+      username: "",
     });
   }, [props.verification]);
 
@@ -126,7 +156,14 @@ export function RegisterPane(props: RegisterPaneProps) {
       setEmailExists(true);
       return;
     }
-    await props.onSubmit(values);
+    await props.onSubmit(
+      props.invitationRegistration
+        ? values
+        : {
+            email: values.email,
+            password: values.password,
+          },
+    );
   });
 
   const resendVerification = async () => {
@@ -181,7 +218,7 @@ export function RegisterPane(props: RegisterPaneProps) {
                   inputClassName={AUTH_INPUT_CLASS}
                   placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
                   startIcon={<Mail size={16} />}
-                  disabled={busy || isVerificationPending}
+                  disabled={busy || isVerificationPending || props.emailLocked}
                   spellCheck={false}
                   {...form.register("email")}
                 />
@@ -216,6 +253,31 @@ export function RegisterPane(props: RegisterPaneProps) {
 
           {isVerificationPending ? null : (
             <>
+              {props.invitationRegistration ? (
+                <RegisterField
+                  title={t("auth:FIELD_USERNAME_LABEL")}
+                  helpText={t("auth:FIELD_USERNAME_HELP")}
+                  error={
+                    form.formState.errors.username?.message
+                      ? String(form.formState.errors.username.message)
+                      : undefined
+                  }
+                  variants={variants}
+                >
+                  <AuthInputControl
+                    autoComplete="username"
+                    aria-label={t("auth:FIELD_USERNAME_LABEL")}
+                    aria-invalid={form.formState.errors.username ? true : undefined}
+                    className={AUTH_INPUT_GROUP_CLASS}
+                    inputClassName={AUTH_INPUT_CLASS}
+                    placeholder={t("auth:FIELD_USERNAME_PLACEHOLDER")}
+                    startIcon={<UserRound size={16} />}
+                    disabled={busy}
+                    spellCheck={false}
+                    {...form.register("username")}
+                  />
+                </RegisterField>
+              ) : null}
               <RegisterField
                 title={t("auth:FIELD_PASSWORD_LABEL")}
                 error={

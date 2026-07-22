@@ -150,4 +150,52 @@ describe("welcome onboarding route guard", () => {
     expect(resolvePostAuthRouteMock).not.toHaveBeenCalled();
     expect(redirectMock).not.toHaveBeenCalledWith({ to: "/welcome" });
   });
+
+  it("keeps invitation onboarding local after auth without consuming its redirect", async () => {
+    routeState.pathname = "/welcome";
+    redirectMock.mockClear();
+    resolvePostAuthRouteMock.mockClear();
+
+    await expect(
+      rootRouteConfig.beforeLoad({
+        location: {
+          pathname: "/welcome",
+          searchStr: "?mode=invitation&redirect=%2Fprojects%2Fproject-invite",
+          search: { mode: "invitation", redirect: "/projects/project-invite" },
+        },
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(resolvePostAuthRouteMock).not.toHaveBeenCalled();
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  it("preserves the original destination when login must continue through onboarding", async () => {
+    routeState.pathname = "/login";
+    redirectMock.mockClear();
+    resolvePostAuthRouteMock.mockResolvedValueOnce({
+      path: "/welcome",
+      workspaceId: null,
+      projectId: null,
+      onboardingRequired: true,
+    });
+
+    await expect(
+      rootRouteConfig.beforeLoad({
+        location: {
+          pathname: "/login",
+          searchStr: "?redirect=%2Fprojects%2Fproject-invite",
+          search: { redirect: "/projects/project-invite" },
+        },
+      }),
+    ).rejects.toEqual({
+      to: "/welcome",
+      search: { redirect: "/projects/project-invite" },
+    });
+
+    expect(redirectMock).toHaveBeenCalledWith({
+      to: "/welcome",
+      search: { redirect: "/projects/project-invite" },
+    });
+  });
 });

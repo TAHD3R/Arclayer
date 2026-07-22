@@ -40,6 +40,7 @@ export interface LoginEmailLookupResult {
 export interface RegisterFormValues {
   email: string;
   password: string;
+  username?: string;
 }
 
 export interface RegisterEmailVerificationState {
@@ -114,6 +115,8 @@ export interface LoginViewProps {
   registerLoading?: boolean;
   registerResendLoading?: boolean;
   publicRegisterEnabled?: boolean;
+  invitationRegistration?: boolean;
+  invitationEmail?: string | null;
   challenge: AuthChallengeSnapshot | null;
   onLoginTwoFactorSubmit: (values: LoginTwoFactorFormValues) => Promise<void>;
   onCancelTwoFactorChallenge: () => void;

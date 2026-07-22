@@ -7,7 +7,7 @@ export type WelcomeOnboardingStepId =
   | "teamType"
   | "heardAboutUs";
 export type WelcomeOnboardingStep = WelcomeOnboardingStepId;
-export type OnboardingFlowMode = "first-run" | "create-workspace";
+export type OnboardingFlowMode = "first-run" | "create-workspace" | "invitation";
 export type WelcomeMode = "real" | "dry-run";
 
 export type RoleOption = {

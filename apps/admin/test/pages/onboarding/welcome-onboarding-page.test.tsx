@@ -3,7 +3,12 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import {
+  AssetUploadCompletionRequiredError,
+  createAssetUploadCompletionCheckpoint,
+} from "@/lib/assets/upload-completion";
 import { WelcomeOnboardingPage } from "@/pages/onboarding/welcome/page";
+import { uploadAvatarFile } from "@/pages/usercenter/profile/lib/avatar-upload";
 
 const {
   navigateMock,
@@ -27,7 +32,8 @@ const {
   navigateMock: vi.fn(),
   searchState: {
     dryRun: "1" as "1" | undefined,
-    mode: undefined as "create-workspace" | undefined,
+    mode: undefined as "create-workspace" | "invitation" | undefined,
+    redirect: undefined as string | undefined,
   },
   listMyWorkspacesMock: vi.fn(),
   createWorkspaceMock: vi.fn(),
@@ -148,6 +154,7 @@ const translate = (key: string) => {
       WELCOME_STEP_CUSTOMIZE_TITLE: "Help us customize your workspace",
       WELCOME_CONTINUE: "Continue",
       WELCOME_FINAL_CTA: "Start building",
+      WELCOME_INVITATION_FINAL_CTA: "Enter workspace",
       WELCOME_PROFILE_DISPLAY_NAME_LABEL: "Display name",
       WELCOME_PROFILE_DISPLAY_NAME_PLACEHOLDER: "Your name",
       WELCOME_PROFILE_DISPLAY_NAME_REQUIRED: "Enter a display name.",
@@ -230,6 +237,9 @@ const translate = (key: string) => {
       ME_PROFILE_DISPLAY_NAME_TITLE: "Display name",
       ME_PROFILE_DISPLAY_NAME_PLACEHOLDER: "Your name",
       ME_PROFILE_AVATAR_CHANGE: "Change avatar",
+      ME_PROFILE_AVATAR_COMPLETION_ACTION: "Finish upload",
+      ME_PROFILE_AVATAR_COMPLETION_PENDING:
+        "The avatar file is uploaded and waiting to be added to your account.",
       ME_PROFILE_AVATAR_REMOVE: "Remove avatar",
       ACCOUNT_SETTINGS_LANGUAGE_LABEL: "Language",
       ACCOUNT_SETTINGS_THEME_LABEL: "Theme",
@@ -265,6 +275,7 @@ function renderPage() {
 beforeEach(() => {
   searchState.dryRun = "1";
   searchState.mode = undefined;
+  searchState.redirect = undefined;
   navigateMock.mockReset();
   listMyWorkspacesMock.mockReset();
   createWorkspaceMock.mockReset();
@@ -279,6 +290,7 @@ beforeEach(() => {
   getMyOnboardingProfileMock.mockReset();
   patchMyOnboardingProfileMock.mockReset();
   patchCoreSettingsMock.mockReset();
+  vi.mocked(uploadAvatarFile).mockReset();
   workspaceState.setCurrentWorkspaceId.mockReset();
   workspaceState.setCurrentProjectId.mockReset();
   workspaceState.setCurrentContext.mockReset();
@@ -480,6 +492,78 @@ describe("WelcomeOnboardingPage", () => {
     expect(preferenceState.setTimeZonePreference).not.toHaveBeenCalled();
   });
 
+  it("keeps the avatar completion checkpoint on the profile step until the user finishes it", async () => {
+    searchState.dryRun = undefined;
+    listMyWorkspacesMock.mockResolvedValue({
+      items: [],
+      onboarding: { status: "pending_workspace", workspaceId: null },
+    });
+    meMock.mockResolvedValue({
+      id: "user-1",
+      username: "philip",
+      email: "philip@example.com",
+      displayName: "Philip Cole",
+      avatarUrl: null,
+      avatarAssetId: null,
+      isSuperAdmin: false,
+    });
+    getMyOnboardingProfileMock.mockResolvedValue({
+      jobRole: null,
+      companySize: null,
+      subscribedProductUpdates: false,
+      heardAboutUs: null,
+    });
+    const complete = vi.fn().mockResolvedValue("avatar-asset");
+    const checkpoint = createAssetUploadCompletionCheckpoint({
+      uploadId: "upload-onboarding",
+      complete,
+    });
+    vi.mocked(uploadAvatarFile).mockRejectedValue(
+      new AssetUploadCompletionRequiredError(checkpoint, new Error("commit failed")),
+    );
+    updateMyProfileMock.mockResolvedValue({
+      id: "user-1",
+      username: "philip",
+      email: "philip@example.com",
+      displayName: "Philip Cole",
+      avatarUrl: "/assets/avatar-asset",
+      avatarAssetId: "avatar-asset",
+      isSuperAdmin: false,
+    });
+
+    renderPage();
+    const user = userEvent.setup();
+    await screen.findByDisplayValue("Philip Cole");
+
+    await user.upload(
+      screen.getByLabelText("Change avatar", { selector: "input" }),
+      new File(["avatar"], "avatar.png", { type: "image/png" }),
+    );
+
+    const completionStatus = await screen.findByText(
+      "The avatar file is uploaded and waiting to be added to your account.",
+    );
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+
+    const statusRegion = completionStatus.closest<HTMLElement>('[role="status"]');
+    expect.assert(statusRegion);
+    await user.click(
+      within(statusRegion).getByRole("button", {
+        name: "Finish upload",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(complete).toHaveBeenCalledTimes(1);
+      expect(updateMyProfileMock).toHaveBeenCalledWith({ avatarAssetId: "avatar-asset" });
+      expect(
+        screen.queryByText("The avatar file is uploaded and waiting to be added to your account."),
+      ).not.toBeInTheDocument();
+    });
+    expect(uploadAvatarFile).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled();
+  });
+
   it("preserves an existing product update subscription from the backend", async () => {
     searchState.dryRun = undefined;
     listMyWorkspacesMock.mockResolvedValue({
@@ -626,6 +710,87 @@ describe("WelcomeOnboardingPage", () => {
     });
     expect(createWorkspaceMock).toHaveBeenCalledTimes(1);
     expect(patchMyOnboardingProfileMock).toHaveBeenCalledWith({ heard_about_us: "referral" });
+  });
+
+  it("runs the invitation profile and survey flow before entering the invited project", async () => {
+    searchState.dryRun = undefined;
+    searchState.mode = "invitation";
+    searchState.redirect = "/projects/project-invite";
+    listMyWorkspacesMock.mockResolvedValue({
+      items: [
+        {
+          workspaceId: "workspace-invite",
+          projectId: "project-invite",
+          name: "Invite workspace",
+        },
+      ],
+      onboarding: { status: "completed", workspaceId: "workspace-invite" },
+    });
+    meMock.mockResolvedValue({
+      id: "user-1",
+      username: "member01",
+      email: "invited@example.com",
+      displayName: "Invited member",
+      avatarUrl: null,
+      avatarAssetId: null,
+      isSuperAdmin: false,
+    });
+    getMyOnboardingProfileMock.mockResolvedValue({
+      jobRole: null,
+      companySize: null,
+      subscribedProductUpdates: false,
+      heardAboutUs: null,
+    });
+    updateMyProfileMock.mockResolvedValue({
+      id: "user-1",
+      username: "member01",
+      email: "invited@example.com",
+      displayName: "Invited member",
+      avatarUrl: null,
+      avatarAssetId: null,
+      isSuperAdmin: false,
+    });
+    patchMyOnboardingProfileMock.mockResolvedValue({});
+
+    renderPage();
+    const user = userEvent.setup();
+
+    expect(await screen.findByDisplayValue("Invited member")).toBeInTheDocument();
+    expect(screen.getByTestId("onboarding-progress-step-1")).toHaveAttribute(
+      "data-step-id",
+      "profile",
+    );
+    expect(screen.getByTestId("onboarding-progress-step-2")).toHaveAttribute(
+      "data-step-id",
+      "teamType",
+    );
+    expect(screen.getByTestId("onboarding-progress-step-3")).toHaveAttribute(
+      "data-step-id",
+      "heardAboutUs",
+    );
+    expect(screen.queryByText("Create your workspace")).not.toBeInTheDocument();
+    expect(screen.queryByText("Collaborate with your team")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByText("What best describes your team?");
+    await user.click(screen.getByRole("button", { name: "Content team" }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByText("How did you hear about us?");
+    await user.click(screen.getByRole("button", { name: "Friend or colleague" }));
+    await user.click(screen.getByRole("button", { name: "Enter workspace" }));
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith({
+        to: "/projects/project-invite",
+        replace: true,
+      });
+    });
+    expect(createWorkspaceMock).not.toHaveBeenCalled();
+    expect(createMyOnboardingWorkspaceMock).not.toHaveBeenCalled();
+    expect(createTeamInvitationMock).not.toHaveBeenCalled();
+    expect(patchMyOnboardingProfileMock).toHaveBeenLastCalledWith({
+      heard_about_us: "referral",
+    });
   });
 
   it("goes back in browser history from the first create-workspace step", async () => {

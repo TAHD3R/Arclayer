@@ -157,7 +157,7 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
           <div className="grid gap-2.5 pt-1.5">
             <div className="flex items-center gap-3 py-1 text-footnote text-label-secondary">
               <Separator className="flex-1" />
-              <span className="shrink-0">{t("auth:OAUTH_ACCOUNT_DIVIDER")}</span>
+              <span className="shrink-0 select-none">{t("auth:OAUTH_ACCOUNT_DIVIDER")}</span>
               <Separator className="flex-1" />
             </div>
             <Button

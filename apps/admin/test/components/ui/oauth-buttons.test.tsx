@@ -1,9 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AuthOauthButtons } from "@/components/ui/oauth-buttons";
-import { STORAGE_KEYS } from "@/constants/storage";
 
 const { listSSOProvidersMock, preferencesState } = vi.hoisted(() => ({
   listSSOProvidersMock: vi.fn(),
@@ -58,6 +57,7 @@ describe("AuthOauthButtons", () => {
     expect(screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER").parentElement).toHaveClass(
       "text-footnote",
     );
+    expect(screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER")).toHaveClass("select-none");
   });
 
   it("renders the divider before oauth providers by default", async () => {
@@ -308,8 +308,8 @@ describe("AuthOauthButtons", () => {
     expect(listSSOProvidersMock).not.toHaveBeenCalled();
   });
 
-  it("shows the last-used badge on the remembered oauth provider", async () => {
-    localStorage.setItem(STORAGE_KEYS.authLastSsoProvider, "google");
+  it("does not render a last-used badge for a remembered oauth provider", async () => {
+    localStorage.setItem("arclayer:admin:auth:last-sso-provider", "google");
     listSSOProvidersMock.mockResolvedValueOnce({
       providers: [
         { provider: "google", label: "Google", start_url: "/oauth/google" },
@@ -323,10 +323,7 @@ describe("AuthOauthButtons", () => {
       expect(screen.getByRole("button", { name: "auth:OAUTH_GOOGLE" })).toBeInTheDocument();
     });
 
-    const googleButton = screen.getByRole("button", {
-      name: "auth:OAUTH_GOOGLE",
-    });
-    expect(within(googleButton).getByText("auth:OAUTH_LAST_USED")).toBeInTheDocument();
+    expect(screen.queryByText("auth:OAUTH_LAST_USED")).not.toBeInTheDocument();
   });
 
   it("renders the email-code action on its own full-width row", async () => {

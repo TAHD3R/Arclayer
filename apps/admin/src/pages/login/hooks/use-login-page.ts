@@ -1,10 +1,11 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
 import * as authSsoApi from "@/api/auth-sso";
+import * as invitationApi from "@/api/invitations";
 import * as systemApi from "@/api/system";
 import { useSystemRuntime } from "@/hooks/use-system-runtime";
 import { resolveLoginMode } from "@/lib/auth/auth-mode";
@@ -224,6 +225,11 @@ type LoginPageState =
   | { entry: "bootstrap"; props: BootstrapPaneProps }
   | { entry: "repair_required"; props: InstanceRepairRequiredPaneProps };
 
+type NavigateAfterAuthOptions = {
+  invitationAlreadyAccepted?: boolean;
+  forceInvitationOnboarding?: boolean;
+};
+
 export function useLoginPage(): LoginPageState {
   const applyLogin = useAuthStore((s) => s.applyLogin);
   const lastWorkspaceId = useWorkspaceStore((s) => s.lastWorkspaceId);
@@ -269,6 +275,7 @@ export function useLoginPage(): LoginPageState {
 
   const {
     redirect: redirectTo,
+    invite: inviteToken,
     mode = "login",
     oauth_code: oauthCode,
     oauth_error: oauthError,
@@ -276,7 +283,8 @@ export function useLoginPage(): LoginPageState {
   } = loginRouteApi.useSearch();
 
   const publicRegisterEnabled = runtime.publicRegisterEnabled !== false;
-  const routeMode = runtime.publicRegisterEnabled === false ? resolveLoginMode(mode, false) : mode;
+  const registrationEnabled = publicRegisterEnabled || Boolean(inviteToken);
+  const routeMode = registrationEnabled ? mode : resolveLoginMode(mode, false);
   const [optimisticMode, setOptimisticMode] = useState<LoginMode | null>(null);
   const effectiveMode = optimisticMode ?? routeMode;
 
@@ -322,6 +330,34 @@ export function useLoginPage(): LoginPageState {
       }),
     onError: notifyError,
   });
+  const invitationPreviewQuery = useQuery({
+    queryKey: ["invitePreview", inviteToken],
+    enabled: Boolean(inviteToken),
+    queryFn: async () => invitationApi.previewInvitation(String(inviteToken)),
+    retry: false,
+  });
+  const invitationRegisterMutation = useMutation({
+    mutationFn: async (values: RegisterFormValues) => {
+      if (!inviteToken || !values.username) {
+        throw new Error("Invitation registration requires a token and username");
+      }
+      return invitationApi.acceptInvitation({
+        token: inviteToken,
+        email: values.email,
+        username: values.username,
+        password: values.password,
+        confirmPassword: values.password,
+      });
+    },
+    onError: notifyError,
+  });
+  const invitationAcceptExistingMutation = useMutation({
+    mutationFn: async () => {
+      if (!inviteToken) throw new Error("Invitation acceptance requires a token");
+      return invitationApi.acceptExistingInvitation(inviteToken);
+    },
+    onError: notifyError,
+  });
   const registerVerificationResendMutation = useMutation({
     mutationFn: async (email: string) => authApi.resendRegistrationEmailVerification({ email }),
     onError: notifyError,
@@ -350,11 +386,72 @@ export function useLoginPage(): LoginPageState {
     onError: notifyError,
   });
 
+  const invitationEmail =
+    invitationPreviewQuery.data?.invitation.email?.trim().toLowerCase() || null;
+
+  useEffect(() => {
+    if (!invitationEmail) return;
+    setLoginSeed({ email: invitationEmail, step: "password" });
+    setRegisterSeed({ email: invitationEmail, step: "details" });
+  }, [invitationEmail]);
+
   const navigateAfterAuth = useCallback(
-    async (redirectOverride?: string | null) => {
+    async (redirectOverride?: string | null, options: NavigateAfterAuthOptions = {}) => {
       setAuthTransitionLoading(true);
       try {
-        const targetRedirect = redirectOverride ?? redirectTo;
+        const decisionBeforeInvitation = await resolvePostAuthRoute({ lastWorkspaceId });
+        let decision = decisionBeforeInvitation;
+        let targetRedirect = redirectOverride ?? redirectTo;
+
+        if (inviteToken && options.invitationAlreadyAccepted) {
+          targetRedirect = decision.projectId ? `/projects/${decision.projectId}` : decision.path;
+        }
+
+        if (inviteToken && !options.invitationAlreadyAccepted) {
+          const accepted = await invitationAcceptExistingMutation.mutateAsync();
+          if (accepted.workspaceId) {
+            setCurrentWorkspaceId(accepted.workspaceId);
+          }
+          if (accepted.projectId) {
+            setCurrentProjectId(accepted.projectId);
+          }
+          targetRedirect = accepted.projectId ? `/projects/${accepted.projectId}` : "/projects";
+          decision = await resolvePostAuthRoute({ lastWorkspaceId: accepted.workspaceId ?? null });
+          notifySuccessText(t("invite:INVITE_JOIN_SUCCESS"));
+        }
+
+        if (decision.workspaceId) {
+          setCurrentWorkspaceId(decision.workspaceId);
+        }
+        if (decision.projectId) {
+          setCurrentProjectId(decision.projectId);
+        }
+
+        const invitationOnboardingRequired = Boolean(
+          inviteToken &&
+          (options.forceInvitationOnboarding || decisionBeforeInvitation.onboardingRequired),
+        );
+        if (invitationOnboardingRequired) {
+          await navigate({
+            to: "/welcome",
+            search: {
+              mode: "invitation",
+              ...(targetRedirect ? { redirect: targetRedirect } : {}),
+            },
+            replace: true,
+          });
+          return;
+        }
+
+        if (decision.onboardingRequired) {
+          await navigate({
+            to: "/welcome",
+            search: targetRedirect ? { redirect: targetRedirect } : undefined,
+            replace: true,
+          });
+          return;
+        }
+
         if (targetRedirect) {
           if (targetRedirect.startsWith("/editor")) {
             window.location.replace(normalizeEditorRedirectPath(targetRedirect));
@@ -364,20 +461,22 @@ export function useLoginPage(): LoginPageState {
           return;
         }
 
-        const decision = await resolvePostAuthRoute({ lastWorkspaceId });
-        if (decision.workspaceId) {
-          setCurrentWorkspaceId(decision.workspaceId);
-        }
-        if (decision.projectId) {
-          setCurrentProjectId(decision.projectId);
-        }
         await navigate({ to: decision.path, replace: true });
       } catch (error) {
         setAuthTransitionLoading(false);
         throw error;
       }
     },
-    [lastWorkspaceId, navigate, redirectTo, setCurrentProjectId, setCurrentWorkspaceId],
+    [
+      invitationAcceptExistingMutation,
+      inviteToken,
+      lastWorkspaceId,
+      navigate,
+      redirectTo,
+      setCurrentProjectId,
+      setCurrentWorkspaceId,
+      t,
+    ],
   );
 
   const clearPendingOAuthFlow = useCallback(() => {
@@ -516,13 +615,14 @@ export function useLoginPage(): LoginPageState {
         to: "/login",
         search: {
           ...(redirectTo ? { redirect: redirectTo } : {}),
+          ...(inviteToken ? { invite: inviteToken } : {}),
           mode: "login",
         },
         replace: true,
       });
       return true;
     },
-    [navigate, redirectTo],
+    [inviteToken, navigate, redirectTo],
   );
 
   const clearActiveChallenge = useCallback(() => {
@@ -568,25 +668,29 @@ export function useLoginPage(): LoginPageState {
     if (!redirectTo) {
       void navigate({
         to: "/login",
-        search: { mode: effectiveMode },
+        search: {
+          ...(inviteToken ? { invite: inviteToken } : {}),
+          mode: effectiveMode,
+        },
         replace: true,
       });
     }
-  }, [effectiveMode, navigate, redirectTo]);
+  }, [effectiveMode, inviteToken, navigate, redirectTo]);
 
   useEffect(() => {
-    if (runtime.publicRegisterEnabled !== false) return;
+    if (registrationEnabled) return;
     if (mode !== "register") return;
     setRegisterSeed(null);
     void navigate({
       to: "/login",
       search: {
         ...(redirectTo ? { redirect: redirectTo } : {}),
+        ...(inviteToken ? { invite: inviteToken } : {}),
         mode: "login",
       },
       replace: true,
     });
-  }, [mode, navigate, redirectTo, runtime.publicRegisterEnabled]);
+  }, [inviteToken, mode, navigate, redirectTo, registrationEnabled]);
 
   useEffect(() => {
     if (!oauthCode) return;
@@ -661,7 +765,11 @@ export function useLoginPage(): LoginPageState {
         notifyError(error);
         void navigate({
           to: "/login",
-          search: { redirect: redirectTo, mode: effectiveMode },
+          search: {
+            ...(redirectTo ? { redirect: redirectTo } : {}),
+            ...(inviteToken ? { invite: inviteToken } : {}),
+            mode: effectiveMode,
+          },
           replace: true,
         });
       }
@@ -671,6 +779,7 @@ export function useLoginPage(): LoginPageState {
     applyLogin,
     clearActiveChallenge,
     effectiveMode,
+    inviteToken,
     navigate,
     oauthCode,
     redirectTo,
@@ -701,10 +810,14 @@ export function useLoginPage(): LoginPageState {
     notifyErrorText(resolveOAuthErrorMessage(oauthError, t));
     void navigate({
       to: "/login",
-      search: { redirect: redirectTo, mode: effectiveMode },
+      search: {
+        ...(redirectTo ? { redirect: redirectTo } : {}),
+        ...(inviteToken ? { invite: inviteToken } : {}),
+        mode: effectiveMode,
+      },
       replace: true,
     });
-  }, [clearPendingOAuthFlow, effectiveMode, navigate, oauthError, redirectTo, t]);
+  }, [clearPendingOAuthFlow, effectiveMode, inviteToken, navigate, oauthError, redirectTo, t]);
 
   useEffect(() => {
     if (!verifyToken) return;
@@ -719,6 +832,7 @@ export function useLoginPage(): LoginPageState {
           to: "/login",
           search: {
             ...(redirectTo ? { redirect: redirectTo } : {}),
+            ...(inviteToken ? { invite: inviteToken } : {}),
             mode: "login",
           },
           replace: true,
@@ -731,6 +845,7 @@ export function useLoginPage(): LoginPageState {
           to: "/login",
           search: {
             ...(redirectTo ? { redirect: redirectTo } : {}),
+            ...(inviteToken ? { invite: inviteToken } : {}),
             mode: "register",
           },
           replace: true,
@@ -738,10 +853,17 @@ export function useLoginPage(): LoginPageState {
       }
     };
     void run();
-  }, [navigate, redirectTo, registerVerificationConfirmMutation.mutateAsync, t, verifyToken]);
+  }, [
+    inviteToken,
+    navigate,
+    redirectTo,
+    registerVerificationConfirmMutation.mutateAsync,
+    t,
+    verifyToken,
+  ]);
 
   const onModeChange = (next: LoginMode, options?: LoginModeChangeOptions) => {
-    const nextMode = resolveLoginMode(next, publicRegisterEnabled);
+    const nextMode = resolveLoginMode(next, registrationEnabled);
 
     setOptimisticMode(nextMode);
     setLoginSeed(
@@ -780,7 +902,11 @@ export function useLoginPage(): LoginPageState {
 
     void navigate({
       to: "/login",
-      search: { redirect: redirectTo, mode: nextMode },
+      search: {
+        ...(redirectTo ? { redirect: redirectTo } : {}),
+        ...(inviteToken ? { invite: inviteToken } : {}),
+        mode: nextMode,
+      },
     });
   };
 
@@ -795,6 +921,7 @@ export function useLoginPage(): LoginPageState {
   };
 
   const onRegisterEmailSubmit = async (email: string) => {
+    if (invitationEmail && email.trim().toLowerCase() === invitationEmail) return false;
     const result = await emailCheckMutation.mutateAsync(email);
     return result.exists;
   };
@@ -898,6 +1025,7 @@ export function useLoginPage(): LoginPageState {
       to: "/login",
       search: {
         ...(redirectTo ? { redirect: redirectTo } : {}),
+        ...(inviteToken ? { invite: inviteToken } : {}),
         mode: nextMode,
       },
       replace: true,
@@ -910,8 +1038,21 @@ export function useLoginPage(): LoginPageState {
   };
 
   const onRegisterFinish = async (values: RegisterFormValues) => {
-    if (!publicRegisterEnabled) return;
+    if (!registrationEnabled) return;
     try {
+      if (inviteToken) {
+        const tokens = await invitationRegisterMutation.mutateAsync(values);
+        clearActiveChallenge();
+        applyLogin(tokens, { keepSession: true });
+        void queryClient.cancelQueries();
+        queryClient.clear();
+        notifySuccessText(t("auth:REGISTER_SUCCESS"));
+        await navigateAfterAuth(undefined, {
+          invitationAlreadyAccepted: true,
+          forceInvitationOnboarding: true,
+        });
+        return;
+      }
       const result = await registerMutation.mutateAsync(values);
       if (result.requiresEmailVerification ?? result.requires_email_verification) {
         const retryAfter = result.retryAfter ?? result.retry_after ?? 60;
@@ -1021,7 +1162,10 @@ export function useLoginPage(): LoginPageState {
       onLoginEmailCodeVerify: onLoginEmailCodeFinish,
       loginEmailCodeSeed,
       loginEmailLoading: emailCheckMutation.isPending,
-      loginLoading: loginMutation.isPending || ssoExchangeMutation.isPending,
+      loginLoading:
+        loginMutation.isPending ||
+        ssoExchangeMutation.isPending ||
+        invitationAcceptExistingMutation.isPending,
       loginResendLoading: registerVerificationResendMutation.isPending,
       loginEmailCodeRequestLoading: loginEmailCodeRequestMutation.isPending,
       loginEmailCodeVerifyLoading: loginEmailCodeVerifyMutation.isPending,
@@ -1041,9 +1185,15 @@ export function useLoginPage(): LoginPageState {
         setEmailVerificationNotice((current) => ({ ...current, open })),
       registerSeed,
       registerEmailLoading: emailCheckMutation.isPending,
-      registerLoading: registerMutation.isPending || loginMutation.isPending || runtimeLoading,
+      registerLoading:
+        registerMutation.isPending ||
+        invitationRegisterMutation.isPending ||
+        loginMutation.isPending ||
+        runtimeLoading,
       registerResendLoading: registerVerificationResendMutation.isPending,
-      publicRegisterEnabled,
+      publicRegisterEnabled: registrationEnabled,
+      invitationRegistration: Boolean(inviteToken),
+      invitationEmail,
       challenge: activeChallenge,
       onLoginTwoFactorSubmit: onLoginTwoFactorFinish,
       onCancelTwoFactorChallenge,

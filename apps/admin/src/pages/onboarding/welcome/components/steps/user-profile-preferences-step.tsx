@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 
+import { AvatarUploadCompletionNotice } from "@/components/common/avatar-upload-completion-notice";
 import { AvatarUploadSlot } from "@/components/common/avatar-upload-slot";
 import { initialsFromName } from "@/lib/auth/user-profile";
 import { Checkbox } from "@arclayer/ui/checkbox";
@@ -23,11 +24,14 @@ export function UserProfilePreferencesStep(props: {
   companySizeOptions: ProfileSelectOption[];
   displayNameError: string | null;
   avatarBusy: boolean;
+  avatarCompletionRequired: boolean;
+  avatarCompletionBusy: boolean;
   onDisplayNameChange: (value: string) => void;
   onJobRoleChange: (value: string) => void;
   onCompanySizeChange: (value: string) => void;
   onSubscribedProductUpdatesChange: (checked: boolean) => void;
   onPickAvatar: () => void;
+  onContinueAvatarCompletion: () => void;
   onRemoveAvatar: () => void;
 }) {
   const { t } = useTranslation(["onboarding", "account"]);
@@ -48,7 +52,7 @@ export function UserProfilePreferencesStep(props: {
             shape="circle"
             src={props.avatarUrl ?? undefined}
             fallback={initialsFromName(props.displayName || "User")}
-            disabled={props.avatarBusy}
+            disabled={props.avatarBusy || props.avatarCompletionRequired}
             loading={props.avatarBusy}
             uploadAriaLabel={t("account:ME_PROFILE_AVATAR_CHANGE")}
             removeAriaLabel={t("account:ME_PROFILE_AVATAR_REMOVE")}
@@ -69,6 +73,14 @@ export function UserProfilePreferencesStep(props: {
             <div className="text-footnote text-label-secondary">
               {`${props.displayName.length}/64`}
             </div>
+            {props.avatarCompletionRequired ? (
+              <AvatarUploadCompletionNotice
+                description={t("account:ME_PROFILE_AVATAR_COMPLETION_PENDING")}
+                actionLabel={t("account:ME_PROFILE_AVATAR_COMPLETION_ACTION")}
+                pending={props.avatarCompletionBusy}
+                onContinue={props.onContinueAvatarCompletion}
+              />
+            ) : null}
           </div>
         </div>
       </SettingDialogField>
