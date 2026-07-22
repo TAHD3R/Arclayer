@@ -1521,3 +1521,27 @@ gateway/Tool, Job contract, Design provider, handler, and generation service.
 This evidence accepts the revision-pinned Design generation contract only; it
 does not add compiler, release, asset/font-rights, thumbnail, comment, or
 server undo/redo authority.
+
+## 34. Website Config settings/runtime checkpoint
+
+The Wave 4 Website Config frontend continues to consume the existing project
+core settings read and merge-patch service. It writes only fields already
+projected into generated source and the public runtime:
+
+- `site.name`, localized name, subtitle, description, localized description,
+  URL, contact email, logo, and favicon;
+- `seo.title_policy_v1`, robots directive, sitemap enablement, and Open Graph
+  image;
+- existing `site_localization` locale and time-display values.
+
+A successful Admin mutation invalidates the generated project-source query so
+the management preview does not remain stale. The browser neither invents
+unknown settings nor claims publication before the real patch succeeds.
+
+This checkpoint does not accept the broad `/projects/{projectId}/settings/core`
+patch as the final product API. Typed website identity, SEO/discovery,
+localization, and resolved-public-URL facades with optimistic version/ETag,
+stable errors, Activity events, and Agent grants remain required. Domains must
+ultimately own verification and primary-domain selection; Website Config must
+consume that resolved address instead of maintaining a conflicting authority.
+No backend schema or ownership hard cut is claimed by this frontend rollout.

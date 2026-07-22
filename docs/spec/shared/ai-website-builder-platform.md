@@ -1111,7 +1111,7 @@ used to describe the full user goal as complete.
 | 7 | Productized Taskiq workload topology and task catalog | In progress | Durable jobs, broker routing, workers, scheduler leadership, recovery, and owning-domain job verticals are implemented/tested. Production deployment and health evidence remain required. |
 | 8 | Connector-based commercialization and Stripe | In progress | Connector registry, Stripe plugin, durable billing event path, and Billing surfaces exist. Provider migration parity, replay/reconciliation, entitlement, and production webhook evidence remain Wave 6 gates. |
 | 9 | Productized no-release/prelaunch experience | In progress | The public host has an explicit versioned, noindex prelaunch contract with no fake published success. Final branded visual treatment and release activation convergence remain. |
-| 10 | Website Config redesign and ownership | In progress | Visitor-facing settings ownership, domain boundary, generated-source invalidation, and product surfaces exist. Wave 4 field/preview and final UX acceptance remain open. |
+| 10 | Website Config redesign and ownership | In progress | Identity, discovery, and localization workspaces now have responsive live visitor previews, complete read-only behavior, generated-source invalidation, bilingual copy, and browser-verified UX acceptance. Typed domain facades, optimistic concurrency, Activity evidence, and consuming the Domains-owned resolved primary URL remain open. |
 | 11 | Project General redesign and ownership | In progress | Project identity, access/lifecycle boundaries, permissions, and danger actions have production surfaces. Wave 4 final IA/copy/visual acceptance remains open. |
 
 Boneyard and motion are cross-cutting rather than a twelfth capability. The
@@ -1924,3 +1924,49 @@ This closes the first Wave 4 AI-native content proposal/approval/apply slice,
 not Wave 4 as a whole. Bulk content orchestration, final Library/Model UX
 convergence, Website Config, Project General, and first-publish product-state
 acceptance remain active.
+
+## 45. Wave 4 Website Config visitor-preview vertical (2026-07-22)
+
+Live-source review confirmed that Website Config already persisted the real
+visitor identity, localized copy, browser assets, title policy, indexing,
+sitemap, and contact metadata, but exposed them through one 900-line mixed
+component. Only discovery had a preview; identity edits had no immediate public
+context, title-policy controls remained locally editable in read-only mode, and
+the sticky page-header measurement could lock narrow layouts behind hundreds of
+pixels of empty height.
+
+This Wave 4 vertical makes six hard cuts:
+
+1. Website Config retains one real form and existing patch authority while
+   Identity, Browser/Discovery, and Localization remain explicit workspaces;
+2. Identity and discovery share one live visitor-preview rail driven directly
+   from unsaved form state, while copy states clearly that Save is required;
+3. wide layouts keep a sticky preview beside the setting axis, and narrow
+   layouts stack without a hidden alternate control or horizontal overflow;
+4. browser title, search result, share card, assets, indexing, public address,
+   and contact state all use actual persisted fields rather than placeholder
+   capabilities;
+5. read-only mode disables the full title-policy surface and shared switches
+   expose real accessible names;
+6. sticky-header measurement is output-only. The measured CSS variable may
+   position dependent sticky rails but cannot feed back into the measured
+   header's own minimum height.
+
+The rollout does not duplicate Domains, Design Systems, or Project General. It
+also does not introduce AI buttons without an implemented approval-backed Tool,
+does not treat unsaved preview as published state, and does not claim that the
+legacy broad settings patch is the final typed facade.
+
+Fresh verification passes the 20-test focused Website Config/page-shell suite,
+Admin typecheck, zero-finding changed-scope repository review, and the complete
+`pnpm admin:check` gate with 343 test files / 1591 tests. Real browser acceptance
+at 1440px and a 500px narrow viewport proves live value propagation, stable
+two-column/stacked layouts, named switches, zero horizontal overflow, and the
+sticky-header correction from an erroneous 711px lock to its 183px natural
+height. React Doctor remains 56/100 for the accumulated branch delta and reports
+no finding in this vertical.
+
+This accepts the Website Config frontend field/preview and responsive UX slice.
+The capability remains `In progress` until typed website/SEO/localization
+facades, optimistic concurrency, Activity evidence, and the Domains-owned
+resolved primary address replace the remaining broad-patch/manual-URL boundary.

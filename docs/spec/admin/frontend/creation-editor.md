@@ -1332,3 +1332,45 @@ visibly non-canonical and successful Apply reconciles only from the returned
 Builder aggregate. Compiler/release activation, automated accessibility,
 asset/font rights, thumbnails, comments, server undo/redo, and final visual
 convergence remain gated.
+
+## 40. Wave 4 Website Config workbench
+
+Website Config is the visitor-facing settings workbench beside the creation
+editor, not a second Project General screen. Its section navigation keeps three
+explicit workspaces: public identity, browser/discovery, and localization. The
+identity workspace owns the public name, optional tagline, description, current
+public URL, support inbox, and localized variants. Browser/discovery owns logo,
+favicon, social image, title policy, indexing, and sitemap defaults.
+Localization retains the existing language and time-display contract. Domains
+and Design System authoring are not duplicated here.
+
+Identity and discovery use the same live visitor-preview rail. On wide layouts
+the settings axis and a sticky preview remain visible together; narrow layouts
+stack without horizontal overflow. Identity previews the current unsaved name,
+tagline, description, address, logo/favicon, and support state inside a quiet
+browser frame. Discovery previews the exact unsaved title policy, search result,
+Open Graph card, favicon, description, URL, and noindex state. The preview is
+explicitly local until Save; it never represents a draft as published.
+
+The form continues to submit the real project settings patch and invalidates
+both core settings and generated project source on success. Validation failures
+remain explicit. Read-only mode disables every mutation surface, including the
+title-policy presets, separator, home rule, dedupe, indexing, sitemap, and asset
+actions. Shared setting switches now expose their visible label as the
+accessible name.
+
+The former 900-line mixed component is split by responsibility into identity,
+discovery, localized-field, preview, and orchestration modules. The shared
+sticky page header no longer feeds its measured height back into its own
+minimum height; the measured variable is now output-only for dependent sticky
+offsets. This removes the narrow-layout ResizeObserver feedback that expanded a
+183px Website Config header to 711px.
+
+Fresh verification on 2026-07-22 passes the 20-test focused page-shell and
+Website Config suite and `pnpm admin:check` with 343 test files / 1591 tests.
+Changed-scope repository review reports zero findings. Browser acceptance at
+1440px and the 500px minimum DevTools viewport confirms live form-to-preview
+updates, stable wide two-column composition, narrow stacking, named switches,
+and zero horizontal overflow. React Doctor remains a branch-wide 56/100 across
+the accumulated `develop` to `main` delta; it reports no finding in this Website
+Config or page-shell slice.
