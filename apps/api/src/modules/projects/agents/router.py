@@ -17,7 +17,6 @@ from src.agents.langgraph_runtime import AgentGraphCheckpointerFactory
 from src.agents.settings_policy import (
     WRITE_SKILL_IDS,
     bool_setting,
-    skill_allowlist,
     str_setting,
     write_skill_disabled_reason,
 )
@@ -227,8 +226,6 @@ async def _registry(
     return build_default_agent_registry(
         tools=build_read_only_content_tools(item_reads=item_reads, model_reads=model_reads),
         agents_enabled=bool_setting(agent_settings, "enabled", True),
-        skills_enabled=bool_setting(agent_settings, "skills_enabled", True),
-        enabled_skill_ids=skill_allowlist(agent_settings),
         write_tools_enabled=bool_setting(agent_settings, "write_tools_enabled", False),
         approval_policy=str_setting(agent_settings, "approval_policy", "always_approve"),
         dry_run_required=bool_setting(agent_settings, "dry_run_required", True),

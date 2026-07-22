@@ -77,6 +77,10 @@ class ReservationRequestConflictError(Exception):
         super().__init__(f"Reservation request {request_id} was reused with different inputs")
 
 
+class ReservationRunScopeError(Exception):
+    """Raised when a reservation cannot be owned by the requested Agent Run."""
+
+
 def _reservation_advisory_lock_key(request_id: UUID) -> int:
     """Map a request UUID to a signed Postgres advisory-transaction lock key."""
 
@@ -120,6 +124,7 @@ async def reserve(
     request_id: UUID,
     estimated_cost_micros: int,
     workspace_id: UUID | None = None,
+    agent_run_id: UUID | None = None,
     ttl_seconds: int = 300,
     _execute: QueryExecutor | None = None,
 ) -> AIBudgetReservation:
@@ -137,10 +142,29 @@ async def reserve(
                 same_request = (
                     UUID(str(existing.budget_id)) == budget_id
                     and int(existing.estimated_cost_micros) == estimated_cost_micros
+                    and existing.agent_run_id == agent_run_id
                 )
                 if not same_request:
                     raise ReservationRequestConflictError(request_id)
                 return existing
+
+        if agent_run_id is not None:
+            if conn is None or workspace_id is None:
+                raise ReservationRunScopeError("Agent Run reservations require a transactional workspace scope")
+            from src.models.agents.runtime_v1 import AgentRunStatusV1, AgentRunV1Record
+
+            agent_run = await AgentRunV1Record.filter(id=agent_run_id).using_db(conn).select_for_update().first()
+            if agent_run is None or agent_run.workspace_id != workspace_id:
+                raise ReservationRunScopeError(f"Agent Run {agent_run_id} does not belong to Workspace {workspace_id}")
+            if agent_run.status not in {
+                AgentRunStatusV1.CREATED,
+                AgentRunStatusV1.QUEUED,
+                AgentRunStatusV1.RUNNING,
+                AgentRunStatusV1.INTERRUPTED,
+            }:
+                raise ReservationRunScopeError(
+                    f"Agent Run {agent_run_id} cannot create a reservation from status {agent_run.status}"
+                )
 
         result = await executor(
             """
@@ -186,6 +210,7 @@ async def reserve(
         reservation = await AIBudgetReservation.create(
             id=uuid.uuid4(),
             budget_id=budget_id,
+            agent_run_id=agent_run_id,
             request_id=request_id,
             estimated_cost_micros=estimated_cost_micros,
             reserved_cost_micros=reserve_amount,

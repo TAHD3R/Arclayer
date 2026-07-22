@@ -1,0 +1,23 @@
+from typing import Final
+
+HUMAN_REQUEST_INPUT_TOOL: Final = "human.request_input"
+BUILDER_SITEMAP_GENERATE_TOOL: Final = "builder.sitemap.generate"
+BUILDER_SITEMAP_PREVIEW_TOOL: Final = "builder.sitemap.preview"
+BUILDER_SITEMAP_APPLY_TOOL: Final = "builder.sitemap.apply"
+BUILDER_STYLE_GUIDE_GENERATE_TOOL: Final = "builder.style_guide.generate"
+BUILDER_WIREFRAME_GENERATE_TOOL: Final = "builder.wireframe.generate"
+BUILDER_WIREFRAME_APPLY_TOOL: Final = "builder.wireframe.apply"
+BUILDER_DESIGN_GENERATE_TOOL: Final = "builder.design.generate"
+BUILDER_DESIGN_APPLY_TOOL: Final = "builder.design.apply"
+
+SUPPORTED_AGENT_TOOL_GRANTS: Final = (
+    HUMAN_REQUEST_INPUT_TOOL,
+    BUILDER_SITEMAP_GENERATE_TOOL,
+    BUILDER_SITEMAP_PREVIEW_TOOL,
+    BUILDER_SITEMAP_APPLY_TOOL,
+    BUILDER_STYLE_GUIDE_GENERATE_TOOL,
+    BUILDER_WIREFRAME_GENERATE_TOOL,
+    BUILDER_WIREFRAME_APPLY_TOOL,
+    BUILDER_DESIGN_GENERATE_TOOL,
+    BUILDER_DESIGN_APPLY_TOOL,
+)

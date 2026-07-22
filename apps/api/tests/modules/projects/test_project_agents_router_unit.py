@@ -501,7 +501,7 @@ async def test_list_project_agents_returns_phase3a_catalog(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_list_project_agents_filters_catalog_by_agent_settings(monkeypatch) -> None:
+async def test_list_project_agents_ignores_removed_legacy_skill_allowlist(monkeypatch) -> None:
     async def _core_settings(_settings: Settings, *, ttl_seconds: float = 5.0) -> dict[str, object]:
         _ = ttl_seconds
         return {
@@ -522,9 +522,15 @@ async def test_list_project_agents_filters_catalog_by_agent_settings(monkeypatch
 
     assert res.status_code == 200, res.text
     payload = res.json()["data"]
-    assert [agent["agentId"] for agent in payload["agents"]] == ["content_analyzer"]
+    assert {agent["agentId"] for agent in payload["agents"]} == {
+        "content_analyzer",
+        "content_advisor",
+        "content_builder",
+        "content_model_advisor",
+    }
     skills = {skill["skillId"]: skill for skill in payload["skills"]}
     assert skills["content.analysis"]["enabled"] is True
+    assert skills["content.planning"]["enabled"] is True
 
 
 @pytest.mark.asyncio
@@ -750,15 +756,13 @@ async def test_create_content_draft_proposal_returns_approval_checkpoint(monkeyp
 
 
 @pytest.mark.asyncio
-async def test_create_content_draft_proposal_rejects_disabled_writer_skill(monkeypatch) -> None:
+async def test_create_content_draft_proposal_rejects_disabled_write_tools(monkeypatch) -> None:
     async def _core_settings(_settings: Settings, *, ttl_seconds: float = 5.0) -> dict[str, object]:
         _ = ttl_seconds
         return {
             "ai_agents": {
                 "enabled": True,
-                "skills_enabled": True,
-                "allowed_skill_ids": ["content.analysis"],
-                "write_tools_enabled": True,
+                "write_tools_enabled": False,
             }
         }
 
@@ -781,7 +785,7 @@ async def test_create_content_draft_proposal_rejects_disabled_writer_skill(monke
     assert res.status_code == 403, res.text
     payload = res.json()
     assert payload["error"] == "AGENT_CONTENT_WRITER_DISABLED"
-    assert payload["meta"] == {"disabledReason": "skill_not_allowlisted"}
+    assert payload["meta"] == {"disabledReason": "write_tools_disabled"}
     assert proposal_service.called is False
 
 
@@ -976,15 +980,13 @@ async def test_create_content_model_draft_proposal_rejects_disabled_dry_run_poli
 
 
 @pytest.mark.asyncio
-async def test_create_content_model_draft_proposal_rejects_disabled_modeler_skill(monkeypatch) -> None:
+async def test_create_content_model_draft_proposal_rejects_disabled_write_tools(monkeypatch) -> None:
     async def _core_settings(_settings: Settings, *, ttl_seconds: float = 5.0) -> dict[str, object]:
         _ = ttl_seconds
         return {
             "ai_agents": {
                 "enabled": True,
-                "skills_enabled": True,
-                "allowed_skill_ids": ["content.writer"],
-                "write_tools_enabled": True,
+                "write_tools_enabled": False,
             }
         }
 
@@ -1007,7 +1009,7 @@ async def test_create_content_model_draft_proposal_rejects_disabled_modeler_skil
     assert res.status_code == 403, res.text
     payload = res.json()
     assert payload["error"] == "AGENT_CONTENT_WRITER_DISABLED"
-    assert payload["meta"] == {"disabledReason": "skill_not_allowlisted", "skillId": "content.modeler"}
+    assert payload["meta"] == {"disabledReason": "write_tools_disabled", "skillId": "content.modeler"}
     assert proposal_service.called is False
 
 
@@ -1189,15 +1191,13 @@ async def test_apply_agent_modeler_approval_allows_schema_only_policy(monkeypatc
 
 
 @pytest.mark.asyncio
-async def test_create_approval_dry_run_rejects_disabled_writer_skill(monkeypatch) -> None:
+async def test_create_approval_dry_run_rejects_disabled_write_tools(monkeypatch) -> None:
     async def _core_settings(_settings: Settings, *, ttl_seconds: float = 5.0) -> dict[str, object]:
         _ = ttl_seconds
         return {
             "ai_agents": {
                 "enabled": True,
-                "skills_enabled": True,
-                "allowed_skill_ids": ["content.analysis"],
-                "write_tools_enabled": True,
+                "write_tools_enabled": False,
             }
         }
 
@@ -1221,7 +1221,7 @@ async def test_create_approval_dry_run_rejects_disabled_writer_skill(monkeypatch
     assert res.status_code == 403, res.text
     payload = res.json()
     assert payload["error"] == "AGENT_CONTENT_WRITER_DISABLED"
-    assert payload["meta"] == {"disabledReason": "skill_not_allowlisted"}
+    assert payload["meta"] == {"disabledReason": "write_tools_disabled"}
     assert approval_service.called is False
 
 

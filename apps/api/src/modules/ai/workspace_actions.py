@@ -21,6 +21,7 @@ from src.core.lifecycles.dispatcher import LifecycleDispatcher
 from src.llm.runtime import LLMRequestContext, LLMRuntime, LLMRuntimeError
 from src.models.agents.conversation import AgentConversationMode
 from src.models.content._enums import ContentVersionState
+from src.models.projects._enums import ProjectAuthoringMode
 from src.models.projects.environment import ProjectEnvironmentKey
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.domains.schema import DomainBindingOut
@@ -281,6 +282,10 @@ class WorkspaceAIActionToolCallOut(BaseSchema):
 class WorkspaceCreateProjectArgs(BaseSchema):
     name: str = Field(..., min_length=1, max_length=128, description="Project display name.")
     description: str = Field(..., min_length=1, max_length=500, description="Project purpose summary.")
+    authoring_mode: ProjectAuthoringMode = Field(
+        ...,
+        description="Use builder_managed for visual AI website creation; use source_managed only for explicit source-owned projects.",
+    )
     framework: Literal["react_vite", "astro"] | None = Field(
         default=None,
         description="Optional source framework. Defaults to react_vite unless the user explicitly requests Astro.",
@@ -1069,6 +1074,7 @@ def _project_create_request(
 ) -> ProjectCreateRequest:
     return ProjectCreateRequest(
         workspace_id=payload.workspace_id,
+        authoring_mode=arguments.authoring_mode,
         name=arguments.name,
         slug=None,
         description=arguments.description,
@@ -1177,7 +1183,7 @@ def _created_project_page_model_contract() -> ContentModelDefinitionContract:
                 config={"columns": ["title", "path"]},
             )
         ],
-        presentation={"allowedKinds": ["form_data", "visual_blueprint", "slot_mapping", "seo"]},
+        presentation={"allowedKinds": ["form_data", "wireframe", "visual_blueprint", "slot_mapping", "seo"]},
         seo={"titleField": "title"},
         starter_pack_policy={"mode": "page"},
         surface_policy={"allowedSurfaces": ["canvas", "structured"]},
@@ -1220,7 +1226,7 @@ def _created_project_reusable_block_model_contract() -> ContentModelDefinitionCo
                 config={"columns": ["title", "sectionKey"]},
             )
         ],
-        presentation={"allowedKinds": ["form_data", "visual_blueprint", "slot_mapping"]},
+        presentation={"allowedKinds": ["form_data", "wireframe", "visual_blueprint", "slot_mapping"]},
         starter_pack_policy={"mode": "section"},
         surface_policy={"allowedSurfaces": ["canvas", "structured"]},
     )
@@ -3957,6 +3963,7 @@ def _planner_messages(payload: WorkspaceAIActionRequest) -> list[dict[str, str]]
             "arguments": {
                 "name": "Concise product-ready project name inferred from the instruction.",
                 "description": "One sentence describing the project's purpose and operating scope.",
+                "authoringMode": "builder_managed for visual AI website creation; source_managed only when source ownership is explicit.",
                 "framework": "Optional source framework. Use astro only when the user explicitly requests Astro; otherwise omit it so React + Vite remains the default.",
                 "user_visible_plan": "Concise plan shown to the user.",
             },
@@ -4194,6 +4201,11 @@ def _planner_tool_provider_params() -> dict[str, Any]:
                 properties={
                     "name": {"type": "string", "description": "Product-ready project display name."},
                     "description": {"type": "string", "description": "One sentence describing the project purpose."},
+                    "authoringMode": {
+                        "type": "string",
+                        "enum": ["builder_managed", "source_managed"],
+                        "description": "Explicit composition authority. Use builder_managed unless source ownership is requested.",
+                    },
                     "framework": {
                         "type": "string",
                         "enum": ["react_vite", "astro"],
@@ -4201,7 +4213,7 @@ def _planner_tool_provider_params() -> dict[str, Any]:
                     },
                     "user_visible_plan": {"type": "string", "description": "Concise plan shown to the user."},
                 },
-                required=["name", "description", "user_visible_plan"],
+                required=["name", "description", "authoringMode", "user_visible_plan"],
             ),
             _planner_function_tool(
                 name="workspace_create_content_model",

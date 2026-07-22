@@ -45,6 +45,7 @@ _PRICING_MICROS_PER_1K: dict[str, dict[str, float]] = {
     "gpt-4o-mini": {"input": 150.0, "output": 600.0},
     "gpt-4o": {"input": 2500.0, "output": 10000.0},
     "claude-sonnet-4-6": {"input": 3000.0, "output": 15000.0},
+    "deepseek-v4-pro": {"input": 435.0, "output": 870.0},
 }
 
 
@@ -94,6 +95,7 @@ class LLMRequestContext(BaseSchema):
 
     workspace_id: UUID
     project_id: UUID | None = None
+    agent_run_id: UUID | None = None
     user_id: UUID | None = None
     correlation_id: str = Field(default_factory=lambda: uuid.uuid4().hex)
     source: Literal["agent", "event", "api"] = "api"
@@ -174,12 +176,10 @@ class LLMRuntime:
         """
         from src.llm.keys import resolve_litellm_key
         from src.llm.policy import enforce_model_policy, resolve_model_policy, resolve_provider_retention_params
-        from src.llm.token_counter import estimate_tokens
+        from src.llm.token_counter import estimate_prompt_tokens_upper_bound
 
         provider_name = detect_provider(model)
-        prompt_tokens = estimate_tokens(messages, model=model)
         effective_max_tokens = max_tokens if max_tokens is not None else self._default_max_tokens
-        estimated_cost = estimate_cost_micros(model, prompt_tokens, effective_max_tokens)
 
         resolved_key = await resolve_litellm_key(
             workspace_id=context.workspace_id,
@@ -195,6 +195,13 @@ class LLMRuntime:
             user_id=context.user_id,
             global_data_retention_enabled=self._default_data_retention_enabled,
         )
+        retention_params = resolve_provider_retention_params(policy, provider_name)
+        merged_params = {**(provider_params or {}), **retention_params}
+        prompt_tokens = estimate_prompt_tokens_upper_bound(
+            messages,
+            provider_params=merged_params,
+        )
+        estimated_cost = estimate_cost_micros(model, prompt_tokens, effective_max_tokens)
         enforce_model_policy(
             model=model,
             max_tokens=effective_max_tokens,
@@ -202,9 +209,6 @@ class LLMRuntime:
             policy=policy,
             provider=provider_name,
         )
-
-        retention_params = resolve_provider_retention_params(policy, provider_name)
-        merged_params = {**(provider_params or {}), **retention_params}
 
         return resolved_key.virtual_key, prompt_tokens, estimated_cost, effective_max_tokens, merged_params
 
@@ -245,6 +249,7 @@ class LLMRuntime:
                 request_id=uuid.uuid4(),
                 estimated_cost_micros=estimated_cost,
                 workspace_id=context.workspace_id,
+                agent_run_id=context.agent_run_id,
             )
 
         try:
@@ -323,6 +328,7 @@ class LLMRuntime:
                 request_id=uuid.uuid4(),
                 estimated_cost_micros=estimated_cost,
                 workspace_id=context.workspace_id,
+                agent_run_id=context.agent_run_id,
             )
 
         try:

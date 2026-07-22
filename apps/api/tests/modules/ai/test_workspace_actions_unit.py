@@ -16,6 +16,7 @@ from src.core.exceptions import BadRequest
 from src.core.http.pagination import PageData
 from src.llm.runtime import LLMRuntime
 from src.models.agents.conversation import AgentConversationMode
+from src.models.projects._enums import ProjectAuthoringMode
 from src.models.workspaces.workspace import WorkspaceKind
 from src.modules.ai import workspace_actions
 from src.modules.ai.workspace_actions import (
@@ -111,6 +112,7 @@ def test_project_create_request_uses_structured_planner_arguments() -> None:
         workspace_actions.WorkspaceCreateProjectArgs(
             name="产品官网",
             description="用于展示产品价值、功能亮点与转化入口的品牌官网项目。",
+            authoring_mode=ProjectAuthoringMode.BUILDER_MANAGED,
         ),
     )
 
@@ -146,7 +148,9 @@ def test_created_project_page_model_contract_defines_site_builder_page() -> None
     assert len(payload.views) == 1
     assert payload.views[0].key == "pages"
     assert payload.views[0].config == {"columns": ["title", "path"]}
-    assert payload.presentation == {"allowedKinds": ["form_data", "visual_blueprint", "slot_mapping", "seo"]}
+    assert payload.presentation == {
+        "allowedKinds": ["form_data", "wireframe", "visual_blueprint", "slot_mapping", "seo"]
+    }
     assert payload.seo == {"titleField": "title"}
     assert payload.starter_pack_policy == {"mode": "page"}
     assert payload.surface_policy == {"allowedSurfaces": ["canvas", "structured"]}
@@ -188,7 +192,7 @@ def test_created_project_reusable_block_model_contract_defines_site_builder_bloc
     assert len(payload.views) == 1
     assert payload.views[0].key == "blocks"
     assert payload.views[0].config == {"columns": ["title", "sectionKey"]}
-    assert payload.presentation == {"allowedKinds": ["form_data", "visual_blueprint", "slot_mapping"]}
+    assert payload.presentation == {"allowedKinds": ["form_data", "wireframe", "visual_blueprint", "slot_mapping"]}
     assert payload.starter_pack_policy == {"mode": "section"}
     assert payload.surface_policy == {"allowedSurfaces": ["canvas", "structured"]}
     assert {field.key for field in payload.fields} == {"title", "sectionKey", "propsDefaults"}
@@ -200,6 +204,7 @@ def test_created_project_home_fields_link_settings_domain_and_sections() -> None
         arguments=workspace_actions.WorkspaceCreateProjectArgs(
             name="Landing",
             description="A conversion website.",
+            authoring_mode=ProjectAuthoringMode.BUILDER_MANAGED,
         ),
         domain=domain,
     )
@@ -653,7 +658,12 @@ def test_planner_tool_provider_params_register_workspace_tools() -> None:
     assert create_project_schema["function"]["parameters"]["required"] == [
         "name",
         "description",
+        "authoringMode",
         "user_visible_plan",
+    ]
+    assert create_project_schema["function"]["parameters"]["properties"]["authoringMode"]["enum"] == [
+        "builder_managed",
+        "source_managed",
     ]
     assert create_project_schema["function"]["parameters"]["properties"]["framework"]["enum"] == [
         "react_vite",
@@ -712,6 +722,7 @@ def test_create_project_source_settings_default_to_react_vite() -> None:
     args = workspace_actions.WorkspaceCreateProjectArgs(
         name="Enterprise launch",
         description="A conversion-focused enterprise landing site.",
+        authoring_mode=ProjectAuthoringMode.BUILDER_MANAGED,
     )
 
     settings_patch = workspace_actions._project_core_settings_patch(arguments=args, domain=None)
@@ -746,6 +757,7 @@ def test_create_project_source_settings_support_explicit_astro_framework() -> No
     args = workspace_actions.WorkspaceCreateProjectArgs(
         name="Enterprise launch",
         description="A conversion-focused enterprise landing site.",
+        authoring_mode=ProjectAuthoringMode.SOURCE_MANAGED,
         framework="astro",
     )
 
@@ -1081,6 +1093,7 @@ async def test_execute_workspace_ai_action_creates_project_with_canonical_servic
             {
                 "name": "SaaS 落地页",
                 "description": "用于展示 SaaS 产品价值、功能亮点与转化入口的落地页项目。",
+                "authoringMode": "builder_managed",
             },
         ),
     )
@@ -1102,6 +1115,7 @@ async def test_execute_workspace_ai_action_creates_project_with_canonical_servic
     created_workspace_id, payload, actor_user_id = create_call
     assert created_workspace_id == workspace_id
     assert payload.workspace_id == workspace_id
+    assert payload.authoring_mode == "builder_managed"
     assert payload.name == "SaaS 落地页"
     assert payload.description == "用于展示 SaaS 产品价值、功能亮点与转化入口的落地页项目。"
     assert payload.slug is None
@@ -1466,6 +1480,7 @@ async def test_bootstrap_created_project_content_syncs_homepage_route_binding(mo
         arguments=workspace_actions.WorkspaceCreateProjectArgs(
             name="企业官网",
             description="展示企业服务、案例与转化入口的官网项目。",
+            authoring_mode=ProjectAuthoringMode.BUILDER_MANAGED,
         ),
         domain=None,
     )

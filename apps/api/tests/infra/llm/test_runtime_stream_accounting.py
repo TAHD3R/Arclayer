@@ -9,7 +9,17 @@ from uuid import uuid4
 import pytest
 
 from src.llm.provider import BaseLLMProvider
-from src.llm.runtime import LLMRequestContext, LLMRuntime, compute_cost_micros
+from src.llm.runtime import (
+    LLMRequestContext,
+    LLMRuntime,
+    compute_cost_micros,
+    estimate_cost_micros,
+)
+from src.modules.projects.design_systems.concept_provider import _provider_params
+
+_OBSERVED_STYLE_GUIDE_PROMPT_TOKENS = 3941
+_OBSERVED_STYLE_GUIDE_COMPLETION_TOKENS = 4096
+_OBSERVED_STYLE_GUIDE_COST_MICROS = 5278
 
 
 class _StreamingProvider(BaseLLMProvider):
@@ -65,6 +75,60 @@ def _terminal_chunk() -> dict[str, Any]:
         "choices": [{"delta": {"content": "done"}, "finish_reason": "stop"}],
         "usage": {"prompt_tokens": 10, "completion_tokens": 2},
     }
+
+
+def test_deepseek_cost_matches_litellm_model_group_pricing() -> None:
+    actual = compute_cost_micros(
+        "deepseek-v4-pro",
+        _OBSERVED_STYLE_GUIDE_PROMPT_TOKENS,
+        _OBSERVED_STYLE_GUIDE_COMPLETION_TOKENS,
+    )
+    estimated = estimate_cost_micros(
+        "deepseek-v4-pro",
+        _OBSERVED_STYLE_GUIDE_PROMPT_TOKENS,
+        _OBSERVED_STYLE_GUIDE_COMPLETION_TOKENS,
+    )
+
+    assert actual == _OBSERVED_STYLE_GUIDE_COST_MICROS
+    assert estimated == _OBSERVED_STYLE_GUIDE_COST_MICROS
+
+
+@pytest.mark.asyncio
+async def test_deepseek_tool_request_reservation_covers_observed_style_guide_usage() -> None:
+    runtime = LLMRuntime(provider=_StreamingProvider([]))
+    messages = [{"role": "user", "content": "Create one typed Style Guide candidate."}]
+
+    with (
+        patch(
+            "src.llm.keys.resolve_litellm_key",
+            new=AsyncMock(return_value=SimpleNamespace(virtual_key="virtual-key", grant_id=None)),
+        ),
+        patch("src.llm.policy.resolve_model_policy", new=AsyncMock(return_value=SimpleNamespace())),
+        patch("src.llm.policy.enforce_model_policy"),
+        patch("src.llm.policy.resolve_provider_retention_params", return_value={}),
+    ):
+        (
+            _virtual_key,
+            prompt_token_upper_bound,
+            estimated_cost,
+            effective_max_tokens,
+            _merged_params,
+        ) = await runtime._resolve_call_context(
+            messages,
+            context=LLMRequestContext(workspace_id=uuid4()),
+            model="deepseek-v4-pro",
+            max_tokens=_OBSERVED_STYLE_GUIDE_COMPLETION_TOKENS,
+            provider_params=_provider_params(),
+        )
+
+    observed_actual_cost = compute_cost_micros(
+        "deepseek-v4-pro",
+        _OBSERVED_STYLE_GUIDE_PROMPT_TOKENS,
+        _OBSERVED_STYLE_GUIDE_COMPLETION_TOKENS,
+    )
+    assert effective_max_tokens == _OBSERVED_STYLE_GUIDE_COMPLETION_TOKENS
+    assert prompt_token_upper_bound >= _OBSERVED_STYLE_GUIDE_PROMPT_TOKENS
+    assert estimated_cost >= observed_actual_cost
 
 
 @pytest.mark.asyncio

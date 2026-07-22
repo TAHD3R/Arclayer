@@ -20,21 +20,9 @@ def str_setting(section: dict[str, object], key: str, default: str) -> str:
     return value.strip() if isinstance(value, str) and value.strip() else default
 
 
-def skill_allowlist(section: dict[str, object]) -> set[str] | None:
-    value = section.get("allowed_skill_ids")
-    if not isinstance(value, list):
-        return None
-    return {item.strip() for item in value if isinstance(item, str) and item.strip()}
-
-
-def read_skill_disabled_reason(section: dict[str, object], *, skill_id: str) -> str | None:
+def read_skill_disabled_reason(section: dict[str, object]) -> str | None:
     if not bool_setting(section, "enabled", True):
         return "agents_disabled"
-    if not bool_setting(section, "skills_enabled", True):
-        return "skills_disabled"
-    allowed_skill_ids = skill_allowlist(section)
-    if allowed_skill_ids is not None and skill_id not in allowed_skill_ids:
-        return "skill_not_allowlisted"
     return None
 
 
@@ -55,7 +43,7 @@ def write_skill_runtime_policy_disabled_reason(
 
 
 def write_skill_disabled_reason(section: dict[str, object], *, skill_id: str) -> str | None:
-    reason = read_skill_disabled_reason(section, skill_id=skill_id)
+    reason = read_skill_disabled_reason(section)
     if reason is not None:
         return reason
     if not bool_setting(section, "write_tools_enabled", False):
@@ -70,4 +58,4 @@ def write_skill_disabled_reason(section: dict[str, object], *, skill_id: str) ->
 def skill_disabled_reason(section: dict[str, object], *, skill_id: str) -> str | None:
     if skill_id in WRITE_SKILL_IDS:
         return write_skill_disabled_reason(section, skill_id=skill_id)
-    return read_skill_disabled_reason(section, skill_id=skill_id)
+    return read_skill_disabled_reason(section)

@@ -457,7 +457,6 @@ def test_default_agent_registry_appends_configured_system_prompt() -> None:
 def test_default_agent_registry_gates_write_skills_by_approval_policy() -> None:
     schema_only_registry = build_default_agent_registry(
         tools=_tools(),
-        enabled_skill_ids={"content.writer", "content.modeler"},
         write_tools_enabled=True,
         approval_policy="approve_schema_only",
     )
@@ -471,7 +470,6 @@ def test_default_agent_registry_gates_write_skills_by_approval_policy() -> None:
 
     auto_approved_registry = build_default_agent_registry(
         tools=_tools(),
-        enabled_skill_ids={"content.writer", "content.modeler"},
         write_tools_enabled=True,
         approval_policy="auto_approved",
     )
@@ -483,7 +481,6 @@ def test_default_agent_registry_gates_write_skills_by_approval_policy() -> None:
 
     dry_run_disabled_registry = build_default_agent_registry(
         tools=_tools(),
-        enabled_skill_ids={"content.writer", "content.modeler"},
         write_tools_enabled=True,
         dry_run_required=False,
     )
@@ -494,16 +491,17 @@ def test_default_agent_registry_gates_write_skills_by_approval_policy() -> None:
     assert dry_run_disabled_skills["content.modeler"].disabled_reason == "dry_run_required_disabled"
 
 
-def test_default_agent_registry_filters_agents_by_enabled_skill_ids() -> None:
-    registry = build_default_agent_registry(tools=_tools(), enabled_skill_ids={"content.analysis"})
+def test_default_agent_registry_disables_agents_only_through_the_runtime_switch() -> None:
+    registry = build_default_agent_registry(tools=_tools(), agents_enabled=False)
 
     agents = registry.list_agents()
 
-    assert [agent.agent_id for agent in agents] == ["content_analyzer"]
+    assert agents == ()
     skills = {skill.skill_id: skill for skill in registry.list_skills()}
-    assert skills["content.analysis"].enabled is True
+    assert skills["content.analysis"].enabled is False
+    assert skills["content.analysis"].disabled_reason == "agents_disabled"
     assert skills["content.planning"].enabled is False
-    assert skills["content.planning"].disabled_reason == "skill_not_allowlisted"
+    assert skills["content.planning"].disabled_reason == "agents_disabled"
 
 
 def test_default_agent_registry_rejects_unknown_agent_and_tool() -> None:

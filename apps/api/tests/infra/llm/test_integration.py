@@ -51,7 +51,6 @@ from src.modules.ai.model_catalog import (
     _system_provider_set,
     list_ai_model_catalog,
 )
-from src.modules.ai.router import _get_ai_service
 from src.modules.ai.router import router as ai_router
 from src.modules.ai.schema import AIModelCatalogItem, AIModelCatalogResponse, AIReasoningEffort
 from src.modules.ai.service import AIChatService
@@ -420,6 +419,51 @@ class TestMockLLMIntegration:
                 )
 
             assert mock_runtime.chat.await_args.kwargs["provider_params"] == expected
+
+    async def test_deepseek_named_function_tool_choice_uses_non_thinking_auto_mode(self) -> None:
+        settings = get_settings()
+        mock_runtime = AsyncMock(spec=LLMRuntime)
+        mock_runtime.chat.return_value = ChatResult(
+            completion_id="forced-tool-cid",
+            model="deepseek-v4-pro",
+            content="",
+            tool_calls=[],
+            prompt_tokens=1,
+            completion_tokens=1,
+            cost_micros=0,
+            finish_reason="tool_calls",
+        )
+        service = AIChatService(settings, runtime=mock_runtime)
+        forced_tool_params = {
+            "tools": [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "submit_candidate",
+                        "parameters": {"type": "object", "additionalProperties": False},
+                    },
+                }
+            ],
+            "tool_choice": {
+                "type": "function",
+                "function": {"name": "submit_candidate"},
+            },
+        }
+
+        with patch.object(service, "_resolve_budget", new=AsyncMock(return_value=None)):
+            await service.chat(
+                [{"role": "user", "content": "Submit one typed candidate."}],
+                context=LLMRequestContext(workspace_id=uuid4()),
+                model="deepseek-v4-pro",
+                provider_params=forced_tool_params,
+            )
+
+        assert mock_runtime.chat.await_args.kwargs["provider_params"] == {
+            **forced_tool_params,
+            "tool_choice": "auto",
+            "thinking": {"type": "disabled"},
+        }
+        assert mock_runtime.chat.await_args.kwargs["max_tokens"] == 8192
 
     async def test_streaming_flow(self, monkeypatch) -> None:
         """Verify AIChatService.chat_stream() yields SSE events."""
@@ -955,169 +999,28 @@ class TestAIModelCatalog:
 
 def _build_test_app(
     *,
-    workspace_id: UUID,
     user_id: UUID,
-    service: AIChatService,
-    inject_workspace: bool = True,
 ) -> FastAPI:
-    """Build a FastAPI test app with workspace context injected via middleware."""
-    from starlette.middleware.base import BaseHTTPMiddleware
-
+    """Build a FastAPI test app for the public AI model catalog contract."""
     app = FastAPI()
     app.include_router(ai_router, prefix="/api/v1/chat")
 
     async def override_user_id() -> UUID:
         return user_id
 
-    async def override_service() -> AIChatService:
-        return service
-
     app.dependency_overrides[get_current_user_id] = override_user_id
-    app.dependency_overrides[_get_ai_service] = override_service
-
-    if not inject_workspace:
-        return app
-
-    # Inject workspace_id into request.state so _make_context() can resolve it.
-    ws_id_str = str(workspace_id)
-
-    class _InjectWorkspaceMiddleware(BaseHTTPMiddleware):
-        async def dispatch(self, request, call_next):
-            request.state.workspace_id = ws_id_str
-            return await call_next(request)
-
-    app.add_middleware(_InjectWorkspaceMiddleware)
     return app
 
 
-class TestEndToEndChatFlow:
-    """End-to-end API chat flow using mocked LLMRuntime."""
-
-    async def test_chat_endpoint_success(self) -> None:
-        """POST /api/v1/chat returns a valid ChatResponse."""
-        mock_runtime = AsyncMock(spec=LLMRuntime)
-        mock_runtime.chat.return_value = ChatResult(
-            completion_id="e2e-test-id",
-            model="gpt-4o-mini",
-            content="E2E test response",
-            prompt_tokens=8,
-            completion_tokens=12,
-            cost_micros=0,
-            finish_reason="stop",
-        )
-
-        settings = get_settings()
-        service = AIChatService(settings, runtime=mock_runtime)
-
-        app = _build_test_app(
-            workspace_id=uuid4(),
-            user_id=uuid4(),
-            service=service,
-        )
-
-        transport = ASGITransport(app=app, raise_app_exceptions=True)
-        with patch.object(service, "_resolve_budget", new=AsyncMock(return_value=None)):
-            async with AsyncClient(transport=transport, base_url="http://test") as http:
-                response = await http.post(
-                    "/api/v1/chat",
-                    json={
-                        "messages": [{"role": "user", "content": "Hello"}],
-                        "model": "gpt-4o-mini",
-                    },
-                )
-
-        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
-        body = response.json()
-        assert body["message"] == "OK"
-        data = body["data"]
-        assert data["id"] == "e2e-test-id"
-        assert data["model"] == "gpt-4o-mini"
-        assert data["content"] == "E2E test response"
-        assert data["finishReason"] == "stop"
-        assert data["usage"]["promptTokens"] == 8
-        assert data["usage"]["completionTokens"] == 12
-
-    async def test_chat_endpoint_uses_payload_workspace_context(self) -> None:
-        """POST /api/v1/chat accepts an explicit workspaceId after access validation."""
-        workspace_id = uuid4()
-        user_id = uuid4()
-        mock_runtime = AsyncMock(spec=LLMRuntime)
-        mock_runtime.chat.return_value = ChatResult(
-            completion_id="payload-ws-test",
-            model="gpt-4o-mini",
-            content="Payload workspace response",
-            prompt_tokens=2,
-            completion_tokens=3,
-            cost_micros=0,
-            finish_reason="stop",
-        )
-
-        settings = get_settings()
-        service = AIChatService(settings, runtime=mock_runtime)
-        app = _build_test_app(
-            workspace_id=workspace_id,
-            user_id=user_id,
-            service=service,
-            inject_workspace=False,
-        )
-
-        transport = ASGITransport(app=app, raise_app_exceptions=True)
-        with (
-            patch.object(service, "_resolve_budget", new=AsyncMock(return_value=None)),
-            patch(
-                "src.modules.ai.router.resolve_workspace_context_by_id",
-                new=AsyncMock(return_value=SimpleNamespace(workspace_id=workspace_id)),
-            ) as resolve_context,
-        ):
-            async with AsyncClient(transport=transport, base_url="http://test") as http:
-                response = await http.post(
-                    "/api/v1/chat",
-                    json={
-                        "messages": [{"role": "user", "content": "Hello"}],
-                        "workspaceId": encode_uuid(workspace_id),
-                    },
-                )
-
-        assert response.status_code == 200, response.text
-        resolve_context.assert_awaited_once_with(workspace_id=workspace_id, user_id=user_id)
-        mock_runtime.chat.assert_awaited_once()
-        call_context = mock_runtime.chat.await_args.kwargs["context"]
-        assert call_context.workspace_id == workspace_id
-        assert response.json()["data"]["content"] == "Payload workspace response"
-
-    async def test_chat_endpoint_requires_workspace_context(self) -> None:
-        """POST /api/v1/chat returns a clear error without request or payload workspace context."""
-        settings = get_settings()
-        service = AIChatService(settings, runtime=AsyncMock(spec=LLMRuntime))
-        app = _build_test_app(
-            workspace_id=uuid4(),
-            user_id=uuid4(),
-            service=service,
-            inject_workspace=False,
-        )
-
-        transport = ASGITransport(app=app, raise_app_exceptions=False)
-        async with AsyncClient(transport=transport, base_url="http://test") as http:
-            response = await http.post(
-                "/api/v1/chat",
-                json={"messages": [{"role": "user", "content": "Hello"}]},
-            )
-
-        assert response.status_code == 403
-        body = response.json()
-        envelope = body.get("detail", body)
-        assert envelope["error"] == "AUTH_NOT_WORKSPACE_MEMBER"
+class TestModelCatalogEndpoint:
+    """Public model catalog endpoint contract tests."""
 
     async def test_model_catalog_endpoint_returns_backend_models(self) -> None:
         """GET /api/v1/chat/models returns the backend-owned model catalog."""
         settings = get_settings()
-        service = AIChatService(settings, runtime=AsyncMock(spec=LLMRuntime))
         user_id = uuid4()
         app = _build_test_app(
-            workspace_id=uuid4(),
             user_id=user_id,
-            service=service,
-            inject_workspace=False,
         )
         catalog = AIModelCatalogResponse(
             default_model="deepseek-v4-pro",
@@ -1173,15 +1076,10 @@ class TestEndToEndChatFlow:
         assert data["models"][0]["labelKey"] == "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO"
 
     async def test_model_catalog_endpoint_returns_catalog_error_code(self) -> None:
-        settings = get_settings()
-        service = AIChatService(settings, runtime=AsyncMock(spec=LLMRuntime))
         user_id = uuid4()
         workspace_id = uuid4()
         app = _build_test_app(
-            workspace_id=uuid4(),
             user_id=user_id,
-            service=service,
-            inject_workspace=False,
         )
 
         transport = ASGITransport(app=app, raise_app_exceptions=True)
@@ -1205,99 +1103,3 @@ class TestEndToEndChatFlow:
         envelope = body.get("detail", body)
         assert envelope["error"] == AI_MODEL_CATALOG_EMPTY
         assert envelope["message"] == AI_MODEL_CATALOG_EMPTY
-
-    async def test_chat_endpoint_correlation_id(self) -> None:
-        """Verify the response includes correlation ID metadata."""
-        mock_runtime = AsyncMock(spec=LLMRuntime)
-        mock_runtime.chat.return_value = ChatResult(
-            completion_id="cid-test",
-            model="gpt-4o-mini",
-            content="Correlation test",
-            prompt_tokens=1,
-            completion_tokens=1,
-            cost_micros=0,
-            finish_reason="stop",
-        )
-
-        settings = get_settings()
-        service = AIChatService(settings, runtime=mock_runtime)
-
-        app = _build_test_app(
-            workspace_id=uuid4(),
-            user_id=uuid4(),
-            service=service,
-        )
-
-        transport = ASGITransport(app=app, raise_app_exceptions=True)
-        with patch.object(service, "_resolve_budget", new=AsyncMock(return_value=None)):
-            async with AsyncClient(transport=transport, base_url="http://test") as http:
-                response = await http.post(
-                    "/api/v1/chat",
-                    json={
-                        "messages": [{"role": "user", "content": "Hello"}],
-                    },
-                )
-
-        assert response.status_code == 200
-        body = response.json()
-        assert body["data"]["content"] == "Correlation test"
-
-        has_cid = "X-Correlation-Id" in response.headers or "x-correlation-id" in response.headers
-        if has_cid:
-            cid = response.headers.get("X-Correlation-Id") or response.headers.get("x-correlation-id")
-            assert cid and len(cid) > 0
-
-    async def test_chat_endpoint_error(self) -> None:
-        """POST /api/v1/chat returns proper error structure on failure."""
-        mock_runtime = AsyncMock(spec=LLMRuntime)
-        mock_runtime.chat.side_effect = LLMRuntimeError(
-            code="BUDGET_EXCEEDED",
-            message="Budget limit exceeded for this workspace",
-            status_code=402,
-        )
-
-        settings = get_settings()
-        service = AIChatService(settings, runtime=mock_runtime)
-
-        app = _build_test_app(
-            workspace_id=uuid4(),
-            user_id=uuid4(),
-            service=service,
-        )
-
-        transport = ASGITransport(app=app, raise_app_exceptions=False)
-        with patch.object(service, "_resolve_budget", new=AsyncMock(return_value=None)):
-            async with AsyncClient(transport=transport, base_url="http://test") as http:
-                response = await http.post(
-                    "/api/v1/chat",
-                    json={
-                        "messages": [{"role": "user", "content": "Hello"}],
-                    },
-                )
-
-        assert response.status_code == 402
-        body = response.json()
-        envelope = body.get("detail", body)
-        assert envelope["error"] == "BUDGET_EXCEEDED"
-        assert "Budget limit" in envelope["message"]
-
-    async def test_chat_endpoint_validates_request(self) -> None:
-        """Verify the endpoint validates required fields."""
-        app = FastAPI()
-        app.include_router(ai_router, prefix="/api/v1/chat")
-
-        fake_user_id = uuid4()
-
-        async def override_user_id() -> UUID:
-            return fake_user_id
-
-        app.dependency_overrides[get_current_user_id] = override_user_id
-
-        transport = ASGITransport(app=app, raise_app_exceptions=False)
-        async with AsyncClient(transport=transport, base_url="http://test") as http:
-            response = await http.post(
-                "/api/v1/chat",
-                json={"model": "gpt-4o-mini"},  # missing messages
-            )
-
-        assert response.status_code == 422

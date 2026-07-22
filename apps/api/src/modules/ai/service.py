@@ -22,6 +22,10 @@ from src.settings.runtime import get_core_settings_value_cached
 
 logger = structlog.get_logger("arclayer.ai.service")
 
+_STRUCTURED_TOOL_DEFAULT_MAX_TOKENS = {
+    "deepseek-v4-pro": 8192,
+}
+
 
 class AIChatService(BaseService):
     """Chat completion service wrapping LLMRuntime with workspace context and budget controls.
@@ -114,6 +118,7 @@ class AIChatService(BaseService):
         temperature: float | None = None,
         max_tokens: int | None = None,
         budget_id: UUID | None = None,
+        provider_params: dict[str, Any] | None = None,
     ) -> dict:
         """Execute a chat completion with circuit breaker error handling.
 
@@ -123,6 +128,16 @@ class AIChatService(BaseService):
         and committed/released based on outcome.
         """
         resolved_model = model or self._settings.ai.default_model
+        resolved_provider_params = _chat_provider_params(
+            resolved_model,
+            reasoning_effort,
+            provider_params,
+        )
+        resolved_max_tokens = _chat_max_tokens(
+            resolved_model,
+            requested_max_tokens=max_tokens,
+            provider_params=provider_params,
+        )
 
         await self._check_rate_limit(str(context.workspace_id))
 
@@ -143,9 +158,9 @@ class AIChatService(BaseService):
                 data = await mock.chat(
                     messages,
                     model=resolved_model,
-                    **_reasoning_provider_params(resolved_model, reasoning_effort),
+                    **resolved_provider_params,
                     temperature=temperature,
-                    max_tokens=max_tokens,
+                    max_tokens=resolved_max_tokens,
                 )
                 choice = data["choices"][0]
                 usage = data.get("usage", {})
@@ -157,6 +172,7 @@ class AIChatService(BaseService):
                     "id": data["id"],
                     "model": data.get("model", resolved_model),
                     "content": choice["message"]["content"],
+                    "tool_calls": choice["message"].get("tool_calls") or [],
                     "usage": {
                         "prompt_tokens": usage.get("prompt_tokens", 0),
                         "completion_tokens": usage.get("completion_tokens", 0),
@@ -176,9 +192,9 @@ class AIChatService(BaseService):
                     messages,
                     context=context,
                     model=resolved_model,
-                    provider_params=_reasoning_provider_params(resolved_model, reasoning_effort),
+                    provider_params=resolved_provider_params,
                     temperature=temperature,
-                    max_tokens=max_tokens,
+                    max_tokens=resolved_max_tokens,
                     budget_id=budget_id,
                 )
             except LLMRuntimeError:
@@ -216,6 +232,14 @@ class AIChatService(BaseService):
             except httpx.HTTPStatusError as exc:
                 self._raise_for_http_error(exc)
             except Exception:
+                logger.exception(
+                    "Unexpected error during LLM chat completion",
+                    workspace_id=str(context.workspace_id),
+                    project_id=str(context.project_id) if context.project_id else None,
+                    agent_run_id=str(context.agent_run_id) if context.agent_run_id else None,
+                    model=resolved_model,
+                    source=context.source,
+                )
                 raise LLMRuntimeError(
                     code=LLMErrorCode.SYSTEM_INTERNAL_ERROR,
                     message=_llm_error_message(
@@ -234,6 +258,7 @@ class AIChatService(BaseService):
                 "id": result.completion_id,
                 "model": result.model,
                 "content": result.content,
+                "tool_calls": result.tool_calls,
                 "usage": {
                     "prompt_tokens": result.prompt_tokens,
                     "completion_tokens": result.completion_tokens,
@@ -513,3 +538,48 @@ def _reasoning_provider_params(model: str, effort: AIReasoningEffort | None) -> 
         return {"thinking": {"type": "enabled"}, "reasoning_effort": "max"}
 
     return {"reasoning_effort": effort}
+
+
+def _chat_provider_params(
+    model: str,
+    reasoning_effort: AIReasoningEffort | None,
+    provider_params: dict[str, Any] | None,
+) -> dict[str, Any]:
+    params = {
+        **_reasoning_provider_params(model, reasoning_effort),
+        **(provider_params or {}),
+    }
+    forced_tool_name = _forced_function_tool_name(params)
+    if detect_provider(model) == "deepseek" and forced_tool_name is not None:
+        logger.info(
+            "Using DeepSeek-compatible non-thinking automatic Tool selection for a named function",
+            model=model,
+            tool_name=forced_tool_name,
+        )
+        params["tool_choice"] = "auto"
+        params["thinking"] = {"type": "disabled"}
+    return params
+
+
+def _forced_function_tool_name(params: dict[str, Any]) -> str | None:
+    tool_choice = params.get("tool_choice")
+    if not isinstance(tool_choice, dict) or tool_choice.get("type") != "function":
+        return None
+    function = tool_choice.get("function")
+    if not isinstance(function, dict):
+        return None
+    name = function.get("name")
+    return name if isinstance(name, str) and name else None
+
+
+def _chat_max_tokens(
+    model: str,
+    *,
+    requested_max_tokens: int | None,
+    provider_params: dict[str, Any] | None,
+) -> int | None:
+    if requested_max_tokens is not None:
+        return requested_max_tokens
+    if _forced_function_tool_name(provider_params or {}) is None:
+        return None
+    return _STRUCTURED_TOOL_DEFAULT_MAX_TOKENS.get(model)

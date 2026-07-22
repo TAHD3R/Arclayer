@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -27,6 +28,7 @@ from src.llm.budget import (
     release,
     reserve,
 )
+from src.models.agents.runtime_v1 import AgentRunStatusV1
 from src.models.ai.ai_budget import AIBudget, BudgetSourceType
 from src.models.ai.ai_budget_reservation import AIBudgetReservation, ReservationStatus
 
@@ -49,6 +51,7 @@ def _make_reservation(budget, **overrides):
     defaults = {
         "id": uuid4(),
         "budget_id": budget.id,
+        "agent_run_id": None,
         "request_id": uuid4(),
         "estimated_cost_micros": 5000,
         "reserved_cost_micros": 5000,
@@ -57,7 +60,9 @@ def _make_reservation(budget, **overrides):
         "expires_at": datetime.now(UTC) + timedelta(seconds=300),
     }
     defaults.update(overrides)
-    return AIBudgetReservation(**defaults)
+    reservation = AIBudgetReservation(**defaults)
+    reservation.agent_run_id = defaults["agent_run_id"]
+    return reservation
 
 
 def _mock_execute(return_value):
@@ -119,6 +124,67 @@ class TestGetOrCreateBudget:
 
 
 class TestReserve:
+    @pytest.mark.asyncio
+    async def test_reserve_allows_interrupted_agent_run_child_work(self):
+        budget = _make_budget()
+        workspace_id = uuid4()
+        agent_run_id = uuid4()
+        reservation = _make_reservation(budget, agent_run_id=agent_run_id)
+        connection = MagicMock()
+        connection.execute_query = AsyncMock(
+            side_effect=[
+                ([], []),
+                (["id"], [{"id": str(budget.id)}]),
+            ]
+        )
+        transaction = MagicMock()
+        transaction.__aenter__ = AsyncMock(return_value=connection)
+        transaction.__aexit__ = AsyncMock(return_value=None)
+        run_query = MagicMock()
+        run_query.using_db.return_value.select_for_update.return_value.first = AsyncMock(
+            return_value=SimpleNamespace(
+                workspace_id=workspace_id,
+                status=AgentRunStatusV1.INTERRUPTED,
+            )
+        )
+
+        with (
+            patch("tortoise.transactions.in_transaction", return_value=transaction),
+            patch(
+                "src.llm.budget.AIBudgetReservation.get_or_none",
+                new=AsyncMock(return_value=None),
+            ),
+            patch(
+                "src.models.agents.runtime_v1.AgentRunV1Record.filter",
+                return_value=run_query,
+            ),
+            patch(
+                "src.modules.commerce.credits.reserve_workspace_credits",
+                new=AsyncMock(
+                    return_value=SimpleNamespace(
+                        account_id=None,
+                        credit_value_micros=None,
+                        reserved_credits=None,
+                    )
+                ),
+            ),
+            patch(
+                "src.llm.budget.AIBudgetReservation.create",
+                new=AsyncMock(return_value=reservation),
+            ) as create_reservation,
+        ):
+            result = await reserve(
+                budget_id=budget.id,
+                request_id=uuid4(),
+                estimated_cost_micros=5000,
+                workspace_id=workspace_id,
+                agent_run_id=agent_run_id,
+            )
+
+        assert result is reservation
+        assert create_reservation.await_args is not None
+        assert create_reservation.await_args.kwargs["agent_run_id"] == agent_run_id
+
     @pytest.mark.asyncio
     async def test_reserve_reuses_same_request_without_second_budget_hold(self):
         budget = _make_budget()

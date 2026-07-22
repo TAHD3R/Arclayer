@@ -79,8 +79,6 @@ def build_default_agent_registry(
     *,
     tools: tuple[ReadOnlyAgentTool, ...],
     agents_enabled: bool = True,
-    skills_enabled: bool = True,
-    enabled_skill_ids: set[str] | None = None,
     write_tools_enabled: bool = False,
     approval_policy: str = "always_approve",
     dry_run_required: bool = True,
@@ -145,8 +143,6 @@ def build_default_agent_registry(
     agents = _filter_enabled_agents(
         agents=read_only_agents,
         agents_enabled=agents_enabled,
-        skills_enabled=skills_enabled,
-        enabled_skill_ids=enabled_skill_ids,
     )
     return AgentRegistry(
         agents=agents,
@@ -155,8 +151,6 @@ def build_default_agent_registry(
             agents=read_only_agents,
             enabled_agents=agents,
             agents_enabled=agents_enabled,
-            skills_enabled=skills_enabled,
-            enabled_skill_ids=enabled_skill_ids,
             write_tools_enabled=write_tools_enabled,
             approval_policy=approval_policy,
             dry_run_required=dry_run_required,
@@ -189,14 +183,8 @@ def _filter_enabled_agents(
     *,
     agents: tuple[AgentDefinition, ...],
     agents_enabled: bool,
-    skills_enabled: bool,
-    enabled_skill_ids: set[str] | None,
 ) -> tuple[AgentDefinition, ...]:
-    if not agents_enabled or not skills_enabled:
-        return ()
-    if enabled_skill_ids is None:
-        return agents
-    return tuple(agent for agent in agents if agent.skill_id in enabled_skill_ids)
+    return agents if agents_enabled else ()
 
 
 def _build_skill_catalog(
@@ -204,8 +192,6 @@ def _build_skill_catalog(
     agents: tuple[AgentDefinition, ...],
     enabled_agents: tuple[AgentDefinition, ...],
     agents_enabled: bool,
-    skills_enabled: bool,
-    enabled_skill_ids: set[str] | None,
     write_tools_enabled: bool,
     approval_policy: str,
     dry_run_required: bool,
@@ -214,14 +200,9 @@ def _build_skill_catalog(
     read_only_skills = tuple(
         _agent_skill(
             agent=agent,
-            enabled=skills_enabled
-            and agent.agent_id in enabled_agent_ids
-            and (enabled_skill_ids is None or agent.skill_id in enabled_skill_ids),
+            enabled=agent.agent_id in enabled_agent_ids,
             disabled_reason=_disabled_reason(
                 agents_enabled=agents_enabled,
-                skills_enabled=skills_enabled,
-                skill_id=agent.skill_id,
-                enabled_skill_ids=enabled_skill_ids,
             ),
         )
         for agent in agents
@@ -236,8 +217,6 @@ def _build_skill_catalog(
             requires_approval=True,
             enabled=_write_skill_enabled(
                 agents_enabled=agents_enabled,
-                skills_enabled=skills_enabled,
-                enabled_skill_ids=enabled_skill_ids,
                 write_tools_enabled=write_tools_enabled,
                 approval_policy=approval_policy,
                 dry_run_required=dry_run_required,
@@ -245,8 +224,6 @@ def _build_skill_catalog(
             ),
             disabled_reason=_write_skill_disabled_reason(
                 agents_enabled=agents_enabled,
-                skills_enabled=skills_enabled,
-                enabled_skill_ids=enabled_skill_ids,
                 write_tools_enabled=write_tools_enabled,
                 approval_policy=approval_policy,
                 dry_run_required=dry_run_required,
@@ -263,8 +240,6 @@ def _build_skill_catalog(
             requires_approval=True,
             enabled=_write_skill_enabled(
                 agents_enabled=agents_enabled,
-                skills_enabled=skills_enabled,
-                enabled_skill_ids=enabled_skill_ids,
                 write_tools_enabled=write_tools_enabled,
                 approval_policy=approval_policy,
                 dry_run_required=dry_run_required,
@@ -272,8 +247,6 @@ def _build_skill_catalog(
             ),
             disabled_reason=_write_skill_disabled_reason(
                 agents_enabled=agents_enabled,
-                skills_enabled=skills_enabled,
-                enabled_skill_ids=enabled_skill_ids,
                 write_tools_enabled=write_tools_enabled,
                 approval_policy=approval_policy,
                 dry_run_required=dry_run_required,
@@ -307,24 +280,15 @@ def _agent_skill(
 def _disabled_reason(
     *,
     agents_enabled: bool,
-    skills_enabled: bool,
-    skill_id: str,
-    enabled_skill_ids: set[str] | None,
 ) -> str | None:
     if not agents_enabled:
         return "agents_disabled"
-    if not skills_enabled:
-        return "skills_disabled"
-    if enabled_skill_ids is not None and skill_id not in enabled_skill_ids:
-        return "skill_not_allowlisted"
     return None
 
 
 def _write_skill_disabled_reason(
     *,
     agents_enabled: bool,
-    skills_enabled: bool,
-    enabled_skill_ids: set[str] | None,
     write_tools_enabled: bool,
     approval_policy: str,
     dry_run_required: bool,
@@ -332,10 +296,6 @@ def _write_skill_disabled_reason(
 ) -> str | None:
     if not agents_enabled:
         return "agents_disabled"
-    if not skills_enabled:
-        return "skills_disabled"
-    if enabled_skill_ids is not None and skill_id not in enabled_skill_ids:
-        return "skill_not_allowlisted"
     if not write_tools_enabled:
         return "write_tools_disabled"
     return write_skill_runtime_policy_disabled_reason(
@@ -348,8 +308,6 @@ def _write_skill_disabled_reason(
 def _write_skill_enabled(
     *,
     agents_enabled: bool,
-    skills_enabled: bool,
-    enabled_skill_ids: set[str] | None,
     write_tools_enabled: bool,
     approval_policy: str,
     dry_run_required: bool,
@@ -358,8 +316,6 @@ def _write_skill_enabled(
     return (
         _write_skill_disabled_reason(
             agents_enabled=agents_enabled,
-            skills_enabled=skills_enabled,
-            enabled_skill_ids=enabled_skill_ids,
             write_tools_enabled=write_tools_enabled,
             approval_policy=approval_policy,
             dry_run_required=dry_run_required,

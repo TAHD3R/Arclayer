@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from src.llm.token_counter import count_tokens, estimate_tokens
+from src.llm.token_counter import (
+    count_tokens,
+    estimate_prompt_tokens_upper_bound,
+    estimate_tokens,
+)
 
 
 class TestCountTokens:
@@ -65,3 +69,12 @@ class TestEstimateTokens:
         short = estimate_tokens([{"role": "user", "content": "Hi"}])
         long = estimate_tokens([{"role": "user", "content": "Hello " * 100}])
         assert long > short
+
+
+def test_prompt_upper_bound_includes_private_provider_framing() -> None:
+    messages = [{"role": "user", "content": "Create one candidate."}]
+    request_bytes = len(b'{"messages":[{"content":"Create one candidate.","role":"user"}]}')
+
+    estimated = estimate_prompt_tokens_upper_bound(messages)
+
+    assert estimated >= request_bytes + 1024

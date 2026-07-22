@@ -183,6 +183,16 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description_i18n="rbac:RBAC_PERM_AUTOMATION_MANAGE_DESC",
         default_roles=["owner", "admin"],
     ),
+    # Durable background work and progress visibility.
+    PermissionTemplate(
+        code="system:jobs:read",
+        scope="workspace",
+        name="Read background jobs",
+        description="Allow viewing authorized workspace background jobs and their progress.",
+        name_i18n="rbac:RBAC_PERM_JOBS_READ_NAME",
+        description_i18n="rbac:RBAC_PERM_JOBS_READ_DESC",
+        default_roles=["owner", "admin", "editor", "designer", "viewer"],
+    ),
     # Workspace RBAC management (custom roles + assignments).
     PermissionTemplate(
         code="rbac:roles:read",
