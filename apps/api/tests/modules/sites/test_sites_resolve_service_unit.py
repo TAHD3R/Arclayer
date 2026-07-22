@@ -5,6 +5,7 @@ from typing import Any, cast
 from uuid import uuid4
 
 import pytest
+from pydantic import ValidationError
 
 from src.config import Settings
 from src.core.exceptions import Conflict, NotFound
@@ -54,6 +55,15 @@ def _service(*, database_enabled: bool = True) -> tuple[PublishingRoutesResolveS
     service.settings.database = service.settings.database.model_copy(update={"enabled": database_enabled})
     service._content_resolver = resolver  # type: ignore[attr-defined]
     return service, repo, resolver
+
+
+@pytest.mark.asyncio
+async def test_page_blueprint_loader_exposes_invalid_persisted_documents() -> None:
+    service = PublishingIncludesService(Settings(), repo=cast(SitesRepository, SimpleNamespace()))
+
+    assert await service.load_page_blueprint_from_revision(SimpleNamespace(design_document=None)) is None
+    with pytest.raises(ValidationError):
+        await service.load_page_blueprint_from_revision(SimpleNamespace(design_document={"version": 1}))
 
 
 @pytest.mark.asyncio

@@ -14,6 +14,7 @@ from src.config import Settings, get_settings
 from src.core.exceptions import Conflict, NotFound
 from src.core.logging import get_logger
 from src.models.workspaces.workspace import Workspace
+from src.modules.sites.prelaunch import render_prelaunch_page
 from src.modules.sites.runtime.delivery_kernel import RuntimeDeliveryTarget, SiteRuntimeDeliveryKernel
 from src.modules.sites.service import SiteService
 from src.modules.tenancy.router_helpers import bind_project_tenant_context, ensure_workspace_tenant_context
@@ -31,6 +32,24 @@ _RESERVED_PATH_PREFIXES = (
     "/redoc",
 )
 logger = get_logger(__name__)
+
+
+def _public_error_response(*, status_code: int, title: str, description: str) -> HTMLResponse:
+    html = f"""<!doctype html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>{escape(title)}</title>
+</head>
+<body><main><h1>{escape(title)}</h1><p>{escape(description)}</p></main></body>
+</html>"""
+    return HTMLResponse(
+        html,
+        status_code=status_code,
+        headers={"Cache-Control": "no-store", "X-Robots-Tag": "noindex"},
+    )
 
 
 def _host_without_port(request: Request) -> str:
@@ -197,38 +216,29 @@ async def _serve_project_host(
             token=None,
         )
     except NotFound:
-        route = None
+        has_active_release = await kernel.has_active_release(target=target)
+        if not has_active_release and request_path == "/":
+            return render_prelaunch_page(host=host, locale=resolved.default_locale)
+        return _public_error_response(
+            status_code=404,
+            title="Page not found",
+            description="The requested page is not part of the active site release.",
+        )
     except Conflict as exc:
         if exc.error != "PAGE_BINDING_RESOLUTION_FAILED":
             raise
-        logger.warning(
-            "Project host published page has unresolved content bindings",
+        logger.exception(
+            "Project host published page binding resolution failed",
             host=host,
             path=request_path,
             site_id=str(resolved.site_id),
             runtime_id=str(resolved.runtime_id),
             details=exc.details,
         )
-        route = None
-    if route is None:
-
-        class _EmptyMatch:
-            kind = "not_found"
-            redirect_to = None
-            redirect_status = None
-
-        class _EmptyRoute:
-            match = _EmptyMatch()
-            page_meta = None
-            document = None
-
-        return _render_public_page(
-            host=host,
-            path=request_path,
-            resolved=resolved,
-            route=_EmptyRoute(),
-            status_title="Site Connected",
-            status_description="This project domain is connected, but the published page is not ready yet.",
+        return _public_error_response(
+            status_code=500,
+            title="Site rendering failed",
+            description="The active release could not be rendered. The failure has been recorded.",
         )
     if route.match.kind == "redirect" and route.match.redirect_to:
         return RedirectResponse(route.match.redirect_to, status_code=route.match.redirect_status or 302)

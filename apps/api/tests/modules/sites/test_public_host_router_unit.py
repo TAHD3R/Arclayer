@@ -3,11 +3,12 @@ from __future__ import annotations
 from types import SimpleNamespace
 from uuid import uuid4
 
+import pytest
 from fastapi import FastAPI
 from starlette.testclient import TestClient
 
 from src.config import Settings
-from src.core.exceptions import Conflict
+from src.core.exceptions import Conflict, NotFound
 from src.modules.sites import public_host_router
 from src.modules.sites.public_host_router import project_host_routing_middleware
 from src.modules.sites.runtime.schema import SiteResolveOut
@@ -27,6 +28,21 @@ def _tenant_context() -> TenantContext:
         ),
         scope=TenantScope.RUNTIME,
     )
+
+
+def _resolved_site(host: str) -> SiteResolveOut:
+    return SiteResolveOut.model_validate({
+        "siteId": uuid4(),
+        "workspaceId": uuid4(),
+        "projectId": uuid4(),
+        "runtimeId": uuid4(),
+        "hostname": host,
+        "source": "platform_subdomain",
+        "targetType": "site",
+        "default_locale": "en-US",
+        "fallback_locale": "en-US",
+        "supported_locales": ["en-US"],
+    })
 
 
 def test_project_host_filter_accepts_only_platform_subdomains() -> None:
@@ -120,25 +136,14 @@ def test_project_host_router_keeps_reserved_api_paths_404(monkeypatch) -> None:
     assert response.status_code == 404
 
 
-def test_project_host_renders_connected_status_when_published_page_bindings_are_unresolved(monkeypatch) -> None:
+def test_project_host_returns_explicit_failure_when_published_page_bindings_are_unresolved(monkeypatch) -> None:
     class FakeSiteService:
         def __init__(self, settings, *, valkey=None):  # type: ignore[no-untyped-def]
             self.settings = settings
             self.valkey = valkey
 
         async def resolve_site(self, *, host: str):  # type: ignore[no-untyped-def]
-            return SiteResolveOut.model_validate({
-                "siteId": uuid4(),
-                "workspaceId": uuid4(),
-                "projectId": uuid4(),
-                "runtimeId": uuid4(),
-                "hostname": host,
-                "source": "platform_subdomain",
-                "targetType": "site",
-                "default_locale": "en-US",
-                "fallback_locale": "en-US",
-                "supported_locales": ["en-US"],
-            })
+            return _resolved_site(host)
 
     class FakeDeliveryKernel:
         def __init__(self, site_service):  # type: ignore[no-untyped-def]
@@ -163,9 +168,65 @@ def test_project_host_renders_connected_status_when_published_page_bindings_are_
     app.middleware("http")(project_host_routing_middleware)
     response = TestClient(app).get("/", headers={"host": "asset-10-572ed28b.arclayer.localhost"})
 
-    assert response.status_code == 200
-    assert "Site Connected" in response.text
-    assert "published page is not ready yet" in response.text
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["x-robots-tag"] == "noindex"
+    assert "Site rendering failed" in response.text
+    assert "Site Connected" not in response.text
+
+
+@pytest.mark.parametrize(
+    ("path", "has_active_release", "expected_status", "expects_prelaunch"),
+    [
+        ("/", False, 200, True),
+        ("/about", False, 404, False),
+        ("/", True, 404, False),
+        ("/about", True, 404, False),
+    ],
+)
+def test_project_host_prelaunch_requires_root_without_active_release(
+    monkeypatch,
+    path: str,
+    has_active_release: bool,
+    expected_status: int,
+    expects_prelaunch: bool,
+) -> None:
+    class FakeSiteService:
+        def __init__(self, settings, *, valkey=None):  # type: ignore[no-untyped-def]
+            self.settings = settings
+            self.valkey = valkey
+
+        async def resolve_site(self, *, host: str):  # type: ignore[no-untyped-def]
+            return _resolved_site(host)
+
+    class FakeDeliveryKernel:
+        def __init__(self, site_service):  # type: ignore[no-untyped-def]
+            self.site_service = site_service
+
+        async def resolve_delivery_page(self, **_kwargs):  # type: ignore[no-untyped-def]
+            raise NotFound("Route not found", error="PAGE_ROUTE_NOT_FOUND")
+
+        async def has_active_release(self, *, target):  # type: ignore[no-untyped-def]
+            assert target.site_id is not None
+            return has_active_release
+
+    monkeypatch.setattr(public_host_router, "SiteService", FakeSiteService)
+    monkeypatch.setattr(public_host_router, "SiteRuntimeDeliveryKernel", FakeDeliveryKernel)
+
+    async def fake_tenant_context(*, resolved):  # type: ignore[no-untyped-def]
+        return _tenant_context()
+
+    monkeypatch.setattr(public_host_router, "_resolve_public_tenant_context", fake_tenant_context)
+
+    app = FastAPI()
+    app.middleware("http")(project_host_routing_middleware)
+    response = TestClient(app).get(path, headers={"host": "launch.arclayer.localhost"})
+
+    assert response.status_code == expected_status
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["x-robots-tag"].startswith("noindex")
+    assert ("arclayer-prelaunch-v1" in response.text) is expects_prelaunch
+    assert (response.headers.get("x-arclayer-template") == "arclayer-prelaunch-v1") is expects_prelaunch
 
 
 def test_project_host_middleware_preserves_later_app_routes(monkeypatch) -> None:

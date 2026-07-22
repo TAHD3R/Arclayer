@@ -85,6 +85,12 @@ class SiteRuntimeDeliveryKernel:
 
         return await self._with_tenant_service(target, operation)
 
+    async def has_active_release(self, *, target: RuntimeDeliveryTarget) -> bool:
+        return await self._with_tenant_service(
+            target,
+            lambda service: service.has_active_release(site_id=target.site_id),
+        )
+
     async def resolve_route(
         self,
         *,

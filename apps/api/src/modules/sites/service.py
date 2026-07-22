@@ -89,6 +89,11 @@ class SiteService(
             raise Conflict("Sites require database storage", error="SITE_DB_REQUIRED")
         return await self._repo.get_site_by_runtime_id(runtime_id=runtime_id)
 
+    async def has_active_release(self, *, site_id: UUID) -> bool:
+        if not self.settings.database.enabled:
+            raise Conflict("Sites require database storage", error="SITE_DB_REQUIRED")
+        return await self._repo.get_active_release(site_id=site_id) is not None
+
     async def create_preview_token(self, *, site_id: UUID, ttl_seconds: int = 600) -> sites_schema.SitePreviewTokenOut:
         if not self.settings.database.enabled:
             raise Conflict("Preview tokens require database storage", error="PREVIEW_TOKEN_DB_REQUIRED")

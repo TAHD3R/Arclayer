@@ -26,10 +26,7 @@ class PublishingIncludesService(BaseService):
         """Load PageBlueprint from a revision record."""
         if rec.design_document is None:
             return None
-        try:
-            return PageBlueprint.model_validate(rec.design_document)
-        except Exception:
-            return None
+        return PageBlueprint.model_validate(rec.design_document)
 
     @staticmethod
     def create_empty_page_blueprint() -> PageBlueprint:
