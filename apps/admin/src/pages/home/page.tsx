@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -26,31 +26,22 @@ import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 import {
   applyWebSearchDirective,
   appendMessageToText,
-  agentIdFromComposerDirective,
-  agentIdForComposerMode,
   createAIChatAttachmentAdapter,
   projectIdFromComposerDirective,
-  sendAIWorkspaceActionMessage,
-} from "@/components/ai/ai-chat-runtime";
-import { invalidateAIWorkspaceActionQueries } from "@/components/ai/ai-workspace-action-cache";
+} from "@/components/ai/ai-composer-entry";
 import {
+  agentIdsForComposerScope,
   buildTextWithAIComposerDirectives,
   cleanAIComposerDirectiveText,
   clearAIComposerDirectives,
 } from "@/components/ai/ai-composer-directives";
-import {
-  AI_AGENT_PROJECT_CONTEXT_REQUIRED,
-  cancelAIAgentRun,
-  ensureAIConversationPersistedForRuntime,
-  formatAIChatError,
-  sendAIAgentMessage,
-  type AIWorkspaceActionResponse,
-} from "@/api/ai";
+import { formatAIChatError } from "@/api/ai";
 import { getUserDisplayName, normalizeUserProfile } from "@/lib/auth/user-profile";
 import { HomeInspirationSection } from "@/pages/home/home-inspiration-section";
 import { HomeRecentProjectsSection } from "@/pages/home/home-recent-projects-section";
 import { useAiChatStore } from "@/stores/use-ai-chat-store";
 import { useAuthStore } from "@/stores/use-auth-store";
+import { useAIEntryStore } from "@/stores/use-ai-entry-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { cn } from "@arclayer/lib/utils";
 
@@ -70,7 +61,6 @@ type HomeComposerProps = {
   onInitialPromptApplied?: () => void;
   onSubmitStart: () => void;
   onSubmitError: (message: string) => void;
-  onWorkspaceActionComplete?: (result: AIWorkspaceActionResponse | null) => void;
 };
 
 function HomeComposerInitialPrompt(props: {
@@ -105,17 +95,9 @@ function HomeComposer({
   onInitialPromptApplied,
   onSubmitStart,
   onSubmitError,
-  onWorkspaceActionComplete,
 }: HomeComposerProps) {
   const { t } = useTranslation(["ai", "common"]);
-  const createConversation = useAiChatStore((s) => s.createConversation);
   const openDrawer = useAiChatStore((s) => s.openDrawer);
-  const streaming = useAiChatStore((s) => s.streaming);
-  const activeRequestRef = useRef<AbortController | null>(null);
-  const activeAgentRunIdRef = useRef<string | null>(null);
-  const activeAgentProjectIdRef = useRef<string | null>(null);
-  const activeConversationIdRef = useRef<string | null>(null);
-  const pendingHomeConversationIdRef = useRef<string | null>(null);
   const queuedMessageRunnerRef = useRef<(message: AppendMessage) => Promise<void>>(async () => {
     throw new Error("Home AI message queue runner is not initialized");
   });
@@ -144,12 +126,6 @@ function HomeComposer({
     };
   }, [queueController]);
 
-  const clearPendingHomeConversationWhenIdle = useCallback(() => {
-    if (activeRequestRef.current) return;
-    if (queueController.adapter.items.length > 0) return;
-    pendingHomeConversationIdRef.current = null;
-  }, [queueController]);
-
   const sendHomePrompt = useCallback(
     async (text: string) => {
       const textWithDirectives = buildTextWithAIComposerDirectives(
@@ -161,72 +137,18 @@ function HomeComposer({
 
       onSubmitStart();
       try {
-        const state = useAiChatStore.getState();
-        const mode = state.composerMode;
         const directiveProjectId = projectIdFromComposerDirective(textWithDirectives);
-        const projectId = directiveProjectId ?? useWorkspaceStore.getState().currentProjectId;
-        if (mode === "agent" && !projectId) {
-          throw new Error(AI_AGENT_PROJECT_CONTEXT_REQUIRED);
-        }
-
-        let conversationId = pendingHomeConversationIdRef.current;
-        if (!conversationId) {
-          conversationId = createConversation();
-          pendingHomeConversationIdRef.current = conversationId;
-          openDrawer();
-        }
-        activeConversationIdRef.current = conversationId;
-
-        const controller = new AbortController();
-        activeRequestRef.current = controller;
-        activeAgentRunIdRef.current = null;
-        activeAgentProjectIdRef.current = null;
-        try {
-          if (mode === "agent") {
-            const agentId =
-              agentIdFromComposerDirective(textWithDirectives) ??
-              agentIdForComposerMode(mode, state.selectedAgentId);
-            activeAgentProjectIdRef.current = projectId ?? null;
-            await sendAIAgentMessage(conversationId, trimmed, {
-              agentId,
-              projectId,
-              model: state.selectedModel,
-              reasoningEffort: state.selectedReasoningEffort,
-              signal: controller.signal,
-              onRunCreated: (runId) => {
-                activeAgentRunIdRef.current = runId;
-              },
-            });
-          } else {
-            const result = await sendAIWorkspaceActionMessage(conversationId, textWithDirectives, {
-              signal: controller.signal,
-            });
-            onWorkspaceActionComplete?.(result);
-          }
-        } finally {
-          if (activeRequestRef.current === controller) {
-            activeRequestRef.current = null;
-          }
-          activeAgentRunIdRef.current = null;
-          activeAgentProjectIdRef.current = null;
-          activeConversationIdRef.current = null;
-          clearPendingHomeConversationWhenIdle();
-        }
+        const workspaceState = useWorkspaceStore.getState();
+        if (directiveProjectId) workspaceState.setCurrentProjectId(directiveProjectId);
+        useAIEntryStore.getState().submit(trimmed, agentIdsForComposerScope("home"));
+        openDrawer();
       } catch (err) {
-        clearPendingHomeConversationWhenIdle();
         onSubmitError(formatAIChatError(err));
       } finally {
         clearAIComposerDirectives("home");
       }
     },
-    [
-      clearPendingHomeConversationWhenIdle,
-      createConversation,
-      onSubmitError,
-      onSubmitStart,
-      onWorkspaceActionComplete,
-      openDrawer,
-    ],
+    [onSubmitError, onSubmitStart, openDrawer],
   );
 
   const sendHomeMessage = useCallback(
@@ -235,7 +157,9 @@ function HomeComposer({
     },
     [sendHomePrompt],
   );
-  queuedMessageRunnerRef.current = sendHomeMessage;
+  useEffect(() => {
+    queuedMessageRunnerRef.current = sendHomeMessage;
+  }, [sendHomeMessage]);
 
   const runHomePromptOutsideQueue = useCallback(
     async (text: string) => {
@@ -253,7 +177,7 @@ function HomeComposer({
 
   const runtime = useExternalStoreRuntime({
     messages: useMemo<ThreadMessageLike[]>(() => [], []),
-    isRunning: streaming,
+    isRunning: false,
     adapters: {
       dictation: dictationAdapter,
       attachments: attachmentAdapter,
@@ -265,25 +189,6 @@ function HomeComposer({
     },
     onCancel: async () => {
       queueController.adapter.clear("cancel-run");
-      const runId = activeAgentRunIdRef.current;
-      const conversationId = activeConversationIdRef.current;
-      const projectId =
-        activeAgentProjectIdRef.current ?? useWorkspaceStore.getState().currentProjectId;
-      if (runId && projectId) {
-        await cancelAIAgentRun(projectId, runId);
-        if (conversationId) {
-          useAiChatStore
-            .getState()
-            .setLastAssistantAgentRun(conversationId, { runId, status: "cancelled" });
-          await ensureAIConversationPersistedForRuntime(conversationId);
-        }
-      }
-      activeRequestRef.current?.abort();
-      activeRequestRef.current = null;
-      activeAgentRunIdRef.current = null;
-      activeAgentProjectIdRef.current = null;
-      activeConversationIdRef.current = null;
-      pendingHomeConversationIdRef.current = null;
     },
     onNew: async (message) => {
       await runHomePromptOutsideQueue(appendMessageToText(message));
@@ -311,7 +216,7 @@ function HomeComposer({
               aria-label={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
               className="h-20 min-h-20 max-h-20 w-full min-w-0 resize-none bg-transparent px-3 py-2 text-callout leading-relaxed text-label-primary outline-none [field-sizing:fixed] placeholder:text-label-secondary"
             />
-            <AIComposerTriggers placement="bottom" />
+            <AIComposerTriggers placement="bottom" scope="home" />
             <AIComposerToolbar />
           </div>
           <AISuggestions className="mt-3 flex w-full flex-wrap items-center justify-center gap-2 px-2" />
@@ -322,20 +227,17 @@ function HomeComposer({
 }
 
 /**
- * `/` 是 AI 入口 surface，不绑定全局 active conversation。
- * 发送首条消息时才新建会话，并在右侧 AI 面板中承载后续对话。
+ * `/` 是 AI 入口 surface，不创建第二套 Conversation authority。
+ * Prompt 进入 scene 级 normalized Agent Thread runtime，并在右侧 Drawer 中承载执行过程。
  */
 export function HomePage() {
   const { t } = useTranslation(["ai", "common"]);
   const { prompt: initialPrompt } = useSearch({ from: "/" });
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const currentWorkspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const lastWorkspaceId = useWorkspaceStore((s) => s.lastWorkspaceId);
-  const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
-  const setCurrentProjectId = useWorkspaceStore((s) => s.setCurrentProjectId);
   const [localError, setLocalError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const workspaceId = currentWorkspaceId ?? lastWorkspaceId;
@@ -371,21 +273,6 @@ export function HomePage() {
   });
   const recentProjects = recentProjectsData?.items ?? [];
   const hasRecentProjects = recentProjects.length > 0;
-  const handleWorkspaceActionComplete = useCallback(
-    (result: AIWorkspaceActionResponse | null) => {
-      void invalidateAIWorkspaceActionQueries(queryClient, result, {
-        fallbackProjectId: useWorkspaceStore.getState().currentProjectId,
-      });
-      if (result?.action !== "create_project" || !result.project) return;
-
-      if (result.project.workspaceId) {
-        setCurrentWorkspaceId(result.project.workspaceId);
-      }
-      setCurrentProjectId(result.project.id);
-      void navigate({ to: (result.navigation?.path ?? `/projects/${result.project.id}`) as never });
-    },
-    [navigate, queryClient, setCurrentProjectId, setCurrentWorkspaceId],
-  );
   const clearInitialPrompt = useCallback(() => {
     void navigate({ to: "/" as never, search: {} as never, replace: true });
   }, [navigate]);
@@ -421,7 +308,6 @@ export function HomePage() {
               onInitialPromptApplied={clearInitialPrompt}
               onSubmitStart={() => setLocalError(null)}
               onSubmitError={setLocalError}
-              onWorkspaceActionComplete={handleWorkspaceActionComplete}
             />
             {localError ? (
               <p className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-footnote text-destructive">
