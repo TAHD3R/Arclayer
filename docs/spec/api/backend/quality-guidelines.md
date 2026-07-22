@@ -168,43 +168,149 @@ await self.publish_domain_event(
 )
 ```
 
-### Scenario: Tenant Payloads for Background Jobs
+### Scenario: Explicit ORM Lifecycle Ownership
 
 #### 1. Scope / Trigger
 
-- Trigger: enqueueing a background job that reads or writes tenant-owned data.
-- Example: project asset upload completion publishes `asset.uploaded`, then `core:assets:generate_thumbnails` reads the project asset from the tenant schema.
+- Trigger: a process root, ASGI lifespan, worker, scheduler, test harness, or
+  nested runtime initializes or closes the shared Tortoise ORM.
+- Example: Taskiq runs worker startup and shutdown hooks in different asyncio
+  Tasks while another nested runtime may hold the same database configuration.
 
 #### 2. Signatures
 
-- Tenant serialization: `TenantContext.to_job_payload().model_dump(mode="json", by_alias=True)`
-- Event payload field: `payload["tenant"]`
-- Worker restore path: `TenantJobContextPayload.model_validate(tenant_payload).to_context()`
+- Initialize one owner: `await init_orm(settings)`
+- Release one owner: `await close_orm()`
+- Readiness after initialization: `await verify_db_ready(settings)`
 
 #### 3. Contracts
 
-- Job payloads that cross process boundaries must carry tenant context explicitly.
-- Services that are constructed with a `TenantContext` must prefer that explicit value when producing job or event payloads.
-- ContextVars such as `current_tenant_context_or_none()` are acceptable only as a same-request fallback for code paths that have no injected tenant context.
+- Every successful enabled `init_orm()` call owns exactly one matching
+  `close_orm()` call; nested ownership is explicit reference counting, not an
+  `if Tortoise._inited: return` shortcut.
+- Nested initialization may reuse only the exact same Tortoise configuration.
+  A different configuration fails without replacing the active runtime.
+- Tortoise's initializer-local ContextVar is exited in the asyncio Context that
+  created it. Cross-Task access uses only the library-supported global fallback,
+  so a shutdown Task never resets another Task's token.
+- Only the final owner closes the ORM. It resets model app metadata while the
+  global fallback is still available, then closes connections and clears
+  lifecycle state.
+- A close with no owned initialization is a no-op only when Tortoise is also
+  uninitialized. Foreign initialization, missing active context, mismatched
+  configuration, and shutdown failures surface explicitly.
+- Lifecycle callers use `try/finally` where startup can succeed before later
+  process initialization fails. No caller swallows close errors as warnings.
 
 #### 4. Validation & Error Matrix
 
 | Condition | Required behavior |
 |---|---|
-| Project job payload includes `tenant` | Worker binds `TenantDatabaseRouter` with the restored context |
-| Project job payload omits `tenant` | Worker raises `TENANT_CONTEXT_REQUIRED` |
-| Organization or user scoped asset upload emits event | Project thumbnail tenant payload is omitted |
+| Startup and shutdown run in different asyncio Tasks | Final close succeeds without a ContextVar token-reset error |
+| Same configuration initializes twice | Keep one ORM runtime and two owners until two closes complete |
+| Nested initialization uses a different configuration | Raise `RuntimeError`; preserve the active runtime and owner count |
+| One of multiple owners closes | Decrement ownership; keep apps and connections initialized |
+| Final owner closes | Reset apps before closing connections, then clear lifecycle state |
+| Tortoise is initialized with no wrapper owner | Raise `RuntimeError`; do not claim or close foreign lifecycle state |
+| Final reset/connection close fails | Propagate the failure; never log-and-continue as successful shutdown |
 
 #### 5. Good/Base/Bad Cases
 
-- Good: `UploadsService(settings, tenant_context)` stores the context and serializes it into `asset.uploaded.payload["tenant"]`.
-- Base: a same-request publisher with no injected context calls `tenant_payload_from_context()` and exposes `TenantContext is required` if the ambient context is missing.
-- Bad: event payload generation silently skips `tenant` when `current_tenant_context_or_none()` returns `None`.
+- Good: a worker startup hook calls `init_orm()` and its shutdown hook releases
+  the same ownership with `close_orm()`, even when Taskiq schedules the hooks in
+  different Tasks.
+- Base: a nested same-process runtime acquires the identical configuration and
+  releases its own reference without closing the outer runtime.
+- Bad: a second caller sees `Tortoise._inited`, returns without ownership, and
+  later closes connections still owned by the first caller.
+- Bad: shutdown catches a cross-Task token error and reports successful worker
+  termination while model metadata or connections remain active.
 
 #### 6. Tests Required
 
-- Unit test that makes the ambient tenant context unavailable and proves the explicit service context still appears in event payload.
-- Worker contract test that missing tenant payload raises `TENANT_CONTEXT_REQUIRED`.
+- Unit test that initializes in one asyncio Task and closes in another.
+- Nested same-configuration test proving the ORM remains active until the last
+  close.
+- Different-configuration test proving the active runtime is preserved.
+- Real Tortoise integration coverage after lifecycle ordering changes.
+
+#### 7. Wrong vs Correct
+
+Wrong:
+
+```python
+if Tortoise._inited:
+    return
+await Tortoise.init(config=config)
+```
+
+Correct:
+
+```python
+await init_orm(settings)
+try:
+    await verify_db_ready(settings)
+    await run_process_root()
+finally:
+    await close_orm()
+```
+
+### Scenario: Canonical Tenant Resolution for Background Jobs
+
+#### 1. Scope / Trigger
+
+- Trigger: creating or executing a durable Job that reads or writes
+  tenant-owned data.
+- Example: project asset upload completion transactionally creates
+  `asset.thumbnail.generate` plus its dispatch outbox, then the worker resolves
+  the current workspace tenant before reading the Asset.
+
+#### 2. Signatures
+
+- Durable target: `PublicJobTargetDescriptor`
+- Canonical registry lookup:
+  `WorkspaceTenantRegistryService.get_by_workspace_id(workspace_id)`
+- Worker-local context: `ResolvedTenantJobTarget.tenant_context.with_scope(TenantScope.JOB)`
+
+#### 3. Contracts
+
+- Durable Job/outbox/Taskiq envelopes carry only validated public target IDs,
+  source revisions, and typed input references.
+- Envelopes never carry `schemaName`, connection aliases, isolation mode,
+  storage credentials, or a caller-selected physical queue.
+- Workers load the Job, verify its envelope, resolve the current Project and
+  Workspace relationship, then load the current tenant registry record and
+  readiness before constructing a Job-scoped `TenantContext`.
+- A missing, stale, failed, or mismatched tenant target is an explicit Job
+  failure. It never authorizes default/public-database access to tenant-owned
+  rows.
+- Request-scoped `ContextVar` state is not a cross-process authority source.
+
+#### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+|---|---|
+| Project Job target contains matching workspace/project public IDs | Worker resolves the current tenant registry and binds `TenantScope.JOB` |
+| Target project no longer belongs to the workspace | Permanent target mismatch; execute no tenant side effect |
+| Tenant registry is absent, failed, or not ready | Explicit tenant-resolution failure; never use the default/public DB |
+| Envelope contains schema/isolation/queue routing fields | Schema validation rejects the envelope |
+
+#### 5. Good/Base/Bad Cases
+
+- Good: `UploadsService.complete()` writes the Asset, required Activity evidence,
+  Background Job, and dispatch outbox in one transaction using public target
+  IDs only.
+- Base: a worker resolves the current workspace tenant registry, constructs a
+  Job-scoped context, and then opens the tenant connection.
+- Bad: a worker restores `schemaName` from a serialized payload or falls back
+  to an ambient/default connection when target resolution fails.
+
+#### 6. Tests Required
+
+- Contract tests that reject schema, isolation, credential, filesystem, and
+  queue fields in a dispatch envelope.
+- Worker integration tests for current tenant resolution, workspace/project
+  mismatch, tenant-not-ready failure, and absence of default/public fallback.
 
 #### 7. Wrong vs Correct
 
@@ -212,15 +318,171 @@ Wrong:
 
 ```python
 tenant_context = current_tenant_context_or_none()
-if tenant_context is not None:
-    payload["tenant"] = tenant_payload_from_context(tenant_context)
+tenant_context = TenantJobContextPayload.model_validate(payload["tenant"]).to_context()
+tenant_db = TenantDatabaseRouter(tenant_context)
 ```
 
 Correct:
 
 ```python
-tenant_context = self._tenant_context or current_tenant_context_or_none()
-payload["tenant"] = tenant_payload_from_context(tenant_context)
+job = await jobs.require_for_dispatch(envelope.job_id)
+target = await target_resolver.resolve_and_validate(job.target_descriptor)
+tenant_db = TenantDatabaseRouter(target.tenant_context.with_scope(TenantScope.JOB))
+```
+
+### Scenario: Durable External-Effect Reconciliation
+
+#### 1. Scope / Trigger
+
+- Trigger: a retryable durable Job may create provider objects or another
+  external effect before its owning-domain success marker commits.
+- Example: `asset.thumbnail.generate` writes Job-owned thumbnail objects and
+  then commits `AssetRecord.meta.thumbnail_generation` in a tenant schema.
+
+#### 2. Signatures
+
+- Canonical route binding:
+  `ProviderEffectService.materialize_storage_profile_route(profile_key=...)`
+- Canonical registration:
+  `ProviderEffectService.register_effect(lease=..., registration=...)`
+- Canonical recovery/settlement:
+  `ProviderEffectService.list_effects(...)` and
+  `ProviderEffectService.settle_effects(...)`
+- Exact historical cleanup route:
+  `ProviderEffectService.resolve_effect_route(effect_id=...)`
+- Thumbnail domain adapter:
+  `AssetThumbnailProviderEffectCoordinator` and
+  `ExactAssetThumbnailProviderStorageResolver`
+- Owning-domain linearization:
+  `JobExecutionContext.run_fenced_domain_commit(operation)`
+
+#### 3. Contracts
+
+- Every adopting domain persists a strict, versioned `ProviderEffectRecord`
+  before its first provider write. The row is Attempt-owned, the manifest is
+  exact-replay-idempotent, and both are immutable after registration.
+- Thumbnail production composition registers
+  `asset.thumbnail.objects` / schema `1` with logical key
+  `generated-objects`. Its strict manifest binds canonical Job, Project, Asset,
+  request/source/profile context, target bucket, and the complete ordered set
+  of exact Job-owned outputs.
+- Record exact effect identifiers and enough non-secret route identity to
+  delete them after process loss. Bind the Effect to an immutable non-secret
+  Route Revision and retain current credentials separately. Never persist
+  credentials, provider payloads, logs, signed URLs, or URL
+  userinfo/query/fragment data.
+- A recovery Attempt lists and validates ACTIVE, COMMITTED, and CLEANED rows
+  under its current fence. Corrupt, unknown-contract, cross-Job, cross-source,
+  or non-canonical evidence fails closed; recovery never guesses object names
+  or reconstructs effects by rerunning business work.
+- Reconcile the owning-domain marker before cleanup. A matching marker must
+  agree with live Effect evidence and forbids cleanup; settle matching ACTIVE
+  evidence COMMITTED. Without a matching marker, preflight every ACTIVE exact
+  historical route before the first delete, reject COMMITTED evidence, and
+  settle exact idempotent cleanup CLEANED.
+- Thumbnail `outputIdentity` binds the logical output set to the exact Profile,
+  Route Revision, and target bucket while excluding Effect-row identity,
+  Attempt identity, mutable Profile keys, credentials/secrets, and timestamps.
+  Deterministic COMMITTED/CLEANED references contain only kind, Effect ID,
+  manifest hash, and output identity.
+- The canonical domain commit holds public `Job -> Attempt` locks while its
+  callback runs. Commit-first makes the marker durable before replacement can
+  proceed; generation-first prevents the stale callback from running.
+- The tenant marker and public Effect settlement are two transactions.
+  Marker-committed/settlement-failed replay settles COMMITTED without another
+  render, write, or delete; cleanup-completed/settlement-failed replay treats
+  object-not-found as success before settling CLEANED.
+- `JobAttemptRecord.provider_references` is an inert retained ORM/database
+  column. Production runtime has no reader or writer and no dual-read or
+  dual-write path. Deployments must quiesce and drain old thumbnail workers;
+  mixed old/new worker fleets are unsupported.
+- A manifest proves what may need cleanup; it does not schedule final orphan
+  cleanup. The implemented scheduled control task owns bounded `SKIP LOCKED`
+  fan-out only; the resulting durable maintenance Job owns the real fenced
+  Attempt, marker-first provider mutation, and exact settlement. Concurrent
+  scanner and seeded terminal-orphan Taskiq evidence are required. Local-storage
+  process-loss evidence additionally starts two production worker generations,
+  kills each process group after ACTIVE registration and real object writes,
+  verifies pending recovery and lease expiry, exhausts retry to dead-letter,
+  and requires the bounded maintenance Job to settle exact cleanup CLEANED.
+  This does not substitute for S3 or Valkey-outage evidence.
+
+#### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+|---|---|
+| Exact Effect registration replay on the same Attempt | Return the canonical row idempotently |
+| Different manifest/profile/revision replaces an existing Effect identity | Raise an invariant error |
+| Unknown effect type/version or invalid domain contract | Fail before provider mutation |
+| Profile route changes or tombstone wins before registration | Reject stale registration before provider mutation |
+| Thumbnail registration returns COMMITTED or CLEANED replay | Fail before the first provider `put`; never reactivate it |
+| Matching canonical marker exists | Validate all Effect evidence, settle ACTIVE rows COMMITTED, and never resolve cleanup or delete |
+| Marker is absent and ACTIVE rows validate | Preflight every exact historical route, delete only exact recorded effects, treat missing objects as idempotent success, and settle CLEANED |
+| Marker is absent but a COMMITTED row exists | Fail closed; never delete committed outputs |
+| Exact COMMITTED/CLEANED settlement replay | Accept without changing original settling Attempt |
+| Manifest, terminal reference, output identity, or route is invalid | Fail closed before any delete |
+| Reaper/replacement wins public lock | Reject stale lease and never invoke its domain callback |
+| Domain callback wins public lock | Persist marker before contenders can replace the Attempt |
+
+#### 5. Good/Base/Bad Cases
+
+- Good: an adopting pipeline registers all planned Job-owned object keys and
+  exact Route Revision before the first `put`, then a later Attempt deletes
+  those exact keys after finding no matching marker and settles CLEANED.
+- Base: provider credential rotation loads current credentials for the Effect's
+  recorded Profile identity while cleanup uses its exact historical Route
+  Revision.
+- Bad: cancellation guesses width/extension candidates, queries a mutable or
+  hard-deleted Asset for cleanup routing, or deletes objects after a matching
+  marker is already durable.
+
+#### 6. Tests Required
+
+- Unit tests for exact registration/settlement replay, thumbnail v1 identity,
+  manifest schema and secret exclusion, stable Attempt/Effect-row-independent
+  output identity, deterministic terminal references, record-before-write,
+  all-disposition marker-first reconciliation, partial upload/response loss,
+  idempotent partial delete, hard-deleted target, and repeated cancellation.
+- Real PostgreSQL two-backend tests for both domain-commit/replacement lock
+  orders and registration/tombstone/update orders, including the actual tenant
+  marker and a real local provider object.
+- Process-kill plus retry-exhaustion evidence for every enabled provider class;
+  local storage is proven by the two-generation OS `SIGKILL` acceptance, while
+  S3 remains open. Coroutine cancellation alone is insufficient.
+
+#### 7. Wrong vs Correct
+
+Wrong:
+
+```python
+await provider.put_object_bytes(object_key=guessed_key, data=data)
+uploaded_keys.append(guessed_key)  # process-local evidence, persisted too late
+```
+
+Correct:
+
+```python
+route = await effects.materialize_storage_profile_route(profile_key=profile_key)
+effect, _control = await effects.register_effect(
+    lease=context.lease,
+    registration=ProviderEffectRegistration(
+        route=route,
+        effect_type=EFFECT_TYPE,
+        effect_key=logical_effect_key,
+        schema_version=1,
+        manifest=exact_manifest,
+    ),
+)
+await provider.put_object_bytes(object_key=exact_key, data=data)
+marker = await context.run_fenced_domain_commit(commit_tenant_marker)
+await effects.settle_effects(
+    lease=context.lease,
+    settlement=ProviderEffectSettlement(
+        effect_ids=(effect.id,),
+        disposition=ProviderEffectDisposition.COMMITTED,
+        settlement_reference=canonical_committed_reference,
+    ),
+)
 ```
 
 ### Scenario: JSON Contract Typing
@@ -376,6 +638,8 @@ async with self.tx() as conn:
 - Cross-layer contract changes require generated OpenAPI/type usage checks and frontend consumer review.
 - Compliance-critical Activity changes require readback tests that prove Activity evidence is durably written.
 - Code-review-engine rule changes require fixtures for good and bad examples.
+- ORM lifecycle changes require cross-Task close, exact nested ownership, and
+  final-close ordering tests.
 
 ---
 
@@ -390,3 +654,5 @@ async with self.tx() as conn:
 - [ ] Errors surface through typed `APIError` subclasses or documented framework boundaries.
 - [ ] Tests assert stable error codes and contract fields, not only status codes.
 - [ ] New rules avoid silent fallback paths and expose root failures clearly.
+- [ ] Every enabled ORM initialization has one matching owner release; nested
+  configuration and final-close ordering are explicit.

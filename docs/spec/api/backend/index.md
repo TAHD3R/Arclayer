@@ -29,6 +29,13 @@ Shared frontend/backend contracts live under `docs/spec/shared/` and should be l
 | [Content Delivery API](./content-delivery-api.md) | `/content-api/v1` delivery route contracts | Active |
 | [Content Model Storage Sync](./content-model-storage-sync.md) | Content model schema-to-storage planning contracts | Active |
 | [Agents](./agents.md) | Read-only Agent runtime, tools, sessions, cancellation, and event boundaries | Active |
+| [AI Site Builder](./site-builder.md) | Authoring mode, structure revisions, immutable Site Revision manifests, ChangeSets, preview, and staged publish | Approved target |
+| [Durable Background Jobs](./background-jobs.md) | Job, Attempt, transactional dispatch outbox, leases, retries, cancellation, Admin APIs, and migration contracts | Approved target |
+| [Storage Profiles and Provider Effects](./storage-profiles.md) | Stable profile identity, immutable route revisions, tombstones, normalized provider-effect registration/settlement, and compatibility boundaries | Approved Wave 0 core |
+| [Taskiq Workload Topology](./taskiq-workload-topology.md) | Locked Taskiq/Redis Stream broker isolation, routing manifest, acknowledgement, redelivery, scheduler, and deployment proof gates | Accepted Wave 0 ADR |
+| [Workspace Knowledge](./workspace-knowledge.md) | Versioned Knowledge sources, ingestion, retrieval authorization, citations, quarantine, and Agent context contracts | Approved target |
+| [Workspace Skills](./workspace-skills.md) | Built-in, inline, and immutable GitHub Skill packages, validation, installation, permissions, and supply-chain boundaries | Approved target |
+| [Design Systems](./design-systems.md) | Immutable Design System versions, project assignment, token validation, preview, import, and Agent consumption | Approved target |
 | [Quality Guidelines](./quality-guidelines.md) | Service contracts, dataclass ban, JSON typing, Activity coverage, tests, review checklist | Active |
 | [Logging Guidelines](./logging-guidelines.md) | Structlog setup, request summaries, trace ids, redaction, exception logging | Active |
 
@@ -42,6 +49,7 @@ Shared frontend/backend contracts live under `docs/spec/shared/` and should be l
 | [Shared Error Contracts](../../shared/error-contracts.md) | Stable error codes and frontend error handling |
 | [Shared Identity & Access Contracts](../../shared/identity-access-contracts.md) | Auth credentials, tenant context, permission codes, route guard semantics |
 | [Shared Schema & Field Contracts](../../shared/schema-field-contracts.md) | Pydantic/OpenAPI/content field semantics reused by frontend |
+| [AI Website Builder Platform](../../shared/ai-website-builder-platform.md) | Builder revisions, Agent/Thread/Run domains, workspace context, durable jobs, connectors, and cross-layer rollout contracts |
 
 ## Monorepo Contracts
 

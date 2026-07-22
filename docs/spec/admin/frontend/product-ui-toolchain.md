@@ -19,7 +19,7 @@ This code-spec defines the canonical component, form, icon, chart, loading, moti
 | Admin-only composition | Domain-local components under `apps/admin/src/pages/**` or `apps/admin/src/components/**` |
 | Forms | `react-hook-form` + `zod`, composed with `@arclayer/ui/field`, `form`, `input`, `select`, and settings primitives |
 | Icons | `lucide-react` or an existing semantic icon exported by `@arclayer/ui/icons/*` |
-| Charts | `@arclayer/ui/chart` backed by Recharts |
+| Charts | `@arclayer/ui/chart` backed by reviewed, Arclayer-adapted Bklit Registry source |
 | Route skeletons | `boneyard-js` at the shared `RouteTransition` boundary |
 | Local loading states | `ContentGuard`, `PageSkeleton`, `Skeleton`, `Spinner`, or `Progress` from `@arclayer/ui` |
 | Motion | `motion/react` plus CSS transitions that use the durations in `DESIGN.md` |
@@ -40,7 +40,8 @@ Do not add a second icon, chart, form, skeleton, or animation framework when the
 
 - Use Lucide icons by direct named import. Icons in buttons use the button component's icon slot/data contract and inherit size from the component.
 - Do not introduce icon lookup by arbitrary string or create one-off SVG copies of icons already in the canonical set.
-- Charts must be composed through `@arclayer/ui/chart`; feature pages must not import Recharts directly.
+- Charts must be composed through `@arclayer/ui/chart`; feature pages must not import Bklit Registry source, Visx, D3, Recharts, or another chart runtime directly.
+- Bklit Registry chart source is vendored and reviewed inside `packages/ui`; foreign aliases, tokens, loaders, and motion defaults must be replaced with Arclayer contracts before export.
 - Every chart requires a visible title, a textual summary or accessible description, localized units, a defined empty state, and a non-chart representation when exact values matter (for example a table or metric list).
 - Chart colors come from semantic CSS tokens. Do not create page-local raw palettes.
 

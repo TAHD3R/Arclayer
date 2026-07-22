@@ -4,11 +4,11 @@
 
 Arclayer should feel like a serious product workspace: composed, intelligent, and low-noise. It is not a blank notebook, not a collaboration toy, and not a glossy SaaS landing page disguised as an admin panel. The interface should feel trustworthy before it feels stylish. When people open the product, they should immediately sense structure, hierarchy, and intent.
 
-The light theme is built on a pure white canvas with cool neutral text and restrained blue emphasis. It is cleaner and more technical than Notion's warm-paper calm, but still soft enough to avoid the sterile feel of generic enterprise dashboards. Surfaces are controlled. Borders are present but never heavy. Blue appears as a deliberate action signal, not as decoration.
+The light theme is built on a soft neutral-gray canvas with white work surfaces, cool neutral text, and restrained blue emphasis. It is cleaner and more technical than Notion's warm-paper calm, but still soft enough to avoid the sterile feel of generic enterprise dashboards. Surfaces are controlled. Borders are present but never heavy. Blue appears as a deliberate action signal, not as decoration.
 
 The dark theme is the sharper half of the system. It begins from a true black background (`hsl(0 0% 0%)`) and builds hierarchy with charcoal planes rather than ambient gradients. Panels are dark graphite, not navy fog. Hover states brighten structure rather than tint the whole page. The result should feel precise and confident, like instruments floating on a black stage, not a glowing cyberpunk dashboard.
 
-Typography is where Arclayer gets its personality. Poppins brings lift and contour to titles, while Figtree keeps the rest of the interface crisp and contemporary. This split matters. If everything uses the same font, the UI becomes generic. If too much uses the display face, the product starts to posture. The contrast between the two creates just enough editorial sophistication without sacrificing operational clarity.
+Typography uses one platform-native UI family for both hierarchy and working text. The stack prioritizes each platform's native Chinese face so mixed Chinese and Latin text keeps consistent weight, baseline, and rendering quality. Hierarchy comes from size and weight rather than switching proportional typefaces; monospace remains reserved for code, identifiers, and diagnostics.
 
 What makes Arclayer distinctive is this balance:
 - calmer than Slack
@@ -17,14 +17,26 @@ What makes Arclayer distinctive is this balance:
 - more deliberate than default Tailwind dashboards
 
 **Key Characteristics**
-- True white canvas in light mode
+- Soft neutral-gray canvas with white work surfaces in light mode
 - True black canvas in dark mode
 - Blue reserved for action, selection, and links
 - Charcoal cards and popovers in dark mode instead of tinted haze
-- Poppins for hierarchy, Figtree for work
+- One platform-native UI family for headings and body text
 - Compact but readable spacing
 - Soft borders in light mode, clearer boundaries in dark mode
 - Motion used for confirmation and orientation, never spectacle
+
+### Brand Mark
+
+The Arclayer mark is the **Arc Weave**: four organic arc-stone pieces interlocked into one continuous core. Each piece represents a composable content or design layer; their woven relationship represents an AI-native system that coordinates those layers without flattening their individual structure.
+
+- Preserve the four-piece rotational structure and rounded inner chambers; do not collapse the mark into a letter, generic clover, or single circular ring.
+- The four-piece core is the primary mark. Larger fields may repeat the same arc-stone module as a secondary brand pattern, but dense fields must not replace the compact product icon.
+- Keep the primary mark visually continuous and monochrome. Internal texture and explicit grout lines belong only to illustrative brand applications, not the product icon.
+- Use the near-black mark (`#1D1D1F`) on light surfaces and the soft-white mark (`#F5F5F7`) on dark surfaces.
+- Use the slightly lighter optical profile on dark surfaces so the luminous mark does not appear heavier than its near-black counterpart.
+- Keep the symbol and wordmark monochrome. Gradients, shadows, outlines, and multicolor layer diagrams do not belong in the primary brand assets.
+- Use the standalone mark for favicons and compact navigation; use the full wordmark for authentication, invitations, and expanded product chrome.
 
 ## 2. Color Palette & Roles
 
@@ -32,7 +44,8 @@ Arclayer is a semantic system first. Color names should describe role and behavi
 
 ### Primary
 
-- **Canvas White** (`hsl(0 0% 100%)`): page background, auth background, broad shells
+- **Canvas Gray** (`hsl(220 14% 97%)`): page background, auth background, broad shells
+- **Surface White** (`hsl(0 0% 100%)`): cards, popovers, headers, and contained work areas
 - **Canvas Black** (`hsl(0 0% 0%)`): dark page background, large app canvas
 - **Action Blue** (`hsl(211 100% 45.9%)`): primary CTA, focused selection, active emphasis
 - **Action Blue Dark** (`hsl(211 100% 60%)`): primary CTA in dark mode
@@ -44,24 +57,26 @@ Arclayer is a semantic system first. Color names should describe role and behavi
 - **Tertiary Ink** (`hsl(229 10% 56%)`): metadata, timestamps, table support text
 - **Quaternary Ink** (`hsl(229 15% 70%)`): placeholders, disabled text, low-importance detail
 
-- **Primary Ink on Dark** (`hsl(220 15% 92%)`): strongest text in dark mode
-- **Secondary Ink on Dark** (`hsl(220 10% 70%)`): descriptions and support text
-- **Tertiary Ink on Dark** (`hsl(220 10% 55%)`): quiet metadata
-- **Quaternary Ink on Dark** (`hsl(220 10% 40%)`): disabled or background-support text
+- **Primary Ink on Dark** (`hsl(0 0% 92%)`): strongest text in dark mode
+- **Secondary Ink on Dark** (`hsl(0 0% 70%)`): descriptions and support text
+- **Tertiary Ink on Dark** (`hsl(0 0% 55%)`): quiet metadata
+- **Quaternary Ink on Dark** (`hsl(0 0% 40%)`): disabled or background-support text
 
 ### Surface System
 
 #### Light surfaces
 - **Card White** (`hsl(0 0% 100%)`): cards, contained work areas, form sections
 - **Popover White** (`hsl(0 0% 100%)`): menus, dialogs, command panels
-- **Muted Surface** (`hsl(228 38.5% 97.5%)`): grouped tool areas, low-emphasis containers
-- **Accent Surface** (`hsl(225 20% 92.2%)`): neutral hover, active rows, chrome hover zones
+- **Muted Surface** (`hsl(220 12% 94%)`): grouped tool areas, low-emphasis containers
+- **Accent Surface** (`hsl(220 10% 90%)`): neutral hover, active rows, chrome hover zones
+- **Sidebar Surface** (`hsl(220 12% 94%)`): stable navigation plane separated from the page canvas
 
 #### Dark surfaces
-- **Card Charcoal** (`hsl(220 15% 8%)`): elevated panels, cards, drawers
-- **Popover Charcoal** (`hsl(220 15% 8%)`): command menus, dialogs, dropdowns
-- **Muted Dark Surface** (`hsl(220 15% 10%)`): grouped controls, passive containers
-- **Accent Dark Surface** (`hsl(220 15% 14%)`): hover and pressed neutral background
+- **Card Charcoal** (`hsl(0 0% 8%)`): elevated panels, cards, drawers
+- **Popover Charcoal** (`hsl(0 0% 8%)`): command menus, dialogs, dropdowns
+- **Muted Dark Surface** (`hsl(0 0% 10%)`): grouped controls, passive containers
+- **Accent Dark Surface** (`hsl(0 0% 14%)`): hover and pressed neutral background
+- **Sidebar Charcoal** (`hsl(0 0% 5%)`): navigation plane separated from the black canvas
 
 ### Selection & Highlight Blue
 
@@ -86,11 +101,11 @@ Arclayer is a semantic system first. Color names should describe role and behavi
 
 ### Borders & Rings
 
-- **Layout Border Light** (`hsl(200 23% 95%)`): large structure, shell separation
+- **Layout Border Light** (`hsl(220 10% 88%)`): large structure, shell separation
 - **UI Border Light** (`hsl(229 16.5% 79.8%)`): input shells, compact control boundaries
-- **Layout Border Dark** (`hsl(220 10% 18%)`): large structural separation on black
-- **UI Border Dark** (`hsl(220 10% 30%)`): card edges, menus, active boundaries
-- **Input Edge Dark** (`hsl(220 10% 22%)`): field shells and interactive boundaries
+- **Layout Border Dark** (`hsl(0 0% 16%)`): large structural separation on black
+- **UI Border Dark** (`hsl(0 0% 30%)`): card edges, menus, active boundaries
+- **Input Edge Dark** (`hsl(0 0% 22%)`): field shells and interactive boundaries
 - **Focus Ring** (`hsl(211 100% 45.9%)` light / `hsl(211 100% 60%)` dark): keyboard focus and active precision
 
 ### Color Principles
@@ -105,32 +120,31 @@ Arclayer is a semantic system first. Color names should describe role and behavi
 
 ### Font Family
 
-- **Heading**: `Poppins`
-- **Body / UI**: `Figtree`
-- **System fallback**: IBM Plex Sans Variable and platform sans stacks
-- **Monospace**: `IBM Plex Mono`
+- **Heading / Body / UI**: platform-native system UI stack
+- **Chinese priority**: PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC
+- **Monospace**: platform-native monospace stack
 
-Poppins should be felt, not overused. It brings curvature and authority to headings, auth titles, and key scene labels. Figtree handles everything else because it stays legible under density: tables, filters, commands, forms, helper text, and body copy.
+The same proportional stack handles headings, tables, filters, commands, forms, helper text, and body copy. This keeps mixed-language UI coherent and avoids downloading a Latin-only face that forces Chinese text into a visibly different fallback. Weight and scale carry hierarchy; monospace is a semantic exception for technical values.
 
 ### Hierarchy
 
 | Role | Font | Size | Weight | Line Height | Letter Spacing | Notes |
 |------|------|------|--------|-------------|----------------|-------|
-| Scene Title | Poppins | 32px (2rem) | 700 | 1.25 | -0.02em | Login titles, major page titles, large state headings |
-| Section Title | Poppins | 24px (1.5rem) | 600 | 1.333 | -0.015em | Primary page sections and major panels |
-| Block Title | Poppins | 18px (1.125rem) | 600 | 1.444 | -0.01em | Cards, side panels, modal headers |
-| Minor Title | Poppins | 16px (1rem) | 600 | 1.4 | 0 | Compact sections and grouped controls |
-| UI Headline | Figtree | 16px (1rem) | 600 | 1.4 | 0 | Buttons, tabs, active labels, strong field headers |
-| Body | Figtree | 16px (1rem) | 400 | 1.5 | 0 | Standard reading text |
-| Support | Figtree | 14px (0.875rem) | 400 | 1.45 | 0 | Helper text, descriptions, compact explanations |
-| Dense Body | Figtree | 14px (0.875rem) | 400 | 1.45 | 0 | Menus, command items, settings detail, dense UI |
-| Caption | Figtree | 14px (0.875rem) | 500 | 1.45 | 0 | Metadata, tags, hints, emphasized small text |
-| Mono | IBM Plex Mono | 12px-14px | 400-500 | 1.4 | 0 | Code values, shortcuts, diagnostics |
+| Scene Title | System UI | 32px (2rem) | 700 | 1.25 | -0.02em | Login titles, major page titles, large state headings |
+| Section Title | System UI | 24px (1.5rem) | 600 | 1.333 | -0.015em | Primary page sections and major panels |
+| Block Title | System UI | 18px (1.125rem) | 600 | 1.444 | -0.01em | Cards, side panels, modal headers |
+| Minor Title | System UI | 16px (1rem) | 600 | 1.4 | 0 | Compact sections and grouped controls |
+| UI Headline | System UI | 16px (1rem) | 600 | 1.4 | 0 | Buttons, tabs, active labels, strong field headers |
+| Body | System UI | 16px (1rem) | 400 | 1.5 | 0 | Standard reading text |
+| Support | System UI | 14px (0.875rem) | 400 | 1.45 | 0 | Helper text, descriptions, compact explanations |
+| Dense Body | System UI | 14px (0.875rem) | 400 | 1.45 | 0 | Menus, command items, settings detail, dense UI |
+| Caption | System UI | 14px (0.875rem) | 500 | 1.45 | 0 | Metadata, tags, hints, emphasized small text |
+| Mono | System monospace | 12px-14px | 400-500 | 1.4 | 0 | Code values, shortcuts, diagnostics |
 
 ### Typography Principles
 
 - Start most product UI at 14px or 16px.
-- Use Poppins for hierarchy, not for every label.
+- Use size and weight for hierarchy instead of switching proportional font families.
 - Let size changes be modest; let weight and spacing carry rhythm.
 - Avoid text smaller than 14px in normal product UI.
 - Avoid uppercase noise, wide tracking, and overly compressed display treatments.
@@ -144,7 +158,7 @@ Poppins should be felt, not overused. It brings curvature and authority to headi
 - Background: Action Blue / Action Blue Dark
 - Text: white
 - Padding: 8px 16px
-- Radius: 4px
+- Radius: 6px
 - Border: transparent
 - Hover: shift to hover blue, no theatrical lift
 - Use: save, continue, confirm, create
@@ -153,7 +167,7 @@ Poppins should be felt, not overused. It brings curvature and authority to headi
 - Background: muted or accent surface
 - Text: primary ink
 - Padding: 8px 16px
-- Radius: 4px
+- Radius: 6px
 - Border: 1px solid UI border when needed
 - Use: secondary actions that remain clearly interactive
 
@@ -173,7 +187,7 @@ Poppins should be felt, not overused. It brings curvature and authority to headi
 
 - Background: Card White / Card Charcoal
 - Border: layout or UI border depending on density
-- Radius: 8px for regular cards, 16px for large dialogs or hero panels
+- Radius: 10px for regular cards, 20px for large dialogs or hero panels
 - Shadow in light mode: restrained, mostly `0 1px 3px rgba(0,0,0,0.1)` to `0 8px 16px rgba(0,0,0,0.1)`
 - Shadow in dark mode: minimal; rely on border and contrast first
 - Hover: structure becomes clearer, never glossy
@@ -185,7 +199,7 @@ Cards should feel like work surfaces, not decorative tiles. In light mode they s
 - Background: white in light mode, dark surface in dark mode
 - Text: primary ink / primary ink on dark
 - Border: dedicated input edge, never invisible
-- Radius: 4px
+- Radius: 6px
 - Padding: visually comfortable, never cramped
 - Placeholder: tertiary or quaternary text only
 - Focus: ring plus border/surface change
@@ -203,7 +217,7 @@ Inputs should feel contained and tactile. A field should always read as an objec
 ### Command Menus & Popovers
 
 - Background: Popover White / Popover Charcoal
-- Radius: 8px
+- Radius: 10px
 - Border: visible in both themes
 - Text size: 14px
 - Keyboard hints: caption treatment, secondary emphasis
@@ -402,28 +416,28 @@ Arclayer writing should feel like a capable operator speaking clearly.
 
 ### Quick Color Reference
 
-- Background light: `hsl(0 0% 100%)`
+- Background light: `hsl(220 14% 97%)`
 - Background dark: `hsl(0 0% 0%)`
 - Card light: `hsl(0 0% 100%)`
-- Card dark: `hsl(220 15% 8%)`
+- Card dark: `hsl(0 0% 8%)`
 - Primary text light: `hsl(230 5.7% 20.8%)`
-- Primary text dark: `hsl(220 15% 92%)`
+- Primary text dark: `hsl(0 0% 92%)`
 - Secondary text light: `hsl(237 8% 43.9%)`
-- Secondary text dark: `hsl(220 10% 70%)`
+- Secondary text dark: `hsl(0 0% 70%)`
 - Primary action blue: `hsl(211 100% 45.9%)`
 - Primary action blue dark: `hsl(211 100% 60%)`
-- Neutral hover light: `hsl(225 20% 92.2%)`
-- Neutral hover dark: `hsl(220 15% 14%)`
+- Neutral hover light: `hsl(220 10% 90%)`
+- Neutral hover dark: `hsl(0 0% 14%)`
 - Border light: `hsl(229 16.5% 79.8%)`
-- Border dark: `hsl(220 10% 30%)`
+- Border dark: `hsl(0 0% 30%)`
 
 ### Example Component Prompts
 
-- "Create a login screen on a pure white background with a calm product tone. Use a 32px Poppins title, 16px Figtree support text, restrained borders, and blue only for the primary action."
-- "Design a dark admin dashboard on a true black canvas with charcoal cards (`hsl(220 15% 8%)`), strong readable text, low-noise chrome, and selected states that use deep blue rather than glow."
-- "Build a command palette with an 8px radius, charcoal popover background, clear border, 14px Figtree menu items, secondary keyboard hints, and a selected row that feels precise rather than loud."
-- "Create a settings card with a white surface, soft border, 18px Poppins section title, 16px Figtree body text, 16px-24px spacing rhythm, and inputs that feel contained and tactile."
-- "Design a dense data table that stays readable: 14px Figtree content, quiet column labels, restrained row hover, predictable selection states, and borders that support scanning without boxing everything in."
+- "Create a login screen on a soft neutral-gray background with a calm product tone. Use a 32px system UI title, 16px support text, restrained borders, and blue only for the primary action."
+- "Design a dark admin dashboard on a true black canvas with neutral charcoal cards (`hsl(0 0% 8%)`), strong readable text, low-noise chrome, and selected states that use deep blue rather than glow."
+- "Build a command palette with a 10px radius, charcoal popover background, clear border, 14px system UI menu items, secondary keyboard hints, and a selected row that feels precise rather than loud."
+- "Create a settings card with a white surface, soft border, 18px system UI section title, 16px body text, 16px-24px spacing rhythm, and inputs that feel contained and tactile."
+- "Design a dense data table that stays readable: 14px system UI content, quiet column labels, restrained row hover, predictable selection states, and borders that support scanning without boxing everything in."
 
 ### Iteration Guide
 
@@ -431,7 +445,7 @@ Arclayer writing should feel like a capable operator speaking clearly.
 2. Use surfaces, not background effects, to build hierarchy.
 3. Use blue for actions and selection, not for atmosphere.
 4. In dark mode, think black plus charcoal plus border, not black plus gradients.
-5. Use Poppins to announce hierarchy and Figtree to do the work.
+5. Use size and weight to announce hierarchy while keeping one proportional UI family.
 6. If the screen feels impressive before it feels usable, simplify it.
 7. If density makes the UI feel tiny, fix spacing and grouping before shrinking text.
 8. If a state is not obvious without explanation, strengthen the visual contract.
@@ -449,4 +463,4 @@ Arclayer should not become:
 
 ## 13. One-Sentence Brief
 
-Design Arclayer as a high-trust product workspace: white and restrained in light mode, black and layered in dark mode, blue for action, charcoal for depth, Poppins for hierarchy, Figtree for work, and just enough motion to confirm the task without ever stealing attention.
+Design Arclayer as a high-trust product workspace: softly layered in light mode, black and neutral-charcoal in dark mode, blue for action, one platform-native UI family for mixed-language clarity, and just enough motion to confirm the task without ever stealing attention.

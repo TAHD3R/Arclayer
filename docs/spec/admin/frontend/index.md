@@ -23,6 +23,8 @@ Admin specs define concrete contracts for route files, page composition, compone
 | [Quality Guidelines](./quality-guidelines.md) | Admin quality gate, design verification, i18n, convention checks | Active |
 | [Type Safety](./type-safety.md) | Generated OpenAPI type usage, UI projections, assertion boundaries | Active |
 | [Product UI Toolchain](./product-ui-toolchain.md) | Canonical components, forms, icons, charts, Boneyard skeletons, motion, and product i18n | Active |
+| [Creation Editor](./creation-editor.md) | Independent full-screen creation Shell, four Site Revision projections, canvas interaction, Agent sidecar, motion, a11y, and loading states | Approved target |
+| [AI Agent Experience](./ai-agent-experience.md) | Unified Thread/Run runtime, Agent launcher and mentions, Toolkit rendering, approvals, delegation, responsive behavior, and hard cut | Approved target |
 
 ---
 
@@ -35,6 +37,7 @@ Admin specs define concrete contracts for route files, page composition, compone
 | [Shared Identity & Access Contracts](../../shared/identity-access-contracts.md) | Auth, route guard, tenant, workspace, project, and permission semantics |
 | [Shared Schema & Field Contracts](../../shared/schema-field-contracts.md) | Schema-driven UI and field semantics |
 | [Workspace Commercialization](../../shared/workspace-commercialization.md) | Plan, subscription, Credits, and upgrade UX semantics |
+| [AI Website Builder Platform](../../shared/ai-website-builder-platform.md) | Full-screen creation editor, Agent/chat UX, content workbench, settings, thumbnails, motion, and loading semantics |
 | [Feedback & Observability](../../shared/feedback-observability.md) | Feedback lifecycle, audit log, and observability page semantics |
 
 ## Monorepo Contracts

@@ -7,7 +7,8 @@ This code-spec defines identity, credential, tenant, workspace, project, and per
 ### 1. Scope / Trigger
 
 - Trigger: adding or changing authentication flows, Admin routes, Content API routes, tenant-scoped runtime reads, workspace/project authorization, or background jobs that process tenant-owned data.
-- Applies to session tokens, Content API keys, preview tokens, permission codes, tenant context payloads, and frontend route guards.
+- Applies to session tokens, Content API keys, preview tokens, permission
+  codes, durable Job target descriptors, and frontend route guards.
 
 ### 2. Signatures
 
@@ -17,7 +18,8 @@ This code-spec defines identity, credential, tenant, workspace, project, and per
 - Content API credential headers: `x-api-key` or `Authorization: Bearer <delivery-key>`
 - Runtime lookup: `get_runtime_context(runtime_id) -> ProjectRuntimeContext`
 - Tenant DB binding: `TenantDatabaseRouter(runtime_context.tenant_context).connection()`
-- Tenant job payload: `TenantContext.to_job_payload().model_dump(mode="json", by_alias=True)`
+- Durable tenant Job target: public workspace/project/runtime/site IDs plus a
+  typed entity/source-revision reference
 - Permission dependencies: `require_workspace_permission(...)`, `require_project_permission(...)`, `require_org_permission(...)`
 
 ### 3. Contracts
@@ -26,7 +28,9 @@ This code-spec defines identity, credential, tenant, workspace, project, and per
 - Content API credentials are validated through Content API auth and must carry required delivery scopes.
 - Preview reads require a preview delivery key or valid preview token.
 - Tenant-owned runtime reads must execute inside the runtime tenant database connection.
-- Background jobs that read/write tenant data must carry tenant context explicitly in the job payload.
+- Background jobs that read/write tenant data carry public target identity,
+  then re-resolve the current Project, Workspace, and tenant registry at
+  execution. Serialized schema names and isolation modes are not authority.
 - Permission codes are stable shared contract values; frontend can use them for capability gating only when backend authorization still enforces the same rule.
 - Frontend guards are UX optimization, not security enforcement.
 
@@ -38,17 +42,20 @@ This code-spec defines identity, credential, tenant, workspace, project, and per
 | Delivery key lacks required scope | Reject with `DELIVERY_SCOPE_REQUIRED` |
 | Preview read lacks preview credential | Reject with `PREVIEW_TOKEN_REQUIRED` |
 | Tenant runtime read skips tenant DB binding | Treat as data isolation bug |
-| Tenant job payload omits tenant context | Worker raises `TENANT_CONTEXT_REQUIRED` |
+| Tenant Job target cannot resolve current tenant readiness | Fail explicitly; never use the default/public DB for tenant data |
+| Tenant Job envelope contains schema or isolation routing | Reject the envelope contract |
 | Frontend hides action based on permission | Backend still validates the same permission on mutation |
 | Permission code changes | Update backend catalog, frontend consumers, and tests together |
 
 ### 5. Good/Base/Bad Cases
 
 - Good: GraphQL delivery builds service context with a tenant-bound connection.
-- Good: project thumbnail job receives `payload["tenant"]` and restores it before reading project assets.
+- Good: project thumbnail Job verifies public workspace/project/asset IDs,
+  resolves the current tenant registry, and only then reads project Assets.
 - Base: frontend disables a publish button for users missing a generated permission flag, while the backend still enforces `project:release:publish`.
 - Bad: frontend assumes hidden UI is sufficient authorization.
-- Bad: a job falls back to ambient context and silently skips tenant payload when missing.
+- Bad: a Job trusts a serialized schema name or falls back to ambient/default
+  context when canonical resolution fails.
 
 ### 6. Tests Required
 
@@ -62,14 +69,17 @@ This code-spec defines identity, credential, tenant, workspace, project, and per
 #### Wrong
 
 ```python
-if current_tenant_context_or_none() is not None:
-    payload["tenant"] = tenant_payload_from_context(current_tenant_context_or_none())
+tenant_context = TenantJobContextPayload.model_validate(payload["tenant"]).to_context()
+tenant_db = TenantDatabaseRouter(tenant_context)
 ```
 
 #### Correct
 
 ```python
-payload["tenant"] = self._tenant_context.to_job_payload().model_dump(mode="json", by_alias=True)
+job = await jobs.require_for_dispatch(envelope.job_id)
+target = await target_resolver.resolve_and_validate(job.target_descriptor)
+tenant_db = TenantDatabaseRouter(target.tenant_context.with_scope(TenantScope.JOB))
 ```
 
-Tenant context is a required cross-process contract for tenant-owned jobs.
+Public target identity is the cross-process contract. Tenant database routing
+is resolved from current canonical state inside the worker.

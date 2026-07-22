@@ -1,6 +1,6 @@
 # Feedback and Observability Contracts
 
-This code-spec defines the shared feedback lifecycle and project/workspace/platform observability contracts.
+This code-spec defines the shared feedback lifecycle and project/workspace/platform observability contracts. `admin-feedback-support.md` and `admin-observability-dashboard.md` supersede this file for the current Admin submission taxonomy, raw-request percentile capability, chart implementation, and system-page information architecture.
 
 ## Scenario A: Product feedback lifecycle
 
@@ -48,7 +48,7 @@ This code-spec defines the shared feedback lifecycle and project/workspace/platf
 
 ### 5. Metrics and API contract
 
-Supported request metrics include `requests`, `errors`, `errorRate`, `avgLatency`, and `maxLatency`. Hourly HTTP aggregates do not claim p95/p99 because they do not retain a latency distribution. AI audit rows retain per-request duration and therefore may expose true p50/p95/p99 values. Supported product metrics include `tokens`, `cost`, `credits`, and `auditEvents`.
+Supported request metrics include `requests`, `errors`, `errorRate`, `avgLatency`, and `maxLatency`. Hourly HTTP aggregates do not claim p95/p99 because they do not retain a latency distribution. Retained raw HTTP request rows and AI audit rows retain per-request duration and may therefore expose true p50/p95/p99 values inside their documented retention windows. Supported product metrics include `tokens`, `cost`, `credits`, and `auditEvents`.
 
 | Method and path | Actor | Purpose |
 |---|---|---|
@@ -69,8 +69,8 @@ Supported request metrics include `requests`, `errors`, `errorRate`, `avgLatency
 - Platform Overview summarizes tenants, active projects, commercial state, feedback queue health, AI consumption, and operational health from live endpoints.
 - Audit Log is a system operations analysis workbench with separate request and event views. The request view exposes persisted route/method/status aggregates, error rate, latency, and last-seen time; the event view is a filterable, paginated canonical event table with actor, action, scope, target, correlation id, timestamp, and sanitized metadata detail.
 - Feedback Center exposes queue filters, ticket detail, assignment, status/priority updates, replies, and internal notes.
-- Observability is a parent navigation group with focused child pages for overview, requests/reliability, AI usage/cost, and activity rather than one overloaded dashboard.
-- Every chart has an accessible Recharts layer, localized units, a textual summary, and an explicit loading/error/empty state.
+- Observability is a parent navigation group with focused child pages for requests/reliability, AI usage/cost, and aggregate activity. It has no separate overview page; the global operational decision surface is `/system/overview` Dashboard.
+- Every chart is consumed through `@arclayer/ui/chart`, with localized units, a textual summary, an exact-value alternative, and explicit loading/error/empty states.
 
 ### 7. Tests required
 

@@ -23,7 +23,10 @@ Backend and frontend specs should link to these files instead of duplicating the
 | [Identity & Access Contracts](./identity-access-contracts.md) | Auth tokens, Content API credentials, tenant/workspace/project context, permission codes | Active |
 | [Schema & Field Contracts](./schema-field-contracts.md) | Pydantic/OpenAPI/schema field semantics shared by backend and frontend | Active |
 | [Workspace Commercialization](./workspace-commercialization.md) | Plan catalog, subscriptions, AI Credits accounting, and upgrade workflows | Active |
+| [AI Website Builder Platform](./ai-website-builder-platform.md) | Unified creation editor, multi-Agent runtime, workspace context, durable jobs, connectors, and product experience | Approved target |
+| [AI Agent Runtime Protocol](./ai-agent-runtime-protocol.md) | Backend-owned Thread/Run/event truth, versioned SSE replay, Tool responses, approvals, delegation, Credits ordering, and proof gates | Proposed Wave 0 decision |
 | [Feedback & Observability](./feedback-observability.md) | Feedback lifecycle, audit views, request telemetry, and scoped observability | Active |
+| [Admin Control Plane Productization](./admin-control-plane-rollout.md) | Canonical rollout for feedback, observability, dashboards, plugins, communications, tenant governance, invitations, and permissions | Approved target |
 
 ## Shared Layer Rules
 
