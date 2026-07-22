@@ -13,6 +13,7 @@ from src.core.exceptions import BadRequest, NotFound
 from src.core.http.pagination import PageParams, paginate_items
 from src.core.services import BaseService
 from src.models.organization.user import User
+from src.models.projects._enums import ProjectAuthoringMode
 from src.models.workspaces.workspace import Workspace
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
@@ -146,12 +147,14 @@ class ProjectService(BaseService):
     ) -> ProjectListItemOut:
         await self._require_workspace(workspace_id=workspace_id)
         reserved_slugs = await self._reserved_project_slugs()
+        authoring_mode = ProjectAuthoringMode(payload.authoring_mode)
         async with self.tx() as conn:
             project = await self.repo.create_project(
                 workspace_id=workspace_id,
                 name=payload.name.strip(),
                 slug=self._normalize_slug(payload.slug),
                 description=(payload.description or "").strip() or None,
+                authoring_mode=authoring_mode,
                 actor_user_id=actor_user_id,
                 reserved_slugs=reserved_slugs,
                 conn=conn,
@@ -183,6 +186,7 @@ class ProjectService(BaseService):
                 properties={
                     "created": True,
                     "slug": str(project.slug),
+                    "authoringMode": authoring_mode.value,
                     "initialized": ["primary_runtime", "environments", "runtime_site", "platform_domain_binding"],
                 },
                 conn=conn,
@@ -406,6 +410,9 @@ class ProjectService(BaseService):
             icon_glyph=project.icon_glyph,
             icon_emoji=project.icon_emoji,
             icon_url=project.icon_url,
+            authoring_mode=project.authoring_mode,
+            authoring_state=project.authoring_state,
+            authoring_revision=project.authoring_revision,
             is_active=project.is_active,
         )
 

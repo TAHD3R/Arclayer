@@ -14,7 +14,7 @@ from src.modules.projects.http.service import get_project_context
 from src.modules.tenancy.router_helpers import resolve_project_tenant_context
 
 
-def _get_lifecycle_dispatcher(request: Request) -> LifecycleDispatcher:
+def require_lifecycle_dispatcher(request: Request) -> LifecycleDispatcher:
     dispatcher = getattr(request.app.state, "lifecycle_dispatcher", None)
     if dispatcher is None:
         raise ServiceUnavailable(
@@ -28,7 +28,7 @@ def get_project_content_canonical_items_service(
     request: Request,
     ctx: ProjectRequestContext = Depends(get_project_context),
 ) -> ProjectContentCanonicalItemsService:
-    lifecycle = _get_lifecycle_dispatcher(request)
+    lifecycle = require_lifecycle_dispatcher(request)
     repo = ProjectContentItemsRepository(
         resolve_project_tenant_context(project_id=ctx.project_id, runtime_id=ctx.runtime_id)
     )

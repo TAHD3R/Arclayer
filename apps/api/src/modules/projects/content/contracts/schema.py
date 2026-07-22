@@ -66,6 +66,7 @@ ContentVersionState = Literal["draft", "published", "scheduled", "archived"]
 ContentPresentationKind = Literal[
     "form_data",
     "rich_text_document",
+    "wireframe",
     "visual_blueprint",
     "query_definition",
     "slot_mapping",

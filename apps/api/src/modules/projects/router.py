@@ -18,9 +18,11 @@ from src.modules.projects.authz.router_helpers import (
     ensure_project_permission_granted as ensure_project_authz_permission_granted,
 )
 from src.modules.projects.automation.router import router as projects_automation_router
+from src.modules.projects.builder.router import router as projects_builder_router
 from src.modules.projects.content.router import router as projects_content_router
 from src.modules.projects.databases.router import router as projects_databases_router
 from src.modules.projects.deployments.router import router as projects_deployments_router
+from src.modules.projects.design_systems.router import router as projects_design_systems_router
 from src.modules.projects.domains.router import router as projects_domains_router
 from src.modules.projects.environments.router import router as projects_environments_router
 from src.modules.projects.governance.router import router as projects_governance_router
@@ -56,10 +58,12 @@ router.include_router(projects_releases_router)
 router.include_router(projects_publish_router)
 router.include_router(projects_environments_router)
 router.include_router(projects_deployments_router)
+router.include_router(projects_design_systems_router)
 router.include_router(projects_databases_router)
 router.include_router(projects_content_router)
 router.include_router(projects_assets_router)
 router.include_router(projects_automation_router)
+router.include_router(projects_builder_router)
 router.include_router(projects_domains_router)
 router.include_router(projects_agents_router)
 router.include_router(projects_source_router)

@@ -500,7 +500,7 @@ class ProjectContentItemsRepository(TenantScopedRepository):
                     component_key=str(item["component_key"]),
                     binding_key=str(item["binding_key"]),
                     binding_payload=item.get("binding_payload"),
-                    sort_order=index,
+                    sort_order=int(item.get("sort_order", index)),
                 )
                 for index, item in enumerate(bindings)
             ]

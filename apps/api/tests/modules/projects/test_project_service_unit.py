@@ -7,6 +7,7 @@ from uuid import uuid4
 import pytest
 
 from src.config import get_settings
+from src.models.projects._enums import ProjectAuthoringMode, ProjectAuthoringState
 from src.modules.projects.repository import ProjectRepository
 from src.modules.projects.schema import ProjectCreateRequest
 from src.modules.projects.service import ProjectService
@@ -30,6 +31,9 @@ class _FakeProject:
         self.icon_glyph = None
         self.icon_emoji = None
         self.icon_url = None
+        self.authoring_mode = ProjectAuthoringMode.BUILDER_MANAGED
+        self.authoring_state = ProjectAuthoringState.READY
+        self.authoring_revision = 1
         self.is_active = True
 
 
@@ -122,6 +126,7 @@ async def test_create_project_bootstraps_memberships_provisions_runtime_site_and
 
     async def fake_create_project(**kwargs):
         assert kwargs["conn"] is tx_conn
+        assert kwargs["authoring_mode"] is ProjectAuthoringMode.BUILDER_MANAGED
         return project
 
     async def fake_bootstrap_project_memberships(*, project_id, workspace_id, actor_user_id, conn):
@@ -175,6 +180,7 @@ async def test_create_project_bootstraps_memberships_provisions_runtime_site_and
         workspace_id=workspace_id,
         payload=ProjectCreateRequest.model_construct(
             workspace_id=workspace_id,
+            authoring_mode=ProjectAuthoringMode.BUILDER_MANAGED,
             name="Project Alpha",
             slug="project-alpha",
             description=None,
@@ -203,6 +209,7 @@ async def test_create_project_bootstraps_memberships_provisions_runtime_site_and
             "properties": {
                 "created": True,
                 "slug": project.slug,
+                "authoringMode": "builder_managed",
                 "initialized": ["primary_runtime", "environments", "runtime_site", "platform_domain_binding"],
             },
             "conn": tx_conn,

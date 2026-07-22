@@ -8,6 +8,7 @@ from pydantic import Field
 from src.common.schemas.base import BaseOut, BaseSchema
 from src.common.types.public_uuid import PublicUUID
 from src.core.http.pagination import PageData
+from src.models.projects._enums import ProjectAuthoringMode, ProjectAuthoringState
 from src.models.workspaces.workspace import WorkspaceIconMode
 
 
@@ -32,6 +33,15 @@ class ProjectOut(BaseOut):
     icon_glyph: str | None = Field(default=None, description="Project icon glyph id.")
     icon_emoji: str | None = Field(default=None, description="Project icon emoji.")
     icon_url: str | None = Field(default=None, description="Project icon URL.")
+    authoring_mode: ProjectAuthoringMode | None = Field(
+        default=None,
+        description="Project-wide composition authority. Null only while migration is required.",
+    )
+    authoring_state: ProjectAuthoringState = Field(
+        ...,
+        description="Whether authoring authority is ready or requires an explicit migration decision.",
+    )
+    authoring_revision: int = Field(..., ge=1, description="Optimistic authoring-authority revision.")
     is_active: bool = Field(..., description="Whether the project is active.")
 
 
@@ -67,6 +77,7 @@ class ProjectListItemOut(ProjectOut):
 
 class ProjectCreateRequest(BaseSchema):
     workspace_id: PublicUUID = Field(..., description="Workspace that owns the project.")
+    authoring_mode: ProjectAuthoringMode = Field(..., description="Explicit project-wide composition authority.")
     name: str = Field(..., min_length=1, max_length=128, description="Project name.")
     slug: str | None = Field(default=None, min_length=1, max_length=64, description="Project slug.")
     description: str | None = Field(default=None, max_length=256, description="Project description.")

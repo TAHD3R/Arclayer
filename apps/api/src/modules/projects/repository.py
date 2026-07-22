@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import UTC, datetime
 from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
@@ -11,6 +12,7 @@ from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.user import User
+from src.models.projects._enums import ProjectAuthoringMode, ProjectAuthoringState
 from src.models.projects.membership import ProjectMemberRole, ProjectMembership
 from src.models.projects.project import ProjectRecord
 from src.models.projects.runtime import ProjectRuntimeKind, ProjectRuntimeRecord
@@ -125,6 +127,22 @@ class ProjectRepository(TortoiseORMRepository):
             ordered_ids.append(workspace_id)
         return ordered_ids
 
+    async def list_accessible_project_ids(self, *, workspace_id: UUID, user_id: UUID) -> list[UUID]:
+        project_ids = await ProjectMembership.filter(
+            project__workspace_id=workspace_id,
+            user_id=user_id,
+            project__is_active=True,
+        ).values_list("project_id", flat=True)
+        return [UUID(str(project_id)) for project_id in project_ids if project_id is not None]
+
+    async def has_project_access(self, *, workspace_id: UUID, project_id: UUID, user_id: UUID) -> bool:
+        return await ProjectMembership.filter(
+            project_id=project_id,
+            project__workspace_id=workspace_id,
+            user_id=user_id,
+            project__is_active=True,
+        ).exists()
+
     async def get_first_project_by_workspace_id(self, *, workspace_id: UUID) -> ProjectRecord | None:
         return await ProjectRecord.filter(workspace_id=workspace_id).order_by("created_at", "id").first()
 
@@ -218,6 +236,7 @@ class ProjectRepository(TortoiseORMRepository):
         name: str,
         slug: str | None,
         description: str | None,
+        authoring_mode: ProjectAuthoringMode,
         actor_user_id: UUID | None,
         reserved_slugs: frozenset[str] = PROJECT_RESERVED_SLUGS,
         conn: BaseDBAsyncClient | None = None,
@@ -239,6 +258,11 @@ class ProjectRepository(TortoiseORMRepository):
             slug=resolved_slug,
             name=name[:128],
             description=description,
+            authoring_mode=authoring_mode,
+            authoring_state=ProjectAuthoringState.READY,
+            authoring_revision=1,
+            authoring_resolved_by_user_id=actor_user_id,
+            authoring_resolved_at=datetime.now(UTC),
             is_active=True,
             created_by_user_id=actor_user_id,
         )

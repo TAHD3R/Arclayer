@@ -1,0 +1,373 @@
+{
+  "schemaVersion": 1,
+  "catalogVersion": "arclayer-wireframe-v1",
+  "nameByLocale": {
+    "zh-CN": "Arclayer 官方站点组件",
+    "en-US": "Arclayer Official Site Components"
+  },
+  "descriptionByLocale": {
+    "zh-CN": "用于 Builder Wireframe、Design System 配方与站点渲染契约的官方组件目录。",
+    "en-US": "The official component contract shared by Builder Wireframes, Design System recipes, and site rendering."
+  },
+  "source": "official",
+  "sourceVersion": "1.0.0",
+  "rendererProfile": "arclayer-site-v1",
+  "rendererVersion": "1.0.0",
+  "compilerVersion": "1.0.0",
+  "components": [
+    {
+      "key": "site.header",
+      "labelByLocale": { "zh-CN": "站点页眉", "en-US": "Site header" },
+      "descriptionByLocale": {
+        "zh-CN": "承载品牌、主导航与主要行动入口。",
+        "en-US": "Carries brand identity, primary navigation, and the main action."
+      },
+      "category": "navigation",
+      "variants": [
+        {
+          "key": "default",
+          "labelByLocale": { "zh-CN": "标准", "en-US": "Standard" },
+          "descriptionByLocale": {
+            "zh-CN": "品牌、导航与操作横向排列。",
+            "en-US": "Brand, navigation, and action in one horizontal row."
+          },
+          "requiredSlotKeys": ["brand"],
+          "supportedResponsiveLayouts": ["stack", "grid"],
+          "maxColumns": 3
+        },
+        {
+          "key": "centered",
+          "labelByLocale": { "zh-CN": "居中", "en-US": "Centered" },
+          "descriptionByLocale": {
+            "zh-CN": "品牌居中，导航与操作分置两侧。",
+            "en-US": "Centered brand with navigation and actions on either side."
+          },
+          "requiredSlotKeys": ["brand"],
+          "supportedResponsiveLayouts": ["stack", "grid"],
+          "maxColumns": 3
+        }
+      ],
+      "slots": [
+        {
+          "key": "brand",
+          "labelByLocale": { "zh-CN": "品牌", "en-US": "Brand" },
+          "descriptionByLocale": { "zh-CN": "品牌名称或标志。", "en-US": "Brand name or logo." },
+          "valueKind": "image",
+          "required": true,
+          "repeatable": false,
+          "acceptedBindingKinds": ["field", "literal"]
+        },
+        {
+          "key": "navigation.items",
+          "labelByLocale": { "zh-CN": "导航项", "en-US": "Navigation items" },
+          "descriptionByLocale": { "zh-CN": "站点主要导航链接。", "en-US": "Primary site navigation links." },
+          "valueKind": "list",
+          "required": false,
+          "repeatable": true,
+          "acceptedBindingKinds": ["field", "literal"]
+        },
+        {
+          "key": "action.primary",
+          "labelByLocale": { "zh-CN": "主要操作", "en-US": "Primary action" },
+          "descriptionByLocale": { "zh-CN": "页眉主要行动入口。", "en-US": "Primary header action." },
+          "valueKind": "action",
+          "required": false,
+          "repeatable": false,
+          "acceptedBindingKinds": ["field", "literal"]
+        }
+      ],
+      "interactions": [
+        { "event": "click", "action": "navigate", "targetRequired": true },
+        { "event": "click", "action": "open", "targetRequired": true },
+        { "event": "click", "action": "close", "targetRequired": true }
+      ],
+      "styleSlots": [
+        { "key": "surface.background", "valueType": "color", "requiredStates": ["default"] },
+        { "key": "text.primary", "valueType": "color", "requiredStates": ["default"] },
+        { "key": "action.background", "valueType": "color", "requiredStates": ["default", "hover", "focus"] }
+      ]
+    },
+    {
+      "key": "landing.hero",
+      "labelByLocale": { "zh-CN": "首屏主视觉", "en-US": "Hero" },
+      "descriptionByLocale": {
+        "zh-CN": "以清晰价值主张、行动入口和可选媒体开启页面。",
+        "en-US": "Opens a page with a clear value proposition, actions, and optional media."
+      },
+      "category": "hero",
+      "variants": [
+        {
+          "key": "default",
+          "labelByLocale": { "zh-CN": "聚焦", "en-US": "Focused" },
+          "descriptionByLocale": {
+            "zh-CN": "内容居中，适合单一核心主张。",
+            "en-US": "Centered content for one primary proposition."
+          },
+          "requiredSlotKeys": ["heading"],
+          "supportedResponsiveLayouts": ["stack", "grid"],
+          "maxColumns": 2
+        },
+        {
+          "key": "split",
+          "labelByLocale": { "zh-CN": "图文分栏", "en-US": "Split" },
+          "descriptionByLocale": {
+            "zh-CN": "文案与媒体并列呈现。",
+            "en-US": "Places copy and media side by side."
+          },
+          "requiredSlotKeys": ["heading", "media.primary"],
+          "supportedResponsiveLayouts": ["stack", "split"],
+          "maxColumns": 2
+        }
+      ],
+      "slots": [
+        {
+          "key": "eyebrow",
+          "labelByLocale": { "zh-CN": "眉题", "en-US": "Eyebrow" },
+          "descriptionByLocale": { "zh-CN": "标题上方的上下文标签。", "en-US": "Context label above the heading." },
+          "valueKind": "text",
+          "required": false,
+          "repeatable": false,
+          "acceptedBindingKinds": ["field", "literal"]
+        },
+        {
+          "key": "heading",
+          "labelByLocale": { "zh-CN": "主标题", "en-US": "Heading" },
+          "descriptionByLocale": { "zh-CN": "首屏核心价值主张。", "en-US": "The hero's primary value proposition." },
+          "valueKind": "text",
+          "required": true,
+          "repeatable": false,
+          "acceptedBindingKinds": ["field", "literal"]
+        },
+        {
+          "key": "body",
+          "labelByLocale": { "zh-CN": "说明", "en-US": "Body" },
+          "descriptionByLocale": { "zh-CN": "补充主张的简短说明。", "en-US": "Supporting copy for the proposition." },
+          "valueKind": "rich-text",
+          "required": false,
+          "repeatable": false,
+          "acceptedBindingKinds": ["field", "literal"]
+        },
+        {
+          "key": "action.primary",
+          "labelByLocale": { "zh-CN": "主要操作", "en-US": "Primary action" },
+          "descriptionByLocale": { "zh-CN": "首屏主要转化入口。", "en-US": "Primary hero conversion action." },
+          "valueKind": "action",
+          "required": false,
+          "repeatable": false,
+          "acceptedBindingKinds": ["field", "literal"]
+        },
+        {
+          "key": "media.primary",
+          "labelByLocale": { "zh-CN": "主媒体", "en-US": "Primary media" },
+          "descriptionByLocale": { "zh-CN": "产品图、插图或视频封面。", "en-US": "Product image, illustration, or video poster." },
+          "valueKind": "image",
+          "required": false,
+          "repeatable": false,
+          "acceptedBindingKinds": ["field", "literal"]
+        }
+      ],
+      "interactions": [
+        { "event": "click", "action": "navigate", "targetRequired": true },
+        { "event": "click", "action": "open", "targetRequired": true }
+      ],
+      "styleSlots": [
+        { "key": "surface.background", "valueType": "color", "requiredStates": ["default"] },
+        { "key": "text.primary", "valueType": "color", "requiredStates": ["default"] },
+        { "key": "action.background", "valueType": "color", "requiredStates": ["default", "hover", "focus"] }
+      ]
+    },
+    {
+      "key": "landing.feature-grid",
+      "labelByLocale": { "zh-CN": "能力网格", "en-US": "Feature grid" },
+      "descriptionByLocale": {
+        "zh-CN": "用可扫描的卡片组解释核心能力与收益。",
+        "en-US": "Explains key capabilities and benefits in a scannable card group."
+      },
+      "category": "content",
+      "variants": [
+        {
+          "key": "default",
+          "labelByLocale": { "zh-CN": "标准网格", "en-US": "Standard grid" },
+          "descriptionByLocale": { "zh-CN": "等权重能力卡片。", "en-US": "Equal-weight feature cards." },
+          "requiredSlotKeys": ["heading", "items"],
+          "supportedResponsiveLayouts": ["stack", "grid"],
+          "maxColumns": 4
+        },
+        {
+          "key": "split",
+          "labelByLocale": { "zh-CN": "引导分栏", "en-US": "Guided split" },
+          "descriptionByLocale": { "zh-CN": "左侧引导文案，右侧能力列表。", "en-US": "Intro copy on the left and features on the right." },
+          "requiredSlotKeys": ["heading", "items"],
+          "supportedResponsiveLayouts": ["stack", "split", "grid"],
+          "maxColumns": 3
+        }
+      ],
+      "slots": [
+        {
+          "key": "heading",
+          "labelByLocale": { "zh-CN": "区块标题", "en-US": "Section heading" },
+          "descriptionByLocale": { "zh-CN": "概括能力主题。", "en-US": "Summarizes the feature theme." },
+          "valueKind": "text",
+          "required": true,
+          "repeatable": false,
+          "acceptedBindingKinds": ["field", "literal"]
+        },
+        {
+          "key": "body",
+          "labelByLocale": { "zh-CN": "区块说明", "en-US": "Section body" },
+          "descriptionByLocale": { "zh-CN": "解释能力组合的价值。", "en-US": "Explains the value of the feature set." },
+          "valueKind": "rich-text",
+          "required": false,
+          "repeatable": false,
+          "acceptedBindingKinds": ["field", "literal"]
+        },
+        {
+          "key": "items",
+          "labelByLocale": { "zh-CN": "能力项", "en-US": "Feature items" },
+          "descriptionByLocale": { "zh-CN": "标题、说明与可选图标组成的能力列表。", "en-US": "Feature list with titles, descriptions, and optional icons." },
+          "valueKind": "list",
+          "required": true,
+          "repeatable": true,
+          "acceptedBindingKinds": ["field", "literal"]
+        }
+      ],
+      "interactions": [
+        { "event": "click", "action": "navigate", "targetRequired": true }
+      ],
+      "styleSlots": [
+        { "key": "surface.background", "valueType": "color", "requiredStates": ["default"] },
+        { "key": "text.primary", "valueType": "color", "requiredStates": ["default"] },
+        { "key": "card.background", "valueType": "color", "requiredStates": ["default", "hover"] }
+      ]
+    },
+    {
+      "key": "landing.cta",
+      "labelByLocale": { "zh-CN": "行动召唤", "en-US": "Call to action" },
+      "descriptionByLocale": {
+        "zh-CN": "在明确上下文中推动下一步转化。",
+        "en-US": "Moves visitors toward the next conversion step with clear context."
+      },
+      "category": "conversion",
+      "variants": [
+        {
+          "key": "default",
+          "labelByLocale": { "zh-CN": "聚焦", "en-US": "Focused" },
+          "descriptionByLocale": { "zh-CN": "居中的主张与单一行动。", "en-US": "Centered proposition and one primary action." },
+          "requiredSlotKeys": ["heading", "action.primary"],
+          "supportedResponsiveLayouts": ["stack"],
+          "maxColumns": 1
+        },
+        {
+          "key": "split",
+          "labelByLocale": { "zh-CN": "左右分栏", "en-US": "Split" },
+          "descriptionByLocale": { "zh-CN": "文案与操作左右分置。", "en-US": "Copy and action arranged side by side." },
+          "requiredSlotKeys": ["heading", "action.primary"],
+          "supportedResponsiveLayouts": ["stack", "split"],
+          "maxColumns": 2
+        }
+      ],
+      "slots": [
+        {
+          "key": "heading",
+          "labelByLocale": { "zh-CN": "行动标题", "en-US": "Action heading" },
+          "descriptionByLocale": { "zh-CN": "说明行动价值。", "en-US": "States the value of taking action." },
+          "valueKind": "text",
+          "required": true,
+          "repeatable": false,
+          "acceptedBindingKinds": ["field", "literal"]
+        },
+        {
+          "key": "body",
+          "labelByLocale": { "zh-CN": "行动说明", "en-US": "Action body" },
+          "descriptionByLocale": { "zh-CN": "降低行动顾虑的补充说明。", "en-US": "Supporting copy that reduces hesitation." },
+          "valueKind": "rich-text",
+          "required": false,
+          "repeatable": false,
+          "acceptedBindingKinds": ["field", "literal"]
+        },
+        {
+          "key": "action.primary",
+          "labelByLocale": { "zh-CN": "主要操作", "en-US": "Primary action" },
+          "descriptionByLocale": { "zh-CN": "必须明确的下一步。", "en-US": "The required, explicit next step." },
+          "valueKind": "action",
+          "required": true,
+          "repeatable": false,
+          "acceptedBindingKinds": ["field", "literal"]
+        }
+      ],
+      "interactions": [
+        { "event": "click", "action": "navigate", "targetRequired": true },
+        { "event": "submit", "action": "submit", "targetRequired": false }
+      ],
+      "styleSlots": [
+        { "key": "surface.background", "valueType": "color", "requiredStates": ["default"] },
+        { "key": "text.primary", "valueType": "color", "requiredStates": ["default"] },
+        { "key": "action.background", "valueType": "color", "requiredStates": ["default", "hover", "focus"] }
+      ]
+    },
+    {
+      "key": "site.footer",
+      "labelByLocale": { "zh-CN": "站点页脚", "en-US": "Site footer" },
+      "descriptionByLocale": {
+        "zh-CN": "集中呈现品牌、辅助导航与法律信息。",
+        "en-US": "Collects brand, secondary navigation, and legal information."
+      },
+      "category": "footer",
+      "variants": [
+        {
+          "key": "default",
+          "labelByLocale": { "zh-CN": "完整", "en-US": "Complete" },
+          "descriptionByLocale": { "zh-CN": "多列导航与完整品牌信息。", "en-US": "Multi-column navigation with full brand information." },
+          "requiredSlotKeys": ["brand"],
+          "supportedResponsiveLayouts": ["stack", "grid"],
+          "maxColumns": 4
+        },
+        {
+          "key": "compact",
+          "labelByLocale": { "zh-CN": "精简", "en-US": "Compact" },
+          "descriptionByLocale": { "zh-CN": "适合内容较少站点的单行页脚。", "en-US": "A single-row footer for smaller sites." },
+          "requiredSlotKeys": ["brand"],
+          "supportedResponsiveLayouts": ["stack", "grid"],
+          "maxColumns": 2
+        }
+      ],
+      "slots": [
+        {
+          "key": "brand",
+          "labelByLocale": { "zh-CN": "品牌", "en-US": "Brand" },
+          "descriptionByLocale": { "zh-CN": "品牌名称或标志。", "en-US": "Brand name or logo." },
+          "valueKind": "image",
+          "required": true,
+          "repeatable": false,
+          "acceptedBindingKinds": ["field", "literal"]
+        },
+        {
+          "key": "navigation.items",
+          "labelByLocale": { "zh-CN": "辅助导航", "en-US": "Secondary navigation" },
+          "descriptionByLocale": { "zh-CN": "产品、公司与资源链接。", "en-US": "Product, company, and resource links." },
+          "valueKind": "list",
+          "required": false,
+          "repeatable": true,
+          "acceptedBindingKinds": ["field", "literal"]
+        },
+        {
+          "key": "legal",
+          "labelByLocale": { "zh-CN": "法律信息", "en-US": "Legal" },
+          "descriptionByLocale": { "zh-CN": "版权与合规链接。", "en-US": "Copyright and compliance links." },
+          "valueKind": "rich-text",
+          "required": false,
+          "repeatable": false,
+          "acceptedBindingKinds": ["field", "literal"]
+        }
+      ],
+      "interactions": [
+        { "event": "click", "action": "navigate", "targetRequired": true }
+      ],
+      "styleSlots": [
+        { "key": "surface.background", "valueType": "color", "requiredStates": ["default"] },
+        { "key": "text.primary", "valueType": "color", "requiredStates": ["default"] },
+        { "key": "link.foreground", "valueType": "color", "requiredStates": ["default", "hover", "focus"] }
+      ]
+    }
+  ]
+}

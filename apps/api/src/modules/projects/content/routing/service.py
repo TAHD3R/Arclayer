@@ -271,6 +271,30 @@ async def set_route_bindings_active_for_item(
     )
 
 
+async def set_route_binding_active_for_locale(
+    *,
+    workspace_id: UUID,
+    site_id: UUID,
+    environment_id: UUID | None,
+    item_id: UUID,
+    locale: str,
+    is_active: bool,
+    conn: BaseDBAsyncClient,
+) -> int:
+    return (
+        await RouteBindingRecord
+        .filter(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            environment_id=environment_id,
+            item_id=item_id,
+            locale=locale.strip(),
+        )
+        .using_db(conn)
+        .update(is_active=is_active)
+    )
+
+
 async def _get_item_with_model(
     *,
     workspace_id: UUID,
@@ -401,6 +425,58 @@ async def upsert_route_binding_record(
     return record
 
 
+async def upsert_hierarchy_node_record(
+    *,
+    workspace_id: UUID,
+    site_id: UUID,
+    environment_id: UUID | None,
+    item_id: UUID,
+    payload: HierarchyNodeUpsertIn,
+    conn: BaseDBAsyncClient,
+) -> HierarchyNodeRecord:
+    item = await _get_item_with_model(
+        workspace_id=workspace_id,
+        site_id=site_id,
+        environment_id=environment_id,
+        item_id=item_id,
+        conn=conn,
+    )
+    if not item_has_capability(item, "treeable"):
+        raise Conflict("Content item is not treeable", error="CONTENT_ITEM_NOT_TREEABLE")
+
+    parent_item_id = payload.parent_item_id
+    if parent_item_id is not None:
+        await _get_item_with_model(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            environment_id=environment_id,
+            item_id=parent_item_id,
+            conn=conn,
+        )
+        await _ensure_no_hierarchy_cycle(
+            site_id=site_id,
+            item_id=item_id,
+            parent_item_id=parent_item_id,
+            conn=conn,
+        )
+    record = (
+        await HierarchyNodeRecord.filter(site_id=site_id, item_id=item_id).using_db(conn).select_for_update().first()
+    )
+    if record is None:
+        return await HierarchyNodeRecord.create(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            item_id=item_id,
+            parent_item_id=parent_item_id,
+            sort_order=payload.sort_order,
+            using_db=conn,
+        )
+    record.parent_item_id = parent_item_id
+    record.sort_order = payload.sort_order
+    await record.save(update_fields=["parent_item_id", "sort_order"], using_db=conn)
+    return record
+
+
 class ProjectContentRoutingService(BaseService):
     def __init__(self, tenant_context: TenantContext) -> None:
         super().__init__()
@@ -460,50 +536,13 @@ class ProjectContentRoutingService(BaseService):
         item_id: UUID,
         payload: HierarchyNodeUpsertIn,
     ) -> HierarchyNodeOut:
-        parent_item_id = payload.parent_item_id
         async with self.tenant_db.connection() as conn:
-            item = await _get_item_with_model(
+            record = await upsert_hierarchy_node_record(
                 workspace_id=workspace_id,
                 site_id=site_id,
-                environment_id=None,
                 item_id=item_id,
+                environment_id=None,
+                payload=payload,
                 conn=conn,
             )
-            if not item_has_capability(item, "treeable"):
-                raise Conflict("Content item is not treeable", error="CONTENT_ITEM_NOT_TREEABLE")
-
-            if parent_item_id is not None:
-                await _get_item_with_model(
-                    workspace_id=workspace_id,
-                    site_id=site_id,
-                    environment_id=None,
-                    item_id=parent_item_id,
-                    conn=conn,
-                )
-                await _ensure_no_hierarchy_cycle(
-                    site_id=site_id,
-                    item_id=item_id,
-                    parent_item_id=parent_item_id,
-                    conn=conn,
-                )
-            record = (
-                await HierarchyNodeRecord
-                .filter(site_id=site_id, item_id=item_id)
-                .using_db(conn)
-                .select_for_update()
-                .first()
-            )
-            if record is None:
-                record = await HierarchyNodeRecord.create(
-                    workspace_id=workspace_id,
-                    site_id=site_id,
-                    item_id=item_id,
-                    parent_item_id=parent_item_id,
-                    sort_order=payload.sort_order,
-                    using_db=conn,
-                )
-            else:
-                record.parent_item_id = parent_item_id
-                record.sort_order = payload.sort_order
-                await record.save(update_fields=["parent_item_id", "sort_order"], using_db=conn)
         return _to_hierarchy_node_out(record)

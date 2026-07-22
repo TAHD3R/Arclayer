@@ -26,6 +26,22 @@ async def get_project_context(
 ) -> ProjectRequestContext:
     """Resolve project request context."""
 
+    context = await resolve_project_context_by_id(project_id=UUID(str(project_id)), user_id=user_id)
+    bind_project_tenant_context(
+        project_id=context.project_id,
+        runtime_id=context.runtime_id,
+        scope=TenantScope.PROJECT,
+    )
+    return context
+
+
+async def resolve_project_context_by_id(
+    *,
+    project_id: UUID,
+    user_id: UUID,
+) -> ProjectRequestContext:
+    """Resolve canonical Project membership context without mutating request/Job tenant scope."""
+
     repo = ProjectRepository()
     project = await repo.get_project_by_id(project_id=project_id)
     workspace_id = UUID(str(cast(HasWorkspaceId, project).workspace_id))
@@ -48,11 +64,6 @@ async def get_project_context(
         )
 
     runtime = await repo.get_primary_runtime(project_id=project.id)
-    bind_project_tenant_context(
-        project_id=project.id,
-        runtime_id=runtime.id if runtime is not None else None,
-        scope=TenantScope.PROJECT,
-    )
     return ProjectRequestContext(
         project_id=project.id,
         workspace_id=workspace_id,

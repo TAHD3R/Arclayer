@@ -9,6 +9,7 @@ __all__ = [
     "create_project_article_model",
     "create_project_content_model",
     "create_project_page_model",
+    "create_project_page_model_for_environment",
     "create_project_publishable_page_item",
     "prepare_project_publishable_tree",
     "project_context_ids",
@@ -65,6 +66,30 @@ async def create_project_page_model(client, project_id: str) -> dict:
         defaultPosture="page",
         defaultSurface="structured",
     )
+
+
+async def create_project_page_model_for_environment(client, project_id: str, *, environment_key: str) -> dict:
+    response = await client.post(
+        f"/api/v1/projects/{project_id}/content/models",
+        params={"environment": environment_key},
+        json={
+            "singularKey": "page",
+            "pluralKey": "pages",
+            "name": "Page",
+            "fields": [],
+            "relations": [],
+            "capabilities": ["publishable", "routable", "treeable"],
+            "routing": {"mode": "none"},
+            "workflow": {"states": []},
+            "views": [],
+            "category": "site_builder",
+            "defaultRole": "page",
+            "defaultPosture": "page",
+            "defaultSurface": "structured",
+        },
+    )
+    assert response.status_code == 201, response.text
+    return response.json()["data"]
 
 
 def project_page_item_payload(*, title: str) -> dict:

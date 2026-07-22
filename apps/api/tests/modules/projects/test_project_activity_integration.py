@@ -8,6 +8,7 @@ from src.config import get_settings
 from src.models.analytics.audit_event import AuditEvent
 from src.models.domains.domain_binding import DomainBindingRecord, DomainBindingSource
 from src.models.organization.org_membership import OrgMembership, OrgRole
+from src.models.projects._enums import ProjectAuthoringMode, ProjectAuthoringState
 from src.models.projects.environment import ProjectEnvironmentRecord
 from src.models.projects.membership import ProjectMembership
 from src.models.projects.project import ProjectRecord
@@ -58,6 +59,7 @@ async def test_project_create_activity_readback_and_rollback(db_schema, monkeypa
         actor_user_id=owner.id,
         payload=ProjectCreateRequest(
             workspace_id=workspace.id,
+            authoring_mode=ProjectAuthoringMode.BUILDER_MANAGED,
             name="Created Project",
             slug=created_slug,
             description="Created description",
@@ -75,6 +77,11 @@ async def test_project_create_activity_readback_and_rollback(db_schema, monkeypa
     membership = await ProjectMembership.get(project_id=project.id, user_id=owner.id)
 
     assert project.workspace_id == workspace.id
+    assert project.authoring_mode == ProjectAuthoringMode.BUILDER_MANAGED
+    assert project.authoring_state == ProjectAuthoringState.READY
+    assert project.authoring_revision == 1
+    assert project.authoring_resolved_by_user_id == owner.id
+    assert project.authoring_resolved_at is not None
     assert environment_keys == {"development", "staging", "production"}
     assert site.workspace_id == workspace.id
     assert binding.source == DomainBindingSource.PLATFORM
@@ -92,6 +99,7 @@ async def test_project_create_activity_readback_and_rollback(db_schema, monkeypa
     assert created_event is not None
     assert created_event.properties["created"] is True
     assert created_event.properties["slug"] == created_slug
+    assert created_event.properties["authoringMode"] == "builder_managed"
     assert created_event.properties["initialized"] == [
         "primary_runtime",
         "environments",
@@ -130,6 +138,7 @@ async def test_project_create_activity_readback_and_rollback(db_schema, monkeypa
             actor_user_id=owner.id,
             payload=ProjectCreateRequest(
                 workspace_id=workspace.id,
+                authoring_mode=ProjectAuthoringMode.BUILDER_MANAGED,
                 name="Rolled Back Created Project",
                 slug=rollback_slug,
                 description="Rolled back description",
