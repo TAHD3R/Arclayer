@@ -307,13 +307,11 @@ export function AdminMasonryGrid<TItem extends AdminMasonryGridItem>(props: {
   }, []);
 
   const masonryMaxColumnCount = useMemo(() => {
-    const nextCount = getAdminMasonryMaxColumnCount(
-      observedShellWidth,
-      masonryColumnCountRef.current,
-    );
-    masonryColumnCountRef.current = nextCount;
-    return nextCount;
+    return getAdminMasonryMaxColumnCount(observedShellWidth, masonryColumnCountRef.current);
   }, [observedShellWidth]);
+  useLayoutEffect(() => {
+    masonryColumnCountRef.current = masonryMaxColumnCount;
+  }, [masonryMaxColumnCount]);
   const masonryScrollState = useAdminMasonryScrollState(masonryGridNode, viewportHeight);
   const positioner = usePositioner(
     {
