@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any
 from uuid import UUID
 
-from structlog.contextvars import bind_contextvars
+from structlog.contextvars import bind_contextvars, bound_contextvars
 
 from src.models.tenancy.workspace_tenant import WorkspaceTenantIsolationMode
 from src.modules.tenancy.context import (
     get_current_tenant_context,
     require_current_tenant_context,
+    reset_current_tenant_context,
     set_current_tenant_context,
 )
 from src.modules.tenancy.registry import WorkspaceTenantRegistryService
@@ -26,16 +29,21 @@ def _to_isolation_mode(raw: WorkspaceTenantIsolationMode | str) -> TenantIsolati
 
 
 def bind_tenant_context(context: TenantContext) -> TenantContext:
-    bind_contextvars(
-        tenant_scope=context.scope.value,
-        tenant_schema_name=context.schema_name,
-        tenant_workspace_id=str(context.workspace_id),
-        tenant_project_id=str(context.project_id) if context.project_id is not None else None,
-        tenant_runtime_id=str(context.runtime_id) if context.runtime_id is not None else None,
-        tenant_site_id=str(context.site_id) if context.site_id is not None else None,
-    )
+    bind_contextvars(**_tenant_log_context(context))
     set_current_tenant_context(context)
     return context
+
+
+@contextmanager
+def job_tenant_scope(context: TenantContext) -> Iterator[TenantContext]:
+    """Bind one callback's tenant authority and restore all ContextVars on exit."""
+
+    tenant_token = set_current_tenant_context(context)
+    try:
+        with bound_contextvars(**_tenant_log_context(context)):
+            yield context
+    finally:
+        reset_current_tenant_context(tenant_token)
 
 
 async def ensure_workspace_tenant_context(*, workspace_id: UUID, organization_id: UUID) -> TenantContext:
@@ -115,3 +123,14 @@ def require_tenant_context_from_payload(payload: dict[str, Any] | None) -> Tenan
 
 def current_tenant_context_or_none() -> TenantContext | None:
     return get_current_tenant_context()
+
+
+def _tenant_log_context(context: TenantContext) -> dict[str, str | None]:
+    return {
+        "tenant_scope": context.scope.value,
+        "tenant_schema_name": context.schema_name,
+        "tenant_workspace_id": str(context.workspace_id),
+        "tenant_project_id": str(context.project_id) if context.project_id is not None else None,
+        "tenant_runtime_id": str(context.runtime_id) if context.runtime_id is not None else None,
+        "tenant_site_id": str(context.site_id) if context.site_id is not None else None,
+    }

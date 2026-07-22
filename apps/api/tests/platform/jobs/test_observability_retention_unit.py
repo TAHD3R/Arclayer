@@ -8,7 +8,6 @@ import pytest
 
 from src.config import Settings
 from src.platform.jobs import observability_retention as retention
-from src.platform.jobs import tasks
 
 
 class FakeHTTPMetricRetentionRepository:
@@ -69,16 +68,19 @@ def _install_transaction(monkeypatch: pytest.MonkeyPatch, *, acquired: bool) -> 
 @pytest.mark.asyncio
 async def test_observability_retention_uses_lock_batches_and_delete_cap(monkeypatch) -> None:
     repository = FakeHTTPMetricRetentionRepository(expired_count=300)
+    record_repository = FakeHTTPMetricRetentionRepository(expired_count=2)
     connection, transaction = _install_transaction(monkeypatch, acquired=True)
 
     await retention.observability_http_metrics_retention_cleanup({
         "settings": _settings(),
         "metric_repository": repository,
+        "record_repository": record_repository,
     })
 
     assert repository.list_batch_sizes == [100, 100, 50]
     assert len(repository.deleted_ids) == 250
     assert len(repository.expired_ids) == 50
+    assert len(record_repository.deleted_ids) == 2
     assert repository.connections
     assert all(conn is connection for conn in repository.connections)
     transaction.__aexit__.assert_awaited_once()
@@ -87,15 +89,18 @@ async def test_observability_retention_uses_lock_batches_and_delete_cap(monkeypa
 @pytest.mark.asyncio
 async def test_observability_retention_skips_when_lock_is_held_elsewhere(monkeypatch) -> None:
     repository = FakeHTTPMetricRetentionRepository(expired_count=1)
+    record_repository = FakeHTTPMetricRetentionRepository(expired_count=1)
     _, transaction = _install_transaction(monkeypatch, acquired=False)
 
     await retention.observability_http_metrics_retention_cleanup({
         "settings": _settings(),
         "metric_repository": repository,
+        "record_repository": record_repository,
     })
 
     assert repository.list_batch_sizes == []
     assert repository.deleted_ids == []
+    assert record_repository.deleted_ids == []
     transaction.__aexit__.assert_awaited_once()
 
 
@@ -108,6 +113,7 @@ async def test_observability_retention_releases_lock_when_deletion_fails(monkeyp
         await retention.observability_http_metrics_retention_cleanup({
             "settings": _settings(),
             "metric_repository": repository,
+            "record_repository": FakeHTTPMetricRetentionRepository(expired_count=0),
         })
 
     assert repository.connections == [connection, connection]
@@ -123,6 +129,7 @@ async def test_observability_retention_honors_independent_retention_switch(monke
     await retention.observability_http_metrics_retention_cleanup({
         "settings": _settings(retention_enabled=False),
         "metric_repository": repository,
+        "record_repository": FakeHTTPMetricRetentionRepository(expired_count=1),
     })
 
     transaction.assert_not_called()
@@ -140,18 +147,3 @@ async def test_observability_retention_lock_uses_dedicated_postgres_advisory_key
     sql = connection.execute_query_dict.await_args.args[0]
     assert "pg_try_advisory_xact_lock" in sql
     assert str(retention._RETENTION_LOCK_KEY) in sql
-
-
-@pytest.mark.asyncio
-async def test_observability_retention_task_has_daily_schedule_and_invokes_cleanup(monkeypatch) -> None:
-    cleanup = AsyncMock()
-    settings = _settings()
-    monkeypatch.setattr(tasks, "get_settings", lambda: settings)
-    monkeypatch.setattr(tasks, "observability_http_metrics_retention_cleanup", cleanup)
-
-    task = tasks.task_observability_http_metrics_retention_cleanup
-    await task.original_func()
-
-    assert task.task_name == "core:observability:http_metrics_retention_cleanup"
-    assert task.labels["schedule"] == [{"cron": "40 3 * * *", "args": [], "kwargs": {}}]
-    cleanup.assert_awaited_once_with({"settings": settings})

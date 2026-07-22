@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Final
 
 from tortoise import Tortoise
+from tortoise.context import TortoiseContext
 
 from src.config import Settings, get_settings
 from src.core.logging import get_logger
@@ -16,6 +17,12 @@ from src.core.logging import get_logger
 EXCLUDE_NAMES = ("tests", "base", "migrations", "__pycache__", "__init__")
 
 logger = get_logger(__name__)
+
+_orm_lifecycle_config: dict | None = None
+_orm_lifecycle_context: TortoiseContext | None = None
+_orm_lifecycle_lock: asyncio.Lock | None = None
+_orm_lifecycle_loop: asyncio.AbstractEventLoop | None = None
+_orm_lifecycle_refcount = 0
 
 _FATAL_ORM_ERRORS: tuple[type[BaseException], ...] = (
     asyncio.CancelledError,
@@ -59,6 +66,7 @@ def _is_importable_package(pkg: str) -> bool:
 
 _PRIMARY_CORE_MODELS_PKG: Final[str] = "src.models"
 _ALWAYS_INCLUDED_MODEL_MODULES: Final[tuple[str, ...]] = ("src.models.tenancy.workspace_tenant",)
+_KNOWN_NON_MODEL_MODULES: Final[frozenset[str]] = frozenset({"src.models.agents.conversation"})
 _LEGACY_CORE_MODELS_PKGS: Final[tuple[str, ...]] = (
     # Legacy pre-refactor paths often referenced `modules` as the model package.
     "src.modules",
@@ -153,6 +161,8 @@ def discover_model_modules(
             if max_depth is not None and len(rel_file.parts) > max_depth:
                 continue
             mod = base_pkg + "." + ".".join(rel_file.with_suffix("").parts)
+            if mod in _KNOWN_NON_MODEL_MODULES:
+                continue
             if _should_exclude(mod, exclude, exclude_globs):
                 continue
             results.add(mod)
@@ -240,6 +250,26 @@ def build_tortoise_config(
 TORTOISE_ORM: Final = build_tortoise_config(get_settings())
 
 
+def _lifecycle_lock_for_current_loop() -> asyncio.Lock:
+    global _orm_lifecycle_lock, _orm_lifecycle_loop
+
+    loop = asyncio.get_running_loop()
+    lock = _orm_lifecycle_lock
+    if lock is None:
+        lock = asyncio.Lock()
+        _orm_lifecycle_lock = lock
+        _orm_lifecycle_loop = loop
+        return lock
+    if _orm_lifecycle_loop is loop:
+        return lock
+    if _orm_lifecycle_refcount > 0 or lock.locked():
+        raise RuntimeError("ORM lifecycle cannot move across event loops while initialization is active")
+    lock = asyncio.Lock()
+    _orm_lifecycle_lock = lock
+    _orm_lifecycle_loop = loop
+    return lock
+
+
 async def init_orm(
     settings: Settings,
     *,
@@ -249,13 +279,50 @@ async def init_orm(
     if not settings.database.enabled:
         logger.info("Database init skipped (disabled)")
         return
+    async with _lifecycle_lock_for_current_loop():
+        config = build_tortoise_config(
+            settings,
+            extra_pkgs=extra_pkgs,
+            extra_modules=extra_modules,
+        )
+        if _orm_lifecycle_refcount > 0:
+            _acquire_existing_orm(config)
+            return
+        await _initialize_orm(settings=settings, config=config)
+
+
+def _acquire_existing_orm(config: dict) -> None:
+    global _orm_lifecycle_refcount
+
+    active_context = Tortoise._get_context()
+    owned_context = _orm_lifecycle_context
+    if owned_context is None or active_context is not owned_context or not owned_context.inited:
+        raise RuntimeError("ORM lifecycle ownership differs from the active Tortoise context")
+    if config != _orm_lifecycle_config:
+        raise RuntimeError("ORM is already initialized with a different database configuration")
+    _orm_lifecycle_refcount += 1
+
+
+async def _initialize_orm(*, settings: Settings, config: dict) -> None:
+    global _orm_lifecycle_config, _orm_lifecycle_context, _orm_lifecycle_refcount
+
+    if Tortoise._get_context() is not None:
+        raise RuntimeError("Tortoise is initialized outside the owned ORM lifecycle")
     try:
         # Enable global fallback context so that DB state is accessible across tasks (e.g. ASGI lifespan
         # task vs. request tasks, and some pytest-asyncio runners).
-        await Tortoise.init(
-            config=build_tortoise_config(settings, extra_pkgs=extra_pkgs, extra_modules=extra_modules),
+        ctx = await Tortoise.init(
+            config=config,
             _enable_global_fallback=True,
         )
+        # Tortoise.init() enters a ContextVar-backed context whose token can only be reset by the
+        # asyncio Context that created it. Process lifecycles such as Taskiq may run startup and
+        # shutdown hooks in different tasks, so detach the local context here and keep only the
+        # library-supported global fallback used for cross-task access.
+        ctx.__exit__(None, None, None)
+        _orm_lifecycle_config = config
+        _orm_lifecycle_context = ctx
+        _orm_lifecycle_refcount = 1
     except BaseException as exc:
         _raise_if_fatal(exc)
         hint = settings.database.dsn_async_hint
@@ -268,33 +335,36 @@ async def init_orm(
 
 
 async def close_orm() -> None:
-    if not Tortoise._inited:
+    async with _lifecycle_lock_for_current_loop():
+        await _close_owned_orm()
+
+
+async def _close_owned_orm() -> None:
+    global _orm_lifecycle_config, _orm_lifecycle_context, _orm_lifecycle_refcount
+
+    if _orm_lifecycle_refcount == 0:
+        if Tortoise._get_context() is not None:
+            raise RuntimeError("Tortoise is initialized outside the owned ORM lifecycle")
         return
     ctx = Tortoise._get_context()
-    # In tests we initialize/teardown Tortoise repeatedly (sometimes across different event loops).
-    # Resetting the internal state avoids flaky "Event loop is closed" errors caused by stale
-    # connection/app metadata lingering between runs.
-    await Tortoise.close_connections()
+    owned_context = _orm_lifecycle_context
+    if owned_context is None or ctx is not owned_context or not owned_context.inited:
+        raise RuntimeError("ORM lifecycle ownership differs from the active Tortoise context")
+    _orm_lifecycle_refcount -= 1
+    if _orm_lifecycle_refcount > 0:
+        return
+
+    # Reset model metadata while the global fallback still exposes this context. Closing the
+    # connections clears that fallback, so reversing this order leaves the app registry stale.
     try:
         await Tortoise._reset_apps()
-    except BaseException as exc:
-        _raise_if_fatal(exc)
-        # Best-effort: do not mask shutdown errors in production.
-        logger.warning("Tortoise app reset failed during close", error=str(exc))
-
-    # Tortoise v1.1+ stores runtime state on a TortoiseContext; `Tortoise._inited` is a classproperty
-    # and cannot be assigned. We reset the underlying context instead.
-    if ctx is not None:
+    finally:
         try:
+            await Tortoise.close_connections()
             ctx._inited = False
-        except BaseException as exc:
-            _raise_if_fatal(exc)
-            logger.warning("Tortoise context inited reset failed during close", error=str(exc))
-        try:
-            ctx.__exit__(None, None, None)
-        except BaseException as exc:
-            _raise_if_fatal(exc)
-            logger.warning("Tortoise context exit failed during close", error=str(exc))
+        finally:
+            _orm_lifecycle_config = None
+            _orm_lifecycle_context = None
 
 
 async def verify_db_ready(

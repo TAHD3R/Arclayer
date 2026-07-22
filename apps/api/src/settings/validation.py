@@ -8,6 +8,8 @@ from src.core.exceptions import BadRequest
 from src.core.i18n import t
 from src.settings.schema import ConfigSchema
 
+_EMAIL_PROVIDER_ID_PATTERN = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
+
 
 def _ts(key: str, default: str) -> str:
     return t("settings", key, default=default)
@@ -117,8 +119,9 @@ def _validate_section_semantics(section_id: str, values: JsonObject) -> None:
         return
 
     provider = values.get("provider")
-    provider_ids = {"smtp", "resend", "cloudflare", "ses"}
-    if provider is not None and provider not in provider_ids:
+    if provider is not None and (
+        not isinstance(provider, str) or _EMAIL_PROVIDER_ID_PATTERN.fullmatch(provider) is None
+    ):
         raise BadRequest(
             message=_ts("MAIL_PROVIDER_INVALID", "邮件 Provider 不合法"),
             error="MAIL_PROVIDER_INVALID",
@@ -126,7 +129,9 @@ def _validate_section_semantics(section_id: str, values: JsonObject) -> None:
 
     fallback_chain = values.get("fallback_chain")
     if fallback_chain is not None:
-        if not isinstance(fallback_chain, list) or any(item not in provider_ids for item in fallback_chain):
+        if not isinstance(fallback_chain, list) or any(
+            not isinstance(item, str) or _EMAIL_PROVIDER_ID_PATTERN.fullmatch(item) is None for item in fallback_chain
+        ):
             raise BadRequest(
                 message=_ts("MAIL_FALLBACK_CHAIN_INVALID", "邮件备用 Provider 配置不合法"),
                 error="MAIL_FALLBACK_CHAIN_INVALID",
@@ -170,14 +175,13 @@ def _validate_section_semantics(section_id: str, values: JsonObject) -> None:
 def _validate_ai_agents_settings(values: JsonObject) -> None:
     _validate_optional_non_empty_string(values, "default_model", section_id="ai_agents")
     _validate_optional_string(values, "system_prompt", section_id="ai_agents")
-    _validate_optional_string_choice(values, "default_mode", {"build", "plan", "agent"}, section_id="ai_agents")
+    _validate_optional_string_choice(values, "default_mode", {"build", "plan"}, section_id="ai_agents")
     _validate_optional_string_choice(
         values,
         "reasoning_effort",
         {"low", "medium", "high"},
         section_id="ai_agents",
     )
-    _validate_optional_positive_integer(values, "conversation_retention_days", section_id="ai_agents")
     _validate_optional_positive_integer(values, "monthly_budget_micros", section_id="ai_agents")
     _validate_optional_string_choice(
         values,
@@ -185,12 +189,6 @@ def _validate_ai_agents_settings(values: JsonObject) -> None:
         {"always_approve", "approve_bulk_only", "approve_schema_only", "auto_approved"},
         section_id="ai_agents",
     )
-    allowed_skill_ids = values.get("allowed_skill_ids")
-    if allowed_skill_ids is not None and (
-        not isinstance(allowed_skill_ids, list)
-        or any(not isinstance(item, str) or not item.strip() for item in allowed_skill_ids)
-    ):
-        _raise_config_invalid(section_id="ai_agents", field="allowed_skill_ids")
 
 
 def _validate_langgraph_settings(values: JsonObject) -> None:

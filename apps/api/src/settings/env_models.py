@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, SecretStr, field_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _SETTINGS_DIR = Path(__file__).resolve().parent
@@ -36,6 +36,47 @@ def _normalize_runtime_path_prefix(value: str) -> str:
     return normalized.rstrip("/") or "/"
 
 
+class TaskiqWorkloadTuningSettings(BaseModel):
+    """Explicit Redis Stream and worker intake capacity for one workload."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
+
+    max_connection_pool_size: int = Field(default=10, ge=2)
+    xread_block_milliseconds: int = Field(default=1000, ge=1)
+    xread_count: int = Field(default=10, ge=1)
+    idle_timeout_milliseconds: int = Field(default=600_000, ge=1)
+    unacknowledged_batch_size: int = Field(default=10, ge=1)
+    unacknowledged_lock_timeout_seconds: float = Field(default=30, gt=0)
+    worker_processes: int = Field(
+        default=1,
+        ge=1,
+        description="Conservative process baseline pending workload capacity evidence.",
+    )
+    max_async_tasks: int = Field(
+        default=1,
+        ge=1,
+        description="Per-process concurrency configured explicitly for resource isolation.",
+    )
+    max_prefetch: int = Field(
+        default=1,
+        ge=0,
+        description="Bounded intake prevents one worker from reserving another pool's work.",
+    )
+
+
+class TaskiqWorkloadSettings(BaseModel):
+    """One immutable tuning block per canonical durable workload."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    agent_io: TaskiqWorkloadTuningSettings = Field(default_factory=TaskiqWorkloadTuningSettings)
+    render_browser: TaskiqWorkloadTuningSettings = Field(default_factory=TaskiqWorkloadTuningSettings)
+    asset_cpu: TaskiqWorkloadTuningSettings = Field(default_factory=TaskiqWorkloadTuningSettings)
+    publish: TaskiqWorkloadTuningSettings = Field(default_factory=TaskiqWorkloadTuningSettings)
+    connector: TaskiqWorkloadTuningSettings = Field(default_factory=TaskiqWorkloadTuningSettings)
+    maintenance: TaskiqWorkloadTuningSettings = Field(default_factory=TaskiqWorkloadTuningSettings)
+
+
 class TaskiqSettings(BaseSettings):
     """
     Taskiq worker/scheduler settings.
@@ -58,8 +99,133 @@ class TaskiqSettings(BaseSettings):
     )
 
     enabled: bool = Field(default=False)
-    queue_name: str = Field(default="arclayer:taskiq")
+    stream_prefix: str = Field(default="arclayer:jobs", min_length=1, max_length=192)
+    consumer_group_prefix: str = Field(default="arclayer:job-workers", min_length=1, max_length=192)
+    consumer_identity: str | None = Field(default=None, min_length=1, max_length=128)
     redis_dsn: str | None = Field(default=None)
+    scheduler_leader_lease_seconds: int = Field(
+        default=15,
+        ge=3,
+        description="Renewable Valkey lease that fences scheduled-task publication across replicas.",
+    )
+    shutdown_timeout_seconds: int = Field(
+        default=30,
+        ge=1,
+        description="Broker lifecycle shutdown budget before process termination continues.",
+    )
+    wait_tasks_timeout_seconds: int = Field(
+        default=300,
+        ge=1,
+        description="Active-task drain budget; expired leases remain recoverable through fencing.",
+    )
+    workloads: TaskiqWorkloadSettings = Field(default_factory=TaskiqWorkloadSettings)
+
+
+class BackgroundJobExecutionSettings(BaseModel):
+    """Execution policy snapshot for one durable Job family."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
+
+    max_attempts: int = Field(
+        default=3,
+        ge=1,
+        description=(
+            "Finite automatic attempts for expensive background work; exhaustion is retained as "
+            "dead-letter evidence and requires an explicit retry."
+        ),
+    )
+    initial_delay_seconds: float = Field(
+        default=5,
+        gt=0,
+        description="Base delay before the first automatic retry.",
+    )
+    multiplier: float = Field(
+        default=2,
+        gt=1,
+        description="Exponential retry delay multiplier.",
+    )
+    maximum_delay_seconds: float = Field(
+        default=300,
+        gt=0,
+        description="Upper bound applied before full jitter.",
+    )
+    timeout_seconds: int | None = Field(
+        default=None,
+        ge=1,
+        description="Optional handler deadline. None avoids an unvalidated media-size cutoff.",
+    )
+    lease_seconds: int = Field(
+        default=90,
+        ge=3,
+        description="Renewable execution lease duration; this is not a handler runtime cap.",
+    )
+    heartbeat_seconds: int = Field(
+        default=30,
+        ge=1,
+        description="Heartbeat interval used to renew the execution lease.",
+    )
+
+    @model_validator(mode="after")
+    def validate_lease_window(self) -> BackgroundJobExecutionSettings:
+        if self.maximum_delay_seconds < self.initial_delay_seconds:
+            raise ValueError("maximumDelaySeconds must be greater than or equal to initialDelaySeconds")
+        if self.lease_seconds < self.heartbeat_seconds * 3:
+            raise ValueError("leaseSeconds must allow at least three heartbeat intervals")
+        return self
+
+
+class BackgroundJobDispatcherSettings(BaseModel):
+    """Transactional outbox dispatcher lease, retry, and polling policy."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
+
+    batch_size: int = Field(default=50, ge=1)
+    lease_seconds: int = Field(default=30, ge=1)
+    max_attempts: int = Field(default=10, ge=1)
+    retry_delay_seconds: int = Field(default=5, ge=1)
+    poll_interval_seconds: float = Field(default=1, gt=0)
+
+
+class ProviderEffectRecoverySettings(BackgroundJobExecutionSettings):
+    """Execution and bounded scan policy for terminal Provider Effect recovery."""
+
+    scan_batch_size: int = Field(default=50, ge=1)
+    scan_interval_seconds: int = Field(default=60, ge=1)
+
+
+class AgentRunJobExecutionSettings(BackgroundJobExecutionSettings):
+    """Retry window for reconciling worker loss without duplicating provider effects."""
+
+    max_attempts: int = Field(default=3, ge=2)
+    initial_delay_seconds: float = Field(default=300, gt=0)
+    multiplier: float = Field(default=2, gt=1)
+    maximum_delay_seconds: float = Field(default=900, gt=0)
+    timeout_seconds: int | None = Field(default=None, ge=1)
+
+
+class BackgroundJobsSettings(BaseSettings):
+    """Durable Job policies; transport capacity remains owned by Taskiq topology settings."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="BACKGROUND_JOBS__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    asset_thumbnail: BackgroundJobExecutionSettings = Field(default_factory=BackgroundJobExecutionSettings)
+    agent_run: AgentRunJobExecutionSettings = Field(default_factory=AgentRunJobExecutionSettings)
+    builder_generation: BackgroundJobExecutionSettings = Field(default_factory=BackgroundJobExecutionSettings)
+    knowledge_source_ingest: BackgroundJobExecutionSettings = Field(default_factory=BackgroundJobExecutionSettings)
+    knowledge_source_index: BackgroundJobExecutionSettings = Field(default_factory=BackgroundJobExecutionSettings)
+    skill_github_import: BackgroundJobExecutionSettings = Field(default_factory=BackgroundJobExecutionSettings)
+    skill_github_refresh: BackgroundJobExecutionSettings = Field(default_factory=BackgroundJobExecutionSettings)
+    billing_connector_event: BackgroundJobExecutionSettings = Field(default_factory=BackgroundJobExecutionSettings)
+    provider_effect_recovery: ProviderEffectRecoverySettings = Field(default_factory=ProviderEffectRecoverySettings)
+    dispatcher: BackgroundJobDispatcherSettings = Field(default_factory=BackgroundJobDispatcherSettings)
 
 
 class TestingSettings(BaseSettings):
@@ -277,6 +443,12 @@ class BillingSettings(BaseSettings):
     stripe_webhook_secret: SecretStr = Field(default=SecretStr(""))
     stripe_api_base_url: str = Field(default="https://api.stripe.com/v1")
     webhook_tolerance_seconds: int = Field(default=300, ge=30, le=3_600)
+    webhook_event_retention_days: int = Field(
+        default=30,
+        ge=1,
+        le=3_650,
+        description="Retention window for encrypted raw billing events used by replay and reconciliation.",
+    )
 
     @property
     def checkout_enabled(self) -> bool:

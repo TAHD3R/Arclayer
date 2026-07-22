@@ -6,6 +6,7 @@ import structlog
 from asgi_correlation_id import correlation_id
 
 from src.config import get_settings
+from src.core import logging as app_logging
 from src.core.logging import configure_logging
 
 
@@ -55,3 +56,26 @@ def test_logging_console_renderer_in_development(monkeypatch, capsys, tmp_path) 
     assert "tests.logging.console" in clean
     assert "deadbeef" in clean
     assert "hello" in clean
+
+
+def test_drain_async_logging_flushes_queued_records_and_keeps_logging_available(
+    monkeypatch,
+    capsys,
+    tmp_path,
+) -> None:
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.setenv("LOGGING__LEVEL", "INFO")
+    monkeypatch.setenv("LOGGING__LOG_DIR", str(tmp_path))
+    monkeypatch.setenv("LOGGING__ASYNC_ENABLED", "1")
+    monkeypatch.setenv("LOGGING__JSON_LOGS", "0")
+    configure_logging(get_settings())
+    logger = structlog.get_logger("tests.logging.drain")
+
+    logger.info("queued before drain")
+    app_logging.drain_async_logging()
+
+    assert "queued before drain" in capsys.readouterr().out
+
+    logger.info("synchronous after drain")
+
+    assert "synchronous after drain" in capsys.readouterr().out

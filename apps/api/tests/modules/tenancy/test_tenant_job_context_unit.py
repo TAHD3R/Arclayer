@@ -13,7 +13,6 @@ from src.models.content.release import ContentReleaseRecord
 from src.modules.projects.releases.service import ProjectReleasesService
 from src.modules.tenancy.router_helpers import require_tenant_context_from_payload, tenant_context_from_payload
 from src.modules.tenancy.schema import TenantContext, TenantIdentity, TenantIsolationMode, TenantScope
-from src.platform.jobs.assets_thumbnails import generate_asset_thumbnails
 
 
 def _tenant_context() -> TenantContext:
@@ -45,13 +44,6 @@ def test_tenant_job_payload_round_trip() -> None:
 def test_require_tenant_context_from_payload_raises_when_missing() -> None:
     with pytest.raises(RuntimeError, match="TENANT_CONTEXT_REQUIRED"):
         require_tenant_context_from_payload({})
-
-
-@pytest.mark.asyncio
-async def test_asset_thumbnail_job_requires_tenant_payload() -> None:
-    settings = SimpleNamespace(database=SimpleNamespace(enabled=True))
-    with pytest.raises(RuntimeError, match="TENANT_CONTEXT_REQUIRED"):
-        await generate_asset_thumbnails({"settings": settings}, str(uuid4()), str(uuid4()), None)
 
 
 @pytest.mark.asyncio

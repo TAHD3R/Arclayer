@@ -59,6 +59,7 @@ async def test_get_effective_settings_applies_profile_key_and_upload_limit_overr
                 "upload_chunk_size_mb": 16,
                 "upload_max_file_size_mb": 4096,
                 "upload_policy": {
+                    "allowed_extensions": ["pdf", "png"],
                     "defaults": {"max_size_mb": 512, "allowed_extensions": ["pdf"]},
                     "purposes": {
                         "library": {"max_size_mb": 256, "allowed_extensions": ["pdf", "png"]},
@@ -77,6 +78,7 @@ async def test_get_effective_settings_applies_profile_key_and_upload_limit_overr
     assert effective.storage.upload_chunk_size_mb == 16
     assert effective.storage.upload_max_file_size_mb == 4096
     assert effective.storage.upload_policy.defaults.max_size_mb == 512
+    assert effective.storage.upload_policy.allowed_extensions == ["pdf", "png"]
     assert effective.storage.upload_policy.purposes["library"].allowed_extensions == ["pdf", "png"]
     assert effective.storage.public_base_url is None
     assert effective.storage.s3_bucket is None

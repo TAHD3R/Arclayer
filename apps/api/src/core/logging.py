@@ -393,6 +393,19 @@ def configure_logging(settings: Settings) -> None:
     _cleanup_old_logs(log_dir, log_path.name, retention_seconds)
 
 
+def drain_async_logging() -> None:
+    """Drain queued records and keep process-teardown logs synchronous."""
+
+    global _listener
+
+    listener = _listener
+    if listener is None:
+        return
+    logging.getLogger().handlers = list(listener.handlers)
+    listener.stop()
+    _listener = None
+
+
 def get_logger(name: str | None = None) -> BoundLogger:
     return structlog.get_logger(name)
 

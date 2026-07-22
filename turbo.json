@@ -40,7 +40,12 @@
       "cache": false,
       "interactive": true
     },
-    "jobs:worker": {
+    "jobs:dispatcher": {
+      "cache": false,
+      "persistent": true,
+      "interruptible": true
+    },
+    "jobs:worker:asset-cpu": {
       "cache": false,
       "persistent": true,
       "interruptible": true
@@ -131,7 +136,21 @@
         "PLUGIN__AUTO_MIGRATE"
       ]
     },
-    "@arclayer/api#jobs:worker": {
+    "@arclayer/api#jobs:dispatcher": {
+      "cache": false,
+      "persistent": true,
+      "interruptible": true,
+      "passThroughEnv": [
+        "APPLICATION_ENV",
+        "DATABASE_URL",
+        "DATABASE__NAME",
+        "DATABASE__HOST",
+        "VALKEY__DB",
+        "AUTH__JWT_SECRET",
+        "PLUGIN__AUTO_MIGRATE"
+      ]
+    },
+    "@arclayer/api#jobs:worker:asset-cpu": {
       "cache": false,
       "persistent": true,
       "interruptible": true,

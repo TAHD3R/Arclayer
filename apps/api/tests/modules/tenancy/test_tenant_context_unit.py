@@ -5,6 +5,7 @@ from typing import cast
 from uuid import uuid4
 
 import pytest
+from structlog.contextvars import bound_contextvars, get_contextvars
 
 from src.config import Settings
 from src.models.projects.runtime import ProjectRuntimeRecord
@@ -17,7 +18,11 @@ from src.modules.tenancy.context import (
     reset_current_tenant_context,
     set_current_tenant_context,
 )
-from src.modules.tenancy.router_helpers import bind_project_tenant_context, bind_workspace_tenant_context
+from src.modules.tenancy.router_helpers import (
+    bind_project_tenant_context,
+    bind_workspace_tenant_context,
+    job_tenant_scope,
+)
 from src.modules.tenancy.schema import TenantContext, TenantIdentity, TenantIsolationMode, TenantScope
 from src.modules.workspaces.http.schema import WorkspaceAccessType
 from src.modules.workspaces.http.service import _resolve_guest_workspace_context
@@ -60,6 +65,24 @@ def test_tenant_context_reset_restores_previous_state() -> None:
         assert require_current_tenant_context() == original
         reset_current_tenant_context(original_token)
     assert get_current_tenant_context() is None
+
+
+def test_job_tenant_scope_restores_tenant_and_log_context_after_exception() -> None:
+    original = _tenant_context()
+    replacement = original.with_project(project_id=uuid4(), scope=TenantScope.JOB)
+    original_token = set_current_tenant_context(original)
+    try:
+        with bound_contextvars(tenant_scope="original"):
+            with pytest.raises(RuntimeError, match="handler failed"):
+                with job_tenant_scope(replacement):
+                    assert require_current_tenant_context() == replacement
+                    assert get_contextvars()["tenant_scope"] == TenantScope.JOB.value
+                    raise RuntimeError("handler failed")
+
+            assert require_current_tenant_context() == original
+            assert get_contextvars()["tenant_scope"] == "original"
+    finally:
+        reset_current_tenant_context(original_token)
 
 
 def test_require_tenant_context_raises_when_missing() -> None:

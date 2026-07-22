@@ -124,11 +124,123 @@ ORDER BY column_name
         migration_rows = await conn.execute_query(
             f"SELECT version, status FROM {quote_schema_name(record.schema_name)}.tenant_schema_migrations ORDER BY version"
         )
+        builder_table_rows = await conn.execute_query(
+            """
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = $1
+  AND table_name IN (
+      'content_structure_revisions',
+      'design_system_version_states',
+      'site_revision_manifests',
+      'site_revision_statuses',
+      'builder_initialization_commands',
+      'builder_change_sets',
+      'builder_change_set_commands',
+      'builder_change_set_approvals',
+      'builder_generations',
+      'design_system_concept_generations'
+  )
+ORDER BY table_name
+""".strip(),
+            [record.schema_name],
+        )
+        concept_generation_column_rows = await conn.execute_query(
+            """
+SELECT column_name, is_nullable
+FROM information_schema.columns
+WHERE table_schema = $1
+  AND table_name = 'design_system_concept_generations'
+  AND column_name IN (
+      'agent_assignment_id',
+      'agent_id',
+      'agent_run_id',
+      'agent_version_id',
+      'builder_context',
+      'design_system_context'
+  )
+ORDER BY column_name
+""".strip(),
+            [record.schema_name],
+        )
+        builder_agent_column_rows = await conn.execute_query(
+            """
+SELECT table_name, column_name, is_nullable
+FROM information_schema.columns
+WHERE table_schema = $1
+  AND (
+      (table_name IN (
+          'builder_change_sets',
+          'content_structure_revisions',
+          'site_revision_manifests'
+      ) AND column_name IN (
+          'agent_assignment_id',
+          'agent_id',
+          'agent_version_id'
+      ))
+      OR
+      (table_name = 'builder_generations' AND column_name IN (
+          'agent_assignment_id',
+          'agent_id',
+          'agent_run_id',
+          'agent_version_id',
+          'builder_context',
+          'composition_context',
+          'selected_page_ids',
+          'targets',
+          'wireframe_context'
+      ))
+  )
+ORDER BY table_name, column_name
+""".strip(),
+            [record.schema_name],
+        )
+        builder_agent_index_rows = await conn.execute_query(
+            """
+SELECT tablename, indexname
+FROM pg_indexes
+WHERE schemaname = $1
+  AND tablename IN (
+      'builder_change_sets',
+      'builder_generations',
+      'content_structure_revisions',
+      'site_revision_manifests'
+  )
+  AND indexname IN (
+      'idx_builder_change_sets_agent_assignment_id',
+      'idx_builder_change_sets_agent_id',
+      'idx_builder_change_sets_agent_version_id',
+      'idx_builder_generations_agent_assignment_id',
+      'idx_builder_generations_agent_id',
+      'idx_builder_generations_agent_version_id',
+      'idx_content_structure_revisions_agent_assignment_id',
+      'idx_content_structure_revisions_agent_id',
+      'idx_content_structure_revisions_agent_version_id',
+      'idx_site_revision_manifests_agent_assignment_id',
+      'idx_site_revision_manifests_agent_id',
+      'idx_site_revision_manifests_agent_version_id'
+  )
+ORDER BY tablename, indexname
+""".strip(),
+            [record.schema_name],
+        )
 
     schema_payload = schema_rows[1] if isinstance(schema_rows, tuple) else schema_rows
     column_payload = column_rows[1] if isinstance(column_rows, tuple) else column_rows
     release_column_payload = release_column_rows[1] if isinstance(release_column_rows, tuple) else release_column_rows
     migration_payload = migration_rows[1] if isinstance(migration_rows, tuple) else migration_rows
+    builder_table_payload = builder_table_rows[1] if isinstance(builder_table_rows, tuple) else builder_table_rows
+    concept_generation_column_payload = (
+        concept_generation_column_rows[1]
+        if isinstance(concept_generation_column_rows, tuple)
+        else concept_generation_column_rows
+    )
+    builder_agent_column_payload = (
+        builder_agent_column_rows[1] if isinstance(builder_agent_column_rows, tuple) else builder_agent_column_rows
+    )
+    builder_agent_index_payload = (
+        builder_agent_index_rows[1] if isinstance(builder_agent_index_rows, tuple) else builder_agent_index_rows
+    )
     assert schema_payload
     assert [row["column_name"] for row in column_payload] == [
         "plural_key",
@@ -143,6 +255,70 @@ ORDER BY column_name
     assert [row["version"] for row in migration_payload] == [
         migration.version for migration in TENANT_CONTROL_MIGRATIONS
     ]
+    assert [row["table_name"] for row in builder_table_payload] == [
+        "builder_change_set_approvals",
+        "builder_change_set_commands",
+        "builder_change_sets",
+        "builder_generations",
+        "builder_initialization_commands",
+        "content_structure_revisions",
+        "design_system_concept_generations",
+        "design_system_version_states",
+        "site_revision_manifests",
+        "site_revision_statuses",
+    ]
+    assert [row["column_name"] for row in concept_generation_column_payload] == [
+        "agent_assignment_id",
+        "agent_id",
+        "agent_run_id",
+        "agent_version_id",
+        "builder_context",
+        "design_system_context",
+    ]
+    assert {row["is_nullable"] for row in concept_generation_column_payload} == {"YES"}
+    assert {(row["table_name"], row["column_name"]) for row in builder_agent_column_payload} == {
+        (table_name, column_name)
+        for table_name in (
+            "builder_change_sets",
+            "builder_generations",
+            "content_structure_revisions",
+            "site_revision_manifests",
+        )
+        for column_name in (
+            "agent_assignment_id",
+            "agent_id",
+            "agent_version_id",
+        )
+    } | {
+        ("builder_generations", "agent_run_id"),
+        ("builder_generations", "builder_context"),
+        ("builder_generations", "composition_context"),
+        ("builder_generations", "targets"),
+    }
+    assert {(row["table_name"], row["column_name"]): row["is_nullable"] for row in builder_agent_column_payload}[
+        ("builder_generations", "targets")
+    ] == "NO"
+    assert {
+        row["is_nullable"]
+        for row in builder_agent_column_payload
+        if (row["table_name"], row["column_name"]) != ("builder_generations", "targets")
+    } == {"YES"}
+    assert {(row["tablename"], row["indexname"]) for row in builder_agent_index_payload} == {
+        (table_name, f"idx_{table_name}_{column_name}")
+        for table_name in (
+            "builder_change_sets",
+            "builder_generations",
+            "content_structure_revisions",
+            "site_revision_manifests",
+        )
+        for column_name in (
+            "agent_assignment_id",
+            "agent_id",
+            "agent_version_id",
+        )
+    }
+    assert migration_payload[-1]["version"] == 26
+    assert migration_payload[-1]["status"] == "applied"
     assert {row["status"] for row in migration_payload} == {"applied"}
 
 

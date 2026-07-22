@@ -2,7 +2,7 @@
   "name": "arclayer-framework",
   "private": true,
   "scripts": {
-    "dev": "turbo run dev jobs:worker jobs:scheduler --filter=@arclayer/admin --filter=@arclayer/api",
+    "dev": "turbo run dev jobs:dispatcher jobs:worker:asset-cpu jobs:scheduler --filter=@arclayer/admin --filter=@arclayer/api",
     "dev:docker": "pnpm docker && pnpm dev",
     "build": "turbo run build --filter=@arclayer/admin",
     "format": "turbo run format --filter=@arclayer/admin --filter=@arclayer/api",
@@ -14,7 +14,6 @@
     "api:test": "pnpm -C apps/api test",
     "api:check": "turbo run lint format typecheck test --filter=@arclayer/api",
     "hooks:install": "pnpm -C apps/api uv pre-commit install --hook-type pre-commit",
-    "hooks:test": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s scripts/agent_hooks/tests -p 'test_*.py'",
     "sdk:check": "turbo run typecheck test --filter=@arclayer/management-sdk",
     "cli:check": "turbo run lint format typecheck test build --filter=@arclayer/cli",
     "local:https-cert": "bash scripts/local-https/create-cert.sh",

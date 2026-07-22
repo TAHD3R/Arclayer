@@ -10,7 +10,7 @@ from tortoise.transactions import in_transaction
 
 from src.config import Settings
 from src.core.logging import get_logger
-from src.models.observability.http_request_metric import HTTPRequestMetricHourly
+from src.models.observability.http_request_metric import HTTPRequestMetricHourly, HTTPRequestRecord
 
 logger = get_logger(__name__)
 
@@ -60,6 +60,33 @@ class TortoiseHTTPMetricRetentionRepository:
         metric_ids: list[UUID],
     ) -> int:
         return int(await HTTPRequestMetricHourly.filter(id__in=metric_ids).using_db(conn).delete())
+
+
+class TortoiseHTTPRequestRecordRetentionRepository:
+    async def list_expired_ids(
+        self,
+        *,
+        conn: BaseDBAsyncClient,
+        cutoff: datetime,
+        batch_size: int,
+    ) -> list[UUID]:
+        ids = (
+            await HTTPRequestRecord
+            .filter(occurred_at__lt=cutoff)
+            .using_db(conn)
+            .order_by("occurred_at", "id")
+            .limit(batch_size)
+            .values_list("id", flat=True)
+        )
+        return [UUID(str(record_id)) for record_id in ids]
+
+    async def delete_by_ids(
+        self,
+        *,
+        conn: BaseDBAsyncClient,
+        metric_ids: list[UUID],
+    ) -> int:
+        return int(await HTTPRequestRecord.filter(id__in=metric_ids).using_db(conn).delete())
 
 
 async def _try_acquire_transaction_lock(conn: BaseDBAsyncClient) -> bool:
@@ -112,7 +139,7 @@ async def _delete_expired_metrics(
 
 
 async def observability_http_metrics_retention_cleanup(ctx: dict[str, Any]) -> None:
-    """Delete expired hourly HTTP aggregates in bounded, lock-protected batches."""
+    """Delete expired HTTP request facts and aggregates in bounded, lock-protected batches."""
 
     settings = ctx.get("settings")
     if not isinstance(settings, Settings):
@@ -131,15 +158,26 @@ async def observability_http_metrics_retention_cleanup(ctx: dict[str, Any]) -> N
         HTTPMetricRetentionRepository,
         ctx.get("metric_repository") or TortoiseHTTPMetricRetentionRepository(),
     )
+    record_repository = cast(
+        HTTPMetricRetentionRepository,
+        ctx.get("record_repository") or TortoiseHTTPRequestRecordRetentionRepository(),
+    )
     cutoff = datetime.now(UTC) - timedelta(days=settings.observability.retention_days)
     started = datetime.now(UTC)
     async with in_transaction() as conn:
         if not await _try_acquire_transaction_lock(conn):
             logger.info("Observability retention cleanup already running")
             return
-        deleted_total = await _delete_expired_metrics(
+        deleted_metrics = await _delete_expired_metrics(
             conn=conn,
             repository=repository,
+            cutoff=cutoff,
+            batch_size=settings.observability.retention_batch_size,
+            max_delete_per_run=settings.observability.retention_max_delete_per_run,
+        )
+        deleted_records = await _delete_expired_metrics(
+            conn=conn,
+            repository=record_repository,
             cutoff=cutoff,
             batch_size=settings.observability.retention_batch_size,
             max_delete_per_run=settings.observability.retention_max_delete_per_run,
@@ -148,7 +186,8 @@ async def observability_http_metrics_retention_cleanup(ctx: dict[str, Any]) -> N
     elapsed_ms = int((datetime.now(UTC) - started).total_seconds() * 1000)
     logger.info(
         "Observability retention cleanup completed",
-        deleted_total=deleted_total,
+        deleted_metrics=deleted_metrics,
+        deleted_records=deleted_records,
         cutoff=cutoff.isoformat(),
         elapsed_ms=elapsed_ms,
     )

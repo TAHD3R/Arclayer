@@ -1,12 +1,13 @@
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import Any, Literal, Self, cast
 
 from pydantic import BaseModel, Field, PostgresDsn, SecretStr, computed_field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.settings.env_models import (
     AuthSettings,
+    BackgroundJobsSettings,
     BillingSettings,
     EmailSettings,
     PublicIdSettings,
@@ -54,8 +55,25 @@ _DEFAULT_LIBRARY_UPLOAD_EXTENSIONS = [
     "otf",
     "eot",
 ]
+_SUPPORTED_UPLOAD_EXTENSIONS = frozenset([*_DEFAULT_LIBRARY_UPLOAD_EXTENSIONS, "ico"])
 
 MAX_OBSERVABILITY_RETENTION_DAYS = 3650
+
+
+def _normalize_upload_extensions(value: list[str]) -> list[str]:
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for item in value:
+        ext = str(item or "").strip().lower().lstrip(".")
+        if not ext or ext in seen:
+            continue
+        if ext not in _SUPPORTED_UPLOAD_EXTENSIONS:
+            raise ValueError(f"unsupported upload extension: {ext}")
+        seen.add(ext)
+        normalized.append(ext)
+    if not normalized:
+        raise ValueError("allowed upload extensions cannot be empty")
+    return normalized
 
 
 class UploadPurposePolicySettings(BaseModel):
@@ -65,18 +83,11 @@ class UploadPurposePolicySettings(BaseModel):
     @field_validator("allowed_extensions", mode="after")
     @classmethod
     def _normalize_allowed_extensions(cls, value: list[str]) -> list[str]:
-        normalized: list[str] = []
-        seen: set[str] = set()
-        for item in value:
-            ext = str(item or "").strip().lower().lstrip(".")
-            if not ext or ext in seen:
-                continue
-            seen.add(ext)
-            normalized.append(ext)
-        return normalized
+        return _normalize_upload_extensions(value)
 
 
 class UploadPolicySettings(BaseModel):
+    allowed_extensions: list[str] = Field(default_factory=lambda: sorted(_SUPPORTED_UPLOAD_EXTENSIONS))
     defaults: UploadPurposePolicySettings = Field(
         default_factory=lambda: UploadPurposePolicySettings(
             max_size_mb=2048,
@@ -107,6 +118,22 @@ class UploadPolicySettings(BaseModel):
             ),
         }
     )
+
+    @field_validator("allowed_extensions", mode="after")
+    @classmethod
+    def _normalize_global_allowed_extensions(cls, value: list[str]) -> list[str]:
+        return _normalize_upload_extensions(value)
+
+    @model_validator(mode="after")
+    def _validate_purpose_extensions(self) -> Self:
+        globally_allowed = set(self.allowed_extensions)
+        policies = {"defaults": self.defaults, **self.purposes}
+        for purpose, policy in policies.items():
+            unavailable = sorted(set(policy.allowed_extensions) - globally_allowed)
+            if unavailable:
+                joined = ", ".join(unavailable)
+                raise ValueError(f"upload policy '{purpose}' uses extensions outside the global allow-list: {joined}")
+        return self
 
 
 def _build_settings_from_env_file[S: BaseSettings](
@@ -252,6 +279,18 @@ class StorageSettings(BaseSettings):
         le=24 * 3600,
         description="Presigned URL TTL (seconds) for multipart upload part URLs.",
     )
+    s3_connect_timeout_seconds: float = Field(
+        default=10.0,
+        gt=0,
+        allow_inf_nan=False,
+        description="Deadline in seconds for establishing an S3-compatible provider connection.",
+    )
+    s3_read_timeout_seconds: float = Field(
+        default=60.0,
+        gt=0,
+        allow_inf_nan=False,
+        description="Socket read deadline in seconds for each S3-compatible provider operation.",
+    )
     recycle_bin_retention_days: int = Field(
         default=90,
         ge=1,
@@ -294,6 +333,24 @@ class StorageSettings(BaseSettings):
         le=7 * 24 * 3600,
         description="Upload session TTL (seconds).",
     )
+    upload_completion_lease_seconds: int = Field(
+        default=300,
+        ge=30,
+        le=3600,
+        description="Database-fenced lease duration for one upload completion claimant.",
+    )
+    upload_completion_heartbeat_seconds: int = Field(
+        default=30,
+        ge=5,
+        le=300,
+        description="Heartbeat interval while storage completion is in flight.",
+    )
+
+    @model_validator(mode="after")
+    def validate_upload_completion_timing(self) -> Self:
+        if self.upload_completion_lease_seconds < 3 * self.upload_completion_heartbeat_seconds:
+            raise ValueError("upload_completion_lease_seconds must allow at least two missed heartbeat opportunities")
+        return self
 
     @field_validator("local_root_dir", "local_tmp_dir", mode="after")
     @classmethod
@@ -322,6 +379,99 @@ class SearchSettings(BaseSettings):
     meilisearch_url: str = Field(default="http://127.0.0.1:7700")
     meilisearch_api_key: SecretStr = Field(default=SecretStr(""))
     request_timeout_seconds: float = Field(default=5.0, gt=0, le=60)
+
+
+class KnowledgeIndexSettings(BaseSettings):
+    """Reproducible Workspace Knowledge embedding and vector-index profile."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="KNOWLEDGE_INDEX__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    enabled: bool = Field(default=False)
+    embedding_provider: Literal["litellm"] = Field(default="litellm")
+    embedding_model: str = Field(default="text-embedding-3-small", min_length=1, max_length=128)
+    embedding_version: str = Field(default="1", min_length=1, max_length=64)
+    vector_dimensions: int = Field(default=1536, ge=1)
+    index_backend: Literal["meilisearch"] = Field(default="meilisearch")
+    index_prefix: str = Field(
+        default="arclayer_knowledge",
+        pattern=r"^[A-Za-z0-9_-]+$",
+        min_length=1,
+        max_length=64,
+    )
+    embedder_name: str = Field(
+        default="knowledge-default",
+        pattern=r"^[A-Za-z0-9_-]+$",
+        min_length=1,
+        max_length=64,
+    )
+    request_timeout_seconds: float = Field(default=30, gt=0, le=600)
+    task_poll_interval_seconds: float = Field(default=0.25, gt=0, le=10)
+
+
+class KnowledgeSourceFetchSettings(BaseSettings):
+    """Explicit network and resource policy for untrusted Knowledge sources."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="KNOWLEDGE_SOURCE_FETCH__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    enabled: bool = False
+    max_redirects: int = Field(default=5, ge=0, le=10)
+    max_compressed_bytes: int = Field(default=10 * 1024 * 1024, ge=1)
+    max_decompressed_bytes: int = Field(default=25 * 1024 * 1024, ge=1)
+    connect_timeout_seconds: float = Field(default=10, gt=0, le=60)
+    read_timeout_seconds: float = Field(default=30, gt=0, le=300)
+    user_agent: str = Field(default="Arclayer-Knowledge-Ingest/1", min_length=1, max_length=128)
+
+    @model_validator(mode="after")
+    def validate_capacity(self) -> Self:
+        if self.max_decompressed_bytes < self.max_compressed_bytes:
+            raise ValueError("maxDecompressedBytes must be at least maxCompressedBytes")
+        return self
+
+
+class SkillGitHubFetchSettings(BaseSettings):
+    """Network and supply-chain limits for public GitHub Skill snapshots."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="SKILL_GITHUB_FETCH__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    enabled: bool = True
+    max_files: int = Field(default=128, ge=1, le=1024)
+    max_file_bytes: int = Field(default=512 * 1024, ge=1)
+    max_total_bytes: int = Field(default=4 * 1024 * 1024, ge=1)
+    max_tree_response_bytes: int = Field(default=2 * 1024 * 1024, ge=1)
+    max_tree_depth: int = Field(default=16, ge=1, le=64)
+    connect_timeout_seconds: float = Field(default=10, gt=0, le=60)
+    read_timeout_seconds: float = Field(default=30, gt=0, le=300)
+    user_agent: str = Field(default="Arclayer-Skill-Import/1", min_length=1, max_length=128)
+
+    @model_validator(mode="after")
+    def validate_capacity(self) -> Self:
+        if self.max_total_bytes < self.max_file_bytes:
+            raise ValueError("maxTotalBytes must be at least maxFileBytes")
+        return self
 
 
 class LoggingSettings(BaseSettings):
@@ -715,6 +865,9 @@ class Settings(BaseSettings):
     application: ApplicationSettings = Field(default_factory=ApplicationSettings)
     storage: StorageSettings = Field(default_factory=StorageSettings)
     search: SearchSettings = Field(default_factory=SearchSettings)
+    knowledge_index: KnowledgeIndexSettings = Field(default_factory=KnowledgeIndexSettings)
+    knowledge_source_fetch: KnowledgeSourceFetchSettings = Field(default_factory=KnowledgeSourceFetchSettings)
+    skill_github_fetch: SkillGitHubFetchSettings = Field(default_factory=SkillGitHubFetchSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
     database: DatabaseSettings = Field(default_factory=DatabaseSettings)
     project_databases: ProjectDatabaseProvisioningSettings = Field(default_factory=ProjectDatabaseProvisioningSettings)
@@ -722,6 +875,7 @@ class Settings(BaseSettings):
     analytics: AnalyticsSettings = Field(default_factory=AnalyticsSettings)
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
     taskiq: TaskiqSettings = Field(default_factory=TaskiqSettings)
+    background_jobs: BackgroundJobsSettings = Field(default_factory=BackgroundJobsSettings)
     middleware: MiddlewareSettings = Field(default_factory=MiddlewareSettings)
     auth: AuthSettings = Field(default_factory=AuthSettings)
     billing: BillingSettings = Field(default_factory=BillingSettings)

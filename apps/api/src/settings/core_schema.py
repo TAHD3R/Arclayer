@@ -1,28 +1,35 @@
 from __future__ import annotations
 
-from src.modules.auth.oauth.social.providers import OAUTH_PROVIDER_DEFINITIONS
 from src.settings.schema import ConfigField, ConfigOption, ConfigSchema, ConfigSection
 
 CORE_SETTINGS_NAMESPACE = "core"
+
+# Host-owned validation namespaces for the official OAuth Connectors.
+_OAUTH_PROVIDER_SETTINGS_SECTIONS: tuple[tuple[str, str], ...] = (
+    ("oauth_google", "Google OAuth"),
+    ("oauth_github", "GitHub OAuth"),
+    ("oauth_microsoft", "Microsoft OAuth"),
+    ("oauth_discord", "Discord OAuth"),
+)
 
 
 def _build_oauth_provider_sections() -> list[ConfigSection]:
     return [
         ConfigSection(
-            id=provider.section_id,
-            title=provider.title,
+            id=section_id,
+            title=title,
             fields=[
                 ConfigField(
                     key="enabled",
                     type="bool",
                     default=False,
-                    label=f"Enable {provider.title}",
+                    label=f"Enable {title}",
                 ),
                 ConfigField(
                     key="client_id",
                     type="str",
                     default=None,
-                    label=f"{provider.title} client ID",
+                    label=f"{title} client ID",
                 ),
                 ConfigField(
                     key="client_secret",
@@ -30,11 +37,11 @@ def _build_oauth_provider_sections() -> list[ConfigSection]:
                     default=None,
                     secret=True,
                     ui={"input": "password"},
-                    label=f"{provider.title} client secret",
+                    label=f"{title} client secret",
                 ),
             ],
         )
-        for provider in OAUTH_PROVIDER_DEFINITIONS
+        for section_id, title in _OAUTH_PROVIDER_SETTINGS_SECTIONS
     ]
 
 
@@ -454,9 +461,6 @@ def build_core_settings_schema() -> ConfigSchema:
                         label_i18n="settings:MAIL_PROVIDER_LABEL",
                         options=[
                             ConfigOption(value="smtp", label="SMTP"),
-                            ConfigOption(value="resend", label="Resend"),
-                            ConfigOption(value="cloudflare", label="Cloudflare"),
-                            ConfigOption(value="ses", label="Amazon SES"),
                         ],
                     ),
                     ConfigField(
@@ -583,7 +587,6 @@ def build_core_settings_schema() -> ConfigSchema:
                         options=[
                             ConfigOption(value="build", label="Build"),
                             ConfigOption(value="plan", label="Plan"),
-                            ConfigOption(value="agent", label="Agent"),
                         ],
                     ),
                     ConfigField(
@@ -610,47 +613,10 @@ def build_core_settings_schema() -> ConfigSchema:
                         label="System prompt",
                     ),
                     ConfigField(
-                        key="conversation_retention_days",
-                        type="int",
-                        default=90,
-                        label="Conversation retention days",
-                    ),
-                    ConfigField(
-                        key="auto_title_enabled",
-                        type="bool",
-                        default=True,
-                        label="Auto-title new conversations",
-                    ),
-                    ConfigField(
-                        key="context_recommendations_enabled",
-                        type="bool",
-                        default=True,
-                        label="Recommend actions from current page context",
-                    ),
-                    ConfigField(
                         key="monthly_budget_micros",
                         type="int",
                         default=100_000_000,
                         label="Default monthly AI budget",
-                    ),
-                    ConfigField(
-                        key="skills_enabled",
-                        type="bool",
-                        default=True,
-                        label="Enable agent skills",
-                    ),
-                    ConfigField(
-                        key="allowed_skill_ids",
-                        type="list",
-                        default=[
-                            "content.analysis",
-                            "content.planning",
-                            "content.build",
-                            "content.modeling",
-                            "content.writer",
-                            "content.modeler",
-                        ],
-                        label="Allowed skill ids",
                     ),
                     ConfigField(
                         key="write_tools_enabled",
