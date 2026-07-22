@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouterState } from "@tanstack/react-router";
-import { AlertTriangleIcon, WandSparklesIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { AlertTriangleIcon, ShieldCheckIcon, WandSparklesIcon } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -16,22 +15,21 @@ import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import { Textarea } from "@arclayer/ui/textarea";
 
-type ContentItemRouteContext = {
-  projectId: string;
-  itemId: string;
-};
-
 type AIContentProposalCardProps = {
   enabled: boolean;
+  projectId: string;
+  itemId: string;
+  className?: string;
 };
 
-const CONTENT_ITEM_PATH_PATTERN = /^\/projects\/([^/]+)\/content\/library\/([^/]+)\/?$/;
-
-export function AIContentProposalCard({ enabled }: AIContentProposalCardProps) {
+export function AIContentProposalCard({
+  enabled,
+  projectId,
+  itemId,
+  className,
+}: AIContentProposalCardProps) {
   const { t } = useTranslation(["ai"]);
   const queryClient = useQueryClient();
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const routeContext = useMemo(() => parseContentItemRoute(pathname), [pathname]);
   const selectedModel = useAiChatStore((s) => s.selectedModel);
   const selectedReasoningEffort = useAiChatStore((s) => s.selectedReasoningEffort);
   const [instruction, setInstruction] = useState("");
@@ -42,35 +40,34 @@ export function AIContentProposalCard({ enabled }: AIContentProposalCardProps) {
     isError: agentsIsError,
     isLoading: agentsIsLoading,
   } = useQuery({
-    queryKey: ["ai", "project-agents", routeContext?.projectId],
-    queryFn: ({ signal }) =>
-      listAIProjectAgents({ projectId: routeContext?.projectId ?? "", signal }),
-    enabled: enabled && Boolean(routeContext?.projectId),
+    queryKey: ["ai", "project-agents", projectId],
+    queryFn: ({ signal }) => listAIProjectAgents({ projectId, signal }),
+    enabled: enabled && Boolean(projectId && itemId),
     staleTime: 60_000,
     retry: false,
   });
   const writerSkill = agentsData?.skills.find((skill) => skill.skillId === "content.writer");
   const proposalMutation = useMutation({
-    mutationFn: async (input: { context: ContentItemRouteContext; instruction: string }) =>
+    mutationFn: async (input: { instruction: string }) =>
       createAIAgentContentDraftProposal({
-        projectId: input.context.projectId,
+        projectId,
         payload: {
-          targetId: input.context.itemId,
+          targetId: itemId,
           instruction: input.instruction,
           model: selectedModel,
           reasoningEffort: selectedReasoningEffort,
         },
       }),
-    onSuccess: (result, input) => {
+    onSuccess: (result) => {
       setInstruction("");
       setCreatedApprovalId(result.approval.id);
       void queryClient.invalidateQueries({
-        queryKey: buildAIAgentApprovalsQueryKey(input.context.projectId),
+        queryKey: buildAIAgentApprovalsQueryKey(projectId),
       });
     },
   });
 
-  if (!enabled || !routeContext) return null;
+  if (!enabled || !projectId || !itemId) return null;
 
   if (agentsIsError) {
     return <ProposalError message={formatAIChatError(agentsError)} />;
@@ -106,7 +103,10 @@ export function AIContentProposalCard({ enabled }: AIContentProposalCardProps) {
   return (
     <section
       aria-label={t("ai:AI_AGENT_CONTENT_PROPOSAL")}
-      className="mb-3 rounded-lg border border-border/60 bg-background/80 p-2.5 shadow-sm"
+      className={cn(
+        "rounded-lg border border-border/60 bg-background/80 p-2.5 shadow-sm",
+        className,
+      )}
     >
       <div className="flex items-center gap-2">
         <WandSparklesIcon className="size-4 text-label-secondary" aria-hidden="true" />
@@ -129,19 +129,31 @@ export function AIContentProposalCard({ enabled }: AIContentProposalCardProps) {
           }}
           className="min-h-20 resize-none rounded-md text-footnote"
         />
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 text-caption text-label-secondary">
-            {createdApprovalId
-              ? t("ai:AI_AGENT_CONTENT_PROPOSAL_CREATED")
-              : t("ai:AI_AGENT_CONTENT_PROPOSAL_TARGET")}
+            {createdApprovalId ? (
+              <div role="status" aria-live="polite" className="flex items-start gap-1.5">
+                <ShieldCheckIcon className="mt-0.5 size-3.5 shrink-0 text-primary" aria-hidden />
+                <div className="min-w-0">
+                  <div className="font-medium text-label-primary">
+                    {t("ai:AI_AGENT_CONTENT_PROPOSAL_CREATED")}
+                  </div>
+                  <div className="truncate">
+                    {t("ai:AI_AGENT_CONTENT_PROPOSAL_APPROVAL_ID", {
+                      approvalId: createdApprovalId,
+                    })}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              t("ai:AI_AGENT_CONTENT_PROPOSAL_TARGET")
+            )}
           </div>
           <Button
             type="button"
             size="sm"
             disabled={!trimmedInstruction || pending}
-            onClick={() =>
-              proposalMutation.mutate({ context: routeContext, instruction: trimmedInstruction })
-            }
+            onClick={() => proposalMutation.mutate({ instruction: trimmedInstruction })}
             className="h-8 shrink-0 gap-1.5 rounded-md px-2.5 text-footnote font-semibold"
           >
             <WandSparklesIcon className="size-3.5" aria-hidden="true" />
@@ -158,18 +170,9 @@ export function AIContentProposalCard({ enabled }: AIContentProposalCardProps) {
   );
 }
 
-function parseContentItemRoute(pathname: string): ContentItemRouteContext | null {
-  const match = CONTENT_ITEM_PATH_PATTERN.exec(pathname);
-  if (!match) return null;
-  return {
-    projectId: decodeURIComponent(match[1]),
-    itemId: decodeURIComponent(match[2]),
-  };
-}
-
 function ProposalError(props: { message: string }) {
   return (
-    <div className="mb-3 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-2.5 py-2 text-caption text-destructive">
+    <div className="mt-2 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-2 text-caption text-destructive">
       <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
       <span className="min-w-0 break-words">{props.message}</span>
     </div>
@@ -181,7 +184,7 @@ function ProposalUnavailable(props: { title: string; message: string }) {
     <section
       aria-label={props.title}
       className={cn(
-        "mb-3 flex items-start gap-2 rounded-lg border border-border/60",
+        "flex items-start gap-2 rounded-lg border border-border/60",
         "bg-background/80 px-2.5 py-2 text-caption text-label-secondary",
       )}
     >

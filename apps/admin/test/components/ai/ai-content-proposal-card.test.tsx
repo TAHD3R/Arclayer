@@ -11,19 +11,6 @@ import {
 import { AIContentProposalCard } from "@/components/ai/ai-content-proposal-card";
 import { useAiChatStore } from "@/stores/use-ai-chat-store";
 
-const { useRouterStateMock } = vi.hoisted(() => ({
-  useRouterStateMock: vi.fn(),
-}));
-
-vi.mock("@tanstack/react-router", async () => {
-  const actual =
-    await vi.importActual<typeof import("@tanstack/react-router")>("@tanstack/react-router");
-  return {
-    ...actual,
-    useRouterState: useRouterStateMock,
-  };
-});
-
 vi.mock("@/api/ai", () => ({
   buildAIAgentApprovalsQueryKey: vi.fn((projectId: string | null | undefined) => [
     "ai",
@@ -48,7 +35,8 @@ vi.mock("react-i18next", () => ({
         "ai:AI_AGENT_CONTENT_PROPOSAL_TARGET": "Current entry",
         "ai:AI_AGENT_CONTENT_PROPOSAL_CREATE": "Create proposal",
         "ai:AI_AGENT_CONTENT_PROPOSAL_CREATING": "Creating...",
-        "ai:AI_AGENT_CONTENT_PROPOSAL_CREATED": "Approval checkpoint created",
+        "ai:AI_AGENT_CONTENT_PROPOSAL_CREATED": "Proposal awaiting approval",
+        "ai:AI_AGENT_CONTENT_PROPOSAL_APPROVAL_ID": `Approval ${values?.approvalId ?? ""}`,
         "ai:AI_CONTEXT_RECOMMENDATION_CATALOG_LOADING": `${values?.description ?? ""} · Checking current agent settings`,
         "ai:AI_CONTEXT_RECOMMENDATION_WRITE_TOOLS_DISABLED": `${values?.description ?? ""} · Write-capable tools are disabled`,
         "ai:AI_CONTEXT_RECOMMENDATION_UNAVAILABLE": `${values?.description ?? ""} · Unavailable in current agent settings`,
@@ -58,29 +46,25 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-function renderCard() {
+function renderCard(props: { enabled?: boolean } = {}) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <AIContentProposalCard enabled />
+      <AIContentProposalCard
+        enabled={props.enabled ?? true}
+        projectId="project-1"
+        itemId="item-1"
+      />
     </QueryClientProvider>,
   );
-}
-
-function mockContentItemRoute(pathname = "/projects/project-1/content/library/item-1/") {
-  useRouterStateMock.mockImplementation((options?: { select?: (state: unknown) => unknown }) => {
-    const state = { location: { pathname } };
-    return options?.select ? options.select(state) : state;
-  });
 }
 
 describe("AIContentProposalCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockContentItemRoute();
     useAiChatStore.setState({
       selectedModel: "gpt-4o-mini",
       selectedReasoningEffort: "high",
@@ -108,7 +92,7 @@ describe("AIContentProposalCard", () => {
     } as never);
   });
 
-  it("creates a content writer proposal for the current content item route", async () => {
+  it("creates a content writer proposal for the explicit editor target", async () => {
     const user = userEvent.setup();
     renderCard();
 
@@ -129,13 +113,12 @@ describe("AIContentProposalCard", () => {
         },
       });
     });
-    expect(await screen.findByText("Approval checkpoint created")).toBeInTheDocument();
+    expect(await screen.findByText("Proposal awaiting approval")).toBeInTheDocument();
+    expect(screen.getByText("Approval approval-1")).toBeInTheDocument();
   });
 
-  it("does not render outside a content item route", () => {
-    mockContentItemRoute("/projects/project-1/content/library/");
-
-    renderCard();
+  it("does not load Agent capabilities while disabled", () => {
+    renderCard({ enabled: false });
 
     expect(screen.queryByText("Content proposal")).not.toBeInTheDocument();
     expect(listAIProjectAgents).not.toHaveBeenCalled();
@@ -162,8 +145,6 @@ describe("AIContentProposalCard", () => {
 
     renderCard();
 
-    await waitFor(() => expect(listAIProjectAgents).toHaveBeenCalled());
-    expect(screen.getByRole("region", { name: "Content proposal" })).toBeInTheDocument();
     expect(
       await screen.findByText("Current entry · Write-capable tools are disabled"),
     ).toBeInTheDocument();

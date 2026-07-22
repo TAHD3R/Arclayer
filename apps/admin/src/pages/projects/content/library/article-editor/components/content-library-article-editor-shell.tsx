@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useEditorScrollRef } from "platejs/react";
 
 import { deleteContentItem, duplicateContentItem, patchContentItemWorkflow } from "@/api/content";
+import { AIContentProposalCard } from "@/components/ai/ai-content-proposal-card";
 import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import {
   projectContentLibraryItemPath,
@@ -267,6 +268,8 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
   const permissionReady =
     permissionAccess.authzQuery.isFetched && permissionAccess.actionsQuery.isFetched;
   const canPublish = permissionReady && permissionAccess.hasAction("project:release:publish");
+  const canCreateAIProposal =
+    permissionReady && permissionAccess.hasAction("project:content:manage");
   const publishAccessHint =
     permissionReady && !canPublish ? t("CONTENT_LIBRARY_PUBLISH_NO_ACCESS_DESC") : null;
   const translationsQuery = useQuery({
@@ -605,7 +608,16 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                     </div>
                   </div>
 
-                  <ContentLibraryArticleEditorTocSidebar mode="page" />
+                  <ContentLibraryArticleEditorTocSidebar
+                    mode="page"
+                    beforeContent={
+                      <AIContentProposalCard
+                        enabled={canCreateAIProposal}
+                        projectId={props.projectId}
+                        itemId={props.itemId}
+                      />
+                    }
+                  />
                 </div>
               ) : (
                 <div className="relative pb-8">

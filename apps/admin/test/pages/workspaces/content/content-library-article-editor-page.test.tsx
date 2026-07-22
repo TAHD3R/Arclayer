@@ -81,6 +81,17 @@ vi.mock("@/components/layout/admin-route-container", () => ({
   ),
 }));
 
+vi.mock("@/components/ai/ai-content-proposal-card", () => ({
+  AIContentProposalCard: (props: { enabled: boolean; projectId: string; itemId: string }) => (
+    <div
+      data-testid="ai-content-proposal-card"
+      data-enabled={String(props.enabled)}
+      data-project-id={props.projectId}
+      data-item-id={props.itemId}
+    />
+  ),
+}));
+
 vi.mock("@/pages/projects/content/library/article-editor/hooks/api", async (importOriginal) => {
   const actual =
     await importOriginal<
@@ -278,8 +289,8 @@ vi.mock(
 vi.mock(
   "@/pages/projects/content/library/article-editor/components/content-library-article-editor-toc-sidebar",
   () => ({
-    ContentLibraryArticleEditorTocSidebar: () => (
-      <div data-testid="content-library-article-editor-toc-sidebar" />
+    ContentLibraryArticleEditorTocSidebar: (props: { beforeContent?: ReactNode }) => (
+      <div data-testid="content-library-article-editor-toc-sidebar">{props.beforeContent}</div>
     ),
   }),
 );
@@ -428,6 +439,12 @@ describe("content-library-article-editor-page", () => {
         description: "Publish content entries through the shared lifecycle workflow.",
         subjectKinds: ["project_member"],
         permissionCodes: ["system:content:publish"],
+      },
+      {
+        code: "project:content:manage",
+        description: "Create and update content entries.",
+        subjectKinds: ["project_member"],
+        permissionCodes: ["system:content:manage"],
       },
     ]);
     mocked.getProjectCoreSettings.mockResolvedValue({
@@ -854,6 +871,44 @@ describe("content-library-article-editor-page", () => {
 
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onOpenPage).toHaveBeenCalledTimes(1);
+  });
+
+  it("mounts the current content item proposal entry in the page editor rail", async () => {
+    renderWithQuery(
+      <ContentLibraryArticleEditorShell
+        projectId="project-1"
+        itemId="content-1"
+        mode="page"
+        title="Test article"
+        summary=""
+        onTitleChange={vi.fn()}
+        onSummaryChange={vi.fn()}
+        slug="test-article"
+        onSlugChange={vi.fn()}
+        status="draft"
+        visibility="public"
+        onVisibilityChange={vi.fn()}
+        coverAssetId=""
+        onCoverAssetIdChange={vi.fn()}
+        seo={{
+          metaTitle: "",
+          metaDescription: "",
+          canonicalUrl: "",
+          robotsDirective: "",
+        }}
+        onSeoChange={vi.fn()}
+        runtime={buildEditorRuntime()}
+        onPublish={vi.fn()}
+      />,
+    );
+
+    const proposalCard = await screen.findByTestId("ai-content-proposal-card");
+    await waitFor(() => expect(proposalCard).toHaveAttribute("data-enabled", "true"));
+    expect(proposalCard).toHaveAttribute("data-project-id", "project-1");
+    expect(proposalCard).toHaveAttribute("data-item-id", "content-1");
+    expect(screen.getByTestId("content-library-article-editor-toc-sidebar")).toContainElement(
+      proposalCard,
+    );
   });
 
   it("updates workflow lane through the workflow patch endpoint", async () => {

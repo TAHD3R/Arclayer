@@ -3,30 +3,47 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { executeAIWorkspaceAction, formatAIChatError } from "@/api/ai";
+import {
+  createAIAgentContentModelDraftProposal,
+  formatAIChatError,
+  listAIProjectAgents,
+} from "@/api/ai";
 import { AIContentModelProposalCard } from "@/components/ai/ai-content-model-proposal-card";
+import { useAiChatStore } from "@/stores/use-ai-chat-store";
 
 vi.mock("@/api/ai", () => ({
-  executeAIWorkspaceAction: vi.fn(),
+  buildAIAgentApprovalsQueryKey: vi.fn((projectId: string | null | undefined) => [
+    "ai",
+    "agent-approvals",
+    projectId ?? null,
+    "actionable",
+  ]),
+  createAIAgentContentModelDraftProposal: vi.fn(),
   formatAIChatError: vi.fn((error: unknown) =>
     error instanceof Error ? error.message : String(error),
   ),
+  listAIProjectAgents: vi.fn(),
 }));
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, values?: Record<string, string>) => {
+    t: (key: string, values?: Record<string, string | number>) => {
       const labels: Record<string, string> = {
-        "ai:AI_AGENT_CONTENT_MODEL_PROPOSAL": "Model assistant",
-        "ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_ACTION_PREFIX": `Update model ${values?.modelId ?? ""}`,
-        "ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_INSTRUCTION": "Model assistant instruction",
-        "ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_PLACEHOLDER": "Ask AI to update this model",
-        "ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_TARGET": "Can update this model",
-        "ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_CREATE": "Apply with AI",
-        "ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_CREATING": "Applying...",
-        "ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_CREATED": "Model update applied",
-        "ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_NO_UPDATE": "The assistant did not update this model.",
-        "ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_UPDATED": "Model update applied",
+        "ai:AI_AGENT_CONTENT_MODEL_PROPOSAL": "Model proposal",
+        "ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_INSTRUCTION": "Model proposal instruction",
+        "ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_PLACEHOLDER": "Ask AI to revise this model",
+        "ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_TARGET": "Current model",
+        "ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_CREATE": "Create proposal",
+        "ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_CREATING": "Creating...",
+        "ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_CREATED": "Proposal awaiting approval",
+        "ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_APPROVAL_ID": `Approval ${values?.approvalId ?? ""}`,
+        "ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_AFFECTED": `${values?.count ?? 0} affected items`,
+        "ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_RECOVERY": `${values?.count ?? 0} need recovery`,
+        "ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_RESHAPE": `${values?.count ?? 0} need reshaping`,
+        "ai:AI_AGENT_CONTENT_MODEL_PROPOSAL_BLOCKED": "Blocking changes detected",
+        "ai:AI_CONTEXT_RECOMMENDATION_CATALOG_LOADING": `${values?.description ?? ""} · Checking current agent settings`,
+        "ai:AI_CONTEXT_RECOMMENDATION_WRITE_TOOLS_DISABLED": `${values?.description ?? ""} · Write-capable tools are disabled`,
+        "ai:AI_CONTEXT_RECOMMENDATION_UNAVAILABLE": `${values?.description ?? ""} · Unavailable in current agent settings`,
       };
       return labels[key] ?? key;
     },
@@ -37,99 +54,125 @@ function renderCard() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
+  const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
 
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <AIContentModelProposalCard enabled projectId="project-1" modelId="model-1" />
-    </QueryClientProvider>,
-  );
+  return {
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <AIContentModelProposalCard enabled projectId="project-1" modelId="model-1" />
+      </QueryClientProvider>,
+    ),
+    invalidateQueries,
+  };
 }
 
 describe("AIContentModelProposalCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(executeAIWorkspaceAction).mockResolvedValue({
-      kind: "tool_call",
-      action: "update_content_model",
-      status: "completed",
-      content: "Updated the content model.",
-      executionSteps: [],
-      toolCalls: [],
-      contentModel: {
-        id: "model-1",
-        workspaceId: "workspace-1",
-        siteId: "site-1",
-        singularKey: "caseStudy",
-        pluralKey: "caseStudies",
-        name: "Case Study",
-        description: "Customer proof pages.",
-        modelKind: "collection_type",
-      },
-      contentModels: [],
-      projects: [],
-      total: null,
-      navigation: {
-        label: "Open model",
-        path: "/projects/project-1/content/models/edit?modelId=model-1",
-      },
+    useAiChatStore.setState({
+      selectedModel: "gpt-4o-mini",
+      selectedReasoningEffort: "high",
     });
+    vi.mocked(listAIProjectAgents).mockResolvedValue({
+      agents: [],
+      tools: [],
+      skills: [
+        {
+          skillId: "content.modeler",
+          name: "Content Modeler",
+          description: "Propose schema changes",
+          mode: "agent",
+          toolNames: [],
+          readOnly: false,
+          requiresApproval: true,
+          enabled: true,
+        },
+      ],
+    });
+    vi.mocked(createAIAgentContentModelDraftProposal).mockResolvedValue({
+      approval: { id: "approval-model-1", status: "pending" },
+      model: "gpt-4o-mini",
+      usage: {},
+      impactPreview: {
+        affectedItemsCount: 12,
+        recoveryItemsCount: 2,
+        reshapeItemsCount: 5,
+        hasBlockingChanges: true,
+      },
+    } as never);
   });
 
-  it("updates the current content model through workspace actions", async () => {
+  it("creates an approval-backed proposal and exposes its impact preview", async () => {
     const user = userEvent.setup();
-    renderCard();
+    const { invalidateQueries } = renderCard();
 
     await user.type(
-      await screen.findByLabelText("Model assistant instruction"),
-      "Rename it to Case Study and improve the description",
+      await screen.findByLabelText("Model proposal instruction"),
+      "Add a summary field",
     );
-    await user.click(screen.getByRole("button", { name: /Apply with AI/ }));
+    await user.click(screen.getByRole("button", { name: /Create proposal/ }));
 
     await waitFor(() => {
-      expect(executeAIWorkspaceAction).toHaveBeenCalledWith(
-        ["Update model model-1", "", "Rename it to Case Study and improve the description"].join(
-          "\n",
-        ),
-        {
-          mode: "build",
-          projectId: "project-1",
+      expect(createAIAgentContentModelDraftProposal).toHaveBeenCalledWith({
+        projectId: "project-1",
+        payload: {
+          targetId: "model-1",
+          instruction: "Add a summary field",
+          model: "gpt-4o-mini",
+          reasoningEffort: "high",
         },
-      );
+      });
     });
-    expect(await screen.findByText("Updated the content model.")).toBeInTheDocument();
+    expect(await screen.findByText("Proposal awaiting approval")).toBeInTheDocument();
+    expect(screen.getByText("Approval approval-model-1")).toBeInTheDocument();
+    expect(screen.getByText("12 affected items")).toBeInTheDocument();
+    expect(screen.getByText("2 need recovery")).toBeInTheDocument();
+    expect(screen.getByText("5 need reshaping")).toBeInTheDocument();
+    expect(screen.getByText("Blocking changes detected")).toBeInTheDocument();
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["ai", "agent-approvals", "project-1", "actionable"],
+    });
   });
 
-  it("surfaces workspace action errors", async () => {
-    const user = userEvent.setup();
-    vi.mocked(executeAIWorkspaceAction).mockRejectedValue(new Error("workspace action failed"));
+  it("explains when the content modeler skill cannot create proposals", async () => {
+    vi.mocked(listAIProjectAgents).mockResolvedValue({
+      agents: [],
+      tools: [],
+      skills: [
+        {
+          skillId: "content.modeler",
+          name: "Content Modeler",
+          description: "Propose schema changes",
+          mode: "agent",
+          toolNames: [],
+          readOnly: false,
+          requiresApproval: true,
+          enabled: false,
+          disabledReason: "write_tools_disabled",
+        },
+      ],
+    });
 
     renderCard();
 
-    await user.type(await screen.findByLabelText("Model assistant instruction"), "Rename");
-    await user.click(screen.getByRole("button", { name: /Apply with AI/ }));
+    expect(
+      await screen.findByText("Current model · Write-capable tools are disabled"),
+    ).toBeInTheDocument();
+    expect(createAIAgentContentModelDraftProposal).not.toHaveBeenCalled();
+  });
 
-    expect(await screen.findByText("workspace action failed")).toBeInTheDocument();
+  it("surfaces proposal endpoint errors", async () => {
+    const user = userEvent.setup();
+    vi.mocked(createAIAgentContentModelDraftProposal).mockRejectedValue(
+      new Error("proposal failed"),
+    );
+
+    renderCard();
+
+    await user.type(await screen.findByLabelText("Model proposal instruction"), "Rename");
+    await user.click(screen.getByRole("button", { name: /Create proposal/ }));
+
+    expect(await screen.findByText("proposal failed")).toBeInTheDocument();
     expect(formatAIChatError).toHaveBeenCalled();
-  });
-
-  it("requires an update_content_model response", async () => {
-    const user = userEvent.setup();
-    vi.mocked(executeAIWorkspaceAction).mockResolvedValue({
-      kind: "chat",
-      action: null,
-      status: "completed",
-      content: "No mutation executed.",
-      executionSteps: [],
-      toolCalls: [],
-      contentModels: [],
-      projects: [],
-    });
-
-    renderCard();
-
-    await user.type(await screen.findByLabelText("Model assistant instruction"), "Rename");
-    await user.click(screen.getByRole("button", { name: /Apply with AI/ }));
-
-    expect(await screen.findByText("The assistant did not update this model.")).toBeInTheDocument();
   });
 });

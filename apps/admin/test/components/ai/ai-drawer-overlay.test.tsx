@@ -28,6 +28,10 @@ vi.mock("@assistant-ui/react", () => ({
 vi.mock("@/components/ai/agent-thread-history", () => ({
   AgentThreadHistory: () => <button type="button">Conversation history</button>,
 }));
+vi.mock("@/components/ai/ai-approval-queue", () => ({
+  AIApprovalQueue: ({ enabled }: { enabled: boolean }) =>
+    enabled ? <div data-testid="ai-approval-queue">Agent approvals</div> : null,
+}));
 vi.mock("@/components/assistant-ui/thread", () => ({
   Thread: ({ composerAccessory }: { composerAccessory?: ReactNode }) => (
     <div data-testid="thread">{composerAccessory}</div>
@@ -80,6 +84,7 @@ describe("AIDrawerOverlay", () => {
 
     expect(screen.getByTestId("thread")).toBeInTheDocument();
     expect(screen.getByText("Homepage collaboration")).toBeInTheDocument();
+    expect(screen.getByTestId("ai-approval-queue")).toBeInTheDocument();
   });
 
   it("creates a new remote Thread through the shared scene runtime", () => {

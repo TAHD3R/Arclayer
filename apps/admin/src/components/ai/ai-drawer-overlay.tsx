@@ -4,6 +4,7 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next";
 
 import { AgentThreadHistory } from "@/components/ai/agent-thread-history";
+import { AIApprovalQueue } from "@/components/ai/ai-approval-queue";
 import { Thread } from "@/components/assistant-ui/thread";
 import { FeedbackComposer } from "@/components/feedback/feedback-dialog";
 import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
@@ -112,16 +113,19 @@ function AssistantDrawerThread(props: {
           variant="sidebar"
           welcomeName={props.welcomeName}
           composerAccessory={
-            <div className={feedbackOpen ? "px-3" : "hidden"} aria-hidden={!feedbackOpen}>
-              <FeedbackComposer
-                source="ai_sidebar"
-                hiddenContext={remoteThreadId ? { threadId: remoteThreadId } : undefined}
-                variant="card"
-                active={feedbackOpen}
-                autoFocus={false}
-                onCancel={() => setFeedbackOpen(false)}
-                onSuccess={() => setFeedbackOpen(false)}
-              />
+            <div className="px-3">
+              <AIApprovalQueue enabled />
+              <div className={feedbackOpen ? "" : "hidden"} aria-hidden={!feedbackOpen}>
+                <FeedbackComposer
+                  source="ai_sidebar"
+                  hiddenContext={remoteThreadId ? { threadId: remoteThreadId } : undefined}
+                  variant="card"
+                  active={feedbackOpen}
+                  autoFocus={false}
+                  onCancel={() => setFeedbackOpen(false)}
+                  onSuccess={() => setFeedbackOpen(false)}
+                />
+              </div>
             </div>
           }
         />

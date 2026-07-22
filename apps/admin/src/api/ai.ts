@@ -6,6 +6,7 @@ import {
   type AIReasoningEffort,
 } from "@/stores/use-ai-chat-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import type { AdminContentModelImpactPreview } from "@arclayer/openapi/admin-types";
 
 export interface AIModelCatalogItem {
   id: string;
@@ -433,7 +434,7 @@ export interface AgentContentModelDraftProposalResponse {
   approval: AgentApprovalRecord;
   model: string;
   usage: Record<string, unknown>;
-  impactPreview: Record<string, unknown>;
+  impactPreview: AdminContentModelImpactPreview;
 }
 
 const AI_ERROR_MESSAGE_KEYS: Record<string, { key: string; fallback: string }> = {

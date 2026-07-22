@@ -93,7 +93,10 @@ function TocList(props: {
   );
 }
 
-export function ContentLibraryArticleEditorTocSidebar(props: { mode: "page" | "split" }) {
+export function ContentLibraryArticleEditorTocSidebar(props: {
+  mode: "page" | "split";
+  beforeContent?: React.ReactNode;
+}) {
   const { t } = useTranslation("content");
   const sidebarState = useTocSideBarState({
     open: true,
@@ -108,7 +111,8 @@ export function ContentLibraryArticleEditorTocSidebar(props: { mode: "page" | "s
 
   if (props.mode === "page") {
     return (
-      <aside className="sticky top-6 hidden w-58 shrink-0 self-start xl:block">
+      <aside className="sticky top-6 hidden w-64 shrink-0 self-start space-y-5 xl:block">
+        {props.beforeContent}
         <nav {...navProps} className="space-y-3">
           <div className="px-2 text-callout font-semibold text-label-primary">
             {t("CONTENT_LIBRARY_EDITOR_INSERT_TOC")}
