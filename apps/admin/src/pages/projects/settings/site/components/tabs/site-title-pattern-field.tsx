@@ -94,6 +94,7 @@ function buildPreview(args: {
 }
 
 export function SiteTitlePatternField(props: {
+  disabled?: boolean;
   onChange: (next: TitlePolicy) => void;
   siteName: string;
   siteSubtitle: string;
@@ -176,6 +177,7 @@ export function SiteTitlePatternField(props: {
               type="button"
               variant="outline"
               aria-pressed={isSelected}
+              disabled={props.disabled}
               className={cn(
                 "h-auto w-full min-w-0 shrink !whitespace-normal items-start justify-start overflow-hidden rounded-xl border px-4 py-3 text-left  transition-colors",
                 isSelected
@@ -201,6 +203,7 @@ export function SiteTitlePatternField(props: {
             {t("settings:SETTINGS_SEO_TITLE_FORMAT_SEPARATOR_LABEL")}
           </div>
           <Input
+            disabled={props.disabled}
             value={separatorDraft}
             placeholder={t("settings:SETTINGS_SEO_TITLE_FORMAT_LITERAL_PLACEHOLDER")}
             onChange={(event) => {
@@ -219,6 +222,7 @@ export function SiteTitlePatternField(props: {
             {t("settings:SETTINGS_SEO_TITLE_FORMAT_HOME_MODE")}
           </div>
           <Select
+            disabled={props.disabled}
             value={props.value.homeMode ?? "siteOnly"}
             onValueChange={(next) => {
               if (next !== "siteOnly" && next !== "policy") return;
@@ -245,6 +249,7 @@ export function SiteTitlePatternField(props: {
 
       <SettingSwitchBlock
         checked={props.value.dedupe !== false}
+        disabled={props.disabled}
         label={t("settings:SETTINGS_SEO_TITLE_FORMAT_DEDUPE_TITLE")}
         description={t("settings:SETTINGS_SEO_TITLE_FORMAT_DEDUPE_DESC")}
         onCheckedChange={(checked) => updatePolicy({ dedupe: checked })}

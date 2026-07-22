@@ -17,6 +17,7 @@ export function SettingSwitchBlock(props: SettingSwitchBlockProps) {
       <div className="flex items-center justify-between gap-3">
         <span className="text-body text-label-primary">{props.label}</span>
         <Switch
+          aria-label={props.label}
           checked={props.checked}
           disabled={props.disabled}
           onCheckedChange={props.onCheckedChange}
