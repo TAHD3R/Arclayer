@@ -221,6 +221,7 @@ async def test_sites_public_preview_draft_publish_flow(
         site_id = site_res.json()["data"]["siteId"]
         runtime_id = await _runtime_id(client, project_id)
         site_uuid = decode_public_id(site_id)
+        await DomainBindingRecord.filter(project_id=project_uuid).update(is_primary=False)
         await DomainBindingRecord.create(
             workspace_id=decode_public_id(workspace_id),
             project_id=project_uuid,
@@ -230,7 +231,7 @@ async def test_sites_public_preview_draft_publish_flow(
             source=DomainBindingSource.CUSTOM,
             target_type="project_runtime",
             environment_id=None,
-            is_primary=False,
+            is_primary=True,
             is_verified=True,
             is_active=True,
             verification_token="test-token",

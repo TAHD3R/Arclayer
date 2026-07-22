@@ -1308,6 +1308,12 @@ production renderer/compiler hard cut; this correction only removes the
 false-success placeholder behavior. Active-release delivery never falls back to
 prelaunch.
 
+Public runtime identity and generated source resolve the canonical site URL from
+Domain bindings only: prefer an active, verified Primary binding for the exact
+Site, otherwise use the first active verified binding for that Site, otherwise
+return `null`. Core Settings `site.url`, inactive or unverified bindings, and
+bindings owned by another Site are never fallback canonical addresses.
+
 ## 32. Wave 3L typed Design authoring contract
 
 Wave 3L adds the first Builder-owned write contract for

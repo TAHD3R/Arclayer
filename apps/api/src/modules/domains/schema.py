@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Annotated
+from uuid import UUID
 
 from pydantic import ConfigDict, Field, field_validator
 
@@ -103,6 +105,19 @@ class DomainBindingDeleteOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     binding_id: PublicUUID = Field(..., alias="bindingId", description="Deleted binding id.")
+
+
+def resolve_routable_domain_binding(
+    bindings: Sequence[DomainBindingOut],
+    *,
+    site_id: UUID | None = None,
+) -> DomainBindingOut | None:
+    routable = [
+        binding
+        for binding in bindings
+        if binding.is_active and binding.is_verified and (site_id is None or binding.site_id == site_id)
+    ]
+    return next((binding for binding in routable if binding.is_primary), routable[0] if routable else None)
 
 
 def domain_datetime_to_ms(value: datetime | None) -> int | None:

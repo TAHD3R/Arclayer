@@ -13,7 +13,7 @@ from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.i18n import t
 from src.core.services.base import BaseService
 from src.models.projects.project import ProjectRecord
-from src.modules.domains.schema import DomainBindingOut
+from src.modules.domains.schema import DomainBindingOut, resolve_routable_domain_binding
 from src.modules.domains.service import DomainBindingService
 from src.modules.projects.repository import ProjectRepository
 from src.modules.projects.runtime.service import ProjectRuntimeService
@@ -217,7 +217,12 @@ def _nested_bool(value: dict[str, Any], path: Sequence[str]) -> bool | None:
     return current if isinstance(current, bool) else None
 
 
-def _site_config_payload(project: ProjectRecord, settings_value: dict[str, Any]) -> dict[str, Any]:
+def _site_config_payload(
+    project: ProjectRecord,
+    settings_value: dict[str, Any],
+    *,
+    public_url: str | None,
+) -> dict[str, Any]:
     site = _nested_dict(settings_value, ["site"])
     seo = _nested_dict(settings_value, ["seo"])
     analytics = _nested_dict(settings_value, ["analytics", "google_analytics"])
@@ -243,7 +248,7 @@ def _site_config_payload(project: ProjectRecord, settings_value: dict[str, Any])
             "name": _nested_str(site, ["name"]) or project.name,
             "subtitle": _nested_str(site, ["subtitle"]),
             "description": description,
-            "url": _nested_str(site, ["url"]),
+            "url": public_url,
             "logoUrl": _nested_str(site, ["logo_url"]),
             "logoAssetId": _nested_str(site, ["logo_asset_id"]),
             "faviconUrl": _nested_str(site, ["favicon_url"]),
@@ -268,8 +273,17 @@ def _site_config_payload(project: ProjectRecord, settings_value: dict[str, Any])
     }
 
 
-def _site_config_ts(project: ProjectRecord, settings_value: dict[str, Any]) -> str:
-    payload = dumps(_site_config_payload(project, settings_value), indent=2, sort_keys=False)
+def _site_config_ts(
+    project: ProjectRecord,
+    settings_value: dict[str, Any],
+    *,
+    public_url: str | None,
+) -> str:
+    payload = dumps(
+        _site_config_payload(project, settings_value, public_url=public_url),
+        indent=2,
+        sort_keys=False,
+    )
     return (
         f"const projectSiteConfig = {payload} as const;\n\n"
         "export type ProjectSiteConfig = typeof projectSiteConfig;\n\n"
@@ -279,26 +293,13 @@ def _site_config_ts(project: ProjectRecord, settings_value: dict[str, Any]) -> s
     )
 
 
-def _select_primary_domain(bindings: Sequence[DomainBindingOut]) -> DomainBindingOut | None:
-    for binding in bindings:
-        if binding.is_primary and binding.is_active and binding.is_verified:
-            return binding
-    for binding in bindings:
-        if binding.is_active and binding.is_verified:
-            return binding
-    for binding in bindings:
-        if binding.is_primary:
-            return binding
-    return bindings[0] if bindings else None
-
-
 def _runtime_config_payload(
     *,
     project: ProjectRecord,
     runtime_context: Any,
     domains: Sequence[DomainBindingOut],
 ) -> dict[str, Any]:
-    primary_domain = _select_primary_domain(domains)
+    primary_domain = resolve_routable_domain_binding(domains, site_id=runtime_context.site_id)
     primary_hostname = primary_domain.hostname if primary_domain is not None else None
     return {
         "projectId": str(project.id),
@@ -932,7 +933,7 @@ def _react_vite_files(
             path="src/arclayer/site-config.ts",
             role="config",
             language="typescript",
-            contents=_site_config_ts(project, settings_value),
+            contents=_site_config_ts(project, settings_value, public_url=runtime_value.get("primaryUrl")),
         ),
         ProjectSourceFileOut(
             path="src/arclayer/content.ts",
@@ -1017,7 +1018,7 @@ def _astro_files(
             path="src/arclayer/site-config.ts",
             role="config",
             language="typescript",
-            contents=_site_config_ts(project, settings_value),
+            contents=_site_config_ts(project, settings_value, public_url=runtime_value.get("primaryUrl")),
         ),
         ProjectSourceFileOut(
             path="src/arclayer/content.ts",

@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from src.common.protocols.tortoise import HasProjectId
 from src.core.exceptions import Conflict
 from src.models.system.setting import SettingRecord
+from src.modules.domains.schema import DomainBindingOut, resolve_routable_domain_binding
 from src.modules.sites import schema as sites_schema
 from src.modules.sites.namespaces.service import (
     RUNTIME_SETTING_NAMESPACE,
@@ -18,6 +19,7 @@ from src.settings.scopes import SCOPE_TYPE_PROJECT
 
 if TYPE_CHECKING:
     from src.config import Settings
+    from src.modules.domains.service import DomainBindingService
     from src.modules.sites.repository import SitesRepository
 
 DEFAULT_CSS_VARS: dict[str, str] = {
@@ -31,6 +33,7 @@ DEFAULT_CSS_VARS: dict[str, str] = {
 
 class SiteRuntimeConfigMixin(SiteRuntimeLocalizationMixin):
     settings: Settings
+    _domain_service: DomainBindingService
     _repo: SitesRepository
 
     @staticmethod
@@ -187,6 +190,10 @@ class SiteRuntimeConfigMixin(SiteRuntimeLocalizationMixin):
             resolved_locale=resolved_locale,
             fallback_locale=fallback_locale,
         )
+        bindings = await self._domain_service.list_bindings_for_project(project_id=project_id)
+        domain_out = [DomainBindingOut.model_validate(self._domain_service.to_out(binding)) for binding in bindings]
+        public_domain = resolve_routable_domain_binding(domain_out, site_id=site_id)
+        identity_raw["url"] = f"https://{public_domain.hostname}" if public_domain is not None else None
         site_identity = self._build_site_identity_out(identity_raw)
         seo_defaults = self._build_seo_defaults_out(
             seo_section=core_value.get("seo"),

@@ -233,7 +233,7 @@ async def test_project_source_service_generates_react_vite_manifest() -> None:
             "favicon_url": "https://cdn.example.com/favicon.ico",
             "logo_url": "https://cdn.example.com/logo.svg",
             "name": "ACME Launch",
-            "url": "https://launch.example.com",
+            "url": "https://legacy.example.com",
         },
         "seo": {
             "default_title": "ACME Growth",
@@ -317,7 +317,8 @@ async def test_project_source_service_generates_react_vite_manifest() -> None:
     assert 'upsertLink("icon", config.site.faviconUrl)' in files["src/App.tsx"].contents
     assert "Published content is connected to the Home page item." in files["src/App.tsx"].contents
     assert "ACME Launch" in files["src/arclayer/site-config.ts"].contents
-    assert "https://launch.example.com" in files["src/arclayer/site-config.ts"].contents
+    assert "https://launch-site.arclayer.localhost" in files["src/arclayer/site-config.ts"].contents
+    assert "https://legacy.example.com" not in files["src/arclayer/site-config.ts"].contents
     assert "https://cdn.example.com/social.jpg" in files["src/arclayer/site-config.ts"].contents
     assert '"robotsDirective": "index,follow"' in files["src/arclayer/site-config.ts"].contents
     assert '"sitemapEnabled": true' in files["src/arclayer/site-config.ts"].contents

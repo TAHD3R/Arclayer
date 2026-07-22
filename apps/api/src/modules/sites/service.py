@@ -10,6 +10,7 @@ from tortoise.backends.base.client import BaseDBAsyncClient
 from src.core.exceptions import Conflict, Forbidden, ServiceUnavailable
 from src.core.services import BaseService
 from src.models.sites.site import SiteRecord
+from src.modules.domains.service import DomainBindingService
 from src.modules.sites import schema as sites_schema
 from src.modules.sites.content.service import SiteContentService
 from src.modules.sites.publishing.service import SitePublishingService
@@ -46,9 +47,11 @@ class SiteService(
         valkey: ValkeyClientLike | None = None,
         *,
         repo: SitesRepository | None = None,
+        domain_service: DomainBindingService | None = None,
     ) -> None:
         super().__init__(settings)
         self._repo = repo or SitesRepository()
+        self._domain_service = domain_service or DomainBindingService(settings, valkey=valkey)
         self._valkey = valkey
         self._preview_tokens = PreviewTokenStore(valkey) if valkey is not None else None
         self._presence = PresenceStore(valkey) if valkey is not None else None
@@ -64,7 +67,12 @@ class SiteService(
         )
 
     def with_database_connection(self, conn: BaseDBAsyncClient) -> SiteService:
-        return SiteService(self.settings, self._valkey, repo=SitesRepository(conn=conn))
+        return SiteService(
+            self.settings,
+            self._valkey,
+            repo=SitesRepository(conn=conn),
+            domain_service=self._domain_service,
+        )
 
     async def assert_preview_access_async(
         self, *, site_id: UUID, mode: Literal["public", "preview"], token: str | None
