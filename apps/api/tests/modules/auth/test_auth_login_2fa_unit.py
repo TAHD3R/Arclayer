@@ -8,6 +8,7 @@ import pytest
 from fastapi_mail.errors import ConnectionErrors
 from pydantic import BaseModel, ConfigDict
 
+from src.common.email.template_renderer import RenderedEmailTemplate
 from src.config import get_settings
 from src.core.exceptions import BadRequest, Forbidden, ServiceUnavailable, Unauthorized
 from src.core.i18n import t
@@ -551,9 +552,13 @@ async def test_request_login_email_code_maps_mail_delivery_failures_to_api_error
     async def _core_mail_config() -> dict:
         return {}
 
+    async def _render_template(**_kwargs) -> RenderedEmailTemplate:
+        return RenderedEmailTemplate(subject="Login code", html="<p>Login code</p>", text="Login code")
+
     monkeypatch.setattr(service.auth_service.email_service, "_enabled", _fake_is_enabled)
     monkeypatch.setattr(service.auth_service.email_service, "_get_core_mail_config", _core_mail_config)
     monkeypatch.setattr(service.auth_service.email_service, "_get_fast_mail", _fake_get_fast_mail)
+    monkeypatch.setattr(service.auth_service.email_service.template_runtime, "render", _render_template)
 
     with pytest.raises(ServiceUnavailable) as exc:
         await service.request_login_email_code(email="demo@example.com")

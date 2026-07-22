@@ -9,6 +9,7 @@ import pytest
 from fastapi_mail.errors import ConnectionErrors
 from pydantic import BaseModel, ConfigDict
 
+from src.common.email.template_renderer import RenderedEmailTemplate
 from src.config import get_settings
 from src.core.exceptions import Conflict, ServiceUnavailable, Unauthorized
 from src.core.i18n import t
@@ -358,9 +359,13 @@ async def test_request_remove_password_maps_mail_delivery_failures_to_api_error(
     async def _core_mail_config() -> dict:
         return {}
 
+    async def _render_template(**_kwargs) -> RenderedEmailTemplate:
+        return RenderedEmailTemplate(subject="Login code", html="<p>Login code</p>", text="Login code")
+
     monkeypatch.setattr(service.email_service, "_enabled", _enabled)
     monkeypatch.setattr(service.email_service, "_get_core_mail_config", _core_mail_config)
     monkeypatch.setattr(service.email_service, "_get_fast_mail", _get_fast_mail)
+    monkeypatch.setattr(service.email_service.template_runtime, "render", _render_template)
 
     with pytest.raises(ServiceUnavailable) as exc:
         await service.request_remove_password(

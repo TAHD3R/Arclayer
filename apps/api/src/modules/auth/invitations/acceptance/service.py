@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from typing import cast
@@ -32,6 +31,7 @@ from src.models.workspaces.workspace_invite import (
     WorkspaceInviteLinkUseEvent,
 )
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
+from src.modules.auth.onboarding.service import WorkspaceFirstOnboardingService
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.schema import (
     AcceptExistingInvitationRequest,
@@ -44,25 +44,19 @@ from src.modules.organization.workspaces.repository import OrganizationWorkspace
 from src.modules.projects.repository import ProjectRepository
 from src.modules.system.admin.notifications.catalog import create_notification_record
 
-_FATAL_INVITATION_FLOW_ERRORS: tuple[type[BaseException], ...] = (
-    asyncio.CancelledError,
-    GeneratorExit,
-    KeyboardInterrupt,
-    SystemExit,
-)
-
-
-def _raise_if_fatal(exc: BaseException) -> None:
-    if isinstance(exc, _FATAL_INVITATION_FLOW_ERRORS):
-        raise exc
-
 
 class AuthInvitationAcceptanceService(BaseService):
-    def __init__(self, settings: Settings) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        onboarding_service: WorkspaceFirstOnboardingService | None = None,
+    ) -> None:
         super().__init__(settings)
         self.project_repo = ProjectRepository()
         self.user_repo = UserRepository()
         self.workspace_repo = OrganizationWorkspaceRepository()
+        self.onboarding_service = onboarding_service or WorkspaceFirstOnboardingService(settings)
 
     def _ta(self, key: str, default: str) -> str:
         return t("auth", key, default=default)
@@ -272,6 +266,11 @@ class AuthInvitationAcceptanceService(BaseService):
             await ensure_role_codes_have_admin_access(
                 workspace_id=workspace_id, role_codes=[r.code for r in roles], conn=conn
             )
+            await self.onboarding_service.complete_existing_workspace_if_pending(
+                user_id=user.id,
+                workspace_id=workspace_id,
+                conn=conn,
+            )
 
             if email_inv is not None:
                 email_inv.accepted_by_user_id = user.id
@@ -315,36 +314,28 @@ class AuthInvitationAcceptanceService(BaseService):
         tokens = await issue_tokens(identifier=payload.username, password=payload.password)
 
         if inviter_user_id is not None and accepted_user_id is not None and workspace_id is not None:
-            try:
-                await create_notification_record(
-                    settings=self.settings,
-                    workspace_id=workspace_id,
-                    recipient_user_id=inviter_user_id,
-                    actor_user_id=accepted_user_id,
-                    category=NotificationCategory.TEAM,
-                    title=t(
-                        "notifications",
-                        "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_TITLE",
-                        default="{name} joined the workspace",
-                        name=accepted_display_name or "新成员",
-                    ),
-                    body=t(
-                        "notifications",
-                        "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_BODY",
-                        default="The user accepted the workspace invitation.",
-                    ),
-                    target_to="/settings/team/members",
-                    target_meta=None,
-                    event_name="workspace.invitation.accepted",
-                    dedupe_key=f"workspace.invitation.accepted:{code}",
-                )
-            except BaseException as exc:
-                _raise_if_fatal(exc)
-                self.logger.warning(
-                    "Notification create failed (invite accepted)",
-                    error=str(exc),
-                    inviter_user_id=str(inviter_user_id),
-                )
+            await create_notification_record(
+                settings=self.settings,
+                workspace_id=workspace_id,
+                recipient_user_id=inviter_user_id,
+                actor_user_id=accepted_user_id,
+                category=NotificationCategory.TEAM,
+                title=t(
+                    "notifications",
+                    "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_TITLE",
+                    default="{name} joined the workspace",
+                    name=accepted_display_name or "新成员",
+                ),
+                body=t(
+                    "notifications",
+                    "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_BODY",
+                    default="The user accepted the workspace invitation.",
+                ),
+                target_to="/settings/team/members",
+                target_meta=None,
+                event_name="workspace.invitation.accepted",
+                dedupe_key=f"workspace.invitation.accepted:{code}",
+            )
 
         return tokens
 
@@ -492,6 +483,11 @@ class AuthInvitationAcceptanceService(BaseService):
             await ensure_role_codes_have_admin_access(
                 workspace_id=workspace_id, role_codes=[r.code for r in roles], conn=conn
             )
+            await self.onboarding_service.complete_existing_workspace_if_pending(
+                user_id=user.id,
+                workspace_id=workspace_id,
+                conn=conn,
+            )
 
             if email_inv is not None:
                 email_inv.accepted_by_user_id = user.id
@@ -532,36 +528,28 @@ class AuthInvitationAcceptanceService(BaseService):
             )
 
         if inviter_user_id is not None and workspace_id is not None:
-            try:
-                await create_notification_record(
-                    settings=self.settings,
-                    workspace_id=workspace_id,
-                    recipient_user_id=inviter_user_id,
-                    actor_user_id=user.id,
-                    category=NotificationCategory.TEAM,
-                    title=t(
-                        "notifications",
-                        "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_TITLE",
-                        default="{name} joined the workspace",
-                        name=accepted_display_name or "新成员",
-                    ),
-                    body=t(
-                        "notifications",
-                        "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_BODY",
-                        default="The user accepted the workspace invitation.",
-                    ),
-                    target_to="/settings/team/members",
-                    target_meta=None,
-                    event_name="workspace.invitation.accepted",
-                    dedupe_key=f"workspace.invitation.accepted:{code}",
-                )
-            except BaseException as exc:
-                _raise_if_fatal(exc)
-                self.logger.warning(
-                    "Notification create failed (invite accepted existing)",
-                    error=str(exc),
-                    inviter_user_id=str(inviter_user_id),
-                )
+            await create_notification_record(
+                settings=self.settings,
+                workspace_id=workspace_id,
+                recipient_user_id=inviter_user_id,
+                actor_user_id=user.id,
+                category=NotificationCategory.TEAM,
+                title=t(
+                    "notifications",
+                    "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_TITLE",
+                    default="{name} joined the workspace",
+                    name=accepted_display_name or "新成员",
+                ),
+                body=t(
+                    "notifications",
+                    "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_BODY",
+                    default="The user accepted the workspace invitation.",
+                ),
+                target_to="/settings/team/members",
+                target_meta=None,
+                event_name="workspace.invitation.accepted",
+                dedupe_key=f"workspace.invitation.accepted:{code}",
+            )
 
         project_id = None
         if workspace_id is not None:

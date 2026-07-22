@@ -56,6 +56,40 @@ class WorkspaceFirstOnboardingService(BaseService):
             workspace_id=workspace_id,
         )
 
+    async def complete_existing_workspace_if_pending(
+        self,
+        *,
+        user_id: UUID,
+        workspace_id: UUID,
+        conn,
+    ) -> bool:
+        record = (
+            await SettingRecord
+            .filter(
+                scope_type=SCOPE_TYPE_USER,
+                scope_id=user_id,
+                namespace=WORKSPACE_FIRST_ONBOARDING_NAMESPACE,
+            )
+            .using_db(conn)
+            .select_for_update()
+            .first()
+        )
+        if record is None:
+            return False
+
+        state = self._parse_state(record=record)
+        if state.status == WorkspaceFirstOnboardingStatus.COMPLETED:
+            return False
+
+        record.value = {
+            "status": WorkspaceFirstOnboardingStatus.COMPLETED.value,
+            "workspace_id": str(workspace_id),
+            "updated_at": datetime.now(UTC).isoformat(),
+        }
+        record.updated_by = user_id
+        await record.save(using_db=conn, update_fields=["value", "updated_by", "updated_at"])
+        return True
+
     async def _get_record(self, *, user_id: UUID) -> SettingRecord | None:
         return await SettingRecord.get_or_none(
             scope_type=SCOPE_TYPE_USER,

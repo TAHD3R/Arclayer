@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from datetime import UTC, datetime
 from typing import cast
 from uuid import UUID
@@ -14,6 +13,7 @@ from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.http.pagination import PageData, PageParams
 from src.core.i18n import t
+from src.core.registries import ConnectorRegistry
 from src.core.services import BaseService
 from src.models.organization.user import User
 from src.models.system.notification import NotificationCategory
@@ -41,19 +41,8 @@ from src.modules.workspaces.team.schema import (
     WorkspaceTeamUserUpdateRequest,
 )
 
-_FATAL_TEAM_ACTIVITY_ERRORS: tuple[type[BaseException], ...] = (
-    asyncio.CancelledError,
-    GeneratorExit,
-    KeyboardInterrupt,
-    SystemExit,
-)
 TEAM_MEMBERS_TARGET_TO = "/settings/team/members"
 SYSTEM_ACTOR_LABEL = "System"
-
-
-def _raise_if_fatal(exc: BaseException) -> None:
-    if isinstance(exc, _FATAL_TEAM_ACTIVITY_ERRORS):
-        raise exc
 
 
 def _coerce_uuid(value: object | None) -> UUID | None:
@@ -76,11 +65,19 @@ def _user_ref(user: User) -> WorkspaceTeamUserRefOut:
 
 
 class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
-    def __init__(self, settings: Settings) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        connector_registry: ConnectorRegistry | None = None,
+    ) -> None:
         super().__init__(settings)
         self.repo = WorkspaceTeamRepository()
         self.user_repo = UserRepository()
-        self.email_service = EmailService(settings)
+        self.email_service = EmailService(
+            settings,
+            connector_registry=connector_registry,
+        )
 
     async def _write_activity_event(
         self,
@@ -131,30 +128,19 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
         event_name: str,
         dedupe_key: str | None,
     ) -> None:
-        try:
-            await create_notification_record(
-                settings=self.settings,
-                workspace_id=workspace_id,
-                recipient_user_id=recipient_user_id,
-                category=category,
-                title=title,
-                body=body,
-                target_to=target_to,
-                target_meta=None,
-                event_name=event_name,
-                dedupe_key=dedupe_key,
-                actor_user_id=actor_user_id,
-            )
-        except BaseException as exc:
-            _raise_if_fatal(exc)
-            self.logger.warning(
-                "Workspace team notification create failed",
-                action="create_workspace_team_notification",
-                workspace_id=str(workspace_id),
-                recipient_user_id=str(recipient_user_id),
-                event_name=event_name,
-                error=str(exc),
-            )
+        await create_notification_record(
+            settings=self.settings,
+            workspace_id=workspace_id,
+            recipient_user_id=recipient_user_id,
+            category=category,
+            title=title,
+            body=body,
+            target_to=target_to,
+            target_meta=None,
+            event_name=event_name,
+            dedupe_key=dedupe_key,
+            actor_user_id=actor_user_id,
+        )
 
     async def _notify_workspace_email_invite_change(
         self,

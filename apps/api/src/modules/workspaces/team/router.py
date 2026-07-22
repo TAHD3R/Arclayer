@@ -7,9 +7,11 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.exceptions import BadRequest
+from src.core.extensions.dependencies import get_connector_registry
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import get_current_locale, t
+from src.core.registries import ConnectorRegistry
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.workspaces.authz.http.service import require_workspace_permission
 from src.modules.workspaces.http.schema import WorkspaceContext
@@ -208,9 +210,13 @@ async def create_email_invite(
     ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
+    connector_registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> ResponseModel[WorkspaceEmailInviteCreateResult]:
     """Create or update an email invite (pending unique per email)."""
-    service = WorkspaceTeamService(settings)
+    service = WorkspaceTeamService(
+        settings,
+        connector_registry=connector_registry,
+    )
     # Email invites are meant to be delivered by email. To avoid "fake success", fail fast when disabled.
     if not await service.email_service.is_enabled():
         raise BadRequest(
