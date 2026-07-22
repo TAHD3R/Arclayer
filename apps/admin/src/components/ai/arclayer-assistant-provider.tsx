@@ -252,47 +252,50 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
   const runAgentMessage = useCallback(
     async (message: AppendMessage) => {
       setIsSubmitting(true);
-      let threadId = remoteThreadId;
-      if (!threadId) {
-        skipNextThreadHydrationRef.current = true;
-        try {
-          threadId = (await aui.threadListItem().initialize()).remoteId;
-        } catch (error) {
-          skipNextThreadHydrationRef.current = false;
-          throw error;
+      try {
+        let threadId = remoteThreadId;
+        if (!threadId) {
+          skipNextThreadHydrationRef.current = true;
+          try {
+            threadId = (await aui.threadListItem().initialize()).remoteId;
+          } catch (error) {
+            skipNextThreadHydrationRef.current = false;
+            throw error;
+          }
         }
+        if (!threadId) throw new AgentRuntimeProtocolError("AGENT_THREAD_NOT_INITIALIZED");
+        const mentionedAgentIds = readMentionedAgentIds(message);
+        const controller = new AbortController();
+        streamControllerRef.current?.abort();
+        streamControllerRef.current = controller;
+        const created = await createAgentRun(
+          {
+            workspaceId: options.workspaceId,
+            projectId: options.projectId,
+            threadId,
+            leadAgentId: options.leadAgentId,
+            mentionedAgentIds,
+            executionMode: options.executionMode,
+            siteRevisionId: null,
+            message: readComposerText(message),
+            idempotencyKey: commandKey(),
+          },
+          { signal: controller.signal },
+        );
+        consumeAIComposerDirectives("thread", mentionedAgentIds);
+        activeRunIdRef.current = created.runId;
+        const snapshot = await getAgentRunSnapshot(options.workspaceId, created.runId, {
+          signal: controller.signal,
+        });
+        const initial = replaceAgentRunProjectionFromSnapshot(
+          createAgentRunProjection({ runId: created.runId, threadId }),
+          snapshot,
+        );
+        publishProjection(initial);
+        await continueRun(created.runId, initial, controller);
+      } finally {
+        setIsSubmitting(false);
       }
-      if (!threadId) throw new AgentRuntimeProtocolError("AGENT_THREAD_NOT_INITIALIZED");
-      const mentionedAgentIds = readMentionedAgentIds(message);
-      const controller = new AbortController();
-      streamControllerRef.current?.abort();
-      streamControllerRef.current = controller;
-      const created = await createAgentRun(
-        {
-          workspaceId: options.workspaceId,
-          projectId: options.projectId,
-          threadId,
-          leadAgentId: options.leadAgentId,
-          mentionedAgentIds,
-          executionMode: options.executionMode,
-          siteRevisionId: null,
-          message: readComposerText(message),
-          idempotencyKey: commandKey(),
-        },
-        { signal: controller.signal },
-      );
-      consumeAIComposerDirectives("thread", mentionedAgentIds);
-      activeRunIdRef.current = created.runId;
-      const snapshot = await getAgentRunSnapshot(options.workspaceId, created.runId, {
-        signal: controller.signal,
-      });
-      const initial = replaceAgentRunProjectionFromSnapshot(
-        createAgentRunProjection({ runId: created.runId, threadId }),
-        snapshot,
-      );
-      publishProjection(initial);
-      await continueRun(created.runId, initial, controller);
-      setIsSubmitting(false);
     },
     [
       continueRun,
@@ -306,7 +309,9 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
     ],
   );
   const runAgentMessageRef = useRef(runAgentMessage);
-  runAgentMessageRef.current = runAgentMessage;
+  useEffect(() => {
+    runAgentMessageRef.current = runAgentMessage;
+  }, [runAgentMessage]);
   const [messageQueue] = useState(() =>
     createMessageQueue({
       run: (message) => {

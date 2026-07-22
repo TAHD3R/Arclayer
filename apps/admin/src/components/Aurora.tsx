@@ -3,6 +3,8 @@ import { Color, Mesh, Program, Renderer, Triangle } from "ogl";
 
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
+const DEFAULT_COLOR_STOPS: [string, string, string] = ["#5227FF", "#7cff67", "#5227FF"];
+
 const VERT = `#version 300 es
 in vec2 position;
 void main() {
@@ -121,14 +123,14 @@ interface AuroraProps {
 
 export default function Aurora(props: AuroraProps) {
   const {
-    colorStops = ["#5227FF", "#7cff67", "#5227FF"],
+    colorStops = DEFAULT_COLOR_STOPS,
     amplitude = 1,
     blend = 0.5,
+    time,
+    speed = 1,
     luminanceLift = 0,
   } = props;
   const reducedMotion = usePrefersReducedMotion();
-  const propsRef = useRef<AuroraProps>(props);
-  propsRef.current = props;
 
   const ctnDom = useRef<HTMLDivElement>(null);
 
@@ -188,14 +190,13 @@ export default function Aurora(props: AuroraProps) {
 
     let animateId = 0;
     const renderFrame = (t: number) => {
-      const { time = t * 0.01, speed = 1.0 } = propsRef.current;
+      const resolvedTime = time ?? t * 0.01;
       if (program) {
-        program.uniforms.uTime.value = time * speed * 0.1;
-        program.uniforms.uAmplitude.value = propsRef.current.amplitude ?? 1.0;
-        program.uniforms.uBlend.value = propsRef.current.blend ?? blend;
-        program.uniforms.uLuminanceLift.value = propsRef.current.luminanceLift ?? luminanceLift;
-        const stops = propsRef.current.colorStops ?? colorStops;
-        program.uniforms.uColorStops.value = stops.map((hex: string) => {
+        program.uniforms.uTime.value = resolvedTime * speed * 0.1;
+        program.uniforms.uAmplitude.value = amplitude;
+        program.uniforms.uBlend.value = blend;
+        program.uniforms.uLuminanceLift.value = luminanceLift;
+        program.uniforms.uColorStops.value = colorStops.map((hex: string) => {
           const c = new Color(hex);
           return [c.r, c.g, c.b];
         });
@@ -223,7 +224,7 @@ export default function Aurora(props: AuroraProps) {
       }
       gl.getExtension("WEBGL_lose_context")?.loseContext();
     };
-  }, [amplitude, blend, colorStops, luminanceLift, reducedMotion]);
+  }, [amplitude, blend, colorStops, luminanceLift, reducedMotion, speed, time]);
 
   return <div ref={ctnDom} className="size-full" />;
 }

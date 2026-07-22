@@ -35,7 +35,10 @@ function commandKey(prefix: string): string {
 
 function slugFromPath(path: string): string {
   if (path === "/") return "home";
-  return path.split("/").filter(Boolean).at(-1)!.toLowerCase();
+  return path
+    .split("/")
+    .findLast((segment) => segment.length > 0)!
+    .toLowerCase();
 }
 
 export function AddPageDialog({
@@ -116,8 +119,7 @@ export function AddPageDialog({
     },
   });
 
-  const updateForm = (update: () => void) => {
-    update();
+  const invalidatePreview = () => {
     setPreview(null);
     previewMutation.reset();
     applyMutation.reset();
@@ -150,7 +152,10 @@ export function AddPageDialog({
             <Input
               id="builder-page-title"
               value={title}
-              onChange={(event) => updateForm(() => setTitle(event.target.value))}
+              onChange={(event) => {
+                setTitle(event.target.value);
+                invalidatePreview();
+              }}
               placeholder={t("CREATION_EDITOR_ADD_PAGE_NAME_PLACEHOLDER")}
               maxLength={256}
               className="mt-2"
@@ -166,7 +171,10 @@ export function AddPageDialog({
             <Input
               id="builder-page-path"
               value={path}
-              onChange={(event) => updateForm(() => setPath(event.target.value))}
+              onChange={(event) => {
+                setPath(event.target.value);
+                invalidatePreview();
+              }}
               placeholder="/pricing"
               maxLength={512}
               aria-invalid={Boolean(normalizedPath && !pathValid)}
@@ -188,7 +196,10 @@ export function AddPageDialog({
             <NativeSelect
               id="builder-page-parent"
               value={parentItemId}
-              onChange={(event) => updateForm(() => setParentItemId(event.target.value))}
+              onChange={(event) => {
+                setParentItemId(event.target.value);
+                invalidatePreview();
+              }}
               className="mt-2 w-full"
             >
               <NativeSelectOption value="">{t("CREATION_EDITOR_PAGE_ROOT")}</NativeSelectOption>

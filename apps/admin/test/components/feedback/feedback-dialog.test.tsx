@@ -73,7 +73,7 @@ describe("feedback entry surfaces", () => {
     expect(document.querySelector("[data-slot='popover-content']")).toHaveClass(
       "w-[min(22rem,calc(100vw-2rem))]",
     );
-    expect(screen.getByText("platform:FEEDBACK_COMPOSER_TITLE")).toBeVisible();
+    await waitFor(() => expect(screen.getByText("platform:FEEDBACK_COMPOSER_TITLE")).toBeVisible());
     expect(
       screen.getByRole("radiogroup", { name: "platform:FEEDBACK_DIALOG_INTENT_LABEL" }),
     ).toBeVisible();
