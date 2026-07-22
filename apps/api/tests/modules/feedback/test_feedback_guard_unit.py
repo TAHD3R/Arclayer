@@ -41,7 +41,7 @@ def _valid_feedback_payload() -> dict[str, object]:
         "clientRequestId": "guard-feedback-check-1",
         "source": "header",
         "contextType": "global",
-        "category": "usability",
+        "intent": "idea",
         "message": "The feedback center should remain accessible.",
         "contextUrl": "/system/feedback",
         "context": {"route": "/system/feedback"},

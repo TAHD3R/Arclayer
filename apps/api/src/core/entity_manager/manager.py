@@ -30,6 +30,40 @@ class EntityUpdateResult(BaseModel):
     previous_version_number: int
 
 
+class EntityAfterCommitHook(BaseModel):
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
+
+    action: LifecycleAction
+    model_key: str
+    workspace_id: UUID
+    site_id: UUID
+    item_id: UUID
+    result: SkipValidation[ContentItemRecord | ContentVersionRecord | None]
+    actor_id: UUID | None
+    state: JsonObject
+
+
+class EntityCreateTransactionResult(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    result: EntityCreateResult
+    after_commit: EntityAfterCommitHook
+
+
+class EntityDeleteTransactionResult(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    deleted: bool
+    after_commit: EntityAfterCommitHook | None
+
+
+class EntityUpdateTransactionResult(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    result: EntityUpdateResult
+    after_commit: EntityAfterCommitHook
+
+
 @asynccontextmanager
 async def _transaction(conn: BaseDBAsyncClient | None = None) -> AsyncIterator[BaseDBAsyncClient]:
     if conn is not None:
@@ -82,11 +116,65 @@ class EntityManager:
         before_commit: Callable[[ContentItemRecord, ContentVersionRecord, BaseDBAsyncClient], Awaitable[None]]
         | None = None,
     ) -> EntityCreateResult:
+        async with _transaction() as conn:
+            transaction_result = await self.create_in_transaction(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                environment_id=environment_id,
+                model_key=model_key,
+                data=data,
+                slug=slug,
+                title=title,
+                locale=locale,
+                actor_id=actor_id,
+                resolved_role=resolved_role,
+                resolved_posture=resolved_posture,
+                resolved_surface=resolved_surface,
+                shape_state=shape_state,
+                shape_reason_code=shape_reason_code,
+                shape_reason_meta=shape_reason_meta,
+                bootstrap_preset_key=bootstrap_preset_key,
+                bootstrap_preset_state=bootstrap_preset_state,
+                capability_pack_ids=capability_pack_ids,
+                translation_group_id=translation_group_id,
+                before_commit=before_commit,
+                conn=conn,
+            )
+        await self.dispatch_after_commit(transaction_result.after_commit)
+        return transaction_result.result
+
+    async def create_in_transaction(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        environment_id: UUID | None = None,
+        model_key: str,
+        data: JsonObject,
+        slug: str,
+        title: str | None = None,
+        locale: str = "en-US",
+        actor_id: UUID | None = None,
+        resolved_role: str | None = None,
+        resolved_posture: str | None = None,
+        resolved_surface: str | None = None,
+        shape_state: str = "unshaped",
+        shape_reason_code: str | None = None,
+        shape_reason_meta: JsonObject | None = None,
+        bootstrap_preset_key: str | None = None,
+        bootstrap_preset_state: str = "none",
+        capability_pack_ids: list[str] | None = None,
+        translation_group_id: UUID | None = None,
+        before_commit: Callable[[ContentItemRecord, ContentVersionRecord, BaseDBAsyncClient], Awaitable[None]]
+        | None = None,
+        conn: BaseDBAsyncClient,
+    ) -> EntityCreateTransactionResult:
         model = await self._items.get_model_definition_by_key(
             workspace_id=workspace_id,
             site_id=site_id,
             environment_id=environment_id,
             model_key=model_key,
+            conn=conn,
         )
         if model is None:
             raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")
@@ -101,56 +189,68 @@ class EntityManager:
         )
         resolved_data = {**data, **before_evt.data}
 
-        async with _transaction() as conn:
-            item = await self._items.create_item(
-                workspace_id=workspace_id,
-                site_id=site_id,
-                environment_id=environment_id,
-                model_definition_id=model.id,
-                slug=slug,
-                title=title,
-                locale=locale,
-                status="draft",
-                visibility="public",
-                bootstrap_preset_key=bootstrap_preset_key,
-                bootstrap_preset_state=bootstrap_preset_state,
-                capability_pack_ids=capability_pack_ids or [],
-                resolved_role=resolved_role,
-                resolved_posture=resolved_posture,
-                resolved_surface=resolved_surface,
-                shape_state=shape_state,
-                shape_reason_code=shape_reason_code,
-                shape_reason_meta=shape_reason_meta,
-                translation_group_id=translation_group_id,
-                actor_user_id=actor_id,
-                conn=conn,
-            )
-
-            version = await self._items.create_version(
-                item_id=item.id,
-                version=1,
-                state="draft",
-                fields_snapshot=resolved_data,
-                change_summary=None,
-                actor_user_id=actor_id,
-                last_transition_by_user_id=actor_id,
-                conn=conn,
-            )
-            item = await self._items.update_item_fields(item, fields={"draft_version": 1}, conn=conn)
-            if before_commit is not None:
-                await before_commit(item, version, conn)
-
-        await self._dispatch_after(
-            action=LifecycleAction.AFTER_CREATE,
-            model_key=model_key,
+        item = await self._items.create_item(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
+            model_definition_id=model.id,
+            slug=slug,
+            title=title,
+            locale=locale,
+            status="draft",
+            visibility="public",
+            bootstrap_preset_key=bootstrap_preset_key,
+            bootstrap_preset_state=bootstrap_preset_state,
+            capability_pack_ids=capability_pack_ids or [],
+            resolved_role=resolved_role,
+            resolved_posture=resolved_posture,
+            resolved_surface=resolved_surface,
+            shape_state=shape_state,
+            shape_reason_code=shape_reason_code,
+            shape_reason_meta=shape_reason_meta,
+            translation_group_id=translation_group_id,
+            actor_user_id=actor_id,
+            conn=conn,
+        )
+        version = await self._items.create_version(
             item_id=item.id,
-            result=item,
-            actor_id=actor_id,
+            version=1,
+            state="draft",
+            fields_snapshot=resolved_data,
+            change_summary=None,
+            actor_user_id=actor_id,
+            last_transition_by_user_id=actor_id,
+            conn=conn,
+        )
+        item = await self._items.update_item_fields(item, fields={"draft_version": 1}, conn=conn)
+        if before_commit is not None:
+            await before_commit(item, version, conn)
+        result = EntityCreateResult(item=item, version=version)
+        return EntityCreateTransactionResult(
+            result=result,
+            after_commit=EntityAfterCommitHook(
+                action=LifecycleAction.AFTER_CREATE,
+                model_key=model_key,
+                workspace_id=workspace_id,
+                site_id=site_id,
+                item_id=item.id,
+                result=item,
+                actor_id=actor_id,
+                state=before_evt.state.copy(),
+            ),
         )
 
-        return EntityCreateResult(item=item, version=version)
+    async def dispatch_after_commit(self, hook: EntityAfterCommitHook) -> None:
+        await self._dispatch_after(
+            action=hook.action,
+            model_key=hook.model_key,
+            workspace_id=hook.workspace_id,
+            site_id=hook.site_id,
+            item_id=hook.item_id,
+            result=hook.result,
+            actor_id=hook.actor_id,
+            state=hook.state,
+        )
 
     async def update(
         self,
@@ -162,7 +262,38 @@ class EntityManager:
         item_id: UUID,
         data: JsonObject,
         actor_id: UUID | None = None,
+        before_commit: Callable[[ContentItemRecord, ContentVersionRecord, BaseDBAsyncClient], Awaitable[None]]
+        | None = None,
     ) -> EntityUpdateResult:
+        async with _transaction() as conn:
+            transaction_result = await self.update_in_transaction(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                environment_id=environment_id,
+                model_key=model_key,
+                item_id=item_id,
+                data=data,
+                actor_id=actor_id,
+                before_commit=before_commit,
+                conn=conn,
+            )
+        await self.dispatch_after_commit(transaction_result.after_commit)
+        return transaction_result.result
+
+    async def update_in_transaction(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        environment_id: UUID | None = None,
+        model_key: str,
+        item_id: UUID,
+        data: JsonObject,
+        actor_id: UUID | None = None,
+        before_commit: Callable[[ContentItemRecord, ContentVersionRecord, BaseDBAsyncClient], Awaitable[None]]
+        | None = None,
+        conn: BaseDBAsyncClient,
+    ) -> EntityUpdateTransactionResult:
         before_evt = await self._dispatch_before(
             action=LifecycleAction.BEFORE_UPDATE,
             model_key=model_key,
@@ -173,46 +304,46 @@ class EntityManager:
             actor_id=actor_id,
         )
         resolved_data = {**data, **before_evt.data}
-
-        async with in_transaction() as conn:
-            item = await self._items.get_item_with_model(
-                workspace_id=workspace_id,
-                site_id=site_id,
-                environment_id=environment_id,
-                item_id=item_id,
-                conn=conn,
-                for_update=True,
-            )
-            if item is None:
-                raise NotFound("Content item not found", error="CONTENT_ITEM_NOT_FOUND")
-
-            previous_version = int(item.draft_version or 0)
-            next_version = previous_version + 1
-
-            version = await self._items.create_version(
-                item_id=item_id,
-                version=next_version,
-                state="draft",
-                fields_snapshot=resolved_data,
-                change_summary=None,
-                actor_user_id=actor_id,
-                last_transition_by_user_id=actor_id,
-                conn=conn,
-            )
-
-            await self._items.update_item_fields(item, fields={"draft_version": next_version}, conn=conn)
-
-        await self._dispatch_after(
-            action=LifecycleAction.AFTER_UPDATE,
-            model_key=model_key,
+        item = await self._items.get_item_with_model(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             item_id=item_id,
-            result=version,
-            actor_id=actor_id,
+            conn=conn,
+            for_update=True,
         )
+        if item is None:
+            raise NotFound("Content item not found", error="CONTENT_ITEM_NOT_FOUND")
 
-        return EntityUpdateResult(version=version, previous_version_number=previous_version)
+        previous_version = int(item.draft_version or 0)
+        next_version = previous_version + 1
+        version = await self._items.create_version(
+            item_id=item_id,
+            version=next_version,
+            state="draft",
+            fields_snapshot=resolved_data,
+            change_summary=None,
+            actor_user_id=actor_id,
+            last_transition_by_user_id=actor_id,
+            conn=conn,
+        )
+        await self._items.update_item_fields(item, fields={"draft_version": next_version}, conn=conn)
+        if before_commit is not None:
+            await before_commit(item, version, conn)
+        result = EntityUpdateResult(version=version, previous_version_number=previous_version)
+        return EntityUpdateTransactionResult(
+            result=result,
+            after_commit=EntityAfterCommitHook(
+                action=LifecycleAction.AFTER_UPDATE,
+                model_key=model_key,
+                workspace_id=workspace_id,
+                site_id=site_id,
+                item_id=item_id,
+                result=version,
+                actor_id=actor_id,
+                state=before_evt.state.copy(),
+            ),
+        )
 
     async def delete(
         self,
@@ -226,42 +357,70 @@ class EntityManager:
         before_commit: Callable[[Any, BaseDBAsyncClient], Awaitable[None]] | None = None,
     ) -> bool:
         async with _transaction() as conn:
-            item = await self._items.get_item_with_model(
+            transaction_result = await self.delete_in_transaction(
                 workspace_id=workspace_id,
                 site_id=site_id,
                 environment_id=environment_id,
-                item_id=item_id,
-                conn=conn,
-                for_update=True,
-            )
-            if item is None:
-                return False
-
-            await self._dispatch_before(
-                action=LifecycleAction.BEFORE_DELETE,
                 model_key=model_key,
-                workspace_id=workspace_id,
-                site_id=site_id,
-                item_id=item.id,
+                item_id=item_id,
                 actor_id=actor_id,
+                before_commit=before_commit,
+                conn=conn,
             )
+        if transaction_result.after_commit is not None:
+            await self.dispatch_after_commit(transaction_result.after_commit)
+        return transaction_result.deleted
 
-            count = await self._items.delete_item(item_id=item.id, conn=conn)
-            if count > 0 and before_commit is not None:
-                await before_commit(item, conn)
+    async def delete_in_transaction(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        environment_id: UUID | None = None,
+        model_key: str,
+        item_id: UUID,
+        actor_id: UUID | None = None,
+        before_commit: Callable[[Any, BaseDBAsyncClient], Awaitable[None]] | None = None,
+        conn: BaseDBAsyncClient,
+    ) -> EntityDeleteTransactionResult:
+        item = await self._items.get_item_with_model(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            environment_id=environment_id,
+            item_id=item_id,
+            conn=conn,
+            for_update=True,
+        )
+        if item is None:
+            return EntityDeleteTransactionResult(deleted=False, after_commit=None)
+
+        before_evt = await self._dispatch_before(
+            action=LifecycleAction.BEFORE_DELETE,
+            model_key=model_key,
+            workspace_id=workspace_id,
+            site_id=site_id,
+            item_id=item.id,
+            actor_id=actor_id,
+        )
+        count = await self._items.delete_item(item_id=item.id, conn=conn)
+        if count > 0 and before_commit is not None:
+            await before_commit(item, conn)
         deleted = count > 0
-
-        if deleted:
-            await self._dispatch_after(
+        hook = (
+            EntityAfterCommitHook(
                 action=LifecycleAction.AFTER_DELETE,
                 model_key=model_key,
                 workspace_id=workspace_id,
                 site_id=site_id,
                 item_id=item_id,
+                result=None,
                 actor_id=actor_id,
+                state=before_evt.state.copy(),
             )
-
-        return deleted
+            if deleted
+            else None
+        )
+        return EntityDeleteTransactionResult(deleted=deleted, after_commit=hook)
 
     async def dispatch_before_publish(
         self,
@@ -472,6 +631,7 @@ class EntityManager:
         item_id: Any | None = None,
         result: Any = None,
         actor_id: Any | None = None,
+        state: JsonObject | None = None,
     ) -> None:
         if self._lifecycle is None:
             return
@@ -483,4 +643,5 @@ class EntityManager:
             item_id=item_id,
             result=result,
             actor_id=actor_id,
+            state=state,
         )

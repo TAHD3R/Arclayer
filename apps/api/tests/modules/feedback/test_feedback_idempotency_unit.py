@@ -6,13 +6,21 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
+from pydantic import TypeAdapter, ValidationError
 
 from src.common.types.json_types import JsonObject
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict
-from src.models.feedback.feedback import FeedbackCategory, FeedbackContextType, FeedbackSource
+from src.models.feedback.feedback import (
+    FeedbackContextType as StoredFeedbackContextType,
+)
+from src.models.feedback.feedback import FeedbackIntent, FeedbackSource
 from src.models.organization.user import User
-from src.modules.feedback.schema import FeedbackSubmitRequest
+from src.modules.feedback.schema import (
+    FeedbackContextType,
+    FeedbackOutputContextType,
+    FeedbackSubmitRequest,
+)
 from src.modules.feedback.service import FeedbackService
 
 
@@ -26,7 +34,7 @@ def _payload(message: str = "The publish confirmation needs a clearer status.") 
         client_request_id="019f6ec1-c45b-7558-9ee6-c6dcf53f4042",
         source=FeedbackSource.HEADER,
         context_type=FeedbackContextType.GLOBAL,
-        category=FeedbackCategory.USABILITY,
+        intent=FeedbackIntent.IDEA,
         message=message,
         context_url="/system/overview",
         context={"route": "/system/overview"},
@@ -44,6 +52,23 @@ def _reporter() -> User:
             avatar_url=None,
         ),
     )
+
+
+def test_feedback_rejects_retired_ai_conversation_context() -> None:
+    with pytest.raises(ValidationError):
+        FeedbackSubmitRequest.model_validate({
+            "clientRequestId": "019f6ec1-c45b-7558-9ee6-c6dcf53f4042",
+            "source": "ai_sidebar",
+            "contextType": "ai_conversation",
+            "workspaceId": str(uuid4()),
+            "message": "The assistant response omitted the requested rollout risk.",
+        })
+
+
+def test_historical_ai_conversation_feedback_projects_to_workspace_context() -> None:
+    context_type = TypeAdapter(FeedbackOutputContextType).validate_python(StoredFeedbackContextType.AI_CONVERSATION)
+
+    assert context_type == "workspace"
 
 
 def _transaction() -> tuple[MagicMock, MagicMock]:

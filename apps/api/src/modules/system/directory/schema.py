@@ -109,6 +109,10 @@ class DirectoryProjectDetailOut(DirectoryProjectListItemOut):
 class DirectoryUserUpdateRequest(BaseSchema):
     email: EmailStr | None = Field(default=None, description="Email address.")
     display_name: str | None = Field(default=None, max_length=64, description="Display name.")
+    is_super_admin: bool | None = Field(
+        default=None,
+        description="Whether the user has system-wide super admin access.",
+    )
     avatar_asset_id: PublicUUID | None = Field(
         default=None,
         description="Avatar asset id.",

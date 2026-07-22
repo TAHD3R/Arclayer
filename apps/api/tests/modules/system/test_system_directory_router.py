@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import builtins
 from datetime import datetime
+from types import SimpleNamespace
+from uuid import uuid4
 
 import pytest
 from fastapi import FastAPI
@@ -26,6 +28,7 @@ from src.models.workspaces.workspace import (
 from src.modules.auth.http.service import get_current_user, require_super_admin
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.tokens.service import hash_password, verify_password
+from src.modules.system.mail.template_defaults import ensure_default_email_templates
 from src.modules.system.router import router as system_router
 from tests.utils.asgi_client import asgi_client
 
@@ -549,6 +552,7 @@ async def test_system_directory_detail_returns_not_found() -> None:
 @pytest.mark.usefixtures("db")
 async def test_system_directory_user_governance_actions_update_account_and_sessions() -> None:
     settings = get_settings()
+    await ensure_default_email_templates()
     acting_admin = await User.create(
         username="platform-admin",
         email="platform-admin@example.com",
@@ -680,6 +684,75 @@ async def test_system_directory_user_governance_rejects_email_conflict_and_self_
     assert conflict_res.json()["error"] == "EMAIL_EXISTS"
     assert self_disable_res.status_code == 400
     assert self_disable_res.json()["error"] == "CANNOT_DISABLE_SELF"
+
+
+@pytest.mark.usefixtures("db")
+async def test_system_directory_user_governance_manages_super_admin_continuity() -> None:
+    acting_admin = await User.create(
+        username="role-admin",
+        email="role-admin@example.com",
+        display_name="Role Admin",
+        status=UserStatus.ACTIVE,
+        is_super_admin=True,
+    )
+    managed_user = await User.create(
+        username="role-target",
+        email="role-target@example.com",
+        display_name="Role Target",
+        status=UserStatus.ACTIVE,
+        is_super_admin=False,
+    )
+
+    app = await _build_app()
+
+    async def _super_admin_override() -> User:
+        return acting_admin
+
+    app.dependency_overrides[get_current_user] = _super_admin_override
+    app.dependency_overrides[require_super_admin] = _super_admin_override
+
+    async with asgi_client(app) as client:
+        grant_res = await client.patch(
+            f"/api/v1/system/directory/users/{managed_user.id}",
+            json={"isSuperAdmin": True},
+        )
+        revoke_res = await client.patch(
+            f"/api/v1/system/directory/users/{managed_user.id}",
+            json={"isSuperAdmin": False},
+        )
+        self_revoke_res = await client.patch(
+            f"/api/v1/system/directory/users/{acting_admin.id}",
+            json={"isSuperAdmin": False},
+        )
+
+    assert grant_res.status_code == 200
+    assert grant_res.json()["data"]["isSuperAdmin"] is True
+    assert revoke_res.status_code == 200
+    assert revoke_res.json()["data"]["isSuperAdmin"] is False
+    assert self_revoke_res.status_code == 400
+    assert self_revoke_res.json()["error"] == "CANNOT_REVOKE_SELF_SUPER_ADMIN"
+
+    async def _external_super_admin_override() -> object:
+        return SimpleNamespace(id=uuid4(), is_super_admin=True)
+
+    app.dependency_overrides[get_current_user] = _external_super_admin_override
+    app.dependency_overrides[require_super_admin] = _external_super_admin_override
+
+    async with asgi_client(app) as client:
+        last_role_res = await client.patch(
+            f"/api/v1/system/directory/users/{acting_admin.id}",
+            json={"isSuperAdmin": False},
+        )
+        last_disable_res = await client.post(
+            f"/api/v1/system/directory/users/{acting_admin.id}/disable",
+        )
+        last_delete_res = await client.delete(
+            f"/api/v1/system/directory/users/{acting_admin.id}",
+        )
+
+    for response in (last_role_res, last_disable_res, last_delete_res):
+        assert response.status_code == 409
+        assert response.json()["error"] == "LAST_ACTIVE_SUPER_ADMIN"
 
 
 @pytest.mark.usefixtures("db")

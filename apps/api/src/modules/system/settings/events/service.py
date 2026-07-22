@@ -80,7 +80,7 @@ class SettingsEventsMixin:
         patch: JsonObject,
         actor_user_id: str | None,
         conn: BaseDBAsyncClient | None = None,
-    ) -> None:
+    ) -> tuple[str, JsonObject]:
         secret_paths = set(iter_secret_field_paths(schema))
         changed_paths = _flatten_patch_paths(patch)
         contains_secrets = any((p in secret_paths) or _is_secret_descendant(p, secret_paths) for p in changed_paths)
@@ -100,6 +100,11 @@ class SettingsEventsMixin:
             ),
             conn=conn,
         )
+        return event_name, {
+            "namespace": namespace,
+            "paths": changed_paths,
+            "contains_sensitive_values": contains_secrets,
+        }
 
 
 def _coerce_uuid(value: str | None):

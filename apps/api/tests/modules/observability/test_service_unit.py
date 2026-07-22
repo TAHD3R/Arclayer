@@ -159,6 +159,8 @@ async def test_http_request_groups_are_filtered_parameterized_and_paginated() ->
                     "error_requests": 2,
                     "duration_total_ms": 1_000,
                     "max_latency_ms": 120,
+                    "p95_latency_ms": Decimal("90.5"),
+                    "p99_latency_ms": Decimal("115.25"),
                     "last_seen_at": datetime(2026, 7, 13, 1, tzinfo=UTC),
                 }
             ],
@@ -198,6 +200,8 @@ async def test_http_request_groups_are_filtered_parameterized_and_paginated() ->
     assert result.items[0].requests == 20
     assert result.items[0].error_rate == 0.1
     assert result.items[0].avg_latency_ms == 50
+    assert result.items[0].p95_latency_ms == 90.5
+    assert result.items[0].p99_latency_ms == 115.25
     count_call, page_call = connection.execute_query_dict.await_args_list
     assert "m.route_template ILIKE $3" in count_call.args[0]
     assert "m.method = $4" in count_call.args[0]
@@ -210,7 +214,110 @@ async def test_http_request_groups_are_filtered_parameterized_and_paginated() ->
         2,
     ]
     assert "LIMIT $6 OFFSET $7" in page_call.args[0]
+    assert "PERCENTILE_CONT(0.95)" in page_call.args[0]
     assert page_call.args[1][-2:] == [1, 0]
+
+
+@pytest.mark.asyncio
+async def test_http_summary_calculates_tail_latency_from_request_facts() -> None:
+    service = ObservabilityService(_settings())
+    connection = MagicMock()
+    connection.execute_query_dict = AsyncMock(
+        return_value=[
+            {
+                "requests": 4,
+                "error_requests": 1,
+                "duration_total_ms": 200,
+                "duration_max_ms": 120,
+                "p95_latency_ms": Decimal("110.5"),
+                "p99_latency_ms": Decimal("118.1"),
+            }
+        ]
+    )
+    registry = MagicMock()
+    registry.get.return_value = connection
+
+    with patch("src.modules.observability.service.connections", registry):
+        result = await service._http_summary(
+            start=datetime(2026, 7, 1, tzinfo=UTC),
+            end=datetime(2026, 7, 2, tzinfo=UTC),
+            workspace_id=None,
+            project_id=None,
+        )
+
+    assert result.avg_latency_ms == 50
+    assert result.p95_latency_ms == 110.5
+    assert result.p99_latency_ms == 118.1
+    assert connection.execute_query_dict.await_args is not None
+    sql = connection.execute_query_dict.await_args.args[0]
+    assert "observability_http_request_records" in sql
+    assert "PERCENTILE_CONT(0.99)" in sql
+
+
+@pytest.mark.asyncio
+async def test_http_request_records_include_actor_and_support_trace_search() -> None:
+    service = ObservabilityService(_settings())
+    actor_id = uuid4()
+    record_id = uuid4()
+    connection = MagicMock()
+    connection.execute_query_dict = AsyncMock(
+        side_effect=[
+            [{"total": 1}],
+            [
+                {
+                    "id": record_id,
+                    "occurred_at": datetime(2026, 7, 13, 1, tzinfo=UTC),
+                    "trace_id": "trace-1",
+                    "actor_user_id": actor_id,
+                    "actor_username": "alex",
+                    "actor_display_name": "Alex",
+                    "actor_avatar_url": "/avatar.png",
+                    "workspace_id": None,
+                    "project_id": None,
+                    "route_template": "/api/v1/projects/{project_id}",
+                    "method": "PATCH",
+                    "status_code": 503,
+                    "duration_ms": 88,
+                }
+            ],
+        ]
+    )
+    registry = MagicMock()
+    registry.get.return_value = connection
+
+    with (
+        patch("src.modules.observability.service.connections", registry),
+        patch.object(service, "resolve_scope", new=AsyncMock(return_value=(None, None))),
+        patch("src.modules.observability.service._period") as period,
+    ):
+        period.return_value = (
+            datetime(2026, 7, 1, tzinfo=UTC),
+            datetime(2026, 7, 14, tzinfo=UTC),
+            ObservabilityPeriodOut(
+                start_date=date(2026, 7, 1),
+                end_date=date(2026, 7, 13),
+                days=13,
+            ),
+        )
+        result = await service.list_http_request_records(
+            days=13,
+            params=PageParams(page=1, size=20),
+            query="trace-1",
+            method="patch",
+            status_class=5,
+            workspace_id=None,
+            project_id=None,
+        )
+
+    assert result.total == 1
+    assert result.items[0].id == record_id
+    assert result.items[0].actor is not None
+    assert result.items[0].actor.display_name == "Alex"
+    count_call, page_call = connection.execute_query_dict.await_args_list
+    assert "r.trace_id ILIKE $3" in count_call.args[0]
+    assert "r.method = $4" in count_call.args[0]
+    assert "r.status_code / 100" in count_call.args[0]
+    assert "LEFT JOIN users" in page_call.args[0]
 
 
 @pytest.mark.asyncio

@@ -10,7 +10,7 @@ from src.models.auth.oauth_identity import OAuthIdentity
 from src.models.auth.user_two_factor import UserTwoFactor, UserTwoFactorBackupCode
 from src.models.organization.org_membership import OrgMembership
 from src.models.organization.organization import Organization
-from src.models.organization.user import User, UserCredential
+from src.models.organization.user import User, UserCredential, UserStatus
 from src.models.projects.membership import ProjectMembership
 from src.models.projects.project import ProjectRecord
 from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
@@ -71,6 +71,12 @@ def _normalize_ordering(value: str | None, allowed: dict[str, str], default: str
 
 
 class SystemDirectoryRepository(TortoiseORMRepository):
+    async def count_active_super_admins(self) -> int:
+        return await User.filter(
+            is_super_admin=True,
+            status=UserStatus.ACTIVE,
+        ).count()
+
     async def _user_filter_q(self, *, filters: DirectoryUserListFilters) -> Q:
         query = Q()
         if filters.status is not None:

@@ -69,14 +69,11 @@ async def test_system_activity_list_returns_events(db_schema) -> None:
         "auth.login.succeeded",
         "system.settings.updated",
     }
-    assert {item.get("organizationId") for item in items} == {
-        encode_uuid(org_id),
-        encode_uuid(other_org_id),
-    }
+    assert all("organizationId" not in item for item in items)
 
 
 @pytest.mark.asyncio
-async def test_system_activity_supports_organization_filter_and_pagination(db_schema) -> None:
+async def test_system_activity_supports_event_time_filters_and_pagination(db_schema) -> None:
     org_id = uuid4()
     other_org_id = uuid4()
     user_id = uuid4()
@@ -98,7 +95,7 @@ async def test_system_activity_supports_organization_filter_and_pagination(db_sc
     )
     await AuditEvent.create(
         occurred_at=base_time,
-        event_name="workspace.member.invited",
+        event_name="workspace.member.removed",
         organization_id=other_org_id,
         actor_user_id=user_id,
         properties={"seq": 99},
@@ -123,7 +120,6 @@ async def test_system_activity_supports_organization_filter_and_pagination(db_sc
         res = await client.get(
             "/api/v1/system/activity",
             params={
-                "organizationId": encode_uuid(org_id),
                 "eventName": "workspace.member.invited",
                 "occurredFrom": (base_time - timedelta(minutes=3)).isoformat(),
                 "occurredTo": (base_time + timedelta(minutes=1)).isoformat(),
@@ -137,13 +133,12 @@ async def test_system_activity_supports_organization_filter_and_pagination(db_sc
         assert payload["pages"] == 2
         assert payload["next"] == 2
         assert payload["prev"] is None
-        assert payload["items"][0]["organizationId"] == encode_uuid(org_id)
+        assert "organizationId" not in payload["items"][0]
         assert payload["items"][0]["properties"]["seq"] == 2
 
         res_next = await client.get(
             "/api/v1/system/activity",
             params={
-                "organizationId": encode_uuid(org_id),
                 "eventName": "workspace.member.invited",
                 "occurredFrom": (base_time - timedelta(minutes=3)).isoformat(),
                 "occurredTo": (base_time + timedelta(minutes=1)).isoformat(),
@@ -201,7 +196,6 @@ async def test_system_activity_empty_result_and_descending_order(db_schema) -> N
         res = await client.get(
             "/api/v1/system/activity",
             params={
-                "organizationId": encode_uuid(org_id),
                 "eventName": "system.mail.updated",
                 "occurredFrom": (base_time - timedelta(minutes=1)).isoformat(),
                 "occurredTo": (base_time + timedelta(minutes=1)).isoformat(),
@@ -220,7 +214,7 @@ async def test_system_activity_empty_result_and_descending_order(db_schema) -> N
         empty = await client.get(
             "/api/v1/system/activity",
             params={
-                "organizationId": encode_uuid(other_org_id := uuid4()),
+                "eventName": "missing.event",
                 "page": 1,
                 "size": 10,
             },
@@ -285,7 +279,6 @@ async def test_workspace_activity_route_enforces_workspace_scope(db_schema) -> N
             f"/api/v1/workspaces/{encode_uuid(workspace_id)}/activity",
             params={
                 "workspaceId": encode_uuid(other_workspace_id),
-                "organizationId": encode_uuid(org_id),
                 "page": 1,
                 "size": 10,
             },
@@ -294,3 +287,4 @@ async def test_workspace_activity_route_enforces_workspace_scope(db_schema) -> N
         payload = res.json()["data"]
         assert payload["total"] == 1
         assert payload["items"][0]["workspaceId"] == encode_uuid(workspace_id)
+        assert "organizationId" not in payload["items"][0]

@@ -18,11 +18,13 @@ from src.models.feedback.feedback import FeedbackStatus, FeedbackTicket
 from src.models.organization.user import User, UserStatus
 from src.models.projects.project import ProjectRecord
 from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
+from src.modules.analytics.schema import ActivityUserSummaryOut
 from src.modules.observability.schema import (
     AIObservabilitySummaryOut,
     AIUsageGroupOut,
     HTTPObservabilitySummaryOut,
     HTTPRequestGroupOut,
+    HTTPRequestRecordOut,
     ObservabilityAttributionCoverageOut,
     ObservabilityDataAvailabilityOut,
     ObservabilityOperationsOut,
@@ -139,15 +141,33 @@ class ObservabilityService:
             workspace_id=workspace_id,
             project_id=project_id,
         )
+        raw_where, _ = _scope_where(
+            alias="r",
+            start=start,
+            end=end,
+            time_column="occurred_at",
+            workspace_id=workspace_id,
+            project_id=project_id,
+        )
         rows = await connections.get("default").execute_query_dict(
             f"""
-            SELECT
-                COALESCE(SUM(m.request_count), 0) AS requests,
-                COALESCE(SUM(m.error_count), 0) AS error_requests,
-                COALESCE(SUM(m.duration_total_ms), 0) AS duration_total_ms,
-                COALESCE(MAX(m.duration_max_ms), 0) AS duration_max_ms
-            FROM observability_http_request_metrics_hourly m
-            WHERE {where}
+            WITH totals AS (
+                SELECT
+                    COALESCE(SUM(m.request_count), 0) AS requests,
+                    COALESCE(SUM(m.error_count), 0) AS error_requests,
+                    COALESCE(SUM(m.duration_total_ms), 0) AS duration_total_ms,
+                    COALESCE(MAX(m.duration_max_ms), 0) AS duration_max_ms
+                FROM observability_http_request_metrics_hourly m
+                WHERE {where}
+            ), percentiles AS (
+                SELECT
+                    PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY r.duration_ms) AS p95_latency_ms,
+                    PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY r.duration_ms) AS p99_latency_ms
+                FROM observability_http_request_records r
+                WHERE {raw_where}
+            )
+            SELECT totals.*, percentiles.p95_latency_ms, percentiles.p99_latency_ms
+            FROM totals CROSS JOIN percentiles
             """,
             values,
         )
@@ -159,6 +179,12 @@ class ObservabilityService:
             error_requests=errors,
             error_rate=round(errors / requests, 6) if requests else 0,
             avg_latency_ms=round(_number(row.get("duration_total_ms")) / requests, 2) if requests else 0,
+            p95_latency_ms=(
+                round(_number(row.get("p95_latency_ms")), 2) if row.get("p95_latency_ms") is not None else None
+            ),
+            p99_latency_ms=(
+                round(_number(row.get("p99_latency_ms")), 2) if row.get("p99_latency_ms") is not None else None
+            ),
             max_latency_ms=_int(row.get("duration_max_ms")),
         )
 
@@ -199,6 +225,14 @@ class ObservabilityService:
             values.append(status_class)
             clauses.append(f"m.status_class = ${len(values)}")
         filter_sql = " AND ".join(clauses)
+        raw_where, _ = _scope_where(
+            alias="r",
+            start=start,
+            end=end,
+            time_column="occurred_at",
+            workspace_id=workspace_id,
+            project_id=project_id,
+        )
         connection = connections.get("default")
         count_rows = await connection.execute_query_dict(
             "SELECT COUNT(*) AS total FROM ("
@@ -216,15 +250,31 @@ class ObservabilityService:
             limit_placeholder = len(page_values) - 1
             offset_placeholder = len(page_values)
             rows = await connection.execute_query_dict(
+                "WITH grouped AS ("
                 "SELECT m.route_template, m.method, m.status_class, "
                 "SUM(m.request_count) AS requests, SUM(m.error_count) AS error_requests, "
                 "SUM(m.duration_total_ms) AS duration_total_ms, "
                 "MAX(m.duration_max_ms) AS max_latency_ms, "
-                "MAX(m.bucket_start) + INTERVAL '1 hour' AS last_seen_at "
+                "MAX(m.bucket_start) + INTERVAL '1 hour' AS aggregate_last_seen_at "
                 f"FROM observability_http_request_metrics_hourly m WHERE {filter_sql} "
                 "GROUP BY m.route_template, m.method, m.status_class "
                 "ORDER BY requests DESC, m.route_template, m.method, m.status_class "
-                f"LIMIT ${limit_placeholder} OFFSET ${offset_placeholder}",
+                f"LIMIT ${limit_placeholder} OFFSET ${offset_placeholder}"
+                "), latency AS ("
+                "SELECT r.route_template, r.method, "
+                "CASE WHEN r.status_code > 0 THEN r.status_code / 100 ELSE 0 END AS status_class, "
+                "PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY r.duration_ms) AS p95_latency_ms, "
+                "PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY r.duration_ms) AS p99_latency_ms, "
+                "MAX(r.occurred_at) AS record_last_seen_at "
+                "FROM observability_http_request_records r INNER JOIN grouped g "
+                "ON g.route_template = r.route_template AND g.method = r.method "
+                "AND g.status_class = CASE WHEN r.status_code > 0 THEN r.status_code / 100 ELSE 0 END "
+                f"WHERE {raw_where} "
+                "GROUP BY r.route_template, r.method, status_class"
+                ") SELECT g.*, l.p95_latency_ms, l.p99_latency_ms, "
+                "COALESCE(l.record_last_seen_at, g.aggregate_last_seen_at) AS last_seen_at "
+                "FROM grouped g LEFT JOIN latency l USING (route_template, method, status_class) "
+                "ORDER BY g.requests DESC, g.route_template, g.method, g.status_class",
                 page_values,
             )
             for row in rows:
@@ -239,11 +289,114 @@ class ObservabilityService:
                         error_requests=errors,
                         error_rate=round(errors / requests, 6) if requests else 0,
                         avg_latency_ms=(round(_number(row.get("duration_total_ms")) / requests, 2) if requests else 0),
+                        p95_latency_ms=(
+                            round(_number(row.get("p95_latency_ms")), 2)
+                            if row.get("p95_latency_ms") is not None
+                            else None
+                        ),
+                        p99_latency_ms=(
+                            round(_number(row.get("p99_latency_ms")), 2)
+                            if row.get("p99_latency_ms") is not None
+                            else None
+                        ),
                         max_latency_ms=_int(row.get("max_latency_ms")),
                         last_seen_at=row["last_seen_at"],
                     )
                 )
         return PageData[HTTPRequestGroupOut](
+            items=items,
+            total=total,
+            page=params.page,
+            size=params.size,
+            pages=pages,
+            next=params.page + 1 if params.page < pages else None,
+            prev=min(params.page - 1, pages) if pages and params.page > 1 else None,
+        )
+
+    async def list_http_request_records(
+        self,
+        *,
+        days: int,
+        params: PageParams,
+        query: str | None,
+        method: str | None,
+        status_class: int | None,
+        workspace_id: UUID | None,
+        project_id: UUID | None,
+    ) -> PageData[HTTPRequestRecordOut]:
+        self._validate_days(days)
+        workspace_id, project_id = await self.resolve_scope(
+            workspace_id=workspace_id,
+            project_id=project_id,
+        )
+        start, end, _ = _period(days)
+        where, values = _scope_where(
+            alias="r",
+            start=start,
+            end=end,
+            time_column="occurred_at",
+            workspace_id=workspace_id,
+            project_id=project_id,
+        )
+        clauses = [where]
+        normalized_query = query.strip() if query else ""
+        if normalized_query:
+            values.append(f"%{normalized_query}%")
+            clauses.append(f"(r.route_template ILIKE ${len(values)} OR r.trace_id ILIKE ${len(values)})")
+        if method:
+            values.append(method.upper())
+            clauses.append(f"r.method = ${len(values)}")
+        if status_class is not None:
+            values.append(status_class)
+            clauses.append(f"CASE WHEN r.status_code > 0 THEN r.status_code / 100 ELSE 0 END = ${len(values)}")
+        filter_sql = " AND ".join(clauses)
+        connection = connections.get("default")
+        count_rows = await connection.execute_query_dict(
+            f"SELECT COUNT(*) AS total FROM observability_http_request_records r WHERE {filter_sql}",
+            values,
+        )
+        total = _int(count_rows[0].get("total")) if count_rows else 0
+        pages = ceil(total / params.size) if total else 0
+        items: list[HTTPRequestRecordOut] = []
+        if total and params.page <= pages:
+            page_values = [*values, params.limit, params.offset]
+            rows = await connection.execute_query_dict(
+                "SELECT r.id, r.occurred_at, r.trace_id, r.actor_user_id, r.workspace_id, "
+                "r.project_id, r.route_template, r.method, r.status_code, r.duration_ms, "
+                "u.username AS actor_username, u.display_name AS actor_display_name, "
+                "u.avatar_url AS actor_avatar_url "
+                "FROM observability_http_request_records r "
+                "LEFT JOIN users u ON u.id = r.actor_user_id "
+                f"WHERE {filter_sql} ORDER BY r.occurred_at DESC, r.id DESC "
+                f"LIMIT ${len(page_values) - 1} OFFSET ${len(page_values)}",
+                page_values,
+            )
+            items = [
+                HTTPRequestRecordOut(
+                    id=row["id"],
+                    occurred_at=row["occurred_at"],
+                    trace_id=row.get("trace_id"),
+                    actor_user_id=row.get("actor_user_id"),
+                    actor=(
+                        ActivityUserSummaryOut(
+                            id=row["actor_user_id"],
+                            username=row.get("actor_username"),
+                            display_name=row.get("actor_display_name"),
+                            avatar_url=row.get("actor_avatar_url"),
+                        )
+                        if row.get("actor_user_id") is not None and row.get("actor_username") is not None
+                        else None
+                    ),
+                    workspace_id=row.get("workspace_id"),
+                    project_id=row.get("project_id"),
+                    route_template=str(row["route_template"]),
+                    method=str(row["method"]),
+                    status_code=_int(row.get("status_code")),
+                    duration_ms=_int(row.get("duration_ms")),
+                )
+                for row in rows
+            ]
+        return PageData[HTTPRequestRecordOut](
             items=items,
             total=total,
             page=params.page,

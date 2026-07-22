@@ -15,6 +15,7 @@ from src.config import get_settings
 from src.core.events import EventBus
 from src.core.exceptions import init_exception_handlers
 from src.models.analytics.audit_event import AuditEvent
+from src.models.storage.storage_profile import StorageProfile, StorageProfileConfigSource
 from src.models.system.setting import SettingRecord
 from src.modules.auth.http.service import get_current_user, require_super_admin
 from src.modules.system.router import router as system_router
@@ -37,6 +38,20 @@ async def test_system_settings_patch_writes_sanitized_activity_and_rolls_back(
     settings = get_settings()
     service = SettingsService(settings, event_bus=EventBus())
     actor_user_id = uuid4()
+
+    for profile_key in ("local-main", "local-secondary"):
+        await StorageProfile.create(
+            profile_key=profile_key,
+            scope_type=SCOPE_TYPE_SYSTEM,
+            scope_id=SYSTEM_SCOPE_ID,
+            provider="local",
+            config_source=StorageProfileConfigSource.DATABASE,
+            display_name=profile_key,
+            config={},
+            secret_ref={},
+            is_active=True,
+            is_default=False,
+        )
 
     app = FastAPI()
     init_exception_handlers(app, settings)
@@ -83,7 +98,7 @@ async def test_system_settings_patch_writes_sanitized_activity_and_rolls_back(
         assert mail_activity_res.status_code == 200, mail_activity_res.text
         mail_activity_items = mail_activity_res.json()["data"]["items"]
         assert mail_activity_items[0]["eventName"] == SYSTEM_MAIL_UPDATED
-        assert mail_activity_items[0]["organizationId"] is None
+        assert "organizationId" not in mail_activity_items[0]
         assert mail_activity_items[0]["workspaceId"] is None
         assert mail_activity_items[0]["properties"]["contains_sensitive_values"] is True
         assert "raw-secret-password" not in str(mail_activity_items[0]["properties"])
@@ -136,7 +151,7 @@ async def test_system_settings_patch_writes_sanitized_activity_and_rolls_back(
         feature_flags_activity_items = feature_flags_activity_res.json()["data"]["items"]
         assert feature_flags_activity_items[0]["eventName"] == SYSTEM_FEATURE_FLAGS_UPDATED
         assert feature_flags_activity_items[0]["properties"]["paths"] == ["auth.public_register_enabled"]
-        assert feature_flags_activity_items[0]["organizationId"] is None
+        assert "organizationId" not in feature_flags_activity_items[0]
         assert feature_flags_activity_items[0]["workspaceId"] is None
 
     original_write_required_activity_event = settings_events_module.write_required_activity_event

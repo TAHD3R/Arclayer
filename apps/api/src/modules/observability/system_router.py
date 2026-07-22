@@ -10,6 +10,7 @@ from src.modules.auth.http.service import require_super_admin
 from src.modules.observability.schema import (
     AIUsageGroupOut,
     HTTPRequestGroupOut,
+    HTTPRequestRecordOut,
     ObservabilityOverviewOut,
     ObservabilityTrendMetric,
     ObservabilityTrendOut,
@@ -82,6 +83,33 @@ async def list_platform_http_request_groups(
         days=days,
         params=params,
         route_query=q,
+        method=method,
+        status_class=status_class,
+        workspace_id=workspace_id,
+        project_id=project_id,
+    )
+    return ApiResponse.success(data=page)
+
+
+@router.get(
+    "/request-records",
+    response_model=ResponseModel[PageData[HTTPRequestRecordOut]],
+    summary="List completed platform HTTP requests",
+)
+async def list_platform_http_request_records(
+    days: int = Query(default=30, ge=1, le=MAX_OBSERVABILITY_RETENTION_DAYS),
+    q: str | None = Query(default=None, min_length=1, max_length=128),
+    method: str | None = Query(default=None, min_length=1, max_length=8, pattern="^[A-Za-z]+$"),
+    status_class: int | None = Query(default=None, alias="statusClass", ge=0, le=5),
+    workspace_id: PublicUUID | None = Query(default=None, alias="workspaceId"),
+    project_id: PublicUUID | None = Query(default=None, alias="projectId"),
+    params: PageParams = Depends(get_page_params),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[PageData[HTTPRequestRecordOut]]:
+    page = await ObservabilityService(settings).list_http_request_records(
+        days=days,
+        params=params,
+        query=q,
         method=method,
         status_class=status_class,
         workspace_id=workspace_id,

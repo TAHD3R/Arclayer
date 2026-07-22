@@ -210,6 +210,8 @@ async def test_lifespan_persists_real_request_and_project_filters_all_telemetry(
         app.state.system_initialized = True
 
         await record_http_request_metric(
+            trace_id=None,
+            actor_user_id=current_user.id,
             workspace_id=workspace.id,
             project_id=other_project.id,
             route_template="/api/v1/projects/{project_id}/other",

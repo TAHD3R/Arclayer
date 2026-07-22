@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, Query
 
 from src.common.types.public_uuid import PublicUUID
@@ -7,11 +9,18 @@ from src.config import Settings, get_settings
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import t
-from src.models.feedback.feedback import FeedbackCategory, FeedbackPriority, FeedbackSource, FeedbackStatus
+from src.models.feedback.feedback import (
+    FeedbackCategory,
+    FeedbackIntent,
+    FeedbackPriority,
+    FeedbackSource,
+    FeedbackStatus,
+)
 from src.models.organization.user import User
 from src.modules.auth.http.service import get_current_user, require_super_admin
 from src.modules.feedback.schema import (
     FeedbackMessageCreate,
+    FeedbackOrdering,
     FeedbackTicketDetailOut,
     FeedbackTicketListItemOut,
     FeedbackTicketUpdate,
@@ -33,9 +42,17 @@ async def list_platform_feedback(
     ticket_status: FeedbackStatus | None = Query(default=None, alias="status"),
     priority: FeedbackPriority | None = Query(default=None),
     source: FeedbackSource | None = Query(default=None),
-    category: FeedbackCategory | None = Query(default=None),
+    intent: FeedbackIntent | None = Query(default=None),
+    legacy_category: FeedbackCategory | None = Query(default=None, alias="legacyCategory"),
     workspace_id: PublicUUID | None = Query(default=None, alias="workspaceId"),
+    project_id: PublicUUID | None = Query(default=None, alias="projectId"),
     assignee_user_id: PublicUUID | None = Query(default=None, alias="assigneeUserId"),
+    reporter_user_id: PublicUUID | None = Query(default=None, alias="reporterUserId"),
+    created_from: datetime | None = Query(default=None, alias="createdFrom"),
+    created_to: datetime | None = Query(default=None, alias="createdTo"),
+    activity_from: datetime | None = Query(default=None, alias="activityFrom"),
+    activity_to: datetime | None = Query(default=None, alias="activityTo"),
+    ordering: FeedbackOrdering = Query(default=FeedbackOrdering.LAST_ACTIVITY_DESC),
     search: str | None = Query(default=None, min_length=1, max_length=200),
     params: PageParams = Depends(get_page_params),
     settings: Settings = Depends(get_settings),
@@ -45,9 +62,17 @@ async def list_platform_feedback(
         status=ticket_status,
         priority=priority,
         source=source,
-        category=category,
+        intent=intent,
+        legacy_category=legacy_category,
         workspace_id=workspace_id,
+        project_id=project_id,
         assignee_user_id=assignee_user_id,
+        reporter_user_id=reporter_user_id,
+        created_from=created_from,
+        created_to=created_to,
+        activity_from=activity_from,
+        activity_to=activity_to,
+        ordering=ordering,
         search=search,
     )
     return ApiResponse.success(data=page)

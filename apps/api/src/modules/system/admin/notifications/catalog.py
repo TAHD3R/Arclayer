@@ -187,6 +187,14 @@ NOTIFICATION_DEFINITIONS: tuple[NotificationDefinition, ...] = (
         description_i18n="notifications:NOTIFICATIONS_SYSTEM_FEATURE_FLAGS_UPDATED_BODY",
         target_to="/system/settings",
     ),
+    NotificationDefinition(
+        event_name="system.broadcast",
+        group="system",
+        category=NotificationCategory.SYSTEM,
+        title_i18n="notifications:NOTIFICATIONS_SYSTEM_BROADCAST_TITLE",
+        description_i18n="notifications:NOTIFICATIONS_SYSTEM_BROADCAST_BODY",
+        target_to="/notifications",
+    ),
 )
 
 NOTIFICATION_DEFINITION_BY_EVENT: dict[str, NotificationDefinition] = {

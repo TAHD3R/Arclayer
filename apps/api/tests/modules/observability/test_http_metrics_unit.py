@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from starlette.requests import Request
@@ -37,6 +37,7 @@ def _scope(path: str = "/api/v1/missing") -> dict:
 async def test_record_http_request_metric_uses_atomic_hourly_upsert() -> None:
     workspace_id = uuid4()
     project_id = uuid4()
+    actor_user_id = uuid4()
     occurred_at = datetime(2026, 7, 12, 18, 42, 15, tzinfo=UTC)
     connection = MagicMock()
     connection.execute_query = AsyncMock()
@@ -45,6 +46,8 @@ async def test_record_http_request_metric_uses_atomic_hourly_upsert() -> None:
     connection_registry.get.return_value = connection
     with patch("src.modules.observability.http_metrics.connections", connection_registry):
         await record_http_request_metric(
+            trace_id="trace-1",
+            actor_user_id=actor_user_id,
             workspace_id=workspace_id,
             project_id=project_id,
             route_template="/api/v1/projects/{project_id}",
@@ -57,11 +60,12 @@ async def test_record_http_request_metric_uses_atomic_hourly_upsert() -> None:
     connection.execute_query.assert_awaited_once()
     assert connection.execute_query.await_args is not None
     sql, values = connection.execute_query.await_args.args
+    assert "observability_http_request_records" in sql
     assert "ON CONFLICT" in sql
     assert "GREATEST" in sql
-    assert values[2] == datetime(2026, 7, 12, 18, 0, tzinfo=UTC)
-    assert values[3:5] == [workspace_id, project_id]
-    assert values[8:] == [5, 1, 81]
+    assert values[2:6] == ["trace-1", actor_user_id, workspace_id, project_id]
+    assert values[11] == datetime(2026, 7, 12, 18, 0, tzinfo=UTC)
+    assert values[13:] == [5, 1]
 
 
 @pytest.mark.asyncio
@@ -71,6 +75,7 @@ async def test_http_metric_event_validates_and_persists_captured_context() -> No
     event = Event(
         name=HTTP_REQUEST_METRIC_EVENT,
         trace_id="trace-1",
+        actor_user_id=str(uuid4()),
         payload={
             "workspaceId": str(workspace_id),
             "projectId": str(project_id),
@@ -88,6 +93,8 @@ async def test_http_metric_event_validates_and_persists_captured_context() -> No
         await persist_http_request_metric_event(event)
 
     persist.assert_awaited_once_with(
+        trace_id="trace-1",
+        actor_user_id=UUID(event.actor_user_id),
         workspace_id=workspace_id,
         project_id=project_id,
         route_template="/api/v1/projects/{project_id}",

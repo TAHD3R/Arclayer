@@ -6,6 +6,8 @@ from enum import StrEnum
 from pydantic import Field
 
 from src.common.schemas import BaseSchema
+from src.common.types.public_uuid import PublicUUID
+from src.modules.analytics.schema import ActivityUserSummaryOut
 
 
 class ObservabilityTrendMetric(StrEnum):
@@ -38,6 +40,8 @@ class HTTPObservabilitySummaryOut(BaseSchema):
     error_requests: int
     error_rate: float = Field(ge=0, le=1)
     avg_latency_ms: float = Field(ge=0)
+    p95_latency_ms: float | None = Field(default=None, ge=0)
+    p99_latency_ms: float | None = Field(default=None, ge=0)
     max_latency_ms: int = Field(ge=0)
 
 
@@ -102,8 +106,24 @@ class HTTPRequestGroupOut(BaseSchema):
     error_requests: int = Field(ge=0)
     error_rate: float = Field(ge=0, le=1)
     avg_latency_ms: float = Field(ge=0)
+    p95_latency_ms: float | None = Field(default=None, ge=0)
+    p99_latency_ms: float | None = Field(default=None, ge=0)
     max_latency_ms: int = Field(ge=0)
     last_seen_at: datetime
+
+
+class HTTPRequestRecordOut(BaseSchema):
+    id: PublicUUID
+    occurred_at: datetime
+    trace_id: str | None = None
+    actor_user_id: PublicUUID | None = None
+    actor: ActivityUserSummaryOut | None = None
+    workspace_id: PublicUUID | None = None
+    project_id: PublicUUID | None = None
+    route_template: str
+    method: str
+    status_code: int = Field(ge=0, le=599)
+    duration_ms: int = Field(ge=0)
 
 
 class AIUsageGroupOut(BaseSchema):

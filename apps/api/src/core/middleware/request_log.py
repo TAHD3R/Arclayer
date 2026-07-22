@@ -72,6 +72,7 @@ class RequestLogMiddleware:
             context.get("tenant_workspace_id") or context.get("workspace_id") or state.get("workspace_id")
         )
         project_id = self._parse_context_uuid(context.get("tenant_project_id") or context.get("project_id"))
+        actor_user_id = self._parse_context_uuid(context.get("user_id") or context.get("actor_user_id"))
         route_template = str(getattr(route, "path", None) or "__unmatched__")
 
         try:
@@ -80,6 +81,7 @@ class RequestLogMiddleware:
                     name=HTTP_REQUEST_METRIC_EVENT,
                     source="request_log",
                     trace_id=str(correlation_id.get(None) or "") or None,
+                    actor_user_id=str(actor_user_id) if actor_user_id is not None else None,
                     payload={
                         "workspaceId": str(workspace_id) if workspace_id is not None else None,
                         "projectId": str(project_id) if project_id is not None else None,

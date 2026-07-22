@@ -39,6 +39,8 @@ def _scope_key(*, workspace_id: UUID | None, project_id: UUID | None) -> str:
 
 async def record_http_request_metric(
     *,
+    trace_id: str | None,
+    actor_user_id: UUID | None,
     workspace_id: UUID | None,
     project_id: UUID | None,
     route_template: str,
@@ -47,21 +49,33 @@ async def record_http_request_metric(
     duration_ms: int,
     occurred_at: datetime | None = None,
 ) -> None:
-    """Atomically add one completed request to its hourly metrics bucket."""
+    """Persist one request fact and atomically add it to the hourly metrics bucket."""
 
     now = occurred_at or datetime.now(UTC)
     bucket_start = now.replace(minute=0, second=0, microsecond=0)
     status_class = status_code // 100 if status_code > 0 else 0
     error_count = 1 if status_code >= 500 or status_code == 0 else 0
     conn = connections.get("default")
+    duration_ms = max(duration_ms, 0)
     await conn.execute_query(
         """
+        WITH request_record AS (
+            INSERT INTO observability_http_request_records (
+                id, created_at, updated_at, occurred_at, trace_id, actor_user_id,
+                workspace_id, project_id, route_template, method, status_code, duration_ms
+            )
+            VALUES ($1, $2, $2, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING occurred_at, workspace_id, project_id, route_template, method,
+                status_code, duration_ms
+        )
         INSERT INTO observability_http_request_metrics_hourly (
             id, created_at, updated_at, bucket_start, workspace_id, project_id,
             scope_key, route_template, method, status_class, request_count,
             error_count, duration_total_ms, duration_max_ms
         )
-        VALUES ($1, $2, $2, $3, $4, $5, $6, $7, $8, $9, 1, $10, $11, $11)
+        SELECT $11, $2, $2, $12, workspace_id, project_id, $13, route_template,
+            method, $14, 1, $15, duration_ms, duration_ms
+        FROM request_record
         ON CONFLICT (bucket_start, scope_key, route_template, method, status_class)
         DO UPDATE SET
             updated_at = EXCLUDED.updated_at,
@@ -76,15 +90,19 @@ async def record_http_request_metric(
         [
             uuid7(),
             now,
-            bucket_start,
+            trace_id[:128] if trace_id else None,
+            actor_user_id,
             workspace_id,
             project_id,
-            _scope_key(workspace_id=workspace_id, project_id=project_id),
             route_template[:512],
             method[:8],
+            status_code,
+            duration_ms,
+            uuid7(),
+            bucket_start,
+            _scope_key(workspace_id=workspace_id, project_id=project_id),
             status_class,
             error_count,
-            max(duration_ms, 0),
         ],
     )
 
@@ -116,6 +134,8 @@ async def persist_http_request_metric_event(event: Event) -> None:
     payload = event.payload
     try:
         await record_http_request_metric(
+            trace_id=event.trace_id,
+            actor_user_id=_optional_uuid(event.actor_user_id, field="actorUserId"),
             workspace_id=_optional_uuid(payload.get("workspaceId"), field="workspaceId"),
             project_id=_optional_uuid(payload.get("projectId"), field="projectId"),
             route_template=_required_string(payload.get("routeTemplate"), field="routeTemplate"),

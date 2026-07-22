@@ -22,6 +22,39 @@ class SettingsRepository(TortoiseORMRepository):
             scope_type=SCOPE_TYPE_SYSTEM, scope_id=SYSTEM_SCOPE_ID, namespace=namespace
         )
 
+    async def get_by_namespace_for_update(
+        self,
+        namespace: str,
+        *,
+        conn: BaseDBAsyncClient,
+    ) -> SettingRecord:
+        candidate = SettingRecord(
+            scope_type=SCOPE_TYPE_SYSTEM,
+            scope_id=SYSTEM_SCOPE_ID,
+            namespace=namespace,
+            value=None,
+            updated_by=None,
+        )
+        await SettingRecord.bulk_create(
+            [candidate],
+            ignore_conflicts=True,
+            using_db=conn,
+        )
+        record = await (
+            SettingRecord
+            .filter(
+                scope_type=SCOPE_TYPE_SYSTEM,
+                scope_id=SYSTEM_SCOPE_ID,
+                namespace=namespace,
+            )
+            .using_db(conn)
+            .select_for_update()
+            .first()
+        )
+        if record is None:
+            raise RuntimeError("Setting identity insert did not produce a canonical row")
+        return record
+
     async def upsert(
         self,
         *,

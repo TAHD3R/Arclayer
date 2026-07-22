@@ -15,6 +15,7 @@ from src.core.http.pagination import PageData, PageParams
 from src.core.i18n import t
 from src.models.feedback.feedback import (
     FeedbackCategory,
+    FeedbackIntent,
     FeedbackMessage,
     FeedbackMessageKind,
     FeedbackPriority,
@@ -29,11 +30,13 @@ from src.modules.analytics.ingest.service import sanitize_properties
 from src.modules.feedback.schema import (
     FeedbackMessageCreate,
     FeedbackMessageOut,
+    FeedbackOrdering,
     FeedbackSubmitRequest,
     FeedbackTicketDetailOut,
     FeedbackTicketListItemOut,
     FeedbackTicketUpdate,
     FeedbackUserOut,
+    project_feedback_context_type,
 )
 from src.modules.workspaces.http.service import resolve_workspace_context_by_id
 
@@ -45,6 +48,10 @@ def _user_out(user: User) -> FeedbackUserOut:
         username=user.username,
         display_name=user.display_name,
         avatar_url=user.avatar_url,
+        status=str(user.status),
+        is_super_admin=user.is_super_admin,
+        last_login_at=user.last_login_at,
+        created_at=user.created_at,
     )
 
 
@@ -57,6 +64,10 @@ def _ticket_reporter_out(ticket: FeedbackTicket, user: User | None) -> FeedbackU
         username=ticket.reporter_username,
         display_name=ticket.reporter_display_name,
         avatar_url=ticket.reporter_avatar_url,
+        status="unknown",
+        is_super_admin=False,
+        last_login_at=None,
+        created_at=ticket.created_at,
     )
 
 
@@ -69,6 +80,10 @@ def _message_author_out(message: FeedbackMessage, user: User | None) -> Feedback
         username=message.author_username,
         display_name=message.author_display_name,
         avatar_url=message.author_avatar_url,
+        status="unknown",
+        is_super_admin=False,
+        last_login_at=None,
+        created_at=message.created_at,
     )
 
 
@@ -137,7 +152,7 @@ class FeedbackService:
                     "project_id": project_id,
                     "source": payload.source,
                     "context_type": payload.context_type,
-                    "category": payload.category,
+                    "intent": payload.intent,
                     "message": payload.message,
                     "rating": payload.rating,
                     "context_url": payload.context_url,
@@ -160,7 +175,7 @@ class FeedbackService:
                         workspace_id=workspace_id,
                         entity_type="feedback_ticket",
                         entity_id=ticket.id,
-                        properties={"source": str(payload.source), "category": str(payload.category)},
+                        properties={"source": str(payload.source), "intent": str(payload.intent)},
                     ),
                 )
         return await self.get_detail(ticket_id=ticket.id, include_internal_notes=False, reporter_user_id=reporter.id)
@@ -176,9 +191,13 @@ class FeedbackService:
         *,
         query,
         params: PageParams,
+        ordering: FeedbackOrdering = FeedbackOrdering.LAST_ACTIVITY_DESC,
     ) -> PageData[FeedbackTicketListItemOut]:
         total = int(await query.count())
-        rows = await query.order_by("-last_activity_at", "-created_at").limit(params.limit).offset(params.offset)
+        order_fields = [str(ordering)]
+        if str(ordering).lstrip("-") != "created_at":
+            order_fields.append("-created_at")
+        rows = await query.order_by(*order_fields).limit(params.limit).offset(params.offset)
         ticket_ids = [row.id for row in rows]
         message_ids = await FeedbackMessage.filter(ticket_id__in=ticket_ids).values_list("ticket_id", flat=True)
         message_counts = Counter(UUID(str(ticket_id)) for ticket_id in message_ids)
@@ -190,8 +209,9 @@ class FeedbackService:
                 id=row.id,
                 client_request_id=row.client_request_id,
                 source=row.source,
-                context_type=row.context_type,
-                category=row.category,
+                context_type=project_feedback_context_type(row.context_type),
+                intent=row.intent,
+                legacy_category=row.category,
                 message_preview=row.message[:240],
                 rating=row.rating,
                 status=row.status,
@@ -238,9 +258,17 @@ class FeedbackService:
         status: FeedbackStatus | None,
         priority: FeedbackPriority | None,
         source: FeedbackSource | None,
-        category: FeedbackCategory | None,
+        intent: FeedbackIntent | None,
+        legacy_category: FeedbackCategory | None,
         workspace_id: UUID | None,
+        project_id: UUID | None,
         assignee_user_id: UUID | None,
+        reporter_user_id: UUID | None,
+        created_from: datetime | None,
+        created_to: datetime | None,
+        activity_from: datetime | None,
+        activity_to: datetime | None,
+        ordering: FeedbackOrdering,
         search: str | None,
     ) -> PageData[FeedbackTicketListItemOut]:
         query = FeedbackTicket.all()
@@ -250,19 +278,33 @@ class FeedbackService:
             query = query.filter(priority=priority)
         if source is not None:
             query = query.filter(source=source)
-        if category is not None:
-            query = query.filter(category=category)
+        if intent is not None:
+            query = query.filter(intent=intent)
+        if legacy_category is not None:
+            query = query.filter(category=legacy_category)
         if workspace_id is not None:
             query = query.filter(workspace_id=workspace_id)
+        if project_id is not None:
+            query = query.filter(project_id=project_id)
         if assignee_user_id is not None:
             query = query.filter(assigned_to_user_id=assignee_user_id)
+        if reporter_user_id is not None:
+            query = query.filter(reporter_user_id=reporter_user_id)
+        if created_from is not None:
+            query = query.filter(created_at__gte=created_from)
+        if created_to is not None:
+            query = query.filter(created_at__lte=created_to)
+        if activity_from is not None:
+            query = query.filter(last_activity_at__gte=activity_from)
+        if activity_to is not None:
+            query = query.filter(last_activity_at__lte=activity_to)
         if search:
             query = query.filter(
                 Q(message__icontains=search)
                 | Q(reporter_email__icontains=search)
                 | Q(reporter_username__icontains=search)
             )
-        return await self._list_page(query=query, params=params)
+        return await self._list_page(query=query, params=params, ordering=ordering)
 
     async def get_detail(
         self,
@@ -290,8 +332,9 @@ class FeedbackService:
             id=ticket.id,
             client_request_id=ticket.client_request_id,
             source=ticket.source,
-            context_type=ticket.context_type,
-            category=ticket.category,
+            context_type=project_feedback_context_type(ticket.context_type),
+            intent=ticket.intent,
+            legacy_category=ticket.category,
             message=ticket.message,
             rating=ticket.rating,
             status=ticket.status,

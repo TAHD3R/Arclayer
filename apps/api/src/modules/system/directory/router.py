@@ -123,9 +123,14 @@ async def get_user_detail(
 async def update_user(
     user_id: PublicUUID,
     payload: DirectoryUserUpdateRequest,
+    acting_user: User = Depends(require_super_admin),
     service: SystemDirectoryService = Depends(get_directory_service),
 ) -> ResponseModel[DirectoryUserDetailOut]:
-    detail = await service.update_user(user_id=user_id, payload=payload)
+    detail = await service.update_user(
+        user_id=user_id,
+        payload=payload,
+        acting_user_id=acting_user.id,
+    )
     return ApiResponse.success(data=detail)
 
 

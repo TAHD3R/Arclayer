@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from uuid import UUID
 
 from tortoise.expressions import Q
 
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
+from src.models.organization.user import User, UserStatus
 from src.models.system.notification import NotificationRecord
 
 
@@ -16,6 +18,17 @@ class NotificationRepository(TortoiseORMRepository):
         if workspace_id is not None:
             cond &= Q(workspace_id=workspace_id)
         return cond
+
+    async def list_active_users(self) -> list[User]:
+        return await User.filter(status=UserStatus.ACTIVE).order_by("id").all()
+
+    async def get_active_users(self, user_ids: Sequence[UUID]) -> list[User]:
+        if not user_ids:
+            return []
+        return await User.filter(id__in=list(user_ids), status=UserStatus.ACTIVE).order_by("id").all()
+
+    async def list_active_super_admins(self) -> list[User]:
+        return await User.filter(status=UserStatus.ACTIVE, is_super_admin=True).order_by("id").all()
 
     async def get_unread_count(self, *, workspace_id: UUID, recipient_user_id: UUID) -> int:
         return int(

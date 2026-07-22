@@ -20,7 +20,7 @@ class NotificationTopicDefinition(BaseModel):
     title_i18n: str
     description_i18n: str
     in_app_supported: bool = True
-    email_supported: bool = False
+    email_supported: bool = True
     in_app_default: bool = True
     email_default: bool = False
 
@@ -134,6 +134,13 @@ TOPIC_DEFINITIONS: tuple[NotificationTopicDefinition, ...] = (
         title_i18n="account:ME_NOTIFY_TOPIC_SYSTEM_FEATURE_FLAGS_UPDATED_TITLE",
         description_i18n="account:ME_NOTIFY_TOPIC_SYSTEM_FEATURE_FLAGS_UPDATED_DESC",
     ),
+    NotificationTopicDefinition(
+        key="system.broadcast",
+        category=NotificationCategory.SYSTEM,
+        title_i18n="account:ME_NOTIFY_TOPIC_SYSTEM_BROADCAST_TITLE",
+        description_i18n="account:ME_NOTIFY_TOPIC_SYSTEM_BROADCAST_DESC",
+        email_supported=True,
+    ),
 )
 
 TOPIC_BY_KEY = {topic.key: topic for topic in TOPIC_DEFINITIONS}
@@ -158,6 +165,7 @@ EVENT_TO_TOPIC_KEY: dict[str, str] = {
     "system.mail.updated": "system.mail.updated",
     "system.storage.updated": "system.storage.updated",
     "system.settings.feature_flags.updated": "system.settings.feature_flags.updated",
+    "system.broadcast": "system.broadcast",
 }
 
 

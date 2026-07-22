@@ -5,6 +5,9 @@ from types import SimpleNamespace
 from typing import Any, cast
 from uuid import uuid4
 
+import pytest
+from tortoise.backends.base.client import BaseDBAsyncClient
+
 from src.core.entity_manager.manager import EntityManager
 from src.core.lifecycles.dispatcher import LifecycleDispatcher
 from src.core.lifecycles.specs import LifecycleAction, LifecycleEvent
@@ -124,6 +127,86 @@ async def test_entity_manager_create_surfaces_before_lifecycle_errors(monkeypatc
 
     assert repo.created_item_payload is None
     assert repo.created_version_payload is None
+
+
+async def test_entity_manager_create_in_transaction_defers_after_commit_and_preserves_state() -> None:
+    repo = _FakeItemsRepo()
+    lifecycle = LifecycleDispatcher()
+    actions: list[LifecycleAction] = []
+    after_states: list[dict[str, object]] = []
+
+    async def before_create(event: LifecycleEvent) -> None:
+        actions.append(event.action)
+        event.state["trace_id"] = "create-transaction"
+
+    async def after_create(event: LifecycleEvent) -> None:
+        actions.append(event.action)
+        after_states.append(dict(event.state))
+
+    await lifecycle.register(
+        subscriber_id="test-before-create-transaction",
+        action=LifecycleAction.BEFORE_CREATE,
+        handler=before_create,
+    )
+    await lifecycle.register(
+        subscriber_id="test-after-create-transaction",
+        action=LifecycleAction.AFTER_CREATE,
+        handler=after_create,
+    )
+    manager = EntityManager(items_repo=cast(Any, repo), lifecycle=lifecycle)
+
+    transaction_result = await manager.create_in_transaction(
+        workspace_id=uuid4(),
+        site_id=uuid4(),
+        model_key="article",
+        data={"title": "Hello"},
+        slug="hello",
+        title="Hello",
+        conn=cast(BaseDBAsyncClient, object()),
+    )
+
+    assert actions == [LifecycleAction.BEFORE_CREATE]
+    assert after_states == []
+
+    await manager.dispatch_after_commit(transaction_result.after_commit)
+
+    assert actions == [LifecycleAction.BEFORE_CREATE, LifecycleAction.AFTER_CREATE]
+    assert after_states == [{"trace_id": "create-transaction"}]
+
+
+async def test_entity_manager_create_in_transaction_does_not_dispatch_after_outer_failure() -> None:
+    repo = _FakeItemsRepo()
+    lifecycle = LifecycleDispatcher()
+    actions: list[LifecycleAction] = []
+
+    async def track_event(event: LifecycleEvent) -> None:
+        actions.append(event.action)
+
+    await lifecycle.register(
+        subscriber_id="test-before-create-rollback",
+        action=LifecycleAction.BEFORE_CREATE,
+        handler=track_event,
+    )
+    await lifecycle.register(
+        subscriber_id="test-after-create-rollback",
+        action=LifecycleAction.AFTER_CREATE,
+        handler=track_event,
+    )
+    manager = EntityManager(items_repo=cast(Any, repo), lifecycle=lifecycle)
+
+    with pytest.raises(RuntimeError, match="outer transaction failed"):
+        await manager.create_in_transaction(
+            workspace_id=uuid4(),
+            site_id=uuid4(),
+            model_key="article",
+            data={"title": "Hello"},
+            slug="hello",
+            title="Hello",
+            conn=cast(BaseDBAsyncClient, object()),
+        )
+        raise RuntimeError("outer transaction failed")
+
+    assert actions == [LifecycleAction.BEFORE_CREATE]
 
 
 async def test_entity_manager_delete_dispatches_lifecycle(monkeypatch) -> None:

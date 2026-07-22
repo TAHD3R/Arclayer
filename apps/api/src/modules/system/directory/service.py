@@ -195,7 +195,22 @@ class SystemDirectoryService(BaseService):
             raise NotFound(error="NOT_FOUND")
         return row
 
-    async def update_user(self, *, user_id: UUID, payload: DirectoryUserUpdateRequest) -> DirectoryUserDetailOut:
+    async def _ensure_super_admin_continuity(self, *, row: User) -> None:
+        if not row.is_super_admin or row.status != UserStatus.ACTIVE:
+            return
+        if await self.repo.count_active_super_admins() <= 1:
+            raise Conflict(
+                message=t("errors", "LAST_ACTIVE_SUPER_ADMIN"),
+                error="LAST_ACTIVE_SUPER_ADMIN",
+            )
+
+    async def update_user(
+        self,
+        *,
+        user_id: UUID,
+        payload: DirectoryUserUpdateRequest,
+        acting_user_id: UUID,
+    ) -> DirectoryUserDetailOut:
         row = await self.require_user(user_id=user_id)
 
         model_fields_set = getattr(payload, "model_fields_set", set())
@@ -207,6 +222,16 @@ class SystemDirectoryService(BaseService):
             updates["email"] = email
         if "display_name" in model_fields_set:
             updates["display_name"] = payload.display_name
+        if "is_super_admin" in model_fields_set and payload.is_super_admin is not None:
+            is_super_admin = bool(payload.is_super_admin)
+            if row.id == acting_user_id and not is_super_admin:
+                raise BadRequest(
+                    message=t("errors", "CANNOT_REVOKE_SELF_SUPER_ADMIN"),
+                    error="CANNOT_REVOKE_SELF_SUPER_ADMIN",
+                )
+            if row.is_super_admin and not is_super_admin:
+                await self._ensure_super_admin_continuity(row=row)
+            updates["is_super_admin"] = is_super_admin
         if "avatar_asset_id" in model_fields_set:
             avatar_asset_id = payload.avatar_asset_id
             if avatar_asset_id is None:
@@ -299,6 +324,8 @@ class SystemDirectoryService(BaseService):
             raise NotFound(error="NOT_FOUND")
         if row.id == acting_user_id and not enabled:
             raise BadRequest(message=t("errors", "CANNOT_DISABLE_SELF"), error="CANNOT_DISABLE_SELF")
+        if not enabled:
+            await self._ensure_super_admin_continuity(row=row)
 
         target = UserStatus.ACTIVE if enabled else UserStatus.DISABLED
         if row.status != target:
@@ -345,6 +372,7 @@ class SystemDirectoryService(BaseService):
             raise NotFound(error="NOT_FOUND")
         if row.id == acting_user_id:
             raise BadRequest(message=t("errors", "CANNOT_DELETE_SELF"), error="CANNOT_DELETE_SELF")
+        await self._ensure_super_admin_continuity(row=row)
 
         await self._delete_owned_entities_for_user(user_id=user_id)
         await self.auth_service.invalidate_user_sessions(user=row)

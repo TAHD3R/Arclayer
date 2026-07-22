@@ -40,6 +40,7 @@ def test_notification_catalog_includes_first_slice_sources() -> None:
         "project.release.scheduled_publish.failed",
         "automation.notification",
         "system.mail.updated",
+        "system.broadcast",
     }.issubset(catalog_events)
     automation_definition = catalog.get_notification_definition("automation.notification")
     assert automation_definition is not None
