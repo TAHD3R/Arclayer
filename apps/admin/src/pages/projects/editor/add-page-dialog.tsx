@@ -33,12 +33,13 @@ function commandKey(prefix: string): string {
   return `${prefix}:${globalThis.crypto.randomUUID()}`;
 }
 
-function slugFromPath(path: string): string {
+function slugFromPath(path: string): string | null {
   if (path === "/") return "home";
-  return path
+  const segment = path
     .split("/")
-    .findLast((segment) => segment.length > 0)!
-    .toLowerCase();
+    .reverse()
+    .find((candidate) => candidate.length > 0);
+  return segment?.toLowerCase() ?? null;
 }
 
 export function AddPageDialog({
@@ -55,12 +56,16 @@ export function AddPageDialog({
   const [preview, setPreview] = useState<BuilderChangeSetPreviewOut | null>(null);
   const normalizedTitle = title.trim();
   const normalizedPath = path.trim();
-  const pathValid = normalizedPath.startsWith("/") && !/\s/.test(normalizedPath);
+  const normalizedSlug = slugFromPath(normalizedPath);
+  const pathValid =
+    normalizedPath.startsWith("/") && !/\s/.test(normalizedPath) && normalizedSlug !== null;
   const formValid = Boolean(normalizedTitle && pathValid);
 
   const previewMutation = useMutation({
     mutationFn: () => {
-      if (!formValid) throw new Error(t("CREATION_EDITOR_ADD_PAGE_INVALID"));
+      if (!formValid || normalizedSlug === null) {
+        throw new Error(t("CREATION_EDITOR_ADD_PAGE_INVALID"));
+      }
       const siblings = revision.pages.filter((page) => (page.parentItemId ?? "") === parentItemId);
       return previewProjectBuilderChangeSet(
         projectId,
@@ -75,7 +80,7 @@ export function AddPageDialog({
               clientPageId: commandKey("page-create-client"),
               modelKey: "page",
               title: normalizedTitle,
-              slug: slugFromPath(normalizedPath),
+              slug: normalizedSlug,
               path: normalizedPath,
               locale: revision.contentStructureRevision.snapshot.locales[0],
               parentItemId: parentItemId || null,
