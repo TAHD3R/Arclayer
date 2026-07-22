@@ -1545,3 +1545,35 @@ stable errors, Activity events, and Agent grants remain required. Domains must
 ultimately own verification and primary-domain selection; Website Config must
 consume that resolved address instead of maintaining a conflicting authority.
 No backend schema or ownership hard cut is claimed by this frontend rollout.
+
+## 35. Project General settings/lifecycle checkpoint
+
+The Wave 4 Project General frontend composes existing Project authorities
+without adding a second settings document:
+
+- Project detail remains the canonical source for team-facing identity,
+  lifecycle state, authoring mode/state/revision, stable IDs, and primary
+  runtime projection;
+- the existing Project patch updates only the submitted name, description, or
+  icon fields and preserves normal authorization and query reconciliation;
+- authorization/action projections decide whether the current actor can manage
+  settings;
+- the Project danger-capability projection decides whether archive and delete
+  are currently enabled and returns the exact delete-confirmation name and any
+  stable blocked reason;
+- archive and permanent delete remain dedicated commands and do not enter the
+  identity patch payload.
+
+The browser treats permission or capability lookup failure as an explicit
+read-only/error state. It does not infer permission from Project detail, enable
+a destructive action before capability evidence loads, invent timestamps or
+member counts, or represent navigation/removal as success before the canonical
+mutation completes.
+
+This checkpoint does not accept the general Project patch as the final domain
+contract. Team-facing identity and project defaults still require typed
+Pydantic/OpenAPI commands or a deliberately narrowed facade with optimistic
+version/ETag, stable conflicts/errors, Activity events, idempotency where a
+command can be retried, and explicit Agent Tool grants. Lifecycle capability,
+archive, and deletion authorities remain separate; no frontend rollout claims
+to replace their backend ownership.

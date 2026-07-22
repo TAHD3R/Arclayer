@@ -219,6 +219,9 @@ describe("ProjectSettingsPage permission consumption", () => {
         slug: "launch-site",
         name: "Launch site",
         description: "Primary project",
+        authoringMode: "builder_managed",
+        authoringRevision: 4,
+        authoringState: "ready",
         iconMode: "initials",
         iconColor: "#337ea9",
         iconGlyph: null,
@@ -227,8 +230,11 @@ describe("ProjectSettingsPage permission consumption", () => {
         isActive: true,
       },
       primaryRuntime: {
-        runtimeId: "runtime-1",
-        hostname: "launch.example.com",
+        id: "runtime-1",
+        projectId: "project-1",
+        name: "Primary runtime",
+        kind: "managed",
+        isActive: true,
       },
     });
     patchProjectMock.mockResolvedValue({});
@@ -279,6 +285,8 @@ describe("ProjectSettingsPage permission consumption", () => {
     expect(screen.getByTestId("project-name-input")).toBeDisabled();
     expect(screen.queryByTestId("project-slug-input")).not.toBeInTheDocument();
     expect(screen.getByTestId("project-description-input")).toBeDisabled();
+    expect(screen.getByTestId("project-archive-trigger")).toBeDisabled();
+    expect(screen.getByTestId("project-delete-trigger")).toBeDisabled();
   });
 
   it("keeps project settings controls closed while permissions warm up", async () => {
@@ -324,6 +332,26 @@ describe("ProjectSettingsPage permission consumption", () => {
     expect(within(nav).queryByText("account:SETTINGS_NAV_PROJECT_GENERAL")).not.toBeInTheDocument();
   });
 
+  it("keeps every project settings section reachable from the narrow navigation sheet", async () => {
+    const user = userEvent.setup();
+    renderWithQuery(<ProjectSettingsPage activeTab="general" projectId="project-1" />);
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "account:SETTINGS_PROJECT_NAVIGATION_ACTION",
+      }),
+    );
+    const dialog = screen.getByRole("dialog", { name: "account:SETTINGS_PROJECT_TITLE" });
+    await user.click(
+      within(dialog).getByRole("button", { name: "account:SETTINGS_PROJECT_DATABASES_TITLE" }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledWith({
+      to: "/projects/$projectId/settings/databases",
+      params: { projectId: "project-1" },
+    });
+  });
+
   it("keeps internal project source settings out of the user-facing project settings page", async () => {
     renderWithQuery(<ProjectSettingsPage activeTab="general" projectId="project-1" />);
 
@@ -335,6 +363,93 @@ describe("ProjectSettingsPage permission consumption", () => {
     expect(screen.queryByTestId("project-source-runtime-binding")).not.toBeInTheDocument();
     expect(screen.queryByTestId("project-source-workflow-contract")).not.toBeInTheDocument();
     expect(screen.queryByTestId("project-slug-input")).not.toBeInTheDocument();
+  });
+
+  it("shows the project lifecycle, authoring authority, access, and stable internal identity", async () => {
+    renderWithQuery(<ProjectSettingsPage activeTab="general" projectId="project-1" />);
+
+    expect(await screen.findByText("account:SETTINGS_PROJECT_CONTEXT_TITLE")).toBeInTheDocument();
+    expect(screen.getByText("account:SETTINGS_PROJECT_STATUS_ACTIVE")).toBeInTheDocument();
+    expect(screen.getByText("account:SETTINGS_PROJECT_AUTHORING_BUILDER")).toBeInTheDocument();
+    expect(screen.getByText("account:SETTINGS_PROJECT_ACCESS_MANAGE")).toBeInTheDocument();
+    expect(screen.getByText("launch-site")).toBeInTheDocument();
+    expect(screen.getByText("project-1")).toBeInTheDocument();
+    expect(screen.getByText("workspace-1")).toBeInTheDocument();
+    expect(screen.getByText("#4")).toBeInTheDocument();
+  });
+
+  it("marks an attached inactive runtime as needing attention", async () => {
+    getProjectDetailMock.mockResolvedValueOnce({
+      project: {
+        id: "project-1",
+        workspaceId: "workspace-1",
+        slug: "launch-site",
+        name: "Launch site",
+        description: "Primary project",
+        authoringMode: "builder_managed",
+        authoringRevision: 4,
+        authoringState: "ready",
+        iconMode: "initials",
+        iconColor: "#337ea9",
+        iconGlyph: null,
+        iconEmoji: null,
+        iconUrl: null,
+        isActive: true,
+      },
+      primaryRuntime: {
+        id: "runtime-1",
+        projectId: "project-1",
+        name: "Primary runtime",
+        kind: "managed",
+        isActive: false,
+      },
+    });
+
+    renderWithQuery(<ProjectSettingsPage activeTab="general" projectId="project-1" />);
+
+    expect(await screen.findByText("Primary runtime")).toBeInTheDocument();
+    expect(screen.getByText("account:SETTINGS_PROJECT_RUNTIME_INACTIVE_DESC")).toBeInTheDocument();
+  });
+
+  it("explains why lifecycle actions are disabled while capabilities load", async () => {
+    getProjectDangerCapabilitiesMock.mockImplementationOnce(() => new Promise(() => {}));
+
+    renderWithQuery(<ProjectSettingsPage activeTab="general" projectId="project-1" />);
+
+    const status = await screen.findByRole("status");
+    expect(status).toHaveTextContent("account:SETTINGS_PROJECT_DANGER_LOADING");
+    expect(screen.getByTestId("project-archive-trigger")).toHaveAttribute(
+      "aria-describedby",
+      "project-danger-loading",
+    );
+    expect(screen.getByTestId("project-delete-trigger")).toBeDisabled();
+    expect(status.closest("section")).toHaveAttribute("aria-busy", "true");
+  });
+
+  it("saves team-facing identity with local unsaved and saved feedback", async () => {
+    const user = userEvent.setup();
+    renderWithQuery(<ProjectSettingsPage activeTab="general" projectId="project-1" />);
+
+    const nameInput = await screen.findByTestId("project-name-input");
+    await user.clear(nameInput);
+    await user.type(nameInput, "Launch workspace");
+
+    expect(screen.getByTestId("project-identity-save-status")).toHaveTextContent(
+      "account:SETTINGS_PROJECT_IDENTITY_UNSAVED",
+    );
+    await user.click(
+      screen.getByRole("button", { name: "account:SETTINGS_PROJECT_IDENTITY_SAVE_ACTION" }),
+    );
+
+    await waitFor(() => {
+      expect(patchProjectMock).toHaveBeenCalledWith("project-1", {
+        name: "Launch workspace",
+        description: "Primary project",
+      });
+      expect(screen.getByTestId("project-identity-save-status")).toHaveTextContent(
+        "account:SETTINGS_PROJECT_IDENTITY_SAVED",
+      );
+    });
   });
 
   it("archives the project only after explicit confirmation", async () => {

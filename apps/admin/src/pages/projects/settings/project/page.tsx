@@ -1,41 +1,33 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Archive, Code2, Database, Search, Server, Settings2, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  ChevronRight,
+  Code2,
+  Database,
+  Search,
+  Server,
+  Settings2,
+  SlidersHorizontal,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import {
-  archiveProject,
-  deleteProject,
-  getProjectDangerCapabilities,
-  getProjectDetail,
-  patchProject,
-} from "@/api/projects";
-import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
-import { ProjectAvatar, projectAvatarPropsFromIdentity } from "@/components/common/project-avatar";
-import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
-import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
-import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { ProjectIconDialog } from "@/pages/usercenter/projects/components/project-icon-dialog";
-import type { ProjectIconDialogValues } from "@/pages/usercenter/projects/hooks/use-project-menu-actions";
-import type { UserCenterProjectListItem } from "@/pages/usercenter/projects/project-list-items";
-import type { ProjectDetail, ProjectUpdateInput } from "@arclayer/openapi/admin-types";
-import { useSavingKey } from "@arclayer/hooks/use-saving-key";
+import { ProjectApiKeysSettingsPage } from "@/pages/projects/settings/api-keys/page";
+import { ProjectDatabasesPage } from "@/pages/projects/settings/databases/page";
+import { ProjectEnvironmentsPage } from "@/pages/projects/settings/environments/page";
 import { Button } from "@arclayer/ui/button";
-import { FieldError } from "@arclayer/ui/field";
 import { Input } from "@arclayer/ui/input";
-import { SettingDialog } from "@arclayer/ui/setting-dialog";
-import { SettingDialogField } from "@arclayer/ui/setting-dialog-field";
-import { Textarea } from "@arclayer/ui/textarea";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@arclayer/ui/sheet";
 import { cn } from "@arclayer/lib/utils";
 
-import { ProjectApiKeysSettingsPage } from "../api-keys/page";
-import { ProjectDatabasesPage } from "../databases/page";
-import { ProjectEnvironmentsPage } from "../environments/page";
-
-const PROJECT_NAME_MAX_LENGTH = 128;
-const PROJECT_DESCRIPTION_MAX_LENGTH = 256;
+import { ProjectGeneralSettingsTab } from "./project-general-settings-tab";
 
 type ProjectSettingsTabKey = "general" | "api" | "environments" | "databases";
 
@@ -43,51 +35,6 @@ type ProjectSettingsPageProps = {
   activeTab: ProjectSettingsTabKey;
   projectId: string;
 };
-
-function mapProjectDetailToListItem(detail: ProjectDetail): UserCenterProjectListItem {
-  return {
-    id: detail.project.id,
-    projectId: detail.project.id,
-    workspaceId: detail.project.workspaceId,
-    slug: detail.project.slug,
-    name: detail.project.name,
-    description: detail.project.description,
-    iconMode: detail.project.iconMode,
-    iconColor: detail.project.iconColor,
-    iconGlyph: detail.project.iconGlyph ?? null,
-    iconEmoji: detail.project.iconEmoji ?? null,
-    iconUrl: detail.project.iconUrl,
-    isArchived: !detail.project.isActive,
-    archivedAt: null,
-    archivedByUserId: null,
-    memberCount: 0,
-    membersPreview: [],
-    createdAt: "",
-    updatedAt: "",
-    enterable: true,
-    primaryRuntime: detail.primaryRuntime,
-  };
-}
-
-function buildProjectIconDialogValues(project: UserCenterProjectListItem): ProjectIconDialogValues {
-  return {
-    iconMode: project.iconMode,
-    iconColor: project.iconColor,
-    iconGlyph: project.iconGlyph ?? null,
-    iconEmoji: project.iconEmoji ?? null,
-    iconUrl: project.iconUrl ?? null,
-  };
-}
-
-function buildProjectIconPatch(values: ProjectIconDialogValues): ProjectUpdateInput {
-  return {
-    iconMode: values.iconMode,
-    iconColor: values.iconColor,
-    iconGlyph: values.iconMode === "glyph" ? values.iconGlyph : null,
-    iconEmoji: values.iconMode === "emoji" ? values.iconEmoji : null,
-    iconUrl: values.iconMode === "image" ? values.iconUrl : null,
-  };
-}
 
 function resolveProjectSettingsTabNavigation(projectId: string, tab: ProjectSettingsTabKey) {
   const params = { projectId };
@@ -169,6 +116,28 @@ function useProjectSettingsNavSearch(items: ProjectSettingsNavItem[], query: str
   }, [i18n.language, i18n.resolvedLanguage, items, query, t]);
 }
 
+function ProjectSettingsSearch(props: {
+  id: string;
+  query: string;
+  onQueryChange: (query: string) => void;
+}) {
+  const { t } = useTranslation(["account"]);
+  return (
+    <div className="relative">
+      <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-label-tertiary" />
+      <Input
+        id={props.id}
+        name={props.id}
+        value={props.query}
+        onChange={(event) => props.onQueryChange(event.target.value)}
+        placeholder={t("account:SETTINGS_PROJECT_SEARCH_PLACEHOLDER")}
+        className="pl-9"
+        autoComplete="off"
+      />
+    </div>
+  );
+}
+
 function ProjectSettingsSideNav(props: {
   activeTab: ProjectSettingsTabKey;
   items: readonly ProjectSettingsNavItem[];
@@ -212,477 +181,68 @@ function ProjectSettingsSideNav(props: {
   );
 }
 
-function FieldMessage(props: { message: string | null }) {
-  if (!props.message) return null;
-  return <FieldError>{props.message}</FieldError>;
-}
-
-function ProjectGeneralSettingsTab(props: { projectId: string }) {
-  const { projectId } = props;
-  const { t } = useTranslation(["account", "common", "settings"]);
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const { savingKey, withSavingKey } = useSavingKey();
-  const permissionAccess = useProjectPermissionAccess(projectId);
-  const [nameDraft, setNameDraft] = useState("");
-  const [descriptionDraft, setDescriptionDraft] = useState("");
-  const [nameError, setNameError] = useState<string | null>(null);
-  const [descriptionError, setDescriptionError] = useState<string | null>(null);
-  const [archiveOpen, setArchiveOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteConfirmation, setDeleteConfirmation] = useState("");
-  const [iconDialogProject, setIconDialogProject] = useState<UserCenterProjectListItem | null>(
-    null,
-  );
-  const [iconDialogValues, setIconDialogValues] = useState<ProjectIconDialogValues>({
-    iconMode: "initials",
-    iconColor: "#337ea9",
-    iconGlyph: null,
-    iconEmoji: null,
-    iconUrl: null,
-  });
-
-  const detailQuery = useQuery({
-    queryKey: ["project", "detail", projectId],
-    enabled: Boolean(projectId),
-    queryFn: async () => getProjectDetail(projectId),
-    retry: false,
-    meta: { silent: true },
-  });
-
-  const dangerQuery = useQuery({
-    queryKey: ["project", "danger-capabilities", projectId],
-    enabled: Boolean(projectId),
-    queryFn: async () => getProjectDangerCapabilities(projectId),
-    retry: false,
-    meta: { silent: true },
-  });
-
-  useEffect(() => {
-    const project = detailQuery.data?.project;
-    if (!project) return;
-    setNameDraft(project.name);
-    setDescriptionDraft(project.description ?? "");
-    setNameError(null);
-    setDescriptionError(null);
-  }, [detailQuery.data]);
-
-  const updateProjectMutation = useMutation({
-    mutationFn: async (patch: ProjectUpdateInput) => patchProject(projectId, patch),
-    onSuccess: async () => {
-      notifySuccessText(t("common:ACTION_SUCCESS"));
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["project", "detail", projectId] }),
-        queryClient.invalidateQueries({ queryKey: ["projects-cards"] }),
-        queryClient.invalidateQueries({ queryKey: ["global-nav", "projects"] }),
-        queryClient.invalidateQueries({ queryKey: ["dataTable"] }),
-      ]);
-    },
-    onError: (error) => notifyError(error),
-  });
-
-  const leaveProjectSettings = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["projects-cards"] });
-    await navigate({ to: "/projects" });
-  };
-
-  const archiveProjectMutation = useMutation({
-    mutationFn: async () => archiveProject(projectId),
-    onSuccess: async () => {
-      notifySuccessText(t("common:ACTION_SUCCESS"));
-      setArchiveOpen(false);
-      await leaveProjectSettings();
-    },
-    onError: (error) => notifyError(error),
-  });
-
-  const deleteProjectMutation = useMutation({
-    mutationFn: async () => deleteProject(projectId, deleteConfirmation.trim()),
-    onSuccess: async () => {
-      notifySuccessText(t("common:ACTION_SUCCESS"));
-      setDeleteOpen(false);
-      setDeleteConfirmation("");
-      await leaveProjectSettings();
-    },
-    onError: (error) => notifyError(error),
-  });
-
-  const project = detailQuery.data?.project ?? null;
-  const permissionReady =
-    permissionAccess.authzQuery.isFetched && permissionAccess.actionsQuery.isFetched;
-  const canManageProject = permissionReady && permissionAccess.hasAction("project:settings:manage");
-  const disabled = updateProjectMutation.isPending || !canManageProject;
-  const dangerCapabilities = dangerQuery.data;
-  const archiveEnabled = canManageProject && Boolean(dangerCapabilities?.archiveAction.enabled);
-  const deleteEnabled = canManageProject && Boolean(dangerCapabilities?.deleteAction.enabled);
-  const deleteConfirmationMatches =
-    deleteConfirmation.trim() === (dangerCapabilities?.confirmDeleteName ?? project?.name ?? "");
-  const handlePatchProject = useCallback(
-    async (patch: ProjectUpdateInput) => {
-      await updateProjectMutation.mutateAsync(patch);
-    },
-    [updateProjectMutation],
-  );
-
-  const openIconDialog = () => {
-    if (!detailQuery.data) return;
-    const nextProject = mapProjectDetailToListItem(detailQuery.data);
-    setIconDialogProject(nextProject);
-    setIconDialogValues(buildProjectIconDialogValues(nextProject));
-  };
-
-  const resetIdentityDraft = () => {
-    setNameDraft(project?.name ?? "");
-    setDescriptionDraft(project?.description ?? "");
-    setNameError(null);
-    setDescriptionError(null);
-  };
-
-  const identityDirty = project
-    ? nameDraft !== project.name || descriptionDraft !== (project.description ?? "")
-    : false;
-
-  const saveProjectIdentity = () =>
-    withSavingKey("project:identity", async () => {
-      if (!project) throw new Error("PROJECT_DETAIL_REQUIRED");
-      const nextName = nameDraft.trim();
-      const nextDescription = descriptionDraft.trim();
-
-      if (!nextName) {
-        setNameError(t("account:ACCOUNT_PROJECTS_FIELD_NAME_REQUIRED"));
-        throw new Error("FORM_VALIDATION_FAILED");
-      }
-      if (descriptionDraft.length > PROJECT_DESCRIPTION_MAX_LENGTH) {
-        setDescriptionError(
-          t("account:ACCOUNT_PROJECTS_FIELD_DESCRIPTION_MAX", {
-            max: PROJECT_DESCRIPTION_MAX_LENGTH,
-          }),
-        );
-        throw new Error("FORM_VALIDATION_FAILED");
-      }
-
-      setNameError(null);
-      setDescriptionError(null);
-      await handlePatchProject({
-        name: nextName,
-        description: nextDescription || null,
-      });
-    });
-
-  const loadError = detailQuery.isError
-    ? detailQuery.error
-    : !detailQuery.isLoading && !detailQuery.data
-      ? new Error(t("settings:SETTINGS_LOAD_FAILED_DESC"))
-      : null;
+function ProjectSettingsMobileNav(props: {
+  activeTab: ProjectSettingsTabKey;
+  items: readonly ProjectSettingsNavItem[];
+  query: string;
+  onQueryChange: (query: string) => void;
+  onSelect: (tab: ProjectSettingsTabKey) => void;
+}) {
+  const { t } = useTranslation(["account", "common"]);
+  const [open, setOpen] = useState(false);
+  const activeItem = props.items.find((item) => item.tab === props.activeTab) ?? props.items[0];
 
   return (
-    <ContentGuard
-      loading={detailQuery.isLoading && !detailQuery.data}
-      loadingVariant="form"
-      error={loadError}
-      onRetry={loadError ? () => void detailQuery.refetch() : undefined}
-    >
-      {permissionReady && !canManageProject ? (
-        <AccessNoticeAlert
-          className="mb-6"
-          description={t("account:SETTINGS_PROJECT_READ_ONLY_DESC")}
-        />
-      ) : null}
-
-      <form
-        id="project-identity"
-        className="grid gap-6"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (identityDirty && canManageProject) void saveProjectIdentity();
-        }}
-      >
-        <header>
-          <h2 className="text-title2 font-semibold text-label-primary">
-            {t("account:SETTINGS_PROJECT_IDENTITY_TITLE")}
-          </h2>
-          <p className="mt-1 max-w-2xl text-body text-label-secondary">
-            {t("account:SETTINGS_PROJECT_IDENTITY_DESC")}
-          </p>
-        </header>
-
-        <div className="flex flex-col gap-4 border-y border-border py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            {project ? (
-              <ProjectAvatar
-                name={project.name}
-                size={48}
-                {...projectAvatarPropsFromIdentity(project)}
-              />
-            ) : null}
-            <div className="min-w-0">
-              <div className="text-headline font-medium text-label-primary">
-                {t("account:SETTINGS_PROJECT_ICON_TITLE")}
-              </div>
-              <div className="text-footnote text-label-secondary">
-                {t("account:SETTINGS_PROJECT_ICON_DESC")}
-              </div>
-            </div>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            data-testid="project-icon-action"
-            disabled={disabled || !project}
-            onClick={openIconDialog}
-          >
-            {t("settings:SETTINGS_EDIT")}
-          </Button>
-        </div>
-
-        <div className="grid gap-5">
-          <div className="grid content-start gap-2">
-            <div className="flex items-center justify-between gap-3">
-              <label htmlFor="project-name-input" className="text-headline text-label-primary">
-                {t("account:ACCOUNT_PROJECTS_FIELD_NAME")}
-              </label>
-              <span className="text-caption text-label-secondary">
-                {nameDraft.length}/{PROJECT_NAME_MAX_LENGTH}
-              </span>
-            </div>
-            <p className="text-footnote text-label-secondary">
-              {t("account:ACCOUNT_PROJECTS_FIELD_NAME_DESC")}
-            </p>
-            <Input
-              id="project-name-input"
-              name="name"
-              data-testid="project-name-input"
-              value={nameDraft}
-              maxLength={PROJECT_NAME_MAX_LENGTH}
-              disabled={disabled}
-              onChange={(event) => {
-                setNameDraft(event.target.value);
-                setNameError(null);
-              }}
-              placeholder={t("account:ACCOUNT_PROJECTS_FIELD_NAME_PLACEHOLDER")}
-              aria-invalid={Boolean(nameError)}
-              autoComplete="off"
-            />
-            <FieldMessage message={nameError} />
-          </div>
-
-          <div className="grid gap-2">
-            <div className="flex items-center justify-between gap-3">
-              <label
-                htmlFor="project-description-input"
-                className="text-headline text-label-primary"
-              >
-                {t("account:ACCOUNT_PROJECTS_FIELD_DESCRIPTION")}
-              </label>
-              <span className="text-caption text-label-secondary">
-                {descriptionDraft.length}/{PROJECT_DESCRIPTION_MAX_LENGTH}
-              </span>
-            </div>
-            <p className="text-footnote text-label-secondary">
-              {t("account:ACCOUNT_PROJECTS_FIELD_DESCRIPTION_DESC")}
-            </p>
-            <Textarea
-              id="project-description-input"
-              name="description"
-              data-testid="project-description-input"
-              rows={4}
-              maxLength={PROJECT_DESCRIPTION_MAX_LENGTH}
-              value={descriptionDraft}
-              disabled={disabled}
-              onChange={(event) => {
-                setDescriptionDraft(event.target.value);
-                setDescriptionError(null);
-              }}
-              placeholder={t("account:ACCOUNT_PROJECTS_FIELD_DESCRIPTION_PLACEHOLDER")}
-              aria-invalid={Boolean(descriptionError)}
-            />
-            <FieldMessage message={descriptionError} />
-          </div>
-        </div>
-
-        <div className="flex items-center justify-end gap-2 border-t border-border pt-4">
-          <Button
-            type="button"
-            variant="ghost"
-            disabled={!identityDirty || updateProjectMutation.isPending}
-            onClick={resetIdentityDraft}
-          >
-            {t("settings:SETTINGS_RESET")}
-          </Button>
-          <Button
-            type="submit"
-            loading={savingKey === "project:identity" || updateProjectMutation.isPending}
-            disabled={!identityDirty || disabled}
-          >
-            {t("settings:SETTINGS_SAVE")}
-          </Button>
-        </div>
-      </form>
-
-      <section className="mt-12 border-t border-border pt-8" aria-labelledby="project-danger-title">
-        <h2 id="project-danger-title" className="text-title2 font-semibold text-label-primary">
-          {t("account:SETTINGS_PROJECT_DANGER_TITLE")}
-        </h2>
-        <p className="mt-1 max-w-2xl text-body text-label-secondary">
-          {t("account:SETTINGS_PROJECT_DANGER_DESC")}
-        </p>
-
-        <div className="mt-5 divide-y divide-border border-y border-border">
-          <div className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="max-w-2xl">
-              <div className="flex items-center gap-2 text-headline font-medium text-label-primary">
-                <Archive aria-hidden="true" size={17} />
-                {t("account:SETTINGS_PROJECT_ARCHIVE_TITLE")}
-              </div>
-              <p className="mt-1 text-footnote text-label-secondary">
-                {t("account:SETTINGS_PROJECT_ARCHIVE_DESC")}
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={!archiveEnabled || archiveProjectMutation.isPending}
-              onClick={() => setArchiveOpen(true)}
-              data-testid="project-archive-trigger"
-            >
-              {t("account:ACCOUNT_PROJECTS_ACTION_ARCHIVE")}
-            </Button>
-          </div>
-          <div className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="max-w-2xl">
-              <div className="flex items-center gap-2 text-headline font-medium text-label-primary">
-                <Trash2 aria-hidden="true" size={17} />
-                {t("account:SETTINGS_PROJECT_DELETE_TITLE")}
-              </div>
-              <p className="mt-1 text-footnote text-label-secondary">
-                {t("account:SETTINGS_PROJECT_DELETE_DESC")}
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="destructive"
-              disabled={!deleteEnabled || deleteProjectMutation.isPending}
-              onClick={() => {
-                setDeleteConfirmation("");
-                setDeleteOpen(true);
-              }}
-              data-testid="project-delete-trigger"
-            >
-              {t("account:ACCOUNT_PROJECTS_ACTION_DELETE")}
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {iconDialogProject ? (
-        <ProjectIconDialog
-          t={(key, options) => t(key, options)}
-          dialog={{
-            project: iconDialogProject,
-            setProject: setIconDialogProject,
-            values: iconDialogValues,
-            setValues: setIconDialogValues,
-            pending: updateProjectMutation.isPending,
-            onClose: () => setIconDialogProject(null),
-            onConfirm: async () => {
-              await withSavingKey("project:icon", async () => {
-                await handlePatchProject(buildProjectIconPatch(iconDialogValues));
-              });
-              setIconDialogProject(null);
-            },
-          }}
-        />
-      ) : null}
-
-      <SettingDialog
-        open={archiveOpen}
-        onOpenChange={setArchiveOpen}
-        preventInitialFocus={false}
-        title={t("account:ACCOUNT_PROJECTS_ARCHIVE_CONFIRM_TITLE")}
-        description={t("account:ACCOUNT_PROJECTS_ARCHIVE_CONFIRM_DESC", {
-          name: project?.name ?? "",
-        })}
-        footer={
-          <div className="flex w-full justify-end gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              disabled={archiveProjectMutation.isPending}
-              onClick={() => setArchiveOpen(false)}
-            >
-              {t("common:CANCEL")}
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              loading={archiveProjectMutation.isPending}
-              disabled={!archiveEnabled}
-              onClick={() => void archiveProjectMutation.mutateAsync()}
-              data-testid="project-archive-confirm"
-            >
-              {t("account:ACCOUNT_PROJECTS_ACTION_ARCHIVE")}
-            </Button>
-          </div>
-        }
-      >
-        <div className="border-y border-border py-3 text-footnote text-label-secondary">
-          {t("account:SETTINGS_PROJECT_ARCHIVE_RUNTIME_WARNING")}
-        </div>
-      </SettingDialog>
-
-      <SettingDialog
-        open={deleteOpen}
-        onOpenChange={(open) => {
-          if (!deleteProjectMutation.isPending) setDeleteOpen(open);
-          if (!open) setDeleteConfirmation("");
-        }}
-        preventInitialFocus={false}
-        title={t("account:ACCOUNT_PROJECTS_DELETE_CONFIRM_TITLE")}
-        description={t("account:ACCOUNT_PROJECTS_DELETE_CONFIRM_DESC", {
-          name: project?.name ?? "",
-        })}
-        footer={
-          <div className="flex w-full justify-end gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              disabled={deleteProjectMutation.isPending}
-              onClick={() => setDeleteOpen(false)}
-            >
-              {t("common:CANCEL")}
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              loading={deleteProjectMutation.isPending}
-              disabled={!deleteEnabled || !deleteConfirmationMatches}
-              onClick={() => void deleteProjectMutation.mutateAsync()}
-              data-testid="project-delete-confirm"
-            >
-              {t("account:ACCOUNT_PROJECTS_ACTION_DELETE")}
-            </Button>
-          </div>
-        }
-      >
-        <SettingDialogField
-          title={t("account:ACCOUNT_PROJECTS_DELETE_CONFIRM_INPUT_LABEL", {
-            name: dangerCapabilities?.confirmDeleteName ?? project?.name ?? "",
-          })}
-          description={t("account:ACCOUNT_PROJECTS_DELETE_CONFIRM_INPUT_HELP")}
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-auto w-full !justify-between gap-3 px-3 py-2.5 text-left lg:hidden"
+          aria-label={t("account:SETTINGS_PROJECT_NAVIGATION_ACTION")}
         >
-          <Input
-            id="project-delete-confirm-name"
-            name="confirmName"
-            aria-label={t("account:ACCOUNT_PROJECTS_DELETE_CONFIRM_INPUT_PLACEHOLDER")}
-            value={deleteConfirmation}
-            onChange={(event) => setDeleteConfirmation(event.target.value)}
-            autoComplete="off"
-            disabled={deleteProjectMutation.isPending}
+          <span className="flex min-w-0 items-center gap-3">
+            <SlidersHorizontal aria-hidden="true" className="size-4 shrink-0" />
+            <span className="min-w-0">
+              <span className="block truncate text-headline font-medium text-label-primary">
+                {activeItem ? t(activeItem.labelKey) : t("account:SETTINGS_PROJECT_TITLE")}
+              </span>
+              <span className="block text-footnote font-normal text-label-secondary">
+                {t("account:SETTINGS_PROJECT_NAVIGATION_HINT")}
+              </span>
+            </span>
+          </span>
+          <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-label-tertiary" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent
+        side="left"
+        className="w-[min(22rem,calc(100vw-1rem))] gap-0"
+        closeButtonLabel={t("common:CLOSE")}
+      >
+        <SheetHeader>
+          <SheetTitle>{t("account:SETTINGS_PROJECT_TITLE")}</SheetTitle>
+          <SheetDescription>{t("account:SETTINGS_PROJECT_NAVIGATION_DESC")}</SheetDescription>
+        </SheetHeader>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+          <ProjectSettingsSearch
+            id="project-settings-mobile-search"
+            query={props.query}
+            onQueryChange={props.onQueryChange}
           />
-        </SettingDialogField>
-      </SettingDialog>
-    </ContentGuard>
+          <div className="mt-4">
+            <ProjectSettingsSideNav
+              activeTab={props.activeTab}
+              items={props.items}
+              onSelect={(tab) => {
+                setOpen(false);
+                props.onSelect(tab);
+              }}
+            />
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -693,6 +253,10 @@ export function ProjectSettingsPage(props: ProjectSettingsPageProps) {
   const navItems = useMemo(() => buildProjectSettingsNavItems(), []);
   const [query, setQuery] = useState("");
   const filteredNavItems = useProjectSettingsNavSearch(navItems, query);
+  const selectTab = (nextTab: ProjectSettingsTabKey) => {
+    setQuery("");
+    void navigate(resolveProjectSettingsTabNavigation(projectId, nextTab));
+  };
 
   const content = (() => {
     switch (activeTab) {
@@ -715,33 +279,33 @@ export function ProjectSettingsPage(props: ProjectSettingsPageProps) {
       headerBehavior="sticky"
       contentContainerClassName="[--page-sticky-header-height:6rem]"
     >
-      <div className="flex w-full gap-8">
-        <aside className="hidden w-72 shrink-0 lg:block">
-          <div className="sticky top-[var(--page-sticky-header-height,6rem)] flex max-h-[calc(100vh-var(--page-sticky-header-height,6rem)-1rem)] min-h-0 w-full flex-col gap-4 overflow-y-auto pb-4">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-label-tertiary" />
-              <Input
+      <div className="w-full">
+        <ProjectSettingsMobileNav
+          activeTab={activeTab}
+          items={filteredNavItems}
+          query={query}
+          onQueryChange={setQuery}
+          onSelect={selectTab}
+        />
+
+        <div className="mt-6 flex w-full gap-8 lg:mt-0">
+          <aside className="hidden w-72 shrink-0 lg:block">
+            <div className="sticky top-[var(--page-sticky-header-height,6rem)] flex max-h-[calc(100vh-var(--page-sticky-header-height,6rem)-1rem)] min-h-0 w-full flex-col gap-4 overflow-y-auto pb-4">
+              <ProjectSettingsSearch
                 id="project-settings-search"
-                name="projectSettingsSearch"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={t("account:SETTINGS_PROJECT_SEARCH_PLACEHOLDER")}
-                className="pl-9"
-                autoComplete="off"
+                query={query}
+                onQueryChange={setQuery}
+              />
+              <ProjectSettingsSideNav
+                items={filteredNavItems}
+                activeTab={activeTab}
+                onSelect={selectTab}
               />
             </div>
-            <ProjectSettingsSideNav
-              items={filteredNavItems}
-              activeTab={activeTab}
-              onSelect={(nextTab) => {
-                setQuery("");
-                void navigate(resolveProjectSettingsTabNavigation(projectId, nextTab));
-              }}
-            />
-          </div>
-        </aside>
+          </aside>
 
-        <div className="min-w-0 flex-1">{content}</div>
+          <div className="min-w-0 flex-1">{content}</div>
+        </div>
       </div>
     </DefaultPage>
   );

@@ -1112,7 +1112,7 @@ used to describe the full user goal as complete.
 | 8 | Connector-based commercialization and Stripe | In progress | Connector registry, Stripe plugin, durable billing event path, and Billing surfaces exist. Provider migration parity, replay/reconciliation, entitlement, and production webhook evidence remain Wave 6 gates. |
 | 9 | Productized no-release/prelaunch experience | In progress | The public host has an explicit versioned, noindex prelaunch contract with no fake published success. Final branded visual treatment and release activation convergence remain. |
 | 10 | Website Config redesign and ownership | In progress | Identity, discovery, and localization workspaces now have responsive live visitor previews, complete read-only behavior, generated-source invalidation, bilingual copy, and browser-verified UX acceptance. Typed domain facades, optimistic concurrency, Activity evidence, and consuming the Domains-owned resolved primary URL remain open. |
-| 11 | Project General redesign and ownership | In progress | Project identity, access/lifecycle boundaries, permissions, and danger actions have production surfaces. Wave 4 final IA/copy/visual acceptance remains open. |
+| 11 | Project General redesign and ownership | In progress | Project identity, context/access/lifecycle boundaries, danger actions, responsive navigation, bilingual copy, and browser acceptance are complete. Typed identity/defaults commands with optimistic concurrency and Activity evidence remain open. |
 
 Boneyard and motion are cross-cutting rather than a twelfth capability. The
 shared route boundary, reduced-motion primitives, and editor loading states
@@ -1970,3 +1970,52 @@ This accepts the Website Config frontend field/preview and responsive UX slice.
 The capability remains `In progress` until typed website/SEO/localization
 facades, optimistic concurrency, Activity evidence, and the Domains-owned
 resolved primary address replace the remaining broad-patch/manual-URL boundary.
+
+## 46. Wave 4 Project General ownership and lifecycle vertical (2026-07-22)
+
+Live-source review found that Project General mixed project identity, runtime
+context, and destructive lifecycle actions in one large page while narrow
+viewports lost the settings navigation entirely. The identity form also
+constructed a synthetic list projection from detail data, which filled fields
+such as timestamps and member counts with values that were not returned by the
+canonical Project detail response.
+
+This Wave 4 vertical makes six ownership cuts:
+
+1. Project General owns only the team-facing name, description, icon, project
+   context, access summary, and lifecycle actions. Visitor-facing identity
+   remains in Website Config, Domains retains primary-domain authority, and
+   Design Systems remain outside this form;
+2. the identity form uses React Hook Form and Zod, trims submitted values,
+   exposes dirty/saving/saved state, and resets only to the latest canonical
+   Project detail response;
+3. icon editing consumes the real Project identity fields it needs and no
+   longer fabricates a `ProjectListItem` with empty timestamps or zero members;
+4. access and lifecycle capability queries remain explicit. Failed permission
+   loading makes the page read-only, and failed capability loading keeps
+   archive/delete unavailable with a visible reason;
+5. archive and permanent delete remain separate commands. Delete requires the
+   exact server-projected confirmation name and neither action is represented
+   as successful before the mutation returns;
+6. Project Settings keeps one searchable navigation model across General, API,
+   Environments, and Databases. Desktop renders the side navigation and narrow
+   layouts expose the same destinations in a labelled, localized left sheet.
+
+Fresh focused verification passes 4 Admin test files / 20 tests. Targeted
+Oxlint and Oxfmt checks pass, as does the explicit-file `git diff --check`.
+Real browser acceptance at 1440px, 800px, and 500px confirms the identity save
+states, archive/delete confirmation gates, localized mobile navigation, and
+zero horizontal overflow. No destructive action was executed during
+acceptance. The accumulated branch React Doctor result remains 61/100 with 217
+warnings and no finding in the new Project General components.
+
+The full Admin typecheck is currently blocked by two concurrent, out-of-scope
+`SearchRoute` conversion errors in
+`system-observability-period-routes.test.ts`. Therefore this checkpoint does
+not claim `pnpm admin:check` success.
+
+This accepts the Project General frontend IA, copy, permissions, lifecycle
+gates, and responsive UX slice. The overall capability remains `In progress`
+until the broad Project patch is replaced or narrowed by typed identity and
+project-default commands with optimistic version/ETag, stable errors, Activity
+evidence, and explicit Agent grants.

@@ -67,11 +67,12 @@ const PROJECT_ICON_EMOJIS = [
   "🌱",
 ] as const;
 
+export type ProjectIconDialogProject = Pick<UserCenterProjectListItem, "projectId" | "name">;
+
 type ProjectIconDialogProps = {
   t: UserCenterProjectsTranslateFn;
   dialog: {
-    project: UserCenterProjectListItem | null;
-    setProject: Dispatch<SetStateAction<UserCenterProjectListItem | null>>;
+    project: ProjectIconDialogProject | null;
     values: ProjectIconDialogValues;
     setValues: Dispatch<SetStateAction<ProjectIconDialogValues>>;
     pending: boolean;

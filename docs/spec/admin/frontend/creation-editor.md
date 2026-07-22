@@ -1374,3 +1374,48 @@ updates, stable wide two-column composition, narrow stacking, named switches,
 and zero horizontal overflow. React Doctor remains a branch-wide 56/100 across
 the accumulated `develop` to `main` delta; it reports no finding in this Website
 Config or page-shell slice.
+
+## 41. Wave 4 Project General workbench
+
+Project General is the team-facing identity and lifecycle workbench, not a
+second Website Config screen. It owns the Project name, description, icon,
+authoring/runtime context, access summary, stable internal identifiers,
+archive, and permanent deletion. Public site name, metadata, locale, browser
+assets, URL selection, and SEO remain in Website Config or Domains.
+
+The identity axis is one React Hook Form/Zod form with explicit character
+limits, dirty/saving/saved status, Save, and Reset. Its icon action receives
+only the real Project ID/name and canonical icon fields; it must not construct
+a list-card projection with invented operational data. A successful mutation
+invalidates the Project detail, project cards, global navigation, and table
+queries before reporting success.
+
+The context rail renders canonical lifecycle state, authoring authority,
+primary runtime state, access state, slug, Project/workspace IDs, and authoring
+revision. Loading, read-only, permission failure, no runtime, inactive runtime,
+active runtime, migration-required, and archived states remain distinct. A
+permission failure is visible and keeps all mutations disabled.
+
+Archive and delete use the server capability projection before enabling their
+dialogs. Capability loading and failure are visible, blocked reasons are
+associated with their controls, and permanent deletion requires an exact match
+with the server-projected Project name. These commands never share the normal
+identity form and never optimistically remove the Project.
+
+All Project Settings routes share one searchable navigation model. Wide
+viewports keep the side navigation; narrow viewports expose a labelled trigger
+and localized left Sheet with General, API, Environments, and Databases. The
+alternate entry is keyboard-native, returns the same routes, and does not
+introduce horizontal overflow.
+
+Fresh focused verification passes 4 Admin files / 20 tests, targeted Oxlint,
+targeted Oxfmt, and explicit-file diff checks. Browser acceptance at 1440px,
+800px, and 500px verifies save feedback, permission/lifecycle presentation,
+archive/delete confirmation without executing either mutation, localized
+navigation, and zero horizontal overflow. Branch-wide React Doctor reports
+61/100 with 217 warnings and no Project General component finding.
+
+The full Admin typecheck is not accepted for this checkpoint because a
+concurrent Observability route test contains two unrelated `SearchRoute`
+conversion errors. Typed identity/defaults facades, optimistic concurrency,
+stable errors, Activity evidence, and Agent grants remain backend gates.
