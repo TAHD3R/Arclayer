@@ -49,9 +49,9 @@ async def list_storage_profiles(
 async def create_storage_profile(
     payload: StorageProfileCreateRequest,
     service: StorageProfilesService = Depends(get_storage_profiles_service),
-    user=Depends(get_current_user),
+    _user=Depends(get_current_user),
 ) -> ResponseModel[StorageProfileOut]:
-    return ApiResponse.success(data=await service.create_profile(payload=payload, updated_by=getattr(user, "id", None)))
+    return ApiResponse.success(data=await service.create_profile(payload=payload))
 
 
 @router.patch(
@@ -63,13 +63,12 @@ async def update_storage_profile(
     profile_id: str,
     payload: StorageProfileUpdateRequest,
     service: StorageProfilesService = Depends(get_storage_profiles_service),
-    user=Depends(get_current_user),
+    _user=Depends(get_current_user),
 ) -> ResponseModel[StorageProfileOut]:
     return ApiResponse.success(
         data=await service.update_profile(
             profile_id=decode_storage_profile_id(profile_id),
             payload=payload,
-            updated_by=getattr(user, "id", None),
         )
     )
 
@@ -108,11 +107,10 @@ async def test_storage_profile_by_key(
 async def delete_storage_profile(
     profile_id: str,
     service: StorageProfilesService = Depends(get_storage_profiles_service),
-    user=Depends(get_current_user),
+    _user=Depends(get_current_user),
 ) -> ResponseModel[StorageProfileDeleteOut]:
     return ApiResponse.success(
         data=await service.delete_profile(
             profile_id=decode_storage_profile_id(profile_id),
-            updated_by=getattr(user, "id", None),
         )
     )

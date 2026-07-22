@@ -6,9 +6,11 @@ import pytest
 from pydantic import SecretStr
 
 from src.config import Settings
+from src.models.storage.storage_profile import StorageProfile, StorageProfileConfigSource
 from src.platform.storage import profiles
 from src.platform.storage.capabilities import ObjectStorageProviderKind
 from src.platform.storage.factory import build_storage_provider
+from src.platform.storage.profile_route_service import StorageProfileRouteInvariantError
 from src.platform.storage.profile_schema import StorageProfileConfig
 from src.platform.storage.providers.aliyun_oss import AliyunOssStorageProvider
 from src.platform.storage.providers.local import LocalObjectStorageProvider
@@ -57,6 +59,68 @@ def test_build_storage_provider_cloud_variants(
     assert isinstance(provider, expected_type)
     assert provider.kind == provider_kind
     assert provider.capabilities == provider.config.capabilities
+
+
+def test_environment_profile_receives_deployment_s3_client_deadlines() -> None:
+    settings = Settings(
+        storage={
+            "s3_connect_timeout_seconds": 7.5,
+            "s3_read_timeout_seconds": 45.0,
+        }
+    )
+
+    profile = profiles.build_env_storage_profile_config(settings)
+
+    assert profile.connect_timeout_seconds == 7.5
+    assert profile.read_timeout_seconds == 45.0
+
+
+def test_persisted_profile_receives_deployment_s3_client_deadlines() -> None:
+    settings = Settings(
+        storage={
+            "s3_connect_timeout_seconds": 6.0,
+            "s3_read_timeout_seconds": 50.0,
+        }
+    )
+    record = StorageProfile(
+        profile_key="cloud-primary",
+        provider=ObjectStorageProviderKind.AWS_S3.value,
+        display_name="Cloud Primary",
+        config={},
+        secret_ref={},
+    )
+
+    profile = profiles.build_storage_profile_config_from_record(
+        record,
+        settings=settings,
+    )
+
+    assert profile.connect_timeout_seconds == 6.0
+    assert profile.read_timeout_seconds == 50.0
+
+
+@pytest.mark.parametrize(
+    ("profile_key", "config_source"),
+    [
+        (profiles.ENV_DEFAULT_PROFILE_KEY, StorageProfileConfigSource.DATABASE),
+        ("invalid-environment-alias", StorageProfileConfigSource.ENVIRONMENT),
+    ],
+)
+def test_environment_profile_key_and_config_source_are_one_reserved_identity(
+    profile_key: str,
+    config_source: StorageProfileConfigSource,
+) -> None:
+    record = StorageProfile(
+        profile_key=profile_key,
+        provider=ObjectStorageProviderKind.LOCAL.value,
+        config_source=config_source,
+        display_name="Invalid Environment Identity",
+        config={},
+        secret_ref={},
+    )
+
+    with pytest.raises(StorageProfileRouteInvariantError, match="environment-managed storage identity"):
+        profiles.build_storage_profile_config_from_record(record, settings=Settings())
 
 
 @pytest.mark.asyncio

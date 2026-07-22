@@ -6,11 +6,21 @@ from typing import Any, cast
 from pydantic import SecretStr
 
 from src.config import Settings
-from src.models.storage.storage_profile import StorageProfile
+from src.models.storage.storage_profile import StorageProfile, StorageProfileConfigSource
 from src.platform.storage.capabilities import ObjectStorageProviderKind
+from src.platform.storage.errors import StorageProfileRouteInvariantError
 from src.platform.storage.profile_schema import PublicAssetDeliveryMode, StorageProfileConfig
 
 ENV_DEFAULT_PROFILE_KEY = "env-default"
+
+
+def validate_storage_profile_identity(record: StorageProfile) -> None:
+    is_environment_key = record.profile_key == ENV_DEFAULT_PROFILE_KEY
+    is_environment_source = record.config_source == StorageProfileConfigSource.ENVIRONMENT
+    if is_environment_key != is_environment_source:
+        raise StorageProfileRouteInvariantError(
+            "env-default is reserved as the only environment-managed storage identity"
+        )
 
 
 def _read_secret_ref(secret_ref: object, key: str) -> str | None:
@@ -26,6 +36,9 @@ def build_storage_profile_config_from_record(
     *,
     settings: Settings,
 ) -> StorageProfileConfig:
+    validate_storage_profile_identity(record)
+    if record.config_source == StorageProfileConfigSource.ENVIRONMENT:
+        return build_env_storage_profile_config(settings)
     raw = cast(dict[str, Any], record.config) if isinstance(record.config, dict) else {}
     secret_access_key = _read_secret_ref(record.secret_ref, "secret_access_key")
 
@@ -45,6 +58,8 @@ def build_storage_profile_config_from_record(
         secret_access_key=SecretStr(secret_access_key) if secret_access_key else None,
         secret_access_key_ref=f"record:{record.id}:secret_access_key" if secret_access_key else None,
         presign_expires_seconds=int(raw.get("presign_expires_seconds") or 900),
+        connect_timeout_seconds=float(settings.storage.s3_connect_timeout_seconds),
+        read_timeout_seconds=float(settings.storage.s3_read_timeout_seconds),
         local_root_dir=settings.storage.local_root_dir,
         local_tmp_dir=settings.storage.local_tmp_dir,
     )
@@ -68,6 +83,8 @@ def build_env_storage_profile_config(settings: Settings) -> StorageProfileConfig
     public_delivery_mode = getattr(settings.storage, "public_delivery_mode", PublicAssetDeliveryMode.AUTO)
     force_path_style = bool(getattr(settings.storage, "s3_force_path_style", False))
     presign_expires_seconds = int(getattr(settings.storage, "s3_presign_expires_seconds", 900) or 900)
+    connect_timeout_seconds = float(settings.storage.s3_connect_timeout_seconds)
+    read_timeout_seconds = float(settings.storage.s3_read_timeout_seconds)
 
     return StorageProfileConfig(
         provider=provider,
@@ -82,6 +99,8 @@ def build_env_storage_profile_config(settings: Settings) -> StorageProfileConfig
         access_key_id=str(access_key).strip() if isinstance(access_key, str) else None,
         secret_access_key=SecretStr(secret_value) if isinstance(secret_value, str) and secret_value.strip() else None,
         presign_expires_seconds=presign_expires_seconds,
+        connect_timeout_seconds=connect_timeout_seconds,
+        read_timeout_seconds=read_timeout_seconds,
         local_root_dir=Path(settings.storage.local_root_dir),
         local_tmp_dir=Path(settings.storage.local_tmp_dir),
     )

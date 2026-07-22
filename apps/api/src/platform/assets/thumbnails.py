@@ -10,6 +10,14 @@ from pydantic import ConfigDict
 from src.common.schemas import BaseSchema
 
 
+class PreviewSourceInvalidError(ValueError):
+    """The source bytes deterministically cannot produce a media preview."""
+
+
+class PreviewRendererTemporarilyUnavailableError(RuntimeError):
+    """The configured preview renderer cannot currently execute."""
+
+
 class ImageThumbnailVariant(BaseSchema):
     model_config = ConfigDict(frozen=True)
 
@@ -63,23 +71,31 @@ def _generate_image_thumbnails_sync(
     from PIL import Image, ImageOps  # type: ignore[import-not-found]
 
     if not in_path.is_file():
-        raise FileNotFoundError(str(in_path))
+        raise PreviewRendererTemporarilyUnavailableError("Image scratch source is unavailable")
 
-    with Image.open(in_path) as img:
-        img = ImageOps.exif_transpose(img)
-        orig_w, orig_h = int(img.width), int(img.height)
-        alpha = _has_alpha(img)
+    try:
+        with Image.open(in_path) as opened:
+            opened.load()
+            img = ImageOps.exif_transpose(opened).copy()
+    except OSError as exc:
+        if isinstance(exc, (FileNotFoundError, PermissionError)) or exc.errno is not None:
+            raise PreviewRendererTemporarilyUnavailableError("Image scratch source is temporarily unavailable") from exc
+        raise PreviewSourceInvalidError("Image source could not be decoded") from exc
+    except ValueError as exc:
+        raise PreviewSourceInvalidError("Image source could not be decoded") from exc
 
-        variants: list[ImageThumbnailVariant] = []
+    orig_w, orig_h = int(img.width), int(img.height)
+    if orig_w <= 0 or orig_h <= 0:
+        raise PreviewSourceInvalidError("Image source dimensions are invalid")
+    alpha = _has_alpha(img)
+    variants: list[ImageThumbnailVariant] = []
 
-        for w in sorted({int(x) for x in widths if int(x) > 0}):
-            if orig_w <= 0 or orig_h <= 0:
-                continue
-
-            target_w = min(w, orig_w)
-            target_h = max(1, int(round(orig_h * (target_w / orig_w))))
-
-            out_path, object_key = out_path_for_width(target_w, alpha=alpha)
+    requested_widths = {int(width) for width in widths if int(width) > 0}
+    target_widths = sorted({min(width, orig_w) for width in requested_widths})
+    for target_w in target_widths:
+        target_h = max(1, int(round(orig_h * (target_w / orig_w))))
+        out_path, object_key = out_path_for_width(target_w, alpha=alpha)
+        try:
             if out_path.is_file():
                 size_bytes = out_path.stat().st_size
                 variants.append(
@@ -94,14 +110,10 @@ def _generate_image_thumbnails_sync(
                     )
                 )
                 continue
-
             _ensure_parent_dir(out_path)
-
             resized = img.copy()
             resized.thumbnail((target_w, target_h), resample=Image.Resampling.LANCZOS)
-
             if alpha:
-                # Keep alpha for thumbnails to avoid ugly backgrounds.
                 if resized.mode != "RGBA":
                     resized = resized.convert("RGBA")
                 resized.save(out_path, format="PNG", optimize=True)
@@ -109,19 +121,22 @@ def _generate_image_thumbnails_sync(
                 if resized.mode not in {"RGB", "L"}:
                     resized = resized.convert("RGB")
                 resized.save(out_path, format="JPEG", quality=85, optimize=True, progressive=True)
-
             size_bytes = out_path.stat().st_size
-            variants.append(
-                ImageThumbnailVariant(
-                    name=f"thumb_{target_w}",
-                    width=int(resized.width),
-                    height=int(resized.height),
-                    mime="image/png" if alpha else "image/jpeg",
-                    ext="png" if alpha else "jpg",
-                    object_key=object_key,
-                    size_bytes=int(size_bytes),
-                )
+        except OSError as exc:
+            raise PreviewRendererTemporarilyUnavailableError(
+                "Image renderer output is temporarily unavailable"
+            ) from exc
+        variants.append(
+            ImageThumbnailVariant(
+                name=f"thumb_{target_w}",
+                width=int(resized.width),
+                height=int(resized.height),
+                mime="image/png" if alpha else "image/jpeg",
+                ext="png" if alpha else "jpg",
+                object_key=object_key,
+                size_bytes=int(size_bytes),
             )
+        )
 
     variants_payload = {"thumbnails": [v.model_dump() for v in variants]}
     meta_payload = {
@@ -148,41 +163,56 @@ async def generate_image_thumbnails(
 
 
 def _render_pdf_preview_source_sync(*, in_path: Path, out_path: Path) -> dict[str, Any]:
-    import pypdfium2 as pdfium  # type: ignore[import-not-found]
-
     if not in_path.is_file():
-        raise FileNotFoundError(str(in_path))
+        raise PreviewRendererTemporarilyUnavailableError("PDF scratch source is unavailable")
 
-    _ensure_parent_dir(out_path)
-    pdf = pdfium.PdfDocument(str(in_path))
     try:
-        if len(pdf) < 1:
-            raise ValueError("PDF has no pages")
-        page = pdf[0]
+        import pypdfium2 as pdfium  # type: ignore[import-not-found]
+    except (ImportError, OSError) as exc:
+        raise PreviewRendererTemporarilyUnavailableError("PDF renderer is unavailable") from exc
+
+    try:
+        _ensure_parent_dir(out_path)
+        pdf = pdfium.PdfDocument(str(in_path))
         try:
-            bitmap = page.render(scale=2.0)
-            image = bitmap.to_pil()
-            if image.mode not in {"RGB", "L"}:
-                image = image.convert("RGB")
-            image.save(out_path, format="PNG", optimize=True)
-            return {"document": {"preview_source": "first_page"}}
+            if len(pdf) < 1:
+                raise PreviewSourceInvalidError("PDF has no pages")
+            page = pdf[0]
+            try:
+                bitmap = page.render(scale=2.0)
+                image = bitmap.to_pil()
+                if image.mode not in {"RGB", "L"}:
+                    image = image.convert("RGB")
+                image.save(out_path, format="PNG", optimize=True)
+                return {"document": {"preview_source": "first_page"}}
+            finally:
+                page.close()
         finally:
-            page.close()
-    finally:
-        pdf.close()
+            pdf.close()
+    except PreviewSourceInvalidError:
+        raise
+    except pdfium.PdfiumError as exc:
+        raise PreviewSourceInvalidError("PDF source could not be rendered") from exc
+    except OSError as exc:
+        raise PreviewRendererTemporarilyUnavailableError("PDF renderer execution failed") from exc
 
 
 def _render_video_preview_source_sync(*, in_path: Path, out_path: Path) -> dict[str, Any]:
-    from imageio_ffmpeg import get_ffmpeg_exe  # type: ignore[import-not-found]
-
     if not in_path.is_file():
-        raise FileNotFoundError(str(in_path))
+        raise PreviewRendererTemporarilyUnavailableError("Video scratch source is unavailable")
 
-    _ensure_parent_dir(out_path)
-    ffmpeg = get_ffmpeg_exe()
+    try:
+        from imageio_ffmpeg import get_ffmpeg_exe  # type: ignore[import-not-found]
+
+        ffmpeg = get_ffmpeg_exe()
+    except (ImportError, OSError, RuntimeError) as exc:
+        raise PreviewRendererTemporarilyUnavailableError("ffmpeg renderer is unavailable") from exc
+
+    try:
+        _ensure_parent_dir(out_path)
+    except OSError as exc:
+        raise PreviewRendererTemporarilyUnavailableError("Video renderer output is unavailable") from exc
     attempts = ("1", "0.1", "0")
-    last_error = ""
-
     for seek in attempts:
         cmd = [
             ffmpeg,
@@ -200,12 +230,19 @@ def _render_video_preview_source_sync(*, in_path: Path, out_path: Path) -> dict[
             "-sn",
             str(out_path),
         ]
-        result = subprocess.run(cmd, check=False, capture_output=True, text=True, timeout=30)
-        if result.returncode == 0 and out_path.is_file() and out_path.stat().st_size > 0:
+        try:
+            result = subprocess.run(cmd, check=False, capture_output=True, text=True, timeout=30)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise PreviewRendererTemporarilyUnavailableError("ffmpeg renderer execution failed") from exc
+        if result.returncode < 0:
+            raise PreviewRendererTemporarilyUnavailableError("ffmpeg renderer terminated unexpectedly")
+        try:
+            produced_frame = result.returncode == 0 and out_path.is_file() and out_path.stat().st_size > 0
+        except OSError as exc:
+            raise PreviewRendererTemporarilyUnavailableError("Video renderer output is unavailable") from exc
+        if produced_frame:
             return {"video": {"preview_source": "frame", "seek_seconds": float(seek)}}
-        last_error = (result.stderr or result.stdout or "").strip()
-
-    raise RuntimeError(last_error or "ffmpeg did not produce a preview frame")
+    raise PreviewSourceInvalidError("ffmpeg could not decode the video source")
 
 
 def _source_kind_for_preview(*, mime: str | None, ext: str | None) -> str | None:

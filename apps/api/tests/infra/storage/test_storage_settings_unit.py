@@ -3,6 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 
+def test_storage_settings_default_provider_is_local() -> None:
+    from src.config import StorageSettings
+
+    assert StorageSettings.model_fields["provider"].default == "local"
+
+
 def test_storage_settings_default_root_dir_is_data_uploads() -> None:
     from src.config import get_settings
 

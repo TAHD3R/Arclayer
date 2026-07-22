@@ -9,21 +9,18 @@ from uuid import UUID, uuid4
 
 import pytest
 from pydantic import SecretStr
+from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.common.constants.assets import ASSET_SCOPE_PROJECT
 from src.config import Settings
-from src.core.events import Event
 from src.core.exceptions import BadRequest
-from src.core.services.base import BaseService
-from src.modules.analytics.audit import ActivityAuditPayload
 from src.modules.assets.admin.assets.service import AdminAssetsService
 from src.modules.assets.admin.uploads.schema import build_upload_init_out
 from src.modules.assets.admin.uploads.service import UploadsService
+from src.modules.assets.jobs import is_asset_thumbnail_previewable
 from src.modules.assets.naming.service import build_scoped_asset_object_key
 from src.modules.assets.scope import AssetScope
-from src.modules.tenancy.router_helpers import tenant_context_from_payload
 from src.modules.tenancy.schema import TenantContext, TenantIdentity, TenantIsolationMode, TenantScope
-from src.platform.jobs.assets_thumbnails import _is_previewable_asset, _merge_meta_payload
 from src.platform.storage.capabilities import ObjectStorageCapabilities, ObjectStorageProviderKind
 from src.platform.storage.profile_schema import StorageProfileConfig
 from src.platform.storage.s3 import S3StorageProvider
@@ -51,14 +48,6 @@ class FakeRemoteProvider:
     async def create_multipart_upload(self, *, object_key: str, content_type: str | None) -> str:
         self.multipart_calls.append((object_key, content_type))
         return "upload-123"
-
-
-class FakeEventPublisher:
-    def __init__(self) -> None:
-        self.events: list[Event] = []
-
-    async def publish(self, event: Event) -> None:
-        self.events.append(event)
 
 
 def _settings() -> Settings:
@@ -121,23 +110,12 @@ def test_upload_init_out_keeps_local_method() -> None:
     ],
 )
 def test_asset_thumbnail_job_previewable_types(mime: str, ext: str, expected: bool) -> None:
-    asset = SimpleNamespace(mime=mime, ext=ext)
-
-    assert _is_previewable_asset(asset) is expected
-
-
-def test_asset_thumbnail_meta_merge_preserves_image_dimensions() -> None:
-    merged = _merge_meta_payload(
-        {"image": {"width": 1200, "height": 800}},
-        {"image": {"preview_source": "original"}},
-    )
-
-    assert merged == {"image": {"width": 1200, "height": 800, "preview_source": "original"}}
+    assert is_asset_thumbnail_previewable(mime=mime, ext=ext) is expected
 
 
 @asynccontextmanager
-async def _unit_connection(**_kwargs) -> AsyncIterator[None]:
-    yield None
+async def _unit_connection(**kwargs) -> AsyncIterator[BaseDBAsyncClient | None]:
+    yield cast(BaseDBAsyncClient | None, kwargs.get("conn"))
 
 
 def _tenant_context(*, project_id: UUID) -> TenantContext:
@@ -358,79 +336,6 @@ async def test_remote_provider_without_bucket_create_skips_ensure(monkeypatch: p
 
     assert session.s3_bucket == "assets"
     assert provider.ensure_bucket_calls == 0
-
-
-@pytest.mark.asyncio
-async def test_project_upload_complete_event_uses_explicit_tenant_context(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    project_id = uuid4()
-    tenant_context = _tenant_context(project_id=project_id)
-    service = UploadsService(_settings(), tenant_context)
-    scope = AssetScope(type=ASSET_SCOPE_PROJECT, id=project_id)
-    upload_id = uuid4()
-    actor_user_id = uuid4()
-    asset_id = uuid4()
-    session = SimpleNamespace(
-        id=upload_id,
-        status="uploading",
-        asset_id=None,
-        purpose="library",
-        storage_provider=ObjectStorageProviderKind.LOCAL.value,
-        visibility="public",
-        indexable=True,
-        actor_user_id=actor_user_id,
-    )
-
-    async def fake_get_status(**_kwargs):
-        return session, []
-
-    async def fake_try_mark_completing(**_kwargs):
-        return True
-
-    async def fake_get_session(**_kwargs):
-        return session
-
-    async def fake_complete_local(**_kwargs):
-        return asset_id
-
-    written: dict[str, object] = {}
-
-    async def fake_write_required_activity_event(**kwargs):
-        written.update(kwargs)
-        return SimpleNamespace(id=uuid4())
-
-    @asynccontextmanager
-    async def fake_tx(_self):
-        yield None
-
-    monkeypatch.setattr(BaseService, "tx", fake_tx)
-    monkeypatch.setattr(service.repo, "connection", _unit_connection)
-    monkeypatch.setattr(service, "get_status", fake_get_status)
-    monkeypatch.setattr(service.repo, "try_mark_completing", fake_try_mark_completing)
-    monkeypatch.setattr(service.repo, "get_session", fake_get_session)
-    monkeypatch.setattr(service, "_complete_local", fake_complete_local)
-    monkeypatch.setattr("src.modules.assets.admin.uploads.service.current_tenant_context_or_none", lambda: None)
-    monkeypatch.setattr(
-        "src.modules.assets.admin.uploads.service.write_required_activity_event",
-        fake_write_required_activity_event,
-    )
-
-    completed_asset_id = await service.complete(upload_id=upload_id, scope=scope)
-
-    payload_model = written["payload"]
-    assert isinstance(payload_model, ActivityAuditPayload)
-    assert written["conn"] is None
-    payload = payload_model.properties
-    restored = tenant_context_from_payload(payload)
-    assert completed_asset_id == asset_id
-    assert payload_model.event_name == "asset.uploaded"
-    assert payload_model.actor_user_id == actor_user_id
-    assert payload_model.entity_type == "asset"
-    assert payload_model.entity_id == asset_id
-    assert payload["tenant"] == tenant_context.to_job_payload().model_dump(mode="json", by_alias=True)
-    assert restored is not None
-    assert restored.project_id == project_id
 
 
 def test_r2_direct_delivery_uses_custom_public_base_url() -> None:

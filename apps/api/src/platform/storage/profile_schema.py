@@ -30,6 +30,8 @@ class StorageProfileConfig(BaseSchema):
     secret_access_key: SecretStr | None = None
     secret_access_key_ref: str | None = None
     presign_expires_seconds: int = Field(default=900, ge=60, le=24 * 3600)
+    connect_timeout_seconds: float = Field(default=10.0, gt=0, allow_inf_nan=False)
+    read_timeout_seconds: float = Field(default=60.0, gt=0, allow_inf_nan=False)
     local_root_dir: Path | None = None
     local_tmp_dir: Path | None = None
 

@@ -133,7 +133,8 @@ def build_upload_policy(
             purpose=p,
             upload_policy_settings=upload_policy_settings,
         )
-        allowed_exts = _normalize_exts(purpose_settings.allowed_extensions)
+        globally_allowed_exts = _normalize_exts(upload_policy_settings.allowed_extensions)
+        allowed_exts = _normalize_exts(purpose_settings.allowed_extensions) & globally_allowed_exts
         max_size_bytes = min(global_max_size_bytes, int(purpose_settings.max_size_mb) * 1024 * 1024)
         forced_public = p in {"avatar", "site_logo", "workspace_icon", "favicon"}
         return UploadPolicy(

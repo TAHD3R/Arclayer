@@ -1,20 +1,20 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import cast
 from uuid import UUID
 
-from tortoise.exceptions import IntegrityError, OperationalError
+from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.common.constants.assets import (
     ASSET_SCOPE_ORGANIZATION,
     ASSET_SCOPE_PROJECT,
     ASSET_SCOPE_USER,
     ASSET_SCOPE_WORKSPACE,
-    ASSET_UPLOADED_EVENT,
 )
-from src.common.types.json_types import JsonObject
 from src.common.utils.ids import uuid7
 from src.common.utils.slug import slugify
 from src.config import Settings
@@ -23,9 +23,13 @@ from src.core.exceptions import BadRequest, NotFound
 from src.core.i18n import t
 from src.core.logging import get_logger
 from src.core.services import BaseService, DomainEventPublisher
-from src.models.assets.asset import AssetPurpose, AssetVisibility
 from src.models.assets.upload import UploadSessionRecord, UploadStatus
-from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
+from src.modules.analytics.audit import write_required_activity_event
+from src.modules.assets.admin.uploads.completion_service import (
+    BackgroundJobCreator,
+    RequiredActivityWriter,
+    UploadCompletionService,
+)
 from src.modules.assets.admin.uploads.policy.service import (
     UploadPolicy,
     build_upload_policy,
@@ -41,12 +45,10 @@ from src.modules.assets.naming.service import (
     compute_total_parts,
 )
 from src.modules.assets.scope import AssetScope
-from src.modules.tenancy.router_helpers import current_tenant_context_or_none, tenant_payload_from_context
 from src.modules.tenancy.schema import TenantContext
 from src.platform.storage.capabilities import ObjectStorageProviderKind
 from src.platform.storage.factory import build_storage_provider
 from src.platform.storage.local import LocalStorageProvider, safe_object_key_to_path
-from src.platform.storage.merge import merge_parts_to_file
 from src.platform.storage.profile_schema import StorageProfileConfig
 from src.platform.storage.profiles import (
     get_effective_storage_profile,
@@ -58,34 +60,7 @@ from src.settings.runtime import get_effective_settings
 
 logger = get_logger(__name__)
 
-UPLOAD_COMPLETION_ERRORS = (
-    BadRequest,
-    NotFound,
-    IntegrityError,
-    OperationalError,
-    OSError,
-    RuntimeError,
-    TimeoutError,
-    TypeError,
-    ValueError,
-)
-UPLOAD_STATUS_RESET_ERRORS = (
-    OperationalError,
-    OSError,
-    RuntimeError,
-    TimeoutError,
-    TypeError,
-    ValueError,
-)
-UPLOAD_EVENT_PUBLISH_ERRORS = (
-    AttributeError,
-    KeyError,
-    OSError,
-    RuntimeError,
-    TimeoutError,
-    TypeError,
-    ValueError,
-)
+
 UPLOAD_ABORT_ERRORS = (
     AttributeError,
     KeyError,
@@ -105,6 +80,25 @@ def _accept_for_policy(policy: UploadPolicy) -> str:
     ext_tokens = [f".{ext}" for ext in sorted(policy.allowed_exts)]
     mime_tokens = sorted(policy.allowed_mime_types)
     return ",".join([*ext_tokens, *mime_tokens])
+
+
+def _upload_status(session: UploadSessionRecord) -> UploadStatus:
+    try:
+        return UploadStatus(session.status)
+    except ValueError as exc:
+        raise RuntimeError(f"UploadSession {session.id} has unknown status {session.status!r}") from exc
+
+
+def _remove_upload_directory(upload_dir: Path) -> None:
+    if not upload_dir.is_dir():
+        return
+    for child in upload_dir.rglob("*"):
+        if child.is_file():
+            child.unlink(missing_ok=True)
+    for child in sorted(upload_dir.rglob("*"), reverse=True):
+        if child.is_dir():
+            child.rmdir()
+    upload_dir.rmdir()
 
 
 def normalize_visibility_and_indexable(
@@ -142,10 +136,11 @@ class UploadsService(BaseService):
         settings: Settings,
         tenant_context: TenantContext | None = None,
         *,
+        background_jobs: BackgroundJobCreator | None = None,
+        activity_writer: RequiredActivityWriter | None = None,
         event_publisher: DomainEventPublisher | None = events,
     ) -> None:
         super().__init__(settings, event_publisher=event_publisher)
-        self._tenant_context = tenant_context
         self.repo = UploadsRepository(tenant_context)
 
         # Temp storage is always local (even for S3 multipart, we don't store bytes here).
@@ -155,6 +150,14 @@ class UploadsService(BaseService):
                 local_root_dir=self.settings.storage.local_tmp_dir,
                 local_tmp_dir=self.settings.storage.local_tmp_dir,
             )
+        )
+        self._completion = UploadCompletionService(
+            settings,
+            repository=self.repo,
+            remote_provider_builder=self._build_remote_provider,
+            activity_writer=activity_writer or write_required_activity_event,
+            tenant_context=tenant_context,
+            background_jobs=background_jobs,
         )
 
     def _chunk_size_bytes(self) -> int:
@@ -367,19 +370,29 @@ class UploadsService(BaseService):
         *,
         upload_id: UUID,
         scope: AssetScope,
-        conn=None,
+        conn: BaseDBAsyncClient | None = None,
     ) -> tuple[UploadSessionRecord, list[int]]:
         if conn is None:
-            async with self.repo.connection(scope=scope) as scoped_conn:
-                return await self.get_status(upload_id=upload_id, scope=scope, conn=scoped_conn)
+            async with self.tx() as tx:
+                async with self.repo.connection(scope=scope, conn=tx) as scoped_conn:
+                    return await self.get_status(
+                        upload_id=upload_id,
+                        scope=scope,
+                        conn=cast(BaseDBAsyncClient, scoped_conn),
+                    )
 
-        session = await self.repo.get_session(upload_id=upload_id, scope=scope, conn=conn)
+        session = await self.repo.get_session_for_update(upload_id=upload_id, scope=scope, conn=conn)
         if session is None:
             raise NotFound(message=_ts("UPLOAD_NOT_FOUND", "上传会话不存在"), error="UPLOAD_NOT_FOUND")
 
-        if session.expires_at < datetime.now(tz=UTC):
-            await self.repo.set_session_status(session, status=UploadStatus.EXPIRED, conn=conn)
+        status = _upload_status(session)
+        if status == UploadStatus.EXPIRED:
             raise BadRequest(message=_ts("UPLOAD_EXPIRED", "上传会话已过期"), error="UPLOAD_EXPIRED")
+        if status in {UploadStatus.INITIATED, UploadStatus.UPLOADING}:
+            database_time = await self.repo.get_database_time(conn=conn)
+            if database_time > session.expires_at:
+                await self.repo.mark_expired(upload_id=upload_id, scope=scope, conn=conn)
+                raise BadRequest(message=_ts("UPLOAD_EXPIRED", "上传会话已过期"), error="UPLOAD_EXPIRED")
 
         raw_rows = await self.repo.query_parts(session_id=session.id, conn=conn).values_list("part_number", flat=True)
         uploaded = {int(r[0] if isinstance(r, tuple) else r) for r in raw_rows}
@@ -394,45 +407,55 @@ class UploadsService(BaseService):
         part_number: int,
         data: bytes,
     ) -> None:
-        async with self.repo.connection(scope=scope) as conn:
-            session, _missing = await self.get_status(upload_id=upload_id, scope=scope, conn=conn)
-            if not is_local_storage_provider(str(session.storage_provider)):
-                raise BadRequest(
-                    message=_ts("UPLOAD_DIRECT_REQUIRED", "当前存储使用直传方式，请使用 presign 接口上传"),
-                    error="UPLOAD_DIRECT_REQUIRED",
-                )
-            if session.status in {UploadStatus.COMPLETED, UploadStatus.ABORTED, UploadStatus.EXPIRED}:
-                raise BadRequest(message=_ts("UPLOAD_NOT_WRITABLE", "上传会话不可写"), error="UPLOAD_NOT_WRITABLE")
+        checksum_sha256 = hashlib.sha256(data).hexdigest()
+        async with self.tx() as tx:
+            async with self.repo.connection(scope=scope, conn=tx) as scoped_conn:
+                conn = cast(BaseDBAsyncClient, scoped_conn)
+                session, _missing = await self.get_status(upload_id=upload_id, scope=scope, conn=conn)
+                if not is_local_storage_provider(str(session.storage_provider)):
+                    raise BadRequest(
+                        message=_ts("UPLOAD_DIRECT_REQUIRED", "当前存储使用直传方式，请使用 presign 接口上传"),
+                        error="UPLOAD_DIRECT_REQUIRED",
+                    )
+                if _upload_status(session) not in {UploadStatus.INITIATED, UploadStatus.UPLOADING}:
+                    raise BadRequest(
+                        message=_ts("UPLOAD_NOT_WRITABLE", "上传会话不可写"),
+                        error="UPLOAD_NOT_WRITABLE",
+                    )
+                if part_number <= 0 or part_number > int(session.total_parts):
+                    raise BadRequest(
+                        message=_ts("UPLOAD_PART_INVALID", "分片编号不合法"),
+                        error="UPLOAD_PART_INVALID",
+                    )
 
-            if part_number <= 0 or part_number > int(session.total_parts):
-                raise BadRequest(message=_ts("UPLOAD_PART_INVALID", "分片编号不合法"), error="UPLOAD_PART_INVALID")
+                max_len = int(session.chunk_size)
+                if len(data) > max_len:
+                    raise BadRequest(
+                        message=_ts("UPLOAD_CHUNK_TOO_LARGE", "分片大小超过限制"),
+                        error="UPLOAD_CHUNK_TOO_LARGE",
+                    )
+                if part_number < int(session.total_parts) and len(data) != max_len:
+                    raise BadRequest(
+                        message=_ts("UPLOAD_CHUNK_SIZE_MISMATCH", "分片大小不匹配"),
+                        error="UPLOAD_CHUNK_SIZE_MISMATCH",
+                    )
 
-            max_len = int(session.chunk_size)
-            if len(data) > max_len:
-                raise BadRequest(
-                    message=_ts("UPLOAD_CHUNK_TOO_LARGE", "分片大小超过限制"), error="UPLOAD_CHUNK_TOO_LARGE"
+                object_key = build_scoped_upload_part_object_key(
+                    scope=scope.type,
+                    scope_id=scope.id,
+                    upload_id=upload_id,
+                    part_number=part_number,
                 )
-            if part_number < int(session.total_parts) and len(data) != max_len:
-                raise BadRequest(
-                    message=_ts("UPLOAD_CHUNK_SIZE_MISMATCH", "分片大小不匹配"),
-                    error="UPLOAD_CHUNK_SIZE_MISMATCH",
+                self._tmp_provider.put_bytes(object_key=object_key, data=data)
+                await self.repo.upsert_part(
+                    session_id=session.id,
+                    part_number=part_number,
+                    object_key=object_key,
+                    size_bytes=len(data),
+                    checksum_sha256=checksum_sha256,
+                    conn=conn,
                 )
-
-            object_key = build_scoped_upload_part_object_key(
-                scope=scope.type,
-                scope_id=scope.id,
-                upload_id=upload_id,
-                part_number=part_number,
-            )
-            self._tmp_provider.put_bytes(object_key=object_key, data=data)
-            await self.repo.upsert_part(
-                session_id=session.id,
-                part_number=part_number,
-                object_key=object_key,
-                size_bytes=len(data),
-                conn=conn,
-            )
-            await self.repo.set_session_status(session, status=UploadStatus.UPLOADING, conn=conn)
+                await self.repo.mark_uploading(upload_id=upload_id, scope=scope, conn=conn)
 
     async def presign_part(self, *, upload_id: UUID, scope: AssetScope, part_number: int) -> UploadPartPresignOut:
         async with self.repo.connection(scope=scope) as conn:
@@ -442,7 +465,7 @@ class UploadsService(BaseService):
                 message=_ts("UPLOAD_PRESIGN_NOT_SUPPORTED", "当前存储不支持直传"),
                 error="UPLOAD_PRESIGN_NOT_SUPPORTED",
             )
-        if session.status in {UploadStatus.COMPLETED, UploadStatus.ABORTED, UploadStatus.EXPIRED}:
+        if _upload_status(session) not in {UploadStatus.INITIATED, UploadStatus.UPLOADING}:
             raise BadRequest(message=_ts("UPLOAD_NOT_WRITABLE", "上传会话不可写"), error="UPLOAD_NOT_WRITABLE")
         if part_number <= 0 or part_number > int(session.total_parts):
             raise BadRequest(message=_ts("UPLOAD_PART_INVALID", "分片编号不合法"), error="UPLOAD_PART_INVALID")
@@ -491,461 +514,138 @@ class UploadsService(BaseService):
         etag: str,
         size_bytes: int,
     ) -> None:
-        async with self.repo.connection(scope=scope) as conn:
-            session, _missing = await self.get_status(upload_id=upload_id, scope=scope, conn=conn)
-            if is_local_storage_provider(str(session.storage_provider)):
-                raise BadRequest(
-                    message=_ts("UPLOAD_COMMIT_NOT_SUPPORTED", "当前存储不支持直传提交"),
-                    error="UPLOAD_COMMIT_NOT_SUPPORTED",
-                )
-            if session.status in {UploadStatus.COMPLETED, UploadStatus.ABORTED, UploadStatus.EXPIRED}:
-                raise BadRequest(message=_ts("UPLOAD_NOT_WRITABLE", "上传会话不可写"), error="UPLOAD_NOT_WRITABLE")
-            if part_number <= 0 or part_number > int(session.total_parts):
-                raise BadRequest(message=_ts("UPLOAD_PART_INVALID", "分片编号不合法"), error="UPLOAD_PART_INVALID")
-            if size_bytes < 0:
-                raise BadRequest(message=_ts("UPLOAD_SIZE_INVALID", "文件大小不合法"), error="UPLOAD_SIZE_INVALID")
-
-            max_len = int(session.chunk_size)
-            if int(size_bytes) > max_len:
-                raise BadRequest(
-                    message=_ts("UPLOAD_CHUNK_TOO_LARGE", "分片大小超过限制"), error="UPLOAD_CHUNK_TOO_LARGE"
-                )
-            if part_number < int(session.total_parts) and int(size_bytes) != max_len:
-                raise BadRequest(
-                    message=_ts("UPLOAD_CHUNK_SIZE_MISMATCH", "分片大小不匹配"),
-                    error="UPLOAD_CHUNK_SIZE_MISMATCH",
-                )
-
-            clean_etag = (etag or "").strip()
-            if not clean_etag:
-                raise BadRequest(message=_ts("UPLOAD_ETAG_INVALID", "ETag 不合法"), error="UPLOAD_ETAG_INVALID")
-
-            part_object_key = session.object_key or ""
-            await self.repo.upsert_part(
-                session_id=session.id,
-                part_number=part_number,
-                object_key=part_object_key,
-                size_bytes=int(size_bytes),
-                etag=clean_etag,
-                conn=conn,
-            )
-            await self.repo.set_session_status(session, status=UploadStatus.UPLOADING, conn=conn)
-
-    async def complete(self, *, upload_id: UUID, scope: AssetScope) -> UUID:
         async with self.tx() as tx:
-            async with self.repo.connection(scope=scope, conn=tx) as conn:
-                session, missing = await self.get_status(upload_id=upload_id, scope=scope, conn=conn)
-                if session.status == UploadStatus.COMPLETED and session.asset_id is not None:
-                    return session.asset_id
-                if missing:
+            async with self.repo.connection(scope=scope, conn=tx) as scoped_conn:
+                conn = cast(BaseDBAsyncClient, scoped_conn)
+                session, _missing = await self.get_status(upload_id=upload_id, scope=scope, conn=conn)
+                if is_local_storage_provider(str(session.storage_provider)):
                     raise BadRequest(
-                        message=_ts("UPLOAD_INCOMPLETE", "仍有分片未上传"),
-                        error="UPLOAD_INCOMPLETE",
-                        meta={"missing_parts": missing},
+                        message=_ts("UPLOAD_COMMIT_NOT_SUPPORTED", "当前存储不支持直传提交"),
+                        error="UPLOAD_COMMIT_NOT_SUPPORTED",
                     )
-
-                winner = await self.repo.try_mark_completing(upload_id=upload_id, scope=scope, conn=conn)
-                if not winner:
-                    for _ in range(10):
-                        latest = await self.repo.get_session(upload_id=upload_id, scope=scope, conn=conn)
-                        if latest is None:
-                            break
-                        if latest.status == UploadStatus.COMPLETED and latest.asset_id is not None:
-                            return latest.asset_id
-                        if latest.status == UploadStatus.COMPLETING:
-                            await asyncio.sleep(0.2)
-                            continue
-                        break
+                if _upload_status(session) not in {UploadStatus.INITIATED, UploadStatus.UPLOADING}:
                     raise BadRequest(
-                        message=_ts("UPLOAD_COMPLETING", "上传正在完成中，请稍后重试"), error="UPLOAD_COMPLETING"
+                        message=_ts("UPLOAD_NOT_WRITABLE", "上传会话不可写"),
+                        error="UPLOAD_NOT_WRITABLE",
+                    )
+                if part_number <= 0 or part_number > int(session.total_parts):
+                    raise BadRequest(
+                        message=_ts("UPLOAD_PART_INVALID", "分片编号不合法"),
+                        error="UPLOAD_PART_INVALID",
+                    )
+                if size_bytes < 0:
+                    raise BadRequest(
+                        message=_ts("UPLOAD_SIZE_INVALID", "文件大小不合法"),
+                        error="UPLOAD_SIZE_INVALID",
                     )
 
-                session = await self.repo.get_session(upload_id=upload_id, scope=scope, conn=conn)
-                if session is None:
-                    raise NotFound(message=_ts("UPLOAD_NOT_FOUND", "上传会话不存在"), error="UPLOAD_NOT_FOUND")
-
-                try:
-                    if is_local_storage_provider(str(session.storage_provider)):
-                        asset_id = await self._complete_local(session=session, scope=scope, conn=conn)
-                    else:
-                        asset_id = await self._complete_s3(session=session, scope=scope, conn=conn)
-                except UPLOAD_COMPLETION_ERRORS as exc:
-                    logger.warning(
-                        "Upload completion failed",
-                        scope_type=str(scope.type),
-                        scope_id=str(scope.id),
-                        upload_id=str(upload_id),
-                        storage_provider=str(session.storage_provider),
-                        action="complete_upload",
-                        error=str(exc),
+                max_len = int(session.chunk_size)
+                if size_bytes > max_len:
+                    raise BadRequest(
+                        message=_ts("UPLOAD_CHUNK_TOO_LARGE", "分片大小超过限制"),
+                        error="UPLOAD_CHUNK_TOO_LARGE",
                     )
-                    try:
-                        await self.repo.set_session_status(session, status=UploadStatus.UPLOADING, conn=conn)
-                    except UPLOAD_STATUS_RESET_ERRORS as status_exc:
-                        logger.warning(
-                            "Upload status reset failed after completion error",
-                            scope_type=str(scope.type),
-                            scope_id=str(scope.id),
-                            upload_id=str(upload_id),
-                            action="reset_upload_status_after_complete_error",
-                            error=str(status_exc),
-                        )
-                    raise
+                if part_number < int(session.total_parts) and size_bytes != max_len:
+                    raise BadRequest(
+                        message=_ts("UPLOAD_CHUNK_SIZE_MISMATCH", "分片大小不匹配"),
+                        error="UPLOAD_CHUNK_SIZE_MISMATCH",
+                    )
+                clean_etag = (etag or "").strip()
+                if not clean_etag:
+                    raise BadRequest(
+                        message=_ts("UPLOAD_ETAG_INVALID", "ETag 不合法"),
+                        error="UPLOAD_ETAG_INVALID",
+                    )
 
-                payload: JsonObject = {
-                    "scope_type": str(scope.type),
-                    "scope_id": str(scope.id),
-                    "asset_id": str(asset_id),
-                    "purpose": str(session.purpose),
-                    "storage_provider": str(session.storage_provider),
-                    "visibility": str(session.visibility),
-                    "indexable": bool(session.indexable),
-                }
-                if scope.type == ASSET_SCOPE_WORKSPACE:
-                    payload["workspace_id"] = str(scope.id)
-                    organization_id = None
-                    workspace_id = scope.id
-                elif scope.type == ASSET_SCOPE_PROJECT:
-                    payload["project_id"] = str(scope.id)
-                    tenant_context = self._tenant_context or current_tenant_context_or_none()
-                    payload["tenant"] = tenant_payload_from_context(tenant_context)
-                    organization_id = tenant_context.organization_id if tenant_context is not None else None
-                    workspace_id = tenant_context.workspace_id if tenant_context is not None else None
-                elif scope.type == ASSET_SCOPE_ORGANIZATION:
-                    organization_id = scope.id
-                    workspace_id = None
-                else:
-                    organization_id = None
-                    workspace_id = None
-
-                await write_required_activity_event(
-                    settings=self.settings,
-                    payload=ActivityAuditPayload(
-                        event_name=ASSET_UPLOADED_EVENT,
-                        actor_user_id=UUID(str(session.actor_user_id)),
-                        organization_id=organization_id,
-                        workspace_id=workspace_id,
-                        source="core",
-                        entity_type="asset",
-                        entity_id=asset_id,
-                        properties=payload,
-                    ),
+                await self.repo.upsert_part(
+                    session_id=session.id,
+                    part_number=part_number,
+                    object_key=session.object_key or "",
+                    size_bytes=size_bytes,
+                    etag=clean_etag,
                     conn=conn,
                 )
+                await self.repo.mark_uploading(upload_id=upload_id, scope=scope, conn=conn)
 
-        return asset_id
-
-    async def _complete_local(self, *, session: UploadSessionRecord, scope: AssetScope, conn=None) -> UUID:
-        filename = session.filename
-        ext = (session.resolved_ext or "").lstrip(".").lower() or (Path(filename).suffix.lstrip(".") or "bin").lower()
-        slug = (session.resolved_slug or "").strip() or slugify(Path(filename).stem or "asset")
-        asset_id = session.reserved_asset_id or uuid7()
-        object_key = session.object_key or build_scoped_asset_object_key(
-            scope=scope.type, scope_id=scope.id, asset_id=asset_id, ext=ext
-        )
-
-        try:
-            purpose = AssetPurpose(session.purpose)
-        except ValueError:
-            purpose = AssetPurpose.LIBRARY
-
-        try:
-            visibility = AssetVisibility(str(session.visibility))
-        except ValueError:
-            visibility = AssetVisibility.PRIVATE
-        indexable = bool(session.indexable) if visibility == AssetVisibility.PUBLIC else False
-
-        # Merge tmp parts into final file.
-        part_rows = await self.repo.query_parts(session_id=session.id, conn=conn).order_by("part_number")
-        total_uploaded = sum(int(r.size_bytes) for r in part_rows)
-        if total_uploaded != int(session.size_bytes):
-            await self.repo.set_session_status(session, status=UploadStatus.UPLOADING, conn=conn)
-            raise BadRequest(
-                message=_ts("UPLOAD_SIZE_MISMATCH", "上传大小与声明不一致"),
-                error="UPLOAD_SIZE_MISMATCH",
-                meta={"declared_size_bytes": int(session.size_bytes), "uploaded_size_bytes": total_uploaded},
-            )
-
-        part_keys = [row.object_key for row in part_rows]
-        part_paths = [safe_object_key_to_path(self.settings.storage.local_tmp_dir, k) for k in part_keys]
-
-        out_path = safe_object_key_to_path(self.settings.storage.local_root_dir, object_key)
-        try:
-            digest = merge_parts_to_file(part_paths=part_paths, out_path=out_path)
-        except OSError as exc:
-            try:
-                out_path.unlink(missing_ok=True)
-            except OSError as cleanup_exc:
-                logger.warning(
-                    "Upload output cleanup failed after merge error",
-                    scope_type=str(scope.type),
-                    scope_id=str(scope.id),
-                    upload_id=str(session.id),
-                    asset_id=str(asset_id),
-                    output_path=str(out_path),
-                    action="complete_local_cleanup_output_on_merge_error",
-                    error=str(cleanup_exc),
-                )
-            await self.repo.set_session_status(session, status=UploadStatus.UPLOADING, conn=conn)
-            raise BadRequest(message=_ts("UPLOAD_MERGE_FAILED", "合并分片失败"), error="UPLOAD_MERGE_FAILED") from exc
-
-        if session.expected_sha256 and digest.lower() != str(session.expected_sha256).lower():
-            try:
-                out_path.unlink(missing_ok=True)
-            except OSError as cleanup_exc:
-                logger.warning(
-                    "Upload output cleanup failed after SHA256 mismatch",
-                    scope_type=str(scope.type),
-                    scope_id=str(scope.id),
-                    upload_id=str(session.id),
-                    asset_id=str(asset_id),
-                    output_path=str(out_path),
-                    action="complete_local_cleanup_output_on_hash_mismatch",
-                    error=str(cleanup_exc),
-                )
-            await self.repo.set_session_status(session, status=UploadStatus.UPLOADING, conn=conn)
-            raise BadRequest(
-                message=_ts("UPLOAD_SHA256_MISMATCH", "文件校验失败"),
-                error="UPLOAD_SHA256_MISMATCH",
-                meta={"expected_sha256": session.expected_sha256, "actual_sha256": digest},
-            )
-
-        # Persist immutable metadata (idempotent by reserved asset id).
-        existing = await self.repo.get_asset(scope=scope, asset_id=asset_id, conn=conn)
-        if existing is not None:
-            await self.repo.mark_completed(session, asset_id=existing.id, conn=conn)
-            return existing.id
-
-        if session.target_folder_id is not None:
-            folder_exists = await self.repo.folder_exists(scope=scope, folder_id=session.target_folder_id, conn=conn)
-            if not folder_exists:
-                await self.repo.set_session_status(session, status=UploadStatus.UPLOADING, conn=conn)
-                raise NotFound(message=_ts("ASSET_FOLDER_NOT_FOUND", "文件夹不存在"), error="ASSET_FOLDER_NOT_FOUND")
-
-        try:
-            asset = await self.repo.create_asset(
-                scope=scope,
-                conn=conn,
-                id=asset_id,
-                owner_user_id=session.actor_user_id,
-                folder_id=session.target_folder_id,
-                purpose=purpose,
-                visibility=visibility,
-                indexable=indexable,
-                title=None,
-                slug=slug,
-                original_filename=filename,
-                mime=session.mime,
-                ext=ext,
-                size_bytes=session.size_bytes,
-                checksum_sha256=digest,
-                storage_provider=session.storage_provider,
-                storage_profile_key=session.storage_profile_key,
-                object_key=object_key,
-                variants=None,
-                meta=None,
-                deleted_at=None,
-            )
-        except IntegrityError:
-            existing2 = await self.repo.get_asset(scope=scope, asset_id=asset_id, conn=conn)
-            if existing2 is None:
-                raise
-            asset = existing2
-
-        await self.repo.mark_completed(session, asset_id=asset.id, conn=conn)
-
-        for p in part_paths:
-            try:
-                p.unlink(missing_ok=True)
-            except OSError as cleanup_exc:
-                logger.warning(
-                    "Upload part cleanup failed after local completion",
-                    scope_type=str(scope.type),
-                    scope_id=str(scope.id),
-                    upload_id=str(session.id),
-                    asset_id=str(asset.id),
-                    part_path=str(p),
-                    action="complete_local_cleanup_part",
-                    error=str(cleanup_exc),
-                )
-                continue
-        return asset.id
-
-    async def _complete_s3(self, *, session: UploadSessionRecord, scope: AssetScope, conn=None) -> UUID:
-        provider_impl = await self._build_remote_provider(
-            profile_key=str(
-                session.storage_profile_key or getattr(self.settings.storage, "default_profile_key", "env-default")
-            ),
-            scope=scope,
-            upload_id=session.id,
-            action="complete_s3_build_storage_provider",
-        )
-        bucket = (session.s3_bucket or "").strip()
-        if bucket:
-            provider_impl = provider_impl.with_bucket(bucket)
-        if not session.reserved_asset_id or not session.object_key or not session.multipart_upload_id:
-            await self.repo.set_session_status(session, status=UploadStatus.UPLOADING, conn=conn)
-            raise BadRequest(message=_ts("UPLOAD_SESSION_INVALID", "上传会话不完整"), error="UPLOAD_SESSION_INVALID")
-
-        filename = session.filename
-        ext = (session.resolved_ext or "").lstrip(".").lower() or (Path(filename).suffix.lstrip(".") or "bin").lower()
-        slug = (session.resolved_slug or "").strip() or slugify(Path(filename).stem or "asset")
-        asset_id = session.reserved_asset_id
-        object_key = str(session.object_key)
-
-        try:
-            purpose = AssetPurpose(session.purpose)
-        except ValueError:
-            purpose = AssetPurpose.LIBRARY
-
-        try:
-            visibility = AssetVisibility(str(session.visibility))
-        except ValueError:
-            visibility = AssetVisibility.PRIVATE
-        indexable = bool(session.indexable) if visibility == AssetVisibility.PUBLIC else False
-
-        part_rows = await self.repo.query_parts(session_id=session.id, conn=conn).order_by("part_number")
-        total_uploaded = sum(int(r.size_bytes) for r in part_rows)
-        if total_uploaded != int(session.size_bytes):
-            await self.repo.set_session_status(session, status=UploadStatus.UPLOADING, conn=conn)
-            raise BadRequest(
-                message=_ts("UPLOAD_SIZE_MISMATCH", "上传大小与声明不一致"),
-                error="UPLOAD_SIZE_MISMATCH",
-                meta={"declared_size_bytes": int(session.size_bytes), "uploaded_size_bytes": total_uploaded},
-            )
-
-        parts: list[dict] = []
-        for row in part_rows:
-            tag = (row.etag or "").strip()
-            if not tag:
-                await self.repo.set_session_status(session, status=UploadStatus.UPLOADING, conn=conn)
-                raise BadRequest(
-                    message=_ts("UPLOAD_ETAG_MISSING", "存在未提交 ETag 的分片"),
-                    error="UPLOAD_ETAG_MISSING",
-                    meta={"part_number": int(row.part_number)},
-                )
-            if not tag.startswith('"'):
-                tag = f'"{tag}"'
-            parts.append({"ETag": tag, "PartNumber": int(row.part_number)})
-
-        await provider_impl.complete_multipart_upload(
-            object_key=object_key,
-            upload_id=str(session.multipart_upload_id),
-            parts=parts,
-        )
-
-        existing = await self.repo.get_asset(scope=scope, asset_id=asset_id, conn=conn)
-        if existing is not None:
-            await self.repo.mark_completed(session, asset_id=existing.id, conn=conn)
-            return existing.id
-
-        if session.target_folder_id is not None:
-            folder_exists = await self.repo.folder_exists(scope=scope, folder_id=session.target_folder_id, conn=conn)
-            if not folder_exists:
-                await self.repo.set_session_status(session, status=UploadStatus.UPLOADING, conn=conn)
-                raise NotFound(message=_ts("ASSET_FOLDER_NOT_FOUND", "文件夹不存在"), error="ASSET_FOLDER_NOT_FOUND")
-
-        try:
-            asset = await self.repo.create_asset(
-                scope=scope,
-                conn=conn,
-                id=asset_id,
-                owner_user_id=session.actor_user_id,
-                folder_id=session.target_folder_id,
-                purpose=purpose,
-                visibility=visibility,
-                indexable=indexable,
-                title=None,
-                slug=slug,
-                original_filename=filename,
-                mime=session.mime,
-                ext=ext,
-                size_bytes=session.size_bytes,
-                checksum_sha256=None,
-                storage_provider=session.storage_provider,
-                storage_profile_key=session.storage_profile_key,
-                storage_bucket=bucket or None,
-                object_key=object_key,
-                variants=None,
-                meta=None,
-                deleted_at=None,
-            )
-        except IntegrityError:
-            existing2 = await self.repo.get_asset(scope=scope, asset_id=asset_id, conn=conn)
-            if existing2 is None:
-                raise
-            asset = existing2
-        await self.repo.mark_completed(session, asset_id=asset.id, conn=conn)
-        return asset.id
+    async def complete(self, *, upload_id: UUID, scope: AssetScope) -> UUID:
+        return await self._completion.complete(upload_id=upload_id, scope=scope)
 
     async def abort(self, *, upload_id: UUID, scope: AssetScope) -> UploadSessionRecord:
-        async with self.repo.connection(scope=scope) as conn:
-            session = await self.repo.get_session(upload_id=upload_id, scope=scope, conn=conn)
-            if session is None:
-                raise NotFound(message=_ts("UPLOAD_NOT_FOUND", "上传会话不存在"), error="UPLOAD_NOT_FOUND")
-        # Best-effort: abort multipart upload if needed.
+        async with self.tx() as tx:
+            async with self.repo.connection(scope=scope, conn=tx) as scoped_conn:
+                conn = cast(BaseDBAsyncClient, scoped_conn)
+                session = await self.repo.get_session_for_update(
+                    upload_id=upload_id,
+                    scope=scope,
+                    conn=conn,
+                )
+                if session is None:
+                    raise NotFound(
+                        message=_ts("UPLOAD_NOT_FOUND", "上传会话不存在"),
+                        error="UPLOAD_NOT_FOUND",
+                    )
+                status = _upload_status(session)
+                if status == UploadStatus.ABORTED:
+                    aborted = session
+                elif status in {UploadStatus.INITIATED, UploadStatus.UPLOADING}:
+                    aborted = await self.repo.mark_aborted(
+                        upload_id=upload_id,
+                        scope=scope,
+                        conn=conn,
+                    )
+                else:
+                    raise BadRequest(
+                        message=_ts("UPLOAD_NOT_WRITABLE", "上传会话不可写"),
+                        error="UPLOAD_NOT_WRITABLE",
+                    )
+
         if (
-            not is_local_storage_provider(str(session.storage_provider))
-            and session.object_key
-            and session.multipart_upload_id
+            not is_local_storage_provider(str(aborted.storage_provider))
+            and aborted.object_key
+            and aborted.multipart_upload_id
         ):
             try:
-                provider_impl = await self._build_remote_provider(
+                provider = await self._build_remote_provider(
                     profile_key=str(
-                        session.storage_profile_key
+                        aborted.storage_profile_key
                         or getattr(self.settings.storage, "default_profile_key", "env-default")
                     ),
                     scope=scope,
                     upload_id=upload_id,
                     action="abort_multipart_upload_build_storage_provider",
                 )
-                bucket = (session.s3_bucket or "").strip()
+                bucket = (aborted.s3_bucket or "").strip()
                 if bucket:
-                    provider_impl = provider_impl.with_bucket(bucket)
-                await provider_impl.abort_multipart_upload(
-                    object_key=str(session.object_key),
-                    upload_id=str(session.multipart_upload_id),
+                    provider = provider.with_bucket(bucket)
+                await provider.abort_multipart_upload(
+                    object_key=str(aborted.object_key),
+                    upload_id=str(aborted.multipart_upload_id),
                 )
-            except BadRequest:
-                # Best-effort cleanup path: keep abort endpoint idempotent even when provider config is invalid.
-                pass
-            except UPLOAD_ABORT_ERRORS as exc:
+            except (BadRequest, *UPLOAD_ABORT_ERRORS) as exc:
                 logger.warning(
-                    "Abort multipart upload failed",
-                    scope_type=str(scope.type),
+                    "Abort multipart upload cleanup failed",
+                    scope_type=scope.type,
                     scope_id=str(scope.id),
                     upload_id=str(upload_id),
-                    storage_provider=str(session.storage_provider),
+                    storage_provider=str(aborted.storage_provider),
                     action="abort_multipart_upload",
                     error=str(exc),
                 )
 
-        async with self.repo.connection(scope=scope) as conn:
-            await self.repo.set_session_status(session, status=UploadStatus.ABORTED, conn=conn)
-
-        # Best-effort cleanup: remove directory under tmp if present.
-        # This is safe because we scope by scope and upload_id in object_key.
         upload_dir = safe_object_key_to_path(
             self.settings.storage.local_tmp_dir,
             self._upload_tmp_dir_key(scope=scope, upload_id=upload_id),
         )
         try:
-            if upload_dir.is_dir():
-                for child in upload_dir.rglob("*"):
-                    if child.is_file():
-                        child.unlink(missing_ok=True)
-                for child in sorted(upload_dir.rglob("*"), reverse=True):
-                    if child.is_dir():
-                        child.rmdir()
-                upload_dir.rmdir()
+            await asyncio.to_thread(_remove_upload_directory, upload_dir)
         except OSError as exc:
             logger.warning(
                 "Upload temp directory cleanup failed on abort",
-                scope_type=str(scope.type),
+                scope_type=scope.type,
                 scope_id=str(scope.id),
                 upload_id=str(upload_id),
                 upload_dir=str(upload_dir),
                 action="abort_cleanup_upload_temp_dir",
                 error=str(exc),
             )
-        return session
+        return aborted

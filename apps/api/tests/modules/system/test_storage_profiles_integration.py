@@ -12,6 +12,7 @@ from src.models.system.setting import SettingRecord
 from src.modules.auth.http.service import get_current_user, require_super_admin
 from src.modules.system.router import router as system_router
 from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from src.settings.runtime import invalidate_core_settings_cache
 from src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 from tests.utils.asgi_client import asgi_client
 
@@ -20,6 +21,7 @@ pytestmark = pytest.mark.integration
 
 async def test_storage_profiles_crud_and_runtime_reference(prepared_db, tmp_path, monkeypatch) -> None:
     _ = prepared_db
+    monkeypatch.setenv("STORAGE__PROVIDER", "local")
     monkeypatch.setenv("STORAGE__LOCAL_ROOT_DIR", str(tmp_path / "uploads"))
     monkeypatch.setenv("STORAGE__LOCAL_TMP_DIR", str(tmp_path / ".tmp"))
     get_settings.cache_clear()
@@ -35,6 +37,18 @@ async def test_storage_profiles_crud_and_runtime_reference(prepared_db, tmp_path
     app.dependency_overrides[require_super_admin] = _super_admin
 
     async with asgi_client(app) as client:
+        rejected_legacy_authority = await client.post(
+            "/api/v1/system/storage-profiles",
+            json={
+                "profileKey": "local-main",
+                "provider": "local",
+                "displayName": "Local Main",
+                "config": {"publicDeliveryMode": "auto"},
+                "isDefault": True,
+            },
+        )
+        assert rejected_legacy_authority.status_code == 422
+
         create = await client.post(
             "/api/v1/system/storage-profiles",
             json={
@@ -46,19 +60,29 @@ async def test_storage_profiles_crud_and_runtime_reference(prepared_db, tmp_path
                     "publicBaseUrl": "https://cdn.example.com",
                 },
                 "isActive": True,
-                "isDefault": True,
             },
         )
         assert create.status_code == 200
         created = create.json()["data"]
         assert created["profileKey"] == "local-main"
-        assert created["isDefault"] is True
+        assert created["isDefault"] is False
         profile_id = created["id"]
+
+        await SettingRecord.update_or_create(
+            scope_type=SCOPE_TYPE_SYSTEM,
+            scope_id=SYSTEM_SCOPE_ID,
+            namespace=CORE_SETTINGS_NAMESPACE,
+            defaults={
+                "value": {"storage": {"default_profile_key": "local-main"}},
+                "updated_by": SYSTEM_SCOPE_ID,
+            },
+        )
+        invalidate_core_settings_cache()
 
         listed = await client.get("/api/v1/system/storage-profiles")
         assert listed.status_code == 200
         items = listed.json()["data"]["items"]
-        assert any(item["profileKey"] == "local-main" for item in items)
+        assert any(item["profileKey"] == "local-main" and item["isDefault"] is True for item in items)
         assert any(item["profileKey"] == "env-default" for item in items)
 
         patched = await client.patch(
@@ -85,7 +109,8 @@ async def test_storage_profiles_crud_and_runtime_reference(prepared_db, tmp_path
 
         env_default_tested = await client.post("/api/v1/system/storage-profiles/by-key/env-default/test")
         assert env_default_tested.status_code == 200
-        assert env_default_tested.json()["data"]["ok"] is True
+        env_default_result = env_default_tested.json()["data"]
+        assert env_default_result["ok"] is True, env_default_result["message"]
         assert await StorageProfileTestState.filter(profile_key="env-default").exists()
 
         listed_after_tests = await client.get("/api/v1/system/storage-profiles")
@@ -123,7 +148,6 @@ async def test_storage_profiles_crud_and_runtime_reference(prepared_db, tmp_path
                     "forcePathStyle": False,
                 },
                 "isActive": True,
-                "isDefault": False,
             },
         )
         assert s3_create.status_code == 200
@@ -141,11 +165,15 @@ async def test_storage_profiles_crud_and_runtime_reference(prepared_db, tmp_path
         assert runtime_record is not None
         assert runtime_record.value["storage"]["default_profile_key"] == "local-main"
 
-        cleared = await client.patch(
+        rejected_profile_authority = await client.patch(
             f"/api/v1/system/storage-profiles/{profile_id}",
             json={"isDefault": False},
         )
-        assert cleared.status_code == 200
+        assert rejected_profile_authority.status_code == 422
+
+        runtime_record.value = {"storage": {"default_profile_key": None}}
+        await runtime_record.save(update_fields=["value", "updated_at"])
+        invalidate_core_settings_cache()
 
         deleted = await client.delete(f"/api/v1/system/storage-profiles/{profile_id}")
         assert deleted.status_code == 200

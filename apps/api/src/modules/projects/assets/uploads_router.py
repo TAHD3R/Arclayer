@@ -22,6 +22,7 @@ from src.modules.assets.admin.uploads.schema import (
 from src.modules.assets.admin.uploads.service import UploadsService
 from src.modules.assets.scope import AssetScope
 from src.modules.auth.http.service import get_current_user
+from src.modules.jobs.service import BackgroundJobService
 from src.modules.projects.http.router_helpers import require_project_permission
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
@@ -30,13 +31,19 @@ from src.modules.tenancy.router_helpers import resolve_project_tenant_context
 router = APIRouter(prefix="/projects/{project_id}", tags=["domain.projects.assets.uploads"])
 
 
+def get_background_job_service(settings: Settings = Depends(get_settings)) -> BackgroundJobService:
+    return BackgroundJobService(settings)
+
+
 def get_uploads_service(
     settings: Settings = Depends(get_settings),
     ctx: ProjectRequestContext = Depends(get_project_context),
+    background_jobs: BackgroundJobService = Depends(get_background_job_service),
 ) -> UploadsService:
     return UploadsService(
         settings,
         resolve_project_tenant_context(project_id=ctx.project_id, runtime_id=ctx.runtime_id),
+        background_jobs=background_jobs,
     )
 
 

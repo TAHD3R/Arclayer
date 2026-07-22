@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import ValidationError
 
 from src.config import UploadPolicySettings
 from src.core.exceptions import BadRequest
@@ -98,9 +99,10 @@ def test_configured_policy_overrides_purpose_extensions_and_size() -> None:
         max_site_logo_size_bytes=20,
         max_favicon_size_bytes=5,
         upload_policy_settings=UploadPolicySettings.model_validate({
+            "allowed_extensions": ["png", "pdf"],
             "defaults": {"max_size_mb": 100, "allowed_extensions": ["pdf"]},
             "purposes": {
-                "library": {"max_size_mb": 1, "allowed_extensions": ["png", "svg"]},
+                "library": {"max_size_mb": 1, "allowed_extensions": ["png"]},
             },
         }),
     )
@@ -126,6 +128,24 @@ def test_configured_policy_overrides_purpose_extensions_and_size() -> None:
             policy=policy,
         )
     assert exc.value.error == "UPLOAD_TYPE_NOT_ALLOWED"
+
+
+def test_upload_policy_requires_purpose_extensions_to_be_globally_allowed() -> None:
+    with pytest.raises(ValidationError, match="outside the global allow-list"):
+        UploadPolicySettings.model_validate({
+            "allowed_extensions": ["png"],
+            "defaults": {"max_size_mb": 2, "allowed_extensions": ["png"]},
+            "purposes": {
+                "library": {"max_size_mb": 1, "allowed_extensions": ["png", "pdf"]},
+            },
+        })
+
+
+def test_upload_policy_rejects_formats_without_a_supported_mime_contract() -> None:
+    with pytest.raises(ValidationError, match="unsupported upload extension: svg"):
+        UploadPolicySettings.model_validate({
+            "allowed_extensions": ["png", "svg"],
+        })
 
 
 def test_unknown_purpose_uses_configured_defaults() -> None:
