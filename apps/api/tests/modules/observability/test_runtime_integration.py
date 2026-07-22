@@ -103,6 +103,8 @@ async def test_system_observability_api_executes_empty_postgres_aggregates(db_sc
         "errorRequests": 0,
         "errorRate": 0.0,
         "avgLatencyMs": 0.0,
+        "p95LatencyMs": None,
+        "p99LatencyMs": None,
         "maxLatencyMs": 0,
     }
     assert overview["ai"]["requests"] == 0
@@ -143,6 +145,48 @@ async def test_system_observability_api_executes_empty_postgres_aggregates(db_sc
         "next": None,
         "prev": None,
     }
+
+
+@pytest.mark.asyncio
+async def test_system_request_groups_execute_real_percentile_query(db_schema) -> None:
+    _ = db_schema
+    await record_http_request_metric(
+        trace_id="request-group-percentile",
+        actor_user_id=None,
+        workspace_id=None,
+        project_id=None,
+        route_template="/api/v1/request-group-probe",
+        method="GET",
+        status_code=200,
+        duration_ms=125,
+    )
+    app = _system_observability_app()
+    transport = ASGITransport(app=app, raise_app_exceptions=True)
+
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get(
+            "/api/v1/system/observability/request-groups",
+            params={"days": 1, "page": 1, "size": 20},
+        )
+
+    assert response.status_code == 200, response.text
+    groups = response.json()["data"]
+    assert groups["total"] == 1
+    assert groups["items"] == [
+        {
+            "routeTemplate": "/api/v1/request-group-probe",
+            "method": "GET",
+            "statusClass": 2,
+            "requests": 1,
+            "errorRequests": 0,
+            "errorRate": 0.0,
+            "avgLatencyMs": 125.0,
+            "p95LatencyMs": 125.0,
+            "p99LatencyMs": 125.0,
+            "maxLatencyMs": 125,
+            "lastSeenAt": groups["items"][0]["lastSeenAt"],
+        }
+    ]
 
 
 @pytest.mark.asyncio

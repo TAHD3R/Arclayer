@@ -10,7 +10,12 @@ import pytest
 from src.config import Settings
 from src.core.exceptions import BadRequest
 from src.core.http.pagination import PageParams
-from src.modules.observability.schema import ObservabilityPeriodOut, ObservabilityTrendMetric
+from src.modules.observability.schema import (
+    HTTPRequestGroupOrdering,
+    HTTPRequestRecordOrdering,
+    ObservabilityPeriodOut,
+    ObservabilityTrendMetric,
+)
 from src.modules.observability.service import ObservabilityService
 
 
@@ -191,6 +196,7 @@ async def test_http_request_groups_are_filtered_parameterized_and_paginated() ->
             status_class=2,
             workspace_id=None,
             project_id=None,
+            ordering=HTTPRequestGroupOrdering.REQUESTS_DESC,
         )
 
     assert result.total == 3
@@ -215,7 +221,86 @@ async def test_http_request_groups_are_filtered_parameterized_and_paginated() ->
     ]
     assert "LIMIT $6 OFFSET $7" in page_call.args[0]
     assert "PERCENTILE_CONT(0.95)" in page_call.args[0]
+    assert (
+        "GROUP BY r.route_template, r.method, CASE WHEN r.status_code > 0 THEN r.status_code / 100 ELSE 0 END"
+    ) in page_call.args[0]
     assert page_call.args[1][-2:] == [1, 0]
+
+
+@pytest.mark.parametrize(
+    ("ordering", "expected_order_sql"),
+    [
+        (HTTPRequestGroupOrdering.REQUESTS_DESC, "requests DESC"),
+        (
+            HTTPRequestGroupOrdering.ERROR_RATE_DESC,
+            "(error_requests::numeric / NULLIF(requests, 0)) DESC NULLS LAST",
+        ),
+        (HTTPRequestGroupOrdering.P95_DESC, "p95_latency_ms DESC NULLS LAST"),
+        (HTTPRequestGroupOrdering.P99_DESC, "p99_latency_ms DESC NULLS LAST"),
+        (
+            HTTPRequestGroupOrdering.AVG_LATENCY_DESC,
+            "(duration_total_ms::numeric / NULLIF(requests, 0)) DESC NULLS LAST",
+        ),
+        (HTTPRequestGroupOrdering.LAST_SEEN_DESC, "last_seen_at DESC"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_http_request_group_ordering_runs_after_percentile_join(
+    ordering: HTTPRequestGroupOrdering,
+    expected_order_sql: str,
+) -> None:
+    service = ObservabilityService(_settings())
+    connection = MagicMock()
+    connection.execute_query_dict = AsyncMock(
+        side_effect=[
+            [{"total": 1}],
+            [
+                {
+                    "route_template": "/api/v1/projects/{project_id}",
+                    "method": "GET",
+                    "status_class": 2,
+                    "requests": 20,
+                    "error_requests": 2,
+                    "duration_total_ms": 1_000,
+                    "max_latency_ms": 120,
+                    "p95_latency_ms": Decimal("90.5"),
+                    "p99_latency_ms": Decimal("115.25"),
+                    "last_seen_at": datetime(2026, 7, 13, 1, tzinfo=UTC),
+                }
+            ],
+        ]
+    )
+    registry = MagicMock()
+    registry.get.return_value = connection
+
+    with (
+        patch("src.modules.observability.service.connections", registry),
+        patch.object(service, "resolve_scope", new=AsyncMock(return_value=(None, None))),
+        patch("src.modules.observability.service._period") as period,
+    ):
+        period.return_value = (
+            datetime(2026, 7, 1, tzinfo=UTC),
+            datetime(2026, 7, 14, tzinfo=UTC),
+            ObservabilityPeriodOut(
+                start_date=date(2026, 7, 1),
+                end_date=date(2026, 7, 13),
+                days=13,
+            ),
+        )
+        await service.list_http_request_groups(
+            days=13,
+            params=PageParams(page=1, size=20),
+            route_query=None,
+            method=None,
+            status_class=None,
+            workspace_id=None,
+            project_id=None,
+            ordering=ordering,
+        )
+
+    page_sql = connection.execute_query_dict.await_args_list[1].args[0]
+    assert "combined AS" in page_sql
+    assert f"ORDER BY {expected_order_sql}, route_template, method, status_class" in page_sql
 
 
 @pytest.mark.asyncio
@@ -307,6 +392,11 @@ async def test_http_request_records_include_actor_and_support_trace_search() -> 
             status_class=5,
             workspace_id=None,
             project_id=None,
+            actor_user_id=None,
+            min_duration_ms=None,
+            max_duration_ms=None,
+            has_error=None,
+            ordering=HTTPRequestRecordOrdering.OCCURRED_DESC,
         )
 
     assert result.total == 1
@@ -318,6 +408,65 @@ async def test_http_request_records_include_actor_and_support_trace_search() -> 
     assert "r.method = $4" in count_call.args[0]
     assert "r.status_code / 100" in count_call.args[0]
     assert "LEFT JOIN users" in page_call.args[0]
+
+
+@pytest.mark.parametrize(
+    ("has_error", "expected_error_sql"),
+    [
+        (True, "(r.status_code >= 500 OR r.status_code = 0)"),
+        (False, "r.status_code BETWEEN 1 AND 499"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_http_request_records_filter_actor_duration_and_error_state(
+    has_error: bool,
+    expected_error_sql: str,
+) -> None:
+    service = ObservabilityService(_settings())
+    actor_id = uuid4()
+    connection = MagicMock()
+    connection.execute_query_dict = AsyncMock(return_value=[{"total": 0}])
+    registry = MagicMock()
+    registry.get.return_value = connection
+
+    with (
+        patch("src.modules.observability.service.connections", registry),
+        patch.object(service, "resolve_scope", new=AsyncMock(return_value=(None, None))),
+        patch("src.modules.observability.service._period") as period,
+    ):
+        period.return_value = (
+            datetime(2026, 7, 1, tzinfo=UTC),
+            datetime(2026, 7, 14, tzinfo=UTC),
+            ObservabilityPeriodOut(
+                start_date=date(2026, 7, 1),
+                end_date=date(2026, 7, 13),
+                days=13,
+            ),
+        )
+        result = await service.list_http_request_records(
+            days=13,
+            params=PageParams(page=1, size=20),
+            query=None,
+            method=None,
+            status_class=None,
+            workspace_id=None,
+            project_id=None,
+            actor_user_id=actor_id,
+            min_duration_ms=100,
+            max_duration_ms=400,
+            has_error=has_error,
+            ordering=HTTPRequestRecordOrdering.OCCURRED_DESC,
+        )
+
+    assert result.items == []
+    count_call = connection.execute_query_dict.await_args
+    assert count_call is not None
+    count_sql, count_values = count_call.args
+    assert "r.actor_user_id = $3" in count_sql
+    assert "r.duration_ms >= $4" in count_sql
+    assert "r.duration_ms <= $5" in count_sql
+    assert expected_error_sql in count_sql
+    assert count_values[2:] == [actor_id, 100, 400]
 
 
 @pytest.mark.asyncio

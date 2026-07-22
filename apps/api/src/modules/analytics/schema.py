@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from enum import StrEnum
 
 from pydantic import AliasChoices, Field, PrivateAttr
 
@@ -48,7 +49,16 @@ class AuditEventOut(BaseOut, TimestampMixin):
     properties: JsonObject | None = Field(default=None, description="Sanitized event properties.")
 
 
+class AuditEventOrdering(StrEnum):
+    OCCURRED_DESC = "-occurred_at"
+    OCCURRED_ASC = "occurred_at"
+
+
 class AuditEventListQuery(BaseSchema):
+    ordering: AuditEventOrdering = Field(
+        default=AuditEventOrdering.OCCURRED_DESC,
+        description="Validated activity ordering.",
+    )
     occurred_from: datetime | None = Field(
         default=None,
         alias="occurredFrom",

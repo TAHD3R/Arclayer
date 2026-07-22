@@ -23,7 +23,9 @@ from src.modules.observability.schema import (
     AIObservabilitySummaryOut,
     AIUsageGroupOut,
     HTTPObservabilitySummaryOut,
+    HTTPRequestGroupOrdering,
     HTTPRequestGroupOut,
+    HTTPRequestRecordOrdering,
     HTTPRequestRecordOut,
     ObservabilityAttributionCoverageOut,
     ObservabilityDataAvailabilityOut,
@@ -198,6 +200,7 @@ class ObservabilityService:
         status_class: int | None,
         workspace_id: UUID | None,
         project_id: UUID | None,
+        ordering: HTTPRequestGroupOrdering,
     ) -> PageData[HTTPRequestGroupOut]:
         self._validate_days(days)
         workspace_id, project_id = await self.resolve_scope(
@@ -246,6 +249,18 @@ class ObservabilityService:
         pages = ceil(total / params.size) if total else 0
         items: list[HTTPRequestGroupOut] = []
         if total and params.page <= pages:
+            ordering_sql = {
+                HTTPRequestGroupOrdering.REQUESTS_DESC: "requests DESC",
+                HTTPRequestGroupOrdering.ERROR_RATE_DESC: (
+                    "(error_requests::numeric / NULLIF(requests, 0)) DESC NULLS LAST"
+                ),
+                HTTPRequestGroupOrdering.P95_DESC: "p95_latency_ms DESC NULLS LAST",
+                HTTPRequestGroupOrdering.P99_DESC: "p99_latency_ms DESC NULLS LAST",
+                HTTPRequestGroupOrdering.AVG_LATENCY_DESC: (
+                    "(duration_total_ms::numeric / NULLIF(requests, 0)) DESC NULLS LAST"
+                ),
+                HTTPRequestGroupOrdering.LAST_SEEN_DESC: "last_seen_at DESC",
+            }[ordering]
             page_values = [*values, params.limit, params.offset]
             limit_placeholder = len(page_values) - 1
             offset_placeholder = len(page_values)
@@ -257,9 +272,7 @@ class ObservabilityService:
                 "MAX(m.duration_max_ms) AS max_latency_ms, "
                 "MAX(m.bucket_start) + INTERVAL '1 hour' AS aggregate_last_seen_at "
                 f"FROM observability_http_request_metrics_hourly m WHERE {filter_sql} "
-                "GROUP BY m.route_template, m.method, m.status_class "
-                "ORDER BY requests DESC, m.route_template, m.method, m.status_class "
-                f"LIMIT ${limit_placeholder} OFFSET ${offset_placeholder}"
+                "GROUP BY m.route_template, m.method, m.status_class"
                 "), latency AS ("
                 "SELECT r.route_template, r.method, "
                 "CASE WHEN r.status_code > 0 THEN r.status_code / 100 ELSE 0 END AS status_class, "
@@ -270,11 +283,14 @@ class ObservabilityService:
                 "ON g.route_template = r.route_template AND g.method = r.method "
                 "AND g.status_class = CASE WHEN r.status_code > 0 THEN r.status_code / 100 ELSE 0 END "
                 f"WHERE {raw_where} "
-                "GROUP BY r.route_template, r.method, status_class"
-                ") SELECT g.*, l.p95_latency_ms, l.p99_latency_ms, "
+                "GROUP BY r.route_template, r.method, "
+                "CASE WHEN r.status_code > 0 THEN r.status_code / 100 ELSE 0 END"
+                "), combined AS (SELECT g.*, l.p95_latency_ms, l.p99_latency_ms, "
                 "COALESCE(l.record_last_seen_at, g.aggregate_last_seen_at) AS last_seen_at "
                 "FROM grouped g LEFT JOIN latency l USING (route_template, method, status_class) "
-                "ORDER BY g.requests DESC, g.route_template, g.method, g.status_class",
+                ") SELECT * FROM combined "
+                f"ORDER BY {ordering_sql}, route_template, method, status_class "
+                f"LIMIT ${limit_placeholder} OFFSET ${offset_placeholder}",
                 page_values,
             )
             for row in rows:
@@ -323,6 +339,11 @@ class ObservabilityService:
         status_class: int | None,
         workspace_id: UUID | None,
         project_id: UUID | None,
+        actor_user_id: UUID | None,
+        min_duration_ms: int | None,
+        max_duration_ms: int | None,
+        has_error: bool | None,
+        ordering: HTTPRequestRecordOrdering,
     ) -> PageData[HTTPRequestRecordOut]:
         self._validate_days(days)
         workspace_id, project_id = await self.resolve_scope(
@@ -349,6 +370,19 @@ class ObservabilityService:
         if status_class is not None:
             values.append(status_class)
             clauses.append(f"CASE WHEN r.status_code > 0 THEN r.status_code / 100 ELSE 0 END = ${len(values)}")
+        if actor_user_id is not None:
+            values.append(actor_user_id)
+            clauses.append(f"r.actor_user_id = ${len(values)}")
+        if min_duration_ms is not None:
+            values.append(min_duration_ms)
+            clauses.append(f"r.duration_ms >= ${len(values)}")
+        if max_duration_ms is not None:
+            values.append(max_duration_ms)
+            clauses.append(f"r.duration_ms <= ${len(values)}")
+        if has_error is not None:
+            clauses.append(
+                "(r.status_code >= 500 OR r.status_code = 0)" if has_error else "r.status_code BETWEEN 1 AND 499"
+            )
         filter_sql = " AND ".join(clauses)
         connection = connections.get("default")
         count_rows = await connection.execute_query_dict(
@@ -359,6 +393,13 @@ class ObservabilityService:
         pages = ceil(total / params.size) if total else 0
         items: list[HTTPRequestRecordOut] = []
         if total and params.page <= pages:
+            ordering_sql = {
+                HTTPRequestRecordOrdering.OCCURRED_DESC: "r.occurred_at DESC, r.id DESC",
+                HTTPRequestRecordOrdering.OCCURRED_ASC: "r.occurred_at ASC, r.id ASC",
+                HTTPRequestRecordOrdering.DURATION_DESC: "r.duration_ms DESC, r.occurred_at DESC, r.id DESC",
+                HTTPRequestRecordOrdering.DURATION_ASC: "r.duration_ms ASC, r.occurred_at DESC, r.id DESC",
+                HTTPRequestRecordOrdering.STATUS_DESC: "r.status_code DESC, r.occurred_at DESC, r.id DESC",
+            }[ordering]
             page_values = [*values, params.limit, params.offset]
             rows = await connection.execute_query_dict(
                 "SELECT r.id, r.occurred_at, r.trace_id, r.actor_user_id, r.workspace_id, "
@@ -367,7 +408,7 @@ class ObservabilityService:
                 "u.avatar_url AS actor_avatar_url "
                 "FROM observability_http_request_records r "
                 "LEFT JOIN users u ON u.id = r.actor_user_id "
-                f"WHERE {filter_sql} ORDER BY r.occurred_at DESC, r.id DESC "
+                f"WHERE {filter_sql} ORDER BY {ordering_sql} "
                 f"LIMIT ${len(page_values) - 1} OFFSET ${len(page_values)}",
                 page_values,
             )

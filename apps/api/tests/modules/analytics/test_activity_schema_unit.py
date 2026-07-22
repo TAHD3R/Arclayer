@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 
@@ -43,3 +44,22 @@ def test_audit_event_list_query_keeps_short_time_range_aliases() -> None:
 
     assert query.occurred_from is not None
     assert query.occurred_to is not None
+
+
+def test_audit_event_repository_applies_ascending_order() -> None:
+    from src.models.analytics.audit_event import AuditEvent
+    from src.modules.analytics.repository import AuditEventRepository
+    from src.modules.analytics.schema import AuditEventListQuery, AuditEventOrdering
+
+    queryset = MagicMock()
+    ascending_queryset = MagicMock()
+    queryset.order_by.return_value = ascending_queryset
+
+    with patch.object(AuditEvent, "all", return_value=queryset):
+        result = AuditEventRepository().build_queryset(
+            organization_id=None,
+            filters=AuditEventListQuery(ordering=AuditEventOrdering.OCCURRED_ASC),
+        )
+
+    queryset.order_by.assert_called_once_with("occurred_at", "id")
+    assert result is ascending_queryset

@@ -10,7 +10,7 @@ from src.common.types.json_types import JsonValue
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.analytics.audit_event import AuditEvent
 from src.models.organization.user import User
-from src.modules.analytics.schema import AuditEventListQuery
+from src.modules.analytics.schema import AuditEventListQuery, AuditEventOrdering
 
 SanitizedAuditEventRow = dict[str, JsonValue | UUID | datetime]
 
@@ -57,6 +57,8 @@ class AuditEventRepository(TortoiseORMRepository):
         if occurred_to is not None:
             qs = qs.filter(occurred_at__lte=occurred_to)
 
+        if filters.ordering == AuditEventOrdering.OCCURRED_ASC:
+            return qs.order_by("occurred_at", "id")
         return qs.order_by("-occurred_at", "-id")
 
     async def get_event_by_id(self, *, event_id: UUID) -> AuditEvent | None:

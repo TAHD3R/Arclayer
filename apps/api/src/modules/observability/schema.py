@@ -22,6 +22,23 @@ class ObservabilityTrendMetric(StrEnum):
     AUDIT_EVENTS = "auditEvents"
 
 
+class HTTPRequestRecordOrdering(StrEnum):
+    OCCURRED_DESC = "-occurred_at"
+    OCCURRED_ASC = "occurred_at"
+    DURATION_DESC = "-duration_ms"
+    DURATION_ASC = "duration_ms"
+    STATUS_DESC = "-status_code"
+
+
+class HTTPRequestGroupOrdering(StrEnum):
+    REQUESTS_DESC = "-requests"
+    ERROR_RATE_DESC = "-error_rate"
+    P95_DESC = "-p95_latency_ms"
+    P99_DESC = "-p99_latency_ms"
+    AVG_LATENCY_DESC = "-avg_latency_ms"
+    LAST_SEEN_DESC = "-last_seen_at"
+
+
 class ObservabilityPeriodOut(BaseSchema):
     start_date: date
     end_date: date

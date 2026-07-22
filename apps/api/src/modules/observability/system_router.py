@@ -9,7 +9,9 @@ from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import require_super_admin
 from src.modules.observability.schema import (
     AIUsageGroupOut,
+    HTTPRequestGroupOrdering,
     HTTPRequestGroupOut,
+    HTTPRequestRecordOrdering,
     HTTPRequestRecordOut,
     ObservabilityOverviewOut,
     ObservabilityTrendMetric,
@@ -76,6 +78,7 @@ async def list_platform_http_request_groups(
     status_class: int | None = Query(default=None, alias="statusClass", ge=0, le=5),
     workspace_id: PublicUUID | None = Query(default=None, alias="workspaceId"),
     project_id: PublicUUID | None = Query(default=None, alias="projectId"),
+    ordering: HTTPRequestGroupOrdering = Query(default=HTTPRequestGroupOrdering.REQUESTS_DESC),
     params: PageParams = Depends(get_page_params),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[HTTPRequestGroupOut]]:
@@ -87,6 +90,7 @@ async def list_platform_http_request_groups(
         status_class=status_class,
         workspace_id=workspace_id,
         project_id=project_id,
+        ordering=ordering,
     )
     return ApiResponse.success(data=page)
 
@@ -103,6 +107,11 @@ async def list_platform_http_request_records(
     status_class: int | None = Query(default=None, alias="statusClass", ge=0, le=5),
     workspace_id: PublicUUID | None = Query(default=None, alias="workspaceId"),
     project_id: PublicUUID | None = Query(default=None, alias="projectId"),
+    actor_user_id: PublicUUID | None = Query(default=None, alias="actorUserId"),
+    min_duration_ms: int | None = Query(default=None, alias="minDurationMs", ge=0),
+    max_duration_ms: int | None = Query(default=None, alias="maxDurationMs", ge=0),
+    has_error: bool | None = Query(default=None, alias="hasError"),
+    ordering: HTTPRequestRecordOrdering = Query(default=HTTPRequestRecordOrdering.OCCURRED_DESC),
     params: PageParams = Depends(get_page_params),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[HTTPRequestRecordOut]]:
@@ -114,6 +123,11 @@ async def list_platform_http_request_records(
         status_class=status_class,
         workspace_id=workspace_id,
         project_id=project_id,
+        actor_user_id=actor_user_id,
+        min_duration_ms=min_duration_ms,
+        max_duration_ms=max_duration_ms,
+        has_error=has_error,
+        ordering=ordering,
     )
     return ApiResponse.success(data=page)
 
