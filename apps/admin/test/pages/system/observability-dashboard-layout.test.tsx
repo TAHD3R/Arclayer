@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { PropsWithChildren } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,37 +8,23 @@ import {
   type DashboardWidget,
 } from "@/pages/system/observability/components/dashboard-layout";
 
+const { responsiveProps } = vi.hoisted(() => ({
+  responsiveProps: { current: null as Record<string, unknown> | null },
+}));
+
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, options?: { title?: string }) =>
       options?.title ? `${key}:${options.title}` : key,
   }),
 }));
-vi.mock("@arclayer/ui/sortable", () => ({
-  Sortable: ({
-    value,
-    onValueChange,
-    children,
-    getItemValue: _getItemValue,
-    strategy: _strategy,
-    ...props
-  }: PropsWithChildren<{
-    value: unknown[];
-    onValueChange: (value: unknown[]) => void;
-    getItemValue: (value: unknown) => string;
-    strategy?: string;
-  }>) => (
-    <div {...props}>
-      <button type="button" onClick={() => onValueChange([...value].reverse())}>
-        test reorder
-      </button>
-      {children}
-    </div>
-  ),
-  SortableItem: ({ children, ...props }: PropsWithChildren<Record<string, unknown>>) => (
-    <div {...props}>{children}</div>
-  ),
-  SortableItemHandle: ({ children }: PropsWithChildren) => <>{children}</>,
+vi.mock("react-grid-layout", () => ({
+  Responsive: ({ children, ...props }: PropsWithChildren<Record<string, unknown>>) => {
+    responsiveProps.current = props;
+    return <div>{children}</div>;
+  },
+  useContainerWidth: () => ({ width: 1200, containerRef: { current: null }, mounted: true }),
+  verticalCompactor: {},
 }));
 vi.mock("@arclayer/ui/dropdown-menu", () => ({
   DropdownMenu: ({ children }: PropsWithChildren) => <div>{children}</div>,
@@ -79,38 +65,47 @@ function visibleWidgetIds(container: HTMLElement) {
   );
 }
 
-function dispatchPointerEvent(
-  target: Element,
-  type: string,
-  values: { pointerId: number; clientX: number; clientY: number },
-) {
-  const event = new Event(type, { bubbles: true });
-  for (const [key, value] of Object.entries(values)) {
-    Object.defineProperty(event, key, { value });
-  }
-  fireEvent(target, event);
+function readStoredLayout() {
+  const raw = window.localStorage.getItem("arclayer:dashboard-layout:v2:test");
+  if (!raw) throw new Error("Expected dashboard layout to be persisted");
+  return JSON.parse(raw) as {
+    version: number;
+    layouts: { lg: Array<{ i: string; x: number; w: number; h: number }> };
+    hiddenWidgetIds: string[];
+  };
 }
 
 describe("ConfigurableDashboard", () => {
   beforeEach(() => {
     window.localStorage.clear();
     vi.restoreAllMocks();
+    responsiveProps.current = null;
   });
 
-  it("renders the default widget order and dimensions", () => {
+  it("renders and persists the default responsive layout", async () => {
     const { container } = renderDashboard();
 
     expect(visibleWidgetIds(container)).toEqual(["alpha", "beta"]);
-    expect(container.querySelector('[data-dashboard-widget="alpha"] > div')).toHaveStyle({
-      height: "144px",
+    expect(responsiveProps.current?.dragConfig).toMatchObject({ enabled: false });
+    expect(responsiveProps.current?.resizeConfig).toMatchObject({ enabled: false });
+    expect(
+      screen.queryByRole("button", { name: "DASHBOARD_DRAG_WIDGET:Alpha" }),
+    ).not.toBeInTheDocument();
+    await waitFor(() => {
+      const stored = readStoredLayout();
+      expect(stored.version).toBe(2);
+      expect(stored.layouts.lg).toEqual([
+        expect.objectContaining({ i: "alpha", x: 0, w: 3, h: 10 }),
+        expect.objectContaining({ i: "beta", x: 3, w: 6, h: 10 }),
+      ]);
     });
-    expect(container.querySelector('[data-dashboard-widget="beta"]')).toHaveClass("md:col-span-6");
   });
 
   it("hides and restores a widget from the customization menu", async () => {
     const user = userEvent.setup();
     const { container } = renderDashboard();
 
+    await user.click(screen.getByRole("button", { name: "DASHBOARD_EDIT_LAYOUT" }));
     await user.click(screen.getByRole("button", { name: "DASHBOARD_HIDE_WIDGET:Alpha" }));
     expect(visibleWidgetIds(container)).toEqual(["beta"]);
 
@@ -118,43 +113,42 @@ describe("ConfigurableDashboard", () => {
     expect(visibleWidgetIds(container)).toEqual(["alpha", "beta"]);
   });
 
-  it("persists reordered widgets", async () => {
+  it("persists keyboard movement for the active breakpoint", async () => {
     const user = userEvent.setup();
-    const { container } = renderDashboard();
+    renderDashboard();
 
-    await user.click(screen.getByRole("button", { name: "test reorder" }));
-    expect(visibleWidgetIds(container)).toEqual(["beta", "alpha"]);
+    await user.click(screen.getByRole("button", { name: "DASHBOARD_EDIT_LAYOUT" }));
+    expect(responsiveProps.current?.dragConfig).toMatchObject({ enabled: true });
+    expect(responsiveProps.current?.resizeConfig).toMatchObject({ enabled: true });
+    const handle = screen.getByRole("button", { name: "DASHBOARD_DRAG_WIDGET:Alpha" });
+    handle.focus();
+    await user.keyboard("{ArrowRight}");
     await waitFor(() => {
-      expect(window.localStorage.getItem("arclayer:dashboard-layout:v1:test")).toContain(
-        '"id":"beta"',
-      );
+      expect(readStoredLayout().layouts.lg.find((item) => item.i === "alpha")?.x).toBe(1);
     });
   });
 
-  it("resizes width and height with the pointer handle", () => {
-    HTMLElement.prototype.setPointerCapture = vi.fn();
-    HTMLElement.prototype.releasePointerCapture = vi.fn();
-    const { container } = renderDashboard();
-    const resizeHandles = screen.getAllByRole("button", {
-      name: "DASHBOARD_RESIZE_WIDGET:Alpha",
+  it("persists width changes from the widget menu", async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+    const alphaWidget = screen.getByText("alpha content").closest("[data-dashboard-widget]");
+    expect(alphaWidget).not.toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "DASHBOARD_EDIT_LAYOUT" }));
+    await user.click(
+      within(alphaWidget as HTMLElement).getByRole("button", { name: "DASHBOARD_WIDTH_6" }),
+    );
+
+    await waitFor(() => {
+      expect(readStoredLayout().layouts.lg.find((item) => item.i === "alpha")?.w).toBe(6);
     });
-    const handle = resizeHandles.at(-1);
-    expect(handle).toBeDefined();
-
-    dispatchPointerEvent(handle!, "pointerdown", { pointerId: 7, clientX: 0, clientY: 0 });
-    dispatchPointerEvent(handle!, "pointermove", { pointerId: 7, clientX: 360, clientY: 64 });
-    dispatchPointerEvent(handle!, "pointerup", { pointerId: 7, clientX: 360, clientY: 64 });
-
-    const widget = container.querySelector('[data-dashboard-widget="alpha"]');
-    expect(widget).toHaveClass("md:col-span-6");
-    expect(widget?.querySelector(":scope > div")).toHaveStyle({ height: "208px" });
   });
 
   it("rejects an unsupported stored layout version and restores defaults", () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     window.localStorage.setItem(
-      "arclayer:dashboard-layout:v1:test",
-      JSON.stringify({ version: 99, items: [] }),
+      "arclayer:dashboard-layout:v2:test",
+      JSON.stringify({ version: 99, layouts: {}, hiddenWidgetIds: [] }),
     );
 
     const { container } = renderDashboard();
