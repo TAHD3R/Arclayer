@@ -111,9 +111,9 @@ export function ContentLibraryArticleEditorTocSidebar(props: {
 
   if (props.mode === "page") {
     return (
-      <aside className="sticky top-6 hidden w-64 shrink-0 self-start space-y-5 xl:block">
+      <aside className="order-first w-full shrink-0 self-start space-y-5 xl:sticky xl:top-6 xl:order-none xl:w-64">
         {props.beforeContent}
-        <nav {...navProps} className="space-y-3">
+        <nav {...navProps} className="hidden space-y-3 xl:block">
           <div className="px-2 text-callout font-semibold text-label-primary">
             {t("CONTENT_LIBRARY_EDITOR_INSERT_TOC")}
           </div>

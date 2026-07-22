@@ -543,7 +543,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
               ) : props.mode === "page" ? (
                 <div
                   className={cn(
-                    "mx-auto flex w-full max-w-[90rem] items-start gap-8 px-6 pb-10 pt-2 xl:gap-10",
+                    "mx-auto flex w-full max-w-[90rem] flex-col items-start gap-5 px-6 pb-10 pt-2 xl:flex-row xl:gap-10",
                   )}
                 >
                   <div className="min-w-0 flex-1">
