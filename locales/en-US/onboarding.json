@@ -60,6 +60,7 @@
   "WELCOME_CUSTOMIZE_TEAM_TYPE_OTHER": "Other",
   "WELCOME_CUSTOMIZE_TEAM_TYPE_QUESTION": "What best describes your team?",
   "WELCOME_FINAL_CTA": "Start building",
+  "WELCOME_INVITATION_FINAL_CTA": "Enter workspace",
   "WELCOME_FOOTER_COPYRIGHT": "Copyright © 2026 Arclayer. All rights reserved.",
   "WELCOME_GENERIC_SAVE_ERROR": "We couldn't save this step. Please try again.",
   "WELCOME_IMAGE_ALT": "Arclayer onboarding preview",

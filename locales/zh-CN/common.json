@@ -336,6 +336,7 @@
   "TOAST_REQUEST_ID_COPY_FAILED": "复制失败",
   "TOAST_REQUEST_ID_TOOLTIP": "如果你向客户关怀团队报告这个错误，请提供此请求 ID，方便他们调查。",
   "TOAST_REQUEST_ID_VALUE": "请求 ID：{{id}}",
+  "REPORT_PROBLEM": "报告问题",
   "TOAST_NOTIFICATIONS": "通知",
   "TOAST_TITLE_ERROR": "操作失败",
   "TOAST_TITLE_INFO": "提示",

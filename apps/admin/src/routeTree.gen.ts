@@ -22,6 +22,7 @@ import { Route as InspriationIndexRouteImport } from './routes/inspriation/index
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects/$projectId'
 import { Route as SystemTenantsIndexRouteImport } from './routes/system/tenants/index'
 import { Route as SystemSettingsIndexRouteImport } from './routes/system/settings/index'
+import { Route as SystemPluginsIndexRouteImport } from './routes/system/plugins/index'
 import { Route as SystemOverviewIndexRouteImport } from './routes/system/overview/index'
 import { Route as SystemObservabilityIndexRouteImport } from './routes/system/observability/index'
 import { Route as SystemFeedbackIndexRouteImport } from './routes/system/feedback/index'
@@ -147,6 +148,11 @@ const SystemTenantsIndexRoute = SystemTenantsIndexRouteImport.update({
 const SystemSettingsIndexRoute = SystemSettingsIndexRouteImport.update({
   id: '/settings/',
   path: '/settings/',
+  getParentRoute: () => SystemRoute,
+} as any)
+const SystemPluginsIndexRoute = SystemPluginsIndexRouteImport.update({
+  id: '/plugins/',
+  path: '/plugins/',
   getParentRoute: () => SystemRoute,
 } as any)
 const SystemOverviewIndexRoute = SystemOverviewIndexRouteImport.update({
@@ -546,6 +552,7 @@ export interface FileRoutesByFullPath {
   '/system/feedback/': typeof SystemFeedbackIndexRoute
   '/system/observability/': typeof SystemObservabilityIndexRoute
   '/system/overview/': typeof SystemOverviewIndexRoute
+  '/system/plugins/': typeof SystemPluginsIndexRoute
   '/system/settings/': typeof SystemSettingsIndexRoute
   '/system/tenants/': typeof SystemTenantsIndexRoute
   '/projects/$projectId/activity/': typeof ProjectsProjectIdActivityIndexRoute
@@ -612,6 +619,7 @@ export interface FileRoutesByTo {
   '/system/feedback': typeof SystemFeedbackIndexRoute
   '/system/observability': typeof SystemObservabilityIndexRoute
   '/system/overview': typeof SystemOverviewIndexRoute
+  '/system/plugins': typeof SystemPluginsIndexRoute
   '/system/settings': typeof SystemSettingsIndexRoute
   '/system/tenants': typeof SystemTenantsIndexRoute
   '/projects/$projectId/activity': typeof ProjectsProjectIdActivityIndexRoute
@@ -681,6 +689,7 @@ export interface FileRoutesById {
   '/system/feedback/': typeof SystemFeedbackIndexRoute
   '/system/observability/': typeof SystemObservabilityIndexRoute
   '/system/overview/': typeof SystemOverviewIndexRoute
+  '/system/plugins/': typeof SystemPluginsIndexRoute
   '/system/settings/': typeof SystemSettingsIndexRoute
   '/system/tenants/': typeof SystemTenantsIndexRoute
   '/projects/$projectId/activity/': typeof ProjectsProjectIdActivityIndexRoute
@@ -751,6 +760,7 @@ export interface FileRouteTypes {
     | '/system/feedback/'
     | '/system/observability/'
     | '/system/overview/'
+    | '/system/plugins/'
     | '/system/settings/'
     | '/system/tenants/'
     | '/projects/$projectId/activity/'
@@ -817,6 +827,7 @@ export interface FileRouteTypes {
     | '/system/feedback'
     | '/system/observability'
     | '/system/overview'
+    | '/system/plugins'
     | '/system/settings'
     | '/system/tenants'
     | '/projects/$projectId/activity'
@@ -885,6 +896,7 @@ export interface FileRouteTypes {
     | '/system/feedback/'
     | '/system/observability/'
     | '/system/overview/'
+    | '/system/plugins/'
     | '/system/settings/'
     | '/system/tenants/'
     | '/projects/$projectId/activity/'
@@ -1041,6 +1053,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/system/settings/'
       preLoaderRoute: typeof SystemSettingsIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/plugins/': {
+      id: '/system/plugins/'
+      path: '/plugins'
+      fullPath: '/system/plugins/'
+      preLoaderRoute: typeof SystemPluginsIndexRouteImport
       parentRoute: typeof SystemRoute
     }
     '/system/overview/': {
@@ -1423,6 +1442,7 @@ interface SystemRouteChildren {
   SystemFeedbackIndexRoute: typeof SystemFeedbackIndexRoute
   SystemObservabilityIndexRoute: typeof SystemObservabilityIndexRoute
   SystemOverviewIndexRoute: typeof SystemOverviewIndexRoute
+  SystemPluginsIndexRoute: typeof SystemPluginsIndexRoute
   SystemSettingsIndexRoute: typeof SystemSettingsIndexRoute
   SystemTenantsIndexRoute: typeof SystemTenantsIndexRoute
   SystemObservabilityActivityIndexRoute: typeof SystemObservabilityActivityIndexRoute
@@ -1448,6 +1468,7 @@ const SystemRouteChildren: SystemRouteChildren = {
   SystemFeedbackIndexRoute: SystemFeedbackIndexRoute,
   SystemObservabilityIndexRoute: SystemObservabilityIndexRoute,
   SystemOverviewIndexRoute: SystemOverviewIndexRoute,
+  SystemPluginsIndexRoute: SystemPluginsIndexRoute,
   SystemSettingsIndexRoute: SystemSettingsIndexRoute,
   SystemTenantsIndexRoute: SystemTenantsIndexRoute,
   SystemObservabilityActivityIndexRoute: SystemObservabilityActivityIndexRoute,

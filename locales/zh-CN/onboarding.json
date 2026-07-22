@@ -60,6 +60,7 @@
   "WELCOME_CUSTOMIZE_TEAM_TYPE_OTHER": "其他",
   "WELCOME_CUSTOMIZE_TEAM_TYPE_QUESTION": "哪种团队类型最符合你？",
   "WELCOME_FINAL_CTA": "开始使用",
+  "WELCOME_INVITATION_FINAL_CTA": "进入工作空间",
   "WELCOME_FOOTER_COPYRIGHT": "Copyright © 2026 Arclayer. All rights reserved.",
   "WELCOME_GENERIC_SAVE_ERROR": "当前步骤保存失败，请重试。",
   "WELCOME_IMAGE_ALT": "Arclayer 引导流程预览",

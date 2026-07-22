@@ -37,6 +37,8 @@
   "RBAC_PERM_KEYS_MANAGE_NAME": "管理 API Key",
   "RBAC_PERM_KEYS_READ_DESC": "允许查看工作空间 Service Key 与 Delivery Key 列表和详情。",
   "RBAC_PERM_KEYS_READ_NAME": "查看 API Key",
+  "RBAC_PERM_JOBS_READ_DESC": "允许查看当前用户有权访问的工作空间后台任务及其进度。",
+  "RBAC_PERM_JOBS_READ_NAME": "查看后台任务",
   "RBAC_PERM_NOTIFICATIONS_MANAGE_DESC": "允许执行通知管理流程，例如生成演示通知。",
   "RBAC_PERM_NOTIFICATIONS_MANAGE_NAME": "管理通知",
   "RBAC_PERM_NOTIFICATIONS_READ_DESC": "允许查看工作空间通知列表与通知内容。",

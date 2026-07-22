@@ -100,7 +100,7 @@
   "NAV_SECTION_MARKETING": "Marketing",
   "NAV_SECTION_OPERATIONS": "Operations",
   "NAV_SECTION_PLATFORM": "Platform",
-  "NAV_SECTION_PROJECTS": "Projects",
+  "NAV_SECTION_PROJECTS": "Recent projects",
   "NAV_SECTION_SEO": "SEO",
   "NAV_SECTION_SETTINGS": "Settings",
   "NAV_SECTION_TEAM": "Team",
@@ -126,5 +126,6 @@
   "NAV_WEBSITE_CONFIG": "Website Config",
   "NAV_WEBSITE_DOMAIN": "Domain",
   "NAV_WEBSITE_DOMAINS": "Domains",
-  "NAV_WEBSITE_RELEASES": "Releases"
+  "NAV_WEBSITE_RELEASES": "Releases",
+  "NAV_GLOBAL_PLATFORM_PLUGINS": "Plugins"
 }
