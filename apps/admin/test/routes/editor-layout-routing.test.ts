@@ -11,13 +11,15 @@ function resolveSource(relativePath: string) {
 }
 
 describe("scene layout routing", () => {
-  test("scene registry no longer assigns a dedicated editor layout", () => {
+  test("scene registry assigns the project creation editor to its fullscreen layout", () => {
     const registrySource = readFileSync(resolveSource("lib/routing/scene-registry.ts"), "utf-8");
 
-    expect(registrySource).not.toContain('import { EditorLayout } from "@/layouts/editor-layout"');
-    expect(registrySource).not.toContain("isEditorPath");
-    expect(registrySource).not.toContain("layout: EditorLayout");
-    expect(registrySource).toContain('type SceneKey = "auth" | "invite" | "global" | "admin"');
+    expect(registrySource).toContain('import { CreationLayout } from "@/layouts/creation-layout"');
+    expect(registrySource).toContain("isCreationEditorPath");
+    expect(registrySource).toContain('key: "creation", layout: CreationLayout');
+    expect(registrySource).toContain(
+      'type SceneKey = "auth" | "invite" | "creation" | "global" | "admin"',
+    );
   });
 
   test("root route uses scene registry for layout resolution", () => {
@@ -27,12 +29,13 @@ describe("scene layout routing", () => {
     expect(rootRouteSource).toContain("getSceneLayout");
   });
 
-  test("route identity no longer defines a dedicated editor scene predicate", () => {
+  test("route identity scopes the creation scene to project editor routes", () => {
     const routeIdentitySource = readFileSync(
       resolveSource("lib/routing/route-identity.ts"),
       "utf-8",
     );
 
-    expect(routeIdentitySource).not.toContain("isEditorPath");
+    expect(routeIdentitySource).toContain("export function isCreationEditorPath");
+    expect(routeIdentitySource).toContain("/^\\/projects\\/[^/]+\\/editor");
   });
 });
