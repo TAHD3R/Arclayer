@@ -1297,10 +1297,16 @@ existing active-release authority:
 | Active release, missing route | `404` | `404` | `no-store` | `noindex` |
 | Published binding/render failure | explicit failure | explicit failure | `no-store` | `noindex` |
 
-The prelaunch response includes its template version and never receives
-operator, editor, or preview data. Legacy visitor delivery remains isolated
-until the production renderer/compiler hard cut; this correction only removes
-the false-success placeholder behavior.
+The prelaunch response uses `arclayer-prelaunch-v2` and receives only the
+localized public runtime identity: site name, subtitle, description, logo, and
+favicon. It escapes every external value and renders explicit localized generic
+copy when identity is absent; it never receives operator, editor, or preview
+data. The responsive light/dark template has a complete static first frame, so
+delivery and thumbnail capture do not depend on an entrance animation or a
+screenshot-only wait. Legacy visitor delivery remains isolated until the
+production renderer/compiler hard cut; this correction only removes the
+false-success placeholder behavior. Active-release delivery never falls back to
+prelaunch.
 
 ## 32. Wave 3L typed Design authoring contract
 

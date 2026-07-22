@@ -601,7 +601,9 @@ Before the first release, Admin preview renders a product onboarding/readiness s
 | Suspended project | `403` | `no-store` | `noindex` |
 | Deleted/tombstoned project | `410` | short documented cache | `noindex` |
 
-Prelaunch HTML is produced by a versioned renderer/template, not CSS assembled in the public-host router. It includes the visitor-facing site identity where configured and remains until an active release exists.
+Prelaunch HTML is produced by the versioned `arclayer-prelaunch-v2` renderer/template, not CSS assembled in the public-host router. It reads only the public runtime's localized site name, subtitle, description, logo, and favicon; every external value is escaped before rendering. Missing identity stays explicit through localized generic copy and a neutral site-document mark rather than an invented brand.
+
+The template uses a responsive identity/blueprint composition with light and dark color tokens and no horizontal overflow. Its first frame is the complete stable state: it does not depend on entrance animation or screenshot-specific waits, so public delivery and revision thumbnail capture observe the same result. These presentation changes do not alter the `200` root response, `404` non-root response, `no-store`/robots directives, or active-release authority. Once an active release exists, delivery never falls back to prelaunch.
 
 Publishing uses the canonical release domain with staged activation:
 
@@ -1110,7 +1112,7 @@ used to describe the full user goal as complete.
 | 6 | Site thumbnails on Home and Projects | Pending | Asset thumbnail job foundations exist, but revision-pinned site render/capture, project thumbnail projection, and final Home/grid/list media treatment remain Wave 5. |
 | 7 | Productized Taskiq workload topology and task catalog | In progress | Durable jobs, broker routing, workers, scheduler leadership, recovery, and owning-domain job verticals are implemented/tested. Production deployment and health evidence remain required. |
 | 8 | Connector-based commercialization and Stripe | In progress | Connector registry, Stripe plugin, durable billing event path, and Billing surfaces exist. Provider migration parity, replay/reconciliation, entitlement, and production webhook evidence remain Wave 6 gates. |
-| 9 | Productized no-release/prelaunch experience | In progress | The public host has an explicit versioned, noindex prelaunch contract with no fake published success. Final branded visual treatment and release activation convergence remain. |
+| 9 | Productized no-release/prelaunch experience | In progress | `arclayer-prelaunch-v2` now provides the final responsive light/dark visitor treatment, localized public site identity, escaped external values, stable static first frame, and explicit missing-identity state without fake published success. Release activation convergence remains. |
 | 10 | Website Config redesign and ownership | In progress | Identity, discovery, and localization workspaces now have responsive live visitor previews, complete read-only behavior, generated-source invalidation, bilingual copy, and browser-verified UX acceptance. Typed domain facades, optimistic concurrency, Activity evidence, and consuming the Domains-owned resolved primary URL remain open. |
 | 11 | Project General redesign and ownership | In progress | Project identity, context/access/lifecycle boundaries, danger actions, responsive navigation, bilingual copy, and browser acceptance are complete. Typed identity/defaults commands with optimistic concurrency and Activity evidence remain open. |
 

@@ -14,7 +14,7 @@ from src.config import Settings, get_settings
 from src.core.exceptions import Conflict, NotFound
 from src.core.logging import get_logger
 from src.models.workspaces.workspace import Workspace
-from src.modules.sites.prelaunch import render_prelaunch_page
+from src.modules.sites.prelaunch import PrelaunchPageContext, render_prelaunch_page
 from src.modules.sites.runtime.delivery_kernel import RuntimeDeliveryTarget, SiteRuntimeDeliveryKernel
 from src.modules.sites.service import SiteService
 from src.modules.tenancy.router_helpers import bind_project_tenant_context, ensure_workspace_tenant_context
@@ -218,7 +218,24 @@ async def _serve_project_host(
     except NotFound:
         has_active_release = await kernel.has_active_release(target=target)
         if not has_active_release and request_path == "/":
-            return render_prelaunch_page(host=host, locale=resolved.default_locale)
+            runtime = await kernel.get_runtime(
+                target=target,
+                mode="public",
+                token=None,
+                locale=resolved.default_locale,
+            )
+            identity = runtime.site
+            return render_prelaunch_page(
+                PrelaunchPageContext(
+                    host=host,
+                    locale=resolved.default_locale,
+                    site_name=identity.name if identity is not None else None,
+                    subtitle=identity.subtitle if identity is not None else None,
+                    description=identity.description if identity is not None else None,
+                    logo_url=identity.logo_url if identity is not None else None,
+                    favicon_url=identity.favicon_url if identity is not None else None,
+                )
+            )
         return _public_error_response(
             status_code=404,
             title="Page not found",
