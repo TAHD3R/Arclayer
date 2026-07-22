@@ -17,6 +17,7 @@ export type AdminNavItem = {
   activeMatchPaths?: string[];
   search?: NavSearch;
   icon: LucideIcon;
+  iconNode?: ReactNode;
   disabled?: boolean;
   blockedReason?: "missing_permission" | null;
   requiredPermission?: string | null;

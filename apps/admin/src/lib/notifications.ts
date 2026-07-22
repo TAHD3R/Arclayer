@@ -7,7 +7,7 @@ export function setMessageApi(api: unknown) {
   void api;
 }
 
-function resolveRequestId(err: unknown): string | undefined {
+export function resolveRequestId(err: unknown): string | undefined {
   if (!(err instanceof ApiError) || !err.meta || typeof err.meta !== "object") {
     return undefined;
   }

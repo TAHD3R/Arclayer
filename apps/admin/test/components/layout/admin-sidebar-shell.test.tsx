@@ -52,8 +52,12 @@ vi.mock("@/components/layout/admin-command-trigger", () => ({
 }));
 
 vi.mock("@/components/layout/admin-logo", () => ({
-  AdminFullLogo: () => <div data-testid="sidebar-brand-logo" />,
-  AdminLogo: () => <div data-testid="sidebar-brand-icon-logo" />,
+  AdminFullLogo: (props: { width: number }) => (
+    <div data-testid="sidebar-brand-logo" data-width={props.width} />
+  ),
+  AdminLogo: (props: { size: number }) => (
+    <div data-testid="sidebar-brand-icon-logo" data-size={props.size} />
+  ),
 }));
 
 vi.mock("@/components/layout/admin-scope-switcher", () => ({
@@ -64,6 +68,9 @@ vi.mock("@/components/layout/admin-scope-switcher", () => ({
 
 vi.mock("@/components/layout/admin-sidebar-inbox", () => ({
   AdminSidebarInbox: () => <div data-testid="sidebar-inbox-content">Inbox content</div>,
+}));
+vi.mock("@/components/ai/agent-thread-sidebar", () => ({
+  AgentThreadSidebar: () => <div data-testid="agent-thread-sidebar">Agent Threads</div>,
 }));
 
 vi.mock("react-i18next", () => ({
@@ -226,7 +233,8 @@ describe("AdminSidebarShell", () => {
     const inboxTab = screen.getByRole("tab", { name: "Inbox" });
     const chatTab = screen.getByRole("tab", { name: "common:SIDEBAR_TOP_TAB_CHAT" });
 
-    expect(screen.getByTestId("sidebar-brand-logo")).toBeInTheDocument();
+    expect(screen.getByTestId("sidebar-brand-logo")).toHaveAttribute("data-width", "108");
+    expect(screen.getByTestId("sidebar-brand-icon-logo")).toHaveAttribute("data-size", "32");
     expect(screen.getByTestId("sidebar-workspace-switcher")).toBeInTheDocument();
     expect(screen.getByTestId("sidebar-workspace-switcher")).toHaveAttribute(
       "data-variant",
@@ -237,9 +245,8 @@ describe("AdminSidebarShell", () => {
     ).toBeInTheDocument();
     expect(header?.className).toContain("py-2");
     expect(header?.className).toContain("px-0");
-    expect(brandingRow?.className).toContain("px-4");
+    expect(brandingRow?.className).toContain("px-3");
     expect(brandingRow?.className).toContain("py-2");
-    expect(brandingRow?.className).toContain("pr-3");
     expect(tablist.className).toContain("h-9");
     expect(tablist.className).toContain("w-full");
     expect(tablist.className).toContain("justify-start");
@@ -586,6 +593,27 @@ describe("AdminSidebarShell", () => {
     await waitFor(() => {
       expect(screen.getByTestId("admin-sider-nav")).toBeInTheDocument();
     });
+  });
+
+  it("uses the normalized Agent Thread list when the scene runtime is available", async () => {
+    const user = userEvent.setup();
+
+    renderWithSidebar(
+      <AdminSidebarShell
+        showNavSkeleton={false}
+        showOrgNavErrorOverlay={false}
+        mainItems={[]}
+        collapsible="icon"
+        assistantAvailable
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: "common:SIDEBAR_TOP_TAB_CHAT" }));
+
+    expect(await screen.findByTestId("agent-thread-sidebar")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "common:SIDEBAR_CHAT_EMPTY_TITLE" }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows browse navigation instead of inbox or chat panels while icon-collapsed", async () => {

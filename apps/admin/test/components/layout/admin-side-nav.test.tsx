@@ -312,13 +312,20 @@ const globalItems: AdminNavItem[] = [
     label: "Inspiration",
     icon: LayoutGrid,
     to: "/inspriation",
-    insertStarredAfter: true,
   },
   {
     key: "global.projects",
-    label: "Projects",
+    label: "All projects",
     icon: Users,
     to: "/projects",
+    insertStarredAfter: true,
+  },
+  {
+    key: "global.recent-project.project-alpha",
+    label: "Project Alpha",
+    icon: Users,
+    iconNode: <span data-testid="project-alpha-real-icon">PA</span>,
+    to: "/projects/project-alpha",
     groupLabelBeforeKey: "nav:NAV_SECTION_PROJECTS",
   },
 ];
@@ -647,9 +654,13 @@ describe("AdminSiderNav collapsed groups", () => {
     expect(
       document.querySelector('[data-slot="admin-side-nav-group-marker-divider"]'),
     ).not.toBeNull();
+    expect(document.querySelector('[data-slot="admin-side-nav-group-label"]')).toHaveClass(
+      "rounded-none",
+      "select-none",
+    );
   });
 
-  it("renders the projects section label through i18n before the projects tree", () => {
+  it("renders recent projects with their custom project icons", () => {
     renderTreeNav({
       items: globalItems,
       favoriteWorkspaceBase: "/projects",
@@ -657,7 +668,20 @@ describe("AdminSiderNav collapsed groups", () => {
     });
 
     expect(screen.getByText("en-US:nav:NAV_SECTION_PROJECTS")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Projects" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "All projects" })).toBeVisible();
+    expect(screen.getByTestId("project-alpha-real-icon")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Project Alpha" }).querySelector("svg")).toBeNull();
+  });
+
+  it("keeps the same custom project icon when the sidebar collapses", async () => {
+    const user = userEvent.setup();
+    renderWithQueryClient(<ControlledSidebarNav items={globalItems} />);
+
+    expect(screen.getByTestId("project-alpha-real-icon")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Toggle sidebar" }));
+    await waitForCollapsedRender();
+
+    expect(screen.getByTestId("project-alpha-real-icon")).toBeVisible();
   });
 
   it("renders translated group markers inside nested project groups", () => {
@@ -842,7 +866,7 @@ describe("AdminSiderNav collapsed groups", () => {
     expect(screen.queryByRole("button", { name: "en-US:nav:NAV_FAVORITES" })).toBeNull();
   });
 
-  it("inserts favorites after the explicit global resources anchor", () => {
+  it("inserts favorites between all projects and recent projects", () => {
     useFavoritesStore.setState({ paths: [], items: [], sectionExpanded: false });
 
     renderTreeNav({
@@ -850,14 +874,13 @@ describe("AdminSiderNav collapsed groups", () => {
       favoriteWorkspaceBase: "/w/ws-1",
     });
 
-    const buttons = screen
-      .getAllByRole("button")
-      .map((button) => button.textContent?.trim())
-      .filter(Boolean);
+    const buttons = screen.getAllByRole("button");
+    const buttonIndex = (name: string) => buttons.indexOf(screen.getByRole("button", { name }));
 
-    expect(buttons.indexOf("Home")).toBeLessThan(buttons.indexOf("Inspiration"));
-    expect(buttons.indexOf("Inspiration")).toBeLessThan(buttons.indexOf("en-US:nav:NAV_FAVORITES"));
-    expect(buttons.indexOf("en-US:nav:NAV_FAVORITES")).toBeLessThan(buttons.indexOf("Projects"));
+    expect(buttonIndex("Home")).toBeLessThan(buttonIndex("Inspiration"));
+    expect(buttonIndex("Inspiration")).toBeLessThan(buttonIndex("All projects"));
+    expect(buttonIndex("All projects")).toBeLessThan(buttonIndex("en-US:nav:NAV_FAVORITES"));
+    expect(buttonIndex("en-US:nav:NAV_FAVORITES")).toBeLessThan(buttonIndex("Project Alpha"));
   });
 
   it("keeps favorites in collapsed mode during the hover-open threshold", () => {

@@ -68,11 +68,13 @@ describe("shared overlay close button", () => {
 
     const closeButton = screen.getByRole("button", { name: "Close" });
     const content = closeButton.closest("[data-slot='alert-dialog-content']");
+    const overlay = document.querySelector("[data-slot='alert-dialog-overlay']");
     expect(screen.getByText("Alert")).toBeInTheDocument();
     expect(screen.getByText("Body")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
     expect(content).toHaveClass("left-1/2", "top-1/2");
     expect(content).not.toHaveClass("translate-x-[-50%]", "translate-y-[-50%]");
+    expect(overlay).toHaveClass("backdrop-blur-xs");
     expect(closeButton).toHaveAttribute("data-variant", "ghost");
     expect(closeButton).toHaveAttribute("data-size", "icon-sm");
     expect(closeButton).toHaveClass("absolute", "right-4", "top-4", "shrink-0");

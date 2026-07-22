@@ -16,6 +16,7 @@ const {
   toastInfoMock,
   routeTransitionSpy,
   aiDrawerOverlaySpy,
+  globalNotificationSurfacesSpy,
 } = vi.hoisted(() => ({
   adminSidebarShellSpy: vi.fn(),
   getUnreadNotificationPreviewMock: vi.fn(),
@@ -26,10 +27,22 @@ const {
   toastInfoMock: vi.fn(),
   routeTransitionSpy: vi.fn(),
   aiDrawerOverlaySpy: vi.fn(),
+  globalNotificationSurfacesSpy: vi.fn(),
 }));
 
 vi.mock("@/api/notifications", () => ({
   getUnreadNotificationPreview: (...args: unknown[]) => getUnreadNotificationPreviewMock(...args),
+}));
+
+vi.mock("@/components/common/global-notification-surfaces", () => ({
+  getGlobalNotificationMeta: (item: { eventName?: string | null; targetMeta?: unknown }) => {
+    if (item.eventName !== "system.broadcast") return null;
+    return item.targetMeta;
+  },
+  GlobalNotificationSurfaces: (props: Record<string, unknown>) => {
+    globalNotificationSurfacesSpy(props);
+    return <div data-testid="global-notification-surfaces" />;
+  },
 }));
 
 vi.mock("@/components/layout/admin-sidebar-shell", () => ({
@@ -37,6 +50,14 @@ vi.mock("@/components/layout/admin-sidebar-shell", () => ({
     adminSidebarShellSpy(props);
     return <div data-testid="admin-sidebar-shell" />;
   },
+}));
+
+vi.mock("@/components/ai/arclayer-assistant-scope", () => ({
+  ArclayerAssistantScope: ({
+    children,
+  }: {
+    children: (assistantAvailable: boolean) => ReactNode;
+  }) => children(true),
 }));
 
 vi.mock("@/components/layout/route-transition", () => ({
@@ -47,7 +68,7 @@ vi.mock("@/components/layout/route-transition", () => ({
 }));
 
 vi.mock("@/components/ai/ai-drawer-overlay", () => ({
-  AIDrawerOverlay: (props: { widthPx: number }) => {
+  AIDrawerOverlay: (props: { widthPx: number; assistantAvailable: boolean }) => {
     aiDrawerOverlaySpy(props);
     return <div data-testid="ai-drawer-overlay" style={{ width: props.widthPx }} />;
   },
@@ -170,9 +191,6 @@ describe("AdminSceneLayout", () => {
     preferencesState.setAiDrawerWidthPx.mockReset();
     preferencesState.aiDrawerWidthPx = 320;
     useAiChatStore.setState({
-      conversations: [],
-      activeId: null,
-      streaming: false,
       drawerOpen: false,
     });
     getUnreadNotificationPreviewMock.mockResolvedValue({
@@ -209,9 +227,46 @@ describe("AdminSceneLayout", () => {
         expect.objectContaining({
           showInboxBadge: true,
           unreadInboxCount: 1,
+          assistantAvailable: true,
         }),
       );
     });
+    expect(globalNotificationSurfacesSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ items: [expect.objectContaining({ id: "notif-1" })] }),
+    );
+  });
+
+  it("refreshes the unread notification preview every 30 seconds", async () => {
+    vi.useFakeTimers();
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+      },
+    });
+    const view = renderSceneLayout(queryClient);
+
+    try {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(getUnreadNotificationPreviewMock).toHaveBeenCalledTimes(1);
+      getUnreadNotificationPreviewMock.mockClear();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(29_999);
+      });
+      expect(getUnreadNotificationPreviewMock).not.toHaveBeenCalled();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1);
+      });
+      expect(getUnreadNotificationPreviewMock).toHaveBeenCalledTimes(1);
+      expect(getUnreadNotificationPreviewMock).toHaveBeenLastCalledWith({ limit: 20 });
+    } finally {
+      view.unmount();
+      queryClient.clear();
+      vi.useRealTimers();
+    }
   });
 
   it("lets the main page scrollbar sit on the content edge", () => {
@@ -277,6 +332,42 @@ describe("AdminSceneLayout", () => {
     expect(toastInfoMock.mock.calls[0]?.[1]).toMatchObject({ duration: 12000 });
   });
 
+  it("routes banner broadcasts to the global surface without creating a toast", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+      },
+    });
+    queryClient.setQueryData(["notifications", "preview", authState.sessionVersion], {
+      unreadCount: 0,
+      items: [],
+    });
+    renderSceneLayout(queryClient);
+
+    act(() => {
+      queryClient.setQueryData(["notifications", "preview", authState.sessionVersion], {
+        unreadCount: 1,
+        items: [
+          createNotification({
+            id: "broadcast-banner",
+            eventName: "system.broadcast",
+            workspaceId: "00000000-0000-0000-0000-000000000000",
+            targetMeta: { presentation: "banner", severity: "warning" },
+          }),
+        ],
+      });
+    });
+
+    await waitFor(() => {
+      expect(globalNotificationSurfacesSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          items: [expect.objectContaining({ id: "broadcast-banner" })],
+        }),
+      );
+    });
+    expect(toastInfoMock).not.toHaveBeenCalled();
+  });
+
   it("marks the main panel as the floating boundary and resizes the AI drawer when open", async () => {
     useAiChatStore.setState({ drawerOpen: true });
     const queryClient = new QueryClient({
@@ -318,7 +409,9 @@ describe("AdminSceneLayout", () => {
     expect(separator).toHaveAttribute("tabindex", "-1");
     expect(separator).toHaveClass("hover:after:bg-sidebar-border");
     expect(separator).toHaveClass("-right-4");
-    expect(aiDrawerOverlaySpy).toHaveBeenLastCalledWith(expect.objectContaining({ widthPx: 320 }));
+    expect(aiDrawerOverlaySpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ widthPx: 320, assistantAvailable: true }),
+    );
 
     fireEvent(separator, createPointerEvent("pointerdown", { button: 0, clientX: 480 }));
     expect(document.body.style.cursor).toBe("col-resize");

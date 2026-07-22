@@ -257,6 +257,11 @@ describe("GlobalLayout", () => {
       to: "/projects",
     });
     expect(projectsItem?.children).toBeUndefined();
+    expect(
+      sceneLayoutSpy.mock.calls[0]?.[0]?.mainItems?.some((item: { key: string }) =>
+        item.key.startsWith("global.recent-project."),
+      ),
+    ).toBe(false);
     expect(navKeys.some((key: string) => key.startsWith("global.platform."))).toBe(false);
   });
 
@@ -357,6 +362,9 @@ describe("GlobalLayout", () => {
           iconGlyph: "rocket",
           iconEmoji: null,
           iconUrl: "/assets/project-alpha-icon",
+          authoringMode: null,
+          authoringState: "migration_required",
+          authoringRevision: 1,
           isActive: true,
           archivedAt: null,
           archivedByUserId: null,
@@ -380,7 +388,10 @@ describe("GlobalLayout", () => {
 
     await waitFor(() => {
       expect(listProjects).toHaveBeenCalledWith(
-        expect.objectContaining({ workspaceId: "workspace-alpha" }),
+        expect.objectContaining({
+          workspaceId: "workspace-alpha",
+          ordering: "-updated_at",
+        }),
       );
       expect(sceneLayoutSpy.mock.calls.at(-1)?.[0]?.browseProjects).toEqual([
         expect.objectContaining({
@@ -395,6 +406,17 @@ describe("GlobalLayout", () => {
         }),
       ]);
       expect(sceneLayoutSpy.mock.calls.at(-1)?.[0]?.activeBrowseProjectId).toBeNull();
+      expect(sceneLayoutSpy.mock.calls.at(-1)?.[0]?.mainItems).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            key: "global.recent-project.project-alpha",
+            label: "Project Alpha",
+            to: "/projects/project-alpha",
+            iconNode: expect.anything(),
+            groupLabelBeforeKey: "nav:NAV_SECTION_PROJECTS",
+          }),
+        ]),
+      );
     });
   });
 
@@ -421,6 +443,9 @@ describe("GlobalLayout", () => {
               iconGlyph: null,
               iconEmoji: null,
               iconUrl: null,
+              authoringMode: null,
+              authoringState: "migration_required",
+              authoringRevision: 1,
               isActive: true,
               archivedAt: null,
               archivedByUserId: null,

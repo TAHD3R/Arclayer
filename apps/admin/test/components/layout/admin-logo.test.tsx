@@ -1,7 +1,7 @@
 import { act, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AdminFullLogo } from "@/components/layout/admin-logo";
+import { AdminFullLogo, AdminLogo } from "@/components/layout/admin-logo";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 
 vi.mock("@tanstack/react-router", () => ({
@@ -33,6 +33,20 @@ describe("AdminFullLogo", () => {
     view.rerender(<AdminFullLogo ariaLabel="Arclayer" width={100} />);
 
     expect(link.querySelector("img")).toHaveAttribute("src", "/logo-full-dark.svg");
+  });
+
+  it("switches the compact Arc Stone asset with the application theme", () => {
+    const view = render(<AdminLogo ariaLabel="Arclayer" size={28} />);
+    const link = screen.getByRole("link", { name: "Arclayer" });
+
+    expect(link.querySelector("img")).toHaveAttribute("src", "/logo.svg");
+
+    act(() => {
+      usePreferencesStore.setState({ themeMode: "dark", themePreference: "dark" });
+    });
+    view.rerender(<AdminLogo ariaLabel="Arclayer" size={28} />);
+
+    expect(link.querySelector("img")).toHaveAttribute("src", "/logo-dark.svg");
   });
 
   it("can expose a hover affordance that keeps the homepage link target", () => {

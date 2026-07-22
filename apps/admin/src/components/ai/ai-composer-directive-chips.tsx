@@ -6,8 +6,10 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
-  cleanAIComposerDirectiveText,
+  agentIdsForComposerScope,
+  filterTrustedAIComposerDirectives,
   parseAIComposerDirectives,
+  removeAIComposerDirectives,
   useAIComposerDirectiveStore,
   type AIComposerDirectiveChip,
   type AIComposerDirectiveScope,
@@ -34,10 +36,29 @@ export function AIComposerDirectiveChips({ scope, className }: AIComposerDirecti
 
   useEffect(() => {
     const parsed = parseAIComposerDirectives(composerText);
-    if (parsed.length === 0) return;
-    addDirectives(scope, parsed);
-    aui.composer().setText(cleanAIComposerDirectiveText(composerText));
-  }, [addDirectives, aui, composerText, scope]);
+    const accepted = filterTrustedAIComposerDirectives(parsed, directives);
+    if (accepted.length === 0) return;
+    addDirectives(scope, accepted);
+    aui.composer().setText(removeAIComposerDirectives(composerText, accepted));
+  }, [addDirectives, aui, composerText, directives, scope]);
+
+  useEffect(() => {
+    const composer = aui.composer();
+    const current = composer.getState().runConfig;
+    const mentionedAgentIds = [...agentIdsForComposerScope(scope)];
+    const previous = current.custom?.mentionedAgentIds;
+    if (
+      Array.isArray(previous) &&
+      previous.length === mentionedAgentIds.length &&
+      previous.every((agentId, index) => agentId === mentionedAgentIds[index])
+    ) {
+      return;
+    }
+    composer.setRunConfig({
+      ...current,
+      custom: { ...current.custom, mentionedAgentIds },
+    });
+  }, [aui, directives, scope]);
 
   if (directives.length === 0 && !webSearchEnabled) return null;
 

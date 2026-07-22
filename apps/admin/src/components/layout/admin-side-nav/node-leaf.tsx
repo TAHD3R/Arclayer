@@ -185,7 +185,11 @@ function NodeLeafRoot({
             )}
             onClick={handleSelect}
           >
-            {iconSlot(depth, Icon, { isActive: isSelected, collapseMotion: "shift" })}
+            {iconSlot(depth, Icon, {
+              isActive: isSelected,
+              collapseMotion: "shift",
+              iconNode: item.iconNode,
+            })}
             {item.renderLabel ? (
               <div className={cn("min-w-0 flex-1", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
                 {labelContent}
@@ -217,7 +221,11 @@ function NodeLeafRoot({
               className="flex min-w-0 flex-1 items-center gap-2 text-left outline-none"
               onClick={handleSelect}
             >
-              {iconSlot(depth, Icon, { isActive: isSelected, collapseMotion: "shift" })}
+              {iconSlot(depth, Icon, {
+                isActive: isSelected,
+                collapseMotion: "shift",
+                iconNode: item.iconNode,
+              })}
               {item.renderLabel ? (
                 <div className={cn("min-w-0 flex-1", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
                   {labelContent}

@@ -10,6 +10,8 @@ import { notifyErrorText } from "@/lib/notifications";
 import { resolveNotificationTarget } from "@/lib/routing/notification-target";
 import type { NotificationItem } from "@arclayer/openapi/admin-types";
 
+const GLOBAL_NOTIFICATION_WORKSPACE_ID = "00000000-0000-0000-0000-000000000000";
+
 export function useNotificationActions() {
   const { t } = useTranslation("notifications");
   const navigate = useNavigate();
@@ -65,8 +67,9 @@ export function useNotificationActions() {
       const target = resolveNotificationTarget(item);
       if (!target) return false;
 
+      const isGlobalNotification = String(item.workspaceId) === GLOBAL_NOTIFICATION_WORKSPACE_ID;
       const isAccessibleWorkspace = accessibleWorkspaceIds.has(String(item.workspaceId));
-      if (workspacesQuery.isSuccess && !isAccessibleWorkspace) {
+      if (workspacesQuery.isSuccess && !isGlobalNotification && !isAccessibleWorkspace) {
         notifyErrorText(t("NOTIFICATIONS_TARGET_FORBIDDEN"));
         return false;
       }

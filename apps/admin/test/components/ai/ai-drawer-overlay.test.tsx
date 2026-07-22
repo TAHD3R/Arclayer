@@ -1,158 +1,149 @@
+import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ensureAIConversationPersistedForRuntime, loadAIConversations } from "@/api/ai";
 import { AIDrawerOverlay } from "@/components/ai/ai-drawer-overlay";
 import { useAiChatStore } from "@/stores/use-ai-chat-store";
+import { useAIEntryStore } from "@/stores/use-ai-entry-store";
 
-const routeState = vi.hoisted(() => ({
-  pathname: "/system/settings/access",
-  searchStr: "",
+const runtimeMocks = vi.hoisted(() => ({
+  append: vi.fn(async () => undefined),
+  switchToNewThread: vi.fn(async () => undefined),
 }));
 
-vi.mock("@tanstack/react-router", () => ({
-  useRouterState: (options: { select: (state: unknown) => unknown }) =>
-    options.select({
-      location: {
-        pathname: routeState.pathname,
-        searchStr: routeState.searchStr,
-      },
+const COORDINATOR_AGENT_ID = "tLTD4kqITA2PGQobLD1OAQ";
+const DATA_ANALYST_AGENT_ID = "tLTD4kqITA2PGQobLD1OBg";
+
+vi.mock("@assistant-ui/react", () => ({
+  useAui: () => ({
+    threads: () => ({ switchToNewThread: runtimeMocks.switchToNewThread }),
+    thread: () => ({ append: runtimeMocks.append }),
+  }),
+  useAuiState: (selector: (state: unknown) => unknown) =>
+    selector({
+      threadListItem: { title: "Homepage collaboration", remoteId: "thread-1" },
+      threads: { threadIds: [], archivedThreadIds: [] },
     }),
 }));
-
-vi.mock("@/api/ai", () => ({
-  ensureAIConversationPersistedForRuntime: vi.fn(async () => undefined),
-  loadAIConversations: vi.fn(async () => undefined),
-  renameAIConversation: vi.fn(async () => undefined),
-  setAIConversationArchived: vi.fn(async () => undefined),
+vi.mock("@/components/ai/agent-thread-history", () => ({
+  AgentThreadHistory: () => <button type="button">Conversation history</button>,
 }));
-
 vi.mock("@/components/assistant-ui/thread", () => ({
   Thread: ({ composerAccessory }: { composerAccessory?: ReactNode }) => (
     <div data-testid="thread">{composerAccessory}</div>
   ),
 }));
-
-vi.mock("@/components/ai/ai-approval-queue", () => ({
-  AIApprovalQueue: () => <div data-testid="approval-queue" />,
-}));
-
-vi.mock("@/components/ai/ai-chat-runtime", () => ({
-  AIChatRuntimeProvider: ({ children }: { children?: ReactNode }) => <>{children}</>,
-}));
-
-vi.mock("@/components/ai/ai-context-recommendations", () => ({
-  AIContextRecommendations: () => <div data-testid="context-recommendations" />,
-}));
-
-vi.mock("@/components/ai/ai-content-proposal-card", () => ({
-  AIContentProposalCard: () => <div data-testid="content-proposal-card" />,
-}));
-
 vi.mock("@/components/feedback/feedback-dialog", () => ({
-  AIConversationFeedbackPanel: () => <div data-testid="ai-feedback-panel" />,
+  FeedbackComposer: ({
+    source,
+    hiddenContext,
+  }: {
+    source: string;
+    hiddenContext?: { threadId?: string };
+  }) => (
+    <div
+      data-testid="feedback-composer"
+      data-source={source}
+      data-thread-id={hiddenContext?.threadId}
+    />
+  ),
 }));
-
 vi.mock("@/hooks/use-current-user-profile", () => ({
   useCurrentUserProfile: () => ({ profile: { displayName: "Philip Cole" } }),
 }));
-
 vi.mock("@/stores/use-auth-store", () => ({
   useAuthStore: (selector: (state: { accessToken: string | null }) => unknown) =>
     selector({ accessToken: "token-1" }),
 }));
-
 vi.mock("react-i18next", () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-  }),
+  useTranslation: () => ({ t: (key: string) => key }),
 }));
-
 vi.mock("@arclayer/ui/tooltip", () => ({
-  Tooltip: ({ children }: { children?: ReactNode }) => <>{children}</>,
-  TooltipContent: ({ children }: { children?: ReactNode }) => <>{children}</>,
-  TooltipTrigger: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  Tooltip: ({ children }: { children?: ReactNode }) => children,
+  TooltipContent: ({ children }: { children?: ReactNode }) => children,
+  TooltipTrigger: ({ children }: { children?: ReactNode }) => children,
 }));
-
-function renderDrawer() {
-  return render(<AIDrawerOverlay widthPx={360} />);
-}
 
 describe("AIDrawerOverlay", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    routeState.pathname = "/system/settings/access";
-    routeState.searchStr = "";
+    useAIEntryStore.setState({ entries: [] });
     useAiChatStore.setState({
-      conversations: [
-        {
-          id: "conversation-1",
-          title: "Access policy review",
-          messages: [],
-          contextSnapshot: {
-            pathname: "/system/settings/access",
-            search: "",
-          },
-          createdAt: 1,
-          updatedAt: 1,
-          archivedAt: null,
-        },
-      ],
-      activeId: "conversation-1",
-      streaming: false,
       drawerOpen: true,
+      composerMode: "build",
+      selectedAgentId: COORDINATOR_AGENT_ID,
     });
   });
 
-  it("does not persist an empty active conversation when the current page changes", async () => {
-    const view = renderDrawer();
+  it("binds the Drawer directly to the normalized workspace Thread runtime", () => {
+    render(<AIDrawerOverlay widthPx={360} assistantAvailable />);
 
-    await waitFor(() => expect(loadAIConversations).toHaveBeenCalled());
-    expect(ensureAIConversationPersistedForRuntime).not.toHaveBeenCalled();
-
-    routeState.pathname = "/system/settings/agents";
-    window.history.pushState({}, "", "/system/settings/agents");
-    view.rerender(<AIDrawerOverlay widthPx={360} />);
-
-    expect(ensureAIConversationPersistedForRuntime).not.toHaveBeenCalled();
+    expect(screen.getByTestId("thread")).toBeInTheDocument();
+    expect(screen.getByText("Homepage collaboration")).toBeInTheDocument();
   });
 
-  it("refreshes the page context for conversations that already have messages", async () => {
-    useAiChatStore.setState((state) => ({
-      conversations: state.conversations.map((conversation) => ({
-        ...conversation,
-        messages: [{ role: "user", content: "Review the old page" }],
-      })),
-    }));
+  it("creates a new remote Thread through the shared scene runtime", () => {
+    render(<AIDrawerOverlay widthPx={360} assistantAvailable />);
 
-    const view = renderDrawer();
-    routeState.pathname = "/system/settings/agents";
-    window.history.pushState({}, "", "/system/settings/agents");
-    view.rerender(<AIDrawerOverlay widthPx={360} />);
-
-    await waitFor(() => expect(loadAIConversations).toHaveBeenCalled());
-    await waitFor(() => {
-      expect(ensureAIConversationPersistedForRuntime).toHaveBeenCalledWith("conversation-1");
-    });
+    fireEvent.click(screen.getByRole("button", { name: "ai:AI_CHAT_NEW_CONVERSATION" }));
+    expect(runtimeMocks.switchToNewThread).toHaveBeenCalledTimes(1);
   });
 
-  it("opens with a local draft conversation without persisting it", async () => {
-    useAiChatStore.setState({
-      conversations: [],
-      activeId: null,
-      streaming: false,
-      drawerOpen: true,
-    });
+  it("places the feedback action before history and toggles a composer card above the Thread composer", () => {
+    render(<AIDrawerOverlay widthPx={360} assistantAvailable />);
 
-    renderDrawer();
+    const feedbackButton = screen.getByRole("button", { name: "ai:AI_CHAT_FEEDBACK" });
+    const historyButton = screen.getByRole("button", { name: "Conversation history" });
+    expect(
+      feedbackButton.compareDocumentPosition(historyButton) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
 
-    await waitFor(() => expect(loadAIConversations).toHaveBeenCalled());
-    await waitFor(() => {
-      expect(useAiChatStore.getState().activeId).toBeTruthy();
+    const composer = screen.getByTestId("feedback-composer");
+    expect(composer.parentElement).toHaveClass("hidden");
+    fireEvent.click(feedbackButton);
+    expect(composer.parentElement).not.toHaveClass("hidden");
+    expect(composer).toHaveAttribute("data-source", "ai_sidebar");
+    expect(composer).toHaveAttribute("data-thread-id", "thread-1");
+  });
+
+  it("opens one Thread and drains repeated entry prompts through its runtime queue", async () => {
+    useAIEntryStore.getState().submit("先生成内容结构", [DATA_ANALYST_AGENT_ID]);
+    useAIEntryStore.getState().submit("继续生成字段说明");
+
+    render(<AIDrawerOverlay widthPx={360} assistantAvailable />);
+
+    await vi.waitFor(() => {
+      expect(runtimeMocks.append).toHaveBeenCalledTimes(2);
     });
-    expect(useAiChatStore.getState().conversations).toHaveLength(1);
-    expect(useAiChatStore.getState().conversations[0]?.messages).toHaveLength(0);
-    expect(ensureAIConversationPersistedForRuntime).not.toHaveBeenCalled();
+    expect(runtimeMocks.switchToNewThread).toHaveBeenCalledTimes(1);
+    expect(runtimeMocks.append).toHaveBeenNthCalledWith(1, {
+      role: "user",
+      content: [{ type: "text", text: "先生成内容结构" }],
+      runConfig: { custom: { mentionedAgentIds: [DATA_ANALYST_AGENT_ID] } },
+    });
+    expect(runtimeMocks.append).toHaveBeenNthCalledWith(2, {
+      role: "user",
+      content: [{ type: "text", text: "继续生成字段说明" }],
+      runConfig: { custom: { mentionedAgentIds: [] } },
+    });
+    expect(useAIEntryStore.getState().entries).toEqual([]);
+  });
+
+  it("shows an explicit context requirement instead of mounting a fake conversation", () => {
+    render(<AIDrawerOverlay widthPx={360} assistantAvailable={false} />);
+
+    expect(screen.getByText("ai:AI_CHAT_PROJECT_SELECT")).toBeInTheDocument();
+    expect(screen.queryByTestId("thread")).not.toBeInTheDocument();
+  });
+
+  it("releases its horizontal layout space when closed", () => {
+    useAiChatStore.setState({ drawerOpen: false });
+
+    const { container } = render(<AIDrawerOverlay widthPx={360} assistantAvailable />);
+    const drawer = container.querySelector("aside");
+
+    expect(drawer).toHaveClass("mr-0", "w-0", "opacity-0");
+    expect(drawer).not.toHaveClass("mr-4");
+    expect(drawer).not.toHaveStyle({ width: "360px" });
   });
 });

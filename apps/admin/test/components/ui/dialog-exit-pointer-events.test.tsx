@@ -37,6 +37,7 @@ describe("dialog exit pointer-events", () => {
     expect(dialogContent).toHaveStyle({ pointerEvents: "none" });
     expect(dialogOverlay).toHaveStyle({ pointerEvents: "none" });
     expect(dialogOverlay).toHaveClass("z-[2300]");
+    expect(dialogOverlay).toHaveClass("backdrop-blur-xs");
     expect(dialogRoot).toHaveClass("z-[2300]");
   });
 });

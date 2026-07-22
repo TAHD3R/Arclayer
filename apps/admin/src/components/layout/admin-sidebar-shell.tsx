@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import type { AdminNavItem } from "@/types/admin-nav";
-import { AIConversationList } from "@/components/ai/ai-conversation-list";
+import { AgentThreadSidebar } from "@/components/ai/agent-thread-sidebar";
 import { AdminCommandTrigger } from "@/components/layout/admin-command-trigger";
 import type { FavoriteDynamicLabelIndex } from "@/components/layout/admin-side-nav/favorite-nav-items";
 import {
@@ -27,6 +27,7 @@ import {
   useSidebar,
 } from "@arclayer/ui/sidebar";
 import { Tabs, TabsList, TabsTrigger } from "@arclayer/ui/tabs";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
 import { cn } from "@arclayer/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { useAdminCommandPalette } from "@/hooks/use-admin-command-palette";
@@ -49,6 +50,7 @@ export type AdminSidebarShellProps = {
   collapsible?: "icon" | "none";
   railAriaLabel?: string;
   className?: string;
+  assistantAvailable?: boolean;
 };
 
 const ACTIVE_PILL_TAP_SCALE = 0.98;
@@ -83,8 +85,8 @@ function AdminSidebarBranding() {
 
   return (
     <SidebarHeader className="gap-0 px-0 py-2">
-      <div className="flex items-center gap-2 px-4 py-2 pr-3">
-        <div className="relative flex h-8 w-[108px] shrink-0 items-center justify-start overflow-hidden">
+      <div className="flex items-center gap-2 px-3 py-2">
+        <div className="relative flex h-8 w-27 shrink-0 items-center justify-start overflow-hidden">
           <div
             className={cn(
               "absolute inset-y-0 left-0 flex items-center justify-start transition-opacity duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
@@ -105,7 +107,7 @@ function AdminSidebarBranding() {
               showExpandedHeaderRows ? "pointer-events-none opacity-0" : "opacity-100",
             )}
           >
-            <AdminLogo to="/" ariaLabel="Arclayer" size={28} />
+            <AdminLogo to="/" ariaLabel="Arclayer" size={32} />
           </div>
         </div>
         <button
@@ -431,6 +433,7 @@ function AdminSidebarTopTabs(props: {
 
 function AdminSidebarContentArea(props: {
   activeTab: AdminSidebarTopTab;
+  assistantAvailable: boolean;
   showMenuSkeleton: boolean;
   mainItems: readonly AdminNavItem[];
   favoriteWorkspaceBase?: string | null;
@@ -438,6 +441,7 @@ function AdminSidebarContentArea(props: {
   resolvePermissionName?: (code: string) => string | null;
   pathnameOverride?: string;
 }) {
+  const { t } = useTranslation("common");
   const showExpandedContent = useSidebarExpandedHeaderRows();
   const menuTreeKey = useMemo(
     () =>
@@ -480,7 +484,25 @@ function AdminSidebarContentArea(props: {
     </div>
   );
 
-  const chatContent = <AIConversationList />;
+  const chatContent = props.assistantAvailable ? (
+    <AgentThreadSidebar />
+  ) : (
+    <Empty className="min-h-0 flex-1 px-4 py-8">
+      <EmptyHeader className="max-w-[14rem] gap-0">
+        <EmptyMedia variant="icon" className="mb-4 text-label-secondary">
+          <MessageCircle className="size-5" aria-hidden="true" />
+        </EmptyMedia>
+        <h3>
+          <EmptyTitle className="text-callout font-semibold text-label-primary">
+            {t("common:SIDEBAR_CHAT_EMPTY_TITLE")}
+          </EmptyTitle>
+        </h3>
+        <EmptyDescription className="mt-2 text-footnote">
+          {t("common:SIDEBAR_CHAT_EMPTY_DESC")}
+        </EmptyDescription>
+      </EmptyHeader>
+    </Empty>
+  );
   const visibleTab = showExpandedContent ? props.activeTab : "browse";
 
   const activeContent =
@@ -528,6 +550,7 @@ export function AdminSidebarShell({
   collapsible = "icon",
   railAriaLabel,
   className,
+  assistantAvailable = false,
 }: AdminSidebarShellProps) {
   const { t } = useTranslation("common");
   const showFailureSkeleton = showOrgNavErrorOverlay;
@@ -553,6 +576,7 @@ export function AdminSidebarShell({
       />
       <AdminSidebarContentArea
         activeTab={activeTab}
+        assistantAvailable={assistantAvailable}
         showMenuSkeleton={showMenuSkeleton}
         mainItems={mainItems}
         favoriteWorkspaceBase={favoriteWorkspaceBase}

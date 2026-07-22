@@ -18,10 +18,6 @@ vi.mock("@/components/ai/ai-suggestions", () => ({
   AISuggestions: () => <div data-testid="ai-suggestions" />,
 }));
 
-vi.mock("@/components/ai/ai-context-recommendations", () => ({
-  AIContextRecommendations: () => null,
-}));
-
 vi.mock("@/components/ai/ai-composer-triggers", () => ({
   AIComposerTriggers: () => null,
 }));

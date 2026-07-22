@@ -10,19 +10,8 @@ const assistantUiMockState = vi.hoisted(() => ({
   steerQueueItem: vi.fn(),
 }));
 
-const apiMock = vi.hoisted(() => ({
-  formatAIChatError: vi.fn((error: unknown) =>
-    error instanceof Error ? error.message : String(error),
-  ),
-  resumeAIAgentRunForConversation: vi.fn(),
-}));
 const routerMock = vi.hoisted(() => ({
   navigate: vi.fn(),
-}));
-
-vi.mock("@/api/ai", () => ({
-  formatAIChatError: apiMock.formatAIChatError,
-  resumeAIAgentRunForConversation: apiMock.resumeAIAgentRunForConversation,
 }));
 
 vi.mock("@tanstack/react-router", async () => {
@@ -194,152 +183,33 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-import { AgentRunSummary, ComposerQueue, Thread } from "@/components/assistant-ui/thread";
+import { ComposerQueue, Thread } from "@/components/assistant-ui/thread";
 
-describe("AgentRunSummary", () => {
+describe("retired conversation metadata", () => {
   beforeEach(() => {
     assistantUiMockState.customMetadata = {};
     assistantUiMockState.queueItems = [];
     assistantUiMockState.removeQueueItem.mockClear();
     assistantUiMockState.steerQueueItem.mockClear();
-    apiMock.formatAIChatError.mockClear();
-    apiMock.resumeAIAgentRunForConversation.mockReset();
-    routerMock.navigate.mockClear();
   });
 
-  it("renders failed agent run trace details from assistant metadata", () => {
+  it("does not expose the retired conversation approval protocol", () => {
     assistantUiMockState.customMetadata = {
-      agentRunId: "run-failed-1",
-      agentStatus: "failed",
-      agentThreadId: "agent-run:run-failed-1",
-      agentCheckpointId: "run-failed-1:run.failed",
-    };
-
-    render(<AgentRunSummary />);
-
-    expect(screen.getByLabelText("Agent run status")).toHaveTextContent("Agent failed");
-    expect(screen.getByLabelText("Agent run status")).toHaveTextContent("run-failed-1");
-    expect(screen.getByLabelText("Agent run status")).toHaveTextContent("run-failed-1:run.failed");
-  });
-
-  it("renders tool and token telemetry from agent metadata", async () => {
-    assistantUiMockState.customMetadata = {
-      agentRunId: "run-completed-1",
-      agentStatus: "completed",
-      agentExecutionSummary: {
-        toolNames: ["get_content", "search_content"],
-        promptTokens: 14,
-        completionTokens: 20,
-        totalTokens: 34,
-      },
-    };
-
-    render(<AgentRunSummary />);
-
-    const summary = screen.getByLabelText("Agent run status");
-    expect(summary).toHaveTextContent("Agent completed");
-    expect(summary).toHaveTextContent("2 tool calls");
-    await userEvent.click(screen.getByRole("button", { name: /2 tool calls/i }));
-    expect(summary).toHaveTextContent("get_content");
-    expect(summary).toHaveTextContent("search_content");
-    expect(summary).toHaveTextContent("34 tokens (14 prompt, 20 completion)");
-  });
-
-  it("does not duplicate the dedicated approval checkpoint card for interrupted runs", () => {
-    assistantUiMockState.customMetadata = {
-      agentRunId: "run-interrupt-1",
+      conversationId: "conversation-resume-1",
+      agentRunId: "run-resume-1",
       agentStatus: "interrupted",
-      agentThreadId: "agent-run:run-interrupt-1",
-      agentCheckpointId: "run-interrupt-1:run.interrupted",
-    };
-
-    render(<AgentRunSummary />);
-
-    expect(screen.queryByLabelText("Agent run status")).not.toBeInTheDocument();
-  });
-});
-
-describe("WorkspaceActionArtifact", () => {
-  beforeEach(() => {
-    assistantUiMockState.customMetadata = {};
-    assistantUiMockState.queueItems = [];
-    routerMock.navigate.mockClear();
-  });
-
-  it("renders project-created shortcuts into the site-builder workflow", async () => {
-    const user = userEvent.setup();
-    assistantUiMockState.customMetadata = {
+      agentArtifact: {
+        type: "agent_execution_plan",
+        goal: "Legacy plan",
+        status: "planned",
+        steps: [],
+      },
       workspaceAction: {
         type: "workspace_project_created",
         status: "completed",
-        project: {
-          id: "project-created",
-          name: "Enterprise Landing",
-          slug: "enterprise",
-          description: null,
-        },
-        summary: {
-          appEntryPath: "src/App.tsx",
-          contentItemCount: 1,
-          contentModelCount: 2,
-          domainHostname: "enterprise.arclayer.localhost",
-          editorPath: "/projects/project-created/editor",
-          homepageItemId: "item-home",
-          homepageTitle: "Homepage",
-          releaseNumber: 3,
-          releaseReady: true,
-          routePath: "/",
-          sourceFileCount: 4,
-        },
-        navigation: { label: "Project overview", path: "/projects/project-created" },
+        project: { id: "project-legacy", name: "Legacy project", slug: "legacy" },
+        navigation: { label: "Open", path: "/projects/project-legacy" },
       },
-    };
-
-    render(<Thread />);
-
-    expect(screen.getByText("Workspace project created")).toBeInTheDocument();
-    expect(screen.queryByText("enterprise.arclayer.localhost")).not.toBeInTheDocument();
-    expect(screen.getByText("Release ready")).toBeInTheDocument();
-    expect(screen.getByText("Entry src/App.tsx")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: /Open editor/i }));
-    expect(routerMock.navigate).toHaveBeenLastCalledWith({
-      to: "/projects/project-created/editor",
-    });
-
-    await user.click(screen.getByRole("button", { name: /Domains/i }));
-    expect(routerMock.navigate).toHaveBeenLastCalledWith({
-      to: "/projects/project-created/website/project-releases",
-    });
-
-    await user.click(screen.getByRole("button", { name: /Content library/i }));
-    expect(routerMock.navigate).toHaveBeenLastCalledWith({
-      to: "/projects/project-created/content/library",
-    });
-
-    await user.click(screen.getByRole("button", { name: /Project settings/i }));
-    expect(routerMock.navigate).toHaveBeenLastCalledWith({
-      to: "/projects/project-created/settings/general",
-    });
-  });
-});
-
-describe("AgentInterrupt", () => {
-  beforeEach(() => {
-    assistantUiMockState.customMetadata = {};
-    assistantUiMockState.queueItems = [];
-    assistantUiMockState.removeQueueItem.mockClear();
-    assistantUiMockState.steerQueueItem.mockClear();
-    apiMock.formatAIChatError.mockClear();
-    apiMock.resumeAIAgentRunForConversation.mockReset();
-  });
-
-  it("shows a recoverable error when approval resume is rejected by permissions", async () => {
-    const user = userEvent.setup();
-    apiMock.resumeAIAgentRunForConversation.mockRejectedValueOnce(new Error("Permission denied"));
-    assistantUiMockState.customMetadata = {
-      conversationId: "conversation-resume-1",
-      agentStatus: "interrupted",
       agentInterrupt: {
         kind: "agent_run_approval",
         runId: "run-resume-1",
@@ -355,16 +225,10 @@ describe("AgentInterrupt", () => {
 
     render(<Thread />);
 
-    expect(screen.getByText("Approval checkpoint")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Approve" }));
-
-    expect(apiMock.resumeAIAgentRunForConversation).toHaveBeenCalledWith("conversation-resume-1", {
-      runId: "run-resume-1",
-      approved: true,
-      comment: "Approved",
-    });
-    expect(await screen.findByText("Permission denied")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Approve" })).toBeEnabled();
+    expect(screen.queryByText("Approval checkpoint")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Agent run status")).not.toBeInTheDocument();
+    expect(screen.queryByText("Workspace project created")).not.toBeInTheDocument();
   });
 });
 

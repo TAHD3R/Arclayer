@@ -2,11 +2,17 @@ import type { ComponentType, PropsWithChildren } from "react";
 
 import { AdminLayout } from "@/layouts/admin-layout";
 import { AuthLayout } from "@/layouts/auth-layout";
+import { CreationLayout } from "@/layouts/creation-layout";
 import { GlobalLayout } from "@/layouts/global-layout";
 import { InviteLayout } from "@/layouts/invite-layout";
-import { isAcceptInvitePath, isAuthScenePath, isGlobalPath } from "@/lib/routing/route-identity";
+import {
+  isAcceptInvitePath,
+  isAuthScenePath,
+  isCreationEditorPath,
+  isGlobalPath,
+} from "@/lib/routing/route-identity";
 
-export type SceneKey = "auth" | "invite" | "global" | "admin";
+export type SceneKey = "auth" | "invite" | "creation" | "global" | "admin";
 
 interface SceneEntry {
   key: SceneKey;
@@ -18,6 +24,7 @@ interface SceneEntry {
 const SCENE_ENTRIES: SceneEntry[] = [
   { key: "auth", layout: AuthLayout, match: isAuthScenePath },
   { key: "invite", layout: InviteLayout, match: isAcceptInvitePath },
+  { key: "creation", layout: CreationLayout, match: isCreationEditorPath },
   { key: "global", layout: GlobalLayout, match: isGlobalPath },
   { key: "admin", layout: AdminLayout, match: () => true },
 ];

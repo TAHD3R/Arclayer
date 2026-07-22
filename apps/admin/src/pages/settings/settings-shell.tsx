@@ -142,7 +142,7 @@ export function SettingsFrame(props: SettingsFrameProps) {
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
         {props.onClose ? (
-          <div className="pointer-events-none absolute right-4 top-4 z-20">
+          <div className="pointer-events-none absolute right-4 top-4 z-30">
             <Button
               type="button"
               variant="ghost"

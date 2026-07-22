@@ -73,9 +73,35 @@ export function parseAIComposerDirectives(text: string): AIComposerDirectiveChip
     .filter((directive): directive is AIComposerDirectiveChip => directive !== null);
 }
 
+export function filterTrustedAIComposerDirectives(
+  parsed: readonly AIComposerDirectiveChip[],
+  registered: readonly AIComposerDirectiveChip[],
+): AIComposerDirectiveChip[] {
+  const trustedAgentIds = new Set(
+    registered.filter((directive) => directive.type === "agent").map((directive) => directive.id),
+  );
+  return parsed.filter(
+    (directive) => directive.type !== "agent" || trustedAgentIds.has(directive.id),
+  );
+}
+
 export function cleanAIComposerDirectiveText(text: string): string {
   return text
     .replace(DIRECTIVE_PATTERN, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function removeAIComposerDirectives(
+  text: string,
+  directives: readonly AIComposerDirectiveChip[],
+): string {
+  const cleaned = directives.reduce(
+    (current, directive) => current.split(serializeAIComposerDirective(directive)).join(" "),
+    text,
+  );
+  return cleaned
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\s+/g, " ")
     .trim();
@@ -97,6 +123,28 @@ export function buildTextWithAIComposerDirectives(
 
 export function clearAIComposerDirectives(scope: AIComposerDirectiveScope): void {
   useAIComposerDirectiveStore.getState().clearDirectives(scope);
+}
+
+export function consumeAIComposerDirectives(
+  scope: AIComposerDirectiveScope,
+  mentionedAgentIds: readonly string[],
+): void {
+  const consumedAgentIds = new Set(mentionedAgentIds);
+  useAIComposerDirectiveStore.setState((state) => ({
+    directivesByScope: {
+      ...state.directivesByScope,
+      [scope]: state.directivesByScope[scope].filter(
+        (directive) => directive.type === "agent" && !consumedAgentIds.has(directive.id),
+      ),
+    },
+  }));
+}
+
+export function agentIdsForComposerScope(scope: AIComposerDirectiveScope): readonly string[] {
+  return useAIComposerDirectiveStore
+    .getState()
+    .directivesByScope[scope].filter((directive) => directive.type === "agent")
+    .map((directive) => directive.id);
 }
 
 function normalizeDirectiveType(value: string | undefined): AIComposerDirectiveType | null {

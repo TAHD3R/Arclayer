@@ -44,12 +44,20 @@ export const AuthPasswordControl = React.forwardRef<HTMLInputElement, AuthPasswo
 
 type AuthLinkButtonProps = React.ComponentProps<typeof Button>;
 
-export function AuthLinkButton({ className, size = "inline", ...props }: AuthLinkButtonProps) {
+export function AuthLinkButton({
+  className,
+  size = "inline",
+  variant = "ghost",
+  ...props
+}: AuthLinkButtonProps) {
   return (
     <Button
-      variant="link"
+      variant={variant}
       size={size}
-      className={cn("inline-flex items-baseline gap-0 align-baseline text-footnote", className)}
+      className={cn(
+        "inline-flex items-baseline gap-0 align-baseline text-footnote text-label-secondary underline-offset-4 hover:bg-transparent hover:text-label-primary hover:underline",
+        className,
+      )}
       {...props}
     />
   );

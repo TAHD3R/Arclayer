@@ -150,4 +150,11 @@ describe("post-auth-routing", () => {
     expect(decision.workspaceId).toBeNull();
     expect(decision.onboardingRequired).toBe(true);
   });
+
+  test("surfaces workspace lookup failures instead of bypassing onboarding", async () => {
+    const error = new Error("workspace lookup failed");
+    mocked.listMyWorkspaces.mockRejectedValue(error);
+
+    await expect(resolvePostAuthRoute({ lastWorkspaceId: null })).rejects.toBe(error);
+  });
 });

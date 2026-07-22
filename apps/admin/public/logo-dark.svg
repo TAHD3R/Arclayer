@@ -1,0 +1,47 @@
+<svg width="220" height="220" viewBox="8 8 240 240" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Arclayer Arc Weave</title>
+  <desc id="desc">Four optically compensated arc stones rendered as one continuous soft-white material field.</desc>
+  <defs>
+    <path id="arc-piece" data-optical-compensation="dark" d="M77 4C49 -7 18 8 6 36C-5 63 7 93 34 107C61 120 92 109 108 84C96 71 83 61 71 54C64 74 44 83 28 73C10 62 9 38 24 23C38 9 59 12 72 29C75 20 77 12 77 4Z"/>
+    <mask id="arc-weave-mask" maskUnits="userSpaceOnUse" x="-16" y="-16" width="288" height="288" style="mask-type:alpha">
+      <g fill="white">
+        <g transform="translate(84 84) rotate(45) scale(1.15) translate(-56 -56)"><use href="#arc-piece"/></g>
+        <g transform="translate(172 84) rotate(135) scale(1.15) translate(-56 -56)"><use href="#arc-piece"/></g>
+        <g transform="translate(172 172) rotate(225) scale(1.15) translate(-56 -56)"><use href="#arc-piece"/></g>
+        <g transform="translate(84 172) rotate(315) scale(1.15) translate(-56 -56)"><use href="#arc-piece"/></g>
+      </g>
+    </mask>
+    <linearGradient id="pearl-base" x1="30" y1="22" x2="232" y2="236" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F4F4F7"/>
+      <stop offset="0.48" stop-color="#C7C8CF"/>
+      <stop offset="1" stop-color="#F1F1F4"/>
+    </linearGradient>
+    <radialGradient id="light-northwest" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(45 40) rotate(43) scale(132)">
+      <stop stop-color="#FFFFFF" stop-opacity="0.94"/>
+      <stop offset="0.68" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="light-southeast" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(214 217) rotate(-137) scale(126)">
+      <stop stop-color="#FFFFFF" stop-opacity="0.82"/>
+      <stop offset="0.7" stop-color="#FFFFFF" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="shade-southwest" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(42 215) rotate(-44) scale(130)">
+      <stop stop-color="#8D8F99" stop-opacity="0.72"/>
+      <stop offset="0.67" stop-color="#AEB0B9" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#AEB0B9" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="shade-northeast" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(218 40) rotate(136) scale(122)">
+      <stop stop-color="#999BA5" stop-opacity="0.58"/>
+      <stop offset="0.72" stop-color="#B9BAC2" stop-opacity="0.1"/>
+      <stop offset="1" stop-color="#B9BAC2" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <g mask="url(#arc-weave-mask)">
+    <rect x="-16" y="-16" width="288" height="288" fill="url(#pearl-base)"/>
+    <rect x="-16" y="-16" width="288" height="288" fill="url(#light-northwest)"/>
+    <rect x="-16" y="-16" width="288" height="288" fill="url(#light-southeast)"/>
+    <rect x="-16" y="-16" width="288" height="288" fill="url(#shade-southwest)" style="mix-blend-mode:multiply"/>
+    <rect x="-16" y="-16" width="288" height="288" fill="url(#shade-northeast)" style="mix-blend-mode:multiply"/>
+  </g>
+</svg>

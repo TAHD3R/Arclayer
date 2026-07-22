@@ -2,16 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  EditIcon,
-  GitBranchIcon,
-  PackageIcon,
-  PlusIcon,
-  PowerIcon,
-  PowerOffIcon,
-  TerminalIcon,
-  Trash2Icon,
-} from "lucide-react";
+import { EditIcon, PlusIcon, PowerIcon, PowerOffIcon, Trash2Icon } from "lucide-react";
 
 import {
   createAISystemProvider,
@@ -50,17 +41,16 @@ import {
   getSystemSettingsSection,
   readBooleanValue,
   readNumberValue,
-  readStringArrayValue,
   readStringValue,
   usePatchSystemCoreSettings,
   useSystemCoreSettings,
 } from "@/pages/system/hooks/use-system-core-settings";
-import { joinLineList, splitLineList } from "@/pages/system/system-settings-form-utils";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 import { AgentCapabilitySummary } from "./agent-capability-summary";
+import { AgentCatalogControlPlane } from "./agent-catalog-control-plane";
 
-type AgentMode = "build" | "plan" | "agent";
+type AgentMode = "build" | "plan";
 type ReasoningEffort = "low" | "medium" | "high";
 type ApprovalPolicy =
   | "always_approve"
@@ -75,12 +65,7 @@ type AgentsFormValues = {
   defaultModel: string;
   reasoningEffort: ReasoningEffort;
   systemPrompt: string;
-  conversationRetentionDays: number;
-  autoTitleEnabled: boolean;
-  contextRecommendationsEnabled: boolean;
   monthlyBudgetUsd: number;
-  skillsEnabled: boolean;
-  allowedSkillIds: string;
   writeToolsEnabled: boolean;
   approvalPolicy: ApprovalPolicy;
   dryRunRequired: boolean;
@@ -90,7 +75,7 @@ type AgentsFormValues = {
   interruptResumeEnabled: boolean;
 };
 
-const AGENT_MODE_OPTIONS: readonly AgentMode[] = ["build", "plan", "agent"];
+const AGENT_MODE_OPTIONS: readonly AgentMode[] = ["build", "plan"];
 const REASONING_OPTIONS: readonly ReasoningEffort[] = ["low", "medium", "high"];
 const APPROVAL_POLICY_OPTIONS: readonly ApprovalPolicy[] = [
   "always_approve",
@@ -107,32 +92,6 @@ const PROVIDER_COMPATIBILITY_OPTIONS: readonly AISystemProviderCompatibility[] =
   "deepseek",
 ];
 const PROVIDER_QUERY_KEY = ["system", "ai", "providers"] as const;
-const SKILL_SOURCE_OPTIONS = ["inline", "github", "npx"] as const;
-type SkillSourceKind = (typeof SKILL_SOURCE_OPTIONS)[number];
-
-type SkillPackage = {
-  id: string;
-  source: SkillSourceKind;
-  locator: string;
-  raw: string;
-};
-
-type SkillFormValues = {
-  source: SkillSourceKind;
-  skillId: string;
-  githubRepo: string;
-  githubRef: string;
-  npxPackage: string;
-};
-
-const DEFAULT_SKILL_FORM_VALUES: SkillFormValues = {
-  source: "github",
-  skillId: "",
-  githubRepo: "",
-  githubRef: "",
-  npxPackage: "",
-};
-
 function currentUsagePeriod(): string {
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, "0");
@@ -140,7 +99,7 @@ function currentUsagePeriod(): string {
 }
 
 function normalizeAgentMode(value: string | null): AgentMode {
-  return value === "plan" || value === "agent" ? value : "build";
+  return value === "plan" ? value : "build";
 }
 
 function normalizeReasoningEffort(value: string | null): ReasoningEffort {
@@ -187,16 +146,7 @@ function buildInitialValues(
     defaultModel: readStringValue(agents, "default_model") ?? "deepseek-v4-pro",
     reasoningEffort: normalizeReasoningEffort(readStringValue(agents, "reasoning_effort")),
     systemPrompt: readStringValue(agents, "system_prompt") ?? "",
-    conversationRetentionDays: readPositiveNumber(
-      readNumberValue(agents, "conversation_retention_days"),
-      90,
-    ),
-    autoTitleEnabled: readBooleanValue(agents, "auto_title_enabled") ?? true,
-    contextRecommendationsEnabled:
-      readBooleanValue(agents, "context_recommendations_enabled") ?? true,
     monthlyBudgetUsd: microsToUsd(readNumberValue(agents, "monthly_budget_micros"), 100_000_000),
-    skillsEnabled: readBooleanValue(agents, "skills_enabled") ?? true,
-    allowedSkillIds: joinLineList(readStringArrayValue(agents, "allowed_skill_ids")),
     writeToolsEnabled: readBooleanValue(agents, "write_tools_enabled") ?? false,
     approvalPolicy: normalizeApprovalPolicy(readStringValue(agents, "approval_policy")),
     dryRunRequired: readBooleanValue(agents, "dry_run_required") ?? true,
@@ -924,263 +874,6 @@ function AIProviderManagement(props: {
   );
 }
 
-function parseSkillPackage(raw: string): SkillPackage {
-  const value = raw.trim();
-  if (value.startsWith("github:")) {
-    const body = value.slice("github:".length);
-    const [repoAndRef, skillId] = body.split(":");
-    return {
-      id: skillId?.trim() || repoAndRef.trim(),
-      source: "github",
-      locator: repoAndRef.trim(),
-      raw: value,
-    };
-  }
-  if (value.startsWith("npx:")) {
-    const body = value.slice("npx:".length);
-    const [packageName, skillId] = body.split(":");
-    return {
-      id: skillId?.trim() || packageName.trim(),
-      source: "npx",
-      locator: packageName.trim(),
-      raw: value,
-    };
-  }
-  return { id: value, source: "inline", locator: value, raw: value };
-}
-
-function serializeSkillForm(values: SkillFormValues): string | null {
-  const skillId = values.skillId.trim();
-  if (values.source === "inline") return skillId || null;
-  if (values.source === "github") {
-    const repo = values.githubRepo.trim();
-    if (!repo) return null;
-    const ref = values.githubRef.trim();
-    const locator = ref ? `${repo}#${ref}` : repo;
-    return skillId ? `github:${locator}:${skillId}` : `github:${locator}`;
-  }
-  const packageName = values.npxPackage.trim();
-  if (!packageName) return null;
-  return skillId ? `npx:${packageName}:${skillId}` : `npx:${packageName}`;
-}
-
-function SkillSourceIcon(props: { source: SkillSourceKind }) {
-  const Icon =
-    props.source === "github" ? GitBranchIcon : props.source === "npx" ? TerminalIcon : PackageIcon;
-
-  return <Icon className="size-3.5" aria-hidden="true" />;
-}
-
-function SkillSourceTag(props: { source: SkillSourceKind; t: SettingsTranslate }) {
-  return (
-    <BaseTag icon={<SkillSourceIcon source={props.source} />}>
-      {props.t(`settings:SETTINGS_SYSTEM_AGENTS_SKILL_SOURCE_${props.source.toUpperCase()}`)}
-    </BaseTag>
-  );
-}
-
-function SkillPackageTable(props: {
-  packages: readonly SkillPackage[];
-  t: SettingsTranslate;
-  onDelete: (raw: string) => void;
-}) {
-  return (
-    <div className="min-w-0 overflow-x-auto rounded-md border border-border/45 bg-background">
-      <table className="min-w-full text-callout">
-        <thead className="border-b border-border/60 text-left text-callout font-semibold text-label-secondary/90">
-          <tr>
-            <th className="px-3 py-3">
-              {props.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_TABLE_ID")}
-            </th>
-            <th className="px-3 py-3">
-              {props.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_TABLE_SOURCE")}
-            </th>
-            <th className="px-3 py-3">
-              {props.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_TABLE_LOCATOR")}
-            </th>
-            <th className="w-px px-3 py-3">
-              <span className="sr-only">
-                {props.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_REMOVE")}
-              </span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {props.packages.length ? (
-            props.packages.map((skillPackage) => (
-              <tr key={skillPackage.raw} className="border-b border-border/45 last:border-b-0">
-                <td className="px-3 py-3">
-                  <span className="font-mono text-caption text-label-primary">
-                    {skillPackage.id}
-                  </span>
-                </td>
-                <td className="px-3 py-3">
-                  <SkillSourceTag source={skillPackage.source} t={props.t} />
-                </td>
-                <td className="px-3 py-3">
-                  <span className="truncate text-caption text-label-secondary">
-                    {skillPackage.locator}
-                  </span>
-                </td>
-                <td className="px-3 py-3">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={props.t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_REMOVE")}
-                    onClick={() => props.onDelete(skillPackage.raw)}
-                  >
-                    <Trash2Icon className="size-4" aria-hidden="true" />
-                  </Button>
-                </td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={4} className="h-28 px-6 text-center text-label-secondary">
-                {props.t("settings:SETTINGS_SYSTEM_AGENTS_SKILLS_EMPTY")}
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function SkillLibraryEditor(props: { value: string; onChange: (value: string) => void }) {
-  const { t } = useTranslation(["settings", "common"]);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [draft, setDraft] = useState<SkillFormValues>(DEFAULT_SKILL_FORM_VALUES);
-  const rawSkillItems = useMemo(() => splitLineList(props.value), [props.value]);
-  const skillPackages = useMemo(() => rawSkillItems.map(parseSkillPackage), [rawSkillItems]);
-  const deleteSkill = (raw: string) => {
-    props.onChange(rawSkillItems.filter((item) => item !== raw).join("\n"));
-  };
-
-  const appendSkill = () => {
-    const raw = serializeSkillForm(draft);
-    if (!raw) return;
-    const next = Array.from(new Set([...rawSkillItems, raw]));
-    props.onChange(next.join("\n"));
-    setDialogOpen(false);
-    setDraft(DEFAULT_SKILL_FORM_VALUES);
-  };
-
-  return (
-    <div className="grid gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <SystemSettingInlineNote>
-          {t("settings:SETTINGS_SYSTEM_AGENTS_SKILLS_LIBRARY_NOTE")}
-        </SystemSettingInlineNote>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          className="gap-1.5"
-          onClick={() => setDialogOpen(true)}
-        >
-          <PlusIcon className="size-4" aria-hidden="true" />
-          {t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_UPLOAD")}
-        </Button>
-      </div>
-      <SkillPackageTable packages={skillPackages} t={t} onDelete={deleteSkill} />
-      <SettingDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_DIALOG_TITLE")}
-        description={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_DIALOG_DESC")}
-        footer={
-          <>
-            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-              {t("common:CANCEL")}
-            </Button>
-            <Button type="button" onClick={appendSkill}>
-              {t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_ADD_TO_LIBRARY")}
-            </Button>
-          </>
-        }
-      >
-        <SettingDialogFields>
-          <SettingDialogField
-            title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_SOURCE_LABEL")}
-            description={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_SOURCE_DESC")}
-          >
-            <Select
-              value={draft.source}
-              onValueChange={(value) =>
-                setDraft((current) => ({ ...current, source: value as SkillSourceKind }))
-              }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {SKILL_SOURCE_OPTIONS.map((source) => (
-                  <SelectItem key={source} value={source}>
-                    {t(`settings:SETTINGS_SYSTEM_AGENTS_SKILL_SOURCE_${source.toUpperCase()}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </SettingDialogField>
-          <SettingDialogField
-            title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_ID_LABEL")}
-            description={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_ID_DESC")}
-          >
-            <Input
-              value={draft.skillId}
-              onChange={(event) =>
-                setDraft((current) => ({ ...current, skillId: event.target.value }))
-              }
-              placeholder="content.custom"
-            />
-          </SettingDialogField>
-          {draft.source === "github" ? (
-            <>
-              <SettingDialogField
-                title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_GITHUB_REPO_LABEL")}
-              >
-                <Input
-                  value={draft.githubRepo}
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, githubRepo: event.target.value }))
-                  }
-                  placeholder="owner/repo"
-                />
-              </SettingDialogField>
-              <SettingDialogField
-                title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_GITHUB_REF_LABEL")}
-              >
-                <Input
-                  value={draft.githubRef}
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, githubRef: event.target.value }))
-                  }
-                  placeholder="main"
-                />
-              </SettingDialogField>
-            </>
-          ) : null}
-          {draft.source === "npx" ? (
-            <SettingDialogField
-              title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILL_NPX_PACKAGE_LABEL")}
-            >
-              <Input
-                value={draft.npxPackage}
-                onChange={(event) =>
-                  setDraft((current) => ({ ...current, npxPackage: event.target.value }))
-                }
-                placeholder="@scope/skills"
-              />
-            </SettingDialogField>
-          ) : null}
-        </SettingDialogFields>
-      </SettingDialog>
-    </div>
-  );
-}
-
 export function SystemSettingsAgentsPage() {
   const { t } = useTranslation(["settings"]);
   const queryClient = useQueryClient();
@@ -1299,16 +992,9 @@ export function SystemSettingsAgentsPage() {
     "defaultModel",
     "reasoningEffort",
     "systemPrompt",
-    "conversationRetentionDays",
-    "autoTitleEnabled",
-    "contextRecommendationsEnabled",
   ]);
   const governanceDirty = isDirty(values, initialValues, ["monthlyBudgetUsd"]);
-  const modesDirty = isDirty(values, initialValues, [
-    "defaultMode",
-    "skillsEnabled",
-    "allowedSkillIds",
-  ]);
+  const modesDirty = isDirty(values, initialValues, ["defaultMode"]);
   const approvalsDirty = isDirty(values, initialValues, [
     "writeToolsEnabled",
     "approvalPolicy",
@@ -1368,17 +1054,6 @@ export function SystemSettingsAgentsPage() {
         form.setFocus("defaultModel");
         return;
       }
-      const conversationRetentionDays = validatePositiveInteger(
-        Number(nextValues.conversationRetentionDays),
-      );
-      if (conversationRetentionDays === null) {
-        form.setError("conversationRetentionDays", {
-          type: "validate",
-          message: t("settings:SETTINGS_VALIDATION_POSITIVE"),
-        });
-        form.setFocus("conversationRetentionDays");
-        return;
-      }
       await persistPatch(
         {
           ai_agents: {
@@ -1386,16 +1061,12 @@ export function SystemSettingsAgentsPage() {
             default_model: defaultModel,
             reasoning_effort: nextValues.reasoningEffort,
             system_prompt: nextValues.systemPrompt.trim(),
-            conversation_retention_days: conversationRetentionDays,
-            auto_title_enabled: Boolean(nextValues.autoTitleEnabled),
-            context_recommendations_enabled: Boolean(nextValues.contextRecommendationsEnabled),
           },
         },
         {
           ...nextValues,
           defaultModel,
           systemPrompt: nextValues.systemPrompt.trim(),
-          conversationRetentionDays,
         },
         !governanceDirty && !modesDirty && !approvalsDirty && !langGraphDirty,
       );
@@ -1427,16 +1098,13 @@ export function SystemSettingsAgentsPage() {
   const saveModes = () =>
     withSavingKey("agents.modes", async () => {
       const nextValues = form.getValues();
-      const allowedSkillIds = splitLineList(nextValues.allowedSkillIds);
       await persistPatch(
         {
           ai_agents: {
             default_mode: nextValues.defaultMode,
-            skills_enabled: Boolean(nextValues.skillsEnabled),
-            allowed_skill_ids: allowedSkillIds,
           },
         },
-        { ...nextValues, allowedSkillIds: allowedSkillIds.join("\n") },
+        nextValues,
         !runtimeDirty && !governanceDirty && !approvalsDirty && !langGraphDirty,
       );
     });
@@ -1523,6 +1191,8 @@ export function SystemSettingsAgentsPage() {
         >
           <AgentCapabilitySummary values={values} />
         </SystemSettingItem>
+
+        <AgentCatalogControlPlane />
 
         <SystemSettingItem
           id="agent-usage-governance"
@@ -1613,9 +1283,6 @@ export function SystemSettingsAgentsPage() {
                   defaultModel: initialValues.defaultModel,
                   reasoningEffort: initialValues.reasoningEffort,
                   systemPrompt: initialValues.systemPrompt,
-                  conversationRetentionDays: initialValues.conversationRetentionDays,
-                  autoTitleEnabled: initialValues.autoTitleEnabled,
-                  contextRecommendationsEnabled: initialValues.contextRecommendationsEnabled,
                 })
               }
               onSave={() => void saveRuntime()}
@@ -1692,69 +1359,13 @@ export function SystemSettingsAgentsPage() {
                 </SystemSettingField>
               )}
             />
-            <Controller
-              control={form.control}
-              name="conversationRetentionDays"
-              render={({ field }) => (
-                <SystemSettingField
-                  label={t("settings:SETTINGS_SYSTEM_AGENTS_RETENTION_LABEL")}
-                  description={t("settings:SETTINGS_SYSTEM_AGENTS_RETENTION_DESC")}
-                  message={
-                    form.formState.errors.conversationRetentionDays?.message ? (
-                      <span className="text-footnote text-destructive">
-                        {form.formState.errors.conversationRetentionDays.message}
-                      </span>
-                    ) : null
-                  }
-                >
-                  <Input
-                    type="number"
-                    min={1}
-                    step={1}
-                    value={field.value}
-                    onChange={(event) => {
-                      const nextValue = Number(event.target.value);
-                      field.onChange(nextValue);
-                      if (validatePositiveInteger(nextValue) !== null) {
-                        form.clearErrors("conversationRetentionDays");
-                      }
-                    }}
-                    className="sm:w-40"
-                  />
-                </SystemSettingField>
-              )}
-            />
-            <Controller
-              control={form.control}
-              name="autoTitleEnabled"
-              render={({ field }) => (
-                <SettingBooleanControl
-                  title={t("settings:SETTINGS_SYSTEM_AGENTS_AUTO_TITLE_TITLE")}
-                  description={t("settings:SETTINGS_SYSTEM_AGENTS_AUTO_TITLE_DESC")}
-                  checked={Boolean(field.value)}
-                  onCheckedChange={field.onChange}
-                />
-              )}
-            />
-            <Controller
-              control={form.control}
-              name="contextRecommendationsEnabled"
-              render={({ field }) => (
-                <SettingBooleanControl
-                  title={t("settings:SETTINGS_SYSTEM_AGENTS_CONTEXT_TITLE")}
-                  description={t("settings:SETTINGS_SYSTEM_AGENTS_CONTEXT_DESC")}
-                  checked={Boolean(field.value)}
-                  onCheckedChange={field.onChange}
-                />
-              )}
-            />
           </div>
         </SystemSettingItem>
 
         <SystemSettingItem
-          id="agent-modes-skills"
-          title={t("settings:SETTINGS_SYSTEM_AGENTS_MODES_SKILLS_TITLE")}
-          description={t("settings:SETTINGS_SYSTEM_AGENTS_MODES_SKILLS_DESC")}
+          id="agent-execution-defaults"
+          title={t("settings:SETTINGS_SYSTEM_AGENTS_EXECUTION_TITLE")}
+          description={t("settings:SETTINGS_SYSTEM_AGENTS_EXECUTION_DESC")}
           footer={
             <SystemSettingFooterActions
               dirty={modesDirty}
@@ -1763,8 +1374,6 @@ export function SystemSettingsAgentsPage() {
                 form.reset({
                   ...form.getValues(),
                   defaultMode: initialValues.defaultMode,
-                  skillsEnabled: initialValues.skillsEnabled,
-                  allowedSkillIds: initialValues.allowedSkillIds,
                 })
               }
               onSave={() => void saveModes()}
@@ -1786,31 +1395,6 @@ export function SystemSettingsAgentsPage() {
                   }
                   onValueChange={field.onChange}
                 />
-              )}
-            />
-            <Controller
-              control={form.control}
-              name="skillsEnabled"
-              render={({ field }) => (
-                <SettingBooleanControl
-                  title={t("settings:SETTINGS_SYSTEM_AGENTS_SKILLS_TITLE")}
-                  description={t("settings:SETTINGS_SYSTEM_AGENTS_SKILLS_DESC")}
-                  checked={Boolean(field.value)}
-                  onCheckedChange={field.onChange}
-                />
-              )}
-            />
-            <Controller
-              control={form.control}
-              name="allowedSkillIds"
-              render={({ field }) => (
-                <SystemSettingField
-                  label={t("settings:SETTINGS_SYSTEM_AGENTS_SKILLS_LIBRARY_LABEL")}
-                  description={t("settings:SETTINGS_SYSTEM_AGENTS_SKILLS_LIBRARY_DESC")}
-                  labelControls={false}
-                >
-                  <SkillLibraryEditor value={field.value} onChange={field.onChange} />
-                </SystemSettingField>
               )}
             />
           </div>

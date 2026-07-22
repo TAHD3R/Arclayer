@@ -5,19 +5,14 @@ import { resolveProjectSceneNavItems } from "@/constants/menu/project-scene";
 import { buildAdminTopbarBreadcrumbs } from "@/lib/admin-topbar-breadcrumbs";
 
 describe("buildAdminTopbarBreadcrumbs", () => {
-  it("maps the projects index to Projects > All projects", () => {
+  it("maps the projects index directly to All projects", () => {
     const breadcrumbs = buildAdminTopbarBreadcrumbs(
       resolveGlobalNavItems({ isSuperAdmin: false }),
       "/projects",
     );
 
-    expect(breadcrumbs.map((item) => item.labelKey)).toEqual([
-      "nav:NAV_SECTION_PROJECTS",
-      "nav:NAV_ALL_PROJECTS",
-    ]);
-    expect(breadcrumbs[0]?.menuItems?.map((item) => item.labelKey)).toEqual([
-      "nav:NAV_ALL_PROJECTS",
-    ]);
+    expect(breadcrumbs.map((item) => item.labelKey)).toEqual(["nav:NAV_ALL_PROJECTS"]);
+    expect(breadcrumbs[0]?.menuItems).toBeUndefined();
   });
 
   it("maps project assets into the Website group", () => {

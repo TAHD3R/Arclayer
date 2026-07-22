@@ -10,7 +10,7 @@ import {
 } from "@/pages/usercenter/projects/project-list-items";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { RouteTransition } from "@/components/layout/route-transition";
-import { resolveGlobalNavItems } from "@/constants/menu/global";
+import { GLOBAL_RECENT_PROJECT_LIMIT, resolveGlobalNavItems } from "@/constants/menu/global";
 import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
 import { isFavoriteOverlayContentOnly } from "@/lib/routing/favorite-overlay";
 import { AdminSceneLayout } from "@/layouts/admin-scene-layout";
@@ -58,13 +58,12 @@ export function GlobalLayout() {
       const items = await listProjects({
         workspaceId: String(effectiveWorkspaceId),
         archived: false,
+        ordering: "-updated_at",
         page: 1,
         size: 100,
       });
 
-      return items.items
-        .map(mapProjectToListItem)
-        .sort((left, right) => left.name.localeCompare(right.name));
+      return items.items.map(mapProjectToListItem);
     },
     staleTime: 30 * 1000,
     retry: false,
@@ -72,11 +71,33 @@ export function GlobalLayout() {
   });
 
   const browseProjects = useMemo(
-    () => (projectsQuery.data ?? []).map(mapProjectListItemToSidebarBrowseProject),
+    () =>
+      [...(projectsQuery.data ?? [])]
+        .sort((left, right) => left.name.localeCompare(right.name))
+        .map(mapProjectListItemToSidebarBrowseProject),
+    [projectsQuery.data],
+  );
+  const recentProjects = useMemo(
+    () =>
+      (projectsQuery.data ?? [])
+        .filter((project) => project.enterable)
+        .slice(0, GLOBAL_RECENT_PROJECT_LIMIT)
+        .map((project) => ({
+          projectId: project.projectId,
+          name: project.name,
+          iconMode: project.iconMode,
+          iconColor: project.iconColor,
+          iconGlyph: project.iconGlyph,
+          iconEmoji: project.iconEmoji,
+          iconUrl: project.iconUrl,
+        })),
     [projectsQuery.data],
   );
 
-  const navItems = useMemo(() => resolveGlobalNavItems({ isSuperAdmin }), [isSuperAdmin]);
+  const navItems = useMemo(
+    () => resolveGlobalNavItems({ isSuperAdmin, recentProjects }),
+    [isSuperAdmin, recentProjects],
+  );
   const topbarBreadcrumbs = useMemo(
     () => buildAdminTopbarBreadcrumbs(navItems, pathname),
     [navItems, pathname],

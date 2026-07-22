@@ -89,6 +89,7 @@ type DialogContentProps = DialogContentPrimitiveProps & {
   showCloseButton?: boolean;
   closeButtonClassName?: string;
   closeButtonLabel?: string;
+  overlayClassName?: string;
 };
 
 function DialogContent({
@@ -97,6 +98,7 @@ function DialogContent({
   showCloseButton = true,
   closeButtonClassName,
   closeButtonLabel,
+  overlayClassName,
   onInteractOutside,
   ...props
 }: DialogContentProps) {
@@ -113,7 +115,7 @@ function DialogContent({
 
   return (
     <DialogPortalPrimitive>
-      <DialogOverlay />
+      <DialogOverlay className={overlayClassName} />
       <div
         data-overlay-root="dialog"
         className={cn(

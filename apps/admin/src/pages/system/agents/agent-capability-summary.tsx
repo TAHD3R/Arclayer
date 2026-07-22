@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { BaseTag } from "@/components/ui/tags";
 
-type AgentMode = "build" | "plan" | "agent";
+type AgentMode = "build" | "plan";
 type ReasoningEffort = "low" | "medium" | "high";
 type ApprovalPolicy =
   | "always_approve"
@@ -18,11 +18,6 @@ export type AgentCapabilitySummaryValues = {
   defaultMode: AgentMode;
   defaultModel: string;
   reasoningEffort: ReasoningEffort;
-  conversationRetentionDays: number;
-  autoTitleEnabled: boolean;
-  contextRecommendationsEnabled: boolean;
-  skillsEnabled: boolean;
-  allowedSkillIds: string;
   writeToolsEnabled: boolean;
   approvalPolicy: ApprovalPolicy;
   dryRunRequired: boolean;
@@ -31,13 +26,6 @@ export type AgentCapabilitySummaryValues = {
   checkpointTtlDays: number;
   interruptResumeEnabled: boolean;
 };
-
-function countAllowedSkills(value: string): number {
-  return value
-    .split(/\r?\n/)
-    .map((item) => item.trim())
-    .filter(Boolean).length;
-}
 
 function SummaryRow(props: { label: string; value: ReactNode }) {
   return (
@@ -82,7 +70,6 @@ function writePolicyUnsupported(policy: ApprovalPolicy): boolean {
 export function AgentCapabilitySummary(props: { values: AgentCapabilitySummaryValues }) {
   const { t } = useTranslation(["settings"]);
   const values = props.values;
-  const allowedSkillCount = countAllowedSkills(values.allowedSkillIds);
   const on = t("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_ON");
   const off = t("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_OFF");
 
@@ -126,51 +113,6 @@ export function AgentCapabilitySummary(props: { values: AgentCapabilitySummaryVa
               label={t("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_STATUS_LABEL")}
               value={t("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_RUNTIME_DISABLED")}
               color="red"
-            />
-          )
-        }
-      />
-      <SummaryRow
-        label={t("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_CONVERSATIONS")}
-        value={
-          <>
-            <BoolDatum
-              label={t("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_AUTO_TITLE_LABEL")}
-              value={values.autoTitleEnabled}
-              on={on}
-              off={off}
-            />
-            <BoolDatum
-              label={t("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_CONTEXT_LABEL")}
-              value={values.contextRecommendationsEnabled}
-              on={on}
-              off={off}
-            />
-            <SummaryDatum
-              label={t("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_RETENTION_LABEL")}
-              value={t("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_RETENTION_DAYS", {
-                days: values.conversationRetentionDays,
-              })}
-              color="blue"
-            />
-          </>
-        }
-      />
-      <SummaryRow
-        label={t("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_SKILLS")}
-        value={
-          values.skillsEnabled ? (
-            <SummaryDatum
-              label={t("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_SKILL_ALLOWLIST_LABEL")}
-              value={t("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_SKILLS_VALUE", {
-                count: allowedSkillCount,
-              })}
-              color="blue"
-            />
-          ) : (
-            <SummaryDatum
-              label={t("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_STATUS_LABEL")}
-              value={t("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_SKILLS_DISABLED")}
             />
           )
         }

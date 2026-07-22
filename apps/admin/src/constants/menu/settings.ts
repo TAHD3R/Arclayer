@@ -1,12 +1,15 @@
 import {
+  BadgeInfo,
   Bell,
-  CreditCard,
+  Blocks,
+  BookOpenText,
+  ChartPie,
+  CircleUserRound,
   MailPlus,
-  Shield,
-  SlidersHorizontal,
-  SquareStack,
-  UserRound,
-  Users,
+  Paintbrush,
+  ShieldCheck,
+  SwatchBook,
+  UsersRound,
 } from "lucide-react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
@@ -23,7 +26,7 @@ export const SETTINGS_PERSONAL_NAV_ITEMS: readonly SettingsNavItem[] = [
     screen: "personal.profile",
     label: "Profile",
     labelKey: "account:ACCOUNT_NAV_PROFILE",
-    icon: UserRound,
+    icon: CircleUserRound,
     groupLabelBeforeKey: "account:SETTINGS_NAV_SECTION_PERSONAL",
   },
   {
@@ -31,7 +34,7 @@ export const SETTINGS_PERSONAL_NAV_ITEMS: readonly SettingsNavItem[] = [
     screen: "personal.preferences",
     label: "Preferences",
     labelKey: "account:ACCOUNT_NAV_APPEARANCE",
-    icon: SlidersHorizontal,
+    icon: Paintbrush,
   },
   {
     key: "settings.personal.notifications",
@@ -48,7 +51,7 @@ export const SETTINGS_WORKSPACE_NAV_ITEMS: readonly SettingsNavItem[] = [
     screen: "workspace.general",
     label: "General",
     labelKey: "account:SETTINGS_NAV_WORKSPACE_GENERAL",
-    icon: SquareStack,
+    icon: BadgeInfo,
     groupLabelBeforeKey: "account:SETTINGS_NAV_SECTION_WORKSPACE",
   },
   {
@@ -56,14 +59,35 @@ export const SETTINGS_WORKSPACE_NAV_ITEMS: readonly SettingsNavItem[] = [
     screen: "workspace.plan-usage",
     label: "Plan & Usage",
     labelKey: "account:SETTINGS_NAV_WORKSPACE_PLAN_USAGE",
-    icon: CreditCard,
+    icon: ChartPie,
+  },
+  {
+    key: "settings.workspace.knowledge",
+    screen: "workspace.knowledge",
+    label: "Workspace Knowledge",
+    labelKey: "account:SETTINGS_NAV_WORKSPACE_KNOWLEDGE",
+    icon: BookOpenText,
+  },
+  {
+    key: "settings.workspace.skills",
+    screen: "workspace.skills",
+    label: "Workspace Skills",
+    labelKey: "account:SETTINGS_NAV_WORKSPACE_SKILLS",
+    icon: Blocks,
+  },
+  {
+    key: "settings.workspace.design-systems",
+    screen: "workspace.design-systems",
+    label: "Design Systems",
+    labelKey: "account:SETTINGS_NAV_WORKSPACE_DESIGN_SYSTEMS",
+    icon: SwatchBook,
   },
   {
     key: "settings.workspace.members",
     screen: "workspace.members",
     label: "Members",
     labelKey: "account:SETTINGS_NAV_WORKSPACE_MEMBERS",
-    icon: Users,
+    icon: UsersRound,
   },
   {
     key: "settings.workspace.invitations",
@@ -77,7 +101,7 @@ export const SETTINGS_WORKSPACE_NAV_ITEMS: readonly SettingsNavItem[] = [
     screen: "workspace.roles",
     label: "Permissions",
     labelKey: "account:SETTINGS_NAV_WORKSPACE_ROLES",
-    icon: Shield,
+    icon: ShieldCheck,
   },
 ] as const;
 

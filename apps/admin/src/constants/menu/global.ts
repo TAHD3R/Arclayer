@@ -1,21 +1,36 @@
+import { createElement } from "react";
 import {
   Activity,
-  Bot,
+  BrainCircuit,
+  Building2,
   ChartNoAxesCombined,
+  FolderKanban,
   Gauge,
   House,
   LayoutDashboard,
-  MessageSquareText,
-  PanelsTopLeft,
-  ReceiptText,
-  Rainbow,
-  Settings2,
-  Users,
+  MessageSquareHeart,
+  Plug,
+  ScrollText,
+  SlidersHorizontal,
+  Boxes,
 } from "lucide-react";
 
+import {
+  ProjectAvatar,
+  projectAvatarPropsFromIdentity,
+  type ProjectAvatarIdentity,
+} from "@/components/common/project-avatar";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { findActiveTrailNodes } from "@/lib/admin-nav-utils";
 import { GLOBAL_ROUTE_PATHS } from "@/lib/routing/global-routes";
+import { projectHomePath } from "@/lib/routing/workspace-routing";
+
+export const GLOBAL_RECENT_PROJECT_LIMIT = 3;
+
+export type GlobalRecentProject = ProjectAvatarIdentity & {
+  projectId: string;
+  name: string;
+};
 
 export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
   {
@@ -30,16 +45,15 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
     label: "Inspiration",
     labelKey: "nav:NAV_RESOURCES",
     to: GLOBAL_ROUTE_PATHS.inspiration,
-    icon: Rainbow,
-    insertStarredAfter: true,
+    icon: Boxes,
   },
   {
     key: "global.projects",
     label: "All projects",
     labelKey: "nav:NAV_ALL_PROJECTS",
     to: GLOBAL_ROUTE_PATHS.projects,
-    icon: PanelsTopLeft,
-    groupLabelBeforeKey: "nav:NAV_SECTION_PROJECTS",
+    icon: FolderKanban,
+    insertStarredAfter: true,
   },
   {
     key: "global.platform.overview",
@@ -54,28 +68,35 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
     label: "Tenants",
     labelKey: "nav:NAV_GLOBAL_PLATFORM_TENANTS",
     to: "/system/tenants",
-    icon: Users,
+    icon: Building2,
   },
   {
     key: "global.platform.audit",
     label: "Audit Log",
     labelKey: "nav:NAV_GLOBAL_PLATFORM_AUDIT_LOG",
     to: "/system/audit-log",
-    icon: ReceiptText,
+    icon: ScrollText,
   },
   {
     key: "global.platform.feedback",
     label: "Feedback Center",
     labelKey: "nav:NAV_GLOBAL_PLATFORM_FEEDBACK",
     to: "/system/feedback",
-    icon: MessageSquareText,
+    icon: MessageSquareHeart,
+  },
+  {
+    key: "global.platform.plugins",
+    label: "Plugins",
+    labelKey: "nav:NAV_GLOBAL_PLATFORM_PLUGINS",
+    to: "/system/plugins",
+    icon: Plug,
   },
   {
     key: "global.platform.observability",
     label: "Observability",
     labelKey: "nav:NAV_GLOBAL_PLATFORM_OBSERVABILITY",
     to: "/system/observability/overview",
-    icon: ChartNoAxesCombined,
+    icon: Activity,
     groupBehavior: "navigate-self-and-expand",
     activeMatchPaths: ["/system/observability"],
     children: [
@@ -91,14 +112,14 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
         label: "Requests & Performance",
         labelKey: "nav:NAV_GLOBAL_PLATFORM_OBSERVABILITY_REQUESTS",
         to: "/system/observability/requests",
-        icon: Activity,
+        icon: ChartNoAxesCombined,
       },
       {
         key: "global.platform.observability.ai-usage",
         label: "AI Usage & Cost",
         labelKey: "nav:NAV_GLOBAL_PLATFORM_OBSERVABILITY_AI_USAGE",
         to: "/system/observability/ai-usage",
-        icon: Bot,
+        icon: BrainCircuit,
       },
     ],
   },
@@ -107,11 +128,37 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
     label: "Configuration",
     labelKey: "nav:NAV_GLOBAL_PLATFORM_CONFIGURATION",
     to: GLOBAL_ROUTE_PATHS.system,
-    icon: Settings2,
+    icon: SlidersHorizontal,
   },
 ] as const;
 
-export function resolveGlobalNavItems(params: { isSuperAdmin: boolean }): AdminNavItem[] {
+function buildRecentProjectNavItems(projects: readonly GlobalRecentProject[]): AdminNavItem[] {
+  return projects.slice(0, GLOBAL_RECENT_PROJECT_LIMIT).map((project, index) => ({
+    key: `global.recent-project.${project.projectId}`,
+    label: project.name,
+    to: projectHomePath(project.projectId),
+    icon: FolderKanban,
+    iconNode: createElement(ProjectAvatar, {
+      name: project.name,
+      size: 20,
+      className: "rounded-sm ring-0",
+      decorative: true,
+      ...projectAvatarPropsFromIdentity(project),
+    }),
+    ...(index === 0 ? { groupLabelBeforeKey: "nav:NAV_SECTION_PROJECTS" } : {}),
+  }));
+}
+
+export function resolveGlobalNavItems(params: {
+  isSuperAdmin: boolean;
+  recentProjects?: readonly GlobalRecentProject[];
+}): AdminNavItem[] {
+  const recentProjectItems = buildRecentProjectNavItems(params.recentProjects ?? []);
+  const items = GLOBAL_NAV_ITEMS.flatMap((item) => {
+    if (item.key !== "global.projects" || recentProjectItems.length === 0) return [item];
+
+    return [item, ...recentProjectItems];
+  });
   const filterItems = (items: readonly AdminNavItem[]): AdminNavItem[] =>
     items.flatMap((item) => {
       if (item.key.startsWith("global.platform.") && !params.isSuperAdmin) {
@@ -126,7 +173,7 @@ export function resolveGlobalNavItems(params: { isSuperAdmin: boolean }): AdminN
       return [{ ...item, children }];
     });
 
-  return filterItems(GLOBAL_NAV_ITEMS);
+  return filterItems(items);
 }
 
 export function matchesGlobalNavScene(pathname: string): boolean {

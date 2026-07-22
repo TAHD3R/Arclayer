@@ -4,10 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { submitFeedback } from "@/api/feedback";
-import {
-  AIConversationFeedbackPanel,
-  HeaderFeedbackPopover,
-} from "@/components/feedback/feedback-dialog";
+import { HeaderFeedbackPopover } from "@/components/feedback/feedback-dialog";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 vi.mock("@/api/feedback", () => ({ submitFeedback: vi.fn() }));
@@ -37,18 +34,15 @@ function renderWithQueryClient(node: React.ReactNode) {
   };
 }
 
-function renderHeaderFeedback() {
+function renderHeaderFeedback(reportContext?: {
+  requestId?: string;
+  status?: number;
+  errorCode?: string;
+}) {
   return renderWithQueryClient(
-    <HeaderFeedbackPopover trigger={<button type="button">Open feedback</button>} />,
-  );
-}
-
-function renderAIFeedback(conversationId = "conversation-9") {
-  return renderWithQueryClient(
-    <AIConversationFeedbackPanel
-      conversationId={conversationId}
-      onCancel={vi.fn()}
-      onSubmitted={vi.fn()}
+    <HeaderFeedbackPopover
+      trigger={<button type="button">Open feedback</button>}
+      reportContext={reportContext}
     />,
   );
 }
@@ -76,19 +70,33 @@ describe("feedback entry surfaces", () => {
 
     expect(document.querySelector("[data-slot='popover-content']")).toBeInTheDocument();
     expect(document.querySelector("[data-slot='dialog-content']")).not.toBeInTheDocument();
+    expect(document.querySelector("[data-slot='popover-content']")).toHaveClass(
+      "w-[min(22rem,calc(100vw-2rem))]",
+    );
+    expect(screen.getByText("platform:FEEDBACK_COMPOSER_TITLE")).toBeVisible();
+    expect(
+      screen.getByRole("radiogroup", { name: "platform:FEEDBACK_DIALOG_INTENT_LABEL" }),
+    ).toBeVisible();
     await waitFor(() =>
-      expect(screen.getByPlaceholderText("platform:FEEDBACK_HEADER_PLACEHOLDER")).toBeVisible(),
+      expect(
+        screen.getByPlaceholderText("platform:FEEDBACK_DIALOG_MESSAGE_PLACEHOLDER"),
+      ).toBeVisible(),
     );
   });
 
-  it("validates the compact Header form before submitting", async () => {
+  it("requires an intent and validates the compact Header form before submitting", async () => {
     const user = userEvent.setup();
     renderHeaderFeedback();
 
     await user.click(screen.getByRole("button", { name: "Open feedback" }));
+    expect(screen.getByRole("button", { name: "platform:ACTION_SUBMIT_FEEDBACK" })).toBeDisabled();
+    await user.click(screen.getByRole("radio", { name: "platform:FEEDBACK_INTENT_PROBLEM" }));
+    await user.type(screen.getByLabelText("platform:FEEDBACK_DIALOG_MESSAGE_LABEL"), "short");
     await user.click(screen.getByRole("button", { name: "platform:ACTION_SUBMIT_FEEDBACK" }));
 
-    expect(await screen.findByText("platform:FEEDBACK_VALIDATION_REQUIRED")).toBeInTheDocument();
+    expect(
+      await screen.findByText("platform:FEEDBACK_VALIDATION_MIN_LENGTH:10"),
+    ).toBeInTheDocument();
     expect(submitFeedback).not.toHaveBeenCalled();
   });
 
@@ -97,6 +105,7 @@ describe("feedback entry surfaces", () => {
     const { invalidateQueries } = renderHeaderFeedback();
 
     await user.click(screen.getByRole("button", { name: "Open feedback" }));
+    await user.click(screen.getByRole("radio", { name: "platform:FEEDBACK_INTENT_IDEA" }));
     await user.type(
       screen.getByLabelText("platform:FEEDBACK_DIALOG_MESSAGE_LABEL"),
       "The publishing flow needs a clearer confirmation state.",
@@ -110,36 +119,38 @@ describe("feedback entry surfaces", () => {
       contextType: "project",
       workspaceId: "workspace-1",
       projectId: "project-1",
-      category: "usability",
+      intent: "idea",
       message: "The publishing flow needs a clearer confirmation state.",
       contextUrl: "/projects/project-1?tab=details",
       context: { route: "/projects/project-1?tab=details" },
     });
     expect(invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["system", "feedback", "list"],
+      queryKey: ["dataTable", "system-feedback-center"],
     });
   });
 
-  it("renders AI feedback inline and submits conversation attribution", async () => {
+  it("attaches toast request metadata when reporting a server error", async () => {
     const user = userEvent.setup();
-    renderAIFeedback();
+    renderHeaderFeedback({ requestId: "req_456", status: 500, errorCode: "INTERNAL_ERROR" });
 
-    expect(screen.getByText("platform:FEEDBACK_AI_TITLE")).toBeVisible();
-    expect(document.querySelector("[data-slot='dialog-content']")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Open feedback" }));
+    expect(screen.queryByText("req_456")).not.toBeInTheDocument();
+    expect(screen.queryByText("common:TOAST_REQUEST_ID_VALUE")).not.toBeInTheDocument();
     await user.type(
       screen.getByLabelText("platform:FEEDBACK_DIALOG_MESSAGE_LABEL"),
-      "The assistant response omitted the requested rollout risk.",
+      "Saving this page failed after I changed the title.",
     );
-    await user.click(screen.getByRole("button", { name: "platform:FEEDBACK_AI_SEND" }));
+    await user.click(screen.getByRole("button", { name: "platform:ACTION_SUBMIT_FEEDBACK" }));
 
     await waitFor(() => expect(submitFeedback).toHaveBeenCalledTimes(1));
     expect(vi.mocked(submitFeedback).mock.calls[0]?.[0]).toEqual(
       expect.objectContaining({
-        source: "ai_sidebar",
-        contextType: "ai_conversation",
+        intent: "problem",
         context: {
-          conversationId: "conversation-9",
           route: "/projects/project-1?tab=details",
+          requestId: "req_456",
+          httpStatus: 500,
+          errorCode: "INTERNAL_ERROR",
         },
       }),
     );
@@ -150,15 +161,17 @@ describe("feedback entry surfaces", () => {
       .mockRejectedValueOnce(new Error("Network interrupted"))
       .mockResolvedValueOnce({ id: "feedback-1" } as never);
     const user = userEvent.setup();
-    renderAIFeedback();
+    renderHeaderFeedback();
 
+    await user.click(screen.getByRole("button", { name: "Open feedback" }));
+    await user.click(screen.getByRole("radio", { name: "platform:FEEDBACK_INTENT_QUESTION" }));
     await user.type(
       screen.getByLabelText("platform:FEEDBACK_DIALOG_MESSAGE_LABEL"),
       "The assistant response omitted the requested rollout risk.",
     );
-    await user.click(screen.getByRole("button", { name: "platform:FEEDBACK_AI_SEND" }));
+    await user.click(screen.getByRole("button", { name: "platform:ACTION_SUBMIT_FEEDBACK" }));
     expect(await screen.findByText("Network interrupted")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "platform:FEEDBACK_AI_SEND" }));
+    await user.click(screen.getByRole("button", { name: "platform:ACTION_SUBMIT_FEEDBACK" }));
 
     await waitFor(() => expect(submitFeedback).toHaveBeenCalledTimes(2));
     expect(

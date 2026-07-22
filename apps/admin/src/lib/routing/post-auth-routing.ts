@@ -13,17 +13,7 @@ export async function resolvePostAuthRoute(params: {
 }): Promise<PostAuthRouteDecision> {
   const { lastWorkspaceId } = params;
 
-  const workspaces = await listMyWorkspaces().catch(() => ({
-    items: [],
-    switcher: {
-      teams: [],
-    },
-    instanceSetup: { status: "ready" as const, repairReason: null },
-    onboarding: {
-      status: "completed" as const,
-      workspaceId: null,
-    },
-  }));
+  const workspaces = await listMyWorkspaces();
 
   const onboarding = workspaces.onboarding ?? {
     status: "completed" as const,

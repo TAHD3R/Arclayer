@@ -65,6 +65,7 @@ export function SettingDialog({
           "flex min-w-0 max-h-[calc(100dvh-2rem)] flex-col overflow-hidden p-0 sm:max-w-2xl",
           contentClassName,
         )}
+        overlayClassName="backdrop-blur-xs"
         showCloseButton={showCloseButton}
         closeButtonClassName={closeButtonClassName}
         closeButtonLabel={closeButtonLabel}

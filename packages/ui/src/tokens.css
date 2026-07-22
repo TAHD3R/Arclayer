@@ -1,5 +1,3 @@
-@import "@fontsource-variable/inter";
-
 html {
   text-rendering: optimizeLegibility;
 }
@@ -60,7 +58,7 @@ body {
   --text-tertiary: var(--tertiary-foreground);
   --text-quaternary: var(--quaternary-foreground);
 
-  --background: hsl(0 0% 100%);
+  --background: hsl(220 14% 97%);
   --card: hsl(0 0% 100%);
   --card-foreground: var(--foreground);
   --popover: hsl(0 0% 100%);
@@ -96,14 +94,14 @@ body {
   --destructive: var(--negative);
   --destructive-foreground: var(--negative-foreground);
 
-  --muted: hsl(228 38.5% 97.5%);
-  --accent: hsl(225 20% 92.2%);
+  --muted: hsl(220 12% 94%);
+  --accent: hsl(220 10% 90%);
   --accent-foreground: var(--foreground);
 
   --border: hsl(210 10% 82%);
   --input: hsl(229 16.5% 79.8%);
   --ui-border: hsl(229 16.5% 79.8%);
-  --layout-border: hsl(210 10% 82%);
+  --layout-border: hsl(220 10% 88%);
   --ring: hsl(201.9 53.6% 43.1%);
   --link: hsl(216 88% 43%);
 
@@ -113,23 +111,23 @@ body {
   --chart-4: hsl(330 100% 44.9%);
   --chart-5: hsl(270 67.3% 59%);
 
-  --sidebar: var(--background);
+  --sidebar: hsl(220 12% 94%);
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: var(--primary-selected);
+  --sidebar-accent: var(--accent);
   --sidebar-accent-foreground: var(--foreground);
   --sidebar-border: var(--layout-border);
   --sidebar-ring: var(--ring);
-  --header: var(--background);
+  --header: var(--card);
   --header-foreground: var(--foreground);
 
-  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: Georgia, serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --font-serif: var(--font-sans);
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   --font-family-heading: var(--font-sans);
   --font-family-body: var(--font-sans);
-  --radius: 0.5rem;
+  --radius: 0.75rem;
 
   --space-2: 2px;
   --space-4: 4px;
@@ -164,14 +162,14 @@ body {
 }
 
 [data-theme="dark"] {
-  --foreground: hsl(220 15% 92%);
-  --muted-foreground: hsl(220 10% 70%);
-  --tertiary-foreground: hsl(220 10% 55%);
-  --quaternary-foreground: hsl(220 10% 40%);
+  --foreground: hsl(0 0% 92%);
+  --muted-foreground: hsl(0 0% 70%);
+  --tertiary-foreground: hsl(0 0% 55%);
+  --quaternary-foreground: hsl(0 0% 40%);
 
   --background: hsl(0 0% 0%);
-  --card: hsl(220 15% 8%);
-  --popover: hsl(220 15% 8%);
+  --card: hsl(0 0% 8%);
+  --popover: hsl(0 0% 8%);
 
   --primary: hsl(201.9 53.6% 43.1%);
   --primary-hover: hsl(216 92% 66%);
@@ -181,8 +179,8 @@ body {
   --primary-surface: hsl(216 42% 12%);
   --primary-foreground: hsl(0 0% 100%);
 
-  --secondary: hsl(220 10% 85%);
-  --secondary-foreground: hsl(220 15% 10%);
+  --secondary: hsl(0 0% 85%);
+  --secondary-foreground: hsl(0 0% 10%);
 
   --positive: hsl(155 80% 45%);
   --positive-selected: hsl(155 40% 20%);
@@ -194,23 +192,23 @@ body {
 
   --warning: hsl(48 100% 60%);
   --warning-selected: hsl(48 60% 22%);
-  --warning-foreground: hsl(220 15% 10%);
+  --warning-foreground: hsl(0 0% 10%);
 
-  --muted: hsl(220 15% 10%);
-  --accent: hsl(220 15% 14%);
+  --muted: hsl(0 0% 10%);
+  --accent: hsl(0 0% 14%);
 
-  --border: hsl(210 10% 14%);
-  --input: hsl(220 10% 22%);
-  --ui-border: hsl(220 10% 30%);
-  --layout-border: hsl(210 10% 14%);
+  --border: hsl(0 0% 18%);
+  --input: hsl(0 0% 22%);
+  --ui-border: hsl(0 0% 30%);
+  --layout-border: hsl(0 0% 16%);
   --ring: hsl(201.9 53.6% 43.1%);
   --link: hsl(216 92% 68%);
 
-  --sidebar: var(--background);
+  --sidebar: hsl(0 0% 5%);
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: var(--primary-selected);
+  --sidebar-accent: var(--accent);
   --sidebar-accent-foreground: var(--foreground);
   --sidebar-border: var(--layout-border);
   --sidebar-ring: var(--ring);
@@ -283,10 +281,12 @@ body {
   --font-heading: var(--font-family-heading);
   --font-body: var(--font-family-body);
 
-  --radius-sm: 4px;
-  --radius-md: 8px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
   --radius-lg: 16px;
-  --radius-xl: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-3xl: 32px;
 
   --text-largetitle: var(--font-size-largetitle);
   --text-largetitle--line-height: var(--line-height-largetitle);

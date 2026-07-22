@@ -122,6 +122,9 @@ const projectFixtures: ProjectListItem[] = [
     iconGlyph: null,
     iconEmoji: "A",
     iconUrl: null,
+    authoringMode: null,
+    authoringState: "migration_required",
+    authoringRevision: 1,
     isActive: true,
     archivedAt: null,
     archivedByUserId: null,
@@ -143,6 +146,9 @@ const projectFixtures: ProjectListItem[] = [
     iconGlyph: "rocket",
     iconEmoji: null,
     iconUrl: null,
+    authoringMode: null,
+    authoringState: "migration_required",
+    authoringRevision: 1,
     isActive: true,
     archivedAt: null,
     archivedByUserId: null,
@@ -297,6 +303,24 @@ describe("AdminScopeSwitcher", () => {
     expect(within(trigger).queryByText("Project Alpha")).toBeNull();
   });
 
+  it("hides project actions outside a concrete project route", async () => {
+    mockPathname = "/projects";
+    const user = userEvent.setup();
+
+    renderWithQueryClient(<AdminScopeSwitcher />);
+
+    await user.click(await screen.findByRole("button", { name: /Select scope/ }));
+
+    const panel = getLatestDialog();
+    expect(within(panel).queryByText("Project")).not.toBeInTheDocument();
+    expect(
+      within(panel).queryByRole("button", { name: "Project Settings" }),
+    ).not.toBeInTheDocument();
+    expect(within(panel).queryByRole("button", { name: "New project" })).not.toBeInTheDocument();
+    expect(within(panel).getByText("Workspace")).toBeInTheDocument();
+    expect(listProjects).not.toHaveBeenCalled();
+  });
+
   it("shows project identity on concrete project routes", async () => {
     renderWithQueryClient(<AdminScopeSwitcher />);
 
@@ -330,6 +354,28 @@ describe("AdminScopeSwitcher", () => {
       "pointer-events-none",
     );
     expect(within(panel).getAllByRole("button", { name: /Invite members/ })).toHaveLength(1);
+  });
+
+  it("matches the root panel width to its trigger", async () => {
+    const rectSpy = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+      width: 320,
+      height: 36,
+      top: 20,
+      right: 340,
+      bottom: 56,
+      left: 20,
+      x: 20,
+      y: 20,
+      toJSON: () => ({}),
+    });
+    const user = userEvent.setup();
+
+    renderWithQueryClient(<AdminScopeSwitcher />);
+    await user.click(await screen.findByRole("button", { name: /Select scope/ }));
+
+    const panel = getLatestDialog();
+    expect(panel).toHaveStyle({ width: "320px" });
+    rectSpy.mockRestore();
   });
 
   it("opens the workspace Plan & Usage screen from the scope panel", async () => {
@@ -410,7 +456,11 @@ describe("AdminScopeSwitcher", () => {
     let panel = getLatestDialog();
     await user.click(within(panel).getByRole("button", { name: /Project Alpha/ }));
 
-    await user.type(screen.getByPlaceholderText("Search projects"), "Beta");
+    const searchInput = screen.getByPlaceholderText("Search projects");
+    const searchShell = searchInput.closest("label");
+    expect(searchShell?.querySelector("svg")).not.toBeNull();
+    expect(searchInput).toHaveClass("border-0");
+    await user.type(searchInput, "Beta");
 
     const projectPickerPanel = getLatestDialog();
     expect(within(projectPickerPanel).queryByRole("button", { name: /Project Alpha/ })).toBeNull();
@@ -439,6 +489,10 @@ describe("AdminScopeSwitcher", () => {
     await user.click(within(panel).getByRole("button", { name: /Workspace Alpha/ }));
 
     const betaButton = screen.getByRole("button", { name: /Workspace Beta/ });
+    const workspaceSearch = screen.getByPlaceholderText("Search workspaces");
+    expect(workspaceSearch.closest("label")?.querySelector("svg")).not.toBeNull();
+    expect(betaButton).not.toHaveClass("min-h-[4.5rem]");
+    expect(within(betaButton).queryByText(/member/)).not.toBeInTheDocument();
     await user.click(betaButton);
 
     await waitFor(() => {

@@ -13,6 +13,7 @@ export function AuthSceneLayout(
     contentMaxClassName?: string;
     headerLeading?: ReactNode;
     headerAfterLogo?: ReactNode;
+    background?: ReactNode;
     hideLogo?: boolean;
     withRouteTransition?: boolean;
   }>,
@@ -22,7 +23,7 @@ export function AuthSceneLayout(
   const content = (
     <div className={cn("w-full", props.contentMaxClassName ?? "max-w-90")}>
       {props.withRouteTransition ? (
-        <RouteTransition className="w-full" variant="fade">
+        <RouteTransition className="w-full [&_.admin-route-boneyard]:bg-transparent" variant="fade">
           {props.children}
         </RouteTransition>
       ) : (
@@ -33,6 +34,15 @@ export function AuthSceneLayout(
 
   return (
     <div className="fixed inset-0 flex min-h-0 flex-col overflow-hidden bg-background text-label-primary">
+      {props.background ? (
+        <div
+          aria-hidden="true"
+          data-testid="auth-scene-background"
+          className="pointer-events-none absolute inset-0 overflow-hidden"
+        >
+          {props.background}
+        </div>
+      ) : null}
       <div className="relative flex shrink-0 flex-col items-center justify-center px-4 pt-4 pb-3 sm:px-5 sm:pt-5">
         {props.headerLeading ? (
           <div
@@ -44,7 +54,12 @@ export function AuthSceneLayout(
         ) : null}
         {props.hideLogo ? null : (
           <div className="flex select-none justify-center">
-            <AdminFullLogo to={props.logoTo} ariaLabel="Arclayer" width={132} />
+            <AdminFullLogo
+              to={props.logoTo}
+              ariaLabel="Arclayer"
+              width={132}
+              className="translate-x-px"
+            />
           </div>
         )}
         {props.headerAfterLogo ? (

@@ -194,7 +194,7 @@ describe("AIModelSelector", () => {
       selectedModelSource: "user",
       selectedReasoningEffort: "low",
       selectedReasoningEffortSource: "user",
-      composerMode: "agent",
+      composerMode: "build",
       composerModeSource: "user",
     });
     vi.mocked(listAIModels).mockResolvedValue({
@@ -231,7 +231,7 @@ describe("AIModelSelector", () => {
         selectedModelSource: "user",
         selectedReasoningEffort: "high",
         selectedReasoningEffortSource: "default",
-        composerMode: "agent",
+        composerMode: "build",
         composerModeSource: "user",
       });
     });

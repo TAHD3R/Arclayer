@@ -34,6 +34,10 @@ export function isWelcomePath(pathname: string): boolean {
   return pathname === "/welcome" || pathname === "/welcome/";
 }
 
+export function isCreationEditorPath(pathname: string): boolean {
+  return /^\/projects\/[^/]+\/editor(?:\/.*)?$/.test(normalizePath(pathname));
+}
+
 export function isSystemPath(pathname: string): boolean {
   return pathname === "/system" || pathname === "/system/" || pathname.startsWith("/system/");
 }

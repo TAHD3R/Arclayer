@@ -6,7 +6,12 @@ import { toast } from "sonner";
 
 import { getUnreadNotificationPreview } from "@/api/notifications";
 import { AIDrawerOverlay } from "@/components/ai/ai-drawer-overlay";
+import { ArclayerAssistantScope } from "@/components/ai/arclayer-assistant-scope";
 import { NotificationToastContent } from "@/components/common/notification-toast-content";
+import {
+  getGlobalNotificationMeta,
+  GlobalNotificationSurfaces,
+} from "@/components/common/global-notification-surfaces";
 import { ContentGuard, type ContentGuardProps } from "@/layouts/page-shell/content-guard";
 import { AdminSidebarShell } from "@/components/layout/admin-sidebar-shell";
 import type { FavoriteDynamicLabelIndex } from "@/components/layout/admin-side-nav/favorite-nav-items";
@@ -139,6 +144,7 @@ export function AdminSceneLayout({
     enabled: Boolean(accessToken),
     queryFn: () => getUnreadNotificationPreview({ limit: NOTIFICATION_TOAST_PREVIEW_LIMIT }),
     staleTime: 30 * 1000,
+    refetchInterval: 30 * 1000,
     meta: { silent: true },
   });
 
@@ -158,9 +164,11 @@ export function AdminSceneLayout({
       return;
     }
 
-    const nextUnreadItems = preview.items.filter(
-      (item) => !seenNotificationPreviewIdsRef.current.has(item.id),
-    );
+    const nextUnreadItems = preview.items.filter((item) => {
+      if (seenNotificationPreviewIdsRef.current.has(item.id)) return false;
+      const globalMeta = getGlobalNotificationMeta(item);
+      return globalMeta === null || globalMeta.presentation === "toast";
+    });
 
     for (const item of nextUnreadItems.reverse()) {
       let toastId: string | number | undefined;
@@ -234,90 +242,105 @@ export function AdminSceneLayout({
   }, [archiveItem, deleteItem, markRead, notificationPreviewQuery.data, openTarget]);
 
   return (
-    <SidebarProvider
-      defaultOpen={sidebarOpen}
-      open={sidebarOpen}
-      onOpenChange={sidebarCollapsible === "none" ? () => undefined : setSidebarOpen}
-      defaultWidthPx={sidebarWidthPx}
-      widthPx={sidebarWidthPx}
-      onWidthChange={setSidebarWidthPx}
-      className="h-screen overflow-hidden"
-      style={
-        {
-          "--sidebar-width-icon": `${SIDEBAR_COLLAPSED_WIDTH_PX}px`,
-        } as CSSProperties
-      }
-    >
-      <div
-        ref={sceneContainerRef}
-        className={cn(
-          "flex h-screen min-h-0 w-full flex-1 transition-colors duration-[250ms] ease-out",
-          aiDrawerOpen ? "bg-muted/70" : "bg-background",
-        )}
-      >
-        <div
-          className={cn(
-            "relative flex min-w-0 flex-1 overflow-hidden border bg-background transition-[margin,border-radius,border-color] duration-[250ms] ease-out",
-            aiDrawerOpen
-              ? "m-4 rounded-2xl border-border"
-              : "m-0 rounded-none border-transparent shadow-none",
-          )}
-          data-floating-panel-boundary={aiDrawerOpen ? "" : undefined}
+    <ArclayerAssistantScope>
+      {(assistantAvailable) => (
+        <SidebarProvider
+          defaultOpen={sidebarOpen}
+          open={sidebarOpen}
+          onOpenChange={sidebarCollapsible === "none" ? () => undefined : setSidebarOpen}
+          defaultWidthPx={sidebarWidthPx}
+          widthPx={sidebarWidthPx}
+          onWidthChange={setSidebarWidthPx}
+          className="h-screen overflow-hidden"
+          style={
+            {
+              "--sidebar-width-icon": `${SIDEBAR_COLLAPSED_WIDTH_PX}px`,
+            } as CSSProperties
+          }
         >
-          <AdminSidebarShell
-            showNavSkeleton={showNavSkeleton}
-            showOrgNavErrorOverlay={showOrgNavErrorOverlay}
-            mainItems={mainItems}
-            commandScope={commandScope}
-            browseProjects={browseProjects}
-            activeBrowseProjectId={activeBrowseProjectId}
-            favoriteWorkspaceBase={favoriteWorkspaceBase}
-            favoriteDynamicLabels={favoriteDynamicLabels}
-            resolvePermissionName={resolvePermissionName}
-            pathnameOverride={sidebarPathnameOverride}
-            showInboxBadge={showNotificationsBadge}
-            unreadInboxCount={notificationPreviewQuery.data?.unreadCount ?? 0}
-            collapsible={sidebarCollapsible}
-            className={aiDrawerOpen ? "h-full" : undefined}
-          />
-
-          <div className="relative flex min-w-0 flex-1 flex-col">
-            {renderTopbar()}
-
-            <div className="relative flex min-h-0 flex-1">
-              <SidebarInset className="w-auto flex-1 min-w-0 overflow-hidden bg-background">
-                <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-hidden overflow-y-auto [scrollbar-gutter:auto]">
-                  <ContentGuard
-                    loading={loading}
-                    error={error}
-                    container={guardContainer}
-                    onRetry={onRetry}
-                    loadingVariant="form"
-                  >
-                    <RouteTransition className={cn("min-w-0 max-w-full", routeTransitionClassName)}>
-                      {children}
-                    </RouteTransition>
-                  </ContentGuard>
-                </div>
-              </SidebarInset>
-            </div>
-          </div>
-          <button
-            type="button"
-            data-sidebar="rail"
-            data-slot="sidebar-rail"
-            aria-label={t("ai:AI_CHAT_RESIZE")}
-            tabIndex={-1}
-            onPointerDown={handleAiDrawerResizePointerDown}
+          <div
+            ref={sceneContainerRef}
             className={cn(
-              "hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-[transform,background-color] ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-0.5 sm:flex",
-              "cursor-col-resize",
-              aiDrawerOpen ? "-right-4" : "pointer-events-none -right-4",
+              "flex h-screen min-h-0 w-full flex-1 transition-colors duration-[250ms] ease-out",
+              aiDrawerOpen ? "bg-muted/70" : "bg-background",
             )}
-          />
-        </div>
-        <AIDrawerOverlay widthPx={effectiveAiDrawerWidthPx} />
-      </div>
-    </SidebarProvider>
+          >
+            <div
+              className={cn(
+                "relative flex min-w-0 flex-1 overflow-hidden border bg-background transition-[margin,border-radius,border-color] duration-[250ms] ease-out",
+                aiDrawerOpen
+                  ? "m-4 rounded-md border-border"
+                  : "m-0 rounded-none border-transparent shadow-none",
+              )}
+              data-floating-panel-boundary={aiDrawerOpen ? "" : undefined}
+            >
+              <AdminSidebarShell
+                assistantAvailable={assistantAvailable}
+                showNavSkeleton={showNavSkeleton}
+                showOrgNavErrorOverlay={showOrgNavErrorOverlay}
+                mainItems={mainItems}
+                commandScope={commandScope}
+                browseProjects={browseProjects}
+                activeBrowseProjectId={activeBrowseProjectId}
+                favoriteWorkspaceBase={favoriteWorkspaceBase}
+                favoriteDynamicLabels={favoriteDynamicLabels}
+                resolvePermissionName={resolvePermissionName}
+                pathnameOverride={sidebarPathnameOverride}
+                showInboxBadge={showNotificationsBadge}
+                unreadInboxCount={notificationPreviewQuery.data?.unreadCount ?? 0}
+                collapsible={sidebarCollapsible}
+                className={aiDrawerOpen ? "h-full" : undefined}
+              />
+
+              <div className="relative flex min-w-0 flex-1 flex-col">
+                {renderTopbar()}
+                <GlobalNotificationSurfaces
+                  items={notificationPreviewQuery.data?.items ?? []}
+                  onMarkRead={markRead}
+                  onOpenTarget={openTarget}
+                />
+
+                <div className="relative flex min-h-0 flex-1">
+                  <SidebarInset className="w-auto flex-1 min-w-0 overflow-hidden bg-background">
+                    <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-hidden overflow-y-auto [scrollbar-gutter:auto]">
+                      <ContentGuard
+                        loading={loading}
+                        error={error}
+                        container={guardContainer}
+                        onRetry={onRetry}
+                        loadingVariant="form"
+                      >
+                        <RouteTransition
+                          className={cn("min-w-0 max-w-full", routeTransitionClassName)}
+                        >
+                          {children}
+                        </RouteTransition>
+                      </ContentGuard>
+                    </div>
+                  </SidebarInset>
+                </div>
+              </div>
+              <button
+                type="button"
+                data-sidebar="rail"
+                data-slot="sidebar-rail"
+                aria-label={t("ai:AI_CHAT_RESIZE")}
+                tabIndex={-1}
+                onPointerDown={handleAiDrawerResizePointerDown}
+                className={cn(
+                  "hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-[transform,background-color] ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-0.5 sm:flex",
+                  "cursor-col-resize",
+                  aiDrawerOpen ? "-right-4" : "pointer-events-none -right-4",
+                )}
+              />
+            </div>
+            <AIDrawerOverlay
+              widthPx={effectiveAiDrawerWidthPx}
+              assistantAvailable={assistantAvailable}
+            />
+          </div>
+        </SidebarProvider>
+      )}
+    </ArclayerAssistantScope>
   );
 }

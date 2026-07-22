@@ -1,13 +1,16 @@
 import {
+  BookOpenText,
   Boxes,
-  ChartNoAxesColumnIncreasing,
-  Edit3,
-  Globe,
+  ChartNoAxesCombined,
+  FolderOpen,
+  Globe2,
   History,
-  Images,
   LayoutDashboard,
   LibraryBig,
-  Search,
+  MonitorCog,
+  PanelsTopLeft,
+  ScanSearch,
+  SearchCheck,
   Settings2,
 } from "lucide-react";
 
@@ -26,7 +29,7 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
     label: "Editor",
     labelKey: "nav:NAV_PROJECT_EDITOR",
     to: "/editor",
-    icon: Edit3,
+    icon: PanelsTopLeft,
     insertStarredAfter: true,
   },
   {
@@ -34,7 +37,7 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
     label: "Assets",
     labelKey: "nav:NAV_ASSETS",
     to: "/assets",
-    icon: Images,
+    icon: FolderOpen,
     groupLabelBeforeKey: "nav:NAV_GROUP_WEBSITE",
   },
   {
@@ -50,13 +53,13 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
       "/deployments",
       "/settings/deployments",
     ],
-    icon: Globe,
+    icon: Globe2,
   },
   {
     key: "content",
     label: "Content",
     labelKey: "nav:NAV_CONTENT",
-    icon: LibraryBig,
+    icon: BookOpenText,
     defaultExpanded: true,
     children: [
       {
@@ -80,7 +83,7 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
     key: "seo",
     label: "SEO",
     labelKey: "nav:NAV_SECTION_SEO",
-    icon: LibraryBig,
+    icon: ScanSearch,
     defaultExpanded: true,
     children: [
       {
@@ -88,14 +91,14 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
         label: "Google Analytics",
         labelKey: "nav:NAV_GOOGLE_ANALYTICS",
         to: "/seo/google-analytics",
-        icon: ChartNoAxesColumnIncreasing,
+        icon: ChartNoAxesCombined,
       },
       {
         key: "seo.audit",
         label: "SEO Analysis",
         labelKey: "nav:NAV_SEO_ANALYSIS",
         to: "/seo/audit",
-        icon: Search,
+        icon: SearchCheck,
       },
     ],
   },
@@ -111,7 +114,7 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
       "/content/localization",
       "/settings/localization",
     ],
-    icon: Globe,
+    icon: MonitorCog,
   },
   {
     key: "activity",

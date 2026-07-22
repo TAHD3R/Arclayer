@@ -50,6 +50,7 @@ function AlertDialogOverlay({ className, ...props }: AlertDialogOverlayProps) {
         "fixed inset-0",
         ALERT_DIALOG_LAYER_Z_INDEX_CLASSNAME,
         SUBTLE_OVERLAY_BACKDROP_CLASSNAME,
+        "backdrop-blur-xs",
         className,
       )}
       {...props}

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SystemSettingsAgentsPage } from "@/pages/system/agents/page";
@@ -49,6 +49,10 @@ vi.mock("@/api/ai", () => ({
 
 vi.mock("@/lib/notifications", () => ({
   notifySuccessText: (...args: unknown[]) => notifySuccessTextMock(...args),
+}));
+
+vi.mock("@/pages/system/agents/agent-catalog-control-plane", () => ({
+  AgentCatalogControlPlane: () => <section>settings:SETTINGS_SYSTEM_AGENT_CATALOG_TITLE</section>,
 }));
 
 vi.mock("@/layouts/page-shell/content-guard", () => ({
@@ -257,9 +261,6 @@ function buildCoreSettings() {
         default_model: "deepseek-v4-pro",
         reasoning_effort: "medium",
         system_prompt: "",
-        conversation_retention_days: 90,
-        auto_title_enabled: true,
-        context_recommendations_enabled: true,
         monthly_budget_micros: 100_000_000,
         skills_enabled: true,
         allowed_skill_ids: [
@@ -376,6 +377,7 @@ describe("SystemSettingsAgentsPage", () => {
       await screen.findByText("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_TITLE"),
     ).toBeInTheDocument();
     expect(screen.getByText("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_RUNTIME")).toBeInTheDocument();
+    expect(screen.getByText("settings:SETTINGS_SYSTEM_AGENT_CATALOG_TITLE")).toBeInTheDocument();
     expect(screen.getByText("settings:SETTINGS_SYSTEM_AGENTS_SUMMARY_WRITES")).toBeInTheDocument();
     expect(
       screen.getByText("settings:SETTINGS_SYSTEM_AGENTS_GOVERNANCE_TITLE"),
@@ -392,9 +394,7 @@ describe("SystemSettingsAgentsPage", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("settings:SETTINGS_SYSTEM_AGENTS_PROVIDER_TITLE")).toBeInTheDocument();
     expect(screen.getByText("settings:SETTINGS_SYSTEM_AGENTS_RUNTIME_TITLE")).toBeInTheDocument();
-    expect(
-      screen.getByText("settings:SETTINGS_SYSTEM_AGENTS_MODES_SKILLS_TITLE"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("settings:SETTINGS_SYSTEM_AGENTS_EXECUTION_TITLE")).toBeInTheDocument();
     expect(screen.getByText("settings:SETTINGS_SYSTEM_AGENTS_APPROVALS_TITLE")).toBeInTheDocument();
     expect(screen.getByText("settings:SETTINGS_SYSTEM_AGENTS_LANGGRAPH_TITLE")).toBeInTheDocument();
     await waitFor(() => {
@@ -474,13 +474,10 @@ describe("SystemSettingsAgentsPage", () => {
       await screen.findByLabelText("settings:SETTINGS_SYSTEM_AGENTS_DEFAULT_MODEL_LABEL"),
       { target: { value: "gpt-5-codex" } },
     );
-    fireEvent.change(screen.getByLabelText("settings:SETTINGS_SYSTEM_AGENTS_RETENTION_LABEL"), {
-      target: { value: "45" },
-    });
     fireEvent.change(screen.getByLabelText("settings:SETTINGS_SYSTEM_AGENTS_SYSTEM_PROMPT_LABEL"), {
       target: { value: "  始终使用用户最后一条消息的语言回答。  " },
     });
-    fireEvent.click(screen.getByRole("button", { name: "settings:SETTINGS_SAVE" }));
+    fireEvent.click(await screen.findByRole("button", { name: "settings:SETTINGS_SAVE" }));
 
     await waitFor(() => {
       expect(patchSystemCoreSettingsMock).toHaveBeenCalledWith({
@@ -489,9 +486,6 @@ describe("SystemSettingsAgentsPage", () => {
           default_model: "gpt-5-codex",
           reasoning_effort: "medium",
           system_prompt: "始终使用用户最后一条消息的语言回答。",
-          conversation_retention_days: 45,
-          auto_title_enabled: true,
-          context_recommendations_enabled: true,
         },
       });
     });
@@ -558,19 +552,6 @@ describe("SystemSettingsAgentsPage", () => {
     expect(patchSystemCoreSettingsMock).not.toHaveBeenCalled();
   });
 
-  it("rejects a non-positive conversation retention value before saving runtime settings", async () => {
-    renderPage();
-
-    fireEvent.change(
-      await screen.findByLabelText("settings:SETTINGS_SYSTEM_AGENTS_RETENTION_LABEL"),
-      { target: { value: "0" } },
-    );
-    fireEvent.click(screen.getByRole("button", { name: "settings:SETTINGS_SAVE" }));
-
-    expect(await screen.findByText("settings:SETTINGS_VALIDATION_POSITIVE")).toBeInTheDocument();
-    expect(patchSystemCoreSettingsMock).not.toHaveBeenCalled();
-  });
-
   it("rejects a blank default model before saving runtime settings", async () => {
     renderPage();
 
@@ -616,10 +597,10 @@ describe("SystemSettingsAgentsPage", () => {
     renderPage();
 
     fireEvent.change(
-      await screen.findByLabelText("settings:SETTINGS_SYSTEM_AGENTS_RETENTION_LABEL"),
-      { target: { value: "45" } },
+      await screen.findByLabelText("settings:SETTINGS_SYSTEM_AGENTS_SYSTEM_PROMPT_LABEL"),
+      { target: { value: "Review the workspace before acting." } },
     );
-    fireEvent.click(screen.getByRole("button", { name: "settings:SETTINGS_SAVE" }));
+    fireEvent.click(await screen.findByRole("button", { name: "settings:SETTINGS_SAVE" }));
 
     expect(
       await screen.findByText("settings:SETTINGS_SYSTEM_AGENTS_DEFAULT_MODEL_UNAVAILABLE"),
@@ -669,62 +650,18 @@ describe("SystemSettingsAgentsPage", () => {
     expect(patchSystemCoreSettingsMock).not.toHaveBeenCalled();
   });
 
-  it("saves the complete skill allowlist to the ai_agents section", async () => {
-    getSystemCoreSettingsMock.mockResolvedValue({
-      value: {
-        ...buildCoreSettings().value,
-        ai_agents: {
-          ...buildCoreSettings().value.ai_agents,
-          allowed_skill_ids: ["content.analysis", "content.planning"],
-        },
-      },
-    });
+  it("saves Plan or Build independently without legacy Skill allowlist fields", async () => {
     renderPage();
 
-    await screen.findByText("settings:SETTINGS_SYSTEM_AGENTS_SKILLS_LIBRARY_LABEL");
-    const uploadSkill = async (skillId: string) => {
-      const uploadButton = screen
-        .getByText("settings:SETTINGS_SYSTEM_AGENTS_SKILL_UPLOAD")
-        .closest("button");
-      expect(uploadButton).not.toBeNull();
-      fireEvent.click(uploadButton!);
-      const dialog = await screen.findByRole("dialog", {
-        name: "settings:SETTINGS_SYSTEM_AGENTS_SKILL_DIALOG_TITLE",
-      });
-      fireEvent.change(within(dialog).getByRole("combobox"), {
-        target: { value: "inline" },
-      });
-      fireEvent.change(within(dialog).getByPlaceholderText("content.custom"), {
-        target: { value: skillId },
-      });
-      fireEvent.click(
-        screen.getByRole("button", {
-          name: "settings:SETTINGS_SYSTEM_AGENTS_SKILL_ADD_TO_LIBRARY",
-        }),
-      );
-    };
-    await ["content.build", "content.modeling", "content.writer", "content.modeler"].reduce<
-      Promise<void>
-    >(async (previousUpload, skillId) => {
-      await previousUpload;
-      await uploadSkill(skillId);
-    }, Promise.resolve());
+    fireEvent.change(
+      await screen.findByLabelText("settings:SETTINGS_SYSTEM_AGENTS_DEFAULT_MODE_LABEL"),
+      { target: { value: "plan" } },
+    );
     fireEvent.click(screen.getByRole("button", { name: "settings:SETTINGS_SAVE" }));
 
     await waitFor(() => {
       expect(patchSystemCoreSettingsMock).toHaveBeenCalledWith({
-        ai_agents: {
-          default_mode: "build",
-          skills_enabled: true,
-          allowed_skill_ids: [
-            "content.analysis",
-            "content.planning",
-            "content.build",
-            "content.modeling",
-            "content.writer",
-            "content.modeler",
-          ],
-        },
+        ai_agents: { default_mode: "plan" },
       });
     });
   });

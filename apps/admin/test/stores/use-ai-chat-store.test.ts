@@ -9,6 +9,8 @@ import {
   useAiChatStore,
 } from "@/stores/use-ai-chat-store";
 
+const PUBLIC_AGENT_ID = "A1b2C3d4E5f6G7h8I9j0K1";
+
 function persistedAIChatState(): Record<string, unknown> {
   const raw = window.localStorage.getItem(STORAGE_KEYS.aiChat);
   expect(raw).toBeTruthy();
@@ -20,9 +22,6 @@ describe("useAiChatStore persistence", () => {
   beforeEach(() => {
     window.localStorage.clear();
     useAiChatStore.setState({
-      conversations: [],
-      activeId: null,
-      streaming: false,
       selectedModel: DEFAULT_AI_CHAT_MODEL,
       selectedModelSource: "default",
       selectedReasoningEffort: DEFAULT_AI_REASONING_EFFORT,
@@ -30,33 +29,40 @@ describe("useAiChatStore persistence", () => {
       composerMode: DEFAULT_AI_COMPOSER_MODE,
       composerModeSource: "default",
       selectedAgentId: DEFAULT_AI_AGENT_ID,
+      webSearchEnabled: false,
       drawerOpen: false,
     });
   });
 
-  it("does not persist conversations or messages to localStorage", () => {
-    const conversationId = useAiChatStore.getState().createConversation();
-    useAiChatStore.getState().appendMessage(conversationId, {
-      role: "user",
-      content: "Review the launch draft",
-    });
-
-    const state = persistedAIChatState();
+  it("contains only assistant preferences and drawer UI state", () => {
+    const state = useAiChatStore.getState();
 
     expect(state).not.toHaveProperty("conversations");
     expect(state).not.toHaveProperty("activeId");
-    expect(state).toMatchObject({
-      selectedModel: DEFAULT_AI_CHAT_MODEL,
-      selectedModelSource: "default",
-      composerMode: DEFAULT_AI_COMPOSER_MODE,
-      composerModeSource: "default",
-      selectedAgentId: DEFAULT_AI_AGENT_ID,
-    });
-    expect(state).not.toHaveProperty("selectedReasoningEffort");
-    expect(state).not.toHaveProperty("selectedReasoningEffortSource");
+    expect(state).not.toHaveProperty("streaming");
+    expect(state).not.toHaveProperty("createConversation");
+    expect(state).not.toHaveProperty("appendMessage");
   });
 
-  it("drops legacy locally persisted conversations during migration", async () => {
+  it("persists explicit model, mode, and agent preferences only", () => {
+    useAiChatStore.getState().setSelectedModel("gpt-4o-mini");
+    useAiChatStore.getState().setComposerMode("plan");
+    useAiChatStore.getState().setSelectedAgentId(PUBLIC_AGENT_ID);
+    useAiChatStore.getState().setWebSearchEnabled(true);
+    useAiChatStore.getState().openDrawer();
+
+    const state = persistedAIChatState();
+
+    expect(state).toEqual({
+      selectedModel: "gpt-4o-mini",
+      selectedModelSource: "user",
+      composerMode: "plan",
+      composerModeSource: "user",
+      selectedAgentId: PUBLIC_AGENT_ID,
+    });
+  });
+
+  it("drops legacy conversation fields and retired Agent slugs", async () => {
     window.localStorage.setItem(
       STORAGE_KEYS.aiChat,
       JSON.stringify({
@@ -65,15 +71,12 @@ describe("useAiChatStore persistence", () => {
           conversations: [
             {
               id: "legacy-conversation",
-              title: "Legacy local conversation",
               messages: [{ role: "user", content: "local only" }],
-              createdAt: 1,
-              updatedAt: 2,
             },
           ],
           activeId: "legacy-conversation",
-          selectedModel: "deepseek-v4-pro",
-          selectedReasoningEffort: "high",
+          streaming: true,
+          selectedModel: "gpt-4o-mini",
           composerMode: "plan",
           selectedAgentId: "content_writer",
         },
@@ -82,16 +85,18 @@ describe("useAiChatStore persistence", () => {
 
     await useAiChatStore.persist.rehydrate();
 
-    expect(useAiChatStore.getState().conversations).toEqual([]);
-    expect(useAiChatStore.getState().activeId).toBeNull();
-    expect(useAiChatStore.getState().selectedReasoningEffort).toBe(DEFAULT_AI_REASONING_EFFORT);
-    expect(useAiChatStore.getState().selectedReasoningEffortSource).toBe("default");
-    expect(useAiChatStore.getState().composerMode).toBe("plan");
-    expect(useAiChatStore.getState().composerModeSource).toBe("user");
-    expect(useAiChatStore.getState().selectedAgentId).toBe("content_writer");
+    const state = useAiChatStore.getState();
+    expect(state).not.toHaveProperty("conversations");
+    expect(state).not.toHaveProperty("activeId");
+    expect(state).not.toHaveProperty("streaming");
+    expect(state.selectedReasoningEffort).toBe(DEFAULT_AI_REASONING_EFFORT);
+    expect(state.selectedReasoningEffortSource).toBe("default");
+    expect(state.composerMode).toBe("plan");
+    expect(state.composerModeSource).toBe("user");
+    expect(state.selectedAgentId).toBeNull();
   });
 
-  it("always applies managed reasoning defaults while preserving explicit model and mode choices", () => {
+  it("applies managed defaults while preserving explicit model and mode choices", () => {
     useAiChatStore.getState().applyRuntimeDefaults({
       model: "gpt-4o-mini",
       reasoningEffort: "high",
@@ -108,7 +113,7 @@ describe("useAiChatStore persistence", () => {
     });
 
     useAiChatStore.getState().setSelectedModel("deepseek-v4-pro");
-    useAiChatStore.getState().setComposerMode("agent");
+    useAiChatStore.getState().setComposerMode("plan");
     useAiChatStore.getState().applyRuntimeDefaults({
       model: "gpt-4o-mini",
       reasoningEffort: "medium",
@@ -120,8 +125,30 @@ describe("useAiChatStore persistence", () => {
       selectedModelSource: "user",
       selectedReasoningEffort: "medium",
       selectedReasoningEffortSource: "default",
-      composerMode: "agent",
+      composerMode: "plan",
       composerModeSource: "user",
+    });
+  });
+
+  it("migrates the removed Agent mode to Build and removes its retired Agent slug", async () => {
+    window.localStorage.setItem(
+      STORAGE_KEYS.aiChat,
+      JSON.stringify({
+        version: 6,
+        state: {
+          composerMode: "agent",
+          composerModeSource: "user",
+          selectedAgentId: "content_model_advisor",
+        },
+      }),
+    );
+
+    await useAiChatStore.persist.rehydrate();
+
+    expect(useAiChatStore.getState()).toMatchObject({
+      composerMode: "build",
+      composerModeSource: "user",
+      selectedAgentId: null,
     });
   });
 });

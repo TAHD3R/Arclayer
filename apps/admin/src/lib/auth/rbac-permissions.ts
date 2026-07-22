@@ -22,6 +22,7 @@ const PERMISSION_NAME_I18N_KEY_BY_CODE: Record<string, string> = {
   "system:domains:manage": "rbac:RBAC_PERM_DOMAINS_MANAGE_NAME",
   "system:notifications:read": "rbac:RBAC_PERM_NOTIFICATIONS_READ_NAME",
   "system:notifications:manage": "rbac:RBAC_PERM_NOTIFICATIONS_MANAGE_NAME",
+  "system:jobs:read": "rbac:RBAC_PERM_JOBS_READ_NAME",
 
   "rbac:roles:read": "rbac:RBAC_PERM_RBAC_ROLES_READ_NAME",
   "rbac:roles:write": "rbac:RBAC_PERM_RBAC_ROLES_WRITE_NAME",

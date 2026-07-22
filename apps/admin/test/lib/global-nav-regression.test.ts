@@ -1,6 +1,26 @@
+import { isValidElement } from "react";
+import {
+  Activity,
+  BrainCircuit,
+  Boxes,
+  Building2,
+  ChartNoAxesCombined,
+  FolderKanban,
+  Gauge,
+  House,
+  LayoutDashboard,
+  MessageSquareHeart,
+  Plug,
+  ScrollText,
+  SlidersHorizontal,
+} from "lucide-react";
 import { describe, expect, test } from "vitest";
 
-import { GLOBAL_NAV_ITEMS, resolveGlobalNavItems } from "@/constants/menu/global";
+import {
+  GLOBAL_NAV_ITEMS,
+  GLOBAL_RECENT_PROJECT_LIMIT,
+  resolveGlobalNavItems,
+} from "@/constants/menu/global";
 import { findActiveTrailNodes } from "@/lib/admin-nav-utils";
 
 describe("global nav regression", () => {
@@ -23,7 +43,9 @@ describe("global nav regression", () => {
       label: "All projects",
       labelKey: "nav:NAV_ALL_PROJECTS",
       to: "/projects",
+      insertStarredAfter: true,
     });
+    expect(projectsItem?.groupLabelBeforeKey).toBeUndefined();
     expect(projectsItem?.children).toBeUndefined();
     expect(resourcesItem).toMatchObject({
       key: "global.resources",
@@ -41,6 +63,7 @@ describe("global nav regression", () => {
       "global.platform.tenants",
       "global.platform.audit",
       "global.platform.feedback",
+      "global.platform.plugins",
       "global.platform.observability",
       "global.platform.configuration",
     ]);
@@ -77,18 +100,109 @@ describe("global nav regression", () => {
     expect(projectsItem?.to).toBe("/projects");
   });
 
-  test("marks all projects as a leaf link with a projects section label", () => {
+  test("uses product-specific icons for every static global menu item", () => {
+    const iconByKey = new Map(GLOBAL_NAV_ITEMS.map((item) => [item.key, item.icon]));
+    const observabilityChildren =
+      GLOBAL_NAV_ITEMS.find((item) => item.key === "global.platform.observability")?.children ?? [];
+
+    expect(iconByKey).toEqual(
+      new Map([
+        ["global.home", House],
+        ["global.resources", Boxes],
+        ["global.projects", FolderKanban],
+        ["global.platform.overview", LayoutDashboard],
+        ["global.platform.tenants", Building2],
+        ["global.platform.audit", ScrollText],
+        ["global.platform.feedback", MessageSquareHeart],
+        ["global.platform.plugins", Plug],
+        ["global.platform.observability", Activity],
+        ["global.platform.configuration", SlidersHorizontal],
+      ]),
+    );
+    expect(new Map(observabilityChildren.map((item) => [item.key, item.icon]))).toEqual(
+      new Map([
+        ["global.platform.observability.overview", Gauge],
+        ["global.platform.observability.requests", ChartNoAxesCombined],
+        ["global.platform.observability.ai-usage", BrainCircuit],
+      ]),
+    );
+  });
+
+  test("keeps all projects directly below inspiration without a section label", () => {
     const projectsItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.projects");
+    const resourcesIndex = GLOBAL_NAV_ITEMS.findIndex((item) => item.key === "global.resources");
+    const projectsIndex = GLOBAL_NAV_ITEMS.findIndex((item) => item.key === "global.projects");
 
     expect(projectsItem).toMatchObject({
       key: "global.projects",
       label: "All projects",
       labelKey: "nav:NAV_ALL_PROJECTS",
-      groupLabelBeforeKey: "nav:NAV_SECTION_PROJECTS",
       to: "/projects",
     });
+    expect(projectsIndex).toBe(resourcesIndex + 1);
+    expect(projectsItem?.groupLabelBeforeKey).toBeUndefined();
     expect(projectsItem?.groupBehavior).toBeUndefined();
     expect(projectsItem?.children).toBeUndefined();
+  });
+
+  test("adds a recent projects section only when navigable projects exist", () => {
+    const withoutRecentProjects = resolveGlobalNavItems({ isSuperAdmin: false });
+    const withRecentProjects = resolveGlobalNavItems({
+      isSuperAdmin: false,
+      recentProjects: [
+        {
+          projectId: "project-alpha",
+          name: "Project Alpha",
+          iconMode: "emoji",
+          iconColor: "#123456",
+          iconEmoji: "🚀",
+        },
+        { projectId: "project-beta", name: "Project Beta" },
+        { projectId: "project-gamma", name: "Project Gamma" },
+        { projectId: "project-delta", name: "Project Delta" },
+      ],
+    });
+    const recentItems = withRecentProjects.filter((item) =>
+      item.key.startsWith("global.recent-project."),
+    );
+    const allProjectsItem = withRecentProjects.find((item) => item.key === "global.projects");
+
+    expect(
+      withoutRecentProjects.some((item) => item.key.startsWith("global.recent-project.")),
+    ).toBe(false);
+    expect(GLOBAL_RECENT_PROJECT_LIMIT).toBe(3);
+    expect(recentItems).toHaveLength(GLOBAL_RECENT_PROJECT_LIMIT);
+    expect(recentItems).toMatchObject([
+      {
+        key: "global.recent-project.project-alpha",
+        label: "Project Alpha",
+        to: "/projects/project-alpha",
+        icon: FolderKanban,
+        groupLabelBeforeKey: "nav:NAV_SECTION_PROJECTS",
+      },
+      {
+        key: "global.recent-project.project-beta",
+        label: "Project Beta",
+        to: "/projects/project-beta",
+      },
+      {
+        key: "global.recent-project.project-gamma",
+        label: "Project Gamma",
+        to: "/projects/project-gamma",
+      },
+    ]);
+    const firstProjectIcon = recentItems[0]?.iconNode;
+    expect(isValidElement(firstProjectIcon)).toBe(true);
+    if (!isValidElement(firstProjectIcon)) throw new Error("Expected a project avatar icon node");
+    expect(firstProjectIcon.props).toMatchObject({
+      name: "Project Alpha",
+      size: 20,
+      decorative: true,
+      iconMode: "emoji",
+      iconColor: "#123456",
+      iconEmoji: "🚀",
+    });
+    expect(allProjectsItem?.insertStarredAfter).toBe(true);
   });
 
   test("marks the observability overview child active when it shares the parent target", () => {

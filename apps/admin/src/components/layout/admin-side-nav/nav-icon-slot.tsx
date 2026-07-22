@@ -1,28 +1,34 @@
+import type { ReactNode } from "react";
+
 import type { AdminNavItem } from "@/types/admin-nav";
 import { cn } from "@arclayer/lib/utils";
 
 export function iconSlot(
   depth: number,
   Icon: AdminNavItem["icon"] | undefined,
-  opts?: { isActive?: boolean; collapseMotion?: "shift" | "none" },
+  opts?: {
+    isActive?: boolean;
+    collapseMotion?: "shift" | "none";
+    iconNode?: ReactNode;
+  },
 ) {
   const collapseMotionClassName =
     opts?.collapseMotion === "shift"
       ? "transform-gpu transition-[color,transform] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none"
       : null;
 
-  if (depth === 0 && Icon) {
+  if (depth === 0 && (Icon || opts?.iconNode)) {
     return (
       <span
         className={cn(
           "size-5 shrink-0 inline-flex items-center justify-center",
           collapseMotionClassName,
           opts?.collapseMotion === "shift" ? "group-data-[collapsible=icon]:translate-x-0" : null,
-          opts?.isActive ? "text-primary" : null,
+          opts?.isActive ? "text-label-primary" : null,
         )}
         aria-hidden="true"
       >
-        <Icon className="size-full" />
+        {opts?.iconNode ?? (Icon ? <Icon className="size-full" /> : null)}
       </span>
     );
   }

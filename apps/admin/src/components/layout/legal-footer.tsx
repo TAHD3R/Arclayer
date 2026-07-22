@@ -1,6 +1,7 @@
 import { type ReactNode, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
+import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import {
   Dialog,
@@ -26,10 +27,10 @@ function LegalFooterButton(props: {
   return (
     <button
       type="button"
-      className={
-        props.className ??
-        "inline-flex items-baseline gap-0 px-1 align-baseline font-semibold text-primary underline-offset-4 transition-[box-shadow,_color,_background-color,_border-color,_outline-color,_text-decoration-color,_fill,_stroke] hover:underline focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
-      }
+      className={cn(
+        "inline-flex items-baseline gap-0 px-1 align-baseline font-semibold text-label-secondary underline-offset-4 transition-[box-shadow,_color,_background-color,_border-color,_outline-color,_text-decoration-color,_fill,_stroke] hover:text-label-primary hover:underline focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50",
+        props.className,
+      )}
       onClick={props.onClick}
     >
       {props.children}
@@ -49,7 +50,7 @@ export function LegalModalDialogs(props: {
         open={props.openModal === "terms"}
         onOpenChange={(open) => !open && props.setOpenModal(null)}
       >
-        <DialogContent className="sm:max-w-120">
+        <DialogContent className="sm:max-w-120" overlayClassName="backdrop-blur-xs">
           <DialogHeader>
             <DialogTitle>{t("auth:TERMS_OF_SERVICE_MODAL_TITLE")}</DialogTitle>
           </DialogHeader>
@@ -66,7 +67,7 @@ export function LegalModalDialogs(props: {
         open={props.openModal === "privacy"}
         onOpenChange={(open) => !open && props.setOpenModal(null)}
       >
-        <DialogContent className="sm:max-w-120">
+        <DialogContent className="sm:max-w-120" overlayClassName="backdrop-blur-xs">
           <DialogHeader>
             <DialogTitle>{t("auth:PRIVACY_POLICY_MODAL_TITLE")}</DialogTitle>
           </DialogHeader>

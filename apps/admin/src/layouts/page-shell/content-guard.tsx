@@ -1,10 +1,19 @@
 import { useMemo, type ReactNode } from "react";
-import { motion } from "motion/react";
+import {
+  FileWarning,
+  Gauge,
+  Inbox,
+  LockKeyhole,
+  SearchX,
+  ServerCrash,
+  ShieldX,
+  TriangleAlert,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { HeaderFeedbackPopover } from "@/components/feedback/feedback-dialog";
 import { ApiError } from "@/lib/http";
-import { getErrorMessage } from "@/lib/notifications";
+import { getErrorMessage, resolveRequestId } from "@/lib/notifications";
 import {
   Empty,
   EmptyContent,
@@ -13,15 +22,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@arclayer/ui/empty";
-import {
-  Illust401LockedTerminal,
-  Illust403ForbiddenGateway,
-  Illust404BrokenLink,
-  Illust422MalformedPacket,
-  Illust429OverloadedGauge,
-  Illust500CrashedServer,
-  IllustEmptyContainer,
-} from "@arclayer/ui/illustrations";
 import { PageSkeleton, type PageSkeletonVariant } from "@arclayer/ui/page-skeleton";
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 import { Button } from "@arclayer/ui/button";
@@ -54,11 +54,6 @@ export type ContentGuardProps = {
   children?: ReactNode;
 };
 
-const EMPTY_STATE_TRANSITION = {
-  duration: 0.24,
-  ease: [0.22, 1, 0.36, 1],
-} as const;
-
 function pickErrorTitle(err: unknown, t: (key: string) => string): string {
   if (err instanceof ApiError) {
     if (err.status === 401) return t("common:PAGE_UNAUTHORIZED_TITLE");
@@ -86,21 +81,24 @@ function pickErrorDescription(err: unknown, t: (key: string) => string): string 
   return t("common:PAGE_SERVER_ERROR_DESC");
 }
 
-function pickErrorIllustration(err: unknown) {
+function pickErrorIcon(err: unknown) {
   if (err instanceof ApiError) {
-    if (err.status === 401) return Illust401LockedTerminal;
-    if (err.status === 403) return Illust403ForbiddenGateway;
-    if (err.status === 404) return Illust404BrokenLink;
-    if (err.status === 422) return Illust422MalformedPacket;
-    if (err.status === 429) return Illust429OverloadedGauge;
-    if (err.status >= 500) return Illust500CrashedServer;
+    if (err.status === 401) return LockKeyhole;
+    if (err.status === 403) return ShieldX;
+    if (err.status === 404) return SearchX;
+    if (err.status === 422) return FileWarning;
+    if (err.status === 429) return Gauge;
+    if (err.status >= 500) return ServerCrash;
   }
-  return Illust500CrashedServer;
+  return TriangleAlert;
+}
+
+function canReportError(err: unknown): boolean {
+  return !(err instanceof ApiError) || err.status >= 500;
 }
 
 export function ContentGuard(props: ContentGuardProps) {
   const { t } = useTranslation();
-  const reducedMotion = usePrefersReducedMotion();
 
   const error = props.error ?? null;
   const variant = props.variant ?? "default";
@@ -113,8 +111,6 @@ export function ContentGuard(props: ContentGuardProps) {
   const emptyClassName = variant === "compact" ? "gap-4 p-4 md:p-8" : undefined;
   const titleClassName = variant === "compact" ? "text-title md:text-largetitle" : undefined;
   const descriptionClassName = variant === "compact" ? "text-footnote md:text-body" : undefined;
-  const illustrationClassName = variant === "compact" ? "max-w-65" : "max-w-90";
-
   const retryExtra = useMemo(() => {
     if (props.hideRetry) return null;
     if (!props.onRetry) return null;
@@ -138,24 +134,42 @@ export function ContentGuard(props: ContentGuardProps) {
   if (error) {
     const title = props.errorTitle ?? pickErrorTitle(error, (key) => t(key));
     const details = props.errorDescription ?? pickErrorDescription(error, (key) => t(key));
-    const Illustration = pickErrorIllustration(error);
-    const hasExtra = Boolean(retryExtra) || Boolean(props.errorExtra);
+    const ErrorIcon = pickErrorIcon(error);
+    const reportExtra = canReportError(error) ? (
+      <HeaderFeedbackPopover
+        source="content_guard"
+        initialIntent="problem"
+        lockIntent
+        reportContext={{
+          requestId: resolveRequestId(error),
+          status: error instanceof ApiError ? error.status : undefined,
+          errorCode: error instanceof ApiError ? error.error : undefined,
+        }}
+        trigger={
+          <Button type="button" size="lg" variant="outline">
+            {t("common:REPORT_PROBLEM")}
+          </Button>
+        }
+      />
+    ) : null;
+    const hasExtra = Boolean(retryExtra) || Boolean(props.errorExtra) || Boolean(reportExtra);
 
     const content = (
       <Empty className={emptyClassName}>
         <EmptyHeader>
           {mediaVariant === "illustration" ? (
-            <EmptyMedia className="mb-0">
-              <Illustration className={illustrationClassName} reducedMotion={reducedMotion} />
+            <EmptyMedia variant="icon" className="mb-0">
+              <ErrorIcon className="size-6" aria-hidden="true" />
             </EmptyMedia>
           ) : null}
           <EmptyTitle className={titleClassName}>{title}</EmptyTitle>
           <EmptyDescription className={descriptionClassName}>{details}</EmptyDescription>
         </EmptyHeader>
         {hasExtra ? (
-          <EmptyContent>
-            {props.errorExtra}
+          <EmptyContent className="flex-row flex-wrap justify-center gap-2">
             {retryExtra}
+            {reportExtra}
+            {props.errorExtra}
           </EmptyContent>
         ) : null}
       </Empty>
@@ -171,31 +185,22 @@ export function ContentGuard(props: ContentGuardProps) {
   if (props.empty) {
     const hasExtra = Boolean(props.emptyExtra);
     const content = (
-      <motion.div
-        initial={reducedMotion ? false : { opacity: 0, y: 10, scale: 0.985 }}
-        animate={reducedMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
-        transition={reducedMotion ? undefined : EMPTY_STATE_TRANSITION}
-      >
-        <Empty className={emptyClassName}>
-          <EmptyHeader>
-            {mediaVariant === "illustration" ? (
-              <EmptyMedia className="mb-0">
-                <IllustEmptyContainer
-                  className={illustrationClassName}
-                  reducedMotion={reducedMotion}
-                />
-              </EmptyMedia>
-            ) : null}
-            <EmptyTitle className={titleClassName}>
-              {props.emptyTitle ?? t("common:EMPTY_TITLE")}
-            </EmptyTitle>
-            <EmptyDescription className={descriptionClassName}>
-              {props.emptyDescription ?? t("common:EMPTY_DESC")}
-            </EmptyDescription>
-          </EmptyHeader>
-          {hasExtra ? <EmptyContent>{props.emptyExtra}</EmptyContent> : null}
-        </Empty>
-      </motion.div>
+      <Empty className={emptyClassName}>
+        <EmptyHeader>
+          {mediaVariant === "illustration" ? (
+            <EmptyMedia variant="icon" className="mb-0">
+              <Inbox className="size-6" aria-hidden="true" />
+            </EmptyMedia>
+          ) : null}
+          <EmptyTitle className={titleClassName}>
+            {props.emptyTitle ?? t("common:EMPTY_TITLE")}
+          </EmptyTitle>
+          <EmptyDescription className={descriptionClassName}>
+            {props.emptyDescription ?? t("common:EMPTY_DESC")}
+          </EmptyDescription>
+        </EmptyHeader>
+        {hasExtra ? <EmptyContent>{props.emptyExtra}</EmptyContent> : null}
+      </Empty>
     );
 
     if (container === "admin-route") {

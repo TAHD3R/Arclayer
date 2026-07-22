@@ -3,14 +3,49 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { listAIProjectAgents } from "@/api/ai";
+import { listAIWorkspaceAgents, type AIWorkspaceAgentCatalogItem } from "@/api/ai";
 import { AIAgentSelector } from "@/components/ai/ai-agent-selector";
 import { DEFAULT_AI_AGENT_ID, useAiChatStore } from "@/stores/use-ai-chat-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 vi.mock("@/api/ai", () => ({
-  listAIProjectAgents: vi.fn(),
+  listAIWorkspaceAgents: vi.fn(),
 }));
+
+const ANALYST_ID = "A1b2C3d4E5f6G7h8I9j0K1";
+const ARCHITECT_ID = "B1c2D3e4F5g6H7i8J9k0L1";
+const COORDINATOR_ID = "C1d2E3f4G5h6I7j8K9l0M1";
+const STALE_AGENT_ID = "D1e2F3g4H5i6J7k8L9m0N1";
+
+function catalogAgent(input: {
+  agentId: string;
+  slug: string;
+  name: string;
+  role: string;
+  modes: AIWorkspaceAgentCatalogItem["supportedExecutionModes"];
+  available?: boolean;
+  unavailableReason?: string | null;
+}): AIWorkspaceAgentCatalogItem {
+  return {
+    agentId: input.agentId,
+    versionId: `v${input.agentId.slice(1)}`,
+    assignmentId: `a${input.agentId.slice(1)}`,
+    versionNumber: 1,
+    slug: input.slug,
+    name: input.name,
+    role: input.role,
+    description: `${input.name} description`,
+    scope: "system",
+    provenance: "arclayer_official",
+    supportedExecutionModes: input.modes,
+    collaborationAgentIds: [],
+    toolGrants: [],
+    available: input.available ?? true,
+    unavailableReason: input.unavailableReason ?? null,
+    isDefault: input.agentId === COORDINATOR_ID,
+    isPinned: true,
+  };
+}
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -21,6 +56,18 @@ vi.mock("react-i18next", () => ({
         "ai:AI_AGENT_LOAD_FAILED": "Unable to load agents",
         "ai:AI_AGENT_EMPTY": "No enabled agents",
         "ai:AI_AGENT_WORKSPACE_REQUIRED": "Select a project first",
+        "ai:AI_AGENT_SEARCH_PLACEHOLDER": "Search agents, roles, or capabilities…",
+        "ai:AI_AGENT_SEARCH_LABEL": "Search agents",
+        "ai:AI_AGENT_SEARCH_EMPTY": "No matching agents found.",
+        "ai:AI_AGENT_ASSIGNED_GROUP": "Available agents",
+        "ai:AI_AGENT_PROVENANCE_OFFICIAL": "Arclayer official",
+        "ai:AI_AGENT_PROVENANCE_WORKSPACE": "Workspace",
+        "ai:AI_AGENT_VERSION": "v1",
+        "ai:AI_AGENT_SCOPE_SYSTEM": "System scope",
+        "ai:AI_AGENT_SCOPE_WORKSPACE": "Workspace scope",
+        "ai:AI_AGENT_UNAVAILABLE": "Currently unavailable",
+        "ai:AI_AGENT_UNAVAILABLE_AGENTS_DISABLED": "Agent service is disabled",
+        "ai:AI_AGENT_UNAVAILABLE_ASSIGNMENT_DISABLED": "This assignment is disabled",
         "ai:AI_AGENT_CONTENT_ANALYZER": "Content Analyzer",
         "ai:AI_AGENT_CONTENT_ANALYZER_DESC": "Inspect content",
         "ai:AI_AGENT_CONTENT_ADVISOR": "Content Advisor",
@@ -60,41 +107,31 @@ describe("AIAgentSelector", () => {
     useAiChatStore.setState({
       selectedAgentId: DEFAULT_AI_AGENT_ID,
     });
-    vi.mocked(listAIProjectAgents).mockResolvedValue({
+    vi.mocked(listAIWorkspaceAgents).mockResolvedValue({
+      defaultAgentId: COORDINATOR_ID,
       agents: [
-        {
-          agentId: "content_analyzer",
-          name: "Content Analyzer",
-          description: "Inspect content and summarize findings",
-          mode: "agent",
-          skillId: "content.analysis",
-          toolNames: ["search_content"],
-          readOnly: true,
-          requiresApproval: false,
-        },
-        {
-          agentId: "content_model_advisor",
-          name: "Model Advisor",
-          description: "Review content model structure",
-          mode: "agent",
-          skillId: "content.modeling",
-          toolNames: ["list_content_types"],
-          readOnly: true,
-          requiresApproval: false,
-        },
-        {
-          agentId: "content_builder",
-          name: "Content Builder",
-          description: "Build implementation blueprints",
-          mode: "build",
-          skillId: "content.build",
-          toolNames: ["search_content"],
-          readOnly: true,
-          requiresApproval: false,
-        },
+        catalogAgent({
+          agentId: ANALYST_ID,
+          slug: "data-analyst",
+          name: "Data Analyst",
+          role: "data_analysis",
+          modes: ["plan"],
+        }),
+        catalogAgent({
+          agentId: ARCHITECT_ID,
+          slug: "site-architect",
+          name: "Site Architect",
+          role: "information_architecture",
+          modes: ["plan", "build"],
+        }),
+        catalogAgent({
+          agentId: COORDINATOR_ID,
+          slug: "arclayer-coordinator",
+          name: "Arclayer Coordinator",
+          role: "orchestrator",
+          modes: ["plan", "build"],
+        }),
       ],
-      tools: [],
-      skills: [],
     });
   });
 
@@ -103,61 +140,138 @@ describe("AIAgentSelector", () => {
     renderSelector();
 
     await waitFor(() => {
-      expect(listAIProjectAgents).toHaveBeenCalledWith(
+      expect(listAIWorkspaceAgents).toHaveBeenCalledWith(
         expect.objectContaining({ projectId: "project-1" }),
       );
     });
     await user.click(await screen.findByRole("button", { name: "Select agent" }));
-    await user.click(await screen.findByRole("option", { name: /Model Advisor/ }));
+    await user.click(await screen.findByRole("option", { name: /Site Architect/ }));
 
-    expect(useAiChatStore.getState().selectedAgentId).toBe("content_model_advisor");
+    expect(useAiChatStore.getState().selectedAgentId).toBe(ARCHITECT_ID);
   });
 
-  it("exposes the builder agent from the backend catalog", async () => {
+  it("exposes the Coordinator from the backend catalog", async () => {
     const user = userEvent.setup();
     renderSelector();
 
     await user.click(await screen.findByRole("button", { name: "Select agent" }));
-    await user.click(await screen.findByRole("option", { name: /Content Builder/ }));
+    await user.click(await screen.findByRole("option", { name: /Arclayer Coordinator/ }));
 
-    expect(useAiChatStore.getState().selectedAgentId).toBe("content_builder");
+    expect(useAiChatStore.getState().selectedAgentId).toBe(COORDINATOR_ID);
   });
 
-  it("syncs a stale selected agent to the first available backend agent", async () => {
-    useAiChatStore.setState({ selectedAgentId: "content_writer" });
-    vi.mocked(listAIProjectAgents).mockResolvedValueOnce({
+  it("filters the assigned catalog by agent name, role, description, or ID", async () => {
+    const user = userEvent.setup();
+    renderSelector();
+
+    await user.click(await screen.findByRole("button", { name: "Select agent" }));
+    await user.type(screen.getByRole("combobox", { name: "Search agents" }), "architect");
+
+    expect(await screen.findByRole("option", { name: /Site Architect/ })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Data Analyst/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Arclayer Coordinator/ })).not.toBeInTheDocument();
+  });
+
+  it("renders an explicit no-results state for an unmatched search", async () => {
+    const user = userEvent.setup();
+    renderSelector();
+
+    await user.click(await screen.findByRole("button", { name: "Select agent" }));
+    await user.type(screen.getByRole("combobox", { name: "Search agents" }), "billing specialist");
+
+    expect(await screen.findByText("No matching agents found.")).toBeInTheDocument();
+  });
+
+  it("keeps an unavailable selected agent visible with its catalog reason", async () => {
+    const user = userEvent.setup();
+    useAiChatStore.setState({ selectedAgentId: ANALYST_ID });
+    vi.mocked(listAIWorkspaceAgents).mockResolvedValueOnce({
+      defaultAgentId: null,
       agents: [
-        {
-          agentId: "content_builder",
-          name: "Content Builder",
-          description: "Build implementation blueprints",
-          mode: "build",
-          skillId: "content.build",
-          toolNames: ["search_content"],
-          readOnly: true,
-          requiresApproval: false,
-        },
+        catalogAgent({
+          agentId: ANALYST_ID,
+          slug: "data-analyst",
+          name: "Data Analyst",
+          role: "data_analysis",
+          modes: ["plan"],
+          available: false,
+          unavailableReason: "assignment_disabled",
+        }),
       ],
-      tools: [],
-      skills: [],
     });
 
     renderSelector();
 
-    expect(await screen.findByText("Content Builder")).toBeInTheDocument();
-    await waitFor(() => {
-      expect(useAiChatStore.getState().selectedAgentId).toBe("content_builder");
-    });
+    const trigger = await screen.findByRole("button", { name: "Select agent" });
+    await waitFor(() => expect(trigger).toBeEnabled());
+    expect(trigger).toHaveTextContent("Data Analyst");
+    await user.click(trigger);
+
+    const unavailable = await screen.findByRole("option", { name: /Data Analyst/ });
+    expect(unavailable).toHaveAttribute("aria-disabled", "true");
+    expect(unavailable).toHaveTextContent("This assignment is disabled");
+    await user.click(unavailable);
+    expect(useAiChatStore.getState().selectedAgentId).toBe(ANALYST_ID);
   });
 
-  it("does not expose a fake selectable agent without project context", async () => {
+  it("keeps a stale selection explicit instead of silently choosing the first agent", async () => {
+    const user = userEvent.setup();
+    useAiChatStore.setState({ selectedAgentId: STALE_AGENT_ID });
+    vi.mocked(listAIWorkspaceAgents).mockResolvedValueOnce({
+      defaultAgentId: COORDINATOR_ID,
+      agents: [
+        catalogAgent({
+          agentId: COORDINATOR_ID,
+          slug: "arclayer-coordinator",
+          name: "Arclayer Coordinator",
+          role: "orchestrator",
+          modes: ["plan", "build"],
+        }),
+      ],
+    });
+
+    renderSelector();
+
+    await screen.findByText("Select agent");
+    const trigger = screen.getByRole("button", { name: "Select agent" });
+    expect(trigger).toHaveTextContent("Select agent");
+    expect(useAiChatStore.getState().selectedAgentId).toBe(STALE_AGENT_ID);
+
+    await user.click(trigger);
+    expect(await screen.findByRole("option", { name: /Arclayer Coordinator/ })).toBeInTheDocument();
+    expect(useAiChatStore.getState().selectedAgentId).toBe(STALE_AGENT_ID);
+  });
+
+  it("uses the workspace catalog when no project is selected", async () => {
+    const user = userEvent.setup();
     useWorkspaceStore.setState({ currentProjectId: null, lastProjectId: null });
+
+    renderSelector();
+
+    await waitFor(() =>
+      expect(listAIWorkspaceAgents).toHaveBeenCalledWith(
+        expect.objectContaining({ workspaceId: "workspace-1", projectId: null }),
+      ),
+    );
+    const button = await screen.findByRole("button", { name: "Select agent" });
+    expect(button).toBeEnabled();
+    await user.click(button);
+    expect(await screen.findByRole("option", { name: /Data Analyst/ })).toBeInTheDocument();
+  });
+
+  it("does not expose a fake selectable agent without workspace context", async () => {
+    useWorkspaceStore.setState({
+      currentWorkspaceId: null,
+      lastWorkspaceId: null,
+      currentProjectId: null,
+      lastProjectId: null,
+    });
 
     renderSelector();
 
     const button = await screen.findByRole("button", { name: "Select agent" });
     expect(button).toBeDisabled();
     expect(screen.getByText("Select a project first")).toBeInTheDocument();
-    expect(listAIProjectAgents).not.toHaveBeenCalled();
+    expect(listAIWorkspaceAgents).not.toHaveBeenCalled();
   });
 });

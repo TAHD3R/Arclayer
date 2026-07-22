@@ -22,7 +22,12 @@ import {
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { listAIProjectAgents } from "@/api/ai";
+import { listAIWorkspaceAgents } from "@/api/ai";
+import {
+  agentIdsForComposerScope,
+  useAIComposerDirectiveStore,
+  type AIComposerDirectiveScope,
+} from "@/components/ai/ai-composer-directives";
 import { listProjects } from "@/api/projects";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -38,6 +43,7 @@ function composerTriggerItemClassName(index: number) {
 
 type AIComposerTriggersProps = {
   placement?: "top" | "bottom";
+  scope: AIComposerDirectiveScope;
 };
 
 function composerTriggerPopoverClassName(
@@ -53,7 +59,7 @@ function actionDirective(id: string, label: string, prompt: string) {
   return `:action[${label}]{name=${id}} ${prompt}`;
 }
 
-export function AIComposerTriggers({ placement = "top" }: AIComposerTriggersProps) {
+export function AIComposerTriggers({ placement = "top", scope }: AIComposerTriggersProps) {
   const { t } = useTranslation(["ai"]);
   const aui = useAui();
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -91,11 +97,12 @@ export function AIComposerTriggers({ placement = "top" }: AIComposerTriggersProp
     [projectsData?.items],
   );
   const { data: agentsData, isFetching: isFetchingAgents } = useQuery({
-    queryKey: ["ai", "composer", "agent-mentions", currentProjectId],
-    enabled: Boolean(accessToken && currentProjectId),
+    queryKey: ["ai", "composer", "agent-mentions", workspaceId, currentProjectId],
+    enabled: Boolean(accessToken && workspaceId),
     queryFn: ({ signal }) =>
-      listAIProjectAgents({
-        projectId: String(currentProjectId),
+      listAIWorkspaceAgents({
+        workspaceId: String(workspaceId),
+        projectId: currentProjectId,
         signal,
       }),
     staleTime: 30_000,
@@ -105,14 +112,18 @@ export function AIComposerTriggers({ placement = "top" }: AIComposerTriggersProp
 
   const agentMentions = useMemo<Unstable_Mention[]>(
     () =>
-      (agentsData?.agents ?? []).map((agent) => ({
-        id: agent.agentId,
-        type: "agent",
-        label: agent.name,
-        description: agent.description,
-        icon: "agent",
-      })),
-    [agentsData?.agents],
+      (agentsData?.agents ?? [])
+        .filter((agent) => agent.available)
+        .map((agent) => ({
+          id: agent.agentId,
+          type: "agent",
+          label: agent.nameI18nKey ? t(`ai:${agent.nameI18nKey}`) : agent.name,
+          description: agent.descriptionI18nKey
+            ? t(`ai:${agent.descriptionI18nKey}`)
+            : agent.description,
+          icon: "agent",
+        })),
+    [agentsData?.agents, t],
   );
   const mentions = useMemo<Unstable_Mention[]>(
     () => [...projectMentions, ...agentMentions],
@@ -123,6 +134,21 @@ export function AIComposerTriggers({ placement = "top" }: AIComposerTriggersProp
     items: mentions,
     includeModelContextTools: false,
     formatter: unstable_defaultDirectiveFormatter,
+    onInserted: (item) => {
+      if (item.type !== "agent") return;
+      useAIComposerDirectiveStore
+        .getState()
+        .addDirectives(scope, [{ type: "agent", id: item.id, label: item.label }]);
+      const composer = aui.composer();
+      const current = composer.getState().runConfig;
+      composer.setRunConfig({
+        ...current,
+        custom: {
+          ...current.custom,
+          mentionedAgentIds: [...agentIdsForComposerScope(scope)],
+        },
+      });
+    },
   });
 
   const slashCommands = useMemo<Unstable_SlashCommand[]>(

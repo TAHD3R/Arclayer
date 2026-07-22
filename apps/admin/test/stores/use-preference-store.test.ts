@@ -9,6 +9,8 @@ import {
 
 describe("usePreferencesStore layout width preferences", () => {
   beforeEach(() => {
+    document.head.innerHTML =
+      '<link rel="icon" type="image/svg+xml" href="/logo.svg" data-theme-favicon />';
     window.localStorage.clear();
     teardownPreferences();
   });

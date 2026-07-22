@@ -149,6 +149,7 @@ describe("SettingsScreenHost", () => {
     expect(closeButton).toHaveAttribute("data-variant", "ghost");
     expect(closeButton).toHaveAttribute("data-size", "icon-sm");
     expect(closeButton).toHaveClass("shrink-0");
+    expect(closeButton.parentElement).toHaveClass("absolute", "z-30");
     expect(routeFrame).toHaveClass(
       "lg:[--admin-route-gutter-x:clamp(2.5rem,calc(15.85365854vw_-_122.439024px),9rem)]",
     );

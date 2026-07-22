@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AI_CHAT_SUGGESTIONS, AISuggestions } from "@/components/ai/ai-suggestions";
+import { STORAGE_KEYS } from "@/constants/storage";
 
 const assistantUiMock = vi.hoisted(() => ({
   append: vi.fn(),
@@ -12,15 +13,6 @@ const assistantUiMock = vi.hoisted(() => ({
 }));
 
 const storeMock = vi.hoisted(() => ({
-  aiState: {
-    activeId: "conversation-1",
-    conversations: [
-      {
-        id: "conversation-1",
-        messages: [],
-      },
-    ],
-  },
   workspaceState: {
     currentProjectId: null as string | null,
   },
@@ -42,11 +34,6 @@ vi.mock("@assistant-ui/react", () => ({
       thread: { isDisabled: boolean; isRunning: boolean; messages: unknown[] };
     }) => unknown,
   ) => selector({ thread: { ...assistantUiMock.threadState, messages: [] } }),
-}));
-
-vi.mock("@/stores/use-ai-chat-store", () => ({
-  useAiChatStore: (selector: (state: typeof storeMock.aiState) => unknown) =>
-    selector(storeMock.aiState),
 }));
 
 vi.mock("@/stores/use-workspace-store", () => ({
@@ -134,7 +121,7 @@ describe("AISuggestions", () => {
     vi.clearAllMocks();
     assistantUiMock.threadState = { isDisabled: false, isRunning: false };
     storeMock.workspaceState.currentProjectId = null;
-    storeMock.aiState.conversations = [{ id: "conversation-1", messages: [] }];
+    window.localStorage.clear();
     window.history.pushState({}, "", "/");
   });
 
@@ -156,6 +143,40 @@ describe("AISuggestions", () => {
     expect(screen.getByRole("button", { name: "生成发布清单" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "检查内容质量" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "优化页面体验" })).not.toBeInTheDocument();
+  });
+
+  it("does not derive normalized thread suggestions from legacy conversation artifacts", () => {
+    storeMock.workspaceState.currentProjectId = "project-1";
+    window.localStorage.setItem(
+      STORAGE_KEYS.aiChat,
+      JSON.stringify({
+        state: {
+          conversations: [
+            {
+              id: "conversation-1",
+              messages: [
+                {
+                  role: "assistant",
+                  agentArtifact: {
+                    type: "agent_execution_plan",
+                    goal: "Legacy plan",
+                    status: "planned",
+                    steps: [],
+                  },
+                },
+              ],
+            },
+          ],
+          activeId: "conversation-1",
+        },
+      }),
+    );
+    window.history.pushState({}, "", "/projects/project-1");
+
+    render(<AISuggestions />);
+
+    expect(screen.getByRole("button", { name: "梳理当前页面" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "细化执行方案" })).not.toBeInTheDocument();
   });
 
   it("sends the selected prompt through the assistant runtime", () => {
@@ -189,64 +210,5 @@ describe("AISuggestions", () => {
     expect(assistantUiMock.setText).toHaveBeenCalledWith(
       "请为当前项目生成发布前检查清单，覆盖内容、资源、SEO、权限和回滚准备。",
     );
-  });
-
-  it("renders message-level next steps from a planned workspace artifact", () => {
-    render(
-      <AISuggestions
-        source="message"
-        agentArtifact={{
-          type: "agent_execution_plan",
-          goal: "帮我创建一个企业官网",
-          status: "planned",
-          steps: [],
-          source: "workspace_action:planned_mutation",
-        }}
-      />,
-    );
-
-    expect(screen.getByRole("button", { name: "细化执行方案" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "规划下一步" })).toBeInTheDocument();
-  });
-
-  it("renders site-builder next steps after project creation", () => {
-    render(
-      <AISuggestions
-        source="message"
-        workspaceAction={{
-          type: "workspace_project_created",
-          status: "completed",
-          project: {
-            id: "project-1",
-            name: "企业官网",
-            slug: "enterprise",
-          },
-          summary: {
-            editorPath: "/projects/project-1/editor",
-            homepageItemId: "item-home",
-            routePath: "/",
-            sourceFileCount: 2,
-          },
-          navigation: { label: "进入项目", path: "/projects/project-1" },
-        }}
-      />,
-    );
-
-    expect(screen.getByRole("button", { name: "编辑首页" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "调整源码" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "检查发布" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "规划内容模型" })).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "编辑首页" }));
-
-    expect(assistantUiMock.append).toHaveBeenCalledWith({
-      content: [
-        {
-          type: "text",
-          text: "请基于刚创建的项目，直接更新首页 Hero 和第一个内容区块。保持首页内容条目、可复用区块模型、组件绑定、路由和 React+Vite 源码一致。",
-        },
-      ],
-      runConfig: assistantUiMock.composerState.runConfig,
-    });
   });
 });

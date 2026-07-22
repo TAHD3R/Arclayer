@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -44,8 +44,6 @@ vi.mock("react-i18next", () => ({
         "ai:AI_CHAT_MODE_BUILD_DESC": "Apply focused code and UI changes",
         "ai:AI_CHAT_MODE_PLAN": "Plan",
         "ai:AI_CHAT_MODE_PLAN_DESC": "Shape the approach before editing",
-        "ai:AI_CHAT_MODE_AGENT": "Project Copilot",
-        "ai:AI_CHAT_MODE_AGENT_DESC": "Read project context",
         "ai:AI_CHAT_MODE_UNAVAILABLE_DESC": `${values?.description ?? ""} · Unavailable`,
         "ai:AI_CHAT_COMPOSER_ADD_MENU": "Add context",
         "ai:AI_CHAT_UPLOAD_FILE": "Upload file",
@@ -107,17 +105,16 @@ describe("AIComposerContextControls", () => {
     const user = userEvent.setup();
     renderControls();
 
-    await waitFor(() => expect(listAIProjectAgents).toHaveBeenCalled());
     await user.click(screen.getByRole("button", { name: "Select work mode" }));
 
     const buildItem = await screen.findByRole("menuitem", { name: /Build/ });
     const planItem = await screen.findByRole("menuitem", { name: /Plan/ });
-    const agentItem = await screen.findByRole("menuitem", { name: /Project Copilot/ });
 
     expect(useAiChatStore.getState().composerMode).toBe("build");
     expect(buildItem).not.toHaveAttribute("data-disabled");
     expect(planItem).not.toHaveAttribute("data-disabled");
-    expect(agentItem).not.toHaveAttribute("data-disabled");
+    expect(screen.queryByRole("menuitem", { name: /Project Copilot/ })).not.toBeInTheDocument();
+    expect(listAIProjectAgents).not.toHaveBeenCalled();
   });
 
   it("toggles web search from the add context menu", async () => {

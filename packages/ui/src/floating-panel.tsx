@@ -228,6 +228,7 @@ interface FloatingPanelContentProps {
   description?: React.ReactNode;
   titleClassName?: string;
   descriptionClassName?: string;
+  matchTriggerWidth?: boolean;
 }
 
 type FloatingPanelPlacement = "auto" | "top" | "bottom" | "right-start";
@@ -322,6 +323,7 @@ export function FloatingPanelContent({
   description,
   titleClassName,
   descriptionClassName,
+  matchTriggerWidth = false,
 }: FloatingPanelContentProps) {
   const { isOpen, closeFloatingPanel, uniqueId, triggerRect, triggerEl, title } =
     useFloatingPanel();
@@ -442,7 +444,7 @@ export function FloatingPanelContent({
             layoutId={`floating-panel-${uniqueId}`}
             className={cn(
               "fixed z-50 overflow-hidden outline-none",
-              "rounded-xl border border-border bg-popover text-popover-foreground ",
+              "rounded-md border border-border bg-popover text-popover-foreground ",
               OVERLAY_LAYER_SHADOW_CLASSNAME,
               className,
             )}
@@ -450,6 +452,7 @@ export function FloatingPanelContent({
               left: position ? position.left : triggerRect ? triggerRect.left : "50%",
               top: position ? position.top : triggerRect ? triggerRect.bottom + offset : "50%",
               transformOrigin: "top left",
+              width: matchTriggerWidth && triggerRect ? triggerRect.width : undefined,
             }}
             initial="hidden"
             animate="visible"

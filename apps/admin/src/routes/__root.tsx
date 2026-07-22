@@ -93,8 +93,9 @@ export const Route = createRootRoute({
       isWelcome &&
       import.meta.env.DEV &&
       new URLSearchParams(location.searchStr).get("dryRun") === "1";
-    const createWorkspaceWelcome =
-      isWelcome && new URLSearchParams(location.searchStr).get("mode") === "create-workspace";
+    const welcomeSearch = new URLSearchParams(location.searchStr);
+    const createWorkspaceWelcome = isWelcome && welcomeSearch.get("mode") === "create-workspace";
+    const invitationWelcome = isWelcome && welcomeSearch.get("mode") === "invitation";
 
     if (!token && !isPublic) {
       throw redirect({
@@ -104,7 +105,7 @@ export const Route = createRootRoute({
       });
     }
 
-    if (token && (dryRunWelcome || createWorkspaceWelcome)) {
+    if (token && (dryRunWelcome || createWorkspaceWelcome || invitationWelcome)) {
       return;
     }
 
@@ -125,6 +126,14 @@ export const Route = createRootRoute({
             projectId: decision.projectId,
           });
         }
+        const redirectTo = welcomeSearch.get("redirect");
+        if (
+          typeof redirectTo === "string" &&
+          redirectTo.startsWith("/") &&
+          !redirectTo.startsWith("//")
+        ) {
+          throw redirect({ to: redirectTo });
+        }
         throw redirect({ to: decision.path });
       }
     }
@@ -141,13 +150,25 @@ export const Route = createRootRoute({
           projectId: decision.projectId,
         });
       }
+      if (decision.onboardingRequired) {
+        const safeRedirect =
+          typeof redirectTo === "string" &&
+          redirectTo.startsWith("/") &&
+          !redirectTo.startsWith("//")
+            ? redirectTo
+            : null;
+        throw redirect({
+          to: "/welcome",
+          ...(safeRedirect ? { search: { redirect: safeRedirect } } : {}),
+        });
+      }
       if (
         typeof redirectTo === "string" &&
         redirectTo.startsWith("/") &&
         !redirectTo.startsWith("//")
       ) {
         const pathname = redirectTo.split("?")[0] || "";
-        if (!isAuthScenePath(pathname) && !decision.onboardingRequired) {
+        if (!isAuthScenePath(pathname)) {
           if (redirectTo.startsWith("/editor")) {
             if (typeof window !== "undefined") {
               window.location.replace(normalizeEditorRedirectPath(redirectTo));

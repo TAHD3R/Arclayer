@@ -1,5 +1,59 @@
 import { type Plugin } from "vite";
 
+const VIEWBOX_SIZE = 100;
+const CURVE_CENTER = VIEWBOX_SIZE / 2;
+const BASE_RADIUS = 7;
+const DETAIL_AMPLITUDE = 3;
+const WEAVE_FREQUENCY = 5;
+const CURVE_SCALE = 3.9;
+const CURVE_SAMPLE_COUNT = 360;
+const PARTICLE_COUNT = 64;
+const TRAIL_SPAN = 0.38;
+const LOOP_DURATION_MS = 4_600;
+const PULSE_DURATION_MS = 4_200;
+const ROTATION_DURATION_MS = 28_000;
+
+function normalizeProgress(progress: number): number {
+  return ((progress % 1) + 1) % 1;
+}
+
+function getPoint(progress: number, detailScale: number): { x: number; y: number } {
+  const angle = normalizeProgress(progress) * Math.PI * 2;
+  const x =
+    BASE_RADIUS * Math.cos(angle) -
+    DETAIL_AMPLITUDE * detailScale * Math.cos(WEAVE_FREQUENCY * angle);
+  const y =
+    BASE_RADIUS * Math.sin(angle) -
+    DETAIL_AMPLITUDE * detailScale * Math.sin(WEAVE_FREQUENCY * angle);
+
+  return { x: CURVE_CENTER + x * CURVE_SCALE, y: CURVE_CENTER + y * CURVE_SCALE };
+}
+
+function getDetailScale(time: number): number {
+  const pulseAngle = ((time % PULSE_DURATION_MS) / PULSE_DURATION_MS) * Math.PI * 2;
+  return 0.5 + ((Math.sin(pulseAngle + 0.55) + 1) / 2) * 0.45;
+}
+
+function createArcWeavePath(detailScale: number): string {
+  return Array.from({ length: CURVE_SAMPLE_COUNT + 1 }, (_, index) => {
+    const point = getPoint(index / CURVE_SAMPLE_COUNT, detailScale);
+
+    return `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`;
+  }).join(" ");
+}
+
+function createParticleMarkup(detailScale: number): string {
+  return Array.from({ length: PARTICLE_COUNT }, (_, index) => {
+    const tailOffset = index / (PARTICLE_COUNT - 1);
+    const point = getPoint(-tailOffset * TRAIL_SPAN, detailScale);
+    const fade = Math.pow(1 - tailOffset, 0.58);
+    const radius = 1.05 + fade * 2.75;
+    const opacity = 0.08 + fade * 0.92;
+
+    return `<circle data-arc-weave-particle cx="${point.x.toFixed(2)}" cy="${point.y.toFixed(2)}" r="${radius.toFixed(2)}" fill="currentColor" opacity="${opacity.toFixed(3)}"></circle>`;
+  }).join("");
+}
+
 export interface InjectLoadingScreenOptions {
   /**
    * Text shown on the pre-React loading screen (usually product/app name).
@@ -45,51 +99,57 @@ export function injectLoadingScreen(options: InjectLoadingScreenOptions = {}): P
 #app-loading.is-hiding {
   opacity: 0;
 }
-#app-loading .spinner {
-  width: 16px;
-  height: 16px;
-  color: hsl(var(--muted-foreground, 215 16% 47%));
-  animation: app-loading-spin 1s linear infinite;
+#app-loading .arc-weave-loader {
+  width: 64px;
+  height: 64px;
+  color: hsl(var(--foreground, 0 0% 6.7%));
 }
-#app-loading .spinner circle {
-  opacity: 0.25;
+#app-loading .arc-weave-trace {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 5.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.1;
 }
-#app-loading .spinner path {
-  opacity: 1;
+[data-theme="dark"] #app-loading .arc-weave-loader {
+  color: hsl(var(--foreground, 0 0% 89.8%));
 }
-
-@keyframes app-loading-spin {
-  to {
-    transform: rotate(360deg);
-  }
+[data-motion="reduced"] #app-loading .arc-weave-particles {
+  display: none;
+}
+[data-motion="reduced"] #app-loading .arc-weave-trace {
+  opacity: 0.22;
 }
 
 @media (prefers-reduced-motion: reduce) {
   #app-loading {
     transition: opacity 0ms linear;
   }
-  #app-loading .spinner {
-    animation: none;
+  #app-loading .arc-weave-particles {
+    display: none;
+  }
+  #app-loading .arc-weave-trace {
+    opacity: 0.22;
   }
 }
 `.trim();
 
+  const staticDetailScale = getDetailScale(0);
+  const arcWeavePath = createArcWeavePath(staticDetailScale);
   const innerHtml = `
 <svg
-  class="spinner"
-  viewBox="0 0 24 24"
+  class="arc-weave-loader"
+  viewBox="0 0 ${VIEWBOX_SIZE} ${VIEWBOX_SIZE}"
   role="status"
   aria-label="${escapeHtml(appName)}"
   aria-live="polite"
+  focusable="false"
 >
-  <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="4"></circle>
-  <path
-    d="M12 2a10 10 0 0 1 10 10"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="4"
-    stroke-linecap="round"
-  ></path>
+  <g id="app-loading-arc-weave-group">
+    <path id="app-loading-arc-weave-path" class="arc-weave-trace" d="${arcWeavePath}"></path>
+    <g class="arc-weave-particles">${createParticleMarkup(staticDetailScale)}</g>
+  </g>
 </svg>
 `.trim();
 
@@ -99,6 +159,70 @@ export function injectLoadingScreen(options: InjectLoadingScreenOptions = {}): P
     // Record a "visible time" after the first paint so transitions always have a start state.
     var visibleAt = 0;
     var hiding = false;
+    var animationFrame = 0;
+    var startedAt = 0;
+
+    var normalizeProgress = function (progress) {
+      return ((progress % 1) + 1) % 1;
+    };
+
+    var getPoint = function (progress, detailScale) {
+      var angle = normalizeProgress(progress) * Math.PI * 2;
+      var x = ${BASE_RADIUS} * Math.cos(angle) - ${DETAIL_AMPLITUDE} * detailScale * Math.cos(${WEAVE_FREQUENCY} * angle);
+      var y = ${BASE_RADIUS} * Math.sin(angle) - ${DETAIL_AMPLITUDE} * detailScale * Math.sin(${WEAVE_FREQUENCY} * angle);
+      return { x: ${CURVE_CENTER} + x * ${CURVE_SCALE}, y: ${CURVE_CENTER} + y * ${CURVE_SCALE} };
+    };
+
+    var buildPath = function (detailScale) {
+      var points = [];
+      for (var index = 0; index <= ${CURVE_SAMPLE_COUNT}; index += 1) {
+        var point = getPoint(index / ${CURVE_SAMPLE_COUNT}, detailScale);
+        points.push((index === 0 ? "M" : "L") + " " + point.x.toFixed(2) + " " + point.y.toFixed(2));
+      }
+      return points.join(" ");
+    };
+
+    var getDetailScale = function (time) {
+      var pulseAngle = ((time % ${PULSE_DURATION_MS}) / ${PULSE_DURATION_MS}) * Math.PI * 2;
+      return 0.5 + ((Math.sin(pulseAngle + 0.55) + 1) / 2) * 0.45;
+    };
+
+    var renderFrame = function (time) {
+      var group = document.getElementById("app-loading-arc-weave-group");
+      var path = document.getElementById("app-loading-arc-weave-path");
+      if (!group || !path) throw new Error("Arc Weave loading screen is unavailable");
+
+      var particles = group.querySelectorAll("[data-arc-weave-particle]");
+      if (particles.length !== ${PARTICLE_COUNT}) throw new Error("Arc Weave particle count mismatch");
+
+      var progress = (time % ${LOOP_DURATION_MS}) / ${LOOP_DURATION_MS};
+      var detailScale = getDetailScale(time);
+      var rotation = -((time % ${ROTATION_DURATION_MS}) / ${ROTATION_DURATION_MS}) * 360;
+      group.setAttribute("transform", "rotate(" + rotation + " ${CURVE_CENTER} ${CURVE_CENTER})");
+      path.setAttribute("d", buildPath(detailScale));
+
+      particles.forEach(function (node, index) {
+        var tailOffset = index / (${PARTICLE_COUNT} - 1);
+        var point = getPoint(progress - tailOffset * ${TRAIL_SPAN}, detailScale);
+        var fade = Math.pow(1 - tailOffset, 0.58);
+        node.setAttribute("cx", point.x.toFixed(2));
+        node.setAttribute("cy", point.y.toFixed(2));
+        node.setAttribute("r", (1.05 + fade * 2.75).toFixed(2));
+        node.setAttribute("opacity", (0.08 + fade * 0.92).toFixed(3));
+      });
+    };
+
+    var tick = function (now) {
+      if (hiding) return;
+      var mediaReduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var userReduced = document.documentElement.dataset.motion === "reduced";
+      if (mediaReduced || userReduced) {
+        renderFrame(0);
+        return;
+      }
+      renderFrame(now - startedAt);
+      animationFrame = window.requestAnimationFrame(tick);
+    };
 
     var markVisible = function () {
       try {
@@ -110,6 +234,11 @@ export function injectLoadingScreen(options: InjectLoadingScreenOptions = {}): P
     requestAnimationFrame(function () {
       requestAnimationFrame(markVisible);
     });
+    requestAnimationFrame(function (now) {
+      startedAt = now;
+      renderFrame(0);
+      animationFrame = window.requestAnimationFrame(tick);
+    });
 
     window.__hideAppLoading = function () {
       try {
@@ -117,6 +246,7 @@ export function injectLoadingScreen(options: InjectLoadingScreenOptions = {}): P
         if (!el) return;
         if (hiding) return;
         hiding = true;
+        window.cancelAnimationFrame(animationFrame);
 
         // Keep it visible for a minimum duration so it feels like a real splash,
         // but still hide quickly once the app is ready.

@@ -10,9 +10,14 @@ function getFullLogoSrc(themeMode: ThemeMode) {
   return themeMode === "dark" ? "/logo-full-dark.svg" : "/logo-full.svg";
 }
 
+function getMarkLogoSrc(themeMode: ThemeMode) {
+  return themeMode === "dark" ? "/logo-dark.svg" : "/logo.svg";
+}
+
 export function AdminLogo(props: { to?: string; ariaLabel: string; size?: number }) {
   const to = props.to ?? "/";
   const size = props.size ?? 48;
+  const themeMode = usePreferencesStore((state) => state.themeMode);
 
   return (
     <Link
@@ -22,7 +27,7 @@ export function AdminLogo(props: { to?: string; ariaLabel: string; size?: number
       style={{ width: size, height: size }}
     >
       <img
-        src="/logo.svg"
+        src={getMarkLogoSrc(themeMode)}
         width={size}
         height={size}
         className="block max-w-none shrink-0 object-contain"
@@ -36,11 +41,12 @@ export function AdminLogo(props: { to?: string; ariaLabel: string; size?: number
 export function AdminBrandMark(props: { size?: number; productName?: string }) {
   const size = props.size ?? 80;
   const productName = props.productName;
+  const themeMode = usePreferencesStore((state) => state.themeMode);
 
   return (
     <div className="flex flex-col items-center gap-1.5">
       <img
-        src="/logo.svg"
+        src={getMarkLogoSrc(themeMode)}
         width={size}
         height={size}
         className="block object-contain"

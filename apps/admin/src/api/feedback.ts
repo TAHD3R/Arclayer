@@ -4,7 +4,9 @@ import type {
   CreateFeedbackMessagePayload,
   FeedbackCategory,
   FeedbackDetail,
+  FeedbackIntent,
   FeedbackListItem,
+  FeedbackOrdering,
   FeedbackPriority,
   FeedbackSource,
   FeedbackStatus,
@@ -18,10 +20,12 @@ export type {
   FeedbackCategory,
   FeedbackContextType,
   FeedbackDetail,
+  FeedbackIntent,
   FeedbackListItem,
   FeedbackMessage,
   FeedbackMessageKind,
   FeedbackPriority,
+  FeedbackOrdering,
   FeedbackSource,
   FeedbackStatus,
   FeedbackUser,
@@ -35,9 +39,17 @@ export type ListSystemFeedbackParams = {
   status?: FeedbackStatus;
   priority?: FeedbackPriority;
   source?: FeedbackSource;
-  category?: FeedbackCategory;
+  intent?: FeedbackIntent;
+  legacyCategory?: FeedbackCategory;
   workspaceId?: string;
+  projectId?: string;
   assigneeUserId?: string;
+  reporterUserId?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  activityFrom?: string;
+  activityTo?: string;
+  ordering?: FeedbackOrdering;
   search?: string;
   page?: number;
   size?: number;
@@ -55,9 +67,17 @@ export async function listSystemFeedback(
       status: params.status,
       priority: params.priority,
       source: params.source,
-      category: params.category,
+      intent: params.intent,
+      legacyCategory: params.legacyCategory,
       workspaceId: params.workspaceId,
+      projectId: params.projectId,
       assigneeUserId: params.assigneeUserId,
+      reporterUserId: params.reporterUserId,
+      createdFrom: params.createdFrom,
+      createdTo: params.createdTo,
+      activityFrom: params.activityFrom,
+      activityTo: params.activityTo,
+      ordering: params.ordering,
       search: params.search,
       page: params.page ?? 1,
       size: params.size ?? 20,
