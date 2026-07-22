@@ -5,333 +5,6 @@ export type ClientOptions = {
 };
 
 /**
- * AIConversationCreateRequest
- *
- * Create a workspace AI conversation with an optional client-generated id.
- */
-export type AiConversationCreateRequest = {
-    /**
-     * Contextsnapshot
-     */
-    contextSnapshot?: {
-        [key: string]: JsonValueInput;
-    };
-    /**
-     * Environmentid
-     */
-    environmentId?: string | null;
-    /**
-     * Id
-     */
-    id?: string | null;
-    /**
-     * Messages
-     */
-    messages?: Array<AiConversationMessageInput>;
-    mode?: AgentConversationMode;
-    /**
-     * Model
-     */
-    model?: string | null;
-    /**
-     * Projectid
-     */
-    projectId?: string | null;
-    /**
-     * Reasoningeffort
-     */
-    reasoningEffort?: 'low' | 'medium' | 'high' | null;
-    /**
-     * Runtimeid
-     */
-    runtimeId?: string | null;
-    /**
-     * Siteid
-     */
-    siteId?: string | null;
-    /**
-     * Title
-     */
-    title?: string | null;
-    /**
-     * Workspaceid
-     */
-    workspaceId: string;
-};
-
-/**
- * AIConversationListOut
- */
-export type AiConversationListOut = {
-    /**
-     * Conversations
-     */
-    conversations?: Array<AiConversationOut>;
-};
-
-/**
- * AIConversationMessage
- *
- * Persisted Admin AI conversation message.
- */
-export type AiConversationMessageInput = {
-    /**
-     * Agentartifact
-     */
-    agentArtifact?: {
-        [key: string]: JsonValueInput;
-    } | null;
-    /**
-     * Agentcheckpointid
-     */
-    agentCheckpointId?: string | null;
-    /**
-     * Agentexecutionsummary
-     */
-    agentExecutionSummary?: {
-        [key: string]: JsonValueInput;
-    } | null;
-    /**
-     * Agentinterrupt
-     */
-    agentInterrupt?: {
-        [key: string]: JsonValueInput;
-    } | null;
-    /**
-     * Agentrunid
-     */
-    agentRunId?: string | null;
-    /**
-     * Agentstatus
-     */
-    agentStatus?: 'running' | 'interrupted' | 'completed' | 'cancelled' | 'failed' | null;
-    /**
-     * Agentthreadid
-     */
-    agentThreadId?: string | null;
-    /**
-     * Content
-     */
-    content: string;
-    /**
-     * Error
-     */
-    error?: boolean;
-    /**
-     * Errordetails
-     */
-    errorDetails?: string | null;
-    /**
-     * Errormessage
-     */
-    errorMessage?: string | null;
-    /**
-     * Role
-     */
-    role: 'user' | 'assistant';
-    /**
-     * Workspaceaction
-     */
-    workspaceAction?: {
-        [key: string]: JsonValueInput;
-    } | null;
-};
-
-/**
- * AIConversationMessage
- *
- * Persisted Admin AI conversation message.
- */
-export type AiConversationMessageOutput = {
-    /**
-     * Agentartifact
-     */
-    agentArtifact?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Agentcheckpointid
-     */
-    agentCheckpointId?: string | null;
-    /**
-     * Agentexecutionsummary
-     */
-    agentExecutionSummary?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Agentinterrupt
-     */
-    agentInterrupt?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Agentrunid
-     */
-    agentRunId?: string | null;
-    /**
-     * Agentstatus
-     */
-    agentStatus?: 'running' | 'interrupted' | 'completed' | 'cancelled' | 'failed' | null;
-    /**
-     * Agentthreadid
-     */
-    agentThreadId?: string | null;
-    /**
-     * Content
-     */
-    content: string;
-    /**
-     * Error
-     */
-    error?: boolean;
-    /**
-     * Errordetails
-     */
-    errorDetails?: string | null;
-    /**
-     * Errormessage
-     */
-    errorMessage?: string | null;
-    /**
-     * Role
-     */
-    role: 'user' | 'assistant';
-    /**
-     * Workspaceaction
-     */
-    workspaceAction?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-};
-
-/**
- * AIConversationOut
- *
- * Workspace AI conversation stored by the backend.
- */
-export type AiConversationOut = {
-    /**
-     * Archivedat
-     */
-    archivedAt?: string | null;
-    /**
-     * Contextsnapshot
-     */
-    contextSnapshot?: {
-        [key: string]: JsonValueOutput;
-    };
-    /**
-     * Createdat
-     */
-    createdAt: string;
-    /**
-     * Environmentid
-     */
-    environmentId?: string | null;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Messages
-     */
-    messages?: Array<AiConversationMessageOutput>;
-    mode: AgentConversationMode;
-    /**
-     * Model
-     */
-    model?: string | null;
-    /**
-     * Projectarchivedat
-     */
-    projectArchivedAt?: string | null;
-    /**
-     * Projectid
-     */
-    projectId?: string | null;
-    /**
-     * Reasoningeffort
-     */
-    reasoningEffort?: string | null;
-    /**
-     * Runtimeid
-     */
-    runtimeId?: string | null;
-    /**
-     * Siteid
-     */
-    siteId?: string | null;
-    /**
-     * Title
-     */
-    title: string;
-    /**
-     * Updatedat
-     */
-    updatedAt: string;
-    /**
-     * Userid
-     */
-    userId: string;
-    /**
-     * Workspaceid
-     */
-    workspaceId: string;
-};
-
-/**
- * AIConversationUpdateRequest
- *
- * Patch mutable AI conversation fields.
- */
-export type AiConversationUpdateRequest = {
-    /**
-     * Archived
-     */
-    archived?: boolean | null;
-    /**
-     * Contextsnapshot
-     */
-    contextSnapshot?: {
-        [key: string]: JsonValueInput;
-    } | null;
-    /**
-     * Environmentid
-     */
-    environmentId?: string | null;
-    /**
-     * Messages
-     */
-    messages?: Array<AiConversationMessageInput> | null;
-    mode?: AgentConversationMode | null;
-    /**
-     * Model
-     */
-    model?: string | null;
-    /**
-     * Projectid
-     */
-    projectId?: string | null;
-    /**
-     * Reasoningeffort
-     */
-    reasoningEffort?: 'low' | 'medium' | 'high' | null;
-    /**
-     * Runtimeid
-     */
-    runtimeId?: string | null;
-    /**
-     * Siteid
-     */
-    siteId?: string | null;
-    /**
-     * Title
-     */
-    title?: string | null;
-};
-
-/**
  * AIModelCatalogItem
  *
  * Model option exposed to Admin UI.
@@ -1530,6 +1203,50 @@ export type AgentApprovalOut = {
 };
 
 /**
+ * AgentApprovalProfile
+ */
+export type AgentApprovalProfile = {
+    /**
+     * Profileid
+     */
+    profileId: string;
+};
+
+/**
+ * AgentApprovalResponseRequestV1
+ */
+export type AgentApprovalResponseRequestV1 = {
+    /**
+     * Approvalid
+     */
+    approvalId: string;
+    /**
+     * Approvalversion
+     */
+    approvalVersion: number;
+    /**
+     * Approved
+     */
+    approved: boolean;
+    /**
+     * Checkpointid
+     */
+    checkpointId: string;
+    /**
+     * Kind
+     */
+    kind: 'approval';
+    /**
+     * Optionid
+     */
+    optionId?: string | null;
+    /**
+     * Reason
+     */
+    reason?: string | null;
+};
+
+/**
  * AgentApprovalStatus
  */
 export type AgentApprovalStatus = 'pending' | 'approved' | 'rejected' | 'expired' | 'applied';
@@ -1555,6 +1272,52 @@ export type AgentCatalogOut = {
      * Tools
      */
     tools?: Array<AgentToolSpec>;
+};
+
+/**
+ * AgentChangeSetSnapshotV1
+ */
+export type AgentChangeSetSnapshotV1 = {
+    /**
+     * Baserevisionid
+     */
+    baseRevisionId: string;
+    /**
+     * Changesetid
+     */
+    changeSetId: string;
+    /**
+     * Previewref
+     */
+    previewRef: string;
+    /**
+     * Requiredapprovalids
+     */
+    requiredApprovalIds: Array<string>;
+    /**
+     * Summarykey
+     */
+    summaryKey: string;
+    /**
+     * Summaryparams
+     */
+    summaryParams: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Warnings
+     */
+    warnings: Array<ChangeSetWarningV1>;
+};
+
+/**
+ * AgentCompatibility
+ */
+export type AgentCompatibility = {
+    /**
+     * Agentruntimeprotocol
+     */
+    agentRuntimeProtocol?: 1;
 };
 
 /**
@@ -1755,9 +1518,316 @@ export type AgentDefinition = {
 };
 
 /**
+ * AgentDelegationSnapshotV1
+ */
+export type AgentDelegationSnapshotV1 = {
+    /**
+     * Artifactrefs
+     */
+    artifactRefs: Array<ArtifactRefV1>;
+    /**
+     * Childrunid
+     */
+    childRunId: string;
+    /**
+     * Completedat
+     */
+    completedAt: string | null;
+    /**
+     * Delegatedat
+     */
+    delegatedAt: string;
+    /**
+     * Delegationid
+     */
+    delegationId: string;
+    error: PublicErrorV1 | null;
+    /**
+     * Failedat
+     */
+    failedAt: string | null;
+    /**
+     * Objectivesummary
+     */
+    objectiveSummary: string;
+    /**
+     * Parenttoolcallid
+     */
+    parentToolCallId: string;
+    /**
+     * Sourceagentversionid
+     */
+    sourceAgentVersionId: string;
+    /**
+     * Status
+     */
+    status: 'delegated' | 'completed' | 'failed';
+    /**
+     * Summary
+     */
+    summary: string | null;
+    /**
+     * Targetagentversionid
+     */
+    targetAgentVersionId: string;
+};
+
+/**
+ * AgentHumanToolResultRequestV1
+ */
+export type AgentHumanToolResultRequestV1 = {
+    /**
+     * Checkpointid
+     */
+    checkpointId: string;
+    /**
+     * Kind
+     */
+    kind: 'human_result';
+    result: JsonValueInput;
+};
+
+/**
+ * AgentMessagePartSnapshotV1
+ */
+export type AgentMessagePartSnapshotV1 = {
+    /**
+     * Alt
+     */
+    alt?: string | null;
+    /**
+     * Approval
+     */
+    approval?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Args
+     */
+    args?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Argstext
+     */
+    argsText?: string | null;
+    /**
+     * Artifactrefs
+     */
+    artifactRefs?: Array<ArtifactRefV1>;
+    /**
+     * Completedat
+     */
+    completedAt?: string | null;
+    error?: PublicErrorV1 | null;
+    /**
+     * Failedat
+     */
+    failedAt?: string | null;
+    /**
+     * Mimetype
+     */
+    mimeType?: string | null;
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Partid
+     */
+    partId: string;
+    /**
+     * Partindex
+     */
+    partIndex: number;
+    /**
+     * Progress
+     */
+    progress?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    result?: JsonValueOutput;
+    /**
+     * Resultref
+     */
+    resultRef?: string | null;
+    /**
+     * Sourceid
+     */
+    sourceId?: string | null;
+    /**
+     * Startedat
+     */
+    startedAt?: string | null;
+    /**
+     * Status
+     */
+    status: 'running' | 'requires_action' | 'complete' | 'incomplete' | 'failed';
+    /**
+     * Text
+     */
+    text?: string | null;
+    /**
+     * Title
+     */
+    title?: string | null;
+    /**
+     * Toolcallid
+     */
+    toolCallId?: string | null;
+    /**
+     * Toolid
+     */
+    toolId?: string | null;
+    /**
+     * Toolname
+     */
+    toolName?: string | null;
+    /**
+     * Toolversion
+     */
+    toolVersion?: string | null;
+    /**
+     * Type
+     */
+    type: 'text' | 'source' | 'file' | 'image' | 'tool-call' | 'error';
+    /**
+     * Url
+     */
+    url?: string | null;
+};
+
+/**
+ * AgentMessageSnapshotV1
+ */
+export type AgentMessageSnapshotV1 = {
+    /**
+     * Actoruserid
+     */
+    actorUserId?: string | null;
+    /**
+     * Agentid
+     */
+    agentId?: string | null;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Messageid
+     */
+    messageId: string;
+    /**
+     * Parts
+     */
+    parts: Array<AgentMessagePartSnapshotV1>;
+    /**
+     * Placement
+     */
+    placement: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Role
+     */
+    role: 'assistant' | 'user';
+    /**
+     * Status
+     */
+    status: 'running' | 'complete' | 'incomplete' | 'failed';
+};
+
+/**
  * AgentMode
  */
 export type AgentMode = 'build' | 'plan' | 'agent';
+
+/**
+ * AgentModelPolicy
+ */
+export type AgentModelPolicy = {
+    /**
+     * Routingpolicy
+     */
+    routingPolicy?: 'workspace_default';
+};
+
+/**
+ * AgentPendingApprovalSnapshotV1
+ */
+export type AgentPendingApprovalSnapshotV1 = {
+    /**
+     * Approvalid
+     */
+    approvalId: string;
+    /**
+     * Approvalversion
+     */
+    approvalVersion: number;
+    /**
+     * Checkpointid
+     */
+    checkpointId: string;
+    /**
+     * Expiresat
+     */
+    expiresAt: string;
+    /**
+     * Messageid
+     */
+    messageId: string;
+    /**
+     * Options
+     */
+    options: Array<ApprovalOptionV1>;
+    /**
+     * Partid
+     */
+    partId: string;
+    /**
+     * Policyversion
+     */
+    policyVersion: string;
+    /**
+     * Requestedat
+     */
+    requestedAt: string;
+    risk: ApprovalRiskV1;
+    /**
+     * Status
+     */
+    status: 'pending';
+    /**
+     * Toolcallid
+     */
+    toolCallId: string;
+};
+
+/**
+ * AgentRunCommandResponseV1
+ */
+export type AgentRunCommandResponseV1 = {
+    /**
+     * Lastcursor
+     */
+    lastCursor: string;
+    /**
+     * Lastsequence
+     */
+    lastSequence: number;
+    /**
+     * Protocolversion
+     */
+    protocolVersion?: 1;
+    /**
+     * Runid
+     */
+    runId: string;
+    /**
+     * Status
+     */
+    status: 'queued' | 'running';
+};
 
 /**
  * AgentRunCreateRequest
@@ -1790,6 +1860,136 @@ export type AgentRunCreateRequest = {
 };
 
 /**
+ * AgentRunCreateRequestV1
+ */
+export type AgentRunCreateRequestV1 = {
+    /**
+     * Executionmode
+     */
+    executionMode: 'plan' | 'build';
+    /**
+     * Leadagentid
+     */
+    leadAgentId: string;
+    /**
+     * Mentionedagentids
+     */
+    mentionedAgentIds?: Array<string>;
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Projectid
+     */
+    projectId?: string | null;
+    /**
+     * Siterevisionid
+     */
+    siteRevisionId?: string | null;
+};
+
+/**
+ * AgentRunCreateResponseV1
+ */
+export type AgentRunCreateResponseV1 = {
+    /**
+     * Eventsurl
+     */
+    eventsUrl: string;
+    /**
+     * Lastcursor
+     */
+    lastCursor: string;
+    /**
+     * Lastsequence
+     */
+    lastSequence: number;
+    /**
+     * Protocolversion
+     */
+    protocolVersion?: 1;
+    /**
+     * Runid
+     */
+    runId: string;
+    /**
+     * Snapshoturl
+     */
+    snapshotUrl: string;
+    status: AgentRunStatusV1;
+    /**
+     * Threadid
+     */
+    threadId: string;
+};
+
+/**
+ * AgentRunDesignSystemContextV1
+ */
+export type AgentRunDesignSystemContextV1 = {
+    /**
+     * Assignmentid
+     */
+    assignmentId: string;
+    /**
+     * Assignmentrevision
+     */
+    assignmentRevision: number;
+    /**
+     * Compatibility
+     */
+    compatibility: {
+        [key: string]: string;
+    };
+    /**
+     * Contexthash
+     */
+    contextHash: string;
+    /**
+     * Contextversion
+     */
+    contextVersion?: 1;
+    /**
+     * Designsystemid
+     */
+    designSystemId: string;
+    manifest: DesignSystemManifestV1;
+    /**
+     * Manifestchecksum
+     */
+    manifestChecksum: string;
+    /**
+     * Ownerkind
+     */
+    ownerKind: 'workspace' | 'project';
+    /**
+     * Projectid
+     */
+    projectId: string;
+    /**
+     * Publishready
+     */
+    publishReady?: false;
+    /**
+     * Tokenindexhash
+     */
+    tokenIndexHash: string;
+    /**
+     * Validationfindinghash
+     */
+    validationFindingHash: string;
+    /**
+     * Validationfindings
+     */
+    validationFindings: Array<DesignSystemValidationFinding>;
+    /**
+     * Versionid
+     */
+    versionId: string;
+};
+
+/**
  * AgentRunEvent
  */
 export type AgentRunEvent = {
@@ -1806,6 +2006,32 @@ export type AgentRunEvent = {
  * AgentRunEventType
  */
 export type AgentRunEventType = 'run.created' | 'approval.required' | 'run.interrupted' | 'run.resumed' | 'message.delta' | 'tool.started' | 'tool.completed' | 'usage.partial' | 'run.completed' | 'run.cancelled' | 'run.failed';
+
+/**
+ * AgentRunInterruptSnapshotV1
+ */
+export type AgentRunInterruptSnapshotV1 = {
+    /**
+     * Approvalid
+     */
+    approvalId: string | null;
+    /**
+     * Checkpointid
+     */
+    checkpointId: string;
+    /**
+     * Interruptid
+     */
+    interruptId: string;
+    /**
+     * Reason
+     */
+    reason: 'approval_required' | 'human_tool_input';
+    /**
+     * Toolcallid
+     */
+    toolCallId: string;
+};
 
 /**
  * AgentRunOut
@@ -1895,9 +2121,161 @@ export type AgentRunResumeRequest = {
 };
 
 /**
+ * AgentRunSnapshotV1
+ */
+export type AgentRunSnapshotV1 = {
+    /**
+     * Artifactrefs
+     */
+    artifactRefs: Array<ArtifactRefV1>;
+    /**
+     * Changesets
+     */
+    changeSets: Array<AgentChangeSetSnapshotV1>;
+    /**
+     * Delegations
+     */
+    delegations: Array<AgentDelegationSnapshotV1>;
+    designSystemContext: AgentRunDesignSystemContextV1 | null;
+    error: PublicErrorV1 | null;
+    /**
+     * Lastcursor
+     */
+    lastCursor: string;
+    /**
+     * Lastsequence
+     */
+    lastSequence: number;
+    /**
+     * Messages
+     */
+    messages: Array<AgentMessageSnapshotV1>;
+    /**
+     * Minimumreplaycursor
+     */
+    minimumReplayCursor: string | null;
+    /**
+     * Minimumreplaysequence
+     */
+    minimumReplaySequence: number;
+    /**
+     * Pendingapprovals
+     */
+    pendingApprovals: Array<AgentPendingApprovalSnapshotV1>;
+    run: AgentRunStateSnapshotV1;
+    /**
+     * Runid
+     */
+    runId: string;
+    /**
+     * Snapshotversion
+     */
+    snapshotVersion: 1;
+    /**
+     * Terminal
+     */
+    terminal: boolean;
+    thread: AgentThreadSnapshotV1;
+    /**
+     * Threadid
+     */
+    threadId: string;
+    usage: UsageV1 | null;
+};
+
+/**
+ * AgentRunStateSnapshotV1
+ */
+export type AgentRunStateSnapshotV1 = {
+    /**
+     * Cancellationrequestedat
+     */
+    cancellationRequestedAt: string | null;
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Executionmode
+     */
+    executionMode: 'plan' | 'build';
+    interrupt: AgentRunInterruptSnapshotV1 | null;
+    /**
+     * Leadagentassignmentid
+     */
+    leadAgentAssignmentId: string;
+    /**
+     * Leadagentid
+     */
+    leadAgentId: string;
+    /**
+     * Leadagentversionid
+     */
+    leadAgentVersionId: string;
+    /**
+     * Mentionedagentassignmentids
+     */
+    mentionedAgentAssignmentIds: Array<string>;
+    /**
+     * Mentionedagentids
+     */
+    mentionedAgentIds: Array<string>;
+    /**
+     * Mentionedagentversionids
+     */
+    mentionedAgentVersionIds: Array<string>;
+    /**
+     * Owneruserid
+     */
+    ownerUserId: string;
+    /**
+     * Projectid
+     */
+    projectId: string | null;
+    /**
+     * Runid
+     */
+    runId: string;
+    settlement: SettlementV1 | null;
+    /**
+     * Siterevisionid
+     */
+    siteRevisionId: string | null;
+    /**
+     * Status
+     */
+    status: 'created' | 'queued' | 'running' | 'cancellation_requested' | 'interrupted' | 'completed' | 'cancelled' | 'failed';
+    /**
+     * Terminalat
+     */
+    terminalAt: string | null;
+    /**
+     * Threadid
+     */
+    threadId: string;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
  * AgentRunStatus
  */
 export type AgentRunStatus = 'queued' | 'running' | 'interrupted' | 'completed' | 'cancelled' | 'failed';
+
+/**
+ * AgentRunStatusV1
+ */
+export type AgentRunStatusV1 = 'created' | 'queued' | 'running' | 'cancellation_requested' | 'interrupted' | 'completed' | 'cancelled' | 'failed';
 
 /**
  * AgentSkillDefinition
@@ -1947,6 +2325,254 @@ export type AgentSkillDefinition = {
 };
 
 /**
+ * AgentThreadCreateRequestV1
+ */
+export type AgentThreadCreateRequestV1 = {
+    /**
+     * Leadagentid
+     */
+    leadAgentId: string;
+    /**
+     * Projectid
+     */
+    projectId: string | null;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * AgentThreadDeleteResultV1
+ */
+export type AgentThreadDeleteResultV1 = {
+    /**
+     * Deletedat
+     */
+    deletedAt: string;
+    /**
+     * Threadid
+     */
+    threadId: string;
+};
+
+/**
+ * AgentThreadDetailV1
+ */
+export type AgentThreadDetailV1 = {
+    /**
+     * Activerunid
+     */
+    activeRunId: string | null;
+    /**
+     * Archivedat
+     */
+    archivedAt: string | null;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Leadagentassignmentid
+     */
+    leadAgentAssignmentId: string;
+    /**
+     * Leadagentid
+     */
+    leadAgentId: string;
+    /**
+     * Leadagentversionid
+     */
+    leadAgentVersionId: string;
+    /**
+     * Messages
+     */
+    messages: Array<AgentMessageSnapshotV1>;
+    /**
+     * Projectid
+     */
+    projectId: string | null;
+    /**
+     * Protocolversion
+     */
+    protocolVersion?: number;
+    /**
+     * Threadid
+     */
+    threadId: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * AgentThreadListV1
+ */
+export type AgentThreadListV1 = {
+    /**
+     * Items
+     */
+    items: Array<AgentThreadOutV1>;
+    /**
+     * Nextcursor
+     */
+    nextCursor: string | null;
+};
+
+/**
+ * AgentThreadOutV1
+ */
+export type AgentThreadOutV1 = {
+    /**
+     * Archivedat
+     */
+    archivedAt: string | null;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Leadagentassignmentid
+     */
+    leadAgentAssignmentId: string;
+    /**
+     * Leadagentid
+     */
+    leadAgentId: string;
+    /**
+     * Leadagentversionid
+     */
+    leadAgentVersionId: string;
+    /**
+     * Projectid
+     */
+    projectId: string | null;
+    /**
+     * Protocolversion
+     */
+    protocolVersion?: number;
+    /**
+     * Threadid
+     */
+    threadId: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * AgentThreadSnapshotV1
+ */
+export type AgentThreadSnapshotV1 = {
+    /**
+     * Archivedat
+     */
+    archivedAt: string | null;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Leadagentassignmentid
+     */
+    leadAgentAssignmentId: string;
+    /**
+     * Leadagentid
+     */
+    leadAgentId: string;
+    /**
+     * Leadagentversionid
+     */
+    leadAgentVersionId: string;
+    /**
+     * Owneruserid
+     */
+    ownerUserId: string;
+    /**
+     * Projectid
+     */
+    projectId: string | null;
+    /**
+     * Threadid
+     */
+    threadId: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * AgentThreadUpdateRequestV1
+ */
+export type AgentThreadUpdateRequestV1 = {
+    /**
+     * Archived
+     */
+    archived?: boolean | null;
+    /**
+     * Title
+     */
+    title?: string | null;
+};
+
+/**
+ * AgentToolResponseV1
+ */
+export type AgentToolResponseV1 = {
+    /**
+     * Checkpointid
+     */
+    checkpointId: string;
+    /**
+     * Expectedsequence
+     */
+    expectedSequence: number;
+    /**
+     * Protocolversion
+     */
+    protocolVersion?: 1;
+    /**
+     * Responseid
+     */
+    responseId: string;
+    /**
+     * Responsekind
+     */
+    responseKind: 'approval' | 'human_result';
+    /**
+     * Toolcallid
+     */
+    toolCallId: string;
+};
+
+/**
  * AgentToolSpec
  */
 export type AgentToolSpec = {
@@ -1972,6 +2598,71 @@ export type AgentToolSpec = {
      * Requiredpermission
      */
     requiredPermission: string;
+};
+
+/**
+ * AgentVersionCreateRequest
+ */
+export type AgentVersionCreateRequest = {
+    approvalProfile: AgentApprovalProfile;
+    compatibility?: AgentCompatibility;
+    /**
+     * Delegationdefinitionids
+     */
+    delegationDefinitionIds?: Array<string>;
+    /**
+     * Instructions
+     */
+    instructions: string;
+    /**
+     * Knowledgebaseids
+     */
+    knowledgeBaseIds?: Array<string>;
+    modelPolicy?: AgentModelPolicy;
+    /**
+     * Skillgrantworkspaceid
+     */
+    skillGrantWorkspaceId?: string | null;
+    /**
+     * Skillinstallationids
+     */
+    skillInstallationIds?: Array<string>;
+    /**
+     * Supportedexecutionmodes
+     */
+    supportedExecutionModes: Array<'plan' | 'build'>;
+    /**
+     * Toolgrants
+     */
+    toolGrants?: Array<string>;
+};
+
+/**
+ * AgentVersionProvenance
+ */
+export type AgentVersionProvenance = {
+    /**
+     * Createdbyuserid
+     */
+    createdByUserId?: string | null;
+    /**
+     * Kind
+     */
+    kind: 'arclayer_official' | 'system_custom' | 'workspace_custom';
+    /**
+     * Manifestversion
+     */
+    manifestVersion?: number | null;
+};
+
+/**
+ * AgentVersionRetireRequest
+ */
+export type AgentVersionRetireRequest = {
+    /**
+     * State
+     */
+    state: 'retired';
 };
 
 /**
@@ -2076,6 +2767,70 @@ export type ApiKeyOut = {
  * ApiKeyScope
  */
 export type ApiKeyScope = 'content.read' | 'content.write' | 'models.read' | 'models.write' | 'delivery.read' | 'graphql.read' | 'keys.read' | 'keys.write' | 'settings.read' | 'settings.write';
+
+/**
+ * ApprovalOptionV1
+ */
+export type ApprovalOptionV1 = {
+    /**
+     * Confirm
+     */
+    confirm: boolean;
+    /**
+     * Descriptionkey
+     */
+    descriptionKey: string;
+    /**
+     * Grants
+     */
+    grants: Array<JsonValueOutput>;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Kind
+     */
+    kind: 'allow-once' | 'allow-always' | 'reject-once' | 'reject-always';
+    /**
+     * Labelkey
+     */
+    labelKey: string;
+};
+
+/**
+ * ApprovalRiskV1
+ */
+export type ApprovalRiskV1 = {
+    /**
+     * Previewref
+     */
+    previewRef?: string | null;
+    /**
+     * Sideeffectclass
+     */
+    sideEffectClass: 'read' | 'draft_write' | 'external_write' | 'publish' | 'destructive';
+    /**
+     * Summarykey
+     */
+    summaryKey: string;
+    /**
+     * Summaryparams
+     */
+    summaryParams: {
+        [key: string]: JsonValueOutput;
+    };
+};
+
+/**
+ * ArtifactRefV1
+ */
+export type ArtifactRefV1 = {
+    /**
+     * Artifactid
+     */
+    artifactId: string;
+};
 
 /**
  * AssetPurpose
@@ -2844,6 +3599,2966 @@ export type BillingRedirectOut = {
 };
 
 /**
+ * BuilderApprovalClass
+ */
+export type BuilderApprovalClass = 'none' | 'review' | 'destructive';
+
+/**
+ * BuilderApprovalStatus
+ */
+export type BuilderApprovalStatus = 'pending' | 'approved' | 'consumed' | 'expired';
+
+/**
+ * BuilderChangeSetAffectedTargetV1
+ */
+export type BuilderChangeSetAffectedTargetV1 = {
+    /**
+     * Clienttargetid
+     */
+    clientTargetId?: string | null;
+    /**
+     * Kind
+     */
+    kind: 'content_item' | 'route' | 'hierarchy' | 'content_model' | 'presentation' | 'design_system' | 'planning' | 'global_section';
+    /**
+     * Operationids
+     */
+    operationIds: Array<string>;
+    /**
+     * Targetid
+     */
+    targetId?: string | null;
+    /**
+     * Targetkey
+     */
+    targetKey?: string | null;
+};
+
+/**
+ * BuilderChangeSetApplyOut
+ */
+export type BuilderChangeSetApplyOut = {
+    /**
+     * Appliedat
+     */
+    appliedAt: string;
+    approval?: BuilderChangeSetApprovalOut | null;
+    /**
+     * Baserevisionid
+     */
+    baseRevisionId: string;
+    /**
+     * Changesetid
+     */
+    changeSetId: string;
+    /**
+     * Clientglobalsectionids
+     */
+    clientGlobalSectionIds?: {
+        [key: string]: string;
+    };
+    /**
+     * Clientpageids
+     */
+    clientPageIds?: {
+        [key: string]: string;
+    };
+    contentStructureRevision: ContentStructureRevisionOut;
+    siteRevision: SiteRevisionManifestV1;
+    status: BuilderChangeSetStatus;
+};
+
+/**
+ * BuilderChangeSetApplyRequest
+ */
+export type BuilderChangeSetApplyRequest = {
+    approval?: BuilderChangeSetApprovalDecisionIn | null;
+    /**
+     * Previewtoken
+     */
+    previewToken: string;
+};
+
+/**
+ * BuilderChangeSetApprovalDecisionIn
+ */
+export type BuilderChangeSetApprovalDecisionIn = {
+    /**
+     * Approvalid
+     */
+    approvalId: string;
+    /**
+     * Decision
+     */
+    decision: 'approve';
+    expectedApprovalClass: BuilderApprovalClass;
+};
+
+/**
+ * BuilderChangeSetApprovalOut
+ */
+export type BuilderChangeSetApprovalOut = {
+    approvalClass: BuilderApprovalClass;
+    /**
+     * Approvalid
+     */
+    approvalId: string;
+    /**
+     * Expiresat
+     */
+    expiresAt: string;
+    status: BuilderApprovalStatus;
+};
+
+/**
+ * BuilderChangeSetIssueV1
+ */
+export type BuilderChangeSetIssueV1 = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Messagekey
+     */
+    messageKey: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Operationid
+     */
+    operationId?: string | null;
+    /**
+     * Severity
+     */
+    severity: 'info' | 'warning' | 'blocker';
+};
+
+/**
+ * BuilderChangeSetPreviewOut
+ */
+export type BuilderChangeSetPreviewOut = {
+    /**
+     * Affectedtargets
+     */
+    affectedTargets: Array<BuilderChangeSetAffectedTargetV1>;
+    approval?: BuilderChangeSetApprovalOut | null;
+    approvalClass: BuilderApprovalClass;
+    /**
+     * Baseetag
+     */
+    baseEtag: string;
+    /**
+     * Baserevisionid
+     */
+    baseRevisionId: string;
+    /**
+     * Changesetid
+     */
+    changeSetId: string;
+    /**
+     * Designcandidates
+     */
+    designCandidates?: Array<BuilderDesignCandidateV1>;
+    /**
+     * Expiresat
+     */
+    expiresAt: string;
+    globalSectionGraph?: BuilderGlobalSectionDependencyGraphOut;
+    /**
+     * Issues
+     */
+    issues: Array<BuilderChangeSetIssueV1>;
+    /**
+     * Operations
+     */
+    operations: Array<({
+        type: 'page.create';
+    } & BuilderPageCreateOperationV1Output) | ({
+        type: 'page.rename';
+    } & BuilderPageRenameOperationV1) | ({
+        type: 'page.move';
+    } & BuilderPageMoveOperationV1) | ({
+        type: 'page.reorder';
+    } & BuilderPageReorderOperationV1) | ({
+        type: 'page.delete';
+    } & BuilderPageDeleteOperationV1) | ({
+        type: 'global_section.create';
+    } & BuilderGlobalSectionCreateOperationV1Output) | ({
+        type: 'global_section.delete';
+    } & BuilderGlobalSectionDeleteOperationV1) | ({
+        type: 'page.intent.replace';
+    } & BuilderPageIntentReplaceOperationV1) | ({
+        type: 'global_section.intent.replace';
+    } & BuilderGlobalSectionIntentReplaceOperationV1) | ({
+        type: 'route.set';
+    } & BuilderRouteSetOperationV1) | ({
+        type: 'route.disable';
+    } & BuilderRouteDisableOperationV1) | ({
+        type: 'wireframe.initialize';
+    } & BuilderWireframeInitializeOperationV1Output) | ({
+        type: 'wireframe.section.add';
+    } & BuilderWireframeSectionAddOperationV1Output) | ({
+        type: 'wireframe.section.duplicate';
+    } & BuilderWireframeSectionDuplicateOperationV1) | ({
+        type: 'wireframe.section.remove';
+    } & BuilderWireframeSectionRemoveOperationV1) | ({
+        type: 'wireframe.section.reorder';
+    } & BuilderWireframeSectionReorderOperationV1) | ({
+        type: 'wireframe.section.configure';
+    } & BuilderWireframeSectionConfigureOperationV1Output) | ({
+        type: 'wireframe.set_component';
+    } & BuilderWireframeSetComponentOperationV1) | ({
+        type: 'wireframe.set_variant';
+    } & BuilderWireframeSetVariantOperationV1) | ({
+        type: 'wireframe.set_binding';
+    } & BuilderWireframeSetBindingOperationV1Output) | ({
+        type: 'wireframe.clear_binding';
+    } & BuilderWireframeClearBindingOperationV1) | ({
+        type: 'wireframe.set_responsive_rule';
+    } & BuilderWireframeSetResponsiveRuleOperationV1) | ({
+        type: 'wireframe.clear_responsive_rule';
+    } & BuilderWireframeClearResponsiveRuleOperationV1) | ({
+        type: 'wireframe.set_interactions';
+    } & BuilderWireframeSetInteractionsOperationV1) | ({
+        type: 'wireframe.set_global_reference';
+    } & BuilderWireframeSetGlobalReferenceOperationV1) | ({
+        type: 'wireframe.clear_global_reference';
+    } & BuilderWireframeClearGlobalReferenceOperationV1) | ({
+        type: 'design.initialize';
+    } & BuilderDesignInitializeOperationV1) | ({
+        type: 'design.style.set';
+    } & BuilderDesignStyleSetOperationV1) | ({
+        type: 'design.style.clear';
+    } & BuilderDesignStyleClearOperationV1) | ({
+        type: 'design.responsive_style.set';
+    } & BuilderDesignResponsiveStyleSetOperationV1) | ({
+        type: 'design.responsive_style.clear';
+    } & BuilderDesignResponsiveStyleClearOperationV1) | ({
+        type: 'design-system.refresh';
+    } & BuilderDesignSystemRefreshOperationV1)>;
+    /**
+     * Operationshash
+     */
+    operationsHash: string;
+    /**
+     * Previewref
+     */
+    previewRef: string;
+    /**
+     * Previewtoken
+     */
+    previewToken: string;
+    /**
+     * Requiredpermissions
+     */
+    requiredPermissions: Array<string>;
+    status: BuilderChangeSetStatus;
+    /**
+     * Summarykey
+     */
+    summaryKey: string;
+    /**
+     * Summaryparams
+     */
+    summaryParams: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Wireframecandidates
+     */
+    wireframeCandidates?: Array<BuilderWireframeCandidateV1>;
+};
+
+/**
+ * BuilderChangeSetPreviewRequest
+ */
+export type BuilderChangeSetPreviewRequest = {
+    /**
+     * Agentid
+     */
+    agentId?: string | null;
+    /**
+     * Agentrunid
+     */
+    agentRunId?: string | null;
+    /**
+     * Baseetag
+     */
+    baseEtag: string;
+    /**
+     * Baserevisionid
+     */
+    baseRevisionId: string;
+    /**
+     * Expiresinseconds
+     */
+    expiresInSeconds?: number;
+    /**
+     * Operations
+     */
+    operations: Array<({
+        type: 'page.create';
+    } & BuilderPageCreateOperationV1Input) | ({
+        type: 'page.rename';
+    } & BuilderPageRenameOperationV1) | ({
+        type: 'page.move';
+    } & BuilderPageMoveOperationV1) | ({
+        type: 'page.reorder';
+    } & BuilderPageReorderOperationV1) | ({
+        type: 'page.delete';
+    } & BuilderPageDeleteOperationV1) | ({
+        type: 'global_section.create';
+    } & BuilderGlobalSectionCreateOperationV1Input) | ({
+        type: 'global_section.delete';
+    } & BuilderGlobalSectionDeleteOperationV1) | ({
+        type: 'page.intent.replace';
+    } & BuilderPageIntentReplaceOperationV1) | ({
+        type: 'global_section.intent.replace';
+    } & BuilderGlobalSectionIntentReplaceOperationV1) | ({
+        type: 'route.set';
+    } & BuilderRouteSetOperationV1) | ({
+        type: 'route.disable';
+    } & BuilderRouteDisableOperationV1) | ({
+        type: 'wireframe.initialize';
+    } & BuilderWireframeInitializeOperationV1Input) | ({
+        type: 'wireframe.section.add';
+    } & BuilderWireframeSectionAddOperationV1Input) | ({
+        type: 'wireframe.section.duplicate';
+    } & BuilderWireframeSectionDuplicateOperationV1) | ({
+        type: 'wireframe.section.remove';
+    } & BuilderWireframeSectionRemoveOperationV1) | ({
+        type: 'wireframe.section.reorder';
+    } & BuilderWireframeSectionReorderOperationV1) | ({
+        type: 'wireframe.section.configure';
+    } & BuilderWireframeSectionConfigureOperationV1Input) | ({
+        type: 'wireframe.set_component';
+    } & BuilderWireframeSetComponentOperationV1) | ({
+        type: 'wireframe.set_variant';
+    } & BuilderWireframeSetVariantOperationV1) | ({
+        type: 'wireframe.set_binding';
+    } & BuilderWireframeSetBindingOperationV1Input) | ({
+        type: 'wireframe.clear_binding';
+    } & BuilderWireframeClearBindingOperationV1) | ({
+        type: 'wireframe.set_responsive_rule';
+    } & BuilderWireframeSetResponsiveRuleOperationV1) | ({
+        type: 'wireframe.clear_responsive_rule';
+    } & BuilderWireframeClearResponsiveRuleOperationV1) | ({
+        type: 'wireframe.set_interactions';
+    } & BuilderWireframeSetInteractionsOperationV1) | ({
+        type: 'wireframe.set_global_reference';
+    } & BuilderWireframeSetGlobalReferenceOperationV1) | ({
+        type: 'wireframe.clear_global_reference';
+    } & BuilderWireframeClearGlobalReferenceOperationV1) | ({
+        type: 'design.initialize';
+    } & BuilderDesignInitializeOperationV1) | ({
+        type: 'design.style.set';
+    } & BuilderDesignStyleSetOperationV1) | ({
+        type: 'design.style.clear';
+    } & BuilderDesignStyleClearOperationV1) | ({
+        type: 'design.responsive_style.set';
+    } & BuilderDesignResponsiveStyleSetOperationV1) | ({
+        type: 'design.responsive_style.clear';
+    } & BuilderDesignResponsiveStyleClearOperationV1) | ({
+        type: 'design-system.refresh';
+    } & BuilderDesignSystemRefreshOperationV1)>;
+    /**
+     * Provenancesource
+     */
+    provenanceSource?: 'human' | 'agent';
+    /**
+     * Toolname
+     */
+    toolName?: string | null;
+};
+
+/**
+ * BuilderChangeSetStatus
+ */
+export type BuilderChangeSetStatus = 'previewed' | 'applied' | 'expired' | 'failed';
+
+/**
+ * BuilderComponentCatalogOut
+ */
+export type BuilderComponentCatalogOut = {
+    /**
+     * Breakpoints
+     */
+    breakpoints?: {
+        [key: string]: string;
+    };
+    catalog: ComponentCatalogV1;
+    /**
+     * Defaultthemekey
+     */
+    defaultThemeKey: string;
+    /**
+     * Designsystemmanifestchecksum
+     */
+    designSystemManifestChecksum: string;
+    /**
+     * Designsystemversionid
+     */
+    designSystemVersionId: string;
+    /**
+     * Designtokens
+     */
+    designTokens?: Array<BuilderDesignTokenOut>;
+    /**
+     * Siterevisionid
+     */
+    siteRevisionId: string;
+};
+
+/**
+ * BuilderCompositionSagaCancelRequest
+ */
+export type BuilderCompositionSagaCancelRequest = {
+    /**
+     * Reason
+     */
+    reason?: string | null;
+};
+
+/**
+ * BuilderCompositionSagaCreateRequest
+ */
+export type BuilderCompositionSagaCreateRequest = {
+    /**
+     * Agentid
+     */
+    agentId?: string | null;
+    /**
+     * Agentrunid
+     */
+    agentRunId?: string | null;
+    /**
+     * Baseetag
+     */
+    baseEtag: string;
+    /**
+     * Baserevisionid
+     */
+    baseRevisionId: string;
+    /**
+     * Candidatecount
+     */
+    candidateCount?: number;
+    /**
+     * Knowledgereferenceids
+     */
+    knowledgeReferenceIds?: Array<string>;
+    /**
+     * Locale
+     */
+    locale?: string;
+    /**
+     * Objective
+     */
+    objective: string;
+    /**
+     * Targets
+     */
+    targets: Array<BuilderGenerationTargetV1>;
+};
+
+/**
+ * BuilderCompositionSagaFailureOut
+ */
+export type BuilderCompositionSagaFailureOut = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Messagekey
+     */
+    messageKey: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    };
+};
+
+/**
+ * BuilderCompositionSagaOut
+ */
+export type BuilderCompositionSagaOut = {
+    /**
+     * Agentassignmentid
+     */
+    agentAssignmentId: string;
+    /**
+     * Agentid
+     */
+    agentId: string;
+    /**
+     * Agentrunid
+     */
+    agentRunId: string | null;
+    /**
+     * Agentversionid
+     */
+    agentVersionId: string;
+    /**
+     * Cancelrequestedat
+     */
+    cancelRequestedAt: string | null;
+    /**
+     * Compositionchangesetid
+     */
+    compositionChangeSetId: string | null;
+    compositionGeneration: BuilderGenerationOut | null;
+    /**
+     * Compositionresultrevisionid
+     */
+    compositionResultRevisionId: string | null;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Currentphase
+     */
+    currentPhase: 'planning' | 'composition' | 'completed';
+    failure: BuilderCompositionSagaFailureOut | null;
+    /**
+     * Initialbaseetag
+     */
+    initialBaseEtag: string;
+    /**
+     * Initialbaserevisionid
+     */
+    initialBaseRevisionId: string;
+    /**
+     * Planningchangesetid
+     */
+    planningChangeSetId: string | null;
+    planningGeneration: BuilderGenerationOut;
+    /**
+     * Planningresultrevisionid
+     */
+    planningResultRevisionId: string | null;
+    /**
+     * Planningtargets
+     */
+    planningTargets: Array<BuilderGenerationTargetV1>;
+    /**
+     * Sagaid
+     */
+    sagaId: string;
+    status: BuilderCompositionSagaStatus;
+    /**
+     * Targets
+     */
+    targets: Array<BuilderGenerationTargetV1>;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Waitingreason
+     */
+    waitingReason: 'planning_review' | 'composition_review' | null;
+};
+
+/**
+ * BuilderCompositionSagaPhaseTransitionRequest
+ */
+export type BuilderCompositionSagaPhaseTransitionRequest = {
+    /**
+     * Appliedchangesetid
+     */
+    appliedChangeSetId: string;
+    /**
+     * Appliedsiterevisionid
+     */
+    appliedSiteRevisionId: string;
+    /**
+     * Expectedphase
+     */
+    expectedPhase: 'planning' | 'composition';
+};
+
+/**
+ * BuilderCompositionSagaRecoveryOut
+ */
+export type BuilderCompositionSagaRecoveryOut = {
+    active: BuilderCompositionSagaOut | null;
+    latestTerminal: BuilderCompositionSagaOut | null;
+};
+
+/**
+ * BuilderCompositionSagaStatus
+ */
+export type BuilderCompositionSagaStatus = 'planning_queued' | 'planning_running' | 'planning_review_pending' | 'composition_queued' | 'composition_running' | 'composition_review_pending' | 'completed' | 'failed' | 'cancelled';
+
+/**
+ * BuilderDesignCandidateV1
+ */
+export type BuilderDesignCandidateV1 = {
+    /**
+     * Basecontentversionid
+     */
+    baseContentVersionId: string;
+    /**
+     * Baseversionnumber
+     */
+    baseVersionNumber: number;
+    /**
+     * Hostkind
+     */
+    hostKind: 'page' | 'global_section';
+    /**
+     * Itemid
+     */
+    itemId: string;
+    visualBlueprint: VisualBlueprintDocumentV1;
+};
+
+/**
+ * BuilderDesignInitializeOperationV1
+ */
+export type BuilderDesignInitializeOperationV1 = {
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Sourcewireframechecksum
+     */
+    sourceWireframeChecksum: string;
+    /**
+     * Type
+     */
+    type: 'design.initialize';
+};
+
+/**
+ * BuilderDesignResponsiveStyleClearOperationV1
+ */
+export type BuilderDesignResponsiveStyleClearOperationV1 = {
+    /**
+     * Breakpoint
+     */
+    breakpoint: string;
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Sectionid
+     */
+    sectionId: string;
+    /**
+     * Sourcewireframechecksum
+     */
+    sourceWireframeChecksum: string;
+    /**
+     * Statekey
+     */
+    stateKey: string;
+    /**
+     * Styleslotkey
+     */
+    styleSlotKey: string;
+    /**
+     * Type
+     */
+    type: 'design.responsive_style.clear';
+};
+
+/**
+ * BuilderDesignResponsiveStyleSetOperationV1
+ */
+export type BuilderDesignResponsiveStyleSetOperationV1 = {
+    /**
+     * Breakpoint
+     */
+    breakpoint: string;
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Sectionid
+     */
+    sectionId: string;
+    /**
+     * Sourcewireframechecksum
+     */
+    sourceWireframeChecksum: string;
+    /**
+     * Statekey
+     */
+    stateKey: string;
+    /**
+     * Styleslotkey
+     */
+    styleSlotKey: string;
+    /**
+     * Tokenpath
+     */
+    tokenPath: string;
+    /**
+     * Type
+     */
+    type: 'design.responsive_style.set';
+};
+
+/**
+ * BuilderDesignStyleClearOperationV1
+ */
+export type BuilderDesignStyleClearOperationV1 = {
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Sectionid
+     */
+    sectionId: string;
+    /**
+     * Sourcewireframechecksum
+     */
+    sourceWireframeChecksum: string;
+    /**
+     * Statekey
+     */
+    stateKey: string;
+    /**
+     * Styleslotkey
+     */
+    styleSlotKey: string;
+    /**
+     * Type
+     */
+    type: 'design.style.clear';
+};
+
+/**
+ * BuilderDesignStyleSetOperationV1
+ */
+export type BuilderDesignStyleSetOperationV1 = {
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Sectionid
+     */
+    sectionId: string;
+    /**
+     * Sourcewireframechecksum
+     */
+    sourceWireframeChecksum: string;
+    /**
+     * Statekey
+     */
+    stateKey: string;
+    /**
+     * Styleslotkey
+     */
+    styleSlotKey: string;
+    /**
+     * Tokenpath
+     */
+    tokenPath: string;
+    /**
+     * Type
+     */
+    type: 'design.style.set';
+};
+
+/**
+ * BuilderDesignSystemRefreshOperationV1
+ */
+export type BuilderDesignSystemRefreshOperationV1 = {
+    /**
+     * Designsystemid
+     */
+    designSystemId: string;
+    /**
+     * Expectedassignmentrevision
+     */
+    expectedAssignmentRevision: number;
+    /**
+     * Expectedmanifestchecksum
+     */
+    expectedManifestChecksum: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Type
+     */
+    type: 'design-system.refresh';
+    /**
+     * Validationfindinghash
+     */
+    validationFindingHash: string;
+    /**
+     * Versionid
+     */
+    versionId: string;
+};
+
+/**
+ * BuilderDesignTokenOut
+ */
+export type BuilderDesignTokenOut = {
+    /**
+     * Deprecated
+     */
+    deprecated?: boolean;
+    /**
+     * Path
+     */
+    path: string;
+    /**
+     * Replacement
+     */
+    replacement?: string | null;
+    resolvedValue: JsonValueOutput;
+    /**
+     * Type
+     */
+    type: 'color' | 'dimension' | 'number' | 'duration' | 'cubic-bezier' | 'font-family' | 'font-weight' | 'shadow';
+};
+
+/**
+ * BuilderGenerationCancelRequest
+ */
+export type BuilderGenerationCancelRequest = {
+    /**
+     * Reason
+     */
+    reason?: string | null;
+};
+
+/**
+ * BuilderGenerationCandidateOut
+ */
+export type BuilderGenerationCandidateOut = {
+    /**
+     * Candidateindex
+     */
+    candidateIndex: number;
+    changeSet: BuilderChangeSetPreviewOut;
+};
+
+/**
+ * BuilderGenerationCreateRequest
+ */
+export type BuilderGenerationCreateRequest = {
+    /**
+     * Agentid
+     */
+    agentId?: string | null;
+    /**
+     * Agentrunid
+     */
+    agentRunId?: string | null;
+    /**
+     * Baseetag
+     */
+    baseEtag: string;
+    /**
+     * Baserevisionid
+     */
+    baseRevisionId: string;
+    /**
+     * Candidatecount
+     */
+    candidateCount?: number;
+    /**
+     * Knowledgereferenceids
+     */
+    knowledgeReferenceIds?: Array<string>;
+    /**
+     * Locale
+     */
+    locale?: string;
+    /**
+     * Objective
+     */
+    objective: string;
+    /**
+     * Targetstage
+     */
+    targetStage?: 'sitemap' | 'wireframe' | 'design';
+    /**
+     * Targets
+     */
+    targets?: Array<BuilderGenerationTargetV1>;
+};
+
+/**
+ * BuilderGenerationFailureOut
+ */
+export type BuilderGenerationFailureOut = {
+    /**
+     * Candidateindex
+     */
+    candidateIndex: number;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Messagekey
+     */
+    messageKey: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    };
+};
+
+/**
+ * BuilderGenerationOut
+ */
+export type BuilderGenerationOut = {
+    /**
+     * Agentassignmentid
+     */
+    agentAssignmentId: string | null;
+    /**
+     * Agentid
+     */
+    agentId: string | null;
+    /**
+     * Agentrunid
+     */
+    agentRunId: string | null;
+    /**
+     * Agentversionid
+     */
+    agentVersionId: string | null;
+    /**
+     * Baseetag
+     */
+    baseEtag: string;
+    /**
+     * Baserevisionid
+     */
+    baseRevisionId: string;
+    /**
+     * Cancelrequestedat
+     */
+    cancelRequestedAt: string | null;
+    /**
+     * Cancellationacknowledgedat
+     */
+    cancellationAcknowledgedAt: string | null;
+    /**
+     * Candidates
+     */
+    candidates: Array<BuilderGenerationCandidateOut>;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Failures
+     */
+    failures: Array<BuilderGenerationFailureOut>;
+    /**
+     * Generationid
+     */
+    generationId: string;
+    /**
+     * Jobid
+     */
+    jobId: string;
+    jobStatus: JobPublicStatus;
+    /**
+     * Phase
+     */
+    phase: string | null;
+    /**
+     * Progresscompleted
+     */
+    progressCompleted: number;
+    /**
+     * Progresstotal
+     */
+    progressTotal: number | null;
+    status: BuilderGenerationStatus;
+    /**
+     * Statuskey
+     */
+    statusKey: string | null;
+    /**
+     * Targetstage
+     */
+    targetStage: 'sitemap' | 'planning' | 'wireframe' | 'design';
+    /**
+     * Targets
+     */
+    targets: Array<BuilderGenerationTargetV1>;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+};
+
+/**
+ * BuilderGenerationRecoveryOut
+ */
+export type BuilderGenerationRecoveryOut = {
+    active: BuilderGenerationOut | null;
+    latestTerminal: BuilderGenerationOut | null;
+};
+
+/**
+ * BuilderGenerationStatus
+ */
+export type BuilderGenerationStatus = 'queued' | 'running' | 'partial' | 'succeeded' | 'failed' | 'cancelled';
+
+/**
+ * BuilderGenerationTargetV1
+ */
+export type BuilderGenerationTargetV1 = {
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Kind
+     */
+    kind: 'page' | 'global_section';
+};
+
+/**
+ * BuilderGlobalSectionCreateOperationV1
+ */
+export type BuilderGlobalSectionCreateOperationV1Input = {
+    /**
+     * Clientglobalsectionid
+     */
+    clientGlobalSectionId: string;
+    /**
+     * Fieldssnapshot
+     */
+    fieldsSnapshot?: {
+        [key: string]: JsonValueInput;
+    };
+    /**
+     * Locale
+     */
+    locale?: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Purpose
+     */
+    purpose?: string | null;
+    /**
+     * Sectionintents
+     */
+    sectionIntents?: Array<BuilderSectionIntentV1>;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Type
+     */
+    type: 'global_section.create';
+};
+
+/**
+ * BuilderGlobalSectionCreateOperationV1
+ */
+export type BuilderGlobalSectionCreateOperationV1Output = {
+    /**
+     * Clientglobalsectionid
+     */
+    clientGlobalSectionId: string;
+    /**
+     * Fieldssnapshot
+     */
+    fieldsSnapshot?: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Locale
+     */
+    locale?: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Purpose
+     */
+    purpose?: string | null;
+    /**
+     * Sectionintents
+     */
+    sectionIntents?: Array<BuilderSectionIntentV1>;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Type
+     */
+    type: 'global_section.create';
+};
+
+/**
+ * BuilderGlobalSectionCycleOut
+ */
+export type BuilderGlobalSectionCycleOut = {
+    /**
+     * Itempath
+     */
+    itemPath: Array<string>;
+};
+
+/**
+ * BuilderGlobalSectionDeleteOperationV1
+ */
+export type BuilderGlobalSectionDeleteOperationV1 = {
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Type
+     */
+    type: 'global_section.delete';
+};
+
+/**
+ * BuilderGlobalSectionDependencyGraphOut
+ */
+export type BuilderGlobalSectionDependencyGraphOut = {
+    /**
+     * Cycles
+     */
+    cycles?: Array<BuilderGlobalSectionCycleOut>;
+    /**
+     * Missingwireframereferences
+     */
+    missingWireframeReferences?: Array<BuilderGlobalSectionReferenceOut>;
+    /**
+     * References
+     */
+    references?: Array<BuilderGlobalSectionReferenceOut>;
+    /**
+     * Unknownreferences
+     */
+    unknownReferences?: Array<BuilderGlobalSectionReferenceOut>;
+};
+
+/**
+ * BuilderGlobalSectionIntentReplaceOperationV1
+ */
+export type BuilderGlobalSectionIntentReplaceOperationV1 = {
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Purpose
+     */
+    purpose: string;
+    /**
+     * Sectionintents
+     */
+    sectionIntents?: Array<BuilderSectionIntentV1>;
+    /**
+     * Type
+     */
+    type: 'global_section.intent.replace';
+};
+
+/**
+ * BuilderGlobalSectionNodeSnapshotV1
+ */
+export type BuilderGlobalSectionNodeSnapshotV1 = {
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Locale
+     */
+    locale: string;
+    /**
+     * Purpose
+     */
+    purpose?: string | null;
+    /**
+     * Sectionintents
+     */
+    sectionIntents?: Array<BuilderSectionIntentV1>;
+    /**
+     * Slug
+     */
+    slug: string;
+};
+
+/**
+ * BuilderGlobalSectionReferenceOut
+ */
+export type BuilderGlobalSectionReferenceOut = {
+    /**
+     * Hostitemid
+     */
+    hostItemId: string;
+    /**
+     * Hostkind
+     */
+    hostKind: 'page' | 'global_section';
+    /**
+     * Hostsectionid
+     */
+    hostSectionId: string;
+    /**
+     * Targetitemid
+     */
+    targetItemId: string;
+};
+
+/**
+ * BuilderGlobalSectionVersionPinV1
+ */
+export type BuilderGlobalSectionVersionPinV1 = {
+    /**
+     * Componentbindingsethash
+     */
+    componentBindingSetHash: string;
+    /**
+     * Contentversionid
+     */
+    contentVersionId: string;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Presentationsethash
+     */
+    presentationSetHash: string;
+    /**
+     * Versionnumber
+     */
+    versionNumber: number;
+};
+
+/**
+ * BuilderInitializationOut
+ */
+export type BuilderInitializationOut = {
+    authoringAuthority: ProjectAuthoringAuthorityOut;
+    contentStructureRevision: ContentStructureRevisionOut;
+    siteRevision: SiteRevisionManifestV1;
+    status: SiteRevisionStatusOut;
+};
+
+/**
+ * BuilderInitializationRequest
+ */
+export type BuilderInitializationRequest = {
+    /**
+     * Agentrunid
+     */
+    agentRunId?: string | null;
+    /**
+     * Environmentid
+     */
+    environmentId: string;
+    /**
+     * Expectedauthoringrevision
+     */
+    expectedAuthoringRevision: number;
+    /**
+     * Expecteddesignsystemassignmentrevision
+     */
+    expectedDesignSystemAssignmentRevision: number;
+    /**
+     * Expecteddesignsystemmanifestchecksum
+     */
+    expectedDesignSystemManifestChecksum: string;
+    /**
+     * Expecteddesignsystemversionid
+     */
+    expectedDesignSystemVersionId: string;
+    provenanceSource?: BuilderProvenanceSource;
+    /**
+     * Siteid
+     */
+    siteId: string;
+};
+
+/**
+ * BuilderPageCreateOperationV1
+ */
+export type BuilderPageCreateOperationV1Input = {
+    /**
+     * Clientpageid
+     */
+    clientPageId: string;
+    /**
+     * Fieldssnapshot
+     */
+    fieldsSnapshot?: {
+        [key: string]: JsonValueInput;
+    };
+    /**
+     * Locale
+     */
+    locale?: string;
+    /**
+     * Modelkey
+     */
+    modelKey: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Parentitemid
+     */
+    parentItemId?: string | null;
+    /**
+     * Path
+     */
+    path: string;
+    /**
+     * Purpose
+     */
+    purpose?: string | null;
+    /**
+     * Sectionintents
+     */
+    sectionIntents?: Array<BuilderSectionIntentV1>;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Sortorder
+     */
+    sortOrder?: number;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Type
+     */
+    type: 'page.create';
+};
+
+/**
+ * BuilderPageCreateOperationV1
+ */
+export type BuilderPageCreateOperationV1Output = {
+    /**
+     * Clientpageid
+     */
+    clientPageId: string;
+    /**
+     * Fieldssnapshot
+     */
+    fieldsSnapshot?: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Locale
+     */
+    locale?: string;
+    /**
+     * Modelkey
+     */
+    modelKey: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Parentitemid
+     */
+    parentItemId?: string | null;
+    /**
+     * Path
+     */
+    path: string;
+    /**
+     * Purpose
+     */
+    purpose?: string | null;
+    /**
+     * Sectionintents
+     */
+    sectionIntents?: Array<BuilderSectionIntentV1>;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Sortorder
+     */
+    sortOrder?: number;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Type
+     */
+    type: 'page.create';
+};
+
+/**
+ * BuilderPageDeleteOperationV1
+ */
+export type BuilderPageDeleteOperationV1 = {
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Type
+     */
+    type: 'page.delete';
+};
+
+/**
+ * BuilderPageIntentReplaceOperationV1
+ */
+export type BuilderPageIntentReplaceOperationV1 = {
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Purpose
+     */
+    purpose: string;
+    /**
+     * Sectionintents
+     */
+    sectionIntents?: Array<BuilderSectionIntentV1>;
+    /**
+     * Type
+     */
+    type: 'page.intent.replace';
+};
+
+/**
+ * BuilderPageMoveOperationV1
+ */
+export type BuilderPageMoveOperationV1 = {
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Parentitemid
+     */
+    parentItemId?: string | null;
+    /**
+     * Sortorder
+     */
+    sortOrder?: number;
+    /**
+     * Type
+     */
+    type: 'page.move';
+};
+
+/**
+ * BuilderPageNodeSnapshotV1
+ */
+export type BuilderPageNodeSnapshotV1 = {
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Parentitemid
+     */
+    parentItemId?: string | null;
+    /**
+     * Purpose
+     */
+    purpose?: string | null;
+    /**
+     * Routes
+     */
+    routes?: Array<BuilderRouteSnapshotV1>;
+    /**
+     * Sectionintents
+     */
+    sectionIntents?: Array<BuilderSectionIntentV1>;
+    /**
+     * Sortorder
+     */
+    sortOrder: number;
+};
+
+/**
+ * BuilderPageRenameOperationV1
+ */
+export type BuilderPageRenameOperationV1 = {
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Type
+     */
+    type: 'page.rename';
+};
+
+/**
+ * BuilderPageRenderDocumentOut
+ */
+export type BuilderPageRenderDocumentOut = {
+    /**
+     * Documenthash
+     */
+    documentHash: string;
+    /**
+     * Evidence
+     */
+    evidence: Array<BuilderRenderEvidenceOut>;
+    /**
+     * Locale
+     */
+    locale: string;
+    pins: BuilderRenderPinsOut;
+    /**
+     * Rendersource
+     */
+    renderSource: 'wireframe_preview' | 'visual_blueprint';
+    /**
+     * Renderable
+     */
+    renderable?: true;
+    renderer: BuilderRendererIdentityOut;
+    /**
+     * Routepath
+     */
+    routePath: string;
+    /**
+     * Schemaversion
+     */
+    schemaVersion?: 1;
+    /**
+     * Sections
+     */
+    sections: Array<BuilderRenderSectionOut>;
+    seo: BuilderRenderSeoOut;
+    theme: BuilderRenderThemeOut;
+};
+
+/**
+ * BuilderPageReorderOperationV1
+ */
+export type BuilderPageReorderOperationV1 = {
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Sortorder
+     */
+    sortOrder: number;
+    /**
+     * Type
+     */
+    type: 'page.reorder';
+};
+
+/**
+ * BuilderPageVersionPinV1
+ */
+export type BuilderPageVersionPinV1 = {
+    /**
+     * Componentbindingsethash
+     */
+    componentBindingSetHash: string;
+    /**
+     * Contentversionid
+     */
+    contentVersionId: string;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Presentationsethash
+     */
+    presentationSetHash: string;
+    /**
+     * Versionnumber
+     */
+    versionNumber: number;
+};
+
+/**
+ * BuilderProvenanceSource
+ */
+export type BuilderProvenanceSource = 'human' | 'agent' | 'import' | 'system';
+
+/**
+ * BuilderRenderComponentRecipeOut
+ */
+export type BuilderRenderComponentRecipeOut = {
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Responsiveoverrides
+     */
+    responsiveOverrides?: Array<BuilderRenderRecipeResponsiveOut>;
+    /**
+     * States
+     */
+    states: Array<BuilderRenderRecipeStateOut>;
+};
+
+/**
+ * BuilderRenderEvidenceOut
+ */
+export type BuilderRenderEvidenceOut = {
+    /**
+     * Concern
+     */
+    concern: 'manifest' | 'content_structure' | 'content_versions' | 'presentations_and_bindings' | 'wireframe_and_catalog' | 'global_sections' | 'design_system' | 'visual_blueprint' | 'document_hash' | 'assets_and_font_rights' | 'compiler' | 'smoke' | 'publication';
+    /**
+     * Status
+     */
+    status: 'passed' | 'not_evaluated';
+};
+
+/**
+ * BuilderRenderGlobalReferenceHopOut
+ */
+export type BuilderRenderGlobalReferenceHopOut = {
+    /**
+     * Hostitemid
+     */
+    hostItemId: string;
+    /**
+     * Hostsectionid
+     */
+    hostSectionId: string;
+    /**
+     * Targetitemid
+     */
+    targetItemId: string;
+};
+
+/**
+ * BuilderRenderPinsOut
+ */
+export type BuilderRenderPinsOut = {
+    /**
+     * Componentcatalogchecksum
+     */
+    componentCatalogChecksum: string;
+    /**
+     * Componentcatalogversion
+     */
+    componentCatalogVersion: string;
+    /**
+     * Contentstructurehash
+     */
+    contentStructureHash: string;
+    /**
+     * Contentstructurerevisionid
+     */
+    contentStructureRevisionId: string;
+    /**
+     * Designsystemid
+     */
+    designSystemId: string;
+    /**
+     * Designsystemmanifestchecksum
+     */
+    designSystemManifestChecksum: string;
+    /**
+     * Designsystemversionid
+     */
+    designSystemVersionId: string;
+    /**
+     * Pagecontentversionid
+     */
+    pageContentVersionId: string;
+    /**
+     * Pageitemid
+     */
+    pageItemId: string;
+    /**
+     * Pageversionnumber
+     */
+    pageVersionNumber: number;
+    /**
+     * Siterevisionhash
+     */
+    siteRevisionHash: string;
+    /**
+     * Siterevisionid
+     */
+    siteRevisionId: string;
+    /**
+     * Visualblueprintchecksum
+     */
+    visualBlueprintChecksum?: string | null;
+};
+
+/**
+ * BuilderRenderRecipeResponsiveOut
+ */
+export type BuilderRenderRecipeResponsiveOut = {
+    /**
+     * Breakpoint
+     */
+    breakpoint: string;
+    /**
+     * States
+     */
+    states: Array<BuilderRenderRecipeStateOut>;
+};
+
+/**
+ * BuilderRenderRecipeStateOut
+ */
+export type BuilderRenderRecipeStateOut = {
+    /**
+     * Statekey
+     */
+    stateKey: string;
+    /**
+     * Stylevalues
+     */
+    styleValues: {
+        [key: string]: JsonValueOutput;
+    };
+};
+
+/**
+ * BuilderRenderSectionOut
+ */
+export type BuilderRenderSectionOut = {
+    /**
+     * Assetreferences
+     */
+    assetReferences: Array<string>;
+    /**
+     * Componentkey
+     */
+    componentKey: string;
+    componentRecipe?: BuilderRenderComponentRecipeOut | null;
+    /**
+     * Instanceid
+     */
+    instanceId: string;
+    /**
+     * Intentid
+     */
+    intentId: string;
+    /**
+     * Interactionrules
+     */
+    interactionRules: Array<WireframeInteractionRuleV1>;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Referencelineage
+     */
+    referenceLineage?: Array<BuilderRenderGlobalReferenceHopOut>;
+    /**
+     * Responsiverules
+     */
+    responsiveRules: Array<WireframeResponsiveRuleV1>;
+    /**
+     * Slots
+     */
+    slots: Array<BuilderRenderSlotOut>;
+    /**
+     * Sourcecontentversionid
+     */
+    sourceContentVersionId: string;
+    /**
+     * Sourceitemid
+     */
+    sourceItemId: string;
+    /**
+     * Sourcekind
+     */
+    sourceKind: 'page' | 'global_section';
+    /**
+     * Sourcesectionid
+     */
+    sourceSectionId: string;
+    /**
+     * Variantkey
+     */
+    variantKey: string;
+};
+
+/**
+ * BuilderRenderSeoOut
+ */
+export type BuilderRenderSeoOut = {
+    /**
+     * Canonicalurl
+     */
+    canonicalUrl?: string | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Robotsdirective
+     */
+    robotsDirective?: string | null;
+    /**
+     * Title
+     */
+    title?: string | null;
+};
+
+/**
+ * BuilderRenderSlotOut
+ */
+export type BuilderRenderSlotOut = {
+    /**
+     * Fieldkey
+     */
+    fieldKey?: string | null;
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Source
+     */
+    source: 'field' | 'literal';
+    value: JsonValueOutput;
+    /**
+     * Valuekind
+     */
+    valueKind: 'text' | 'rich-text' | 'image' | 'link' | 'action' | 'list' | 'boolean' | 'number';
+};
+
+/**
+ * BuilderRenderThemeOut
+ */
+export type BuilderRenderThemeOut = {
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Mode
+     */
+    mode: 'light' | 'dark' | 'high-contrast';
+    /**
+     * Motion
+     */
+    motion: Array<BuilderResolvedMotionOut>;
+    /**
+     * Tokens
+     */
+    tokens: Array<BuilderResolvedTokenOut>;
+    /**
+     * Typography
+     */
+    typography: Array<BuilderResolvedTypographyOut>;
+};
+
+/**
+ * BuilderRendererIdentityOut
+ */
+export type BuilderRendererIdentityOut = {
+    /**
+     * Profile
+     */
+    profile: 'arclayer-site-v1';
+    /**
+     * Version
+     */
+    version: '1.0.0';
+};
+
+/**
+ * BuilderResolvedMotionOut
+ */
+export type BuilderResolvedMotionOut = {
+    /**
+     * Duration
+     */
+    duration: string;
+    /**
+     * Easing
+     */
+    easing: [
+        number,
+        number,
+        number,
+        number
+    ];
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Reducedmotionduration
+     */
+    reducedMotionDuration: string;
+};
+
+/**
+ * BuilderResolvedTokenOut
+ */
+export type BuilderResolvedTokenOut = {
+    /**
+     * Path
+     */
+    path: string;
+    /**
+     * Type
+     */
+    type: 'color' | 'dimension' | 'number' | 'duration' | 'cubic-bezier' | 'font-family' | 'font-weight' | 'shadow';
+    value: JsonValueOutput;
+};
+
+/**
+ * BuilderResolvedTypographyOut
+ */
+export type BuilderResolvedTypographyOut = {
+    /**
+     * Fontfamily
+     */
+    fontFamily: Array<string>;
+    /**
+     * Fontsize
+     */
+    fontSize: string;
+    /**
+     * Fontweight
+     */
+    fontWeight: number;
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Letterspacing
+     */
+    letterSpacing?: string | null;
+    /**
+     * Lineheight
+     */
+    lineHeight: number | number;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
+ * BuilderRevisionGlobalSectionOut
+ */
+export type BuilderRevisionGlobalSectionOut = {
+    /**
+     * Contentversionid
+     */
+    contentVersionId: string;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Locale
+     */
+    locale: string;
+    /**
+     * Purpose
+     */
+    purpose?: string | null;
+    /**
+     * Sectionintents
+     */
+    sectionIntents?: Array<BuilderSectionIntentV1>;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Summary
+     */
+    summary?: string | null;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Versionnumber
+     */
+    versionNumber: number;
+    visualBlueprint?: VisualBlueprintDocumentV1 | null;
+    wireframe?: WireframeDocumentV1 | null;
+    /**
+     * Wireframechecksum
+     */
+    wireframeChecksum?: string | null;
+    wireframeTraceability: BuilderWireframeTraceabilityOut;
+};
+
+/**
+ * BuilderRevisionOut
+ */
+export type BuilderRevisionOut = {
+    contentStructureRevision: ContentStructureRevisionOut;
+    globalSectionGraph?: BuilderGlobalSectionDependencyGraphOut;
+    /**
+     * Globalsections
+     */
+    globalSections?: Array<BuilderRevisionGlobalSectionOut>;
+    /**
+     * Pages
+     */
+    pages: Array<BuilderRevisionPageOut>;
+    siteRevision: SiteRevisionManifestV1;
+    status: SiteRevisionStatusOut;
+};
+
+/**
+ * BuilderRevisionPageOut
+ */
+export type BuilderRevisionPageOut = {
+    /**
+     * Contentversionid
+     */
+    contentVersionId: string;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Parentitemid
+     */
+    parentItemId?: string | null;
+    /**
+     * Purpose
+     */
+    purpose?: string | null;
+    /**
+     * Routes
+     */
+    routes?: Array<BuilderRouteSnapshotV1>;
+    /**
+     * Sectionintents
+     */
+    sectionIntents?: Array<BuilderSectionIntentV1>;
+    /**
+     * Sortorder
+     */
+    sortOrder: number;
+    /**
+     * Summary
+     */
+    summary?: string | null;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Versionnumber
+     */
+    versionNumber: number;
+    visualBlueprint?: VisualBlueprintDocumentV1 | null;
+    wireframe?: WireframeDocumentV1 | null;
+    /**
+     * Wireframechecksum
+     */
+    wireframeChecksum?: string | null;
+    wireframeTraceability: BuilderWireframeTraceabilityOut;
+};
+
+/**
+ * BuilderRouteDisableOperationV1
+ */
+export type BuilderRouteDisableOperationV1 = {
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Locale
+     */
+    locale?: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Type
+     */
+    type: 'route.disable';
+};
+
+/**
+ * BuilderRouteSetOperationV1
+ */
+export type BuilderRouteSetOperationV1 = {
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Locale
+     */
+    locale?: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Path
+     */
+    path: string;
+    primarySource?: RoutePrimarySourceIn | null;
+    /**
+     * Routemode
+     */
+    routeMode?: 'static' | 'dynamic' | null;
+    /**
+     * Routepriority
+     */
+    routePriority?: number;
+    /**
+     * Type
+     */
+    type: 'route.set';
+};
+
+/**
+ * BuilderRouteSnapshotV1
+ */
+export type BuilderRouteSnapshotV1 = {
+    /**
+     * Isactive
+     */
+    isActive: boolean;
+    /**
+     * Locale
+     */
+    locale: string;
+    /**
+     * Path
+     */
+    path: string;
+    /**
+     * Routecontract
+     */
+    routeContract?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+};
+
+/**
+ * BuilderSectionIntentV1
+ */
+export type BuilderSectionIntentV1 = {
+    /**
+     * Generationguidance
+     */
+    generationGuidance?: string | null;
+    /**
+     * Goal
+     */
+    goal: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+};
+
+/**
+ * BuilderWireframeCandidateV1
+ */
+export type BuilderWireframeCandidateV1 = {
+    /**
+     * Basecontentversionid
+     */
+    baseContentVersionId: string;
+    /**
+     * Baseversionnumber
+     */
+    baseVersionNumber: number;
+    /**
+     * Hostkind
+     */
+    hostKind?: 'page' | 'global_section';
+    /**
+     * Itemid
+     */
+    itemId: string;
+    wireframe: WireframeDocumentV1;
+};
+
+/**
+ * BuilderWireframeClearBindingOperationV1
+ */
+export type BuilderWireframeClearBindingOperationV1 = {
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Sectionid
+     */
+    sectionId: string;
+    /**
+     * Slotkey
+     */
+    slotKey: string;
+    /**
+     * Type
+     */
+    type: 'wireframe.clear_binding';
+};
+
+/**
+ * BuilderWireframeClearGlobalReferenceOperationV1
+ */
+export type BuilderWireframeClearGlobalReferenceOperationV1 = {
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Sectionid
+     */
+    sectionId: string;
+    /**
+     * Type
+     */
+    type: 'wireframe.clear_global_reference';
+};
+
+/**
+ * BuilderWireframeClearResponsiveRuleOperationV1
+ */
+export type BuilderWireframeClearResponsiveRuleOperationV1 = {
+    /**
+     * Breakpoint
+     */
+    breakpoint: 'desktop' | 'tablet' | 'mobile';
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Sectionid
+     */
+    sectionId: string;
+    /**
+     * Type
+     */
+    type: 'wireframe.clear_responsive_rule';
+};
+
+/**
+ * BuilderWireframeInitializeOperationV1
+ */
+export type BuilderWireframeInitializeOperationV1Input = {
+    /**
+     * Componentcatalogversion
+     */
+    componentCatalogVersion: string;
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Sections
+     */
+    sections?: Array<WireframeSectionV1Input>;
+    /**
+     * Type
+     */
+    type: 'wireframe.initialize';
+};
+
+/**
+ * BuilderWireframeInitializeOperationV1
+ */
+export type BuilderWireframeInitializeOperationV1Output = {
+    /**
+     * Componentcatalogversion
+     */
+    componentCatalogVersion: string;
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Sections
+     */
+    sections?: Array<WireframeSectionV1Output>;
+    /**
+     * Type
+     */
+    type: 'wireframe.initialize';
+};
+
+/**
+ * BuilderWireframeSectionAddOperationV1
+ */
+export type BuilderWireframeSectionAddOperationV1Input = {
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Index
+     */
+    index: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    section: WireframeSectionV1Input;
+    /**
+     * Type
+     */
+    type: 'wireframe.section.add';
+};
+
+/**
+ * BuilderWireframeSectionAddOperationV1
+ */
+export type BuilderWireframeSectionAddOperationV1Output = {
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Index
+     */
+    index: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    section: WireframeSectionV1Output;
+    /**
+     * Type
+     */
+    type: 'wireframe.section.add';
+};
+
+/**
+ * BuilderWireframeSectionConfigureOperationV1
+ */
+export type BuilderWireframeSectionConfigureOperationV1Input = {
+    /**
+     * Bindings
+     */
+    bindings?: Array<({
+        kind: 'field';
+    } & WireframeFieldBindingV1) | ({
+        kind: 'literal';
+    } & WireframeLiteralBindingV1Input) | ({
+        kind: 'missing';
+    } & WireframeMissingBindingV1)>;
+    /**
+     * Componentkey
+     */
+    componentKey: string;
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Interactionrules
+     */
+    interactionRules?: Array<WireframeInteractionRuleV1>;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Responsiverules
+     */
+    responsiveRules?: Array<WireframeResponsiveRuleV1>;
+    /**
+     * Sectionid
+     */
+    sectionId: string;
+    /**
+     * Type
+     */
+    type: 'wireframe.section.configure';
+    /**
+     * Variantkey
+     */
+    variantKey: string;
+};
+
+/**
+ * BuilderWireframeSectionConfigureOperationV1
+ */
+export type BuilderWireframeSectionConfigureOperationV1Output = {
+    /**
+     * Bindings
+     */
+    bindings?: Array<({
+        kind: 'field';
+    } & WireframeFieldBindingV1) | ({
+        kind: 'literal';
+    } & WireframeLiteralBindingV1Output) | ({
+        kind: 'missing';
+    } & WireframeMissingBindingV1)>;
+    /**
+     * Componentkey
+     */
+    componentKey: string;
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Interactionrules
+     */
+    interactionRules?: Array<WireframeInteractionRuleV1>;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Responsiverules
+     */
+    responsiveRules?: Array<WireframeResponsiveRuleV1>;
+    /**
+     * Sectionid
+     */
+    sectionId: string;
+    /**
+     * Type
+     */
+    type: 'wireframe.section.configure';
+    /**
+     * Variantkey
+     */
+    variantKey: string;
+};
+
+/**
+ * BuilderWireframeSectionDuplicateOperationV1
+ */
+export type BuilderWireframeSectionDuplicateOperationV1 = {
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Index
+     */
+    index: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Newintentid
+     */
+    newIntentId: string;
+    /**
+     * Newsectionid
+     */
+    newSectionId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Sectionid
+     */
+    sectionId: string;
+    /**
+     * Type
+     */
+    type: 'wireframe.section.duplicate';
+};
+
+/**
+ * BuilderWireframeSectionRemoveOperationV1
+ */
+export type BuilderWireframeSectionRemoveOperationV1 = {
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Sectionid
+     */
+    sectionId: string;
+    /**
+     * Type
+     */
+    type: 'wireframe.section.remove';
+};
+
+/**
+ * BuilderWireframeSectionReorderOperationV1
+ */
+export type BuilderWireframeSectionReorderOperationV1 = {
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Index
+     */
+    index: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Sectionid
+     */
+    sectionId: string;
+    /**
+     * Type
+     */
+    type: 'wireframe.section.reorder';
+};
+
+/**
+ * BuilderWireframeSetBindingOperationV1
+ */
+export type BuilderWireframeSetBindingOperationV1Input = {
+    /**
+     * Binding
+     */
+    binding: ({
+        kind: 'field';
+    } & WireframeFieldBindingV1) | ({
+        kind: 'literal';
+    } & WireframeLiteralBindingV1Input) | ({
+        kind: 'missing';
+    } & WireframeMissingBindingV1);
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Sectionid
+     */
+    sectionId: string;
+    /**
+     * Type
+     */
+    type: 'wireframe.set_binding';
+};
+
+/**
+ * BuilderWireframeSetBindingOperationV1
+ */
+export type BuilderWireframeSetBindingOperationV1Output = {
+    /**
+     * Binding
+     */
+    binding: ({
+        kind: 'field';
+    } & WireframeFieldBindingV1) | ({
+        kind: 'literal';
+    } & WireframeLiteralBindingV1Output) | ({
+        kind: 'missing';
+    } & WireframeMissingBindingV1);
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Sectionid
+     */
+    sectionId: string;
+    /**
+     * Type
+     */
+    type: 'wireframe.set_binding';
+};
+
+/**
+ * BuilderWireframeSetComponentOperationV1
+ */
+export type BuilderWireframeSetComponentOperationV1 = {
+    /**
+     * Componentkey
+     */
+    componentKey: string;
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Sectionid
+     */
+    sectionId: string;
+    /**
+     * Type
+     */
+    type: 'wireframe.set_component';
+};
+
+/**
+ * BuilderWireframeSetGlobalReferenceOperationV1
+ */
+export type BuilderWireframeSetGlobalReferenceOperationV1 = {
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Globalsectionitemid
+     */
+    globalSectionItemId: string;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Sectionid
+     */
+    sectionId: string;
+    /**
+     * Type
+     */
+    type: 'wireframe.set_global_reference';
+};
+
+/**
+ * BuilderWireframeSetInteractionsOperationV1
+ */
+export type BuilderWireframeSetInteractionsOperationV1 = {
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Rules
+     */
+    rules?: Array<WireframeInteractionRuleV1>;
+    /**
+     * Sectionid
+     */
+    sectionId: string;
+    /**
+     * Type
+     */
+    type: 'wireframe.set_interactions';
+};
+
+/**
+ * BuilderWireframeSetResponsiveRuleOperationV1
+ */
+export type BuilderWireframeSetResponsiveRuleOperationV1 = {
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    rule: WireframeResponsiveRuleV1;
+    /**
+     * Sectionid
+     */
+    sectionId: string;
+    /**
+     * Type
+     */
+    type: 'wireframe.set_responsive_rule';
+};
+
+/**
+ * BuilderWireframeSetVariantOperationV1
+ */
+export type BuilderWireframeSetVariantOperationV1 = {
+    /**
+     * Expecteddraftversion
+     */
+    expectedDraftVersion: number;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Operationid
+     */
+    operationId: string;
+    /**
+     * Sectionid
+     */
+    sectionId: string;
+    /**
+     * Type
+     */
+    type: 'wireframe.set_variant';
+    /**
+     * Variantkey
+     */
+    variantKey: string;
+};
+
+/**
+ * BuilderWireframeTraceabilityOut
+ */
+export type BuilderWireframeTraceabilityOut = {
+    /**
+     * Missingintentids
+     */
+    missingIntentIds?: Array<string>;
+    /**
+     * Orphanedsectionids
+     */
+    orphanedSectionIds?: Array<string>;
+    /**
+     * Status
+     */
+    status: 'unplanned' | 'not_started' | 'partial' | 'aligned' | 'orphaned';
+};
+
+/**
  * ChangePasswordRequest
  *
  * Change password request.
@@ -2864,58 +6579,23 @@ export type ChangePasswordRequest = {
 };
 
 /**
- * ChatMessage
- *
- * A client-supplied message in a chat conversation.
+ * ChangeSetWarningV1
  */
-export type ChatMessage = {
+export type ChangeSetWarningV1 = {
     /**
-     * Content
+     * Code
      */
-    content: string;
+    code: string;
     /**
-     * Role
+     * Messagekey
      */
-    role: 'user' | 'assistant';
-};
-
-/**
- * ChatRequest
- *
- * Chat completion request body.
- */
-export type ChatRequest = {
+    messageKey: string;
     /**
-     * Contextsnapshot
+     * Messageparams
      */
-    contextSnapshot?: {
-        [key: string]: JsonValueInput;
+    messageParams: {
+        [key: string]: JsonValueOutput;
     };
-    /**
-     * Maxtokens
-     */
-    maxTokens?: number | null;
-    /**
-     * Messages
-     */
-    messages: Array<ChatMessage>;
-    mode?: AgentConversationMode | null;
-    /**
-     * Model
-     */
-    model?: string | null;
-    /**
-     * Reasoningeffort
-     */
-    reasoningEffort?: 'low' | 'medium' | 'high' | null;
-    /**
-     * Temperature
-     */
-    temperature?: number | null;
-    /**
-     * Workspaceid
-     */
-    workspaceId?: string | null;
 };
 
 /**
@@ -3083,6 +6763,210 @@ export type CommercePlanUpsertRequest = {
 };
 
 /**
+ * ComponentCatalogComponentV1
+ */
+export type ComponentCatalogComponentV1 = {
+    /**
+     * Category
+     */
+    category: 'navigation' | 'hero' | 'social-proof' | 'content' | 'conversion' | 'footer';
+    /**
+     * Descriptionbylocale
+     */
+    descriptionByLocale: {
+        [key: string]: string;
+    };
+    /**
+     * Interactions
+     */
+    interactions?: Array<ComponentCatalogInteractionV1>;
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Labelbylocale
+     */
+    labelByLocale: {
+        [key: string]: string;
+    };
+    /**
+     * Slots
+     */
+    slots?: Array<ComponentCatalogSlotV1>;
+    /**
+     * Styleslots
+     */
+    styleSlots?: Array<ComponentCatalogStyleSlotV1>;
+    /**
+     * Variants
+     */
+    variants: Array<ComponentCatalogVariantV1>;
+};
+
+/**
+ * ComponentCatalogInteractionV1
+ */
+export type ComponentCatalogInteractionV1 = {
+    /**
+     * Action
+     */
+    action: 'navigate' | 'submit' | 'toggle' | 'open' | 'close';
+    /**
+     * Event
+     */
+    event: 'click' | 'submit' | 'change' | 'hover' | 'focus';
+    /**
+     * Targetrequired
+     */
+    targetRequired?: boolean;
+};
+
+/**
+ * ComponentCatalogSlotV1
+ */
+export type ComponentCatalogSlotV1 = {
+    /**
+     * Acceptedbindingkinds
+     */
+    acceptedBindingKinds: Array<'field' | 'literal'>;
+    /**
+     * Descriptionbylocale
+     */
+    descriptionByLocale: {
+        [key: string]: string;
+    };
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Labelbylocale
+     */
+    labelByLocale: {
+        [key: string]: string;
+    };
+    /**
+     * Repeatable
+     */
+    repeatable?: boolean;
+    /**
+     * Required
+     */
+    required?: boolean;
+    /**
+     * Valuekind
+     */
+    valueKind: 'text' | 'rich-text' | 'image' | 'link' | 'action' | 'list' | 'boolean' | 'number';
+};
+
+/**
+ * ComponentCatalogStyleSlotV1
+ */
+export type ComponentCatalogStyleSlotV1 = {
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Requiredstates
+     */
+    requiredStates?: Array<string>;
+    /**
+     * Valuetype
+     */
+    valueType: 'color' | 'dimension' | 'number' | 'duration' | 'cubic-bezier' | 'font-family' | 'font-weight' | 'shadow';
+};
+
+/**
+ * ComponentCatalogV1
+ */
+export type ComponentCatalogV1 = {
+    /**
+     * Catalogversion
+     */
+    catalogVersion: string;
+    /**
+     * Checksum
+     */
+    checksum: string;
+    /**
+     * Compilerversion
+     */
+    compilerVersion: string;
+    /**
+     * Components
+     */
+    components: Array<ComponentCatalogComponentV1>;
+    /**
+     * Descriptionbylocale
+     */
+    descriptionByLocale: {
+        [key: string]: string;
+    };
+    /**
+     * Namebylocale
+     */
+    nameByLocale: {
+        [key: string]: string;
+    };
+    /**
+     * Rendererprofile
+     */
+    rendererProfile: string;
+    /**
+     * Rendererversion
+     */
+    rendererVersion: string;
+    /**
+     * Schemaversion
+     */
+    schemaVersion?: 1;
+    /**
+     * Source
+     */
+    source: 'official' | 'extension';
+    /**
+     * Sourceversion
+     */
+    sourceVersion: string;
+};
+
+/**
+ * ComponentCatalogVariantV1
+ */
+export type ComponentCatalogVariantV1 = {
+    /**
+     * Descriptionbylocale
+     */
+    descriptionByLocale: {
+        [key: string]: string;
+    };
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Labelbylocale
+     */
+    labelByLocale: {
+        [key: string]: string;
+    };
+    /**
+     * Maxcolumns
+     */
+    maxColumns?: number;
+    /**
+     * Requiredslotkeys
+     */
+    requiredSlotKeys?: Array<string>;
+    /**
+     * Supportedresponsivelayouts
+     */
+    supportedResponsiveLayouts: Array<'stack' | 'grid' | 'split' | 'overlay'>;
+};
+
+/**
  * ConfirmMyEmailChangeRequest
  *
  * Confirm email change.
@@ -3115,6 +6999,34 @@ export type ConfirmRemoveMyPasswordRequest = {
      */
     code: string;
 };
+
+/**
+ * ConnectorKind
+ */
+export type ConnectorKind = 'billing' | 'oauth' | 'analytics' | 'email';
+
+/**
+ * ConnectorKnowledgeLocator
+ */
+export type ConnectorKnowledgeLocator = {
+    /**
+     * Connectorinstallationid
+     */
+    connectorInstallationId: string;
+    /**
+     * Kind
+     */
+    kind: 'connector';
+    /**
+     * Providerobjectreference
+     */
+    providerObjectReference: string;
+};
+
+/**
+ * ConnectorTrustLevel
+ */
+export type ConnectorTrustLevel = 'official' | 'third_party';
 
 /**
  * ContentApiEntryListOut
@@ -5405,7 +9317,7 @@ export type ContentPresentationIn = {
     /**
      * Kind
      */
-    kind: 'form_data' | 'rich_text_document' | 'visual_blueprint' | 'query_definition' | 'slot_mapping' | 'seo';
+    kind: 'form_data' | 'rich_text_document' | 'wireframe' | 'visual_blueprint' | 'query_definition' | 'slot_mapping' | 'seo';
     /**
      * Payload
      */
@@ -5435,7 +9347,7 @@ export type ContentPresentationOut = {
      *
      * Presentation kind.
      */
-    kind: 'form_data' | 'rich_text_document' | 'visual_blueprint' | 'query_definition' | 'slot_mapping' | 'seo';
+    kind: 'form_data' | 'rich_text_document' | 'wireframe' | 'visual_blueprint' | 'query_definition' | 'slot_mapping' | 'seo';
     /**
      * Payload
      *
@@ -5673,6 +9585,77 @@ export type ContentSeoProfileOut = {
      * Robots directive.
      */
     robotsDirective?: string | null;
+};
+
+/**
+ * ContentStructureRevisionOut
+ */
+export type ContentStructureRevisionOut = {
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Parentrevisionid
+     */
+    parentRevisionId?: string | null;
+    /**
+     * Revisionnumber
+     */
+    revisionNumber: number;
+    snapshot: ContentStructureSnapshotV1;
+    /**
+     * Structurehash
+     */
+    structureHash: string;
+};
+
+/**
+ * ContentStructureSnapshotV1
+ */
+export type ContentStructureSnapshotV1 = {
+    /**
+     * Environmentid
+     */
+    environmentId: string;
+    /**
+     * Globalreferences
+     */
+    globalReferences?: Array<BuilderGlobalSectionNodeSnapshotV1>;
+    /**
+     * Locales
+     */
+    locales: Array<string>;
+    /**
+     * Navigationrelationships
+     */
+    navigationRelationships?: Array<{
+        [key: string]: JsonValueOutput;
+    }>;
+    /**
+     * Pages
+     */
+    pages: Array<BuilderPageNodeSnapshotV1>;
+    /**
+     * Projectid
+     */
+    projectId: string;
+    /**
+     * Schemaversion
+     */
+    schemaVersion?: 1;
+    /**
+     * Siteid
+     */
+    siteId: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
 };
 
 /**
@@ -6388,6 +10371,1076 @@ export type DeliveryStyleOut = {
 };
 
 /**
+ * DesignComponentRecipeV1
+ */
+export type DesignComponentRecipeV1Input = {
+    /**
+     * Componentkey
+     */
+    componentKey: string;
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Responsiveoverrides
+     */
+    responsiveOverrides?: Array<DesignComponentResponsiveRecipeV1>;
+    /**
+     * States
+     */
+    states: Array<DesignComponentStateRecipeV1>;
+    /**
+     * Variantkey
+     */
+    variantKey: string;
+};
+
+/**
+ * DesignComponentRecipeV1
+ */
+export type DesignComponentRecipeV1Output = {
+    /**
+     * Componentkey
+     */
+    componentKey: string;
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Responsiveoverrides
+     */
+    responsiveOverrides?: Array<DesignComponentResponsiveRecipeV1>;
+    /**
+     * States
+     */
+    states: Array<DesignComponentStateRecipeV1>;
+    /**
+     * Variantkey
+     */
+    variantKey: string;
+};
+
+/**
+ * DesignComponentResponsiveRecipeV1
+ */
+export type DesignComponentResponsiveRecipeV1 = {
+    /**
+     * Breakpoint
+     */
+    breakpoint: string;
+    /**
+     * States
+     */
+    states: Array<DesignComponentStateRecipeV1>;
+};
+
+/**
+ * DesignComponentStateRecipeV1
+ */
+export type DesignComponentStateRecipeV1 = {
+    /**
+     * Statekey
+     */
+    stateKey: string;
+    /**
+     * Styletokens
+     */
+    styleTokens: {
+        [key: string]: string;
+    };
+};
+
+/**
+ * DesignMotionRoleV1
+ */
+export type DesignMotionRoleV1 = {
+    /**
+     * Durationtoken
+     */
+    durationToken: string;
+    /**
+     * Easingtoken
+     */
+    easingToken: string;
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Reducedmotiondurationtoken
+     */
+    reducedMotionDurationToken: string;
+};
+
+/**
+ * DesignSystemConceptGenerationCancelRequest
+ */
+export type DesignSystemConceptGenerationCancelRequest = {
+    /**
+     * Reason
+     */
+    reason?: string | null;
+};
+
+/**
+ * DesignSystemConceptGenerationCandidateOut
+ */
+export type DesignSystemConceptGenerationCandidateOut = {
+    /**
+     * Candidateindex
+     */
+    candidateIndex: number;
+    /**
+     * Summary
+     */
+    summary: string;
+    validation: DesignSystemValidationResultOut;
+    version: DesignSystemVersionDetailOut;
+};
+
+/**
+ * DesignSystemConceptGenerationCreateRequest
+ */
+export type DesignSystemConceptGenerationCreateRequest = {
+    /**
+     * Agentid
+     */
+    agentId?: string | null;
+    /**
+     * Agentrunid
+     */
+    agentRunId?: string | null;
+    /**
+     * Baseetag
+     */
+    baseEtag: string;
+    /**
+     * Baserevisionid
+     */
+    baseRevisionId: string;
+    /**
+     * Baseversionid
+     */
+    baseVersionId: string;
+    /**
+     * Candidatecount
+     */
+    candidateCount?: number;
+    /**
+     * Expectedbasechecksum
+     */
+    expectedBaseChecksum: string;
+    /**
+     * Locale
+     */
+    locale?: string;
+    /**
+     * Objective
+     */
+    objective: string;
+};
+
+/**
+ * DesignSystemConceptGenerationFailureOut
+ */
+export type DesignSystemConceptGenerationFailureOut = {
+    /**
+     * Candidateindex
+     */
+    candidateIndex: number;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Messagekey
+     */
+    messageKey: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    };
+};
+
+/**
+ * DesignSystemConceptGenerationOut
+ */
+export type DesignSystemConceptGenerationOut = {
+    /**
+     * Agentassignmentid
+     */
+    agentAssignmentId: string | null;
+    /**
+     * Agentid
+     */
+    agentId: string | null;
+    /**
+     * Agentrunid
+     */
+    agentRunId: string | null;
+    /**
+     * Agentversionid
+     */
+    agentVersionId: string | null;
+    /**
+     * Baserevisionid
+     */
+    baseRevisionId: string;
+    /**
+     * Baseversionid
+     */
+    baseVersionId: string;
+    /**
+     * Cancelrequestedat
+     */
+    cancelRequestedAt: string | null;
+    /**
+     * Cancellationacknowledgedat
+     */
+    cancellationAcknowledgedAt: string | null;
+    /**
+     * Candidates
+     */
+    candidates: Array<DesignSystemConceptGenerationCandidateOut>;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Designsystemid
+     */
+    designSystemId: string;
+    /**
+     * Failures
+     */
+    failures: Array<DesignSystemConceptGenerationFailureOut>;
+    /**
+     * Generationid
+     */
+    generationId: string;
+    /**
+     * Jobid
+     */
+    jobId: string;
+    jobStatus: JobPublicStatus;
+    /**
+     * Phase
+     */
+    phase: string | null;
+    /**
+     * Progresscompleted
+     */
+    progressCompleted: number;
+    /**
+     * Progresstotal
+     */
+    progressTotal: number | null;
+    status: DesignSystemConceptGenerationStatus;
+    /**
+     * Statuskey
+     */
+    statusKey: string | null;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+};
+
+/**
+ * DesignSystemConceptGenerationRecoveryOut
+ */
+export type DesignSystemConceptGenerationRecoveryOut = {
+    active: DesignSystemConceptGenerationOut | null;
+    latestTerminal: DesignSystemConceptGenerationOut | null;
+};
+
+/**
+ * DesignSystemConceptGenerationStatus
+ */
+export type DesignSystemConceptGenerationStatus = 'queued' | 'running' | 'partial' | 'succeeded' | 'failed' | 'cancelled';
+
+/**
+ * DesignSystemCreateRequest
+ */
+export type DesignSystemCreateRequest = {
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
+ * DesignSystemCursorPage[DesignSystemSummaryOut]
+ */
+export type DesignSystemCursorPageDesignSystemSummaryOut = {
+    /**
+     * Items
+     */
+    items?: Array<DesignSystemSummaryOut>;
+    /**
+     * Nextcursor
+     */
+    nextCursor?: string | null;
+};
+
+/**
+ * DesignSystemCursorPage[DesignSystemVersionSummaryOut]
+ */
+export type DesignSystemCursorPageDesignSystemVersionSummaryOut = {
+    /**
+     * Items
+     */
+    items?: Array<DesignSystemVersionSummaryOut>;
+    /**
+     * Nextcursor
+     */
+    nextCursor?: string | null;
+};
+
+/**
+ * DesignSystemDetailOut
+ */
+export type DesignSystemDetailOut = {
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     */
+    createdByUserId: string | null;
+    /**
+     * Defaultversionid
+     */
+    defaultVersionId: string | null;
+    /**
+     * Description
+     */
+    description: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Isdefault
+     */
+    isDefault: boolean;
+    /**
+     * Latestvalidversionid
+     */
+    latestValidVersionId: string | null;
+    latestVersion?: DesignSystemVersionSummaryOut | null;
+    /**
+     * Metadatarevision
+     */
+    metadataRevision: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Ownerkind
+     */
+    ownerKind: 'workspace' | 'project';
+    /**
+     * Owningprojectid
+     */
+    owningProjectId: string | null;
+    /**
+     * Status
+     */
+    status: 'active' | 'archived';
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Updatedbyuserid
+     */
+    updatedByUserId: string | null;
+    /**
+     * Versioncount
+     */
+    versionCount: number;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+export type DesignSystemLifecycleStatus = 'candidate' | 'validating' | 'valid' | 'published' | 'invalid' | 'superseded' | 'archived';
+
+/**
+ * DesignSystemManifestDiffEntryOut
+ */
+export type DesignSystemManifestDiffEntryOut = {
+    after?: JsonValueOutput;
+    before?: JsonValueOutput;
+    kind: DesignSystemManifestDiffKind;
+    operation: DesignSystemManifestDiffOperation;
+    /**
+     * Path
+     */
+    path: string;
+};
+
+export type DesignSystemManifestDiffKind = 'asset_reference' | 'breakpoint' | 'component_catalog' | 'component_recipe' | 'component_token' | 'extension' | 'metadata' | 'motion_role' | 'primitive_token' | 'semantic_token' | 'theme' | 'typography_role';
+
+export type DesignSystemManifestDiffOperation = 'added' | 'changed' | 'removed';
+
+/**
+ * DesignSystemManifestDiffOut
+ */
+export type DesignSystemManifestDiffOut = {
+    /**
+     * Addedcount
+     */
+    addedCount: number;
+    /**
+     * Changedcount
+     */
+    changedCount: number;
+    /**
+     * Entries
+     */
+    entries?: Array<DesignSystemManifestDiffEntryOut>;
+    /**
+     * Haschanges
+     */
+    hasChanges: boolean;
+    /**
+     * Removedcount
+     */
+    removedCount: number;
+};
+
+/**
+ * DesignSystemManifestInputV1
+ */
+export type DesignSystemManifestInputV1 = {
+    /**
+     * Assetreferences
+     */
+    assetReferences?: Array<{
+        [key: string]: JsonValueInput;
+    }>;
+    /**
+     * Breakpoints
+     */
+    breakpoints?: {
+        [key: string]: string;
+    };
+    /**
+     * Componentcatalogversion
+     */
+    componentCatalogVersion?: string | null;
+    /**
+     * Componentrecipes
+     */
+    componentRecipes?: Array<DesignComponentRecipeV1Input>;
+    /**
+     * Componenttokens
+     */
+    componentTokens?: {
+        [key: string]: DesignTokenDefinitionV1;
+    };
+    /**
+     * Extensions
+     */
+    extensions?: {
+        [key: string]: JsonValueInput;
+    };
+    /**
+     * Manifestversion
+     */
+    manifestVersion?: 1;
+    /**
+     * Motiontokens
+     */
+    motionTokens?: Array<DesignMotionRoleV1>;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Primitivetokens
+     */
+    primitiveTokens?: {
+        [key: string]: DesignTokenDefinitionV1;
+    };
+    /**
+     * Semantictokens
+     */
+    semanticTokens?: {
+        [key: string]: DesignTokenDefinitionV1;
+    };
+    /**
+     * Themes
+     */
+    themes: Array<DesignThemeV1>;
+    /**
+     * Typographyroles
+     */
+    typographyRoles?: Array<DesignTypographyRoleV1>;
+};
+
+/**
+ * DesignSystemManifestV1
+ */
+export type DesignSystemManifestV1 = {
+    /**
+     * Assetreferences
+     */
+    assetReferences?: Array<{
+        [key: string]: JsonValueOutput;
+    }>;
+    /**
+     * Breakpoints
+     */
+    breakpoints?: {
+        [key: string]: string;
+    };
+    /**
+     * Checksum
+     */
+    checksum: string;
+    /**
+     * Componentcatalogversion
+     */
+    componentCatalogVersion?: string | null;
+    /**
+     * Componentrecipes
+     */
+    componentRecipes?: Array<DesignComponentRecipeV1Output>;
+    /**
+     * Componenttokens
+     */
+    componentTokens?: {
+        [key: string]: DesignTokenDefinitionV1;
+    };
+    /**
+     * Extensions
+     */
+    extensions?: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Manifestversion
+     */
+    manifestVersion?: 1;
+    /**
+     * Motiontokens
+     */
+    motionTokens?: Array<DesignMotionRoleV1>;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Primitivetokens
+     */
+    primitiveTokens?: {
+        [key: string]: DesignTokenDefinitionV1;
+    };
+    /**
+     * Semantictokens
+     */
+    semanticTokens?: {
+        [key: string]: DesignTokenDefinitionV1;
+    };
+    /**
+     * Themes
+     */
+    themes: Array<DesignThemeV1>;
+    /**
+     * Typographyroles
+     */
+    typographyRoles?: Array<DesignTypographyRoleV1>;
+};
+
+/**
+ * DesignSystemSummaryOut
+ */
+export type DesignSystemSummaryOut = {
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     */
+    createdByUserId: string | null;
+    /**
+     * Defaultversionid
+     */
+    defaultVersionId: string | null;
+    /**
+     * Description
+     */
+    description: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Isdefault
+     */
+    isDefault: boolean;
+    /**
+     * Latestvalidversionid
+     */
+    latestValidVersionId: string | null;
+    /**
+     * Metadatarevision
+     */
+    metadataRevision: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Ownerkind
+     */
+    ownerKind: 'workspace' | 'project';
+    /**
+     * Owningprojectid
+     */
+    owningProjectId: string | null;
+    /**
+     * Status
+     */
+    status: 'active' | 'archived';
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Updatedbyuserid
+     */
+    updatedByUserId: string | null;
+    /**
+     * Versioncount
+     */
+    versionCount: number;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * DesignSystemValidationCreateRequest
+ */
+export type DesignSystemValidationCreateRequest = {
+    /**
+     * Profile
+     */
+    profile?: 'foundation';
+    /**
+     * Validatorversion
+     */
+    validatorVersion?: 2;
+};
+
+/**
+ * DesignSystemValidationFinding
+ */
+export type DesignSystemValidationFinding = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Messagekey
+     */
+    messageKey: string;
+    /**
+     * Path
+     */
+    path?: string | null;
+    /**
+     * Relatedpath
+     */
+    relatedPath?: string | null;
+    /**
+     * Severity
+     */
+    severity: 'warning' | 'blocker';
+};
+
+/**
+ * DesignSystemValidationResultOut
+ */
+export type DesignSystemValidationResultOut = {
+    /**
+     * Actoruserid
+     */
+    actorUserId: string | null;
+    /**
+     * Compatibility
+     */
+    compatibility: {
+        [key: string]: string;
+    };
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Designsystemversionid
+     */
+    designSystemVersionId: string;
+    /**
+     * Findinghash
+     */
+    findingHash: string;
+    /**
+     * Findings
+     */
+    findings: Array<DesignSystemValidationFinding>;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Profile
+     */
+    profile: 'foundation';
+    /**
+     * Publishready
+     */
+    publishReady: false;
+    /**
+     * Status
+     */
+    status: 'valid' | 'invalid';
+    /**
+     * Tokenindexhash
+     */
+    tokenIndexHash: string;
+    /**
+     * Validatorversion
+     */
+    validatorVersion: number;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * DesignSystemVersionCreateRequest
+ */
+export type DesignSystemVersionCreateRequest = {
+    /**
+     * Expectedparentchecksum
+     */
+    expectedParentChecksum?: string | null;
+    manifest: DesignSystemManifestInputV1;
+    /**
+     * Parentversionid
+     */
+    parentVersionId?: string | null;
+    /**
+     * Source
+     */
+    source?: 'manual';
+};
+
+/**
+ * DesignSystemVersionDetailOut
+ */
+export type DesignSystemVersionDetailOut = {
+    /**
+     * Componentcatalogversion
+     */
+    componentCatalogVersion: string | null;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     */
+    createdByUserId: string | null;
+    /**
+     * Designsystemid
+     */
+    designSystemId: string;
+    /**
+     * Id
+     */
+    id: string;
+    lifecycleStatus: DesignSystemLifecycleStatus;
+    manifest: DesignSystemManifestV1;
+    /**
+     * Manifestchecksum
+     */
+    manifestChecksum: string;
+    /**
+     * Parentversionid
+     */
+    parentVersionId: string | null;
+    /**
+     * Provenance
+     */
+    provenance: {
+        [key: string]: unknown;
+    };
+    /**
+     * Publishready
+     */
+    publishReady?: false;
+    /**
+     * Source
+     */
+    source: string;
+    /**
+     * Statuschangedat
+     */
+    statusChangedAt: string;
+    /**
+     * Statuschangedbyuserid
+     */
+    statusChangedByUserId: string | null;
+    /**
+     * Statusrevision
+     */
+    statusRevision: number;
+    /**
+     * Supersededbyversionid
+     */
+    supersededByVersionId: string | null;
+    /**
+     * Tokenindexhash
+     */
+    tokenIndexHash: string;
+    /**
+     * Validationfindinghash
+     */
+    validationFindingHash: string | null;
+    /**
+     * Validationstatus
+     */
+    validationStatus: string | null;
+    /**
+     * Versionnumber
+     */
+    versionNumber: number;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * DesignSystemVersionSummaryOut
+ */
+export type DesignSystemVersionSummaryOut = {
+    /**
+     * Componentcatalogversion
+     */
+    componentCatalogVersion: string | null;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     */
+    createdByUserId: string | null;
+    /**
+     * Designsystemid
+     */
+    designSystemId: string;
+    /**
+     * Id
+     */
+    id: string;
+    lifecycleStatus: DesignSystemLifecycleStatus;
+    /**
+     * Manifestchecksum
+     */
+    manifestChecksum: string;
+    /**
+     * Parentversionid
+     */
+    parentVersionId: string | null;
+    /**
+     * Publishready
+     */
+    publishReady?: false;
+    /**
+     * Source
+     */
+    source: string;
+    /**
+     * Statuschangedat
+     */
+    statusChangedAt: string;
+    /**
+     * Statuschangedbyuserid
+     */
+    statusChangedByUserId: string | null;
+    /**
+     * Statusrevision
+     */
+    statusRevision: number;
+    /**
+     * Supersededbyversionid
+     */
+    supersededByVersionId: string | null;
+    /**
+     * Tokenindexhash
+     */
+    tokenIndexHash: string;
+    /**
+     * Validationfindinghash
+     */
+    validationFindingHash: string | null;
+    /**
+     * Validationstatus
+     */
+    validationStatus: string | null;
+    /**
+     * Versionnumber
+     */
+    versionNumber: number;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * DesignThemeOverrideV1
+ */
+export type DesignThemeOverrideV1 = {
+    /**
+     * Alias
+     */
+    alias?: string | null;
+    /**
+     * Value
+     */
+    value?: string | number | number | Array<string> | [
+        number,
+        number,
+        number,
+        number
+    ] | null;
+};
+
+/**
+ * DesignThemeV1
+ */
+export type DesignThemeV1 = {
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Mode
+     */
+    mode: 'light' | 'dark' | 'high-contrast';
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Overrides
+     */
+    overrides?: {
+        [key: string]: DesignThemeOverrideV1;
+    };
+};
+
+/**
+ * DesignTokenDefinitionV1
+ */
+export type DesignTokenDefinitionV1 = {
+    /**
+     * Alias
+     */
+    alias?: string | null;
+    /**
+     * Deprecated
+     */
+    deprecated?: boolean;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Replacement
+     */
+    replacement?: string | null;
+    /**
+     * Type
+     */
+    type: 'color' | 'dimension' | 'number' | 'duration' | 'cubic-bezier' | 'font-family' | 'font-weight' | 'shadow';
+    /**
+     * Value
+     */
+    value?: string | number | number | Array<string> | [
+        number,
+        number,
+        number,
+        number
+    ] | null;
+};
+
+/**
+ * DesignTypographyRoleV1
+ */
+export type DesignTypographyRoleV1 = {
+    /**
+     * Fontfamilytoken
+     */
+    fontFamilyToken: string;
+    /**
+     * Fontsizetoken
+     */
+    fontSizeToken: string;
+    /**
+     * Fontweighttoken
+     */
+    fontWeightToken: string;
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Letterspacingtoken
+     */
+    letterSpacingToken?: string | null;
+    /**
+     * Lineheighttoken
+     */
+    lineHeightToken: string;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
  * DirectoryActorSummaryOut
  */
 export type DirectoryActorSummaryOut = {
@@ -6889,6 +11942,12 @@ export type DirectoryUserUpdateRequest = {
      * Email address.
      */
     email?: string | null;
+    /**
+     * Issuperadmin
+     *
+     * Whether the user has system-wide super admin access.
+     */
+    isSuperAdmin?: boolean | null;
 };
 
 /**
@@ -7351,13 +12410,20 @@ export type EmailCheckRequest = {
 
 /**
  * FeedbackCategory
+ *
+ * Legacy category retained only for historical ticket projection.
  */
 export type FeedbackCategory = 'bug' | 'feature_request' | 'usability' | 'performance' | 'billing' | 'other';
 
 /**
  * FeedbackContextType
  */
-export type FeedbackContextType = 'global' | 'workspace' | 'project' | 'ai_conversation';
+export type FeedbackContextType = 'global' | 'workspace' | 'project';
+
+/**
+ * FeedbackIntent
+ */
+export type FeedbackIntent = 'problem' | 'idea' | 'question' | 'praise';
 
 /**
  * FeedbackMessageCreate
@@ -7398,6 +12464,11 @@ export type FeedbackMessageOut = {
 };
 
 /**
+ * FeedbackOrdering
+ */
+export type FeedbackOrdering = '-last_activity_at' | 'last_activity_at' | '-created_at' | 'created_at';
+
+/**
  * FeedbackPriority
  */
 export type FeedbackPriority = 'low' | 'normal' | 'high' | 'urgent';
@@ -7405,7 +12476,7 @@ export type FeedbackPriority = 'low' | 'normal' | 'high' | 'urgent';
 /**
  * FeedbackSource
  */
-export type FeedbackSource = 'header' | 'ai_sidebar' | 'feedback_center';
+export type FeedbackSource = 'header' | 'ai_sidebar' | 'content_guard' | 'feedback_center';
 
 /**
  * FeedbackStatus
@@ -7416,7 +12487,6 @@ export type FeedbackStatus = 'new' | 'triaged' | 'in_progress' | 'waiting_for_cu
  * FeedbackSubmitRequest
  */
 export type FeedbackSubmitRequest = {
-    category?: FeedbackCategory;
     /**
      * Clientrequestid
      */
@@ -7432,6 +12502,7 @@ export type FeedbackSubmitRequest = {
      * Contexturl
      */
     contextUrl?: string | null;
+    intent: FeedbackIntent;
     /**
      * Message
      */
@@ -7456,7 +12527,6 @@ export type FeedbackSubmitRequest = {
  */
 export type FeedbackTicketDetailOut = {
     assignee: FeedbackUserOut | null;
-    category: FeedbackCategory;
     /**
      * Clientrequestid
      */
@@ -7492,10 +12562,12 @@ export type FeedbackTicketDetailOut = {
      * ID
      */
     id: string;
+    intent: FeedbackIntent | null;
     /**
      * Lastactivityat
      */
     lastActivityAt: string;
+    legacyCategory: FeedbackCategory | null;
     /**
      * Message
      */
@@ -7537,7 +12609,6 @@ export type FeedbackTicketDetailOut = {
  */
 export type FeedbackTicketListItemOut = {
     assignee: FeedbackUserOut | null;
-    category: FeedbackCategory;
     /**
      * Clientrequestid
      */
@@ -7563,10 +12634,12 @@ export type FeedbackTicketListItemOut = {
      * ID
      */
     id: string;
+    intent: FeedbackIntent | null;
     /**
      * Lastactivityat
      */
     lastActivityAt: string;
+    legacyCategory: FeedbackCategory | null;
     /**
      * Messagecount
      */
@@ -7628,6 +12701,10 @@ export type FeedbackUserOut = {
      */
     avatarUrl: string | null;
     /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
      * Displayname
      */
     displayName: string | null;
@@ -7640,9 +12717,35 @@ export type FeedbackUserOut = {
      */
     id: string;
     /**
+     * Issuperadmin
+     */
+    isSuperAdmin: boolean;
+    /**
+     * Lastloginat
+     */
+    lastLoginAt: string | null;
+    /**
+     * Status
+     */
+    status: string;
+    /**
      * Username
      */
     username: string;
+};
+
+/**
+ * FileKnowledgeLocator
+ */
+export type FileKnowledgeLocator = {
+    /**
+     * Assetid
+     */
+    assetId: string;
+    /**
+     * Kind
+     */
+    kind: 'file';
 };
 
 /**
@@ -7658,6 +12761,74 @@ export type ForgotPasswordRequest = {
      */
     email: string;
 };
+
+/**
+ * GlobalNotificationBroadcastIn
+ */
+export type GlobalNotificationBroadcastIn = {
+    /**
+     * Actionlabel
+     */
+    actionLabel?: string | null;
+    /**
+     * Actionto
+     */
+    actionTo?: string | null;
+    /**
+     * Body
+     */
+    body?: string | null;
+    /**
+     * Deliveremail
+     */
+    deliverEmail?: boolean;
+    /**
+     * Deliverinapp
+     */
+    deliverInApp?: boolean;
+    presentation?: GlobalNotificationPresentation;
+    severity?: GlobalNotificationSeverity;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * GlobalNotificationBroadcastOut
+ */
+export type GlobalNotificationBroadcastOut = {
+    /**
+     * Audiencecount
+     */
+    audienceCount: number;
+    /**
+     * Broadcastid
+     */
+    broadcastId: string;
+    /**
+     * Emaildeliveredcount
+     */
+    emailDeliveredCount: number;
+    /**
+     * Inappdeliveredcount
+     */
+    inAppDeliveredCount: number;
+    /**
+     * Policyenabled
+     */
+    policyEnabled: boolean;
+};
+
+/**
+ * GlobalNotificationPresentation
+ */
+export type GlobalNotificationPresentation = 'inbox' | 'toast' | 'modal' | 'banner';
+
+/**
+ * GlobalNotificationSeverity
+ */
+export type GlobalNotificationSeverity = 'info' | 'success' | 'warning' | 'error';
 
 /**
  * HTTPObservabilitySummaryOut
@@ -7679,6 +12850,14 @@ export type HttpObservabilitySummaryOut = {
      * Maxlatencyms
      */
     maxLatencyMs: number;
+    /**
+     * P95Latencyms
+     */
+    p95LatencyMs?: number | null;
+    /**
+     * P99Latencyms
+     */
+    p99LatencyMs?: number | null;
     /**
      * Requests
      */
@@ -7714,6 +12893,14 @@ export type HttpRequestGroupOut = {
      */
     method: string;
     /**
+     * P95Latencyms
+     */
+    p95LatencyMs?: number | null;
+    /**
+     * P99Latencyms
+     */
+    p99LatencyMs?: number | null;
+    /**
      * Requests
      */
     requests: number;
@@ -7725,6 +12912,53 @@ export type HttpRequestGroupOut = {
      * Statusclass
      */
     statusClass: number;
+};
+
+/**
+ * HTTPRequestRecordOut
+ */
+export type HttpRequestRecordOut = {
+    actor?: ActivityUserSummaryOut | null;
+    /**
+     * Actoruserid
+     */
+    actorUserId?: string | null;
+    /**
+     * Durationms
+     */
+    durationMs: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Method
+     */
+    method: string;
+    /**
+     * Occurredat
+     */
+    occurredAt: string;
+    /**
+     * Projectid
+     */
+    projectId?: string | null;
+    /**
+     * Routetemplate
+     */
+    routeTemplate: string;
+    /**
+     * Statuscode
+     */
+    statusCode: number;
+    /**
+     * Traceid
+     */
+    traceId?: string | null;
+    /**
+     * Workspaceid
+     */
+    workspaceId?: string | null;
 };
 
 /**
@@ -7963,6 +13197,16 @@ export type InvitationPreviewWorkspaceOut = {
  */
 export type InviteStatus = 'pending' | 'accepted' | 'revoked' | 'expired';
 
+/**
+ * JobPublicStatus
+ */
+export type JobPublicStatus = 'queued' | 'running' | 'waiting_for_user' | 'succeeded' | 'failed' | 'cancelled';
+
+/**
+ * JobWorkloadClass
+ */
+export type JobWorkloadClass = 'agent-io' | 'render-browser' | 'asset-cpu' | 'publish' | 'connector' | 'maintenance';
+
 export type JsonValueInput = string | number | number | boolean | Array<JsonValueInput> | {
     [key: string]: JsonValueInput;
 } | null;
@@ -7970,6 +13214,535 @@ export type JsonValueInput = string | number | number | boolean | Array<JsonValu
 export type JsonValueOutput = string | number | number | boolean | Array<JsonValueOutput> | {
     [key: string]: JsonValueOutput;
 } | null;
+
+/**
+ * KnowledgeAccessPolicy
+ */
+export type KnowledgeAccessPolicy = {
+    /**
+     * Allowedagentdefinitionids
+     */
+    allowedAgentDefinitionIds?: Array<string>;
+    /**
+     * Allowedmemberids
+     */
+    allowedMemberIds?: Array<string>;
+    /**
+     * Allowedprojectids
+     */
+    allowedProjectIds?: Array<string>;
+    /**
+     * Allowedrolecodes
+     */
+    allowedRoleCodes?: Array<string>;
+    /**
+     * Visibility
+     */
+    visibility?: 'workspace' | 'restricted';
+};
+
+/**
+ * KnowledgeBaseCreateRequest
+ */
+export type KnowledgeBaseCreateRequest = {
+    accessPolicy?: KnowledgeAccessPolicy;
+    /**
+     * Defaultlocale
+     */
+    defaultLocale?: string;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
+ * KnowledgeBaseDetailOut
+ */
+export type KnowledgeBaseDetailOut = {
+    accessPolicy: KnowledgeAccessPolicy;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     */
+    createdByUserId: string | null;
+    /**
+     * Defaultlocale
+     */
+    defaultLocale: string;
+    /**
+     * Description
+     */
+    description: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Metadatarevision
+     */
+    metadataRevision: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Policyrevision
+     */
+    policyRevision: number;
+    /**
+     * Readysourcecount
+     */
+    readySourceCount: number;
+    /**
+     * Sourcecount
+     */
+    sourceCount: number;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Updatedbyuserid
+     */
+    updatedByUserId: string | null;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * KnowledgeBaseStatus
+ */
+export type KnowledgeBaseStatus = 'active' | 'disabled' | 'deleting';
+
+/**
+ * KnowledgeBaseSummaryOut
+ */
+export type KnowledgeBaseSummaryOut = {
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     */
+    createdByUserId: string | null;
+    /**
+     * Defaultlocale
+     */
+    defaultLocale: string;
+    /**
+     * Description
+     */
+    description: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Metadatarevision
+     */
+    metadataRevision: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Policyrevision
+     */
+    policyRevision: number;
+    /**
+     * Readysourcecount
+     */
+    readySourceCount: number;
+    /**
+     * Sourcecount
+     */
+    sourceCount: number;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Updatedbyuserid
+     */
+    updatedByUserId: string | null;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * KnowledgeBaseUpdateRequest
+ */
+export type KnowledgeBaseUpdateRequest = {
+    accessPolicy?: KnowledgeAccessPolicy | null;
+    /**
+     * Defaultlocale
+     */
+    defaultLocale?: string | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Status
+     */
+    status?: 'active' | 'disabled' | null;
+};
+
+/**
+ * KnowledgeCursorPage[KnowledgeBaseSummaryOut]
+ */
+export type KnowledgeCursorPageKnowledgeBaseSummaryOut = {
+    /**
+     * Items
+     */
+    items?: Array<KnowledgeBaseSummaryOut>;
+    /**
+     * Nextcursor
+     */
+    nextCursor?: string | null;
+};
+
+/**
+ * KnowledgeCursorPage[KnowledgeSourceOut]
+ */
+export type KnowledgeCursorPageKnowledgeSourceOut = {
+    /**
+     * Items
+     */
+    items?: Array<KnowledgeSourceOut>;
+    /**
+     * Nextcursor
+     */
+    nextCursor?: string | null;
+};
+
+/**
+ * KnowledgeCursorPage[KnowledgeSourceVersionOut]
+ */
+export type KnowledgeCursorPageKnowledgeSourceVersionOut = {
+    /**
+     * Items
+     */
+    items?: Array<KnowledgeSourceVersionOut>;
+    /**
+     * Nextcursor
+     */
+    nextCursor?: string | null;
+};
+
+/**
+ * KnowledgeServingFreshness
+ */
+export type KnowledgeServingFreshness = 'current' | 'stale';
+
+/**
+ * KnowledgeSourceCreateRequest
+ */
+export type KnowledgeSourceCreateRequest = {
+    /**
+     * Displayname
+     */
+    displayName: string;
+    /**
+     * Locale
+     */
+    locale?: string;
+    /**
+     * Locator
+     */
+    locator: ({
+        kind: 'manual';
+    } & ManualKnowledgeLocator) | ({
+        kind: 'file';
+    } & FileKnowledgeLocator) | ({
+        kind: 'url';
+    } & UrlKnowledgeLocator) | ({
+        kind: 'connector';
+    } & ConnectorKnowledgeLocator) | ({
+        kind: 'structured_content';
+    } & StructuredContentKnowledgeLocatorInput);
+};
+
+/**
+ * KnowledgeSourceIngestionAcceptedOut
+ */
+export type KnowledgeSourceIngestionAcceptedOut = {
+    /**
+     * Ingestionmode
+     */
+    ingestionMode: 'initial' | 'refresh';
+    /**
+     * Jobid
+     */
+    jobId: string;
+    /**
+     * Sourceid
+     */
+    sourceId: string;
+    /**
+     * Status
+     */
+    status?: 'queued';
+};
+
+/**
+ * KnowledgeSourceIngestionCreateRequest
+ */
+export type KnowledgeSourceIngestionCreateRequest = {
+    /**
+     * Ingestionmode
+     */
+    ingestionMode: 'initial' | 'refresh';
+};
+
+/**
+ * KnowledgeSourceKind
+ */
+export type KnowledgeSourceKind = 'manual' | 'file' | 'url' | 'connector' | 'structured_content';
+
+/**
+ * KnowledgeSourceOut
+ */
+export type KnowledgeSourceOut = {
+    /**
+     * Activereadyversionid
+     */
+    activeReadyVersionId: string | null;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     */
+    createdByUserId: string | null;
+    /**
+     * Displayname
+     */
+    displayName: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Knowledgebaseid
+     */
+    knowledgeBaseId: string;
+    /**
+     * Latestcandidateversionid
+     */
+    latestCandidateVersionId: string | null;
+    /**
+     * Locale
+     */
+    locale: string;
+    /**
+     * Locator
+     */
+    locator: ({
+        kind: 'manual';
+    } & ManualKnowledgeLocator) | ({
+        kind: 'file';
+    } & FileKnowledgeLocator) | ({
+        kind: 'url';
+    } & UrlKnowledgeLocator) | ({
+        kind: 'connector';
+    } & ConnectorKnowledgeLocator) | ({
+        kind: 'structured_content';
+    } & StructuredContentKnowledgeLocatorOutput);
+    /**
+     * Metadatarevision
+     */
+    metadataRevision: number;
+    /**
+     * Safeerrorcode
+     */
+    safeErrorCode: string | null;
+    /**
+     * Servingfreshness
+     */
+    servingFreshness: string;
+    /**
+     * Sourcekind
+     */
+    sourceKind: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Updatedbyuserid
+     */
+    updatedByUserId: string | null;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * KnowledgeSourceStatus
+ */
+export type KnowledgeSourceStatus = 'pending' | 'fetching' | 'parsing' | 'indexing' | 'ready' | 'stale' | 'failed' | 'quarantined' | 'disabled' | 'deleting';
+
+/**
+ * KnowledgeSourceUpdateRequest
+ */
+export type KnowledgeSourceUpdateRequest = {
+    /**
+     * Displayname
+     */
+    displayName?: string | null;
+    /**
+     * Enabled
+     */
+    enabled?: boolean | null;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Locale
+     */
+    locale?: string | null;
+};
+
+/**
+ * KnowledgeSourceVersionOut
+ */
+export type KnowledgeSourceVersionOut = {
+    /**
+     * Charactercount
+     */
+    characterCount: number | null;
+    /**
+     * Chunkcount
+     */
+    chunkCount: number | null;
+    /**
+     * Chunkername
+     */
+    chunkerName: string;
+    /**
+     * Chunkerversion
+     */
+    chunkerVersion: string;
+    /**
+     * Contenthash
+     */
+    contentHash: string;
+    /**
+     * Correlationid
+     */
+    correlationId: string | null;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Documentmetadata
+     */
+    documentMetadata: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Indexjobid
+     */
+    indexJobId: string | null;
+    /**
+     * Indexschemaversion
+     */
+    indexSchemaVersion: number;
+    /**
+     * Ingestionmode
+     */
+    ingestionMode: string;
+    /**
+     * Locale
+     */
+    locale: string;
+    /**
+     * Normalizedcontenthash
+     */
+    normalizedContentHash: string;
+    /**
+     * Parsername
+     */
+    parserName: string;
+    /**
+     * Parserversion
+     */
+    parserVersion: string;
+    /**
+     * Provenanceactoruserid
+     */
+    provenanceActorUserId: string | null;
+    /**
+     * Provenancejobid
+     */
+    provenanceJobId: string | null;
+    /**
+     * Sourceid
+     */
+    sourceId: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Title
+     */
+    title: string | null;
+    /**
+     * Tokencount
+     */
+    tokenCount: number | null;
+    /**
+     * Versionnumber
+     */
+    versionNumber: number;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
 
 /**
  * LeaveWorkspaceRequest
@@ -8166,6 +13939,182 @@ export type MailProviderSwitchRequest = {
 };
 
 /**
+ * MailTemplateCreateRequest
+ */
+export type MailTemplateCreateRequest = {
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Htmltemplate
+     */
+    htmlTemplate: string;
+    /**
+     * Isenabled
+     */
+    isEnabled?: boolean;
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Locale
+     */
+    locale: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Subjecttemplate
+     */
+    subjectTemplate: string;
+    /**
+     * Texttemplate
+     */
+    textTemplate: string;
+    /**
+     * Variables
+     */
+    variables?: Array<string>;
+};
+
+/**
+ * MailTemplateOut
+ */
+export type MailTemplateOut = {
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Description
+     */
+    description: string | null;
+    /**
+     * Htmltemplate
+     */
+    htmlTemplate: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Isenabled
+     */
+    isEnabled: boolean;
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Locale
+     */
+    locale: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Subjecttemplate
+     */
+    subjectTemplate: string;
+    /**
+     * Texttemplate
+     */
+    textTemplate: string;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Variables
+     */
+    variables: Array<string>;
+    /**
+     * Version
+     */
+    version: number;
+};
+
+/**
+ * MailTemplatePatchRequest
+ */
+export type MailTemplatePatchRequest = {
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Htmltemplate
+     */
+    htmlTemplate?: string | null;
+    /**
+     * Isenabled
+     */
+    isEnabled?: boolean | null;
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Subjecttemplate
+     */
+    subjectTemplate?: string | null;
+    /**
+     * Texttemplate
+     */
+    textTemplate?: string | null;
+    /**
+     * Variables
+     */
+    variables?: Array<string> | null;
+};
+
+/**
+ * MailTemplatePreviewOut
+ */
+export type MailTemplatePreviewOut = {
+    /**
+     * Html
+     */
+    html: string;
+    /**
+     * Subject
+     */
+    subject: string;
+    /**
+     * Text
+     */
+    text: string;
+};
+
+/**
+ * MailTemplatePreviewRequest
+ */
+export type MailTemplatePreviewRequest = {
+    /**
+     * Htmltemplate
+     */
+    htmlTemplate: string;
+    /**
+     * Subjecttemplate
+     */
+    subjectTemplate: string;
+    /**
+     * Texttemplate
+     */
+    textTemplate: string;
+    /**
+     * Variables
+     */
+    variables?: {
+        [key: string]: JsonValueInput;
+    };
+};
+
+/**
  * MailTestRequest
  */
 export type MailTestRequest = {
@@ -8193,6 +14142,44 @@ export type MailTestResult = {
      * Provider that accepted the test message.
      */
     provider?: string | null;
+};
+
+/**
+ * ManualKnowledgeLocator
+ */
+export type ManualKnowledgeLocator = {
+    /**
+     * Documentkey
+     */
+    documentKey?: string | null;
+    /**
+     * Kind
+     */
+    kind: 'manual';
+};
+
+/**
+ * ManualKnowledgeVersionCreateRequest
+ */
+export type ManualKnowledgeVersionCreateRequest = {
+    /**
+     * Content
+     */
+    content: string;
+    /**
+     * Documentmetadata
+     */
+    documentMetadata?: {
+        [key: string]: JsonValueInput;
+    };
+    /**
+     * Locale
+     */
+    locale?: string | null;
+    /**
+     * Title
+     */
+    title?: string | null;
 };
 
 /**
@@ -8572,7 +14559,7 @@ export type NotificationArchiveResult = {
  * Notes:
  * - Keep this small for MVP; extend when we add more notification sources.
  */
-export type NotificationCategory = 'team' | 'security' | 'task';
+export type NotificationCategory = 'team' | 'security' | 'task' | 'system';
 
 /**
  * NotificationDeleteResult
@@ -9036,6 +15023,234 @@ export type ObservabilityTrendPointOut = {
      * Value
      */
     value: number | number;
+};
+
+/**
+ * OfficialSkillCatalogDetailOut
+ */
+export type OfficialSkillCatalogDetailOut = {
+    /**
+     * Capabilitytags
+     */
+    capabilityTags: Array<string>;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Descriptionkey
+     */
+    descriptionKey: string;
+    /**
+     * Displayname
+     */
+    displayName: string;
+    /**
+     * Displaynamekey
+     */
+    displayNameKey: string;
+    /**
+     * Installationid
+     */
+    installationId?: string | null;
+    /**
+     * Installationmetadatarevision
+     */
+    installationMetadataRevision?: number | null;
+    /**
+     * Installationstatus
+     */
+    installationStatus?: string | null;
+    /**
+     * Installationversionid
+     */
+    installationVersionId?: string | null;
+    /**
+     * Installed
+     */
+    installed: boolean;
+    manifest: SkillManifestV1;
+    /**
+     * Packagechecksum
+     */
+    packageChecksum: string;
+    /**
+     * Packageid
+     */
+    packageId: string;
+    /**
+     * Packagescope
+     */
+    packageScope?: 'system';
+    /**
+     * Publisherid
+     */
+    publisherId: string;
+    /**
+     * Publishername
+     */
+    publisherName: string;
+    /**
+     * Publisherverified
+     */
+    publisherVerified: true;
+    /**
+     * Resources
+     */
+    resources: Array<SkillResourceOut>;
+    /**
+     * Semanticversion
+     */
+    semanticVersion: string | null;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    validation: OfficialSkillValidationEvidenceOut;
+    /**
+     * Validationfindinghash
+     */
+    validationFindingHash: string;
+    /**
+     * Validationstatus
+     */
+    validationStatus: string;
+    /**
+     * Versionid
+     */
+    versionId: string;
+    /**
+     * Versionnumber
+     */
+    versionNumber: number;
+};
+
+/**
+ * OfficialSkillCatalogItemOut
+ */
+export type OfficialSkillCatalogItemOut = {
+    /**
+     * Capabilitytags
+     */
+    capabilityTags: Array<string>;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Descriptionkey
+     */
+    descriptionKey: string;
+    /**
+     * Displayname
+     */
+    displayName: string;
+    /**
+     * Displaynamekey
+     */
+    displayNameKey: string;
+    /**
+     * Installationid
+     */
+    installationId?: string | null;
+    /**
+     * Installationmetadatarevision
+     */
+    installationMetadataRevision?: number | null;
+    /**
+     * Installationstatus
+     */
+    installationStatus?: string | null;
+    /**
+     * Installationversionid
+     */
+    installationVersionId?: string | null;
+    /**
+     * Installed
+     */
+    installed: boolean;
+    /**
+     * Packagechecksum
+     */
+    packageChecksum: string;
+    /**
+     * Packageid
+     */
+    packageId: string;
+    /**
+     * Packagescope
+     */
+    packageScope?: 'system';
+    /**
+     * Publisherid
+     */
+    publisherId: string;
+    /**
+     * Publishername
+     */
+    publisherName: string;
+    /**
+     * Publisherverified
+     */
+    publisherVerified: true;
+    /**
+     * Semanticversion
+     */
+    semanticVersion: string | null;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Validationfindinghash
+     */
+    validationFindingHash: string;
+    /**
+     * Validationstatus
+     */
+    validationStatus: string;
+    /**
+     * Versionid
+     */
+    versionId: string;
+    /**
+     * Versionnumber
+     */
+    versionNumber: number;
+};
+
+/**
+ * OfficialSkillValidationEvidenceOut
+ */
+export type OfficialSkillValidationEvidenceOut = {
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Findinghash
+     */
+    findingHash: string;
+    /**
+     * Findings
+     */
+    findings: Array<SkillValidationFindingOut>;
+    /**
+     * Policyversion
+     */
+    policyVersion: number;
+    /**
+     * Status
+     */
+    status: string;
 };
 
 /**
@@ -9891,6 +16106,54 @@ export type PageDataHttpRequestGroupOut = {
 };
 
 /**
+ * PageData[HTTPRequestRecordOut]
+ */
+export type PageDataHttpRequestRecordOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<HttpRequestRecordOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
  * PageData[MyInvitationOut]
  */
 export type PageDataMyInvitationOut = {
@@ -10179,6 +16442,102 @@ export type PageDataSettingsNamespaceSummary = {
 };
 
 /**
+ * PageData[SystemAgentAssignmentOut]
+ */
+export type PageDataSystemAgentAssignmentOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<SystemAgentAssignmentOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
+ * PageData[SystemAgentDefinitionSummaryOut]
+ */
+export type PageDataSystemAgentDefinitionSummaryOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<SystemAgentDefinitionSummaryOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
  * PageData[WorkspaceEmailInviteOut]
  */
 export type PageDataWorkspaceEmailInviteOut = {
@@ -10284,6 +16643,54 @@ export type PageDataWorkspaceInviteLinkParticipantOut = {
      * Current page items.
      */
     items?: Array<WorkspaceInviteLinkParticipantOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
+ * PageData[WorkspaceJobOut]
+ */
+export type PageDataWorkspaceJobOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<WorkspaceJobOut>;
     /**
      * Next
      *
@@ -10808,6 +17215,28 @@ export type ProjectArchiveResult = {
 };
 
 /**
+ * ProjectAuthoringAuthorityOut
+ */
+export type ProjectAuthoringAuthorityOut = {
+    mode: ProjectAuthoringMode | null;
+    /**
+     * Revision
+     */
+    revision: number;
+    state: ProjectAuthoringState;
+};
+
+/**
+ * ProjectAuthoringMode
+ */
+export type ProjectAuthoringMode = 'builder_managed' | 'source_managed';
+
+/**
+ * ProjectAuthoringState
+ */
+export type ProjectAuthoringState = 'ready' | 'migration_required';
+
+/**
  * ProjectAuthzSnapshot
  */
 export type ProjectAuthzSnapshot = {
@@ -10850,9 +17279,46 @@ export type ProjectAuthzSnapshot = {
 };
 
 /**
+ * ProjectBuilderProjectionOut
+ */
+export type ProjectBuilderProjectionOut = {
+    authoringAuthority: ProjectAuthoringAuthorityOut;
+    /**
+     * Blockers
+     */
+    blockers: Array<string>;
+    currentSiteRevision: SiteRevisionManifestV1 | null;
+    currentStatus: SiteRevisionStatusOut | null;
+    /**
+     * Defaultpreviewenvironmentid
+     */
+    defaultPreviewEnvironmentId: string | null;
+    /**
+     * Initializationrequired
+     */
+    initializationRequired: boolean;
+    /**
+     * Primarysiteid
+     */
+    primarySiteId: string | null;
+    /**
+     * Projectid
+     */
+    projectId: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
  * ProjectCreateRequest
  */
 export type ProjectCreateRequest = {
+    /**
+     * Explicit project-wide composition authority.
+     */
+    authoringMode: ProjectAuthoringMode;
     /**
      * Description
      *
@@ -11436,6 +17902,417 @@ export type ProjectDeploymentRollbackIn = {
 };
 
 /**
+ * ProjectDesignSystemAssignmentOut
+ */
+export type ProjectDesignSystemAssignmentOut = {
+    /**
+     * Assignedat
+     */
+    assignedAt: string;
+    /**
+     * Designsystemid
+     */
+    designSystemId: string;
+    /**
+     * Manifestchecksum
+     */
+    manifestChecksum: string;
+    /**
+     * Metadatarevision
+     */
+    metadataRevision: number;
+    /**
+     * Ownerkind
+     */
+    ownerKind: string;
+    /**
+     * Projectid
+     */
+    projectId: string;
+    /**
+     * Validationfindinghash
+     */
+    validationFindingHash: string;
+    /**
+     * Versionid
+     */
+    versionId: string;
+};
+
+/**
+ * ProjectDesignSystemAssignmentResultOut
+ */
+export type ProjectDesignSystemAssignmentResultOut = {
+    /**
+     * Activereleasechanged
+     */
+    activeReleaseChanged?: boolean;
+    current: ProjectDesignSystemAssignmentOut;
+    previous: ProjectDesignSystemAssignmentOut | null;
+    /**
+     * Siterevisionchanged
+     */
+    siteRevisionChanged?: boolean;
+};
+
+/**
+ * ProjectDesignSystemAssignmentSetRequest
+ */
+export type ProjectDesignSystemAssignmentSetRequest = {
+    /**
+     * Designsystemid
+     */
+    designSystemId: string;
+    /**
+     * Expectedmanifestchecksum
+     */
+    expectedManifestChecksum: string;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Validationfindinghash
+     */
+    validationFindingHash: string;
+    /**
+     * Versionid
+     */
+    versionId: string;
+};
+
+/**
+ * ProjectDesignSystemComparisonOut
+ */
+export type ProjectDesignSystemComparisonOut = {
+    /**
+     * Comparisonhash
+     */
+    comparisonHash: string;
+    diff: DesignSystemManifestDiffOut;
+    fromVersion: DesignSystemVersionSummaryOut;
+    toVersion: DesignSystemVersionSummaryOut;
+};
+
+/**
+ * ProjectDesignSystemComparisonRequest
+ */
+export type ProjectDesignSystemComparisonRequest = {
+    /**
+     * Fromversionid
+     */
+    fromVersionId: string;
+    /**
+     * Toversionid
+     */
+    toVersionId: string;
+};
+
+/**
+ * ProjectDesignSystemForkOut
+ */
+export type ProjectDesignSystemForkOut = {
+    /**
+     * Designsystemid
+     */
+    designSystemId: string;
+    /**
+     * Manifestchecksum
+     */
+    manifestChecksum: string;
+    /**
+     * Projectid
+     */
+    projectId: string;
+    /**
+     * Sourcedesignsystemid
+     */
+    sourceDesignSystemId: string;
+    /**
+     * Sourcemanifestchecksum
+     */
+    sourceManifestChecksum: string;
+    /**
+     * Sourceversionid
+     */
+    sourceVersionId: string;
+    /**
+     * Validationfindinghash
+     */
+    validationFindingHash: string;
+    /**
+     * Versionid
+     */
+    versionId: string;
+};
+
+/**
+ * ProjectDesignSystemForkRequest
+ */
+export type ProjectDesignSystemForkRequest = {
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Expectedsourcechecksum
+     */
+    expectedSourceChecksum: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Sourcedesignsystemid
+     */
+    sourceDesignSystemId: string;
+    /**
+     * Sourceversionid
+     */
+    sourceVersionId: string;
+    /**
+     * Validationfindinghash
+     */
+    validationFindingHash: string;
+};
+
+/**
+ * ProjectDesignSystemImpactCoverageOut
+ */
+export type ProjectDesignSystemImpactCoverageOut = {
+    /**
+     * Activerelease
+     */
+    activeRelease?: 'not_evaluated';
+    /**
+     * Assetauthorization
+     */
+    assetAuthorization?: 'manifest_only';
+    /**
+     * Assignment
+     */
+    assignment?: 'evaluated';
+    /**
+     * Compilerartifacts
+     */
+    compilerArtifacts?: 'not_evaluated';
+    /**
+     * Renderer
+     */
+    renderer?: 'not_evaluated';
+    /**
+     * Siterevisions
+     */
+    siteRevisions?: 'evaluated';
+    /**
+     * Wireframes
+     */
+    wireframes?: 'evaluated';
+};
+
+/**
+ * ProjectDesignSystemImpactEntryOut
+ */
+export type ProjectDesignSystemImpactEntryOut = {
+    /**
+     * Componentkey
+     */
+    componentKey: string;
+    /**
+     * Diffpaths
+     */
+    diffPaths: Array<string>;
+    /**
+     * Pageitemid
+     */
+    pageItemId: string;
+    /**
+     * Reasoncode
+     */
+    reasonCode: 'DESIGN_SYSTEM_TOKEN_CHANGE_REACHES_COMPONENT_RECIPE' | 'DESIGN_SYSTEM_COMPONENT_RECIPE_CHANGED' | 'DESIGN_SYSTEM_COMPONENT_RECIPE_ADDED' | 'DESIGN_SYSTEM_COMPONENT_RECIPE_REMOVED';
+    /**
+     * Recipekey
+     */
+    recipeKey: string;
+    /**
+     * Revisionnumber
+     */
+    revisionNumber: number;
+    /**
+     * Sectionid
+     */
+    sectionId: string;
+    /**
+     * Severity
+     */
+    severity: 'warning' | 'blocker';
+    /**
+     * Siterevisionid
+     */
+    siteRevisionId: string;
+    /**
+     * Variantkey
+     */
+    variantKey: string;
+};
+
+/**
+ * ProjectDesignSystemImpactPreviewOut
+ */
+export type ProjectDesignSystemImpactPreviewOut = {
+    coverage: ProjectDesignSystemImpactCoverageOut;
+    diff: DesignSystemManifestDiffOut;
+    fromVersion: DesignSystemVersionSummaryOut;
+    /**
+     * Impacthash
+     */
+    impactHash: string;
+    /**
+     * Impacts
+     */
+    impacts: Array<ProjectDesignSystemImpactEntryOut>;
+    summary: ProjectDesignSystemImpactSummaryOut;
+    toVersion: DesignSystemVersionSummaryOut;
+};
+
+/**
+ * ProjectDesignSystemImpactPreviewRequest
+ */
+export type ProjectDesignSystemImpactPreviewRequest = {
+    /**
+     * Fromversionid
+     */
+    fromVersionId: string;
+    /**
+     * Toversionid
+     */
+    toVersionId: string;
+};
+
+/**
+ * ProjectDesignSystemImpactSummaryOut
+ */
+export type ProjectDesignSystemImpactSummaryOut = {
+    /**
+     * Affectedpagecount
+     */
+    affectedPageCount: number;
+    /**
+     * Affectedsectioncount
+     */
+    affectedSectionCount: number;
+    /**
+     * Assignmentusesfromversion
+     */
+    assignmentUsesFromVersion: boolean;
+    /**
+     * Blockercount
+     */
+    blockerCount: number;
+    /**
+     * Currentsiterevisioncount
+     */
+    currentSiteRevisionCount: number;
+    /**
+     * Hasimpact
+     */
+    hasImpact: boolean;
+    /**
+     * Historicalsiterevisioncount
+     */
+    historicalSiteRevisionCount: number;
+    /**
+     * Mappeddiffcount
+     */
+    mappedDiffCount: number;
+    /**
+     * Referencedsiterevisioncount
+     */
+    referencedSiteRevisionCount: number;
+    /**
+     * Unmappeddiffcount
+     */
+    unmappedDiffCount: number;
+    /**
+     * Warningcount
+     */
+    warningCount: number;
+};
+
+/**
+ * ProjectDesignSystemSupersessionOut
+ */
+export type ProjectDesignSystemSupersessionOut = {
+    /**
+     * Activereleasechanged
+     */
+    activeReleaseChanged?: false;
+    /**
+     * Assignmentchanged
+     */
+    assignmentChanged?: false;
+    /**
+     * Currentlatestvalidversionid
+     */
+    currentLatestValidVersionId: string | null;
+    /**
+     * Previouslatestvalidversionid
+     */
+    previousLatestValidVersionId: string | null;
+    replacementVersion: DesignSystemVersionSummaryOut;
+    /**
+     * Siterevisionchanged
+     */
+    siteRevisionChanged?: false;
+    /**
+     * Systemmetadatarevision
+     */
+    systemMetadataRevision: number;
+    targetVersion: DesignSystemVersionSummaryOut;
+};
+
+/**
+ * ProjectDesignSystemSupersessionRequest
+ */
+export type ProjectDesignSystemSupersessionRequest = {
+    /**
+     * Expectedreplacementchecksum
+     */
+    expectedReplacementChecksum: string;
+    /**
+     * Expectedsystemrevision
+     */
+    expectedSystemRevision: number;
+    expectedTargetStatus: DesignSystemLifecycleStatus;
+    /**
+     * Expectedtargetstatusrevision
+     */
+    expectedTargetStatusRevision: number;
+    /**
+     * Replacementversionid
+     */
+    replacementVersionId: string;
+};
+
+/**
+ * ProjectDesignSystemVersionPageOut
+ */
+export type ProjectDesignSystemVersionPageOut = {
+    /**
+     * Items
+     */
+    items?: Array<DesignSystemVersionSummaryOut>;
+    /**
+     * Nextcursor
+     */
+    nextCursor?: string | null;
+    /**
+     * Systemmetadatarevision
+     */
+    systemMetadataRevision: number;
+};
+
+/**
  * ProjectDetailOut
  */
 export type ProjectDetailOut = {
@@ -11754,6 +18631,20 @@ export type ProjectListItemOut = {
      */
     archivedByUserId?: string | null;
     /**
+     * Project-wide composition authority. Null only while migration is required.
+     */
+    authoringMode?: ProjectAuthoringMode | null;
+    /**
+     * Authoringrevision
+     *
+     * Optimistic authoring-authority revision.
+     */
+    authoringRevision: number;
+    /**
+     * Whether authoring authority is ready or requires an explicit migration decision.
+     */
+    authoringState: ProjectAuthoringState;
+    /**
      * Createdat
      *
      * Project creation time.
@@ -12017,6 +18908,20 @@ export type ProjectMemberRoleUpdateRequest = {
  * ProjectOut
  */
 export type ProjectOut = {
+    /**
+     * Project-wide composition authority. Null only while migration is required.
+     */
+    authoringMode?: ProjectAuthoringMode | null;
+    /**
+     * Authoringrevision
+     *
+     * Optimistic authoring-authority revision.
+     */
+    authoringRevision: number;
+    /**
+     * Whether authoring authority is ready or requires an explicit migration decision.
+     */
+    authoringState: ProjectAuthoringState;
     /**
      * Description
      *
@@ -12465,6 +19370,30 @@ export type ProjectUpdateRequest = {
      * Project slug.
      */
     slug?: string | null;
+};
+
+/**
+ * PublicErrorV1
+ */
+export type PublicErrorV1 = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Details
+     */
+    details?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Retryable
+     */
+    retryable: boolean;
 };
 
 /**
@@ -13197,56 +20126,6 @@ export type ResolveWarningV1 = {
 };
 
 /**
- * ResponseModel[AIConversationListOut]
- */
-export type ResponseModelAiConversationListOut = {
-    data?: AiConversationListOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[AIConversationOut]
- */
-export type ResponseModelAiConversationOut = {
-    data?: AiConversationOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[AIModelCatalogResponse]
  */
 export type ResponseModelAiModelCatalogResponse = {
@@ -13722,10 +20601,210 @@ export type ResponseModelAgentContentModelDraftProposalOut = {
 };
 
 /**
+ * ResponseModel[AgentRunCommandResponseV1]
+ */
+export type ResponseModelAgentRunCommandResponseV1 = {
+    data?: AgentRunCommandResponseV1 | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[AgentRunCreateResponseV1]
+ */
+export type ResponseModelAgentRunCreateResponseV1 = {
+    data?: AgentRunCreateResponseV1 | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[AgentRunOut]
  */
 export type ResponseModelAgentRunOut = {
     data?: AgentRunOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[AgentRunSnapshotV1]
+ */
+export type ResponseModelAgentRunSnapshotV1 = {
+    data?: AgentRunSnapshotV1 | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[AgentThreadDeleteResultV1]
+ */
+export type ResponseModelAgentThreadDeleteResultV1 = {
+    data?: AgentThreadDeleteResultV1 | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[AgentThreadDetailV1]
+ */
+export type ResponseModelAgentThreadDetailV1 = {
+    data?: AgentThreadDetailV1 | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[AgentThreadListV1]
+ */
+export type ResponseModelAgentThreadListV1 = {
+    data?: AgentThreadListV1 | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[AgentThreadOutV1]
+ */
+export type ResponseModelAgentThreadOutV1 = {
+    data?: AgentThreadOutV1 | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[AgentToolResponseV1]
+ */
+export type ResponseModelAgentToolResponseV1 = {
+    data?: AgentToolResponseV1 | null;
     /**
      * Error
      */
@@ -14101,6 +21180,256 @@ export type ResponseModelAutomationRunOut = {
  */
 export type ResponseModelBillingRedirectOut = {
     data?: BillingRedirectOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[BuilderChangeSetApplyOut]
+ */
+export type ResponseModelBuilderChangeSetApplyOut = {
+    data?: BuilderChangeSetApplyOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[BuilderChangeSetPreviewOut]
+ */
+export type ResponseModelBuilderChangeSetPreviewOut = {
+    data?: BuilderChangeSetPreviewOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[BuilderComponentCatalogOut]
+ */
+export type ResponseModelBuilderComponentCatalogOut = {
+    data?: BuilderComponentCatalogOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[BuilderCompositionSagaOut]
+ */
+export type ResponseModelBuilderCompositionSagaOut = {
+    data?: BuilderCompositionSagaOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[BuilderCompositionSagaRecoveryOut]
+ */
+export type ResponseModelBuilderCompositionSagaRecoveryOut = {
+    data?: BuilderCompositionSagaRecoveryOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[BuilderGenerationOut]
+ */
+export type ResponseModelBuilderGenerationOut = {
+    data?: BuilderGenerationOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[BuilderGenerationRecoveryOut]
+ */
+export type ResponseModelBuilderGenerationRecoveryOut = {
+    data?: BuilderGenerationRecoveryOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[BuilderInitializationOut]
+ */
+export type ResponseModelBuilderInitializationOut = {
+    data?: BuilderInitializationOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[BuilderPageRenderDocumentOut]
+ */
+export type ResponseModelBuilderPageRenderDocumentOut = {
+    data?: BuilderPageRenderDocumentOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[BuilderRevisionOut]
+ */
+export type ResponseModelBuilderRevisionOut = {
+    data?: BuilderRevisionOut | null;
     /**
      * Error
      */
@@ -14722,6 +22051,181 @@ export type ResponseModelDeliveryStyleOut = {
 };
 
 /**
+ * ResponseModel[DesignSystemConceptGenerationOut]
+ */
+export type ResponseModelDesignSystemConceptGenerationOut = {
+    data?: DesignSystemConceptGenerationOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[DesignSystemConceptGenerationRecoveryOut]
+ */
+export type ResponseModelDesignSystemConceptGenerationRecoveryOut = {
+    data?: DesignSystemConceptGenerationRecoveryOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[DesignSystemCursorPage[DesignSystemSummaryOut]]
+ */
+export type ResponseModelDesignSystemCursorPageDesignSystemSummaryOut = {
+    data?: DesignSystemCursorPageDesignSystemSummaryOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[DesignSystemCursorPage[DesignSystemVersionSummaryOut]]
+ */
+export type ResponseModelDesignSystemCursorPageDesignSystemVersionSummaryOut = {
+    data?: DesignSystemCursorPageDesignSystemVersionSummaryOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[DesignSystemDetailOut]
+ */
+export type ResponseModelDesignSystemDetailOut = {
+    data?: DesignSystemDetailOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[DesignSystemValidationResultOut]
+ */
+export type ResponseModelDesignSystemValidationResultOut = {
+    data?: DesignSystemValidationResultOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[DesignSystemVersionDetailOut]
+ */
+export type ResponseModelDesignSystemVersionDetailOut = {
+    data?: DesignSystemVersionDetailOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[DirectoryProjectDetailOut]
  */
 export type ResponseModelDirectoryProjectDetailOut = {
@@ -14947,6 +22451,31 @@ export type ResponseModelFeedbackTicketDetailOut = {
 };
 
 /**
+ * ResponseModel[GlobalNotificationBroadcastOut]
+ */
+export type ResponseModelGlobalNotificationBroadcastOut = {
+    data?: GlobalNotificationBroadcastOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[HierarchyNodeOut]
  */
 export type ResponseModelHierarchyNodeOut = {
@@ -14997,6 +22526,181 @@ export type ResponseModelInvitationPreviewResult = {
 };
 
 /**
+ * ResponseModel[KnowledgeBaseDetailOut]
+ */
+export type ResponseModelKnowledgeBaseDetailOut = {
+    data?: KnowledgeBaseDetailOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[KnowledgeCursorPage[KnowledgeBaseSummaryOut]]
+ */
+export type ResponseModelKnowledgeCursorPageKnowledgeBaseSummaryOut = {
+    data?: KnowledgeCursorPageKnowledgeBaseSummaryOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[KnowledgeCursorPage[KnowledgeSourceOut]]
+ */
+export type ResponseModelKnowledgeCursorPageKnowledgeSourceOut = {
+    data?: KnowledgeCursorPageKnowledgeSourceOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[KnowledgeCursorPage[KnowledgeSourceVersionOut]]
+ */
+export type ResponseModelKnowledgeCursorPageKnowledgeSourceVersionOut = {
+    data?: KnowledgeCursorPageKnowledgeSourceVersionOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[KnowledgeSourceIngestionAcceptedOut]
+ */
+export type ResponseModelKnowledgeSourceIngestionAcceptedOut = {
+    data?: KnowledgeSourceIngestionAcceptedOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[KnowledgeSourceOut]
+ */
+export type ResponseModelKnowledgeSourceOut = {
+    data?: KnowledgeSourceOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[KnowledgeSourceVersionOut]
+ */
+export type ResponseModelKnowledgeSourceVersionOut = {
+    data?: KnowledgeSourceVersionOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[LeaveWorkspaceResult]
  */
 export type ResponseModelLeaveWorkspaceResult = {
@@ -15026,6 +22730,56 @@ export type ResponseModelLeaveWorkspaceResult = {
  */
 export type ResponseModelLoginEmailCodeRequestOut = {
     data?: LoginEmailCodeRequestOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[MailTemplateOut]
+ */
+export type ResponseModelMailTemplateOut = {
+    data?: MailTemplateOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[MailTemplatePreviewOut]
+ */
+export type ResponseModelMailTemplatePreviewOut = {
+    data?: MailTemplatePreviewOut | null;
     /**
      * Error
      */
@@ -15404,6 +23158,31 @@ export type ResponseModelObservabilityOverviewOut = {
  */
 export type ResponseModelObservabilityTrendOut = {
     data?: ObservabilityTrendOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[OfficialSkillCatalogDetailOut]
+ */
+export type ResponseModelOfficialSkillCatalogDetailOut = {
+    data?: OfficialSkillCatalogDetailOut | null;
     /**
      * Error
      */
@@ -15875,6 +23654,31 @@ export type ResponseModelPageDataHttpRequestGroupOut = {
 };
 
 /**
+ * ResponseModel[PageData[HTTPRequestRecordOut]]
+ */
+export type ResponseModelPageDataHttpRequestRecordOut = {
+    data?: PageDataHttpRequestRecordOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[PageData[MyInvitationOut]]
  */
 export type ResponseModelPageDataMyInvitationOut = {
@@ -16025,6 +23829,56 @@ export type ResponseModelPageDataSettingsNamespaceSummary = {
 };
 
 /**
+ * ResponseModel[PageData[SystemAgentAssignmentOut]]
+ */
+export type ResponseModelPageDataSystemAgentAssignmentOut = {
+    data?: PageDataSystemAgentAssignmentOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PageData[SystemAgentDefinitionSummaryOut]]
+ */
+export type ResponseModelPageDataSystemAgentDefinitionSummaryOut = {
+    data?: PageDataSystemAgentDefinitionSummaryOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[PageData[WorkspaceEmailInviteOut]]
  */
 export type ResponseModelPageDataWorkspaceEmailInviteOut = {
@@ -16079,6 +23933,31 @@ export type ResponseModelPageDataWorkspaceInviteLinkOut = {
  */
 export type ResponseModelPageDataWorkspaceInviteLinkParticipantOut = {
     data?: PageDataWorkspaceInviteLinkParticipantOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PageData[WorkspaceJobOut]]
+ */
+export type ResponseModelPageDataWorkspaceJobOut = {
+    data?: PageDataWorkspaceJobOut | null;
     /**
      * Error
      */
@@ -16275,6 +24154,31 @@ export type ResponseModelProjectAuthzSnapshot = {
 };
 
 /**
+ * ResponseModel[ProjectBuilderProjectionOut]
+ */
+export type ResponseModelProjectBuilderProjectionOut = {
+    data?: ProjectBuilderProjectionOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[ProjectDangerCapabilitiesOut]
  */
 export type ResponseModelProjectDangerCapabilitiesOut = {
@@ -16429,6 +24333,156 @@ export type ResponseModelProjectDeploymentListOut = {
  */
 export type ResponseModelProjectDeploymentOut = {
     data?: ProjectDeploymentOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectDesignSystemAssignmentResultOut]
+ */
+export type ResponseModelProjectDesignSystemAssignmentResultOut = {
+    data?: ProjectDesignSystemAssignmentResultOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectDesignSystemComparisonOut]
+ */
+export type ResponseModelProjectDesignSystemComparisonOut = {
+    data?: ProjectDesignSystemComparisonOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectDesignSystemForkOut]
+ */
+export type ResponseModelProjectDesignSystemForkOut = {
+    data?: ProjectDesignSystemForkOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectDesignSystemImpactPreviewOut]
+ */
+export type ResponseModelProjectDesignSystemImpactPreviewOut = {
+    data?: ProjectDesignSystemImpactPreviewOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectDesignSystemSupersessionOut]
+ */
+export type ResponseModelProjectDesignSystemSupersessionOut = {
+    data?: ProjectDesignSystemSupersessionOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectDesignSystemVersionPageOut]
+ */
+export type ResponseModelProjectDesignSystemVersionPageOut = {
+    data?: ProjectDesignSystemVersionPageOut | null;
     /**
      * Error
      */
@@ -17375,6 +25429,431 @@ export type ResponseModelSiteSettingGetOut = {
 };
 
 /**
+ * ResponseModel[SkillCursorPage[OfficialSkillCatalogItemOut]]
+ */
+export type ResponseModelSkillCursorPageOfficialSkillCatalogItemOut = {
+    data?: SkillCursorPageOfficialSkillCatalogItemOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SkillCursorPage[SkillInstallationOut]]
+ */
+export type ResponseModelSkillCursorPageSkillInstallationOut = {
+    data?: SkillCursorPageSkillInstallationOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SkillCursorPage[SkillPackageSummaryOut]]
+ */
+export type ResponseModelSkillCursorPageSkillPackageSummaryOut = {
+    data?: SkillCursorPageSkillPackageSummaryOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SkillCursorPage[SkillVersionSummaryOut]]
+ */
+export type ResponseModelSkillCursorPageSkillVersionSummaryOut = {
+    data?: SkillCursorPageSkillVersionSummaryOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SkillGitHubImportAcceptedOut]
+ */
+export type ResponseModelSkillGitHubImportAcceptedOut = {
+    data?: SkillGitHubImportAcceptedOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SkillGitHubImportOut]
+ */
+export type ResponseModelSkillGitHubImportOut = {
+    data?: SkillGitHubImportOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SkillInstallationImpactOut]
+ */
+export type ResponseModelSkillInstallationImpactOut = {
+    data?: SkillInstallationImpactOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SkillInstallationOut]
+ */
+export type ResponseModelSkillInstallationOut = {
+    data?: SkillInstallationOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SkillInstallationRemovalOut]
+ */
+export type ResponseModelSkillInstallationRemovalOut = {
+    data?: SkillInstallationRemovalOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SkillInstallationRepinOut]
+ */
+export type ResponseModelSkillInstallationRepinOut = {
+    data?: SkillInstallationRepinOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SkillPackageArchiveOut]
+ */
+export type ResponseModelSkillPackageArchiveOut = {
+    data?: SkillPackageArchiveOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SkillPackageCreateOut]
+ */
+export type ResponseModelSkillPackageCreateOut = {
+    data?: SkillPackageCreateOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SkillPackageDetailOut]
+ */
+export type ResponseModelSkillPackageDetailOut = {
+    data?: SkillPackageDetailOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SkillPackageImpactOut]
+ */
+export type ResponseModelSkillPackageImpactOut = {
+    data?: SkillPackageImpactOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SkillUpdatePreviewOut]
+ */
+export type ResponseModelSkillUpdatePreviewOut = {
+    data?: SkillUpdatePreviewOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SkillValidationResultOut]
+ */
+export type ResponseModelSkillValidationResultOut = {
+    data?: SkillValidationResultOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SkillVersionDetailOut]
+ */
+export type ResponseModelSkillVersionDetailOut = {
+    data?: SkillVersionDetailOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[StorageProfileDeleteOut]
  */
 export type ResponseModelStorageProfileDeleteOut = {
@@ -17504,6 +25983,156 @@ export type ResponseModelSystemAiProviderListOut = {
  */
 export type ResponseModelSystemAiProviderOut = {
     data?: SystemAiProviderOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SystemAgentAssignmentOut]
+ */
+export type ResponseModelSystemAgentAssignmentOut = {
+    data?: SystemAgentAssignmentOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SystemAgentCatalogCapabilitiesOut]
+ */
+export type ResponseModelSystemAgentCatalogCapabilitiesOut = {
+    data?: SystemAgentCatalogCapabilitiesOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SystemAgentDefinitionDetailOut]
+ */
+export type ResponseModelSystemAgentDefinitionDetailOut = {
+    data?: SystemAgentDefinitionDetailOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SystemAgentVersionListOut]
+ */
+export type ResponseModelSystemAgentVersionListOut = {
+    data?: SystemAgentVersionListOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SystemAgentVersionOut]
+ */
+export type ResponseModelSystemAgentVersionOut = {
+    data?: SystemAgentVersionOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SystemPluginListOut]
+ */
+export type ResponseModelSystemPluginListOut = {
+    data?: SystemPluginListOut | null;
     /**
      * Error
      */
@@ -17704,6 +26333,56 @@ export type ResponseModelTwoFactorSetupOut = {
  */
 export type ResponseModelTwoFactorStatusOut = {
     data?: TwoFactorStatusOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[Union[ProjectDesignSystemAssignmentOut, NoneType]]
+ */
+export type ResponseModelUnionProjectDesignSystemAssignmentOutNoneType = {
+    data?: ProjectDesignSystemAssignmentOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[Union[WorkspaceDesignSystemDefaultOut, NoneType]]
+ */
+export type ResponseModelUnionWorkspaceDesignSystemDefaultOutNoneType = {
+    data?: WorkspaceDesignSystemDefaultOut | null;
     /**
      * Error
      */
@@ -18025,6 +26704,31 @@ export type ResponseModelWorkspaceAiActionResponse = {
 };
 
 /**
+ * ResponseModel[WorkspaceAgentCatalogV1]
+ */
+export type ResponseModelWorkspaceAgentCatalogV1 = {
+    data?: WorkspaceAgentCatalogV1 | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[WorkspaceAssignRoleToMembersResult]
  */
 export type ResponseModelWorkspaceAssignRoleToMembersResult = {
@@ -18104,6 +26808,56 @@ export type ResponseModelWorkspaceDangerCapabilitiesOut = {
  */
 export type ResponseModelWorkspaceDeleteResult = {
     data?: WorkspaceDeleteResult | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[WorkspaceDesignSystemDefaultOut]
+ */
+export type ResponseModelWorkspaceDesignSystemDefaultOut = {
+    data?: WorkspaceDesignSystemDefaultOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[WorkspaceDesignSystemsCapabilitiesOut]
+ */
+export type ResponseModelWorkspaceDesignSystemsCapabilitiesOut = {
+    data?: WorkspaceDesignSystemsCapabilitiesOut | null;
     /**
      * Error
      */
@@ -18229,6 +26983,56 @@ export type ResponseModelWorkspaceExtensionListItemOut = {
  */
 export type ResponseModelWorkspaceInviteLinkCreateResult = {
     data?: WorkspaceInviteLinkCreateResult | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[WorkspaceJobOut]
+ */
+export type ResponseModelWorkspaceJobOut = {
+    data?: WorkspaceJobOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[WorkspaceKnowledgeCapabilitiesOut]
+ */
+export type ResponseModelWorkspaceKnowledgeCapabilitiesOut = {
+    data?: WorkspaceKnowledgeCapabilitiesOut | null;
     /**
      * Error
      */
@@ -18400,6 +27204,31 @@ export type ResponseModelWorkspaceSettingsDetail = {
 };
 
 /**
+ * ResponseModel[WorkspaceSkillsCapabilitiesOut]
+ */
+export type ResponseModelWorkspaceSkillsCapabilitiesOut = {
+    data?: WorkspaceSkillsCapabilitiesOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[WorkspaceTeamMemberOut]
  */
 export type ResponseModelWorkspaceTeamMemberOut = {
@@ -18513,6 +27342,34 @@ export type ResponseModelListMailProviderInfo = {
      * Data
      */
     data?: Array<MailProviderInfo> | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[list[MailTemplateOut]]
+ */
+export type ResponseModelListMailTemplateOut = {
+    /**
+     * Data
+     */
+    data?: Array<MailTemplateOut> | null;
     /**
      * Error
      */
@@ -18699,6 +27556,112 @@ export type ResponseModelListWorkspacePermissionConditionTemplateOut = {
      * Timestamp
      */
     timestamp?: number;
+};
+
+/**
+ * ResponseModel[tuple[ComponentCatalogV1, ...]]
+ */
+export type ResponseModelTupleComponentCatalogV1 = {
+    /**
+     * Data
+     */
+    data?: Array<ComponentCatalogV1> | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[tuple[DesignSystemValidationResultOut, ...]]
+ */
+export type ResponseModelTupleDesignSystemValidationResultOut = {
+    /**
+     * Data
+     */
+    data?: Array<DesignSystemValidationResultOut> | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[tuple[SkillValidationResultOut, ...]]
+ */
+export type ResponseModelTupleSkillValidationResultOut = {
+    /**
+     * Data
+     */
+    data?: Array<SkillValidationResultOut> | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResumeAgentRunRequestV1
+ */
+export type ResumeAgentRunRequestV1 = {
+    /**
+     * Checkpointid
+     */
+    checkpointId: string;
+    /**
+     * Expectedsequence
+     */
+    expectedSequence: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Responseid
+     */
+    responseId: string;
 };
 
 /**
@@ -19182,6 +28145,25 @@ export type SettingsSectionItem = {
 };
 
 /**
+ * SettlementV1
+ */
+export type SettlementV1 = {
+    /**
+     * Creditscommitted
+     */
+    creditsCommitted: string;
+    /**
+     * Creditsreleased
+     */
+    creditsReleased: string;
+    /**
+     * Outcome
+     */
+    outcome: 'committed' | 'released' | 'reconciled';
+    usage: UsageV1 | null;
+};
+
+/**
  * SiteFlattenedPageOut
  */
 export type SiteFlattenedPageOut = {
@@ -19624,6 +28606,189 @@ export type SiteResolvedPageMetaOut = {
 };
 
 /**
+ * SiteRevisionFindingV1
+ */
+export type SiteRevisionFindingV1 = {
+    /**
+     * Category
+     */
+    category: 'content' | 'binding' | 'design' | 'accessibility' | 'domain' | 'build';
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Messagekey
+     */
+    messageKey: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Severity
+     */
+    severity: 'info' | 'warning' | 'blocker';
+};
+
+/**
+ * SiteRevisionLifecycleStatus
+ */
+export type SiteRevisionLifecycleStatus = 'draft' | 'review' | 'ready' | 'superseded';
+
+/**
+ * SiteRevisionManifestV1
+ */
+export type SiteRevisionManifestV1 = {
+    /**
+     * Actoruserid
+     */
+    actorUserId?: string | null;
+    /**
+     * Agentassignmentid
+     */
+    agentAssignmentId?: string | null;
+    /**
+     * Agentid
+     */
+    agentId?: string | null;
+    /**
+     * Agentrunid
+     */
+    agentRunId?: string | null;
+    /**
+     * Agentversionid
+     */
+    agentVersionId?: string | null;
+    /**
+     * Assetinputs
+     */
+    assetInputs?: Array<{
+        [key: string]: JsonValueOutput;
+    }>;
+    /**
+     * Baserevisionid
+     */
+    baseRevisionId?: string | null;
+    /**
+     * Contentstructurehash
+     */
+    contentStructureHash: string;
+    /**
+     * Contentstructurerevisionid
+     */
+    contentStructureRevisionId: string;
+    /**
+     * Correlationid
+     */
+    correlationId?: string | null;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Designsystemid
+     */
+    designSystemId: string;
+    /**
+     * Designsystemmanifestchecksum
+     */
+    designSystemManifestChecksum: string;
+    /**
+     * Designsystemversionid
+     */
+    designSystemVersionId: string;
+    /**
+     * Environmentid
+     */
+    environmentId: string;
+    /**
+     * Globalsectionversions
+     */
+    globalSectionVersions?: Array<BuilderGlobalSectionVersionPinV1>;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Manifesthash
+     */
+    manifestHash: string;
+    /**
+     * Manifestversion
+     */
+    manifestVersion?: 1;
+    /**
+     * Pageversions
+     */
+    pageVersions: Array<BuilderPageVersionPinV1>;
+    /**
+     * Planningdocuments
+     */
+    planningDocuments?: Array<{
+        [key: string]: JsonValueOutput;
+    }>;
+    /**
+     * Presentationsethash
+     */
+    presentationSetHash: string;
+    /**
+     * Projectauthoringmode
+     */
+    projectAuthoringMode: 'builder_managed';
+    /**
+     * Projectid
+     */
+    projectId: string;
+    provenanceSource: BuilderProvenanceSource;
+    /**
+     * Revisionnumber
+     */
+    revisionNumber: number;
+    /**
+     * Siteid
+     */
+    siteId: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * SiteRevisionStatusOut
+ */
+export type SiteRevisionStatusOut = {
+    /**
+     * Calculatedat
+     */
+    calculatedAt: string;
+    /**
+     * Etag
+     */
+    etag: string;
+    /**
+     * Readinessfindings
+     */
+    readinessFindings: Array<SiteRevisionFindingV1>;
+    /**
+     * Siterevisionid
+     */
+    siteRevisionId: string;
+    status: SiteRevisionLifecycleStatus;
+    /**
+     * Statusrevision
+     */
+    statusRevision: number;
+    /**
+     * Validatorversion
+     */
+    validatorVersion: string;
+};
+
+/**
  * SiteRouteContextOut
  */
 export type SiteRouteContextOut = {
@@ -19840,6 +29005,1412 @@ export type SiteSettingUpsertIn = {
 };
 
 /**
+ * SkillCompatibilityV1
+ */
+export type SkillCompatibilityV1 = {
+    /**
+     * Agentprotocol
+     */
+    agentProtocol?: 1;
+    /**
+     * Arclayerrange
+     */
+    arclayerRange?: string;
+};
+
+/**
+ * SkillCursorPage[OfficialSkillCatalogItemOut]
+ */
+export type SkillCursorPageOfficialSkillCatalogItemOut = {
+    /**
+     * Items
+     */
+    items?: Array<OfficialSkillCatalogItemOut>;
+    /**
+     * Nextcursor
+     */
+    nextCursor?: string | null;
+};
+
+/**
+ * SkillCursorPage[SkillInstallationOut]
+ */
+export type SkillCursorPageSkillInstallationOut = {
+    /**
+     * Items
+     */
+    items?: Array<SkillInstallationOut>;
+    /**
+     * Nextcursor
+     */
+    nextCursor?: string | null;
+};
+
+/**
+ * SkillCursorPage[SkillPackageSummaryOut]
+ */
+export type SkillCursorPageSkillPackageSummaryOut = {
+    /**
+     * Items
+     */
+    items?: Array<SkillPackageSummaryOut>;
+    /**
+     * Nextcursor
+     */
+    nextCursor?: string | null;
+};
+
+/**
+ * SkillCursorPage[SkillVersionSummaryOut]
+ */
+export type SkillCursorPageSkillVersionSummaryOut = {
+    /**
+     * Items
+     */
+    items?: Array<SkillVersionSummaryOut>;
+    /**
+     * Nextcursor
+     */
+    nextCursor?: string | null;
+};
+
+/**
+ * SkillDataEgressDeclarationV1
+ */
+export type SkillDataEgressDeclarationV1 = {
+    /**
+     * Dataclasses
+     */
+    dataClasses: Array<string>;
+    /**
+     * Destination
+     */
+    destination: string;
+    /**
+     * Purpose
+     */
+    purpose: string;
+};
+
+/**
+ * SkillGitHubImportAcceptedOut
+ */
+export type SkillGitHubImportAcceptedOut = {
+    /**
+     * Importid
+     */
+    importId: string;
+    /**
+     * Jobid
+     */
+    jobId: string;
+    /**
+     * Operation
+     */
+    operation: 'initial' | 'refresh';
+    /**
+     * Status
+     */
+    status?: 'queued';
+};
+
+/**
+ * SkillGitHubImportCreateRequest
+ */
+export type SkillGitHubImportCreateRequest = {
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Displayname
+     */
+    displayName: string;
+    /**
+     * Repositoryurl
+     */
+    repositoryUrl: string;
+    /**
+     * Requestedref
+     */
+    requestedRef: string;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Subpath
+     */
+    subpath?: string;
+};
+
+/**
+ * SkillGitHubImportOut
+ */
+export type SkillGitHubImportOut = {
+    /**
+     * Actoruserid
+     */
+    actorUserId: string | null;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Jobid
+     */
+    jobId: string | null;
+    /**
+     * Operation
+     */
+    operation: 'initial' | 'refresh';
+    /**
+     * Packageid
+     */
+    packageId: string | null;
+    /**
+     * Repositoryurl
+     */
+    repositoryUrl: string;
+    /**
+     * Requestrevision
+     */
+    requestRevision: string;
+    /**
+     * Requestedref
+     */
+    requestedRef: string;
+    /**
+     * Resolvedcommit
+     */
+    resolvedCommit: string | null;
+    /**
+     * Resolvedtree
+     */
+    resolvedTree: string | null;
+    /**
+     * Safeerrorcode
+     */
+    safeErrorCode: string | null;
+    /**
+     * Safeerrormessage
+     */
+    safeErrorMessage: string | null;
+    /**
+     * Status
+     */
+    status: 'queued' | 'fetching' | 'persisting' | 'succeeded' | 'failed' | 'cancelled';
+    /**
+     * Subpath
+     */
+    subpath: string;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Versionid
+     */
+    versionId: string | null;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * SkillInlineReferenceInput
+ */
+export type SkillInlineReferenceInput = {
+    /**
+     * Content
+     */
+    content: string;
+    /**
+     * Mimetype
+     */
+    mimeType?: 'text/markdown' | 'text/plain' | 'application/json';
+    /**
+     * Path
+     */
+    path: string;
+};
+
+/**
+ * SkillInstallationCreateRequest
+ */
+export type SkillInstallationCreateRequest = {
+    /**
+     * Accepteddataegress
+     */
+    acceptedDataEgress?: Array<string>;
+    /**
+     * Acceptedpermissions
+     */
+    acceptedPermissions?: Array<string>;
+    /**
+     * Acceptedrequiredtools
+     */
+    acceptedRequiredTools?: Array<string>;
+    /**
+     * Expectedpackagechecksum
+     */
+    expectedPackageChecksum: string;
+    /**
+     * Packageid
+     */
+    packageId: string;
+    packageScope: SkillPackageScope;
+    /**
+     * Validationfindinghash
+     */
+    validationFindingHash: string;
+    /**
+     * Versionid
+     */
+    versionId: string;
+};
+
+/**
+ * SkillInstallationImpactOut
+ */
+export type SkillInstallationImpactOut = {
+    /**
+     * Agentversioncount
+     */
+    agentVersionCount: number;
+    /**
+     * Assignmentcount
+     */
+    assignmentCount: number;
+    /**
+     * Blockers
+     */
+    blockers?: Array<'agent_versions' | 'assignments' | 'retained_runs'>;
+    /**
+     * Canremove
+     */
+    canRemove: boolean;
+    /**
+     * Enabledassignmentcount
+     */
+    enabledAssignmentCount: number;
+    /**
+     * Installationid
+     */
+    installationId: string;
+    /**
+     * Metadatarevision
+     */
+    metadataRevision: number;
+    /**
+     * Publishedagentversioncount
+     */
+    publishedAgentVersionCount: number;
+    /**
+     * Retainedruncount
+     */
+    retainedRunCount: number;
+    /**
+     * Status
+     */
+    status: string;
+};
+
+/**
+ * SkillInstallationOut
+ */
+export type SkillInstallationOut = {
+    /**
+     * Accepteddataegress
+     */
+    acceptedDataEgress: Array<string>;
+    /**
+     * Acceptedpermissions
+     */
+    acceptedPermissions: Array<string>;
+    /**
+     * Acceptedrequiredtools
+     */
+    acceptedRequiredTools: Array<string>;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Installedbyuserid
+     */
+    installedByUserId: string | null;
+    /**
+     * Metadatarevision
+     */
+    metadataRevision: number;
+    /**
+     * Packagechecksum
+     */
+    packageChecksum: string;
+    /**
+     * Packageid
+     */
+    packageId: string;
+    /**
+     * Packagescope
+     */
+    packageScope: string;
+    /**
+     * Safereasoncode
+     */
+    safeReasonCode: string | null;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Updatedbyuserid
+     */
+    updatedByUserId: string | null;
+    /**
+     * Validationfindinghash
+     */
+    validationFindingHash: string;
+    /**
+     * Versionid
+     */
+    versionId: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * SkillInstallationRemovalOut
+ */
+export type SkillInstallationRemovalOut = {
+    impact: SkillInstallationImpactOut;
+    /**
+     * Installationid
+     */
+    installationId: string;
+    /**
+     * Removed
+     */
+    removed?: true;
+    /**
+     * Removedat
+     */
+    removedAt: string;
+};
+
+/**
+ * SkillInstallationRepinOut
+ */
+export type SkillInstallationRepinOut = {
+    installation: SkillInstallationOut;
+    /**
+     * Previewid
+     */
+    previewId: string;
+};
+
+/**
+ * SkillInstallationRepinRequest
+ */
+export type SkillInstallationRepinRequest = {
+    /**
+     * Accepteddataegress
+     */
+    acceptedDataEgress?: Array<string>;
+    /**
+     * Acceptedpermissions
+     */
+    acceptedPermissions?: Array<string>;
+    /**
+     * Acceptedrequiredtools
+     */
+    acceptedRequiredTools?: Array<string>;
+    /**
+     * Candidatepackagechecksum
+     */
+    candidatePackageChecksum: string;
+    /**
+     * Candidatevalidationfindinghash
+     */
+    candidateValidationFindingHash: string;
+    /**
+     * Candidateversionid
+     */
+    candidateVersionId: string;
+    /**
+     * Currentpackagechecksum
+     */
+    currentPackageChecksum: string;
+    /**
+     * Currentvalidationfindinghash
+     */
+    currentValidationFindingHash: string;
+    /**
+     * Currentversionid
+     */
+    currentVersionId: string;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Previewhash
+     */
+    previewHash: string;
+    /**
+     * Previewid
+     */
+    previewId: string;
+};
+
+/**
+ * SkillInstallationStatus
+ */
+export type SkillInstallationStatus = 'enabled' | 'disabled' | 'failed' | 'incompatible';
+
+/**
+ * SkillInstallationUpdateRequest
+ */
+export type SkillInstallationUpdateRequest = {
+    /**
+     * Enabled
+     */
+    enabled: boolean;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+};
+
+/**
+ * SkillManifestResourceV1
+ */
+export type SkillManifestResourceV1 = {
+    /**
+     * Bytesize
+     */
+    byteSize: number;
+    /**
+     * Digest
+     */
+    digest: string;
+    /**
+     * Mimetype
+     */
+    mimeType: string;
+    /**
+     * Path
+     */
+    path: string;
+    /**
+     * Role
+     */
+    role: 'instructions' | 'reference' | 'asset';
+};
+
+/**
+ * SkillManifestV1
+ */
+export type SkillManifestV1 = {
+    /**
+     * Capabilitytags
+     */
+    capabilityTags?: Array<string>;
+    /**
+     * Checksum
+     */
+    checksum: string;
+    compatibility?: SkillCompatibilityV1;
+    /**
+     * Dataegress
+     */
+    dataEgress?: Array<SkillDataEgressDeclarationV1>;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Instructionsentrypoint
+     */
+    instructionsEntrypoint: string;
+    /**
+     * Manifestversion
+     */
+    manifestVersion?: 1;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Permissions
+     */
+    permissions?: Array<SkillPermissionDeclarationV1>;
+    publisher: SkillPublisherV1;
+    /**
+     * Requiredtools
+     */
+    requiredTools?: Array<SkillToolRequirementV1>;
+    /**
+     * Resources
+     */
+    resources: Array<SkillManifestResourceV1>;
+    /**
+     * Skillid
+     */
+    skillId: string;
+};
+
+/**
+ * SkillPackageArchiveOut
+ */
+export type SkillPackageArchiveOut = {
+    /**
+     * Archived
+     */
+    archived?: true;
+    /**
+     * Archivedat
+     */
+    archivedAt: string;
+    impact: SkillPackageImpactOut;
+    /**
+     * Metadatarevision
+     */
+    metadataRevision: number;
+    /**
+     * Packageid
+     */
+    packageId: string;
+    /**
+     * Status
+     */
+    status?: 'archived';
+};
+
+/**
+ * SkillPackageCreateOut
+ */
+export type SkillPackageCreateOut = {
+    package: SkillPackageDetailOut;
+    version: SkillVersionDetailOut;
+};
+
+/**
+ * SkillPackageCreateRequest
+ */
+export type SkillPackageCreateRequest = {
+    /**
+     * Capabilitytags
+     */
+    capabilityTags?: Array<string>;
+    /**
+     * Dataegress
+     */
+    dataEgress?: Array<SkillDataEgressDeclarationV1>;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Displayname
+     */
+    displayName: string;
+    /**
+     * Instructions
+     */
+    instructions: string;
+    /**
+     * Permissions
+     */
+    permissions?: Array<SkillPermissionDeclarationV1>;
+    /**
+     * References
+     */
+    references?: Array<SkillInlineReferenceInput>;
+    /**
+     * Requiredtools
+     */
+    requiredTools?: Array<SkillToolRequirementV1>;
+    /**
+     * Semanticversion
+     */
+    semanticVersion?: string | null;
+    /**
+     * Slug
+     */
+    slug: string;
+};
+
+/**
+ * SkillPackageDetailOut
+ */
+export type SkillPackageDetailOut = {
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     */
+    createdByUserId: string | null;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Displayname
+     */
+    displayName: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Latestvalidversionid
+     */
+    latestValidVersionId: string | null;
+    latestVersion: SkillVersionSummaryOut | null;
+    /**
+     * Metadatarevision
+     */
+    metadataRevision: number;
+    /**
+     * Publisherid
+     */
+    publisherId: string;
+    /**
+     * Publishername
+     */
+    publisherName: string;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Sourcekind
+     */
+    sourceKind: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Trustlevel
+     */
+    trustLevel: string;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Updatedbyuserid
+     */
+    updatedByUserId: string | null;
+    /**
+     * Versioncount
+     */
+    versionCount: number;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * SkillPackageImpactOut
+ */
+export type SkillPackageImpactOut = {
+    /**
+     * Activegithuboperationcount
+     */
+    activeGithubOperationCount: number;
+    /**
+     * Agentversioncount
+     */
+    agentVersionCount: number;
+    /**
+     * Assignmentcount
+     */
+    assignmentCount: number;
+    /**
+     * Blockers
+     */
+    blockers?: Array<'installations' | 'agent_versions' | 'assignments' | 'retained_runs' | 'active_github_operations'>;
+    /**
+     * Canarchive
+     */
+    canArchive: boolean;
+    /**
+     * Enabledassignmentcount
+     */
+    enabledAssignmentCount: number;
+    /**
+     * Enabledinstallationcount
+     */
+    enabledInstallationCount: number;
+    /**
+     * Installationcount
+     */
+    installationCount: number;
+    /**
+     * Metadatarevision
+     */
+    metadataRevision: number;
+    /**
+     * Packageid
+     */
+    packageId: string;
+    /**
+     * Publishedagentversioncount
+     */
+    publishedAgentVersionCount: number;
+    /**
+     * Resourcecount
+     */
+    resourceCount: number;
+    /**
+     * Retainedruncount
+     */
+    retainedRunCount: number;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Validationcount
+     */
+    validationCount: number;
+    /**
+     * Versioncount
+     */
+    versionCount: number;
+};
+
+/**
+ * SkillPackageScope
+ */
+export type SkillPackageScope = 'system' | 'workspace';
+
+/**
+ * SkillPackageStatus
+ */
+export type SkillPackageStatus = 'active' | 'archived';
+
+/**
+ * SkillPackageSummaryOut
+ */
+export type SkillPackageSummaryOut = {
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     */
+    createdByUserId: string | null;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Displayname
+     */
+    displayName: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Latestvalidversionid
+     */
+    latestValidVersionId: string | null;
+    /**
+     * Metadatarevision
+     */
+    metadataRevision: number;
+    /**
+     * Publisherid
+     */
+    publisherId: string;
+    /**
+     * Publishername
+     */
+    publisherName: string;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Sourcekind
+     */
+    sourceKind: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Trustlevel
+     */
+    trustLevel: string;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Updatedbyuserid
+     */
+    updatedByUserId: string | null;
+    /**
+     * Versioncount
+     */
+    versionCount: number;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * SkillPermissionDeclarationV1
+ */
+export type SkillPermissionDeclarationV1 = {
+    /**
+     * Action
+     */
+    action: string;
+    /**
+     * Purpose
+     */
+    purpose: string;
+};
+
+/**
+ * SkillPublisherV1
+ */
+export type SkillPublisherV1 = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Verified
+     */
+    verified: boolean;
+};
+
+/**
+ * SkillResourceOut
+ */
+export type SkillResourceOut = {
+    /**
+     * Bytesize
+     */
+    byteSize: number;
+    /**
+     * Content
+     */
+    content?: string | null;
+    /**
+     * Digest
+     */
+    digest: string;
+    /**
+     * Mimetype
+     */
+    mimeType: string;
+    /**
+     * Path
+     */
+    path: string;
+    /**
+     * Role
+     */
+    role: string;
+};
+
+/**
+ * SkillToolRequirementV1
+ */
+export type SkillToolRequirementV1 = {
+    /**
+     * Intendeduse
+     */
+    intendedUse: string;
+    /**
+     * Toolid
+     */
+    toolId: string;
+    /**
+     * Versionrange
+     */
+    versionRange?: string;
+};
+
+/**
+ * SkillUpdateDataEgressChangeOut
+ */
+export type SkillUpdateDataEgressChangeOut = {
+    after: SkillDataEgressDeclarationV1 | null;
+    before: SkillDataEgressDeclarationV1 | null;
+    /**
+     * Changetype
+     */
+    changeType: 'added' | 'removed' | 'modified';
+    /**
+     * Destination
+     */
+    destination: string;
+};
+
+/**
+ * SkillUpdateDiffOut
+ */
+export type SkillUpdateDiffOut = {
+    candidateCompatibility: SkillCompatibilityV1;
+    /**
+     * Candidatevalidationfindings
+     */
+    candidateValidationFindings?: Array<SkillValidationFindingOut>;
+    /**
+     * Capabilitytagsadded
+     */
+    capabilityTagsAdded?: Array<string>;
+    /**
+     * Capabilitytagsremoved
+     */
+    capabilityTagsRemoved?: Array<string>;
+    /**
+     * Compatibilitychanged
+     */
+    compatibilityChanged: boolean;
+    currentCompatibility: SkillCompatibilityV1;
+    /**
+     * Currentvalidationfindings
+     */
+    currentValidationFindings?: Array<SkillValidationFindingOut>;
+    /**
+     * Dataegresschanges
+     */
+    dataEgressChanges?: Array<SkillUpdateDataEgressChangeOut>;
+    /**
+     * Instructionschanged
+     */
+    instructionsChanged: boolean;
+    /**
+     * Permissionchanges
+     */
+    permissionChanges?: Array<SkillUpdatePermissionChangeOut>;
+    /**
+     * Requiredtoolchanges
+     */
+    requiredToolChanges?: Array<SkillUpdateToolChangeOut>;
+    /**
+     * Resourcechanges
+     */
+    resourceChanges?: Array<SkillUpdateResourceChangeOut>;
+    /**
+     * Sourceprovenancechanged
+     */
+    sourceProvenanceChanged: boolean;
+    /**
+     * Validationfindingschanged
+     */
+    validationFindingsChanged: boolean;
+};
+
+/**
+ * SkillUpdatePermissionChangeOut
+ */
+export type SkillUpdatePermissionChangeOut = {
+    /**
+     * Action
+     */
+    action: string;
+    after: SkillPermissionDeclarationV1 | null;
+    before: SkillPermissionDeclarationV1 | null;
+    /**
+     * Changetype
+     */
+    changeType: 'added' | 'removed' | 'modified';
+};
+
+/**
+ * SkillUpdatePreviewCreateRequest
+ */
+export type SkillUpdatePreviewCreateRequest = {
+    /**
+     * Candidateversionid
+     */
+    candidateVersionId: string;
+    /**
+     * Currentpackagechecksum
+     */
+    currentPackageChecksum: string;
+    /**
+     * Currentvalidationfindinghash
+     */
+    currentValidationFindingHash: string;
+    /**
+     * Currentversionid
+     */
+    currentVersionId: string;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+};
+
+/**
+ * SkillUpdatePreviewOut
+ */
+export type SkillUpdatePreviewOut = {
+    candidate: SkillUpdateTargetOut;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     */
+    createdByUserId: string | null;
+    current: SkillUpdateTargetOut;
+    diff: SkillUpdateDiffOut;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Installationid
+     */
+    installationId: string;
+    /**
+     * Previewhash
+     */
+    previewHash: string;
+    risk: SkillUpdateRisk;
+    /**
+     * Riskcategories
+     */
+    riskCategories: Array<SkillUpdateRisk>;
+};
+
+/**
+ * SkillUpdateResourceChangeOut
+ */
+export type SkillUpdateResourceChangeOut = {
+    /**
+     * Afterdigest
+     */
+    afterDigest: string | null;
+    /**
+     * Beforedigest
+     */
+    beforeDigest: string | null;
+    /**
+     * Changetype
+     */
+    changeType: 'added' | 'removed' | 'modified';
+    /**
+     * Path
+     */
+    path: string;
+};
+
+/**
+ * SkillUpdateRisk
+ */
+export type SkillUpdateRisk = 'none' | 'content' | 'capability' | 'permission' | 'data_egress' | 'incompatible';
+
+/**
+ * SkillUpdateTargetOut
+ */
+export type SkillUpdateTargetOut = {
+    /**
+     * Packagechecksum
+     */
+    packageChecksum: string;
+    /**
+     * Semanticversion
+     */
+    semanticVersion: string | null;
+    /**
+     * Validationfindinghash
+     */
+    validationFindingHash: string;
+    /**
+     * Validationpolicyversion
+     */
+    validationPolicyVersion: number;
+    /**
+     * Validationstatus
+     */
+    validationStatus: string;
+    /**
+     * Versionid
+     */
+    versionId: string;
+    /**
+     * Versionnumber
+     */
+    versionNumber: number;
+};
+
+/**
+ * SkillUpdateToolChangeOut
+ */
+export type SkillUpdateToolChangeOut = {
+    after: SkillToolRequirementV1 | null;
+    before: SkillToolRequirementV1 | null;
+    /**
+     * Changetype
+     */
+    changeType: 'added' | 'removed' | 'modified';
+    /**
+     * Toolid
+     */
+    toolId: string;
+};
+
+/**
+ * SkillValidationCreateRequest
+ */
+export type SkillValidationCreateRequest = {
+    /**
+     * Policyversion
+     */
+    policyVersion?: 1;
+};
+
+/**
+ * SkillValidationFindingOut
+ */
+export type SkillValidationFindingOut = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Messagekey
+     */
+    messageKey: string;
+    /**
+     * Resourcepath
+     */
+    resourcePath?: string | null;
+    /**
+     * Severity
+     */
+    severity: 'warning' | 'error';
+};
+
+/**
+ * SkillValidationResultOut
+ */
+export type SkillValidationResultOut = {
+    /**
+     * Actoruserid
+     */
+    actorUserId: string | null;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Findinghash
+     */
+    findingHash: string;
+    /**
+     * Findings
+     */
+    findings: Array<SkillValidationFindingOut>;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Policyversion
+     */
+    policyVersion: number;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Versionid
+     */
+    versionId: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * SkillVersionCreateRequest
+ */
+export type SkillVersionCreateRequest = {
+    /**
+     * Capabilitytags
+     */
+    capabilityTags?: Array<string>;
+    /**
+     * Dataegress
+     */
+    dataEgress?: Array<SkillDataEgressDeclarationV1>;
+    /**
+     * Instructions
+     */
+    instructions: string;
+    /**
+     * Permissions
+     */
+    permissions?: Array<SkillPermissionDeclarationV1>;
+    /**
+     * References
+     */
+    references?: Array<SkillInlineReferenceInput>;
+    /**
+     * Requiredtools
+     */
+    requiredTools?: Array<SkillToolRequirementV1>;
+    /**
+     * Semanticversion
+     */
+    semanticVersion?: string | null;
+};
+
+/**
+ * SkillVersionDetailOut
+ */
+export type SkillVersionDetailOut = {
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     */
+    createdByUserId: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    manifest: SkillManifestV1;
+    /**
+     * Packagechecksum
+     */
+    packageChecksum: string;
+    /**
+     * Packageid
+     */
+    packageId: string;
+    /**
+     * Resources
+     */
+    resources: Array<SkillResourceOut>;
+    /**
+     * Semanticversion
+     */
+    semanticVersion: string | null;
+    /**
+     * Sourceprovenance
+     */
+    sourceProvenance: {
+        [key: string]: unknown;
+    };
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Validationpolicyversion
+     */
+    validationPolicyVersion: number;
+    /**
+     * Versionnumber
+     */
+    versionNumber: number;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * SkillVersionSummaryOut
+ */
+export type SkillVersionSummaryOut = {
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     */
+    createdByUserId: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Packagechecksum
+     */
+    packageChecksum: string;
+    /**
+     * Packageid
+     */
+    packageId: string;
+    /**
+     * Semanticversion
+     */
+    semanticVersion: string | null;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Validationpolicyversion
+     */
+    validationPolicyVersion: number;
+    /**
+     * Versionnumber
+     */
+    versionNumber: number;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
  * StorageProfileConfigPayload
  */
 export type StorageProfileConfigPayloadInput = {
@@ -19928,6 +30499,11 @@ export type StorageProfileConfigPayloadOutput = {
 };
 
 /**
+ * StorageProfileConfigSource
+ */
+export type StorageProfileConfigSource = 'database' | 'environment';
+
+/**
  * StorageProfileCreateRequest
  */
 export type StorageProfileCreateRequest = {
@@ -19940,10 +30516,6 @@ export type StorageProfileCreateRequest = {
      * Isactive
      */
     isActive?: boolean;
-    /**
-     * Isdefault
-     */
-    isDefault?: boolean;
     /**
      * Profilekey
      */
@@ -19980,6 +30552,7 @@ export type StorageProfileListOut = {
  */
 export type StorageProfileOut = {
     config: StorageProfileConfigPayloadOutput;
+    configSource: StorageProfileConfigSource;
     /**
      * Createdat
      *
@@ -20079,10 +30652,46 @@ export type StorageProfileUpdateRequest = {
      * Isactive
      */
     isActive?: boolean | null;
+};
+
+/**
+ * StructuredContentKnowledgeLocator
+ */
+export type StructuredContentKnowledgeLocatorInput = {
     /**
-     * Isdefault
+     * Contentreference
      */
-    isDefault?: boolean | null;
+    contentReference: {
+        [key: string]: JsonValueInput;
+    };
+    /**
+     * Kind
+     */
+    kind: 'structured_content';
+    /**
+     * Projectid
+     */
+    projectId: string;
+};
+
+/**
+ * StructuredContentKnowledgeLocator
+ */
+export type StructuredContentKnowledgeLocatorOutput = {
+    /**
+     * Contentreference
+     */
+    contentReference: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Kind
+     */
+    kind: 'structured_content';
+    /**
+     * Projectid
+     */
+    projectId: string;
 };
 
 /**
@@ -20227,6 +30836,519 @@ export type SystemAiProviderUpdateRequest = {
 };
 
 /**
+ * SystemAgentAssignmentCreateRequest
+ */
+export type SystemAgentAssignmentCreateRequest = {
+    /**
+     * Agentid
+     */
+    agentId: string;
+    /**
+     * Enabled
+     */
+    enabled?: boolean;
+    /**
+     * Isdefault
+     */
+    isDefault?: boolean;
+    /**
+     * Ispinned
+     */
+    isPinned?: boolean;
+    /**
+     * Projectid
+     */
+    projectId?: string | null;
+    /**
+     * Sortorder
+     */
+    sortOrder?: number;
+    /**
+     * Versionid
+     */
+    versionId: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * SystemAgentAssignmentOut
+ */
+export type SystemAgentAssignmentOut = {
+    /**
+     * Agentid
+     */
+    agentId: string;
+    /**
+     * Assignedbyuserid
+     */
+    assignedByUserId: string | null;
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Enabled
+     */
+    enabled: boolean;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Isdefault
+     */
+    isDefault: boolean;
+    /**
+     * Ispinned
+     */
+    isPinned: boolean;
+    /**
+     * Lastusedat
+     */
+    lastUsedAt: string | null;
+    /**
+     * Projectid
+     */
+    projectId: string | null;
+    /**
+     * Projectname
+     */
+    projectName: string | null;
+    /**
+     * Sortorder
+     */
+    sortOrder: number;
+    /**
+     * Updatedat
+     *
+     * Updated at.
+     */
+    updatedAt: string;
+    /**
+     * Versionid
+     */
+    versionId: string;
+    /**
+     * Versionnumber
+     */
+    versionNumber: number;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+    /**
+     * Workspacename
+     */
+    workspaceName: string;
+};
+
+/**
+ * SystemAgentAssignmentUpdateRequest
+ */
+export type SystemAgentAssignmentUpdateRequest = {
+    /**
+     * Enabled
+     */
+    enabled?: boolean | null;
+    /**
+     * Isdefault
+     */
+    isDefault?: boolean | null;
+    /**
+     * Ispinned
+     */
+    isPinned?: boolean | null;
+    /**
+     * Sortorder
+     */
+    sortOrder?: number | null;
+    /**
+     * Versionid
+     */
+    versionId?: string | null;
+};
+
+/**
+ * SystemAgentCatalogCapabilitiesOut
+ */
+export type SystemAgentCatalogCapabilitiesOut = {
+    /**
+     * Agentruntimeprotocol
+     */
+    agentRuntimeProtocol: 1;
+    /**
+     * Constraints
+     */
+    constraints?: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Harddeletesupported
+     */
+    hardDeleteSupported: false;
+    /**
+     * Knowledgegrantsavailable
+     */
+    knowledgeGrantsAvailable: boolean;
+    /**
+     * Modelroutingpolicies
+     */
+    modelRoutingPolicies: Array<'workspace_default'>;
+    /**
+     * Skillgrantsavailable
+     */
+    skillGrantsAvailable: boolean;
+    /**
+     * Supportedtoolgrants
+     */
+    supportedToolGrants: Array<string>;
+};
+
+/**
+ * SystemAgentDefinitionCreateRequest
+ */
+export type SystemAgentDefinitionCreateRequest = {
+    /**
+     * Avatarurl
+     */
+    avatarUrl?: string | null;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Displayname
+     */
+    displayName: string;
+    initialVersion: AgentVersionCreateRequest;
+    /**
+     * Role
+     */
+    role: string;
+    /**
+     * Slug
+     */
+    slug: string;
+};
+
+/**
+ * SystemAgentDefinitionDetailOut
+ */
+export type SystemAgentDefinitionDetailOut = {
+    /**
+     * Assignmentcount
+     */
+    assignmentCount: number;
+    /**
+     * Assignments
+     */
+    assignments?: Array<SystemAgentAssignmentOut>;
+    /**
+     * Avatarurl
+     */
+    avatarUrl: string | null;
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     */
+    createdByUserId: string | null;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Descriptioni18Nkey
+     */
+    descriptionI18NKey: string | null;
+    /**
+     * Displayname
+     */
+    displayName: string;
+    /**
+     * Enabledassignmentcount
+     */
+    enabledAssignmentCount: number;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Isofficial
+     */
+    isOfficial: boolean;
+    latestVersion: SystemAgentVersionOut | null;
+    /**
+     * Lifecyclestate
+     */
+    lifecycleState: 'active' | 'disabled' | 'archived';
+    /**
+     * Namei18Nkey
+     */
+    nameI18NKey: string | null;
+    /**
+     * Role
+     */
+    role: string;
+    /**
+     * Rolei18Nkey
+     */
+    roleI18NKey: string | null;
+    /**
+     * Scope
+     */
+    scope: 'system' | 'workspace';
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Stablekey
+     */
+    stableKey: string;
+    /**
+     * Updatedat
+     *
+     * Updated at.
+     */
+    updatedAt: string;
+    /**
+     * Versioncount
+     */
+    versionCount: number;
+    /**
+     * Versions
+     */
+    versions?: Array<SystemAgentVersionOut>;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string | null;
+};
+
+/**
+ * SystemAgentDefinitionSummaryOut
+ */
+export type SystemAgentDefinitionSummaryOut = {
+    /**
+     * Assignmentcount
+     */
+    assignmentCount: number;
+    /**
+     * Avatarurl
+     */
+    avatarUrl: string | null;
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     */
+    createdByUserId: string | null;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Descriptioni18Nkey
+     */
+    descriptionI18NKey: string | null;
+    /**
+     * Displayname
+     */
+    displayName: string;
+    /**
+     * Enabledassignmentcount
+     */
+    enabledAssignmentCount: number;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Isofficial
+     */
+    isOfficial: boolean;
+    latestVersion: SystemAgentVersionOut | null;
+    /**
+     * Lifecyclestate
+     */
+    lifecycleState: 'active' | 'disabled' | 'archived';
+    /**
+     * Namei18Nkey
+     */
+    nameI18NKey: string | null;
+    /**
+     * Role
+     */
+    role: string;
+    /**
+     * Rolei18Nkey
+     */
+    roleI18NKey: string | null;
+    /**
+     * Scope
+     */
+    scope: 'system' | 'workspace';
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Stablekey
+     */
+    stableKey: string;
+    /**
+     * Updatedat
+     *
+     * Updated at.
+     */
+    updatedAt: string;
+    /**
+     * Versioncount
+     */
+    versionCount: number;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string | null;
+};
+
+/**
+ * SystemAgentDefinitionUpdateRequest
+ */
+export type SystemAgentDefinitionUpdateRequest = {
+    /**
+     * Avatarurl
+     */
+    avatarUrl?: string | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Displayname
+     */
+    displayName?: string | null;
+    /**
+     * Lifecyclestate
+     */
+    lifecycleState?: 'active' | 'disabled' | 'archived' | null;
+    /**
+     * Role
+     */
+    role?: string | null;
+};
+
+/**
+ * SystemAgentVersionListOut
+ */
+export type SystemAgentVersionListOut = {
+    /**
+     * Items
+     */
+    items?: Array<SystemAgentVersionOut>;
+};
+
+/**
+ * SystemAgentVersionOut
+ */
+export type SystemAgentVersionOut = {
+    approvalProfile: AgentApprovalProfile;
+    compatibility: AgentCompatibility;
+    /**
+     * Contentchecksum
+     */
+    contentChecksum: string;
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     */
+    createdByUserId: string | null;
+    /**
+     * Definitionid
+     */
+    definitionId: string;
+    /**
+     * Delegationdefinitionids
+     */
+    delegationDefinitionIds: Array<string>;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Instructions
+     */
+    instructions: string;
+    /**
+     * Knowledgebaseids
+     */
+    knowledgeBaseIds: Array<string>;
+    modelPolicy: AgentModelPolicy;
+    provenance: AgentVersionProvenance;
+    /**
+     * Publishedat
+     */
+    publishedAt: string | null;
+    /**
+     * Skillgrantworkspaceid
+     */
+    skillGrantWorkspaceId: string | null;
+    /**
+     * Skillinstallationids
+     */
+    skillInstallationIds: Array<string>;
+    /**
+     * State
+     */
+    state: 'published' | 'retired';
+    /**
+     * Supportedexecutionmodes
+     */
+    supportedExecutionModes: Array<'plan' | 'build'>;
+    /**
+     * Toolgrants
+     */
+    toolGrants: Array<string>;
+    /**
+     * Updatedat
+     *
+     * Updated at.
+     */
+    updatedAt: string;
+    /**
+     * Versionnumber
+     */
+    versionNumber: number;
+};
+
+/**
  * SystemBootstrapRequest
  *
  * Bootstrap the instance by creating the first super-admin account.
@@ -20259,6 +31381,73 @@ export type SystemBootstrapRequest = {
 };
 
 /**
+ * SystemConnectorAdminOut
+ */
+export type SystemConnectorAdminOut = {
+    /**
+     * Descriptionkey
+     */
+    descriptionKey: string;
+    /**
+     * Iconkey
+     */
+    iconKey?: string | null;
+    /**
+     * Labelkey
+     */
+    labelKey: string;
+    /**
+     * Settingssection
+     */
+    settingsSection?: string | null;
+};
+
+/**
+ * SystemConnectorDefinitionOut
+ */
+export type SystemConnectorDefinitionOut = {
+    admin?: SystemConnectorAdminOut | null;
+    /**
+     * Capabilities
+     */
+    capabilities?: Array<string>;
+    /**
+     * Configschema
+     */
+    configSchema?: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Healthcontract
+     */
+    healthContract?: Array<string>;
+    /**
+     * Key
+     */
+    key: string;
+    kind: ConnectorKind;
+    /**
+     * Scopes
+     */
+    scopes?: Array<string>;
+    /**
+     * Secretschema
+     */
+    secretSchema?: {
+        [key: string]: JsonValueOutput;
+    };
+    trustLevel: ConnectorTrustLevel;
+    /**
+     * Version
+     */
+    version: string;
+    /**
+     * Webhookevents
+     */
+    webhookEvents?: Array<string>;
+};
+
+/**
  * SystemInstanceSetupOut
  */
 export type SystemInstanceSetupOut = {
@@ -20274,6 +31463,92 @@ export type SystemInstanceSetupOut = {
      * Instance setup status: uninitialized, ready, repair_required.
      */
     status: string;
+};
+
+/**
+ * SystemPluginAdminOut
+ */
+export type SystemPluginAdminOut = {
+    /**
+     * Descriptionkey
+     */
+    descriptionKey: string;
+    /**
+     * Labelkey
+     */
+    labelKey: string;
+    /**
+     * Settingspath
+     */
+    settingsPath?: string | null;
+};
+
+/**
+ * SystemPluginListItemOut
+ */
+export type SystemPluginListItemOut = {
+    admin?: SystemPluginAdminOut | null;
+    /**
+     * Configschema
+     */
+    configSchema?: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Connectordefinitions
+     */
+    connectorDefinitions?: Array<SystemConnectorDefinitionOut>;
+    /**
+     * Name
+     */
+    name: string;
+    packageState: PackageState;
+    /**
+     * Permissions
+     */
+    permissions?: Array<string>;
+    processState: ProcessState;
+    provides: SystemPluginProvidesOut;
+    /**
+     * Version
+     */
+    version: string;
+};
+
+/**
+ * SystemPluginListOut
+ */
+export type SystemPluginListOut = {
+    /**
+     * Plugins
+     */
+    plugins?: Array<SystemPluginListItemOut>;
+};
+
+/**
+ * SystemPluginProvidesOut
+ */
+export type SystemPluginProvidesOut = {
+    /**
+     * Connectors
+     */
+    connectors?: Array<string>;
+    /**
+     * Contenttypes
+     */
+    contentTypes?: Array<string>;
+    /**
+     * Middlewares
+     */
+    middlewares?: Array<string>;
+    /**
+     * Providers
+     */
+    providers?: Array<string>;
+    /**
+     * Services
+     */
+    services?: Array<string>;
 };
 
 /**
@@ -20846,6 +32121,20 @@ export type UploadStatusOut = {
 };
 
 /**
+ * UrlKnowledgeLocator
+ */
+export type UrlKnowledgeLocator = {
+    /**
+     * Kind
+     */
+    kind: 'url';
+    /**
+     * Url
+     */
+    url: string;
+};
+
+/**
  * UsageModelBreakdown
  *
  * Per-model usage breakdown within a time period.
@@ -20875,6 +32164,48 @@ export type UsageModelBreakdown = {
      * Requestcount
      */
     requestCount: number;
+};
+
+/**
+ * UsageV1
+ */
+export type UsageV1 = {
+    /**
+     * Credits
+     */
+    credits?: string | null;
+    /**
+     * Currency
+     */
+    currency?: string | null;
+    /**
+     * Inputtokens
+     */
+    inputTokens?: number | null;
+    /**
+     * Model
+     */
+    model?: string | null;
+    /**
+     * Outputtokens
+     */
+    outputTokens?: number | null;
+    /**
+     * Provider
+     */
+    provider?: string | null;
+    /**
+     * Providercost
+     */
+    providerCost?: string | null;
+    /**
+     * Settlement
+     */
+    settlement: 'provisional' | 'committed';
+    /**
+     * Totaltokens
+     */
+    totalTokens?: number | null;
 };
 
 /**
@@ -20982,6 +32313,100 @@ export type ValidationError = {
      * Error Type
      */
     type: string;
+};
+
+/**
+ * VisualBlueprintDocumentV1
+ */
+export type VisualBlueprintDocumentV1 = {
+    /**
+     * Componentcatalogchecksum
+     */
+    componentCatalogChecksum: string;
+    /**
+     * Componentcatalogversion
+     */
+    componentCatalogVersion: string;
+    /**
+     * Designsystemmanifestchecksum
+     */
+    designSystemManifestChecksum: string;
+    /**
+     * Designsystemversionid
+     */
+    designSystemVersionId: string;
+    /**
+     * Itemid
+     */
+    itemId: string;
+    /**
+     * Schemaversion
+     */
+    schemaVersion?: 1;
+    /**
+     * Sections
+     */
+    sections?: Array<VisualBlueprintSectionV1>;
+    /**
+     * Sourcewireframechecksum
+     */
+    sourceWireframeChecksum: string;
+};
+
+/**
+ * VisualBlueprintResponsiveV1
+ */
+export type VisualBlueprintResponsiveV1 = {
+    /**
+     * Breakpoint
+     */
+    breakpoint: string;
+    /**
+     * States
+     */
+    states?: Array<VisualBlueprintStateV1>;
+};
+
+/**
+ * VisualBlueprintSectionV1
+ */
+export type VisualBlueprintSectionV1 = {
+    /**
+     * Componentkey
+     */
+    componentKey: string;
+    /**
+     * Responsiveoverrides
+     */
+    responsiveOverrides?: Array<VisualBlueprintResponsiveV1>;
+    /**
+     * Sectionid
+     */
+    sectionId: string;
+    /**
+     * States
+     */
+    states?: Array<VisualBlueprintStateV1>;
+    /**
+     * Variantkey
+     */
+    variantKey: string;
+};
+
+/**
+ * VisualBlueprintStateV1
+ */
+export type VisualBlueprintStateV1 = {
+    /**
+     * Statekey
+     */
+    stateKey: string;
+    /**
+     * Styletokens
+     */
+    styleTokens?: {
+        [key: string]: string;
+    };
 };
 
 /**
@@ -21106,6 +32531,242 @@ export type WebhookSubscriptionOut = {
      * Id
      */
     id: string;
+};
+
+/**
+ * WireframeDocumentV1
+ */
+export type WireframeDocumentV1 = {
+    /**
+     * Componentcatalogversion
+     */
+    componentCatalogVersion: string;
+    /**
+     * Designsystemversionid
+     */
+    designSystemVersionId: string;
+    /**
+     * Pageitemid
+     */
+    pageItemId: string;
+    /**
+     * Schemaversion
+     */
+    schemaVersion?: 1;
+    /**
+     * Sections
+     */
+    sections?: Array<WireframeSectionV1Output>;
+};
+
+/**
+ * WireframeFieldBindingV1
+ */
+export type WireframeFieldBindingV1 = {
+    /**
+     * Fieldkey
+     */
+    fieldKey: string;
+    /**
+     * Kind
+     */
+    kind: 'field';
+    /**
+     * Slotkey
+     */
+    slotKey: string;
+};
+
+/**
+ * WireframeInteractionRuleV1
+ */
+export type WireframeInteractionRuleV1 = {
+    /**
+     * Action
+     */
+    action: 'navigate' | 'submit' | 'toggle' | 'open' | 'close';
+    /**
+     * Event
+     */
+    event: 'click' | 'submit' | 'change' | 'hover' | 'focus';
+    /**
+     * Target
+     */
+    target?: string | null;
+};
+
+/**
+ * WireframeLiteralBindingV1
+ */
+export type WireframeLiteralBindingV1Input = {
+    /**
+     * Kind
+     */
+    kind: 'literal';
+    /**
+     * Slotkey
+     */
+    slotKey: string;
+    value: JsonValueInput;
+};
+
+/**
+ * WireframeLiteralBindingV1
+ */
+export type WireframeLiteralBindingV1Output = {
+    /**
+     * Kind
+     */
+    kind: 'literal';
+    /**
+     * Slotkey
+     */
+    slotKey: string;
+    value: JsonValueOutput;
+};
+
+/**
+ * WireframeMissingBindingV1
+ */
+export type WireframeMissingBindingV1 = {
+    /**
+     * Kind
+     */
+    kind: 'missing';
+    /**
+     * Reason
+     */
+    reason: 'content' | 'media' | 'binding';
+    /**
+     * Slotkey
+     */
+    slotKey: string;
+};
+
+/**
+ * WireframeResponsiveRuleV1
+ */
+export type WireframeResponsiveRuleV1 = {
+    /**
+     * Breakpoint
+     */
+    breakpoint: 'desktop' | 'tablet' | 'mobile';
+    /**
+     * Columns
+     */
+    columns?: number;
+    /**
+     * Layout
+     */
+    layout: 'stack' | 'grid' | 'split' | 'overlay';
+    /**
+     * Visible
+     */
+    visible?: boolean;
+};
+
+/**
+ * WireframeSectionV1
+ */
+export type WireframeSectionV1Input = {
+    /**
+     * Assetreferences
+     */
+    assetReferences?: Array<string>;
+    /**
+     * Bindings
+     */
+    bindings?: Array<({
+        kind: 'field';
+    } & WireframeFieldBindingV1) | ({
+        kind: 'literal';
+    } & WireframeLiteralBindingV1Input) | ({
+        kind: 'missing';
+    } & WireframeMissingBindingV1)>;
+    /**
+     * Componentkey
+     */
+    componentKey: string;
+    /**
+     * Globalreferenceid
+     */
+    globalReferenceId?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Intentid
+     */
+    intentId: string;
+    /**
+     * Interactionrules
+     */
+    interactionRules?: Array<WireframeInteractionRuleV1>;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Responsiverules
+     */
+    responsiveRules?: Array<WireframeResponsiveRuleV1>;
+    /**
+     * Variantkey
+     */
+    variantKey: string;
+};
+
+/**
+ * WireframeSectionV1
+ */
+export type WireframeSectionV1Output = {
+    /**
+     * Assetreferences
+     */
+    assetReferences?: Array<string>;
+    /**
+     * Bindings
+     */
+    bindings?: Array<({
+        kind: 'field';
+    } & WireframeFieldBindingV1) | ({
+        kind: 'literal';
+    } & WireframeLiteralBindingV1Output) | ({
+        kind: 'missing';
+    } & WireframeMissingBindingV1)>;
+    /**
+     * Componentkey
+     */
+    componentKey: string;
+    /**
+     * Globalreferenceid
+     */
+    globalReferenceId?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Intentid
+     */
+    intentId: string;
+    /**
+     * Interactionrules
+     */
+    interactionRules?: Array<WireframeInteractionRuleV1>;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Responsiverules
+     */
+    responsiveRules?: Array<WireframeResponsiveRuleV1>;
+    /**
+     * Variantkey
+     */
+    variantKey: string;
 };
 
 /**
@@ -21375,6 +33036,110 @@ export type WorkspaceAiActionToolCallOut = {
 };
 
 /**
+ * WorkspaceAgentCatalogItemV1
+ */
+export type WorkspaceAgentCatalogItemV1 = {
+    /**
+     * Agentid
+     */
+    agentId: string;
+    /**
+     * Assignmentid
+     */
+    assignmentId: string;
+    /**
+     * Available
+     */
+    available: boolean;
+    /**
+     * Avatarurl
+     */
+    avatarUrl: string | null;
+    /**
+     * Collaborationagentids
+     */
+    collaborationAgentIds: Array<string>;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Descriptioni18Nkey
+     */
+    descriptionI18NKey: string | null;
+    /**
+     * Isdefault
+     */
+    isDefault: boolean;
+    /**
+     * Ispinned
+     */
+    isPinned: boolean;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Namei18Nkey
+     */
+    nameI18NKey: string | null;
+    /**
+     * Provenance
+     */
+    provenance: 'arclayer_official' | 'workspace';
+    /**
+     * Role
+     */
+    role: string;
+    /**
+     * Rolei18Nkey
+     */
+    roleI18NKey: string | null;
+    /**
+     * Scope
+     */
+    scope: 'system' | 'workspace';
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Supportedexecutionmodes
+     */
+    supportedExecutionModes: Array<'plan' | 'build'>;
+    /**
+     * Toolgrants
+     */
+    toolGrants: Array<string>;
+    /**
+     * Unavailablereason
+     */
+    unavailableReason: string | null;
+    /**
+     * Versionid
+     */
+    versionId: string;
+    /**
+     * Versionnumber
+     */
+    versionNumber: number;
+};
+
+/**
+ * WorkspaceAgentCatalogV1
+ */
+export type WorkspaceAgentCatalogV1 = {
+    /**
+     * Agents
+     */
+    agents: Array<WorkspaceAgentCatalogItemV1>;
+    /**
+     * Defaultagentid
+     */
+    defaultAgentId: string | null;
+};
+
+/**
  * WorkspaceAssignRoleToMembersRequest
  */
 export type WorkspaceAssignRoleToMembersRequest = {
@@ -21572,6 +33337,152 @@ export type WorkspaceDeleteResult = {
      * Deleted workspace id.
      */
     workspaceId: string;
+};
+
+/**
+ * WorkspaceDesignSystemDefaultOut
+ */
+export type WorkspaceDesignSystemDefaultOut = {
+    /**
+     * Assignedbyuserid
+     */
+    assignedByUserId: string | null;
+    /**
+     * Designsystemid
+     */
+    designSystemId: string;
+    /**
+     * Manifestchecksum
+     */
+    manifestChecksum: string;
+    /**
+     * Metadatarevision
+     */
+    metadataRevision: number;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Validationfindinghash
+     */
+    validationFindingHash: string;
+    /**
+     * Versionid
+     */
+    versionId: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * WorkspaceDesignSystemDefaultSetRequest
+ */
+export type WorkspaceDesignSystemDefaultSetRequest = {
+    /**
+     * Designsystemid
+     */
+    designSystemId: string;
+    /**
+     * Expectedmanifestchecksum
+     */
+    expectedManifestChecksum: string;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Validationfindinghash
+     */
+    validationFindingHash: string;
+    /**
+     * Versionid
+     */
+    versionId: string;
+};
+
+/**
+ * WorkspaceDesignSystemsCapabilitiesOut
+ */
+export type WorkspaceDesignSystemsCapabilitiesOut = {
+    /**
+     * Agentruncontext
+     */
+    agentRunContext?: true;
+    /**
+     * Buildercontext
+     */
+    builderContext?: true;
+    /**
+     * Compilation
+     */
+    compilation?: false;
+    /**
+     * Componentcatalogvalidation
+     */
+    componentCatalogValidation?: true;
+    /**
+     * Derivationavailable
+     */
+    derivationAvailable?: false;
+    /**
+     * Exactdefaultassignment
+     */
+    exactDefaultAssignment?: true;
+    /**
+     * Foundationvalidation
+     */
+    foundationValidation?: true;
+    /**
+     * Immutableversions
+     */
+    immutableVersions?: true;
+    /**
+     * Importavailable
+     */
+    importAvailable?: false;
+    /**
+     * Projectassignment
+     */
+    projectAssignment?: true;
+    /**
+     * Projectfork
+     */
+    projectFork?: true;
+    /**
+     * Projectversionauthoring
+     */
+    projectVersionAuthoring?: true;
+    /**
+     * Projectversioncomparison
+     */
+    projectVersionComparison?: true;
+    /**
+     * Projectversionhistory
+     */
+    projectVersionHistory?: true;
+    /**
+     * Projectversionimpactpreview
+     */
+    projectVersionImpactPreview?: true;
+    /**
+     * Projectversionsupersession
+     */
+    projectVersionSupersession?: true;
+    /**
+     * Publication
+     */
+    publication?: false;
+    /**
+     * Rendererpreview
+     */
+    rendererPreview?: false;
+    /**
+     * Workspacefoundation
+     */
+    workspaceFoundation?: true;
 };
 
 /**
@@ -22060,11 +33971,135 @@ export type WorkspaceInviteLinkRenewRequest = {
 };
 
 /**
+ * WorkspaceJobCancelRequest
+ */
+export type WorkspaceJobCancelRequest = {
+    /**
+     * Reason
+     */
+    reason?: string | null;
+};
+
+/**
+ * WorkspaceJobOut
+ *
+ * Workspace-safe Job projection without transport, lease, or raw provider data.
+ */
+export type WorkspaceJobOut = {
+    /**
+     * Cancelrequestedat
+     */
+    cancelRequestedAt: string | null;
+    /**
+     * Cancellationacknowledgedat
+     */
+    cancellationAcknowledgedAt: string | null;
+    /**
+     * Completedat
+     */
+    completedAt: string | null;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Errorcode
+     */
+    errorCode: string | null;
+    /**
+     * Hasresult
+     */
+    hasResult: boolean;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Jobtype
+     */
+    jobType: string;
+    /**
+     * Jobtypeversion
+     */
+    jobTypeVersion: number;
+    /**
+     * Phase
+     */
+    phase: string | null;
+    /**
+     * Progresscompleted
+     */
+    progressCompleted: number;
+    /**
+     * Progresstotal
+     */
+    progressTotal: number | null;
+    /**
+     * Projectid
+     */
+    projectId: string | null;
+    /**
+     * Retryofjobid
+     */
+    retryOfJobId: string | null;
+    /**
+     * Siteid
+     */
+    siteId: string | null;
+    /**
+     * Startedat
+     */
+    startedAt: string | null;
+    status: JobPublicStatus;
+    /**
+     * Statuskey
+     */
+    statusKey: string | null;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    workload: JobWorkloadClass;
+};
+
+/**
  * WorkspaceKind
  *
  * Workspace identity kind.
  */
 export type WorkspaceKind = 'team';
+
+/**
+ * WorkspaceKnowledgeCapabilitiesOut
+ */
+export type WorkspaceKnowledgeCapabilitiesOut = {
+    /**
+     * Externalingestionavailable
+     */
+    externalIngestionAvailable: boolean;
+    /**
+     * Immutablesourceversions
+     */
+    immutableSourceVersions: true;
+    /**
+     * Indexingavailable
+     */
+    indexingAvailable: boolean;
+    /**
+     * Manualsourcesavailable
+     */
+    manualSourcesAvailable: true;
+    /**
+     * Retrievalavailable
+     */
+    retrievalAvailable: false;
+    /**
+     * Supportedsourcekinds
+     */
+    supportedSourceKinds: Array<string>;
+};
 
 /**
  * WorkspaceManageArchiveResult
@@ -22653,6 +34688,40 @@ export type WorkspaceSettingsPatch = {
     patch?: {
         [key: string]: JsonValueInput;
     };
+};
+
+/**
+ * WorkspaceSkillsCapabilitiesOut
+ */
+export type WorkspaceSkillsCapabilitiesOut = {
+    /**
+     * Agentskillgrantsavailable
+     */
+    agentSkillGrantsAvailable: boolean;
+    /**
+     * Githubimportavailable
+     */
+    githubImportAvailable: boolean;
+    /**
+     * Immutableversions
+     */
+    immutableVersions: true;
+    /**
+     * Inlineauthoringavailable
+     */
+    inlineAuthoringAvailable: true;
+    /**
+     * Installationavailable
+     */
+    installationAvailable: boolean;
+    /**
+     * Officialcatalogavailable
+     */
+    officialCatalogAvailable: boolean;
+    /**
+     * Validationavailable
+     */
+    validationAvailable: boolean;
 };
 
 /**
@@ -24795,167 +36864,6 @@ export type GlobalAuthUsernameCheckResponses = {
 };
 
 export type GlobalAuthUsernameCheckResponse = GlobalAuthUsernameCheckResponses[keyof GlobalAuthUsernameCheckResponses];
-
-export type AiChatCompletionData = {
-    body: ChatRequest;
-    path?: never;
-    query?: {
-        /**
-         * Stream
-         *
-         * Enable SSE streaming
-         */
-        stream?: boolean;
-    };
-    url: '/api/v1/chat';
-};
-
-export type AiChatCompletionErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type AiChatCompletionError = AiChatCompletionErrors[keyof AiChatCompletionErrors];
-
-export type AiChatCompletionResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
-
-export type AiListAiConversationsData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * Workspaceid
-         */
-        workspaceId: string;
-        /**
-         * Archived
-         *
-         * Return archived conversations
-         */
-        archived?: boolean;
-    };
-    url: '/api/v1/chat/conversations';
-};
-
-export type AiListAiConversationsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type AiListAiConversationsError = AiListAiConversationsErrors[keyof AiListAiConversationsErrors];
-
-export type AiListAiConversationsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAiConversationListOut;
-};
-
-export type AiListAiConversationsResponse = AiListAiConversationsResponses[keyof AiListAiConversationsResponses];
-
-export type AiCreateAiConversationData = {
-    body: AiConversationCreateRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/chat/conversations';
-};
-
-export type AiCreateAiConversationErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type AiCreateAiConversationError = AiCreateAiConversationErrors[keyof AiCreateAiConversationErrors];
-
-export type AiCreateAiConversationResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAiConversationOut;
-};
-
-export type AiCreateAiConversationResponse = AiCreateAiConversationResponses[keyof AiCreateAiConversationResponses];
-
-export type AiDeleteAiConversationData = {
-    body?: never;
-    path: {
-        /**
-         * Conversation Id
-         */
-        conversation_id: string;
-    };
-    query: {
-        /**
-         * Workspaceid
-         */
-        workspaceId: string;
-    };
-    url: '/api/v1/chat/conversations/{conversation_id}';
-};
-
-export type AiDeleteAiConversationErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type AiDeleteAiConversationError = AiDeleteAiConversationErrors[keyof AiDeleteAiConversationErrors];
-
-export type AiDeleteAiConversationResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNoneType;
-};
-
-export type AiDeleteAiConversationResponse = AiDeleteAiConversationResponses[keyof AiDeleteAiConversationResponses];
-
-export type AiUpdateAiConversationData = {
-    body: AiConversationUpdateRequest;
-    path: {
-        /**
-         * Conversation Id
-         */
-        conversation_id: string;
-    };
-    query: {
-        /**
-         * Workspaceid
-         */
-        workspaceId: string;
-    };
-    url: '/api/v1/chat/conversations/{conversation_id}';
-};
-
-export type AiUpdateAiConversationErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type AiUpdateAiConversationError = AiUpdateAiConversationErrors[keyof AiUpdateAiConversationErrors];
-
-export type AiUpdateAiConversationResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAiConversationOut;
-};
-
-export type AiUpdateAiConversationResponse = AiUpdateAiConversationResponses[keyof AiUpdateAiConversationResponses];
 
 export type AiListChatModelsData = {
     body?: never;
@@ -27647,6 +39555,607 @@ export type DomainProjectsGetProjectAutomationRunResponses = {
 };
 
 export type DomainProjectsGetProjectAutomationRunResponse = DomainProjectsGetProjectAutomationRunResponses[keyof DomainProjectsGetProjectAutomationRunResponses];
+
+export type DomainProjectsGetProjectBuilderData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/builder';
+};
+
+export type DomainProjectsGetProjectBuilderErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectBuilderError = DomainProjectsGetProjectBuilderErrors[keyof DomainProjectsGetProjectBuilderErrors];
+
+export type DomainProjectsGetProjectBuilderResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectBuilderProjectionOut;
+};
+
+export type DomainProjectsGetProjectBuilderResponse = DomainProjectsGetProjectBuilderResponses[keyof DomainProjectsGetProjectBuilderResponses];
+
+export type DomainProjectsPreviewBuilderChangeSetData = {
+    body: BuilderChangeSetPreviewRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/builder/change-sets/preview';
+};
+
+export type DomainProjectsPreviewBuilderChangeSetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsPreviewBuilderChangeSetError = DomainProjectsPreviewBuilderChangeSetErrors[keyof DomainProjectsPreviewBuilderChangeSetErrors];
+
+export type DomainProjectsPreviewBuilderChangeSetResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelBuilderChangeSetPreviewOut;
+};
+
+export type DomainProjectsPreviewBuilderChangeSetResponse = DomainProjectsPreviewBuilderChangeSetResponses[keyof DomainProjectsPreviewBuilderChangeSetResponses];
+
+export type DomainProjectsApplyBuilderChangeSetData = {
+    body: BuilderChangeSetApplyRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Change Set Id
+         */
+        change_set_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/builder/change-sets/{change_set_id}/apply';
+};
+
+export type DomainProjectsApplyBuilderChangeSetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsApplyBuilderChangeSetError = DomainProjectsApplyBuilderChangeSetErrors[keyof DomainProjectsApplyBuilderChangeSetErrors];
+
+export type DomainProjectsApplyBuilderChangeSetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelBuilderChangeSetApplyOut;
+};
+
+export type DomainProjectsApplyBuilderChangeSetResponse = DomainProjectsApplyBuilderChangeSetResponses[keyof DomainProjectsApplyBuilderChangeSetResponses];
+
+export type DomainProjectsGetProjectBuilderComponentCatalogData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/builder/component-catalog';
+};
+
+export type DomainProjectsGetProjectBuilderComponentCatalogErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectBuilderComponentCatalogError = DomainProjectsGetProjectBuilderComponentCatalogErrors[keyof DomainProjectsGetProjectBuilderComponentCatalogErrors];
+
+export type DomainProjectsGetProjectBuilderComponentCatalogResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelBuilderComponentCatalogOut;
+};
+
+export type DomainProjectsGetProjectBuilderComponentCatalogResponse = DomainProjectsGetProjectBuilderComponentCatalogResponses[keyof DomainProjectsGetProjectBuilderComponentCatalogResponses];
+
+export type DomainProjectsCreateBuilderCompositionSagaData = {
+    body: BuilderCompositionSagaCreateRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/builder/composition-sagas';
+};
+
+export type DomainProjectsCreateBuilderCompositionSagaErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCreateBuilderCompositionSagaError = DomainProjectsCreateBuilderCompositionSagaErrors[keyof DomainProjectsCreateBuilderCompositionSagaErrors];
+
+export type DomainProjectsCreateBuilderCompositionSagaResponses = {
+    /**
+     * Successful Response
+     */
+    202: ResponseModelBuilderCompositionSagaOut;
+};
+
+export type DomainProjectsCreateBuilderCompositionSagaResponse = DomainProjectsCreateBuilderCompositionSagaResponses[keyof DomainProjectsCreateBuilderCompositionSagaResponses];
+
+export type DomainProjectsRecoverBuilderCompositionSagaData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query: {
+        /**
+         * Target
+         */
+        target: Array<string>;
+    };
+    url: '/api/v1/projects/{project_id}/builder/composition-sagas/recovery';
+};
+
+export type DomainProjectsRecoverBuilderCompositionSagaErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsRecoverBuilderCompositionSagaError = DomainProjectsRecoverBuilderCompositionSagaErrors[keyof DomainProjectsRecoverBuilderCompositionSagaErrors];
+
+export type DomainProjectsRecoverBuilderCompositionSagaResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelBuilderCompositionSagaRecoveryOut;
+};
+
+export type DomainProjectsRecoverBuilderCompositionSagaResponse = DomainProjectsRecoverBuilderCompositionSagaResponses[keyof DomainProjectsRecoverBuilderCompositionSagaResponses];
+
+export type DomainProjectsGetBuilderCompositionSagaData = {
+    body?: never;
+    path: {
+        /**
+         * Saga Id
+         */
+        saga_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/builder/composition-sagas/{saga_id}';
+};
+
+export type DomainProjectsGetBuilderCompositionSagaErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetBuilderCompositionSagaError = DomainProjectsGetBuilderCompositionSagaErrors[keyof DomainProjectsGetBuilderCompositionSagaErrors];
+
+export type DomainProjectsGetBuilderCompositionSagaResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelBuilderCompositionSagaOut;
+};
+
+export type DomainProjectsGetBuilderCompositionSagaResponse = DomainProjectsGetBuilderCompositionSagaResponses[keyof DomainProjectsGetBuilderCompositionSagaResponses];
+
+export type DomainProjectsCancelBuilderCompositionSagaData = {
+    body: BuilderCompositionSagaCancelRequest;
+    path: {
+        /**
+         * Saga Id
+         */
+        saga_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/builder/composition-sagas/{saga_id}/cancel';
+};
+
+export type DomainProjectsCancelBuilderCompositionSagaErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCancelBuilderCompositionSagaError = DomainProjectsCancelBuilderCompositionSagaErrors[keyof DomainProjectsCancelBuilderCompositionSagaErrors];
+
+export type DomainProjectsCancelBuilderCompositionSagaResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelBuilderCompositionSagaOut;
+};
+
+export type DomainProjectsCancelBuilderCompositionSagaResponse = DomainProjectsCancelBuilderCompositionSagaResponses[keyof DomainProjectsCancelBuilderCompositionSagaResponses];
+
+export type DomainProjectsTransitionBuilderCompositionSagaPhaseData = {
+    body: BuilderCompositionSagaPhaseTransitionRequest;
+    path: {
+        /**
+         * Saga Id
+         */
+        saga_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/builder/composition-sagas/{saga_id}/phase-transitions';
+};
+
+export type DomainProjectsTransitionBuilderCompositionSagaPhaseErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsTransitionBuilderCompositionSagaPhaseError = DomainProjectsTransitionBuilderCompositionSagaPhaseErrors[keyof DomainProjectsTransitionBuilderCompositionSagaPhaseErrors];
+
+export type DomainProjectsTransitionBuilderCompositionSagaPhaseResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelBuilderCompositionSagaOut;
+};
+
+export type DomainProjectsTransitionBuilderCompositionSagaPhaseResponse = DomainProjectsTransitionBuilderCompositionSagaPhaseResponses[keyof DomainProjectsTransitionBuilderCompositionSagaPhaseResponses];
+
+export type DomainProjectsCreateBuilderGenerationData = {
+    body: BuilderGenerationCreateRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/builder/generations';
+};
+
+export type DomainProjectsCreateBuilderGenerationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCreateBuilderGenerationError = DomainProjectsCreateBuilderGenerationErrors[keyof DomainProjectsCreateBuilderGenerationErrors];
+
+export type DomainProjectsCreateBuilderGenerationResponses = {
+    /**
+     * Successful Response
+     */
+    202: ResponseModelBuilderGenerationOut;
+};
+
+export type DomainProjectsCreateBuilderGenerationResponse = DomainProjectsCreateBuilderGenerationResponses[keyof DomainProjectsCreateBuilderGenerationResponses];
+
+export type DomainProjectsRecoverBuilderGenerationData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query: {
+        /**
+         * Target Stage
+         */
+        target_stage: 'wireframe' | 'design';
+        /**
+         * Target
+         */
+        target: Array<string>;
+    };
+    url: '/api/v1/projects/{project_id}/builder/generations/recovery';
+};
+
+export type DomainProjectsRecoverBuilderGenerationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsRecoverBuilderGenerationError = DomainProjectsRecoverBuilderGenerationErrors[keyof DomainProjectsRecoverBuilderGenerationErrors];
+
+export type DomainProjectsRecoverBuilderGenerationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelBuilderGenerationRecoveryOut;
+};
+
+export type DomainProjectsRecoverBuilderGenerationResponse = DomainProjectsRecoverBuilderGenerationResponses[keyof DomainProjectsRecoverBuilderGenerationResponses];
+
+export type DomainProjectsGetBuilderGenerationData = {
+    body?: never;
+    path: {
+        /**
+         * Generation Id
+         */
+        generation_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/builder/generations/{generation_id}';
+};
+
+export type DomainProjectsGetBuilderGenerationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetBuilderGenerationError = DomainProjectsGetBuilderGenerationErrors[keyof DomainProjectsGetBuilderGenerationErrors];
+
+export type DomainProjectsGetBuilderGenerationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelBuilderGenerationOut;
+};
+
+export type DomainProjectsGetBuilderGenerationResponse = DomainProjectsGetBuilderGenerationResponses[keyof DomainProjectsGetBuilderGenerationResponses];
+
+export type DomainProjectsCancelBuilderGenerationData = {
+    body: BuilderGenerationCancelRequest;
+    path: {
+        /**
+         * Generation Id
+         */
+        generation_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/builder/generations/{generation_id}/cancel';
+};
+
+export type DomainProjectsCancelBuilderGenerationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCancelBuilderGenerationError = DomainProjectsCancelBuilderGenerationErrors[keyof DomainProjectsCancelBuilderGenerationErrors];
+
+export type DomainProjectsCancelBuilderGenerationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelBuilderGenerationOut;
+};
+
+export type DomainProjectsCancelBuilderGenerationResponse = DomainProjectsCancelBuilderGenerationResponses[keyof DomainProjectsCancelBuilderGenerationResponses];
+
+export type DomainProjectsInitializeProjectBuilderData = {
+    body: BuilderInitializationRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/builder/initializations';
+};
+
+export type DomainProjectsInitializeProjectBuilderErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsInitializeProjectBuilderError = DomainProjectsInitializeProjectBuilderErrors[keyof DomainProjectsInitializeProjectBuilderErrors];
+
+export type DomainProjectsInitializeProjectBuilderResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelBuilderInitializationOut;
+};
+
+export type DomainProjectsInitializeProjectBuilderResponse = DomainProjectsInitializeProjectBuilderResponses[keyof DomainProjectsInitializeProjectBuilderResponses];
+
+export type DomainProjectsGetProjectBuilderRevisionData = {
+    body?: never;
+    path: {
+        /**
+         * Revision Id
+         */
+        revision_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/builder/revisions/{revision_id}';
+};
+
+export type DomainProjectsGetProjectBuilderRevisionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectBuilderRevisionError = DomainProjectsGetProjectBuilderRevisionErrors[keyof DomainProjectsGetProjectBuilderRevisionErrors];
+
+export type DomainProjectsGetProjectBuilderRevisionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelBuilderRevisionOut;
+};
+
+export type DomainProjectsGetProjectBuilderRevisionResponse = DomainProjectsGetProjectBuilderRevisionResponses[keyof DomainProjectsGetProjectBuilderRevisionResponses];
+
+export type DomainProjectsGetProjectBuilderPageRenderDocumentData = {
+    body?: never;
+    path: {
+        /**
+         * Revision Id
+         */
+        revision_id: string;
+        /**
+         * Page Item Id
+         */
+        page_item_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query: {
+        /**
+         * Locale
+         */
+        locale: string;
+        /**
+         * Theme
+         */
+        theme?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}/builder/revisions/{revision_id}/pages/{page_item_id}/render-document';
+};
+
+export type DomainProjectsGetProjectBuilderPageRenderDocumentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectBuilderPageRenderDocumentError = DomainProjectsGetProjectBuilderPageRenderDocumentErrors[keyof DomainProjectsGetProjectBuilderPageRenderDocumentErrors];
+
+export type DomainProjectsGetProjectBuilderPageRenderDocumentResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelBuilderPageRenderDocumentOut;
+};
+
+export type DomainProjectsGetProjectBuilderPageRenderDocumentResponse = DomainProjectsGetProjectBuilderPageRenderDocumentResponses[keyof DomainProjectsGetProjectBuilderPageRenderDocumentResponses];
 
 export type DomainProjectsListProjectContentItemsData = {
     body?: never;
@@ -30392,6 +42901,563 @@ export type DomainProjectsRollbackProjectDeploymentResponses = {
 
 export type DomainProjectsRollbackProjectDeploymentResponse = DomainProjectsRollbackProjectDeploymentResponses[keyof DomainProjectsRollbackProjectDeploymentResponses];
 
+export type DomainProjectsGetProjectDesignSystemAssignmentData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/design-system/assignment';
+};
+
+export type DomainProjectsGetProjectDesignSystemAssignmentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectDesignSystemAssignmentError = DomainProjectsGetProjectDesignSystemAssignmentErrors[keyof DomainProjectsGetProjectDesignSystemAssignmentErrors];
+
+export type DomainProjectsGetProjectDesignSystemAssignmentResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUnionProjectDesignSystemAssignmentOutNoneType;
+};
+
+export type DomainProjectsGetProjectDesignSystemAssignmentResponse = DomainProjectsGetProjectDesignSystemAssignmentResponses[keyof DomainProjectsGetProjectDesignSystemAssignmentResponses];
+
+export type DomainProjectsSetProjectDesignSystemAssignmentData = {
+    body: ProjectDesignSystemAssignmentSetRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/design-system/assignment';
+};
+
+export type DomainProjectsSetProjectDesignSystemAssignmentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsSetProjectDesignSystemAssignmentError = DomainProjectsSetProjectDesignSystemAssignmentErrors[keyof DomainProjectsSetProjectDesignSystemAssignmentErrors];
+
+export type DomainProjectsSetProjectDesignSystemAssignmentResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectDesignSystemAssignmentResultOut;
+};
+
+export type DomainProjectsSetProjectDesignSystemAssignmentResponse = DomainProjectsSetProjectDesignSystemAssignmentResponses[keyof DomainProjectsSetProjectDesignSystemAssignmentResponses];
+
+export type DomainProjectsForkProjectDesignSystemData = {
+    body: ProjectDesignSystemForkRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/design-system/forks';
+};
+
+export type DomainProjectsForkProjectDesignSystemErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsForkProjectDesignSystemError = DomainProjectsForkProjectDesignSystemErrors[keyof DomainProjectsForkProjectDesignSystemErrors];
+
+export type DomainProjectsForkProjectDesignSystemResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelProjectDesignSystemForkOut;
+};
+
+export type DomainProjectsForkProjectDesignSystemResponse = DomainProjectsForkProjectDesignSystemResponses[keyof DomainProjectsForkProjectDesignSystemResponses];
+
+export type DomainProjectsCompareProjectDesignSystemVersionsData = {
+    body: ProjectDesignSystemComparisonRequest;
+    path: {
+        /**
+         * System Id
+         */
+        system_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/design-system/{system_id}/comparisons';
+};
+
+export type DomainProjectsCompareProjectDesignSystemVersionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCompareProjectDesignSystemVersionsError = DomainProjectsCompareProjectDesignSystemVersionsErrors[keyof DomainProjectsCompareProjectDesignSystemVersionsErrors];
+
+export type DomainProjectsCompareProjectDesignSystemVersionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectDesignSystemComparisonOut;
+};
+
+export type DomainProjectsCompareProjectDesignSystemVersionsResponse = DomainProjectsCompareProjectDesignSystemVersionsResponses[keyof DomainProjectsCompareProjectDesignSystemVersionsResponses];
+
+export type DomainProjectsCreateProjectDesignSystemConceptGenerationData = {
+    body: DesignSystemConceptGenerationCreateRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * System Id
+         */
+        system_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/design-system/{system_id}/concept-generations';
+};
+
+export type DomainProjectsCreateProjectDesignSystemConceptGenerationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCreateProjectDesignSystemConceptGenerationError = DomainProjectsCreateProjectDesignSystemConceptGenerationErrors[keyof DomainProjectsCreateProjectDesignSystemConceptGenerationErrors];
+
+export type DomainProjectsCreateProjectDesignSystemConceptGenerationResponses = {
+    /**
+     * Successful Response
+     */
+    202: ResponseModelDesignSystemConceptGenerationOut;
+};
+
+export type DomainProjectsCreateProjectDesignSystemConceptGenerationResponse = DomainProjectsCreateProjectDesignSystemConceptGenerationResponses[keyof DomainProjectsCreateProjectDesignSystemConceptGenerationResponses];
+
+export type DomainProjectsRecoverProjectDesignSystemConceptGenerationsData = {
+    body?: never;
+    path: {
+        /**
+         * System Id
+         */
+        system_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/design-system/{system_id}/concept-generations/recovery';
+};
+
+export type DomainProjectsRecoverProjectDesignSystemConceptGenerationsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsRecoverProjectDesignSystemConceptGenerationsError = DomainProjectsRecoverProjectDesignSystemConceptGenerationsErrors[keyof DomainProjectsRecoverProjectDesignSystemConceptGenerationsErrors];
+
+export type DomainProjectsRecoverProjectDesignSystemConceptGenerationsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDesignSystemConceptGenerationRecoveryOut;
+};
+
+export type DomainProjectsRecoverProjectDesignSystemConceptGenerationsResponse = DomainProjectsRecoverProjectDesignSystemConceptGenerationsResponses[keyof DomainProjectsRecoverProjectDesignSystemConceptGenerationsResponses];
+
+export type DomainProjectsGetProjectDesignSystemConceptGenerationData = {
+    body?: never;
+    path: {
+        /**
+         * System Id
+         */
+        system_id: string;
+        /**
+         * Generation Id
+         */
+        generation_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/design-system/{system_id}/concept-generations/{generation_id}';
+};
+
+export type DomainProjectsGetProjectDesignSystemConceptGenerationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectDesignSystemConceptGenerationError = DomainProjectsGetProjectDesignSystemConceptGenerationErrors[keyof DomainProjectsGetProjectDesignSystemConceptGenerationErrors];
+
+export type DomainProjectsGetProjectDesignSystemConceptGenerationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDesignSystemConceptGenerationOut;
+};
+
+export type DomainProjectsGetProjectDesignSystemConceptGenerationResponse = DomainProjectsGetProjectDesignSystemConceptGenerationResponses[keyof DomainProjectsGetProjectDesignSystemConceptGenerationResponses];
+
+export type DomainProjectsCancelProjectDesignSystemConceptGenerationData = {
+    body: DesignSystemConceptGenerationCancelRequest;
+    path: {
+        /**
+         * System Id
+         */
+        system_id: string;
+        /**
+         * Generation Id
+         */
+        generation_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/design-system/{system_id}/concept-generations/{generation_id}/cancel';
+};
+
+export type DomainProjectsCancelProjectDesignSystemConceptGenerationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCancelProjectDesignSystemConceptGenerationError = DomainProjectsCancelProjectDesignSystemConceptGenerationErrors[keyof DomainProjectsCancelProjectDesignSystemConceptGenerationErrors];
+
+export type DomainProjectsCancelProjectDesignSystemConceptGenerationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDesignSystemConceptGenerationOut;
+};
+
+export type DomainProjectsCancelProjectDesignSystemConceptGenerationResponse = DomainProjectsCancelProjectDesignSystemConceptGenerationResponses[keyof DomainProjectsCancelProjectDesignSystemConceptGenerationResponses];
+
+export type DomainProjectsPreviewProjectDesignSystemImpactData = {
+    body: ProjectDesignSystemImpactPreviewRequest;
+    path: {
+        /**
+         * System Id
+         */
+        system_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/design-system/{system_id}/impact-previews';
+};
+
+export type DomainProjectsPreviewProjectDesignSystemImpactErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsPreviewProjectDesignSystemImpactError = DomainProjectsPreviewProjectDesignSystemImpactErrors[keyof DomainProjectsPreviewProjectDesignSystemImpactErrors];
+
+export type DomainProjectsPreviewProjectDesignSystemImpactResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectDesignSystemImpactPreviewOut;
+};
+
+export type DomainProjectsPreviewProjectDesignSystemImpactResponse = DomainProjectsPreviewProjectDesignSystemImpactResponses[keyof DomainProjectsPreviewProjectDesignSystemImpactResponses];
+
+export type DomainProjectsListProjectDesignSystemVersionsData = {
+    body?: never;
+    path: {
+        /**
+         * System Id
+         */
+        system_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Cursor
+         */
+        cursor?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}/design-system/{system_id}/versions';
+};
+
+export type DomainProjectsListProjectDesignSystemVersionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectDesignSystemVersionsError = DomainProjectsListProjectDesignSystemVersionsErrors[keyof DomainProjectsListProjectDesignSystemVersionsErrors];
+
+export type DomainProjectsListProjectDesignSystemVersionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectDesignSystemVersionPageOut;
+};
+
+export type DomainProjectsListProjectDesignSystemVersionsResponse = DomainProjectsListProjectDesignSystemVersionsResponses[keyof DomainProjectsListProjectDesignSystemVersionsResponses];
+
+export type DomainProjectsCreateProjectDesignSystemVersionData = {
+    body: DesignSystemVersionCreateRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * System Id
+         */
+        system_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/design-system/{system_id}/versions';
+};
+
+export type DomainProjectsCreateProjectDesignSystemVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCreateProjectDesignSystemVersionError = DomainProjectsCreateProjectDesignSystemVersionErrors[keyof DomainProjectsCreateProjectDesignSystemVersionErrors];
+
+export type DomainProjectsCreateProjectDesignSystemVersionResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelDesignSystemVersionDetailOut;
+};
+
+export type DomainProjectsCreateProjectDesignSystemVersionResponse = DomainProjectsCreateProjectDesignSystemVersionResponses[keyof DomainProjectsCreateProjectDesignSystemVersionResponses];
+
+export type DomainProjectsGetProjectDesignSystemVersionData = {
+    body?: never;
+    path: {
+        /**
+         * System Id
+         */
+        system_id: string;
+        /**
+         * Version Id
+         */
+        version_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/design-system/{system_id}/versions/{version_id}';
+};
+
+export type DomainProjectsGetProjectDesignSystemVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectDesignSystemVersionError = DomainProjectsGetProjectDesignSystemVersionErrors[keyof DomainProjectsGetProjectDesignSystemVersionErrors];
+
+export type DomainProjectsGetProjectDesignSystemVersionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDesignSystemVersionDetailOut;
+};
+
+export type DomainProjectsGetProjectDesignSystemVersionResponse = DomainProjectsGetProjectDesignSystemVersionResponses[keyof DomainProjectsGetProjectDesignSystemVersionResponses];
+
+export type DomainProjectsSupersedeProjectDesignSystemVersionData = {
+    body: ProjectDesignSystemSupersessionRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * System Id
+         */
+        system_id: string;
+        /**
+         * Version Id
+         */
+        version_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/design-system/{system_id}/versions/{version_id}/supersessions';
+};
+
+export type DomainProjectsSupersedeProjectDesignSystemVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsSupersedeProjectDesignSystemVersionError = DomainProjectsSupersedeProjectDesignSystemVersionErrors[keyof DomainProjectsSupersedeProjectDesignSystemVersionErrors];
+
+export type DomainProjectsSupersedeProjectDesignSystemVersionResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelProjectDesignSystemSupersessionOut;
+};
+
+export type DomainProjectsSupersedeProjectDesignSystemVersionResponse = DomainProjectsSupersedeProjectDesignSystemVersionResponses[keyof DomainProjectsSupersedeProjectDesignSystemVersionResponses];
+
+export type DomainProjectsCreateProjectDesignSystemValidationData = {
+    body: DesignSystemValidationCreateRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * System Id
+         */
+        system_id: string;
+        /**
+         * Version Id
+         */
+        version_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/design-system/{system_id}/versions/{version_id}/validations';
+};
+
+export type DomainProjectsCreateProjectDesignSystemValidationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCreateProjectDesignSystemValidationError = DomainProjectsCreateProjectDesignSystemValidationErrors[keyof DomainProjectsCreateProjectDesignSystemValidationErrors];
+
+export type DomainProjectsCreateProjectDesignSystemValidationResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelDesignSystemValidationResultOut;
+};
+
+export type DomainProjectsCreateProjectDesignSystemValidationResponse = DomainProjectsCreateProjectDesignSystemValidationResponses[keyof DomainProjectsCreateProjectDesignSystemValidationResponses];
+
 export type DomainProjectsListProjectDomainsData = {
     body?: never;
     path: {
@@ -32062,6 +45128,360 @@ export type InternalSystemGetActivityDetailResponses = {
 
 export type InternalSystemGetActivityDetailResponse = InternalSystemGetActivityDetailResponses[keyof InternalSystemGetActivityDetailResponses];
 
+export type InternalSystemListSystemAgentAssignmentsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Workspaceid
+         */
+        workspaceId?: string | null;
+        /**
+         * Projectid
+         */
+        projectId?: string | null;
+        /**
+         * Agentid
+         */
+        agentId?: string | null;
+        /**
+         * Enabled
+         */
+        enabled?: boolean | null;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/system/agent-assignments';
+};
+
+export type InternalSystemListSystemAgentAssignmentsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemListSystemAgentAssignmentsError = InternalSystemListSystemAgentAssignmentsErrors[keyof InternalSystemListSystemAgentAssignmentsErrors];
+
+export type InternalSystemListSystemAgentAssignmentsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataSystemAgentAssignmentOut;
+};
+
+export type InternalSystemListSystemAgentAssignmentsResponse = InternalSystemListSystemAgentAssignmentsResponses[keyof InternalSystemListSystemAgentAssignmentsResponses];
+
+export type InternalSystemCreateSystemAgentAssignmentData = {
+    body: SystemAgentAssignmentCreateRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/system/agent-assignments';
+};
+
+export type InternalSystemCreateSystemAgentAssignmentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemCreateSystemAgentAssignmentError = InternalSystemCreateSystemAgentAssignmentErrors[keyof InternalSystemCreateSystemAgentAssignmentErrors];
+
+export type InternalSystemCreateSystemAgentAssignmentResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelSystemAgentAssignmentOut;
+};
+
+export type InternalSystemCreateSystemAgentAssignmentResponse = InternalSystemCreateSystemAgentAssignmentResponses[keyof InternalSystemCreateSystemAgentAssignmentResponses];
+
+export type InternalSystemUpdateSystemAgentAssignmentData = {
+    body: SystemAgentAssignmentUpdateRequest;
+    path: {
+        /**
+         * Assignment Id
+         */
+        assignment_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/agent-assignments/{assignment_id}';
+};
+
+export type InternalSystemUpdateSystemAgentAssignmentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemUpdateSystemAgentAssignmentError = InternalSystemUpdateSystemAgentAssignmentErrors[keyof InternalSystemUpdateSystemAgentAssignmentErrors];
+
+export type InternalSystemUpdateSystemAgentAssignmentResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSystemAgentAssignmentOut;
+};
+
+export type InternalSystemUpdateSystemAgentAssignmentResponse = InternalSystemUpdateSystemAgentAssignmentResponses[keyof InternalSystemUpdateSystemAgentAssignmentResponses];
+
+export type InternalSystemListSystemAgentsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Lifecyclestate
+         */
+        lifecycleState?: 'active' | 'disabled' | 'archived' | null;
+        /**
+         * Scope
+         */
+        scope?: 'system' | 'workspace' | null;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/system/agents';
+};
+
+export type InternalSystemListSystemAgentsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemListSystemAgentsError = InternalSystemListSystemAgentsErrors[keyof InternalSystemListSystemAgentsErrors];
+
+export type InternalSystemListSystemAgentsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataSystemAgentDefinitionSummaryOut;
+};
+
+export type InternalSystemListSystemAgentsResponse = InternalSystemListSystemAgentsResponses[keyof InternalSystemListSystemAgentsResponses];
+
+export type InternalSystemCreateSystemAgentData = {
+    body: SystemAgentDefinitionCreateRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/system/agents';
+};
+
+export type InternalSystemCreateSystemAgentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemCreateSystemAgentError = InternalSystemCreateSystemAgentErrors[keyof InternalSystemCreateSystemAgentErrors];
+
+export type InternalSystemCreateSystemAgentResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelSystemAgentDefinitionDetailOut;
+};
+
+export type InternalSystemCreateSystemAgentResponse = InternalSystemCreateSystemAgentResponses[keyof InternalSystemCreateSystemAgentResponses];
+
+export type InternalSystemGetSystemAgentCapabilitiesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/system/agents/capabilities';
+};
+
+export type InternalSystemGetSystemAgentCapabilitiesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSystemAgentCatalogCapabilitiesOut;
+};
+
+export type InternalSystemGetSystemAgentCapabilitiesResponse = InternalSystemGetSystemAgentCapabilitiesResponses[keyof InternalSystemGetSystemAgentCapabilitiesResponses];
+
+export type InternalSystemGetSystemAgentData = {
+    body?: never;
+    path: {
+        /**
+         * Definition Id
+         */
+        definition_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/agents/{definition_id}';
+};
+
+export type InternalSystemGetSystemAgentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemGetSystemAgentError = InternalSystemGetSystemAgentErrors[keyof InternalSystemGetSystemAgentErrors];
+
+export type InternalSystemGetSystemAgentResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSystemAgentDefinitionDetailOut;
+};
+
+export type InternalSystemGetSystemAgentResponse = InternalSystemGetSystemAgentResponses[keyof InternalSystemGetSystemAgentResponses];
+
+export type InternalSystemUpdateSystemAgentData = {
+    body: SystemAgentDefinitionUpdateRequest;
+    path: {
+        /**
+         * Definition Id
+         */
+        definition_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/agents/{definition_id}';
+};
+
+export type InternalSystemUpdateSystemAgentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemUpdateSystemAgentError = InternalSystemUpdateSystemAgentErrors[keyof InternalSystemUpdateSystemAgentErrors];
+
+export type InternalSystemUpdateSystemAgentResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSystemAgentDefinitionDetailOut;
+};
+
+export type InternalSystemUpdateSystemAgentResponse = InternalSystemUpdateSystemAgentResponses[keyof InternalSystemUpdateSystemAgentResponses];
+
+export type InternalSystemListSystemAgentVersionsData = {
+    body?: never;
+    path: {
+        /**
+         * Definition Id
+         */
+        definition_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/agents/{definition_id}/versions';
+};
+
+export type InternalSystemListSystemAgentVersionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemListSystemAgentVersionsError = InternalSystemListSystemAgentVersionsErrors[keyof InternalSystemListSystemAgentVersionsErrors];
+
+export type InternalSystemListSystemAgentVersionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSystemAgentVersionListOut;
+};
+
+export type InternalSystemListSystemAgentVersionsResponse = InternalSystemListSystemAgentVersionsResponses[keyof InternalSystemListSystemAgentVersionsResponses];
+
+export type InternalSystemCreateSystemAgentVersionData = {
+    body: AgentVersionCreateRequest;
+    path: {
+        /**
+         * Definition Id
+         */
+        definition_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/agents/{definition_id}/versions';
+};
+
+export type InternalSystemCreateSystemAgentVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemCreateSystemAgentVersionError = InternalSystemCreateSystemAgentVersionErrors[keyof InternalSystemCreateSystemAgentVersionErrors];
+
+export type InternalSystemCreateSystemAgentVersionResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelSystemAgentVersionOut;
+};
+
+export type InternalSystemCreateSystemAgentVersionResponse = InternalSystemCreateSystemAgentVersionResponses[keyof InternalSystemCreateSystemAgentVersionResponses];
+
+export type InternalSystemRetireSystemAgentVersionData = {
+    body: AgentVersionRetireRequest;
+    path: {
+        /**
+         * Definition Id
+         */
+        definition_id: string;
+        /**
+         * Version Id
+         */
+        version_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/agents/{definition_id}/versions/{version_id}';
+};
+
+export type InternalSystemRetireSystemAgentVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemRetireSystemAgentVersionError = InternalSystemRetireSystemAgentVersionErrors[keyof InternalSystemRetireSystemAgentVersionErrors];
+
+export type InternalSystemRetireSystemAgentVersionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSystemAgentVersionOut;
+};
+
+export type InternalSystemRetireSystemAgentVersionResponse = InternalSystemRetireSystemAgentVersionResponses[keyof InternalSystemRetireSystemAgentVersionResponses];
+
 export type InternalSystemListSystemAiProvidersData = {
     body?: never;
     path?: never;
@@ -33390,17 +46810,46 @@ export type InternalSystemListPlatformFeedbackData = {
          */
         source?: FeedbackSource | null;
         /**
-         * Category
+         * Intent
          */
-        category?: FeedbackCategory | null;
+        intent?: FeedbackIntent | null;
+        /**
+         * Legacycategory
+         */
+        legacyCategory?: FeedbackCategory | null;
         /**
          * Workspaceid
          */
         workspaceId?: string | null;
         /**
+         * Projectid
+         */
+        projectId?: string | null;
+        /**
          * Assigneeuserid
          */
         assigneeUserId?: string | null;
+        /**
+         * Reporteruserid
+         */
+        reporterUserId?: string | null;
+        /**
+         * Createdfrom
+         */
+        createdFrom?: string | null;
+        /**
+         * Createdto
+         */
+        createdTo?: string | null;
+        /**
+         * Activityfrom
+         */
+        activityFrom?: string | null;
+        /**
+         * Activityto
+         */
+        activityTo?: string | null;
+        ordering?: FeedbackOrdering;
         /**
          * Search
          */
@@ -33646,6 +47095,132 @@ export type InternalSystemSwitchMailProviderResponses = {
 
 export type InternalSystemSwitchMailProviderResponse = InternalSystemSwitchMailProviderResponses[keyof InternalSystemSwitchMailProviderResponses];
 
+export type InternalSystemListEmailTemplatesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/system/mail/templates';
+};
+
+export type InternalSystemListEmailTemplatesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelListMailTemplateOut;
+};
+
+export type InternalSystemListEmailTemplatesResponse = InternalSystemListEmailTemplatesResponses[keyof InternalSystemListEmailTemplatesResponses];
+
+export type InternalSystemCreateEmailTemplateData = {
+    body: MailTemplateCreateRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/system/mail/templates';
+};
+
+export type InternalSystemCreateEmailTemplateErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemCreateEmailTemplateError = InternalSystemCreateEmailTemplateErrors[keyof InternalSystemCreateEmailTemplateErrors];
+
+export type InternalSystemCreateEmailTemplateResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelMailTemplateOut;
+};
+
+export type InternalSystemCreateEmailTemplateResponse = InternalSystemCreateEmailTemplateResponses[keyof InternalSystemCreateEmailTemplateResponses];
+
+export type InternalSystemPreviewEmailTemplateData = {
+    body: MailTemplatePreviewRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/system/mail/templates/preview';
+};
+
+export type InternalSystemPreviewEmailTemplateErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemPreviewEmailTemplateError = InternalSystemPreviewEmailTemplateErrors[keyof InternalSystemPreviewEmailTemplateErrors];
+
+export type InternalSystemPreviewEmailTemplateResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelMailTemplatePreviewOut;
+};
+
+export type InternalSystemPreviewEmailTemplateResponse = InternalSystemPreviewEmailTemplateResponses[keyof InternalSystemPreviewEmailTemplateResponses];
+
+export type InternalSystemDeleteEmailTemplateData = {
+    body?: never;
+    path: {
+        /**
+         * Template Id
+         */
+        template_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/mail/templates/{template_id}';
+};
+
+export type InternalSystemDeleteEmailTemplateErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemDeleteEmailTemplateError = InternalSystemDeleteEmailTemplateErrors[keyof InternalSystemDeleteEmailTemplateErrors];
+
+export type InternalSystemDeleteEmailTemplateResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNoneType;
+};
+
+export type InternalSystemDeleteEmailTemplateResponse = InternalSystemDeleteEmailTemplateResponses[keyof InternalSystemDeleteEmailTemplateResponses];
+
+export type InternalSystemUpdateEmailTemplateData = {
+    body: MailTemplatePatchRequest;
+    path: {
+        /**
+         * Template Id
+         */
+        template_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/mail/templates/{template_id}';
+};
+
+export type InternalSystemUpdateEmailTemplateErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemUpdateEmailTemplateError = InternalSystemUpdateEmailTemplateErrors[keyof InternalSystemUpdateEmailTemplateErrors];
+
+export type InternalSystemUpdateEmailTemplateResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelMailTemplateOut;
+};
+
+export type InternalSystemUpdateEmailTemplateResponse = InternalSystemUpdateEmailTemplateResponses[keyof InternalSystemUpdateEmailTemplateResponses];
+
 export type InternalSystemSendTestEmailData = {
     body: MailTestRequest;
     path?: never;
@@ -33670,6 +47245,31 @@ export type InternalSystemSendTestEmailResponses = {
 };
 
 export type InternalSystemSendTestEmailResponse = InternalSystemSendTestEmailResponses[keyof InternalSystemSendTestEmailResponses];
+
+export type InternalSystemCreateGlobalNotificationBroadcastData = {
+    body: GlobalNotificationBroadcastIn;
+    path?: never;
+    query?: never;
+    url: '/api/v1/system/notifications/broadcasts';
+};
+
+export type InternalSystemCreateGlobalNotificationBroadcastErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemCreateGlobalNotificationBroadcastError = InternalSystemCreateGlobalNotificationBroadcastErrors[keyof InternalSystemCreateGlobalNotificationBroadcastErrors];
+
+export type InternalSystemCreateGlobalNotificationBroadcastResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelGlobalNotificationBroadcastOut;
+};
+
+export type InternalSystemCreateGlobalNotificationBroadcastResponse = InternalSystemCreateGlobalNotificationBroadcastResponses[keyof InternalSystemCreateGlobalNotificationBroadcastResponses];
 
 export type InternalSystemListPlatformAiUsageGroupsData = {
     body?: never;
@@ -33829,6 +47429,68 @@ export type InternalSystemListPlatformHttpRequestGroupsResponses = {
 
 export type InternalSystemListPlatformHttpRequestGroupsResponse = InternalSystemListPlatformHttpRequestGroupsResponses[keyof InternalSystemListPlatformHttpRequestGroupsResponses];
 
+export type InternalSystemListPlatformHttpRequestRecordsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Days
+         */
+        days?: number;
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Method
+         */
+        method?: string | null;
+        /**
+         * Statusclass
+         */
+        statusClass?: number | null;
+        /**
+         * Workspaceid
+         */
+        workspaceId?: string | null;
+        /**
+         * Projectid
+         */
+        projectId?: string | null;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/system/observability/request-records';
+};
+
+export type InternalSystemListPlatformHttpRequestRecordsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemListPlatformHttpRequestRecordsError = InternalSystemListPlatformHttpRequestRecordsErrors[keyof InternalSystemListPlatformHttpRequestRecordsErrors];
+
+export type InternalSystemListPlatformHttpRequestRecordsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataHttpRequestRecordOut;
+};
+
+export type InternalSystemListPlatformHttpRequestRecordsResponse = InternalSystemListPlatformHttpRequestRecordsResponses[keyof InternalSystemListPlatformHttpRequestRecordsResponses];
+
 export type InternalSystemGetPlatformObservabilityTrendData = {
     body?: never;
     path?: never;
@@ -33867,6 +47529,22 @@ export type InternalSystemGetPlatformObservabilityTrendResponses = {
 };
 
 export type InternalSystemGetPlatformObservabilityTrendResponse = InternalSystemGetPlatformObservabilityTrendResponses[keyof InternalSystemGetPlatformObservabilityTrendResponses];
+
+export type InternalSystemListSystemPluginsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/system/plugins';
+};
+
+export type InternalSystemListSystemPluginsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSystemPluginListOut;
+};
+
+export type InternalSystemListSystemPluginsResponse = InternalSystemListSystemPluginsResponses[keyof InternalSystemListSystemPluginsResponses];
 
 export type InternalSystemListPermissionsData = {
     body?: never;
@@ -34507,6 +48185,508 @@ export type DomainWorkspacesListWorkspaceActivityResponses = {
 
 export type DomainWorkspacesListWorkspaceActivityResponse = DomainWorkspacesListWorkspaceActivityResponses[keyof DomainWorkspacesListWorkspaceActivityResponses];
 
+export type DomainWorkspacesListWorkspaceAgentsData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Projectid
+         */
+        projectId?: string | null;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/agents';
+};
+
+export type DomainWorkspacesListWorkspaceAgentsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListWorkspaceAgentsError = DomainWorkspacesListWorkspaceAgentsErrors[keyof DomainWorkspacesListWorkspaceAgentsErrors];
+
+export type DomainWorkspacesListWorkspaceAgentsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceAgentCatalogV1;
+};
+
+export type DomainWorkspacesListWorkspaceAgentsResponse = DomainWorkspacesListWorkspaceAgentsResponses[keyof DomainWorkspacesListWorkspaceAgentsResponses];
+
+export type DomainWorkspacesGetAgentRunSnapshotData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         *
+         * Run ID
+         */
+        run_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/ai/runs/{run_id}';
+};
+
+export type DomainWorkspacesGetAgentRunSnapshotErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetAgentRunSnapshotError = DomainWorkspacesGetAgentRunSnapshotErrors[keyof DomainWorkspacesGetAgentRunSnapshotErrors];
+
+export type DomainWorkspacesGetAgentRunSnapshotResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAgentRunSnapshotV1;
+};
+
+export type DomainWorkspacesGetAgentRunSnapshotResponse = DomainWorkspacesGetAgentRunSnapshotResponses[keyof DomainWorkspacesGetAgentRunSnapshotResponses];
+
+export type DomainWorkspacesCancelAgentRunData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         *
+         * Run ID
+         */
+        run_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/ai/runs/{run_id}/cancel';
+};
+
+export type DomainWorkspacesCancelAgentRunErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCancelAgentRunError = DomainWorkspacesCancelAgentRunErrors[keyof DomainWorkspacesCancelAgentRunErrors];
+
+export type DomainWorkspacesCancelAgentRunResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAgentRunSnapshotV1;
+};
+
+export type DomainWorkspacesCancelAgentRunResponse = DomainWorkspacesCancelAgentRunResponses[keyof DomainWorkspacesCancelAgentRunResponses];
+
+export type DomainWorkspacesStreamAgentRunEventsData = {
+    body?: never;
+    headers?: {
+        /**
+         * Last-Event-Id
+         */
+        'Last-Event-ID'?: string | null;
+    };
+    path: {
+        /**
+         * Run Id
+         *
+         * Run ID
+         */
+        run_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Cursor
+         */
+        cursor?: string | null;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/ai/runs/{run_id}/events';
+};
+
+export type DomainWorkspacesStreamAgentRunEventsErrors = {
+    /**
+     * Event cursor expired
+     */
+    410: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesStreamAgentRunEventsError = DomainWorkspacesStreamAgentRunEventsErrors[keyof DomainWorkspacesStreamAgentRunEventsErrors];
+
+export type DomainWorkspacesStreamAgentRunEventsResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type DomainWorkspacesResumeAgentRunData = {
+    body: ResumeAgentRunRequestV1;
+    path: {
+        /**
+         * Run Id
+         *
+         * Run ID
+         */
+        run_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/ai/runs/{run_id}/resume';
+};
+
+export type DomainWorkspacesResumeAgentRunErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesResumeAgentRunError = DomainWorkspacesResumeAgentRunErrors[keyof DomainWorkspacesResumeAgentRunErrors];
+
+export type DomainWorkspacesResumeAgentRunResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAgentRunCommandResponseV1;
+};
+
+export type DomainWorkspacesResumeAgentRunResponse = DomainWorkspacesResumeAgentRunResponses[keyof DomainWorkspacesResumeAgentRunResponses];
+
+export type DomainWorkspacesListAgentThreadsData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Projectid
+         */
+        projectId?: string | null;
+        /**
+         * Archived
+         */
+        archived?: boolean | null;
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Cursor
+         */
+        cursor?: string | null;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/ai/threads';
+};
+
+export type DomainWorkspacesListAgentThreadsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListAgentThreadsError = DomainWorkspacesListAgentThreadsErrors[keyof DomainWorkspacesListAgentThreadsErrors];
+
+export type DomainWorkspacesListAgentThreadsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAgentThreadListV1;
+};
+
+export type DomainWorkspacesListAgentThreadsResponse = DomainWorkspacesListAgentThreadsResponses[keyof DomainWorkspacesListAgentThreadsResponses];
+
+export type DomainWorkspacesCreateAgentThreadData = {
+    body: AgentThreadCreateRequestV1;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/ai/threads';
+};
+
+export type DomainWorkspacesCreateAgentThreadErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateAgentThreadError = DomainWorkspacesCreateAgentThreadErrors[keyof DomainWorkspacesCreateAgentThreadErrors];
+
+export type DomainWorkspacesCreateAgentThreadResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelAgentThreadOutV1;
+};
+
+export type DomainWorkspacesCreateAgentThreadResponse = DomainWorkspacesCreateAgentThreadResponses[keyof DomainWorkspacesCreateAgentThreadResponses];
+
+export type DomainWorkspacesDeleteAgentThreadData = {
+    body?: never;
+    path: {
+        /**
+         * Thread Id
+         *
+         * Thread ID
+         */
+        thread_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/ai/threads/{thread_id}';
+};
+
+export type DomainWorkspacesDeleteAgentThreadErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesDeleteAgentThreadError = DomainWorkspacesDeleteAgentThreadErrors[keyof DomainWorkspacesDeleteAgentThreadErrors];
+
+export type DomainWorkspacesDeleteAgentThreadResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAgentThreadDeleteResultV1;
+};
+
+export type DomainWorkspacesDeleteAgentThreadResponse = DomainWorkspacesDeleteAgentThreadResponses[keyof DomainWorkspacesDeleteAgentThreadResponses];
+
+export type DomainWorkspacesGetAgentThreadData = {
+    body?: never;
+    path: {
+        /**
+         * Thread Id
+         *
+         * Thread ID
+         */
+        thread_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/ai/threads/{thread_id}';
+};
+
+export type DomainWorkspacesGetAgentThreadErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetAgentThreadError = DomainWorkspacesGetAgentThreadErrors[keyof DomainWorkspacesGetAgentThreadErrors];
+
+export type DomainWorkspacesGetAgentThreadResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAgentThreadDetailV1;
+};
+
+export type DomainWorkspacesGetAgentThreadResponse = DomainWorkspacesGetAgentThreadResponses[keyof DomainWorkspacesGetAgentThreadResponses];
+
+export type DomainWorkspacesUpdateAgentThreadData = {
+    body: AgentThreadUpdateRequestV1;
+    path: {
+        /**
+         * Thread Id
+         *
+         * Thread ID
+         */
+        thread_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/ai/threads/{thread_id}';
+};
+
+export type DomainWorkspacesUpdateAgentThreadErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesUpdateAgentThreadError = DomainWorkspacesUpdateAgentThreadErrors[keyof DomainWorkspacesUpdateAgentThreadErrors];
+
+export type DomainWorkspacesUpdateAgentThreadResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAgentThreadOutV1;
+};
+
+export type DomainWorkspacesUpdateAgentThreadResponse = DomainWorkspacesUpdateAgentThreadResponses[keyof DomainWorkspacesUpdateAgentThreadResponses];
+
+export type DomainWorkspacesCreateAgentRunData = {
+    body: AgentRunCreateRequestV1;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Thread Id
+         *
+         * Thread ID
+         */
+        thread_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/ai/threads/{thread_id}/runs';
+};
+
+export type DomainWorkspacesCreateAgentRunErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateAgentRunError = DomainWorkspacesCreateAgentRunErrors[keyof DomainWorkspacesCreateAgentRunErrors];
+
+export type DomainWorkspacesCreateAgentRunResponses = {
+    /**
+     * Successful Response
+     */
+    202: ResponseModelAgentRunCreateResponseV1;
+};
+
+export type DomainWorkspacesCreateAgentRunResponse = DomainWorkspacesCreateAgentRunResponses[keyof DomainWorkspacesCreateAgentRunResponses];
+
+export type DomainWorkspacesRespondToAgentToolCallData = {
+    /**
+     * Payload
+     */
+    body: ({
+        kind: 'approval';
+    } & AgentApprovalResponseRequestV1) | ({
+        kind: 'human_result';
+    } & AgentHumanToolResultRequestV1);
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Tool Call Id
+         *
+         * Tool call ID
+         */
+        tool_call_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/ai/tool-calls/{tool_call_id}/responses';
+};
+
+export type DomainWorkspacesRespondToAgentToolCallErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesRespondToAgentToolCallError = DomainWorkspacesRespondToAgentToolCallErrors[keyof DomainWorkspacesRespondToAgentToolCallErrors];
+
+export type DomainWorkspacesRespondToAgentToolCallResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAgentToolResponseV1;
+};
+
+export type DomainWorkspacesRespondToAgentToolCallResponse = DomainWorkspacesRespondToAgentToolCallResponses[keyof DomainWorkspacesRespondToAgentToolCallResponses];
+
 export type DomainWorkspacesArchiveWorkspaceData = {
     body?: never;
     path: {
@@ -34742,6 +48922,472 @@ export type DomainWorkspacesGetWorkspaceDangerCapabilitiesResponses = {
 
 export type DomainWorkspacesGetWorkspaceDangerCapabilitiesResponse = DomainWorkspacesGetWorkspaceDangerCapabilitiesResponses[keyof DomainWorkspacesGetWorkspaceDangerCapabilitiesResponses];
 
+export type DomainWorkspacesListWorkspaceDesignSystemsData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Cursor
+         */
+        cursor?: string | null;
+        /**
+         * Q
+         */
+        q?: string | null;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/design-systems';
+};
+
+export type DomainWorkspacesListWorkspaceDesignSystemsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListWorkspaceDesignSystemsError = DomainWorkspacesListWorkspaceDesignSystemsErrors[keyof DomainWorkspacesListWorkspaceDesignSystemsErrors];
+
+export type DomainWorkspacesListWorkspaceDesignSystemsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDesignSystemCursorPageDesignSystemSummaryOut;
+};
+
+export type DomainWorkspacesListWorkspaceDesignSystemsResponse = DomainWorkspacesListWorkspaceDesignSystemsResponses[keyof DomainWorkspacesListWorkspaceDesignSystemsResponses];
+
+export type DomainWorkspacesCreateWorkspaceDesignSystemData = {
+    body: DesignSystemCreateRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/design-systems';
+};
+
+export type DomainWorkspacesCreateWorkspaceDesignSystemErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateWorkspaceDesignSystemError = DomainWorkspacesCreateWorkspaceDesignSystemErrors[keyof DomainWorkspacesCreateWorkspaceDesignSystemErrors];
+
+export type DomainWorkspacesCreateWorkspaceDesignSystemResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelDesignSystemDetailOut;
+};
+
+export type DomainWorkspacesCreateWorkspaceDesignSystemResponse = DomainWorkspacesCreateWorkspaceDesignSystemResponses[keyof DomainWorkspacesCreateWorkspaceDesignSystemResponses];
+
+export type DomainWorkspacesGetWorkspaceDesignSystemCapabilitiesData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/design-systems/capabilities';
+};
+
+export type DomainWorkspacesGetWorkspaceDesignSystemCapabilitiesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceDesignSystemCapabilitiesError = DomainWorkspacesGetWorkspaceDesignSystemCapabilitiesErrors[keyof DomainWorkspacesGetWorkspaceDesignSystemCapabilitiesErrors];
+
+export type DomainWorkspacesGetWorkspaceDesignSystemCapabilitiesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceDesignSystemsCapabilitiesOut;
+};
+
+export type DomainWorkspacesGetWorkspaceDesignSystemCapabilitiesResponse = DomainWorkspacesGetWorkspaceDesignSystemCapabilitiesResponses[keyof DomainWorkspacesGetWorkspaceDesignSystemCapabilitiesResponses];
+
+export type DomainWorkspacesListWorkspaceDesignSystemComponentCatalogsData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/design-systems/component-catalogs';
+};
+
+export type DomainWorkspacesListWorkspaceDesignSystemComponentCatalogsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListWorkspaceDesignSystemComponentCatalogsError = DomainWorkspacesListWorkspaceDesignSystemComponentCatalogsErrors[keyof DomainWorkspacesListWorkspaceDesignSystemComponentCatalogsErrors];
+
+export type DomainWorkspacesListWorkspaceDesignSystemComponentCatalogsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelTupleComponentCatalogV1;
+};
+
+export type DomainWorkspacesListWorkspaceDesignSystemComponentCatalogsResponse = DomainWorkspacesListWorkspaceDesignSystemComponentCatalogsResponses[keyof DomainWorkspacesListWorkspaceDesignSystemComponentCatalogsResponses];
+
+export type DomainWorkspacesGetWorkspaceDesignSystemDefaultData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/design-systems/default-assignment';
+};
+
+export type DomainWorkspacesGetWorkspaceDesignSystemDefaultErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceDesignSystemDefaultError = DomainWorkspacesGetWorkspaceDesignSystemDefaultErrors[keyof DomainWorkspacesGetWorkspaceDesignSystemDefaultErrors];
+
+export type DomainWorkspacesGetWorkspaceDesignSystemDefaultResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUnionWorkspaceDesignSystemDefaultOutNoneType;
+};
+
+export type DomainWorkspacesGetWorkspaceDesignSystemDefaultResponse = DomainWorkspacesGetWorkspaceDesignSystemDefaultResponses[keyof DomainWorkspacesGetWorkspaceDesignSystemDefaultResponses];
+
+export type DomainWorkspacesSetWorkspaceDesignSystemDefaultData = {
+    body: WorkspaceDesignSystemDefaultSetRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/design-systems/default-assignment';
+};
+
+export type DomainWorkspacesSetWorkspaceDesignSystemDefaultErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesSetWorkspaceDesignSystemDefaultError = DomainWorkspacesSetWorkspaceDesignSystemDefaultErrors[keyof DomainWorkspacesSetWorkspaceDesignSystemDefaultErrors];
+
+export type DomainWorkspacesSetWorkspaceDesignSystemDefaultResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceDesignSystemDefaultOut;
+};
+
+export type DomainWorkspacesSetWorkspaceDesignSystemDefaultResponse = DomainWorkspacesSetWorkspaceDesignSystemDefaultResponses[keyof DomainWorkspacesSetWorkspaceDesignSystemDefaultResponses];
+
+export type DomainWorkspacesGetWorkspaceDesignSystemData = {
+    body?: never;
+    path: {
+        /**
+         * System Id
+         */
+        system_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/design-systems/{system_id}';
+};
+
+export type DomainWorkspacesGetWorkspaceDesignSystemErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceDesignSystemError = DomainWorkspacesGetWorkspaceDesignSystemErrors[keyof DomainWorkspacesGetWorkspaceDesignSystemErrors];
+
+export type DomainWorkspacesGetWorkspaceDesignSystemResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDesignSystemDetailOut;
+};
+
+export type DomainWorkspacesGetWorkspaceDesignSystemResponse = DomainWorkspacesGetWorkspaceDesignSystemResponses[keyof DomainWorkspacesGetWorkspaceDesignSystemResponses];
+
+export type DomainWorkspacesListWorkspaceDesignSystemVersionsData = {
+    body?: never;
+    path: {
+        /**
+         * System Id
+         */
+        system_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Cursor
+         */
+        cursor?: string | null;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/design-systems/{system_id}/versions';
+};
+
+export type DomainWorkspacesListWorkspaceDesignSystemVersionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListWorkspaceDesignSystemVersionsError = DomainWorkspacesListWorkspaceDesignSystemVersionsErrors[keyof DomainWorkspacesListWorkspaceDesignSystemVersionsErrors];
+
+export type DomainWorkspacesListWorkspaceDesignSystemVersionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDesignSystemCursorPageDesignSystemVersionSummaryOut;
+};
+
+export type DomainWorkspacesListWorkspaceDesignSystemVersionsResponse = DomainWorkspacesListWorkspaceDesignSystemVersionsResponses[keyof DomainWorkspacesListWorkspaceDesignSystemVersionsResponses];
+
+export type DomainWorkspacesCreateWorkspaceDesignSystemVersionData = {
+    body: DesignSystemVersionCreateRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * System Id
+         */
+        system_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/design-systems/{system_id}/versions';
+};
+
+export type DomainWorkspacesCreateWorkspaceDesignSystemVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateWorkspaceDesignSystemVersionError = DomainWorkspacesCreateWorkspaceDesignSystemVersionErrors[keyof DomainWorkspacesCreateWorkspaceDesignSystemVersionErrors];
+
+export type DomainWorkspacesCreateWorkspaceDesignSystemVersionResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelDesignSystemVersionDetailOut;
+};
+
+export type DomainWorkspacesCreateWorkspaceDesignSystemVersionResponse = DomainWorkspacesCreateWorkspaceDesignSystemVersionResponses[keyof DomainWorkspacesCreateWorkspaceDesignSystemVersionResponses];
+
+export type DomainWorkspacesGetWorkspaceDesignSystemVersionData = {
+    body?: never;
+    path: {
+        /**
+         * System Id
+         */
+        system_id: string;
+        /**
+         * Version Id
+         */
+        version_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/design-systems/{system_id}/versions/{version_id}';
+};
+
+export type DomainWorkspacesGetWorkspaceDesignSystemVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceDesignSystemVersionError = DomainWorkspacesGetWorkspaceDesignSystemVersionErrors[keyof DomainWorkspacesGetWorkspaceDesignSystemVersionErrors];
+
+export type DomainWorkspacesGetWorkspaceDesignSystemVersionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDesignSystemVersionDetailOut;
+};
+
+export type DomainWorkspacesGetWorkspaceDesignSystemVersionResponse = DomainWorkspacesGetWorkspaceDesignSystemVersionResponses[keyof DomainWorkspacesGetWorkspaceDesignSystemVersionResponses];
+
+export type DomainWorkspacesListWorkspaceDesignSystemValidationsData = {
+    body?: never;
+    path: {
+        /**
+         * System Id
+         */
+        system_id: string;
+        /**
+         * Version Id
+         */
+        version_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/design-systems/{system_id}/versions/{version_id}/validation-results';
+};
+
+export type DomainWorkspacesListWorkspaceDesignSystemValidationsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListWorkspaceDesignSystemValidationsError = DomainWorkspacesListWorkspaceDesignSystemValidationsErrors[keyof DomainWorkspacesListWorkspaceDesignSystemValidationsErrors];
+
+export type DomainWorkspacesListWorkspaceDesignSystemValidationsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelTupleDesignSystemValidationResultOut;
+};
+
+export type DomainWorkspacesListWorkspaceDesignSystemValidationsResponse = DomainWorkspacesListWorkspaceDesignSystemValidationsResponses[keyof DomainWorkspacesListWorkspaceDesignSystemValidationsResponses];
+
+export type DomainWorkspacesCreateWorkspaceDesignSystemValidationData = {
+    body: DesignSystemValidationCreateRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * System Id
+         */
+        system_id: string;
+        /**
+         * Version Id
+         */
+        version_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/design-systems/{system_id}/versions/{version_id}/validations';
+};
+
+export type DomainWorkspacesCreateWorkspaceDesignSystemValidationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateWorkspaceDesignSystemValidationError = DomainWorkspacesCreateWorkspaceDesignSystemValidationErrors[keyof DomainWorkspacesCreateWorkspaceDesignSystemValidationErrors];
+
+export type DomainWorkspacesCreateWorkspaceDesignSystemValidationResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelDesignSystemValidationResultOut;
+};
+
+export type DomainWorkspacesCreateWorkspaceDesignSystemValidationResponse = DomainWorkspacesCreateWorkspaceDesignSystemValidationResponses[keyof DomainWorkspacesCreateWorkspaceDesignSystemValidationResponses];
+
 export type DomainWorkspacesListWorkspaceExtensionsData = {
     body?: never;
     path: {
@@ -34881,6 +49527,706 @@ export type DomainWorkspacesActivateWorkspaceExtensionResponses = {
 };
 
 export type DomainWorkspacesActivateWorkspaceExtensionResponse = DomainWorkspacesActivateWorkspaceExtensionResponses[keyof DomainWorkspacesActivateWorkspaceExtensionResponses];
+
+export type DomainWorkspacesListWorkspaceJobsData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Status
+         */
+        status?: JobPublicStatus | null;
+        /**
+         * Jobtype
+         */
+        jobType?: string | null;
+        /**
+         * Workload
+         */
+        workload?: JobWorkloadClass | null;
+        /**
+         * Projectid
+         */
+        projectId?: string | null;
+        /**
+         * Createdfrom
+         */
+        createdFrom?: string | null;
+        /**
+         * Createdto
+         */
+        createdTo?: string | null;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/jobs';
+};
+
+export type DomainWorkspacesListWorkspaceJobsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListWorkspaceJobsError = DomainWorkspacesListWorkspaceJobsErrors[keyof DomainWorkspacesListWorkspaceJobsErrors];
+
+export type DomainWorkspacesListWorkspaceJobsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataWorkspaceJobOut;
+};
+
+export type DomainWorkspacesListWorkspaceJobsResponse = DomainWorkspacesListWorkspaceJobsResponses[keyof DomainWorkspacesListWorkspaceJobsResponses];
+
+export type DomainWorkspacesGetWorkspaceJobData = {
+    body?: never;
+    path: {
+        /**
+         * Job Id
+         */
+        job_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/jobs/{job_id}';
+};
+
+export type DomainWorkspacesGetWorkspaceJobErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceJobError = DomainWorkspacesGetWorkspaceJobErrors[keyof DomainWorkspacesGetWorkspaceJobErrors];
+
+export type DomainWorkspacesGetWorkspaceJobResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceJobOut;
+};
+
+export type DomainWorkspacesGetWorkspaceJobResponse = DomainWorkspacesGetWorkspaceJobResponses[keyof DomainWorkspacesGetWorkspaceJobResponses];
+
+export type DomainWorkspacesCancelWorkspaceJobData = {
+    body: WorkspaceJobCancelRequest;
+    path: {
+        /**
+         * Job Id
+         */
+        job_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/jobs/{job_id}/cancel';
+};
+
+export type DomainWorkspacesCancelWorkspaceJobErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCancelWorkspaceJobError = DomainWorkspacesCancelWorkspaceJobErrors[keyof DomainWorkspacesCancelWorkspaceJobErrors];
+
+export type DomainWorkspacesCancelWorkspaceJobResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceJobOut;
+};
+
+export type DomainWorkspacesCancelWorkspaceJobResponse = DomainWorkspacesCancelWorkspaceJobResponses[keyof DomainWorkspacesCancelWorkspaceJobResponses];
+
+export type DomainWorkspacesListKnowledgeBasesData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Cursor
+         */
+        cursor?: string | null;
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Status
+         */
+        status?: KnowledgeBaseStatus | null;
+        /**
+         * Locale
+         */
+        locale?: string | null;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/knowledge-bases';
+};
+
+export type DomainWorkspacesListKnowledgeBasesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListKnowledgeBasesError = DomainWorkspacesListKnowledgeBasesErrors[keyof DomainWorkspacesListKnowledgeBasesErrors];
+
+export type DomainWorkspacesListKnowledgeBasesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelKnowledgeCursorPageKnowledgeBaseSummaryOut;
+};
+
+export type DomainWorkspacesListKnowledgeBasesResponse = DomainWorkspacesListKnowledgeBasesResponses[keyof DomainWorkspacesListKnowledgeBasesResponses];
+
+export type DomainWorkspacesCreateKnowledgeBaseData = {
+    body: KnowledgeBaseCreateRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/knowledge-bases';
+};
+
+export type DomainWorkspacesCreateKnowledgeBaseErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateKnowledgeBaseError = DomainWorkspacesCreateKnowledgeBaseErrors[keyof DomainWorkspacesCreateKnowledgeBaseErrors];
+
+export type DomainWorkspacesCreateKnowledgeBaseResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelKnowledgeBaseDetailOut;
+};
+
+export type DomainWorkspacesCreateKnowledgeBaseResponse = DomainWorkspacesCreateKnowledgeBaseResponses[keyof DomainWorkspacesCreateKnowledgeBaseResponses];
+
+export type DomainWorkspacesGetWorkspaceKnowledgeCapabilitiesData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/knowledge-bases/capabilities';
+};
+
+export type DomainWorkspacesGetWorkspaceKnowledgeCapabilitiesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceKnowledgeCapabilitiesError = DomainWorkspacesGetWorkspaceKnowledgeCapabilitiesErrors[keyof DomainWorkspacesGetWorkspaceKnowledgeCapabilitiesErrors];
+
+export type DomainWorkspacesGetWorkspaceKnowledgeCapabilitiesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceKnowledgeCapabilitiesOut;
+};
+
+export type DomainWorkspacesGetWorkspaceKnowledgeCapabilitiesResponse = DomainWorkspacesGetWorkspaceKnowledgeCapabilitiesResponses[keyof DomainWorkspacesGetWorkspaceKnowledgeCapabilitiesResponses];
+
+export type DomainWorkspacesGetKnowledgeBaseData = {
+    body?: never;
+    path: {
+        /**
+         * Base Id
+         */
+        base_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/knowledge-bases/{base_id}';
+};
+
+export type DomainWorkspacesGetKnowledgeBaseErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetKnowledgeBaseError = DomainWorkspacesGetKnowledgeBaseErrors[keyof DomainWorkspacesGetKnowledgeBaseErrors];
+
+export type DomainWorkspacesGetKnowledgeBaseResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelKnowledgeBaseDetailOut;
+};
+
+export type DomainWorkspacesGetKnowledgeBaseResponse = DomainWorkspacesGetKnowledgeBaseResponses[keyof DomainWorkspacesGetKnowledgeBaseResponses];
+
+export type DomainWorkspacesUpdateKnowledgeBaseData = {
+    body: KnowledgeBaseUpdateRequest;
+    path: {
+        /**
+         * Base Id
+         */
+        base_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/knowledge-bases/{base_id}';
+};
+
+export type DomainWorkspacesUpdateKnowledgeBaseErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesUpdateKnowledgeBaseError = DomainWorkspacesUpdateKnowledgeBaseErrors[keyof DomainWorkspacesUpdateKnowledgeBaseErrors];
+
+export type DomainWorkspacesUpdateKnowledgeBaseResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelKnowledgeBaseDetailOut;
+};
+
+export type DomainWorkspacesUpdateKnowledgeBaseResponse = DomainWorkspacesUpdateKnowledgeBaseResponses[keyof DomainWorkspacesUpdateKnowledgeBaseResponses];
+
+export type DomainWorkspacesListKnowledgeSourcesData = {
+    body?: never;
+    path: {
+        /**
+         * Base Id
+         */
+        base_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Cursor
+         */
+        cursor?: string | null;
+        /**
+         * Kind
+         */
+        kind?: KnowledgeSourceKind | null;
+        /**
+         * Status
+         */
+        status?: KnowledgeSourceStatus | null;
+        /**
+         * Freshness
+         */
+        freshness?: KnowledgeServingFreshness | null;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/knowledge-bases/{base_id}/sources';
+};
+
+export type DomainWorkspacesListKnowledgeSourcesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListKnowledgeSourcesError = DomainWorkspacesListKnowledgeSourcesErrors[keyof DomainWorkspacesListKnowledgeSourcesErrors];
+
+export type DomainWorkspacesListKnowledgeSourcesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelKnowledgeCursorPageKnowledgeSourceOut;
+};
+
+export type DomainWorkspacesListKnowledgeSourcesResponse = DomainWorkspacesListKnowledgeSourcesResponses[keyof DomainWorkspacesListKnowledgeSourcesResponses];
+
+export type DomainWorkspacesCreateKnowledgeSourceData = {
+    body: KnowledgeSourceCreateRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Base Id
+         */
+        base_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/knowledge-bases/{base_id}/sources';
+};
+
+export type DomainWorkspacesCreateKnowledgeSourceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateKnowledgeSourceError = DomainWorkspacesCreateKnowledgeSourceErrors[keyof DomainWorkspacesCreateKnowledgeSourceErrors];
+
+export type DomainWorkspacesCreateKnowledgeSourceResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelKnowledgeSourceOut;
+};
+
+export type DomainWorkspacesCreateKnowledgeSourceResponse = DomainWorkspacesCreateKnowledgeSourceResponses[keyof DomainWorkspacesCreateKnowledgeSourceResponses];
+
+export type DomainWorkspacesGetKnowledgeSourceData = {
+    body?: never;
+    path: {
+        /**
+         * Base Id
+         */
+        base_id: string;
+        /**
+         * Source Id
+         */
+        source_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/knowledge-bases/{base_id}/sources/{source_id}';
+};
+
+export type DomainWorkspacesGetKnowledgeSourceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetKnowledgeSourceError = DomainWorkspacesGetKnowledgeSourceErrors[keyof DomainWorkspacesGetKnowledgeSourceErrors];
+
+export type DomainWorkspacesGetKnowledgeSourceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelKnowledgeSourceOut;
+};
+
+export type DomainWorkspacesGetKnowledgeSourceResponse = DomainWorkspacesGetKnowledgeSourceResponses[keyof DomainWorkspacesGetKnowledgeSourceResponses];
+
+export type DomainWorkspacesUpdateKnowledgeSourceData = {
+    body: KnowledgeSourceUpdateRequest;
+    path: {
+        /**
+         * Base Id
+         */
+        base_id: string;
+        /**
+         * Source Id
+         */
+        source_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/knowledge-bases/{base_id}/sources/{source_id}';
+};
+
+export type DomainWorkspacesUpdateKnowledgeSourceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesUpdateKnowledgeSourceError = DomainWorkspacesUpdateKnowledgeSourceErrors[keyof DomainWorkspacesUpdateKnowledgeSourceErrors];
+
+export type DomainWorkspacesUpdateKnowledgeSourceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelKnowledgeSourceOut;
+};
+
+export type DomainWorkspacesUpdateKnowledgeSourceResponse = DomainWorkspacesUpdateKnowledgeSourceResponses[keyof DomainWorkspacesUpdateKnowledgeSourceResponses];
+
+export type DomainWorkspacesCreateKnowledgeSourceIngestionData = {
+    body: KnowledgeSourceIngestionCreateRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Base Id
+         */
+        base_id: string;
+        /**
+         * Source Id
+         */
+        source_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/knowledge-bases/{base_id}/sources/{source_id}/ingestions';
+};
+
+export type DomainWorkspacesCreateKnowledgeSourceIngestionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateKnowledgeSourceIngestionError = DomainWorkspacesCreateKnowledgeSourceIngestionErrors[keyof DomainWorkspacesCreateKnowledgeSourceIngestionErrors];
+
+export type DomainWorkspacesCreateKnowledgeSourceIngestionResponses = {
+    /**
+     * Successful Response
+     */
+    202: ResponseModelKnowledgeSourceIngestionAcceptedOut;
+};
+
+export type DomainWorkspacesCreateKnowledgeSourceIngestionResponse = DomainWorkspacesCreateKnowledgeSourceIngestionResponses[keyof DomainWorkspacesCreateKnowledgeSourceIngestionResponses];
+
+export type DomainWorkspacesListKnowledgeSourceVersionsData = {
+    body?: never;
+    path: {
+        /**
+         * Base Id
+         */
+        base_id: string;
+        /**
+         * Source Id
+         */
+        source_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Cursor
+         */
+        cursor?: string | null;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/knowledge-bases/{base_id}/sources/{source_id}/versions';
+};
+
+export type DomainWorkspacesListKnowledgeSourceVersionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListKnowledgeSourceVersionsError = DomainWorkspacesListKnowledgeSourceVersionsErrors[keyof DomainWorkspacesListKnowledgeSourceVersionsErrors];
+
+export type DomainWorkspacesListKnowledgeSourceVersionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelKnowledgeCursorPageKnowledgeSourceVersionOut;
+};
+
+export type DomainWorkspacesListKnowledgeSourceVersionsResponse = DomainWorkspacesListKnowledgeSourceVersionsResponses[keyof DomainWorkspacesListKnowledgeSourceVersionsResponses];
+
+export type DomainWorkspacesCreateManualKnowledgeSourceVersionData = {
+    body: ManualKnowledgeVersionCreateRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Base Id
+         */
+        base_id: string;
+        /**
+         * Source Id
+         */
+        source_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/knowledge-bases/{base_id}/sources/{source_id}/versions';
+};
+
+export type DomainWorkspacesCreateManualKnowledgeSourceVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateManualKnowledgeSourceVersionError = DomainWorkspacesCreateManualKnowledgeSourceVersionErrors[keyof DomainWorkspacesCreateManualKnowledgeSourceVersionErrors];
+
+export type DomainWorkspacesCreateManualKnowledgeSourceVersionResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelKnowledgeSourceVersionOut;
+};
+
+export type DomainWorkspacesCreateManualKnowledgeSourceVersionResponse = DomainWorkspacesCreateManualKnowledgeSourceVersionResponses[keyof DomainWorkspacesCreateManualKnowledgeSourceVersionResponses];
+
+export type DomainWorkspacesGetKnowledgeSourceVersionData = {
+    body?: never;
+    path: {
+        /**
+         * Base Id
+         */
+        base_id: string;
+        /**
+         * Source Id
+         */
+        source_id: string;
+        /**
+         * Version Id
+         */
+        version_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/knowledge-bases/{base_id}/sources/{source_id}/versions/{version_id}';
+};
+
+export type DomainWorkspacesGetKnowledgeSourceVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetKnowledgeSourceVersionError = DomainWorkspacesGetKnowledgeSourceVersionErrors[keyof DomainWorkspacesGetKnowledgeSourceVersionErrors];
+
+export type DomainWorkspacesGetKnowledgeSourceVersionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelKnowledgeSourceVersionOut;
+};
+
+export type DomainWorkspacesGetKnowledgeSourceVersionResponse = DomainWorkspacesGetKnowledgeSourceVersionResponses[keyof DomainWorkspacesGetKnowledgeSourceVersionResponses];
 
 export type DomainWorkspacesLeaveWorkspaceData = {
     body: LeaveWorkspaceRequest;
@@ -35651,6 +50997,976 @@ export type DomainWorkspacesAssignWorkspaceRoleToRegularMembersResponses = {
 };
 
 export type DomainWorkspacesAssignWorkspaceRoleToRegularMembersResponse = DomainWorkspacesAssignWorkspaceRoleToRegularMembersResponses[keyof DomainWorkspacesAssignWorkspaceRoleToRegularMembersResponses];
+
+export type DomainWorkspacesGetWorkspaceSkillsCapabilitiesData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/skills/capabilities';
+};
+
+export type DomainWorkspacesGetWorkspaceSkillsCapabilitiesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceSkillsCapabilitiesError = DomainWorkspacesGetWorkspaceSkillsCapabilitiesErrors[keyof DomainWorkspacesGetWorkspaceSkillsCapabilitiesErrors];
+
+export type DomainWorkspacesGetWorkspaceSkillsCapabilitiesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceSkillsCapabilitiesOut;
+};
+
+export type DomainWorkspacesGetWorkspaceSkillsCapabilitiesResponse = DomainWorkspacesGetWorkspaceSkillsCapabilitiesResponses[keyof DomainWorkspacesGetWorkspaceSkillsCapabilitiesResponses];
+
+export type DomainWorkspacesListOfficialSkillCatalogData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Cursor
+         */
+        cursor?: string | null;
+        /**
+         * Q
+         */
+        q?: string | null;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/skills/catalog';
+};
+
+export type DomainWorkspacesListOfficialSkillCatalogErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListOfficialSkillCatalogError = DomainWorkspacesListOfficialSkillCatalogErrors[keyof DomainWorkspacesListOfficialSkillCatalogErrors];
+
+export type DomainWorkspacesListOfficialSkillCatalogResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSkillCursorPageOfficialSkillCatalogItemOut;
+};
+
+export type DomainWorkspacesListOfficialSkillCatalogResponse = DomainWorkspacesListOfficialSkillCatalogResponses[keyof DomainWorkspacesListOfficialSkillCatalogResponses];
+
+export type DomainWorkspacesGetOfficialSkillCatalogPackageData = {
+    body?: never;
+    path: {
+        /**
+         * Package Id
+         */
+        package_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/skills/catalog/{package_id}';
+};
+
+export type DomainWorkspacesGetOfficialSkillCatalogPackageErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetOfficialSkillCatalogPackageError = DomainWorkspacesGetOfficialSkillCatalogPackageErrors[keyof DomainWorkspacesGetOfficialSkillCatalogPackageErrors];
+
+export type DomainWorkspacesGetOfficialSkillCatalogPackageResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelOfficialSkillCatalogDetailOut;
+};
+
+export type DomainWorkspacesGetOfficialSkillCatalogPackageResponse = DomainWorkspacesGetOfficialSkillCatalogPackageResponses[keyof DomainWorkspacesGetOfficialSkillCatalogPackageResponses];
+
+export type DomainWorkspacesCreateWorkspaceSkillGithubImportData = {
+    body: SkillGitHubImportCreateRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/skills/imports';
+};
+
+export type DomainWorkspacesCreateWorkspaceSkillGithubImportErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateWorkspaceSkillGithubImportError = DomainWorkspacesCreateWorkspaceSkillGithubImportErrors[keyof DomainWorkspacesCreateWorkspaceSkillGithubImportErrors];
+
+export type DomainWorkspacesCreateWorkspaceSkillGithubImportResponses = {
+    /**
+     * Successful Response
+     */
+    202: ResponseModelSkillGitHubImportAcceptedOut;
+};
+
+export type DomainWorkspacesCreateWorkspaceSkillGithubImportResponse = DomainWorkspacesCreateWorkspaceSkillGithubImportResponses[keyof DomainWorkspacesCreateWorkspaceSkillGithubImportResponses];
+
+export type DomainWorkspacesGetWorkspaceSkillGithubImportData = {
+    body?: never;
+    path: {
+        /**
+         * Import Id
+         */
+        import_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/skills/imports/{import_id}';
+};
+
+export type DomainWorkspacesGetWorkspaceSkillGithubImportErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceSkillGithubImportError = DomainWorkspacesGetWorkspaceSkillGithubImportErrors[keyof DomainWorkspacesGetWorkspaceSkillGithubImportErrors];
+
+export type DomainWorkspacesGetWorkspaceSkillGithubImportResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSkillGitHubImportOut;
+};
+
+export type DomainWorkspacesGetWorkspaceSkillGithubImportResponse = DomainWorkspacesGetWorkspaceSkillGithubImportResponses[keyof DomainWorkspacesGetWorkspaceSkillGithubImportResponses];
+
+export type DomainWorkspacesListWorkspaceSkillInstallationsData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Cursor
+         */
+        cursor?: string | null;
+        /**
+         * Status
+         */
+        status?: SkillInstallationStatus | null;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/skills/installations';
+};
+
+export type DomainWorkspacesListWorkspaceSkillInstallationsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListWorkspaceSkillInstallationsError = DomainWorkspacesListWorkspaceSkillInstallationsErrors[keyof DomainWorkspacesListWorkspaceSkillInstallationsErrors];
+
+export type DomainWorkspacesListWorkspaceSkillInstallationsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSkillCursorPageSkillInstallationOut;
+};
+
+export type DomainWorkspacesListWorkspaceSkillInstallationsResponse = DomainWorkspacesListWorkspaceSkillInstallationsResponses[keyof DomainWorkspacesListWorkspaceSkillInstallationsResponses];
+
+export type DomainWorkspacesCreateWorkspaceSkillInstallationData = {
+    body: SkillInstallationCreateRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/skills/installations';
+};
+
+export type DomainWorkspacesCreateWorkspaceSkillInstallationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateWorkspaceSkillInstallationError = DomainWorkspacesCreateWorkspaceSkillInstallationErrors[keyof DomainWorkspacesCreateWorkspaceSkillInstallationErrors];
+
+export type DomainWorkspacesCreateWorkspaceSkillInstallationResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelSkillInstallationOut;
+};
+
+export type DomainWorkspacesCreateWorkspaceSkillInstallationResponse = DomainWorkspacesCreateWorkspaceSkillInstallationResponses[keyof DomainWorkspacesCreateWorkspaceSkillInstallationResponses];
+
+export type DomainWorkspacesRemoveWorkspaceSkillInstallationData = {
+    body?: never;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Installation Id
+         */
+        installation_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query: {
+        /**
+         * Expectedrevision
+         */
+        expectedRevision: number;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/skills/installations/{installation_id}';
+};
+
+export type DomainWorkspacesRemoveWorkspaceSkillInstallationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesRemoveWorkspaceSkillInstallationError = DomainWorkspacesRemoveWorkspaceSkillInstallationErrors[keyof DomainWorkspacesRemoveWorkspaceSkillInstallationErrors];
+
+export type DomainWorkspacesRemoveWorkspaceSkillInstallationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSkillInstallationRemovalOut;
+};
+
+export type DomainWorkspacesRemoveWorkspaceSkillInstallationResponse = DomainWorkspacesRemoveWorkspaceSkillInstallationResponses[keyof DomainWorkspacesRemoveWorkspaceSkillInstallationResponses];
+
+export type DomainWorkspacesGetWorkspaceSkillInstallationData = {
+    body?: never;
+    path: {
+        /**
+         * Installation Id
+         */
+        installation_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/skills/installations/{installation_id}';
+};
+
+export type DomainWorkspacesGetWorkspaceSkillInstallationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceSkillInstallationError = DomainWorkspacesGetWorkspaceSkillInstallationErrors[keyof DomainWorkspacesGetWorkspaceSkillInstallationErrors];
+
+export type DomainWorkspacesGetWorkspaceSkillInstallationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSkillInstallationOut;
+};
+
+export type DomainWorkspacesGetWorkspaceSkillInstallationResponse = DomainWorkspacesGetWorkspaceSkillInstallationResponses[keyof DomainWorkspacesGetWorkspaceSkillInstallationResponses];
+
+export type DomainWorkspacesUpdateWorkspaceSkillInstallationData = {
+    body: SkillInstallationUpdateRequest;
+    path: {
+        /**
+         * Installation Id
+         */
+        installation_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/skills/installations/{installation_id}';
+};
+
+export type DomainWorkspacesUpdateWorkspaceSkillInstallationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesUpdateWorkspaceSkillInstallationError = DomainWorkspacesUpdateWorkspaceSkillInstallationErrors[keyof DomainWorkspacesUpdateWorkspaceSkillInstallationErrors];
+
+export type DomainWorkspacesUpdateWorkspaceSkillInstallationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSkillInstallationOut;
+};
+
+export type DomainWorkspacesUpdateWorkspaceSkillInstallationResponse = DomainWorkspacesUpdateWorkspaceSkillInstallationResponses[keyof DomainWorkspacesUpdateWorkspaceSkillInstallationResponses];
+
+export type DomainWorkspacesGetWorkspaceSkillInstallationImpactData = {
+    body?: never;
+    path: {
+        /**
+         * Installation Id
+         */
+        installation_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/skills/installations/{installation_id}/impact';
+};
+
+export type DomainWorkspacesGetWorkspaceSkillInstallationImpactErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceSkillInstallationImpactError = DomainWorkspacesGetWorkspaceSkillInstallationImpactErrors[keyof DomainWorkspacesGetWorkspaceSkillInstallationImpactErrors];
+
+export type DomainWorkspacesGetWorkspaceSkillInstallationImpactResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSkillInstallationImpactOut;
+};
+
+export type DomainWorkspacesGetWorkspaceSkillInstallationImpactResponse = DomainWorkspacesGetWorkspaceSkillInstallationImpactResponses[keyof DomainWorkspacesGetWorkspaceSkillInstallationImpactResponses];
+
+export type DomainWorkspacesCreateWorkspaceSkillUpdatePreviewData = {
+    body: SkillUpdatePreviewCreateRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Installation Id
+         */
+        installation_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/skills/installations/{installation_id}/update-previews';
+};
+
+export type DomainWorkspacesCreateWorkspaceSkillUpdatePreviewErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateWorkspaceSkillUpdatePreviewError = DomainWorkspacesCreateWorkspaceSkillUpdatePreviewErrors[keyof DomainWorkspacesCreateWorkspaceSkillUpdatePreviewErrors];
+
+export type DomainWorkspacesCreateWorkspaceSkillUpdatePreviewResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelSkillUpdatePreviewOut;
+};
+
+export type DomainWorkspacesCreateWorkspaceSkillUpdatePreviewResponse = DomainWorkspacesCreateWorkspaceSkillUpdatePreviewResponses[keyof DomainWorkspacesCreateWorkspaceSkillUpdatePreviewResponses];
+
+export type DomainWorkspacesRepinWorkspaceSkillInstallationData = {
+    body: SkillInstallationRepinRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Installation Id
+         */
+        installation_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/skills/installations/{installation_id}/updates';
+};
+
+export type DomainWorkspacesRepinWorkspaceSkillInstallationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesRepinWorkspaceSkillInstallationError = DomainWorkspacesRepinWorkspaceSkillInstallationErrors[keyof DomainWorkspacesRepinWorkspaceSkillInstallationErrors];
+
+export type DomainWorkspacesRepinWorkspaceSkillInstallationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSkillInstallationRepinOut;
+};
+
+export type DomainWorkspacesRepinWorkspaceSkillInstallationResponse = DomainWorkspacesRepinWorkspaceSkillInstallationResponses[keyof DomainWorkspacesRepinWorkspaceSkillInstallationResponses];
+
+export type DomainWorkspacesListWorkspaceSkillPackagesData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Cursor
+         */
+        cursor?: string | null;
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Status
+         */
+        status?: SkillPackageStatus | null;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/skills/packages';
+};
+
+export type DomainWorkspacesListWorkspaceSkillPackagesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListWorkspaceSkillPackagesError = DomainWorkspacesListWorkspaceSkillPackagesErrors[keyof DomainWorkspacesListWorkspaceSkillPackagesErrors];
+
+export type DomainWorkspacesListWorkspaceSkillPackagesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSkillCursorPageSkillPackageSummaryOut;
+};
+
+export type DomainWorkspacesListWorkspaceSkillPackagesResponse = DomainWorkspacesListWorkspaceSkillPackagesResponses[keyof DomainWorkspacesListWorkspaceSkillPackagesResponses];
+
+export type DomainWorkspacesCreateWorkspaceSkillPackageData = {
+    body: SkillPackageCreateRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/skills/packages';
+};
+
+export type DomainWorkspacesCreateWorkspaceSkillPackageErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateWorkspaceSkillPackageError = DomainWorkspacesCreateWorkspaceSkillPackageErrors[keyof DomainWorkspacesCreateWorkspaceSkillPackageErrors];
+
+export type DomainWorkspacesCreateWorkspaceSkillPackageResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelSkillPackageCreateOut;
+};
+
+export type DomainWorkspacesCreateWorkspaceSkillPackageResponse = DomainWorkspacesCreateWorkspaceSkillPackageResponses[keyof DomainWorkspacesCreateWorkspaceSkillPackageResponses];
+
+export type DomainWorkspacesArchiveWorkspaceSkillPackageData = {
+    body?: never;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Package Id
+         */
+        package_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query: {
+        /**
+         * Expectedrevision
+         */
+        expectedRevision: number;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/skills/packages/{package_id}';
+};
+
+export type DomainWorkspacesArchiveWorkspaceSkillPackageErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesArchiveWorkspaceSkillPackageError = DomainWorkspacesArchiveWorkspaceSkillPackageErrors[keyof DomainWorkspacesArchiveWorkspaceSkillPackageErrors];
+
+export type DomainWorkspacesArchiveWorkspaceSkillPackageResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSkillPackageArchiveOut;
+};
+
+export type DomainWorkspacesArchiveWorkspaceSkillPackageResponse = DomainWorkspacesArchiveWorkspaceSkillPackageResponses[keyof DomainWorkspacesArchiveWorkspaceSkillPackageResponses];
+
+export type DomainWorkspacesGetWorkspaceSkillPackageData = {
+    body?: never;
+    path: {
+        /**
+         * Package Id
+         */
+        package_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/skills/packages/{package_id}';
+};
+
+export type DomainWorkspacesGetWorkspaceSkillPackageErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceSkillPackageError = DomainWorkspacesGetWorkspaceSkillPackageErrors[keyof DomainWorkspacesGetWorkspaceSkillPackageErrors];
+
+export type DomainWorkspacesGetWorkspaceSkillPackageResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSkillPackageDetailOut;
+};
+
+export type DomainWorkspacesGetWorkspaceSkillPackageResponse = DomainWorkspacesGetWorkspaceSkillPackageResponses[keyof DomainWorkspacesGetWorkspaceSkillPackageResponses];
+
+export type DomainWorkspacesGetWorkspaceSkillPackageImpactData = {
+    body?: never;
+    path: {
+        /**
+         * Package Id
+         */
+        package_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/skills/packages/{package_id}/impact';
+};
+
+export type DomainWorkspacesGetWorkspaceSkillPackageImpactErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceSkillPackageImpactError = DomainWorkspacesGetWorkspaceSkillPackageImpactErrors[keyof DomainWorkspacesGetWorkspaceSkillPackageImpactErrors];
+
+export type DomainWorkspacesGetWorkspaceSkillPackageImpactResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSkillPackageImpactOut;
+};
+
+export type DomainWorkspacesGetWorkspaceSkillPackageImpactResponse = DomainWorkspacesGetWorkspaceSkillPackageImpactResponses[keyof DomainWorkspacesGetWorkspaceSkillPackageImpactResponses];
+
+export type DomainWorkspacesCreateWorkspaceSkillGithubRefreshData = {
+    body?: never;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Package Id
+         */
+        package_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/skills/packages/{package_id}/refreshes';
+};
+
+export type DomainWorkspacesCreateWorkspaceSkillGithubRefreshErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateWorkspaceSkillGithubRefreshError = DomainWorkspacesCreateWorkspaceSkillGithubRefreshErrors[keyof DomainWorkspacesCreateWorkspaceSkillGithubRefreshErrors];
+
+export type DomainWorkspacesCreateWorkspaceSkillGithubRefreshResponses = {
+    /**
+     * Successful Response
+     */
+    202: ResponseModelSkillGitHubImportAcceptedOut;
+};
+
+export type DomainWorkspacesCreateWorkspaceSkillGithubRefreshResponse = DomainWorkspacesCreateWorkspaceSkillGithubRefreshResponses[keyof DomainWorkspacesCreateWorkspaceSkillGithubRefreshResponses];
+
+export type DomainWorkspacesListWorkspaceSkillVersionsData = {
+    body?: never;
+    path: {
+        /**
+         * Package Id
+         */
+        package_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Cursor
+         */
+        cursor?: string | null;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/skills/packages/{package_id}/versions';
+};
+
+export type DomainWorkspacesListWorkspaceSkillVersionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListWorkspaceSkillVersionsError = DomainWorkspacesListWorkspaceSkillVersionsErrors[keyof DomainWorkspacesListWorkspaceSkillVersionsErrors];
+
+export type DomainWorkspacesListWorkspaceSkillVersionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSkillCursorPageSkillVersionSummaryOut;
+};
+
+export type DomainWorkspacesListWorkspaceSkillVersionsResponse = DomainWorkspacesListWorkspaceSkillVersionsResponses[keyof DomainWorkspacesListWorkspaceSkillVersionsResponses];
+
+export type DomainWorkspacesCreateWorkspaceSkillVersionData = {
+    body: SkillVersionCreateRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Package Id
+         */
+        package_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/skills/packages/{package_id}/versions';
+};
+
+export type DomainWorkspacesCreateWorkspaceSkillVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateWorkspaceSkillVersionError = DomainWorkspacesCreateWorkspaceSkillVersionErrors[keyof DomainWorkspacesCreateWorkspaceSkillVersionErrors];
+
+export type DomainWorkspacesCreateWorkspaceSkillVersionResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelSkillVersionDetailOut;
+};
+
+export type DomainWorkspacesCreateWorkspaceSkillVersionResponse = DomainWorkspacesCreateWorkspaceSkillVersionResponses[keyof DomainWorkspacesCreateWorkspaceSkillVersionResponses];
+
+export type DomainWorkspacesGetWorkspaceSkillVersionData = {
+    body?: never;
+    path: {
+        /**
+         * Package Id
+         */
+        package_id: string;
+        /**
+         * Version Id
+         */
+        version_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/skills/packages/{package_id}/versions/{version_id}';
+};
+
+export type DomainWorkspacesGetWorkspaceSkillVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceSkillVersionError = DomainWorkspacesGetWorkspaceSkillVersionErrors[keyof DomainWorkspacesGetWorkspaceSkillVersionErrors];
+
+export type DomainWorkspacesGetWorkspaceSkillVersionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSkillVersionDetailOut;
+};
+
+export type DomainWorkspacesGetWorkspaceSkillVersionResponse = DomainWorkspacesGetWorkspaceSkillVersionResponses[keyof DomainWorkspacesGetWorkspaceSkillVersionResponses];
+
+export type DomainWorkspacesListWorkspaceSkillValidationResultsData = {
+    body?: never;
+    path: {
+        /**
+         * Package Id
+         */
+        package_id: string;
+        /**
+         * Version Id
+         */
+        version_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/skills/packages/{package_id}/versions/{version_id}/validation-results';
+};
+
+export type DomainWorkspacesListWorkspaceSkillValidationResultsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListWorkspaceSkillValidationResultsError = DomainWorkspacesListWorkspaceSkillValidationResultsErrors[keyof DomainWorkspacesListWorkspaceSkillValidationResultsErrors];
+
+export type DomainWorkspacesListWorkspaceSkillValidationResultsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelTupleSkillValidationResultOut;
+};
+
+export type DomainWorkspacesListWorkspaceSkillValidationResultsResponse = DomainWorkspacesListWorkspaceSkillValidationResultsResponses[keyof DomainWorkspacesListWorkspaceSkillValidationResultsResponses];
+
+export type DomainWorkspacesValidateWorkspaceSkillVersionData = {
+    body: SkillValidationCreateRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Package Id
+         */
+        package_id: string;
+        /**
+         * Version Id
+         */
+        version_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/skills/packages/{package_id}/versions/{version_id}/validations';
+};
+
+export type DomainWorkspacesValidateWorkspaceSkillVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesValidateWorkspaceSkillVersionError = DomainWorkspacesValidateWorkspaceSkillVersionErrors[keyof DomainWorkspacesValidateWorkspaceSkillVersionErrors];
+
+export type DomainWorkspacesValidateWorkspaceSkillVersionResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelSkillValidationResultOut;
+};
+
+export type DomainWorkspacesValidateWorkspaceSkillVersionResponse = DomainWorkspacesValidateWorkspaceSkillVersionResponses[keyof DomainWorkspacesValidateWorkspaceSkillVersionResponses];
 
 export type DomainWorkspacesListEmailInvitesData = {
     body?: never;
