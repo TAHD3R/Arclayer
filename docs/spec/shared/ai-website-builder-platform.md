@@ -1093,19 +1093,19 @@ Wave 0 is complete only when these migration gates have evidence:
 - migrate core billing injection, durable event inbox/worker/reconciliation, stable Price/Entitlement mapping, and Billing product surfaces.
 - remove the direct Stripe construction path after parity and webhook replay verification.
 
-### 19.1 Requested-capability completion matrix (Wave 3L checkpoint)
+### 19.1 Requested-capability completion matrix (Wave 4 checkpoint)
 
 This matrix records verified product authority, not the presence of routes or
 screens. “In progress” means at least one production vertical exists but the
 remaining evidence named in the last column is still required. It must not be
 used to describe the full user goal as complete.
 
-| # | Requested capability | Status at Wave 3L | Verified boundary and remaining evidence |
+| # | Requested capability | Current status | Verified boundary and remaining evidence |
 | --- | --- | --- | --- |
-| 1 | Management plus full-screen Sitemap/Wireframe/Style Guide/Design editor | In progress | The independent revision-pinned editor and all four stage authorities exist through typed Design Preview/Apply. AI Design, compiler/release readiness, server undo/redo, and final visual convergence remain. |
+| 1 | Management plus full-screen Sitemap/Wireframe/Style Guide/Design editor | In progress | The independent revision-pinned editor and all four stage authorities exist through typed Design Preview/Apply. Revision-pinned AI Design generation now converges on the same reviewed ChangeSet authority. Compiler/release readiness, server undo/redo, and final visual convergence remain. |
 | 2 | assistant-ui multi-Agent conversations, Agent launcher/mention, Plan/Build | In progress | Backend-owned threads/Runs, structured Agent selection, delegation/Tool projections, launcher, mention, and Plan/Build surfaces exist. Full Builder-wide Agent orchestration and final interaction convergence remain. |
 | 3 | Agent runtime/control plane and System Agent settings | In progress | Versioned Agent definitions, assignments, grants, approvals, durable execution, and settings surfaces exist. Production operations review and remaining repository/service quality findings are not closed. |
-| 4 | AI-native Content Library and Content Models | In progress | Workbench, structured model editing, AI proposal/impact paths, and Builder handoff have production slices. End-to-end content automation and final UX convergence remain Wave 4 work. |
+| 4 | AI-native Content Library and Content Models | In progress | Workbench and structured model editing now expose production content-writer and content-modeler proposal paths, real impact evidence, and one shared approval/apply queue. Broader content automation and final Workbench UX convergence remain Wave 4 work. |
 | 5 | Workspace Knowledge, Workspace Skills, official Skills, and Design Systems | In progress | Canonical APIs, authoring/import/install/version evidence, settings surfaces, and durable Knowledge jobs exist. Production deployment/operational evidence and final Agent-context convergence remain. |
 | 6 | Site thumbnails on Home and Projects | Pending | Asset thumbnail job foundations exist, but revision-pinned site render/capture, project thumbnail projection, and final Home/grid/list media treatment remain Wave 5. |
 | 7 | Productized Taskiq workload topology and task catalog | In progress | Durable jobs, broker routing, workers, scheduler leadership, recovery, and owning-domain job verticals are implemented/tested. Production deployment and health evidence remain required. |
@@ -1842,9 +1842,85 @@ Blueprint is invalid.
 This design is self-approved for implementation because it composes existing
 authorities without adding a second write path, keeps every model decision
 inside a typed and replayable review boundary, and preserves durable recovery
-semantics. Approval here covers the contract only. Wave 3M is not complete
-until provider, Job, service, runtime Tool, Admin recovery/review, bilingual
-copy, target tests, full repository gates, and changed-scope review all pass.
-Asset/font rights, automated accessibility execution, compiler artifacts,
-release activation, thumbnails, comments, and server undo/redo remain outside
-this Wave.
+semantics. Asset/font rights, automated accessibility execution, compiler
+artifacts, release activation, thumbnails, comments, and server undo/redo
+remain outside this Wave.
+
+### 43.1 Wave 3M implementation evidence
+
+The approved Wave 3M boundary is implemented on the existing Builder generation
+aggregate rather than a parallel AI canvas:
+
+- `builder.design.generate` has its own durable Job identity, queue task,
+  migration-backed persistence, handler, provider, recovery, cancellation, and
+  partial-candidate projection;
+- creation persists the exact revision-pinned `designContext`, including target
+  Content Version, Wireframe, current Blueprint, Design System, and component
+  catalog evidence before the Job is published;
+- the provider accepts only the forced `submit_builder_design_candidate` Tool
+  and the closed `design.*` operation family, then sends each candidate through
+  canonical ChangeSet Preview rather than persisting model output directly;
+- the assistant-ui `builder.design.generate` Tool uses an explicit approval
+  interrupt, while the Design Inspector uses the same generation resource for
+  direct Agent selection, persisted status, recovery, review, cancel, discard,
+  and explicit Apply;
+- candidate selection never changes canonical saved-state language. Only the
+  existing signed ChangeSet Apply and returned immutable Site Revision reconcile
+  the Design canvas.
+
+Fresh focused verification on 2026-07-22 passes 24 backend Design-generation
+tests across the runtime gateway, runtime Tool, Job contract, provider, handler,
+and service, plus 74 Admin tests across the assistant-ui Tool contract/toolkit
+and full Editor page. This accepts the Wave 3M implementation boundary. It does
+not claim the out-of-scope compiler, release, asset/font-rights, automated
+accessibility, thumbnail, comments, or server undo/redo capabilities.
+
+## 44. Wave 4 AI-native content proposal and approval vertical (2026-07-22)
+
+Live-source review found two incompatible content-writing paths. Content items
+already had a safe `/content-draft-proposals` endpoint but no production editor
+mount, while the mounted Content Model assistant still invoked the legacy
+Workspace action and represented a direct write as success. The approval queue
+implemented modify, reject, approve, apply, and target invalidation, but was not
+mounted in any production surface.
+
+Wave 4 hard-cuts that split behavior to one review-first vertical:
+
+1. the Content Library article editor passes its explicit Project and item
+   identity to the content-writer proposal card; URL parsing is not an authority
+   and split/list routes cannot silently retarget the request;
+2. the Content Model surface calls the canonical
+   `/content-model-draft-proposals` endpoint with the selected model and
+   reasoning policy; it no longer treats `workspace_update_content_model` as a
+   completed edit;
+3. both surfaces require the enabled official `content.writer` or
+   `content.modeler` Skill and preserve the backend permission boundary;
+4. proposal success means `pending approval` only. The UI exposes the approval
+   ID, and Content Model proposals expose affected, recovery, reshape, and
+   blocking evidence returned by the canonical impact preview;
+5. proposal creation invalidates the shared actionable-approval query. The
+   assistant-ui sidebar mounts that queue above the composer so users can
+   modify, reject, approve, and explicitly apply without a second browser-owned
+   mutation path;
+6. successful Apply retains the existing target-specific invalidation for
+   Content Models, Content Library items, item detail, and version history.
+
+The product surface follows the existing quiet operational language: neutral
+cards, one Action Blue submit, explicit pending state, functional destructive
+color only for blockers, keyboard-native controls, live-region result status,
+and bilingual `zh-CN` / `en-US` copy. No card claims that content was updated
+before approval and Apply complete.
+
+Focused verification passes 5 Admin files / 57 tests, Admin typecheck, lint,
+and formatting outside the concurrently edited `system/audit-log/**` tree.
+React Doctor remains 61/100 with zero errors and 215 changed-branch warnings;
+the proposal cards and editor rail have no reported diagnostic, while an
+existing async-effect warning remains in the touched drawer. Changed-scope
+review reports 32 report-only findings, all in concurrent Observability/Charts
+work rather than this vertical. GitNexus impact and change detection remain
+unavailable with `Transport closed`, so graph risk is recorded as unknown.
+
+This closes the first Wave 4 AI-native content proposal/approval/apply slice,
+not Wave 4 as a whole. Bulk content orchestration, final Library/Model UX
+convergence, Website Config, Project General, and first-publish product-state
+acceptance remain active.

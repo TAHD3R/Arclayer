@@ -1504,3 +1504,20 @@ authorization and renderer contracts exist. It also excludes model-authored
 CSS/HTML/JSON patches, arbitrary component replacement, latest-state prompt
 rebuilds, Wireframe fallbacks for invalid Blueprints, and best-effort partial
 target writes.
+
+### 33.1 Wave 3M implementation evidence
+
+The contract is implemented by the generation aggregate, not a second Design
+write service. `generation_job_contract.py` defines the distinct durable Design
+Job/task identity; `generation_service.py` freezes and persists `designContext`
+before publication; `generation_provider.py` validates the forced structured
+candidate; and `generation_handler.py` sends validated candidates through the
+canonical ChangeSet Preview authority. Runtime conversation entry resolves the
+same command through `runtime_design_tool.py` and
+`runtime_model_step_gateway.py` after explicit approval.
+
+Fresh focused verification on 2026-07-22 passes 24 tests across the runtime
+gateway/Tool, Job contract, Design provider, handler, and generation service.
+This evidence accepts the revision-pinned Design generation contract only; it
+does not add compiler, release, asset/font-rights, thumbnail, comment, or
+server undo/redo authority.

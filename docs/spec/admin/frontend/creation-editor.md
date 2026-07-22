@@ -1316,3 +1316,19 @@ candidate operations, fills missing targets, calculates checksums, auto-selects
 success, auto-applies, or treats a candidate as canonical. Asset/font rights,
 automated accessibility execution, compiler output, release activation,
 thumbnail capture, comments, and server undo/redo remain gated.
+
+### 39.1 Wave 3M implementation evidence
+
+The Design Inspector now mounts the direct Agent generation workbench backed by
+`use-project-design-generation.ts`, while `design-generation-panel.tsx` renders
+persisted progress, recovery, candidate review, blocker, cancel, discard, and
+explicit Apply states. The assistant-ui toolkit registers the same
+`builder.design.generate` contract through `design-generate-tool.tsx`; neither
+entry creates a hidden Thread or writes a candidate to the canvas.
+
+Fresh focused verification on 2026-07-22 passes 74 tests across the Design Tool
+contract, assistant-ui toolkit, and Editor page. Candidate Preview remains
+visibly non-canonical and successful Apply reconciles only from the returned
+Builder aggregate. Compiler/release activation, automated accessibility,
+asset/font rights, thumbnails, comments, server undo/redo, and final visual
+convergence remain gated.
