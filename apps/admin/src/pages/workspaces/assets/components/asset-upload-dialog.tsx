@@ -2,17 +2,15 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 
-import {
-  abortUpload,
-  commitUploadPart,
-  completeUpload,
-  getUploadPolicy,
-  initUpload,
-  presignUploadPart,
-  uploadPart,
-} from "@/api/uploads";
+import { getUploadPolicy } from "@/api/uploads";
 import { Button } from "@arclayer/ui/button";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
+import {
+  abortAssetUploadSession,
+  completeAssetUploadSession,
+  transferAssetUpload,
+  type AssetUploadCheckpoint,
+} from "@/pages/workspaces/assets/components/asset-upload-session";
 import {
   FileUpload,
   type FileUploadItemStatus,
@@ -21,7 +19,6 @@ import {
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { cn } from "@arclayer/lib/utils";
 import type { AssetScopeRef } from "@/lib/assets/asset-scope";
-import { uploadPresignedPart } from "@/lib/assets/storage-transfer";
 
 type UploadItem = {
   id: string;
@@ -30,7 +27,7 @@ type UploadItem = {
   progress: number; // 0-100
   uploadedBytes: number;
   errorText?: string;
-  uploadId?: string;
+  checkpoint?: AssetUploadCheckpoint;
   assetId?: string;
 };
 
@@ -38,39 +35,12 @@ function nextLocalId(): string {
   return `upload-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-type ScopedUploadsApi = {
-  init: (payload: Parameters<typeof initUpload>[1]) => ReturnType<typeof initUpload>;
-  abort: (uploadId: string) => Promise<void>;
-  uploadPart: (params: Omit<Parameters<typeof uploadPart>[0], "projectId">) => Promise<void>;
-  presignPart: (
-    params: Omit<Parameters<typeof presignUploadPart>[0], "projectId">,
-  ) => ReturnType<typeof presignUploadPart>;
-  commitPart: (params: Omit<Parameters<typeof commitUploadPart>[0], "projectId">) => Promise<void>;
-  complete: (uploadId: string) => ReturnType<typeof completeUpload>;
-};
+function isRecoverableItem(item: UploadItem): boolean {
+  return item.status === "pending" || item.status === "error" || item.status === "finalize_error";
+}
 
-function getScopedUploadsApi(scope: AssetScopeRef): ScopedUploadsApi {
-  const rawId = String(scope.id || "").trim();
-  if (!rawId) throw new Error("ASSET_SCOPE_NOT_SELECTED");
-
-  if (scope.type === "project") {
-    return {
-      init: (payload) => initUpload(rawId, payload),
-      abort: async (uploadId) => {
-        await abortUpload(rawId, uploadId);
-      },
-      uploadPart: async (params) => {
-        await uploadPart({ ...params, projectId: rawId });
-      },
-      presignPart: (params) => presignUploadPart({ ...params, projectId: rawId }),
-      commitPart: async (params) => {
-        await commitUploadPart({ ...params, projectId: rawId });
-      },
-      complete: (uploadId) => completeUpload(rawId, uploadId),
-    };
-  }
-
-  throw new Error("ASSET_SCOPE_UNSUPPORTED");
+function hasFinalizationStarted(item: UploadItem): boolean {
+  return item.status === "finalizing" || item.status === "finalize_error";
 }
 
 async function runSequentially<T>(
@@ -93,6 +63,7 @@ export function AssetUploadDialog(props: {
 }) {
   const { t } = useTranslation();
   const controllersRef = useRef(new Map<string, AbortController>());
+  const stopRequestedRef = useRef(false);
 
   const [items, setItems] = useState<UploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -129,18 +100,23 @@ export function AssetUploadDialog(props: {
   }, [purpose, t]);
   const visibility = "public";
 
-  const canStart = useMemo(
-    () => items.some((it) => it.status === "pending" || it.status === "error"),
+  const canStart = useMemo(() => items.some(isRecoverableItem), [items]);
+  const activeItemIds = useMemo(
+    () =>
+      new Set(
+        items
+          .filter((it) => it.status === "uploading" || it.status === "finalizing")
+          .map((it) => it.id),
+      ),
     [items],
   );
-  const uploadingItemIds = useMemo(
-    () => new Set(items.filter((it) => it.status === "uploading").map((it) => it.id)),
-    [items],
-  );
-  const hasUploading = uploadingItemIds.size > 0;
+  const hasActiveWork = activeItemIds.size > 0;
+  const hasFinalizing = items.some((item) => item.status === "finalizing");
+  const hasCompletionPending = items.some((item) => item.status === "finalize_error");
   const fileUploadPanelItems = useMemo<FileUploadPanelItem[]>(() => items, [items]);
 
   const resetState = useCallback(() => {
+    stopRequestedRef.current = true;
     controllersRef.current.forEach((c) => c.abort());
     controllersRef.current.clear();
     setItems([]);
@@ -161,13 +137,11 @@ export function AssetUploadDialog(props: {
       controller?.abort();
       controllersRef.current.delete(item.id);
 
-      if (!item.uploadId) return;
-      try {
-        const api = getScopedUploadsApi(props.scope);
-        await api.abort(item.uploadId);
-      } catch {
-        // Abort failure should not block UI cleanup.
+      if (!item.checkpoint) return;
+      if (hasFinalizationStarted(item) || item.status === "success") {
+        throw new Error("ASSET_UPLOAD_FINALIZATION_CANNOT_ABORT");
       }
+      await abortAssetUploadSession(props.scope, item.checkpoint.uploadId);
     },
     [props.scope],
   );
@@ -176,13 +150,23 @@ export function AssetUploadDialog(props: {
     async (id: string) => {
       const target = items.find((x) => x.id === id);
       if (!target) return;
+      if (hasFinalizationStarted(target)) return;
 
-      if (target.status === "uploading") {
-        await abortItem(target);
+      if (target.status === "uploading" || (target.status === "error" && target.checkpoint)) {
+        try {
+          await abortItem(target);
+        } catch (error) {
+          updateItem(target.id, {
+            status: "error",
+            errorText: t("assets:ASSET_UPLOAD_ABORT_FAILED"),
+          });
+          notifyError(error);
+          return;
+        }
       }
       setItems((prev) => prev.filter((x) => x.id !== id));
     },
-    [abortItem, items],
+    [abortItem, items, t, updateItem],
   );
 
   const pickFiles = useCallback((files: File[]) => {
@@ -199,11 +183,45 @@ export function AssetUploadDialog(props: {
     ]);
   }, []);
 
+  const completeSingle = useCallback(
+    async (itemId: string, fileSize: number, checkpoint: AssetUploadCheckpoint) => {
+      updateItem(itemId, {
+        status: "finalizing",
+        progress: 100,
+        uploadedBytes: fileSize,
+        checkpoint,
+        errorText: undefined,
+      });
+      try {
+        const assetId = await completeAssetUploadSession(props.scope, checkpoint.uploadId);
+        updateItem(itemId, { status: "success", assetId });
+        return assetId;
+      } catch (error) {
+        updateItem(itemId, {
+          status: "finalize_error",
+          errorText: t("assets:ASSET_UPLOAD_FINALIZE_FAILED"),
+        });
+        notifyError(error);
+        return null;
+      }
+    },
+    [props.scope, t, updateItem],
+  );
+
   const uploadSingle = useCallback(
     async (item: UploadItem) => {
+      if (item.status === "finalize_error") {
+        if (!item.checkpoint) {
+          const error = new Error("ASSET_UPLOAD_COMPLETION_CHECKPOINT_MISSING");
+          updateItem(item.id, { errorText: t("assets:ASSET_UPLOAD_FINALIZE_FAILED") });
+          notifyError(error);
+          return null;
+        }
+        return completeSingle(item.id, item.file.size, item.checkpoint);
+      }
+
       const controller = new AbortController();
       controllersRef.current.set(item.id, controller);
-
       updateItem(item.id, {
         status: "uploading",
         progress: 0,
@@ -212,120 +230,151 @@ export function AssetUploadDialog(props: {
       });
 
       try {
-        const api = getScopedUploadsApi(props.scope);
-        const init = await api.init({
-          purpose,
-          filename: item.file.name,
-          mime: item.file.type || null,
-          sizeBytes: item.file.size,
-          expectedSha256: null,
-          visibility,
-          indexable: false,
-          folderId: folderId || null,
+        const checkpoint = await transferAssetUpload({
+          scope: props.scope,
+          file: item.file,
+          checkpoint: item.checkpoint,
+          signal: controller.signal,
+          initPayload: {
+            purpose,
+            filename: item.file.name,
+            mime: item.file.type || null,
+            sizeBytes: item.file.size,
+            expectedSha256: null,
+            visibility,
+            indexable: false,
+            folderId: folderId || null,
+          },
+          messages: {
+            s3PutFailed: t("assets:ASSET_UPLOAD_S3_PUT_FAILED"),
+            s3EtagMissing: t("assets:ASSET_UPLOAD_S3_ETAG_MISSING"),
+          },
+          onCheckpoint: (nextCheckpoint) => {
+            updateItem(item.id, { checkpoint: nextCheckpoint });
+          },
+          onProgress: (uploadedBytes, progress) => {
+            updateItem(item.id, { uploadedBytes, progress });
+          },
         });
-
-        updateItem(item.id, { uploadId: init.uploadId });
-
-        const chunkSize = Math.max(1, Number(init.chunkSize || 0));
-        const totalParts = Math.max(1, Number(init.totalParts || 1));
-        const method = String(init.method || "local");
-
-        const uploadChunkLocal = async (partNumber: number, chunk: Blob) => {
-          await api.uploadPart({
-            uploadId: init.uploadId,
-            partNumber,
-            chunk,
-            signal: controller.signal,
+        return await completeSingle(item.id, item.file.size, checkpoint);
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          updateItem(item.id, {
+            status: "canceled",
+            errorText: t("assets:ASSET_UPLOAD_CANCELED"),
           });
-        };
-
-        const uploadChunkS3 = async (partNumber: number, chunk: Blob) => {
-          const presign = await api.presignPart({
-            uploadId: init.uploadId,
-            partNumber,
-          });
-          const etag = await uploadPresignedPart({
-            presign,
-            chunk,
-            signal: controller.signal,
-            errorMessage: t("assets:ASSET_UPLOAD_S3_PUT_FAILED"),
-            missingEtagMessage: t("assets:ASSET_UPLOAD_S3_ETAG_MISSING"),
-          });
-
-          await api.commitPart({
-            uploadId: init.uploadId,
-            partNumber,
-            payload: { etag, sizeBytes: chunk.size },
-          });
-        };
-
-        let uploadedBytes = 0;
-        const parts = Array.from({ length: totalParts }, (_, i) => i + 1);
-        await runSequentially(parts, async (part) => {
-          const start = (part - 1) * chunkSize;
-          const end = Math.min(item.file.size, start + chunkSize);
-          const chunk = item.file.slice(start, end);
-
-          if (method === "s3_multipart") {
-            await uploadChunkS3(part, chunk);
-          } else {
-            await uploadChunkLocal(part, chunk);
-          }
-
-          uploadedBytes += chunk.size;
-          const pct = item.file.size > 0 ? Math.round((uploadedBytes / item.file.size) * 100) : 100;
-          updateItem(item.id, { uploadedBytes, progress: Math.min(100, Math.max(0, pct)) });
-        });
-
-        const done = await api.complete(init.uploadId);
-        updateItem(item.id, { status: "success", progress: 100, assetId: done.assetId });
-        return done.assetId;
-      } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") {
-          updateItem(item.id, { status: "canceled", errorText: t("assets:ASSET_UPLOAD_CANCELED") });
           return null;
         }
         updateItem(item.id, {
           status: "error",
-          errorText: err instanceof Error ? err.message : t("assets:ASSET_UPLOAD_FAILED_GENERIC"),
+          errorText: t("assets:ASSET_UPLOAD_FAILED_GENERIC"),
         });
-        notifyError(err);
+        notifyError(error);
         return null;
       } finally {
         controllersRef.current.delete(item.id);
       }
     },
-    [folderId, props.scope, purpose, t, updateItem],
+    [completeSingle, folderId, props.scope, purpose, t, updateItem],
   );
 
-  const startUpload = useCallback(async () => {
-    if (isUploading) return;
-    setIsUploading(true);
-    try {
-      const assetIds: string[] = [];
-      const queue = items.filter((it) => it.status === "pending" || it.status === "error");
-      await runSequentially(queue, async (it) => {
-        const id = await uploadSingle(it);
-        if (id) assetIds.push(id);
-      });
+  const startUpload = useCallback(
+    async (itemId?: string) => {
+      if (isUploading) return;
+      const queue = items.filter(
+        (item) => isRecoverableItem(item) && (!itemId || item.id === itemId),
+      );
+      if (!queue.length) return;
 
-      if (assetIds.length) {
-        notifySuccessText(t("assets:ASSET_UPLOAD_SUCCESS"));
-        props.onUploaded?.(assetIds);
+      stopRequestedRef.current = false;
+      setIsUploading(true);
+      try {
+        const queueIds = new Set(queue.map((item) => item.id));
+        const assetIds = items
+          .filter((item) => item.status === "success" && item.assetId)
+          .map((item) => item.assetId as string);
+        let hasFailure = false;
+
+        await runSequentially(queue, async (item) => {
+          if (stopRequestedRef.current) return;
+          const assetId = await uploadSingle(item);
+          if (assetId) {
+            assetIds.push(assetId);
+            return;
+          }
+          hasFailure = true;
+        });
+        if (stopRequestedRef.current) return;
+
+        const hasUnresolvedOutsideQueue = items.some(
+          (item) => !queueIds.has(item.id) && isRecoverableItem(item),
+        );
+        if (!hasFailure && !hasUnresolvedOutsideQueue && assetIds.length) {
+          const completedAssetIds = Array.from(new Set(assetIds));
+          notifySuccessText(t("assets:ASSET_UPLOAD_SUCCESS"));
+          props.onUploaded?.(completedAssetIds);
+          resetState();
+        }
+      } finally {
+        setIsUploading(false);
       }
-    } finally {
-      setIsUploading(false);
-    }
-  }, [isUploading, items, props, t, uploadSingle]);
+    },
+    [isUploading, items, props, resetState, t, uploadSingle],
+  );
 
   const abortAllAndClose = useCallback(async () => {
-    const uploading = items.filter((x) => x.status === "uploading");
-    await runSequentially(uploading, async (it) => {
-      await abortItem(it);
+    stopRequestedRef.current = true;
+    const abortable = items.filter(
+      (item) => item.status === "uploading" || (item.status === "error" && item.checkpoint),
+    );
+    const abortableIds = new Set(abortable.map((item) => item.id));
+    const failedAborts = new Map<string, unknown>();
+    await runSequentially(abortable, async (item) => {
+      try {
+        await abortItem(item);
+      } catch (error) {
+        failedAborts.set(item.id, error);
+      }
     });
+    if (failedAborts.size) {
+      stopRequestedRef.current = false;
+      setItems((current) =>
+        current.map((item) =>
+          failedAborts.has(item.id)
+            ? {
+                ...item,
+                status: "error",
+                errorText: t("assets:ASSET_UPLOAD_ABORT_FAILED"),
+              }
+            : abortableIds.has(item.id)
+              ? {
+                  ...item,
+                  status: "canceled",
+                  errorText: t("assets:ASSET_UPLOAD_CANCELED"),
+                }
+              : item,
+        ),
+      );
+      const errors = Array.from(failedAborts.values());
+      notifyError(
+        errors.length === 1
+          ? errors[0]
+          : new AggregateError(errors, "Multiple upload sessions could not be aborted."),
+      );
+      return;
+    }
     resetState();
     closeDialog();
-  }, [abortItem, closeDialog, items, resetState]);
+  }, [abortItem, closeDialog, items, resetState, t]);
+
+  const requestClose = useCallback(() => {
+    if (hasFinalizing || (isUploading && hasCompletionPending)) return;
+    if (hasCompletionPending) {
+      closeDialog();
+      return;
+    }
+    void abortAllAndClose();
+  }, [abortAllAndClose, closeDialog, hasCompletionPending, hasFinalizing, isUploading]);
 
   const onDialogOpenChange = useCallback(
     (open: boolean) => {
@@ -333,14 +382,9 @@ export function AssetUploadDialog(props: {
         props.onOpenChange(true);
         return;
       }
-      if (hasUploading) {
-        void abortAllAndClose();
-        return;
-      }
-      closeDialog();
-      resetState();
+      requestClose();
     },
-    [abortAllAndClose, closeDialog, hasUploading, props, resetState],
+    [props, requestClose],
   );
 
   return (
@@ -355,37 +399,38 @@ export function AssetUploadDialog(props: {
         <>
           <Button
             variant="ghost"
-            onClick={() => void abortAllAndClose()}
-            disabled={isUploading && !hasUploading}
+            onClick={requestClose}
+            disabled={hasFinalizing || (isUploading && hasCompletionPending)}
           >
-            {t("assets:ASSET_UPLOAD_ACTION_CANCEL")}
+            {hasCompletionPending ? t("common:CLOSE") : t("assets:ASSET_UPLOAD_ACTION_CANCEL")}
           </Button>
           <Button disabled={!canStart || isUploading} onClick={() => void startUpload()}>
             {isUploading
-              ? t("assets:ASSET_UPLOAD_ACTION_UPLOADING")
-              : t("assets:ASSET_UPLOAD_ACTION_START")}
+              ? hasFinalizing
+                ? t("assets:ASSET_UPLOAD_ACTION_FINISHING")
+                : t("assets:ASSET_UPLOAD_ACTION_UPLOADING")
+              : hasCompletionPending
+                ? t("assets:ASSET_UPLOAD_ACTION_FINISH")
+                : t("assets:ASSET_UPLOAD_ACTION_START")}
           </Button>
         </>
       }
     >
       <FileUpload.Panel
         items={fileUploadPanelItems}
-        isDisabled={hasUploading}
+        isDisabled={hasActiveWork}
         accept={uploadPolicy?.accept || undefined}
         maxSizeBytes={uploadPolicy?.maxSizeBytes ?? undefined}
         dropZoneHintSummary={dropZoneHintSummary}
         dropZoneHintDetail={dropZoneHintDetail}
         onPickFiles={pickFiles}
         onDeleteItem={(id) => void removeItem(id)}
-        onRetryItem={(id) => {
-          updateItem(id, {
-            status: "pending",
-            progress: 0,
-            uploadedBytes: 0,
-            errorText: undefined,
-          });
+        onRetryItem={(id) => void startUpload(id)}
+        isItemActionDisabled={(id) => isUploading && !activeItemIds.has(id)}
+        isItemRemovable={(id) => {
+          const item = items.find((candidate) => candidate.id === id);
+          return item ? !hasFinalizationStarted(item) : false;
         }}
-        isItemActionDisabled={(id) => isUploading && !uploadingItemIds.has(id)}
       />
     </SettingDialog>
   );

@@ -6,6 +6,9 @@ import { UserProfileView } from "@/pages/usercenter/profile/components/user-prof
 import type { SettingsScreen, SettingsScreenPayload } from "@/lib/settings/settings-screen";
 import { WorkspaceSettingsBasicsView } from "@/pages/workspaces/settings/workspace/basics/components/workspace-settings-basics-view";
 import { WorkspacePlanUsageView } from "@/pages/workspaces/settings/workspace/plan-usage/plan-usage-view";
+import { WorkspaceKnowledgePage } from "@/pages/workspaces/settings/workspace/knowledge/page";
+import { WorkspaceSkillsPage } from "@/pages/workspaces/settings/workspace/skills/page";
+import { WorkspaceDesignSystemsPage } from "@/pages/workspaces/settings/workspace/design-systems/page";
 import { TeamInvitationsPage } from "@/pages/workspaces/team/invitations/page";
 import { TeamMembersView } from "@/pages/workspaces/team/members/components/team-members-view";
 import { TeamRolesPage } from "@/pages/workspaces/team/roles/page";
@@ -47,6 +50,18 @@ function WorkspacePlanUsageOverlayView() {
   return <WorkspacePlanUsageView workspaceId={useEffectiveWorkspaceId()} />;
 }
 
+function WorkspaceKnowledgeOverlayView() {
+  return <WorkspaceKnowledgePage workspaceId={useEffectiveWorkspaceId()} />;
+}
+
+function WorkspaceSkillsOverlayView() {
+  return <WorkspaceSkillsPage workspaceId={useEffectiveWorkspaceId()} />;
+}
+
+function WorkspaceDesignSystemsOverlayView() {
+  return <WorkspaceDesignSystemsPage workspaceId={useEffectiveWorkspaceId()} />;
+}
+
 function WorkspaceInvitationsOverlayView() {
   return <TeamInvitationsPage workspaceIdOverride={useEffectiveWorkspaceId()} embedded />;
 }
@@ -86,6 +101,27 @@ export const WORKSPACE_SETTINGS_OVERLAY_ITEMS: readonly UsercenterOverlayItem[] 
     titleKey: "settings:SETTINGS_WORKSPACE_GENERAL_TITLE",
     descriptionKey: "settings:SETTINGS_WORKSPACE_GENERAL_DESC",
     render: () => <WorkspaceGeneralOverlayView />,
+  },
+  {
+    screen: "workspace.knowledge",
+    labelKey: "account:SETTINGS_NAV_WORKSPACE_KNOWLEDGE",
+    titleKey: "settings:SETTINGS_WORKSPACE_KNOWLEDGE_TITLE",
+    descriptionKey: "settings:SETTINGS_WORKSPACE_KNOWLEDGE_DESC",
+    render: () => <WorkspaceKnowledgeOverlayView />,
+  },
+  {
+    screen: "workspace.skills",
+    labelKey: "account:SETTINGS_NAV_WORKSPACE_SKILLS",
+    titleKey: "settings:SETTINGS_WORKSPACE_SKILLS_TITLE",
+    descriptionKey: "settings:SETTINGS_WORKSPACE_SKILLS_DESC",
+    render: () => <WorkspaceSkillsOverlayView />,
+  },
+  {
+    screen: "workspace.design-systems",
+    labelKey: "account:SETTINGS_NAV_WORKSPACE_DESIGN_SYSTEMS",
+    titleKey: "settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_TITLE",
+    descriptionKey: "settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_DESC",
+    render: () => <WorkspaceDesignSystemsOverlayView />,
   },
   {
     screen: "workspace.plan-usage",

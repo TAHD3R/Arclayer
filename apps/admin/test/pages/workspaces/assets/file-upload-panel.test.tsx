@@ -80,4 +80,58 @@ describe("FileUpload.Panel", () => {
       expect.arrayContaining([expect.objectContaining({ code: "file-invalid-type" })]),
     );
   });
+
+  it("renders a completion-only recovery action without a destructive remove control", () => {
+    render(
+      <FileUpload.Panel
+        items={[
+          {
+            id: "upload-1",
+            file: new File(["hello"], "cover.png", { type: "image/png" }),
+            status: "finalize_error",
+            progress: 100,
+            errorText: "assets:ASSET_UPLOAD_FINALIZE_FAILED",
+          },
+        ]}
+        onPickFiles={() => undefined}
+        onDeleteItem={() => undefined}
+        onRetryItem={() => undefined}
+        isItemRemovable={() => false}
+      />,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "assets:ASSET_UPLOAD_STATUS_FINALIZE_REQUIRED",
+    );
+    expect(screen.getByRole("button", { name: "assets:ASSET_UPLOAD_ACTION_FINISH" })).toBeEnabled();
+    expect(screen.getByRole("alert")).toHaveTextContent("assets:ASSET_UPLOAD_FINALIZE_FAILED");
+    expect(
+      screen.queryByRole("button", { name: "assets:ASSET_UPLOAD_REMOVE" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("announces finalization as busy and offers no retry until it fails", () => {
+    render(
+      <FileUpload.Panel
+        items={[
+          {
+            id: "upload-1",
+            file: new File(["hello"], "cover.png", { type: "image/png" }),
+            status: "finalizing",
+            progress: 100,
+          },
+        ]}
+        onPickFiles={() => undefined}
+        onDeleteItem={() => undefined}
+        onRetryItem={() => undefined}
+        isItemRemovable={() => false}
+      />,
+    );
+
+    expect(screen.getByRole("listitem")).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("status")).toHaveTextContent("assets:ASSET_UPLOAD_STATUS_FINALIZING");
+    expect(
+      screen.queryByRole("button", { name: "assets:ASSET_UPLOAD_ACTION_FINISH" }),
+    ).not.toBeInTheDocument();
+  });
 });

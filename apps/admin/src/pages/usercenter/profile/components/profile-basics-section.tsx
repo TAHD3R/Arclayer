@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
+import { AvatarUploadCompletionNotice } from "@/components/common/avatar-upload-completion-notice";
 import { UserAvatar } from "@/components/common/entity-avatar";
 import { AvatarUploadSlot } from "@/components/common/avatar-upload-slot";
 import { SettingCard, SettingCardContent } from "@arclayer/ui/setting-card";
@@ -11,6 +12,12 @@ import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
+import {
+  AssetUploadCleanupError,
+  completeAssetUpload,
+  getAssetUploadCompletionCheckpoint,
+  type AssetUploadCompletionCheckpoint,
+} from "@/lib/assets/upload-completion";
 import { initialsFromName } from "@/lib/auth/user-profile";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { uploadAvatarFile } from "@/pages/usercenter/profile/lib/avatar-upload";
@@ -49,6 +56,8 @@ export function UserProfileBasicsSection(props: UserProfileBasicsSectionProps) {
   const [displayNameDraft, setDisplayNameDraft] = useState(props.profile.displayName ?? "");
   const [displayNameDirty, setDisplayNameDirty] = useState(false);
   const [confirmDisplayNameOpen, setConfirmDisplayNameOpen] = useState(false);
+  const [avatarCompletionCheckpoint, setAvatarCompletionCheckpoint] =
+    useState<AssetUploadCompletionCheckpoint | null>(null);
 
   useEffect(() => {
     if (displayNameDirty) return;
@@ -101,20 +110,60 @@ export function UserProfileBasicsSection(props: UserProfileBasicsSectionProps) {
   });
   const avatarUploadMutation = useMutation({
     mutationFn: async (file: File) => uploadAvatarFile(file),
-    onError: (err) => notifyError(err),
+    onError: handleAvatarUploadError,
+  });
+  const avatarCompletionMutation = useMutation({
+    mutationFn: completeAssetUpload,
+    onError: handleAvatarUploadError,
   });
   const avatarFileInputRef = useRef<HTMLInputElement | null>(null);
-  const isAvatarBusy = avatarUploadMutation.isPending || updateAvatarMutation.isPending;
+  const isAvatarBusy =
+    avatarUploadMutation.isPending ||
+    avatarCompletionMutation.isPending ||
+    updateAvatarMutation.isPending;
+  const isAvatarSelectionLocked = isAvatarBusy || Boolean(avatarCompletionCheckpoint);
+
+  function handleAvatarUploadError(error: unknown) {
+    const checkpoint = getAssetUploadCompletionCheckpoint(error);
+    if (checkpoint) {
+      setAvatarCompletionCheckpoint(checkpoint);
+      return;
+    }
+    if (error instanceof AssetUploadCleanupError) {
+      notifyError(new Error(t("account:ME_PROFILE_AVATAR_CLEANUP_FAILED"), { cause: error }));
+      return;
+    }
+    notifyError(error);
+  }
+
+  async function persistCompletedAvatar(assetId: string) {
+    await updateAvatarMutation.mutateAsync(assetId);
+    setAvatarCompletionCheckpoint(null);
+  }
 
   const handleAvatarFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.currentTarget.value = "";
-    if (!file || isAvatarBusy) return;
+    if (!file || isAvatarSelectionLocked) return;
 
     void (async () => {
       try {
         const assetId = await avatarUploadMutation.mutateAsync(file);
-        await updateAvatarMutation.mutateAsync(assetId);
+        await persistCompletedAvatar(assetId);
+      } catch {
+        // Errors are surfaced by mutation onError handlers.
+      }
+    })();
+  };
+
+  const handleContinueAvatarCompletion = () => {
+    const checkpoint = avatarCompletionCheckpoint;
+    if (!checkpoint || isAvatarBusy) return;
+
+    void (async () => {
+      try {
+        const assetId = await avatarCompletionMutation.mutateAsync(checkpoint);
+        await persistCompletedAvatar(assetId);
       } catch {
         // Errors are surfaced by mutation onError handlers.
       }
@@ -133,12 +182,14 @@ export function UserProfileBasicsSection(props: UserProfileBasicsSectionProps) {
                 accept="image/*"
                 className="hidden"
                 tabIndex={-1}
+                aria-label={t("account:ME_PROFILE_AVATAR_CHANGE")}
+                disabled={isAvatarSelectionLocked}
                 onChange={handleAvatarFileChange}
               />
               <AvatarUploadSlot
                 size={80}
                 shape="circle"
-                disabled={isAvatarBusy}
+                disabled={isAvatarSelectionLocked}
                 loading={isAvatarBusy}
                 src={
                   resolveAssetRefToPublicUrlPath(
@@ -157,6 +208,15 @@ export function UserProfileBasicsSection(props: UserProfileBasicsSectionProps) {
             </div>
 
             <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+              {avatarCompletionCheckpoint ? (
+                <AvatarUploadCompletionNotice
+                  className="mb-2 max-w-md"
+                  description={t("account:ME_PROFILE_AVATAR_COMPLETION_PENDING")}
+                  actionLabel={t("account:ME_PROFILE_AVATAR_COMPLETION_ACTION")}
+                  pending={isAvatarBusy}
+                  onContinue={handleContinueAvatarCompletion}
+                />
+              ) : null}
               <label className="text-body font-medium text-label-primary">
                 {t("account:ME_PROFILE_DISPLAY_NAME_TITLE")}
               </label>

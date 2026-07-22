@@ -7,6 +7,11 @@ import {
   presignAvatarUploadPart,
   uploadAvatarPart,
 } from "@/api/uploads";
+import {
+  abortAssetUploadBeforeCompletion,
+  completeAssetUpload,
+  createAssetUploadCompletionCheckpoint,
+} from "@/lib/assets/upload-completion";
 import { uploadPresignedPart } from "@/lib/assets/storage-transfer";
 
 const MIN_UPLOAD_CHUNK_SIZE = 1;
@@ -97,6 +102,7 @@ async function uploadS3Part(params: {
 
 export async function uploadAvatarFile(file: File, signal?: AbortSignal): Promise<string> {
   let uploadId: string | null = null;
+  let completionStarted = false;
   try {
     const policy = await getAvatarUploadPolicy();
     if (file.size > policy.maxSizeBytes) {
@@ -129,15 +135,23 @@ export async function uploadAvatarFile(file: File, signal?: AbortSignal): Promis
       }
     });
 
-    const done = await completeAvatarUpload(activeUploadId);
-    return done.assetId;
+    const checkpoint = createAssetUploadCompletionCheckpoint({
+      uploadId: activeUploadId,
+      complete: async () => {
+        const done = await completeAvatarUpload(activeUploadId);
+        return done.assetId;
+      },
+    });
+    completionStarted = true;
+    return await completeAssetUpload(checkpoint);
   } catch (error) {
-    if (uploadId) {
-      try {
-        await abortAvatarUpload(uploadId);
-      } catch {
-        // Ignore abort cleanup errors and rethrow original error.
-      }
+    if (uploadId && !completionStarted) {
+      const incompleteUploadId = uploadId;
+      return await abortAssetUploadBeforeCompletion({
+        uploadId: incompleteUploadId,
+        uploadError: error,
+        abort: async () => abortAvatarUpload(incompleteUploadId),
+      });
     }
     throw error;
   }

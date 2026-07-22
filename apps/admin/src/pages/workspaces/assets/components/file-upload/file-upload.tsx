@@ -1,8 +1,10 @@
 import {
   CheckCircle2,
+  CircleAlert,
   CircleHelp,
   CloudUpload,
   FileWarning,
+  LoaderCircle,
   RotateCcw,
   Trash2,
   XCircle,
@@ -19,7 +21,14 @@ import { Progress } from "@arclayer/ui/progress";
 import { cn } from "@arclayer/lib/utils";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 
-export type FileUploadItemStatus = "pending" | "uploading" | "success" | "error" | "canceled";
+export type FileUploadItemStatus =
+  | "pending"
+  | "uploading"
+  | "finalizing"
+  | "success"
+  | "error"
+  | "finalize_error"
+  | "canceled";
 
 export interface FileUploadPanelItem {
   id: string;
@@ -39,6 +48,7 @@ export interface FileUploadPanelProps {
   onDeleteItem: (id: string) => void;
   onRetryItem?: (id: string) => void;
   isItemActionDisabled?: (id: string) => boolean;
+  isItemRemovable?: (id: string) => boolean;
   dropZoneHintSummary?: ReactNode;
   dropZoneHintDetail?: ReactNode;
 }
@@ -118,6 +128,7 @@ export function FileUploadListItemProgressFill(props: FileUploadListItemProps) {
   const progress = Math.min(100, Math.max(0, Math.round(props.progress)));
   const isComplete = props.status === "success" || progress >= 100;
   const isFailed = props.status === "error";
+  const isCompletionPending = props.status === "finalize_error";
 
   const statusLabel = useMemo(() => {
     switch (props.status) {
@@ -125,21 +136,37 @@ export function FileUploadListItemProgressFill(props: FileUploadListItemProps) {
         return t("assets:ASSET_UPLOAD_STATUS_PENDING");
       case "uploading":
         return t("assets:ASSET_UPLOAD_STATUS_UPLOADING");
+      case "finalizing":
+        return t("assets:ASSET_UPLOAD_STATUS_FINALIZING");
       case "success":
         return t("assets:ASSET_UPLOAD_STATUS_SUCCESS");
       case "canceled":
         return t("assets:ASSET_UPLOAD_STATUS_CANCELED");
       case "error":
         return t("assets:ASSET_UPLOAD_STATUS_ERROR");
+      case "finalize_error":
+        return t("assets:ASSET_UPLOAD_STATUS_FINALIZE_REQUIRED");
     }
   }, [props.status, t]);
 
   const statusIcon = useMemo(() => {
-    if (props.status === "success") return <CheckCircle2 className="size-4 text-primary" />;
-    if (props.status === "error") return <XCircle className="size-4 text-error-primary" />;
-    if (props.status === "canceled") return <FileWarning className="size-4 text-label-secondary" />;
+    if (props.status === "success")
+      return <CheckCircle2 aria-hidden="true" className="size-4 text-primary" />;
+    if (props.status === "error")
+      return <XCircle aria-hidden="true" className="size-4 text-error-primary" />;
+    if (props.status === "finalize_error")
+      return <CircleAlert aria-hidden="true" className="size-4 text-warning" />;
+    if (props.status === "canceled")
+      return <FileWarning aria-hidden="true" className="size-4 text-label-secondary" />;
+    if (props.status === "finalizing")
+      return (
+        <LoaderCircle
+          aria-hidden="true"
+          className="size-4 animate-spin text-label-secondary motion-reduce:animate-none"
+        />
+      );
     if (props.status === "uploading")
-      return <CloudUpload className="size-4 text-label-secondary" />;
+      return <CloudUpload aria-hidden="true" className="size-4 text-label-secondary" />;
     return null;
   }, [props.status]);
 
@@ -149,13 +176,15 @@ export function FileUploadListItemProgressFill(props: FileUploadListItemProps) {
         "relative flex gap-3 overflow-hidden rounded-xl bg-card p-4",
         "border border-border/60",
         isFailed ? "ring-2 ring-destructive ring-inset" : null,
+        isCompletionPending ? "ring-1 ring-warning/50 ring-inset" : null,
         props.className,
       )}
+      aria-busy={props.status === "uploading" || props.status === "finalizing"}
     >
       <div
         aria-hidden="true"
         className={cn(
-          "absolute inset-y-0 left-0 rounded-[inherit] bg-primary/6 transition-[width,opacity] duration-100 ease-linear dark:bg-primary/12",
+          "absolute inset-y-0 left-0 rounded-[inherit] bg-primary/6 transition-[width,opacity] duration-100 ease-linear motion-reduce:transition-none dark:bg-primary/12",
           isComplete ? "opacity-0" : null,
         )}
         style={{ width: `${progress}%` }}
@@ -179,7 +208,11 @@ export function FileUploadListItemProgressFill(props: FileUploadListItemProps) {
             <div className="mt-0.5 flex min-w-0 items-center gap-2 text-callout text-label-secondary">
               <span className="truncate">{getReadableFileSize(props.sizeBytes)}</span>
               <span className="h-3 w-px shrink-0 rounded-full bg-border-primary" />
-              <span className="inline-flex min-w-0 items-center gap-1">
+              <span
+                className="inline-flex min-w-0 items-center gap-1"
+                role="status"
+                aria-live="polite"
+              >
                 {statusIcon}
                 <span className="min-w-0 truncate">{statusLabel}</span>
               </span>
@@ -190,15 +223,17 @@ export function FileUploadListItemProgressFill(props: FileUploadListItemProps) {
           </div>
 
           <div className="shrink-0 flex items-center gap-2">
-            {props.status === "error" && props.onRetry ? (
+            {(props.status === "error" || props.status === "finalize_error") && props.onRetry ? (
               <Button
                 variant="ghost"
                 size="sm"
                 disabled={props.isActionDisabled}
                 onClick={props.onRetry}
               >
-                <RotateCcw className="size-4" />
-                {t("assets:ASSET_UPLOAD_ACTION_RETRY")}
+                <RotateCcw aria-hidden="true" className="size-4" />
+                {props.status === "finalize_error"
+                  ? t("assets:ASSET_UPLOAD_ACTION_FINISH")
+                  : t("assets:ASSET_UPLOAD_ACTION_RETRY")}
               </Button>
             ) : null}
 
@@ -211,8 +246,9 @@ export function FileUploadListItemProgressFill(props: FileUploadListItemProps) {
                     className={cn("px-2")}
                     disabled={props.isActionDisabled}
                     onClick={props.onDelete}
+                    aria-label={t("assets:ASSET_UPLOAD_REMOVE")}
                   >
-                    <Trash2 className="size-4" />
+                    <Trash2 aria-hidden="true" className="size-4" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>{t("assets:ASSET_UPLOAD_REMOVE")}</TooltipContent>
@@ -227,7 +263,15 @@ export function FileUploadListItemProgressFill(props: FileUploadListItemProps) {
             className={cn(props.status === "error" ? "bg-destructive/15" : undefined)}
           />
           {props.errorText ? (
-            <div className="mt-1 text-callout text-error-primary">{props.errorText}</div>
+            <div
+              className={cn(
+                "mt-1 text-callout",
+                isCompletionPending ? "text-warning" : "text-error-primary",
+              )}
+              role="alert"
+            >
+              {props.errorText}
+            </div>
           ) : null}
         </div>
       </div>
@@ -290,7 +334,7 @@ export function FileUploadDropZone(props: FileUploadDropZoneProps) {
     <div
       {...rootProps}
       className={cn(
-        "relative flex flex-col items-center gap-3 rounded-xl border border-dashed p-8 text-center transition",
+        "relative flex flex-col items-center gap-3 rounded-xl border border-dashed p-8 text-center transition-[border-color,background-color,opacity] motion-reduce:transition-none",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
         props.isDisabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
         isDragActive
@@ -302,6 +346,7 @@ export function FileUploadDropZone(props: FileUploadDropZoneProps) {
       <input {...getInputProps()} />
 
       <CloudUpload
+        aria-hidden="true"
         className={cn("size-10", isDragActive ? "text-primary" : "text-label-secondary")}
       />
 
@@ -336,12 +381,13 @@ export function FileUploadDropZone(props: FileUploadDropZoneProps) {
                   "hover:bg-accent/35 hover:text-label-primary",
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
                 )}
+                aria-label={t("assets:ASSET_UPLOAD_FORMATS_HELP")}
                 onClick={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
                 }}
               >
-                <CircleHelp className="size-4" />
+                <CircleHelp aria-hidden="true" className="size-4" />
               </ButtonPrimitive>
             </TooltipTrigger>
             <TooltipContent>
@@ -393,9 +439,13 @@ export function FileUploadPanel(props: FileUploadPanelProps) {
                 status={it.status}
                 errorText={it.errorText ?? null}
                 isActionDisabled={props.isItemActionDisabled?.(it.id)}
-                onDelete={() => props.onDeleteItem(it.id)}
+                onDelete={
+                  props.isItemRemovable?.(it.id) === false
+                    ? undefined
+                    : () => props.onDeleteItem(it.id)
+                }
                 onRetry={
-                  it.status === "error" && props.onRetryItem
+                  (it.status === "error" || it.status === "finalize_error") && props.onRetryItem
                     ? () => props.onRetryItem?.(it.id)
                     : undefined
                 }

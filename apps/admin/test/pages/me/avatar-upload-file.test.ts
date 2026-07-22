@@ -1,5 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
+import {
+  AssetUploadCleanupError,
+  AssetUploadCompletionRequiredError,
+  completeAssetUpload,
+  getAssetUploadCompletionCheckpoint,
+} from "@/lib/assets/upload-completion";
 import { uploadAvatarFile } from "@/pages/usercenter/profile/lib/avatar-upload";
 import {
   abortAvatarUpload,
@@ -72,6 +78,64 @@ describe("uploadAvatarFile", () => {
 
     await expect(uploadAvatarFile(file)).rejects.toThrow("upload failed");
     expect(abortAvatarUpload).toHaveBeenCalledWith("u-2");
+    expect(completeAvatarUpload).not.toHaveBeenCalled();
+  });
+
+  it("complete 开始后失败时保留同一 uploadId 且不 abort", async () => {
+    vi.mocked(initAvatarUpload).mockResolvedValue({
+      uploadId: "u-completion",
+      chunkSize: 1024,
+      totalParts: 1,
+      method: "local",
+    } as never);
+    vi.mocked(uploadAvatarPart).mockResolvedValue(undefined);
+    vi.mocked(completeAvatarUpload)
+      .mockRejectedValueOnce(new Error("database commit failed"))
+      .mockResolvedValueOnce({ assetId: "asset-completed" } as never);
+
+    const file = new File(["avatar-bytes"], "avatar.png", { type: "image/png" });
+
+    let completionError: unknown;
+    try {
+      await uploadAvatarFile(file);
+    } catch (error) {
+      completionError = error;
+    }
+
+    expect(completionError).toBeInstanceOf(AssetUploadCompletionRequiredError);
+    const checkpoint = getAssetUploadCompletionCheckpoint(completionError);
+    expect(checkpoint).toMatchObject({ uploadId: "u-completion" });
+    expect.assert(checkpoint);
+    await expect(completeAssetUpload(checkpoint)).resolves.toBe("asset-completed");
+
+    expect(initAvatarUpload).toHaveBeenCalledTimes(1);
+    expect(uploadAvatarPart).toHaveBeenCalledTimes(1);
+    expect(completeAvatarUpload).toHaveBeenNthCalledWith(1, "u-completion");
+    expect(completeAvatarUpload).toHaveBeenNthCalledWith(2, "u-completion");
+    expect(abortAvatarUpload).not.toHaveBeenCalled();
+  });
+
+  it("pre-completion abort 失败时不会吞掉 cleanup error", async () => {
+    const uploadError = new Error("upload failed");
+    const cleanupError = new Error("abort failed");
+    vi.mocked(initAvatarUpload).mockResolvedValue({
+      uploadId: "u-cleanup",
+      chunkSize: 1024,
+      totalParts: 1,
+      method: "local",
+    } as never);
+    vi.mocked(uploadAvatarPart).mockRejectedValue(uploadError);
+    vi.mocked(abortAvatarUpload).mockRejectedValue(cleanupError);
+
+    const file = new File(["avatar-bytes"], "avatar.png", { type: "image/png" });
+
+    await expect(uploadAvatarFile(file)).rejects.toEqual(
+      expect.objectContaining<Partial<AssetUploadCleanupError>>({
+        uploadId: "u-cleanup",
+        uploadError,
+        cleanupError,
+      }),
+    );
     expect(completeAvatarUpload).not.toHaveBeenCalled();
   });
 
