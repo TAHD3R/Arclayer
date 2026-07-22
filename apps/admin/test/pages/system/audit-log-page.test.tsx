@@ -136,8 +136,8 @@ vi.mock("@/pages/system/audit-log/audit-events-table", () => ({
     </button>
   ),
 }));
-vi.mock("@/pages/workspaces/shared/activity/components/activity-detail-dialog", () => ({
-  ActivityDetailDialog: ({
+vi.mock("@/pages/system/audit-log/audit-event-detail-drawer", () => ({
+  AuditEventDetailDrawer: ({
     open,
     event,
     workspaceLabelById,

@@ -127,6 +127,7 @@ export function SystemObservabilityRequestsPage() {
           <ObservabilityTrendCard
             title={t("TREND_HTTP_REQUESTS")}
             description={t(`PERIOD_${days}_DAYS`)}
+            expectedBucketCount={days}
             points={httpRequests.data?.points}
             loading={httpRequests.isLoading}
             error={httpRequests.error}
@@ -144,6 +145,7 @@ export function SystemObservabilityRequestsPage() {
           <ObservabilityTrendCard
             title={t("TREND_HTTP_ERRORS")}
             description={t(`PERIOD_${days}_DAYS`)}
+            expectedBucketCount={days}
             points={httpErrors.data?.points}
             loading={httpErrors.isLoading}
             error={httpErrors.error}
@@ -162,6 +164,7 @@ export function SystemObservabilityRequestsPage() {
           <ObservabilityTrendCard
             title={t("TREND_HTTP_LATENCY")}
             description={t(`PERIOD_${days}_DAYS`)}
+            expectedBucketCount={days}
             points={httpLatency.data?.points}
             loading={httpLatency.isLoading}
             error={httpLatency.error}

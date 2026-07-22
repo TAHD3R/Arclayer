@@ -162,6 +162,7 @@ export function useAuditDashboardWidgets(options: AuditDashboardWidgetOptions) {
           <ObservabilityTrendCard
             title={t("platform:TREND_HTTP_REQUESTS")}
             description={t(`platform:PERIOD_${options.days}_DAYS`)}
+            expectedBucketCount={options.days}
             points={options.requestTrend.data?.points}
             loading={options.requestTrend.isLoading}
             error={options.requestTrend.error}
@@ -179,6 +180,7 @@ export function useAuditDashboardWidgets(options: AuditDashboardWidgetOptions) {
           <ObservabilityTrendCard
             title={t("platform:TREND_HTTP_ERRORS")}
             description={t(`platform:PERIOD_${options.days}_DAYS`)}
+            expectedBucketCount={options.days}
             points={options.errorTrend.data?.points}
             loading={options.errorTrend.isLoading}
             error={options.errorTrend.error}
@@ -198,7 +200,12 @@ export function useAuditDashboardWidgets(options: AuditDashboardWidgetOptions) {
             headingId="audit-request-groups-title"
             title={t("platform:AUDIT_REQUEST_TABLE_TITLE")}
           >
-            <RequestGroupsTable days={options.days} onSelect={options.onSelectGroup} />
+            <RequestGroupsTable
+              days={options.days}
+              onSelect={options.onSelectGroup}
+              workspaceLabelById={options.workspaceLabelById}
+              projectLabelById={options.projectLabelById}
+            />
           </DashboardTableShell>
         ),
       },
@@ -223,6 +230,7 @@ export function useAuditDashboardWidgets(options: AuditDashboardWidgetOptions) {
           <ObservabilityTrendCard
             title={t("platform:TREND_AUDIT_EVENTS")}
             description={t(`platform:PERIOD_${options.days}_DAYS`)}
+            expectedBucketCount={options.days}
             points={options.eventTrend.data?.points}
             loading={options.eventTrend.isLoading}
             error={options.eventTrend.error}

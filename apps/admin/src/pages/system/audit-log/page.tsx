@@ -9,7 +9,6 @@ import type {
 } from "@/api/platform-observability";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
-import { ActivityDetailDialog } from "@/pages/workspaces/shared/activity/components/activity-detail-dialog";
 import {
   ChromeTabs,
   ChromeTabsContent,
@@ -23,6 +22,7 @@ import type {
 } from "@arclayer/openapi/admin-types";
 
 import { useAuditDashboardWidgets } from "./dashboard-widgets";
+import { AuditEventDetailDrawer } from "./audit-event-detail-drawer";
 import { RequestGroupDetailDialog } from "./request-group-detail-dialog";
 import { RequestRecordDetailDialog } from "./request-record-detail-dialog";
 import { ConfigurableDashboard } from "../observability/components/dashboard-layout";
@@ -173,13 +173,14 @@ export function SystemAuditLogPage() {
         ) : null}
       </ContentGuard>
 
-      <ActivityDetailDialog
+      <AuditEventDetailDrawer
         open={Boolean(selected)}
         onOpenChange={(open) => {
           if (!open) setSelected(null);
         }}
         event={selected}
         workspaceLabelById={workspaceLabelById}
+        projectLabelById={projectLabelById}
       />
       <RequestRecordDetailDialog
         open={Boolean(selectedRecord)}

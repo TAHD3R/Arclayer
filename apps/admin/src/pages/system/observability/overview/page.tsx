@@ -133,6 +133,7 @@ export function SystemObservabilityOverviewPage() {
           <ObservabilityTrendCard
             title={t("TREND_HTTP_ERRORS")}
             description={t(`PERIOD_${days}_DAYS`)}
+            expectedBucketCount={days}
             points={httpErrors.data?.points}
             loading={httpErrors.isLoading}
             error={httpErrors.error}
@@ -151,6 +152,7 @@ export function SystemObservabilityOverviewPage() {
           <ObservabilityTrendCard
             title={t("TREND_ERRORS")}
             description={t(`PERIOD_${days}_DAYS`)}
+            expectedBucketCount={days}
             points={aiErrors.data?.points}
             loading={aiErrors.isLoading}
             error={aiErrors.error}
@@ -169,6 +171,7 @@ export function SystemObservabilityOverviewPage() {
           <ObservabilityTrendCard
             title={t("TREND_COST")}
             description={t(`PERIOD_${days}_DAYS`)}
+            expectedBucketCount={days}
             points={aiCost.data?.points}
             loading={aiCost.isLoading}
             error={aiCost.error}
@@ -186,6 +189,7 @@ export function SystemObservabilityOverviewPage() {
           <ObservabilityTrendCard
             title={t("TREND_AUDIT_EVENTS")}
             description={t(`PERIOD_${days}_DAYS`)}
+            expectedBucketCount={days}
             points={auditEvents.data?.points}
             loading={auditEvents.isLoading}
             error={auditEvents.error}

@@ -93,6 +93,7 @@ export function SystemObservabilityAIUsagePage() {
           <ObservabilityTrendCard
             title={t("TREND_REQUESTS")}
             description={t(`PERIOD_${days}_DAYS`)}
+            expectedBucketCount={days}
             points={requests.data?.points}
             loading={requests.isLoading}
             error={requests.error}
@@ -110,6 +111,7 @@ export function SystemObservabilityAIUsagePage() {
           <ObservabilityTrendCard
             title={t("TREND_TOKENS")}
             description={t(`PERIOD_${days}_DAYS`)}
+            expectedBucketCount={days}
             points={tokens.data?.points}
             loading={tokens.isLoading}
             error={tokens.error}
@@ -127,6 +129,7 @@ export function SystemObservabilityAIUsagePage() {
           <ObservabilityTrendCard
             title={t("TREND_COST")}
             description={t(`PERIOD_${days}_DAYS`)}
+            expectedBucketCount={days}
             points={cost.data?.points}
             loading={cost.isLoading}
             error={cost.error}

@@ -26,6 +26,21 @@ export type HTTPRequestGroupWithPercentiles = HTTPRequestGroup & {
   p99LatencyMs: number | null;
 };
 
+export type HTTPRequestGroupOrdering =
+  | "-requests"
+  | "-error_rate"
+  | "-p95_latency_ms"
+  | "-p99_latency_ms"
+  | "-avg_latency_ms"
+  | "-last_seen_at";
+
+export type HTTPRequestRecordOrdering =
+  | "-occurred_at"
+  | "occurred_at"
+  | "-duration_ms"
+  | "duration_ms"
+  | "-status_code";
+
 export type HTTPRequestRecord = {
   id: string;
   occurredAt: string;
@@ -102,6 +117,9 @@ export async function listSystemHTTPRequestGroups(
     q?: string;
     method?: string;
     statusClass?: number;
+    workspaceId?: string;
+    projectId?: string;
+    ordering?: HTTPRequestGroupOrdering;
   },
   signal?: AbortSignal,
 ): Promise<PageData<HTTPRequestGroupWithPercentiles>> {
@@ -113,6 +131,9 @@ export async function listSystemHTTPRequestGroups(
       q: params.q,
       method: params.method,
       statusClass: params.statusClass,
+      workspaceId: params.workspaceId,
+      projectId: params.projectId,
+      ordering: params.ordering,
     })}`,
     { signal },
   );
@@ -126,6 +147,13 @@ export async function listSystemHTTPRequestRecords(
     q?: string;
     method?: string;
     statusClass?: number;
+    workspaceId?: string;
+    projectId?: string;
+    actorUserId?: string;
+    minDurationMs?: number;
+    maxDurationMs?: number;
+    hasError?: boolean;
+    ordering?: HTTPRequestRecordOrdering;
   },
   signal?: AbortSignal,
 ): Promise<PageData<HTTPRequestRecord>> {
@@ -137,6 +165,13 @@ export async function listSystemHTTPRequestRecords(
       q: params.q,
       method: params.method,
       statusClass: params.statusClass,
+      workspaceId: params.workspaceId,
+      projectId: params.projectId,
+      actorUserId: params.actorUserId,
+      minDurationMs: params.minDurationMs,
+      maxDurationMs: params.maxDurationMs,
+      hasError: params.hasError,
+      ordering: params.ordering,
     })}`,
     { signal },
   );

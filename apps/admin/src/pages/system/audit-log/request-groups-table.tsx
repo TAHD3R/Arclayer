@@ -1,26 +1,34 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ColumnDef } from "@tanstack/react-table";
+import { Eye } from "lucide-react";
 
 import {
   listSystemHTTPRequestGroups,
+  type HTTPRequestGroupOrdering,
   type HTTPRequestGroupWithPercentiles,
 } from "@/api/platform-observability";
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
+import {
+  buildDataTableActionsColumnMeta,
+  DataTableActionsCell,
+} from "@/components/common/data-table-actions-cell";
 import { BaseTag } from "@/components/ui/tags";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
 import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
 import { cn } from "@arclayer/lib/utils";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { Button } from "@arclayer/ui/button";
 import { useDataTable } from "@arclayer/ui/data-table";
+
+import { AuditRequestControls, type AuditRequestFilters } from "./audit-table-controls";
+import { AuditTablePagination } from "./audit-table-pagination";
 type RequestGroupsTableProps = {
   days: number;
   onSelect?: (group: HTTPRequestGroupWithPercentiles) => void;
+  workspaceLabelById?: Readonly<Record<string, string>>;
+  projectLabelById?: Readonly<Record<string, string>>;
 };
-
-const METHOD_OPTIONS = ["ALL", "GET", "POST", "PUT", "PATCH", "DELETE"] as const;
-const STATUS_OPTIONS = ["ALL", "2", "3", "4", "5"] as const;
 
 function requestTagColor(statusClass: number) {
   if (statusClass === 2) return "green" as const;
@@ -37,10 +45,15 @@ function TruncatedValue(props: { children: string; className?: string }) {
   );
 }
 
-export function RequestGroupsTable({ days, onSelect }: RequestGroupsTableProps) {
+export function RequestGroupsTable({
+  days,
+  onSelect,
+  workspaceLabelById = {},
+  projectLabelById = {},
+}: RequestGroupsTableProps) {
   const { t, i18n } = useTranslation(["platform", "common"]);
-  const [method, setMethod] = useState<(typeof METHOD_OPTIONS)[number]>("ALL");
-  const [statusClass, setStatusClass] = useState<(typeof STATUS_OPTIONS)[number]>("ALL");
+  const [filters, setFilters] = useState<AuditRequestFilters>({});
+  const [ordering, setOrdering] = useState<HTTPRequestGroupOrdering>("-requests");
   const dateTime = useAdminDateTimeFormatter({ workspaceId: null });
   const number = useMemo(
     () => new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language),
@@ -151,8 +164,35 @@ export function RequestGroupsTable({ days, onSelect }: RequestGroupsTableProps) 
         ),
         size: 180,
       },
+      ...(onSelect
+        ? [
+            {
+              id: "actions",
+              header: "",
+              meta: buildDataTableActionsColumnMeta("right", "right"),
+              enableHiding: false,
+              cell: ({ row }) => (
+                <DataTableActionsCell>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onSelect(row.original);
+                    }}
+                  >
+                    <Eye className="size-3.5" />
+                    {t("platform:AUDIT_ACTION_DETAILS")}
+                  </Button>
+                </DataTableActionsCell>
+              ),
+              size: 112,
+            } satisfies ColumnDef<HTTPRequestGroupWithPercentiles, unknown>,
+          ]
+        : []),
     ],
-    [dateTime, number, percent, t],
+    [dateTime, number, onSelect, percent, t],
   );
   const tableHook = useDataTable<
     HTTPRequestGroupWithPercentiles,
@@ -160,6 +200,8 @@ export function RequestGroupsTable({ days, onSelect }: RequestGroupsTableProps) 
       days: number;
       method?: string;
       statusClass?: number;
+      workspaceId?: string;
+      projectId?: string;
     }
   >({
     tableId: "system-audit-request-groups",
@@ -167,9 +209,9 @@ export function RequestGroupsTable({ days, onSelect }: RequestGroupsTableProps) 
     initialState: { pageSize: 20 },
     extraQuery: {
       days,
-      method: method === "ALL" ? undefined : method,
-      statusClass: statusClass === "ALL" ? undefined : Number(statusClass),
+      ...filters,
     },
+    orderingOverride: ordering,
     features: { sorting: { enabled: false } },
     fetcher: (params) =>
       listSystemHTTPRequestGroups({
@@ -179,6 +221,9 @@ export function RequestGroupsTable({ days, onSelect }: RequestGroupsTableProps) 
         q: params.q,
         method: params.method,
         statusClass: params.statusClass,
+        workspaceId: params.workspaceId,
+        projectId: params.projectId,
+        ordering,
       }),
     queryOptions: { retry: false, meta: { silent: true } },
   });
@@ -192,33 +237,15 @@ export function RequestGroupsTable({ days, onSelect }: RequestGroupsTableProps) 
             placeholder={t("platform:AUDIT_REQUEST_SEARCH_PLACEHOLDER")}
             clearLabel={t("common:CLEAR")}
           />
-          <Select value={method} onValueChange={(value) => setMethod(value as typeof method)}>
-            <SelectTrigger aria-label={t("platform:AUDIT_REQUEST_METHOD")}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {METHOD_OPTIONS.map((value) => (
-                <SelectItem key={value} value={value}>
-                  {value === "ALL" ? t("platform:AUDIT_REQUEST_ALL_METHODS") : value}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={statusClass}
-            onValueChange={(value) => setStatusClass(value as typeof statusClass)}
-          >
-            <SelectTrigger aria-label={t("platform:AUDIT_REQUEST_STATUS")}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {STATUS_OPTIONS.map((value) => (
-                <SelectItem key={value} value={value}>
-                  {value === "ALL" ? t("platform:AUDIT_REQUEST_ALL_STATUSES") : `${value}xx`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <AuditRequestControls
+            mode="groups"
+            value={filters}
+            onChange={setFilters}
+            ordering={ordering}
+            onOrderingChange={(value) => setOrdering(value as HTTPRequestGroupOrdering)}
+            workspaceLabelById={workspaceLabelById}
+            projectLabelById={projectLabelById}
+          />
         </>
       }
     />
@@ -237,8 +264,8 @@ export function RequestGroupsTable({ days, onSelect }: RequestGroupsTableProps) 
       rowHeight="short"
       wrapHeaders
       refreshing={tableHook.isFetching && !tableHook.isLoading}
-      infiniteScroll={tableHook.infiniteScroll}
       toolbar={toolbar}
+      footerSlot={<AuditTablePagination table={tableHook.table} total={tableHook.total} />}
       rowClassName={onSelect ? () => "cursor-pointer" : undefined}
       onRowClick={onSelect ? (row) => onSelect(row.original) : undefined}
     />

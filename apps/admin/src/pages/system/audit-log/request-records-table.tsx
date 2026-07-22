@@ -1,16 +1,28 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ColumnDef } from "@tanstack/react-table";
+import { Eye } from "lucide-react";
 
-import { listSystemHTTPRequestRecords, type HTTPRequestRecord } from "@/api/platform-observability";
+import {
+  listSystemHTTPRequestRecords,
+  type HTTPRequestRecord,
+  type HTTPRequestRecordOrdering,
+} from "@/api/platform-observability";
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
+import {
+  buildDataTableActionsColumnMeta,
+  DataTableActionsCell,
+} from "@/components/common/data-table-actions-cell";
 import { BaseTag } from "@/components/ui/tags";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
 import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
-import { ActivityUserPill } from "@/pages/workspaces/shared/activity/components/activity-user-pill";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { Button } from "@arclayer/ui/button";
 import { useDataTable } from "@arclayer/ui/data-table";
+
+import { AuditRequestControls, type AuditRequestFilters } from "./audit-table-controls";
+import { AuditTablePagination } from "./audit-table-pagination";
+import { AuditUserIdentity } from "./audit-user-identity";
 
 type RequestRecordsTableProps = {
   days: number;
@@ -18,9 +30,6 @@ type RequestRecordsTableProps = {
   projectLabelById: Readonly<Record<string, string>>;
   onSelect: (record: HTTPRequestRecord) => void;
 };
-
-const METHOD_OPTIONS = ["ALL", "GET", "POST", "PUT", "PATCH", "DELETE"] as const;
-const STATUS_OPTIONS = ["ALL", "2", "3", "4", "5"] as const;
 
 function statusTagColor(statusCode: number) {
   if (statusCode >= 500 || statusCode === 0) return "red" as const;
@@ -42,8 +51,8 @@ function requestScope(
 
 export function RequestRecordsTable(props: RequestRecordsTableProps) {
   const { t, i18n } = useTranslation(["platform", "common"]);
-  const [method, setMethod] = useState<(typeof METHOD_OPTIONS)[number]>("ALL");
-  const [statusClass, setStatusClass] = useState<(typeof STATUS_OPTIONS)[number]>("ALL");
+  const [filters, setFilters] = useState<AuditRequestFilters>({});
+  const [ordering, setOrdering] = useState<HTTPRequestRecordOrdering>("-occurred_at");
   const dateTime = useAdminDateTimeFormatter({ workspaceId: null });
   const number = useMemo(
     () => new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language),
@@ -51,6 +60,17 @@ export function RequestRecordsTable(props: RequestRecordsTableProps) {
   );
   const columns = useMemo<ColumnDef<HTTPRequestRecord, unknown>[]>(
     () => [
+      {
+        id: "occurredAt",
+        header: t("platform:AUDIT_EVENT_TIME"),
+        meta: { title: t("platform:AUDIT_EVENT_TIME"), kind: "meta" },
+        cell: ({ row }) => (
+          <span className="block truncate tabular-nums">
+            {dateTime.formatDateTime(row.original.occurredAt)}
+          </span>
+        ),
+        size: 180,
+      },
       {
         id: "route",
         header: t("platform:AUDIT_REQUEST_ROUTE"),
@@ -93,9 +113,10 @@ export function RequestRecordsTable(props: RequestRecordsTableProps) {
         header: t("platform:AUDIT_EVENT_ACTOR"),
         meta: { title: t("platform:AUDIT_EVENT_ACTOR"), kind: "meta" },
         cell: ({ row }) => (
-          <ActivityUserPill
+          <AuditUserIdentity
             user={row.original.actor}
-            secondary={row.original.actorUserId ?? undefined}
+            userId={row.original.actorUserId}
+            onFilter={(actorUserId) => setFilters((current) => ({ ...current, actorUserId }))}
           />
         ),
         size: 190,
@@ -120,43 +141,51 @@ export function RequestRecordsTable(props: RequestRecordsTableProps) {
         size: 190,
       },
       {
-        id: "trace",
-        header: t("platform:AUDIT_EVENT_TRACE"),
-        meta: { title: t("platform:AUDIT_EVENT_TRACE"), kind: "meta" },
+        id: "actions",
+        header: "",
+        meta: buildDataTableActionsColumnMeta("right", "right"),
+        enableHiding: false,
         cell: ({ row }) => (
-          <span
-            className="block truncate font-mono text-footnote"
-            title={row.original.traceId ?? undefined}
-          >
-            {row.original.traceId ?? t("platform:AUDIT_EVENT_TRACE_MISSING")}
-          </span>
+          <DataTableActionsCell>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={(event) => {
+                event.stopPropagation();
+                props.onSelect(row.original);
+              }}
+            >
+              <Eye className="size-3.5" />
+              {t("platform:AUDIT_ACTION_DETAILS")}
+            </Button>
+          </DataTableActionsCell>
         ),
-        size: 190,
-      },
-      {
-        id: "occurredAt",
-        header: t("platform:AUDIT_EVENT_TIME"),
-        meta: { title: t("platform:AUDIT_EVENT_TIME"), kind: "meta" },
-        cell: ({ row }) => (
-          <span className="block truncate">{dateTime.formatDateTime(row.original.occurredAt)}</span>
-        ),
-        size: 180,
+        size: 112,
       },
     ],
     [dateTime, number, props.projectLabelById, props.workspaceLabelById, t],
   );
   const tableHook = useDataTable<
     HTTPRequestRecord,
-    { days: number; method?: string; statusClass?: number }
+    {
+      days: number;
+      method?: string;
+      statusClass?: number;
+      workspaceId?: string;
+      projectId?: string;
+      actorUserId?: string;
+      hasError?: boolean;
+    }
   >({
     tableId: "system-audit-request-records",
     columns,
     initialState: { pageSize: 20 },
     extraQuery: {
       days: props.days,
-      method: method === "ALL" ? undefined : method,
-      statusClass: statusClass === "ALL" ? undefined : Number(statusClass),
+      ...filters,
     },
+    orderingOverride: ordering,
     features: { sorting: { enabled: false } },
     fetcher: (params) =>
       listSystemHTTPRequestRecords({
@@ -166,6 +195,11 @@ export function RequestRecordsTable(props: RequestRecordsTableProps) {
         q: params.q,
         method: params.method,
         statusClass: params.statusClass,
+        workspaceId: params.workspaceId,
+        projectId: params.projectId,
+        actorUserId: params.actorUserId,
+        hasError: params.hasError,
+        ordering,
       }),
     queryOptions: { retry: false, meta: { silent: true } },
   });
@@ -179,33 +213,15 @@ export function RequestRecordsTable(props: RequestRecordsTableProps) {
             placeholder={t("platform:AUDIT_RECORD_SEARCH_PLACEHOLDER")}
             clearLabel={t("common:CLEAR")}
           />
-          <Select value={method} onValueChange={(value) => setMethod(value as typeof method)}>
-            <SelectTrigger aria-label={t("platform:AUDIT_REQUEST_METHOD")}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {METHOD_OPTIONS.map((value) => (
-                <SelectItem key={value} value={value}>
-                  {value === "ALL" ? t("platform:AUDIT_REQUEST_ALL_METHODS") : value}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={statusClass}
-            onValueChange={(value) => setStatusClass(value as typeof statusClass)}
-          >
-            <SelectTrigger aria-label={t("platform:AUDIT_REQUEST_STATUS")}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {STATUS_OPTIONS.map((value) => (
-                <SelectItem key={value} value={value}>
-                  {value === "ALL" ? t("platform:AUDIT_REQUEST_ALL_STATUSES") : `${value}xx`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <AuditRequestControls
+            mode="records"
+            value={filters}
+            onChange={setFilters}
+            ordering={ordering}
+            onOrderingChange={(value) => setOrdering(value as HTTPRequestRecordOrdering)}
+            workspaceLabelById={props.workspaceLabelById}
+            projectLabelById={props.projectLabelById}
+          />
         </>
       }
     />
@@ -224,8 +240,8 @@ export function RequestRecordsTable(props: RequestRecordsTableProps) {
       rowHeight="short"
       wrapHeaders
       refreshing={tableHook.isFetching && !tableHook.isLoading}
-      infiniteScroll={tableHook.infiniteScroll}
       toolbar={toolbar}
+      footerSlot={<AuditTablePagination table={tableHook.table} total={tableHook.total} />}
       rowClassName={() => "cursor-pointer"}
       onRowClick={(row) => props.onSelect(row.original)}
     />

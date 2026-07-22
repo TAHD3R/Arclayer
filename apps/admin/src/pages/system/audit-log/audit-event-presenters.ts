@@ -89,6 +89,6 @@ export function auditTargetLabel(t: TFunction, event: ActivityEvent) {
   const typeLabel = entityKey
     ? t(`platform:${entityKey}`)
     : entityType || t("platform:AUDIT_TARGET_UNSPECIFIED");
-  const detail = targetProperty(event) ?? event.entityId;
+  const detail = targetProperty(event);
   return detail ? `${typeLabel} · ${detail}` : typeLabel;
 }

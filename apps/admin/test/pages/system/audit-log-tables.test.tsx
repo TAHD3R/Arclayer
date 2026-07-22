@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -120,10 +120,32 @@ describe("system audit data tables", () => {
       screen.getByRole("textbox", { name: "platform:AUDIT_REQUEST_SEARCH_PLACEHOLDER" }),
       "content/items",
     );
-    await user.click(screen.getByRole("combobox", { name: "platform:AUDIT_REQUEST_METHOD" }));
-    await user.click(screen.getByRole("option", { name: "GET" }));
-    await user.click(screen.getByRole("combobox", { name: "platform:AUDIT_REQUEST_STATUS" }));
-    await user.click(screen.getByRole("option", { name: "2xx" }));
+    await waitFor(() => {
+      expect(listSystemHTTPRequestGroups).toHaveBeenCalledWith(
+        expect.objectContaining({ q: "content/items" }),
+      );
+    });
+
+    await user.click(screen.getByRole("button", { name: "platform:AUDIT_FILTER_TITLE" }));
+    await user.hover(screen.getByRole("option", { name: "platform:AUDIT_REQUEST_METHOD" }));
+    const getOption = await screen.findByRole("option", { name: "GET" });
+    act(() => getOption.focus());
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      expect(listSystemHTTPRequestGroups).toHaveBeenCalledWith(
+        expect.objectContaining({
+          q: "content/items",
+          method: "GET",
+        }),
+      );
+    });
+
+    await user.click(screen.getByRole("button", { name: "platform:AUDIT_FILTER_TITLE" }));
+    await user.hover(screen.getByRole("option", { name: "platform:AUDIT_REQUEST_STATUS" }));
+    const successOption = await screen.findByRole("option", { name: "2xx" });
+    act(() => successOption.focus());
+    await user.keyboard("{Enter}");
 
     await waitFor(() => {
       expect(listSystemHTTPRequestGroups).toHaveBeenLastCalledWith(
@@ -144,8 +166,9 @@ describe("system audit data tables", () => {
 
     expect(await screen.findByText("deployment.promoted")).toHaveClass("truncate");
     expect(screen.getByText("deployment", { selector: "span" })).toBeVisible();
-    expect(screen.getByText("platform:AUDIT_ENTITY_DEPLOYMENT · deployment-1")).toBeVisible();
-    expect(screen.getByText("trace-1")).toHaveClass("truncate");
+    expect(screen.getByText("platform:AUDIT_ENTITY_DEPLOYMENT")).toBeVisible();
+    expect(screen.queryByText("trace-1")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Alex" })).toBeVisible();
     await user.click(screen.getByText("deployment.promoted"));
 
     expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: "event-1" }));
@@ -166,7 +189,8 @@ describe("system audit data tables", () => {
     expect(await screen.findByText("/api/v1/projects/{project_id}/content/items")).toBeVisible();
     expect(screen.getByText("503")).toBeVisible();
     expect(screen.getByText("Website")).toBeVisible();
-    expect(screen.getByText("trace-1")).toBeVisible();
+    expect(screen.queryByText("trace-1")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Alex" })).toBeVisible();
     await user.click(screen.getByText("/api/v1/projects/{project_id}/content/items"));
 
     expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: "record-1" }));

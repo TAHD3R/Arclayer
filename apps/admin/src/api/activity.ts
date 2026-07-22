@@ -3,8 +3,11 @@ import { toQueryString, workspacePath } from "@/lib/api";
 
 import type { ActivityEvent, ListActivityParams, PageData } from "@arclayer/openapi/admin-types";
 
+export type ActivityOrdering = "-occurred_at" | "occurred_at";
+export type SystemActivityListParams = ListActivityParams & { ordering?: ActivityOrdering };
+
 export async function listSystemActivity(
-  params: ListActivityParams = {},
+  params: SystemActivityListParams = {},
 ): Promise<PageData<ActivityEvent>> {
   const query = toQueryString({
     page: params.page ?? 1,
@@ -17,6 +20,8 @@ export async function listSystemActivity(
     subjectUserId: params.subjectUserId,
     entityType: params.entityType,
     entityId: params.entityId,
+    projectId: params.projectId,
+    ordering: params.ordering,
   });
   return api.get<PageData<ActivityEvent>>(`/system/activity${query}`);
 }
