@@ -5,13 +5,13 @@ from typing import Any
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from tortoise.backends.base.client import BaseDBAsyncClient
-from tortoise.transactions import in_transaction
 
 from src.common.utils.ids import uuid7
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.http.pagination import PageData, PageParams
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.models.ai.ai_usage_daily import AIUsageDaily
 from src.models.commerce.billing import (
     BillingCycle,
@@ -225,8 +225,9 @@ def _subscription_out(subscription: WorkspaceSubscription) -> WorkspaceSubscript
     )
 
 
-class CommerceService:
+class CommerceService(BaseService):
     def __init__(self, settings: Settings) -> None:
+        super().__init__(settings)
         self._settings = settings
 
     async def ensure_plan_catalog(self, *, conn: BaseDBAsyncClient | None = None) -> None:
@@ -244,7 +245,7 @@ class CommerceService:
         return [_plan_out(row) for row in rows]
 
     async def upsert_plan(self, *, code: str, payload: CommercePlanUpsertRequest) -> CommercePlanOut:
-        async with in_transaction() as conn:
+        async with self.tx() as conn:
             await self.ensure_plan_catalog(conn=conn)
             # A stable seeded row serializes catalog-wide default-plan changes,
             # including concurrent creation of different plan codes.
@@ -481,7 +482,7 @@ class CommerceService:
         *,
         workspace_id: UUID,
     ) -> tuple[WorkspaceSubscription, WorkspaceCreditAccount, CommercePlan]:
-        async with in_transaction() as conn:
+        async with self.tx() as conn:
             return await self._ensure_workspace_billing(
                 workspace_id=workspace_id,
                 conn=conn,
@@ -715,7 +716,7 @@ class CommerceService:
         external_subscription_id: str,
         event_id: str,
     ) -> WorkspaceCommerceOverviewOut:
-        async with in_transaction() as conn:
+        async with self.tx() as conn:
             receipt, is_new_event = await BillingProviderEventReceipt.get_or_create(
                 provider=provider,
                 event_id=event_id,
@@ -748,7 +749,7 @@ class CommerceService:
         actor_user_id: UUID,
         payload: WorkspaceSubscriptionSetRequest,
     ) -> WorkspaceCommerceOverviewOut:
-        async with in_transaction() as conn:
+        async with self.tx() as conn:
             await self.ensure_plan_catalog(conn=conn)
             plan = await CommercePlan.get_or_none(code=payload.plan_code, is_active=True, using_db=conn)
             if plan is None:
