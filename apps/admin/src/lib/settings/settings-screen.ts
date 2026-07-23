@@ -19,6 +19,7 @@ export type SettingsScreenPayload = Readonly<{
   invitationId?: string;
   roleId?: string;
   field?: string;
+  skillAction?: "import";
 }>;
 
 export type SettingsSectionTarget = Readonly<{

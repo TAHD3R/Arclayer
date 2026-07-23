@@ -30,23 +30,11 @@ import { uploadPresignedPart } from "@/lib/assets/storage-transfer";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError } from "@/lib/notifications";
 import type { SystemDirectoryUser } from "@arclayer/openapi/admin-types";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@arclayer/ui/alert-dialog";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { PasswordInput } from "@arclayer/ui/password-input";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
-import {
-  AlertDialogAction as AlertDialogActionPrimitive,
-  AlertDialogCancel as AlertDialogCancelPrimitive,
-} from "@arclayer/ui/radix-primitives/radix-alert-dialog";
 
 export type UserActionTarget = Pick<
   SystemDirectoryUser,
@@ -61,6 +49,7 @@ export type UserActionTarget = Pick<
   | "twoFactorEnabled"
   | "isSuperAdmin"
   | "linkedOauthProviders"
+  | "restrictions"
 > & {
   linkedOauthProviders: string[];
 };
@@ -549,54 +538,6 @@ export function ResetPasswordDialog(props: {
   );
 }
 
-export function ConfirmUserActionDialog(props: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  title: string;
-  description: string;
-  confirmLabel: string;
-  pending: boolean;
-  variant?: "default" | "destructive";
-  onConfirm: () => Promise<void>;
-}) {
-  const { t } = useTranslation(["common"]);
-
-  return (
-    <AlertDialog
-      open={props.open}
-      onOpenChange={(open) => {
-        if (!props.pending) props.onOpenChange(open);
-      }}
-    >
-      <AlertDialogContent className="sm:max-w-130">
-        <AlertDialogHeader>
-          <AlertDialogTitle>{props.title}</AlertDialogTitle>
-          <AlertDialogDescription className="text-body">{props.description}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancelPrimitive asChild>
-            <Button variant="outline" disabled={props.pending}>
-              {t("common:CANCEL")}
-            </Button>
-          </AlertDialogCancelPrimitive>
-          <AlertDialogActionPrimitive asChild>
-            <Button
-              variant={props.variant === "destructive" ? "destructive" : undefined}
-              loading={props.pending}
-              onClick={async () => {
-                await props.onConfirm();
-                props.onOpenChange(false);
-              }}
-            >
-              {props.confirmLabel}
-            </Button>
-          </AlertDialogActionPrimitive>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
-
 export function getUserActionAvailability(
   user: UserActionTarget | null,
   currentUserId?: string | null,
@@ -608,8 +549,18 @@ export function getUserActionAvailability(
     canDisableTwoFactor: Boolean(user?.twoFactorEnabled),
     linkedProviders,
     canResetPassword: Boolean(user?.hasPassword || linkedProviders.length > 0),
-    canDisableAccount: !isCurrentUser && user?.status !== "disabled",
-    canEnableAccount: user?.status === "disabled",
+    canDisableAccount:
+      !isCurrentUser &&
+      !user?.restrictions?.some(
+        (restriction) =>
+          restriction.restrictionType === "user_disabled" && restriction.state === "active",
+      ),
+    canEnableAccount: Boolean(
+      user?.restrictions?.some(
+        (restriction) =>
+          restriction.restrictionType === "user_disabled" && restriction.state === "active",
+      ),
+    ),
     canDeleteAccount: !isCurrentUser,
     canGrantSuperAdmin: Boolean(user && !user.isSuperAdmin),
     canRevokeSuperAdmin: Boolean(user?.isSuperAdmin && !isCurrentUser),

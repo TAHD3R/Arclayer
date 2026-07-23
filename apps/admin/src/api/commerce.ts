@@ -7,6 +7,7 @@ import type {
   CommercePlanUpsert,
   CreditLedgerEntry,
   PageData,
+  SubscriptionStatus,
   SystemPlanCatalog,
   WorkspaceCommerceOverview,
   WorkspacePlanCatalog,
@@ -36,6 +37,31 @@ export function getWorkspaceCommerceOverview(
   return api.get<WorkspaceCommerceOverview>(workspacePath(workspaceId, "/commerce/overview"), {
     signal,
   });
+}
+
+export function getSystemWorkspaceCommerceOverview(
+  workspaceId: string,
+  signal?: AbortSignal,
+): Promise<WorkspaceCommerceOverview> {
+  return api.get<WorkspaceCommerceOverview>(
+    `/system/commerce/workspaces/${encodeURIComponent(workspaceId)}/overview`,
+    { signal },
+  );
+}
+
+export function setSystemWorkspaceSubscription(
+  workspaceId: string,
+  payload: {
+    planCode: string;
+    status: SubscriptionStatus;
+    billingInterval: BillingCycle;
+    cancelAtPeriodEnd: boolean;
+  },
+): Promise<WorkspaceCommerceOverview> {
+  return api.put<WorkspaceCommerceOverview>(
+    `/system/commerce/workspaces/${encodeURIComponent(workspaceId)}/subscription`,
+    payload,
+  );
 }
 
 export function listWorkspaceCommercePlans(

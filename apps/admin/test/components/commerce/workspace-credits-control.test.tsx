@@ -75,14 +75,14 @@ function createOverview() {
   };
 }
 
-function renderControl() {
+function renderControl(compactOnMobile = false) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return render(
     <QueryClientProvider client={queryClient}>
       <SettingsScreenProvider>
-        <WorkspaceCreditsControl />
+        <WorkspaceCreditsControl compactOnMobile={compactOnMobile} />
         <SettingsStateProbe />
       </SettingsScreenProvider>
     </QueryClientProvider>,
@@ -126,17 +126,29 @@ describe("WorkspaceCreditsControl", () => {
     expect(screen.getByLabelText("commerce:CREDITS_LOADING")).toBeInTheDocument();
   });
 
+  it("keeps the Header control icon-only on mobile when explicitly requested", async () => {
+    vi.mocked(getWorkspaceCommerceOverview).mockResolvedValue(createOverview());
+    renderControl(true);
+
+    const trigger = await screen.findByLabelText("commerce:CREDITS_BUTTON_LABEL:7,750");
+    expect(trigger).toHaveClass(
+      "max-[768px]:[&>span:not(.sr-only)]:hidden",
+      "max-[768px]:[&_[data-slot=separator]]:hidden",
+    );
+  });
+
   it("shows available credits, hover details, and opens the unified Plan & Usage screen", async () => {
     const user = userEvent.setup();
     vi.mocked(getWorkspaceCommerceOverview).mockResolvedValue(createOverview());
     renderControl();
 
-    const trigger = await screen.findByRole("button", {
-      name: /commerce:CREDITS_BUTTON_LABEL:7,750/,
-    });
-    expect(trigger).not.toHaveAttribute("aria-label");
-    expect(trigger).toHaveAccessibleName(/7,750.*commerce:CREDITS_BUTTON_LABEL:7,750/);
+    const trigger = await screen.findByLabelText("commerce:CREDITS_BUTTON_LABEL:7,750");
+    expect(trigger.tagName).toBe("DIV");
+    expect(trigger).toHaveAttribute("tabindex", "0");
+    expect(trigger).toHaveAccessibleName("commerce:CREDITS_BUTTON_LABEL:7,750");
     expect(trigger).not.toHaveAccessibleName(/commerce:PLAN_UPGRADE_ACTION/);
+    await user.click(trigger);
+    expect(screen.queryByTestId("settings-screen")).not.toBeInTheDocument();
     await user.hover(trigger);
     expect(await screen.findByText("Premium")).toBeInTheDocument();
     expect(screen.getByText("commerce:CREDITS_BALANCE")).toBeInTheDocument();
@@ -147,9 +159,6 @@ describe("WorkspaceCreditsControl", () => {
     expect(screen.getByText("2,000")).toBeInTheDocument();
     expect(screen.getByText("commerce:CREDITS_PERIOD_GRANT_VALUE:10,000")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "commerce:LEDGER_VIEW_ACTION" }));
-    expect(screen.getByTestId("settings-screen")).toHaveTextContent("workspace.plan-usage");
-
-    await user.click(trigger);
     expect(screen.getByTestId("settings-screen")).toHaveTextContent("workspace.plan-usage");
   });
 
@@ -165,10 +174,8 @@ describe("WorkspaceCreditsControl", () => {
     });
     renderControl();
 
-    const trigger = await screen.findByRole("button", {
-      name: /commerce:CREDITS_BUTTON_LABEL:7,750/,
-    });
-    expect(trigger).toHaveAccessibleName(/7,750.*commerce:PLAN_UPGRADE_ACTION/);
+    const trigger = await screen.findByLabelText("commerce:CREDITS_BUTTON_LABEL:7,750");
+    expect(trigger).toHaveAccessibleName("commerce:CREDITS_BUTTON_LABEL:7,750");
   });
 
   it("surfaces the request error and keeps an explicit retry action", async () => {
@@ -178,7 +185,7 @@ describe("WorkspaceCreditsControl", () => {
       .mockResolvedValueOnce(createOverview());
     renderControl();
 
-    const trigger = await screen.findByRole("button", { name: /commerce:CREDITS_UNAVAILABLE/ });
+    const trigger = await screen.findByLabelText("commerce:CREDITS_UNAVAILABLE");
     await user.hover(trigger);
     expect(await screen.findByText("commerce unavailable")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "commerce:CREDITS_RETRY" }));

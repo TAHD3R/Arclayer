@@ -7,6 +7,7 @@ import type {
   SystemDirectoryWorkspaceDetail,
   SystemDirectoryWorkspacePage,
 } from "@arclayer/openapi/admin-types";
+import type { DirectoryProjectOperationsOut } from "@arclayer/openapi";
 import type {
   UploadAbortOut,
   UploadCompleteOut,
@@ -59,11 +60,57 @@ type SystemDirectoryListParams = {
   hasPassword?: boolean;
   twoFactorEnabled?: boolean;
   oauthProvider?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  lastLoginFrom?: string;
+  lastLoginTo?: string;
+  workspaceMemberOfId?: string;
+  projectMemberOfId?: string;
+  ownedWorkspaceId?: string;
+  ownedProjectId?: string;
   kind?: string;
   isActive?: boolean;
   workspaceId?: string;
   isArchived?: boolean;
+  ownerUserId?: string;
+  planCode?: string;
+  subscriptionStatus?: string;
+  commerceRisk?: string;
+  runtimeHealth?: string;
+  domainState?: string;
+  releaseState?: string;
+  activityFrom?: string;
+  activityTo?: string;
 };
+
+export type AccessRestrictionReasonCategory =
+  | "policy_violation"
+  | "security_risk"
+  | "billing_issue"
+  | "abuse_prevention"
+  | "compliance_review"
+  | "owner_request"
+  | "other";
+
+export type AccessRestrictionEnforcePayload = {
+  expectedRevision: number;
+  reasonCategory: AccessRestrictionReasonCategory;
+  reasonCode: string;
+  operatorNote: string;
+  reviewAt?: string | null;
+  expiresAt?: string | null;
+};
+
+export type AccessRestrictionLiftPayload = {
+  expectedRevision: number;
+  operatorNote: string;
+};
+
+export type SystemDirectoryProjectOperations = DirectoryProjectOperationsOut;
+
+function idempotencyOptions(idempotencyKey: string) {
+  return { headers: { "Idempotency-Key": idempotencyKey } };
+}
 
 function userAvatarUploadPath(userId: string, path: string) {
   return `/system/directory/users/${encodeURIComponent(userId)}/avatar${path}`;
@@ -86,11 +133,38 @@ function buildQuery(params: SystemDirectoryListParams) {
     query.set("two_factor_enabled", String(params.twoFactorEnabled));
   }
   if (params.oauthProvider?.trim()) query.set("oauth_provider", params.oauthProvider.trim());
+  if (params.createdFrom?.trim()) query.set("created_from", params.createdFrom.trim());
+  if (params.createdTo?.trim()) query.set("created_to", params.createdTo.trim());
+  if (params.lastLoginFrom?.trim()) query.set("last_login_from", params.lastLoginFrom.trim());
+  if (params.lastLoginTo?.trim()) query.set("last_login_to", params.lastLoginTo.trim());
+  if (params.workspaceMemberOfId?.trim()) {
+    query.set("workspace_member_of_id", params.workspaceMemberOfId.trim());
+  }
+  if (params.projectMemberOfId?.trim()) {
+    query.set("project_member_of_id", params.projectMemberOfId.trim());
+  }
+  if (params.ownedWorkspaceId?.trim()) {
+    query.set("owned_workspace_id", params.ownedWorkspaceId.trim());
+  }
+  if (params.ownedProjectId?.trim()) {
+    query.set("owned_project_id", params.ownedProjectId.trim());
+  }
   if (params.kind?.trim()) query.set("kind", params.kind.trim());
   if (typeof params.isActive === "boolean") {
     query.set("is_active", String(params.isActive));
   }
   if (params.workspaceId?.trim()) query.set("workspace_id", params.workspaceId.trim());
+  if (params.ownerUserId?.trim()) query.set("owner_user_id", params.ownerUserId.trim());
+  if (params.planCode?.trim()) query.set("plan_code", params.planCode.trim());
+  if (params.subscriptionStatus?.trim()) {
+    query.set("subscription_status", params.subscriptionStatus.trim());
+  }
+  if (params.commerceRisk?.trim()) query.set("commerce_risk", params.commerceRisk.trim());
+  if (params.runtimeHealth?.trim()) query.set("runtime_health", params.runtimeHealth.trim());
+  if (params.domainState?.trim()) query.set("domain_state", params.domainState.trim());
+  if (params.releaseState?.trim()) query.set("release_state", params.releaseState.trim());
+  if (params.activityFrom?.trim()) query.set("activity_from", params.activityFrom.trim());
+  if (params.activityTo?.trim()) query.set("activity_to", params.activityTo.trim());
   if (typeof params.isArchived === "boolean") {
     query.set("is_archived", String(params.isArchived));
   }
@@ -253,14 +327,26 @@ export async function unlinkSystemDirectoryUserOAuthIdentity(
 
 export async function disableSystemDirectoryUser(
   userId: string,
+  payload: AccessRestrictionEnforcePayload,
+  idempotencyKey: string,
 ): Promise<SystemDirectoryUserDetail> {
-  return api.post<SystemDirectoryUserDetail>(`/system/directory/users/${userId}/disable`);
+  return api.post<SystemDirectoryUserDetail>(
+    `/system/directory/users/${userId}/disable`,
+    payload,
+    idempotencyOptions(idempotencyKey),
+  );
 }
 
 export async function enableSystemDirectoryUser(
   userId: string,
+  payload: AccessRestrictionLiftPayload,
+  idempotencyKey: string,
 ): Promise<SystemDirectoryUserDetail> {
-  return api.post<SystemDirectoryUserDetail>(`/system/directory/users/${userId}/enable`);
+  return api.post<SystemDirectoryUserDetail>(
+    `/system/directory/users/${userId}/enable`,
+    payload,
+    idempotencyOptions(idempotencyKey),
+  );
 }
 
 export async function deleteSystemDirectoryUser(userId: string): Promise<void> {
@@ -290,33 +376,49 @@ export async function updateSystemDirectoryWorkspace(
 
 export async function archiveSystemDirectoryWorkspace(
   workspaceId: string,
+  payload: AccessRestrictionEnforcePayload,
+  idempotencyKey: string,
 ): Promise<SystemDirectoryWorkspaceDetail> {
   return api.post<SystemDirectoryWorkspaceDetail>(
     `/system/directory/workspaces/${workspaceId}/archive`,
+    payload,
+    idempotencyOptions(idempotencyKey),
   );
 }
 
 export async function restoreSystemDirectoryWorkspace(
   workspaceId: string,
+  payload: AccessRestrictionLiftPayload,
+  idempotencyKey: string,
 ): Promise<SystemDirectoryWorkspaceDetail> {
   return api.post<SystemDirectoryWorkspaceDetail>(
     `/system/directory/workspaces/${workspaceId}/restore`,
+    payload,
+    idempotencyOptions(idempotencyKey),
   );
 }
 
 export async function disableSystemDirectoryWorkspace(
   workspaceId: string,
+  payload: AccessRestrictionEnforcePayload,
+  idempotencyKey: string,
 ): Promise<SystemDirectoryWorkspaceDetail> {
   return api.post<SystemDirectoryWorkspaceDetail>(
     `/system/directory/workspaces/${workspaceId}/disable`,
+    payload,
+    idempotencyOptions(idempotencyKey),
   );
 }
 
 export async function enableSystemDirectoryWorkspace(
   workspaceId: string,
+  payload: AccessRestrictionLiftPayload,
+  idempotencyKey: string,
 ): Promise<SystemDirectoryWorkspaceDetail> {
   return api.post<SystemDirectoryWorkspaceDetail>(
     `/system/directory/workspaces/${workspaceId}/enable`,
+    payload,
+    idempotencyOptions(idempotencyKey),
   );
 }
 
@@ -334,6 +436,17 @@ export async function getSystemDirectoryProjectDetail(
   projectId: string,
 ): Promise<SystemDirectoryProjectDetail> {
   return api.get<SystemDirectoryProjectDetail>(`/system/directory/projects/${projectId}`);
+}
+
+export async function getSystemDirectoryProjectOperations(
+  projectId: string,
+  previewSize = 6,
+  signal?: AbortSignal,
+): Promise<SystemDirectoryProjectOperations> {
+  return api.get<SystemDirectoryProjectOperations>(
+    `/system/directory/projects/${encodeURIComponent(projectId)}/operations?previewSize=${previewSize}`,
+    { signal },
+  );
 }
 
 export async function updateSystemDirectoryProject(
@@ -354,14 +467,26 @@ export async function updateSystemDirectoryProject(
 
 export async function disableSystemDirectoryProject(
   projectId: string,
+  payload: AccessRestrictionEnforcePayload,
+  idempotencyKey: string,
 ): Promise<SystemDirectoryProjectDetail> {
-  return api.post<SystemDirectoryProjectDetail>(`/system/directory/projects/${projectId}/disable`);
+  return api.post<SystemDirectoryProjectDetail>(
+    `/system/directory/projects/${projectId}/disable`,
+    payload,
+    idempotencyOptions(idempotencyKey),
+  );
 }
 
 export async function enableSystemDirectoryProject(
   projectId: string,
+  payload: AccessRestrictionLiftPayload,
+  idempotencyKey: string,
 ): Promise<SystemDirectoryProjectDetail> {
-  return api.post<SystemDirectoryProjectDetail>(`/system/directory/projects/${projectId}/enable`);
+  return api.post<SystemDirectoryProjectDetail>(
+    `/system/directory/projects/${projectId}/enable`,
+    payload,
+    idempotencyOptions(idempotencyKey),
+  );
 }
 
 export async function deleteSystemDirectoryProject(

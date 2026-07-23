@@ -1,8 +1,13 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type ColumnDef, type Header, type SortingState } from "@tanstack/react-table";
 import {
+  Building2,
+  CalendarRange,
+  Clock3,
   Crown,
+  Eye,
+  FolderKanban,
   FunnelX,
   KeyRound,
   ListFilter,
@@ -30,6 +35,7 @@ import {
 } from "@/components/common/reui-filter-state";
 import { buildReuiFilterI18n } from "@/components/common/reui-filter-i18n";
 import { Button } from "@arclayer/ui/button";
+import { DateTimeRangeField } from "@arclayer/ui/date-time-range-field";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,31 +52,48 @@ import {
   createCustomColumn,
   createDateColumn,
   createSelectionColumn,
-  createUserIdentityCell,
   renderCountTag,
   renderTag,
   renderTruncatedTag,
   SystemDirectoryTable,
   useSystemDirectoryDateTimeFormatter,
 } from "../system-directory-table";
-import { useSystemDirectoryUserGovernance, useSystemDirectoryUsersTable } from "../hooks";
 import {
-  ConfirmUserActionDialog,
+  useSystemDirectoryProjectOptions,
+  useSystemDirectoryUserGovernance,
+  useSystemDirectoryUsersTable,
+  useSystemDirectoryWorkspaceOptions,
+} from "../hooks";
+import { ConfirmDirectoryActionDialog } from "../governance-dialogs";
+import {
+  findDirectoryRestriction,
+  getDirectoryRestrictionRevision,
+  isDirectoryRestrictionActive,
+} from "../restriction-state";
+import {
   EditAccountDialog,
   getUserActionAvailability,
   ResetPasswordDialog,
   type UserActionTarget,
 } from "./governance-dialogs";
+import { SystemDirectoryUserIdentityCard } from "./user-identity-card";
+import { UserOperationsDrawer } from "./user-operations-drawer";
 
 type UserFilterField =
   | "status"
   | "superAdmin"
   | "hasPassword"
   | "twoFactorEnabled"
-  | "oauthProvider";
+  | "oauthProvider"
+  | "createdAt"
+  | "lastLoginAt"
+  | "workspaceMemberOfId"
+  | "projectMemberOfId"
+  | "ownedWorkspaceId"
+  | "ownedProjectId";
 
 type UserFilterValue = string;
-type UserSortValue =
+export type UserSortValue =
   | "-created_at"
   | "username"
   | "-username"
@@ -82,6 +105,24 @@ type UserSortValue =
   | "-is_super_admin"
   | "last_login_at"
   | "-last_login_at";
+
+export type SystemDirectoryUsersSearch = {
+  q?: string;
+  ordering?: UserSortValue;
+  status?: "active" | "disabled" | "locked";
+  isSuperAdmin?: boolean;
+  hasPassword?: boolean;
+  twoFactorEnabled?: boolean;
+  oauthProvider?: "any" | "none";
+  createdFrom?: string;
+  createdTo?: string;
+  lastLoginFrom?: string;
+  lastLoginTo?: string;
+  workspaceMemberOfId?: string;
+  projectMemberOfId?: string;
+  ownedWorkspaceId?: string;
+  ownedProjectId?: string;
+};
 
 const FILTER_OPERATORS = [{ value: "is", labelKey: "common:FILTER_OPERATOR_IS" }] as const;
 const DEFAULT_USER_SORT: UserSortValue = "-created_at";
@@ -170,6 +211,45 @@ function booleanFilterValue(value: string | undefined) {
   return undefined;
 }
 
+function rangeFilterValues(
+  filters: OperatorAwareFilterState<UserFilterField, UserFilterValue>,
+  field: UserFilterField,
+) {
+  const [start, end] = filters[field]?.values ?? [];
+  return {
+    start: typeof start === "string" && start ? start : undefined,
+    end: typeof end === "string" && end ? end : undefined,
+  };
+}
+
+function formatDateRange(values: UserFilterValue[]) {
+  return values.filter(Boolean).join(" – ") || "-";
+}
+
+function initialUserFilters(search: SystemDirectoryUsersSearch) {
+  const filters: OperatorAwareFilterState<UserFilterField, UserFilterValue> = {};
+  const set = (field: UserFilterField, value: string | boolean | undefined) => {
+    if (value === undefined) return;
+    filters[field] = { operator: "is", values: [String(value)] };
+  };
+  set("status", search.status);
+  set("superAdmin", search.isSuperAdmin);
+  set("hasPassword", search.hasPassword);
+  set("twoFactorEnabled", search.twoFactorEnabled);
+  set("oauthProvider", search.oauthProvider);
+  const setRange = (field: UserFilterField, start: string | undefined, end: string | undefined) => {
+    if (!start && !end) return;
+    filters[field] = { operator: "is", values: [start ?? "", end ?? ""] };
+  };
+  setRange("createdAt", search.createdFrom, search.createdTo);
+  setRange("lastLoginAt", search.lastLoginFrom, search.lastLoginTo);
+  set("workspaceMemberOfId", search.workspaceMemberOfId);
+  set("projectMemberOfId", search.projectMemberOfId);
+  set("ownedWorkspaceId", search.ownedWorkspaceId);
+  set("ownedProjectId", search.ownedProjectId);
+  return filters;
+}
+
 type ConfirmActionKind =
   | "revoke"
   | "disable"
@@ -194,18 +274,26 @@ function toActionTarget(user: SystemDirectoryUser): UserActionTarget {
     hasPassword: user.hasPassword,
     twoFactorEnabled: user.twoFactorEnabled,
     linkedOauthProviders: user.linkedOauthProviders ?? user.linked_oauth_providers ?? [],
+    restrictions: user.restrictions,
   };
 }
 
-export function SystemDirectoryUsersPage() {
+export function SystemDirectoryUsersPage(
+  props: {
+    search?: SystemDirectoryUsersSearch;
+    onSearchChange?: (search: SystemDirectoryUsersSearch) => void;
+  } = {},
+) {
   const { t } = useTranslation(["common", "settings"]);
   const dateTime = useSystemDirectoryDateTimeFormatter();
   const currentUser = useCurrentUserProfile();
   const currentUserId = currentUser.profile?.id ?? null;
   const governance = useSystemDirectoryUserGovernance();
+  const workspaceOptions = useSystemDirectoryWorkspaceOptions();
+  const projectOptions = useSystemDirectoryProjectOptions();
   const [filters, setFilters] = useState<
     OperatorAwareFilterState<UserFilterField, UserFilterValue>
-  >({});
+  >(() => initialUserFilters(props.search ?? {}));
   const reuiI18n = useMemo(
     () => buildReuiFilterI18n(t, t("settings:SETTINGS_SYSTEM_DIRECTORY_USERS_FILTER_TITLE")),
     [t],
@@ -213,6 +301,7 @@ export function SystemDirectoryUsersPage() {
 
   const [editTarget, setEditTarget] = useState<UserActionTarget | null>(null);
   const [passwordTarget, setPasswordTarget] = useState<UserActionTarget | null>(null);
+  const [detailsTarget, setDetailsTarget] = useState<SystemDirectoryUser | null>(null);
   const [confirmAction, setConfirmAction] = useState<{
     kind: ConfirmActionKind;
     users: UserActionTarget[];
@@ -252,16 +341,35 @@ export function SystemDirectoryUsersPage() {
           return t("settings:SETTINGS_SYSTEM_DIRECTORY_FILTER_SIGN_IN_PASSWORD_ONLY");
         }
       }
+      if (field === "workspaceMemberOfId" || field === "ownedWorkspaceId") {
+        return (
+          workspaceOptions.workspaces.find((workspace) => workspace.workspaceId === value)?.name ??
+          value
+        );
+      }
+      if (field === "projectMemberOfId" || field === "ownedProjectId") {
+        return (
+          projectOptions.projects.find((project) => project.projectId === value)?.name ?? value
+        );
+      }
       return value;
     },
-    [t],
+    [projectOptions.projects, t, workspaceOptions.workspaces],
   );
 
   const columns = useMemo<Array<ColumnDef<SystemDirectoryUser, unknown>>>(
     () => [
       createSelectionColumn<SystemDirectoryUser>(),
-      createUserIdentityCell<SystemDirectoryUser>(
+      createCustomColumn<SystemDirectoryUser>(
         t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_USER"),
+        (row) => (
+          <SystemDirectoryUserIdentityCard
+            user={row}
+            formatDateTime={dateTime.formatDateTime}
+            onOpenDetail={setDetailsTarget}
+            onEdit={(user) => openEditDialog(toActionTarget(user))}
+          />
+        ),
         { id: "user", sortKey: "username", kind: "primary", size: 260, minSize: 220 },
       ),
       createCustomColumn<SystemDirectoryUser>(
@@ -346,115 +454,133 @@ export function SystemDirectoryUsersPage() {
         { id: "lastLogin", sortKey: "last_login_at" },
       ),
       createActionsColumn<SystemDirectoryUser>({
-        size: 72,
-        minSize: 72,
+        size: 156,
+        minSize: 148,
         renderActions: (row) => {
           const target = toActionTarget(row);
-          const isDisabled = row.status === "disabled";
+          const isDisabled = isDirectoryRestrictionActive(row, "user_disabled");
           const availability = getUserActionAvailability(target, currentUserId);
           return (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                  aria-label={t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_MORE")}
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  <MoreVertical className="size-4" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuIconItem
-                  icon={<UserRoundCog className="size-4" />}
-                  onSelect={() => openEditDialog(target)}
-                >
-                  {t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_EDIT_ACCOUNT")}
-                </DropdownMenuIconItem>
-                <DropdownMenuIconItem
-                  icon={<KeyRound className="size-4" />}
-                  disabled={!availability.canResetPassword}
-                  onSelect={() => openPasswordDialog(target)}
-                >
-                  {t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_RESET_PASSWORD")}
-                </DropdownMenuIconItem>
-                <DropdownMenuIconItem
-                  icon={<Mail className="size-4" />}
-                  disabled={!availability.canSendResetPasswordEmail}
-                  onSelect={() => openConfirmDialog("sendResetPasswordEmail", [target])}
-                >
-                  {t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_SEND_RESET_PASSWORD_EMAIL")}
-                </DropdownMenuIconItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuIconItem
-                  icon={<ShieldOff className="size-4" />}
-                  disabled={!availability.canDisableTwoFactor}
-                  onSelect={() => openConfirmDialog("disableTwoFactor", [target])}
-                >
-                  {t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DISABLE_TWO_FACTOR")}
-                </DropdownMenuIconItem>
-                {availability.linkedProviders.map((provider) => (
-                  <DropdownMenuIconItem
-                    key={provider}
-                    icon={<ShieldOff className="size-4" />}
-                    onSelect={() => openConfirmDialog("unlinkOAuth", [target], { provider })}
+            <div className="flex items-center justify-end gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setDetailsTarget(row);
+                }}
+              >
+                <Eye className="size-3.5" />
+                {t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DETAILS")}
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    aria-label={t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_MORE")}
+                    onClick={(event) => event.stopPropagation()}
                   >
-                    {t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_UNLINK_OAUTH_PROVIDER", {
-                      provider,
-                    })}
+                    <MoreVertical className="size-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuIconItem
+                    icon={<UserRoundCog className="size-4" />}
+                    onSelect={() => openEditDialog(target)}
+                  >
+                    {t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_EDIT_ACCOUNT")}
                   </DropdownMenuIconItem>
-                ))}
-                <DropdownMenuIconItem
-                  icon={<Lock className="size-4" />}
-                  onSelect={() => openConfirmDialog("revoke", [target])}
-                >
-                  {t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_REVOKE_LOGIN_SESSIONS")}
-                </DropdownMenuIconItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuIconItem
-                  icon={
-                    row.isSuperAdmin ? (
-                      <ShieldMinus className="size-4" />
-                    ) : (
-                      <ShieldPlus className="size-4" />
-                    )
-                  }
-                  disabled={row.isSuperAdmin ? !availability.canRevokeSuperAdmin : false}
-                  onSelect={() =>
-                    openConfirmDialog(row.isSuperAdmin ? "revokeSuperAdmin" : "grantSuperAdmin", [
-                      target,
-                    ])
-                  }
-                >
-                  {row.isSuperAdmin
-                    ? t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_REVOKE_SUPER_ADMIN")
-                    : t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_GRANT_SUPER_ADMIN")}
-                </DropdownMenuIconItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuIconItem
-                  icon={
-                    isDisabled ? <UserCheck className="size-4" /> : <UserMinus className="size-4" />
-                  }
-                  disabled={
-                    isDisabled ? !availability.canEnableAccount : !availability.canDisableAccount
-                  }
-                  onSelect={() => openConfirmDialog(isDisabled ? "enable" : "disable", [target])}
-                >
-                  {isDisabled
-                    ? t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ENABLE_ACCOUNT")
-                    : t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DISABLE_ACCOUNT")}
-                </DropdownMenuIconItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuIconItem
-                  icon={<Trash2 className="size-4" />}
-                  variant="destructive"
-                  disabled={!availability.canDeleteAccount}
-                  onSelect={() => openConfirmDialog("delete", [target])}
-                >
-                  {t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DELETE_ACCOUNT")}
-                </DropdownMenuIconItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <DropdownMenuIconItem
+                    icon={<KeyRound className="size-4" />}
+                    disabled={!availability.canResetPassword}
+                    onSelect={() => openPasswordDialog(target)}
+                  >
+                    {t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_RESET_PASSWORD")}
+                  </DropdownMenuIconItem>
+                  <DropdownMenuIconItem
+                    icon={<Mail className="size-4" />}
+                    disabled={!availability.canSendResetPasswordEmail}
+                    onSelect={() => openConfirmDialog("sendResetPasswordEmail", [target])}
+                  >
+                    {t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_SEND_RESET_PASSWORD_EMAIL")}
+                  </DropdownMenuIconItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuIconItem
+                    icon={<ShieldOff className="size-4" />}
+                    disabled={!availability.canDisableTwoFactor}
+                    onSelect={() => openConfirmDialog("disableTwoFactor", [target])}
+                  >
+                    {t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DISABLE_TWO_FACTOR")}
+                  </DropdownMenuIconItem>
+                  {availability.linkedProviders.map((provider) => (
+                    <DropdownMenuIconItem
+                      key={provider}
+                      icon={<ShieldOff className="size-4" />}
+                      onSelect={() => openConfirmDialog("unlinkOAuth", [target], { provider })}
+                    >
+                      {t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_UNLINK_OAUTH_PROVIDER", {
+                        provider,
+                      })}
+                    </DropdownMenuIconItem>
+                  ))}
+                  <DropdownMenuIconItem
+                    icon={<Lock className="size-4" />}
+                    onSelect={() => openConfirmDialog("revoke", [target])}
+                  >
+                    {t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_REVOKE_LOGIN_SESSIONS")}
+                  </DropdownMenuIconItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuIconItem
+                    icon={
+                      row.isSuperAdmin ? (
+                        <ShieldMinus className="size-4" />
+                      ) : (
+                        <ShieldPlus className="size-4" />
+                      )
+                    }
+                    disabled={row.isSuperAdmin ? !availability.canRevokeSuperAdmin : false}
+                    onSelect={() =>
+                      openConfirmDialog(row.isSuperAdmin ? "revokeSuperAdmin" : "grantSuperAdmin", [
+                        target,
+                      ])
+                    }
+                  >
+                    {row.isSuperAdmin
+                      ? t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_REVOKE_SUPER_ADMIN")
+                      : t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_GRANT_SUPER_ADMIN")}
+                  </DropdownMenuIconItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuIconItem
+                    icon={
+                      isDisabled ? (
+                        <UserCheck className="size-4" />
+                      ) : (
+                        <UserMinus className="size-4" />
+                      )
+                    }
+                    disabled={
+                      isDisabled ? !availability.canEnableAccount : !availability.canDisableAccount
+                    }
+                    onSelect={() => openConfirmDialog(isDisabled ? "enable" : "disable", [target])}
+                  >
+                    {isDisabled
+                      ? t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ENABLE_ACCOUNT")
+                      : t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DISABLE_ACCOUNT")}
+                  </DropdownMenuIconItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuIconItem
+                    icon={<Trash2 className="size-4" />}
+                    variant="destructive"
+                    disabled={!availability.canDeleteAccount}
+                    onSelect={() => openConfirmDialog("delete", [target])}
+                  >
+                    {t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DELETE_ACCOUNT")}
+                  </DropdownMenuIconItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           );
         },
       }),
@@ -464,6 +590,8 @@ export function SystemDirectoryUsersPage() {
 
   const usersExtraQuery = useMemo(() => {
     const oauthProvider = firstFilterValue(filters, "oauthProvider");
+    const createdRange = rangeFilterValues(filters, "createdAt");
+    const lastLoginRange = rangeFilterValues(filters, "lastLoginAt");
     return {
       status: firstFilterValue(filters, "status"),
       isSuperAdmin: booleanFilterValue(firstFilterValue(filters, "superAdmin")),
@@ -471,10 +599,42 @@ export function SystemDirectoryUsersPage() {
       twoFactorEnabled: booleanFilterValue(firstFilterValue(filters, "twoFactorEnabled")),
       oauthProvider:
         oauthProvider === "any" ? "any" : oauthProvider === "none" ? "none" : undefined,
+      createdFrom: createdRange.start,
+      createdTo: createdRange.end,
+      lastLoginFrom: lastLoginRange.start,
+      lastLoginTo: lastLoginRange.end,
+      workspaceMemberOfId: firstFilterValue(filters, "workspaceMemberOfId"),
+      projectMemberOfId: firstFilterValue(filters, "projectMemberOfId"),
+      ownedWorkspaceId: firstFilterValue(filters, "ownedWorkspaceId"),
+      ownedProjectId: firstFilterValue(filters, "ownedProjectId"),
     };
   }, [filters]);
-  const tableHook = useSystemDirectoryUsersTable(columns, usersExtraQuery);
+  const tableHook = useSystemDirectoryUsersTable(columns, usersExtraQuery, {
+    q: props.search?.q,
+    sorting: toTableSorting(props.search?.ordering ?? DEFAULT_USER_SORT),
+  });
   const activeSort = toUserSortValue(tableHook.sorting) ?? DEFAULT_USER_SORT;
+  const requestSearch = tableHook.requestParams?.q ?? "";
+
+  useEffect(() => {
+    props.onSearchChange?.({
+      q: requestSearch || undefined,
+      ordering: activeSort === DEFAULT_USER_SORT ? undefined : activeSort,
+      status: usersExtraQuery.status as SystemDirectoryUsersSearch["status"],
+      isSuperAdmin: usersExtraQuery.isSuperAdmin,
+      hasPassword: usersExtraQuery.hasPassword,
+      twoFactorEnabled: usersExtraQuery.twoFactorEnabled,
+      oauthProvider: usersExtraQuery.oauthProvider as SystemDirectoryUsersSearch["oauthProvider"],
+      createdFrom: usersExtraQuery.createdFrom,
+      createdTo: usersExtraQuery.createdTo,
+      lastLoginFrom: usersExtraQuery.lastLoginFrom,
+      lastLoginTo: usersExtraQuery.lastLoginTo,
+      workspaceMemberOfId: usersExtraQuery.workspaceMemberOfId,
+      projectMemberOfId: usersExtraQuery.projectMemberOfId,
+      ownedWorkspaceId: usersExtraQuery.ownedWorkspaceId,
+      ownedProjectId: usersExtraQuery.ownedProjectId,
+    });
+  }, [activeSort, props.onSearchChange, requestSearch, usersExtraQuery]);
   const filterItems = useMemo(() => toUserFilters(filters), [filters]);
   const filterFields = useMemo<FilterFieldConfig<UserFilterValue>[]>(
     () => [
@@ -578,8 +738,116 @@ export function SystemDirectoryUsersPage() {
           },
         ],
       },
+      {
+        key: "createdAt",
+        label: t("settings:SETTINGS_SYSTEM_DIRECTORY_FILTER_FIELD_CREATED_AT"),
+        type: "custom",
+        icon: <CalendarRange className="size-4" />,
+        operators: FILTER_OPERATORS.map((operator) => ({
+          value: operator.value,
+          label: t(operator.labelKey),
+        })),
+        customRenderer: ({ values, onChange }) => (
+          <div className="min-w-[18rem]">
+            <DateTimeRangeField
+              startValue={values[0] || undefined}
+              endValue={values[1] || undefined}
+              startAriaLabel={t("settings:SETTINGS_SYSTEM_DIRECTORY_FILTER_FIELD_CREATED_AT")}
+              endAriaLabel={t("settings:SETTINGS_SYSTEM_DIRECTORY_FILTER_FIELD_CREATED_AT")}
+              startPlaceholder={t("settings:SETTINGS_SYSTEM_DIRECTORY_FILTER_RANGE_START")}
+              endPlaceholder={t("settings:SETTINGS_SYSTEM_DIRECTORY_FILTER_RANGE_END")}
+              onChange={({ startValue, endValue }) => onChange([startValue ?? "", endValue ?? ""])}
+            />
+          </div>
+        ),
+        customValueRenderer: formatDateRange,
+      },
+      {
+        key: "lastLoginAt",
+        label: t("settings:SETTINGS_SYSTEM_DIRECTORY_FILTER_FIELD_LAST_LOGIN_AT"),
+        type: "custom",
+        icon: <Clock3 className="size-4" />,
+        operators: FILTER_OPERATORS.map((operator) => ({
+          value: operator.value,
+          label: t(operator.labelKey),
+        })),
+        customRenderer: ({ values, onChange }) => (
+          <div className="min-w-[18rem]">
+            <DateTimeRangeField
+              startValue={values[0] || undefined}
+              endValue={values[1] || undefined}
+              startAriaLabel={t("settings:SETTINGS_SYSTEM_DIRECTORY_FILTER_FIELD_LAST_LOGIN_AT")}
+              endAriaLabel={t("settings:SETTINGS_SYSTEM_DIRECTORY_FILTER_FIELD_LAST_LOGIN_AT")}
+              startPlaceholder={t("settings:SETTINGS_SYSTEM_DIRECTORY_FILTER_RANGE_START")}
+              endPlaceholder={t("settings:SETTINGS_SYSTEM_DIRECTORY_FILTER_RANGE_END")}
+              onChange={({ startValue, endValue }) => onChange([startValue ?? "", endValue ?? ""])}
+            />
+          </div>
+        ),
+        customValueRenderer: formatDateRange,
+      },
+      {
+        key: "workspaceMemberOfId",
+        label: t("settings:SETTINGS_SYSTEM_DIRECTORY_FILTER_FIELD_WORKSPACE_MEMBER_OF"),
+        type: "select",
+        icon: <Building2 className="size-4" />,
+        searchable: true,
+        operators: FILTER_OPERATORS.map((operator) => ({
+          value: operator.value,
+          label: t(operator.labelKey),
+        })),
+        options: workspaceOptions.workspaces.map((workspace) => ({
+          value: workspace.workspaceId,
+          label: workspace.name,
+        })),
+      },
+      {
+        key: "ownedWorkspaceId",
+        label: t("settings:SETTINGS_SYSTEM_DIRECTORY_FILTER_FIELD_OWNS_WORKSPACE"),
+        type: "select",
+        icon: <Crown className="size-4" />,
+        searchable: true,
+        operators: FILTER_OPERATORS.map((operator) => ({
+          value: operator.value,
+          label: t(operator.labelKey),
+        })),
+        options: workspaceOptions.workspaces.map((workspace) => ({
+          value: workspace.workspaceId,
+          label: workspace.name,
+        })),
+      },
+      {
+        key: "projectMemberOfId",
+        label: t("settings:SETTINGS_SYSTEM_DIRECTORY_FILTER_FIELD_PROJECT_MEMBER_OF"),
+        type: "select",
+        icon: <FolderKanban className="size-4" />,
+        searchable: true,
+        operators: FILTER_OPERATORS.map((operator) => ({
+          value: operator.value,
+          label: t(operator.labelKey),
+        })),
+        options: projectOptions.projects.map((project) => ({
+          value: project.projectId,
+          label: project.name,
+        })),
+      },
+      {
+        key: "ownedProjectId",
+        label: t("settings:SETTINGS_SYSTEM_DIRECTORY_FILTER_FIELD_OWNS_PROJECT"),
+        type: "select",
+        icon: <Crown className="size-4" />,
+        searchable: true,
+        operators: FILTER_OPERATORS.map((operator) => ({
+          value: operator.value,
+          label: t(operator.labelKey),
+        })),
+        options: projectOptions.projects.map((project) => ({
+          value: project.projectId,
+          label: project.name,
+        })),
+      },
     ],
-    [t],
+    [projectOptions.projects, t, workspaceOptions.workspaces],
   );
 
   const handleFiltersChange = useCallback(
@@ -687,9 +955,11 @@ export function SystemDirectoryUsersPage() {
     .getSelectedRowModel()
     .rows.map((row) => toActionTarget(row.original));
   const selectedUserIds = selectedUsers.map((user) => user.userId);
-  const selectedDisabledUsers = selectedUsers.filter((user) => user.status === "disabled");
+  const selectedDisabledUsers = selectedUsers.filter((user) =>
+    isDirectoryRestrictionActive(user, "user_disabled"),
+  );
   const selectedEnabledUsers = selectedUsers.filter(
-    (user) => user.status !== "disabled" && user.userId !== currentUserId,
+    (user) => !isDirectoryRestrictionActive(user, "user_disabled") && user.userId !== currentUserId,
   );
   const confirmConfig = useMemo(() => {
     if (!confirmAction) return null;
@@ -804,6 +1074,7 @@ export function SystemDirectoryUsersPage() {
         }}
         toolbarLeading={toolbarLeading}
         resolveColumnFilterAction={resolveColumnFilterAction}
+        onRowClick={setDetailsTarget}
         bulkActions={[
           {
             key: "reset-password",
@@ -845,6 +1116,36 @@ export function SystemDirectoryUsersPage() {
         ]}
       />
 
+      <UserOperationsDrawer
+        user={detailsTarget}
+        currentUserId={currentUserId}
+        onOpenChange={(open) => {
+          if (!open) setDetailsTarget(null);
+        }}
+        onEdit={(user) => openEditDialog(toActionTarget(user))}
+        onResetPassword={(user) => openPasswordDialog(toActionTarget(user))}
+        onSendResetPasswordEmail={(user) =>
+          openConfirmDialog("sendResetPasswordEmail", [toActionTarget(user)])
+        }
+        onDisableTwoFactor={(user) => openConfirmDialog("disableTwoFactor", [toActionTarget(user)])}
+        onUnlinkOAuth={(user, provider) =>
+          openConfirmDialog("unlinkOAuth", [toActionTarget(user)], { provider })
+        }
+        onRevokeSessions={(user) => openConfirmDialog("revoke", [toActionTarget(user)])}
+        onToggleSuperAdmin={(user) =>
+          openConfirmDialog(user.isSuperAdmin ? "revokeSuperAdmin" : "grantSuperAdmin", [
+            toActionTarget(user),
+          ])
+        }
+        onToggleAccess={(user) =>
+          openConfirmDialog(
+            isDirectoryRestrictionActive(user, "user_disabled") ? "enable" : "disable",
+            [toActionTarget(user)],
+          )
+        }
+        onDelete={(user) => openConfirmDialog("delete", [toActionTarget(user)])}
+      />
+
       <EditAccountDialog
         open={Boolean(editTarget)}
         onOpenChange={(open) => {
@@ -880,7 +1181,7 @@ export function SystemDirectoryUsersPage() {
       />
 
       {confirmConfig ? (
-        <ConfirmUserActionDialog
+        <ConfirmDirectoryActionDialog
           open={Boolean(confirmAction)}
           onOpenChange={(open) => {
             if (!open) setConfirmAction(null);
@@ -890,7 +1191,15 @@ export function SystemDirectoryUsersPage() {
           confirmLabel={confirmConfig.confirmLabel}
           pending={confirmPending}
           variant={confirmConfig.variant}
-          onConfirm={async () => {
+          restriction={
+            confirmAction?.kind === "disable" || confirmAction?.kind === "enable"
+              ? {
+                  mode: confirmAction.kind === "disable" ? "enforce" : "lift",
+                  current: findDirectoryRestriction(confirmAction.users[0]!, "user_disabled"),
+                }
+              : undefined
+          }
+          onConfirm={async (values) => {
             if (!confirmAction) return;
             const userIds = confirmAction.users.map((user) => user.userId);
             if (confirmAction.kind === "revoke") {
@@ -923,14 +1232,28 @@ export function SystemDirectoryUsersPage() {
               return;
             }
             if (confirmAction.kind === "disable") {
-              await governance.disableUsersMutation.mutateAsync({ userIds });
+              if (!values.transition) throw new Error("ACCESS_RESTRICTION_TRANSITION_REQUIRED");
+              await governance.disableUsersMutation.mutateAsync({
+                targets: confirmAction.users.map((user) => ({
+                  id: user.userId,
+                  expectedRevision: getDirectoryRestrictionRevision(user, "user_disabled"),
+                })),
+                transition: values.transition,
+              });
               return;
             }
             if (confirmAction.kind === "delete") {
               await governance.deleteUserMutation.mutateAsync({ userId: userIds[0]! });
               return;
             }
-            await governance.enableUsersMutation.mutateAsync({ userIds });
+            if (!values.transition) throw new Error("ACCESS_RESTRICTION_TRANSITION_REQUIRED");
+            await governance.enableUsersMutation.mutateAsync({
+              targets: confirmAction.users.map((user) => ({
+                id: user.userId,
+                expectedRevision: getDirectoryRestrictionRevision(user, "user_disabled"),
+              })),
+              transition: values.transition,
+            });
           }}
         />
       ) : null}

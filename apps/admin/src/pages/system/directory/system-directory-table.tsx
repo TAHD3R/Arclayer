@@ -21,13 +21,14 @@ import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-sec
 import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
 import { cn } from "@arclayer/lib/utils";
 import { Checkbox } from "@arclayer/ui/checkbox";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
 import {
   DataTableToolbarTools,
   type DataTableColumnHeaderFilterAction,
   useDataTableRowHeightPreference,
   useDataTableWrapHeadersPreference,
 } from "@arclayer/ui/data-table";
+
+import { TruncatedCellTooltip } from "./truncated-cell-tooltip";
 
 type SearchableTableHook<T> = {
   table: import("@tanstack/react-table").Table<T>;
@@ -73,19 +74,6 @@ export type SystemDirectoryBulkAction = {
 
 const SELECT_COLUMN_WIDTH = 52;
 
-function renderCellTooltip(trigger: ReactNode, content: ReactNode, className?: string) {
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild focusTrigger={false}>
-          <div className="inline-flex min-w-0 max-w-full align-middle">{trigger}</div>
-        </TooltipTrigger>
-        <TooltipContent className={cn("max-w-80 break-all", className)}>{content}</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-}
-
 export function renderTruncatedText(
   value: string | number | null | undefined,
   options?: Pick<TextCellOptions, "className" | "tooltipClassName">,
@@ -93,10 +81,12 @@ export function renderTruncatedText(
   if (value === null || value === undefined || value === "") return <span>-</span>;
 
   const text = String(value);
-  return renderCellTooltip(
-    <span className={cn("block max-w-full truncate", options?.className)}>{text}</span>,
-    <span>{text}</span>,
-    options?.tooltipClassName,
+  return (
+    <TruncatedCellTooltip
+      text={text}
+      className={options?.className}
+      tooltipClassName={options?.tooltipClassName}
+    />
   );
 }
 
@@ -274,24 +264,17 @@ export function renderTruncatedTag(
 ) {
   if (!label) return <span>-</span>;
 
-  return renderCellTooltip(
-    renderTag(
-      <span
-        className={cn(
-          "block min-w-0 max-w-full truncate whitespace-nowrap",
-          options?.textClassName,
-        )}
-      >
-        {label}
-      </span>,
-      {
-        tone: options?.tone,
-        icon: options?.icon,
-        className: cn("max-w-[12rem] overflow-hidden", options?.className),
-      },
-    ),
-    <span>{label}</span>,
-    options?.tooltipClassName,
+  return renderTag(
+    <TruncatedCellTooltip
+      text={label}
+      className={cn("whitespace-nowrap", options?.textClassName)}
+      tooltipClassName={options?.tooltipClassName}
+    />,
+    {
+      tone: options?.tone,
+      icon: options?.icon,
+      className: cn("max-w-[12rem] overflow-hidden", options?.className),
+    },
   );
 }
 
@@ -349,68 +332,31 @@ export function createOwnerCell<
     cell: ({ row }) => {
       const owner = row.original.owner;
       if (!owner) return <span>-</span>;
-      const primary = owner.displayName || owner.username;
-      return renderCellTooltip(
+      const primary = owner.displayName?.trim() || owner.username?.trim() || owner.email?.trim();
+      if (!primary) return <span>-</span>;
+      const secondary = owner.email?.trim() === primary ? null : owner.email?.trim();
+      return (
         <div className="ml-1 flex min-w-0 items-center gap-3">
           <UserAvatar name={primary} assetRef={owner.avatarUrl ?? owner.avatar_url} size={28} />
           <div className="min-w-0">
-            <div className="truncate text-sm font-medium text-foreground">{primary}</div>
-            {owner.email ? (
-              <div className="truncate text-xs text-muted-foreground">{owner.email}</div>
+            <TruncatedCellTooltip
+              text={primary}
+              className="text-footnote font-medium text-label-primary"
+              tooltipClassName="max-w-72 break-normal"
+            />
+            {secondary ? (
+              <TruncatedCellTooltip
+                text={secondary}
+                className="text-caption text-label-secondary"
+                tooltipClassName="max-w-72 break-normal"
+              />
             ) : null}
           </div>
-        </div>,
-        <div className="space-y-0.5">
-          <div className="text-sm font-medium text-foreground">{primary}</div>
-          {owner.email ? <div className="text-xs text-muted-foreground">{owner.email}</div> : null}
-        </div>,
-        "max-w-72 break-normal",
+        </div>
       );
     },
     size: options?.size ?? 220,
     minSize: options?.minSize ?? 200,
-  };
-}
-
-export function createUserIdentityCell<
-  TData extends {
-    displayName?: string | null;
-    username: string;
-    email?: string | null;
-    avatarUrl?: string | null;
-    avatar_url?: string | null;
-  },
->(title: string, options?: ColumnOptions): ColumnDef<TData, unknown> {
-  return {
-    id: options?.id ?? "user",
-    meta: {
-      title,
-      sortKey: options?.sortKey,
-      kind: options?.kind ?? "primary",
-    },
-    header: title,
-    cell: ({ row }) => {
-      const user = row.original;
-      const primary = user.displayName || user.username;
-      return renderCellTooltip(
-        <div className="ml-1 flex min-w-0 items-center gap-3">
-          <UserAvatar name={primary} assetRef={user.avatarUrl ?? user.avatar_url} size={28} />
-          <div className="min-w-0">
-            <div className="truncate text-sm font-medium text-foreground">{primary}</div>
-            {user.email ? (
-              <div className="truncate text-xs text-muted-foreground">{user.email}</div>
-            ) : null}
-          </div>
-        </div>,
-        <div className="space-y-0.5">
-          <div className="text-sm font-medium text-foreground">{primary}</div>
-          {user.email ? <div className="text-xs text-muted-foreground">{user.email}</div> : null}
-        </div>,
-        "max-w-72 break-normal",
-      );
-    },
-    size: options?.size ?? 260,
-    minSize: options?.minSize ?? 220,
   };
 }
 

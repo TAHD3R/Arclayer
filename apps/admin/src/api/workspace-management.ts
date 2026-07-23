@@ -1,4 +1,8 @@
 import { api } from "@/lib/http";
+import type {
+  AccessRestrictionEnforcePayload,
+  AccessRestrictionLiftPayload,
+} from "@/api/system-directory";
 import { toQueryString, workspacePath } from "@/lib/api";
 
 import type {
@@ -94,14 +98,24 @@ export async function createWorkspace(
   return api.post<WorkspaceManageListItem>("/workspaces", payload);
 }
 
-export async function archiveWorkspace(workspaceId: string): Promise<WorkspaceManageArchiveResult> {
-  return api.post<WorkspaceManageArchiveResult>(workspacePath(workspaceId, "/archive"));
+export async function archiveWorkspace(
+  workspaceId: string,
+  payload: AccessRestrictionEnforcePayload,
+  idempotencyKey: string,
+): Promise<WorkspaceManageArchiveResult> {
+  return api.post<WorkspaceManageArchiveResult>(workspacePath(workspaceId, "/archive"), payload, {
+    headers: { "Idempotency-Key": idempotencyKey },
+  });
 }
 
 export async function unarchiveWorkspace(
   workspaceId: string,
+  payload: AccessRestrictionLiftPayload,
+  idempotencyKey: string,
 ): Promise<WorkspaceManageArchiveResult> {
-  return api.post<WorkspaceManageArchiveResult>(workspacePath(workspaceId, "/unarchive"));
+  return api.post<WorkspaceManageArchiveResult>(workspacePath(workspaceId, "/unarchive"), payload, {
+    headers: { "Idempotency-Key": idempotencyKey },
+  });
 }
 
 export async function deleteWorkspace(

@@ -12,7 +12,9 @@ import { useImageFallback } from "@/components/common/use-image-fallback";
 import { uploadSingleAssetFromFile } from "@/lib/assets/scoped-uploads";
 import { getFieldErrorMessage } from "@/lib/forms/rhf-form-helpers";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
+import type { AccessRestrictionReasonCategory } from "@/api/system-directory";
 import type {
+  AccessRestrictionAdmin,
   SystemDirectoryProject,
   SystemDirectoryWorkspace,
 } from "@arclayer/openapi/admin-types";
@@ -27,10 +29,7 @@ import {
 import { Button } from "@arclayer/ui/button";
 import { ColorPicker } from "@arclayer/ui/color-picker";
 import { Input } from "@arclayer/ui/input";
-import {
-  AlertDialogAction as AlertDialogActionPrimitive,
-  AlertDialogCancel as AlertDialogCancelPrimitive,
-} from "@arclayer/ui/radix-primitives/radix-alert-dialog";
+import { AlertDialogCancel as AlertDialogCancelPrimitive } from "@arclayer/ui/radix-primitives/radix-alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
@@ -757,22 +756,61 @@ export function ConfirmDirectoryActionDialog(props: {
     placeholder: string;
     mismatchMessage: string;
   };
-  onConfirm: (values?: { confirmName: string }) => Promise<void>;
+  restriction?: {
+    mode: "enforce" | "lift";
+    current: AccessRestrictionAdmin | null;
+  };
+  onConfirm: (values: {
+    confirmName: string;
+    transition?: {
+      operationId: string;
+      operatorNote: string;
+      reasonCategory?: AccessRestrictionReasonCategory;
+      reasonCode?: string;
+    };
+  }) => Promise<void>;
 }) {
-  const { t } = useTranslation(["common"]);
+  const { t } = useTranslation(["common", "settings"]);
   const [confirmName, setConfirmName] = React.useState("");
   const [confirmNameTouched, setConfirmNameTouched] = React.useState(false);
+  const [reasonCategory, setReasonCategory] = React.useState<AccessRestrictionReasonCategory | "">(
+    "",
+  );
+  const [operatorNote, setOperatorNote] = React.useState("");
+  const [restrictionTouched, setRestrictionTouched] = React.useState(false);
+  const operationIdRef = React.useRef("");
   const needsConfirmName = Boolean(props.confirmName);
   const confirmNameMatches =
     !props.confirmName || confirmName.trim() === props.confirmName.expected;
   const confirmNameError =
     confirmNameTouched && !confirmNameMatches ? props.confirmName?.mismatchMessage : null;
+  const operatorNoteValid = operatorNote.trim().length > 0;
+  const reasonCategoryValid = props.restriction?.mode !== "enforce" || Boolean(reasonCategory);
+  const restrictionValid = !props.restriction || (operatorNoteValid && reasonCategoryValid);
 
   React.useEffect(() => {
     if (!props.open) return;
     setConfirmName("");
     setConfirmNameTouched(false);
+    setReasonCategory("");
+    setOperatorNote("");
+    setRestrictionTouched(false);
+    operationIdRef.current = crypto.randomUUID();
   }, [props.open]);
+
+  const reasonCategories: AccessRestrictionReasonCategory[] = [
+    "policy_violation",
+    "security_risk",
+    "billing_issue",
+    "abuse_prevention",
+    "compliance_review",
+    "owner_request",
+    "other",
+  ];
+  const reasonOptions = reasonCategories.map((value) => ({
+    value,
+    label: t(`settings:SETTINGS_ACCESS_RESTRICTION_REASON_${value.toUpperCase()}`),
+  }));
 
   return (
     <AlertDialog
@@ -805,31 +843,128 @@ export function ConfirmDirectoryActionDialog(props: {
             ) : null}
           </div>
         ) : null}
+        {props.restriction ? (
+          <div className="space-y-4 rounded-lg border border-border/70 bg-muted/30 p-4">
+            {props.restriction.mode === "lift" && props.restriction.current ? (
+              <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-footnote">
+                <span className="text-label-secondary">
+                  {t("settings:SETTINGS_ACCESS_RESTRICTION_CURRENT_REASON")}
+                </span>
+                <span>
+                  {t(
+                    `settings:SETTINGS_ACCESS_RESTRICTION_REASON_${props.restriction.current.reasonCategory.toUpperCase()}`,
+                  )}
+                </span>
+                <span className="text-label-secondary">
+                  {t("settings:SETTINGS_ACCESS_RESTRICTION_CURRENT_REVISION")}
+                </span>
+                <span className="font-mono tabular-nums">{props.restriction.current.revision}</span>
+              </div>
+            ) : null}
+            {props.restriction.mode === "enforce" ? (
+              <div className="space-y-2">
+                <label className="text-footnote font-medium" htmlFor="directory-restriction-reason">
+                  {t("settings:SETTINGS_ACCESS_RESTRICTION_REASON_LABEL")}
+                </label>
+                <Select
+                  value={reasonCategory}
+                  onValueChange={(value) =>
+                    setReasonCategory(value as AccessRestrictionReasonCategory)
+                  }
+                  disabled={props.pending}
+                >
+                  <SelectTrigger
+                    id="directory-restriction-reason"
+                    aria-invalid={restrictionTouched && !reasonCategoryValid ? true : undefined}
+                  >
+                    <SelectValue
+                      placeholder={t("settings:SETTINGS_ACCESS_RESTRICTION_REASON_PLACEHOLDER")}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {reasonOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {restrictionTouched && !reasonCategoryValid ? (
+                  <p className="text-footnote text-destructive">
+                    {t("settings:SETTINGS_ACCESS_RESTRICTION_REASON_REQUIRED")}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            <div className="space-y-2">
+              <label className="text-footnote font-medium" htmlFor="directory-restriction-note">
+                {t(
+                  props.restriction.mode === "enforce"
+                    ? "settings:SETTINGS_ACCESS_RESTRICTION_OPERATOR_NOTE_LABEL"
+                    : "settings:SETTINGS_ACCESS_RESTRICTION_LIFT_NOTE_LABEL",
+                )}
+              </label>
+              <Textarea
+                id="directory-restriction-note"
+                value={operatorNote}
+                disabled={props.pending}
+                maxLength={2000}
+                rows={4}
+                aria-invalid={restrictionTouched && !operatorNoteValid ? true : undefined}
+                placeholder={t(
+                  props.restriction.mode === "enforce"
+                    ? "settings:SETTINGS_ACCESS_RESTRICTION_OPERATOR_NOTE_PLACEHOLDER"
+                    : "settings:SETTINGS_ACCESS_RESTRICTION_LIFT_NOTE_PLACEHOLDER",
+                )}
+                onChange={(event) => setOperatorNote(event.target.value)}
+              />
+              <div className="flex items-start justify-between gap-3 text-footnote text-label-secondary">
+                <span>{t("settings:SETTINGS_ACCESS_RESTRICTION_OPERATOR_NOTE_HELP")}</span>
+                <span className="shrink-0 tabular-nums">{operatorNote.length}/2000</span>
+              </div>
+              {restrictionTouched && !operatorNoteValid ? (
+                <p className="text-footnote text-destructive">
+                  {t("settings:SETTINGS_ACCESS_RESTRICTION_OPERATOR_NOTE_REQUIRED")}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
         <AlertDialogFooter>
           <AlertDialogCancelPrimitive asChild>
             <Button variant="outline" disabled={props.pending}>
               {t("common:CANCEL")}
             </Button>
           </AlertDialogCancelPrimitive>
-          <AlertDialogActionPrimitive asChild>
-            <Button
-              variant={props.variant === "destructive" ? "destructive" : undefined}
-              loading={props.pending}
-              disabled={needsConfirmName && !confirmNameMatches}
-              onClick={async () => {
-                if (props.confirmName && !confirmNameMatches) {
-                  setConfirmNameTouched(true);
-                  return;
-                }
-                await props.onConfirm(
-                  props.confirmName ? { confirmName: confirmName.trim() } : undefined,
-                );
-                props.onOpenChange(false);
-              }}
-            >
-              {props.confirmLabel}
-            </Button>
-          </AlertDialogActionPrimitive>
+          <Button
+            variant={props.variant === "destructive" ? "destructive" : undefined}
+            loading={props.pending}
+            disabled={needsConfirmName && !confirmNameMatches}
+            onClick={async () => {
+              if (props.confirmName && !confirmNameMatches) {
+                setConfirmNameTouched(true);
+                return;
+              }
+              if (!restrictionValid) {
+                setRestrictionTouched(true);
+                return;
+              }
+              await props.onConfirm({
+                confirmName: confirmName.trim(),
+                transition: props.restriction
+                  ? {
+                      operationId: operationIdRef.current,
+                      operatorNote: operatorNote.trim(),
+                      reasonCategory: reasonCategory || undefined,
+                      reasonCode: reasonCategory || undefined,
+                    }
+                  : undefined,
+              });
+              props.onOpenChange(false);
+            }}
+          >
+            {props.confirmLabel}
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

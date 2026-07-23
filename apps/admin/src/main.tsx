@@ -6,11 +6,12 @@ import App from "./app";
 
 import { initI18n } from "@/lib/i18n";
 import { router } from "@/routes/-router";
-import { setUnauthorizedHandler } from "@/lib/http/client";
+import { setApiErrorHandler, setUnauthorizedHandler } from "@/lib/http/client";
 import { isPublicPath } from "@/lib/routing/route-identity";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { initializePreferences, usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { useAccessRestrictionStore } from "@/stores/use-access-restriction-store";
 import { queryClient } from "@/lib/query/query-client-instance";
 import { configureAdminBoneyard } from "@/lib/boneyard";
 
@@ -34,6 +35,7 @@ async function bootstrap() {
 
     void queryClient.cancelQueries();
     queryClient.clear();
+    useAccessRestrictionStore.getState().clear();
     useAuthStore.getState().clear();
     useWorkspaceStore.getState().clearWorkspace();
     const current = `${window.location.pathname}${window.location.search}`;
@@ -41,6 +43,12 @@ async function bootstrap() {
       to: "/login",
       search: { redirect: current },
     });
+  });
+  setApiErrorHandler(({ error }) => {
+    const captured = useAccessRestrictionStore.getState().captureApiError(error);
+    if (!captured) return;
+    void queryClient.cancelQueries();
+    queryClient.clear();
   });
 
   createRoot(document.getElementById("root")!).render(

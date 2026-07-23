@@ -36,6 +36,6 @@ describe("system settings registry", () => {
       (item) => item.page === "notifications",
     ).map((item) => item.anchorId ?? item.id);
 
-    expect(notificationItemIds).toEqual(["notification-policy", "global-notification-broadcast"]);
+    expect(notificationItemIds).toEqual(["notification-policy", "global-notification-campaigns"]);
   });
 });

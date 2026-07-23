@@ -1,6 +1,13 @@
-import { createRootRoute, Outlet, redirect, useRouterState } from "@tanstack/react-router";
+import {
+  createRootRoute,
+  Outlet,
+  redirect,
+  useRouterState,
+  type ErrorComponentProps,
+} from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 
+import { AccessRestrictionBoundary } from "@/components/builtin/access-restriction-boundary";
 import { SceneLoadingOverlay } from "@/components/layout/scene-loading-overlay";
 import { SettingsScreenProvider } from "@/components/layout/settings-screen-provider";
 import { UsercenterOverlayHost } from "@/components/layout/usercenter-overlay-host";
@@ -36,15 +43,16 @@ function normalizeEditorRedirectPath(redirectTo: string): string {
 }
 
 export function RootLayout() {
-  const { pathname, isPagePending } = useRouterState({
+  const { pathname, searchStr, isPagePending } = useRouterState({
     select: (s) => ({
       pathname: s.location.pathname,
+      searchStr: s.location.searchStr,
       isPagePending: s.isLoading || s.matches.some((d) => d.status === "pending"),
     }),
     structuralSharing: true,
   });
   const isWelcome = isWelcomePath(pathname);
-  const sceneKey = resolveSceneKey(pathname);
+  const sceneKey = resolveSceneKey(pathname, searchStr);
   const lastResolvedSceneRef = useRef(sceneKey);
   const Layout = getSceneLayout(sceneKey);
   const overlayVisible =
@@ -69,7 +77,7 @@ export function RootLayout() {
   return (
     <SettingsScreenProvider>
       <RouteDocumentTitleManager />
-      <>
+      <AccessRestrictionBoundary pathname={pathname}>
         <div data-testid="root-scene-shell">
           <Layout>
             <Outlet />
@@ -77,8 +85,17 @@ export function RootLayout() {
         </div>
         <UsercenterOverlayHost />
         <SceneLoadingOverlay visible={overlayVisible} />
-      </>
+      </AccessRestrictionBoundary>
     </SettingsScreenProvider>
+  );
+}
+
+function RootRouteError(props: ErrorComponentProps) {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  return (
+    <AccessRestrictionBoundary pathname={pathname}>
+      <RouterDefaultError {...props} />
+    </AccessRestrictionBoundary>
   );
 }
 
@@ -182,6 +199,6 @@ export const Route = createRootRoute({
     }
   },
   component: RootLayout,
-  errorComponent: RouterDefaultError,
+  errorComponent: RootRouteError,
   notFoundComponent: RouterDefaultNotFound,
 });

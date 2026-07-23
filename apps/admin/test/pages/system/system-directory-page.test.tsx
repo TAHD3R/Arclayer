@@ -80,6 +80,7 @@ vi.mock("@/components/common/data-table-tools-labels", () => ({
 vi.mock("@/hooks/use-admin-date-time-formatter", () => ({
   useAdminDateTimeFormatter: () => ({
     formatDateTime: (value: string) => value,
+    localization: { timeZone: "UTC" },
   }),
 }));
 

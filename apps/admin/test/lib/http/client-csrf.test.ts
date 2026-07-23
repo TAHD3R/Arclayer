@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { apiRequest } from "@/lib/http/client";
+import { apiRequest, setApiErrorHandler } from "@/lib/http/client";
 import { useAuthStore } from "@/stores/use-auth-store";
 
 describe("admin API CSRF transport", () => {
@@ -10,8 +10,37 @@ describe("admin API CSRF transport", () => {
   });
 
   afterEach(() => {
+    setApiErrorHandler(null);
     document.cookie = "csrf_token=; Max-Age=0; path=/";
     vi.restoreAllMocks();
+  });
+
+  it("reports an API error to the observer and rethrows the same instance", async () => {
+    const handler = vi.fn();
+    setApiErrorHandler(handler);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<FetchMock>(async () =>
+        jsonResponse(
+          {
+            error: "WORKSPACE_SUSPENDED",
+            message: "Workspace access is suspended",
+            meta: { restriction: { entityId: "workspace-1" } },
+          },
+          { status: 403 },
+        ),
+      ),
+    );
+
+    const request = apiRequest("/workspaces/workspace-1", { method: "GET" });
+    const error = await request.catch((caught: unknown) => caught);
+
+    expect(handler).toHaveBeenCalledWith({
+      path: "/workspaces/workspace-1",
+      method: "GET",
+      error,
+    });
+    await expect(Promise.reject(error)).rejects.toBe(error);
   });
 
   it("adds the CSRF header to unsafe Admin API requests", async () => {
@@ -72,7 +101,7 @@ function getFetchInit(fetchMock: ReturnType<typeof vi.fn<FetchMock>>, callIndex 
 }
 
 function jsonResponse(
-  body: { data?: unknown; error?: string | null; message?: string },
+  body: { data?: unknown; error?: string | null; message?: string; meta?: unknown },
   init: ResponseInit = {},
 ): Response {
   return new Response(

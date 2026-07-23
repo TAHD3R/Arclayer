@@ -7,7 +7,7 @@ import { useSettingsScreen } from "@/components/layout/settings-screen-provider"
 import { getErrorMessage } from "@/lib/notifications";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { cn } from "@arclayer/lib/utils";
-import { Button } from "@arclayer/ui/button";
+import { Button, buttonVariants } from "@arclayer/ui/button";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@arclayer/ui/hover-card";
 import { Progress } from "@arclayer/ui/progress";
 import { Separator } from "@arclayer/ui/separator";
@@ -18,7 +18,9 @@ function usagePercent(spent: number, granted: number): number {
   return Math.min(100, Math.max(0, (spent / granted) * 100));
 }
 
-export function WorkspaceCreditsControl(props: { className?: string } = {}) {
+export function WorkspaceCreditsControl(
+  props: { className?: string; compactOnMobile?: boolean } = {},
+) {
   const { t, i18n } = useTranslation(["commerce"]);
   const settingsScreen = useSettingsScreen();
   const workspaceId = useWorkspaceStore(
@@ -36,7 +38,16 @@ export function WorkspaceCreditsControl(props: { className?: string } = {}) {
   if (!workspaceId) return null;
 
   if (overviewQuery.isLoading) {
-    return <Skeleton className="h-9 w-28 rounded-md" aria-label={t("commerce:CREDITS_LOADING")} />;
+    return (
+      <Skeleton
+        className={cn(
+          "h-9 w-28 rounded-md",
+          props.compactOnMobile && "max-[768px]:w-11",
+          props.className,
+        )}
+        aria-label={t("commerce:CREDITS_LOADING")}
+      />
+    );
   }
 
   const overview = overviewQuery.data;
@@ -45,15 +56,23 @@ export function WorkspaceCreditsControl(props: { className?: string } = {}) {
   const date = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
   const isFreePlan = overview?.plan.code === "free";
   const openPlanUsage = () => settingsScreen.openSettings({ screen: "workspace.plan-usage" });
+  const creditsLabel = overview
+    ? t("commerce:CREDITS_BUTTON_LABEL", {
+        count: number.format(overview.credits.available),
+      })
+    : t("commerce:CREDITS_UNAVAILABLE");
 
   const trigger = (
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      tapScale={1}
-      className={cn("text-callout font-semibold", props.className)}
-      onClick={openPlanUsage}
+    <div
+      tabIndex={0}
+      aria-label={creditsLabel}
+      className={cn(
+        buttonVariants({ variant: "outline", size: "sm" }),
+        "cursor-default text-callout font-semibold",
+        props.compactOnMobile &&
+          "max-[768px]:[&>span:not(.sr-only)]:hidden max-[768px]:[&_[data-slot=separator]]:hidden",
+        props.className,
+      )}
     >
       {overview ? <Coins aria-hidden="true" /> : <CircleAlert aria-hidden="true" />}
       <span>{overview ? number.format(overview.credits.available) : "—"}</span>
@@ -63,14 +82,7 @@ export function WorkspaceCreditsControl(props: { className?: string } = {}) {
           <span className="hidden lg:inline">{t("commerce:PLAN_UPGRADE_ACTION")}</span>
         </>
       ) : null}
-      <span className="sr-only">
-        {overview
-          ? t("commerce:CREDITS_BUTTON_LABEL", {
-              count: number.format(overview.credits.available),
-            })
-          : t("commerce:CREDITS_UNAVAILABLE")}
-      </span>
-    </Button>
+    </div>
   );
 
   return (

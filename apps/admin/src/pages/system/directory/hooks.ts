@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useDataTable } from "@arclayer/ui/data-table";
-import { type ColumnDef } from "@tanstack/react-table";
+import { type ColumnDef, type SortingState } from "@tanstack/react-table";
 
 import {
   archiveSystemDirectoryWorkspace,
@@ -30,6 +30,7 @@ import {
   updateSystemDirectoryUser,
   updateSystemDirectoryWorkspace,
 } from "@/api/system-directory";
+import type { AccessRestrictionReasonCategory } from "@/api/system-directory";
 import { listWorkspaceRoles } from "@/api/rbac";
 import {
   assignWorkspaceRoleToAllUsers,
@@ -57,6 +58,32 @@ const DETAIL_QUERY_OPTIONS = {
   retry: false,
   meta: { silent: true },
 } as const;
+
+export type DirectoryRestrictionTarget = {
+  id: string;
+  expectedRevision: number;
+};
+
+export type DirectoryRestrictionTransition = {
+  operationId: string;
+  operatorNote: string;
+  reasonCategory?: AccessRestrictionReasonCategory;
+  reasonCode?: string;
+};
+
+function restrictionCommandKey(operationId: string, entityId: string) {
+  return `${operationId}:${entityId}`;
+}
+
+function requireRestrictionReason(transition: DirectoryRestrictionTransition) {
+  if (!transition.reasonCategory || !transition.reasonCode) {
+    throw new Error("ACCESS_RESTRICTION_REASON_REQUIRED");
+  }
+  return {
+    reasonCategory: transition.reasonCategory,
+    reasonCode: transition.reasonCode,
+  } as const;
+}
 
 export function buildSystemDirectoryUserDetailQueryKey(userId: string | null) {
   return ["system-directory", "users", userId] as const;
@@ -91,13 +118,22 @@ export function useSystemDirectoryUsersTable(
     hasPassword?: boolean;
     twoFactorEnabled?: boolean;
     oauthProvider?: string;
+    createdFrom?: string;
+    createdTo?: string;
+    lastLoginFrom?: string;
+    lastLoginTo?: string;
+    workspaceMemberOfId?: string;
+    projectMemberOfId?: string;
+    ownedWorkspaceId?: string;
+    ownedProjectId?: string;
   },
+  initialState?: { q?: string; sorting?: SortingState },
 ) {
   const tableId = "system-directory-users";
   const tableHook = useDataTable<SystemDirectoryUser>({
     tableId,
     columns,
-    initialState: { pageSize: 20 },
+    initialState: { pageSize: 20, q: initialState?.q, sorting: initialState?.sorting },
     fetcher: async (params) => listSystemDirectoryUsers(params),
     extraQuery,
     rowSelection: {
@@ -115,13 +151,22 @@ export function useSystemDirectoryWorkspacesTable(
   extraQuery?: {
     isArchived?: boolean;
     isActive?: boolean;
+    ownerUserId?: string;
+    planCode?: string;
+    subscriptionStatus?: string;
+    commerceRisk?: string;
+    createdFrom?: string;
+    createdTo?: string;
+    activityFrom?: string;
+    activityTo?: string;
   },
+  initialState?: { q?: string; sorting?: SortingState },
 ) {
   const tableId = "system-directory-workspaces";
   const tableHook = useDataTable<SystemDirectoryWorkspace>({
     tableId,
     columns,
-    initialState: { pageSize: 20 },
+    initialState: { pageSize: 20, q: initialState?.q, sorting: initialState?.sorting },
     fetcher: async (params) => listSystemDirectoryWorkspaces(params),
     extraQuery,
     rowSelection: {
@@ -139,13 +184,22 @@ export function useSystemDirectoryProjectsTable(
   extraQuery?: {
     workspaceId?: string;
     isActive?: boolean;
+    ownerUserId?: string;
+    runtimeHealth?: string;
+    domainState?: string;
+    releaseState?: string;
+    createdFrom?: string;
+    createdTo?: string;
+    activityFrom?: string;
+    activityTo?: string;
   },
+  initialState?: { q?: string; sorting?: SortingState },
 ) {
   const tableId = "system-directory-projects";
   const tableHook = useDataTable<SystemDirectoryProject>({
     tableId,
     columns,
-    initialState: { pageSize: 20 },
+    initialState: { pageSize: 20, q: initialState?.q, sorting: initialState?.sorting },
     fetcher: async (params) => listSystemDirectoryProjects(params),
     extraQuery,
     rowSelection: {
@@ -275,12 +329,28 @@ export function useSystemDirectoryUserGovernance() {
   });
 
   const disableUsersMutation = useMutation({
-    mutationFn: async (params: { userIds: string[] }) => {
-      return Promise.all(params.userIds.map((userId) => disableSystemDirectoryUser(userId)));
+    mutationFn: async (params: {
+      targets: DirectoryRestrictionTarget[];
+      transition: DirectoryRestrictionTransition;
+    }) => {
+      const reason = requireRestrictionReason(params.transition);
+      return Promise.all(
+        params.targets.map((target) =>
+          disableSystemDirectoryUser(
+            target.id,
+            {
+              expectedRevision: target.expectedRevision,
+              ...reason,
+              operatorNote: params.transition.operatorNote,
+            },
+            restrictionCommandKey(params.transition.operationId, target.id),
+          ),
+        ),
+      );
     },
     onSuccess: async (_data, variables) => {
       notifySuccessText(
-        variables.userIds.length > 1
+        variables.targets.length > 1
           ? t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DISABLE_ACCOUNT_SUCCESS_MANY")
           : t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DISABLE_ACCOUNT_SUCCESS_ONE"),
       );
@@ -290,12 +360,26 @@ export function useSystemDirectoryUserGovernance() {
   });
 
   const enableUsersMutation = useMutation({
-    mutationFn: async (params: { userIds: string[] }) => {
-      return Promise.all(params.userIds.map((userId) => enableSystemDirectoryUser(userId)));
+    mutationFn: async (params: {
+      targets: DirectoryRestrictionTarget[];
+      transition: DirectoryRestrictionTransition;
+    }) => {
+      return Promise.all(
+        params.targets.map((target) =>
+          enableSystemDirectoryUser(
+            target.id,
+            {
+              expectedRevision: target.expectedRevision,
+              operatorNote: params.transition.operatorNote,
+            },
+            restrictionCommandKey(params.transition.operationId, target.id),
+          ),
+        ),
+      );
     },
     onSuccess: async (_data, variables) => {
       notifySuccessText(
-        variables.userIds.length > 1
+        variables.targets.length > 1
           ? t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ENABLE_ACCOUNT_SUCCESS_MANY")
           : t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ENABLE_ACCOUNT_SUCCESS_ONE"),
       );
@@ -353,6 +437,19 @@ export function useSystemDirectoryWorkspaceOptions() {
   return {
     ...query,
     workspaces: query.data?.items ?? [],
+  } as const;
+}
+
+export function useSystemDirectoryProjectOptions() {
+  const query = useQuery({
+    queryKey: ["system-directory", "projects", "options"],
+    queryFn: async () => listSystemDirectoryProjects({ page: 1, size: 200, ordering: "name" }),
+    ...DETAIL_QUERY_OPTIONS,
+  });
+
+  return {
+    ...query,
+    projects: query.data?.items ?? [],
   } as const;
 }
 
@@ -455,11 +552,27 @@ export function useSystemDirectoryWorkspaceGovernance() {
   });
 
   const archiveWorkspacesMutation = useMutation({
-    mutationFn: async (params: { workspaceIds: string[] }) =>
-      Promise.all(params.workspaceIds.map((id) => archiveSystemDirectoryWorkspace(id))),
+    mutationFn: async (params: {
+      targets: DirectoryRestrictionTarget[];
+      transition: DirectoryRestrictionTransition;
+    }) =>
+      Promise.all(
+        params.targets.map((target) => {
+          const reason = requireRestrictionReason(params.transition);
+          return archiveSystemDirectoryWorkspace(
+            target.id,
+            {
+              expectedRevision: target.expectedRevision,
+              ...reason,
+              operatorNote: params.transition.operatorNote,
+            },
+            restrictionCommandKey(params.transition.operationId, target.id),
+          );
+        }),
+      ),
     onSuccess: async (_data, variables) => {
       notifySuccessText(
-        variables.workspaceIds.length > 1
+        variables.targets.length > 1
           ? t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ARCHIVE_WORKSPACE_SUCCESS_MANY")
           : t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ARCHIVE_WORKSPACE_SUCCESS_ONE"),
       );
@@ -469,11 +582,25 @@ export function useSystemDirectoryWorkspaceGovernance() {
   });
 
   const restoreWorkspacesMutation = useMutation({
-    mutationFn: async (params: { workspaceIds: string[] }) =>
-      Promise.all(params.workspaceIds.map((id) => restoreSystemDirectoryWorkspace(id))),
+    mutationFn: async (params: {
+      targets: DirectoryRestrictionTarget[];
+      transition: DirectoryRestrictionTransition;
+    }) =>
+      Promise.all(
+        params.targets.map((target) =>
+          restoreSystemDirectoryWorkspace(
+            target.id,
+            {
+              expectedRevision: target.expectedRevision,
+              operatorNote: params.transition.operatorNote,
+            },
+            restrictionCommandKey(params.transition.operationId, target.id),
+          ),
+        ),
+      ),
     onSuccess: async (_data, variables) => {
       notifySuccessText(
-        variables.workspaceIds.length > 1
+        variables.targets.length > 1
           ? t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_RESTORE_WORKSPACE_SUCCESS_MANY")
           : t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_RESTORE_WORKSPACE_SUCCESS_ONE"),
       );
@@ -483,11 +610,27 @@ export function useSystemDirectoryWorkspaceGovernance() {
   });
 
   const disableWorkspacesMutation = useMutation({
-    mutationFn: async (params: { workspaceIds: string[] }) =>
-      Promise.all(params.workspaceIds.map((id) => disableSystemDirectoryWorkspace(id))),
+    mutationFn: async (params: {
+      targets: DirectoryRestrictionTarget[];
+      transition: DirectoryRestrictionTransition;
+    }) =>
+      Promise.all(
+        params.targets.map((target) => {
+          const reason = requireRestrictionReason(params.transition);
+          return disableSystemDirectoryWorkspace(
+            target.id,
+            {
+              expectedRevision: target.expectedRevision,
+              ...reason,
+              operatorNote: params.transition.operatorNote,
+            },
+            restrictionCommandKey(params.transition.operationId, target.id),
+          );
+        }),
+      ),
     onSuccess: async (_data, variables) => {
       notifySuccessText(
-        variables.workspaceIds.length > 1
+        variables.targets.length > 1
           ? t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DISABLE_WORKSPACE_SUCCESS_MANY")
           : t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DISABLE_WORKSPACE_SUCCESS_ONE"),
       );
@@ -497,11 +640,25 @@ export function useSystemDirectoryWorkspaceGovernance() {
   });
 
   const enableWorkspacesMutation = useMutation({
-    mutationFn: async (params: { workspaceIds: string[] }) =>
-      Promise.all(params.workspaceIds.map((id) => enableSystemDirectoryWorkspace(id))),
+    mutationFn: async (params: {
+      targets: DirectoryRestrictionTarget[];
+      transition: DirectoryRestrictionTransition;
+    }) =>
+      Promise.all(
+        params.targets.map((target) =>
+          enableSystemDirectoryWorkspace(
+            target.id,
+            {
+              expectedRevision: target.expectedRevision,
+              operatorNote: params.transition.operatorNote,
+            },
+            restrictionCommandKey(params.transition.operationId, target.id),
+          ),
+        ),
+      ),
     onSuccess: async (_data, variables) => {
       notifySuccessText(
-        variables.workspaceIds.length > 1
+        variables.targets.length > 1
           ? t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ENABLE_WORKSPACE_SUCCESS_MANY")
           : t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ENABLE_WORKSPACE_SUCCESS_ONE"),
       );
@@ -605,11 +762,28 @@ export function useSystemDirectoryProjectGovernance() {
   });
 
   const disableProjectsMutation = useMutation({
-    mutationFn: async (params: { projectIds: string[] }) =>
-      Promise.all(params.projectIds.map((id) => disableSystemDirectoryProject(id))),
+    mutationFn: async (params: {
+      targets: DirectoryRestrictionTarget[];
+      transition: DirectoryRestrictionTransition;
+    }) => {
+      const reason = requireRestrictionReason(params.transition);
+      return Promise.all(
+        params.targets.map((target) =>
+          disableSystemDirectoryProject(
+            target.id,
+            {
+              expectedRevision: target.expectedRevision,
+              ...reason,
+              operatorNote: params.transition.operatorNote,
+            },
+            restrictionCommandKey(params.transition.operationId, target.id),
+          ),
+        ),
+      );
+    },
     onSuccess: async (_data, variables) => {
       notifySuccessText(
-        variables.projectIds.length > 1
+        variables.targets.length > 1
           ? t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DISABLE_PROJECT_SUCCESS_MANY")
           : t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DISABLE_PROJECT_SUCCESS_ONE"),
       );
@@ -619,11 +793,25 @@ export function useSystemDirectoryProjectGovernance() {
   });
 
   const enableProjectsMutation = useMutation({
-    mutationFn: async (params: { projectIds: string[] }) =>
-      Promise.all(params.projectIds.map((id) => enableSystemDirectoryProject(id))),
+    mutationFn: async (params: {
+      targets: DirectoryRestrictionTarget[];
+      transition: DirectoryRestrictionTransition;
+    }) =>
+      Promise.all(
+        params.targets.map((target) =>
+          enableSystemDirectoryProject(
+            target.id,
+            {
+              expectedRevision: target.expectedRevision,
+              operatorNote: params.transition.operatorNote,
+            },
+            restrictionCommandKey(params.transition.operationId, target.id),
+          ),
+        ),
+      ),
     onSuccess: async (_data, variables) => {
       notifySuccessText(
-        variables.projectIds.length > 1
+        variables.targets.length > 1
           ? t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ENABLE_PROJECT_SUCCESS_MANY")
           : t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ENABLE_PROJECT_SUCCESS_ONE"),
       );

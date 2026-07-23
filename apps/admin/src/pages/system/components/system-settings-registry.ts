@@ -46,7 +46,7 @@ export type SystemSettingsItemId =
   | "delivery-policy"
   | "test-email"
   | "notification-policy"
-  | "global-notification-broadcast"
+  | "global-notification-campaigns"
   | "oauth-providers";
 
 export type SystemSettingsSearchItem = {
@@ -299,11 +299,11 @@ export const SYSTEM_SETTINGS_ITEMS: readonly SystemSettingsSearchItem[] = [
     keywords: ["invite", "notification"],
   },
   {
-    id: "global-notification-broadcast",
+    id: "global-notification-campaigns",
     page: "notifications",
-    titleKey: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_BROADCAST_TITLE",
-    descriptionKey: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_BROADCAST_DESC",
-    keywords: ["broadcast", "email", "notification"],
+    titleKey: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_CAMPAIGN_TITLE",
+    descriptionKey: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_CAMPAIGN_DESC",
+    keywords: ["campaign", "broadcast", "email", "notification", "delivery"],
   },
   {
     id: "oauth-providers",

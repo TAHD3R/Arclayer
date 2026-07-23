@@ -1,4 +1,5 @@
 import {
+  ApiError,
   createApiClient,
   type ApiRequestOptions,
   type UnauthorizedHandler,
@@ -9,9 +10,20 @@ import { getLocaleHeaders, getRequestCredentials } from "@/lib/http/request-cont
 import { useAuthStore } from "@/stores/use-auth-store";
 
 let unauthorizedHandler: UnauthorizedHandler | null = null;
+export type ApiErrorContext = {
+  path: string;
+  method: string;
+  error: ApiError;
+};
+export type ApiErrorHandler = (context: ApiErrorContext) => void;
+let apiErrorHandler: ApiErrorHandler | null = null;
 
 export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
   unauthorizedHandler = handler;
+}
+
+export function setApiErrorHandler(handler: ApiErrorHandler | null) {
+  apiErrorHandler = handler;
 }
 
 const client = createApiClient({
@@ -29,21 +41,32 @@ const client = createApiClient({
 export type { ApiRequestOptions };
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-  return client.request<T>(path, options);
+  return observeApiError(path, options.method ?? "GET", client.request<T>(path, options));
 }
 
 export const api = {
   get: <T>(path: string, options?: Omit<ApiRequestOptions, "method" | "body">) =>
-    client.get<T>(path, options),
+    observeApiError(path, "GET", client.get<T>(path, options)),
   post: <T>(path: string, body?: unknown, options?: Omit<ApiRequestOptions, "method" | "body">) =>
-    client.post<T>(path, body, options),
+    observeApiError(path, "POST", client.post<T>(path, body, options)),
   put: <T>(path: string, body?: unknown, options?: Omit<ApiRequestOptions, "method" | "body">) =>
-    client.put<T>(path, body, options),
+    observeApiError(path, "PUT", client.put<T>(path, body, options)),
   patch: <T>(path: string, body?: unknown, options?: Omit<ApiRequestOptions, "method" | "body">) =>
-    client.patch<T>(path, body, options),
+    observeApiError(path, "PATCH", client.patch<T>(path, body, options)),
   delete: <T>(path: string, options?: Omit<ApiRequestOptions, "method" | "body">) =>
-    client.delete<T>(path, options),
+    observeApiError(path, "DELETE", client.delete<T>(path, options)),
 } as const;
+
+async function observeApiError<T>(path: string, method: string, request: Promise<T>): Promise<T> {
+  try {
+    return await request;
+  } catch (error) {
+    if (error instanceof ApiError && error.status !== 304) {
+      apiErrorHandler?.({ path, method, error });
+    }
+    throw error;
+  }
+}
 
 function readAdminCookie(name: string): string | null {
   if (typeof document === "undefined") return null;

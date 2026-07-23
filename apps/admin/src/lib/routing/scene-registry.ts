@@ -11,6 +11,7 @@ import {
   isCreationEditorPath,
   isGlobalPath,
 } from "@/lib/routing/route-identity";
+import { resolveNotificationsSourcePath } from "@/lib/routing/notifications-source";
 
 export type SceneKey = "auth" | "invite" | "creation" | "global" | "admin";
 
@@ -34,8 +35,9 @@ const LAYOUT_BY_KEY = Object.fromEntries(SCENE_ENTRIES.map((e) => [e.key, e.layo
   ComponentType<PropsWithChildren>
 >;
 
-export function resolveSceneKey(pathname: string): SceneKey {
-  return SCENE_ENTRIES.find((e) => e.match(pathname))?.key ?? "admin";
+export function resolveSceneKey(pathname: string, searchStr = ""): SceneKey {
+  const scenePathname = resolveNotificationsSourcePath(pathname, searchStr) ?? pathname;
+  return SCENE_ENTRIES.find((entry) => entry.match(scenePathname))?.key ?? "admin";
 }
 
 export function getSceneLayout(key: SceneKey): ComponentType<PropsWithChildren> {
