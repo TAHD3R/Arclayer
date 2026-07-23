@@ -69,31 +69,33 @@ export function ObservabilityTrendCard(props: {
                 formatValue={(value) => formatTrendValue({ value, kind: props.valueKind, locale })}
                 onSelectPoint={setSelectedPoint}
               />
-              <table className="sr-only">
-                <caption>{t("TREND_TABLE_CAPTION", { title: props.title })}</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">{t("TREND_TABLE_DATE")}</th>
-                    <th scope="col">{t("TREND_TABLE_VALUE")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {props.points.map((point) => (
-                    <tr key={point.date}>
-                      <td>{dateFormatter.format(new Date(`${point.date}T00:00:00Z`))}</td>
-                      <td>
-                        <button type="button" onClick={() => setSelectedPoint(point)}>
-                          {formatTrendValue({
-                            value: Number(point.value),
-                            kind: props.valueKind,
-                            locale,
-                          })}
-                        </button>
-                      </td>
+              <div className="sr-only">
+                <table>
+                  <caption>{t("TREND_TABLE_CAPTION", { title: props.title })}</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">{t("TREND_TABLE_DATE")}</th>
+                      <th scope="col">{t("TREND_TABLE_VALUE")}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {props.points.map((point) => (
+                      <tr key={point.date}>
+                        <td>{dateFormatter.format(new Date(`${point.date}T00:00:00Z`))}</td>
+                        <td>
+                          <button type="button" onClick={() => setSelectedPoint(point)}>
+                            {formatTrendValue({
+                              value: Number(point.value),
+                              kind: props.valueKind,
+                              locale,
+                            })}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </>
           )}
         </CardContent>

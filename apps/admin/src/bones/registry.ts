@@ -6,7 +6,6 @@ import { configureBoneyard } from "boneyard-js/react";
 import _admin_route_system_overview from "./admin-route-system-overview.bones.json";
 import _admin_route_system_audit_log from "./admin-route-system-audit-log.bones.json";
 import _admin_route_system_feedback from "./admin-route-system-feedback.bones.json";
-import _admin_route_system_observability_overview from "./admin-route-system-observability-overview.bones.json";
 import _admin_route_system_observability_requests from "./admin-route-system-observability-requests.bones.json";
 import _admin_route_system_observability_ai_usage from "./admin-route-system-observability-ai-usage.bones.json";
 import _admin_route_system_observability_activity from "./admin-route-system-observability-activity.bones.json";
@@ -56,7 +55,6 @@ registerBones({
   "admin-route-system-overview": _admin_route_system_overview,
   "admin-route-system-audit-log": _admin_route_system_audit_log,
   "admin-route-system-feedback": _admin_route_system_feedback,
-  "admin-route-system-observability-overview": _admin_route_system_observability_overview,
   "admin-route-system-observability-requests": _admin_route_system_observability_requests,
   "admin-route-system-observability-ai-usage": _admin_route_system_observability_ai_usage,
   "admin-route-system-observability-activity": _admin_route_system_observability_activity,

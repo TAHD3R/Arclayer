@@ -2,6 +2,6 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/system/observability/")({
   beforeLoad: () => {
-    throw redirect({ to: "/system/observability/overview" });
+    throw redirect({ to: "/system/observability/requests", replace: true });
   },
 });

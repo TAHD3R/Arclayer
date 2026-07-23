@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Eye, FolderKanban, Globe2, PanelsTopLeft } from "lucide-react";
@@ -29,9 +29,12 @@ import { AuditUserIdentity } from "./audit-user-identity";
 
 type AuditEventsTableProps = {
   onSelect: (event: ActivityEvent) => void;
+  initialActorUserId?: string;
   workspaceLabelById?: Readonly<Record<string, string>>;
   projectLabelById?: Readonly<Record<string, string>>;
 };
+
+const AUDIT_TABLE_PAGE_SIZE = 10;
 
 function TruncatedValue(props: { children: string; mono?: boolean }) {
   return (
@@ -50,13 +53,23 @@ function TruncatedValue(props: { children: string; mono?: boolean }) {
 
 export function AuditEventsTable({
   onSelect,
+  initialActorUserId,
   workspaceLabelById = {},
   projectLabelById = {},
 }: AuditEventsTableProps) {
   const { t } = useTranslation(["platform", "activity", "common"]);
-  const [filters, setFilters] = useState<AuditEventFilters>({});
+  const [filters, setFilters] = useState<AuditEventFilters>(() =>
+    initialActorUserId ? { actorUserId: initialActorUserId } : {},
+  );
   const [ordering, setOrdering] = useState<ActivityOrdering>("-occurred_at");
   const dateTime = useAdminDateTimeFormatter({ workspaceId: null });
+  useEffect(() => {
+    setFilters((current) => {
+      if (initialActorUserId) return { ...current, actorUserId: initialActorUserId };
+      const { actorUserId: _removed, ...rest } = current;
+      return rest;
+    });
+  }, [initialActorUserId]);
   const columns = useMemo<ColumnDef<ActivityEvent, unknown>[]>(
     () => [
       {
@@ -173,7 +186,7 @@ export function AuditEventsTable({
   const tableHook = useDataTable<ActivityEvent, AuditEventFilters>({
     tableId: "system-audit-events",
     columns,
-    initialState: { pageSize: 20 },
+    initialState: { pageSize: AUDIT_TABLE_PAGE_SIZE },
     extraQuery: filters,
     orderingOverride: ordering,
     features: { sorting: { enabled: false } },

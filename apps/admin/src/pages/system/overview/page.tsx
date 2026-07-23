@@ -1,7 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import {
   ConfigurableDashboard,
@@ -9,59 +8,49 @@ import {
 } from "@/pages/system/observability/components/dashboard-layout";
 import { ObservabilityPageControls } from "@/pages/system/observability/components/page-controls";
 import type { ObservabilityPeriodDays } from "@/pages/system/observability/components/period-select";
-import { useSystemSummaryWidgets } from "@/pages/system/observability/components/system-summary-metrics";
 import { ObservabilityTrendCard } from "@/pages/system/observability/components/trend-card";
 import {
   useSystemObservabilityOverview,
   useSystemObservabilityTrend,
 } from "@/pages/system/observability/hooks";
+import { usePlatformDashboardSummaryWidgets } from "./dashboard-widgets";
 
-export function SystemPlatformOverviewPage() {
+export function SystemPlatformOverviewPage(props: {
+  days: ObservabilityPeriodDays;
+  onDaysChange: (days: ObservabilityPeriodDays) => void;
+}) {
   const { t } = useTranslation("platform");
-  const [days, setDays] = useState<ObservabilityPeriodDays>(30);
+  const { days } = props;
   const overview = useSystemObservabilityOverview(days);
-  const httpRequests = useSystemObservabilityTrend(days, "httpRequests");
-  const aiRequests = useSystemObservabilityTrend(days, "requests");
+  const httpErrors = useSystemObservabilityTrend(days, "httpErrors");
   const cost = useSystemObservabilityTrend(days, "cost");
   const auditEvents = useSystemObservabilityTrend(days, "auditEvents");
-  const queries = [overview, httpRequests, aiRequests, cost, auditEvents];
-  const summaryWidgets = useSystemSummaryWidgets(overview.data);
+  const queries = [overview, httpErrors, cost, auditEvents];
+  const summaryWidgets = usePlatformDashboardSummaryWidgets({
+    overview: overview.data,
+    loading: overview.isLoading,
+    error: overview.error,
+    onRetry: () => void overview.refetch(),
+  });
   const widgets = useMemo<DashboardWidget[]>(
     () => [
       ...summaryWidgets,
       {
-        id: "http-request-trend",
-        title: t("TREND_HTTP_REQUESTS"),
+        id: "http-error-trend",
+        title: t("TREND_HTTP_ERRORS"),
         defaultSpan: 6,
         defaultHeight: 400,
         content: (
           <ObservabilityTrendCard
-            title={t("TREND_HTTP_REQUESTS")}
+            title={t("TREND_HTTP_ERRORS")}
             description={t(`PERIOD_${days}_DAYS`)}
             expectedBucketCount={days}
-            points={httpRequests.data?.points}
-            loading={httpRequests.isLoading}
-            error={httpRequests.error}
-            onRetry={() => void httpRequests.refetch()}
+            points={httpErrors.data?.points}
+            loading={httpErrors.isLoading}
+            error={httpErrors.error}
+            onRetry={() => void httpErrors.refetch()}
             valueKind="count"
-          />
-        ),
-      },
-      {
-        id: "ai-request-trend",
-        title: t("TREND_REQUESTS"),
-        defaultSpan: 6,
-        defaultHeight: 400,
-        content: (
-          <ObservabilityTrendCard
-            title={t("TREND_REQUESTS")}
-            description={t(`PERIOD_${days}_DAYS`)}
-            expectedBucketCount={days}
-            points={aiRequests.data?.points}
-            loading={aiRequests.isLoading}
-            error={aiRequests.error}
-            onRetry={() => void aiRequests.refetch()}
-            valueKind="count"
+            color="var(--destructive)"
           />
         ),
       },
@@ -86,7 +75,7 @@ export function SystemPlatformOverviewPage() {
       {
         id: "audit-event-trend",
         title: t("TREND_AUDIT_EVENTS"),
-        defaultSpan: 6,
+        defaultSpan: 12,
         defaultHeight: 400,
         content: (
           <ObservabilityTrendCard
@@ -102,7 +91,7 @@ export function SystemPlatformOverviewPage() {
         ),
       },
     ],
-    [aiRequests, auditEvents, cost, days, httpRequests, summaryWidgets, t],
+    [auditEvents, cost, days, httpErrors, summaryWidgets, t],
   );
 
   const refresh = () => Promise.all(queries.map((query) => query.refetch()));
@@ -114,27 +103,18 @@ export function SystemPlatformOverviewPage() {
       action={
         <ObservabilityPageControls
           days={days}
-          onDaysChange={setDays}
+          onDaysChange={props.onDaysChange}
           refreshing={queries.some((query) => query.isFetching)}
           onRefresh={() => void refresh()}
         />
       }
     >
-      <ContentGuard
-        loading={overview.isLoading}
-        error={overview.error}
-        onRetry={() => void overview.refetch()}
-        loadingVariant="form"
-      >
-        {overview.data ? (
-          <ConfigurableDashboard
-            dashboardId="system-platform-overview"
-            widgets={widgets}
-            ariaLabel={t("OVERVIEW_TITLE")}
-            className="pb-8"
-          />
-        ) : null}
-      </ContentGuard>
+      <ConfigurableDashboard
+        dashboardId="system-platform-overview"
+        widgets={widgets}
+        ariaLabel={t("OVERVIEW_TITLE")}
+        className="pb-8"
+      />
     </DefaultPage>
   );
 }

@@ -1,16 +1,18 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { listSystemDirectoryProjects, listSystemDirectoryWorkspaces } from "@/api/system-directory";
-import { SystemAuditLogPage } from "@/pages/system/audit-log/page";
+import { SystemAuditLogPage, type AuditLogView } from "@/pages/system/audit-log/page";
 import type { ActivityEvent } from "@arclayer/openapi/admin-types";
 import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 
 const observability = vi.hoisted(() => ({
   overviewRefetch: vi.fn(async () => undefined),
   trendRefetch: vi.fn(async () => undefined),
+  overviewHook: vi.fn(),
 }));
 
 vi.mock("@/api/system-directory", () => ({
@@ -47,22 +49,7 @@ vi.mock("@/layouts/page-shell/content-guard", () => ({
   ContentGuard: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
 }));
 vi.mock("@/pages/system/observability/hooks", () => ({
-  useSystemObservabilityOverview: () => ({
-    data: {
-      http: {
-        requests: 120,
-        errorRequests: 4,
-        errorRate: 4 / 120,
-        avgLatencyMs: 32,
-        p95LatencyMs: 64,
-        p99LatencyMs: 96,
-      },
-    },
-    isLoading: false,
-    isFetching: false,
-    error: null,
-    refetch: observability.overviewRefetch,
-  }),
+  useSystemObservabilityOverview: (...args: unknown[]) => observability.overviewHook(...args),
   useSystemObservabilityTrend: (_days: number, metric: string) => ({
     data: { points: [{ date: "2026-07-13", value: 12 }] },
     isLoading: false,
@@ -153,14 +140,25 @@ vi.mock("@/pages/system/audit-log/audit-event-detail-drawer", () => ({
     ) : null,
 }));
 
-function renderPage() {
+function renderPage(initialView: AuditLogView = "records") {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  function AuditPageHarness() {
+    const [activeView, setActiveView] = useState<AuditLogView>(initialView);
+    return (
+      <SystemAuditLogPage
+        days={30}
+        activeView={activeView}
+        onDaysChange={vi.fn()}
+        onViewChange={setActiveView}
+      />
+    );
+  }
   return render(
     <QueryClientProvider client={queryClient}>
       <ChromeTabsProvider
         labels={{ scrollLeftAriaLabel: "scroll left", scrollRightAriaLabel: "scroll right" }}
       >
-        <SystemAuditLogPage />
+        <AuditPageHarness />
       </ChromeTabsProvider>
     </QueryClientProvider>,
   );
@@ -169,6 +167,22 @@ function renderPage() {
 describe("SystemAuditLogPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    observability.overviewHook.mockReturnValue({
+      data: {
+        http: {
+          requests: 120,
+          errorRequests: 4,
+          errorRate: 4 / 120,
+          avgLatencyMs: 32,
+          p95LatencyMs: 64,
+          p99LatencyMs: 96,
+        },
+      },
+      isLoading: false,
+      isFetching: false,
+      error: null,
+      refetch: observability.overviewRefetch,
+    });
     vi.mocked(listSystemDirectoryWorkspaces).mockResolvedValue({
       items: [{ workspaceId: "workspace-1", name: "Production" }],
       total: 1,
@@ -224,5 +238,21 @@ describe("SystemAuditLogPage", () => {
     await user.click(screen.getByRole("button", { name: "refresh audit" }));
     expect(observability.overviewRefetch).toHaveBeenCalledTimes(1);
     expect(observability.trendRefetch).toHaveBeenCalledTimes(3);
+  });
+
+  it("keeps request analysis usable when the overview snapshot fails", () => {
+    observability.overviewHook.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isFetching: false,
+      error: new Error("overview unavailable"),
+      refetch: observability.overviewRefetch,
+    });
+
+    renderPage("analysis");
+
+    expect(screen.getByText("request-groups:30")).toBeInTheDocument();
+    expect(screen.getByText("trend:platform:TREND_HTTP_REQUESTS")).toBeInTheDocument();
+    expect(screen.getByText("trend:platform:TREND_HTTP_ERRORS")).toBeInTheDocument();
   });
 });

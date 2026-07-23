@@ -2,24 +2,32 @@ import { useMemo, useState } from "react";
 import { BadgeDollarSign, Bot, Coins, MessageSquareMore } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import type { AIUsageGroup } from "@arclayer/openapi/admin-types";
 
 import { ConfigurableDashboard, type DashboardWidget } from "../components/dashboard-layout";
 import { ObservabilityMetricCard } from "../components/metric-card";
+import { useObservabilityMetricDetails } from "../components/metric-details";
 import { ObservabilityPageControls } from "../components/page-controls";
 import type { ObservabilityPeriodDays } from "../components/period-select";
+import { ObservabilitySnapshotStateCard } from "../components/snapshot-state-card";
 import { ObservabilityTrendCard } from "../components/trend-card";
 import { formatCompactNumber, formatCostMicros } from "../formatters";
 import { useSystemObservabilityOverview, useSystemObservabilityTrend } from "../hooks";
 import { AIUsageDetailDialog } from "./ai-usage-detail-dialog";
 import { AIUsageGroupsTable } from "./ai-usage-groups-table";
 
-export function SystemObservabilityAIUsagePage() {
+const TABLE_WIDGET_DEFAULT_HEIGHT = 824;
+const TABLE_WIDGET_MIN_HEIGHT = 560;
+
+export function SystemObservabilityAIUsagePage(props: {
+  days: ObservabilityPeriodDays;
+  onDaysChange: (days: ObservabilityPeriodDays) => void;
+}) {
   const { t, i18n } = useTranslation("platform");
   const locale = i18n.resolvedLanguage;
-  const [days, setDays] = useState<ObservabilityPeriodDays>(30);
+  const metricDetails = useObservabilityMetricDetails();
+  const { days } = props;
   const [selectedGroup, setSelectedGroup] = useState<AIUsageGroup | null>(null);
   const overview = useSystemObservabilityOverview(days);
   const requests = useSystemObservabilityTrend(days, "requests");
@@ -27,63 +35,93 @@ export function SystemObservabilityAIUsagePage() {
   const cost = useSystemObservabilityTrend(days, "cost");
   const queries = [overview, requests, tokens, cost];
   const widgets = useMemo<DashboardWidget[]>(() => {
-    if (!overview.data) return [];
+    const summaryWidgets: DashboardWidget[] = overview.data
+      ? [
+          {
+            id: "ai-requests",
+            title: t("METRIC_AI_REQUESTS"),
+            defaultSpan: 4,
+            content: (
+              <ObservabilityMetricCard
+                label={t("METRIC_AI_REQUESTS")}
+                value={formatCompactNumber(overview.data.ai.requests, locale)}
+                icon={Bot}
+                detail={metricDetails.ai(overview.data, t("METRIC_DEFINITION_AI_REQUESTS"))}
+              />
+            ),
+          },
+          {
+            id: "prompt-tokens",
+            title: t("METRIC_PROMPT_TOKENS"),
+            defaultSpan: 4,
+            content: (
+              <ObservabilityMetricCard
+                label={t("METRIC_PROMPT_TOKENS")}
+                value={formatCompactNumber(overview.data.ai.promptTokens, locale)}
+                icon={MessageSquareMore}
+                detail={metricDetails.ai(overview.data, t("METRIC_DEFINITION_PROMPT_TOKENS"))}
+              />
+            ),
+          },
+          {
+            id: "completion-tokens",
+            title: t("METRIC_COMPLETION_TOKENS"),
+            defaultSpan: 4,
+            content: (
+              <ObservabilityMetricCard
+                label={t("METRIC_COMPLETION_TOKENS")}
+                value={formatCompactNumber(overview.data.ai.completionTokens, locale)}
+                icon={MessageSquareMore}
+                detail={metricDetails.ai(overview.data, t("METRIC_DEFINITION_COMPLETION_TOKENS"))}
+              />
+            ),
+          },
+          {
+            id: "total-tokens",
+            title: t("METRIC_TOTAL_TOKENS"),
+            defaultSpan: 6,
+            content: (
+              <ObservabilityMetricCard
+                label={t("METRIC_TOTAL_TOKENS")}
+                value={formatCompactNumber(overview.data.ai.totalTokens, locale)}
+                icon={Coins}
+                detail={metricDetails.ai(overview.data, t("METRIC_DEFINITION_TOTAL_TOKENS"))}
+              />
+            ),
+          },
+          {
+            id: "ai-cost",
+            title: t("METRIC_AI_COST"),
+            defaultSpan: 6,
+            content: (
+              <ObservabilityMetricCard
+                label={t("METRIC_AI_COST")}
+                value={formatCostMicros(overview.data.ai.costMicros, locale)}
+                icon={BadgeDollarSign}
+                detail={metricDetails.ai(overview.data, t("METRIC_DEFINITION_AI_COST"))}
+              />
+            ),
+          },
+        ]
+      : [
+          {
+            id: "ai-overview-state",
+            title: t("DASHBOARD_SNAPSHOT_ERROR_TITLE"),
+            defaultSpan: 12,
+            defaultHeight: 240,
+            transient: true,
+            content: (
+              <ObservabilitySnapshotStateCard
+                loading={overview.isLoading}
+                error={overview.error}
+                onRetry={() => void overview.refetch()}
+              />
+            ),
+          },
+        ];
+
     return [
-      {
-        id: "ai-requests",
-        title: t("METRIC_AI_REQUESTS"),
-        content: (
-          <ObservabilityMetricCard
-            label={t("METRIC_AI_REQUESTS")}
-            value={formatCompactNumber(overview.data.ai.requests, locale)}
-            icon={Bot}
-          />
-        ),
-      },
-      {
-        id: "prompt-tokens",
-        title: t("METRIC_PROMPT_TOKENS"),
-        content: (
-          <ObservabilityMetricCard
-            label={t("METRIC_PROMPT_TOKENS")}
-            value={formatCompactNumber(overview.data.ai.promptTokens, locale)}
-            icon={MessageSquareMore}
-          />
-        ),
-      },
-      {
-        id: "completion-tokens",
-        title: t("METRIC_COMPLETION_TOKENS"),
-        content: (
-          <ObservabilityMetricCard
-            label={t("METRIC_COMPLETION_TOKENS")}
-            value={formatCompactNumber(overview.data.ai.completionTokens, locale)}
-            icon={MessageSquareMore}
-          />
-        ),
-      },
-      {
-        id: "total-tokens",
-        title: t("METRIC_TOTAL_TOKENS"),
-        content: (
-          <ObservabilityMetricCard
-            label={t("METRIC_TOTAL_TOKENS")}
-            value={formatCompactNumber(overview.data.ai.totalTokens, locale)}
-            icon={Coins}
-          />
-        ),
-      },
-      {
-        id: "ai-cost",
-        title: t("METRIC_AI_COST"),
-        content: (
-          <ObservabilityMetricCard
-            label={t("METRIC_AI_COST")}
-            value={formatCostMicros(overview.data.ai.costMicros, locale)}
-            icon={BadgeDollarSign}
-          />
-        ),
-      },
+      ...summaryWidgets,
       {
         id: "request-trend",
         title: t("TREND_REQUESTS"),
@@ -142,7 +180,8 @@ export function SystemObservabilityAIUsagePage() {
         id: "usage-groups",
         title: t("AI_USAGE_TABLE_TITLE"),
         defaultSpan: 12,
-        defaultHeight: 640,
+        defaultHeight: TABLE_WIDGET_DEFAULT_HEIGHT,
+        minHeight: TABLE_WIDGET_MIN_HEIGHT,
         content: (
           <section
             className="flex h-full min-h-0 flex-col gap-3 rounded-lg border bg-card p-4"
@@ -156,14 +195,26 @@ export function SystemObservabilityAIUsagePage() {
                 {t("AI_USAGE_TABLE_DESCRIPTION")}
               </p>
             </div>
-            <div className="min-h-0 flex-1">
+            <div className="min-h-0 min-w-0 flex-1 overflow-hidden [&>*]:h-full [&>*]:min-h-0">
               <AIUsageGroupsTable days={days} onSelect={setSelectedGroup} />
             </div>
           </section>
         ),
       },
     ];
-  }, [cost, days, locale, overview.data, requests, t, tokens]);
+  }, [
+    cost,
+    days,
+    locale,
+    metricDetails,
+    overview.data,
+    overview.error,
+    overview.isLoading,
+    overview.refetch,
+    requests,
+    t,
+    tokens,
+  ]);
 
   return (
     <DefaultPage
@@ -172,27 +223,18 @@ export function SystemObservabilityAIUsagePage() {
       action={
         <ObservabilityPageControls
           days={days}
-          onDaysChange={setDays}
+          onDaysChange={props.onDaysChange}
           refreshing={queries.some((query) => query.isFetching)}
           onRefresh={() => void Promise.all(queries.map((query) => query.refetch()))}
         />
       }
     >
-      <ContentGuard
-        loading={overview.isLoading}
-        error={overview.error}
-        onRetry={() => void overview.refetch()}
-        loadingVariant="form"
-      >
-        {overview.data ? (
-          <ConfigurableDashboard
-            dashboardId="system-observability-ai-usage"
-            widgets={widgets}
-            ariaLabel={t("OBSERVABILITY_AI_TITLE")}
-            className="pb-8"
-          />
-        ) : null}
-      </ContentGuard>
+      <ConfigurableDashboard
+        dashboardId="system-observability-ai-usage"
+        widgets={widgets}
+        ariaLabel={t("OBSERVABILITY_AI_TITLE")}
+        className="pb-8"
+      />
       <AIUsageDetailDialog
         open={Boolean(selectedGroup)}
         onOpenChange={(open) => {

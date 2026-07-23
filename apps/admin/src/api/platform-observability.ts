@@ -72,9 +72,14 @@ export type SystemObservabilityOverviewWithTailLatency = Omit<
 
 export async function getSystemObservabilityOverview(
   days: number,
+  scope: { workspaceId?: string; projectId?: string } = {},
 ): Promise<SystemObservabilityOverviewWithTailLatency> {
   return api.get<SystemObservabilityOverviewWithTailLatency>(
-    `/system/observability/overview${toQueryString({ days })}`,
+    `/system/observability/overview${toQueryString({
+      days,
+      workspaceId: scope.workspaceId,
+      projectId: scope.projectId,
+    })}`,
   );
 }
 
@@ -85,6 +90,8 @@ export async function listSystemAIUsageGroups(
     size?: number;
     q?: string;
     provider?: string;
+    workspaceId?: string;
+    projectId?: string;
   },
   signal?: AbortSignal,
 ): Promise<PageData<AIUsageGroup>> {
@@ -95,6 +102,8 @@ export async function listSystemAIUsageGroups(
       size: params.size ?? 20,
       q: params.q,
       provider: params.provider,
+      workspaceId: params.workspaceId,
+      projectId: params.projectId,
     })}`,
     { signal },
   );

@@ -31,6 +31,8 @@ type RequestRecordsTableProps = {
   onSelect: (record: HTTPRequestRecord) => void;
 };
 
+const AUDIT_TABLE_PAGE_SIZE = 10;
+
 function statusTagColor(statusCode: number) {
   if (statusCode >= 500 || statusCode === 0) return "red" as const;
   if (statusCode >= 400) return "gold" as const;
@@ -180,7 +182,7 @@ export function RequestRecordsTable(props: RequestRecordsTableProps) {
   >({
     tableId: "system-audit-request-records",
     columns,
-    initialState: { pageSize: 20 },
+    initialState: { pageSize: AUDIT_TABLE_PAGE_SIZE },
     extraQuery: {
       days: props.days,
       ...filters,

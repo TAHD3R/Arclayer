@@ -1,24 +1,12 @@
-export { ChartContainer, type ChartContainerProps } from "./chart-container";
-export { ChartLegend, ChartLegendContent, type ChartLegendContentProps } from "./chart-legend";
-export { ChartStyle } from "./chart-style";
-export { ChartTooltip, ChartTooltipContent, type ChartTooltipContentProps } from "./chart-tooltip";
-export type { ChartConfig } from "./chart.types";
-
-// Feature packages consume chart primitives through this boundary so Recharts
-// remains an implementation detail of @arclayer/ui and all charts share the
-// same container, tooltip, legend, and accessibility contract.
+export { AreaChart, type AreaChartProps, Area, type AreaProps } from "./bklit/area-chart";
+export { BarChart, type BarChartProps, type BarOrientation } from "./bklit/bar-chart";
+export { Bar, type BarProps, type BarAnimationType, type BarLineCap } from "./bklit/bar";
+export { Grid, type GridProps } from "./bklit/grid";
+export { LineChart, type LineChartProps, Line, type LineProps } from "./bklit/line-chart";
+export { XAxis, type XAxisProps } from "./bklit/x-axis";
+export { ChartTooltip, type ChartTooltipProps } from "./bklit/tooltip/chart-tooltip";
 export {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Line,
-  LineChart,
-  Pie,
-  PieChart,
-  ReferenceLine,
-  XAxis,
-  YAxis,
-} from "recharts";
+  TooltipContent as ChartTooltipContent,
+  type TooltipContentProps as ChartTooltipContentProps,
+  type TooltipRow as ChartTooltipRow,
+} from "./bklit/tooltip/tooltip-content";

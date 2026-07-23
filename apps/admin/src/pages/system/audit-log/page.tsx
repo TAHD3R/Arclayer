@@ -7,7 +7,6 @@ import type {
   HTTPRequestGroupWithPercentiles,
   HTTPRequestRecord,
 } from "@/api/platform-observability";
-import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import {
   ChromeTabs,
@@ -53,10 +52,17 @@ async function listAllSystemProjects(): Promise<SystemDirectoryProject[]> {
   return [firstPage, ...remainingPages].flatMap((page) => page.items);
 }
 
-export function SystemAuditLogPage() {
+export type AuditLogView = "records" | "analysis" | "events";
+
+export function SystemAuditLogPage(props: {
+  days: ObservabilityPeriodDays;
+  activeView: AuditLogView;
+  initialActorUserId?: string;
+  onDaysChange: (days: ObservabilityPeriodDays) => void;
+  onViewChange: (view: AuditLogView) => void;
+}) {
   const { t } = useTranslation(["common", "activity", "platform"]);
-  const [days, setDays] = useState<ObservabilityPeriodDays>(30);
-  const [activeView, setActiveView] = useState("records");
+  const { days, activeView } = props;
   const [selected, setSelected] = useState<ActivityEvent | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<HTTPRequestRecord | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<HTTPRequestGroupWithPercentiles | null>(null);
@@ -99,6 +105,7 @@ export function SystemAuditLogPage() {
     eventTrend,
     workspaceLabelById,
     projectLabelById,
+    initialActorUserId: props.initialActorUserId,
     onSelectEvent: setSelected,
     onSelectRecord: setSelectedRecord,
     onSelectGroup: setSelectedGroup,
@@ -112,66 +119,55 @@ export function SystemAuditLogPage() {
       action={
         <ObservabilityPageControls
           days={days}
-          onDaysChange={setDays}
+          onDaysChange={props.onDaysChange}
           refreshing={queries.some((query) => query.isFetching)}
           onRefresh={() => void Promise.all(queries.map((query) => query.refetch()))}
         />
       }
     >
-      <ContentGuard
-        loading={overview.isLoading}
-        error={overview.error}
-        onRetry={() => void overview.refetch()}
-        loadingVariant="form"
+      <ChromeTabs
+        value={activeView}
+        onValueChange={(value) => props.onViewChange(value as AuditLogView)}
+        className="flex min-h-0 flex-1 flex-col gap-5 pb-8"
       >
-        {overview.data ? (
-          <ChromeTabs
-            value={activeView}
-            onValueChange={setActiveView}
-            className="flex min-h-0 flex-1 flex-col gap-5 pb-8"
-          >
-            <ChromeTabsList
-              widthMode="content"
-              className="self-start"
-              aria-label={t("platform:AUDIT_VIEW_LABEL")}
-            >
-              <ChromeTabsTrigger value="records">
-                {t("platform:AUDIT_VIEW_REQUEST_RECORDS")}
-              </ChromeTabsTrigger>
-              <ChromeTabsTrigger value="analysis">
-                {t("platform:AUDIT_VIEW_REQUEST_ANALYSIS")}
-              </ChromeTabsTrigger>
-              <ChromeTabsTrigger value="events">
-                {t("platform:AUDIT_VIEW_EVENTS")}
-              </ChromeTabsTrigger>
-            </ChromeTabsList>
+        <ChromeTabsList
+          widthMode="content"
+          className="self-start"
+          aria-label={t("platform:AUDIT_VIEW_LABEL")}
+        >
+          <ChromeTabsTrigger value="records">
+            {t("platform:AUDIT_VIEW_REQUEST_RECORDS")}
+          </ChromeTabsTrigger>
+          <ChromeTabsTrigger value="analysis">
+            {t("platform:AUDIT_VIEW_REQUEST_ANALYSIS")}
+          </ChromeTabsTrigger>
+          <ChromeTabsTrigger value="events">{t("platform:AUDIT_VIEW_EVENTS")}</ChromeTabsTrigger>
+        </ChromeTabsList>
 
-            <ChromeTabsContent value="records" className="mt-0 flex min-h-0 flex-col gap-5">
-              <ConfigurableDashboard
-                dashboardId="system-audit-log-records"
-                widgets={recordWidgets}
-                ariaLabel={t("platform:AUDIT_VIEW_REQUEST_RECORDS")}
-              />
-            </ChromeTabsContent>
+        <ChromeTabsContent value="records" className="mt-0 flex min-h-0 flex-col gap-5">
+          <ConfigurableDashboard
+            dashboardId="system-audit-log-records"
+            widgets={recordWidgets}
+            ariaLabel={t("platform:AUDIT_VIEW_REQUEST_RECORDS")}
+          />
+        </ChromeTabsContent>
 
-            <ChromeTabsContent value="analysis" className="mt-0 flex min-h-0 flex-col gap-5">
-              <ConfigurableDashboard
-                dashboardId="system-audit-log-analysis"
-                widgets={analysisWidgets}
-                ariaLabel={t("platform:AUDIT_VIEW_REQUEST_ANALYSIS")}
-              />
-            </ChromeTabsContent>
+        <ChromeTabsContent value="analysis" className="mt-0 flex min-h-0 flex-col gap-5">
+          <ConfigurableDashboard
+            dashboardId="system-audit-log-analysis"
+            widgets={analysisWidgets}
+            ariaLabel={t("platform:AUDIT_VIEW_REQUEST_ANALYSIS")}
+          />
+        </ChromeTabsContent>
 
-            <ChromeTabsContent value="events" className="mt-0 flex min-h-0 flex-col gap-5">
-              <ConfigurableDashboard
-                dashboardId="system-audit-log-events"
-                widgets={eventWidgets}
-                ariaLabel={t("platform:AUDIT_VIEW_EVENTS")}
-              />
-            </ChromeTabsContent>
-          </ChromeTabs>
-        ) : null}
-      </ContentGuard>
+        <ChromeTabsContent value="events" className="mt-0 flex min-h-0 flex-col gap-5">
+          <ConfigurableDashboard
+            dashboardId="system-audit-log-events"
+            widgets={eventWidgets}
+            ariaLabel={t("platform:AUDIT_VIEW_EVENTS")}
+          />
+        </ChromeTabsContent>
+      </ChromeTabs>
 
       <AuditEventDetailDrawer
         open={Boolean(selected)}

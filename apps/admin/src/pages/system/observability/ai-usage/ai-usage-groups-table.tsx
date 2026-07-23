@@ -11,6 +11,8 @@ import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
 import { useDataTable } from "@arclayer/ui/data-table";
 import type { AIUsageGroup } from "@arclayer/openapi/admin-types";
 
+const AI_USAGE_TABLE_PAGE_SIZE = 10;
+
 function TruncatedValue(props: { children: string; mono?: boolean }) {
   return (
     <span
@@ -130,7 +132,7 @@ export function AIUsageGroupsTable({
   const tableHook = useDataTable<AIUsageGroup, { days: number }>({
     tableId: "system-observability-ai-usage-groups",
     columns,
-    initialState: { pageSize: 20 },
+    initialState: { pageSize: AI_USAGE_TABLE_PAGE_SIZE },
     extraQuery: { days },
     features: { sorting: { enabled: false } },
     fetcher: (params) =>

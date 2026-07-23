@@ -1,12 +1,15 @@
 import { useMemo } from "react";
 
-import { Area, AreaChart } from "@/components/charts/area-chart";
-import { Grid } from "@/components/charts/grid";
-import { ChartTooltip } from "@/components/charts/tooltip/chart-tooltip";
-import { TooltipContent } from "@/components/charts/tooltip/tooltip-content";
-import { XAxis } from "@/components/charts/x-axis";
 import type { ObservabilityTrendPoint } from "@/api/platform-observability";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import {
+  Area,
+  AreaChart,
+  ChartTooltip,
+  ChartTooltipContent,
+  Grid,
+  XAxis,
+} from "@arclayer/ui/chart";
 
 type BklitTrendChartProps = Readonly<{
   points: readonly ObservabilityTrendPoint[];
@@ -67,7 +70,7 @@ export function BklitTrendChart(props: BklitTrendChartProps) {
           damping={0}
           showDatePill
           content={({ point }) => (
-            <TooltipContent
+            <ChartTooltipContent
               title={props.title}
               rows={[
                 {

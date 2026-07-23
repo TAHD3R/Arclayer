@@ -13,7 +13,6 @@
     "/system/tenants/projects",
     "/system/audit-log",
     "/system/feedback",
-    "/system/observability/overview",
     "/system/observability/requests",
     "/system/observability/ai-usage",
     "/system/observability/activity",

@@ -40,7 +40,6 @@ import { Route as SystemSettingsBillingIndexRouteImport } from './routes/system/
 import { Route as SystemSettingsAgentsIndexRouteImport } from './routes/system/settings/agents/index'
 import { Route as SystemSettingsAccessIndexRouteImport } from './routes/system/settings/access/index'
 import { Route as SystemObservabilityRequestsIndexRouteImport } from './routes/system/observability/requests/index'
-import { Route as SystemObservabilityOverviewIndexRouteImport } from './routes/system/observability/overview/index'
 import { Route as SystemObservabilityAiUsageIndexRouteImport } from './routes/system/observability/ai-usage/index'
 import { Route as SystemObservabilityActivityIndexRouteImport } from './routes/system/observability/activity/index'
 import { Route as ProjectsProjectIdSettingsIndexRouteImport } from './routes/projects/$projectId/settings/index'
@@ -252,12 +251,6 @@ const SystemObservabilityRequestsIndexRoute =
   SystemObservabilityRequestsIndexRouteImport.update({
     id: '/observability/requests/',
     path: '/observability/requests/',
-    getParentRoute: () => SystemRoute,
-  } as any)
-const SystemObservabilityOverviewIndexRoute =
-  SystemObservabilityOverviewIndexRouteImport.update({
-    id: '/observability/overview/',
-    path: '/observability/overview/',
     getParentRoute: () => SystemRoute,
   } as any)
 const SystemObservabilityAiUsageIndexRoute =
@@ -562,7 +555,6 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/settings/': typeof ProjectsProjectIdSettingsIndexRoute
   '/system/observability/activity/': typeof SystemObservabilityActivityIndexRoute
   '/system/observability/ai-usage/': typeof SystemObservabilityAiUsageIndexRoute
-  '/system/observability/overview/': typeof SystemObservabilityOverviewIndexRoute
   '/system/observability/requests/': typeof SystemObservabilityRequestsIndexRoute
   '/system/settings/access/': typeof SystemSettingsAccessIndexRoute
   '/system/settings/agents/': typeof SystemSettingsAgentsIndexRoute
@@ -629,7 +621,6 @@ export interface FileRoutesByTo {
   '/projects/$projectId/settings': typeof ProjectsProjectIdSettingsIndexRoute
   '/system/observability/activity': typeof SystemObservabilityActivityIndexRoute
   '/system/observability/ai-usage': typeof SystemObservabilityAiUsageIndexRoute
-  '/system/observability/overview': typeof SystemObservabilityOverviewIndexRoute
   '/system/observability/requests': typeof SystemObservabilityRequestsIndexRoute
   '/system/settings/access': typeof SystemSettingsAccessIndexRoute
   '/system/settings/agents': typeof SystemSettingsAgentsIndexRoute
@@ -699,7 +690,6 @@ export interface FileRoutesById {
   '/projects/$projectId/settings/': typeof ProjectsProjectIdSettingsIndexRoute
   '/system/observability/activity/': typeof SystemObservabilityActivityIndexRoute
   '/system/observability/ai-usage/': typeof SystemObservabilityAiUsageIndexRoute
-  '/system/observability/overview/': typeof SystemObservabilityOverviewIndexRoute
   '/system/observability/requests/': typeof SystemObservabilityRequestsIndexRoute
   '/system/settings/access/': typeof SystemSettingsAccessIndexRoute
   '/system/settings/agents/': typeof SystemSettingsAgentsIndexRoute
@@ -770,7 +760,6 @@ export interface FileRouteTypes {
     | '/projects/$projectId/settings/'
     | '/system/observability/activity/'
     | '/system/observability/ai-usage/'
-    | '/system/observability/overview/'
     | '/system/observability/requests/'
     | '/system/settings/access/'
     | '/system/settings/agents/'
@@ -837,7 +826,6 @@ export interface FileRouteTypes {
     | '/projects/$projectId/settings'
     | '/system/observability/activity'
     | '/system/observability/ai-usage'
-    | '/system/observability/overview'
     | '/system/observability/requests'
     | '/system/settings/access'
     | '/system/settings/agents'
@@ -906,7 +894,6 @@ export interface FileRouteTypes {
     | '/projects/$projectId/settings/'
     | '/system/observability/activity/'
     | '/system/observability/ai-usage/'
-    | '/system/observability/overview/'
     | '/system/observability/requests/'
     | '/system/settings/access/'
     | '/system/settings/agents/'
@@ -1181,13 +1168,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SystemObservabilityRequestsIndexRouteImport
       parentRoute: typeof SystemRoute
     }
-    '/system/observability/overview/': {
-      id: '/system/observability/overview/'
-      path: '/observability/overview'
-      fullPath: '/system/observability/overview/'
-      preLoaderRoute: typeof SystemObservabilityOverviewIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
     '/system/observability/ai-usage/': {
       id: '/system/observability/ai-usage/'
       path: '/observability/ai-usage'
@@ -1447,7 +1427,6 @@ interface SystemRouteChildren {
   SystemTenantsIndexRoute: typeof SystemTenantsIndexRoute
   SystemObservabilityActivityIndexRoute: typeof SystemObservabilityActivityIndexRoute
   SystemObservabilityAiUsageIndexRoute: typeof SystemObservabilityAiUsageIndexRoute
-  SystemObservabilityOverviewIndexRoute: typeof SystemObservabilityOverviewIndexRoute
   SystemObservabilityRequestsIndexRoute: typeof SystemObservabilityRequestsIndexRoute
   SystemSettingsAccessIndexRoute: typeof SystemSettingsAccessIndexRoute
   SystemSettingsAgentsIndexRoute: typeof SystemSettingsAgentsIndexRoute
@@ -1473,7 +1452,6 @@ const SystemRouteChildren: SystemRouteChildren = {
   SystemTenantsIndexRoute: SystemTenantsIndexRoute,
   SystemObservabilityActivityIndexRoute: SystemObservabilityActivityIndexRoute,
   SystemObservabilityAiUsageIndexRoute: SystemObservabilityAiUsageIndexRoute,
-  SystemObservabilityOverviewIndexRoute: SystemObservabilityOverviewIndexRoute,
   SystemObservabilityRequestsIndexRoute: SystemObservabilityRequestsIndexRoute,
   SystemSettingsAccessIndexRoute: SystemSettingsAccessIndexRoute,
   SystemSettingsAgentsIndexRoute: SystemSettingsAgentsIndexRoute,

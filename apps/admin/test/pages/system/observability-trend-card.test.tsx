@@ -25,7 +25,7 @@ vi.mock("react-i18next", () => ({
 vi.mock("@arclayer/ui/skeleton", () => ({
   Skeleton: () => <div role="status">trend loading</div>,
 }));
-vi.mock("@/components/charts/area-chart", () => ({
+vi.mock("@arclayer/ui/chart", () => ({
   AreaChart: ({
     children,
     animationDuration,
@@ -46,11 +46,11 @@ vi.mock("@/components/charts/area-chart", () => ({
   Area: ({ animate }: { animate?: boolean }) => (
     <div data-testid="trend-area" data-animate={String(animate)} />
   ),
+  Grid: () => null,
+  ChartTooltip: () => null,
+  ChartTooltipContent: () => null,
+  XAxis: () => null,
 }));
-vi.mock("@/components/charts/grid", () => ({ Grid: () => null }));
-vi.mock("@/components/charts/tooltip/chart-tooltip", () => ({ ChartTooltip: () => null }));
-vi.mock("@/components/charts/tooltip/tooltip-content", () => ({ TooltipContent: () => null }));
-vi.mock("@/components/charts/x-axis", () => ({ XAxis: () => null }));
 
 const BASE_PROPS = {
   title: "Requests",

@@ -223,20 +223,21 @@ function clampColumnCount(count: number) {
   return Math.max(MASONRY_MIN_COLUMN_COUNT, Math.min(MASONRY_MAX_COLUMN_COUNT, count));
 }
 
-function getMinimumWidthForColumnCount(count: number) {
-  return count * (MASONRY_COLUMN_WIDTH + MASONRY_GUTTER) - MASONRY_GUTTER;
+function getMinimumWidthForColumnCount(count: number, columnWidth: number) {
+  return count * (columnWidth + MASONRY_GUTTER) - MASONRY_GUTTER;
 }
 
 export function getAdminMasonryMaxColumnCount(
   width: number,
   previousCount?: number | null,
+  columnWidth = MASONRY_COLUMN_WIDTH,
 ): number {
   if (!Number.isFinite(width) || width <= 0) {
     return clampColumnCount(previousCount ?? 5);
   }
 
   const rawCount = clampColumnCount(
-    Math.floor((width + MASONRY_GUTTER) / (MASONRY_COLUMN_WIDTH + MASONRY_GUTTER)),
+    Math.floor((width + MASONRY_GUTTER) / (columnWidth + MASONRY_GUTTER)),
   );
   const stablePrevious =
     typeof previousCount === "number" ? clampColumnCount(previousCount) : undefined;
@@ -246,7 +247,10 @@ export function getAdminMasonryMaxColumnCount(
   if (rawCount > stablePrevious) {
     let nextCount = stablePrevious;
     for (let candidate = stablePrevious + 1; candidate <= rawCount; candidate += 1) {
-      if (width < getMinimumWidthForColumnCount(candidate) + MASONRY_COLUMN_SWITCH_BUFFER_PX) {
+      if (
+        width <
+        getMinimumWidthForColumnCount(candidate, columnWidth) + MASONRY_COLUMN_SWITCH_BUFFER_PX
+      ) {
         return nextCount;
       }
       nextCount = candidate;
@@ -256,7 +260,10 @@ export function getAdminMasonryMaxColumnCount(
 
   let nextCount = stablePrevious;
   for (let candidate = stablePrevious; candidate > rawCount; candidate -= 1) {
-    if (width >= getMinimumWidthForColumnCount(candidate) - MASONRY_COLUMN_SWITCH_BUFFER_PX) {
+    if (
+      width >=
+      getMinimumWidthForColumnCount(candidate, columnWidth) - MASONRY_COLUMN_SWITCH_BUFFER_PX
+    ) {
       return nextCount;
     }
     nextCount = candidate - 1;
@@ -284,6 +291,8 @@ export function AdminMasonryGrid<TItem extends AdminMasonryGridItem>(props: {
   childrenBefore?: ReactNode;
   itemKey?: (item: TItem | undefined, index: number) => string;
   itemHeightEstimate?: number;
+  columnCount?: number;
+  columnWidth?: number;
   overscanBy?: number;
   onRender?: (startIndex: number, stopIndex: number, items: TItem[]) => unknown;
   onMouseDown?: MouseEventHandler<HTMLDivElement>;
@@ -293,6 +302,7 @@ export function AdminMasonryGrid<TItem extends AdminMasonryGridItem>(props: {
   const [observedShellWidth, setObservedShellWidth] = useState(0);
   const masonryColumnCountRef = useRef<number | null>(null);
   const viewportHeight = useViewportHeight();
+  const columnWidth = props.columnWidth ?? MASONRY_COLUMN_WIDTH;
 
   const setMasonryGridRef = useCallback((node: HTMLElement | null) => {
     if (!(node instanceof HTMLElement)) return;
@@ -307,21 +317,27 @@ export function AdminMasonryGrid<TItem extends AdminMasonryGridItem>(props: {
   }, []);
 
   const masonryMaxColumnCount = useMemo(() => {
-    return getAdminMasonryMaxColumnCount(observedShellWidth, masonryColumnCountRef.current);
-  }, [observedShellWidth]);
+    return getAdminMasonryMaxColumnCount(
+      observedShellWidth,
+      masonryColumnCountRef.current,
+      columnWidth,
+    );
+  }, [columnWidth, observedShellWidth]);
   useLayoutEffect(() => {
     masonryColumnCountRef.current = masonryMaxColumnCount;
   }, [masonryMaxColumnCount]);
   const masonryScrollState = useAdminMasonryScrollState(masonryGridNode, viewportHeight);
+  const resolvedColumnCount = observedShellWidth > 0 ? props.columnCount : undefined;
   const positioner = usePositioner(
     {
       width: observedShellWidth,
-      columnWidth: MASONRY_COLUMN_WIDTH,
+      columnWidth,
       columnGutter: MASONRY_GUTTER,
       rowGutter: MASONRY_GUTTER,
+      columnCount: resolvedColumnCount,
       maxColumnCount: masonryMaxColumnCount,
     },
-    [props.datasetKey, observedShellWidth, masonryMaxColumnCount],
+    [props.datasetKey, resolvedColumnCount, observedShellWidth, masonryMaxColumnCount, columnWidth],
   );
   const resizeObserver = useResizeObserver(positioner);
   const masonry = useMasonry({

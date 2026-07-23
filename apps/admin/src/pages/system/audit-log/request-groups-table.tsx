@@ -30,6 +30,8 @@ type RequestGroupsTableProps = {
   projectLabelById?: Readonly<Record<string, string>>;
 };
 
+const AUDIT_TABLE_PAGE_SIZE = 10;
+
 function requestTagColor(statusClass: number) {
   if (statusClass === 2) return "green" as const;
   if (statusClass === 4) return "gold" as const;
@@ -206,7 +208,7 @@ export function RequestGroupsTable({
   >({
     tableId: "system-audit-request-groups",
     columns,
-    initialState: { pageSize: 20 },
+    initialState: { pageSize: AUDIT_TABLE_PAGE_SIZE },
     extraQuery: {
       days,
       ...filters,

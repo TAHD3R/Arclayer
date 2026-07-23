@@ -35,32 +35,40 @@ vi.mock("@/layouts/page-shell/default-page", () => ({
     </main>
   ),
 }));
-vi.mock("@/layouts/page-shell/content-guard", () => ({
-  ContentGuard: ({
-    loading,
-    error,
-    children,
+vi.mock("@/pages/system/observability/components/page-controls", () => ({
+  ObservabilityPageControls: ({
+    days,
+    onDaysChange,
   }: {
+    days: number;
+    onDaysChange: (days: 14) => void;
+  }) => (
+    <button type="button" onClick={() => onDaysChange(14)}>
+      period:{days}
+    </button>
+  ),
+}));
+vi.mock("@/pages/system/overview/dashboard-widgets", () => ({
+  usePlatformDashboardSummaryWidgets: (options: {
+    overview?: { resources: { activeWorkspaces: number } };
     loading: boolean;
-    error?: unknown;
-    children?: React.ReactNode;
+    error: unknown;
   }) =>
-    loading ? <div>overview loading</div> : error ? <div>overview error</div> : <>{children}</>,
-}));
-vi.mock("@/pages/system/observability/components/period-select", () => ({
-  ObservabilityPeriodSelect: ({ value }: { value: number }) => <div>period:{value}</div>,
-}));
-vi.mock("@/pages/system/observability/components/system-summary-metrics", () => ({
-  useSystemSummaryWidgets: (overview?: { resources: { activeWorkspaces: number } }) =>
-    overview
+    options.overview
       ? [
           {
             id: "summary-workspaces",
             title: "summary",
-            content: <div>summary-workspaces:{overview.resources.activeWorkspaces}</div>,
+            content: <div>summary-workspaces:{options.overview.resources.activeWorkspaces}</div>,
           },
         ]
-      : [],
+      : [
+          {
+            id: "summary-state",
+            title: "summary state",
+            content: <div>{options.loading ? "overview loading" : "overview error"}</div>,
+          },
+        ],
 }));
 vi.mock("@/pages/system/observability/components/dashboard-layout", () => ({
   ConfigurableDashboard: ({
@@ -92,8 +100,7 @@ vi.mock("@/pages/system/observability/components/trend-card", () => ({
 }));
 
 const METRIC_VALUES: Record<string, number> = {
-  httpRequests: 101,
-  requests: 202,
+  httpErrors: 101,
   cost: 303,
   auditEvents: 404,
 };
@@ -118,29 +125,28 @@ describe("SystemPlatformOverviewPage", () => {
   });
 
   it("combines the live overview with every commercial and operational trend", () => {
-    render(<SystemPlatformOverviewPage />);
+    const onDaysChange = vi.fn();
+    render(<SystemPlatformOverviewPage days={30} onDaysChange={onDaysChange} />);
 
     expect(overviewHook).toHaveBeenCalledWith(30);
     expect(trendHook.mock.calls).toEqual([
-      [30, "httpRequests"],
-      [30, "requests"],
+      [30, "httpErrors"],
       [30, "cost"],
       [30, "auditEvents"],
     ]);
     expect(screen.getByText("summary-workspaces:17")).toBeInTheDocument();
-    expect(screen.getByText("trend:TREND_HTTP_REQUESTS:101")).toBeInTheDocument();
-    expect(screen.getByText("trend:TREND_REQUESTS:202")).toBeInTheDocument();
+    expect(screen.getByText("trend:TREND_HTTP_ERRORS:101")).toBeInTheDocument();
     expect(screen.getByText("trend:TREND_COST:303")).toBeInTheDocument();
     expect(screen.getByText("trend:TREND_AUDIT_EVENTS:404")).toBeInTheDocument();
   });
 
   it("keeps overview loading and error states explicit", () => {
     overviewHook.mockReturnValueOnce({ ...queryResult(undefined), isLoading: true });
-    const { rerender } = render(<SystemPlatformOverviewPage />);
+    const { rerender } = render(<SystemPlatformOverviewPage days={30} onDaysChange={vi.fn()} />);
     expect(screen.getByText("overview loading")).toBeInTheDocument();
 
     overviewHook.mockReturnValueOnce({ ...queryResult(undefined), error: new Error("network") });
-    rerender(<SystemPlatformOverviewPage />);
+    rerender(<SystemPlatformOverviewPage days={30} onDaysChange={vi.fn()} />);
     expect(screen.getByText("overview error")).toBeInTheDocument();
   });
 });
