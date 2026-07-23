@@ -77,6 +77,20 @@ describe("feedback entry surfaces", () => {
     expect(
       screen.getByRole("radiogroup", { name: "platform:FEEDBACK_DIALOG_INTENT_LABEL" }),
     ).toBeVisible();
+    expect(
+      screen.getByRole("radiogroup", { name: "platform:FEEDBACK_DIALOG_INTENT_LABEL" }),
+    ).toHaveClass("grid-cols-2");
+    expect(
+      screen.getByRole("radiogroup", { name: "platform:FEEDBACK_DIALOG_INTENT_LABEL" }),
+    ).not.toHaveClass("sm:grid-cols-4");
+    expect(screen.getByRole("radio", { name: "platform:FEEDBACK_INTENT_PROBLEM" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(screen.queryByRole("button", { name: "common:CLOSE" })).not.toBeInTheDocument();
+    const composerHeader = screen.getByText("platform:FEEDBACK_COMPOSER_TITLE").parentElement
+      ?.parentElement;
+    expect(composerHeader?.querySelector("svg")).toBeNull();
     await waitFor(() =>
       expect(
         screen.getByPlaceholderText("platform:FEEDBACK_DIALOG_MESSAGE_PLACEHOLDER"),

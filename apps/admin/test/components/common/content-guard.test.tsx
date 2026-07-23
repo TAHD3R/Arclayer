@@ -43,6 +43,18 @@ describe("ContentGuard", () => {
     expect(wrapper).not.toHaveClass("py-10");
   });
 
+  it("uses shared Empty typography in compact states", () => {
+    const { container } = render(<ContentGuard loading={false} empty variant="compact" />);
+
+    expect(container.querySelector("[data-slot='empty-title']")).toHaveClass("text-title3");
+    expect(container.querySelector("[data-slot='empty-title']")).not.toHaveClass("text-largetitle");
+    expect(container.querySelector("[data-slot='empty-description']")).toHaveClass("text-body");
+    expect(container.querySelector("[data-slot='empty-description']")).not.toHaveClass(
+      "text-footnote",
+    );
+    expect(container.querySelector("[data-slot='empty-icon']")).toHaveClass("mb-2");
+  });
+
   it("offers reporting for server errors but not authorization errors", () => {
     const { rerender } = render(
       <ContentGuard loading={false} error={new ApiError({ status: 403, message: "forbidden" })} />,

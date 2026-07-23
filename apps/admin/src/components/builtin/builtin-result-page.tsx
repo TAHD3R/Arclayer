@@ -1,16 +1,21 @@
 import { useRouter } from "@tanstack/react-router";
-import { useMemo, type ReactNode } from "react";
+import {
+  CircleAlert,
+  CircleCheck,
+  Info,
+  LockKeyhole,
+  SearchX,
+  ServerCrash,
+  ShieldX,
+  TriangleAlert,
+} from "lucide-react";
+import { useId, useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
+import { AuroraSceneBackground } from "@/components/aurora-scene-background";
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
-import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
-import {
-  Illust401LockedTerminal,
-  Illust403ForbiddenGateway,
-  Illust404BrokenLink,
-  Illust500CrashedServer,
-} from "@arclayer/ui/illustrations";
 import {
   Empty,
   EmptyContent,
@@ -33,28 +38,42 @@ export type BuiltinResultPageProps = {
   extra?: ReactNode;
 };
 
-function DefaultAction(props: { status: BuiltinResultStatus }) {
+function DefaultAction(props: { status: BuiltinResultStatus; size?: "default" | "lg" }) {
   const { t } = useTranslation();
   const router = useRouter();
 
   if (props.status === "401") {
     return (
-      <Button onClick={() => void router.navigate({ to: "/login" })}>{t("common:GO_LOGIN")}</Button>
+      <Button size={props.size} onClick={() => void router.navigate({ to: "/login" })}>
+        {t("common:GO_LOGIN")}
+      </Button>
     );
   }
 
   if (props.status === "404" || props.status === "403") {
-    return <Button onClick={() => void router.navigate({ to: "/" })}>{t("common:GO_HOME")}</Button>;
+    return (
+      <Button size={props.size} onClick={() => void router.navigate({ to: "/" })}>
+        {t("common:GO_HOME")}
+      </Button>
+    );
   }
 
-  return <Button onClick={() => window.location.reload()}>{t("common:REFRESH")}</Button>;
+  return (
+    <Button size={props.size} onClick={() => window.location.reload()}>
+      {t("common:REFRESH")}
+    </Button>
+  );
 }
 
-function pickBuiltinIllustration(status: BuiltinResultStatus) {
-  if (status === "401") return Illust401LockedTerminal;
-  if (status === "403") return Illust403ForbiddenGateway;
-  if (status === "404") return Illust404BrokenLink;
-  return Illust500CrashedServer;
+function pickBuiltinIcon(status: BuiltinResultStatus) {
+  if (status === "401") return LockKeyhole;
+  if (status === "403") return ShieldX;
+  if (status === "404") return SearchX;
+  if (status === "success") return CircleCheck;
+  if (status === "info") return Info;
+  if (status === "warning") return TriangleAlert;
+  if (status === "error") return CircleAlert;
+  return ServerCrash;
 }
 
 export function BuiltinResultPage({
@@ -64,38 +83,72 @@ export function BuiltinResultPage({
   variant = "admin",
   extra,
 }: BuiltinResultPageProps) {
+  const titleId = useId();
+  const isFullscreen = variant === "fullscreen";
   const actions = useMemo(() => {
     if (extra) return extra;
-    return <DefaultAction status={status} />;
-  }, [extra, status]);
-  const reducedMotion = usePrefersReducedMotion();
-
-  const Illustration = pickBuiltinIllustration(status);
+    return <DefaultAction status={status} size={isFullscreen ? "lg" : "default"} />;
+  }, [extra, isFullscreen, status]);
+  const StatusIcon = pickBuiltinIcon(status);
 
   const content = (
-    <div className="py-10">
-      <Empty className="border-dashed">
-        <EmptyHeader>
-          <EmptyMedia className="mb-0">
-            <Illustration className="max-w-105" reducedMotion={reducedMotion} />
+    <div className={cn(isFullscreen ? "w-full" : "py-10")}>
+      <Empty
+        data-status={status}
+        className={cn("border-dashed", isFullscreen && "gap-7 rounded-none border-0 p-0 sm:gap-8")}
+      >
+        <EmptyHeader
+          className={cn(isFullscreen && "max-w-[min(64rem,calc(100vw-3rem))] gap-3 sm:gap-4")}
+        >
+          <EmptyMedia variant="icon">
+            <StatusIcon aria-hidden="true" />
           </EmptyMedia>
-          <EmptyTitle>{title}</EmptyTitle>
+          <EmptyTitle
+            id={titleId}
+            role="heading"
+            aria-level={isFullscreen ? 1 : 2}
+            className={cn(
+              isFullscreen &&
+                "max-w-5xl text-[clamp(2.5rem,6vw,4.5rem)] leading-[1.08] font-bold tracking-[-0.035em] text-pretty",
+            )}
+          >
+            {title}
+          </EmptyTitle>
           {subTitle ? (
-            <EmptyDescription className="text-footnote md:text-body">{subTitle}</EmptyDescription>
+            <EmptyDescription
+              className={cn(
+                isFullscreen &&
+                  "max-w-2xl text-[clamp(1rem,1.6vw,1.25rem)] leading-relaxed text-pretty",
+              )}
+            >
+              {subTitle}
+            </EmptyDescription>
           ) : null}
         </EmptyHeader>
         {actions ? (
-          <EmptyContent className="flex-row flex-wrap justify-center">{actions}</EmptyContent>
+          <EmptyContent
+            className={cn("flex-row flex-wrap justify-center", isFullscreen && "w-auto gap-3")}
+          >
+            {actions}
+          </EmptyContent>
         ) : null}
       </Empty>
     </div>
   );
 
-  if (variant === "fullscreen") {
+  if (isFullscreen) {
     return (
-      <div className="fixed inset-0 z-2147483647 flex items-center justify-center bg-background">
-        <div className="w-full max-w-2xl">{content}</div>
-      </div>
+      <section
+        aria-labelledby={titleId}
+        className="fixed inset-0 z-2147483647 isolate flex overflow-y-auto bg-background"
+      >
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+          <AuroraSceneBackground testId="fullscreen-result-aurora" />
+        </div>
+        <div className="relative z-10 flex min-h-full w-full items-center justify-center px-6 py-[clamp(3rem,8vh,6rem)] sm:px-12">
+          {content}
+        </div>
+      </section>
     );
   }
 

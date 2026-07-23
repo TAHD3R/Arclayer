@@ -138,10 +138,24 @@ export default function Aurora(props: AuroraProps) {
     const ctn = ctnDom.current;
     if (!ctn) return;
 
-    const renderer = new Renderer({
+    const canvas = document.createElement("canvas");
+    const contextAttributes = {
       alpha: true,
       premultipliedAlpha: true,
       antialias: true,
+    } as const;
+    const webgl2 = canvas.getContext("webgl2", contextAttributes);
+    const webgl = webgl2 ?? canvas.getContext("webgl", contextAttributes);
+    if (!webgl) {
+      ctn.dataset.auroraStatus = "webgl-unavailable";
+      console.warn("Aurora was not rendered because WebGL is unavailable.");
+      return;
+    }
+
+    const renderer = new Renderer({
+      canvas,
+      ...contextAttributes,
+      webgl: webgl2 ? 2 : 1,
     });
     const gl = renderer.gl;
     gl.clearColor(0, 0, 0, 0);

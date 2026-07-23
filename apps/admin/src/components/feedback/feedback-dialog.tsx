@@ -127,7 +127,10 @@ function validateFeedback(message: string, t: (key: string, values?: { count: nu
 
 export function FeedbackComposer(props: FeedbackComposerProps) {
   const { t } = useTranslation(["platform", "common"]);
-  const [intent, setIntent] = useState<FeedbackIntent | null>(props.initialIntent ?? null);
+  const isHeaderPopover = props.variant === "popover";
+  const defaultIntent = props.initialIntent ?? (isHeaderPopover ? "problem" : null);
+  const sectionPaddingClassName = isHeaderPopover ? "px-3" : "px-4";
+  const [intent, setIntent] = useState<FeedbackIntent | null>(defaultIntent);
   const [message, setMessage] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -155,9 +158,9 @@ export function FeedbackComposer(props: FeedbackComposerProps) {
 
   useEffect(() => {
     if (!props.active) return;
-    const selector = props.initialIntent ? "textarea" : '[role="radio"]';
+    const selector = defaultIntent ? "textarea" : '[role="radio"]';
     formRef.current?.querySelector<HTMLElement>(selector)?.focus();
-  }, [props.active, props.initialIntent]);
+  }, [defaultIntent, props.active]);
 
   return (
     <form
@@ -169,10 +172,18 @@ export function FeedbackComposer(props: FeedbackComposerProps) {
       )}
       onSubmit={submit}
     >
-      <div className="flex items-start gap-3 px-4 pb-3 pt-4">
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-label-primary">
-          <MessageCircleMore className="size-4" aria-hidden="true" />
-        </div>
+      <div
+        className={cn(
+          "flex items-start pb-3",
+          sectionPaddingClassName,
+          isHeaderPopover ? "pt-3" : "gap-3 pt-4",
+        )}
+      >
+        {!isHeaderPopover ? (
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-label-primary">
+            <MessageCircleMore className="size-4" aria-hidden="true" />
+          </div>
+        ) : null}
         <div className="min-w-0 flex-1">
           <h2 className="text-callout font-semibold text-label-primary">
             {t("platform:FEEDBACK_COMPOSER_TITLE")}
@@ -181,7 +192,7 @@ export function FeedbackComposer(props: FeedbackComposerProps) {
             {t("platform:FEEDBACK_COMPOSER_DESCRIPTION")}
           </p>
         </div>
-        {props.onCancel ? (
+        {props.onCancel && !isHeaderPopover ? (
           <Button
             type="button"
             variant="ghost"
@@ -199,7 +210,11 @@ export function FeedbackComposer(props: FeedbackComposerProps) {
         <div
           role="radiogroup"
           aria-label={t("platform:FEEDBACK_DIALOG_INTENT_LABEL")}
-          className="grid grid-cols-2 gap-1.5 px-4 pb-3 sm:grid-cols-4"
+          className={cn(
+            "grid grid-cols-2 gap-1.5 pb-3",
+            sectionPaddingClassName,
+            !isHeaderPopover && "sm:grid-cols-4",
+          )}
         >
           {FEEDBACK_INTENTS.map((option, index) => {
             const Icon = option.icon;
@@ -212,7 +227,7 @@ export function FeedbackComposer(props: FeedbackComposerProps) {
                 aria-checked={selected}
                 variant={selected ? "secondary" : "ghost"}
                 size="sm"
-                autoFocus={props.autoFocus !== false && !props.initialIntent && index === 0}
+                autoFocus={props.autoFocus !== false && !defaultIntent && index === 0}
                 className={cn(
                   "h-8 justify-center gap-1.5 px-2 text-footnote font-medium",
                   selected && "bg-accent text-label-primary",
@@ -230,7 +245,7 @@ export function FeedbackComposer(props: FeedbackComposerProps) {
         </div>
       ) : null}
 
-      <div className="px-4">
+      <div className={sectionPaddingClassName}>
         <div
           className={cn(
             "overflow-hidden rounded-lg border bg-background transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20",
@@ -240,7 +255,7 @@ export function FeedbackComposer(props: FeedbackComposerProps) {
           <Textarea
             value={message}
             rows={4}
-            autoFocus={props.autoFocus !== false && Boolean(props.initialIntent)}
+            autoFocus={props.autoFocus !== false && Boolean(defaultIntent)}
             aria-label={t("platform:FEEDBACK_DIALOG_MESSAGE_LABEL")}
             aria-invalid={Boolean(validationError)}
             placeholder={t("platform:FEEDBACK_DIALOG_MESSAGE_PLACEHOLDER")}
@@ -269,7 +284,7 @@ export function FeedbackComposer(props: FeedbackComposerProps) {
         ) : null}
       </div>
 
-      <div className="flex items-center justify-end gap-2 px-4 py-3">
+      <div className={cn("flex items-center justify-end gap-2 py-3", sectionPaddingClassName)}>
         {props.onCancel ? (
           <Button
             type="button"

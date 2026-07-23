@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { CheckCircle2, PlayCircle, RefreshCw, XCircle } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -66,13 +66,24 @@ function patchFeedbackCaches(queryClient: QueryClient, updates: readonly Feedbac
   }
 }
 
-export function SystemFeedbackCenterPage() {
+export function SystemFeedbackCenterPage(props: { initialReporterUserId?: string }) {
   const { t } = useTranslation(["common", "platform"]);
   const queryClient = useQueryClient();
-  const [filters, setFilters] = useState<FeedbackFilters>({});
+  const [filters, setFilters] = useState<FeedbackFilters>(() =>
+    props.initialReporterUserId ? { reporterUserId: props.initialReporterUserId } : {},
+  );
   const [ordering, setOrdering] = useState<FeedbackOrdering>(DEFAULT_ORDERING);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const dateTime = useAdminDateTimeFormatter({ workspaceId: null });
+  useEffect(() => {
+    setFilters((current) => {
+      if (props.initialReporterUserId) {
+        return { ...current, reporterUserId: props.initialReporterUserId };
+      }
+      const { reporterUserId: _removed, ...rest } = current;
+      return rest;
+    });
+  }, [props.initialReporterUserId]);
   const updateMutation = useMutation({
     mutationFn: (input: FeedbackUpdateInput) =>
       Promise.all(input.ids.map((id) => updateSystemFeedback(id, input.payload))),

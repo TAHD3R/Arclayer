@@ -82,6 +82,12 @@ export function parseNotificationsSourceSearch(searchStr: string): Notifications
   });
 }
 
+export function resolveNotificationsSourcePath(pathname: string, searchStr: string): string | null {
+  if (normalizePath(pathname) !== "/notifications") return null;
+  const source = parseNotificationsSourceSearch(searchStr);
+  return source.sourcePath ?? null;
+}
+
 export function buildNotificationsSourceSearch(
   pathname: string,
   options: { settingsScreen?: SettingsScreen } = {},

@@ -11,9 +11,9 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { HeaderFeedbackPopover } from "@/components/feedback/feedback-dialog";
+import { ErrorReportButton } from "@/components/feedback/error-report-button";
 import { ApiError } from "@/lib/http";
-import { getErrorMessage, resolveRequestId } from "@/lib/notifications";
+import { getErrorMessage } from "@/lib/notifications";
 import {
   Empty,
   EmptyContent,
@@ -109,8 +109,6 @@ export function ContentGuard(props: ContentGuardProps) {
     (wrapperSpacing === "flush" ? "py-0" : variant === "compact" ? "py-6" : "py-10");
   const container = props.container ?? "raw";
   const emptyClassName = variant === "compact" ? "gap-4 p-4 md:p-8" : undefined;
-  const titleClassName = variant === "compact" ? "text-title md:text-largetitle" : undefined;
-  const descriptionClassName = variant === "compact" ? "text-footnote md:text-body" : undefined;
   const retryExtra = useMemo(() => {
     if (props.hideRetry) return null;
     if (!props.onRetry) return null;
@@ -135,35 +133,19 @@ export function ContentGuard(props: ContentGuardProps) {
     const title = props.errorTitle ?? pickErrorTitle(error, (key) => t(key));
     const details = props.errorDescription ?? pickErrorDescription(error, (key) => t(key));
     const ErrorIcon = pickErrorIcon(error);
-    const reportExtra = canReportError(error) ? (
-      <HeaderFeedbackPopover
-        source="content_guard"
-        initialIntent="problem"
-        lockIntent
-        reportContext={{
-          requestId: resolveRequestId(error),
-          status: error instanceof ApiError ? error.status : undefined,
-          errorCode: error instanceof ApiError ? error.error : undefined,
-        }}
-        trigger={
-          <Button type="button" size="lg" variant="outline">
-            {t("common:REPORT_PROBLEM")}
-          </Button>
-        }
-      />
-    ) : null;
+    const reportExtra = canReportError(error) ? <ErrorReportButton error={error} /> : null;
     const hasExtra = Boolean(retryExtra) || Boolean(props.errorExtra) || Boolean(reportExtra);
 
     const content = (
       <Empty className={emptyClassName}>
         <EmptyHeader>
           {mediaVariant === "illustration" ? (
-            <EmptyMedia variant="icon" className="mb-0">
+            <EmptyMedia variant="icon">
               <ErrorIcon className="size-6" aria-hidden="true" />
             </EmptyMedia>
           ) : null}
-          <EmptyTitle className={titleClassName}>{title}</EmptyTitle>
-          <EmptyDescription className={descriptionClassName}>{details}</EmptyDescription>
+          <EmptyTitle>{title}</EmptyTitle>
+          <EmptyDescription>{details}</EmptyDescription>
         </EmptyHeader>
         {hasExtra ? (
           <EmptyContent className="flex-row flex-wrap justify-center gap-2">
@@ -188,16 +170,12 @@ export function ContentGuard(props: ContentGuardProps) {
       <Empty className={emptyClassName}>
         <EmptyHeader>
           {mediaVariant === "illustration" ? (
-            <EmptyMedia variant="icon" className="mb-0">
+            <EmptyMedia variant="icon">
               <Inbox className="size-6" aria-hidden="true" />
             </EmptyMedia>
           ) : null}
-          <EmptyTitle className={titleClassName}>
-            {props.emptyTitle ?? t("common:EMPTY_TITLE")}
-          </EmptyTitle>
-          <EmptyDescription className={descriptionClassName}>
-            {props.emptyDescription ?? t("common:EMPTY_DESC")}
-          </EmptyDescription>
+          <EmptyTitle>{props.emptyTitle ?? t("common:EMPTY_TITLE")}</EmptyTitle>
+          <EmptyDescription>{props.emptyDescription ?? t("common:EMPTY_DESC")}</EmptyDescription>
         </EmptyHeader>
         {hasExtra ? <EmptyContent>{props.emptyExtra}</EmptyContent> : null}
       </Empty>

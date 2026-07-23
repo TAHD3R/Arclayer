@@ -227,6 +227,17 @@ describe("GlobalLayout", () => {
     expect(screen.getByTestId("admin-topbar")).toHaveAttribute("data-leading-mode", "none");
   });
 
+  it("keeps global navigation populated and active on the notifications route", () => {
+    mockPathname = "/notifications";
+    mockSearchStr = "?sourceKind=global&sourcePath=%2Fsystem%2Foverview";
+
+    renderWithQueryClient(<GlobalLayout />);
+
+    const sceneProps = sceneLayoutSpy.mock.calls.at(-1)?.[0];
+    expect(sceneProps?.mainItems.length).toBeGreaterThan(0);
+    expect(sceneProps?.sidebarPathnameOverride).toBe("/system/overview");
+  });
+
   it("clears stale project context when returning to a global route", async () => {
     useWorkspaceStore.setState({
       currentWorkspaceId: "workspace-alpha",

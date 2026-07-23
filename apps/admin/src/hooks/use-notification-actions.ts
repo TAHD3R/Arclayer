@@ -3,7 +3,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
-import { archiveNotification, deleteNotification, markNotificationRead } from "@/api/notifications";
+import {
+  archiveNotification,
+  deleteNotification,
+  markNotificationRead,
+  recordNotificationInteraction,
+} from "@/api/notifications";
 import { listMyWorkspaces } from "@/api/workspaces";
 import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
 import { notifyErrorText } from "@/lib/notifications";
@@ -11,6 +16,9 @@ import { resolveNotificationTarget } from "@/lib/routing/notification-target";
 import type { NotificationItem } from "@arclayer/openapi/admin-types";
 
 const GLOBAL_NOTIFICATION_WORKSPACE_ID = "00000000-0000-0000-0000-000000000000";
+type OpenNotificationTargetOptions = {
+  markRead?: boolean;
+};
 
 export function useNotificationActions() {
   const { t } = useTranslation("notifications");
@@ -53,6 +61,15 @@ export function useNotificationActions() {
     [invalidateNotifications],
   );
 
+  const recordInteraction = useCallback(
+    async (item: NotificationItem, interaction: "click" | "dismiss") => {
+      await recordNotificationInteraction(item.id, interaction);
+      await invalidateNotifications();
+      return true;
+    },
+    [invalidateNotifications],
+  );
+
   const deleteItem = useCallback(
     async (item: NotificationItem) => {
       await deleteNotification(item.id);
@@ -63,7 +80,7 @@ export function useNotificationActions() {
   );
 
   const openTarget = useCallback(
-    async (item: NotificationItem) => {
+    async (item: NotificationItem, options: OpenNotificationTargetOptions = {}) => {
       const target = resolveNotificationTarget(item);
       if (!target) return false;
 
@@ -74,7 +91,7 @@ export function useNotificationActions() {
         return false;
       }
 
-      if (!item.readAt) {
+      if ((options.markRead ?? true) && !item.readAt) {
         await markRead(item);
       }
 
@@ -83,7 +100,7 @@ export function useNotificationActions() {
         return true;
       }
 
-      void navigate({ to: target.to as never });
+      await navigate({ to: target.to as never });
       return true;
     },
     [
@@ -101,6 +118,7 @@ export function useNotificationActions() {
     deleteItem,
     markRead,
     openTarget,
+    recordInteraction,
     workspacesQuery,
   };
 }

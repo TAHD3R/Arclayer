@@ -35,5 +35,5 @@ export function RouterDefaultError(props: ErrorComponentProps) {
     }
   }
 
-  return <ServerErrorView variant={variant} />;
+  return <ServerErrorView variant={variant} error={err} />;
 }

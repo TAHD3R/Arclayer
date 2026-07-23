@@ -5,17 +5,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SystemSettingsNotificationsPage } from "@/pages/system/notifications/page";
 
-const {
-  createGlobalNotificationBroadcastMock,
-  getSystemCoreSettingsMock,
-  notifySuccessTextMock,
-  patchSystemCoreSettingsMock,
-} = vi.hoisted(() => ({
-  createGlobalNotificationBroadcastMock: vi.fn(),
-  getSystemCoreSettingsMock: vi.fn(),
-  patchSystemCoreSettingsMock: vi.fn(),
-  notifySuccessTextMock: vi.fn(),
-}));
+const { getSystemCoreSettingsMock, notifySuccessTextMock, patchSystemCoreSettingsMock } =
+  vi.hoisted(() => ({
+    getSystemCoreSettingsMock: vi.fn(),
+    patchSystemCoreSettingsMock: vi.fn(),
+    notifySuccessTextMock: vi.fn(),
+  }));
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
@@ -26,13 +21,17 @@ vi.mock("@/api/settings", () => ({
   patchSystemCoreSettings: (...args: unknown[]) => patchSystemCoreSettingsMock(...args),
 }));
 
-vi.mock("@/api/notifications", () => ({
-  createGlobalNotificationBroadcast: (payload: unknown) =>
-    createGlobalNotificationBroadcastMock(payload),
-}));
-
 vi.mock("@/lib/notifications", () => ({
   notifySuccessText: (...args: unknown[]) => notifySuccessTextMock(...args),
+}));
+
+vi.mock("@/pages/system/notifications/notification-campaigns-section", () => ({
+  NotificationCampaignsSection: () => (
+    <section id="global-notification-campaigns">
+      <h2>settings:SETTINGS_SYSTEM_NOTIFICATIONS_CAMPAIGN_TITLE</h2>
+      <button type="button">settings:SETTINGS_SYSTEM_NOTIFICATIONS_CAMPAIGN_CREATE</button>
+    </section>
+  ),
 }));
 
 vi.mock("@/layouts/page-shell/content-guard", () => ({
@@ -167,16 +166,9 @@ describe("SystemSettingsNotificationsPage", () => {
     vi.clearAllMocks();
     getSystemCoreSettingsMock.mockResolvedValue(buildCoreSettings());
     patchSystemCoreSettingsMock.mockResolvedValue(buildCoreSettings());
-    createGlobalNotificationBroadcastMock.mockResolvedValue({
-      broadcastId: "broadcast-1",
-      policyEnabled: true,
-      audienceCount: 8,
-      inAppDeliveredCount: 8,
-      emailDeliveredCount: 6,
-    });
   });
 
-  it("renders system notification groups and the global broadcast form", async () => {
+  it("renders system notification groups and the campaign operating surface", async () => {
     renderPage();
 
     expect(
@@ -189,7 +181,12 @@ describe("SystemSettingsNotificationsPage", () => {
       screen.getByText("settings:SETTINGS_SYSTEM_NOTIFICATIONS_GROUP_SYSTEM_TITLE"),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("settings:SETTINGS_SYSTEM_NOTIFICATIONS_BROADCAST_TITLE"),
+      screen.getByText("settings:SETTINGS_SYSTEM_NOTIFICATIONS_CAMPAIGN_TITLE"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_CAMPAIGN_CREATE",
+      }),
     ).toBeInTheDocument();
     expect(screen.queryByText("settings:SETTINGS_SYSTEM_NOTIFICATIONS_EMAIL_TITLE")).toBeNull();
   });
@@ -219,53 +216,5 @@ describe("SystemSettingsNotificationsPage", () => {
         },
       });
     });
-  });
-
-  it("publishes a global banner through in-app and email channels", async () => {
-    const user = userEvent.setup();
-    renderPage();
-
-    await user.type(
-      await screen.findByRole("textbox", {
-        name: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_BROADCAST_MESSAGE_TITLE",
-      }),
-      "Scheduled maintenance",
-    );
-    await user.type(
-      screen.getByRole("textbox", {
-        name: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_BROADCAST_BODY",
-      }),
-      "Restart at 02:00 UTC.",
-    );
-    await user.click(
-      screen.getByText("settings:SETTINGS_SYSTEM_NOTIFICATIONS_BROADCAST_PRESENTATION_BANNER"),
-    );
-    await user.click(
-      screen.getByRole("checkbox", {
-        name: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_BROADCAST_CHANNEL_EMAIL",
-      }),
-    );
-    await user.click(
-      screen.getByRole("button", {
-        name: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_BROADCAST_SEND",
-      }),
-    );
-
-    await waitFor(() => {
-      expect(createGlobalNotificationBroadcastMock).toHaveBeenCalledWith({
-        title: "Scheduled maintenance",
-        body: "Restart at 02:00 UTC.",
-        presentation: "banner",
-        severity: "info",
-        actionLabel: null,
-        actionTo: null,
-        deliverInApp: true,
-        deliverEmail: true,
-      });
-    });
-    expect(
-      await screen.findByText("SETTINGS_SYSTEM_NOTIFICATIONS_BROADCAST_RESULT_TITLE"),
-    ).toBeInTheDocument();
-    expect(screen.getByText("6")).toBeInTheDocument();
   });
 });

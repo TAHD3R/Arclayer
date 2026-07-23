@@ -13,6 +13,7 @@ import { RouteTransition } from "@/components/layout/route-transition";
 import { GLOBAL_RECENT_PROJECT_LIMIT, resolveGlobalNavItems } from "@/constants/menu/global";
 import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
 import { isFavoriteOverlayContentOnly } from "@/lib/routing/favorite-overlay";
+import { resolveNotificationsSourcePath } from "@/lib/routing/notifications-source";
 import { AdminSceneLayout } from "@/layouts/admin-scene-layout";
 import { buildAdminTopbarBreadcrumbs } from "@/lib/admin-topbar-breadcrumbs";
 import { usePreferencesStore } from "@/stores/use-preference-store";
@@ -45,6 +46,7 @@ export function GlobalLayout() {
   const setCurrentProjectId = useWorkspaceStore((state) => state.setCurrentProjectId);
   const { isSuperAdmin } = useCurrentUserProfile();
   const contentOnlyMode = isFavoriteOverlayContentOnly(searchStr);
+  const sidebarPathname = resolveNotificationsSourcePath(pathname, searchStr) ?? pathname;
   const effectiveWorkspaceId = currentWorkspaceId ?? lastWorkspaceId;
 
   useEffect(() => {
@@ -99,8 +101,8 @@ export function GlobalLayout() {
     [isSuperAdmin, recentProjects],
   );
   const topbarBreadcrumbs = useMemo(
-    () => buildAdminTopbarBreadcrumbs(navItems, pathname),
-    [navItems, pathname],
+    () => buildAdminTopbarBreadcrumbs(navItems, sidebarPathname),
+    [navItems, sidebarPathname],
   );
 
   if (contentOnlyMode) {
@@ -146,7 +148,7 @@ export function GlobalLayout() {
       browseProjects={browseProjects}
       activeBrowseProjectId={null}
       sidebarCollapsible="icon"
-      sidebarPathnameOverride={pathname}
+      sidebarPathnameOverride={sidebarPathname}
     >
       <Outlet />
     </AdminSceneLayout>

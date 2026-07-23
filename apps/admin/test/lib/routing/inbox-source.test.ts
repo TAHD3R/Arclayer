@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildNotificationsSourceSearch,
+  resolveNotificationsSourcePath,
   validateNotificationsSourceSearch,
 } from "@/lib/routing/notifications-source";
 
@@ -77,5 +78,18 @@ describe("inbox source search", () => {
       sourcePath: "/projects",
     });
     expect(buildNotificationsSourceSearch("/login")).toEqual({});
+  });
+
+  it("resolves a menu source only for the notifications route", () => {
+    const search = "?sourceKind=global&sourcePath=%2Fsystem%2Foverview";
+
+    expect(resolveNotificationsSourcePath("/notifications", search)).toBe("/system/overview");
+    expect(resolveNotificationsSourcePath("/system/tenants", search)).toBeNull();
+    expect(
+      resolveNotificationsSourcePath(
+        "/notifications",
+        "?sourceKind=workspace&sourcePath=https%3A%2F%2Fevil.example",
+      ),
+    ).toBeNull();
   });
 });

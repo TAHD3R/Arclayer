@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
+import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
@@ -18,6 +19,7 @@ import {
   type MailTemplatePreview,
 } from "@/api/mail";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { ApiError } from "@arclayer/web/http";
 
 type TemplateFormValues = {
   key: string;
@@ -32,11 +34,13 @@ type TemplateFormValues = {
   isEnabled: boolean;
 };
 
-function formValues(template: MailTemplate | null): TemplateFormValues {
+type EditorMode = "create" | "edit" | "add-locale" | "duplicate";
+
+function formValues(template: MailTemplate | null, mode: EditorMode): TemplateFormValues {
   const variables = template?.variables ?? [];
   return {
-    key: template?.key ?? "",
-    locale: template?.locale ?? "zh-CN",
+    key: mode === "duplicate" && template ? `${template.key}_copy` : (template?.key ?? ""),
+    locale: mode === "add-locale" ? "" : (template?.locale ?? "zh-CN"),
     name: template?.name ?? "",
     description: template?.description ?? "",
     subjectTemplate: template?.subjectTemplate ?? "",
@@ -66,21 +70,26 @@ function variableNames(value: string): string[] {
 export function EmailTemplateEditorDialog(props: {
   open: boolean;
   template: MailTemplate | null;
+  mode?: EditorMode;
   onOpenChange: (open: boolean) => void;
   onSaved: () => Promise<void>;
+  onReloadTemplate: () => Promise<void>;
 }) {
   const { t } = useTranslation(["settings"]);
-  const form = useForm<TemplateFormValues>({ defaultValues: formValues(props.template) });
+  const mode = props.mode ?? (props.template ? "edit" : "create");
+  const form = useForm<TemplateFormValues>({ defaultValues: formValues(props.template, mode) });
   const [preview, setPreview] = useState<MailTemplatePreview | null>(null);
   const [previewWidth, setPreviewWidth] = useState<"desktop" | "mobile">("desktop");
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [hasRevisionConflict, setHasRevisionConflict] = useState(false);
 
   useEffect(() => {
     if (!props.open) return;
-    form.reset(formValues(props.template));
+    form.reset(formValues(props.template, mode));
     setPreview(null);
-  }, [form, props.open, props.template]);
+    setHasRevisionConflict(false);
+  }, [form, mode, props.open, props.template]);
 
   const renderPreview = async () => {
     const values = form.getValues();
@@ -126,8 +135,9 @@ export function EmailTemplateEditorDialog(props: {
     };
     setIsSaving(true);
     try {
-      if (props.template) {
+      if (mode === "edit" && props.template) {
         await updateMailTemplate(props.template.id, {
+          expectedVersion: props.template.version,
           name: input.name,
           description: input.description,
           subjectTemplate: input.subjectTemplate,
@@ -143,6 +153,9 @@ export function EmailTemplateEditorDialog(props: {
       notifySuccessText(t("settings:SETTINGS_SAVED"));
       props.onOpenChange(false);
     } catch (error) {
+      if (error instanceof ApiError && error.error === "MAIL_TEMPLATE_REVISION_CONFLICT") {
+        setHasRevisionConflict(true);
+      }
       notifyError(error);
     } finally {
       setIsSaving(false);
@@ -155,9 +168,13 @@ export function EmailTemplateEditorDialog(props: {
       open={props.open}
       onOpenChange={props.onOpenChange}
       title={
-        props.template
+        mode === "edit"
           ? t("settings:SETTINGS_SYSTEM_EMAIL_TEMPLATE_EDIT_TITLE")
-          : t("settings:SETTINGS_SYSTEM_EMAIL_TEMPLATE_CREATE_TITLE")
+          : mode === "add-locale"
+            ? t("settings:SETTINGS_SYSTEM_EMAIL_TEMPLATE_ADD_LANGUAGE_TITLE")
+            : mode === "duplicate"
+              ? t("settings:SETTINGS_SYSTEM_EMAIL_TEMPLATE_DUPLICATE_TITLE")
+              : t("settings:SETTINGS_SYSTEM_EMAIL_TEMPLATE_CREATE_TITLE")
       }
       description={t("settings:SETTINGS_SYSTEM_EMAIL_TEMPLATE_EDITOR_DESC")}
       contentClassName="sm:max-w-6xl"
@@ -175,19 +192,38 @@ export function EmailTemplateEditorDialog(props: {
     >
       <div className="grid min-h-[34rem] min-w-0 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.9fr)]">
         <SettingDialogFields className="min-w-0 border-b p-6 lg:border-r lg:border-b-0">
+          {hasRevisionConflict ? (
+            <Alert>
+              <AlertTitle>{t("settings:SETTINGS_SYSTEM_EMAIL_TEMPLATE_CONFLICT_TITLE")}</AlertTitle>
+              <AlertDescription className="space-y-3">
+                <p>{t("settings:SETTINGS_SYSTEM_EMAIL_TEMPLATE_CONFLICT_DESC")}</p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    await props.onReloadTemplate();
+                    setHasRevisionConflict(false);
+                  }}
+                >
+                  {t("settings:SETTINGS_SYSTEM_EMAIL_TEMPLATE_CONFLICT_RELOAD")}
+                </Button>
+              </AlertDescription>
+            </Alert>
+          ) : null}
           <div className="grid gap-4 sm:grid-cols-2">
             <SettingDialogField title={t("settings:SETTINGS_SYSTEM_EMAIL_TEMPLATE_KEY_LABEL")}>
               <Input
                 {...form.register("key", { required: true })}
                 aria-label={t("settings:SETTINGS_SYSTEM_EMAIL_TEMPLATE_KEY_LABEL")}
-                disabled={Boolean(props.template)}
+                disabled={mode === "edit" || mode === "add-locale"}
               />
             </SettingDialogField>
             <SettingDialogField title={t("settings:SETTINGS_SYSTEM_EMAIL_TEMPLATE_LOCALE_LABEL")}>
               <Input
                 {...form.register("locale", { required: true })}
                 aria-label={t("settings:SETTINGS_SYSTEM_EMAIL_TEMPLATE_LOCALE_LABEL")}
-                disabled={Boolean(props.template)}
+                disabled={mode === "edit"}
               />
             </SettingDialogField>
           </div>

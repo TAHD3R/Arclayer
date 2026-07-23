@@ -10,28 +10,6 @@ import type {
   PageData,
 } from "@arclayer/openapi/admin-types";
 
-export type GlobalNotificationPresentation = "inbox" | "toast" | "modal" | "banner";
-export type GlobalNotificationSeverity = "info" | "success" | "warning" | "error";
-
-export type GlobalNotificationBroadcastPayload = {
-  title: string;
-  body?: string | null;
-  presentation: GlobalNotificationPresentation;
-  severity: GlobalNotificationSeverity;
-  actionLabel?: string | null;
-  actionTo?: string | null;
-  deliverInApp: boolean;
-  deliverEmail: boolean;
-};
-
-export type GlobalNotificationBroadcastResult = {
-  broadcastId: string;
-  policyEnabled: boolean;
-  audienceCount: number;
-  inAppDeliveredCount: number;
-  emailDeliveredCount: number;
-};
-
 export async function getUnreadNotificationPreview(params?: {
   limit?: number;
 }): Promise<NotificationPreview> {
@@ -57,6 +35,23 @@ export async function markNotificationRead(
   return api.post<{ id: string; readAt?: string | null }>(
     `/me/notifications/${notificationId}/read`,
   );
+}
+
+export async function recordNotificationInteraction(
+  notificationId: string,
+  interaction: "read" | "click" | "dismiss",
+): Promise<{
+  notificationId: string;
+  deliveryId: string;
+  kind: "read" | "click" | "dismiss";
+  occurredAt: string;
+}> {
+  return api.post<{
+    notificationId: string;
+    deliveryId: string;
+    kind: "read" | "click" | "dismiss";
+    occurredAt: string;
+  }>(`/me/notifications/${notificationId}/interactions/${interaction}`);
 }
 
 export async function markAllNotificationsRead(): Promise<{
@@ -100,20 +95,5 @@ export async function patchMyNotificationPreference(payload: {
     topic_key: payload.topicKey,
     channel: payload.channel,
     enabled: payload.enabled,
-  });
-}
-
-export async function createGlobalNotificationBroadcast(
-  payload: GlobalNotificationBroadcastPayload,
-): Promise<GlobalNotificationBroadcastResult> {
-  return api.post<GlobalNotificationBroadcastResult>("/system/notifications/broadcasts", {
-    title: payload.title,
-    body: payload.body || null,
-    presentation: payload.presentation,
-    severity: payload.severity,
-    action_label: payload.actionLabel || null,
-    action_to: payload.actionTo || null,
-    deliver_in_app: payload.deliverInApp,
-    deliver_email: payload.deliverEmail,
   });
 }

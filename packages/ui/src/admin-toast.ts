@@ -107,6 +107,7 @@ function ToastDescription(props: { description?: React.ReactNode; requestId: str
         onOpenChange: setOpen,
         children: [
           React.createElement(PopoverTrigger, {
+            key: "request-id-trigger",
             asChild: true,
             children: React.createElement(
               "button",
@@ -129,6 +130,7 @@ function ToastDescription(props: { description?: React.ReactNode; requestId: str
             ),
           }),
           React.createElement(PopoverContent, {
+            key: "request-id-content",
             side: "top",
             align: "start",
             sideOffset: 8,
