@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID
 
+from pydantic import ConfigDict
 from tortoise.backends.base.client import BaseDBAsyncClient
 
+from src.common.schemas import BaseSchema
 from src.config import Settings
 from src.models.ai.ai_budget_reservation import AIBudgetReservation
 from src.models.commerce.billing import (
@@ -31,8 +32,9 @@ class CreditsUnavailableError(Exception):
         super().__init__(f"Workspace {workspace_id} subscription status is {subscription_status}")
 
 
-@dataclass(frozen=True, slots=True)
-class CreditReservationDetails:
+class CreditReservationDetails(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
+
     account_id: UUID
     credit_value_micros: int
     reserved_credits: int
