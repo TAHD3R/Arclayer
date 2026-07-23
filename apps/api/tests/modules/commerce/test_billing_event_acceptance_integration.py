@@ -14,6 +14,7 @@ from src.models.commerce.billing import ConnectorEventInbox
 from src.models.jobs.background_job import BackgroundJobRecord, JobDispatchOutboxRecord
 from src.modules.commerce.billing_connector import BillingConnector, BillingWebhookEnvelope
 from src.modules.commerce.billing_event_acceptance_service import BillingEventAcceptanceService
+from src.modules.commerce.billing_event_repository import BillingEventInboxRepository
 from src.modules.jobs.service import BackgroundJobService
 from src.settings.crypto import ensure_master_key
 
@@ -55,6 +56,7 @@ def _service(
         connector_version="1.0.0",
         webhook_events=("customer.subscription.updated",),
         connector=cast(BillingConnector, _VerifiedConnector(envelope)),
+        repository=BillingEventInboxRepository(),
         jobs=jobs or BackgroundJobService(settings, event_publisher=None),
     )
 

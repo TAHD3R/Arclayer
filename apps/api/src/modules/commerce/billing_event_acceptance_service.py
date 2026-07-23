@@ -52,8 +52,8 @@ class BillingEventAcceptanceService(BaseService):
         connector_version: str,
         webhook_events: tuple[str, ...],
         connector: BillingConnector,
-        repository: BillingEventInboxRepository | None = None,
-        jobs: BackgroundJobService | None = None,
+        repository: BillingEventInboxRepository,
+        jobs: BackgroundJobService,
     ) -> None:
         super().__init__(settings)
         self._provider_name = provider_name
@@ -61,8 +61,8 @@ class BillingEventAcceptanceService(BaseService):
         self._connector_version = connector_version
         self._webhook_events = frozenset(webhook_events)
         self._connector = connector
-        self._repository = repository or BillingEventInboxRepository()
-        self._jobs = jobs or BackgroundJobService(settings)
+        self._repository = repository
+        self._jobs = jobs
 
     async def accept(self, *, payload: bytes, signature: str) -> BillingEventAcceptanceResult:
         envelope = self._connector.verify_webhook(payload=payload, signature=signature)
@@ -214,6 +214,8 @@ def build_billing_event_acceptance_service(
         connector_version=registration.definition.version,
         webhook_events=registration.definition.webhook_events,
         connector=connector,
+        repository=BillingEventInboxRepository(),
+        jobs=BackgroundJobService(settings),
     )
 
 
