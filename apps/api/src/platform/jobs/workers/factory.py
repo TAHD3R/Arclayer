@@ -136,7 +136,9 @@ def _register_lifecycle(
         await init_orm(settings)
         await verify_db_ready(settings)
         if runtime.extension_manager is not None:
-            await runtime.extension_manager.load_all()
+            from src.modules.system.plugins.runtime_reconciliation import load_desired_system_plugins
+
+            await load_desired_system_plugins(runtime.extension_manager, settings=settings)
             await runtime.extension_manager.register_all(state)
         logger.info(
             "Durable Job worker ready",

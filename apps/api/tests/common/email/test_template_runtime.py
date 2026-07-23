@@ -24,10 +24,15 @@ class _TemplateReader:
     def __init__(self, records: dict[tuple[str, str], _TemplateRecord]) -> None:
         self.records = records
         self.requests: list[tuple[str, str]] = []
+        self.version_requests: list[tuple[str, str, int]] = []
 
     async def get_by_identity(self, *, key: str, locale: str) -> _TemplateRecord | None:
         self.requests.append((key, locale))
         return self.records.get((key, locale))
+
+    async def get_by_version(self, *, key: str, locale: str, version: int) -> _TemplateRecord | None:
+        self.version_requests.append((key, locale, version))
+        return self.records.get((f"{key}@{version}", locale))
 
 
 @pytest.mark.asyncio
@@ -82,3 +87,24 @@ async def test_runtime_exposes_missing_template_variables() -> None:
 
     with pytest.raises(EmailTemplateRenderError, match="MAIL_TEMPLATE_RENDER_FAILED"):
         await EmailTemplateRuntime(reader).render(key="welcome", locale="zh-CN", variables={})
+
+
+@pytest.mark.asyncio
+async def test_runtime_renders_the_exact_requested_template_version() -> None:
+    reader = _TemplateReader({
+        ("announcement@3", "zh-CN"): _TemplateRecord(
+            subject_template="版本 {{ version }}",
+            html_template="<p>版本 {{ version }}</p>",
+            text_template="版本 {{ version }}",
+        )
+    })
+
+    rendered = await EmailTemplateRuntime(reader).render_version(
+        key="announcement",
+        locale="zh-CN",
+        version=3,
+        variables={"version": "3"},
+    )
+
+    assert reader.version_requests == [("announcement", "zh-CN", 3)]
+    assert rendered.subject == "版本 3"

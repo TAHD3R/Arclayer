@@ -2,27 +2,41 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header, Response, status
 
 from src.config import Settings, get_settings
 from src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
 from src.core.http.response import ApiResponse, ResponseModel
-from src.core.i18n import get_current_locale
+from src.core.i18n import get_current_locale, t
 from src.models.system.rbac import PermissionScope
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.workspaces.authz.http.service import require_workspace_permission
+from src.modules.workspaces.authz.snapshot.service import get_workspace_authz_snapshot
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_team_workspace_manage_access
 from src.modules.workspaces.permissions import get_permission_action_registry
 from src.modules.workspaces.permissions.registry import list_permission_condition_templates
+from src.modules.workspaces.rbac.catalog import (
+    PERMISSION_CATALOG_GROUPS,
+    RolePermissionBatchUpdate,
+    build_catalog_etag,
+    build_catalog_revision,
+    build_permission_metadata,
+    etag_matches,
+    role_revision,
+)
 from src.modules.workspaces.rbac.schema import (
     PermissionRoleSetRequest,
     RoleCreateFromTemplateRequest,
+    RolePermissionBatchSetOut,
+    RolePermissionBatchSetRequest,
     RolePermissionGrantOut,
     RolePermissionSetRequest,
     RoleUpdateRequest,
     WorkspacePermissionActionOut,
+    WorkspacePermissionCatalogOut,
     WorkspacePermissionConditionTemplateOut,
+    WorkspacePermissionGroupOut,
     WorkspacePermissionOut,
     WorkspaceRoleOut,
 )
@@ -38,6 +52,23 @@ def get_rbac_service(settings: Settings = Depends(get_settings)) -> WorkspaceRBA
 async def _to_workspace_role_out(*, service: WorkspaceRBACService, role, locale: str) -> WorkspaceRoleOut:
     permission_codes = await service.list_permission_codes_for_role(role=role)
     condition_sets = await service.list_permission_condition_sets_for_role(role=role)
+    return _workspace_role_out(
+        service=service,
+        role=role,
+        locale=locale,
+        permission_codes=permission_codes,
+        condition_sets=condition_sets,
+    )
+
+
+def _workspace_role_out(
+    *,
+    service: WorkspaceRBACService,
+    role,
+    locale: str,
+    permission_codes: list[str],
+    condition_sets: dict[str, list],
+) -> WorkspaceRoleOut:
     return WorkspaceRoleOut.model_validate({
         **service.localize_role(role, locale=locale),
         "permission_codes": permission_codes,
@@ -45,7 +76,163 @@ async def _to_workspace_role_out(*, service: WorkspaceRBACService, role, locale:
             RolePermissionGrantOut(permission_code=code, condition_sets=condition_sets.get(code, []))
             for code in permission_codes
         ],
+        "source": "system" if role.is_system else "custom",
+        "immutable": bool(role.is_system),
+        "revision": role_revision(role),
     })
+
+
+def _localize_ref(value: str | None, *, default: str) -> str:
+    if not value or ":" not in value:
+        return default
+    namespace, key = value.split(":", 1)
+    return t(namespace, key, default=default)
+
+
+async def _workspace_permission_outs(
+    *,
+    service: WorkspaceRBACService,
+    permissions,
+) -> list[WorkspacePermissionOut]:
+    metadata_by_code = build_permission_metadata(permissions)
+    group_name_by_code = {
+        group.code: _localize_ref(group.name_i18n, default=group.code) for group in PERMISSION_CATALOG_GROUPS
+    }
+    owner_keys = {
+        str(permission.owner_key)
+        for permission in permissions
+        if permission.owner_key and str(permission.owner_key) != "core"
+    }
+    owner_names = await service.get_owner_name_map(owner_keys=owner_keys)
+    items: list[WorkspacePermissionOut] = []
+    for permission in permissions:
+        localized = service.localize_permission(permission)
+        metadata = metadata_by_code[permission.code]
+        owner_key = str(permission.owner_key or "core")
+        owner_name = (
+            _localize_ref("rbac:RBAC_PERMISSION_OWNER_CORE", default="Core")
+            if owner_key == "core"
+            else owner_names.get(owner_key, owner_key)
+        )
+        items.append(
+            WorkspacePermissionOut.model_validate({
+                "id": permission.id,
+                "code": permission.code,
+                "scope": permission.scope.value,
+                "name": localized["name"],
+                "description": localized["description"],
+                "name_i18n": permission.name_i18n,
+                "description_i18n": permission.description_i18n,
+                "group_code": metadata.group_code,
+                "group_name": group_name_by_code[metadata.group_code],
+                "sort_order": metadata.sort_order,
+                "owner_key": owner_key,
+                "owner_name": owner_name,
+                "lifecycle": metadata.lifecycle,
+                "replacement_code": metadata.replacement_code,
+                "action_codes": list(metadata.action_codes),
+                "condition_templates": list(metadata.condition_templates),
+            })
+        )
+    return sorted(items, key=lambda item: item.sort_order)
+
+
+def _workspace_action_outs() -> list[WorkspacePermissionActionOut]:
+    return [
+        WorkspacePermissionActionOut(
+            code=action,
+            module=definition.module,
+            name=_localize_ref(definition.name_i18n, default=definition.name or action),
+            description=_localize_ref(
+                definition.description_i18n,
+                default=definition.description or action,
+            ),
+            subject_kinds=list(definition.subject_kinds),
+            permission_codes=list(definition.permission_codes),
+            condition_templates=list(definition.condition_templates),
+        )
+        for action, definition in sorted(get_permission_action_registry().items(), key=lambda entry: entry[0])
+    ]
+
+
+def _workspace_condition_template_outs() -> list[WorkspacePermissionConditionTemplateOut]:
+    return [
+        WorkspacePermissionConditionTemplateOut.model_validate({
+            **template.model_dump(),
+            "description": t(
+                "rbac",
+                f"RBAC_CONDITION_{template.key.upper()}_DESC",
+                default=template.description,
+            ),
+        })
+        for template in list_permission_condition_templates()
+    ]
+
+
+async def _build_workspace_permission_catalog(
+    *,
+    service: WorkspaceRBACService,
+    workspace_id: UUID,
+) -> WorkspacePermissionCatalogOut:
+    locale = get_current_locale()
+    role_rows = await service.list_roles_with_permission_codes(workspace_id=workspace_id)
+    roles: list[WorkspaceRoleOut] = []
+    for role, permission_codes in role_rows:
+        condition_sets = await service.list_permission_condition_sets_for_role(role=role)
+        roles.append(
+            _workspace_role_out(
+                service=service,
+                role=role,
+                locale=locale,
+                permission_codes=permission_codes,
+                condition_sets=condition_sets,
+            )
+        )
+
+    permissions = await service.repo.list_permissions(scope=PermissionScope.WORKSPACE)
+    catalog_revision = build_catalog_revision(permissions)
+    raw_roles = [role for role, _permission_codes in role_rows]
+    return WorkspacePermissionCatalogOut(
+        catalog_revision=catalog_revision,
+        etag=build_catalog_etag(catalog_revision, raw_roles),
+        groups=[
+            WorkspacePermissionGroupOut(
+                code=group.code,
+                name=_localize_ref(group.name_i18n, default=group.code),
+                order=group.order,
+            )
+            for group in PERMISSION_CATALOG_GROUPS
+        ],
+        permissions=await _workspace_permission_outs(service=service, permissions=permissions),
+        roles=roles,
+        actions=_workspace_action_outs(),
+        condition_templates=_workspace_condition_template_outs(),
+    )
+
+
+@router.get(
+    "/catalog",
+    response_model=ResponseModel[WorkspacePermissionCatalogOut],
+    responses={status.HTTP_304_NOT_MODIFIED: {"description": "Permission catalog unchanged."}},
+    summary="Get revisioned workspace permission catalog and role projections",
+    dependencies=[require_workspace_permission("rbac:permissions:read")],
+)
+async def get_permission_catalog(
+    raw_response: Response,
+    if_none_match: str | None = Header(default=None, alias="If-None-Match"),
+    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
+    service: WorkspaceRBACService = Depends(get_rbac_service),
+) -> ResponseModel[WorkspacePermissionCatalogOut] | Response:
+    payload = await _build_workspace_permission_catalog(
+        service=service,
+        workspace_id=ctx.workspace_id,
+    )
+    etag = payload.etag
+    cache_headers = {"ETag": etag, "Cache-Control": "private, no-cache"}
+    if etag_matches(if_none_match, etag):
+        return Response(status_code=status.HTTP_304_NOT_MODIFIED, headers=cache_headers)
+    raw_response.headers.update(cache_headers)
+    return ApiResponse.success(data=payload)
 
 
 @router.get(
@@ -67,17 +254,13 @@ async def list_roles(
     for role, permission_codes in roles:
         condition_sets = await service.list_permission_condition_sets_for_role(role=role)
         items.append(
-            WorkspaceRoleOut.model_validate({
-                **service.localize_role(role, locale=locale),
-                "permission_codes": permission_codes,
-                "permission_grants": [
-                    RolePermissionGrantOut(
-                        permission_code=code,
-                        condition_sets=condition_sets.get(code, []),
-                    )
-                    for code in permission_codes
-                ],
-            })
+            _workspace_role_out(
+                service=service,
+                role=role,
+                locale=locale,
+                permission_codes=permission_codes,
+                condition_sets=condition_sets,
+            )
         )
     page = paginate_items(items, params=params)
     return ApiResponse.success(data=page)
@@ -96,25 +279,7 @@ async def list_permissions(
 ) -> ResponseModel[PageData[WorkspacePermissionOut]]:
     """List permissions (workspace scope)."""
     perms = await service.repo.list_permissions(scope=PermissionScope.WORKSPACE)
-    owner_keys = {str(p.owner_key) for p in perms if p.owner_key and str(p.owner_key) != "core"}
-    owner_names = await service.get_owner_name_map(owner_keys=owner_keys)
-    items: list[WorkspacePermissionOut] = []
-    for p in perms:
-        lp = service.localize_permission(p)
-        owner_key_raw = lp.get("owner_key")
-        owner_key = owner_key_raw if isinstance(owner_key_raw, str) else None
-        desc_raw = lp.get("description")
-        description = desc_raw if isinstance(desc_raw, str) else None
-        items.append(
-            WorkspacePermissionOut(
-                id=UUID(str(lp["id"])),
-                code=str(lp["code"]),
-                name=str(lp["name"]),
-                description=description,
-                owner_key=owner_key,
-                owner_name=owner_names.get(str(owner_key)) if owner_key else None,
-            )
-        )
+    items = await _workspace_permission_outs(service=service, permissions=perms)
     page = paginate_items(items, params=params)
     return ApiResponse.success(data=page)
 
@@ -128,17 +293,7 @@ async def list_permissions(
 async def list_actions(
     _ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
 ) -> ResponseModel[list[WorkspacePermissionActionOut]]:
-    items = [
-        WorkspacePermissionActionOut(
-            code=action,
-            description=definition.description,
-            subject_kinds=list(definition.subject_kinds),
-            permission_codes=list(definition.permission_codes),
-            condition_templates=list(definition.condition_templates),
-        )
-        for action, definition in sorted(get_permission_action_registry().items(), key=lambda entry: entry[0])
-    ]
-    return ApiResponse.success(data=items)
+    return ApiResponse.success(data=_workspace_action_outs())
 
 
 @router.get(
@@ -151,11 +306,7 @@ async def list_condition_templates(
     _ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
 ) -> ResponseModel[list[WorkspacePermissionConditionTemplateOut]]:
     """List supported conditional permission templates."""
-    items = [
-        WorkspacePermissionConditionTemplateOut.model_validate(template)
-        for template in list_permission_condition_templates()
-    ]
-    return ApiResponse.success(data=items)
+    return ApiResponse.success(data=_workspace_condition_template_outs())
 
 
 @router.post(
@@ -254,6 +405,50 @@ async def set_permission_roles(
         role_codes=body.role_codes,
     )
     return ApiResponse.success()
+
+
+@router.put(
+    "/role-permissions",
+    response_model=ResponseModel[RolePermissionBatchSetOut],
+    summary="Atomically replace permission grants for custom roles",
+    dependencies=[require_workspace_permission("rbac:roles:write")],
+)
+async def set_role_permissions_batch(
+    body: RolePermissionBatchSetRequest,
+    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
+    user_id=Depends(get_current_user_id),
+    service: WorkspaceRBACService = Depends(get_rbac_service),
+) -> ResponseModel[RolePermissionBatchSetOut]:
+    snapshot = await get_workspace_authz_snapshot(
+        user_id=user_id,
+        workspace_id=ctx.workspace_id,
+    )
+    revision, roles = await service.set_custom_role_permissions_batch(
+        organization_id=ctx.organization_id,
+        workspace_id=ctx.workspace_id,
+        actor_user_id=user_id,
+        catalog_revision=body.catalog_revision,
+        idempotency_key=body.idempotency_key,
+        updates=tuple(
+            RolePermissionBatchUpdate(
+                role_code=item.role_code,
+                role_revision=item.role_revision,
+                permission_grants=tuple(
+                    (grant.permission_code, tuple(grant.condition_sets)) for grant in item.permission_grants
+                ),
+            )
+            for item in body.roles
+        ),
+        actor_permission_codes=frozenset(snapshot.permission_codes),
+        actor_is_superuser=snapshot.is_superuser,
+    )
+    locale = get_current_locale()
+    return ApiResponse.success(
+        data=RolePermissionBatchSetOut(
+            catalog_revision=revision,
+            roles=[await _to_workspace_role_out(service=service, role=role, locale=locale) for role in roles],
+        )
+    )
 
 
 @router.put(

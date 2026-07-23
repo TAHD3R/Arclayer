@@ -13,7 +13,7 @@ class WorkspaceEmailInvite(BaseModel):
 
     Rules (v2):
     - Email-bound: accept requires current_user.email == invite.email.
-    - Q1: renew only extends expires_at (does not rotate code).
+    - Renew rotates the signed-token code and invalidates the previous token.
     - Q2: only one active (non-revoked, non-accepted) invite per (workspace, email).
     - Q3: delete means revoke (revoked_at is set).
     """
@@ -63,7 +63,7 @@ class WorkspaceInviteLink(BaseModel):
 
     role_code = fields.CharField(max_length=64, null=True, db_index=True)
 
-    # Non-secret identifier used to build a signed invite token (copyable at any time).
+    # Secret-bearing identifier used to build a signed invite token. It is never exposed by list APIs.
     code = fields.CharField(max_length=64, unique=True, db_index=True)
     # Non-secret short code for UI display/search.
     display_code = fields.CharField(max_length=32, unique=True, db_index=True)

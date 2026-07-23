@@ -95,7 +95,7 @@ def workspace_knowledge_capabilities(
             resolved_settings.knowledge_source_fetch.enabled and resolved_settings.knowledge_index.enabled
         ),
         indexing_available=resolved_settings.knowledge_index.enabled,
-        retrieval_available=False,
+        retrieval_available=True,
         immutable_source_versions=True,
         supported_source_kinds=("manual", "file", "url", "connector", "structured_content"),
     )

@@ -31,6 +31,16 @@ def _detect_platform(user_agent: str) -> str | None:
     return None
 
 
+def detect_browser_family(user_agent: str | None) -> str | None:
+    raw = (user_agent or "").strip()
+    return _detect_browser(raw) if raw else None
+
+
+def detect_device_family(user_agent: str | None) -> str | None:
+    raw = (user_agent or "").strip()
+    return _detect_platform(raw) if raw else None
+
+
 def build_device_label(user_agent: str | None) -> str:
     raw = (user_agent or "").strip()
     if not raw:

@@ -16,6 +16,7 @@ from src.modules.ai.agent_tool_grants import (
     BUILDER_WIREFRAME_APPLY_TOOL,
     BUILDER_WIREFRAME_GENERATE_TOOL,
     HUMAN_REQUEST_INPUT_TOOL,
+    WORKSPACE_SKILL_CREATE_TOOL,
 )
 
 ExecutionMode = Literal["plan", "build"]
@@ -42,6 +43,8 @@ _OFFICIAL_AGENT_VERSION_IDS = {
     ("arclayer-coordinator", 4): UUID("c5c5d4f3-5b99-4d4e-9a20-1b2c3d4e8f01"),
     ("site-architect", 3): UUID("c5c5d4f3-5b99-4d4e-9a20-1b2c3d4e7f02"),
     ("arclayer-coordinator", 5): UUID("c5c5d4f3-5b99-4d4e-9a20-1b2c3d4e9f01"),
+    ("arclayer-coordinator", 6): UUID("c5c5d4f3-5b99-4d4e-9a20-1b2c3d4eaf01"),
+    ("arclayer-coordinator", 7): UUID("c5c5d4f3-5b99-4d4e-9a20-1b2c3d4ebf01"),
     ("visual-designer", 3): UUID("c5c5d4f3-5b99-4d4e-9a20-1b2c3d4e7f03"),
 }
 _OFFICIAL_AGENT_VERSION_KEYS_BY_ID = {version_id: key for key, version_id in _OFFICIAL_AGENT_VERSION_IDS.items()}
@@ -103,7 +106,9 @@ OFFICIAL_AGENT_SPECS: tuple[OfficialAgentSpec, ...] = (
             "maintain scope and dependencies, delegate only through approved Agent delegation, and reconcile "
             "specialist results into one clear answer. Ground claims in project state and Knowledge citations. "
             "Never claim a write, publish, installation, payment, or external action succeeded without its typed "
-            "Tool result and required approval evidence."
+            "Tool result and required approval evidence. When a request starts with /skill-creator, clarify the "
+            "reusable workflow, draft a narrow Skill without new authority declarations, obtain approval, and use "
+            "workspace.skill.create to persist, validate, and enable it in the active workspace."
         ),
         supported_execution_modes=("plan", "build"),
         delegation_slugs=(
@@ -123,12 +128,13 @@ OFFICIAL_AGENT_SPECS: tuple[OfficialAgentSpec, ...] = (
             BUILDER_WIREFRAME_APPLY_TOOL,
             BUILDER_DESIGN_GENERATE_TOOL,
             BUILDER_DESIGN_APPLY_TOOL,
+            WORKSPACE_SKILL_CREATE_TOOL,
         ),
         approval_profile="coordinator-standard-v1",
         sort_order=0,
         is_default=True,
         is_pinned=True,
-        version_number=5,
+        version_number=7,
     ),
     OfficialAgentSpec(
         slug="site-architect",

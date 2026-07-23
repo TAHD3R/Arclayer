@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from enum import StrEnum
 from typing import Annotated, Self
 
 from pydantic import Field, StringConstraints, field_validator, model_validator
@@ -133,6 +134,50 @@ class WorkspaceCommerceUsageOut(BaseSchema):
     requests: int
     prompt_tokens: int
     completion_tokens: int
+
+
+class WorkspaceCommerceDirectoryDataState(StrEnum):
+    COMPLETE = "complete"
+    PARTIAL = "partial"
+    MISSING = "missing"
+
+
+class WorkspaceCommerceDirectoryRisk(StrEnum):
+    HEALTHY = "healthy"
+    ATTENTION_REQUIRED = "attention_required"
+    DATA_MISSING = "data_missing"
+
+
+class WorkspaceCommerceUsageCoverage(StrEnum):
+    DAILY_ROLLUP = "daily_rollup"
+    NO_OBSERVED_USAGE = "no_observed_usage"
+
+
+class WorkspaceCommerceDirectoryUsageOut(WorkspaceCommerceUsageOut):
+    window_start: datetime
+    window_end: datetime
+    coverage: WorkspaceCommerceUsageCoverage
+    observed_from: date | None = None
+    observed_to: date | None = None
+
+
+class WorkspaceCommerceDirectoryOut(BaseSchema):
+    data_state: WorkspaceCommerceDirectoryDataState
+    risk: WorkspaceCommerceDirectoryRisk
+    captured_at: datetime | None = None
+    billing_provider: str | None = None
+    plan_code: str | None = None
+    plan_name: str | None = None
+    plan_tier: CommercePlanTier | None = None
+    credit_refresh_interval: CreditRefreshInterval | None = None
+    subscription_status: SubscriptionStatus | None = None
+    billing_interval: BillingCycle | None = None
+    current_period_start: datetime | None = None
+    current_period_end: datetime | None = None
+    renewal_at: datetime | None = None
+    cancel_at_period_end: bool | None = None
+    credits: WorkspaceCreditsOut | None = None
+    usage: WorkspaceCommerceDirectoryUsageOut | None = None
 
 
 class WorkspaceCommerceOverviewOut(BaseSchema):

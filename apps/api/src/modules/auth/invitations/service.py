@@ -17,12 +17,18 @@ from src.core.http.pagination import PageData, PageParams
 from src.core.i18n import get_current_locale, t
 from src.core.services import BaseService
 from src.models.organization.user import User
+from src.models.system.access_restriction import (
+    AccessRestrictionEntityType,
+    AccessRestrictionType,
+)
 from src.models.system.rbac import SystemPermission, SystemRole
 from src.models.workspaces.workspace import Workspace
 from src.models.workspaces.workspace_invite import (
     WorkspaceEmailInvite,
     WorkspaceInviteLink,
 )
+from src.modules.access_restrictions.repository import AccessRestrictionRepository
+from src.modules.access_restrictions.service import AccessRestrictionAuthority
 from src.modules.auth.invitations.acceptance.service import AuthInvitationAcceptanceService
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.schema import (
@@ -51,11 +57,13 @@ class AuthInvitationService(BaseService):
         acceptance_service: AuthInvitationAcceptanceService | None = None,
         user_repo: UserRepository | None = None,
         rbac_service: RBACService | None = None,
+        restriction_authority: AccessRestrictionAuthority | None = None,
     ) -> None:
         super().__init__(settings)
         self.acceptance_service = acceptance_service or AuthInvitationAcceptanceService(settings)
         self.user_repo = user_repo or UserRepository()
         self.rbac_service = rbac_service or RBACService(settings)
+        self.restriction_authority = restriction_authority or AccessRestrictionAuthority(AccessRestrictionRepository())
 
     def _ta(self, key: str, default: str) -> str:
         return t("auth", key, default=default)
@@ -303,7 +311,17 @@ class AuthInvitationService(BaseService):
         else:
             raise NotFound(message=self._ta("INVITE_NOT_FOUND", "邀请不存在"), error="INVITE_NOT_FOUND")
 
-        if ws is None or not ws.is_active or ws.archived_at is not None:
+        if ws is None:
+            raise Forbidden(message=t("errors", "NOT_FOUND"), error="WORKSPACE_INACTIVE")
+        await self.restriction_authority.require_unrestricted(
+            entity_type=AccessRestrictionEntityType.WORKSPACE,
+            entity_id=UUID(str(ws.id)),
+            restriction_types=[
+                AccessRestrictionType.WORKSPACE_SUSPENDED,
+                AccessRestrictionType.WORKSPACE_ARCHIVED,
+            ],
+        )
+        if not ws.is_active or ws.archived_at is not None:
             raise Forbidden(message=t("errors", "NOT_FOUND"), error="WORKSPACE_INACTIVE")
 
         inviter: InvitationPreviewInviterOut | None = None

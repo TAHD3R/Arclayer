@@ -12,6 +12,7 @@ async def project_context_ids(client, workspace_id: str) -> tuple[str, str]:
             "/api/v1/projects",
             json={
                 "workspaceId": workspace_id,
+                "authoringMode": "builder_managed",
                 "name": "Test Project",
                 "slug": "test-project",
             },

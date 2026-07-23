@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from datetime import date, datetime
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 from uuid import UUID
 
 from pydantic import ConfigDict, Field
 from tortoise.backends.base.client import BaseDBAsyncClient
+from tortoise.expressions import Q
+from tortoise.functions import Max, Min, Sum
 
 from src.common.schemas import BaseSchema
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
@@ -29,6 +32,17 @@ class BillingCheckoutPlan(BaseSchema):
     id: UUID
     code: str = Field(min_length=1, max_length=48)
     currency: str = Field(min_length=3, max_length=3)
+
+
+class WorkspaceUsageAggregate(BaseSchema):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    period_cost_micros: int
+    requests: int
+    prompt_tokens: int
+    completion_tokens: int
+    observed_from: date
+    observed_to: date
 
 
 class BillingPlanReader(Protocol):
@@ -205,6 +219,81 @@ class CommerceRepository(TortoiseORMRepository[CommercePlan]):
         if not include_inactive:
             query = query.filter(is_active=True)
         return await query.order_by("sort_order", "code")
+
+    async def list_workspace_subscriptions(
+        self,
+        *,
+        workspace_ids: Iterable[UUID],
+    ) -> dict[UUID, WorkspaceSubscription]:
+        ids = list(set(workspace_ids))
+        if not ids:
+            return {}
+        rows = await WorkspaceSubscription.filter(workspace_id__in=ids).select_related("plan")
+        return {UUID(str(row.workspace_id)): row for row in rows}
+
+    async def list_workspace_credit_accounts(
+        self,
+        *,
+        workspace_ids: Iterable[UUID],
+    ) -> dict[UUID, WorkspaceCreditAccount]:
+        ids = list(set(workspace_ids))
+        if not ids:
+            return {}
+        rows = await WorkspaceCreditAccount.filter(workspace_id__in=ids)
+        return {UUID(str(row.workspace_id)): row for row in rows}
+
+    async def summarize_workspace_usage(
+        self,
+        *,
+        periods: Mapping[UUID, tuple[date, date]],
+    ) -> dict[UUID, WorkspaceUsageAggregate]:
+        query = Q()
+        has_period = False
+        for workspace_id, (period_start, period_end) in periods.items():
+            period_query = Q(
+                workspace_id=workspace_id,
+                date__gte=period_start,
+                date__lt=period_end,
+            )
+            query = period_query if not has_period else query | period_query
+            has_period = True
+        if not has_period:
+            return {}
+
+        rows = await cast(
+            Any,
+            AIUsageDaily
+            .filter(query)
+            .annotate(
+                period_cost_micros=Sum("cost_micros"),
+                requests=Sum("request_count"),
+                prompt_tokens=Sum("prompt_tokens"),
+                completion_tokens=Sum("completion_tokens"),
+                observed_from=Min("date"),
+                observed_to=Max("date"),
+            )
+            .group_by("workspace_id")
+            .values(
+                "workspace_id",
+                "period_cost_micros",
+                "requests",
+                "prompt_tokens",
+                "completion_tokens",
+                "observed_from",
+                "observed_to",
+            ),
+        )
+        return {
+            UUID(str(row["workspace_id"])): WorkspaceUsageAggregate(
+                period_cost_micros=int(row["period_cost_micros"] or 0),
+                requests=int(row["requests"] or 0),
+                prompt_tokens=int(row["prompt_tokens"] or 0),
+                completion_tokens=int(row["completion_tokens"] or 0),
+                observed_from=cast(date, row["observed_from"]),
+                observed_to=cast(date, row["observed_to"]),
+            )
+            for row in rows
+        }
 
     async def lock_plan_catalog(self, *, code: str, conn: BaseDBAsyncClient) -> CommercePlan | None:
         query = CommercePlan.filter(code=code).select_for_update()

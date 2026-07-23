@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from asyncio import gather
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from math import ceil
-from typing import Protocol, TypeVar
+from typing import Protocol
 from uuid import UUID
 
 from tortoise.exceptions import IntegrityError
@@ -15,10 +16,26 @@ from src.core.i18n import t
 from src.core.services import BaseService
 from src.models.organization.org_membership import OrgRole
 from src.models.organization.user import User, UserStatus
+from src.models.system.access_restriction import (
+    AccessRestrictionEntityType,
+    AccessRestrictionType,
+)
+from src.modules.access_restrictions.repository import AccessRestrictionRepository
+from src.modules.access_restrictions.schema import (
+    AccessRestrictionAdminOut,
+    AccessRestrictionEnforceRequest,
+    AccessRestrictionLiftRequest,
+)
+from src.modules.access_restrictions.service import (
+    AccessRestrictionAuthority,
+    AccessRestrictionService,
+    build_access_restriction_admin_out,
+)
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.service import AuthService
 from src.modules.auth.tokens.service import hash_password
 from src.modules.auth.two_factor.service import AuthTwoFactorService
+from src.modules.commerce.schema import WorkspaceCommerceDirectoryOut
 from src.modules.organization.settings.service import OrganizationSettingsService
 from src.modules.organization.workspaces.service import OrganizationWorkspaceService
 from src.modules.projects.schema import ProjectUpdateRequest
@@ -30,29 +47,45 @@ from src.modules.system.directory.schema import (
     DirectoryProjectDetailOut,
     DirectoryProjectListFilters,
     DirectoryProjectListItemOut,
+    DirectoryProjectOperationalSummaryOut,
     DirectoryProjectUpdateRequest,
+    DirectoryUserAuditActivityOut,
     DirectoryUserDetailOut,
+    DirectoryUserFeedbackActivityOut,
     DirectoryUserListFilters,
     DirectoryUserListItemOut,
+    DirectoryUserProjectMembershipOut,
     DirectoryUserResetPasswordRequest,
+    DirectoryUserRestrictionHistoryOut,
     DirectoryUserUpdateRequest,
+    DirectoryUserWorkspaceMembershipOut,
     DirectoryWorkspaceDetailOut,
     DirectoryWorkspaceListFilters,
     DirectoryWorkspaceListItemOut,
     DirectoryWorkspaceUpdateRequest,
 )
+from src.modules.system.rbac.constants.service import ROLE_OWNER
 from src.modules.workspaces.schema import WorkspaceUpdateRequest
 from src.modules.workspaces.service import WorkspaceService
 from src.platform.cache.valkey import ValkeyClientLike
 
-_SortKeyT = TypeVar("_SortKeyT", bound="_SupportsRichCompare")
+
+class WorkspaceCommerceProjectionReader(Protocol):
+    async def list_projections(
+        self,
+        *,
+        workspace_ids: list[UUID],
+    ) -> dict[UUID, WorkspaceCommerceDirectoryOut]: ...
 
 
-class _SupportsRichCompare(Protocol):
-    def __lt__(self, other: object) -> bool: ...
-    def __le__(self, other: object) -> bool: ...
-    def __gt__(self, other: object) -> bool: ...
-    def __ge__(self, other: object) -> bool: ...
+class ProjectOperationsProjectionReader(Protocol):
+    async def filter_project_ids(self, *, filters: DirectoryProjectListFilters) -> set[UUID] | None: ...
+
+    async def list_projections(
+        self,
+        *,
+        project_activity: Mapping[UUID, datetime],
+    ) -> dict[UUID, DirectoryProjectOperationalSummaryOut]: ...
 
 
 def _build_page[T](items: list[T], *, total: int, params: PageParams) -> PageData[T]:
@@ -77,7 +110,16 @@ def _user_id(value: object | None) -> UUID | None:
 
 
 class SystemDirectoryService(BaseService):
-    def __init__(self, settings: Settings, *, valkey: ValkeyClientLike | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        valkey: ValkeyClientLike | None = None,
+        commerce_projection_reader: WorkspaceCommerceProjectionReader,
+        project_projection_reader: ProjectOperationsProjectionReader,
+        restriction_service: AccessRestrictionService | None = None,
+        restriction_authority: AccessRestrictionAuthority | None = None,
+    ) -> None:
         super().__init__(settings)
         self.repo = SystemDirectoryRepository()
         self.user_repo = UserRepository()
@@ -87,6 +129,14 @@ class SystemDirectoryService(BaseService):
         self.project_service = ProjectService(settings)
         self.organization_settings_service = OrganizationSettingsService(settings)
         self.organization_workspace_service = OrganizationWorkspaceService(settings)
+        self.commerce_projection_reader = commerce_projection_reader
+        self.project_projection_reader = project_projection_reader
+        restriction_repository = AccessRestrictionRepository()
+        self.restriction_service = restriction_service or AccessRestrictionService(
+            settings,
+            repository=restriction_repository,
+        )
+        self.restriction_authority = restriction_authority or AccessRestrictionAuthority(restriction_repository)
 
     @staticmethod
     def _to_actor(user: User | None) -> DirectoryActorSummaryOut | None:
@@ -99,6 +149,22 @@ class SystemDirectoryService(BaseService):
             email=user.email,
             avatar_url=user.avatar_url,
         )
+
+    async def _restrictions_by_entity(
+        self,
+        *,
+        entity_type: AccessRestrictionEntityType,
+        entity_ids: list[UUID],
+    ) -> dict[UUID, list[AccessRestrictionAdminOut]]:
+        rows = await self.restriction_authority.list_current(
+            entity_type=entity_type,
+            entity_ids=entity_ids,
+        )
+        restrictions_by_entity: dict[UUID, list[AccessRestrictionAdminOut]] = {}
+        for row in rows:
+            entity_id = UUID(str(row.entity_id))
+            restrictions_by_entity.setdefault(entity_id, []).append(build_access_restriction_admin_out(row))
+        return restrictions_by_entity
 
     async def _build_user_security_state(
         self,
@@ -115,11 +181,79 @@ class SystemDirectoryService(BaseService):
         return has_password, two_factor_enabled, linked_oauth_providers
 
     async def _build_user_detail_out(self, *, user_id: UUID, row: User) -> DirectoryUserDetailOut:
-        has_password_map, two_factor_enabled_set, linked_oauth_providers_map = await self._build_user_security_state(
-            user_ids=[user_id]
+        (
+            security_state,
+            workspace_membership_counts,
+            project_membership_counts,
+            restrictions,
+            workspace_memberships,
+            project_memberships,
+        ) = await gather(
+            self._build_user_security_state(user_ids=[user_id]),
+            self.repo.count_workspace_memberships_by_user_ids(user_ids=[user_id]),
+            self.repo.count_project_memberships_by_user_ids(user_ids=[user_id]),
+            self._restrictions_by_entity(
+                entity_type=AccessRestrictionEntityType.USER,
+                entity_ids=[user_id],
+            ),
+            self.repo.list_user_workspace_memberships(user_id=user_id),
+            self.repo.list_user_project_memberships(user_id=user_id),
         )
-        workspace_membership_counts = await self.repo.count_workspace_memberships_by_user_ids(user_ids=[user_id])
-        project_membership_counts = await self.repo.count_project_memberships_by_user_ids(user_ids=[user_id])
+        audit_activity, feedback_activity, restriction_commands = await gather(
+            self.repo.list_recent_user_audit_activity(user_id=user_id),
+            self.repo.list_recent_user_feedback_activity(user_id=user_id),
+            self.repo.list_user_restriction_history(user_id=user_id),
+        )
+        has_password_map, two_factor_enabled_set, linked_oauth_providers_map = security_state
+        workspace_membership_out = [
+            DirectoryUserWorkspaceMembershipOut(
+                workspace_id=membership.workspace.id,
+                workspace_name=membership.workspace.name,
+                status=membership.status,
+                role_codes=sorted({
+                    binding.role.code
+                    for binding in (getattr(membership, "membership_roles", None) or [])
+                    if getattr(binding, "role", None) is not None
+                }),
+                is_owner=(
+                    membership.workspace.owner_user_id == user_id
+                    or any(
+                        binding.role.code == ROLE_OWNER
+                        for binding in (getattr(membership, "membership_roles", None) or [])
+                        if getattr(binding, "role", None) is not None
+                    )
+                ),
+                joined_at=membership.created_at,
+            )
+            for membership in workspace_memberships
+        ]
+        project_membership_out = [
+            DirectoryUserProjectMembershipOut(
+                project_id=membership.project.id,
+                project_name=membership.project.name,
+                workspace_id=membership.project.workspace.id,
+                workspace_name=membership.project.workspace.name,
+                role=membership.role,
+                joined_at=membership.created_at,
+            )
+            for membership in project_memberships
+        ]
+        restriction_history = []
+        for command in restriction_commands:
+            snapshot = AccessRestrictionAdminOut.model_validate(command.result_snapshot)
+            restriction_history.append(
+                DirectoryUserRestrictionHistoryOut(
+                    command_id=command.id,
+                    restriction_type=snapshot.restriction_type,
+                    state=snapshot.state,
+                    reason_category=snapshot.reason_category,
+                    reason_code=snapshot.reason_code,
+                    operator_note=snapshot.operator_note if snapshot.state == "active" else snapshot.lift_note or "",
+                    actor_user_id=command.actor_user_id,
+                    changed_at=command.created_at,
+                    revision=command.resulting_revision,
+                )
+            )
 
         return DirectoryUserDetailOut(
             user_id=row.id,
@@ -137,6 +271,34 @@ class SystemDirectoryService(BaseService):
             updated_at=row.updated_at,
             workspace_membership_count=workspace_membership_counts.get(user_id, 0),
             project_membership_count=project_membership_counts.get(user_id, 0),
+            restrictions=restrictions.get(user_id, []),
+            owned_workspace_count=sum(item.is_owner for item in workspace_membership_out),
+            owned_project_count=sum(item.role == "owner" for item in project_membership_out),
+            workspace_memberships=workspace_membership_out,
+            project_memberships=project_membership_out,
+            recent_audit_activity=[
+                DirectoryUserAuditActivityOut(
+                    event_id=event.id,
+                    event_name=event.event_name,
+                    occurred_at=event.occurred_at,
+                    source=event.source,
+                    workspace_id=event.workspace_id,
+                    project_id=event.project_id,
+                )
+                for event in audit_activity
+            ],
+            recent_feedback_activity=[
+                DirectoryUserFeedbackActivityOut(
+                    feedback_id=feedback.id,
+                    intent=str(feedback.intent) if feedback.intent is not None else None,
+                    status=str(feedback.status),
+                    source=str(feedback.source),
+                    message=feedback.message,
+                    last_activity_at=feedback.last_activity_at,
+                )
+                for feedback in feedback_activity
+            ],
+            restriction_history=restriction_history,
         )
 
     async def list_users(
@@ -161,6 +323,10 @@ class SystemDirectoryService(BaseService):
         has_password_map, two_factor_enabled_set, linked_oauth_providers_map = await self._build_user_security_state(
             user_ids=user_ids
         )
+        restrictions = await self._restrictions_by_entity(
+            entity_type=AccessRestrictionEntityType.USER,
+            entity_ids=user_ids,
+        )
 
         items = [
             DirectoryUserListItemOut(
@@ -178,6 +344,7 @@ class SystemDirectoryService(BaseService):
                 created_at=row.created_at,
                 workspace_membership_count=workspace_membership_counts.get(UUID(str(row.id)), 0),
                 project_membership_count=project_membership_counts.get(UUID(str(row.id)), 0),
+                restrictions=restrictions.get(UUID(str(row.id)), []),
             )
             for row in rows
         ]
@@ -318,6 +485,8 @@ class SystemDirectoryService(BaseService):
         user_id: UUID,
         enabled: bool,
         acting_user_id: UUID,
+        idempotency_key: str,
+        payload: AccessRestrictionEnforceRequest | AccessRestrictionLiftRequest,
     ) -> DirectoryUserDetailOut:
         row = await self.repo.get_user_by_id(user_id=user_id)
         if row is None:
@@ -328,8 +497,37 @@ class SystemDirectoryService(BaseService):
             await self._ensure_super_admin_continuity(row=row)
 
         target = UserStatus.ACTIVE if enabled else UserStatus.DISABLED
-        if row.status != target:
-            row = await self.user_repo.set_status(row, target)
+        async with self.tx() as conn:
+            if enabled:
+                if not isinstance(payload, AccessRestrictionLiftRequest):
+                    raise TypeError("Enabling a user requires AccessRestrictionLiftRequest")
+                await self.restriction_service.lift(
+                    entity_type=AccessRestrictionEntityType.USER,
+                    entity_id=user_id,
+                    restriction_type=AccessRestrictionType.USER_DISABLED,
+                    actor_user_id=acting_user_id,
+                    idempotency_key=idempotency_key,
+                    payload=payload,
+                    conn=conn,
+                )
+            else:
+                if not isinstance(payload, AccessRestrictionEnforceRequest):
+                    raise TypeError("Disabling a user requires AccessRestrictionEnforceRequest")
+                await self.restriction_service.enforce(
+                    entity_type=AccessRestrictionEntityType.USER,
+                    entity_id=user_id,
+                    restriction_type=AccessRestrictionType.USER_DISABLED,
+                    actor_user_id=acting_user_id,
+                    idempotency_key=idempotency_key,
+                    payload=payload,
+                    conn=conn,
+                )
+            if row.status != target:
+                row.status = target
+                await row.save(update_fields=["status", "updated_at"], using_db=conn)
+
+        if not enabled:
+            await self.auth_service.invalidate_user_sessions(user=row)
 
         return await self.get_user_detail(user_id=user_id)
 
@@ -392,24 +590,26 @@ class SystemDirectoryService(BaseService):
         ordering: str | None,
         filters: DirectoryWorkspaceListFilters,
     ) -> PageData[DirectoryWorkspaceListItemOut]:
-        count_sort_requested = ordering in {"member_count", "-member_count", "project_count", "-project_count"}
-        rows = (
-            await self.repo.list_workspaces_all(q=q, ordering=ordering, filters=filters)
-            if count_sort_requested
-            else await self.repo.list_workspaces_page(
-                q=q,
-                ordering=ordering,
-                filters=filters,
-                offset=params.offset,
-                limit=params.limit,
-            )
+        rows = await self.repo.list_workspaces_page(
+            q=q,
+            ordering=ordering,
+            filters=filters,
+            offset=params.offset,
+            limit=params.limit,
         )
         workspace_ids = [UUID(str(row.id)) for row in rows]
-        owner_ids_by_workspace = await self.repo.list_workspace_owner_user_ids(workspace_ids=workspace_ids)
+        owner_ids_by_workspace, member_counts, project_counts, restrictions, commerce = await gather(
+            self.repo.list_workspace_owner_user_ids(workspace_ids=workspace_ids),
+            self.repo.count_workspace_memberships_by_workspace_ids(workspace_ids=workspace_ids),
+            self.repo.count_projects_by_workspace_ids(workspace_ids=workspace_ids),
+            self._restrictions_by_entity(
+                entity_type=AccessRestrictionEntityType.WORKSPACE,
+                entity_ids=workspace_ids,
+            ),
+            self.commerce_projection_reader.list_projections(workspace_ids=workspace_ids),
+        )
         owner_ids = [owner_ids_by_workspace.get(UUID(str(row.id))) or _user_id(row.owner_user_id) for row in rows]
         owners = await self.repo.get_users_by_ids(user_ids=[owner_id for owner_id in owner_ids if owner_id is not None])
-        member_counts = await self.repo.count_workspace_memberships_by_workspace_ids(workspace_ids=workspace_ids)
-        project_counts = await self.repo.count_projects_by_workspace_ids(workspace_ids=workspace_ids)
 
         items = [
             DirectoryWorkspaceListItemOut(
@@ -424,17 +624,15 @@ class SystemDirectoryService(BaseService):
                 is_active=bool(row.is_active),
                 is_archived=row.archived_at is not None,
                 created_at=row.created_at,
+                last_activity_at=row.updated_at,
                 owner=self._to_actor(owners.get(owner_id)) if owner_id is not None else None,
                 member_count=member_counts.get(UUID(str(row.id)), 0),
                 project_count=project_counts.get(UUID(str(row.id)), 0),
+                restrictions=restrictions.get(UUID(str(row.id)), []),
+                commerce=commerce[UUID(str(row.id))],
             )
             for row, owner_id in zip(rows, owner_ids, strict=False)
         ]
-        if count_sort_requested:
-            items = self._sort_workspace_items(items=items, ordering=ordering)
-            total = len(items)
-            items = items[params.offset : params.offset + params.limit]
-            return _build_page(items, total=total, params=params)
         total = await self.repo.count_workspaces(q=q, filters=filters)
         return _build_page(items, total=total, params=params)
 
@@ -447,8 +645,15 @@ class SystemDirectoryService(BaseService):
             workspace_id,
         ) or _user_id(row.owner_user_id)
         owners = await self.repo.get_users_by_ids(user_ids=[owner_id] if owner_id is not None else [])
-        member_counts = await self.repo.count_workspace_memberships_by_workspace_ids(workspace_ids=[workspace_id])
-        project_counts = await self.repo.count_projects_by_workspace_ids(workspace_ids=[workspace_id])
+        member_counts, project_counts, restrictions, commerce = await gather(
+            self.repo.count_workspace_memberships_by_workspace_ids(workspace_ids=[workspace_id]),
+            self.repo.count_projects_by_workspace_ids(workspace_ids=[workspace_id]),
+            self._restrictions_by_entity(
+                entity_type=AccessRestrictionEntityType.WORKSPACE,
+                entity_ids=[workspace_id],
+            ),
+            self.commerce_projection_reader.list_projections(workspace_ids=[workspace_id]),
+        )
 
         return DirectoryWorkspaceDetailOut(
             workspace_id=row.id,
@@ -458,6 +663,7 @@ class SystemDirectoryService(BaseService):
             is_active=bool(row.is_active),
             is_archived=row.archived_at is not None,
             created_at=row.created_at,
+            last_activity_at=row.updated_at,
             updated_at=row.updated_at,
             owner=self._to_actor(owners.get(owner_id)) if owner_id is not None else None,
             member_count=member_counts.get(workspace_id, 0),
@@ -467,6 +673,8 @@ class SystemDirectoryService(BaseService):
             icon_glyph=row.icon_glyph,
             icon_emoji=row.icon_emoji,
             icon_url=row.icon_url,
+            restrictions=restrictions.get(workspace_id, []),
+            commerce=commerce[workspace_id],
         )
 
     async def list_projects(
@@ -477,22 +685,28 @@ class SystemDirectoryService(BaseService):
         ordering: str | None,
         filters: DirectoryProjectListFilters,
     ) -> PageData[DirectoryProjectListItemOut]:
-        count_sort_requested = ordering in {"member_count", "-member_count"}
-        rows = (
-            await self.repo.list_projects_all(q=q, ordering=ordering, filters=filters)
-            if count_sort_requested
-            else await self.repo.list_projects_page(
-                q=q,
-                ordering=ordering,
-                filters=filters,
-                offset=params.offset,
-                limit=params.limit,
-            )
+        operational_project_ids = await self.project_projection_reader.filter_project_ids(filters=filters)
+        rows = await self.repo.list_projects_page(
+            q=q,
+            ordering=ordering,
+            filters=filters,
+            operational_project_ids=operational_project_ids,
+            offset=params.offset,
+            limit=params.limit,
         )
         project_ids = [UUID(str(row.id)) for row in rows]
         owner_ids = [_user_id(row.created_by_user_id) for row in rows]
-        owners = await self.repo.get_users_by_ids(user_ids=[owner_id for owner_id in owner_ids if owner_id is not None])
-        member_counts = await self.repo.count_project_memberships_by_project_ids(project_ids=project_ids)
+        owners, member_counts, restrictions, projections = await gather(
+            self.repo.get_users_by_ids(user_ids=[owner_id for owner_id in owner_ids if owner_id is not None]),
+            self.repo.count_project_memberships_by_project_ids(project_ids=project_ids),
+            self._restrictions_by_entity(
+                entity_type=AccessRestrictionEntityType.PROJECT,
+                entity_ids=project_ids,
+            ),
+            self.project_projection_reader.list_projections(
+                project_activity={UUID(str(row.id)): row.updated_at for row in rows},
+            ),
+        )
 
         items = [
             DirectoryProjectListItemOut(
@@ -509,17 +723,19 @@ class SystemDirectoryService(BaseService):
                 icon_url=row.icon_url,
                 is_active=bool(row.is_active),
                 created_at=row.created_at,
+                last_activity_at=projections[UUID(str(row.id))].last_activity_at,
                 owner=self._to_actor(owners.get(owner_id)) if owner_id is not None else None,
                 member_count=member_counts.get(UUID(str(row.id)), 0),
+                restrictions=restrictions.get(UUID(str(row.id)), []),
+                operations=projections[UUID(str(row.id))],
             )
             for row, owner_id in zip(rows, owner_ids, strict=False)
         ]
-        if count_sort_requested:
-            items = self._sort_project_items(items=items, ordering=ordering)
-            total = len(items)
-            items = items[params.offset : params.offset + params.limit]
-            return _build_page(items, total=total, params=params)
-        total = await self.repo.count_projects(q=q, filters=filters)
+        total = await self.repo.count_projects(
+            q=q,
+            filters=filters,
+            operational_project_ids=operational_project_ids,
+        )
         return _build_page(items, total=total, params=params)
 
     async def get_project_detail(self, *, project_id: UUID) -> DirectoryProjectDetailOut:
@@ -528,8 +744,17 @@ class SystemDirectoryService(BaseService):
             raise NotFound(error="NOT_FOUND")
 
         owner_id = _user_id(row.created_by_user_id)
-        owners = await self.repo.get_users_by_ids(user_ids=[owner_id] if owner_id is not None else [])
-        member_counts = await self.repo.count_project_memberships_by_project_ids(project_ids=[project_id])
+        owners, member_counts, restrictions, projections = await gather(
+            self.repo.get_users_by_ids(user_ids=[owner_id] if owner_id is not None else []),
+            self.repo.count_project_memberships_by_project_ids(project_ids=[project_id]),
+            self._restrictions_by_entity(
+                entity_type=AccessRestrictionEntityType.PROJECT,
+                entity_ids=[project_id],
+            ),
+            self.project_projection_reader.list_projections(
+                project_activity={project_id: row.updated_at},
+            ),
+        )
 
         return DirectoryProjectDetailOut(
             project_id=row.id,
@@ -540,6 +765,7 @@ class SystemDirectoryService(BaseService):
             description=row.description,
             is_active=bool(row.is_active),
             created_at=row.created_at,
+            last_activity_at=projections[project_id].last_activity_at,
             updated_at=row.updated_at,
             owner=self._to_actor(owners.get(owner_id)) if owner_id is not None else None,
             member_count=member_counts.get(project_id, 0),
@@ -548,6 +774,8 @@ class SystemDirectoryService(BaseService):
             icon_glyph=row.icon_glyph,
             icon_emoji=row.icon_emoji,
             icon_url=row.icon_url,
+            restrictions=restrictions.get(project_id, []),
+            operations=projections[project_id],
         )
 
     async def update_workspace(
@@ -574,13 +802,40 @@ class SystemDirectoryService(BaseService):
         *,
         workspace_id: UUID,
         enabled: bool,
+        acting_user_id: UUID,
+        idempotency_key: str,
+        payload: AccessRestrictionEnforceRequest | AccessRestrictionLiftRequest,
     ) -> DirectoryWorkspaceDetailOut:
         row = await self.repo.get_workspace_by_id(workspace_id=workspace_id)
         if row is None:
             raise NotFound(error="NOT_FOUND")
-        if bool(row.is_active) != enabled:
-            row.is_active = enabled
-            await row.save(update_fields=["is_active", "updated_at"])
+        organization_id = UUID(str(row.organization_id))
+        if enabled:
+            if not isinstance(payload, AccessRestrictionLiftRequest):
+                raise TypeError("Restoring a workspace requires AccessRestrictionLiftRequest")
+            await self.restriction_service.lift(
+                entity_type=AccessRestrictionEntityType.WORKSPACE,
+                entity_id=workspace_id,
+                restriction_type=AccessRestrictionType.WORKSPACE_SUSPENDED,
+                actor_user_id=acting_user_id,
+                idempotency_key=idempotency_key,
+                payload=payload,
+                organization_id=organization_id,
+                workspace_id=workspace_id,
+            )
+        else:
+            if not isinstance(payload, AccessRestrictionEnforceRequest):
+                raise TypeError("Suspending a workspace requires AccessRestrictionEnforceRequest")
+            await self.restriction_service.enforce(
+                entity_type=AccessRestrictionEntityType.WORKSPACE,
+                entity_id=workspace_id,
+                restriction_type=AccessRestrictionType.WORKSPACE_SUSPENDED,
+                actor_user_id=acting_user_id,
+                idempotency_key=idempotency_key,
+                payload=payload,
+                organization_id=organization_id,
+                workspace_id=workspace_id,
+            )
         return await self.get_workspace_detail(workspace_id=workspace_id)
 
     async def archive_workspace(
@@ -588,14 +843,31 @@ class SystemDirectoryService(BaseService):
         *,
         workspace_id: UUID,
         acting_user_id: UUID,
+        idempotency_key: str,
+        payload: AccessRestrictionEnforceRequest,
     ) -> DirectoryWorkspaceDetailOut:
         row = await self.repo.get_workspace_by_id(workspace_id=workspace_id)
         if row is None:
             raise NotFound(error="NOT_FOUND")
-        if row.archived_at is None:
-            row.archived_at = datetime.now(UTC)
-            row.archived_by_user_id = acting_user_id
-            await row.save(update_fields=["archived_at", "archived_by_user_id", "updated_at"])
+        async with self.tx() as conn:
+            await self.restriction_service.enforce(
+                entity_type=AccessRestrictionEntityType.WORKSPACE,
+                entity_id=workspace_id,
+                restriction_type=AccessRestrictionType.WORKSPACE_ARCHIVED,
+                actor_user_id=acting_user_id,
+                idempotency_key=idempotency_key,
+                payload=payload,
+                organization_id=UUID(str(row.organization_id)),
+                workspace_id=workspace_id,
+                conn=conn,
+            )
+            if row.archived_at is None:
+                row.archived_at = datetime.now(UTC)
+                row.archived_by_user_id = acting_user_id
+                await row.save(
+                    update_fields=["archived_at", "archived_by_user_id", "updated_at"],
+                    using_db=conn,
+                )
         return await self.get_workspace_detail(workspace_id=workspace_id)
 
     async def restore_workspace(
@@ -603,14 +875,31 @@ class SystemDirectoryService(BaseService):
         *,
         workspace_id: UUID,
         acting_user_id: UUID,
+        idempotency_key: str,
+        payload: AccessRestrictionLiftRequest,
     ) -> DirectoryWorkspaceDetailOut:
         row = await self.repo.get_workspace_by_id(workspace_id=workspace_id)
         if row is None:
             raise NotFound(error="NOT_FOUND")
-        if row.archived_at is not None or row.archived_by_user_id is not None:
-            row.archived_at = None
-            row.archived_by_user_id = None
-            await row.save(update_fields=["archived_at", "archived_by_user_id", "updated_at"])
+        async with self.tx() as conn:
+            await self.restriction_service.lift(
+                entity_type=AccessRestrictionEntityType.WORKSPACE,
+                entity_id=workspace_id,
+                restriction_type=AccessRestrictionType.WORKSPACE_ARCHIVED,
+                actor_user_id=acting_user_id,
+                idempotency_key=idempotency_key,
+                payload=payload,
+                organization_id=UUID(str(row.organization_id)),
+                workspace_id=workspace_id,
+                conn=conn,
+            )
+            if row.archived_at is not None or row.archived_by_user_id is not None:
+                row.archived_at = None
+                row.archived_by_user_id = None
+                await row.save(
+                    update_fields=["archived_at", "archived_by_user_id", "updated_at"],
+                    using_db=conn,
+                )
         return await self.get_workspace_detail(workspace_id=workspace_id)
 
     async def update_project(
@@ -633,13 +922,43 @@ class SystemDirectoryService(BaseService):
         *,
         project_id: UUID,
         enabled: bool,
+        acting_user_id: UUID,
+        idempotency_key: str,
+        payload: AccessRestrictionEnforceRequest | AccessRestrictionLiftRequest,
     ) -> DirectoryProjectDetailOut:
         row = await self.repo.get_project_by_id(project_id=project_id)
         if row is None:
             raise NotFound(error="NOT_FOUND")
-        if bool(row.is_active) != enabled:
-            row.is_active = enabled
-            await row.save(update_fields=["is_active", "updated_at"])
+        workspace_id = UUID(str(row.workspace_id))
+        organization_id = UUID(str(row.workspace.organization_id))
+        if enabled:
+            if not isinstance(payload, AccessRestrictionLiftRequest):
+                raise TypeError("Restoring a project requires AccessRestrictionLiftRequest")
+            await self.restriction_service.lift(
+                entity_type=AccessRestrictionEntityType.PROJECT,
+                entity_id=project_id,
+                restriction_type=AccessRestrictionType.PROJECT_SUSPENDED,
+                actor_user_id=acting_user_id,
+                idempotency_key=idempotency_key,
+                payload=payload,
+                organization_id=organization_id,
+                workspace_id=workspace_id,
+                project_id=project_id,
+            )
+        else:
+            if not isinstance(payload, AccessRestrictionEnforceRequest):
+                raise TypeError("Suspending a project requires AccessRestrictionEnforceRequest")
+            await self.restriction_service.enforce(
+                entity_type=AccessRestrictionEntityType.PROJECT,
+                entity_id=project_id,
+                restriction_type=AccessRestrictionType.PROJECT_SUSPENDED,
+                actor_user_id=acting_user_id,
+                idempotency_key=idempotency_key,
+                payload=payload,
+                organization_id=organization_id,
+                workspace_id=workspace_id,
+                project_id=project_id,
+            )
         return await self.get_project_detail(project_id=project_id)
 
     async def delete_project(
@@ -693,48 +1012,3 @@ class SystemDirectoryService(BaseService):
                 organization_id=organization_id,
                 confirm_name=str(organization.name),
             )
-
-    def _sort_workspace_items(
-        self,
-        *,
-        items: list[DirectoryWorkspaceListItemOut],
-        ordering: str | None,
-    ) -> list[DirectoryWorkspaceListItemOut]:
-        return self._sort_items_with_key(
-            items=items,
-            ordering=ordering,
-            accessors={
-                "member_count": lambda item: item.member_count,
-                "project_count": lambda item: item.project_count,
-            },
-        )
-
-    def _sort_project_items(
-        self,
-        *,
-        items: list[DirectoryProjectListItemOut],
-        ordering: str | None,
-    ) -> list[DirectoryProjectListItemOut]:
-        return self._sort_items_with_key(
-            items=items,
-            ordering=ordering,
-            accessors={"member_count": lambda item: item.member_count},
-        )
-
-    def _sort_items_with_key[T](
-        self,
-        *,
-        items: list[T],
-        ordering: str | None,
-        accessors: dict[str, Callable[[T], _SortKeyT]],
-    ) -> list[T]:
-        ordered = list(items)
-        parts = [part.strip() for part in str(ordering or "").split(",") if part.strip()]
-        for raw in reversed(parts):
-            desc = raw.startswith("-")
-            field = raw[1:] if desc else raw
-            accessor = accessors.get(field)
-            if accessor is None:
-                continue
-            ordered.sort(key=lambda item, getter=accessor: getter(item), reverse=desc)
-        return ordered

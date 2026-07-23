@@ -2,7 +2,16 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal, Self, cast
 
-from pydantic import BaseModel, Field, PostgresDsn, SecretStr, computed_field, field_validator, model_validator
+from pydantic import (
+    AnyHttpUrl,
+    BaseModel,
+    Field,
+    PostgresDsn,
+    SecretStr,
+    computed_field,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.settings.env_models import (
@@ -356,6 +365,57 @@ class StorageSettings(BaseSettings):
     @classmethod
     def _normalize_storage_paths(cls, value: Path) -> Path:
         return _normalize_fs_path(value, default_base=_REPO_ROOT)
+
+
+class PluginDistributionSettings(BaseSettings):
+    """Deployment-owned trust and resource policy for executable plugin packages."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="PLUGIN_DISTRIBUTION__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    root_dir: Path = Field(default=_REPO_ROOT / "data" / "plugins")
+    staging_dir: Path = Field(default=_REPO_ROOT / "data" / "plugins" / ".staging")
+    catalog_index_url: AnyHttpUrl | None = None
+    trusted_public_key_paths: list[Path] = Field(default_factory=list)
+    allowed_download_hosts: list[str] = Field(default_factory=list)
+    connect_timeout_seconds: float = Field(default=10, gt=0, le=120)
+    read_timeout_seconds: float = Field(default=60, gt=0, le=600)
+    max_package_bytes: int = Field(default=64 * 1024 * 1024, ge=1)
+    max_catalog_bytes: int = Field(default=4 * 1024 * 1024, ge=1)
+    max_extracted_bytes: int = Field(default=256 * 1024 * 1024, ge=1)
+    max_file_count: int = Field(default=4096, ge=1)
+    max_compression_ratio: float = Field(default=200, gt=1, le=10_000)
+
+    @field_validator("root_dir", "staging_dir", mode="after")
+    @classmethod
+    def _normalize_distribution_paths(cls, value: Path) -> Path:
+        return _normalize_fs_path(value, default_base=_REPO_ROOT)
+
+    @field_validator("trusted_public_key_paths", mode="after")
+    @classmethod
+    def _normalize_trust_anchor_paths(cls, values: list[Path]) -> list[Path]:
+        return [_normalize_fs_path(value, default_base=_REPO_ROOT) for value in values]
+
+    @field_validator("allowed_download_hosts", mode="after")
+    @classmethod
+    def _normalize_allowed_download_hosts(cls, values: list[str]) -> list[str]:
+        normalized = sorted({value.strip().lower().rstrip(".") for value in values if value.strip()})
+        if len(normalized) != len(values):
+            raise ValueError("allowed_download_hosts must contain unique non-empty host names")
+        return normalized
+
+    @model_validator(mode="after")
+    def _validate_distribution_directories(self) -> Self:
+        if self.root_dir == self.staging_dir or self.root_dir in self.staging_dir.parents:
+            return self
+        raise ValueError("plugin staging_dir must be located inside plugin root_dir")
 
 
 class SearchSettings(BaseSettings):
@@ -716,15 +776,18 @@ class ObservabilitySettings(BaseSettings):
 
     enabled: bool = Field(default=True)
     retention_enabled: bool = Field(default=True)
-    retention_days: int = Field(default=365, ge=1, le=MAX_OBSERVABILITY_RETENTION_DAYS)
+    raw_retention_days: int = Field(default=30, ge=1, le=MAX_OBSERVABILITY_RETENTION_DAYS)
+    aggregate_retention_days: int = Field(default=365, ge=1, le=MAX_OBSERVABILITY_RETENTION_DAYS)
     max_query_days: int = Field(default=365, ge=1, le=MAX_OBSERVABILITY_RETENTION_DAYS)
     retention_batch_size: int = Field(default=5000, ge=100, le=100_000)
     retention_max_delete_per_run: int = Field(default=100_000, ge=100, le=10_000_000)
 
     @model_validator(mode="after")
     def validate_query_window(self) -> "ObservabilitySettings":
-        if self.max_query_days > self.retention_days:
-            raise ValueError("observability max_query_days cannot exceed retention_days")
+        if self.raw_retention_days > self.aggregate_retention_days:
+            raise ValueError("observability raw_retention_days cannot exceed aggregate_retention_days")
+        if self.max_query_days > self.aggregate_retention_days:
+            raise ValueError("observability max_query_days cannot exceed aggregate_retention_days")
         return self
 
 
@@ -864,6 +927,7 @@ class Settings(BaseSettings):
 
     application: ApplicationSettings = Field(default_factory=ApplicationSettings)
     storage: StorageSettings = Field(default_factory=StorageSettings)
+    plugin_distribution: PluginDistributionSettings = Field(default_factory=PluginDistributionSettings)
     search: SearchSettings = Field(default_factory=SearchSettings)
     knowledge_index: KnowledgeIndexSettings = Field(default_factory=KnowledgeIndexSettings)
     knowledge_source_fetch: KnowledgeSourceFetchSettings = Field(default_factory=KnowledgeSourceFetchSettings)

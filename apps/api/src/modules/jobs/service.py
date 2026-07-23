@@ -104,7 +104,7 @@ class BackgroundJobService(BaseService):
                 await self._create_dispatch(
                     job=job,
                     dispatch_sequence=1,
-                    available_at=_utc_now(),
+                    available_at=validated_command.dispatch_after or _utc_now(),
                     conn=savepoint_conn,
                 )
         except IntegrityError:

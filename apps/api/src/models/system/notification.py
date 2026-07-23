@@ -38,7 +38,7 @@ class NotificationRecord(BaseModel):
 
     category = fields.CharEnumField(NotificationCategory, db_index=True)
     title = fields.CharField(max_length=256)
-    body = fields.CharField(max_length=512, null=True)
+    body = fields.TextField(null=True)
 
     # UI navigation target: frontend route path (e.g. "/team/members").
     target_to = fields.CharField(max_length=512)

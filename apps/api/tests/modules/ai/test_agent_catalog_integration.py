@@ -26,7 +26,11 @@ from src.modules.ai.agent_catalog_manifest import (
 )
 from src.modules.ai.agent_catalog_repository import AgentCatalogRepository
 from src.modules.ai.agent_catalog_service import AgentCatalogService
-from src.modules.ai.agent_tool_grants import BUILDER_STYLE_GUIDE_GENERATE_TOOL, HUMAN_REQUEST_INPUT_TOOL
+from src.modules.ai.agent_tool_grants import (
+    BUILDER_STYLE_GUIDE_GENERATE_TOOL,
+    HUMAN_REQUEST_INPUT_TOOL,
+    WORKSPACE_SKILL_CREATE_TOOL,
+)
 from src.modules.ai.runtime_run_schema import AgentRunCreateRequestV1
 from src.modules.ai.runtime_run_service import AgentRunService
 from src.modules.ai.runtime_thread_schema import AgentThreadCreateRequestV1
@@ -89,9 +93,10 @@ async def test_official_catalog_is_versioned_assigned_and_deterministic(prepared
     assert second == first
     assert first.default_agent_id == official_agent_id("arclayer-coordinator")
     assert all(agent.provenance == "arclayer_official" for agent in first.agents)
-    assert [agent.version_number for agent in first.agents] == [3, 2, 2, 1, 1, 1]
+    assert [agent.version_number for agent in first.agents] == [7, 3, 3, 1, 1, 1]
     grants_by_slug = {agent.slug: set(agent.tool_grants) for agent in first.agents}
     assert BUILDER_STYLE_GUIDE_GENERATE_TOOL in grants_by_slug["arclayer-coordinator"]
+    assert WORKSPACE_SKILL_CREATE_TOOL in grants_by_slug["arclayer-coordinator"]
     assert BUILDER_STYLE_GUIDE_GENERATE_TOOL in grants_by_slug["visual-designer"]
     assert BUILDER_STYLE_GUIDE_GENERATE_TOOL not in grants_by_slug["site-architect"]
     assert all(agent.available for agent in first.agents)

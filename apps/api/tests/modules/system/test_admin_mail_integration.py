@@ -183,3 +183,55 @@ async def test_email_service_template_gating_works(
             locale="en-US",
         )
         assert sent == ["to@example.com"]
+
+
+async def test_email_template_test_send_endpoint_uses_selected_persisted_version(
+    prepared_db,
+    integration_valkey_settings,
+    monkeypatch,
+) -> None:
+    _ = prepared_db
+    _ = integration_valkey_settings
+    settings = get_settings()
+    app = create_app()
+    transport = ASGITransport(app=app)
+    sent: list[tuple[str, str]] = []
+
+    class DummyMail:
+        async def send_message(self, message, **kwargs):  # type: ignore[no-untyped-def]
+            del kwargs
+            sent.append((str(message.recipients[0].email), str(message.subject)))
+
+    async def _dummy_get_fast_mail(self):  # type: ignore[no-untyped-def]
+        return DummyMail()
+
+    monkeypatch.setattr("src.common.email.service.EmailService._get_fast_mail", _dummy_get_fast_mail)
+
+    async with app.router.lifespan_context(app):
+        await verify_db_ready(settings)
+        await _bootstrap_admin_user(app)
+        await SettingRecord.create(
+            scope_type=SCOPE_TYPE_SYSTEM,
+            scope_id=SYSTEM_SCOPE_ID,
+            namespace="core",
+            value={"mail": {"enabled": True}},
+        )
+        template = await EmailTemplateRecord.get(key="welcome", locale="en-US")
+
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post(
+                f"/api/v1/system/mail/templates/{template.id}/test-send",
+                json={
+                    "recipient": "to@example.com",
+                    "variables": {"username": "Template operator"},
+                },
+            )
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["state"] == "accepted"
+        assert data["provider"] == "smtp"
+        assert data["messageId"] is None
+        assert data["attempts"] == 1
+        assert data["latencyMs"] >= 0
+        assert sent == [("to@example.com", "Welcome to Arclayer")]

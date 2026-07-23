@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from functools import partial
+from pathlib import Path
 from random import random
 from types import MappingProxyType
 from uuid import UUID
@@ -10,17 +11,22 @@ from pydantic import ConfigDict
 
 from src.agents.checkpointing import build_agent_checkpointer_factory
 from src.agents.langgraph_runtime import AgentGraphCheckpointerFactory
+from src.common.email.service import EmailService
 from src.common.schemas import BaseSchema
 from src.config import Settings
 from src.core.registries import ConnectorRegistry
 from src.migrations.models.tenant_control import TENANT_CONTROL_MIGRATIONS
 from src.models.jobs.background_job import JobWorkloadClass
+from src.modules.access_restrictions.repository import AccessRestrictionRepository
+from src.modules.access_restrictions.service import AccessRestrictionAuthority
 from src.modules.ai.agent_skill_grant_service import build_agent_skill_grant_resolver
 from src.modules.ai.runtime_design_tool import BuilderDesignAgentToolExecutor
 from src.modules.ai.runtime_job_handler import AgentRunJobHandler
 from src.modules.ai.runtime_job_schema import AGENT_RUN_JOB_TYPE, AGENT_RUN_JOB_TYPE_VERSION
+from src.modules.ai.runtime_knowledge_context import TenantAgentKnowledgeContextResolver
 from src.modules.ai.runtime_langgraph_gateway import LangGraphAgentRunExecutionGateway
 from src.modules.ai.runtime_model_step_gateway import ModelToolAgentRunExecutionGateway
+from src.modules.ai.runtime_skill_creator_tool import WorkspaceSkillAuthoringAgentToolExecutor
 from src.modules.ai.runtime_style_guide_tool import DesignSystemConceptAgentToolExecutor
 from src.modules.ai.runtime_wireframe_tool import BuilderWireframeAgentToolExecutor
 from src.modules.ai.service import AIChatService
@@ -104,6 +110,16 @@ from src.modules.projects.design_systems.repository import ProjectDesignSystemsR
 from src.modules.projects.design_systems.version_service import ProjectDesignSystemVersionService
 from src.modules.projects.repository import ProjectRepository
 from src.modules.sites.component_catalogs.official import get_official_component_catalog_registry
+from src.modules.system.admin.notifications.campaign_job_contract import (
+    NOTIFICATION_CAMPAIGN_DISPATCH_JOB_TYPE,
+    NOTIFICATION_CAMPAIGN_DISPATCH_JOB_TYPE_VERSION,
+)
+from src.modules.system.admin.notifications.campaign_job_handler import NotificationCampaignJobHandler
+from src.modules.system.plugins.job_contract import (
+    PLUGIN_LIFECYCLE_JOB_TYPE,
+    PLUGIN_LIFECYCLE_JOB_TYPE_VERSION,
+)
+from src.modules.system.plugins.job_handler import PluginLifecycleJobHandler
 from src.modules.tenancy.context import require_current_tenant_context
 from src.modules.tenancy.repository import TenancyRepository
 from src.modules.workspaces.knowledge.indexing_contract import (
@@ -141,7 +157,12 @@ from src.modules.workspaces.skills.github_import_handler import (
     SkillGitHubImportJobHandler,
 )
 from src.modules.workspaces.skills.github_import_repository import WorkspaceSkillGitHubImportRepository
+from src.modules.workspaces.skills.lifecycle_repository import WorkspaceSkillLifecycleRepository
+from src.modules.workspaces.skills.lifecycle_service import WorkspaceSkillLifecycleService
+from src.modules.workspaces.skills.official_catalog_repository import OfficialSkillCatalogRepository
+from src.modules.workspaces.skills.official_catalog_service import WorkspaceOfficialSkillCatalogService
 from src.modules.workspaces.skills.repository import WorkspaceSkillsRepository
+from src.modules.workspaces.skills.service import WorkspaceSkillsService
 from src.platform.jobs.executor import DurableJobExecutor
 
 
@@ -393,6 +414,24 @@ def _build_production_handler_factories(
             ),
             partial(_build_provider_effect_recovery_handler, settings=settings),
         ),
+        (
+            JobTypeKey(
+                job_type=NOTIFICATION_CAMPAIGN_DISPATCH_JOB_TYPE,
+                job_type_version=NOTIFICATION_CAMPAIGN_DISPATCH_JOB_TYPE_VERSION,
+            ),
+            partial(
+                _build_notification_campaign_handler,
+                settings=settings,
+                connector_registry=connector_registry,
+            ),
+        ),
+        (
+            JobTypeKey(
+                job_type=PLUGIN_LIFECYCLE_JOB_TYPE,
+                job_type_version=PLUGIN_LIFECYCLE_JOB_TYPE_VERSION,
+            ),
+            partial(_build_plugin_lifecycle_handler, settings=settings),
+        ),
     ))
 
 
@@ -407,6 +446,31 @@ def _build_billing_connector_event_handler(
     )
 
 
+def _build_notification_campaign_handler(
+    *,
+    settings: Settings,
+    connector_registry: ConnectorRegistry,
+) -> NotificationCampaignJobHandler:
+    return NotificationCampaignJobHandler(
+        settings=settings,
+        email_sender=EmailService(settings, connector_registry=connector_registry),
+    )
+
+
+def _build_plugin_lifecycle_handler(*, settings: Settings) -> PluginLifecycleJobHandler:
+    return PluginLifecycleJobHandler(
+        settings=settings,
+        project_root=_resolve_project_root(),
+    )
+
+
+def _resolve_project_root() -> Path:
+    for parent in Path(__file__).resolve().parents:
+        if (parent / "pnpm-workspace.yaml").is_file() and (parent / "plugins").is_dir():
+            return parent
+    raise RuntimeError("Unable to resolve Arclayer project root for plugin lifecycle jobs")
+
+
 def _build_agent_run_handler(
     *,
     settings: Settings,
@@ -419,6 +483,9 @@ def _build_agent_run_handler(
     return AgentRunJobHandler(
         settings=settings,
         skill_grant_resolver_factory=lambda: build_agent_skill_grant_resolver(require_current_tenant_context()),
+        knowledge_context_resolver_factory=lambda: TenantAgentKnowledgeContextResolver(
+            require_current_tenant_context()
+        ),
         execution_gateway=LangGraphAgentRunExecutionGateway(
             step_gateway=ModelToolAgentRunExecutionGateway(
                 chat_service=AIChatService(settings),
@@ -436,9 +503,32 @@ def _build_agent_run_handler(
                     organization_id_factory=lambda: require_current_tenant_context().identity.organization_id,
                     runtime_id_resolver=_resolve_primary_runtime_id,
                 ),
+                skill_creator_executor=WorkspaceSkillAuthoringAgentToolExecutor(
+                    skills_service_factory=lambda: WorkspaceSkillsService(
+                        repository=WorkspaceSkillsRepository(require_current_tenant_context()),
+                        settings=settings,
+                    ),
+                    lifecycle_service_factory=lambda: _build_workspace_skill_lifecycle_service(settings=settings),
+                    organization_id_factory=lambda: require_current_tenant_context().identity.organization_id,
+                ),
             ),
             checkpointer_factory=durable_checkpointer,
         ),
+    )
+
+
+def _build_workspace_skill_lifecycle_service(*, settings: Settings) -> WorkspaceSkillLifecycleService:
+    context = require_current_tenant_context()
+    lifecycle = WorkspaceSkillLifecycleRepository(context)
+    return WorkspaceSkillLifecycleService(
+        packages=WorkspaceSkillsRepository(context),
+        lifecycle=lifecycle,
+        official_catalog=WorkspaceOfficialSkillCatalogService(
+            catalog=OfficialSkillCatalogRepository(),
+            installations=lifecycle,
+            settings=settings,
+        ),
+        settings=settings,
     )
 
 
@@ -631,6 +721,7 @@ def _build_project_target_resolver() -> ProjectJobTargetResolver:
     return ProjectJobTargetResolver(
         project_repository=ProjectRepository(),
         tenancy_repository=TenancyRepository(),
+        access_restriction_authority=AccessRestrictionAuthority(AccessRestrictionRepository()),
         required_schema_version=_required_tenant_schema_version(),
     )
 
@@ -639,6 +730,7 @@ def _build_workspace_target_resolver() -> WorkspaceJobTargetResolver:
     return WorkspaceJobTargetResolver(
         workspace_repository=OrganizationWorkspaceRepository(),
         tenancy_repository=TenancyRepository(),
+        access_restriction_authority=AccessRestrictionAuthority(AccessRestrictionRepository()),
         required_schema_version=_required_tenant_schema_version(),
     )
 

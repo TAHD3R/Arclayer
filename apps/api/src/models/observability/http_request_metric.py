@@ -40,14 +40,38 @@ class HTTPRequestRecord(BaseModel):
     """One completed HTTP request used for incident tracing and exact latency percentiles."""
 
     occurred_at = fields.DatetimeField(db_index=True)
-    trace_id = fields.CharField(max_length=128, null=True, db_index=True)
+    request_id = fields.CharField(max_length=128, null=True, db_index=True)
+    trace_id = fields.CharField(max_length=64, null=True, db_index=True)
     actor_user_id = fields.UUIDField(null=True, db_index=True)
+    actor_username = fields.CharField(max_length=64, null=True)
+    actor_display_name = fields.CharField(max_length=64, null=True)
+    actor_avatar_url = fields.CharField(max_length=512, null=True)
     workspace_id = fields.UUIDField(null=True, db_index=True)
+    workspace_name = fields.CharField(max_length=128, null=True)
     project_id = fields.UUIDField(null=True, db_index=True)
+    project_name = fields.CharField(max_length=128, null=True)
+    normalized_path = fields.CharField(max_length=512, null=True)
     route_template = fields.CharField(max_length=512)
     method = fields.CharField(max_length=8)
+    protocol = fields.CharField(max_length=16, null=True)
     status_code = fields.SmallIntField()
     duration_ms = fields.IntField()
+    request_bytes = fields.BigIntField(null=True)
+    response_bytes = fields.BigIntField(null=True)
+    service_name = fields.CharField(max_length=128, null=True)
+    upstream_name = fields.CharField(max_length=128, null=True)
+    environment = fields.CharField(max_length=32, null=True, db_index=True)
+    release_version = fields.CharField(max_length=128, null=True, db_index=True)
+    instance_id = fields.CharField(max_length=128, null=True)
+    region = fields.CharField(max_length=64, null=True)
+    user_agent_family = fields.CharField(max_length=64, null=True)
+    device_family = fields.CharField(max_length=64, null=True)
+    client_network = fields.CharField(max_length=80, null=True)
+    error_code = fields.CharField(max_length=128, null=True, db_index=True)
+    error_class = fields.CharField(max_length=128, null=True)
+    error_message = fields.CharField(max_length=512, null=True)
+    ingestion_source = fields.CharField(max_length=64, null=True)
+    schema_version = fields.SmallIntField(default=2, null=True)
 
     class Meta(BaseModel.Meta):
         table = "observability_http_request_records"
@@ -58,4 +82,6 @@ class HTTPRequestRecord(BaseModel):
             ("project_id", "occurred_at"),
             ("route_template", "method", "occurred_at"),
             ("status_code", "occurred_at"),
+            ("service_name", "environment", "occurred_at"),
+            ("error_code", "occurred_at"),
         )

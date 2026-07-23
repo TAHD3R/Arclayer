@@ -74,3 +74,16 @@ async def set_workspace_subscription(
         payload=payload,
     )
     return ApiResponse.success(message=t("commerce", "API_WORKSPACE_PLAN_UPDATED"), data=overview)
+
+
+@router.get(
+    "/workspaces/{workspace_id}/overview",
+    response_model=ResponseModel[WorkspaceCommerceOverviewOut],
+    summary="Get workspace commerce overview for system operations",
+)
+async def get_workspace_commerce_overview(
+    workspace_id: PublicUUID,
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[WorkspaceCommerceOverviewOut]:
+    overview = await build_commerce_service(settings).get_overview(workspace_id=workspace_id)
+    return ApiResponse.success(data=overview)

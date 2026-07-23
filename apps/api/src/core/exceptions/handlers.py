@@ -172,6 +172,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
             raise
 
         request.state.error_code = "INTERNAL_ERROR"
+        request.state.error_class = type(exc).__name__
         request.state.error_message = "INTERNAL_ERROR"
         logger.exception(
             "UnhandledError",
@@ -211,6 +212,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
         )
 
         request.state.error_code = error
+        request.state.error_class = type(exc).__name__
         request.state.error_message = message
         return _build_response(
             request=request,
@@ -225,6 +227,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
     @app.exception_handler(OperationalError)
     async def tortoise_operational_handler(request: Request, exc: OperationalError) -> JSONResponse:
         request.state.error_code = "DB_OPERATIONAL_ERROR"
+        request.state.error_class = type(exc).__name__
         request.state.error_message = "DB_OPERATIONAL_ERROR"
         message = str(request.state.error_message)
         logger.exception(
@@ -245,6 +248,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
     @app.exception_handler(APIError)
     async def api_error_handler(request: Request, exc: APIError) -> JSONResponse:
         request.state.error_code = exc.error
+        request.state.error_class = type(exc).__name__
         request.state.error_message = exc.message
         log_fields = {
             "method": request.method,
@@ -271,6 +275,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
         exc: RequestValidationError,
     ) -> JSONResponse:
         request.state.error_code = "VALIDATION_ERROR"
+        request.state.error_class = type(exc).__name__
         request.state.error_message = "VALIDATION_ERROR"
         message = str(request.state.error_message)
         return _build_response(
@@ -286,6 +291,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
     @app.exception_handler(ValidationError)
     async def pydantic_validation_handler(request: Request, exc: ValidationError) -> JSONResponse:
         request.state.error_code = "VALIDATION_ERROR"
+        request.state.error_class = type(exc).__name__
         request.state.error_message = "VALIDATION_ERROR"
         message = str(request.state.error_message)
         return _build_response(

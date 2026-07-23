@@ -16,6 +16,7 @@ from src.models.assets.asset import AssetPurpose
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.organization import Organization, OrganizationKind
 from src.models.organization.user import User
+from src.models.system.access_restriction import AccessRestrictionEntityType, AccessRestrictionType
 from src.models.system.rbac import SystemRole
 from src.models.workspaces.workspace import (
     Workspace,
@@ -23,6 +24,12 @@ from src.models.workspaces.workspace import (
     WorkspaceMembership,
     WorkspaceMembershipStatus,
 )
+from src.modules.access_restrictions.repository import AccessRestrictionRepository
+from src.modules.access_restrictions.schema import (
+    AccessRestrictionEnforceRequest,
+    AccessRestrictionLiftRequest,
+)
+from src.modules.access_restrictions.service import AccessRestrictionAuthority
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.assets.admin.assets.binding_align import align_asset_for_binding
 from src.modules.assets.public_url import try_extract_asset_uuid_from_relative_public_url
@@ -275,6 +282,7 @@ class WorkspaceService(BaseService):
         instance_setup_service: InstanceSetupService | None = None,
         onboarding_service: WorkspaceFirstOnboardingService | None = None,
         organization_workspace_service: OrganizationWorkspaceService | None = None,
+        restriction_authority: AccessRestrictionAuthority | None = None,
     ) -> None:
         super().__init__(settings)
         self.repo = repo or OrganizationWorkspaceRepository()
@@ -283,6 +291,7 @@ class WorkspaceService(BaseService):
         self.instance_setup_service = instance_setup_service or InstanceSetupService(settings)
         self.onboarding_service = onboarding_service or WorkspaceFirstOnboardingService(settings)
         self.organization_workspace_service = organization_workspace_service or OrganizationWorkspaceService(settings)
+        self.restriction_authority = restriction_authority or AccessRestrictionAuthority(AccessRestrictionRepository())
 
     async def _write_workspace_activity_event(
         self,
@@ -460,6 +469,14 @@ class WorkspaceService(BaseService):
         workspace_ids = [UUID(str(item.workspace_id)) for item in result.items]
         visible_workspaces = await self.repo.list_non_deleted_by_ids(workspace_ids=workspace_ids)
         workspace_by_id = {UUID(str(workspace.id)): workspace for workspace in visible_workspaces}
+        archive_restrictions = await self.restriction_authority.list_current(
+            entity_type=AccessRestrictionEntityType.WORKSPACE,
+            entity_ids=workspace_ids,
+            restriction_types=[AccessRestrictionType.WORKSPACE_ARCHIVED],
+        )
+        archive_revision_by_workspace_id = {
+            UUID(str(restriction.entity_id)): int(restriction.revision) for restriction in archive_restrictions
+        }
 
         items: list[WorkspaceManageListItemOut] = []
         for item in result.items:
@@ -473,6 +490,10 @@ class WorkspaceService(BaseService):
             manage_item.is_archived = workspace.archived_at is not None
             manage_item.archived_at = workspace.archived_at
             manage_item.archived_by_user_id = workspace.archived_by_user_id
+            manage_item.archive_revision = archive_revision_by_workspace_id.get(
+                UUID(str(workspace.id)),
+                0,
+            )
             if archived is True and not manage_item.is_archived:
                 continue
             if archived is False and manage_item.is_archived:
@@ -769,13 +790,22 @@ class WorkspaceService(BaseService):
             icon_asset_aligned=icon_asset_aligned,
         )
 
-    async def archive_manage_workspace(self, *, user_id: UUID, workspace_id: UUID) -> WorkspaceManageArchiveResult:
+    async def archive_manage_workspace(
+        self,
+        *,
+        user_id: UUID,
+        workspace_id: UUID,
+        idempotency_key: str,
+        payload: AccessRestrictionEnforceRequest,
+    ) -> WorkspaceManageArchiveResult:
         orgm = await self._get_manage_org_membership(user_id=user_id)
         out = await self.organization_workspace_service.archive_workspace(
             organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
             workspace_id=workspace_id,
             user_id=user_id,
             org_role=orgm.role,
+            idempotency_key=idempotency_key,
+            payload=payload,
         )
         return WorkspaceManageArchiveResult(
             workspace_id=UUID(str(out.workspace_id)),
@@ -784,13 +814,22 @@ class WorkspaceService(BaseService):
             archived_by_user_id=out.archived_by_user_id,
         )
 
-    async def unarchive_manage_workspace(self, *, user_id: UUID, workspace_id: UUID) -> WorkspaceManageArchiveResult:
+    async def unarchive_manage_workspace(
+        self,
+        *,
+        user_id: UUID,
+        workspace_id: UUID,
+        idempotency_key: str,
+        payload: AccessRestrictionLiftRequest,
+    ) -> WorkspaceManageArchiveResult:
         orgm = await self._get_manage_org_membership(user_id=user_id)
         out = await self.organization_workspace_service.unarchive_workspace(
             organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
             workspace_id=workspace_id,
             user_id=user_id,
             org_role=orgm.role,
+            idempotency_key=idempotency_key,
+            payload=payload,
         )
         return WorkspaceManageArchiveResult(
             workspace_id=UUID(str(out.workspace_id)),

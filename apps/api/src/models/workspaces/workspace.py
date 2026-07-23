@@ -69,6 +69,7 @@ class Workspace(BaseModel):
         table = "workspaces"
         table_description = "Workspace records for project and site governance."
         abstract = False
+        indexes = (("updated_at",),)
 
 
 @post_save(Workspace)

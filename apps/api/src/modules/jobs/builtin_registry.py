@@ -28,6 +28,10 @@ from src.modules.projects.builder.generation_job_contract import (
 from src.modules.projects.design_systems.concept_job_contract import (
     build_design_system_concept_generation_job_definition,
 )
+from src.modules.system.admin.notifications.campaign_job_contract import (
+    build_notification_campaign_job_definition,
+)
+from src.modules.system.plugins.job_contract import build_plugin_lifecycle_job_definition
 from src.modules.workspaces.knowledge.indexing_contract import (
     build_knowledge_source_index_job_definition,
 )
@@ -93,6 +97,12 @@ def build_builtin_job_type_registry(settings: Settings) -> JobTypeRegistry:
             ),
             build_billing_connector_event_job_definition(
                 execution_policy=settings.background_jobs.billing_connector_event,
+            ),
+            build_notification_campaign_job_definition(
+                execution_policy=settings.background_jobs.notification_campaign,
+            ),
+            build_plugin_lifecycle_job_definition(
+                execution_policy=settings.background_jobs.plugin_lifecycle,
             ),
             build_provider_effect_recovery_job_definition(
                 execution_policy=ProviderEffectRecoveryExecutionPolicy(

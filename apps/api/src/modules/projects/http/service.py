@@ -7,6 +7,12 @@ from fastapi import Depends, Path
 
 from src.common.protocols.tortoise import HasOrganizationId, HasWorkspaceId
 from src.common.types.public_uuid import PublicUUID
+from src.models.system.access_restriction import (
+    AccessRestrictionEntityType,
+    AccessRestrictionType,
+)
+from src.modules.access_restrictions.repository import AccessRestrictionRepository
+from src.modules.access_restrictions.service import AccessRestrictionAuthority
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.repository import ProjectRepository
@@ -46,6 +52,11 @@ async def resolve_project_context_by_id(
     project = await repo.get_project_by_id(project_id=project_id)
     workspace_id = UUID(str(cast(HasWorkspaceId, project).workspace_id))
     workspace = await require_active_workspace(workspace_id=workspace_id)
+    await AccessRestrictionAuthority(AccessRestrictionRepository()).require_unrestricted(
+        entity_type=AccessRestrictionEntityType.PROJECT,
+        entity_id=UUID(str(project.id)),
+        restriction_types=[AccessRestrictionType.PROJECT_SUSPENDED],
+    )
     organization_id = UUID(str(cast(HasOrganizationId, workspace).organization_id))
 
     orgm = await find_active_org_membership(organization_id=organization_id, user_id=user_id)

@@ -162,7 +162,9 @@ async def observability_http_metrics_retention_cleanup(ctx: dict[str, Any]) -> N
         HTTPMetricRetentionRepository,
         ctx.get("record_repository") or TortoiseHTTPRequestRecordRetentionRepository(),
     )
-    cutoff = datetime.now(UTC) - timedelta(days=settings.observability.retention_days)
+    now = datetime.now(UTC)
+    aggregate_cutoff = now - timedelta(days=settings.observability.aggregate_retention_days)
+    raw_cutoff = now - timedelta(days=settings.observability.raw_retention_days)
     started = datetime.now(UTC)
     async with in_transaction() as conn:
         if not await _try_acquire_transaction_lock(conn):
@@ -171,14 +173,14 @@ async def observability_http_metrics_retention_cleanup(ctx: dict[str, Any]) -> N
         deleted_metrics = await _delete_expired_metrics(
             conn=conn,
             repository=repository,
-            cutoff=cutoff,
+            cutoff=aggregate_cutoff,
             batch_size=settings.observability.retention_batch_size,
             max_delete_per_run=settings.observability.retention_max_delete_per_run,
         )
         deleted_records = await _delete_expired_metrics(
             conn=conn,
             repository=record_repository,
-            cutoff=cutoff,
+            cutoff=raw_cutoff,
             batch_size=settings.observability.retention_batch_size,
             max_delete_per_run=settings.observability.retention_max_delete_per_run,
         )
@@ -188,6 +190,7 @@ async def observability_http_metrics_retention_cleanup(ctx: dict[str, Any]) -> N
         "Observability retention cleanup completed",
         deleted_metrics=deleted_metrics,
         deleted_records=deleted_records,
-        cutoff=cutoff.isoformat(),
+        aggregate_cutoff=aggregate_cutoff.isoformat(),
+        raw_cutoff=raw_cutoff.isoformat(),
         elapsed_ms=elapsed_ms,
     )

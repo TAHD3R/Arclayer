@@ -8,7 +8,11 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from src.core.exceptions import NotFound
+from src.core.exceptions import Forbidden, NotFound
+from src.models.system.access_restriction import (
+    AccessRestrictionEntityType,
+    AccessRestrictionType,
+)
 from src.models.tenancy.workspace_tenant import (
     WorkspaceTenantIsolationMode,
     WorkspaceTenantStatus,
@@ -106,6 +110,40 @@ class _WorkspaceRepository:
         return self.workspace
 
 
+class _AccessRestrictionAuthority:
+    async def require_unrestricted(
+        self,
+        *,
+        entity_type: AccessRestrictionEntityType,
+        entity_id: UUID,
+        restriction_types: list[AccessRestrictionType],
+    ) -> None:
+        _ = entity_type, entity_id, restriction_types
+
+
+_UNRESTRICTED = _AccessRestrictionAuthority()
+
+
+class _RestrictedAccessAuthority:
+    def __init__(
+        self,
+        restrictions: dict[AccessRestrictionEntityType, str],
+    ) -> None:
+        self.restrictions = restrictions
+
+    async def require_unrestricted(
+        self,
+        *,
+        entity_type: AccessRestrictionEntityType,
+        entity_id: UUID,
+        restriction_types: list[AccessRestrictionType],
+    ) -> None:
+        _ = entity_id, restriction_types
+        restriction_code = self.restrictions.get(entity_type)
+        if restriction_code is not None:
+            raise Forbidden(error=restriction_code)
+
+
 if TYPE_CHECKING:
     _WORKSPACE_REPOSITORY_CONTRACT: WorkspaceRepositoryLike = OrganizationWorkspaceRepository()
 
@@ -172,6 +210,7 @@ def _build_scenario(
         resolver=ProjectJobTargetResolver(
             project_repository=project_repository,
             tenancy_repository=tenancy_repository,
+            access_restriction_authority=_UNRESTRICTED,
             required_schema_version=required_schema_version,
         ),
         workspace_id=workspace_id,
@@ -221,6 +260,7 @@ async def test_workspace_resolver_builds_job_scope_without_inventing_project_con
     resolver = WorkspaceJobTargetResolver(
         workspace_repository=workspace_repository,
         tenancy_repository=tenancy_repository,
+        access_restriction_authority=_UNRESTRICTED,
         required_schema_version=4,
     )
 
@@ -255,6 +295,7 @@ async def test_workspace_resolver_routes_reconciliation_before_rejecting_archive
     resolver = WorkspaceJobTargetResolver(
         workspace_repository=_WorkspaceRepository(workspace),
         tenancy_repository=_TenancyRepository(tenant),
+        access_restriction_authority=_UNRESTRICTED,
         required_schema_version=4,
     )
 
@@ -272,6 +313,7 @@ async def test_workspace_resolver_rejects_missing_target_as_permanent() -> None:
     resolver = WorkspaceJobTargetResolver(
         workspace_repository=_WorkspaceRepository(None),
         tenancy_repository=_TenancyRepository(None),
+        access_restriction_authority=_UNRESTRICTED,
         required_schema_version=4,
     )
 
@@ -327,6 +369,70 @@ async def test_resolver_reconciles_before_rejecting_new_effect_on_disabled_targe
     assert error.value.metadata is not None
     assert error.value.metadata["entityType"] == expected_entity_type
     assert scenario.tenancy_repository.requested_workspace_ids == [scenario.workspace_id]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "restriction_code",
+    ["WORKSPACE_SUSPENDED", "WORKSPACE_ARCHIVED"],
+)
+async def test_workspace_resolver_preserves_restriction_code_in_job_error(
+    restriction_code: str,
+) -> None:
+    workspace_id = uuid4()
+    workspace = _Workspace(id=workspace_id, organization_id=uuid4())
+    resolver = WorkspaceJobTargetResolver(
+        workspace_repository=_WorkspaceRepository(workspace),
+        tenancy_repository=_TenancyRepository(None),
+        access_restriction_authority=_RestrictedAccessAuthority({
+            AccessRestrictionEntityType.WORKSPACE: restriction_code
+        }),
+        required_schema_version=4,
+    )
+
+    with pytest.raises(PermanentJobExecutionError) as error:
+        await resolver.authorize_new_effect(workspace_id=workspace_id)
+
+    assert error.value.code == "BACKGROUND_JOB_TARGET_DISABLED"
+    assert error.value.metadata == {
+        "workspaceId": str(workspace_id),
+        "restrictionCode": restriction_code,
+    }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("entity_type", "restriction_code"),
+    [
+        (AccessRestrictionEntityType.WORKSPACE, "WORKSPACE_SUSPENDED"),
+        (AccessRestrictionEntityType.PROJECT, "PROJECT_SUSPENDED"),
+    ],
+)
+async def test_project_resolver_preserves_restriction_code_in_job_error(
+    entity_type: AccessRestrictionEntityType,
+    restriction_code: str,
+) -> None:
+    scenario = _build_scenario()
+    resolver = ProjectJobTargetResolver(
+        project_repository=scenario.project_repository,
+        tenancy_repository=scenario.tenancy_repository,
+        access_restriction_authority=_RestrictedAccessAuthority({entity_type: restriction_code}),
+        required_schema_version=4,
+    )
+
+    with pytest.raises(PermanentJobExecutionError) as error:
+        await resolver.authorize_new_effect(
+            workspace_id=scenario.workspace_id,
+            project_id=scenario.project_id,
+        )
+
+    assert error.value.code == "BACKGROUND_JOB_TARGET_DISABLED"
+    assert error.value.metadata == {
+        "workspaceId": str(scenario.workspace_id),
+        "projectId": str(scenario.project_id),
+        "entityType": entity_type.value,
+        "restrictionCode": restriction_code,
+    }
 
 
 @pytest.mark.asyncio

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -10,6 +10,15 @@ from src.config import get_settings
 from src.core.database.orm import verify_db_ready
 from src.core.registry import create_app
 from src.models.system.notification import NotificationCategory, NotificationRecord
+from src.models.system.notification_campaign import (
+    NotificationCampaignChannel,
+    NotificationCampaignRecord,
+    NotificationCampaignState,
+    NotificationCampaignVariantRecord,
+    NotificationDeliveryRecord,
+    NotificationDeliveryState,
+    NotificationPresentation,
+)
 from src.models.system.setting import SettingRecord
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.system.admin.notifications.preferences import (
@@ -234,6 +243,158 @@ async def test_me_notification_preferences_get_and_patch(
         role_state = topics_value.get("workspace.member.roles.updated")
         assert isinstance(role_state, dict)
         assert role_state.get("in_app") is False
+
+
+async def test_me_notification_campaign_interactions_are_durable_and_recipient_scoped(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    _ = prepared_db
+    _ = integration_valkey_settings
+
+    from src.modules.auth.repository import UserRepository
+    from src.modules.auth.tokens.service import hash_password
+
+    settings = get_settings()
+    app = create_app()
+    transport = ASGITransport(app=app)
+
+    async with app.router.lifespan_context(app):
+        await verify_db_ready(settings)
+        workspace_id, current_user_id = await _bootstrap_admin_user(app)
+        other_user = await UserRepository().create_user(
+            username=f"recipient_{uuid4().hex}",
+            email=None,
+            display_name="Other recipient",
+            password_hash=hash_password("recipient_password_123", settings.auth),
+        )
+        campaign = await NotificationCampaignRecord.create(
+            name="Interaction campaign",
+            owner_user_id=current_user_id,
+            revision=1,
+            state=NotificationCampaignState.COMPLETED,
+            audience={"kind": "all_active_users"},
+            channels=[str(NotificationCampaignChannel.IN_APP)],
+            presentations=[str(NotificationPresentation.MODAL)],
+            fallback_locale="en-US",
+            recipient_count=2,
+            delivered_count=2,
+        )
+        variant = await NotificationCampaignVariantRecord.create(
+            campaign=campaign,
+            locale="en-US",
+            revision=1,
+            is_fallback=True,
+            modal_payload={
+                "title": "Release available",
+                "body": "Review the release notes.",
+                "primaryAction": {
+                    "kind": "internal_route",
+                    "label": "Open",
+                    "target": "/system/overview",
+                },
+                "dismissPolicy": "dismissible",
+            },
+        )
+
+        async def create_delivery(
+            recipient_user_id: UUID,
+        ) -> tuple[NotificationRecord, NotificationDeliveryRecord]:
+            notification = await NotificationRecord.create(
+                workspace_id=workspace_id,
+                recipient_user_id=recipient_user_id,
+                category=NotificationCategory.SYSTEM,
+                title="Release available",
+                body="Review the release notes.",
+                target_to="/system/overview",
+                target_meta={"presentation": "modal"},
+                actor_user_id=None,
+                event_name="system.broadcast",
+                dedupe_key=f"campaign-interaction:{recipient_user_id}",
+                read_at=None,
+            )
+            delivery = await NotificationDeliveryRecord.create(
+                campaign=campaign,
+                variant=variant,
+                recipient_user_id=recipient_user_id,
+                recipient_locale="en-US",
+                channel=NotificationCampaignChannel.IN_APP,
+                presentation=NotificationPresentation.MODAL,
+                idempotency_key=f"campaign-interaction:{recipient_user_id}",
+                state=NotificationDeliveryState.DELIVERED,
+                notification_id=notification.id,
+            )
+            return notification, delivery
+
+        current_notification, current_delivery = await create_delivery(current_user_id)
+        other_notification, other_delivery = await create_delivery(other_user.id)
+        ordinary_notification = await NotificationRecord.create(
+            workspace_id=workspace_id,
+            recipient_user_id=current_user_id,
+            category=NotificationCategory.TEAM,
+            title="Ordinary notification",
+            body=None,
+            target_to="/system/overview",
+            target_meta=None,
+            actor_user_id=None,
+            event_name="workspace.member.updated",
+            dedupe_key=f"ordinary:{uuid4()}",
+            read_at=None,
+        )
+
+        current_public_id = encode_uuid(current_notification.id)
+        other_public_id = encode_uuid(other_notification.id)
+        ordinary_public_id = encode_uuid(ordinary_notification.id)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            click = await client.post(f"/api/v1/me/notifications/{current_public_id}/interactions/click")
+            assert click.status_code == 200
+            click_data = click.json()["data"]
+            assert click_data["notificationId"] == current_public_id
+            assert click_data["deliveryId"] == encode_uuid(current_delivery.id)
+            assert click_data["kind"] == "click"
+
+            repeated_click = await client.post(f"/api/v1/me/notifications/{current_public_id}/interactions/click")
+            assert repeated_click.status_code == 200
+            assert repeated_click.json()["data"]["occurredAt"] == click_data["occurredAt"]
+
+            dismiss = await client.post(f"/api/v1/me/notifications/{current_public_id}/interactions/dismiss")
+            assert dismiss.status_code == 200
+            assert dismiss.json()["data"]["kind"] == "dismiss"
+
+            forbidden = await client.post(f"/api/v1/me/notifications/{other_public_id}/interactions/click")
+            assert forbidden.status_code == 404
+
+            missing_delivery = await client.post(
+                f"/api/v1/me/notifications/{ordinary_public_id}/interactions/click",
+                headers={"X-Locale": "en-US"},
+            )
+            assert missing_delivery.status_code == 404
+            assert missing_delivery.json()["message"] == ("This notification is not linked to a campaign delivery.")
+
+            missing_delivery_zh = await client.post(
+                f"/api/v1/me/notifications/{ordinary_public_id}/interactions/click",
+                headers={"X-Locale": "zh-CN"},
+            )
+            assert missing_delivery_zh.status_code == 404
+            assert missing_delivery_zh.json()["message"] == "该通知没有关联的 Campaign 投递记录。"
+
+        await current_delivery.refresh_from_db()
+        await current_notification.refresh_from_db()
+        await other_delivery.refresh_from_db()
+        await other_notification.refresh_from_db()
+        await ordinary_notification.refresh_from_db()
+        await campaign.refresh_from_db()
+        assert current_delivery.read_at is not None
+        assert current_delivery.clicked_at is not None
+        assert current_delivery.dismissed_at is not None
+        assert current_notification.read_at is not None
+        assert other_delivery.read_at is None
+        assert other_delivery.clicked_at is None
+        assert other_notification.read_at is None
+        assert ordinary_notification.read_at is None
+        assert campaign.read_count == 1
+        assert campaign.clicked_count == 1
+        assert campaign.dismissed_count == 1
 
 
 async def test_me_notification_preferences_reject_unsupported_channel(

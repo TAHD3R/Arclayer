@@ -224,6 +224,8 @@ class BackgroundJobsSettings(BaseSettings):
     skill_github_import: BackgroundJobExecutionSettings = Field(default_factory=BackgroundJobExecutionSettings)
     skill_github_refresh: BackgroundJobExecutionSettings = Field(default_factory=BackgroundJobExecutionSettings)
     billing_connector_event: BackgroundJobExecutionSettings = Field(default_factory=BackgroundJobExecutionSettings)
+    notification_campaign: BackgroundJobExecutionSettings = Field(default_factory=BackgroundJobExecutionSettings)
+    plugin_lifecycle: BackgroundJobExecutionSettings = Field(default_factory=BackgroundJobExecutionSettings)
     provider_effect_recovery: ProviderEffectRecoverySettings = Field(default_factory=ProviderEffectRecoverySettings)
     dispatcher: BackgroundJobDispatcherSettings = Field(default_factory=BackgroundJobDispatcherSettings)
 
@@ -420,6 +422,10 @@ class SaasSettings(BaseSettings):
     admin_url: str = Field(
         default="https://app.arclayer.localhost",
         description="Admin console URL.",
+    )
+    notification_external_action_hosts: list[str] = Field(
+        default_factory=list,
+        description="Additional HTTPS hosts allowed for notification campaign actions.",
     )
     free_tier_page_limit: int = Field(default=20, ge=1, description="Max pages for free tier.")
     free_tier_storage_mb: int = Field(default=500, ge=1, description="Max storage (MiB) for free tier.")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from uuid import UUID
 
 from src.common.utils.ids import uuid7
@@ -19,6 +20,8 @@ from src.modules.system.admin.notifications.schema import (
     NotificationArchiveResult,
     NotificationDeleteResult,
     NotificationDevSeedResult,
+    NotificationInteractionKind,
+    NotificationInteractionOut,
     NotificationListQuery,
     NotificationListStatus,
     NotificationOut,
@@ -186,7 +189,56 @@ class NotificationService(BaseService):
         )
         if row is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+        await self.repo.record_delivery_interaction(
+            recipient_user_id=user_id,
+            notification_id=notification_id,
+            interaction=NotificationInteractionKind.READ,
+            occurred_at=row.read_at or datetime.now(UTC),
+        )
         return NotificationReadResult(id=row.id, read_at=row.read_at)
+
+    async def record_interaction_for_user(
+        self,
+        *,
+        user_id: UUID,
+        notification_id: UUID,
+        interaction: NotificationInteractionKind,
+    ) -> NotificationInteractionOut:
+        now = datetime.now(UTC)
+        notification = await self.repo.get_by_user(
+            recipient_user_id=user_id,
+            notification_id=notification_id,
+        )
+        if notification is None:
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+        delivery = await self.repo.record_delivery_interaction(
+            recipient_user_id=user_id,
+            notification_id=notification_id,
+            interaction=str(interaction),
+            occurred_at=now,
+        )
+        if delivery is None:
+            raise NotFound(error="NOTIFICATION_CAMPAIGN_DELIVERY_NOT_FOUND")
+        if notification.read_at is None:
+            notification = await self.repo.mark_read_by_user(
+                recipient_user_id=user_id,
+                notification_id=notification_id,
+            )
+            if notification is None:
+                raise RuntimeError(f"Notification {notification_id} disappeared while recording an interaction")
+        occurred_at = {
+            NotificationInteractionKind.READ: delivery.read_at,
+            NotificationInteractionKind.CLICK: delivery.clicked_at,
+            NotificationInteractionKind.DISMISS: delivery.dismissed_at,
+        }[interaction]
+        if occurred_at is None:
+            raise RuntimeError(f"Notification delivery {delivery.id} did not persist {interaction.value}")
+        return NotificationInteractionOut(
+            notification_id=notification_id,
+            delivery_id=delivery.id,
+            kind=interaction,
+            occurred_at=occurred_at,
+        )
 
     async def mark_all_read(
         self,

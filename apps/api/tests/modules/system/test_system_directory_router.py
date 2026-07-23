@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import builtins
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -9,15 +9,62 @@ import pytest
 from fastapi import FastAPI
 from pydantic import BaseModel, ConfigDict
 
+from src.common.utils.public_ids import encode_uuid
 from src.config import get_settings
 from src.core.exceptions import init_exception_handlers
+from src.models.ai.ai_audit_log import AIAuditLog, AuditLogSource, AuditLogStatus
+from src.models.ai.ai_budget import BudgetSourceType
+from src.models.ai.ai_usage_daily import AIUsageDaily
+from src.models.analytics.audit_event import AuditEvent
 from src.models.auth.oauth_identity import OAuthIdentity
 from src.models.auth.user_two_factor import UserTwoFactor, UserTwoFactorBackupCode
+from src.models.commerce.billing import (
+    BillingCycle,
+    CommercePlan,
+    CommercePlanTier,
+    CreditRefreshInterval,
+    SubscriptionStatus,
+    WorkspaceCreditAccount,
+    WorkspaceSubscription,
+)
+from src.models.content._enums import ContentReleaseStatus
+from src.models.content.release import ContentReleaseRecord
+from src.models.domains.domain_binding import (
+    DomainBindingCertificateStatus,
+    DomainBindingRecord,
+    DomainBindingSource,
+    DomainBindingTargetType,
+)
+from src.models.feedback.feedback import (
+    FeedbackCategory,
+    FeedbackContextType,
+    FeedbackIntent,
+    FeedbackPriority,
+    FeedbackSource,
+    FeedbackStatus,
+    FeedbackTicket,
+)
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.organization import Organization, OrganizationKind
 from src.models.organization.user import User, UserCredential, UserStatus
+from src.models.projects.deployment import (
+    ProjectDeploymentRecord,
+    ProjectDeploymentRuntimeKind,
+    ProjectDeploymentSourceType,
+    ProjectDeploymentStatus,
+)
+from src.models.projects.environment import ProjectEnvironmentKey, ProjectEnvironmentRecord
 from src.models.projects.membership import ProjectMemberRole, ProjectMembership
 from src.models.projects.project import ProjectRecord
+from src.models.projects.runtime import ProjectRuntimeKind, ProjectRuntimeRecord
+from src.models.sites.site import SiteRecord
+from src.models.system.access_restriction import (
+    AccessRestrictionEntityType,
+    AccessRestrictionReasonCategory,
+    AccessRestrictionRecord,
+    AccessRestrictionState,
+    AccessRestrictionType,
+)
 from src.models.system.rbac import SystemRole
 from src.models.workspaces.workspace import (
     Workspace,
@@ -33,6 +80,19 @@ from src.modules.system.router import router as system_router
 from tests.utils.asgi_client import asgi_client
 
 pytestmark = pytest.mark.integration
+
+
+def _restriction_enforce_payload(expected_revision: int, note: str) -> dict[str, object]:
+    return {
+        "expectedRevision": expected_revision,
+        "reasonCategory": "policy_violation",
+        "reasonCode": "policy_violation",
+        "operatorNote": note,
+    }
+
+
+def _restriction_lift_payload(expected_revision: int, note: str) -> dict[str, object]:
+    return {"expectedRevision": expected_revision, "operatorNote": note}
 
 
 class DummyUser(BaseModel):
@@ -247,6 +307,366 @@ async def test_system_directory_lists_all_entities() -> None:
 
 
 @pytest.mark.usefixtures("db")
+async def test_system_directory_workspace_commerce_projection_filters_and_ordering() -> None:
+    owner = await User.create(
+        username="commerce-directory-owner",
+        email="commerce-directory-owner@example.com",
+        display_name="Commerce Directory Owner",
+        status=UserStatus.ACTIVE,
+        is_super_admin=True,
+    )
+    organization = await Organization.create(
+        name="Commerce Directory Org",
+        slug="commerce-directory-org",
+        kind=OrganizationKind.TEAM,
+        owner_user_id=owner.id,
+    )
+    workspace_values = {
+        "organization_id": organization.id,
+        "owner_user_id": owner.id,
+        "created_by_user_id": owner.id,
+    }
+    healthy_workspace = await Workspace.create(name="Healthy Workspace", **workspace_values)
+    attention_workspace = await Workspace.create(name="Attention Workspace", **workspace_values)
+    missing_workspace = await Workspace.create(name="Missing Commerce Workspace", **workspace_values)
+
+    plan = await CommercePlan.create(
+        code="directory-premium",
+        tier=CommercePlanTier.PREMIUM,
+        name="Directory Premium",
+        description="Directory commerce projection fixture.",
+        credit_grant_amount=100,
+        credit_refresh_interval=CreditRefreshInterval.MONTHLY,
+    )
+    period_start = datetime(2026, 7, 1, tzinfo=UTC)
+    healthy_period_end = period_start + timedelta(days=30)
+    attention_period_end = period_start + timedelta(days=15)
+    healthy_subscription = await WorkspaceSubscription.create(
+        workspace_id=healthy_workspace.id,
+        plan_id=plan.id,
+        status=SubscriptionStatus.ACTIVE,
+        billing_cycle=BillingCycle.MONTHLY,
+        current_period_start=period_start,
+        current_period_end=healthy_period_end,
+        billing_provider="manual",
+    )
+    attention_subscription = await WorkspaceSubscription.create(
+        workspace_id=attention_workspace.id,
+        plan_id=plan.id,
+        status=SubscriptionStatus.PAST_DUE,
+        billing_cycle=BillingCycle.MONTHLY,
+        current_period_start=period_start,
+        current_period_end=attention_period_end,
+        billing_provider="stripe",
+    )
+    await WorkspaceCreditAccount.create(
+        workspace_id=healthy_workspace.id,
+        subscription_id=healthy_subscription.id,
+        balance_credits=100,
+        reserved_credits=25,
+        period_granted_credits=100,
+        period_spent_credits=20,
+        period_start=period_start,
+        period_end=healthy_period_end,
+    )
+    await WorkspaceCreditAccount.create(
+        workspace_id=attention_workspace.id,
+        subscription_id=attention_subscription.id,
+        balance_credits=50,
+        reserved_credits=50,
+        period_granted_credits=100,
+        period_spent_credits=100,
+        period_start=period_start,
+        period_end=attention_period_end,
+    )
+    await AIUsageDaily.create(
+        workspace_id=healthy_workspace.id,
+        date=period_start.date() + timedelta(days=3),
+        source_type=BudgetSourceType.WORKSPACE,
+        provider="openai",
+        model="directory-test",
+        request_count=4,
+        prompt_tokens=120,
+        completion_tokens=48,
+        cost_micros=25_000,
+    )
+    healthy_activity_at = period_start + timedelta(days=8)
+    await Workspace.filter(id=healthy_workspace.id).update(updated_at=healthy_activity_at)
+
+    app = await _build_app()
+
+    async def _super_admin_override() -> DummyUser:
+        return DummyUser()
+
+    app.dependency_overrides[get_current_user] = _super_admin_override
+    app.dependency_overrides[require_super_admin] = _super_admin_override
+    subscriptions_before = await WorkspaceSubscription.all().count()
+
+    async with asgi_client(app) as client:
+        ordered_res = await client.get(
+            "/api/v1/system/directory/workspaces",
+            params={"ordering": "-credit_risk"},
+        )
+        plan_res = await client.get(
+            "/api/v1/system/directory/workspaces",
+            params={"plan_code": plan.code},
+        )
+        status_res = await client.get(
+            "/api/v1/system/directory/workspaces",
+            params={"subscription_status": SubscriptionStatus.PAST_DUE.value},
+        )
+        healthy_res = await client.get(
+            "/api/v1/system/directory/workspaces",
+            params={"commerce_risk": "healthy"},
+        )
+        activity_res = await client.get(
+            "/api/v1/system/directory/workspaces",
+            params={
+                "activity_from": (healthy_activity_at - timedelta(minutes=1)).isoformat(),
+                "activity_to": (healthy_activity_at + timedelta(minutes=1)).isoformat(),
+            },
+        )
+        renewal_res = await client.get(
+            "/api/v1/system/directory/workspaces",
+            params={"ordering": "renewal_at", "plan_code": plan.code},
+        )
+
+    assert ordered_res.status_code == 200
+    ordered_items = ordered_res.json()["data"]["items"]
+    assert [item["commerce"]["risk"] for item in ordered_items] == [
+        "data_missing",
+        "attention_required",
+        "healthy",
+    ]
+    assert await WorkspaceSubscription.all().count() == subscriptions_before
+
+    assert plan_res.status_code == 200
+    plan_items = plan_res.json()["data"]["items"]
+    assert {item["name"] for item in plan_items} == {"Healthy Workspace", "Attention Workspace"}
+    healthy_item = next(item for item in plan_items if item["name"] == "Healthy Workspace")
+    assert healthy_item["commerce"]["dataState"] == "complete"
+    assert healthy_item["commerce"]["planCode"] == plan.code
+    assert healthy_item["commerce"]["credits"]["available"] == 75
+    assert healthy_item["commerce"]["usage"] == {
+        "periodCostMicros": 25_000,
+        "requests": 4,
+        "promptTokens": 120,
+        "completionTokens": 48,
+        "windowStart": period_start.isoformat().replace("+00:00", "Z"),
+        "windowEnd": healthy_period_end.isoformat().replace("+00:00", "Z"),
+        "coverage": "daily_rollup",
+        "observedFrom": "2026-07-04",
+        "observedTo": "2026-07-04",
+    }
+
+    assert status_res.status_code == 200
+    assert [item["name"] for item in status_res.json()["data"]["items"]] == ["Attention Workspace"]
+    assert healthy_res.status_code == 200
+    assert [item["name"] for item in healthy_res.json()["data"]["items"]] == ["Healthy Workspace"]
+    assert activity_res.status_code == 200
+    assert [item["name"] for item in activity_res.json()["data"]["items"]] == ["Healthy Workspace"]
+    assert renewal_res.status_code == 200
+    assert [item["name"] for item in renewal_res.json()["data"]["items"]] == [
+        "Attention Workspace",
+        "Healthy Workspace",
+    ]
+
+
+@pytest.mark.usefixtures("db")
+async def test_system_directory_project_operational_projection_filters_and_ordering() -> None:
+    owner = await User.create(
+        username="project-operations-owner",
+        email="project-operations-owner@example.com",
+        status=UserStatus.ACTIVE,
+        is_super_admin=True,
+    )
+    member = await User.create(
+        username="project-operations-member",
+        email="project-operations-member@example.com",
+        status=UserStatus.ACTIVE,
+    )
+    organization = await Organization.create(
+        name="Project Operations Org",
+        slug="project-operations-org",
+        kind=OrganizationKind.TEAM,
+        owner_user_id=owner.id,
+    )
+    workspace = await Workspace.create(
+        organization_id=organization.id,
+        name="Project Operations Workspace",
+        owner_user_id=owner.id,
+        created_by_user_id=owner.id,
+    )
+    healthy_project = await ProjectRecord.create(
+        workspace_id=workspace.id,
+        slug="healthy-project",
+        name="Healthy Project",
+        created_by_user_id=owner.id,
+    )
+    degraded_project = await ProjectRecord.create(
+        workspace_id=workspace.id,
+        slug="degraded-project",
+        name="Degraded Project",
+        created_by_user_id=owner.id,
+    )
+    unavailable_project = await ProjectRecord.create(
+        workspace_id=workspace.id,
+        slug="unavailable-project",
+        name="Unavailable Project",
+        created_by_user_id=owner.id,
+    )
+    await ProjectMembership.create(
+        project_id=healthy_project.id,
+        user_id=owner.id,
+        role=ProjectMemberRole.OWNER,
+        created_by_user_id=owner.id,
+    )
+    await ProjectMembership.create(
+        project_id=healthy_project.id,
+        user_id=member.id,
+        role=ProjectMemberRole.EDITOR,
+        created_by_user_id=owner.id,
+    )
+
+    async def create_runtime_state(
+        project: ProjectRecord,
+        *,
+        deployment_status: ProjectDeploymentStatus,
+        domain_ready: bool,
+        release_status: ContentReleaseStatus,
+    ) -> None:
+        runtime = await ProjectRuntimeRecord.get(project_id=project.id, kind=ProjectRuntimeKind.PRIMARY)
+        environment = await ProjectEnvironmentRecord.get(
+            project_id=project.id,
+            key=ProjectEnvironmentKey.PRODUCTION,
+        )
+        site = await SiteRecord.create(
+            workspace_id=workspace.id,
+            project_id=project.id,
+            runtime_id=runtime.id,
+            slug=f"{project.slug}-site",
+            name=f"{project.name} Site",
+            created_by_user_id=owner.id,
+        )
+        await ProjectDeploymentRecord.create(
+            project_id=project.id,
+            runtime_id=runtime.id,
+            environment_id=environment.id,
+            source_type=ProjectDeploymentSourceType.CMS_RUNTIME,
+            source_ref=f"{project.slug}-source",
+            status=deployment_status,
+            runtime_kind=ProjectDeploymentRuntimeKind.STATIC,
+            artifact_key=f"projects/{project.id}/artifact.zip",
+            is_active=True,
+            created_by_user_id=owner.id,
+        )
+        await DomainBindingRecord.create(
+            workspace_id=workspace.id,
+            project_id=project.id,
+            runtime_id=runtime.id,
+            site_id=site.id,
+            hostname=f"{project.slug}.example.test",
+            source=DomainBindingSource.CUSTOM,
+            target_type=DomainBindingTargetType.PROJECT_RUNTIME,
+            is_primary=True,
+            is_verified=domain_ready,
+            certificate_status=(
+                DomainBindingCertificateStatus.ISSUED if domain_ready else DomainBindingCertificateStatus.PENDING
+            ),
+            created_by_user_id=owner.id,
+        )
+        await ContentReleaseRecord.create(
+            workspace_id=workspace.id,
+            site_id=site.id,
+            release_number=1,
+            status=release_status,
+            is_active=release_status == ContentReleaseStatus.ACTIVE,
+            created_by_user_id=owner.id,
+        )
+
+    await create_runtime_state(
+        healthy_project,
+        deployment_status=ProjectDeploymentStatus.READY,
+        domain_ready=True,
+        release_status=ContentReleaseStatus.ACTIVE,
+    )
+    await create_runtime_state(
+        degraded_project,
+        deployment_status=ProjectDeploymentStatus.FAILED,
+        domain_ready=False,
+        release_status=ContentReleaseStatus.SCHEDULED,
+    )
+    activity_at = datetime.now(UTC) + timedelta(minutes=1)
+    await AuditEvent.create(
+        occurred_at=activity_at,
+        event_name="project.operations.tested",
+        workspace_id=workspace.id,
+        project_id=healthy_project.id,
+        actor_user_id=owner.id,
+        source="test",
+    )
+    await AIAuditLog.create(
+        correlation_id=uuid4(),
+        workspace_id=workspace.id,
+        project_id=healthy_project.id,
+        user_id=owner.id,
+        source=AuditLogSource.AGENT,
+        provider="openai",
+        model="project-directory-test",
+        request_type="chat",
+        prompt_tokens=120,
+        completion_tokens=48,
+        cost_micros=25_000,
+        duration_ms=100,
+        status=AuditLogStatus.SUCCESS,
+    )
+    await ProjectRecord.filter(id=healthy_project.id).update(updated_at=activity_at)
+
+    app = await _build_app()
+
+    async def _super_admin_override() -> DummyUser:
+        return DummyUser()
+
+    app.dependency_overrides[get_current_user] = _super_admin_override
+    app.dependency_overrides[require_super_admin] = _super_admin_override
+
+    async with asgi_client(app) as client:
+        projects_res = await client.get("/api/v1/system/directory/projects")
+        degraded_res = await client.get(
+            "/api/v1/system/directory/projects",
+            params={"runtime_health": "degraded"},
+        )
+        domain_res = await client.get(
+            "/api/v1/system/directory/projects",
+            params={"domain_state": "attention_required"},
+        )
+        unreleased_res = await client.get(
+            "/api/v1/system/directory/projects",
+            params={"release_state": "not_released"},
+        )
+        members_res = await client.get(
+            "/api/v1/system/directory/projects",
+            params={"ordering": "-member_count"},
+        )
+
+    assert projects_res.status_code == 200
+    items = projects_res.json()["data"]["items"]
+    healthy_item = next(item for item in items if item["name"] == "Healthy Project")
+    assert healthy_item["operations"]["health"] == "healthy"
+    assert healthy_item["operations"]["domainState"] == "ready"
+    assert healthy_item["operations"]["releaseState"] == "active"
+    assert healthy_item["operations"]["usage"]["coverage"] == "ai_audit_log"
+    assert healthy_item["operations"]["usage"]["requests"] == 1
+    assert healthy_item["operations"]["usage"]["costMicros"] == 25_000
+    assert healthy_item["lastActivityAt"] == activity_at.isoformat().replace("+00:00", "Z")
+    assert healthy_item["operations"]["lastActivitySource"] == "audit_event"
+    assert [item["name"] for item in degraded_res.json()["data"]["items"]] == ["Degraded Project"]
+    assert [item["name"] for item in domain_res.json()["data"]["items"]] == ["Degraded Project"]
+    assert [item["name"] for item in unreleased_res.json()["data"]["items"]] == ["Unavailable Project"]
+    assert members_res.json()["data"]["items"][0]["name"] == "Healthy Project"
+
+
+@pytest.mark.usefixtures("db")
 async def test_system_directory_workspace_and_project_lists_include_owner_and_icon_fields() -> None:
     owner = await User.create(
         username="icon-owner",
@@ -456,6 +876,141 @@ async def test_system_directory_user_filters_and_sorting() -> None:
 
 
 @pytest.mark.usefixtures("db")
+async def test_system_directory_user_time_membership_and_ownership_filters() -> None:
+    owner = await User.create(
+        username="relationship-owner",
+        email="relationship-owner@example.com",
+        status=UserStatus.ACTIVE,
+        is_super_admin=True,
+        last_login_at=datetime(2026, 7, 12, 8, tzinfo=UTC),
+    )
+    member = await User.create(
+        username="relationship-member",
+        email="relationship-member@example.com",
+        status=UserStatus.ACTIVE,
+        last_login_at=datetime(2026, 6, 12, 8, tzinfo=UTC),
+    )
+    outsider = await User.create(
+        username="relationship-outsider",
+        email="relationship-outsider@example.com",
+        status=UserStatus.ACTIVE,
+    )
+    await User.filter(id=owner.id).update(created_at=datetime(2026, 1, 1, tzinfo=UTC))
+    await User.filter(id=member.id).update(created_at=datetime(2026, 6, 1, tzinfo=UTC))
+    await User.filter(id=outsider.id).update(created_at=datetime(2026, 12, 1, tzinfo=UTC))
+
+    organization = await Organization.create(
+        name="Relationship Org",
+        slug="relationship-org",
+        kind=OrganizationKind.TEAM,
+        owner_user_id=owner.id,
+    )
+    workspace = await Workspace.create(
+        organization_id=organization.id,
+        name="Relationship Workspace",
+        owner_user_id=owner.id,
+        created_by_user_id=owner.id,
+    )
+    project = await ProjectRecord.create(
+        workspace_id=workspace.id,
+        slug="relationship-project",
+        name="Relationship Project",
+        created_by_user_id=owner.id,
+    )
+    owner_membership = await WorkspaceMembership.create(
+        workspace_id=workspace.id,
+        user_id=owner.id,
+        status=WorkspaceMembershipStatus.ACTIVE,
+    )
+    await WorkspaceMembership.create(
+        workspace_id=workspace.id,
+        user_id=member.id,
+        status=WorkspaceMembershipStatus.ACTIVE,
+    )
+    owner_role = await SystemRole.get(workspace_id=workspace.id, code="owner")
+    await WorkspaceMembershipRole.create(membership_id=owner_membership.id, role_id=owner_role.id)
+    await ProjectMembership.create(
+        project_id=project.id,
+        user_id=owner.id,
+        role=ProjectMemberRole.OWNER,
+        created_by_user_id=owner.id,
+    )
+    await ProjectMembership.create(
+        project_id=project.id,
+        user_id=member.id,
+        role=ProjectMemberRole.EDITOR,
+        created_by_user_id=owner.id,
+    )
+
+    app = await _build_app()
+
+    async def _super_admin_override() -> DummyUser:
+        return DummyUser()
+
+    app.dependency_overrides[get_current_user] = _super_admin_override
+    app.dependency_overrides[require_super_admin] = _super_admin_override
+
+    async with asgi_client(app) as client:
+        created_res = await client.get(
+            "/api/v1/system/directory/users",
+            params={
+                "created_from": "2026-05-01T00:00:00Z",
+                "created_to": "2026-07-01T00:00:00Z",
+            },
+        )
+        last_login_res = await client.get(
+            "/api/v1/system/directory/users",
+            params={
+                "last_login_from": "2026-07-01T00:00:00Z",
+                "last_login_to": "2026-08-01T00:00:00Z",
+            },
+        )
+        workspace_members_res = await client.get(
+            "/api/v1/system/directory/users",
+            params={"workspace_member_of_id": encode_uuid(workspace.id)},
+        )
+        project_members_res = await client.get(
+            "/api/v1/system/directory/users",
+            params={"project_member_of_id": encode_uuid(project.id)},
+        )
+        workspace_owner_res = await client.get(
+            "/api/v1/system/directory/users",
+            params={"owned_workspace_id": encode_uuid(workspace.id)},
+        )
+        project_owner_res = await client.get(
+            "/api/v1/system/directory/users",
+            params={"owned_project_id": encode_uuid(project.id)},
+        )
+        unknown_owner_res = await client.get(
+            "/api/v1/system/directory/users",
+            params={"owned_project_id": encode_uuid(uuid4())},
+        )
+        invalid_range_res = await client.get(
+            "/api/v1/system/directory/users",
+            params={
+                "created_from": "2026-08-01T00:00:00Z",
+                "created_to": "2026-07-01T00:00:00Z",
+            },
+        )
+
+    assert created_res.status_code == 200
+    assert [item["username"] for item in created_res.json()["data"]["items"]] == ["relationship-member"]
+    assert [item["username"] for item in last_login_res.json()["data"]["items"]] == ["relationship-owner"]
+    assert {item["username"] for item in workspace_members_res.json()["data"]["items"]} == {
+        "relationship-owner",
+        "relationship-member",
+    }
+    assert {item["username"] for item in project_members_res.json()["data"]["items"]} == {
+        "relationship-owner",
+        "relationship-member",
+    }
+    assert [item["username"] for item in workspace_owner_res.json()["data"]["items"]] == ["relationship-owner"]
+    assert [item["username"] for item in project_owner_res.json()["data"]["items"]] == ["relationship-owner"]
+    assert unknown_owner_res.json()["data"]["items"] == []
+    assert invalid_range_res.status_code == 422
+
+
+@pytest.mark.usefixtures("db")
 async def test_system_directory_returns_entity_details() -> None:
     owner = await User.create(
         username="detail-owner",
@@ -506,6 +1061,30 @@ async def test_system_directory_returns_entity_details() -> None:
         role=ProjectMemberRole.OWNER,
         created_by_user_id=owner.id,
     )
+    activity_at = datetime.now(UTC)
+    audit_event = await AuditEvent.create(
+        occurred_at=activity_at,
+        event_name="user.detail.reviewed",
+        actor_user_id=owner.id,
+        source="api",
+    )
+    feedback = await FeedbackTicket.create(
+        reporter_user_id=owner.id,
+        client_request_id="detail-feedback-request",
+        submission_fingerprint="detail-feedback-fingerprint",
+        reporter_email=owner.email,
+        reporter_username=owner.username,
+        reporter_display_name=owner.display_name,
+        reporter_avatar_url=owner.avatar_url,
+        source=FeedbackSource.HEADER,
+        context_type=FeedbackContextType.GLOBAL,
+        intent=FeedbackIntent.PROBLEM,
+        category=FeedbackCategory.OTHER,
+        message="Investigate this account issue.",
+        status=FeedbackStatus.NEW,
+        priority=FeedbackPriority.NORMAL,
+        last_activity_at=activity_at,
+    )
 
     app = await _build_app()
 
@@ -524,7 +1103,16 @@ async def test_system_directory_returns_entity_details() -> None:
     assert workspace_res.status_code == 200
     assert project_res.status_code == 200
 
-    assert user_res.json()["data"]["avatarUrl"] == "/assets/detail-owner-avatar"
+    user_detail = user_res.json()["data"]
+    assert user_detail["avatarUrl"] == "/assets/detail-owner-avatar"
+    assert user_detail["ownedWorkspaceCount"] == 1
+    assert user_detail["ownedProjectCount"] == 1
+    assert user_detail["workspaceMemberships"][0]["workspaceName"] == "Detail Workspace"
+    assert user_detail["workspaceMemberships"][0]["isOwner"] is True
+    assert user_detail["projectMemberships"][0]["projectName"] == "Detail Project"
+    assert user_detail["recentAuditActivity"][0]["eventId"] == encode_uuid(audit_event.id)
+    assert user_detail["recentFeedbackActivity"][0]["feedbackId"] == encode_uuid(feedback.id)
+    assert user_detail["restrictionHistory"] == []
     assert workspace_res.json()["data"]["iconUrl"] == "/assets/detail-workspace-icon"
     assert project_res.json()["data"]["iconUrl"] == "/assets/detail-project-icon"
     assert workspace_res.json()["data"]["owner"]["avatarUrl"] == "/assets/detail-owner-avatar"
@@ -616,8 +1204,16 @@ async def test_system_directory_user_governance_actions_update_account_and_sessi
         unlink_oauth_res = await client.delete(
             f"/api/v1/system/directory/users/{user_id}/oauth-identities/google",
         )
-        disable_res = await client.post(f"/api/v1/system/directory/users/{user_id}/disable")
-        enable_res = await client.post(f"/api/v1/system/directory/users/{user_id}/enable")
+        disable_res = await client.post(
+            f"/api/v1/system/directory/users/{user_id}/disable",
+            json=_restriction_enforce_payload(0, "Disable managed user in directory test."),
+            headers={"Idempotency-Key": "directory-user-disable"},
+        )
+        enable_res = await client.post(
+            f"/api/v1/system/directory/users/{user_id}/enable",
+            json=_restriction_lift_payload(1, "Enable managed user in directory test."),
+            headers={"Idempotency-Key": "directory-user-enable"},
+        )
 
     assert profile_res.status_code == 200
     assert profile_res.json()["data"]["displayName"] == "Managed Renamed"
@@ -641,7 +1237,7 @@ async def test_system_directory_user_governance_actions_update_account_and_sessi
     assert updated.email == "managed2@example.com"
     assert updated.avatar_url is None
     assert updated.status == UserStatus.ACTIVE
-    assert updated.token_version == 4
+    assert updated.token_version == 5
     updated_credential = await UserCredential.get_or_none(user_id=managed_user.id)
     assert updated_credential is not None
     assert verify_password("new_password_123", updated_credential.password_hash, settings.auth)
@@ -678,7 +1274,11 @@ async def test_system_directory_user_governance_rejects_email_conflict_and_self_
             f"/api/v1/system/directory/users/{managed_user.id}",
             json={"email": "self-admin@example.com"},
         )
-        self_disable_res = await client.post(f"/api/v1/system/directory/users/{acting_admin.id}/disable")
+        self_disable_res = await client.post(
+            f"/api/v1/system/directory/users/{acting_admin.id}/disable",
+            json=_restriction_enforce_payload(0, "Attempt self disable in directory test."),
+            headers={"Idempotency-Key": "directory-user-self-disable"},
+        )
 
     assert conflict_res.status_code == 409
     assert conflict_res.json()["error"] == "EMAIL_EXISTS"
@@ -745,6 +1345,8 @@ async def test_system_directory_user_governance_manages_super_admin_continuity()
         )
         last_disable_res = await client.post(
             f"/api/v1/system/directory/users/{acting_admin.id}/disable",
+            json=_restriction_enforce_payload(0, "Attempt to disable final super admin."),
+            headers={"Idempotency-Key": "directory-last-super-admin-disable"},
         )
         last_delete_res = await client.delete(
             f"/api/v1/system/directory/users/{acting_admin.id}",
@@ -1117,7 +1719,7 @@ async def test_system_directory_filters_and_governs_workspaces_and_projects() ->
         description="Already archived",
         owner_user_id=owner.id,
         created_by_user_id=owner.id,
-        is_active=False,
+        is_active=True,
         archived_at=datetime(2026, 4, 2, 8, 0, 0),
         archived_by_user_id=acting_admin.id,
     )
@@ -1135,7 +1737,30 @@ async def test_system_directory_filters_and_governs_workspaces_and_projects() ->
         name="Disabled Project",
         description="Disabled project",
         created_by_user_id=owner.id,
-        is_active=False,
+        is_active=True,
+    )
+    restriction_effective_at = datetime(2026, 4, 2, 8, 0, 0)
+    await AccessRestrictionRecord.create(
+        entity_type=AccessRestrictionEntityType.WORKSPACE,
+        entity_id=archived_workspace.id,
+        restriction_type=AccessRestrictionType.WORKSPACE_ARCHIVED,
+        state=AccessRestrictionState.ACTIVE,
+        reason_category=AccessRestrictionReasonCategory.OWNER_REQUEST,
+        reason_code="owner_request",
+        operator_note="Existing archived workspace fixture.",
+        effective_at=restriction_effective_at,
+        revision=1,
+    )
+    await AccessRestrictionRecord.create(
+        entity_type=AccessRestrictionEntityType.PROJECT,
+        entity_id=disabled_project.id,
+        restriction_type=AccessRestrictionType.PROJECT_SUSPENDED,
+        state=AccessRestrictionState.ACTIVE,
+        reason_category=AccessRestrictionReasonCategory.POLICY_VIOLATION,
+        reason_code="policy_violation",
+        operator_note="Existing suspended project fixture.",
+        effective_at=restriction_effective_at,
+        revision=1,
     )
     await WorkspaceMembership.create(
         workspace_id=workspace.id,
@@ -1161,9 +1786,25 @@ async def test_system_directory_filters_and_governs_workspaces_and_projects() ->
             "/api/v1/system/directory/workspaces",
             params={"is_archived": True},
         )
+        workspace_owner_res = await client.get(
+            "/api/v1/system/directory/workspaces",
+            params={"owner_user_id": encode_uuid(owner.id)},
+        )
+        workspace_unknown_owner_res = await client.get(
+            "/api/v1/system/directory/workspaces",
+            params={"owner_user_id": encode_uuid(uuid4())},
+        )
         project_workspace_res = await client.get(
             "/api/v1/system/directory/projects",
             params={"workspace_id": str(workspace.id)},
+        )
+        project_owner_res = await client.get(
+            "/api/v1/system/directory/projects",
+            params={"owner_user_id": encode_uuid(owner.id)},
+        )
+        project_unknown_owner_res = await client.get(
+            "/api/v1/system/directory/projects",
+            params={"owner_user_id": encode_uuid(uuid4())},
         )
         project_inactive_res = await client.get(
             "/api/v1/system/directory/projects",
@@ -1180,10 +1821,26 @@ async def test_system_directory_filters_and_governs_workspaces_and_projects() ->
                 "iconColor": "#112233",
             },
         )
-        archive_workspace_res = await client.post(f"/api/v1/system/directory/workspaces/{workspace.id}/archive")
-        restore_workspace_res = await client.post(f"/api/v1/system/directory/workspaces/{workspace.id}/restore")
-        disable_workspace_res = await client.post(f"/api/v1/system/directory/workspaces/{workspace.id}/disable")
-        enable_workspace_res = await client.post(f"/api/v1/system/directory/workspaces/{workspace.id}/enable")
+        archive_workspace_res = await client.post(
+            f"/api/v1/system/directory/workspaces/{workspace.id}/archive",
+            json=_restriction_enforce_payload(0, "Archive workspace in directory test."),
+            headers={"Idempotency-Key": "directory-workspace-archive"},
+        )
+        restore_workspace_res = await client.post(
+            f"/api/v1/system/directory/workspaces/{workspace.id}/restore",
+            json=_restriction_lift_payload(1, "Restore workspace in directory test."),
+            headers={"Idempotency-Key": "directory-workspace-restore"},
+        )
+        disable_workspace_res = await client.post(
+            f"/api/v1/system/directory/workspaces/{workspace.id}/disable",
+            json=_restriction_enforce_payload(0, "Suspend workspace in directory test."),
+            headers={"Idempotency-Key": "directory-workspace-disable"},
+        )
+        enable_workspace_res = await client.post(
+            f"/api/v1/system/directory/workspaces/{workspace.id}/enable",
+            json=_restriction_lift_payload(1, "Restore suspended workspace in directory test."),
+            headers={"Idempotency-Key": "directory-workspace-enable"},
+        )
 
         update_project_res = await client.patch(
             f"/api/v1/system/directory/projects/{project.id}",
@@ -1196,8 +1853,16 @@ async def test_system_directory_filters_and_governs_workspaces_and_projects() ->
                 "iconColor": "#334455",
             },
         )
-        disable_project_res = await client.post(f"/api/v1/system/directory/projects/{project.id}/disable")
-        enable_project_res = await client.post(f"/api/v1/system/directory/projects/{project.id}/enable")
+        disable_project_res = await client.post(
+            f"/api/v1/system/directory/projects/{project.id}/disable",
+            json=_restriction_enforce_payload(0, "Suspend project in directory test."),
+            headers={"Idempotency-Key": "directory-project-disable"},
+        )
+        enable_project_res = await client.post(
+            f"/api/v1/system/directory/projects/{project.id}/enable",
+            json=_restriction_lift_payload(1, "Restore project in directory test."),
+            headers={"Idempotency-Key": "directory-project-enable"},
+        )
         delete_project_res = await client.request(
             "DELETE",
             f"/api/v1/system/directory/projects/{disabled_project.id}",
@@ -1206,12 +1871,26 @@ async def test_system_directory_filters_and_governs_workspaces_and_projects() ->
 
     assert workspace_archived_res.status_code == 200
     assert [item["name"] for item in workspace_archived_res.json()["data"]["items"]] == ["Archived Workspace"]
+    assert workspace_owner_res.status_code == 200
+    assert {item["name"] for item in workspace_owner_res.json()["data"]["items"]} == {
+        "Zulu Workspace",
+        "Archived Workspace",
+    }
+    assert workspace_unknown_owner_res.status_code == 200
+    assert workspace_unknown_owner_res.json()["data"]["items"] == []
 
     assert project_workspace_res.status_code == 200
     assert {item["name"] for item in project_workspace_res.json()["data"]["items"]} == {
         "Zulu Project",
         "Disabled Project",
     }
+    assert project_owner_res.status_code == 200
+    assert {item["name"] for item in project_owner_res.json()["data"]["items"]} == {
+        "Zulu Project",
+        "Disabled Project",
+    }
+    assert project_unknown_owner_res.status_code == 200
+    assert project_unknown_owner_res.json()["data"]["items"] == []
     assert project_inactive_res.status_code == 200
     assert [item["name"] for item in project_inactive_res.json()["data"]["items"]] == ["Disabled Project"]
 
@@ -1224,7 +1903,13 @@ async def test_system_directory_filters_and_governs_workspaces_and_projects() ->
     assert restore_workspace_res.status_code == 200
     assert restore_workspace_res.json()["data"]["isArchived"] is False
     assert disable_workspace_res.status_code == 200
-    assert disable_workspace_res.json()["data"]["isActive"] is False
+    assert disable_workspace_res.json()["data"]["isActive"] is True
+    workspace_suspension = next(
+        restriction
+        for restriction in disable_workspace_res.json()["data"]["restrictions"]
+        if restriction["restrictionType"] == "workspace_suspended"
+    )
+    assert workspace_suspension["state"] == "active"
     assert enable_workspace_res.status_code == 200
     assert enable_workspace_res.json()["data"]["isActive"] is True
 
@@ -1233,7 +1918,13 @@ async def test_system_directory_filters_and_governs_workspaces_and_projects() ->
     assert update_project_res.json()["data"]["slug"] == "alpha-project"
     assert update_project_res.json()["data"]["iconGlyph"] == "rocket"
     assert disable_project_res.status_code == 200
-    assert disable_project_res.json()["data"]["isActive"] is False
+    assert disable_project_res.json()["data"]["isActive"] is True
+    project_suspension = next(
+        restriction
+        for restriction in disable_project_res.json()["data"]["restrictions"]
+        if restriction["restrictionType"] == "project_suspended"
+    )
+    assert project_suspension["state"] == "active"
     assert enable_project_res.status_code == 200
     assert enable_project_res.json()["data"]["isActive"] is True
     assert delete_project_res.status_code == 200

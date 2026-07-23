@@ -230,12 +230,20 @@ async def test_workspace_email_invite_pending_unique_and_accept(
             )
             assert resp.status_code == 200
             lifecycle_invite_id = resp.json()["data"]["invitation"]["id"]
+            lifecycle_token = resp.json()["data"]["token"]
 
             resp = await client.post(
                 f"/api/v1/workspaces/{ws_pid}/team/email-invites/{lifecycle_invite_id}/renew",
                 json={"expiresInSeconds": 7200},
             )
             assert resp.status_code == 200
+            renewed_lifecycle_token = resp.json()["data"]["token"]
+            assert renewed_lifecycle_token != lifecycle_token
+            old_preview = await client.get(
+                "/api/v1/auth/invitations/preview",
+                params={"token": lifecycle_token},
+            )
+            assert old_preview.status_code == 404
             renewed_event = await _wait_latest_workspace_audit_event(
                 event_name="workspace.invite.email.renewed",
                 workspace_id=ws.id,
@@ -284,6 +292,50 @@ async def test_workspace_email_invite_pending_unique_and_accept(
             data = resp.json()["data"]
             assert data["projectId"] is None
             assert await ProjectRecord.filter(workspace_id=ws.id).count() == 0
+            organization_membership = await OrgMembership.get(
+                organization_id=org.id,
+                user_id=invitee.id,
+            )
+            assert organization_membership.role == OrgRole.MEMBER
+            assert organization_membership.role_code == OrgRole.MEMBER.value
+
+            accepted_invite = await WorkspaceEmailInvite.get(id=invite_row.id)
+            first_accepted_at = accepted_invite.accepted_at
+            first_audit_count = await AuditEvent.filter(
+                event_name="workspace.invite.accepted",
+                workspace_id=ws.id,
+                actor_user_id=invitee.id,
+            ).count()
+            first_notification_count = await NotificationRecord.filter(
+                workspace_id=ws.id,
+                recipient_user_id=owner.id,
+                event_name="workspace.invitation.accepted",
+            ).count()
+
+            repeated = await client.post(
+                "/api/v1/auth/invitations/accept-existing",
+                json={"token": token1},
+            )
+            assert repeated.status_code == 200, repeated.text
+            assert repeated.json()["data"] == data
+            await accepted_invite.refresh_from_db()
+            assert accepted_invite.accepted_at == first_accepted_at
+            assert (
+                await AuditEvent.filter(
+                    event_name="workspace.invite.accepted",
+                    workspace_id=ws.id,
+                    actor_user_id=invitee.id,
+                ).count()
+                == first_audit_count
+            )
+            assert (
+                await NotificationRecord.filter(
+                    workspace_id=ws.id,
+                    recipient_user_id=owner.id,
+                    event_name="workspace.invitation.accepted",
+                ).count()
+                == first_notification_count
+            )
 
             # Accepted list should include it.
             current_user = owner
@@ -408,6 +460,7 @@ async def test_workspace_email_invite_pending_unique_and_accept(
 
             renew_fail_invite = await WorkspaceEmailInvite.get(workspace_id=ws.id, email=renew_fail_email)
             renew_fail_before_expires = renew_fail_invite.expires_at
+            renew_fail_before_code = renew_fail_invite.code
             with pytest.raises(RuntimeError, match="forced activity write failure: workspace.invite.email.renewed"):
                 await client.post(
                     f"/api/v1/workspaces/{ws_pid}/team/email-invites/{encode_uuid(renew_fail_invite.id)}/renew",
@@ -415,6 +468,7 @@ async def test_workspace_email_invite_pending_unique_and_accept(
                 )
             renew_fail_after = await WorkspaceEmailInvite.get(id=renew_fail_invite.id)
             assert renew_fail_after.expires_at == renew_fail_before_expires
+            assert renew_fail_after.code == renew_fail_before_code
             assert (
                 await AuditEvent.filter(
                     event_name="workspace.invite.email.renewed",
@@ -625,6 +679,7 @@ async def test_workspace_invite_link_disable_blocks_accept(
             assert resp.status_code == 200
             ordered_links_items = resp.json()["data"]["items"]
             assert ordered_links_items[0]["id"] == latest_link_id
+            assert all("token" not in item and "inviteUrl" not in item for item in ordered_links_items)
 
             # Renew should write operation-level Activity in the same mutation family.
             resp = await client.post(
@@ -632,6 +687,13 @@ async def test_workspace_invite_link_disable_blocks_accept(
                 json={"expiresInSeconds": 7200},
             )
             assert resp.status_code == 200
+            renewed_token = resp.json()["data"]["token"]
+            assert renewed_token != token
+            old_preview = await client.get(
+                "/api/v1/auth/invitations/preview",
+                params={"token": token},
+            )
+            assert old_preview.status_code == 404
             renewed_event = await _wait_latest_workspace_audit_event(
                 event_name="workspace.invite.link.renewed",
                 workspace_id=ws.id,
@@ -651,9 +713,28 @@ async def test_workspace_invite_link_disable_blocks_accept(
             assert disabled_event.workspace_id == ws.id
             assert disabled_event.actor_user_id == owner.id
 
+            active_links = await client.get(
+                f"/api/v1/workspaces/{ws_pid}/team/invite-links",
+                params={"status": "active", "role_code": "admin", "page": 1, "size": 10},
+            )
+            assert active_links.status_code == 200, active_links.text
+            active_link_ids = {item["id"] for item in active_links.json()["data"]["items"]}
+            assert link_id not in active_link_ids
+            assert latest_link_id in active_link_ids
+
+            disabled_links = await client.get(
+                f"/api/v1/workspaces/{ws_pid}/team/invite-links",
+                params={"status": "disabled", "role_code": "admin", "page": 1, "size": 10},
+            )
+            assert disabled_links.status_code == 200, disabled_links.text
+            assert link_id in {item["id"] for item in disabled_links.json()["data"]["items"]}
+
             # Accept should fail.
             current_user = invitee
-            resp = await client.post("/api/v1/auth/invitations/accept-existing", json={"token": token})
+            resp = await client.post(
+                "/api/v1/auth/invitations/accept-existing",
+                json={"token": renewed_token},
+            )
             assert resp.status_code == 403
 
             current_user = owner
@@ -717,6 +798,7 @@ async def test_workspace_invite_link_disable_blocks_accept(
 
             renew_fail_link = await WorkspaceInviteLink.get(id=decode_public_id(link_id))
             renew_fail_before_expires = renew_fail_link.expires_at
+            renew_fail_before_code = renew_fail_link.code
             with pytest.raises(RuntimeError, match="forced activity write failure: workspace.invite.link.renewed"):
                 await client.post(
                     f"/api/v1/workspaces/{ws_pid}/team/invite-links/{link_id}/renew",
@@ -724,6 +806,7 @@ async def test_workspace_invite_link_disable_blocks_accept(
                 )
             renew_fail_after = await WorkspaceInviteLink.get(id=renew_fail_link.id)
             assert renew_fail_after.expires_at == renew_fail_before_expires
+            assert renew_fail_after.code == renew_fail_before_code
             assert (
                 await AuditEvent.filter(
                     event_name="workspace.invite.link.renewed",

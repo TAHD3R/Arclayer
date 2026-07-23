@@ -120,7 +120,7 @@ async def test_existing_invitation_completes_pending_onboarding_in_acceptance_tr
     monkeypatch.setattr(acceptance_module, "create_notification_record", AsyncMock())
     monkeypatch.setattr(
         service.workspace_repo,
-        "get_by_id_in_connection",
+        "get_by_id_for_update",
         AsyncMock(
             return_value=SimpleNamespace(
                 organization_id=organization_id,
@@ -129,6 +129,7 @@ async def test_existing_invitation_completes_pending_onboarding_in_acceptance_tr
             )
         ),
     )
+    monkeypatch.setattr(service, "_require_workspace_unrestricted", AsyncMock())
     monkeypatch.setattr(
         service.project_repo,
         "get_first_project_by_workspace_id",

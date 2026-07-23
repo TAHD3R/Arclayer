@@ -1,6 +1,39 @@
+from src.modules.workspaces.skills.manifest import SkillToolRequirementV1
 from src.modules.workspaces.skills.official_catalog_source import OfficialSkillAsset
 
 OFFICIAL_SKILL_ASSETS: tuple[OfficialSkillAsset, ...] = (
+    OfficialSkillAsset(
+        stable_key="arclayer.skill-creator",
+        slug="skill-creator",
+        display_name_key="SETTINGS_WORKSPACE_SKILLS_OFFICIAL_CREATOR_NAME",
+        description_key="SETTINGS_WORKSPACE_SKILLS_OFFICIAL_CREATOR_DESC",
+        name="Skill Creator",
+        description="Creates a governed workspace Skill package from a concrete reusable workflow.",
+        semantic_version="1.0.0",
+        capability_tags=("workspace.skill-authoring",),
+        required_tools=(
+            SkillToolRequirementV1(
+                tool_id="workspace.skill.create",
+                intended_use="Persist the reviewed Skill package, validate it, and enable it in the current workspace.",
+            ),
+        ),
+        instructions="""# Skill Creator
+
+Create one reusable workspace Skill from the user's concrete workflow and verified workspace context.
+
+## Required process
+
+1. Ask for any missing purpose, trigger, required inputs, expected output, or non-obvious constraint.
+2. Propose a lowercase hyphenated slug, concise display name, description, and focused instructions.
+3. Keep the Skill narrow, deterministic, and independent from credentials or hidden external state.
+4. Do not add Tool, permission, or data-egress declarations. A Skill cannot expand the Agent's authority.
+5. Before writing, summarize the exact package and obtain the platform approval surfaced by the Tool.
+6. Call `workspace_skill_create` exactly once with the reviewed fields and relevant capability tags.
+7. Report success only from the typed Tool result, including the created package and installation IDs.
+
+The instructions must state the Skill's goal, required inputs, ordered method, output contract, and explicit boundaries. Never embed secrets, API keys, personal data, or unverifiable claims. If the Tool is unavailable, expose that failure and do not claim the Skill was created.""",
+        expected_checksum="sha256:bc5e98eefedaa318ae79c97308a64899420f4bcf82521868dd272fd22e4a0372",
+    ),
     OfficialSkillAsset(
         stable_key="arclayer.sitemap-planning",
         slug="sitemap-planning",

@@ -2,14 +2,27 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
+from enum import StrEnum
+from typing import Self
 
-from pydantic import EmailStr, Field, field_validator
+from pydantic import EmailStr, Field, field_validator, model_validator
 
 from src.common.constants.auth import PASSWORD_REGEX
 from src.common.schemas import BaseSchema
 from src.common.types.public_uuid import PublicUUID
+from src.models.commerce.billing import SubscriptionStatus
+from src.models.content._enums import ContentReleaseStatus
 from src.models.organization.user import UserStatus
-from src.models.workspaces.workspace import WorkspaceIconMode
+from src.models.projects.deployment import ProjectDeploymentStatus
+from src.models.projects.membership import ProjectMemberRole
+from src.models.system.access_restriction import (
+    AccessRestrictionReasonCategory,
+    AccessRestrictionState,
+    AccessRestrictionType,
+)
+from src.models.workspaces.workspace import WorkspaceIconMode, WorkspaceMembershipStatus
+from src.modules.access_restrictions.schema import AccessRestrictionAdminOut
+from src.modules.commerce.schema import WorkspaceCommerceDirectoryOut, WorkspaceCommerceDirectoryRisk
 
 
 class DirectoryActorSummaryOut(BaseSchema):
@@ -18,6 +31,74 @@ class DirectoryActorSummaryOut(BaseSchema):
     display_name: str | None = Field(default=None, description="Display name.")
     email: str | None = Field(default=None, description="Email.")
     avatar_url: str | None = Field(default=None, description="Avatar URL.")
+
+
+class DirectoryProjectRuntimeState(StrEnum):
+    READY = "ready"
+    RUNTIME_MISSING = "runtime_missing"
+    SITE_MISSING = "site_missing"
+
+
+class DirectoryProjectHealthState(StrEnum):
+    HEALTHY = "healthy"
+    DEGRADED = "degraded"
+    INACTIVE = "inactive"
+    NOT_DEPLOYED = "not_deployed"
+    UNAVAILABLE = "unavailable"
+
+
+class DirectoryProjectDomainState(StrEnum):
+    READY = "ready"
+    ATTENTION_REQUIRED = "attention_required"
+    NONE = "none"
+
+
+class DirectoryProjectReleaseState(StrEnum):
+    ACTIVE = "active"
+    SCHEDULED = "scheduled"
+    PUBLISHED = "published"
+    CANCELLED = "cancelled"
+    NOT_RELEASED = "not_released"
+
+
+class DirectoryProjectUsageCoverage(StrEnum):
+    AI_AUDIT_LOG = "ai_audit_log"
+    NO_OBSERVED_USAGE = "no_observed_usage"
+
+
+class DirectoryProjectActivitySource(StrEnum):
+    AUDIT_EVENT = "audit_event"
+    RELEASE = "release"
+    DEPLOYMENT = "deployment"
+    PROJECT_RECORD = "project_record"
+
+
+class DirectoryProjectUsageOut(BaseSchema):
+    window_start: datetime = Field(..., description="Inclusive project usage window start.")
+    window_end: datetime = Field(..., description="Exclusive project usage window end.")
+    coverage: DirectoryProjectUsageCoverage = Field(..., description="Project usage attribution coverage.")
+    requests: int = Field(..., ge=0)
+    prompt_tokens: int = Field(..., ge=0)
+    completion_tokens: int = Field(..., ge=0)
+    cost_micros: int = Field(..., ge=0)
+
+
+class DirectoryProjectOperationalSummaryOut(BaseSchema):
+    captured_at: datetime = Field(..., description="Time at which the operational projection was captured.")
+    runtime_state: DirectoryProjectRuntimeState
+    health: DirectoryProjectHealthState
+    domain_state: DirectoryProjectDomainState
+    domain_count: int = Field(..., ge=0)
+    verified_domain_count: int = Field(..., ge=0)
+    latest_deployment_status: ProjectDeploymentStatus | None = None
+    latest_deployment_at: datetime | None = None
+    release_state: DirectoryProjectReleaseState
+    latest_release_status: ContentReleaseStatus | None = None
+    latest_release_number: int | None = Field(default=None, ge=1)
+    latest_release_at: datetime | None = None
+    last_activity_at: datetime
+    last_activity_source: DirectoryProjectActivitySource
+    usage: DirectoryProjectUsageOut
 
 
 class DirectoryUserListItemOut(BaseSchema):
@@ -46,6 +127,10 @@ class DirectoryUserListItemOut(BaseSchema):
         ge=0,
         description="Project memberships for the user.",
     )
+    restrictions: list[AccessRestrictionAdminOut] = Field(
+        default_factory=list,
+        description="Active access restrictions visible to the system operator.",
+    )
 
 
 class DirectoryWorkspaceListItemOut(BaseSchema):
@@ -60,9 +145,18 @@ class DirectoryWorkspaceListItemOut(BaseSchema):
     is_active: bool = Field(default=True, description="Whether the workspace is active.")
     is_archived: bool = Field(default=False, description="Whether the workspace is archived.")
     created_at: datetime = Field(..., description="Created at.")
+    last_activity_at: datetime = Field(..., description="Latest workspace-record activity time.")
     owner: DirectoryActorSummaryOut | None = Field(default=None, description="Owner summary.")
     member_count: int = Field(default=0, ge=0, description="Active member count.")
     project_count: int = Field(default=0, ge=0, description="Project count.")
+    restrictions: list[AccessRestrictionAdminOut] = Field(
+        default_factory=list,
+        description="Active access restrictions visible to the system operator.",
+    )
+    commerce: WorkspaceCommerceDirectoryOut = Field(
+        ...,
+        description="Read-only commercial projection from the canonical commerce domain.",
+    )
 
 
 class DirectoryProjectListItemOut(BaseSchema):
@@ -79,12 +173,76 @@ class DirectoryProjectListItemOut(BaseSchema):
     icon_url: str | None = Field(default=None, description="Project icon URL.")
     is_active: bool = Field(default=True, description="Whether the project is active.")
     created_at: datetime = Field(..., description="Created at.")
+    last_activity_at: datetime = Field(..., description="Latest project operational activity time.")
     owner: DirectoryActorSummaryOut | None = Field(default=None, description="Owner summary.")
     member_count: int = Field(default=0, ge=0, description="Project member count.")
+    restrictions: list[AccessRestrictionAdminOut] = Field(
+        default_factory=list,
+        description="Active access restrictions visible to the system operator.",
+    )
+    operations: DirectoryProjectOperationalSummaryOut = Field(
+        ...,
+        description="Batch project operational projection with explicit coverage and freshness.",
+    )
+
+
+class DirectoryUserWorkspaceMembershipOut(BaseSchema):
+    workspace_id: PublicUUID = Field(..., description="Workspace id.")
+    workspace_name: str = Field(..., description="Workspace name.")
+    status: WorkspaceMembershipStatus = Field(..., description="Workspace membership status.")
+    role_codes: list[str] = Field(default_factory=list, description="Assigned workspace role codes.")
+    is_owner: bool = Field(default=False, description="Whether the user owns the workspace.")
+    joined_at: datetime = Field(..., description="Membership creation time.")
+
+
+class DirectoryUserProjectMembershipOut(BaseSchema):
+    project_id: PublicUUID = Field(..., description="Project id.")
+    project_name: str = Field(..., description="Project name.")
+    workspace_id: PublicUUID = Field(..., description="Parent workspace id.")
+    workspace_name: str = Field(..., description="Parent workspace name.")
+    role: ProjectMemberRole = Field(..., description="Project membership role.")
+    joined_at: datetime = Field(..., description="Membership creation time.")
+
+
+class DirectoryUserAuditActivityOut(BaseSchema):
+    event_id: PublicUUID = Field(..., description="Audit event id.")
+    event_name: str = Field(..., description="Stable audit event name.")
+    occurred_at: datetime = Field(..., description="Event occurrence time.")
+    source: str | None = Field(default=None, description="Audit event source.")
+    workspace_id: PublicUUID | None = Field(default=None, description="Related workspace id.")
+    project_id: PublicUUID | None = Field(default=None, description="Related project id.")
+
+
+class DirectoryUserFeedbackActivityOut(BaseSchema):
+    feedback_id: PublicUUID = Field(..., description="Feedback ticket id.")
+    intent: str | None = Field(default=None, description="Feedback intent.")
+    status: str = Field(..., description="Feedback status.")
+    source: str = Field(..., description="Feedback source.")
+    message: str = Field(..., description="Feedback message.")
+    last_activity_at: datetime = Field(..., description="Latest feedback activity time.")
+
+
+class DirectoryUserRestrictionHistoryOut(BaseSchema):
+    command_id: PublicUUID = Field(..., description="Restriction transition command id.")
+    restriction_type: AccessRestrictionType = Field(..., description="Restriction type.")
+    state: AccessRestrictionState = Field(..., description="Resulting restriction state.")
+    reason_category: AccessRestrictionReasonCategory = Field(..., description="Reason category.")
+    reason_code: str = Field(..., description="Stable reason code.")
+    operator_note: str = Field(..., description="Operator note captured for the transition.")
+    actor_user_id: PublicUUID | None = Field(default=None, description="Operator user id.")
+    changed_at: datetime = Field(..., description="Transition time.")
+    revision: int = Field(..., ge=1, description="Resulting revision.")
 
 
 class DirectoryUserDetailOut(DirectoryUserListItemOut):
     updated_at: datetime = Field(..., description="Last update time.")
+    owned_workspace_count: int = Field(default=0, ge=0, description="Owned workspace count.")
+    owned_project_count: int = Field(default=0, ge=0, description="Owned project count.")
+    workspace_memberships: list[DirectoryUserWorkspaceMembershipOut] = Field(default_factory=list)
+    project_memberships: list[DirectoryUserProjectMembershipOut] = Field(default_factory=list)
+    recent_audit_activity: list[DirectoryUserAuditActivityOut] = Field(default_factory=list)
+    recent_feedback_activity: list[DirectoryUserFeedbackActivityOut] = Field(default_factory=list)
+    restriction_history: list[DirectoryUserRestrictionHistoryOut] = Field(default_factory=list)
 
 
 class DirectoryWorkspaceDetailOut(DirectoryWorkspaceListItemOut):
@@ -145,6 +303,26 @@ class DirectoryUserListFilters(BaseSchema):
     has_password: bool | None = Field(default=None, description="Local password filter.")
     two_factor_enabled: bool | None = Field(default=None, description="Two-factor authentication filter.")
     oauth_provider: str | None = Field(default=None, description="OAuth provider filter.")
+    created_from: datetime | None = Field(default=None, description="Created-at range lower bound, inclusive.")
+    created_to: datetime | None = Field(default=None, description="Created-at range upper bound, inclusive.")
+    last_login_from: datetime | None = Field(default=None, description="Last-login range lower bound, inclusive.")
+    last_login_to: datetime | None = Field(default=None, description="Last-login range upper bound, inclusive.")
+    workspace_member_of_id: PublicUUID | None = Field(
+        default=None,
+        description="Filter users with an active membership in this workspace.",
+    )
+    project_member_of_id: PublicUUID | None = Field(
+        default=None,
+        description="Filter users with a membership in this project.",
+    )
+    owned_workspace_id: PublicUUID | None = Field(
+        default=None,
+        description="Filter by the authoritative owner of this workspace.",
+    )
+    owned_project_id: PublicUUID | None = Field(
+        default=None,
+        description="Filter by the current project-owner projection.",
+    )
 
     @field_validator("oauth_provider")
     @classmethod
@@ -154,15 +332,76 @@ class DirectoryUserListFilters(BaseSchema):
         normalized = value.strip().lower()
         return normalized or None
 
+    @model_validator(mode="after")
+    def validate_time_ranges(self) -> Self:
+        if self.created_from is not None and self.created_to is not None and self.created_from > self.created_to:
+            raise ValueError("created_from must be earlier than or equal to created_to")
+        if (
+            self.last_login_from is not None
+            and self.last_login_to is not None
+            and self.last_login_from > self.last_login_to
+        ):
+            raise ValueError("last_login_from must be earlier than or equal to last_login_to")
+        return self
+
 
 class DirectoryWorkspaceListFilters(BaseSchema):
     is_archived: bool | None = Field(default=None, description="Workspace archive state filter.")
     is_active: bool | None = Field(default=None, description="Workspace active state filter.")
+    owner_user_id: PublicUUID | None = Field(default=None, description="Workspace owner filter.")
+    plan_code: str | None = Field(default=None, description="Commerce plan code filter.")
+    subscription_status: SubscriptionStatus | None = Field(default=None, description="Subscription status filter.")
+    commerce_risk: WorkspaceCommerceDirectoryRisk | None = Field(
+        default=None,
+        description="Commercial attention state filter.",
+    )
+    created_from: datetime | None = Field(default=None, description="Created-at range lower bound, inclusive.")
+    created_to: datetime | None = Field(default=None, description="Created-at range upper bound, inclusive.")
+    activity_from: datetime | None = Field(
+        default=None,
+        description="Workspace-record activity range lower bound, inclusive.",
+    )
+    activity_to: datetime | None = Field(
+        default=None,
+        description="Workspace-record activity range upper bound, inclusive.",
+    )
+
+    @field_validator("plan_code")
+    @classmethod
+    def normalize_plan_code(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip().lower()
+        return normalized or None
+
+    @model_validator(mode="after")
+    def validate_time_ranges(self) -> Self:
+        if self.created_from is not None and self.created_to is not None and self.created_from > self.created_to:
+            raise ValueError("created_from must be earlier than or equal to created_to")
+        if self.activity_from is not None and self.activity_to is not None and self.activity_from > self.activity_to:
+            raise ValueError("activity_from must be earlier than or equal to activity_to")
+        return self
 
 
 class DirectoryProjectListFilters(BaseSchema):
     workspace_id: PublicUUID | None = Field(default=None, description="Workspace id filter.")
     is_active: bool | None = Field(default=None, description="Project active state filter.")
+    owner_user_id: PublicUUID | None = Field(default=None, description="Project owner filter.")
+    runtime_health: DirectoryProjectHealthState | None = Field(default=None, description="Runtime health filter.")
+    domain_state: DirectoryProjectDomainState | None = Field(default=None, description="Domain readiness filter.")
+    release_state: DirectoryProjectReleaseState | None = Field(default=None, description="Latest release state filter.")
+    created_from: datetime | None = Field(default=None, description="Created-at range lower bound, inclusive.")
+    created_to: datetime | None = Field(default=None, description="Created-at range upper bound, inclusive.")
+    activity_from: datetime | None = Field(default=None, description="Project-record activity lower bound, inclusive.")
+    activity_to: datetime | None = Field(default=None, description="Project-record activity upper bound, inclusive.")
+
+    @model_validator(mode="after")
+    def validate_time_ranges(self) -> Self:
+        if self.created_from is not None and self.created_to is not None and self.created_from > self.created_to:
+            raise ValueError("created_from must be earlier than or equal to created_to")
+        if self.activity_from is not None and self.activity_to is not None and self.activity_from > self.activity_to:
+            raise ValueError("activity_from must be earlier than or equal to activity_to")
+        return self
 
 
 class DirectoryWorkspaceUpdateRequest(BaseSchema):

@@ -19,7 +19,7 @@ class NotificationOut(BaseOut):
 
     category: NotificationCategory = Field(..., description="Notification category.")
     title: str = Field(..., description="Short title.")
-    body: str | None = Field(default=None, description="Short body (max 2 lines in UI).")
+    body: str | None = Field(default=None, description="Notification body; presentation controls its UI treatment.")
 
     target_to: str = Field(..., description="Frontend route path (e.g. /team/members).")
     target_meta: JsonObject | None = Field(default=None, description="Frontend routing metadata (non-sensitive).")
@@ -84,6 +84,19 @@ class NotificationDeleteResult(BaseSchema):
 class NotificationArchiveResult(BaseSchema):
     id: PublicUUID = Field(..., description="Notification id.")
     archived_at: datetime | None = Field(default=None, description="Archived datetime (UTC).")
+
+
+class NotificationInteractionKind(StrEnum):
+    READ = "read"
+    CLICK = "click"
+    DISMISS = "dismiss"
+
+
+class NotificationInteractionOut(BaseSchema):
+    notification_id: PublicUUID
+    delivery_id: PublicUUID
+    kind: NotificationInteractionKind
+    occurred_at: datetime
 
 
 class NotificationPreferenceChannelOut(BaseSchema):

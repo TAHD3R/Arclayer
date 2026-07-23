@@ -46,6 +46,7 @@ class BackgroundJobCreate(BaseSchema):
     heartbeat_seconds: int = Field(..., ge=1)
     retry_of_job_id: PublicUUID | None = None
     status_key: str | None = Field(default=None, max_length=160)
+    dispatch_after: datetime | None = None
 
     @field_validator("job_type", "task_name", "idempotency_key", "correlation_id")
     @classmethod
@@ -54,6 +55,13 @@ class BackgroundJobCreate(BaseSchema):
         if not normalized:
             raise ValueError("value must contain non-whitespace characters")
         return normalized
+
+    @field_validator("dispatch_after")
+    @classmethod
+    def validate_dispatch_after(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is None:
+            raise ValueError("dispatchAfter must include a timezone")
+        return value
 
     @model_validator(mode="after")
     def validate_timing_policy(self) -> BackgroundJobCreate:

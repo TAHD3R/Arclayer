@@ -241,6 +241,6 @@ class WorkspaceKnowledgeCapabilitiesOut(BaseSchema):
     manual_sources_available: Literal[True]
     external_ingestion_available: bool
     indexing_available: bool
-    retrieval_available: Literal[False]
+    retrieval_available: Literal[True]
     immutable_source_versions: Literal[True]
     supported_source_kinds: tuple[str, ...]

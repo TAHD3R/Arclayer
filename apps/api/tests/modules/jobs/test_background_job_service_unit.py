@@ -317,6 +317,26 @@ async def test_create_job_persists_job_and_dispatch_once_for_idempotency_key() -
 
 
 @pytest.mark.asyncio
+async def test_create_job_uses_explicit_dispatch_after_for_outbox_availability() -> None:
+    service, repository, _ = create_service()
+    dispatch_after = datetime(2030, 1, 2, 3, 4, tzinfo=UTC)
+
+    await service.create_job(create_command().model_copy(update={"dispatch_after": dispatch_after}))
+
+    assert len(repository.dispatches) == 1
+    assert repository.dispatches[0].available_at == dispatch_after
+
+
+def test_background_job_create_rejects_naive_dispatch_after() -> None:
+    command = create_command()
+    with pytest.raises(ValidationError, match="dispatchAfter must include a timezone"):
+        BackgroundJobCreate.model_validate({
+            **command.model_dump(),
+            "dispatch_after": datetime(2030, 1, 2, 3, 4),
+        })
+
+
+@pytest.mark.asyncio
 async def test_create_job_in_transaction_rolls_back_job_and_dispatch_without_event() -> None:
     service, repository, publisher = create_service()
 

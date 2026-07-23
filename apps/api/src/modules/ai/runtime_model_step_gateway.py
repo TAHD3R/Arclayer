@@ -15,6 +15,7 @@ from src.modules.ai.agent_tool_grants import (
     BUILDER_STYLE_GUIDE_GENERATE_TOOL,
     BUILDER_WIREFRAME_GENERATE_TOOL,
     HUMAN_REQUEST_INPUT_TOOL,
+    WORKSPACE_SKILL_CREATE_TOOL,
 )
 from src.modules.ai.runtime_approval_protocol_schema import (
     ApprovalOptionV1,
@@ -37,6 +38,11 @@ from src.modules.ai.runtime_execution_gateway import (
     AgentRunResumeExecutionRequest,
     AgentRunToolCompletion,
 )
+from src.modules.ai.runtime_skill_creator_tool import (
+    AgentSkillCreatorToolExecutionRequest,
+    AgentSkillCreatorToolExecutor,
+    WorkspaceSkillCreateArgsV1,
+)
 from src.modules.ai.runtime_style_guide_tool import (
     AgentStyleGuideToolExecutionRequest,
     AgentStyleGuideToolExecutor,
@@ -53,6 +59,7 @@ _HUMAN_TOOL_PROVIDER_NAME = "human_request_input"
 _STYLE_GUIDE_TOOL_PROVIDER_NAME = "builder_style_guide_generate"
 _WIREFRAME_TOOL_PROVIDER_NAME = "builder_wireframe_generate"
 _DESIGN_TOOL_PROVIDER_NAME = "builder_design_generate"
+_SKILL_CREATOR_TOOL_PROVIDER_NAME = "workspace_skill_create"
 
 
 class HumanRequestInputV1(BaseSchema):
@@ -73,11 +80,13 @@ class ModelToolAgentRunExecutionGateway:
         style_guide_executor: AgentStyleGuideToolExecutor | None = None,
         wireframe_executor: AgentWireframeToolExecutor | None = None,
         design_executor: AgentDesignToolExecutor | None = None,
+        skill_creator_executor: AgentSkillCreatorToolExecutor | None = None,
     ) -> None:
         self._chat_service = chat_service
         self._style_guide_executor = style_guide_executor
         self._wireframe_executor = wireframe_executor
         self._design_executor = design_executor
+        self._skill_creator_executor = skill_creator_executor
 
     async def execute(self, *, request: AgentRunExecutionRequest) -> AgentRunExecutionOutcome:
         return await self._run_model(request=request, resolved_tool_context=None, expose_tools=True)
@@ -101,7 +110,66 @@ class ModelToolAgentRunExecutionGateway:
             return await self._resume_wireframe(request=request, interrupted=interrupted)
         if interrupted.tool_name == BUILDER_DESIGN_GENERATE_TOOL and request.response_kind == "approval":
             return await self._resume_design(request=request, interrupted=interrupted)
+        if interrupted.tool_name == WORKSPACE_SKILL_CREATE_TOOL and request.response_kind == "approval":
+            return await self._resume_skill_creator(request=request, interrupted=interrupted)
         raise ValueError("Model Tool gateway received an unsupported resume checkpoint")
+
+    async def _resume_skill_creator(
+        self,
+        *,
+        request: AgentRunResumeExecutionRequest,
+        interrupted: AgentRunExecutionInterrupted,
+    ) -> AgentRunExecutionOutcome:
+        approved = request.resume.get("approved")
+        if not isinstance(approved, bool):
+            raise ValueError("Skill Creator Tool approval response is invalid")
+        args = WorkspaceSkillCreateArgsV1.model_validate(interrupted.args)
+        if approved:
+            if self._skill_creator_executor is None:
+                raise ValueError("Skill Creator Tool executor is unavailable")
+            context = request.context
+            if context.workspace_id is None or context.user_id is None or context.agent_run_id is None:
+                raise ValueError("Skill Creator Tool execution context is unavailable")
+            result = await self._skill_creator_executor.execute(
+                request=AgentSkillCreatorToolExecutionRequest(
+                    workspace_id=context.workspace_id,
+                    actor_user_id=context.user_id,
+                    agent_run_id=context.agent_run_id,
+                    tool_call_id=interrupted.tool_call_id,
+                    args=args,
+                )
+            )
+            tool_result = cast(JsonObject, result.model_dump(mode="json", by_alias=True))
+        else:
+            tool_result = {
+                "approved": False,
+                "code": "AGENT_APPROVAL_REJECTED",
+                "reason": request.resume.get("reason"),
+            }
+        outcome = await self._run_model(
+            request=request,
+            resolved_tool_context={
+                "kind": "approval",
+                "toolName": WORKSPACE_SKILL_CREATE_TOOL,
+                "approved": approved,
+                "result": tool_result,
+            },
+            expose_tools=False,
+        )
+        if not isinstance(outcome, AgentRunExecutionCompleted):
+            raise ValueError("Skill Creator Tool continuation must complete the approved Tool step")
+        return outcome.model_copy(
+            update={
+                "tool_completion": AgentRunToolCompletion(
+                    tool_call_id=interrupted.tool_call_id,
+                    tool_id=interrupted.tool_id,
+                    tool_version=interrupted.tool_version,
+                    tool_name=interrupted.tool_name,
+                    args=interrupted.args,
+                    result=tool_result,
+                )
+            }
+        )
 
     async def _resume_style_guide(
         self,
@@ -424,6 +492,15 @@ def _provider_params(request: AgentRunExecutionRequest) -> dict[str, object] | N
                 },
             },
         })
+    if _skill_creator_available(request):
+        tools.append({
+            "type": "function",
+            "function": {
+                "name": _SKILL_CREATOR_TOOL_PROVIDER_NAME,
+                "description": "Create, validate, and enable one governed Skill in the current workspace.",
+                "parameters": WorkspaceSkillCreateArgsV1.model_json_schema(by_alias=True),
+            },
+        })
     if _style_guide_available(request):
         tools.append({
             "type": "function",
@@ -481,6 +558,12 @@ def _outcome(payload: JsonObject, *, request: AgentRunExecutionRequest) -> Agent
             tool_version="1",
             tool_name=HUMAN_REQUEST_INPUT_TOOL,
             args=cast(JsonObject, arguments.model_dump(mode="json", by_alias=True)),
+        )
+    if provider_name == _SKILL_CREATOR_TOOL_PROVIDER_NAME and _skill_creator_available(request):
+        return _skill_creator_interruption(
+            request=request,
+            tool_call_id=resolved_tool_call_id,
+            arguments=WorkspaceSkillCreateArgsV1.model_validate(json.loads(raw_arguments)),
         )
     if provider_name == _STYLE_GUIDE_TOOL_PROVIDER_NAME and _style_guide_available(request):
         arguments = StyleGuideGenerateArgsV1.model_validate(json.loads(raw_arguments))
@@ -570,6 +653,64 @@ def _style_guide_interruption(
     )
 
 
+def _skill_creator_interruption(
+    *,
+    request: AgentRunExecutionRequest,
+    tool_call_id: str,
+    arguments: WorkspaceSkillCreateArgsV1,
+) -> AgentRunExecutionInterrupted:
+    now = datetime.now(UTC)
+    agent_run_id = request.context.agent_run_id
+    if agent_run_id is None:
+        raise ValueError("Skill Creator Tool requires an Agent Run identity")
+    approval_id = hashlib.sha256(f"{agent_run_id}:{tool_call_id}:skill-creator-approval-v1".encode()).hexdigest()
+    approval = ApprovalV1(
+        approval_id=approval_id,
+        approval_version=1,
+        tool_call_id=tool_call_id,
+        checkpoint_id="pending-langgraph-checkpoint",
+        status="pending",
+        requested_at=now,
+        expires_at=now + timedelta(hours=1),
+        policy_version="skill-creator-v1",
+        risk=ApprovalRiskV1(
+            side_effect_class="draft_write",
+            summary_key="ai:AI_AGENT_APPROVAL_SKILL_CREATE_SUMMARY",
+            summary_params={"name": arguments.display_name, "slug": arguments.slug},
+            preview_ref=None,
+        ),
+        options=(
+            ApprovalOptionV1(
+                id="allow_once",
+                kind="allow-once",
+                label_key="ai:AI_AGENT_APPROVAL_ALLOW_ONCE",
+                description_key="ai:AI_AGENT_APPROVAL_SKILL_CREATE_ALLOW_ONCE_DESC",
+                grants=(WORKSPACE_SKILL_CREATE_TOOL,),
+                confirm=False,
+            ),
+            ApprovalOptionV1(
+                id="reject_once",
+                kind="reject-once",
+                label_key="ai:AI_AGENT_APPROVAL_REJECT_ONCE",
+                description_key="ai:AI_AGENT_APPROVAL_SKILL_CREATE_REJECT_ONCE_DESC",
+                grants=(),
+                confirm=False,
+            ),
+        ),
+    )
+    return AgentRunExecutionInterrupted(
+        interrupt_id="pending-langgraph-interrupt",
+        checkpoint_id="pending-langgraph-checkpoint",
+        reason="approval_required",
+        tool_call_id=tool_call_id,
+        tool_id=WORKSPACE_SKILL_CREATE_TOOL,
+        tool_version="1",
+        tool_name=WORKSPACE_SKILL_CREATE_TOOL,
+        args=cast(JsonObject, arguments.model_dump(mode="json", by_alias=True)),
+        approval=approval,
+    )
+
+
 def _style_guide_available(request: AgentRunExecutionRequest) -> bool:
     return bool(
         request.execution_mode == "build"
@@ -577,6 +718,16 @@ def _style_guide_available(request: AgentRunExecutionRequest) -> bool:
         and request.context.project_id is not None
         and request.design_system_context is not None
         and request.builder_context is not None
+    )
+
+
+def _skill_creator_available(request: AgentRunExecutionRequest) -> bool:
+    return bool(
+        request.execution_mode == "build"
+        and WORKSPACE_SKILL_CREATE_TOOL in request.tool_grants
+        and request.context.workspace_id is not None
+        and request.context.user_id is not None
+        and request.context.agent_run_id is not None
     )
 
 

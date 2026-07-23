@@ -23,10 +23,14 @@ class StaticOfficialSkillSource:
 def test_packaged_official_skill_catalog_has_pinned_canonical_bundles() -> None:
     bundles = build_official_skill_bundles(OFFICIAL_SKILL_ASSETS)
 
-    assert len(bundles) == 5
+    assert len(bundles) == 6
     assert all(bundle.manifest.publisher.verified for bundle in bundles)
     assert all(bundle.manifest.checksum == bundle.asset.expected_checksum for bundle in bundles)
     assert all(bundle.resources[0].path == "SKILL.md" for bundle in bundles)
+    creator = next(bundle for bundle in bundles if bundle.asset.stable_key == "arclayer.skill-creator")
+    assert creator.asset.slug == "skill-creator"
+    assert [tool.tool_id for tool in creator.manifest.required_tools] == ["workspace.skill.create"]
+    assert "Call `workspace_skill_create` exactly once" in creator.resources[0].content
 
 
 def test_official_skill_catalog_rejects_duplicate_identity_checksum_drift_and_secrets() -> None:

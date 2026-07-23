@@ -39,6 +39,9 @@ class _TemplateReader:
         self.requests.append((key, locale))
         return self.records.get((key, locale))
 
+    async def get_by_version(self, *, key: str, locale: str, version: int) -> _TemplateRecord | None:
+        return self.records.get((f"{key}@{version}", locale))
+
 
 class _RecordingTemplateRuntime:
     def __init__(self) -> None:
@@ -116,6 +119,30 @@ async def test_service_sends_content_rendered_from_persisted_template() -> None:
             template_id="welcome",
         )
     ]
+
+
+@pytest.mark.asyncio
+async def test_service_sends_exact_template_version_with_delivery_idempotency_metadata() -> None:
+    reader = _TemplateReader({
+        ("announcement@4", "en-US"): _TemplateRecord(
+            subject_template="Release {{ version }}",
+            html_template="<p>Release {{ version }}</p>",
+            text_template="Release {{ version }}",
+        )
+    })
+    service = _CapturingEmailService(Settings(), EmailTemplateRuntime(reader))
+
+    await service.send_template_version(
+        recipient="philip@example.com",
+        template_key="announcement",
+        template_version=4,
+        locale="en-US",
+        variables={"version": "4"},
+        idempotency_key="delivery-42",
+    )
+
+    assert service.sent_messages[0].template_id == "announcement@4"
+    assert service.sent_messages[0].metadata == {"idempotencyKey": "delivery-42"}
 
 
 @pytest.mark.asyncio

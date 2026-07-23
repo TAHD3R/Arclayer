@@ -116,6 +116,22 @@ def test_workspace_catalog_i18n_keys_exist_in_locale_files() -> None:
             assert key in zh_locale
 
 
+def test_workspace_action_catalog_has_complete_bilingual_metadata() -> None:
+    locale_root = _project_root() / "locales"
+    en_locale = json.loads((locale_root / "en-US" / "rbac.json").read_text())
+    zh_locale = json.loads((locale_root / "zh-CN" / "rbac.json").read_text())
+
+    for action in get_permission_action_registry().values():
+        assert action.name_i18n and action.name_i18n.startswith("rbac:")
+        assert action.description_i18n and action.description_i18n.startswith("rbac:")
+        name_key = action.name_i18n.split(":", 1)[1]
+        description_key = action.description_i18n.split(":", 1)[1]
+        assert en_locale.get(name_key)
+        assert zh_locale.get(name_key)
+        assert en_locale.get(description_key)
+        assert zh_locale.get(description_key)
+
+
 def test_workspace_action_catalog_includes_delivery_and_workspace_actions() -> None:
     registry = get_permission_action_registry()
 
@@ -261,6 +277,8 @@ def test_workspace_rbac_router_hard_cuts_matrix_route() -> None:
     assert "/workspaces/{workspace_id}/rbac/roles" in paths
     assert "/workspaces/{workspace_id}/rbac/permissions" in paths
     assert "/workspaces/{workspace_id}/rbac/actions" in paths
+    assert "/workspaces/{workspace_id}/rbac/catalog" in paths
+    assert "/workspaces/{workspace_id}/rbac/role-permissions" in paths
 
 
 def test_project_releases_router_uses_granular_permissions() -> None:

@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Self
+from collections.abc import Mapping
+from typing import Self, TypedDict
 
 import httpx
 from pydantic import AnyHttpUrl, Field, SecretStr, model_validator
@@ -19,6 +20,10 @@ from src.core.exceptions import ServiceUnavailable
 from src.core.logging import get_logger
 from src.core.registries import PluginRegistry
 from src.modules.analytics.ingest.service import sanitize_properties
+from src.modules.system.plugins.runtime_configuration import (
+    PLUGIN_RUNTIME_CONFIGURATION_SERVICE,
+    PluginRuntimeConfigurationSnapshot,
+)
 
 logger = get_logger(__name__)
 
@@ -41,7 +46,7 @@ class PostHogPluginSettings(BaseSettings):
 
     enabled: bool = False
     project_api_key: SecretStr = Field(default=SecretStr(""))
-    host: AnyHttpUrl = Field(default="https://us.i.posthog.com")
+    host: AnyHttpUrl = AnyHttpUrl("https://us.i.posthog.com")
     timeout_seconds: float = Field(default=10, ge=1, le=30)
 
     @model_validator(mode="after")
@@ -128,10 +133,16 @@ class PostHogAnalyticsConnector:
 class PostHogExtension:
     name = _EXTENSION_NAME
 
+    def __init__(self) -> None:
+        self._settings: PostHogPluginSettings | None = None
+
     def create_connector(self) -> PostHogAnalyticsConnector:
-        return PostHogAnalyticsConnector(PostHogPluginSettings())
+        if self._settings is None:
+            raise RuntimeError("PostHog Connector factory was called before plugin registration")
+        return PostHogAnalyticsConnector(self._settings)
 
     def arclayer_register(self, registry: PluginRegistry) -> None:
+        self._settings = _resolve_settings(registry)
         registry.connectors.register(
             extension=self.name,
             definition=ConnectorDefinition(
@@ -173,6 +184,48 @@ class PostHogExtension:
             factory=self.create_connector,
         )
         logger.info("PostHog analytics Connector registered", connector=_CONNECTOR_KEY)
+
+
+def _resolve_settings(registry: PluginRegistry) -> PostHogPluginSettings:
+    snapshot = registry.services.resolve(PLUGIN_RUNTIME_CONFIGURATION_SERVICE)
+    if snapshot is None:
+        return PostHogPluginSettings()
+    if not isinstance(snapshot, PluginRuntimeConfigurationSnapshot):
+        raise TypeError("Plugin runtime configuration service has an invalid type")
+    values = snapshot.configuration_for(_EXTENSION_NAME)
+    return PostHogPluginSettings(**_settings_input(values))
+
+
+class _PostHogSettingsInput(TypedDict, total=False):
+    enabled: bool
+    project_api_key: SecretStr
+    host: AnyHttpUrl
+    timeout_seconds: float
+
+
+def _settings_input(values: Mapping[str, object]) -> _PostHogSettingsInput:
+    settings = _PostHogSettingsInput()
+    if "enabled" in values:
+        enabled = values["enabled"]
+        if not isinstance(enabled, bool):
+            raise TypeError("PostHog enabled configuration must be boolean")
+        settings["enabled"] = enabled
+    if "projectApiKey" in values:
+        project_api_key = values["projectApiKey"]
+        if not isinstance(project_api_key, str):
+            raise TypeError("PostHog projectApiKey configuration must resolve to a string")
+        settings["project_api_key"] = SecretStr(project_api_key)
+    if "host" in values:
+        host = values["host"]
+        if not isinstance(host, str):
+            raise TypeError("PostHog host configuration must be a URI string")
+        settings["host"] = AnyHttpUrl(host)
+    if "timeoutSeconds" in values:
+        timeout = values["timeoutSeconds"]
+        if isinstance(timeout, bool) or not isinstance(timeout, (int, float)):
+            raise TypeError("PostHog timeoutSeconds configuration must be numeric")
+        settings["timeout_seconds"] = float(timeout)
+    return settings
 
 
 def create_plugin() -> PostHogExtension:

@@ -242,6 +242,154 @@ export type AcceptInvitationRequest = {
 };
 
 /**
+ * AccessRestrictionAdminOut
+ */
+export type AccessRestrictionAdminOut = {
+    /**
+     * Actoruserid
+     */
+    actorUserId: string | null;
+    /**
+     * Allowedrecoveryactions
+     */
+    allowedRecoveryActions?: Array<string>;
+    /**
+     * Auditeventid
+     */
+    auditEventId: string | null;
+    /**
+     * Effectiveat
+     */
+    effectiveAt: string;
+    /**
+     * Entityid
+     */
+    entityId: string;
+    entityType: AccessRestrictionEntityType;
+    /**
+     * Expiresat
+     */
+    expiresAt: string | null;
+    /**
+     * Liftnote
+     */
+    liftNote: string | null;
+    /**
+     * Liftedat
+     */
+    liftedAt: string | null;
+    /**
+     * Liftedbyuserid
+     */
+    liftedByUserId: string | null;
+    /**
+     * Operatornote
+     */
+    operatorNote: string;
+    reasonCategory: AccessRestrictionReasonCategory;
+    /**
+     * Reasoncode
+     */
+    reasonCode: string;
+    /**
+     * Restrictionid
+     */
+    restrictionId: string;
+    restrictionType: AccessRestrictionType;
+    /**
+     * Reviewat
+     */
+    reviewAt: string | null;
+    /**
+     * Revision
+     */
+    revision: number;
+    state: AccessRestrictionState;
+    /**
+     * Supportavailable
+     */
+    supportAvailable?: boolean;
+};
+
+/**
+ * AccessRestrictionEnforceRequest
+ */
+export type AccessRestrictionEnforceRequest = {
+    /**
+     * Expectedrevision
+     *
+     * Current restriction revision; zero creates it.
+     */
+    expectedRevision: number;
+    /**
+     * Expiresat
+     *
+     * Optional policy expiry time.
+     */
+    expiresAt?: string | null;
+    /**
+     * Operatornote
+     *
+     * Internal operator note.
+     */
+    operatorNote: string;
+    /**
+     * Stable reason category.
+     */
+    reasonCategory: AccessRestrictionReasonCategory;
+    /**
+     * Reasoncode
+     *
+     * Stable operator-defined reason code.
+     */
+    reasonCode: string;
+    /**
+     * Reviewat
+     *
+     * Optional scheduled review time.
+     */
+    reviewAt?: string | null;
+};
+
+/**
+ * AccessRestrictionEntityType
+ */
+export type AccessRestrictionEntityType = 'user' | 'workspace' | 'project';
+
+/**
+ * AccessRestrictionLiftRequest
+ */
+export type AccessRestrictionLiftRequest = {
+    /**
+     * Expectedrevision
+     *
+     * Current active restriction revision.
+     */
+    expectedRevision: number;
+    /**
+     * Operatornote
+     *
+     * Internal recovery note.
+     */
+    operatorNote: string;
+};
+
+/**
+ * AccessRestrictionReasonCategory
+ */
+export type AccessRestrictionReasonCategory = 'policy_violation' | 'security_risk' | 'billing_issue' | 'abuse_prevention' | 'compliance_review' | 'owner_request' | 'other';
+
+/**
+ * AccessRestrictionState
+ */
+export type AccessRestrictionState = 'active' | 'lifted';
+
+/**
+ * AccessRestrictionType
+ */
+export type AccessRestrictionType = 'user_disabled' | 'workspace_suspended' | 'workspace_archived' | 'project_suspended';
+
+/**
  * ActivityUserSummaryOut
  *
  * Lightweight user summary for Activity rendering.
@@ -2847,6 +2995,11 @@ export type AssetPurpose = 'avatar' | 'site_logo' | 'workspace_icon' | 'favicon'
 export type AssetVisibility = 'public' | 'private' | 'shared';
 
 /**
+ * AuditEventOrdering
+ */
+export type AuditEventOrdering = '-occurred_at' | 'occurred_at';
+
+/**
  * AuditEventOut
  */
 export type AuditEventOut = {
@@ -3596,6 +3749,20 @@ export type BillingRedirectOut = {
      * Url
      */
     url: string;
+};
+
+/**
+ * Body_review_manual_plugin_artifact_api_v1_system_plugins_artifacts_manual_post
+ */
+export type BodyReviewManualPluginArtifactApiV1SystemPluginsArtifactsManualPost = {
+    /**
+     * Detached Signature
+     */
+    detached_signature: string;
+    /**
+     * Package
+     */
+    package: string;
 };
 
 /**
@@ -11489,6 +11656,11 @@ export type DirectoryDeleteRequest = {
 };
 
 /**
+ * DirectoryProjectActivitySource
+ */
+export type DirectoryProjectActivitySource = 'audit_event' | 'release' | 'deployment' | 'project_record';
+
+/**
  * DirectoryProjectDetailOut
  */
 export type DirectoryProjectDetailOut = {
@@ -11541,6 +11713,12 @@ export type DirectoryProjectDetailOut = {
      */
     isActive?: boolean;
     /**
+     * Lastactivityat
+     *
+     * Latest project operational activity time.
+     */
+    lastActivityAt: string;
+    /**
      * Membercount
      *
      * Project member count.
@@ -11553,6 +11731,10 @@ export type DirectoryProjectDetailOut = {
      */
     name: string;
     /**
+     * Batch project operational projection with explicit coverage and freshness.
+     */
+    operations: DirectoryProjectOperationalSummaryOut;
+    /**
      * Owner summary.
      */
     owner?: DirectoryActorSummaryOut | null;
@@ -11562,6 +11744,12 @@ export type DirectoryProjectDetailOut = {
      * Project id.
      */
     projectId: string;
+    /**
+     * Restrictions
+     *
+     * Active access restrictions visible to the system operator.
+     */
+    restrictions?: Array<AccessRestrictionAdminOut>;
     /**
      * Slug
      *
@@ -11587,6 +11775,16 @@ export type DirectoryProjectDetailOut = {
      */
     workspaceName: string;
 };
+
+/**
+ * DirectoryProjectDomainState
+ */
+export type DirectoryProjectDomainState = 'ready' | 'attention_required' | 'none';
+
+/**
+ * DirectoryProjectHealthState
+ */
+export type DirectoryProjectHealthState = 'healthy' | 'degraded' | 'inactive' | 'not_deployed' | 'unavailable';
 
 /**
  * DirectoryProjectListItemOut
@@ -11639,6 +11837,12 @@ export type DirectoryProjectListItemOut = {
      */
     isActive?: boolean;
     /**
+     * Lastactivityat
+     *
+     * Latest project operational activity time.
+     */
+    lastActivityAt: string;
+    /**
      * Membercount
      *
      * Project member count.
@@ -11651,6 +11855,10 @@ export type DirectoryProjectListItemOut = {
      */
     name: string;
     /**
+     * Batch project operational projection with explicit coverage and freshness.
+     */
+    operations: DirectoryProjectOperationalSummaryOut;
+    /**
      * Owner summary.
      */
     owner?: DirectoryActorSummaryOut | null;
@@ -11660,6 +11868,12 @@ export type DirectoryProjectListItemOut = {
      * Project id.
      */
     projectId: string;
+    /**
+     * Restrictions
+     *
+     * Active access restrictions visible to the system operator.
+     */
+    restrictions?: Array<AccessRestrictionAdminOut>;
     /**
      * Slug
      *
@@ -11679,6 +11893,112 @@ export type DirectoryProjectListItemOut = {
      */
     workspaceName: string;
 };
+
+/**
+ * DirectoryProjectOperationalSummaryOut
+ */
+export type DirectoryProjectOperationalSummaryOut = {
+    /**
+     * Capturedat
+     *
+     * Time at which the operational projection was captured.
+     */
+    capturedAt: string;
+    /**
+     * Domaincount
+     */
+    domainCount: number;
+    domainState: DirectoryProjectDomainState;
+    health: DirectoryProjectHealthState;
+    /**
+     * Lastactivityat
+     */
+    lastActivityAt: string;
+    lastActivitySource: DirectoryProjectActivitySource;
+    /**
+     * Latestdeploymentat
+     */
+    latestDeploymentAt?: string | null;
+    latestDeploymentStatus?: ProjectDeploymentStatus | null;
+    /**
+     * Latestreleaseat
+     */
+    latestReleaseAt?: string | null;
+    /**
+     * Latestreleasenumber
+     */
+    latestReleaseNumber?: number | null;
+    latestReleaseStatus?: ContentReleaseStatus | null;
+    releaseState: DirectoryProjectReleaseState;
+    runtimeState: DirectoryProjectRuntimeState;
+    usage: DirectoryProjectUsageOut;
+    /**
+     * Verifieddomaincount
+     */
+    verifiedDomainCount: number;
+};
+
+/**
+ * DirectoryProjectOperationsOut
+ */
+export type DirectoryProjectOperationsOut = {
+    /**
+     * Collectedat
+     *
+     * Time at which the operational projection was collected.
+     */
+    collectedAt: string;
+    /**
+     * Deployments
+     */
+    deployments: Array<ProjectDeploymentOut>;
+    /**
+     * Domains
+     */
+    domains: Array<DomainBindingOut>;
+    /**
+     * Environmentaliases
+     */
+    environmentAliases: Array<ProjectEnvironmentAliasOut>;
+    /**
+     * Environments
+     */
+    environments: Array<ProjectEnvironmentOut>;
+    /**
+     * Derived runtime and deployment health state.
+     */
+    health: DirectoryProjectHealthState;
+    /**
+     * Membertotal
+     */
+    memberTotal: number;
+    /**
+     * Members
+     */
+    members: Array<ProjectMemberOut>;
+    /**
+     * Releases
+     */
+    releases: Array<ReleaseOut>;
+    /**
+     * Primary project runtime identity.
+     */
+    runtime: ProjectRuntimeContextOut | null;
+    /**
+     * Availability of runtime-backed data.
+     */
+    runtimeState: DirectoryProjectRuntimeState;
+};
+
+/**
+ * DirectoryProjectReleaseState
+ */
+export type DirectoryProjectReleaseState = 'active' | 'scheduled' | 'published' | 'cancelled' | 'not_released';
+
+/**
+ * DirectoryProjectRuntimeState
+ */
+export type DirectoryProjectRuntimeState = 'ready' | 'runtime_missing' | 'site_missing';
 
 /**
  * DirectoryProjectUpdateRequest
@@ -11730,6 +12050,91 @@ export type DirectoryProjectUpdateRequest = {
      * Project slug.
      */
     slug?: string | null;
+};
+
+/**
+ * DirectoryProjectUsageCoverage
+ */
+export type DirectoryProjectUsageCoverage = 'ai_audit_log' | 'no_observed_usage';
+
+/**
+ * DirectoryProjectUsageOut
+ */
+export type DirectoryProjectUsageOut = {
+    /**
+     * Completiontokens
+     */
+    completionTokens: number;
+    /**
+     * Costmicros
+     */
+    costMicros: number;
+    /**
+     * Project usage attribution coverage.
+     */
+    coverage: DirectoryProjectUsageCoverage;
+    /**
+     * Prompttokens
+     */
+    promptTokens: number;
+    /**
+     * Requests
+     */
+    requests: number;
+    /**
+     * Windowend
+     *
+     * Exclusive project usage window end.
+     */
+    windowEnd: string;
+    /**
+     * Windowstart
+     *
+     * Inclusive project usage window start.
+     */
+    windowStart: string;
+};
+
+/**
+ * DirectoryUserAuditActivityOut
+ */
+export type DirectoryUserAuditActivityOut = {
+    /**
+     * Eventid
+     *
+     * Audit event id.
+     */
+    eventId: string;
+    /**
+     * Eventname
+     *
+     * Stable audit event name.
+     */
+    eventName: string;
+    /**
+     * Occurredat
+     *
+     * Event occurrence time.
+     */
+    occurredAt: string;
+    /**
+     * Projectid
+     *
+     * Related project id.
+     */
+    projectId?: string | null;
+    /**
+     * Source
+     *
+     * Audit event source.
+     */
+    source?: string | null;
+    /**
+     * Workspaceid
+     *
+     * Related workspace id.
+     */
+    workspaceId?: string | null;
 };
 
 /**
@@ -11785,11 +12190,45 @@ export type DirectoryUserDetailOut = {
      */
     linkedOauthProviders?: Array<string>;
     /**
+     * Ownedprojectcount
+     *
+     * Owned project count.
+     */
+    ownedProjectCount?: number;
+    /**
+     * Ownedworkspacecount
+     *
+     * Owned workspace count.
+     */
+    ownedWorkspaceCount?: number;
+    /**
      * Projectmembershipcount
      *
      * Project memberships for the user.
      */
     projectMembershipCount?: number;
+    /**
+     * Projectmemberships
+     */
+    projectMemberships?: Array<DirectoryUserProjectMembershipOut>;
+    /**
+     * Recentauditactivity
+     */
+    recentAuditActivity?: Array<DirectoryUserAuditActivityOut>;
+    /**
+     * Recentfeedbackactivity
+     */
+    recentFeedbackActivity?: Array<DirectoryUserFeedbackActivityOut>;
+    /**
+     * Restrictionhistory
+     */
+    restrictionHistory?: Array<DirectoryUserRestrictionHistoryOut>;
+    /**
+     * Restrictions
+     *
+     * Active access restrictions visible to the system operator.
+     */
+    restrictions?: Array<AccessRestrictionAdminOut>;
     status: UserStatus;
     /**
      * Twofactorenabled
@@ -11821,6 +12260,52 @@ export type DirectoryUserDetailOut = {
      * Active workspace memberships for the user.
      */
     workspaceMembershipCount?: number;
+    /**
+     * Workspacememberships
+     */
+    workspaceMemberships?: Array<DirectoryUserWorkspaceMembershipOut>;
+};
+
+/**
+ * DirectoryUserFeedbackActivityOut
+ */
+export type DirectoryUserFeedbackActivityOut = {
+    /**
+     * Feedbackid
+     *
+     * Feedback ticket id.
+     */
+    feedbackId: string;
+    /**
+     * Intent
+     *
+     * Feedback intent.
+     */
+    intent?: string | null;
+    /**
+     * Lastactivityat
+     *
+     * Latest feedback activity time.
+     */
+    lastActivityAt: string;
+    /**
+     * Message
+     *
+     * Feedback message.
+     */
+    message: string;
+    /**
+     * Source
+     *
+     * Feedback source.
+     */
+    source: string;
+    /**
+     * Status
+     *
+     * Feedback status.
+     */
+    status: string;
 };
 
 /**
@@ -11881,6 +12366,12 @@ export type DirectoryUserListItemOut = {
      * Project memberships for the user.
      */
     projectMembershipCount?: number;
+    /**
+     * Restrictions
+     *
+     * Active access restrictions visible to the system operator.
+     */
+    restrictions?: Array<AccessRestrictionAdminOut>;
     status: UserStatus;
     /**
      * Twofactorenabled
@@ -11909,6 +12400,46 @@ export type DirectoryUserListItemOut = {
 };
 
 /**
+ * DirectoryUserProjectMembershipOut
+ */
+export type DirectoryUserProjectMembershipOut = {
+    /**
+     * Joinedat
+     *
+     * Membership creation time.
+     */
+    joinedAt: string;
+    /**
+     * Projectid
+     *
+     * Project id.
+     */
+    projectId: string;
+    /**
+     * Projectname
+     *
+     * Project name.
+     */
+    projectName: string;
+    /**
+     * Project membership role.
+     */
+    role: ProjectMemberRole;
+    /**
+     * Workspaceid
+     *
+     * Parent workspace id.
+     */
+    workspaceId: string;
+    /**
+     * Workspacename
+     *
+     * Parent workspace name.
+     */
+    workspaceName: string;
+};
+
+/**
  * DirectoryUserResetPasswordRequest
  */
 export type DirectoryUserResetPasswordRequest = {
@@ -11918,6 +12449,60 @@ export type DirectoryUserResetPasswordRequest = {
      * New password.
      */
     newPassword: string;
+};
+
+/**
+ * DirectoryUserRestrictionHistoryOut
+ */
+export type DirectoryUserRestrictionHistoryOut = {
+    /**
+     * Actoruserid
+     *
+     * Operator user id.
+     */
+    actorUserId?: string | null;
+    /**
+     * Changedat
+     *
+     * Transition time.
+     */
+    changedAt: string;
+    /**
+     * Commandid
+     *
+     * Restriction transition command id.
+     */
+    commandId: string;
+    /**
+     * Operatornote
+     *
+     * Operator note captured for the transition.
+     */
+    operatorNote: string;
+    /**
+     * Reason category.
+     */
+    reasonCategory: AccessRestrictionReasonCategory;
+    /**
+     * Reasoncode
+     *
+     * Stable reason code.
+     */
+    reasonCode: string;
+    /**
+     * Restriction type.
+     */
+    restrictionType: AccessRestrictionType;
+    /**
+     * Revision
+     *
+     * Resulting revision.
+     */
+    revision: number;
+    /**
+     * Resulting restriction state.
+     */
+    state: AccessRestrictionState;
 };
 
 /**
@@ -11951,9 +12536,50 @@ export type DirectoryUserUpdateRequest = {
 };
 
 /**
+ * DirectoryUserWorkspaceMembershipOut
+ */
+export type DirectoryUserWorkspaceMembershipOut = {
+    /**
+     * Isowner
+     *
+     * Whether the user owns the workspace.
+     */
+    isOwner?: boolean;
+    /**
+     * Joinedat
+     *
+     * Membership creation time.
+     */
+    joinedAt: string;
+    /**
+     * Rolecodes
+     *
+     * Assigned workspace role codes.
+     */
+    roleCodes?: Array<string>;
+    status: WorkspaceMembershipStatus;
+    /**
+     * Workspaceid
+     *
+     * Workspace id.
+     */
+    workspaceId: string;
+    /**
+     * Workspacename
+     *
+     * Workspace name.
+     */
+    workspaceName: string;
+};
+
+/**
  * DirectoryWorkspaceDetailOut
  */
 export type DirectoryWorkspaceDetailOut = {
+    /**
+     * Read-only commercial projection from the canonical commerce domain.
+     */
+    commerce: WorkspaceCommerceDirectoryOut;
     /**
      * Createdat
      *
@@ -12015,6 +12641,12 @@ export type DirectoryWorkspaceDetailOut = {
      */
     kind: string;
     /**
+     * Lastactivityat
+     *
+     * Latest workspace-record activity time.
+     */
+    lastActivityAt: string;
+    /**
      * Membercount
      *
      * Active member count.
@@ -12037,6 +12669,12 @@ export type DirectoryWorkspaceDetailOut = {
      */
     projectCount?: number;
     /**
+     * Restrictions
+     *
+     * Active access restrictions visible to the system operator.
+     */
+    restrictions?: Array<AccessRestrictionAdminOut>;
+    /**
      * Updatedat
      *
      * Last update time.
@@ -12054,6 +12692,10 @@ export type DirectoryWorkspaceDetailOut = {
  * DirectoryWorkspaceListItemOut
  */
 export type DirectoryWorkspaceListItemOut = {
+    /**
+     * Read-only commercial projection from the canonical commerce domain.
+     */
+    commerce: WorkspaceCommerceDirectoryOut;
     /**
      * Createdat
      *
@@ -12107,6 +12749,12 @@ export type DirectoryWorkspaceListItemOut = {
      */
     isArchived?: boolean;
     /**
+     * Lastactivityat
+     *
+     * Latest workspace-record activity time.
+     */
+    lastActivityAt: string;
+    /**
      * Membercount
      *
      * Active member count.
@@ -12128,6 +12776,12 @@ export type DirectoryWorkspaceListItemOut = {
      * Project count.
      */
     projectCount?: number;
+    /**
+     * Restrictions
+     *
+     * Active access restrictions visible to the system operator.
+     */
+    restrictions?: Array<AccessRestrictionAdminOut>;
     /**
      * Workspaceid
      *
@@ -12763,74 +13417,6 @@ export type ForgotPasswordRequest = {
 };
 
 /**
- * GlobalNotificationBroadcastIn
- */
-export type GlobalNotificationBroadcastIn = {
-    /**
-     * Actionlabel
-     */
-    actionLabel?: string | null;
-    /**
-     * Actionto
-     */
-    actionTo?: string | null;
-    /**
-     * Body
-     */
-    body?: string | null;
-    /**
-     * Deliveremail
-     */
-    deliverEmail?: boolean;
-    /**
-     * Deliverinapp
-     */
-    deliverInApp?: boolean;
-    presentation?: GlobalNotificationPresentation;
-    severity?: GlobalNotificationSeverity;
-    /**
-     * Title
-     */
-    title: string;
-};
-
-/**
- * GlobalNotificationBroadcastOut
- */
-export type GlobalNotificationBroadcastOut = {
-    /**
-     * Audiencecount
-     */
-    audienceCount: number;
-    /**
-     * Broadcastid
-     */
-    broadcastId: string;
-    /**
-     * Emaildeliveredcount
-     */
-    emailDeliveredCount: number;
-    /**
-     * Inappdeliveredcount
-     */
-    inAppDeliveredCount: number;
-    /**
-     * Policyenabled
-     */
-    policyEnabled: boolean;
-};
-
-/**
- * GlobalNotificationPresentation
- */
-export type GlobalNotificationPresentation = 'inbox' | 'toast' | 'modal' | 'banner';
-
-/**
- * GlobalNotificationSeverity
- */
-export type GlobalNotificationSeverity = 'info' | 'success' | 'warning' | 'error';
-
-/**
  * HTTPObservabilitySummaryOut
  */
 export type HttpObservabilitySummaryOut = {
@@ -12863,6 +13449,11 @@ export type HttpObservabilitySummaryOut = {
      */
     requests: number;
 };
+
+/**
+ * HTTPRequestGroupOrdering
+ */
+export type HttpRequestGroupOrdering = '-requests' | '-error_rate' | '-p95_latency_ms' | '-p99_latency_ms' | '-avg_latency_ms' | '-last_seen_at';
 
 /**
  * HTTPRequestGroupOut
@@ -12913,6 +13504,11 @@ export type HttpRequestGroupOut = {
      */
     statusClass: number;
 };
+
+/**
+ * HTTPRequestRecordOrdering
+ */
+export type HttpRequestRecordOrdering = '-occurred_at' | 'occurred_at' | '-duration_ms' | 'duration_ms' | '-status_code';
 
 /**
  * HTTPRequestRecordOut
@@ -13981,6 +14577,94 @@ export type MailTemplateCreateRequest = {
 };
 
 /**
+ * MailTemplateGroupOut
+ */
+export type MailTemplateGroupOut = {
+    /**
+     * Category
+     */
+    category: 'account' | 'security' | 'invitation' | 'notification' | 'operations' | 'custom';
+    /**
+     * Description
+     */
+    description: string | null;
+    /**
+     * Fallbacklocale
+     */
+    fallbackLocale: string;
+    /**
+     * Health
+     */
+    health: 'healthy' | 'partial' | 'disabled' | 'invalid';
+    /**
+     * Isrequired
+     */
+    isRequired: boolean;
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Latestversion
+     */
+    latestVersion: number;
+    /**
+     * Locales
+     */
+    locales: Array<MailTemplateLocaleOut>;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Owner
+     */
+    owner: 'builtin' | 'plugin' | 'custom';
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+};
+
+/**
+ * MailTemplateLocaleOut
+ */
+export type MailTemplateLocaleOut = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Isenabled
+     */
+    isEnabled: boolean;
+    /**
+     * Locale
+     */
+    locale: string;
+    /**
+     * Sourcestate
+     */
+    sourceState: 'default' | 'overridden' | 'custom';
+    /**
+     * Subjectpreview
+     */
+    subjectPreview: string;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Validationstate
+     */
+    validationState: 'valid' | 'invalid';
+    /**
+     * Version
+     */
+    version: number;
+};
+
+/**
  * MailTemplateOut
  */
 export type MailTemplateOut = {
@@ -14047,6 +14731,10 @@ export type MailTemplatePatchRequest = {
      */
     description?: string | null;
     /**
+     * Expectedversion
+     */
+    expectedVersion: number;
+    /**
      * Htmltemplate
      */
     htmlTemplate?: string | null;
@@ -14106,6 +14794,186 @@ export type MailTemplatePreviewRequest = {
      * Texttemplate
      */
     textTemplate: string;
+    /**
+     * Variables
+     */
+    variables?: {
+        [key: string]: JsonValueInput;
+    };
+};
+
+/**
+ * MailTemplateRevisionActorOut
+ */
+export type MailTemplateRevisionActorOut = {
+    /**
+     * Avatarurl
+     */
+    avatarUrl?: string | null;
+    /**
+     * Displayname
+     */
+    displayName?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Username
+     */
+    username: string;
+};
+
+/**
+ * MailTemplateRevisionDetailOut
+ */
+export type MailTemplateRevisionDetailOut = {
+    /**
+     * Action
+     */
+    action: 'created' | 'updated' | 'restored' | 'deleted';
+    actor?: MailTemplateRevisionActorOut | null;
+    /**
+     * Changedfields
+     */
+    changedFields: Array<string>;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Description
+     */
+    description: string | null;
+    /**
+     * Htmltemplate
+     */
+    htmlTemplate: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Isenabled
+     */
+    isEnabled: boolean;
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Locale
+     */
+    locale: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Subjecttemplate
+     */
+    subjectTemplate: string;
+    /**
+     * Templateid
+     */
+    templateId: string;
+    /**
+     * Texttemplate
+     */
+    textTemplate: string;
+    /**
+     * Variables
+     */
+    variables: Array<string>;
+    /**
+     * Version
+     */
+    version: number;
+};
+
+/**
+ * MailTemplateRevisionMutationRequest
+ */
+export type MailTemplateRevisionMutationRequest = {
+    /**
+     * Expectedversion
+     */
+    expectedVersion: number;
+};
+
+/**
+ * MailTemplateRevisionOut
+ */
+export type MailTemplateRevisionOut = {
+    /**
+     * Action
+     */
+    action: 'created' | 'updated' | 'restored' | 'deleted';
+    actor?: MailTemplateRevisionActorOut | null;
+    /**
+     * Changedfields
+     */
+    changedFields: Array<string>;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Locale
+     */
+    locale: string;
+    /**
+     * Templateid
+     */
+    templateId: string;
+    /**
+     * Version
+     */
+    version: number;
+};
+
+/**
+ * MailTemplateTestSendOut
+ */
+export type MailTemplateTestSendOut = {
+    /**
+     * Attempts
+     */
+    attempts: number;
+    /**
+     * Latencyms
+     */
+    latencyMs: number;
+    /**
+     * Messageid
+     */
+    messageId?: string | null;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * State
+     */
+    state: 'accepted';
+};
+
+/**
+ * MailTemplateTestSendRequest
+ */
+export type MailTemplateTestSendRequest = {
+    /**
+     * Recipient
+     */
+    recipient: string;
     /**
      * Variables
      */
@@ -14534,6 +15402,26 @@ export type MyWorkspaceOut = {
 };
 
 /**
+ * NotificationAction
+ */
+export type NotificationAction = {
+    kind: NotificationActionKind;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Target
+     */
+    target: string;
+};
+
+/**
+ * NotificationActionKind
+ */
+export type NotificationActionKind = 'internal_route' | 'external_https';
+
+/**
  * NotificationArchiveResult
  */
 export type NotificationArchiveResult = {
@@ -14549,6 +15437,649 @@ export type NotificationArchiveResult = {
      * Notification id.
      */
     id: string;
+};
+
+/**
+ * NotificationAudienceEstimateOut
+ */
+export type NotificationAudienceEstimateOut = {
+    /**
+     * Breakdown
+     */
+    breakdown?: {
+        [key: string]: number;
+    };
+    /**
+     * Campaignid
+     */
+    campaignId: string;
+    /**
+     * Estimatedrecipients
+     */
+    estimatedRecipients: number;
+    /**
+     * Revision
+     */
+    revision: number;
+    /**
+     * Sampleduserids
+     */
+    sampledUserIds?: Array<string>;
+};
+
+/**
+ * NotificationAudienceKind
+ */
+export type NotificationAudienceKind = 'all_active_users' | 'explicit_users' | 'workspace_members';
+
+/**
+ * NotificationAudienceRule
+ */
+export type NotificationAudienceRule = {
+    /**
+     * Createdfrom
+     */
+    createdFrom?: string | null;
+    /**
+     * Createdto
+     */
+    createdTo?: string | null;
+    kind: NotificationAudienceKind;
+    /**
+     * Lastactivefrom
+     */
+    lastActiveFrom?: string | null;
+    /**
+     * Lastactiveto
+     */
+    lastActiveTo?: string | null;
+    /**
+     * Userids
+     */
+    userIds?: Array<string>;
+    /**
+     * Workspaceids
+     */
+    workspaceIds?: Array<string>;
+};
+
+/**
+ * NotificationBannerPayload
+ */
+export type NotificationBannerPayloadInput = {
+    action?: NotificationAction | null;
+    /**
+     * Body
+     */
+    body?: string | null;
+    /**
+     * Dismissible
+     */
+    dismissible?: boolean;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * NotificationBannerPayload
+ */
+export type NotificationBannerPayloadOutput = {
+    action?: NotificationAction | null;
+    /**
+     * Body
+     */
+    body?: string | null;
+    /**
+     * Dismissible
+     */
+    dismissible?: boolean;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * NotificationCampaignCancellationOut
+ */
+export type NotificationCampaignCancellationOut = {
+    campaign: NotificationCampaignSummaryOut;
+    /**
+     * Cancelleddeliveries
+     */
+    cancelledDeliveries: number;
+    /**
+     * Nonrecallabledeliveries
+     */
+    nonRecallableDeliveries: number;
+};
+
+/**
+ * NotificationCampaignChannel
+ */
+export type NotificationCampaignChannel = 'in_app' | 'email';
+
+/**
+ * NotificationCampaignConflictPolicy
+ */
+export type NotificationCampaignConflictPolicy = 'queue' | 'replace_lower_priority';
+
+/**
+ * NotificationCampaignCreateRequest
+ */
+export type NotificationCampaignCreateRequest = {
+    audience: NotificationAudienceRule;
+    /**
+     * Channels
+     */
+    channels?: Array<NotificationCampaignChannel>;
+    conflictPolicy?: NotificationCampaignConflictPolicy;
+    /**
+     * Displayendat
+     */
+    displayEndAt?: string | null;
+    /**
+     * Displaystartat
+     */
+    displayStartAt?: string | null;
+    /**
+     * Fallbacklocale
+     */
+    fallbackLocale?: string | null;
+    /**
+     * Internaldescription
+     */
+    internalDescription?: string | null;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Presentations
+     */
+    presentations?: Array<NotificationPresentation>;
+    /**
+     * Priority
+     */
+    priority?: number;
+    /**
+     * Timezone
+     */
+    timezone?: string;
+    /**
+     * Variants
+     */
+    variants?: Array<NotificationCampaignVariantInput>;
+};
+
+/**
+ * NotificationCampaignDetailOut
+ */
+export type NotificationCampaignDetailOut = {
+    /**
+     * Archivedat
+     */
+    archivedAt?: string | null;
+    audience: NotificationAudienceRule;
+    /**
+     * Audienceestimate
+     */
+    audienceEstimate?: number | null;
+    /**
+     * Cancelledat
+     */
+    cancelledAt?: string | null;
+    /**
+     * Channels
+     */
+    channels: Array<NotificationCampaignChannel>;
+    /**
+     * Completedat
+     */
+    completedAt?: string | null;
+    conflictPolicy: NotificationCampaignConflictPolicy;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Displayendat
+     */
+    displayEndAt?: string | null;
+    /**
+     * Displaystartat
+     */
+    displayStartAt?: string | null;
+    /**
+     * Fallbacklocale
+     */
+    fallbackLocale?: string | null;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Internaldescription
+     */
+    internalDescription?: string | null;
+    metrics: NotificationCampaignMetricsOut;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Operationjobid
+     */
+    operationJobId?: string | null;
+    owner: NotificationCampaignOwnerOut;
+    /**
+     * Presentations
+     */
+    presentations: Array<NotificationPresentation>;
+    /**
+     * Priority
+     */
+    priority: number;
+    /**
+     * Publishedat
+     */
+    publishedAt?: string | null;
+    /**
+     * Revision
+     */
+    revision: number;
+    /**
+     * Scheduleat
+     */
+    scheduleAt?: string | null;
+    state: NotificationCampaignState;
+    /**
+     * Timezone
+     */
+    timezone: string;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Variants
+     */
+    variants: Array<NotificationCampaignVariantOut>;
+};
+
+/**
+ * NotificationCampaignMetricsOut
+ */
+export type NotificationCampaignMetricsOut = {
+    /**
+     * Clicked
+     */
+    clicked: number;
+    /**
+     * Delivered
+     */
+    delivered: number;
+    /**
+     * Dismissed
+     */
+    dismissed: number;
+    /**
+     * Failed
+     */
+    failed: number;
+    /**
+     * Pending
+     */
+    pending: number;
+    /**
+     * Read
+     */
+    read: number;
+    /**
+     * Recipients
+     */
+    recipients: number;
+    /**
+     * Sent
+     */
+    sent: number;
+    /**
+     * Suppressed
+     */
+    suppressed: number;
+};
+
+/**
+ * NotificationCampaignOwnerOut
+ */
+export type NotificationCampaignOwnerOut = {
+    /**
+     * Avatarurl
+     */
+    avatarUrl?: string | null;
+    /**
+     * Displayname
+     */
+    displayName?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Username
+     */
+    username: string;
+};
+
+/**
+ * NotificationCampaignPatchRequest
+ */
+export type NotificationCampaignPatchRequest = {
+    audience?: NotificationAudienceRule | null;
+    /**
+     * Channels
+     */
+    channels?: Array<NotificationCampaignChannel> | null;
+    conflictPolicy?: NotificationCampaignConflictPolicy | null;
+    /**
+     * Displayendat
+     */
+    displayEndAt?: string | null;
+    /**
+     * Displaystartat
+     */
+    displayStartAt?: string | null;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Fallbacklocale
+     */
+    fallbackLocale?: string | null;
+    /**
+     * Internaldescription
+     */
+    internalDescription?: string | null;
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Presentations
+     */
+    presentations?: Array<NotificationPresentation> | null;
+    /**
+     * Priority
+     */
+    priority?: number | null;
+    /**
+     * Timezone
+     */
+    timezone?: string | null;
+    /**
+     * Variants
+     */
+    variants?: Array<NotificationCampaignVariantInput> | null;
+};
+
+/**
+ * NotificationCampaignPreviewOut
+ */
+export type NotificationCampaignPreviewOut = {
+    /**
+     * Campaignid
+     */
+    campaignId: string;
+    /**
+     * Revision
+     */
+    revision: number;
+    /**
+     * Variants
+     */
+    variants: Array<NotificationCampaignPreviewVariantOut>;
+    /**
+     * Warnings
+     */
+    warnings?: Array<string>;
+};
+
+/**
+ * NotificationCampaignPreviewVariantOut
+ */
+export type NotificationCampaignPreviewVariantOut = {
+    /**
+     * Locale
+     */
+    locale: string;
+    /**
+     * Presentations
+     */
+    presentations: {
+        [key in NotificationPresentation]?: {
+            [key: string]: JsonValueOutput;
+        };
+    };
+    /**
+     * Usedfallback
+     */
+    usedFallback: boolean;
+};
+
+/**
+ * NotificationCampaignPublishOut
+ */
+export type NotificationCampaignPublishOut = {
+    campaign: NotificationCampaignSummaryOut;
+    /**
+     * Jobid
+     */
+    jobId: string;
+    /**
+     * Scheduledat
+     */
+    scheduledAt: string;
+};
+
+/**
+ * NotificationCampaignPublishRequest
+ */
+export type NotificationCampaignPublishRequest = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Scheduleat
+     */
+    scheduleAt?: string | null;
+};
+
+/**
+ * NotificationCampaignRetryOut
+ */
+export type NotificationCampaignRetryOut = {
+    /**
+     * Campaignid
+     */
+    campaignId: string;
+    /**
+     * Jobid
+     */
+    jobId: string;
+    /**
+     * Retryabledeliverycount
+     */
+    retryableDeliveryCount: number;
+};
+
+/**
+ * NotificationCampaignRevisionRequest
+ */
+export type NotificationCampaignRevisionRequest = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+};
+
+/**
+ * NotificationCampaignState
+ */
+export type NotificationCampaignState = 'draft' | 'scheduled' | 'dispatching' | 'completed' | 'partially_failed' | 'cancelled' | 'archived';
+
+/**
+ * NotificationCampaignSummaryOut
+ */
+export type NotificationCampaignSummaryOut = {
+    /**
+     * Archivedat
+     */
+    archivedAt?: string | null;
+    audience: NotificationAudienceRule;
+    /**
+     * Audienceestimate
+     */
+    audienceEstimate?: number | null;
+    /**
+     * Cancelledat
+     */
+    cancelledAt?: string | null;
+    /**
+     * Channels
+     */
+    channels: Array<NotificationCampaignChannel>;
+    /**
+     * Completedat
+     */
+    completedAt?: string | null;
+    conflictPolicy: NotificationCampaignConflictPolicy;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Displayendat
+     */
+    displayEndAt?: string | null;
+    /**
+     * Displaystartat
+     */
+    displayStartAt?: string | null;
+    /**
+     * Fallbacklocale
+     */
+    fallbackLocale?: string | null;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Internaldescription
+     */
+    internalDescription?: string | null;
+    metrics: NotificationCampaignMetricsOut;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Operationjobid
+     */
+    operationJobId?: string | null;
+    owner: NotificationCampaignOwnerOut;
+    /**
+     * Presentations
+     */
+    presentations: Array<NotificationPresentation>;
+    /**
+     * Priority
+     */
+    priority: number;
+    /**
+     * Publishedat
+     */
+    publishedAt?: string | null;
+    /**
+     * Revision
+     */
+    revision: number;
+    /**
+     * Scheduleat
+     */
+    scheduleAt?: string | null;
+    state: NotificationCampaignState;
+    /**
+     * Timezone
+     */
+    timezone: string;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+};
+
+/**
+ * NotificationCampaignVariantInput
+ */
+export type NotificationCampaignVariantInput = {
+    banner?: NotificationBannerPayloadInput | null;
+    email?: NotificationEmailPayloadInput | null;
+    inbox?: NotificationInboxPayloadInput | null;
+    /**
+     * Locale
+     */
+    locale: string;
+    modal?: NotificationModalPayloadInput | null;
+    toast?: NotificationToastPayloadInput | null;
+};
+
+/**
+ * NotificationCampaignVariantOut
+ */
+export type NotificationCampaignVariantOut = {
+    banner?: NotificationBannerPayloadOutput | null;
+    /**
+     * Campaignid
+     */
+    campaignId: string;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    email?: NotificationEmailPayloadOutput | null;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    inbox?: NotificationInboxPayloadOutput | null;
+    /**
+     * Isfallback
+     */
+    isFallback: boolean;
+    /**
+     * Locale
+     */
+    locale: string;
+    modal?: NotificationModalPayloadOutput | null;
+    /**
+     * Revision
+     */
+    revision: number;
+    toast?: NotificationToastPayloadOutput | null;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
 };
 
 /**
@@ -14572,6 +16103,94 @@ export type NotificationDeleteResult = {
      */
     id: string;
 };
+
+/**
+ * NotificationDeliveryOut
+ */
+export type NotificationDeliveryOut = {
+    /**
+     * Attemptcount
+     */
+    attemptCount: number;
+    /**
+     * Campaignid
+     */
+    campaignId: string;
+    channel: NotificationCampaignChannel;
+    /**
+     * Clickedat
+     */
+    clickedAt?: string | null;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Deliveredat
+     */
+    deliveredAt?: string | null;
+    /**
+     * Dismissedat
+     */
+    dismissedAt?: string | null;
+    /**
+     * Failurecode
+     */
+    failureCode?: string | null;
+    /**
+     * Failuremessage
+     */
+    failureMessage?: string | null;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Isretryable
+     */
+    isRetryable: boolean;
+    presentation: NotificationPresentation;
+    /**
+     * Providermessageid
+     */
+    providerMessageId?: string | null;
+    /**
+     * Readat
+     */
+    readAt?: string | null;
+    /**
+     * Recipientlocale
+     */
+    recipientLocale: string;
+    /**
+     * Recipientuserid
+     */
+    recipientUserId: string;
+    /**
+     * Scheduledat
+     */
+    scheduledAt?: string | null;
+    /**
+     * Sentat
+     */
+    sentAt?: string | null;
+    state: NotificationDeliveryState;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Variantid
+     */
+    variantId: string;
+};
+
+/**
+ * NotificationDeliveryState
+ */
+export type NotificationDeliveryState = 'pending' | 'processing' | 'sent' | 'delivered' | 'failed' | 'suppressed' | 'cancelled';
 
 /**
  * NotificationDevSeedRequest
@@ -14598,9 +16217,180 @@ export type NotificationDevSeedResult = {
 };
 
 /**
+ * NotificationDismissPolicy
+ */
+export type NotificationDismissPolicy = 'dismissible' | 'action_required';
+
+/**
+ * NotificationEmailPayload
+ */
+export type NotificationEmailPayloadInput = {
+    /**
+     * Templatekey
+     */
+    templateKey: string;
+    /**
+     * Templateversion
+     */
+    templateVersion: number;
+    /**
+     * Variables
+     */
+    variables?: {
+        [key: string]: JsonValueInput;
+    };
+};
+
+/**
+ * NotificationEmailPayload
+ */
+export type NotificationEmailPayloadOutput = {
+    /**
+     * Templatekey
+     */
+    templateKey: string;
+    /**
+     * Templateversion
+     */
+    templateVersion: number;
+    /**
+     * Variables
+     */
+    variables?: {
+        [key: string]: JsonValueOutput;
+    };
+};
+
+/**
+ * NotificationInboxPayload
+ */
+export type NotificationInboxPayloadInput = {
+    action?: NotificationAction | null;
+    /**
+     * Body
+     */
+    body?: string | null;
+    /**
+     * Severity
+     */
+    severity?: string;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * NotificationInboxPayload
+ */
+export type NotificationInboxPayloadOutput = {
+    action?: NotificationAction | null;
+    /**
+     * Body
+     */
+    body?: string | null;
+    /**
+     * Severity
+     */
+    severity?: string;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * NotificationInteractionKind
+ */
+export type NotificationInteractionKind = 'read' | 'click' | 'dismiss';
+
+/**
+ * NotificationInteractionOut
+ */
+export type NotificationInteractionOut = {
+    /**
+     * Deliveryid
+     */
+    deliveryId: string;
+    kind: NotificationInteractionKind;
+    /**
+     * Notificationid
+     */
+    notificationId: string;
+    /**
+     * Occurredat
+     */
+    occurredAt: string;
+};
+
+/**
  * NotificationListStatus
  */
 export type NotificationListStatus = 'unread' | 'all' | 'archived';
+
+/**
+ * NotificationMedia
+ */
+export type NotificationMedia = {
+    /**
+     * Alttext
+     */
+    altText: string;
+    /**
+     * Assetid
+     */
+    assetId: string;
+    /**
+     * Captionsassetid
+     */
+    captionsAssetId?: string | null;
+    kind: NotificationMediaKind;
+    /**
+     * Posterassetid
+     */
+    posterAssetId?: string | null;
+};
+
+/**
+ * NotificationMediaKind
+ */
+export type NotificationMediaKind = 'image' | 'video';
+
+/**
+ * NotificationModalPayload
+ */
+export type NotificationModalPayloadInput = {
+    /**
+     * Body
+     */
+    body: string;
+    dismissPolicy?: NotificationDismissPolicy;
+    media?: NotificationMedia | null;
+    primaryAction: NotificationAction;
+    secondaryAction?: NotificationAction | null;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * NotificationModalPayload
+ */
+export type NotificationModalPayloadOutput = {
+    /**
+     * Body
+     */
+    body: string;
+    dismissPolicy?: NotificationDismissPolicy;
+    media?: NotificationMedia | null;
+    primaryAction: NotificationAction;
+    secondaryAction?: NotificationAction | null;
+    /**
+     * Title
+     */
+    title: string;
+};
 
 /**
  * NotificationOut
@@ -14621,7 +16411,7 @@ export type NotificationOut = {
     /**
      * Body
      *
-     * Short body (max 2 lines in UI).
+     * Notification body; presentation controls its UI treatment.
      */
     body?: string | null;
     /**
@@ -14795,6 +16585,11 @@ export type NotificationPreferencesOut = {
 };
 
 /**
+ * NotificationPresentation
+ */
+export type NotificationPresentation = 'inbox' | 'toast' | 'modal' | 'banner' | 'email';
+
+/**
  * NotificationPreviewOut
  */
 export type NotificationPreviewOut = {
@@ -14846,6 +16641,36 @@ export type NotificationReadResult = {
      * Read datetime (UTC).
      */
     readAt?: string | null;
+};
+
+/**
+ * NotificationToastPayload
+ */
+export type NotificationToastPayloadInput = {
+    action?: NotificationAction | null;
+    /**
+     * Body
+     */
+    body?: string | null;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * NotificationToastPayload
+ */
+export type NotificationToastPayloadOutput = {
+    action?: NotificationAction | null;
+    /**
+     * Body
+     */
+    body?: string | null;
+    /**
+     * Title
+     */
+    title: string;
 };
 
 /**
@@ -16154,6 +17979,102 @@ export type PageDataHttpRequestRecordOut = {
 };
 
 /**
+ * PageData[MailTemplateGroupOut]
+ */
+export type PageDataMailTemplateGroupOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<MailTemplateGroupOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
+ * PageData[MailTemplateRevisionOut]
+ */
+export type PageDataMailTemplateRevisionOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<MailTemplateRevisionOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
  * PageData[MyInvitationOut]
  */
 export type PageDataMyInvitationOut = {
@@ -16163,6 +18084,102 @@ export type PageDataMyInvitationOut = {
      * Current page items.
      */
     items?: Array<MyInvitationOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
+ * PageData[NotificationCampaignSummaryOut]
+ */
+export type PageDataNotificationCampaignSummaryOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<NotificationCampaignSummaryOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
+ * PageData[NotificationDeliveryOut]
+ */
+export type PageDataNotificationDeliveryOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<NotificationDeliveryOut>;
     /**
      * Next
      *
@@ -17160,6 +19177,26 @@ export type PlanFeature = {
 };
 
 /**
+ * PluginLifecycleState
+ */
+export type PluginLifecycleState = 'installing' | 'installed' | 'update_available' | 'upgrading' | 'disabling' | 'disabled' | 'uninstalling' | 'failed' | 'rollback_required';
+
+/**
+ * PluginOperationKind
+ */
+export type PluginOperationKind = 'install' | 'upgrade' | 'rollback' | 'enable' | 'disable' | 'uninstall';
+
+/**
+ * PluginOperationState
+ */
+export type PluginOperationState = 'queued' | 'running' | 'waiting_for_restart' | 'succeeded' | 'failed' | 'cancelled';
+
+/**
+ * PluginRuntimeActivationState
+ */
+export type PluginRuntimeActivationState = 'not_required' | 'pending_restart' | 'verified' | 'failed';
+
+/**
  * ProcessState
  *
  * Runtime lifecycle of an Extension in the current process.
@@ -17900,6 +19937,11 @@ export type ProjectDeploymentRollbackIn = {
      */
     environmentId?: string | null;
 };
+
+/**
+ * ProjectDeploymentStatus
+ */
+export type ProjectDeploymentStatus = 'queued' | 'building' | 'ready' | 'failed' | 'canceled' | 'promoted';
 
 /**
  * ProjectDesignSystemAssignmentOut
@@ -19016,6 +21058,72 @@ export type ProjectPermissionActionOut = {
      * Supported subject kinds.
      */
     subjectKinds?: Array<string>;
+};
+
+/**
+ * ProjectRuntimeContextOut
+ */
+export type ProjectRuntimeContextOut = {
+    /**
+     * Defaultlocale
+     *
+     * Default locale.
+     */
+    defaultLocale: string;
+    /**
+     * Fallbacklocale
+     *
+     * Fallback locale.
+     */
+    fallbackLocale: string;
+    /**
+     * Isactive
+     *
+     * Whether the runtime is active.
+     */
+    isActive: boolean;
+    /**
+     * Kind
+     *
+     * Runtime kind.
+     */
+    kind: string;
+    /**
+     * Name
+     *
+     * Runtime name.
+     */
+    name: string;
+    /**
+     * Projectid
+     *
+     * Project id.
+     */
+    projectId: string;
+    /**
+     * Runtimeid
+     *
+     * Primary runtime id.
+     */
+    runtimeId: string;
+    /**
+     * Siteid
+     *
+     * Resolved site id.
+     */
+    siteId: string;
+    /**
+     * Slug
+     *
+     * Resolved runtime slug.
+     */
+    slug: string;
+    /**
+     * Workspaceid
+     *
+     * Workspace id.
+     */
+    workspaceId: string;
 };
 
 /**
@@ -22251,6 +24359,31 @@ export type ResponseModelDirectoryProjectDetailOut = {
 };
 
 /**
+ * ResponseModel[DirectoryProjectOperationsOut]
+ */
+export type ResponseModelDirectoryProjectOperationsOut = {
+    data?: DirectoryProjectOperationsOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[DirectoryUserDetailOut]
  */
 export type ResponseModelDirectoryUserDetailOut = {
@@ -22430,31 +24563,6 @@ export type ResponseModelEmailCheckOut = {
  */
 export type ResponseModelFeedbackTicketDetailOut = {
     data?: FeedbackTicketDetailOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[GlobalNotificationBroadcastOut]
- */
-export type ResponseModelGlobalNotificationBroadcastOut = {
-    data?: GlobalNotificationBroadcastOut | null;
     /**
      * Error
      */
@@ -22801,6 +24909,56 @@ export type ResponseModelMailTemplatePreviewOut = {
 };
 
 /**
+ * ResponseModel[MailTemplateRevisionDetailOut]
+ */
+export type ResponseModelMailTemplateRevisionDetailOut = {
+    data?: MailTemplateRevisionDetailOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[MailTemplateTestSendOut]
+ */
+export type ResponseModelMailTemplateTestSendOut = {
+    data?: MailTemplateTestSendOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[MailTestResult]
  */
 export type ResponseModelMailTestResult = {
@@ -22954,6 +25112,181 @@ export type ResponseModelNotificationArchiveResult = {
 };
 
 /**
+ * ResponseModel[NotificationAudienceEstimateOut]
+ */
+export type ResponseModelNotificationAudienceEstimateOut = {
+    data?: NotificationAudienceEstimateOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[NotificationCampaignCancellationOut]
+ */
+export type ResponseModelNotificationCampaignCancellationOut = {
+    data?: NotificationCampaignCancellationOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[NotificationCampaignDetailOut]
+ */
+export type ResponseModelNotificationCampaignDetailOut = {
+    data?: NotificationCampaignDetailOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[NotificationCampaignPreviewOut]
+ */
+export type ResponseModelNotificationCampaignPreviewOut = {
+    data?: NotificationCampaignPreviewOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[NotificationCampaignPublishOut]
+ */
+export type ResponseModelNotificationCampaignPublishOut = {
+    data?: NotificationCampaignPublishOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[NotificationCampaignRetryOut]
+ */
+export type ResponseModelNotificationCampaignRetryOut = {
+    data?: NotificationCampaignRetryOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[NotificationCampaignSummaryOut]
+ */
+export type ResponseModelNotificationCampaignSummaryOut = {
+    data?: NotificationCampaignSummaryOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[NotificationDeleteResult]
  */
 export type ResponseModelNotificationDeleteResult = {
@@ -22983,6 +25316,31 @@ export type ResponseModelNotificationDeleteResult = {
  */
 export type ResponseModelNotificationDevSeedResult = {
     data?: NotificationDevSeedResult | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[NotificationInteractionOut]
+ */
+export type ResponseModelNotificationInteractionOut = {
+    data?: NotificationInteractionOut | null;
     /**
      * Error
      */
@@ -23679,10 +26037,110 @@ export type ResponseModelPageDataHttpRequestRecordOut = {
 };
 
 /**
+ * ResponseModel[PageData[MailTemplateGroupOut]]
+ */
+export type ResponseModelPageDataMailTemplateGroupOut = {
+    data?: PageDataMailTemplateGroupOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PageData[MailTemplateRevisionOut]]
+ */
+export type ResponseModelPageDataMailTemplateRevisionOut = {
+    data?: PageDataMailTemplateRevisionOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[PageData[MyInvitationOut]]
  */
 export type ResponseModelPageDataMyInvitationOut = {
     data?: PageDataMyInvitationOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PageData[NotificationCampaignSummaryOut]]
+ */
+export type ResponseModelPageDataNotificationCampaignSummaryOut = {
+    data?: PageDataNotificationCampaignSummaryOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PageData[NotificationDeliveryOut]]
+ */
+export type ResponseModelPageDataNotificationDeliveryOut = {
+    data?: PageDataNotificationDeliveryOut | null;
     /**
      * Error
      */
@@ -25204,6 +27662,31 @@ export type ResponseModelResetTokenPayload = {
 };
 
 /**
+ * ResponseModel[RolePermissionBatchSetOut]
+ */
+export type ResponseModelRolePermissionBatchSetOut = {
+    data?: RolePermissionBatchSetOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[RouteBindingOut]
  */
 export type ResponseModelRouteBindingOut = {
@@ -26129,10 +28612,135 @@ export type ResponseModelSystemAgentVersionOut = {
 };
 
 /**
+ * ResponseModel[SystemPluginArtifactReviewOut]
+ */
+export type ResponseModelSystemPluginArtifactReviewOut = {
+    data?: SystemPluginArtifactReviewOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SystemPluginCatalogListOut]
+ */
+export type ResponseModelSystemPluginCatalogListOut = {
+    data?: SystemPluginCatalogListOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SystemPluginConfigurationOut]
+ */
+export type ResponseModelSystemPluginConfigurationOut = {
+    data?: SystemPluginConfigurationOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SystemPluginDetailOut]
+ */
+export type ResponseModelSystemPluginDetailOut = {
+    data?: SystemPluginDetailOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[SystemPluginListOut]
  */
 export type ResponseModelSystemPluginListOut = {
     data?: SystemPluginListOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SystemPluginOperationOut]
+ */
+export type ResponseModelSystemPluginOperationOut = {
+    data?: SystemPluginOperationOut | null;
     /**
      * Error
      */
@@ -27104,6 +29712,31 @@ export type ResponseModelWorkspaceManageListItemOut = {
 };
 
 /**
+ * ResponseModel[WorkspacePermissionCatalogOut]
+ */
+export type ResponseModelWorkspacePermissionCatalogOut = {
+    data?: WorkspacePermissionCatalogOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[WorkspacePlanCatalogOut]
  */
 export type ResponseModelWorkspacePlanCatalogOut = {
@@ -27342,34 +29975,6 @@ export type ResponseModelListMailProviderInfo = {
      * Data
      */
     data?: Array<MailProviderInfo> | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[list[MailTemplateOut]]
- */
-export type ResponseModelListMailTemplateOut = {
-    /**
-     * Data
-     */
-    data?: Array<MailTemplateOut> | null;
     /**
      * Error
      */
@@ -27692,6 +30297,56 @@ export type RoleCreateFromTemplateRequest = {
      * Template role code to clone (optional).
      */
     templateRoleCode?: string | null;
+};
+
+/**
+ * RolePermissionBatchItemIn
+ */
+export type RolePermissionBatchItemIn = {
+    /**
+     * Permissiongrants
+     */
+    permissionGrants?: Array<RolePermissionGrantIn>;
+    /**
+     * Rolecode
+     */
+    roleCode: string;
+    /**
+     * Rolerevision
+     */
+    roleRevision: string;
+};
+
+/**
+ * RolePermissionBatchSetOut
+ */
+export type RolePermissionBatchSetOut = {
+    /**
+     * Catalogrevision
+     */
+    catalogRevision: string;
+    /**
+     * Roles
+     */
+    roles?: Array<WorkspaceRoleOut>;
+};
+
+/**
+ * RolePermissionBatchSetRequest
+ */
+export type RolePermissionBatchSetRequest = {
+    /**
+     * Catalogrevision
+     */
+    catalogRevision: string;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Roles
+     */
+    roles: Array<RolePermissionBatchItemIn>;
 };
 
 /**
@@ -31484,6 +34139,383 @@ export type SystemPluginAdminOut = {
 };
 
 /**
+ * SystemPluginArtifactReviewOut
+ */
+export type SystemPluginArtifactReviewOut = {
+    admin?: SystemPluginAdminOut | null;
+    /**
+     * Artifactchecksum
+     */
+    artifactChecksum: string;
+    compatibility: SystemPluginCompatibilityOut;
+    /**
+     * Configschema
+     */
+    configSchema?: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Manifestdigest
+     */
+    manifestDigest: string;
+    /**
+     * Packagechecksum
+     */
+    packageChecksum: string;
+    /**
+     * Permissions
+     */
+    permissions?: Array<string>;
+    /**
+     * Pluginname
+     */
+    pluginName: string;
+    /**
+     * Provenancestatus
+     */
+    provenanceStatus: string;
+    provides: SystemPluginProvidesOut;
+    /**
+     * Signerfingerprint
+     */
+    signerFingerprint: string;
+    /**
+     * Sizebytes
+     */
+    sizeBytes: number;
+    /**
+     * Sourcelocator
+     */
+    sourceLocator: string;
+    sourceType: SystemPluginSourceType;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Version
+     */
+    version: string;
+};
+
+/**
+ * SystemPluginCatalogItemOut
+ */
+export type SystemPluginCatalogItemOut = {
+    admin?: SystemPluginAdminOut | null;
+    /**
+     * Approvedpermissions
+     */
+    approvedPermissions?: Array<string>;
+    /**
+     * Artifactchecksum
+     */
+    artifactChecksum: string;
+    /**
+     * Artifactid
+     */
+    artifactId?: string | null;
+    /**
+     * Availableversion
+     */
+    availableVersion: string;
+    compatibility: SystemPluginCompatibilityOut;
+    /**
+     * Configschema
+     */
+    configSchema?: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Connectordefinitions
+     */
+    connectorDefinitions?: Array<SystemConnectorDefinitionOut>;
+    /**
+     * Currentjobid
+     */
+    currentJobId?: string | null;
+    /**
+     * Currentoperationid
+     */
+    currentOperationId?: string | null;
+    /**
+     * Desiredenabled
+     */
+    desiredEnabled?: boolean | null;
+    /**
+     * Hasupdate
+     */
+    hasUpdate?: boolean;
+    /**
+     * Installationid
+     */
+    installationId?: string | null;
+    /**
+     * Installedversion
+     */
+    installedVersion?: string | null;
+    lifecycleState?: PluginLifecycleState | null;
+    /**
+     * Manifestdigest
+     */
+    manifestDigest: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Packagechecksum
+     */
+    packageChecksum: string;
+    packageState?: PackageState | null;
+    /**
+     * Permissions
+     */
+    permissions?: Array<string>;
+    processState?: ProcessState | null;
+    provenanceStatus: SystemPluginProvenanceStatus;
+    provides: SystemPluginProvidesOut;
+    runtimeActivationState?: PluginRuntimeActivationState | null;
+    /**
+     * Signerfingerprint
+     */
+    signerFingerprint?: string | null;
+    /**
+     * Sourcelocator
+     */
+    sourceLocator: string;
+    sourceType: SystemPluginSourceType;
+};
+
+/**
+ * SystemPluginCatalogListOut
+ */
+export type SystemPluginCatalogListOut = {
+    /**
+     * Items
+     */
+    items?: Array<SystemPluginCatalogItemOut>;
+};
+
+/**
+ * SystemPluginCompatibilityOut
+ */
+export type SystemPluginCompatibilityOut = {
+    /**
+     * Compatible
+     */
+    compatible: boolean;
+    /**
+     * Issues
+     */
+    issues?: Array<string>;
+    /**
+     * Platformrequirement
+     */
+    platformRequirement?: string | null;
+    /**
+     * Pythonrequirement
+     */
+    pythonRequirement?: string | null;
+};
+
+/**
+ * SystemPluginConfigurationOut
+ */
+export type SystemPluginConfigurationOut = {
+    /**
+     * Pluginname
+     */
+    pluginName: string;
+    /**
+     * Restartrequired
+     */
+    restartRequired: boolean;
+    /**
+     * Revision
+     */
+    revision: number;
+    /**
+     * Secretreferences
+     */
+    secretReferences?: {
+        [key: string]: string;
+    };
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Values
+     */
+    values?: {
+        [key: string]: JsonValueOutput;
+    };
+};
+
+/**
+ * SystemPluginConfigurationPatch
+ */
+export type SystemPluginConfigurationPatch = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Secretreferences
+     */
+    secretReferences: {
+        [key: string]: string;
+    };
+    /**
+     * Values
+     */
+    values: {
+        [key: string]: JsonValueInput;
+    };
+};
+
+/**
+ * SystemPluginDetailOut
+ */
+export type SystemPluginDetailOut = {
+    admin?: SystemPluginAdminOut | null;
+    /**
+     * Approvedpermissions
+     */
+    approvedPermissions?: Array<string>;
+    /**
+     * Artifactchecksum
+     */
+    artifactChecksum: string;
+    /**
+     * Artifactid
+     */
+    artifactId?: string | null;
+    /**
+     * Availableversion
+     */
+    availableVersion: string;
+    compatibility: SystemPluginCompatibilityOut;
+    /**
+     * Configschema
+     */
+    configSchema?: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Connectordefinitions
+     */
+    connectorDefinitions?: Array<SystemConnectorDefinitionOut>;
+    /**
+     * Currentjobid
+     */
+    currentJobId?: string | null;
+    /**
+     * Currentoperationid
+     */
+    currentOperationId?: string | null;
+    /**
+     * Desiredenabled
+     */
+    desiredEnabled?: boolean | null;
+    /**
+     * Hasupdate
+     */
+    hasUpdate?: boolean;
+    /**
+     * Installationid
+     */
+    installationId?: string | null;
+    /**
+     * Installedversion
+     */
+    installedVersion?: string | null;
+    lifecycleState?: PluginLifecycleState | null;
+    /**
+     * Manifestdigest
+     */
+    manifestDigest: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Packagechecksum
+     */
+    packageChecksum: string;
+    packageState?: PackageState | null;
+    /**
+     * Permissions
+     */
+    permissions?: Array<string>;
+    processState?: ProcessState | null;
+    provenanceStatus: SystemPluginProvenanceStatus;
+    provides: SystemPluginProvidesOut;
+    /**
+     * Recentoperations
+     */
+    recentOperations?: Array<SystemPluginOperationOut>;
+    runtimeActivationState?: PluginRuntimeActivationState | null;
+    /**
+     * Signerfingerprint
+     */
+    signerFingerprint?: string | null;
+    /**
+     * Sourcelocator
+     */
+    sourceLocator: string;
+    sourceType: SystemPluginSourceType;
+};
+
+/**
+ * SystemPluginInstallationCreateRequest
+ */
+export type SystemPluginInstallationCreateRequest = {
+    /**
+     * Approvedpermissions
+     */
+    approvedPermissions?: Array<string>;
+    /**
+     * Artifactid
+     */
+    artifactId?: string | null;
+    /**
+     * Pluginname
+     */
+    pluginName?: string | null;
+    sourceType: SystemPluginSourceType;
+    /**
+     * Targetversion
+     */
+    targetVersion?: string | null;
+};
+
+/**
+ * SystemPluginLifecycleRequest
+ */
+export type SystemPluginLifecycleRequest = {
+    /**
+     * Approvedpermissions
+     */
+    approvedPermissions?: Array<string>;
+    /**
+     * Targetversion
+     */
+    targetVersion?: string | null;
+};
+
+/**
  * SystemPluginListItemOut
  */
 export type SystemPluginListItemOut = {
@@ -31526,6 +34558,91 @@ export type SystemPluginListOut = {
 };
 
 /**
+ * SystemPluginOperationOut
+ */
+export type SystemPluginOperationOut = {
+    /**
+     * Activationverified
+     */
+    activationVerified: boolean;
+    /**
+     * Completedat
+     */
+    completedAt: string | null;
+    /**
+     * Failurecode
+     */
+    failureCode: string | null;
+    /**
+     * Failuresummary
+     */
+    failureSummary: string | null;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Jobid
+     */
+    jobId: string | null;
+    kind: PluginOperationKind;
+    /**
+     * Migrationwarnings
+     */
+    migrationWarnings: Array<string>;
+    /**
+     * Permissiondiff
+     */
+    permissionDiff: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Phase
+     */
+    phase: string;
+    /**
+     * Pluginname
+     */
+    pluginName: string;
+    /**
+     * Progresscompleted
+     */
+    progressCompleted: number;
+    /**
+     * Progresstotal
+     */
+    progressTotal: number | null;
+    /**
+     * Requestedbyuserid
+     */
+    requestedByUserId: string;
+    /**
+     * Requestedversion
+     */
+    requestedVersion: string | null;
+    /**
+     * Restartrequired
+     */
+    restartRequired: boolean;
+    /**
+     * Retryable
+     */
+    retryable: boolean;
+    /**
+     * Startedat
+     */
+    startedAt: string | null;
+    state: PluginOperationState;
+};
+
+/**
+ * SystemPluginProvenanceStatus
+ */
+export type SystemPluginProvenanceStatus = 'verified';
+
+/**
  * SystemPluginProvidesOut
  */
 export type SystemPluginProvidesOut = {
@@ -31550,6 +34667,11 @@ export type SystemPluginProvidesOut = {
      */
     services?: Array<string>;
 };
+
+/**
+ * SystemPluginSourceType
+ */
+export type SystemPluginSourceType = 'bundled' | 'catalog' | 'manual_upload';
 
 /**
  * SystemRuntimeCapabilities
@@ -33182,6 +36304,101 @@ export type WorkspaceAssignRoleToMembersResult = {
 };
 
 /**
+ * WorkspaceCommerceDirectoryDataState
+ */
+export type WorkspaceCommerceDirectoryDataState = 'complete' | 'partial' | 'missing';
+
+/**
+ * WorkspaceCommerceDirectoryOut
+ */
+export type WorkspaceCommerceDirectoryOut = {
+    billingInterval?: BillingCycle | null;
+    /**
+     * Billingprovider
+     */
+    billingProvider?: string | null;
+    /**
+     * Cancelatperiodend
+     */
+    cancelAtPeriodEnd?: boolean | null;
+    /**
+     * Capturedat
+     */
+    capturedAt?: string | null;
+    creditRefreshInterval?: CreditRefreshInterval | null;
+    credits?: WorkspaceCreditsOut | null;
+    /**
+     * Currentperiodend
+     */
+    currentPeriodEnd?: string | null;
+    /**
+     * Currentperiodstart
+     */
+    currentPeriodStart?: string | null;
+    dataState: WorkspaceCommerceDirectoryDataState;
+    /**
+     * Plancode
+     */
+    planCode?: string | null;
+    /**
+     * Planname
+     */
+    planName?: string | null;
+    planTier?: CommercePlanTier | null;
+    /**
+     * Renewalat
+     */
+    renewalAt?: string | null;
+    risk: WorkspaceCommerceDirectoryRisk;
+    subscriptionStatus?: SubscriptionStatus | null;
+    usage?: WorkspaceCommerceDirectoryUsageOut | null;
+};
+
+/**
+ * WorkspaceCommerceDirectoryRisk
+ */
+export type WorkspaceCommerceDirectoryRisk = 'healthy' | 'attention_required' | 'data_missing';
+
+/**
+ * WorkspaceCommerceDirectoryUsageOut
+ */
+export type WorkspaceCommerceDirectoryUsageOut = {
+    /**
+     * Completiontokens
+     */
+    completionTokens: number;
+    coverage: WorkspaceCommerceUsageCoverage;
+    /**
+     * Observedfrom
+     */
+    observedFrom?: string | null;
+    /**
+     * Observedto
+     */
+    observedTo?: string | null;
+    /**
+     * Periodcostmicros
+     */
+    periodCostMicros: number;
+    /**
+     * Prompttokens
+     */
+    promptTokens: number;
+    /**
+     * Requests
+     */
+    requests: number;
+    /**
+     * Windowend
+     */
+    windowEnd: string;
+    /**
+     * Windowstart
+     */
+    windowStart: string;
+};
+
+/**
  * WorkspaceCommerceOverviewOut
  */
 export type WorkspaceCommerceOverviewOut = {
@@ -33202,6 +36419,11 @@ export type WorkspaceCommerceOverviewOut = {
     subscription: WorkspaceSubscriptionOut;
     usage: WorkspaceCommerceUsageOut;
 };
+
+/**
+ * WorkspaceCommerceUsageCoverage
+ */
+export type WorkspaceCommerceUsageCoverage = 'daily_rollup' | 'no_observed_usage';
 
 /**
  * WorkspaceCommerceUsageOut
@@ -33889,12 +37111,6 @@ export type WorkspaceInviteLinkOut = {
      */
     id: string;
     /**
-     * Inviteurl
-     *
-     * Frontend invite URL if configured.
-     */
-    inviteUrl?: string | null;
-    /**
      * Lastusedat
      *
      * Last used datetime (UTC).
@@ -33922,12 +37138,6 @@ export type WorkspaceInviteLinkOut = {
      * Role code assigned when joining via this link.
      */
     roleCode?: string | null;
-    /**
-     * Token
-     *
-     * Signed invite token (safe to share).
-     */
-    token: string;
     /**
      * Updatedat
      *
@@ -34094,7 +37304,7 @@ export type WorkspaceKnowledgeCapabilitiesOut = {
     /**
      * Retrievalavailable
      */
-    retrievalAvailable: false;
+    retrievalAvailable: true;
     /**
      * Supportedsourcekinds
      */
@@ -34175,6 +37385,12 @@ export type WorkspaceManageCreateRequest = {
  * WorkspaceManageListItemOut
  */
 export type WorkspaceManageListItemOut = {
+    /**
+     * Archiverevision
+     *
+     * Current workspace archive restriction revision for optimistic concurrency.
+     */
+    archiveRevision?: number;
     /**
      * Archivedat
      *
@@ -34347,6 +37563,18 @@ export type WorkspacePermissionActionOut = {
      */
     description?: string | null;
     /**
+     * Module
+     *
+     * Action module code.
+     */
+    module?: string | null;
+    /**
+     * Name
+     *
+     * Localized action name.
+     */
+    name?: string | null;
+    /**
      * Permissioncodes
      *
      * Workspace permission codes that back this action.
@@ -34358,6 +37586,44 @@ export type WorkspacePermissionActionOut = {
      * Supported subject kinds.
      */
     subjectKinds?: Array<string>;
+};
+
+/**
+ * WorkspacePermissionCatalogOut
+ */
+export type WorkspacePermissionCatalogOut = {
+    /**
+     * Actions
+     */
+    actions?: Array<WorkspacePermissionActionOut>;
+    /**
+     * Catalogrevision
+     *
+     * Deterministic permission definition revision.
+     */
+    catalogRevision: string;
+    /**
+     * Conditiontemplates
+     */
+    conditionTemplates?: Array<WorkspacePermissionConditionTemplateOut>;
+    /**
+     * Etag
+     *
+     * Opaque HTTP entity tag for conditional refresh.
+     */
+    etag: string;
+    /**
+     * Groups
+     */
+    groups?: Array<WorkspacePermissionGroupOut>;
+    /**
+     * Permissions
+     */
+    permissions?: Array<WorkspacePermissionOut>;
+    /**
+     * Roles
+     */
+    roles?: Array<WorkspaceRoleOut>;
 };
 
 /**
@@ -34395,9 +37661,39 @@ export type WorkspacePermissionConditionTemplateOut = {
 };
 
 /**
+ * WorkspacePermissionGroupOut
+ */
+export type WorkspacePermissionGroupOut = {
+    /**
+     * Code
+     *
+     * Stable group code.
+     */
+    code: string;
+    /**
+     * Name
+     *
+     * Localized group name.
+     */
+    name: string;
+    /**
+     * Order
+     *
+     * Deterministic group order.
+     */
+    order: number;
+};
+
+/**
  * WorkspacePermissionOut
  */
 export type WorkspacePermissionOut = {
+    /**
+     * Actioncodes
+     *
+     * Actions backed by this permission.
+     */
+    actionCodes?: Array<string>;
     /**
      * Code
      *
@@ -34405,11 +37701,35 @@ export type WorkspacePermissionOut = {
      */
     code: string;
     /**
+     * Conditiontemplates
+     *
+     * Supported conditional grant template keys.
+     */
+    conditionTemplates?: Array<string>;
+    /**
      * Description
      *
      * Localized permission description.
      */
     description?: string | null;
+    /**
+     * Descriptioni18N
+     *
+     * Stable localized description resource reference.
+     */
+    descriptionI18N?: string | null;
+    /**
+     * Groupcode
+     *
+     * Stable permission group code.
+     */
+    groupCode: string;
+    /**
+     * Groupname
+     *
+     * Localized permission group name.
+     */
+    groupName: string;
     /**
      * Id
      *
@@ -34417,11 +37737,23 @@ export type WorkspacePermissionOut = {
      */
     id: string;
     /**
+     * Lifecycle
+     *
+     * Permission catalog lifecycle state.
+     */
+    lifecycle: 'active' | 'deprecated' | 'retained_unavailable';
+    /**
      * Name
      *
      * Localized permission name.
      */
     name: string;
+    /**
+     * Namei18N
+     *
+     * Stable localized name resource reference.
+     */
+    nameI18N?: string | null;
     /**
      * Ownerkey
      *
@@ -34434,6 +37766,24 @@ export type WorkspacePermissionOut = {
      * Localized owner name (if applicable).
      */
     ownerName?: string | null;
+    /**
+     * Replacementcode
+     *
+     * Replacement permission code.
+     */
+    replacementCode?: string | null;
+    /**
+     * Scope
+     *
+     * Permission scope.
+     */
+    scope: string;
+    /**
+     * Sortorder
+     *
+     * Deterministic permission order.
+     */
+    sortOrder: number;
 };
 
 /**
@@ -34575,6 +37925,12 @@ export type WorkspaceRoleOut = {
      */
     id: string;
     /**
+     * Immutable
+     *
+     * Whether grants and role metadata are immutable.
+     */
+    immutable: boolean;
+    /**
      * Isdefault
      *
      * Whether this role is default for onboarding/invites.
@@ -34610,6 +37966,18 @@ export type WorkspaceRoleOut = {
      * Granted workspace permissions with optional condition sets.
      */
     permissionGrants?: Array<RolePermissionGrantOut>;
+    /**
+     * Revision
+     *
+     * Opaque row revision required by role mutations.
+     */
+    revision: string;
+    /**
+     * Source
+     *
+     * Role ownership source.
+     */
+    source: 'system' | 'custom';
 };
 
 /**
@@ -37368,6 +40736,37 @@ export type DomainWorkspacesArchiveMyNotificationResponses = {
 };
 
 export type DomainWorkspacesArchiveMyNotificationResponse = DomainWorkspacesArchiveMyNotificationResponses[keyof DomainWorkspacesArchiveMyNotificationResponses];
+
+export type DomainWorkspacesRecordMyNotificationInteractionData = {
+    body?: never;
+    path: {
+        /**
+         * Notification Id
+         */
+        notification_id: string;
+        interaction: NotificationInteractionKind;
+    };
+    query?: never;
+    url: '/api/v1/me/notifications/{notification_id}/interactions/{interaction}';
+};
+
+export type DomainWorkspacesRecordMyNotificationInteractionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesRecordMyNotificationInteractionError = DomainWorkspacesRecordMyNotificationInteractionErrors[keyof DomainWorkspacesRecordMyNotificationInteractionErrors];
+
+export type DomainWorkspacesRecordMyNotificationInteractionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNotificationInteractionOut;
+};
+
+export type DomainWorkspacesRecordMyNotificationInteractionResponse = DomainWorkspacesRecordMyNotificationInteractionResponses[keyof DomainWorkspacesRecordMyNotificationInteractionResponses];
 
 export type DomainWorkspacesMarkMyNotificationReadData = {
     body?: never;
@@ -45028,6 +48427,7 @@ export type InternalSystemListActivityData = {
     body?: never;
     path?: never;
     query?: {
+        ordering?: AuditEventOrdering;
         /**
          * Occurredfrom
          */
@@ -45643,6 +49043,36 @@ export type InternalSystemUpsertCommercePlanResponses = {
 
 export type InternalSystemUpsertCommercePlanResponse = InternalSystemUpsertCommercePlanResponses[keyof InternalSystemUpsertCommercePlanResponses];
 
+export type InternalSystemGetWorkspaceCommerceOverviewData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/commerce/workspaces/{workspace_id}/overview';
+};
+
+export type InternalSystemGetWorkspaceCommerceOverviewErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemGetWorkspaceCommerceOverviewError = InternalSystemGetWorkspaceCommerceOverviewErrors[keyof InternalSystemGetWorkspaceCommerceOverviewErrors];
+
+export type InternalSystemGetWorkspaceCommerceOverviewResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceCommerceOverviewOut;
+};
+
+export type InternalSystemGetWorkspaceCommerceOverviewResponse = InternalSystemGetWorkspaceCommerceOverviewResponses[keyof InternalSystemGetWorkspaceCommerceOverviewResponses];
+
 export type InternalSystemSetWorkspaceSubscriptionData = {
     body: WorkspaceSubscriptionSetRequest;
     path: {
@@ -45701,6 +49131,54 @@ export type InternalSystemListProjectsData = {
          * Filter by active state.
          */
         is_active?: boolean | null;
+        /**
+         * Owner User Id
+         *
+         * Filter by project owner.
+         */
+        owner_user_id?: string | null;
+        /**
+         * Runtime Health
+         *
+         * Filter by derived runtime and deployment health.
+         */
+        runtime_health?: DirectoryProjectHealthState | null;
+        /**
+         * Domain State
+         *
+         * Filter by active domain readiness.
+         */
+        domain_state?: DirectoryProjectDomainState | null;
+        /**
+         * Release State
+         *
+         * Filter by latest release state.
+         */
+        release_state?: DirectoryProjectReleaseState | null;
+        /**
+         * Created From
+         *
+         * Created-at range lower bound, inclusive.
+         */
+        created_from?: string | null;
+        /**
+         * Created To
+         *
+         * Created-at range upper bound, inclusive.
+         */
+        created_to?: string | null;
+        /**
+         * Activity From
+         *
+         * Project-record activity lower bound, inclusive.
+         */
+        activity_from?: string | null;
+        /**
+         * Activity To
+         *
+         * Project-record activity upper bound, inclusive.
+         */
+        activity_to?: string | null;
         /**
          * Page
          *
@@ -45826,7 +49304,13 @@ export type InternalSystemUpdateProjectResponses = {
 export type InternalSystemUpdateProjectResponse = InternalSystemUpdateProjectResponses[keyof InternalSystemUpdateProjectResponses];
 
 export type InternalSystemDisableProjectData = {
-    body?: never;
+    body: AccessRestrictionEnforceRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
     path: {
         /**
          * Project Id
@@ -45856,7 +49340,13 @@ export type InternalSystemDisableProjectResponses = {
 export type InternalSystemDisableProjectResponse = InternalSystemDisableProjectResponses[keyof InternalSystemDisableProjectResponses];
 
 export type InternalSystemEnableProjectData = {
-    body?: never;
+    body: AccessRestrictionLiftRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
     path: {
         /**
          * Project Id
@@ -45884,6 +49374,41 @@ export type InternalSystemEnableProjectResponses = {
 };
 
 export type InternalSystemEnableProjectResponse = InternalSystemEnableProjectResponses[keyof InternalSystemEnableProjectResponses];
+
+export type InternalSystemGetProjectOperationsData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Previewsize
+         */
+        previewSize?: number;
+    };
+    url: '/api/v1/system/directory/projects/{project_id}/operations';
+};
+
+export type InternalSystemGetProjectOperationsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemGetProjectOperationsError = InternalSystemGetProjectOperationsErrors[keyof InternalSystemGetProjectOperationsErrors];
+
+export type InternalSystemGetProjectOperationsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryProjectOperationsOut;
+};
+
+export type InternalSystemGetProjectOperationsResponse = InternalSystemGetProjectOperationsResponses[keyof InternalSystemGetProjectOperationsResponses];
 
 export type InternalSystemListUsersData = {
     body?: never;
@@ -45931,6 +49456,54 @@ export type InternalSystemListUsersData = {
          * Filter by OAuth linkage. Use any or none.
          */
         oauth_provider?: string | null;
+        /**
+         * Created From
+         *
+         * Created-at range lower bound, inclusive.
+         */
+        created_from?: string | null;
+        /**
+         * Created To
+         *
+         * Created-at range upper bound, inclusive.
+         */
+        created_to?: string | null;
+        /**
+         * Last Login From
+         *
+         * Last-login range lower bound, inclusive.
+         */
+        last_login_from?: string | null;
+        /**
+         * Last Login To
+         *
+         * Last-login range upper bound, inclusive.
+         */
+        last_login_to?: string | null;
+        /**
+         * Workspace Member Of Id
+         *
+         * Filter users with an active membership in this workspace.
+         */
+        workspace_member_of_id?: string | null;
+        /**
+         * Project Member Of Id
+         *
+         * Filter users with a membership in this project.
+         */
+        project_member_of_id?: string | null;
+        /**
+         * Owned Workspace Id
+         *
+         * Filter by the authoritative owner of this workspace.
+         */
+        owned_workspace_id?: string | null;
+        /**
+         * Owned Project Id
+         *
+         * Filter by the current project-owner projection.
+         */
+        owned_project_id?: string | null;
         /**
          * Page
          *
@@ -46308,7 +49881,13 @@ export type InternalSystemPresignUserAvatarUploadPartResponses = {
 export type InternalSystemPresignUserAvatarUploadPartResponse = InternalSystemPresignUserAvatarUploadPartResponses[keyof InternalSystemPresignUserAvatarUploadPartResponses];
 
 export type InternalSystemDisableUserData = {
-    body?: never;
+    body: AccessRestrictionEnforceRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
     path: {
         /**
          * User Id
@@ -46368,7 +49947,13 @@ export type InternalSystemDisableUserTwoFactorResponses = {
 export type InternalSystemDisableUserTwoFactorResponse = InternalSystemDisableUserTwoFactorResponses[keyof InternalSystemDisableUserTwoFactorResponses];
 
 export type InternalSystemEnableUserData = {
-    body?: never;
+    body: AccessRestrictionLiftRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
     path: {
         /**
          * User Id
@@ -46550,6 +50135,54 @@ export type InternalSystemListWorkspacesData = {
          */
         is_active?: boolean | null;
         /**
+         * Owner User Id
+         *
+         * Filter by workspace owner.
+         */
+        owner_user_id?: string | null;
+        /**
+         * Plan Code
+         *
+         * Filter by commerce plan code.
+         */
+        plan_code?: string | null;
+        /**
+         * Subscription Status
+         *
+         * Filter by subscription status.
+         */
+        subscription_status?: SubscriptionStatus | null;
+        /**
+         * Commerce Risk
+         *
+         * Filter by commercial attention state.
+         */
+        commerce_risk?: WorkspaceCommerceDirectoryRisk | null;
+        /**
+         * Created From
+         *
+         * Created-at range lower bound, inclusive.
+         */
+        created_from?: string | null;
+        /**
+         * Created To
+         *
+         * Created-at range upper bound, inclusive.
+         */
+        created_to?: string | null;
+        /**
+         * Activity From
+         *
+         * Workspace-record activity range lower bound, inclusive.
+         */
+        activity_from?: string | null;
+        /**
+         * Activity To
+         *
+         * Workspace-record activity range upper bound, inclusive.
+         */
+        activity_to?: string | null;
+        /**
          * Page
          *
          * Page number (1-based).
@@ -46674,7 +50307,13 @@ export type InternalSystemUpdateWorkspaceResponses = {
 export type InternalSystemUpdateWorkspaceResponse = InternalSystemUpdateWorkspaceResponses[keyof InternalSystemUpdateWorkspaceResponses];
 
 export type InternalSystemArchiveWorkspaceData = {
-    body?: never;
+    body: AccessRestrictionEnforceRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
     path: {
         /**
          * Workspace Id
@@ -46704,7 +50343,13 @@ export type InternalSystemArchiveWorkspaceResponses = {
 export type InternalSystemArchiveWorkspaceResponse = InternalSystemArchiveWorkspaceResponses[keyof InternalSystemArchiveWorkspaceResponses];
 
 export type InternalSystemDisableWorkspaceData = {
-    body?: never;
+    body: AccessRestrictionEnforceRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
     path: {
         /**
          * Workspace Id
@@ -46734,7 +50379,13 @@ export type InternalSystemDisableWorkspaceResponses = {
 export type InternalSystemDisableWorkspaceResponse = InternalSystemDisableWorkspaceResponses[keyof InternalSystemDisableWorkspaceResponses];
 
 export type InternalSystemEnableWorkspaceData = {
-    body?: never;
+    body: AccessRestrictionLiftRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
     path: {
         /**
          * Workspace Id
@@ -46764,7 +50415,13 @@ export type InternalSystemEnableWorkspaceResponses = {
 export type InternalSystemEnableWorkspaceResponse = InternalSystemEnableWorkspaceResponses[keyof InternalSystemEnableWorkspaceResponses];
 
 export type InternalSystemRestoreWorkspaceData = {
-    body?: never;
+    body: AccessRestrictionLiftRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
     path: {
         /**
          * Workspace Id
@@ -47098,15 +50755,73 @@ export type InternalSystemSwitchMailProviderResponse = InternalSystemSwitchMailP
 export type InternalSystemListEmailTemplatesData = {
     body?: never;
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * Q
+         *
+         * Search template name, key, description, or subject.
+         */
+        q?: string | null;
+        /**
+         * Ordering
+         *
+         * Order by key, name, category, health, version, or updated_at.
+         */
+        ordering?: string | null;
+        /**
+         * Category
+         */
+        category?: 'account' | 'security' | 'invitation' | 'notification' | 'operations' | 'custom' | null;
+        /**
+         * Owner
+         */
+        owner?: 'builtin' | 'plugin' | 'custom' | null;
+        /**
+         * Locale
+         */
+        locale?: string | null;
+        /**
+         * Enabled
+         */
+        enabled?: boolean | null;
+        /**
+         * Validation State
+         */
+        validation_state?: string | null;
+        /**
+         * Source State
+         */
+        source_state?: 'default' | 'overridden' | 'custom' | null;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
     url: '/api/v1/system/mail/templates';
 };
+
+export type InternalSystemListEmailTemplatesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemListEmailTemplatesError = InternalSystemListEmailTemplatesErrors[keyof InternalSystemListEmailTemplatesErrors];
 
 export type InternalSystemListEmailTemplatesResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelListMailTemplateOut;
+    200: ResponseModelPageDataMailTemplateGroupOut;
 };
 
 export type InternalSystemListEmailTemplatesResponse = InternalSystemListEmailTemplatesResponses[keyof InternalSystemListEmailTemplatesResponses];
@@ -47161,6 +50876,36 @@ export type InternalSystemPreviewEmailTemplateResponses = {
 
 export type InternalSystemPreviewEmailTemplateResponse = InternalSystemPreviewEmailTemplateResponses[keyof InternalSystemPreviewEmailTemplateResponses];
 
+export type InternalSystemGetEmailTemplateRevisionData = {
+    body?: never;
+    path: {
+        /**
+         * Revision Id
+         */
+        revision_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/mail/templates/revisions/{revision_id}';
+};
+
+export type InternalSystemGetEmailTemplateRevisionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemGetEmailTemplateRevisionError = InternalSystemGetEmailTemplateRevisionErrors[keyof InternalSystemGetEmailTemplateRevisionErrors];
+
+export type InternalSystemGetEmailTemplateRevisionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelMailTemplateRevisionDetailOut;
+};
+
+export type InternalSystemGetEmailTemplateRevisionResponse = InternalSystemGetEmailTemplateRevisionResponses[keyof InternalSystemGetEmailTemplateRevisionResponses];
+
 export type InternalSystemDeleteEmailTemplateData = {
     body?: never;
     path: {
@@ -47169,7 +50914,12 @@ export type InternalSystemDeleteEmailTemplateData = {
          */
         template_id: string;
     };
-    query?: never;
+    query: {
+        /**
+         * Expected Version
+         */
+        expected_version: number;
+    };
     url: '/api/v1/system/mail/templates/{template_id}';
 };
 
@@ -47190,6 +50940,36 @@ export type InternalSystemDeleteEmailTemplateResponses = {
 };
 
 export type InternalSystemDeleteEmailTemplateResponse = InternalSystemDeleteEmailTemplateResponses[keyof InternalSystemDeleteEmailTemplateResponses];
+
+export type InternalSystemGetEmailTemplateData = {
+    body?: never;
+    path: {
+        /**
+         * Template Id
+         */
+        template_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/mail/templates/{template_id}';
+};
+
+export type InternalSystemGetEmailTemplateErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemGetEmailTemplateError = InternalSystemGetEmailTemplateErrors[keyof InternalSystemGetEmailTemplateErrors];
+
+export type InternalSystemGetEmailTemplateResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelMailTemplateOut;
+};
+
+export type InternalSystemGetEmailTemplateResponse = InternalSystemGetEmailTemplateResponses[keyof InternalSystemGetEmailTemplateResponses];
 
 export type InternalSystemUpdateEmailTemplateData = {
     body: MailTemplatePatchRequest;
@@ -47221,6 +51001,113 @@ export type InternalSystemUpdateEmailTemplateResponses = {
 
 export type InternalSystemUpdateEmailTemplateResponse = InternalSystemUpdateEmailTemplateResponses[keyof InternalSystemUpdateEmailTemplateResponses];
 
+export type InternalSystemRestoreDefaultEmailTemplateData = {
+    body: MailTemplateRevisionMutationRequest;
+    path: {
+        /**
+         * Template Id
+         */
+        template_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/mail/templates/{template_id}/restore-default';
+};
+
+export type InternalSystemRestoreDefaultEmailTemplateErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemRestoreDefaultEmailTemplateError = InternalSystemRestoreDefaultEmailTemplateErrors[keyof InternalSystemRestoreDefaultEmailTemplateErrors];
+
+export type InternalSystemRestoreDefaultEmailTemplateResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelMailTemplateOut;
+};
+
+export type InternalSystemRestoreDefaultEmailTemplateResponse = InternalSystemRestoreDefaultEmailTemplateResponses[keyof InternalSystemRestoreDefaultEmailTemplateResponses];
+
+export type InternalSystemTestSendEmailTemplateData = {
+    body: MailTemplateTestSendRequest;
+    path: {
+        /**
+         * Template Id
+         */
+        template_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/mail/templates/{template_id}/test-send';
+};
+
+export type InternalSystemTestSendEmailTemplateErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemTestSendEmailTemplateError = InternalSystemTestSendEmailTemplateErrors[keyof InternalSystemTestSendEmailTemplateErrors];
+
+export type InternalSystemTestSendEmailTemplateResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelMailTemplateTestSendOut;
+};
+
+export type InternalSystemTestSendEmailTemplateResponse = InternalSystemTestSendEmailTemplateResponses[keyof InternalSystemTestSendEmailTemplateResponses];
+
+export type InternalSystemListEmailTemplateHistoryData = {
+    body?: never;
+    path: {
+        /**
+         * Template Key
+         */
+        template_key: string;
+    };
+    query?: {
+        /**
+         * Locale
+         */
+        locale?: string | null;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/system/mail/templates/{template_key}/history';
+};
+
+export type InternalSystemListEmailTemplateHistoryErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemListEmailTemplateHistoryError = InternalSystemListEmailTemplateHistoryErrors[keyof InternalSystemListEmailTemplateHistoryErrors];
+
+export type InternalSystemListEmailTemplateHistoryResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataMailTemplateRevisionOut;
+};
+
+export type InternalSystemListEmailTemplateHistoryResponse = InternalSystemListEmailTemplateHistoryResponses[keyof InternalSystemListEmailTemplateHistoryResponses];
+
 export type InternalSystemSendTestEmailData = {
     body: MailTestRequest;
     path?: never;
@@ -47246,30 +51133,373 @@ export type InternalSystemSendTestEmailResponses = {
 
 export type InternalSystemSendTestEmailResponse = InternalSystemSendTestEmailResponses[keyof InternalSystemSendTestEmailResponses];
 
-export type InternalSystemCreateGlobalNotificationBroadcastData = {
-    body: GlobalNotificationBroadcastIn;
+export type InternalSystemListNotificationCampaignsData = {
+    body?: never;
     path?: never;
-    query?: never;
-    url: '/api/v1/system/notifications/broadcasts';
+    query?: {
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Ordering
+         */
+        ordering?: string | null;
+        /**
+         * State
+         */
+        state?: Array<NotificationCampaignState>;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/system/notifications/campaigns';
 };
 
-export type InternalSystemCreateGlobalNotificationBroadcastErrors = {
+export type InternalSystemListNotificationCampaignsErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type InternalSystemCreateGlobalNotificationBroadcastError = InternalSystemCreateGlobalNotificationBroadcastErrors[keyof InternalSystemCreateGlobalNotificationBroadcastErrors];
+export type InternalSystemListNotificationCampaignsError = InternalSystemListNotificationCampaignsErrors[keyof InternalSystemListNotificationCampaignsErrors];
 
-export type InternalSystemCreateGlobalNotificationBroadcastResponses = {
+export type InternalSystemListNotificationCampaignsResponses = {
     /**
      * Successful Response
      */
-    201: ResponseModelGlobalNotificationBroadcastOut;
+    200: ResponseModelPageDataNotificationCampaignSummaryOut;
 };
 
-export type InternalSystemCreateGlobalNotificationBroadcastResponse = InternalSystemCreateGlobalNotificationBroadcastResponses[keyof InternalSystemCreateGlobalNotificationBroadcastResponses];
+export type InternalSystemListNotificationCampaignsResponse = InternalSystemListNotificationCampaignsResponses[keyof InternalSystemListNotificationCampaignsResponses];
+
+export type InternalSystemCreateNotificationCampaignData = {
+    body: NotificationCampaignCreateRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/system/notifications/campaigns';
+};
+
+export type InternalSystemCreateNotificationCampaignErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemCreateNotificationCampaignError = InternalSystemCreateNotificationCampaignErrors[keyof InternalSystemCreateNotificationCampaignErrors];
+
+export type InternalSystemCreateNotificationCampaignResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelNotificationCampaignDetailOut;
+};
+
+export type InternalSystemCreateNotificationCampaignResponse = InternalSystemCreateNotificationCampaignResponses[keyof InternalSystemCreateNotificationCampaignResponses];
+
+export type InternalSystemGetNotificationCampaignData = {
+    body?: never;
+    path: {
+        /**
+         * Campaign Id
+         */
+        campaign_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/notifications/campaigns/{campaign_id}';
+};
+
+export type InternalSystemGetNotificationCampaignErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemGetNotificationCampaignError = InternalSystemGetNotificationCampaignErrors[keyof InternalSystemGetNotificationCampaignErrors];
+
+export type InternalSystemGetNotificationCampaignResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNotificationCampaignDetailOut;
+};
+
+export type InternalSystemGetNotificationCampaignResponse = InternalSystemGetNotificationCampaignResponses[keyof InternalSystemGetNotificationCampaignResponses];
+
+export type InternalSystemUpdateNotificationCampaignData = {
+    body: NotificationCampaignPatchRequest;
+    path: {
+        /**
+         * Campaign Id
+         */
+        campaign_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/notifications/campaigns/{campaign_id}';
+};
+
+export type InternalSystemUpdateNotificationCampaignErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemUpdateNotificationCampaignError = InternalSystemUpdateNotificationCampaignErrors[keyof InternalSystemUpdateNotificationCampaignErrors];
+
+export type InternalSystemUpdateNotificationCampaignResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNotificationCampaignDetailOut;
+};
+
+export type InternalSystemUpdateNotificationCampaignResponse = InternalSystemUpdateNotificationCampaignResponses[keyof InternalSystemUpdateNotificationCampaignResponses];
+
+export type InternalSystemArchiveNotificationCampaignData = {
+    body: NotificationCampaignRevisionRequest;
+    path: {
+        /**
+         * Campaign Id
+         */
+        campaign_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/notifications/campaigns/{campaign_id}/archive';
+};
+
+export type InternalSystemArchiveNotificationCampaignErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemArchiveNotificationCampaignError = InternalSystemArchiveNotificationCampaignErrors[keyof InternalSystemArchiveNotificationCampaignErrors];
+
+export type InternalSystemArchiveNotificationCampaignResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNotificationCampaignSummaryOut;
+};
+
+export type InternalSystemArchiveNotificationCampaignResponse = InternalSystemArchiveNotificationCampaignResponses[keyof InternalSystemArchiveNotificationCampaignResponses];
+
+export type InternalSystemEstimateNotificationCampaignAudienceData = {
+    body?: never;
+    path: {
+        /**
+         * Campaign Id
+         */
+        campaign_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/notifications/campaigns/{campaign_id}/audience-estimate';
+};
+
+export type InternalSystemEstimateNotificationCampaignAudienceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemEstimateNotificationCampaignAudienceError = InternalSystemEstimateNotificationCampaignAudienceErrors[keyof InternalSystemEstimateNotificationCampaignAudienceErrors];
+
+export type InternalSystemEstimateNotificationCampaignAudienceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNotificationAudienceEstimateOut;
+};
+
+export type InternalSystemEstimateNotificationCampaignAudienceResponse = InternalSystemEstimateNotificationCampaignAudienceResponses[keyof InternalSystemEstimateNotificationCampaignAudienceResponses];
+
+export type InternalSystemCancelNotificationCampaignData = {
+    body: NotificationCampaignRevisionRequest;
+    path: {
+        /**
+         * Campaign Id
+         */
+        campaign_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/notifications/campaigns/{campaign_id}/cancel';
+};
+
+export type InternalSystemCancelNotificationCampaignErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemCancelNotificationCampaignError = InternalSystemCancelNotificationCampaignErrors[keyof InternalSystemCancelNotificationCampaignErrors];
+
+export type InternalSystemCancelNotificationCampaignResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNotificationCampaignCancellationOut;
+};
+
+export type InternalSystemCancelNotificationCampaignResponse = InternalSystemCancelNotificationCampaignResponses[keyof InternalSystemCancelNotificationCampaignResponses];
+
+export type InternalSystemListNotificationCampaignDeliveriesData = {
+    body?: never;
+    path: {
+        /**
+         * Campaign Id
+         */
+        campaign_id: string;
+    };
+    query?: {
+        /**
+         * State
+         */
+        state?: Array<NotificationDeliveryState>;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/system/notifications/campaigns/{campaign_id}/deliveries';
+};
+
+export type InternalSystemListNotificationCampaignDeliveriesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemListNotificationCampaignDeliveriesError = InternalSystemListNotificationCampaignDeliveriesErrors[keyof InternalSystemListNotificationCampaignDeliveriesErrors];
+
+export type InternalSystemListNotificationCampaignDeliveriesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataNotificationDeliveryOut;
+};
+
+export type InternalSystemListNotificationCampaignDeliveriesResponse = InternalSystemListNotificationCampaignDeliveriesResponses[keyof InternalSystemListNotificationCampaignDeliveriesResponses];
+
+export type InternalSystemPreviewNotificationCampaignData = {
+    body?: never;
+    path: {
+        /**
+         * Campaign Id
+         */
+        campaign_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/notifications/campaigns/{campaign_id}/preview';
+};
+
+export type InternalSystemPreviewNotificationCampaignErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemPreviewNotificationCampaignError = InternalSystemPreviewNotificationCampaignErrors[keyof InternalSystemPreviewNotificationCampaignErrors];
+
+export type InternalSystemPreviewNotificationCampaignResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNotificationCampaignPreviewOut;
+};
+
+export type InternalSystemPreviewNotificationCampaignResponse = InternalSystemPreviewNotificationCampaignResponses[keyof InternalSystemPreviewNotificationCampaignResponses];
+
+export type InternalSystemPublishNotificationCampaignData = {
+    body: NotificationCampaignPublishRequest;
+    path: {
+        /**
+         * Campaign Id
+         */
+        campaign_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/notifications/campaigns/{campaign_id}/publish';
+};
+
+export type InternalSystemPublishNotificationCampaignErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemPublishNotificationCampaignError = InternalSystemPublishNotificationCampaignErrors[keyof InternalSystemPublishNotificationCampaignErrors];
+
+export type InternalSystemPublishNotificationCampaignResponses = {
+    /**
+     * Successful Response
+     */
+    202: ResponseModelNotificationCampaignPublishOut;
+};
+
+export type InternalSystemPublishNotificationCampaignResponse = InternalSystemPublishNotificationCampaignResponses[keyof InternalSystemPublishNotificationCampaignResponses];
+
+export type InternalSystemRetryNotificationCampaignFailuresData = {
+    body?: never;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Campaign Id
+         */
+        campaign_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/notifications/campaigns/{campaign_id}/retry-failures';
+};
+
+export type InternalSystemRetryNotificationCampaignFailuresErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemRetryNotificationCampaignFailuresError = InternalSystemRetryNotificationCampaignFailuresErrors[keyof InternalSystemRetryNotificationCampaignFailuresErrors];
+
+export type InternalSystemRetryNotificationCampaignFailuresResponses = {
+    /**
+     * Successful Response
+     */
+    202: ResponseModelNotificationCampaignRetryOut;
+};
+
+export type InternalSystemRetryNotificationCampaignFailuresResponse = InternalSystemRetryNotificationCampaignFailuresResponses[keyof InternalSystemRetryNotificationCampaignFailuresResponses];
 
 export type InternalSystemListPlatformAiUsageGroupsData = {
     body?: never;
@@ -47395,6 +51625,7 @@ export type InternalSystemListPlatformHttpRequestGroupsData = {
          * Projectid
          */
         projectId?: string | null;
+        ordering?: HttpRequestGroupOrdering;
         /**
          * Page
          *
@@ -47457,6 +51688,23 @@ export type InternalSystemListPlatformHttpRequestRecordsData = {
          * Projectid
          */
         projectId?: string | null;
+        /**
+         * Actoruserid
+         */
+        actorUserId?: string | null;
+        /**
+         * Mindurationms
+         */
+        minDurationMs?: number | null;
+        /**
+         * Maxdurationms
+         */
+        maxDurationMs?: number | null;
+        /**
+         * Haserror
+         */
+        hasError?: boolean | null;
+        ordering?: HttpRequestRecordOrdering;
         /**
          * Page
          *
@@ -47530,6 +51778,36 @@ export type InternalSystemGetPlatformObservabilityTrendResponses = {
 
 export type InternalSystemGetPlatformObservabilityTrendResponse = InternalSystemGetPlatformObservabilityTrendResponses[keyof InternalSystemGetPlatformObservabilityTrendResponses];
 
+export type InternalSystemGetSystemPluginOperationData = {
+    body?: never;
+    path: {
+        /**
+         * Operation Id
+         */
+        operation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/plugin-operations/{operation_id}';
+};
+
+export type InternalSystemGetSystemPluginOperationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemGetSystemPluginOperationError = InternalSystemGetSystemPluginOperationErrors[keyof InternalSystemGetSystemPluginOperationErrors];
+
+export type InternalSystemGetSystemPluginOperationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSystemPluginOperationOut;
+};
+
+export type InternalSystemGetSystemPluginOperationResponse = InternalSystemGetSystemPluginOperationResponses[keyof InternalSystemGetSystemPluginOperationResponses];
+
 export type InternalSystemListSystemPluginsData = {
     body?: never;
     path?: never;
@@ -47545,6 +51823,408 @@ export type InternalSystemListSystemPluginsResponses = {
 };
 
 export type InternalSystemListSystemPluginsResponse = InternalSystemListSystemPluginsResponses[keyof InternalSystemListSystemPluginsResponses];
+
+export type InternalSystemReviewManualPluginArtifactData = {
+    body: BodyReviewManualPluginArtifactApiV1SystemPluginsArtifactsManualPost;
+    path?: never;
+    query?: never;
+    url: '/api/v1/system/plugins/artifacts/manual';
+};
+
+export type InternalSystemReviewManualPluginArtifactErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemReviewManualPluginArtifactError = InternalSystemReviewManualPluginArtifactErrors[keyof InternalSystemReviewManualPluginArtifactErrors];
+
+export type InternalSystemReviewManualPluginArtifactResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelSystemPluginArtifactReviewOut;
+};
+
+export type InternalSystemReviewManualPluginArtifactResponse = InternalSystemReviewManualPluginArtifactResponses[keyof InternalSystemReviewManualPluginArtifactResponses];
+
+export type InternalSystemGetPluginArtifactReviewData = {
+    body?: never;
+    path: {
+        /**
+         * Artifact Id
+         */
+        artifact_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/plugins/artifacts/{artifact_id}';
+};
+
+export type InternalSystemGetPluginArtifactReviewErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemGetPluginArtifactReviewError = InternalSystemGetPluginArtifactReviewErrors[keyof InternalSystemGetPluginArtifactReviewErrors];
+
+export type InternalSystemGetPluginArtifactReviewResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSystemPluginArtifactReviewOut;
+};
+
+export type InternalSystemGetPluginArtifactReviewResponse = InternalSystemGetPluginArtifactReviewResponses[keyof InternalSystemGetPluginArtifactReviewResponses];
+
+export type InternalSystemListSystemPluginCatalogData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search
+         */
+        search?: string | null;
+        /**
+         * Installedonly
+         */
+        installedOnly?: boolean;
+        /**
+         * Updatesonly
+         */
+        updatesOnly?: boolean;
+        /**
+         * Includeonline
+         */
+        includeOnline?: boolean;
+        /**
+         * Ordering
+         */
+        ordering?: 'name' | '-name' | 'version' | '-version';
+    };
+    url: '/api/v1/system/plugins/catalog';
+};
+
+export type InternalSystemListSystemPluginCatalogErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemListSystemPluginCatalogError = InternalSystemListSystemPluginCatalogErrors[keyof InternalSystemListSystemPluginCatalogErrors];
+
+export type InternalSystemListSystemPluginCatalogResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSystemPluginCatalogListOut;
+};
+
+export type InternalSystemListSystemPluginCatalogResponse = InternalSystemListSystemPluginCatalogResponses[keyof InternalSystemListSystemPluginCatalogResponses];
+
+export type InternalSystemInstallSystemPluginData = {
+    body: SystemPluginInstallationCreateRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/system/plugins/installations';
+};
+
+export type InternalSystemInstallSystemPluginErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemInstallSystemPluginError = InternalSystemInstallSystemPluginErrors[keyof InternalSystemInstallSystemPluginErrors];
+
+export type InternalSystemInstallSystemPluginResponses = {
+    /**
+     * Successful Response
+     */
+    202: ResponseModelSystemPluginOperationOut;
+};
+
+export type InternalSystemInstallSystemPluginResponse = InternalSystemInstallSystemPluginResponses[keyof InternalSystemInstallSystemPluginResponses];
+
+export type InternalSystemUninstallSystemPluginData = {
+    body: SystemPluginLifecycleRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Plugin Id
+         */
+        plugin_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/plugins/{plugin_id}';
+};
+
+export type InternalSystemUninstallSystemPluginErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemUninstallSystemPluginError = InternalSystemUninstallSystemPluginErrors[keyof InternalSystemUninstallSystemPluginErrors];
+
+export type InternalSystemUninstallSystemPluginResponses = {
+    /**
+     * Successful Response
+     */
+    202: ResponseModelSystemPluginOperationOut;
+};
+
+export type InternalSystemUninstallSystemPluginResponse = InternalSystemUninstallSystemPluginResponses[keyof InternalSystemUninstallSystemPluginResponses];
+
+export type InternalSystemGetSystemPluginDetailData = {
+    body?: never;
+    path: {
+        /**
+         * Plugin Id
+         */
+        plugin_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/plugins/{plugin_id}';
+};
+
+export type InternalSystemGetSystemPluginDetailErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemGetSystemPluginDetailError = InternalSystemGetSystemPluginDetailErrors[keyof InternalSystemGetSystemPluginDetailErrors];
+
+export type InternalSystemGetSystemPluginDetailResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSystemPluginDetailOut;
+};
+
+export type InternalSystemGetSystemPluginDetailResponse = InternalSystemGetSystemPluginDetailResponses[keyof InternalSystemGetSystemPluginDetailResponses];
+
+export type InternalSystemGetSystemPluginConfigurationData = {
+    body?: never;
+    path: {
+        /**
+         * Plugin Id
+         */
+        plugin_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/plugins/{plugin_id}/configuration';
+};
+
+export type InternalSystemGetSystemPluginConfigurationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemGetSystemPluginConfigurationError = InternalSystemGetSystemPluginConfigurationErrors[keyof InternalSystemGetSystemPluginConfigurationErrors];
+
+export type InternalSystemGetSystemPluginConfigurationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSystemPluginConfigurationOut;
+};
+
+export type InternalSystemGetSystemPluginConfigurationResponse = InternalSystemGetSystemPluginConfigurationResponses[keyof InternalSystemGetSystemPluginConfigurationResponses];
+
+export type InternalSystemUpdateSystemPluginConfigurationData = {
+    body: SystemPluginConfigurationPatch;
+    path: {
+        /**
+         * Plugin Id
+         */
+        plugin_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/plugins/{plugin_id}/configuration';
+};
+
+export type InternalSystemUpdateSystemPluginConfigurationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemUpdateSystemPluginConfigurationError = InternalSystemUpdateSystemPluginConfigurationErrors[keyof InternalSystemUpdateSystemPluginConfigurationErrors];
+
+export type InternalSystemUpdateSystemPluginConfigurationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSystemPluginConfigurationOut;
+};
+
+export type InternalSystemUpdateSystemPluginConfigurationResponse = InternalSystemUpdateSystemPluginConfigurationResponses[keyof InternalSystemUpdateSystemPluginConfigurationResponses];
+
+export type InternalSystemDisableSystemPluginData = {
+    body: SystemPluginLifecycleRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Plugin Id
+         */
+        plugin_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/plugins/{plugin_id}/disable';
+};
+
+export type InternalSystemDisableSystemPluginErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemDisableSystemPluginError = InternalSystemDisableSystemPluginErrors[keyof InternalSystemDisableSystemPluginErrors];
+
+export type InternalSystemDisableSystemPluginResponses = {
+    /**
+     * Successful Response
+     */
+    202: ResponseModelSystemPluginOperationOut;
+};
+
+export type InternalSystemDisableSystemPluginResponse = InternalSystemDisableSystemPluginResponses[keyof InternalSystemDisableSystemPluginResponses];
+
+export type InternalSystemEnableSystemPluginData = {
+    body: SystemPluginLifecycleRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Plugin Id
+         */
+        plugin_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/plugins/{plugin_id}/enable';
+};
+
+export type InternalSystemEnableSystemPluginErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemEnableSystemPluginError = InternalSystemEnableSystemPluginErrors[keyof InternalSystemEnableSystemPluginErrors];
+
+export type InternalSystemEnableSystemPluginResponses = {
+    /**
+     * Successful Response
+     */
+    202: ResponseModelSystemPluginOperationOut;
+};
+
+export type InternalSystemEnableSystemPluginResponse = InternalSystemEnableSystemPluginResponses[keyof InternalSystemEnableSystemPluginResponses];
+
+export type InternalSystemRollbackSystemPluginData = {
+    body: SystemPluginLifecycleRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Plugin Id
+         */
+        plugin_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/plugins/{plugin_id}/rollback';
+};
+
+export type InternalSystemRollbackSystemPluginErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemRollbackSystemPluginError = InternalSystemRollbackSystemPluginErrors[keyof InternalSystemRollbackSystemPluginErrors];
+
+export type InternalSystemRollbackSystemPluginResponses = {
+    /**
+     * Successful Response
+     */
+    202: ResponseModelSystemPluginOperationOut;
+};
+
+export type InternalSystemRollbackSystemPluginResponse = InternalSystemRollbackSystemPluginResponses[keyof InternalSystemRollbackSystemPluginResponses];
+
+export type InternalSystemUpgradeSystemPluginData = {
+    body: SystemPluginLifecycleRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Plugin Id
+         */
+        plugin_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/plugins/{plugin_id}/upgrade';
+};
+
+export type InternalSystemUpgradeSystemPluginErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemUpgradeSystemPluginError = InternalSystemUpgradeSystemPluginErrors[keyof InternalSystemUpgradeSystemPluginErrors];
+
+export type InternalSystemUpgradeSystemPluginResponses = {
+    /**
+     * Successful Response
+     */
+    202: ResponseModelSystemPluginOperationOut;
+};
+
+export type InternalSystemUpgradeSystemPluginResponse = InternalSystemUpgradeSystemPluginResponses[keyof InternalSystemUpgradeSystemPluginResponses];
 
 export type InternalSystemListPermissionsData = {
     body?: never;
@@ -48115,6 +52795,7 @@ export type DomainWorkspacesListWorkspaceActivityData = {
         workspace_id: string;
     };
     query?: {
+        ordering?: AuditEventOrdering;
         /**
          * Occurredfrom
          */
@@ -48688,7 +53369,13 @@ export type DomainWorkspacesRespondToAgentToolCallResponses = {
 export type DomainWorkspacesRespondToAgentToolCallResponse = DomainWorkspacesRespondToAgentToolCallResponses[keyof DomainWorkspacesRespondToAgentToolCallResponses];
 
 export type DomainWorkspacesArchiveWorkspaceData = {
-    body?: never;
+    body: AccessRestrictionEnforceRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
     path: {
         /**
          * Workspace Id
@@ -50439,6 +55126,44 @@ export type DomainWorkspacesListActionsResponses = {
 
 export type DomainWorkspacesListActionsResponse = DomainWorkspacesListActionsResponses[keyof DomainWorkspacesListActionsResponses];
 
+export type DomainWorkspacesGetPermissionCatalogData = {
+    body?: never;
+    headers?: {
+        /**
+         * If-None-Match
+         */
+        'If-None-Match'?: string | null;
+    };
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/rbac/catalog';
+};
+
+export type DomainWorkspacesGetPermissionCatalogErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetPermissionCatalogError = DomainWorkspacesGetPermissionCatalogErrors[keyof DomainWorkspacesGetPermissionCatalogErrors];
+
+export type DomainWorkspacesGetPermissionCatalogResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspacePermissionCatalogOut;
+};
+
+export type DomainWorkspacesGetPermissionCatalogResponse = DomainWorkspacesGetPermissionCatalogResponses[keyof DomainWorkspacesGetPermissionCatalogResponses];
+
 export type DomainWorkspacesListConditionTemplatesData = {
     body?: never;
     path: {
@@ -50551,6 +55276,38 @@ export type DomainWorkspacesSetPermissionRolesResponses = {
 };
 
 export type DomainWorkspacesSetPermissionRolesResponse = DomainWorkspacesSetPermissionRolesResponses[keyof DomainWorkspacesSetPermissionRolesResponses];
+
+export type DomainWorkspacesSetRolePermissionsBatchData = {
+    body: RolePermissionBatchSetRequest;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/rbac/role-permissions';
+};
+
+export type DomainWorkspacesSetRolePermissionsBatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesSetRolePermissionsBatchError = DomainWorkspacesSetRolePermissionsBatchErrors[keyof DomainWorkspacesSetRolePermissionsBatchErrors];
+
+export type DomainWorkspacesSetRolePermissionsBatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelRolePermissionBatchSetOut;
+};
+
+export type DomainWorkspacesSetRolePermissionsBatchResponse = DomainWorkspacesSetRolePermissionsBatchResponses[keyof DomainWorkspacesSetRolePermissionsBatchResponses];
 
 export type DomainWorkspacesListRolesData = {
     body?: never;
@@ -51998,6 +56755,12 @@ export type DomainWorkspacesListEmailInvitesData = {
          */
         status?: string | null;
         /**
+         * Role Code
+         *
+         * Filter by assigned workspace role code.
+         */
+        role_code?: string | null;
+        /**
          * Mine
          *
          * Only mine
@@ -52164,6 +56927,18 @@ export type DomainWorkspacesListInviteLinksData = {
          * Ordering fields, e.g. -created_at, display_code.
          */
         ordering?: string | null;
+        /**
+         * Role Code
+         *
+         * Filter by assigned workspace role code.
+         */
+        role_code?: string | null;
+        /**
+         * Status
+         *
+         * active|disabled|expired|exhausted
+         */
+        status?: string | null;
         /**
          * Mine
          *
@@ -52660,7 +57435,13 @@ export type DomainWorkspacesListUserOptionsResponses = {
 export type DomainWorkspacesListUserOptionsResponse = DomainWorkspacesListUserOptionsResponses[keyof DomainWorkspacesListUserOptionsResponses];
 
 export type DomainWorkspacesUnarchiveWorkspaceData = {
-    body?: never;
+    body: AccessRestrictionLiftRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
     path: {
         /**
          * Workspace Id

@@ -712,3 +712,34 @@ class EmailService:
             },
         )
         return await self._send(message)
+
+    async def send_template_version(
+        self,
+        *,
+        recipient: str,
+        template_key: str,
+        template_version: int,
+        locale: str,
+        variables: JsonObject,
+        idempotency_key: str,
+    ) -> SendResult:
+        if not await self._enabled():
+            raise RuntimeError("MAIL_DISABLED")
+        if not valid_recipient(recipient):
+            raise ValueError("INVALID_EMAIL")
+        rendered = await self.template_runtime.render_version(
+            key=template_key,
+            locale=locale,
+            version=template_version,
+            variables=variables,
+        )
+        return await self._send(
+            EmailMessage.single(
+                recipient=recipient,
+                subject=rendered.subject,
+                html_body=rendered.html,
+                text_body=rendered.text,
+                template_id=f"{template_key}@{template_version}",
+                metadata={"idempotencyKey": idempotency_key},
+            )
+        )

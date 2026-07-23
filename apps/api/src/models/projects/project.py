@@ -59,6 +59,7 @@ class ProjectRecord(BaseModel):
         table_description = "Project records within workspaces."
         abstract = False
         unique_together = (("workspace_id", "slug"),)
+        indexes = (("updated_at",),)
 
 
 @post_save(ProjectRecord)

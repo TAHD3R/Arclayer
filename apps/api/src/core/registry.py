@@ -75,7 +75,7 @@ def _resolve_project_root() -> Path:
     raise RuntimeError("Unable to resolve Arclayer project root")
 
 
-async def _init_extension_runtime(app: FastAPI) -> None:
+async def _init_extension_runtime(app: FastAPI, settings: Settings) -> None:
     """Load, register, bootstrap, and ready all extensions.
 
     Uses the ExtensionManager already created by AppFactory (if available)
@@ -94,14 +94,30 @@ async def _init_extension_runtime(app: FastAPI) -> None:
             logger.warning("Could not resolve project root, skipping extension init")
             return
 
-    await mgr.load_all()
+    from src.modules.system.plugins.runtime_reconciliation import (
+        load_desired_system_plugins,
+        reconcile_plugin_runtime_operations,
+    )
+
+    if settings.database.enabled:
+        await load_desired_system_plugins(mgr, settings=settings)
+    else:
+        await mgr.load_all()
     await mgr.register_all(app)
     await mgr.bootstrap_all(app)
     await mgr.ready_all(app)
     await mgr.restore_persisted_activations()
     app.state.plugin_registry = mgr.registry
     app.state.extension_registries = mgr.tenant_registries
+    resumed_operations = (
+        await reconcile_plugin_runtime_operations(mgr, settings=settings) if settings.database.enabled else 0
+    )
     logger.info("Extension runtime initialized", extensions=list(mgr.extension_names))
+    if resumed_operations:
+        logger.info(
+            "Plugin runtime operations resumed after activation verification",
+            resumed_operations=resumed_operations,
+        )
 
 
 async def _close_extension_runtime(app: FastAPI) -> None:
@@ -136,7 +152,7 @@ def _build_lifespan(settings: Settings):
             # In pure unit-test mode we often disable DB/Valkey entirely. In that case we can
             # skip heavyweight startup steps and still exercise routers/middlewares safely.
             if settings.app_env == "test" and not settings.database.enabled and not settings.valkey.enabled:
-                await _init_extension_runtime(app)
+                await _init_extension_runtime(app, settings)
                 if event_bus is None:
                     raise RuntimeError("event_bus unavailable during analytics Connector init")
                 await init_analytics_connector_runtime(app, event_bus=event_bus)
@@ -166,7 +182,7 @@ def _build_lifespan(settings: Settings):
                 raise RuntimeError("event_bus unavailable during domain runtime init")
             await init_domain_runtime(app, settings, event_bus=event_bus)
             await init_valkey(app, settings)
-            await _init_extension_runtime(app)
+            await _init_extension_runtime(app, settings)
             await init_analytics_connector_runtime(app, event_bus=event_bus)
             yield
         finally:
@@ -252,6 +268,9 @@ class AppFactory:
             api_path_prefix=self.settings.application.api_prefix,
             database_enabled=self.settings.database.enabled,
             observability_enabled=self.settings.observability.enabled,
+            service_name=self.settings.application.app_name,
+            environment=self.settings.app_env,
+            release_version=self.settings.application.app_version,
         )
 
         self.app.add_middleware(CorrelationIdMiddleware)

@@ -123,6 +123,11 @@ class WorkspaceManageListItemOut(BaseOut):
     is_archived: bool = Field(default=False, description="Whether workspace is archived.")
     archived_at: datetime | None = Field(default=None, description="Archived timestamp.")
     archived_by_user_id: PublicUUID | None = Field(default=None, description="Archived by user id.")
+    archive_revision: int = Field(
+        default=0,
+        ge=0,
+        description="Current workspace archive restriction revision for optimistic concurrency.",
+    )
     member_count: int = Field(default=0, ge=0, description="Active member count.")
     members_preview: list[WorkspaceManageMemberPreviewOut] = Field(
         default_factory=list,

@@ -57,6 +57,16 @@ from src.modules.projects.builder.generation_provider import (
 )
 from src.modules.projects.design_systems.concept_handler import DesignSystemConceptGenerationJobHandler
 from src.modules.projects.design_systems.concept_provider import LLMDesignSystemConceptGenerator
+from src.modules.system.admin.notifications.campaign_job_contract import (
+    NOTIFICATION_CAMPAIGN_DISPATCH_JOB_TYPE,
+    NOTIFICATION_CAMPAIGN_DISPATCH_JOB_TYPE_VERSION,
+)
+from src.modules.system.admin.notifications.campaign_job_handler import NotificationCampaignJobHandler
+from src.modules.system.plugins.job_contract import (
+    PLUGIN_LIFECYCLE_JOB_TYPE,
+    PLUGIN_LIFECYCLE_JOB_TYPE_VERSION,
+)
+from src.modules.system.plugins.job_handler import PluginLifecycleJobHandler
 from src.modules.workspaces.knowledge.indexing_handler import KnowledgeSourceIndexJobHandler
 from src.modules.workspaces.knowledge.ingestion import ManualMarkdownKnowledgeParser
 from src.modules.workspaces.knowledge.ingestion_handler import KnowledgeSourceIngestJobHandler
@@ -222,8 +232,15 @@ def test_maintenance_runtime_binds_exact_thumbnail_provider_effect_recovery(tmp_
         workload_class=JobWorkloadClass.MAINTENANCE,
     )
 
-    assert len(runtime.job_types.list_definitions()) == 1
-    assert len(runtime.handlers) == 1
+    identities = {
+        (definition.job_type, definition.job_type_version) for definition in runtime.job_types.list_definitions()
+    }
+    assert identities == {
+        (PROVIDER_EFFECT_RECOVERY_JOB_TYPE, PROVIDER_EFFECT_RECOVERY_JOB_TYPE_VERSION),
+        (NOTIFICATION_CAMPAIGN_DISPATCH_JOB_TYPE, NOTIFICATION_CAMPAIGN_DISPATCH_JOB_TYPE_VERSION),
+        (PLUGIN_LIFECYCLE_JOB_TYPE, PLUGIN_LIFECYCLE_JOB_TYPE_VERSION),
+    }
+    assert len(runtime.handlers) == 3
     handler = runtime.handlers.create_handler(
         job_type=PROVIDER_EFFECT_RECOVERY_JOB_TYPE,
         job_type_version=PROVIDER_EFFECT_RECOVERY_JOB_TYPE_VERSION,
@@ -236,6 +253,16 @@ def test_maintenance_runtime_binds_exact_thumbnail_provider_effect_recovery(tmp_
     assert isinstance(handler._storage, ExactAssetThumbnailProviderStorageResolver)
     assert handler._pipeline._storage_resolver is handler._storage
     assert handler._storage._route_operations is handler._effects._operations
+    campaign_handler = runtime.handlers.create_handler(
+        job_type=NOTIFICATION_CAMPAIGN_DISPATCH_JOB_TYPE,
+        job_type_version=NOTIFICATION_CAMPAIGN_DISPATCH_JOB_TYPE_VERSION,
+    )
+    assert isinstance(campaign_handler, NotificationCampaignJobHandler)
+    plugin_handler = runtime.handlers.create_handler(
+        job_type=PLUGIN_LIFECYCLE_JOB_TYPE,
+        job_type_version=PLUGIN_LIFECYCLE_JOB_TYPE_VERSION,
+    )
+    assert isinstance(plugin_handler, PluginLifecycleJobHandler)
 
 
 def test_connector_execution_runtime_binds_billing_knowledge_and_github_skill_handlers(tmp_path) -> None:
@@ -281,8 +308,9 @@ def test_production_handler_factory_registry_rejects_a_missing_builtin_job(tmp_p
             r"'builder.sitemap.generate v1', 'builder.wireframe.generate v1', "
             r"'design_system.concept.generate v1', "
             r"'knowledge.source.index v1', 'knowledge.source.ingest v1', "
+            r"'notification.campaign.dispatch v1', "
             r"'provider.effect.orphan.reconcile v1', 'skill.github.import v1', "
-            r"'skill.github.refresh v1'\]"
+            r"'skill.github.refresh v1', 'system.plugin.lifecycle v1'\]"
         ),
     ):
         factories.build_registrations(job_types=job_types)

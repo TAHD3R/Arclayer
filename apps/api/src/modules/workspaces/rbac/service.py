@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import TypedDict
 from uuid import UUID
 
@@ -14,10 +15,21 @@ from src.core.i18n import t
 from src.core.services import BaseService
 from src.models.system.rbac import PermissionScope, SystemPermission, SystemRole
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
-from src.modules.permissions import PermissionConditionSet
+from src.modules.permissions import (
+    PermissionConditionSet,
+    PermissionConditionTemplate,
+    serialize_condition_sets,
+)
 from src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
 from src.modules.system.rbac.repository import RBACRepository
 from src.modules.system.rbac.schema import PermissionTemplate
+from src.modules.workspaces.permissions.registry import list_permission_condition_templates
+from src.modules.workspaces.rbac.catalog import (
+    RolePermissionBatchUpdate,
+    build_catalog_revision,
+    build_permission_metadata,
+    role_revision,
+)
 
 SYSTEM_RBAC_UPDATED_EVENT = "system.settings.rbac.updated"
 _ROLE_CODE_MAX_LEN = 64
@@ -125,6 +137,10 @@ class WorkspaceRBACService(BaseService):
 
     async def get_owner_name_map(self, *, owner_keys: set[str]) -> dict[str, str]:
         return await self._get_owner_name_map(owner_keys=owner_keys)
+
+    async def get_catalog_revision(self) -> str:
+        permissions = await self.repo.list_permissions(scope=PermissionScope.WORKSPACE)
+        return build_catalog_revision(permissions)
 
     def _iter_workspace_permission_templates(self) -> list[PermissionTemplate]:
         templates: dict[str, PermissionTemplate] = {}
@@ -663,6 +679,210 @@ class WorkspaceRBACService(BaseService):
                 conn=conn,
             )
 
+    async def set_custom_role_permissions_batch(
+        self,
+        *,
+        organization_id: UUID,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        catalog_revision: str,
+        idempotency_key: str,
+        updates: tuple[RolePermissionBatchUpdate, ...],
+        actor_permission_codes: frozenset[str],
+        actor_is_superuser: bool,
+    ) -> tuple[str, list[SystemRole]]:
+        async with self.tx() as conn:
+            permissions = await self.repo.list_permissions(
+                scope=PermissionScope.WORKSPACE,
+                conn=conn,
+                for_update=True,
+            )
+            current_catalog_revision = build_catalog_revision(permissions)
+            if catalog_revision != current_catalog_revision:
+                raise Conflict(
+                    message=_tr("PERMISSION_CATALOG_CONFLICT", "权限目录已更新，请先核对变更"),
+                    error="PERMISSION_CATALOG_CONFLICT",
+                    meta={
+                        "expected_catalog_revision": catalog_revision,
+                        "actual_catalog_revision": current_catalog_revision,
+                    },
+                )
+
+            roles = await self.repo.list_roles(
+                workspace_id=workspace_id,
+                conn=conn,
+                for_update=True,
+            )
+            roles_by_code = {role.code: role for role in roles}
+            permissions_by_code = {permission.code: permission for permission in permissions}
+            permission_metadata = build_permission_metadata(permissions)
+            condition_templates = {template.key: template for template in list_permission_condition_templates()}
+            changed_roles: list[
+                tuple[SystemRole, RolePermissionBatchUpdate, list[UUID], dict[UUID, list[PermissionConditionSet]]]
+            ] = []
+            replay_roles: list[SystemRole] = []
+            conflict_rows: list[dict[str, object]] = []
+
+            for update in updates:
+                role = roles_by_code.get(update.role_code)
+                if role is None:
+                    raise NotFound(message=_tr("ROLE_NOT_FOUND", "角色不存在"), error="ROLE_NOT_FOUND")
+                if role.is_system:
+                    raise BadRequest(
+                        message=_tr("ROLE_SYSTEM_IMMUTABLE", "系统角色权限不可编辑"),
+                        error="ROLE_SYSTEM_IMMUTABLE",
+                        meta={"role_code": role.code},
+                    )
+
+                desired_codes = [permission_code for permission_code, _conditions in update.permission_grants]
+                desired_code_set = set(desired_codes)
+                missing = sorted(desired_code_set.difference(permissions_by_code))
+                if missing:
+                    raise BadRequest(
+                        message=_tr("PERMISSION_NOT_FOUND", "权限不存在"),
+                        error="PERMISSION_NOT_FOUND",
+                        meta={"role_code": role.code, "missing": missing},
+                    )
+                unavailable = sorted(
+                    code for code in desired_code_set if permission_metadata[code].lifecycle != "active"
+                )
+                if unavailable:
+                    raise BadRequest(
+                        message=_tr("PERMISSION_UNAVAILABLE", "权限当前不可授予"),
+                        error="PERMISSION_UNAVAILABLE",
+                        meta={"role_code": role.code, "permission_codes": unavailable},
+                    )
+                if not actor_is_superuser:
+                    forbidden = sorted(desired_code_set.difference(actor_permission_codes))
+                    if forbidden:
+                        raise BadRequest(
+                            message=_tr("PERMISSION_DELEGATION_FORBIDDEN", "不能授予自己未拥有的权限"),
+                            error="PERMISSION_DELEGATION_FORBIDDEN",
+                            meta={"role_code": role.code, "permission_codes": forbidden},
+                        )
+
+                conditions_by_permission_id: dict[UUID, list[PermissionConditionSet]] = {}
+                for permission_code, condition_sets in update.permission_grants:
+                    self._validate_permission_condition_sets(
+                        role_code=role.code,
+                        permission_code=permission_code,
+                        condition_sets=condition_sets,
+                        supported_template_keys=permission_metadata[permission_code].condition_templates,
+                        condition_templates=condition_templates,
+                    )
+                    permission = permissions_by_code[permission_code]
+                    conditions_by_permission_id[UUID(str(permission.id))] = list(condition_sets)
+
+                current_codes = [
+                    permission.code
+                    for permission in await self.repo.list_role_permissions(
+                        role_id=UUID(str(role.id)),
+                        conn=conn,
+                    )
+                ]
+                current_conditions = await self.repo.list_role_permission_condition_sets(
+                    role_id=UUID(str(role.id)),
+                    conn=conn,
+                )
+                desired_signature = _grant_signature(update.permission_grants)
+                current_signature = _grant_signature(
+                    tuple((code, tuple(current_conditions.get(code, []))) for code in sorted(current_codes))
+                )
+                actual_role_revision = role_revision(role)
+                if update.role_revision != actual_role_revision:
+                    if desired_signature == current_signature:
+                        replay_roles.append(role)
+                        continue
+                    conflict_rows.append({
+                        "role_code": role.code,
+                        "expected_revision": update.role_revision,
+                        "actual_revision": actual_role_revision,
+                        "permission_codes": sorted(current_codes),
+                    })
+                    continue
+
+                permission_ids = [UUID(str(permissions_by_code[code].id)) for code in sorted(desired_code_set)]
+                changed_roles.append((role, update, permission_ids, conditions_by_permission_id))
+
+            if conflict_rows:
+                raise Conflict(
+                    message=_tr("ROLE_REVISION_CONFLICT", "角色权限已被其他管理员更新"),
+                    error="ROLE_REVISION_CONFLICT",
+                    meta={
+                        "catalog_revision": current_catalog_revision,
+                        "role_diffs": conflict_rows,
+                    },
+                )
+
+            saved_roles: list[SystemRole] = []
+            for role, update, permission_ids, conditions_by_permission_id in changed_roles:
+                await self.repo.replace_role_permissions(
+                    role=role,
+                    permission_ids=permission_ids,
+                    condition_sets_by_permission_id=conditions_by_permission_id,
+                    conn=conn,
+                )
+                await self.repo.update_role(role, updates={}, conn=conn)
+                await self._write_rbac_activity_event(
+                    organization_id=organization_id,
+                    workspace_id=workspace_id,
+                    actor_user_id=actor_user_id,
+                    change_kind="role_permissions_batch_set",
+                    entity_type="workspace_role",
+                    entity_id=UUID(str(role.id)),
+                    properties={
+                        "role_code": role.code,
+                        "permission_codes": sorted(code for code, _conditions in update.permission_grants),
+                        "idempotency_key": idempotency_key,
+                    },
+                    conn=conn,
+                )
+                saved_roles.append(role)
+
+            return current_catalog_revision, [*saved_roles, *replay_roles]
+
+    def _validate_permission_condition_sets(
+        self,
+        *,
+        role_code: str,
+        permission_code: str,
+        condition_sets: tuple[PermissionConditionSet, ...],
+        supported_template_keys: tuple[str, ...],
+        condition_templates: dict[str, PermissionConditionTemplate],
+    ) -> None:
+        if not condition_sets:
+            return
+        supported_templates = [
+            condition_templates[key] for key in supported_template_keys if key in condition_templates
+        ]
+        allowed_fields = {template.field for template in supported_templates}
+        allowed_operators_by_field = {template.field: set(template.operators) for template in supported_templates}
+        for condition_set_index, condition_set in enumerate(condition_sets):
+            if not condition_set.conditions:
+                raise BadRequest(
+                    message=_tr("PERMISSION_CONDITION_EMPTY", "权限条件组不能为空"),
+                    error="PERMISSION_CONDITION_EMPTY",
+                    meta={
+                        "role_code": role_code,
+                        "permission_code": permission_code,
+                        "condition_set_index": condition_set_index,
+                    },
+                )
+            for condition in condition_set.conditions:
+                if condition.field not in allowed_fields or condition.operator not in allowed_operators_by_field.get(
+                    condition.field, set()
+                ):
+                    raise BadRequest(
+                        message=_tr("PERMISSION_CONDITION_UNSUPPORTED", "权限条件不受支持"),
+                        error="PERMISSION_CONDITION_UNSUPPORTED",
+                        meta={
+                            "role_code": role_code,
+                            "permission_code": permission_code,
+                            "field": condition.field.value,
+                            "operator": condition.operator.value,
+                        },
+                    )
+
     async def ensure_all_workspaces_ready(self) -> int:
         workspace_ids = await self.repo.list_workspace_ids()
         total = 0
@@ -670,3 +890,16 @@ class WorkspaceRBACService(BaseService):
             total += 1
             await self.ensure_workspace_system_role_grants(workspace_id=workspace_id)
         return total
+
+
+def _grant_signature(
+    grants: tuple[tuple[str, tuple[PermissionConditionSet, ...]], ...],
+) -> str:
+    payload = [
+        {
+            "permission_code": permission_code,
+            "condition_sets": serialize_condition_sets(list(condition_sets)),
+        }
+        for permission_code, condition_sets in sorted(grants, key=lambda item: item[0])
+    ]
+    return json.dumps(payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True)

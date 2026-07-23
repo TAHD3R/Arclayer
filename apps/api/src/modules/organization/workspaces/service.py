@@ -17,8 +17,18 @@ from src.core.i18n import t
 from src.core.services import BaseService
 from src.models.organization.org_membership import OrgRole
 from src.models.organization.user import User
+from src.models.system.access_restriction import (
+    AccessRestrictionEntityType,
+    AccessRestrictionType,
+)
 from src.models.system.rbac import SystemRole
 from src.models.workspaces.workspace import Workspace, WorkspaceMembershipRole
+from src.modules.access_restrictions.repository import AccessRestrictionRepository
+from src.modules.access_restrictions.schema import (
+    AccessRestrictionEnforceRequest,
+    AccessRestrictionLiftRequest,
+)
+from src.modules.access_restrictions.service import AccessRestrictionService
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.organization.workspaces.schema import (
@@ -35,6 +45,10 @@ from src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER
 from src.modules.system.rbac.service import RBACService
 from src.modules.workspaces.danger_service import WorkspaceDangerService
 from src.modules.workspaces.settings.service import WorkspaceSettingsService
+from src.modules.workspaces.skills.default_provisioner import (
+    DefaultWorkspaceOfficialSkillProvisioner,
+    WorkspaceOfficialSkillProvisioner,
+)
 
 _ORG_WORKSPACE_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset({"name", "created_at", "archived_at"})
 MAX_WORKSPACE_NAME_LENGTH = 128
@@ -64,6 +78,8 @@ class OrganizationWorkspaceService(BaseService):
         workspace_settings_service: WorkspaceSettingsService | None = None,
         workspace_danger_service: WorkspaceDangerService | None = None,
         rbac_service: RBACService | None = None,
+        restriction_service: AccessRestrictionService | None = None,
+        official_skill_provisioner: WorkspaceOfficialSkillProvisioner | None = None,
     ) -> None:
         super().__init__(settings)
         self.repo = repo or OrganizationWorkspaceRepository()
@@ -71,6 +87,13 @@ class OrganizationWorkspaceService(BaseService):
         self.workspace_settings_service = workspace_settings_service or WorkspaceSettingsService(settings)
         self.workspace_danger_service = workspace_danger_service or WorkspaceDangerService(settings)
         self.rbac_service = rbac_service or RBACService(settings)
+        self.restriction_service = restriction_service or AccessRestrictionService(
+            settings,
+            repository=AccessRestrictionRepository(),
+        )
+        self.official_skill_provisioner = official_skill_provisioner or DefaultWorkspaceOfficialSkillProvisioner(
+            settings
+        )
 
     async def _write_workspace_activity_event(
         self,
@@ -328,6 +351,12 @@ class OrganizationWorkspaceService(BaseService):
                 conn=conn,
             )
 
+        await self.official_skill_provisioner.provision(
+            organization_id=organization_id,
+            workspace_id=workspace_id,
+            actor_user_id=user_id,
+        )
+
         self.logger.info(
             "Organization workspace created",
             action="organization_workspace_create",
@@ -369,11 +398,9 @@ class OrganizationWorkspaceService(BaseService):
         workspace_id: UUID,
         user_id: UUID,
         org_role: OrgRole,
+        idempotency_key: str,
+        payload: AccessRestrictionEnforceRequest,
     ) -> OrganizationWorkspaceArchiveResult:
-        workspace = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
-        if workspace is None:
-            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
-
         await self._ensure_workspace_danger_action_enabled(
             organization_id=organization_id,
             workspace_id=workspace_id,
@@ -381,8 +408,27 @@ class OrganizationWorkspaceService(BaseService):
             action="archive",
         )
 
-        if workspace.archived_at is None:
-            async with self.tx() as conn:
+        async with self.tx() as conn:
+            workspace = await self.repo.get_by_id_for_update(workspace_id, conn=conn)
+            if (
+                workspace is None
+                or UUID(str(workspace.organization_id)) != organization_id
+                or not workspace.is_active
+                or workspace.deleted_at is not None
+            ):
+                raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+            await self.restriction_service.enforce(
+                entity_type=AccessRestrictionEntityType.WORKSPACE,
+                entity_id=workspace_id,
+                restriction_type=AccessRestrictionType.WORKSPACE_ARCHIVED,
+                actor_user_id=user_id,
+                idempotency_key=idempotency_key,
+                payload=payload,
+                organization_id=organization_id,
+                workspace_id=workspace_id,
+                conn=conn,
+            )
+            if workspace.archived_at is None:
                 workspace.archived_at = datetime.now(UTC)
                 workspace.archived_by_user_id = user_id
                 await workspace.save(update_fields=["archived_at", "archived_by_user_id", "updated_at"], using_db=conn)
@@ -417,16 +463,37 @@ class OrganizationWorkspaceService(BaseService):
         workspace_id: UUID,
         user_id: UUID,
         org_role: OrgRole,
+        idempotency_key: str,
+        payload: AccessRestrictionLiftRequest,
     ) -> OrganizationWorkspaceArchiveResult:
-        workspace = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
-        if workspace is None:
-            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
-
-        if workspace.archived_at is not None or workspace.archived_by_user_id is not None:
-            mutable_workspace = cast(WorkspaceArchiveMutableFields, workspace)
-            mutable_workspace.archived_at = None
-            mutable_workspace.archived_by_user_id = None
-            await workspace.save(update_fields=["archived_at", "archived_by_user_id", "updated_at"])
+        async with self.tx() as conn:
+            workspace = await self.repo.get_by_id_for_update(workspace_id, conn=conn)
+            if (
+                workspace is None
+                or UUID(str(workspace.organization_id)) != organization_id
+                or not workspace.is_active
+                or workspace.deleted_at is not None
+            ):
+                raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+            await self.restriction_service.lift(
+                entity_type=AccessRestrictionEntityType.WORKSPACE,
+                entity_id=workspace_id,
+                restriction_type=AccessRestrictionType.WORKSPACE_ARCHIVED,
+                actor_user_id=user_id,
+                idempotency_key=idempotency_key,
+                payload=payload,
+                organization_id=organization_id,
+                workspace_id=workspace_id,
+                conn=conn,
+            )
+            if workspace.archived_at is not None or workspace.archived_by_user_id is not None:
+                mutable_workspace = cast(WorkspaceArchiveMutableFields, workspace)
+                mutable_workspace.archived_at = None
+                mutable_workspace.archived_by_user_id = None
+                await workspace.save(
+                    update_fields=["archived_at", "archived_by_user_id", "updated_at"],
+                    using_db=conn,
+                )
 
         self.logger.info(
             "Organization workspace unarchived",

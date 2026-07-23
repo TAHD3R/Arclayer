@@ -433,6 +433,7 @@ export type ProjectMember = Generated.ProjectMemberOut;
 export type ProjectMemberRole = Generated.ProjectMemberRole;
 
 export type OrgUserStatus = Generated.UserStatus;
+export type AccessRestrictionAdmin = Generated.AccessRestrictionAdminOut;
 export type WorkspaceManageListItem = Generated.WorkspaceManageListItemOut;
 export type WorkspaceManageCreateInput = Generated.WorkspaceManageCreateRequest;
 export type WorkspaceManageArchiveResult = Generated.WorkspaceManageArchiveResult;
@@ -479,6 +480,49 @@ export type SystemDirectoryUser = DirectoryUserListItemBase & {
   workspace_membership_count?: number;
   project_membership_count?: number;
 };
+export type SystemDirectoryUserWorkspaceMembership = {
+  workspaceId: string;
+  workspaceName: string;
+  status: "active" | "invited" | "disabled";
+  roleCodes: string[];
+  isOwner: boolean;
+  joinedAt: string;
+};
+export type SystemDirectoryUserProjectMembership = {
+  projectId: string;
+  projectName: string;
+  workspaceId: string;
+  workspaceName: string;
+  role: "owner" | "editor" | "viewer";
+  joinedAt: string;
+};
+export type SystemDirectoryUserAuditActivity = {
+  eventId: string;
+  eventName: string;
+  occurredAt: string;
+  source: string | null;
+  workspaceId: string | null;
+  projectId: string | null;
+};
+export type SystemDirectoryUserFeedbackActivity = {
+  feedbackId: string;
+  intent: "problem" | "idea" | "question" | "praise" | null;
+  status: string;
+  source: string;
+  message: string;
+  lastActivityAt: string;
+};
+export type SystemDirectoryUserRestrictionHistory = {
+  commandId: string;
+  restrictionType: string;
+  state: "active" | "lifted";
+  reasonCategory: string;
+  reasonCode: string;
+  operatorNote: string;
+  actorUserId: string | null;
+  changedAt: string;
+  revision: number;
+};
 export type SystemDirectoryWorkspace = Omit<
   Generated.DirectoryWorkspaceListItemOut,
   "isActive" | "isArchived" | "memberCount" | "projectCount"
@@ -520,6 +564,13 @@ export type SystemDirectoryProject = Omit<
 export type SystemDirectoryUserDetail = DirectoryUserDetailBase &
   SystemDirectoryUser & {
     updated_at?: string;
+    ownedWorkspaceCount: number;
+    ownedProjectCount: number;
+    workspaceMemberships: SystemDirectoryUserWorkspaceMembership[];
+    projectMemberships: SystemDirectoryUserProjectMembership[];
+    recentAuditActivity: SystemDirectoryUserAuditActivity[];
+    recentFeedbackActivity: SystemDirectoryUserFeedbackActivity[];
+    restrictionHistory: SystemDirectoryUserRestrictionHistory[];
   };
 export type SystemDirectoryWorkspaceDetail = Generated.DirectoryWorkspaceDetailOut &
   SystemDirectoryWorkspace & {
@@ -897,3 +948,13 @@ export type ListTeamInviteLinkParticipantsParams =
 
 export type Permission = Generated.WorkspacePermissionOut;
 export type Role = RequiredPresent<Generated.WorkspaceRoleOut, "description" | "permissionCodes">;
+export type WorkspacePermissionCatalog = Generated.WorkspacePermissionCatalogOut;
+export type WorkspacePermissionGroup = Generated.WorkspacePermissionGroupOut;
+export type WorkspacePermissionConditionTemplate =
+  Generated.WorkspacePermissionConditionTemplateOut;
+export type PermissionCondition = Generated.PermissionCondition;
+export type PermissionConditionSet = Generated.PermissionConditionSetInput;
+export type PermissionConditionField = Generated.PermissionConditionField;
+export type PermissionConditionOperator = Generated.PermissionConditionOperator;
+export type RolePermissionBatchSetRequest = Generated.RolePermissionBatchSetRequest;
+export type RolePermissionBatchSetOut = Generated.RolePermissionBatchSetOut;

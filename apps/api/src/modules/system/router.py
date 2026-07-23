@@ -21,6 +21,7 @@ from src.modules.system.ai_providers.router import router as system_ai_providers
 from src.modules.system.directory.router import router as system_directory_router
 from src.modules.system.jobs.router import router as system_jobs_router
 from src.modules.system.mail.router import router as system_mail_router
+from src.modules.system.plugins.router import operations_router as system_plugin_operations_router
 from src.modules.system.plugins.router import router as system_plugins_router
 from src.modules.system.rbac.router import router as system_rbac_router
 from src.modules.system.schema import (
@@ -114,6 +115,7 @@ router.include_router(system_directory_router, prefix="/directory")
 router.include_router(system_mail_router, prefix="/mail")
 router.include_router(system_notifications_router, prefix="/notifications")
 router.include_router(system_plugins_router, prefix="/plugins")
+router.include_router(system_plugin_operations_router, prefix="/plugin-operations")
 router.include_router(system_jobs_router, prefix="/jobs")
 router.include_router(system_rbac_router, prefix="/rbac")
 router.include_router(system_activity_router, prefix="/activity")

@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from typing import cast
 from uuid import uuid4
 
 from src.config import get_settings
+from src.models.organization.org_membership import OrgRole
 from src.models.workspaces.workspace import Workspace
+from src.modules.organization.workspaces.schema import OrganizationWorkspaceCreateRequest
 from src.modules.organization.workspaces.service import OrganizationWorkspaceService
 
 
@@ -46,3 +50,72 @@ def test_build_workspace_out_allows_missing_project(monkeypatch) -> None:
     assert out.organization_id == organization_id
     assert out.project_id is None
     assert out.project is None
+
+
+class _CreateWorkspaceRepository:
+    def __init__(self, workspace: _FakeWorkspace) -> None:
+        self.workspace = workspace
+
+    async def create_workspace(self, **_kwargs: object) -> _FakeWorkspace:
+        return self.workspace
+
+    async def ensure_active_membership(self, **_kwargs: object) -> SimpleNamespace:
+        return SimpleNamespace(id=uuid4())
+
+    async def list_users(self, **_kwargs: object) -> list[object]:
+        return []
+
+
+class _WorkspaceSettingsService:
+    async def patch_core(self, **_kwargs: object) -> None:
+        return None
+
+
+class _OfficialSkillProvisioner:
+    def __init__(self) -> None:
+        self.calls: list[dict[str, object]] = []
+
+    async def provision(self, **kwargs: object) -> None:
+        self.calls.append(kwargs)
+
+
+async def test_create_workspace_provisions_official_skills_after_public_creation(monkeypatch) -> None:
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
+    workspace = _FakeWorkspace()
+    repository = _CreateWorkspaceRepository(workspace)
+    provisioner = _OfficialSkillProvisioner()
+    service = OrganizationWorkspaceService(
+        get_settings(),
+        repo=cast(object, repository),
+        workspace_settings_service=cast(object, _WorkspaceSettingsService()),
+        official_skill_provisioner=cast(object, provisioner),
+    )
+
+    @asynccontextmanager
+    async def _tx():
+        yield object()
+
+    async def _noop(**_kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(service, "tx", _tx)
+    monkeypatch.setattr(service, "_ensure_operator_role_binding", _noop)
+    monkeypatch.setattr(service, "_write_workspace_activity_event", _noop)
+    organization_id = uuid4()
+    actor_user_id = uuid4()
+
+    result = await service.create_workspace(
+        organization_id=organization_id,
+        user_id=actor_user_id,
+        org_role=OrgRole.OWNER,
+        payload=OrganizationWorkspaceCreateRequest(name="Founder Team", template="blank"),
+    )
+
+    assert result.workspace_id == workspace.id
+    assert provisioner.calls == [
+        {
+            "organization_id": organization_id,
+            "workspace_id": workspace.id,
+            "actor_user_id": actor_user_id,
+        }
+    ]

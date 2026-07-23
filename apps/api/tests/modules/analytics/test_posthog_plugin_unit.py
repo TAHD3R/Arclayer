@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
+from typing import Any, cast
 
 import httpx
 import pytest
@@ -14,6 +16,11 @@ from src.core.events import Event, EventBus
 from src.core.exceptions import ServiceUnavailable
 from src.core.extensions.manager import ExtensionManager
 from src.core.runtime_init import close_domain_runtime, init_analytics_connector_runtime
+from src.models.system.plugin_installation import PluginInstallationRecord
+from src.modules.system.plugins.runtime_configuration import (
+    PLUGIN_RUNTIME_CONFIGURATION_SERVICE,
+    PluginRuntimeConfigurationSnapshot,
+)
 
 
 async def _registration(monkeypatch: pytest.MonkeyPatch):
@@ -116,12 +123,51 @@ async def test_posthog_plugin_requires_project_key_when_enabled(
     project_root = Path(__file__).resolve().parents[5]
     manager = ExtensionManager(project_root)
     await manager.load_extension(project_root / "plugins" / "arclayer-posthog")
+    with pytest.raises(ValidationError, match="POSTHOG__PROJECT_API_KEY"):
+        await manager.register_all(app=None)
+
+
+@pytest.mark.asyncio
+async def test_posthog_plugin_uses_persisted_runtime_configuration_without_exposing_secret(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("POSTHOG__ENABLED", "false")
+    monkeypatch.setenv("POSTHOG__PROJECT_API_KEY", "env-default")
+    project_root = Path(__file__).resolve().parents[5]
+    manager = ExtensionManager(project_root)
+    snapshot = PluginRuntimeConfigurationSnapshot.from_installations(
+        cast(
+            list[PluginInstallationRecord],
+            [
+                SimpleNamespace(
+                    plugin_name="arclayer-posthog",
+                    desired_enabled=True,
+                    configuration={
+                        "enabled": True,
+                        "host": "https://eu.i.posthog.com",
+                        "timeoutSeconds": 7,
+                    },
+                    secret_references={"projectApiKey": "env:POSTHOG_DATABASE_KEY"},
+                )
+            ],
+        ),
+        environment={"POSTHOG_DATABASE_KEY": "database-secret"},
+    )
+    manager.registry.services.register(PLUGIN_RUNTIME_CONFIGURATION_SERVICE, snapshot)
+
+    await manager.load_extension(project_root / "plugins" / "arclayer-posthog")
     await manager.register_all(app=None)
     registration = manager.registry.connectors.resolve("analytics.posthog")
     assert registration is not None
 
-    with pytest.raises(ValidationError, match="POSTHOG__PROJECT_API_KEY"):
-        registration.factory()
+    connector = cast(Any, registration.factory())
+    assert connector.enabled is True
+    assert str(connector._settings.host) == "https://eu.i.posthog.com/"
+    assert connector._settings.timeout_seconds == 7
+    assert connector._settings.project_api_key.get_secret_value() == "database-secret"
+    assert "database-secret" not in repr(connector._settings)
+    assert "database-secret" not in json.dumps(registration.definition.model_dump(mode="json"))
+    await connector.close()
 
 
 @pytest.mark.asyncio

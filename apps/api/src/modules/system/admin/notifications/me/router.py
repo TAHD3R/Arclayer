@@ -12,6 +12,8 @@ from src.modules.auth.http.service import get_current_user_id
 from src.modules.system.admin.notifications.schema import (
     NotificationArchiveResult,
     NotificationDeleteResult,
+    NotificationInteractionKind,
+    NotificationInteractionOut,
     NotificationListQuery,
     NotificationOut,
     NotificationPreferencePatchIn,
@@ -104,6 +106,25 @@ async def mark_my_notification_read(
 ) -> ResponseModel[NotificationReadResult]:
     """Mark my notification as read."""
     out = await service.mark_read_for_user(user_id=user_id, notification_id=notification_id)
+    return ApiResponse.success(data=out)
+
+
+@router.post(
+    "/{notification_id}/interactions/{interaction}",
+    response_model=ResponseModel[NotificationInteractionOut],
+    summary="Record my notification campaign interaction",
+)
+async def record_my_notification_interaction(
+    notification_id: PublicUUID,
+    interaction: NotificationInteractionKind,
+    user_id: UUID = Depends(get_current_user_id),
+    service: NotificationService = Depends(get_notification_service),
+) -> ResponseModel[NotificationInteractionOut]:
+    out = await service.record_interaction_for_user(
+        user_id=user_id,
+        notification_id=notification_id,
+        interaction=interaction,
+    )
     return ApiResponse.success(data=out)
 
 

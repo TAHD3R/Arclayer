@@ -50,6 +50,9 @@ class OrganizationWorkspaceRepository(TortoiseORMRepository):
     async def get_by_id_in_connection(self, workspace_id: UUID, *, conn: BaseDBAsyncClient) -> Workspace | None:
         return await Workspace.get_or_none(id=workspace_id, using_db=conn)
 
+    async def get_by_id_for_update(self, workspace_id: UUID, *, conn: BaseDBAsyncClient) -> Workspace | None:
+        return await Workspace.filter(id=workspace_id).using_db(conn).select_for_update().first()
+
     async def list_active_by_ids(self, *, workspace_ids: Sequence[UUID]) -> list[Workspace]:
         if not workspace_ids:
             return []

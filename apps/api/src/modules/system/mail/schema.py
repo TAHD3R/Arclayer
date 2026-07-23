@@ -63,6 +63,7 @@ class MailTemplateCreateRequest(BaseSchema):
 
 
 class MailTemplatePatchRequest(BaseSchema):
+    expected_version: int = Field(..., ge=1)
     name: str | None = Field(default=None, min_length=1, max_length=160)
     description: str | None = Field(default=None, max_length=500)
     subject_template: str | None = Field(default=None, min_length=1, max_length=500)
@@ -75,6 +76,10 @@ class MailTemplatePatchRequest(BaseSchema):
     @classmethod
     def validate_variables(cls, values: list[str] | None) -> list[str] | None:
         return None if values is None else MailTemplateCreateRequest.validate_variables(values)
+
+
+class MailTemplateRevisionMutationRequest(BaseSchema):
+    expected_version: int = Field(..., ge=1)
 
 
 class MailTemplateOut(BaseSchema):
@@ -93,6 +98,77 @@ class MailTemplateOut(BaseSchema):
     updated_at: datetime
 
 
+MailTemplateRevisionAction = Literal["created", "updated", "restored", "deleted"]
+
+
+class MailTemplateRevisionActorOut(BaseSchema):
+    id: UUID
+    username: str
+    display_name: str | None = None
+    avatar_url: str | None = None
+
+
+class MailTemplateRevisionOut(BaseSchema):
+    id: UUID
+    template_id: UUID
+    key: str
+    locale: str
+    version: int
+    action: MailTemplateRevisionAction
+    changed_fields: list[str]
+    actor: MailTemplateRevisionActorOut | None = None
+    created_at: datetime
+
+
+class MailTemplateRevisionDetailOut(MailTemplateRevisionOut):
+    name: str
+    description: str | None
+    subject_template: str
+    html_template: str
+    text_template: str
+    variables: list[str]
+    is_enabled: bool
+
+
+MailTemplateCategory = Literal[
+    "account",
+    "security",
+    "invitation",
+    "notification",
+    "operations",
+    "custom",
+]
+MailTemplateOwner = Literal["builtin", "plugin", "custom"]
+MailTemplateValidationState = Literal["valid", "invalid"]
+MailTemplateSourceState = Literal["default", "overridden", "custom"]
+MailTemplateHealth = Literal["healthy", "partial", "disabled", "invalid"]
+
+
+class MailTemplateLocaleOut(BaseSchema):
+    id: UUID
+    locale: str
+    is_enabled: bool
+    version: int
+    updated_at: datetime
+    validation_state: MailTemplateValidationState
+    subject_preview: str
+    source_state: MailTemplateSourceState
+
+
+class MailTemplateGroupOut(BaseSchema):
+    key: str
+    name: str
+    description: str | None
+    category: MailTemplateCategory
+    owner: MailTemplateOwner
+    is_required: bool
+    locales: list[MailTemplateLocaleOut]
+    fallback_locale: str
+    health: MailTemplateHealth
+    latest_version: int
+    updated_at: datetime
+
+
 class MailTemplatePreviewRequest(BaseSchema):
     subject_template: str = Field(..., min_length=1, max_length=500)
     html_template: str = Field(..., min_length=1, max_length=200_000)
@@ -104,3 +180,16 @@ class MailTemplatePreviewOut(BaseSchema):
     subject: str
     html: str
     text: str
+
+
+class MailTemplateTestSendRequest(BaseSchema):
+    recipient: EmailStr
+    variables: JsonObject = Field(default_factory=dict)
+
+
+class MailTemplateTestSendOut(BaseSchema):
+    state: Literal["accepted"]
+    provider: str
+    message_id: str | None = None
+    attempts: int = Field(..., ge=1)
+    latency_ms: float = Field(..., ge=0)

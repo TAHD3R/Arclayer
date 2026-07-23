@@ -6,7 +6,7 @@ from typing import Any, cast
 from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
-from tortoise.expressions import Q
+from tortoise.expressions import F, Q
 
 from src.common.invitations.expiry import build_expires_at
 from src.common.invitations.tokens import build_invite_token, generate_invite_code
@@ -69,6 +69,24 @@ def _resolve_workspace_invite_link_prefix(join_mode: WorkspaceInviteJoinMode) ->
     if join_mode == WorkspaceInviteJoinMode.GUEST:
         return WORKSPACE_INVITE_LINK_PREFIX_GUEST
     return WORKSPACE_INVITE_LINK_PREFIX_MEMBER
+
+
+def _rotate_workspace_email_invite_code(current_code: str) -> str:
+    prefix = (
+        WORKSPACE_EMAIL_INVITE_PREFIX_GUEST
+        if current_code.startswith(WORKSPACE_EMAIL_INVITE_PREFIX_GUEST)
+        else WORKSPACE_EMAIL_INVITE_PREFIX_MEMBER
+    )
+    return generate_invite_code(prefix=prefix)
+
+
+def _rotate_workspace_invite_link_code(current_code: str) -> str:
+    prefix = (
+        WORKSPACE_INVITE_LINK_PREFIX_GUEST
+        if current_code.startswith(WORKSPACE_INVITE_LINK_PREFIX_GUEST)
+        else WORKSPACE_INVITE_LINK_PREFIX_MEMBER
+    )
+    return generate_invite_code(prefix=prefix)
 
 
 _WORKSPACE_EMAIL_INVITE_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset({
@@ -315,9 +333,9 @@ class WorkspaceTeamInviteMixin:
             if inv.revoked_at is not None:
                 raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVITE_REVOKED")
 
-            # Q1: only extend expires_at (do not rotate code).
+            inv.code = _rotate_workspace_email_invite_code(inv.code)
             cast(WorkspaceEmailInviteMutableFields, inv).expires_at = expires_at
-            await inv.save(using_db=conn, update_fields=["expires_at", "updated_at"])
+            await inv.save(using_db=conn, update_fields=["code", "expires_at", "updated_at"])
 
             await self._write_activity_event(
                 name="workspace.invite.email.renewed",
@@ -498,8 +516,6 @@ class WorkspaceTeamInviteMixin:
             disabled_at=link.disabled_at,
             max_uses=link.max_uses,
             allowed_email_domain=link.allowed_email_domain,
-            token=token,
-            invite_url=invite_url,
             created_by=_user_ref(creator) if creator else None,
             last_used_by=None,
             last_used_at=link.last_used_at,
@@ -535,8 +551,9 @@ class WorkspaceTeamInviteMixin:
             )
             if link is None:
                 raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+            link.code = _rotate_workspace_invite_link_code(link.code)
             cast(WorkspaceInviteLinkMutableFields, link).expires_at = expires_at
-            await link.save(using_db=conn, update_fields=["expires_at", "updated_at"])
+            await link.save(using_db=conn, update_fields=["code", "expires_at", "updated_at"])
 
             await self._write_activity_event(
                 name="workspace.invite.link.renewed",
@@ -574,8 +591,6 @@ class WorkspaceTeamInviteMixin:
             disabled_at=link.disabled_at,
             max_uses=link.max_uses,
             allowed_email_domain=link.allowed_email_domain,
-            token=token,
-            invite_url=invite_url,
             created_by=_user_ref(creator) if creator else None,
             last_used_by=_user_ref(last_used) if last_used else None,
             last_used_at=link.last_used_at,
@@ -635,6 +650,8 @@ class WorkspaceTeamInviteMixin:
         params: PageParams,
         q: str | None,
         ordering: str | None,
+        role_code: str | None,
+        status: str | None,
         mine: bool | None,
         current_user_id: UUID,
     ) -> PageData[WorkspaceInviteLinkOut]:
@@ -645,6 +662,24 @@ class WorkspaceTeamInviteMixin:
                 qs = qs.filter(Q(display_code__icontains=needle) | Q(role_code__icontains=needle))
         if mine:
             qs = qs.filter(created_by_user_id=current_user_id)
+        if role_code:
+            qs = qs.filter(role_code=role_code.strip())
+        if status:
+            now = datetime.now(UTC)
+            normalized_status = status.strip().lower()
+            if normalized_status == "disabled":
+                qs = qs.filter(disabled_at__not_isnull=True)
+            elif normalized_status == "expired":
+                qs = qs.filter(disabled_at=None, expires_at__not_isnull=True, expires_at__lte=now)
+            elif normalized_status == "exhausted":
+                qs = qs.filter(disabled_at=None, max_uses__not_isnull=True, uses_count__gte=F("max_uses"))
+            elif normalized_status == "active":
+                qs = (
+                    qs
+                    .filter(disabled_at=None)
+                    .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
+                    .filter(Q(max_uses__isnull=True) | Q(uses_count__lt=F("max_uses")))
+                )
 
         total = int(await qs.count())
         pages = (total + params.size - 1) // params.size if params.size else 0
@@ -669,9 +704,6 @@ class WorkspaceTeamInviteMixin:
         for link in rows:
             creator = user_by_id.get(UUID(str(link.created_by_user_id))) if link.created_by_user_id else None
             last_used = user_by_id.get(UUID(str(link.last_used_by_user_id))) if link.last_used_by_user_id else None
-            token = build_invite_token(self.settings, code=link.code)
-            base = (self.settings.application.frontend_base_url or "").strip().rstrip("/")
-            invite_url = f"{base}/invitations?token={token}" if base else None
             items.append(
                 WorkspaceInviteLinkOut(
                     id=link.id,
@@ -681,8 +713,6 @@ class WorkspaceTeamInviteMixin:
                     disabled_at=link.disabled_at,
                     max_uses=link.max_uses,
                     allowed_email_domain=link.allowed_email_domain,
-                    token=token,
-                    invite_url=invite_url,
                     created_by=_user_ref(creator) if creator else None,
                     last_used_by=_user_ref(last_used) if last_used else None,
                     last_used_at=link.last_used_at,
@@ -789,6 +819,7 @@ class WorkspaceTeamInviteMixin:
         q: str | None,
         ordering: str | None,
         status: str | None,
+        role_code: str | None,
         mine: bool | None,
         current_user_id: UUID,
     ) -> PageData[WorkspaceEmailInviteOut]:
@@ -800,6 +831,8 @@ class WorkspaceTeamInviteMixin:
                 qs = qs.filter(Q(email__icontains=needle) | Q(role_code__icontains=needle))
         if mine:
             qs = qs.filter(created_by_user_id=current_user_id)
+        if role_code:
+            qs = qs.filter(role_code=role_code.strip())
         if status:
             s = status.strip().lower()
             if s == "accepted":

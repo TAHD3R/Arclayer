@@ -11,12 +11,18 @@ from src.common.types.public_uuid import PublicUUID
 from src.core.exceptions import Forbidden, NotFound
 from src.core.i18n import t
 from src.models.organization.org_membership import OrgMembership, OrgRole
+from src.models.system.access_restriction import (
+    AccessRestrictionEntityType,
+    AccessRestrictionType,
+)
 from src.models.workspaces.workspace import (
     Workspace,
     WorkspaceMembership,
     WorkspaceMembershipRole,
     WorkspaceMembershipStatus,
 )
+from src.modules.access_restrictions.repository import AccessRestrictionRepository
+from src.modules.access_restrictions.service import AccessRestrictionAuthority
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.tenancy.router_helpers import bind_workspace_tenant_context
 from src.modules.workspaces.http.schema import WorkspaceAccessType, WorkspaceContext
@@ -25,7 +31,17 @@ from src.modules.workspaces.runtime.service import set_current_workspace_context
 
 async def _require_active_workspace(*, workspace_id: PublicUUID) -> Workspace:
     ws = await Workspace.get_or_none(id=workspace_id, deleted_at__isnull=True)
-    if ws is None or not ws.is_active:
+    if ws is None:
+        raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+    await AccessRestrictionAuthority(AccessRestrictionRepository()).require_unrestricted(
+        entity_type=AccessRestrictionEntityType.WORKSPACE,
+        entity_id=UUID(str(ws.id)),
+        restriction_types=[
+            AccessRestrictionType.WORKSPACE_SUSPENDED,
+            AccessRestrictionType.WORKSPACE_ARCHIVED,
+        ],
+    )
+    if not ws.is_active:
         raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
     return ws
 

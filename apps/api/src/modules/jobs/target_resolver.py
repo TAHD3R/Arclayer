@@ -8,7 +8,11 @@ from pydantic import ConfigDict, Field, model_validator
 
 from src.common.schemas import BaseSchema
 from src.common.types.json_types import JsonObject
-from src.core.exceptions import NotFound
+from src.core.exceptions import Forbidden, NotFound
+from src.models.system.access_restriction import (
+    AccessRestrictionEntityType,
+    AccessRestrictionType,
+)
 from src.models.tenancy.workspace_tenant import WorkspaceTenantIsolationMode, WorkspaceTenantStatus
 from src.modules.jobs.execution_errors import PermanentJobExecutionError, TransientJobExecutionError
 from src.modules.jobs.registry import JobTerminalErrorContract
@@ -49,6 +53,14 @@ class _WorkspaceIdErrorMetadata(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
 
     workspace_id: UUID
+    restriction_code: (
+        Literal[
+            "WORKSPACE_SUSPENDED",
+            "WORKSPACE_ARCHIVED",
+            "PROJECT_SUSPENDED",
+        ]
+        | None
+    ) = None
 
 
 class _WorkspaceInvariantErrorMetadata(_WorkspaceIdErrorMetadata):
@@ -137,16 +149,32 @@ class WorkspaceRepositoryLike(Protocol):
     async def get_by_id(self, *, workspace_id: UUID) -> WorkspaceRecordLike | None: ...
 
 
+class AccessRestrictionAuthorityLike(Protocol):
+    async def require_unrestricted(
+        self,
+        *,
+        entity_type: AccessRestrictionEntityType,
+        entity_id: UUID,
+        restriction_types: list[AccessRestrictionType],
+    ) -> None: ...
+
+
 class WorkspaceJobTargetResolver:
     """Resolve Workspace-owned Job routing before separately authorizing effects."""
 
-    __slots__ = ("_required_schema_version", "_tenancy_repository", "_workspace_repository")
+    __slots__ = (
+        "_access_restriction_authority",
+        "_required_schema_version",
+        "_tenancy_repository",
+        "_workspace_repository",
+    )
 
     def __init__(
         self,
         *,
         workspace_repository: WorkspaceRepositoryLike,
         tenancy_repository: TenancyRepositoryLike,
+        access_restriction_authority: AccessRestrictionAuthorityLike,
         required_schema_version: int,
     ) -> None:
         if isinstance(required_schema_version, bool) or not isinstance(required_schema_version, int):
@@ -155,6 +183,7 @@ class WorkspaceJobTargetResolver:
             raise ValueError("required_schema_version must be non-negative")
         self._workspace_repository = workspace_repository
         self._tenancy_repository = tenancy_repository
+        self._access_restriction_authority = access_restriction_authority
         self._required_schema_version = required_schema_version
 
     async def resolve_for_reconciliation(self, *, workspace_id: UUID) -> TenantContext:
@@ -189,6 +218,10 @@ class WorkspaceJobTargetResolver:
     async def authorize_new_effect(self, *, workspace_id: UUID) -> None:
         workspace = await self._load_workspace(workspace_id=workspace_id)
         _validate_workspace_target_identity(workspace=workspace, workspace_id=workspace_id)
+        await _require_job_target_unrestricted(
+            authority=self._access_restriction_authority,
+            workspace_id=workspace_id,
+        )
         _validate_workspace_target_enabled(workspace=workspace, workspace_id=workspace_id)
 
     async def _load_workspace(self, *, workspace_id: UUID) -> WorkspaceRecordLike:
@@ -205,13 +238,19 @@ class WorkspaceJobTargetResolver:
 class ProjectJobTargetResolver:
     """Resolve reconciliation routing separately from mutable effect authority."""
 
-    __slots__ = ("_project_repository", "_required_schema_version", "_tenancy_repository")
+    __slots__ = (
+        "_access_restriction_authority",
+        "_project_repository",
+        "_required_schema_version",
+        "_tenancy_repository",
+    )
 
     def __init__(
         self,
         *,
         project_repository: ProjectRepositoryLike,
         tenancy_repository: TenancyRepositoryLike,
+        access_restriction_authority: AccessRestrictionAuthorityLike,
         required_schema_version: int,
     ) -> None:
         if isinstance(required_schema_version, bool) or not isinstance(required_schema_version, int):
@@ -220,6 +259,7 @@ class ProjectJobTargetResolver:
             raise ValueError("required_schema_version must be non-negative")
         self._project_repository = project_repository
         self._tenancy_repository = tenancy_repository
+        self._access_restriction_authority = access_restriction_authority
         self._required_schema_version = required_schema_version
 
     async def resolve_for_reconciliation(
@@ -280,6 +320,11 @@ class ProjectJobTargetResolver:
             workspace_id=workspace_id,
             project_id=project_id,
         )
+        await _require_job_target_unrestricted(
+            authority=self._access_restriction_authority,
+            workspace_id=workspace_id,
+            project_id=project_id,
+        )
         _validate_project_target_enabled(
             project=project,
             workspace=workspace,
@@ -336,6 +381,55 @@ def _validate_workspace_target_identity(
         "The workspace target identity is invalid",
         {"workspaceId": str(workspace_id)},
     )
+
+
+async def _require_job_target_unrestricted(
+    *,
+    authority: AccessRestrictionAuthorityLike,
+    workspace_id: UUID,
+    project_id: UUID | None = None,
+) -> None:
+    try:
+        await authority.require_unrestricted(
+            entity_type=AccessRestrictionEntityType.WORKSPACE,
+            entity_id=workspace_id,
+            restriction_types=[
+                AccessRestrictionType.WORKSPACE_SUSPENDED,
+                AccessRestrictionType.WORKSPACE_ARCHIVED,
+            ],
+        )
+    except Forbidden as error:
+        metadata: JsonObject = {
+            "workspaceId": str(workspace_id),
+            "restrictionCode": str(error.error or "WORKSPACE_SUSPENDED"),
+        }
+        if project_id is not None:
+            metadata.update({"projectId": str(project_id), "entityType": "workspace"})
+        raise _permanent(
+            _TARGET_DISABLED,
+            "The workspace target has an active access restriction",
+            metadata,
+        ) from error
+
+    if project_id is None:
+        return
+    try:
+        await authority.require_unrestricted(
+            entity_type=AccessRestrictionEntityType.PROJECT,
+            entity_id=project_id,
+            restriction_types=[AccessRestrictionType.PROJECT_SUSPENDED],
+        )
+    except Forbidden as error:
+        raise _permanent(
+            _TARGET_DISABLED,
+            "The project target has an active access restriction",
+            {
+                "workspaceId": str(workspace_id),
+                "projectId": str(project_id),
+                "entityType": "project",
+                "restrictionCode": str(error.error or "PROJECT_SUSPENDED"),
+            },
+        ) from error
 
 
 def _validate_workspace_target_enabled(

@@ -267,6 +267,7 @@ async def list_email_invites(
         description="Ordering fields, e.g. -created_at, email.",
     ),
     status: str | None = Query(default=None, description="pending|accepted|revoked|expired"),
+    role_code: str | None = Query(default=None, description="Filter by assigned workspace role code."),
     mine: bool | None = Query(default=None, description="Only mine"),
     params=Depends(get_page_params),
     ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
@@ -282,6 +283,7 @@ async def list_email_invites(
         q=q,
         ordering=ordering,
         status=status,
+        role_code=role_code,
         mine=mine,
         current_user_id=user_id,
     )
@@ -371,6 +373,8 @@ async def list_invite_links(
         default=None,
         description="Ordering fields, e.g. -created_at, display_code.",
     ),
+    role_code: str | None = Query(default=None, description="Filter by assigned workspace role code."),
+    status: str | None = Query(default=None, description="active|disabled|expired|exhausted"),
     mine: bool | None = Query(default=None, description="Only mine"),
     params=Depends(get_page_params),
     ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
@@ -385,6 +389,8 @@ async def list_invite_links(
         params=params,
         q=q,
         ordering=ordering,
+        role_code=role_code,
+        status=status,
         mine=mine,
         current_user_id=user_id,
     )

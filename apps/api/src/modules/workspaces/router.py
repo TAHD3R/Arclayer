@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Header, Query
 
 from src.config import Settings, get_settings
 from src.core.http.pagination import DependsPagination, PageData, PageParams
 from src.core.http.response import ApiResponse, ResponseModel
+from src.modules.access_restrictions.schema import (
+    AccessRestrictionEnforceRequest,
+    AccessRestrictionLiftRequest,
+)
 from src.modules.ai.agent_catalog_router import router as workspace_agent_catalog_router
 from src.modules.ai.runtime_http_router import router as workspace_ai_runtime_router
 from src.modules.ai.usage_router import router as workspace_usage_router
@@ -45,6 +50,8 @@ from src.modules.workspaces.settings.router import router as workspace_settings_
 from src.modules.workspaces.skills.router import router as workspace_skills_router
 from src.modules.workspaces.team.router import router as workspace_team_router
 from src.modules.workspaces.uploads_router import router as workspace_uploads_router
+
+IdempotencyKey = Annotated[str, Header(alias="Idempotency-Key", min_length=1, max_length=128)]
 
 router = APIRouter(tags=["domain.workspaces"])
 router.include_router(me_api_keys_router)
@@ -260,12 +267,19 @@ async def delete_workspace(
 )
 async def archive_workspace(
     workspace_id: UUID,
+    payload: AccessRestrictionEnforceRequest,
+    idempotency_key: IdempotencyKey,
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceManageArchiveResult]:
     """Archive workspace."""
     service = WorkspaceService(settings)
-    out = await service.archive_manage_workspace(user_id=user_id, workspace_id=workspace_id)
+    out = await service.archive_manage_workspace(
+        user_id=user_id,
+        workspace_id=workspace_id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
     return ApiResponse.success(data=out)
 
 
@@ -276,10 +290,17 @@ async def archive_workspace(
 )
 async def unarchive_workspace(
     workspace_id: UUID,
+    payload: AccessRestrictionLiftRequest,
+    idempotency_key: IdempotencyKey,
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceManageArchiveResult]:
     """Unarchive workspace."""
     service = WorkspaceService(settings)
-    out = await service.unarchive_manage_workspace(user_id=user_id, workspace_id=workspace_id)
+    out = await service.unarchive_manage_workspace(
+        user_id=user_id,
+        workspace_id=workspace_id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
     return ApiResponse.success(data=out)

@@ -11,6 +11,7 @@ from src.core.events import Event
 from src.core.middleware.request_log import RequestLogMiddleware
 from src.modules.observability.http_metrics import (
     HTTP_REQUEST_METRIC_EVENT,
+    HTTPRequestRecordFact,
     persist_http_request_metric_event,
     record_http_request_metric,
 )
@@ -46,15 +47,28 @@ async def test_record_http_request_metric_uses_atomic_hourly_upsert() -> None:
     connection_registry.get.return_value = connection
     with patch("src.modules.observability.http_metrics.connections", connection_registry):
         await record_http_request_metric(
-            trace_id="trace-1",
-            actor_user_id=actor_user_id,
-            workspace_id=workspace_id,
-            project_id=project_id,
-            route_template="/api/v1/projects/{project_id}",
-            method="GET",
-            status_code=503,
-            duration_ms=81,
-            occurred_at=occurred_at,
+            HTTPRequestRecordFact(
+                occurred_at=occurred_at,
+                request_id="request-1",
+                trace_id="0123456789abcdef0123456789abcdef",
+                actor_user_id=actor_user_id,
+                workspace_id=workspace_id,
+                project_id=project_id,
+                normalized_path=f"/api/v1/projects/{project_id}",
+                route_template="/api/v1/projects/{project_id}",
+                method="GET",
+                protocol="HTTP/1.1",
+                status_code=503,
+                duration_ms=81,
+                request_bytes=120,
+                response_bytes=84,
+                service_name="Arclayer API",
+                environment="test",
+                error_code="UPSTREAM_UNAVAILABLE",
+                error_class="APIError",
+                error_message="Service unavailable",
+                ingestion_source="request_log",
+            )
         )
 
     connection.execute_query.assert_awaited_once()
@@ -63,9 +77,12 @@ async def test_record_http_request_metric_uses_atomic_hourly_upsert() -> None:
     assert "observability_http_request_records" in sql
     assert "ON CONFLICT" in sql
     assert "GREATEST" in sql
-    assert values[2:6] == ["trace-1", actor_user_id, workspace_id, project_id]
-    assert values[11] == datetime(2026, 7, 12, 18, 0, tzinfo=UTC)
-    assert values[13:] == [5, 1]
+    assert '"request_id": "request-1"' in values[2]
+    assert f'"actor_user_id": "{actor_user_id}"' in values[2]
+    assert f'"workspace_id": "{workspace_id}"' in values[2]
+    assert f'"project_id": "{project_id}"' in values[2]
+    assert values[4] == datetime(2026, 7, 12, 18, 0, tzinfo=UTC)
+    assert values[6:] == [5, 1]
 
 
 @pytest.mark.asyncio
@@ -77,12 +94,22 @@ async def test_http_metric_event_validates_and_persists_captured_context() -> No
         trace_id="trace-1",
         actor_user_id=str(uuid4()),
         payload={
+            "requestId": "request-1",
+            "traceId": "0123456789abcdef0123456789abcdef",
             "workspaceId": str(workspace_id),
             "projectId": str(project_id),
+            "normalizedPath": f"/api/v1/projects/{project_id}",
             "routeTemplate": "/api/v1/projects/{project_id}",
             "method": "POST",
+            "protocol": "HTTP/1.1",
             "statusCode": 201,
             "durationMs": 32,
+            "requestBytes": 12,
+            "responseBytes": 24,
+            "serviceName": "Arclayer API",
+            "environment": "test",
+            "ingestionSource": "request_log",
+            "schemaVersion": 2,
         },
     )
 
@@ -92,17 +119,16 @@ async def test_http_metric_event_validates_and_persists_captured_context() -> No
     ) as persist:
         await persist_http_request_metric_event(event)
 
-    persist.assert_awaited_once_with(
-        trace_id="trace-1",
-        actor_user_id=UUID(event.actor_user_id),
-        workspace_id=workspace_id,
-        project_id=project_id,
-        route_template="/api/v1/projects/{project_id}",
-        method="POST",
-        status_code=201,
-        duration_ms=32,
-        occurred_at=event.occurred_at,
-    )
+    persist.assert_awaited_once()
+    captured = persist.await_args.args[0]
+    assert captured.actor_user_id == UUID(event.actor_user_id)
+    assert captured.workspace_id == workspace_id
+    assert captured.project_id == project_id
+    assert captured.route_template == "/api/v1/projects/{project_id}"
+    assert captured.method == "POST"
+    assert captured.status_code == 201
+    assert captured.duration_ms == 32
+    assert captured.occurred_at == event.occurred_at
 
 
 @pytest.mark.asyncio
@@ -120,6 +146,8 @@ async def test_request_log_publishes_metric_without_waiting_for_database_write()
             request=request,
             status=404,
             elapsed_ms=12,
+            request_bytes=0,
+            response_bytes=0,
         )
 
     publish.assert_awaited_once()
@@ -128,6 +156,9 @@ async def test_request_log_publishes_metric_without_waiting_for_database_write()
     assert event.name == HTTP_REQUEST_METRIC_EVENT
     assert event.payload["routeTemplate"] == "__unmatched__"
     assert event.payload["statusCode"] == 404
+    assert event.payload["normalizedPath"] == "/api/v1/missing"
+    assert event.payload["protocol"] == "HTTP/1.1"
+    assert event.payload["clientNetwork"] == "127.0.0.0/24"
 
 
 @pytest.mark.asyncio
@@ -144,6 +175,8 @@ async def test_request_log_does_not_publish_when_observability_is_disabled() -> 
             request=Request(scope),
             status=200,
             elapsed_ms=5,
+            request_bytes=0,
+            response_bytes=0,
         )
 
     publish.assert_not_awaited()

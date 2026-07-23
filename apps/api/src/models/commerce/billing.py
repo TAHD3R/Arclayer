@@ -203,6 +203,10 @@ class WorkspaceCreditAccount(BaseModel):
         table = "commerce_workspace_credit_accounts"
         table_description = "Workspace AI credit balance and reservation counters."
         abstract = False
+        indexes = (
+            ("balance_credits", "reserved_credits"),
+            ("period_spent_credits", "period_granted_credits"),
+        )
 
 
 class WorkspaceCreditLedger(BaseModel):

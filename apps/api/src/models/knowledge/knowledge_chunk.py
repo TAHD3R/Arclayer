@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+from uuid import UUID
+
 from tortoise import fields
 
 from src.common.models import BaseModel
@@ -28,6 +31,9 @@ class KnowledgeChunkRecord(BaseModel):
     vector_dimensions = fields.IntField(null=True)
     prompt_injection_scan = fields.JSONField(default=dict)
     retrieval_eligible = fields.BooleanField(default=False, db_index=True)
+
+    if TYPE_CHECKING:
+        source_version_id: UUID
 
     class Meta(BaseModel.Meta):
         table = "knowledge_chunks"

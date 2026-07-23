@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Header, Query, Request
 
 from src.common.constants.assets import ASSET_SCOPE_USER
@@ -9,7 +12,12 @@ from src.core.exceptions import BadRequest
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import t
+from src.models.commerce.billing import SubscriptionStatus
 from src.models.organization.user import User, UserStatus
+from src.modules.access_restrictions.schema import (
+    AccessRestrictionEnforceRequest,
+    AccessRestrictionLiftRequest,
+)
 from src.modules.assets.admin.uploads.schema import (
     UploadAbortOut,
     UploadCompleteOut,
@@ -23,11 +31,28 @@ from src.modules.assets.admin.uploads.schema import (
 from src.modules.assets.admin.uploads.service import UploadsService
 from src.modules.assets.scope import AssetScope
 from src.modules.auth.http.service import require_super_admin
+from src.modules.commerce.directory_projection import build_workspace_commerce_directory_service
+from src.modules.commerce.schema import WorkspaceCommerceDirectoryRisk
+from src.modules.domains.service import DomainBindingService
+from src.modules.projects.deployments.service import ProjectDeploymentsService
+from src.modules.projects.environments.service import ProjectEnvironmentsService
+from src.modules.projects.members_repository import ProjectMembersRepository
+from src.modules.projects.releases.service import ProjectReleasesService
+from src.modules.projects.runtime.service import ProjectRuntimeService
+from src.modules.system.directory.project_operations import (
+    DirectoryProjectOperationsOut,
+    SystemProjectOperationsService,
+    build_project_directory_projection_service,
+)
+from src.modules.system.directory.repository import SystemDirectoryRepository
 from src.modules.system.directory.schema import (
     DirectoryDeleteRequest,
     DirectoryProjectDetailOut,
+    DirectoryProjectDomainState,
+    DirectoryProjectHealthState,
     DirectoryProjectListFilters,
     DirectoryProjectListItemOut,
+    DirectoryProjectReleaseState,
     DirectoryProjectUpdateRequest,
     DirectoryUserDetailOut,
     DirectoryUserListFilters,
@@ -47,6 +72,8 @@ router = APIRouter(
     dependencies=[Depends(require_super_admin)],
 )
 
+IdempotencyKey = Annotated[str, Header(alias="Idempotency-Key", min_length=1, max_length=128)]
+
 
 def get_directory_service(
     request: Request,
@@ -56,11 +83,36 @@ def get_directory_service(
         valkey = get_valkey(request)
     except RuntimeError:
         valkey = None
-    return SystemDirectoryService(settings, valkey=valkey)
+    return SystemDirectoryService(
+        settings,
+        valkey=valkey,
+        commerce_projection_reader=build_workspace_commerce_directory_service(settings),
+        project_projection_reader=build_project_directory_projection_service(settings),
+    )
 
 
 def get_uploads_service(settings: Settings = Depends(get_settings)) -> UploadsService:
     return UploadsService(settings)
+
+
+def get_project_operations_service(
+    request: Request,
+    settings: Settings = Depends(get_settings),
+) -> SystemProjectOperationsService:
+    try:
+        valkey = get_valkey(request)
+    except RuntimeError:
+        valkey = None
+    return SystemProjectOperationsService(
+        settings,
+        directory_repo=SystemDirectoryRepository(),
+        members_repo=ProjectMembersRepository(),
+        runtime_service=ProjectRuntimeService(settings),
+        domain_service=DomainBindingService(settings, valkey=valkey),
+        environments_factory=ProjectEnvironmentsService,
+        deployments_factory=ProjectDeploymentsService,
+        releases_factory=ProjectReleasesService,
+    )
 
 
 async def require_directory_user_scope(
@@ -90,6 +142,26 @@ async def list_users(
     has_password: bool | None = Query(default=None, description="Filter by local password configuration."),
     two_factor_enabled: bool | None = Query(default=None, description="Filter by two-factor authentication."),
     oauth_provider: str | None = Query(default=None, description="Filter by OAuth linkage. Use any or none."),
+    created_from: datetime | None = Query(default=None, description="Created-at range lower bound, inclusive."),
+    created_to: datetime | None = Query(default=None, description="Created-at range upper bound, inclusive."),
+    last_login_from: datetime | None = Query(default=None, description="Last-login range lower bound, inclusive."),
+    last_login_to: datetime | None = Query(default=None, description="Last-login range upper bound, inclusive."),
+    workspace_member_of_id: PublicUUID | None = Query(
+        default=None,
+        description="Filter users with an active membership in this workspace.",
+    ),
+    project_member_of_id: PublicUUID | None = Query(
+        default=None,
+        description="Filter users with a membership in this project.",
+    ),
+    owned_workspace_id: PublicUUID | None = Query(
+        default=None,
+        description="Filter by the authoritative owner of this workspace.",
+    ),
+    owned_project_id: PublicUUID | None = Query(
+        default=None,
+        description="Filter by the current project-owner projection.",
+    ),
 ) -> ResponseModel[PageData[DirectoryUserListItemOut]]:
     filters = DirectoryUserListFilters(
         status=status,
@@ -97,6 +169,14 @@ async def list_users(
         has_password=has_password,
         two_factor_enabled=two_factor_enabled,
         oauth_provider=oauth_provider,
+        created_from=created_from,
+        created_to=created_to,
+        last_login_from=last_login_from,
+        last_login_to=last_login_to,
+        workspace_member_of_id=workspace_member_of_id,
+        project_member_of_id=project_member_of_id,
+        owned_workspace_id=owned_workspace_id,
+        owned_project_id=owned_project_id,
     )
     page = await service.list_users(params=params, q=q, ordering=ordering, filters=filters)
     return ApiResponse.success(data=page)
@@ -342,10 +422,18 @@ async def unlink_user_oauth_identity(
 )
 async def disable_user(
     user_id: PublicUUID,
+    payload: AccessRestrictionEnforceRequest,
+    idempotency_key: IdempotencyKey,
     acting_user: User = Depends(require_super_admin),
     service: SystemDirectoryService = Depends(get_directory_service),
 ) -> ResponseModel[DirectoryUserDetailOut]:
-    detail = await service.set_user_enabled(user_id=user_id, enabled=False, acting_user_id=acting_user.id)
+    detail = await service.set_user_enabled(
+        user_id=user_id,
+        enabled=False,
+        acting_user_id=acting_user.id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
     return ApiResponse.success(data=detail)
 
 
@@ -356,10 +444,18 @@ async def disable_user(
 )
 async def enable_user(
     user_id: PublicUUID,
+    payload: AccessRestrictionLiftRequest,
+    idempotency_key: IdempotencyKey,
     acting_user: User = Depends(require_super_admin),
     service: SystemDirectoryService = Depends(get_directory_service),
 ) -> ResponseModel[DirectoryUserDetailOut]:
-    detail = await service.set_user_enabled(user_id=user_id, enabled=True, acting_user_id=acting_user.id)
+    detail = await service.set_user_enabled(
+        user_id=user_id,
+        enabled=True,
+        acting_user_id=acting_user.id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
     return ApiResponse.success(data=detail)
 
 
@@ -389,10 +485,38 @@ async def list_workspaces(
     ordering: str | None = Query(default=None, description="Ordering fields, for example -created_at or name."),
     is_archived: bool | None = Query(default=None, description="Filter by archive state."),
     is_active: bool | None = Query(default=None, description="Filter by active state."),
+    owner_user_id: PublicUUID | None = Query(default=None, description="Filter by workspace owner."),
+    plan_code: str | None = Query(default=None, description="Filter by commerce plan code."),
+    subscription_status: SubscriptionStatus | None = Query(
+        default=None,
+        description="Filter by subscription status.",
+    ),
+    commerce_risk: WorkspaceCommerceDirectoryRisk | None = Query(
+        default=None,
+        description="Filter by commercial attention state.",
+    ),
+    created_from: datetime | None = Query(default=None, description="Created-at range lower bound, inclusive."),
+    created_to: datetime | None = Query(default=None, description="Created-at range upper bound, inclusive."),
+    activity_from: datetime | None = Query(
+        default=None,
+        description="Workspace-record activity range lower bound, inclusive.",
+    ),
+    activity_to: datetime | None = Query(
+        default=None,
+        description="Workspace-record activity range upper bound, inclusive.",
+    ),
 ) -> ResponseModel[PageData[DirectoryWorkspaceListItemOut]]:
     filters = DirectoryWorkspaceListFilters(
         is_archived=is_archived,
         is_active=is_active,
+        owner_user_id=owner_user_id,
+        plan_code=plan_code,
+        subscription_status=subscription_status,
+        commerce_risk=commerce_risk,
+        created_from=created_from,
+        created_to=created_to,
+        activity_from=activity_from,
+        activity_to=activity_to,
     )
     page = await service.list_workspaces(params=params, q=q, ordering=ordering, filters=filters)
     return ApiResponse.success(data=page)
@@ -437,10 +561,17 @@ async def update_workspace(
 )
 async def archive_workspace(
     workspace_id: PublicUUID,
+    payload: AccessRestrictionEnforceRequest,
+    idempotency_key: IdempotencyKey,
     acting_user: User = Depends(require_super_admin),
     service: SystemDirectoryService = Depends(get_directory_service),
 ) -> ResponseModel[DirectoryWorkspaceDetailOut]:
-    detail = await service.archive_workspace(workspace_id=workspace_id, acting_user_id=acting_user.id)
+    detail = await service.archive_workspace(
+        workspace_id=workspace_id,
+        acting_user_id=acting_user.id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
     return ApiResponse.success(data=detail)
 
 
@@ -451,10 +582,17 @@ async def archive_workspace(
 )
 async def restore_workspace(
     workspace_id: PublicUUID,
+    payload: AccessRestrictionLiftRequest,
+    idempotency_key: IdempotencyKey,
     acting_user: User = Depends(require_super_admin),
     service: SystemDirectoryService = Depends(get_directory_service),
 ) -> ResponseModel[DirectoryWorkspaceDetailOut]:
-    detail = await service.restore_workspace(workspace_id=workspace_id, acting_user_id=acting_user.id)
+    detail = await service.restore_workspace(
+        workspace_id=workspace_id,
+        acting_user_id=acting_user.id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
     return ApiResponse.success(data=detail)
 
 
@@ -465,9 +603,18 @@ async def restore_workspace(
 )
 async def disable_workspace(
     workspace_id: PublicUUID,
+    payload: AccessRestrictionEnforceRequest,
+    idempotency_key: IdempotencyKey,
+    acting_user: User = Depends(require_super_admin),
     service: SystemDirectoryService = Depends(get_directory_service),
 ) -> ResponseModel[DirectoryWorkspaceDetailOut]:
-    detail = await service.set_workspace_enabled(workspace_id=workspace_id, enabled=False)
+    detail = await service.set_workspace_enabled(
+        workspace_id=workspace_id,
+        enabled=False,
+        acting_user_id=acting_user.id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
     return ApiResponse.success(data=detail)
 
 
@@ -478,9 +625,18 @@ async def disable_workspace(
 )
 async def enable_workspace(
     workspace_id: PublicUUID,
+    payload: AccessRestrictionLiftRequest,
+    idempotency_key: IdempotencyKey,
+    acting_user: User = Depends(require_super_admin),
     service: SystemDirectoryService = Depends(get_directory_service),
 ) -> ResponseModel[DirectoryWorkspaceDetailOut]:
-    detail = await service.set_workspace_enabled(workspace_id=workspace_id, enabled=True)
+    detail = await service.set_workspace_enabled(
+        workspace_id=workspace_id,
+        enabled=True,
+        acting_user_id=acting_user.id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
     return ApiResponse.success(data=detail)
 
 
@@ -515,10 +671,41 @@ async def list_projects(
     ordering: str | None = Query(default=None, description="Ordering fields, for example -created_at or name."),
     workspace_id: PublicUUID | None = Query(default=None, description="Filter by workspace id."),
     is_active: bool | None = Query(default=None, description="Filter by active state."),
+    owner_user_id: PublicUUID | None = Query(default=None, description="Filter by project owner."),
+    runtime_health: DirectoryProjectHealthState | None = Query(
+        default=None,
+        description="Filter by derived runtime and deployment health.",
+    ),
+    domain_state: DirectoryProjectDomainState | None = Query(
+        default=None,
+        description="Filter by active domain readiness.",
+    ),
+    release_state: DirectoryProjectReleaseState | None = Query(
+        default=None,
+        description="Filter by latest release state.",
+    ),
+    created_from: datetime | None = Query(default=None, description="Created-at range lower bound, inclusive."),
+    created_to: datetime | None = Query(default=None, description="Created-at range upper bound, inclusive."),
+    activity_from: datetime | None = Query(
+        default=None,
+        description="Project-record activity lower bound, inclusive.",
+    ),
+    activity_to: datetime | None = Query(
+        default=None,
+        description="Project-record activity upper bound, inclusive.",
+    ),
 ) -> ResponseModel[PageData[DirectoryProjectListItemOut]]:
     filters = DirectoryProjectListFilters(
         workspace_id=workspace_id,
         is_active=is_active,
+        owner_user_id=owner_user_id,
+        runtime_health=runtime_health,
+        domain_state=domain_state,
+        release_state=release_state,
+        created_from=created_from,
+        created_to=created_to,
+        activity_from=activity_from,
+        activity_to=activity_to,
     )
     page = await service.list_projects(params=params, q=q, ordering=ordering, filters=filters)
     return ApiResponse.success(data=page)
@@ -535,6 +722,25 @@ async def get_project_detail(
 ) -> ResponseModel[DirectoryProjectDetailOut]:
     detail = await service.get_project_detail(project_id=project_id)
     return ApiResponse.success(data=detail)
+
+
+@router.get(
+    "/projects/{project_id}/operations",
+    response_model=ResponseModel[DirectoryProjectOperationsOut],
+    summary="Get project operational projection in the system directory",
+)
+async def get_project_operations(
+    project_id: PublicUUID,
+    preview_size: int = Query(default=6, ge=1, le=20, alias="previewSize"),
+    acting_user: User = Depends(require_super_admin),
+    service: SystemProjectOperationsService = Depends(get_project_operations_service),
+) -> ResponseModel[DirectoryProjectOperationsOut]:
+    operations = await service.get_operations(
+        project_id=project_id,
+        actor_user_id=acting_user.id,
+        preview_size=preview_size,
+    )
+    return ApiResponse.success(data=operations)
 
 
 @router.patch(
@@ -559,9 +765,18 @@ async def update_project(
 )
 async def disable_project(
     project_id: PublicUUID,
+    payload: AccessRestrictionEnforceRequest,
+    idempotency_key: IdempotencyKey,
+    acting_user: User = Depends(require_super_admin),
     service: SystemDirectoryService = Depends(get_directory_service),
 ) -> ResponseModel[DirectoryProjectDetailOut]:
-    detail = await service.set_project_enabled(project_id=project_id, enabled=False)
+    detail = await service.set_project_enabled(
+        project_id=project_id,
+        enabled=False,
+        acting_user_id=acting_user.id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
     return ApiResponse.success(data=detail)
 
 
@@ -572,9 +787,18 @@ async def disable_project(
 )
 async def enable_project(
     project_id: PublicUUID,
+    payload: AccessRestrictionLiftRequest,
+    idempotency_key: IdempotencyKey,
+    acting_user: User = Depends(require_super_admin),
     service: SystemDirectoryService = Depends(get_directory_service),
 ) -> ResponseModel[DirectoryProjectDetailOut]:
-    detail = await service.set_project_enabled(project_id=project_id, enabled=True)
+    detail = await service.set_project_enabled(
+        project_id=project_id,
+        enabled=True,
+        acting_user_id=acting_user.id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
     return ApiResponse.success(data=detail)
 
 

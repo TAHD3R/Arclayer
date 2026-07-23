@@ -176,12 +176,20 @@ async def test_workspace_invite_link_accept_existing_creates_use_event(
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
+        from src.models.analytics.audit_event import AuditEvent
         from src.models.organization.org_membership import OrgMembership, OrgRole
         from src.models.organization.user import User
         from src.models.projects.project import ProjectRecord
+        from src.models.system.access_restriction import (
+            AccessRestrictionEntityType,
+            AccessRestrictionReasonCategory,
+            AccessRestrictionRecord,
+            AccessRestrictionState,
+            AccessRestrictionType,
+        )
         from src.models.system.rbac import SystemRole
         from src.models.workspaces.workspace import Workspace
-        from src.models.workspaces.workspace_invite import WorkspaceInviteLinkUseEvent
+        from src.models.workspaces.workspace_invite import WorkspaceInviteLink, WorkspaceInviteLinkUseEvent
         from src.modules.auth.repository import UserRepository
         from src.modules.auth.tokens.service import hash_password
         from src.modules.organization.repository import OrganizationRepository
@@ -256,17 +264,46 @@ async def test_workspace_invite_link_accept_existing_creates_use_event(
             token = created["token"]
             assert token
 
-            # 2) Invitee accepts the link with an existing account.
+            # 2) Preview and acceptance both enforce the live Workspace restriction authority.
+            restriction = await AccessRestrictionRecord.create(
+                entity_type=AccessRestrictionEntityType.WORKSPACE,
+                entity_id=ws.id,
+                restriction_type=AccessRestrictionType.WORKSPACE_SUSPENDED,
+                state=AccessRestrictionState.ACTIVE,
+                reason_category=AccessRestrictionReasonCategory.SECURITY_RISK,
+                reason_code="security_risk",
+                operator_note="Invitation restriction integration test.",
+                effective_at=datetime.now(UTC),
+            )
             current_user = invitee
+            preview = await client.get("/api/v1/auth/invitations/preview", params={"token": token})
+            blocked_accept = await client.post(
+                "/api/v1/auth/invitations/accept-existing",
+                json={"token": token},
+            )
+            assert preview.status_code == 403, preview.text
+            assert preview.json()["error"] == "WORKSPACE_SUSPENDED"
+            assert blocked_accept.status_code == 403, blocked_accept.text
+            assert blocked_accept.json()["error"] == "WORKSPACE_SUSPENDED"
+            assert not await WorkspaceInviteLinkUseEvent.filter(used_by_user_id=invitee.id).exists()
+            assert not await OrgMembership.filter(organization_id=org.id, user_id=invitee.id).exists()
+
+            restriction.state = AccessRestrictionState.LIFTED
+            restriction.lifted_at = datetime.now(UTC)
+            restriction.lift_note = "Continue invitation acceptance test."
+            restriction.revision = 2
+            await restriction.save(update_fields=["state", "lifted_at", "lift_note", "revision", "updated_at"])
+
+            # 3) Invitee accepts the link after an authorized restore.
             resp = await client.post(
                 "/api/v1/auth/invitations/accept-existing",
                 json={"token": token},
             )
             assert resp.status_code == 200
             data = resp.json()["data"]
-            assert data["organizationId"] == encode_uuid(org.id)
             assert data["workspaceId"] == ws_pid
             assert data["projectId"] is None
+            assert data["roleCode"] == "admin"
             assert await ProjectRecord.filter(workspace_id=ws.id).count() == 0
 
             # Workspace invitation role should never overwrite organization-level role code.
@@ -275,10 +312,43 @@ async def test_workspace_invite_link_accept_existing_creates_use_event(
             assert orgm.role == OrgRole.MEMBER
             assert orgm.role_code == OrgRole.MEMBER.value
 
-            # 3) Link use event should be created.
-            assert await WorkspaceInviteLinkUseEvent.filter(used_by_user_id=invitee.id).exists()
+            # 4) Link use event should be created once and make repeated acceptance idempotent.
+            link_row = await WorkspaceInviteLink.get(
+                workspace_id=ws.id,
+                last_used_by_user_id=invitee.id,
+            )
+            first_uses_count = link_row.uses_count
+            first_audit_count = await AuditEvent.filter(
+                event_name="workspace.invite.accepted",
+                workspace_id=ws.id,
+                actor_user_id=invitee.id,
+            ).count()
 
-            # 4) Owner can list links and see participants.
+            repeated = await client.post(
+                "/api/v1/auth/invitations/accept-existing",
+                json={"token": token},
+            )
+            assert repeated.status_code == 200, repeated.text
+            assert repeated.json()["data"] == data
+            await link_row.refresh_from_db()
+            assert link_row.uses_count == first_uses_count
+            assert (
+                await WorkspaceInviteLinkUseEvent.filter(
+                    link_id=link_row.id,
+                    used_by_user_id=invitee.id,
+                ).count()
+                == 1
+            )
+            assert (
+                await AuditEvent.filter(
+                    event_name="workspace.invite.accepted",
+                    workspace_id=ws.id,
+                    actor_user_id=invitee.id,
+                ).count()
+                == first_audit_count
+            )
+
+            # 5) Owner can list links and see participants.
             current_user = owner
             resp = await client.get(f"/api/v1/workspaces/{ws_pid}/team/invite-links?page=1&size=10")
             assert resp.status_code == 200
@@ -288,7 +358,7 @@ async def test_workspace_invite_link_accept_existing_creates_use_event(
             assert link["usesCount"] >= 1
             assert any(p["user"]["userId"] == invitee_pid for p in (link.get("recentParticipants") or []))
 
-            # 5) Participants endpoint should paginate full usage events.
+            # 6) Participants endpoint should paginate full usage events.
             resp = await client.get(
                 f"/api/v1/workspaces/{ws_pid}/team/invite-links/{link['id']}/participants?page=1&size=10"
             )
@@ -558,7 +628,9 @@ async def test_workspace_invite_link_domain_restriction_enforced(prepared_db, in
             assert resp.status_code == 403
 
 
-async def test_a2_single_org_enforced_on_accept_existing(prepared_db, integration_valkey_settings) -> None:
+async def test_accept_existing_scopes_membership_lookup_to_target_organization(
+    prepared_db, integration_valkey_settings
+) -> None:
     _ = prepared_db
     _ = integration_valkey_settings
 
@@ -571,7 +643,7 @@ async def test_a2_single_org_enforced_on_accept_existing(prepared_db, integratio
 
         from src.models.organization.org_membership import OrgMembership, OrgRole
         from src.models.organization.user import User
-        from src.models.workspaces.workspace import Workspace
+        from src.models.workspaces.workspace import Workspace, WorkspaceMembership
         from src.modules.auth.repository import UserRepository
         from src.modules.auth.tokens.service import hash_password
         from src.modules.organization.repository import OrganizationRepository
@@ -640,4 +712,20 @@ async def test_a2_single_org_enforced_on_accept_existing(prepared_db, integratio
 
             current_user = user_in_org2
             resp = await client.post("/api/v1/auth/invitations/accept-existing", json={"token": token})
-            assert resp.status_code == 403
+            assert resp.status_code == 200, resp.text
+            assert resp.json()["data"]["workspaceId"] == ws_pid
+            assert await OrgMembership.filter(
+                organization_id=org1.id,
+                user_id=user_in_org2.id,
+                status="active",
+            ).exists()
+            assert await OrgMembership.filter(
+                organization_id=org2.id,
+                user_id=user_in_org2.id,
+                status="active",
+            ).exists()
+            assert await WorkspaceMembership.filter(
+                workspace_id=ws.id,
+                user_id=user_in_org2.id,
+                status="active",
+            ).exists()
