@@ -59,7 +59,20 @@ class ActorJobAuthorizer(Protocol):
     ) -> None: ...
 
 
-def validate_production_execution_boundary_capabilities(*, job_types: JobTypeRegistry) -> None:
+class JobEntitlementAuthorizer(Protocol):
+    async def authorize(
+        self,
+        *,
+        workspace_id: UUID,
+        entitlement: str,
+    ) -> None: ...
+
+
+def validate_production_execution_boundary_capabilities(
+    *,
+    job_types: JobTypeRegistry,
+    entitlement_authorizer: JobEntitlementAuthorizer | None = None,
+) -> None:
     """Fail startup when a registered Job needs an execution authorizer we do not have."""
 
     if not job_types.strict_contracts:
@@ -67,7 +80,10 @@ def validate_production_execution_boundary_capabilities(*, job_types: JobTypeReg
 
     invalid: list[str] = []
     for definition in job_types.list_definitions():
-        violations = _capability_violations(definition)
+        violations = _capability_violations(
+            definition,
+            has_entitlement_authorizer=entitlement_authorizer is not None,
+        )
         if violations:
             identity = f"{definition.job_type} v{definition.job_type_version}"
             invalid.append(f"{identity}: {', '.join(violations)}")
@@ -80,7 +96,12 @@ def validate_production_execution_boundary_capabilities(*, job_types: JobTypeReg
 class ScopedJobExecutionBoundary:
     """Route system and tenant Job scopes without inventing tenant authority."""
 
-    __slots__ = ("_actor_authorizer", "_project_resolver", "_workspace_resolver")
+    __slots__ = (
+        "_actor_authorizer",
+        "_entitlement_authorizer",
+        "_project_resolver",
+        "_workspace_resolver",
+    )
 
     def __init__(
         self,
@@ -88,10 +109,12 @@ class ScopedJobExecutionBoundary:
         project_resolver: ProjectTargetResolver,
         workspace_resolver: WorkspaceTargetResolver | None = None,
         actor_authorizer: ActorJobAuthorizer | None = None,
+        entitlement_authorizer: JobEntitlementAuthorizer | None = None,
     ) -> None:
         self._project_resolver = project_resolver
         self._workspace_resolver = workspace_resolver
         self._actor_authorizer = actor_authorizer
+        self._entitlement_authorizer = entitlement_authorizer
 
     async def resolve_for_reconciliation(
         self,
@@ -102,7 +125,10 @@ class ScopedJobExecutionBoundary:
         input_reference: BaseSchema,
     ) -> JobExecutionBinding:
         _ = preparation, input_reference
-        _require_supported_capabilities(definition)
+        _require_supported_capabilities(
+            definition,
+            has_entitlement_authorizer=self._entitlement_authorizer is not None,
+        )
         target_scope = JobTargetScope(definition.target_scope)
         if target_scope == JobTargetScope.SYSTEM:
             return SystemExecutionBinding()
@@ -140,7 +166,10 @@ class ScopedJobExecutionBoundary:
         input_reference: BaseSchema,
     ) -> None:
         _ = preparation, input_reference
-        _require_supported_capabilities(definition)
+        _require_supported_capabilities(
+            definition,
+            has_entitlement_authorizer=self._entitlement_authorizer is not None,
+        )
         target_scope = JobTargetScope(definition.target_scope)
         if target_scope == JobTargetScope.SYSTEM:
             if not isinstance(binding, SystemExecutionBinding):
@@ -163,6 +192,7 @@ class ScopedJobExecutionBoundary:
                 workspace_id=workspace_id,
                 project_id=None,
             )
+            await self._authorize_entitlement(definition=definition, workspace_id=workspace_id)
             return
         if target_scope != JobTargetScope.PROJECT:
             raise _unsupported_scope(target_scope)
@@ -186,6 +216,7 @@ class ScopedJobExecutionBoundary:
             workspace_id=workspace_id,
             project_id=project_id,
         )
+        await self._authorize_entitlement(definition=definition, workspace_id=workspace_id)
 
     async def _authorize_actor(
         self,
@@ -209,14 +240,42 @@ class ScopedJobExecutionBoundary:
             requirement=requirement,
         )
 
+    async def _authorize_entitlement(
+        self,
+        *,
+        definition: JobTypeDefinition,
+        workspace_id: UUID,
+    ) -> None:
+        entitlement = definition.required_entitlement
+        if entitlement is None:
+            return
+        authorizer = self._entitlement_authorizer
+        if authorizer is None:
+            raise _contract_mismatch("Entitlement execution is missing its production authorizer adapter")
+        await authorizer.authorize(
+            workspace_id=workspace_id,
+            entitlement=entitlement,
+        )
 
-def _require_supported_capabilities(definition: JobTypeDefinition) -> None:
-    violations = _capability_violations(definition)
+
+def _require_supported_capabilities(
+    definition: JobTypeDefinition,
+    *,
+    has_entitlement_authorizer: bool,
+) -> None:
+    violations = _capability_violations(
+        definition,
+        has_entitlement_authorizer=has_entitlement_authorizer,
+    )
     if violations:
         raise _contract_mismatch("; ".join(violations))
 
 
-def _capability_violations(definition: JobTypeDefinition) -> tuple[str, ...]:
+def _capability_violations(
+    definition: JobTypeDefinition,
+    *,
+    has_entitlement_authorizer: bool = False,
+) -> tuple[str, ...]:
     target_scope = JobTargetScope(definition.target_scope)
     violations: list[str] = []
     if target_scope not in {JobTargetScope.SYSTEM, JobTargetScope.WORKSPACE, JobTargetScope.PROJECT}:
@@ -236,7 +295,9 @@ def _capability_violations(definition: JobTypeDefinition) -> tuple[str, ...]:
             )
     elif definition.required_permission is not None:
         violations.append("System-service Jobs cannot declare an actor permission")
-    if definition.required_entitlement is not None:
+    if definition.required_entitlement is not None and target_scope == JobTargetScope.SYSTEM:
+        violations.append("System Jobs cannot declare a workspace entitlement")
+    elif definition.required_entitlement is not None and not has_entitlement_authorizer:
         violations.append("Entitlement execution has no production authorizer adapter")
 
     # manage_permission governs control-plane cancellation requests, not whether

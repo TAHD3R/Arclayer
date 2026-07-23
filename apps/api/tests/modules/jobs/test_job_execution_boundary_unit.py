@@ -15,7 +15,10 @@ from src.modules.assets.jobs.thumbnail_contract import (
     AssetThumbnailJobTarget,
 )
 from src.modules.jobs.builtin_registry import build_builtin_job_type_registry
-from src.modules.jobs.execution_boundary import ScopedJobExecutionBoundary
+from src.modules.jobs.execution_boundary import (
+    ScopedJobExecutionBoundary,
+    validate_production_execution_boundary_capabilities,
+)
 from src.modules.jobs.execution_errors import PermanentJobExecutionError
 from src.modules.jobs.execution_schema import (
     JobExecutionPreparation,
@@ -27,6 +30,7 @@ from src.modules.jobs.registry import (
     JobPermissionScope,
     JobTargetScope,
     JobTypeDefinition,
+    JobTypeRegistry,
     JobVisibility,
 )
 from src.modules.tenancy.schema import TenantContext, TenantIdentity, TenantIsolationMode, TenantScope
@@ -79,6 +83,14 @@ class _ActorAuthorizer:
         requirement: JobPermissionRequirement,
     ) -> None:
         self.calls.append((workspace_id, project_id, actor_user_id, requirement))
+
+
+class _EntitlementAuthorizer:
+    def __init__(self) -> None:
+        self.calls: list[tuple[UUID, str]] = []
+
+    async def authorize(self, *, workspace_id: UUID, entitlement: str) -> None:
+        self.calls.append((workspace_id, entitlement))
 
 
 @pytest.mark.asyncio
@@ -283,6 +295,69 @@ async def test_project_boundary_revalidates_target_and_actor_before_new_effect()
     assert project_resolver.reconciliation_calls == [(workspace_id, project_id)]
     assert project_resolver.authorization_calls == [(workspace_id, project_id)]
     assert actor_authorizer.calls == [(workspace_id, project_id, actor_user_id, requirement)]
+
+
+@pytest.mark.asyncio
+async def test_project_boundary_revalidates_entitlement_only_before_a_new_effect() -> None:
+    workspace_id = uuid4()
+    project_id = uuid4()
+    resolver = _ProjectResolver(_tenant_context(workspace_id=workspace_id, project_id=project_id))
+    entitlement_authorizer = _EntitlementAuthorizer()
+    boundary = ScopedJobExecutionBoundary(
+        project_resolver=resolver,
+        entitlement_authorizer=entitlement_authorizer,
+    )
+    definition = _project_definition().model_copy(update={"required_entitlement": "sites.generate"})
+    target, input_reference = _project_references(workspace_id=workspace_id, project_id=project_id)
+
+    binding = await boundary.resolve_for_reconciliation(
+        preparation=cast(JobExecutionPreparation, object()),
+        definition=definition,
+        target=target,
+        input_reference=input_reference,
+    )
+
+    assert entitlement_authorizer.calls == []
+
+    await boundary.authorize_new_effect(
+        preparation=cast(JobExecutionPreparation, object()),
+        definition=definition,
+        binding=binding,
+        target=target,
+        input_reference=input_reference,
+    )
+
+    assert resolver.authorization_calls == [(workspace_id, project_id)]
+    assert entitlement_authorizer.calls == [(workspace_id, "sites.generate")]
+
+
+@pytest.mark.asyncio
+async def test_project_boundary_rejects_entitlement_without_an_authorizer_adapter() -> None:
+    workspace_id = uuid4()
+    project_id = uuid4()
+    boundary = ScopedJobExecutionBoundary(
+        project_resolver=_ProjectResolver(_tenant_context(workspace_id=workspace_id, project_id=project_id))
+    )
+    definition = _project_definition().model_copy(update={"required_entitlement": "sites.generate"})
+    target, input_reference = _project_references(workspace_id=workspace_id, project_id=project_id)
+
+    with pytest.raises(PermanentJobExecutionError, match="no production authorizer adapter"):
+        await boundary.resolve_for_reconciliation(
+            preparation=cast(JobExecutionPreparation, object()),
+            definition=definition,
+            target=target,
+            input_reference=input_reference,
+        )
+
+
+def test_production_capability_validation_accepts_registered_entitlement_authority() -> None:
+    definition = _project_definition().model_copy(update={"required_entitlement": "sites.generate"})
+    registry = JobTypeRegistry((definition,), strict_contracts=True)
+
+    validate_production_execution_boundary_capabilities(
+        job_types=registry,
+        entitlement_authorizer=_EntitlementAuthorizer(),
+    )
 
 
 @pytest.mark.asyncio
