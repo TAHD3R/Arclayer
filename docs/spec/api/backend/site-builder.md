@@ -1631,3 +1631,35 @@ test contract only. The existing broad Core Settings route remains mounted
 until typed HTTP routes, generated clients, Admin callers, and approval-backed
 Agent grants move together. The broad route cannot be restricted and this
 capability cannot be marked complete before that cutover.
+
+## 37. Project General typed identity authority
+
+Project General now has one backend-owned identity projection over the
+canonical Project row. It owns the team-facing `name`, `description`,
+`icon_mode`, `icon_color`, `icon_glyph`, `icon_emoji`, and `icon_url` fields.
+It deliberately excludes slug, authoring mode/state/revision, runtime state,
+archive, deletion, visitor identity, Domain selection, and Website Config.
+
+The projection is a frozen, extra-forbidden Pydantic model. Names and optional
+text are normalized at the boundary; icon colors use canonical six-digit
+lowercase hex, and glyph/emoji/image modes require exactly their active value.
+Inactive legacy icon slots are projected as null rather than becoming a second
+active icon source. An invalid active persisted icon fails explicitly with
+`PROJECT_GENERAL_IDENTITY_INVALID`.
+
+The facade computes a quoted SHA-256 ETag over normalized camel-case JSON.
+Replacement requires the exact prior ETag, locks the Project row with
+`SELECT FOR UPDATE`, and updates only semantically changed owned columns. A
+stale write fails with `PROJECT_GENERAL_IDENTITY_ETAG_MISMATCH`, the `identity`
+facade, and the current ETag. Semantic no-op replacement performs no update.
+
+A material change and `project.general.identity.updated` Activity evidence
+commit in one transaction. Evidence contains Project/workspace identities,
+exact changed `project.*` paths, previous/next ETags, and `api` or `agent`
+provenance; it does not duplicate the name, description, icon value, or URL.
+
+This checkpoint establishes repository/service authority and its focused test
+contract only. It does not invent a project-defaults document where no owned
+fields have been specified. Public typed routes, generated clients, Admin
+migration, broad Project-patch restriction, and approval-backed Agent grants
+must move together before the Project General capability can be complete.

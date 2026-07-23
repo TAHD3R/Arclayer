@@ -1114,7 +1114,7 @@ used to describe the full user goal as complete.
 | 8 | Connector-based commercialization and Stripe | In progress | Connector registry, Stripe plugin, durable billing event path, and Billing surfaces exist. Provider migration parity, replay/reconciliation, entitlement, and production webhook evidence remain Wave 6 gates. |
 | 9 | Productized no-release/prelaunch experience | In progress | `arclayer-prelaunch-v2` now provides the final responsive light/dark visitor treatment, localized public site identity, escaped external values, stable static first frame, and explicit missing-identity state without fake published success. Release activation convergence remains. |
 | 10 | Website Config redesign and ownership | In progress | Identity, discovery, and localization workspaces have responsive live visitor previews, complete read-only behavior, generated-source invalidation, and bilingual copy. Admin, public runtime, and generated source consume the Domains-owned routable address. The backend now has typed per-facade projections, row-locked replacement, independent canonical ETags, stable conflicts, and transactional Activity evidence; public facade routes, Admin/generated-client migration, broad-patch restriction, and explicit Agent grants remain open. |
-| 11 | Project General redesign and ownership | In progress | Project identity, context/access/lifecycle boundaries, danger actions, responsive navigation, bilingual copy, and browser acceptance are complete. Typed identity/defaults commands with optimistic concurrency and Activity evidence remain open. |
+| 11 | Project General redesign and ownership | In progress | Project identity, context/access/lifecycle boundaries, danger actions, responsive navigation, bilingual copy, and browser acceptance are complete. The backend now has a typed, row-locked identity projection with a canonical ETag, stable conflicts, changed-column persistence, and transactional Activity evidence. Public routes/generated-client/Admin migration, a specified defaults authority, broad-patch restriction, and approval-backed Agent grants remain open. |
 
 Boneyard and motion are cross-cutting rather than a twelfth capability. The
 shared route boundary, reduced-motion primitives, and editor loading states
@@ -2113,3 +2113,41 @@ completion still requires typed HTTP resources and generated clients, Admin
 form migration, broad-patch restriction/audit, and explicit approval-backed
 Agent Tool grants. No internal-service existence is presented as a completed
 product API.
+
+## 49. Wave 4 Project General typed identity foundation (2026-07-23)
+
+Live-source review confirmed that the current Project General form owns only
+team-facing name, description, and icon presentation. Slug is read-only
+context, authoring/runtime state has separate authorities, lifecycle actions
+remain dedicated commands, and no concrete project-default fields are yet
+specified. This slice therefore does not manufacture a second settings
+document or fold unrelated state into an ambiguous “defaults” bag.
+
+`ProjectGeneralIdentity` is a frozen, extra-forbidden Pydantic projection over
+the canonical Project row. It owns name, description, icon mode/color, and the
+glyph/emoji/image value slots. Optional text and colors normalize at the
+boundary; the selected icon mode requires its exact active value, while
+inactive legacy slots project to null and cannot become parallel presentation
+sources. Invalid active persisted icon state fails with
+`PROJECT_GENERAL_IDENTITY_INVALID` rather than silently substituting a default.
+
+The facade has one quoted canonical JSON SHA-256 ETag. Replacement locks the
+Project row, requires that exact ETag, compares normalized values, and updates
+only changed owned columns. `PROJECT_GENERAL_IDENTITY_ETAG_MISMATCH` returns
+the current ETag and `identity` facade. A semantic no-op writes neither the row
+nor Activity.
+
+Every material replacement writes `project.general.identity.updated` in the
+same transaction. Evidence records only Project/workspace identities, exact
+changed paths, previous/next ETags, and `api` or `agent` provenance; it never
+copies user-facing identity values into Activity properties. Ten focused unit
+tests cover frozen/cross-field validation, row locking, changed-column writes,
+canonical inactive icon projection, optimistic conflicts, no-op behavior,
+stable persisted-data failure, and value-free Activity. Targeted Ruff format,
+Ruff lint, and ty checks pass.
+
+This is an internal authority foundation, not a completed product API. The
+existing broad Project patch remains the live Admin path until typed HTTP
+resources, generated clients, Admin migration, broad-patch restriction, and
+approval-backed Agent grants move together. A project-defaults facade remains
+open until its owned fields and consumers are explicitly defined.
