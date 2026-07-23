@@ -16,7 +16,7 @@ from src.modules.commerce.schema import (
     WorkspacePlanCatalogOut,
     WorkspacePlanOptionOut,
 )
-from src.modules.commerce.service import CommerceService
+from src.modules.commerce.service import build_commerce_service
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_manage_access, require_workspace_member_access
 
@@ -35,7 +35,7 @@ async def list_workspace_plans(
     ctx: WorkspaceContext = Depends(require_workspace_member_access),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspacePlanCatalogOut]:
-    service = CommerceService(settings)
+    service = build_commerce_service(settings)
     _, _, current_plan = await service.ensure_workspace_billing(workspace_id=ctx.workspace_id)
     plans = await service.list_plans(include_inactive=False)
     items = [
@@ -64,7 +64,7 @@ async def get_workspace_commerce_overview(
     ctx: WorkspaceContext = Depends(require_workspace_member_access),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceCommerceOverviewOut]:
-    overview = await CommerceService(settings).get_overview(workspace_id=ctx.workspace_id)
+    overview = await build_commerce_service(settings).get_overview(workspace_id=ctx.workspace_id)
     return ApiResponse.success(data=overview)
 
 
@@ -110,5 +110,5 @@ async def list_workspace_credit_ledger(
     params: PageParams = Depends(get_page_params),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[CreditLedgerOut]]:
-    page = await CommerceService(settings).list_credit_ledger(workspace_id=ctx.workspace_id, params=params)
+    page = await build_commerce_service(settings).list_credit_ledger(workspace_id=ctx.workspace_id, params=params)
     return ApiResponse.success(data=page)

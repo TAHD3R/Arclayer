@@ -17,7 +17,7 @@ from src.modules.auth.http.service import get_current_user_id
 from src.modules.commerce.entitlement_repository import EntitlementRepository
 from src.modules.commerce.entitlement_schema import SITE_GENERATION_ENTITLEMENT
 from src.modules.commerce.entitlement_service import EntitlementService
-from src.modules.commerce.service import CommerceService
+from src.modules.commerce.service import build_commerce_service
 from src.modules.commerce.workspace_entitlement_authority import WorkspaceEntitlementAuthority
 from src.modules.projects.builder.change_set_schema import (
     BuilderChangeSetApplyOut,
@@ -87,7 +87,7 @@ async def require_builder_generation_entitlement(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> None:
     authority = WorkspaceEntitlementAuthority(
-        billing=CommerceService(settings),
+        billing=build_commerce_service(settings),
         entitlements=EntitlementService(settings, repository=EntitlementRepository()),
     )
     await authority.require(

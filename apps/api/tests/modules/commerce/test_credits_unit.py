@@ -3,13 +3,13 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import cast
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
 
 from src.models.ai.ai_budget_reservation import AIBudgetReservation
-from src.models.commerce.billing import CreditRefreshInterval, SubscriptionStatus, WorkspaceCreditAccount
+from src.models.commerce.billing import CreditRefreshInterval, SubscriptionStatus
 from src.modules.commerce.credits import (
     CreditsExceededError,
     commit_workspace_credits,
@@ -71,12 +71,9 @@ async def test_reserve_workspace_credits_rejects_insufficient_available_balance(
         return_value=(subscription, account, plan),
     )
 
-    with (
-        patch("src.modules.commerce.credits.CommerceService", return_value=service),
-        pytest.raises(CreditsExceededError) as exc_info,
-    ):
+    with pytest.raises(CreditsExceededError) as exc_info:
         await reserve_workspace_credits(
-            settings=MagicMock(),
+            commerce=service,
             conn=MagicMock(),
             workspace_id=workspace_id,
             request_id=uuid4(),
@@ -103,20 +100,20 @@ async def test_reserve_workspace_credits_updates_hold_and_immutable_ledger() -> 
     service.ensure_workspace_billing_in_transaction = AsyncMock(
         return_value=(subscription, account, plan),
     )
+    service.save_credit_account = AsyncMock()
     service.write_credit_ledger_entry = AsyncMock()
 
-    with patch("src.modules.commerce.credits.CommerceService", return_value=service):
-        details = await reserve_workspace_credits(
-            settings=MagicMock(),
-            conn=MagicMock(),
-            workspace_id=workspace_id,
-            request_id=request_id,
-            estimated_cost_micros=2_001,
-        )
+    details = await reserve_workspace_credits(
+        commerce=service,
+        conn=MagicMock(),
+        workspace_id=workspace_id,
+        request_id=request_id,
+        estimated_cost_micros=2_001,
+    )
 
     assert details.reserved_credits == 3
     assert account.reserved_credits == 13
-    account.save.assert_awaited_once()
+    service.save_credit_account.assert_awaited_once()
     service.write_credit_ledger_entry.assert_awaited_once()
     assert service.write_credit_ledger_entry.await_args is not None
     ledger = service.write_credit_ledger_entry.await_args.kwargs
@@ -141,17 +138,12 @@ async def test_commit_rejects_actual_usage_above_reserved_upper_bound() -> None:
             request_id=uuid4(),
         ),
     )
-    query = MagicMock()
-    query.using_db.return_value = query
-    query.select_for_update.return_value = query
-    query.first = AsyncMock(return_value=account)
+    service = MagicMock()
+    service.lock_credit_account = AsyncMock(return_value=account)
 
-    with (
-        patch.object(WorkspaceCreditAccount, "filter", return_value=query),
-        pytest.raises(RuntimeError, match="exceeds the reserved amount"),
-    ):
+    with pytest.raises(RuntimeError, match="exceeds the reserved amount"):
         await commit_workspace_credits(
-            settings=MagicMock(),
+            commerce=service,
             conn=MagicMock(),
             reservation=reservation,
             actual_cost_micros=2_001,

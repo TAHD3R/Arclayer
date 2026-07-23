@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from tortoise.backends.base.client import BaseDBAsyncClient
@@ -13,10 +13,8 @@ from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.http.pagination import PageData, PageParams
 from src.core.i18n import t
 from src.core.services import BaseService
-from src.models.ai.ai_usage_daily import AIUsageDaily
 from src.models.commerce.billing import (
     BillingCycle,
-    BillingProviderEventReceipt,
     CommercePlan,
     CommercePlanTier,
     CreditLedgerEntryType,
@@ -26,8 +24,8 @@ from src.models.commerce.billing import (
     WorkspaceCreditLedger,
     WorkspaceSubscription,
 )
-from src.models.workspaces.workspace import Workspace
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
+from src.modules.commerce.repository import CommercePersistence, CommerceRepository
 from src.modules.commerce.schema import (
     CommercePlanOut,
     CommercePlanUpsertRequest,
@@ -39,6 +37,9 @@ from src.modules.commerce.schema import (
     WorkspaceSubscriptionOut,
     WorkspaceSubscriptionSetRequest,
 )
+
+if TYPE_CHECKING:
+    from src.models.ai.ai_budget_reservation import AIBudgetReservation
 
 _BILLING_MODE = "external_checkout"
 _ACTIVE_SUBSCRIPTION_STATUSES = {SubscriptionStatus.TRIALING, SubscriptionStatus.ACTIVE}
@@ -268,15 +269,16 @@ def _subscription_out(subscription: WorkspaceSubscription) -> WorkspaceSubscript
 
 
 class CommerceService(BaseService):
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, *, repository: CommercePersistence) -> None:
         super().__init__(settings)
         self._settings = settings
+        self._repository = repository
 
     async def ensure_plan_catalog(self, *, conn: BaseDBAsyncClient | None = None) -> None:
         for definition in _DEFAULT_PLANS:
             code = str(definition["code"])
             defaults = {key: value for key, value in definition.items() if key != "code"}
-            plan, created = await CommercePlan.get_or_create(code=code, defaults=defaults, using_db=conn)
+            plan, created = await self._repository.seed_plan(code=code, defaults=defaults, conn=conn)
             if created:
                 continue
             merged_features = _merge_missing_seed_features(
@@ -286,14 +288,11 @@ class CommerceService(BaseService):
             if merged_features is None:
                 continue
             plan.features = merged_features
-            await plan.save(update_fields=["features"], using_db=conn)
+            await self._repository.save_plan(plan=plan, conn=conn, update_fields=["features"])
 
     async def list_plans(self, *, include_inactive: bool) -> list[CommercePlanOut]:
         await self.ensure_plan_catalog()
-        query = CommercePlan.all()
-        if not include_inactive:
-            query = query.filter(is_active=True)
-        rows = await query.order_by("sort_order", "code")
+        rows = await self._repository.list_plans(include_inactive=include_inactive)
         return [_plan_out(row) for row in rows]
 
     async def upsert_plan(self, *, code: str, payload: CommercePlanUpsertRequest) -> CommercePlanOut:
@@ -301,25 +300,23 @@ class CommerceService(BaseService):
             await self.ensure_plan_catalog(conn=conn)
             # A stable seeded row serializes catalog-wide default-plan changes,
             # including concurrent creation of different plan codes.
-            catalog_lock = (
-                await CommercePlan.filter(code=_PLAN_CATALOG_LOCK_CODE).using_db(conn).select_for_update().first()
-            )
+            catalog_lock = await self._repository.lock_plan_catalog(code=_PLAN_CATALOG_LOCK_CODE, conn=conn)
             if catalog_lock is None:
                 raise RuntimeError("Commerce plan catalog lock row is missing")
             if payload.is_default:
-                await CommercePlan.filter(is_default=True).using_db(conn).update(is_default=False)
+                await self._repository.clear_default_plans(conn=conn)
             values = payload.model_dump(mode="python")
             values["features"] = [feature.model_dump(mode="json") for feature in payload.features]
             values["name_i18n_key"] = None
             values["description_i18n_key"] = None
-            plan = await CommercePlan.get_or_none(code=code, using_db=conn)
+            plan = await self._repository.get_plan_by_code(code=code, conn=conn)
             if plan is None:
-                plan = await CommercePlan.create(code=code, using_db=conn, **values)
+                plan = await self._repository.create_plan(code=code, values=values, conn=conn)
             else:
                 for field, value in values.items():
                     setattr(plan, field, value)
-                await plan.save(using_db=conn)
-            if not await CommercePlan.filter(is_default=True, is_active=True).using_db(conn).exists():
+                await self._repository.save_plan(plan=plan, conn=conn)
+            if not await self._repository.has_active_default_plan(conn=conn):
                 raise Conflict(
                     message=t("errors", "COMMERCE_DEFAULT_PLAN_REQUIRED"),
                     error="COMMERCE_DEFAULT_PLAN_REQUIRED",
@@ -338,7 +335,7 @@ class CommerceService(BaseService):
 
     async def _default_plan(self, *, conn: BaseDBAsyncClient) -> CommercePlan:
         await self.ensure_plan_catalog(conn=conn)
-        plan = await CommercePlan.filter(is_default=True, is_active=True).using_db(conn).first()
+        plan = await self._repository.get_default_plan(conn=conn)
         if plan is None:
             raise Conflict(
                 message=t("errors", "COMMERCE_DEFAULT_PLAN_REQUIRED"),
@@ -361,9 +358,8 @@ class CommerceService(BaseService):
         description_key: str,
         details: dict[str, Any],
     ) -> None:
-        await WorkspaceCreditLedger.get_or_create(
+        await self._repository.write_credit_ledger(
             idempotency_key=idempotency_key,
-            using_db=conn,
             defaults={
                 "workspace_id": account.workspace_id,
                 "account_id": account.id,
@@ -378,6 +374,7 @@ class CommerceService(BaseService):
                 "description_key": description_key,
                 "details": details,
             },
+            conn=conn,
         )
 
     async def _refresh_account(
@@ -423,7 +420,7 @@ class CommerceService(BaseService):
         account.period_spent_credits = 0
         account.period_start = period_start
         account.period_end = period_end
-        await account.save(using_db=conn)
+        await self._repository.save_credit_account(account=account, conn=conn)
         await self._write_ledger(
             conn=conn,
             account=account,
@@ -449,30 +446,30 @@ class CommerceService(BaseService):
         conn: BaseDBAsyncClient,
         now: datetime,
     ) -> tuple[WorkspaceSubscription, WorkspaceCreditAccount, CommercePlan]:
-        workspace = await Workspace.filter(id=workspace_id).using_db(conn).select_for_update().first()
+        workspace = await self._repository.lock_workspace(workspace_id=workspace_id, conn=conn)
         if workspace is None:
             raise NotFound(
                 message=t("errors", "WORKSPACE_NOT_FOUND"),
                 error="WORKSPACE_NOT_FOUND",
             )
-        subscription = (
-            await WorkspaceSubscription.filter(workspace_id=workspace_id).using_db(conn).select_for_update().first()
-        )
+        subscription = await self._repository.lock_subscription(workspace_id=workspace_id, conn=conn)
         if subscription is None:
             plan = await self._default_plan(conn=conn)
             billing_start, billing_end = _billing_period(now, BillingCycle.MONTHLY)
-            subscription = await WorkspaceSubscription.create(
-                workspace_id=workspace_id,
-                plan_id=plan.id,
-                status=SubscriptionStatus.ACTIVE,
-                billing_cycle=BillingCycle.MONTHLY,
-                current_period_start=billing_start,
-                current_period_end=billing_end,
-                using_db=conn,
+            subscription = await self._repository.create_subscription(
+                values={
+                    "workspace_id": workspace_id,
+                    "plan_id": plan.id,
+                    "status": SubscriptionStatus.ACTIVE,
+                    "billing_cycle": BillingCycle.MONTHLY,
+                    "current_period_start": billing_start,
+                    "current_period_end": billing_end,
+                },
+                conn=conn,
             )
             subscription.plan = plan
         else:
-            plan = await CommercePlan.get(id=subscription.plan_id, using_db=conn)
+            plan = await self._repository.get_plan(plan_id=subscription.plan_id, conn=conn)
             subscription.plan = plan
 
         if now >= subscription.current_period_end:
@@ -482,23 +479,23 @@ class CommerceService(BaseService):
                 start, end = _billing_period(now, subscription.billing_cycle)
                 subscription.current_period_start = start
                 subscription.current_period_end = end
-            await subscription.save(using_db=conn)
+            await self._repository.save_subscription(subscription=subscription, conn=conn)
 
-        account = (
-            await WorkspaceCreditAccount.filter(workspace_id=workspace_id).using_db(conn).select_for_update().first()
-        )
+        account = await self._repository.lock_credit_account_by_workspace(workspace_id=workspace_id, conn=conn)
         if account is None:
             credit_start, credit_end = _credit_period(
                 now,
                 plan.credit_refresh_interval,
                 none_period_end=subscription.current_period_end,
             )
-            account = await WorkspaceCreditAccount.create(
-                workspace_id=workspace_id,
-                subscription_id=subscription.id,
-                period_start=credit_start,
-                period_end=credit_end,
-                using_db=conn,
+            account = await self._repository.create_credit_account(
+                values={
+                    "workspace_id": workspace_id,
+                    "subscription_id": subscription.id,
+                    "period_start": credit_start,
+                    "period_end": credit_end,
+                },
+                conn=conn,
             )
             await self._refresh_account(
                 conn=conn,
@@ -516,7 +513,7 @@ class CommerceService(BaseService):
                 account.period_end = subscription.current_period_end
                 account.period_granted_credits = 0
                 account.period_spent_credits = 0
-                await account.save(using_db=conn)
+                await self._repository.save_credit_account(account=account, conn=conn)
             else:
                 await self._refresh_account(
                     conn=conn,
@@ -582,12 +579,43 @@ class CommerceService(BaseService):
             details=details,
         )
 
+    async def lock_credit_account(
+        self,
+        *,
+        account_id: UUID,
+        conn: BaseDBAsyncClient,
+    ) -> WorkspaceCreditAccount | None:
+        return await self._repository.lock_credit_account_by_id(account_id=account_id, conn=conn)
+
+    async def save_credit_account(
+        self,
+        *,
+        account: WorkspaceCreditAccount,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        await self._repository.save_credit_account(account=account, conn=conn)
+
+    async def save_budget_reservation_reconciliation(
+        self,
+        *,
+        reservation: AIBudgetReservation,
+        actual_credits: int | None,
+        reconciled_at: datetime,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        await self._repository.save_budget_reservation(
+            reservation=reservation,
+            actual_credits=actual_credits,
+            reconciled_at=reconciled_at,
+            conn=conn,
+        )
+
     async def get_overview(self, *, workspace_id: UUID) -> WorkspaceCommerceOverviewOut:
         subscription, account, plan = await self.ensure_workspace_billing(workspace_id=workspace_id)
-        usage_rows = await AIUsageDaily.filter(
+        usage_rows = await self._repository.list_usage(
             workspace_id=workspace_id,
-            date__gte=account.period_start.date(),
-            date__lt=account.period_end.date(),
+            period_start=account.period_start.date(),
+            period_end=account.period_end.date(),
         )
         return WorkspaceCommerceOverviewOut(
             billing_mode=_BILLING_MODE,
@@ -623,9 +651,11 @@ class CommerceService(BaseService):
         workspace_id: UUID,
         params: PageParams,
     ) -> PageData[CreditLedgerOut]:
-        query = WorkspaceCreditLedger.filter(workspace_id=workspace_id).order_by("-created_at", "-id")
-        total = int(await query.count())
-        rows = await query.limit(params.limit).offset(params.offset)
+        total, rows = await self._repository.list_credit_ledger(
+            workspace_id=workspace_id,
+            limit=params.limit,
+            offset=params.offset,
+        )
         pages = (total + params.size - 1) // params.size if total else 0
         return PageData(
             items=[_ledger_out(row) for row in rows],
@@ -671,7 +701,7 @@ class CommerceService(BaseService):
             subscription.external_customer_id = external_customer_id
         if external_subscription_id is not None:
             subscription.external_subscription_id = external_subscription_id
-        await subscription.save(using_db=conn)
+        await self._repository.save_subscription(subscription=subscription, conn=conn)
         if refresh_credits:
             await self._refresh_account(
                 conn=conn,
@@ -703,7 +733,7 @@ class CommerceService(BaseService):
     ) -> None:
         reference_id = uuid5(NAMESPACE_URL, f"{provider}:{event_id}")
         await self.ensure_plan_catalog(conn=conn)
-        plan = await CommercePlan.get_or_none(code=plan_code, is_active=True, using_db=conn)
+        plan = await self._repository.get_plan_by_code(code=plan_code, conn=conn, active_only=True)
         if plan is None:
             raise NotFound(error="COMMERCE_PLAN_NOT_FOUND")
         current, _, current_plan = await self._ensure_workspace_billing(
@@ -734,7 +764,7 @@ class CommerceService(BaseService):
             external_customer_id=external_customer_id,
             external_subscription_id=external_subscription_id,
         )
-        workspace = await Workspace.get(id=workspace_id, using_db=conn)
+        workspace = await self._repository.get_workspace(workspace_id=workspace_id, conn=conn)
         await write_required_activity_event(
             settings=self._settings,
             conn=conn,
@@ -769,11 +799,11 @@ class CommerceService(BaseService):
         event_id: str,
     ) -> WorkspaceCommerceOverviewOut:
         async with self.tx() as conn:
-            receipt, is_new_event = await BillingProviderEventReceipt.get_or_create(
+            receipt, is_new_event = await self._repository.claim_provider_event(
                 provider=provider,
                 event_id=event_id,
-                using_db=conn,
-                defaults={"workspace_id": workspace_id},
+                workspace_id=workspace_id,
+                conn=conn,
             )
             if receipt.workspace_id != workspace_id:
                 raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
@@ -803,7 +833,11 @@ class CommerceService(BaseService):
     ) -> WorkspaceCommerceOverviewOut:
         async with self.tx() as conn:
             await self.ensure_plan_catalog(conn=conn)
-            plan = await CommercePlan.get_or_none(code=payload.plan_code, is_active=True, using_db=conn)
+            plan = await self._repository.get_plan_by_code(
+                code=payload.plan_code,
+                conn=conn,
+                active_only=True,
+            )
             if plan is None:
                 raise NotFound(
                     message=t("errors", "COMMERCE_PLAN_NOT_FOUND"),
@@ -818,7 +852,7 @@ class CommerceService(BaseService):
                 reference_type="operator_change",
                 reference_id=uuid7(),
             )
-            workspace = await Workspace.get(id=workspace_id, using_db=conn)
+            workspace = await self._repository.get_workspace(workspace_id=workspace_id, conn=conn)
             await write_required_activity_event(
                 settings=self._settings,
                 conn=conn,
@@ -833,3 +867,7 @@ class CommerceService(BaseService):
                 ),
             )
         return await self.get_overview(workspace_id=workspace_id)
+
+
+def build_commerce_service(settings: Settings) -> CommerceService:
+    return CommerceService(settings, repository=CommerceRepository())

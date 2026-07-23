@@ -24,7 +24,7 @@ from src.modules.commerce.billing_event_job_contract import (
     BillingConnectorEventJobTarget,
 )
 from src.modules.commerce.billing_event_repository import BillingEventInboxRepository
-from src.modules.commerce.service import CommerceService
+from src.modules.commerce.service import CommerceService, build_commerce_service
 from src.modules.jobs.execution_errors import (
     PermanentJobExecutionError,
     TransientJobExecutionError,
@@ -49,7 +49,7 @@ class BillingConnectorEventJobHandler:
         self._settings = settings
         self._connectors = connectors
         self._repository = repository or BillingEventInboxRepository()
-        self._commerce = commerce or CommerceService(settings)
+        self._commerce = commerce or build_commerce_service(settings)
 
     async def reconcile(
         self,

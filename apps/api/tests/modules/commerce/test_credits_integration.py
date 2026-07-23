@@ -25,7 +25,7 @@ from src.models.commerce.billing import (
 from src.models.workspaces.workspace import Workspace
 from src.modules.commerce.credits import CreditsExceededError, reserve_workspace_credits
 from src.modules.commerce.schema import CommercePlanUpsertRequest, PlanFeature
-from src.modules.commerce.service import CommerceService
+from src.modules.commerce.service import build_commerce_service
 from src.modules.organization.repository import OrganizationRepository
 
 pytestmark = pytest.mark.integration
@@ -67,7 +67,7 @@ async def test_concurrent_workspace_billing_initialization_creates_one_account(d
         is_active=True,
         created_by_user_id=uuid4(),
     )
-    service = CommerceService(get_settings())
+    service = build_commerce_service(get_settings())
     start = asyncio.Event()
 
     async def initialize():
@@ -105,7 +105,7 @@ async def test_plan_update_cannot_remove_the_active_default_plan(
     is_default: bool,
 ) -> None:
     _ = db_schema
-    service = CommerceService(get_settings())
+    service = build_commerce_service(get_settings())
     await service.ensure_plan_catalog()
 
     with pytest.raises(Conflict) as captured:
@@ -124,7 +124,7 @@ async def test_plan_update_cannot_remove_the_active_default_plan(
 
 async def test_seeded_plan_catalog_backfills_site_generation_without_overriding_exclusion(db_schema) -> None:
     _ = db_schema
-    service = CommerceService(get_settings())
+    service = build_commerce_service(get_settings())
     await service.ensure_plan_catalog()
     free = await CommercePlan.get(code="free")
     free.features = [feature for feature in free.features if feature.get("key") != "sites.generate"]
@@ -157,7 +157,7 @@ async def test_provider_subscription_event_applies_once_and_persists_external_au
         is_active=True,
         created_by_user_id=uuid4(),
     )
-    service = CommerceService(get_settings())
+    service = build_commerce_service(get_settings())
     await service.ensure_workspace_billing(workspace_id=workspace.id)
     period_start = datetime.now(UTC).replace(microsecond=0)
     period_end = period_start + timedelta(days=30)
@@ -218,7 +218,8 @@ async def test_concurrent_credit_reservations_cannot_make_available_balance_nega
         created_by_user_id=uuid4(),
     )
     settings = get_settings()
-    _, account, _ = await CommerceService(settings).ensure_workspace_billing(workspace_id=workspace.id)
+    service = build_commerce_service(settings)
+    _, account, _ = await service.ensure_workspace_billing(workspace_id=workspace.id)
     account.balance_credits = 5
     account.reserved_credits = 0
     await account.save(update_fields=["balance_credits", "reserved_credits", "updated_at"])
@@ -226,7 +227,7 @@ async def test_concurrent_credit_reservations_cannot_make_available_balance_nega
     async def reserve(request_id: UUID):
         async with in_transaction() as connection:
             return await reserve_workspace_credits(
-                settings=settings,
+                commerce=service,
                 conn=connection,
                 workspace_id=workspace.id,
                 request_id=request_id,

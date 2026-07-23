@@ -6,8 +6,7 @@ from uuid import uuid4
 
 import pytest
 
-from src.models.commerce.billing import CommercePlan
-from src.modules.commerce.repository import BillingCheckoutPlan, CommercePlanRepository
+from src.modules.commerce.repository import BillingCheckoutPlan, CommerceRepository
 
 
 @pytest.mark.asyncio
@@ -22,9 +21,10 @@ async def test_checkout_plan_reader_returns_an_immutable_active_plan_projection(
         currency="USD",
     )
     get_plan = AsyncMock(return_value=persisted_plan)
+    repository = CommerceRepository()
 
-    with patch.object(CommercePlan, "get_or_none", new=get_plan):
-        result = await CommercePlanRepository().get_active_checkout_plan(code="premium")
+    with patch.object(repository, "get_plan_by_code", new=get_plan):
+        result = await repository.get_active_checkout_plan(code="premium")
 
     assert result == BillingCheckoutPlan(
         id=plan_id,
@@ -34,4 +34,4 @@ async def test_checkout_plan_reader_returns_an_immutable_active_plan_projection(
         price_yearly_micros=190_000_000,
         currency="USD",
     )
-    get_plan.assert_awaited_once_with(code="premium", is_active=True)
+    get_plan.assert_awaited_once_with(code="premium", active_only=True)

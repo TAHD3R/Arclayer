@@ -16,7 +16,7 @@ from src.modules.commerce.schema import (
     WorkspaceCommerceOverviewOut,
     WorkspaceSubscriptionSetRequest,
 )
-from src.modules.commerce.service import CommerceService
+from src.modules.commerce.service import build_commerce_service
 
 router = APIRouter(
     tags=["internal.system.commerce"],
@@ -33,7 +33,7 @@ async def list_commerce_plans(
     include_inactive: bool = Query(default=False, alias="includeInactive"),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[CommercePlanCatalogOut]:
-    items = await CommerceService(settings).list_plans(include_inactive=include_inactive)
+    items = await build_commerce_service(settings).list_plans(include_inactive=include_inactive)
     return ApiResponse.success(
         data=CommercePlanCatalogOut(
             billing_provider=settings.billing.provider,
@@ -53,7 +53,7 @@ async def upsert_commerce_plan(
     payload: CommercePlanUpsertRequest,
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[CommercePlanOut]:
-    plan = await CommerceService(settings).upsert_plan(code=code, payload=payload)
+    plan = await build_commerce_service(settings).upsert_plan(code=code, payload=payload)
     return ApiResponse.success(message=t("commerce", "API_PLAN_SAVED"), data=plan)
 
 
@@ -68,7 +68,7 @@ async def set_workspace_subscription(
     actor: User = Depends(get_current_user),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceCommerceOverviewOut]:
-    overview = await CommerceService(settings).set_workspace_subscription(
+    overview = await build_commerce_service(settings).set_workspace_subscription(
         workspace_id=workspace_id,
         actor_user_id=actor.id,
         payload=payload,

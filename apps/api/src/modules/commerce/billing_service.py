@@ -9,9 +9,9 @@ from src.core.registries import ConnectorRegistry
 from src.core.services.base import BaseService
 from src.models.commerce.billing import BillingCycle, CommercePlan, WorkspaceCreditAccount, WorkspaceSubscription
 from src.modules.commerce.billing_connector import BillingConnector, build_billing_operation_idempotency_key
-from src.modules.commerce.repository import BillingPlanReader, CommercePlanRepository
+from src.modules.commerce.repository import BillingPlanReader, CommerceRepository
 from src.modules.commerce.schema import BillingRedirectOut, CheckoutSessionCreate
-from src.modules.commerce.service import CommerceService
+from src.modules.commerce.service import build_commerce_service
 
 
 class WorkspaceBillingReader(Protocol):
@@ -111,6 +111,6 @@ def build_billing_service(settings: Settings, connector_registry: ConnectorRegis
     return BillingService(
         settings=settings,
         provider=connector,
-        plans=CommercePlanRepository(),
-        commerce=CommerceService(settings),
+        plans=CommerceRepository(),
+        commerce=build_commerce_service(settings),
     )

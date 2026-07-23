@@ -194,9 +194,10 @@ async def reserve(
                 raise RuntimeError("workspace credit reservations require a database transaction")
             from src.config import get_settings
             from src.modules.commerce.credits import reserve_workspace_credits
+            from src.modules.commerce.service import build_commerce_service
 
             credit_details = await reserve_workspace_credits(
-                settings=get_settings(),
+                commerce=build_commerce_service(get_settings()),
                 conn=conn,
                 workspace_id=workspace_id,
                 request_id=request_id,
@@ -288,10 +289,11 @@ async def commit(
         if integrate_credits:
             from src.config import get_settings
             from src.modules.commerce.credits import commit_workspace_credits
+            from src.modules.commerce.service import build_commerce_service
 
             reservation = await AIBudgetReservation.get(id=reservation_id, using_db=conn)
             await commit_workspace_credits(
-                settings=get_settings(),
+                commerce=build_commerce_service(get_settings()),
                 conn=conn,
                 reservation=reservation,
                 actual_cost_micros=actual_cost_micros,
@@ -355,10 +357,11 @@ async def release(
         if integrate_credits:
             from src.config import get_settings
             from src.modules.commerce.credits import release_workspace_credits
+            from src.modules.commerce.service import build_commerce_service
 
             reservation = await AIBudgetReservation.get(id=reservation_id, using_db=conn)
             await release_workspace_credits(
-                settings=get_settings(),
+                commerce=build_commerce_service(get_settings()),
                 conn=conn,
                 reservation=reservation,
                 reason="provider_request_released",
@@ -422,7 +425,9 @@ async def _release_expired_credit_holds() -> None:
     from src.config import get_settings
     from src.models.commerce.billing import CreditLedgerEntryType
     from src.modules.commerce.credits import release_workspace_credits
+    from src.modules.commerce.service import build_commerce_service
 
+    commerce = build_commerce_service(get_settings())
     reservation_ids = await AIBudgetReservation.filter(
         status=ReservationStatus.EXPIRED,
         credit_account_id__not_isnull=True,
@@ -444,7 +449,7 @@ async def _release_expired_credit_holds() -> None:
             if reservation is None:
                 continue
             await release_workspace_credits(
-                settings=get_settings(),
+                commerce=commerce,
                 conn=conn,
                 reservation=reservation,
                 reason="reservation_expired",
