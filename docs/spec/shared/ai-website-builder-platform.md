@@ -1113,7 +1113,7 @@ used to describe the full user goal as complete.
 | 7 | Productized Taskiq workload topology and task catalog | In progress | Durable jobs, broker routing, workers, scheduler leadership, recovery, and owning-domain job verticals are implemented/tested. Production deployment and health evidence remain required. |
 | 8 | Connector-based commercialization and Stripe | In progress | Connector registry, Stripe plugin, durable billing event path, and Billing surfaces exist. Provider migration parity, replay/reconciliation, entitlement, and production webhook evidence remain Wave 6 gates. |
 | 9 | Productized no-release/prelaunch experience | In progress | `arclayer-prelaunch-v2` now provides the final responsive light/dark visitor treatment, localized public site identity, escaped external values, stable static first frame, and explicit missing-identity state without fake published success. Release activation convergence remains. |
-| 10 | Website Config redesign and ownership | In progress | Identity, discovery, and localization workspaces have responsive live visitor previews, complete read-only behavior, generated-source invalidation, and bilingual copy. Admin, public runtime, and generated source now consume the Domains-owned routable address and never fall back to legacy `site.url`; typed website/SEO/localization facades, optimistic concurrency, and Activity evidence remain open. |
+| 10 | Website Config redesign and ownership | In progress | Identity, discovery, and localization workspaces have responsive live visitor previews, complete read-only behavior, generated-source invalidation, and bilingual copy. Admin, public runtime, and generated source consume the Domains-owned routable address. The backend now has typed per-facade projections, row-locked replacement, independent canonical ETags, stable conflicts, and transactional Activity evidence; public facade routes, Admin/generated-client migration, broad-patch restriction, and explicit Agent grants remain open. |
 | 11 | Project General redesign and ownership | In progress | Project identity, context/access/lifecycle boundaries, danger actions, responsive navigation, bilingual copy, and browser acceptance are complete. Typed identity/defaults commands with optimistic concurrency and Activity evidence remain open. |
 
 Boneyard and motion are cross-cutting rather than a twelfth capability. The
@@ -2062,3 +2062,54 @@ This accepts Admin, public runtime, and generated-source consumption of the
 Domains-owned routable address. It does not claim the full Website Config
 capability complete: typed website/SEO/localization facades, optimistic
 version/ETag, Activity evidence, and Agent grants remain required.
+
+## 48. Wave 4 Website Config typed authority foundation (2026-07-23)
+
+The existing Core Settings row remains the internal persistence document, but
+it is no longer treated as one optimistic-concurrency unit. Three typed
+Pydantic projections define explicit Website Config ownership:
+
+- Identity owns visitor name/localized name, subtitle, description/localized
+  description, and contact email;
+- Discovery owns logo, favicon, Open Graph image, title policy, robots
+  directive, and sitemap enablement;
+- Localization owns supported/default/fallback locales, timezone/browser-time
+  policy, and date-format/relative-time policy. The legacy `locale` storage key
+  is written only as the canonical mirror of `default_locale`.
+
+Domains remains the sole routable-address authority. `site.url` is deliberately
+absent from all three typed projections. Project General, source, publish,
+Design System, storage, and unknown internal Core keys are preserved and cannot
+be overwritten through these models.
+
+Each facade computes a quoted SHA-256 ETag from its normalized public JSON
+projection only. A replacement locks the canonical project Core Settings row,
+compares the caller's exact expected ETag, and writes only fields whose typed
+values changed. Therefore an Identity update does not invalidate Discovery or
+Localization and vice versa. First-write locking uses conflict-tolerant
+identity-row creation followed by `SELECT FOR UPDATE`; it does not race through
+an unlocked create branch.
+
+A stale replacement fails explicitly with
+`PROJECT_WEBSITE_SETTINGS_ETAG_MISMATCH` and returns the affected facade plus
+current ETag metadata. Invalid persisted owned data fails with
+`PROJECT_WEBSITE_SETTINGS_INVALID`; it is never coerced to fake success. A
+successful material change writes one facade-specific Activity event in the
+same transaction:
+
+- `project.website.identity.updated`;
+- `project.website.discovery.updated`;
+- `project.website.localization.updated`.
+
+Activity properties contain only the facade, exact changed storage paths, and
+previous/next ETags, with `api` or `agent` source provenance; values and contact
+data are not copied into audit properties. Semantic no-op replacements create
+neither a settings update nor Activity noise.
+
+This foundation intentionally does not mount new public routes while the
+generated Admin client contract is being migrated. The current broad Core
+Settings endpoint remains the live Admin path for this checkpoint. Capability
+completion still requires typed HTTP resources and generated clients, Admin
+form migration, broad-patch restriction/audit, and explicit approval-backed
+Agent Tool grants. No internal-service existence is presented as a completed
+product API.

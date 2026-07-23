@@ -1589,3 +1589,45 @@ version/ETag, stable conflicts/errors, Activity events, idempotency where a
 command can be retried, and explicit Agent Tool grants. Lifecycle capability,
 archive, and deletion authorities remain separate; no frontend rollout claims
 to replace their backend ownership.
+
+## 36. Website Config typed settings authority
+
+Website Config has three backend-owned typed projections over the internal
+project Core Settings row:
+
+| Facade | Owned fields | Activity event |
+| --- | --- | --- |
+| Identity | `site.name`, `name_i18n`, `subtitle`, `description`, `description_i18n`, `contact_email` | `project.website.identity.updated` |
+| Discovery | `site.logo_*`, `site.favicon_*`, `seo.og_image_*`, `title_policy_v1`, `robots_directive`, `sitemap_enabled` | `project.website.discovery.updated` |
+| Localization | supported/default/fallback locales, timezone/browser-time policy, date-format/relative-time policy | `project.website.localization.updated` |
+
+The Identity facade deliberately excludes `site.url`; Domains is the only
+public-address authority. Discovery accepts the existing Open Graph storage
+aliases when reading and hard-cuts them to canonical `seo.og_image_*` keys when
+that typed field is next changed. Localization writes the legacy `locale` key
+only as a mirror of `default_locale`, never as an independently editable field.
+
+Every projection has a frozen Pydantic schema and a canonical quoted SHA-256
+ETag over normalized camel-case JSON. ETags are per facade rather than per Core
+row, so unrelated Website Config sections do not conflict. Replace operations
+require the exact prior ETag, materialize the unique project/Core identity row
+when absent, acquire `SELECT FOR UPDATE`, validate the merged Core document,
+and write only semantically changed owned fields. All other sections and
+unknown internal keys are immutable from the facade and remain preserved.
+
+ETag mismatch returns HTTP conflict semantics through stable code
+`PROJECT_WEBSITE_SETTINGS_ETAG_MISMATCH` with `facade` and `currentEtag`
+metadata. Invalid persisted owned data returns
+`PROJECT_WEBSITE_SETTINGS_INVALID`. Neither case falls back to defaults after
+an explicit invalid value is present.
+
+Material changes and their facade-specific Activity event commit in one
+transaction. Evidence contains exact changed paths and previous/next ETags,
+plus `api` or `agent` provenance, but no field values. No-op replacement does
+not update the row or emit Activity.
+
+This checkpoint establishes the typed repository/service authority and its
+test contract only. The existing broad Core Settings route remains mounted
+until typed HTTP routes, generated clients, Admin callers, and approval-backed
+Agent grants move together. The broad route cannot be restricted and this
+capability cannot be marked complete before that cutover.
