@@ -10,36 +10,27 @@ import {
   type Unstable_Mention,
   type Unstable_SlashCommand,
 } from "@assistant-ui/react";
-import {
-  ClipboardCheckIcon,
-  BotIcon,
-  FileSearchIcon,
-  FolderIcon,
-  FolderPlusIcon,
-  Layers3Icon,
-  RouteIcon,
-} from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { listAIWorkspaceAgents } from "@/api/ai";
+import { listAssets } from "@/api/assets";
+import { listContentItems } from "@/api/content";
+import { toMasonryItem } from "@/lib/assets/to-masonry-item";
 import {
   agentIdsForComposerScope,
   useAIComposerDirectiveStore,
   type AIComposerDirectiveScope,
 } from "@/components/ai/ai-composer-directives";
+import {
+  AIComposerMentionPopoverContent,
+  AIComposerSlashPopoverContent,
+} from "@/components/ai/ai-composer-trigger-popover-content";
+import { useEnabledAIComposerSkills } from "@/components/ai/ai-composer-skill-menu";
 import { listProjects } from "@/api/projects";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { cn } from "@arclayer/lib/utils";
-
-function composerTriggerItemClassName(index: number) {
-  return cn(
-    "flex w-full min-w-0 items-start gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors",
-    "hover:bg-muted data-[highlighted]:bg-muted",
-    index > 0 && "mt-0.5",
-  );
-}
 
 type AIComposerTriggersProps = {
   placement?: "top" | "bottom";
@@ -50,13 +41,11 @@ function composerTriggerPopoverClassName(
   placement: NonNullable<AIComposerTriggersProps["placement"]>,
 ) {
   return cn(
-    "absolute inset-x-3 z-[2500] max-h-64 overflow-y-auto rounded-xl border border-border/70 bg-popover p-1.5 text-popover-foreground shadow-lg",
-    placement === "bottom" ? "top-full mt-2" : "bottom-full mb-2",
+    "fade-in zoom-in-95 absolute left-3 z-[2500] flex max-h-[24rem] max-w-[calc(100vw-2rem)] w-[min(36rem,calc(100%-1.5rem))] flex-col animate-in overflow-hidden rounded-xl border border-border/70 bg-popover p-1.5 text-popover-foreground shadow-lg duration-150 motion-reduce:animate-none",
+    placement === "bottom"
+      ? "slide-in-from-top-2 top-full mt-2 origin-top"
+      : "slide-in-from-bottom-2 bottom-full mb-2 origin-bottom",
   );
-}
-
-function actionDirective(id: string, label: string, prompt: string) {
-  return `:action[${label}]{name=${id}} ${prompt}`;
 }
 
 export function AIComposerTriggers({ placement = "top", scope }: AIComposerTriggersProps) {
@@ -110,35 +99,123 @@ export function AIComposerTriggers({ placement = "top", scope }: AIComposerTrigg
     meta: { silent: true },
   });
 
-  const agentMentions = useMemo<Unstable_Mention[]>(
+  const agentMentions = useMemo<Unstable_Mention[]>(() => {
+    const mentions: Unstable_Mention[] = [];
+    for (const agent of agentsData?.agents ?? []) {
+      if (!agent.available) continue;
+      mentions.push({
+        id: agent.agentId,
+        type: "agent",
+        label: agent.nameI18nKey ? t(`ai:${agent.nameI18nKey}`) : agent.name,
+        description: agent.descriptionI18nKey
+          ? t(`ai:${agent.descriptionI18nKey}`)
+          : agent.description,
+        icon: "agent",
+      });
+    }
+    return mentions;
+  }, [agentsData?.agents, t]);
+  const { data: assetsData, isFetching: isFetchingAssets } = useQuery({
+    queryKey: ["ai", "composer", "asset-mentions", currentProjectId],
+    enabled: Boolean(accessToken && currentProjectId),
+    queryFn: () =>
+      listAssets(String(currentProjectId), {
+        page: 1,
+        size: 8,
+        ordering: "-created_at",
+      }),
+    staleTime: 30_000,
+    retry: false,
+    meta: { silent: true },
+  });
+  const assetMentions = useMemo<Unstable_Mention[]>(
     () =>
-      (agentsData?.agents ?? [])
-        .filter((agent) => agent.available)
-        .map((agent) => ({
-          id: agent.agentId,
-          type: "agent",
-          label: agent.nameI18nKey ? t(`ai:${agent.nameI18nKey}`) : agent.name,
-          description: agent.descriptionI18nKey
-            ? t(`ai:${agent.descriptionI18nKey}`)
-            : agent.description,
-          icon: "agent",
-        })),
-    [agentsData?.agents, t],
+      (assetsData?.items ?? []).map((asset) => ({
+        id: asset.id,
+        type: "asset",
+        label: asset.title ?? asset.originalFilename ?? asset.slug ?? asset.id,
+        description: asset.mime ?? asset.originalFilename ?? asset.slug ?? undefined,
+        icon: "asset",
+      })),
+    [assetsData?.items],
   );
-  const mentions = useMemo<Unstable_Mention[]>(
-    () => [...projectMentions, ...agentMentions],
-    [agentMentions, projectMentions],
+  const assetPreviewById = useMemo(
+    () => new Map((assetsData?.items ?? []).map((asset) => [asset.id, toMasonryItem(asset)])),
+    [assetsData?.items],
   );
+  const { data: contentData, isFetching: isFetchingContent } = useQuery({
+    queryKey: ["ai", "composer", "content-mentions", currentProjectId],
+    enabled: Boolean(accessToken && currentProjectId),
+    queryFn: () => listContentItems(String(currentProjectId), { page: 1, size: 8 }),
+    staleTime: 30_000,
+    retry: false,
+    meta: { silent: true },
+  });
+  const contentMentions = useMemo<Unstable_Mention[]>(
+    () =>
+      (contentData?.items ?? []).map((item) => ({
+        id: item.id,
+        type: "content",
+        label: item.title ?? item.slug,
+        description: item.summary ?? item.modelKey ?? item.slug,
+        icon: "content",
+      })),
+    [contentData?.items],
+  );
+  const mentionCategories = useMemo(() => {
+    const categories = [
+      {
+        id: "agents",
+        label: t("ai:AI_CHAT_MENTION_AGENTS"),
+        items: agentMentions,
+      },
+      {
+        id: "projects",
+        label: t("ai:AI_CHAT_MENTION_PROJECTS"),
+        items: projectMentions,
+      },
+    ];
+    if (currentProjectId) {
+      categories.push(
+        {
+          id: "assets",
+          label: t("ai:AI_CHAT_MENTION_ASSETS"),
+          items: assetMentions,
+        },
+        {
+          id: "content",
+          label: t("ai:AI_CHAT_MENTION_CONTENT"),
+          items: contentMentions,
+        },
+      );
+    }
+    return categories;
+  }, [agentMentions, assetMentions, contentMentions, currentProjectId, projectMentions, t]);
 
   const mention = unstable_useMentionAdapter({
-    items: mentions,
+    categories: mentionCategories,
     includeModelContextTools: false,
     formatter: unstable_defaultDirectiveFormatter,
     onInserted: (item) => {
+      if (
+        item.type !== "agent" &&
+        item.type !== "project" &&
+        item.type !== "asset" &&
+        item.type !== "content"
+      ) {
+        return;
+      }
+      const assetPreview = item.type === "asset" ? assetPreviewById.get(item.id) : undefined;
+      useAIComposerDirectiveStore.getState().addDirectives(scope, [
+        {
+          type: item.type,
+          id: item.id,
+          label: item.label,
+          previewUrl: assetPreview?.previewUrl,
+          mime: assetPreview?.mimeType,
+        },
+      ]);
       if (item.type !== "agent") return;
-      useAIComposerDirectiveStore
-        .getState()
-        .addDirectives(scope, [{ type: "agent", id: item.id, label: item.label }]);
       const composer = aui.composer();
       const current = composer.getState().runConfig;
       composer.setRunConfig({
@@ -151,90 +228,31 @@ export function AIComposerTriggers({ placement = "top", scope }: AIComposerTrigg
     },
   });
 
+  const {
+    isError: isErrorSkills,
+    isLoading: isLoadingSkills,
+    skills,
+  } = useEnabledAIComposerSkills();
+
   const slashCommands = useMemo<Unstable_SlashCommand[]>(
-    () => [
-      {
-        id: "launch-project",
-        label: t("ai:AI_CHAT_COMMAND_LAUNCH_PROJECT"),
-        description: t("ai:AI_CHAT_COMMAND_LAUNCH_PROJECT_DESC"),
-        icon: "launch-project",
-        execute: () =>
-          aui
-            .composer()
-            .setText(
-              actionDirective(
-                "launch-project",
-                t("ai:AI_CHAT_COMMAND_LAUNCH_PROJECT"),
-                t("ai:AI_CHAT_COMMAND_LAUNCH_PROJECT_PROMPT"),
-              ),
-            ),
-      },
-      {
-        id: "content-model-plan",
-        label: t("ai:AI_CHAT_COMMAND_CONTENT_MODEL_PLAN"),
-        description: t("ai:AI_CHAT_COMMAND_CONTENT_MODEL_PLAN_DESC"),
-        icon: "content-model-plan",
-        execute: () =>
-          aui
-            .composer()
-            .setText(
-              actionDirective(
-                "content-model-plan",
-                t("ai:AI_CHAT_COMMAND_CONTENT_MODEL_PLAN"),
-                t("ai:AI_CHAT_COMMAND_CONTENT_MODEL_PLAN_PROMPT"),
-              ),
-            ),
-      },
-      {
-        id: "content-ops-blueprint",
-        label: t("ai:AI_CHAT_COMMAND_CONTENT_OPS_BLUEPRINT"),
-        description: t("ai:AI_CHAT_COMMAND_CONTENT_OPS_BLUEPRINT_DESC"),
-        icon: "content-ops-blueprint",
-        execute: () =>
-          aui
-            .composer()
-            .setText(
-              actionDirective(
-                "content-ops-blueprint",
-                t("ai:AI_CHAT_COMMAND_CONTENT_OPS_BLUEPRINT"),
-                t("ai:AI_CHAT_COMMAND_CONTENT_OPS_BLUEPRINT_PROMPT"),
-              ),
-            ),
-      },
-      {
-        id: "launch-readiness-audit",
-        label: t("ai:AI_CHAT_COMMAND_LAUNCH_READINESS_AUDIT"),
-        description: t("ai:AI_CHAT_COMMAND_LAUNCH_READINESS_AUDIT_DESC"),
-        icon: "launch-readiness-audit",
-        execute: () =>
-          aui
-            .composer()
-            .setText(
-              actionDirective(
-                "launch-readiness-audit",
-                t("ai:AI_CHAT_COMMAND_LAUNCH_READINESS_AUDIT"),
-                t("ai:AI_CHAT_COMMAND_LAUNCH_READINESS_AUDIT_PROMPT"),
-              ),
-            ),
-      },
-      {
-        id: "page-context-brief",
-        label: t("ai:AI_CHAT_COMMAND_PAGE_CONTEXT_BRIEF"),
-        description: t("ai:AI_CHAT_COMMAND_PAGE_CONTEXT_BRIEF_DESC"),
-        icon: "page-context-brief",
-        execute: () =>
-          aui
-            .composer()
-            .setText(
-              actionDirective(
-                "page-context-brief",
-                t("ai:AI_CHAT_COMMAND_PAGE_CONTEXT_BRIEF"),
-                t("ai:AI_CHAT_COMMAND_PAGE_CONTEXT_BRIEF_PROMPT"),
-              ),
-            ),
-      },
-    ],
-    [aui, t],
+    () =>
+      skills.map<Unstable_SlashCommand>((skill) => ({
+        id: `skill-${skill.id}`,
+        label: skill.label,
+        description: skill.description,
+        icon: "skill",
+        execute: () => {
+          useAIComposerDirectiveStore.getState().addDirectives(scope, [
+            {
+              type: "skill",
+              id: skill.id,
+              label: skill.label,
+              instruction: t("ai:AI_CHAT_SKILL_PROMPT", { skill: skill.label }),
+            },
+          ]);
+        },
+      })),
+    [aui, scope, skills, t],
   );
 
   const slash = unstable_useSlashCommandAdapter({
@@ -247,37 +265,12 @@ export function AIComposerTriggers({ placement = "top", scope }: AIComposerTrigg
       <ComposerPrimitive.Unstable_TriggerPopover
         char="@"
         adapter={mention.adapter}
-        isLoading={isFetchingProjects || isFetchingAgents}
+        isLoading={isFetchingProjects || isFetchingAgents || isFetchingAssets || isFetchingContent}
         aria-label={t("ai:AI_CHAT_PROJECT_MENTION_LABEL")}
         className={composerTriggerPopoverClassName(placement)}
       >
         <ComposerPrimitive.Unstable_TriggerPopover.Directive {...mention.directive} />
-        <ComposerPrimitive.Unstable_TriggerPopoverItems>
-          {(items) =>
-            items.map((item, index) => (
-              <ComposerPrimitive.Unstable_TriggerPopoverItem
-                key={item.id}
-                item={item}
-                index={index}
-                className={composerTriggerItemClassName(index)}
-              >
-                {item.type === "agent" ? (
-                  <BotIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                ) : (
-                  <FolderIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                )}
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium">{item.label}</span>
-                  {item.description ? (
-                    <span className="mt-0.5 block truncate text-caption text-muted-foreground">
-                      {item.description}
-                    </span>
-                  ) : null}
-                </span>
-              </ComposerPrimitive.Unstable_TriggerPopoverItem>
-            ))
-          }
-        </ComposerPrimitive.Unstable_TriggerPopoverItems>
+        <AIComposerMentionPopoverContent placement={placement} />
       </ComposerPrimitive.Unstable_TriggerPopover>
 
       <ComposerPrimitive.Unstable_TriggerPopover
@@ -287,40 +280,12 @@ export function AIComposerTriggers({ placement = "top", scope }: AIComposerTrigg
         className={composerTriggerPopoverClassName(placement)}
       >
         <ComposerPrimitive.Unstable_TriggerPopover.Action {...slash.action} />
-        <ComposerPrimitive.Unstable_TriggerPopoverItems>
-          {(items) =>
-            items.map((item, index) => {
-              const Icon =
-                item.id === "launch-project"
-                  ? FolderPlusIcon
-                  : item.id === "content-model-plan"
-                    ? Layers3Icon
-                    : item.id === "content-ops-blueprint"
-                      ? RouteIcon
-                      : item.id === "launch-readiness-audit"
-                        ? ClipboardCheckIcon
-                        : FileSearchIcon;
-              return (
-                <ComposerPrimitive.Unstable_TriggerPopoverItem
-                  key={item.id}
-                  item={item}
-                  index={index}
-                  className={composerTriggerItemClassName(index)}
-                >
-                  <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{item.label}</span>
-                    {item.description ? (
-                      <span className="mt-0.5 block truncate text-caption text-muted-foreground">
-                        {item.description}
-                      </span>
-                    ) : null}
-                  </span>
-                </ComposerPrimitive.Unstable_TriggerPopoverItem>
-              );
-            })
-          }
-        </ComposerPrimitive.Unstable_TriggerPopoverItems>
+        <AIComposerSlashPopoverContent
+          isErrorSkills={isErrorSkills}
+          isLoadingSkills={isLoadingSkills}
+          placement={placement}
+          skills={skills}
+        />
       </ComposerPrimitive.Unstable_TriggerPopover>
     </>
   );

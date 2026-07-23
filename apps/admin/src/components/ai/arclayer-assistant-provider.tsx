@@ -37,6 +37,7 @@ import {
 } from "@/components/ai/arclayer-agent-toolkit";
 import {
   agentIdsForComposerScope,
+  applyAIComposerSkillInstructions,
   consumeAIComposerDirectives,
 } from "@/components/ai/ai-composer-directives";
 
@@ -63,7 +64,7 @@ function readComposerText(message: AppendMessage): string {
     .join("")
     .trim();
   if (!text) throw new AgentRuntimeProtocolError("AGENT_MESSAGE_EMPTY");
-  return text;
+  return applyAIComposerSkillInstructions("thread", text);
 }
 
 function readMentionedAgentIds(message: AppendMessage): readonly string[] {

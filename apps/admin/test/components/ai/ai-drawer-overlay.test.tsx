@@ -80,11 +80,24 @@ describe("AIDrawerOverlay", () => {
   });
 
   it("binds the Drawer directly to the normalized workspace Thread runtime", () => {
-    render(<AIDrawerOverlay widthPx={360} assistantAvailable />);
+    const { container } = render(<AIDrawerOverlay widthPx={360} assistantAvailable />);
 
     expect(screen.getByTestId("thread")).toBeInTheDocument();
     expect(screen.getByText("Homepage collaboration")).toBeInTheDocument();
     expect(screen.getByTestId("ai-approval-queue")).toBeInTheDocument();
+    expect(container.querySelector("aside")).toHaveClass(
+      "fixed",
+      "inset-0",
+      "h-svh",
+      "w-full",
+      "min-[769px]:static",
+      "min-[769px]:w-[var(--ai-drawer-width)]",
+    );
+    expect(container.querySelector("aside")).toHaveStyle({ "--ai-drawer-width": "360px" });
+    expect(screen.getByRole("button", { name: "ai:AI_CHAT_HIDE" })).toHaveClass(
+      "size-11",
+      "min-[769px]:size-8",
+    );
   });
 
   it("creates a new remote Thread through the shared scene runtime", () => {
@@ -147,7 +160,7 @@ describe("AIDrawerOverlay", () => {
     const { container } = render(<AIDrawerOverlay widthPx={360} assistantAvailable />);
     const drawer = container.querySelector("aside");
 
-    expect(drawer).toHaveClass("mr-0", "w-0", "opacity-0");
+    expect(drawer).toHaveClass("pointer-events-none", "mr-0", "w-0", "opacity-0");
     expect(drawer).not.toHaveClass("mr-4");
     expect(drawer).not.toHaveStyle({ width: "360px" });
   });

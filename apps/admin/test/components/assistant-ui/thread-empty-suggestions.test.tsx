@@ -62,7 +62,7 @@ vi.mock("@assistant-ui/react", async () => {
     groupPartByType: vi.fn(),
     useAuiState: (selector: (state: unknown) => unknown) =>
       selector({
-        composer: { isEmpty: true },
+        composer: { isEmpty: true, text: "" },
         thread: { isLoading: false, messages: [] },
         threads: { isLoading: false },
         message: {

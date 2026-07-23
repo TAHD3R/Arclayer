@@ -22,8 +22,18 @@ vi.mock("@/components/feedback/feedback-dialog", () => ({
 }));
 
 vi.mock("@/components/commerce/workspace-credits-control", () => ({
-  WorkspaceCreditsControl: ({ className }: { className?: string }) => (
-    <div data-testid="workspace-credits-control" className={className} />
+  WorkspaceCreditsControl: ({
+    className,
+    compactOnMobile,
+  }: {
+    className?: string;
+    compactOnMobile?: boolean;
+  }) => (
+    <div
+      data-testid="workspace-credits-control"
+      data-compact-on-mobile={compactOnMobile ? "true" : "false"}
+      className={className}
+    />
   ),
 }));
 
@@ -86,11 +96,14 @@ describe("topbar sidebar toggle icon", () => {
     await setPathname("/");
   });
 
-  it("AdminTopbar 默认只保留右侧操作区", () => {
+  it("AdminTopbar 在移动端提供侧边栏入口并保持紧凑操作区", () => {
     renderWithSidebar(<AdminTopbar />);
 
     expect(screen.queryByTestId("workspace-switcher")).toBeNull();
-    expect(screen.queryByRole("button", { name: "common:SIDEBAR_TOGGLE" })).toBeNull();
+    expect(screen.getByRole("button", { name: "common:SIDEBAR_TOGGLE" })).toHaveClass(
+      "size-11",
+      "min-[769px]:hidden",
+    );
     expect(screen.getByRole("navigation", { name: "common:BREADCRUMB_LABEL" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "nav:NAV_HOME" })).toBeInTheDocument();
     const feedbackButton = screen.getByRole("button", { name: "common:TOPBAR_FEEDBACK" });
@@ -99,24 +112,34 @@ describe("topbar sidebar toggle icon", () => {
     expect(feedbackButton).toHaveAttribute("data-size", "sm");
     expect(askAiButton).toHaveAttribute("data-variant", "outline");
     expect(askAiButton).toHaveAttribute("data-size", "sm");
-    expect(feedbackButton).toHaveClass("min-h-12", "min-w-12", "sm:min-h-0", "sm:min-w-0");
-    expect(askAiButton).toHaveClass("min-h-12", "min-w-12", "sm:min-h-0", "sm:min-w-0");
+    expect(feedbackButton).toHaveClass(
+      "min-h-11",
+      "min-w-11",
+      "min-[769px]:min-h-0",
+      "min-[769px]:min-w-0",
+    );
+    expect(askAiButton).toHaveClass(
+      "min-h-11",
+      "min-w-11",
+      "min-[769px]:min-h-0",
+      "min-[769px]:min-w-0",
+    );
     expect(screen.getByTestId("workspace-credits-control")).toHaveClass(
-      "min-h-12",
-      "min-w-12",
-      "sm:min-h-0",
-      "sm:min-w-0",
+      "min-h-11",
+      "min-w-11",
+      "min-[769px]:min-h-0",
+      "min-[769px]:min-w-0",
+    );
+    expect(screen.getByTestId("workspace-credits-control")).toHaveAttribute(
+      "data-compact-on-mobile",
+      "true",
     );
     expect(screen.getByTestId("account-menu")).toBeInTheDocument();
 
     const topbarContent = screen.getByRole("banner").firstElementChild;
-    expect(topbarContent).toHaveClass(
-      "flex-col",
-      "items-stretch",
-      "gap-2",
-      "sm:flex-row",
-      "sm:items-center",
-      "sm:gap-4",
+    expect(topbarContent).toHaveClass("flex", "items-center", "gap-2", "min-[769px]:gap-4");
+    expect(screen.getByRole("navigation", { name: "common:BREADCRUMB_LABEL" })).toHaveClass(
+      "max-[768px]:hidden",
     );
   });
 
@@ -214,6 +237,18 @@ describe("topbar sidebar toggle icon", () => {
     expect(assetsButton).toHaveAttribute("data-size", "sm");
     expect(websiteButton.querySelector("svg,img")).toBeNull();
     expect(assetsButton.querySelector("svg,img")).toBeNull();
+    const breadcrumbList = screen
+      .getByRole("navigation", { name: "common:BREADCRUMB_LABEL" })
+      .querySelector("[data-slot='breadcrumb-list']");
+    expect(breadcrumbList).toHaveClass("gap-1.5");
+    expect(breadcrumbList).not.toHaveClass("sm:gap-2.5");
+    expect(
+      Array.from(
+        screen
+          .getByRole("navigation", { name: "common:BREADCRUMB_LABEL" })
+          .querySelectorAll("[data-slot='breadcrumb-separator']"),
+      ).map((separator) => separator.textContent),
+    ).toEqual(["/", "/"]);
 
     await user.click(projectButton);
     const projectMenu = screen.getByRole("menu");

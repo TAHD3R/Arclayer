@@ -14,12 +14,11 @@ import {
 } from "@assistant-ui/react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 
-import * as authApi from "@/api/auth";
 import { listProjects } from "@/api/projects";
 import { AIComposerTriggers } from "@/components/ai/ai-composer-triggers";
 import { AIComposerDirectiveChips } from "@/components/ai/ai-composer-directive-chips";
+import { AIComposerRotatingPlaceholder } from "@/components/ai/ai-composer-rotating-placeholder";
 import { AIComposerToolbar } from "@/components/ai/ai-composer-toolbar";
-import { AISuggestions } from "@/components/ai/ai-suggestions";
 import { ComposerAttachments } from "@/components/assistant-ui/attachment";
 import { ComposerQueue } from "@/components/assistant-ui/composer-queue";
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
@@ -31,12 +30,15 @@ import {
 } from "@/components/ai/ai-composer-entry";
 import {
   agentIdsForComposerScope,
+  applyAIComposerSkillInstructions,
   buildTextWithAIComposerDirectives,
   cleanAIComposerDirectiveText,
   clearAIComposerDirectives,
 } from "@/components/ai/ai-composer-directives";
 import { formatAIChatError } from "@/api/ai";
-import { getUserDisplayName, normalizeUserProfile } from "@/lib/auth/user-profile";
+import { HomeAIBackground } from "@/pages/home/home-ai-background";
+import { HomeAIPromptStarters } from "@/pages/home/home-ai-prompt-starters";
+import { HomeBrandHero } from "@/pages/home/home-brand-hero";
 import { HomeInspirationSection } from "@/pages/home/home-inspiration-section";
 import { HomeRecentProjectsSection } from "@/pages/home/home-recent-projects-section";
 import { useAiChatStore } from "@/stores/use-ai-chat-store";
@@ -132,7 +134,10 @@ function HomeComposer({
         "home",
         applyWebSearchDirective(text.trim()),
       );
-      const trimmed = cleanAIComposerDirectiveText(textWithDirectives);
+      const trimmed = applyAIComposerSkillInstructions(
+        "home",
+        cleanAIComposerDirectiveText(textWithDirectives),
+      );
       if (!trimmed) return;
 
       onSubmitStart();
@@ -205,21 +210,27 @@ function HomeComposer({
       <ComposerPrimitive.Unstable_TriggerPopoverRoot>
         <ComposerPrimitive.Root className="aui-home-composer-root relative flex w-full min-w-0 flex-col">
           <ComposerQueue />
-          <div className="relative flex min-h-[8.75rem] w-full min-w-0 flex-col gap-3 rounded-[1.75rem] border border-border/70 bg-[color-mix(in_oklab,var(--color-muted)_30%,var(--color-background))] p-3 transition-colors hover:border-border focus-within:border-border">
+          <div
+            data-ai-composer-shell
+            className="relative flex min-h-[13rem] w-full min-w-0 flex-col gap-3 rounded-[1.75rem] border border-border/60 bg-[color-mix(in_oklab,var(--color-muted)_30%,var(--color-background))] p-3 shadow-none ring-inset transition-[border-color,box-shadow] duration-150 hover:border-border focus-within:z-40 focus-within:border-border focus-within:ring-1 focus-within:ring-border data-[trigger-open=true]:z-40 motion-reduce:transition-none"
+          >
             <AIComposerDirectiveChips scope="home" />
             <ComposerAttachments />
-            <ComposerPrimitive.Input
-              ref={inputRef}
-              rows={1}
-              autoFocus
-              placeholder={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
-              aria-label={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
-              className="h-20 min-h-20 max-h-20 w-full min-w-0 resize-none bg-transparent px-3 py-2 text-callout leading-relaxed text-label-primary outline-none [field-sizing:fixed] placeholder:text-label-secondary"
-            />
+            <div className="relative min-h-32 flex-1">
+              <ComposerPrimitive.Input
+                ref={inputRef}
+                rows={1}
+                autoFocus
+                placeholder={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
+                aria-label={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
+                className="h-32 min-h-32 max-h-32 w-full min-w-0 resize-none bg-transparent px-3 py-2 text-callout leading-relaxed text-label-primary outline-none [field-sizing:fixed] placeholder:text-transparent"
+              />
+              <AIComposerRotatingPlaceholder />
+            </div>
             <AIComposerTriggers placement="bottom" scope="home" />
-            <AIComposerToolbar />
+            <AIComposerToolbar surface="home" />
           </div>
-          <AISuggestions className="mt-3 flex w-full flex-wrap items-center justify-center gap-2 px-2" />
+          <HomeAIPromptStarters inputRef={inputRef} />
         </ComposerPrimitive.Root>
       </ComposerPrimitive.Unstable_TriggerPopoverRoot>
     </AssistantRuntimeProvider>
@@ -231,7 +242,6 @@ function HomeComposer({
  * Prompt 进入 scene 级 normalized Agent Thread runtime，并在右侧 Drawer 中承载执行过程。
  */
 export function HomePage() {
-  const { t } = useTranslation(["ai", "common"]);
   const { prompt: initialPrompt } = useSearch({ from: "/" });
   const navigate = useNavigate();
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -241,21 +251,6 @@ export function HomePage() {
   const [localError, setLocalError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const workspaceId = currentWorkspaceId ?? lastWorkspaceId;
-  const { data: me } = useQuery({
-    queryKey: ["auth", "me", sessionVersion],
-    enabled: Boolean(accessToken),
-    queryFn: async () => authApi.me(),
-    meta: { silent: true },
-  });
-  const profile = useMemo(() => normalizeUserProfile(me), [me]);
-  const displayName = useMemo(
-    () =>
-      profile.displayName ??
-      profile.username ??
-      profile.email ??
-      getUserDisplayName(accessToken, t("ai:AI_CHAT_HOME_USER_FALLBACK")),
-    [accessToken, profile.displayName, profile.email, profile.username, t],
-  );
   const { data: recentProjectsData } = useQuery({
     queryKey: ["home", "recent-projects", workspaceId, sessionVersion],
     enabled: Boolean(accessToken && workspaceId),
@@ -278,30 +273,30 @@ export function HomePage() {
   }, [navigate]);
 
   return (
-    <AdminRouteContainer pageFrame="full" className="min-h-full" innerClassName="min-h-full px-0">
+    <AdminRouteContainer
+      pageFrame="full"
+      className="min-h-full isolate"
+      innerClassName="relative z-10 min-h-full px-0"
+      overlay={<HomeAIBackground />}
+    >
       <div
         data-page="ai-home"
         className={cn(
           "mx-auto flex w-full max-w-[88rem] flex-col px-6 pt-8 sm:px-8 lg:px-10",
           hasRecentProjects
-            ? "justify-start gap-12 pt-16 xl:gap-14 xl:pt-20"
+            ? "justify-start gap-12 pt-12 xl:gap-14 xl:pt-16"
             : "min-h-full justify-center gap-8 py-8",
         )}
       >
         <div
           className={cn(
-            "flex w-full flex-col items-center gap-7",
-            hasRecentProjects &&
-              "min-h-[clamp(20rem,42vh,28rem)] shrink-0 justify-center pb-3 xl:min-h-[clamp(22rem,44vh,30rem)]",
+            "flex w-full flex-col items-center gap-8",
+            hasRecentProjects && "min-h-[clamp(34rem,70vh,44rem)] shrink-0 justify-center pb-3",
           )}
         >
-          <div className="flex flex-col items-center text-center">
-            <h1 className="max-w-3xl text-title font-semibold leading-tight text-label-primary">
-              {t("ai:AI_CHAT_HOME_GREETING", { name: displayName })}
-            </h1>
-          </div>
+          <HomeBrandHero />
 
-          <div className="mx-auto w-full max-w-[44rem]">
+          <div className="mx-auto w-full max-w-[64rem]">
             <HomeComposer
               inputRef={textareaRef}
               initialPrompt={initialPrompt}

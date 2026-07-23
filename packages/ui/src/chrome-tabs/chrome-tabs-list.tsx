@@ -6,6 +6,7 @@ import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import { cn } from "@arclayer/lib/utils";
 import { TabsList } from "../tabs";
 import { useChromeTabsLabels, useChromeTabsReducedMotion } from "./chrome-tabs-provider";
+import type { ChromeTabsSize } from "./chrome-tabs";
 
 const SCROLL_DELTA_PX = 240;
 const SCROLL_THRESHOLD_PX = 1;
@@ -51,13 +52,20 @@ function ScrollButton({ ariaLabel, direction, onClick }: ScrollButtonProps) {
   );
 }
 
-type IndicatorBarProps = Readonly<{ indicator: Indicator | null; reducedMotion: boolean }>;
+type IndicatorBarProps = Readonly<{
+  indicator: Indicator | null;
+  reducedMotion: boolean;
+  size: ChromeTabsSize;
+}>;
 
-function IndicatorBar({ indicator, reducedMotion }: IndicatorBarProps) {
+function IndicatorBar({ indicator, reducedMotion, size }: IndicatorBarProps) {
   return (
     <motion.span
       aria-hidden="true"
-      className={cn("pointer-events-none absolute bottom-2 h-0.5 rounded-full bg-foreground")}
+      className={cn(
+        "pointer-events-none absolute h-0.5 rounded-full bg-foreground",
+        size === "mini" ? "bottom-1" : "bottom-2",
+      )}
       initial={false}
       animate={
         indicator
@@ -232,6 +240,7 @@ function useScrollBy(options: Readonly<{ elRef: React.RefObject<HTMLElement | nu
 type ChromeTabsWidthMode = "fill" | "content";
 
 type ChromeTabsListProps = React.ComponentPropsWithoutRef<typeof TabsList> & {
+  size?: ChromeTabsSize;
   wrapperClassName?: string;
   wrapperRef?: React.Ref<HTMLDivElement>;
   widthMode?: ChromeTabsWidthMode;
@@ -241,6 +250,7 @@ function ChromeTabsListImpl(
   {
     className,
     children,
+    size = "default",
     widthMode = "fill",
     wrapperClassName,
     wrapperRef,
@@ -292,7 +302,7 @@ function ChromeTabsListImpl(
         {...rest}
       >
         {children}
-        <IndicatorBar indicator={indicator} reducedMotion={reducedMotion} />
+        <IndicatorBar indicator={indicator} reducedMotion={reducedMotion} size={size} />
       </TabsList>
     </div>
   );

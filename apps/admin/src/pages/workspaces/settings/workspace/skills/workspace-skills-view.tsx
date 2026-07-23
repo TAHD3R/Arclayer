@@ -1,4 +1,5 @@
 import { Blocks, CircleAlert, Github, Plus, Search, ShieldCheck } from "lucide-react";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
@@ -27,7 +28,15 @@ import { WorkspaceOfficialSkillsCatalog } from "./workspace-official-skills-cata
 import { WorkspaceSkillPackageList } from "./workspace-skills-components";
 import { WorkspaceSkillsCapabilityBoundaries } from "./workspace-skills-boundaries";
 
-export function WorkspaceSkillsView({ workspaceId }: { workspaceId: string }) {
+export function WorkspaceSkillsView({
+  workspaceId,
+  requestedAction,
+  focusRequestId,
+}: {
+  workspaceId: string;
+  requestedAction?: "import";
+  focusRequestId?: number;
+}) {
   const { t } = useTranslation(["settings", "common"]);
   const controller = useWorkspaceSkillsController(workspaceId);
   const {
@@ -57,6 +66,10 @@ export function WorkspaceSkillsView({ workspaceId }: { workspaceId: string }) {
     : capabilitiesQuery.isError
       ? "SETTINGS_WORKSPACE_SKILLS_AUTHORITY_ERROR"
       : "SETTINGS_WORKSPACE_SKILLS_AUTHORITY_READY";
+
+  useEffect(() => {
+    if (requestedAction === "import") setDialog("github");
+  }, [focusRequestId, requestedAction, setDialog]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 pb-8">

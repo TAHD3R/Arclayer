@@ -5,6 +5,9 @@ export const INTERACTIVE_TRANSITION_CLASSNAME = cn(
   "motion-reduce:transition-none",
 );
 
+export const NAV_CHEVRON_CLASSNAME =
+  "shrink-0 text-label-secondary transform-gpu transition-[opacity,transform,translate,scale,rotate] duration-[220ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none";
+
 export const NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME = cn(
   "text-label-secondary! hover:text-label-primary!",
   "data-[active=true]:font-semibold data-[active=true]:text-label-primary!",

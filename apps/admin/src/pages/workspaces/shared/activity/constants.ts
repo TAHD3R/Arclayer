@@ -222,6 +222,10 @@ export const ACTIVITY_EVENT_CATALOG: Record<string, ActivityEventCatalogEntry> =
   "project.deleted": createCatalogEntry("PROJECT_DELETED", "danger"),
   "project.settings.updated": createCatalogEntry("PROJECT_SETTINGS_UPDATED", "warning"),
   "project.environment.updated": createCatalogEntry("PROJECT_ENVIRONMENT_UPDATED", "warning"),
+  "project.builder.change_set.previewed": createCatalogEntry(
+    "PROJECT_BUILDER_CHANGE_SET_PREVIEWED",
+  ),
+  "project.builder.change_set.applied": createCatalogEntry("PROJECT_BUILDER_CHANGE_SET_APPLIED"),
   "deployment.promoted": createCatalogEntry("DEPLOYMENT_PROMOTED"),
   "deployment.failed": createCatalogEntry("DEPLOYMENT_FAILED", "danger"),
   "release.published": createCatalogEntry("RELEASE_PUBLISHED"),

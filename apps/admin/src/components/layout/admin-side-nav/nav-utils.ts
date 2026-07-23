@@ -1,5 +1,6 @@
 import { cn } from "@arclayer/lib/utils";
 
+import { navSectionCollapseKey } from "@/stores/use-sidebar-nav-store";
 import type { AdminNavItem } from "@/types/admin-nav";
 
 export const NAV_ITEM_HEIGHT_CLASSNAME = "h-9";
@@ -14,6 +15,18 @@ export const NAV_DIVIDER_CLASSNAME = "mx-4 my-1 group-data-[collapsible=icon]:mx
 export const NAV_TRAILING_RAIL_CLASSNAME =
   "ml-auto flex shrink-0 items-center self-center [[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:ml-0";
 export const NAV_TRAILING_ICON_SLOT_CLASSNAME = "inline-flex size-6 items-center justify-center";
+
+function resolveLeadingLabel(item: AdminNavItem, t: (key: string) => string): string | null {
+  if (item.groupLabelBeforeKey) return t(item.groupLabelBeforeKey);
+  return item.groupLabelBefore ?? null;
+}
+
+function resolveNavSectionKey(parentKey: string, item: AdminNavItem): string {
+  const labelIdentity = item.groupLabelBeforeKey ?? item.groupLabelBefore;
+  if (!labelIdentity)
+    throw new Error(`Navigation section ${item.key} is missing its label identity`);
+  return navSectionCollapseKey(`${parentKey}:${labelIdentity}`);
+}
 
 function normalizePath(input: string): string {
   if (input.length > 1 && input.endsWith("/")) return input.slice(0, -1);
@@ -140,7 +153,7 @@ function collectDefaultExpandedGroupKeys(items: readonly AdminNavItem[]): Set<st
   const walk = (nodes: readonly AdminNavItem[]) => {
     for (const node of nodes) {
       if (!node.children?.length) continue;
-      if (node.defaultExpanded) groupKeys.add(node.key);
+      if (node.defaultExpanded !== false) groupKeys.add(node.key);
       walk(node.children);
     }
   };
@@ -160,4 +173,6 @@ export {
   isExactMatch,
   isPrefixMatch,
   normalizePath,
+  resolveLeadingLabel,
+  resolveNavSectionKey,
 };

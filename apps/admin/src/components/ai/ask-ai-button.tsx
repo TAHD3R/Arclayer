@@ -29,7 +29,7 @@ export function AskAiButton({
       onClick={toggleDrawer}
     >
       <Sparkles className="size-4 shrink-0 opacity-80" aria-hidden="true" />
-      <span className="hidden sm:inline">{label}</span>
+      <span className="hidden min-[769px]:inline">{label}</span>
     </Button>
   );
 }

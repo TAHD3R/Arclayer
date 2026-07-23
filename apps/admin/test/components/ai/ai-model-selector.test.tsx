@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { listAIModels } from "@/api/ai";
 import { AIModelSelector } from "@/components/ai/ai-model-selector";
 import {
+  AUTO_AI_CHAT_MODEL,
   DEFAULT_AI_CHAT_MODEL,
   DEFAULT_AI_COMPOSER_MODE,
   DEFAULT_AI_REASONING_EFFORT,
@@ -26,6 +27,8 @@ vi.mock("react-i18next", () => ({
     t: (key: string) => {
       const labels: Record<string, string> = {
         "ai:AI_CHAT_MODEL_SELECT": "Select model",
+        "ai:AI_CHAT_MODEL_GROUP": "Models",
+        "ai:AI_CHAT_MODEL_AUTO": "Auto select",
         "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO": "DeepSeek V4 Pro",
         "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO_DESC": "DeepSeek model",
         "ai:AI_CHAT_MODEL_GPT_4O_MINI": "GPT-4o mini",
@@ -111,6 +114,30 @@ describe("AIModelSelector", () => {
     await waitFor(() => {
       expect(useAiChatStore.getState().selectedModel).toBe("gpt-4o-mini");
     });
+  });
+
+  it("disables manual model selection only while automatic selection is enabled", async () => {
+    const user = userEvent.setup();
+    renderSelector();
+
+    await user.click(await screen.findByRole("button", { name: "Select model" }));
+    const autoSwitch = screen.getByRole("switch", { name: "Auto select" });
+    expect(autoSwitch).not.toBeChecked();
+
+    await user.click(autoSwitch);
+
+    expect(useAiChatStore.getState().selectedModel).toBe(AUTO_AI_CHAT_MODEL);
+    expect(screen.getByRole("menuitem", { name: /DeepSeek V4 Pro/ })).toHaveAttribute(
+      "data-disabled",
+    );
+    expect(screen.getByRole("menuitem", { name: /GPT-4o mini/ })).toHaveAttribute("data-disabled");
+
+    await user.click(autoSwitch);
+
+    expect(useAiChatStore.getState().selectedModel).toBe("deepseek-v4-pro");
+    expect(screen.getByRole("menuitem", { name: /DeepSeek V4 Pro/ })).not.toHaveAttribute(
+      "data-disabled",
+    );
   });
 
   it("applies runtime defaults from the backend catalog until the user chooses explicitly", async () => {

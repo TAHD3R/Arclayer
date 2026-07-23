@@ -247,6 +247,22 @@ describe("sidebar route state wiring", () => {
     ]);
   });
 
+  it("derives the project sidebar from a notifications source path", () => {
+    mockPathname = "/notifications";
+    mockSearchStr = "?sourceKind=workspace&sourcePath=%2Fprojects%2Fproject-alpha%2Fassets";
+
+    renderWithQueryClient(
+      <AdminLayout>
+        <div>content</div>
+      </AdminLayout>,
+    );
+
+    const props = latestSceneProps();
+    expect(props.favoriteWorkspaceBase).toBe("/projects/project-alpha");
+    expect(props.sidebarPathnameOverride).toBe("/projects/project-alpha/assets");
+    expect(props.mainItems).not.toHaveLength(0);
+  });
+
   it("keeps the admin shell aligned with the resolved outlet route while navigation is pending", () => {
     mockPathname = "/projects/ws-1/activity";
     mockResolvedPathname = "/projects/ws-1/settings/general";

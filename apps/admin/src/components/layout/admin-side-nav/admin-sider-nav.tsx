@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouterState } from "@tanstack/react-router";
 import { Star } from "lucide-react";
@@ -8,6 +8,7 @@ import type { FavoriteNode } from "@/types/stores/favorites";
 import { cn } from "@arclayer/lib/utils";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
+import { navGroupCollapseKey, useSidebarNavStore } from "@/stores/use-sidebar-nav-store";
 import { SidebarGroup, SidebarGroupContent, SidebarMenu, useSidebar } from "@arclayer/ui/sidebar";
 import {
   buildNavIndex,
@@ -20,9 +21,8 @@ import {
   type OpenGroupKeys,
 } from "./nav-utils";
 import { resolveFavoriteNavItems } from "./favorite-nav-items";
-import { NavNode } from "./nav-node";
+import { NavNodeList } from "./nav-node";
 import { NAV_ROOT_MENU_GAP_CLASSNAME } from "./nav-utils";
-import { NavDivider, NavGroupMarker, resolveLeadingLabel } from "./nav-markers";
 import {
   buildFavoriteAdminChildren,
   favoriteNavItemMatchesPath,
@@ -52,6 +52,8 @@ type AdminSiderNavState = {
   suppressedKeys: ReadonlySet<string>;
   openGroupKeys: OpenGroupKeys;
   openChainForKey: (key: string) => void;
+  collapsedNavKeys: ReadonlySet<string>;
+  toggleSection: (key: string) => void;
   selectActiveSource: (source: "base" | "starred", targetPath?: string) => void;
   collapsedMode: boolean;
 };
@@ -109,72 +111,45 @@ function useOpenChain(items: readonly AdminNavItem[]) {
   const allGroupKeys = useMemo(() => collectGroupKeys(items), [items]);
   const defaultExpandedGroupKeys = useMemo(() => collectDefaultExpandedGroupKeys(items), [items]);
   const navIndex = useMemo(() => buildNavIndex(items), [items]);
-  const initializedDefaultGroupKeysRef = useRef<Set<string>>(new Set(defaultExpandedGroupKeys));
-  const [openGroupKeys, setOpenGroupKeys] = useState<Set<string>>(
-    () => new Set(defaultExpandedGroupKeys),
-  );
-
-  useEffect(() => {
-    setOpenGroupKeys((prev) => {
-      const next = new Set<string>();
-      for (const key of prev) {
-        if (allGroupKeys.has(key)) next.add(key);
-      }
-      for (const key of defaultExpandedGroupKeys) {
-        if (initializedDefaultGroupKeysRef.current.has(key)) continue;
-        next.add(key);
-      }
-
-      initializedDefaultGroupKeysRef.current = new Set(
-        [...initializedDefaultGroupKeysRef.current, ...defaultExpandedGroupKeys].filter((key) =>
-          allGroupKeys.has(key),
+  const collapsedKeys = useSidebarNavStore((state) => state.collapsedKeys);
+  const toggleCollapsed = useSidebarNavStore((state) => state.toggleCollapsed);
+  const expand = useSidebarNavStore((state) => state.expand);
+  const collapsedNavKeys = useMemo(() => new Set(collapsedKeys), [collapsedKeys]);
+  const openGroupKeys = useMemo(
+    () =>
+      new Set(
+        [...defaultExpandedGroupKeys].filter(
+          (key) => !collapsedNavKeys.has(navGroupCollapseKey(key)),
         ),
-      );
-
-      if (next.size === prev.size) {
-        let changed = false;
-        for (const key of prev) {
-          if (!next.has(key)) {
-            changed = true;
-            break;
-          }
-        }
-        if (!changed) return prev;
-      }
-      return next;
-    });
-  }, [allGroupKeys, defaultExpandedGroupKeys]);
+      ),
+    [collapsedNavKeys, defaultExpandedGroupKeys],
+  );
 
   const openChainForKey = useCallback(
     (key: string) => {
-      setOpenGroupKeys((prev) => {
-        const entry = navIndex.get(key);
-        if (!entry) return prev;
+      const entry = navIndex.get(key);
+      if (!entry) return;
 
-        if (entry.isGroup) {
-          const next = new Set(prev);
-          if (next.has(entry.key)) next.delete(entry.key);
-          else next.add(entry.key);
-          return next;
-        }
+      if (entry.isGroup) {
+        toggleCollapsed(navGroupCollapseKey(entry.key));
+        return;
+      }
 
-        const next = new Set(prev);
-        let currentParent = entry.parentKey;
-
-        while (currentParent !== "__root__") {
-          next.add(currentParent);
-          const parentEntry = navIndex.get(currentParent);
-          if (!parentEntry) break;
-          currentParent = parentEntry.parentKey;
-        }
-
-        return next;
-      });
+      const parentCollapseKeys: string[] = [];
+      let currentParent = entry.parentKey;
+      while (currentParent !== "__root__") {
+        if (!allGroupKeys.has(currentParent)) break;
+        parentCollapseKeys.push(navGroupCollapseKey(currentParent));
+        const parentEntry = navIndex.get(currentParent);
+        if (!parentEntry) break;
+        currentParent = parentEntry.parentKey;
+      }
+      expand(parentCollapseKeys);
     },
-    [navIndex],
+    [allGroupKeys, expand, navIndex, toggleCollapsed],
   );
 
-  return { openGroupKeys, openChainForKey };
+  return { collapsedNavKeys, openGroupKeys, openChainForKey, toggleSection: toggleCollapsed };
 }
 
 function useDisplayItems(
@@ -314,7 +289,8 @@ function useAdminSiderNavState(props: AdminSiderNavProps): AdminSiderNavState {
       ),
     [activeSource, baseActiveTrail, starredActive, starredActiveTrail],
   );
-  const { openGroupKeys, openChainForKey } = useOpenChain(displayItems);
+  const { collapsedNavKeys, openGroupKeys, openChainForKey, toggleSection } =
+    useOpenChain(displayItems);
   const isCollapsed = sidebarState === "collapsed" && !isMobile;
   const selectActiveSource = useCallback(
     (source: ActiveSource, targetPath?: string) =>
@@ -333,6 +309,8 @@ function useAdminSiderNavState(props: AdminSiderNavProps): AdminSiderNavState {
     suppressedKeys,
     openGroupKeys,
     openChainForKey,
+    collapsedNavKeys,
+    toggleSection,
     selectActiveSource,
     collapsedMode: isCollapsed,
   };
@@ -349,12 +327,12 @@ function NavItemsTree(props: {
   suppressedKeys: ReadonlySet<string>;
   openGroupKeys: OpenGroupKeys;
   openChainForKey: (key: string) => void;
+  collapsedNavKeys: ReadonlySet<string>;
+  toggleSection: (key: string) => void;
   selectActiveSource: (source: ActiveSource, targetPath?: string) => void;
   resolvePermissionName?: (code: string) => string | null;
   isCollapsed: boolean;
 }) {
-  const { t } = useTranslation();
-
   return (
     <SidebarGroup className="p-0">
       <SidebarGroupContent>
@@ -365,33 +343,26 @@ function NavItemsTree(props: {
             "transition-[gap] duration-320 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
           )}
         >
-          {props.items.map((item) => (
-            <Fragment key={item.key}>
-              {resolveLeadingLabel(item, t) ? (
-                <NavGroupMarker label={resolveLeadingLabel(item, t) as string} />
-              ) : null}
-              {item.dividerBefore ? <NavDivider /> : null}
-              <NavNode
-                item={item}
-                commandNavItems={props.commandNavItems}
-                depth={0}
-                parentKey="__root__"
-                pathname={props.pathname}
-                activeSource={props.activeSource}
-                activeKeys={props.activeKeys}
-                baseActiveKeys={props.baseActiveKeys}
-                starredActiveKeys={props.starredActiveKeys}
-                suppressedKeys={props.suppressedKeys}
-                openGroupKeys={props.openGroupKeys}
-                openChainForKey={props.openChainForKey}
-                selectActiveSource={props.selectActiveSource}
-                resolvePermissionName={props.resolvePermissionName}
-                isCollapsed={props.isCollapsed}
-                hoverDropdown={null}
-              />
-              {item.dividerAfter ? <NavDivider /> : null}
-            </Fragment>
-          ))}
+          <NavNodeList
+            items={props.items}
+            commandNavItems={props.commandNavItems}
+            depth={0}
+            parentKey="__root__"
+            pathname={props.pathname}
+            activeSource={props.activeSource}
+            activeKeys={props.activeKeys}
+            baseActiveKeys={props.baseActiveKeys}
+            starredActiveKeys={props.starredActiveKeys}
+            suppressedKeys={props.suppressedKeys}
+            openGroupKeys={props.openGroupKeys}
+            openChainForKey={props.openChainForKey}
+            collapsedNavKeys={props.collapsedNavKeys}
+            onToggleSection={props.toggleSection}
+            selectActiveSource={props.selectActiveSource}
+            resolvePermissionName={props.resolvePermissionName}
+            isCollapsed={props.isCollapsed}
+            hoverDropdown={null}
+          />
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
@@ -414,6 +385,8 @@ export function AdminSiderNav(props: AdminSiderNavProps) {
         suppressedKeys={state.suppressedKeys}
         openGroupKeys={state.openGroupKeys}
         openChainForKey={state.openChainForKey}
+        collapsedNavKeys={state.collapsedNavKeys}
+        toggleSection={state.toggleSection}
         selectActiveSource={state.selectActiveSource}
         resolvePermissionName={props.resolvePermissionName}
         isCollapsed={state.collapsedMode}

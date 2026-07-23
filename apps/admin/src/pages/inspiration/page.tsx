@@ -298,7 +298,7 @@ function InspirationTemplateCard(props: { item: InspirationGridItem }) {
         />
         <div className="pointer-events-none absolute inset-0 bg-background/10 opacity-0 transition-opacity duration-200 group-hover/card:opacity-100" />
       </div>
-      <div className="flex w-full shrink-0 flex-col justify-center gap-1 px-1">
+      <div className="flex w-full shrink-0 flex-col justify-center px-1">
         <h3 className="min-h-6 truncate text-headline text-label-primary" title={name}>
           {name}
         </h3>

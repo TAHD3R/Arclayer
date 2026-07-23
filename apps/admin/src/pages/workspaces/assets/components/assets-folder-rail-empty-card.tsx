@@ -16,7 +16,7 @@ export function AssetsFolderRailEmptyCard(props: AssetsFolderRailEmptyCardProps)
     <Empty className="rounded-lg px-4 py-8">
       <EmptyHeader>
         <EmptyMedia variant="icon">{props.icon}</EmptyMedia>
-        <EmptyTitle className="text-title3">{props.title}</EmptyTitle>
+        <EmptyTitle>{props.title}</EmptyTitle>
         <EmptyDescription>{props.description}</EmptyDescription>
       </EmptyHeader>
       {props.actionLabel && props.onAction ? (

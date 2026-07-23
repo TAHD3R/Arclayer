@@ -69,7 +69,7 @@ describe("findActiveTrail", () => {
 });
 
 describe("collectDefaultExpandedGroupKeys", () => {
-  it("collects configured groups with children", () => {
+  it("collects every group unless it is explicitly collapsed by default", () => {
     const navItems = [
       makeItem("overview", "/w/ws-1/overview"),
       {
@@ -88,11 +88,21 @@ describe("collectDefaultExpandedGroupKeys", () => {
         ]),
       },
       {
+        ...makeItem("disabled-by-default", undefined, [
+          makeItem("disabled-by-default.child", "/w/ws-1/disabled"),
+        ]),
+        defaultExpanded: false,
+      },
+      {
         ...makeItem("leaf-config", "/w/ws-1/leaf-config"),
         defaultExpanded: true,
       },
     ] satisfies AdminNavItem[];
 
-    expect([...collectDefaultExpandedGroupKeys(navItems)]).toEqual(["content", "team.roles"]);
+    expect([...collectDefaultExpandedGroupKeys(navItems)]).toEqual([
+      "content",
+      "team",
+      "team.roles",
+    ]);
   });
 });

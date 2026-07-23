@@ -3,7 +3,6 @@ import {
   ChartNoAxesCombinedIcon,
   CheckIcon,
   ChevronDownIcon,
-  FolderIcon,
   FileTextIcon,
   PaletteIcon,
   SearchIcon,
@@ -17,6 +16,11 @@ import { useTranslation } from "react-i18next";
 
 import { listAIWorkspaceAgents, type AIWorkspaceAgentCatalogItem } from "@/api/ai";
 import { getProjectDetail, listProjects } from "@/api/projects";
+import {
+  ProjectAvatar,
+  projectAvatarPropsFromIdentity,
+  type ProjectAvatarIdentity,
+} from "@/components/common/project-avatar";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import { Badge } from "@arclayer/ui/badge";
@@ -63,7 +67,7 @@ type AIProjectOption = {
   value: string;
   label: string;
   description: string;
-};
+} & ProjectAvatarIdentity;
 
 export function AIProjectSelector({ className, compact = false }: AIAgentSelectorProps) {
   const { t } = useTranslation(["ai"]);
@@ -98,6 +102,11 @@ export function AIProjectSelector({ className, compact = false }: AIAgentSelecto
         value: project.id,
         label: project.name,
         description: project.description ?? project.slug,
+        iconMode: project.iconMode,
+        iconColor: project.iconColor,
+        iconGlyph: project.iconGlyph,
+        iconEmoji: project.iconEmoji,
+        iconUrl: project.iconUrl,
       })),
     [projectsData?.items],
   );
@@ -108,6 +117,11 @@ export function AIProjectSelector({ className, compact = false }: AIAgentSelecto
           value: currentProject.project.id,
           label: currentProject.project.name,
           description: currentProject.project.description ?? currentProject.project.slug,
+          iconMode: currentProject.project.iconMode,
+          iconColor: currentProject.project.iconColor,
+          iconGlyph: currentProject.project.iconGlyph,
+          iconEmoji: currentProject.project.iconEmoji,
+          iconUrl: currentProject.project.iconUrl,
         }
       : null);
   const buttonLabel = selected?.label ?? t("ai:AI_CHAT_PROJECT_SELECT");
@@ -129,7 +143,14 @@ export function AIProjectSelector({ className, compact = false }: AIAgentSelecto
             className,
           )}
         >
-          <FolderIcon className="size-3.5 shrink-0 text-label-secondary" aria-hidden="true" />
+          {selected ? (
+            <ProjectAvatar
+              name={selected.label}
+              size={16}
+              decorative
+              {...projectAvatarPropsFromIdentity(selected)}
+            />
+          ) : null}
           <span className={cn("truncate", !selected && "text-label-secondary")}>
             {projectsLoading ? t("ai:AI_CHAT_PROJECT_LOADING") : buttonLabel}
           </span>
@@ -158,7 +179,13 @@ export function AIProjectSelector({ className, compact = false }: AIAgentSelecto
                     }}
                     className="w-full cursor-pointer items-start gap-3"
                   >
-                    <FolderIcon className="mt-0.5 size-5 text-label-secondary" aria-hidden="true" />
+                    <ProjectAvatar
+                      name={project.label}
+                      size={20}
+                      className="mt-0.5"
+                      decorative
+                      {...projectAvatarPropsFromIdentity(project)}
+                    />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-callout font-semibold text-label-primary">
                         {project.label}

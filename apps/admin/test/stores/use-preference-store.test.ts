@@ -47,7 +47,7 @@ describe("usePreferencesStore layout width preferences", () => {
   it("initializes and persists AI drawer width in localStorage", () => {
     initializePreferences();
 
-    expect(usePreferencesStore.getState().aiDrawerWidthPx).toBe(320);
+    expect(usePreferencesStore.getState().aiDrawerWidthPx).toBe(380);
 
     teardownPreferences();
     window.localStorage.setItem(STORAGE_KEYS.aiDrawerWidthPx, "456");
@@ -69,7 +69,7 @@ describe("usePreferencesStore layout width preferences", () => {
     expect(usePreferencesStore.getState().aiDrawerWidthPx).toBe(960);
 
     usePreferencesStore.getState().setAiDrawerWidthPx(240);
-    expect(usePreferencesStore.getState().aiDrawerWidthPx).toBe(320);
-    expect(window.localStorage.getItem(STORAGE_KEYS.aiDrawerWidthPx)).toBe("320");
+    expect(usePreferencesStore.getState().aiDrawerWidthPx).toBe(380);
+    expect(window.localStorage.getItem(STORAGE_KEYS.aiDrawerWidthPx)).toBe("380");
   });
 });

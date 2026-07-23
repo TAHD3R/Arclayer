@@ -4,8 +4,8 @@ import {
   BrainCircuit,
   Building2,
   ChartNoAxesCombined,
+  ChartSpline,
   FolderKanban,
-  Gauge,
   House,
   LayoutDashboard,
   MessageSquareHeart,
@@ -95,18 +95,11 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
     key: "global.platform.observability",
     label: "Observability",
     labelKey: "nav:NAV_GLOBAL_PLATFORM_OBSERVABILITY",
-    to: "/system/observability/overview",
+    to: "/system/observability/requests",
     icon: Activity,
     groupBehavior: "navigate-self-and-expand",
     activeMatchPaths: ["/system/observability"],
     children: [
-      {
-        key: "global.platform.observability.overview",
-        label: "Operations Overview",
-        labelKey: "nav:NAV_GLOBAL_PLATFORM_OBSERVABILITY_OVERVIEW",
-        to: "/system/observability/overview",
-        icon: Gauge,
-      },
       {
         key: "global.platform.observability.requests",
         label: "Requests & Performance",
@@ -121,6 +114,13 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
         to: "/system/observability/ai-usage",
         icon: BrainCircuit,
       },
+      {
+        key: "global.platform.observability.activity",
+        label: "Activity Trends",
+        labelKey: "nav:NAV_GLOBAL_PLATFORM_OBSERVABILITY_ACTIVITY",
+        to: "/system/observability/activity",
+        icon: ChartSpline,
+      },
     ],
   },
   {
@@ -133,20 +133,24 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
 ] as const;
 
 function buildRecentProjectNavItems(projects: readonly GlobalRecentProject[]): AdminNavItem[] {
-  return projects.slice(0, GLOBAL_RECENT_PROJECT_LIMIT).map((project, index) => ({
-    key: `global.recent-project.${project.projectId}`,
-    label: project.name,
-    to: projectHomePath(project.projectId),
-    icon: FolderKanban,
-    iconNode: createElement(ProjectAvatar, {
-      name: project.name,
-      size: 20,
-      className: "rounded-sm ring-0",
-      decorative: true,
-      ...projectAvatarPropsFromIdentity(project),
-    }),
-    ...(index === 0 ? { groupLabelBeforeKey: "nav:NAV_SECTION_PROJECTS" } : {}),
-  }));
+  return projects.slice(0, GLOBAL_RECENT_PROJECT_LIMIT).map((project, index) => {
+    const item: AdminNavItem = {
+      key: `global.recent-project.${project.projectId}`,
+      label: project.name,
+      to: projectHomePath(project.projectId),
+      icon: FolderKanban,
+      iconNode: createElement(ProjectAvatar, {
+        name: project.name,
+        size: 20,
+        className: "rounded-sm ring-0",
+        decorative: true,
+        ...projectAvatarPropsFromIdentity(project),
+      }),
+    };
+    return index === 0
+      ? Object.assign({}, item, { groupLabelBeforeKey: "nav:NAV_SECTION_PROJECTS" })
+      : item;
+  });
 }
 
 export function resolveGlobalNavItems(params: {

@@ -30,6 +30,7 @@ describe("AssetsViewMasonrySection", () => {
     expect(getAdminMasonryMaxColumnCount(0)).toBe(5);
     expect(getAdminMasonryMaxColumnCount(900)).toBe(3);
     expect(getAdminMasonryMaxColumnCount(3200)).toBe(8);
+    expect(getAdminMasonryMaxColumnCount(900, null, 210)).toBe(4);
   });
 
   it("keeps the previous column count while width is still inside the resize buffer", () => {

@@ -1,7 +1,16 @@
 "use client";
 
 import { useAui, useAuiState } from "@assistant-ui/react";
-import { BotIcon, CommandIcon, FolderIcon, GlobeIcon, XIcon, type LucideIcon } from "lucide-react";
+import {
+  BotIcon,
+  CommandIcon,
+  FileTextIcon,
+  FolderIcon,
+  GlobeIcon,
+  ImageIcon,
+  XIcon,
+  type LucideIcon,
+} from "lucide-react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -17,6 +26,7 @@ import {
 import { useAiChatStore } from "@/stores/use-ai-chat-store";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@arclayer/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 
 type AIComposerDirectiveChipsProps = {
@@ -92,23 +102,49 @@ function DirectiveChip(props: {
   showDirectiveLabel?: boolean;
   onRemove: () => void;
 }) {
-  const Icon =
-    props.icon ??
-    (props.directive.type === "project"
-      ? FolderIcon
-      : props.directive.type === "agent"
-        ? BotIcon
-        : CommandIcon);
+  const { t } = useTranslation("ai");
+  const Icon = props.icon ?? directiveIcon(props.directive.type);
+  const canPreviewAsset =
+    props.directive.type === "asset" &&
+    props.directive.mime?.startsWith("image/") &&
+    Boolean(props.directive.previewUrl);
+  const label = (
+    <span className="min-w-0 truncate">
+      <span className="text-label-secondary">{props.label}</span>
+      {props.showDirectiveLabel === false ? null : (
+        <span className="ml-1">{props.directive.label}</span>
+      )}
+    </span>
+  );
 
   return (
-    <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-border/70 bg-background/70 px-2 py-1 text-caption font-semibold text-label-primary shadow-sm">
+    <span className="group/tag inline-flex max-w-full items-center gap-1.5 rounded-full border border-border/70 bg-background/70 py-1 pr-1.5 pl-2 text-caption font-semibold text-label-primary">
       <Icon className="size-3.5 shrink-0 text-label-secondary" aria-hidden="true" />
-      <span className="min-w-0 truncate">
-        <span className="text-label-secondary">{props.label}</span>
-        {props.showDirectiveLabel === false ? null : (
-          <span className="ml-1">{props.directive.label}</span>
-        )}
-      </span>
+      {canPreviewAsset ? (
+        <Dialog>
+          <DialogTrigger asChild>
+            <button
+              type="button"
+              className="min-w-0 cursor-zoom-in rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label={t("AI_CHAT_PREVIEW_ASSET", { name: props.directive.label })}
+            >
+              {label}
+            </button>
+          </DialogTrigger>
+          <DialogContent className="max-w-3xl p-2">
+            <DialogTitle className="sr-only">{props.directive.label}</DialogTitle>
+            <div className="flex max-h-[80dvh] min-h-40 items-center justify-center overflow-hidden rounded-lg bg-muted/40">
+              <img
+                src={props.directive.previewUrl}
+                alt={props.directive.label}
+                className="max-h-[80dvh] max-w-full object-contain"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      ) : (
+        label
+      )}
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
@@ -116,7 +152,7 @@ function DirectiveChip(props: {
             variant="ghost"
             size="icon-sm"
             aria-label={props.label}
-            className="-mr-1 size-5 shrink-0 !rounded-full p-0 text-label-tertiary hover:bg-muted hover:text-label-primary"
+            className="size-5 shrink-0 !rounded-full p-0 text-label-tertiary opacity-0 transition-opacity group-hover/tag:opacity-100 focus-visible:opacity-100 hover:bg-muted hover:text-label-primary"
             onClick={props.onRemove}
           >
             <XIcon className="size-3" aria-hidden="true" />
@@ -134,5 +170,17 @@ function directiveLabel(
 ): string {
   if (directive.type === "project") return t("ai:AI_CHAT_DIRECTIVE_PROJECT");
   if (directive.type === "agent") return t("ai:AI_CHAT_DIRECTIVE_AGENT");
+  if (directive.type === "skill") return t("ai:AI_CHAT_DIRECTIVE_SKILL");
+  if (directive.type === "asset") return t("ai:AI_CHAT_DIRECTIVE_ASSET");
+  if (directive.type === "content") return t("ai:AI_CHAT_DIRECTIVE_CONTENT");
   return t("ai:AI_CHAT_DIRECTIVE_ACTION");
+}
+
+function directiveIcon(type: AIComposerDirectiveChip["type"]): LucideIcon {
+  if (type === "project") return FolderIcon;
+  if (type === "agent") return BotIcon;
+  if (type === "skill") return CommandIcon;
+  if (type === "asset") return ImageIcon;
+  if (type === "content") return FileTextIcon;
+  return CommandIcon;
 }

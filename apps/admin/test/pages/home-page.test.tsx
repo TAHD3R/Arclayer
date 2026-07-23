@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { AppendMessage, ExternalThreadQueueAdapter } from "@assistant-ui/react";
 import type { ComponentType, ReactNode } from "react";
@@ -26,12 +27,18 @@ const assistantUiMockState = vi.hoisted(() => ({
   },
 }));
 
+const viewportMockState = vi.hoisted(() => ({ isMobile: false }));
+
 const COORDINATOR_AGENT_ID = "tLTD4kqITA2PGQobLD1OAQ";
 const DATA_ANALYST_AGENT_ID = "tLTD4kqITA2PGQobLD1OBg";
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigateMock,
   useSearch: () => searchMock(),
+}));
+
+vi.mock("@arclayer/hooks/use-is-mobile", () => ({
+  useIsMobile: () => viewportMockState.isMobile,
 }));
 
 vi.mock("@assistant-ui/react", async () => {
@@ -109,6 +116,8 @@ vi.mock("@assistant-ui/react", async () => {
         },
       }),
     }),
+    useAuiState: (selector: (state: { composer: { text: string } }) => unknown) =>
+      selector({ composer: { text: assistantUiMockState.composerText } }),
     useExternalStoreRuntime: (store: unknown) => {
       assistantUiMockState.runtimeStore = store as typeof assistantUiMockState.runtimeStore;
       return store;
@@ -189,16 +198,36 @@ vi.mock("@/components/ai/ai-model-selector", () => ({
   AIModelSelector: () => <div data-testid="ai-model-selector" />,
 }));
 
+vi.mock("@/components/ai/ai-agent-selector", () => ({
+  AIProjectSelector: () => <div data-testid="ai-project-selector" />,
+}));
+
+vi.mock("@/components/ai/ai-composer-skill-menu", () => ({
+  AIComposerSkillMenu: () => <div data-testid="ai-skill-selector" />,
+}));
+
+vi.mock("@/components/Aurora", () => ({
+  default: () => <div data-testid="aurora-canvas" />,
+}));
+
+vi.mock("@/components/layout/admin-logo", () => ({
+  AdminLogo: ({ ariaLabel }: { ariaLabel: string }) => (
+    <div aria-label={ariaLabel} data-testid="home-brand-logo" />
+  ),
+}));
+
 vi.mock("@/components/common/admin-masonry-grid", async () => {
   return {
     AdminMasonryGrid: ({
       items,
       render: Render,
+      columnCount,
     }: {
       items: Array<{ key: string }>;
       render: ComponentType<{ data: { key: string }; index: number; width: number }>;
+      columnCount?: number;
     }) => (
-      <div data-testid="admin-masonry-grid">
+      <div data-testid="admin-masonry-grid" data-column-count={columnCount}>
         {items.map((item, index) => (
           <Render key={item.key} data={item} index={index} width={260} />
         ))}
@@ -252,6 +281,9 @@ vi.mock("@/stores/use-workspace-store", () => ({
 }));
 
 const labels: Record<string, string> = {
+  "auth:SLOGAN_TITLE": "Arclayer",
+  "auth:SLOGAN_SUBTITLE": "结构化内容，可视化构建。",
+  "ai:AI_CHAT_HOME_PRODUCT_PROMISE": "让内容构建更简单",
   "ai:AI_CHAT_HOME_USER_FALLBACK": "朋友",
   "ai:AI_CHAT_HOME_GREETING": "How can I help you today, 朋友?",
   "ai:AI_CHAT_HOME_SUBTITLE": "从一个问题开始",
@@ -292,6 +324,19 @@ const labels: Record<string, string> = {
   "ai:AI_CHAT_HOME_INSPIRATION_TEMPLATE_REAL_ESTATE_NAME": "Real Estate Showcase",
   "ai:AI_CHAT_HOME_INSPIRATION_TEMPLATE_REAL_ESTATE_DESC": "承载地产项目。",
   "ai:AI_CHAT_INPUT_PLACEHOLDER": "询问 AI…",
+  "ai:AI_CHAT_PLACEHOLDER_CREATE_SITE": "描述你想搭建的网站、页面或内容结构…",
+  "ai:AI_CHAT_PLACEHOLDER_REVIEW_PROJECT": "让我检查当前项目的发布准备…",
+  "ai:AI_CHAT_PLACEHOLDER_MENTION_AGENT": "输入 @ 邀请 Agent 一起分析…",
+  "ai:AI_CHAT_PLACEHOLDER_COMMAND_OR_SKILL": "输入 / 选择命令或已启用 Skill…",
+  "ai:AI_CHAT_PLACEHOLDER_BRAND_DIRECTION": "从品牌方向开始，生成页面与内容方案…",
+  "ai:AI_CHAT_PLACEHOLDER_PROJECT_CONTEXT": "选择项目，让建议带上真实上下文…",
+  "ai:AI_CHAT_HOME_STARTER_WEBSITE": "网站搭建",
+  "ai:AI_CHAT_HOME_STARTER_CONTENT": "内容运营",
+  "ai:AI_CHAT_HOME_STARTER_BRAND": "品牌设计",
+  "ai:AI_CHAT_HOME_STARTER_COMMERCE": "电商内容",
+  "ai:AI_CHAT_HOME_STARTER_WEBSITE_PROMPT_1": "官网改版提示词",
+  "ai:AI_CHAT_HOME_STARTER_WEBSITE_PROMPT_2": "落地页提示词",
+  "ai:AI_CHAT_HOME_STARTER_WEBSITE_PROMPT_3": "内容站提示词",
   "ai:AI_CHAT_SEND": "发送",
   "ai:AI_CHAT_VOICE_INPUT": "语音输入",
   "ai:AI_CHAT_STOP_VOICE_INPUT": "停止语音输入",
@@ -308,7 +353,7 @@ vi.mock("react-i18next", () => ({
       if (key === "ai:AI_CHAT_HOME_GREETING") {
         return `How can I help you today, ${String(options?.name ?? "朋友")}?`;
       }
-      return labels[key] ?? key;
+      return labels[key] ?? labels[`ai:${key}`] ?? labels[`auth:${key}`] ?? key;
     },
   }),
 }));
@@ -316,6 +361,7 @@ vi.mock("react-i18next", () => ({
 describe("HomePage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    viewportMockState.isMobile = false;
     searchMock.mockReturnValue({});
     authState.accessToken = null;
     authState.sessionVersion = 0;
@@ -357,25 +403,70 @@ describe("HomePage", () => {
     });
 
     return render(
-      <QueryClientProvider client={queryClient}>
-        <ChromeTabsProvider
-          labels={{
-            scrollLeftAriaLabel: "向左滚动",
-            scrollRightAriaLabel: "向右滚动",
-          }}
-        >
-          <HomePage />
-        </ChromeTabsProvider>
-      </QueryClientProvider>,
+      <main data-slot="sidebar-inset">
+        <QueryClientProvider client={queryClient}>
+          <ChromeTabsProvider
+            labels={{
+              scrollLeftAriaLabel: "向左滚动",
+              scrollRightAriaLabel: "向右滚动",
+            }}
+          >
+            <HomePage />
+          </ChromeTabsProvider>
+        </QueryClientProvider>
+      </main>,
     );
   }
 
   it("renders the Home entry surface without a legacy conversation state", () => {
     renderHomePage();
 
-    expect(screen.getByText("How can I help you today, 朋友?")).toBeInTheDocument();
-    expect(screen.getByTestId("home-ai-suggestions")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Arclayer 让内容构建更简单" })).toBeInTheDocument();
+    expect(screen.getByText("结构化内容，可视化构建。")).toBeInTheDocument();
+    const aurora = screen.getByTestId("home-ai-aurora");
+    expect(aurora).toBeInTheDocument();
+    expect(aurora).toHaveClass("absolute", "z-0");
+    expect(aurora.closest('[data-slot="admin-route-frame"]')).toBeNull();
+    expect(aurora.parentElement).toHaveClass("isolate");
+    expect(aurora.querySelector('[data-slot="home-aurora-viewport"]')).toHaveClass(
+      "sticky",
+      "top-0",
+    );
+    expect(aurora.querySelector('[data-slot="home-aurora-edge-glow"]')).toHaveClass(
+      "bottom-0",
+      "h-[clamp(16rem,42svh,28rem)]",
+    );
+    expect(aurora.querySelector('[data-slot="home-aurora-canvas"]')).toHaveClass(
+      "bottom-0",
+      "h-[clamp(16rem,42svh,28rem)]",
+    );
+    const composerShell = screen
+      .getByRole("textbox", { name: "询问 AI…" })
+      .closest("[data-ai-composer-shell]");
+    expect(composerShell).toHaveClass(
+      "border-border/60",
+      "hover:border-border",
+      "focus-within:ring-1",
+    );
+    expect(screen.getByTestId("home-ai-prompt-starters")).toBeInTheDocument();
     expect(useAiChatStore.getState()).not.toHaveProperty("conversations");
+  });
+
+  it("expands a Home prompt category and fills the composer without submitting", async () => {
+    const user = userEvent.setup();
+    renderHomePage();
+
+    const categoryButton = screen.getByRole("button", { name: /网站搭建/ });
+    expect(categoryButton).toHaveClass("w-auto", "!rounded-md", "bg-card", "dark:bg-card");
+    expect(categoryButton).not.toHaveClass("w-full", "backdrop-blur-sm");
+    await user.click(categoryButton);
+    const promptButton = screen.getByRole("button", { name: "官网改版提示词" });
+    expect(promptButton.parentElement).toHaveClass("absolute");
+    expect(promptButton).toHaveClass("rounded-md", "bg-popover");
+    await user.click(promptButton);
+
+    expect(assistantUiMockState.composerText).toBe("官网改版提示词");
+    expect(useAIEntryStore.getState().entries).toEqual([]);
   });
 
   it("opens the Drawer and submits the first prompt to the normalized Agent entry queue", async () => {
@@ -560,10 +651,17 @@ describe("HomePage", () => {
     const routeFrame = container.querySelector('[data-slot="admin-route-frame"]');
     const home = container.querySelector('[data-page="ai-home"]');
     const hero = home?.firstElementChild;
+    const createProjectPreview = container.querySelector(
+      '[data-slot="home-create-project-preview"]',
+    );
+    const projectPreview = container.querySelector('[data-slot="home-project-preview"]');
 
     expect(routeFrame).toHaveClass("pb-20");
     expect(home).not.toHaveClass("min-h-full");
-    expect(hero).toHaveClass("min-h-[clamp(20rem,42vh,28rem)]");
+    expect(hero).toHaveClass("min-h-[clamp(34rem,70vh,44rem)]");
+    expect(createProjectPreview).toHaveClass("bg-card", "group-hover:bg-accent");
+    expect(projectPreview).toHaveClass("bg-card");
+    expect(projectPreview?.querySelector(".h-1\\.5")).not.toBeInTheDocument();
   });
 
   it("renders inspiration discovery below recent projects", async () => {
@@ -585,8 +683,42 @@ describe("HomePage", () => {
     expect(await screen.findByTestId("home-inspiration-section")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "全部" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "落地页" })).toBeInTheDocument();
+    expect(screen.getByTestId("home-inspiration-tabs")).not.toHaveClass("bg-background");
+    expect(screen.getByTestId("home-inspiration-tabs")).toHaveAttribute("data-stuck", "false");
+    expect(screen.getByTestId("admin-masonry-grid")).toHaveAttribute("data-column-count", "4");
+    const inspirationCard = document.querySelector('[data-slot="home-inspiration-card"]');
+    const inspirationCardInfo = document.querySelector('[data-slot="home-inspiration-card-info"]');
+    expect(inspirationCard).toHaveClass("overflow-hidden", "bg-card", "hover:border-border");
+    expect(inspirationCard).not.toHaveClass("hover:-translate-y-1");
+    expect(inspirationCard?.querySelector("img")).toHaveClass("absolute", "size-full");
+    expect(inspirationCard?.querySelector("img")).not.toHaveClass("group-hover/card:scale-[1.035]");
+    expect(inspirationCardInfo).toHaveClass("absolute", "bottom-0");
+    expect(inspirationCardInfo?.className).toContain("bg-[linear-gradient");
     expect(screen.getByText("Editorial Studio")).toBeInTheDocument();
     expect(screen.getByText("SaaS Launch Desk")).toBeInTheDocument();
+  });
+
+  it("uses two inspiration columns on mobile", async () => {
+    viewportMockState.isMobile = true;
+    authState.accessToken = "token-1";
+    authState.sessionVersion = 1;
+    workspaceState.currentWorkspaceId = "workspace-1";
+    vi.mocked(listProjects).mockResolvedValue({
+      items: [createProjectListItem()],
+      total: 1,
+      page: 1,
+      size: 3,
+      pages: 1,
+      next: null,
+      prev: null,
+    });
+
+    renderHomePage();
+
+    expect(await screen.findByTestId("admin-masonry-grid")).toHaveAttribute(
+      "data-column-count",
+      "2",
+    );
   });
 });
 

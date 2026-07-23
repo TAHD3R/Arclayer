@@ -25,6 +25,7 @@ import type { CollapsedDropdownController } from "./collapsed-dropdown";
 import {
   DISABLED_ITEM_CLASSNAME,
   INTERACTIVE_TRANSITION_CLASSNAME,
+  NAV_CHEVRON_CLASSNAME,
   NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
   NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
   NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
@@ -52,9 +53,6 @@ const COLLAPSIBLE_CONTENT_CLASSNAME = cn(
   "data-[state=closed]:animate-[arclayer-collapsible-up_160ms_ease-in]",
   "group-data-[motion-phase=collapsing]:hidden",
 );
-
-const NAV_CHEVRON_CLASSNAME =
-  "shrink-0 text-label-secondary transform-gpu transition-transform duration-[220ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none";
 
 const DROPDOWN_CHILD_ITEM_CLASSNAME = cn(
   "relative z-10 h-8 rounded-md text-callout text-label-secondary",

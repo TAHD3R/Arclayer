@@ -38,8 +38,8 @@ const DEFAULT_SIDEBAR_ITEM_VISIBILITY: SidebarItemVisibility = {
 const DEFAULT_SIDEBAR_WIDTH_PX = 220;
 const MIN_SIDEBAR_WIDTH_PX = 180;
 const MAX_SIDEBAR_WIDTH_PX = 320;
-const DEFAULT_AI_DRAWER_WIDTH_PX = 320;
-const MIN_AI_DRAWER_WIDTH_PX = 320;
+const DEFAULT_AI_DRAWER_WIDTH_PX = 380;
+const MIN_AI_DRAWER_WIDTH_PX = 380;
 const MAX_AI_DRAWER_WIDTH_PX = 960;
 
 function normalizeSidebarWidthPx(input: unknown): number {

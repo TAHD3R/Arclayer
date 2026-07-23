@@ -70,7 +70,7 @@ const ACCOUNT_MENU_RESOURCE_URLS = {
 type AccountMenuResource = keyof typeof ACCOUNT_MENU_RESOURCE_URLS;
 
 const HEADER_TRIGGER_CLASSNAME = cn(
-  "group/panel-trigger flex h-12 w-12 items-center gap-1.5 rounded-md border border-transparent bg-transparent sm:h-10 sm:w-auto",
+  "group/panel-trigger flex h-11 w-11 items-center gap-1.5 rounded-md border border-transparent bg-transparent min-[769px]:h-10 min-[769px]:w-auto",
   "text-label-secondary transition-[background-color,color,border-color] duration-200",
   "hover:text-label-primary",
   "data-[state=open]:text-label-primary",

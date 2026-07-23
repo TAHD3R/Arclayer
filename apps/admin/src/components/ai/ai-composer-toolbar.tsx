@@ -15,7 +15,9 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
+import { AIProjectSelector } from "@/components/ai/ai-agent-selector";
 import { AIModelSelector } from "@/components/ai/ai-model-selector";
+import { AIComposerSkillMenu } from "@/components/ai/ai-composer-skill-menu";
 import {
   DEFAULT_AI_COMPOSER_MODE,
   useAiChatStore,
@@ -53,9 +55,46 @@ const COMPOSER_MODES: readonly {
 
 type AIComposerToolbarProps = {
   compact?: boolean;
+  surface?: "default" | "home" | "sidebar";
 };
 
-export function AIComposerToolbar({ compact = false }: AIComposerToolbarProps) {
+export function AIComposerToolbar({
+  compact = false,
+  surface = "default",
+}: AIComposerToolbarProps) {
+  if (surface === "home") {
+    return (
+      <div className="aui-composer-action-wrapper relative flex min-h-8 min-w-0 items-center gap-1">
+        <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <AIComposerAttachmentMenu />
+          <AIModelSelector compact />
+          <AIComposerSkillMenu compact scope="home" />
+          <AIProjectSelector compact />
+        </div>
+        <AIComposerModeSelect compact />
+        <AIComposerPrimaryAction />
+      </div>
+    );
+  }
+
+  if (surface === "sidebar") {
+    return (
+      <div className="aui-composer-action-wrapper relative flex min-w-0 flex-col gap-1">
+        <div className="scrollbar-none flex min-w-0 items-center gap-1 overflow-x-auto">
+          <AIComposerModeSelect compact />
+          <AIComposerSkillMenu compact scope="thread" />
+          <AIProjectSelector compact />
+        </div>
+        <div className="flex min-h-8 min-w-0 items-center gap-1">
+          <AIComposerAttachmentMenu />
+          <AIModelSelector compact />
+          <div className="min-w-0 flex-1" />
+          <AIComposerPrimaryAction />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(

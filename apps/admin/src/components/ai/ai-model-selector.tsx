@@ -1,5 +1,5 @@
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 
@@ -7,6 +7,7 @@ import { listAIModels, type AIModelCatalogItem } from "@/api/ai";
 import { AIModelBrandIcon } from "@/components/ai/ai-model-brand-icons";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
+import { Switch } from "@arclayer/ui/switch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,11 +51,14 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
     staleTime: 0,
     retry: false,
   });
-  const models = isModelCatalogSuccess
-    ? modelCatalog.models.filter((model) => model.available)
-    : [];
+  const models = useMemo(
+    () => (isModelCatalogSuccess ? modelCatalog.models.filter((model) => model.available) : []),
+    [isModelCatalogSuccess, modelCatalog],
+  );
   const canShowSelectedModel = isModelCatalogSuccess && models.length > 0;
   const isAutoModel = selectedModel === AUTO_AI_CHAT_MODEL;
+  const defaultModel =
+    models.find((model) => model.id === modelCatalog?.defaultModel)?.id ?? models[0]?.id;
   const selected =
     canShowSelectedModel && !isAutoModel
       ? (models.find((model) => model.id === selectedModel) ?? models[0])
@@ -93,16 +97,16 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
       }
       return;
     }
-    const defaultModel = models.some((model) => model.id === catalog.defaultModel)
+    const defaultCatalogModel = models.some((model) => model.id === catalog.defaultModel)
       ? catalog.defaultModel
       : models[0].id;
     if (selectedModel === AUTO_AI_CHAT_MODEL) return;
     if (!models.some((model) => model.id === selectedModel)) {
-      setSelectedModel(defaultModel, "default");
+      setSelectedModel(defaultCatalogModel, "default");
       return;
     }
     applyRuntimeDefaults({
-      model: defaultModel,
+      model: defaultCatalogModel,
       reasoningEffort: catalog.reasoningEffort,
       composerMode: catalog.defaultMode,
     });
@@ -141,43 +145,34 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
           compact ? "w-[23rem] max-w-[calc(100vw-2rem)]" : "w-[min(24rem,calc(100vw-2rem))]",
         )}
       >
-        <DropdownMenuGroup className="w-full">
-          {models.length > 0 ? (
-            <DropdownMenuItem
-              onSelect={() => {
-                setSelectedModel(AUTO_AI_CHAT_MODEL);
-                setOpen(false);
+        <div className="flex min-h-11 items-center justify-between gap-4 border-b border-border/60 px-3 py-2">
+          <span className="text-callout font-semibold text-label-primary">
+            {t("ai:AI_CHAT_MODEL_GROUP")}
+          </span>
+          <label className="flex cursor-pointer items-center gap-2 text-footnote font-medium text-label-secondary">
+            <span>{t("ai:AI_CHAT_MODEL_AUTO")}</span>
+            <Switch
+              checked={isAutoModel}
+              aria-label={t("ai:AI_CHAT_MODEL_AUTO")}
+              disabled={!defaultModel}
+              onCheckedChange={(checked) => {
+                setSelectedModel(checked ? AUTO_AI_CHAT_MODEL : String(defaultModel));
               }}
-              className="cursor-pointer items-start gap-3"
-            >
-              <AIModelBrandIcon auto className="mt-0.5 size-5" />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-callout font-semibold text-label-primary">
-                  {t("ai:AI_CHAT_MODEL_AUTO")}
-                </span>
-                <span className="mt-0.5 block truncate text-footnote text-label-secondary">
-                  {t("ai:AI_CHAT_MODEL_AUTO_DESC")}
-                </span>
-              </span>
-              <CheckIcon
-                className={cn(
-                  "mt-1 size-4 text-label-secondary",
-                  isAutoModel ? "opacity-100" : "opacity-0",
-                )}
-                aria-hidden="true"
-              />
-            </DropdownMenuItem>
-          ) : null}
+            />
+          </label>
+        </div>
+        <DropdownMenuGroup className="w-full">
           {models.map((model) => {
             const active = selected?.id === model.id;
             return (
               <DropdownMenuItem
                 key={model.id}
+                disabled={isAutoModel}
                 onSelect={() => {
                   setSelectedModel(model.id);
                   setOpen(false);
                 }}
-                className="cursor-pointer items-start gap-3"
+                className="cursor-pointer items-start gap-3 data-disabled:cursor-not-allowed data-disabled:opacity-45"
               >
                 <AIModelBrandIcon
                   provider={model.provider}

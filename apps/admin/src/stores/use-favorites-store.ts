@@ -239,7 +239,7 @@ export const useFavoritesStore = create<FavoritesState>()(
     (set, get) => ({
       paths: [],
       items: [],
-      sectionExpanded: false,
+      sectionExpanded: true,
       toggle: (rawPath) => {
         const path = normalizeFavoritePath(rawPath);
         if (!path) return;
@@ -332,7 +332,7 @@ export const useFavoritesStore = create<FavoritesState>()(
     {
       name: STORAGE_KEYS.favorites,
       storage: createJSONStorage(() => localStorage),
-      version: 3,
+      version: 4,
       migrate: (persistedState) => {
         const state =
           persistedState && typeof persistedState === "object"
@@ -344,7 +344,7 @@ export const useFavoritesStore = create<FavoritesState>()(
             ? state.items
             : (state.paths ?? []).map((path) => createFavoriteItem(normalizeFavoritePath(path)));
 
-        return buildFavoriteState(items, Boolean(state.sectionExpanded));
+        return buildFavoriteState(items, state.sectionExpanded ?? true);
       },
     },
   ),

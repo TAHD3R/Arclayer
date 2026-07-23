@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   agentIdsForComposerScope,
+  applyAIComposerSkillInstructions,
   consumeAIComposerDirectives,
   filterTrustedAIComposerDirectives,
   parseAIComposerDirectives,
@@ -55,5 +56,27 @@ describe("AI composer directive trust boundary", () => {
     expect(useAIComposerDirectiveStore.getState().directivesByScope.thread).toEqual([
       { type: "agent", id: nextAgentId, label: "Site Architect" },
     ]);
+  });
+
+  it("injects selected Skill instructions only when the message is sent", () => {
+    useAIComposerDirectiveStore.getState().addDirectives("thread", [
+      {
+        type: "skill",
+        id: "skill-1",
+        label: "内容建模",
+        instruction: "请使用已启用的内容建模技能帮我处理：",
+      },
+    ]);
+
+    expect(applyAIComposerSkillInstructions("thread", "检查当前模型")).toBe(
+      "请使用已启用的内容建模技能帮我处理：\n\n检查当前模型",
+    );
+
+    useAIComposerDirectiveStore.getState().removeDirective("thread", {
+      type: "skill",
+      id: "skill-1",
+      label: "内容建模",
+    });
+    expect(applyAIComposerSkillInstructions("thread", "检查当前模型")).toBe("检查当前模型");
   });
 });

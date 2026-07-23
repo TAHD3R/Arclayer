@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -13,10 +14,12 @@ const {
   deleteItemMock,
   markReadMock,
   openTargetMock,
+  recordInteractionMock,
   toastInfoMock,
   routeTransitionSpy,
   aiDrawerOverlaySpy,
   globalNotificationSurfacesSpy,
+  sidebarProviderSpy,
 } = vi.hoisted(() => ({
   adminSidebarShellSpy: vi.fn(),
   getUnreadNotificationPreviewMock: vi.fn(),
@@ -24,10 +27,12 @@ const {
   deleteItemMock: vi.fn(),
   markReadMock: vi.fn(),
   openTargetMock: vi.fn(),
+  recordInteractionMock: vi.fn(),
   toastInfoMock: vi.fn(),
   routeTransitionSpy: vi.fn(),
   aiDrawerOverlaySpy: vi.fn(),
   globalNotificationSurfacesSpy: vi.fn(),
+  sidebarProviderSpy: vi.fn(),
 }));
 
 vi.mock("@/api/notifications", () => ({
@@ -90,9 +95,10 @@ vi.mock("@arclayer/ui/sidebar", () => ({
       {children}
     </div>
   ),
-  SidebarProvider: ({ children }: { children?: ReactNode }) => (
-    <div data-testid="sidebar-provider">{children}</div>
-  ),
+  SidebarProvider: ({ children, ...props }: { children?: ReactNode; open?: boolean }) => {
+    sidebarProviderSpy(props);
+    return <div data-testid="sidebar-provider">{children}</div>;
+  },
 }));
 
 vi.mock("@arclayer/ui/admin-toast", () => ({
@@ -113,6 +119,7 @@ vi.mock("@/hooks/use-notification-actions", () => ({
     deleteItem: (...args: unknown[]) => deleteItemMock(...args),
     markRead: (...args: unknown[]) => markReadMock(...args),
     openTarget: (...args: unknown[]) => openTargetMock(...args),
+    recordInteraction: (...args: unknown[]) => recordInteractionMock(...args),
   }),
 }));
 
@@ -129,7 +136,7 @@ const preferencesState = {
   showNotificationsBadge: true,
   sidebarOpen: true,
   sidebarWidthPx: 280,
-  aiDrawerWidthPx: 320,
+  aiDrawerWidthPx: 380,
   setSidebarOpen: vi.fn(),
   setSidebarWidthPx: vi.fn(),
   setAiDrawerWidthPx: vi.fn(),
@@ -189,7 +196,8 @@ describe("AdminSceneLayout", () => {
     preferencesState.setSidebarOpen.mockReset();
     preferencesState.setSidebarWidthPx.mockReset();
     preferencesState.setAiDrawerWidthPx.mockReset();
-    preferencesState.aiDrawerWidthPx = 320;
+    preferencesState.sidebarOpen = true;
+    preferencesState.aiDrawerWidthPx = 380;
     useAiChatStore.setState({
       drawerOpen: false,
     });
@@ -201,6 +209,7 @@ describe("AdminSceneLayout", () => {
     deleteItemMock.mockResolvedValue(true);
     markReadMock.mockResolvedValue(true);
     openTargetMock.mockResolvedValue(true);
+    recordInteractionMock.mockResolvedValue(true);
   });
 
   it("keeps the initial unread preview silent while still wiring the inbox badge", async () => {
@@ -232,7 +241,11 @@ describe("AdminSceneLayout", () => {
       );
     });
     expect(globalNotificationSurfacesSpy).toHaveBeenLastCalledWith(
-      expect.objectContaining({ items: [expect.objectContaining({ id: "notif-1" })] }),
+      expect.objectContaining({
+        items: [expect.objectContaining({ id: "notif-1" })],
+        onOpenTarget: expect.any(Function),
+        onRecordInteraction: expect.any(Function),
+      }),
     );
   });
 
@@ -280,6 +293,48 @@ describe("AdminSceneLayout", () => {
     const pageScroller = container.querySelector(".overflow-y-auto");
 
     expect(pageScroller).toHaveClass("overflow-x-hidden", "[scrollbar-gutter:auto]");
+  });
+
+  it("temporarily collapses an expanded desktop sidebar while the AI drawer is open", async () => {
+    useAiChatStore.setState({ drawerOpen: true });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    renderSceneLayout(queryClient);
+
+    expect(sidebarProviderSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ open: false, defaultOpen: false }),
+    );
+    expect(preferencesState.setSidebarOpen).not.toHaveBeenCalled();
+
+    act(() => useAiChatStore.setState({ drawerOpen: false }));
+    await waitFor(() => {
+      expect(sidebarProviderSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({ open: true, defaultOpen: true }),
+      );
+    });
+    expect(preferencesState.setSidebarOpen).not.toHaveBeenCalled();
+  });
+
+  it("keeps a user-collapsed sidebar collapsed after the AI drawer closes", async () => {
+    preferencesState.sidebarOpen = false;
+    useAiChatStore.setState({ drawerOpen: true });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    renderSceneLayout(queryClient);
+
+    expect(sidebarProviderSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ open: false, defaultOpen: false }),
+    );
+
+    act(() => useAiChatStore.setState({ drawerOpen: false }));
+    await waitFor(() => {
+      expect(sidebarProviderSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({ open: false, defaultOpen: false }),
+      );
+    });
+    expect(preferencesState.setSidebarOpen).not.toHaveBeenCalled();
   });
 
   it("stacks one toast per newly arrived unread preview item after a refetch", async () => {
@@ -368,6 +423,43 @@ describe("AdminSceneLayout", () => {
     expect(toastInfoMock).not.toHaveBeenCalled();
   });
 
+  it("persists a campaign toast click without pre-marking it as read", async () => {
+    const user = userEvent.setup();
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    queryClient.setQueryData(["notifications", "preview", authState.sessionVersion], {
+      unreadCount: 0,
+      items: [],
+    });
+    renderSceneLayout(queryClient);
+
+    const campaignToast = createNotification({
+      id: "broadcast-toast",
+      title: "Release ready",
+      eventName: "system.broadcast",
+      workspaceId: "00000000-0000-0000-0000-000000000000",
+      targetMeta: { presentation: "toast" },
+    });
+    act(() => {
+      queryClient.setQueryData(["notifications", "preview", authState.sessionVersion], {
+        unreadCount: 1,
+        items: [campaignToast],
+      });
+    });
+
+    await waitFor(() => expect(toastInfoMock).toHaveBeenCalledTimes(1));
+    const toastContent = toastInfoMock.mock.calls[0]?.[0] as { title: ReactNode };
+    render(<>{toastContent.title}</>);
+    await user.click(screen.getByRole("button", { name: "Release ready" }));
+
+    await waitFor(() =>
+      expect(openTargetMock).toHaveBeenCalledWith(campaignToast, { markRead: false }),
+    );
+    await waitFor(() => expect(recordInteractionMock).toHaveBeenCalledWith(campaignToast, "click"));
+    expect(markReadMock).not.toHaveBeenCalledWith(campaignToast);
+  });
+
   it("marks the main panel as the floating boundary and resizes the AI drawer when open", async () => {
     useAiChatStore.setState({ drawerOpen: true });
     const queryClient = new QueryClient({
@@ -410,7 +502,7 @@ describe("AdminSceneLayout", () => {
     expect(separator).toHaveClass("hover:after:bg-sidebar-border");
     expect(separator).toHaveClass("-right-4");
     expect(aiDrawerOverlaySpy).toHaveBeenLastCalledWith(
-      expect.objectContaining({ widthPx: 320, assistantAvailable: true }),
+      expect.objectContaining({ widthPx: 380, assistantAvailable: true }),
     );
 
     fireEvent(separator, createPointerEvent("pointerdown", { button: 0, clientX: 480 }));
@@ -424,7 +516,7 @@ describe("AdminSceneLayout", () => {
     act(() => {
       window.dispatchEvent(createPointerEvent("pointermove", { clientX: 760 }));
     });
-    expect(preferencesState.setAiDrawerWidthPx).toHaveBeenLastCalledWith(320);
+    expect(preferencesState.setAiDrawerWidthPx).toHaveBeenLastCalledWith(380);
 
     act(() => {
       window.dispatchEvent(createPointerEvent("pointerup", {}));

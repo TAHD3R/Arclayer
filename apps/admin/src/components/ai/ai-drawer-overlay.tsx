@@ -1,6 +1,13 @@
 import { useAui, useAuiState } from "@assistant-ui/react";
 import { MessageSquarePlus, PanelRightClose, PlusIcon } from "lucide-react";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 
 import { AgentThreadHistory } from "@/components/ai/agent-thread-history";
@@ -26,7 +33,7 @@ function DrawerIconButton(props: { label: string; onClick: () => void; children:
           size="icon-sm"
           aria-label={props.label}
           onClick={props.onClick}
-          className="text-label-secondary hover:text-label-primary"
+          className="size-11 text-label-secondary hover:text-label-primary min-[769px]:size-8"
         >
           {props.children}
         </Button>
@@ -148,10 +155,14 @@ export function AIDrawerOverlay(props: { widthPx: number; assistantAvailable: bo
   return (
     <aside
       className={cn(
-        "my-4 h-[calc(100vh-2rem)] shrink-0 overflow-hidden rounded-2xl transition-[width,opacity,margin-right] duration-[250ms] ease-out motion-reduce:transition-none",
-        drawerOpen ? "mr-4 opacity-100" : "mr-0 w-0 opacity-0",
+        "fixed inset-0 z-50 h-svh shrink-0 overflow-hidden bg-background transition-[width,opacity,margin-right] duration-[250ms] ease-out motion-reduce:transition-none min-[769px]:static min-[769px]:inset-auto min-[769px]:my-4 min-[769px]:h-[calc(100vh-2rem)] min-[769px]:rounded-2xl min-[769px]:bg-transparent",
+        drawerOpen
+          ? "mr-0 w-full opacity-100 min-[769px]:mr-4 min-[769px]:w-[var(--ai-drawer-width)]"
+          : "pointer-events-none mr-0 w-0 opacity-0",
       )}
-      style={drawerOpen ? { width: props.widthPx } : undefined}
+      style={
+        drawerOpen ? ({ "--ai-drawer-width": `${props.widthPx}px` } as CSSProperties) : undefined
+      }
       aria-hidden={!drawerOpen}
       aria-label={t("ai:AI_CHAT_ASK")}
     >

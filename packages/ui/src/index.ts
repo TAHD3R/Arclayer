@@ -78,7 +78,6 @@ export * from "./filters";
 export * from "./floating-panel";
 export * from "./frame";
 export * from "./highlight";
-export * from "./illustrations";
 export * from "./loader";
 export * from "./modal";
 export * from "./page-skeleton";

@@ -7,10 +7,12 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
 import { PROJECT_NAV_ITEMS } from "@/constants/menu/project";
+import { STORAGE_KEYS } from "@/constants/storage";
 import { mapWorkspaceNavItems } from "@/layouts/admin-scene-utils";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
+import { useSidebarNavStore } from "@/stores/use-sidebar-nav-store";
 import { Sidebar, SidebarMenuButton, SidebarProvider } from "@arclayer/ui/sidebar";
 
 const navigateMock = vi.fn().mockResolvedValue(undefined);
@@ -415,6 +417,7 @@ describe("AdminSiderNav collapsed groups", () => {
     mockPathname = "/w/ws-1/team/invitations";
     useFavoritesStore.setState({ paths: [], items: [], sectionExpanded: false });
     usePreferencesStore.setState({ sidebarItemVisibility: { favorites: true } });
+    useSidebarNavStore.setState({ collapsedKeys: [] });
   });
 
   it("forwards refs through SidebarMenuButton to the real button element", () => {
@@ -561,7 +564,12 @@ describe("AdminSiderNav collapsed groups", () => {
         favoriteWorkspaceBase: "/w/ws-1",
       });
 
-      const favoriteButton = screen.getByRole("button", { name: longLabel });
+      const favoritesHeader = screen.getByRole("button", { name: "en-US:nav:NAV_FAVORITES" });
+      const favoritesContainer = favoritesHeader.closest('[data-slot="sidebar-menu-item"]');
+      expect(favoritesContainer).not.toBeNull();
+      const favoriteButton = within(favoritesContainer as HTMLElement).getByRole("button", {
+        name: longLabel,
+      });
       await user.hover(favoriteButton);
 
       await waitFor(() => {
@@ -633,11 +641,7 @@ describe("AdminSiderNav collapsed groups", () => {
       expect(screen.queryByRole("menuitem", { name: "Members" })).not.toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole("button", { name: "Team" }));
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Members" })).toBeVisible();
-    });
+    expect(screen.getByRole("button", { name: "Members" })).toBeVisible();
   });
 
   it("renders group markers as part of the nav tree", () => {
@@ -697,18 +701,124 @@ describe("AdminSiderNav collapsed groups", () => {
     expect(screen.getByRole("button", { name: "Project Beta" })).toBeVisible();
   });
 
-  it("keeps all top-level groups collapsed by default", () => {
+  it("collapses a labeled section through the whole label row and persists the state", async () => {
+    const user = userEvent.setup();
+    const view = renderTreeNav({
+      items: globalItems,
+      favoriteWorkspaceBase: "/w/ws-1",
+    });
+    const sectionLabel = screen.getByRole("button", {
+      name: "en-US:nav:NAV_SECTION_PROJECTS",
+    });
+
+    expect(sectionLabel).toHaveAttribute("aria-expanded", "true");
+    expect(sectionLabel.querySelector("svg")).not.toBeNull();
+    expect(sectionLabel.querySelector("svg")).toHaveClass(
+      "rotate-90",
+      "transition-[opacity,transform,translate,scale,rotate]",
+      "duration-[220ms]",
+      "motion-reduce:transition-none",
+    );
+    const contentId = sectionLabel.getAttribute("aria-controls");
+    expect(contentId).toBeTruthy();
+    expect(document.getElementById(String(contentId))).toHaveClass(
+      "data-[state=open]:animate-[arclayer-collapsible-down_180ms_ease-out]",
+      "data-[state=closed]:animate-[arclayer-collapsible-up_140ms_ease-out]",
+      "motion-reduce:animate-none",
+    );
+
+    await user.click(sectionLabel);
+
+    expect(sectionLabel).toHaveAttribute("aria-expanded", "false");
+    expect(sectionLabel.querySelector("svg")).not.toHaveClass("rotate-90");
+    expect(screen.queryByRole("button", { name: "Project Alpha" })).not.toBeInTheDocument();
+    expect(useSidebarNavStore.getState().collapsedKeys).toContain(
+      "section:__root__:nav:NAV_SECTION_PROJECTS",
+    );
+    expect(localStorage.getItem(STORAGE_KEYS.sidebarNavCollapsed)).toContain(
+      "section:__root__:nav:NAV_SECTION_PROJECTS",
+    );
+
+    view.unmount();
+    renderTreeNav({ items: globalItems, favoriteWorkspaceBase: "/w/ws-1" });
+    expect(screen.queryByRole("button", { name: "Project Alpha" })).not.toBeInTheDocument();
+  });
+
+  it("keeps open section items in the icon rail while disabling the hidden section label", async () => {
+    renderTreeNav({
+      items: globalItems,
+      favoriteWorkspaceBase: "/w/ws-1",
+      open: false,
+    });
+
+    await waitForCollapsedRender();
+
+    const sectionLabel = screen.getByRole("button", {
+      name: "en-US:nav:NAV_SECTION_PROJECTS",
+    });
+    expect(document.querySelector('[data-slot="sidebar"]')).toHaveAttribute(
+      "data-layout-state",
+      "collapsed",
+    );
+    expect(sectionLabel.className).toContain("pointer-events-none");
+    expect(screen.getByRole("button", { name: "Project Alpha" })).toBeInTheDocument();
+  });
+
+  it("hides closed labeled sections in the icon rail and restores their marker when expanded", async () => {
+    useSidebarNavStore.setState({
+      collapsedKeys: ["section:__root__:nav:NAV_SECTION_PROJECTS"],
+    });
+    const view = renderTreeNav({
+      items: globalItems,
+      favoriteWorkspaceBase: "/w/ws-1",
+      open: false,
+    });
+
+    await waitForCollapsedRender();
+
+    expect(
+      screen.queryByRole("button", { name: "en-US:nav:NAV_SECTION_PROJECTS" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Project Alpha" })).not.toBeInTheDocument();
+
+    view.rerender(
+      <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
+        <Sidebar collapsible="icon" animateOnHover={false}>
+          <AdminSiderNav items={globalItems} favoriteWorkspaceBase="/w/ws-1" showFavorites />
+        </Sidebar>
+      </SidebarProvider>,
+    );
+
+    expect(
+      await screen.findByRole("button", { name: "en-US:nav:NAV_SECTION_PROJECTS" }),
+    ).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("collapses nested labeled sections independently", async () => {
+    const user = userEvent.setup();
+    renderTreeNav({
+      items: nestedProjectMarkerItems,
+      favoriteWorkspaceBase: "/projects/project-alpha",
+    });
+
+    await user.click(screen.getByRole("button", { name: "en-US:nav:NAV_PINNED_SECTION" }));
+
+    expect(screen.queryByRole("button", { name: "Project Alpha" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Project Beta" })).toBeVisible();
+  });
+
+  it("keeps all top-level groups expanded by default", () => {
     renderTreeNav({
       items: treeItems,
       favoriteWorkspaceBase: "/w/ws-1",
     });
 
-    expect(screen.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Members" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Invitations" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Assets" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Members" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Invitations" })).toBeVisible();
   });
 
-  it("opens configured groups by default and still allows manual collapse", async () => {
+  it("allows default-expanded groups to be collapsed", async () => {
     const user = userEvent.setup();
     const defaultExpandedItems: AdminNavItem[] = treeItems.map((item) =>
       item.key === "content" ? { ...item, defaultExpanded: true } : item,
@@ -720,13 +830,27 @@ describe("AdminSiderNav collapsed groups", () => {
     });
 
     expect(screen.getByRole("button", { name: "Assets" })).toBeVisible();
-    expect(screen.queryByRole("button", { name: "Members" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Members" })).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "Content" }));
 
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
     });
+  });
+
+  it("persists collapsed menu items across sidebar remounts", async () => {
+    const user = userEvent.setup();
+    const view = renderTreeNav({ items: treeItems, favoriteWorkspaceBase: "/w/ws-1" });
+
+    await user.click(screen.getByRole("button", { name: "Content" }));
+    expect(screen.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
+    expect(localStorage.getItem(STORAGE_KEYS.sidebarNavCollapsed)).toContain("group:content");
+
+    view.unmount();
+    renderTreeNav({ items: treeItems, favoriteWorkspaceBase: "/w/ws-1" });
+    expect(screen.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Members" })).toBeVisible();
   });
 
   it("toggles top-level groups independently without accordion behavior", async () => {
@@ -738,13 +862,13 @@ describe("AdminSiderNav collapsed groups", () => {
 
     await user.click(screen.getByRole("button", { name: "Content" }));
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Assets" })).toBeVisible();
+      expect(screen.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
     });
-    expect(screen.queryByRole("button", { name: "Members" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Members" })).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "Content" }));
     await waitFor(() => {
-      expect(screen.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Assets" })).toBeVisible();
     });
   });
 
@@ -792,15 +916,11 @@ describe("AdminSiderNav collapsed groups", () => {
       },
     ];
 
-    const user = userEvent.setup();
-
     renderTreeNav({
       items: nestedItems,
       favoriteWorkspaceBase: "/w/ws-1",
       pathnameOverride: "/w/ws-1/platform/jobs",
     });
-
-    await user.click(screen.getByRole("button", { name: "Platform" }));
 
     const subgroupButton = screen.getByRole("button", { name: "Operations" });
     const trailingIconSlot = subgroupButton.querySelector(".ml-auto.inline-flex.size-6");
@@ -827,14 +947,10 @@ describe("AdminSiderNav collapsed groups", () => {
       },
     ];
 
-    const user = userEvent.setup();
-
     renderTreeNav({
       items: disabledNestedItems,
       favoriteWorkspaceBase: "/w/ws-1",
     });
-
-    await user.click(screen.getByRole("button", { name: "Platform" }));
 
     const placeholderButton = screen.getByRole("button", { name: "Configuration" });
 
@@ -938,6 +1054,23 @@ describe("AdminSiderNav collapsed groups", () => {
     expect(favoritesActionsButton.parentElement?.className).toContain(
       "group-hover/nav-item:opacity-100",
     );
+  });
+
+  it("keeps favorites child rows outside the header hover group", () => {
+    useFavoritesStore.setState({
+      paths: ["/w/ws-1/assets"],
+      items: [],
+      sectionExpanded: true,
+    });
+
+    renderTreeNav({ items: treeItems, favoriteWorkspaceBase: "/w/ws-1" });
+
+    const header = screen.getByRole("button", { name: "en-US:nav:NAV_FAVORITES" });
+    const headerHoverGroup = header.closest('[class~="group/nav-item"]');
+    expect(headerHoverGroup).not.toBeNull();
+    expect(
+      within(headerHoverGroup as HTMLElement).queryByRole("button", { name: "Assets" }),
+    ).not.toBeInTheDocument();
   });
 
   it("hides favorites after confirming the header menu action", async () => {
@@ -1071,6 +1204,7 @@ describe("AdminSiderNav collapsed groups", () => {
       paths: ["/w/ws-1/content/seo-analyze"],
       sectionExpanded: false,
     });
+    useSidebarNavStore.setState({ collapsedKeys: ["group:content"] });
 
     renderTreeNav({
       items: treeItems,
@@ -1134,7 +1268,6 @@ describe("AdminSiderNav collapsed groups", () => {
       favoriteWorkspaceBase: "/w/ws-1",
     });
 
-    await user.click(screen.getByRole("button", { name: "Content" }));
     await user.click(screen.getByRole("button", { name: "SEO Analyze" }));
 
     expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-1/content/seo-analyze" });
@@ -1168,7 +1301,6 @@ describe("AdminSiderNav collapsed groups", () => {
       favoriteWorkspaceBase: "/w/ws-1",
     });
 
-    await user.click(screen.getByRole("button", { name: "Content" }));
     await user.click(screen.getByRole("button", { name: "Website Config" }));
 
     expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-1/website/config" });
@@ -1206,7 +1338,6 @@ describe("AdminSiderNav collapsed groups", () => {
       favoriteWorkspaceBase: "/w/ws-1",
     });
 
-    await user.click(screen.getByRole("button", { name: "Workspace" }));
     await user.click(screen.getByRole("button", { name: "Workspace Settings" }));
 
     expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-1/settings/workspace" });
@@ -1237,6 +1368,7 @@ describe("AdminSiderNav collapsed groups", () => {
   it("navigates to the parent route and expands children for navigate-self-and-expand groups", async () => {
     const user = userEvent.setup();
     mockPathname = "/";
+    useSidebarNavStore.setState({ collapsedKeys: ["group:global.projects"] });
 
     renderTreeNav({
       items: navigateSelfAndExpandItems,
@@ -1253,6 +1385,7 @@ describe("AdminSiderNav collapsed groups", () => {
 
   it("uses the parent route as the collapsed click target for navigate-self-and-expand groups", async () => {
     mockPathname = "/";
+    useSidebarNavStore.setState({ collapsedKeys: ["group:global.projects"] });
 
     renderCollapsedNav(navigateSelfAndExpandItems);
 
@@ -1265,6 +1398,7 @@ describe("AdminSiderNav collapsed groups", () => {
   it("can keep a source menu branch active while current route renders /notifications", async () => {
     const user = userEvent.setup();
     mockPathname = "/notifications";
+    useSidebarNavStore.setState({ collapsedKeys: ["group:team"] });
 
     renderTreeNav({
       items: treeItems,
@@ -1285,7 +1419,6 @@ describe("AdminSiderNav collapsed groups", () => {
 
     renderWithQueryClient(<ControlledSidebarNav items={items} />);
 
-    await user.click(screen.getByRole("button", { name: "Team" }));
     const membersButton = screen.getByRole("button", { name: "Members" });
     const subTree = membersButton.closest('[data-slot="sidebar-menu-sub"]');
     const collapsibleContent = subTree?.closest("[data-state]");
@@ -1394,17 +1527,13 @@ describe("AdminSiderNav collapsed groups", () => {
   });
 
   it("keeps collapsed groups accessible in icon mode and restores expanded group state on expand", async () => {
-    const user = userEvent.setup();
     const view = renderTreeNav({
       items: treeItems,
       favoriteWorkspaceBase: "/w/ws-1",
       open: true,
     });
 
-    await user.click(screen.getByRole("button", { name: "Content" }));
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Assets" })).toBeVisible();
-    });
+    expect(screen.getByRole("button", { name: "Assets" })).toBeVisible();
 
     view.rerender(
       <SidebarProvider open={false} onOpenChange={() => undefined} className="h-screen">
@@ -1428,6 +1557,6 @@ describe("AdminSiderNav collapsed groups", () => {
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Assets" })).toBeVisible();
     });
-    expect(screen.queryByRole("button", { name: "Members" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Members" })).toBeVisible();
   });
 });

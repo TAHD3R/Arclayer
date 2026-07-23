@@ -175,7 +175,8 @@ function CreateProjectHomeCard(props: { label: string; onClick: () => void }) {
       onClick={props.onClick}
     >
       <div
-        className="relative w-full overflow-hidden rounded-xl border border-dashed border-border/80 bg-muted/35 transition-[background-color,border-color,box-shadow] duration-200 group-hover:border-border group-hover:bg-accent/35 group-hover:shadow-sm"
+        data-slot="home-create-project-preview"
+        className="relative w-full overflow-hidden rounded-xl border border-dashed border-border/80 bg-card transition-[background-color,border-color,box-shadow] duration-200 group-hover:border-border group-hover:bg-accent group-hover:shadow-sm"
         style={{ aspectRatio: "239.2 / 135.4" }}
       >
         <div className="absolute inset-0 flex items-center justify-center text-label-secondary transition-colors group-hover:text-label-primary">
@@ -233,7 +234,7 @@ function RecentProjectCard(props: {
       onKeyDown={handleKeyDown}
     >
       <ProjectPreviewFrame project={props.project} />
-      <div className="flex w-full shrink-0 flex-col justify-center gap-1 px-1">
+      <div className="flex w-full shrink-0 flex-col justify-center px-1">
         <div className="flex min-h-6 w-full shrink-0 items-center gap-2">
           <ProjectInlineNameEditor
             editing={props.editing && props.editingField === "name"}
@@ -288,19 +289,20 @@ function ProjectPreviewFrame(props: { project: UserCenterProjectListItem }) {
 
   return (
     <div
-      className="relative w-full overflow-hidden rounded-xl border border-border/75 bg-muted/35 transition-[border-color,box-shadow,transform] duration-200 group-hover/card:border-border group-hover/card:shadow-sm"
+      data-slot="home-project-preview"
+      className="relative w-full overflow-hidden rounded-xl border border-border/75 bg-card transition-[border-color,box-shadow,transform] duration-200 group-hover/card:border-border group-hover/card:shadow-sm"
       style={{ aspectRatio: "239.2 / 135.4" }}
     >
       {hasImage ? (
         <img
           src={props.project.iconUrl ?? undefined}
           alt=""
-          className="absolute inset-0 size-full object-cover opacity-90 transition-transform duration-300 group-hover/card:scale-[1.02]"
+          className="absolute inset-0 size-full object-cover transition-transform duration-300 group-hover/card:scale-[1.02]"
           loading="lazy"
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="flex size-16 items-center justify-center rounded-2xl bg-background/80 shadow-sm ring-1 ring-border/70">
+          <div className="flex size-16 items-center justify-center rounded-2xl bg-background shadow-sm ring-1 ring-border/70">
             <ProjectAvatar
               name={props.project.name}
               size={42}
@@ -310,11 +312,6 @@ function ProjectPreviewFrame(props: { project: UserCenterProjectListItem }) {
           </div>
         </div>
       )}
-      <div className="pointer-events-none absolute inset-x-4 bottom-3 flex items-center gap-1.5 opacity-70">
-        <span className="h-1.5 flex-1 rounded-full bg-background/70" />
-        <span className="h-1.5 w-8 rounded-full bg-background/55" />
-        <span className="h-1.5 w-4 rounded-full bg-background/45" />
-      </div>
       <div
         className={cn(
           "pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover/card:opacity-100",

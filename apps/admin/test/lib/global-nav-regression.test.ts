@@ -5,8 +5,8 @@ import {
   Boxes,
   Building2,
   ChartNoAxesCombined,
+  ChartSpline,
   FolderKanban,
-  Gauge,
   House,
   LayoutDashboard,
   MessageSquareHeart,
@@ -79,9 +79,9 @@ describe("global nav regression", () => {
       (item) => item.key === "global.platform.observability",
     );
     expect(observabilityItem?.children?.map((item) => item.to)).toEqual([
-      "/system/observability/overview",
       "/system/observability/requests",
       "/system/observability/ai-usage",
+      "/system/observability/activity",
     ]);
     expect(platformOverview?.disabled).toBeUndefined();
   });
@@ -121,9 +121,9 @@ describe("global nav regression", () => {
     );
     expect(new Map(observabilityChildren.map((item) => [item.key, item.icon]))).toEqual(
       new Map([
-        ["global.platform.observability.overview", Gauge],
         ["global.platform.observability.requests", ChartNoAxesCombined],
         ["global.platform.observability.ai-usage", BrainCircuit],
+        ["global.platform.observability.activity", ChartSpline],
       ]),
     );
   });
@@ -205,12 +205,12 @@ describe("global nav regression", () => {
     expect(allProjectsItem?.insertStarredAfter).toBe(true);
   });
 
-  test("marks the observability overview child active when it shares the parent target", () => {
-    const trail = findActiveTrailNodes(GLOBAL_NAV_ITEMS, "/system/observability/overview");
+  test("marks the requests child active when it shares the observability parent target", () => {
+    const trail = findActiveTrailNodes(GLOBAL_NAV_ITEMS, "/system/observability/requests");
 
     expect(trail.map((item) => item.key)).toEqual([
       "global.platform.observability",
-      "global.platform.observability.overview",
+      "global.platform.observability.requests",
     ]);
   });
 });

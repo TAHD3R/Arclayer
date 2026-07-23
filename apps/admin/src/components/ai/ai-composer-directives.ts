@@ -1,12 +1,21 @@
 import { create } from "zustand";
 
 export type AIComposerDirectiveScope = "thread" | "home";
-export type AIComposerDirectiveType = "project" | "agent" | "action";
+export type AIComposerDirectiveType =
+  | "project"
+  | "agent"
+  | "skill"
+  | "asset"
+  | "content"
+  | "action";
 
 export interface AIComposerDirectiveChip {
   type: AIComposerDirectiveType;
   id: string;
   label: string;
+  previewUrl?: string;
+  mime?: string;
+  instruction?: string;
 }
 
 type AIComposerDirectiveState = {
@@ -77,12 +86,31 @@ export function filterTrustedAIComposerDirectives(
   parsed: readonly AIComposerDirectiveChip[],
   registered: readonly AIComposerDirectiveChip[],
 ): AIComposerDirectiveChip[] {
-  const trustedAgentIds = new Set(
-    registered.filter((directive) => directive.type === "agent").map((directive) => directive.id),
-  );
+  const trustedDirectiveKeys = new Set<string>();
+  for (const directive of registered) {
+    if (directive.type === "agent" || directive.type === "skill") {
+      trustedDirectiveKeys.add(`${directive.type}:${directive.id}`);
+    }
+  }
   return parsed.filter(
-    (directive) => directive.type !== "agent" || trustedAgentIds.has(directive.id),
+    (directive) =>
+      (directive.type !== "agent" && directive.type !== "skill") ||
+      trustedDirectiveKeys.has(`${directive.type}:${directive.id}`),
   );
+}
+
+export function applyAIComposerSkillInstructions(
+  scope: AIComposerDirectiveScope,
+  text: string,
+): string {
+  const instructions: string[] = [];
+  for (const directive of useAIComposerDirectiveStore.getState().directivesByScope[scope]) {
+    if (directive.type !== "skill") continue;
+    const instruction = directive.instruction?.trim();
+    if (!instruction) throw new Error("AI_COMPOSER_SKILL_INSTRUCTION_MISSING");
+    instructions.push(instruction);
+  }
+  return [...instructions, text].filter(Boolean).join("\n\n");
 }
 
 export function cleanAIComposerDirectiveText(text: string): string {
@@ -141,13 +169,23 @@ export function consumeAIComposerDirectives(
 }
 
 export function agentIdsForComposerScope(scope: AIComposerDirectiveScope): readonly string[] {
-  return useAIComposerDirectiveStore
-    .getState()
-    .directivesByScope[scope].filter((directive) => directive.type === "agent")
-    .map((directive) => directive.id);
+  const agentIds: string[] = [];
+  for (const directive of useAIComposerDirectiveStore.getState().directivesByScope[scope]) {
+    if (directive.type === "agent") agentIds.push(directive.id);
+  }
+  return agentIds;
 }
 
 function normalizeDirectiveType(value: string | undefined): AIComposerDirectiveType | null {
-  if (value === "project" || value === "agent" || value === "action") return value;
+  if (
+    value === "project" ||
+    value === "agent" ||
+    value === "skill" ||
+    value === "asset" ||
+    value === "content" ||
+    value === "action"
+  ) {
+    return value;
+  }
   return null;
 }

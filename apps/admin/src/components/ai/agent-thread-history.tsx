@@ -26,7 +26,7 @@ export function AgentThreadHistory() {
               variant="ghost"
               size="icon-sm"
               aria-label={t("ai:AI_CHAT_THREAD_HISTORY")}
-              className="text-label-secondary hover:text-label-primary"
+              className="size-11 text-label-secondary hover:text-label-primary min-[769px]:size-8"
             >
               <HistoryIcon className="size-4" aria-hidden="true" />
             </Button>

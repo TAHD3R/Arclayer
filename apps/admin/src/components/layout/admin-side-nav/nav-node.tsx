@@ -1,10 +1,17 @@
 import { useNavigate, type NavigateOptions } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Fragment, type ReactNode } from "react";
+import { Collapsible, CollapsibleContent } from "@arclayer/ui/collapsible";
+import { cn } from "@arclayer/lib/utils";
 
 import type { AdminNavItem } from "@/types/admin-nav";
-import type { OpenGroupKeys } from "./nav-utils";
-import { findPreferredGroupTarget, isExactMatch } from "./nav-utils";
+import {
+  findPreferredGroupTarget,
+  isExactMatch,
+  resolveLeadingLabel,
+  resolveNavSectionKey,
+  type OpenGroupKeys,
+} from "./nav-utils";
 import { useBlockedTooltipText } from "./blocked-tooltip";
 import type { CollapsedDropdownController } from "./collapsed-dropdown";
 import { FavoritesNode } from "./favorites-node";
@@ -12,7 +19,7 @@ import type { ResolvedChildItem } from "./node-collapsed-group";
 import { NodeLeaf } from "./node-leaf";
 import { NodeAction } from "./node-action";
 import { NodeExpandedGroupRoot, NodeExpandedGroupSub } from "./node-expanded-group";
-import { NavDivider, NavGroupMarker, resolveLeadingLabel } from "./nav-markers";
+import { NavDivider, NavGroupMarker } from "./nav-markers";
 
 type NodeProps = {
   item: AdminNavItem;
@@ -31,6 +38,8 @@ type NodeProps = {
   resolvePermissionName?: (code: string) => string | null;
   isCollapsed: boolean;
   hoverDropdown: CollapsedDropdownController | null;
+  collapsedNavKeys: ReadonlySet<string>;
+  onToggleSection: (key: string) => void;
 };
 
 type TFn = (key: string) => string;
@@ -57,37 +66,104 @@ function resolveCollapsedChildren(
   }));
 }
 
-function renderChildNodes(props: NodeProps, t: TFn): ReactNode {
-  const children = props.item.children ?? [];
-  if (children.length === 0) return null;
+type NavNodeListProps = Omit<NodeProps, "item" | "depth" | "parentKey"> & {
+  items: readonly AdminNavItem[];
+  depth: number;
+  parentKey: string;
+};
 
-  return children.map((child) => {
-    const leadingLabel = resolveLeadingLabel(child, t);
+type NavListSegment = {
+  key: string;
+  label: string | null;
+  sectionKey: string | null;
+  items: AdminNavItem[];
+};
 
+const NAV_SECTION_CONTENT_CLASSNAME = cn(
+  "flex flex-col gap-1 overflow-hidden",
+  "motion-reduce:animate-none",
+  "data-[state=open]:animate-[arclayer-collapsible-down_180ms_ease-out]",
+  "data-[state=closed]:animate-[arclayer-collapsible-up_140ms_ease-out]",
+);
+
+function buildNavListSegments(
+  items: readonly AdminNavItem[],
+  parentKey: string,
+  t: TFn,
+): NavListSegment[] {
+  const segments: NavListSegment[] = [];
+
+  for (const item of items) {
+    const label = resolveLeadingLabel(item, t);
+    const sectionKey = label ? resolveNavSectionKey(parentKey, item) : null;
+    if (sectionKey) {
+      segments.push({ key: sectionKey, label, sectionKey, items: [item] });
+      continue;
+    }
+
+    const current = segments.at(-1);
+    if (current?.sectionKey) {
+      current.items.push(item);
+      continue;
+    }
+
+    if (current) current.items.push(item);
+    else
+      segments.push({
+        key: `${parentKey}:ungrouped`,
+        label: null,
+        sectionKey: null,
+        items: [item],
+      });
+  }
+
+  return segments;
+}
+
+function renderNavItems(items: readonly AdminNavItem[], props: NavNodeListProps) {
+  return items.map((item) => (
+    <Fragment key={item.key}>
+      {item.dividerBefore ? <NavDivider /> : null}
+      <NavNode {...props} item={item} depth={props.depth} parentKey={props.parentKey} />
+      {item.dividerAfter ? <NavDivider /> : null}
+    </Fragment>
+  ));
+}
+
+function sectionContentId(sectionKey: string): string {
+  return `admin-side-nav-${sectionKey.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+}
+
+export function NavNodeList(props: NavNodeListProps): ReactNode {
+  const { t } = useTranslation();
+  const segments = buildNavListSegments(props.items, props.parentKey, t);
+
+  return segments.map((segment) => {
+    const sectionKey = segment.sectionKey;
+    if (!sectionKey || !segment.label) {
+      return <Fragment key={segment.key}>{renderNavItems(segment.items, props)}</Fragment>;
+    }
+
+    const isOpen = !props.collapsedNavKeys.has(sectionKey);
+    if (props.isCollapsed && !isOpen) return null;
+
+    const contentId = sectionContentId(sectionKey);
     return (
-      <Fragment key={child.key}>
-        {leadingLabel ? <NavGroupMarker label={leadingLabel} /> : null}
-        {child.dividerBefore ? <NavDivider /> : null}
-        <NavNode
-          item={child}
-          commandNavItems={props.commandNavItems}
-          depth={props.depth + 1}
-          parentKey={props.item.key}
-          pathname={props.pathname}
-          activeSource={props.activeSource}
-          activeKeys={props.activeKeys}
-          baseActiveKeys={props.baseActiveKeys}
-          starredActiveKeys={props.starredActiveKeys}
-          suppressedKeys={props.suppressedKeys}
-          openGroupKeys={props.openGroupKeys}
-          openChainForKey={props.openChainForKey}
-          selectActiveSource={props.selectActiveSource}
-          resolvePermissionName={props.resolvePermissionName}
-          isCollapsed={props.isCollapsed}
-          hoverDropdown={props.hoverDropdown}
-        />
-        {child.dividerAfter ? <NavDivider /> : null}
-      </Fragment>
+      <Collapsible key={segment.key} open={isOpen} asChild>
+        <li className="contents">
+          <NavGroupMarker
+            label={segment.label}
+            isOpen={isOpen}
+            contentId={contentId}
+            onToggle={() => props.onToggleSection(sectionKey)}
+          />
+          <CollapsibleContent id={contentId} asChild>
+            <ul className={NAV_SECTION_CONTENT_CLASSNAME}>
+              {renderNavItems(segment.items, props)}
+            </ul>
+          </CollapsibleContent>
+        </li>
+      </Collapsible>
     );
   });
 }
@@ -303,7 +379,14 @@ function NavNodeImpl(
       if (!allowSamePathNavigate && isExactMatch(to, props.pathname)) return;
       void navigate({ to: to as never });
     },
-    childNodes: renderChildNodes(props, t),
+    childNodes: (
+      <NavNodeList
+        {...props}
+        items={item.children ?? []}
+        depth={props.depth + 1}
+        parentKey={item.key}
+      />
+    ),
     onToggle: createExpandedGroupToggle({
       item,
       isOpen,

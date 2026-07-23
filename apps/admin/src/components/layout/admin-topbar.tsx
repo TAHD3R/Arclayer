@@ -23,6 +23,7 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@arclayer/ui/breadcrumb";
+import { SidebarTrigger } from "@arclayer/ui/sidebar";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import { Button, type ButtonProps } from "@arclayer/ui/button";
 import {
@@ -32,7 +33,8 @@ import {
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
 const TOPBAR_CONTENT_PADDING_CLASSNAME = "px-4 py-2 sm:px-6 sm:py-3";
-const MOBILE_TOPBAR_TOUCH_TARGET_CLASSNAME = "min-h-12 min-w-12 sm:min-h-0 sm:min-w-0";
+const MOBILE_TOPBAR_TOUCH_TARGET_CLASSNAME =
+  "min-h-11 min-w-11 min-[769px]:min-h-0 min-[769px]:min-w-0";
 
 type AdminTopbarLeadingMode = "none" | "logo" | "back";
 export type AdminTopbarProject = ProjectAvatarIdentity & {
@@ -242,34 +244,43 @@ function TopbarDefaultLeading(props: {
   const navBreadcrumbs = props.breadcrumbs.length > 0 ? props.breadcrumbs : [fallbackBreadcrumb];
 
   return (
-    <Breadcrumb aria-label={t("common:BREADCRUMB_LABEL")} className="min-w-0">
-      <BreadcrumbList className="flex-nowrap">
-        {props.project ? (
-          <>
-            <BreadcrumbItem className="min-w-0">
-              <TopbarProjectBreadcrumb
-                project={props.project}
-                menu={props.projectMenu ?? null}
-                labels={{
-                  descriptionFallback: t("common:SIDEBAR_BROWSE_PROJECT_DESCRIPTION_FALLBACK"),
-                  allProjects: t("nav:NAV_ALL_PROJECTS"),
-                  home: t("nav:NAV_HOME"),
-                }}
-              />
-            </BreadcrumbItem>
-            {navBreadcrumbs.length > 0 ? <BreadcrumbSeparator className="shrink-0" /> : null}
-          </>
-        ) : null}
-        {navBreadcrumbs.map((item, index) => (
-          <Fragment key={item.key}>
-            {index > 0 ? <BreadcrumbSeparator className="shrink-0" /> : null}
-            <BreadcrumbItem className="min-w-0">
-              <TopbarNavBreadcrumbItem item={item} t={t} onNavigate={props.onNavigate} />
-            </BreadcrumbItem>
-          </Fragment>
-        ))}
-      </BreadcrumbList>
-    </Breadcrumb>
+    <div className="flex min-w-0 items-center gap-1 max-[768px]:shrink-0">
+      <SidebarTrigger
+        aria-label={t("common:SIDEBAR_TOGGLE")}
+        className="size-11 shrink-0 min-[769px]:hidden"
+      />
+      <Breadcrumb
+        aria-label={t("common:BREADCRUMB_LABEL")}
+        className="min-w-0 flex-1 overflow-hidden max-[768px]:hidden"
+      >
+        <BreadcrumbList className="flex-nowrap">
+          {props.project ? (
+            <>
+              <BreadcrumbItem className="min-w-0">
+                <TopbarProjectBreadcrumb
+                  project={props.project}
+                  menu={props.projectMenu ?? null}
+                  labels={{
+                    descriptionFallback: t("common:SIDEBAR_BROWSE_PROJECT_DESCRIPTION_FALLBACK"),
+                    allProjects: t("nav:NAV_ALL_PROJECTS"),
+                    home: t("nav:NAV_HOME"),
+                  }}
+                />
+              </BreadcrumbItem>
+              {navBreadcrumbs.length > 0 ? <BreadcrumbSeparator className="shrink-0" /> : null}
+            </>
+          ) : null}
+          {navBreadcrumbs.map((item, index) => (
+            <Fragment key={item.key}>
+              {index > 0 ? <BreadcrumbSeparator className="shrink-0" /> : null}
+              <BreadcrumbItem className="min-w-0">
+                <TopbarNavBreadcrumbItem item={item} t={t} onNavigate={props.onNavigate} />
+              </BreadcrumbItem>
+            </Fragment>
+          ))}
+        </BreadcrumbList>
+      </Breadcrumb>
+    </div>
   );
 }
 
@@ -277,7 +288,7 @@ function TopbarTrailing() {
   const { t } = useTranslation(["common"]);
 
   return (
-    <div className="flex w-full min-w-0 items-center justify-end gap-2 sm:w-auto">
+    <div className="flex min-w-0 items-center justify-end gap-1.5 min-[769px]:gap-2">
       <HeaderFeedbackPopover
         trigger={
           <Button
@@ -289,7 +300,7 @@ function TopbarTrailing() {
             className={cn(MOBILE_TOPBAR_TOUCH_TARGET_CLASSNAME, "text-callout font-semibold")}
           >
             <MessageSquareText aria-hidden="true" />
-            <span className="hidden sm:inline">{t("common:TOPBAR_FEEDBACK")}</span>
+            <span className="hidden min-[769px]:inline">{t("common:TOPBAR_FEEDBACK")}</span>
           </Button>
         }
       />
@@ -297,7 +308,7 @@ function TopbarTrailing() {
         labelKey="common:TOPBAR_ASK_AI"
         className={MOBILE_TOPBAR_TOUCH_TARGET_CLASSNAME}
       />
-      <WorkspaceCreditsControl className={MOBILE_TOPBAR_TOUCH_TARGET_CLASSNAME} />
+      <WorkspaceCreditsControl compactOnMobile className={MOBILE_TOPBAR_TOUCH_TARGET_CLASSNAME} />
       <AdminAccountMenu variant="header" />
     </div>
   );
@@ -319,7 +330,7 @@ export function AdminTopbar(props: {
     <header className={cn("relative z-30 inset-y-auto", "bg-background", props.className)}>
       <div
         className={cn(
-          "flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-4",
+          "flex items-center gap-2 min-[769px]:gap-4",
           "justify-between",
           TOPBAR_CONTENT_PADDING_CLASSNAME,
         )}

@@ -54,8 +54,14 @@ function WorkspaceKnowledgeOverlayView() {
   return <WorkspaceKnowledgePage workspaceId={useEffectiveWorkspaceId()} />;
 }
 
-function WorkspaceSkillsOverlayView() {
-  return <WorkspaceSkillsPage workspaceId={useEffectiveWorkspaceId()} />;
+function WorkspaceSkillsOverlayView(context: SettingsScreenRenderContext) {
+  return (
+    <WorkspaceSkillsPage
+      workspaceId={useEffectiveWorkspaceId()}
+      requestedAction={context.payload?.skillAction}
+      focusRequestId={context.focusRequestId}
+    />
+  );
 }
 
 function WorkspaceDesignSystemsOverlayView() {
@@ -114,7 +120,7 @@ export const WORKSPACE_SETTINGS_OVERLAY_ITEMS: readonly UsercenterOverlayItem[] 
     labelKey: "account:SETTINGS_NAV_WORKSPACE_SKILLS",
     titleKey: "settings:SETTINGS_WORKSPACE_SKILLS_TITLE",
     descriptionKey: "settings:SETTINGS_WORKSPACE_SKILLS_DESC",
-    render: () => <WorkspaceSkillsOverlayView />,
+    render: (context) => <WorkspaceSkillsOverlayView {...context} />,
   },
   {
     screen: "workspace.design-systems",

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { FileText, Home, Users } from "lucide-react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -261,13 +261,19 @@ describe("AdminSiderNav capability nodes", () => {
       </SidebarProvider>,
     );
 
-    expect(screen.getByRole("button", { name: "Launches" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Assets" })).toBeVisible();
+    const favoritesSection = screen
+      .getByRole("button", { name: "Favorites" })
+      .closest('[data-sidebar="menu-item"]');
+    expect(favoritesSection).not.toBeNull();
+    const favorites = within(favoritesSection as HTMLElement);
 
-    fireEvent.click(screen.getByRole("button", { name: "Launches" }));
+    expect(favorites.getByRole("button", { name: "Launches" })).toBeVisible();
+    expect(favorites.getByRole("button", { name: "Assets" })).toBeVisible();
+
+    fireEvent.click(favorites.getByRole("button", { name: "Launches" }));
 
     await waitFor(() => {
-      expect(screen.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
+      expect(favorites.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
     });
   });
 
@@ -333,11 +339,17 @@ describe("AdminSiderNav capability nodes", () => {
       "data-active",
       "true",
     );
-    expect(screen.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
+    const favoritesSection = screen
+      .getByRole("button", { name: "Favorites" })
+      .closest('[data-sidebar="menu-item"]');
+    expect(favoritesSection).not.toBeNull();
+    const favorites = within(favoritesSection as HTMLElement);
+
+    expect(favorites.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Favorites" }));
 
-    expect(screen.getByRole("button", { name: "Assets" })).toBeVisible();
+    expect(favorites.getByRole("button", { name: "Assets" })).toBeVisible();
   });
 
   it("keeps favorites accessible in collapsed mode through the capability popover", async () => {
@@ -357,11 +369,16 @@ describe("AdminSiderNav capability nodes", () => {
     );
 
     advanceCollapsedRenderTimers();
-    expect(screen.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
+    const favoritesSection = screen
+      .getByRole("button", { name: "Favorites" })
+      .closest('[data-sidebar="menu-item"]');
+    expect(favoritesSection).not.toBeNull();
+    const favorites = within(favoritesSection as HTMLElement);
+    expect(favorites.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
 
     openCollapsedSidebarPreview();
     fireEvent.click(screen.getByRole("button", { name: "Favorites" }));
 
-    expect(screen.getByRole("button", { name: "Assets" })).toBeVisible();
+    expect(favorites.getByRole("button", { name: "Assets" })).toBeVisible();
   });
 });

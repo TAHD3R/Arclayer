@@ -29,7 +29,7 @@ import { cn } from "@arclayer/lib/utils";
 
 const SIDEBAR_COLLAPSED_WIDTH_PX = 56;
 const NOTIFICATION_TOAST_PREVIEW_LIMIT = 20;
-const AI_DRAWER_MIN_WIDTH_PX = 320;
+const AI_DRAWER_MIN_WIDTH_PX = 380;
 const AI_DRAWER_PANEL_MARGIN_PX = 16;
 const AI_DRAWER_LAYOUT_GUTTER_PX = 64;
 type AdminSceneLayoutProps = PropsWithChildren<{
@@ -83,11 +83,13 @@ export function AdminSceneLayout({
   const setSidebarWidthPx = usePreferencesStore((s) => s.setSidebarWidthPx);
   const setAiDrawerWidthPx = usePreferencesStore((s) => s.setAiDrawerWidthPx);
   const aiDrawerOpen = useAiChatStore((s) => s.drawerOpen);
-  const sidebarOpen = sidebarCollapsible === "none" ? true : storedSidebarOpen;
+  const sidebarOpen =
+    sidebarCollapsible === "none" ? true : aiDrawerOpen ? false : storedSidebarOpen;
   const sceneContainerRef = useRef<HTMLDivElement | null>(null);
   const hasHydratedNotificationPreviewRef = useRef(false);
   const seenNotificationPreviewIdsRef = useRef<Set<string>>(new Set());
-  const { archiveItem, deleteItem, markRead, openTarget } = useNotificationActions();
+  const { archiveItem, deleteItem, markRead, openTarget, recordInteraction } =
+    useNotificationActions();
 
   const getMaxAiDrawerWidth = useCallback(() => {
     const containerWidth = sceneContainerRef.current?.clientWidth ?? window.innerWidth;
@@ -171,10 +173,19 @@ export function AdminSceneLayout({
     });
 
     for (const item of nextUnreadItems.reverse()) {
+      const globalMeta = getGlobalNotificationMeta(item);
       let toastId: string | number | undefined;
       const dismissToast = () => {
         if (toastId === undefined) return;
         toast.dismiss(toastId);
+      };
+      const openToastTarget = async () => {
+        const isCampaignToast = globalMeta?.presentation === "toast";
+        if (!(await openTarget(item, { markRead: !isCampaignToast }))) return;
+        if (isCampaignToast) {
+          await recordInteraction(item, "click");
+        }
+        dismissToast();
       };
 
       toastId = message.info(
@@ -184,11 +195,7 @@ export function AdminSceneLayout({
               type="button"
               className="block min-w-0 max-w-full truncate text-left text-headline font-semibold text-label-primary transition-colors hover:text-primary"
               onClick={() => {
-                void (async () => {
-                  if (await openTarget(item)) {
-                    dismissToast();
-                  }
-                })();
+                void openToastTarget();
               }}
             >
               {item.title}
@@ -198,11 +205,7 @@ export function AdminSceneLayout({
             <NotificationToastContent
               item={item}
               showTitle={false}
-              onOpenTarget={async () => {
-                if (await openTarget(item)) {
-                  dismissToast();
-                }
-              }}
+              onOpenTarget={openToastTarget}
               onMarkRead={
                 item.readAt
                   ? undefined
@@ -239,7 +242,14 @@ export function AdminSceneLayout({
       ...seenNotificationPreviewIdsRef.current,
       ...latestIds,
     ]);
-  }, [archiveItem, deleteItem, markRead, notificationPreviewQuery.data, openTarget]);
+  }, [
+    archiveItem,
+    deleteItem,
+    markRead,
+    notificationPreviewQuery.data,
+    openTarget,
+    recordInteraction,
+  ]);
 
   return (
     <ArclayerAssistantScope>
@@ -261,15 +271,15 @@ export function AdminSceneLayout({
           <div
             ref={sceneContainerRef}
             className={cn(
-              "flex h-screen min-h-0 w-full flex-1 transition-colors duration-[250ms] ease-out",
-              aiDrawerOpen ? "bg-muted/70" : "bg-background",
+              "flex h-screen min-h-0 w-full flex-1 bg-background transition-colors duration-[250ms] ease-out",
+              aiDrawerOpen && "min-[769px]:bg-muted/70",
             )}
           >
             <div
               className={cn(
                 "relative flex min-w-0 flex-1 overflow-hidden border bg-background transition-[margin,border-radius,border-color] duration-[250ms] ease-out",
                 aiDrawerOpen
-                  ? "m-4 rounded-md border-border"
+                  ? "m-0 rounded-none border-transparent shadow-none min-[769px]:m-4 min-[769px]:rounded-md min-[769px]:border-border"
                   : "m-0 rounded-none border-transparent shadow-none",
               )}
               data-floating-panel-boundary={aiDrawerOpen ? "" : undefined}
@@ -296,13 +306,18 @@ export function AdminSceneLayout({
                 {renderTopbar()}
                 <GlobalNotificationSurfaces
                   items={notificationPreviewQuery.data?.items ?? []}
-                  onMarkRead={markRead}
-                  onOpenTarget={openTarget}
+                  onRecordInteraction={recordInteraction}
+                  onOpenTarget={(item) => openTarget(item, { markRead: false })}
                 />
 
                 <div className="relative flex min-h-0 flex-1">
                   <SidebarInset className="w-auto flex-1 min-w-0 overflow-hidden bg-background">
-                    <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-hidden overflow-y-auto [scrollbar-gutter:auto]">
+                    <div
+                      className={cn(
+                        "flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-hidden overflow-y-auto [scrollbar-gutter:auto]",
+                        sidebarPathnameOverride === "/" && "scrollbar-none",
+                      )}
+                    >
                       <ContentGuard
                         loading={loading}
                         error={error}
@@ -328,7 +343,7 @@ export function AdminSceneLayout({
                 tabIndex={-1}
                 onPointerDown={handleAiDrawerResizePointerDown}
                 className={cn(
-                  "hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-[transform,background-color] ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-0.5 sm:flex",
+                  "hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-[transform,background-color] ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-0.5 min-[769px]:flex",
                   "cursor-col-resize",
                   aiDrawerOpen ? "-right-4" : "pointer-events-none -right-4",
                 )}

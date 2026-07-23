@@ -11,6 +11,10 @@ describe("useFavoritesStore folders", () => {
     });
   });
 
+  it("expands the favorites section for a new store by default", () => {
+    expect(useFavoritesStore.getInitialState().sectionExpanded).toBe(true);
+  });
+
   it("adds and renames folders", () => {
     const folderId = useFavoritesStore.getState().addFolder("New folder");
 

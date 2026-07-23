@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,6 +8,7 @@ import { listAIProjectAgents } from "@/api/ai";
 import {
   AIComposerContextControls,
   AIComposerInputActions,
+  AIComposerToolbar,
 } from "@/components/ai/ai-composer-toolbar";
 import { useAiChatStore } from "@/stores/use-ai-chat-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -18,6 +19,16 @@ vi.mock("@/api/ai", () => ({
 
 vi.mock("@/components/ai/ai-model-selector", () => ({
   AIModelSelector: () => <div data-testid="ai-model-selector" />,
+}));
+
+vi.mock("@/components/ai/ai-agent-selector", () => ({
+  AIProjectSelector: () => <div data-testid="ai-project-selector" />,
+}));
+
+vi.mock("@/components/ai/ai-composer-skill-menu", () => ({
+  AIComposerSkillMenu: ({ scope }: { scope?: string }) => (
+    <div data-testid="ai-skill-selector" data-scope={scope} />
+  ),
 }));
 
 vi.mock("@assistant-ui/react", () => {
@@ -68,6 +79,14 @@ function renderControls() {
 
 function renderInputActions() {
   return render(<AIComposerInputActions />);
+}
+
+function renderHomeToolbar() {
+  return render(<AIComposerToolbar surface="home" />);
+}
+
+function renderSidebarToolbar() {
+  return render(<AIComposerToolbar surface="sidebar" />);
 }
 
 describe("AIComposerContextControls", () => {
@@ -128,5 +147,33 @@ describe("AIComposerContextControls", () => {
     await user.click(webSearchItem);
 
     expect(useAiChatStore.getState().webSearchEnabled).toBe(true);
+  });
+
+  it("keeps the requested model, Skill, and project controls on the Home toolbar", () => {
+    renderHomeToolbar();
+
+    expect(screen.getByTestId("ai-model-selector")).toBeInTheDocument();
+    expect(screen.getByTestId("ai-skill-selector")).toBeInTheDocument();
+    expect(screen.getByTestId("ai-project-selector")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add context" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Select work mode" })).toBeInTheDocument();
+  });
+
+  it("groups mode, Skill, and project above add and model controls in the sidebar", () => {
+    const { container } = renderSidebarToolbar();
+    const rows = container.querySelectorAll(".aui-composer-action-wrapper > div");
+
+    expect(
+      within(rows[0] as HTMLElement).getByRole("button", { name: "Select work mode" }),
+    ).toBeInTheDocument();
+    expect(within(rows[0] as HTMLElement).getByTestId("ai-skill-selector")).toHaveAttribute(
+      "data-scope",
+      "thread",
+    );
+    expect(within(rows[0] as HTMLElement).getByTestId("ai-project-selector")).toBeInTheDocument();
+    expect(
+      within(rows[1] as HTMLElement).getByRole("button", { name: "Add context" }),
+    ).toBeInTheDocument();
+    expect(within(rows[1] as HTMLElement).getByTestId("ai-model-selector")).toBeInTheDocument();
   });
 });

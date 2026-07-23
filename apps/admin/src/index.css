@@ -49,11 +49,6 @@ body,
     line-height: var(--line-height-body);
   }
 
-  .overflow-y-auto,
-  .overflow-auto {
-    scrollbar-gutter: stable;
-  }
-
   @supports (scrollbar-width: none) or (-webkit-overflow-scrolling: touch) {
     *::-webkit-scrollbar {
       width: 6px;

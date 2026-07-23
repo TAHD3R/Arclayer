@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { Home, Users } from "lucide-react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -326,9 +325,7 @@ describe("AdminSiderNav spacing", () => {
     expect(iconWrapper?.className).not.toContain("group-data-[collapsible=icon]:mx-auto");
   });
 
-  it("keeps expanded children aligned with their parent and uses menu item hover styling", async () => {
-    const user = userEvent.setup();
-
+  it("keeps expanded children aligned with their parent and uses menu item hover styling", () => {
     renderWithQueryClient(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
@@ -336,8 +333,6 @@ describe("AdminSiderNav spacing", () => {
         </Sidebar>
       </SidebarProvider>,
     );
-
-    await user.click(screen.getByRole("button", { name: "Content" }));
 
     const contentItem = screen
       .getByRole("button", { name: "Content" })

@@ -1,16 +1,17 @@
-import { SidebarGroupLabel } from "@arclayer/ui/sidebar";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
+import { ChevronRight } from "lucide-react";
 
 import { cn } from "@arclayer/lib/utils";
-import type { AdminNavItem } from "@/types/admin-nav";
+import { NAV_CHEVRON_CLASSNAME } from "./nav-node-styles";
 
-export function resolveLeadingLabel(item: AdminNavItem, t: (key: string) => string): string | null {
-  if (item.groupLabelBeforeKey) return t(item.groupLabelBeforeKey);
-  return item.groupLabelBefore ?? null;
-}
-
-export function NavGroupMarker(props: { label: string }) {
+export function NavGroupMarker(props: {
+  label: string;
+  isOpen: boolean;
+  contentId: string;
+  onToggle: () => void;
+}) {
   return (
-    <li
+    <div
       data-slot="admin-side-nav-group-marker"
       className={cn(
         "relative overflow-hidden py-2",
@@ -19,7 +20,6 @@ export function NavGroupMarker(props: { label: string }) {
         "group-data-[state=expanded]:pt-3",
         "group-data-[state=expanded]:pb-2.5",
       )}
-      aria-hidden="true"
     >
       <div
         data-slot="admin-side-nav-group-marker-divider"
@@ -30,19 +30,35 @@ export function NavGroupMarker(props: { label: string }) {
           "group-data-[state=expanded]:scale-x-95 group-data-[state=expanded]:opacity-0",
         )}
       />
-      <SidebarGroupLabel
+      <ButtonPrimitive
+        type="button"
+        tapScale={1}
+        aria-expanded={props.isOpen}
+        aria-controls={props.contentId}
+        onClick={props.onToggle}
         data-slot="admin-side-nav-group-label"
         className={cn(
-          "pointer-events-none absolute inset-x-3 top-1.5 h-auto select-none rounded-none px-0 py-0 text-footnote! font-semibold text-label-tertiary truncate",
+          "group/section-label pointer-events-none absolute inset-x-3 top-1.5 flex h-auto w-[calc(100%-1.5rem)] select-none items-center rounded-none px-0 py-0 text-left text-footnote! font-semibold text-label-tertiary",
           "origin-left transform-gpu transition-[opacity,transform] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
           "-translate-y-1 opacity-0",
-          "group-data-[state=expanded]:relative group-data-[state=expanded]:inset-auto group-data-[state=expanded]:top-auto",
+          "group-data-[state=expanded]:pointer-events-auto group-data-[state=expanded]:relative group-data-[state=expanded]:inset-auto group-data-[state=expanded]:top-auto group-data-[state=expanded]:w-full",
           "group-data-[state=expanded]:translate-y-0 group-data-[state=expanded]:opacity-100",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
         )}
       >
-        {props.label}
-      </SidebarGroupLabel>
-    </li>
+        <span className="min-w-0 flex-1 truncate">{props.label}</span>
+        <ChevronRight
+          size={16}
+          className={cn(
+            NAV_CHEVRON_CLASSNAME,
+            "opacity-0",
+            "group-hover/section-label:opacity-100 group-focus-visible/section-label:opacity-100",
+            props.isOpen && "rotate-90",
+          )}
+          aria-hidden="true"
+        />
+      </ButtonPrimitive>
+    </div>
   );
 }
 

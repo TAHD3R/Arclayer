@@ -14,6 +14,7 @@ import { getWorkspaceDetail } from "@/api/workspaces";
 import { useWorkspaceLocalization } from "@/hooks/use-workspace-localization";
 import { resolvePermissionNameI18nKey } from "@/lib/auth/rbac-permissions";
 import { isFavoriteOverlayContentOnly } from "@/lib/routing/favorite-overlay";
+import { resolveNotificationsSourcePath } from "@/lib/routing/notifications-source";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { RouteTransition } from "@/components/layout/route-transition";
 import { AdminTopbar } from "@/components/layout/admin-topbar";
@@ -56,7 +57,11 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const workspaceIdFromStore = useWorkspaceStore((s) => s.currentWorkspaceId);
   const currentProjectId = useWorkspaceStore((s) => s.currentProjectId);
 
-  const workspaceBase = useMemo(() => extractWorkspaceBaseFromPath(pathname), [pathname]);
+  const sidebarPathname = resolveNotificationsSourcePath(pathname, searchStr) ?? pathname;
+  const workspaceBase = useMemo(
+    () => extractWorkspaceBaseFromPath(sidebarPathname),
+    [sidebarPathname],
+  );
   const effectiveWorkspaceId = workspaceIdFromStore;
   const projectIdFromPath = workspaceBase?.replace(/^\/projects\//, "") ?? null;
   const effectiveProjectId = projectIdFromPath ?? currentProjectId;
@@ -182,7 +187,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
   });
 
   const topbarBreadcrumbs = useMemo(() => {
-    const baseBreadcrumbs = buildAdminTopbarBreadcrumbs(mainItems, pathname);
+    const baseBreadcrumbs = buildAdminTopbarBreadcrumbs(mainItems, sidebarPathname);
     if (!contentModelEditModelId) return baseBreadcrumbs;
 
     const model = (contentModelBreadcrumbQuery.data ?? []).find(
@@ -197,7 +202,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
         isCurrent: true,
       },
     ];
-  }, [contentModelBreadcrumbQuery.data, contentModelEditModelId, mainItems, pathname, t]);
+  }, [contentModelBreadcrumbQuery.data, contentModelEditModelId, mainItems, sidebarPathname, t]);
   const favoriteDynamicLabels = useMemo(() => {
     if (!effectiveProjectId) return undefined;
     const labels = new Map<string, string>();
@@ -234,7 +239,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
     if (!isWorkspaceScopeRoute) {
       return {
         kind: "none",
-        pathname,
+        pathname: sidebarPathname,
         workspaceId: null,
         projectId: null,
       } as const;
@@ -242,11 +247,11 @@ export function AdminLayout({ children }: PropsWithChildren) {
 
     return {
       kind: "workspace",
-      pathname,
+      pathname: sidebarPathname,
       workspaceId: effectiveWorkspaceId ? String(effectiveWorkspaceId) : null,
       projectId: effectiveProjectId ? String(effectiveProjectId) : null,
     } as const;
-  }, [effectiveProjectId, effectiveWorkspaceId, isWorkspaceScopeRoute, pathname]);
+  }, [effectiveProjectId, effectiveWorkspaceId, isWorkspaceScopeRoute, sidebarPathname]);
 
   const routeContent = (
     <SidebarProvider
@@ -318,7 +323,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
       commandScope={commandScope}
       browseProjects={browseProjects}
       activeBrowseProjectId={isWorkspaceScopeRoute ? effectiveProjectId : null}
-      sidebarPathnameOverride={pathname}
+      sidebarPathnameOverride={sidebarPathname}
       favoriteWorkspaceBase={
         isWorkspaceScopeRoute
           ? effectiveProjectId

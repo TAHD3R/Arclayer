@@ -1,15 +1,34 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { listAIWorkspaceAgents, type AIWorkspaceAgentCatalogItem } from "@/api/ai";
-import { AIAgentSelector } from "@/components/ai/ai-agent-selector";
+import { getProjectDetail, listProjects } from "@/api/projects";
+import { AIAgentSelector, AIProjectSelector } from "@/components/ai/ai-agent-selector";
 import { DEFAULT_AI_AGENT_ID, useAiChatStore } from "@/stores/use-ai-chat-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 vi.mock("@/api/ai", () => ({
   listAIWorkspaceAgents: vi.fn(),
+}));
+
+vi.mock("@/api/projects", () => ({
+  getProjectDetail: vi.fn(),
+  listProjects: vi.fn(),
+}));
+
+vi.mock("@/components/common/project-avatar", () => ({
+  ProjectAvatar: (props: { name: string; iconMode?: string | null; iconEmoji?: string | null }) => (
+    <span
+      data-testid="project-avatar"
+      data-icon-mode={props.iconMode ?? ""}
+      data-icon-emoji={props.iconEmoji ?? ""}
+    >
+      {props.name}
+    </span>
+  ),
+  projectAvatarPropsFromIdentity: (identity: Record<string, unknown>) => identity,
 }));
 
 const ANALYST_ID = "A1b2C3d4E5f6G7h8I9j0K1";
@@ -76,6 +95,9 @@ vi.mock("react-i18next", () => ({
         "ai:AI_AGENT_CONTENT_BUILDER_DESC": "Build content plans",
         "ai:AI_AGENT_CONTENT_MODEL_ADVISOR": "Model Advisor",
         "ai:AI_AGENT_CONTENT_MODEL_ADVISOR_DESC": "Review models",
+        "ai:AI_CHAT_PROJECT_SELECT": "Select project",
+        "ai:AI_CHAT_PROJECT_LOADING": "Loading projects",
+        "ai:AI_CHAT_PROJECT_EMPTY": "No projects",
       };
       return labels[key] ?? key;
     },
@@ -90,6 +112,18 @@ function renderSelector() {
   return render(
     <QueryClientProvider client={queryClient}>
       <AIAgentSelector />
+    </QueryClientProvider>,
+  );
+}
+
+function renderProjectSelector() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <AIProjectSelector />
     </QueryClientProvider>,
   );
 }
@@ -133,6 +167,14 @@ describe("AIAgentSelector", () => {
         }),
       ],
     });
+    vi.mocked(listProjects).mockResolvedValue({
+      items: [],
+      page: 1,
+      size: 12,
+      total: 0,
+      pages: 0,
+    });
+    vi.mocked(getProjectDetail).mockRejectedValue(new Error("No project detail fixture"));
   });
 
   it("loads selectable agents from the backend catalog", async () => {
@@ -273,5 +315,66 @@ describe("AIAgentSelector", () => {
     expect(button).toBeDisabled();
     expect(screen.getByText("Select a project first")).toBeInTheDocument();
     expect(listAIWorkspaceAgents).not.toHaveBeenCalled();
+  });
+});
+
+describe("AIProjectSelector", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useWorkspaceStore.setState({
+      currentWorkspaceId: "workspace-1",
+      lastWorkspaceId: "workspace-1",
+      currentProjectId: "project-1",
+      lastProjectId: "project-1",
+    });
+    vi.mocked(listProjects).mockResolvedValue({
+      items: [
+        {
+          id: "project-1",
+          workspaceId: "workspace-1",
+          name: "Aurora Store",
+          slug: "aurora-store",
+          description: "Commerce project",
+          authoringMode: null,
+          authoringState: "migration_required",
+          authoringRevision: 1,
+          isActive: true,
+          archivedAt: null,
+          archivedByUserId: null,
+          iconMode: "emoji",
+          iconColor: "#334155",
+          iconGlyph: null,
+          iconEmoji: "🪐",
+          iconUrl: null,
+          memberCount: 0,
+          membersPreview: [],
+          createdAt: "2026-07-22T00:00:00Z",
+          updatedAt: "2026-07-23T00:00:00Z",
+          enterable: true,
+          primaryRuntime: null,
+        },
+      ],
+      page: 1,
+      size: 12,
+      total: 1,
+      pages: 1,
+    });
+    vi.mocked(getProjectDetail).mockRejectedValue(new Error("Project detail is not needed"));
+  });
+
+  it("renders the selected project's real icon identity in the trigger and menu", async () => {
+    const user = userEvent.setup();
+    renderProjectSelector();
+
+    const trigger = await screen.findByRole("button", { name: "Select project" });
+    await waitFor(() => expect(trigger).toHaveTextContent("Aurora Store"));
+    expect(within(trigger).getByTestId("project-avatar")).toHaveAttribute("data-icon-emoji", "🪐");
+
+    await user.click(trigger);
+
+    const avatars = await screen.findAllByTestId("project-avatar");
+    expect(avatars).toHaveLength(2);
+    expect(avatars[1]).toHaveAttribute("data-icon-mode", "emoji");
+    expect(avatars[1]).toHaveAttribute("data-icon-emoji", "🪐");
   });
 });

@@ -16,13 +16,10 @@ import {
   ToolGroupTrigger,
 } from "@/components/assistant-ui/tool-group";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
-import {
-  AIComposerContextControls,
-  AIComposerInputActions,
-  AIComposerToolbar,
-} from "@/components/ai/ai-composer-toolbar";
+import { AIComposerToolbar } from "@/components/ai/ai-composer-toolbar";
 import { AIComposerDirectiveChips } from "@/components/ai/ai-composer-directive-chips";
 import { AIComposerTriggers } from "@/components/ai/ai-composer-triggers";
+import { AIComposerRotatingPlaceholder } from "@/components/ai/ai-composer-rotating-placeholder";
 import { AISuggestions } from "@/components/ai/ai-suggestions";
 import { ComposerQueue } from "@/components/assistant-ui/composer-queue";
 import { Button } from "@arclayer/ui/button";
@@ -142,7 +139,10 @@ const ThreadRoot: FC<{
       <ThreadPrimitive.Viewport
         turnAnchor="top"
         data-slot="aui_thread-viewport"
-        className="relative flex flex-1 flex-col overflow-x-hidden overflow-y-scroll scroll-smooth"
+        className={cn(
+          "relative flex flex-1 flex-col overflow-x-hidden overflow-y-auto scroll-smooth",
+          isSidebar && "scrollbar-none",
+        )}
       >
         <div
           className={cn(
@@ -265,35 +265,34 @@ const Composer: FC = () => {
           isSidebar && "gap-0",
         )}
       >
-        {isSidebar ? (
-          <div className="flex min-w-0 flex-col gap-2 rounded-t-(--composer-radius) border border-b-0 border-border/60 bg-muted px-2.5 pb-2 pt-2.5 shadow-sm">
-            <AIComposerContextControls compact />
-          </div>
-        ) : null}
         <ComposerQueue />
         <div
           data-slot="aui_composer-shell"
+          data-ai-composer-shell
           className={cn(
-            "relative flex w-full min-w-0 flex-col gap-2 rounded-(--composer-radius) bg-(--composer-bg) p-(--composer-padding) transition-colors hover:border-border focus-within:border-border dark:shadow-none",
+            "relative flex w-full min-w-0 flex-col gap-2 rounded-(--composer-radius) bg-(--composer-bg) p-(--composer-padding) transition-colors hover:border-border focus-within:border-border data-[trigger-open=true]:z-40 dark:shadow-none",
             isSidebar
-              ? "min-h-[8.5rem] !rounded-t-none border border-border/60 bg-muted"
+              ? "min-h-[10rem] border border-border/60 bg-muted"
               : "h-[6.5rem] min-h-[6.5rem] border border-border/60 dark:border-muted-foreground/15",
           )}
         >
           <AIComposerDirectiveChips scope="thread" />
           <ComposerAttachments />
-          <ComposerPrimitive.Input
-            placeholder={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
-            className={cn(
-              "aui-composer-input w-full min-w-0 resize-none bg-transparent px-2.5 py-1 text-callout text-label-primary outline-none [field-sizing:fixed] placeholder:text-label-secondary",
-              isSidebar ? "h-20 min-h-20 max-h-20" : "h-12 min-h-12 max-h-12",
-            )}
-            rows={1}
-            autoFocus
-            aria-label="Message input"
-          />
+          <div className="relative min-w-0 flex-1">
+            <ComposerPrimitive.Input
+              placeholder={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
+              className={cn(
+                "aui-composer-input w-full min-w-0 resize-none bg-transparent px-2.5 py-1 text-callout text-label-primary outline-none [field-sizing:fixed] placeholder:text-transparent",
+                isSidebar ? "h-20 min-h-20 max-h-20" : "h-12 min-h-12 max-h-12",
+              )}
+              rows={1}
+              autoFocus
+              aria-label={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
+            />
+            <AIComposerRotatingPlaceholder className="top-1 px-0" multiline={isSidebar} />
+          </div>
           <AIComposerTriggers scope="thread" />
-          {isSidebar ? <AIComposerInputActions /> : <AIComposerToolbar />}
+          <AIComposerToolbar surface={isSidebar ? "sidebar" : "default"} />
         </div>
       </ComposerPrimitive.Root>
     </ComposerPrimitive.Unstable_TriggerPopoverRoot>

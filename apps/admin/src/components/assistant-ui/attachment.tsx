@@ -1,7 +1,7 @@
 "use client";
 
 import { type PropsWithChildren, useEffect, useState, type FC } from "react";
-import { XIcon, PlusIcon, FileText } from "lucide-react";
+import { XIcon, PlusIcon, FileText, ImageIcon } from "lucide-react";
 import {
   AttachmentPrimitive,
   ComposerPrimitive,
@@ -131,6 +131,8 @@ const AttachmentUI: FC = () => {
     }
   });
 
+  if (isComposer) return <ComposerAttachmentTag isImage={isImage} typeLabel={typeLabel} />;
+
   return (
     <Tooltip side="top">
       <AttachmentPrimitive.Root
@@ -141,17 +143,15 @@ const AttachmentUI: FC = () => {
       >
         <AttachmentPreviewDialog>
           <TooltipTrigger asChild>
-            <div
+            <button
+              type="button"
               className="aui-attachment-tile bg-muted size-14 cursor-pointer overflow-hidden rounded-[calc(var(--composer-radius)-var(--composer-padding))] border transition-opacity hover:opacity-75"
-              role="button"
-              tabIndex={0}
               aria-label={`${typeLabel} attachment`}
             >
               <AttachmentThumb />
-            </div>
+            </button>
           </TooltipTrigger>
         </AttachmentPreviewDialog>
-        {isComposer && <AttachmentRemove />}
       </AttachmentPrimitive.Root>
       <TooltipContent>
         <AttachmentPrimitive.Name />
@@ -160,14 +160,53 @@ const AttachmentUI: FC = () => {
   );
 };
 
-const AttachmentRemove: FC = () => {
+const ComposerAttachmentTag: FC<{ isImage: boolean; typeLabel: string }> = ({
+  isImage,
+  typeLabel,
+}) => {
+  const Icon = isImage ? ImageIcon : FileText;
+  const name = (
+    <span className="flex min-w-0 items-center gap-1.5">
+      <Icon className="size-3.5 shrink-0 text-label-secondary" aria-hidden="true" />
+      <span className="max-w-40 truncate text-caption font-semibold text-label-primary">
+        <AttachmentPrimitive.Name />
+      </span>
+    </span>
+  );
+
+  return (
+    <AttachmentPrimitive.Root className="group/tag inline-flex max-w-full items-center gap-1 rounded-full border border-border/70 bg-background/70 py-1 pr-1.5 pl-2">
+      {isImage ? (
+        <AttachmentPreviewDialog>
+          <button
+            type="button"
+            className="min-w-0 cursor-zoom-in rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label={`${typeLabel} attachment`}
+          >
+            {name}
+          </button>
+        </AttachmentPreviewDialog>
+      ) : (
+        name
+      )}
+      <AttachmentRemove variant="tag" />
+    </AttachmentPrimitive.Root>
+  );
+};
+
+const AttachmentRemove: FC<{ variant?: "tile" | "tag" }> = ({ variant = "tile" }) => {
   const { t } = useTranslation(["ai", "common"]);
 
   return (
     <AttachmentPrimitive.Remove asChild>
       <TooltipIconButton
         tooltip={t("ai:AI_CHAT_REMOVE_ATTACHMENT")}
-        className="aui-attachment-tile-remove text-muted-foreground hover:[&_svg]:text-destructive absolute end-1.5 top-1.5 size-3.5 !rounded-full bg-white opacity-100 shadow-sm hover:bg-white! [&_svg]:text-black"
+        className={cn(
+          "aui-attachment-tile-remove !rounded-full",
+          variant === "tag"
+            ? "size-5 text-label-tertiary opacity-0 transition-opacity group-hover/tag:opacity-100 focus-visible:opacity-100 hover:bg-muted hover:text-label-primary"
+            : "absolute end-1.5 top-1.5 size-3.5 bg-white text-muted-foreground opacity-100 shadow-sm hover:bg-white! hover:[&_svg]:text-destructive [&_svg]:text-black",
+        )}
         side="top"
       >
         <XIcon className="aui-attachment-remove-icon size-3 dark:stroke-[2.5px]" />

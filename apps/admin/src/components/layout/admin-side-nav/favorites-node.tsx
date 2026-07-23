@@ -85,6 +85,7 @@ import type { AdminNavItem } from "@/types/admin-nav";
 import {
   DISABLED_ITEM_CLASSNAME,
   INTERACTIVE_TRANSITION_CLASSNAME,
+  NAV_CHEVRON_CLASSNAME as FAVORITES_CHEVRON_CLASSNAME,
   NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
   NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
   NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
@@ -178,9 +179,6 @@ const FAVORITES_COLLAPSIBLE_CONTENT_CLASSNAME = cn(
   "data-[state=closed]:animate-[arclayer-collapsible-up_160ms_ease-in]",
   "group-data-[motion-phase=collapsing]:hidden",
 );
-
-const FAVORITES_CHEVRON_CLASSNAME =
-  "shrink-0 text-label-secondary transform-gpu transition-transform duration-[220ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none";
 
 const FAVORITES_ACTION_BUTTON_CLASSNAME =
   "inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-label-secondary transition-colors hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50";
@@ -1322,7 +1320,7 @@ export function FavoritesNode(props: FavoritesNodeProps) {
 
   return (
     <>
-      <SidebarMenuItem className="group/nav-item">
+      <SidebarMenuItem>
         {props.isCollapsed ? (
           headerButton
         ) : (
@@ -1330,7 +1328,7 @@ export function FavoritesNode(props: FavoritesNodeProps) {
             <div
               data-active={props.isTrailActive ? "true" : "false"}
               className={cn(
-                "relative z-10 flex items-center gap-1",
+                "group/nav-item relative z-10 flex items-center gap-1",
                 NAV_ITEM_HEIGHT_CLASSNAME,
                 NAV_ITEM_RADIUS_CLASSNAME,
                 NAV_ITEM_BUTTON_PADDING_CLASSNAME,
