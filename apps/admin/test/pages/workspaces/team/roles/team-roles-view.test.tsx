@@ -10,35 +10,33 @@ import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 const {
-  listAllWorkspaceRolesMock,
-  listAllWorkspacePermissionsMock,
+  getWorkspacePermissionCatalogMock,
   createWorkspaceRoleFromTemplateMock,
   updateWorkspaceRoleMock,
   deleteWorkspaceRoleMock,
-  setWorkspaceRolePermissionsMock,
+  setWorkspaceRolePermissionsBatchMock,
   workspacePermissionAccessMock,
   notifySuccessTextMock,
   notifyErrorMock,
 } = vi.hoisted(() => ({
-  listAllWorkspaceRolesMock: vi.fn(),
-  listAllWorkspacePermissionsMock: vi.fn(),
+  getWorkspacePermissionCatalogMock: vi.fn(),
   createWorkspaceRoleFromTemplateMock: vi.fn(),
   updateWorkspaceRoleMock: vi.fn(),
   deleteWorkspaceRoleMock: vi.fn(),
-  setWorkspaceRolePermissionsMock: vi.fn(),
+  setWorkspaceRolePermissionsBatchMock: vi.fn(),
   workspacePermissionAccessMock: vi.fn(),
   notifySuccessTextMock: vi.fn(),
   notifyErrorMock: vi.fn(),
 }));
 
 vi.mock("@/api/rbac", () => ({
-  listAllWorkspaceRoles: (...args: unknown[]) => listAllWorkspaceRolesMock(...args),
-  listAllWorkspacePermissions: (...args: unknown[]) => listAllWorkspacePermissionsMock(...args),
+  getWorkspacePermissionCatalog: (...args: unknown[]) => getWorkspacePermissionCatalogMock(...args),
   createWorkspaceRoleFromTemplate: (...args: unknown[]) =>
     createWorkspaceRoleFromTemplateMock(...args),
   updateWorkspaceRole: (...args: unknown[]) => updateWorkspaceRoleMock(...args),
   deleteWorkspaceRole: (...args: unknown[]) => deleteWorkspaceRoleMock(...args),
-  setWorkspaceRolePermissions: (...args: unknown[]) => setWorkspaceRolePermissionsMock(...args),
+  setWorkspaceRolePermissionsBatch: (...args: unknown[]) =>
+    setWorkspaceRolePermissionsBatchMock(...args),
 }));
 
 vi.mock("@/lib/notifications", () => ({
@@ -102,6 +100,10 @@ vi.mock("@/components/common/data-table-search-input", () => ({
   ),
 }));
 
+vi.mock("@/components/common/reui-filter-i18n", () => ({
+  buildReuiFilterI18n: () => ({}),
+}));
+
 vi.mock("@arclayer/ui/dropdown-menu", () => ({
   DropdownMenu: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   DropdownMenuTrigger: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -119,6 +121,16 @@ vi.mock("@arclayer/ui/dropdown-menu", () => ({
       {children}
     </button>
   ),
+}));
+
+vi.mock("@arclayer/ui/filters", () => ({
+  createFilter: (field: string, operator: string, values: string[]) => ({
+    id: `${field}-${operator}`,
+    field,
+    operator,
+    values,
+  }),
+  Filters: ({ trigger }: { trigger: ReactNode }) => <>{trigger}</>,
 }));
 
 function renderWithQuery(node: ReactElement) {
@@ -159,7 +171,7 @@ describe("TeamRolesView", () => {
       hasAction: () => false,
     });
 
-    listAllWorkspaceRolesMock.mockResolvedValue([
+    const roles = [
       {
         id: "role-system-admin",
         code: "admin",
@@ -168,6 +180,9 @@ describe("TeamRolesView", () => {
         isDefault: true,
         isSuperuser: true,
         isSystem: true,
+        source: "system",
+        immutable: true,
+        revision: "role-admin-rev-1",
         permissionCodes: ["content.write"],
       },
       {
@@ -178,6 +193,9 @@ describe("TeamRolesView", () => {
         isDefault: false,
         isSuperuser: false,
         isSystem: false,
+        source: "custom",
+        immutable: false,
+        revision: "role-editor-rev-1",
         permissionCodes: ["content.write", "content.read"],
         permissionGrants: [
           {
@@ -196,27 +214,68 @@ describe("TeamRolesView", () => {
           },
         ],
       },
-    ]);
-    listAllWorkspacePermissionsMock.mockResolvedValue([
+    ];
+    const permissions = [
       {
+        id: "permission-write",
         code: "content.write",
+        scope: "workspace",
         name: "Edit content",
         description: "Allows editing content",
+        groupCode: "content",
+        groupName: "Content",
+        sortOrder: 100001,
         ownerKey: "core",
         ownerName: "Core",
+        lifecycle: "active",
+        replacementCode: null,
+        actionCodes: ["content.write"],
+        conditionTemplates: [],
       },
       {
+        id: "permission-read",
         code: "content.read",
+        scope: "workspace",
         name: "Read content",
         description: "Allows reading content",
+        groupCode: "content",
+        groupName: "Content",
+        sortOrder: 100002,
         ownerKey: "core",
         ownerName: "Core",
+        lifecycle: "active",
+        replacementCode: null,
+        actionCodes: ["content.read"],
+        conditionTemplates: ["own_content"],
       },
-    ]);
+    ];
+    getWorkspacePermissionCatalogMock.mockResolvedValue({
+      status: "modified",
+      catalog: {
+        catalogRevision: "catalog-rev-1",
+        etag: '"etag-1"',
+        groups: [{ code: "content", name: "Content", order: 100 }],
+        roles,
+        permissions,
+        actions: [],
+        conditionTemplates: [
+          {
+            key: "own_content",
+            field: "owner_user_id",
+            operators: ["equals_current_user"],
+            valueType: "context_user_id",
+            description: "Own content",
+          },
+        ],
+      },
+    });
     createWorkspaceRoleFromTemplateMock.mockResolvedValue(null);
     updateWorkspaceRoleMock.mockResolvedValue(null);
     deleteWorkspaceRoleMock.mockResolvedValue(null);
-    setWorkspaceRolePermissionsMock.mockResolvedValue(null);
+    setWorkspaceRolePermissionsBatchMock.mockResolvedValue({
+      catalogRevision: "catalog-rev-1",
+      roles: [{ ...roles[1], revision: "role-editor-rev-2" }],
+    });
   });
 
   it("lets admins edit a custom role from the roles matrix header", async () => {
@@ -255,35 +314,24 @@ describe("TeamRolesView", () => {
     });
   });
 
-  it("shows permission count beside search and uses the shared settings table border treatment", async () => {
+  it("renders a bounded grouped matrix with sticky permission context", async () => {
     const { container } = renderWithQuery(<TeamRolesView workspaceIdOverride="ws-1" />);
 
     await screen.findByTitle("Content editor");
 
-    expect(screen.getByText("2 permissions")).toHaveClass("text-headline");
-
     const matrix = screen.getByRole("table");
+    const matrixScope = within(matrix);
+    expect(matrixScope.getByText("Content")).toBeInTheDocument();
     const matrixShell = matrix.parentElement;
     expect(matrixShell).toHaveClass("rounded-xl", "border", "border-border/70", "bg-background");
-    const columns = matrix.querySelectorAll("col");
-    expect(columns).toHaveLength(3);
-    expect(columns[0]).toHaveAttribute("style", expect.stringContaining("42%"));
-    expect(columns[1]).toHaveAttribute("style", expect.stringContaining("29%"));
-
-    const tableHead = matrix.querySelector("thead");
-    expect(tableHead).toHaveClass("border-b", "border-border/60");
-
     const headerCells = matrix.querySelectorAll("th");
-    expect(headerCells[0]).toHaveClass("bg-background");
-    expect(headerCells[0]).not.toHaveClass("border-r");
+    expect(headerCells[0]).toHaveClass("sticky", "left-0", "bg-background");
 
-    const firstBodyRow = matrix.querySelector("tbody tr");
-    expect(firstBodyRow).toHaveClass("bg-background", "hover:bg-muted/20");
+    const permissionRow = matrixScope.getByText("Edit content").closest("tr");
+    expect(permissionRow).toHaveClass("bg-background", "hover:bg-muted/20");
 
-    const stickyPermissionCell = firstBodyRow?.querySelector("td");
-    expect(stickyPermissionCell).toHaveClass("bg-inherit");
-    expect(stickyPermissionCell).not.toHaveClass("border-r");
-    expect(stickyPermissionCell?.firstElementChild).toHaveClass("min-w-0", "p-2");
+    const stickyPermissionCell = permissionRow?.querySelector("td");
+    expect(stickyPermissionCell).toHaveClass("sticky", "left-0", "bg-inherit");
 
     const pageBody = container.querySelector(".flex.flex-col.gap-4.pb-8");
     expect(pageBody).not.toBeNull();
@@ -297,39 +345,49 @@ describe("TeamRolesView", () => {
     await screen.findByTitle("Content editor");
     expect(screen.getByText("1 conditions")).toBeInTheDocument();
 
-    const editContentRow = screen.getByText("Edit content").closest("tr");
+    const editContentRow = within(screen.getByRole("table"))
+      .getByText("Edit content")
+      .closest("tr");
     expect(editContentRow).not.toBeNull();
     const customRoleCheckbox = within(editContentRow as HTMLElement).getAllByRole("checkbox")[1];
     expect(customRoleCheckbox).toBeChecked();
 
     await user.click(customRoleCheckbox);
 
-    expect(setWorkspaceRolePermissionsMock).not.toHaveBeenCalled();
+    expect(setWorkspaceRolePermissionsBatchMock).not.toHaveBeenCalled();
     expect(screen.getByText("team:TEAM_ROLES_UNSAVED_TITLE")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "team:TEAM_ROLES_SAVE_PERMISSIONS" }));
+    await user.click(screen.getByRole("button", { name: "team:TEAM_ROLES_SAVE_CHANGED" }));
 
     await waitFor(() => {
-      expect(setWorkspaceRolePermissionsMock).toHaveBeenCalledWith({
+      expect(setWorkspaceRolePermissionsBatchMock).toHaveBeenCalledWith({
         workspaceId: "ws-1",
-        roleCode: "custom_editor",
-        permissionCodes: ["content.read"],
-        permissionGrants: [
-          {
-            permissionCode: "content.read",
-            conditionSets: [
-              {
-                conditions: [
-                  {
-                    field: "owner_user_id",
-                    operator: "equals_current_user",
-                    value: null,
-                  },
-                ],
-              },
-            ],
-          },
-        ],
+        request: {
+          catalogRevision: "catalog-rev-1",
+          idempotencyKey: expect.any(String),
+          roles: [
+            {
+              roleCode: "custom_editor",
+              roleRevision: "role-editor-rev-1",
+              permissionGrants: [
+                {
+                  permissionCode: "content.read",
+                  conditionSets: [
+                    {
+                      conditions: [
+                        {
+                          field: "owner_user_id",
+                          operator: "equals_current_user",
+                          value: null,
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
       });
     });
   });
@@ -340,7 +398,9 @@ describe("TeamRolesView", () => {
     renderWithQuery(<TeamRolesView workspaceIdOverride="ws-1" />);
 
     await screen.findByTitle("Content editor");
-    const editContentRow = screen.getByText("Edit content").closest("tr");
+    const editContentRow = within(screen.getByRole("table"))
+      .getByText("Edit content")
+      .closest("tr");
     expect(editContentRow).not.toBeNull();
     const customRoleCheckbox = within(editContentRow as HTMLElement).getAllByRole("checkbox")[1];
 
@@ -350,7 +410,7 @@ describe("TeamRolesView", () => {
     await user.click(screen.getByRole("button", { name: "team:TEAM_ROLES_REVERT_PERMISSIONS" }));
 
     expect(customRoleCheckbox).toBeChecked();
-    expect(setWorkspaceRolePermissionsMock).not.toHaveBeenCalled();
+    expect(setWorkspaceRolePermissionsBatchMock).not.toHaveBeenCalled();
   });
 
   it("blocks the roles matrix when the current user cannot read RBAC", async () => {
@@ -367,6 +427,6 @@ describe("TeamRolesView", () => {
     renderWithQuery(<TeamRolesView workspaceIdOverride="ws-1" />);
 
     expect(screen.getByText(/common:PAGE_FORBIDDEN_TITLE/)).toBeInTheDocument();
-    expect(listAllWorkspaceRolesMock).not.toHaveBeenCalled();
+    expect(getWorkspacePermissionCatalogMock).not.toHaveBeenCalled();
   });
 });

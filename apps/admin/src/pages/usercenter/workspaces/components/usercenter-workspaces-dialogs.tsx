@@ -7,10 +7,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@arclayer/ui/alert-dialog";
-import {
-  AlertDialogAction as AlertDialogActionPrimitive,
-  AlertDialogCancel as AlertDialogCancelPrimitive,
-} from "@arclayer/ui/radix-primitives/radix-alert-dialog";
+import { AlertDialogCancel as AlertDialogCancelPrimitive } from "@arclayer/ui/radix-primitives/radix-alert-dialog";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
@@ -30,6 +27,8 @@ export type CreateWorkspaceFormValues = {
 type WorkspaceDangerDialogTarget = {
   workspaceId: string;
   name: string;
+  archiveRevision: number;
+  operationId: string;
 };
 
 interface UserCenterWorkspacesDialogsProps {
@@ -46,7 +45,7 @@ interface UserCenterWorkspacesDialogsProps {
     workspace: WorkspaceDangerDialogTarget | null;
     setWorkspace: Dispatch<SetStateAction<WorkspaceDangerDialogTarget | null>>;
     pending: boolean;
-    onConfirm: (workspaceId: string) => Promise<void>;
+    onConfirm: (workspace: WorkspaceDangerDialogTarget) => Promise<void>;
   };
   deleteDialog: {
     workspace: WorkspaceDangerDialogTarget | null;
@@ -105,20 +104,17 @@ export function WorkspaceActionDialogs(props: WorkspaceActionDialogsProps) {
                 {t("common:CANCEL")}
               </Button>
             </AlertDialogCancelPrimitive>
-            <AlertDialogActionPrimitive asChild>
-              <Button
-                variant="destructive"
-                loading={archiveDialog.pending}
-                onClick={() => {
-                  if (!archiveDialog.workspace) return;
-                  void archiveDialog
-                    .onConfirm(archiveDialog.workspace.workspaceId)
-                    .then(() => archiveDialog.setWorkspace(null));
-                }}
-              >
-                {t("common:ORG_WORKSPACES_ACTION_ARCHIVE")}
-              </Button>
-            </AlertDialogActionPrimitive>
+            <Button
+              variant="destructive"
+              loading={archiveDialog.pending}
+              onClick={async () => {
+                if (!archiveDialog.workspace) return;
+                await archiveDialog.onConfirm(archiveDialog.workspace);
+                archiveDialog.setWorkspace(null);
+              }}
+            >
+              {t("common:ORG_WORKSPACES_ACTION_ARCHIVE")}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

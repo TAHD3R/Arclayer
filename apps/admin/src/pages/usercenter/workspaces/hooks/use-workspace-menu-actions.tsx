@@ -35,7 +35,14 @@ type UseWorkspaceMenuActionsOptions = {
   onDeleteSuccess?: () => void;
 };
 
-type WorkspaceDangerTarget = Pick<UserCenterWorkspaceListItem, "workspaceId" | "name">;
+type WorkspaceDangerSelection = Pick<
+  UserCenterWorkspaceListItem,
+  "workspaceId" | "name" | "archiveRevision"
+>;
+
+type WorkspaceDangerTarget = WorkspaceDangerSelection & {
+  operationId: string;
+};
 
 const EDIT_NAVIGATION_SUPPRESSION_MS = 240;
 
@@ -189,20 +196,20 @@ export function useWorkspaceMenuActions({
   );
 
   const requestArchiveWorkspace = useCallback(
-    async (workspace: WorkspaceDangerTarget) => {
+    async (workspace: WorkspaceDangerSelection) => {
       const allowed = await guardWorkspaceDangerAction(workspace.workspaceId, "archive");
       if (!allowed) return;
-      setConfirmArchive(workspace);
+      setConfirmArchive({ ...workspace, operationId: crypto.randomUUID() });
     },
     [guardWorkspaceDangerAction],
   );
 
   const requestDeleteWorkspace = useCallback(
-    async (workspace: WorkspaceDangerTarget) => {
+    async (workspace: WorkspaceDangerSelection) => {
       const allowed = await guardWorkspaceDangerAction(workspace.workspaceId, "delete");
       if (!allowed) return;
       setDeleteConfirmName("");
-      setConfirmDelete(workspace);
+      setConfirmDelete({ ...workspace, operationId: crypto.randomUUID() });
     },
     [guardWorkspaceDangerAction],
   );
@@ -229,8 +236,12 @@ export function useWorkspaceMenuActions({
   );
 
   const unarchiveWorkspace = useCallback(
-    (workspaceId: string) => {
-      void mutations.unarchiveMutation.mutateAsync(workspaceId);
+    (workspace: UserCenterWorkspaceListItem) => {
+      void mutations.unarchiveMutation.mutateAsync({
+        workspaceId: workspace.workspaceId,
+        expectedRevision: workspace.archiveRevision,
+        operationId: crypto.randomUUID(),
+      });
     },
     [mutations.unarchiveMutation],
   );
@@ -345,7 +356,7 @@ export function useWorkspaceMenuActions({
             key: "unarchive",
             icon: <Undo2 className="size-4" />,
             label: t("common:ORG_WORKSPACES_ACTION_UNARCHIVE"),
-            onClick: () => unarchiveWorkspace(workspace.workspaceId),
+            onClick: () => unarchiveWorkspace(workspace),
           },
           {
             key: "delete",
@@ -474,8 +485,12 @@ export function useWorkspaceMenuActions({
       workspace: confirmArchive,
       setWorkspace: setConfirmArchive,
       pending: mutations.archiveMutation.isPending,
-      onConfirm: async (workspaceId: string) => {
-        await mutations.archiveMutation.mutateAsync(workspaceId);
+      onConfirm: async (workspace: WorkspaceDangerTarget) => {
+        await mutations.archiveMutation.mutateAsync({
+          workspaceId: workspace.workspaceId,
+          expectedRevision: workspace.archiveRevision,
+          operationId: workspace.operationId,
+        });
       },
     },
     deleteDialog: {

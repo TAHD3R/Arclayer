@@ -1,123 +1,90 @@
 "use client";
+
 import * as React from "react";
+import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuIconItem,
-} from "@arclayer/ui/dropdown-menu";
+import { ListFilter, Plus, RefreshCw, RotateCcw, Save } from "lucide-react";
 import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { MoreVertical, Pencil, Plus, RotateCcw, Save, Trash2 } from "lucide-react";
+
+import type {
+  Permission,
+  PermissionConditionSet,
+  Role,
+  RolePermissionGrant,
+  WorkspacePermissionCatalog,
+} from "@arclayer/openapi/admin-types";
+import { ApiError } from "@arclayer/web/http";
+import { Button } from "@arclayer/ui/button";
+import { Filters, createFilter, type Filter, type FilterFieldConfig } from "@arclayer/ui/filters";
+
 import {
   createWorkspaceRoleFromTemplate,
   deleteWorkspaceRole,
-  listAllWorkspacePermissions,
-  listAllWorkspaceRoles,
-  setWorkspaceRolePermissions,
+  getWorkspacePermissionCatalog,
+  setWorkspaceRolePermissionsBatch,
   updateWorkspaceRole,
 } from "@/api/rbac";
+import { buildReuiFilterI18n } from "@/components/common/reui-filter-i18n";
+import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { SettingsSectionAnchor } from "@/components/layout/settings-screen-provider";
+import { useWorkspacePermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
-import { DataTableSearchInput } from "@/components/common/data-table-search-input";
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
-import { Button } from "@arclayer/ui/button";
-import { Checkbox } from "@arclayer/ui/checkbox";
-import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import { useAuthStore } from "@/stores/use-auth-store";
-import { BaseTag } from "@/components/ui/tags";
-import { useWorkspacePermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { TeamRolesDialogs } from "./roles-dialogs";
-import { includesText, normalizeNeedle, sortByName } from "../utils";
+import { useAuthStore } from "@/stores/use-auth-store";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
+
 import type { CreateRoleFormValues, EditRoleFormValues } from "../utils";
-import type { Role } from "@arclayer/openapi/admin-types";
-import type { RolePermissionGrant } from "@arclayer/openapi/admin-types";
+import { normalizeNeedle } from "../utils";
+import {
+  buildGrantsByRole,
+  diffCatalogDefinitions,
+  grantsChanged,
+  preserveCompatibleDraft,
+  togglePermissionGrant,
+  type PermissionCatalogDiff,
+  type PermissionGrantsByRole,
+} from "./permission-catalog-state";
+import { PermissionConditionDialog } from "./permission-condition-dialog";
+import { PermissionMatrix, type PermissionGroupSection } from "./permission-matrix";
+import { TeamRolesDialogs } from "./roles-dialogs";
 
-type RoleWithPermissionGrants = Role & {
-  permissionGrants?: RolePermissionGrant[];
-};
+type CatalogFilters = { groupCode?: string; changedOnly?: boolean };
+type ValidationTarget = { roleCode?: string; permissionCode?: string };
 
-type PermissionMapByRole = Record<string, string[]>;
+const CATALOG_STALE_TIME_MS = 30_000;
+const FILTER_OPERATORS = [{ value: "is", labelKey: "common:FILTER_OPERATOR_IS" }] as const;
 
-function resolveMatrixColumnWidths(roleCount: number) {
-  const permissionWidth = 42;
-  const roleWidth = roleCount > 0 ? Number(((100 - permissionWidth) / roleCount).toFixed(2)) : 0;
-  return {
-    permission: `${permissionWidth}%`,
-    role: `${roleWidth}%`,
-  };
+function catalogQueryKey(workspaceId: string | null) {
+  return ["rbac", "catalog", workspaceId] as const;
 }
 
-function resolveRoleHeaderLines(roleName: string) {
-  const normalized = roleName.trim();
-  if (!normalized) return [];
-  if (/\s/.test(normalized)) {
-    return normalized.split(/\s+/).filter(Boolean);
+function filtersToReui(value: CatalogFilters): Filter<string>[] {
+  const filters: Filter<string>[] = [];
+  if (value.groupCode) filters.push(createFilter("groupCode", "is", [value.groupCode]));
+  if (value.changedOnly) filters.push(createFilter("changedOnly", "is", ["changed"]));
+  return filters;
+}
+
+function filtersFromReui(filters: Filter<string>[]): CatalogFilters {
+  const next: CatalogFilters = {};
+  for (const filter of filters) {
+    const first = filter.values[0];
+    if (filter.field === "groupCode" && first) next.groupCode = first;
+    if (filter.field === "changedOnly" && first === "changed") next.changedOnly = true;
   }
-  if (/[\u3400-\u9fff]/.test(normalized) && normalized.length <= 6) {
-    return normalized.split("");
+  return next;
+}
+
+function metaString(meta: unknown, ...keys: string[]): string | undefined {
+  if (!meta || typeof meta !== "object") return undefined;
+  for (const key of keys) {
+    const value = (meta as Record<string, unknown>)[key];
+    if (typeof value === "string") return value;
   }
-  return [normalized];
-}
-
-function normalizePermissionCodes(codes: string[] | null | undefined): string[] {
-  return Array.from(
-    new Set((codes ?? []).map((code) => String(code || "").trim()).filter(Boolean)),
-  ).sort();
-}
-
-function buildPermissionMapByRole(roles: RoleWithPermissionGrants[]): PermissionMapByRole {
-  return Object.fromEntries(
-    roles.map((role) => [role.code, normalizePermissionCodes(role.permissionCodes)]),
-  );
-}
-
-function serializePermissionMap(map: PermissionMapByRole): string {
-  return JSON.stringify(
-    Object.fromEntries(
-      Object.entries(map)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([roleCode, permissionCodes]) => [
-          roleCode,
-          normalizePermissionCodes(permissionCodes),
-        ]),
-    ),
-  );
-}
-
-function permissionCodesEqual(left: string[] | undefined, right: string[] | undefined): boolean {
-  const normalizedLeft = normalizePermissionCodes(left);
-  const normalizedRight = normalizePermissionCodes(right);
-  return (
-    normalizedLeft.length === normalizedRight.length &&
-    normalizedLeft.every((code, index) => code === normalizedRight[index])
-  );
-}
-
-function buildPermissionGrantsForRole(
-  role: RoleWithPermissionGrants,
-  permissionCodes: string[],
-): RolePermissionGrant[] {
-  const permissionCodeSet = new Set(permissionCodes);
-  return (role.permissionGrants ?? [])
-    .filter((grant) => permissionCodeSet.has(grant.permissionCode))
-    .map((grant) => ({
-      permissionCode: grant.permissionCode,
-      conditionSets: grant.conditionSets ?? [],
-    }))
-    .filter((grant) => grant.conditionSets.length > 0);
-}
-
-function countConditionSets(role: RoleWithPermissionGrants, permissionCode: string): number {
-  return (
-    role.permissionGrants?.find((grant) => grant.permissionCode === permissionCode)?.conditionSets
-      ?.length ?? 0
-  );
+  return undefined;
 }
 
 export function TeamRolesView(
@@ -130,15 +97,27 @@ export function TeamRolesView(
 ) {
   const { t } = useTranslation(["team", "common", "settings"]);
   const queryClient = useQueryClient();
-  const accessToken = useAuthStore((s) => s.accessToken);
-  const workspaceIdFromStore = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const workspaceIdFromStore = useWorkspaceStore((state) => state.currentWorkspaceId);
   const workspaceId = props.workspaceIdOverride ?? workspaceIdFromStore;
   const permissionAccess = useWorkspacePermissionAccess(workspaceId);
   const canReadRoles = permissionAccess.hasPermission("rbac:roles:read");
   const canReadPermissions = permissionAccess.hasPermission("rbac:permissions:read");
   const canManageRoles = permissionAccess.hasPermission("rbac:roles:write");
+
   const [search, setSearch] = React.useState("");
-  const needle = React.useMemo(() => normalizeNeedle(search), [search]);
+  const [filters, setFilters] = React.useState<CatalogFilters>({});
+  const [baselineGrantsByRole, setBaselineGrantsByRole] = React.useState<PermissionGrantsByRole>(
+    {},
+  );
+  const [draftGrantsByRole, setDraftGrantsByRole] = React.useState<PermissionGrantsByRole>({});
+  const baselineRef = React.useRef(baselineGrantsByRole);
+  const draftRef = React.useRef(draftGrantsByRole);
+  const conditionalCatalogRef = React.useRef<WorkspacePermissionCatalog | null>(null);
+  const appliedCatalogRef = React.useRef<WorkspacePermissionCatalog | null>(null);
+  const [catalogDiff, setCatalogDiff] = React.useState<PermissionCatalogDiff | null>(null);
+  const [validationTarget, setValidationTarget] = React.useState<ValidationTarget | null>(null);
+
   const [uncontrolledCreateOpen, setUncontrolledCreateOpen] = React.useState(false);
   const createOpen = props.createOpen ?? uncontrolledCreateOpen;
   const setCreateOpen = props.onCreateOpenChange ?? setUncontrolledCreateOpen;
@@ -147,152 +126,211 @@ export function TeamRolesView(
     null,
   );
   const [editingRole, setEditingRole] = React.useState<Role | null>(null);
-  const [draftPermissionCodesByRole, setDraftPermissionCodesByRole] =
-    React.useState<PermissionMapByRole>({});
+  const [conditionTarget, setConditionTarget] = React.useState<{
+    role: Role;
+    permission: Permission;
+  } | null>(null);
 
-  const syncRoleQueryCaches = React.useCallback(
-    async (nextPermissionCodesByRole?: Record<string, string[]>) => {
-      const patchItems = (items: Role[] | undefined) =>
-        (items ?? []).map((role) =>
-          nextPermissionCodesByRole && role.code in nextPermissionCodesByRole
-            ? Object.assign({}, role, {
-                permissionCodes: nextPermissionCodesByRole[role.code] ?? [],
-              })
-            : role,
-        );
-
-      queryClient.setQueryData<Role[]>(["rbac", "roles", workspaceId], (current) =>
-        patchItems(current),
-      );
-      queryClient.setQueryData<Role[]>(
-        ["workspace-member-context", "roles", workspaceId],
-        (current) => patchItems(current),
-      );
-
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["rbac", "roles", workspaceId] }),
-        queryClient.invalidateQueries({
-          queryKey: ["workspace-member-context", "roles", workspaceId],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["workspace-member-context", "permissions", workspaceId],
-        }),
-      ]);
-    },
-    [queryClient, workspaceId],
-  );
-
-  const rolesQuery = useQuery({
-    queryKey: ["rbac", "roles", workspaceId],
-    enabled: Boolean(accessToken && workspaceId && canReadRoles),
+  const catalogQuery = useQuery({
+    queryKey: catalogQueryKey(workspaceId),
+    enabled: Boolean(accessToken && workspaceId && canReadRoles && canReadPermissions),
     queryFn: async () => {
       if (!workspaceId) throw new Error("workspaceId is required");
-      return listAllWorkspaceRoles(workspaceId);
+      const result = await getWorkspacePermissionCatalog({
+        workspaceId,
+        etag: conditionalCatalogRef.current?.etag,
+      });
+      if (result.status === "not-modified") {
+        if (!conditionalCatalogRef.current) {
+          throw new Error("Permission catalog returned 304 without a local baseline");
+        }
+        return conditionalCatalogRef.current;
+      }
+      conditionalCatalogRef.current = result.catalog;
+      return result.catalog;
     },
-    staleTime: 30 * 1000,
+    staleTime: CATALOG_STALE_TIME_MS,
+    refetchOnMount: "always",
+    refetchOnReconnect: "always",
+    refetchOnWindowFocus: "always",
     retry: false,
   });
 
-  const permissionsQuery = useQuery({
-    queryKey: ["rbac", "permissions", workspaceId],
-    enabled: Boolean(accessToken && workspaceId && canReadPermissions),
-    queryFn: async () => {
-      if (!workspaceId) throw new Error("workspaceId is required");
-      return listAllWorkspacePermissions(workspaceId);
-    },
-    staleTime: 30 * 1000,
-    retry: false,
-  });
-
-  const roles = React.useMemo(() => sortByName(rolesQuery.data ?? []), [rolesQuery.data]);
-  const permissions = React.useMemo(() => permissionsQuery.data ?? [], [permissionsQuery.data]);
-  const rolesWithGrants = roles as RoleWithPermissionGrants[];
-  const baselinePermissionCodesByRole = React.useMemo(
-    () => buildPermissionMapByRole(rolesWithGrants),
-    [rolesWithGrants],
-  );
-  const baselinePermissionSignature = React.useMemo(
-    () => serializePermissionMap(baselinePermissionCodesByRole),
-    [baselinePermissionCodesByRole],
+  const catalog = catalogQuery.data;
+  const roles = React.useMemo(() => (catalog?.roles ?? []) as Role[], [catalog?.roles]);
+  const permissions = React.useMemo(
+    () => (catalog?.permissions ?? []) as Permission[],
+    [catalog?.permissions],
   );
 
   React.useEffect(() => {
-    setDraftPermissionCodesByRole(baselinePermissionCodesByRole);
-  }, [baselinePermissionCodesByRole, baselinePermissionSignature, workspaceId]);
+    if (!catalog) return;
+    const nextBaseline = buildGrantsByRole(roles);
+    const previousCatalog = appliedCatalogRef.current;
+    const hadDraftChanges = roles.some(
+      (role) =>
+        !role.isSystem &&
+        grantsChanged(baselineRef.current[role.code], draftRef.current[role.code]),
+    );
+    const nextDraft =
+      previousCatalog && hadDraftChanges
+        ? preserveCompatibleDraft(roles, permissions, draftRef.current)
+        : nextBaseline;
 
-  const matchedRoles = React.useMemo(() => {
-    if (!needle) return roles;
-    return roles.filter((r) => includesText(r.name, needle));
-  }, [needle, roles]);
+    if (previousCatalog && hadDraftChanges) {
+      const diff = diffCatalogDefinitions(previousCatalog, catalog);
+      setCatalogDiff(diff.added.length || diff.changed.length || diff.removed.length ? diff : null);
+    } else {
+      setCatalogDiff(null);
+    }
+    setBaselineGrantsByRole(nextBaseline);
+    setDraftGrantsByRole(nextDraft);
+    baselineRef.current = nextBaseline;
+    draftRef.current = nextDraft;
+    appliedCatalogRef.current = catalog;
+  }, [catalog, permissions, roles, workspaceId]);
 
-  const matchedPermissions = React.useMemo(() => {
-    if (!needle) return permissions;
-    return permissions.filter((p) => includesText(p.name, needle));
-  }, [needle, permissions]);
+  React.useEffect(() => {
+    draftRef.current = draftGrantsByRole;
+  }, [draftGrantsByRole]);
 
-  const filteredRoles = React.useMemo(() => {
-    if (!needle) return roles;
-    const hasRoleHits = matchedRoles.length > 0;
-    const hasPermHits = matchedPermissions.length > 0;
-    if (hasRoleHits && !hasPermHits) return matchedRoles;
-    if (!hasRoleHits && hasPermHits) return roles;
-    if (hasRoleHits && hasPermHits) return matchedRoles;
-    return [];
-  }, [matchedPermissions.length, matchedRoles, needle, roles]);
-
-  const filteredPermissions = React.useMemo(() => {
-    if (!needle) return permissions;
-    const hasRoleHits = matchedRoles.length > 0;
-    const hasPermHits = matchedPermissions.length > 0;
-    if (hasPermHits && !hasRoleHits) return matchedPermissions;
-    if (!hasPermHits && hasRoleHits) return permissions;
-    if (hasPermHits && hasRoleHits) return matchedPermissions;
-    return [];
-  }, [matchedPermissions, matchedRoles.length, needle, permissions]);
-  const matrixColumnWidths = React.useMemo(
-    () => resolveMatrixColumnWidths(filteredRoles.length),
-    [filteredRoles.length],
-  );
   const changedRoleCodes = React.useMemo(
     () =>
       roles
         .filter((role) => !role.isSystem)
-        .map((role) => role.code)
-        .filter(
-          (roleCode) =>
-            !permissionCodesEqual(
-              draftPermissionCodesByRole[roleCode],
-              baselinePermissionCodesByRole[roleCode],
-            ),
-        ),
-    [baselinePermissionCodesByRole, draftPermissionCodesByRole, roles],
+        .filter((role) =>
+          grantsChanged(baselineGrantsByRole[role.code], draftGrantsByRole[role.code]),
+        )
+        .map((role) => role.code),
+    [baselineGrantsByRole, draftGrantsByRole, roles],
   );
-  const changedRoleCount = changedRoleCodes.length;
-  const hasPermissionDraftChanges = changedRoleCount > 0;
+  const changedRoleCodeSet = React.useMemo(() => new Set(changedRoleCodes), [changedRoleCodes]);
+
+  const visibleRoles = React.useMemo(() => {
+    const needle = normalizeNeedle(search);
+    let result = roles;
+    if (filters.changedOnly) result = result.filter((role) => changedRoleCodeSet.has(role.code));
+    if (needle && roles.some((role) => normalizeNeedle(role.name).includes(needle))) {
+      result = result.filter((role) => normalizeNeedle(role.name).includes(needle));
+    }
+    return result;
+  }, [changedRoleCodeSet, filters.changedOnly, roles, search]);
+
+  const visiblePermissions = React.useMemo(() => {
+    const needle = normalizeNeedle(search);
+    return permissions.filter((permission) => {
+      if (filters.groupCode && permission.groupCode !== filters.groupCode) return false;
+      if (filters.changedOnly) {
+        const changedForPermission = changedRoleCodes.some((roleCode) => {
+          const baseline = baselineGrantsByRole[roleCode] ?? [];
+          const draft = draftGrantsByRole[roleCode] ?? [];
+          const baselineGrant = baseline.find((grant) => grant.permissionCode === permission.code);
+          const draftGrant = draft.find((grant) => grant.permissionCode === permission.code);
+          return JSON.stringify(baselineGrant) !== JSON.stringify(draftGrant);
+        });
+        if (!changedForPermission) return false;
+      }
+      if (!needle) return true;
+      return [
+        permission.name,
+        permission.description,
+        permission.code,
+        permission.ownerName,
+        permission.groupName,
+      ].some((value) => normalizeNeedle(String(value ?? "")).includes(needle));
+    });
+  }, [
+    baselineGrantsByRole,
+    changedRoleCodes,
+    draftGrantsByRole,
+    filters.changedOnly,
+    filters.groupCode,
+    permissions,
+    search,
+  ]);
+
+  const groupSections = React.useMemo<PermissionGroupSection[]>(() => {
+    if (!catalog) return [];
+    return [...(catalog.groups ?? [])]
+      .sort((left, right) => left.order - right.order)
+      .map((group) => ({
+        code: group.code,
+        name: group.name,
+        permissions: visiblePermissions.filter((permission) => permission.groupCode === group.code),
+      }))
+      .filter((group) => group.permissions.length > 0);
+  }, [catalog, visiblePermissions]);
+
+  const reconcileDependentCaches = React.useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["rbac", "roles", workspaceId] }),
+      queryClient.invalidateQueries({
+        queryKey: ["workspace-member-context", "roles", workspaceId],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ["workspace-member-context", "permissions", workspaceId],
+      }),
+      queryClient.invalidateQueries({ queryKey: ["team-invitations", workspaceId] }),
+    ]);
+  }, [queryClient, workspaceId]);
 
   const savePermissionsMutation = useMutation({
-    mutationFn: async (roleCodes: string[]) => {
-      if (!workspaceId) throw new Error("workspaceId is required");
-      await Promise.all(
-        roleCodes.map((roleCode) => {
-          const role = rolesWithGrants.find((item) => item.code === roleCode);
-          if (!role) return Promise.resolve();
-          const permissionCodes = normalizePermissionCodes(draftPermissionCodesByRole[roleCode]);
-          return setWorkspaceRolePermissions({
-            workspaceId,
-            roleCode,
-            permissionCodes,
-            permissionGrants: buildPermissionGrantsForRole(role, permissionCodes),
-          });
-        }),
+    mutationFn: async () => {
+      if (!workspaceId || !catalog) throw new Error("Permission catalog is required");
+      return setWorkspaceRolePermissionsBatch({
+        workspaceId,
+        request: {
+          catalogRevision: catalog.catalogRevision,
+          idempotencyKey: crypto.randomUUID(),
+          roles: changedRoleCodes.map((roleCode) => {
+            const role = roles.find((item) => item.code === roleCode);
+            if (!role?.revision) throw new Error(`Role revision is missing for ${roleCode}`);
+            return {
+              roleCode,
+              roleRevision: role.revision,
+              permissionGrants: draftGrantsByRole[roleCode] ?? [],
+            };
+          }),
+        },
+      });
+    },
+    onSuccess: async (result) => {
+      if (!catalog) return;
+      const updatedByCode = new Map((result.roles ?? []).map((role) => [role.code, role]));
+      const nextCatalog: WorkspacePermissionCatalog = {
+        ...catalog,
+        roles: (catalog.roles ?? []).map((role) => updatedByCode.get(role.code) ?? role),
+      };
+      const nextRoles = (nextCatalog.roles ?? []) as Role[];
+      const nextBaseline = buildGrantsByRole(nextRoles);
+      baselineRef.current = nextBaseline;
+      draftRef.current = nextBaseline;
+      setBaselineGrantsByRole(nextBaseline);
+      setDraftGrantsByRole(nextBaseline);
+      setCatalogDiff(null);
+      setValidationTarget(null);
+      conditionalCatalogRef.current = nextCatalog;
+      appliedCatalogRef.current = nextCatalog;
+      queryClient.setQueryData(catalogQueryKey(workspaceId), nextCatalog);
+      await Promise.all([catalogQuery.refetch(), reconcileDependentCaches()]);
+      notifySuccessText(
+        t("team:TEAM_ROLES_PERMISSIONS_SAVE_SUCCESS", { count: changedRoleCodes.length }),
       );
     },
-    onSuccess: async () => {
-      notifySuccessText(t("team:TEAM_ROLES_PERMISSIONS_SAVE_SUCCESS", { count: changedRoleCount }));
-      await syncRoleQueryCaches(draftPermissionCodesByRole);
-    },
-    onError: async (err) => {
-      notifyError(err);
+    onError: async (error) => {
+      if (error instanceof ApiError) {
+        setValidationTarget({
+          roleCode: metaString(error.meta, "roleCode", "role_code"),
+          permissionCode: metaString(error.meta, "permissionCode", "permission_code"),
+        });
+        if (
+          error.error === "PERMISSION_CATALOG_CONFLICT" ||
+          error.error === "ROLE_REVISION_CONFLICT"
+        ) {
+          await catalogQuery.refetch();
+        }
+      }
+      notifyError(error);
     },
   });
 
@@ -302,84 +340,71 @@ export function TeamRolesView(
       await deleteWorkspaceRole({ workspaceId, roleCode });
     },
     onSuccess: async () => {
+      await Promise.all([catalogQuery.refetch(), reconcileDependentCaches()]);
       notifySuccessText(t("team:TEAM_ROLES_DELETE_SUCCESS"));
-      await syncRoleQueryCaches();
     },
-    onError: (err) => notifyError(err),
+    onError: notifyError,
   });
 
-  const createSchema = React.useMemo(() => {
-    return z
-      .object({
-        templateRoleCode: z.string().min(1),
-        name: z.string().min(1, t("team:TEAM_ROLES_FIELD_NAME")),
-        description: z.string().optional().default(""),
-      })
-      .strict();
-  }, [t]);
-
+  const createSchema = React.useMemo(
+    () =>
+      z
+        .object({
+          templateRoleCode: z.string().min(1),
+          name: z.string().min(1, t("team:TEAM_ROLES_FIELD_NAME")),
+          description: z.string().optional().default(""),
+        })
+        .strict(),
+    [t],
+  );
   const createForm = useForm<CreateRoleFormValues>({
     resolver: zodResolver(createSchema),
     defaultValues: { templateRoleCode: "__none__", name: "", description: "" },
     mode: "onSubmit",
   });
-  const createErrors = createForm.formState.errors;
-
-  const editSchema = React.useMemo(() => {
-    return z
-      .object({
-        name: z.string().min(1, t("team:TEAM_ROLES_FIELD_NAME")),
-        description: z.string().optional().default(""),
-      })
-      .strict();
-  }, [t]);
-
+  const editSchema = React.useMemo(
+    () =>
+      z
+        .object({
+          name: z.string().min(1, t("team:TEAM_ROLES_FIELD_NAME")),
+          description: z.string().optional().default(""),
+        })
+        .strict(),
+    [t],
+  );
   const editForm = useForm<EditRoleFormValues>({
     resolver: zodResolver(editSchema),
     defaultValues: { name: "", description: "" },
     mode: "onSubmit",
   });
-  const editErrors = editForm.formState.errors;
 
   React.useEffect(() => {
-    if (!createOpen) {
-      createForm.reset({ templateRoleCode: "__none__", name: "", description: "" });
-      return;
-    }
-    const current = createForm.getValues("templateRoleCode");
-    if (!current) createForm.setValue("templateRoleCode", "__none__", { shouldDirty: false });
-  }, [createForm, createOpen, roles]);
-
+    if (!createOpen) createForm.reset({ templateRoleCode: "__none__", name: "", description: "" });
+  }, [createForm, createOpen]);
   React.useEffect(() => {
-    if (!editingRole) {
-      editForm.reset({ name: "", description: "" });
-      return;
-    }
     editForm.reset({
-      name: editingRole.name,
-      description: editingRole.description ?? "",
+      name: editingRole?.name ?? "",
+      description: editingRole?.description ?? "",
     });
   }, [editForm, editingRole]);
 
   const createRoleMutation = useMutation({
     mutationFn: async (values: CreateRoleFormValues) => {
       if (!workspaceId) throw new Error("workspaceId is required");
-      const tpl = values.templateRoleCode === "__none__" ? null : values.templateRoleCode;
       return createWorkspaceRoleFromTemplate({
         workspaceId,
-        templateRoleCode: tpl,
+        templateRoleCode: values.templateRoleCode === "__none__" ? null : values.templateRoleCode,
         name: values.name.trim(),
-        description: values.description.trim() ? values.description.trim() : null,
+        description: values.description.trim() || null,
       });
     },
     onSuccess: async () => {
-      notifySuccessText(t("team:TEAM_ROLES_CREATE_SUCCESS"));
       setCreateOpen(false);
-      await syncRoleQueryCaches();
+      await Promise.all([catalogQuery.refetch(), reconcileDependentCaches()]);
+      notifySuccessText(t("team:TEAM_ROLES_CREATE_SUCCESS"));
     },
-    onError: (err) => notifyError(err),
+    onError: notifyError,
   });
-
   const editRoleMutation = useMutation({
     mutationFn: async (values: { roleCode: string; name: string; description: string }) => {
       if (!workspaceId) throw new Error("workspaceId is required");
@@ -387,376 +412,217 @@ export function TeamRolesView(
         workspaceId,
         roleCode: values.roleCode,
         name: values.name.trim(),
-        description: values.description.trim() ? values.description.trim() : null,
+        description: values.description.trim() || null,
       });
     },
     onSuccess: async () => {
-      notifySuccessText(t("team:TEAM_ROLES_UPDATE_SUCCESS"));
       setEditingRole(null);
-      await syncRoleQueryCaches();
+      await Promise.all([catalogQuery.refetch(), reconcileDependentCaches()]);
+      notifySuccessText(t("team:TEAM_ROLES_UPDATE_SUCCESS"));
     },
-    onError: (err) => notifyError(err),
+    onError: notifyError,
   });
 
-  if (!workspaceId) {
-    const emptyState = (
-      <ContentGuard
-        loading={false}
-        empty
-        emptyTitle={t("settings:SETTINGS_WORKSPACE_NOT_SELECTED_TITLE")}
-        emptyDescription={t("settings:SETTINGS_WORKSPACE_NOT_SELECTED_DESC")}
-      />
-    );
+  const state = resolveGuardState({
+    workspaceId,
+    permissionAccess,
+    canReadRoles,
+    canReadPermissions,
+    catalog,
+    catalogQuery,
+    t,
+  });
+  if (state) {
     return props.embedded ? (
-      emptyState
+      state
     ) : (
       <DefaultPage title={t("team:TEAM_ROLES_TITLE")} description={t("team:TEAM_ROLES_DESC")}>
-        {emptyState}
+        {state}
       </DefaultPage>
     );
   }
 
-  if (permissionAccess.authzQuery.isLoading && !permissionAccess.authzQuery.data) {
-    const loadingState = <ContentGuard loading loadingVariant="form" />;
-    return props.embedded ? (
-      loadingState
-    ) : (
-      <DefaultPage title={t("team:TEAM_ROLES_TITLE")} description={t("team:TEAM_ROLES_DESC")}>
-        {loadingState}
-      </DefaultPage>
-    );
-  }
-
-  if (permissionAccess.authzQuery.error) {
-    const errorState = (
-      <ContentGuard
-        loading={false}
-        error={permissionAccess.authzQuery.error}
-        onRetry={() => {
-          void permissionAccess.authzQuery.refetch();
-        }}
-      />
-    );
-    return props.embedded ? (
-      errorState
-    ) : (
-      <DefaultPage title={t("team:TEAM_ROLES_TITLE")} description={t("team:TEAM_ROLES_DESC")}>
-        {errorState}
-      </DefaultPage>
-    );
-  }
-
-  if (!canReadRoles || !canReadPermissions) {
-    const forbiddenState = (
-      <ContentGuard
-        loading={false}
-        empty
-        emptyTitle={t("common:PAGE_FORBIDDEN_TITLE")}
-        emptyDescription={t("common:PAGE_FORBIDDEN_DESC")}
-      />
-    );
-    return props.embedded ? (
-      forbiddenState
-    ) : (
-      <DefaultPage title={t("team:TEAM_ROLES_TITLE")} description={t("team:TEAM_ROLES_DESC")}>
-        {forbiddenState}
-      </DefaultPage>
-    );
-  }
-
-  if (
-    (rolesQuery.isLoading || permissionsQuery.isLoading) &&
-    (!rolesQuery.data || !permissionsQuery.data)
-  ) {
-    const loadingState = <ContentGuard loading loadingVariant="table" />;
-    return props.embedded ? (
-      loadingState
-    ) : (
-      <DefaultPage title={t("team:TEAM_ROLES_TITLE")} description={t("team:TEAM_ROLES_DESC")}>
-        {loadingState}
-      </DefaultPage>
-    );
-  }
-
-  const queryError = rolesQuery.error ?? permissionsQuery.error;
-  if (queryError) {
-    const errorState = (
-      <ContentGuard
-        loading={false}
-        error={queryError}
-        onRetry={() => {
-          void rolesQuery.refetch();
-          void permissionsQuery.refetch();
-        }}
-      />
-    );
-    return props.embedded ? (
-      errorState
-    ) : (
-      <DefaultPage title={t("team:TEAM_ROLES_TITLE")} description={t("team:TEAM_ROLES_DESC")}>
-        {errorState}
-      </DefaultPage>
-    );
-  }
-
-  const hasEmptySearch = Boolean(needle) && (!filteredRoles.length || !filteredPermissions.length);
+  const filterFields: FilterFieldConfig<string>[] = [
+    {
+      key: "groupCode",
+      label: t("team:TEAM_ROLES_FILTER_GROUP"),
+      type: "select",
+      searchable: false,
+      operators: FILTER_OPERATORS.map((operator) => ({
+        value: operator.value,
+        label: t(operator.labelKey),
+      })),
+      options: (catalog?.groups ?? []).map((group) => ({ value: group.code, label: group.name })),
+    },
+    {
+      key: "changedOnly",
+      label: t("team:TEAM_ROLES_FILTER_CHANGED"),
+      type: "select",
+      searchable: false,
+      operators: FILTER_OPERATORS.map((operator) => ({
+        value: operator.value,
+        label: t(operator.labelKey),
+      })),
+      options: [{ value: "changed", label: t("team:TEAM_ROLES_FILTER_CHANGED_ONLY") }],
+    },
+  ];
 
   const toolbar = (
-    <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex flex-wrap items-center gap-2">
       <DataTableSearchInput
         value={search}
         onChange={setSearch}
         placeholder={t("team:TEAM_ROLES_SEARCH_PLACEHOLDER")}
         clearLabel={t("common:CLEAR")}
-        className="w-full max-w-90"
+        className="min-w-56 flex-1 sm:max-w-90"
       />
-      <div className="text-headline text-label-primary">
-        {t("team:TEAM_ROLES_PERMISSION_COUNT", { count: filteredPermissions.length })}
-      </div>
-    </div>
-  );
-
-  const actionButton = (
-    <SettingsSectionAnchor section="create-role">
-      <Button disabled={!canManageRoles} onClick={() => setCreateOpen(true)}>
-        <Plus className="h-4 w-4" />
-        {t("team:TEAM_ROLES_ADD_ROLE")}
+      <Filters
+        filters={filtersToReui(filters)}
+        fields={filterFields}
+        onChange={(next) => setFilters(filtersFromReui(next))}
+        i18n={buildReuiFilterI18n(t, t("team:TEAM_ROLES_FILTER_TITLE"))}
+        allowMultiple={false}
+        enableShortcut
+        shortcutKey="f"
+        shortcutLabel="F"
+        trigger={
+          <Button variant="outline" aria-label={t("team:TEAM_ROLES_FILTER_TITLE")}>
+            <ListFilter className="size-4" />
+          </Button>
+        }
+      />
+      <Button
+        variant="outline"
+        size="icon"
+        aria-label={t("common:REFRESH")}
+        loading={catalogQuery.isFetching}
+        onClick={() => void catalogQuery.refetch()}
+      >
+        <RefreshCw className="size-4" />
       </Button>
-    </SettingsSectionAnchor>
+      <div className="ml-auto text-caption text-label-secondary">
+        {t("team:TEAM_ROLES_CATALOG_REVISION", {
+          revision: catalog?.catalogRevision.slice(0, 8) ?? "—",
+        })}
+      </div>
+    </div>
   );
 
-  const permissionDraftNotice = hasPermissionDraftChanges ? (
-    <div
-      className="flex flex-col gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 lg:flex-row lg:items-center lg:justify-between"
-      data-testid="team-roles-unsaved-permissions"
-    >
-      <div>
-        <div className="text-callout font-semibold text-label-primary">
-          {t("team:TEAM_ROLES_UNSAVED_TITLE")}
-        </div>
-        <div className="mt-0.5 text-footnote text-label-secondary">
-          {t("team:TEAM_ROLES_UNSAVED_DESC", { count: changedRoleCount })}
-        </div>
-      </div>
-      <div className="flex shrink-0 items-center gap-2">
-        <Button
-          variant="ghost"
-          disabled={savePermissionsMutation.isPending}
-          onClick={() => setDraftPermissionCodesByRole(baselinePermissionCodesByRole)}
-        >
-          <RotateCcw className="h-4 w-4" />
-          {t("team:TEAM_ROLES_REVERT_PERMISSIONS")}
-        </Button>
-        <Button
-          loading={savePermissionsMutation.isPending}
-          disabled={!canManageRoles}
-          onClick={() => savePermissionsMutation.mutate(changedRoleCodes)}
-        >
-          <Save className="h-4 w-4" />
-          {t("team:TEAM_ROLES_SAVE_PERMISSIONS")}
-        </Button>
-      </div>
-    </div>
-  ) : !canManageRoles ? (
-    <div className="rounded-xl border border-border/70 bg-muted/25 px-4 py-3">
-      <div className="text-callout font-semibold text-label-primary">
-        {t("team:TEAM_ROLES_READONLY_TITLE")}
-      </div>
-      <div className="mt-0.5 text-footnote text-label-secondary">
-        {t("team:TEAM_ROLES_READONLY_DESC")}
-      </div>
-    </div>
-  ) : null;
-
+  const hasDraftChanges = changedRoleCodes.length > 0;
   const content = (
     <>
       <div className="flex flex-col gap-4 pb-8">
-        {permissionDraftNotice}
-        {hasEmptySearch ? (
+        {catalogDiff ? (
+          <CatalogChangeNotice
+            t={t}
+            diff={catalogDiff}
+            onKeep={() => setCatalogDiff(null)}
+            onReload={() => {
+              setDraftGrantsByRole(baselineGrantsByRole);
+              setCatalogDiff(null);
+              setValidationTarget(null);
+            }}
+          />
+        ) : null}
+        {hasDraftChanges ? (
+          <div
+            className="flex flex-col gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 lg:flex-row lg:items-center lg:justify-between"
+            data-testid="team-roles-unsaved-permissions"
+          >
+            <div>
+              <div className="text-callout font-semibold text-label-primary">
+                {t("team:TEAM_ROLES_UNSAVED_TITLE")}
+              </div>
+              <div className="mt-0.5 text-footnote text-label-secondary">
+                {t("team:TEAM_ROLES_UNSAVED_DESC", { count: changedRoleCodes.length })}
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                variant="ghost"
+                disabled={savePermissionsMutation.isPending}
+                onClick={() => {
+                  setDraftGrantsByRole(baselineGrantsByRole);
+                  setValidationTarget(null);
+                }}
+              >
+                <RotateCcw className="size-4" />
+                {t("team:TEAM_ROLES_REVERT_PERMISSIONS")}
+              </Button>
+              <Button
+                loading={savePermissionsMutation.isPending}
+                disabled={!canManageRoles || !changedRoleCodes.length}
+                onClick={() => savePermissionsMutation.mutate()}
+              >
+                <Save className="size-4" />
+                {t("team:TEAM_ROLES_SAVE_CHANGED", { count: changedRoleCodes.length })}
+              </Button>
+            </div>
+          </div>
+        ) : !canManageRoles ? (
+          <div className="rounded-xl border border-border/70 bg-muted/25 px-4 py-3">
+            <div className="text-callout font-semibold text-label-primary">
+              {t("team:TEAM_ROLES_READONLY_TITLE")}
+            </div>
+            <div className="mt-0.5 text-footnote text-label-secondary">
+              {t("team:TEAM_ROLES_READONLY_DESC")}
+            </div>
+          </div>
+        ) : null}
+
+        {!visibleRoles.length || !visiblePermissions.length ? (
           <ContentGuard loading={false} empty emptyTitle={t("team:TEAM_ROLES_EMPTY_SEARCH")} />
         ) : (
-          <SettingsSectionAnchor section="roles-table">
-            <div className="relative isolate overflow-x-auto rounded-xl border border-border/70 bg-background">
-              <table className="w-full table-fixed border-collapse caption-bottom text-callout">
-                <colgroup>
-                  <col style={{ width: matrixColumnWidths.permission }} />
-                  {filteredRoles.map((role) => (
-                    <col key={role.code} style={{ width: matrixColumnWidths.role }} />
-                  ))}
-                </colgroup>
-                <TableHeader className="border-b border-border/60 [&_tr]:border-0">
-                  <TableRow className="border-0 bg-background hover:bg-transparent">
-                    <TableHead className="sticky top-0 left-0 z-[3] bg-background text-center">
-                      <div className="flex min-h-24 items-center justify-center px-2 py-2.5 text-center">
-                        <span className="block text-callout font-semibold text-label-secondary">
-                          {t("team:TEAM_ROLES_COL_PERMISSION")}
-                        </span>
-                      </div>
-                    </TableHead>
-                    {filteredRoles.map((role) => {
-                      const roleHeaderLines = resolveRoleHeaderLines(role.name);
-                      return (
-                        <TableHead
-                          key={role.code}
-                          className="sticky top-0 z-[2] min-w-[5.5rem] bg-background"
-                        >
-                          <SettingsSectionAnchor
-                            section="role-row"
-                            payloadMatches={(payload) => payload?.roleId === role.code}
-                            className="relative min-h-24 px-2 py-2.5"
-                          >
-                            <div
-                              className="flex min-h-[4.5rem] items-center justify-center"
-                              title={role.name}
-                            >
-                              <div className="flex min-w-0 flex-col items-center justify-center gap-0.5 text-center text-footnote font-semibold  text-label-primary">
-                                {roleHeaderLines.map((line, index) => (
-                                  <span
-                                    key={`${role.code}-${index}`}
-                                    className="block whitespace-nowrap"
-                                  >
-                                    {line}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                            {!role.isSystem ? (
-                              <div className="absolute top-2.5 right-2 flex justify-end">
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon-xs"
-                                      aria-label={t("team:TEAM_USER_ACTIONS")}
-                                    >
-                                      <MoreVertical className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuIconItem
-                                      icon={<Pencil className="h-4 w-4" />}
-                                      disabled={
-                                        !canManageRoles ||
-                                        editRoleMutation.isPending ||
-                                        deleteRoleMutation.isPending
-                                      }
-                                      onSelect={() => setEditingRole(role)}
-                                    >
-                                      {t("team:TEAM_ACTION_EDIT")}
-                                    </DropdownMenuIconItem>
-                                    <DropdownMenuIconItem
-                                      icon={<Trash2 className="h-4 w-4" />}
-                                      variant="destructive"
-                                      disabled={
-                                        !canManageRoles ||
-                                        editRoleMutation.isPending ||
-                                        deleteRoleMutation.isPending
-                                      }
-                                      onSelect={() => {
-                                        setDeleteTarget({ code: role.code, name: role.name });
-                                        setDeleteOpen(true);
-                                      }}
-                                    >
-                                      {t("team:TEAM_ACTION_DELETE")}
-                                    </DropdownMenuIconItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            ) : null}
-                          </SettingsSectionAnchor>
-                        </TableHead>
-                      );
-                    })}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredPermissions.map((perm) => (
-                    <TableRow
-                      key={perm.code}
-                      className="group/row border-border/45 bg-background hover:bg-muted/20"
-                    >
-                      <TableCell className="sticky left-0 z-[1] bg-inherit transition-colors">
-                        <div className="min-w-0 p-2">
-                          <div className="break-words font-semibold text-label-primary">
-                            {perm.name}
-                          </div>
-                          {perm.description ? (
-                            <div className="mt-0.5 line-clamp-3 text-label-secondary">
-                              {perm.description}
-                            </div>
-                          ) : null}
-                          {perm.ownerKey && perm.ownerKey !== "core" ? (
-                            <div className="mt-1 rounded-md border border-border bg-card p-1 text-caption text-label-secondary select-none">
-                              {t("team:TEAM_ROLES_PERMISSION_PROVIDED_BY", {
-                                ownerName: perm.ownerName || perm.ownerKey,
-                              })}
-                            </div>
-                          ) : null}
-                        </div>
-                      </TableCell>
-                      {filteredRoles.map((role) => {
-                        const granted = (
-                          draftPermissionCodesByRole[role.code] ??
-                          baselinePermissionCodesByRole[role.code] ??
-                          []
-                        ).includes(perm.code);
-                        const key = `${perm.code}:${role.code}`;
-                        const conditionSetCount = countConditionSets(
-                          role as RoleWithPermissionGrants,
-                          perm.code,
-                        );
-                        const hasConditionalGrant = conditionSetCount > 0;
-                        return (
-                          <TableCell key={key} className="px-2 py-2 text-center">
-                            <div className="flex flex-col items-center justify-center gap-1.5">
-                              <Checkbox
-                                checked={granted}
-                                disabled={
-                                  role.isSystem ||
-                                  hasConditionalGrant ||
-                                  !canManageRoles ||
-                                  savePermissionsMutation.isPending
-                                }
-                                onCheckedChange={(checked) => {
-                                  if (hasConditionalGrant) return;
-                                  setDraftPermissionCodesByRole((current) => {
-                                    const nextPermissionCodes = new Set(
-                                      current[role.code] ??
-                                        baselinePermissionCodesByRole[role.code] ??
-                                        [],
-                                    );
-                                    if (checked) {
-                                      nextPermissionCodes.add(perm.code);
-                                    } else {
-                                      nextPermissionCodes.delete(perm.code);
-                                    }
-                                    return {
-                                      ...current,
-                                      [role.code]: Array.from(nextPermissionCodes).sort(),
-                                    };
-                                  });
-                                }}
-                              />
-                              {hasConditionalGrant ? (
-                                <BaseTag color="blue" textStyle="caption">
-                                  {t("team:TEAM_ROLES_CONDITION_SET_COUNT", {
-                                    count: conditionSetCount,
-                                  })}
-                                </BaseTag>
-                              ) : null}
-                            </div>
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </table>
-            </div>
-          </SettingsSectionAnchor>
+          <PermissionMatrix
+            t={t}
+            groups={groupSections}
+            roles={visibleRoles}
+            draftGrantsByRole={draftGrantsByRole}
+            canManageRoles={canManageRoles}
+            pending={
+              savePermissionsMutation.isPending ||
+              editRoleMutation.isPending ||
+              deleteRoleMutation.isPending
+            }
+            validationTarget={validationTarget}
+            onToggle={(roleCode, permissionCode, checked) =>
+              setDraftGrantsByRole((current) => ({
+                ...current,
+                [roleCode]: togglePermissionGrant(current[roleCode], permissionCode, checked),
+              }))
+            }
+            onEditConditions={(role, permission) => setConditionTarget({ role, permission })}
+            onEditRole={setEditingRole}
+            onDeleteRole={(role) => {
+              setDeleteTarget({ code: role.code, name: role.name });
+              setDeleteOpen(true);
+            }}
+          />
         )}
       </div>
 
+      <PermissionConditionDialog
+        t={t}
+        open={Boolean(conditionTarget)}
+        onOpenChange={(open) => {
+          if (!open) setConditionTarget(null);
+        }}
+        role={conditionTarget?.role ?? null}
+        permission={conditionTarget?.permission ?? null}
+        templates={catalog?.conditionTemplates ?? []}
+        conditionSets={resolveConditionSets(conditionTarget, draftGrantsByRole)}
+        onSave={(conditionSets) => {
+          if (!conditionTarget) return;
+          setDraftGrantsByRole((current) => ({
+            ...current,
+            [conditionTarget.role.code]: setGrantConditions(
+              current[conditionTarget.role.code],
+              conditionTarget.permission.code,
+              conditionSets,
+            ),
+          }));
+        }}
+      />
       <TeamRolesDialogs
         t={t}
         deleteOpen={deleteOpen}
@@ -768,23 +634,20 @@ export function TeamRolesView(
         createOpen={createOpen}
         setCreateOpen={setCreateOpen}
         createForm={createForm}
-        createErrors={createErrors}
+        createErrors={createForm.formState.errors}
         createRolePending={createRoleMutation.isPending}
         onCreateRoleSubmit={(values) => createRoleMutation.mutate(values)}
         editOpen={Boolean(editingRole)}
-        setEditOpen={(nextOpen: React.SetStateAction<boolean>) => {
+        setEditOpen={(nextOpen) => {
           const open = typeof nextOpen === "function" ? nextOpen(Boolean(editingRole)) : nextOpen;
           if (!open) setEditingRole(null);
         }}
         editForm={editForm}
-        editErrors={editErrors}
+        editErrors={editForm.formState.errors}
         editRolePending={editRoleMutation.isPending}
         onEditRoleSubmit={(values) => {
           if (!editingRole) return;
-          editRoleMutation.mutate({
-            roleCode: editingRole.code,
-            ...values,
-          });
+          editRoleMutation.mutate({ roleCode: editingRole.code, ...values });
         }}
         roles={roles}
       />
@@ -795,6 +658,12 @@ export function TeamRolesView(
     return (
       <div className="flex min-h-0 flex-col gap-4">
         {toolbar}
+        <SettingsSectionAnchor section="create-role" className="flex justify-end">
+          <Button disabled={!canManageRoles} onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4" />
+            {t("team:TEAM_ROLES_ADD_ROLE")}
+          </Button>
+        </SettingsSectionAnchor>
         {content}
       </div>
     );
@@ -804,10 +673,124 @@ export function TeamRolesView(
     <DefaultPage
       title={t("team:TEAM_ROLES_TITLE")}
       description={t("team:TEAM_ROLES_DESC")}
-      action={actionButton}
+      action={
+        <SettingsSectionAnchor section="create-role">
+          <Button disabled={!canManageRoles} onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4" />
+            {t("team:TEAM_ROLES_ADD_ROLE")}
+          </Button>
+        </SettingsSectionAnchor>
+      }
       extra={toolbar}
     >
       {content}
     </DefaultPage>
   );
+}
+
+function resolveConditionSets(
+  target: { role: Role; permission: Permission } | null,
+  grantsByRole: PermissionGrantsByRole,
+): PermissionConditionSet[] {
+  if (!target) return [];
+  return (
+    grantsByRole[target.role.code]?.find((grant) => grant.permissionCode === target.permission.code)
+      ?.conditionSets ?? []
+  );
+}
+
+function setGrantConditions(
+  grants: RolePermissionGrant[] | undefined,
+  permissionCode: string,
+  conditionSets: PermissionConditionSet[],
+): RolePermissionGrant[] {
+  return (grants ?? []).map((grant) =>
+    grant.permissionCode === permissionCode ? Object.assign({}, grant, { conditionSets }) : grant,
+  );
+}
+
+function CatalogChangeNotice(props: {
+  t: ReturnType<typeof useTranslation>["t"];
+  diff: PermissionCatalogDiff;
+  onKeep: () => void;
+  onReload: () => void;
+}) {
+  return (
+    <div className="rounded-xl border border-amber-500/35 bg-amber-500/8 px-4 py-3">
+      <div className="text-callout font-semibold text-label-primary">
+        {props.t("team:TEAM_ROLES_CATALOG_CHANGED_TITLE")}
+      </div>
+      <div className="mt-1 text-footnote text-label-secondary">
+        {props.t("team:TEAM_ROLES_CATALOG_CHANGED_DESC", {
+          added: props.diff.added.length,
+          changed: props.diff.changed.length,
+          removed: props.diff.removed.length,
+        })}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" onClick={props.onKeep}>
+          {props.t("team:TEAM_ROLES_CATALOG_KEEP_DRAFT")}
+        </Button>
+        <Button variant="ghost" size="sm" onClick={props.onReload}>
+          {props.t("team:TEAM_ROLES_CATALOG_LOAD_SERVER")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function resolveGuardState(input: {
+  workspaceId: string | null | undefined;
+  permissionAccess: ReturnType<typeof useWorkspacePermissionAccess>;
+  canReadRoles: boolean;
+  canReadPermissions: boolean;
+  catalog: WorkspacePermissionCatalog | undefined;
+  catalogQuery: ReturnType<typeof useQuery<WorkspacePermissionCatalog>>;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  if (!input.workspaceId) {
+    return (
+      <ContentGuard
+        loading={false}
+        empty
+        emptyTitle={input.t("settings:SETTINGS_WORKSPACE_NOT_SELECTED_TITLE")}
+        emptyDescription={input.t("settings:SETTINGS_WORKSPACE_NOT_SELECTED_DESC")}
+      />
+    );
+  }
+  if (input.permissionAccess.authzQuery.isLoading && !input.permissionAccess.authzQuery.data) {
+    return <ContentGuard loading loadingVariant="form" />;
+  }
+  if (input.permissionAccess.authzQuery.error) {
+    return (
+      <ContentGuard
+        loading={false}
+        error={input.permissionAccess.authzQuery.error}
+        onRetry={() => void input.permissionAccess.authzQuery.refetch()}
+      />
+    );
+  }
+  if (!input.canReadRoles || !input.canReadPermissions) {
+    return (
+      <ContentGuard
+        loading={false}
+        empty
+        emptyTitle={input.t("common:PAGE_FORBIDDEN_TITLE")}
+        emptyDescription={input.t("common:PAGE_FORBIDDEN_DESC")}
+      />
+    );
+  }
+  if (input.catalogQuery.isLoading && !input.catalog) {
+    return <ContentGuard loading loadingVariant="table" />;
+  }
+  if (input.catalogQuery.error) {
+    return (
+      <ContentGuard
+        loading={false}
+        error={input.catalogQuery.error}
+        onRetry={() => void input.catalogQuery.refetch()}
+      />
+    );
+  }
+  return null;
 }

@@ -1,11 +1,15 @@
 import { api } from "@/lib/http";
 import { projectPath, toQueryString, workspacePath } from "@/lib/api";
+import { ApiError } from "@arclayer/web/http";
 
 import type {
   PageData,
   Permission,
   ProjectPermissionAction,
   Role,
+  RolePermissionBatchSetOut,
+  RolePermissionBatchSetRequest,
+  WorkspacePermissionCatalog,
 } from "@arclayer/openapi/admin-types";
 import type { RolePermissionGrant, WorkspacePermissionAction } from "@arclayer/openapi/admin-types";
 
@@ -54,6 +58,29 @@ export async function listWorkspacePermissions(
 
 export async function listAllWorkspacePermissions(workspaceId: string): Promise<Permission[]> {
   return listAllPages((params) => listWorkspacePermissions(workspaceId, params));
+}
+
+export type WorkspacePermissionCatalogResult =
+  | { status: "modified"; catalog: WorkspacePermissionCatalog }
+  | { status: "not-modified" };
+
+export async function getWorkspacePermissionCatalog(input: {
+  workspaceId: string;
+  etag?: string | null;
+}): Promise<WorkspacePermissionCatalogResult> {
+  const { workspaceId, etag } = input;
+  try {
+    const catalog = await api.get<WorkspacePermissionCatalog>(
+      workspacePath(workspaceId, "/rbac/catalog"),
+      etag ? { headers: { "If-None-Match": etag } } : undefined,
+    );
+    return { status: "modified", catalog };
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 304) {
+      return { status: "not-modified" };
+    }
+    throw error;
+  }
 }
 
 export async function listWorkspacePermissionActions(
@@ -122,5 +149,15 @@ export async function setWorkspaceRolePermissions(input: {
   await api.put<null>(
     workspacePath(workspaceId, `/rbac/roles/${encodeURIComponent(roleCode)}/permissions`),
     { permissionCodes, permissionGrants: permissionGrants ?? [] },
+  );
+}
+
+export async function setWorkspaceRolePermissionsBatch(input: {
+  workspaceId: string;
+  request: RolePermissionBatchSetRequest;
+}): Promise<RolePermissionBatchSetOut> {
+  return api.put<RolePermissionBatchSetOut>(
+    workspacePath(input.workspaceId, "/rbac/role-permissions"),
+    input.request,
   );
 }

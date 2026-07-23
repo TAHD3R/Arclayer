@@ -22,6 +22,15 @@ type DeleteWorkspacePayload = {
   confirmName: string;
 };
 
+export type WorkspaceArchiveTransitionPayload = {
+  workspaceId: string;
+  expectedRevision: number;
+  operationId: string;
+};
+
+const OWNER_ARCHIVE_NOTE = "Workspace owner requested archive through workspace management.";
+const OWNER_RESTORE_NOTE = "Workspace owner restored access through workspace management.";
+
 export type UpdateWorkspacePayload = {
   workspaceId: string;
   patch: {
@@ -91,7 +100,17 @@ export function useUserCenterWorkspacesMutations(options: UseUserCenterWorkspace
   });
 
   const archiveMutation = useMutation({
-    mutationFn: async (workspaceId: string) => archiveWorkspace(workspaceId),
+    mutationFn: async (payload: WorkspaceArchiveTransitionPayload) =>
+      archiveWorkspace(
+        payload.workspaceId,
+        {
+          expectedRevision: payload.expectedRevision,
+          reasonCategory: "owner_request",
+          reasonCode: "owner_request",
+          operatorNote: OWNER_ARCHIVE_NOTE,
+        },
+        payload.operationId,
+      ),
     onSuccess: async () => {
       notifySuccessText(t("common:ACTION_SUCCESS"));
       onArchiveSuccess();
@@ -101,7 +120,15 @@ export function useUserCenterWorkspacesMutations(options: UseUserCenterWorkspace
   });
 
   const unarchiveMutation = useMutation({
-    mutationFn: async (workspaceId: string) => unarchiveWorkspace(workspaceId),
+    mutationFn: async (payload: WorkspaceArchiveTransitionPayload) =>
+      unarchiveWorkspace(
+        payload.workspaceId,
+        {
+          expectedRevision: payload.expectedRevision,
+          operatorNote: OWNER_RESTORE_NOTE,
+        },
+        payload.operationId,
+      ),
     onSuccess: async () => {
       notifySuccessText(t("common:ACTION_SUCCESS"));
       await invalidateWorkspaceTables();

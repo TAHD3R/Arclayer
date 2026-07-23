@@ -109,6 +109,7 @@ export async function listTeamInvitations(
     q: params.q,
     ordering: params.ordering,
     status: params.status,
+    role_code: params.role_code,
     mine: params.mine ? "true" : undefined,
   });
   return api.get<PageData<TeamInvitation>>(
@@ -164,6 +165,8 @@ export async function listTeamInviteLinks(
     size: params.size ?? 10,
     q: params.q,
     ordering: params.ordering,
+    role_code: params.role_code,
+    status: params.status,
     mine: params.mine ? "true" : undefined,
   });
   return api.get<PageData<TeamInviteLink>>(

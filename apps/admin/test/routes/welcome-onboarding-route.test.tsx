@@ -33,6 +33,9 @@ vi.mock("@/components/layout/scene-loading-overlay", () => ({
 vi.mock("@/components/layout/usercenter-overlay-host", () => ({
   UsercenterOverlayHost: () => null,
 }));
+vi.mock("@/components/builtin/access-restriction-boundary", () => ({
+  AccessRestrictionBoundary: (props: { children: React.ReactNode }) => props.children,
+}));
 vi.mock("@/lib/routing/scene-registry", () => ({
   resolveSceneKey: (pathname: string) => {
     if (pathname.startsWith("/login")) return "auth";

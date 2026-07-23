@@ -318,7 +318,7 @@ export function InviteMembersDialog(props: {
             }
           >
             <Select
-              value={selectedRoleCode || undefined}
+              value={selectedRoleCode ?? ""}
               onValueChange={(value) =>
                 form.setValue("roleCode", value, { shouldDirty: true, shouldValidate: true })
               }
