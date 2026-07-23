@@ -15,9 +15,6 @@ async def test_checkout_plan_reader_returns_an_immutable_active_plan_projection(
     persisted_plan = SimpleNamespace(
         id=plan_id,
         code="premium",
-        name="Premium",
-        price_monthly_micros=19_000_000,
-        price_yearly_micros=190_000_000,
         currency="USD",
     )
     get_plan = AsyncMock(return_value=persisted_plan)
@@ -29,9 +26,6 @@ async def test_checkout_plan_reader_returns_an_immutable_active_plan_projection(
     assert result == BillingCheckoutPlan(
         id=plan_id,
         code="premium",
-        name="Premium",
-        price_monthly_micros=19_000_000,
-        price_yearly_micros=190_000_000,
         currency="USD",
     )
     get_plan.assert_awaited_once_with(code="premium", active_only=True)

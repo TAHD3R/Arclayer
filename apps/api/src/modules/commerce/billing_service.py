@@ -7,7 +7,7 @@ from src.config import Settings
 from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.core.registries import ConnectorRegistry
 from src.core.services.base import BaseService
-from src.models.commerce.billing import BillingCycle, CommercePlan, WorkspaceCreditAccount, WorkspaceSubscription
+from src.models.commerce.billing import CommercePlan, WorkspaceCreditAccount, WorkspaceSubscription
 from src.modules.commerce.billing_connector import BillingConnector, build_billing_operation_idempotency_key
 from src.modules.commerce.repository import BillingPlanReader, CommerceRepository
 from src.modules.commerce.schema import BillingRedirectOut, CheckoutSessionCreate
@@ -49,19 +49,12 @@ class BillingService(BaseService):
             raise BadRequest(error="COMMERCE_PLAN_NOT_FOUND")
         if plan.id == current_plan.id and payload.billing_interval == subscription.billing_cycle:
             raise BadRequest(error="COMMERCE_PLAN_ALREADY_ACTIVE")
-        amount_micros = (
-            int(plan.price_monthly_micros)
-            if payload.billing_interval == BillingCycle.MONTHLY
-            else int(plan.price_yearly_micros)
-        )
         admin_url = self._settings.saas.admin_url.rstrip("/")
         session = await self._provider.create_checkout_session(
             workspace_id=str(workspace_id),
             plan_code=plan.code,
-            plan_name=plan.name,
             billing_cycle=str(payload.billing_interval),
             currency=plan.currency,
-            amount_micros=amount_micros,
             success_url=f"{admin_url}/?billing=success",
             cancel_url=f"{admin_url}/?billing=canceled",
             customer_id=subscription.external_customer_id,

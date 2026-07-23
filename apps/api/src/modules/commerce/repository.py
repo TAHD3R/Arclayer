@@ -28,9 +28,6 @@ class BillingCheckoutPlan(BaseSchema):
 
     id: UUID
     code: str = Field(min_length=1, max_length=48)
-    name: str = Field(min_length=1, max_length=96)
-    price_monthly_micros: int = Field(ge=0)
-    price_yearly_micros: int = Field(ge=0)
     currency: str = Field(min_length=3, max_length=3)
 
 
@@ -389,8 +386,5 @@ class CommerceRepository(TortoiseORMRepository[CommercePlan]):
         return BillingCheckoutPlan(
             id=plan.id,
             code=plan.code,
-            name=plan.name,
-            price_monthly_micros=int(plan.price_monthly_micros),
-            price_yearly_micros=int(plan.price_yearly_micros),
             currency=plan.currency,
         )

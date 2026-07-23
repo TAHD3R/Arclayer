@@ -12,7 +12,7 @@ from uuid import uuid4
 import httpx
 import pytest
 
-from src.core.exceptions import BadRequest
+from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.modules.commerce.billing_connector import BillingConnector
 
 
@@ -34,6 +34,10 @@ def _provider(handler: httpx.MockTransport) -> BillingConnector:
         secret_key="sk_test_unit",
         webhook_secret="whsec_unit",
         api_base_url="https://stripe.test/v1",
+        price_ids={
+            "premium:monthly:USD": "price_premiumMonthly",
+            "premium:yearly:USD": "price_premiumYearly",
+        },
         webhook_tolerance_seconds=300,
         client=httpx.AsyncClient(transport=handler),
     )
@@ -50,7 +54,7 @@ def _signature(payload: bytes) -> str:
 
 
 @pytest.mark.asyncio
-async def test_stripe_checkout_uses_exact_smallest_currency_unit_and_subscription_metadata() -> None:
+async def test_stripe_checkout_uses_stable_price_id_and_subscription_metadata() -> None:
     captured: dict[str, str] = {}
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -64,10 +68,8 @@ async def test_stripe_checkout_uses_exact_smallest_currency_unit_and_subscriptio
     result = await provider.create_checkout_session(
         workspace_id=workspace_id,
         plan_code="premium",
-        plan_name="Premium",
         billing_cycle="yearly",
         currency="USD",
-        amount_micros=190_000_000,
         success_url="https://app.example.test/?billing=success",
         cancel_url="https://app.example.test/?billing=canceled",
         customer_id=None,
@@ -75,24 +77,22 @@ async def test_stripe_checkout_uses_exact_smallest_currency_unit_and_subscriptio
     )
 
     assert result.url == "https://checkout.stripe.test/cs_test"
-    assert captured["line_items[0][price_data][unit_amount]"] == "19000"
-    assert captured["line_items[0][price_data][recurring][interval]"] == "year"
+    assert captured["line_items[0][price]"] == "price_premiumYearly"
+    assert not any(key.startswith("line_items[0][price_data]") for key in captured)
     assert captured["subscription_data[metadata][workspace_id]"] == workspace_id
     assert captured["subscription_data[metadata][plan_code]"] == "premium"
 
 
 @pytest.mark.asyncio
-async def test_stripe_checkout_rejects_prices_that_cannot_be_represented_in_cents() -> None:
+async def test_stripe_checkout_requires_a_stable_price_mapping() -> None:
     provider = _provider(httpx.MockTransport(lambda _request: httpx.Response(500)))
 
     with pytest.raises(BadRequest) as captured:
         await provider.create_checkout_session(
             workspace_id=str(uuid4()),
             plan_code="precision",
-            plan_name="Precision",
             billing_cycle="monthly",
             currency="USD",
-            amount_micros=1,
             success_url="https://app.example.test/?billing=success",
             cancel_url="https://app.example.test/?billing=canceled",
             customer_id=None,
@@ -100,6 +100,19 @@ async def test_stripe_checkout_rejects_prices_that_cannot_be_represented_in_cent
         )
 
     assert captured.value.error == "BILLING_PRICE_NOT_SUPPORTED"
+
+
+def test_stripe_connector_rejects_invalid_price_mapping_configuration() -> None:
+    with pytest.raises(ServiceUnavailable) as captured:
+        StripeBillingConnector(
+            secret_key="sk_test_unit",
+            webhook_secret="whsec_unit",
+            api_base_url="https://stripe.test/v1",
+            price_ids={"premium:monthly:USD": "not-a-price"},
+            webhook_tolerance_seconds=300,
+        )
+
+    assert captured.value.error == "BILLING_PROVIDER_NOT_CONFIGURED"
 
 
 @pytest.mark.asyncio

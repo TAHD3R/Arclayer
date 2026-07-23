@@ -55,9 +55,6 @@ async def test_checkout_creation_does_not_mutate_local_subscription() -> None:
     target_plan = BillingCheckoutPlan(
         id=uuid4(),
         code="premium",
-        name="Premium",
-        price_monthly_micros=19_000_000,
-        price_yearly_micros=190_000_000,
         currency="USD",
     )
     commerce = SimpleNamespace(
@@ -86,10 +83,8 @@ async def test_checkout_creation_does_not_mutate_local_subscription() -> None:
     provider.create_checkout_session.assert_awaited_once_with(
         workspace_id=str(workspace_id),
         plan_code="premium",
-        plan_name="Premium",
         billing_cycle="yearly",
         currency="USD",
-        amount_micros=190_000_000,
         success_url="https://app.arclayer.localhost/?billing=success",
         cancel_url="https://app.arclayer.localhost/?billing=canceled",
         customer_id=None,

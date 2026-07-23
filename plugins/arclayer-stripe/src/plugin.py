@@ -33,6 +33,8 @@ logger = get_logger(__name__)
 _CONNECTOR_KEY = "billing.stripe"
 _EXTENSION_NAME = "arclayer-stripe"
 _STRIPE_SUBSCRIPTION_ID_PATTERN = re.compile(r"sub_[A-Za-z0-9]+")
+_STRIPE_PRICE_ID_PATTERN = re.compile(r"price_[A-Za-z0-9]+")
+_PRICE_MAPPING_KEY_PATTERN = re.compile(r"[a-z0-9][a-z0-9_-]{0,47}:(monthly|yearly):[A-Z]{3}")
 _STRIPE_STATUS_MAP = {
     "trialing": SubscriptionStatus.TRIALING,
     "active": SubscriptionStatus.ACTIVE,
@@ -80,6 +82,7 @@ class StripeBillingConnector:
         secret_key: str,
         webhook_secret: str,
         api_base_url: str,
+        price_ids: dict[str, str],
         webhook_tolerance_seconds: int,
         client: httpx.AsyncClient | None = None,
     ) -> None:
@@ -88,8 +91,26 @@ class StripeBillingConnector:
         self._secret_key = secret_key
         self._webhook_secret = webhook_secret
         self._api_base_url = api_base_url.rstrip("/")
+        self._price_ids = self._validate_price_ids(price_ids)
         self._webhook_tolerance_seconds = webhook_tolerance_seconds
         self._client = client
+
+    @staticmethod
+    def _validate_price_ids(price_ids: dict[str, str]) -> dict[str, str]:
+        for mapping_key, price_id in price_ids.items():
+            if (
+                _PRICE_MAPPING_KEY_PATTERN.fullmatch(mapping_key) is None
+                or _STRIPE_PRICE_ID_PATTERN.fullmatch(price_id) is None
+            ):
+                raise ServiceUnavailable(error="BILLING_PROVIDER_NOT_CONFIGURED")
+        return dict(price_ids)
+
+    def _resolve_price_id(self, *, plan_code: str, billing_cycle: str, currency: str) -> str:
+        mapping_key = f"{plan_code}:{billing_cycle}:{currency.upper()}"
+        price_id = self._price_ids.get(mapping_key)
+        if price_id is None:
+            raise BadRequest(error="BILLING_PRICE_NOT_SUPPORTED")
+        return price_id
 
     @property
     def _headers(self) -> dict[str, str]:
@@ -138,18 +159,18 @@ class StripeBillingConnector:
         *,
         workspace_id: str,
         plan_code: str,
-        plan_name: str,
         billing_cycle: str,
         currency: str,
-        amount_micros: int,
         success_url: str,
         cancel_url: str,
         customer_id: str | None,
         idempotency_key: str,
     ) -> CheckoutSession:
-        if amount_micros <= 0 or amount_micros % 10_000:
-            raise BadRequest(error="BILLING_PRICE_NOT_SUPPORTED")
-        interval = "month" if billing_cycle == "monthly" else "year"
+        price_id = self._resolve_price_id(
+            plan_code=plan_code,
+            billing_cycle=billing_cycle,
+            currency=currency,
+        )
         metadata = {
             "workspace_id": workspace_id,
             "plan_code": plan_code,
@@ -161,10 +182,7 @@ class StripeBillingConnector:
             "cancel_url": cancel_url,
             "client_reference_id": workspace_id,
             "line_items[0][quantity]": "1",
-            "line_items[0][price_data][currency]": currency.lower(),
-            "line_items[0][price_data][unit_amount]": str(amount_micros // 10_000),
-            "line_items[0][price_data][recurring][interval]": interval,
-            "line_items[0][price_data][product_data][name]": plan_name,
+            "line_items[0][price]": price_id,
         }
         for key, value in metadata.items():
             data[f"metadata[{key}]"] = value
@@ -309,6 +327,7 @@ class StripeBillingExtension:
             secret_key=billing.stripe_secret_key.get_secret_value(),
             webhook_secret=billing.stripe_webhook_secret.get_secret_value(),
             api_base_url=billing.stripe_api_base_url,
+            price_ids=billing.stripe_price_ids,
             webhook_tolerance_seconds=billing.webhook_tolerance_seconds,
             client=client,
         )
@@ -324,6 +343,11 @@ class StripeBillingExtension:
                 capabilities=("checkout", "customer_portal", "subscription_webhook"),
                 config_schema={
                     "apiBaseUrl": {"type": "string", "format": "uri"},
+                    "priceIds": {
+                        "type": "object",
+                        "propertyNames": {"pattern": "^[a-z0-9][a-z0-9_-]{0,47}:(monthly|yearly):[A-Z]{3}$"},
+                        "additionalProperties": {"type": "string", "pattern": "^price_[A-Za-z0-9]+$"},
+                    },
                     "webhookToleranceSeconds": {"type": "integer", "minimum": 30, "maximum": 3600},
                 },
                 secret_schema={

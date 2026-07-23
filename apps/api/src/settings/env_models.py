@@ -442,6 +442,10 @@ class BillingSettings(BaseSettings):
     stripe_secret_key: SecretStr = Field(default=SecretStr(""))
     stripe_webhook_secret: SecretStr = Field(default=SecretStr(""))
     stripe_api_base_url: str = Field(default="https://api.stripe.com/v1")
+    stripe_price_ids: dict[str, str] = Field(
+        default_factory=dict,
+        description="Stable Stripe Price IDs keyed by planCode:billingCycle:CURRENCY.",
+    )
     webhook_tolerance_seconds: int = Field(default=300, ge=30, le=3_600)
     webhook_event_retention_days: int = Field(
         default=30,
@@ -452,11 +456,15 @@ class BillingSettings(BaseSettings):
 
     @property
     def checkout_enabled(self) -> bool:
-        return self.provider == "stripe" and bool(self.stripe_secret_key.get_secret_value())
+        return self._stripe_configured and bool(self.stripe_price_ids)
 
     @property
     def webhook_enabled(self) -> bool:
-        return self.checkout_enabled and bool(self.stripe_webhook_secret.get_secret_value())
+        return self._stripe_configured and bool(self.stripe_webhook_secret.get_secret_value())
+
+    @property
+    def _stripe_configured(self) -> bool:
+        return self.provider == "stripe" and bool(self.stripe_secret_key.get_secret_value())
 
 
 class SecuritySettings(BaseSettings):
