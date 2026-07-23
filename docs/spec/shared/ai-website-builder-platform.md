@@ -720,6 +720,16 @@ The core Commerce domain keeps provider-neutral ownership of:
 
 Typed entitlement keys and one `EntitlementService.require(...)` boundary replace module-specific reads of free-form plan feature JSON. The unused operator-approved subscription-change request model is removed because it conflicts with the canonical self-service commercialization flow. Commerce expansion also restores the repository/transaction boundary required by the backend service contracts; Connector work must not deepen direct ORM access from the orchestration service.
 
+The current Wave 6 foundation implements a closed typed entitlement registry,
+an injected subscription/plan projection repository, and fail-closed
+`check(...)` / `require(...)` decisions. It validates active subscription and
+plan state, an aware active period, and strict duplicate-free plan features;
+invalid persisted configuration is a stable service-unavailable error rather
+than an implied denial or grant. `sites.generate` is the only registered key
+because it is the only entitlement currently backed by an existing production
+capability. Enforcement in Jobs, Builder, Agents, and Connectors remains gated
+until those composition boundaries inject this authority explicitly.
+
 The official Stripe billing Connector owns:
 
 - Stripe client, Checkout Session and Customer Portal creation.
@@ -1111,7 +1121,7 @@ used to describe the full user goal as complete.
 | 5 | Workspace Knowledge, Workspace Skills, official Skills, and Design Systems | In progress | Canonical APIs, authoring/import/install/version evidence, settings surfaces, and durable Knowledge jobs exist. Production deployment/operational evidence and final Agent-context convergence remain. |
 | 6 | Site thumbnails on Home and Projects | Pending | Asset thumbnail job foundations exist, but revision-pinned site render/capture, project thumbnail projection, and final Home/grid/list media treatment remain Wave 5. |
 | 7 | Productized Taskiq workload topology and task catalog | In progress | Durable jobs, broker routing, workers, scheduler leadership, recovery, and owning-domain job verticals are implemented/tested. Production deployment and health evidence remain required. |
-| 8 | Connector-based commercialization and Stripe | In progress | Connector registry, Stripe plugin, durable billing event path, and Billing surfaces exist. Provider migration parity, replay/reconciliation, entitlement, and production webhook evidence remain Wave 6 gates. |
+| 8 | Connector-based commercialization and Stripe | In progress | Connector registry, Stripe plugin, durable billing event path, Billing surfaces, and a typed fail-closed EntitlementService foundation exist. Jobs/Builder/Agent/Connector enforcement integration, provider migration parity, replay/reconciliation, and production webhook evidence remain Wave 6 gates. |
 | 9 | Productized no-release/prelaunch experience | In progress | `arclayer-prelaunch-v2` now provides the final responsive light/dark visitor treatment, localized public site identity, escaped external values, stable static first frame, and explicit missing-identity state without fake published success. Release activation convergence remains. |
 | 10 | Website Config redesign and ownership | In progress | Identity, discovery, and localization workspaces have responsive live visitor previews, complete read-only behavior, generated-source invalidation, and bilingual copy. Admin, public runtime, and generated source consume the Domains-owned routable address. The backend now has typed per-facade projections, row-locked replacement, independent canonical ETags, stable conflicts, and transactional Activity evidence; public facade routes, Admin/generated-client migration, broad-patch restriction, and explicit Agent grants remain open. |
 | 11 | Project General redesign and ownership | In progress | Project identity, context/access/lifecycle boundaries, danger actions, responsive navigation, bilingual copy, and browser acceptance are complete. The backend now has a typed, row-locked identity projection with a canonical ETag, stable conflicts, changed-column persistence, and transactional Activity evidence. Public routes/generated-client/Admin migration, a specified defaults authority, broad-patch restriction, and approval-backed Agent grants remain open. |
@@ -2151,3 +2161,41 @@ existing broad Project patch remains the live Admin path until typed HTTP
 resources, generated clients, Admin migration, broad-patch restriction, and
 approval-backed Agent grants move together. A project-defaults facade remains
 open until its owned fields and consumers are explicitly defined.
+
+## 50. Wave 6 typed Commerce entitlement authority foundation (2026-07-23)
+
+Live-source review confirmed that Commerce already persisted one workspace
+subscription joined to a plan and its feature catalog, but authorization had
+no canonical production service. Downstream modules would otherwise need to
+interpret free-form `plan.features` independently, while the Job execution
+boundary still rejects every declared entitlement instead of consulting a
+trusted authority.
+
+This foundation establishes one provider-neutral boundary:
+
+1. `EntitlementRegistry` is immutable after construction, rejects duplicate
+   and unknown keys, and currently registers only the evidence-backed
+   `sites.generate` capability;
+2. `EntitlementRepository` projects ORM subscription and plan rows into a
+   frozen primitive snapshot, deep-copying feature configuration so callers
+   cannot mutate persisted state accidentally;
+3. `EntitlementService` depends on an injected repository protocol and validates
+   an active `trialing`/`active` subscription, an aware unexpired period, an
+   active plan, and a strict duplicate-free feature list;
+4. ordinary denials retain exact reasons for missing/inactive/expired/excluded
+   state. `require(...)` exposes only entitlement, reason, and optional plan
+   code through stable `COMMERCE_ENTITLEMENT_REQUIRED` metadata;
+5. malformed persisted status, timestamps, or feature structures fail closed
+   with `COMMERCE_ENTITLEMENT_CONFIGURATION_INVALID`; there is no default grant,
+   silent fallback, or raw plan configuration disclosure.
+
+Eighteen focused unit cases cover registry closure, grant and denial paths,
+stable errors, timezone validation, repository projection/isolation, and the
+missing-subscription path. Targeted Ruff format/lint and ty validation pass.
+
+This is an internal authorization foundation, not completed commercialization.
+It is deliberately not wired into concurrently changing Job composition in
+this checkpoint. Jobs, Builder, Agents, and Connector execution still require
+explicit composition integration and end-to-end enforcement evidence; provider
+migration parity, replay/reconciliation, and production Stripe webhook evidence
+also remain open.
