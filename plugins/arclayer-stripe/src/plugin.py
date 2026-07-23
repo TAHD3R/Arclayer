@@ -6,6 +6,7 @@ import json
 import re
 import time
 from datetime import UTC, datetime
+from uuid import UUID
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -20,7 +21,7 @@ from src.core.connectors import (
 from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.core.logging import get_logger
 from src.core.registries import PluginRegistry
-from src.models.commerce.billing import SubscriptionStatus
+from src.models.commerce.billing import BillingCycle, SubscriptionStatus
 from src.modules.commerce.billing_connector import (
     BillingWebhookEnvelope,
     CheckoutSession,
@@ -97,14 +98,24 @@ class StripeBillingConnector:
             "Stripe-Version": "2025-06-30.basil",
         }
 
-    async def _request(self, method: str, path: str, *, data: dict[str, str] | None = None) -> dict:
+    async def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        data: dict[str, str] | None = None,
+        idempotency_key: str | None = None,
+    ) -> dict:
+        headers = self._headers
+        if idempotency_key is not None:
+            headers = {**headers, "Idempotency-Key": idempotency_key}
         try:
             if self._client is not None:
                 response = await self._client.request(
                     method,
                     f"{self._api_base_url}{path}",
                     data=data,
-                    headers=self._headers,
+                    headers=headers,
                 )
             else:
                 async with httpx.AsyncClient(timeout=15) as client:
@@ -112,7 +123,7 @@ class StripeBillingConnector:
                         method,
                         f"{self._api_base_url}{path}",
                         data=data,
-                        headers=self._headers,
+                        headers=headers,
                     )
             response.raise_for_status()
             body = response.json()
@@ -134,6 +145,7 @@ class StripeBillingConnector:
         success_url: str,
         cancel_url: str,
         customer_id: str | None,
+        idempotency_key: str,
     ) -> CheckoutSession:
         if amount_micros <= 0 or amount_micros % 10_000:
             raise BadRequest(error="BILLING_PRICE_NOT_SUPPORTED")
@@ -159,14 +171,26 @@ class StripeBillingConnector:
             data[f"subscription_data[metadata][{key}]"] = value
         if customer_id:
             data["customer"] = customer_id
-        body = await self._request("POST", "/checkout/sessions", data=data)
+        body = await self._request(
+            "POST",
+            "/checkout/sessions",
+            data=data,
+            idempotency_key=idempotency_key,
+        )
         return self._session_from_body(body)
 
-    async def create_portal_session(self, *, customer_id: str, return_url: str) -> CheckoutSession:
+    async def create_portal_session(
+        self,
+        *,
+        customer_id: str,
+        return_url: str,
+        idempotency_key: str,
+    ) -> CheckoutSession:
         body = await self._request(
             "POST",
             "/billing_portal/sessions",
             data={"customer": customer_id, "return_url": return_url},
+            idempotency_key=idempotency_key,
         )
         return self._session_from_body(body)
 
@@ -262,9 +286,9 @@ class StripeBillingConnector:
             parsed = _StripeSubscriptionPayload.model_validate(subscription)
             return ProviderSubscription(
                 event_id=str(event_id),
-                workspace_id=parsed.metadata["workspace_id"],
+                workspace_id=UUID(parsed.metadata["workspace_id"]),
                 plan_code=parsed.metadata["plan_code"],
-                billing_cycle=parsed.metadata["billing_cycle"],
+                billing_cycle=BillingCycle(parsed.metadata["billing_cycle"]),
                 customer_id=parsed.customer,
                 subscription_id=parsed.id,
                 status=_STRIPE_STATUS_MAP[parsed.status],

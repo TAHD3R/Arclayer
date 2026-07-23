@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from hashlib import sha256
 from typing import Literal, Protocol, runtime_checkable
 from uuid import UUID
 
@@ -42,6 +43,17 @@ class BillingWebhookEnvelope(BaseModel):
     signature_timestamp: AwareDatetime
 
 
+def build_billing_operation_idempotency_key(
+    *,
+    operation: Literal["checkout", "portal"],
+    business_identity: tuple[str, ...],
+) -> str:
+    if not business_identity or any(not component for component in business_identity):
+        raise ValueError("billing operation idempotency identity must contain only non-empty components")
+    digest = sha256("\0".join((operation, *business_identity)).encode()).hexdigest()
+    return f"arclayer:{operation}:{digest}"
+
+
 @runtime_checkable
 class BillingConnector(Protocol):
     async def create_checkout_session(
@@ -56,9 +68,16 @@ class BillingConnector(Protocol):
         success_url: str,
         cancel_url: str,
         customer_id: str | None,
+        idempotency_key: str,
     ) -> CheckoutSession: ...
 
-    async def create_portal_session(self, *, customer_id: str, return_url: str) -> CheckoutSession: ...
+    async def create_portal_session(
+        self,
+        *,
+        customer_id: str,
+        return_url: str,
+        idempotency_key: str,
+    ) -> CheckoutSession: ...
 
     def verify_webhook(
         self,

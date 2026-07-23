@@ -55,6 +55,7 @@ async def test_stripe_checkout_uses_exact_smallest_currency_unit_and_subscriptio
 
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url == "https://stripe.test/v1/checkout/sessions"
+        assert request.headers["Idempotency-Key"] == "arclayer:checkout:test-key"
         captured.update(dict(httpx.QueryParams(request.content.decode())))
         return httpx.Response(200, json={"id": "cs_test", "url": "https://checkout.stripe.test/cs_test"})
 
@@ -70,6 +71,7 @@ async def test_stripe_checkout_uses_exact_smallest_currency_unit_and_subscriptio
         success_url="https://app.example.test/?billing=success",
         cancel_url="https://app.example.test/?billing=canceled",
         customer_id=None,
+        idempotency_key="arclayer:checkout:test-key",
     )
 
     assert result.url == "https://checkout.stripe.test/cs_test"
@@ -94,9 +96,34 @@ async def test_stripe_checkout_rejects_prices_that_cannot_be_represented_in_cent
             success_url="https://app.example.test/?billing=success",
             cancel_url="https://app.example.test/?billing=canceled",
             customer_id=None,
+            idempotency_key="arclayer:checkout:precision-key",
         )
 
     assert captured.value.error == "BILLING_PRICE_NOT_SUPPORTED"
+
+
+@pytest.mark.asyncio
+async def test_stripe_portal_carries_the_business_idempotency_key() -> None:
+    captured: dict[str, str] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url == "https://stripe.test/v1/billing_portal/sessions"
+        assert request.headers["Idempotency-Key"] == "arclayer:portal:test-key"
+        captured.update(dict(httpx.QueryParams(request.content.decode())))
+        return httpx.Response(200, json={"url": "https://billing.stripe.test/session"})
+
+    provider = _provider(httpx.MockTransport(handler))
+    result = await provider.create_portal_session(
+        customer_id="cus_test",
+        return_url="https://app.example.test/settings/billing",
+        idempotency_key="arclayer:portal:test-key",
+    )
+
+    assert result.url == "https://billing.stripe.test/session"
+    assert captured == {
+        "customer": "cus_test",
+        "return_url": "https://app.example.test/settings/billing",
+    }
 
 
 @pytest.mark.asyncio

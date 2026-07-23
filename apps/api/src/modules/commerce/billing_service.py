@@ -8,7 +8,7 @@ from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.core.registries import ConnectorRegistry
 from src.core.services.base import BaseService
 from src.models.commerce.billing import BillingCycle, CommercePlan, WorkspaceCreditAccount, WorkspaceSubscription
-from src.modules.commerce.billing_connector import BillingConnector
+from src.modules.commerce.billing_connector import BillingConnector, build_billing_operation_idempotency_key
 from src.modules.commerce.repository import BillingPlanReader, CommercePlanRepository
 from src.modules.commerce.schema import BillingRedirectOut, CheckoutSessionCreate
 from src.modules.commerce.service import CommerceService
@@ -65,16 +65,35 @@ class BillingService(BaseService):
             success_url=f"{admin_url}/?billing=success",
             cancel_url=f"{admin_url}/?billing=canceled",
             customer_id=subscription.external_customer_id,
+            idempotency_key=build_billing_operation_idempotency_key(
+                operation="checkout",
+                business_identity=(
+                    str(workspace_id),
+                    str(subscription.id),
+                    str(current_plan.id),
+                    plan.code,
+                    str(payload.billing_interval),
+                ),
+            ),
         )
         return BillingRedirectOut(url=session.url)
 
     async def create_portal(self, *, workspace_id: UUID) -> BillingRedirectOut:
-        subscription, _, _ = await self._commerce.ensure_workspace_billing(workspace_id=workspace_id)
+        subscription, _, current_plan = await self._commerce.ensure_workspace_billing(workspace_id=workspace_id)
         if not subscription.external_customer_id:
             raise BadRequest(error="BILLING_CUSTOMER_NOT_FOUND")
         session = await self._provider.create_portal_session(
             customer_id=subscription.external_customer_id,
             return_url=self._settings.saas.admin_url.rstrip("/"),
+            idempotency_key=build_billing_operation_idempotency_key(
+                operation="portal",
+                business_identity=(
+                    str(workspace_id),
+                    str(subscription.id),
+                    str(current_plan.id),
+                    subscription.external_customer_id,
+                ),
+            ),
         )
         return BillingRedirectOut(url=session.url)
 

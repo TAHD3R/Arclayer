@@ -10,16 +10,43 @@ import pytest
 from src.config import get_settings
 from src.core.exceptions import BadRequest
 from src.models.commerce.billing import BillingCycle
-from src.modules.commerce.billing_connector import BillingConnector, CheckoutSession
+from src.modules.commerce.billing_connector import (
+    BillingConnector,
+    CheckoutSession,
+    build_billing_operation_idempotency_key,
+)
 from src.modules.commerce.billing_service import BillingService, WorkspaceBillingReader
 from src.modules.commerce.repository import BillingCheckoutPlan, BillingPlanReader
 from src.modules.commerce.schema import CheckoutSessionCreate
+
+
+def test_billing_operation_idempotency_key_is_stable_and_hides_business_identifiers() -> None:
+    components = ("workspace-private-id", "subscription-private-id", "premium")
+
+    first = build_billing_operation_idempotency_key(
+        operation="checkout",
+        business_identity=components,
+    )
+    replay = build_billing_operation_idempotency_key(
+        operation="checkout",
+        business_identity=components,
+    )
+    changed = build_billing_operation_idempotency_key(
+        operation="checkout",
+        business_identity=(*components, "yearly"),
+    )
+
+    assert first == replay
+    assert first != changed
+    assert first.startswith("arclayer:checkout:")
+    assert all(component not in first for component in components)
 
 
 @pytest.mark.asyncio
 async def test_checkout_creation_does_not_mutate_local_subscription() -> None:
     workspace_id = uuid4()
     subscription = SimpleNamespace(
+        id=uuid4(),
         plan_id=uuid4(),
         billing_cycle=BillingCycle.MONTHLY,
         external_customer_id=None,
@@ -66,6 +93,16 @@ async def test_checkout_creation_does_not_mutate_local_subscription() -> None:
         success_url="https://app.arclayer.localhost/?billing=success",
         cancel_url="https://app.arclayer.localhost/?billing=canceled",
         customer_id=None,
+        idempotency_key=build_billing_operation_idempotency_key(
+            operation="checkout",
+            business_identity=(
+                str(workspace_id),
+                str(subscription.id),
+                str(current_plan.id),
+                "premium",
+                "yearly",
+            ),
+        ),
     )
 
 
@@ -73,6 +110,7 @@ async def test_checkout_creation_does_not_mutate_local_subscription() -> None:
 async def test_checkout_rejects_a_missing_active_plan_before_provider_io() -> None:
     workspace_id = uuid4()
     subscription = SimpleNamespace(
+        id=uuid4(),
         billing_cycle=BillingCycle.MONTHLY,
         external_customer_id=None,
     )
@@ -97,3 +135,42 @@ async def test_checkout_rejects_a_missing_active_plan_before_provider_io() -> No
     assert captured.value.error == "COMMERCE_PLAN_NOT_FOUND"
     plans.get_active_checkout_plan.assert_awaited_once_with(code="retired")
     provider.create_checkout_session.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_portal_creation_uses_a_state_bound_idempotency_key() -> None:
+    workspace_id = uuid4()
+    subscription = SimpleNamespace(
+        id=uuid4(),
+        external_customer_id="cus_test",
+    )
+    current_plan = SimpleNamespace(id=uuid4())
+    commerce = SimpleNamespace(
+        ensure_workspace_billing=AsyncMock(return_value=(subscription, SimpleNamespace(), current_plan)),
+    )
+    provider = SimpleNamespace(
+        create_portal_session=AsyncMock(return_value=CheckoutSession(url="https://billing.stripe.test/session")),
+    )
+    service = BillingService(
+        settings=get_settings(),
+        provider=cast(BillingConnector, provider),
+        plans=cast(BillingPlanReader, SimpleNamespace()),
+        commerce=cast(WorkspaceBillingReader, commerce),
+    )
+
+    result = await service.create_portal(workspace_id=workspace_id)
+
+    assert result.url == "https://billing.stripe.test/session"
+    provider.create_portal_session.assert_awaited_once_with(
+        customer_id="cus_test",
+        return_url="https://app.arclayer.localhost",
+        idempotency_key=build_billing_operation_idempotency_key(
+            operation="portal",
+            business_identity=(
+                str(workspace_id),
+                str(subscription.id),
+                str(current_plan.id),
+                "cus_test",
+            ),
+        ),
+    )
