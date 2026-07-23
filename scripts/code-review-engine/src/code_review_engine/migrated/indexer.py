@@ -237,6 +237,8 @@ def _class_name(expr: ast.expr) -> str:
         return expr.id
     if isinstance(expr, ast.Attribute):
         return f"{_class_name(expr.value)}.{expr.attr}"
+    if isinstance(expr, ast.Subscript):
+        return _class_name(expr.value)
     return ""
 
 

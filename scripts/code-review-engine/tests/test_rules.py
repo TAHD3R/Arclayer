@@ -530,6 +530,31 @@ def test_repository_rule_accepts_canonical_base_after_mixins(tmp_path) -> None:
     assert report.findings == ()
 
 
+def test_repository_rule_accepts_parameterized_canonical_base(tmp_path) -> None:
+    repository = tmp_path / "apps/api/src/modules/access_restrictions/repository.py"
+    repository.parent.mkdir(parents=True)
+    repository.write_text(
+        "\n".join(
+            [
+                "class AccessRestrictionRepository(",
+                "    TortoiseORMRepository[AccessRestrictionRecord]",
+                "):",
+                "    pass",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("repository.must-extend-tortoise-orm",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert report.findings == ()
+
+
 @pytest.mark.parametrize(
     ("source", "expected_evidence"),
     (

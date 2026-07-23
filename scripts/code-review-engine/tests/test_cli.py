@@ -224,15 +224,22 @@ def test_cli_changed_scope_limits_findings_to_changed_files(capsys) -> None:
     captured = capsys.readouterr()
     payload = json.loads(captured.out)
 
-    # Derive changed files from the actual git diff so the test is self-consistent.
-    result = subprocess.run(
+    # Mirror changed-scope discovery: tracked diff plus untracked files.
+    tracked_result = subprocess.run(
         ["git", "-C", str(repo_root), "diff", "--name-only", "HEAD", "--"],
         capture_output=True,
+        check=True,
+        text=True,
+    )
+    untracked_result = subprocess.run(
+        ["git", "-C", str(repo_root), "ls-files", "--others", "--exclude-standard"],
+        capture_output=True,
+        check=True,
         text=True,
     )
     changed_files = frozenset(
         line.strip().replace("\\", "/").strip("/")
-        for line in result.stdout.splitlines()
+        for line in (*tracked_result.stdout.splitlines(), *untracked_result.stdout.splitlines())
         if line.strip()
     )
     # When there are no changed files, the changed scope should produce zero findings.
