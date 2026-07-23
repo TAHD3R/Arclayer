@@ -10,7 +10,11 @@ from fastapi.routing import APIRoute
 
 from src.common.utils.public_ids import encode_uuid
 from src.modules.projects.builder.generation_schema import BuilderGenerationRecoveryOut
-from src.modules.projects.builder.router import recover_builder_generation, router
+from src.modules.projects.builder.router import (
+    recover_builder_generation,
+    require_builder_generation_entitlement,
+    router,
+)
 
 
 def test_wireframe_recovery_route_precedes_generation_id_route_and_keeps_query_aliases() -> None:
@@ -95,3 +99,20 @@ def test_generation_create_summary_covers_supported_stages() -> None:
     )
 
     assert create_route.summary == "Start a durable Sitemap, Wireframe, or Design generation"
+
+
+def test_generation_entrypoints_require_the_site_generation_entitlement() -> None:
+    protected_paths = {
+        "/projects/{project_id}/builder/composition-sagas",
+        "/projects/{project_id}/builder/generations",
+    }
+    protected_routes = [
+        route
+        for route in router.routes
+        if isinstance(route, APIRoute) and route.path in protected_paths and "POST" in route.methods
+    ]
+
+    assert {route.path for route in protected_routes} == protected_paths
+    for route in protected_routes:
+        dependency_calls = {dependency.call for dependency in route.dependant.dependencies}
+        assert require_builder_generation_entitlement in dependency_calls

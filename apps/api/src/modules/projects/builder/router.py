@@ -8,12 +8,17 @@ from fastapi.exceptions import RequestValidationError
 from pydantic import ValidationError
 
 from src.common.types.public_uuid import PublicUUID
-from src.config import get_settings
+from src.config import Settings, get_settings
 from src.core.entity_manager.manager import EntityManager
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.ai.agent_builder_context_service import AgentBuilderContextResolver
 from src.modules.ai.agent_catalog_service import AgentCatalogService
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.commerce.entitlement_repository import EntitlementRepository
+from src.modules.commerce.entitlement_schema import SITE_GENERATION_ENTITLEMENT
+from src.modules.commerce.entitlement_service import EntitlementService
+from src.modules.commerce.service import CommerceService
+from src.modules.commerce.workspace_entitlement_authority import WorkspaceEntitlementAuthority
 from src.modules.projects.builder.change_set_schema import (
     BuilderChangeSetApplyOut,
     BuilderChangeSetApplyRequest,
@@ -75,6 +80,20 @@ router = APIRouter(
 ProjectContext = Annotated[ProjectRequestContext, Depends(get_project_context)]
 ActorUserId = Annotated[UUID, Depends(get_current_user_id)]
 IdempotencyKey = Annotated[str, Header(alias="Idempotency-Key", min_length=1, max_length=128)]
+
+
+async def require_builder_generation_entitlement(
+    ctx: ProjectContext,
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> None:
+    authority = WorkspaceEntitlementAuthority(
+        billing=CommerceService(settings),
+        entitlements=EntitlementService(settings, repository=EntitlementRepository()),
+    )
+    await authority.require(
+        workspace_id=ctx.workspace_id,
+        entitlement=SITE_GENERATION_ENTITLEMENT,
+    )
 
 
 def get_site_builder_service(_ctx: ProjectContext) -> SiteBuilderService:
@@ -350,7 +369,10 @@ async def apply_builder_change_set(
     "/composition-sagas",
     response_model=ResponseModel[BuilderCompositionSagaOut],
     status_code=status.HTTP_202_ACCEPTED,
-    dependencies=[require_project_permission("project:content:site-builder:write")],
+    dependencies=[
+        require_project_permission("project:content:site-builder:write"),
+        Depends(require_builder_generation_entitlement),
+    ],
     summary="Start a durable planning-to-composition site workflow",
 )
 async def create_builder_composition_saga(
@@ -464,7 +486,10 @@ async def cancel_builder_composition_saga(
     "/generations",
     response_model=ResponseModel[BuilderGenerationOut],
     status_code=status.HTTP_202_ACCEPTED,
-    dependencies=[require_project_permission("project:content:site-builder:write")],
+    dependencies=[
+        require_project_permission("project:content:site-builder:write"),
+        Depends(require_builder_generation_entitlement),
+    ],
     summary="Start a durable Sitemap, Wireframe, or Design generation",
 )
 async def create_builder_generation(

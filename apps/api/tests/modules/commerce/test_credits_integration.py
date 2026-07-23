@@ -24,7 +24,7 @@ from src.models.commerce.billing import (
 )
 from src.models.workspaces.workspace import Workspace
 from src.modules.commerce.credits import CreditsExceededError, reserve_workspace_credits
-from src.modules.commerce.schema import CommercePlanUpsertRequest
+from src.modules.commerce.schema import CommercePlanUpsertRequest, PlanFeature
 from src.modules.commerce.service import CommerceService
 from src.modules.organization.repository import OrganizationRepository
 
@@ -42,7 +42,13 @@ def _free_plan_payload(*, is_active: bool, is_default: bool) -> CommercePlanUpse
         price_monthly_micros=0,
         price_yearly_micros=0,
         currency="USD",
-        features=[],
+        features=[
+            PlanFeature(
+                key="sites.generate",
+                label="AI site generation",
+                included=True,
+            )
+        ],
         is_active=is_active,
         is_default=is_default,
         sort_order=10,
@@ -114,6 +120,29 @@ async def test_plan_update_cannot_remove_the_active_default_plan(
     assert persisted.is_active is True
     assert persisted.is_default is True
     assert await CommercePlan.filter(is_active=True, is_default=True).count() == 1
+
+
+async def test_seeded_plan_catalog_backfills_site_generation_without_overriding_exclusion(db_schema) -> None:
+    _ = db_schema
+    service = CommerceService(get_settings())
+    await service.ensure_plan_catalog()
+    free = await CommercePlan.get(code="free")
+    free.features = [feature for feature in free.features if feature.get("key") != "sites.generate"]
+    await free.save(update_fields=["features"])
+
+    await service.ensure_plan_catalog()
+
+    free = await CommercePlan.get(code="free")
+    site_generation = next(feature for feature in free.features if feature.get("key") == "sites.generate")
+    assert site_generation["included"] is True
+
+    site_generation["included"] = False
+    await free.save(update_fields=["features"])
+    await service.ensure_plan_catalog()
+
+    free = await CommercePlan.get(code="free")
+    site_generation = next(feature for feature in free.features if feature.get("key") == "sites.generate")
+    assert site_generation["included"] is False
 
 
 async def test_provider_subscription_event_applies_once_and_persists_external_authority(db_schema) -> None:

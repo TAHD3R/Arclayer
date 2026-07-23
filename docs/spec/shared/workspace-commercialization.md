@@ -24,6 +24,7 @@ This code-spec defines the shared plan, subscription, AI Credits, provider check
 | Release | Return of a reservation when the AI request fails or is cancelled |
 | Checkout session | Short-lived provider-hosted payment URL; creating one never changes the local subscription |
 | Provider event | Signed external billing event that is the only authority for applying paid subscription state |
+| Entitlement | A registered capability key explicitly included or excluded by the workspace's active Plan |
 
 ### 3. Money and credit invariants
 
@@ -44,6 +45,8 @@ committed_credits = ceil(actual_cost_micros / credit_value_micros)
 
 - The initial catalog contains stable `free` and `premium` plan codes, but the API and UI render the active catalog rather than hard-coding a two-plan limit.
 - A plan defines localized/product-facing name and description keys, sort order, active state, period credits, refresh interval, `credit_value_micros`, monthly/yearly price micros, currency, and typed feature entitlements.
+- Every configured Plan must explicitly declare every registered authorization entitlement. Missing, duplicate, malformed, excluded, inactive, or expired entitlement state fails closed.
+- The seeded `free` and `premium` plans include `sites.generate`; catalog reconciliation only backfills a missing seeded record and preserves an explicit `included: false` operator decision.
 - Deactivating a plan prevents new selection but does not silently rewrite an existing subscription.
 - Subscription lifecycle states are explicit: `trialing`, `active`, `past_due`, and `canceled`. Scheduled cancellation is represented independently by `cancelAtPeriodEnd`; unsupported transitions fail with a stable conflict error.
 - Credit refresh intervals are `daily`, `monthly`, `yearly`, and `none`. A `none` plan grants once when applied and returns `nextRefreshAt: null` rather than implying renewal.
@@ -77,6 +80,8 @@ Public workspace and request identifiers use the repository `PublicUUID` contrac
 | Condition | Required result |
 |---|---|
 | Workspace has no explicit subscription | Materialize/read the configured Free entitlement; do not invent an unlimited balance |
+| Builder generation request | Materialize the configured default subscription, then require `sites.generate` before a Job is accepted |
+| Queued Builder Job starts a new effect | Re-evaluate `sites.generate`; a revoked, expired, or excluded entitlement must prevent execution |
 | Requested plan is inactive or missing | `404`/`409` with stable plan error code |
 | Caller is not a workspace manager | `403` with stable permission code |
 | Available credits cannot cover the reservation | `402` with `AI_CREDITS_EXHAUSTED` and sanitized balance metadata |
@@ -106,4 +111,5 @@ Public workspace and request identifiers use the repository `PublicUUID` contrac
 - Idempotent provider-event replay tests proving the same event cannot grant credits twice.
 - HTTP 402 and localized error tests for exhausted credits.
 - AI runtime integration tests proving successful calls commit and failed calls release.
+- Plan-catalog and Builder tests proving `sites.generate` is explicit, request-gated, and revalidated at the worker effect boundary.
 - Frontend tests for loading/error/no-workspace, hover/focus content, provider unavailable state, checkout interval selection, current plan, embedded ledger, and exhausted-credit behavior.

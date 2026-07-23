@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from types import MappingProxyType
-from typing import Literal
+from typing import Final, Literal
 
 from pydantic import ConfigDict, Field
 
@@ -79,4 +79,6 @@ class EntitlementRegistry:
         return tuple(self._definitions[key] for key in sorted(self._definitions))
 
 
-DEFAULT_ENTITLEMENT_REGISTRY = EntitlementRegistry((EntitlementDefinition(key="sites.generate"),))
+SITE_GENERATION_ENTITLEMENT: Final = "sites.generate"
+
+DEFAULT_ENTITLEMENT_REGISTRY = EntitlementRegistry((EntitlementDefinition(key=SITE_GENERATION_ENTITLEMENT),))

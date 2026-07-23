@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Annotated
+from typing import Annotated, Self
 
 from pydantic import Field, StringConstraints, field_validator, model_validator
 
@@ -15,6 +15,7 @@ from src.models.commerce.billing import (
     CreditRefreshInterval,
     SubscriptionStatus,
 )
+from src.modules.commerce.entitlement_schema import DEFAULT_ENTITLEMENT_REGISTRY
 
 PlanCode = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_-]{1,47}$")]
 
@@ -56,6 +57,18 @@ class CommercePlanUpsertRequest(BaseSchema):
         if value % 10_000:
             raise ValueError("plan prices must be representable in whole currency cents")
         return value
+
+    @model_validator(mode="after")
+    def validate_entitlement_features(self) -> Self:
+        feature_keys = [feature.key for feature in self.features]
+        if len(feature_keys) != len(set(feature_keys)):
+            raise ValueError("plan features must use unique keys")
+        required_keys = {definition.key for definition in DEFAULT_ENTITLEMENT_REGISTRY.list_definitions()}
+        missing_keys = sorted(required_keys.difference(feature_keys))
+        if missing_keys:
+            missing = ", ".join(missing_keys)
+            raise ValueError(f"plan features must explicitly declare registered entitlements: {missing}")
+        return self
 
 
 class CommercePlanOut(BaseOut, TimestampMixin):

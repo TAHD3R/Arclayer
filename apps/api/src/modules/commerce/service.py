@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from tortoise.backends.base.client import BaseDBAsyncClient
@@ -71,6 +72,12 @@ _DEFAULT_PLANS: tuple[dict[str, Any], ...] = (
                 "labelI18nKey": "PLAN_DEFAULT_FREE_FEATURE_WORKSPACE",
                 "included": True,
             },
+            {
+                "key": "sites.generate",
+                "label": "PLAN_DEFAULT_FREE_FEATURE_SITE_GENERATION",
+                "labelI18nKey": "PLAN_DEFAULT_FREE_FEATURE_SITE_GENERATION",
+                "included": True,
+            },
         ],
         "is_active": True,
         "is_default": True,
@@ -103,12 +110,47 @@ _DEFAULT_PLANS: tuple[dict[str, Any], ...] = (
                 "labelI18nKey": "PLAN_DEFAULT_PREMIUM_FEATURE_PRIORITY_SUPPORT",
                 "included": True,
             },
+            {
+                "key": "sites.generate",
+                "label": "PLAN_DEFAULT_PREMIUM_FEATURE_SITE_GENERATION",
+                "labelI18nKey": "PLAN_DEFAULT_PREMIUM_FEATURE_SITE_GENERATION",
+                "included": True,
+            },
         ],
         "is_active": True,
         "is_default": False,
         "sort_order": 20,
     },
 )
+
+
+def _feature_records(raw_features: object, *, source: str) -> list[dict[str, Any]]:
+    if not isinstance(raw_features, list):
+        raise ValueError(f"{source} commerce plan features must be a list")
+    records: list[dict[str, Any]] = []
+    keys: set[str] = set()
+    for raw_feature in raw_features:
+        if not isinstance(raw_feature, dict):
+            raise ValueError(f"{source} commerce plan features must contain objects")
+        record = cast(dict[str, Any], raw_feature)
+        feature = PlanFeature.model_validate(record)
+        if feature.key in keys:
+            raise ValueError(f"{source} commerce plan features must use unique keys")
+        keys.add(feature.key)
+        records.append(deepcopy(record))
+    return records
+
+
+def _merge_missing_seed_features(
+    *,
+    stored_features: object,
+    seeded_features: object,
+) -> list[dict[str, Any]] | None:
+    stored = _feature_records(stored_features, source="stored")
+    seeded = _feature_records(seeded_features, source="seeded")
+    stored_keys = {str(feature["key"]) for feature in stored}
+    missing = [feature for feature in seeded if str(feature["key"]) not in stored_keys]
+    return [*stored, *missing] if missing else None
 
 
 def _billing_period(now: datetime, cycle: BillingCycle) -> tuple[datetime, datetime]:
@@ -234,7 +276,17 @@ class CommerceService(BaseService):
         for definition in _DEFAULT_PLANS:
             code = str(definition["code"])
             defaults = {key: value for key, value in definition.items() if key != "code"}
-            await CommercePlan.get_or_create(code=code, defaults=defaults, using_db=conn)
+            plan, created = await CommercePlan.get_or_create(code=code, defaults=defaults, using_db=conn)
+            if created:
+                continue
+            merged_features = _merge_missing_seed_features(
+                stored_features=plan.features,
+                seeded_features=definition["features"],
+            )
+            if merged_features is None:
+                continue
+            plan.features = merged_features
+            await plan.save(update_fields=["features"], using_db=conn)
 
     async def list_plans(self, *, include_inactive: bool) -> list[CommercePlanOut]:
         await self.ensure_plan_catalog()
