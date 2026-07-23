@@ -1,15 +1,25 @@
 from __future__ import annotations
 
+from typing import Protocol
 from uuid import UUID
 
 from src.config import Settings
 from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.core.registries import ConnectorRegistry
 from src.core.services.base import BaseService
-from src.models.commerce.billing import BillingCycle, CommercePlan
+from src.models.commerce.billing import BillingCycle, CommercePlan, WorkspaceCreditAccount, WorkspaceSubscription
 from src.modules.commerce.billing_connector import BillingConnector
+from src.modules.commerce.repository import BillingPlanReader, CommercePlanRepository
 from src.modules.commerce.schema import BillingRedirectOut, CheckoutSessionCreate
 from src.modules.commerce.service import CommerceService
+
+
+class WorkspaceBillingReader(Protocol):
+    async def ensure_workspace_billing(
+        self,
+        *,
+        workspace_id: UUID,
+    ) -> tuple[WorkspaceSubscription, WorkspaceCreditAccount, CommercePlan]: ...
 
 
 class BillingService(BaseService):
@@ -18,12 +28,14 @@ class BillingService(BaseService):
         *,
         settings: Settings,
         provider: BillingConnector,
-        commerce: CommerceService | None = None,
+        plans: BillingPlanReader,
+        commerce: WorkspaceBillingReader,
     ) -> None:
         super().__init__(settings)
         self._settings = settings
         self._provider = provider
-        self._commerce = commerce or CommerceService(settings)
+        self._plans = plans
+        self._commerce = commerce
 
     async def create_checkout(
         self,
@@ -32,7 +44,7 @@ class BillingService(BaseService):
         payload: CheckoutSessionCreate,
     ) -> BillingRedirectOut:
         subscription, _, current_plan = await self._commerce.ensure_workspace_billing(workspace_id=workspace_id)
-        plan = await CommercePlan.get_or_none(code=payload.plan_code, is_active=True)
+        plan = await self._plans.get_active_checkout_plan(code=payload.plan_code)
         if plan is None:
             raise BadRequest(error="COMMERCE_PLAN_NOT_FOUND")
         if plan.id == current_plan.id and payload.billing_interval == subscription.billing_cycle:
@@ -77,4 +89,9 @@ def build_billing_service(settings: Settings, connector_registry: ConnectorRegis
     connector = registration.factory()
     if not isinstance(connector, BillingConnector):
         raise ServiceUnavailable(error="BILLING_CONNECTOR_INVALID")
-    return BillingService(settings=settings, provider=connector)
+    return BillingService(
+        settings=settings,
+        provider=connector,
+        plans=CommercePlanRepository(),
+        commerce=CommerceService(settings),
+    )

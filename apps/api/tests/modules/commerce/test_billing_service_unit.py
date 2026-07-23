@@ -2,17 +2,18 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 from typing import cast
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
 
 from src.config import get_settings
-from src.models.commerce.billing import BillingCycle, CommercePlan
+from src.core.exceptions import BadRequest
+from src.models.commerce.billing import BillingCycle
 from src.modules.commerce.billing_connector import BillingConnector, CheckoutSession
-from src.modules.commerce.billing_service import BillingService
+from src.modules.commerce.billing_service import BillingService, WorkspaceBillingReader
+from src.modules.commerce.repository import BillingCheckoutPlan, BillingPlanReader
 from src.modules.commerce.schema import CheckoutSessionCreate
-from src.modules.commerce.service import CommerceService
 
 
 @pytest.mark.asyncio
@@ -24,7 +25,7 @@ async def test_checkout_creation_does_not_mutate_local_subscription() -> None:
         external_customer_id=None,
     )
     current_plan = SimpleNamespace(id=subscription.plan_id)
-    target_plan = SimpleNamespace(
+    target_plan = BillingCheckoutPlan(
         id=uuid4(),
         code="premium",
         name="Premium",
@@ -38,21 +39,23 @@ async def test_checkout_creation_does_not_mutate_local_subscription() -> None:
     provider = SimpleNamespace(
         create_checkout_session=AsyncMock(return_value=CheckoutSession(url="https://checkout.stripe.test/cs_test")),
     )
+    plans = SimpleNamespace(get_active_checkout_plan=AsyncMock(return_value=target_plan))
     service = BillingService(
         settings=get_settings(),
         provider=cast(BillingConnector, provider),
-        commerce=cast(CommerceService, commerce),
+        plans=cast(BillingPlanReader, plans),
+        commerce=cast(WorkspaceBillingReader, commerce),
     )
 
-    with patch.object(CommercePlan, "get_or_none", new=AsyncMock(return_value=target_plan)):
-        result = await service.create_checkout(
-            workspace_id=workspace_id,
-            payload=CheckoutSessionCreate(plan_code="premium", billing_interval=BillingCycle.YEARLY),
-        )
+    result = await service.create_checkout(
+        workspace_id=workspace_id,
+        payload=CheckoutSessionCreate(plan_code="premium", billing_interval=BillingCycle.YEARLY),
+    )
 
     assert result.url == "https://checkout.stripe.test/cs_test"
     assert subscription.plan_id == current_plan.id
     assert subscription.billing_cycle == BillingCycle.MONTHLY
+    plans.get_active_checkout_plan.assert_awaited_once_with(code="premium")
     provider.create_checkout_session.assert_awaited_once_with(
         workspace_id=str(workspace_id),
         plan_code="premium",
@@ -64,3 +67,33 @@ async def test_checkout_creation_does_not_mutate_local_subscription() -> None:
         cancel_url="https://app.arclayer.localhost/?billing=canceled",
         customer_id=None,
     )
+
+
+@pytest.mark.asyncio
+async def test_checkout_rejects_a_missing_active_plan_before_provider_io() -> None:
+    workspace_id = uuid4()
+    subscription = SimpleNamespace(
+        billing_cycle=BillingCycle.MONTHLY,
+        external_customer_id=None,
+    )
+    commerce = SimpleNamespace(
+        ensure_workspace_billing=AsyncMock(return_value=(subscription, SimpleNamespace(), SimpleNamespace(id=uuid4()))),
+    )
+    provider = SimpleNamespace(create_checkout_session=AsyncMock())
+    plans = SimpleNamespace(get_active_checkout_plan=AsyncMock(return_value=None))
+    service = BillingService(
+        settings=get_settings(),
+        provider=cast(BillingConnector, provider),
+        plans=cast(BillingPlanReader, plans),
+        commerce=cast(WorkspaceBillingReader, commerce),
+    )
+
+    with pytest.raises(BadRequest) as captured:
+        await service.create_checkout(
+            workspace_id=workspace_id,
+            payload=CheckoutSessionCreate(plan_code="retired", billing_interval=BillingCycle.MONTHLY),
+        )
+
+    assert captured.value.error == "COMMERCE_PLAN_NOT_FOUND"
+    plans.get_active_checkout_plan.assert_awaited_once_with(code="retired")
+    provider.create_checkout_session.assert_not_awaited()
