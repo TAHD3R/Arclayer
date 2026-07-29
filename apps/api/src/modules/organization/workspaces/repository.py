@@ -8,7 +8,7 @@ from tortoise.expressions import Q
 
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.organization.user import User
-from src.models.workspaces.workspace import Workspace, WorkspaceKind, WorkspaceMembership, WorkspaceMembershipStatus
+from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
 
 
 class OrganizationWorkspaceRepository(TortoiseORMRepository):
@@ -111,7 +111,6 @@ class OrganizationWorkspaceRepository(TortoiseORMRepository):
         name: str,
         description: str | None,
         created_by_user_id: UUID,
-        kind: WorkspaceKind = WorkspaceKind.TEAM,
         owner_user_id: UUID | None = None,
         conn: BaseDBAsyncClient | None = None,
     ) -> Workspace:
@@ -119,7 +118,6 @@ class OrganizationWorkspaceRepository(TortoiseORMRepository):
             using_db=conn,
             organization_id=organization_id,
             name=name,
-            kind=kind,
             owner_user_id=owner_user_id,
             description=description,
             is_active=True,

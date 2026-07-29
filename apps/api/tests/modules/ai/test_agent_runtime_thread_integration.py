@@ -8,7 +8,7 @@ import pytest
 from src.core.events import Event
 from src.core.exceptions import Conflict, NotFound
 from src.models.agents.runtime_v1 import AgentThreadV1Record
-from src.models.organization.organization import Organization, OrganizationKind
+from src.models.organization.organization import Organization
 from src.models.projects.project import ProjectRecord
 from src.models.workspaces.workspace import Workspace
 from src.modules.ai.agent_catalog_manifest import official_agent_id
@@ -36,7 +36,6 @@ async def _scope() -> tuple[Workspace, ProjectRecord, UUID]:
     organization = await Organization.create(
         slug=f"agent-thread-org-{uuid4().hex[:10]}",
         name="Agent Thread Org",
-        kind=OrganizationKind.TEAM,
         owner_user_id=owner_user_id,
         is_active=True,
     )

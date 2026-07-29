@@ -10,7 +10,7 @@ from src.config import get_settings
 from src.core.database.orm import verify_db_ready
 from src.core.registry import create_app
 from src.models.organization.org_membership import OrgMembership, OrgRole
-from src.models.organization.organization import Organization, OrganizationKind
+from src.models.organization.organization import Organization
 from src.models.organization.user import User
 from src.models.projects.project import ProjectRecord
 from src.models.system.rbac import SystemRole
@@ -55,7 +55,6 @@ async def test_workspace_agent_catalog_http_contract_scope_and_rbac(
         organization = await Organization.create(
             slug=f"agent-catalog-http-{uuid4().hex[:10]}",
             name="Agent Catalog HTTP Org",
-            kind=OrganizationKind.TEAM,
             owner_user_id=owner.id,
             is_active=True,
         )

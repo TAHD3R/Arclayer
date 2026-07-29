@@ -7,7 +7,7 @@ import pytest
 from src.config import get_settings
 from src.core.exceptions import Conflict
 from src.models.domains.domain_binding import DomainBindingRecord, DomainBindingSource
-from src.models.organization.organization import Organization, OrganizationKind
+from src.models.organization.organization import Organization
 from src.models.projects.project import ProjectRecord
 from src.models.projects.runtime import ProjectRuntimeRecord
 from src.models.workspaces.workspace import Workspace
@@ -23,7 +23,6 @@ async def _create_project_runtime_site(
     organization = await Organization.create(
         slug=f"org-{uuid4().hex[:12]}",
         name="Settings Org",
-        kind=OrganizationKind.TEAM,
         owner_user_id=None,
         is_active=True,
     )

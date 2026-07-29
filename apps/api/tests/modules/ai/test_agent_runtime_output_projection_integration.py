@@ -22,7 +22,7 @@ from src.models.agents.runtime_v1 import (
 from src.models.ai.ai_budget import AIBudget, BudgetSourceType
 from src.models.ai.ai_budget_reservation import AIBudgetReservation, ReservationStatus
 from src.models.commerce.billing import CreditLedgerEntryType, WorkspaceCreditLedger
-from src.models.organization.organization import Organization, OrganizationKind
+from src.models.organization.organization import Organization
 from src.models.projects.project import ProjectRecord
 from src.models.workspaces.workspace import Workspace
 from src.modules.ai.runtime_output_protocol_schema import (
@@ -67,7 +67,6 @@ async def _running_run() -> tuple[AgentRuntimeRepository, AgentThreadV1Record, U
     organization = await Organization.create(
         slug=f"output-org-{uuid4().hex[:10]}",
         name="Output Org",
-        kind=OrganizationKind.TEAM,
         owner_user_id=owner_id,
         is_active=True,
     )

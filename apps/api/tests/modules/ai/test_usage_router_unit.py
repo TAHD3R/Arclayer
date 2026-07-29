@@ -9,7 +9,6 @@ import pytest
 from src.config import Settings
 from src.core.exceptions import Forbidden
 from src.models.organization.user import User
-from src.models.workspaces.workspace import WorkspaceKind
 from src.modules.ai import usage_router
 from src.modules.workspaces.http.schema import WorkspaceAccessType, WorkspaceContext
 
@@ -40,7 +39,6 @@ async def test_usage_read_access_rejects_visible_only_workspace_context(monkeypa
         return WorkspaceContext(
             workspace_id=workspace_id,
             organization_id=uuid4(),
-            workspace_kind=WorkspaceKind.TEAM,
             access_type=WorkspaceAccessType.MEMBER,
             org_membership_id=uuid4(),
             is_org_owner=True,

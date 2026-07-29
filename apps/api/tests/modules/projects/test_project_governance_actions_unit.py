@@ -5,7 +5,6 @@ from uuid import uuid4
 import pytest
 
 from src.models.system.rbac import PermissionScope
-from src.models.workspaces.workspace import WorkspaceKind
 from src.modules.projects.governance.router import list_project_actions
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.permissions.service import get_project_action_catalog
@@ -18,7 +17,6 @@ def _project_context() -> ProjectRequestContext:
         workspace_id=uuid4(),
         organization_id=uuid4(),
         runtime_id=uuid4(),
-        workspace_kind=WorkspaceKind.TEAM,
         access_type=WorkspaceAccessType.MEMBER,
         org_membership_id=uuid4(),
         is_org_owner=True,

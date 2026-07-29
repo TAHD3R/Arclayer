@@ -27,6 +27,5 @@ describe("workspace-list-items", () => {
 
     expect(item.description).toBeNull();
     expect(item.createdAt).toBe("2026-04-14T12:00:00Z");
-    expect(item.kind).toBe("team");
   });
 });

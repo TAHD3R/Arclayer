@@ -6,7 +6,6 @@ from uuid import UUID
 from pydantic import Field
 
 from src.common.schemas import BaseSchema
-from src.models.workspaces.workspace import WorkspaceKind
 
 
 class WorkspaceAccessType(StrEnum):
@@ -19,8 +18,6 @@ class WorkspaceAccessType(StrEnum):
 class WorkspaceContext(BaseSchema):
     workspace_id: UUID = Field(..., description="Workspace id.")
     organization_id: UUID = Field(..., description="Organization id for this workspace.")
-    workspace_kind: WorkspaceKind = Field(..., description="Workspace kind for the current request.")
-
     access_type: WorkspaceAccessType = Field(..., description="How the user can access this workspace.")
     org_membership_id: UUID | None = Field(
         default=None,

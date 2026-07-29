@@ -33,7 +33,7 @@ from src.models.jobs.background_job import (
     JobInternalStatus,
 )
 from src.models.organization.org_membership import OrgMembership, OrgRole
-from src.models.organization.organization import Organization, OrganizationKind
+from src.models.organization.organization import Organization
 from src.models.organization.user import User
 from src.models.projects._enums import ProjectAuthoringMode, ProjectAuthoringState
 from src.models.projects.environment import ProjectEnvironmentRecord
@@ -85,7 +85,6 @@ async def _workspace(*, owner: User, organization_id: UUID | None = None, label:
         organization = await Organization.create(
             slug=f"design-system-{suffix}",
             name="Design System Organization",
-            kind=OrganizationKind.TEAM,
             owner_user_id=owner.id,
             is_active=True,
         )

@@ -34,7 +34,7 @@ from src.models.jobs.background_job import (
     JobWorkloadClass,
 )
 from src.models.organization.org_membership import OrgMembership, OrgRole
-from src.models.organization.organization import Organization, OrganizationKind
+from src.models.organization.organization import Organization
 from src.models.organization.user import User
 from src.models.skills.skill_github_import import SkillGitHubImportRecord
 from src.models.skills.skill_installation import SkillInstallationRecord
@@ -180,7 +180,6 @@ async def _workspace(*, owner: User) -> Workspace:
     organization = await Organization.create(
         slug=f"workspace-skills-{suffix}",
         name="Workspace Skills Organization",
-        kind=OrganizationKind.TEAM,
         owner_user_id=owner.id,
         is_active=True,
     )

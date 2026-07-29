@@ -7,7 +7,7 @@ import pytest
 from src.config import get_settings
 from src.core.exceptions import Conflict
 from src.models.agents.runtime_skill_v1 import AgentRunSkillSnapshotV1Record
-from src.models.organization.organization import Organization, OrganizationKind
+from src.models.organization.organization import Organization
 from src.models.projects.project import ProjectRecord
 from src.models.skills._enums import SkillPackageScope
 from src.models.workspaces.workspace import Workspace
@@ -59,7 +59,6 @@ async def _scope() -> tuple[Organization, Workspace, ProjectRecord, UUID]:
     organization = await Organization.create(
         slug=f"agent-skill-org-{uuid4().hex[:10]}",
         name="Agent Skill Grants",
-        kind=OrganizationKind.TEAM,
         owner_user_id=owner_user_id,
         is_active=True,
     )

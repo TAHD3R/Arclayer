@@ -7,7 +7,7 @@ from uuid import uuid4
 import pytest
 
 from src.models.agents.runtime_v1 import AgentRunV1Record, AgentThreadV1Record
-from src.models.organization.organization import Organization, OrganizationKind
+from src.models.organization.organization import Organization
 from src.models.projects.project import ProjectRecord
 from src.models.workspaces.workspace import Workspace
 from src.modules.ai.runtime_protocol_schema import (
@@ -41,7 +41,6 @@ async def _create_thread() -> tuple[Workspace, ProjectRecord, AgentThreadV1Recor
     organization = await Organization.create(
         slug=f"agent-runtime-org-{uuid4().hex[:10]}",
         name="Agent Runtime Repository Org",
-        kind=OrganizationKind.TEAM,
         owner_user_id=owner_user_id,
         is_active=True,
     )

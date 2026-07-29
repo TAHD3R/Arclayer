@@ -247,7 +247,6 @@ class DirectoryUserDetailOut(DirectoryUserListItemOut):
 
 class DirectoryWorkspaceDetailOut(DirectoryWorkspaceListItemOut):
     updated_at: datetime = Field(..., description="Last update time.")
-    kind: str = Field(..., description="Workspace kind.")
     icon_mode: str = Field(..., description="Workspace icon mode.")
     icon_color: str = Field(..., description="Workspace icon color.")
     icon_glyph: str | None = Field(default=None, description="Workspace icon glyph.")

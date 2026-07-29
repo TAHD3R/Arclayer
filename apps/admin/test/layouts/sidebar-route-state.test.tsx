@@ -212,7 +212,6 @@ describe("sidebar route state wiring", () => {
       project: null,
       name: "Workspace One",
       description: null,
-      kind: "team",
       iconMode: "initials",
       iconColor: "#337ea9",
       iconGlyph: null,

@@ -339,13 +339,10 @@ export type MyWorkspace = Omit<
 };
 export type MyWorkspaceListResult = Omit<
   Generated.MyWorkspaceListResult,
-  "items" | "onboarding" | "switcher"
+  "items" | "onboarding"
 > & {
   items?: MyWorkspace[];
   onboarding?: Generated.WorkspaceFirstOnboardingOut;
-  switcher: Omit<Generated.MyWorkspaceListResult["switcher"], "teams"> & {
-    teams?: MyWorkspace[];
-  };
 };
 export type AuthzSnapshot = Generated.AuthzSnapshot;
 export type ProjectAuthzSnapshot = Generated.ProjectAuthzSnapshot;

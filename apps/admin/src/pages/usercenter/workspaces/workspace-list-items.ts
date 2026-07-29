@@ -14,7 +14,6 @@ export type UserCenterWorkspaceListItem = {
   workspaceId: string;
   projectId: string | null;
   name: string;
-  kind: "team";
   description: string | null;
   iconMode: "initials" | "glyph" | "emoji" | "image";
   iconColor: string;
@@ -49,7 +48,6 @@ export function mapWorkspaceManageListItemToListItem(
     archivedByUserId: workspace.archivedByUserId ?? null,
     memberCount: workspace.memberCount ?? 0,
     enterable: workspace.enterable ?? true,
-    kind: "team",
     membersPreview: membersPreview.map((member) => ({
       userId: member.userId,
       username: member.username,

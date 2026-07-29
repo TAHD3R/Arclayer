@@ -150,7 +150,6 @@ async def _resolve_guest_workspace_context(
     return WorkspaceContext(
         workspace_id=workspace_uuid,
         organization_id=organization_id,
-        workspace_kind=workspace.kind,
         access_type=WorkspaceAccessType.GUEST,
         org_membership_id=None,
         is_org_owner=False,
@@ -205,7 +204,6 @@ async def _resolve_member_workspace_context(
     return WorkspaceContext(
         workspace_id=workspace_uuid,
         organization_id=organization_id,
-        workspace_kind=workspace.kind,
         access_type=WorkspaceAccessType.MEMBER,
         org_membership_id=UUID(str(orgm.id)),
         is_org_owner=is_owner,
@@ -261,11 +259,4 @@ async def require_workspace_member_access(
 
     if ctx.access_type != WorkspaceAccessType.MEMBER:
         raise Forbidden(message=t("errors", "PERMISSION_DENIED"), error="WORKSPACE_ACCESS_DENIED")
-    return ctx
-
-
-async def require_team_workspace_manage_access(
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
-) -> WorkspaceContext:
-    """Ensure the current user can manage a Team workspace."""
     return ctx

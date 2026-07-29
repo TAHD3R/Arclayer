@@ -14,7 +14,6 @@ from src.common.utils.public_ids import encode_uuid
 from src.config import Settings, get_settings
 from src.core.exceptions import Forbidden, init_exception_handlers
 from src.models.agents.approval import AgentApprovalStatus
-from src.models.workspaces.workspace import WorkspaceKind
 from src.modules.ai.schema import AIReasoningEffort
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.projects.agents.approval_schema import (
@@ -405,7 +404,6 @@ def _route_context() -> ProjectContentRouteContext:
         workspace_id=workspace_id,
         organization_id=organization_id,
         runtime_id=runtime_id,
-        workspace_kind=WorkspaceKind.TEAM,
         access_type=WorkspaceAccessType.MEMBER,
         org_membership_id=uuid4(),
         is_org_owner=False,

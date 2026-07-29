@@ -18,12 +18,6 @@ class WorkspaceMembershipStatus(StrEnum):
     DISABLED = "disabled"
 
 
-class WorkspaceKind(StrEnum):
-    """Workspace identity kind."""
-
-    TEAM = "team"
-
-
 class WorkspaceIconMode(StrEnum):
     """Workspace icon presentation mode."""
 
@@ -43,7 +37,6 @@ class Workspace(BaseModel):
         on_delete=fields.CASCADE,
     )
     name = fields.CharField(max_length=128)
-    kind = fields.CharEnumField(WorkspaceKind, default=WorkspaceKind.TEAM, db_index=True)
     owner_user_id = fields.UUIDField(null=True, db_index=True)
     description = fields.CharField(max_length=256, null=True)
     icon_mode = fields.CharEnumField(WorkspaceIconMode, default=WorkspaceIconMode.INITIALS)

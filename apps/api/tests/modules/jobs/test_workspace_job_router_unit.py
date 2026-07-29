@@ -12,7 +12,6 @@ from httpx import ASGITransport, AsyncClient
 from src.common.utils.public_ids import encode_uuid
 from src.core.http.pagination import PageData, PageParams
 from src.models.jobs.background_job import JobWorkloadClass
-from src.models.workspaces.workspace import WorkspaceKind
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.jobs.router import get_workspace_job_service
 from src.modules.jobs.router import router as workspace_job_router
@@ -162,7 +161,6 @@ def _workspace_context(workspace_id: UUID) -> WorkspaceContext:
     return WorkspaceContext(
         workspace_id=workspace_id,
         organization_id=uuid4(),
-        workspace_kind=WorkspaceKind.TEAM,
         access_type=WorkspaceAccessType.MEMBER,
         workspace_membership_id=uuid4(),
     )

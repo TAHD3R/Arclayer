@@ -190,7 +190,6 @@ describe("AdminSiderNav capability nodes", () => {
       id: "ws-1",
       project: { projectId: "project-1" },
       name: "Workspace One",
-      kind: "team",
       iconMode: "initials",
       iconColor: "#337ea9",
       iconGlyph: null,

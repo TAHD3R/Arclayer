@@ -12635,12 +12635,6 @@ export type DirectoryWorkspaceDetailOut = {
      */
     isArchived?: boolean;
     /**
-     * Kind
-     *
-     * Workspace kind.
-     */
-    kind: string;
-    /**
      * Lastactivityat
      *
      * Latest workspace-record activity time.
@@ -15270,10 +15264,6 @@ export type MyWorkspaceListResult = {
      * Current user's workspace-first onboarding progress.
      */
     onboarding: WorkspaceFirstOnboardingOut;
-    /**
-     * Pre-grouped switcher state from the backend.
-     */
-    switcher: WorkspaceSwitcherOut;
 };
 
 /**
@@ -15359,10 +15349,6 @@ export type MyWorkspaceOut = {
      * If true, current user is org owner and workspace creator; has implicit admin management rights.
      */
     isCreatorAdmin?: boolean;
-    /**
-     * Workspace kind.
-     */
-    kind?: WorkspaceKind;
     /**
      * Membercount
      *
@@ -36757,10 +36743,6 @@ export type WorkspaceDetailOut = {
      */
     id: string;
     /**
-     * Workspace kind.
-     */
-    kind: WorkspaceKind;
-    /**
      * Name
      *
      * Workspace name.
@@ -37275,13 +37257,6 @@ export type WorkspaceJobOut = {
 };
 
 /**
- * WorkspaceKind
- *
- * Workspace identity kind.
- */
-export type WorkspaceKind = 'team';
-
-/**
  * WorkspaceKnowledgeCapabilitiesOut
  */
 export type WorkspaceKnowledgeCapabilitiesOut = {
@@ -37458,10 +37433,6 @@ export type WorkspaceManageListItemOut = {
      * Whether workspace is archived.
      */
     isArchived?: boolean;
-    /**
-     * Workspace kind.
-     */
-    kind?: WorkspaceKind;
     /**
      * Membercount
      *
@@ -38152,18 +38123,6 @@ export type WorkspaceSubscriptionSetRequest = {
      */
     planCode: string;
     status?: SubscriptionStatus;
-};
-
-/**
- * WorkspaceSwitcherOut
- */
-export type WorkspaceSwitcherOut = {
-    /**
-     * Teams
-     *
-     * Team workspaces visible to current user.
-     */
-    teams?: Array<MyWorkspaceOut>;
 };
 
 /**

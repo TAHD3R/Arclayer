@@ -14,7 +14,7 @@ from src.core.i18n import t
 from src.core.services import BaseService
 from src.models.assets.asset import AssetPurpose
 from src.models.organization.org_membership import OrgMembership, OrgRole
-from src.models.organization.organization import Organization, OrganizationKind
+from src.models.organization.organization import Organization
 from src.models.organization.user import User
 from src.models.system.access_restriction import AccessRestrictionEntityType, AccessRestrictionType
 from src.models.system.rbac import SystemRole
@@ -59,7 +59,6 @@ from src.modules.workspaces.schema import (
     WorkspaceManageCreateRequest,
     WorkspaceManageListItemOut,
     WorkspaceManageMemberPreviewOut,
-    WorkspaceSwitcherOut,
     WorkspaceUpdateRequest,
 )
 
@@ -142,7 +141,6 @@ def _build_guest_workspace_list(*, workspaces: list[Workspace]) -> list[MyWorksp
                 workspace_id=ws.id,
                 project_id=None,
                 name=ws.name,
-                kind=ws.kind,
                 description=ws.description,
                 icon_mode=ws.icon_mode,
                 icon_color=ws.icon_color,
@@ -218,7 +216,6 @@ def _build_member_workspace_list(args: _MemberWorkspaceListArgs) -> list[MyWorks
                     workspace_id=ws.id,
                     project_id=None,
                     name=ws.name,
-                    kind=ws.kind,
                     description=ws.description,
                     icon_mode=ws.icon_mode,
                     icon_color=ws.icon_color,
@@ -438,7 +435,6 @@ class WorkspaceService(BaseService):
             workspace_id=item.workspace_id,
             project_id=item.project_id,
             name=item.name,
-            kind=item.kind,
             description=item.description,
             icon_mode=item.icon_mode,
             icon_color=item.icon_color,
@@ -545,7 +541,7 @@ class WorkspaceService(BaseService):
         if not workspace_name:
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVALID_WORKSPACE_NAME")
 
-        organization = await self._ensure_onboarding_team_organization(
+        organization = await self._ensure_onboarding_organization(
             user_id=user_id,
             organization_name=workspace_name,
         )
@@ -576,7 +572,7 @@ class WorkspaceService(BaseService):
         if not workspace_name:
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVALID_WORKSPACE_NAME")
 
-        organization = await self._ensure_onboarding_team_organization(
+        organization = await self._ensure_onboarding_organization(
             user_id=user_id,
             organization_name=workspace_name,
         )
@@ -603,7 +599,6 @@ class WorkspaceService(BaseService):
         return WorkspaceDetailOut(
             id=ws.id,
             project=WorkspacePrimaryProjectOut(project_id=UUID(str(project.id))) if project is not None else None,
-            kind=ws.kind,
             name=ws.name,
             description=ws.description,
             icon_mode=ws.icon_mode,
@@ -642,7 +637,6 @@ class WorkspaceService(BaseService):
 
         return MyWorkspaceListResult(
             items=items,
-            switcher=WorkspaceSwitcherOut(teams=items),
             instance_setup=InstanceSetupStateOut(
                 status=setup_state.status,
                 repair_reason=setup_state.repair_reason,
@@ -653,18 +647,17 @@ class WorkspaceService(BaseService):
             ),
         )
 
-    async def _ensure_onboarding_team_organization(
+    async def _ensure_onboarding_organization(
         self,
         *,
         user_id: UUID,
         organization_name: str,
     ) -> Organization:
-        organization = await self.org_repo.get_onboarding_team_organization(owner_user_id=user_id)
+        organization = await self.org_repo.get_onboarding_organization(owner_user_id=user_id)
         if organization is None:
             organization = await self.org_repo.create_organization(
-                slug=f"team-org-{user_id.hex[:12]}",
+                slug=f"org-{user_id.hex[:12]}",
                 name=organization_name,
-                kind=OrganizationKind.TEAM,
                 owner_user_id=user_id,
             )
         else:
@@ -779,7 +772,6 @@ class WorkspaceService(BaseService):
 
         return WorkspaceDetailOut(
             id=ws.id,
-            kind=ws.kind,
             name=ws.name,
             description=ws.description,
             icon_mode=ws.icon_mode,
@@ -931,7 +923,6 @@ class WorkspaceService(BaseService):
             workspace_id=workspace.workspace_id,
             project_id=workspace.project_id,
             name=workspace.name,
-            kind=workspace.kind,
             description=workspace.description,
             icon_mode=workspace.icon_mode,
             icon_color=workspace.icon_color,

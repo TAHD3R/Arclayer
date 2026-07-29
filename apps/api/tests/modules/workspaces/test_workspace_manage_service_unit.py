@@ -29,7 +29,6 @@ async def test_manage_workspace_create_accepts_string_template_from_base_schema(
             workspace_id=workspace_id,
             project_id=None,
             name="Managed Workspace",
-            kind="team",
             description="Managed description",
             icon_mode="initials",
             icon_color="#337ea9",
@@ -46,7 +45,7 @@ async def test_manage_workspace_create_accepts_string_template_from_base_schema(
             project=None,
         )
 
-    monkeypatch.setattr(service, "_ensure_onboarding_team_organization", _ensure_org)
+    monkeypatch.setattr(service, "_ensure_onboarding_organization", _ensure_org)
     monkeypatch.setattr(service.organization_workspace_service, "create_workspace", _create_workspace)
     payload = WorkspaceManageCreateRequest.model_validate({
         "name": "Managed Workspace",
@@ -59,3 +58,4 @@ async def test_manage_workspace_create_accepts_string_template_from_base_schema(
 
     assert captured["template"] == "blank"
     assert created.name == "Managed Workspace"
+    assert "kind" not in created.model_dump()

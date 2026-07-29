@@ -6,7 +6,7 @@ from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.organization.org_membership import OrgMembership, OrgRole
-from src.models.organization.organization import Organization, OrganizationKind
+from src.models.organization.organization import Organization
 
 
 class OrganizationRepository(TortoiseORMRepository):
@@ -24,13 +24,11 @@ class OrganizationRepository(TortoiseORMRepository):
         slug: str,
         name: str,
         logo_url: str | None = None,
-        kind: OrganizationKind = OrganizationKind.TEAM,
         owner_user_id: UUID | None = None,
     ) -> Organization:
         return await Organization.create(
             slug=slug,
             name=name,
-            kind=kind,
             owner_user_id=owner_user_id,
             logo_url=logo_url,
             is_active=True,
@@ -45,13 +43,8 @@ class OrganizationRepository(TortoiseORMRepository):
     ) -> Organization | None:
         return await Organization.get_or_none(id=organization_id, using_db=conn)
 
-    async def get_onboarding_team_organization(self, *, owner_user_id: UUID) -> Organization | None:
-        return (
-            await Organization
-            .filter(kind=OrganizationKind.TEAM, owner_user_id=owner_user_id)
-            .order_by("created_at", "id")
-            .first()
-        )
+    async def get_onboarding_organization(self, *, owner_user_id: UUID) -> Organization | None:
+        return await Organization.filter(owner_user_id=owner_user_id).order_by("created_at", "id").first()
 
     async def ensure_org_membership(
         self,

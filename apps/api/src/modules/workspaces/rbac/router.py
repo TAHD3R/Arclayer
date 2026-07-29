@@ -13,7 +13,7 @@ from src.modules.auth.http.service import get_current_user_id
 from src.modules.workspaces.authz.http.service import require_workspace_permission
 from src.modules.workspaces.authz.snapshot.service import get_workspace_authz_snapshot
 from src.modules.workspaces.http.schema import WorkspaceContext
-from src.modules.workspaces.http.service import require_team_workspace_manage_access
+from src.modules.workspaces.http.service import require_workspace_manage_access
 from src.modules.workspaces.permissions import get_permission_action_registry
 from src.modules.workspaces.permissions.registry import list_permission_condition_templates
 from src.modules.workspaces.rbac.catalog import (
@@ -220,7 +220,7 @@ async def _build_workspace_permission_catalog(
 async def get_permission_catalog(
     raw_response: Response,
     if_none_match: str | None = Header(default=None, alias="If-None-Match"),
-    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[WorkspacePermissionCatalogOut] | Response:
     payload = await _build_workspace_permission_catalog(
@@ -243,7 +243,7 @@ async def get_permission_catalog(
 )
 async def list_roles(
     params: PageParams = Depends(get_page_params),
-    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[PageData[WorkspaceRoleOut]]:
     """List roles in current workspace."""
@@ -274,7 +274,7 @@ async def list_roles(
 )
 async def list_permissions(
     params: PageParams = Depends(get_page_params),
-    _ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
+    _ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[PageData[WorkspacePermissionOut]]:
     """List permissions (workspace scope)."""
@@ -291,7 +291,7 @@ async def list_permissions(
     dependencies=[require_workspace_permission("rbac:permissions:read")],
 )
 async def list_actions(
-    _ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
+    _ctx: WorkspaceContext = Depends(require_workspace_manage_access),
 ) -> ResponseModel[list[WorkspacePermissionActionOut]]:
     return ApiResponse.success(data=_workspace_action_outs())
 
@@ -303,7 +303,7 @@ async def list_actions(
     dependencies=[require_workspace_permission("rbac:permissions:read")],
 )
 async def list_condition_templates(
-    _ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
+    _ctx: WorkspaceContext = Depends(require_workspace_manage_access),
 ) -> ResponseModel[list[WorkspacePermissionConditionTemplateOut]]:
     """List supported conditional permission templates."""
     return ApiResponse.success(data=_workspace_condition_template_outs())
@@ -317,7 +317,7 @@ async def list_condition_templates(
 )
 async def create_role(
     body: RoleCreateFromTemplateRequest,
-    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user_id=Depends(get_current_user_id),
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[WorkspaceRoleOut]:
@@ -344,7 +344,7 @@ async def create_role(
 async def update_role(
     role_code: str,
     body: RoleUpdateRequest,
-    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user_id=Depends(get_current_user_id),
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[WorkspaceRoleOut]:
@@ -369,7 +369,7 @@ async def update_role(
 )
 async def delete_role(
     role_code: str,
-    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user_id=Depends(get_current_user_id),
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[None]:
@@ -392,7 +392,7 @@ async def delete_role(
 async def set_permission_roles(
     permission_code: str,
     body: PermissionRoleSetRequest,
-    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user_id=Depends(get_current_user_id),
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[None]:
@@ -415,7 +415,7 @@ async def set_permission_roles(
 )
 async def set_role_permissions_batch(
     body: RolePermissionBatchSetRequest,
-    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user_id=Depends(get_current_user_id),
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[RolePermissionBatchSetOut]:
@@ -460,7 +460,7 @@ async def set_role_permissions_batch(
 async def set_role_permissions(
     role_code: str,
     body: RolePermissionSetRequest,
-    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user_id=Depends(get_current_user_id),
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[None]:

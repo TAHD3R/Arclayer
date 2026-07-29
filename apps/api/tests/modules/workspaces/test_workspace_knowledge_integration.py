@@ -26,7 +26,7 @@ from src.models.knowledge.knowledge_source_version import (
     KnowledgeSourceVersionStateRecord,
 )
 from src.models.organization.org_membership import OrgMembership, OrgRole
-from src.models.organization.organization import Organization, OrganizationKind
+from src.models.organization.organization import Organization
 from src.models.organization.user import User
 from src.models.system.rbac import SystemRole
 from src.models.workspaces.workspace import (
@@ -138,7 +138,6 @@ async def _workspace(*, owner: User, label: str) -> Workspace:
     organization = await Organization.create(
         slug=f"knowledge-{label}-{uuid4().hex[:10]}",
         name=f"Knowledge {label.title()} Org",
-        kind=OrganizationKind.TEAM,
         owner_user_id=owner.id,
         is_active=True,
     )

@@ -9,7 +9,7 @@ from src.config import get_settings
 from src.core.database.orm import verify_db_ready
 from src.core.registry import create_app
 from src.models.organization.org_membership import OrgMembership, OrgRole
-from src.models.organization.organization import Organization, OrganizationKind
+from src.models.organization.organization import Organization
 from src.models.organization.user import User
 from src.models.workspaces.workspace import Workspace
 
@@ -34,7 +34,7 @@ async def _auth_csrf_headers(client: AsyncClient, access_token: str) -> dict[str
 
 
 @pytest.mark.asyncio
-async def test_team_onboarding_flow_creates_team_workspace_then_completes_defaults(
+async def test_onboarding_flow_creates_workspace_then_completes_defaults(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
@@ -50,10 +50,10 @@ async def test_team_onboarding_flow_creates_team_workspace_then_completes_defaul
 
         async with AsyncClient(transport=transport, base_url="http://testserver") as client:
             suffix = uuid4().hex[:8]
-            username = f"onboarding-team-{suffix}"
+            username = f"onboarding-user-{suffix}"
             email = f"{username}@example.com"
             password = "onboarding_pass_123"
-            workspace_name = "Founder Team"
+            workspace_name = "Founder Workspace"
 
             register_response = await client.post(
                 "/api/v1/auth/register",
@@ -80,8 +80,7 @@ async def test_team_onboarding_flow_creates_team_workspace_then_completes_defaul
             assert initial_payload["items"] == []
             assert initial_payload["onboarding"]["status"] == "pending_workspace"
             assert initial_payload["onboarding"]["workspaceId"] is None
-            assert initial_payload["switcher"]["teams"] == []
-            assert "personalSpace" not in initial_payload["switcher"]
+            assert "switcher" not in initial_payload
 
             create_workspace_resp = await client.post(
                 "/api/v1/me/workspaces/onboarding",
@@ -99,14 +98,13 @@ async def test_team_onboarding_flow_creates_team_workspace_then_completes_defaul
             assert post_create_workspaces_resp.status_code == 200, post_create_workspaces_resp.text
             post_create_payload = post_create_workspaces_resp.json()["data"]
             assert len(post_create_payload["items"]) == 1
-            team_workspace = post_create_payload["items"][0]
-            assert team_workspace["workspaceId"] == workspace_id
-            assert team_workspace["kind"] == "team"
-            assert team_workspace["name"] == workspace_name
+            workspace = post_create_payload["items"][0]
+            assert workspace["workspaceId"] == workspace_id
+            assert "kind" not in workspace
+            assert workspace["name"] == workspace_name
             assert post_create_payload["onboarding"]["status"] == "pending_workspace_defaults"
             assert post_create_payload["onboarding"]["workspaceId"] == workspace_id
-            assert post_create_payload["switcher"]["teams"][0]["workspaceId"] == workspace_id
-            assert "personalSpace" not in post_create_payload["switcher"]
+            assert "switcher" not in post_create_payload
 
             patch_defaults_resp = await client.patch(
                 f"/api/v1/workspaces/{workspace_id}/settings/core",
@@ -130,12 +128,12 @@ async def test_team_onboarding_flow_creates_team_workspace_then_completes_defaul
             completed_payload = completed_workspaces_resp.json()["data"]
             assert completed_payload["onboarding"]["status"] == "completed"
             assert completed_payload["onboarding"]["workspaceId"] == workspace_id
-            assert completed_payload["switcher"]["teams"][0]["workspaceId"] == workspace_id
-            assert "personalSpace" not in completed_payload["switcher"]
+            assert completed_payload["items"][0]["workspaceId"] == workspace_id
+            assert "switcher" not in completed_payload
 
 
 @pytest.mark.asyncio
-async def test_completed_onboarding_reuses_existing_team_workspace_in_response(
+async def test_completed_onboarding_reuses_existing_workspace_in_response(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
@@ -151,7 +149,7 @@ async def test_completed_onboarding_reuses_existing_team_workspace_in_response(
 
         async with AsyncClient(transport=transport, base_url="http://testserver") as client:
             suffix = uuid4().hex[:8]
-            username = f"onboarding-team-{suffix}"
+            username = f"onboarding-user-{suffix}"
             email = f"{username}@example.com"
             password = "onboarding_pass_123"
 
@@ -177,7 +175,7 @@ async def test_completed_onboarding_reuses_existing_team_workspace_in_response(
             create_workspace_resp = await client.post(
                 "/api/v1/me/workspaces/onboarding",
                 json={
-                    "name": "Blog Team",
+                    "name": "Blog Workspace",
                 },
                 headers=await _auth_csrf_headers(client, access_token),
             )
@@ -190,13 +188,12 @@ async def test_completed_onboarding_reuses_existing_team_workspace_in_response(
             assert post_create_workspaces_resp.status_code == 200, post_create_workspaces_resp.text
             post_create_payload = post_create_workspaces_resp.json()["data"]
             assert len(post_create_payload["items"]) == 1
-            team_workspace = post_create_payload["items"][0]
-            assert team_workspace["workspaceId"] == workspace_id
-            assert team_workspace["kind"] == "team"
+            workspace = post_create_payload["items"][0]
+            assert workspace["workspaceId"] == workspace_id
+            assert "kind" not in workspace
             assert post_create_payload["onboarding"]["status"] == "pending_workspace_defaults"
             assert post_create_payload["onboarding"]["workspaceId"] == workspace_id
-            assert post_create_payload["switcher"]["teams"][0]["workspaceId"] == workspace_id
-            assert "personalSpace" not in post_create_payload["switcher"]
+            assert "switcher" not in post_create_payload
 
             patch_defaults_resp = await client.patch(
                 f"/api/v1/workspaces/{workspace_id}/settings/core",
@@ -220,8 +217,8 @@ async def test_completed_onboarding_reuses_existing_team_workspace_in_response(
             completed_payload = completed_workspaces_resp.json()["data"]
             assert completed_payload["onboarding"]["status"] == "completed"
             assert completed_payload["onboarding"]["workspaceId"] == workspace_id
-            assert completed_payload["switcher"]["teams"][0]["workspaceId"] == workspace_id
-            assert "personalSpace" not in completed_payload["switcher"]
+            assert completed_payload["items"][0]["workspaceId"] == workspace_id
+            assert "switcher" not in completed_payload
 
             repeated_create_resp = await client.post(
                 "/api/v1/me/workspaces/onboarding",
@@ -233,7 +230,7 @@ async def test_completed_onboarding_reuses_existing_team_workspace_in_response(
 
 
 @pytest.mark.asyncio
-async def test_onboarding_workspace_creation_allows_existing_workspace_in_team_org(
+async def test_onboarding_workspace_creation_allows_existing_workspace_in_owned_org(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
@@ -274,22 +271,21 @@ async def test_onboarding_workspace_creation_allows_existing_workspace_in_team_o
 
             user = await User.get(email=email)
 
-            team_org = await Organization.create(
-                slug=f"existing-team-org-{suffix}",
-                name="Existing Team Org",
-                kind=OrganizationKind.TEAM,
+            owned_org = await Organization.create(
+                slug=f"existing-org-{suffix}",
+                name="Existing Org",
                 owner_user_id=user.id,
                 is_active=True,
             )
             await OrgMembership.create(
-                organization_id=team_org.id,
+                organization_id=owned_org.id,
                 user_id=user.id,
                 role=OrgRole.OWNER,
                 role_code=OrgRole.OWNER.value,
                 status="active",
             )
             await Workspace.create(
-                organization_id=team_org.id,
+                organization_id=owned_org.id,
                 name="Preexisting Workspace",
                 is_active=True,
                 created_by_user_id=user.id,
@@ -297,7 +293,7 @@ async def test_onboarding_workspace_creation_allows_existing_workspace_in_team_o
 
             create_workspace_resp = await client.post(
                 "/api/v1/me/workspaces/onboarding",
-                json={"name": "Founder Team"},
+                json={"name": "Founder Workspace"},
                 headers=await _auth_csrf_headers(client, access_token),
             )
             assert create_workspace_resp.status_code == 200, create_workspace_resp.text

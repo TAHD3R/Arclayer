@@ -258,7 +258,6 @@ beforeEach(() => {
     id: "ws-alpha",
     project: { projectId: "project-alpha" },
     name: "Workspace Alpha",
-    kind: "team",
     iconMode: "initials",
     iconColor: "#337ea9",
     iconGlyph: null,
@@ -266,15 +265,13 @@ beforeEach(() => {
     iconUrl: null,
   });
   vi.mocked(listMyWorkspaces).mockResolvedValue({
-    switcher: {
-      teams: [
-        {
-          workspaceId: "ws-alpha",
-          name: "Workspace Alpha",
-          projectId: "project-alpha",
-        },
-      ],
-    },
+    items: [
+      {
+        workspaceId: "ws-alpha",
+        name: "Workspace Alpha",
+        projectId: "project-alpha",
+      },
+    ],
   } as never);
 });
 

@@ -21,9 +21,7 @@ from src.modules.system.setup.service import InstanceSetupService
 pytestmark = pytest.mark.integration
 
 
-async def test_me_workspaces_returns_team_switcher_items_only(
-    prepared_db, integration_valkey_settings, tmp_path: Path
-) -> None:
+async def test_me_workspaces_returns_workspace_items(prepared_db, integration_valkey_settings, tmp_path: Path) -> None:
     _ = prepared_db
     _ = integration_valkey_settings
 
@@ -50,7 +48,7 @@ async def test_me_workspaces_returns_team_switcher_items_only(
         )
         setup_service.write_install_lock(setup_service.build_install_lock_metadata(initialized_by_user_id=founder.id))
 
-        org = await org_repo.create_organization(slug=f"org_{uuid4().hex}", name="Team Org")
+        org = await org_repo.create_organization(slug=f"org_{uuid4().hex}", name="Org")
         user = await user_repo.create_user(
             username=f"user_{uuid4().hex[:10]}",
             email="switcher@example.com",
@@ -59,10 +57,10 @@ async def test_me_workspaces_returns_team_switcher_items_only(
         )
         await OrgMembership.create(organization_id=org.id, user_id=user.id, role=OrgRole.OWNER, status="active")
 
-        team_workspace = await Workspace.create(
+        workspace = await Workspace.create(
             organization_id=org.id,
             slug=f"workspace_{uuid4().hex[:8]}",
-            name="Team Workspace",
+            name="Workspace",
             is_active=True,
             created_by_user_id=user.id,
             icon_mode="glyph",
@@ -70,7 +68,7 @@ async def test_me_workspaces_returns_team_switcher_items_only(
             icon_glyph="rocket",
         )
         await WorkspaceMembership.create(
-            workspace_id=team_workspace.id,
+            workspace_id=workspace.id,
             user_id=user.id,
             status=WorkspaceMembershipStatus.ACTIVE,
         )
@@ -98,16 +96,14 @@ async def test_me_workspaces_returns_team_switcher_items_only(
 
     assert data["instanceSetup"]["status"] == "ready"
     assert len(data["items"]) == 1
-    assert len(data["switcher"]["teams"]) == 1
-    assert data["switcher"]["teams"][0]["kind"] == "team"
+    assert "kind" not in data["items"][0]
+    assert "switcher" not in data
     assert data["items"][0]["iconMode"] == "glyph"
     assert data["items"][0]["iconColor"] == "#2563eb"
     assert data["items"][0]["iconGlyph"] == "rocket"
-    assert data["switcher"]["teams"][0]["iconMode"] == "glyph"
-    assert "personalSpace" not in data["switcher"]
 
 
-async def test_me_workspaces_reports_existing_team_only_user_without_special_personal_state(
+async def test_me_workspaces_reports_existing_workspace_without_identity_mode_state(
     prepared_db, integration_valkey_settings, tmp_path: Path
 ) -> None:
     _ = prepared_db
@@ -146,10 +142,10 @@ async def test_me_workspaces_reports_existing_team_only_user_without_special_per
         )
         await OrgMembership.create(organization_id=org.id, user_id=user.id, role=OrgRole.OWNER, status="active")
 
-        team_workspace = await Workspace.create(
+        workspace = await Workspace.create(
             organization_id=org.id,
             slug=f"legacy_workspace_{uuid4().hex[:8]}",
-            name="Legacy Team Workspace",
+            name="Existing Workspace",
             is_active=True,
             created_by_user_id=user.id,
             icon_mode="emoji",
@@ -157,7 +153,7 @@ async def test_me_workspaces_reports_existing_team_only_user_without_special_per
             icon_emoji="🌿",
         )
         await WorkspaceMembership.create(
-            workspace_id=team_workspace.id,
+            workspace_id=workspace.id,
             user_id=user.id,
             status=WorkspaceMembershipStatus.ACTIVE,
         )
@@ -184,9 +180,8 @@ async def test_me_workspaces_reports_existing_team_only_user_without_special_per
     data = response.json()["data"]
 
     assert len(data["items"]) == 1
-    assert data["items"][0]["kind"] == "team"
+    assert "kind" not in data["items"][0]
     assert data["items"][0]["iconMode"] == "emoji"
     assert data["items"][0]["iconColor"] == "#22c55e"
     assert data["items"][0]["iconEmoji"] == "🌿"
-    assert data["switcher"]["teams"][0]["workspaceId"] == data["items"][0]["workspaceId"]
-    assert "personalSpace" not in data["switcher"]
+    assert "switcher" not in data

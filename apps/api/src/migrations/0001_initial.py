@@ -16,7 +16,6 @@ from src.models.content._enums import ContentBootstrapPresetState, ContentContin
 from src.models.domains.domain_binding import DomainBindingCertificateStatus, DomainBindingSource, DomainBindingTargetType
 from src.models.extensions.workspace_extension_activation import WorkspaceExtensionActivationStatus
 from src.models.organization.org_membership import OrgRole
-from src.models.organization.organization import OrganizationKind
 from src.models.organization.user import UserStatus
 from src.models.projects.api_key import ApiKeyFamily, DeliveryKeyPerspective
 from src.models.projects.database import ProjectDatabaseBackupStatus, ProjectDatabaseCredentialRole, ProjectDatabaseEngine, ProjectDatabaseInstanceStatus, ProjectDatabaseIsolationMode, ProjectDatabaseMigrationStatus
@@ -27,7 +26,8 @@ from src.models.projects.runtime import ProjectRuntimeKind
 from src.models.system.notification import NotificationCategory
 from src.models.system.rbac import PermissionScope
 from src.models.tenancy.workspace_tenant import WorkspaceTenantIsolationMode, WorkspaceTenantStatus
-from src.models.workspaces.workspace import WorkspaceIconMode, WorkspaceKind, WorkspaceMembershipStatus
+from src.models.workspaces.workspace import WorkspaceIconMode, WorkspaceMembershipStatus
+from src.migrations.models.workspace_identity import OrganizationKind, WorkspaceKind
 from tortoise.fields.base import OnDelete
 from tortoise.fields.data import JSON_DUMPS
 from tortoise import fields

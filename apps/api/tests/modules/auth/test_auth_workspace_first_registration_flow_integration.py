@@ -73,8 +73,7 @@ async def test_public_register_and_login_requires_onboarding_workspace_choice(
             assert workspace_payload["items"] == []
             assert workspace_payload["onboarding"]["status"] == "pending_workspace"
             assert workspace_payload["onboarding"]["workspaceId"] is None
-            assert workspace_payload["switcher"]["teams"] == []
-            assert "personalSpace" not in workspace_payload["switcher"]
+            assert "switcher" not in workspace_payload
 
 
 @pytest.mark.asyncio

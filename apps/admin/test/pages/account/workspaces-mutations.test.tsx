@@ -42,7 +42,6 @@ describe("useUserCenterWorkspacesMutations", () => {
       project: { projectId: "project-new" },
       name: "New Workspace",
       description: null,
-      kind: "team",
       iconMode: "initials",
       iconColor: "#337ea9",
       iconGlyph: null,

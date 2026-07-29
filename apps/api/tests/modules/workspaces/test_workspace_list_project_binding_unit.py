@@ -18,7 +18,6 @@ class _FakeWorkspace:
         self.id = uuid4()
         self.organization_id = uuid4()
         self.name = "Workspace Name"
-        self.kind = "team"
         self.description = None
         self.icon_mode = "initials"
         self.icon_color = "#337ea9"

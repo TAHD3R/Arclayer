@@ -16,7 +16,7 @@ from src.models.agents.catalog import (
     AgentVersionState,
 )
 from src.models.analytics.audit_event import AuditEvent
-from src.models.organization.organization import Organization, OrganizationKind
+from src.models.organization.organization import Organization
 from src.models.projects.project import ProjectRecord
 from src.models.workspaces.workspace import Workspace
 from src.modules.ai.agent_catalog_manifest import OFFICIAL_AGENT_SPEC_BY_SLUG
@@ -75,7 +75,6 @@ async def _workspace_scope(*, actor_user_id: UUID) -> tuple[Workspace, ProjectRe
     organization = await Organization.create(
         slug=f"system-agent-control-{uuid4().hex[:12]}",
         name="System Agent Control Plane",
-        kind=OrganizationKind.TEAM,
         owner_user_id=actor_user_id,
         is_active=True,
     )

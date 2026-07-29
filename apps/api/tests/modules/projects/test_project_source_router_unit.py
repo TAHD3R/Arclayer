@@ -6,7 +6,6 @@ from uuid import uuid4
 import pytest
 from fastapi.routing import APIRoute
 
-from src.models.workspaces.workspace import WorkspaceKind
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.source.router import (
     delete_project_source_file,
@@ -33,7 +32,6 @@ def _project_context() -> ProjectRequestContext:
         workspace_id=uuid4(),
         organization_id=uuid4(),
         runtime_id=uuid4(),
-        workspace_kind=WorkspaceKind.TEAM,
         access_type=WorkspaceAccessType.MEMBER,
         org_membership_id=uuid4(),
         is_org_owner=True,

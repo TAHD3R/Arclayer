@@ -19,7 +19,7 @@ from src.models.agents.runtime_v1 import (
 )
 from src.models.jobs.background_job import BackgroundJobRecord
 from src.models.organization.org_membership import OrgMembership, OrgRole
-from src.models.organization.organization import Organization, OrganizationKind
+from src.models.organization.organization import Organization
 from src.models.organization.user import User
 from src.models.projects.project import ProjectRecord
 from src.models.system.rbac import SystemRole
@@ -270,7 +270,6 @@ async def test_workspace_thread_endpoints_enforce_rbac_owner_scope_and_soft_dele
         organization = await Organization.create(
             slug=f"agent-thread-http-{uuid4().hex[:10]}",
             name="Agent Thread HTTP Org",
-            kind=OrganizationKind.TEAM,
             owner_user_id=owner.id,
             is_active=True,
         )

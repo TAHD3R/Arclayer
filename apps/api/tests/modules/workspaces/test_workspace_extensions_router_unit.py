@@ -12,7 +12,6 @@ from httpx import ASGITransport, AsyncClient
 from src.config import Settings
 from src.core.exceptions import init_exception_handlers
 from src.core.extensions.manager import ExtensionManager
-from src.models.workspaces.workspace import WorkspaceKind
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.workspaces.extensions.router import router as workspace_extensions_router
 from src.modules.workspaces.http.schema import WorkspaceAccessType, WorkspaceContext
@@ -61,7 +60,6 @@ def _workspace_context(workspace_id):
     return WorkspaceContext(
         workspace_id=workspace_id,
         organization_id=uuid4(),
-        workspace_kind=WorkspaceKind.TEAM,
         access_type=WorkspaceAccessType.MEMBER,
         org_membership_id=uuid4(),
         is_org_owner=False,

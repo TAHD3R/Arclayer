@@ -163,10 +163,8 @@ describe("AdminSidebarInbox", () => {
           workspaceId: "ws-1",
           projectId: "project-alpha",
           name: "Workspace Alpha",
-          kind: "team",
         },
       ],
-      switcher: { teams: [] },
       instanceSetup: { status: "ready", repairReason: null },
     } as never);
 

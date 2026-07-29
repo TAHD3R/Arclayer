@@ -18,7 +18,7 @@ from src.models.agents.runtime_v1 import (
     AgentThreadV1Record,
     AgentToolResponseV1Record,
 )
-from src.models.organization.organization import Organization, OrganizationKind
+from src.models.organization.organization import Organization
 from src.models.projects.project import ProjectRecord
 from src.models.workspaces.workspace import Workspace
 from src.modules.ai.runtime_approval_protocol_schema import (
@@ -49,7 +49,6 @@ async def _create_thread() -> tuple[Workspace, ProjectRecord, AgentThreadV1Recor
     organization = await Organization.create(
         slug=f"agent-approval-org-{uuid4().hex[:10]}",
         name="Agent Approval Projection Org",
-        kind=OrganizationKind.TEAM,
         owner_user_id=owner_user_id,
         is_active=True,
     )

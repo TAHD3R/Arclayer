@@ -17,7 +17,6 @@ from src.core.http.pagination import PageData
 from src.llm.runtime import LLMRuntime
 from src.models.agents.conversation import AgentConversationMode
 from src.models.projects._enums import ProjectAuthoringMode
-from src.models.workspaces.workspace import WorkspaceKind
 from src.modules.ai import workspace_actions
 from src.modules.ai.workspace_actions import (
     WorkspaceAIActionRequest,
@@ -4038,7 +4037,6 @@ def _workspace_context(*, workspace_id, organization_id) -> WorkspaceContext:
     return WorkspaceContext(
         workspace_id=workspace_id,
         organization_id=organization_id,
-        workspace_kind=WorkspaceKind.TEAM,
         access_type=WorkspaceAccessType.MEMBER,
         is_org_owner=True,
     )

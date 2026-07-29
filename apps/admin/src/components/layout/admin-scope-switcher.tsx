@@ -1052,8 +1052,8 @@ export function AdminScopeSwitcher({
   });
 
   const pickerWorkspaces = useMemo(
-    () => sortWorkspacePickerItems(workspacesQuery.data?.switcher.teams),
-    [workspacesQuery.data?.switcher.teams],
+    () => sortWorkspacePickerItems(workspacesQuery.data?.items),
+    [workspacesQuery.data?.items],
   );
   const selectedWorkspaceId = resolveWorkspaceSelection({
     workspaces: pickerWorkspaces,

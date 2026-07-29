@@ -27,7 +27,7 @@ from src.models.jobs.background_job import (
     JobRetryClass,
     JobWorkloadClass,
 )
-from src.models.organization.organization import Organization, OrganizationKind
+from src.models.organization.organization import Organization
 from src.models.organization.user import User
 from src.models.projects.membership import ProjectMemberRole, ProjectMembership
 from src.models.projects.project import ProjectRecord
@@ -427,7 +427,6 @@ async def _create_workspace_graph() -> WorkspaceGraph:
     organization = await Organization.create(
         slug=f"jobs-org-{token}",
         name="Background Jobs Integration",
-        kind=OrganizationKind.TEAM,
         owner_user_id=user.id,
         is_active=True,
     )
@@ -727,7 +726,6 @@ async def test_scoped_cancellation_locks_visible_job_and_rejects_foreign_workspa
     foreign_context = WorkspaceContext(
         workspace_id=graph.foreign_workspace.id,
         organization_id=graph.organization.id,
-        workspace_kind=graph.foreign_workspace.kind,
         access_type=WorkspaceAccessType.MEMBER,
         workspace_membership_id=graph.foreign_workspace_membership.id,
     )
@@ -745,7 +743,6 @@ async def test_scoped_cancellation_locks_visible_job_and_rejects_foreign_workspa
     workspace_context = WorkspaceContext(
         workspace_id=graph.workspace.id,
         organization_id=graph.organization.id,
-        workspace_kind=graph.workspace.kind,
         access_type=WorkspaceAccessType.MEMBER,
         workspace_membership_id=graph.workspace_membership.id,
     )

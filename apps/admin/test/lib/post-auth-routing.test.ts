@@ -18,9 +18,6 @@ describe("post-auth-routing", () => {
   test("lands on project overview when no workspace is available", async () => {
     mocked.listMyWorkspaces.mockResolvedValue({
       items: [],
-      switcher: {
-        teams: [],
-      },
       instanceSetup: { status: "ready", repairReason: null },
       onboarding: { status: "completed", workspaceId: null },
     });
@@ -37,16 +34,12 @@ describe("post-auth-routing", () => {
       projectId: "project-a",
       slug: "a",
       name: "A",
-      kind: "team" as const,
       visibleOnly: false,
       isCreatorAdmin: true,
     };
 
     mocked.listMyWorkspaces.mockResolvedValue({
       items: [workspace],
-      switcher: {
-        teams: [workspace],
-      },
       instanceSetup: { status: "ready", repairReason: null },
       onboarding: { status: "completed", workspaceId: null },
     });
@@ -58,31 +51,26 @@ describe("post-auth-routing", () => {
     expect(decision.onboardingRequired).toBe(false);
   });
 
-  test("falls back to root when multiple team workspaces are available without a remembered match", async () => {
+  test("falls back to root when multiple workspaces are available without a remembered match", async () => {
     const firstWorkspace = {
       workspaceId: "w-a",
       projectId: "project-a",
       slug: "alpha",
       name: "Alpha",
-      kind: "team" as const,
       visibleOnly: false,
       isCreatorAdmin: true,
     };
     const secondWorkspace = {
-      workspaceId: "w-team",
-      projectId: "project-team",
-      slug: "team-space",
-      name: "Team Space",
-      kind: "team" as const,
+      workspaceId: "w-b",
+      projectId: "project-b",
+      slug: "beta",
+      name: "Beta",
       visibleOnly: false,
       isCreatorAdmin: true,
     };
 
     mocked.listMyWorkspaces.mockResolvedValue({
       items: [firstWorkspace, secondWorkspace],
-      switcher: {
-        teams: [firstWorkspace, secondWorkspace],
-      },
       instanceSetup: { status: "ready", repairReason: null },
       onboarding: { status: "completed", workspaceId: null },
     });
@@ -96,9 +84,6 @@ describe("post-auth-routing", () => {
   test("falls back to root when no workspace can be resolved", async () => {
     mocked.listMyWorkspaces.mockResolvedValue({
       items: [],
-      switcher: {
-        teams: [],
-      },
       instanceSetup: { status: "ready", repairReason: null },
       onboarding: { status: "completed", workspaceId: null },
     });
@@ -115,16 +100,12 @@ describe("post-auth-routing", () => {
       projectId: "project-a",
       slug: "a",
       name: "A",
-      kind: "team" as const,
       visibleOnly: false,
       isCreatorAdmin: true,
     };
 
     mocked.listMyWorkspaces.mockResolvedValue({
       items: [workspace],
-      switcher: {
-        teams: [workspace],
-      },
       instanceSetup: { status: "ready", repairReason: null },
       onboarding: { status: "pending_workspace", workspaceId: null },
     });
@@ -138,9 +119,6 @@ describe("post-auth-routing", () => {
   test("keeps onboarding blocked on welcome until defaults are confirmed", async () => {
     mocked.listMyWorkspaces.mockResolvedValue({
       items: [],
-      switcher: {
-        teams: [],
-      },
       instanceSetup: { status: "ready", repairReason: null },
       onboarding: { status: "pending_workspace_defaults", workspaceId: "w-step-2" },
     });

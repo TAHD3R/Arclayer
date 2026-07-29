@@ -117,7 +117,6 @@ function createController() {
         project: null,
         name: "Workspace Alpha",
         description: "Brand system and marketing operations.",
-        kind: "team",
         iconMode: "image",
         iconColor: "#337ea9",
         iconGlyph: null,

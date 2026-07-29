@@ -30,7 +30,6 @@ function buildWorkspaceListItem(
     workspaceId: detail.id,
     projectId: detail.project?.projectId ?? detail.id,
     name: detail.name,
-    kind: "team",
     description: detail.description ?? null,
     iconMode: detail.iconMode ?? "initials",
     iconColor: detail.iconColor ?? "#337ea9",

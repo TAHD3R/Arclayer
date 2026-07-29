@@ -6,7 +6,7 @@ import pytest
 
 from src.models.agents.runtime_delegation_v1 import AgentDelegationV1Record
 from src.models.agents.runtime_v1 import AgentRunEventV1Record, AgentRunStatusV1, AgentRunV1Record, AgentThreadV1Record
-from src.models.organization.organization import Organization, OrganizationKind
+from src.models.organization.organization import Organization
 from src.models.projects.project import ProjectRecord
 from src.models.workspaces.workspace import Workspace
 from src.modules.ai.runtime_delegation_protocol_schema import (
@@ -44,7 +44,6 @@ async def test_delegation_projection_owns_child_identity_nested_messages_and_sou
     organization = await Organization.create(
         slug=f"delegation-org-{uuid4().hex[:10]}",
         name="Delegation Org",
-        kind=OrganizationKind.TEAM,
         owner_user_id=owner_id,
         is_active=True,
     )

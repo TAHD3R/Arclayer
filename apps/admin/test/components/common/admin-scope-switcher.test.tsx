@@ -82,7 +82,6 @@ const workspaceFixtures: MyWorkspace[] = [
     workspaceId: "ws-alpha",
     projectId: "project-alpha",
     name: "Workspace Alpha",
-    kind: "team",
     iconMode: "initials",
     iconColor: "#337ea9",
     iconGlyph: null,
@@ -97,7 +96,6 @@ const workspaceFixtures: MyWorkspace[] = [
     workspaceId: "ws-beta",
     projectId: "project-gamma",
     name: "Workspace Beta",
-    kind: "team",
     iconMode: "initials",
     iconColor: "#337ea9",
     iconGlyph: null,
@@ -164,9 +162,6 @@ const projectFixtures: ProjectListItem[] = [
 function createWorkspaceListResult(): MyWorkspaceListResult {
   return {
     items: workspaceFixtures,
-    switcher: {
-      teams: workspaceFixtures,
-    },
     instanceSetup: {
       status: "ready",
       repairReason: null,
@@ -273,7 +268,6 @@ beforeEach(() => {
     id: "ws-alpha",
     project: null,
     name: "Workspace Alpha",
-    kind: "team",
     iconMode: "initials",
     iconColor: "#337ea9",
     iconGlyph: null,

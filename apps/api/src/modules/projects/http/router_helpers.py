@@ -27,7 +27,6 @@ def workspace_context_from_project(ctx: ProjectRequestContext) -> WorkspaceConte
     return WorkspaceContext(
         workspace_id=ctx.workspace_id,
         organization_id=ctx.organization_id,
-        workspace_kind=ctx.workspace_kind,
         access_type=ctx.access_type,
         org_membership_id=ctx.org_membership_id,
         is_org_owner=ctx.is_org_owner,

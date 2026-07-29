@@ -19,7 +19,6 @@ from src.models.jobs.background_job import (
     JobRetryClass,
     JobWorkloadClass,
 )
-from src.models.workspaces.workspace import WorkspaceKind
 from src.modules.jobs.registry import (
     JobPermissionRequirement,
     JobPermissionScope,
@@ -180,7 +179,6 @@ def create_context(workspace_id: UUID) -> WorkspaceContext:
     return WorkspaceContext(
         workspace_id=workspace_id,
         organization_id=uuid4(),
-        workspace_kind=WorkspaceKind.TEAM,
         access_type=WorkspaceAccessType.MEMBER,
         workspace_membership_id=uuid4(),
     )

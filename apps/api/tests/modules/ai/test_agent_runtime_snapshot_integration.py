@@ -19,7 +19,7 @@ from src.models.agents.runtime_v1 import (
     AgentRunV1Record,
     AgentThreadV1Record,
 )
-from src.models.organization.organization import Organization, OrganizationKind
+from src.models.organization.organization import Organization
 from src.models.projects.project import ProjectRecord
 from src.models.workspaces.workspace import Workspace
 from src.modules.ai.runtime_output_protocol_schema import UsageUpdatedEventV1
@@ -68,7 +68,6 @@ async def _running_run() -> tuple[
     organization = await Organization.create(
         slug=f"snapshot-org-{uuid4().hex[:10]}",
         name="Snapshot Org",
-        kind=OrganizationKind.TEAM,
         owner_user_id=owner_id,
         is_active=True,
     )

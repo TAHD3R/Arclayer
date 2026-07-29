@@ -6,7 +6,6 @@ from uuid import uuid4
 import pytest
 
 from src.common.types.json_types import JsonObject
-from src.models.workspaces.workspace import WorkspaceKind
 from src.modules.projects.governance.router import (
     get_project_core_settings as get_project_core_settings_route,
 )
@@ -25,7 +24,6 @@ def _project_context() -> ProjectRequestContext:
         workspace_id=uuid4(),
         organization_id=uuid4(),
         runtime_id=uuid4(),
-        workspace_kind=WorkspaceKind.TEAM,
         access_type=WorkspaceAccessType.MEMBER,
         org_membership_id=uuid4(),
         is_org_owner=True,

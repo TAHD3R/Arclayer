@@ -58,7 +58,6 @@ beforeEach(() => {
   });
   listMyWorkspacesMock.mockResolvedValue({
     items: [],
-    switcher: { teams: [] },
     instanceSetup: { status: "ready", repairReason: null },
   });
 });
@@ -81,24 +80,10 @@ describe("WorkspaceSettingsDangerSection", () => {
           projectId: "project-2",
           slug: "beta",
           name: "Beta",
-          kind: "team",
           visibleOnly: false,
           isCreatorAdmin: true,
         },
       ],
-      switcher: {
-        teams: [
-          {
-            workspaceId: "ws-2",
-            projectId: "project-2",
-            slug: "beta",
-            name: "Beta",
-            kind: "team",
-            visibleOnly: false,
-            isCreatorAdmin: true,
-          },
-        ],
-      },
       instanceSetup: { status: "ready", repairReason: null },
     });
 

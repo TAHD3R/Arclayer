@@ -9,7 +9,7 @@ from structlog.contextvars import bound_contextvars, get_contextvars
 
 from src.config import Settings
 from src.models.projects.runtime import ProjectRuntimeRecord
-from src.models.workspaces.workspace import Workspace, WorkspaceKind
+from src.models.workspaces.workspace import Workspace
 from src.modules.projects.http.service import get_project_context
 from src.modules.projects.runtime.service import ProjectRuntimeService
 from src.modules.tenancy.context import (
@@ -139,7 +139,7 @@ def test_bind_project_tenant_context_enriches_bound_workspace_context() -> None:
 async def test_workspace_request_entrypoint_binds_tenant_context(monkeypatch: pytest.MonkeyPatch) -> None:
     organization_id = uuid4()
     user_id = uuid4()
-    workspace = SimpleNamespace(id=uuid4(), kind=WorkspaceKind.TEAM)
+    workspace = SimpleNamespace(id=uuid4())
     membership = SimpleNamespace(id=uuid4())
     calls: dict[str, object] = {}
 
@@ -197,14 +197,13 @@ async def test_project_request_entrypoint_binds_project_tenant_context(monkeypat
             return SimpleNamespace(id=runtime_id)
 
     async def _fake_require_active_workspace(*, workspace_id):  # type: ignore[no-untyped-def]
-        return SimpleNamespace(id=workspace_id, organization_id=organization_id, kind=WorkspaceKind.TEAM)
+        return SimpleNamespace(id=workspace_id, organization_id=organization_id)
 
     async def _fake_find_active_org_membership(*, organization_id, user_id):  # type: ignore[no-untyped-def]
         return SimpleNamespace(id=uuid4(), role="owner")
 
     async def _fake_resolve_member_workspace_context(**_kwargs):  # type: ignore[no-untyped-def]
         return SimpleNamespace(
-            workspace_kind=WorkspaceKind.TEAM,
             access_type=WorkspaceAccessType.MEMBER,
             org_membership_id=uuid4(),
             is_org_owner=True,

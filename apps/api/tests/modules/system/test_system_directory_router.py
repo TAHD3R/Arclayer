@@ -45,7 +45,7 @@ from src.models.feedback.feedback import (
     FeedbackTicket,
 )
 from src.models.organization.org_membership import OrgMembership, OrgRole
-from src.models.organization.organization import Organization, OrganizationKind
+from src.models.organization.organization import Organization
 from src.models.organization.user import User, UserCredential, UserStatus
 from src.models.projects.deployment import (
     ProjectDeploymentRecord,
@@ -232,7 +232,6 @@ async def test_system_directory_lists_all_entities() -> None:
     organization = await Organization.create(
         name="Alpha Org",
         slug="alpha-org",
-        kind=OrganizationKind.TEAM,
         owner_user_id=owner.id,
     )
     workspace = await Workspace.create(
@@ -318,7 +317,6 @@ async def test_system_directory_workspace_commerce_projection_filters_and_orderi
     organization = await Organization.create(
         name="Commerce Directory Org",
         slug="commerce-directory-org",
-        kind=OrganizationKind.TEAM,
         owner_user_id=owner.id,
     )
     workspace_values = {
@@ -488,7 +486,6 @@ async def test_system_directory_project_operational_projection_filters_and_order
     organization = await Organization.create(
         name="Project Operations Org",
         slug="project-operations-org",
-        kind=OrganizationKind.TEAM,
         owner_user_id=owner.id,
     )
     workspace = await Workspace.create(
@@ -678,7 +675,6 @@ async def test_system_directory_workspace_and_project_lists_include_owner_and_ic
     organization = await Organization.create(
         name="Icon Org",
         slug="icon-org",
-        kind=OrganizationKind.TEAM,
         owner_user_id=owner.id,
     )
     workspace = await Workspace.create(
@@ -767,7 +763,6 @@ async def test_system_directory_supports_search() -> None:
     organization = await Organization.create(
         name="Searchable Org",
         slug="searchable-org",
-        kind=OrganizationKind.TEAM,
         owner_user_id=user.id,
     )
     await OrgMembership.create(
@@ -902,7 +897,6 @@ async def test_system_directory_user_time_membership_and_ownership_filters() -> 
     organization = await Organization.create(
         name="Relationship Org",
         slug="relationship-org",
-        kind=OrganizationKind.TEAM,
         owner_user_id=owner.id,
     )
     workspace = await Workspace.create(
@@ -1023,7 +1017,6 @@ async def test_system_directory_returns_entity_details() -> None:
     organization = await Organization.create(
         name="Detail Org",
         slug="detail-org",
-        kind=OrganizationKind.TEAM,
         owner_user_id=owner.id,
         logo_url="/assets/detail-org-logo",
     )
@@ -1446,7 +1439,6 @@ async def test_system_directory_deletes_user_account_with_account_cleanup() -> N
     organization = await Organization.create(
         name="Delete Org",
         slug="delete-org",
-        kind=OrganizationKind.TEAM,
         owner_user_id=other_owner.id,
     )
     workspace = await Workspace.create(
@@ -1537,7 +1529,6 @@ async def test_system_directory_deletes_user_account_with_owned_entities_cascade
     owned_org = await Organization.create(
         name="Owned Org",
         slug="owned-org",
-        kind=OrganizationKind.TEAM,
         owner_user_id=managed_user.id,
     )
     await OrgMembership.create(
@@ -1563,7 +1554,6 @@ async def test_system_directory_deletes_user_account_with_owned_entities_cascade
     shared_org = await Organization.create(
         name="Shared Org",
         slug="shared-org",
-        kind=OrganizationKind.TEAM,
         owner_user_id=shared_owner.id,
     )
     await OrgMembership.create(
@@ -1694,7 +1684,6 @@ async def test_system_directory_filters_and_governs_workspaces_and_projects() ->
     organization = await Organization.create(
         name="Bravo Org",
         slug="bravo-org",
-        kind=OrganizationKind.TEAM,
         owner_user_id=owner.id,
         is_active=True,
     )

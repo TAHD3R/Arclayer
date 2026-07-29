@@ -80,7 +80,6 @@ async def resolve_project_context_by_id(
         workspace_id=workspace_id,
         organization_id=organization_id,
         runtime_id=runtime.id if runtime is not None else None,
-        workspace_kind=workspace_ctx.workspace_kind,
         access_type=workspace_ctx.access_type,
         org_membership_id=workspace_ctx.org_membership_id,
         is_org_owner=workspace_ctx.is_org_owner,

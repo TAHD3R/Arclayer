@@ -5,7 +5,6 @@ from uuid import UUID
 from pydantic import Field
 
 from src.common.schemas import BaseSchema
-from src.models.workspaces.workspace import WorkspaceKind
 from src.modules.workspaces.http.schema import WorkspaceAccessType
 
 
@@ -14,7 +13,6 @@ class ProjectRequestContext(BaseSchema):
     workspace_id: UUID = Field(..., description="Workspace id.")
     organization_id: UUID = Field(..., description="Organization id.")
     runtime_id: UUID | None = Field(default=None, description="Primary runtime id.")
-    workspace_kind: WorkspaceKind = Field(..., description="Workspace kind backing this project.")
     access_type: WorkspaceAccessType = Field(..., description="How the user can access the backing workspace.")
     org_membership_id: UUID | None = Field(
         default=None,

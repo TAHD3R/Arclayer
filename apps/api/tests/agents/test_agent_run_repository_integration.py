@@ -7,7 +7,7 @@ import pytest
 from src.agents.session import AgentSessionManager
 from src.agents.types import AgentRunContext, AgentRunStatus
 from src.core.exceptions import NotFound
-from src.models.organization.organization import Organization, OrganizationKind
+from src.models.organization.organization import Organization
 from src.models.projects.project import ProjectRecord
 from src.models.workspaces.workspace import Workspace
 from src.modules.projects.agents.repository import AgentRunRepository
@@ -19,7 +19,6 @@ async def _create_project() -> tuple[Workspace, ProjectRecord]:
     organization = await Organization.create(
         slug=f"agent-org-{uuid4().hex[:12]}",
         name="Agent Repository Org",
-        kind=OrganizationKind.TEAM,
         owner_user_id=None,
         is_active=True,
     )

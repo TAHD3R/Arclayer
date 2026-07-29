@@ -8,7 +8,6 @@ import pytest
 from fastapi import APIRouter
 from fastapi.routing import APIRoute
 
-from src.models.workspaces.workspace import WorkspaceKind
 from src.modules.projects.authz.schema import ProjectAuthzSnapshot
 from src.modules.projects.governance.router import (
     get_project_authz_snapshot as get_project_authz_snapshot_route,
@@ -30,7 +29,6 @@ def _project_context() -> ProjectRequestContext:
         workspace_id=uuid4(),
         organization_id=uuid4(),
         runtime_id=uuid4(),
-        workspace_kind=WorkspaceKind.TEAM,
         access_type=WorkspaceAccessType.MEMBER,
         org_membership_id=uuid4(),
         is_org_owner=True,

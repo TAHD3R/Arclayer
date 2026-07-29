@@ -659,7 +659,6 @@ class SystemDirectoryService(BaseService):
             workspace_id=row.id,
             name=row.name,
             description=row.description,
-            kind=row.kind,
             is_active=bool(row.is_active),
             is_archived=row.archived_at is not None,
             created_at=row.created_at,

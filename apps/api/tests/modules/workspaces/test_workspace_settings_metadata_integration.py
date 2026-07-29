@@ -80,7 +80,7 @@ async def test_workspace_metadata_get_and_patch(prepared_db, integration_valkey_
             assert data["id"] == ws_pid
             assert data["project"] is None
             assert data["organizationId"] == encode_uuid(org.id)
-            assert data["kind"] == "team"
+            assert "kind" not in data
             assert data["name"] == "Default"
             assert data["description"] is None
             assert data["iconMode"] == "glyph"
@@ -115,7 +115,7 @@ async def test_workspace_metadata_get_and_patch(prepared_db, integration_valkey_
             )
             assert resp.status_code == 200
             data = resp.json()["data"]
-            assert data["kind"] == "team"
+            assert "kind" not in data
             assert data["name"] == "My Blog"
             assert data["description"] == "Launch content and workspace docs."
             assert data["iconMode"] == "emoji"

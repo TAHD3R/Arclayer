@@ -22,7 +22,7 @@ async def test_get_workspace_context_returns_guest_context(monkeypatch: pytest.M
     organization_uuid = uuid4()
     membership_uuid = uuid4()
 
-    workspace_obj = SimpleNamespace(id=workspace_uuid, created_by_user_id=uuid4(), kind="team")
+    workspace_obj = SimpleNamespace(id=workspace_uuid, created_by_user_id=uuid4())
 
     async def require_active_workspace(*, workspace_id: UUID):
         assert workspace_id == workspace_uuid
@@ -79,7 +79,7 @@ async def test_get_workspace_context_returns_member_context(monkeypatch: pytest.
     membership_uuid = uuid4()
     org_membership_id = uuid4()
 
-    workspace_obj = SimpleNamespace(id=workspace_uuid, created_by_user_id=uuid4(), kind="team")
+    workspace_obj = SimpleNamespace(id=workspace_uuid, created_by_user_id=uuid4())
     orgm = SimpleNamespace(id=org_membership_id, role=OrgRole.MEMBER)
 
     async def require_active_workspace(*, workspace_id: UUID):
@@ -190,7 +190,6 @@ def test_build_guest_workspace_list_omits_internal_org_id() -> None:
         organization_id=organization_id,
         slug="ws",
         name="Workspace",
-        kind="team",
         description=None,
         owner_user_id=None,
         icon_mode="initials",

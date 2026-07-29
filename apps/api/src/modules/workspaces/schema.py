@@ -7,7 +7,7 @@ from pydantic import Field
 
 from src.common.schemas import BaseOut, BaseSchema
 from src.common.types.public_uuid import PublicUUID
-from src.models.workspaces.workspace import WorkspaceIconMode, WorkspaceKind
+from src.models.workspaces.workspace import WorkspaceIconMode
 from src.modules.projects.schema import WorkspacePrimaryProjectOut
 
 
@@ -28,7 +28,6 @@ class MyWorkspaceOut(BaseOut):
     workspace_id: PublicUUID = Field(..., description="Workspace id.")
     project_id: PublicUUID | None = Field(default=None, description="Primary project id when available.")
     name: str = Field(..., description="Workspace name.")
-    kind: WorkspaceKind = Field(default=WorkspaceKind.TEAM, description="Workspace kind.")
     description: str | None = Field(default=None, description="Workspace description.")
     icon_mode: WorkspaceIconMode = Field(
         default=WorkspaceIconMode.INITIALS,
@@ -60,10 +59,6 @@ class InstanceSetupStateOut(BaseSchema):
     repair_reason: str | None = Field(default=None, description="Explicit repair reason code when setup is invalid.")
 
 
-class WorkspaceSwitcherOut(BaseSchema):
-    teams: list[MyWorkspaceOut] = Field(default_factory=list, description="Team workspaces visible to current user.")
-
-
 class WorkspaceFirstOnboardingOut(BaseSchema):
     status: WorkspaceFirstOnboardingStatus = Field(
         ..., description="Workspace-first onboarding state for current user."
@@ -86,7 +81,6 @@ class OnboardingWorkspaceCreateOut(BaseSchema):
 
 class MyWorkspaceListResult(BaseSchema):
     items: list[MyWorkspaceOut] = Field(default_factory=list, description="Workspaces visible to current user.")
-    switcher: WorkspaceSwitcherOut = Field(..., description="Pre-grouped switcher state from the backend.")
     instance_setup: InstanceSetupStateOut = Field(..., description="Canonical instance setup status for this runtime.")
     onboarding: WorkspaceFirstOnboardingOut = Field(
         ..., description="Current user's workspace-first onboarding progress."
@@ -110,7 +104,6 @@ class WorkspaceManageListItemOut(BaseOut):
     workspace_id: PublicUUID = Field(..., description="Workspace id.")
     project_id: PublicUUID | None = Field(default=None, description="Primary project id when available.")
     name: str = Field(..., description="Workspace name.")
-    kind: WorkspaceKind = Field(default=WorkspaceKind.TEAM, description="Workspace kind.")
     description: str | None = Field(default=None, description="Workspace description.")
     icon_mode: WorkspaceIconMode = Field(
         default=WorkspaceIconMode.INITIALS,
@@ -170,7 +163,6 @@ class WorkspaceDetailOut(BaseOut):
         default=None,
         description="Primary project binding for this workspace when available.",
     )
-    kind: WorkspaceKind = Field(..., description="Workspace kind.")
     name: str = Field(..., description="Workspace name.")
     description: str | None = Field(default=None, description="Workspace description.")
     icon_mode: WorkspaceIconMode = Field(

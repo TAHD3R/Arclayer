@@ -14,7 +14,7 @@ from src.core.exceptions import Unauthorized
 from src.core.routes import include_auth_router_with_prefix
 from src.models.analytics.audit_event import AuditEvent
 from src.models.organization.org_membership import OrgMembership, OrgRole
-from src.models.organization.organization import Organization, OrganizationKind
+from src.models.organization.organization import Organization
 from src.models.organization.user import User, UserCredential, UserStatus
 from src.modules.auth import service as auth_service_module
 from src.modules.auth.service import AuthService
@@ -368,7 +368,6 @@ async def test_auth_account_deletion_activity_readback_and_rollback(
         org = await Organization.create(
             name="Account Delete Org",
             slug=f"account-delete-org-{uuid.uuid4().hex[:8]}",
-            kind=OrganizationKind.TEAM,
             owner_user_id=admin.id,
         )
         await OrgMembership.create(
@@ -447,7 +446,6 @@ async def test_auth_account_deletion_activity_readback_and_rollback(
         rollback_org = await Organization.create(
             name="Account Delete Rollback Org",
             slug=f"account-delete-rollback-org-{uuid.uuid4().hex[:8]}",
-            kind=OrganizationKind.TEAM,
             owner_user_id=rollback_admin.id,
         )
         await OrgMembership.create(

@@ -33,9 +33,9 @@ vi.mock("@/layouts/page-shell/content-guard", () => ({
 }));
 
 vi.mock("@/pages/usercenter/workspaces/components/workspace-card", () => ({
-  WorkspaceCard: (props: { workspace: { name: string; kind: string }; onClick?: () => void }) => (
+  WorkspaceCard: (props: { workspace: { name: string }; onClick?: () => void }) => (
     <div data-testid="workspace-card" data-clickable={props.onClick ? "yes" : "no"}>
-      {props.workspace.name}:{props.workspace.kind}
+      {props.workspace.name}
     </div>
   ),
 }));
@@ -147,7 +147,7 @@ describe("WorkspacesCardGrid", () => {
     );
 
     expect(screen.getAllByTestId("workspace-card").map((node) => node.textContent)).toEqual([
-      "Workspace Alpha:team",
+      "Workspace Alpha",
     ]);
   });
 
