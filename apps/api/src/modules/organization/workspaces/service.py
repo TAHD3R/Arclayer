@@ -305,6 +305,12 @@ class OrganizationWorkspaceService(BaseService):
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_NAME_TOO_LONG")
 
         description = str(payload.description or "").strip() or None
+        settings_patch = {
+            "content_strategy": {
+                "autosave": {"enabled": True, "interval_sec": 30, "save_on_blur": True},
+                "retention": {"draft_max_revisions": 100},
+            }
+        }
 
         async with self.tx() as conn:
             ws = await self.repo.create_workspace(
@@ -329,14 +335,10 @@ class OrganizationWorkspaceService(BaseService):
             # Initialize workspace-level content strategy defaults so editors can rely on a stable policy contract.
             await self.workspace_settings_service.patch_core(
                 workspace_id=workspace_id,
-                patch={
-                    "content_strategy": {
-                        "autosave": {"enabled": True, "interval_sec": 30, "save_on_blur": True},
-                        "retention": {"draft_max_revisions": 100},
-                    }
-                },
+                patch=settings_patch,
                 updated_by=user_id,
                 conn=conn,
+                emit_webhook=False,
             )
             await self._write_workspace_activity_event(
                 event_name="workspace.created",
@@ -351,6 +353,10 @@ class OrganizationWorkspaceService(BaseService):
                 conn=conn,
             )
 
+        self.workspace_settings_service.emit_core_updated_event(
+            workspace_id=workspace_id,
+            patch=settings_patch,
+        )
         await self.official_skill_provisioner.provision(
             organization_id=organization_id,
             workspace_id=workspace_id,

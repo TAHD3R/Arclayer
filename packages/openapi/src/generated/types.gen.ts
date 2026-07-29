@@ -50,7 +50,7 @@ export type AiModelCatalogResponse = {
     /**
      * Defaultmodel
      */
-    defaultModel: string;
+    defaultModel: string | null;
     /**
      * Models
      */

@@ -107,6 +107,7 @@ class WorkspaceSettingsService(BaseService):
         patch: dict[str, Any],
         updated_by: UUID | None,
         conn: BaseDBAsyncClient | None = None,
+        emit_webhook: bool = True,
     ) -> WorkspaceSettingsDetail:
         record = await SettingRecord.get_or_none(
             scope_type=SCOPE_TYPE_WORKSPACE,
@@ -135,24 +136,8 @@ class WorkspaceSettingsService(BaseService):
             saved = record
 
         masked, secrets = self._mask_secrets(merged)
-        try:
-            self.webhooks_service.emit_workspace_event_fire_and_forget(
-                workspace_id=workspace_id,
-                event=WORKSPACE_CORE_SETTINGS_UPDATED_EVENT,
-                payload={
-                    "workspace_id": str(workspace_id),
-                    "namespace": CORE_SETTINGS_NAMESPACE,
-                    "paths": list(self._flatten_patch_paths(patch)),
-                },
-            )
-        except BaseException as exc:
-            # Best-effort: webhook emission must not break core settings updates.
-            self.logger.warning(
-                "Webhook emission failed for workspace settings update",
-                action="emit_workspace_settings_webhook",
-                workspace_id=str(workspace_id),
-                error=str(exc),
-            )
+        if emit_webhook:
+            self.emit_core_updated_event(workspace_id=workspace_id, patch=patch)
 
         if updated_by is not None and isinstance(patch.get("workspace_localization"), dict):
             onboarding_state = await self.onboarding_service.get_state(user_id=updated_by)
@@ -167,6 +152,17 @@ class WorkspaceSettingsService(BaseService):
             value=masked,
             secrets=secrets,
             updated_at=saved.updated_at,
+        )
+
+    def emit_core_updated_event(self, *, workspace_id: UUID, patch: dict[str, Any]) -> None:
+        self.webhooks_service.emit_workspace_event_fire_and_forget(
+            workspace_id=workspace_id,
+            event=WORKSPACE_CORE_SETTINGS_UPDATED_EVENT,
+            payload={
+                "workspace_id": str(workspace_id),
+                "namespace": CORE_SETTINGS_NAMESPACE,
+                "paths": list(self._flatten_patch_paths(patch)),
+            },
         )
 
     async def get_role_policy(self, *, workspace_id: UUID) -> WorkspaceRolePolicyOut:

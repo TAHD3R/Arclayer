@@ -19,7 +19,7 @@ export interface AIModelCatalogItem {
 }
 
 export interface AIModelCatalogResponse {
-  defaultModel: string;
+  defaultModel: string | null;
   defaultMode: AIComposerMode;
   reasoningEffort: AIReasoningEffort;
   models: AIModelCatalogItem[];

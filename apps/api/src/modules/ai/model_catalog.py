@@ -56,7 +56,6 @@ MODEL_METADATA: dict[str, dict[str, str]] = {
 MODEL_ORDER = tuple(MODEL_METADATA.keys())
 SYSTEM_AI_PROVIDER_METADATA_SOURCE = "system.ai_providers"
 AI_MODEL_CATALOG_MASTER_KEY_REQUIRED = "AI_MODEL_CATALOG_MASTER_KEY_REQUIRED"
-AI_MODEL_CATALOG_EMPTY = "AI_MODEL_CATALOG_EMPTY"
 AI_MODEL_CATALOG_LITELLM_UNREACHABLE = "AI_MODEL_CATALOG_LITELLM_UNREACHABLE"
 AI_MODEL_CATALOG_RESPONSE_INVALID = "AI_MODEL_CATALOG_RESPONSE_INVALID"
 
@@ -93,9 +92,6 @@ async def list_ai_model_catalog(
         available_providers=available_providers,
         mock_enabled=settings.ai.mock_enabled,
     )
-    if not visible_model_ids:
-        raise AIModelCatalogUnavailableError(AI_MODEL_CATALOG_EMPTY)
-
     items = [_build_catalog_item(model_id) for model_id in visible_model_ids]
     resolved_default_model = _resolve_default_model(
         visible_model_ids=visible_model_ids,
@@ -115,12 +111,12 @@ def _resolve_default_model(
     visible_model_ids: list[str],
     core_default_model: str | None,
     settings_default_model: str,
-) -> str:
+) -> str | None:
     if core_default_model in visible_model_ids:
         return core_default_model
     if settings_default_model in visible_model_ids:
         return settings_default_model
-    return visible_model_ids[0]
+    return visible_model_ids[0] if visible_model_ids else None
 
 
 def _resolve_default_mode(default_mode: str | None) -> AgentConversationMode:

@@ -23,7 +23,7 @@ class AIModelCatalogItem(BaseSchema):
 class AIModelCatalogResponse(BaseSchema):
     """Available chat model catalog."""
 
-    default_model: str
+    default_model: str | None
     default_mode: AgentConversationMode = AgentConversationMode.BUILD
     reasoning_effort: AIReasoningEffort = "medium"
     models: list[AIModelCatalogItem]

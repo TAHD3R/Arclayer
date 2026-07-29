@@ -24,6 +24,13 @@ from src.modules.system.ai_providers.schema import (
 )
 
 PLATFORM_OWNER_ID = UUID(int=0)
+LITELLM_PROVIDER_PREFIXES: dict[str, str] = {
+    "openai": "openai",
+    "openai_compatible": "openai",
+    "anthropic": "anthropic",
+    "anthropic_compatible": "anthropic",
+    "deepseek": "deepseek",
+}
 
 
 def _ts(key: str, default: str) -> str:
@@ -217,6 +224,7 @@ class SystemAIProviderService(BaseService):
             )
 
         model = request_model.strip()
+        provider_model = _litellm_provider_model(compatibility=compatibility, model=model)
         client = LiteLLMClient(
             base_url=self.settings.ai.litellm_base_url,
             timeout_seconds=self.settings.ai.litellm_timeout_seconds,
@@ -231,7 +239,7 @@ class SystemAIProviderService(BaseService):
             await client.register_model(
                 master_key=str(self.settings.ai.litellm_master_key),
                 model_name=model,
-                provider_model=model,
+                provider_model=provider_model,
                 provider_api_key=provider_api_key.strip(),
                 api_base=_clean_optional(base_url),
                 metadata=metadata,
@@ -254,6 +262,13 @@ class SystemAIProviderService(BaseService):
 
 def _hash_key(virtual_key: str) -> str:
     return hashlib.sha256(virtual_key.strip().encode("utf-8")).hexdigest()
+
+
+def _litellm_provider_model(*, compatibility: str, model: str) -> str:
+    if "/" in model:
+        return model
+    prefix = LITELLM_PROVIDER_PREFIXES.get(compatibility)
+    return f"{prefix}/{model}" if prefix else model
 
 
 def _clean_optional(value: object) -> str | None:

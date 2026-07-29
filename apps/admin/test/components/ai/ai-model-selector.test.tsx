@@ -181,22 +181,12 @@ describe("AIModelSelector", () => {
     });
   });
 
-  it("does not display unavailable catalog models when no runtime model is configured", async () => {
+  it("displays the empty state when the catalog has no models", async () => {
     vi.mocked(listAIModels).mockResolvedValue({
-      defaultModel: "deepseek-v4-pro",
+      defaultModel: null,
       defaultMode: "build",
       reasoningEffort: "medium",
-      models: [
-        {
-          id: "deepseek-v4-pro",
-          provider: "deepseek",
-          label: "DeepSeek V4 Pro",
-          labelKey: "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO",
-          description: "DeepSeek model",
-          descriptionKey: "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO_DESC",
-          available: false,
-        },
-      ],
+      models: [],
     });
 
     const user = userEvent.setup();

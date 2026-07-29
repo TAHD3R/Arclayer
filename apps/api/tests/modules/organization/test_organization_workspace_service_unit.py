@@ -67,8 +67,18 @@ class _CreateWorkspaceRepository:
 
 
 class _WorkspaceSettingsService:
+    def __init__(self, lifecycle: list[str]) -> None:
+        self.lifecycle = lifecycle
+        self.patch_calls: list[dict[str, object]] = []
+        self.emit_calls: list[dict[str, object]] = []
+
     async def patch_core(self, **_kwargs: object) -> None:
-        return None
+        self.lifecycle.append("settings_patched")
+        self.patch_calls.append(_kwargs)
+
+    def emit_core_updated_event(self, **kwargs: object) -> None:
+        self.lifecycle.append("webhook_dispatched")
+        self.emit_calls.append(kwargs)
 
 
 class _OfficialSkillProvisioner:
@@ -84,16 +94,20 @@ async def test_create_workspace_provisions_official_skills_after_public_creation
     workspace = _FakeWorkspace()
     repository = _CreateWorkspaceRepository(workspace)
     provisioner = _OfficialSkillProvisioner()
+    lifecycle: list[str] = []
+    workspace_settings_service = _WorkspaceSettingsService(lifecycle)
     service = OrganizationWorkspaceService(
         get_settings(),
         repo=cast(object, repository),
-        workspace_settings_service=cast(object, _WorkspaceSettingsService()),
+        workspace_settings_service=cast(object, workspace_settings_service),
         official_skill_provisioner=cast(object, provisioner),
     )
 
     @asynccontextmanager
     async def _tx():
+        lifecycle.append("transaction_started")
         yield object()
+        lifecycle.append("transaction_committed")
 
     async def _noop(**_kwargs: object) -> None:
         return None
@@ -112,6 +126,24 @@ async def test_create_workspace_provisions_official_skills_after_public_creation
     )
 
     assert result.workspace_id == workspace.id
+    assert workspace_settings_service.patch_calls[0]["emit_webhook"] is False
+    assert workspace_settings_service.emit_calls == [
+        {
+            "workspace_id": workspace.id,
+            "patch": {
+                "content_strategy": {
+                    "autosave": {"enabled": True, "interval_sec": 30, "save_on_blur": True},
+                    "retention": {"draft_max_revisions": 100},
+                }
+            },
+        }
+    ]
+    assert lifecycle == [
+        "transaction_started",
+        "settings_patched",
+        "transaction_committed",
+        "webhook_dispatched",
+    ]
     assert provisioner.calls == [
         {
             "organization_id": organization_id,

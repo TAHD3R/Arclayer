@@ -45,7 +45,6 @@ from src.models.ai.user_key_grant import (
     is_grant_active,
 )
 from src.modules.ai.model_catalog import (
-    AI_MODEL_CATALOG_EMPTY,
     AI_MODEL_CATALOG_MASTER_KEY_REQUIRED,
     AIModelCatalogUnavailableError,
     _system_provider_set,
@@ -891,7 +890,7 @@ class TestAIModelCatalog:
         assert exc_info.value.code == AI_MODEL_CATALOG_MASTER_KEY_REQUIRED
         assert str(exc_info.value) == AI_MODEL_CATALOG_MASTER_KEY_REQUIRED
 
-    async def test_catalog_uses_error_code_when_no_selectable_models_exist(self) -> None:
+    async def test_catalog_returns_empty_payload_when_no_selectable_models_exist(self) -> None:
         settings = get_settings()
         settings.ai = settings.ai.model_copy(
             update={
@@ -909,12 +908,11 @@ class TestAIModelCatalog:
                 "src.modules.ai.model_catalog._list_available_providers",
                 new=AsyncMock(return_value=set()),
             ),
-            pytest.raises(AIModelCatalogUnavailableError) as exc_info,
         ):
-            await list_ai_model_catalog(settings, workspace_id=uuid4(), user_id=uuid4())
+            catalog = await list_ai_model_catalog(settings, workspace_id=uuid4(), user_id=uuid4())
 
-        assert exc_info.value.code == AI_MODEL_CATALOG_EMPTY
-        assert str(exc_info.value) == AI_MODEL_CATALOG_EMPTY
+        assert catalog.default_model is None
+        assert catalog.models == []
 
     async def test_catalog_prefers_visible_core_default_model(self) -> None:
         settings = get_settings()
@@ -1075,7 +1073,31 @@ class TestModelCatalogEndpoint:
         assert data["models"][0]["id"] == "deepseek-v4-pro"
         assert data["models"][0]["labelKey"] == "ai:AI_CHAT_MODEL_DEEPSEEK_V4_PRO"
 
-    async def test_model_catalog_endpoint_returns_catalog_error_code(self) -> None:
+    async def test_model_catalog_endpoint_returns_empty_catalog(self) -> None:
+        user_id = uuid4()
+        workspace_id = uuid4()
+        app = _build_test_app(user_id=user_id)
+        catalog = AIModelCatalogResponse(default_model=None, models=[])
+
+        transport = ASGITransport(app=app, raise_app_exceptions=True)
+        with (
+            patch(
+                "src.modules.ai.router.resolve_workspace_context_by_id",
+                new=AsyncMock(return_value=SimpleNamespace(workspace_id=workspace_id)),
+            ),
+            patch(
+                "src.modules.ai.router.list_ai_model_catalog",
+                new=AsyncMock(return_value=catalog),
+            ),
+        ):
+            async with AsyncClient(transport=transport, base_url="http://test") as http:
+                response = await http.get(f"/api/v1/chat/models?workspaceId={encode_uuid(workspace_id)}")
+
+        assert response.status_code == 200, response.text
+        assert response.json()["data"]["defaultModel"] is None
+        assert response.json()["data"]["models"] == []
+
+    async def test_model_catalog_endpoint_returns_infrastructure_error_code(self) -> None:
         user_id = uuid4()
         workspace_id = uuid4()
         app = _build_test_app(
@@ -1083,7 +1105,7 @@ class TestModelCatalogEndpoint:
         )
 
         transport = ASGITransport(app=app, raise_app_exceptions=True)
-        catalog_error = AIModelCatalogUnavailableError(AI_MODEL_CATALOG_EMPTY)
+        catalog_error = AIModelCatalogUnavailableError(AI_MODEL_CATALOG_MASTER_KEY_REQUIRED)
 
         with (
             patch(
@@ -1101,5 +1123,5 @@ class TestModelCatalogEndpoint:
         assert response.status_code == 503, response.text
         body = response.json()
         envelope = body.get("detail", body)
-        assert envelope["error"] == AI_MODEL_CATALOG_EMPTY
-        assert envelope["message"] == AI_MODEL_CATALOG_EMPTY
+        assert envelope["error"] == AI_MODEL_CATALOG_MASTER_KEY_REQUIRED
+        assert envelope["message"] == AI_MODEL_CATALOG_MASTER_KEY_REQUIRED

@@ -59,33 +59,33 @@ async def test_system_ai_provider_service_provisions_litellm_model_and_key() -> 
         provisioned = await service._provision_litellm_access(
             provider="deepseek",
             label="DeepSeek",
-            compatibility="openai_compatible",
+            compatibility="deepseek",
             provider_api_key="provider-secret",
             base_url="https://api.deepseek.com",
-            request_model="deepseek-chat",
+            request_model="deepseek-v4-pro",
         )
 
     client_cls.assert_called_once_with(base_url="http://litellm.internal:4000", timeout_seconds=9.0)
     litellm_client.register_model.assert_awaited_once_with(
         master_key="master-key",
-        model_name="deepseek-chat",
-        provider_model="deepseek-chat",
+        model_name="deepseek-v4-pro",
+        provider_model="deepseek/deepseek-v4-pro",
         provider_api_key="provider-secret",
         api_base="https://api.deepseek.com",
         metadata={
             "provider": "deepseek",
             "label": "DeepSeek",
-            "compatibility": "openai_compatible",
+            "compatibility": "deepseek",
             "source": "system.ai_providers",
         },
     )
     litellm_client.generate_key.assert_awaited_once_with(
         master_key="master-key",
-        models=["deepseek-chat"],
+        models=["deepseek-v4-pro"],
         metadata={
             "provider": "deepseek",
             "label": "DeepSeek",
-            "compatibility": "openai_compatible",
+            "compatibility": "deepseek",
             "source": "system.ai_providers",
         },
     )
