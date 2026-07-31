@@ -68,9 +68,9 @@ This code-spec defines Admin component composition, visual language, accessibili
 ### 5. Good/Base/Bad Cases
 
 - Good: settings page composes `DefaultPage`, `ChromeTabs`, `SettingPanel`, and local form sections.
-- Good: a system settings shell uses `DefaultPage headerBehavior="sticky"` and offsets its side navigation with `--page-sticky-header-height`.
+- Good: a domain configuration shell uses `DefaultPage headerBehavior="sticky"` and offsets its side navigation with `--page-sticky-header-height`.
 - Good: a route transition renders live outlet children but keys motion by the last resolved pathname and immediately shows a content overlay when `location.pathname !== displayedPathname`.
-- Good: a system settings item renders checkbox rows as plain leading-control labels inside the existing settings item surface.
+- Good: a domain configuration item renders checkbox rows as plain leading-control labels inside the existing configuration surface.
 - Good: table row status uses a semantic tag component with accessible text.
 - Good: a product-specific workspace picker remains in Admin, while a generic dropdown primitive lives in `packages/ui`.
 - Good: a complex panel exposes typed callbacks such as `onSubmit(values)` and receives loading/error props from its parent hook.

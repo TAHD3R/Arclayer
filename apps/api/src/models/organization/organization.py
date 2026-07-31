@@ -11,9 +11,10 @@ class Organization(BaseModel):
 
     Organization (account-level container).
 
-    v2 boundary model:
-    - Organization is the account container and the future home for billing/SSO/audit/security policies.
-    - Workspace is the project/site governance boundary used by the admin console.
+    Boundary model:
+    - Organization groups workspaces and organization-level governance.
+    - Workspace is the project/site governance boundary and the sole commercial tenant.
+    - Plans, subscriptions, credits, entitlements, and usage never belong to or inherit from Organization.
     """
 
     slug = fields.CharField(max_length=64, unique=True, db_index=True)

@@ -472,7 +472,7 @@ The spike compares AG-UI with an Assistant Transport/custom-stream adapter again
 
 ## 7. Workspace Knowledge, Skills, and Design Systems
 
-These are first-class workspace settings screens and backend domains, not opaque system setting keys.
+These are first-class Workspace-scoped backend domains and Product Application **Customization** pages, not opaque system setting keys or tabs inside Workspace Administration. Technical contracts retain Workspace ownership language, while primary navigation and page titles use Knowledge, Skills, and Design systems without a redundant “Workspace” prefix.
 
 ### 7.1 Workspace Knowledge
 
@@ -615,6 +615,10 @@ Publishing uses the canonical release domain with staged activation:
 
 No publish/deployment API may mark a candidate active or `READY` before required build and smoke checks succeed. Published HTML, sitemap, and route caches are keyed by active release ID.
 
+Public delivery availability is a separate Hosting-owned projection and does not redefine publication. When a Workspace enters Payment Restricted, its active release continues through the Hosting Policy's Continuity Window while rebuild, republish, and domain-change commands are blocked before new hosting work begins. Window expiry enters Delivery Suspended: custom domains receive a neutral temporary-unavailable response, while Arclayer-managed subdomains may receive a branded recovery response. Neither response discloses payment state, and suspension never deactivates the release or removes artifacts, domain bindings, or certificate associations.
+
+Provider-confirmed payment recovery or a Commerce Domain State Correction to Payment Grace publishes a durable commercial-access transition with a distinct cause. Hosting consumes it idempotently, records its own restoration, clears the delivery gate atomically, and resumes the same active release without rebuilding or redeploying it. Commerce cannot mutate release, deployment, domain, certificate, cache, or delivery records; Hosting owns deadline evaluation, visitor responses, restoration, retry, and any resulting Operational Signal. Hosting failure does not roll back the committed Commerce transition.
+
 ### 9.2 Site preview artifact
 
 Project/site thumbnails are not project icons. Add a revision-aware `SitePreviewArtifact` with:
@@ -718,21 +722,43 @@ The core Commerce domain keeps provider-neutral ownership of:
 - provider-event inbox, reconciliation state, and audit.
 - provider-neutral checkout/portal API contracts.
 
+Tenant Checkout, Provider Portal, detailed Credit ledger, Subscription selection, and payment recovery require the Workspace-scoped `workspace:commerce:manage` permission. The Workspace Owner always has this authority and may delegate it to multiple Billing Managers through Workspace RBAC. Platform Commerce Permissions, ordinary membership, Admin, and general settings authority never substitute for the tenant permission.
+
 Typed entitlement keys and one `EntitlementService.require(...)` boundary replace module-specific reads of free-form plan feature JSON. The unused operator-approved subscription-change request model is removed because it conflicts with the canonical self-service commercialization flow. Commerce expansion also restores the repository/transaction boundary required by the backend service contracts; Connector work must not deepen direct ORM access from the orchestration service.
 
 The current Wave 6 foundation implements a closed typed entitlement registry,
 an injected subscription/plan projection repository, and fail-closed
-`check(...)` / `require(...)` decisions. It validates active subscription and
-plan state, an aware active period, and strict duplicate-free plan features;
-invalid persisted configuration is a stable service-unavailable error rather
-than an implied denial or grant. `sites.generate` is the only registered key
-because it is the only entitlement currently backed by an existing production
-capability. Enforcement in Jobs, Builder, Agents, and Connectors remains gated
-until those composition boundaries inject this authority explicitly.
+`check(...)` / `require(...)` decisions. Its current active/inactive status
+gate is superseded by the canonical Dunning Policy and commercial-access
+projection: Payment Grace retains non-metered product/data capabilities while
+new metered external-cost effects fail before dispatch, and Payment Restricted
+starts both Restricted Recovery Mode in the Product Application and the
+Hosting-owned Continuity Window without pretending to be Free, suspending the
+Workspace, or unpublishing the active release. Restricted Recovery Mode keeps
+authorized reads, preserved-data export, recovery, and security/privacy/lifecycle
+exceptions while every value-expanding command fails with
+`402 WORKSPACE_PAYMENT_RESTRICTED` before dispatch. Invalid persisted
+configuration or recovery metadata is a stable service-unavailable error rather
+than an implied denial, unlimited grace, or grant. `sites.generate` is the only
+registered key because it is the only entitlement currently backed by an
+existing production capability. Enforcement in Jobs, Builder, Agents, and
+Connectors remains gated until those composition boundaries inject this
+authority explicitly.
+
+Commercial Lifecycle Notifications consume durable Commerce and Hosting facts rather than Provider-only email or a daily broadcast. Commerce emits the Payment Grace, configured grace-warning, Payment Restricted, and recovery milestones; Hosting emits the configured continuity-warning and Delivery Suspended milestones. Notifications resolves the current Workspace Owner and Billing Managers for email plus in-app delivery and other active members for sanitized in-app delivery, using one idempotent per-recipient/channel ledger. Notification success, failure, retry, or interaction never changes the Dunning, Restricted Recovery, Hosting Continuity, Delivery Suspended, or recovery projection.
+
+Unreachable recipients produce notification-owned delivery failures and an Operational Signal, never an automatic grace or continuity extension. An authorized manual extension is a separate single-Workspace, time-bounded Domain Policy Exception: Commerce alone may change its Dunning deadline and Hosting alone may change its continuity deadline, with independent permissions, reason, evidence, idempotency, and audit. Neither exception changes the Plan Revision, Credits, Provider facts, active release, Workspace deletion state, or the other domain's deadline.
+
+A Domain Policy Exception succeeds only while its source window and expected deadline revision remain active; it cannot backdate or reopen Payment Restricted or Delivery Suspended. After expiry, the owning domain must use an append-only Domain State Correction with stricter permission/evidence and a new deadline. Commerce may compensate into Payment Grace and Hosting may compensate into Hosting Continuity, but the original transition remains immutable and neither correction claims Provider recovery, grants Credits, or rebuilds the release. A Commerce correction does not directly change Hosting, but its durable corrected access fact canonically causes Hosting to record its own normal-delivery restoration because Payment Grace includes already-published delivery.
+
+Committed Policy Exceptions and State Corrections are Commercial Lifecycle Notification milestones. Owner and Billing Managers receive email plus in-app delivery, while other active members receive sanitized in-app state. A Commerce correction with a suspended Hosting projection reports Payment Grace and delivery restoration pending; only a committed Hosting result may separately report delivery restored or failed. Preview, command acceptance, dispatch, and retry never claim success.
+
+Billing-contact notices attribute the action to “Arclayer Platform Operations” and include a stable localized customer-safe reason category, original/new deadline or state, effective time, and support reference. Other members receive only sanitized capability/delivery effect and effective time. Individual operator identity, internal reason/evidence, Platform permission, Provider diagnostics, and raw audit data remain restricted to Platform Audit.
 
 The official Stripe billing Connector owns:
 
 - Stripe client, Checkout Session and Customer Portal creation.
+- Subscription Schedule/change, schedule cancellation, and proration preview required by Renewal Transitions and Commercial Corrections.
 - Product/Price/Feature mapping and external identifier validation.
 - webhook signature verification and Stripe event normalization.
 - provider health, request IDs, test/live isolation, and reconciliation adapter.
@@ -770,16 +796,16 @@ Connector worker
 
 The inbox stores payload hash, encrypted raw payload, event type, signature timestamp, Connector definition/adapter version, retention deadline, and processing status. Invalid signatures return `400`; failure to commit inbox/outbox state returns `5xx`. After durable acceptance, duplicate delivery returns `2xx`, and temporary broker failure remains explicit on the outbox without changing that accepted response. Replay uses the pinned adapter version. The official Connector retains the stable `/commerce/webhooks/stripe` external path unless a timed provider-side endpoint migration is explicitly approved.
 
-Checkout, portal, and other Stripe POST operations carry business idempotency keys without personal data. Plan prices map to stable external Price IDs per interval/currency rather than creating ungoverned inline prices on every checkout.
+Checkout, portal, and other Stripe POST operations carry business idempotency keys without personal data. Plan Revision prices map to stable external Price IDs per provider mode, interval, and currency rather than resolving mutable Plan-code terms or creating ungoverned inline prices on every checkout. Checkout metadata and normalized provider events retain both stable Plan code and immutable Revision identity.
 
 If Arclayer later lets a workspace connect its own Stripe account, a separate commerce/funds-flow ADR first decides whether the integration is an API-access Stripe App or a Stripe Connect platform. The selected flow must use OAuth, least privilege, `state` validation, token rotation, disconnect/revoke, and explicit account identity; users are never asked to paste live secret keys into product JSON. It remains separate from the SaaS billing installation.
 
 ### 11.4 Billing product surfaces
 
-System Billing settings manage:
+The Commerce Platform Domain manages:
 
-- plan/feature/price mapping and active catalog.
-- official billing Connector installation, test/live state, health, webhook state, and reconciliation.
+- stable Plan identities, immutable Revision history, Entitlement snapshots, Revision-scoped Price mappings, and active catalog lifecycle.
+- official billing Connector installation, test/live state, health, webhook state, scheduling/proration readiness, and reconciliation.
 - entitlement mapping and provider diagnostics.
 
 Workspace Plan & Usage manages:
@@ -794,29 +820,54 @@ Portal-backed plan changes are enabled only for Stripe configurations the Portal
 
 ## 12. Settings information architecture
 
-### 12.1 System Agent settings
+### 12.1 Platform AI Operations domain
 
-Replace the current single long settings wall with routed/sectioned surfaces:
+Replace the current single long settings wall with one Platform AI Operations domain whose localized product label is “AI 服务” / “AI services.” It opens an actionable cross-Workspace “AI 任务” / “AI tasks” queue rather than a metric-card overview.
 
-1. **Agents:** official templates, versions, availability, assignments, and default orchestrator.
-2. **Models & routing:** providers, model catalog, routing policy, reasoning defaults, and health.
-3. **Tools & approvals:** Tool registry, side effects, permission/approval policy, and data egress.
-4. **Runtime:** LangGraph/checkpointing, stream recovery, retention, cancellation, and observability.
-5. **Usage link:** concise usage/health summary linking to Billing/Observability; detailed budgets remain in Commerce.
+1. **AI tasks:** failed, stuck, retrying, Provider-blocked, and approval-waiting Runs with Workspace/Project context, durable progress, safe failure reason, and authorized recovery actions.
+2. **Models & providers:** provider configuration readiness, model catalog, routing policy, reasoning defaults, availability, health, and safe credential rotation.
+3. **Built-in assistants:** official templates, versions, availability, assignments, and the default assistant.
+4. **Actions & approvals:** Tool registry, external/write effects, maximum Platform policy, permission and approval requirements, and data-egress disclosure.
+5. **Runtime settings:** queue and worker readiness, interruption/recovery, retention, cancellation, and advanced framework diagnostics.
 
-Workspace-authored Skills and Knowledge do not live in system Agent settings. System settings may manage official Skill publication/trust policy and built-in catalog only.
+An approval-waiting task may be diagnosed and linked to its owning Workspace surface, but a Platform Operator never approves, rejects, or applies the tenant change on behalf of the authorized Workspace actor. Workspace-authored Agents, Skills, Knowledge, and Design Systems do not live in Platform AI Operations. The domain may manage official Skill publication/trust policy and the built-in catalog only. Detailed budgets and Credits remain in Commerce; historical costs, throughput, latency, and failure trends remain in Monitoring & Audit.
 
-### 12.2 Workspace settings dialog/menu
+Primary copy uses the task names above. Terms such as posture, governance, LangGraph, checkpointer, routing enum, and raw Provider error are restricted to authorized diagnostics when no plain-language explanation can preserve the required technical detail.
 
-Add the following menu groups/screens with real permissions, loading, empty, error, conflict, and import states:
+### 12.2 Workspace Administration and Customization
 
-- Workspace Knowledge.
-- Workspace Skills, including “Arclayer official” and “Workspace” catalog sections.
-- Design Systems.
+Workspace Administration remains the current-Workspace management dialog/overlay and contains only:
+
+- General.
+- Plan & Usage.
+- Members.
+- Invitations.
+- Roles & Permissions when the bound Plan makes role management available; otherwise its disabled Plan-badged entry opens the exact Plan & Usage explanation without mounting the page.
+
+Knowledge, Skills, and Design Systems move out of that dialog into one peer **Customization** navigation group in the Product Application:
+
+- **Knowledge** owns Workspace Knowledge authoring, sources, ingestion, retrieval readiness, and citations.
+- **Skills** owns installed and Workspace-authored Skills. Its catalog distinguishes “Arclayer official” from “Added by your workspace” without naming the page “Workspace Skills.”
+- **Design systems** owns Workspace Design System authoring, versions, validation, assignment, and Builder use without naming the page “Workspace Design Systems.”
 
 These surfaces connect to Agent configuration through assignments/grants. They are not copied into Agent JSON settings.
 
-Settings navigation remains functionally equivalent at every supported breakpoint. Desktop may use a sidebar; narrow layouts expose the current section through a labelled trigger and full-height navigation sheet. Hiding the navigation without an alternate entry is forbidden. Every icon-only close/menu action has a localized accessible name and returns focus correctly.
+Primary navigation and headings use stable bilingual product copy:
+
+| i18n key | `zh-CN` | `en-US` |
+|---|---|---|
+| `customization:NAV_GROUP` | 自定义 | Customization |
+| `customization:KNOWLEDGE_TITLE` | 知识库 | Knowledge |
+| `customization:SKILLS_TITLE` | 技能 | Skills |
+| `customization:DESIGN_SYSTEMS_TITLE` | 设计系统 | Design systems |
+| `customization:OFFICIAL_SKILLS_SECTION` | Arclayer 官方 | Arclayer official |
+| `customization:WORKSPACE_SKILLS_SECTION` | 由你的工作空间添加 | Added by your workspace |
+
+Internal schemas, API descriptions, audit evidence, and diagnostics may say Workspace Knowledge, Workspace Skill, or Workspace Design System when ownership must be precise. Customer-facing navigation does not expose those longer technical names or architecture terms.
+
+Workspace Administration navigation remains functionally equivalent at every supported breakpoint. Desktop may use a sidebar; narrow layouts expose the current section through a labelled trigger and full-height navigation sheet. Hiding the navigation without an alternate entry is forbidden. Every icon-only close/menu action has a localized accessible name and returns focus correctly.
+
+Customization uses the Product Application's normal responsive navigation rather than embedding the Workspace Administration dialog as a second shell. Its three pages expose real permissions, loading, empty, error, conflict, import, and readiness states and never fall back to opaque settings JSON.
 
 ### 12.3 Website Config versus Project General
 
@@ -1006,6 +1057,8 @@ Partial usage is informational and never proves settlement. If Credits commit fa
 - Connector secrets use environment/secret-manager references with least privilege and rotation; secrets and raw provider keys never enter run events or Tool results.
 - External data egress is declared by Tool/Connector and shown at installation/approval time.
 - Approval results, “always allow” policies, run provenance, provider events, and published revisions are audited.
+- Payment Restricted, Hosting Continuity, and Delivery Suspended never authorize deletion of Workspace-scoped Builder, Content, Agent, Knowledge, Skill, Design System, asset, release, domain, or audit data. Only the independent Workspace Lifecycle Authority may begin deletion from an explicit Workspace Owner instruction or documented legal/privacy process.
+- Restricted Recovery Mode permits authorized reads and preserved-data export but blocks AI Runs, Tools with write/external effects, imports, ChangeSets, generation, Customization changes, Connector enablement, builds, publishing, deployment, and domain mutation at both Product API and worker effect boundaries. It is never represented as `workspace_suspended`.
 
 All URL/repository/file ingestion runs through a shared untrusted-ingest boundary. It rejects private, loopback, link-local, and cloud-metadata destinations after every DNS resolution and redirect; limits bytes, file count, depth, and decompression ratio; rejects path traversal and escaping symlinks; validates MIME independently of file extension; and records the immutable fetched commit/object hash.
 
@@ -1027,8 +1080,17 @@ Imports run secret detection and malware/content-safety classification before in
 10. Navigation keeps stable shell chrome, shows a restrained content skeleton only when needed, and preserves keyboard/focus/reduced-motion behavior.
 11. A `builder_managed` project cannot mutate page composition through source Tools; a `source_managed` project cannot claim visual round-trip support without a successful migration Job.
 12. A candidate release that fails build/smoke checks never replaces the active release; a first failed publish leaves the exact prelaunch HTTP/cache/robots response intact.
-13. Narrow Workspace/Project settings expose every section through an accessible navigation sheet, and project cards use native link/button semantics for management versus editor entry.
-14. An untrusted URL/GitHub/file import proves SSRF/redirect, traversal/symlink, decompression, MIME, secret, quarantine, ACL, and retention behavior.
+13. Payment Restricted keeps the active release live through the configured Hosting Continuity Window, blocks new hosting-cost effects, then suspends delivery without deleting release/domain/certificate state; recovery resumes the same release without a build or deployment job.
+14. Narrow Workspace/Project settings expose every section through an accessible navigation sheet, and project cards use native link/button semantics for management versus editor entry.
+15. Payment Restricted remains unresolved without creating a Workspace deletion deadline; an independently authorized lifecycle deletion may purge scoped product data, and a later Provider recovery never recreates it.
+16. Restricted Recovery Mode preserves authenticated read/export and security/privacy/lifecycle exceptions for authorized members; only the Workspace Owner or a previously delegated Billing Manager can open tenant Checkout/Provider recovery, while Platform Operators cannot impersonate either actor.
+17. Commercial Lifecycle Notifications follow exact Commerce/Hosting milestones, re-resolve current role-sensitive recipients, suppress payment details for ordinary members, deduplicate replay by recipient/channel, and leave lifecycle state unchanged when delivery fails.
+18. Notification failure never extends a deadline automatically; an authorized manual Domain Policy Exception is single-Workspace, time-bounded, domain-owned, and incapable of changing the other domain's deadline or unrelated commercial/Hosting state.
+19. A Domain Policy Exception extends only an active window; post-expiry restoration appends a separately authorized Domain State Correction while preserving the expired deadline, original transition, Provider facts, Credits, release, and other domain's state.
+20. A Commerce State Correction to Payment Grace commits before an outbox-backed Hosting projection restores normal delivery of the preserved active release; replay is idempotent and Hosting failure is explicit without rolling Commerce back.
+21. Policy Exception/State Correction notifications fan out only after commit; Commerce reports Hosting restoration pending, and a distinct Hosting result reports success/failure without leaking internal evidence or claiming success from job dispatch.
+22. Operator-intervention recipient projections use customer-safe reason categories and Platform Operations attribution while keeping personal operator identity, internal evidence, Provider diagnostics, and raw audit data out of tenant channels.
+23. An untrusted URL/GitHub/file import proves SSRF/redirect, traversal/symlink, decompression, MIME, secret, quarantine, ACL, and retention behavior.
 
 ### 18.2 Required automated evidence
 
@@ -1038,6 +1100,13 @@ Imports run secret detection and malware/content-safety classification before in
 - visual regression at canonical light/dark viewports, including full-screen editor and stable-shell loading.
 - authenticated Boneyard capture at `375`, `768`, and `1280`, plus skeleton-name resolution tests.
 - end-to-end flows for brief-to-publish, multi-Agent delegation/approval/resume, content-model proposal, Knowledge/Skill import, thumbnail capture, and Stripe test-mode webhook lifecycle.
+- end-to-end Restricted Recovery Mode coverage for retained shell/read/export behavior, exact blocked-command errors across synchronous and background entry points, in-flight safe cancellation, absence of the access-restriction blocker, and atomic payment restoration.
+- end-to-end Commercial Lifecycle Notification coverage for milestone ownership, current Owner/Billing Manager resolution, ordinary-member sanitization, source replay, shared-ledger retry/failure evidence, Operational Signal escalation, and lifecycle-state independence.
+- end-to-end Domain Policy Exception coverage for explicit domain-owned authorization, deadline/evidence/audit requirements, rejection of cross-domain or automatic notification-driven changes, and preservation of unrelated commercial, Hosting, and Workspace lifecycle state.
+- end-to-end deadline/correction coverage for active-window concurrency, immutable expired history, stricter append-only Domain State Correction, explicit new deadlines, and absence of false payment recovery or cross-domain mutation.
+- end-to-end corrected-access projection coverage for Commerce-first commit, durable outbox handoff, Hosting-owned idempotent restoration of the same active release, distinct correction versus payment-recovery cause, retryable Hosting failure, and no distributed rollback or second operator correction.
+- end-to-end operator-intervention notification coverage for post-commit-only emission, role-sensitive audience/content, Commerce restoration-pending state, separate Hosting success/failure result, and rejection of preview/dispatch-derived success.
+- end-to-end disclosure coverage for localized customer-safe reason codes, Platform Operations attribution, billing-contact/ordinary-member field boundaries, and complete internal audit retention without tenant leakage.
 - migration fixtures for project authoring-mode classification, baseline Content Structure/Site Revision creation, conversation normalization, tenant readiness, Stripe inbox replay, and pre-/post-hard-cut route removal.
 - matching quality gates: `pnpm api:check`, `pnpm admin:check`, or `pnpm check` by change scope.
 - `pnpm code-review-engine --scope changed --base HEAD --format json` for review-sensitive waves.
@@ -1069,7 +1138,7 @@ Wave 0 is complete only when these migration gates have evidence:
 
 - persist Agent definitions/versions/assignments and split execution mode from identity.
 - implement backend-owned threads, messages, runs, delegation, standard parts, durable recovery, and Toolkit renderers.
-- add Workspace Knowledge, Workspace Skills, Design Systems, and official built-in catalog.
+- add Workspace-scoped Knowledge, Skills, Design Systems, and the official built-in catalog under the Product Application Customization group.
 - hard cut the third composer mode, text-only Skill library, static-only Agent catalog, and local browser thread authority.
 
 ### Wave 2 — Unified Builder aggregate and Sitemap
@@ -1116,9 +1185,9 @@ used to describe the full user goal as complete.
 | --- | --- | --- | --- |
 | 1 | Management plus full-screen Sitemap/Wireframe/Style Guide/Design editor | In progress | The independent revision-pinned editor and all four stage authorities exist through typed Design Preview/Apply. Revision-pinned AI Design generation now converges on the same reviewed ChangeSet authority. Compiler/release readiness, server undo/redo, and final visual convergence remain. |
 | 2 | assistant-ui multi-Agent conversations, Agent launcher/mention, Plan/Build | In progress | Backend-owned threads/Runs, structured Agent selection, delegation/Tool projections, launcher, mention, and Plan/Build surfaces exist. Full Builder-wide Agent orchestration and final interaction convergence remain. |
-| 3 | Agent runtime/control plane and System Agent settings | In progress | Versioned Agent definitions, assignments, grants, approvals, durable execution, and settings surfaces exist. Production operations review and remaining repository/service quality findings are not closed. |
+| 3 | Agent runtime/control plane and Platform AI domain | In progress | Versioned Agent definitions, assignments, grants, approvals, durable execution, and domain-owned configuration surfaces exist. Production operations review and remaining repository/service quality findings are not closed. |
 | 4 | AI-native Content Library and Content Models | In progress | Workbench and structured model editing now expose production content-writer and content-modeler proposal paths, real impact evidence, and one shared approval/apply queue. Broader content automation and final Workbench UX convergence remain Wave 4 work. |
-| 5 | Workspace Knowledge, Workspace Skills, official Skills, and Design Systems | In progress | Canonical APIs, authoring/import/install/version evidence, settings surfaces, and durable Knowledge jobs exist. Production deployment/operational evidence and final Agent-context convergence remain. |
+| 5 | Workspace Knowledge, Workspace Skills, official Skills, and Design Systems | In progress | Canonical APIs, authoring/import/install/version evidence, Customization surfaces, and durable Knowledge jobs exist. Production deployment/operational evidence and final Agent-context convergence remain. |
 | 6 | Site thumbnails on Home and Projects | Pending | Asset thumbnail job foundations exist, but revision-pinned site render/capture, project thumbnail projection, and final Home/grid/list media treatment remain Wave 5. |
 | 7 | Productized Taskiq workload topology and task catalog | In progress | Durable jobs, broker routing, workers, scheduler leadership, recovery, and owning-domain job verticals are implemented/tested. Production deployment and health evidence remain required. |
 | 8 | Connector-based commercialization and Stripe | In progress | Connector registry, Stripe plugin, durable billing event path, Billing surfaces, and a typed fail-closed EntitlementService foundation exist. Jobs/Builder/Agent/Connector enforcement integration, provider migration parity, replay/reconciliation, and production webhook evidence remain Wave 6 gates. |

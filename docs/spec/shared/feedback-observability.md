@@ -36,7 +36,7 @@ This code-spec defines the shared feedback lifecycle and project/workspace/platf
 
 ### 4. Telemetry ownership
 
-- Dashboards render persisted runtime facts; static demonstration series, random values, and fabricated success rates are prohibited.
+- Observability surfaces render persisted runtime facts; static demonstration series, random values, and fabricated success rates are prohibited.
 - Request telemetry is recorded in bounded hourly aggregates keyed by scope, route template, and status class. It includes request count, error count, total duration, and maximum duration.
 - AI telemetry reuses daily request/token/cost rollups and the immutable Credits ledger.
 - Activity telemetry reuses the canonical audit-event store.
@@ -44,7 +44,7 @@ This code-spec defines the shared feedback lifecycle and project/workspace/platf
 - Retention and aggregation periods are explicit configuration, not hidden limits.
 - HTTP metric retention and query windows use `OBSERVABILITY__RETENTION_ENABLED`, `OBSERVABILITY__RETENTION_DAYS`, `OBSERVABILITY__MAX_QUERY_DAYS`, `OBSERVABILITY__RETENTION_BATCH_SIZE`, and `OBSERVABILITY__RETENTION_MAX_DELETE_PER_RUN`; a scheduled lock-protected cleanup enforces the configured retention period.
 - Project attribution coverage is returned as supported state, attributed records, total records, and coverage rate for workspace-owned HTTP, AI, and audit telemetry. System-only records do not lower project-attribution coverage.
-- Routes tagged `internal.system.observability` or `domain.observability` query the metric store and are excluded from HTTP ingestion. This prevents dashboard polling from changing the next dashboard sample; the exclusion is tag-based rather than path-based.
+- Routes tagged `internal.system.observability` or `domain.observability` query the metric store and are excluded from HTTP ingestion. This prevents observability polling from changing the next metric sample; the exclusion is tag-based rather than path-based.
 
 ### 5. Metrics and API contract
 
@@ -66,10 +66,10 @@ Supported request metrics include `requests`, `errors`, `errorRate`, `avgLatency
 
 ### 6. Admin information architecture
 
-- Platform Overview summarizes tenants, active projects, commercial state, feedback queue health, AI consumption, and operational health from live endpoints.
+- Operations Inbox prioritizes unresolved Operational Signals from tenant governance, commerce, feedback, AI consumption, and platform reliability; context-only metrics remain in focused Observability or owning-domain pages.
 - Audit Log is a system operations analysis workbench with separate request and event views. The request view exposes persisted route/method/status aggregates, error rate, latency, and last-seen time; the event view is a filterable, paginated canonical event table with actor, action, scope, target, correlation id, timestamp, and sanitized metadata detail.
 - Feedback Center exposes queue filters, ticket detail, assignment, status/priority updates, replies, and internal notes.
-- Observability is a parent navigation group with focused child pages for requests/reliability, AI usage/cost, and aggregate activity. It has no separate overview page; the global operational decision surface is `/system/overview` Dashboard.
+- Observability is a parent navigation group with focused child pages for requests/reliability, AI usage/cost, and aggregate activity. It has no separate overview page; the Platform Console landing surface is the Operations Inbox, migrated from the current `/system/overview` implementation during the frontend split.
 - Every chart is consumed through `@arclayer/ui/chart`, with localized units, a textual summary, an exact-value alternative, and explicit loading/error/empty states.
 
 ### 7. Tests required

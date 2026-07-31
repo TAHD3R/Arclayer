@@ -1,12 +1,12 @@
-# Admin Frontend Development Guidelines
+# Product Application Frontend Development Guidelines
 
-> Executable code-specs for Admin frontend development in `apps/admin`.
+> Executable code-specs for Product Application frontend development in `apps/admin`.
 
 ---
 
 ## Overview
 
-Admin specs define concrete contracts for route files, page composition, components, hooks, state management, generated API type usage, design-system behavior, and quality gates.
+These specs define concrete Product Application contracts for route files, page composition, components, hooks, state management, generated API type usage, design-system behavior, and quality gates. The historical `admin` directory name does not make this the Platform Console specification owner.
 
 `DESIGN.md` remains the primary visual language source. Shared frontend/backend contracts live under `docs/spec/shared/`.
 
@@ -39,6 +39,7 @@ Admin specs define concrete contracts for route files, page composition, compone
 | [Workspace Commercialization](../../shared/workspace-commercialization.md) | Plan, subscription, Credits, and upgrade UX semantics |
 | [AI Website Builder Platform](../../shared/ai-website-builder-platform.md) | Full-screen creation editor, Agent/chat UX, content workbench, settings, thumbnails, motion, and loading semantics |
 | [Feedback & Observability](../../shared/feedback-observability.md) | Feedback lifecycle, audit log, and observability page semantics |
+| [Product and Platform Separation](../../shared/product-platform-separation.md) | Product Application ownership, Workspace Administration and Customization boundaries, Platform extraction, and cross-app release gates |
 
 ## Monorepo Contracts
 
@@ -48,10 +49,10 @@ Admin specs define concrete contracts for route files, page composition, compone
 
 ---
 
-## Required Reading Before Admin Work
+## Required Reading Before Product Application Work
 
 - Read `DESIGN.md` and `docs/guidelines/frontend-design.md` before design-sensitive UI changes.
-- Read the relevant Admin spec file for the layer being changed.
+- Read the relevant Product Application spec file for the layer being changed.
 - Read shared specs when the change touches API payloads, errors, auth/permission behavior, or schema-driven UI.
 - Read monorepo specs when the change touches shared packages, generated OpenAPI artifacts, package scripts, quality gates, or commits.
 

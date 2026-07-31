@@ -1,7 +1,8 @@
 # Admin Feedback and Support Contract
 
 Status: Approved canonical implementation contract (spec audit passed 2026-07-22)
-Parent: [Admin Control Plane Productization Rollout](./admin-control-plane-rollout.md)
+Parent: [Platform Control Plane Productization Rollout](./admin-control-plane-rollout.md)
+Domain: [Platform Communications](./admin-communications.md)
 
 ## 1. Scope
 
@@ -13,6 +14,8 @@ This contract defines:
 - the shared ContentGuard error/empty presentation.
 
 It replaces the submission-category and frontend-composition portions of `feedback-observability.md` where they conflict. The existing feedback lifecycle, privacy, audit, and authorization requirements remain authoritative unless explicitly superseded here.
+
+The operator Feedback Center is the default User feedback queue inside the Communications Platform Domain, not an independent top-level Platform Domain. External replies use the Communications delivery ledger; internal notes never enter recipient delivery.
 
 ## 2. Current-state evidence
 

@@ -25,6 +25,7 @@ These rules apply across `apps/*`, `packages/*`, `scripts/*`, root package scrip
 ## Required Reading Before Monorepo Work
 
 - Read `package.json`, `pnpm-workspace.yaml`, and `turbo.json` before changing root scripts, package scripts, workspace membership, or task dependencies.
+- Read [Product and Platform Separation](../shared/product-platform-separation.md) before adding `apps/platform`, changing application build boundaries, or wiring Product and Platform quality gates.
 - Read package-specific specs before changing app/package code.
 - Read shared specs when a change crosses API, identity, error, schema, or shared package boundaries.
 

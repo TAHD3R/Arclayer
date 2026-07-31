@@ -1,6 +1,6 @@
-# Frontend Design Guideline (Arclayer Admin)
+# Frontend Design Guideline (Arclayer Product and Platform)
 
-This document defines the live UI and interaction rules for `apps/admin`.
+This document defines the live UI and interaction rules for the Product Application in `apps/admin` and Platform Console in `apps/platform`.
 `DESIGN.md` is the primary source of truth for Arclayer's visual language.
 This document turns that visual language into Admin implementation rules for page shells, overlay behavior, component defaults, and anti-drift checks.
 
@@ -9,16 +9,19 @@ This document turns that visual language into Admin implementation rules for pag
 This guideline applies to:
 
 - `apps/admin`
-- shared Admin-facing UI surfaces from `packages/ui/*`
+- `apps/platform`
+- shared application-facing UI surfaces from `packages/ui/*`
 
 ## 2. Product Personality
 
-Admin UI should feel:
+Product Application and Platform Console UI should feel:
 
 - Clear: users should understand what a screen is for within a few seconds.
 - Operational: actions should read like tools, not marketing copy.
 - Calm: dense when necessary, but never noisy or decorative for its own sake.
 - Consistent: the same action category should look and behave the same across surfaces.
+
+The Platform Console may use denser operational composition than the Product Application, but both consume the same semantic visual tokens. Theme choices are Light, Dark, and Follow system only; do not add a template palette, accent selector, second font/radius/elevation system, gradient Dashboard, neon glow, or glass treatment.
 
 Default writing style:
 
@@ -55,7 +58,7 @@ Default writing style:
 
 - Prefer `SettingDialog` for form-oriented overlays and edit flows.
 - Use lower-level dialog primitives only when the interaction truly falls outside the shared settings/dialog contract.
-- Confirmation flows should stay explicit; do not reintroduce `@arclayer/ui/confirm-dialog` in Admin feature code.
+- Confirmation flows should stay explicit; do not reintroduce `@arclayer/ui/confirm-dialog` in application feature code.
 
 ### 4.2 Overlay behavior
 
@@ -82,7 +85,7 @@ For Antd popups rendered inside dialog-like overlays:
 
 ### 5.2 Loading indicators
 
-- Do not introduce new Antd `Spin` usage in Admin feature UI.
+- Do not introduce new Antd `Spin` usage in application feature UI.
 - Use shared `Spinner` or `SpinnerOverlay` for blocking and refresh states.
 - Decorative loaders are not a substitute for explicit pending semantics.
 
@@ -95,7 +98,7 @@ For Antd popups rendered inside dialog-like overlays:
 
 - Tag-like UI must use the shared semantic tag system under `apps/admin/src/components/ui/tags`.
 - Do not hand-roll tag pills with local `div` or `span` styling in feature files.
-- Do not import Antd `Tag` directly inside Admin feature code.
+- Do not import Antd `Tag` directly inside application feature code.
 - If a new tag meaning is needed, add a semantic tag component instead of styling ad hoc at call sites.
 
 ## 6. Icons and Motion
@@ -141,7 +144,7 @@ Product copy must use i18n keys with both supported locales. Use direct, sentenc
 - [ ] Loading, empty, and error states are explicit.
 - [ ] Overlay forms use `SettingDialog` or a justified alternative.
 - [ ] Antd `Button` usage keeps `autoInsertSpace={false}`.
-- [ ] No new Antd `Spin` usage was introduced in Admin feature UI.
+- [ ] No new Antd `Spin` usage was introduced in application feature UI.
 - [ ] Tag-like UI uses the semantic tag system.
 - [ ] New icons do not depend on the removed `lucide-animated` barrel.
 - [ ] Charts use `@arclayer/ui/chart` and expose exact values accessibly.

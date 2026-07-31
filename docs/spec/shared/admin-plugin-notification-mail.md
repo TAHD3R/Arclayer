@@ -1,7 +1,8 @@
 # Admin Plugin, Notification, and Mail Contract
 
 Status: Approved canonical implementation contract (spec audit passed 2026-07-22)
-Parent: [Admin Control Plane Productization Rollout](./admin-control-plane-rollout.md)
+Parent: [Platform Control Plane Productization Rollout](./admin-control-plane-rollout.md)
+Domain owners: Extensibility for sections 4-8; [Platform Communications](./admin-communications.md) for sections 9-18
 
 ## 1. Scope
 
@@ -9,16 +10,20 @@ This contract defines:
 
 - the plugin catalog, lifecycle operations, detail, and schema-driven configuration;
 - notification campaigns for inbox, email, launch modal, top banner, and transient toast delivery;
+- transactional lifecycle notifications emitted by owning domains;
 - recipient delivery state and durable fan-out;
 - locale-aggregated email template management.
 
 It extends `docs/spec/api/backend/plugins.md`, `docs/spec/api/backend/notifications.md`, and `docs/spec/api/backend/background-jobs.md`. Those contracts remain authoritative for package discovery, event routing, and durable execution where they do not conflict.
+
+This combined file is a migration-era capability contract, not a shared Platform Domain or navigation group. Plugin installation, upgrade, trust, rollback, and package configuration belong to Extensibility. Campaign, transactional, recipient-delivery, global-message, template, and mail-channel operations belong to Communications. Neither domain duplicates the other's routes, forms, permissions, or Operational Signal resolution actions.
 
 ## 2. Current-state evidence
 
 - `/system/plugins` renders a basic card grid and the API currently exposes only installed plugin discovery through `GET /system/plugins`.
 - plugin metadata already contains provides, permissions, configuration schema, Admin metadata, and connector definitions, but there is no persisted install/upgrade/uninstall lifecycle.
 - system notifications can create inbox/email records and render `inbox`, `toast`, `modal`, or `banner`, but a broadcast synchronously walks users and has no campaign, audience estimate, schedule, retry, or delivery ledger.
+- the event runtime supports a narrow hard-coded event list and sends email directly after creating an in-app record; `NotificationDeliveryRecord` currently requires Campaign and Campaign-variant foreign keys, so domain-transactional events do not share its idempotent delivery ledger or retry evidence.
 - global modal/banner consumption supports only text, severity, one action, and a local dismissed set; it lacks media, secondary action, display policy, and durable recipient state.
 - email templates are unique by `(key, locale)` and support CRUD/preview/versioning, but the Admin list renders one row per locale and duplicates Edit in its primary action and menu.
 
@@ -70,44 +75,37 @@ No HTTP request runs package installation synchronously. Repeated requests with 
 | `GET /system/plugin-operations/{operationId}` | Poll/reconnect to durable operation state |
 | `GET/PATCH /system/plugins/{pluginId}/configuration` | Read/update schema-driven non-secret config and secret references |
 
-Every mutation is super-admin protected and audited. Disable/uninstall returns explicit dependency conflicts rather than leaving partial state.
+Every mutation requires its exact action-scoped Extensibility Platform Permission and is audited; UI visibility or a legacy super-admin flag is insufficient. Disable/uninstall returns explicit dependency conflicts rather than leaving partial state.
 
-## 6. Plugin page composition
+## 6. Installed extensions composition
 
 ```text
-Plugins                                             [Manual install] [Browse plugins]
-Install, update, and configure trusted platform capabilities.
+Installed extensions                              [Install manually] [Browse extensions]
+Review installed capabilities, updates, and work that needs attention.
 
-[ Installed ] [ Updates ] [ Catalog ]
 [Search] [Order ▼] [Filters] [Reset]
-
-┌ icon  Plugin name                      state/menu ┐
-│ concise capability description                   │
-│ version • provider • compatibility               │
-│ capability/member summary                         │
-└──────────────────────────────────────────────────┘
+[DataTable: Extension | Version | Trust | Capabilities | Consumers | State | Updated | Actions]
 ```
 
-- Reuse the visual anatomy of `project-card.tsx`: identity header, concise description, restrained metadata/footer, card click, and overflow action menu.
-- Extract a domain-neutral visual composition only when it avoids coupling plugins to project rename/favorite/member behaviors.
-- ChromeTabs are Installed, Updates, and Catalog. Empty tabs explain the state without fake installation success.
-- Header slots contain Manual install and Browse plugins. Manual install accepts only server-supported package/source forms and shows integrity/compatibility validation before confirmation.
-- Card click opens plugin detail. Menu actions are state-aware and never duplicate the primary card action.
+- Installed uses the shared operational DataTable with an icon-plus-name identity cell, concise capability description, explicit trust/compatibility state, backend filters/order, and an investigative Drawer. The Extension catalog may use cards when publisher identity and visual discovery materially help comparison.
+- The Extensibility domain uses peer routes for Installed, Extension catalog, Connections, and Install & update history rather than tabs pretending to be its whole information architecture. Empty surfaces explain the state without fake installation success.
+- Header slots contain Install manually and Browse extensions. Manual install accepts only server-supported package/source forms and shows integrity/compatibility validation before confirmation.
+- Installed-row activation opens Extension detail. Menu actions are state-aware and never duplicate the primary Details action.
 
-## 7. Plugin detail and configuration
+## 7. Extension detail and configuration ownership
 
-Plugin detail uses a Drawer or dedicated detail screen with:
+Extension detail uses a Drawer or dedicated detail screen with:
 
 - identity, trust/source, installed and available versions, compatibility, lifecycle state;
 - capabilities provided and current consumers;
 - requested/approved permission diff;
 - recent durable operations and failure diagnostics;
 - release notes and migration/rollback availability;
-- configuration sections and related system-setting links.
+- configuration sections and related owning-domain configuration links.
 
 Configuration is rendered from versioned manifest Admin schema. Secret values use secret references and are never round-tripped to the browser. Validation is performed by the plugin/backend owner as well as schema validation.
 
-When configuration belongs to an existing `/system/settings/*` screen, the plugin view uses the canonical settings-target route/section contract. For overlay settings it uses `SettingsSectionTarget` plus `SettingsSectionAnchor`; for routed system settings it uses an equivalent typed route target and stable section id. The destination scrolls/focuses and temporarily highlights the exact field/section. URL fragments or raw DOM selectors are not the contract.
+When configuration belongs to another Platform Domain, the plugin view uses that domain's canonical typed route/section target rather than duplicating its form. For overlay configuration it uses a typed target plus stable section anchor; for routed configuration it uses an equivalent typed domain route and stable section id. The destination scrolls/focuses and temporarily highlights the exact field/section. URL fragments or raw DOM selectors are not the contract.
 
 ## 8. Plugin failure and security rules
 
@@ -145,9 +143,29 @@ Actions are typed as an internal route/settings target or an allowlisted externa
 
 ### 9.3 Delivery ledger
 
-`NotificationDelivery` records campaign, variant, recipient, channel/presentation, idempotency key, state, attempts, scheduled/sent/delivered/read/clicked/dismissed timestamps, provider/message ids, and sanitized terminal failure.
+`NotificationDelivery` records exactly one immutable source reference—Campaign plus variant, or transactional dispatch plus template version—together with recipient, channel/presentation, idempotency key, state, attempts, scheduled/sent/delivered/read/clicked/dismissed timestamps, provider/message ids, and sanitized terminal failure.
 
-Per-recipient fan-out is durable and idempotent. One recipient/channel failure does not roll back successful deliveries; it contributes to `partially_failed` and remains retryable.
+Per-recipient fan-out is durable and idempotent. One recipient/channel failure does not roll back successful deliveries; it contributes to `partially_failed` for a Campaign or the transactional source's failure projection and remains retryable.
+
+### 9.4 Transactional lifecycle notifications
+
+A transactional lifecycle notification is created only from a durable fact emitted by its owning domain. It is not an editable `NotificationCampaign`: it has no operator-authored audience, arbitrary schedule, display conflict policy, or manual publish action. Its immutable dispatch source records the source domain, event/transition identity, milestone, entity scope, template key/version, source timestamps, and correlation context.
+
+The source domain owns the milestone and semantic payload. Notifications owns template rendering, localization, channel execution, `NotificationDelivery`, retry behavior, and recipient interaction. Recipient resolution occurs at actual dispatch through the source contract's current canonical authority projection; replaying a source fact produces the same dispatch and delivery identities rather than a second fan-out.
+
+Platform Operators may inspect authorized delivery evidence and retry an existing retryable delivery through the Notifications authority. They cannot edit the resolved audience, convert the notice into a Campaign, synthesize or replay a Commerce/Hosting state transition, or mark an undelivered notice successful.
+
+Commercial Lifecycle Notifications are the first required transactional source and follow `workspace-commercialization.md`: Owner and current Billing Managers receive email and in-app delivery, while other active members receive a sanitized in-app notice. Their failures never mutate Commerce or Hosting state; persistent critical failure produces an Operational Signal.
+
+An Operational Signal caused by unreachable billing contacts may link to the owning Commerce or Hosting investigation surface, but Notifications cannot create a Domain Policy Exception or Domain State Correction, carry a proposed replacement deadline, or expose a cross-domain “extend” or “reopen” action. Delivery retry, active-window exception, and post-transition correction are separate commands, permissions, idempotency identities, and audit events.
+
+Committed Domain Policy Exceptions and Domain State Corrections are transactional sources, never operator-authored Campaigns. Preview, request acceptance, and job dispatch cannot fan out a success notice. When Commerce correction starts asynchronous Hosting restoration, Notifications delivers the committed Commerce milestone as “delivery restoration pending”; only the later Hosting-owned result may produce delivery-restored or delivery-failed content.
+
+The Commerce and Hosting notices use distinct source/milestone identities and ledger rows. A Hosting failure cannot overwrite, retract, or reinterpret the valid Commerce correction notice, while a later Hosting success cannot erase the earlier failure evidence.
+
+For Owner and Billing Manager recipients, the renderer exposes only the stable localized customer-safe reason category, “Arclayer Platform Operations” source label, original/new deadline or state, effective time, and support reference. Other members receive only sanitized capability/delivery effect and effective time. The delivery payload never contains the individual Platform Operator identity, internal free-text reason, evidence, permissions, Provider diagnostics, payment details, or raw audit record; those remain available only through authorized Platform Audit projections.
+
+The hard cut generalizes the Campaign-only `NotificationDeliveryRecord` source model and replaces direct event-runtime email sends with the shared delivery authority. Campaign and transactional sources remain distinct aggregates while using one delivery ledger; no parallel unaudited lifecycle-email loop remains.
 
 ## 10. Audience and scheduling
 
@@ -245,6 +263,8 @@ Failures are explicit:
 - partial dispatch preserves per-recipient results;
 - provider outage records retryable deliveries with backoff governed by the durable-job contract;
 - cancellation reports which deliveries were already sent and cannot be recalled.
+- transactional delivery failure remains attached to the immutable source milestone and never rolls back, delays, or fabricates the owning domain's transition.
+- retrying or reconciling a transactional delivery cannot extend a source-domain deadline or report that a Domain Policy Exception was created.
 
 ## 15. Email template aggregate model
 
@@ -313,19 +333,23 @@ Runtime-required built-in templates cannot be deleted. They may be restored, and
 
 ## 19. Audit, telemetry, and authorization
 
-Audit plugin lifecycle/config changes, campaign create/edit/publish/cancel/retry, audience-rule changes, recipient-impact counts, template edits/restores/deletes, and test sends. Do not audit secret values or recipient content beyond necessary identifiers.
+Audit plugin lifecycle/config changes, campaign create/edit/publish/cancel/retry, transactional delivery retries, audience-rule changes, recipient-impact counts, template edits/restores/deletes, and test sends. Do not audit secret values or recipient content beyond necessary identifiers.
 
-Operational metrics include plugin operation duration/failure, campaign queue lag, delivery success/failure/read/click rates, locale fallback usage, email provider result, and template-render failures.
+Operational metrics include plugin operation duration/failure, campaign and transactional queue lag, delivery success/failure/read/click rates by source kind, locale fallback usage, email provider result, and template-render failures.
 
-All system operations require explicit super-admin permissions. Consumer interaction endpoints authorize the current recipient and cannot mark another user's delivery.
+All Platform operations require their exact Platform Permission or non-delegable Instance Owner authority. Consumer interaction endpoints authorize the current recipient and cannot mark another user's delivery.
 
 ## 20. Tests and acceptance criteria
 
 - Plugin API/job tests for idempotency, signature/compatibility, permission diff, dependency conflict, failure/retry, rollback, and activation verification.
 - Plugin UI tests for ChromeTabs, Header slots, card keyboard activation, install review, operation progress, and settings-section highlight.
 - Campaign API/job tests for estimate, revision conflict, schedule, idempotent fan-out, partial failure, retry, cancellation, and interaction authorization.
+- Transactional notification tests for immutable source identity, current-authority recipient resolution, template-version evidence, replay idempotency, shared-ledger retries, per-channel failure, Operational Signal escalation, and owning-domain state independence.
+- Boundary tests proving notification retry, reconciliation, and Operational Signal actions cannot create or combine Commerce/Hosting Domain Policy Exceptions or Domain State Corrections.
+- Operator-intervention tests proving post-commit-only fan-out, separate Commerce-pending and Hosting-result identities, no inferred Hosting success, role-sensitive sanitization, and preservation of prior failure/success delivery evidence.
+- Disclosure tests proving stable reason-code localization, customer-safe Platform Operations attribution, billing-contact versus ordinary-member projections, and non-disclosure of operator identity, internal notes/evidence, Provider diagnostics, or raw audit data.
 - Consumer component tests for media modal, two actions, queue priority, banner shell layout, durable dismissal, typed navigation, narrow viewport, and keyboard/screen-reader operation.
 - Email API tests for aggregate projection, locale uniqueness, required-template protection, rendering validation, test delivery, revision conflict, and restore default.
 - Email UI tests for one-row-per-key, flags plus language text/tag, non-duplicated actions, filters/order, locale editor, and immediate cache reconciliation.
 
-Acceptance requires no synchronous all-user broadcast loop, no page-local-only modal/banner dismissal state, no arbitrary remote media/action, no duplicated Edit menu item, and no one-row-per-locale template table.
+Acceptance requires no synchronous all-user broadcast loop, no direct lifecycle-email path outside the shared delivery ledger, no page-local-only modal/banner dismissal state, no arbitrary remote media/action, no duplicated Edit menu item, and no one-row-per-locale template table.

@@ -33,6 +33,7 @@ Shared frontend/backend contracts live under `docs/spec/shared/`.
 | [Shared Error Contracts](../../shared/error-contracts.md) | Stable error-code handling across API layers |
 | [Shared Identity & Access Contracts](../../shared/identity-access-contracts.md) | Auth, tenant, workspace, project, and permission semantics |
 | [Shared Schema & Field Contracts](../../shared/schema-field-contracts.md) | Pydantic/OpenAPI/schema field semantics |
+| [Product and Platform Separation](../../shared/product-platform-separation.md) | Separate Product and Platform OpenAPI clients, application consumers, Session boundaries, and hard-cut migration |
 
 ## Monorepo Contracts
 
@@ -45,7 +46,7 @@ Shared frontend/backend contracts live under `docs/spec/shared/`.
 ## Required Reading Before API Frontend Work
 
 - Read the relevant shared contract file when payload, error, identity, permission, or schema behavior changes.
-- Read Admin frontend specs when the consumer is `apps/admin`.
+- Read Product Application frontend specs when the consumer is `apps/admin`; read the Platform Console contracts and shared product UI toolchain when the consumer is `apps/platform`.
 - Read monorepo specs when the change involves `packages/openapi`, shared packages, generated artifacts, package scripts, or cross-app checks.
 - Do not create a second contract package or local duplicate request/response types.
 

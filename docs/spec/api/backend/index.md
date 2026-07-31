@@ -50,6 +50,7 @@ Shared frontend/backend contracts live under `docs/spec/shared/` and should be l
 | [Shared Identity & Access Contracts](../../shared/identity-access-contracts.md) | Auth credentials, tenant context, permission codes, route guard semantics |
 | [Shared Schema & Field Contracts](../../shared/schema-field-contracts.md) | Pydantic/OpenAPI/content field semantics reused by frontend |
 | [AI Website Builder Platform](../../shared/ai-website-builder-platform.md) | Builder revisions, Agent/Thread/Run domains, workspace context, durable jobs, connectors, and cross-layer rollout contracts |
+| [Product and Platform Separation](../../shared/product-platform-separation.md) | Product and Platform FastAPI compositions, authority boundaries, Workspace ownership hard cut, and integrated rollout gates |
 
 ## Monorepo Contracts
 

@@ -271,6 +271,22 @@ Publishing uses the existing release domain with staged activation:
 
 Failure keeps the last-known-good active release. If no active release exists, the exact prelaunch response remains. No service may create a deployment as `READY` before the artifact and smoke checks exist.
 
+### 11.1 Hosting continuity and delivery suspension
+
+Publication state and public delivery availability are separate. `published` remains derived from the active canonical release even when a Hosting-owned delivery gate temporarily prevents that release from being served; Payment Restricted never rewrites the release as inactive or routes the site to prelaunch.
+
+The Hosting Policy defines the Continuity Window. On the first Payment Restricted transition in one uninterrupted restricted period, Hosting persists the anchored deadline and continues serving the current active release. Replayed transition facts are idempotent and do not extend the deadline. Rebuild, republish, domain mutation, and other commands that add hosting cost fail before dispatch during continuity.
+
+At deadline expiry, Hosting marks delivery `suspended` without changing or deleting the active release, immutable artifact, Domain bindings, or certificate associations. The public-host adapter applies the suspended-delivery response before active-release route resolution. A custom domain returns a neutral localized temporary-unavailable page; an Arclayer-managed subdomain may return a branded recovery page. Both return `503`, `Cache-Control: no-store`, and `X-Robots-Tag: noindex, nofollow, noarchive`, and neither discloses payment state or private Workspace data.
+
+Provider-confirmed payment recovery or a Commerce Domain State Correction from Payment Restricted to Payment Grace supplies a durable commercial-access transition with distinct cause and correlation identity. Hosting consumes either fact idempotently, records its own restoration transition, clears the delivery gate, and invalidates suspended-response caches atomically so the same active release resumes without a build, publish, or deployment Job. Commerce cannot mutate Hosting, release, deployment, Domain-binding, certificate, or cache records.
+
+This handoff is outbox-backed and eventually consistent rather than a distributed transaction. A failed Hosting restoration does not roll back the committed Commerce transition: Hosting retains explicit retryable failure, emits its own Operational Signal, and never claims successful delivery. Replaying the Commerce fact returns the existing restoration result. A separate Hosting State Correction is neither required nor accepted merely to complete a Commerce correction to Payment Grace; Hosting-only correction remains available for an explicitly authorized continuity grant while commercial access stays Payment Restricted.
+
+Hosting publishes a durable restoration-result fact only after its gate/cache transaction commits. The fact distinguishes `restored` from `failed`, references the source Commerce transition and Hosting restoration identity, and drives the second-phase Commercial Lifecycle Notification. Worker acceptance, retry scheduling, or the Commerce correction itself cannot emit a delivery-restored fact.
+
+Restricted Recovery Mode keeps authorized reads of existing Builder projections, Site Revisions, active-release metadata, immutable artifacts, and stored downloads available. It blocks ChangeSet preview/apply, generation, import, preview regeneration, thumbnail capture, build, publish, deployment, and Domain/certificate mutation with `402 WORKSPACE_PAYMENT_RESTRICTED` before a Job or external effect is dispatched. A Workspace export may include already-preserved Builder data and artifacts but never regenerates a missing artifact or activates a release to complete the export.
+
 Preview/thumbnail capture uses a short-lived audience-limited preview credential, fixed capture profile, and explicit renderer readiness. It does not reuse an operator browser session or expose editor/private data.
 
 ## 12. Admin API surface
@@ -367,6 +383,7 @@ Required backend evidence:
 - tenant isolation for every target descriptor and existing-workspace tenant migration readiness.
 - generation Job candidate/partial/failure/cancel behavior without direct mutation.
 - candidate build failure preserving last-known-good/prelaunch delivery.
+- Restricted Recovery Mode preserving existing Builder/release reads and export while rejecting every mutating, generation, preview, capture, build, publish, deployment, and Domain path before dispatch with exact `402` metadata.
 - preview credential scope and private-data exclusion.
 - Activity/event coverage and generated OpenAPI/client alignment.
 
@@ -1293,6 +1310,8 @@ existing active-release authority:
 
 | State | `/` | Other path | Cache | Robots |
 | --- | --- | --- | --- | --- |
+| Delivery Suspended, custom domain | `503` neutral unavailable | `503` neutral unavailable | `no-store` | `noindex, nofollow, noarchive` |
+| Delivery Suspended, Arclayer-managed subdomain | `503` branded recovery | `503` branded recovery | `no-store` | `noindex, nofollow, noarchive` |
 | Bound site, no active release | `200` prelaunch | `404` | `no-store` | `noindex, nofollow, noarchive` at root; `noindex` otherwise |
 | Active release, missing route | `404` | `404` | `no-store` | `noindex` |
 | Published binding/render failure | explicit failure | explicit failure | `no-store` | `noindex` |
@@ -1306,7 +1325,8 @@ delivery and thumbnail capture do not depend on an entrance animation or a
 screenshot-only wait. Legacy visitor delivery remains isolated until the
 production renderer/compiler hard cut; this correction only removes the
 false-success placeholder behavior. Active-release delivery never falls back to
-prelaunch.
+prelaunch. The suspended-delivery rows take precedence over active-release and
+prelaunch resolution without changing either publication state.
 
 Public runtime identity and generated source resolve the canonical site URL from
 Domain bindings only: prefer an active, verified Primary binding for the exact
