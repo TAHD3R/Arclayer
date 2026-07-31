@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
+from types import SimpleNamespace
 
 import pytest
 from fastapi import FastAPI
@@ -11,17 +12,20 @@ from src.common.utils.public_ids import encode_uuid
 from src.config import get_settings
 from src.core.database.orm import verify_db_ready
 from src.core.exceptions import Unauthorized
+from src.core.extensions.dependencies import get_connector_registry
+from src.core.registries import ConnectorRegistry
 from src.core.routes import include_auth_router_with_prefix
 from src.models.analytics.audit_event import AuditEvent
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.organization import Organization
 from src.models.organization.user import User, UserCredential, UserStatus
+from src.modules.analytics.system.router import router as system_activity_router
 from src.modules.auth import service as auth_service_module
 from src.modules.auth.service import AuthService
 from src.modules.auth.sessions import service as auth_session_service_module
 from src.modules.auth.sessions.service import AuthSessionService
 from src.modules.auth.tokens.service import decode_token, hash_password, verify_password
-from src.modules.system.router import router as system_router
+from src.modules.platform_identity.http import get_current_platform_session
 
 pytestmark = pytest.mark.integration
 
@@ -354,9 +358,7 @@ async def test_auth_account_deletion_activity_readback_and_rollback(
             status=UserStatus.ACTIVE,
             display_name="Account Delete Admin",
             avatar_url=None,
-            is_super_admin=True,
         )
-        await UserCredential.create(user=admin, password_hash=hash_password(password, settings.auth))
         user = await User.create(
             username=f"account_delete_{uuid.uuid4().hex}",
             email=f"account-delete-{uuid.uuid4().hex[:8]}@example.com",
@@ -380,9 +382,10 @@ async def test_auth_account_deletion_activity_readback_and_rollback(
 
         app = FastAPI()
         include_auth_router_with_prefix(app, settings=settings)
-        app.include_router(system_router, prefix="/api/v1/system")
+        connector_registry = ConnectorRegistry()
+        app.dependency_overrides[get_connector_registry] = lambda: connector_registry
         app.state.valkey = client
-        transport = ASGITransport(app=app, raise_app_exceptions=False)
+        transport = ASGITransport(app=app, raise_app_exceptions=True)
         await verify_db_ready(settings)
         async with AsyncClient(transport=transport, base_url="http://test") as http:
             tokens = await _login(http, email=str(user.email), password=password)
@@ -394,19 +397,26 @@ async def test_auth_account_deletion_activity_readback_and_rollback(
             )
             assert delete_res.status_code == 200, delete_res.text
 
-            admin_tokens = await _login(http, email=str(admin.email), password=password)
-            admin_headers = {"Authorization": f"Bearer {_access_token(admin_tokens)}"}
-            activity_res = await http.get(
-                f"/api/v1/system/activity?eventName=auth.account.deleted&entityType=auth_account"
-                f"&entityId={user.id}&page=1&size=10",
-                headers=admin_headers,
-            )
+            platform_app = FastAPI()
+            platform_app.include_router(system_activity_router, prefix="/platform-api/v1/activity")
+
+            async def _platform_owner_override() -> SimpleNamespace:
+                return SimpleNamespace(actor_id=admin.id, is_instance_owner=True)
+
+            platform_app.dependency_overrides[get_current_platform_session] = _platform_owner_override
+            async with AsyncClient(
+                transport=ASGITransport(app=platform_app), base_url="http://platform.test"
+            ) as platform_http:
+                activity_res = await platform_http.get(
+                    f"/platform-api/v1/activity?eventName=auth.account.deleted&entityType=auth_account"
+                    f"&entityId={user.id}&page=1&size=10"
+                )
             assert activity_res.status_code == 200, activity_res.text
             activity_items = activity_res.json()["data"]["items"]
             assert len(activity_items) == 1
             event = activity_items[0]
             assert event["eventName"] == "auth.account.deleted"
-            assert event["organizationId"] == encode_uuid(org.id)
+            assert "organizationId" not in event
             assert event["actorUserId"] == encode_uuid(user.id)
             assert event["subjectUserId"] == encode_uuid(user.id)
             assert event["entityType"] == "auth_account"
@@ -441,7 +451,6 @@ async def test_auth_account_deletion_activity_readback_and_rollback(
             status=UserStatus.ACTIVE,
             display_name="Rollback Account Delete Admin",
             avatar_url=None,
-            is_super_admin=True,
         )
         rollback_org = await Organization.create(
             name="Account Delete Rollback Org",

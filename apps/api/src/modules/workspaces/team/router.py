@@ -13,6 +13,8 @@ from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import get_current_locale, t
 from src.core.registries import ConnectorRegistry
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.commerce.dunning.command_policy import build_restricted_recovery_command_policy
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.workspaces.authz.http.service import require_workspace_permission
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_manage_access
@@ -34,7 +36,7 @@ from src.modules.workspaces.team.schema import (
     WorkspaceTeamUserOptionOut,
     WorkspaceTeamUserUpdateRequest,
 )
-from src.modules.workspaces.team.service import WorkspaceTeamService
+from src.modules.workspaces.team.service import build_workspace_team_service
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/team", tags=["domain.workspaces.team"])
 
@@ -52,7 +54,7 @@ async def list_user_options(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[WorkspaceTeamUserOptionOut]]:
     """Search workspace users for Select options (pagination)."""
-    service = WorkspaceTeamService(settings)
+    service = build_workspace_team_service(settings)
     page = await service.list_user_options(workspace_id=ctx.workspace_id, params=params, q=q)
     return ApiResponse.success(data=page)
 
@@ -70,7 +72,7 @@ async def list_members(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[WorkspaceTeamMemberOut]]:
     """List workspace team members."""
-    service = WorkspaceTeamService(settings)
+    service = build_workspace_team_service(settings)
     page = await service.list_members(workspace_id=ctx.workspace_id, params=params, filters=query)
     return ApiResponse.success(data=page)
 
@@ -89,7 +91,11 @@ async def set_member_roles(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[None]:
     """Set workspace member roles."""
-    service = WorkspaceTeamService(settings)
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.ACCESS_EXPANSION},
+    )
+    service = build_workspace_team_service(settings)
     await service.set_member_roles(
         organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,
@@ -114,7 +120,7 @@ async def update_member_user(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceTeamMemberOut]:
     """Update member user profile (workspace-scoped)."""
-    service = WorkspaceTeamService(settings)
+    service = build_workspace_team_service(settings)
     out = await service.update_member_user(
         organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,
@@ -138,7 +144,11 @@ async def enable_member(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceTeamMemberStatusResult]:
     """Enable a member in current workspace."""
-    service = WorkspaceTeamService(settings)
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.ACCESS_EXPANSION},
+    )
+    service = build_workspace_team_service(settings)
     out = await service.set_member_status(
         organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,
@@ -162,7 +172,11 @@ async def disable_member(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceTeamMemberStatusResult]:
     """Disable a member in current workspace."""
-    service = WorkspaceTeamService(settings)
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.REMOVE_MEMBER_ACCESS},
+    )
+    service = build_workspace_team_service(settings)
     out = await service.set_member_status(
         organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,
@@ -187,7 +201,7 @@ async def reset_member_password(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[None]:
     """Reset member password (workspace-scoped authorization)."""
-    service = WorkspaceTeamService(settings)
+    service = build_workspace_team_service(settings)
     await service.reset_member_password(
         organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,
@@ -213,10 +227,11 @@ async def create_email_invite(
     connector_registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> ResponseModel[WorkspaceEmailInviteCreateResult]:
     """Create or update an email invite (pending unique per email)."""
-    service = WorkspaceTeamService(
-        settings,
-        connector_registry=connector_registry,
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.ACCESS_EXPANSION},
     )
+    service = build_workspace_team_service(settings, connector_registry=connector_registry)
     # Email invites are meant to be delivered by email. To avoid "fake success", fail fast when disabled.
     if not await service.email_service.is_enabled():
         raise BadRequest(
@@ -275,7 +290,7 @@ async def list_email_invites(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[WorkspaceEmailInviteOut]]:
     """List email invites (pending/accepted/revoked/expired)."""
-    service = WorkspaceTeamService(settings)
+    service = build_workspace_team_service(settings)
     page = await service.list_email_invites(
         organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,
@@ -304,7 +319,11 @@ async def renew_email_invite(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceEmailInviteCreateResult]:
     """Renew an email invite (extend expires_at only)."""
-    service = WorkspaceTeamService(settings)
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.ACCESS_EXPANSION},
+    )
+    service = build_workspace_team_service(settings)
     out = await service.renew_email_invite(
         organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,
@@ -328,7 +347,11 @@ async def revoke_email_invite(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[None]:
     """Revoke an email invite."""
-    service = WorkspaceTeamService(settings)
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.REVOKE_PENDING_INVITATION},
+    )
+    service = build_workspace_team_service(settings)
     await service.revoke_email_invite(
         organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,
@@ -351,7 +374,11 @@ async def create_invite_link(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceInviteLinkCreateResult]:
     """Create a reusable invite link."""
-    service = WorkspaceTeamService(settings)
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.ACCESS_EXPANSION},
+    )
+    service = build_workspace_team_service(settings)
     out = await service.create_invite_link(
         organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,
@@ -382,7 +409,7 @@ async def list_invite_links(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[WorkspaceInviteLinkOut]]:
     """List reusable invite links."""
-    service = WorkspaceTeamService(settings)
+    service = build_workspace_team_service(settings)
     page = await service.list_invite_links(
         organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,
@@ -411,7 +438,7 @@ async def list_invite_link_participants(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[WorkspaceInviteLinkParticipantOut]]:
     """List invite link participants (usage events)."""
-    service = WorkspaceTeamService(settings)
+    service = build_workspace_team_service(settings)
     page = await service.list_invite_link_participants(
         organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,
@@ -436,7 +463,11 @@ async def renew_invite_link(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceInviteLinkCreateResult]:
     """Renew invite link (extend expires_at only)."""
-    service = WorkspaceTeamService(settings)
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.ACCESS_EXPANSION},
+    )
+    service = build_workspace_team_service(settings)
     out = await service.renew_invite_link(
         organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,
@@ -460,7 +491,11 @@ async def disable_invite_link(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[None]:
     """Disable invite link."""
-    service = WorkspaceTeamService(settings)
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.REVOKE_PENDING_INVITATION},
+    )
+    service = build_workspace_team_service(settings)
     await service.disable_invite_link(
         organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,

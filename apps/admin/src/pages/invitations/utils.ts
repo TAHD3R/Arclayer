@@ -55,6 +55,12 @@ export function resolveRoleText(
     const desc = t(descKey, { defaultValue: backendFallback.description || "" });
     return { name, description: desc.trim() || null };
   }
+  if (!code && !backendFallback.name) {
+    return {
+      name: t("team:TEAM_MEMBER_FIXED_ACCESS"),
+      description: t("team:TEAM_MEMBER_FIXED_ACCESS_DESC"),
+    };
+  }
   return {
     name: backendFallback.name || code || t("invite:INVITE_ROLE_UNKNOWN"),
     description: backendFallback.description || null,

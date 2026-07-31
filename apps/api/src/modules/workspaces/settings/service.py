@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any, cast
 from uuid import UUID
 
@@ -23,7 +24,12 @@ from src.modules.auth.onboarding.service import (
     WorkspaceFirstOnboardingStatus,
 )
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
-from src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER
+from src.modules.system.rbac.constants.service import ROLE_ADMIN
+from src.modules.workspaces.authz.role_management import (
+    WorkspaceRoleManagementAvailabilityReader,
+    build_workspace_role_management_availability_reader,
+    require_workspace_role_management,
+)
 from src.modules.workspaces.settings.integrations.webhooks.service import WebhooksService
 from src.modules.workspaces.settings.schema import (
     WorkspaceAssignRoleToMembersResult,
@@ -49,6 +55,7 @@ class WorkspaceSettingsService(BaseService):
         self,
         settings,
         *,
+        role_management_reader: WorkspaceRoleManagementAvailabilityReader,
         workspace_repo: OrganizationWorkspaceRepository | None = None,
         webhooks_service: WebhooksService | None = None,
         onboarding_service: WorkspaceFirstOnboardingService | None = None,
@@ -57,6 +64,7 @@ class WorkspaceSettingsService(BaseService):
         self.workspace_repo = workspace_repo or OrganizationWorkspaceRepository()
         self.webhooks_service = webhooks_service or WebhooksService(settings)
         self.onboarding_service = onboarding_service or WorkspaceFirstOnboardingService(settings)
+        self.role_management_reader = role_management_reader
 
     async def _write_role_policy_activity_event(
         self,
@@ -236,6 +244,10 @@ class WorkspaceSettingsService(BaseService):
         confirm_name: str,
         actor_user_id: UUID,
     ) -> WorkspaceAssignRoleToMembersResult:
+        await require_workspace_role_management(
+            workspace_id=workspace_id,
+            reader=self.role_management_reader,
+        )
         workspace = await self.workspace_repo.get_active_workspace_by_id(workspace_id=workspace_id)
         if workspace is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
@@ -250,7 +262,7 @@ class WorkspaceSettingsService(BaseService):
         if not code:
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="ROLE_CODE_NOT_FOUND")
 
-        target_role = await SystemRole.get_or_none(workspace_id=workspace_id, code=code)
+        target_role = await SystemRole.get_or_none(workspace_id=workspace_id, code=code, ended_at=None)
         if target_role is None:
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="ROLE_CODE_NOT_FOUND")
 
@@ -259,10 +271,19 @@ class WorkspaceSettingsService(BaseService):
             for member_id in await WorkspaceMembershipRole.filter(
                 membership__workspace_id=workspace_id,
                 membership__status=WorkspaceMembershipStatus.ACTIVE,
-                role__code__in=[ROLE_OWNER, ROLE_ADMIN],
+                ended_at=None,
+                role__code=ROLE_ADMIN,
+                role__ended_at=None,
             ).values_list("membership_id", flat=True)
             if member_id is not None
         }
+        owner_membership = await WorkspaceMembership.get_or_none(
+            workspace_id=workspace_id,
+            user_id=workspace.owner_user_id,
+            status=WorkspaceMembershipStatus.ACTIVE,
+        )
+        if owner_membership is not None:
+            excluded_membership_ids.add(UUID(str(owner_membership.id)))
 
         target_memberships_query = WorkspaceMembership.filter(
             workspace_id=workspace_id,
@@ -281,8 +302,16 @@ class WorkspaceSettingsService(BaseService):
 
         async with self.tx() as conn:
             for membership in target_memberships:
-                await WorkspaceMembershipRole.filter(membership_id=membership.id).using_db(conn).delete()
-                await WorkspaceMembershipRole.get_or_create(
+                await (
+                    WorkspaceMembershipRole
+                    .filter(
+                        membership_id=membership.id,
+                        ended_at=None,
+                    )
+                    .using_db(conn)
+                    .update(ended_at=datetime.now(UTC))
+                )
+                await WorkspaceMembershipRole.create(
                     using_db=conn,
                     membership_id=membership.id,
                     role_id=target_role.id,
@@ -333,3 +362,10 @@ class WorkspaceSettingsService(BaseService):
             else:
                 out.append(path)
         return out
+
+
+def build_workspace_settings_service(settings) -> WorkspaceSettingsService:
+    return WorkspaceSettingsService(
+        settings,
+        role_management_reader=build_workspace_role_management_availability_reader(),
+    )

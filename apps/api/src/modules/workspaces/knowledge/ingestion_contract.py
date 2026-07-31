@@ -7,6 +7,7 @@ from pydantic import ConfigDict, Field, model_validator
 from src.common.schemas import BaseSchema
 from src.common.types.public_uuid import PublicUUID
 from src.models.jobs.background_job import JobAuthorityMode, JobRetryClass, JobWorkloadClass
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.jobs.actor_authorizer import ACTOR_REVALIDATION_TERMINAL_ERROR_CONTRACTS
 from src.modules.jobs.execution_errors import JOB_WORKER_LOST_ERROR_CODE
 from src.modules.jobs.registry import (
@@ -201,6 +202,7 @@ def build_knowledge_source_ingest_job_definition(
         visibility=JobVisibility.WORKSPACE,
         authority_mode=JobAuthorityMode.ACTOR_REVALIDATED,
         required_permission=content_manage,
+        commercial_effects=frozenset({RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT}),
         manage_permission=content_manage,
         initial_phase="queued",
         initial_status_key="WORKSPACE_KNOWLEDGE_INGESTION_STATUS_QUEUED",

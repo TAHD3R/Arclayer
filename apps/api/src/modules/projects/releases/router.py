@@ -8,9 +8,11 @@ from fastapi import APIRouter, Depends
 from src.common.types.public_uuid import PublicUUID
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.projects.http.router_helpers import (
     get_project_runtime_context,
     get_project_runtime_service,
+    require_project_commercial_effect,
     require_project_permission,
 )
 from src.modules.projects.http.schema import ProjectRequestContext
@@ -110,7 +112,10 @@ async def get_project_release(
     response_model=ResponseModel[ReleasePublishOut],
     response_model_exclude_none=True,
     summary="Publish a new project release",
-    dependencies=[require_project_permission("project:release:publish")],
+    dependencies=[
+        require_project_permission("project:release:publish"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
+    ],
 )
 async def publish_project_release(
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
@@ -166,7 +171,10 @@ async def cancel_scheduled_project_release(
     response_model=ResponseModel[ReleaseRollbackOut],
     response_model_exclude_none=True,
     summary="Rollback a project release",
-    dependencies=[require_project_permission("project:release:rollback")],
+    dependencies=[
+        require_project_permission("project:release:rollback"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
+    ],
 )
 async def rollback_project_release(
     release_id: PublicUUID,

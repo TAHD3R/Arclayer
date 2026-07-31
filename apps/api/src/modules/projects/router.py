@@ -11,6 +11,8 @@ from src.core.exceptions import BadRequest, Forbidden
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.commerce.dunning.command_policy import build_restricted_recovery_command_policy
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.projects.agents.router import router as projects_agents_router
 from src.modules.projects.api_keys.router import router as projects_api_keys_router
 from src.modules.projects.assets.router import router as projects_assets_router
@@ -44,7 +46,7 @@ from src.modules.projects.schema import (
     ProjectSlugAvailabilityOut,
     ProjectUpdateRequest,
 )
-from src.modules.projects.service import ProjectService
+from src.modules.projects.service import build_project_service
 from src.modules.projects.source.router import router as projects_source_router
 from src.modules.workspaces.authz.http.service import ensure_workspace_permission_granted
 from src.modules.workspaces.http.schema import WorkspaceContext
@@ -118,7 +120,7 @@ async def list_projects(
     workspace_id: PublicUUID | None = Query(default=None, alias="workspaceId", description="Workspace id."),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[ProjectListOut]:
-    service = ProjectService(settings)
+    service = build_project_service(settings)
     page = await service.list_projects(
         workspace_id=UUID(str(workspace_id)) if workspace_id is not None else None,
         actor_user_id=user_id,
@@ -146,7 +148,11 @@ async def create_project(
         raise Forbidden("Workspace access denied", error="WORKSPACE_ACCESS_DENIED")
     ctx = await require_workspace_manage_access(ctx)
     await ensure_workspace_permission_granted("system:content:manage", user_id=user_id, ctx=ctx)
-    service = ProjectService(settings)
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.CONTENT_MUTATION},
+    )
+    service = build_project_service(settings)
     project = await service.create_project(
         workspace_id=ctx.workspace_id,
         payload=payload,
@@ -172,7 +178,7 @@ async def check_project_slug_availability(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[ProjectSlugAvailabilityOut]:
     await ensure_workspace_permission_granted("system:content:manage", user_id=user_id, ctx=ctx)
-    service = ProjectService(settings)
+    service = build_project_service(settings)
     out = await service.check_slug_availability(
         workspace_id=ctx.workspace_id,
         slug=slug,
@@ -192,7 +198,7 @@ async def get_project_detail(
 ) -> ResponseModel[ProjectDetailOut]:
     """Get project detail."""
 
-    service = ProjectService(settings)
+    service = build_project_service(settings)
     detail = await service.get_project_detail(project_id=ctx.project_id)
     return ApiResponse.success(data=detail)
 
@@ -213,7 +219,7 @@ async def get_project_danger_capabilities(
     except Forbidden:
         can_manage_settings = False
 
-    service = ProjectService(settings)
+    service = build_project_service(settings)
     out = await service.get_danger_capabilities(
         project_id=ctx.project_id,
         can_manage_settings=can_manage_settings,
@@ -233,7 +239,11 @@ async def update_project(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[ProjectDetailOut]:
     await require_project_team_permission("project:settings:manage", ctx=ctx, user_id=user_id)
-    service = ProjectService(settings)
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.CONTENT_MUTATION},
+    )
+    service = build_project_service(settings)
     detail = await service.update_project(project_id=ctx.project_id, payload=payload, actor_user_id=user_id)
     return ApiResponse.success(data=detail)
 
@@ -249,7 +259,11 @@ async def archive_project(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[ProjectArchiveResult]:
     await require_project_team_permission("project:settings:manage", ctx=ctx, user_id=user_id)
-    service = ProjectService(settings)
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.CONTENT_MUTATION},
+    )
+    service = build_project_service(settings)
     out = await service.archive_project(project_id=ctx.project_id, actor_user_id=user_id)
     return ApiResponse.success(data=out)
 
@@ -265,7 +279,11 @@ async def unarchive_project(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[ProjectArchiveResult]:
     await require_project_team_permission("project:settings:manage", ctx=ctx, user_id=user_id)
-    service = ProjectService(settings)
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.CONTENT_MUTATION},
+    )
+    service = build_project_service(settings)
     out = await service.unarchive_project(project_id=ctx.project_id)
     return ApiResponse.success(data=out)
 
@@ -288,7 +306,11 @@ async def delete_project(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[ProjectDeleteResult]:
     await require_project_team_permission("project:settings:manage", ctx=ctx, user_id=user_id)
-    service = ProjectService(settings)
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.CONTENT_MUTATION},
+    )
+    service = build_project_service(settings)
     detail = await service.get_project_detail(project_id=ctx.project_id)
     if (confirm_name or "").strip() != detail.project.name:
         raise BadRequest("Project delete confirmation does not match", error="PROJECT_DELETE_CONFIRM_NAME_MISMATCH")

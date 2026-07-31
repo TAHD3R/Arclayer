@@ -179,53 +179,6 @@ export interface AIWorkspaceActionContextMessage {
   content: string;
 }
 
-export type AISystemProviderCompatibility =
-  | "openai"
-  | "anthropic"
-  | "deepseek"
-  | "openai_compatible"
-  | "anthropic_compatible";
-
-export interface AISystemProvider {
-  id: string;
-  provider: string;
-  label: string;
-  compatibility: AISystemProviderCompatibility;
-  isActive: boolean;
-  hasVirtualKey: boolean;
-  litellmKeyId?: string | null;
-  baseUrl?: string | null;
-  requestModel: string;
-  createdAt: string;
-  updatedAt: string;
-  lastUsedAt?: string | null;
-  expiresAt?: string | null;
-}
-
-export interface AISystemProviderListResponse {
-  providers: AISystemProvider[];
-}
-
-export interface AISystemProviderCreateRequest {
-  provider: string;
-  label: string;
-  compatibility: AISystemProviderCompatibility;
-  providerApiKey: string;
-  baseUrl?: string | null;
-  requestModel: string;
-  expiresAt?: string | null;
-}
-
-export interface AISystemProviderUpdateRequest {
-  label?: string;
-  compatibility?: AISystemProviderCompatibility;
-  providerApiKey?: string;
-  baseUrl?: string | null;
-  requestModel?: string;
-  isActive?: boolean;
-  expiresAt?: string | null;
-}
-
 export interface AIUsageModelBreakdown {
   provider: string;
   model: string;
@@ -598,35 +551,6 @@ export async function getAIMonthlyUsageSummary(options: {
     `/workspaces/${encodeURIComponent(options.workspaceId)}/usage?${query.toString()}`,
     options.signal ? { signal: options.signal } : undefined,
   );
-}
-
-export async function listAISystemProviders(options?: {
-  signal?: AbortSignal;
-}): Promise<AISystemProviderListResponse> {
-  return api.get<AISystemProviderListResponse>(
-    "/system/ai/providers",
-    options?.signal ? { signal: options.signal } : undefined,
-  );
-}
-
-export async function createAISystemProvider(
-  payload: AISystemProviderCreateRequest,
-): Promise<AISystemProvider> {
-  return api.post<AISystemProvider>("/system/ai/providers", payload);
-}
-
-export async function updateAISystemProvider(
-  providerId: string,
-  payload: AISystemProviderUpdateRequest,
-): Promise<AISystemProvider> {
-  return api.patch<AISystemProvider>(
-    `/system/ai/providers/${encodeURIComponent(providerId)}`,
-    payload,
-  );
-}
-
-export async function deleteAISystemProvider(providerId: string): Promise<void> {
-  await api.delete<null>(`/system/ai/providers/${encodeURIComponent(providerId)}`);
 }
 
 export async function listAIProjectAgents(options: {

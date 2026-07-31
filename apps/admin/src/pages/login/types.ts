@@ -2,13 +2,6 @@ import type { LoginMode } from "@/lib/auth/auth-mode";
 import type { AuthChallengeSnapshot } from "@/stores/use-auth-challenge-store";
 import type { PendingOAuthProvider } from "@/types/auth/oauth-popup";
 
-export interface BootstrapFormValues {
-  displayName: string;
-  email: string;
-  username: string;
-  password: string;
-}
-
 export interface LoginFormValues {
   email: string;
   password: string;
@@ -121,16 +114,4 @@ export interface LoginViewProps {
   onLoginTwoFactorSubmit: (values: LoginTwoFactorFormValues) => Promise<void>;
   onCancelTwoFactorChallenge: () => void;
   twoFactorLoading?: boolean;
-}
-
-export interface BootstrapPaneProps {
-  onEmailSubmit: (email: string) => Promise<boolean>;
-  onSubmit: (values: BootstrapFormValues) => Promise<void>;
-  emailLoading?: boolean;
-  loading?: boolean;
-}
-
-export interface InstanceRepairRequiredPaneProps {
-  repairReason?: string | null;
-  onRefresh: () => void;
 }

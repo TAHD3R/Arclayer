@@ -74,6 +74,19 @@ class OrganizationSettingsRepository(TortoiseORMRepository):
             await OrgMembership.filter(organization_id=organization_id, role=OrgRole.OWNER, status="active").count()
         )
 
+    async def list_owned_workspace_ids_in_org(
+        self,
+        *,
+        organization_id: UUID,
+        user_id: UUID,
+    ) -> list[UUID]:
+        rows = await Workspace.filter(
+            organization_id=organization_id,
+            owner_user_id=user_id,
+            deleted_at__isnull=True,
+        ).values_list("id", flat=True)
+        return sorted(UUID(str(raw)) for raw in rows)
+
     async def disable_workspace_memberships(self, *, organization_id: UUID, user_id: UUID) -> None:
         # Tortoise 在 UPDATE + 关联字段过滤（workspace__organization_id）下会生成
         # Postgres 不合法 SQL（FROM clause reference），因此改为两段式：

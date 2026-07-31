@@ -81,7 +81,6 @@ beforeEach(() => {
     displayName: "Demo",
     avatarUrl: null,
     avatarAssetId: null,
-    isSuperAdmin: false,
   });
   navigateMock.mockResolvedValue(undefined);
 });

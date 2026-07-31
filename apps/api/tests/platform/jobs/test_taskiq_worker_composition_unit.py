@@ -9,7 +9,10 @@ from src.agents.checkpointing import memory_agent_checkpointer
 from src.config import Settings
 from src.core import logging as app_logging
 from src.models.jobs.background_job import JobWorkloadClass
+from src.modules.commerce.access_state.fact_consumer_job_contract import COMMERCE_ACCESS_FACT_CONSUME_TASK_NAME
 from src.modules.commerce.billing_event_job_handler import BillingConnectorEventJobHandler
+from src.modules.system.admin.notifications.campaign_job_contract import NOTIFICATION_CAMPAIGN_DISPATCH_TASK_NAME
+from src.modules.system.plugins.job_contract import PLUGIN_LIFECYCLE_TASK_NAME
 from src.platform.jobs.provider_effect_recovery import PROVIDER_EFFECT_RECOVERY_SCAN_TASK_NAME
 from src.platform.jobs.workers import factory as worker_factory
 from src.platform.jobs.workers.factory import (
@@ -129,10 +132,13 @@ def test_maintenance_worker_registers_durable_recovery_and_scheduled_scan_contro
     )
 
     assert set(runtime.broker.local_task_registry) == {
+        COMMERCE_ACCESS_FACT_CONSUME_TASK_NAME,
+        NOTIFICATION_CAMPAIGN_DISPATCH_TASK_NAME,
+        PLUGIN_LIFECYCLE_TASK_NAME,
         "jobs:maintenance:provider-effect-orphan-reconcile:v1",
         PROVIDER_EFFECT_RECOVERY_SCAN_TASK_NAME,
     }
-    assert len(runtime.worker_registry.manifest) == 1
+    assert len(runtime.worker_registry.manifest) == 4
     assert runtime.control_task_names == (PROVIDER_EFFECT_RECOVERY_SCAN_TASK_NAME,)
 
 

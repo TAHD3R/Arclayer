@@ -78,30 +78,12 @@ class OrganizationWorkspaceRepository(TortoiseORMRepository):
             .all()
         )
 
-    async def list_active_non_archived_for_org(self, *, organization_id: UUID) -> list[Workspace]:
-        return (
-            await Workspace
-            .filter(organization_id=organization_id, is_active=True, archived_at=None)
-            .order_by("created_at")
-            .all()
-        )
-
     async def list_all_workspaces(self) -> list[Workspace]:
         return list(await Workspace.all())
 
     async def count_active_workspaces(self, *, organization_id: UUID) -> int:
         return int(
             await Workspace.filter(organization_id=organization_id, is_active=True, deleted_at__isnull=True).count()
-        )
-
-    async def count_active_non_archived_workspaces(self, *, organization_id: UUID) -> int:
-        return int(
-            await Workspace.filter(
-                organization_id=organization_id,
-                is_active=True,
-                archived_at__isnull=True,
-                deleted_at__isnull=True,
-            ).count()
         )
 
     async def create_workspace(
@@ -111,7 +93,7 @@ class OrganizationWorkspaceRepository(TortoiseORMRepository):
         name: str,
         description: str | None,
         created_by_user_id: UUID,
-        owner_user_id: UUID | None = None,
+        owner_user_id: UUID,
         conn: BaseDBAsyncClient | None = None,
     ) -> Workspace:
         return await Workspace.create(
@@ -136,6 +118,20 @@ class OrganizationWorkspaceRepository(TortoiseORMRepository):
             workspace_id__in=list(workspace_ids),
             status=WorkspaceMembershipStatus.ACTIVE,
         ).all()
+
+    async def has_active_membership(self, *, workspace_id: UUID, user_id: UUID) -> bool:
+        return await WorkspaceMembership.filter(
+            workspace_id=workspace_id,
+            user_id=user_id,
+            status=WorkspaceMembershipStatus.ACTIVE,
+        ).exists()
+
+    async def is_workspace_owner(self, *, workspace_id: UUID, user_id: UUID) -> bool:
+        return await Workspace.filter(
+            id=workspace_id,
+            owner_user_id=user_id,
+            deleted_at__isnull=True,
+        ).exists()
 
     async def list_users(self, *, user_ids: Sequence[UUID]) -> list[User]:
         if not user_ids:

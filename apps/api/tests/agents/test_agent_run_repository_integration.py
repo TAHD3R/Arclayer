@@ -16,6 +16,7 @@ pytestmark = pytest.mark.integration
 
 
 async def _create_project() -> tuple[Workspace, ProjectRecord]:
+    owner_user_id = uuid4()
     organization = await Organization.create(
         slug=f"agent-org-{uuid4().hex[:12]}",
         name="Agent Repository Org",
@@ -26,7 +27,8 @@ async def _create_project() -> tuple[Workspace, ProjectRecord]:
         organization_id=organization.id,
         name="Agent Repository Workspace",
         is_active=True,
-        created_by_user_id=uuid4(),
+        owner_user_id=owner_user_id,
+        created_by_user_id=owner_user_id,
     )
     project = await ProjectRecord.create(
         workspace_id=workspace.id,

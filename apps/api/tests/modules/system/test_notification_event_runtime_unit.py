@@ -10,7 +10,6 @@ from src.config import Settings
 from src.core.events import Event, EventBus
 from src.modules.system.admin.notifications import event_runtime as module
 from src.modules.system.admin.notifications.event_runtime import (
-    GLOBAL_NOTIFICATION_WORKSPACE_ID,
     NOTIFICATION_EVENT_NAMES,
     SUBSCRIBER_ID,
     NotificationEventRuntime,
@@ -24,18 +23,14 @@ class _Recipient:
 
 
 class _AudienceReader:
-    def __init__(self, *, users: list[_Recipient], super_admins: list[_Recipient]) -> None:
+    def __init__(self, *, users: list[_Recipient]) -> None:
         self.users = users
-        self.super_admins = super_admins
         self.requested_user_ids: list[UUID] = []
 
     async def get_active_users(self, user_ids: Sequence[UUID]) -> list[_Recipient]:
         self.requested_user_ids.extend(user_ids)
         requested = set(user_ids)
         return [user for user in self.users if user.id in requested]
-
-    async def list_active_super_admins(self) -> list[_Recipient]:
-        return self.super_admins
 
 
 class _EmailSender:
@@ -51,7 +46,7 @@ class _EmailSender:
 async def test_notification_runtime_subscribes_and_unsubscribes_all_events() -> None:
     runtime = NotificationEventRuntime(
         Settings(),
-        audience_reader=_AudienceReader(users=[], super_admins=[]),
+        audience_reader=_AudienceReader(users=[]),
         email_sender=_EmailSender(),
     )
     bus = EventBus()
@@ -73,7 +68,7 @@ async def test_workflow_event_prefers_assignee_and_delivers_opted_in_email(
     actor_id = uuid4()
     assignee = _Recipient(uuid4(), "assignee@example.com")
     workspace_id = uuid4()
-    audience = _AudienceReader(users=[assignee], super_admins=[])
+    audience = _AudienceReader(users=[assignee])
     email_sender = _EmailSender()
     created: list[dict[str, object]] = []
 
@@ -122,42 +117,6 @@ async def test_workflow_event_prefers_assignee_and_delivers_opted_in_email(
 
 
 @pytest.mark.asyncio
-async def test_system_event_targets_active_super_admins_in_global_workspace(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    first = _Recipient(uuid4(), None)
-    second = _Recipient(uuid4(), None)
-    audience = _AudienceReader(users=[], super_admins=[first, second])
-    created: list[dict[str, object]] = []
-
-    async def enabled_policy(**_kwargs: object) -> bool:
-        return True
-
-    async def disabled_email(**_kwargs: object) -> bool:
-        return False
-
-    async def create_record(**kwargs: object) -> object:
-        created.append(kwargs)
-        return object()
-
-    monkeypatch.setattr(module, "is_notification_group_enabled_for_event", enabled_policy)
-    monkeypatch.setattr(module, "is_notification_channel_enabled_for_event", disabled_email)
-    monkeypatch.setattr(module, "create_notification_record", create_record)
-    monkeypatch.setattr(module, "t", lambda _namespace, key, **_kwargs: key)
-    runtime = NotificationEventRuntime(
-        Settings(),
-        audience_reader=audience,
-        email_sender=_EmailSender(),
-    )
-
-    await runtime.handle_event(Event(name="system.mail.updated", actor_user_id=str(uuid4())))
-
-    assert {row["recipient_user_id"] for row in created} == {first.id, second.id}
-    assert all(row["workspace_id"] == GLOBAL_NOTIFICATION_WORKSPACE_ID for row in created)
-    assert len({row["dedupe_key"] for row in created}) == 2
-
-
-@pytest.mark.asyncio
 async def test_project_event_without_recipient_surfaces_contract_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -167,7 +126,7 @@ async def test_project_event_without_recipient_surfaces_contract_error(
     monkeypatch.setattr(module, "is_notification_group_enabled_for_event", enabled_policy)
     runtime = NotificationEventRuntime(
         Settings(),
-        audience_reader=_AudienceReader(users=[], super_admins=[]),
+        audience_reader=_AudienceReader(users=[]),
         email_sender=_EmailSender(),
     )
 

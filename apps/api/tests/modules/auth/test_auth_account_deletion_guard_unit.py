@@ -15,12 +15,10 @@ class FakeData(AccountDeletionDataProvider):
         owned_org_ids: list[UUID] | None = None,
         owned_workspace_ids: list[UUID] | None = None,
         org_other_owner: bool = True,
-        workspace_other_owner: bool = True,
     ) -> None:
         self._owned_org_ids = owned_org_ids or []
         self._owned_workspace_ids = owned_workspace_ids or []
         self._org_other_owner = org_other_owner
-        self._workspace_other_owner = workspace_other_owner
 
     async def list_owned_org_ids(self, *, user_id: UUID) -> list[UUID]:
         _ = user_id
@@ -34,9 +32,8 @@ class FakeData(AccountDeletionDataProvider):
         _ = user_id
         return list(self._owned_workspace_ids)
 
-    async def workspace_has_other_owner(self, *, workspace_id: UUID, user_id: UUID) -> bool:
-        _ = workspace_id, user_id
-        return self._workspace_other_owner
+    def transfer_workspaces(self) -> None:
+        self._owned_workspace_ids = []
 
 
 @pytest.mark.asyncio
@@ -53,16 +50,20 @@ async def test_account_delete_blocked_when_last_org_owner() -> None:
 
 
 @pytest.mark.asyncio
-async def test_account_delete_blocked_when_last_workspace_owner() -> None:
+async def test_account_delete_requires_workspace_ownership_transfer() -> None:
     user_id = uuid4()
     ws_id = uuid4()
-    guard = AccountDeletionGuard(data=FakeData(owned_workspace_ids=[ws_id], workspace_other_owner=False))
+    data = FakeData(owned_workspace_ids=[ws_id])
+    guard = AccountDeletionGuard(data=data)
 
     with pytest.raises(Forbidden) as exc:
         await guard.ensure_deletable(user_id=user_id)
 
-    assert exc.value.error == "ACCOUNT_DELETE_LAST_WORKSPACE_OWNER"
+    assert exc.value.error == "ACCOUNT_DELETE_OWNED_WORKSPACE_REQUIRES_TRANSFER"
     assert exc.value.meta == {"workspace_id": str(ws_id)}
+
+    data.transfer_workspaces()
+    await guard.ensure_deletable(user_id=user_id)
 
 
 @pytest.mark.asyncio
@@ -71,9 +72,7 @@ async def test_account_delete_allowed_when_has_other_owners() -> None:
     guard = AccountDeletionGuard(
         data=FakeData(
             owned_org_ids=[uuid4()],
-            owned_workspace_ids=[uuid4()],
             org_other_owner=True,
-            workspace_other_owner=True,
         )
     )
     await guard.ensure_deletable(user_id=user_id)

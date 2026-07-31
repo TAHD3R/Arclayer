@@ -7,6 +7,7 @@ from pydantic import ConfigDict, Field
 from src.common.schemas import BaseSchema
 from src.common.types.public_uuid import PublicUUID
 from src.models.jobs.background_job import JobAuthorityMode, JobRetryClass, JobWorkloadClass
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.jobs.registry import (
     JobPermissionRequirement,
     JobPermissionScope,
@@ -65,6 +66,7 @@ def build_builder_planning_generation_job_definition(
         visibility=JobVisibility.OWNER_ONLY,
         authority_mode=JobAuthorityMode.ACTOR_REVALIDATED,
         required_permission=permission,
+        commercial_effects=frozenset({RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT}),
         manage_permission=permission,
         initial_phase="queued",
         initial_status_key="BUILDER_PLANNING_GENERATION_STATUS_QUEUED",

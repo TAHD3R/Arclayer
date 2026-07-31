@@ -89,8 +89,7 @@ const workspaceFixtures: MyWorkspace[] = [
     iconUrl: null,
     memberCount: 3,
     membersPreview: [],
-    visibleOnly: false,
-    isCreatorAdmin: true,
+    isOwner: true,
   },
   {
     workspaceId: "ws-beta",
@@ -103,8 +102,7 @@ const workspaceFixtures: MyWorkspace[] = [
     iconUrl: null,
     memberCount: 1,
     membersPreview: [],
-    visibleOnly: false,
-    isCreatorAdmin: true,
+    isOwner: true,
   },
 ];
 

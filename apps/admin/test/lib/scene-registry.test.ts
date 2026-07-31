@@ -10,9 +10,7 @@ import { resolveSceneKey } from "@/lib/routing/scene-registry";
 
 describe("resolveSceneKey", () => {
   it("uses the notifications source path to preserve the source scene", () => {
-    expect(
-      resolveSceneKey("/notifications", "?sourceKind=global&sourcePath=%2Fsystem%2Foverview"),
-    ).toBe("global");
+    expect(resolveSceneKey("/notifications", "?sourceKind=global&sourcePath=%2F")).toBe("global");
     expect(
       resolveSceneKey(
         "/notifications",

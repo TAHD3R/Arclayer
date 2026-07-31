@@ -31,6 +31,11 @@ from src.modules.assets.jobs.thumbnail_provider_effects import (
     AssetThumbnailProviderEffectManifestV1,
     AssetThumbnailProviderOutputV1,
 )
+from src.modules.commerce.access_state.fact_consumer_job_contract import (
+    COMMERCE_ACCESS_FACT_CONSUME_JOB_TYPE,
+    COMMERCE_ACCESS_FACT_CONSUME_JOB_TYPE_VERSION,
+)
+from src.modules.commerce.access_state.fact_consumer_job_handler import CommercialAccessFactJobHandler
 from src.modules.commerce.billing_event_job_handler import BillingConnectorEventJobHandler
 from src.modules.jobs.builtin_registry import build_builtin_job_type_registry
 from src.modules.jobs.execution_errors import JobExecutionRegistryError
@@ -237,10 +242,11 @@ def test_maintenance_runtime_binds_exact_thumbnail_provider_effect_recovery(tmp_
     }
     assert identities == {
         (PROVIDER_EFFECT_RECOVERY_JOB_TYPE, PROVIDER_EFFECT_RECOVERY_JOB_TYPE_VERSION),
+        (COMMERCE_ACCESS_FACT_CONSUME_JOB_TYPE, COMMERCE_ACCESS_FACT_CONSUME_JOB_TYPE_VERSION),
         (NOTIFICATION_CAMPAIGN_DISPATCH_JOB_TYPE, NOTIFICATION_CAMPAIGN_DISPATCH_JOB_TYPE_VERSION),
         (PLUGIN_LIFECYCLE_JOB_TYPE, PLUGIN_LIFECYCLE_JOB_TYPE_VERSION),
     }
-    assert len(runtime.handlers) == 3
+    assert len(runtime.handlers) == 4
     handler = runtime.handlers.create_handler(
         job_type=PROVIDER_EFFECT_RECOVERY_JOB_TYPE,
         job_type_version=PROVIDER_EFFECT_RECOVERY_JOB_TYPE_VERSION,
@@ -253,6 +259,13 @@ def test_maintenance_runtime_binds_exact_thumbnail_provider_effect_recovery(tmp_
     assert isinstance(handler._storage, ExactAssetThumbnailProviderStorageResolver)
     assert handler._pipeline._storage_resolver is handler._storage
     assert handler._storage._route_operations is handler._effects._operations
+    assert isinstance(
+        runtime.handlers.create_handler(
+            job_type=COMMERCE_ACCESS_FACT_CONSUME_JOB_TYPE,
+            job_type_version=COMMERCE_ACCESS_FACT_CONSUME_JOB_TYPE_VERSION,
+        ),
+        CommercialAccessFactJobHandler,
+    )
     campaign_handler = runtime.handlers.create_handler(
         job_type=NOTIFICATION_CAMPAIGN_DISPATCH_JOB_TYPE,
         job_type_version=NOTIFICATION_CAMPAIGN_DISPATCH_JOB_TYPE_VERSION,
@@ -306,11 +319,12 @@ def test_production_handler_factory_registry_rejects_a_missing_builtin_job(tmp_p
             r"'builder.design.generate v1', "
             r"'builder.planning.generate v1', "
             r"'builder.sitemap.generate v1', 'builder.wireframe.generate v1', "
+            r"'commerce.access-fact.consume v1', "
             r"'design_system.concept.generate v1', "
             r"'knowledge.source.index v1', 'knowledge.source.ingest v1', "
             r"'notification.campaign.dispatch v1', "
             r"'provider.effect.orphan.reconcile v1', 'skill.github.import v1', "
-            r"'skill.github.refresh v1', 'system.plugin.lifecycle v1'\]"
+            r"'skill.github.refresh v1', 'system.plugin.lifecycle v2'\]"
         ),
     ):
         factories.build_registrations(job_types=job_types)

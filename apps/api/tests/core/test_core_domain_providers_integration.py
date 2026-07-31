@@ -43,6 +43,7 @@ async def test_core_domain_short_paths(prepared_db) -> None:
             organization_id=org.id,
             name="Site",
             is_active=True,
+            owner_user_id=user.id,
             created_by_user_id=user.id,
         )
 

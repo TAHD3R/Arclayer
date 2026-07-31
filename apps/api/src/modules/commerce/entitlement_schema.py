@@ -21,26 +21,11 @@ class EntitlementDefinition(BaseSchema):
     )
 
 
-class PlanEntitlementFeature(BaseSchema):
-    """Strict authorization projection of one plan feature record."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
-
-    key: str = Field(min_length=1, max_length=64)
-    label: str = Field(min_length=1, max_length=120)
-    label_i18n_key: str | None = Field(default=None, max_length=128)
-    description: str | None = Field(default=None, max_length=300)
-    description_i18n_key: str | None = Field(default=None, max_length=128)
-    included: bool = True
-    value: str | int | bool | None = None
-
-
 type EntitlementDecisionReason = Literal[
     "granted",
     "subscription_missing",
     "subscription_inactive",
     "subscription_period_expired",
-    "plan_inactive",
     "feature_missing",
     "feature_excluded",
 ]
@@ -80,5 +65,9 @@ class EntitlementRegistry:
 
 
 SITE_GENERATION_ENTITLEMENT: Final = "sites.generate"
+WORKSPACE_ROLES_MANAGE_ENTITLEMENT: Final = "workspace.roles.manage"
 
-DEFAULT_ENTITLEMENT_REGISTRY = EntitlementRegistry((EntitlementDefinition(key=SITE_GENERATION_ENTITLEMENT),))
+DEFAULT_ENTITLEMENT_REGISTRY = EntitlementRegistry((
+    EntitlementDefinition(key=SITE_GENERATION_ENTITLEMENT),
+    EntitlementDefinition(key=WORKSPACE_ROLES_MANAGE_ENTITLEMENT),
+))

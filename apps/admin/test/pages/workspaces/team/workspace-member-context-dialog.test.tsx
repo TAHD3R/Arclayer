@@ -66,6 +66,7 @@ const memberFixture = {
   id: "member-1",
   membershipId: "membership-1",
   membershipStatus: "active" as const,
+  isOwner: false,
   userId: "user-1",
   username: "ada",
   email: "ada@example.com",

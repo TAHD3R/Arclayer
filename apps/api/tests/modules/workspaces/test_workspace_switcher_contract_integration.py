@@ -11,6 +11,7 @@ from src.core.database.orm import verify_db_ready
 from src.core.registry import create_app
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.user import User
+from src.models.platform_identity.identity import PlatformInstanceOwnership
 from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
 from src.modules.auth.http.service import get_current_user, get_current_user_id
 from src.modules.auth.repository import UserRepository
@@ -44,8 +45,8 @@ async def test_me_workspaces_returns_workspace_items(prepared_db, integration_va
             email="founder@example.com",
             display_name="Founder",
             password_hash=hash_password("switcher_password_123", settings.auth),
-            is_super_admin=True,
         )
+        await PlatformInstanceOwnership.create(owner_user_id=founder.id, singleton_key="instance", revision=1)
         setup_service.write_install_lock(setup_service.build_install_lock_metadata(initialized_by_user_id=founder.id))
 
         org = await org_repo.create_organization(slug=f"org_{uuid4().hex}", name="Org")
@@ -62,6 +63,7 @@ async def test_me_workspaces_returns_workspace_items(prepared_db, integration_va
             slug=f"workspace_{uuid4().hex[:8]}",
             name="Workspace",
             is_active=True,
+            owner_user_id=user.id,
             created_by_user_id=user.id,
             icon_mode="glyph",
             icon_color="#2563eb",
@@ -129,8 +131,8 @@ async def test_me_workspaces_reports_existing_workspace_without_identity_mode_st
             email="founder@example.com",
             display_name="Founder",
             password_hash=hash_password("switcher_password_123", settings.auth),
-            is_super_admin=True,
         )
+        await PlatformInstanceOwnership.create(owner_user_id=founder.id, singleton_key="instance", revision=1)
         setup_service.write_install_lock(setup_service.build_install_lock_metadata(initialized_by_user_id=founder.id))
 
         org = await org_repo.create_organization(slug=f"legacy_org_{uuid4().hex}", name="Legacy Org")
@@ -147,6 +149,7 @@ async def test_me_workspaces_reports_existing_workspace_without_identity_mode_st
             slug=f"legacy_workspace_{uuid4().hex[:8]}",
             name="Existing Workspace",
             is_active=True,
+            owner_user_id=user.id,
             created_by_user_id=user.id,
             icon_mode="emoji",
             icon_color="#22c55e",

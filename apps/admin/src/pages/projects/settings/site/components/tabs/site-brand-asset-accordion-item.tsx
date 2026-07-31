@@ -12,7 +12,7 @@ import { AvatarUploadSlot } from "@/components/common/avatar-upload-slot";
 import { resolvePublicAssetUrlPath } from "@/lib/assets/asset-urls";
 import { uploadSingleAssetFromFile } from "@/lib/assets/scoped-uploads";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { SystemSettingRow } from "@/pages/system/components/system-setting-item";
+import { SystemSettingRow } from "@/components/settings/setting-item";
 import type { GeneralSettingsFormValues, WithSavingKeyFn } from "@/types/settings-general";
 import { formatSummaryText, normalizeOptionalString } from "./site-settings-tab-helpers";
 

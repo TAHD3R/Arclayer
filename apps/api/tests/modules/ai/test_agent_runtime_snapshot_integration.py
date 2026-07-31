@@ -75,6 +75,7 @@ async def _running_run() -> tuple[
         organization_id=organization.id,
         name="Snapshot Workspace",
         is_active=True,
+        owner_user_id=owner_id,
         created_by_user_id=owner_id,
     )
     project = await ProjectRecord.create(

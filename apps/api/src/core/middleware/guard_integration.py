@@ -26,7 +26,6 @@ from guard_core.protocols.response_protocol import GuardResponse
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp
 
-from src.config import Settings
 from src.core.http.response import ApiResponse as ResponseBuilder
 from src.core.i18n import get_request_locale, t
 from src.core.middleware.guard_decorators import guard_decorator
@@ -275,8 +274,8 @@ def _build_guard_response_modifier(csrf_settings: SecuritySettings.CSRFSettings)
     return _response_modifier
 
 
-def build_guard_config(settings: Settings) -> GuardSecurityConfig:
-    payload = settings.security.model_dump(
+def build_guard_config(security: SecuritySettings) -> GuardSecurityConfig:
+    payload = security.model_dump(
         mode="python",
         exclude={
             "enabled",
@@ -287,8 +286,8 @@ def build_guard_config(settings: Settings) -> GuardSecurityConfig:
             "custom_penetration_patterns",
         },
     )
-    payload["custom_request_check"] = _build_guard_request_check(settings.security.csrf)
-    payload["custom_response_modifier"] = _build_guard_response_modifier(settings.security.csrf)
+    payload["custom_request_check"] = _build_guard_request_check(security.csrf)
+    payload["custom_response_modifier"] = _build_guard_response_modifier(security.csrf)
     return GuardSecurityConfig(**payload)
 
 
@@ -320,11 +319,11 @@ async def _sync_custom_penetration_patterns(patterns: list[str]) -> None:
         await sus_patterns_handler.add_pattern(pattern, custom=True)
 
 
-async def initialize_guard_runtime(app: FastAPI, settings: Settings) -> None:
-    if not settings.security.enabled:
+async def initialize_guard_runtime(app: FastAPI, security: SecuritySettings) -> None:
+    if not security.enabled:
         return
 
-    config = build_guard_config(settings)
+    config = build_guard_config(security)
     await _reset_guard_singletons(config)
     app.state.guard_security_config = config
     guard_decorator.config = config
@@ -346,7 +345,7 @@ async def initialize_guard_runtime(app: FastAPI, settings: Settings) -> None:
                 ttl=config.cloud_ip_refresh_interval,
             )
 
-    await _sync_custom_penetration_patterns(settings.security.custom_penetration_patterns)
+    await _sync_custom_penetration_patterns(security.custom_penetration_patterns)
     app.state.guard_redis_manager = redis_manager
 
 

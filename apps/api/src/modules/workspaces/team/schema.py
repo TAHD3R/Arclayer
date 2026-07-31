@@ -35,6 +35,7 @@ class WorkspaceTeamUserOptionOut(BaseSchema):
 class WorkspaceTeamMemberOut(BaseOut):
     membership_id: PublicUUID = Field(..., description="Workspace membership id.")
     membership_status: WorkspaceMembershipStatus = Field(..., description="Workspace membership status.")
+    is_owner: bool = Field(..., description="Whether this user is the canonical workspace owner.")
 
     user_id: PublicUUID = Field(..., description="User id.")
     username: str = Field(..., description="Username.")

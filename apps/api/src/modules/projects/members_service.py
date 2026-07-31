@@ -34,14 +34,14 @@ class ProjectMembersService(BaseService):
             raise NotFound("Workspace not found", error="WORKSPACE_NOT_FOUND")
 
         workspace_user_ids = set(await self.repo.get_workspace_member_user_ids(workspace_id=workspace_id))
-        owner_user_ids = await self.repo.get_owner_user_ids(organization_id=workspace.organization_id)
-        member_user_ids = workspace_user_ids | owner_user_ids | {actor_user_id}
+        owner_user_id = await self.repo.get_owner_user_id(workspace_id=workspace_id)
+        member_user_ids = workspace_user_ids | {owner_user_id}
         if not member_user_ids:
             return
 
         rows = []
         for user_id in sorted(member_user_ids):
-            role = ProjectMemberRole.OWNER if user_id in owner_user_ids else ProjectMemberRole.VIEWER
+            role = ProjectMemberRole.OWNER if user_id == owner_user_id else ProjectMemberRole.VIEWER
             rows.append(
                 ProjectMembership(
                     project_id=project_id,

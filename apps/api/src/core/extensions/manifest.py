@@ -122,7 +122,6 @@ class ExtensionAdmin(BaseModel):
 
     label_key: str = Field(..., min_length=3, max_length=160)
     description_key: str = Field(..., min_length=3, max_length=160)
-    settings_path: str | None = Field(default=None, pattern=r"^/system(?:/[a-z0-9_-]+)+$")
 
 
 class ExtensionManifest(BaseModel):

@@ -44,13 +44,9 @@ class MyWorkspaceOut(BaseOut):
     )
     created_at: datetime | None = Field(default=None, description="Workspace creation time.")
 
-    visible_only: bool = Field(
+    is_owner: bool = Field(
         default=False,
-        description="If true, workspace is visible but user cannot manage it without explicit grant.",
-    )
-    is_creator_admin: bool = Field(
-        default=False,
-        description="If true, current user is org owner and workspace creator; has implicit admin management rights.",
+        description="Whether the current user is the canonical Workspace Owner.",
     )
 
 
@@ -221,6 +217,17 @@ class LeaveWorkspaceResult(BaseSchema):
 class WorkspaceDeleteResult(BaseSchema):
     workspace_id: PublicUUID = Field(..., description="Deleted workspace id.")
     deleted: bool = Field(default=True, description="Whether workspace was deleted.")
+
+
+class WorkspaceOwnershipTransferRequest(BaseSchema):
+    next_owner_user_id: PublicUUID = Field(..., description="Active Workspace member receiving ownership.")
+
+
+class WorkspaceOwnershipTransferOut(BaseSchema):
+    workspace_id: PublicUUID = Field(..., description="Workspace id.")
+    previous_owner_user_id: PublicUUID = Field(..., description="Previous Workspace Owner user id.")
+    next_owner_user_id: PublicUUID = Field(..., description="New Workspace Owner user id.")
+    correlation_id: PublicUUID = Field(..., description="Audit correlation id for the completed transfer.")
 
 
 class WorkspaceDangerActionOut(BaseSchema):

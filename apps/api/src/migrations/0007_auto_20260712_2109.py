@@ -1,13 +1,28 @@
-from tortoise import migrations
-from tortoise.migrations import operations as ops
 from orjson import loads
-from src.common.utils.ids import uuid7
-from src.models.commerce.billing import BillingCycle, CommercePlanTier, CreditLedgerEntryType, CreditRefreshInterval, SubscriptionChangeRequestStatus, SubscriptionStatus
-from src.models.feedback.feedback import FeedbackCategory, FeedbackContextType, FeedbackMessageKind, FeedbackPriority, FeedbackSource, FeedbackStatus
+from tortoise import fields, migrations
 from tortoise.fields.base import OnDelete
 from tortoise.fields.data import JSON_DUMPS
-from tortoise import fields
 from tortoise.indexes import Index
+from tortoise.migrations import operations as ops
+
+from src.common.utils.ids import uuid7
+from src.migrations.models.commerce_legacy import (
+    BillingCycle,
+    CommercePlanTier,
+    CreditLedgerEntryType,
+    CreditRefreshInterval,
+    SubscriptionChangeRequestStatus,
+    SubscriptionStatus,
+)
+from src.models.feedback.feedback import (
+    FeedbackCategory,
+    FeedbackContextType,
+    FeedbackMessageKind,
+    FeedbackPriority,
+    FeedbackSource,
+    FeedbackStatus,
+)
+
 
 class Migration(migrations.Migration):
     dependencies = [('models', '0006_auto_20260705_2106')]

@@ -8,9 +8,10 @@ from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
-from src.models.organization.user import User
 from src.modules.analytics.audit import write_required_activity_event
-from src.modules.auth.http.service import get_current_user, require_super_admin
+from src.modules.platform_identity.http import require_platform_permission
+from src.modules.platform_identity.permissions import PlatformPermissionCode
+from src.modules.platform_identity.session_schema import PlatformSessionPrincipal
 from src.modules.system.agents.repository import SystemAgentRepository
 from src.modules.system.agents.schema import (
     AgentVersionCreateRequest,
@@ -29,15 +30,9 @@ from src.modules.system.agents.schema import (
 from src.modules.system.agents.service import SystemAgentCatalogService
 from src.modules.system.agents.skill_grant_validator import TenantAgentVersionSkillGrantValidator
 
-router = APIRouter(
-    tags=["internal.system.agents"],
-    dependencies=[Depends(require_super_admin)],
-)
+router = APIRouter(tags=["internal.system.agents"])
 
-assignments_router = APIRouter(
-    tags=["internal.system.agent-assignments"],
-    dependencies=[Depends(require_super_admin)],
-)
+assignments_router = APIRouter(tags=["internal.system.agent-assignments"])
 
 
 def get_system_agent_catalog_service(
@@ -55,6 +50,7 @@ def get_system_agent_catalog_service(
     "/capabilities",
     response_model=ResponseModel[SystemAgentCatalogCapabilitiesOut],
     summary="Get System Agent control-plane capabilities",
+    dependencies=[require_platform_permission(PlatformPermissionCode.AI_AGENTS_READ)],
 )
 async def get_system_agent_capabilities() -> ResponseModel[SystemAgentCatalogCapabilitiesOut]:
     return ApiResponse.success(data=SystemAgentCatalogService.capabilities())
@@ -64,6 +60,7 @@ async def get_system_agent_capabilities() -> ResponseModel[SystemAgentCatalogCap
     "",
     response_model=ResponseModel[PageData[SystemAgentDefinitionSummaryOut]],
     summary="List System Agent definitions",
+    dependencies=[require_platform_permission(PlatformPermissionCode.AI_AGENTS_READ)],
 )
 async def list_system_agents(
     params: PageParams = Depends(get_page_params),
@@ -93,13 +90,13 @@ async def list_system_agents(
 )
 async def create_system_agent(
     payload: SystemAgentDefinitionCreateRequest,
-    actor: User = Depends(get_current_user),
+    principal: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.AI_AGENTS_MANAGE),
     service: SystemAgentCatalogService = Depends(get_system_agent_catalog_service),
 ) -> ResponseModel[SystemAgentDefinitionDetailOut]:
     return ApiResponse.success(
         data=await service.create_definition(
             payload=payload,
-            actor_user_id=actor.id,
+            actor_user_id=principal.actor_id,
         )
     )
 
@@ -108,6 +105,7 @@ async def create_system_agent(
     "/{definition_id}",
     response_model=ResponseModel[SystemAgentDefinitionDetailOut],
     summary="Get a System Agent definition",
+    dependencies=[require_platform_permission(PlatformPermissionCode.AI_AGENTS_READ)],
 )
 async def get_system_agent(
     definition_id: PublicUUID,
@@ -124,14 +122,14 @@ async def get_system_agent(
 async def update_system_agent(
     definition_id: PublicUUID,
     payload: SystemAgentDefinitionUpdateRequest,
-    actor: User = Depends(get_current_user),
+    principal: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.AI_AGENTS_MANAGE),
     service: SystemAgentCatalogService = Depends(get_system_agent_catalog_service),
 ) -> ResponseModel[SystemAgentDefinitionDetailOut]:
     return ApiResponse.success(
         data=await service.update_definition(
             definition_id=definition_id,
             payload=payload,
-            actor_user_id=actor.id,
+            actor_user_id=principal.actor_id,
         )
     )
 
@@ -140,6 +138,7 @@ async def update_system_agent(
     "/{definition_id}/versions",
     response_model=ResponseModel[SystemAgentVersionListOut],
     summary="List immutable versions for a System Agent",
+    dependencies=[require_platform_permission(PlatformPermissionCode.AI_AGENTS_READ)],
 )
 async def list_system_agent_versions(
     definition_id: PublicUUID,
@@ -158,14 +157,14 @@ async def list_system_agent_versions(
 async def create_system_agent_version(
     definition_id: PublicUUID,
     payload: AgentVersionCreateRequest,
-    actor: User = Depends(get_current_user),
+    principal: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.AI_AGENTS_MANAGE),
     service: SystemAgentCatalogService = Depends(get_system_agent_catalog_service),
 ) -> ResponseModel[SystemAgentVersionOut]:
     return ApiResponse.success(
         data=await service.create_version(
             definition_id=definition_id,
             payload=payload,
-            actor_user_id=actor.id,
+            actor_user_id=principal.actor_id,
         )
     )
 
@@ -179,14 +178,14 @@ async def retire_system_agent_version(
     definition_id: PublicUUID,
     version_id: PublicUUID,
     _payload: AgentVersionRetireRequest,
-    actor: User = Depends(get_current_user),
+    principal: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.AI_AGENTS_MANAGE),
     service: SystemAgentCatalogService = Depends(get_system_agent_catalog_service),
 ) -> ResponseModel[SystemAgentVersionOut]:
     return ApiResponse.success(
         data=await service.retire_version(
             definition_id=definition_id,
             version_id=version_id,
-            actor_user_id=actor.id,
+            actor_user_id=principal.actor_id,
         )
     )
 
@@ -195,6 +194,7 @@ async def retire_system_agent_version(
     "",
     response_model=ResponseModel[PageData[SystemAgentAssignmentOut]],
     summary="List System Agent assignments",
+    dependencies=[require_platform_permission(PlatformPermissionCode.AI_ASSIGNMENTS_READ)],
 )
 async def list_system_agent_assignments(
     params: PageParams = Depends(get_page_params),
@@ -223,13 +223,13 @@ async def list_system_agent_assignments(
 )
 async def create_system_agent_assignment(
     payload: SystemAgentAssignmentCreateRequest,
-    actor: User = Depends(get_current_user),
+    principal: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.AI_ASSIGNMENTS_MANAGE),
     service: SystemAgentCatalogService = Depends(get_system_agent_catalog_service),
 ) -> ResponseModel[SystemAgentAssignmentOut]:
     return ApiResponse.success(
         data=await service.create_assignment(
             payload=payload,
-            actor_user_id=actor.id,
+            actor_user_id=principal.actor_id,
         )
     )
 
@@ -242,13 +242,13 @@ async def create_system_agent_assignment(
 async def update_system_agent_assignment(
     assignment_id: PublicUUID,
     payload: SystemAgentAssignmentUpdateRequest,
-    actor: User = Depends(get_current_user),
+    principal: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.AI_ASSIGNMENTS_MANAGE),
     service: SystemAgentCatalogService = Depends(get_system_agent_catalog_service),
 ) -> ResponseModel[SystemAgentAssignmentOut]:
     return ApiResponse.success(
         data=await service.update_assignment(
             assignment_id=assignment_id,
             payload=payload,
-            actor_user_id=actor.id,
+            actor_user_id=principal.actor_id,
         )
     )

@@ -22,8 +22,9 @@ from src.modules.assets.admin.uploads.schema import (
 from src.modules.assets.admin.uploads.service import UploadsService
 from src.modules.assets.scope import AssetScope
 from src.modules.auth.http.service import get_current_user
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.jobs.service import BackgroundJobService
-from src.modules.projects.http.router_helpers import require_project_permission
+from src.modules.projects.http.router_helpers import require_project_commercial_effect, require_project_permission
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
 from src.modules.tenancy.router_helpers import resolve_project_tenant_context
@@ -55,7 +56,10 @@ def _project_scope(ctx: ProjectRequestContext) -> AssetScope:
     "/uploads/init",
     response_model=ResponseModel[UploadInitOut],
     summary="Initialize project upload session",
-    dependencies=[require_project_permission("project:assets:manage")],
+    dependencies=[
+        require_project_permission("project:assets:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def init_upload(
     payload: UploadInitRequest,
@@ -121,7 +125,10 @@ async def get_upload_status(
     "/uploads/{upload_id}/parts/{part_number}",
     response_model=ResponseModel[None],
     summary="Upload a project asset part",
-    dependencies=[require_project_permission("project:assets:manage")],
+    dependencies=[
+        require_project_permission("project:assets:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def upload_part(
     request: Request,
@@ -144,7 +151,10 @@ async def upload_part(
     "/uploads/{upload_id}/complete",
     response_model=ResponseModel[UploadCompleteOut],
     summary="Complete project upload",
-    dependencies=[require_project_permission("project:assets:manage")],
+    dependencies=[
+        require_project_permission("project:assets:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def complete_upload(
     upload_id: PublicUUID,
@@ -160,7 +170,10 @@ async def complete_upload(
     "/uploads/{upload_id}/abort",
     response_model=ResponseModel[UploadAbortOut],
     summary="Abort project upload",
-    dependencies=[require_project_permission("project:assets:manage")],
+    dependencies=[
+        require_project_permission("project:assets:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def abort_upload(
     upload_id: PublicUUID,
@@ -176,7 +189,10 @@ async def abort_upload(
     "/uploads/{upload_id}/parts/{part_number}/presign",
     response_model=ResponseModel[UploadPartPresignOut],
     summary="Presign project upload part",
-    dependencies=[require_project_permission("project:assets:manage")],
+    dependencies=[
+        require_project_permission("project:assets:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def presign_upload_part(
     upload_id: PublicUUID,
@@ -193,7 +209,10 @@ async def presign_upload_part(
     "/uploads/{upload_id}/parts/{part_number}/commit",
     response_model=ResponseModel[None],
     summary="Commit project upload part",
-    dependencies=[require_project_permission("project:assets:manage")],
+    dependencies=[
+        require_project_permission("project:assets:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def commit_upload_part(
     upload_id: PublicUUID,

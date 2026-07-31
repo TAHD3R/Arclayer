@@ -20,7 +20,7 @@ class RBACRepository(TortoiseORMRepository):
 
     # -------- Roles (workspace-scoped) --------
     def query_roles(self, *, workspace_id: UUID) -> QuerySet[SystemRole]:
-        return SystemRole.filter(workspace_id=workspace_id).order_by("code")
+        return SystemRole.filter(workspace_id=workspace_id, ended_at=None).order_by("code")
 
     async def list_roles(
         self,
@@ -41,7 +41,7 @@ class RBACRepository(TortoiseORMRepository):
         code: str,
         conn: BaseDBAsyncClient | None = None,
     ) -> SystemRole | None:
-        return await SystemRole.get_or_none(workspace_id=workspace_id, code=code, using_db=conn)
+        return await SystemRole.get_or_none(workspace_id=workspace_id, code=code, ended_at=None, using_db=conn)
 
     async def create_role(
         self,
@@ -253,7 +253,10 @@ class RBACRepository(TortoiseORMRepository):
         Return (permission_code, role_code) edges for a workspace.
         """
 
-        rows = await SystemRolePermission.filter(role__workspace_id=workspace_id).values_list(
+        rows = await SystemRolePermission.filter(
+            role__workspace_id=workspace_id,
+            role__ended_at=None,
+        ).values_list(
             "permission__code",
             "role__code",
         )

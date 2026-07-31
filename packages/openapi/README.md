@@ -2,9 +2,10 @@
 
 基于 FastAPI 的 OpenAPI 文档自动生成的 TypeScript SDK（含类型与请求方法）。
 
-`packages/openapi` 是仓库内唯一的后端 API 边界请求/响应类型来源。后端 API
-类型从 `apps/api` 的 FastAPI/Pydantic schema 导出并生成；不要在 Admin、SDK
-或其它客户端里手写、复制或通过 facade 包转发后端请求/响应 shape。
+`packages/openapi` 是 Product API 边界请求/响应类型来源。Product API 类型从
+`apps/api` 的 Product FastAPI/Pydantic composition 导出并生成；不要在 Admin、
+SDK 或其它客户端里手写、复制或通过 facade 包转发后端请求/响应 shape。Platform
+API 使用独立的 `packages/platform-openapi`，两个 package 不互相转发类型。
 
 ## 生成
 

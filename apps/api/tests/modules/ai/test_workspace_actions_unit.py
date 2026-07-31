@@ -43,6 +43,11 @@ from src.modules.projects.source.schema import (
 from src.modules.workspaces.http.schema import WorkspaceAccessType, WorkspaceContext
 
 
+class _CommercialPolicy:
+    async def authorize(self, *, workspace_id, effects) -> None:
+        _ = workspace_id, effects
+
+
 async def execute_workspace_ai_action(
     payload: WorkspaceAIActionRequest,
     *,
@@ -55,6 +60,7 @@ async def execute_workspace_ai_action(
         request=request,
         user_id=user_id,
         settings=settings,
+        commercial_policy=cast(workspace_actions.RestrictedRecoveryCommandPolicy, _CommercialPolicy()),
     )
 
 
@@ -1080,7 +1086,11 @@ async def test_execute_workspace_ai_action_creates_project_with_canonical_servic
         "ensure_workspace_permission_granted",
         fake_ensure_workspace_permission_granted,
     )
-    monkeypatch.setattr(workspace_actions, "ProjectService", FakeProjectService)
+    monkeypatch.setattr(
+        workspace_actions,
+        "build_project_service",
+        lambda settings: FakeProjectService(settings),
+    )
     monkeypatch.setattr(workspace_actions, "ProjectSourceService", FakeProjectSourceService)
     monkeypatch.setattr(workspace_actions, "ProjectSettingsService", FakeProjectSettingsService)
     monkeypatch.setattr(workspace_actions, "DomainBindingService", FakeDomainBindingService)
@@ -3197,7 +3207,11 @@ async def test_execute_workspace_ai_action_lists_projects_without_manage_permiss
         fake_resolve_workspace_context_by_id,
     )
     monkeypatch.setattr(workspace_actions, "require_workspace_manage_access", fail_manage_access)
-    monkeypatch.setattr(workspace_actions, "ProjectService", FakeProjectService)
+    monkeypatch.setattr(
+        workspace_actions,
+        "build_project_service",
+        lambda settings: FakeProjectService(settings),
+    )
     _install_planner(
         monkeypatch,
         _tool_decision("list_projects", {"query": "Launch"}),

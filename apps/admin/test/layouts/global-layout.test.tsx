@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { listProjects } from "@/api/projects";
 import { GlobalLayout } from "@/layouts/global-layout";
-import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -16,15 +15,6 @@ let preferencesState = {
   sidebarWidthPx: 260,
   setSidebarWidthPx: vi.fn(),
 };
-
-function collectNavKeys(
-  items: Array<{ key: string; children?: Array<{ key: string }> }>,
-): string[] {
-  return items.flatMap((item) => [
-    item.key,
-    ...(item.children ? collectNavKeys(item.children) : []),
-  ]);
-}
 
 function renderWithQueryClient(component: React.ReactElement) {
   const queryClient = new QueryClient({
@@ -117,10 +107,6 @@ vi.mock("@/layouts/page-shell/content-guard", () => ({
   ContentGuard: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
 }));
 
-vi.mock("@/hooks/use-current-user-profile", () => ({
-  useCurrentUserProfile: vi.fn(),
-}));
-
 vi.mock("@/api/projects", () => ({
   listProjects: vi.fn(),
 }));
@@ -208,13 +194,6 @@ describe("GlobalLayout", () => {
       next: null,
       prev: null,
     });
-    vi.mocked(useCurrentUserProfile).mockReturnValue({
-      isSuperAdmin: false,
-      isLoading: false,
-      isError: false,
-      refetch: vi.fn(),
-      profile: null,
-    } as unknown as ReturnType<typeof useCurrentUserProfile>);
   });
 
   it("keeps the global shell sidebar collapsible so desktop rail can drive collapse", () => {
@@ -229,13 +208,13 @@ describe("GlobalLayout", () => {
 
   it("keeps global navigation populated and active on the notifications route", () => {
     mockPathname = "/notifications";
-    mockSearchStr = "?sourceKind=global&sourcePath=%2Fsystem%2Foverview";
+    mockSearchStr = "?sourceKind=global&sourcePath=%2Fprojects";
 
     renderWithQueryClient(<GlobalLayout />);
 
     const sceneProps = sceneLayoutSpy.mock.calls.at(-1)?.[0];
     expect(sceneProps?.mainItems.length).toBeGreaterThan(0);
-    expect(sceneProps?.sidebarPathnameOverride).toBe("/system/overview");
+    expect(sceneProps?.sidebarPathnameOverride).toBe("/projects");
   });
 
   it("clears stale project context when returning to a global route", async () => {
@@ -254,7 +233,7 @@ describe("GlobalLayout", () => {
     expect(useWorkspaceStore.getState().lastProjectId).toBe("project-alpha");
   });
 
-  it("keeps all projects visible while hiding platform from non-super-admin global navigation", () => {
+  it("keeps global navigation limited to Product entries", () => {
     renderWithQueryClient(<GlobalLayout />);
 
     const projectsItem = sceneLayoutSpy.mock.calls[0]?.[0]?.mainItems?.find(
@@ -273,52 +252,7 @@ describe("GlobalLayout", () => {
         item.key.startsWith("global.recent-project."),
       ),
     ).toBe(false);
-    expect(navKeys.some((key: string) => key.startsWith("global.platform."))).toBe(false);
-  });
-
-  it("shows platform alongside projects when the current user is a super admin", () => {
-    vi.mocked(useCurrentUserProfile).mockReturnValue({
-      isSuperAdmin: true,
-      isLoading: false,
-      isError: false,
-      refetch: vi.fn(),
-      profile: { isSuperAdmin: true },
-    } as unknown as ReturnType<typeof useCurrentUserProfile>);
-
-    renderWithQueryClient(<GlobalLayout />);
-
-    const navKeys = collectNavKeys(sceneLayoutSpy.mock.calls[0]?.[0]?.mainItems ?? []);
-    const projectsItem = sceneLayoutSpy.mock.calls[0]?.[0]?.mainItems?.find(
-      (item: { key: string }) => item.key === "global.projects",
-    );
-    expect(navKeys).toContain("global.projects");
-    expect(navKeys).toContain("global.platform.overview");
-    expect(navKeys).toContain("global.platform.tenants");
-    expect(projectsItem).toMatchObject({
-      labelKey: "nav:NAV_ALL_PROJECTS",
-      to: "/projects",
-    });
-    expect(projectsItem?.children).toBeUndefined();
-  });
-
-  it("keeps the global shell aligned with the resolved outlet route while navigation is pending", () => {
-    vi.mocked(useCurrentUserProfile).mockReturnValue({
-      isSuperAdmin: true,
-      isLoading: false,
-      isError: false,
-      refetch: vi.fn(),
-      profile: { isSuperAdmin: true },
-    } as unknown as ReturnType<typeof useCurrentUserProfile>);
-    mockPathname = "/system/tenants";
-    mockResolvedPathname = "/system";
-
-    renderWithQueryClient(<GlobalLayout />);
-
-    const sceneProps = sceneLayoutSpy.mock.calls.at(-1)?.[0];
-    expect(sceneProps?.sidebarPathnameOverride).toBe("/system");
-
-    const breadcrumbs = topbarSpy.mock.calls.at(-1)?.[0]?.breadcrumbs ?? [];
-    expect(breadcrumbs.at(-1)?.key).toBe("global.platform.configuration");
+    expect(navKeys).toHaveLength(6);
   });
 
   it("includes the resources placeholder before projects in global navigation", () => {

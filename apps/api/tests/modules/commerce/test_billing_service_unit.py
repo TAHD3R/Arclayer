@@ -15,8 +15,12 @@ from src.modules.commerce.billing_connector import (
     CheckoutSession,
     build_billing_operation_idempotency_key,
 )
-from src.modules.commerce.billing_service import BillingService, WorkspaceBillingReader
-from src.modules.commerce.repository import BillingCheckoutPlan, BillingPlanReader
+from src.modules.commerce.billing_service import (
+    BillingCheckoutReader,
+    BillingCheckoutSelection,
+    BillingService,
+    WorkspaceBillingReader,
+)
 from src.modules.commerce.schema import CheckoutSessionCreate
 
 
@@ -43,31 +47,58 @@ def test_billing_operation_idempotency_key_is_stable_and_hides_business_identifi
 
 
 @pytest.mark.asyncio
+async def test_checkout_readiness_uses_revision_scoped_provider_prices() -> None:
+    available_revision_id = uuid4()
+    revision_ids = {available_revision_id, uuid4()}
+    plans = SimpleNamespace(list_checkout_revision_ids=AsyncMock(return_value={available_revision_id}))
+    provider = SimpleNamespace(provider_mode="live")
+    service = BillingService(
+        settings=get_settings(),
+        provider=cast(BillingConnector, provider),
+        provider_name="stripe",
+        plans=cast(BillingCheckoutReader, plans),
+        commerce=cast(WorkspaceBillingReader, SimpleNamespace()),
+    )
+
+    available = await service.list_checkout_revision_ids(revision_ids=revision_ids)
+
+    assert available == {available_revision_id}
+    plans.list_checkout_revision_ids.assert_awaited_once_with(
+        revision_ids=revision_ids,
+        provider="stripe",
+        provider_mode="live",
+    )
+
+
+@pytest.mark.asyncio
 async def test_checkout_creation_does_not_mutate_local_subscription() -> None:
     workspace_id = uuid4()
     subscription = SimpleNamespace(
         id=uuid4(),
-        plan_id=uuid4(),
+        plan_revision_id=uuid4(),
         billing_cycle=BillingCycle.MONTHLY,
         external_customer_id=None,
     )
-    current_plan = SimpleNamespace(id=subscription.plan_id)
-    target_plan = BillingCheckoutPlan(
-        id=uuid4(),
-        code="premium",
+    current_revision = SimpleNamespace(id=subscription.plan_revision_id)
+    target_plan = BillingCheckoutSelection(
+        plan_id=uuid4(),
+        plan_revision_id=uuid4(),
+        external_price_id="price_premiumYearly",
         currency="USD",
     )
     commerce = SimpleNamespace(
-        ensure_workspace_billing=AsyncMock(return_value=(subscription, SimpleNamespace(), current_plan)),
+        ensure_workspace_billing=AsyncMock(return_value=(subscription, SimpleNamespace(), current_revision)),
     )
     provider = SimpleNamespace(
+        provider_mode="test",
         create_checkout_session=AsyncMock(return_value=CheckoutSession(url="https://checkout.stripe.test/cs_test")),
     )
-    plans = SimpleNamespace(get_active_checkout_plan=AsyncMock(return_value=target_plan))
+    plans = SimpleNamespace(get_published_checkout_selection=AsyncMock(return_value=target_plan))
     service = BillingService(
         settings=get_settings(),
         provider=cast(BillingConnector, provider),
-        plans=cast(BillingPlanReader, plans),
+        provider_name="stripe",
+        plans=cast(BillingCheckoutReader, plans),
         commerce=cast(WorkspaceBillingReader, commerce),
     )
 
@@ -77,12 +108,19 @@ async def test_checkout_creation_does_not_mutate_local_subscription() -> None:
     )
 
     assert result.url == "https://checkout.stripe.test/cs_test"
-    assert subscription.plan_id == current_plan.id
+    assert subscription.plan_revision_id == current_revision.id
     assert subscription.billing_cycle == BillingCycle.MONTHLY
-    plans.get_active_checkout_plan.assert_awaited_once_with(code="premium")
+    plans.get_published_checkout_selection.assert_awaited_once_with(
+        plan_code="premium",
+        provider="stripe",
+        provider_mode="test",
+        billing_cycle=BillingCycle.YEARLY,
+    )
     provider.create_checkout_session.assert_awaited_once_with(
         workspace_id=str(workspace_id),
-        plan_code="premium",
+        plan_id=str(target_plan.plan_id),
+        plan_revision_id=str(target_plan.plan_revision_id),
+        external_price_id="price_premiumYearly",
         billing_cycle="yearly",
         currency="USD",
         success_url="https://app.arclayer.localhost/?billing=success",
@@ -93,8 +131,10 @@ async def test_checkout_creation_does_not_mutate_local_subscription() -> None:
             business_identity=(
                 str(workspace_id),
                 str(subscription.id),
-                str(current_plan.id),
-                "premium",
+                str(current_revision.id),
+                str(target_plan.plan_id),
+                str(target_plan.plan_revision_id),
+                "price_premiumYearly",
                 "yearly",
             ),
         ),
@@ -106,18 +146,20 @@ async def test_checkout_rejects_a_missing_active_plan_before_provider_io() -> No
     workspace_id = uuid4()
     subscription = SimpleNamespace(
         id=uuid4(),
+        plan_revision_id=uuid4(),
         billing_cycle=BillingCycle.MONTHLY,
         external_customer_id=None,
     )
     commerce = SimpleNamespace(
         ensure_workspace_billing=AsyncMock(return_value=(subscription, SimpleNamespace(), SimpleNamespace(id=uuid4()))),
     )
-    provider = SimpleNamespace(create_checkout_session=AsyncMock())
-    plans = SimpleNamespace(get_active_checkout_plan=AsyncMock(return_value=None))
+    provider = SimpleNamespace(provider_mode="test", create_checkout_session=AsyncMock())
+    plans = SimpleNamespace(get_published_checkout_selection=AsyncMock(return_value=None))
     service = BillingService(
         settings=get_settings(),
         provider=cast(BillingConnector, provider),
-        plans=cast(BillingPlanReader, plans),
+        provider_name="stripe",
+        plans=cast(BillingCheckoutReader, plans),
         commerce=cast(WorkspaceBillingReader, commerce),
     )
 
@@ -128,7 +170,7 @@ async def test_checkout_rejects_a_missing_active_plan_before_provider_io() -> No
         )
 
     assert captured.value.error == "COMMERCE_PLAN_NOT_FOUND"
-    plans.get_active_checkout_plan.assert_awaited_once_with(code="retired")
+    plans.get_published_checkout_selection.assert_awaited_once()
     provider.create_checkout_session.assert_not_awaited()
 
 
@@ -139,9 +181,9 @@ async def test_portal_creation_uses_a_state_bound_idempotency_key() -> None:
         id=uuid4(),
         external_customer_id="cus_test",
     )
-    current_plan = SimpleNamespace(id=uuid4())
+    current_revision = SimpleNamespace(id=uuid4())
     commerce = SimpleNamespace(
-        ensure_workspace_billing=AsyncMock(return_value=(subscription, SimpleNamespace(), current_plan)),
+        ensure_workspace_billing=AsyncMock(return_value=(subscription, SimpleNamespace(), current_revision)),
     )
     provider = SimpleNamespace(
         create_portal_session=AsyncMock(return_value=CheckoutSession(url="https://billing.stripe.test/session")),
@@ -149,7 +191,8 @@ async def test_portal_creation_uses_a_state_bound_idempotency_key() -> None:
     service = BillingService(
         settings=get_settings(),
         provider=cast(BillingConnector, provider),
-        plans=cast(BillingPlanReader, SimpleNamespace()),
+        provider_name="stripe",
+        plans=cast(BillingCheckoutReader, SimpleNamespace()),
         commerce=cast(WorkspaceBillingReader, commerce),
     )
 
@@ -164,7 +207,7 @@ async def test_portal_creation_uses_a_state_bound_idempotency_key() -> None:
             business_identity=(
                 str(workspace_id),
                 str(subscription.id),
-                str(current_plan.id),
+                str(current_revision.id),
                 "cus_test",
             ),
         ),

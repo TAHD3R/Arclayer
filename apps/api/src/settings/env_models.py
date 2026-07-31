@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any, Literal
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -317,6 +318,128 @@ class AuthSettings(BaseSettings):
     cookie: CookieSettings = Field(default_factory=CookieSettings)
 
 
+class PlatformAuthSettings(BaseSettings):
+    """Authentication and device-session policy owned exclusively by the Platform API."""
+
+    class CookieSettings(BaseModel):
+        enabled: bool = Field(default=False, description="Whether Platform session credentials use an HttpOnly cookie.")
+        name: str = Field(default="arclayer_platform_session", min_length=1, max_length=128)
+        domain: str | None = Field(default=None)
+        secure: bool = Field(default=False)
+        httponly: bool = Field(default=True)
+        samesite: Literal["lax", "strict", "none"] = Field(default="lax")
+
+        @field_validator("domain", mode="after")
+        @classmethod
+        def _normalize_domain(cls, value: str | None) -> str | None:
+            if value is None:
+                return None
+            normalized = value.strip()
+            return normalized or None
+
+    class DeviceSessionSettings(BaseModel):
+        inactivity_ttl_seconds: int = Field(default=1800, ge=1)
+        absolute_ttl_seconds: int = Field(default=28800, ge=1)
+        policy_revision: int = Field(default=1, ge=1)
+
+        @model_validator(mode="after")
+        def validate_lifetime_window(self) -> PlatformAuthSettings.DeviceSessionSettings:
+            if self.absolute_ttl_seconds < self.inactivity_ttl_seconds:
+                raise ValueError(
+                    "device session absolute_ttl_seconds must be greater than or equal to inactivity_ttl_seconds"
+                )
+            return self
+
+    class WebAuthnSettings(BaseModel):
+        """Explicit relying-party boundary for Platform security keys and passkeys."""
+
+        rp_id: str | None = Field(default=None, max_length=255)
+        origin: str | None = Field(default=None, max_length=2048)
+        rp_name: str = Field(default="Arclayer Platform", min_length=1, max_length=128)
+        challenge_ttl_seconds: int = Field(default=300, ge=1)
+        allowed_cose_algorithms: tuple[int, ...] = Field(default=(-7, -257), min_length=1)
+
+        @field_validator("rp_id", mode="after")
+        @classmethod
+        def _normalize_rp_id(cls, value: str | None) -> str | None:
+            if value is None:
+                return None
+            normalized = value.strip().lower().rstrip(".")
+            if not normalized:
+                return None
+            if "://" in normalized or any(character in normalized for character in "/:@"):
+                raise ValueError("WebAuthn rp_id must be a hostname without scheme, port, credentials, or path")
+            try:
+                normalized.encode("idna")
+            except UnicodeError as exc:
+                raise ValueError("WebAuthn rp_id must be a valid hostname") from exc
+            return normalized
+
+        @field_validator("origin", mode="after")
+        @classmethod
+        def _normalize_origin(cls, value: str | None) -> str | None:
+            if value is None:
+                return None
+            parsed = urlsplit(value.strip())
+            if (
+                parsed.scheme not in {"http", "https"}
+                or not parsed.hostname
+                or parsed.username is not None
+                or parsed.password is not None
+                or parsed.query
+                or parsed.fragment
+                or parsed.path not in {"", "/"}
+            ):
+                raise ValueError("WebAuthn origin must contain only scheme, host, and optional port")
+            if (
+                parsed.scheme == "http"
+                and parsed.hostname != "localhost"
+                and not parsed.hostname.endswith(".localhost")
+            ):
+                raise ValueError("WebAuthn origin requires HTTPS outside localhost development")
+            return f"{parsed.scheme}://{parsed.netloc.lower()}"
+
+        @field_validator("allowed_cose_algorithms", mode="after")
+        @classmethod
+        def _validate_algorithms(cls, value: tuple[int, ...]) -> tuple[int, ...]:
+            supported = {-7, -8, -257}
+            if len(set(value)) != len(value) or not set(value).issubset(supported):
+                raise ValueError("WebAuthn algorithms must be unique supported COSE algorithm identifiers")
+            return value
+
+        @model_validator(mode="after")
+        def _validate_relying_party_boundary(self) -> PlatformAuthSettings.WebAuthnSettings:
+            if (self.rp_id is None) != (self.origin is None):
+                raise ValueError("WebAuthn rp_id and origin must be configured together")
+            if self.rp_id is None or self.origin is None:
+                return self
+            origin_host = urlsplit(self.origin).hostname
+            if origin_host is None:
+                raise ValueError("WebAuthn origin must contain a hostname")
+            if origin_host != self.rp_id and not origin_host.endswith(f".{self.rp_id}"):
+                raise ValueError("WebAuthn origin host must equal or be a subdomain of rp_id")
+            return self
+
+    model_config = SettingsConfigDict(
+        env_prefix="PLATFORM_AUTH__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    jwt_secret: SecretStr = Field(default=SecretStr(""))
+    jwt_algorithm: str = Field(default="HS256", min_length=1)
+    jwt_issuer: str = Field(default="arclayer-platform", min_length=1)
+    jwt_audience: str = Field(default="arclayer-platform", min_length=1)
+    access_token_ttl_seconds: int = Field(default=900, ge=1)
+    cookie: CookieSettings = Field(default_factory=CookieSettings)
+    device_session: DeviceSessionSettings = Field(default_factory=DeviceSessionSettings)
+    webauthn: WebAuthnSettings = Field(default_factory=WebAuthnSettings)
+
+
 class PublicIdSettings(BaseSettings):
     """
     Public ID encoding settings.
@@ -448,10 +571,6 @@ class BillingSettings(BaseSettings):
     stripe_secret_key: SecretStr = Field(default=SecretStr(""))
     stripe_webhook_secret: SecretStr = Field(default=SecretStr(""))
     stripe_api_base_url: str = Field(default="https://api.stripe.com/v1")
-    stripe_price_ids: dict[str, str] = Field(
-        default_factory=dict,
-        description="Stable Stripe Price IDs keyed by planCode:billingCycle:CURRENCY.",
-    )
     webhook_tolerance_seconds: int = Field(default=300, ge=30, le=3_600)
     webhook_event_retention_days: int = Field(
         default=30,
@@ -459,10 +578,6 @@ class BillingSettings(BaseSettings):
         le=3_650,
         description="Retention window for encrypted raw billing events used by replay and reconciliation.",
     )
-
-    @property
-    def checkout_enabled(self) -> bool:
-        return self._stripe_configured and bool(self.stripe_price_ids)
 
     @property
     def webhook_enabled(self) -> bool:
@@ -667,3 +782,25 @@ class SecuritySettings(BaseSettings):
         ]
         value.trusted_origins = [item.strip().rstrip("/") for item in value.trusted_origins if item and item.strip()]
         return value
+
+
+class PlatformSecuritySettings(SecuritySettings):
+    """Security policy owned by the independently hosted Platform API."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="PLATFORM_SECURITY__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    csrf: SecuritySettings.CSRFSettings = Field(
+        default_factory=lambda: SecuritySettings.CSRFSettings(
+            cookie_name="platform_csrf_token",
+            protected_path_prefixes=["/platform-api"],
+            exempt_path_prefixes=[],
+        )
+    )

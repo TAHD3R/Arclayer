@@ -84,6 +84,5 @@ async def resolve_project_context_by_id(
         org_membership_id=workspace_ctx.org_membership_id,
         is_org_owner=workspace_ctx.is_org_owner,
         workspace_membership_id=workspace_ctx.workspace_membership_id,
-        visible_only=workspace_ctx.visible_only,
-        is_creator_admin=workspace_ctx.is_creator_admin,
+        is_workspace_owner=workspace_ctx.is_workspace_owner,
     )

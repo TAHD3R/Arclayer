@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
@@ -27,7 +28,7 @@ class WorkspaceTeamRepository(TortoiseORMRepository):
     def query_memberships(
         self, *, workspace_id: UUID, filters: WorkspaceTeamMemberListQuery
     ) -> QuerySet[WorkspaceMembership]:
-        qs = WorkspaceMembership.filter(workspace_id=workspace_id).select_related("user")
+        qs = WorkspaceMembership.filter(workspace_id=workspace_id).select_related("user", "workspace")
 
         if filters.status is not None:
             qs = qs.filter(status=filters.status)
@@ -45,7 +46,11 @@ class WorkspaceTeamRepository(TortoiseORMRepository):
             qs = qs.filter(user__status=filters.user_status)
 
         if filters.role_code:
-            qs = qs.filter(membership_roles__role__code=filters.role_code)
+            qs = qs.filter(
+                membership_roles__ended_at=None,
+                membership_roles__role__ended_at=None,
+                membership_roles__role__code=filters.role_code,
+            )
 
         ordering = (filters.ordering or "").strip()
         if ordering:
@@ -65,7 +70,7 @@ class WorkspaceTeamRepository(TortoiseORMRepository):
         qs = WorkspaceMembership.filter(id=membership_id, workspace_id=workspace_id)
         if conn is not None:
             qs = qs.using_db(conn)
-        return await qs.select_related("user").first()
+        return await qs.select_related("user", "workspace").first()
 
     async def get_membership_with_roles(
         self,
@@ -76,7 +81,7 @@ class WorkspaceTeamRepository(TortoiseORMRepository):
         qs = WorkspaceMembership.filter(id=membership_id)
         if conn is not None:
             qs = qs.using_db(conn)
-        return await qs.select_related("user").prefetch_related("membership_roles__role").first()
+        return await qs.select_related("user", "workspace").prefetch_related("membership_roles__role").first()
 
     async def query_user_options(self, *, workspace_id: UUID, q: str | None) -> QuerySet[WorkspaceMembership]:
         qs = (
@@ -118,12 +123,12 @@ class WorkspaceTeamRepository(TortoiseORMRepository):
         role_ids: list[UUID],
         conn: BaseDBAsyncClient | None = None,
     ) -> None:
-        delete_qs = WorkspaceMembershipRole.filter(membership_id=membership_id)
+        delete_qs = WorkspaceMembershipRole.filter(membership_id=membership_id, ended_at=None)
         if conn is not None:
             delete_qs = delete_qs.using_db(conn)
-        await delete_qs.delete()
+        await delete_qs.update(ended_at=datetime.now(UTC))
         for rid in role_ids:
-            await WorkspaceMembershipRole.get_or_create(
+            await WorkspaceMembershipRole.create(
                 membership_id=membership_id,
                 role_id=rid,
                 using_db=conn,
@@ -138,7 +143,7 @@ class WorkspaceTeamRepository(TortoiseORMRepository):
     ) -> list[SystemRole]:
         if not role_codes:
             return []
-        qs = SystemRole.filter(workspace_id=workspace_id, code__in=role_codes)
+        qs = SystemRole.filter(workspace_id=workspace_id, code__in=role_codes, ended_at=None)
         if conn is not None:
             qs = qs.using_db(conn)
         return await qs.all()

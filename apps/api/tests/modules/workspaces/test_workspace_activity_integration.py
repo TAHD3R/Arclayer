@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+from typing import Any, cast
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
@@ -7,44 +10,26 @@ import pytest
 from src.config import get_settings
 from src.models.analytics.audit_event import AuditEvent
 from src.models.organization.org_membership import OrgMembership, OrgRole
+from src.models.system.access_restriction import AccessRestrictionReasonCategory
 from src.models.system.rbac import SystemRole
 from src.models.system.setting import SettingRecord
 from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipRole
+from src.modules.access_restrictions.schema import AccessRestrictionEnforceRequest
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.tokens.service import hash_password
 from src.modules.organization.repository import OrganizationRepository
 from src.modules.organization.workspaces import service as org_workspaces_service_module
 from src.modules.organization.workspaces.schema import OrganizationWorkspaceCreateRequest
 from src.modules.organization.workspaces.service import OrganizationWorkspaceService
-from src.modules.system.rbac.constants.service import ROLE_EDITOR, ROLE_OWNER, ROLE_VIEWER
+from src.modules.system.rbac.constants.service import ROLE_EDITOR, ROLE_VIEWER
 from src.modules.workspaces import service as workspace_service_module
-from src.modules.workspaces.danger_service import WorkspaceDangerService
-from src.modules.workspaces.schema import (
-    WorkspaceDangerActionOut,
-    WorkspaceDangerCapabilitiesOut,
-    WorkspaceUpdateRequest,
-)
+from src.modules.workspaces.authz.role_management import WorkspaceRoleManagementAvailability
+from src.modules.workspaces.schema import WorkspaceUpdateRequest
 from src.modules.workspaces.service import WorkspaceService
 from src.modules.workspaces.settings import service as workspace_settings_service_module
 from src.modules.workspaces.settings.service import WorkspaceSettingsService
 
 pytestmark = pytest.mark.integration
-
-
-class _AllowWorkspaceDangerService(WorkspaceDangerService):
-    async def get_capabilities(
-        self,
-        *,
-        organization_id,
-        workspace_id,
-        user_id,
-    ):  # type: ignore[no-untyped-def]
-        return WorkspaceDangerCapabilitiesOut(
-            workspace_id=workspace_id,
-            confirm_delete_name="",
-            leave_action=WorkspaceDangerActionOut(enabled=True),
-            delete_action=WorkspaceDangerActionOut(enabled=True),
-        )
 
 
 async def test_workspace_create_activity_readback_and_rollback(db_schema, monkeypatch) -> None:
@@ -72,7 +57,6 @@ async def test_workspace_create_activity_readback_and_rollback(db_schema, monkey
     created = await service.create_workspace(
         organization_id=org.id,
         user_id=owner.id,
-        org_role=OrgRole.OWNER,
         payload=OrganizationWorkspaceCreateRequest(
             name="Created Workspace",
             description="Created description",
@@ -95,8 +79,9 @@ async def test_workspace_create_activity_readback_and_rollback(db_schema, monkey
 
     workspace = await Workspace.get(id=created.workspace_id)
     membership = await WorkspaceMembership.get(workspace_id=workspace.id, user_id=owner.id)
-    owner_role = await SystemRole.get(workspace_id=workspace.id, code=ROLE_OWNER)
-    assert await WorkspaceMembershipRole.filter(membership_id=membership.id, role_id=owner_role.id).exists()
+    assert workspace.owner_user_id == owner.id
+    assert not await WorkspaceMembershipRole.filter(membership_id=membership.id).exists()
+    assert not await SystemRole.filter(workspace_id=workspace.id, code="owner").exists()
     assert await SettingRecord.filter(scope_type="workspace", scope_id=workspace.id, namespace="core").exists()
 
     original_write_required_activity_event = org_workspaces_service_module.write_required_activity_event
@@ -115,7 +100,6 @@ async def test_workspace_create_activity_readback_and_rollback(db_schema, monkey
         await service.create_workspace(
             organization_id=org.id,
             user_id=owner.id,
-            org_role=OrgRole.OWNER,
             payload=OrganizationWorkspaceCreateRequest(name="Rollback Create Workspace"),
         )
 
@@ -149,6 +133,7 @@ async def test_workspace_update_activity_readback_and_rollback(db_schema, monkey
         name="Original Workspace",
         description="Original description",
         is_active=True,
+        owner_user_id=owner.id,
         created_by_user_id=owner.id,
     )
 
@@ -206,10 +191,7 @@ async def test_workspace_update_activity_readback_and_rollback(db_schema, monkey
 async def test_workspace_archive_delete_activity_readback_and_rollback(db_schema, monkeypatch) -> None:
     _ = db_schema
     settings = get_settings()
-    service = OrganizationWorkspaceService(
-        settings,
-        workspace_danger_service=_AllowWorkspaceDangerService(settings),
-    )
+    service = OrganizationWorkspaceService(settings)
     org_repo = OrganizationRepository()
     user_repo = UserRepository()
 
@@ -231,20 +213,30 @@ async def test_workspace_archive_delete_activity_readback_and_rollback(db_schema
         organization_id=org.id,
         name="Archive Workspace",
         is_active=True,
+        owner_user_id=owner.id,
         created_by_user_id=owner.id,
     )
     rollback_archive_workspace = await Workspace.create(
         organization_id=org.id,
         name="Rollback Archive Workspace",
         is_active=True,
+        owner_user_id=owner.id,
         created_by_user_id=owner.id,
+    )
+
+    archive_payload = AccessRestrictionEnforceRequest(
+        expected_revision=0,
+        reason_category=AccessRestrictionReasonCategory.OTHER,
+        reason_code="owner_archive",
+        operator_note="Owner requested archive",
     )
 
     await service.archive_workspace(
         organization_id=org.id,
         workspace_id=archive_workspace.id,
         user_id=owner.id,
-        org_role=OrgRole.OWNER,
+        idempotency_key="archive-workspace",
+        payload=archive_payload,
     )
 
     archived_event = await AuditEvent.filter(
@@ -275,7 +267,8 @@ async def test_workspace_archive_delete_activity_readback_and_rollback(db_schema
             organization_id=org.id,
             workspace_id=rollback_archive_workspace.id,
             user_id=owner.id,
-            org_role=OrgRole.OWNER,
+            idempotency_key="rollback-archive-workspace",
+            payload=archive_payload,
         )
     await rollback_archive_workspace.refresh_from_db()
     assert await AuditEvent.filter(event_name="workspace.archived").count() == event_count_before
@@ -290,6 +283,7 @@ async def test_workspace_archive_delete_activity_readback_and_rollback(db_schema
         organization_id=org.id,
         name="Delete Workspace",
         is_active=True,
+        owner_user_id=owner.id,
         created_by_user_id=owner.id,
     )
     delete_workspace.archived_at = archive_workspace.archived_at
@@ -300,7 +294,6 @@ async def test_workspace_archive_delete_activity_readback_and_rollback(db_schema
         organization_id=org.id,
         workspace_id=delete_workspace.id,
         user_id=owner.id,
-        org_role=OrgRole.OWNER,
         confirm_name="Delete Workspace",
     )
     deleted_event = await AuditEvent.filter(
@@ -319,6 +312,7 @@ async def test_workspace_archive_delete_activity_readback_and_rollback(db_schema
         organization_id=org.id,
         name="Rollback Delete Workspace",
         is_active=True,
+        owner_user_id=owner.id,
         created_by_user_id=owner.id,
     )
     rollback_delete_workspace.archived_at = archive_workspace.archived_at
@@ -340,7 +334,6 @@ async def test_workspace_archive_delete_activity_readback_and_rollback(db_schema
             organization_id=org.id,
             workspace_id=rollback_delete_workspace.id,
             user_id=owner.id,
-            org_role=OrgRole.OWNER,
             confirm_name="Rollback Delete Workspace",
         )
     assert await AuditEvent.filter(event_name="workspace.deleted").count() == event_count_before
@@ -351,7 +344,22 @@ async def test_workspace_role_policy_activity_readback_and_rollback(db_schema, m
     _ = db_schema
     settings = get_settings()
     workspace_lifecycle_service = OrganizationWorkspaceService(settings)
-    settings_service = WorkspaceSettingsService(settings)
+    settings_service = WorkspaceSettingsService(
+        settings,
+        role_management_reader=cast(
+            Any,
+            SimpleNamespace(
+                get_availability=AsyncMock(
+                    return_value=WorkspaceRoleManagementAvailability(
+                        workspace_id=uuid4(),
+                        plan_revision_id=uuid4(),
+                        commercial_access_state="normal",
+                        included=True,
+                    )
+                )
+            ),
+        ),
+    )
     org_repo = OrganizationRepository()
     user_repo = UserRepository()
 
@@ -378,7 +386,6 @@ async def test_workspace_role_policy_activity_readback_and_rollback(db_schema, m
     created = await workspace_lifecycle_service.create_workspace(
         organization_id=org.id,
         user_id=owner.id,
-        org_role=OrgRole.OWNER,
         payload=OrganizationWorkspaceCreateRequest(name="Role Policy Workspace"),
     )
     workspace_id = created.workspace_id

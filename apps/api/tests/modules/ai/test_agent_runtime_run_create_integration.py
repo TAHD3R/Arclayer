@@ -51,6 +51,7 @@ async def _scope() -> tuple[Workspace, ProjectRecord, UUID]:
         organization_id=organization.id,
         name="Agent Run Create Workspace",
         is_active=True,
+        owner_user_id=owner_user_id,
         created_by_user_id=owner_user_id,
     )
     project = await ProjectRecord.create(

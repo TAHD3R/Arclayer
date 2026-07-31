@@ -43,11 +43,18 @@ from src.modules.assets.jobs import (
     TenantAssetThumbnailRepository,
     build_asset_thumbnail_provider_effect_contract,
 )
+from src.modules.commerce.access_state.fact_consumer_job_contract import (
+    COMMERCE_ACCESS_FACT_CONSUME_JOB_TYPE,
+    COMMERCE_ACCESS_FACT_CONSUME_JOB_TYPE_VERSION,
+)
+from src.modules.commerce.access_state.fact_consumer_job_handler import CommercialAccessFactJobHandler
 from src.modules.commerce.billing_event_job_contract import (
     BILLING_CONNECTOR_EVENT_JOB_TYPE,
     BILLING_CONNECTOR_EVENT_JOB_TYPE_VERSION,
 )
 from src.modules.commerce.billing_event_job_handler import BillingConnectorEventJobHandler
+from src.modules.commerce.dunning.command_policy import build_commercial_access_job_authorizer
+from src.modules.hosting.commercial_access_consumer import HostingCommercialAccessConsumer
 from src.modules.jobs.actor_authorizer import WorkspaceActorJobAuthorizer
 from src.modules.jobs.builtin_registry import build_builtin_job_type_registry
 from src.modules.jobs.execution_boundary import (
@@ -115,6 +122,10 @@ from src.modules.system.admin.notifications.campaign_job_contract import (
     NOTIFICATION_CAMPAIGN_DISPATCH_JOB_TYPE_VERSION,
 )
 from src.modules.system.admin.notifications.campaign_job_handler import NotificationCampaignJobHandler
+from src.modules.system.admin.notifications.commercial_lifecycle_consumer import (
+    CommercialLifecycleNotificationConsumer,
+    TortoiseCommercialLifecycleNotificationPersistence,
+)
 from src.modules.system.plugins.job_contract import (
     PLUGIN_LIFECYCLE_JOB_TYPE,
     PLUGIN_LIFECYCLE_JOB_TYPE_VERSION,
@@ -285,6 +296,7 @@ def build_job_execution_runtime(
             project_resolver=project_resolver,
             workspace_resolver=_build_workspace_target_resolver(),
             actor_authorizer=WorkspaceActorJobAuthorizer(),
+            commercial_access_authorizer=build_commercial_access_job_authorizer(),
         ),
     )
     return JobExecutionRuntime(
@@ -409,6 +421,17 @@ def _build_production_handler_factories(
         ),
         (
             JobTypeKey(
+                job_type=COMMERCE_ACCESS_FACT_CONSUME_JOB_TYPE,
+                job_type_version=COMMERCE_ACCESS_FACT_CONSUME_JOB_TYPE_VERSION,
+            ),
+            partial(
+                _build_commercial_access_fact_handler,
+                settings=settings,
+                connector_registry=connector_registry,
+            ),
+        ),
+        (
+            JobTypeKey(
                 job_type=PROVIDER_EFFECT_RECOVERY_JOB_TYPE,
                 job_type_version=PROVIDER_EFFECT_RECOVERY_JOB_TYPE_VERSION,
             ),
@@ -443,6 +466,20 @@ def _build_billing_connector_event_handler(
     return BillingConnectorEventJobHandler(
         settings=settings,
         connectors=connector_registry,
+    )
+
+
+def _build_commercial_access_fact_handler(
+    *,
+    settings: Settings,
+    connector_registry: ConnectorRegistry,
+) -> CommercialAccessFactJobHandler:
+    return CommercialAccessFactJobHandler(
+        hosting=HostingCommercialAccessConsumer(),
+        notifications=CommercialLifecycleNotificationConsumer(
+            persistence=TortoiseCommercialLifecycleNotificationPersistence(),
+            email_sender=EmailService(settings, connector_registry=connector_registry),
+        ),
     )
 
 

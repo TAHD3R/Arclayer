@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -9,6 +10,14 @@ import {
 import { SettingsScreenHost } from "@/components/layout/usercenter-overlay-host";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { SettingsScreen } from "@/lib/settings/settings-screen";
+
+const commerceMocks = vi.hoisted(() => ({
+  getWorkspaceCommerceOverview: vi.fn(),
+}));
+
+vi.mock("@/api/commerce", () => ({
+  getWorkspaceCommerceOverview: commerceMocks.getWorkspaceCommerceOverview,
+}));
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -38,6 +47,12 @@ vi.mock(
     ),
   }),
 );
+
+vi.mock("@/pages/workspaces/settings/workspace/plan-usage/plan-usage-view", () => ({
+  WorkspacePlanUsageView: ({ workspaceId }: { workspaceId: string }) => (
+    <div data-testid="overlay-workspace-plan-usage-view">{workspaceId}</div>
+  ),
+}));
 
 vi.mock("@/pages/workspaces/team/members/components/team-members-view", () => ({
   TeamMembersView: ({
@@ -102,11 +117,14 @@ function OpenSettingsButton(props: { screen: SettingsScreen }) {
 
 async function renderSettingsHost(initialScreen: SettingsScreen = "personal.profile") {
   const user = userEvent.setup();
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
-    <SettingsScreenProvider>
-      <OpenSettingsButton screen={initialScreen} />
-      <SettingsScreenHost />
-    </SettingsScreenProvider>,
+    <QueryClientProvider client={queryClient}>
+      <SettingsScreenProvider>
+        <OpenSettingsButton screen={initialScreen} />
+        <SettingsScreenHost />
+      </SettingsScreenProvider>
+    </QueryClientProvider>,
   );
   await user.click(screen.getByRole("button", { name: "Open settings" }));
   return user;
@@ -114,6 +132,12 @@ async function renderSettingsHost(initialScreen: SettingsScreen = "personal.prof
 
 describe("SettingsScreenHost", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
+    commerceMocks.getWorkspaceCommerceOverview.mockResolvedValue({
+      planRevision: {
+        entitlements: [{ key: "workspace.roles.manage", isIncluded: true }],
+      },
+    });
     useWorkspaceStore.setState({
       currentWorkspaceId: "ws-alpha",
       currentProjectId: "project-alpha",
@@ -238,6 +262,29 @@ describe("SettingsScreenHost", () => {
     await user.click(screen.getByRole("button", { name: "TEAM_ROLES_ADD_ROLE" }));
 
     expect(screen.getByTestId("overlay-workspace-roles-create-state")).toHaveTextContent("true");
+  });
+
+  it("does not mount Roles when the server projection omits the feature", async () => {
+    commerceMocks.getWorkspaceCommerceOverview.mockResolvedValue({
+      planRevision: { entitlements: [] },
+    });
+    await renderSettingsHost("workspace.roles");
+
+    await waitFor(() => {
+      expect(screen.getByTestId("overlay-workspace-plan-usage-view")).toHaveTextContent("ws-alpha");
+    });
+    expect(screen.queryByTestId("overlay-workspace-roles-view")).toBeNull();
+    expect(screen.getByText("workspaceAccess:ROLES_ELIGIBLE_PLAN_BADGE")).toBeInTheDocument();
+  });
+
+  it("surfaces a capability lookup error without mounting Roles", async () => {
+    commerceMocks.getWorkspaceCommerceOverview.mockRejectedValue(new Error("projection failed"));
+    await renderSettingsHost("workspace.roles");
+
+    await waitFor(() => {
+      expect(screen.getByText("workspaceAccess:ROLES_ACCESS_CHECK_FAILED_BADGE")).toBeVisible();
+    });
+    expect(screen.queryByTestId("overlay-workspace-roles-view")).toBeNull();
   });
 
   it("mounts a dedicated internal scroll region for overlay content", async () => {

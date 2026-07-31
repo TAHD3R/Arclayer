@@ -39,6 +39,7 @@ function buildWorkspaceListItem(
     isArchived: false,
     archivedAt: null,
     archivedByUserId: null,
+    archiveRevision: 0,
     memberCount: 0,
     membersPreview: [],
     createdAt: null,

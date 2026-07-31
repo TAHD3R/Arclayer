@@ -70,7 +70,7 @@ function resolveContextType(input: {
 }
 
 function useFeedbackSubmission(options: FeedbackSubmissionOptions) {
-  const { t } = useTranslation(["platform"]);
+  const { t } = useTranslation(["feedback"]);
   const queryClient = useQueryClient();
   const clientRequestIdRef = useRef<string | null>(null);
   const workspaceId = useWorkspaceStore(
@@ -107,7 +107,7 @@ function useFeedbackSubmission(options: FeedbackSubmissionOptions) {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["dataTable", "system-feedback-center"] });
-      notifySuccessText(t("platform:FEEDBACK_DIALOG_SUCCESS"));
+      notifySuccessText(t("feedback:FEEDBACK_DIALOG_SUCCESS"));
       clientRequestIdRef.current = null;
       options.onSuccess();
     },
@@ -115,18 +115,18 @@ function useFeedbackSubmission(options: FeedbackSubmissionOptions) {
 }
 
 function validateFeedback(message: string, t: (key: string, values?: { count: number }) => string) {
-  if (!message) return t("platform:FEEDBACK_VALIDATION_REQUIRED");
+  if (!message) return t("feedback:FEEDBACK_VALIDATION_REQUIRED");
   if (message.length < FEEDBACK_MIN_LENGTH) {
-    return t("platform:FEEDBACK_VALIDATION_MIN_LENGTH", { count: FEEDBACK_MIN_LENGTH });
+    return t("feedback:FEEDBACK_VALIDATION_MIN_LENGTH", { count: FEEDBACK_MIN_LENGTH });
   }
   if (message.length > FEEDBACK_MAX_LENGTH) {
-    return t("platform:FEEDBACK_VALIDATION_MAX_LENGTH", { count: FEEDBACK_MAX_LENGTH });
+    return t("feedback:FEEDBACK_VALIDATION_MAX_LENGTH", { count: FEEDBACK_MAX_LENGTH });
   }
   return null;
 }
 
 export function FeedbackComposer(props: FeedbackComposerProps) {
-  const { t } = useTranslation(["platform", "common"]);
+  const { t } = useTranslation(["feedback", "common"]);
   const isHeaderPopover = props.variant === "popover";
   const defaultIntent = props.initialIntent ?? (isHeaderPopover ? "problem" : null);
   const sectionPaddingClassName = isHeaderPopover ? "px-3" : "px-4";
@@ -186,10 +186,10 @@ export function FeedbackComposer(props: FeedbackComposerProps) {
         ) : null}
         <div className="min-w-0 flex-1">
           <h2 className="text-callout font-semibold text-label-primary">
-            {t("platform:FEEDBACK_COMPOSER_TITLE")}
+            {t("feedback:FEEDBACK_COMPOSER_TITLE")}
           </h2>
           <p className="mt-0.5 text-footnote leading-snug text-label-secondary">
-            {t("platform:FEEDBACK_COMPOSER_DESCRIPTION")}
+            {t("feedback:FEEDBACK_COMPOSER_DESCRIPTION")}
           </p>
         </div>
         {props.onCancel && !isHeaderPopover ? (
@@ -209,7 +209,7 @@ export function FeedbackComposer(props: FeedbackComposerProps) {
       {!props.lockIntent ? (
         <div
           role="radiogroup"
-          aria-label={t("platform:FEEDBACK_DIALOG_INTENT_LABEL")}
+          aria-label={t("feedback:FEEDBACK_DIALOG_INTENT_LABEL")}
           className={cn(
             "grid grid-cols-2 gap-1.5 pb-3",
             sectionPaddingClassName,
@@ -238,7 +238,7 @@ export function FeedbackComposer(props: FeedbackComposerProps) {
                 }}
               >
                 <Icon className="size-3.5" aria-hidden="true" />
-                {t(`platform:${option.labelKey}`)}
+                {t(`feedback:${option.labelKey}`)}
               </Button>
             );
           })}
@@ -256,9 +256,9 @@ export function FeedbackComposer(props: FeedbackComposerProps) {
             value={message}
             rows={4}
             autoFocus={props.autoFocus !== false && Boolean(defaultIntent)}
-            aria-label={t("platform:FEEDBACK_DIALOG_MESSAGE_LABEL")}
+            aria-label={t("feedback:FEEDBACK_DIALOG_MESSAGE_LABEL")}
             aria-invalid={Boolean(validationError)}
-            placeholder={t("platform:FEEDBACK_DIALOG_MESSAGE_PLACEHOLDER")}
+            placeholder={t("feedback:FEEDBACK_DIALOG_MESSAGE_PLACEHOLDER")}
             onChange={(event) => {
               setMessage(event.target.value);
               if (validationError) setValidationError(null);
@@ -272,7 +272,7 @@ export function FeedbackComposer(props: FeedbackComposerProps) {
             className="min-h-24 resize-none rounded-none border-0 bg-transparent px-3 py-2.5 text-callout shadow-none focus-visible:ring-0 md:text-callout"
           />
           <div className="flex items-center justify-between border-t border-border/70 px-3 py-1.5 text-caption text-label-tertiary">
-            <span>{t("platform:FEEDBACK_COMPOSER_SHORTCUT")}</span>
+            <span>{t("feedback:FEEDBACK_COMPOSER_SHORTCUT")}</span>
             <span className={cn("tabular-nums", remaining < 0 && "text-destructive")}>
               {remaining}
             </span>
@@ -300,7 +300,7 @@ export function FeedbackComposer(props: FeedbackComposerProps) {
           loading={mutation.isPending}
           disabled={mutation.isPending || !intent || message.trim().length === 0}
         >
-          {t("platform:ACTION_SUBMIT_FEEDBACK")}
+          {t("feedback:ACTION_SUBMIT_FEEDBACK")}
         </Button>
       </div>
     </form>

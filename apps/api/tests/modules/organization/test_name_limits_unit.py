@@ -6,7 +6,6 @@ import pytest
 
 from src.config import get_settings
 from src.core.exceptions import BadRequest
-from src.models.organization.org_membership import OrgRole
 from src.modules.organization.workspaces.schema import OrganizationWorkspaceCreateRequest
 from src.modules.organization.workspaces.service import OrganizationWorkspaceService
 
@@ -21,7 +20,6 @@ async def test_create_workspace_rejects_name_too_long(monkeypatch) -> None:
         await service.create_workspace(
             organization_id=uuid4(),
             user_id=uuid4(),
-            org_role=OrgRole.OWNER,
             payload=payload,
         )
 

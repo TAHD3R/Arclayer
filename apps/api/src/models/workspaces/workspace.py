@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING
 from uuid import UUID
@@ -37,7 +38,7 @@ class Workspace(BaseModel):
         on_delete=fields.CASCADE,
     )
     name = fields.CharField(max_length=128)
-    owner_user_id = fields.UUIDField(null=True, db_index=True)
+    owner_user_id = fields.UUIDField(db_index=True)
     description = fields.CharField(max_length=256, null=True)
     icon_mode = fields.CharEnumField(WorkspaceIconMode, default=WorkspaceIconMode.INITIALS)
     icon_color = fields.CharField(max_length=16, default="#337ea9")
@@ -96,7 +97,6 @@ async def _bootstrap_workspace_system_roles(  # type: ignore[no-untyped-def]
         ROLE_ADMIN,
         ROLE_DESIGNER,
         ROLE_EDITOR,
-        ROLE_OWNER,
         ROLE_VIEWER,
     )
 
@@ -105,15 +105,6 @@ async def _bootstrap_workspace_system_roles(  # type: ignore[no-untyped-def]
         return
 
     system_defs = [
-        {
-            "code": ROLE_OWNER,
-            "name": "Owner",
-            "description": "Full access within this workspace.",
-            "name_i18n": "rbac:RBAC_ROLE_OWNER_NAME",
-            "description_i18n": "rbac:RBAC_ROLE_OWNER_DESC",
-            "is_default": False,
-            "is_superuser": True,
-        },
         {
             "code": ROLE_ADMIN,
             "name": "Admin",
@@ -219,12 +210,14 @@ class WorkspaceMembershipRole(BaseModel):
     role = fields.ForeignKeyField(
         "models.SystemRole", related_name="workspace_membership_roles", on_delete=fields.CASCADE
     )
+    started_at = fields.DatetimeField(default=lambda: datetime.now(UTC), db_index=True)
+    ended_at = fields.DatetimeField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
         table = "workspace_membership_roles"
         table_description = "Role assignments per workspace membership."
         abstract = False
-        unique_together = (("membership_id", "role_id"),)
+        unique_together = (("membership_id", "role_id", "started_at"),)
 
 
 @pre_save(WorkspaceMembership)

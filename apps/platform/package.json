@@ -1,0 +1,49 @@
+{
+  "name": "@arclayer/platform",
+  "version": "2026.07.30-dev",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --mode development",
+    "build": "vite build --mode production",
+    "typecheck": "tsc --noEmit --skipLibCheck",
+    "lint": "oxlint -c ./node_modules/@arclayer/config/.oxlintrc.json .",
+    "format": "oxfmt -c ./node_modules/@arclayer/config/.oxfmtrc.json .",
+    "test": "vitest run --config vitest.config.ts",
+    "locale:check": "node ./scripts/check-locales.mjs",
+    "skeletons:build": "boneyard-js build http://localhost:5174 --out ./src/bones --breakpoints 375,768,1280 --no-scan",
+    "skeletons:watch": "boneyard-js build http://localhost:5174 --watch --out ./src/bones --breakpoints 375,768,1280 --no-scan"
+  },
+  "dependencies": {
+    "@arclayer/platform-openapi": "workspace:*",
+    "@arclayer/ui": "workspace:*",
+    "@tanstack/react-router": "catalog:",
+    "boneyard-js": "^1.9.0",
+    "i18next": "^25.8.0",
+    "lucide-react": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-i18next": "catalog:"
+  },
+  "devDependencies": {
+    "@arclayer/config": "workspace:*",
+    "@arclayer/vite-plugin": "workspace:*",
+    "@tailwindcss/vite": "catalog:",
+    "@tanstack/router-plugin": "catalog:",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react-swc": "catalog:",
+    "jsdom": "^26.1.0",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-compression2": "catalog:",
+    "vitest": "catalog:"
+  }
+}

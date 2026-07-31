@@ -59,6 +59,10 @@ class _FakeProjectRepository:
         assert project_id == self.project.id
         return self.project
 
+    async def get_project_by_id_in_connection(self, *, project_id, conn):
+        assert project_id == self.project.id
+        return self.project
+
     async def get_project_with_workspace(self, *, project_id):
         assert project_id == self.project.id
         return self.project, self.workspace
@@ -73,6 +77,18 @@ class _FakeProjectRepository:
         assert project_id == self.project.id
         self.deleted_project_id = project_id
         return True
+
+
+class _FakeActiveProjectAllowance:
+    def __init__(self) -> None:
+        self.claimed_workspace_ids: list[object] = []
+        self.locked_workspace_ids: list[object] = []
+
+    async def claim(self, *, workspace_id, conn):
+        self.claimed_workspace_ids.append(workspace_id)
+
+    async def lock_capacity_scope(self, *, workspace_id, conn):
+        self.locked_workspace_ids.append(workspace_id)
 
 
 class _FakeMembership:
@@ -97,7 +113,8 @@ async def test_create_project_bootstraps_memberships_provisions_runtime_site_and
 ) -> None:
     monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
-    service = ProjectService(settings)
+    allowance = _FakeActiveProjectAllowance()
+    service = ProjectService(settings, active_project_allowance=allowance)
 
     workspace_id = uuid4()
     actor_user_id = uuid4()
@@ -218,13 +235,14 @@ async def test_create_project_bootstraps_memberships_provisions_runtime_site_and
     assert out.id == project.id
     assert out.member_count == 1
     assert len(out.members_preview) == 1
+    assert allowance.claimed_workspace_ids == [workspace_id]
 
 
 @pytest.mark.asyncio
 async def test_reserved_project_slugs_include_system_domain_labels(monkeypatch) -> None:
     monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
-    service = ProjectService(settings)
+    service = ProjectService(settings, active_project_allowance=_FakeActiveProjectAllowance())
 
     async def fake_core_settings(_settings):
         return {"domains": {"reserved_labels": ["app", "Launch"]}}
@@ -274,7 +292,7 @@ async def test_next_available_project_slug_skips_reserved_labels(monkeypatch) ->
 async def test_project_danger_capabilities_allow_last_active_project(monkeypatch) -> None:
     monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
-    service = ProjectService(settings)
+    service = ProjectService(settings, active_project_allowance=_FakeActiveProjectAllowance())
 
     workspace_id = uuid4()
     project = _FakeProject(workspace_id=workspace_id)
@@ -307,7 +325,8 @@ async def test_project_archive_and_delete_allow_last_active_project(monkeypatch)
     async def fake_tx(*, conn=None):
         yield conn
 
-    archive_service = ProjectService(settings)
+    archive_allowance = _FakeActiveProjectAllowance()
+    archive_service = ProjectService(settings, active_project_allowance=archive_allowance)
     archive_project = _FakeProject(workspace_id=workspace_id)
     archive_repo = _FakeProjectRepository(project=archive_project, workspace=workspace)
     archive_service.repo = archive_repo
@@ -319,9 +338,11 @@ async def test_project_archive_and_delete_allow_last_active_project(monkeypatch)
     assert archive_out.project_id == archive_project.id
     assert archive_out.is_active is False
     assert archive_repo.archived_project_id == archive_project.id
+    assert archive_allowance.locked_workspace_ids == [workspace_id]
     assert events == ["project.archived"]
 
-    delete_service = ProjectService(settings)
+    delete_allowance = _FakeActiveProjectAllowance()
+    delete_service = ProjectService(settings, active_project_allowance=delete_allowance)
     delete_project = _FakeProject(workspace_id=workspace_id)
     delete_repo = _FakeProjectRepository(project=delete_project, workspace=workspace)
     delete_service.repo = delete_repo
@@ -333,4 +354,28 @@ async def test_project_archive_and_delete_allow_last_active_project(monkeypatch)
     assert delete_out.project_id == delete_project.id
     assert delete_out.deleted is True
     assert delete_repo.deleted_project_id == delete_project.id
+    assert delete_allowance.locked_workspace_ids == [workspace_id]
     assert events == ["project.archived", "project.deleted"]
+
+
+@pytest.mark.asyncio
+async def test_project_unarchive_claims_active_project_capacity(monkeypatch) -> None:
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
+    settings = get_settings()
+    workspace_id = uuid4()
+    project = _FakeProject(workspace_id=workspace_id)
+    project.is_active = False
+    allowance = _FakeActiveProjectAllowance()
+    service = ProjectService(settings, active_project_allowance=allowance)
+    service.repo = _FakeProjectRepository(project=project, workspace=_FakeWorkspace(workspace_id=workspace_id))
+
+    @asynccontextmanager
+    async def fake_tx(*, conn=None):
+        yield conn
+
+    monkeypatch.setattr(service, "tx", fake_tx)
+
+    restored = await service.unarchive_project(project_id=project.id)
+
+    assert restored.is_active is True
+    assert allowance.claimed_workspace_ids == [workspace_id]

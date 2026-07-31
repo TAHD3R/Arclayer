@@ -9,39 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SystemRouteImport } from './routes/system'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WelcomeIndexRouteImport } from './routes/welcome/index'
-import { Route as SystemIndexRouteImport } from './routes/system/index'
 import { Route as ResetPasswordIndexRouteImport } from './routes/reset-password/index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
 import { Route as NotificationsIndexRouteImport } from './routes/notifications/index'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as InvitationsIndexRouteImport } from './routes/invitations/index'
 import { Route as InspriationIndexRouteImport } from './routes/inspriation/index'
+import { Route as CustomizationIndexRouteImport } from './routes/customization/index'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects/$projectId'
-import { Route as SystemTenantsIndexRouteImport } from './routes/system/tenants/index'
-import { Route as SystemSettingsIndexRouteImport } from './routes/system/settings/index'
-import { Route as SystemPluginsIndexRouteImport } from './routes/system/plugins/index'
-import { Route as SystemOverviewIndexRouteImport } from './routes/system/overview/index'
-import { Route as SystemObservabilityIndexRouteImport } from './routes/system/observability/index'
-import { Route as SystemFeedbackIndexRouteImport } from './routes/system/feedback/index'
-import { Route as SystemAuditLogIndexRouteImport } from './routes/system/audit-log/index'
 import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects/$projectId/index'
-import { Route as SystemTenantsWorkspacesIndexRouteImport } from './routes/system/tenants/workspaces/index'
-import { Route as SystemTenantsUsersIndexRouteImport } from './routes/system/tenants/users/index'
-import { Route as SystemTenantsProjectsIndexRouteImport } from './routes/system/tenants/projects/index'
-import { Route as SystemSettingsStorageIndexRouteImport } from './routes/system/settings/storage/index'
-import { Route as SystemSettingsOauthIndexRouteImport } from './routes/system/settings/oauth/index'
-import { Route as SystemSettingsNotificationsIndexRouteImport } from './routes/system/settings/notifications/index'
-import { Route as SystemSettingsEmailIndexRouteImport } from './routes/system/settings/email/index'
-import { Route as SystemSettingsDomainsIndexRouteImport } from './routes/system/settings/domains/index'
-import { Route as SystemSettingsBillingIndexRouteImport } from './routes/system/settings/billing/index'
-import { Route as SystemSettingsAgentsIndexRouteImport } from './routes/system/settings/agents/index'
-import { Route as SystemSettingsAccessIndexRouteImport } from './routes/system/settings/access/index'
-import { Route as SystemObservabilityRequestsIndexRouteImport } from './routes/system/observability/requests/index'
-import { Route as SystemObservabilityAiUsageIndexRouteImport } from './routes/system/observability/ai-usage/index'
-import { Route as SystemObservabilityActivityIndexRouteImport } from './routes/system/observability/activity/index'
+import { Route as CustomizationSkillsIndexRouteImport } from './routes/customization/skills/index'
+import { Route as CustomizationKnowledgeIndexRouteImport } from './routes/customization/knowledge/index'
+import { Route as CustomizationDesignSystemsIndexRouteImport } from './routes/customization/design-systems/index'
 import { Route as ProjectsProjectIdSettingsIndexRouteImport } from './routes/projects/$projectId/settings/index'
 import { Route as ProjectsProjectIdEditorIndexRouteImport } from './routes/projects/$projectId/editor/index'
 import { Route as ProjectsProjectIdDeploymentsIndexRouteImport } from './routes/projects/$projectId/deployments/index'
@@ -76,11 +57,6 @@ import { Route as ProjectsProjectIdSeoSiteLocalizationIndexRouteImport } from '.
 import { Route as ProjectsProjectIdContentModelsEditIndexRouteImport } from './routes/projects/$projectId/content/models/edit/index'
 import { Route as ProjectsProjectIdContentLibraryItemIdIndexRouteImport } from './routes/projects/$projectId/content/library/$itemId/index'
 
-const SystemRoute = SystemRouteImport.update({
-  id: '/system',
-  path: '/system',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -91,11 +67,6 @@ const WelcomeIndexRoute = WelcomeIndexRouteImport.update({
   path: '/welcome/',
   getParentRoute: () => rootRouteImport,
 } as any).lazy(() => import('./routes/welcome/index.lazy').then((d) => d.Route))
-const SystemIndexRoute = SystemIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => SystemRoute,
-} as any)
 const ResetPasswordIndexRoute = ResetPasswordIndexRouteImport.update({
   id: '/reset-password/',
   path: '/reset-password/',
@@ -134,46 +105,15 @@ const InspriationIndexRoute = InspriationIndexRouteImport.update({
 } as any).lazy(() =>
   import('./routes/inspriation/index.lazy').then((d) => d.Route),
 )
+const CustomizationIndexRoute = CustomizationIndexRouteImport.update({
+  id: '/customization/',
+  path: '/customization/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
   id: '/projects/$projectId',
   path: '/projects/$projectId',
   getParentRoute: () => rootRouteImport,
-} as any)
-const SystemTenantsIndexRoute = SystemTenantsIndexRouteImport.update({
-  id: '/tenants/',
-  path: '/tenants/',
-  getParentRoute: () => SystemRoute,
-} as any)
-const SystemSettingsIndexRoute = SystemSettingsIndexRouteImport.update({
-  id: '/settings/',
-  path: '/settings/',
-  getParentRoute: () => SystemRoute,
-} as any)
-const SystemPluginsIndexRoute = SystemPluginsIndexRouteImport.update({
-  id: '/plugins/',
-  path: '/plugins/',
-  getParentRoute: () => SystemRoute,
-} as any)
-const SystemOverviewIndexRoute = SystemOverviewIndexRouteImport.update({
-  id: '/overview/',
-  path: '/overview/',
-  getParentRoute: () => SystemRoute,
-} as any)
-const SystemObservabilityIndexRoute =
-  SystemObservabilityIndexRouteImport.update({
-    id: '/observability/',
-    path: '/observability/',
-    getParentRoute: () => SystemRoute,
-  } as any)
-const SystemFeedbackIndexRoute = SystemFeedbackIndexRouteImport.update({
-  id: '/feedback/',
-  path: '/feedback/',
-  getParentRoute: () => SystemRoute,
-} as any)
-const SystemAuditLogIndexRoute = SystemAuditLogIndexRouteImport.update({
-  id: '/audit-log/',
-  path: '/audit-log/',
-  getParentRoute: () => SystemRoute,
 } as any)
 const ProjectsProjectIdIndexRoute = ProjectsProjectIdIndexRouteImport.update({
   id: '/',
@@ -182,88 +122,23 @@ const ProjectsProjectIdIndexRoute = ProjectsProjectIdIndexRouteImport.update({
 } as any).lazy(() =>
   import('./routes/projects/$projectId/index.lazy').then((d) => d.Route),
 )
-const SystemTenantsWorkspacesIndexRoute =
-  SystemTenantsWorkspacesIndexRouteImport.update({
-    id: '/tenants/workspaces/',
-    path: '/tenants/workspaces/',
-    getParentRoute: () => SystemRoute,
+const CustomizationSkillsIndexRoute =
+  CustomizationSkillsIndexRouteImport.update({
+    id: '/customization/skills/',
+    path: '/customization/skills/',
+    getParentRoute: () => rootRouteImport,
   } as any)
-const SystemTenantsUsersIndexRoute = SystemTenantsUsersIndexRouteImport.update({
-  id: '/tenants/users/',
-  path: '/tenants/users/',
-  getParentRoute: () => SystemRoute,
-} as any)
-const SystemTenantsProjectsIndexRoute =
-  SystemTenantsProjectsIndexRouteImport.update({
-    id: '/tenants/projects/',
-    path: '/tenants/projects/',
-    getParentRoute: () => SystemRoute,
+const CustomizationKnowledgeIndexRoute =
+  CustomizationKnowledgeIndexRouteImport.update({
+    id: '/customization/knowledge/',
+    path: '/customization/knowledge/',
+    getParentRoute: () => rootRouteImport,
   } as any)
-const SystemSettingsStorageIndexRoute =
-  SystemSettingsStorageIndexRouteImport.update({
-    id: '/settings/storage/',
-    path: '/settings/storage/',
-    getParentRoute: () => SystemRoute,
-  } as any)
-const SystemSettingsOauthIndexRoute =
-  SystemSettingsOauthIndexRouteImport.update({
-    id: '/settings/oauth/',
-    path: '/settings/oauth/',
-    getParentRoute: () => SystemRoute,
-  } as any)
-const SystemSettingsNotificationsIndexRoute =
-  SystemSettingsNotificationsIndexRouteImport.update({
-    id: '/settings/notifications/',
-    path: '/settings/notifications/',
-    getParentRoute: () => SystemRoute,
-  } as any)
-const SystemSettingsEmailIndexRoute =
-  SystemSettingsEmailIndexRouteImport.update({
-    id: '/settings/email/',
-    path: '/settings/email/',
-    getParentRoute: () => SystemRoute,
-  } as any)
-const SystemSettingsDomainsIndexRoute =
-  SystemSettingsDomainsIndexRouteImport.update({
-    id: '/settings/domains/',
-    path: '/settings/domains/',
-    getParentRoute: () => SystemRoute,
-  } as any)
-const SystemSettingsBillingIndexRoute =
-  SystemSettingsBillingIndexRouteImport.update({
-    id: '/settings/billing/',
-    path: '/settings/billing/',
-    getParentRoute: () => SystemRoute,
-  } as any)
-const SystemSettingsAgentsIndexRoute =
-  SystemSettingsAgentsIndexRouteImport.update({
-    id: '/settings/agents/',
-    path: '/settings/agents/',
-    getParentRoute: () => SystemRoute,
-  } as any)
-const SystemSettingsAccessIndexRoute =
-  SystemSettingsAccessIndexRouteImport.update({
-    id: '/settings/access/',
-    path: '/settings/access/',
-    getParentRoute: () => SystemRoute,
-  } as any)
-const SystemObservabilityRequestsIndexRoute =
-  SystemObservabilityRequestsIndexRouteImport.update({
-    id: '/observability/requests/',
-    path: '/observability/requests/',
-    getParentRoute: () => SystemRoute,
-  } as any)
-const SystemObservabilityAiUsageIndexRoute =
-  SystemObservabilityAiUsageIndexRouteImport.update({
-    id: '/observability/ai-usage/',
-    path: '/observability/ai-usage/',
-    getParentRoute: () => SystemRoute,
-  } as any)
-const SystemObservabilityActivityIndexRoute =
-  SystemObservabilityActivityIndexRouteImport.update({
-    id: '/observability/activity/',
-    path: '/observability/activity/',
-    getParentRoute: () => SystemRoute,
+const CustomizationDesignSystemsIndexRoute =
+  CustomizationDesignSystemsIndexRouteImport.update({
+    id: '/customization/design-systems/',
+    path: '/customization/design-systems/',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const ProjectsProjectIdSettingsIndexRoute =
   ProjectsProjectIdSettingsIndexRouteImport.update({
@@ -530,43 +405,24 @@ const ProjectsProjectIdContentLibraryItemIdIndexRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/system': typeof SystemRouteWithChildren
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
+  '/customization/': typeof CustomizationIndexRoute
   '/inspriation/': typeof InspriationIndexRoute
   '/invitations/': typeof InvitationsIndexRoute
   '/login/': typeof LoginIndexRoute
   '/notifications/': typeof NotificationsIndexRoute
   '/projects/': typeof ProjectsIndexRoute
   '/reset-password/': typeof ResetPasswordIndexRoute
-  '/system/': typeof SystemIndexRoute
   '/welcome/': typeof WelcomeIndexRoute
+  '/customization/design-systems/': typeof CustomizationDesignSystemsIndexRoute
+  '/customization/knowledge/': typeof CustomizationKnowledgeIndexRoute
+  '/customization/skills/': typeof CustomizationSkillsIndexRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
-  '/system/audit-log/': typeof SystemAuditLogIndexRoute
-  '/system/feedback/': typeof SystemFeedbackIndexRoute
-  '/system/observability/': typeof SystemObservabilityIndexRoute
-  '/system/overview/': typeof SystemOverviewIndexRoute
-  '/system/plugins/': typeof SystemPluginsIndexRoute
-  '/system/settings/': typeof SystemSettingsIndexRoute
-  '/system/tenants/': typeof SystemTenantsIndexRoute
   '/projects/$projectId/activity/': typeof ProjectsProjectIdActivityIndexRoute
   '/projects/$projectId/assets/': typeof ProjectsProjectIdAssetsIndexRoute
   '/projects/$projectId/deployments/': typeof ProjectsProjectIdDeploymentsIndexRoute
   '/projects/$projectId/editor/': typeof ProjectsProjectIdEditorIndexRoute
   '/projects/$projectId/settings/': typeof ProjectsProjectIdSettingsIndexRoute
-  '/system/observability/activity/': typeof SystemObservabilityActivityIndexRoute
-  '/system/observability/ai-usage/': typeof SystemObservabilityAiUsageIndexRoute
-  '/system/observability/requests/': typeof SystemObservabilityRequestsIndexRoute
-  '/system/settings/access/': typeof SystemSettingsAccessIndexRoute
-  '/system/settings/agents/': typeof SystemSettingsAgentsIndexRoute
-  '/system/settings/billing/': typeof SystemSettingsBillingIndexRoute
-  '/system/settings/domains/': typeof SystemSettingsDomainsIndexRoute
-  '/system/settings/email/': typeof SystemSettingsEmailIndexRoute
-  '/system/settings/notifications/': typeof SystemSettingsNotificationsIndexRoute
-  '/system/settings/oauth/': typeof SystemSettingsOauthIndexRoute
-  '/system/settings/storage/': typeof SystemSettingsStorageIndexRoute
-  '/system/tenants/projects/': typeof SystemTenantsProjectsIndexRoute
-  '/system/tenants/users/': typeof SystemTenantsUsersIndexRoute
-  '/system/tenants/workspaces/': typeof SystemTenantsWorkspacesIndexRoute
   '/projects/$projectId/content/automation/': typeof ProjectsProjectIdContentAutomationIndexRoute
   '/projects/$projectId/content/create/': typeof ProjectsProjectIdContentCreateIndexRoute
   '/projects/$projectId/content/domain/': typeof ProjectsProjectIdContentDomainIndexRoute
@@ -598,41 +454,23 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/customization': typeof CustomizationIndexRoute
   '/inspriation': typeof InspriationIndexRoute
   '/invitations': typeof InvitationsIndexRoute
   '/login': typeof LoginIndexRoute
   '/notifications': typeof NotificationsIndexRoute
   '/projects': typeof ProjectsIndexRoute
   '/reset-password': typeof ResetPasswordIndexRoute
-  '/system': typeof SystemIndexRoute
   '/welcome': typeof WelcomeIndexRoute
+  '/customization/design-systems': typeof CustomizationDesignSystemsIndexRoute
+  '/customization/knowledge': typeof CustomizationKnowledgeIndexRoute
+  '/customization/skills': typeof CustomizationSkillsIndexRoute
   '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
-  '/system/audit-log': typeof SystemAuditLogIndexRoute
-  '/system/feedback': typeof SystemFeedbackIndexRoute
-  '/system/observability': typeof SystemObservabilityIndexRoute
-  '/system/overview': typeof SystemOverviewIndexRoute
-  '/system/plugins': typeof SystemPluginsIndexRoute
-  '/system/settings': typeof SystemSettingsIndexRoute
-  '/system/tenants': typeof SystemTenantsIndexRoute
   '/projects/$projectId/activity': typeof ProjectsProjectIdActivityIndexRoute
   '/projects/$projectId/assets': typeof ProjectsProjectIdAssetsIndexRoute
   '/projects/$projectId/deployments': typeof ProjectsProjectIdDeploymentsIndexRoute
   '/projects/$projectId/editor': typeof ProjectsProjectIdEditorIndexRoute
   '/projects/$projectId/settings': typeof ProjectsProjectIdSettingsIndexRoute
-  '/system/observability/activity': typeof SystemObservabilityActivityIndexRoute
-  '/system/observability/ai-usage': typeof SystemObservabilityAiUsageIndexRoute
-  '/system/observability/requests': typeof SystemObservabilityRequestsIndexRoute
-  '/system/settings/access': typeof SystemSettingsAccessIndexRoute
-  '/system/settings/agents': typeof SystemSettingsAgentsIndexRoute
-  '/system/settings/billing': typeof SystemSettingsBillingIndexRoute
-  '/system/settings/domains': typeof SystemSettingsDomainsIndexRoute
-  '/system/settings/email': typeof SystemSettingsEmailIndexRoute
-  '/system/settings/notifications': typeof SystemSettingsNotificationsIndexRoute
-  '/system/settings/oauth': typeof SystemSettingsOauthIndexRoute
-  '/system/settings/storage': typeof SystemSettingsStorageIndexRoute
-  '/system/tenants/projects': typeof SystemTenantsProjectsIndexRoute
-  '/system/tenants/users': typeof SystemTenantsUsersIndexRoute
-  '/system/tenants/workspaces': typeof SystemTenantsWorkspacesIndexRoute
   '/projects/$projectId/content/automation': typeof ProjectsProjectIdContentAutomationIndexRoute
   '/projects/$projectId/content/create': typeof ProjectsProjectIdContentCreateIndexRoute
   '/projects/$projectId/content/domain': typeof ProjectsProjectIdContentDomainIndexRoute
@@ -665,43 +503,24 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/system': typeof SystemRouteWithChildren
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
+  '/customization/': typeof CustomizationIndexRoute
   '/inspriation/': typeof InspriationIndexRoute
   '/invitations/': typeof InvitationsIndexRoute
   '/login/': typeof LoginIndexRoute
   '/notifications/': typeof NotificationsIndexRoute
   '/projects/': typeof ProjectsIndexRoute
   '/reset-password/': typeof ResetPasswordIndexRoute
-  '/system/': typeof SystemIndexRoute
   '/welcome/': typeof WelcomeIndexRoute
+  '/customization/design-systems/': typeof CustomizationDesignSystemsIndexRoute
+  '/customization/knowledge/': typeof CustomizationKnowledgeIndexRoute
+  '/customization/skills/': typeof CustomizationSkillsIndexRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
-  '/system/audit-log/': typeof SystemAuditLogIndexRoute
-  '/system/feedback/': typeof SystemFeedbackIndexRoute
-  '/system/observability/': typeof SystemObservabilityIndexRoute
-  '/system/overview/': typeof SystemOverviewIndexRoute
-  '/system/plugins/': typeof SystemPluginsIndexRoute
-  '/system/settings/': typeof SystemSettingsIndexRoute
-  '/system/tenants/': typeof SystemTenantsIndexRoute
   '/projects/$projectId/activity/': typeof ProjectsProjectIdActivityIndexRoute
   '/projects/$projectId/assets/': typeof ProjectsProjectIdAssetsIndexRoute
   '/projects/$projectId/deployments/': typeof ProjectsProjectIdDeploymentsIndexRoute
   '/projects/$projectId/editor/': typeof ProjectsProjectIdEditorIndexRoute
   '/projects/$projectId/settings/': typeof ProjectsProjectIdSettingsIndexRoute
-  '/system/observability/activity/': typeof SystemObservabilityActivityIndexRoute
-  '/system/observability/ai-usage/': typeof SystemObservabilityAiUsageIndexRoute
-  '/system/observability/requests/': typeof SystemObservabilityRequestsIndexRoute
-  '/system/settings/access/': typeof SystemSettingsAccessIndexRoute
-  '/system/settings/agents/': typeof SystemSettingsAgentsIndexRoute
-  '/system/settings/billing/': typeof SystemSettingsBillingIndexRoute
-  '/system/settings/domains/': typeof SystemSettingsDomainsIndexRoute
-  '/system/settings/email/': typeof SystemSettingsEmailIndexRoute
-  '/system/settings/notifications/': typeof SystemSettingsNotificationsIndexRoute
-  '/system/settings/oauth/': typeof SystemSettingsOauthIndexRoute
-  '/system/settings/storage/': typeof SystemSettingsStorageIndexRoute
-  '/system/tenants/projects/': typeof SystemTenantsProjectsIndexRoute
-  '/system/tenants/users/': typeof SystemTenantsUsersIndexRoute
-  '/system/tenants/workspaces/': typeof SystemTenantsWorkspacesIndexRoute
   '/projects/$projectId/content/automation/': typeof ProjectsProjectIdContentAutomationIndexRoute
   '/projects/$projectId/content/create/': typeof ProjectsProjectIdContentCreateIndexRoute
   '/projects/$projectId/content/domain/': typeof ProjectsProjectIdContentDomainIndexRoute
@@ -735,43 +554,24 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/system'
     | '/projects/$projectId'
+    | '/customization/'
     | '/inspriation/'
     | '/invitations/'
     | '/login/'
     | '/notifications/'
     | '/projects/'
     | '/reset-password/'
-    | '/system/'
     | '/welcome/'
+    | '/customization/design-systems/'
+    | '/customization/knowledge/'
+    | '/customization/skills/'
     | '/projects/$projectId/'
-    | '/system/audit-log/'
-    | '/system/feedback/'
-    | '/system/observability/'
-    | '/system/overview/'
-    | '/system/plugins/'
-    | '/system/settings/'
-    | '/system/tenants/'
     | '/projects/$projectId/activity/'
     | '/projects/$projectId/assets/'
     | '/projects/$projectId/deployments/'
     | '/projects/$projectId/editor/'
     | '/projects/$projectId/settings/'
-    | '/system/observability/activity/'
-    | '/system/observability/ai-usage/'
-    | '/system/observability/requests/'
-    | '/system/settings/access/'
-    | '/system/settings/agents/'
-    | '/system/settings/billing/'
-    | '/system/settings/domains/'
-    | '/system/settings/email/'
-    | '/system/settings/notifications/'
-    | '/system/settings/oauth/'
-    | '/system/settings/storage/'
-    | '/system/tenants/projects/'
-    | '/system/tenants/users/'
-    | '/system/tenants/workspaces/'
     | '/projects/$projectId/content/automation/'
     | '/projects/$projectId/content/create/'
     | '/projects/$projectId/content/domain/'
@@ -803,41 +603,23 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/customization'
     | '/inspriation'
     | '/invitations'
     | '/login'
     | '/notifications'
     | '/projects'
     | '/reset-password'
-    | '/system'
     | '/welcome'
+    | '/customization/design-systems'
+    | '/customization/knowledge'
+    | '/customization/skills'
     | '/projects/$projectId'
-    | '/system/audit-log'
-    | '/system/feedback'
-    | '/system/observability'
-    | '/system/overview'
-    | '/system/plugins'
-    | '/system/settings'
-    | '/system/tenants'
     | '/projects/$projectId/activity'
     | '/projects/$projectId/assets'
     | '/projects/$projectId/deployments'
     | '/projects/$projectId/editor'
     | '/projects/$projectId/settings'
-    | '/system/observability/activity'
-    | '/system/observability/ai-usage'
-    | '/system/observability/requests'
-    | '/system/settings/access'
-    | '/system/settings/agents'
-    | '/system/settings/billing'
-    | '/system/settings/domains'
-    | '/system/settings/email'
-    | '/system/settings/notifications'
-    | '/system/settings/oauth'
-    | '/system/settings/storage'
-    | '/system/tenants/projects'
-    | '/system/tenants/users'
-    | '/system/tenants/workspaces'
     | '/projects/$projectId/content/automation'
     | '/projects/$projectId/content/create'
     | '/projects/$projectId/content/domain'
@@ -869,43 +651,24 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/system'
     | '/projects/$projectId'
+    | '/customization/'
     | '/inspriation/'
     | '/invitations/'
     | '/login/'
     | '/notifications/'
     | '/projects/'
     | '/reset-password/'
-    | '/system/'
     | '/welcome/'
+    | '/customization/design-systems/'
+    | '/customization/knowledge/'
+    | '/customization/skills/'
     | '/projects/$projectId/'
-    | '/system/audit-log/'
-    | '/system/feedback/'
-    | '/system/observability/'
-    | '/system/overview/'
-    | '/system/plugins/'
-    | '/system/settings/'
-    | '/system/tenants/'
     | '/projects/$projectId/activity/'
     | '/projects/$projectId/assets/'
     | '/projects/$projectId/deployments/'
     | '/projects/$projectId/editor/'
     | '/projects/$projectId/settings/'
-    | '/system/observability/activity/'
-    | '/system/observability/ai-usage/'
-    | '/system/observability/requests/'
-    | '/system/settings/access/'
-    | '/system/settings/agents/'
-    | '/system/settings/billing/'
-    | '/system/settings/domains/'
-    | '/system/settings/email/'
-    | '/system/settings/notifications/'
-    | '/system/settings/oauth/'
-    | '/system/settings/storage/'
-    | '/system/tenants/projects/'
-    | '/system/tenants/users/'
-    | '/system/tenants/workspaces/'
     | '/projects/$projectId/content/automation/'
     | '/projects/$projectId/content/create/'
     | '/projects/$projectId/content/domain/'
@@ -938,8 +701,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  SystemRoute: typeof SystemRouteWithChildren
   ProjectsProjectIdRoute: typeof ProjectsProjectIdRouteWithChildren
+  CustomizationIndexRoute: typeof CustomizationIndexRoute
   InspriationIndexRoute: typeof InspriationIndexRoute
   InvitationsIndexRoute: typeof InvitationsIndexRoute
   LoginIndexRoute: typeof LoginIndexRoute
@@ -947,17 +710,13 @@ export interface RootRouteChildren {
   ProjectsIndexRoute: typeof ProjectsIndexRoute
   ResetPasswordIndexRoute: typeof ResetPasswordIndexRoute
   WelcomeIndexRoute: typeof WelcomeIndexRoute
+  CustomizationDesignSystemsIndexRoute: typeof CustomizationDesignSystemsIndexRoute
+  CustomizationKnowledgeIndexRoute: typeof CustomizationKnowledgeIndexRoute
+  CustomizationSkillsIndexRoute: typeof CustomizationSkillsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/system': {
-      id: '/system'
-      path: '/system'
-      fullPath: '/system'
-      preLoaderRoute: typeof SystemRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -971,13 +730,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/welcome/'
       preLoaderRoute: typeof WelcomeIndexRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/system/': {
-      id: '/system/'
-      path: '/'
-      fullPath: '/system/'
-      preLoaderRoute: typeof SystemIndexRouteImport
-      parentRoute: typeof SystemRoute
     }
     '/reset-password/': {
       id: '/reset-password/'
@@ -1021,61 +773,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InspriationIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/customization/': {
+      id: '/customization/'
+      path: '/customization'
+      fullPath: '/customization/'
+      preLoaderRoute: typeof CustomizationIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projects/$projectId': {
       id: '/projects/$projectId'
       path: '/projects/$projectId'
       fullPath: '/projects/$projectId'
       preLoaderRoute: typeof ProjectsProjectIdRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/system/tenants/': {
-      id: '/system/tenants/'
-      path: '/tenants'
-      fullPath: '/system/tenants/'
-      preLoaderRoute: typeof SystemTenantsIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/system/settings/': {
-      id: '/system/settings/'
-      path: '/settings'
-      fullPath: '/system/settings/'
-      preLoaderRoute: typeof SystemSettingsIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/system/plugins/': {
-      id: '/system/plugins/'
-      path: '/plugins'
-      fullPath: '/system/plugins/'
-      preLoaderRoute: typeof SystemPluginsIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/system/overview/': {
-      id: '/system/overview/'
-      path: '/overview'
-      fullPath: '/system/overview/'
-      preLoaderRoute: typeof SystemOverviewIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/system/observability/': {
-      id: '/system/observability/'
-      path: '/observability'
-      fullPath: '/system/observability/'
-      preLoaderRoute: typeof SystemObservabilityIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/system/feedback/': {
-      id: '/system/feedback/'
-      path: '/feedback'
-      fullPath: '/system/feedback/'
-      preLoaderRoute: typeof SystemFeedbackIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/system/audit-log/': {
-      id: '/system/audit-log/'
-      path: '/audit-log'
-      fullPath: '/system/audit-log/'
-      preLoaderRoute: typeof SystemAuditLogIndexRouteImport
-      parentRoute: typeof SystemRoute
     }
     '/projects/$projectId/': {
       id: '/projects/$projectId/'
@@ -1084,103 +794,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdIndexRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
-    '/system/tenants/workspaces/': {
-      id: '/system/tenants/workspaces/'
-      path: '/tenants/workspaces'
-      fullPath: '/system/tenants/workspaces/'
-      preLoaderRoute: typeof SystemTenantsWorkspacesIndexRouteImport
-      parentRoute: typeof SystemRoute
+    '/customization/skills/': {
+      id: '/customization/skills/'
+      path: '/customization/skills'
+      fullPath: '/customization/skills/'
+      preLoaderRoute: typeof CustomizationSkillsIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/system/tenants/users/': {
-      id: '/system/tenants/users/'
-      path: '/tenants/users'
-      fullPath: '/system/tenants/users/'
-      preLoaderRoute: typeof SystemTenantsUsersIndexRouteImport
-      parentRoute: typeof SystemRoute
+    '/customization/knowledge/': {
+      id: '/customization/knowledge/'
+      path: '/customization/knowledge'
+      fullPath: '/customization/knowledge/'
+      preLoaderRoute: typeof CustomizationKnowledgeIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/system/tenants/projects/': {
-      id: '/system/tenants/projects/'
-      path: '/tenants/projects'
-      fullPath: '/system/tenants/projects/'
-      preLoaderRoute: typeof SystemTenantsProjectsIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/system/settings/storage/': {
-      id: '/system/settings/storage/'
-      path: '/settings/storage'
-      fullPath: '/system/settings/storage/'
-      preLoaderRoute: typeof SystemSettingsStorageIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/system/settings/oauth/': {
-      id: '/system/settings/oauth/'
-      path: '/settings/oauth'
-      fullPath: '/system/settings/oauth/'
-      preLoaderRoute: typeof SystemSettingsOauthIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/system/settings/notifications/': {
-      id: '/system/settings/notifications/'
-      path: '/settings/notifications'
-      fullPath: '/system/settings/notifications/'
-      preLoaderRoute: typeof SystemSettingsNotificationsIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/system/settings/email/': {
-      id: '/system/settings/email/'
-      path: '/settings/email'
-      fullPath: '/system/settings/email/'
-      preLoaderRoute: typeof SystemSettingsEmailIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/system/settings/domains/': {
-      id: '/system/settings/domains/'
-      path: '/settings/domains'
-      fullPath: '/system/settings/domains/'
-      preLoaderRoute: typeof SystemSettingsDomainsIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/system/settings/billing/': {
-      id: '/system/settings/billing/'
-      path: '/settings/billing'
-      fullPath: '/system/settings/billing/'
-      preLoaderRoute: typeof SystemSettingsBillingIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/system/settings/agents/': {
-      id: '/system/settings/agents/'
-      path: '/settings/agents'
-      fullPath: '/system/settings/agents/'
-      preLoaderRoute: typeof SystemSettingsAgentsIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/system/settings/access/': {
-      id: '/system/settings/access/'
-      path: '/settings/access'
-      fullPath: '/system/settings/access/'
-      preLoaderRoute: typeof SystemSettingsAccessIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/system/observability/requests/': {
-      id: '/system/observability/requests/'
-      path: '/observability/requests'
-      fullPath: '/system/observability/requests/'
-      preLoaderRoute: typeof SystemObservabilityRequestsIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/system/observability/ai-usage/': {
-      id: '/system/observability/ai-usage/'
-      path: '/observability/ai-usage'
-      fullPath: '/system/observability/ai-usage/'
-      preLoaderRoute: typeof SystemObservabilityAiUsageIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/system/observability/activity/': {
-      id: '/system/observability/activity/'
-      path: '/observability/activity'
-      fullPath: '/system/observability/activity/'
-      preLoaderRoute: typeof SystemObservabilityActivityIndexRouteImport
-      parentRoute: typeof SystemRoute
+    '/customization/design-systems/': {
+      id: '/customization/design-systems/'
+      path: '/customization/design-systems'
+      fullPath: '/customization/design-systems/'
+      preLoaderRoute: typeof CustomizationDesignSystemsIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/projects/$projectId/settings/': {
       id: '/projects/$projectId/settings/'
@@ -1416,59 +1049,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface SystemRouteChildren {
-  SystemIndexRoute: typeof SystemIndexRoute
-  SystemAuditLogIndexRoute: typeof SystemAuditLogIndexRoute
-  SystemFeedbackIndexRoute: typeof SystemFeedbackIndexRoute
-  SystemObservabilityIndexRoute: typeof SystemObservabilityIndexRoute
-  SystemOverviewIndexRoute: typeof SystemOverviewIndexRoute
-  SystemPluginsIndexRoute: typeof SystemPluginsIndexRoute
-  SystemSettingsIndexRoute: typeof SystemSettingsIndexRoute
-  SystemTenantsIndexRoute: typeof SystemTenantsIndexRoute
-  SystemObservabilityActivityIndexRoute: typeof SystemObservabilityActivityIndexRoute
-  SystemObservabilityAiUsageIndexRoute: typeof SystemObservabilityAiUsageIndexRoute
-  SystemObservabilityRequestsIndexRoute: typeof SystemObservabilityRequestsIndexRoute
-  SystemSettingsAccessIndexRoute: typeof SystemSettingsAccessIndexRoute
-  SystemSettingsAgentsIndexRoute: typeof SystemSettingsAgentsIndexRoute
-  SystemSettingsBillingIndexRoute: typeof SystemSettingsBillingIndexRoute
-  SystemSettingsDomainsIndexRoute: typeof SystemSettingsDomainsIndexRoute
-  SystemSettingsEmailIndexRoute: typeof SystemSettingsEmailIndexRoute
-  SystemSettingsNotificationsIndexRoute: typeof SystemSettingsNotificationsIndexRoute
-  SystemSettingsOauthIndexRoute: typeof SystemSettingsOauthIndexRoute
-  SystemSettingsStorageIndexRoute: typeof SystemSettingsStorageIndexRoute
-  SystemTenantsProjectsIndexRoute: typeof SystemTenantsProjectsIndexRoute
-  SystemTenantsUsersIndexRoute: typeof SystemTenantsUsersIndexRoute
-  SystemTenantsWorkspacesIndexRoute: typeof SystemTenantsWorkspacesIndexRoute
-}
-
-const SystemRouteChildren: SystemRouteChildren = {
-  SystemIndexRoute: SystemIndexRoute,
-  SystemAuditLogIndexRoute: SystemAuditLogIndexRoute,
-  SystemFeedbackIndexRoute: SystemFeedbackIndexRoute,
-  SystemObservabilityIndexRoute: SystemObservabilityIndexRoute,
-  SystemOverviewIndexRoute: SystemOverviewIndexRoute,
-  SystemPluginsIndexRoute: SystemPluginsIndexRoute,
-  SystemSettingsIndexRoute: SystemSettingsIndexRoute,
-  SystemTenantsIndexRoute: SystemTenantsIndexRoute,
-  SystemObservabilityActivityIndexRoute: SystemObservabilityActivityIndexRoute,
-  SystemObservabilityAiUsageIndexRoute: SystemObservabilityAiUsageIndexRoute,
-  SystemObservabilityRequestsIndexRoute: SystemObservabilityRequestsIndexRoute,
-  SystemSettingsAccessIndexRoute: SystemSettingsAccessIndexRoute,
-  SystemSettingsAgentsIndexRoute: SystemSettingsAgentsIndexRoute,
-  SystemSettingsBillingIndexRoute: SystemSettingsBillingIndexRoute,
-  SystemSettingsDomainsIndexRoute: SystemSettingsDomainsIndexRoute,
-  SystemSettingsEmailIndexRoute: SystemSettingsEmailIndexRoute,
-  SystemSettingsNotificationsIndexRoute: SystemSettingsNotificationsIndexRoute,
-  SystemSettingsOauthIndexRoute: SystemSettingsOauthIndexRoute,
-  SystemSettingsStorageIndexRoute: SystemSettingsStorageIndexRoute,
-  SystemTenantsProjectsIndexRoute: SystemTenantsProjectsIndexRoute,
-  SystemTenantsUsersIndexRoute: SystemTenantsUsersIndexRoute,
-  SystemTenantsWorkspacesIndexRoute: SystemTenantsWorkspacesIndexRoute,
-}
-
-const SystemRouteWithChildren =
-  SystemRoute._addFileChildren(SystemRouteChildren)
-
 interface ProjectsProjectIdRouteChildren {
   ProjectsProjectIdIndexRoute: typeof ProjectsProjectIdIndexRoute
   ProjectsProjectIdActivityIndexRoute: typeof ProjectsProjectIdActivityIndexRoute
@@ -1575,8 +1155,8 @@ const ProjectsProjectIdRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  SystemRoute: SystemRouteWithChildren,
   ProjectsProjectIdRoute: ProjectsProjectIdRouteWithChildren,
+  CustomizationIndexRoute: CustomizationIndexRoute,
   InspriationIndexRoute: InspriationIndexRoute,
   InvitationsIndexRoute: InvitationsIndexRoute,
   LoginIndexRoute: LoginIndexRoute,
@@ -1584,6 +1164,9 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectsIndexRoute: ProjectsIndexRoute,
   ResetPasswordIndexRoute: ResetPasswordIndexRoute,
   WelcomeIndexRoute: WelcomeIndexRoute,
+  CustomizationDesignSystemsIndexRoute: CustomizationDesignSystemsIndexRoute,
+  CustomizationKnowledgeIndexRoute: CustomizationKnowledgeIndexRoute,
+  CustomizationSkillsIndexRoute: CustomizationSkillsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -13,7 +13,7 @@ from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import t
 from src.models.commerce.billing import SubscriptionStatus
-from src.models.organization.user import User, UserStatus
+from src.models.organization.user import UserStatus
 from src.modules.access_restrictions.schema import (
     AccessRestrictionEnforceRequest,
     AccessRestrictionLiftRequest,
@@ -30,10 +30,12 @@ from src.modules.assets.admin.uploads.schema import (
 )
 from src.modules.assets.admin.uploads.service import UploadsService
 from src.modules.assets.scope import AssetScope
-from src.modules.auth.http.service import require_super_admin
 from src.modules.commerce.directory_projection import build_workspace_commerce_directory_service
 from src.modules.commerce.schema import WorkspaceCommerceDirectoryRisk
 from src.modules.domains.service import DomainBindingService
+from src.modules.platform_identity.http import require_platform_permission
+from src.modules.platform_identity.permissions import PlatformPermissionCode
+from src.modules.platform_identity.session_schema import PlatformSessionPrincipal
 from src.modules.projects.deployments.service import ProjectDeploymentsService
 from src.modules.projects.environments.service import ProjectEnvironmentsService
 from src.modules.projects.members_repository import ProjectMembersRepository
@@ -46,7 +48,6 @@ from src.modules.system.directory.project_operations import (
 )
 from src.modules.system.directory.repository import SystemDirectoryRepository
 from src.modules.system.directory.schema import (
-    DirectoryDeleteRequest,
     DirectoryProjectDetailOut,
     DirectoryProjectDomainState,
     DirectoryProjectHealthState,
@@ -69,7 +70,6 @@ from src.platform.cache.valkey import get_valkey
 
 router = APIRouter(
     tags=["internal.system.directory"],
-    dependencies=[Depends(require_super_admin)],
 )
 
 IdempotencyKey = Annotated[str, Header(alias="Idempotency-Key", min_length=1, max_length=128)]
@@ -131,6 +131,7 @@ def _upload_init_out(session) -> UploadInitOut:
     "/users",
     response_model=ResponseModel[PageData[DirectoryUserListItemOut]],
     summary="List users in the system directory",
+    dependencies=[require_platform_permission(PlatformPermissionCode.TENANT_USERS_READ)],
 )
 async def list_users(
     service: SystemDirectoryService = Depends(get_directory_service),
@@ -138,7 +139,6 @@ async def list_users(
     q: str | None = Query(default=None, description="Search users by username, email, or display name."),
     ordering: str | None = Query(default=None, description="Ordering fields, for example -created_at or username."),
     status: UserStatus | None = Query(default=None, description="Filter by account status."),
-    is_super_admin: bool | None = Query(default=None, description="Filter by super admin permission."),
     has_password: bool | None = Query(default=None, description="Filter by local password configuration."),
     two_factor_enabled: bool | None = Query(default=None, description="Filter by two-factor authentication."),
     oauth_provider: str | None = Query(default=None, description="Filter by OAuth linkage. Use any or none."),
@@ -165,7 +165,6 @@ async def list_users(
 ) -> ResponseModel[PageData[DirectoryUserListItemOut]]:
     filters = DirectoryUserListFilters(
         status=status,
-        is_super_admin=is_super_admin,
         has_password=has_password,
         two_factor_enabled=two_factor_enabled,
         oauth_provider=oauth_provider,
@@ -186,6 +185,7 @@ async def list_users(
     "/users/{user_id}",
     response_model=ResponseModel[DirectoryUserDetailOut],
     summary="Get user detail in the system directory",
+    dependencies=[require_platform_permission(PlatformPermissionCode.TENANT_USERS_READ)],
 )
 async def get_user_detail(
     user_id: PublicUUID,
@@ -203,13 +203,12 @@ async def get_user_detail(
 async def update_user(
     user_id: PublicUUID,
     payload: DirectoryUserUpdateRequest,
-    acting_user: User = Depends(require_super_admin),
+    acting_user: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.TENANT_USERS_MANAGE),
     service: SystemDirectoryService = Depends(get_directory_service),
 ) -> ResponseModel[DirectoryUserDetailOut]:
     detail = await service.update_user(
         user_id=user_id,
         payload=payload,
-        acting_user_id=acting_user.id,
     )
     return ApiResponse.success(data=detail)
 
@@ -222,12 +221,12 @@ async def update_user(
 async def init_user_avatar_upload(
     payload: UploadInitRequest,
     user_scope: AssetScope = Depends(require_directory_user_scope),
-    actor: User = Depends(require_super_admin),
+    actor: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.TENANT_USERS_MANAGE),
     service: UploadsService = Depends(get_uploads_service),
 ) -> ResponseModel[UploadInitOut]:
     session = await service.init_upload(
         scope=user_scope,
-        actor_user_id=actor.id,
+        actor_user_id=actor.actor_id,
         purpose="avatar",
         filename=payload.filename,
         mime=payload.mime,
@@ -244,6 +243,7 @@ async def init_user_avatar_upload(
     "/users/{user_id}/avatar/uploads/{upload_id}",
     response_model=ResponseModel[UploadStatusOut],
     summary="Get avatar upload status for a directory user",
+    dependencies=[require_platform_permission(PlatformPermissionCode.TENANT_USERS_READ)],
 )
 async def get_user_avatar_upload_status(
     upload_id: PublicUUID,
@@ -266,6 +266,7 @@ async def get_user_avatar_upload_status(
     "/users/{user_id}/avatar/uploads/{upload_id}/parts/{part_number}",
     response_model=ResponseModel[None],
     summary="Upload avatar part for a directory user",
+    dependencies=[require_platform_permission(PlatformPermissionCode.TENANT_USERS_MANAGE)],
 )
 async def upload_user_avatar_part(
     request: Request,
@@ -287,6 +288,7 @@ async def upload_user_avatar_part(
     "/users/{user_id}/avatar/uploads/{upload_id}/complete",
     response_model=ResponseModel[UploadCompleteOut],
     summary="Complete avatar upload for a directory user",
+    dependencies=[require_platform_permission(PlatformPermissionCode.TENANT_USERS_MANAGE)],
 )
 async def complete_user_avatar_upload(
     upload_id: PublicUUID,
@@ -301,6 +303,7 @@ async def complete_user_avatar_upload(
     "/users/{user_id}/avatar/uploads/{upload_id}/abort",
     response_model=ResponseModel[UploadAbortOut],
     summary="Abort avatar upload for a directory user",
+    dependencies=[require_platform_permission(PlatformPermissionCode.TENANT_USERS_MANAGE)],
 )
 async def abort_user_avatar_upload(
     upload_id: PublicUUID,
@@ -315,6 +318,7 @@ async def abort_user_avatar_upload(
     "/users/{user_id}/avatar/uploads/{upload_id}/parts/{part_number}/presign",
     response_model=ResponseModel[UploadPartPresignOut],
     summary="Presign avatar upload part for a directory user",
+    dependencies=[require_platform_permission(PlatformPermissionCode.TENANT_USERS_MANAGE)],
 )
 async def presign_user_avatar_upload_part(
     upload_id: PublicUUID,
@@ -330,6 +334,7 @@ async def presign_user_avatar_upload_part(
     "/users/{user_id}/avatar/uploads/{upload_id}/parts/{part_number}/commit",
     response_model=ResponseModel[None],
     summary="Commit avatar upload part for a directory user",
+    dependencies=[require_platform_permission(PlatformPermissionCode.TENANT_USERS_MANAGE)],
 )
 async def commit_user_avatar_upload_part(
     upload_id: PublicUUID,
@@ -352,6 +357,7 @@ async def commit_user_avatar_upload_part(
     "/users/{user_id}/reset-password",
     response_model=ResponseModel[DirectoryUserDetailOut],
     summary="Reset user password in the system directory",
+    dependencies=[require_platform_permission(PlatformPermissionCode.TENANT_USERS_MANAGE)],
 )
 async def reset_user_password(
     user_id: PublicUUID,
@@ -366,6 +372,7 @@ async def reset_user_password(
     "/users/{user_id}/send-reset-password-email",
     response_model=ResponseModel[DirectoryUserDetailOut],
     summary="Send password reset email in the system directory",
+    dependencies=[require_platform_permission(PlatformPermissionCode.TENANT_USERS_MANAGE)],
 )
 async def send_user_reset_password_email(
     user_id: PublicUUID,
@@ -379,6 +386,7 @@ async def send_user_reset_password_email(
     "/users/{user_id}/revoke-sessions",
     response_model=ResponseModel[DirectoryUserDetailOut],
     summary="Revoke user login sessions in the system directory",
+    dependencies=[require_platform_permission(PlatformPermissionCode.TENANT_USERS_MANAGE)],
 )
 async def revoke_user_sessions(
     user_id: PublicUUID,
@@ -392,6 +400,7 @@ async def revoke_user_sessions(
     "/users/{user_id}/disable-two-factor",
     response_model=ResponseModel[DirectoryUserDetailOut],
     summary="Disable user two-factor authentication in the system directory",
+    dependencies=[require_platform_permission(PlatformPermissionCode.TENANT_USERS_MANAGE)],
 )
 async def disable_user_two_factor(
     user_id: PublicUUID,
@@ -405,6 +414,7 @@ async def disable_user_two_factor(
     "/users/{user_id}/oauth-identities/{provider}",
     response_model=ResponseModel[DirectoryUserDetailOut],
     summary="Unlink a user's OAuth identity in the system directory",
+    dependencies=[require_platform_permission(PlatformPermissionCode.TENANT_USERS_MANAGE)],
 )
 async def unlink_user_oauth_identity(
     user_id: PublicUUID,
@@ -424,13 +434,13 @@ async def disable_user(
     user_id: PublicUUID,
     payload: AccessRestrictionEnforceRequest,
     idempotency_key: IdempotencyKey,
-    acting_user: User = Depends(require_super_admin),
+    acting_user: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.TENANT_USERS_MANAGE),
     service: SystemDirectoryService = Depends(get_directory_service),
 ) -> ResponseModel[DirectoryUserDetailOut]:
     detail = await service.set_user_enabled(
         user_id=user_id,
         enabled=False,
-        acting_user_id=acting_user.id,
+        acting_user_id=acting_user.actor_id,
         idempotency_key=idempotency_key,
         payload=payload,
     )
@@ -446,13 +456,13 @@ async def enable_user(
     user_id: PublicUUID,
     payload: AccessRestrictionLiftRequest,
     idempotency_key: IdempotencyKey,
-    acting_user: User = Depends(require_super_admin),
+    acting_user: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.TENANT_USERS_MANAGE),
     service: SystemDirectoryService = Depends(get_directory_service),
 ) -> ResponseModel[DirectoryUserDetailOut]:
     detail = await service.set_user_enabled(
         user_id=user_id,
         enabled=True,
-        acting_user_id=acting_user.id,
+        acting_user_id=acting_user.actor_id,
         idempotency_key=idempotency_key,
         payload=payload,
     )
@@ -466,10 +476,10 @@ async def enable_user(
 )
 async def delete_user_account(
     user_id: PublicUUID,
-    acting_user: User = Depends(require_super_admin),
+    acting_user: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.TENANT_USERS_MANAGE),
     service: SystemDirectoryService = Depends(get_directory_service),
 ) -> ResponseModel[None]:
-    await service.delete_user_account(user_id=user_id, acting_user_id=acting_user.id)
+    await service.delete_user_account(user_id=user_id, acting_user_id=acting_user.actor_id)
     return ApiResponse.success(data=None)
 
 
@@ -477,6 +487,7 @@ async def delete_user_account(
     "/workspaces",
     response_model=ResponseModel[PageData[DirectoryWorkspaceListItemOut]],
     summary="List workspaces in the system directory",
+    dependencies=[require_platform_permission(PlatformPermissionCode.TENANT_WORKSPACES_READ)],
 )
 async def list_workspaces(
     service: SystemDirectoryService = Depends(get_directory_service),
@@ -526,6 +537,7 @@ async def list_workspaces(
     "/workspaces/{workspace_id}",
     response_model=ResponseModel[DirectoryWorkspaceDetailOut],
     summary="Get workspace detail in the system directory",
+    dependencies=[require_platform_permission(PlatformPermissionCode.TENANT_WORKSPACES_READ)],
 )
 async def get_workspace_detail(
     workspace_id: PublicUUID,
@@ -543,13 +555,15 @@ async def get_workspace_detail(
 async def update_workspace(
     workspace_id: PublicUUID,
     payload: DirectoryWorkspaceUpdateRequest,
-    acting_user: User = Depends(require_super_admin),
+    acting_user: PlatformSessionPrincipal = require_platform_permission(
+        PlatformPermissionCode.TENANT_WORKSPACES_MANAGE
+    ),
     service: SystemDirectoryService = Depends(get_directory_service),
 ) -> ResponseModel[DirectoryWorkspaceDetailOut]:
     detail = await service.update_workspace(
         workspace_id=workspace_id,
         payload=payload,
-        actor_user_id=acting_user.id,
+        actor_user_id=acting_user.actor_id,
     )
     return ApiResponse.success(data=detail)
 
@@ -563,12 +577,14 @@ async def archive_workspace(
     workspace_id: PublicUUID,
     payload: AccessRestrictionEnforceRequest,
     idempotency_key: IdempotencyKey,
-    acting_user: User = Depends(require_super_admin),
+    acting_user: PlatformSessionPrincipal = require_platform_permission(
+        PlatformPermissionCode.TENANT_WORKSPACES_MANAGE
+    ),
     service: SystemDirectoryService = Depends(get_directory_service),
 ) -> ResponseModel[DirectoryWorkspaceDetailOut]:
     detail = await service.archive_workspace(
         workspace_id=workspace_id,
-        acting_user_id=acting_user.id,
+        acting_user_id=acting_user.actor_id,
         idempotency_key=idempotency_key,
         payload=payload,
     )
@@ -584,12 +600,14 @@ async def restore_workspace(
     workspace_id: PublicUUID,
     payload: AccessRestrictionLiftRequest,
     idempotency_key: IdempotencyKey,
-    acting_user: User = Depends(require_super_admin),
+    acting_user: PlatformSessionPrincipal = require_platform_permission(
+        PlatformPermissionCode.TENANT_WORKSPACES_MANAGE
+    ),
     service: SystemDirectoryService = Depends(get_directory_service),
 ) -> ResponseModel[DirectoryWorkspaceDetailOut]:
     detail = await service.restore_workspace(
         workspace_id=workspace_id,
-        acting_user_id=acting_user.id,
+        acting_user_id=acting_user.actor_id,
         idempotency_key=idempotency_key,
         payload=payload,
     )
@@ -605,13 +623,15 @@ async def disable_workspace(
     workspace_id: PublicUUID,
     payload: AccessRestrictionEnforceRequest,
     idempotency_key: IdempotencyKey,
-    acting_user: User = Depends(require_super_admin),
+    acting_user: PlatformSessionPrincipal = require_platform_permission(
+        PlatformPermissionCode.TENANT_WORKSPACES_MANAGE
+    ),
     service: SystemDirectoryService = Depends(get_directory_service),
 ) -> ResponseModel[DirectoryWorkspaceDetailOut]:
     detail = await service.set_workspace_enabled(
         workspace_id=workspace_id,
         enabled=False,
-        acting_user_id=acting_user.id,
+        acting_user_id=acting_user.actor_id,
         idempotency_key=idempotency_key,
         payload=payload,
     )
@@ -627,42 +647,26 @@ async def enable_workspace(
     workspace_id: PublicUUID,
     payload: AccessRestrictionLiftRequest,
     idempotency_key: IdempotencyKey,
-    acting_user: User = Depends(require_super_admin),
+    acting_user: PlatformSessionPrincipal = require_platform_permission(
+        PlatformPermissionCode.TENANT_WORKSPACES_MANAGE
+    ),
     service: SystemDirectoryService = Depends(get_directory_service),
 ) -> ResponseModel[DirectoryWorkspaceDetailOut]:
     detail = await service.set_workspace_enabled(
         workspace_id=workspace_id,
         enabled=True,
-        acting_user_id=acting_user.id,
+        acting_user_id=acting_user.actor_id,
         idempotency_key=idempotency_key,
         payload=payload,
     )
     return ApiResponse.success(data=detail)
 
 
-@router.delete(
-    "/workspaces/{workspace_id}",
-    response_model=ResponseModel[None],
-    summary="Delete workspace in the system directory",
-)
-async def delete_workspace(
-    workspace_id: PublicUUID,
-    payload: DirectoryDeleteRequest,
-    acting_user: User = Depends(require_super_admin),
-    service: SystemDirectoryService = Depends(get_directory_service),
-) -> ResponseModel[None]:
-    await service.delete_workspace(
-        workspace_id=workspace_id,
-        payload=payload,
-        acting_user_id=acting_user.id,
-    )
-    return ApiResponse.success(data=None)
-
-
 @router.get(
     "/projects",
     response_model=ResponseModel[PageData[DirectoryProjectListItemOut]],
     summary="List projects in the system directory",
+    dependencies=[require_platform_permission(PlatformPermissionCode.TENANT_PROJECTS_READ)],
 )
 async def list_projects(
     service: SystemDirectoryService = Depends(get_directory_service),
@@ -715,6 +719,7 @@ async def list_projects(
     "/projects/{project_id}",
     response_model=ResponseModel[DirectoryProjectDetailOut],
     summary="Get project detail in the system directory",
+    dependencies=[require_platform_permission(PlatformPermissionCode.TENANT_PROJECTS_READ)],
 )
 async def get_project_detail(
     project_id: PublicUUID,
@@ -732,12 +737,12 @@ async def get_project_detail(
 async def get_project_operations(
     project_id: PublicUUID,
     preview_size: int = Query(default=6, ge=1, le=20, alias="previewSize"),
-    acting_user: User = Depends(require_super_admin),
+    acting_user: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.TENANT_PROJECTS_READ),
     service: SystemProjectOperationsService = Depends(get_project_operations_service),
 ) -> ResponseModel[DirectoryProjectOperationsOut]:
     operations = await service.get_operations(
         project_id=project_id,
-        actor_user_id=acting_user.id,
+        actor_user_id=acting_user.actor_id,
         preview_size=preview_size,
     )
     return ApiResponse.success(data=operations)
@@ -751,10 +756,10 @@ async def get_project_operations(
 async def update_project(
     project_id: PublicUUID,
     payload: DirectoryProjectUpdateRequest,
-    acting_user: User = Depends(require_super_admin),
+    acting_user: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.TENANT_PROJECTS_MANAGE),
     service: SystemDirectoryService = Depends(get_directory_service),
 ) -> ResponseModel[DirectoryProjectDetailOut]:
-    detail = await service.update_project(project_id=project_id, payload=payload, acting_user_id=acting_user.id)
+    detail = await service.update_project(project_id=project_id, payload=payload, acting_user_id=acting_user.actor_id)
     return ApiResponse.success(data=detail)
 
 
@@ -767,13 +772,13 @@ async def disable_project(
     project_id: PublicUUID,
     payload: AccessRestrictionEnforceRequest,
     idempotency_key: IdempotencyKey,
-    acting_user: User = Depends(require_super_admin),
+    acting_user: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.TENANT_PROJECTS_MANAGE),
     service: SystemDirectoryService = Depends(get_directory_service),
 ) -> ResponseModel[DirectoryProjectDetailOut]:
     detail = await service.set_project_enabled(
         project_id=project_id,
         enabled=False,
-        acting_user_id=acting_user.id,
+        acting_user_id=acting_user.actor_id,
         idempotency_key=idempotency_key,
         payload=payload,
     )
@@ -789,33 +794,14 @@ async def enable_project(
     project_id: PublicUUID,
     payload: AccessRestrictionLiftRequest,
     idempotency_key: IdempotencyKey,
-    acting_user: User = Depends(require_super_admin),
+    acting_user: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.TENANT_PROJECTS_MANAGE),
     service: SystemDirectoryService = Depends(get_directory_service),
 ) -> ResponseModel[DirectoryProjectDetailOut]:
     detail = await service.set_project_enabled(
         project_id=project_id,
         enabled=True,
-        acting_user_id=acting_user.id,
+        acting_user_id=acting_user.actor_id,
         idempotency_key=idempotency_key,
         payload=payload,
     )
     return ApiResponse.success(data=detail)
-
-
-@router.delete(
-    "/projects/{project_id}",
-    response_model=ResponseModel[None],
-    summary="Delete project in the system directory",
-)
-async def delete_project(
-    project_id: PublicUUID,
-    payload: DirectoryDeleteRequest,
-    acting_user: User = Depends(require_super_admin),
-    service: SystemDirectoryService = Depends(get_directory_service),
-) -> ResponseModel[None]:
-    await service.delete_project(
-        project_id=project_id,
-        payload=payload,
-        acting_user_id=acting_user.id,
-    )
-    return ApiResponse.success(data=None)

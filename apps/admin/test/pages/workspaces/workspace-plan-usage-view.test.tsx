@@ -5,18 +5,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getWorkspaceCommerceOverview } from "@/api/commerce";
 import { WorkspacePlanUsageView } from "@/pages/workspaces/settings/workspace/plan-usage/plan-usage-view";
 
-vi.mock("@/api/commerce", () => ({
-  createWorkspaceCustomerPortalSession: vi.fn(),
-  getWorkspaceCommerceOverview: vi.fn(),
-}));
+vi.mock("@/api/commerce", () => ({ getWorkspaceCommerceOverview: vi.fn() }));
 vi.mock("@/components/commerce/credit-ledger-table", () => ({
   CreditLedgerTable: ({ workspaceId }: { workspaceId: string }) => (
     <div data-testid="credit-ledger-table">{workspaceId}</div>
   ),
 }));
-vi.mock("@/components/commerce/plan-selection-dialog", () => ({
-  PlanSelectionDialog: () => null,
-}));
+vi.mock("@/components/commerce/plan-selection-dialog", () => ({ PlanSelectionDialog: () => null }));
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, values?: Record<string, string>) =>
@@ -25,83 +20,76 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-function renderView() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
-    <QueryClientProvider client={client}>
-      <WorkspacePlanUsageView workspaceId="workspace-1" />
-    </QueryClientProvider>,
-  );
+function overview() {
+  return {
+    planRevision: {
+      id: "revision-1",
+      planId: "plan-1",
+      planCode: "premium",
+      sequence: 2,
+      nameI18NKey: "commerce:PLAN_PREMIUM_NAME",
+      descriptionI18NKey: "commerce:PLAN_PREMIUM_DESCRIPTION",
+      entitlements: [],
+      prices: [],
+      resourceAllowances: [],
+      creditGrantAmount: 10_000,
+      creditRefreshInterval: "monthly" as const,
+      creditValueMicros: 1_000,
+      currency: "USD",
+      isSelling: true,
+      createdAt: "2026-07-01T00:00:00Z",
+      updatedAt: "2026-07-01T00:00:00Z",
+    },
+    subscription: {
+      id: "subscription-1",
+      planRevisionId: "revision-1",
+      subscriptionRevision: 1,
+      status: "active" as const,
+      billingCycle: "monthly" as const,
+      currentPeriodStart: "2026-07-01T00:00:00Z",
+      currentPeriodEnd: "2026-08-01T00:00:00Z",
+      cancelAtPeriodEnd: false,
+      createdAt: "2026-07-01T00:00:00Z",
+      updatedAt: "2026-07-01T00:00:00Z",
+    },
+    credits: {
+      balance: 8_000,
+      reserved: 250,
+      available: 7_750,
+      periodStart: "2026-07-01T00:00:00Z",
+      periodEnd: "2026-08-01T00:00:00Z",
+      nextRefreshAt: "2026-08-01T00:00:00Z",
+    },
+    usage: {
+      periodCostMicros: 2_000_000,
+      requests: 24,
+      promptTokens: 1_000,
+      completionTokens: 500,
+    },
+  };
 }
 
 describe("WorkspacePlanUsageView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(getWorkspaceCommerceOverview).mockResolvedValue({
-      billingMode: "external_checkout",
-      billingProvider: "stripe",
-      checkoutEnabled: true,
-      plan: {
-        id: "plan-1",
-        code: "premium",
-        tier: "premium",
-        name: "Premium",
-        description: "Production plan",
-        creditGrantAmount: 10_000,
-        creditRefreshInterval: "monthly",
-        creditValueMicros: 1_000,
-        priceMonthlyMicros: 19_000_000,
-        priceYearlyMicros: 190_000_000,
-        currency: "USD",
-        features: [],
-        isActive: true,
-        isDefault: false,
-        sortOrder: 20,
-        createdAt: "2026-07-01T00:00:00Z",
-        updatedAt: "2026-07-01T00:00:00Z",
-      },
-      subscription: {
-        id: "subscription-1",
-        status: "active",
-        billingInterval: "monthly",
-        currentPeriodStart: "2026-07-01T00:00:00Z",
-        currentPeriodEnd: "2026-08-01T00:00:00Z",
-        cancelAtPeriodEnd: false,
-        createdAt: "2026-07-01T00:00:00Z",
-        updatedAt: "2026-07-01T00:00:00Z",
-      },
-      credits: {
-        balance: 8_000,
-        reserved: 250,
-        available: 7_750,
-        lifetimeGranted: 20_000,
-        lifetimeSpent: 12_000,
-        periodGranted: 10_000,
-        periodSpent: 2_000,
-        periodStart: "2026-07-01T00:00:00Z",
-        periodEnd: "2026-08-01T00:00:00Z",
-        nextRefreshAt: "2026-08-01T00:00:00Z",
-      },
-      usage: {
-        periodCostMicros: 2_000_000,
-        requests: 24,
-        promptTokens: 1_000,
-        completionTokens: 500,
-      },
-    });
+    vi.mocked(getWorkspaceCommerceOverview).mockResolvedValue(overview());
   });
 
-  it("presents the plan, real usage overview, period progress, and embedded ledger table", async () => {
-    renderView();
+  it("presents the revision, projected usage, subscription lifecycle, and ledger", async () => {
+    render(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <WorkspacePlanUsageView workspaceId="workspace-1" />
+      </QueryClientProvider>,
+    );
 
-    expect(await screen.findByText("Premium")).toBeVisible();
+    expect(await screen.findByText("commerce:PLAN_PREMIUM_NAME")).toBeVisible();
     expect(screen.getByText("commerce:CREDITS_AVAILABLE_LABEL")).toBeVisible();
     expect(screen.getByText("7,750")).toHaveClass("tabular-nums");
     expect(screen.getByText("24")).toHaveClass("tabular-nums");
     expect(screen.getByText("$2.00")).toHaveClass("tabular-nums");
-    expect(
-      screen.getByRole("progressbar", { name: "commerce:CREDITS_PERIOD_USAGE" }),
-    ).toHaveAttribute("aria-valuenow", "20");
+    expect(screen.getByText("commerce:PLAN_ALLOWANCES_NOT_PROJECTED")).toBeVisible();
     expect(screen.getByTestId("credit-ledger-table")).toHaveTextContent("workspace-1");
   });
 });

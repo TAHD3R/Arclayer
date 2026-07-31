@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from tortoise import fields
@@ -46,6 +47,8 @@ class SystemRole(BaseModel):
     is_system = fields.BooleanField(default=False, db_index=True)
     is_default = fields.BooleanField(default=False, db_index=True)
     is_superuser = fields.BooleanField(default=False, db_index=True)
+    started_at = fields.DatetimeField(default=lambda: datetime.now(UTC), db_index=True)
+    ended_at = fields.DatetimeField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
         table = "system_roles"

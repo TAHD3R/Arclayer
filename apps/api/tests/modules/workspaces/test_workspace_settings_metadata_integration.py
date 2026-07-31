@@ -48,6 +48,7 @@ async def test_workspace_metadata_get_and_patch(prepared_db, integration_valkey_
             organization_id=org.id,
             name="Default",
             is_active=True,
+            owner_user_id=owner.id,
             created_by_user_id=owner.id,
             icon_mode="glyph",
             icon_color="#2563eb",

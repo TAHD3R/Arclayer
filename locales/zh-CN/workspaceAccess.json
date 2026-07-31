@@ -1,0 +1,9 @@
+{
+  "FIXED_MEMBER_ACCESS": "每个工作空间都包含一套标准成员访问方式。",
+  "ROLES_PAID_FEATURE_TITLE": "符合条件的方案可使用自定义角色",
+  "ROLES_PAID_FEATURE_DESCRIPTION": "选择符合条件的方案后，即可创建自定义角色并细化成员访问范围。",
+  "OWNER_AUTHORITY_DESCRIPTION": "工作空间所有者拥有最终管理权，并可通过明确操作转移所有权。",
+  "ROLES_ELIGIBLE_PLAN_BADGE": "适用方案",
+  "ROLES_ACCESS_CHECKING_BADGE": "检查中",
+  "ROLES_ACCESS_CHECK_FAILED_BADGE": "检查失败"
+}

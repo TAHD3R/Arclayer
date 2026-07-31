@@ -111,18 +111,6 @@ const TOPIC_I18N_FALLBACK: Record<string, { title: string; description: string }
     title: "account:ME_NOTIFY_TOPIC_AUTOMATION_NOTIFICATION_TITLE",
     description: "account:ME_NOTIFY_TOPIC_AUTOMATION_NOTIFICATION_DESC",
   },
-  "system.mail.updated": {
-    title: "account:ME_NOTIFY_TOPIC_SYSTEM_MAIL_UPDATED_TITLE",
-    description: "account:ME_NOTIFY_TOPIC_SYSTEM_MAIL_UPDATED_DESC",
-  },
-  "system.storage.updated": {
-    title: "account:ME_NOTIFY_TOPIC_SYSTEM_STORAGE_UPDATED_TITLE",
-    description: "account:ME_NOTIFY_TOPIC_SYSTEM_STORAGE_UPDATED_DESC",
-  },
-  "system.settings.feature_flags.updated": {
-    title: "account:ME_NOTIFY_TOPIC_SYSTEM_FEATURE_FLAGS_UPDATED_TITLE",
-    description: "account:ME_NOTIFY_TOPIC_SYSTEM_FEATURE_FLAGS_UPDATED_DESC",
-  },
 };
 
 function buildChannelColumns(t: (key: string, options?: Record<string, unknown>) => string) {

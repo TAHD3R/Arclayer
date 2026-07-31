@@ -49,6 +49,12 @@ from src.modules.auth.tokens.service import hash_password
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.projects.repository import ProjectRepository
 from src.modules.system.admin.notifications.catalog import create_notification_record
+from src.modules.workspaces.authz.role_management import (
+    WorkspaceRoleManagementAvailabilityReader,
+    build_workspace_role_management_availability_reader,
+    require_workspace_role_management,
+    require_workspace_role_management_decision,
+)
 
 
 class AuthInvitationAcceptanceService(BaseService):
@@ -58,6 +64,7 @@ class AuthInvitationAcceptanceService(BaseService):
         *,
         onboarding_service: WorkspaceFirstOnboardingService | None = None,
         restriction_authority: AccessRestrictionAuthority | None = None,
+        role_management_reader: WorkspaceRoleManagementAvailabilityReader | None = None,
     ) -> None:
         super().__init__(settings)
         self.project_repo = ProjectRepository()
@@ -65,6 +72,7 @@ class AuthInvitationAcceptanceService(BaseService):
         self.workspace_repo = OrganizationWorkspaceRepository()
         self.onboarding_service = onboarding_service or WorkspaceFirstOnboardingService(settings)
         self.restriction_authority = restriction_authority or AccessRestrictionAuthority(AccessRestrictionRepository())
+        self.role_management_reader = role_management_reader or build_workspace_role_management_availability_reader()
 
     async def _require_workspace_unrestricted(self, *, workspace_id: UUID) -> None:
         await self.restriction_authority.require_unrestricted(
@@ -207,6 +215,18 @@ class AuthInvitationAcceptanceService(BaseService):
             if UUID(str(cast(HasOrganizationId, ws).organization_id)) != organization_id:
                 raise Forbidden(message=t("errors", "PERMISSION_DENIED"), error="CROSS_ORG_ACCESS_DENIED")
 
+            role_management = await require_workspace_role_management_decision(
+                workspace_id=workspace_id,
+                reader=self.role_management_reader,
+                conn=conn,
+            )
+            if assigned_role_code and not role_management.included:
+                await require_workspace_role_management(
+                    workspace_id=workspace_id,
+                    reader=self.role_management_reader,
+                    conn=conn,
+                )
+
             username = payload.username.strip()
             email = (invite_email or "").strip().lower()
             display_name = payload.display_name.strip() if payload.display_name else None
@@ -263,19 +283,34 @@ class AuthInvitationAcceptanceService(BaseService):
                 wsm.status = WorkspaceMembershipStatus.ACTIVE
                 await wsm.save(using_db=conn, update_fields=["status"])
 
-            if assigned_role_code:
-                role = await SystemRole.get_or_none(workspace_id=workspace_id, code=assigned_role_code, using_db=conn)
+            if role_management.included and assigned_role_code:
+                role = await SystemRole.get_or_none(
+                    workspace_id=workspace_id,
+                    code=assigned_role_code,
+                    ended_at=None,
+                    using_db=conn,
+                )
                 if role is not None:
                     roles = [role]
-            else:
-                roles = await SystemRole.filter(workspace_id=workspace_id, is_default=True).using_db(conn).all()
+            elif role_management.included:
+                roles = (
+                    await SystemRole
+                    .filter(
+                        workspace_id=workspace_id,
+                        is_default=True,
+                        ended_at=None,
+                    )
+                    .using_db(conn)
+                    .all()
+                )
 
             for role in roles:
-                await WorkspaceMembershipRole.get_or_create(using_db=conn, membership_id=wsm.id, role_id=role.id)
+                await WorkspaceMembershipRole.create(using_db=conn, membership_id=wsm.id, role_id=role.id)
 
-            await ensure_role_codes_have_admin_access(
-                workspace_id=workspace_id, role_codes=[r.code for r in roles], conn=conn
-            )
+            if role_management.included:
+                await ensure_role_codes_have_admin_access(
+                    workspace_id=workspace_id, role_codes=[r.code for r in roles], conn=conn
+                )
             await self.onboarding_service.complete_existing_workspace_if_pending(
                 user_id=user.id,
                 workspace_id=workspace_id,
@@ -464,6 +499,18 @@ class AuthInvitationAcceptanceService(BaseService):
             if UUID(str(cast(HasOrganizationId, ws).organization_id)) != organization_id:
                 raise Forbidden(message=t("errors", "PERMISSION_DENIED"), error="CROSS_ORG_ACCESS_DENIED")
 
+            role_management = await require_workspace_role_management_decision(
+                workspace_id=workspace_id,
+                reader=self.role_management_reader,
+                conn=conn,
+            )
+            if assigned_role_code and not role_management.included:
+                await require_workspace_role_management(
+                    workspace_id=workspace_id,
+                    reader=self.role_management_reader,
+                    conn=conn,
+                )
+
             existing_orgm = (
                 await OrgMembership
                 .filter(
@@ -506,21 +553,32 @@ class AuthInvitationAcceptanceService(BaseService):
                     await wsm.save(using_db=conn, update_fields=["status"])
 
                 roles: list[SystemRole] = []
-                if assigned_role_code:
+                if role_management.included and assigned_role_code:
                     role = await SystemRole.get_or_none(
                         workspace_id=workspace_id,
                         code=assigned_role_code,
+                        ended_at=None,
                         using_db=conn,
                     )
                     if role is not None:
                         roles = [role]
-                else:
-                    roles = await SystemRole.filter(workspace_id=workspace_id, is_default=True).using_db(conn).all()
+                elif role_management.included:
+                    roles = (
+                        await SystemRole
+                        .filter(
+                            workspace_id=workspace_id,
+                            is_default=True,
+                            ended_at=None,
+                        )
+                        .using_db(conn)
+                        .all()
+                    )
                 for role in roles:
-                    await WorkspaceMembershipRole.get_or_create(using_db=conn, membership_id=wsm.id, role_id=role.id)
-                await ensure_role_codes_have_admin_access(
-                    workspace_id=workspace_id, role_codes=[r.code for r in roles], conn=conn
-                )
+                    await WorkspaceMembershipRole.create(using_db=conn, membership_id=wsm.id, role_id=role.id)
+                if role_management.included:
+                    await ensure_role_codes_have_admin_access(
+                        workspace_id=workspace_id, role_codes=[r.code for r in roles], conn=conn
+                    )
                 await self.onboarding_service.complete_existing_workspace_if_pending(
                     user_id=user.id,
                     workspace_id=workspace_id,
@@ -600,5 +658,5 @@ class AuthInvitationAcceptanceService(BaseService):
         return AcceptExistingInvitationResult(
             workspace_id=workspace_id,
             project_id=project_id,
-            role_code=assigned_role_code,
+            role_code=assigned_role_code if role_management.included else None,
         )

@@ -10,6 +10,7 @@ interface ImportMetaEnv {
   readonly VITE_HMR_PORT?: string;
   readonly VITE_HMR_CLIENT_PORT?: string;
   readonly VITE_SITE_ORIGIN?: string;
+  readonly VITE_PLATFORM_ORIGIN?: string;
 }
 
 interface ImportMeta {

@@ -39,11 +39,9 @@ from src.models.organization.user import User
 from src.models.skills.skill_github_import import SkillGitHubImportRecord
 from src.models.skills.skill_installation import SkillInstallationRecord
 from src.models.skills.skill_package import SkillPackageRecord
-from src.models.system.rbac import SystemRole
 from src.models.workspaces.workspace import (
     Workspace,
     WorkspaceMembership,
-    WorkspaceMembershipRole,
     WorkspaceMembershipStatus,
 )
 from src.modules.auth.http.service import get_current_user, get_current_user_id
@@ -54,7 +52,7 @@ from src.modules.jobs.execution_schema import DurableJobExecutionOutcome, JobDel
 from src.modules.jobs.schema import JobDispatchEnvelope, JobDispatchPolicy
 from src.modules.system.agents.definition_service import SUPPORTED_TOOL_GRANTS
 from src.modules.tenancy.router_helpers import bind_workspace_tenant_context
-from src.modules.workspaces.rbac.service import WorkspaceRBACService
+from src.modules.workspaces.rbac.service import build_workspace_rbac_service
 from src.modules.workspaces.skills.github_import_contract import SKILL_GITHUB_SOURCE_INVALID
 from src.modules.workspaces.skills.github_source import (
     GitHubSkillSnapshot,
@@ -208,16 +206,15 @@ async def _workspace_in_organization(
         organization_id=organization_id,
         name=f"Workspace Skills {label.title()}",
         is_active=True,
+        owner_user_id=owner.id,
         created_by_user_id=owner.id,
     )
-    await WorkspaceRBACService(settings).ensure_workspace_rbac_ready(workspace_id=workspace.id)
-    membership = await WorkspaceMembership.create(
+    await build_workspace_rbac_service(settings).ensure_workspace_rbac_ready(workspace_id=workspace.id)
+    await WorkspaceMembership.create(
         workspace_id=workspace.id,
         user_id=owner.id,
         status=WorkspaceMembershipStatus.ACTIVE,
     )
-    owner_role = await SystemRole.get(workspace_id=workspace.id, code="owner")
-    await WorkspaceMembershipRole.create(membership_id=membership.id, role_id=owner_role.id)
     return workspace
 
 

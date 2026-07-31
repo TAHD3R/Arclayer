@@ -1,0 +1,1 @@
+"""Trusted Platform Capability Catalog."""

@@ -51,6 +51,7 @@ async def test_delegation_projection_owns_child_identity_nested_messages_and_sou
         organization_id=organization.id,
         name="Delegation Workspace",
         is_active=True,
+        owner_user_id=owner_id,
         created_by_user_id=owner_id,
     )
     project = await ProjectRecord.create(

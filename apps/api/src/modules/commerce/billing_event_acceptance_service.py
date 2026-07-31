@@ -13,7 +13,7 @@ from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.core.i18n import t
 from src.core.registries import ConnectorRegistry
 from src.core.services.base import BaseService
-from src.models.commerce.billing import BillingProviderMode, ConnectorEventInbox
+from src.models.connectors.inbox import ConnectorEventInbox
 from src.modules.commerce.billing_connector import BillingConnector, BillingWebhookEnvelope
 from src.modules.commerce.billing_event_crypto import (
     BillingEventCryptoError,
@@ -70,7 +70,7 @@ class BillingEventAcceptanceService(BaseService):
             return BillingEventAcceptanceResult(accepted=False)
 
         payload_sha256 = sha256(payload).hexdigest()
-        provider_mode = BillingProviderMode(envelope.provider_mode)
+        provider_mode = envelope.provider_mode
         async with self.tx() as conn:
             existing = await self._repository.get_by_identity(
                 provider=self._provider_name,

@@ -93,7 +93,6 @@ class FeedbackUserOut(BaseSchema):
     display_name: str | None
     avatar_url: str | None
     status: str
-    is_super_admin: bool
     last_login_at: datetime | None
     created_at: datetime
 

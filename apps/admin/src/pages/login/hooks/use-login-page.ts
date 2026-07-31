@@ -6,7 +6,6 @@ import { useTranslation } from "react-i18next";
 import * as authApi from "@/api/auth";
 import * as authSsoApi from "@/api/auth-sso";
 import * as invitationApi from "@/api/invitations";
-import * as systemApi from "@/api/system";
 import { useSystemRuntime } from "@/hooks/use-system-runtime";
 import { resolveLoginMode } from "@/lib/auth/auth-mode";
 import type { LoginMode } from "@/lib/auth/auth-mode";
@@ -34,9 +33,6 @@ import type { OAuthPopupResult, PendingOAuthState } from "@/types/auth/oauth-pop
 
 import { LOGIN_EMAIL_VERIFICATION_STATE_STARTED } from "../constants";
 import type {
-  BootstrapFormValues,
-  BootstrapPaneProps,
-  InstanceRepairRequiredPaneProps,
   LoginEmailLookupResult,
   LoginEmailCodeFormValues,
   LoginEmailCodePaneSeed,
@@ -220,10 +216,7 @@ function resolveEmailVerificationMeta(error: ApiError): EmailVerificationMeta | 
   };
 }
 
-type LoginPageState =
-  | { entry: "auth"; props: LoginViewProps }
-  | { entry: "bootstrap"; props: BootstrapPaneProps }
-  | { entry: "repair_required"; props: InstanceRepairRequiredPaneProps };
+type LoginPageState = { entry: "auth"; props: LoginViewProps };
 
 type NavigateAfterAuthOptions = {
   invitationAlreadyAccepted?: boolean;
@@ -364,16 +357,6 @@ export function useLoginPage(): LoginPageState {
   });
   const registerVerificationConfirmMutation = useMutation({
     mutationFn: async (token: string) => authApi.confirmRegistrationEmailVerification({ token }),
-    onError: notifyError,
-  });
-  const bootstrapMutation = useMutation({
-    mutationFn: async (values: BootstrapFormValues) =>
-      systemApi.bootstrapInstance({
-        username: values.username,
-        email: values.email,
-        password: values.password,
-        display_name: values.displayName.trim(),
-      }),
     onError: notifyError,
   });
   const ssoExchangeMutation = useMutation({
@@ -926,11 +909,6 @@ export function useLoginPage(): LoginPageState {
     return result.exists;
   };
 
-  const onBootstrapEmailSubmit = async (email: string) => {
-    const result = await emailCheckMutation.mutateAsync(email);
-    return result.exists;
-  };
-
   const onLoginFinish = async (values: LoginFormValues) => {
     try {
       const tokens = await loginMutation.mutateAsync(values);
@@ -1114,39 +1092,7 @@ export function useLoginPage(): LoginPageState {
     };
   };
 
-  const onBootstrapFinish = async (values: BootstrapFormValues) => {
-    const tokens = await bootstrapMutation.mutateAsync(values);
-    clearActiveChallenge();
-    applyLogin(tokens, { keepSession: true });
-    void queryClient.cancelQueries();
-    queryClient.clear();
-    notifySuccessText(t("auth:INSTANCE_BOOTSTRAP_SUCCESS"));
-    await navigateAfterAuth();
-  };
-
   const runtimeLoading = !runtimeReady;
-
-  if (runtime.instanceSetupStatus === "uninitialized") {
-    return {
-      entry: "bootstrap",
-      props: {
-        onEmailSubmit: onBootstrapEmailSubmit,
-        onSubmit: onBootstrapFinish,
-        emailLoading: emailCheckMutation.isPending,
-        loading: bootstrapMutation.isPending,
-      },
-    };
-  }
-
-  if (runtime.instanceSetupStatus === "repair_required") {
-    return {
-      entry: "repair_required",
-      props: {
-        repairReason: runtime.instanceSetupRepairReason,
-        onRefresh: () => window.location.reload(),
-      },
-    };
-  }
 
   return {
     entry: "auth",

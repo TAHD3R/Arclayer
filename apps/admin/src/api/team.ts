@@ -117,18 +117,19 @@ export async function listTeamInvitations(
   );
 }
 
-export async function createTeamInvitation(payload: {
-  workspaceId: string;
-  email: string;
-  roleCode: string | null;
-  joinMode?: "member" | "guest";
-  expiresInSeconds?: number | null;
-}): Promise<TeamInvitationCreateResult> {
+export async function createTeamInvitation(
+  payload: {
+    workspaceId: string;
+    email: string;
+    joinMode?: "member" | "guest";
+    expiresInSeconds?: number | null;
+  } & ({ roleCode: string; access?: never } | { access: "fixed-member"; roleCode?: never }),
+): Promise<TeamInvitationCreateResult> {
   return api.post<TeamInvitationCreateResult>(
     workspacePath(payload.workspaceId, "/team/email-invites"),
     {
       email: payload.email,
-      roleCode: payload.roleCode,
+      ...(payload.access === "fixed-member" ? {} : { roleCode: payload.roleCode }),
       joinMode: payload.joinMode,
       expiresInSeconds: payload.expiresInSeconds ?? undefined,
     },
@@ -174,18 +175,19 @@ export async function listTeamInviteLinks(
   );
 }
 
-export async function createTeamInviteLink(payload: {
-  workspaceId: string;
-  roleCode: string | null;
-  joinMode?: "member" | "guest";
-  expiresInSeconds?: number | null;
-  maxUses?: number | null;
-  allowedEmailDomain?: string | null;
-}): Promise<TeamInviteLinkCreateResult> {
+export async function createTeamInviteLink(
+  payload: {
+    workspaceId: string;
+    joinMode?: "member" | "guest";
+    expiresInSeconds?: number | null;
+    maxUses?: number | null;
+    allowedEmailDomain?: string | null;
+  } & ({ roleCode: string; access?: never } | { access: "fixed-member"; roleCode?: never }),
+): Promise<TeamInviteLinkCreateResult> {
   return api.post<TeamInviteLinkCreateResult>(
     workspacePath(payload.workspaceId, "/team/invite-links"),
     {
-      roleCode: payload.roleCode,
+      ...(payload.access === "fixed-member" ? {} : { roleCode: payload.roleCode }),
       joinMode: payload.joinMode,
       expiresInSeconds: payload.expiresInSeconds ?? undefined,
       maxUses: payload.maxUses ?? undefined,

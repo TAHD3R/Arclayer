@@ -76,13 +76,12 @@ async def test_workspace_role_policy_endpoints(prepared_db, integration_valkey_s
 
         workspace = await Workspace.create(
             organization_id=org.id,
-            slug="content-workspace",
             name="Content Workspace",
             is_active=True,
+            owner_user_id=owner_user.id,
             created_by_user_id=owner_user.id,
         )
 
-        owner_role = await SystemRole.get(workspace_id=workspace.id, code="owner")
         admin_role = await SystemRole.get(workspace_id=workspace.id, code="admin")
         viewer_role = await SystemRole.get(workspace_id=workspace.id, code="viewer")
         editor_role = await SystemRole.get(workspace_id=workspace.id, code="editor")
@@ -112,7 +111,6 @@ async def test_workspace_role_policy_endpoints(prepared_db, integration_valkey_s
             invited_by_user_id=owner_user.id,
         )
 
-        await WorkspaceMembershipRole.get_or_create(membership_id=owner_membership.id, role_id=owner_role.id)
         await WorkspaceMembershipRole.get_or_create(membership_id=admin_membership.id, role_id=admin_role.id)
         await WorkspaceMembershipRole.get_or_create(membership_id=member_membership_1.id, role_id=viewer_role.id)
         await WorkspaceMembershipRole.get_or_create(membership_id=member_membership_2.id, role_id=editor_role.id)
@@ -176,7 +174,7 @@ async def test_workspace_role_policy_endpoints(prepared_db, integration_valkey_s
                 "role__code", flat=True
             )
 
-            assert sorted(owner_roles) == ["owner"]
+            assert list(owner_roles) == []
             assert sorted(admin_roles) == ["admin"]
             assert sorted(member1_roles) == ["viewer"]
             assert sorted(member2_roles) == ["viewer"]

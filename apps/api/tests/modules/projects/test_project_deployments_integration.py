@@ -66,6 +66,7 @@ async def _project_members_client(prepared_db, integration_valkey_settings):
             organization_id=org.id,
             name="Workspace",
             is_active=True,
+            owner_user_id=owner.id,
             created_by_user_id=owner.id,
         )
         await WorkspaceMembership.create(

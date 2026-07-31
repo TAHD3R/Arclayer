@@ -1,8 +1,4 @@
 import { api } from "@/lib/http";
-import type {
-  AccessRestrictionEnforcePayload,
-  AccessRestrictionLiftPayload,
-} from "@/api/system-directory";
 import { toQueryString, workspacePath } from "@/lib/api";
 
 import type {
@@ -12,6 +8,29 @@ import type {
   WorkspaceManageListItem,
   WorkspaceManageMember,
 } from "@arclayer/openapi/admin-types";
+
+type AccessRestrictionReasonCategory =
+  | "policy_violation"
+  | "security_risk"
+  | "billing_issue"
+  | "abuse_prevention"
+  | "compliance_review"
+  | "owner_request"
+  | "other";
+
+type AccessRestrictionEnforcePayload = {
+  expectedRevision: number;
+  reasonCategory: AccessRestrictionReasonCategory;
+  reasonCode: string;
+  operatorNote: string;
+  reviewAt?: string | null;
+  expiresAt?: string | null;
+};
+
+type AccessRestrictionLiftPayload = {
+  expectedRevision: number;
+  operatorNote: string;
+};
 
 export async function listWorkspaces(params: {
   page?: number;

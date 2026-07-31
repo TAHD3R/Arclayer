@@ -8,6 +8,8 @@ from pydantic import BaseModel
 
 from src.models.projects.environment import ProjectEnvironmentKey
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.commerce.dunning.command_policy import build_restricted_recovery_command_policy
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.projects.environments.service import ProjectEnvironmentsService
 from src.modules.projects.http.router_helpers import (
     ensure_project_permission_granted,
@@ -94,7 +96,7 @@ async def require_project_content_manage_context(
     environment_id: Annotated[UUID | None, Query(alias="environmentId", description="Environment id.")] = None,
     runtime_service: ProjectRuntimeService = Depends(get_project_runtime_service),
 ) -> ProjectContentRouteContext:
-    return await _build_project_content_route_context(
+    route_context = await _build_project_content_route_context(
         permission="project:content:manage",
         ctx=ctx,
         user_id=user_id,
@@ -102,6 +104,11 @@ async def require_project_content_manage_context(
         environment_id=environment_id,
         runtime_service=runtime_service,
     )
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=route_context.workspace_id,
+        effects={RestrictedRecoveryEffect.CONTENT_MUTATION},
+    )
+    return route_context
 
 
 async def require_project_content_publish_context(
@@ -111,7 +118,7 @@ async def require_project_content_publish_context(
     environment_id: Annotated[UUID | None, Query(alias="environmentId", description="Environment id.")] = None,
     runtime_service: ProjectRuntimeService = Depends(get_project_runtime_service),
 ) -> ProjectContentRouteContext:
-    return await _build_project_content_route_context(
+    route_context = await _build_project_content_route_context(
         permission="project:content:publish",
         ctx=ctx,
         user_id=user_id,
@@ -119,3 +126,8 @@ async def require_project_content_publish_context(
         environment_id=environment_id,
         runtime_service=runtime_service,
     )
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=route_context.workspace_id,
+        effects={RestrictedRecoveryEffect.CONTENT_MUTATION},
+    )
+    return route_context

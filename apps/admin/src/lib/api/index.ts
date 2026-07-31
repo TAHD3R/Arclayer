@@ -1,2 +1,2 @@
 export { toQueryString } from "./query-string";
-export { projectPath, workspacePath, sitePath, systemSettingsPath } from "./path-builders";
+export { projectPath, workspacePath, sitePath } from "./path-builders";

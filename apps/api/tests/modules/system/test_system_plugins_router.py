@@ -21,7 +21,8 @@ from src.models.system.plugin_installation import (
     PluginRuntimeActivationState,
     PluginSourceType,
 )
-from src.modules.auth.http.service import get_current_user, require_super_admin
+from src.modules.platform_identity.http import get_current_platform_session, get_platform_identity_repository
+from src.modules.platform_identity.session_schema import PlatformSessionPrincipal
 from src.modules.system.plugins.router import (
     get_plugin_artifact_service,
     get_plugin_lifecycle_repository,
@@ -159,7 +160,6 @@ def _write_extension(project_root: Path) -> None:
             "admin": {
                 "label_key": "settings:SETTINGS_SYSTEM_PLUGIN_CATALOG_TEST_NAME",
                 "description_key": "settings:SETTINGS_SYSTEM_PLUGIN_CATALOG_TEST_DESC",
-                "settings_path": "/system/settings/catalog-test",
             },
         }),
         encoding="utf-8",
@@ -235,7 +235,7 @@ def _artifact_review(artifact: Any) -> SystemPluginArtifactReviewOut:
 def _build_app(
     *,
     manager: ExtensionManager | None,
-    is_super_admin: bool,
+    is_instance_owner: bool = True,
     lifecycle_service: _PluginLifecycleServiceStub | None = None,
     catalog_repository: _CatalogRepositoryStub | None = None,
     artifact_service: _PluginArtifactServiceStub | None = None,
@@ -245,18 +245,28 @@ def _build_app(
     init_exception_handlers(app, Settings(app_env="test"))
     if manager is not None:
         app.state.extension_manager = manager
-    app.include_router(system_plugins_router, prefix="/api/v1/system/plugins")
-    app.include_router(system_plugin_operations_router, prefix="/api/v1/system/plugin-operations")
+    app.include_router(system_plugins_router, prefix="/platform-api/v1/extensions")
+    app.include_router(system_plugin_operations_router, prefix="/platform-api/v1/extensions/operations")
 
     actor_id = uuid4()
 
-    async def _user_override():
-        return SimpleNamespace(id=actor_id, is_super_admin=is_super_admin)
+    class _PermissionRepository:
+        async def operator_has_permission(self, **_kwargs: object) -> bool:
+            return False
 
-    app.dependency_overrides[get_current_user] = _user_override
+    async def current_platform_session() -> PlatformSessionPrincipal:
+        return PlatformSessionPrincipal(
+            actor_id=actor_id,
+            session_id=uuid4(),
+            operator_id=None if is_instance_owner else uuid4(),
+            is_instance_owner=is_instance_owner,
+            policy_revision=1,
+            absolute_expires_at=datetime.now(UTC),
+        )
+
+    app.dependency_overrides[get_current_platform_session] = current_platform_session
+    app.dependency_overrides[get_platform_identity_repository] = _PermissionRepository
     app.dependency_overrides[get_plugin_lifecycle_repository] = lambda: catalog_repository or _CatalogRepositoryStub()
-    if is_super_admin:
-        app.dependency_overrides[require_super_admin] = _user_override
     if lifecycle_service is not None:
         app.dependency_overrides[get_plugin_lifecycle_service] = lambda: lifecycle_service
     if artifact_service is not None:
@@ -266,21 +276,21 @@ def _build_app(
     return app
 
 
-async def test_system_plugins_require_super_admin() -> None:
-    app = _build_app(manager=None, is_super_admin=False)
+async def test_system_plugins_require_platform_permission() -> None:
+    app = _build_app(manager=None, is_instance_owner=False)
 
     async with asgi_client(app) as client:
-        response = await client.get("/api/v1/system/plugins")
+        response = await client.get("/platform-api/v1/extensions")
 
     assert response.status_code == 403
-    assert response.json()["error"] == "SUPER_ADMIN_REQUIRED"
+    assert response.json()["error"] == "PLATFORM_PERMISSION_DENIED"
 
 
 async def test_system_plugins_report_unavailable_runtime() -> None:
-    app = _build_app(manager=None, is_super_admin=True)
+    app = _build_app(manager=None)
 
     async with asgi_client(app) as client:
-        response = await client.get("/api/v1/system/plugins")
+        response = await client.get("/platform-api/v1/extensions")
 
     assert response.status_code == 503
     assert response.json()["error"] == "EXTENSION_RUNTIME_UNAVAILABLE"
@@ -292,10 +302,10 @@ async def test_system_plugins_map_runtime_manifest(tmp_path: Path) -> None:
     await manager.load_all()
     await manager.register_all(app=None)
     await manager.bootstrap_all(app=None)
-    app = _build_app(manager=manager, is_super_admin=True)
+    app = _build_app(manager=manager)
 
     async with asgi_client(app) as client:
-        response = await client.get("/api/v1/system/plugins")
+        response = await client.get("/platform-api/v1/extensions")
 
     assert response.status_code == 200, response.text
     assert response.json()["data"] == {
@@ -317,7 +327,6 @@ async def test_system_plugins_map_runtime_manifest(tmp_path: Path) -> None:
                 "admin": {
                     "labelKey": "settings:SETTINGS_SYSTEM_PLUGIN_CATALOG_TEST_NAME",
                     "descriptionKey": "settings:SETTINGS_SYSTEM_PLUGIN_CATALOG_TEST_DESC",
-                    "settingsPath": "/system/settings/catalog-test",
                 },
                 "connectorDefinitions": [
                     {
@@ -339,16 +348,44 @@ async def test_system_plugins_map_runtime_manifest(tmp_path: Path) -> None:
     }
 
 
+async def test_extension_connections_expose_typed_consuming_domain_target(tmp_path: Path) -> None:
+    _write_extension(tmp_path)
+    manager = ExtensionManager(tmp_path)
+    await manager.load_all()
+    await manager.register_all(app=None)
+    await manager.bootstrap_all(app=None)
+    app = _build_app(manager=manager)
+
+    async with asgi_client(app) as client:
+        response = await client.get("/platform-api/v1/extensions/connections")
+
+    assert response.status_code == 200, response.text
+    assert response.json()["data"] == {
+        "items": [
+            {
+                "extensionName": "catalog-test",
+                "extensionVersion": "1.2.3",
+                "connectorKey": "catalog.test",
+                "connectorKind": "analytics",
+                "trustLevel": "third_party",
+                "runtimeReady": True,
+                "configurationReadiness": "unknown",
+                "configurationTarget": "monitoring.performance",
+            }
+        ]
+    }
+
+
 async def test_system_plugins_expose_official_posthog_connector() -> None:
     project_root = Path(__file__).resolve().parents[5]
     manager = ExtensionManager(project_root)
     await manager.load_extension(project_root / "plugins" / "arclayer-posthog")
     await manager.register_all(app=None)
     await manager.bootstrap_all(app=None)
-    app = _build_app(manager=manager, is_super_admin=True)
+    app = _build_app(manager=manager)
 
     async with asgi_client(app) as client:
-        response = await client.get("/api/v1/system/plugins")
+        response = await client.get("/platform-api/v1/extensions")
 
     assert response.status_code == 200, response.text
     plugin = response.json()["data"]["plugins"][0]
@@ -366,19 +403,19 @@ async def test_system_plugin_catalog_exposes_integrity_compatibility_and_detail(
     await manager.load_all()
     await manager.register_all(app=None)
     await manager.bootstrap_all(app=None)
-    app = _build_app(manager=manager, is_super_admin=True)
+    app = _build_app(manager=manager)
 
     async with asgi_client(app) as client:
         catalog_response = await client.get(
-            "/api/v1/system/plugins/catalog",
+            "/platform-api/v1/extensions/catalog",
             params={"search": "catalog-service", "ordering": "-version", "installedOnly": "true"},
         )
         updates_response = await client.get(
-            "/api/v1/system/plugins/catalog",
+            "/platform-api/v1/extensions/catalog",
             params={"updatesOnly": "true"},
         )
-        detail_response = await client.get("/api/v1/system/plugins/catalog-test")
-        missing_response = await client.get("/api/v1/system/plugins/missing-plugin")
+        detail_response = await client.get("/platform-api/v1/extensions/catalog-test")
+        missing_response = await client.get("/platform-api/v1/extensions/missing-plugin")
 
     assert catalog_response.status_code == 200, catalog_response.text
     catalog = catalog_response.json()["data"]["items"]
@@ -424,13 +461,12 @@ async def test_system_plugin_catalog_uses_persisted_disabled_installation_state(
     )
     app = _build_app(
         manager=manager,
-        is_super_admin=True,
         catalog_repository=_CatalogRepositoryStub([installation]),
     )
 
     async with asgi_client(app) as client:
         response = await client.get(
-            "/api/v1/system/plugins/catalog",
+            "/platform-api/v1/extensions/catalog",
             params={"installedOnly": "true"},
         )
 
@@ -448,11 +484,11 @@ async def test_system_plugin_install_requires_idempotency_key(tmp_path: Path) ->
     manager = ExtensionManager(tmp_path)
     operation = _operation_out()
     service = _PluginLifecycleServiceStub(operation)
-    app = _build_app(manager=manager, is_super_admin=True, lifecycle_service=service)
+    app = _build_app(manager=manager, lifecycle_service=service)
 
     async with asgi_client(app) as client:
         response = await client.post(
-            "/api/v1/system/plugins/installations",
+            "/platform-api/v1/extensions/installations",
             json={
                 "sourceType": "bundled",
                 "pluginName": "catalog-test",
@@ -470,13 +506,12 @@ async def test_manual_plugin_artifact_review_accepts_signed_zip_multipart(tmp_pa
     artifact_service = _PluginArtifactServiceStub(artifact, _artifact_review(artifact))
     app = _build_app(
         manager=None,
-        is_super_admin=True,
         artifact_service=artifact_service,
     )
 
     async with asgi_client(app) as client:
         response = await client.post(
-            "/api/v1/system/plugins/artifacts/manual",
+            "/platform-api/v1/extensions/artifacts/manual",
             data={"detached_signature": "base64-signature"},
             files={"package": ("catalog-test.zip", b"signed-archive", "application/zip")},
         )
@@ -497,14 +532,13 @@ async def test_manual_plugin_install_binds_reviewed_artifact(tmp_path: Path) -> 
     service = _PluginLifecycleServiceStub(_operation_out())
     app = _build_app(
         manager=manager,
-        is_super_admin=True,
         lifecycle_service=service,
         catalog_repository=repository,
     )
 
     async with asgi_client(app) as client:
         response = await client.post(
-            "/api/v1/system/plugins/installations",
+            "/platform-api/v1/extensions/installations",
             headers={"Idempotency-Key": "install-manual-catalog-test"},
             json={
                 "sourceType": "manual_upload",
@@ -531,7 +565,6 @@ async def test_online_catalog_install_binds_catalog_artifact(tmp_path: Path) -> 
     service = _PluginLifecycleServiceStub(_operation_out())
     app = _build_app(
         manager=manager,
-        is_super_admin=True,
         lifecycle_service=service,
         artifact_service=artifact_service,
         catalog_client=catalog_client,
@@ -539,7 +572,7 @@ async def test_online_catalog_install_binds_catalog_artifact(tmp_path: Path) -> 
 
     async with asgi_client(app) as client:
         response = await client.post(
-            "/api/v1/system/plugins/installations",
+            "/platform-api/v1/extensions/installations",
             headers={"Idempotency-Key": "install-online-catalog-test"},
             json={
                 "sourceType": "catalog",
@@ -563,11 +596,11 @@ async def test_system_plugin_install_starts_durable_operation(tmp_path: Path) ->
     manager = ExtensionManager(tmp_path)
     operation = _operation_out()
     service = _PluginLifecycleServiceStub(operation)
-    app = _build_app(manager=manager, is_super_admin=True, lifecycle_service=service)
+    app = _build_app(manager=manager, lifecycle_service=service)
 
     async with asgi_client(app) as client:
         response = await client.post(
-            "/api/v1/system/plugins/installations",
+            "/platform-api/v1/extensions/installations",
             headers={"Idempotency-Key": "install-catalog-test"},
             json={
                 "sourceType": "bundled",
@@ -591,11 +624,11 @@ async def test_system_plugin_disable_starts_durable_operation(tmp_path: Path) ->
     await manager.bootstrap_all(app=None)
     operation = _operation_out().model_copy(update={"kind": PluginOperationKind.DISABLE})
     service = _PluginLifecycleServiceStub(operation)
-    app = _build_app(manager=manager, is_super_admin=True, lifecycle_service=service)
+    app = _build_app(manager=manager, lifecycle_service=service)
 
     async with asgi_client(app) as client:
         response = await client.post(
-            "/api/v1/system/plugins/catalog-test/disable",
+            "/platform-api/v1/extensions/catalog-test/disable",
             headers={"Idempotency-Key": "disable-catalog-test"},
             json={},
         )
@@ -609,10 +642,10 @@ async def test_system_plugin_disable_starts_durable_operation(tmp_path: Path) ->
 async def test_system_plugin_operation_endpoint_reads_durable_state() -> None:
     operation = _operation_out()
     service = _PluginLifecycleServiceStub(operation)
-    app = _build_app(manager=None, is_super_admin=True, lifecycle_service=service)
+    app = _build_app(manager=None, lifecycle_service=service)
 
     async with asgi_client(app) as client:
-        response = await client.get(f"/api/v1/system/plugin-operations/{operation.id}")
+        response = await client.get(f"/platform-api/v1/extensions/operations/{operation.id}")
 
     assert response.status_code == 200, response.text
     assert response.json()["data"]["id"] == encode_uuid(operation.id)

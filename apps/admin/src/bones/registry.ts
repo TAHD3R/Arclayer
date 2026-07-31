@@ -3,20 +3,14 @@
 import { registerBones } from "boneyard-js";
 import { configureBoneyard } from "boneyard-js/react";
 
-import _admin_route_system_overview from "./admin-route-system-overview.bones.json";
-import _admin_route_system_audit_log from "./admin-route-system-audit-log.bones.json";
-import _admin_route_system_feedback from "./admin-route-system-feedback.bones.json";
-import _admin_route_system_observability_requests from "./admin-route-system-observability-requests.bones.json";
-import _admin_route_system_observability_ai_usage from "./admin-route-system-observability-ai-usage.bones.json";
-import _admin_route_system_observability_activity from "./admin-route-system-observability-activity.bones.json";
-import _admin_route_system_settings_billing from "./admin-route-system-settings-billing.bones.json";
-import _admin_route_projects_projectid_content_library_itemid from "./admin-route-projects-projectid-content-library-itemid.bones.json";
+import _admin_route_login from "./admin-route-login.bones.json";
 import _admin_route_home from "./admin-route-home.bones.json";
 import _admin_route_inspriation from "./admin-route-inspriation.bones.json";
 import _admin_route_notifications from "./admin-route-notifications.bones.json";
 import _admin_route_projects_projectid_activity from "./admin-route-projects-projectid-activity.bones.json";
 import _admin_route_projects_projectid_assets from "./admin-route-projects-projectid-assets.bones.json";
 import _admin_route_projects_projectid_content_automation from "./admin-route-projects-projectid-content-automation.bones.json";
+import _admin_route_projects_projectid_content_library_itemid from "./admin-route-projects-projectid-content-library-itemid.bones.json";
 import _admin_route_projects_projectid_content_library from "./admin-route-projects-projectid-content-library.bones.json";
 import _admin_route_projects_projectid_content_models_edit from "./admin-route-projects-projectid-content-models-edit.bones.json";
 import _admin_route_projects_projectid_content_models from "./admin-route-projects-projectid-content-models.bones.json";
@@ -34,16 +28,6 @@ import _admin_route_projects_projectid_website_config from "./admin-route-projec
 import _admin_route_projects_projectid_website_project_releases from "./admin-route-projects-projectid-website-project-releases.bones.json";
 import _admin_route_projects_projectid from "./admin-route-projects-projectid.bones.json";
 import _admin_route_projects from "./admin-route-projects.bones.json";
-import _admin_route_system_settings_access from "./admin-route-system-settings-access.bones.json";
-import _admin_route_system_settings_agents from "./admin-route-system-settings-agents.bones.json";
-import _admin_route_system_settings_domains from "./admin-route-system-settings-domains.bones.json";
-import _admin_route_system_settings_email from "./admin-route-system-settings-email.bones.json";
-import _admin_route_system_settings_notifications from "./admin-route-system-settings-notifications.bones.json";
-import _admin_route_system_settings_oauth from "./admin-route-system-settings-oauth.bones.json";
-import _admin_route_system_settings_storage from "./admin-route-system-settings-storage.bones.json";
-import _admin_route_system_tenants_projects from "./admin-route-system-tenants-projects.bones.json";
-import _admin_route_system_tenants_users from "./admin-route-system-tenants-users.bones.json";
-import _admin_route_system_tenants_workspaces from "./admin-route-system-tenants-workspaces.bones.json";
 
 configureBoneyard({
   color: "color-mix(in oklab, var(--color-primary) 9%, var(--color-background))",
@@ -52,15 +36,7 @@ configureBoneyard({
 });
 
 registerBones({
-  "admin-route-system-overview": _admin_route_system_overview,
-  "admin-route-system-audit-log": _admin_route_system_audit_log,
-  "admin-route-system-feedback": _admin_route_system_feedback,
-  "admin-route-system-observability-requests": _admin_route_system_observability_requests,
-  "admin-route-system-observability-ai-usage": _admin_route_system_observability_ai_usage,
-  "admin-route-system-observability-activity": _admin_route_system_observability_activity,
-  "admin-route-system-settings-billing": _admin_route_system_settings_billing,
-  "admin-route-projects-projectid-content-library-itemid":
-    _admin_route_projects_projectid_content_library_itemid,
+  "admin-route-login": _admin_route_login,
   "admin-route-home": _admin_route_home,
   "admin-route-inspriation": _admin_route_inspriation,
   "admin-route-notifications": _admin_route_notifications,
@@ -68,6 +44,8 @@ registerBones({
   "admin-route-projects-projectid-assets": _admin_route_projects_projectid_assets,
   "admin-route-projects-projectid-content-automation":
     _admin_route_projects_projectid_content_automation,
+  "admin-route-projects-projectid-content-library-itemid":
+    _admin_route_projects_projectid_content_library_itemid,
   "admin-route-projects-projectid-content-library": _admin_route_projects_projectid_content_library,
   "admin-route-projects-projectid-content-models-edit":
     _admin_route_projects_projectid_content_models_edit,
@@ -93,14 +71,4 @@ registerBones({
     _admin_route_projects_projectid_website_project_releases,
   "admin-route-projects-projectid": _admin_route_projects_projectid,
   "admin-route-projects": _admin_route_projects,
-  "admin-route-system-settings-access": _admin_route_system_settings_access,
-  "admin-route-system-settings-agents": _admin_route_system_settings_agents,
-  "admin-route-system-settings-domains": _admin_route_system_settings_domains,
-  "admin-route-system-settings-email": _admin_route_system_settings_email,
-  "admin-route-system-settings-notifications": _admin_route_system_settings_notifications,
-  "admin-route-system-settings-oauth": _admin_route_system_settings_oauth,
-  "admin-route-system-settings-storage": _admin_route_system_settings_storage,
-  "admin-route-system-tenants-projects": _admin_route_system_tenants_projects,
-  "admin-route-system-tenants-users": _admin_route_system_tenants_users,
-  "admin-route-system-tenants-workspaces": _admin_route_system_tenants_workspaces,
 });

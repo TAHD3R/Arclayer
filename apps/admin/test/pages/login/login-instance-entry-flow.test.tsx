@@ -9,8 +9,6 @@ import { LoginPage } from "@/pages/login/page";
 type RuntimeState = {
   runtime: Record<string, unknown> | null;
   publicRegisterEnabled: boolean | null;
-  instanceSetupStatus: "uninitialized" | "ready" | "repair_required" | null;
-  instanceSetupRepairReason: string | null;
 };
 
 const {
@@ -18,7 +16,6 @@ const {
   emailCheckMock,
   loginMock,
   usernameCheckMock,
-  bootstrapInstanceMock,
   previewInvitationMock,
   acceptInvitationMock,
   acceptExistingInvitationMock,
@@ -33,7 +30,6 @@ const {
   emailCheckMock: vi.fn(),
   loginMock: vi.fn(),
   usernameCheckMock: vi.fn(),
-  bootstrapInstanceMock: vi.fn(),
   previewInvitationMock: vi.fn(),
   acceptInvitationMock: vi.fn(),
   acceptExistingInvitationMock: vi.fn(),
@@ -43,8 +39,6 @@ const {
   runtimeState: {
     runtime: {} as RuntimeState["runtime"],
     publicRegisterEnabled: true as RuntimeState["publicRegisterEnabled"],
-    instanceSetupStatus: "uninitialized" as RuntimeState["instanceSetupStatus"],
-    instanceSetupRepairReason: null as RuntimeState["instanceSetupRepairReason"],
   },
   authState: {
     applyLogin: vi.fn(),
@@ -92,11 +86,6 @@ vi.mock("@/api/invitations", () => ({
 
 vi.mock("@/api/auth-sso", () => ({
   exchangeSSOCode: vi.fn(),
-}));
-
-vi.mock("@/api/system", () => ({
-  bootstrapInstance: (...args: unknown[]) => bootstrapInstanceMock(...args),
-  getSystemRuntime: vi.fn(),
 }));
 
 vi.mock("@/components/ui/oauth-buttons", () => ({
@@ -178,7 +167,6 @@ beforeEach(() => {
   });
 
   currentSearch = { mode: "login" };
-  bootstrapInstanceMock.mockReset();
   emailCheckMock.mockReset();
   loginMock.mockReset();
   usernameCheckMock.mockReset();
@@ -194,82 +182,12 @@ beforeEach(() => {
   workspaceState.setCurrentProjectId.mockReset();
   runtimeState.runtime = {};
   runtimeState.publicRegisterEnabled = true;
-  runtimeState.instanceSetupStatus = "uninitialized";
-  runtimeState.instanceSetupRepairReason = null;
   usernameCheckMock.mockResolvedValue({ available: true });
   resolvePostAuthRouteMock.mockResolvedValue({
     path: "/",
     workspaceId: null,
     projectId: null,
     onboardingRequired: false,
-  });
-});
-
-describe("LoginPage instance entry flow", () => {
-  it("shows bootstrap pane when instance is uninitialized", async () => {
-    renderPage();
-
-    await waitFor(() => {
-      expect(screen.getByText("auth:INSTANCE_BOOTSTRAP_TITLE")).toBeInTheDocument();
-    });
-    expect(screen.queryByText("auth:LOGIN_PAGE_TITLE")).not.toBeInTheDocument();
-    expect(screen.getByText("auth:LEGAL_CONTINUE")).toBeInTheDocument();
-  });
-
-  it("submits bootstrap form and continues with the issued session", async () => {
-    emailCheckMock.mockResolvedValueOnce({ exists: false });
-    bootstrapInstanceMock.mockResolvedValueOnce({
-      access_token: "access-token",
-      refresh_token: "refresh-token",
-      token_type: "bearer",
-      expires_in: 3600,
-      refresh_expires_in: 86400,
-    });
-
-    renderPage();
-    const user = userEvent.setup();
-
-    await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "founder@example.com");
-    await user.click(screen.getByRole("button", { name: "auth:INSTANCE_BOOTSTRAP_NEXT_BUTTON" }));
-    expect(emailCheckMock).toHaveBeenCalledWith({ email: "founder@example.com" });
-
-    await user.type(await screen.findByLabelText("auth:FIELD_DISPLAY_NAME_LABEL"), "Founder");
-    await user.type(screen.getByLabelText("auth:FIELD_USERNAME_LABEL"), "founder01");
-    await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "Bootstrap123");
-    await waitFor(() => {
-      expect(screen.getByText("auth:USERNAME_AVAILABILITY_AVAILABLE")).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole("button", { name: "auth:INSTANCE_BOOTSTRAP_BUTTON" }));
-
-    await waitFor(() => {
-      expect(bootstrapInstanceMock).toHaveBeenCalledWith({
-        username: "founder01",
-        email: "founder@example.com",
-        password: "Bootstrap123",
-        display_name: "Founder",
-      });
-    });
-    expect(authState.applyLogin).toHaveBeenCalledWith(
-      expect.objectContaining({ access_token: "access-token" }),
-      { keepSession: true },
-    );
-    expect(queryClientCancelQueriesMock).toHaveBeenCalled();
-    expect(queryClientClearMock).toHaveBeenCalled();
-    expect(navigateMock).toHaveBeenCalledWith({ to: "/", replace: true });
-  });
-
-  it("shows repair pane when instance requires repair", async () => {
-    runtimeState.instanceSetupStatus = "repair_required";
-    runtimeState.instanceSetupRepairReason = "missing_super_admin";
-
-    renderPage();
-
-    await waitFor(() => {
-      expect(screen.getByText("auth:INSTANCE_REPAIR_REQUIRED_TITLE")).toBeInTheDocument();
-    });
-    expect(screen.getByText("missing_super_admin")).toBeInTheDocument();
-    expect(screen.queryByText("auth:LOGIN_PAGE_TITLE")).not.toBeInTheDocument();
-    expect(screen.queryByText("auth:LEGAL_CONTINUE")).not.toBeInTheDocument();
   });
 });
 
@@ -294,7 +212,6 @@ describe("LoginPage invitation auth flow", () => {
   };
 
   beforeEach(() => {
-    runtimeState.instanceSetupStatus = "ready";
     runtimeState.publicRegisterEnabled = false;
     previewInvitationMock.mockResolvedValue(invitationPreview);
   });

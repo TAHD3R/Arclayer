@@ -139,7 +139,7 @@ def test_bind_project_tenant_context_enriches_bound_workspace_context() -> None:
 async def test_workspace_request_entrypoint_binds_tenant_context(monkeypatch: pytest.MonkeyPatch) -> None:
     organization_id = uuid4()
     user_id = uuid4()
-    workspace = SimpleNamespace(id=uuid4())
+    workspace = SimpleNamespace(id=uuid4(), owner_user_id=user_id)
     membership = SimpleNamespace(id=uuid4())
     calls: dict[str, object] = {}
 
@@ -208,9 +208,15 @@ async def test_project_request_entrypoint_binds_project_tenant_context(monkeypat
             org_membership_id=uuid4(),
             is_org_owner=True,
             workspace_membership_id=uuid4(),
-            visible_only=False,
-            is_creator_admin=False,
+            is_workspace_owner=False,
         )
+
+    class _UnrestrictedAuthority:
+        def __init__(self, _repository) -> None:  # type: ignore[no-untyped-def]
+            pass
+
+        async def require_unrestricted(self, **_kwargs) -> None:  # type: ignore[no-untyped-def]
+            pass
 
     def _fake_bind_project_tenant_context(*, project_id, runtime_id=None, scope=TenantScope.PROJECT, **_kwargs):  # type: ignore[no-untyped-def]
         tenant_calls["project"] = project_id
@@ -226,6 +232,10 @@ async def test_project_request_entrypoint_binds_project_tenant_context(monkeypat
     monkeypatch.setattr(
         "src.modules.projects.http.service.resolve_member_workspace_context",
         _fake_resolve_member_workspace_context,
+    )
+    monkeypatch.setattr(
+        "src.modules.projects.http.service.AccessRestrictionAuthority",
+        _UnrestrictedAuthority,
     )
     monkeypatch.setattr(
         "src.modules.projects.http.service.bind_project_tenant_context", _fake_bind_project_tenant_context

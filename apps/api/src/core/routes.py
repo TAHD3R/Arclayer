@@ -10,12 +10,14 @@ from src.modules.commerce.billing_router import router as commerce_billing_route
 from src.modules.feedback.router import router as feedback_router
 from src.modules.library.router import router as public_library_router
 from src.modules.permissions.router import router as permissions_router
+from src.modules.platform_identity.eligibility_router import router as platform_entry_eligibility_router
 from src.modules.projects.router import router as projects_router
 from src.modules.projects.runtime.router import router as content_runtime_router
 from src.modules.sites.content_api.router import router as content_sites_router
 from src.modules.sites.public_host_router import project_host_routing_middleware
 from src.modules.sites.router import router as sites_router
-from src.modules.system.router import router as system_router
+from src.modules.system.router import platform_router
+from src.modules.system.router import public_router as product_runtime_router
 from src.modules.tenancy.router import router as tenancy_router
 from src.modules.workspaces.router import router as workspaces_router
 
@@ -43,6 +45,12 @@ def _build_management_api_prefix(settings: Settings) -> str:
     management_prefix = str(settings.application.management_api_prefix or "").rstrip("/")
     version_prefix = _normalize_prefix(settings.application.api_version_prefix)
     return f"{management_prefix}{version_prefix}"
+
+
+def _build_platform_api_prefix(settings: Settings) -> str:
+    platform_prefix = str(settings.platform_application.api_prefix or "").rstrip("/")
+    version_prefix = _normalize_prefix(settings.platform_application.api_version_prefix)
+    return f"{platform_prefix}{version_prefix}"
 
 
 def include_router_with_global_prefix_prepended(
@@ -113,7 +121,7 @@ def include_auth_router_with_prefix(
     )
 
 
-def register_routes(app: FastAPI, settings: Settings) -> None:
+def register_product_routes(app: FastAPI, settings: Settings) -> None:
     # Static public delivery routes stay outside the versioned JSON API surfaces.
     app.include_router(public_assets_router)
     app.include_router(public_library_router)
@@ -122,14 +130,15 @@ def register_routes(app: FastAPI, settings: Settings) -> None:
     include_content_api_router(app, content_runtime_router, settings=settings)
     include_content_api_router(app, content_sites_router, settings=settings)
 
-    # Admin API: authenticated Admin UI operations and internal control-plane routes.
+    # Product API: customer-facing Product Application and Workspace operations.
     include_auth_router_with_prefix(app, settings=settings)
     include_router_with_global_prefix_prepended(app, ai_router, settings=settings, prefix="/chat")
     include_router_with_global_prefix_prepended(app, sites_router, settings=settings)
-    include_router_with_global_prefix_prepended(app, system_router, settings=settings, prefix="/system")
+    include_router_with_global_prefix_prepended(app, product_runtime_router, settings=settings, prefix="/system")
     include_router_with_global_prefix_prepended(app, permissions_router, settings=settings, prefix="/permissions")
     include_router_with_global_prefix_prepended(app, tenancy_router, settings=settings, prefix="/tenancy")
     include_router_with_global_prefix_prepended(app, workspaces_router, settings=settings)
+    include_router_with_global_prefix_prepended(app, platform_entry_eligibility_router, settings=settings)
     include_router_with_global_prefix_prepended(app, feedback_router, settings=settings)
     include_router_with_global_prefix_prepended(
         app,
@@ -142,3 +151,9 @@ def register_routes(app: FastAPI, settings: Settings) -> None:
     # Host-based public project pages run as a 404 fallback so regular API routes,
     # docs routes, and test-local routes keep their normal routing precedence.
     app.middleware("http")(project_host_routing_middleware)
+
+
+def register_platform_routes(app: FastAPI, settings: Settings) -> None:
+    """Register the explicit Platform API router allowlist."""
+
+    app.include_router(platform_router, prefix=_build_platform_api_prefix(settings))

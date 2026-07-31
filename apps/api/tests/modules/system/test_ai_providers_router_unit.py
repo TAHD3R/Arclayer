@@ -9,32 +9,31 @@ from fastapi import FastAPI
 
 from src.config import Settings, get_settings
 from src.core.exceptions import BadRequest, init_exception_handlers
-from src.modules.auth.http.service import get_current_user, require_super_admin
+from src.modules.platform_identity.http import get_current_platform_session
 from src.modules.system.ai_providers.router import get_system_ai_provider_service
+from src.modules.system.ai_providers.router import router as ai_providers_router
 from src.modules.system.ai_providers.schema import SystemAIProviderUpdateRequest
 from src.modules.system.ai_providers.service import SystemAIProviderService
-from src.modules.system.router import router as system_router
 from tests.utils.asgi_client import asgi_client
 
 
 async def test_system_ai_providers_route_returns_empty_list() -> None:
     app = FastAPI()
     init_exception_handlers(app, get_settings())
-    app.include_router(system_router, prefix="/api/v1/system")
+    app.include_router(ai_providers_router, prefix="/platform-api/v1/ai")
 
-    async def _super_admin():
-        return SimpleNamespace(is_super_admin=True)
+    async def _platform_owner() -> SimpleNamespace:
+        return SimpleNamespace(actor_id=uuid4(), is_instance_owner=True)
 
     class EmptyProviderService:
         async def list_providers(self):
             return []
 
-    app.dependency_overrides[get_current_user] = _super_admin
-    app.dependency_overrides[require_super_admin] = _super_admin
+    app.dependency_overrides[get_current_platform_session] = _platform_owner
     app.dependency_overrides[get_system_ai_provider_service] = lambda: EmptyProviderService()
 
     async with asgi_client(app) as client:
-        res = await client.get("/api/v1/system/ai/providers")
+        res = await client.get("/platform-api/v1/ai/providers")
 
     assert res.status_code == 200
     assert res.json()["data"] == {"providers": []}

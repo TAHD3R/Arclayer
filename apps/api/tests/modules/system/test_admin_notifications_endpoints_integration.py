@@ -59,6 +59,7 @@ async def _bootstrap_admin_user(app, *, org_name: str = "Test Org"):
         organization_id=org.id,
         name="Site",
         is_active=True,
+        owner_user_id=admin.id,
         created_by_user_id=admin.id,
     )
 

@@ -73,27 +73,27 @@ describe("feedback entry surfaces", () => {
     expect(document.querySelector("[data-slot='popover-content']")).toHaveClass(
       "w-[min(22rem,calc(100vw-2rem))]",
     );
-    await waitFor(() => expect(screen.getByText("platform:FEEDBACK_COMPOSER_TITLE")).toBeVisible());
+    await waitFor(() => expect(screen.getByText("feedback:FEEDBACK_COMPOSER_TITLE")).toBeVisible());
     expect(
-      screen.getByRole("radiogroup", { name: "platform:FEEDBACK_DIALOG_INTENT_LABEL" }),
+      screen.getByRole("radiogroup", { name: "feedback:FEEDBACK_DIALOG_INTENT_LABEL" }),
     ).toBeVisible();
     expect(
-      screen.getByRole("radiogroup", { name: "platform:FEEDBACK_DIALOG_INTENT_LABEL" }),
+      screen.getByRole("radiogroup", { name: "feedback:FEEDBACK_DIALOG_INTENT_LABEL" }),
     ).toHaveClass("grid-cols-2");
     expect(
-      screen.getByRole("radiogroup", { name: "platform:FEEDBACK_DIALOG_INTENT_LABEL" }),
+      screen.getByRole("radiogroup", { name: "feedback:FEEDBACK_DIALOG_INTENT_LABEL" }),
     ).not.toHaveClass("sm:grid-cols-4");
-    expect(screen.getByRole("radio", { name: "platform:FEEDBACK_INTENT_PROBLEM" })).toHaveAttribute(
+    expect(screen.getByRole("radio", { name: "feedback:FEEDBACK_INTENT_PROBLEM" })).toHaveAttribute(
       "aria-checked",
       "true",
     );
     expect(screen.queryByRole("button", { name: "common:CLOSE" })).not.toBeInTheDocument();
-    const composerHeader = screen.getByText("platform:FEEDBACK_COMPOSER_TITLE").parentElement
+    const composerHeader = screen.getByText("feedback:FEEDBACK_COMPOSER_TITLE").parentElement
       ?.parentElement;
     expect(composerHeader?.querySelector("svg")).toBeNull();
     await waitFor(() =>
       expect(
-        screen.getByPlaceholderText("platform:FEEDBACK_DIALOG_MESSAGE_PLACEHOLDER"),
+        screen.getByPlaceholderText("feedback:FEEDBACK_DIALOG_MESSAGE_PLACEHOLDER"),
       ).toBeVisible(),
     );
   });
@@ -103,13 +103,13 @@ describe("feedback entry surfaces", () => {
     renderHeaderFeedback();
 
     await user.click(screen.getByRole("button", { name: "Open feedback" }));
-    expect(screen.getByRole("button", { name: "platform:ACTION_SUBMIT_FEEDBACK" })).toBeDisabled();
-    await user.click(screen.getByRole("radio", { name: "platform:FEEDBACK_INTENT_PROBLEM" }));
-    await user.type(screen.getByLabelText("platform:FEEDBACK_DIALOG_MESSAGE_LABEL"), "short");
-    await user.click(screen.getByRole("button", { name: "platform:ACTION_SUBMIT_FEEDBACK" }));
+    expect(screen.getByRole("button", { name: "feedback:ACTION_SUBMIT_FEEDBACK" })).toBeDisabled();
+    await user.click(screen.getByRole("radio", { name: "feedback:FEEDBACK_INTENT_PROBLEM" }));
+    await user.type(screen.getByLabelText("feedback:FEEDBACK_DIALOG_MESSAGE_LABEL"), "short");
+    await user.click(screen.getByRole("button", { name: "feedback:ACTION_SUBMIT_FEEDBACK" }));
 
     expect(
-      await screen.findByText("platform:FEEDBACK_VALIDATION_MIN_LENGTH:10"),
+      await screen.findByText("feedback:FEEDBACK_VALIDATION_MIN_LENGTH:10"),
     ).toBeInTheDocument();
     expect(submitFeedback).not.toHaveBeenCalled();
   });
@@ -119,12 +119,12 @@ describe("feedback entry surfaces", () => {
     const { invalidateQueries } = renderHeaderFeedback();
 
     await user.click(screen.getByRole("button", { name: "Open feedback" }));
-    await user.click(screen.getByRole("radio", { name: "platform:FEEDBACK_INTENT_IDEA" }));
+    await user.click(screen.getByRole("radio", { name: "feedback:FEEDBACK_INTENT_IDEA" }));
     await user.type(
-      screen.getByLabelText("platform:FEEDBACK_DIALOG_MESSAGE_LABEL"),
+      screen.getByLabelText("feedback:FEEDBACK_DIALOG_MESSAGE_LABEL"),
       "The publishing flow needs a clearer confirmation state.",
     );
-    await user.click(screen.getByRole("button", { name: "platform:ACTION_SUBMIT_FEEDBACK" }));
+    await user.click(screen.getByRole("button", { name: "feedback:ACTION_SUBMIT_FEEDBACK" }));
 
     await waitFor(() => expect(submitFeedback).toHaveBeenCalledTimes(1));
     expect(vi.mocked(submitFeedback).mock.calls[0]?.[0]).toEqual({
@@ -151,10 +151,10 @@ describe("feedback entry surfaces", () => {
     expect(screen.queryByText("req_456")).not.toBeInTheDocument();
     expect(screen.queryByText("common:TOAST_REQUEST_ID_VALUE")).not.toBeInTheDocument();
     await user.type(
-      screen.getByLabelText("platform:FEEDBACK_DIALOG_MESSAGE_LABEL"),
+      screen.getByLabelText("feedback:FEEDBACK_DIALOG_MESSAGE_LABEL"),
       "Saving this page failed after I changed the title.",
     );
-    await user.click(screen.getByRole("button", { name: "platform:ACTION_SUBMIT_FEEDBACK" }));
+    await user.click(screen.getByRole("button", { name: "feedback:ACTION_SUBMIT_FEEDBACK" }));
 
     await waitFor(() => expect(submitFeedback).toHaveBeenCalledTimes(1));
     expect(vi.mocked(submitFeedback).mock.calls[0]?.[0]).toEqual(
@@ -178,14 +178,14 @@ describe("feedback entry surfaces", () => {
     renderHeaderFeedback();
 
     await user.click(screen.getByRole("button", { name: "Open feedback" }));
-    await user.click(screen.getByRole("radio", { name: "platform:FEEDBACK_INTENT_QUESTION" }));
+    await user.click(screen.getByRole("radio", { name: "feedback:FEEDBACK_INTENT_QUESTION" }));
     await user.type(
-      screen.getByLabelText("platform:FEEDBACK_DIALOG_MESSAGE_LABEL"),
+      screen.getByLabelText("feedback:FEEDBACK_DIALOG_MESSAGE_LABEL"),
       "The assistant response omitted the requested rollout risk.",
     );
-    await user.click(screen.getByRole("button", { name: "platform:ACTION_SUBMIT_FEEDBACK" }));
+    await user.click(screen.getByRole("button", { name: "feedback:ACTION_SUBMIT_FEEDBACK" }));
     expect(await screen.findByText("Network interrupted")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "platform:ACTION_SUBMIT_FEEDBACK" }));
+    await user.click(screen.getByRole("button", { name: "feedback:ACTION_SUBMIT_FEEDBACK" }));
 
     await waitFor(() => expect(submitFeedback).toHaveBeenCalledTimes(2));
     expect(

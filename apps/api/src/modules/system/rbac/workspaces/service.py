@@ -12,7 +12,6 @@ from src.modules.system.rbac.constants.service import (
     ROLE_ADMIN,
     ROLE_DESIGNER,
     ROLE_EDITOR,
-    ROLE_OWNER,
     ROLE_VIEWER,
 )
 from src.modules.system.rbac.localization.service import _tr
@@ -40,15 +39,6 @@ class RBACWorkspacesMixin(RBACCatalogSyncMixin):
             is_superuser: bool
 
         system_defs: list[_RoleDefinition] = [
-            {
-                "code": ROLE_OWNER,
-                "name": "Owner",
-                "description": "Full access within this workspace.",
-                "name_i18n": "rbac:RBAC_ROLE_OWNER_NAME",
-                "description_i18n": "rbac:RBAC_ROLE_OWNER_DESC",
-                "is_default": False,
-                "is_superuser": True,
-            },
             {
                 "code": ROLE_ADMIN,
                 "name": "Admin",

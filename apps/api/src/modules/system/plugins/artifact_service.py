@@ -8,6 +8,7 @@ from asgi_correlation_id import correlation_id
 from src.config import Settings
 from src.core.exceptions import BadRequest, NotFound
 from src.core.extensions.manifest import ExtensionManifest
+from src.core.i18n import t
 from src.core.services import BaseService
 from src.models.system.plugin_installation import PluginArtifactRecord, PluginSourceType
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
@@ -202,5 +203,5 @@ def _validate_same_artifact(record: PluginArtifactRecord, *, data: dict[str, obj
     if any(getattr(record, field) != data[field] for field in immutable_fields):
         raise BadRequest(
             error="PLUGIN_ARTIFACT_IDENTITY_CONFLICT",
-            message="Plugin artifact identity conflicts with an existing verified package",
+            message=t("errors", "PLUGIN_ARTIFACT_IDENTITY_CONFLICT"),
         )

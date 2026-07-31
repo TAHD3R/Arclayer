@@ -9,6 +9,8 @@ from src.core.exceptions import Conflict, NotFound, ServiceUnavailable
 from src.core.extensions.manager import CoordinationError, ExtensionManager, ExtensionNotFoundError
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import t
+from src.modules.commerce.dunning.command_policy import build_restricted_recovery_command_policy
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.workspaces.authz.http.service import require_workspace_permission
 from src.modules.workspaces.extensions.schema import (
     WorkspaceExtensionActivationOut,
@@ -127,6 +129,10 @@ async def activate_workspace_extension(
     request: Request,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
 ) -> ResponseModel[WorkspaceExtensionActivationOut]:
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.ACCESS_EXPANSION},
+    )
     manager = _get_extension_manager(request)
     try:
         revision = await manager.activate(extension_name, ctx.workspace_id)
@@ -158,6 +164,10 @@ async def deactivate_workspace_extension(
     request: Request,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
 ) -> ResponseModel[WorkspaceExtensionActivationOut]:
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.REVOKE_CONNECTOR_CREDENTIAL},
+    )
     manager = _get_extension_manager(request)
     try:
         revision = await manager.deactivate(extension_name, ctx.workspace_id)

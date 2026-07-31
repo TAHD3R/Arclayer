@@ -17,7 +17,8 @@ from src.modules.assets.admin.usages.schema import (
 from src.modules.assets.admin.usages.service import AdminAssetUsagesService
 from src.modules.assets.scope import AssetScope
 from src.modules.auth.http.service import get_current_user
-from src.modules.projects.http.router_helpers import require_project_permission
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
+from src.modules.projects.http.router_helpers import require_project_commercial_effect, require_project_permission
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
 from src.modules.tenancy.router_helpers import resolve_project_tenant_context
@@ -60,7 +61,10 @@ async def list_asset_usages(
     "/asset-usages",
     response_model=ResponseModel[AdminAssetUsageOut],
     summary="Upsert project asset usage",
-    dependencies=[require_project_permission("project:assets:manage")],
+    dependencies=[
+        require_project_permission("project:assets:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def upsert_asset_usage(
     payload: AdminAssetUsageUpsertRequest,
@@ -76,7 +80,10 @@ async def upsert_asset_usage(
     "/asset-usages/delete",
     response_model=ResponseModel[AdminAssetUsageDeleteOut],
     summary="Delete project asset usage by ref",
-    dependencies=[require_project_permission("project:assets:manage")],
+    dependencies=[
+        require_project_permission("project:assets:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def delete_asset_usage_by_ref(
     payload: AdminAssetUsageDeleteRequest,

@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as authApi from "@/api/auth";
+import * as platformEntryApi from "@/api/platform-entry";
 import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
 import {
   SettingsScreenProvider,
@@ -43,6 +44,10 @@ vi.mock("react-i18next", () => ({
 vi.mock("@/api/auth", () => ({
   me: vi.fn(),
   logout: vi.fn(),
+}));
+
+vi.mock("@/api/platform-entry", () => ({
+  getPlatformEntryEligibility: vi.fn(),
 }));
 
 vi.mock("@/components/ui/theme-transition", () => ({
@@ -140,6 +145,7 @@ describe("AdminAccountMenu", () => {
     openMock.mockClear();
     routerState.pathname = "/w/ws-1/";
     routerState.hash = "";
+    vi.stubEnv("VITE_PLATFORM_ORIGIN", "https://platform.arclayer.localhost");
 
     useAuthStore.setState({
       accessToken: "token",
@@ -162,6 +168,9 @@ describe("AdminAccountMenu", () => {
       displayName: "Tester",
     } as never);
     vi.mocked(authApi.logout).mockResolvedValue(null);
+    vi.mocked(platformEntryApi.getPlatformEntryEligibility).mockResolvedValue({
+      eligible: false,
+    });
   });
 
   it("展示设置、订阅、偏好、资源、法律与退出入口", async () => {
@@ -358,6 +367,78 @@ describe("AdminAccountMenu", () => {
     expect(screen.getByTestId("settings-open")).toHaveTextContent("true");
     expect(screen.getByTestId("settings-screen")).toHaveTextContent("workspace.plan-usage");
     expect(openMock).not.toHaveBeenCalled();
+  });
+
+  it("仅在后端判定 eligible 时显示并打开独立 Platform Console", async () => {
+    vi.mocked(platformEntryApi.getPlatformEntryEligibility).mockResolvedValue({
+      eligible: true,
+    });
+    const user = userEvent.setup();
+    renderWithProviders(<AdminAccountMenu />);
+
+    await openAccountMenu(user);
+    await user.click(await screen.findByRole("button", { name: "ACCOUNT_MENU_PLATFORM_OPEN" }));
+
+    expect(openMock).toHaveBeenCalledWith(
+      "https://platform.arclayer.localhost",
+      "_blank",
+      "noopener,noreferrer",
+    );
+  });
+
+  it("eligible=false 时不显示 Platform Console 入口", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AdminAccountMenu />);
+
+    await openAccountMenu(user);
+    await waitFor(() => {
+      expect(screen.queryByText("ACCOUNT_MENU_PLATFORM_CHECKING")).toBeNull();
+    });
+    expect(screen.queryByRole("button", { name: "ACCOUNT_MENU_PLATFORM_OPEN" })).toBeNull();
+  });
+
+  it("Platform eligibility 请求失败时显式显示可重试状态", async () => {
+    vi.mocked(platformEntryApi.getPlatformEntryEligibility)
+      .mockRejectedValueOnce(new Error("eligibility failed"))
+      .mockResolvedValueOnce({ eligible: false });
+    const user = userEvent.setup();
+    renderWithProviders(<AdminAccountMenu />);
+
+    await openAccountMenu(user);
+    await user.click(
+      await screen.findByRole("button", { name: "ACCOUNT_MENU_PLATFORM_LOAD_ERROR" }),
+    );
+
+    await waitFor(() => {
+      expect(platformEntryApi.getPlatformEntryEligibility).toHaveBeenCalledTimes(2);
+      expect(screen.queryByRole("button", { name: "ACCOUNT_MENU_PLATFORM_LOAD_ERROR" })).toBeNull();
+    });
+  });
+
+  it("eligible 用户缺少 Platform origin 配置时显式显示配置错误", async () => {
+    vi.stubEnv("VITE_PLATFORM_ORIGIN", "");
+    vi.mocked(platformEntryApi.getPlatformEntryEligibility).mockResolvedValue({
+      eligible: true,
+    });
+    const user = userEvent.setup();
+    renderWithProviders(<AdminAccountMenu />);
+
+    await openAccountMenu(user);
+
+    expect(await screen.findByText("ACCOUNT_MENU_PLATFORM_CONFIGURATION_ERROR")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "ACCOUNT_MENU_PLATFORM_OPEN" })).toBeNull();
+  });
+
+  it("eligibility 查询未完成时显示明确检查状态", async () => {
+    vi.mocked(platformEntryApi.getPlatformEntryEligibility).mockImplementation(
+      () => new Promise(() => undefined),
+    );
+    const user = userEvent.setup();
+    renderWithProviders(<AdminAccountMenu />);
+
+    await openAccountMenu(user);
+
+    expect(screen.getByText("ACCOUNT_MENU_PLATFORM_CHECKING")).toBeVisible();
   });
 
   it("在 /workspaces 打开个人设置时复用同一套 provider contract", async () => {

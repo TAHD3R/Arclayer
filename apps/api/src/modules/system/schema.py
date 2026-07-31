@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import re
+from typing import Literal
+from uuid import UUID
 
 from pydantic import ConfigDict, EmailStr, Field, field_validator
 
@@ -32,12 +34,29 @@ class SystemRuntimeOut(BaseSchema):
     )
     instance_setup: SystemInstanceSetupOut = Field(
         ...,
-        description="Public instance setup state derived from install.lock and super-admin truth.",
+        description="Public instance setup state derived from install.lock and the Instance Owner singleton.",
     )
 
 
+class PlatformBootstrapOut(BaseSchema):
+    """Bootstrap result; Platform sign-in and MFA enrollment remain separate."""
+
+    owner_identity_id: UUID = Field(description="The created Instance Owner authority identity.")
+    mfa_setup_required: Literal[True] = Field(
+        default=True,
+        description="The Instance Owner must complete Platform MFA setup before Platform sign-in.",
+    )
+
+
+class PlatformSetupStateOut(BaseSchema):
+    """Public Platform setup state, independent of the Product runtime probe."""
+
+    status: str = Field(..., description="Platform setup status: uninitialized, ready, repair_required.")
+    repair_reason: str | None = Field(default=None, description="Explicit repair reason code when setup is invalid.")
+
+
 class SystemBootstrapRequest(BaseSchema):
-    """Bootstrap the instance by creating the first super-admin account."""
+    """Bootstrap the instance by creating the initial Instance Owner identity."""
 
     model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)
 

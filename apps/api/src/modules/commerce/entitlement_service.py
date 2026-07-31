@@ -4,28 +4,33 @@ from datetime import UTC, datetime
 from typing import NoReturn
 from uuid import UUID
 
-from pydantic import ValidationError
+from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.config import Settings
 from src.core.exceptions import Forbidden, ServiceUnavailable
 from src.core.services.base import BaseService
-from src.models.commerce.billing import SubscriptionStatus
+from src.models.commerce.billing import (
+    EntitlementAllocationMode,
+    PlanRevisionStatus,
+    ResourceLimitKind,
+    SubscriptionStatus,
+)
 from src.modules.commerce.entitlement_repository import (
     EntitlementSourceReader,
     WorkspaceEntitlementSource,
+    WorkspaceRevisionEntitlement,
 )
 from src.modules.commerce.entitlement_schema import (
     DEFAULT_ENTITLEMENT_REGISTRY,
     EntitlementDecision,
     EntitlementDecisionReason,
     EntitlementRegistry,
-    PlanEntitlementFeature,
 )
 
 COMMERCE_ENTITLEMENT_CONFIGURATION_INVALID = "COMMERCE_ENTITLEMENT_CONFIGURATION_INVALID"
 COMMERCE_ENTITLEMENT_REQUIRED = "COMMERCE_ENTITLEMENT_REQUIRED"
 
-_ACTIVE_SUBSCRIPTION_STATUSES = frozenset({SubscriptionStatus.TRIALING, SubscriptionStatus.ACTIVE})
+_ACTIVE_SUBSCRIPTION_STATUSES = frozenset({SubscriptionStatus.ACTIVE})
 
 
 class EntitlementService(BaseService):
@@ -46,13 +51,14 @@ class EntitlementService(BaseService):
         workspace_id: UUID,
         entitlement: str,
         now: datetime | None = None,
+        conn: BaseDBAsyncClient | None = None,
     ) -> EntitlementDecision:
         definition = self._registry.require(entitlement)
         evaluated_at = now if now is not None else datetime.now(UTC)
         if evaluated_at.utcoffset() is None:
             raise ValueError("Entitlement evaluation time must be timezone-aware")
 
-        source = await self._repository.get_workspace_source(workspace_id=workspace_id)
+        source = await self._repository.get_workspace_source(workspace_id=workspace_id, conn=conn)
         if source is None:
             return self._decision(
                 workspace_id=workspace_id,
@@ -67,7 +73,7 @@ class EntitlementService(BaseService):
                 status=status,
                 reason="subscription_inactive",
             )
-        if source.current_period_end.utcoffset() is None:
+        if source.current_period_end is None or source.current_period_end.utcoffset() is None:
             self._raise_configuration_invalid(reason="subscription_period_timezone_invalid")
         if source.current_period_end <= evaluated_at:
             return self._decision_from_source(
@@ -76,23 +82,11 @@ class EntitlementService(BaseService):
                 status=status,
                 reason="subscription_period_expired",
             )
-        if not source.plan_is_active:
-            return self._decision_from_source(
-                source=source,
-                entitlement=definition.key,
-                status=status,
-                reason="plan_inactive",
-            )
 
-        feature = self._plan_features(source.plan_features).get(definition.key)
-        if feature is None:
-            return self._decision_from_source(
-                source=source,
-                entitlement=definition.key,
-                status=status,
-                reason="feature_missing",
-            )
-        if not feature.included:
+        self._require_published_revision(source)
+        entitlement_rows = self._validated_entitlement_rows(source)
+        row = entitlement_rows[definition.key]
+        if not row.is_included:
             return self._decision_from_source(
                 source=source,
                 entitlement=definition.key,
@@ -104,7 +98,6 @@ class EntitlementService(BaseService):
             entitlement=definition.key,
             status=status,
             reason="granted",
-            value=feature.value,
         )
 
     async def require(
@@ -113,11 +106,13 @@ class EntitlementService(BaseService):
         workspace_id: UUID,
         entitlement: str,
         now: datetime | None = None,
+        conn: BaseDBAsyncClient | None = None,
     ) -> EntitlementDecision:
         decision = await self.check(
             workspace_id=workspace_id,
             entitlement=entitlement,
             now=now,
+            conn=conn,
         )
         if decision.granted:
             return decision
@@ -137,23 +132,88 @@ class EntitlementService(BaseService):
     def _subscription_status(cls, source: WorkspaceEntitlementSource) -> SubscriptionStatus:
         try:
             return SubscriptionStatus(source.subscription_status)
-        except ValueError as exc:
+        except (TypeError, ValueError) as exc:
             cls._raise_configuration_invalid(reason="subscription_status_invalid", cause=exc)
 
     @classmethod
-    def _plan_features(cls, raw_features: object) -> dict[str, PlanEntitlementFeature]:
-        if not isinstance(raw_features, list):
-            cls._raise_configuration_invalid(reason="plan_features_not_list")
-        features: dict[str, PlanEntitlementFeature] = {}
-        for raw_feature in raw_features:
-            try:
-                feature = PlanEntitlementFeature.model_validate(raw_feature)
-            except ValidationError as exc:
-                cls._raise_configuration_invalid(reason="plan_feature_invalid", cause=exc)
-            if feature.key in features:
-                cls._raise_configuration_invalid(reason="plan_feature_duplicate")
-            features[feature.key] = feature
-        return features
+    def _require_published_revision(cls, source: WorkspaceEntitlementSource) -> None:
+        if source.plan_revision_id is None or source.plan_code is None:
+            cls._raise_configuration_invalid(reason="plan_revision_missing")
+        try:
+            status = PlanRevisionStatus(source.plan_revision_status)
+        except (TypeError, ValueError) as exc:
+            cls._raise_configuration_invalid(reason="plan_revision_status_invalid", cause=exc)
+        if status is not PlanRevisionStatus.PUBLISHED:
+            cls._raise_configuration_invalid(reason="plan_revision_not_published")
+        if source.plan_revision_published_at is None:
+            cls._raise_configuration_invalid(reason="plan_revision_unpublished")
+        if source.plan_revision_published_at.utcoffset() is None:
+            cls._raise_configuration_invalid(reason="plan_revision_publication_timezone_invalid")
+
+    def _validated_entitlement_rows(
+        self,
+        source: WorkspaceEntitlementSource,
+    ) -> dict[str, WorkspaceRevisionEntitlement]:
+        rows_by_key: dict[str, list[WorkspaceRevisionEntitlement]] = {}
+        for row in source.entitlements:
+            if not isinstance(row.key, str):
+                self._raise_configuration_invalid(reason="entitlement_row_key_invalid")
+            rows_by_key.setdefault(row.key, []).append(row)
+
+        validated: dict[str, WorkspaceRevisionEntitlement] = {}
+        for definition in self._registry.list_definitions():
+            rows = rows_by_key.get(definition.key, [])
+            if not rows:
+                self._raise_configuration_invalid(reason="entitlement_row_missing")
+            if len(rows) != 1:
+                self._raise_configuration_invalid(reason="entitlement_row_duplicate")
+            row = rows[0]
+            self._validate_entitlement_row(row)
+            validated[definition.key] = row
+        return validated
+
+    @classmethod
+    def _validate_entitlement_row(cls, row: WorkspaceRevisionEntitlement) -> None:
+        if row.definition_is_active is not True:
+            cls._raise_configuration_invalid(reason="entitlement_definition_inactive")
+        if not isinstance(row.supports_workspace_allocation, bool) or not isinstance(
+            row.supports_member_seat_allocation, bool
+        ):
+            cls._raise_configuration_invalid(reason="entitlement_definition_allocation_invalid")
+        if not isinstance(row.is_included, bool):
+            cls._raise_configuration_invalid(reason="entitlement_row_inclusion_invalid")
+        if not row.is_included:
+            if row.allocation_mode is not None or row.seat_limit_kind is not None or row.seat_limit_value is not None:
+                cls._raise_configuration_invalid(reason="entitlement_row_exclusion_shape_invalid")
+            return
+
+        try:
+            allocation_mode = EntitlementAllocationMode(row.allocation_mode)
+        except (TypeError, ValueError) as exc:
+            cls._raise_configuration_invalid(reason="entitlement_allocation_mode_invalid", cause=exc)
+        if allocation_mode is EntitlementAllocationMode.WORKSPACE:
+            if not row.supports_workspace_allocation:
+                cls._raise_configuration_invalid(reason="entitlement_workspace_allocation_unsupported")
+            if row.seat_limit_kind is not None or row.seat_limit_value is not None:
+                cls._raise_configuration_invalid(reason="entitlement_workspace_allocation_shape_invalid")
+            return
+
+        if not row.supports_member_seat_allocation:
+            cls._raise_configuration_invalid(reason="entitlement_member_seat_allocation_unsupported")
+        try:
+            seat_limit_kind = ResourceLimitKind(row.seat_limit_kind)
+        except (TypeError, ValueError) as exc:
+            cls._raise_configuration_invalid(reason="entitlement_member_seat_limit_kind_invalid", cause=exc)
+        if seat_limit_kind is ResourceLimitKind.LIMITED:
+            if (
+                not isinstance(row.seat_limit_value, int)
+                or isinstance(row.seat_limit_value, bool)
+                or row.seat_limit_value <= 0
+            ):
+                cls._raise_configuration_invalid(reason="entitlement_member_seat_limit_invalid")
+            return
+        if row.seat_limit_value is not None:
+            cls._raise_configuration_invalid(reason="entitlement_member_seat_unlimited_shape_invalid")
 
     @staticmethod
     def _decision(
@@ -176,7 +236,6 @@ class EntitlementService(BaseService):
         entitlement: str,
         status: SubscriptionStatus,
         reason: EntitlementDecisionReason,
-        value: str | int | bool | None = None,
     ) -> EntitlementDecision:
         return EntitlementDecision(
             workspace_id=source.workspace_id,
@@ -185,7 +244,6 @@ class EntitlementService(BaseService):
             reason=reason,
             plan_code=source.plan_code,
             subscription_status=status,
-            value=value,
         )
 
     @staticmethod

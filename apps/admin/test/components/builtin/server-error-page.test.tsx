@@ -107,10 +107,10 @@ describe("ServerErrorView", () => {
 
     await user.click(screen.getByRole("button", { name: "common:REPORT_PROBLEM" }));
     await user.type(
-      screen.getByLabelText("platform:FEEDBACK_DIALOG_MESSAGE_LABEL"),
+      screen.getByLabelText("feedback:FEEDBACK_DIALOG_MESSAGE_LABEL"),
       "The full-screen error appeared while opening the application.",
     );
-    await user.click(screen.getByRole("button", { name: "platform:ACTION_SUBMIT_FEEDBACK" }));
+    await user.click(screen.getByRole("button", { name: "feedback:ACTION_SUBMIT_FEEDBACK" }));
 
     await waitFor(() => expect(submitFeedback).toHaveBeenCalledTimes(1));
     expect(vi.mocked(submitFeedback).mock.calls[0]?.[0]).toEqual(

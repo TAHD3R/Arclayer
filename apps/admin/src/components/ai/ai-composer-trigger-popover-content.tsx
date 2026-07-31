@@ -3,11 +3,11 @@ import {
   unstable_useTriggerPopoverScopeContext,
   useAui,
 } from "@assistant-ui/react";
+import { useNavigate } from "@tanstack/react-router";
 import { BotIcon, FileTextIcon, FolderIcon, ImageIcon } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
 import {
   AIComposerSkillPanelContent,
   type AIComposerSkillOption,
@@ -218,7 +218,7 @@ export function AIComposerSlashPopoverContent(props: {
   skills: readonly AIComposerSkillOption[];
 }) {
   const aui = useAui();
-  const settingsScreen = useSettingsScreen();
+  const navigate = useNavigate();
   const scope = unstable_useTriggerPopoverScopeContext();
   const markerRef = useViewportBoundedPopover(scope.open, props.placement);
 
@@ -233,7 +233,7 @@ export function AIComposerSlashPopoverContent(props: {
         isLoading={props.isLoadingSkills}
         isError={props.isErrorSkills}
         onManage={() => {
-          settingsScreen.openSettings({ screen: "workspace.skills" });
+          void navigate({ to: "/customization/skills" });
           scope.close();
         }}
         onCreate={() => {
@@ -241,10 +241,7 @@ export function AIComposerSlashPopoverContent(props: {
           scope.close();
         }}
         onImport={() => {
-          settingsScreen.openSettings({
-            screen: "workspace.skills",
-            payload: { skillAction: "import" },
-          });
+          void navigate({ to: "/customization/skills", search: { action: "import" } });
           scope.close();
         }}
       />

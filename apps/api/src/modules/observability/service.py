@@ -650,9 +650,7 @@ class ObservabilityService:
             feedback_query = feedback_query.filter(workspace_id=workspace_id)
         if project_id is not None:
             feedback_query = feedback_query.filter(project_id=project_id)
-        subscription_query = WorkspaceSubscription.filter(
-            status__in=[SubscriptionStatus.TRIALING, SubscriptionStatus.ACTIVE]
-        )
+        subscription_query = WorkspaceSubscription.filter(status=SubscriptionStatus.ACTIVE)
         if workspace_id is not None:
             subscription_query = subscription_query.filter(workspace_id=workspace_id)
         audit_events, open_feedback, active_subscriptions = await asyncio.gather(

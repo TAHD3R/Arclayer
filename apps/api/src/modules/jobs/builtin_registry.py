@@ -10,6 +10,9 @@ from src.modules.assets.jobs import (
     AssetThumbnailExecutionPolicy,
     build_asset_thumbnail_job_definition,
 )
+from src.modules.commerce.access_state.fact_consumer_job_contract import (
+    build_commercial_access_fact_job_definition,
+)
 from src.modules.commerce.billing_event_job_contract import build_billing_connector_event_job_definition
 from src.modules.jobs.provider_effect_recovery import (
     ProviderEffectRecoveryExecutionPolicy,
@@ -96,6 +99,9 @@ def build_builtin_job_type_registry(settings: Settings) -> JobTypeRegistry:
                 execution_policy=settings.background_jobs.skill_github_refresh,
             ),
             build_billing_connector_event_job_definition(
+                execution_policy=settings.background_jobs.billing_connector_event,
+            ),
+            build_commercial_access_fact_job_definition(
                 execution_policy=settings.background_jobs.billing_connector_event,
             ),
             build_notification_campaign_job_definition(

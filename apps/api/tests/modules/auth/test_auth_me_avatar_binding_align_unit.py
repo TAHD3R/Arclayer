@@ -15,7 +15,6 @@ class _FakeUser:
     display_name: str | None
     avatar_url: str | None
     avatar_asset_id: UUID | None
-    is_super_admin: bool = False
 
 
 @pytest.mark.asyncio
@@ -37,7 +36,6 @@ async def test_update_my_profile_sets_avatar_asset_aligned_flag(monkeypatch) -> 
         display_name="u",
         avatar_url=None,
         avatar_asset_id=None,
-        is_super_admin=False,
     )
 
     async def fake_patch_profile(u: _FakeUser, **kwargs):  # type: ignore[no-untyped-def]

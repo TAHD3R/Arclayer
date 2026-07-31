@@ -92,7 +92,6 @@ class UserRepositoryLike(Protocol):
         email: str | None,
         display_name: str | None,
         password_hash: str,
-        is_super_admin: bool = False,
         email_verified_at: datetime | None = None,
     ) -> UserLike: ...
 

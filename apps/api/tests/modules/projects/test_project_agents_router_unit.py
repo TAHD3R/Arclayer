@@ -408,8 +408,6 @@ def _route_context() -> ProjectContentRouteContext:
         org_membership_id=uuid4(),
         is_org_owner=False,
         workspace_membership_id=uuid4(),
-        visible_only=False,
-        is_creator_admin=False,
     )
     runtime_ctx = ProjectRuntimeContext(
         runtime_id=runtime_id,

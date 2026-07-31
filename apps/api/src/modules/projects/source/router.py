@@ -8,6 +8,8 @@ from fastapi import APIRouter, Depends, Path
 from src.config import Settings, get_settings
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.commerce.dunning.command_policy import build_restricted_recovery_command_policy
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.projects.http.router_helpers import require_project_permission
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
@@ -71,6 +73,10 @@ async def upsert_project_source_file(
     actor_user_id: UUID = Depends(get_current_user_id),
     file_path: str = Path(..., min_length=1),
 ) -> ResponseModel[ProjectSourceFileOut]:
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.CONTENT_MUTATION},
+    )
     file = await service.upsert_source_file(
         project_id=ctx.project_id,
         path=file_path,
@@ -93,6 +99,10 @@ async def delete_project_source_file(
     actor_user_id: UUID = Depends(get_current_user_id),
     file_path: str = Path(..., min_length=1),
 ) -> ResponseModel[ProjectSourceFileDeleteOut]:
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.CONTENT_MUTATION},
+    )
     result = await service.delete_source_file(
         project_id=ctx.project_id,
         path=file_path,

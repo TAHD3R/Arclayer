@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Protocol
 from uuid import UUID
 
-from src.models.commerce.billing import CommercePlan, WorkspaceCreditAccount, WorkspaceSubscription
+from src.models.commerce.billing import CommercePlanRevision, WorkspaceCreditAccount, WorkspaceSubscription
 from src.modules.commerce.entitlement_schema import EntitlementDecision
 
 
@@ -12,7 +12,7 @@ class WorkspaceBillingInitializer(Protocol):
         self,
         *,
         workspace_id: UUID,
-    ) -> tuple[WorkspaceSubscription, WorkspaceCreditAccount, CommercePlan]: ...
+    ) -> tuple[WorkspaceSubscription, WorkspaceCreditAccount, CommercePlanRevision]: ...
 
 
 class WorkspaceEntitlementChecker(Protocol):
@@ -25,7 +25,7 @@ class WorkspaceEntitlementChecker(Protocol):
 
 
 class WorkspaceEntitlementAuthority:
-    """Materialize the configured default subscription before checking workspace access."""
+    """Require initialized commercial state before checking workspace access."""
 
     __slots__ = ("_billing", "_entitlements")
 

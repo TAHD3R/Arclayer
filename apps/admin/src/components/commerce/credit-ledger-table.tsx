@@ -21,19 +21,25 @@ const ENTRY_LABEL_KEYS: Record<CreditLedgerEntryType, string> = {
   expiration: "LEDGER_TYPE_EXPIRATION",
 };
 
-const REFERENCE_LABEL_KEYS: Readonly<Record<string, string>> = {
-  ai_request: "LEDGER_REFERENCE_AI_REQUEST",
-  operator_adjustment: "LEDGER_REFERENCE_OPERATOR_ACTION",
-  operator_change: "LEDGER_REFERENCE_OPERATOR_ACTION",
-  period_refresh: "LEDGER_REFERENCE_PERIOD_REFRESH",
-  provider_event: "LEDGER_REFERENCE_PROVIDER_EVENT",
-  subscription: "LEDGER_REFERENCE_SUBSCRIPTION",
-  subscription_period: "LEDGER_REFERENCE_PERIOD_REFRESH",
-};
-
 function signedCredits(value: number, formatter: Intl.NumberFormat): string {
   if (value === 0) return "—";
   return `${value > 0 ? "+" : "−"}${formatter.format(Math.abs(value))}`;
+}
+
+function ledgerReference(entry: CreditLedgerEntry): Readonly<{ labelKey: string; value: string }> {
+  if (entry.requestId) {
+    return { labelKey: "LEDGER_REFERENCE_AI_REQUEST", value: entry.requestId };
+  }
+  if (entry.providerPeriodIdentity) {
+    return {
+      labelKey: "LEDGER_REFERENCE_PERIOD_REFRESH",
+      value: entry.providerPeriodIdentity,
+    };
+  }
+  if (entry.actorUserId) {
+    return { labelKey: "LEDGER_REFERENCE_OPERATOR_ACTION", value: entry.actorUserId };
+  }
+  return { labelKey: "LEDGER_REFERENCE_SUBSCRIPTION", value: entry.subscriptionId };
 }
 
 function TruncatedValue(props: { children: string; mono?: boolean }) {
@@ -65,7 +71,7 @@ export function CreditLedgerTable({ workspaceId }: { workspaceId: string }) {
         cell: ({ row }) => (
           <div className="min-w-0">
             <BaseTag>{t(`commerce:${ENTRY_LABEL_KEYS[row.original.entryType]}`)}</BaseTag>
-            <TruncatedValue>{row.original.description}</TruncatedValue>
+            <TruncatedValue>{t(`commerce:${row.original.descriptionKey}`)}</TruncatedValue>
           </div>
         ),
         size: 280,
@@ -102,19 +108,15 @@ export function CreditLedgerTable({ workspaceId }: { workspaceId: string }) {
         id: "reference",
         header: t("commerce:LEDGER_COLUMN_REFERENCE"),
         meta: { title: t("commerce:LEDGER_COLUMN_REFERENCE"), kind: "meta" },
-        cell: ({ row }) => (
-          <div className="min-w-0">
-            <BaseTag>
-              {t(
-                `commerce:${
-                  REFERENCE_LABEL_KEYS[row.original.referenceType] ??
-                  "LEDGER_REFERENCE_UNRECOGNIZED"
-                }`,
-              )}
-            </BaseTag>
-            <TruncatedValue mono>{row.original.referenceId ?? "—"}</TruncatedValue>
-          </div>
-        ),
+        cell: ({ row }) => {
+          const reference = ledgerReference(row.original);
+          return (
+            <div className="min-w-0">
+              <BaseTag>{t(`commerce:${reference.labelKey}`)}</BaseTag>
+              <TruncatedValue mono>{reference.value}</TruncatedValue>
+            </div>
+          );
+        },
         size: 240,
       },
       {

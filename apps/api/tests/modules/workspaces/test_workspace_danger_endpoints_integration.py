@@ -72,12 +72,14 @@ async def test_workspace_leave_and_delete_endpoints(prepared_db, integration_val
             organization_id=org.id,
             name="Target Workspace",
             is_active=True,
+            owner_user_id=owner1.id,
             created_by_user_id=owner1.id,
         )
         await Workspace.create(
             organization_id=org.id,
             name="Spare Workspace",
             is_active=True,
+            owner_user_id=owner2.id,
             created_by_user_id=owner2.id,
         )
 
@@ -93,10 +95,8 @@ async def test_workspace_leave_and_delete_endpoints(prepared_db, integration_val
             status=WorkspaceMembershipStatus.ACTIVE,
             invited_by_user_id=owner1.id,
         )
-
-        owner_role = await SystemRole.get(workspace_id=target_workspace.id, code="owner")
-        await WorkspaceMembershipRole.get_or_create(membership_id=owner1_wsm.id, role_id=owner_role.id)
-        await WorkspaceMembershipRole.get_or_create(membership_id=owner2_wsm.id, role_id=owner_role.id)
+        admin_role = await SystemRole.get(workspace_id=target_workspace.id, code="admin")
+        await WorkspaceMembershipRole.create(membership_id=owner2_wsm.id, role_id=admin_role.id)
 
         current_user: User | None = owner1
 
@@ -114,21 +114,52 @@ async def test_workspace_leave_and_delete_endpoints(prepared_db, integration_val
         ws_pid = encode_uuid(target_workspace.id)
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            leave_resp = await client.post(
+            owner_leave_resp = await client.post(
                 f"/api/v1/workspaces/{ws_pid}/leave",
                 json={"confirmText": "LEAVE"},
             )
-            assert leave_resp.status_code == 200, leave_resp.text
-            assert leave_resp.json()["data"]["left"] is True
-            assert await WorkspaceMembership.get_or_none(id=owner1_wsm.id) is None
+            assert owner_leave_resp.status_code == 403, owner_leave_resp.text
+            assert owner_leave_resp.json().get("error") == "WORKSPACE_OWNER_TRANSFER_REQUIRED"
+            assert await WorkspaceMembership.get_or_none(id=owner1_wsm.id) is not None
 
             current_user = owner2
-            leave_last_owner = await client.post(
+            admin_delete_resp = await client.delete(
+                f"/api/v1/workspaces/{ws_pid}",
+                params={"confirmName": "Target Workspace"},
+            )
+            assert admin_delete_resp.status_code == 403, admin_delete_resp.text
+            assert admin_delete_resp.json().get("error") == "WORKSPACE_OWNER_REQUIRED"
+
+            admin_archive_resp = await client.post(
+                f"/api/v1/workspaces/{ws_pid}/archive",
+                headers={"Idempotency-Key": "settings-admin-archive"},
+                json={
+                    "expectedRevision": 0,
+                    "reasonCategory": "other",
+                    "reasonCode": "settings_admin_archive",
+                    "operatorNote": "Settings Admin must not archive a Workspace.",
+                },
+            )
+            assert admin_archive_resp.status_code == 403, admin_archive_resp.text
+            assert admin_archive_resp.json().get("error") == "WORKSPACE_OWNER_REQUIRED"
+
+            admin_restore_resp = await client.post(
+                f"/api/v1/workspaces/{ws_pid}/unarchive",
+                headers={"Idempotency-Key": "settings-admin-restore"},
+                json={"expectedRevision": 1, "operatorNote": "Settings Admin must not restore a Workspace."},
+            )
+            assert admin_restore_resp.status_code == 403, admin_restore_resp.text
+            assert admin_restore_resp.json().get("error") == "WORKSPACE_OWNER_REQUIRED"
+
+            member_leave_resp = await client.post(
                 f"/api/v1/workspaces/{ws_pid}/leave",
                 json={"confirmText": "LEAVE"},
             )
-            assert leave_last_owner.status_code == 403, leave_last_owner.text
-            assert leave_last_owner.json().get("error") == "WORKSPACE_OWNER_AT_LEAST_ONE_REQUIRED"
+            assert member_leave_resp.status_code == 200, member_leave_resp.text
+            assert member_leave_resp.json()["data"]["left"] is True
+            assert await WorkspaceMembership.get_or_none(id=owner2_wsm.id) is None
+
+            current_user = owner1
 
             delete_invalid = await client.delete(
                 f"/api/v1/workspaces/{ws_pid}",
@@ -193,12 +224,14 @@ async def test_workspace_danger_capabilities_report_constraints(prepared_db, int
             organization_id=org.id,
             name="Target Workspace",
             is_active=True,
+            owner_user_id=owner1.id,
             created_by_user_id=owner1.id,
         )
         spare_workspace = await Workspace.create(
             organization_id=org.id,
             name="Spare Workspace",
             is_active=True,
+            owner_user_id=owner2.id,
             created_by_user_id=owner2.id,
         )
 
@@ -208,30 +241,24 @@ async def test_workspace_danger_capabilities_report_constraints(prepared_db, int
             status=WorkspaceMembershipStatus.ACTIVE,
             invited_by_user_id=None,
         )
-        owner2_target = await WorkspaceMembership.create(
+        await WorkspaceMembership.create(
             workspace_id=target_workspace.id,
             user_id=owner2.id,
             status=WorkspaceMembershipStatus.ACTIVE,
             invited_by_user_id=owner1.id,
         )
-        member_target = await WorkspaceMembership.create(
+        await WorkspaceMembership.create(
             workspace_id=target_workspace.id,
             user_id=member.id,
             status=WorkspaceMembershipStatus.ACTIVE,
             invited_by_user_id=owner1.id,
         )
-        owner2_spare = await WorkspaceMembership.create(
+        await WorkspaceMembership.create(
             workspace_id=spare_workspace.id,
             user_id=owner2.id,
             status=WorkspaceMembershipStatus.ACTIVE,
             invited_by_user_id=None,
         )
-
-        owner_role_target = await SystemRole.get(workspace_id=target_workspace.id, code="owner")
-        owner_role_spare = await SystemRole.get(workspace_id=spare_workspace.id, code="owner")
-        await WorkspaceMembershipRole.get_or_create(membership_id=owner1_target.id, role_id=owner_role_target.id)
-        await WorkspaceMembershipRole.get_or_create(membership_id=owner2_target.id, role_id=owner_role_target.id)
-        await WorkspaceMembershipRole.get_or_create(membership_id=owner2_spare.id, role_id=owner_role_spare.id)
 
         current_user: User | None = owner1
 
@@ -253,7 +280,8 @@ async def test_workspace_danger_capabilities_report_constraints(prepared_db, int
             owner_cap_resp = await client.get(f"/api/v1/workspaces/{target_pid}/danger-capabilities")
             assert owner_cap_resp.status_code == 200, owner_cap_resp.text
             owner_cap = owner_cap_resp.json()["data"]
-            assert owner_cap["leaveAction"]["enabled"] is True
+            assert owner_cap["leaveAction"]["enabled"] is False
+            assert owner_cap["leaveAction"]["blockedReason"] == "WORKSPACE_OWNER_TRANSFER_REQUIRED"
             assert owner_cap["deleteAction"]["enabled"] is True
 
             current_user = member
@@ -262,32 +290,42 @@ async def test_workspace_danger_capabilities_report_constraints(prepared_db, int
             member_cap = member_cap_resp.json()["data"]
             assert member_cap["leaveAction"]["enabled"] is True
             assert member_cap["deleteAction"]["enabled"] is False
-            assert member_cap["deleteAction"]["blockedReason"] == "WORKSPACE_SETTINGS_MANAGE_REQUIRED"
+            assert member_cap["deleteAction"]["blockedReason"] == "WORKSPACE_OWNER_REQUIRED"
 
             current_user = owner1
             leave_resp = await client.post(
                 f"/api/v1/workspaces/{target_pid}/leave",
                 json={"confirmText": "LEAVE"},
             )
-            assert leave_resp.status_code == 200, leave_resp.text
-            assert await WorkspaceMembership.get_or_none(id=owner1_target.id) is None
+            assert leave_resp.status_code == 403, leave_resp.text
+            assert leave_resp.json().get("error") == "WORKSPACE_OWNER_TRANSFER_REQUIRED"
+            assert await WorkspaceMembership.get_or_none(id=owner1_target.id) is not None
 
             current_user = owner2
-            last_owner_cap_resp = await client.get(f"/api/v1/workspaces/{target_pid}/danger-capabilities")
-            assert last_owner_cap_resp.status_code == 200, last_owner_cap_resp.text
-            last_owner_cap = last_owner_cap_resp.json()["data"]
-            assert last_owner_cap["leaveAction"]["enabled"] is False
-            assert last_owner_cap["leaveAction"]["blockedReason"] == "WORKSPACE_OWNER_AT_LEAST_ONE_REQUIRED"
-            assert last_owner_cap["deleteAction"]["enabled"] is True
+            member_owner_cap_resp = await client.get(f"/api/v1/workspaces/{target_pid}/danger-capabilities")
+            assert member_owner_cap_resp.status_code == 200, member_owner_cap_resp.text
+            member_owner_cap = member_owner_cap_resp.json()["data"]
+            assert member_owner_cap["leaveAction"]["enabled"] is True
+            assert member_owner_cap["deleteAction"]["enabled"] is False
+            assert member_owner_cap["deleteAction"]["blockedReason"] == "WORKSPACE_OWNER_REQUIRED"
 
+            current_user = owner1
             delete_target_resp = await client.delete(
                 f"/api/v1/workspaces/{target_pid}",
                 params={"confirmName": "Target Workspace"},
             )
             assert delete_target_resp.status_code == 200, delete_target_resp.text
 
+            current_user = owner2
             spare_cap_resp = await client.get(f"/api/v1/workspaces/{spare_pid}/danger-capabilities")
             assert spare_cap_resp.status_code == 200, spare_cap_resp.text
             spare_cap = spare_cap_resp.json()["data"]
-            assert spare_cap["deleteAction"]["enabled"] is False
-            assert spare_cap["deleteAction"]["blockedReason"] == "LAST_ACTIVE_WORKSPACE_NOT_DELETABLE"
+            assert spare_cap["deleteAction"]["enabled"] is True
+            assert spare_cap["deleteAction"]["blockedReason"] is None
+
+            delete_spare_resp = await client.delete(
+                f"/api/v1/workspaces/{spare_pid}",
+                params={"confirmName": "Spare Workspace"},
+            )
+            assert delete_spare_resp.status_code == 200, delete_spare_resp.text
+            assert await Workspace.get_or_none(id=spare_workspace.id) is None

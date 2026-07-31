@@ -14,6 +14,7 @@ from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.ai.agent_builder_context_service import AgentBuilderContextResolver
 from src.modules.ai.agent_catalog_service import AgentCatalogService
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.commerce.entitlement_repository import EntitlementRepository
 from src.modules.commerce.entitlement_schema import SITE_GENERATION_ENTITLEMENT
 from src.modules.commerce.entitlement_service import EntitlementService
@@ -66,7 +67,10 @@ from src.modules.projects.content.items.wireframe_transaction_command import (
     ProjectContentWireframeTransactionCommand,
 )
 from src.modules.projects.design_systems.repository import ProjectDesignSystemsRepository
-from src.modules.projects.http.router_helpers import require_project_permission
+from src.modules.projects.http.router_helpers import (
+    require_project_commercial_effect,
+    require_project_permission,
+)
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
 from src.modules.sites.component_catalogs.official import get_official_component_catalog_registry
@@ -287,7 +291,10 @@ async def get_project_builder_page_render_document(
     "/initializations",
     response_model=ResponseModel[BuilderInitializationOut],
     status_code=status.HTTP_201_CREATED,
-    dependencies=[require_project_permission("project:content:site-builder:write")],
+    dependencies=[
+        require_project_permission("project:content:site-builder:write"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
     summary="Create the exact root Builder revision",
 )
 async def initialize_project_builder(
@@ -313,7 +320,10 @@ async def initialize_project_builder(
     "/change-sets/preview",
     response_model=ResponseModel[BuilderChangeSetPreviewOut],
     status_code=status.HTTP_201_CREATED,
-    dependencies=[require_project_permission("project:content:site-builder:write")],
+    dependencies=[
+        require_project_permission("project:content:site-builder:write"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
     summary="Preview and persist a typed Builder ChangeSet",
 )
 async def preview_builder_change_set(
@@ -341,6 +351,7 @@ async def preview_builder_change_set(
     dependencies=[
         require_project_permission("project:content:site-builder:write"),
         require_project_permission("project:content:items:write"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
     ],
     summary="Apply a fresh approved Builder ChangeSet",
 )
@@ -372,6 +383,7 @@ async def apply_builder_change_set(
     dependencies=[
         require_project_permission("project:content:site-builder:write"),
         Depends(require_builder_generation_entitlement),
+        require_project_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
     ],
     summary="Start a durable planning-to-composition site workflow",
 )
@@ -489,6 +501,7 @@ async def cancel_builder_composition_saga(
     dependencies=[
         require_project_permission("project:content:site-builder:write"),
         Depends(require_builder_generation_entitlement),
+        require_project_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
     ],
     summary="Start a durable Sitemap, Wireframe, or Design generation",
 )

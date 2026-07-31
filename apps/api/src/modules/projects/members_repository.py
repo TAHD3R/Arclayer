@@ -6,7 +6,6 @@ from tortoise.expressions import Q
 from tortoise.queryset import QuerySet
 
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
-from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.projects.membership import ProjectMembership
 from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
 
@@ -43,13 +42,9 @@ class ProjectMembersRepository(TortoiseORMRepository):
     async def project_has_memberships(self, *, project_id: UUID) -> bool:
         return await ProjectMembership.filter(project_id=project_id).exists()
 
-    async def get_owner_user_ids(self, *, organization_id: UUID) -> set[UUID]:
-        rows = await OrgMembership.filter(
-            organization_id=organization_id,
-            status="active",
-            role=OrgRole.OWNER,
-        ).values_list("user_id", flat=True)
-        return {UUID(str(value)) for value in rows if value is not None}
+    async def get_owner_user_id(self, *, workspace_id: UUID) -> UUID:
+        workspace = await Workspace.get(id=workspace_id)
+        return UUID(str(workspace.owner_user_id))
 
     async def bulk_create_memberships(self, *, rows: list[ProjectMembership]) -> None:
         if rows:

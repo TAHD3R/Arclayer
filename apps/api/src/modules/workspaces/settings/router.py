@@ -7,6 +7,8 @@ from fastapi import APIRouter, Depends
 from src.config import Settings, get_settings
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.commerce.dunning.command_policy import build_restricted_recovery_command_policy
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.workspaces.authz.http.service import require_workspace_permission
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_manage_access
@@ -19,7 +21,7 @@ from src.modules.workspaces.settings.schema import (
     WorkspaceSettingsDetail,
     WorkspaceSettingsPatch,
 )
-from src.modules.workspaces.settings.service import WorkspaceSettingsService
+from src.modules.workspaces.settings.service import build_workspace_settings_service
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/settings", tags=["domain.workspaces.settings"])
 router.include_router(workspace_webhooks_router)
@@ -36,7 +38,7 @@ async def get_workspace_core_settings(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceSettingsDetail]:
     """Get workspace core settings."""
-    service = WorkspaceSettingsService(settings)
+    service = build_workspace_settings_service(settings)
     detail = await service.get_core_detail(workspace_id=ctx.workspace_id)
     return ApiResponse.success(data=detail)
 
@@ -54,7 +56,7 @@ async def patch_workspace_core_settings(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceSettingsDetail]:
     """Patch workspace core settings."""
-    service = WorkspaceSettingsService(settings)
+    service = build_workspace_settings_service(settings)
     detail = await service.patch_core(workspace_id=ctx.workspace_id, patch=payload.patch or {}, updated_by=user_id)
     return ApiResponse.success(data=detail)
 
@@ -70,7 +72,7 @@ async def get_workspace_role_policy(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceRolePolicyOut]:
     """Get workspace role policy."""
-    service = WorkspaceSettingsService(settings)
+    service = build_workspace_settings_service(settings)
     out = await service.get_role_policy(workspace_id=ctx.workspace_id)
     return ApiResponse.success(data=out)
 
@@ -88,7 +90,7 @@ async def patch_workspace_role_policy(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceRolePolicyOut]:
     """Patch workspace role policy."""
-    service = WorkspaceSettingsService(settings)
+    service = build_workspace_settings_service(settings)
     out = await service.patch_role_policy(
         workspace_id=ctx.workspace_id,
         default_role_code=payload.default_role_code,
@@ -110,7 +112,11 @@ async def assign_workspace_role_to_regular_members(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceAssignRoleToMembersResult]:
     """Assign role to all regular members in workspace."""
-    service = WorkspaceSettingsService(settings)
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.ACCESS_EXPANSION},
+    )
+    service = build_workspace_settings_service(settings)
     out = await service.assign_role_to_regular_members(
         workspace_id=ctx.workspace_id,
         role_code=payload.role_code,

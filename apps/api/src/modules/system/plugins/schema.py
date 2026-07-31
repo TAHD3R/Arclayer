@@ -30,7 +30,6 @@ class SystemPluginProvidesOut(BaseSchema):
 class SystemPluginAdminOut(BaseSchema):
     label_key: str
     description_key: str
-    settings_path: str | None = None
 
 
 class SystemConnectorAdminOut(BaseSchema):
@@ -52,6 +51,32 @@ class SystemConnectorDefinitionOut(BaseSchema):
     webhook_events: list[str] = Field(default_factory=list)
     health_contract: list[str] = Field(default_factory=list)
     admin: SystemConnectorAdminOut | None = None
+
+
+class ExtensionConfigurationTarget(StrEnum):
+    ACCESS_SIGN_IN = "access.sign-in"
+    COMMERCE_SUBSCRIPTIONS = "commerce.subscriptions"
+    COMMUNICATIONS_EMAIL = "communications.email"
+    MONITORING_PERFORMANCE = "monitoring.performance"
+
+
+class ExtensionConfigurationReadiness(StrEnum):
+    UNKNOWN = "unknown"
+
+
+class ExtensionConnectionOut(BaseSchema):
+    extension_name: str
+    extension_version: str
+    connector_key: str
+    connector_kind: ConnectorKind
+    trust_level: ConnectorTrustLevel
+    runtime_ready: bool
+    configuration_readiness: ExtensionConfigurationReadiness
+    configuration_target: ExtensionConfigurationTarget
+
+
+class ExtensionConnectionListOut(BaseSchema):
+    items: list[ExtensionConnectionOut] = Field(default_factory=list)
 
 
 class SystemPluginListItemOut(BaseSchema):

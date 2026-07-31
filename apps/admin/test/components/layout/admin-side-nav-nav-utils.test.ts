@@ -56,12 +56,12 @@ describe("findPreferredGroupTarget", () => {
 describe("findActiveTrail", () => {
   it("prefers the deeper child when a group and child share the exact target", () => {
     const items = [
-      makeItem("observability", "/system/observability/overview", [
-        makeItem("observability.overview", "/system/observability/overview"),
+      makeItem("observability", "/projects/observability/overview", [
+        makeItem("observability.overview", "/projects/observability/overview"),
       ]),
     ];
 
-    expect(findActiveTrail(items, "/system/observability/overview")).toEqual([
+    expect(findActiveTrail(items, "/projects/observability/overview")).toEqual([
       "observability",
       "observability.overview",
     ]);

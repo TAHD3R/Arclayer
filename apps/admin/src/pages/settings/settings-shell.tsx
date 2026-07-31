@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@arclayer/ui/button";
+import { Badge } from "@arclayer/ui/badge";
 import { cn } from "@arclayer/lib/utils";
 
 import { iconSlot } from "@/components/layout/admin-side-nav/nav-icon-slot";
@@ -29,6 +30,7 @@ type SettingsFrameProps = {
   children: ReactNode;
   onClose?: () => void;
   onSelectItem?: (item: SettingsNavItem) => void;
+  items?: readonly SettingsNavItem[];
   className?: string;
 };
 
@@ -72,6 +74,7 @@ function SettingsNavList(props: {
                     <button
                       type="button"
                       data-active={isActive}
+                      data-unavailable={item.unavailable || undefined}
                       className={cn(
                         "relative z-10 flex w-full items-center gap-1 text-sm",
                         NAV_ITEM_HEIGHT_CLASSNAME,
@@ -86,6 +89,11 @@ function SettingsNavList(props: {
                     >
                       {iconSlot(0, item.icon, { isActive })}
                       <span className="min-w-0 flex-1 truncate text-left">{label}</span>
+                      {item.badgeLabelKey ? (
+                        <Badge variant="secondary" className="max-w-24 truncate px-1.5">
+                          {t(item.badgeLabelKey)}
+                        </Badge>
+                      ) : null}
                     </button>
                   ) : (
                     <div
@@ -132,7 +140,7 @@ export function SettingsFrame(props: SettingsFrameProps) {
         <div className="flex min-h-0 w-full flex-col px-3">
           <div className="min-h-0 w-full flex-1 overflow-y-auto overflow-x-hidden scrollbar-none">
             <SettingsNavList
-              items={SETTINGS_NAV_ITEMS}
+              items={props.items ?? SETTINGS_NAV_ITEMS}
               activeScreen={props.activeScreen}
               onSelectItem={(item) => props.onSelectItem?.(item)}
             />

@@ -22,11 +22,12 @@ from src.models.workspaces.workspace import Workspace
 from src.modules.ai.agent_catalog_manifest import OFFICIAL_AGENT_SPEC_BY_SLUG
 from src.modules.ai.agent_catalog_service import AgentCatalogService
 from src.modules.ai.agent_tool_grants import SUPPORTED_AGENT_TOOL_GRANTS
-from src.modules.auth.http.service import get_current_user, require_super_admin
+from src.modules.platform_identity.http import get_current_platform_session
 from src.modules.system.agents.repository import SystemAgentRepository
+from src.modules.system.agents.router import assignments_router
+from src.modules.system.agents.router import router as system_agents_router
 from src.modules.system.agents.schema import SystemAgentDefinitionCreateRequest
 from src.modules.system.agents.service import SystemAgentCatalogService
-from src.modules.system.router import router as system_router
 from tests.utils.asgi_client import asgi_client
 
 pytestmark = pytest.mark.integration
@@ -58,7 +59,7 @@ async def _create_custom_definition(
     display_name: str = "Research Editor",
 ) -> dict[str, Any]:
     response = await client.post(
-        "/api/v1/system/agents",
+        "/platform-api/v1/agents",
         json={
             "slug": slug,
             "displayName": display_name,
@@ -82,6 +83,7 @@ async def _workspace_scope(*, actor_user_id: UUID) -> tuple[Workspace, ProjectRe
         organization_id=organization.id,
         name="System Agent Workspace",
         is_active=True,
+        owner_user_id=actor_user_id,
         created_by_user_id=actor_user_id,
     )
     project = await ProjectRecord.create(
@@ -94,18 +96,21 @@ async def _workspace_scope(*, actor_user_id: UUID) -> tuple[Workspace, ProjectRe
     return workspace, project
 
 
-def _test_app(*, actor_user_id: UUID | None = None, is_super_admin: bool = True) -> FastAPI:
+def _test_app(*, actor_user_id: UUID | None = None, platform_authorized: bool = True) -> FastAPI:
     app = FastAPI()
     init_exception_handlers(app, get_settings())
-    app.include_router(system_router, prefix="/api/v1/system")
+    app.include_router(system_agents_router, prefix="/platform-api/v1/agents")
+    app.include_router(assignments_router, prefix="/platform-api/v1/agent-assignments")
     resolved_actor_user_id = actor_user_id or uuid4()
 
-    async def _actor():
-        return SimpleNamespace(id=resolved_actor_user_id, is_super_admin=is_super_admin)
+    async def _platform_principal():
+        return SimpleNamespace(
+            actor_id=resolved_actor_user_id,
+            is_instance_owner=platform_authorized,
+            operator_id=None,
+        )
 
-    app.dependency_overrides[get_current_user] = _actor
-    if is_super_admin:
-        app.dependency_overrides[require_super_admin] = _actor
+    app.dependency_overrides[get_current_platform_session] = _platform_principal
     return app
 
 
@@ -120,7 +125,7 @@ async def test_system_agent_control_plane_preserves_versions_assignments_and_off
     app = _test_app(actor_user_id=actor_user_id)
 
     async with asgi_client(app) as client:
-        capabilities = await client.get("/api/v1/system/agents/capabilities")
+        capabilities = await client.get("/platform-api/v1/agents/capabilities")
         assert capabilities.status_code == 200, capabilities.text
         assert capabilities.json()["data"] == {
             "supportedToolGrants": list(SUPPORTED_AGENT_TOOL_GRANTS),
@@ -137,7 +142,7 @@ async def test_system_agent_control_plane_preserves_versions_assignments_and_off
         }
 
         created_response = await client.post(
-            "/api/v1/system/agents",
+            "/platform-api/v1/agents",
             json={
                 "slug": "research-editor",
                 "displayName": "Research Editor",
@@ -156,7 +161,7 @@ async def test_system_agent_control_plane_preserves_versions_assignments_and_off
         version_1_id = created["latestVersion"]["id"]
 
         version_2_response = await client.post(
-            f"/api/v1/system/agents/{definition_id}/versions",
+            f"/platform-api/v1/agents/{definition_id}/versions",
             json=_version_payload(instructions="Use cited evidence and expose source gaps."),
         )
         assert version_2_response.status_code == 201, version_2_response.text
@@ -164,14 +169,14 @@ async def test_system_agent_control_plane_preserves_versions_assignments_and_off
         assert version_2["versionNumber"] == 2
         assert version_2["id"] != version_1_id
 
-        detail_response = await client.get(f"/api/v1/system/agents/{definition_id}")
+        detail_response = await client.get(f"/platform-api/v1/agents/{definition_id}")
         assert detail_response.status_code == 200, detail_response.text
         versions = detail_response.json()["data"]["versions"]
         assert [version["versionNumber"] for version in versions] == [2, 1]
         assert versions[1]["instructions"] == "Use cited workspace evidence only."
 
         custom_assignment_response = await client.post(
-            "/api/v1/system/agent-assignments",
+            "/platform-api/v1/agent-assignments",
             json={
                 "workspaceId": encode_uuid(workspace.id),
                 "projectId": encode_uuid(project.id),
@@ -198,21 +203,21 @@ async def test_system_agent_control_plane_preserves_versions_assignments_and_off
         assert effective_catalog.default_agent_id == decode_public_id(definition_id)
 
         blocked_default_disable = await client.patch(
-            f"/api/v1/system/agent-assignments/{assignment_id}",
+            f"/platform-api/v1/agent-assignments/{assignment_id}",
             json={"enabled": False},
         )
         assert blocked_default_disable.status_code == 409, blocked_default_disable.text
         assert blocked_default_disable.json()["error"] == "AGENT_DEFAULT_ASSIGNMENT_DISABLED"
 
         blocked_retire = await client.patch(
-            f"/api/v1/system/agents/{definition_id}/versions/{version_2['id']}",
+            f"/platform-api/v1/agents/{definition_id}/versions/{version_2['id']}",
             json={"state": "retired"},
         )
         assert blocked_retire.status_code == 409, blocked_retire.text
         assert blocked_retire.json()["error"] == "AGENT_VERSION_IN_USE"
 
         disabled_assignment = await client.patch(
-            f"/api/v1/system/agent-assignments/{assignment_id}",
+            f"/platform-api/v1/agent-assignments/{assignment_id}",
             json={"enabled": False, "isDefault": False},
         )
         assert disabled_assignment.status_code == 200, disabled_assignment.text
@@ -220,7 +225,7 @@ async def test_system_agent_control_plane_preserves_versions_assignments_and_off
         assert disabled_assignment.json()["data"]["isDefault"] is False
 
         retired = await client.patch(
-            f"/api/v1/system/agents/{definition_id}/versions/{version_2['id']}",
+            f"/platform-api/v1/agents/{definition_id}/versions/{version_2['id']}",
             json={"state": "retired"},
         )
         assert retired.status_code == 200, retired.text
@@ -228,14 +233,14 @@ async def test_system_agent_control_plane_preserves_versions_assignments_and_off
 
         coordinator = OFFICIAL_AGENT_SPEC_BY_SLUG["arclayer-coordinator"]
         official_patch = await client.patch(
-            f"/api/v1/system/agents/{encode_uuid(coordinator.agent_id)}",
+            f"/platform-api/v1/agents/{encode_uuid(coordinator.agent_id)}",
             json={"displayName": "Changed Coordinator"},
         )
         assert official_patch.status_code == 409, official_patch.text
         assert official_patch.json()["error"] == "AGENT_OFFICIAL_DEFINITION_PROTECTED"
 
         unavailable_skill_grant = await client.post(
-            f"/api/v1/system/agents/{definition_id}/versions",
+            f"/platform-api/v1/agents/{definition_id}/versions",
             json={
                 **_version_payload(instructions="Request an unavailable Skill."),
                 "skillGrantWorkspaceId": encode_uuid(workspace.id),
@@ -245,7 +250,7 @@ async def test_system_agent_control_plane_preserves_versions_assignments_and_off
         assert unavailable_skill_grant.status_code == 409, unavailable_skill_grant.text
         assert unavailable_skill_grant.json()["error"] == "AGENT_SKILL_INSTALLATION_NOT_FOUND"
 
-        listed = await client.get("/api/v1/system/agents", params={"q": "research"})
+        listed = await client.get("/platform-api/v1/agents", params={"q": "research"})
         assert listed.status_code == 200, listed.text
         assert listed.json()["data"]["total"] == 1
         assert listed.json()["data"]["items"][0]["slug"] == "research-editor"
@@ -260,15 +265,15 @@ async def test_system_agent_control_plane_preserves_versions_assignments_and_off
     assert await AuditEvent.filter(event_name="system.agent.assignment.updated").exists()
 
 
-async def test_system_agent_control_plane_requires_super_admin(prepared_db) -> None:
+async def test_system_agent_control_plane_requires_platform_permission(prepared_db) -> None:
     _ = prepared_db
-    app = _test_app(is_super_admin=False)
+    app = _test_app(platform_authorized=False)
 
     async with asgi_client(app) as client:
-        response = await client.get("/api/v1/system/agents/capabilities")
+        response = await client.get("/platform-api/v1/agents/capabilities")
 
     assert response.status_code == 403, response.text
-    assert response.json()["error"] == "SUPER_ADMIN_REQUIRED"
+    assert response.json()["error"] == "PLATFORM_PERMISSION_DENIED"
 
 
 async def test_system_agent_create_rolls_back_when_required_activity_write_fails(prepared_db) -> None:
@@ -309,13 +314,13 @@ async def test_system_agent_definition_http_contract_and_validation(prepared_db)
         created = await _create_custom_definition(client, slug="boundary-editor")
         definition_id = created["id"]
 
-        versions_response = await client.get(f"/api/v1/system/agents/{definition_id}/versions")
+        versions_response = await client.get(f"/platform-api/v1/agents/{definition_id}/versions")
         assert versions_response.status_code == 200, versions_response.text
         versions = versions_response.json()["data"]["items"]
         assert [version["versionNumber"] for version in versions] == [1]
 
         updated_response = await client.patch(
-            f"/api/v1/system/agents/{definition_id}",
+            f"/platform-api/v1/agents/{definition_id}",
             json={
                 "displayName": "Evidence Editor",
                 "description": "Builds reviewable plans from cited workspace evidence.",
@@ -325,7 +330,7 @@ async def test_system_agent_definition_http_contract_and_validation(prepared_db)
         assert updated_response.json()["data"]["displayName"] == "Evidence Editor"
 
         duplicate_slug = await client.post(
-            "/api/v1/system/agents",
+            "/platform-api/v1/agents",
             json={
                 "slug": "boundary-editor",
                 "displayName": "Duplicate Editor",
@@ -338,13 +343,13 @@ async def test_system_agent_definition_http_contract_and_validation(prepared_db)
         assert duplicate_slug.json()["error"] == "AGENT_DEFINITION_SLUG_EXISTS"
 
         invalid_extra = await client.patch(
-            f"/api/v1/system/agents/{definition_id}",
+            f"/platform-api/v1/agents/{definition_id}",
             json={"displayName": "Ignored", "unknownField": True},
         )
         assert invalid_extra.status_code == 422, invalid_extra.text
 
         invalid_slug = await client.post(
-            "/api/v1/system/agents",
+            "/platform-api/v1/agents",
             json={
                 "slug": "invalid slug",
                 "displayName": "Invalid Slug",
@@ -358,7 +363,7 @@ async def test_system_agent_definition_http_contract_and_validation(prepared_db)
         duplicate_grants_payload = _version_payload(instructions="Reject duplicate grants.")
         duplicate_grants_payload["toolGrants"] = ["human.request_input", "human.request_input"]
         duplicate_grants = await client.post(
-            f"/api/v1/system/agents/{definition_id}/versions",
+            f"/platform-api/v1/agents/{definition_id}/versions",
             json=duplicate_grants_payload,
         )
         assert duplicate_grants.status_code == 422, duplicate_grants.text
@@ -376,7 +381,7 @@ async def test_system_agent_assignment_http_filters_and_scope_invariants(prepare
     async with asgi_client(app) as client:
         created = await _create_custom_definition(client, slug="assignment-editor")
         assignment_response = await client.post(
-            "/api/v1/system/agent-assignments",
+            "/platform-api/v1/agent-assignments",
             json={
                 "workspaceId": encode_uuid(workspace.id),
                 "projectId": encode_uuid(project.id),
@@ -391,7 +396,7 @@ async def test_system_agent_assignment_http_filters_and_scope_invariants(prepare
         assert assignment_response.status_code == 201, assignment_response.text
 
         listed_response = await client.get(
-            "/api/v1/system/agent-assignments",
+            "/platform-api/v1/agent-assignments",
             params={
                 "workspaceId": encode_uuid(workspace.id),
                 "projectId": encode_uuid(project.id),
@@ -409,7 +414,7 @@ async def test_system_agent_assignment_http_filters_and_scope_invariants(prepare
         assert listed["items"][0]["projectId"] == encode_uuid(project.id)
 
         cross_workspace_project = await client.post(
-            "/api/v1/system/agent-assignments",
+            "/platform-api/v1/agent-assignments",
             json={
                 "workspaceId": encode_uuid(other_workspace.id),
                 "projectId": encode_uuid(project.id),
@@ -441,7 +446,7 @@ async def test_system_agent_assignment_http_filters_and_scope_invariants(prepare
             created_by_user_id=actor_user_id,
         )
         protected_version = await client.post(
-            "/api/v1/system/agent-assignments",
+            "/platform-api/v1/agent-assignments",
             json={
                 "workspaceId": encode_uuid(other_workspace.id),
                 "projectId": encode_uuid(other_project.id),

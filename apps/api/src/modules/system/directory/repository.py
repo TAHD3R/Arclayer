@@ -24,7 +24,7 @@ from src.models.domains.domain_binding import DomainBindingCertificateStatus, Do
 from src.models.feedback.feedback import FeedbackTicket
 from src.models.organization.org_membership import OrgMembership
 from src.models.organization.organization import Organization
-from src.models.organization.user import User, UserCredential, UserStatus
+from src.models.organization.user import User, UserCredential
 from src.models.projects.deployment import ProjectDeploymentRecord, ProjectDeploymentStatus
 from src.models.projects.membership import ProjectMembership
 from src.models.projects.project import ProjectRecord
@@ -50,7 +50,6 @@ _USER_ALLOWED_ORDER_FIELDS = {
     "username": "username",
     "email": "email",
     "status": "status",
-    "is_super_admin": "is_super_admin",
     "last_login_at": "last_login_at",
 }
 _WORKSPACE_ALLOWED_ORDER_FIELDS = {
@@ -59,7 +58,7 @@ _WORKSPACE_ALLOWED_ORDER_FIELDS = {
     "name": "name",
     "member_count": "member_count",
     "project_count": "project_count",
-    "plan": "commerce_subscription__plan__sort_order",
+    "plan": "commerce_subscription__plan_revision__plan__sort_order",
     "credit_risk": "commerce_risk_rank",
     "renewal_at": "commerce_subscription__current_period_end",
 }
@@ -139,7 +138,6 @@ def _workspace_commerce_attention_q() -> Q:
     return ~_workspace_commerce_missing_q() & (
         Q(commerce_subscription__status__in=[SubscriptionStatus.PAST_DUE, SubscriptionStatus.CANCELED])
         | Q(credit_account__balance_credits__lte=F("credit_account__reserved_credits"))
-        | Q(credit_account__period_spent_credits__gt=F("credit_account__period_granted_credits"))
     )
 
 
@@ -160,18 +158,10 @@ def _workspace_commerce_risk_rank() -> Case:
 
 
 class SystemDirectoryRepository(TortoiseORMRepository):
-    async def count_active_super_admins(self) -> int:
-        return await User.filter(
-            is_super_admin=True,
-            status=UserStatus.ACTIVE,
-        ).count()
-
     async def _user_security_filter_q(self, *, filters: DirectoryUserListFilters) -> Q:
         query = Q()
         if filters.status is not None:
             query &= Q(status=filters.status)
-        if filters.is_super_admin is not None:
-            query &= Q(is_super_admin=filters.is_super_admin)
         if filters.has_password is not None:
             rows = await UserCredential.all().values("user_id")
             ids = [row["user_id"] for row in rows]
@@ -195,9 +185,6 @@ class SystemDirectoryRepository(TortoiseORMRepository):
         return query
 
     async def _workspace_owner_user_id(self, *, workspace_id: UUID) -> UUID | None:
-        role_owner_id = (await self.list_workspace_owner_user_ids(workspace_ids=[workspace_id])).get(workspace_id)
-        if role_owner_id is not None:
-            return role_owner_id
         rows = await Workspace.filter(id=workspace_id, deleted_at__isnull=True).values("owner_user_id")
         owner_user_id = rows[0].get("owner_user_id") if rows else None
         return UUID(str(owner_user_id)) if owner_user_id is not None else None
@@ -298,7 +285,7 @@ class SystemDirectoryRepository(TortoiseORMRepository):
             )
             query &= Q(id__in=archived_ids) if filters.is_archived else ~Q(id__in=archived_ids)
         if filters.plan_code is not None:
-            query &= Q(commerce_subscription__plan__code=filters.plan_code)
+            query &= Q(commerce_subscription__plan_revision__plan__code=filters.plan_code)
         if filters.subscription_status is not None:
             query &= Q(commerce_subscription__status=filters.subscription_status)
         if filters.commerce_risk is not None:
@@ -330,8 +317,6 @@ class SystemDirectoryRepository(TortoiseORMRepository):
                 commerce_subscription_status=F("commerce_subscription__status"),
                 commerce_credit_balance=F("credit_account__balance_credits"),
                 commerce_credit_reserved=F("credit_account__reserved_credits"),
-                commerce_period_spent=F("credit_account__period_spent_credits"),
-                commerce_period_granted=F("credit_account__period_granted_credits"),
                 commerce_risk_rank=_workspace_commerce_risk_rank(),
             )
         count_annotations = {}
@@ -784,19 +769,11 @@ class SystemDirectoryRepository(TortoiseORMRepository):
         return [UUID(str(row)) for row in rows]
 
     async def list_owned_workspace_ids_by_user(self, *, user_id: UUID) -> list[UUID]:
-        from src.modules.system.rbac.constants.service import ROLE_OWNER
-
-        membership_rows = await WorkspaceMembership.filter(
-            user_id=user_id,
-            status=WorkspaceMembershipStatus.ACTIVE,
-            workspace__deleted_at__isnull=True,
-            membership_roles__role__code=ROLE_OWNER,
-        ).values_list("workspace_id", flat=True)
         workspace_rows = await Workspace.filter(owner_user_id=user_id, deleted_at__isnull=True).values_list(
             "id",
             flat=True,
         )
-        return sorted({UUID(str(row)) for row in [*membership_rows, *workspace_rows]})
+        return sorted({UUID(str(row)) for row in workspace_rows})
 
     async def list_created_project_ids_by_user(self, *, user_id: UUID) -> list[UUID]:
         rows = await ProjectRecord.filter(
@@ -818,29 +795,11 @@ class SystemDirectoryRepository(TortoiseORMRepository):
         return await ProjectRecord.filter(id__in=ids).delete()
 
     async def list_workspace_owner_user_ids(self, *, workspace_ids: Iterable[UUID]) -> dict[UUID, UUID]:
-        from src.modules.system.rbac.constants.service import ROLE_OWNER
-
         ids = list(set(workspace_ids))
         if not ids:
             return {}
-        rows = (
-            await WorkspaceMembership
-            .filter(
-                workspace_id__in=ids,
-                status=WorkspaceMembershipStatus.ACTIVE,
-                membership_roles__role__code=ROLE_OWNER,
-                membership_roles__role__workspace_id__in=ids,
-            )
-            .order_by("created_at", "id")
-            .values("workspace_id", "user_id")
-        )
-        owner_ids_by_workspace: dict[UUID, UUID] = {}
-        for row in rows:
-            workspace_id = UUID(str(row["workspace_id"]))
-            if workspace_id in owner_ids_by_workspace:
-                continue
-            owner_ids_by_workspace[workspace_id] = UUID(str(row["user_id"]))
-        return owner_ids_by_workspace
+        rows = await Workspace.filter(id__in=ids).values("id", "owner_user_id")
+        return {UUID(str(row["id"])): UUID(str(row["owner_user_id"])) for row in rows}
 
     async def count_workspace_memberships_by_user_ids(self, *, user_ids: Iterable[UUID]) -> dict[UUID, int]:
         ids = list(set(user_ids))

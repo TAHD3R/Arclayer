@@ -6,7 +6,13 @@ from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 
-from src.common.constants.rbac import ROLE_ADMIN, ROLE_DESIGNER, ROLE_EDITOR, ROLE_OWNER, ROLE_VIEWER
+from src.common.constants.rbac import (
+    ROLE_ADMIN,
+    ROLE_DESIGNER,
+    ROLE_EDITOR,
+    ROLE_VIEWER,
+    WORKSPACE_COMMERCE_MANAGE,
+)
 from src.common.types.json_types import JsonObject
 from src.common.utils.ids import uuid7
 from src.config import Settings
@@ -14,6 +20,7 @@ from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.i18n import t
 from src.core.services import BaseService
 from src.models.system.rbac import PermissionScope, SystemPermission, SystemRole
+from src.models.workspaces.workspace import Workspace
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.permissions import (
     PermissionConditionSet,
@@ -23,6 +30,11 @@ from src.modules.permissions import (
 from src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
 from src.modules.system.rbac.repository import RBACRepository
 from src.modules.system.rbac.schema import PermissionTemplate
+from src.modules.workspaces.authz.role_management import (
+    WorkspaceRoleManagementAvailabilityReader,
+    build_workspace_role_management_availability_reader,
+    require_workspace_role_management,
+)
 from src.modules.workspaces.permissions.registry import list_permission_condition_templates
 from src.modules.workspaces.rbac.catalog import (
     RolePermissionBatchUpdate,
@@ -35,6 +47,7 @@ SYSTEM_RBAC_UPDATED_EVENT = "system.settings.rbac.updated"
 _ROLE_CODE_MAX_LEN = 64
 _ROLE_CODE_GENERATE_ATTEMPTS = 20
 _ROLE_CODE_SUFFIX_HEX_LEN = 8
+_NON_ASSIGNABLE_ROLE_CODES = frozenset({"owner"})
 
 
 def _tr(key: str, default: str) -> str:
@@ -64,9 +77,62 @@ def _localize_i18n_ref(value: str | None, *, default: str) -> str:
 
 
 class WorkspaceRBACService(BaseService):
-    def __init__(self, settings: Settings, repo: RBACRepository | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        role_management_reader: WorkspaceRoleManagementAvailabilityReader,
+        repo: RBACRepository | None = None,
+    ) -> None:
         super().__init__(settings)
         self.repo = repo or RBACRepository()
+        self.role_management_reader = role_management_reader
+
+    async def _require_role_management(
+        self,
+        *,
+        workspace_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> None:
+        await require_workspace_role_management(
+            workspace_id=workspace_id,
+            reader=self.role_management_reader,
+            conn=conn,
+        )
+
+    @staticmethod
+    async def _require_commerce_permission_owner(
+        *,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> None:
+        query = Workspace.filter(id=workspace_id, deleted_at__isnull=True)
+        if conn is not None:
+            query = query.using_db(conn)
+        workspace = await query.first()
+        if workspace is None:
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+        if UUID(str(workspace.owner_user_id)) != actor_user_id:
+            raise BadRequest(
+                message=_tr("COMMERCE_MANAGE_OWNER_REQUIRED", "仅工作区所有者可管理账单管理员"),
+                error="WORKSPACE_COMMERCE_MANAGE_OWNER_REQUIRED",
+            )
+
+    async def _require_commerce_permission_owner_if_affected(
+        self,
+        *,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        permission_codes: set[str],
+        conn: BaseDBAsyncClient | None = None,
+    ) -> None:
+        if WORKSPACE_COMMERCE_MANAGE not in permission_codes:
+            return
+        await self._require_commerce_permission_owner(
+            workspace_id=workspace_id,
+            actor_user_id=actor_user_id,
+            conn=conn,
+        )
 
     async def _write_rbac_activity_event(
         self,
@@ -156,7 +222,6 @@ class WorkspaceRBACService(BaseService):
 
     def _build_desired_system_role_permission_map(self) -> dict[str, set[str]]:
         desired_by_role = {
-            ROLE_OWNER: set[str](),
             ROLE_ADMIN: set[str](),
             ROLE_EDITOR: set[str](),
             ROLE_DESIGNER: set[str](),
@@ -181,15 +246,6 @@ class WorkspaceRBACService(BaseService):
             is_superuser: bool
 
         system_role_definitions: list[_SystemRoleDefinition] = [
-            {
-                "code": ROLE_OWNER,
-                "name": "Owner",
-                "description": "Full access within this workspace.",
-                "name_i18n": "rbac:RBAC_ROLE_OWNER_NAME",
-                "description_i18n": "rbac:RBAC_ROLE_OWNER_DESC",
-                "is_default": False,
-                "is_superuser": True,
-            },
             {
                 "code": ROLE_ADMIN,
                 "name": "Admin",
@@ -374,6 +430,9 @@ class WorkspaceRBACService(BaseService):
         if not cleaned or len(cleaned) > _ROLE_CODE_MAX_LEN:
             raise BadRequest(message=_tr("ROLE_CODE_INVALID", "角色编码不合法"), error="ROLE_CODE_INVALID")
 
+        if cleaned in _NON_ASSIGNABLE_ROLE_CODES:
+            raise BadRequest(message=_tr("ROLE_CODE_RESERVED", "角色编码已被系统保留"), error="ROLE_CODE_RESERVED")
+
         if await self.repo.get_role_by_code(workspace_id=workspace_id, code=cleaned) is not None:
             raise Conflict(message=_tr("ROLE_EXISTS", "角色编码已存在"), error="ROLE_EXISTS")
 
@@ -399,11 +458,25 @@ class WorkspaceRBACService(BaseService):
         description: str | None,
         template_role_code: str | None,
     ) -> SystemRole:
+        await self._require_role_management(workspace_id=workspace_id)
         cleaned_name = self._validate_role_name(name=name)
         template_permission_ids = await self._resolve_template_permission_ids(
             workspace_id=workspace_id,
             template_role_code=template_role_code,
         )
+        if template_role_code:
+            template_role = await self.repo.get_role_by_code(workspace_id=workspace_id, code=template_role_code)
+            if template_role is None:
+                raise BadRequest(
+                    message=_tr("ROLE_TEMPLATE_NOT_FOUND", "角色模板不存在"),
+                    error="ROLE_TEMPLATE_NOT_FOUND",
+                    meta={"missing": [template_role_code]},
+                )
+            await self._require_commerce_permission_owner_if_affected(
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                permission_codes=set(await self.list_permission_codes_for_role(role=template_role)),
+            )
 
         role_code = str(code or "").strip()
         if role_code:
@@ -456,6 +529,7 @@ class WorkspaceRBACService(BaseService):
         name: str | None,
         description: str | None,
     ) -> SystemRole:
+        await self._require_role_management(workspace_id=workspace_id)
         cleaned_code = str(role_code or "").strip()
         role = await self.repo.get_role_by_code(workspace_id=workspace_id, code=cleaned_code)
         if role is None:
@@ -496,12 +570,18 @@ class WorkspaceRBACService(BaseService):
         actor_user_id: UUID,
         role_code: str,
     ) -> None:
+        await self._require_role_management(workspace_id=workspace_id)
         cleaned_code = str(role_code or "").strip()
         role = await self.repo.get_role_by_code(workspace_id=workspace_id, code=cleaned_code)
         if role is None:
             raise NotFound(message=_tr("ROLE_NOT_FOUND", "角色不存在"), error="ROLE_NOT_FOUND")
         if role.is_system:
             raise BadRequest(message=_tr("ROLE_DELETE_INVALID", "不允许删除系统角色"), error="ROLE_DELETE_INVALID")
+        await self._require_commerce_permission_owner_if_affected(
+            workspace_id=workspace_id,
+            actor_user_id=actor_user_id,
+            permission_codes=set(await self.list_permission_codes_for_role(role=role)),
+        )
         role_id = UUID(str(role.id))
         async with self.tx() as conn:
             await self.repo.delete_role(role, conn=conn)
@@ -529,7 +609,13 @@ class WorkspaceRBACService(BaseService):
         permission_code: str,
         role_codes: list[str],
     ) -> None:
+        await self._require_role_management(workspace_id=workspace_id)
         cleaned_permission_code = str(permission_code or "").strip()
+        await self._require_commerce_permission_owner_if_affected(
+            workspace_id=workspace_id,
+            actor_user_id=actor_user_id,
+            permission_codes={cleaned_permission_code},
+        )
         permission = await self.repo.get_permission_by_code(code=cleaned_permission_code)
         if permission is None or permission.scope != PermissionScope.WORKSPACE:
             raise NotFound(message=_tr("PERMISSION_NOT_FOUND", "权限不存在"), error="PERMISSION_NOT_FOUND")
@@ -589,6 +675,7 @@ class WorkspaceRBACService(BaseService):
         permission_codes: list[str],
         permission_condition_sets_by_code: dict[str, list[PermissionConditionSet]] | None = None,
     ) -> None:
+        await self._require_role_management(workspace_id=workspace_id)
         cleaned_role_code = str(role_code or "").strip()
         role = await self.repo.get_role_by_code(workspace_id=workspace_id, code=cleaned_role_code)
         if role is None:
@@ -599,6 +686,8 @@ class WorkspaceRBACService(BaseService):
                 error="ROLE_SYSTEM_IMMUTABLE",
             )
 
+        current_permission_codes = set(await self.list_permission_codes_for_role(role=role))
+
         desired_permission_codes = sorted({
             str(item).strip()
             for item in [
@@ -607,6 +696,11 @@ class WorkspaceRBACService(BaseService):
             ]
             if item and str(item).strip()
         })
+        await self._require_commerce_permission_owner_if_affected(
+            workspace_id=workspace_id,
+            actor_user_id=actor_user_id,
+            permission_codes=current_permission_codes.union(desired_permission_codes),
+        )
         if not desired_permission_codes:
             async with self.tx() as conn:
                 await self.repo.replace_role_permissions(role=role, permission_ids=[], conn=conn)
@@ -691,6 +785,7 @@ class WorkspaceRBACService(BaseService):
         actor_permission_codes: frozenset[str],
         actor_is_superuser: bool,
     ) -> tuple[str, list[SystemRole]]:
+        await self._require_role_management(workspace_id=workspace_id)
         async with self.tx() as conn:
             permissions = await self.repo.list_permissions(
                 scope=PermissionScope.WORKSPACE,
@@ -780,6 +875,12 @@ class WorkspaceRBACService(BaseService):
                         conn=conn,
                     )
                 ]
+                await self._require_commerce_permission_owner_if_affected(
+                    workspace_id=workspace_id,
+                    actor_user_id=actor_user_id,
+                    permission_codes=set(current_codes).union(desired_code_set),
+                    conn=conn,
+                )
                 current_conditions = await self.repo.list_role_permission_condition_sets(
                     role_id=UUID(str(role.id)),
                     conn=conn,
@@ -903,3 +1004,7 @@ def _grant_signature(
         for permission_code, condition_sets in sorted(grants, key=lambda item: item[0])
     ]
     return json.dumps(payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+
+
+def build_workspace_rbac_service(settings: Settings) -> WorkspaceRBACService:
+    return WorkspaceRBACService(settings, build_workspace_role_management_availability_reader())

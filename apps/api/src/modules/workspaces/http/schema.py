@@ -26,11 +26,7 @@ class WorkspaceContext(BaseSchema):
     is_org_owner: bool = Field(default=False, description="Whether current user is the org owner.")
 
     workspace_membership_id: UUID | None = Field(default=None, description="Workspace membership id (if any).")
-    visible_only: bool = Field(
+    is_workspace_owner: bool = Field(
         default=False,
-        description="If true, workspace is visible to the user but not manageable unless explicitly granted.",
-    )
-    is_creator_admin: bool = Field(
-        default=False,
-        description="If true, org owner created this workspace and gets implicit admin management rights.",
+        description="Whether the current user is the canonical Workspace Owner.",
     )

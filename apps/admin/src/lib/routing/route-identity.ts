@@ -38,10 +38,6 @@ export function isCreationEditorPath(pathname: string): boolean {
   return /^\/projects\/[^/]+\/editor(?:\/.*)?$/.test(normalizePath(pathname));
 }
 
-export function isSystemPath(pathname: string): boolean {
-  return pathname === "/system" || pathname === "/system/" || pathname.startsWith("/system/");
-}
-
 export function isGlobalPath(pathname: string): boolean {
   return GLOBAL_SCENE_ROUTES.some((route) => matchesRoute(pathname, route));
 }

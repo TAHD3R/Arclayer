@@ -231,6 +231,7 @@ async def _create_queued_run() -> tuple[AgentRunV1Record, BackgroundJobRecord, U
         organization_id=organization.id,
         name="Agent Job Handler Workspace",
         is_active=True,
+        owner_user_id=owner_user_id,
         created_by_user_id=owner_user_id,
     )
     project = await ProjectRecord.create(

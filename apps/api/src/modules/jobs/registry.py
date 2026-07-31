@@ -14,6 +14,7 @@ from src.models.jobs.background_job import (
     JobRetryClass,
     JobWorkloadClass,
 )
+from src.modules.commerce.dunning.schema import PaymentRestrictedErrorMeta, RestrictedRecoveryEffect
 from src.modules.jobs.execution_errors import (
     JOB_EXECUTION_CONTRACT_MISMATCH_CODE,
     JOB_HANDLER_UNEXPECTED_ERROR_CODE,
@@ -74,6 +75,7 @@ COMMON_JOB_TERMINAL_ERROR_CONTRACTS: Final = (
         code=JOB_HANDLER_UNEXPECTED_ERROR_CODE,
         metadata_schema=UnexpectedJobExecutionMetadata,
     ),
+    JobTerminalErrorContract(code="WORKSPACE_PAYMENT_RESTRICTED", metadata_schema=PaymentRestrictedErrorMeta),
 )
 
 
@@ -136,6 +138,7 @@ class JobTypeDefinition(BaseSchema):
     authority_mode: JobAuthorityMode
     required_permission: JobPermissionRequirement | None = None
     required_entitlement: str | None = Field(default=None, min_length=1, max_length=160)
+    commercial_effects: frozenset[RestrictedRecoveryEffect] | None = None
     manage_permission: JobPermissionRequirement | None = None
     initial_phase: str = Field(..., min_length=1, max_length=96)
     initial_status_key: str | None = Field(default=None, min_length=1, max_length=160)

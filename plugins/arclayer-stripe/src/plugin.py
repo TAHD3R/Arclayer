@@ -25,7 +25,12 @@ from src.models.commerce.billing import BillingCycle, SubscriptionStatus
 from src.modules.commerce.billing_connector import (
     BillingWebhookEnvelope,
     CheckoutSession,
+    ProviderDunningEvent,
     ProviderSubscription,
+)
+from src.modules.commerce.subscription_transitions.schema import (
+    ProviderConfirmedTransitionEvidence,
+    RenewalTransitionPreview,
 )
 
 logger = get_logger(__name__)
@@ -34,9 +39,8 @@ _CONNECTOR_KEY = "billing.stripe"
 _EXTENSION_NAME = "arclayer-stripe"
 _STRIPE_SUBSCRIPTION_ID_PATTERN = re.compile(r"sub_[A-Za-z0-9]+")
 _STRIPE_PRICE_ID_PATTERN = re.compile(r"price_[A-Za-z0-9]+")
-_PRICE_MAPPING_KEY_PATTERN = re.compile(r"[a-z0-9][a-z0-9_-]{0,47}:(monthly|yearly):[A-Z]{3}")
 _STRIPE_STATUS_MAP = {
-    "trialing": SubscriptionStatus.TRIALING,
+    "trialing": SubscriptionStatus.ACTIVE,
     "active": SubscriptionStatus.ACTIVE,
     "past_due": SubscriptionStatus.PAST_DUE,
     "unpaid": SubscriptionStatus.PAST_DUE,
@@ -60,7 +64,27 @@ class _StripeWebhookEvent(BaseModel):
     type: str = Field(..., min_length=1, max_length=160)
     livemode: bool = False
     account: str | None = Field(default=None, min_length=1, max_length=255)
+    created: int | None = None
     data: _StripeWebhookData
+
+
+class _StripeSubscriptionItemPrice(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str = Field(pattern=r"^price_[A-Za-z0-9]+$", max_length=255)
+    currency: str = Field(pattern=r"^[a-z]{3}$", max_length=3)
+
+
+class _StripeSubscriptionItem(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    price: _StripeSubscriptionItemPrice
+
+
+class _StripeSubscriptionItems(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    data: tuple[_StripeSubscriptionItem, ...] = Field(min_length=1)
 
 
 class _StripeSubscriptionPayload(BaseModel):
@@ -73,6 +97,49 @@ class _StripeSubscriptionPayload(BaseModel):
     current_period_start: int
     current_period_end: int
     cancel_at_period_end: bool = False
+    schedule: str | None = Field(default=None, pattern=r"^sub_sched_[A-Za-z0-9]+$")
+    items: _StripeSubscriptionItems
+
+
+class _StripeSubscriptionSchedulePhase(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    start_date: int
+
+
+class _StripeSubscriptionSchedule(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str = Field(pattern=r"^sub_sched_[A-Za-z0-9]+$", max_length=255)
+    phases: tuple[_StripeSubscriptionSchedulePhase, ...] = Field(min_length=1)
+
+
+class _StripeInvoiceStatusTransitions(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    paid_at: int | None = None
+    marked_uncollectible_at: int | None = None
+
+
+class _StripeInvoicePayload(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str = Field(pattern=r"^in_[A-Za-z0-9]+$", max_length=255)
+    subscription: str = Field(pattern=r"^sub_[A-Za-z0-9]+$", max_length=128)
+    attempt_count: int = Field(ge=1)
+    next_payment_attempt: int | None = None
+    status_transitions: _StripeInvoiceStatusTransitions = Field(default_factory=_StripeInvoiceStatusTransitions)
+
+
+def _subscription_price_facts(subscription: _StripeSubscriptionPayload) -> tuple[str, str]:
+    external_price_id = subscription.metadata["external_price_id"]
+    matches = tuple(item.price for item in subscription.items.data if item.price.id == external_price_id)
+    if len(matches) != 1:
+        raise ValueError("subscription Provider price does not match its metadata")
+    currency = subscription.metadata["currency"]
+    if currency != matches[0].currency.upper():
+        raise ValueError("subscription Provider price currency does not match its metadata")
+    return external_price_id, currency
 
 
 class StripeBillingConnector:
@@ -82,35 +149,35 @@ class StripeBillingConnector:
         secret_key: str,
         webhook_secret: str,
         api_base_url: str,
-        price_ids: dict[str, str],
         webhook_tolerance_seconds: int,
         client: httpx.AsyncClient | None = None,
     ) -> None:
         if not secret_key:
             raise ServiceUnavailable(error="BILLING_PROVIDER_NOT_CONFIGURED")
         self._secret_key = secret_key
+        self._provider_mode = self._resolve_provider_mode(secret_key)
         self._webhook_secret = webhook_secret
         self._api_base_url = api_base_url.rstrip("/")
-        self._price_ids = self._validate_price_ids(price_ids)
         self._webhook_tolerance_seconds = webhook_tolerance_seconds
         self._client = client
 
     @staticmethod
-    def _validate_price_ids(price_ids: dict[str, str]) -> dict[str, str]:
-        for mapping_key, price_id in price_ids.items():
-            if (
-                _PRICE_MAPPING_KEY_PATTERN.fullmatch(mapping_key) is None
-                or _STRIPE_PRICE_ID_PATTERN.fullmatch(price_id) is None
-            ):
-                raise ServiceUnavailable(error="BILLING_PROVIDER_NOT_CONFIGURED")
-        return dict(price_ids)
+    def _resolve_provider_mode(secret_key: str) -> str:
+        if secret_key.startswith("sk_test_"):
+            return "test"
+        if secret_key.startswith("sk_live_"):
+            return "live"
+        raise ServiceUnavailable(error="BILLING_PROVIDER_NOT_CONFIGURED")
 
-    def _resolve_price_id(self, *, plan_code: str, billing_cycle: str, currency: str) -> str:
-        mapping_key = f"{plan_code}:{billing_cycle}:{currency.upper()}"
-        price_id = self._price_ids.get(mapping_key)
-        if price_id is None:
+    @property
+    def provider_mode(self) -> str:
+        return self._provider_mode
+
+    @staticmethod
+    def _require_external_price_id(external_price_id: str) -> str:
+        if _STRIPE_PRICE_ID_PATTERN.fullmatch(external_price_id) is None:
             raise BadRequest(error="BILLING_PRICE_NOT_SUPPORTED")
-        return price_id
+        return external_price_id
 
     @property
     def _headers(self) -> dict[str, str]:
@@ -158,7 +225,9 @@ class StripeBillingConnector:
         self,
         *,
         workspace_id: str,
-        plan_code: str,
+        plan_id: str,
+        plan_revision_id: str,
+        external_price_id: str,
         billing_cycle: str,
         currency: str,
         success_url: str,
@@ -166,15 +235,14 @@ class StripeBillingConnector:
         customer_id: str | None,
         idempotency_key: str,
     ) -> CheckoutSession:
-        price_id = self._resolve_price_id(
-            plan_code=plan_code,
-            billing_cycle=billing_cycle,
-            currency=currency,
-        )
+        price_id = self._require_external_price_id(external_price_id)
         metadata = {
             "workspace_id": workspace_id,
-            "plan_code": plan_code,
+            "plan_id": plan_id,
+            "plan_revision_id": plan_revision_id,
+            "external_price_id": price_id,
             "billing_cycle": billing_cycle,
+            "currency": currency,
         }
         data = {
             "mode": "subscription",
@@ -211,6 +279,38 @@ class StripeBillingConnector:
             idempotency_key=idempotency_key,
         )
         return self._session_from_body(body)
+
+    async def schedule_subscription_revision(
+        self,
+        *,
+        preview: RenewalTransitionPreview,
+        idempotency_key: str,
+    ) -> str:
+        facts = preview.provider_scheduling
+        if facts is None or facts.provider != "stripe" or facts.provider_mode != self.provider_mode:
+            raise ServiceUnavailable(error="SUBSCRIPTION_TRANSITION_PROVIDER_SCHEDULING_UNAVAILABLE")
+        subscription = await self._request("GET", f"/subscriptions/{facts.external_subscription_id}")
+        current = self._parse_subscription(event_id="provider-schedule", subscription=subscription)
+        if current.subscription_id != facts.external_subscription_id:
+            raise ServiceUnavailable(error="BILLING_PROVIDER_INVALID_RESPONSE")
+        created = await self._request(
+            "POST",
+            "/subscription_schedules",
+            data={"from_subscription": facts.external_subscription_id},
+            idempotency_key=idempotency_key,
+        )
+        schedule = self._parse_subscription_schedule(created)
+        await self._request(
+            "POST",
+            f"/subscription_schedules/{schedule.id}",
+            data=self._schedule_update_data(
+                schedule=schedule,
+                current=current,
+                preview=preview,
+            ),
+            idempotency_key=f"{idempotency_key}:configure",
+        )
+        return schedule.id
 
     @staticmethod
     def _session_from_body(body: dict) -> CheckoutSession:
@@ -277,6 +377,9 @@ class StripeBillingConnector:
             "checkout.session.completed",
             "customer.subscription.updated",
             "customer.subscription.deleted",
+            "invoice.payment_failed",
+            "invoice.payment_succeeded",
+            "invoice.marked_uncollectible",
         }:
             return None
         if event.type == "checkout.session.completed":
@@ -287,9 +390,23 @@ class StripeBillingConnector:
             ):
                 raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
             subscription = await self._request("GET", f"/subscriptions/{subscription_id}")
+            return self._parse_subscription(event_id=event.id, subscription=subscription)
+        if event.type.startswith("invoice."):
+            invoice = self._parse_invoice(event.data.object)
+            dunning_event = self._invoice_dunning_event(event=event, invoice=invoice)
+            subscription = await self._request("GET", f"/subscriptions/{invoice.subscription}")
+            return self._parse_subscription(
+                event_id=event.id,
+                subscription=subscription,
+                dunning_event=dunning_event,
+            )
         else:
             subscription = event.data.object
-        return self._parse_subscription(event_id=event.id, subscription=subscription)
+        return self._parse_subscription(
+            event_id=event.id,
+            subscription=subscription,
+            include_confirmed_transition=event.type == "customer.subscription.updated",
+        )
 
     @staticmethod
     def _parse_event(payload: bytes) -> _StripeWebhookEvent:
@@ -299,23 +416,126 @@ class StripeBillingConnector:
             raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID") from exc
 
     @staticmethod
-    def _parse_subscription(*, event_id: object, subscription: object) -> ProviderSubscription:
+    def _parse_invoice(invoice: object) -> _StripeInvoicePayload:
+        try:
+            return _StripeInvoicePayload.model_validate(invoice)
+        except ValidationError as exc:
+            raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID") from exc
+
+    @staticmethod
+    def _parse_subscription_schedule(schedule: object) -> _StripeSubscriptionSchedule:
+        try:
+            return _StripeSubscriptionSchedule.model_validate(schedule)
+        except ValidationError as exc:
+            raise ServiceUnavailable(error="BILLING_PROVIDER_INVALID_RESPONSE") from exc
+
+    @staticmethod
+    def _schedule_update_data(
+        *,
+        schedule: _StripeSubscriptionSchedule,
+        current: ProviderSubscription,
+        preview: RenewalTransitionPreview,
+    ) -> dict[str, str]:
+        facts = preview.provider_scheduling
+        if facts is None:
+            raise ServiceUnavailable(error="SUBSCRIPTION_TRANSITION_PROVIDER_SCHEDULING_UNAVAILABLE")
+        data = {
+            "end_behavior": "release",
+            "phases[0][start_date]": str(schedule.phases[0].start_date),
+            "phases[0][end_date]": str(int(facts.effective_at.timestamp())),
+            "phases[0][items][0][price]": current.external_price_id,
+            "phases[1][start_date]": str(int(facts.effective_at.timestamp())),
+            "phases[1][items][0][price]": facts.external_price_id,
+            "phases[1][metadata][workspace_id]": str(preview.workspace_id),
+            "phases[1][metadata][plan_id]": str(preview.target_revision.plan_id),
+            "phases[1][metadata][plan_revision_id]": str(preview.target_revision.id),
+            "phases[1][metadata][external_price_id]": facts.external_price_id,
+            "phases[1][metadata][billing_cycle]": facts.billing_cycle,
+            "phases[1][metadata][currency]": facts.currency,
+        }
+        return data
+
+    @staticmethod
+    def _invoice_dunning_event(
+        *, event: _StripeWebhookEvent, invoice: _StripeInvoicePayload
+    ) -> ProviderDunningEvent | None:
+        if event.created is None:
+            raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+        occurred_at = _provider_timestamp(event.created)
+        if event.type == "invoice.payment_failed":
+            if invoice.next_payment_attempt is None:
+                raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+            return ProviderDunningEvent(
+                kind="payment_failure",
+                provider_period_id=invoice.id,
+                occurred_at=occurred_at,
+                recovery_deadline=_provider_timestamp(invoice.next_payment_attempt),
+            )
+        if event.type == "invoice.payment_succeeded":
+            paid_at = invoice.status_transitions.paid_at
+            if invoice.attempt_count < 2 or paid_at is None:
+                return None
+            return ProviderDunningEvent(
+                kind="payment_recovered",
+                provider_period_id=invoice.id,
+                occurred_at=_provider_timestamp(paid_at),
+            )
+        if event.type == "invoice.marked_uncollectible":
+            marked_at = invoice.status_transitions.marked_uncollectible_at
+            if marked_at is None:
+                raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+            return ProviderDunningEvent(
+                kind="final_unpaid",
+                provider_period_id=invoice.id,
+                occurred_at=_provider_timestamp(marked_at),
+            )
+        raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID")
+
+    @staticmethod
+    def _parse_subscription(
+        *,
+        event_id: object,
+        subscription: object,
+        dunning_event: ProviderDunningEvent | None = None,
+        include_confirmed_transition: bool = False,
+    ) -> ProviderSubscription:
         try:
             parsed = _StripeSubscriptionPayload.model_validate(subscription)
+            external_price_id, currency = _subscription_price_facts(parsed)
             return ProviderSubscription(
                 event_id=str(event_id),
                 workspace_id=UUID(parsed.metadata["workspace_id"]),
-                plan_code=parsed.metadata["plan_code"],
+                plan_id=UUID(parsed.metadata["plan_id"]),
+                plan_revision_id=UUID(parsed.metadata["plan_revision_id"]),
+                external_price_id=external_price_id,
                 billing_cycle=BillingCycle(parsed.metadata["billing_cycle"]),
+                currency=currency,
                 customer_id=parsed.customer,
                 subscription_id=parsed.id,
                 status=_STRIPE_STATUS_MAP[parsed.status],
                 current_period_start=datetime.fromtimestamp(parsed.current_period_start, tz=UTC),
                 current_period_end=datetime.fromtimestamp(parsed.current_period_end, tz=UTC),
                 cancel_at_period_end=parsed.cancel_at_period_end,
+                dunning_event=dunning_event,
+                confirmed_transition=(
+                    ProviderConfirmedTransitionEvidence(
+                        provider_schedule_id=parsed.schedule,
+                        target_revision_id=UUID(parsed.metadata["plan_revision_id"]),
+                        effective_at=datetime.fromtimestamp(parsed.current_period_start, tz=UTC),
+                    )
+                    if include_confirmed_transition and parsed.schedule is not None
+                    else None
+                ),
             )
         except (KeyError, ValidationError, ValueError, OverflowError) as exc:
             raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID") from exc
+
+
+def _provider_timestamp(value: int) -> datetime:
+    try:
+        return datetime.fromtimestamp(value, tz=UTC)
+    except (OverflowError, OSError, ValueError) as exc:
+        raise BadRequest(error="BILLING_WEBHOOK_PAYLOAD_INVALID") from exc
 
 
 class StripeBillingExtension:
@@ -327,7 +547,6 @@ class StripeBillingExtension:
             secret_key=billing.stripe_secret_key.get_secret_value(),
             webhook_secret=billing.stripe_webhook_secret.get_secret_value(),
             api_base_url=billing.stripe_api_base_url,
-            price_ids=billing.stripe_price_ids,
             webhook_tolerance_seconds=billing.webhook_tolerance_seconds,
             client=client,
         )
@@ -343,11 +562,6 @@ class StripeBillingExtension:
                 capabilities=("checkout", "customer_portal", "subscription_webhook"),
                 config_schema={
                     "apiBaseUrl": {"type": "string", "format": "uri"},
-                    "priceIds": {
-                        "type": "object",
-                        "propertyNames": {"pattern": "^[a-z0-9][a-z0-9_-]{0,47}:(monthly|yearly):[A-Z]{3}$"},
-                        "additionalProperties": {"type": "string", "pattern": "^price_[A-Za-z0-9]+$"},
-                    },
                     "webhookToleranceSeconds": {"type": "integer", "minimum": 30, "maximum": 3600},
                 },
                 secret_schema={
@@ -358,6 +572,9 @@ class StripeBillingExtension:
                     "checkout.session.completed",
                     "customer.subscription.updated",
                     "customer.subscription.deleted",
+                    "invoice.payment_failed",
+                    "invoice.payment_succeeded",
+                    "invoice.marked_uncollectible",
                 ),
                 health_contract=("configured", "reachable", "webhook_configured"),
                 admin=ConnectorAdminMetadata(

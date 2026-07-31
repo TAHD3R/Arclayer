@@ -1,19 +1,5 @@
 import { createElement } from "react";
-import {
-  Activity,
-  BrainCircuit,
-  Building2,
-  ChartNoAxesCombined,
-  ChartSpline,
-  FolderKanban,
-  House,
-  LayoutDashboard,
-  MessageSquareHeart,
-  Plug,
-  ScrollText,
-  SlidersHorizontal,
-  Boxes,
-} from "lucide-react";
+import { Blocks, BookOpenText, Boxes, FolderKanban, House, SwatchBook } from "lucide-react";
 
 import {
   ProjectAvatar,
@@ -56,79 +42,26 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
     insertStarredAfter: true,
   },
   {
-    key: "global.platform.overview",
-    label: "Platform Overview",
-    labelKey: "nav:NAV_GLOBAL_PLATFORM_OVERVIEW",
-    to: "/system/overview",
-    icon: LayoutDashboard,
-    groupLabelBeforeKey: "nav:NAV_SECTION_PLATFORM",
+    key: "global.customization.knowledge",
+    label: "Knowledge",
+    labelKey: "nav:NAV_CUSTOMIZATION_KNOWLEDGE",
+    to: `${GLOBAL_ROUTE_PATHS.customization}/knowledge`,
+    icon: BookOpenText,
+    groupLabelBeforeKey: "nav:NAV_SECTION_CUSTOMIZATION",
   },
   {
-    key: "global.platform.tenants",
-    label: "Tenants",
-    labelKey: "nav:NAV_GLOBAL_PLATFORM_TENANTS",
-    to: "/system/tenants",
-    icon: Building2,
+    key: "global.customization.skills",
+    label: "Skills",
+    labelKey: "nav:NAV_CUSTOMIZATION_SKILLS",
+    to: `${GLOBAL_ROUTE_PATHS.customization}/skills`,
+    icon: Blocks,
   },
   {
-    key: "global.platform.audit",
-    label: "Audit Log",
-    labelKey: "nav:NAV_GLOBAL_PLATFORM_AUDIT_LOG",
-    to: "/system/audit-log",
-    icon: ScrollText,
-  },
-  {
-    key: "global.platform.feedback",
-    label: "Feedback Center",
-    labelKey: "nav:NAV_GLOBAL_PLATFORM_FEEDBACK",
-    to: "/system/feedback",
-    icon: MessageSquareHeart,
-  },
-  {
-    key: "global.platform.plugins",
-    label: "Plugins",
-    labelKey: "nav:NAV_GLOBAL_PLATFORM_PLUGINS",
-    to: "/system/plugins",
-    icon: Plug,
-  },
-  {
-    key: "global.platform.observability",
-    label: "Observability",
-    labelKey: "nav:NAV_GLOBAL_PLATFORM_OBSERVABILITY",
-    to: "/system/observability/requests",
-    icon: Activity,
-    groupBehavior: "navigate-self-and-expand",
-    activeMatchPaths: ["/system/observability"],
-    children: [
-      {
-        key: "global.platform.observability.requests",
-        label: "Requests & Performance",
-        labelKey: "nav:NAV_GLOBAL_PLATFORM_OBSERVABILITY_REQUESTS",
-        to: "/system/observability/requests",
-        icon: ChartNoAxesCombined,
-      },
-      {
-        key: "global.platform.observability.ai-usage",
-        label: "AI Usage & Cost",
-        labelKey: "nav:NAV_GLOBAL_PLATFORM_OBSERVABILITY_AI_USAGE",
-        to: "/system/observability/ai-usage",
-        icon: BrainCircuit,
-      },
-      {
-        key: "global.platform.observability.activity",
-        label: "Activity Trends",
-        labelKey: "nav:NAV_GLOBAL_PLATFORM_OBSERVABILITY_ACTIVITY",
-        to: "/system/observability/activity",
-        icon: ChartSpline,
-      },
-    ],
-  },
-  {
-    key: "global.platform.configuration",
-    label: "Configuration",
-    labelKey: "nav:NAV_GLOBAL_PLATFORM_CONFIGURATION",
-    to: GLOBAL_ROUTE_PATHS.system,
-    icon: SlidersHorizontal,
+    key: "global.customization.design-systems",
+    label: "Design systems",
+    labelKey: "nav:NAV_CUSTOMIZATION_DESIGN_SYSTEMS",
+    to: `${GLOBAL_ROUTE_PATHS.customization}/design-systems`,
+    icon: SwatchBook,
   },
 ] as const;
 
@@ -154,7 +87,6 @@ function buildRecentProjectNavItems(projects: readonly GlobalRecentProject[]): A
 }
 
 export function resolveGlobalNavItems(params: {
-  isSuperAdmin: boolean;
   recentProjects?: readonly GlobalRecentProject[];
 }): AdminNavItem[] {
   const recentProjectItems = buildRecentProjectNavItems(params.recentProjects ?? []);
@@ -163,21 +95,7 @@ export function resolveGlobalNavItems(params: {
 
     return [item, ...recentProjectItems];
   });
-  const filterItems = (items: readonly AdminNavItem[]): AdminNavItem[] =>
-    items.flatMap((item) => {
-      if (item.key.startsWith("global.platform.") && !params.isSuperAdmin) {
-        return [];
-      }
-
-      if (!item.children?.length) return [item];
-
-      const children = filterItems(item.children);
-      if (children.length === 0) return [];
-
-      return [{ ...item, children }];
-    });
-
-  return filterItems(items);
+  return items;
 }
 
 export function matchesGlobalNavScene(pathname: string): boolean {

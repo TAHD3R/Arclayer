@@ -1,0 +1,12 @@
+{
+  "LABEL": "已保存视图",
+  "DEFAULT_VIEW": "默认视图",
+  "UNSAVED": "存在未保存的更改",
+  "SAVE_AS": "保存视图",
+  "UPDATE": "更新视图",
+  "DELETE": "删除视图",
+  "NAME": "视图名称",
+  "APPLYING": "正在应用已保存视图…",
+  "OMISSIONS_TITLE": "部分已保存条件未被应用",
+  "OMISSIONS_DESCRIPTION": "不可用、无效或未获授权的已保存条件已从此视图中省略。"
+}

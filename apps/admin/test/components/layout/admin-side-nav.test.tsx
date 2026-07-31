@@ -940,7 +940,7 @@ describe("AdminSiderNav collapsed groups", () => {
             key: "platform.configuration",
             label: "Configuration",
             icon: Settings,
-            to: "/system",
+            to: "/projects",
             disabled: true,
           },
         ],

@@ -8,7 +8,7 @@
     "./admin-types": "./src/admin-types.ts"
   },
   "scripts": {
-    "generate:openapi": "pnpm -C ../../apps/api openapi:export --out ../../packages/openapi/openapi.json",
+    "generate:openapi": "pnpm -C ../../apps/api openapi:export --composition product --out ../../packages/openapi/openapi.json",
     "generate:sdk": "openapi-ts -f openapi-ts.config.ts",
     "generate": "pnpm run generate:openapi && pnpm run generate:sdk",
     "typecheck": "tsc --noEmit --project tsconfig.json"

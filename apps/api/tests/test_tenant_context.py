@@ -22,7 +22,7 @@ async def test_get_workspace_context_returns_guest_context(monkeypatch: pytest.M
     organization_uuid = uuid4()
     membership_uuid = uuid4()
 
-    workspace_obj = SimpleNamespace(id=workspace_uuid, created_by_user_id=uuid4())
+    workspace_obj = SimpleNamespace(id=workspace_uuid, owner_user_id=user_uuid, created_by_user_id=uuid4())
 
     async def require_active_workspace(*, workspace_id: UUID):
         assert workspace_id == workspace_uuid
@@ -66,7 +66,7 @@ async def test_get_workspace_context_returns_guest_context(monkeypatch: pytest.M
     assert ctx.org_membership_id is None
     assert ctx.workspace_membership_id == membership_uuid
     assert ctx.is_org_owner is False
-    assert ctx.visible_only is False
+    assert ctx.is_workspace_owner is True
 
     assert bind_calls == [(workspace_uuid, organization_uuid, membership_uuid)]
 
@@ -79,7 +79,7 @@ async def test_get_workspace_context_returns_member_context(monkeypatch: pytest.
     membership_uuid = uuid4()
     org_membership_id = uuid4()
 
-    workspace_obj = SimpleNamespace(id=workspace_uuid, created_by_user_id=uuid4())
+    workspace_obj = SimpleNamespace(id=workspace_uuid, owner_user_id=uuid4(), created_by_user_id=uuid4())
     orgm = SimpleNamespace(id=org_membership_id, role=OrgRole.MEMBER)
 
     async def require_active_workspace(*, workspace_id: UUID):
@@ -124,6 +124,7 @@ async def test_get_workspace_context_returns_member_context(monkeypatch: pytest.
     assert ctx.org_membership_id == org_membership_id
     assert ctx.workspace_membership_id == membership_uuid
     assert ctx.is_org_owner is False
+    assert ctx.is_workspace_owner is False
 
 
 @pytest.mark.asyncio
@@ -134,7 +135,7 @@ async def test_get_workspace_context_denies_when_no_orgm_and_no_workspace_member
     workspace_id = uuid4()
     organization_id = uuid4()
 
-    workspace = SimpleNamespace(id=workspace_id, created_by_user_id=uuid4())
+    workspace = SimpleNamespace(id=workspace_id, owner_user_id=uuid4(), created_by_user_id=uuid4())
 
     async def require_active_workspace(*, workspace_id: UUID):
         return workspace
@@ -179,7 +180,7 @@ async def test_get_workspace_context_raises_not_found(monkeypatch: pytest.Monkey
     assert ei.value.error == "NOT_FOUND"
 
 
-def test_build_guest_workspace_list_omits_internal_org_id() -> None:
+def test_build_member_workspace_list_omits_internal_org_id() -> None:
     user_id = uuid4()
     workspace_id = uuid4()
     organization_id = uuid4()
@@ -191,7 +192,7 @@ def test_build_guest_workspace_list_omits_internal_org_id() -> None:
         slug="ws",
         name="Workspace",
         description=None,
-        owner_user_id=None,
+        owner_user_id=user_id,
         icon_mode="initials",
         icon_color="#337ea9",
         icon_glyph=None,
@@ -201,7 +202,8 @@ def test_build_guest_workspace_list_omits_internal_org_id() -> None:
         created_at=datetime.now(UTC),
     )
 
-    out = ws_service._build_guest_workspace_list(workspaces=[cast(Workspace, ws)])
+    out = ws_service._build_member_workspace_list(workspaces=[cast(Workspace, ws)], user_id=user_id)
     assert len(out) == 1
     assert out[0].workspace_id == workspace_id
+    assert out[0].is_owner is True
     assert not hasattr(out[0], "organization_id")

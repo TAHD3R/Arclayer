@@ -31,7 +31,7 @@ vi.mock("@/components/feedback/feedback-dialog", () => ({
 }));
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string) => key.replace(/^platform:/, ""),
+    t: (key: string) => key.replace(/^feedback:/, ""),
     i18n: { language: "en-US", resolvedLanguage: "en-US" },
   }),
 }));
@@ -147,7 +147,7 @@ describe("AccessRestrictionBoundary", () => {
     });
 
     render(
-      <AccessRestrictionBoundary pathname="/system/overview">
+      <AccessRestrictionBoundary pathname="/projects">
         <div>Protected content</div>
       </AccessRestrictionBoundary>,
     );
@@ -189,7 +189,7 @@ describe("AccessRestrictionBoundary", () => {
     });
 
     render(
-      <AccessRestrictionBoundary pathname="/system/overview">
+      <AccessRestrictionBoundary pathname="/projects">
         <div>Protected content</div>
       </AccessRestrictionBoundary>,
     );

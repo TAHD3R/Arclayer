@@ -5,21 +5,24 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any, cast
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 from uuid import UUID, uuid4
 
 import pytest
 from fastapi import Response, status
 
 from src.core.exceptions import BadRequest, Conflict
+from src.models.commerce.billing import CommercialAccessState
 from src.models.system.rbac import PermissionScope
+from src.modules.workspaces.authz.role_management import WorkspaceRoleManagementAvailability
+from src.modules.workspaces.authz.schema import AuthzSnapshot
 from src.modules.workspaces.rbac import router as rbac_router_module
 from src.modules.workspaces.rbac.catalog import (
     RolePermissionBatchUpdate,
     build_catalog_revision,
     role_revision,
 )
-from src.modules.workspaces.rbac.schema import WorkspacePermissionCatalogOut
+from src.modules.workspaces.rbac.schema import RolePermissionBatchSetRequest, WorkspacePermissionCatalogOut
 from src.modules.workspaces.rbac.service import WorkspaceRBACService
 
 
@@ -77,9 +80,23 @@ def _service(
         replace_role_permissions=AsyncMock(),
         update_role=AsyncMock(),
     )
+
+    async def get_availability(
+        *,
+        workspace_id: UUID,
+        **_kwargs: object,
+    ) -> WorkspaceRoleManagementAvailability:
+        return WorkspaceRoleManagementAvailability(
+            workspace_id=workspace_id,
+            plan_revision_id=uuid4(),
+            commercial_access_state=CommercialAccessState.NORMAL,
+            included=True,
+        )
+
     service = WorkspaceRBACService(
         settings=cast(Any, SimpleNamespace()),
         repo=cast(Any, repo),
+        role_management_reader=cast(Any, SimpleNamespace(get_availability=get_availability)),
     )
 
     @asynccontextmanager
@@ -135,6 +152,65 @@ async def test_permission_catalog_returns_304_for_matching_etag(
     assert result.status_code == status.HTTP_304_NOT_MODIFIED
     assert result.headers["etag"] == '"catalog-etag"'
     assert result.headers["cache-control"] == "private, no-cache"
+
+
+@pytest.mark.asyncio
+async def test_batch_role_permissions_composes_role_management_reader(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace_id = uuid4()
+    user_id = uuid4()
+    reader = object()
+    reader_factory = Mock(return_value=reader)
+    commercial_policy = SimpleNamespace(authorize=AsyncMock())
+    snapshot_reader = AsyncMock(
+        return_value=AuthzSnapshot(
+            user_id=user_id,
+            permission_codes=["system:content:manage"],
+            is_superuser=False,
+        )
+    )
+    service = SimpleNamespace(
+        set_custom_role_permissions_batch=AsyncMock(return_value=("catalog-revision", [])),
+    )
+    monkeypatch.setattr(
+        rbac_router_module,
+        "build_workspace_role_management_availability_reader",
+        reader_factory,
+    )
+    monkeypatch.setattr(
+        rbac_router_module,
+        "build_restricted_recovery_command_policy",
+        Mock(return_value=commercial_policy),
+    )
+    monkeypatch.setattr(rbac_router_module, "get_workspace_authz_snapshot", snapshot_reader)
+
+    result = await rbac_router_module.set_role_permissions_batch(
+        body=RolePermissionBatchSetRequest.model_validate({
+            "catalog_revision": "catalog-revision",
+            "idempotency_key": "rbac-test-idempotency-key",
+            "roles": [
+                {
+                    "role_code": "custom_editor",
+                    "role_revision": "role-revision",
+                    "permission_grants": [],
+                }
+            ],
+        }),
+        ctx=cast(Any, SimpleNamespace(organization_id=uuid4(), workspace_id=workspace_id)),
+        user_id=user_id,
+        service=cast(Any, service),
+    )
+
+    assert result.data is not None
+    assert result.data.catalog_revision == "catalog-revision"
+    commercial_policy.authorize.assert_awaited_once()
+    reader_factory.assert_called_once_with()
+    snapshot_reader.assert_awaited_once_with(
+        user_id=user_id,
+        workspace_id=workspace_id,
+        role_management_reader=reader,
+    )
 
 
 @pytest.mark.asyncio

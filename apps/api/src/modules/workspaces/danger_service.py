@@ -5,17 +5,19 @@ from uuid import UUID
 from src.config import Settings
 from src.core.exceptions import NotFound
 from src.core.services import BaseService
-from src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipStatus
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
-from src.modules.system.rbac.constants.service import ROLE_OWNER
-from src.modules.workspaces.authz.snapshot.service import get_workspace_authz_snapshot
 from src.modules.workspaces.schema import WorkspaceDangerActionOut, WorkspaceDangerCapabilitiesOut
 
 
 class WorkspaceDangerService(BaseService):
-    def __init__(self, settings: Settings) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        repository: OrganizationWorkspaceRepository | None = None,
+    ) -> None:
         super().__init__(settings)
-        self.repo = OrganizationWorkspaceRepository()
+        self.repo = repository or OrganizationWorkspaceRepository()
 
     async def get_capabilities(
         self, *, organization_id: UUID, workspace_id: UUID, user_id: UUID
@@ -25,7 +27,6 @@ class WorkspaceDangerService(BaseService):
             raise NotFound(error="NOT_FOUND")
         leave_blocked_reason = await self._get_leave_blocked_reason(workspace_id=workspace_id, user_id=user_id)
         delete_blocked_reason = await self._get_delete_blocked_reason(
-            organization_id=organization_id,
             workspace_id=workspace_id,
             user_id=user_id,
         )
@@ -43,42 +44,16 @@ class WorkspaceDangerService(BaseService):
         )
 
     async def _get_leave_blocked_reason(self, *, workspace_id: UUID, user_id: UUID) -> str | None:
-        membership = await WorkspaceMembership.get_or_none(
+        has_membership = await self.repo.has_active_membership(
             workspace_id=workspace_id,
             user_id=user_id,
-            status=WorkspaceMembershipStatus.ACTIVE,
         )
-        if membership is None:
+        if not has_membership:
             return "WORKSPACE_ACCESS_DENIED"
-        is_owner_member = await WorkspaceMembership.filter(
-            id=membership.id,
-            membership_roles__role_id__in=await self._get_owner_role_ids(workspace_id=workspace_id),
-        ).exists()
-        if not is_owner_member:
-            return None
-        owner_count = await WorkspaceMembership.filter(
-            workspace_id=workspace_id,
-            status=WorkspaceMembershipStatus.ACTIVE,
-            membership_roles__role__code=ROLE_OWNER,
-        ).count()
-        if int(owner_count) <= 1:
-            return "WORKSPACE_OWNER_AT_LEAST_ONE_REQUIRED"
+        is_owner = await self.repo.is_workspace_owner(workspace_id=workspace_id, user_id=user_id)
+        return "WORKSPACE_OWNER_TRANSFER_REQUIRED" if is_owner else None
+
+    async def _get_delete_blocked_reason(self, *, workspace_id: UUID, user_id: UUID) -> str | None:
+        if not await self.repo.is_workspace_owner(workspace_id=workspace_id, user_id=user_id):
+            return "WORKSPACE_OWNER_REQUIRED"
         return None
-
-    async def _get_delete_blocked_reason(
-        self, *, organization_id: UUID, workspace_id: UUID, user_id: UUID
-    ) -> str | None:
-        snap = await get_workspace_authz_snapshot(user_id=user_id, workspace_id=workspace_id)
-        if not (snap.is_superuser or "system:settings:manage" in set(snap.permission_codes)):
-            return "WORKSPACE_SETTINGS_MANAGE_REQUIRED"
-        active_workspaces = await self.repo.list_active_non_archived_for_org(organization_id=organization_id)
-        active_count = len(active_workspaces)
-        if int(active_count) <= 1:
-            return "LAST_ACTIVE_WORKSPACE_NOT_DELETABLE"
-        return None
-
-    async def _get_owner_role_ids(self, *, workspace_id: UUID) -> list[UUID]:
-        from src.models.system.rbac import SystemRole
-
-        rows = await SystemRole.filter(workspace_id=workspace_id, code=ROLE_OWNER).values_list("id", flat=True)
-        return [UUID(str(raw)) for raw in rows if raw is not None]

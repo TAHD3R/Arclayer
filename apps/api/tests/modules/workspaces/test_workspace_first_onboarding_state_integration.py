@@ -288,6 +288,7 @@ async def test_onboarding_workspace_creation_allows_existing_workspace_in_owned_
                 organization_id=owned_org.id,
                 name="Preexisting Workspace",
                 is_active=True,
+                owner_user_id=user.id,
                 created_by_user_id=user.id,
             )
 

@@ -28,8 +28,6 @@ def _project_context() -> ProjectRequestContext:
         org_membership_id=uuid4(),
         is_org_owner=True,
         workspace_membership_id=uuid4(),
-        visible_only=False,
-        is_creator_admin=True,
     )
 
 

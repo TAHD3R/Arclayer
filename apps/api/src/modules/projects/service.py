@@ -17,6 +17,10 @@ from src.models.projects._enums import ProjectAuthoringMode
 from src.models.workspaces.workspace import Workspace
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
+from src.modules.projects.active_project_allowance import (
+    ActiveProjectAllowanceAuthority,
+    build_project_active_allowance_authority,
+)
 from src.modules.projects.repository import PROJECT_RESERVED_SLUGS, ProjectRepository
 from src.modules.projects.runtime.site.service import ProjectRuntimeSiteService
 from src.modules.projects.schema import (
@@ -38,11 +42,12 @@ from src.settings.runtime import get_core_settings_value_cached
 
 
 class ProjectService(BaseService):
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, *, active_project_allowance: ActiveProjectAllowanceAuthority) -> None:
         super().__init__(settings)
         self.repo = ProjectRepository()
         self.workspace_repo = OrganizationWorkspaceRepository()
         self.runtime_site_service = ProjectRuntimeSiteService(settings)
+        self._active_project_allowance = active_project_allowance
 
     async def _write_project_activity_event(
         self,
@@ -149,6 +154,7 @@ class ProjectService(BaseService):
         reserved_slugs = await self._reserved_project_slugs()
         authoring_mode = ProjectAuthoringMode(payload.authoring_mode)
         async with self.tx() as conn:
+            await self._active_project_allowance.claim(workspace_id=workspace_id, conn=conn)
             project = await self.repo.create_project(
                 workspace_id=workspace_id,
                 name=payload.name.strip(),
@@ -289,6 +295,11 @@ class ProjectService(BaseService):
         if blocked_reason is not None:
             raise BadRequest("Project archive is blocked", error=blocked_reason)
         async with self.tx() as conn:
+            existing_project = await self.repo.get_project_by_id_in_connection(project_id=project_id, conn=conn)
+            await self._active_project_allowance.lock_capacity_scope(
+                workspace_id=UUID(str(existing_project.workspace_id)),
+                conn=conn,
+            )
             project = await self.repo.set_project_active(project_id=project_id, is_active=False, conn=conn)
             await self._write_project_activity_event(
                 event_name="project.archived",
@@ -301,15 +312,25 @@ class ProjectService(BaseService):
         return ProjectArchiveResult(project_id=project.id, is_active=project.is_active)
 
     async def unarchive_project(self, *, project_id: UUID) -> ProjectArchiveResult:
-        project = await self.repo.set_project_active(project_id=project_id, is_active=True)
+        async with self.tx() as conn:
+            existing_project = await self.repo.get_project_by_id_in_connection(project_id=project_id, conn=conn)
+            await self._active_project_allowance.claim(
+                workspace_id=UUID(str(existing_project.workspace_id)),
+                conn=conn,
+            )
+            project = await self.repo.set_project_active(project_id=project_id, is_active=True, conn=conn)
         return ProjectArchiveResult(project_id=project.id, is_active=project.is_active)
 
     async def delete_project(self, *, project_id: UUID, actor_user_id: UUID) -> ProjectDeleteResult:
         blocked_reason = self._get_delete_blocked_reason(can_manage_settings=True)
         if blocked_reason is not None:
             raise BadRequest("Project delete is blocked", error=blocked_reason)
-        project = await self.repo.get_project_by_id(project_id=project_id)
         async with self.tx() as conn:
+            project = await self.repo.get_project_by_id_in_connection(project_id=project_id, conn=conn)
+            await self._active_project_allowance.lock_capacity_scope(
+                workspace_id=UUID(str(project.workspace_id)),
+                conn=conn,
+            )
             deleted = await self.repo.delete_project(project_id=project_id, conn=conn)
             await self._write_project_activity_event(
                 event_name="project.deleted",
@@ -434,3 +455,10 @@ class ProjectService(BaseService):
         if not can_manage_settings:
             return "WORKSPACE_SETTINGS_MANAGE_REQUIRED"
         return None
+
+
+def build_project_service(settings: Settings) -> ProjectService:
+    return ProjectService(
+        settings,
+        active_project_allowance=build_project_active_allowance_authority(),
+    )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
@@ -11,7 +12,7 @@ from tortoise import Tortoise
 
 from src.config import Settings
 from src.core.services import BaseService
-from src.modules.auth.repository import UserRepository
+from src.modules.platform_identity.repository import PlatformIdentityRepository
 
 
 class InstanceSetupStatus(StrEnum):
@@ -34,17 +35,17 @@ class InstanceSetupState(BaseModel):
     status: InstanceSetupStatus
     install_lock_present: bool
     install_lock_metadata: InstallLockMetadata | None = None
-    super_admin_count: int
+    owner_user_id: UUID | None = None
     repair_reason: str | None = None
 
 
 class InstanceSetupService(BaseService):
-    """Classify instance setup readiness from install.lock and super-admin truth."""
+    """Classify setup from the install lock and singleton Instance Owner."""
 
     def __init__(self, settings: Settings) -> None:
         super().__init__(settings)
         self._database_available = bool(settings.database.enabled)
-        self.user_repo = UserRepository()
+        self.platform_identity_repo = PlatformIdentityRepository()
 
     @property
     def install_lock_path(self) -> Path:
@@ -52,7 +53,7 @@ class InstanceSetupService(BaseService):
 
     async def get_state(self) -> InstanceSetupState:
         install_lock_present = self.install_lock_path.exists()
-        super_admin_count = await self.count_super_admins()
+        owner_user_id = await self.get_instance_owner_user_id()
         install_lock_metadata: InstallLockMetadata | None = None
         repair_reason: str | None = None
 
@@ -64,9 +65,9 @@ class InstanceSetupService(BaseService):
 
         if repair_reason is not None:
             status = InstanceSetupStatus.REPAIR_REQUIRED
-        elif (not install_lock_present) and super_admin_count == 0:
+        elif (not install_lock_present) and owner_user_id is None:
             status = InstanceSetupStatus.UNINITIALIZED
-        elif install_lock_present and super_admin_count == 1:
+        elif install_lock_metadata is not None and owner_user_id == install_lock_metadata.initialized_by_user_id:
             status = InstanceSetupStatus.READY
         else:
             status = InstanceSetupStatus.REPAIR_REQUIRED
@@ -76,14 +77,14 @@ class InstanceSetupService(BaseService):
             status=status,
             install_lock_present=install_lock_present,
             install_lock_metadata=install_lock_metadata,
-            super_admin_count=super_admin_count,
+            owner_user_id=owner_user_id,
             repair_reason=repair_reason,
         )
 
-    async def count_super_admins(self) -> int:
+    async def get_instance_owner_user_id(self) -> UUID | None:
         if not self._database_available or not Tortoise._inited:
-            return 0
-        return await self.user_repo.count_super_admins()
+            return None
+        return await self.platform_identity_repo.get_instance_owner_user_id()
 
     def read_install_lock(self) -> InstallLockMetadata:
         raw = json.loads(self.install_lock_path.read_text(encoding="utf-8"))
@@ -91,10 +92,20 @@ class InstanceSetupService(BaseService):
 
     def write_install_lock(self, metadata: InstallLockMetadata) -> None:
         self.install_lock_path.parent.mkdir(parents=True, exist_ok=True)
-        self.install_lock_path.write_text(
-            metadata.model_dump_json(indent=2),
-            encoding="utf-8",
-        )
+        temporary_path = self.install_lock_path.with_name(f".{self.install_lock_path.name}.{uuid4().hex}.tmp")
+        try:
+            temporary_path.write_text(metadata.model_dump_json(indent=2), encoding="utf-8")
+            os.replace(temporary_path, self.install_lock_path)
+        finally:
+            temporary_path.unlink(missing_ok=True)
+
+    def remove_install_lock(self, metadata: InstallLockMetadata) -> None:
+        try:
+            existing = self.read_install_lock()
+        except (OSError, ValueError, json.JSONDecodeError):
+            return
+        if existing.instance_id == metadata.instance_id:
+            self.install_lock_path.unlink(missing_ok=True)
 
     def build_install_lock_metadata(self, *, initialized_by_user_id: UUID) -> InstallLockMetadata:
         return InstallLockMetadata(

@@ -7,7 +7,6 @@ from typing import Protocol
 from uuid import UUID
 
 from src.config import Settings
-from src.core.i18n import t
 from src.core.services.base import BaseService
 from src.models.commerce.billing import (
     CreditRefreshInterval,
@@ -55,7 +54,7 @@ def _risk(
     available = int(account.balance_credits) - int(account.reserved_credits)
     if subscription.status in {SubscriptionStatus.PAST_DUE, SubscriptionStatus.CANCELED}:
         return WorkspaceCommerceDirectoryRisk.ATTENTION_REQUIRED
-    if available <= 0 or int(account.period_spent_credits) > int(account.period_granted_credits):
+    if available <= 0:
         return WorkspaceCommerceDirectoryRisk.ATTENTION_REQUIRED
     return WorkspaceCommerceDirectoryRisk.HEALTHY
 
@@ -107,7 +106,8 @@ class WorkspaceCommerceDirectoryService(BaseService):
                 risk=WorkspaceCommerceDirectoryRisk.DATA_MISSING,
             )
 
-        plan = subscription.plan
+        revision = subscription.plan_revision
+        plan = revision.plan
         captured_at = subscription.updated_at
         if account is not None and account.updated_at > captured_at:
             captured_at = account.updated_at
@@ -116,23 +116,21 @@ class WorkspaceCommerceDirectoryService(BaseService):
             if account is not None
             else WorkspaceCommerceDirectoryDataState.PARTIAL
         )
-        plan_name = t("commerce", plan.name_i18n_key) if plan.name_i18n_key else plan.name
         return WorkspaceCommerceDirectoryOut(
             data_state=data_state,
             risk=_risk(subscription, account),
             captured_at=captured_at,
             billing_provider=subscription.billing_provider,
             plan_code=plan.code,
-            plan_name=plan_name,
-            plan_tier=plan.tier,
-            credit_refresh_interval=plan.credit_refresh_interval,
+            plan_revision_id=subscription.plan_revision_id,
+            plan_name_i18n_key=revision.name_i18n_key,
+            credit_refresh_interval=revision.credit_refresh_interval,
             subscription_status=subscription.status,
-            billing_interval=subscription.billing_cycle,
+            billing_cycle=subscription.billing_cycle,
             current_period_start=subscription.current_period_start,
             current_period_end=subscription.current_period_end,
-            renewal_at=None if subscription.cancel_at_period_end else subscription.current_period_end,
             cancel_at_period_end=subscription.cancel_at_period_end,
-            credits=self._credits(account=account, refresh_interval=plan.credit_refresh_interval),
+            credits=self._credits(account=account, refresh_interval=revision.credit_refresh_interval),
             usage=self._usage(account=account, usage=usage),
         )
 
@@ -148,10 +146,6 @@ class WorkspaceCommerceDirectoryService(BaseService):
             balance=int(account.balance_credits),
             reserved=int(account.reserved_credits),
             available=max(int(account.balance_credits) - int(account.reserved_credits), 0),
-            lifetime_granted=int(account.lifetime_granted_credits),
-            lifetime_spent=int(account.lifetime_spent_credits),
-            period_granted=int(account.period_granted_credits),
-            period_spent=int(account.period_spent_credits),
             period_start=account.period_start,
             period_end=account.period_end,
             next_refresh_at=None if refresh_interval == CreditRefreshInterval.NONE else account.period_end,

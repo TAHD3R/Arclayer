@@ -44,7 +44,10 @@ def test_producer_runtime_registers_global_manifest_on_exact_workload_brokers(tm
         "jobs:asset-cpu:asset-thumbnail-generate:v1",
     }
     assert set(runtime.brokers.select(JobWorkloadClass.MAINTENANCE).local_task_registry) == {
+        "jobs:maintenance:commerce-access-fact-consume:v1",
+        "jobs:maintenance:notification-campaign-dispatch:v1",
         "jobs:maintenance:provider-effect-orphan-reconcile:v1",
+        "jobs:maintenance:system-plugin-lifecycle:v2",
     }
     assert set(runtime.brokers.select(JobWorkloadClass.CONNECTOR).local_task_registry) == {
         "jobs:connector:billing-event-process:v1",
@@ -52,7 +55,7 @@ def test_producer_runtime_registers_global_manifest_on_exact_workload_brokers(tm
         "jobs:connector:skill-github-import:v1",
         "jobs:connector:skill-github-refresh:v1",
     }
-    assert len(runtime.registry.manifest) == 13
+    assert len(runtime.registry.manifest) == 16
     assert runtime.transport.registry is runtime.registry
 
     with pytest.raises(ValidationError) as extra:

@@ -1,6 +1,6 @@
 http:
   routers:
-    # Convenience route: allow API calls through the Admin host when a browser
+    # Convenience route: allow API calls through the Product host when a browser
     # or test follows relative /api URLs from https://app.arclayer.localhost.
     admin-api:
       entryPoints:
@@ -31,6 +31,22 @@ http:
         - websecure
       rule: "Host(`app.arclayer.localhost`)"
       service: admin
+      tls: {}
+      priority: 10
+
+    platform-api:
+      entryPoints:
+        - websecure
+      rule: "Host(`platform.arclayer.localhost`) && PathPrefix(`/platform-api/`)"
+      service: platform-api
+      tls: {}
+      priority: 20
+
+    platform:
+      entryPoints:
+        - websecure
+      rule: "Host(`platform.arclayer.localhost`)"
+      service: platform
       tls: {}
       priority: 10
 
@@ -65,11 +81,23 @@ http:
         servers:
           - url: "http://host.docker.internal:8000"
 
+    platform-api:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: "http://host.docker.internal:8001"
+
     admin:
       loadBalancer:
         passHostHeader: true
         servers:
           - url: "http://host.docker.internal:5173"
+
+    platform:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: "http://host.docker.internal:5174"
 
     rustfs-api:
       loadBalancer:

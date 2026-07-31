@@ -10,6 +10,7 @@ from pydantic import ConfigDict, Field, field_validator
 from src.common.schemas import BaseSchema
 from src.common.types.public_uuid import PublicUUID
 from src.models.jobs.background_job import JobAuthorityMode, JobRetryClass, JobWorkloadClass
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.jobs.execution_errors import JOB_WORKER_LOST_ERROR_CODE
 from src.modules.jobs.registry import (
     COMMON_JOB_TERMINAL_ERROR_CONTRACTS,
@@ -264,6 +265,7 @@ def build_asset_thumbnail_job_definition(
         visibility=JobVisibility.PROJECT,
         authority_mode=JobAuthorityMode.SYSTEM_SERVICE,
         required_permission=None,
+        commercial_effects=frozenset({RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT}),
         manage_permission=JobPermissionRequirement(
             scope=JobPermissionScope.WORKSPACE,
             action="system:assets:manage",

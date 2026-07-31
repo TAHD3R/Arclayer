@@ -18,7 +18,6 @@ from src.models.system.access_restriction import (
 from src.models.workspaces.workspace import (
     Workspace,
     WorkspaceMembership,
-    WorkspaceMembershipRole,
     WorkspaceMembershipStatus,
 )
 from src.modules.access_restrictions.repository import AccessRestrictionRepository
@@ -95,24 +94,6 @@ async def _find_active_workspace_membership(*, workspace_id: UUID, user_id: UUID
     )
 
 
-async def _ensure_creator_admin_membership(*, workspace_id: UUID, user_id: UUID) -> WorkspaceMembership:
-    return await WorkspaceMembership.create(
-        workspace_id=workspace_id,
-        user_id=user_id,
-        status=WorkspaceMembershipStatus.ACTIVE,
-        invited_by_user_id=None,
-    )
-
-
-async def _ensure_creator_admin_has_owner_role_binding(*, workspace_id: UUID, membership_id: UUID) -> None:
-    from src.models.system.rbac import SystemRole
-
-    owner_role = await SystemRole.get_or_none(workspace_id=workspace_id, code="owner", is_system=True)
-    if owner_role is None:
-        return
-    await WorkspaceMembershipRole.get_or_create(membership_id=membership_id, role_id=owner_role.id)
-
-
 def _bind_workspace_request_context(*, workspace_id: UUID, organization_id: UUID, membership_id: UUID | None) -> None:
     # Bind to logging context and request ContextVars used by authz/menu providers.
     bind_contextvars(workspace_id=str(workspace_id), organization_id=str(organization_id))
@@ -154,8 +135,7 @@ async def _resolve_guest_workspace_context(
         org_membership_id=None,
         is_org_owner=False,
         workspace_membership_id=membership_id,
-        visible_only=False,
-        is_creator_admin=False,
+        is_workspace_owner=UUID(str(workspace.owner_user_id)) == user_id,
     )
 
 
@@ -181,20 +161,14 @@ async def _resolve_member_workspace_context(
 ) -> WorkspaceContext:
     workspace_uuid = UUID(str(workspace.id))
 
-    is_owner = orgm.role == OrgRole.OWNER
-    is_creator_admin = bool(is_owner and (UUID(str(workspace.created_by_user_id)) == UUID(str(user_id))))
-
     membership = await _find_active_workspace_membership(workspace_id=workspace_uuid, user_id=user_id)
-    if membership is None and is_creator_admin:
-        membership = await _ensure_creator_admin_membership(workspace_id=workspace_uuid, user_id=user_id)
-    if membership is not None and is_creator_admin:
-        await _ensure_creator_admin_has_owner_role_binding(
-            workspace_id=workspace_uuid,
-            membership_id=UUID(str(membership.id)),
+    if membership is None:
+        raise Forbidden(
+            message=t("errors", "PERMISSION_DENIED"),
+            error="WORKSPACE_ACCESS_DENIED",
         )
 
-    membership_id = UUID(str(membership.id)) if membership is not None else None
-    visible_only = bool(is_owner and membership_id is None and not is_creator_admin)
+    membership_id = UUID(str(membership.id))
     _bind_workspace_request_context(
         workspace_id=workspace_uuid,
         organization_id=organization_id,
@@ -206,10 +180,9 @@ async def _resolve_member_workspace_context(
         organization_id=organization_id,
         access_type=WorkspaceAccessType.MEMBER,
         org_membership_id=UUID(str(orgm.id)),
-        is_org_owner=is_owner,
+        is_org_owner=orgm.role == OrgRole.OWNER,
         workspace_membership_id=membership_id,
-        visible_only=visible_only,
-        is_creator_admin=is_creator_admin,
+        is_workspace_owner=UUID(str(workspace.owner_user_id)) == user_id,
     )
 
 
@@ -247,7 +220,7 @@ async def require_workspace_manage_access(
     Ensure the current user can manage the workspace (not visible-only).
     """
 
-    if ctx.visible_only or ctx.workspace_membership_id is None:
+    if ctx.workspace_membership_id is None:
         raise Forbidden(message=t("errors", "PERMISSION_DENIED"), error="WORKSPACE_ACCESS_DENIED")
     return ctx
 

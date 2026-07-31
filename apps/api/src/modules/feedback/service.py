@@ -6,13 +6,14 @@ from hashlib import sha256
 from uuid import UUID
 
 import orjson
+from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.expressions import Q
-from tortoise.transactions import in_transaction
 
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.http.pagination import PageData, PageParams
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.models.feedback.feedback import (
     FeedbackCategory,
     FeedbackIntent,
@@ -23,10 +24,11 @@ from src.models.feedback.feedback import (
     FeedbackStatus,
     FeedbackTicket,
 )
-from src.models.organization.user import User, UserStatus
+from src.models.organization.user import User
 from src.models.projects.project import ProjectRecord
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.analytics.ingest.service import sanitize_properties
+from src.modules.auth.repository import UserRepository
 from src.modules.feedback.schema import (
     FeedbackMessageCreate,
     FeedbackMessageOut,
@@ -38,6 +40,7 @@ from src.modules.feedback.schema import (
     FeedbackUserOut,
     project_feedback_context_type,
 )
+from src.modules.platform_identity.repository import PlatformIdentityRepository
 from src.modules.workspaces.http.service import resolve_workspace_context_by_id
 
 
@@ -49,7 +52,6 @@ def _user_out(user: User) -> FeedbackUserOut:
         display_name=user.display_name,
         avatar_url=user.avatar_url,
         status=str(user.status),
-        is_super_admin=user.is_super_admin,
         last_login_at=user.last_login_at,
         created_at=user.created_at,
     )
@@ -65,7 +67,6 @@ def _ticket_reporter_out(ticket: FeedbackTicket, user: User | None) -> FeedbackU
         display_name=ticket.reporter_display_name,
         avatar_url=ticket.reporter_avatar_url,
         status="unknown",
-        is_super_admin=False,
         last_login_at=None,
         created_at=ticket.created_at,
     )
@@ -81,15 +82,34 @@ def _message_author_out(message: FeedbackMessage, user: User | None) -> Feedback
         display_name=message.author_display_name,
         avatar_url=message.author_avatar_url,
         status="unknown",
-        is_super_admin=False,
         last_login_at=None,
         created_at=message.created_at,
     )
 
 
-class FeedbackService:
-    def __init__(self, settings: Settings) -> None:
+async def _is_platform_assignee_eligible(
+    *,
+    user_id: UUID,
+    repository: PlatformIdentityRepository,
+    conn: BaseDBAsyncClient,
+) -> bool:
+    if await repository.is_instance_owner(user_id=user_id, conn=conn):
+        return True
+    return await repository.get_active_operator_by_user_id(user_id=user_id, conn=conn) is not None
+
+
+class FeedbackService(BaseService):
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        user_repository: UserRepository | None = None,
+        platform_identity_repository: PlatformIdentityRepository | None = None,
+    ) -> None:
+        super().__init__(settings)
         self._settings = settings
+        self._user_repository = user_repository or UserRepository()
+        self._platform_identity_repository = platform_identity_repository or PlatformIdentityRepository()
 
     async def _resolve_scope(
         self,
@@ -137,7 +157,7 @@ class FeedbackService:
         fingerprint_payload["context"] = safe_context
         fingerprint = sha256(orjson.dumps(fingerprint_payload, option=orjson.OPT_SORT_KEYS)).hexdigest()
         now = datetime.now(UTC)
-        async with in_transaction() as conn:
+        async with self.tx() as conn:
             ticket, created = await FeedbackTicket.get_or_create(
                 reporter_user_id=reporter.id,
                 client_request_id=payload.client_request_id,
@@ -183,7 +203,7 @@ class FeedbackService:
     async def _user_map(self, ids: set[UUID]) -> dict[UUID, User]:
         if not ids:
             return {}
-        users = await User.filter(id__in=list(ids))
+        users = await self._user_repository.list_by_ids(list(ids))
         return {UUID(str(user.id)): user for user in users}
 
     async def _list_page(
@@ -374,18 +394,21 @@ class FeedbackService:
         payload: FeedbackTicketUpdate,
         actor_user_id: UUID,
     ) -> FeedbackTicketDetailOut:
-        async with in_transaction() as conn:
+        async with self.tx() as conn:
             ticket = await FeedbackTicket.filter(id=ticket_id).using_db(conn).select_for_update().first()
             if ticket is None:
                 raise NotFound(message=t("errors", "FEEDBACK_NOT_FOUND"), error="FEEDBACK_NOT_FOUND")
             if payload.assignee_user_id is not None:
-                assignee = await User.get_or_none(id=payload.assignee_user_id, using_db=conn)
-                if assignee is None or assignee.status != UserStatus.ACTIVE or not assignee.is_super_admin:
+                if not await _is_platform_assignee_eligible(
+                    user_id=payload.assignee_user_id,
+                    repository=self._platform_identity_repository,
+                    conn=conn,
+                ):
                     raise BadRequest(
                         message=t("errors", "FEEDBACK_ASSIGNEE_INVALID"),
                         error="FEEDBACK_ASSIGNEE_INVALID",
                     )
-                ticket.assigned_to_user_id = assignee.id
+                ticket.assigned_to_user_id = payload.assignee_user_id
             elif payload.clear_assignee:
                 ticket.assigned_to_user_id = None
             now = datetime.now(UTC)
@@ -418,7 +441,7 @@ class FeedbackService:
         payload: FeedbackMessageCreate,
         author: User,
     ) -> FeedbackTicketDetailOut:
-        async with in_transaction() as conn:
+        async with self.tx() as conn:
             ticket = await FeedbackTicket.filter(id=ticket_id).using_db(conn).select_for_update().first()
             if ticket is None:
                 raise NotFound(message=t("errors", "FEEDBACK_NOT_FOUND"), error="FEEDBACK_NOT_FOUND")

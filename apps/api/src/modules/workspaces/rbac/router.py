@@ -10,7 +10,10 @@ from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import get_current_locale, t
 from src.models.system.rbac import PermissionScope
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.commerce.dunning.command_policy import build_restricted_recovery_command_policy
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.workspaces.authz.http.service import require_workspace_permission
+from src.modules.workspaces.authz.role_management import build_workspace_role_management_availability_reader
 from src.modules.workspaces.authz.snapshot.service import get_workspace_authz_snapshot
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_manage_access
@@ -40,13 +43,13 @@ from src.modules.workspaces.rbac.schema import (
     WorkspacePermissionOut,
     WorkspaceRoleOut,
 )
-from src.modules.workspaces.rbac.service import WorkspaceRBACService
+from src.modules.workspaces.rbac.service import WorkspaceRBACService, build_workspace_rbac_service
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/rbac", tags=["domain.workspaces.rbac"])
 
 
 def get_rbac_service(settings: Settings = Depends(get_settings)) -> WorkspaceRBACService:
-    return WorkspaceRBACService(settings)
+    return build_workspace_rbac_service(settings)
 
 
 async def _to_workspace_role_out(*, service: WorkspaceRBACService, role, locale: str) -> WorkspaceRoleOut:
@@ -322,6 +325,10 @@ async def create_role(
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[WorkspaceRoleOut]:
     """Create a custom role from template."""
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.ACCESS_EXPANSION},
+    )
     locale = get_current_locale()
     role = await service.create_custom_role(
         organization_id=ctx.organization_id,
@@ -349,6 +356,10 @@ async def update_role(
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[WorkspaceRoleOut]:
     """Update a custom role."""
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.ACCESS_EXPANSION},
+    )
     locale = get_current_locale()
     role = await service.update_custom_role(
         organization_id=ctx.organization_id,
@@ -397,6 +408,10 @@ async def set_permission_roles(
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[None]:
     """Set custom roles that can perform a permission (system roles are immutable)."""
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.ACCESS_EXPANSION},
+    )
     await service.set_permission_custom_roles(
         organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,
@@ -419,9 +434,14 @@ async def set_role_permissions_batch(
     user_id=Depends(get_current_user_id),
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[RolePermissionBatchSetOut]:
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.ACCESS_EXPANSION},
+    )
     snapshot = await get_workspace_authz_snapshot(
         user_id=user_id,
         workspace_id=ctx.workspace_id,
+        role_management_reader=build_workspace_role_management_availability_reader(),
     )
     revision, roles = await service.set_custom_role_permissions_batch(
         organization_id=ctx.organization_id,
@@ -440,7 +460,7 @@ async def set_role_permissions_batch(
             for item in body.roles
         ),
         actor_permission_codes=frozenset(snapshot.permission_codes),
-        actor_is_superuser=snapshot.is_superuser,
+        actor_is_superuser=snapshot.is_workspace_owner or snapshot.is_superuser,
     )
     locale = get_current_locale()
     return ApiResponse.success(
@@ -465,6 +485,10 @@ async def set_role_permissions(
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[None]:
     """Replace permissions granted to a custom role (system roles are immutable)."""
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.ACCESS_EXPANSION},
+    )
     await service.set_custom_role_permissions(
         organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,

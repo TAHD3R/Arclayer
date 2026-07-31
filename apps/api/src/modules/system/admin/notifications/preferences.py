@@ -117,24 +117,6 @@ TOPIC_DEFINITIONS: tuple[NotificationTopicDefinition, ...] = (
         description_i18n="account:ME_NOTIFY_TOPIC_AUTOMATION_NOTIFICATION_DESC",
     ),
     NotificationTopicDefinition(
-        key="system.mail.updated",
-        category=NotificationCategory.SECURITY,
-        title_i18n="account:ME_NOTIFY_TOPIC_SYSTEM_MAIL_UPDATED_TITLE",
-        description_i18n="account:ME_NOTIFY_TOPIC_SYSTEM_MAIL_UPDATED_DESC",
-    ),
-    NotificationTopicDefinition(
-        key="system.storage.updated",
-        category=NotificationCategory.SECURITY,
-        title_i18n="account:ME_NOTIFY_TOPIC_SYSTEM_STORAGE_UPDATED_TITLE",
-        description_i18n="account:ME_NOTIFY_TOPIC_SYSTEM_STORAGE_UPDATED_DESC",
-    ),
-    NotificationTopicDefinition(
-        key="system.settings.feature_flags.updated",
-        category=NotificationCategory.SECURITY,
-        title_i18n="account:ME_NOTIFY_TOPIC_SYSTEM_FEATURE_FLAGS_UPDATED_TITLE",
-        description_i18n="account:ME_NOTIFY_TOPIC_SYSTEM_FEATURE_FLAGS_UPDATED_DESC",
-    ),
-    NotificationTopicDefinition(
         key="system.broadcast",
         category=NotificationCategory.SYSTEM,
         title_i18n="account:ME_NOTIFY_TOPIC_SYSTEM_BROADCAST_TITLE",
@@ -162,9 +144,6 @@ EVENT_TO_TOPIC_KEY: dict[str, str] = {
     "project.release.scheduled_publish.completed": "project.release.scheduled_publish.completed",
     "project.release.scheduled_publish.failed": "project.release.scheduled_publish.failed",
     "automation.notification": "automation.notification",
-    "system.mail.updated": "system.mail.updated",
-    "system.storage.updated": "system.storage.updated",
-    "system.settings.feature_flags.updated": "system.settings.feature_flags.updated",
     "system.broadcast": "system.broadcast",
 }
 

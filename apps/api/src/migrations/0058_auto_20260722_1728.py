@@ -1,11 +1,12 @@
-from tortoise import migrations
-from tortoise.migrations import operations as ops
 from orjson import loads
-from src.common.utils.ids import uuid7
-from src.models.commerce.billing import BillingProviderMode, ConnectorEventInboxStatus
+from tortoise import fields, migrations
 from tortoise.fields.data import JSON_DUMPS
-from tortoise import fields
 from tortoise.indexes import Index
+from tortoise.migrations import operations as ops
+
+from src.common.utils.ids import uuid7
+from src.migrations.models.commerce_legacy import BillingProviderMode, ConnectorEventInboxStatus
+
 
 class Migration(migrations.Migration):
     dependencies = [('models', '0057_auto_20260722_1657')]

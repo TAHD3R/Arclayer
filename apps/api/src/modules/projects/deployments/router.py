@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Query
 from src.common.types.public_uuid import PublicUUID
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.projects.deployments.schema import (
     ProjectDeploymentActionOut,
     ProjectDeploymentListOut,
@@ -16,7 +17,10 @@ from src.modules.projects.deployments.schema import (
     ProjectDeploymentRollbackIn,
 )
 from src.modules.projects.deployments.service import ProjectDeploymentsService
-from src.modules.projects.http.router_helpers import require_project_permission
+from src.modules.projects.http.router_helpers import (
+    require_project_commercial_effect,
+    require_project_permission,
+)
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
 
@@ -71,7 +75,10 @@ async def get_project_deployment(
     response_model=ResponseModel[ProjectDeploymentActionOut],
     response_model_exclude_none=True,
     summary="Promote project deployment",
-    dependencies=[require_project_permission("project:deployments:promote")],
+    dependencies=[
+        require_project_permission("project:deployments:promote"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
+    ],
 )
 async def promote_project_deployment(
     deployment_id: PublicUUID,
@@ -95,7 +102,10 @@ async def promote_project_deployment(
     response_model=ResponseModel[ProjectDeploymentActionOut],
     response_model_exclude_none=True,
     summary="Rollback project deployment",
-    dependencies=[require_project_permission("project:deployments:rollback")],
+    dependencies=[
+        require_project_permission("project:deployments:rollback"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
+    ],
 )
 async def rollback_project_deployment(
     deployment_id: PublicUUID,

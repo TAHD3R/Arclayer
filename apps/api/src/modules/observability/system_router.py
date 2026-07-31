@@ -6,49 +6,27 @@ from src.common.types.public_uuid import PublicUUID
 from src.config import MAX_OBSERVABILITY_RETENTION_DAYS, Settings, get_settings
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
-from src.modules.auth.http.service import require_super_admin
 from src.modules.observability.schema import (
     AIUsageGroupOut,
     HTTPRequestGroupOrdering,
     HTTPRequestGroupOut,
     HTTPRequestRecordOrdering,
     HTTPRequestRecordOut,
-    ObservabilityOverviewOut,
     ObservabilityTrendMetric,
     ObservabilityTrendOut,
 )
 from src.modules.observability.service import ObservabilityService
+from src.modules.platform_identity.http import require_platform_permission
+from src.modules.platform_identity.permissions import PlatformPermissionCode
 
-router = APIRouter(
-    tags=["internal.system.observability"],
-    dependencies=[Depends(require_super_admin)],
-)
-
-
-@router.get(
-    "/overview",
-    response_model=ResponseModel[ObservabilityOverviewOut],
-    summary="Get platform observability overview",
-)
-async def get_platform_observability_overview(
-    days: int = Query(default=30, ge=1, le=MAX_OBSERVABILITY_RETENTION_DAYS),
-    workspace_id: PublicUUID | None = Query(default=None, alias="workspaceId"),
-    project_id: PublicUUID | None = Query(default=None, alias="projectId"),
-    settings: Settings = Depends(get_settings),
-) -> ResponseModel[ObservabilityOverviewOut]:
-    overview = await ObservabilityService(settings).overview(
-        days=days,
-        system_scope=True,
-        workspace_id=workspace_id,
-        project_id=project_id,
-    )
-    return ApiResponse.success(data=overview)
+router = APIRouter(tags=["internal.system.observability"])
 
 
 @router.get(
     "/trends",
     response_model=ResponseModel[ObservabilityTrendOut],
     summary="Get platform observability trend",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MONITORING_REQUESTS_READ)],
 )
 async def get_platform_observability_trend(
     metric: ObservabilityTrendMetric = Query(default=ObservabilityTrendMetric.HTTP_REQUESTS),
@@ -70,6 +48,7 @@ async def get_platform_observability_trend(
     "/request-groups",
     response_model=ResponseModel[PageData[HTTPRequestGroupOut]],
     summary="List aggregated platform HTTP request groups",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MONITORING_REQUESTS_READ)],
 )
 async def list_platform_http_request_groups(
     days: int = Query(default=30, ge=1, le=MAX_OBSERVABILITY_RETENTION_DAYS),
@@ -99,6 +78,7 @@ async def list_platform_http_request_groups(
     "/request-records",
     response_model=ResponseModel[PageData[HTTPRequestRecordOut]],
     summary="List completed platform HTTP requests",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MONITORING_REQUESTS_READ)],
 )
 async def list_platform_http_request_records(
     days: int = Query(default=30, ge=1, le=MAX_OBSERVABILITY_RETENTION_DAYS),
@@ -136,6 +116,7 @@ async def list_platform_http_request_records(
     "/ai-usage-groups",
     response_model=ResponseModel[PageData[AIUsageGroupOut]],
     summary="List aggregated platform AI usage groups",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MONITORING_REQUESTS_READ)],
 )
 async def list_platform_ai_usage_groups(
     days: int = Query(default=30, ge=1, le=MAX_OBSERVABILITY_RETENTION_DAYS),

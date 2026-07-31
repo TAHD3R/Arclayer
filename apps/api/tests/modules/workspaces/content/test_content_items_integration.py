@@ -120,6 +120,7 @@ async def _workspace_client(prepared_db, integration_valkey_settings):
             organization_id=org.id,
             name="Workspace",
             is_active=True,
+            owner_user_id=owner.id,
             created_by_user_id=owner.id,
         )
         workspace_id = encode_uuid(workspace.id)

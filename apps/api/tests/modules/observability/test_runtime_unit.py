@@ -5,15 +5,17 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from asgi_correlation_id import CorrelationIdMiddleware
+from fastapi.routing import APIRoute
 from starlette.requests import Request
 
 from src.config import Settings
 from src.core.middleware.request_log import RequestLogMiddleware
 from src.core.registry import AppFactory
+from src.modules.observability.system_router import router as system_observability_router
 
 
 def _scope(*, route_tag: str) -> dict:
-    path = "/api/v1/system/observability/overview"
+    path = "/platform-api/v1/observability/trends"
     return {
         "type": "http",
         "asgi": {"version": "3.0"},
@@ -48,6 +50,12 @@ def test_correlation_middleware_wraps_request_metrics_finalization() -> None:
     assert middleware_order.index(CorrelationIdMiddleware) < middleware_order.index(RequestLogMiddleware)
 
 
+def test_platform_observability_overview_route_is_retired() -> None:
+    paths = {route.path for route in system_observability_router.routes if isinstance(route, APIRoute)}
+
+    assert "/overview" not in paths
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "route_tag",
@@ -66,6 +74,8 @@ async def test_observability_query_tags_exclude_dashboard_self_polling(route_tag
             request=Request(scope),
             status=200,
             elapsed_ms=12,
+            request_bytes=0,
+            response_bytes=0,
         )
 
     publish.assert_not_awaited()

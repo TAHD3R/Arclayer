@@ -5,6 +5,7 @@ from uuid import UUID
 
 from src.common.schemas import BaseSchema
 from src.models.jobs.background_job import JobAuthorityMode
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.jobs.execution_errors import (
     JOB_EXECUTION_CONTRACT_MISMATCH_CODE,
     JobExecutionRegistryError,
@@ -68,6 +69,15 @@ class JobEntitlementAuthorizer(Protocol):
     ) -> None: ...
 
 
+class CommercialAccessAuthorizer(Protocol):
+    async def authorize(
+        self,
+        *,
+        workspace_id: UUID,
+        effects: set[RestrictedRecoveryEffect],
+    ) -> None: ...
+
+
 def validate_production_execution_boundary_capabilities(
     *,
     job_types: JobTypeRegistry,
@@ -98,6 +108,7 @@ class ScopedJobExecutionBoundary:
 
     __slots__ = (
         "_actor_authorizer",
+        "_commercial_access_authorizer",
         "_entitlement_authorizer",
         "_project_resolver",
         "_workspace_resolver",
@@ -110,11 +121,13 @@ class ScopedJobExecutionBoundary:
         workspace_resolver: WorkspaceTargetResolver | None = None,
         actor_authorizer: ActorJobAuthorizer | None = None,
         entitlement_authorizer: JobEntitlementAuthorizer | None = None,
+        commercial_access_authorizer: CommercialAccessAuthorizer | None = None,
     ) -> None:
         self._project_resolver = project_resolver
         self._workspace_resolver = workspace_resolver
         self._actor_authorizer = actor_authorizer
         self._entitlement_authorizer = entitlement_authorizer
+        self._commercial_access_authorizer = commercial_access_authorizer
 
     async def resolve_for_reconciliation(
         self,
@@ -186,6 +199,7 @@ class ScopedJobExecutionBoundary:
             if resolver is None:
                 raise _contract_mismatch("Workspace Job execution requires a registered target resolver")
             await resolver.authorize_new_effect(workspace_id=workspace_id)
+            await self._authorize_commercial_access(definition=definition, workspace_id=workspace_id)
             await self._authorize_actor(
                 preparation=preparation,
                 definition=definition,
@@ -210,6 +224,7 @@ class ScopedJobExecutionBoundary:
             workspace_id=workspace_id,
             project_id=project_id,
         )
+        await self._authorize_commercial_access(definition=definition, workspace_id=workspace_id)
         await self._authorize_actor(
             preparation=preparation,
             definition=definition,
@@ -256,6 +271,20 @@ class ScopedJobExecutionBoundary:
             workspace_id=workspace_id,
             entitlement=entitlement,
         )
+
+    async def _authorize_commercial_access(
+        self,
+        *,
+        definition: JobTypeDefinition,
+        workspace_id: UUID,
+    ) -> None:
+        authorizer = self._commercial_access_authorizer
+        if authorizer is None:
+            return
+        effects = definition.commercial_effects
+        if effects is None:
+            raise _contract_mismatch("Tenant Job execution is missing commercial effect metadata")
+        await authorizer.authorize(workspace_id=workspace_id, effects=set(effects))
 
 
 def _require_supported_capabilities(

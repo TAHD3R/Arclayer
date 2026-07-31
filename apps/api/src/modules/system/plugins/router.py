@@ -6,14 +6,18 @@ from fastapi import APIRouter, Depends, File, Form, Header, Query, Request, Uplo
 
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
+from src.core.connectors import ConnectorKind
 from src.core.exceptions import BadRequest, Conflict, NotFound, ServiceUnavailable
 from src.core.extensions.manager import ExtensionManager
+from src.core.extensions.manifest import ProcessState
+from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import t
-from src.models.organization.user import User
 from src.models.system.plugin_installation import PluginOperationKind
-from src.modules.auth.http.service import require_super_admin
 from src.modules.jobs.service import BackgroundJobService
+from src.modules.platform_identity.http import require_platform_permission
+from src.modules.platform_identity.permissions import PlatformPermissionCode
+from src.modules.platform_identity.session_schema import PlatformSessionPrincipal
 from src.modules.system.plugins.artifact_service import PluginArtifactService
 from src.modules.system.plugins.catalog import (
     build_active_artifact_catalog_item,
@@ -31,6 +35,10 @@ from src.modules.system.plugins.remote_catalog import (
     RemotePluginCatalogClient,
 )
 from src.modules.system.plugins.schema import (
+    ExtensionConfigurationReadiness,
+    ExtensionConfigurationTarget,
+    ExtensionConnectionListOut,
+    ExtensionConnectionOut,
     SystemConnectorDefinitionOut,
     SystemPluginAdminOut,
     SystemPluginArtifactReviewOut,
@@ -54,11 +62,16 @@ IdempotencyKey = Annotated[
 
 router = APIRouter(
     tags=["internal.system.plugins"],
-    dependencies=[Depends(require_super_admin)],
 )
+
+_CONFIGURATION_TARGET_BY_CONNECTOR_KIND: dict[ConnectorKind, ExtensionConfigurationTarget] = {
+    ConnectorKind.BILLING: ExtensionConfigurationTarget.COMMERCE_SUBSCRIPTIONS,
+    ConnectorKind.OAUTH: ExtensionConfigurationTarget.ACCESS_SIGN_IN,
+    ConnectorKind.ANALYTICS: ExtensionConfigurationTarget.MONITORING_PERFORMANCE,
+    ConnectorKind.EMAIL: ExtensionConfigurationTarget.COMMUNICATIONS_EMAIL,
+}
 operations_router = APIRouter(
     tags=["internal.system.plugins"],
-    dependencies=[Depends(require_super_admin)],
 )
 
 
@@ -85,6 +98,19 @@ def get_plugin_lifecycle_service(
         jobs=BackgroundJobService(settings),
         settings=settings,
     )
+
+
+@operations_router.get(
+    "",
+    response_model=ResponseModel[PageData[SystemPluginOperationOut]],
+    summary="List durable extension lifecycle operations",
+    dependencies=[require_platform_permission(PlatformPermissionCode.EXTENSIONS_CATALOG_READ)],
+)
+async def list_system_plugin_operations(
+    params: Annotated[PageParams, Depends(get_page_params)],
+    service: Annotated[PluginLifecycleService, Depends(get_plugin_lifecycle_service)],
+) -> ResponseModel[PageData[SystemPluginOperationOut]]:
+    return ApiResponse.success(data=await service.list_operations(params=params))
 
 
 def get_plugin_configuration_service(
@@ -114,6 +140,7 @@ def get_remote_plugin_catalog_client(
     "",
     response_model=ResponseModel[SystemPluginListOut],
     summary="List installed system plugins",
+    dependencies=[require_platform_permission(PlatformPermissionCode.EXTENSIONS_CATALOG_READ)],
 )
 async def list_system_plugins(
     manager: ExtensionManager = Depends(get_extension_manager),
@@ -146,9 +173,43 @@ async def list_system_plugins(
 
 
 @router.get(
+    "/connections",
+    operation_id="platform_list_extension_connections",
+    response_model=ResponseModel[ExtensionConnectionListOut],
+    summary="List installed extension connections and their owning Platform domains",
+    dependencies=[require_platform_permission(PlatformPermissionCode.EXTENSIONS_CATALOG_READ)],
+)
+async def list_extension_connections(
+    manager: ExtensionManager = Depends(get_extension_manager),
+) -> ResponseModel[ExtensionConnectionListOut]:
+    items: list[ExtensionConnectionOut] = []
+    for instance in manager.list_instances():
+        for connector_key in instance.manifest.provides.connectors:
+            registration = manager.registry.connectors.resolve(connector_key)
+            if registration is None or registration.extension != instance.name:
+                continue
+            definition = registration.definition
+            items.append(
+                ExtensionConnectionOut(
+                    extension_name=instance.manifest.name,
+                    extension_version=instance.manifest.version,
+                    connector_key=definition.key,
+                    connector_kind=definition.kind,
+                    trust_level=definition.trust_level,
+                    runtime_ready=instance.process.state == ProcessState.READY,
+                    configuration_readiness=ExtensionConfigurationReadiness.UNKNOWN,
+                    configuration_target=_CONFIGURATION_TARGET_BY_CONNECTOR_KIND[definition.kind],
+                )
+            )
+    items.sort(key=lambda item: (item.connector_kind, item.extension_name, item.connector_key))
+    return ApiResponse.success(data=ExtensionConnectionListOut(items=items))
+
+
+@router.get(
     "/catalog",
     response_model=ResponseModel[SystemPluginCatalogListOut],
     summary="Search the verified bundled plugin catalog",
+    dependencies=[require_platform_permission(PlatformPermissionCode.EXTENSIONS_CATALOG_READ)],
 )
 async def list_system_plugin_catalog(
     manager: Annotated[ExtensionManager, Depends(get_extension_manager)],
@@ -195,7 +256,7 @@ async def list_system_plugin_catalog(
     summary="Upload and review a signed plugin package",
 )
 async def review_manual_plugin_artifact(
-    actor: Annotated[User, Depends(require_super_admin)],
+    actor: Annotated[PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.EXTENSIONS_INSTALL)],
     settings: Annotated[Settings, Depends(get_settings)],
     service: Annotated[PluginArtifactService, Depends(get_plugin_artifact_service)],
     package: Annotated[UploadFile, File()],
@@ -205,7 +266,7 @@ async def review_manual_plugin_artifact(
     if not filename.lower().endswith(".zip"):
         raise BadRequest(
             error="PLUGIN_PACKAGE_FORMAT_UNSUPPORTED",
-            message="Manual plugin packages must use the supported ZIP format",
+            message=t("errors", "PLUGIN_PACKAGE_FORMAT_UNSUPPORTED"),
         )
     try:
         archive = await package.read(settings.plugin_distribution.max_package_bytes + 1)
@@ -215,7 +276,7 @@ async def review_manual_plugin_artifact(
         data=await service.review_manual_upload(
             archive=archive,
             detached_signature=detached_signature,
-            actor_user_id=actor.id,
+            actor_user_id=actor.actor_id,
         )
     )
 
@@ -224,6 +285,7 @@ async def review_manual_plugin_artifact(
     "/artifacts/{artifact_id}",
     response_model=ResponseModel[SystemPluginArtifactReviewOut],
     summary="Get a reviewed plugin artifact",
+    dependencies=[require_platform_permission(PlatformPermissionCode.EXTENSIONS_CATALOG_READ)],
 )
 async def get_plugin_artifact_review(
     artifact_id: PublicUUID,
@@ -241,7 +303,7 @@ async def get_plugin_artifact_review(
 async def install_system_plugin(
     payload: SystemPluginInstallationCreateRequest,
     idempotency_key: IdempotencyKey,
-    actor: Annotated[User, Depends(require_super_admin)],
+    actor: Annotated[PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.EXTENSIONS_INSTALL)],
     manager: Annotated[ExtensionManager, Depends(get_extension_manager)],
     settings: Annotated[Settings, Depends(get_settings)],
     repository: Annotated[PluginLifecycleRepository, Depends(get_plugin_lifecycle_repository)],
@@ -272,7 +334,7 @@ async def install_system_plugin(
         artifact = await artifact_service.ensure_catalog_artifact(
             item=remote,
             catalog=catalog,
-            actor_user_id=actor.id,
+            actor_user_id=actor.actor_id,
         )
         item = build_artifact_catalog_item(artifact, manager=manager, settings=settings, installation=None)
     else:
@@ -298,7 +360,7 @@ async def install_system_plugin(
                 approved_permissions=payload.approved_permissions,
             ),
             idempotency_key=idempotency_key,
-            actor_user_id=actor.id,
+            actor_user_id=actor.actor_id,
         )
     )
 
@@ -307,6 +369,7 @@ async def install_system_plugin(
     "/{operation_id}",
     response_model=ResponseModel[SystemPluginOperationOut],
     summary="Get a durable system plugin operation",
+    dependencies=[require_platform_permission(PlatformPermissionCode.EXTENSIONS_CATALOG_READ)],
 )
 async def get_system_plugin_operation(
     operation_id: PublicUUID,
@@ -319,6 +382,7 @@ async def get_system_plugin_operation(
     "/{plugin_id}",
     response_model=ResponseModel[SystemPluginDetailOut],
     summary="Get verified plugin catalog and runtime detail",
+    dependencies=[require_platform_permission(PlatformPermissionCode.EXTENSIONS_CATALOG_READ)],
 )
 async def get_system_plugin_detail(
     plugin_id: str,
@@ -351,7 +415,9 @@ async def get_system_plugin_detail(
 )
 async def get_system_plugin_configuration(
     plugin_id: str,
-    actor: Annotated[User, Depends(require_super_admin)],
+    actor: Annotated[
+        PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.EXTENSIONS_CATALOG_READ)
+    ],
     manager: Annotated[ExtensionManager, Depends(get_extension_manager)],
     settings: Annotated[Settings, Depends(get_settings)],
     repository: Annotated[PluginLifecycleRepository, Depends(get_plugin_lifecycle_repository)],
@@ -363,7 +429,7 @@ async def get_system_plugin_configuration(
         settings=settings,
         repository=repository,
     )
-    return ApiResponse.success(data=await service.get_configuration(item=item, actor_user_id=actor.id))
+    return ApiResponse.success(data=await service.get_configuration(item=item, actor_user_id=actor.actor_id))
 
 
 @router.patch(
@@ -374,7 +440,9 @@ async def get_system_plugin_configuration(
 async def update_system_plugin_configuration(
     plugin_id: str,
     payload: SystemPluginConfigurationPatch,
-    actor: Annotated[User, Depends(require_super_admin)],
+    actor: Annotated[
+        PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.EXTENSIONS_CONFIGURE)
+    ],
     manager: Annotated[ExtensionManager, Depends(get_extension_manager)],
     settings: Annotated[Settings, Depends(get_settings)],
     repository: Annotated[PluginLifecycleRepository, Depends(get_plugin_lifecycle_repository)],
@@ -390,7 +458,7 @@ async def update_system_plugin_configuration(
         data=await service.update_configuration(
             item=item,
             payload=payload,
-            actor_user_id=actor.id,
+            actor_user_id=actor.actor_id,
         )
     )
 
@@ -405,7 +473,7 @@ async def upgrade_system_plugin(
     plugin_id: str,
     payload: SystemPluginLifecycleRequest,
     idempotency_key: IdempotencyKey,
-    actor: Annotated[User, Depends(require_super_admin)],
+    actor: Annotated[PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.EXTENSIONS_INSTALL)],
     manager: Annotated[ExtensionManager, Depends(get_extension_manager)],
     settings: Annotated[Settings, Depends(get_settings)],
     repository: Annotated[PluginLifecycleRepository, Depends(get_plugin_lifecycle_repository)],
@@ -438,7 +506,7 @@ async def rollback_system_plugin(
     plugin_id: str,
     payload: SystemPluginLifecycleRequest,
     idempotency_key: IdempotencyKey,
-    actor: Annotated[User, Depends(require_super_admin)],
+    actor: Annotated[PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.EXTENSIONS_INSTALL)],
     manager: Annotated[ExtensionManager, Depends(get_extension_manager)],
     settings: Annotated[Settings, Depends(get_settings)],
     repository: Annotated[PluginLifecycleRepository, Depends(get_plugin_lifecycle_repository)],
@@ -471,7 +539,7 @@ async def enable_system_plugin(
     plugin_id: str,
     payload: SystemPluginLifecycleRequest,
     idempotency_key: IdempotencyKey,
-    actor: Annotated[User, Depends(require_super_admin)],
+    actor: Annotated[PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.EXTENSIONS_INSTALL)],
     manager: Annotated[ExtensionManager, Depends(get_extension_manager)],
     settings: Annotated[Settings, Depends(get_settings)],
     repository: Annotated[PluginLifecycleRepository, Depends(get_plugin_lifecycle_repository)],
@@ -504,7 +572,7 @@ async def disable_system_plugin(
     plugin_id: str,
     payload: SystemPluginLifecycleRequest,
     idempotency_key: IdempotencyKey,
-    actor: Annotated[User, Depends(require_super_admin)],
+    actor: Annotated[PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.EXTENSIONS_INSTALL)],
     manager: Annotated[ExtensionManager, Depends(get_extension_manager)],
     settings: Annotated[Settings, Depends(get_settings)],
     repository: Annotated[PluginLifecycleRepository, Depends(get_plugin_lifecycle_repository)],
@@ -537,7 +605,7 @@ async def uninstall_system_plugin(
     plugin_id: str,
     payload: SystemPluginLifecycleRequest,
     idempotency_key: IdempotencyKey,
-    actor: Annotated[User, Depends(require_super_admin)],
+    actor: Annotated[PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.EXTENSIONS_INSTALL)],
     manager: Annotated[ExtensionManager, Depends(get_extension_manager)],
     settings: Annotated[Settings, Depends(get_settings)],
     repository: Annotated[PluginLifecycleRepository, Depends(get_plugin_lifecycle_repository)],
@@ -566,7 +634,7 @@ async def _start_plugin_operation(
     kind: PluginOperationKind,
     payload: SystemPluginLifecycleRequest,
     idempotency_key: str,
-    actor: User,
+    actor: PlatformSessionPrincipal,
     manager: ExtensionManager,
     settings: Settings,
     repository: PluginLifecycleRepository,
@@ -591,7 +659,7 @@ async def _start_plugin_operation(
         artifact = await artifact_service.ensure_catalog_artifact(
             item=remote,
             catalog=catalog,
-            actor_user_id=actor.id,
+            actor_user_id=actor.actor_id,
         )
         item = build_artifact_catalog_item(
             artifact,
@@ -626,7 +694,7 @@ async def _start_plugin_operation(
         kind=kind,
         payload=payload,
         idempotency_key=idempotency_key,
-        actor_user_id=actor.id,
+        actor_user_id=actor.actor_id,
     )
     return ApiResponse.success(data=operation)
 

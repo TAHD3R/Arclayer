@@ -25,3 +25,7 @@ class AuthzSnapshot(BaseSchema):
         description="Condition sets attached to effective permission grants.",
     )
     is_superuser: bool = Field(default=False, description="Whether user is a superuser.")
+    is_workspace_owner: bool = Field(
+        default=False,
+        description="Whether the user is the canonical Workspace Owner.",
+    )

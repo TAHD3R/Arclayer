@@ -20,12 +20,14 @@ describe("api/workspace governance contracts", () => {
   it("accepts the workspace authz snapshot shape", () => {
     const snapshot: AuthzSnapshot = {
       userId: "user-1",
-      roleCodes: ["owner"],
+      roleCodes: [],
       permissionCodes: ["system:content:manage"],
       isSuperuser: true,
+      isWorkspaceOwner: true,
     };
 
-    expect(snapshot.roleCodes).toEqual(["owner"]);
+    expect(snapshot.roleCodes).toEqual([]);
+    expect(snapshot.isWorkspaceOwner).toBe(true);
     expect(snapshot.isSuperuser).toBe(true);
   });
 
@@ -96,9 +98,10 @@ describe("api/workspace governance contracts", () => {
     vi.mocked(api.get)
       .mockResolvedValueOnce({
         userId: "user-1",
-        roleCodes: ["owner"],
+        roleCodes: [],
         permissionCodes: ["system:content:manage"],
         isSuperuser: true,
+        isWorkspaceOwner: true,
       })
       .mockResolvedValueOnce({
         items: [],

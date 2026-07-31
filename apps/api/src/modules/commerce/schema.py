@@ -2,115 +2,90 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from enum import StrEnum
-from typing import Annotated, Self
+from typing import Annotated
+from uuid import UUID
 
-from pydantic import Field, StringConstraints, field_validator, model_validator
+from pydantic import Field
 
 from src.common.schemas import BaseOut, BaseSchema, TimestampMixin
-from src.common.types.json_types import JsonObject
 from src.common.types.public_uuid import PublicUUID
 from src.models.commerce.billing import (
     BillingCycle,
-    CommercePlanTier,
+    BillingProviderMode,
     CreditLedgerEntryType,
     CreditRefreshInterval,
+    EntitlementAllocationMode,
+    ResourceLimitKind,
     SubscriptionStatus,
 )
-from src.modules.commerce.entitlement_schema import DEFAULT_ENTITLEMENT_REGISTRY
 
-PlanCode = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_-]{1,47}$")]
-
-
-class PlanFeature(BaseSchema):
-    key: str = Field(min_length=1, max_length=64)
-    label: str = Field(min_length=1, max_length=120)
-    description: str | None = Field(default=None, max_length=300)
-    included: bool = True
-    value: str | int | None = None
+PlanCode = Annotated[str, Field(min_length=2, max_length=48, pattern=r"^[a-z][a-z0-9-]*$")]
 
 
-class CommercePlanUpsertRequest(BaseSchema):
-    tier: CommercePlanTier
-    name: str = Field(min_length=1, max_length=96)
-    description: str = Field(min_length=1, max_length=512)
-    credit_grant_amount: int = Field(ge=0)
-    credit_refresh_interval: CreditRefreshInterval
-    credit_value_micros: int = Field(gt=0)
-    price_monthly_micros: int = Field(ge=0)
-    price_yearly_micros: int = Field(ge=0)
-    currency: str = Field(min_length=3, max_length=3)
-    features: list[PlanFeature] = Field(default_factory=list, max_length=100)
-    is_active: bool = True
-    is_default: bool = False
-    sort_order: int = Field(default=100, ge=0, le=100_000)
+class PlanRevisionPriceOut(BaseSchema):
+    """One immutable provider price on a published Plan Revision."""
 
-    @field_validator("currency")
-    @classmethod
-    def normalize_currency(cls, value: str) -> str:
-        normalized = value.upper()
-        if not normalized.isalpha():
-            raise ValueError("currency must be a three-letter ISO code")
-        return normalized
-
-    @field_validator("price_monthly_micros", "price_yearly_micros")
-    @classmethod
-    def validate_provider_price_precision(cls, value: int) -> int:
-        if value % 10_000:
-            raise ValueError("plan prices must be representable in whole currency cents")
-        return value
-
-    @model_validator(mode="after")
-    def validate_entitlement_features(self) -> Self:
-        feature_keys = [feature.key for feature in self.features]
-        if len(feature_keys) != len(set(feature_keys)):
-            raise ValueError("plan features must use unique keys")
-        required_keys = {definition.key for definition in DEFAULT_ENTITLEMENT_REGISTRY.list_definitions()}
-        missing_keys = sorted(required_keys.difference(feature_keys))
-        if missing_keys:
-            missing = ", ".join(missing_keys)
-            raise ValueError(f"plan features must explicitly declare registered entitlements: {missing}")
-        return self
+    provider: str
+    provider_mode: BillingProviderMode
+    billing_cycle: BillingCycle
+    currency: str
+    amount_micros: int
 
 
-class CommercePlanOut(BaseOut, TimestampMixin):
-    code: str
-    tier: CommercePlanTier
-    name: str
-    description: str
+class PlanRevisionResourceAllowanceOut(BaseSchema):
+    """One typed resource allowance declared by a Plan Revision."""
+
+    key: str
+    limit_kind: ResourceLimitKind
+    limit_value: int | None
+
+
+class PlanRevisionEntitlementOut(BaseSchema):
+    """One explicit registered Entitlement decision on a Plan Revision."""
+
+    key: str
+    is_included: bool
+    allocation_mode: EntitlementAllocationMode | None
+    seat_limit_kind: ResourceLimitKind | None
+    seat_limit_value: int | None
+
+
+class CommercePlanRevisionOut(BaseOut, TimestampMixin):
+    plan_id: PublicUUID
+    plan_code: str
+    sequence: int
+    name_i18n_key: str
+    description_i18n_key: str
     credit_grant_amount: int
     credit_refresh_interval: CreditRefreshInterval
     credit_value_micros: int
-    price_monthly_micros: int
-    price_yearly_micros: int
     currency: str
-    features: list[PlanFeature]
-    is_active: bool
-    is_default: bool
-    sort_order: int
+    prices: tuple[PlanRevisionPriceOut, ...]
+    resource_allowances: tuple[PlanRevisionResourceAllowanceOut, ...]
+    entitlements: tuple[PlanRevisionEntitlementOut, ...]
+    is_selling: bool
 
 
-class CommercePlanCatalogOut(BaseSchema):
-    billing_mode: str = "external_checkout"
-    billing_provider: str
-    checkout_enabled: bool
-    items: list[CommercePlanOut]
-
-
-class WorkspacePlanOptionOut(CommercePlanOut):
+class WorkspacePlanOptionOut(CommercePlanRevisionOut):
     is_current: bool
     can_select: bool
 
 
+class CommercePlanCatalogOut(BaseSchema):
+    items: list[CommercePlanRevisionOut]
+
+
 class WorkspacePlanCatalogOut(BaseSchema):
-    billing_mode: str = "external_checkout"
     billing_provider: str
     checkout_enabled: bool
     items: list[WorkspacePlanOptionOut]
 
 
 class WorkspaceSubscriptionOut(BaseOut, TimestampMixin):
+    plan_revision_id: PublicUUID
+    subscription_revision: int
     status: SubscriptionStatus
-    billing_interval: BillingCycle
+    billing_cycle: BillingCycle
     current_period_start: datetime
     current_period_end: datetime
     cancel_at_period_end: bool
@@ -120,10 +95,6 @@ class WorkspaceCreditsOut(BaseSchema):
     balance: int
     reserved: int
     available: int
-    lifetime_granted: int
-    lifetime_spent: int
-    period_granted: int
-    period_spent: int
     period_start: datetime
     period_end: datetime
     next_refresh_at: datetime | None
@@ -167,24 +138,20 @@ class WorkspaceCommerceDirectoryOut(BaseSchema):
     captured_at: datetime | None = None
     billing_provider: str | None = None
     plan_code: str | None = None
-    plan_name: str | None = None
-    plan_tier: CommercePlanTier | None = None
+    plan_revision_id: PublicUUID | None = None
+    plan_name_i18n_key: str | None = None
     credit_refresh_interval: CreditRefreshInterval | None = None
     subscription_status: SubscriptionStatus | None = None
-    billing_interval: BillingCycle | None = None
+    billing_cycle: BillingCycle | None = None
     current_period_start: datetime | None = None
     current_period_end: datetime | None = None
-    renewal_at: datetime | None = None
     cancel_at_period_end: bool | None = None
     credits: WorkspaceCreditsOut | None = None
     usage: WorkspaceCommerceDirectoryUsageOut | None = None
 
 
 class WorkspaceCommerceOverviewOut(BaseSchema):
-    billing_mode: str = "external_checkout"
-    billing_provider: str
-    checkout_enabled: bool
-    plan: CommercePlanOut
+    plan_revision: CommercePlanRevisionOut
     subscription: WorkspaceSubscriptionOut
     credits: WorkspaceCreditsOut
     usage: WorkspaceCommerceUsageOut
@@ -199,38 +166,39 @@ class BillingRedirectOut(BaseSchema):
     url: str
 
 
-class WorkspaceSubscriptionSetRequest(BaseSchema):
-    plan_code: PlanCode
-    status: SubscriptionStatus = SubscriptionStatus.ACTIVE
-    billing_interval: BillingCycle = BillingCycle.MONTHLY
-    current_period_start: datetime | None = None
-    current_period_end: datetime | None = None
-    cancel_at_period_end: bool = False
-
-    @model_validator(mode="after")
-    def validate_period(self):
-        if self.current_period_start and self.current_period_end:
-            if self.current_period_end <= self.current_period_start:
-                raise ValueError("currentPeriodEnd must be after currentPeriodStart")
-        return self
-
-
 class CreditLedgerOut(BaseOut, TimestampMixin):
     workspace_id: PublicUUID
     account_id: PublicUUID
+    subscription_id: PublicUUID
+    plan_revision_id: PublicUUID
     entry_type: CreditLedgerEntryType
+    request_id: PublicUUID | None
+    provider_period_identity: str | None
+    estimated_cost_micros: int | None
+    actual_cost_micros: int | None
+    applied_credit_value_micros: int
+    reserved_credits: int
+    committed_credits: int
     delta_balance_credits: int
     delta_reserved_credits: int
     balance_after_credits: int
     reserved_after_credits: int
-    reference_type: str
-    reference_id: PublicUUID | None
     actor_user_id: PublicUUID | None
     description_key: str
-    description: str
-    details: JsonObject
 
 
 class CommerceUsagePeriod(BaseSchema):
     start_date: date
     end_date: date
+
+
+class CommercePlanIdentityOut(BaseOut, TimestampMixin):
+    code: str
+    is_active: bool
+    sort_order: int
+
+
+class CommercePlanRevisionReference(BaseSchema):
+    id: UUID
+    code: str
+    sequence: int

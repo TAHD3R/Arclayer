@@ -50,6 +50,7 @@ async def test_project_content_models_list_maps_legacy_types_to_model_contracts(
             organization_id=org.id,
             name="Workspace",
             is_active=True,
+            owner_user_id=owner.id,
             created_by_user_id=owner.id,
         )
         ws_pid = encode_uuid(ws.id)
@@ -161,6 +162,7 @@ async def test_project_content_models_create_custom_model_with_dual_identifiers(
             organization_id=org.id,
             name="Workspace",
             is_active=True,
+            owner_user_id=owner.id,
             created_by_user_id=owner.id,
         )
         ws_pid = encode_uuid(ws.id)

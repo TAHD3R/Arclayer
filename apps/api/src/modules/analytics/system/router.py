@@ -8,25 +8,22 @@ from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.analytics.schema import AuditEventListQuery, AuditEventOut
 from src.modules.analytics.service import ActivityService
-from src.modules.auth.http.service import get_current_user, require_super_admin
+from src.modules.platform_identity.http import require_platform_permission
+from src.modules.platform_identity.permissions import PlatformPermissionCode
 
-router = APIRouter(
-    tags=["domain.analytics"],
-    dependencies=[Depends(require_super_admin)],
-)
+router = APIRouter(tags=["domain.analytics"])
 
 
 @router.get(
     "",
     response_model=ResponseModel[PageData[AuditEventOut]],
     summary="List activity events (system-scoped)",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MONITORING_AUDIT_READ)],
 )
 async def list_activity(
     query: AuditEventListQuery = Depends(),
     params: PageParams = Depends(get_page_params),
     settings: Settings = Depends(get_settings),
-    _super_admin=Depends(require_super_admin),
-    _user=Depends(get_current_user),
 ) -> ResponseModel[PageData[AuditEventOut]]:
     """List activity events (system-scoped)."""
     service = ActivityService(settings)
@@ -38,12 +35,11 @@ async def list_activity(
     "/{event_id}",
     response_model=ResponseModel[AuditEventOut],
     summary="Get activity event detail (system-scoped)",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MONITORING_AUDIT_READ)],
 )
 async def get_activity_detail(
     event_id: PublicUUID,
     settings: Settings = Depends(get_settings),
-    _super_admin=Depends(require_super_admin),
-    _user=Depends(get_current_user),
 ) -> ResponseModel[AuditEventOut]:
     """Get activity event detail (system-scoped)."""
     service = ActivityService(settings)

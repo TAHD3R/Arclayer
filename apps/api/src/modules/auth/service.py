@@ -963,7 +963,6 @@ class AuthService(BaseService):
         password: str,
         email: str | None = None,
         display_name: str | None = None,
-        is_super_admin: bool = False,
     ) -> UserLike:
         username = username.strip()
         email = email.strip() if email else None
@@ -981,7 +980,6 @@ class AuthService(BaseService):
             email=email,
             display_name=display_name,
             password_hash=password_hash,
-            is_super_admin=is_super_admin,
             email_verified_at=datetime.now(UTC) if email else None,
         )
         user_id = UUID(str(user.id))
@@ -1433,7 +1431,6 @@ class AuthService(BaseService):
             display_name=cast(str | None, user.display_name),
             avatar_url=avatar_url,
             avatar_asset_id=avatar_asset_uuid,
-            is_super_admin=bool(getattr(user, "is_super_admin", False)),
         )
 
     async def update_my_profile(self, *, user: User, payload: UpdateMyProfileRequest) -> UserProfile:

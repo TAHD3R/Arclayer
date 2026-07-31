@@ -10,7 +10,6 @@ from tortoise.expressions import Q
 from src.common.utils.slug import slugify
 from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
-from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.user import User
 from src.models.projects._enums import ProjectAuthoringMode, ProjectAuthoringState
 from src.models.projects.membership import ProjectMemberRole, ProjectMembership
@@ -91,7 +90,7 @@ class ProjectRepository(TortoiseORMRepository):
         return await qs.order_by(*_normalize_project_ordering(ordering)).all()
 
     async def list_visible_workspace_ids(self, *, user_id: UUID) -> list[UUID]:
-        membership_workspace_ids = [
+        return [
             UUID(str(value))
             for value in await WorkspaceMembership.filter(
                 user_id=user_id,
@@ -101,31 +100,6 @@ class ProjectRepository(TortoiseORMRepository):
             ).values_list("workspace_id", flat=True)
             if value is not None
         ]
-
-        org_memberships = await OrgMembership.filter(user_id=user_id, status="active").all()
-        owner_org_ids = [
-            UUID(str(membership.organization_id)) for membership in org_memberships if membership.role == OrgRole.OWNER
-        ]
-        owner_workspace_ids: list[UUID] = []
-        if owner_org_ids:
-            owner_workspace_ids = [
-                UUID(str(value))
-                for value in await Workspace.filter(
-                    organization_id__in=owner_org_ids,
-                    is_active=True,
-                    deleted_at__isnull=True,
-                ).values_list("id", flat=True)
-                if value is not None
-            ]
-
-        seen: set[UUID] = set()
-        ordered_ids: list[UUID] = []
-        for workspace_id in [*membership_workspace_ids, *owner_workspace_ids]:
-            if workspace_id in seen:
-                continue
-            seen.add(workspace_id)
-            ordered_ids.append(workspace_id)
-        return ordered_ids
 
     async def list_accessible_project_ids(self, *, workspace_id: UUID, user_id: UUID) -> list[UUID]:
         project_ids = await ProjectMembership.filter(
@@ -298,15 +272,8 @@ class ProjectRepository(TortoiseORMRepository):
             if value is not None
         }
 
-        owner_query = OrgMembership.filter(
-            organization_id=workspace.organization_id,
-            status="active",
-            role=OrgRole.OWNER,
-        )
-        if conn is not None:
-            owner_query = owner_query.using_db(conn)
-        owner_user_ids = {UUID(str(value)) for value in await owner_query.values_list("user_id", flat=True) if value}
-        member_user_ids = workspace_user_ids | owner_user_ids | {actor_user_id}
+        owner_user_id = UUID(str(workspace.owner_user_id))
+        member_user_ids = workspace_user_ids | {owner_user_id}
         if not member_user_ids:
             return
 
@@ -314,7 +281,7 @@ class ProjectRepository(TortoiseORMRepository):
             ProjectMembership(
                 project_id=project_id,
                 user_id=user_id,
-                role=ProjectMemberRole.OWNER if user_id in owner_user_ids else ProjectMemberRole.VIEWER,
+                role=ProjectMemberRole.OWNER if user_id == owner_user_id else ProjectMemberRole.VIEWER,
                 created_by_user_id=actor_user_id,
             )
             for user_id in sorted(member_user_ids)

@@ -120,6 +120,7 @@ async def test_http_metric_event_validates_and_persists_captured_context() -> No
         await persist_http_request_metric_event(event)
 
     persist.assert_awaited_once()
+    assert persist.await_args is not None
     captured = persist.await_args.args[0]
     assert captured.actor_user_id == UUID(event.actor_user_id)
     assert captured.workspace_id == workspace_id

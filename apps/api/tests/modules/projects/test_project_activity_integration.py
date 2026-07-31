@@ -1,11 +1,23 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
 
 from src.config import get_settings
 from src.models.analytics.audit_event import AuditEvent
+from src.models.commerce.billing import (
+    BillingCycle,
+    CommercePlan,
+    CommercePlanRevision,
+    CommercePlanRevisionResourceAllowance,
+    CommerceResourceDefinition,
+    PlanRevisionStatus,
+    ResourceLimitKind,
+    SubscriptionStatus,
+    WorkspaceSubscription,
+)
 from src.models.domains.domain_binding import DomainBindingRecord, DomainBindingSource
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.projects._enums import ProjectAuthoringMode, ProjectAuthoringState
@@ -19,16 +31,52 @@ from src.modules.auth.repository import UserRepository
 from src.modules.auth.tokens.service import hash_password
 from src.modules.organization.repository import OrganizationRepository
 from src.modules.projects import service as project_service_module
+from src.modules.projects.active_project_allowance import ACTIVE_PROJECT_RESOURCE_KEY
 from src.modules.projects.schema import ProjectCreateRequest, ProjectUpdateRequest
-from src.modules.projects.service import ProjectService
+from src.modules.projects.service import build_project_service
 
 pytestmark = pytest.mark.integration
+
+
+async def _bind_unlimited_active_project_allowance(*, workspace_id) -> None:
+    now = datetime.now(UTC)
+    plan = await CommercePlan.create(code=f"project-activity-{uuid4().hex[:24]}", is_active=True)
+    revision = await CommercePlanRevision.create(
+        plan_id=plan.id,
+        sequence=1,
+        status=PlanRevisionStatus.PUBLISHED,
+        name_i18n_key="PLAN_TEST_NAME",
+        description_i18n_key="PLAN_TEST_DESCRIPTION",
+        credit_grant_amount=0,
+        credit_refresh_interval="none",
+        credit_value_micros=1,
+        currency="USD",
+        content_hash=uuid4().hex,
+        published_at=now,
+        is_selling=True,
+    )
+    resource = await CommerceResourceDefinition.create(key=ACTIVE_PROJECT_RESOURCE_KEY, is_active=True)
+    await CommercePlanRevisionResourceAllowance.create(
+        plan_revision_id=revision.id,
+        resource_id=resource.id,
+        limit_kind=ResourceLimitKind.UNLIMITED,
+        limit_value=None,
+    )
+    await WorkspaceSubscription.create(
+        workspace_id=workspace_id,
+        plan_revision_id=revision.id,
+        status=SubscriptionStatus.ACTIVE,
+        billing_cycle=BillingCycle.MONTHLY,
+        current_period_start=now,
+        current_period_end=now + timedelta(days=31),
+        billing_provider="test",
+    )
 
 
 async def test_project_create_activity_readback_and_rollback(db_schema, monkeypatch) -> None:
     _ = db_schema
     settings = get_settings()
-    service = ProjectService(settings)
+    service = build_project_service(settings)
     org_repo = OrganizationRepository()
     user_repo = UserRepository()
 
@@ -50,8 +98,10 @@ async def test_project_create_activity_readback_and_rollback(db_schema, monkeypa
         organization_id=org.id,
         name="Project Create Workspace",
         is_active=True,
+        owner_user_id=owner.id,
         created_by_user_id=owner.id,
     )
+    await _bind_unlimited_active_project_allowance(workspace_id=workspace.id)
 
     created_slug = f"created-{uuid4().hex[:8]}"
     created = await service.create_project(
@@ -158,7 +208,7 @@ async def test_project_create_activity_readback_and_rollback(db_schema, monkeypa
 async def test_project_metadata_archive_delete_activity_readback_and_rollback(db_schema, monkeypatch) -> None:
     _ = db_schema
     settings = get_settings()
-    service = ProjectService(settings)
+    service = build_project_service(settings)
     org_repo = OrganizationRepository()
     user_repo = UserRepository()
 
@@ -180,6 +230,7 @@ async def test_project_metadata_archive_delete_activity_readback_and_rollback(db
         organization_id=org.id,
         name="Project Workspace",
         is_active=True,
+        owner_user_id=owner.id,
         created_by_user_id=owner.id,
     )
     project = await ProjectRecord.create(

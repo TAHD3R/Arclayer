@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from math import ceil
 from uuid import UUID
 
 from asgi_correlation_id import correlation_id
@@ -7,6 +8,7 @@ from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.config import Settings
 from src.core.exceptions import Conflict, NotFound
+from src.core.http.pagination import PageData, PageParams
 from src.core.services import BaseService
 from src.models.jobs.background_job import JobAuthorityMode
 from src.models.system.plugin_installation import (
@@ -61,6 +63,19 @@ class PluginLifecycleService(BaseService):
         if operation is None:
             raise NotFound(error="PLUGIN_OPERATION_NOT_FOUND")
         return SystemPluginOperationOut.model_validate(operation)
+
+    async def list_operations(self, *, params: PageParams) -> PageData[SystemPluginOperationOut]:
+        total, rows = await self.repository.list_operations(offset=params.offset, limit=params.limit)
+        pages = ceil(total / params.size) if total else 0
+        return PageData(
+            items=[SystemPluginOperationOut.model_validate(row) for row in rows],
+            total=total,
+            page=params.page,
+            size=params.size,
+            pages=pages,
+            next=params.page + 1 if params.page < pages else None,
+            prev=min(params.page - 1, pages) if params.page > 1 and pages else None,
+        )
 
     async def start_operation(
         self,

@@ -189,52 +189,27 @@ export type ActivityEvent = Omit<Generated.AuditEventOut, "actor" | "subject"> &
   actor?: ActivityUserSummary | null;
   subject?: ActivityUserSummary | null;
 };
-export type ListActivityParams = QueryOf<Generated.InternalSystemListActivityData>;
+export type ListActivityParams = QueryOf<Generated.DomainWorkspacesListWorkspaceActivityData>;
 
 export type BillingCycle = Generated.BillingCycle;
 export type BillingRedirect = Generated.BillingRedirectOut;
-export type CommercePlanTier = Generated.CommercePlanTier;
+export type CheckoutSessionCreate = Generated.CheckoutSessionCreate;
+export type CommercialAccessMemberView = Generated.CommercialAccessMemberView;
+export type CommercialAccessRecoveryView = Generated.CommercialAccessRecoveryView;
+export type CommercialAccessState = Generated.CommercialAccessState;
+export type CommercePlanRevision = Generated.CommercePlanRevisionOut;
 export type CreditRefreshInterval = Generated.CreditRefreshInterval;
 export type SubscriptionStatus = Generated.SubscriptionStatus;
-export type PlanFeature = RequiredPresent<
-  Generated.PlanFeature,
-  "description" | "included" | "value"
->;
-export type CommercePlan = Omit<Generated.CommercePlanOut, "features"> & {
-  features: PlanFeature[];
-};
-export type CommercePlanUpsert = Omit<Required<Generated.CommercePlanUpsertRequest>, "features"> & {
-  features: PlanFeature[];
-};
-export type WorkspacePlanOption = Omit<Generated.WorkspacePlanOptionOut, "features"> & {
-  features: PlanFeature[];
-};
-export type WorkspacePlanCatalog = Omit<
-  Generated.WorkspacePlanCatalogOut,
-  "billingMode" | "items"
-> & {
-  billingMode: string;
-  items: WorkspacePlanOption[];
-};
-export type SystemPlanCatalog = Omit<Generated.CommercePlanCatalogOut, "billingMode" | "items"> & {
-  billingMode: string;
-  items: CommercePlan[];
-};
+export type WorkspacePlanOption = Generated.WorkspacePlanOptionOut;
+export type WorkspacePlanCatalog = Generated.WorkspacePlanCatalogOut;
 export type CreditLedgerEntryType = Generated.CreditLedgerEntryType;
 export type CreditLedgerEntry = Generated.CreditLedgerOut;
-export type WorkspaceCommerceOverview = Omit<
-  Generated.WorkspaceCommerceOverviewOut,
-  "billingMode" | "plan"
-> & {
-  billingMode: string;
-  plan: CommercePlan;
-};
+export type WorkspaceCommerceOverview = Generated.WorkspaceCommerceOverviewOut;
 
 export type FeedbackSource = Generated.FeedbackSource;
 export type FeedbackContextType = Generated.FeedbackContextType;
 export type FeedbackCategory = Generated.FeedbackCategory;
 export type FeedbackIntent = Generated.FeedbackIntent;
-export type FeedbackOrdering = Generated.FeedbackOrdering;
 export type FeedbackStatus = Generated.FeedbackStatus;
 export type FeedbackPriority = Generated.FeedbackPriority;
 export type FeedbackMessageKind = Generated.FeedbackMessageKind;
@@ -243,91 +218,8 @@ export type FeedbackListItem = Generated.FeedbackTicketListItemOut;
 export type FeedbackMessage = Generated.FeedbackMessageOut;
 export type FeedbackDetail = Generated.FeedbackTicketDetailOut;
 export type SubmitFeedbackPayload = Generated.FeedbackSubmitRequest;
-export type UpdateFeedbackPayload = Generated.FeedbackTicketUpdate;
-export type CreateFeedbackMessagePayload = Generated.FeedbackMessageCreate;
-
-export type ObservabilityPeriod = Generated.ObservabilityPeriodOut;
-export type ObservabilityTrendMetric = Generated.ObservabilityTrendMetric;
-export type ObservabilityTrendPoint = Generated.ObservabilityTrendPointOut;
-export type HTTPRequestGroup = Generated.HttpRequestGroupOut;
-export type AIUsageGroup = Generated.AiUsageGroupOut;
-export type SystemObservabilityTrend = Generated.ObservabilityTrendOut;
-export type SystemObservabilityOverview = Omit<Generated.ObservabilityOverviewOut, "resources"> & {
-  resources: {
-    activeWorkspaces: number;
-    activeProjects: number;
-    activeUsers: number;
-  };
-};
 
 export type SystemRuntime = Generated.SystemRuntimeOut;
-export type SystemInstanceSetupStatus = Generated.SystemInstanceSetupOut["status"];
-export type SystemBootstrapPayload = Omit<Generated.SystemBootstrapRequest, "displayName"> & {
-  displayName?: string;
-  display_name?: string;
-};
-
-export type SettingsDetail = Generated.SettingsDetail;
-export type SettingsFieldItem = Generated.SettingsFieldItem;
-export type SettingsOptionItem = Generated.SettingsOptionItem;
-export type SettingsSectionItem = Generated.SettingsSectionItem;
-export type SettingsSchemaItem = Generated.SettingsSchemaItem;
-export type SystemSettingsDetail = Generated.SettingsDetail;
-export type SysStepUpResult = {
-  token: string;
-  expiresIn: number;
-};
-export type SysConfigNamespaceSummary = {
-  namespace: string;
-  kind: "core" | string;
-  title: string;
-  description?: string | null;
-};
-export type SysConfigDetail = {
-  namespace: string;
-  settingSchema: SettingsSchemaItem;
-  value: Record<string, unknown>;
-  secrets: Record<string, boolean>;
-  activeRevisionId?: string | null;
-  revisionId?: string | null;
-  updatedAt?: string | null;
-};
-export type SysConfigPatchPayload = {
-  patch: Record<string, unknown>;
-  activate?: boolean;
-};
-export type SysConfigActivatePayload = {
-  revisionId: string;
-};
-export type SysConfigRevisionOut = {
-  id: string;
-  createdAt: string;
-  updatedAt: string;
-  namespace: string;
-  baseRevisionId?: string | null;
-  createdBy?: string | null;
-  signature?: string | null;
-  signingKeyFingerprint?: string | null;
-};
-export type SysConfigRevisionDetail = SysConfigRevisionOut & {
-  signatureVerified?: boolean | null;
-  signatureVerifyReason?: string | null;
-  value: Record<string, unknown>;
-  secrets: Record<string, boolean>;
-};
-export type SysConfigTestCheck = {
-  code: string;
-  ok: boolean;
-  kind: "config" | "connectivity" | "internal" | string;
-  message?: string | null;
-  details?: Record<string, unknown> | null;
-};
-export type SysConfigTestResult = {
-  ok: boolean;
-  checks: SysConfigTestCheck[];
-};
-export type ListSysConfigNamespacesOut = PageData<SysConfigNamespaceSummary>;
-export type ListSysConfigRevisionsOut = PageData<SysConfigRevisionOut>;
 
 export type MyWorkspace = Omit<
   Generated.MyWorkspaceOut,
@@ -347,6 +239,7 @@ export type MyWorkspaceListResult = Omit<
 export type AuthzSnapshot = Generated.AuthzSnapshot;
 export type ProjectAuthzSnapshot = Generated.ProjectAuthzSnapshot;
 export type WorkspaceDetail = Generated.WorkspaceDetailOut;
+export type WorkspaceSettingsDetail = Generated.WorkspaceSettingsDetail;
 export type WorkspaceRolePolicy = Generated.WorkspaceRolePolicyOut;
 export type WorkspaceAssignRoleResult = Generated.WorkspaceAssignRoleToMembersResult;
 export type OnboardingWorkspaceCreatePayload = Generated.OnboardingWorkspaceCreateRequest;
@@ -430,7 +323,6 @@ export type ProjectMember = Generated.ProjectMemberOut;
 export type ProjectMemberRole = Generated.ProjectMemberRole;
 
 export type OrgUserStatus = Generated.UserStatus;
-export type AccessRestrictionAdmin = Generated.AccessRestrictionAdminOut;
 export type WorkspaceManageListItem = Generated.WorkspaceManageListItemOut;
 export type WorkspaceManageCreateInput = Generated.WorkspaceManageCreateRequest;
 export type WorkspaceManageArchiveResult = Generated.WorkspaceManageArchiveResult;
@@ -453,133 +345,6 @@ export type WorkspacePermissionAction = Omit<
 export type RolePermissionGrant = Omit<Generated.RolePermissionGrantOut, "conditionSets"> & {
   conditionSets: Generated.PermissionConditionSetOutput[];
 };
-
-type DirectoryActorSummaryBase = Generated.DirectoryActorSummaryOut;
-export type DirectoryActorSummary = DirectoryActorSummaryBase & {
-  user_id?: string;
-  display_name?: string | null;
-  avatar_url?: string | null;
-};
-type DirectoryUserListItemBase = Generated.DirectoryUserListItemOut;
-type DirectoryUserDetailBase = Generated.DirectoryUserDetailOut;
-export type SystemDirectoryUser = DirectoryUserListItemBase & {
-  projectMembershipCount: number;
-  workspaceMembershipCount: number;
-  user_id?: string;
-  display_name?: string | null;
-  avatar_url?: string | null;
-  is_super_admin?: boolean;
-  has_password?: boolean;
-  two_factor_enabled?: boolean;
-  linked_oauth_providers?: string[];
-  last_login_at?: string | null;
-  created_at?: string;
-  workspace_membership_count?: number;
-  project_membership_count?: number;
-};
-export type SystemDirectoryUserWorkspaceMembership = {
-  workspaceId: string;
-  workspaceName: string;
-  status: "active" | "invited" | "disabled";
-  roleCodes: string[];
-  isOwner: boolean;
-  joinedAt: string;
-};
-export type SystemDirectoryUserProjectMembership = {
-  projectId: string;
-  projectName: string;
-  workspaceId: string;
-  workspaceName: string;
-  role: "owner" | "editor" | "viewer";
-  joinedAt: string;
-};
-export type SystemDirectoryUserAuditActivity = {
-  eventId: string;
-  eventName: string;
-  occurredAt: string;
-  source: string | null;
-  workspaceId: string | null;
-  projectId: string | null;
-};
-export type SystemDirectoryUserFeedbackActivity = {
-  feedbackId: string;
-  intent: "problem" | "idea" | "question" | "praise" | null;
-  status: string;
-  source: string;
-  message: string;
-  lastActivityAt: string;
-};
-export type SystemDirectoryUserRestrictionHistory = {
-  commandId: string;
-  restrictionType: string;
-  state: "active" | "lifted";
-  reasonCategory: string;
-  reasonCode: string;
-  operatorNote: string;
-  actorUserId: string | null;
-  changedAt: string;
-  revision: number;
-};
-export type SystemDirectoryWorkspace = Omit<
-  Generated.DirectoryWorkspaceListItemOut,
-  "isActive" | "isArchived" | "memberCount" | "projectCount"
-> & {
-  isActive: boolean;
-  isArchived: boolean;
-  memberCount: number;
-  projectCount: number;
-  workspace_id?: string;
-  icon_mode?: WorkspaceIconMode | null;
-  icon_color?: string | null;
-  icon_glyph?: string | null;
-  icon_emoji?: string | null;
-  icon_url?: string | null;
-  is_active?: boolean;
-  is_archived?: boolean;
-  created_at?: string;
-  member_count?: number;
-  project_count?: number;
-};
-export type SystemDirectoryProject = Omit<
-  Generated.DirectoryProjectListItemOut,
-  "isActive" | "memberCount"
-> & {
-  isActive: boolean;
-  memberCount: number;
-  project_id?: string;
-  workspace_id?: string;
-  workspace_name?: string;
-  icon_mode?: WorkspaceIconMode | null;
-  icon_color?: string | null;
-  icon_glyph?: string | null;
-  icon_emoji?: string | null;
-  icon_url?: string | null;
-  is_active?: boolean;
-  created_at?: string;
-  member_count?: number;
-};
-export type SystemDirectoryUserDetail = DirectoryUserDetailBase &
-  SystemDirectoryUser & {
-    updated_at?: string;
-    ownedWorkspaceCount: number;
-    ownedProjectCount: number;
-    workspaceMemberships: SystemDirectoryUserWorkspaceMembership[];
-    projectMemberships: SystemDirectoryUserProjectMembership[];
-    recentAuditActivity: SystemDirectoryUserAuditActivity[];
-    recentFeedbackActivity: SystemDirectoryUserFeedbackActivity[];
-    restrictionHistory: SystemDirectoryUserRestrictionHistory[];
-  };
-export type SystemDirectoryWorkspaceDetail = Generated.DirectoryWorkspaceDetailOut &
-  SystemDirectoryWorkspace & {
-    updated_at?: string;
-  };
-export type SystemDirectoryProjectDetail = Generated.DirectoryProjectDetailOut &
-  SystemDirectoryProject & {
-    updated_at?: string;
-  };
-export type SystemDirectoryUserPage = PageData<SystemDirectoryUser>;
-export type SystemDirectoryWorkspacePage = PageData<SystemDirectoryWorkspace>;
-export type SystemDirectoryProjectPage = PageData<SystemDirectoryProject>;
 
 export type AdminAssetSummary = Generated.AdminAssetSummaryOut;
 export type AdminAssetFolder = Generated.AdminAssetFolderOut;

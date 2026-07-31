@@ -57,6 +57,7 @@ async def test_organization_member_activity_readback_and_rollback(db_schema, mon
         organization_id=org.id,
         name="Default",
         is_active=True,
+        owner_user_id=owner.id,
         created_by_user_id=owner.id,
     )
     member_workspace_membership = await WorkspaceMembership.create(

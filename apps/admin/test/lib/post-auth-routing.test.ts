@@ -32,10 +32,8 @@ describe("post-auth-routing", () => {
     const workspace = {
       workspaceId: "w-a",
       projectId: "project-a",
-      slug: "a",
       name: "A",
-      visibleOnly: false,
-      isCreatorAdmin: true,
+      isOwner: true,
     };
 
     mocked.listMyWorkspaces.mockResolvedValue({
@@ -55,18 +53,14 @@ describe("post-auth-routing", () => {
     const firstWorkspace = {
       workspaceId: "w-a",
       projectId: "project-a",
-      slug: "alpha",
       name: "Alpha",
-      visibleOnly: false,
-      isCreatorAdmin: true,
+      isOwner: true,
     };
     const secondWorkspace = {
       workspaceId: "w-b",
       projectId: "project-b",
-      slug: "beta",
       name: "Beta",
-      visibleOnly: false,
-      isCreatorAdmin: true,
+      isOwner: true,
     };
 
     mocked.listMyWorkspaces.mockResolvedValue({
@@ -98,10 +92,8 @@ describe("post-auth-routing", () => {
     const workspace = {
       workspaceId: "w-a",
       projectId: "project-a",
-      slug: "a",
       name: "A",
-      visibleOnly: false,
-      isCreatorAdmin: true,
+      isOwner: true,
     };
 
     mocked.listMyWorkspaces.mockResolvedValue({

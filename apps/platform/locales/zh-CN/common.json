@@ -1,0 +1,16 @@
+{
+  "APP_NAME": "Arclayer 平台控制台",
+  "RETURN_TO_PRODUCT": "返回产品端",
+  "CHANGE_LANGUAGE": "切换语言",
+  "LANGUAGE_ZH_CN": "简体中文",
+  "LANGUAGE_EN_US": "English",
+  "THEME": "外观",
+  "THEME_LIGHT": "浅色",
+  "THEME_DARK": "深色",
+  "THEME_SYSTEM": "跟随系统",
+  "SIDEBAR_TOGGLE": "展开或收起导航",
+  "RETURN_TO_INBOX": "返回运营收件箱",
+  "TABS_SCROLL_LEFT": "向左滚动标签",
+  "TABS_SCROLL_RIGHT": "向右滚动标签",
+  "TRY_AGAIN": "重试"
+}

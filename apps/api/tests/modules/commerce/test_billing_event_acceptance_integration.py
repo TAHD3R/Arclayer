@@ -10,7 +10,7 @@ import pytest
 
 from src.config import Settings, get_settings
 from src.core.exceptions import BadRequest
-from src.models.commerce.billing import ConnectorEventInbox
+from src.models.connectors.inbox import ConnectorEventInbox
 from src.models.jobs.background_job import BackgroundJobRecord, JobDispatchOutboxRecord
 from src.modules.commerce.billing_connector import BillingConnector, BillingWebhookEnvelope
 from src.modules.commerce.billing_event_acceptance_service import BillingEventAcceptanceService

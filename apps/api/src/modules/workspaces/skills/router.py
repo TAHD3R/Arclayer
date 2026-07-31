@@ -10,9 +10,10 @@ from src.config import Settings, get_settings
 from src.core.http.response import ApiResponse, ResponseModel
 from src.models.skills._enums import SkillInstallationStatus, SkillPackageStatus
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.jobs.service import BackgroundJobService
 from src.modules.tenancy.context import require_current_tenant_context
-from src.modules.workspaces.authz.http.service import require_workspace_permission
+from src.modules.workspaces.authz.http.service import require_workspace_commercial_effect, require_workspace_permission
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_manage_access
 from src.modules.workspaces.skills.github_import_repository import WorkspaceSkillGitHubImportRepository
@@ -205,7 +206,10 @@ async def get_workspace_skills_capabilities(
     "/imports",
     response_model=ResponseModel[SkillGitHubImportAcceptedOut],
     status_code=status.HTTP_202_ACCEPTED,
-    dependencies=[require_workspace_permission("system:settings:manage")],
+    dependencies=[
+        require_workspace_permission("system:settings:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
+    ],
     summary="Queue an immutable public GitHub Skill import",
 )
 async def create_workspace_skill_github_import(
@@ -244,7 +248,10 @@ async def get_workspace_skill_github_import(
     "/packages/{package_id}/refreshes",
     response_model=ResponseModel[SkillGitHubImportAcceptedOut],
     status_code=status.HTTP_202_ACCEPTED,
-    dependencies=[require_workspace_permission("system:settings:manage")],
+    dependencies=[
+        require_workspace_permission("system:settings:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
+    ],
     summary="Queue an immutable public GitHub Skill refresh",
 )
 async def create_workspace_skill_github_refresh(
@@ -332,7 +339,10 @@ async def list_workspace_skill_packages(
     "/packages",
     response_model=ResponseModel[SkillPackageCreateOut],
     status_code=status.HTTP_201_CREATED,
-    dependencies=[require_workspace_permission("system:settings:manage")],
+    dependencies=[
+        require_workspace_permission("system:settings:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
     summary="Create an inline Workspace Skill package and first immutable version",
 )
 async def create_workspace_skill_package(
@@ -388,7 +398,10 @@ async def get_workspace_skill_package_impact(
 @router.delete(
     "/packages/{package_id}",
     response_model=ResponseModel[SkillPackageArchiveOut],
-    dependencies=[require_workspace_permission("system:settings:manage")],
+    dependencies=[
+        require_workspace_permission("system:settings:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
     summary="Archive a Workspace Skill package after impact review",
 )
 async def archive_workspace_skill_package(
@@ -436,7 +449,10 @@ async def list_workspace_skill_versions(
     "/packages/{package_id}/versions",
     response_model=ResponseModel[SkillVersionDetailOut],
     status_code=status.HTTP_201_CREATED,
-    dependencies=[require_workspace_permission("system:settings:manage")],
+    dependencies=[
+        require_workspace_permission("system:settings:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
     summary="Create an immutable inline Workspace Skill version candidate",
 )
 async def create_workspace_skill_version(
@@ -482,7 +498,10 @@ async def get_workspace_skill_version(
     "/packages/{package_id}/versions/{version_id}/validations",
     response_model=ResponseModel[SkillValidationResultOut],
     status_code=status.HTTP_201_CREATED,
-    dependencies=[require_workspace_permission("system:settings:manage")],
+    dependencies=[
+        require_workspace_permission("system:settings:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
     summary="Validate an immutable Workspace Skill version",
 )
 async def validate_workspace_skill_version(
@@ -552,7 +571,10 @@ async def list_workspace_skill_installations(
     "/installations",
     response_model=ResponseModel[SkillInstallationOut],
     status_code=status.HTTP_201_CREATED,
-    dependencies=[require_workspace_permission("system:settings:manage")],
+    dependencies=[
+        require_workspace_permission("system:settings:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
     summary="Install one exact validated Workspace Skill version",
 )
 async def create_workspace_skill_installation(
@@ -611,7 +633,10 @@ async def get_workspace_skill_installation_impact(
 @router.delete(
     "/installations/{installation_id}",
     response_model=ResponseModel[SkillInstallationRemovalOut],
-    dependencies=[require_workspace_permission("system:settings:manage")],
+    dependencies=[
+        require_workspace_permission("system:settings:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
     summary="Uninstall a Workspace Skill after fail-closed impact review",
 )
 async def remove_workspace_skill_installation(
@@ -637,7 +662,10 @@ async def remove_workspace_skill_installation(
     "/installations/{installation_id}/update-previews",
     response_model=ResponseModel[SkillUpdatePreviewOut],
     status_code=status.HTTP_201_CREATED,
-    dependencies=[require_workspace_permission("system:settings:manage")],
+    dependencies=[
+        require_workspace_permission("system:settings:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
     summary="Create an exact-version Workspace Skill update review",
 )
 async def create_workspace_skill_update_preview(
@@ -662,7 +690,10 @@ async def create_workspace_skill_update_preview(
 @router.post(
     "/installations/{installation_id}/updates",
     response_model=ResponseModel[SkillInstallationRepinOut],
-    dependencies=[require_workspace_permission("system:settings:manage")],
+    dependencies=[
+        require_workspace_permission("system:settings:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
     summary="Accept a reviewed Workspace Skill update and atomically repin",
 )
 async def repin_workspace_skill_installation(
@@ -687,7 +718,10 @@ async def repin_workspace_skill_installation(
 @router.patch(
     "/installations/{installation_id}",
     response_model=ResponseModel[SkillInstallationOut],
-    dependencies=[require_workspace_permission("system:settings:manage")],
+    dependencies=[
+        require_workspace_permission("system:settings:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
     summary="Enable or disable a Workspace Skill installation",
 )
 async def update_workspace_skill_installation(

@@ -14,6 +14,7 @@ from src.modules.assets.jobs.thumbnail_contract import (
     AssetThumbnailJobInput,
     AssetThumbnailJobTarget,
 )
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.jobs.builtin_registry import build_builtin_job_type_registry
 from src.modules.jobs.execution_boundary import (
     ScopedJobExecutionBoundary,
@@ -93,6 +94,14 @@ class _EntitlementAuthorizer:
         self.calls.append((workspace_id, entitlement))
 
 
+class _CommercialAccessAuthorizer:
+    def __init__(self) -> None:
+        self.calls: list[tuple[UUID, set[RestrictedRecoveryEffect]]] = []
+
+    async def authorize(self, *, workspace_id: UUID, effects: set[RestrictedRecoveryEffect]) -> None:
+        self.calls.append((workspace_id, effects))
+
+
 @pytest.mark.asyncio
 async def test_project_boundary_routes_both_execution_stages_from_typed_target() -> None:
     workspace_id = uuid4()
@@ -143,6 +152,99 @@ async def test_project_boundary_routes_both_execution_stages_from_typed_target()
     assert binding.tenant_context == scope
     assert resolver.reconciliation_calls == [(workspace_id, project_id)]
     assert resolver.authorization_calls == [(workspace_id, project_id)]
+
+
+@pytest.mark.asyncio
+async def test_project_boundary_authorizes_commercial_effect_before_handler_dispatch() -> None:
+    workspace_id = uuid4()
+    project_id = uuid4()
+    asset_id = uuid4()
+    resolver = _ProjectResolver(_tenant_context(workspace_id=workspace_id, project_id=project_id))
+    commercial = _CommercialAccessAuthorizer()
+    boundary = ScopedJobExecutionBoundary(
+        project_resolver=resolver,
+        commercial_access_authorizer=commercial,
+    )
+    definition = build_builtin_job_type_registry(get_settings()).require(
+        job_type="asset.thumbnail.generate",
+        job_type_version=1,
+    )
+    target = AssetThumbnailJobTarget(
+        workspace_id=workspace_id,
+        project_id=project_id,
+        entity_id=asset_id,
+    )
+    input_reference = AssetThumbnailJobInput(
+        asset_id=asset_id,
+        thumbnail_profile_version=ASSET_THUMBNAIL_PROFILE_VERSION,
+    )
+    preparation = cast(JobExecutionPreparation, object())
+    binding = await boundary.resolve_for_reconciliation(
+        preparation=preparation,
+        definition=definition,
+        target=target,
+        input_reference=input_reference,
+    )
+
+    await boundary.authorize_new_effect(
+        preparation=preparation,
+        definition=definition,
+        binding=binding,
+        target=target,
+        input_reference=input_reference,
+    )
+
+    assert commercial.calls == [
+        (workspace_id, {RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT}),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_project_boundary_rejects_missing_commercial_effect_metadata() -> None:
+    workspace_id = uuid4()
+    project_id = uuid4()
+    asset_id = uuid4()
+    resolver = _ProjectResolver(_tenant_context(workspace_id=workspace_id, project_id=project_id))
+    commercial = _CommercialAccessAuthorizer()
+    boundary = ScopedJobExecutionBoundary(
+        project_resolver=resolver,
+        commercial_access_authorizer=commercial,
+    )
+    definition = (
+        build_builtin_job_type_registry(get_settings())
+        .require(
+            job_type="asset.thumbnail.generate",
+            job_type_version=1,
+        )
+        .model_copy(update={"commercial_effects": None})
+    )
+    target = AssetThumbnailJobTarget(
+        workspace_id=workspace_id,
+        project_id=project_id,
+        entity_id=asset_id,
+    )
+    input_reference = AssetThumbnailJobInput(
+        asset_id=asset_id,
+        thumbnail_profile_version=ASSET_THUMBNAIL_PROFILE_VERSION,
+    )
+    preparation = cast(JobExecutionPreparation, object())
+    binding = await boundary.resolve_for_reconciliation(
+        preparation=preparation,
+        definition=definition,
+        target=target,
+        input_reference=input_reference,
+    )
+
+    with pytest.raises(PermanentJobExecutionError, match="missing commercial effect metadata"):
+        await boundary.authorize_new_effect(
+            preparation=preparation,
+            definition=definition,
+            binding=binding,
+            target=target,
+            input_reference=input_reference,
+        )
+
+    assert commercial.calls == []
 
 
 @pytest.mark.asyncio

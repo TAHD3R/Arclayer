@@ -1,6 +1,7 @@
 import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from enum import StrEnum
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -28,7 +29,7 @@ from src.core.middleware.guard_integration import (
     close_guard_runtime,
     initialize_guard_runtime,
 )
-from src.core.routes import register_routes
+from src.core.routes import register_platform_routes, register_product_routes
 from src.core.runtime_init import (
     close_domain_runtime,
     init_analytics_connector_runtime,
@@ -44,6 +45,11 @@ _FATAL_REGISTRY_ERRORS: tuple[type[BaseException], ...] = (
     SystemExit,
 )
 _TEST_LOOP_HEARTBEAT_INTERVAL_SECONDS = 0.2
+
+
+class ApiComposition(StrEnum):
+    PRODUCT = "product"
+    PLATFORM = "platform"
 
 
 def _raise_if_fatal(exc: BaseException) -> None:
@@ -83,16 +89,12 @@ async def _init_extension_runtime(app: FastAPI, settings: Settings) -> None:
     """
     mgr: ExtensionManager | None = getattr(app.state, "extension_manager", None)
     if mgr is None:
-        try:
-            project_root = _resolve_project_root()
-            mgr = ExtensionManager(project_root)
-            # Update both dispatcher reference and app.state to use the
-            # manager's middleware registry so activation state is visible.
-            app.state.extension_middleware_registry = mgr.tenant_registries.middlewares
-            app.state.extension_manager = mgr
-        except RuntimeError:
-            logger.warning("Could not resolve project root, skipping extension init")
-            return
+        project_root = _resolve_project_root()
+        mgr = ExtensionManager(project_root)
+        # Platform owns extension inventory and lifecycle without installing
+        # Product tenant middleware into the Platform composition root.
+        app.state.extension_middleware_registry = mgr.tenant_registries.middlewares
+        app.state.extension_manager = mgr
 
     from src.modules.system.plugins.runtime_reconciliation import (
         load_desired_system_plugins,
@@ -130,7 +132,7 @@ async def _close_extension_runtime(app: FastAPI) -> None:
         app.state.extension_manager = None
 
 
-def _build_lifespan(settings: Settings):
+def _build_lifespan(settings: Settings, composition: ApiComposition):
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         # Make startup/teardown resilient: if any step raises before `yield`,
@@ -147,7 +149,8 @@ def _build_lifespan(settings: Settings):
 
             event_bus = events.bus
             app.state.event_bus = event_bus
-            await initialize_guard_runtime(app, settings)
+            security = settings.security if composition is ApiComposition.PRODUCT else settings.platform_security
+            await initialize_guard_runtime(app, security)
 
             # In pure unit-test mode we often disable DB/Valkey entirely. In that case we can
             # skip heavyweight startup steps and still exercise routers/middlewares safely.
@@ -209,26 +212,42 @@ def _build_lifespan(settings: Settings):
 
 
 class AppFactory:
-    def __init__(self, settings: Settings | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings | None = None,
+        *,
+        composition: ApiComposition = ApiComposition.PRODUCT,
+    ) -> None:
         self.settings = settings or get_settings()
+        self.composition = composition
+        self.application_settings = (
+            self.settings.application if composition is ApiComposition.PRODUCT else self.settings.platform_application
+        )
+        self.security_settings = (
+            self.settings.security if composition is ApiComposition.PRODUCT else self.settings.platform_security
+        )
         # Create ExtensionManager early so the dispatcher middleware gets the
         # correct (same) registry reference that the lifespan will populate.
-        try:
-            project_root = _resolve_project_root()
-            self._extension_manager = ExtensionManager(project_root)
-            self._extension_middleware_registry = self._extension_manager.tenant_registries.middlewares
-        except RuntimeError:
+        if composition is ApiComposition.PLATFORM:
             self._extension_manager = None
             self._extension_middleware_registry = TenantAwareMiddlewareRegistry()
+        else:
+            try:
+                project_root = _resolve_project_root()
+                self._extension_manager = ExtensionManager(project_root)
+                self._extension_middleware_registry = self._extension_manager.tenant_registries.middlewares
+            except RuntimeError:
+                self._extension_manager = None
+                self._extension_middleware_registry = TenantAwareMiddlewareRegistry()
         self.app = FastAPI(
             debug=False,
-            title=self.settings.application.app_name,
-            version=self.settings.application.app_version,
-            description=self.settings.application.app_description,
-            openapi_url=self.settings.application.app_openapi_url if self.settings.enable_docs else None,
+            title=self.application_settings.app_name,
+            version=self.application_settings.app_version,
+            description=self.application_settings.app_description,
+            openapi_url=self.application_settings.app_openapi_url if self.settings.enable_docs else None,
             docs_url=None,
             redoc_url=None,
-            lifespan=_build_lifespan(self.settings),
+            lifespan=_build_lifespan(self.settings, composition),
         )
         # Store on app.state so the lifespan can populate the registry.
         self.app.state.extension_middleware_registry = self._extension_middleware_registry
@@ -243,17 +262,17 @@ class AppFactory:
         from asgi_correlation_id import CorrelationIdMiddleware
 
         middleware = self.settings.middleware
-        security = self.settings.security
+        security = self.security_settings
 
         # Order matters: Starlette add_middleware inserts at the front, so the
         # outermost middleware is the one added last. We add them innermost-first
         # so Security ends up outermost.
-        self.app.add_middleware(
-            TenantAwareExtensionMiddlewareDispatcher,
-            registry=self._extension_middleware_registry,
-        )
-
-        self.app.add_middleware(WorkspaceContextMiddleware)
+        if self.composition is ApiComposition.PRODUCT:
+            self.app.add_middleware(
+                TenantAwareExtensionMiddlewareDispatcher,
+                registry=self._extension_middleware_registry,
+            )
+            self.app.add_middleware(WorkspaceContextMiddleware)
 
         # Add request logging before CorrelationIdMiddleware. Starlette inserts
         # each new middleware at the front, so CorrelationIdMiddleware will wrap
@@ -265,12 +284,12 @@ class AppFactory:
             trace_header_name=self.settings.logging.trace_header_name,
             omit_paths=self.settings.logging.request_log_omit_paths,
             omit_path_prefixes=self.settings.logging.request_log_omit_path_prefixes,
-            api_path_prefix=self.settings.application.api_prefix,
+            api_path_prefix=self.application_settings.api_prefix,
             database_enabled=self.settings.database.enabled,
             observability_enabled=self.settings.observability.enabled,
-            service_name=self.settings.application.app_name,
+            service_name=self.application_settings.app_name,
             environment=self.settings.app_env,
-            release_version=self.settings.application.app_version,
+            release_version=self.application_settings.app_version,
         )
 
         self.app.add_middleware(CorrelationIdMiddleware)
@@ -296,7 +315,7 @@ class AppFactory:
             )
 
         if security.enabled:
-            guard_config = build_guard_config(self.settings)
+            guard_config = build_guard_config(self.security_settings)
             ArclayerSecurityMiddleware.configure_cors(self.app, guard_config)
             self.app.add_middleware(ArclayerSecurityMiddleware, config=guard_config)
 
@@ -307,6 +326,8 @@ class AppFactory:
         return self
 
     def with_static(self, *, directory: Path | None = None, url_path: str | None = None) -> "AppFactory":
+        if self.composition is ApiComposition.PLATFORM:
+            return self
         enabled = self.settings.application.static_enabled
         if not enabled and directory is None and url_path is None:
             return self
@@ -318,9 +339,22 @@ class AppFactory:
         return self
 
     def build(self) -> FastAPI:
-        register_routes(self.app, self.settings)
+        if self.composition is ApiComposition.PRODUCT:
+            register_product_routes(self.app, self.settings)
+        else:
+            register_platform_routes(self.app, self.settings)
         return self.app
 
 
 def create_app() -> FastAPI:
     return AppFactory().with_logging().with_middlewares().with_exception_handlers().with_static().build()
+
+
+def create_platform_app() -> FastAPI:
+    return (
+        AppFactory(composition=ApiComposition.PLATFORM)
+        .with_logging()
+        .with_middlewares()
+        .with_exception_handlers()
+        .build()
+    )

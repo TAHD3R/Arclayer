@@ -8,10 +8,11 @@ from fastapi import APIRouter, Depends, Header, Query, status
 from src.common.types.public_uuid import PublicUUID
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.sites.component_catalogs.official import get_official_component_catalog_registry
 from src.modules.sites.component_catalogs.schema import ComponentCatalogV1
 from src.modules.tenancy.context import require_current_tenant_context
-from src.modules.workspaces.authz.http.service import require_workspace_permission
+from src.modules.workspaces.authz.http.service import require_workspace_commercial_effect, require_workspace_permission
 from src.modules.workspaces.design_systems.repository import WorkspaceDesignSystemsRepository
 from src.modules.workspaces.design_systems.schema import (
     DesignSystemCreateRequest,
@@ -95,7 +96,10 @@ async def list_workspace_design_systems(
     "",
     response_model=ResponseModel[DesignSystemDetailOut],
     status_code=status.HTTP_201_CREATED,
-    dependencies=[require_workspace_permission("system:settings:manage")],
+    dependencies=[
+        require_workspace_permission("system:settings:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
     summary="Create a Workspace Design System identity",
 )
 async def create_workspace_design_system(
@@ -144,7 +148,10 @@ async def list_workspace_design_system_component_catalogs(
 @router.put(
     "/default-assignment",
     response_model=ResponseModel[WorkspaceDesignSystemDefaultOut],
-    dependencies=[require_workspace_permission("system:settings:manage")],
+    dependencies=[
+        require_workspace_permission("system:settings:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
     summary="Pin the exact Workspace Design System default assignment",
 )
 async def set_workspace_design_system_default(
@@ -204,7 +211,10 @@ async def list_workspace_design_system_versions(
     "/{system_id}/versions",
     response_model=ResponseModel[DesignSystemVersionDetailOut],
     status_code=status.HTTP_201_CREATED,
-    dependencies=[require_workspace_permission("system:settings:manage")],
+    dependencies=[
+        require_workspace_permission("system:settings:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
     summary="Create an immutable Workspace Design System version",
 )
 async def create_workspace_design_system_version(
@@ -250,7 +260,10 @@ async def get_workspace_design_system_version(
     "/{system_id}/versions/{version_id}/validations",
     response_model=ResponseModel[DesignSystemValidationResultOut],
     status_code=status.HTTP_201_CREATED,
-    dependencies=[require_workspace_permission("system:settings:manage")],
+    dependencies=[
+        require_workspace_permission("system:settings:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
     summary="Validate an exact Workspace Design System foundation",
 )
 async def create_workspace_design_system_validation(

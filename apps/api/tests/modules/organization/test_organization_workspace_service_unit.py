@@ -4,13 +4,23 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import cast
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
+import pytest
+
 from src.config import get_settings
-from src.models.organization.org_membership import OrgRole
+from src.core.exceptions import Forbidden
 from src.models.workspaces.workspace import Workspace
-from src.modules.organization.workspaces.schema import OrganizationWorkspaceCreateRequest
+from src.modules.commerce.service import CommerceService
+from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
+from src.modules.organization.workspaces.schema import (
+    OrganizationWorkspaceCreateRequest,
+    OrganizationWorkspaceTemplate,
+)
 from src.modules.organization.workspaces.service import OrganizationWorkspaceService
+from src.modules.workspaces.settings.service import WorkspaceSettingsService
+from src.modules.workspaces.skills.default_provisioner import WorkspaceOfficialSkillProvisioner
 
 
 class _FakeWorkspace:
@@ -89,6 +99,14 @@ class _OfficialSkillProvisioner:
         self.calls.append(kwargs)
 
 
+class _CommerceService:
+    def __init__(self, lifecycle: list[str]) -> None:
+        self.lifecycle = lifecycle
+
+    async def initialize_free_workspace_in_transaction(self, **_kwargs: object) -> None:
+        self.lifecycle.append("commerce_initialized")
+
+
 async def test_create_workspace_provisions_official_skills_after_public_creation(monkeypatch) -> None:
     monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     workspace = _FakeWorkspace()
@@ -96,11 +114,13 @@ async def test_create_workspace_provisions_official_skills_after_public_creation
     provisioner = _OfficialSkillProvisioner()
     lifecycle: list[str] = []
     workspace_settings_service = _WorkspaceSettingsService(lifecycle)
+    commerce_service = _CommerceService(lifecycle)
     service = OrganizationWorkspaceService(
         get_settings(),
-        repo=cast(object, repository),
-        workspace_settings_service=cast(object, workspace_settings_service),
-        official_skill_provisioner=cast(object, provisioner),
+        repo=cast(OrganizationWorkspaceRepository, repository),
+        workspace_settings_service=cast(WorkspaceSettingsService, workspace_settings_service),
+        official_skill_provisioner=cast(WorkspaceOfficialSkillProvisioner, provisioner),
+        commerce_service=cast(CommerceService, commerce_service),
     )
 
     @asynccontextmanager
@@ -113,7 +133,6 @@ async def test_create_workspace_provisions_official_skills_after_public_creation
         return None
 
     monkeypatch.setattr(service, "tx", _tx)
-    monkeypatch.setattr(service, "_ensure_operator_role_binding", _noop)
     monkeypatch.setattr(service, "_write_workspace_activity_event", _noop)
     organization_id = uuid4()
     actor_user_id = uuid4()
@@ -121,8 +140,10 @@ async def test_create_workspace_provisions_official_skills_after_public_creation
     result = await service.create_workspace(
         organization_id=organization_id,
         user_id=actor_user_id,
-        org_role=OrgRole.OWNER,
-        payload=OrganizationWorkspaceCreateRequest(name="Founder Team", template="blank"),
+        payload=OrganizationWorkspaceCreateRequest(
+            name="Founder Team",
+            template=OrganizationWorkspaceTemplate.BLANK,
+        ),
     )
 
     assert result.workspace_id == workspace.id
@@ -140,6 +161,7 @@ async def test_create_workspace_provisions_official_skills_after_public_creation
     ]
     assert lifecycle == [
         "transaction_started",
+        "commerce_initialized",
         "settings_patched",
         "transaction_committed",
         "webhook_dispatched",
@@ -151,3 +173,55 @@ async def test_create_workspace_provisions_official_skills_after_public_creation
             "actor_user_id": actor_user_id,
         }
     ]
+
+
+async def test_delete_rejects_non_owner_with_explicit_forbidden(monkeypatch) -> None:
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
+    organization_id = uuid4()
+    workspace_id = uuid4()
+    actor_user_id = uuid4()
+    stale_workspace = SimpleNamespace(
+        id=workspace_id,
+        organization_id=organization_id,
+        owner_user_id=actor_user_id,
+        name="Workspace",
+        is_active=True,
+        deleted_at=None,
+        delete=AsyncMock(),
+    )
+    locked_workspace = SimpleNamespace(
+        id=workspace_id,
+        organization_id=organization_id,
+        owner_user_id=uuid4(),
+        name="Workspace",
+        is_active=True,
+        deleted_at=None,
+        delete=AsyncMock(),
+    )
+    repository = SimpleNamespace(
+        get_active_workspace=AsyncMock(return_value=stale_workspace),
+        get_by_id_for_update=AsyncMock(return_value=locked_workspace),
+    )
+    service = OrganizationWorkspaceService(
+        get_settings(),
+        repo=cast(OrganizationWorkspaceRepository, repository),
+    )
+
+    @asynccontextmanager
+    async def _tx():
+        yield object()
+
+    monkeypatch.setattr(service, "tx", _tx)
+    monkeypatch.setattr(service, "_write_workspace_activity_event", AsyncMock())
+
+    with pytest.raises(Forbidden) as exc:
+        await service.delete_workspace(
+            organization_id=organization_id,
+            workspace_id=workspace_id,
+            user_id=actor_user_id,
+            confirm_name="Workspace",
+        )
+
+    assert exc.value.error == "WORKSPACE_OWNER_REQUIRED"
+    locked_workspace.delete.assert_not_awaited()
+    stale_workspace.delete.assert_not_awaited()

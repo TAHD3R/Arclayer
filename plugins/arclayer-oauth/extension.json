@@ -24,7 +24,6 @@
   },
   "admin": {
     "label_key": "settings:SETTINGS_SYSTEM_PLUGIN_OAUTH_NAME",
-    "description_key": "settings:SETTINGS_SYSTEM_PLUGIN_OAUTH_DESC",
-    "settings_path": "/system/settings/oauth"
+    "description_key": "settings:SETTINGS_SYSTEM_PLUGIN_OAUTH_DESC"
   }
 }

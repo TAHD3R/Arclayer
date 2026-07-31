@@ -23,6 +23,7 @@ export type UserCenterWorkspaceListItem = {
   isArchived: boolean;
   archivedAt: string | null;
   archivedByUserId: string | null;
+  archiveRevision: number;
   memberCount: number;
   membersPreview: UserCenterWorkspaceListItemMemberPreview[];
   createdAt: string | null;
@@ -46,6 +47,7 @@ export function mapWorkspaceManageListItemToListItem(
     isArchived: workspace.isArchived ?? false,
     archivedAt: workspace.archivedAt ?? null,
     archivedByUserId: workspace.archivedByUserId ?? null,
+    archiveRevision: workspace.archiveRevision ?? 0,
     memberCount: workspace.memberCount ?? 0,
     enterable: workspace.enterable ?? true,
     membersPreview: membersPreview.map((member) => ({

@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Query
 
+from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.http.pagination import DependsPagination, PageData, PageParams
 from src.core.http.response import ApiResponse, ResponseModel
@@ -17,9 +18,15 @@ from src.modules.ai.runtime_http_router import router as workspace_ai_runtime_ro
 from src.modules.ai.usage_router import router as workspace_usage_router
 from src.modules.analytics.workspaces.router import router as workspace_activity_router
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.commerce.access_state.router import router as workspace_commercial_access_router
+from src.modules.commerce.convergence.router import router as workspace_plan_access_convergence_router
+from src.modules.commerce.dunning.command_policy import build_restricted_recovery_command_policy
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
+from src.modules.commerce.feature_access.router import router as workspace_feature_access_router
 from src.modules.commerce.workspace_router import router as workspace_commerce_router
 from src.modules.jobs.router import router as workspace_jobs_router
 from src.modules.observability.workspace_router import router as workspace_observability_router
+from src.modules.support_access.router import router as workspace_support_access_router
 from src.modules.system.admin.router import router as workspace_admin_router
 from src.modules.workspaces.api_keys.router import me_api_keys_router
 from src.modules.workspaces.authz.http.service import require_workspace_permission
@@ -30,6 +37,8 @@ from src.modules.workspaces.extensions.router import router as workspace_extensi
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import get_workspace_context, require_workspace_manage_access
 from src.modules.workspaces.knowledge.router import router as workspace_knowledge_router
+from src.modules.workspaces.membership_lifecycle import build_workspace_membership_end_participant
+from src.modules.workspaces.ownership_service import WorkspaceOwnershipService
 from src.modules.workspaces.rbac.router import router as workspace_rbac_router
 from src.modules.workspaces.schema import (
     LeaveWorkspaceRequest,
@@ -43,6 +52,8 @@ from src.modules.workspaces.schema import (
     WorkspaceManageArchiveResult,
     WorkspaceManageCreateRequest,
     WorkspaceManageListItemOut,
+    WorkspaceOwnershipTransferOut,
+    WorkspaceOwnershipTransferRequest,
     WorkspaceUpdateRequest,
 )
 from src.modules.workspaces.service import WorkspaceService
@@ -67,11 +78,15 @@ router.include_router(workspace_ai_runtime_router)
 router.include_router(workspace_agent_catalog_router)
 router.include_router(workspace_extensions_router)
 router.include_router(workspace_commerce_router)
+router.include_router(workspace_commercial_access_router)
+router.include_router(workspace_plan_access_convergence_router)
+router.include_router(workspace_feature_access_router)
 router.include_router(workspace_observability_router)
 router.include_router(workspace_jobs_router)
 router.include_router(workspace_knowledge_router)
 router.include_router(workspace_skills_router)
 router.include_router(workspace_design_systems_router)
+router.include_router(workspace_support_access_router)
 
 
 @router.get(
@@ -218,12 +233,48 @@ async def leave_workspace(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[LeaveWorkspaceResult]:
     """Leave current workspace."""
-    service = WorkspaceService(settings)
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.WORKSPACE_LIFECYCLE},
+    )
+    service = WorkspaceService(
+        settings,
+        membership_end_participant=build_workspace_membership_end_participant(settings),
+    )
     out = await service.leave_workspace(
         organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,
         user_id=user_id,
         confirm_text=payload.confirm_text,
+    )
+    return ApiResponse.success(data=out)
+
+
+@router.post(
+    "/workspaces/{workspace_id}/ownership-transfer",
+    response_model=ResponseModel[WorkspaceOwnershipTransferOut],
+    summary="Transfer Workspace ownership",
+)
+async def transfer_workspace_ownership(
+    payload: WorkspaceOwnershipTransferRequest,
+    idempotency_key: IdempotencyKey,
+    ctx: WorkspaceContext = Depends(get_workspace_context),
+    user_id: UUID = Depends(get_current_user_id),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[WorkspaceOwnershipTransferOut]:
+    await WorkspaceService(settings).require_workspace_lifecycle_owner(
+        workspace_id=ctx.workspace_id,
+        user_id=user_id,
+    )
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.ACCESS_EXPANSION},
+    )
+    out = await WorkspaceOwnershipService(settings).transfer(
+        workspace_id=ctx.workspace_id,
+        actor_user_id=user_id,
+        payload=payload,
+        idempotency_key=idempotency_key,
     )
     return ApiResponse.success(data=out)
 
@@ -250,6 +301,11 @@ async def delete_workspace(
 ) -> ResponseModel[WorkspaceDeleteResult]:
     """Delete workspace."""
     service = WorkspaceService(settings)
+    await service.require_workspace_lifecycle_owner(workspace_id=ctx.workspace_id, user_id=user_id)
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.WORKSPACE_LIFECYCLE},
+    )
     out = await service.delete_manage_workspace(
         user_id=user_id,
         workspace_id=ctx.workspace_id,
@@ -266,7 +322,7 @@ async def delete_workspace(
     summary="Archive workspace",
 )
 async def archive_workspace(
-    workspace_id: UUID,
+    workspace_id: PublicUUID,
     payload: AccessRestrictionEnforceRequest,
     idempotency_key: IdempotencyKey,
     user_id: UUID = Depends(get_current_user_id),
@@ -274,6 +330,12 @@ async def archive_workspace(
 ) -> ResponseModel[WorkspaceManageArchiveResult]:
     """Archive workspace."""
     service = WorkspaceService(settings)
+    workspace_uuid = UUID(str(workspace_id))
+    await service.require_workspace_lifecycle_owner(workspace_id=workspace_uuid, user_id=user_id)
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=workspace_uuid,
+        effects={RestrictedRecoveryEffect.WORKSPACE_LIFECYCLE},
+    )
     out = await service.archive_manage_workspace(
         user_id=user_id,
         workspace_id=workspace_id,
@@ -289,7 +351,7 @@ async def archive_workspace(
     summary="Unarchive workspace",
 )
 async def unarchive_workspace(
-    workspace_id: UUID,
+    workspace_id: PublicUUID,
     payload: AccessRestrictionLiftRequest,
     idempotency_key: IdempotencyKey,
     user_id: UUID = Depends(get_current_user_id),
@@ -297,6 +359,12 @@ async def unarchive_workspace(
 ) -> ResponseModel[WorkspaceManageArchiveResult]:
     """Unarchive workspace."""
     service = WorkspaceService(settings)
+    workspace_uuid = UUID(str(workspace_id))
+    await service.require_workspace_lifecycle_owner(workspace_id=workspace_uuid, user_id=user_id)
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=workspace_uuid,
+        effects={RestrictedRecoveryEffect.WORKSPACE_LIFECYCLE},
+    )
     out = await service.unarchive_manage_workspace(
         user_id=user_id,
         workspace_id=workspace_id,

@@ -19,6 +19,8 @@ from src.settings.env_models import (
     BackgroundJobsSettings,
     BillingSettings,
     EmailSettings,
+    PlatformAuthSettings,
+    PlatformSecuritySettings,
     PublicIdSettings,
     SaasSettings,
     SecuritySettings,
@@ -221,6 +223,25 @@ class ApplicationSettings(BaseSettings):
     @classmethod
     def _normalize_application_path(cls, value: Path) -> Path:
         return _normalize_fs_path(value, default_base=_REPO_ROOT)
+
+
+class PlatformApplicationSettings(ApplicationSettings):
+    """Host-facing settings for the independent Platform API composition."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="PLATFORM_APPLICATION__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    api_prefix: str = Field(default="/platform-api")
+    app_port: int = Field(default=8001)
+    app_name: str = Field(default="Arclayer Platform API")
+    app_description: str = Field(default="Deployment-wide operations and instance governance.")
 
 
 class StorageSettings(BaseSettings):
@@ -926,6 +947,7 @@ class Settings(BaseSettings):
     app_env: Literal["development", "production", "test"] = Field(default="development")
 
     application: ApplicationSettings = Field(default_factory=ApplicationSettings)
+    platform_application: PlatformApplicationSettings = Field(default_factory=PlatformApplicationSettings)
     storage: StorageSettings = Field(default_factory=StorageSettings)
     plugin_distribution: PluginDistributionSettings = Field(default_factory=PluginDistributionSettings)
     search: SearchSettings = Field(default_factory=SearchSettings)
@@ -942,11 +964,13 @@ class Settings(BaseSettings):
     background_jobs: BackgroundJobsSettings = Field(default_factory=BackgroundJobsSettings)
     middleware: MiddlewareSettings = Field(default_factory=MiddlewareSettings)
     auth: AuthSettings = Field(default_factory=AuthSettings)
+    platform_auth: PlatformAuthSettings = Field(default_factory=PlatformAuthSettings)
     billing: BillingSettings = Field(default_factory=BillingSettings)
     public_id: PublicIdSettings = Field(default_factory=PublicIdSettings)
     email: EmailSettings = Field(default_factory=EmailSettings, validation_alias="MAIL")
     saas: SaasSettings = Field(default_factory=SaasSettings)
     security: SecuritySettings = Field(default_factory=SecuritySettings)
+    platform_security: PlatformSecuritySettings = Field(default_factory=PlatformSecuritySettings)
     ai: AISettings = Field(default_factory=AISettings)
     testing: TestingSettings = Field(default_factory=TestingSettings)
 

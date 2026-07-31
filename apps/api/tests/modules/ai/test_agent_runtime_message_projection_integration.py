@@ -41,6 +41,7 @@ async def _create_thread() -> tuple[Workspace, ProjectRecord, AgentThreadV1Recor
         organization_id=organization.id,
         name="Agent Message Projection Workspace",
         is_active=True,
+        owner_user_id=owner_user_id,
         created_by_user_id=owner_user_id,
     )
     project = await ProjectRecord.create(

@@ -33,6 +33,7 @@ async def _workspace_ids() -> tuple[Workspace, Organization]:
         organization_id=organization.id,
         name="Tenant Workspace",
         is_active=True,
+        owner_user_id=owner.id,
         created_by_user_id=owner.id,
     )
     return workspace, organization
@@ -338,12 +339,14 @@ async def test_same_name_workspaces_get_distinct_tenant_schemas(prepared_db) -> 
         organization_id=organization.id,
         name="CMS Team",
         is_active=True,
+        owner_user_id=owner.id,
         created_by_user_id=owner.id,
     )
     second = await Workspace.create(
         organization_id=organization.id,
         name="CMS Team",
         is_active=True,
+        owner_user_id=owner.id,
         created_by_user_id=owner.id,
     )
 

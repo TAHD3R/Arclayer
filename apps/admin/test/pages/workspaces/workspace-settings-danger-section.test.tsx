@@ -78,10 +78,8 @@ describe("WorkspaceSettingsDangerSection", () => {
         {
           workspaceId: "ws-2",
           projectId: "project-2",
-          slug: "beta",
           name: "Beta",
-          visibleOnly: false,
-          isCreatorAdmin: true,
+          isOwner: true,
         },
       ],
       instanceSetup: { status: "ready", repairReason: null },
@@ -119,7 +117,7 @@ describe("WorkspaceSettingsDangerSection", () => {
       confirmLeaveText: "LEAVE",
       confirmDeleteName: "Workspace Alpha",
       leaveAction: { enabled: true, blockedReason: null },
-      deleteAction: { enabled: false, blockedReason: "LAST_ACTIVE_WORKSPACE_NOT_DELETABLE" },
+      deleteAction: { enabled: false, blockedReason: "WORKSPACE_OWNER_REQUIRED" },
     });
 
     renderWithProviders(<WorkspaceSettingsDangerSection workspaceId="ws-1" />);

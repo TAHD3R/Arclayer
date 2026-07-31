@@ -183,9 +183,8 @@ class FakeUserRepository:
         email: str | None,
         display_name: str | None,
         password_hash: str,
-        is_super_admin: bool = False,
     ) -> FakeUser:
-        _ = username, email, display_name, password_hash, is_super_admin
+        _ = username, email, display_name, password_hash
         raise RuntimeError("not used")
 
 

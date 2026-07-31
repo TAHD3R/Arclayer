@@ -10,6 +10,7 @@ from src.config import Settings, get_settings
 from src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.domains.schema import (
     DomainBindingCreateIn,
     DomainBindingCreateOut,
@@ -22,6 +23,7 @@ from src.modules.domains.service import DomainBindingService
 from src.modules.projects.http.router_helpers import (
     get_project_runtime_context,
     get_project_runtime_service,
+    require_project_commercial_effect,
     require_project_permission,
 )
 from src.modules.projects.http.schema import ProjectRequestContext
@@ -80,7 +82,10 @@ async def list_project_domains(
     response_model_exclude_none=True,
     status_code=status.HTTP_201_CREATED,
     summary="Create a project custom domain binding",
-    dependencies=[require_project_permission("project:domains:manage")],
+    dependencies=[
+        require_project_permission("project:domains:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
+    ],
 )
 async def create_project_domain(
     payload: Annotated[DomainBindingCreateIn, Body(description="Project custom domain binding request.")],
@@ -112,7 +117,10 @@ async def create_project_domain(
     response_model=ResponseModel[DomainBindingVerifyOut],
     response_model_exclude_none=True,
     summary="Verify a project custom domain binding via DNS TXT",
-    dependencies=[require_project_permission("project:domains:manage")],
+    dependencies=[
+        require_project_permission("project:domains:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
+    ],
 )
 async def verify_project_domain(
     binding_id: Annotated[PublicUUID, Path(..., description="Domain binding id.")],
@@ -136,7 +144,10 @@ async def verify_project_domain(
     response_model=ResponseModel[DomainBindingOut],
     response_model_exclude_none=True,
     summary="Update a project domain binding",
-    dependencies=[require_project_permission("project:domains:manage")],
+    dependencies=[
+        require_project_permission("project:domains:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
+    ],
 )
 async def update_project_domain(
     binding_id: Annotated[PublicUUID, Path(..., description="Domain binding id.")],
@@ -157,7 +168,10 @@ async def update_project_domain(
     response_model=ResponseModel[DomainBindingDeleteOut],
     response_model_exclude_none=True,
     summary="Delete a project custom domain binding",
-    dependencies=[require_project_permission("project:domains:manage")],
+    dependencies=[
+        require_project_permission("project:domains:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
+    ],
 )
 async def delete_project_domain(
     binding_id: Annotated[PublicUUID, Path(..., description="Domain binding id.")],

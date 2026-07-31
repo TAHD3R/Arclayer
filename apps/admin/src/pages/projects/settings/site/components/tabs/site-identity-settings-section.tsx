@@ -4,10 +4,7 @@ import { FieldError } from "@arclayer/ui/field";
 import { Input } from "@arclayer/ui/input";
 import { Button } from "@arclayer/ui/button";
 
-import {
-  SystemSettingField,
-  SystemSettingFooterActions,
-} from "@/pages/system/components/system-setting-item";
+import { SystemSettingField, SystemSettingFooterActions } from "@/components/settings/setting-item";
 import type {
   GeneralSettingsFormValues,
   GeneralSettingsTabBaseProps,

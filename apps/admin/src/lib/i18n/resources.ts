@@ -16,8 +16,11 @@ import zhAppearance from "@locales/zh-CN/appearance.json";
 import zhRbac from "@locales/zh-CN/rbac.json";
 import zhContent from "@locales/zh-CN/content.json";
 import zhAi from "@locales/zh-CN/ai.json";
-import zhPlatform from "@locales/zh-CN/platform.json";
+import zhFeedback from "@locales/zh-CN/feedback.json";
 import zhCommerce from "@locales/zh-CN/commerce.json";
+import zhWorkspaceAccess from "@locales/zh-CN/workspaceAccess.json";
+import zhPlanChange from "@locales/zh-CN/planChange.json";
+import zhFeatureAccess from "@locales/zh-CN/featureAccess.json";
 
 import enCommon from "@locales/en-US/common.json";
 import enNav from "@locales/en-US/nav.json";
@@ -37,8 +40,11 @@ import enAppearance from "@locales/en-US/appearance.json";
 import enRbac from "@locales/en-US/rbac.json";
 import enContent from "@locales/en-US/content.json";
 import enAi from "@locales/en-US/ai.json";
-import enPlatform from "@locales/en-US/platform.json";
+import enFeedback from "@locales/en-US/feedback.json";
 import enCommerce from "@locales/en-US/commerce.json";
+import enWorkspaceAccess from "@locales/en-US/workspaceAccess.json";
+import enPlanChange from "@locales/en-US/planChange.json";
+import enFeatureAccess from "@locales/en-US/featureAccess.json";
 
 import type { AppLocale } from "@arclayer/web/i18n";
 
@@ -61,8 +67,11 @@ export const I18N_NAMESPACES = [
   "errors",
   "auth",
   "ai",
-  "platform",
+  "feedback",
   "commerce",
+  "workspaceAccess",
+  "planChange",
+  "featureAccess",
 ] as const;
 
 export const i18nResources = {
@@ -85,8 +94,11 @@ export const i18nResources = {
     errors: zhErrors,
     auth: zhAuth,
     ai: zhAi,
-    platform: zhPlatform,
+    feedback: zhFeedback,
     commerce: zhCommerce,
+    workspaceAccess: zhWorkspaceAccess,
+    planChange: zhPlanChange,
+    featureAccess: zhFeatureAccess,
   },
   "en-US": {
     common: enCommon,
@@ -107,8 +119,11 @@ export const i18nResources = {
     errors: enErrors,
     auth: enAuth,
     ai: enAi,
-    platform: enPlatform,
+    feedback: enFeedback,
     commerce: enCommerce,
+    workspaceAccess: enWorkspaceAccess,
+    planChange: enPlanChange,
+    featureAccess: enFeatureAccess,
   },
 } as const;
 

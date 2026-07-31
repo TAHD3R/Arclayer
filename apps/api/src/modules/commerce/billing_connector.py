@@ -5,9 +5,10 @@ from hashlib import sha256
 from typing import Literal, Protocol, runtime_checkable
 from uuid import UUID
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
 from src.models.commerce.billing import BillingCycle, SubscriptionStatus
+from src.modules.commerce.subscription_transitions.schema import ProviderConfirmedTransitionEvidence
 
 
 class CheckoutSession(BaseModel):
@@ -16,19 +17,44 @@ class CheckoutSession(BaseModel):
     url: str
 
 
+class ProviderDunningEvent(BaseModel):
+    """Exact dunning fact normalized by a Connector from a signature-verified Provider event."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    kind: Literal["payment_failure", "payment_recovered", "final_unpaid"]
+    provider_period_id: str = Field(..., min_length=1, max_length=255)
+    occurred_at: AwareDatetime
+    recovery_deadline: AwareDatetime | None = None
+
+    @model_validator(mode="after")
+    def validate_recovery_deadline(self) -> ProviderDunningEvent:
+        if self.kind == "payment_failure":
+            if self.recovery_deadline is None or self.recovery_deadline <= self.occurred_at:
+                raise ValueError("payment failure requires a later provider recovery deadline")
+        elif self.recovery_deadline is not None:
+            raise ValueError("only payment failure may carry a provider recovery deadline")
+        return self
+
+
 class ProviderSubscription(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     event_id: str = Field(..., min_length=1, max_length=255)
     workspace_id: UUID
-    plan_code: str = Field(..., min_length=1, max_length=48)
+    plan_id: UUID
+    plan_revision_id: UUID
+    external_price_id: str = Field(..., min_length=1, max_length=255)
     billing_cycle: BillingCycle
+    currency: str = Field(..., min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
     customer_id: str = Field(..., min_length=1, max_length=128)
     subscription_id: str = Field(..., min_length=1, max_length=128)
     status: SubscriptionStatus
     current_period_start: datetime
     current_period_end: datetime
     cancel_at_period_end: bool
+    dunning_event: ProviderDunningEvent | None = None
+    confirmed_transition: ProviderConfirmedTransitionEvidence | None = None
 
 
 class BillingWebhookEnvelope(BaseModel):
@@ -56,11 +82,16 @@ def build_billing_operation_idempotency_key(
 
 @runtime_checkable
 class BillingConnector(Protocol):
+    @property
+    def provider_mode(self) -> str: ...
+
     async def create_checkout_session(
         self,
         *,
         workspace_id: str,
-        plan_code: str,
+        plan_id: str,
+        plan_revision_id: str,
+        external_price_id: str,
         billing_cycle: str,
         currency: str,
         success_url: str,

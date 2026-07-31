@@ -15,6 +15,10 @@ const INVITATION_CONTROLS_PATH = resolve(
   process.cwd(),
   "src/pages/workspaces/team/invitations/components/invitation-table-controls.tsx",
 );
+const INVITE_MEMBERS_DIALOG_PATH = resolve(
+  process.cwd(),
+  "src/pages/workspaces/team/shared/components/invite-members-dialog.tsx",
+);
 
 describe("team invitations layout", () => {
   it("uses shared DataTables for all three invitation tabs", () => {
@@ -50,5 +54,21 @@ describe("team invitations layout", () => {
     expect(columns).toContain("<DropdownMenu>");
     expect(columns).toContain('variant="ghost"');
     expect(columns).toContain("TEAM_INVITE_LINKS_ACTION_ROTATE_TO_COPY");
+  });
+
+  it("hard-cuts invitation role controls when role management is unavailable", () => {
+    const view = readFileSync(TEAM_INVITATIONS_VIEW_PATH, "utf8");
+    const columns = readFileSync(INVITATION_COLUMNS_PATH, "utf8");
+    const controls = readFileSync(INVITATION_CONTROLS_PATH, "utf8");
+    const inviteDialog = readFileSync(INVITE_MEMBERS_DIALOG_PATH, "utf8");
+
+    expect(view).toContain("useWorkspaceRolesAccess");
+    expect(view).toContain("enabled: Boolean(workspaceId) && roleManagementAvailable");
+    expect(view).toContain("role_code: roleManagementAvailable ? params.roleCode : undefined");
+    expect(view).toContain("roleManagementAvailable={roleManagementAvailable}");
+    expect(controls).toContain("if (props.roleManagementAvailable)");
+    expect(columns).toContain("invitationAccessLabel");
+    expect(columns).toContain("TEAM_INVITATIONS_COL_ACCESS");
+    expect(inviteDialog).toContain('{ access: "fixed-member" } as const');
   });
 });

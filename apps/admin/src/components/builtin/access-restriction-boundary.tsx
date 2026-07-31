@@ -110,7 +110,7 @@ function RestrictionDetails(props: {
   active: ActiveAccessRestriction;
   formatter: Intl.DateTimeFormat;
 }) {
-  const { t } = useTranslation("platform");
+  const { t } = useTranslation("feedback");
   const restriction = props.active.restriction;
   if (!restriction) return null;
 
@@ -143,7 +143,7 @@ function RestrictionDetails(props: {
 }
 
 function AccessRestrictionBlocker(props: { active: ActiveAccessRestriction }) {
-  const { t, i18n } = useTranslation(["platform", "common"]);
+  const { t, i18n } = useTranslation(["feedback", "common"]);
   const navigate = useNavigate();
   const refreshToken = useAuthStore((state) => state.refreshToken);
   const clearAuth = useAuthStore((state) => state.clear);
@@ -218,9 +218,9 @@ function AccessRestrictionBlocker(props: { active: ActiveAccessRestriction }) {
           >
             <Icon className="size-6" aria-hidden="true" />
           </EmptyMedia>
-          <EmptyTitle>{t(`platform:${presentation.titleKey}`)}</EmptyTitle>
+          <EmptyTitle>{t(`feedback:${presentation.titleKey}`)}</EmptyTitle>
           <EmptyDescription className="max-w-xl leading-relaxed">
-            {t(`platform:${presentation.descriptionKey}`)}
+            {t(`feedback:${presentation.descriptionKey}`)}
           </EmptyDescription>
         </EmptyHeader>
 
@@ -237,8 +237,8 @@ function AccessRestrictionBlocker(props: { active: ActiveAccessRestriction }) {
               >
                 {t(
                   canSwitchProject
-                    ? "platform:ACCESS_RESTRICTION_SWITCH_PROJECT"
-                    : "platform:ACCESS_RESTRICTION_SWITCH_WORKSPACE",
+                    ? "feedback:ACCESS_RESTRICTION_SWITCH_PROJECT"
+                    : "feedback:ACCESS_RESTRICTION_SWITCH_WORKSPACE",
                 )}
               </Button>
             ) : null}
@@ -256,7 +256,7 @@ function AccessRestrictionBlocker(props: { active: ActiveAccessRestriction }) {
                     disabled={pendingAction !== null}
                   >
                     <MessageCircleMore className="size-4" aria-hidden="true" />
-                    {t("platform:ACCESS_RESTRICTION_CONTACT_SUPPORT")}
+                    {t("feedback:ACCESS_RESTRICTION_CONTACT_SUPPORT")}
                   </Button>
                 }
               />
@@ -270,7 +270,7 @@ function AccessRestrictionBlocker(props: { active: ActiveAccessRestriction }) {
               onClick={() => void signOut()}
             >
               <LogOut className="size-4" aria-hidden="true" />
-              {t("platform:ACCESS_RESTRICTION_SIGN_OUT")}
+              {t("feedback:ACCESS_RESTRICTION_SIGN_OUT")}
             </Button>
           </div>
         </EmptyContent>

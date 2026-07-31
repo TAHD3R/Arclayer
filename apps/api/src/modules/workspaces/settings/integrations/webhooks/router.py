@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, Query
 
 from src.config import Settings, get_settings
 from src.core.http.response import ApiResponse, ResponseModel
+from src.modules.commerce.dunning.command_policy import build_restricted_recovery_command_policy
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.workspaces.authz.http.service import require_workspace_permission
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_manage_access
@@ -52,6 +54,10 @@ async def create_webhook_subscription(
     service: WebhooksService = Depends(get_service),
 ) -> ResponseModel[WebhookSubscriptionOut]:
     """Create a webhook subscription."""
+    await build_restricted_recovery_command_policy().authorize(
+        workspace_id=ctx.workspace_id,
+        effects={RestrictedRecoveryEffect.ACCESS_EXPANSION},
+    )
     out = await service.create_subscription_out(
         workspace_id=ctx.workspace_id,
         capability_id=payload.capability_id,

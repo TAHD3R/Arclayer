@@ -1,5 +1,4 @@
 import { api } from "@/lib/http";
-import type { SystemBootstrapPayload, TokenPair } from "@arclayer/openapi/admin-types";
 import type { SystemRuntime } from "@arclayer/openapi/admin-types";
 
 /**
@@ -11,8 +10,4 @@ import type { SystemRuntime } from "@arclayer/openapi/admin-types";
  */
 export async function getSystemRuntime(): Promise<SystemRuntime> {
   return api.get<SystemRuntime>("/system/runtime", { auth: { skipRefresh: true } });
-}
-
-export async function bootstrapInstance(payload: SystemBootstrapPayload): Promise<TokenPair> {
-  return api.post<TokenPair>("/system/setup/bootstrap", payload, { auth: { skipRefresh: true } });
 }

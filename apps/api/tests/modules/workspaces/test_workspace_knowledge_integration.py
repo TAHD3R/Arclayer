@@ -28,11 +28,9 @@ from src.models.knowledge.knowledge_source_version import (
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.organization import Organization
 from src.models.organization.user import User
-from src.models.system.rbac import SystemRole
 from src.models.workspaces.workspace import (
     Workspace,
     WorkspaceMembership,
-    WorkspaceMembershipRole,
     WorkspaceMembershipStatus,
 )
 from src.modules.auth.http.service import get_current_user, get_current_user_id
@@ -64,7 +62,7 @@ from src.modules.workspaces.knowledge.source_fetch import (
     KnowledgeSourceFetchPolicy,
     UntrustedHttpKnowledgeFetcher,
 )
-from src.modules.workspaces.rbac.service import WorkspaceRBACService
+from src.modules.workspaces.rbac.service import build_workspace_rbac_service
 from src.platform.jobs.composition.execution import build_job_execution_runtime
 
 pytestmark = pytest.mark.integration
@@ -152,16 +150,15 @@ async def _workspace(*, owner: User, label: str) -> Workspace:
         organization_id=organization.id,
         name=f"Knowledge {label.title()} Workspace",
         is_active=True,
+        owner_user_id=owner.id,
         created_by_user_id=owner.id,
     )
-    await WorkspaceRBACService(settings).ensure_workspace_rbac_ready(workspace_id=workspace.id)
-    membership = await WorkspaceMembership.create(
+    await build_workspace_rbac_service(settings).ensure_workspace_rbac_ready(workspace_id=workspace.id)
+    await WorkspaceMembership.create(
         workspace_id=workspace.id,
         user_id=owner.id,
         status=WorkspaceMembershipStatus.ACTIVE,
     )
-    owner_role = await SystemRole.get(workspace_id=workspace.id, code="owner")
-    await WorkspaceMembershipRole.create(membership_id=membership.id, role_id=owner_role.id)
     return workspace
 
 
@@ -171,16 +168,15 @@ async def _workspace_in_organization(*, owner: User, organization_id: UUID, labe
         organization_id=organization_id,
         name=f"Knowledge {label.title()} Workspace",
         is_active=True,
+        owner_user_id=owner.id,
         created_by_user_id=owner.id,
     )
-    await WorkspaceRBACService(settings).ensure_workspace_rbac_ready(workspace_id=workspace.id)
-    membership = await WorkspaceMembership.create(
+    await build_workspace_rbac_service(settings).ensure_workspace_rbac_ready(workspace_id=workspace.id)
+    await WorkspaceMembership.create(
         workspace_id=workspace.id,
         user_id=owner.id,
         status=WorkspaceMembershipStatus.ACTIVE,
     )
-    owner_role = await SystemRole.get(workspace_id=workspace.id, code="owner")
-    await WorkspaceMembershipRole.create(membership_id=membership.id, role_id=owner_role.id)
     return workspace
 
 

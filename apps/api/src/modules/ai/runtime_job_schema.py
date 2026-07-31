@@ -11,6 +11,7 @@ from src.models.jobs.background_job import (
     JobRetryClass,
     JobWorkloadClass,
 )
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.jobs.actor_authorizer import ACTOR_REVALIDATION_TERMINAL_ERROR_CONTRACTS
 from src.modules.jobs.execution_errors import JOB_WORKER_LOST_ERROR_CODE
 from src.modules.jobs.registry import (
@@ -106,6 +107,7 @@ def build_agent_run_job_definition(
         visibility=JobVisibility.OWNER_ONLY,
         authority_mode=JobAuthorityMode.ACTOR_REVALIDATED,
         required_permission=content_manage,
+        commercial_effects=frozenset({RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT}),
         manage_permission=content_manage,
         initial_phase="queued",
         initial_status_key="AI_AGENT_RUN_STATUS_QUEUED",

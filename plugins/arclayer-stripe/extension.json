@@ -24,7 +24,6 @@
   },
   "admin": {
     "label_key": "settings:SETTINGS_SYSTEM_PLUGIN_STRIPE_NAME",
-    "description_key": "settings:SETTINGS_SYSTEM_PLUGIN_STRIPE_DESC",
-    "settings_path": "/system/settings/billing"
+    "description_key": "settings:SETTINGS_SYSTEM_PLUGIN_STRIPE_DESC"
   }
 }

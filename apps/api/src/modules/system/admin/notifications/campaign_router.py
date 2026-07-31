@@ -10,10 +10,11 @@ from src.core.extensions.dependencies import get_connector_registry
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.registries import ConnectorRegistry
-from src.models.organization.user import User
 from src.models.system.notification_campaign import NotificationCampaignState, NotificationDeliveryState
-from src.modules.auth.http.service import require_super_admin
 from src.modules.jobs.service import BackgroundJobService
+from src.modules.platform_identity.http import require_platform_permission
+from src.modules.platform_identity.permissions import PlatformPermissionCode
+from src.modules.platform_identity.session_schema import PlatformSessionPrincipal
 from src.modules.system.admin.notifications.campaign_assets import NotificationCampaignAssetRepository
 from src.modules.system.admin.notifications.campaign_contracts import (
     NotificationCampaignCreateRequest,
@@ -69,6 +70,7 @@ def get_campaign_mutation_service(
     "/campaigns",
     response_model=ResponseModel[PageData[NotificationCampaignSummaryOut]],
     summary="List notification campaigns",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_CAMPAIGNS_READ)],
 )
 async def list_notification_campaigns(
     service: Annotated[NotificationCampaignQueryService, Depends(get_campaign_query_service)],
@@ -95,16 +97,19 @@ async def list_notification_campaigns(
 )
 async def create_notification_campaign(
     payload: NotificationCampaignCreateRequest,
-    actor: Annotated[User, Depends(require_super_admin)],
+    actor: Annotated[
+        PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.MESSAGES_CAMPAIGNS_MANAGE)
+    ],
     service: Annotated[NotificationCampaignMutationService, Depends(get_campaign_mutation_service)],
 ) -> ResponseModel[NotificationCampaignDetailOut]:
-    return ApiResponse.success(data=await service.create_campaign(payload=payload, actor_user_id=actor.id))
+    return ApiResponse.success(data=await service.create_campaign(payload=payload, actor_user_id=actor.actor_id))
 
 
 @router.get(
     "/campaigns/{campaign_id}",
     response_model=ResponseModel[NotificationCampaignDetailOut],
     summary="Get a notification campaign",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_CAMPAIGNS_READ)],
 )
 async def get_notification_campaign(
     campaign_id: PublicUUID,
@@ -121,14 +126,16 @@ async def get_notification_campaign(
 async def update_notification_campaign(
     campaign_id: PublicUUID,
     payload: NotificationCampaignPatchRequest,
-    actor: Annotated[User, Depends(require_super_admin)],
+    actor: Annotated[
+        PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.MESSAGES_CAMPAIGNS_MANAGE)
+    ],
     service: Annotated[NotificationCampaignMutationService, Depends(get_campaign_mutation_service)],
 ) -> ResponseModel[NotificationCampaignDetailOut]:
     return ApiResponse.success(
         data=await service.update_campaign(
             campaign_id=campaign_id,
             payload=payload,
-            actor_user_id=actor.id,
+            actor_user_id=actor.actor_id,
         )
     )
 
@@ -137,6 +144,7 @@ async def update_notification_campaign(
     "/campaigns/{campaign_id}/audience-estimate",
     response_model=ResponseModel[NotificationAudienceEstimateOut],
     summary="Estimate a notification campaign audience",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_CAMPAIGNS_READ)],
 )
 async def estimate_notification_campaign_audience(
     campaign_id: PublicUUID,
@@ -149,6 +157,7 @@ async def estimate_notification_campaign_audience(
     "/campaigns/{campaign_id}/preview",
     response_model=ResponseModel[NotificationCampaignPreviewOut],
     summary="Render notification campaign channel previews",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_CAMPAIGNS_READ)],
 )
 async def preview_notification_campaign(
     campaign_id: PublicUUID,
@@ -166,14 +175,16 @@ async def preview_notification_campaign(
 async def publish_notification_campaign(
     campaign_id: PublicUUID,
     payload: NotificationCampaignPublishRequest,
-    actor: Annotated[User, Depends(require_super_admin)],
+    actor: Annotated[
+        PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.MESSAGES_CAMPAIGNS_SEND)
+    ],
     service: Annotated[NotificationCampaignMutationService, Depends(get_campaign_mutation_service)],
 ) -> ResponseModel[NotificationCampaignPublishOut]:
     return ApiResponse.success(
         data=await service.publish_campaign(
             campaign_id=campaign_id,
             payload=payload,
-            actor_user_id=actor.id,
+            actor_user_id=actor.actor_id,
         )
     )
 
@@ -186,14 +197,16 @@ async def publish_notification_campaign(
 async def cancel_notification_campaign(
     campaign_id: PublicUUID,
     payload: NotificationCampaignRevisionRequest,
-    actor: Annotated[User, Depends(require_super_admin)],
+    actor: Annotated[
+        PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.MESSAGES_CAMPAIGNS_MANAGE)
+    ],
     service: Annotated[NotificationCampaignMutationService, Depends(get_campaign_mutation_service)],
 ) -> ResponseModel[NotificationCampaignCancellationOut]:
     return ApiResponse.success(
         data=await service.cancel_campaign(
             campaign_id=campaign_id,
             expected_revision=payload.expected_revision,
-            actor_user_id=actor.id,
+            actor_user_id=actor.actor_id,
         )
     )
 
@@ -202,6 +215,7 @@ async def cancel_notification_campaign(
     "/campaigns/{campaign_id}/deliveries",
     response_model=ResponseModel[PageData[NotificationDeliveryOut]],
     summary="List a notification campaign delivery ledger",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_CAMPAIGNS_READ)],
 )
 async def list_notification_campaign_deliveries(
     campaign_id: PublicUUID,
@@ -226,7 +240,9 @@ async def list_notification_campaign_deliveries(
 )
 async def retry_notification_campaign_failures(
     campaign_id: PublicUUID,
-    actor: Annotated[User, Depends(require_super_admin)],
+    actor: Annotated[
+        PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.MESSAGES_DELIVERY_RETRY)
+    ],
     service: Annotated[NotificationCampaignMutationService, Depends(get_campaign_mutation_service)],
     idempotency_key: Annotated[str, Header(alias="Idempotency-Key", min_length=1, max_length=128)],
 ) -> ResponseModel[NotificationCampaignRetryOut]:
@@ -234,7 +250,7 @@ async def retry_notification_campaign_failures(
         data=await service.retry_failures(
             campaign_id=campaign_id,
             idempotency_key=idempotency_key,
-            actor_user_id=actor.id,
+            actor_user_id=actor.actor_id,
         )
     )
 
@@ -247,13 +263,15 @@ async def retry_notification_campaign_failures(
 async def archive_notification_campaign(
     campaign_id: PublicUUID,
     payload: NotificationCampaignRevisionRequest,
-    actor: Annotated[User, Depends(require_super_admin)],
+    actor: Annotated[
+        PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.MESSAGES_CAMPAIGNS_MANAGE)
+    ],
     service: Annotated[NotificationCampaignMutationService, Depends(get_campaign_mutation_service)],
 ) -> ResponseModel[NotificationCampaignSummaryOut]:
     return ApiResponse.success(
         data=await service.archive_campaign(
             campaign_id=campaign_id,
             expected_revision=payload.expected_revision,
-            actor_user_id=actor.id,
+            actor_user_id=actor.actor_id,
         )
     )

@@ -1,0 +1,12 @@
+{
+  "LABEL": "Saved views",
+  "DEFAULT_VIEW": "Default view",
+  "UNSAVED": "Unsaved changes",
+  "SAVE_AS": "Save view",
+  "UPDATE": "Update view",
+  "DELETE": "Delete view",
+  "NAME": "View name",
+  "APPLYING": "Applying saved view…",
+  "OMISSIONS_TITLE": "Some saved conditions were not applied",
+  "OMISSIONS_DESCRIPTION": "Unavailable, invalid, or unauthorized saved conditions were omitted from this view."
+}

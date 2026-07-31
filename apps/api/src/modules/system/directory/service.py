@@ -14,7 +14,6 @@ from src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
 from src.core.http.pagination import PageData, PageParams
 from src.core.i18n import t
 from src.core.services import BaseService
-from src.models.organization.org_membership import OrgRole
 from src.models.organization.user import User, UserStatus
 from src.models.system.access_restriction import (
     AccessRestrictionEntityType,
@@ -37,13 +36,11 @@ from src.modules.auth.tokens.service import hash_password
 from src.modules.auth.two_factor.service import AuthTwoFactorService
 from src.modules.commerce.schema import WorkspaceCommerceDirectoryOut
 from src.modules.organization.settings.service import OrganizationSettingsService
-from src.modules.organization.workspaces.service import OrganizationWorkspaceService
 from src.modules.projects.schema import ProjectUpdateRequest
-from src.modules.projects.service import ProjectService
+from src.modules.projects.service import build_project_service
 from src.modules.system.directory.repository import SystemDirectoryRepository
 from src.modules.system.directory.schema import (
     DirectoryActorSummaryOut,
-    DirectoryDeleteRequest,
     DirectoryProjectDetailOut,
     DirectoryProjectListFilters,
     DirectoryProjectListItemOut,
@@ -64,7 +61,6 @@ from src.modules.system.directory.schema import (
     DirectoryWorkspaceListItemOut,
     DirectoryWorkspaceUpdateRequest,
 )
-from src.modules.system.rbac.constants.service import ROLE_OWNER
 from src.modules.workspaces.schema import WorkspaceUpdateRequest
 from src.modules.workspaces.service import WorkspaceService
 from src.platform.cache.valkey import ValkeyClientLike
@@ -126,9 +122,8 @@ class SystemDirectoryService(BaseService):
         self.auth_service = AuthService(settings, valkey=valkey, user_repo=self.user_repo)
         self.two_factor_service = AuthTwoFactorService(settings)
         self.workspace_service = WorkspaceService(settings)
-        self.project_service = ProjectService(settings)
+        self.project_service = build_project_service(settings)
         self.organization_settings_service = OrganizationSettingsService(settings)
-        self.organization_workspace_service = OrganizationWorkspaceService(settings)
         self.commerce_projection_reader = commerce_projection_reader
         self.project_projection_reader = project_projection_reader
         restriction_repository = AccessRestrictionRepository()
@@ -215,14 +210,7 @@ class SystemDirectoryService(BaseService):
                     for binding in (getattr(membership, "membership_roles", None) or [])
                     if getattr(binding, "role", None) is not None
                 }),
-                is_owner=(
-                    membership.workspace.owner_user_id == user_id
-                    or any(
-                        binding.role.code == ROLE_OWNER
-                        for binding in (getattr(membership, "membership_roles", None) or [])
-                        if getattr(binding, "role", None) is not None
-                    )
-                ),
+                is_owner=(membership.workspace.owner_user_id == user_id),
                 joined_at=membership.created_at,
             )
             for membership in workspace_memberships
@@ -262,7 +250,6 @@ class SystemDirectoryService(BaseService):
             email=row.email,
             avatar_url=row.avatar_url,
             status=row.status,
-            is_super_admin=bool(row.is_super_admin),
             has_password=has_password_map.get(user_id, False),
             two_factor_enabled=user_id in two_factor_enabled_set,
             linked_oauth_providers=linked_oauth_providers_map.get(user_id, []),
@@ -336,7 +323,6 @@ class SystemDirectoryService(BaseService):
                 email=row.email,
                 avatar_url=row.avatar_url,
                 status=row.status,
-                is_super_admin=bool(row.is_super_admin),
                 has_password=has_password_map.get(UUID(str(row.id)), False),
                 two_factor_enabled=UUID(str(row.id)) in two_factor_enabled_set,
                 linked_oauth_providers=linked_oauth_providers_map.get(UUID(str(row.id)), []),
@@ -362,21 +348,11 @@ class SystemDirectoryService(BaseService):
             raise NotFound(error="NOT_FOUND")
         return row
 
-    async def _ensure_super_admin_continuity(self, *, row: User) -> None:
-        if not row.is_super_admin or row.status != UserStatus.ACTIVE:
-            return
-        if await self.repo.count_active_super_admins() <= 1:
-            raise Conflict(
-                message=t("errors", "LAST_ACTIVE_SUPER_ADMIN"),
-                error="LAST_ACTIVE_SUPER_ADMIN",
-            )
-
     async def update_user(
         self,
         *,
         user_id: UUID,
         payload: DirectoryUserUpdateRequest,
-        acting_user_id: UUID,
     ) -> DirectoryUserDetailOut:
         row = await self.require_user(user_id=user_id)
 
@@ -389,16 +365,6 @@ class SystemDirectoryService(BaseService):
             updates["email"] = email
         if "display_name" in model_fields_set:
             updates["display_name"] = payload.display_name
-        if "is_super_admin" in model_fields_set and payload.is_super_admin is not None:
-            is_super_admin = bool(payload.is_super_admin)
-            if row.id == acting_user_id and not is_super_admin:
-                raise BadRequest(
-                    message=t("errors", "CANNOT_REVOKE_SELF_SUPER_ADMIN"),
-                    error="CANNOT_REVOKE_SELF_SUPER_ADMIN",
-                )
-            if row.is_super_admin and not is_super_admin:
-                await self._ensure_super_admin_continuity(row=row)
-            updates["is_super_admin"] = is_super_admin
         if "avatar_asset_id" in model_fields_set:
             avatar_asset_id = payload.avatar_asset_id
             if avatar_asset_id is None:
@@ -493,8 +459,6 @@ class SystemDirectoryService(BaseService):
             raise NotFound(error="NOT_FOUND")
         if row.id == acting_user_id and not enabled:
             raise BadRequest(message=t("errors", "CANNOT_DISABLE_SELF"), error="CANNOT_DISABLE_SELF")
-        if not enabled:
-            await self._ensure_super_admin_continuity(row=row)
 
         target = UserStatus.ACTIVE if enabled else UserStatus.DISABLED
         async with self.tx() as conn:
@@ -570,7 +534,6 @@ class SystemDirectoryService(BaseService):
             raise NotFound(error="NOT_FOUND")
         if row.id == acting_user_id:
             raise BadRequest(message=t("errors", "CANNOT_DELETE_SELF"), error="CANNOT_DELETE_SELF")
-        await self._ensure_super_admin_continuity(row=row)
 
         await self._delete_owned_entities_for_user(user_id=user_id)
         await self.auth_service.invalidate_user_sessions(user=row)
@@ -959,39 +922,6 @@ class SystemDirectoryService(BaseService):
                 project_id=project_id,
             )
         return await self.get_project_detail(project_id=project_id)
-
-    async def delete_project(
-        self,
-        *,
-        project_id: UUID,
-        payload: DirectoryDeleteRequest,
-        acting_user_id: UUID,
-    ) -> None:
-        row = await self.repo.get_project_by_id(project_id=project_id)
-        if row is None:
-            raise NotFound(error="NOT_FOUND")
-        normalized_confirm_name = str(payload.confirm_name or "").strip()
-        if normalized_confirm_name != str(row.name):
-            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="PROJECT_DELETE_CONFIRM_NAME_MISMATCH")
-        await self.project_service.delete_project(project_id=project_id, actor_user_id=acting_user_id)
-
-    async def delete_workspace(
-        self,
-        *,
-        workspace_id: UUID,
-        payload: DirectoryDeleteRequest,
-        acting_user_id: UUID,
-    ) -> None:
-        row = await self.repo.get_workspace_by_id(workspace_id=workspace_id)
-        if row is None:
-            raise NotFound(error="NOT_FOUND")
-        await self.organization_workspace_service.delete_workspace(
-            organization_id=UUID(str(row.organization_id)),
-            workspace_id=workspace_id,
-            user_id=acting_user_id,
-            org_role=OrgRole.OWNER,
-            confirm_name=payload.confirm_name,
-        )
 
     async def _delete_owned_entities_for_user(self, *, user_id: UUID) -> None:
         project_ids = await self.repo.list_created_project_ids_by_user(user_id=user_id)

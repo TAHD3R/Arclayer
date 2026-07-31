@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { useAui } from "@assistant-ui/react";
 import { BlocksIcon } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -13,7 +14,6 @@ import {
   AIComposerSkillPanelContent,
   type AIComposerSkillOption,
 } from "@/components/ai/ai-composer-skill-panel";
-import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
@@ -73,7 +73,7 @@ export function AIComposerSkillMenu(props: {
 }) {
   const { t } = useTranslation("ai");
   const aui = useAui();
-  const settingsScreen = useSettingsScreen();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const { isError, isLoading, skills, workspaceId } = useEnabledAIComposerSkills({ enabled: open });
 
@@ -123,15 +123,12 @@ export function AIComposerSkillMenu(props: {
           onSelectSkill={selectSkill}
           onManage={() => {
             setOpen(false);
-            settingsScreen.openSettings({ screen: "workspace.skills" });
+            void navigate({ to: "/customization/skills" });
           }}
           onCreate={createSkillWithArclayer}
           onImport={() => {
             setOpen(false);
-            settingsScreen.openSettings({
-              screen: "workspace.skills",
-              payload: { skillAction: "import" },
-            });
+            void navigate({ to: "/customization/skills", search: { action: "import" } });
           }}
         />
       </DropdownMenuContent>

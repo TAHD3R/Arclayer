@@ -7,35 +7,9 @@ Operational command surface for Arclayer.
 ```bash
 pnpm -C packages/cli build
 node packages/cli/dist/bin.js --help
-node packages/cli/dist/bin.js config dump --api-url http://localhost:8000 --token "$ARCLAYER_TOKEN" --out arclayer-config.json
-node packages/cli/dist/bin.js config restore --api-url http://localhost:8000 --token "$ARCLAYER_TOKEN" --file arclayer-config.json
 ```
 
 ## Commands
-
-### `config dump`
-
-Reads system settings namespaces through the generated OpenAPI client and writes a JSON dump.
-
-Required options:
-
-- `--api-url <url>`
-- `--token <bearer-token>`
-
-Optional options:
-
-- `--out <file>` writes to a file. Without it, JSON is printed to stdout.
-- `--page-size <number>` controls namespace pagination.
-
-### `config restore`
-
-Reads a dump created by `config dump` and patches each namespace through the generated OpenAPI client.
-
-Required options:
-
-- `--api-url <url>`
-- `--token <bearer-token>`
-- `--file <file>`
 
 ### `content export` and `content import`
 

@@ -1,4 +1,4 @@
-import { MoreVertical, Plus, UserCheck, UserCog, UserX } from "lucide-react";
+import { BadgeCheck, MoreVertical, Plus, UserCheck, UserCog, UserX } from "lucide-react";
 import * as React from "react";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -9,11 +9,13 @@ import { SettingsSectionAnchor } from "@/components/layout/settings-screen-provi
 import { DataTableInfiniteScrollFooter } from "@/components/common/data-table-infinite-scroll-footer";
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
+import { useWorkspaceRolesAccess } from "@/hooks/use-workspace-roles-access";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { EditMemberRolesDialog } from "@/pages/workspaces/team/shared/components/edit-member-roles-dialog";
 import { InviteMembersDialog } from "@/pages/workspaces/team/shared/components/invite-members-dialog";
+import { MemberFeatureAccessDialog } from "@/pages/workspaces/team/members/components/member-feature-access-dialog";
 import { MemberIdentityCell } from "@/pages/workspaces/team/shared/components/member-identity-cell";
 import { SettingsTableRefreshSkeleton } from "@/pages/workspaces/team/shared/components/settings-table-refresh-skeleton";
 import {
@@ -42,6 +44,7 @@ import {
 } from "@arclayer/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { resolveWorkspaceName } from "../utils";
+import { useMemberFeatureAccess } from "../use-member-feature-access";
 
 function teamMembersSettingsQueryKeyPrefix(workspaceId: string | null | undefined) {
   return ["team-members-settings", workspaceId ? String(workspaceId) : null] as const;
@@ -55,13 +58,15 @@ export function TeamMembersView(props: {
   onInviteOpenChange?: (open: boolean) => void;
   embedded?: boolean;
 }) {
-  const { t } = useTranslation(["team", "common"]);
+  const { t } = useTranslation(["team", "common", "featureAccess"]);
 
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const workspaceIdFromStore = useWorkspaceStore((s) => s.currentWorkspaceId);
   const workspaceId = props.workspaceIdOverride ?? workspaceIdFromStore;
+  const rolesAccess = useWorkspaceRolesAccess(workspaceId ? String(workspaceId) : null);
+  const roleManagementAvailable = rolesAccess.status === "available";
   const [sort, setSort] = React.useState<TeamMemberSort>(DEFAULT_TEAM_MEMBER_SORT);
   const [searchInput, setSearchInput] = React.useState("");
 
@@ -78,6 +83,10 @@ export function TeamMembersView(props: {
     meta: { silent: true },
   });
   const currentUserId = meQuery.data?.id ?? null;
+  const featureAccess = useMemberFeatureAccess({
+    workspaceId: workspaceId ? String(workspaceId) : null,
+    currentUserId: currentUserId ? String(currentUserId) : null,
+  });
 
   const workspacesQuery = useQuery({
     queryKey: ["me", "workspaces", sessionVersion],
@@ -100,7 +109,7 @@ export function TeamMembersView(props: {
 
   const rolesQuery = useQuery({
     queryKey: ["rbac", "roles", "list", workspaceId],
-    enabled: Boolean(workspaceId),
+    enabled: Boolean(workspaceId) && roleManagementAvailable,
     queryFn: async () => listWorkspaceRoles(String(workspaceId), { size: 200 }),
     staleTime: 60 * 1000,
     retry: false,
@@ -119,7 +128,10 @@ export function TeamMembersView(props: {
   const [editingMember, setEditingMember] = React.useState<TeamMember | null>(null);
   const [editingRoleCode, setEditingRoleCode] = React.useState<string | null>(null);
   const hydratedSearchRef = React.useRef<string | null>(null);
-  const canEditRoles = Boolean(editingMember) && editingMember?.membershipStatus === "active";
+  const canEditRoles =
+    Boolean(editingMember) &&
+    !editingMember?.isOwner &&
+    editingMember?.membershipStatus === "active";
   const membersSettingsQueryKeyPrefix = teamMembersSettingsQueryKeyPrefix(workspaceId);
 
   const invalidateMembersQuery = React.useCallback(() => {
@@ -199,10 +211,14 @@ export function TeamMembersView(props: {
 
   const renderMemberActions = React.useCallback(
     (member: TeamMember) => {
-      const canEnable = member.membershipStatus === "disabled";
-      const canDisable = member.membershipStatus === "active";
+      const canEnable = !member.isOwner && member.membershipStatus === "disabled";
+      const canDisable = !member.isOwner && member.membershipStatus === "active";
       const isSelf = currentUserId ? String(currentUserId) === String(member.userId) : false;
-      const canEditMemberRoles = member.membershipStatus === "active";
+      const canEditMemberRoles =
+        roleManagementAvailable && !member.isOwner && member.membershipStatus === "active";
+      const featureAccessAction = featureAccess.actionStateFor(member);
+
+      if (member.isOwner && featureAccessAction === "hidden") return null;
 
       return (
         <DropdownMenu>
@@ -212,17 +228,39 @@ export function TeamMembersView(props: {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuIconItem
-              icon={<UserCog className="size-4" />}
-              disabled={!canEditMemberRoles || rolesQueryFailed}
-              onSelect={() => {
-                setEditingMember(member);
-                setEditingRoleCode(member.roleCodes?.[0] ?? null);
-              }}
-            >
-              {t("team:TEAM_ACTION_EDIT_ROLES")}
-            </DropdownMenuIconItem>
-            <DropdownMenuSeparator />
+            {featureAccessAction !== "hidden" ? (
+              <>
+                <DropdownMenuIconItem
+                  icon={<BadgeCheck className="size-4" />}
+                  disabled={featureAccessAction === "loading" || featureAccessAction === "error"}
+                  onSelect={() => featureAccess.openForMember(member)}
+                >
+                  {featureAccessAction === "loading"
+                    ? t("featureAccess:ACTION_LOADING")
+                    : featureAccessAction === "error"
+                      ? t("featureAccess:ACTION_UNAVAILABLE")
+                      : featureAccessAction === "manage"
+                        ? t("featureAccess:MANAGE")
+                        : t("featureAccess:VIEW")}
+                </DropdownMenuIconItem>
+                {!member.isOwner ? <DropdownMenuSeparator /> : null}
+              </>
+            ) : null}
+            {roleManagementAvailable ? (
+              <>
+                <DropdownMenuIconItem
+                  icon={<UserCog className="size-4" />}
+                  disabled={!canEditMemberRoles || rolesQueryFailed}
+                  onSelect={() => {
+                    setEditingMember(member);
+                    setEditingRoleCode(member.roleCodes?.[0] ?? null);
+                  }}
+                >
+                  {t("team:TEAM_ACTION_EDIT_ROLES")}
+                </DropdownMenuIconItem>
+                <DropdownMenuSeparator />
+              </>
+            ) : null}
             <DropdownMenuIconItem
               icon={<UserCheck className="size-4" />}
               disabled={!canEnable}
@@ -244,7 +282,15 @@ export function TeamMembersView(props: {
         </DropdownMenu>
       );
     },
-    [currentUserId, enableMutation, disableMutation, rolesQueryFailed, t],
+    [
+      currentUserId,
+      disableMutation,
+      enableMutation,
+      featureAccess,
+      roleManagementAvailable,
+      rolesQueryFailed,
+      t,
+    ],
   );
 
   const pageToolbar = (
@@ -306,7 +352,7 @@ export function TeamMembersView(props: {
                     {t("team:TEAM_TABLE_COL_USER")}
                   </th>
                   <th className="w-1/4 px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
-                    {t("team:TEAM_TABLE_COL_ROLES")}
+                    {t("team:TEAM_TABLE_COL_ACCESS")}
                   </th>
                   <th className="w-1/4 px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
                     {t("team:TEAM_TABLE_COL_STATUS")}
@@ -318,14 +364,21 @@ export function TeamMembersView(props: {
               </thead>
               <tbody>
                 {rows.map((member) => {
-                  const roleSummary =
-                    member.roleCodes.length <= 1
-                      ? (roleNameByCode.get(member.roleCodes[0] ?? "") ??
-                        member.roleCodes[0] ??
-                        "-")
-                      : t("team:TEAM_MEMBER_CONTEXT_MULTIPLE_ROLES", {
-                          count: member.roleCodes.length,
-                        });
+                  const roleSummary = member.isOwner
+                    ? t("team:TEAM_MEMBER_OWNER")
+                    : rolesAccess.status === "unavailable"
+                      ? t("team:TEAM_MEMBER_FIXED_ACCESS")
+                      : rolesAccess.status === "loading"
+                        ? t("team:TEAM_ACCESS_CHECKING")
+                        : rolesAccess.status === "error"
+                          ? t("team:TEAM_ACCESS_UNAVAILABLE")
+                          : member.roleCodes.length <= 1
+                            ? (roleNameByCode.get(member.roleCodes[0] ?? "") ??
+                              member.roleCodes[0] ??
+                              "-")
+                            : t("team:TEAM_MEMBER_CONTEXT_MULTIPLE_ROLES", {
+                                count: member.roleCodes.length,
+                              });
                   const hoverStatusLabel =
                     member.userStatus === "active"
                       ? t("team:TEAM_USER_STATUS_ACTIVE")
@@ -363,16 +416,41 @@ export function TeamMembersView(props: {
                                 />
                               </>
                             }
-                            description={t("team:TEAM_MEMBER_CONTEXT_HOVER_SUMMARY", {
-                              roleCount: member.roleCodes.length,
-                            })}
+                            description={
+                              !member.isOwner && rolesAccess.status === "unavailable"
+                                ? t("team:TEAM_MEMBER_FIXED_ACCESS_DESC")
+                                : t("team:TEAM_MEMBER_CONTEXT_HOVER_SUMMARY", {
+                                    roleCount: member.roleCodes.length,
+                                  })
+                            }
                             className="min-w-0 flex-1"
                           />
                           <div className="shrink-0">{renderMemberActions(member)}</div>
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        {member.roleCodes.length ? (
+                        {member.isOwner ? (
+                          <span className="font-medium text-label-primary">
+                            {t("team:TEAM_MEMBER_OWNER")}
+                          </span>
+                        ) : rolesAccess.status === "unavailable" ? (
+                          <div>
+                            <div className="font-medium text-label-primary">
+                              {t("team:TEAM_MEMBER_FIXED_ACCESS")}
+                            </div>
+                            <div className="mt-1 text-callout text-label-secondary">
+                              {t("team:TEAM_MEMBER_FIXED_ACCESS_DESC")}
+                            </div>
+                          </div>
+                        ) : rolesAccess.status === "loading" ? (
+                          <span className="text-label-secondary">
+                            {t("team:TEAM_ACCESS_CHECKING")}
+                          </span>
+                        ) : rolesAccess.status === "error" ? (
+                          <span className="text-destructive">
+                            {t("team:TEAM_ACCESS_UNAVAILABLE")}
+                          </span>
+                        ) : member.roleCodes.length ? (
                           <div className="flex flex-wrap gap-1">
                             {member.roleCodes.slice(0, 3).map((code: string) => (
                               <TeamRoleTag
@@ -446,30 +524,34 @@ export function TeamMembersView(props: {
         ) : null}
       </ContentGuard>
 
-      <EditMemberRolesDialog
-        open={Boolean(editingMember)}
-        onOpenChange={(open) => {
-          if (!open) {
-            setEditingMember(null);
-            setEditingRoleCode(null);
-          }
-        }}
-        member={editingMember}
-        roles={rolesQuery.data?.items ?? []}
-        rolesLoading={rolesQuery.isLoading}
-        value={editingRoleCode}
-        onChange={setEditingRoleCode}
-        confirmLoading={updateRolesMutation.isPending}
-        confirmDisabled={!canEditRoles}
-        onConfirm={() => {
-          if (!editingMember) return;
-          if (!canEditRoles) return;
-          updateRolesMutation.mutate({
-            membershipId: editingMember.membershipId,
-            roleCodes: editingRoleCode ? [editingRoleCode] : [],
-          });
-        }}
-      />
+      {roleManagementAvailable ? (
+        <EditMemberRolesDialog
+          open={Boolean(editingMember)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingMember(null);
+              setEditingRoleCode(null);
+            }
+          }}
+          member={editingMember}
+          roles={rolesQuery.data?.items ?? []}
+          rolesLoading={rolesQuery.isLoading}
+          value={editingRoleCode}
+          onChange={setEditingRoleCode}
+          confirmLoading={updateRolesMutation.isPending}
+          confirmDisabled={!canEditRoles}
+          onConfirm={() => {
+            if (!editingMember) return;
+            if (!canEditRoles) return;
+            updateRolesMutation.mutate({
+              membershipId: editingMember.membershipId,
+              roleCodes: editingRoleCode ? [editingRoleCode] : [],
+            });
+          }}
+        />
+      ) : null}
+
+      <MemberFeatureAccessDialog {...featureAccess.dialogProps} />
 
       <InviteMembersDialog
         open={inviteOpen}
@@ -477,6 +559,7 @@ export function TeamMembersView(props: {
         mode="email"
         workspaceId={String(workspaceId || "")}
         workspaceName={workspaceName}
+        roleManagementAvailable={roleManagementAvailable}
         roles={rolesQuery.data?.items ?? []}
         rolesLoading={rolesQuery.isLoading}
         onInvited={() => void invalidateMembersQuery()}
@@ -501,7 +584,10 @@ export function TeamMembersView(props: {
       contentClassName="min-h-0 flex flex-col"
       extra={pageToolbar}
       action={
-        <Button onClick={() => setInviteOpen(true)}>
+        <Button
+          disabled={rolesAccess.status === "loading" || rolesAccess.status === "error"}
+          onClick={() => setInviteOpen(true)}
+        >
           <Plus size={16} />
           {t("team:TEAM_INVITE_MEMBER")}
         </Button>

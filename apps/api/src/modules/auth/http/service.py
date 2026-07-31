@@ -75,17 +75,6 @@ async def get_current_user(
     return user
 
 
-async def require_super_admin(
-    user: User = Depends(get_current_user),
-) -> User:
-    if not bool(getattr(user, "is_super_admin", False)):
-        raise Forbidden(
-            message=t("errors", "PERMISSION_DENIED"),
-            error="SUPER_ADMIN_REQUIRED",
-        )
-    return user
-
-
 async def get_current_user_id(
     user: User = Depends(get_current_user),
 ) -> UUID:

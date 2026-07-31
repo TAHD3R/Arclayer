@@ -29,6 +29,9 @@
     "test": {
       "outputs": []
     },
+    "locale:check": {
+      "outputs": []
+    },
     "test:integration": {
       "cache": false
     },

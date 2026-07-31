@@ -9,8 +9,8 @@ from src.config import get_settings
 from src.core.exceptions import init_exception_handlers
 from src.models.storage.storage_profile import StorageProfileTestState
 from src.models.system.setting import SettingRecord
-from src.modules.auth.http.service import get_current_user, require_super_admin
-from src.modules.system.router import router as system_router
+from src.modules.platform_identity.http import get_current_platform_session
+from src.modules.system.storage_profiles.router import router as storage_profiles_router
 from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 from src.settings.runtime import invalidate_core_settings_cache
 from src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
@@ -28,17 +28,16 @@ async def test_storage_profiles_crud_and_runtime_reference(prepared_db, tmp_path
 
     app = FastAPI()
     init_exception_handlers(app, get_settings())
-    app.include_router(system_router, prefix="/api/v1/system")
+    app.include_router(storage_profiles_router, prefix="/platform-api/v1/storage-profiles")
 
-    async def _super_admin():
-        return SimpleNamespace(id=SYSTEM_SCOPE_ID, is_super_admin=True)
+    async def _platform_owner():
+        return SimpleNamespace(actor_id=SYSTEM_SCOPE_ID, is_instance_owner=True)
 
-    app.dependency_overrides[get_current_user] = _super_admin
-    app.dependency_overrides[require_super_admin] = _super_admin
+    app.dependency_overrides[get_current_platform_session] = _platform_owner
 
     async with asgi_client(app) as client:
         rejected_legacy_authority = await client.post(
-            "/api/v1/system/storage-profiles",
+            "/platform-api/v1/storage-profiles",
             json={
                 "profileKey": "local-main",
                 "provider": "local",
@@ -50,7 +49,7 @@ async def test_storage_profiles_crud_and_runtime_reference(prepared_db, tmp_path
         assert rejected_legacy_authority.status_code == 422
 
         create = await client.post(
-            "/api/v1/system/storage-profiles",
+            "/platform-api/v1/storage-profiles",
             json={
                 "profileKey": "local-main",
                 "provider": "local",
@@ -79,14 +78,14 @@ async def test_storage_profiles_crud_and_runtime_reference(prepared_db, tmp_path
         )
         invalidate_core_settings_cache()
 
-        listed = await client.get("/api/v1/system/storage-profiles")
+        listed = await client.get("/platform-api/v1/storage-profiles")
         assert listed.status_code == 200
         items = listed.json()["data"]["items"]
         assert any(item["profileKey"] == "local-main" and item["isDefault"] is True for item in items)
         assert any(item["profileKey"] == "env-default" for item in items)
 
         patched = await client.patch(
-            f"/api/v1/system/storage-profiles/{profile_id}",
+            f"/platform-api/v1/storage-profiles/{profile_id}",
             json={
                 "displayName": "Local Primary",
                 "config": {
@@ -102,18 +101,18 @@ async def test_storage_profiles_crud_and_runtime_reference(prepared_db, tmp_path
         assert patched_data["config"]["publicDeliveryMode"] == "direct"
         assert patched_data["secrets"]["secretAccessKey"] is True
 
-        tested = await client.post(f"/api/v1/system/storage-profiles/{profile_id}/test")
+        tested = await client.post(f"/platform-api/v1/storage-profiles/{profile_id}/test")
         assert tested.status_code == 200
         assert tested.json()["data"]["ok"] is True
         assert await StorageProfileTestState.filter(profile_key="local-main").exists()
 
-        env_default_tested = await client.post("/api/v1/system/storage-profiles/by-key/env-default/test")
+        env_default_tested = await client.post("/platform-api/v1/storage-profiles/by-key/env-default/test")
         assert env_default_tested.status_code == 200
         env_default_result = env_default_tested.json()["data"]
         assert env_default_result["ok"] is True, env_default_result["message"]
         assert await StorageProfileTestState.filter(profile_key="env-default").exists()
 
-        listed_after_tests = await client.get("/api/v1/system/storage-profiles")
+        listed_after_tests = await client.get("/platform-api/v1/storage-profiles")
         assert listed_after_tests.status_code == 200
         state_by_key = {
             item["profileKey"]: item
@@ -126,14 +125,14 @@ async def test_storage_profiles_crud_and_runtime_reference(prepared_db, tmp_path
         assert state_by_key["env-default"]["lastTestedAt"]
 
         invalid_id_tested = await client.post(
-            "/api/v1/system/storage-profiles/00000000-0000-0000-0000-000000000000/test"
+            "/platform-api/v1/storage-profiles/00000000-0000-0000-0000-000000000000/test"
         )
         assert invalid_id_tested.status_code == 400
         assert invalid_id_tested.json()["error"] == "INVALID_STORAGE_PROFILE_ID"
         assert "traceback" not in invalid_id_tested.text.lower()
 
         s3_create = await client.post(
-            "/api/v1/system/storage-profiles",
+            "/platform-api/v1/storage-profiles",
             json={
                 "profileKey": "rustfs-main",
                 "provider": "aws_s3",
@@ -153,7 +152,7 @@ async def test_storage_profiles_crud_and_runtime_reference(prepared_db, tmp_path
         assert s3_create.status_code == 200
         assert s3_create.json()["data"]["config"]["endpointUrl"] == "http://127.0.0.1:9000"
 
-        blocked = await client.delete(f"/api/v1/system/storage-profiles/{profile_id}")
+        blocked = await client.delete(f"/platform-api/v1/storage-profiles/{profile_id}")
         assert blocked.status_code == 400
         assert blocked.json()["error"] == "STORAGE_PROFILE_IN_USE"
 
@@ -166,7 +165,7 @@ async def test_storage_profiles_crud_and_runtime_reference(prepared_db, tmp_path
         assert runtime_record.value["storage"]["default_profile_key"] == "local-main"
 
         rejected_profile_authority = await client.patch(
-            f"/api/v1/system/storage-profiles/{profile_id}",
+            f"/platform-api/v1/storage-profiles/{profile_id}",
             json={"isDefault": False},
         )
         assert rejected_profile_authority.status_code == 422
@@ -175,6 +174,6 @@ async def test_storage_profiles_crud_and_runtime_reference(prepared_db, tmp_path
         await runtime_record.save(update_fields=["value", "updated_at"])
         invalidate_core_settings_cache()
 
-        deleted = await client.delete(f"/api/v1/system/storage-profiles/{profile_id}")
+        deleted = await client.delete(f"/platform-api/v1/storage-profiles/{profile_id}")
         assert deleted.status_code == 200
         assert deleted.json()["data"]["deleted"] is True

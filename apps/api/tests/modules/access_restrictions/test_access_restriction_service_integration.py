@@ -88,6 +88,7 @@ async def test_access_restriction_revision_idempotency_and_public_boundary() -> 
             payload=_enforce_request(0, "Stale revision must not overwrite state."),
         )
     assert revision_conflict.value.error == "ACCESS_RESTRICTION_REVISION_CONFLICT"
+    assert revision_conflict.value.meta is not None
     assert revision_conflict.value.meta["currentRevision"] == 1
 
     lifted = await service.lift(
@@ -125,6 +126,7 @@ async def test_access_restriction_revision_idempotency_and_public_boundary() -> 
             restriction_types=[AccessRestrictionType.PROJECT_SUSPENDED],
         )
     assert denied.value.error == "PROJECT_SUSPENDED"
+    assert denied.value.meta is not None
     public_restriction = denied.value.meta["restriction"]
     assert public_restriction["revision"] == 3
     assert "operatorNote" not in public_restriction

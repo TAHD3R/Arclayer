@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -8,6 +9,12 @@ from httpx import ASGITransport, AsyncClient
 from src.config import get_settings
 from src.core.database.orm import verify_db_ready
 from src.core.registry import create_app
+from src.models.commerce.billing import (
+    CommercePlan,
+    CommercePlanRevision,
+    CreditRefreshInterval,
+    PlanRevisionStatus,
+)
 from src.models.organization.organization import Organization
 from src.models.organization.user import User
 from src.models.workspaces.workspace import Workspace
@@ -27,13 +34,35 @@ async def _csrf_headers(client: AsyncClient) -> dict[str, str]:
     return {"Origin": _CSRF_ORIGIN, "X-CSRF-Token": token}
 
 
+async def _create_free_revision() -> None:
+    plan = await CommercePlan.create(code="free", is_active=True, sort_order=10)
+    await CommercePlanRevision.create(
+        plan_id=plan.id,
+        sequence=1,
+        status=PlanRevisionStatus.PUBLISHED,
+        name_i18n_key="commerce:PLAN_FREE_NAME",
+        description_i18n_key="commerce:PLAN_FREE_DESCRIPTION",
+        credit_grant_amount=70,
+        credit_refresh_interval=CreditRefreshInterval.DAILY,
+        credit_value_micros=1_000,
+        currency="USD",
+        content_hash=uuid4().hex,
+        published_at=datetime.now(UTC),
+        is_selling=True,
+    )
+
+
 async def test_manage_workspace_create_returns_persisted_workspace_without_kind(
     prepared_db,
     integration_valkey_settings,
+    monkeypatch,
 ) -> None:
     _ = prepared_db
     _ = integration_valkey_settings
 
+    monkeypatch.setenv("SECURITY__ENABLED", "1")
+    monkeypatch.setenv("SECURITY__CSRF__ENABLED", "1")
+    get_settings.cache_clear()
     settings = get_settings()
     app = create_app()
     transport = ASGITransport(app=app, raise_app_exceptions=False)
@@ -46,6 +75,7 @@ async def test_manage_workspace_create_returns_persisted_workspace_without_kind(
             display_name="Workspace Owner",
             password_hash=hash_password("workspace_owner_password_123", settings.auth),
         )
+        await _create_free_revision()
 
         async def _get_user() -> User:
             return owner

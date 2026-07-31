@@ -220,10 +220,8 @@ class FakeUserRepository:
         email: str | None,
         display_name: str | None,
         password_hash: str,
-        is_super_admin: bool = False,
         email_verified_at: Any | None = None,
     ) -> FakeUser:
-        _ = is_super_admin
         user = FakeUser(
             id=uuid4(),
             username=username,

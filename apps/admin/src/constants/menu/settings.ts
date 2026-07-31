@@ -1,23 +1,23 @@
 import {
   BadgeInfo,
   Bell,
-  Blocks,
-  BookOpenText,
   ChartPie,
   CircleUserRound,
   MailPlus,
   Paintbrush,
   ShieldCheck,
-  SwatchBook,
   UsersRound,
 } from "lucide-react";
 
-import type { AdminNavItem } from "@/types/admin-nav";
+import type { WorkspaceRolesAccessStatus } from "@/hooks/use-workspace-roles-access";
 import type { SettingsScreen } from "@/lib/settings/settings-screen";
+import type { AdminNavItem } from "@/types/admin-nav";
 
 export type SettingsNavItem = Omit<AdminNavItem, "to"> & {
   screen: SettingsScreen;
   to?: string;
+  unavailable?: boolean;
+  badgeLabelKey?: string;
 };
 
 export const SETTINGS_PERSONAL_NAV_ITEMS: readonly SettingsNavItem[] = [
@@ -62,27 +62,6 @@ export const SETTINGS_WORKSPACE_NAV_ITEMS: readonly SettingsNavItem[] = [
     icon: ChartPie,
   },
   {
-    key: "settings.workspace.knowledge",
-    screen: "workspace.knowledge",
-    label: "Workspace Knowledge",
-    labelKey: "account:SETTINGS_NAV_WORKSPACE_KNOWLEDGE",
-    icon: BookOpenText,
-  },
-  {
-    key: "settings.workspace.skills",
-    screen: "workspace.skills",
-    label: "Workspace Skills",
-    labelKey: "account:SETTINGS_NAV_WORKSPACE_SKILLS",
-    icon: Blocks,
-  },
-  {
-    key: "settings.workspace.design-systems",
-    screen: "workspace.design-systems",
-    label: "Design Systems",
-    labelKey: "account:SETTINGS_NAV_WORKSPACE_DESIGN_SYSTEMS",
-    icon: SwatchBook,
-  },
-  {
     key: "settings.workspace.members",
     screen: "workspace.members",
     label: "Members",
@@ -99,7 +78,7 @@ export const SETTINGS_WORKSPACE_NAV_ITEMS: readonly SettingsNavItem[] = [
   {
     key: "settings.workspace.roles",
     screen: "workspace.roles",
-    label: "Permissions",
+    label: "Roles & Permissions",
     labelKey: "account:SETTINGS_NAV_WORKSPACE_ROLES",
     icon: ShieldCheck,
   },
@@ -109,3 +88,19 @@ export const SETTINGS_NAV_ITEMS: readonly SettingsNavItem[] = [
   ...SETTINGS_PERSONAL_NAV_ITEMS,
   ...SETTINGS_WORKSPACE_NAV_ITEMS,
 ] as const;
+
+export function resolveSettingsNavItems(
+  rolesStatus: WorkspaceRolesAccessStatus,
+): readonly SettingsNavItem[] {
+  if (rolesStatus === "available") return SETTINGS_NAV_ITEMS;
+
+  const badgeLabelKey =
+    rolesStatus === "loading"
+      ? "workspaceAccess:ROLES_ACCESS_CHECKING_BADGE"
+      : rolesStatus === "error"
+        ? "workspaceAccess:ROLES_ACCESS_CHECK_FAILED_BADGE"
+        : "workspaceAccess:ROLES_ELIGIBLE_PLAN_BADGE";
+  return SETTINGS_NAV_ITEMS.map((item) =>
+    item.screen === "workspace.roles" ? { ...item, unavailable: true, badgeLabelKey } : item,
+  );
+}

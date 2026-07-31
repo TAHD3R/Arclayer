@@ -49,6 +49,7 @@ export function InviteMembersDialog(props: {
   mode: InviteMembersDialogMode;
   workspaceId: string;
   workspaceName: string;
+  roleManagementAvailable: boolean;
   roles: Role[];
   rolesLoading?: boolean;
   onInvited?: () => void;
@@ -87,11 +88,13 @@ export function InviteMembersDialog(props: {
           }
         }
       }),
-      roleCode: z.string().min(1, t("team:TEAM_INVITE_VALIDATION_ROLE_REQUIRED")),
+      roleCode: props.roleManagementAvailable
+        ? z.string().min(1, t("team:TEAM_INVITE_VALIDATION_ROLE_REQUIRED"))
+        : z.literal(""),
       expiresInSeconds: z.number().int().min(60).nullable(),
       allowedEmailDomain: z.string().default(""),
     });
-  }, [props.mode, t]);
+  }, [props.mode, props.roleManagementAvailable, t]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -116,7 +119,7 @@ export function InviteMembersDialog(props: {
   }, [form, props.open]);
 
   React.useEffect(() => {
-    if (!props.open) return;
+    if (!props.open || !props.roleManagementAvailable) return;
     const current = form.getValues("roleCode");
     if (current) return;
     if (!props.roles.length) return;
@@ -124,13 +127,15 @@ export function InviteMembersDialog(props: {
     const defaultRole = props.roles.find((role) => role.isDefault) ?? props.roles[0];
     if (!defaultRole) return;
     form.setValue("roleCode", defaultRole.code, { shouldDirty: false });
-  }, [form, props.open, props.roles]);
+  }, [form, props.open, props.roleManagementAvailable, props.roles]);
 
   const inviteMutation = useMutation({
     mutationFn: async (values: FormValues) => {
       const emails = normalizeEmailList(values.emails);
-      const roleCode = values.roleCode;
       const expiresInSeconds = values.expiresInSeconds;
+      const access = props.roleManagementAvailable
+        ? ({ roleCode: values.roleCode } as const)
+        : ({ access: "fixed-member" } as const);
 
       if (props.mode === "email") {
         const results = await Promise.allSettled(
@@ -138,7 +143,7 @@ export function InviteMembersDialog(props: {
             createTeamInvitation({
               workspaceId: props.workspaceId,
               email,
-              roleCode,
+              ...access,
               expiresInSeconds,
             }),
           ),
@@ -162,7 +167,7 @@ export function InviteMembersDialog(props: {
 
       const created = await createTeamInviteLink({
         workspaceId: props.workspaceId,
-        roleCode,
+        ...access,
         expiresInSeconds,
         allowedEmailDomain: values.allowedEmailDomain.trim() || null,
       });
@@ -306,36 +311,52 @@ export function InviteMembersDialog(props: {
             </SettingDialogField>
           ) : null}
 
-          <SettingDialogField
-            title={t("team:TEAM_INVITE_FIELD_ROLE")}
-            description={t("team:TEAM_INVITE_ROLE_HELP")}
-            error={
-              form.formState.errors.roleCode?.message ? (
-                <div className="text-footnote text-destructive">
-                  {String(form.formState.errors.roleCode.message)}
-                </div>
-              ) : undefined
-            }
-          >
-            <Select
-              value={selectedRoleCode ?? ""}
-              onValueChange={(value) =>
-                form.setValue("roleCode", value, { shouldDirty: true, shouldValidate: true })
+          {props.roleManagementAvailable ? (
+            <SettingDialogField
+              title={t("team:TEAM_INVITE_FIELD_ROLE")}
+              description={t("team:TEAM_INVITE_ROLE_HELP")}
+              error={
+                form.formState.errors.roleCode?.message ? (
+                  <div className="text-footnote text-destructive">
+                    {String(form.formState.errors.roleCode.message)}
+                  </div>
+                ) : undefined
               }
-              disabled={props.rolesLoading || inviteMutation.isPending}
             >
-              <SelectTrigger id="invite-role" className="w-full">
-                <SelectValue placeholder={t("team:TEAM_INVITE_FIELD_ROLE_PLACEHOLDER")} />
-              </SelectTrigger>
-              <SelectContent position="popper" align="start">
-                {roleOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </SettingDialogField>
+              <Select
+                value={selectedRoleCode ?? ""}
+                onValueChange={(value) =>
+                  form.setValue("roleCode", value, { shouldDirty: true, shouldValidate: true })
+                }
+                disabled={props.rolesLoading || inviteMutation.isPending}
+              >
+                <SelectTrigger id="invite-role" className="w-full">
+                  <SelectValue placeholder={t("team:TEAM_INVITE_FIELD_ROLE_PLACEHOLDER")} />
+                </SelectTrigger>
+                <SelectContent position="popper" align="start">
+                  {roleOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </SettingDialogField>
+          ) : (
+            <SettingDialogField
+              title={t("team:TEAM_INVITE_FIELD_ACCESS")}
+              description={t("team:TEAM_INVITE_FIXED_ACCESS_HELP")}
+            >
+              <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
+                <div className="font-medium text-label-primary">
+                  {t("team:TEAM_MEMBER_FIXED_ACCESS")}
+                </div>
+                <div className="mt-1 text-callout text-label-secondary">
+                  {t("team:TEAM_MEMBER_FIXED_ACCESS_DESC")}
+                </div>
+              </div>
+            </SettingDialogField>
+          )}
 
           {props.mode === "link" ? (
             <SettingDialogField

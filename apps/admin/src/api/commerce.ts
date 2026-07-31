@@ -1,14 +1,12 @@
 import { api } from "@/lib/http";
 import { toQueryString, workspacePath } from "@/lib/api";
 import type {
-  BillingCycle,
   BillingRedirect,
-  CommercePlan,
-  CommercePlanUpsert,
+  CheckoutSessionCreate,
+  CommercialAccessMemberView,
+  CommercialAccessRecoveryView,
   CreditLedgerEntry,
   PageData,
-  SubscriptionStatus,
-  SystemPlanCatalog,
   WorkspaceCommerceOverview,
   WorkspacePlanCatalog,
 } from "@arclayer/openapi/admin-types";
@@ -16,15 +14,14 @@ import type {
 export type {
   BillingCycle,
   BillingRedirect,
-  CommercePlan,
-  CommercePlanTier,
-  CommercePlanUpsert,
+  CheckoutSessionCreate,
+  CommercialAccessMemberView,
+  CommercialAccessRecoveryView,
+  CommercialAccessState,
+  CommercePlanRevision,
   CreditLedgerEntry,
   CreditLedgerEntryType,
   CreditRefreshInterval,
-  PlanFeature,
-  SubscriptionStatus,
-  SystemPlanCatalog,
   WorkspaceCommerceOverview,
   WorkspacePlanCatalog,
   WorkspacePlanOption,
@@ -39,31 +36,6 @@ export function getWorkspaceCommerceOverview(
   });
 }
 
-export function getSystemWorkspaceCommerceOverview(
-  workspaceId: string,
-  signal?: AbortSignal,
-): Promise<WorkspaceCommerceOverview> {
-  return api.get<WorkspaceCommerceOverview>(
-    `/system/commerce/workspaces/${encodeURIComponent(workspaceId)}/overview`,
-    { signal },
-  );
-}
-
-export function setSystemWorkspaceSubscription(
-  workspaceId: string,
-  payload: {
-    planCode: string;
-    status: SubscriptionStatus;
-    billingInterval: BillingCycle;
-    cancelAtPeriodEnd: boolean;
-  },
-): Promise<WorkspaceCommerceOverview> {
-  return api.put<WorkspaceCommerceOverview>(
-    `/system/commerce/workspaces/${encodeURIComponent(workspaceId)}/subscription`,
-    payload,
-  );
-}
-
 export function listWorkspaceCommercePlans(
   workspaceId: string,
   signal?: AbortSignal,
@@ -73,9 +45,28 @@ export function listWorkspaceCommercePlans(
   });
 }
 
+export function getWorkspaceCommercialAccess(
+  workspaceId: string,
+  signal?: AbortSignal,
+): Promise<CommercialAccessMemberView> {
+  return api.get<CommercialAccessMemberView>(workspacePath(workspaceId, "/commerce/access"), {
+    signal,
+  });
+}
+
+export function getWorkspacePaymentRecovery(
+  workspaceId: string,
+  signal?: AbortSignal,
+): Promise<CommercialAccessRecoveryView> {
+  return api.get<CommercialAccessRecoveryView>(
+    workspacePath(workspaceId, "/commerce/payment-recovery"),
+    { signal },
+  );
+}
+
 export function createWorkspaceCheckoutSession(
   workspaceId: string,
-  payload: { planCode: string; billingInterval: BillingCycle },
+  payload: CheckoutSessionCreate,
 ): Promise<BillingRedirect> {
   return api.post<BillingRedirect>(
     workspacePath(workspaceId, "/commerce/checkout-session"),
@@ -102,20 +93,4 @@ export function listWorkspaceCreditLedger(
     workspacePath(workspaceId, `/commerce/credits/ledger${query}`),
     { signal },
   );
-}
-
-export function listSystemCommercePlans(
-  includeInactive = true,
-  signal?: AbortSignal,
-): Promise<SystemPlanCatalog> {
-  return api.get<SystemPlanCatalog>(`/system/commerce/plans${toQueryString({ includeInactive })}`, {
-    signal,
-  });
-}
-
-export function upsertSystemCommercePlan(
-  code: string,
-  payload: CommercePlanUpsert,
-): Promise<CommercePlan> {
-  return api.put<CommercePlan>(`/system/commerce/plans/${encodeURIComponent(code)}`, payload);
 }

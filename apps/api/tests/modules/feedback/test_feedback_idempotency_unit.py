@@ -100,7 +100,7 @@ async def test_same_client_request_and_payload_returns_existing_ticket_without_d
     transaction, _ = _transaction()
     audit = AsyncMock()
     with (
-        patch("src.modules.feedback.service.in_transaction", return_value=transaction),
+        patch.object(service, "tx", return_value=transaction),
         patch("src.modules.feedback.service.FeedbackTicket.get_or_create", side_effect=get_or_create),
         patch("src.modules.feedback.service.write_required_activity_event", audit),
         patch.object(service, "_resolve_scope", resolve_scope),
@@ -124,7 +124,7 @@ async def test_reused_client_request_with_different_payload_returns_conflict() -
     transaction, _ = _transaction()
 
     with (
-        patch("src.modules.feedback.service.in_transaction", return_value=transaction),
+        patch.object(service, "tx", return_value=transaction),
         patch.object(service, "_resolve_scope", resolve_scope),
         patch(
             "src.modules.feedback.service.FeedbackTicket.get_or_create",

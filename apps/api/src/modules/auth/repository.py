@@ -71,9 +71,6 @@ class UserRepository(TortoiseORMRepository):
             return []
         return await User.filter(id__in=list(user_ids)).all()
 
-    async def count_super_admins(self) -> int:
-        return int(await User.filter(is_super_admin=True).count())
-
     async def exists_by_username(self, username: str) -> bool:
         return await User.filter(username=username).exists()
 
@@ -133,14 +130,12 @@ class UserRepository(TortoiseORMRepository):
         email: str | None,
         display_name: str | None,
         password_hash: str,
-        is_super_admin: bool = False,
         email_verified_at: datetime | None = None,
     ) -> User:
         user = await User.create(
             username=username,
             email=email,
             status=UserStatus.ACTIVE,
-            is_super_admin=is_super_admin,
             display_name=display_name,
             avatar_url=None,
             email_verified_at=email_verified_at,
@@ -156,7 +151,6 @@ class UserRepository(TortoiseORMRepository):
         display_name: str | None,
         password_hash: str,
         conn: BaseDBAsyncClient,
-        is_super_admin: bool = False,
         email_verified_at: datetime | None = None,
     ) -> User:
         user = await User.create(
@@ -164,7 +158,6 @@ class UserRepository(TortoiseORMRepository):
             username=username,
             email=email,
             status=UserStatus.ACTIVE,
-            is_super_admin=is_super_admin,
             display_name=display_name,
             avatar_url=None,
             email_verified_at=email_verified_at,

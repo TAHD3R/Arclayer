@@ -1,22 +1,13 @@
-import { runConfigCommand, type ConfigCommandDependencies } from "./commands/config.js";
 import { runContentCommand } from "./commands/content.js";
 import { runGenerateCommand } from "./commands/generate.js";
 import { CliError, getErrorMessage } from "./errors.js";
-import { CONFIG_HELP, CONTENT_HELP, GENERATE_HELP, ROOT_HELP } from "./help.js";
+import { CONTENT_HELP, GENERATE_HELP, ROOT_HELP } from "./help.js";
 import type { CliIo } from "./io.js";
 
-export type RunCliDependencies = ConfigCommandDependencies;
-
-export async function runCli(
-  argv: readonly string[],
-  io: CliIo,
-  deps: RunCliDependencies = {},
-): Promise<number> {
+export async function runCli(argv: readonly string[], io: CliIo): Promise<number> {
   try {
     const [command, ...rest] = argv;
     switch (command) {
-      case "config":
-        return await runConfigCommand(rest, io, deps);
       case "content":
         return await runContentCommand(rest, io);
       case "generate":
@@ -41,9 +32,6 @@ export async function runCli(
 
 function writeHelpFor(argv: readonly string[], io: CliIo): void {
   switch (argv[0]) {
-    case "config":
-      io.stdout(CONFIG_HELP);
-      return;
     case "content":
       io.stdout(CONTENT_HELP);
       return;

@@ -7,6 +7,10 @@ const TEAM_MEMBERS_VIEW_PATH = resolve(
   process.cwd(),
   "src/pages/workspaces/team/members/components/team-members-view.tsx",
 );
+const INVITE_MEMBERS_DIALOG_PATH = resolve(
+  process.cwd(),
+  "src/pages/workspaces/team/shared/components/invite-members-dialog.tsx",
+);
 
 describe("team members layout", () => {
   it("renders the members page as a settings table with search, sort, and infinite loading", () => {
@@ -38,5 +42,41 @@ describe("team members layout", () => {
     expect(source).not.toContain("onOpenDetails=");
     expect(source).not.toContain("AdminDataTableSection");
     expect(source).not.toContain("useDataTable(");
+  });
+
+  it("presents the canonical owner separately and removes ordinary member actions", () => {
+    const source = readFileSync(TEAM_MEMBERS_VIEW_PATH, "utf8");
+
+    expect(source).toContain("const roleSummary = member.isOwner");
+    expect(source).toContain('t("team:TEAM_MEMBER_OWNER")');
+    expect(source).toContain("const canEditMemberRoles =");
+    expect(source).toContain("!member.isOwner");
+    expect(source).toContain("const canDisable =");
+    expect(source).toContain("const canEnable =");
+  });
+
+  it("does not fetch or expose role controls unless the server enables role management", () => {
+    const source = readFileSync(TEAM_MEMBERS_VIEW_PATH, "utf8");
+    const inviteDialog = readFileSync(INVITE_MEMBERS_DIALOG_PATH, "utf8");
+
+    expect(source).toContain("useWorkspaceRolesAccess");
+    expect(source).toContain('rolesAccess.status === "available"');
+    expect(source).toContain("enabled: Boolean(workspaceId) && roleManagementAvailable");
+    expect(source).toContain('rolesAccess.status === "unavailable"');
+    expect(source).toContain('t("team:TEAM_MEMBER_FIXED_ACCESS")');
+    expect(source).toContain("roleManagementAvailable ? (");
+    expect(source).toContain("<EditMemberRolesDialog");
+    expect(inviteDialog).toContain('{ access: "fixed-member" } as const');
+    expect(inviteDialog).toContain("props.roleManagementAvailable ? (");
+  });
+
+  it("keeps feature access separate from roles and mounts the typed controller dialog", () => {
+    const source = readFileSync(TEAM_MEMBERS_VIEW_PATH, "utf8");
+
+    expect(source).toContain("useMemberFeatureAccess");
+    expect(source).toContain("featureAccess.actionStateFor(member)");
+    expect(source).toContain("featureAccess.openForMember(member)");
+    expect(source).toContain("<MemberFeatureAccessDialog {...featureAccess.dialogProps} />");
+    expect(source).not.toContain("agents.use");
   });
 });

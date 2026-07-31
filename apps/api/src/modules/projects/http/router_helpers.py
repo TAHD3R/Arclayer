@@ -5,6 +5,8 @@ from uuid import UUID
 from fastapi import Depends
 
 from src.config import Settings, get_settings
+from src.modules.commerce.dunning.command_policy import build_restricted_recovery_command_policy
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.permissions import PermissionConditionSet
 from src.modules.projects.authz.router_helpers import (
     ensure_project_permission_granted as ensure_project_authz_permission_granted,
@@ -13,6 +15,7 @@ from src.modules.projects.authz.router_helpers import (
     require_project_permission as require_project_authz_permission,
 )
 from src.modules.projects.http.schema import ProjectRequestContext
+from src.modules.projects.http.service import get_project_context
 from src.modules.projects.runtime.service import ProjectRuntimeContext, ProjectRuntimeService
 from src.modules.workspaces.http.schema import WorkspaceContext
 
@@ -31,8 +34,7 @@ def workspace_context_from_project(ctx: ProjectRequestContext) -> WorkspaceConte
         org_membership_id=ctx.org_membership_id,
         is_org_owner=ctx.is_org_owner,
         workspace_membership_id=ctx.workspace_membership_id,
-        visible_only=ctx.visible_only,
-        is_creator_admin=ctx.is_creator_admin,
+        is_workspace_owner=ctx.is_workspace_owner,
     )
 
 
@@ -59,6 +61,16 @@ async def ensure_project_permission_granted(
 
 def require_project_permission(permission: str, *, error_code: str = "PERMISSION_DENIED"):
     return require_project_authz_permission(permission, error_code=error_code)
+
+
+def require_project_commercial_effect(effect: RestrictedRecoveryEffect):
+    async def authorize(ctx: ProjectRequestContext = Depends(get_project_context)) -> None:
+        await build_restricted_recovery_command_policy().authorize(
+            workspace_id=ctx.workspace_id,
+            effects={effect},
+        )
+
+    return Depends(authorize)
 
 
 async def get_project_runtime_context(

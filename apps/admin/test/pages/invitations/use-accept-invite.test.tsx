@@ -75,6 +75,30 @@ beforeEach(() => {
 });
 
 describe("useAcceptInvite guest routing", () => {
+  it("presents the server-projected no-role invitation as Fixed Member access", async () => {
+    previewInvitationMock.mockResolvedValue({
+      invitation: {
+        email: "invited@example.com",
+        roleCode: null,
+        expiresAt: null,
+      },
+      workspace: { id: "workspace-invite", name: "Invite workspace" },
+      role: null,
+      inviter: null,
+      userExists: true,
+    });
+    const { result } = renderHook(() => useAcceptInvite("invite-token"), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.previewQuery.data).toBeDefined());
+
+    expect(result.current.roleResolved).toEqual({
+      name: "team:TEAM_MEMBER_FIXED_ACCESS",
+      description: "team:TEAM_MEMBER_FIXED_ACCESS_DESC",
+    });
+  });
+
   it.each([
     { userExists: true, expectedMode: "login" },
     { userExists: false, expectedMode: "register" },

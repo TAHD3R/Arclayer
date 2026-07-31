@@ -18,6 +18,11 @@ from src.modules.workspaces.http.schema import WorkspaceAccessType, WorkspaceCon
 from src.modules.workspaces.http.service import require_workspace_manage_access
 
 
+class _AllowedCommercialPolicy:
+    async def authorize(self, **_kwargs) -> None:  # type: ignore[no-untyped-def]
+        pass
+
+
 def _write_extension(root: Path, name: str = "test-ext") -> None:
     ext_dir = root / "plugins" / name
     (ext_dir / "src").mkdir(parents=True)
@@ -64,8 +69,6 @@ def _workspace_context(workspace_id):
         org_membership_id=uuid4(),
         is_org_owner=False,
         workspace_membership_id=uuid4(),
-        visible_only=False,
-        is_creator_admin=False,
     )
 
 
@@ -121,6 +124,10 @@ async def test_activate_workspace_extension_returns_activation_state(tmp_path, m
     workspace_id = uuid4()
     manager = await _build_manager(tmp_path)
     activate_mock = AsyncMock(return_value=8)
+    monkeypatch.setattr(
+        "src.modules.workspaces.extensions.router.build_restricted_recovery_command_policy",
+        _AllowedCommercialPolicy,
+    )
     app = _build_app(manager, _workspace_context(workspace_id), monkeypatch)
 
     with patch.object(manager, "activate", activate_mock):
@@ -141,6 +148,10 @@ async def test_deactivate_workspace_extension_returns_activation_state(tmp_path,
     workspace_id = uuid4()
     manager = await _build_manager(tmp_path)
     deactivate_mock = AsyncMock(return_value=9)
+    monkeypatch.setattr(
+        "src.modules.workspaces.extensions.router.build_restricted_recovery_command_policy",
+        _AllowedCommercialPolicy,
+    )
     app = _build_app(manager, _workspace_context(workspace_id), monkeypatch)
 
     with patch.object(manager, "deactivate", deactivate_mock):

@@ -26,7 +26,5 @@ export function useSystemRuntime() {
       ? Boolean(runtime.capabilities.deploymentSettingsEnabled)
       : null,
     publicRegisterEnabled: runtime ? Boolean(runtime.capabilities.publicRegisterEnabled) : null,
-    instanceSetupStatus: runtime?.instanceSetup.status ?? null,
-    instanceSetupRepairReason: runtime?.instanceSetup.repairReason ?? null,
   } as const;
 }

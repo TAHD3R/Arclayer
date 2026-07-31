@@ -1,5 +1,4 @@
-import type { ProjectSettingsDetail } from "@arclayer/openapi/admin-types";
-import type { SettingsDetail } from "@arclayer/openapi/admin-types";
+import type { ProjectSettingsDetail, WorkspaceSettingsDetail } from "@arclayer/openapi/admin-types";
 
 import type { GeneralSettingsFormValues, StorageProvider } from "@/types/settings-general";
 import type { TitlePolicy, TitlePolicyPart } from "@/types/site-seo";
@@ -14,7 +13,7 @@ import { pickBool, pickNumber, pickString, pickStringArray } from "./utils";
  */
 export function buildGeneralSettingsInitialValues(params: {
   project?: ProjectSettingsDetail;
-  system?: SettingsDetail;
+  system?: WorkspaceSettingsDetail;
 }): GeneralSettingsFormValues {
   const projectValue = params.project?.value;
   const systemValue = params.system?.value;

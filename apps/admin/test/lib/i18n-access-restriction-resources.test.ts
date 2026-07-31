@@ -30,7 +30,7 @@ const ACCESS_RESTRICTION_KEYS = [
 
 describe("access restriction i18n resources", () => {
   it.each(ACCESS_RESTRICTION_KEYS)("defines %s in both supported locales", (key) => {
-    expect(i18nResources["zh-CN"].platform[key]).toBeTruthy();
-    expect(i18nResources["en-US"].platform[key]).toBeTruthy();
+    expect(i18nResources["zh-CN"].feedback[key]).toBeTruthy();
+    expect(i18nResources["en-US"].feedback[key]).toBeTruthy();
   });
 });

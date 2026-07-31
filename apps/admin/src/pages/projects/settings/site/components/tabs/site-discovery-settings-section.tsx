@@ -4,10 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Field, FieldError, FieldGroup } from "@arclayer/ui/field";
 
 import { SettingSwitchBlock } from "@/components/settings/setting-switch-block";
-import {
-  SystemSettingField,
-  SystemSettingFooterActions,
-} from "@/pages/system/components/system-setting-item";
+import { SystemSettingField, SystemSettingFooterActions } from "@/components/settings/setting-item";
 import type {
   GeneralSettingsFormValues,
   GeneralSettingsTabBaseProps,

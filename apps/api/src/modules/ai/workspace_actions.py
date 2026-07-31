@@ -24,6 +24,11 @@ from src.models.content._enums import ContentVersionState
 from src.models.projects._enums import ProjectAuthoringMode
 from src.models.projects.environment import ProjectEnvironmentKey
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.commerce.dunning.command_policy import (
+    RestrictedRecoveryCommandPolicy,
+    build_restricted_recovery_command_policy,
+    workspace_ai_action_effects,
+)
 from src.modules.domains.schema import DomainBindingOut
 from src.modules.domains.service import DomainBindingService
 from src.modules.projects.content.contracts.schema import (
@@ -65,7 +70,7 @@ from src.modules.projects.releases.schema import ReleasePublishOut
 from src.modules.projects.releases.service import ProjectReleasesService
 from src.modules.projects.runtime.service import ProjectRuntimeService
 from src.modules.projects.schema import ProjectCreateRequest, ProjectListItemOut
-from src.modules.projects.service import ProjectService
+from src.modules.projects.service import build_project_service
 from src.modules.projects.settings.schema import ProjectSettingsDetail
 from src.modules.projects.settings.service import ProjectSettingsService
 from src.modules.projects.source.schema import (
@@ -631,6 +636,7 @@ async def execute_workspace_ai_action(
         request=request,
         user_id=user_id,
         settings=settings,
+        commercial_policy=build_restricted_recovery_command_policy(),
     )
 
 
@@ -640,6 +646,7 @@ async def _execute_workspace_ai_action_impl(
     user_id: UUID,
     settings: Settings,
     request: Request | None = None,
+    commercial_policy: RestrictedRecoveryCommandPolicy,
 ) -> ResponseModel[WorkspaceAIActionResponse]:
     decision = await WorkspaceActionPlanner(settings).plan(payload=payload, user_id=user_id)
     if decision.kind == "chat":
@@ -675,11 +682,17 @@ async def _execute_workspace_ai_action_impl(
     if _conversation_mode_value(payload.mode) == AgentConversationMode.PLAN.value and _is_mutating_action(action):
         _raise_plan_mode_read_only()
 
+    await _authorize_workspace_ai_tool_calls(
+        workspace_id=payload.workspace_id,
+        tool_calls=tool_calls,
+        policy=commercial_policy,
+    )
+
     ctx = await resolve_workspace_context_by_id(workspace_id=payload.workspace_id, user_id=user_id)
     if ctx.workspace_id != payload.workspace_id:
         raise Forbidden("Workspace access denied", error="WORKSPACE_ACCESS_DENIED")
 
-    service = ProjectService(settings)
+    service = build_project_service(settings)
     if action == "create_project":
         args = _validate_tool_arguments(WorkspaceCreateProjectArgs, tool_call.arguments)
         ctx = await require_workspace_manage_access(ctx)
@@ -965,6 +978,16 @@ async def _execute_workspace_ai_tool_calls(
         "Workspace action planner produced multiple tool calls for an unsupported action group",
         error="AI_WORKSPACE_ACTION_PLAN_INVALID",
     )
+
+
+async def _authorize_workspace_ai_tool_calls(
+    *,
+    workspace_id: UUID,
+    tool_calls: list[WorkspaceAIPlannerToolCall],
+    policy: RestrictedRecoveryCommandPolicy,
+) -> None:
+    effects = workspace_ai_action_effects(actions=(tool_call.tool_name for tool_call in tool_calls))
+    await policy.authorize(workspace_id=workspace_id, effects=effects)
 
 
 def _is_site_update_tool_call_group(tool_calls: list[WorkspaceAIPlannerToolCall]) -> bool:

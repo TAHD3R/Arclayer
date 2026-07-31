@@ -3,9 +3,6 @@ export const SETTINGS_SCREENS = [
   "personal.preferences",
   "personal.notifications",
   "workspace.general",
-  "workspace.knowledge",
-  "workspace.skills",
-  "workspace.design-systems",
   "workspace.plan-usage",
   "workspace.members",
   "workspace.invitations",
@@ -19,7 +16,6 @@ export type SettingsScreenPayload = Readonly<{
   invitationId?: string;
   roleId?: string;
   field?: string;
-  skillAction?: "import";
 }>;
 
 export type SettingsSectionTarget = Readonly<{

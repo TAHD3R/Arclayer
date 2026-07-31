@@ -2,7 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { resolveSettingsNavItems } from "@/constants/menu/settings";
 import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
+import { useWorkspaceRolesAccess } from "@/hooks/use-workspace-roles-access";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { getUsercenterOverlayItem } from "@/pages/usercenter/shared/usercenter-overlay-registry";
 import { SettingsFrame } from "@/pages/settings/settings-shell";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -21,6 +24,8 @@ export function SettingsScreenHost() {
   const currentWorkspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const lastWorkspaceId = useWorkspaceStore((state) => state.lastWorkspaceId);
   const workspaceId = currentWorkspaceId ?? lastWorkspaceId;
+  const rolesAccess = useWorkspaceRolesAccess(workspaceId ?? null);
+  const settingsNavItems = resolveSettingsNavItems(rolesAccess.status);
   const [workspaceMembersInviteOpen, setWorkspaceMembersInviteOpen] = useState(false);
   const [workspaceInvitationLinkOpen, setWorkspaceInvitationLinkOpen] = useState(false);
   const [workspaceInvitationEmailOpen, setWorkspaceInvitationEmailOpen] = useState(false);
@@ -48,6 +53,12 @@ export function SettingsScreenHost() {
     }
   }, [activeScreen, settingsScreen.state.open, settingsScreen.state.section]);
 
+  useEffect(() => {
+    if (!isOpen || activeScreen !== "workspace.roles") return;
+    if (rolesAccess.status !== "unavailable") return;
+    settingsScreen.switchSettingsScreen("workspace.plan-usage");
+  }, [activeScreen, isOpen, rolesAccess.status, settingsScreen]);
+
   const handleOpenChange = useCallback(
     (open: boolean) => {
       if (!open) settingsScreen.closeSettings();
@@ -70,7 +81,7 @@ export function SettingsScreenHost() {
         {t("common:ORG_MEMBERS_INVITE")}
       </Button>
     </div>
-  ) : activeScreen === "workspace.roles" ? (
+  ) : activeScreen === "workspace.roles" && rolesAccess.status === "available" ? (
     <Button onClick={() => setWorkspaceRoleCreateOpen(true)}>
       <Plus size={16} />
       {t("TEAM_ROLES_ADD_ROLE")}
@@ -92,13 +103,23 @@ export function SettingsScreenHost() {
       onInviteEmailOpenChange={setWorkspaceInvitationEmailOpen}
       embedded
     />
-  ) : activeScreen === "workspace.roles" ? (
+  ) : activeScreen === "workspace.roles" && rolesAccess.status === "available" ? (
     <TeamRolesPage
       workspaceIdOverride={workspaceId ?? null}
       createOpen={workspaceRoleCreateOpen}
       onCreateOpenChange={setWorkspaceRoleCreateOpen}
       embedded
     />
+  ) : activeScreen === "workspace.roles" ? (
+    <ContentGuard
+      loading={rolesAccess.status === "loading"}
+      error={rolesAccess.status === "error" ? rolesAccess.error : null}
+      onRetry={() => void rolesAccess.refetch()}
+      container="raw"
+      loadingVariant="form"
+    >
+      <div />
+    </ContentGuard>
   ) : (
     activeItem.render({
       targetSection: settingsScreen.state.section,
@@ -119,9 +140,16 @@ export function SettingsScreenHost() {
       >
         <SettingsFrame
           activeScreen={activeScreen}
+          items={settingsNavItems}
           action={action}
           onClose={() => handleOpenChange(false)}
-          onSelectItem={(item) => settingsScreen.switchSettingsScreen(item.screen)}
+          onSelectItem={(item) =>
+            settingsScreen.switchSettingsScreen(
+              item.screen === "workspace.roles" && rolesAccess.status === "unavailable"
+                ? "workspace.plan-usage"
+                : item.screen,
+            )
+          }
           className="h-full w-full max-w-none rounded-none border-0 shadow-none"
         >
           {renderedContent}

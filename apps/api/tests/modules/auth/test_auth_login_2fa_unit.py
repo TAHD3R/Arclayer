@@ -198,10 +198,9 @@ class FakeUserRepository:
         email: str | None,
         display_name: str | None,
         password_hash: str,
-        is_super_admin: bool = False,
         email_verified_at: Any | None = None,
     ) -> FakeUser:
-        _ = username, email, display_name, password_hash, is_super_admin, email_verified_at
+        _ = username, email, display_name, password_hash, email_verified_at
         raise RuntimeError("not used")
 
     async def mark_email_verified(self, user) -> FakeUser:

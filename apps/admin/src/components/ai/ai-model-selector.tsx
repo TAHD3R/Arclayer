@@ -97,9 +97,8 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
       }
       return;
     }
-    const defaultCatalogModel = models.some((model) => model.id === catalog.defaultModel)
-      ? catalog.defaultModel
-      : models[0].id;
+    const defaultCatalogModel =
+      models.find((model) => model.id === catalog.defaultModel)?.id ?? models[0].id;
     if (selectedModel === AUTO_AI_CHAT_MODEL) return;
     if (!models.some((model) => model.id === selectedModel)) {
       setSelectedModel(defaultCatalogModel, "default");

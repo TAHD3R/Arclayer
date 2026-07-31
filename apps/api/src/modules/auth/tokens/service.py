@@ -71,32 +71,6 @@ def build_access_token(
     return _encode(payload, settings), ttl
 
 
-def build_sys_access_token(*, user_id: UUID, token_version: int, settings: AuthSettings) -> tuple[str, int]:
-    """
-    Build a short-lived "step-up" access token for sys governance endpoints.
-
-    Security model:
-    - Uses the same JWT secret/issuer/audience as normal access tokens.
-    - Adds a required context claim (`ctx=sys`) enforced by /sys dependencies.
-    - Has a shorter TTL by default (`auth.sys_access_token_ttl_seconds`).
-    """
-
-    ttl = max(settings.sys_access_token_ttl_seconds, 1)
-    now = _now()
-    payload: dict[str, object] = {
-        "sub": str(user_id),
-        "typ": TOKEN_TYPE_ACCESS,
-        "ver": token_version,
-        "ctx": "sys",
-        "jti": uuid7().hex,
-        "iss": settings.jwt_issuer,
-        "aud": settings.jwt_audience,
-        "iat": int(now.timestamp()),
-        "exp": int((now + timedelta(seconds=ttl)).timestamp()),
-    }
-    return _encode(payload, settings), ttl
-
-
 def build_refresh_token(
     *,
     user_id: UUID,

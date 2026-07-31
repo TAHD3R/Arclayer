@@ -32,6 +32,7 @@ from src.models.workspaces.workspace_invite import (
     WorkspaceInviteLink,
     WorkspaceInviteLinkUseEvent,
 )
+from src.modules.workspaces.authz.role_management import WorkspaceRoleManagementAvailability
 from src.modules.workspaces.team.repository import WorkspaceTeamRepository
 from src.modules.workspaces.team.schema import (
     InviteStatus,
@@ -166,6 +167,21 @@ class WorkspaceTeamInviteMixin:
 
     async def _get_role_by_code_in_workspace(self, *, workspace_id: UUID, role_code: str) -> SystemRole | None: ...
 
+    async def _require_role_management(
+        self,
+        *,
+        workspace_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> None: ...
+
+    async def _get_role_management_availability(
+        self,
+        *,
+        workspace_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> WorkspaceRoleManagementAvailability:
+        raise NotImplementedError
+
     async def _list_recent_participants(
         self, *, link_id: UUID, limit: int = 3
     ) -> list[WorkspaceInviteLinkParticipantOut]:
@@ -193,6 +209,10 @@ class WorkspaceTeamInviteMixin:
         email = str(payload.email).strip().lower()
         role_code = payload.role_code.strip() if payload.role_code else None
         expires_at = build_expires_at(expires_in_seconds=payload.expires_in_seconds)
+
+        role_management = await self._get_role_management_availability(workspace_id=workspace_id)
+        if role_code and not role_management.included:
+            await self._require_role_management(workspace_id=workspace_id)
 
         def _mask_email(value: str) -> str:
             trimmed = (value or "").strip().lower()
@@ -443,6 +463,10 @@ class WorkspaceTeamInviteMixin:
         role_code = payload.role_code.strip() if payload.role_code else None
         expires_at = build_expires_at(expires_in_seconds=payload.expires_in_seconds)
         max_uses = payload.max_uses
+
+        role_management = await self._get_role_management_availability(workspace_id=workspace_id)
+        if role_code and not role_management.included:
+            await self._require_role_management(workspace_id=workspace_id)
 
         allowed_domain = (payload.allowed_email_domain or "").strip().lower() or None
         if allowed_domain:

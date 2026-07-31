@@ -297,6 +297,9 @@ function GlobalNotificationModal(props: {
       <DialogContent
         closeButtonLabel={props.closeLabel}
         showCloseButton={dismissible}
+        onEscapeKeyDown={(event) => {
+          if (!dismissible) event.preventDefault();
+        }}
         className="overflow-hidden p-0 sm:max-w-xl"
       >
         {payload.media && mediaUrl ? (

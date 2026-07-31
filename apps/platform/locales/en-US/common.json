@@ -1,0 +1,16 @@
+{
+  "APP_NAME": "Arclayer Platform Console",
+  "RETURN_TO_PRODUCT": "Return to product",
+  "CHANGE_LANGUAGE": "Change language",
+  "LANGUAGE_ZH_CN": "简体中文",
+  "LANGUAGE_EN_US": "English",
+  "THEME": "Appearance",
+  "THEME_LIGHT": "Light",
+  "THEME_DARK": "Dark",
+  "THEME_SYSTEM": "Follow system",
+  "SIDEBAR_TOGGLE": "Expand or collapse navigation",
+  "RETURN_TO_INBOX": "Return to Operations Inbox",
+  "TABS_SCROLL_LEFT": "Scroll tabs left",
+  "TABS_SCROLL_RIGHT": "Scroll tabs right",
+  "TRY_AGAIN": "Try again"
+}

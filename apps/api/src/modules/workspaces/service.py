@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, TypedDict, cast
+from typing import Any, cast
 from uuid import UUID
 
 from src.common.constants.assets import ASSET_SCOPE_WORKSPACE
@@ -13,11 +13,10 @@ from src.core.http.pagination import PageData, PageParams, paginate_items
 from src.core.i18n import t
 from src.core.services import BaseService
 from src.models.assets.asset import AssetPurpose
-from src.models.organization.org_membership import OrgMembership, OrgRole
+from src.models.organization.org_membership import OrgRole
 from src.models.organization.organization import Organization
 from src.models.organization.user import User
 from src.models.system.access_restriction import AccessRestrictionEntityType, AccessRestrictionType
-from src.models.system.rbac import SystemRole
 from src.models.workspaces.workspace import (
     Workspace,
     WorkspaceIconMode,
@@ -41,8 +40,8 @@ from src.modules.organization.workspaces.schema import OrganizationWorkspaceCrea
 from src.modules.organization.workspaces.service import OrganizationWorkspaceService
 from src.modules.projects.repository import ProjectRepository
 from src.modules.projects.schema import WorkspacePrimaryProjectOut
-from src.modules.system.rbac.constants.service import ROLE_OWNER
 from src.modules.system.setup.service import InstanceSetupService
+from src.modules.workspaces.membership_lifecycle import WorkspaceMembershipEndParticipant
 from src.modules.workspaces.schema import (
     InstanceSetupStateOut,
     LeaveWorkspaceResult,
@@ -125,12 +124,9 @@ def _normalize_sort_value(value: Any) -> tuple[int, Any]:
     return (0, value)
 
 
-def _build_guest_workspace_list(*, workspaces: list[Workspace]) -> list[MyWorkspaceOut]:
+def _build_member_workspace_list(*, workspaces: list[Workspace], user_id: UUID) -> list[MyWorkspaceOut]:
     """
-    Build workspace list for users without any org memberships.
-
-    This supports explicit workspace-only guest access: a user can have active workspace memberships
-    but no organization governance access.
+    Build the Product Application workspace list from explicit active memberships.
     """
 
     out: list[MyWorkspaceOut] = []
@@ -150,85 +146,9 @@ def _build_guest_workspace_list(*, workspaces: list[Workspace]) -> list[MyWorksp
                 member_count=0,
                 members_preview=[],
                 created_at=ws.created_at,
-                visible_only=False,
-                is_creator_admin=False,
+                is_owner=UUID(str(ws.owner_user_id)) == user_id,
             )
         )
-    return out
-
-
-def _collect_org_roles(orgms: list[OrgMembership]) -> tuple[dict[UUID, OrgRole], list[UUID]]:
-    org_roles: dict[UUID, OrgRole] = {}
-    org_order: list[UUID] = []
-    for orgm in orgms:
-        org_id = _resolve_organization_id(orgm)
-        if org_id in org_roles:
-            continue
-        org_roles[org_id] = orgm.role
-        org_order.append(org_id)
-    return org_roles, org_order
-
-
-def _group_workspaces_by_org(workspaces: list[Workspace]) -> dict[UUID, list[Workspace]]:
-    by_org: dict[UUID, list[Workspace]] = defaultdict(list)
-    for ws in workspaces:
-        by_org[_resolve_organization_id(ws)].append(ws)
-    return by_org
-
-
-class _MemberWorkspaceListArgs(TypedDict):
-    org_order: list[UUID]
-    org_roles: dict[UUID, OrgRole]
-    membership_by_workspace_id: dict[UUID, WorkspaceMembership]
-    membership_workspaces_by_org: dict[UUID, list[Workspace]]
-    owner_workspaces_by_org: dict[UUID, list[Workspace]]
-    user_id: UUID
-
-
-def _build_member_workspace_list(args: _MemberWorkspaceListArgs) -> list[MyWorkspaceOut]:
-    out: list[MyWorkspaceOut] = []
-    seen_workspace_ids: set[UUID] = set()
-
-    for org_id in args["org_order"]:
-        role = args["org_roles"].get(org_id)
-        if role is None:
-            continue
-
-        is_owner = role == OrgRole.OWNER
-        org_workspaces = (
-            args["owner_workspaces_by_org"].get(org_id, [])
-            if is_owner
-            else args["membership_workspaces_by_org"].get(org_id, [])
-        )
-        for ws in org_workspaces:
-            ws_id = UUID(str(ws.id))
-            if ws_id in seen_workspace_ids:
-                continue
-            seen_workspace_ids.add(ws_id)
-
-            is_creator_admin = is_owner and (UUID(str(ws.created_by_user_id)) == UUID(str(args["user_id"])))
-            has_membership = ws_id in args["membership_by_workspace_id"]
-            visible_only = bool(is_owner and (not has_membership) and (not is_creator_admin))
-
-            out.append(
-                MyWorkspaceOut(
-                    id=ws.id,
-                    workspace_id=ws.id,
-                    project_id=None,
-                    name=ws.name,
-                    description=ws.description,
-                    icon_mode=ws.icon_mode,
-                    icon_color=ws.icon_color,
-                    icon_glyph=ws.icon_glyph,
-                    icon_emoji=ws.icon_emoji,
-                    icon_url=ws.icon_url,
-                    member_count=0,
-                    members_preview=[],
-                    created_at=ws.created_at,
-                    visible_only=visible_only,
-                    is_creator_admin=is_creator_admin,
-                )
-            )
     return out
 
 
@@ -280,6 +200,7 @@ class WorkspaceService(BaseService):
         onboarding_service: WorkspaceFirstOnboardingService | None = None,
         organization_workspace_service: OrganizationWorkspaceService | None = None,
         restriction_authority: AccessRestrictionAuthority | None = None,
+        membership_end_participant: WorkspaceMembershipEndParticipant | None = None,
     ) -> None:
         super().__init__(settings)
         self.repo = repo or OrganizationWorkspaceRepository()
@@ -289,6 +210,7 @@ class WorkspaceService(BaseService):
         self.onboarding_service = onboarding_service or WorkspaceFirstOnboardingService(settings)
         self.organization_workspace_service = organization_workspace_service or OrganizationWorkspaceService(settings)
         self.restriction_authority = restriction_authority or AccessRestrictionAuthority(AccessRestrictionRepository())
+        self.membership_end_participant = membership_end_participant
 
     async def _write_workspace_activity_event(
         self,
@@ -325,83 +247,32 @@ class WorkspaceService(BaseService):
         """
         List workspaces visible to the current user.
 
-        Rules:
-        - Non-owner: only active workspaces where user has an ACTIVE workspace membership.
-        - Org owner: can see all workspaces in the org; those without membership are marked visible_only.
-        - Creator admin: if org owner created the workspace, mark is_creator_admin (and not visible_only).
-
-        Multi-org:
-        - A user can belong to multiple organizations.
-        - This endpoint aggregates workspaces across all ACTIVE org memberships.
+        Product visibility comes only from an active Workspace membership. Organization
+        governance is not a second Workspace entry authority.
         """
-        orgms = await OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id").all()
-
         memberships = await WorkspaceMembership.filter(
             user_id=user_id,
             status=WorkspaceMembershipStatus.ACTIVE,
             workspace__is_active=True,
         ).all()
-        membership_by_workspace_id = {UUID(str(cast(HasWorkspaceId, m).workspace_id)): m for m in memberships}
-
-        membership_workspace_ids = list(membership_by_workspace_id.keys())
+        membership_workspace_ids = [
+            UUID(str(cast(HasWorkspaceId, membership).workspace_id)) for membership in memberships
+        ]
         membership_workspaces = await self.repo.list_active_by_ids(workspace_ids=membership_workspace_ids)
-
-        if not orgms:
-            users = await self.repo.list_users(user_ids=self._membership_user_ids(memberships))
-            member_count_by_workspace, preview_by_workspace = await _build_workspace_member_meta(
-                workspaces=membership_workspaces,
-                memberships=memberships,
-                users=users,
-            )
-            project_id_by_workspace = await self.project_repo.get_primary_project_ids_by_workspace_ids(
-                workspace_ids=membership_workspace_ids,
-            )
-            items = _build_guest_workspace_list(workspaces=membership_workspaces)
-            items = self._hydrate_workspace_meta(
-                items=items,
-                member_count_by_workspace=member_count_by_workspace,
-                preview_by_workspace=preview_by_workspace,
-                project_id_by_workspace=project_id_by_workspace,
-            )
-            return await self._build_workspace_list_result(
-                user_id=user_id,
-                items=items,
-            )
-
-        org_roles, org_order = _collect_org_roles(orgms)
-        membership_workspaces_by_org = _group_workspaces_by_org(membership_workspaces)
-
-        owner_org_ids = [org_id for org_id in org_order if org_roles.get(org_id) == OrgRole.OWNER]
-        owner_workspaces = await self.repo.list_active_by_organization_ids(organization_ids=owner_org_ids)
-        owner_workspaces_by_org = _group_workspaces_by_org(owner_workspaces)
-        visible_workspaces_by_id = {
-            UUID(str(workspace.id)): workspace for workspace in [*membership_workspaces, *owner_workspaces]
-        }
-        visible_workspace_ids = list(visible_workspaces_by_id.keys())
-        active_memberships: list[WorkspaceMembership] = []
-        if visible_workspace_ids:
-            active_memberships = await WorkspaceMembership.filter(
-                workspace_id__in=visible_workspace_ids,
-                status=WorkspaceMembershipStatus.ACTIVE,
-            ).all()
+        active_memberships = await WorkspaceMembership.filter(
+            workspace_id__in=membership_workspace_ids,
+            status=WorkspaceMembershipStatus.ACTIVE,
+        ).all()
         users = await self.repo.list_users(user_ids=self._membership_user_ids(active_memberships))
         member_count_by_workspace, preview_by_workspace = await _build_workspace_member_meta(
-            workspaces=list(visible_workspaces_by_id.values()),
+            workspaces=membership_workspaces,
             memberships=active_memberships,
             users=users,
         )
         project_id_by_workspace = await self.project_repo.get_primary_project_ids_by_workspace_ids(
-            workspace_ids=visible_workspace_ids,
+            workspace_ids=membership_workspace_ids,
         )
-
-        items = _build_member_workspace_list({
-            "org_order": org_order,
-            "org_roles": org_roles,
-            "membership_by_workspace_id": membership_by_workspace_id,
-            "membership_workspaces_by_org": membership_workspaces_by_org,
-            "owner_workspaces_by_org": owner_workspaces_by_org,
-            "user_id": user_id,
-        })
+        items = _build_member_workspace_list(workspaces=membership_workspaces, user_id=user_id)
         items = self._hydrate_workspace_meta(
             items=items,
             member_count_by_workspace=member_count_by_workspace,
@@ -447,7 +318,7 @@ class WorkspaceService(BaseService):
             member_count=item.member_count,
             members_preview=self._map_manage_member_preview(item.members_preview),
             created_at=created_at,
-            enterable=not item.visible_only,
+            enterable=True,
             project=WorkspacePrimaryProjectOut(project_id=item.project_id) if item.project_id is not None else None,
         )
 
@@ -548,7 +419,6 @@ class WorkspaceService(BaseService):
         created_workspace = await self.organization_workspace_service.create_workspace(
             organization_id=UUID(str(organization.id)),
             user_id=user_id,
-            org_role=OrgRole.OWNER,
             payload=OrganizationWorkspaceCreateRequest(
                 name=workspace_name,
                 template=OrganizationWorkspaceTemplate.BLANK,
@@ -579,7 +449,6 @@ class WorkspaceService(BaseService):
         created_workspace = await self.organization_workspace_service.create_workspace(
             organization_id=UUID(str(organization.id)),
             user_id=user_id,
-            org_role=OrgRole.OWNER,
             payload=OrganizationWorkspaceCreateRequest(
                 name=workspace_name,
                 description=payload.description,
@@ -790,12 +659,11 @@ class WorkspaceService(BaseService):
         idempotency_key: str,
         payload: AccessRestrictionEnforceRequest,
     ) -> WorkspaceManageArchiveResult:
-        orgm = await self._get_manage_org_membership(user_id=user_id)
+        organization_id = await self._get_workspace_organization_id(workspace_id=workspace_id)
         out = await self.organization_workspace_service.archive_workspace(
-            organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
+            organization_id=organization_id,
             workspace_id=workspace_id,
             user_id=user_id,
-            org_role=orgm.role,
             idempotency_key=idempotency_key,
             payload=payload,
         )
@@ -806,6 +674,18 @@ class WorkspaceService(BaseService):
             archived_by_user_id=out.archived_by_user_id,
         )
 
+    async def require_workspace_lifecycle_owner(
+        self,
+        *,
+        workspace_id: UUID,
+        user_id: UUID,
+    ) -> None:
+        workspace = await Workspace.get_or_none(id=workspace_id, deleted_at__isnull=True)
+        if workspace is None:
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+        if UUID(str(workspace.owner_user_id)) != user_id:
+            raise Forbidden(message=t("errors", "PERMISSION_DENIED"), error="WORKSPACE_OWNER_REQUIRED")
+
     async def unarchive_manage_workspace(
         self,
         *,
@@ -814,12 +694,11 @@ class WorkspaceService(BaseService):
         idempotency_key: str,
         payload: AccessRestrictionLiftRequest,
     ) -> WorkspaceManageArchiveResult:
-        orgm = await self._get_manage_org_membership(user_id=user_id)
+        organization_id = await self._get_workspace_organization_id(workspace_id=workspace_id)
         out = await self.organization_workspace_service.unarchive_workspace(
-            organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
+            organization_id=organization_id,
             workspace_id=workspace_id,
             user_id=user_id,
-            org_role=orgm.role,
             idempotency_key=idempotency_key,
             payload=payload,
         )
@@ -837,12 +716,11 @@ class WorkspaceService(BaseService):
         workspace_id: UUID,
         confirm_name: str,
     ) -> WorkspaceDeleteResult:
-        orgm = await self._get_manage_org_membership(user_id=user_id)
+        organization_id = await self._get_workspace_organization_id(workspace_id=workspace_id)
         out = await self.organization_workspace_service.delete_workspace(
-            organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
+            organization_id=organization_id,
             workspace_id=workspace_id,
             user_id=user_id,
-            org_role=orgm.role,
             confirm_name=confirm_name,
         )
         return WorkspaceDeleteResult(workspace_id=UUID(str(out.workspace_id)), deleted=out.deleted)
@@ -861,38 +739,53 @@ class WorkspaceService(BaseService):
                 error="WORKSPACE_LEAVE_CONFIRM_TEXT_MISMATCH",
             )
 
-        ws = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
-        if ws is None:
-            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+        if self.membership_end_participant is None:
+            raise RuntimeError("Workspace membership lifecycle participant is required")
 
-        membership = await WorkspaceMembership.get_or_none(
-            workspace_id=workspace_id,
-            user_id=user_id,
-            status=WorkspaceMembershipStatus.ACTIVE,
-        )
-        if membership is None:
-            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
-
-        owner_role = await SystemRole.get_or_none(workspace_id=workspace_id, code=ROLE_OWNER)
-        if owner_role is not None:
-            is_owner_member = await WorkspaceMembership.filter(
-                id=membership.id,
-                membership_roles__role_id=owner_role.id,
-            ).exists()
-            if is_owner_member:
-                owner_count = await WorkspaceMembership.filter(
+        async with self.tx() as conn:
+            workspace = await (
+                Workspace
+                .filter(
+                    id=workspace_id,
+                    organization_id=organization_id,
+                    is_active=True,
+                    deleted_at__isnull=True,
+                )
+                .using_db(conn)
+                .select_for_update()
+                .first()
+            )
+            if workspace is None:
+                raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+            membership = await (
+                WorkspaceMembership
+                .filter(
                     workspace_id=workspace_id,
+                    user_id=user_id,
                     status=WorkspaceMembershipStatus.ACTIVE,
-                    membership_roles__role_id=owner_role.id,
-                ).count()
-                if int(owner_count) <= 1:
-                    raise Forbidden(
-                        message=t("errors", "PERMISSION_DENIED"),
-                        error="WORKSPACE_OWNER_AT_LEAST_ONE_REQUIRED",
-                    )
+                )
+                .using_db(conn)
+                .select_for_update()
+                .first()
+            )
+            if membership is None:
+                raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+            if UUID(str(workspace.owner_user_id)) == user_id:
+                raise Forbidden(
+                    message=t("errors", "PERMISSION_DENIED"),
+                    error="WORKSPACE_OWNER_TRANSFER_REQUIRED",
+                )
 
-        membership_id = membership.id
-        await membership.delete()
+            membership_id = membership.id
+            await self.membership_end_participant.release_for_membership_end(
+                workspace_id=workspace_id,
+                membership_id=membership_id,
+                lifecycle_idempotency_key=(
+                    f"workspace-membership:{membership.id}:leave:{membership.updated_at.isoformat()}"
+                ),
+                conn=conn,
+            )
+            await membership.delete(using_db=conn)
 
         return LeaveWorkspaceResult(
             workspace_id=workspace_id,
@@ -908,11 +801,11 @@ class WorkspaceService(BaseService):
             if (user_id := cast(HasUserId, membership).user_id) is not None
         ]
 
-    async def _get_manage_org_membership(self, *, user_id: UUID) -> OrgMembership:
-        orgm = await OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id").first()
-        if orgm is None:
-            raise Forbidden(message=t("errors", "PERMISSION_DENIED"), error="ORG_MEMBERSHIP_REQUIRED")
-        return orgm
+    async def _get_workspace_organization_id(self, *, workspace_id: UUID) -> UUID:
+        workspace = await self.repo.get_active_workspace_by_id(workspace_id=workspace_id)
+        if workspace is None:
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+        return _resolve_organization_id(workspace)
 
     def _map_manage_workspace_out(self, workspace: Any):
         created_at = workspace.created_at

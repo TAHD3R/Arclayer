@@ -41,7 +41,7 @@ from src.modules.ai.runtime_repository_schema import AgentRunCreatePersistenceCo
 from src.modules.auth.http.service import get_current_user, get_current_user_id
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.tokens.service import hash_password
-from src.modules.workspaces.rbac.service import WorkspaceRBACService
+from src.modules.workspaces.rbac.service import build_workspace_rbac_service
 from tests.modules.ai.runtime_agent_test_ids import TEST_LEAD_AGENT_ID, TEST_LEAD_AGENT_VERSION_ID
 
 pytestmark = pytest.mark.integration
@@ -291,6 +291,7 @@ async def test_workspace_thread_endpoints_enforce_rbac_owner_scope_and_soft_dele
             organization_id=organization.id,
             name="Agent Thread HTTP Workspace",
             is_active=True,
+            owner_user_id=owner.id,
             created_by_user_id=owner.id,
         )
         project = await ProjectRecord.create(
@@ -300,8 +301,8 @@ async def test_workspace_thread_endpoints_enforce_rbac_owner_scope_and_soft_dele
             is_active=True,
             created_by_user_id=owner.id,
         )
-        await WorkspaceRBACService(settings).ensure_workspace_rbac_ready(workspace_id=workspace.id)
-        owner_membership = await WorkspaceMembership.create(
+        await build_workspace_rbac_service(settings).ensure_workspace_rbac_ready(workspace_id=workspace.id)
+        await WorkspaceMembership.create(
             workspace_id=workspace.id,
             user_id=owner.id,
             status=WorkspaceMembershipStatus.ACTIVE,
@@ -312,9 +313,7 @@ async def test_workspace_thread_endpoints_enforce_rbac_owner_scope_and_soft_dele
             status=WorkspaceMembershipStatus.ACTIVE,
             invited_by_user_id=owner.id,
         )
-        owner_role = await SystemRole.get(workspace_id=workspace.id, code="owner")
         viewer_role = await SystemRole.get(workspace_id=workspace.id, code="viewer")
-        await WorkspaceMembershipRole.create(membership_id=owner_membership.id, role_id=owner_role.id)
         await WorkspaceMembershipRole.create(membership_id=viewer_membership.id, role_id=viewer_role.id)
 
         current_user: User = owner

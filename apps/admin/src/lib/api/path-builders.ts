@@ -29,15 +29,10 @@ export function projectPath(projectId: string, path?: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Site & system paths
+// Site paths
 // ---------------------------------------------------------------------------
 
 /** `/sites/{siteId}{path}` */
 export function sitePath(siteId: string, path?: string): string {
   return buildResourcePath("/sites", siteId, path);
-}
-
-/** `/system/settings/{namespace}` */
-export function systemSettingsPath(namespace: string): string {
-  return `/system/settings/${encodeURIComponent(String(namespace))}`;
 }

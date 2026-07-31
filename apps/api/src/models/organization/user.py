@@ -22,8 +22,6 @@ class User(BaseModel):
     username = fields.CharField(max_length=64, unique=True, db_index=True)
     email = fields.CharField(max_length=255, null=True, unique=True)
     status = fields.CharEnumField(UserStatus, default=UserStatus.ACTIVE, db_index=True)
-    # System-wide super admin flag (instance governance). Only trusted operators should have this.
-    is_super_admin = fields.BooleanField(default=False, db_index=True)
     display_name = fields.CharField(max_length=64, null=True)
     avatar_url = fields.CharField(max_length=512, null=True)
     # New canonical avatar reference. Public URL is derived from Asset delivery, not stored here.

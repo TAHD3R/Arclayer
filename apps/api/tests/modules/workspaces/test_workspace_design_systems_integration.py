@@ -40,11 +40,9 @@ from src.models.projects.environment import ProjectEnvironmentRecord
 from src.models.projects.membership import ProjectMemberRole, ProjectMembership
 from src.models.projects.project import ProjectRecord
 from src.models.projects.runtime import ProjectRuntimeKind, ProjectRuntimeRecord
-from src.models.system.rbac import SystemRole
 from src.models.workspaces.workspace import (
     Workspace,
     WorkspaceMembership,
-    WorkspaceMembershipRole,
     WorkspaceMembershipStatus,
 )
 from src.modules.ai.agent_catalog_manifest import official_agent_id
@@ -59,7 +57,7 @@ from src.modules.projects.runtime.site.service import ProjectRuntimeSiteService
 from src.modules.sites.component_catalogs.official import get_official_component_catalog_registry
 from src.modules.tenancy.router_helpers import bind_workspace_tenant_context
 from src.modules.workspaces.design_systems.manifest import DesignSystemManifestInputV1
-from src.modules.workspaces.rbac.service import WorkspaceRBACService
+from src.modules.workspaces.rbac.service import build_workspace_rbac_service
 from tests.modules.projects.helpers import create_project_page_model_for_environment
 
 pytestmark = pytest.mark.integration
@@ -100,16 +98,15 @@ async def _workspace(*, owner: User, organization_id: UUID | None = None, label:
         organization_id=organization_id,
         name=f"Design System {label.title()}",
         is_active=True,
+        owner_user_id=owner.id,
         created_by_user_id=owner.id,
     )
-    await WorkspaceRBACService(settings).ensure_workspace_rbac_ready(workspace_id=workspace.id)
-    membership = await WorkspaceMembership.create(
+    await build_workspace_rbac_service(settings).ensure_workspace_rbac_ready(workspace_id=workspace.id)
+    await WorkspaceMembership.create(
         workspace_id=workspace.id,
         user_id=owner.id,
         status=WorkspaceMembershipStatus.ACTIVE,
     )
-    owner_role = await SystemRole.get(workspace_id=workspace.id, code="owner")
-    await WorkspaceMembershipRole.create(membership_id=membership.id, role_id=owner_role.id)
     return workspace
 
 

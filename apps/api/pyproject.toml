@@ -40,6 +40,7 @@ dependencies = [
   "langgraph>=1.0.4",
   "langgraph-checkpoint-postgres>=3.0.0",
   "psycopg[binary]>=3.3.4",
+  "webauthn>=2.7,<3",
 ]
 
 [dependency-groups]

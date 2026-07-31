@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -8,11 +9,10 @@ from httpx import ASGITransport, AsyncClient
 from src.common.utils.public_ids import decode_public_id
 from src.config import get_settings
 from src.core.database.orm import verify_db_ready
-from src.core.registry import create_app
+from src.core.registry import create_platform_app
 from src.models.content._enums import PublishJobStatus, PublishJobType
 from src.models.content.publish_job import PublishJobRecord
-from src.models.organization.user import User
-from src.modules.auth.http.service import get_current_user, require_super_admin
+from src.modules.platform_identity.http import get_current_platform_session
 from tests.modules.projects.helpers import project_context_ids
 from tests.modules.workspaces.content.test_content_items_integration import _workspace_client
 from tests.modules.workspaces.publish.test_publish_releases_integration import _prepare_publishable_tree
@@ -44,19 +44,18 @@ async def test_system_jobs_list_filters_publish_jobs(
         )
         job = await PublishJobRecord.get(id=decode_public_id(job_id))
 
-    async def _system_user_override():
-        user = await User.get(id=job.created_by_user_id)
-        user.is_super_admin = True
-        return user
+    async def _platform_owner():
+        return SimpleNamespace(actor_id=job.created_by_user_id, is_instance_owner=True)
 
-    app = create_app()
-    app.dependency_overrides[get_current_user] = _system_user_override
-    app.dependency_overrides[require_super_admin] = _system_user_override
+    app = create_platform_app()
+    app.dependency_overrides[get_current_platform_session] = _platform_owner
     transport = ASGITransport(app=app)
     async with app.router.lifespan_context(app):
         await verify_db_ready(get_settings())
         async with AsyncClient(transport=transport, base_url="http://test") as system_client:
-            res = await system_client.get("/api/v1/system/jobs?status=failed&jobType=scheduled_publish&page=1&size=20")
+            res = await system_client.get(
+                "/platform-api/v1/jobs?status=failed&jobType=scheduled_publish&page=1&size=20"
+            )
 
     assert res.status_code == 200, res.text
     page = res.json()["data"]

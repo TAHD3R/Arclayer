@@ -13,7 +13,6 @@ from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.organization import Organization
 from src.models.organization.user import User
 from src.models.projects.project import ProjectRecord
-from src.models.system.rbac import SystemRole
 from src.models.workspaces.workspace import (
     Workspace,
     WorkspaceMembership,
@@ -23,7 +22,7 @@ from src.models.workspaces.workspace import (
 from src.modules.auth.http.service import get_current_user, get_current_user_id
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.tokens.service import hash_password
-from src.modules.workspaces.rbac.service import WorkspaceRBACService
+from src.modules.workspaces.rbac.service import build_workspace_rbac_service
 
 pytestmark = pytest.mark.integration
 
@@ -69,6 +68,7 @@ async def test_workspace_agent_catalog_http_contract_scope_and_rbac(
             organization_id=organization.id,
             name="Agent Catalog HTTP Workspace",
             is_active=True,
+            owner_user_id=owner.id,
             created_by_user_id=owner.id,
         )
         project = await ProjectRecord.create(
@@ -82,6 +82,7 @@ async def test_workspace_agent_catalog_http_contract_scope_and_rbac(
             organization_id=organization.id,
             name="Other Agent Catalog Workspace",
             is_active=True,
+            owner_user_id=owner.id,
             created_by_user_id=owner.id,
         )
         other_project = await ProjectRecord.create(
@@ -92,8 +93,8 @@ async def test_workspace_agent_catalog_http_contract_scope_and_rbac(
             created_by_user_id=owner.id,
         )
 
-        await WorkspaceRBACService(settings).ensure_workspace_rbac_ready(workspace_id=workspace.id)
-        owner_membership = await WorkspaceMembership.create(
+        await build_workspace_rbac_service(settings).ensure_workspace_rbac_ready(workspace_id=workspace.id)
+        await WorkspaceMembership.create(
             workspace_id=workspace.id,
             user_id=owner.id,
             status=WorkspaceMembershipStatus.ACTIVE,
@@ -103,8 +104,6 @@ async def test_workspace_agent_catalog_http_contract_scope_and_rbac(
             user_id=denied_user.id,
             status=WorkspaceMembershipStatus.ACTIVE,
         )
-        owner_role = await SystemRole.get(workspace_id=workspace.id, code="owner")
-        await WorkspaceMembershipRole.create(membership_id=owner_membership.id, role_id=owner_role.id)
         assert not await WorkspaceMembershipRole.filter(membership_id=denied_membership.id).exists()
 
         current_user: User = owner

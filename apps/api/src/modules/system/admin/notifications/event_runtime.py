@@ -18,21 +18,12 @@ from src.modules.system.admin.notifications.preferences import (
 )
 
 SUBSCRIBER_ID = "system.notifications.events"
-GLOBAL_NOTIFICATION_WORKSPACE_ID = UUID(int=0)
 NOTIFICATION_EVENT_NAMES: tuple[str, ...] = (
     "project.api_key.rotated",
     "project.api_key.revoked",
     "project.preview_token.created",
     "project.content.item.workflow.updated",
-    "system.mail.updated",
-    "system.storage.updated",
-    "system.settings.feature_flags.updated",
 )
-SYSTEM_NOTIFICATION_EVENTS = frozenset({
-    "system.mail.updated",
-    "system.storage.updated",
-    "system.settings.feature_flags.updated",
-})
 
 
 class NotificationRecipient(Protocol):
@@ -42,8 +33,6 @@ class NotificationRecipient(Protocol):
 
 class NotificationAudienceReader(Protocol):
     async def get_active_users(self, user_ids: Sequence[UUID]) -> Sequence[NotificationRecipient]: ...
-
-    async def list_active_super_admins(self) -> Sequence[NotificationRecipient]: ...
 
 
 class NotificationEmailSender(Protocol):
@@ -155,9 +144,6 @@ class NotificationEventRuntime:
         )
 
     async def _recipients(self, event: Event) -> Sequence[NotificationRecipient]:
-        if event.name in SYSTEM_NOTIFICATION_EVENTS:
-            return await self.audience_reader.list_active_super_admins()
-
         actor_user_id = self._uuid_or_none(event.actor_user_id)
         recipient_user_id = self._uuid_or_none(event.payload.get("workflow_assignee_user_id"))
         resolved_user_id = recipient_user_id or actor_user_id
@@ -167,8 +153,6 @@ class NotificationEventRuntime:
 
     @staticmethod
     def _workspace_id(event: Event) -> UUID:
-        if event.name in SYSTEM_NOTIFICATION_EVENTS:
-            return GLOBAL_NOTIFICATION_WORKSPACE_ID
         workspace_id = NotificationEventRuntime._uuid_or_none(event.payload.get("workspace_id"))
         if workspace_id is None:
             raise ValueError(f"Notification event is missing workspace_id: {event.name}")

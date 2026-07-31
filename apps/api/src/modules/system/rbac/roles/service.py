@@ -13,6 +13,7 @@ from src.modules.system.rbac.repository import RBACRepository
 _ROLE_CODE_MAX_LEN: int = 64
 _ROLE_CODE_GENERATE_ATTEMPTS: int = 20
 _ROLE_CODE_SUFFIX_HEX_LEN: int = 8
+_NON_ASSIGNABLE_ROLE_CODES = frozenset({"owner"})
 
 
 class RBACRolesMixin:
@@ -49,6 +50,9 @@ class RBACRolesMixin:
         clean = (role_code or "").strip()
         if not clean or len(clean) > _ROLE_CODE_MAX_LEN:
             raise BadRequest(message=_tr("ROLE_CODE_INVALID", "角色编码不合法"), error="ROLE_CODE_INVALID")
+
+        if clean in _NON_ASSIGNABLE_ROLE_CODES:
+            raise BadRequest(message=_tr("ROLE_CODE_RESERVED", "角色编码已被系统保留"), error="ROLE_CODE_RESERVED")
 
         existing = await self.repo.get_role_by_code(workspace_id=workspace_id, code=clean)
         if existing is not None:

@@ -12,7 +12,11 @@ import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 const composerMocks = vi.hoisted(() => ({
   setText: vi.fn(),
-  openSettings: vi.fn(),
+  navigate: vi.fn(),
+}));
+
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => composerMocks.navigate,
 }));
 
 vi.mock("@assistant-ui/react", () => ({
@@ -31,7 +35,6 @@ vi.mock("@/api/workspace-skills", () => ({
 
 vi.mock("@/components/layout/settings-screen-provider", () => ({
   SettingsScreenProvider: ({ children }: { children?: ReactNode }) => <>{children}</>,
-  useSettingsScreen: () => ({ openSettings: composerMocks.openSettings }),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -162,9 +165,9 @@ describe("AIComposerSkillMenu", () => {
     await user.keyboard("{Enter}");
 
     await waitFor(() =>
-      expect(composerMocks.openSettings).toHaveBeenCalledWith({
-        screen: "workspace.skills",
-        payload: { skillAction: "import" },
+      expect(composerMocks.navigate).toHaveBeenCalledWith({
+        to: "/customization/skills",
+        search: { action: "import" },
       }),
     );
   });

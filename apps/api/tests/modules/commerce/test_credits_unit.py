@@ -41,22 +41,22 @@ def test_credit_period_supports_every_configured_refresh_interval() -> None:
     now = datetime(2026, 7, 12, 15, 30, tzinfo=UTC)
     subscription_end = datetime(2026, 8, 12, tzinfo=UTC)
 
-    assert _credit_period(now, CreditRefreshInterval.DAILY) == (
+    assert _credit_period(now, CreditRefreshInterval.DAILY, subscription_end=subscription_end) == (
         datetime(2026, 7, 12, tzinfo=UTC),
         datetime(2026, 7, 13, tzinfo=UTC),
     )
-    assert _credit_period(now, CreditRefreshInterval.MONTHLY) == (
+    assert _credit_period(now, CreditRefreshInterval.MONTHLY, subscription_end=subscription_end) == (
         datetime(2026, 7, 1, tzinfo=UTC),
         datetime(2026, 8, 1, tzinfo=UTC),
     )
-    assert _credit_period(now, CreditRefreshInterval.YEARLY) == (
+    assert _credit_period(now, CreditRefreshInterval.YEARLY, subscription_end=subscription_end) == (
         datetime(2026, 1, 1, tzinfo=UTC),
         datetime(2027, 1, 1, tzinfo=UTC),
     )
     assert _credit_period(
         now,
         CreditRefreshInterval.NONE,
-        none_period_end=subscription_end,
+        subscription_end=subscription_end,
     ) == (now, subscription_end)
 
 
@@ -119,11 +119,10 @@ async def test_reserve_workspace_credits_updates_hold_and_immutable_ledger() -> 
     ledger = service.write_credit_ledger_entry.await_args.kwargs
     assert ledger["idempotency_key"] == f"ai-credit-reserve:{request_id}"
     assert ledger["description_key"] == "LEDGER_AI_RESERVATION"
-    assert ledger["details"] == {
-        "estimatedCostMicros": 2_001,
-        "creditValueMicros": 1_000,
-        "reservedCredits": 3,
-    }
+    assert ledger["request_id"] == request_id
+    assert ledger["estimated_cost_micros"] == 2_001
+    assert ledger["reserved_credits"] == 3
+    assert ledger["applied_credit_value_micros"] == 1_000
 
 
 @pytest.mark.asyncio

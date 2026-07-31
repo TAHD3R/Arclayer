@@ -3,15 +3,13 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import UTC, datetime
 from math import ceil
-from typing import Any, Literal, cast
+from typing import Any, cast
 from uuid import UUID
-
-from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.common.protocols.tortoise import HasUserId, HasWorkspaceId, WorkspaceArchiveMutableFields
 from src.common.types.json_types import JsonObject
 from src.config import Settings
-from src.core.exceptions import BadRequest, NotFound
+from src.core.exceptions import BadRequest, Forbidden, NotFound
 from src.core.http.pagination import PageData, PageParams, paginate_items
 from src.core.i18n import t
 from src.core.services import BaseService
@@ -21,8 +19,7 @@ from src.models.system.access_restriction import (
     AccessRestrictionEntityType,
     AccessRestrictionType,
 )
-from src.models.system.rbac import SystemRole
-from src.models.workspaces.workspace import Workspace, WorkspaceMembershipRole
+from src.models.workspaces.workspace import Workspace
 from src.modules.access_restrictions.repository import AccessRestrictionRepository
 from src.modules.access_restrictions.schema import (
     AccessRestrictionEnforceRequest,
@@ -30,6 +27,7 @@ from src.modules.access_restrictions.schema import (
 )
 from src.modules.access_restrictions.service import AccessRestrictionService
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
+from src.modules.commerce.service import CommerceService, build_commerce_service
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.organization.workspaces.schema import (
     OrganizationWorkspaceArchiveResult,
@@ -41,10 +39,7 @@ from src.modules.organization.workspaces.schema import (
 )
 from src.modules.projects.repository import ProjectRepository
 from src.modules.projects.schema import WorkspacePrimaryProjectOut
-from src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER
-from src.modules.system.rbac.service import RBACService
-from src.modules.workspaces.danger_service import WorkspaceDangerService
-from src.modules.workspaces.settings.service import WorkspaceSettingsService
+from src.modules.workspaces.settings.service import WorkspaceSettingsService, build_workspace_settings_service
 from src.modules.workspaces.skills.default_provisioner import (
     DefaultWorkspaceOfficialSkillProvisioner,
     WorkspaceOfficialSkillProvisioner,
@@ -76,17 +71,14 @@ class OrganizationWorkspaceService(BaseService):
         repo: OrganizationWorkspaceRepository | None = None,
         project_repo: ProjectRepository | None = None,
         workspace_settings_service: WorkspaceSettingsService | None = None,
-        workspace_danger_service: WorkspaceDangerService | None = None,
-        rbac_service: RBACService | None = None,
         restriction_service: AccessRestrictionService | None = None,
         official_skill_provisioner: WorkspaceOfficialSkillProvisioner | None = None,
+        commerce_service: CommerceService | None = None,
     ) -> None:
         super().__init__(settings)
         self.repo = repo or OrganizationWorkspaceRepository()
         self.project_repo = project_repo or ProjectRepository()
-        self.workspace_settings_service = workspace_settings_service or WorkspaceSettingsService(settings)
-        self.workspace_danger_service = workspace_danger_service or WorkspaceDangerService(settings)
-        self.rbac_service = rbac_service or RBACService(settings)
+        self.workspace_settings_service = workspace_settings_service or build_workspace_settings_service(settings)
         self.restriction_service = restriction_service or AccessRestrictionService(
             settings,
             repository=AccessRestrictionRepository(),
@@ -94,6 +86,7 @@ class OrganizationWorkspaceService(BaseService):
         self.official_skill_provisioner = official_skill_provisioner or DefaultWorkspaceOfficialSkillProvisioner(
             settings
         )
+        self.commerce_service = commerce_service or build_commerce_service(settings)
 
     async def _write_workspace_activity_event(
         self,
@@ -187,8 +180,8 @@ class OrganizationWorkspaceService(BaseService):
         out_items: list[OrganizationWorkspaceOut] = []
         for ws in rows:
             ws_id = UUID(str(ws.id))
-            is_creator_admin = bool(org_role == OrgRole.OWNER and UUID(str(ws.created_by_user_id)) == user_id)
-            enterable = ws_id in viewer_membership_workspace_ids or is_creator_admin
+            is_workspace_owner = UUID(str(ws.owner_user_id)) == user_id
+            enterable = ws_id in viewer_membership_workspace_ids or is_workspace_owner
             if enterable_only and not enterable:
                 continue
 
@@ -295,7 +288,6 @@ class OrganizationWorkspaceService(BaseService):
         *,
         organization_id: UUID,
         user_id: UUID,
-        org_role: OrgRole,
         payload: OrganizationWorkspaceCreateRequest,
     ) -> OrganizationWorkspaceOut:
         name = str(payload.name or "").strip()
@@ -318,18 +310,17 @@ class OrganizationWorkspaceService(BaseService):
                 name=name,
                 description=description,
                 created_by_user_id=user_id,
+                owner_user_id=user_id,
                 conn=conn,
             )
             workspace_id = UUID(str(ws.id))
-            membership = await self.repo.ensure_active_membership(
+            await self.repo.ensure_active_membership(
                 workspace_id=workspace_id,
                 user_id=user_id,
                 conn=conn,
             )
-            await self._ensure_operator_role_binding(
+            await self.commerce_service.initialize_free_workspace_in_transaction(
                 workspace_id=workspace_id,
-                membership_id=UUID(str(membership.id)),
-                org_role=org_role,
                 conn=conn,
             )
             # Initialize workspace-level content strategy defaults so editors can rely on a stable policy contract.
@@ -403,17 +394,9 @@ class OrganizationWorkspaceService(BaseService):
         organization_id: UUID,
         workspace_id: UUID,
         user_id: UUID,
-        org_role: OrgRole,
         idempotency_key: str,
         payload: AccessRestrictionEnforceRequest,
     ) -> OrganizationWorkspaceArchiveResult:
-        await self._ensure_workspace_danger_action_enabled(
-            organization_id=organization_id,
-            workspace_id=workspace_id,
-            user_id=user_id,
-            action="archive",
-        )
-
         async with self.tx() as conn:
             workspace = await self.repo.get_by_id_for_update(workspace_id, conn=conn)
             if (
@@ -423,6 +406,8 @@ class OrganizationWorkspaceService(BaseService):
                 or workspace.deleted_at is not None
             ):
                 raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+            if UUID(str(workspace.owner_user_id)) != user_id:
+                raise Forbidden(message=t("errors", "PERMISSION_DENIED"), error="WORKSPACE_OWNER_REQUIRED")
             await self.restriction_service.enforce(
                 entity_type=AccessRestrictionEntityType.WORKSPACE,
                 entity_id=workspace_id,
@@ -468,7 +453,6 @@ class OrganizationWorkspaceService(BaseService):
         organization_id: UUID,
         workspace_id: UUID,
         user_id: UUID,
-        org_role: OrgRole,
         idempotency_key: str,
         payload: AccessRestrictionLiftRequest,
     ) -> OrganizationWorkspaceArchiveResult:
@@ -481,6 +465,8 @@ class OrganizationWorkspaceService(BaseService):
                 or workspace.deleted_at is not None
             ):
                 raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+            if UUID(str(workspace.owner_user_id)) != user_id:
+                raise Forbidden(message=t("errors", "PERMISSION_DENIED"), error="WORKSPACE_OWNER_REQUIRED")
             await self.restriction_service.lift(
                 entity_type=AccessRestrictionEntityType.WORKSPACE,
                 entity_id=workspace_id,
@@ -522,36 +508,25 @@ class OrganizationWorkspaceService(BaseService):
         organization_id: UUID,
         workspace_id: UUID,
         user_id: UUID,
-        org_role: OrgRole,
         confirm_name: str,
     ) -> OrganizationWorkspaceDeleteResult:
-        workspace = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
-        if workspace is None:
-            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
-
-        await self._ensure_workspace_danger_action_enabled(
-            organization_id=organization_id,
-            workspace_id=workspace_id,
-            user_id=user_id,
-            action="delete",
-        )
-
         normalized_confirm_name = str(confirm_name or "").strip()
-        if normalized_confirm_name != str(workspace.name):
-            raise BadRequest(
-                message=t("errors", "BAD_REQUEST"),
-                error="WORKSPACE_DELETE_CONFIRM_NAME_MISMATCH",
-            )
-
-        if workspace.archived_at is None:
-            active_count = await self.repo.count_active_non_archived_workspaces(organization_id=organization_id)
-            if active_count <= 1:
+        async with self.tx() as conn:
+            workspace = await self.repo.get_by_id_for_update(workspace_id, conn=conn)
+            if (
+                workspace is None
+                or UUID(str(workspace.organization_id)) != organization_id
+                or not workspace.is_active
+                or workspace.deleted_at is not None
+            ):
+                raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+            if UUID(str(workspace.owner_user_id)) != user_id:
+                raise Forbidden(message=t("errors", "PERMISSION_DENIED"), error="WORKSPACE_OWNER_REQUIRED")
+            if normalized_confirm_name != str(workspace.name):
                 raise BadRequest(
                     message=t("errors", "BAD_REQUEST"),
-                    error="LAST_ACTIVE_WORKSPACE_NOT_DELETABLE",
+                    error="WORKSPACE_DELETE_CONFIRM_NAME_MISMATCH",
                 )
-
-        async with self.tx() as conn:
             await workspace.delete(using_db=conn)
             await self._write_workspace_activity_event(
                 event_name="workspace.deleted",
@@ -571,42 +546,6 @@ class OrganizationWorkspaceService(BaseService):
         )
 
         return OrganizationWorkspaceDeleteResult(workspace_id=workspace_id, deleted=True)
-
-    async def _ensure_workspace_danger_action_enabled(
-        self,
-        *,
-        organization_id: UUID,
-        workspace_id: UUID,
-        user_id: UUID,
-        action: Literal["archive", "delete"],
-    ) -> None:
-        danger = await self.workspace_danger_service.get_capabilities(
-            organization_id=organization_id,
-            workspace_id=workspace_id,
-            user_id=user_id,
-        )
-        guard = danger.leave_action if action == "archive" else danger.delete_action
-        if guard.enabled:
-            return
-        raise BadRequest(
-            message=t("errors", "BAD_REQUEST"),
-            error=str(guard.blocked_reason or "BAD_REQUEST"),
-        )
-
-    async def _ensure_operator_role_binding(
-        self,
-        *,
-        workspace_id: UUID,
-        membership_id: UUID,
-        org_role: OrgRole,
-        conn: BaseDBAsyncClient,
-    ) -> None:
-        role_code = ROLE_OWNER if org_role == OrgRole.OWNER else ROLE_ADMIN
-        await self.rbac_service.ensure_workspace_system_roles(workspace_id=workspace_id, conn=conn)
-        role = await SystemRole.get_or_none(workspace_id=workspace_id, code=role_code, using_db=conn)
-        if role is None:
-            return
-        await WorkspaceMembershipRole.get_or_create(using_db=conn, membership_id=membership_id, role_id=role.id)
 
     def _build_workspace_out(
         self,

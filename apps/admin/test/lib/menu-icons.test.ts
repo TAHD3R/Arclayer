@@ -1,7 +1,6 @@
 import {
   BadgeInfo,
   Bell,
-  Blocks,
   BookOpenText,
   Boxes,
   ChartNoAxesCombined,
@@ -20,7 +19,6 @@ import {
   SearchCheck,
   Settings2,
   ShieldCheck,
-  SwatchBook,
   UsersRound,
 } from "lucide-react";
 import { describe, expect, it } from "vitest";
@@ -56,9 +54,6 @@ const SETTINGS_MENU_ICONS = new Map([
   ["settings.personal.notifications", Bell],
   ["settings.workspace.general", BadgeInfo],
   ["settings.workspace.plan-usage", ChartPie],
-  ["settings.workspace.knowledge", BookOpenText],
-  ["settings.workspace.skills", Blocks],
-  ["settings.workspace.design-systems", SwatchBook],
   ["settings.workspace.members", UsersRound],
   ["settings.workspace.invitations", MailPlus],
   ["settings.workspace.roles", ShieldCheck],

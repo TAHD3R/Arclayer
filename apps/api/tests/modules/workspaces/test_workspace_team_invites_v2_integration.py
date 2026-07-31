@@ -61,7 +61,10 @@ async def _enable_mail_service() -> None:
     await record.save(update_fields=["value", "updated_at"])
 
 
-async def test_me_workspaces_owner_can_see_all_with_visible_only(prepared_db, integration_valkey_settings) -> None:
+async def test_me_workspaces_uses_active_memberships_not_organization_ownership(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
     _ = prepared_db
     _ = integration_valkey_settings
 
@@ -104,12 +107,14 @@ async def test_me_workspaces_owner_can_see_all_with_visible_only(prepared_db, in
             name="Blog",
             icon_url="/assets/ws-blog-icon",
             is_active=True,
+            owner_user_id=owner.id,
             created_by_user_id=owner.id,
         )
         ws2 = await Workspace.create(
             organization_id=org.id,
             name="Commerce",
             is_active=True,
+            owner_user_id=other.id,
             created_by_user_id=other.id,
         )
         await WorkspaceMembership.create(
@@ -147,20 +152,15 @@ async def test_me_workspaces_owner_can_see_all_with_visible_only(prepared_db, in
             ids = {i["workspaceId"] for i in items}
             ws1_pid = encode_uuid(ws1.id)
             ws2_pid = encode_uuid(ws2.id)
-            assert ids == {ws1_pid, ws2_pid}
+            assert ids == {ws1_pid}
 
             by_id = {i["workspaceId"]: i for i in items}
-            assert by_id[ws1_pid]["isCreatorAdmin"] is True
-            assert by_id[ws1_pid]["visibleOnly"] is False
+            assert by_id[ws1_pid]["isOwner"] is True
             assert by_id[ws1_pid]["iconUrl"] == "/assets/ws-blog-icon"
+            assert ws2_pid not in by_id
             assert by_id[ws1_pid]["memberCount"] == 1
             assert len(by_id[ws1_pid]["membersPreview"]) == 1
             assert by_id[ws1_pid]["membersPreview"][0]["username"] == owner.username
-            assert by_id[ws2_pid]["isCreatorAdmin"] is False
-            assert by_id[ws2_pid]["visibleOnly"] is True
-            assert by_id[ws2_pid]["memberCount"] == 1
-            assert len(by_id[ws2_pid]["membersPreview"]) == 1
-            assert by_id[ws2_pid]["membersPreview"][0]["username"] == other.username
 
 
 async def test_workspace_invite_link_accept_existing_creates_use_event(
@@ -199,7 +199,7 @@ async def test_workspace_invite_link_accept_existing_creates_use_event(
 
         org = await org_repo.create_organization(slug=f"org_{uuid4().hex}", name="Test Org")
 
-        # Inviter: org owner + workspace creator -> implicit admin.
+        # Inviter is the canonical Workspace Owner.
         owner = await user_repo.create_user(
             username=f"owner_{uuid4().hex[:10]}",
             email="owner@example.com",
@@ -212,6 +212,7 @@ async def test_workspace_invite_link_accept_existing_creates_use_event(
             organization_id=org.id,
             name="Blog",
             is_active=True,
+            owner_user_id=owner.id,
             created_by_user_id=owner.id,
         )
 
@@ -401,6 +402,7 @@ async def test_workspace_invite_link_max_uses_enforced(prepared_db, integration_
             organization_id=org.id,
             name="Site",
             is_active=True,
+            owner_user_id=owner.id,
             created_by_user_id=owner.id,
         )
 
@@ -499,6 +501,7 @@ async def test_auth_me_invitations_includes_workspace(prepared_db, integration_v
             organization_id=org.id,
             name="Blog",
             is_active=True,
+            owner_user_id=owner.id,
             created_by_user_id=owner.id,
         )
 
@@ -581,6 +584,7 @@ async def test_workspace_invite_link_domain_restriction_enforced(prepared_db, in
             organization_id=org.id,
             name="Site",
             is_active=True,
+            owner_user_id=owner.id,
             created_by_user_id=owner.id,
         )
 
@@ -665,6 +669,7 @@ async def test_accept_existing_scopes_membership_lookup_to_target_organization(
             organization_id=org1.id,
             name="Site",
             is_active=True,
+            owner_user_id=owner.id,
             created_by_user_id=owner.id,
         )
 

@@ -1,0 +1,22 @@
+{
+  "name": "@arclayer/platform-openapi",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate:openapi": "pnpm -C ../../apps/api openapi:export --composition platform --out ../../packages/platform-openapi/openapi.json",
+    "generate:sdk": "openapi-ts -f openapi-ts.config.ts",
+    "generate": "pnpm run generate:openapi && pnpm run generate:sdk",
+    "typecheck": "tsc --noEmit --project tsconfig.json"
+  },
+  "dependencies": {
+    "@hey-api/client-fetch": "0.13.1"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "0.92.4",
+    "typescript": "catalog:"
+  }
+}

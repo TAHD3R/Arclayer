@@ -21,7 +21,6 @@
   },
   "admin": {
     "label_key": "settings:SETTINGS_SYSTEM_PLUGIN_EMAIL_NAME",
-    "description_key": "settings:SETTINGS_SYSTEM_PLUGIN_EMAIL_DESC",
-    "settings_path": "/system/settings/email"
+    "description_key": "settings:SETTINGS_SYSTEM_PLUGIN_EMAIL_DESC"
   }
 }

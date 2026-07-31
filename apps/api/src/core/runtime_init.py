@@ -27,7 +27,7 @@ from src.modules.system.admin.notifications.repository import NotificationReposi
 from src.modules.system.agents.definition_service import SUPPORTED_TOOL_GRANTS
 from src.modules.system.rbac.service import RBACService
 from src.modules.workspaces.permissions import get_permission_action_registry
-from src.modules.workspaces.rbac.service import WorkspaceRBACService
+from src.modules.workspaces.rbac.service import build_workspace_rbac_service
 from src.modules.workspaces.skills.official_catalog_repository import OfficialSkillCatalogRepository
 from src.modules.workspaces.skills.official_catalog_source import PackagedOfficialSkillCatalogSource
 from src.modules.workspaces.skills.official_catalog_sync import OfficialSkillCatalogSyncService
@@ -126,7 +126,7 @@ async def init_domain_runtime(app: FastAPI, settings: Settings, *, event_bus: Ev
         supported_tool_ids=frozenset(SUPPORTED_TOOL_GRANTS),
         settings=settings,
     ).sync()
-    await WorkspaceRBACService(settings).ensure_all_workspaces_ready()
+    await build_workspace_rbac_service(settings).ensure_all_workspaces_ready()
     await AgentCatalogService(settings).ensure_all_workspaces_ready()
 
     webhook_service = WebhookService(settings)

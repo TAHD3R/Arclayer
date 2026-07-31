@@ -44,6 +44,7 @@ async def _run() -> tuple[AgentRuntimeRepository, AgentThreadV1Record, UUID, Run
         organization_id=organization.id,
         name="Agent Stream Workspace",
         is_active=True,
+        owner_user_id=owner_user_id,
         created_by_user_id=owner_user_id,
     )
     project = await ProjectRecord.create(

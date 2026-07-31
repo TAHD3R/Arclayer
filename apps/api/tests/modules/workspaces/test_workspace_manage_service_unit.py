@@ -21,7 +21,7 @@ async def test_manage_workspace_create_accepts_string_template_from_base_schema(
         captured["organization_name"] = organization_name
         return SimpleNamespace(id=organization_id)
 
-    async def _create_workspace(*, organization_id, user_id, org_role, payload):  # type: ignore[no-untyped-def]
+    async def _create_workspace(*, organization_id, user_id, payload):  # type: ignore[no-untyped-def]
         captured["template"] = payload.template
         captured["payload"] = payload
         return SimpleNamespace(

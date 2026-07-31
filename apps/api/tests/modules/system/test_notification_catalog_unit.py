@@ -39,12 +39,22 @@ def test_notification_catalog_includes_first_slice_sources() -> None:
         "project.content.item.workflow.updated",
         "project.release.scheduled_publish.failed",
         "automation.notification",
-        "system.mail.updated",
         "system.broadcast",
     }.issubset(catalog_events)
     automation_definition = catalog.get_notification_definition("automation.notification")
     assert automation_definition is not None
     assert automation_definition.group == "automation"
+
+
+def test_notification_catalog_has_no_retired_platform_routes_or_feature_flag_event() -> None:
+    definitions = {definition.event_name: definition for definition in catalog.NOTIFICATION_DEFINITIONS}
+
+    assert all(not definition.target_to.startswith("/system") for definition in definitions.values())
+    assert definitions.keys().isdisjoint({
+        "system.mail.updated",
+        "system.storage.updated",
+        "system.settings.feature_flags.updated",
+    })
 
 
 @pytest.mark.asyncio
@@ -66,7 +76,7 @@ async def test_notification_group_policy_uses_defaults_when_group_is_absent(
     assert (
         await catalog.is_notification_group_enabled_for_event(
             settings=Settings(),
-            event_name="system.mail.updated",
+            event_name="system.broadcast",
         )
         is False
     )

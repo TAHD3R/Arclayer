@@ -20,6 +20,7 @@ pytestmark = pytest.mark.integration
 async def _create_project_runtime_site(
     slug: str = "test-project",
 ) -> tuple[Workspace, ProjectRecord, ProjectRuntimeRecord]:
+    owner_user_id = uuid4()
     organization = await Organization.create(
         slug=f"org-{uuid4().hex[:12]}",
         name="Test Org",
@@ -30,7 +31,8 @@ async def _create_project_runtime_site(
         organization_id=organization.id,
         name="Workspace",
         is_active=True,
-        created_by_user_id=uuid4(),
+        owner_user_id=owner_user_id,
+        created_by_user_id=owner_user_id,
     )
     project = await ProjectRecord.create(
         workspace_id=workspace.id,

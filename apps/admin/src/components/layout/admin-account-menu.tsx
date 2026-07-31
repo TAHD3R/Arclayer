@@ -25,17 +25,21 @@ import {
   History,
   Languages,
   LifeBuoy,
+  LoaderCircle,
   LogOut,
   Monitor,
   Moon,
+  RefreshCw,
   Settings,
   Shield,
   SquareStack,
   Sun,
+  TriangleAlert,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
+import { getPlatformEntryEligibility } from "@/api/platform-entry";
 import { UserAvatar } from "@/components/common/entity-avatar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
 import { LegalModalDialogs, type LegalModal } from "@/components/layout/legal-footer";
@@ -45,6 +49,7 @@ import { setThemePreferenceWithTransition } from "@/components/ui/theme-transiti
 import { getUserDisplayName, normalizeUserProfile } from "@/lib/auth/user-profile";
 import { buildSupportedLocaleOptions, SUPPORTED_LOCALES, type AppLocale } from "@/lib/i18n";
 import { notifyError } from "@/lib/notifications";
+import { parsePlatformOrigin } from "@/lib/platform-entry";
 import { queryClient } from "@/lib/query/query-client-instance";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
@@ -105,7 +110,15 @@ type AdminAccountMenuModel = {
   onThemePreferenceChange: (next: ThemePreference) => Promise<void>;
   onLocaleChange: (next: AppLocale) => void;
   onOpenResource: (resource: AccountMenuResource) => void;
+  platformEntry: PlatformEntryState;
 };
+
+type PlatformEntryState =
+  | { status: "checking" }
+  | { status: "hidden" }
+  | { status: "load-error"; retry: () => void }
+  | { status: "configuration-error" }
+  | { status: "available"; open: () => void };
 
 type AccountMenuSubmenu = "language" | "appearance" | "docs" | "legal";
 
@@ -131,6 +144,7 @@ type AdminAccountPanelContentProps = {
   onLocaleChange: (next: AppLocale) => Promise<void> | void;
   onOpenResource: (resource: AccountMenuResource) => Promise<void> | void;
   onOpenLegal: (modal: Exclude<LegalModal, null>) => Promise<void> | void;
+  platformEntry: PlatformEntryState;
 };
 
 const PANEL_WIDTH_CLASSNAME = "w-60";
@@ -170,6 +184,50 @@ function MenuItemContent(props: { icon?: ReactNode; label: string; right?: React
 
 function MenuDivider() {
   return <div className="mx-4 my-2 h-px bg-border/60" />;
+}
+
+function MenuStatus(props: { icon: ReactNode; label: string }) {
+  return (
+    <div className={cn(MENU_ITEM_CLASSNAME, "flex h-9 items-center text-label-secondary")}>
+      <MenuItemContent icon={props.icon} label={props.label} />
+    </div>
+  );
+}
+
+function PlatformEntryMenuItem(props: { entry: PlatformEntryState }) {
+  const { t } = useTranslation("account");
+  if (props.entry.status === "hidden") return null;
+  if (props.entry.status === "checking") {
+    return (
+      <MenuStatus
+        icon={<LoaderCircle className="animate-spin" />}
+        label={t("ACCOUNT_MENU_PLATFORM_CHECKING")}
+      />
+    );
+  }
+  if (props.entry.status === "load-error") {
+    return (
+      <MenuAction
+        icon={<TriangleAlert />}
+        label={t("ACCOUNT_MENU_PLATFORM_LOAD_ERROR")}
+        right={<RefreshCw />}
+        onClick={props.entry.retry}
+      />
+    );
+  }
+  if (props.entry.status === "configuration-error") {
+    return (
+      <MenuStatus icon={<TriangleAlert />} label={t("ACCOUNT_MENU_PLATFORM_CONFIGURATION_ERROR")} />
+    );
+  }
+  return (
+    <MenuAction
+      icon={<SquareStack />}
+      label={t("ACCOUNT_MENU_PLATFORM_OPEN")}
+      right={<ExternalLink />}
+      onClick={props.entry.open}
+    />
+  );
 }
 
 function MenuAction(props: {
@@ -229,6 +287,7 @@ function RootMenu(props: {
   onOpenResource: (resource: AccountMenuResource) => Promise<void> | void;
   onOpenLegal: (modal: Exclude<LegalModal, null>) => Promise<void> | void;
   onLogout: () => Promise<void>;
+  platformEntry: PlatformEntryState;
 }) {
   const { t } = useTranslation("account");
   return (
@@ -249,6 +308,7 @@ function RootMenu(props: {
           label={t("ACCOUNT_MENU_SUBSCRIPTION")}
           onClick={props.onSubscription}
         />
+        <PlatformEntryMenuItem entry={props.platformEntry} />
         <AccountSubmenuAction
           panelOpen={props.panelOpen}
           icon={<Languages />}
@@ -594,6 +654,7 @@ function AdminAccountPanelContent(props: AdminAccountPanelContentProps) {
         onOpenResource={props.onOpenResource}
         onOpenLegal={props.onOpenLegal}
         onLogout={() => onClickAndClose(props.onLogout)}
+        platformEntry={props.platformEntry}
       />
     </div>
   );
@@ -615,6 +676,13 @@ function useAdminAccountMenuModel(): AdminAccountMenuModel {
     queryKey: ["auth", "me", sessionVersion],
     enabled: Boolean(accessToken),
     queryFn: async () => authApi.me(),
+    meta: { silent: true },
+  });
+  const platformEntryQuery = useQuery({
+    queryKey: ["me", "platform-entry-eligibility", sessionVersion],
+    enabled: Boolean(accessToken),
+    queryFn: ({ signal }) => getPlatformEntryEligibility(signal),
+    retry: false,
     meta: { silent: true },
   });
   const profile = useMemo(() => normalizeUserProfile(meQuery.data), [meQuery.data]);
@@ -640,6 +708,24 @@ function useAdminAccountMenuModel(): AdminAccountMenuModel {
     }
   };
 
+  const platformEntry: PlatformEntryState = (() => {
+    if (platformEntryQuery.isPending) return { status: "checking" };
+    if (platformEntryQuery.isError) {
+      return { status: "load-error", retry: () => void platformEntryQuery.refetch() };
+    }
+    if (!platformEntryQuery.data.eligible) return { status: "hidden" };
+
+    try {
+      const origin = parsePlatformOrigin(import.meta.env.VITE_PLATFORM_ORIGIN);
+      return {
+        status: "available",
+        open: () => window.open(origin, "_blank", "noopener,noreferrer"),
+      };
+    } catch {
+      return { status: "configuration-error" };
+    }
+  })();
+
   return {
     displayName,
     email: profile.email,
@@ -663,6 +749,7 @@ function useAdminAccountMenuModel(): AdminAccountMenuModel {
     onOpenResource: (resource) => {
       window.open(ACCOUNT_MENU_RESOURCE_URLS[resource], "_blank", "noopener,noreferrer");
     },
+    platformEntry,
   };
 }
 
@@ -757,6 +844,7 @@ export function AdminAccountMenu(props: { variant?: "sidebar" | "header" } = {})
               onLocaleChange={model.onLocaleChange}
               onOpenResource={model.onOpenResource}
               onOpenLegal={setLegalModal}
+              platformEntry={model.platformEntry}
             />
           </FloatingPanelContent>
         </FloatingPanelRoot>
@@ -790,6 +878,7 @@ export function AdminAccountMenu(props: { variant?: "sidebar" | "header" } = {})
             onLocaleChange={model.onLocaleChange}
             onOpenResource={model.onOpenResource}
             onOpenLegal={setLegalModal}
+            platformEntry={model.platformEntry}
           />
         </FloatingPanelContent>
       </FloatingPanelRoot>

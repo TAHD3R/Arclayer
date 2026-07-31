@@ -133,6 +133,7 @@ async def test_workspace_email_invite_pending_unique_and_accept(
             organization_id=org.id,
             name="Site",
             is_active=True,
+            owner_user_id=owner.id,
             created_by_user_id=owner.id,
         )
 
@@ -540,6 +541,7 @@ async def test_workspace_email_invite_email_mismatch_rejected(
             organization_id=org.id,
             name="Site",
             is_active=True,
+            owner_user_id=owner.id,
             created_by_user_id=owner.id,
         )
 
@@ -620,6 +622,7 @@ async def test_workspace_invite_link_disable_blocks_accept(
             organization_id=org.id,
             name="Site",
             is_active=True,
+            owner_user_id=owner.id,
             created_by_user_id=owner.id,
         )
 
@@ -884,6 +887,7 @@ async def test_workspace_team_member_manage_update_disable_enable_and_reset_pass
             organization_id=org.id,
             name="Site",
             is_active=True,
+            owner_user_id=owner.id,
             created_by_user_id=owner.id,
         )
 
@@ -916,8 +920,22 @@ async def test_workspace_team_member_manage_update_disable_enable_and_reset_pass
             member_m_pid = encode_uuid(member_m.id)
             owner_m_pid = encode_uuid(owner_m.id)
 
-            # Owner updates member profile (workspace-scoped).
             current_user = owner
+            resp = await client.get(f"/api/v1/workspaces/{ws_pid}/team/members?page=1&size=10")
+            assert resp.status_code == 200, resp.text
+            members_by_id = {item["membershipId"]: item for item in resp.json()["data"]["items"]}
+            assert members_by_id[owner_m_pid]["isOwner"] is True
+            assert members_by_id[member_m_pid]["isOwner"] is False
+
+            resp = await client.put(
+                f"/api/v1/workspaces/{ws_pid}/team/members/{owner_m_pid}/roles",
+                json={"roleCodes": ["admin"]},
+            )
+            assert resp.status_code == 400, resp.text
+            assert resp.json()["error"] == "WORKSPACE_OWNER_MEMBERSHIP_IMMUTABLE"
+            assert await WorkspaceMembershipRole.filter(membership_id=owner_m.id).count() == 0
+
+            # Owner updates member profile (workspace-scoped).
             resp = await client.patch(
                 f"/api/v1/workspaces/{ws_pid}/team/members/{member_m_pid}",
                 json={"displayName": "Member Renamed", "email": "member2@example.com"},
@@ -1081,6 +1099,7 @@ async def test_workspace_team_member_manage_update_disable_enable_and_reset_pass
             # Disabling self should be rejected.
             resp = await client.post(f"/api/v1/workspaces/{ws_pid}/team/members/{owner_m_pid}/disable")
             assert resp.status_code == 400
+            assert resp.json()["error"] == "WORKSPACE_OWNER_MEMBERSHIP_IMMUTABLE"
 
             from src.modules.workspaces.team import service as team_service_module
 

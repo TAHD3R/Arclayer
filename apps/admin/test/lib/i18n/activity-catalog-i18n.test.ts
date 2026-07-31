@@ -95,7 +95,7 @@ const API_AUDIT_ACTIONS = [
   "project.content.version.archived",
   "project.content.version.scheduled",
 
-  // Assets / System settings
+  // Assets
   "asset.uploaded",
   "asset.folder.created",
   "asset.folder.updated",
@@ -103,12 +103,6 @@ const API_AUDIT_ACTIONS = [
   "asset.metadata.updated",
   "asset.moved",
   "asset.deleted",
-  "system.setup.completed",
-  "settings.updated",
-  "system.mail.updated",
-  "system.storage.updated",
-  "system.settings.feature_flags.updated",
-  "system.settings.rbac.updated",
 ] as const;
 
 const AUDIT_LOG_REGRESSION_ACTIONS = [

@@ -117,10 +117,8 @@ describe("workspace destructive flows", () => {
         {
           workspaceId: "ws-2",
           projectId: "project-2",
-          slug: "beta",
           name: "Beta",
-          visibleOnly: false,
-          isCreatorAdmin: true,
+          isOwner: true,
         },
       ],
       instanceSetup: { status: "ready", repairReason: null },
@@ -151,26 +149,5 @@ describe("workspace destructive flows", () => {
     });
     expect(useWorkspaceStore.getState().currentWorkspaceId).toBe("ws-2");
     expect(useWorkspaceStore.getState().currentProjectId).toBe("project-2");
-  });
-
-  it("shows explicit last-active-workspace block before delete click", async () => {
-    const user = userEvent.setup();
-    getWorkspaceDangerCapabilitiesMock.mockResolvedValue({
-      workspaceId: "ws-1",
-      confirmLeaveText: "LEAVE",
-      confirmDeleteName: "Workspace Alpha",
-      leaveAction: { enabled: true, blockedReason: null },
-      deleteAction: { enabled: false, blockedReason: "LAST_ACTIVE_WORKSPACE_NOT_DELETABLE" },
-    });
-
-    renderWithProviders(<WorkspaceSettingsDangerView workspaceId="ws-1" />);
-
-    const deleteButton = await screen.findByRole("button", {
-      name: new RegExp(i18n.t("settings:SETTINGS_WORKSPACE_DELETE_TITLE")),
-    });
-
-    expect(deleteButton).toHaveAttribute("aria-disabled", "true");
-    await user.click(deleteButton);
-    expect(deleteWorkspaceMock).not.toHaveBeenCalled();
   });
 });

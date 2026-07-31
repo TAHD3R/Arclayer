@@ -59,6 +59,7 @@ export function InvitationTableControls(props: {
   onChange: (value: InvitationTableFilters) => void;
   ordering: InvitationSort;
   onOrderingChange: (value: InvitationSort) => void;
+  roleManagementAvailable: boolean;
   roles: readonly RoleOption[];
 }) {
   const { t } = useTranslation(["team", "common"]);
@@ -68,8 +69,9 @@ export function InvitationTableControls(props: {
     [t],
   );
   const fields = useMemo<FilterFieldConfig<FilterValue>[]>(() => {
-    const result: FilterFieldConfig<FilterValue>[] = [
-      {
+    const result: FilterFieldConfig<FilterValue>[] = [];
+    if (props.roleManagementAvailable) {
+      result.push({
         key: "roleCode",
         label: t("team:TEAM_INVITATIONS_FILTER_ROLE"),
         type: "select",
@@ -77,8 +79,8 @@ export function InvitationTableControls(props: {
         searchable: true,
         operators,
         options: props.roles.map((role) => ({ value: role.code, label: role.name || role.code })),
-      },
-    ];
+      });
+    }
     if (props.mode === "links") {
       result.push({
         key: "status",
@@ -95,13 +97,13 @@ export function InvitationTableControls(props: {
       });
     }
     return result;
-  }, [operators, props.mode, props.roles, t]);
+  }, [operators, props.mode, props.roleManagementAvailable, props.roles, t]);
   const options = useMemo(() => orderingOptions(props.mode, t), [props.mode, t]);
   const defaultFilters: InvitationTableFilters = props.mode === "links" ? { status: "active" } : {};
   const hasOverrides =
     filters.length !== (props.mode === "links" ? 1 : 0) ||
     props.value.status !== defaultFilters.status ||
-    Boolean(props.value.roleCode) ||
+    (props.roleManagementAvailable && Boolean(props.value.roleCode)) ||
     props.ordering !== "-created_at";
 
   return (

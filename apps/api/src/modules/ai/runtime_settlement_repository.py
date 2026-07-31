@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal, cast
+from typing import Literal
 from uuid import UUID
 
 from pydantic import ConfigDict
@@ -8,7 +8,6 @@ from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.transactions import in_transaction
 
 from src.common.schemas import BaseSchema
-from src.common.types.json_types import JsonObject
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.agents.runtime_v1 import AgentRunV1Record
 from src.models.ai.ai_budget_reservation import AIBudgetReservation, ReservationStatus
@@ -136,6 +135,10 @@ class AgentRunSettlementRepository(TortoiseORMRepository[AgentRunV1Record]):
         ledger = await (
             WorkspaceCreditLedger
             .filter(
+                workspace_id=run.workspace_id,
+                account_id=reservation.credit_account_id,
+                request_id=reservation.request_id,
+                entry_type=CreditLedgerEntryType.COMMIT,
                 idempotency_key=f"ai-credit-commit:{reservation.request_id}",
             )
             .using_db(conn)
@@ -143,15 +146,14 @@ class AgentRunSettlementRepository(TortoiseORMRepository[AgentRunV1Record]):
         )
         if ledger is None or not self._matches_ledger_owner(run=run, reservation=reservation, ledger=ledger):
             raise AgentRuntimePersistenceError("AGENT_TERMINAL_CREDIT_PROOF_MISSING")
-        details = cast(JsonObject, ledger.details)
         if (
             ledger.entry_type != CreditLedgerEntryType.COMMIT
             or int(ledger.delta_balance_credits) != -actual
             or int(ledger.delta_reserved_credits) != -reserved
-            or details.get("actualCostMicros") != int(reservation.actual_cost_micros or 0)
-            or details.get("creditValueMicros") != int(reservation.credit_value_micros or 0)
-            or details.get("reservedCredits") != reserved
-            or details.get("actualCredits") != actual
+            or int(ledger.actual_cost_micros or 0) != int(reservation.actual_cost_micros or 0)
+            or int(ledger.applied_credit_value_micros) != int(reservation.credit_value_micros or 0)
+            or int(ledger.reserved_credits) != reserved
+            or int(ledger.committed_credits) != actual
         ):
             raise AgentRuntimePersistenceError("AGENT_TERMINAL_CREDIT_PROOF_INVALID")
         return actual
@@ -167,9 +169,9 @@ class AgentRunSettlementRepository(TortoiseORMRepository[AgentRunV1Record]):
         ledgers = await (
             WorkspaceCreditLedger
             .filter(
+                workspace_id=run.workspace_id,
                 account_id=reservation.credit_account_id,
-                reference_type="ai_request",
-                reference_id=reservation.request_id,
+                request_id=reservation.request_id,
                 entry_type__in=(CreditLedgerEntryType.RELEASE, CreditLedgerEntryType.EXPIRATION),
             )
             .using_db(conn)
@@ -191,7 +193,10 @@ class AgentRunSettlementRepository(TortoiseORMRepository[AgentRunV1Record]):
             ledger.entry_type != expected_type
             or int(ledger.delta_balance_credits) != 0
             or int(ledger.delta_reserved_credits) != -reserved
-            or cast(JsonObject, ledger.details).get("reservedCredits") != reserved
+            or ledger.actual_cost_micros is not None
+            or int(ledger.applied_credit_value_micros) != int(reservation.credit_value_micros or 0)
+            or int(ledger.reserved_credits) != reserved
+            or int(ledger.committed_credits) != 0
         ):
             raise AgentRuntimePersistenceError("AGENT_TERMINAL_CREDIT_PROOF_INVALID")
         return reserved
@@ -230,8 +235,7 @@ class AgentRunSettlementRepository(TortoiseORMRepository[AgentRunV1Record]):
         return (
             ledger.workspace_id == run.workspace_id
             and ledger.account_id == reservation.credit_account_id
-            and ledger.reference_type == "ai_request"
-            and ledger.reference_id == reservation.request_id
+            and ledger.request_id == reservation.request_id
         )
 
     @staticmethod

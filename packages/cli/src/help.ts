@@ -4,20 +4,11 @@ Usage:
   arclayer <command> <subcommand> [options]
 
 Commands:
-  config dump      Export system settings namespaces
-  config restore   Restore system settings namespaces from a dump
   content export   Export project content transfer bundle
   content import   Import project content transfer bundle
   generate         Run code generators
 
 Run arclayer <command> --help for command-specific options.
-`;
-
-export const CONFIG_HELP = `Arclayer config commands
-
-Usage:
-  arclayer config dump --api-url <url> --token <token> [--out <file>] [--page-size <number>]
-  arclayer config restore --api-url <url> --token <token> --file <file>
 `;
 
 export const CONTENT_HELP = `Arclayer content transfer commands

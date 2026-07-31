@@ -78,20 +78,20 @@ def _project_root() -> Path:
 def test_workspace_catalog_includes_content_site_permissions_with_defaults() -> None:
     templates = {tpl.code: tpl for tpl in CORE_PERMISSION_TEMPLATES}
     expected_defaults = {
-        "system:site:read": {"owner", "admin", "editor", "designer", "viewer"},
-        "system:site:manage": {"owner", "admin", "editor", "designer"},
-        "system:content:read": {"owner", "admin", "editor", "designer", "viewer"},
-        "system:content:manage": {"owner", "admin", "editor", "designer"},
-        "system:content:publish": {"owner", "admin", "editor"},
-        "system:keys:read": {"owner", "admin"},
-        "system:keys:manage": {"owner", "admin"},
-        "system:assets:read": {"owner", "admin", "editor", "designer", "viewer"},
-        "system:assets:manage": {"owner", "admin", "editor", "designer"},
-        "system:domains:read": {"owner", "admin", "editor", "designer", "viewer"},
-        "system:domains:manage": {"owner", "admin"},
-        "system:notifications:read": {"owner", "admin", "editor", "designer", "viewer"},
-        "system:notifications:manage": {"owner", "admin"},
-        "system:jobs:read": {"owner", "admin", "editor", "designer", "viewer"},
+        "system:site:read": {"admin", "editor", "designer", "viewer"},
+        "system:site:manage": {"admin", "editor", "designer"},
+        "system:content:read": {"admin", "editor", "designer", "viewer"},
+        "system:content:manage": {"admin", "editor", "designer"},
+        "system:content:publish": {"admin", "editor"},
+        "system:keys:read": {"admin"},
+        "system:keys:manage": {"admin"},
+        "system:assets:read": {"admin", "editor", "designer", "viewer"},
+        "system:assets:manage": {"admin", "editor", "designer"},
+        "system:domains:read": {"admin", "editor", "designer", "viewer"},
+        "system:domains:manage": {"admin"},
+        "system:notifications:read": {"admin", "editor", "designer", "viewer"},
+        "system:notifications:manage": {"admin"},
+        "system:jobs:read": {"admin", "editor", "designer", "viewer"},
     }
 
     for code, expected_roles in expected_defaults.items():

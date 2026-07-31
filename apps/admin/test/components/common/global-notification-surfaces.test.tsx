@@ -39,7 +39,7 @@ type BroadcastOptions = {
 const DEFAULT_ACTION: Action = {
   kind: "internal_route",
   label: "View status",
-  target: "/system/overview",
+  target: "/projects",
 };
 
 function presentationPayload(presentation: Presentation, options: BroadcastOptions) {
@@ -81,7 +81,7 @@ function createBroadcast(
     category: "system",
     title: options.title ?? "Scheduled maintenance",
     body: "Restart at 02:00 UTC.",
-    targetTo: "/system/overview",
+    targetTo: "/projects",
     targetMeta: {
       campaignId: `campaign-${id}`,
       deliveryId: `delivery-${id}`,
@@ -169,7 +169,7 @@ describe("GlobalNotificationSurfaces", () => {
 
     await waitFor(() =>
       expect(openTarget).toHaveBeenCalledWith(
-        expect.objectContaining({ id: item.id, targetTo: "/system/overview" }),
+        expect.objectContaining({ id: item.id, targetTo: "/projects" }),
       ),
     );
     await waitFor(() => expect(recordInteraction).toHaveBeenCalledWith(item, "click"));
@@ -229,7 +229,7 @@ describe("GlobalNotificationSurfaces", () => {
     const secondaryAction: Action = {
       kind: "internal_route",
       label: "Release notes",
-      target: "/system/audit-log",
+      target: "/projects",
     };
     const item = createBroadcast("modal", {
       secondaryAction,
@@ -261,7 +261,7 @@ describe("GlobalNotificationSurfaces", () => {
 
     await waitFor(() =>
       expect(openTarget).toHaveBeenCalledWith(
-        expect.objectContaining({ id: item.id, targetTo: "/system/audit-log" }),
+        expect.objectContaining({ id: item.id, targetTo: "/projects" }),
       ),
     );
     await waitFor(() => expect(recordInteraction).toHaveBeenCalledWith(item, "click"));

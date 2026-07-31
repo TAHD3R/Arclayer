@@ -14,6 +14,12 @@ def _parse_args() -> argparse.Namespace:
         required=True,
         help="输出文件路径（建议指向 packages/openapi/openapi.json）",
     )
+    parser.add_argument(
+        "--composition",
+        choices=("product", "platform"),
+        default="product",
+        help="要导出的独立 API composition",
+    )
     return parser.parse_args()
 
 
@@ -111,11 +117,16 @@ def _is_runtime_graphql_route(*, base: str, tags: list[str], method: str) -> boo
     return base == expected_base
 
 
-def build_openapi_schema() -> dict[str, Any]:
+def build_openapi_schema(*, composition: str = "product") -> dict[str, Any]:
     # 仅构建路由与 OpenAPI，不触发 lifespan（不会连接 DB/Valkey）
-    from src.core.registry import create_app
+    from src.core.registry import create_app, create_platform_app
 
-    app = create_app()
+    if composition == "product":
+        app = create_app()
+    elif composition == "platform":
+        app = create_platform_app()
+    else:
+        raise ValueError(f"Unsupported API composition: {composition}")
     _assign_stable_operation_ids(app)
     return app.openapi()
 
@@ -132,7 +143,7 @@ def write_openapi_schema(out_path: Path, schema: dict[str, Any]) -> None:
 def main() -> None:
     args = _parse_args()
     out_path = Path(args.out).expanduser().resolve()
-    write_openapi_schema(out_path, build_openapi_schema())
+    write_openapi_schema(out_path, build_openapi_schema(composition=args.composition))
 
 
 if __name__ == "__main__":

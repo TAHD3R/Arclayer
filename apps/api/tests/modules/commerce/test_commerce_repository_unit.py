@@ -1,31 +1,140 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from datetime import date
+from typing import cast
 from uuid import uuid4
 
 import pytest
+from tortoise.backends.base.client import BaseDBAsyncClient
 
-from src.modules.commerce.repository import BillingCheckoutPlan, CommerceRepository
+from src.models.commerce.billing import WorkspaceCreditAccount, WorkspaceSubscription
+from src.modules.commerce.repository import CommerceRepository, WorkspaceUsageAggregate
+
+
+class _RowLockQuery:
+    def __init__(self, *, row: object) -> None:
+        self.row = row
+        self.filter: dict[str, object] = {}
+        self.connection: object | None = None
+        self.relations: tuple[str, ...] = ()
+        self.lock_options: dict[str, object] = {}
+
+    def using_db(self, connection: object) -> _RowLockQuery:
+        self.connection = connection
+        return self
+
+    def select_related(self, *relations: str) -> _RowLockQuery:
+        self.relations = relations
+        return self
+
+    def select_for_update(self, **options: object) -> _RowLockQuery:
+        self.lock_options = options
+        return self
+
+    async def first(self) -> object:
+        return self.row
+
+
+class _LockedRow:
+    def __init__(self) -> None:
+        self.loaded_relations: list[tuple[str, ...]] = []
+
+    async def fetch_related(self, *relations: str) -> None:
+        self.loaded_relations.append(relations)
+
+
+def test_usage_aggregate_is_an_immutable_revision_independent_projection() -> None:
+    aggregate = WorkspaceUsageAggregate(
+        period_cost_micros=100,
+        requests=2,
+        prompt_tokens=3,
+        completion_tokens=4,
+        observed_from=date(2026, 7, 1),
+        observed_to=date(2026, 7, 2),
+    )
+
+    assert aggregate.period_cost_micros == 100
 
 
 @pytest.mark.asyncio
-async def test_checkout_plan_reader_returns_an_immutable_active_plan_projection() -> None:
-    plan_id = uuid4()
-    persisted_plan = SimpleNamespace(
-        id=plan_id,
-        code="premium",
-        currency="USD",
-    )
-    get_plan = AsyncMock(return_value=persisted_plan)
-    repository = CommerceRepository()
+async def test_lock_subscription_locks_before_loading_revision(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace_id = uuid4()
+    connection = object()
+    subscription = _LockedRow()
+    query = _RowLockQuery(row=subscription)
 
-    with patch.object(repository, "get_plan_by_code", new=get_plan):
-        result = await repository.get_active_checkout_plan(code="premium")
+    def fake_filter(**filters: object) -> _RowLockQuery:
+        query.filter = filters
+        return query
 
-    assert result == BillingCheckoutPlan(
-        id=plan_id,
-        code="premium",
-        currency="USD",
+    monkeypatch.setattr(WorkspaceSubscription, "filter", fake_filter)
+
+    result = await CommerceRepository().lock_subscription(
+        workspace_id=workspace_id,
+        conn=cast(BaseDBAsyncClient, connection),
     )
-    get_plan.assert_awaited_once_with(code="premium", active_only=True)
+
+    assert result is subscription
+    assert query.filter == {"workspace_id": workspace_id}
+    assert query.connection is connection
+    assert query.relations == ()
+    assert query.lock_options == {}
+    assert subscription.loaded_relations == [("plan_revision__plan",)]
+
+
+@pytest.mark.asyncio
+async def test_lock_credit_account_by_workspace_locks_before_loading_revision(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace_id = uuid4()
+    connection = object()
+    account = _LockedRow()
+    query = _RowLockQuery(row=account)
+
+    def fake_filter(**filters: object) -> _RowLockQuery:
+        query.filter = filters
+        return query
+
+    monkeypatch.setattr(WorkspaceCreditAccount, "filter", fake_filter)
+
+    result = await CommerceRepository().lock_credit_account_by_workspace(
+        workspace_id=workspace_id,
+        conn=cast(BaseDBAsyncClient, connection),
+    )
+
+    assert result is account
+    assert query.filter == {"workspace_id": workspace_id}
+    assert query.connection is connection
+    assert query.relations == ()
+    assert query.lock_options == {}
+    assert account.loaded_relations == [("plan_revision",)]
+
+
+@pytest.mark.asyncio
+async def test_lock_credit_account_by_id_locks_before_loading_revision(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    account_id = uuid4()
+    connection = object()
+    account = _LockedRow()
+    query = _RowLockQuery(row=account)
+
+    def fake_filter(**filters: object) -> _RowLockQuery:
+        query.filter = filters
+        return query
+
+    monkeypatch.setattr(WorkspaceCreditAccount, "filter", fake_filter)
+
+    result = await CommerceRepository().lock_credit_account_by_id(
+        account_id=account_id,
+        conn=cast(BaseDBAsyncClient, connection),
+    )
+
+    assert result is account
+    assert query.filter == {"id": account_id}
+    assert query.connection is connection
+    assert query.relations == ()
+    assert query.lock_options == {}
+    assert account.loaded_relations == [("plan_revision",)]

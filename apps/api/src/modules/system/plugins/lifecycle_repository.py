@@ -94,6 +94,12 @@ class PluginLifecycleRepository(TortoiseORMRepository):
     ) -> list[PluginOperationRecord]:
         return await PluginOperationRecord.filter(plugin_name=plugin_name).order_by("-created_at").limit(limit)
 
+    async def list_operations(self, *, offset: int, limit: int) -> tuple[int, list[PluginOperationRecord]]:
+        query = PluginOperationRecord.all().order_by("-created_at")
+        total = await query.count()
+        rows = await query.offset(offset).limit(limit)
+        return total, list(rows)
+
     async def get_installation(
         self,
         plugin_name: str,

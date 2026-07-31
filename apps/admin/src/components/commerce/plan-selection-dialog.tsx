@@ -1,15 +1,17 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Check, ExternalLink, ShieldCheck } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ArrowRight, ShieldCheck } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
   createWorkspaceCheckoutSession,
-  createWorkspaceCustomerPortalSession,
+  getWorkspaceCommerceOverview,
   listWorkspaceCommercePlans,
   type BillingCycle,
   type WorkspacePlanOption,
 } from "@/api/commerce";
+import { planAccessConvergenceApi } from "@/api/plan-access-convergence";
+import { PlanAccessConvergenceReview } from "@/components/plan-access-convergence";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 import { Badge } from "@arclayer/ui/badge";
@@ -38,55 +40,35 @@ type PlanSelectionDialogProps = {
   onOpenChange: (open: boolean) => void;
 };
 
-function planPrice(plan: WorkspacePlanOption, cycle: BillingCycle): number {
-  return cycle === "yearly" ? plan.priceYearlyMicros : plan.priceMonthlyMicros;
-}
-
-function formatPrice(valueMicros: number, currency: string, locale: string): string {
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency,
-    maximumFractionDigits: valueMicros % 1_000_000 === 0 ? 0 : 2,
-  }).format(valueMicros / 1_000_000);
-}
+type PlanCheckoutChoice = Readonly<{
+  plan: WorkspacePlanOption;
+  billingCycle: BillingCycle;
+}>;
 
 function PlanCard(props: {
   plan: WorkspacePlanOption;
-  cycle: BillingCycle;
-  locale: string;
-  pending: boolean;
-  disabled: boolean;
+  checkoutEnabled: boolean;
   onSelect: (plan: WorkspacePlanOption) => void;
 }) {
-  const { t } = useTranslation(["commerce"]);
-  const price = planPrice(props.plan, props.cycle);
+  const { t, i18n } = useTranslation(["commerce"]);
+  const number = new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language);
+  const selectable =
+    props.checkoutEnabled && props.plan.canSelect && props.plan.isSelling && !props.plan.isCurrent;
 
   return (
     <Card className="flex min-w-0 flex-col">
       <CardHeader className="flex-1">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <CardTitle className="text-title3">{props.plan.name}</CardTitle>
-            <CardDescription className="mt-1">{props.plan.description}</CardDescription>
+            <CardTitle className="text-title3">{t(props.plan.nameI18NKey)}</CardTitle>
+            <CardDescription className="mt-1">{t(props.plan.descriptionI18NKey)}</CardDescription>
           </div>
           {props.plan.isCurrent ? (
             <Badge variant="secondary">{t("commerce:PLAN_CURRENT")}</Badge>
           ) : null}
         </div>
-
-        <div className="mt-5 flex items-baseline gap-2">
-          <span className="text-title1 font-bold text-label-primary">
-            {price === 0
-              ? t("commerce:PLAN_PRICE_FREE")
-              : formatPrice(price, props.plan.currency, props.locale)}
-          </span>
-          {price > 0 ? (
-            <span className="text-footnote text-label-secondary">
-              {props.cycle === "yearly"
-                ? t("commerce:PLAN_PER_YEAR")
-                : t("commerce:PLAN_PER_MONTH")}
-            </span>
-          ) : null}
+        <div className="mt-4 text-footnote text-label-secondary">
+          {t("commerce:PLAN_REVISION", { sequence: props.plan.sequence })}
         </div>
       </CardHeader>
 
@@ -94,31 +76,17 @@ function PlanCard(props: {
         <div>
           <div className="text-headline text-label-primary">
             {t("commerce:PLAN_CREDITS", {
-              count: new Intl.NumberFormat(props.locale).format(props.plan.creditGrantAmount),
+              count: number.format(props.plan.creditGrantAmount),
             })}
           </div>
           <div className="mt-1 text-footnote text-label-secondary">
             {t(`commerce:REFRESH_${props.plan.creditRefreshInterval.toUpperCase()}`)}
           </div>
         </div>
-
         <Separator />
-
-        <ul className="flex flex-col gap-3">
-          {props.plan.features
-            .filter((feature) => feature.included)
-            .map((feature) => (
-              <li key={feature.key} className="flex items-start gap-2 text-footnote">
-                <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
-                <span>
-                  <span className="text-label-primary">{feature.label}</span>
-                  {feature.description ? (
-                    <span className="mt-0.5 block text-label-secondary">{feature.description}</span>
-                  ) : null}
-                </span>
-              </li>
-            ))}
-        </ul>
+        <p className="text-footnote text-label-secondary">
+          {t("commerce:PLAN_TERMS_AVAILABLE_AT_CHECKOUT")}
+        </p>
       </CardContent>
 
       <CardFooter>
@@ -126,20 +94,15 @@ function PlanCard(props: {
           type="button"
           className="w-full"
           variant={props.plan.isCurrent ? "outline" : "default"}
-          disabled={
-            !props.plan.canSelect || props.plan.isCurrent || props.pending || props.disabled
-          }
-          loading={props.pending}
+          disabled={!selectable}
           onClick={() => props.onSelect(props.plan)}
         >
           {props.plan.isCurrent
             ? t("commerce:PLAN_CURRENT")
-            : price === 0
-              ? t("commerce:PLAN_MANAGE_SUBSCRIPTION")
-              : t("commerce:PLAN_CHECKOUT_ACTION")}
-          {!props.plan.isCurrent ? (
-            <ExternalLink data-icon="inline-end" aria-hidden="true" />
-          ) : null}
+            : selectable
+              ? t("commerce:PLAN_REVIEW_CHANGE_ACTION")
+              : t("commerce:PLAN_SELECTION_UNAVAILABLE")}
+          {selectable ? <ArrowRight data-icon="inline-end" aria-hidden="true" /> : null}
         </Button>
       </CardFooter>
     </Card>
@@ -147,34 +110,52 @@ function PlanCard(props: {
 }
 
 export function PlanSelectionDialog({ workspaceId, open, onOpenChange }: PlanSelectionDialogProps) {
-  const { t, i18n } = useTranslation(["commerce", "common"]);
+  const { t } = useTranslation(["commerce", "common", "planChange"]);
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
+  const [selectedChoice, setSelectedChoice] = useState<PlanCheckoutChoice | null>(null);
   const catalogQuery = useQuery({
     queryKey: ["commerce", "workspace", workspaceId, "plans"],
     queryFn: ({ signal }) => listWorkspaceCommercePlans(workspaceId, signal),
     enabled: open,
     retry: false,
   });
-  const plans = useMemo(
-    () => [...(catalogQuery.data?.items ?? [])].sort((a, b) => a.sortOrder - b.sortOrder),
-    [catalogQuery.data?.items],
-  );
-
+  const overviewQuery = useQuery({
+    queryKey: ["commerce", "workspace", workspaceId, "overview"],
+    queryFn: ({ signal }) => getWorkspaceCommerceOverview(workspaceId, signal),
+    enabled: open,
+    retry: false,
+  });
+  const plans = catalogQuery.data?.items ?? [];
   const checkoutMutation = useMutation({
-    mutationFn: async (plan: WorkspacePlanOption) => {
-      const redirect =
-        planPrice(plan, cycle) === 0
-          ? await createWorkspaceCustomerPortalSession(workspaceId)
-          : await createWorkspaceCheckoutSession(workspaceId, {
-              planCode: plan.code,
-              billingInterval: cycle,
-            });
+    mutationFn: async (choice: PlanCheckoutChoice) => {
+      const redirect = await createWorkspaceCheckoutSession(workspaceId, {
+        planCode: choice.plan.planCode,
+        billingInterval: choice.billingCycle,
+      });
       window.location.assign(redirect.url);
     },
   });
+  const selectedPlan = selectedChoice?.plan ?? null;
+  const overview = overviewQuery.data;
+
+  useEffect(() => {
+    if (!open) setSelectedChoice(null);
+  }, [open]);
+
+  function handleOpenChange(nextOpen: boolean): void {
+    if (!nextOpen) setSelectedChoice(null);
+    onOpenChange(nextOpen);
+  }
+
+  function resolveQueuedEffectLabel(effectType: string): string {
+    if (effectType === "site.generate") {
+      return t("planChange:QUEUED_EFFECT_SITE_GENERATION");
+    }
+    throw new Error(`Unsupported plan-access queued effect: ${effectType}`);
+  }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-5xl"
         closeButtonLabel={t("common:CLOSE")}
@@ -185,14 +166,16 @@ export function PlanSelectionDialog({ workspaceId, open, onOpenChange }: PlanSel
         </DialogHeader>
 
         <div className="flex flex-col gap-5">
-          <div className="flex justify-center">
-            <Tabs value={cycle} onValueChange={(value) => setCycle(value as BillingCycle)}>
-              <TabsList aria-label={t("commerce:BILLING_INTERVAL")}>
-                <TabsTrigger value="monthly">{t("commerce:BILLING_MONTHLY")}</TabsTrigger>
-                <TabsTrigger value="yearly">{t("commerce:BILLING_YEARLY")}</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
+          {!selectedChoice ? (
+            <div className="flex justify-center">
+              <Tabs value={cycle} onValueChange={(value) => setCycle(value as BillingCycle)}>
+                <TabsList aria-label={t("commerce:BILLING_INTERVAL")}>
+                  <TabsTrigger value="monthly">{t("commerce:BILLING_MONTHLY")}</TabsTrigger>
+                  <TabsTrigger value="yearly">{t("commerce:BILLING_YEARLY")}</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          ) : null}
 
           <Alert>
             <ShieldCheck aria-hidden="true" />
@@ -209,28 +192,48 @@ export function PlanSelectionDialog({ workspaceId, open, onOpenChange }: PlanSel
           </Alert>
 
           <ContentGuard
-            loading={catalogQuery.isLoading}
-            error={catalogQuery.error ?? checkoutMutation.error}
-            empty={!catalogQuery.isLoading && !catalogQuery.error && plans.length === 0}
+            loading={catalogQuery.isLoading || overviewQuery.isLoading}
+            error={catalogQuery.error ?? overviewQuery.error ?? checkoutMutation.error}
+            empty={
+              !catalogQuery.isLoading &&
+              !overviewQuery.isLoading &&
+              !catalogQuery.error &&
+              !overviewQuery.error &&
+              plans.length === 0
+            }
             onRetry={() => void catalogQuery.refetch()}
             loadingVariant="masonry"
             variant="compact"
           >
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {plans.map((plan) => (
-                <PlanCard
-                  key={plan.code}
-                  plan={plan}
-                  cycle={cycle}
-                  locale={i18n.resolvedLanguage ?? i18n.language}
-                  pending={
-                    checkoutMutation.isPending && checkoutMutation.variables?.code === plan.code
-                  }
-                  disabled={!catalogQuery.data?.checkoutEnabled}
-                  onSelect={(selectedPlan) => checkoutMutation.mutate(selectedPlan)}
-                />
-              ))}
-            </div>
+            {selectedPlan && overview && selectedChoice ? (
+              <PlanAccessConvergenceReview
+                intent={{
+                  workspaceId,
+                  sourceRevisionId: overview.planRevision.id,
+                  targetRevisionId: selectedPlan.id,
+                  expectedSubscriptionRevision: overview.subscription.subscriptionRevision,
+                  effectiveAt: overview.subscription.currentPeriodEnd,
+                }}
+                sourcePlanName={t(overview.planRevision.nameI18NKey)}
+                targetPlanName={t(selectedPlan.nameI18NKey)}
+                resolveQueuedEffectLabel={resolveQueuedEffectLabel}
+                services={planAccessConvergenceApi}
+                onNoConvergencePreviewed={() => checkoutMutation.mutate(selectedChoice)}
+              />
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {plans.map((plan) => (
+                  <PlanCard
+                    key={plan.id}
+                    plan={plan}
+                    checkoutEnabled={catalogQuery.data?.checkoutEnabled ?? false}
+                    onSelect={(selectedPlan) =>
+                      setSelectedChoice({ plan: selectedPlan, billingCycle: cycle })
+                    }
+                  />
+                ))}
+              </div>
+            )}
           </ContentGuard>
         </div>
       </DialogContent>

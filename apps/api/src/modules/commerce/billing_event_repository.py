@@ -7,11 +7,7 @@ from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.common.types.json_types import JsonObject
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
-from src.models.commerce.billing import (
-    BillingProviderMode,
-    ConnectorEventInbox,
-    ConnectorEventInboxStatus,
-)
+from src.models.connectors.inbox import ConnectorEventInbox, ConnectorEventInboxStatus
 
 
 class BillingEventInboxRepository(TortoiseORMRepository[ConnectorEventInbox]):
@@ -24,7 +20,7 @@ class BillingEventInboxRepository(TortoiseORMRepository[ConnectorEventInbox]):
         self,
         *,
         provider: str,
-        provider_mode: BillingProviderMode,
+        provider_mode: str,
         provider_account_id: str,
         provider_event_id: str,
         conn: BaseDBAsyncClient,
@@ -44,7 +40,7 @@ class BillingEventInboxRepository(TortoiseORMRepository[ConnectorEventInbox]):
         self,
         *,
         provider: str,
-        provider_mode: BillingProviderMode,
+        provider_mode: str,
         provider_account_id: str,
         provider_event_id: str,
         connector_key: str,

@@ -14,9 +14,10 @@ from src.models.knowledge._enums import (
     KnowledgeSourceStatus,
 )
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
 from src.modules.jobs.service import BackgroundJobService
 from src.modules.tenancy.context import require_current_tenant_context
-from src.modules.workspaces.authz.http.service import require_workspace_permission
+from src.modules.workspaces.authz.http.service import require_workspace_commercial_effect, require_workspace_permission
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_manage_access
 from src.modules.workspaces.knowledge.repository import WorkspaceKnowledgeRepository
@@ -105,7 +106,10 @@ async def list_knowledge_bases(
     "",
     response_model=ResponseModel[KnowledgeBaseDetailOut],
     status_code=status.HTTP_201_CREATED,
-    dependencies=[require_workspace_permission("system:content:manage")],
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
     summary="Create a Workspace Knowledge base",
 )
 async def create_knowledge_base(
@@ -143,7 +147,10 @@ async def get_knowledge_base(
 @router.patch(
     "/{base_id}",
     response_model=ResponseModel[KnowledgeBaseDetailOut],
-    dependencies=[require_workspace_permission("system:content:manage")],
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
     summary="Update Workspace Knowledge metadata or access policy",
 )
 async def update_knowledge_base(
@@ -195,7 +202,10 @@ async def list_knowledge_sources(
     "/{base_id}/sources",
     response_model=ResponseModel[KnowledgeSourceOut],
     status_code=status.HTTP_201_CREATED,
-    dependencies=[require_workspace_permission("system:content:manage")],
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
     summary="Create a Knowledge source",
 )
 async def create_knowledge_source(
@@ -240,7 +250,10 @@ async def get_knowledge_source(
 @router.patch(
     "/{base_id}/sources/{source_id}",
     response_model=ResponseModel[KnowledgeSourceOut],
-    dependencies=[require_workspace_permission("system:content:manage")],
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
     summary="Update Knowledge source metadata or enabled state",
 )
 async def update_knowledge_source(
@@ -266,7 +279,10 @@ async def update_knowledge_source(
     "/{base_id}/sources/{source_id}/ingestions",
     response_model=ResponseModel[KnowledgeSourceIngestionAcceptedOut],
     status_code=status.HTTP_202_ACCEPTED,
-    dependencies=[require_workspace_permission("system:content:manage")],
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
+    ],
     summary="Queue a durable Knowledge source ingestion",
 )
 async def create_knowledge_source_ingestion(
@@ -318,7 +334,10 @@ async def list_knowledge_source_versions(
     "/{base_id}/sources/{source_id}/versions",
     response_model=ResponseModel[KnowledgeSourceVersionOut],
     status_code=status.HTTP_201_CREATED,
-    dependencies=[require_workspace_permission("system:content:manage")],
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
     summary="Create an immutable manual Knowledge source version",
 )
 async def create_manual_knowledge_source_version(

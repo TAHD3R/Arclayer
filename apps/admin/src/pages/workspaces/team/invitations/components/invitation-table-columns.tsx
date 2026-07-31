@@ -28,10 +28,20 @@ type SharedOptions = {
   t: Translate;
   dateTime: AdminDateTimeFormatter;
   roleNameByCode: ReadonlyMap<string, string>;
+  roleManagementAvailable: boolean;
+  unavailableAccessLabel: string;
 };
 
 function roleName(roleCode: string | null | undefined, names: ReadonlyMap<string, string>) {
   return roleCode ? (names.get(roleCode) ?? roleCode) : null;
+}
+
+function invitationAccessLabel(
+  roleCode: string | null | undefined,
+  options: SharedOptions,
+): string {
+  if (!options.roleManagementAvailable) return options.unavailableAccessLabel;
+  return roleName(roleCode, options.roleNameByCode) ?? "-";
 }
 
 function invitationStatusLabel(t: Translate, status: TeamInvitation["status"]) {
@@ -85,13 +95,13 @@ export function createPendingInvitationColumns(
       header: options.t("team:TEAM_INVITATIONS_COL_EMAIL"),
       meta: { title: options.t("team:TEAM_INVITATIONS_COL_EMAIL"), kind: "primary" },
       cell: ({ row }) => {
-        const role = roleName(row.original.roleCode, options.roleNameByCode);
+        const access = invitationAccessLabel(row.original.roleCode, options);
         return (
           <div className="min-w-0">
             <span className="block truncate font-medium" title={row.original.email}>
               {row.original.email}
             </span>
-            <span className="block truncate text-caption text-label-secondary">{role ?? "-"}</span>
+            <span className="block truncate text-caption text-label-secondary">{access}</span>
           </div>
         );
       },
@@ -105,7 +115,7 @@ export function createPendingInvitationColumns(
       cell: ({ row }) => (
         <InvitationUserLabel
           user={row.original.createdBy}
-          roleLabel={roleName(row.original.roleCode, options.roleNameByCode)}
+          roleLabel={invitationAccessLabel(row.original.roleCode, options)}
           status={row.original.status}
           statusLabel={invitationStatusLabel(options.t, row.original.status)}
           details={buildInvitationUserDetails({
@@ -203,7 +213,7 @@ export function createAcceptedInvitationColumns(
       cell: ({ row }) => (
         <InvitationUserLabel
           user={row.original.acceptedBy}
-          roleLabel={roleName(row.original.roleCode, options.roleNameByCode)}
+          roleLabel={invitationAccessLabel(row.original.roleCode, options)}
           status={row.original.status}
           statusLabel={invitationStatusLabel(options.t, row.original.status)}
           details={buildInvitationUserDetails({
@@ -221,10 +231,10 @@ export function createAcceptedInvitationColumns(
       minSize: 220,
     },
     {
-      id: "role",
-      header: options.t("team:TEAM_INVITATIONS_COL_ROLE"),
-      meta: { title: options.t("team:TEAM_INVITATIONS_COL_ROLE"), kind: "meta" },
-      cell: ({ row }) => roleName(row.original.roleCode, options.roleNameByCode) ?? "-",
+      id: "access",
+      header: options.t("team:TEAM_INVITATIONS_COL_ACCESS"),
+      meta: { title: options.t("team:TEAM_INVITATIONS_COL_ACCESS"), kind: "meta" },
+      cell: ({ row }) => invitationAccessLabel(row.original.roleCode, options),
       size: 150,
     },
     {
@@ -293,7 +303,7 @@ export function createInviteLinkColumns(
         <div className="min-w-0">
           <span className="block truncate font-mono text-footnote">{row.original.displayCode}</span>
           <span className="block truncate text-caption text-label-secondary">
-            {roleName(row.original.roleCode, options.roleNameByCode) ?? "-"}
+            {invitationAccessLabel(row.original.roleCode, options)}
           </span>
         </div>
       ),

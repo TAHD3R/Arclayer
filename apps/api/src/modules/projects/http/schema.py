@@ -23,11 +23,7 @@ class ProjectRequestContext(BaseSchema):
         default=None,
         description="Workspace membership id resolved from project access context.",
     )
-    visible_only: bool = Field(
+    is_workspace_owner: bool = Field(
         default=False,
-        description="Whether the backing workspace is only visible to the current user.",
-    )
-    is_creator_admin: bool = Field(
-        default=False,
-        description="Whether the current user has creator-admin rights in the backing workspace.",
+        description="Whether the current user owns the backing Workspace.",
     )

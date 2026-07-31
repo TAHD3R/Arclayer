@@ -60,7 +60,7 @@ async def reserve_workspace_credits(
         workspace_id=workspace_id,
         conn=conn,
     )
-    if subscription.status not in {SubscriptionStatus.TRIALING, SubscriptionStatus.ACTIVE}:
+    if subscription.status is not SubscriptionStatus.ACTIVE:
         raise CreditsUnavailableError(
             workspace_id=workspace_id,
             subscription_status=str(subscription.status),
@@ -83,16 +83,13 @@ async def reserve_workspace_credits(
         entry_type=CreditLedgerEntryType.RESERVATION,
         delta_balance=0,
         delta_reserved=requested,
-        reference_type="ai_request",
-        reference_id=request_id,
         idempotency_key=f"ai-credit-reserve:{request_id}",
         actor_user_id=None,
         description_key="LEDGER_AI_RESERVATION",
-        details={
-            "estimatedCostMicros": estimated_cost_micros,
-            "creditValueMicros": credit_value,
-            "reservedCredits": requested,
-        },
+        request_id=request_id,
+        estimated_cost_micros=estimated_cost_micros,
+        reserved_credits=requested,
+        applied_credit_value_micros=credit_value,
     )
     return CreditReservationDetails(
         account_id=account.id,
@@ -128,8 +125,6 @@ async def commit_workspace_credits(
 
     account.reserved_credits -= reserved
     account.balance_credits -= actual_credits
-    account.lifetime_spent_credits += actual_credits
-    account.period_spent_credits += actual_credits
     await commerce.save_credit_account(account=account, conn=conn)
     await commerce.write_credit_ledger_entry(
         conn=conn,
@@ -137,17 +132,14 @@ async def commit_workspace_credits(
         entry_type=CreditLedgerEntryType.COMMIT,
         delta_balance=-actual_credits,
         delta_reserved=-reserved,
-        reference_type="ai_request",
-        reference_id=reservation.request_id,
         idempotency_key=f"ai-credit-commit:{reservation.request_id}",
         actor_user_id=None,
         description_key="LEDGER_AI_COMMIT",
-        details={
-            "actualCostMicros": actual_cost_micros,
-            "creditValueMicros": credit_value,
-            "reservedCredits": reserved,
-            "actualCredits": actual_credits,
-        },
+        request_id=reservation.request_id,
+        actual_cost_micros=actual_cost_micros,
+        reserved_credits=reserved,
+        committed_credits=actual_credits,
+        applied_credit_value_micros=credit_value,
     )
     await commerce.save_budget_reservation_reconciliation(
         reservation=reservation,
@@ -168,6 +160,9 @@ async def release_workspace_credits(
 ) -> None:
     if reservation.credit_account_id is None or reservation.reserved_credits is None:
         return
+    credit_value = int(reservation.credit_value_micros or 0)
+    if credit_value <= 0:
+        raise RuntimeError("Credit reservation is missing its applied credit value")
     account = await commerce.lock_credit_account(account_id=reservation.credit_account_id, conn=conn)
     if account is None:
         raise RuntimeError(f"Credit account {reservation.credit_account_id} not found")
@@ -182,14 +177,14 @@ async def release_workspace_credits(
         entry_type=entry_type,
         delta_balance=0,
         delta_reserved=-reserved,
-        reference_type="ai_request",
-        reference_id=reservation.request_id,
         idempotency_key=f"ai-credit-release:{reservation.request_id}:{reason}",
         actor_user_id=None,
         description_key=(
             "LEDGER_AI_EXPIRATION" if entry_type == CreditLedgerEntryType.EXPIRATION else "LEDGER_AI_RELEASE"
         ),
-        details={"reason": reason, "reservedCredits": reserved},
+        request_id=reservation.request_id,
+        reserved_credits=reserved,
+        applied_credit_value_micros=credit_value,
     )
     await commerce.save_budget_reservation_reconciliation(
         reservation=reservation,

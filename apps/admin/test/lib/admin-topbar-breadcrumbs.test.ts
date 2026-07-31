@@ -6,10 +6,7 @@ import { buildAdminTopbarBreadcrumbs } from "@/lib/admin-topbar-breadcrumbs";
 
 describe("buildAdminTopbarBreadcrumbs", () => {
   it("maps the projects index directly to All projects", () => {
-    const breadcrumbs = buildAdminTopbarBreadcrumbs(
-      resolveGlobalNavItems({ isSuperAdmin: false }),
-      "/projects",
-    );
+    const breadcrumbs = buildAdminTopbarBreadcrumbs(resolveGlobalNavItems({}), "/projects");
 
     expect(breadcrumbs.map((item) => item.labelKey)).toEqual(["nav:NAV_ALL_PROJECTS"]);
     expect(breadcrumbs[0]?.menuItems).toBeUndefined();

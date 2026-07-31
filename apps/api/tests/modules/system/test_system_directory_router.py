@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import builtins
 from datetime import UTC, datetime, timedelta
-from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
 from fastapi import FastAPI
-from pydantic import BaseModel, ConfigDict
 
 from src.common.utils.public_ids import encode_uuid
 from src.config import get_settings
@@ -21,8 +19,9 @@ from src.models.auth.user_two_factor import UserTwoFactor, UserTwoFactorBackupCo
 from src.models.commerce.billing import (
     BillingCycle,
     CommercePlan,
-    CommercePlanTier,
+    CommercePlanRevision,
     CreditRefreshInterval,
+    PlanRevisionStatus,
     SubscriptionStatus,
     WorkspaceCreditAccount,
     WorkspaceSubscription,
@@ -65,18 +64,17 @@ from src.models.system.access_restriction import (
     AccessRestrictionState,
     AccessRestrictionType,
 )
-from src.models.system.rbac import SystemRole
 from src.models.workspaces.workspace import (
     Workspace,
     WorkspaceMembership,
-    WorkspaceMembershipRole,
     WorkspaceMembershipStatus,
 )
-from src.modules.auth.http.service import get_current_user, require_super_admin
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.tokens.service import hash_password, verify_password
+from src.modules.platform_identity.http import get_current_platform_session, get_platform_identity_repository
+from src.modules.platform_identity.session_schema import PlatformSessionPrincipal
+from src.modules.system.directory.router import router as directory_router
 from src.modules.system.mail.template_defaults import ensure_default_email_templates
-from src.modules.system.router import router as system_router
 from tests.utils.asgi_client import asgi_client
 
 pytestmark = pytest.mark.integration
@@ -93,12 +91,6 @@ def _restriction_enforce_payload(expected_revision: int, note: str) -> dict[str,
 
 def _restriction_lift_payload(expected_revision: int, note: str) -> dict[str, object]:
     return {"expectedRevision": expected_revision, "operatorNote": note}
-
-
-class DummyUser(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    is_super_admin: bool = True
 
 
 class DummyValkey:
@@ -185,33 +177,63 @@ class DummyValkey:
         return json.loads(raw) if raw is not None else None
 
 
-async def _build_app() -> FastAPI:
+async def _build_app(*, actor_id=None) -> FastAPI:
     app = FastAPI()
     init_exception_handlers(app, get_settings())
-    app.include_router(system_router, prefix="/api/v1/system")
+    app.include_router(directory_router, prefix="/platform-api/v1/directory")
     app.state.valkey = DummyValkey()
+
+    async def current_platform_session() -> PlatformSessionPrincipal:
+        return PlatformSessionPrincipal(
+            actor_id=actor_id or uuid4(),
+            session_id=uuid4(),
+            operator_id=None,
+            is_instance_owner=True,
+            policy_revision=1,
+            absolute_expires_at=datetime.now(UTC) + timedelta(hours=1),
+        )
+
+    app.dependency_overrides[get_current_platform_session] = current_platform_session
     return app
 
 
-@pytest.mark.usefixtures("db")
-async def test_system_directory_requires_super_admin() -> None:
+async def test_system_directory_hard_cut_removes_workspace_and_project_delete_facades() -> None:
     app = await _build_app()
+    paths = app.openapi()["paths"]
 
-    class NonAdminUser(BaseModel):
-        model_config = ConfigDict(extra="forbid", frozen=True)
+    assert "delete" not in paths["/platform-api/v1/directory/workspaces/{workspace_id}"]
+    assert "delete" not in paths["/platform-api/v1/directory/projects/{project_id}"]
+    assert "delete" in paths["/platform-api/v1/directory/users/{user_id}"]
 
-        is_super_admin: bool = False
 
-    async def _user_override() -> NonAdminUser:
-        return NonAdminUser()
+@pytest.mark.usefixtures("db")
+async def test_system_directory_requires_platform_permission() -> None:
+    class DeniedPlatformRepository:
+        async def operator_has_permission(self, **_kwargs: object) -> bool:
+            return False
 
-    app.dependency_overrides[get_current_user] = _user_override
+    app = FastAPI()
+    init_exception_handlers(app, get_settings())
+    app.include_router(directory_router, prefix="/platform-api/v1/directory")
+
+    async def current_platform_session() -> PlatformSessionPrincipal:
+        return PlatformSessionPrincipal(
+            actor_id=uuid4(),
+            session_id=uuid4(),
+            operator_id=uuid4(),
+            is_instance_owner=False,
+            policy_revision=1,
+            absolute_expires_at=datetime.now(UTC) + timedelta(hours=1),
+        )
+
+    app.dependency_overrides[get_current_platform_session] = current_platform_session
+    app.dependency_overrides[get_platform_identity_repository] = DeniedPlatformRepository
 
     async with asgi_client(app) as client:
-        res = await client.get("/api/v1/system/directory/users")
+        res = await client.get("/platform-api/v1/directory/users")
 
     assert res.status_code == 403
-    assert res.json().get("error") == "SUPER_ADMIN_REQUIRED"
+    assert res.json().get("error") == "PLATFORM_PERMISSION_DENIED"
 
 
 @pytest.mark.usefixtures("db")
@@ -221,7 +243,6 @@ async def test_system_directory_lists_all_entities() -> None:
         email="owner@example.com",
         display_name="Owner",
         status=UserStatus.ACTIVE,
-        is_super_admin=True,
     )
     member = await User.create(
         username="member",
@@ -281,16 +302,10 @@ async def test_system_directory_lists_all_entities() -> None:
 
     app = await _build_app()
 
-    async def _super_admin_override() -> DummyUser:
-        return DummyUser()
-
-    app.dependency_overrides[get_current_user] = _super_admin_override
-    app.dependency_overrides[require_super_admin] = _super_admin_override
-
     async with asgi_client(app) as client:
-        users_res = await client.get("/api/v1/system/directory/users")
-        workspaces_res = await client.get("/api/v1/system/directory/workspaces")
-        projects_res = await client.get("/api/v1/system/directory/projects")
+        users_res = await client.get("/platform-api/v1/directory/users")
+        workspaces_res = await client.get("/platform-api/v1/directory/workspaces")
+        projects_res = await client.get("/platform-api/v1/directory/projects")
 
     assert users_res.status_code == 200
     assert workspaces_res.status_code == 200
@@ -312,7 +327,6 @@ async def test_system_directory_workspace_commerce_projection_filters_and_orderi
         email="commerce-directory-owner@example.com",
         display_name="Commerce Directory Owner",
         status=UserStatus.ACTIVE,
-        is_super_admin=True,
     )
     organization = await Organization.create(
         name="Commerce Directory Org",
@@ -328,20 +342,27 @@ async def test_system_directory_workspace_commerce_projection_filters_and_orderi
     attention_workspace = await Workspace.create(name="Attention Workspace", **workspace_values)
     missing_workspace = await Workspace.create(name="Missing Commerce Workspace", **workspace_values)
 
-    plan = await CommercePlan.create(
-        code="directory-premium",
-        tier=CommercePlanTier.PREMIUM,
-        name="Directory Premium",
-        description="Directory commerce projection fixture.",
+    plan = await CommercePlan.create(code="directory-premium", is_active=True, sort_order=10)
+    plan_revision = await CommercePlanRevision.create(
+        plan_id=plan.id,
+        sequence=1,
+        status=PlanRevisionStatus.PUBLISHED,
+        name_i18n_key="commerce:PLAN_DIRECTORY_PREMIUM_NAME",
+        description_i18n_key="commerce:PLAN_DIRECTORY_PREMIUM_DESCRIPTION",
         credit_grant_amount=100,
         credit_refresh_interval=CreditRefreshInterval.MONTHLY,
+        credit_value_micros=1_000,
+        currency="USD",
+        content_hash=uuid4().hex,
+        published_at=datetime.now(UTC),
+        is_selling=True,
     )
     period_start = datetime(2026, 7, 1, tzinfo=UTC)
     healthy_period_end = period_start + timedelta(days=30)
     attention_period_end = period_start + timedelta(days=15)
     healthy_subscription = await WorkspaceSubscription.create(
         workspace_id=healthy_workspace.id,
-        plan_id=plan.id,
+        plan_revision_id=plan_revision.id,
         status=SubscriptionStatus.ACTIVE,
         billing_cycle=BillingCycle.MONTHLY,
         current_period_start=period_start,
@@ -350,7 +371,7 @@ async def test_system_directory_workspace_commerce_projection_filters_and_orderi
     )
     attention_subscription = await WorkspaceSubscription.create(
         workspace_id=attention_workspace.id,
-        plan_id=plan.id,
+        plan_revision_id=plan_revision.id,
         status=SubscriptionStatus.PAST_DUE,
         billing_cycle=BillingCycle.MONTHLY,
         current_period_start=period_start,
@@ -360,22 +381,22 @@ async def test_system_directory_workspace_commerce_projection_filters_and_orderi
     await WorkspaceCreditAccount.create(
         workspace_id=healthy_workspace.id,
         subscription_id=healthy_subscription.id,
+        plan_revision_id=plan_revision.id,
         balance_credits=100,
         reserved_credits=25,
-        period_granted_credits=100,
-        period_spent_credits=20,
         period_start=period_start,
         period_end=healthy_period_end,
+        period_identity=f"directory:{healthy_workspace.id}:{plan_revision.id}",
     )
     await WorkspaceCreditAccount.create(
         workspace_id=attention_workspace.id,
         subscription_id=attention_subscription.id,
+        plan_revision_id=plan_revision.id,
         balance_credits=50,
         reserved_credits=50,
-        period_granted_credits=100,
-        period_spent_credits=100,
         period_start=period_start,
         period_end=attention_period_end,
+        period_identity=f"directory:{attention_workspace.id}:{plan_revision.id}",
     )
     await AIUsageDaily.create(
         workspace_id=healthy_workspace.id,
@@ -393,39 +414,34 @@ async def test_system_directory_workspace_commerce_projection_filters_and_orderi
 
     app = await _build_app()
 
-    async def _super_admin_override() -> DummyUser:
-        return DummyUser()
-
-    app.dependency_overrides[get_current_user] = _super_admin_override
-    app.dependency_overrides[require_super_admin] = _super_admin_override
     subscriptions_before = await WorkspaceSubscription.all().count()
 
     async with asgi_client(app) as client:
         ordered_res = await client.get(
-            "/api/v1/system/directory/workspaces",
+            "/platform-api/v1/directory/workspaces",
             params={"ordering": "-credit_risk"},
         )
         plan_res = await client.get(
-            "/api/v1/system/directory/workspaces",
+            "/platform-api/v1/directory/workspaces",
             params={"plan_code": plan.code},
         )
         status_res = await client.get(
-            "/api/v1/system/directory/workspaces",
+            "/platform-api/v1/directory/workspaces",
             params={"subscription_status": SubscriptionStatus.PAST_DUE.value},
         )
         healthy_res = await client.get(
-            "/api/v1/system/directory/workspaces",
+            "/platform-api/v1/directory/workspaces",
             params={"commerce_risk": "healthy"},
         )
         activity_res = await client.get(
-            "/api/v1/system/directory/workspaces",
+            "/platform-api/v1/directory/workspaces",
             params={
                 "activity_from": (healthy_activity_at - timedelta(minutes=1)).isoformat(),
                 "activity_to": (healthy_activity_at + timedelta(minutes=1)).isoformat(),
             },
         )
         renewal_res = await client.get(
-            "/api/v1/system/directory/workspaces",
+            "/platform-api/v1/directory/workspaces",
             params={"ordering": "renewal_at", "plan_code": plan.code},
         )
 
@@ -444,6 +460,8 @@ async def test_system_directory_workspace_commerce_projection_filters_and_orderi
     healthy_item = next(item for item in plan_items if item["name"] == "Healthy Workspace")
     assert healthy_item["commerce"]["dataState"] == "complete"
     assert healthy_item["commerce"]["planCode"] == plan.code
+    assert healthy_item["commerce"]["planRevisionId"] == encode_uuid(plan_revision.id)
+    assert healthy_item["commerce"]["planNameI18NKey"] == plan_revision.name_i18n_key
     assert healthy_item["commerce"]["credits"]["available"] == 75
     assert healthy_item["commerce"]["usage"] == {
         "periodCostMicros": 25_000,
@@ -476,7 +494,6 @@ async def test_system_directory_project_operational_projection_filters_and_order
         username="project-operations-owner",
         email="project-operations-owner@example.com",
         status=UserStatus.ACTIVE,
-        is_super_admin=True,
     )
     member = await User.create(
         username="project-operations-member",
@@ -621,28 +638,22 @@ async def test_system_directory_project_operational_projection_filters_and_order
 
     app = await _build_app()
 
-    async def _super_admin_override() -> DummyUser:
-        return DummyUser()
-
-    app.dependency_overrides[get_current_user] = _super_admin_override
-    app.dependency_overrides[require_super_admin] = _super_admin_override
-
     async with asgi_client(app) as client:
-        projects_res = await client.get("/api/v1/system/directory/projects")
+        projects_res = await client.get("/platform-api/v1/directory/projects")
         degraded_res = await client.get(
-            "/api/v1/system/directory/projects",
+            "/platform-api/v1/directory/projects",
             params={"runtime_health": "degraded"},
         )
         domain_res = await client.get(
-            "/api/v1/system/directory/projects",
+            "/platform-api/v1/directory/projects",
             params={"domain_state": "attention_required"},
         )
         unreleased_res = await client.get(
-            "/api/v1/system/directory/projects",
+            "/platform-api/v1/directory/projects",
             params={"release_state": "not_released"},
         )
         members_res = await client.get(
-            "/api/v1/system/directory/projects",
+            "/platform-api/v1/directory/projects",
             params={"ordering": "-member_count"},
         )
 
@@ -670,7 +681,6 @@ async def test_system_directory_workspace_and_project_lists_include_owner_and_ic
         email="icon-owner@example.com",
         display_name="Icon Owner",
         status=UserStatus.ACTIVE,
-        is_super_admin=True,
     )
     organization = await Organization.create(
         name="Icon Org",
@@ -681,7 +691,7 @@ async def test_system_directory_workspace_and_project_lists_include_owner_and_ic
         organization_id=organization.id,
         name="Icon Workspace",
         description="Workspace with glyph icon",
-        owner_user_id=None,
+        owner_user_id=owner.id,
         created_by_user_id=owner.id,
         icon_mode="glyph",
         icon_glyph="rocket",
@@ -704,13 +714,11 @@ async def test_system_directory_workspace_and_project_lists_include_owner_and_ic
         role_code=OrgRole.OWNER.value,
         status="active",
     )
-    workspace_membership = await WorkspaceMembership.create(
+    await WorkspaceMembership.create(
         workspace_id=workspace.id,
         user_id=owner.id,
         status=WorkspaceMembershipStatus.ACTIVE,
     )
-    owner_role = await SystemRole.get(workspace_id=workspace.id, code="owner")
-    await WorkspaceMembershipRole.get_or_create(membership_id=workspace_membership.id, role_id=owner_role.id)
     await ProjectMembership.create(
         project_id=project.id,
         user_id=owner.id,
@@ -720,15 +728,9 @@ async def test_system_directory_workspace_and_project_lists_include_owner_and_ic
 
     app = await _build_app()
 
-    async def _super_admin_override() -> DummyUser:
-        return DummyUser()
-
-    app.dependency_overrides[get_current_user] = _super_admin_override
-    app.dependency_overrides[require_super_admin] = _super_admin_override
-
     async with asgi_client(app) as client:
-        workspace_res = await client.get("/api/v1/system/directory/workspaces")
-        project_res = await client.get("/api/v1/system/directory/projects")
+        workspace_res = await client.get("/platform-api/v1/directory/workspaces")
+        project_res = await client.get("/platform-api/v1/directory/projects")
 
     assert workspace_res.status_code == 200
     assert project_res.status_code == 200
@@ -775,14 +777,8 @@ async def test_system_directory_supports_search() -> None:
 
     app = await _build_app()
 
-    async def _super_admin_override() -> DummyUser:
-        return DummyUser()
-
-    app.dependency_overrides[get_current_user] = _super_admin_override
-    app.dependency_overrides[require_super_admin] = _super_admin_override
-
     async with asgi_client(app) as client:
-        users_res = await client.get("/api/v1/system/directory/users", params={"q": "tenant-owner"})
+        users_res = await client.get("/platform-api/v1/directory/users", params={"q": "tenant-owner"})
 
     assert users_res.status_code == 200
     assert [item["username"] for item in users_res.json()["data"]["items"]] == ["tenant-owner"]
@@ -796,7 +792,6 @@ async def test_system_directory_user_filters_and_sorting() -> None:
         email="alpha@example.com",
         display_name="Alpha",
         status=UserStatus.ACTIVE,
-        is_super_admin=True,
         last_login_at=base_time,
     )
     bravo = await User.create(
@@ -804,7 +799,6 @@ async def test_system_directory_user_filters_and_sorting() -> None:
         email="bravo@example.com",
         display_name="Bravo",
         status=UserStatus.DISABLED,
-        is_super_admin=False,
         last_login_at=base_time.replace(day=2),
     )
     charlie = await User.create(
@@ -812,7 +806,6 @@ async def test_system_directory_user_filters_and_sorting() -> None:
         email="charlie@example.com",
         display_name="Charlie",
         status=UserStatus.LOCKED,
-        is_super_admin=False,
         last_login_at=base_time.replace(day=3),
     )
     settings = get_settings()
@@ -833,32 +826,21 @@ async def test_system_directory_user_filters_and_sorting() -> None:
 
     app = await _build_app()
 
-    async def _super_admin_override() -> DummyUser:
-        return DummyUser()
-
-    app.dependency_overrides[get_current_user] = _super_admin_override
-    app.dependency_overrides[require_super_admin] = _super_admin_override
-
     async with asgi_client(app) as client:
-        active_res = await client.get("/api/v1/system/directory/users", params={"status": "active"})
-        super_admin_res = await client.get(
-            "/api/v1/system/directory/users",
-            params={"is_super_admin": True},
-        )
-        password_res = await client.get("/api/v1/system/directory/users", params={"has_password": True})
+        active_res = await client.get("/platform-api/v1/directory/users", params={"status": "active"})
+        password_res = await client.get("/platform-api/v1/directory/users", params={"has_password": True})
         two_factor_res = await client.get(
-            "/api/v1/system/directory/users",
+            "/platform-api/v1/directory/users",
             params={"two_factor_enabled": True},
         )
-        oauth_res = await client.get("/api/v1/system/directory/users", params={"oauth_provider": "any"})
+        oauth_res = await client.get("/platform-api/v1/directory/users", params={"oauth_provider": "any"})
         local_only_res = await client.get(
-            "/api/v1/system/directory/users",
+            "/platform-api/v1/directory/users",
             params={"oauth_provider": "none"},
         )
-        sorted_res = await client.get("/api/v1/system/directory/users", params={"ordering": "username"})
+        sorted_res = await client.get("/platform-api/v1/directory/users", params={"ordering": "username"})
 
     assert [item["username"] for item in active_res.json()["data"]["items"]] == ["alpha"]
-    assert [item["username"] for item in super_admin_res.json()["data"]["items"]] == ["alpha"]
     assert [item["username"] for item in password_res.json()["data"]["items"]] == ["alpha"]
     assert [item["username"] for item in two_factor_res.json()["data"]["items"]] == ["alpha"]
     assert [item["username"] for item in oauth_res.json()["data"]["items"]] == ["alpha"]
@@ -876,7 +858,6 @@ async def test_system_directory_user_time_membership_and_ownership_filters() -> 
         username="relationship-owner",
         email="relationship-owner@example.com",
         status=UserStatus.ACTIVE,
-        is_super_admin=True,
         last_login_at=datetime(2026, 7, 12, 8, tzinfo=UTC),
     )
     member = await User.create(
@@ -911,7 +892,7 @@ async def test_system_directory_user_time_membership_and_ownership_filters() -> 
         name="Relationship Project",
         created_by_user_id=owner.id,
     )
-    owner_membership = await WorkspaceMembership.create(
+    await WorkspaceMembership.create(
         workspace_id=workspace.id,
         user_id=owner.id,
         status=WorkspaceMembershipStatus.ACTIVE,
@@ -921,8 +902,6 @@ async def test_system_directory_user_time_membership_and_ownership_filters() -> 
         user_id=member.id,
         status=WorkspaceMembershipStatus.ACTIVE,
     )
-    owner_role = await SystemRole.get(workspace_id=workspace.id, code="owner")
-    await WorkspaceMembershipRole.create(membership_id=owner_membership.id, role_id=owner_role.id)
     await ProjectMembership.create(
         project_id=project.id,
         user_id=owner.id,
@@ -938,49 +917,43 @@ async def test_system_directory_user_time_membership_and_ownership_filters() -> 
 
     app = await _build_app()
 
-    async def _super_admin_override() -> DummyUser:
-        return DummyUser()
-
-    app.dependency_overrides[get_current_user] = _super_admin_override
-    app.dependency_overrides[require_super_admin] = _super_admin_override
-
     async with asgi_client(app) as client:
         created_res = await client.get(
-            "/api/v1/system/directory/users",
+            "/platform-api/v1/directory/users",
             params={
                 "created_from": "2026-05-01T00:00:00Z",
                 "created_to": "2026-07-01T00:00:00Z",
             },
         )
         last_login_res = await client.get(
-            "/api/v1/system/directory/users",
+            "/platform-api/v1/directory/users",
             params={
                 "last_login_from": "2026-07-01T00:00:00Z",
                 "last_login_to": "2026-08-01T00:00:00Z",
             },
         )
         workspace_members_res = await client.get(
-            "/api/v1/system/directory/users",
+            "/platform-api/v1/directory/users",
             params={"workspace_member_of_id": encode_uuid(workspace.id)},
         )
         project_members_res = await client.get(
-            "/api/v1/system/directory/users",
+            "/platform-api/v1/directory/users",
             params={"project_member_of_id": encode_uuid(project.id)},
         )
         workspace_owner_res = await client.get(
-            "/api/v1/system/directory/users",
+            "/platform-api/v1/directory/users",
             params={"owned_workspace_id": encode_uuid(workspace.id)},
         )
         project_owner_res = await client.get(
-            "/api/v1/system/directory/users",
+            "/platform-api/v1/directory/users",
             params={"owned_project_id": encode_uuid(project.id)},
         )
         unknown_owner_res = await client.get(
-            "/api/v1/system/directory/users",
+            "/platform-api/v1/directory/users",
             params={"owned_project_id": encode_uuid(uuid4())},
         )
         invalid_range_res = await client.get(
-            "/api/v1/system/directory/users",
+            "/platform-api/v1/directory/users",
             params={
                 "created_from": "2026-08-01T00:00:00Z",
                 "created_to": "2026-07-01T00:00:00Z",
@@ -1011,7 +984,6 @@ async def test_system_directory_returns_entity_details() -> None:
         email="detail-owner@example.com",
         display_name="Detail Owner",
         status=UserStatus.ACTIVE,
-        is_super_admin=True,
         avatar_url="/assets/detail-owner-avatar",
     )
     organization = await Organization.create(
@@ -1081,16 +1053,10 @@ async def test_system_directory_returns_entity_details() -> None:
 
     app = await _build_app()
 
-    async def _super_admin_override() -> DummyUser:
-        return DummyUser()
-
-    app.dependency_overrides[get_current_user] = _super_admin_override
-    app.dependency_overrides[require_super_admin] = _super_admin_override
-
     async with asgi_client(app) as client:
-        user_res = await client.get(f"/api/v1/system/directory/users/{owner.id}")
-        workspace_res = await client.get(f"/api/v1/system/directory/workspaces/{workspace.id}")
-        project_res = await client.get(f"/api/v1/system/directory/projects/{project.id}")
+        user_res = await client.get(f"/platform-api/v1/directory/users/{owner.id}")
+        workspace_res = await client.get(f"/platform-api/v1/directory/workspaces/{workspace.id}")
+        project_res = await client.get(f"/platform-api/v1/directory/projects/{project.id}")
 
     assert user_res.status_code == 200
     assert workspace_res.status_code == 200
@@ -1115,16 +1081,10 @@ async def test_system_directory_returns_entity_details() -> None:
 async def test_system_directory_detail_returns_not_found() -> None:
     app = await _build_app()
 
-    async def _super_admin_override() -> DummyUser:
-        return DummyUser()
-
-    app.dependency_overrides[get_current_user] = _super_admin_override
-    app.dependency_overrides[require_super_admin] = _super_admin_override
-
     missing_id = "019db0f5-ffff-7b20-bbe1-8a7380d53f5e"
 
     async with asgi_client(app) as client:
-        res = await client.get(f"/api/v1/system/directory/users/{missing_id}")
+        res = await client.get(f"/platform-api/v1/directory/users/{missing_id}")
 
     assert res.status_code == 404
     assert res.json()["error"] == "NOT_FOUND"
@@ -1139,7 +1099,6 @@ async def test_system_directory_user_governance_actions_update_account_and_sessi
         email="platform-admin@example.com",
         display_name="Platform Admin",
         status=UserStatus.ACTIVE,
-        is_super_admin=True,
     )
     managed_user = await User.create(
         username="managed-user",
@@ -1167,18 +1126,12 @@ async def test_system_directory_user_governance_actions_update_account_and_sessi
         email=managed_user.email,
     )
 
-    app = await _build_app()
-
-    async def _super_admin_override() -> User:
-        return acting_admin
-
-    app.dependency_overrides[get_current_user] = _super_admin_override
-    app.dependency_overrides[require_super_admin] = _super_admin_override
+    app = await _build_app(actor_id=acting_admin.id)
 
     user_id = str(managed_user.id)
     async with asgi_client(app) as client:
         profile_res = await client.patch(
-            f"/api/v1/system/directory/users/{user_id}",
+            f"/platform-api/v1/directory/users/{user_id}",
             json={
                 "displayName": "Managed Renamed",
                 "email": "managed2@example.com",
@@ -1186,24 +1139,24 @@ async def test_system_directory_user_governance_actions_update_account_and_sessi
             },
         )
         password_res = await client.post(
-            f"/api/v1/system/directory/users/{user_id}/reset-password",
+            f"/platform-api/v1/directory/users/{user_id}/reset-password",
             json={"newPassword": "new_password_123"},
         )
         reset_email_res = await client.post(
-            f"/api/v1/system/directory/users/{user_id}/send-reset-password-email",
+            f"/platform-api/v1/directory/users/{user_id}/send-reset-password-email",
         )
-        sessions_res = await client.post(f"/api/v1/system/directory/users/{user_id}/revoke-sessions")
-        disable_2fa_res = await client.post(f"/api/v1/system/directory/users/{user_id}/disable-two-factor")
+        sessions_res = await client.post(f"/platform-api/v1/directory/users/{user_id}/revoke-sessions")
+        disable_2fa_res = await client.post(f"/platform-api/v1/directory/users/{user_id}/disable-two-factor")
         unlink_oauth_res = await client.delete(
-            f"/api/v1/system/directory/users/{user_id}/oauth-identities/google",
+            f"/platform-api/v1/directory/users/{user_id}/oauth-identities/google",
         )
         disable_res = await client.post(
-            f"/api/v1/system/directory/users/{user_id}/disable",
+            f"/platform-api/v1/directory/users/{user_id}/disable",
             json=_restriction_enforce_payload(0, "Disable managed user in directory test."),
             headers={"Idempotency-Key": "directory-user-disable"},
         )
         enable_res = await client.post(
-            f"/api/v1/system/directory/users/{user_id}/enable",
+            f"/platform-api/v1/directory/users/{user_id}/enable",
             json=_restriction_lift_payload(1, "Enable managed user in directory test."),
             headers={"Idempotency-Key": "directory-user-enable"},
         )
@@ -1245,7 +1198,6 @@ async def test_system_directory_user_governance_rejects_email_conflict_and_self_
         email="self-admin@example.com",
         display_name="Self Admin",
         status=UserStatus.ACTIVE,
-        is_super_admin=True,
     )
     managed_user = await User.create(
         username="conflict-user",
@@ -1254,21 +1206,15 @@ async def test_system_directory_user_governance_rejects_email_conflict_and_self_
         status=UserStatus.ACTIVE,
     )
 
-    app = await _build_app()
-
-    async def _super_admin_override() -> User:
-        return acting_admin
-
-    app.dependency_overrides[get_current_user] = _super_admin_override
-    app.dependency_overrides[require_super_admin] = _super_admin_override
+    app = await _build_app(actor_id=acting_admin.id)
 
     async with asgi_client(app) as client:
         conflict_res = await client.patch(
-            f"/api/v1/system/directory/users/{managed_user.id}",
+            f"/platform-api/v1/directory/users/{managed_user.id}",
             json={"email": "self-admin@example.com"},
         )
         self_disable_res = await client.post(
-            f"/api/v1/system/directory/users/{acting_admin.id}/disable",
+            f"/platform-api/v1/directory/users/{acting_admin.id}/disable",
             json=_restriction_enforce_payload(0, "Attempt self disable in directory test."),
             headers={"Idempotency-Key": "directory-user-self-disable"},
         )
@@ -1280,84 +1226,12 @@ async def test_system_directory_user_governance_rejects_email_conflict_and_self_
 
 
 @pytest.mark.usefixtures("db")
-async def test_system_directory_user_governance_manages_super_admin_continuity() -> None:
-    acting_admin = await User.create(
-        username="role-admin",
-        email="role-admin@example.com",
-        display_name="Role Admin",
-        status=UserStatus.ACTIVE,
-        is_super_admin=True,
-    )
-    managed_user = await User.create(
-        username="role-target",
-        email="role-target@example.com",
-        display_name="Role Target",
-        status=UserStatus.ACTIVE,
-        is_super_admin=False,
-    )
-
-    app = await _build_app()
-
-    async def _super_admin_override() -> User:
-        return acting_admin
-
-    app.dependency_overrides[get_current_user] = _super_admin_override
-    app.dependency_overrides[require_super_admin] = _super_admin_override
-
-    async with asgi_client(app) as client:
-        grant_res = await client.patch(
-            f"/api/v1/system/directory/users/{managed_user.id}",
-            json={"isSuperAdmin": True},
-        )
-        revoke_res = await client.patch(
-            f"/api/v1/system/directory/users/{managed_user.id}",
-            json={"isSuperAdmin": False},
-        )
-        self_revoke_res = await client.patch(
-            f"/api/v1/system/directory/users/{acting_admin.id}",
-            json={"isSuperAdmin": False},
-        )
-
-    assert grant_res.status_code == 200
-    assert grant_res.json()["data"]["isSuperAdmin"] is True
-    assert revoke_res.status_code == 200
-    assert revoke_res.json()["data"]["isSuperAdmin"] is False
-    assert self_revoke_res.status_code == 400
-    assert self_revoke_res.json()["error"] == "CANNOT_REVOKE_SELF_SUPER_ADMIN"
-
-    async def _external_super_admin_override() -> object:
-        return SimpleNamespace(id=uuid4(), is_super_admin=True)
-
-    app.dependency_overrides[get_current_user] = _external_super_admin_override
-    app.dependency_overrides[require_super_admin] = _external_super_admin_override
-
-    async with asgi_client(app) as client:
-        last_role_res = await client.patch(
-            f"/api/v1/system/directory/users/{acting_admin.id}",
-            json={"isSuperAdmin": False},
-        )
-        last_disable_res = await client.post(
-            f"/api/v1/system/directory/users/{acting_admin.id}/disable",
-            json=_restriction_enforce_payload(0, "Attempt to disable final super admin."),
-            headers={"Idempotency-Key": "directory-last-super-admin-disable"},
-        )
-        last_delete_res = await client.delete(
-            f"/api/v1/system/directory/users/{acting_admin.id}",
-        )
-
-    for response in (last_role_res, last_disable_res, last_delete_res):
-        assert response.status_code == 409
-        assert response.json()["error"] == "LAST_ACTIVE_SUPER_ADMIN"
-
-
-@pytest.mark.usefixtures("db")
 async def test_system_directory_user_governance_rejects_unlinking_last_sign_in_method() -> None:
     acting_admin = await User.create(
         username="oauth-admin",
         email="oauth-admin@example.com",
         display_name="OAuth Admin",
         status=UserStatus.ACTIVE,
-        is_super_admin=True,
     )
     managed_user = await User.create(
         username="oauth-only-user",
@@ -1372,17 +1246,11 @@ async def test_system_directory_user_governance_rejects_unlinking_last_sign_in_m
         email=managed_user.email,
     )
 
-    app = await _build_app()
-
-    async def _super_admin_override() -> User:
-        return acting_admin
-
-    app.dependency_overrides[get_current_user] = _super_admin_override
-    app.dependency_overrides[require_super_admin] = _super_admin_override
+    app = await _build_app(actor_id=acting_admin.id)
 
     async with asgi_client(app) as client:
         unlink_res = await client.delete(
-            f"/api/v1/system/directory/users/{managed_user.id}/oauth-identities/google",
+            f"/platform-api/v1/directory/users/{managed_user.id}/oauth-identities/google",
         )
 
     assert unlink_res.status_code == 409
@@ -1397,7 +1265,6 @@ async def test_system_directory_deletes_user_account_with_account_cleanup() -> N
         email="delete-admin@example.com",
         display_name="Delete Admin",
         status=UserStatus.ACTIVE,
-        is_super_admin=True,
     )
     managed_user = await User.create(
         username="delete-target",
@@ -1472,16 +1339,10 @@ async def test_system_directory_deletes_user_account_with_account_cleanup() -> N
         created_by_user_id=other_owner.id,
     )
 
-    app = await _build_app()
-
-    async def _super_admin_override() -> User:
-        return acting_admin
-
-    app.dependency_overrides[get_current_user] = _super_admin_override
-    app.dependency_overrides[require_super_admin] = _super_admin_override
+    app = await _build_app(actor_id=acting_admin.id)
 
     async with asgi_client(app) as client:
-        res = await client.delete(f"/api/v1/system/directory/users/{managed_user.id}")
+        res = await client.delete(f"/platform-api/v1/directory/users/{managed_user.id}")
 
     assert res.status_code == 200
     assert res.json()["data"] is None
@@ -1510,7 +1371,6 @@ async def test_system_directory_deletes_user_account_with_owned_entities_cascade
         email="cascade-admin@example.com",
         display_name="Cascade Admin",
         status=UserStatus.ACTIVE,
-        is_super_admin=True,
     )
     managed_user = await User.create(
         username="cascade-target",
@@ -1573,18 +1433,13 @@ async def test_system_directory_deletes_user_account_with_owned_entities_cascade
     owned_workspace = await Workspace.create(
         organization_id=shared_org.id,
         name="Owned Workspace",
-        owner_user_id=None,
+        owner_user_id=managed_user.id,
         created_by_user_id=managed_user.id,
     )
-    owned_workspace_membership = await WorkspaceMembership.create(
+    await WorkspaceMembership.create(
         workspace_id=owned_workspace.id,
         user_id=managed_user.id,
         status=WorkspaceMembershipStatus.ACTIVE,
-    )
-    owned_workspace_role = await SystemRole.get(workspace_id=owned_workspace.id, code="owner")
-    await WorkspaceMembershipRole.get_or_create(
-        membership_id=owned_workspace_membership.id,
-        role_id=owned_workspace_role.id,
     )
 
     shared_workspace = await Workspace.create(
@@ -1617,16 +1472,10 @@ async def test_system_directory_deletes_user_account_with_owned_entities_cascade
         created_by_user_id=shared_owner.id,
     )
 
-    app = await _build_app()
-
-    async def _super_admin_override() -> User:
-        return acting_admin
-
-    app.dependency_overrides[get_current_user] = _super_admin_override
-    app.dependency_overrides[require_super_admin] = _super_admin_override
+    app = await _build_app(actor_id=acting_admin.id)
 
     async with asgi_client(app) as client:
-        res = await client.delete(f"/api/v1/system/directory/users/{managed_user.id}")
+        res = await client.delete(f"/platform-api/v1/directory/users/{managed_user.id}")
 
     assert res.status_code == 200, res.text
     assert await Organization.filter(id=owned_org.id).count() == 0
@@ -1648,19 +1497,12 @@ async def test_system_directory_rejects_self_delete() -> None:
         email="delete-self-admin@example.com",
         display_name="Delete Self Admin",
         status=UserStatus.ACTIVE,
-        is_super_admin=True,
     )
 
-    app = await _build_app()
-
-    async def _super_admin_override() -> User:
-        return acting_admin
-
-    app.dependency_overrides[get_current_user] = _super_admin_override
-    app.dependency_overrides[require_super_admin] = _super_admin_override
+    app = await _build_app(actor_id=acting_admin.id)
 
     async with asgi_client(app) as client:
-        res = await client.delete(f"/api/v1/system/directory/users/{acting_admin.id}")
+        res = await client.delete(f"/platform-api/v1/directory/users/{acting_admin.id}")
 
     assert res.status_code == 400
     assert res.json()["error"] == "CANNOT_DELETE_SELF"
@@ -1673,7 +1515,6 @@ async def test_system_directory_filters_and_governs_workspaces_and_projects() ->
         email="directory-admin@example.com",
         display_name="Directory Admin",
         status=UserStatus.ACTIVE,
-        is_super_admin=True,
     )
     owner = await User.create(
         username="directory-owner",
@@ -1762,46 +1603,40 @@ async def test_system_directory_filters_and_governs_workspaces_and_projects() ->
         role=ProjectMemberRole.OWNER,
         created_by_user_id=owner.id,
     )
-    app = await _build_app()
-
-    async def _super_admin_override() -> User:
-        return acting_admin
-
-    app.dependency_overrides[get_current_user] = _super_admin_override
-    app.dependency_overrides[require_super_admin] = _super_admin_override
+    app = await _build_app(actor_id=acting_admin.id)
 
     async with asgi_client(app) as client:
         workspace_archived_res = await client.get(
-            "/api/v1/system/directory/workspaces",
+            "/platform-api/v1/directory/workspaces",
             params={"is_archived": True},
         )
         workspace_owner_res = await client.get(
-            "/api/v1/system/directory/workspaces",
+            "/platform-api/v1/directory/workspaces",
             params={"owner_user_id": encode_uuid(owner.id)},
         )
         workspace_unknown_owner_res = await client.get(
-            "/api/v1/system/directory/workspaces",
+            "/platform-api/v1/directory/workspaces",
             params={"owner_user_id": encode_uuid(uuid4())},
         )
         project_workspace_res = await client.get(
-            "/api/v1/system/directory/projects",
+            "/platform-api/v1/directory/projects",
             params={"workspace_id": str(workspace.id)},
         )
         project_owner_res = await client.get(
-            "/api/v1/system/directory/projects",
+            "/platform-api/v1/directory/projects",
             params={"owner_user_id": encode_uuid(owner.id)},
         )
         project_unknown_owner_res = await client.get(
-            "/api/v1/system/directory/projects",
+            "/platform-api/v1/directory/projects",
             params={"owner_user_id": encode_uuid(uuid4())},
         )
         project_inactive_res = await client.get(
-            "/api/v1/system/directory/projects",
+            "/platform-api/v1/directory/projects",
             params={"is_active": False},
         )
 
         update_workspace_res = await client.patch(
-            f"/api/v1/system/directory/workspaces/{workspace.id}",
+            f"/platform-api/v1/directory/workspaces/{workspace.id}",
             json={
                 "name": "Alpha Workspace",
                 "description": "Workspace after update",
@@ -1811,28 +1646,28 @@ async def test_system_directory_filters_and_governs_workspaces_and_projects() ->
             },
         )
         archive_workspace_res = await client.post(
-            f"/api/v1/system/directory/workspaces/{workspace.id}/archive",
+            f"/platform-api/v1/directory/workspaces/{workspace.id}/archive",
             json=_restriction_enforce_payload(0, "Archive workspace in directory test."),
             headers={"Idempotency-Key": "directory-workspace-archive"},
         )
         restore_workspace_res = await client.post(
-            f"/api/v1/system/directory/workspaces/{workspace.id}/restore",
+            f"/platform-api/v1/directory/workspaces/{workspace.id}/restore",
             json=_restriction_lift_payload(1, "Restore workspace in directory test."),
             headers={"Idempotency-Key": "directory-workspace-restore"},
         )
         disable_workspace_res = await client.post(
-            f"/api/v1/system/directory/workspaces/{workspace.id}/disable",
+            f"/platform-api/v1/directory/workspaces/{workspace.id}/disable",
             json=_restriction_enforce_payload(0, "Suspend workspace in directory test."),
             headers={"Idempotency-Key": "directory-workspace-disable"},
         )
         enable_workspace_res = await client.post(
-            f"/api/v1/system/directory/workspaces/{workspace.id}/enable",
+            f"/platform-api/v1/directory/workspaces/{workspace.id}/enable",
             json=_restriction_lift_payload(1, "Restore suspended workspace in directory test."),
             headers={"Idempotency-Key": "directory-workspace-enable"},
         )
 
         update_project_res = await client.patch(
-            f"/api/v1/system/directory/projects/{project.id}",
+            f"/platform-api/v1/directory/projects/{project.id}",
             json={
                 "name": "Alpha Project",
                 "slug": "alpha-project",
@@ -1843,21 +1678,15 @@ async def test_system_directory_filters_and_governs_workspaces_and_projects() ->
             },
         )
         disable_project_res = await client.post(
-            f"/api/v1/system/directory/projects/{project.id}/disable",
+            f"/platform-api/v1/directory/projects/{project.id}/disable",
             json=_restriction_enforce_payload(0, "Suspend project in directory test."),
             headers={"Idempotency-Key": "directory-project-disable"},
         )
         enable_project_res = await client.post(
-            f"/api/v1/system/directory/projects/{project.id}/enable",
+            f"/platform-api/v1/directory/projects/{project.id}/enable",
             json=_restriction_lift_payload(1, "Restore project in directory test."),
             headers={"Idempotency-Key": "directory-project-enable"},
         )
-        delete_project_res = await client.request(
-            "DELETE",
-            f"/api/v1/system/directory/projects/{disabled_project.id}",
-            json={"confirmName": "Disabled Project"},
-        )
-
     assert workspace_archived_res.status_code == 200
     assert [item["name"] for item in workspace_archived_res.json()["data"]["items"]] == ["Archived Workspace"]
     assert workspace_owner_res.status_code == 200
@@ -1916,9 +1745,6 @@ async def test_system_directory_filters_and_governs_workspaces_and_projects() ->
     assert project_suspension["state"] == "active"
     assert enable_project_res.status_code == 200
     assert enable_project_res.json()["data"]["isActive"] is True
-    assert delete_project_res.status_code == 200
-    assert delete_project_res.json()["data"] is None
-
     refreshed_workspace = await Workspace.get(id=workspace.id)
     refreshed_project = await ProjectRecord.get(id=project.id)
     assert refreshed_workspace.name == "Alpha Workspace"
@@ -1926,4 +1752,3 @@ async def test_system_directory_filters_and_governs_workspaces_and_projects() ->
     assert refreshed_project.name == "Alpha Project"
     assert refreshed_project.slug == "alpha-project"
     assert refreshed_project.icon_glyph == "rocket"
-    assert await ProjectRecord.filter(id=disabled_project.id).count() == 0

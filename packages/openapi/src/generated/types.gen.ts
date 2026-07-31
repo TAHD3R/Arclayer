@@ -108,56 +108,6 @@ export type AiObservabilitySummaryOut = {
 };
 
 /**
- * AIUsageGroupOut
- */
-export type AiUsageGroupOut = {
-    /**
-     * Avglatencyms
-     */
-    avgLatencyMs: number;
-    /**
-     * Completiontokens
-     */
-    completionTokens: number;
-    /**
-     * Costmicros
-     */
-    costMicros: number;
-    /**
-     * Errorrate
-     */
-    errorRate: number;
-    /**
-     * Errorrequests
-     */
-    errorRequests: number;
-    /**
-     * Lastseenat
-     */
-    lastSeenAt: string;
-    /**
-     * Model
-     */
-    model: string;
-    /**
-     * Prompttokens
-     */
-    promptTokens: number;
-    /**
-     * Provider
-     */
-    provider: string;
-    /**
-     * Requests
-     */
-    requests: number;
-    /**
-     * Totaltokens
-     */
-    totalTokens: number;
-};
-
-/**
  * AcceptExistingInvitationRequest
  *
  * Accept an invitation with an existing logged-in account (email-bound).
@@ -242,76 +192,6 @@ export type AcceptInvitationRequest = {
 };
 
 /**
- * AccessRestrictionAdminOut
- */
-export type AccessRestrictionAdminOut = {
-    /**
-     * Actoruserid
-     */
-    actorUserId: string | null;
-    /**
-     * Allowedrecoveryactions
-     */
-    allowedRecoveryActions?: Array<string>;
-    /**
-     * Auditeventid
-     */
-    auditEventId: string | null;
-    /**
-     * Effectiveat
-     */
-    effectiveAt: string;
-    /**
-     * Entityid
-     */
-    entityId: string;
-    entityType: AccessRestrictionEntityType;
-    /**
-     * Expiresat
-     */
-    expiresAt: string | null;
-    /**
-     * Liftnote
-     */
-    liftNote: string | null;
-    /**
-     * Liftedat
-     */
-    liftedAt: string | null;
-    /**
-     * Liftedbyuserid
-     */
-    liftedByUserId: string | null;
-    /**
-     * Operatornote
-     */
-    operatorNote: string;
-    reasonCategory: AccessRestrictionReasonCategory;
-    /**
-     * Reasoncode
-     */
-    reasonCode: string;
-    /**
-     * Restrictionid
-     */
-    restrictionId: string;
-    restrictionType: AccessRestrictionType;
-    /**
-     * Reviewat
-     */
-    reviewAt: string | null;
-    /**
-     * Revision
-     */
-    revision: number;
-    state: AccessRestrictionState;
-    /**
-     * Supportavailable
-     */
-    supportAvailable?: boolean;
-};
-
-/**
  * AccessRestrictionEnforceRequest
  */
 export type AccessRestrictionEnforceRequest = {
@@ -352,11 +232,6 @@ export type AccessRestrictionEnforceRequest = {
 };
 
 /**
- * AccessRestrictionEntityType
- */
-export type AccessRestrictionEntityType = 'user' | 'workspace' | 'project';
-
-/**
  * AccessRestrictionLiftRequest
  */
 export type AccessRestrictionLiftRequest = {
@@ -378,16 +253,6 @@ export type AccessRestrictionLiftRequest = {
  * AccessRestrictionReasonCategory
  */
 export type AccessRestrictionReasonCategory = 'policy_violation' | 'security_risk' | 'billing_issue' | 'abuse_prevention' | 'compliance_review' | 'owner_request' | 'other';
-
-/**
- * AccessRestrictionState
- */
-export type AccessRestrictionState = 'active' | 'lifted';
-
-/**
- * AccessRestrictionType
- */
-export type AccessRestrictionType = 'user_disabled' | 'workspace_suspended' | 'workspace_archived' | 'project_suspended';
 
 /**
  * ActivityUserSummaryOut
@@ -1351,16 +1216,6 @@ export type AgentApprovalOut = {
 };
 
 /**
- * AgentApprovalProfile
- */
-export type AgentApprovalProfile = {
-    /**
-     * Profileid
-     */
-    profileId: string;
-};
-
-/**
  * AgentApprovalResponseRequestV1
  */
 export type AgentApprovalResponseRequestV1 = {
@@ -1456,16 +1311,6 @@ export type AgentChangeSetSnapshotV1 = {
      * Warnings
      */
     warnings: Array<ChangeSetWarningV1>;
-};
-
-/**
- * AgentCompatibility
- */
-export type AgentCompatibility = {
-    /**
-     * Agentruntimeprotocol
-     */
-    agentRuntimeProtocol?: 1;
 };
 
 /**
@@ -1889,16 +1734,6 @@ export type AgentMessageSnapshotV1 = {
  * AgentMode
  */
 export type AgentMode = 'build' | 'plan' | 'agent';
-
-/**
- * AgentModelPolicy
- */
-export type AgentModelPolicy = {
-    /**
-     * Routingpolicy
-     */
-    routingPolicy?: 'workspace_default';
-};
 
 /**
  * AgentPendingApprovalSnapshotV1
@@ -2749,71 +2584,6 @@ export type AgentToolSpec = {
 };
 
 /**
- * AgentVersionCreateRequest
- */
-export type AgentVersionCreateRequest = {
-    approvalProfile: AgentApprovalProfile;
-    compatibility?: AgentCompatibility;
-    /**
-     * Delegationdefinitionids
-     */
-    delegationDefinitionIds?: Array<string>;
-    /**
-     * Instructions
-     */
-    instructions: string;
-    /**
-     * Knowledgebaseids
-     */
-    knowledgeBaseIds?: Array<string>;
-    modelPolicy?: AgentModelPolicy;
-    /**
-     * Skillgrantworkspaceid
-     */
-    skillGrantWorkspaceId?: string | null;
-    /**
-     * Skillinstallationids
-     */
-    skillInstallationIds?: Array<string>;
-    /**
-     * Supportedexecutionmodes
-     */
-    supportedExecutionModes: Array<'plan' | 'build'>;
-    /**
-     * Toolgrants
-     */
-    toolGrants?: Array<string>;
-};
-
-/**
- * AgentVersionProvenance
- */
-export type AgentVersionProvenance = {
-    /**
-     * Createdbyuserid
-     */
-    createdByUserId?: string | null;
-    /**
-     * Kind
-     */
-    kind: 'arclayer_official' | 'system_custom' | 'workspace_custom';
-    /**
-     * Manifestversion
-     */
-    manifestVersion?: number | null;
-};
-
-/**
- * AgentVersionRetireRequest
- */
-export type AgentVersionRetireRequest = {
-    /**
-     * State
-     */
-    state: 'retired';
-};
-
-/**
  * ApiKeyCreateOut
  */
 export type ApiKeyCreateOut = {
@@ -3285,6 +3055,12 @@ export type AuthzSnapshot = {
      */
     isSuperuser?: boolean;
     /**
+     * Isworkspaceowner
+     *
+     * Whether the user is the canonical Workspace Owner.
+     */
+    isWorkspaceOwner?: boolean;
+    /**
      * Permissioncodes
      *
      * Effective permission codes.
@@ -3742,6 +3518,11 @@ export type AvatarUploadInitRequest = {
 export type BillingCycle = 'monthly' | 'yearly';
 
 /**
+ * BillingProviderMode
+ */
+export type BillingProviderMode = 'test' | 'live';
+
+/**
  * BillingRedirectOut
  */
 export type BillingRedirectOut = {
@@ -3749,20 +3530,6 @@ export type BillingRedirectOut = {
      * Url
      */
     url: string;
-};
-
-/**
- * Body_review_manual_plugin_artifact_api_v1_system_plugins_artifacts_manual_post
- */
-export type BodyReviewManualPluginArtifactApiV1SystemPluginsArtifactsManualPost = {
-    /**
-     * Detached Signature
-     */
-    detached_signature: string;
-    /**
-     * Package
-     */
-    package: string;
 };
 
 /**
@@ -6777,35 +6544,9 @@ export type CheckoutSessionCreate = {
 };
 
 /**
- * CommercePlanCatalogOut
+ * CommercePlanRevisionOut
  */
-export type CommercePlanCatalogOut = {
-    /**
-     * Billingmode
-     */
-    billingMode?: string;
-    /**
-     * Billingprovider
-     */
-    billingProvider: string;
-    /**
-     * Checkoutenabled
-     */
-    checkoutEnabled: boolean;
-    /**
-     * Items
-     */
-    items: Array<CommercePlanOut>;
-};
-
-/**
- * CommercePlanOut
- */
-export type CommercePlanOut = {
-    /**
-     * Code
-     */
-    code: string;
+export type CommercePlanRevisionOut = {
     /**
      * Createdat
      *
@@ -6826,13 +6567,13 @@ export type CommercePlanOut = {
      */
     currency: string;
     /**
-     * Description
+     * Descriptioni18Nkey
      */
-    description: string;
+    descriptionI18NKey: string;
     /**
-     * Features
+     * Entitlements
      */
-    features: Array<PlanFeature>;
+    entitlements: Array<PlanRevisionEntitlementOut>;
     /**
      * Id
      *
@@ -6840,30 +6581,33 @@ export type CommercePlanOut = {
      */
     id: string;
     /**
-     * Isactive
+     * Isselling
      */
-    isActive: boolean;
+    isSelling: boolean;
     /**
-     * Isdefault
+     * Namei18Nkey
      */
-    isDefault: boolean;
+    nameI18NKey: string;
     /**
-     * Name
+     * Plancode
      */
-    name: string;
+    planCode: string;
     /**
-     * Pricemonthlymicros
+     * Planid
      */
-    priceMonthlyMicros: number;
+    planId: string;
     /**
-     * Priceyearlymicros
+     * Prices
      */
-    priceYearlyMicros: number;
+    prices: Array<PlanRevisionPriceOut>;
     /**
-     * Sortorder
+     * Resourceallowances
      */
-    sortOrder: number;
-    tier: CommercePlanTier;
+    resourceAllowances: Array<PlanRevisionResourceAllowanceOut>;
+    /**
+     * Sequence
+     */
+    sequence: number;
     /**
      * Updatedat
      *
@@ -6873,61 +6617,59 @@ export type CommercePlanOut = {
 };
 
 /**
- * CommercePlanTier
+ * CommercialAccessMemberView
+ *
+ * Sanitized access state visible to every active Workspace member.
  */
-export type CommercePlanTier = 'free' | 'premium' | 'enterprise';
+export type CommercialAccessMemberView = {
+    /**
+     * Billingcontactrequired
+     */
+    billingContactRequired?: boolean;
+    /**
+     * Explanationkey
+     */
+    explanationKey?: string | null;
+    state: CommercialAccessState;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
 
 /**
- * CommercePlanUpsertRequest
+ * CommercialAccessRecoveryView
+ *
+ * Billing-contact view with the executable, server-revalidated recovery action.
  */
-export type CommercePlanUpsertRequest = {
+export type CommercialAccessRecoveryView = {
     /**
-     * Creditgrantamount
+     * Billingcontactrequired
      */
-    creditGrantAmount: number;
-    creditRefreshInterval: CreditRefreshInterval;
+    billingContactRequired?: boolean;
     /**
-     * Creditvaluemicros
+     * Explanationkey
      */
-    creditValueMicros: number;
+    explanationKey?: string | null;
     /**
-     * Currency
+     * Permittedrecoveryaction
      */
-    currency: string;
+    permittedRecoveryAction?: string | null;
     /**
-     * Description
+     * Recoverydeadline
      */
-    description: string;
+    recoveryDeadline?: string | null;
+    state: CommercialAccessState;
     /**
-     * Features
+     * Workspaceid
      */
-    features?: Array<PlanFeature>;
-    /**
-     * Isactive
-     */
-    isActive?: boolean;
-    /**
-     * Isdefault
-     */
-    isDefault?: boolean;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Pricemonthlymicros
-     */
-    priceMonthlyMicros: number;
-    /**
-     * Priceyearlymicros
-     */
-    priceYearlyMicros: number;
-    /**
-     * Sortorder
-     */
-    sortOrder?: number;
-    tier: CommercePlanTier;
+    workspaceId: string;
 };
+
+/**
+ * CommercialAccessState
+ */
+export type CommercialAccessState = 'normal' | 'payment_grace' | 'payment_restricted';
 
 /**
  * ComponentCatalogComponentV1
@@ -7168,11 +6910,6 @@ export type ConfirmRemoveMyPasswordRequest = {
 };
 
 /**
- * ConnectorKind
- */
-export type ConnectorKind = 'billing' | 'oauth' | 'analytics' | 'email';
-
-/**
  * ConnectorKnowledgeLocator
  */
 export type ConnectorKnowledgeLocator = {
@@ -7189,11 +6926,6 @@ export type ConnectorKnowledgeLocator = {
      */
     providerObjectReference: string;
 };
-
-/**
- * ConnectorTrustLevel
- */
-export type ConnectorTrustLevel = 'official' | 'third_party';
 
 /**
  * ContentApiEntryListOut
@@ -10164,6 +9896,149 @@ export type ContentWorkflowTransitionContract = {
 };
 
 /**
+ * ConvergenceImpactSnapshot
+ *
+ * Named authority and allocation consequences for one exact revision pair.
+ */
+export type ConvergenceImpactSnapshot = {
+    /**
+     * Activemembers
+     */
+    activeMembers: Array<MemberImpact>;
+    /**
+     * Billingmanagers
+     */
+    billingManagers: Array<MemberImpact>;
+    /**
+     * Customroles
+     */
+    customRoles: Array<CustomRoleImpact>;
+    /**
+     * Emailinvitations
+     */
+    emailInvitations: Array<InvitationImpact>;
+    /**
+     * Featureallocationscoperevisions
+     */
+    featureAllocationScopeRevisions: Array<FeatureAccessScopeRevisionImpact>;
+    /**
+     * Featureassignments
+     */
+    featureAssignments: Array<FeatureSeatAssignmentImpact>;
+    /**
+     * Featureseatmanagers
+     */
+    featureSeatManagers: Array<MemberImpact>;
+    /**
+     * Owneruserid
+     */
+    ownerUserId: string;
+    /**
+     * Queuedeffects
+     */
+    queuedEffects: Array<QueuedEffectImpact>;
+    /**
+     * Requiresconvergence
+     */
+    requiresConvergence: boolean;
+    /**
+     * Reusableinvitationlinks
+     */
+    reusableInvitationLinks: Array<InvitationImpact>;
+    /**
+     * Roleresponsibilities
+     */
+    roleResponsibilities: Array<RoleResponsibilityImpact>;
+    sourceRevision: PlanRevisionRef;
+    /**
+     * Subscriptionrevision
+     */
+    subscriptionRevision: number;
+    targetRevision: PlanRevisionRef;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * ConvergencePreview
+ */
+export type ConvergencePreview = {
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Effectiveat
+     */
+    effectiveAt: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Isapplied
+     */
+    isApplied?: boolean;
+    /**
+     * Previewrevision
+     */
+    previewRevision: number;
+    /**
+     * Retainedassignmentids
+     */
+    retainedAssignmentIds: Array<string>;
+    snapshot: ConvergenceImpactSnapshot;
+    /**
+     * Snapshothash
+     */
+    snapshotHash: string;
+};
+
+/**
+ * ConvergencePreviewRequest
+ */
+export type ConvergencePreviewRequest = {
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Effectiveat
+     */
+    effectiveAt: string;
+    /**
+     * Expectedsubscriptionrevision
+     */
+    expectedSubscriptionRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Retainedassignmentids
+     */
+    retainedAssignmentIds: Array<string>;
+    /**
+     * Sourcerevisionid
+     */
+    sourceRevisionId: string;
+    /**
+     * Targetrevisionid
+     */
+    targetRevisionId: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
  * CreditLedgerEntryType
  */
 export type CreditLedgerEntryType = 'period_grant' | 'reservation' | 'commit' | 'release' | 'adjustment' | 'expiration';
@@ -10181,9 +10056,21 @@ export type CreditLedgerOut = {
      */
     actorUserId: string | null;
     /**
+     * Actualcostmicros
+     */
+    actualCostMicros: number | null;
+    /**
+     * Appliedcreditvaluemicros
+     */
+    appliedCreditValueMicros: number;
+    /**
      * Balanceaftercredits
      */
     balanceAfterCredits: number;
+    /**
+     * Committedcredits
+     */
+    committedCredits: number;
     /**
      * Createdat
      *
@@ -10199,20 +10086,14 @@ export type CreditLedgerOut = {
      */
     deltaReservedCredits: number;
     /**
-     * Description
-     */
-    description: string;
-    /**
      * Descriptionkey
      */
     descriptionKey: string;
-    /**
-     * Details
-     */
-    details: {
-        [key: string]: JsonValueOutput;
-    };
     entryType: CreditLedgerEntryType;
+    /**
+     * Estimatedcostmicros
+     */
+    estimatedCostMicros: number | null;
     /**
      * Id
      *
@@ -10220,17 +10101,29 @@ export type CreditLedgerOut = {
      */
     id: string;
     /**
-     * Referenceid
+     * Planrevisionid
      */
-    referenceId: string | null;
+    planRevisionId: string;
     /**
-     * Referencetype
+     * Providerperiodidentity
      */
-    referenceType: string;
+    providerPeriodIdentity: string | null;
+    /**
+     * Requestid
+     */
+    requestId: string | null;
     /**
      * Reservedaftercredits
      */
     reservedAfterCredits: number;
+    /**
+     * Reservedcredits
+     */
+    reservedCredits: number;
+    /**
+     * Subscriptionid
+     */
+    subscriptionId: string;
     /**
      * Updatedat
      *
@@ -10247,6 +10140,20 @@ export type CreditLedgerOut = {
  * CreditRefreshInterval
  */
 export type CreditRefreshInterval = 'daily' | 'monthly' | 'yearly' | 'none';
+
+/**
+ * CustomRoleImpact
+ */
+export type CustomRoleImpact = {
+    /**
+     * Roleid
+     */
+    roleId: string;
+    /**
+     * Rolename
+     */
+    roleName: string;
+};
 
 /**
  * DailyUsageRecord
@@ -11608,1229 +11515,6 @@ export type DesignTypographyRoleV1 = {
 };
 
 /**
- * DirectoryActorSummaryOut
- */
-export type DirectoryActorSummaryOut = {
-    /**
-     * Avatarurl
-     *
-     * Avatar URL.
-     */
-    avatarUrl?: string | null;
-    /**
-     * Displayname
-     *
-     * Display name.
-     */
-    displayName?: string | null;
-    /**
-     * Email
-     *
-     * Email.
-     */
-    email?: string | null;
-    /**
-     * Userid
-     *
-     * User id.
-     */
-    userId: string;
-    /**
-     * Username
-     *
-     * Username.
-     */
-    username: string;
-};
-
-/**
- * DirectoryDeleteRequest
- */
-export type DirectoryDeleteRequest = {
-    /**
-     * Confirmname
-     *
-     * Current entity name confirmation for destructive delete.
-     */
-    confirmName: string;
-};
-
-/**
- * DirectoryProjectActivitySource
- */
-export type DirectoryProjectActivitySource = 'audit_event' | 'release' | 'deployment' | 'project_record';
-
-/**
- * DirectoryProjectDetailOut
- */
-export type DirectoryProjectDetailOut = {
-    /**
-     * Createdat
-     *
-     * Created at.
-     */
-    createdAt: string;
-    /**
-     * Description
-     *
-     * Project description.
-     */
-    description?: string | null;
-    /**
-     * Iconcolor
-     *
-     * Project icon color.
-     */
-    iconColor: string;
-    /**
-     * Iconemoji
-     *
-     * Project icon emoji.
-     */
-    iconEmoji?: string | null;
-    /**
-     * Iconglyph
-     *
-     * Project icon glyph.
-     */
-    iconGlyph?: string | null;
-    /**
-     * Iconmode
-     *
-     * Project icon mode.
-     */
-    iconMode: string;
-    /**
-     * Iconurl
-     *
-     * Project icon URL.
-     */
-    iconUrl?: string | null;
-    /**
-     * Isactive
-     *
-     * Whether the project is active.
-     */
-    isActive?: boolean;
-    /**
-     * Lastactivityat
-     *
-     * Latest project operational activity time.
-     */
-    lastActivityAt: string;
-    /**
-     * Membercount
-     *
-     * Project member count.
-     */
-    memberCount?: number;
-    /**
-     * Name
-     *
-     * Project name.
-     */
-    name: string;
-    /**
-     * Batch project operational projection with explicit coverage and freshness.
-     */
-    operations: DirectoryProjectOperationalSummaryOut;
-    /**
-     * Owner summary.
-     */
-    owner?: DirectoryActorSummaryOut | null;
-    /**
-     * Projectid
-     *
-     * Project id.
-     */
-    projectId: string;
-    /**
-     * Restrictions
-     *
-     * Active access restrictions visible to the system operator.
-     */
-    restrictions?: Array<AccessRestrictionAdminOut>;
-    /**
-     * Slug
-     *
-     * Project slug.
-     */
-    slug: string;
-    /**
-     * Updatedat
-     *
-     * Last update time.
-     */
-    updatedAt: string;
-    /**
-     * Workspaceid
-     *
-     * Workspace id.
-     */
-    workspaceId: string;
-    /**
-     * Workspacename
-     *
-     * Workspace name.
-     */
-    workspaceName: string;
-};
-
-/**
- * DirectoryProjectDomainState
- */
-export type DirectoryProjectDomainState = 'ready' | 'attention_required' | 'none';
-
-/**
- * DirectoryProjectHealthState
- */
-export type DirectoryProjectHealthState = 'healthy' | 'degraded' | 'inactive' | 'not_deployed' | 'unavailable';
-
-/**
- * DirectoryProjectListItemOut
- */
-export type DirectoryProjectListItemOut = {
-    /**
-     * Createdat
-     *
-     * Created at.
-     */
-    createdAt: string;
-    /**
-     * Description
-     *
-     * Project description.
-     */
-    description?: string | null;
-    /**
-     * Iconcolor
-     *
-     * Project icon color.
-     */
-    iconColor?: string | null;
-    /**
-     * Iconemoji
-     *
-     * Project icon emoji.
-     */
-    iconEmoji?: string | null;
-    /**
-     * Iconglyph
-     *
-     * Project icon glyph.
-     */
-    iconGlyph?: string | null;
-    /**
-     * Project icon mode.
-     */
-    iconMode?: WorkspaceIconMode | null;
-    /**
-     * Iconurl
-     *
-     * Project icon URL.
-     */
-    iconUrl?: string | null;
-    /**
-     * Isactive
-     *
-     * Whether the project is active.
-     */
-    isActive?: boolean;
-    /**
-     * Lastactivityat
-     *
-     * Latest project operational activity time.
-     */
-    lastActivityAt: string;
-    /**
-     * Membercount
-     *
-     * Project member count.
-     */
-    memberCount?: number;
-    /**
-     * Name
-     *
-     * Project name.
-     */
-    name: string;
-    /**
-     * Batch project operational projection with explicit coverage and freshness.
-     */
-    operations: DirectoryProjectOperationalSummaryOut;
-    /**
-     * Owner summary.
-     */
-    owner?: DirectoryActorSummaryOut | null;
-    /**
-     * Projectid
-     *
-     * Project id.
-     */
-    projectId: string;
-    /**
-     * Restrictions
-     *
-     * Active access restrictions visible to the system operator.
-     */
-    restrictions?: Array<AccessRestrictionAdminOut>;
-    /**
-     * Slug
-     *
-     * Project slug.
-     */
-    slug: string;
-    /**
-     * Workspaceid
-     *
-     * Workspace id.
-     */
-    workspaceId: string;
-    /**
-     * Workspacename
-     *
-     * Workspace name.
-     */
-    workspaceName: string;
-};
-
-/**
- * DirectoryProjectOperationalSummaryOut
- */
-export type DirectoryProjectOperationalSummaryOut = {
-    /**
-     * Capturedat
-     *
-     * Time at which the operational projection was captured.
-     */
-    capturedAt: string;
-    /**
-     * Domaincount
-     */
-    domainCount: number;
-    domainState: DirectoryProjectDomainState;
-    health: DirectoryProjectHealthState;
-    /**
-     * Lastactivityat
-     */
-    lastActivityAt: string;
-    lastActivitySource: DirectoryProjectActivitySource;
-    /**
-     * Latestdeploymentat
-     */
-    latestDeploymentAt?: string | null;
-    latestDeploymentStatus?: ProjectDeploymentStatus | null;
-    /**
-     * Latestreleaseat
-     */
-    latestReleaseAt?: string | null;
-    /**
-     * Latestreleasenumber
-     */
-    latestReleaseNumber?: number | null;
-    latestReleaseStatus?: ContentReleaseStatus | null;
-    releaseState: DirectoryProjectReleaseState;
-    runtimeState: DirectoryProjectRuntimeState;
-    usage: DirectoryProjectUsageOut;
-    /**
-     * Verifieddomaincount
-     */
-    verifiedDomainCount: number;
-};
-
-/**
- * DirectoryProjectOperationsOut
- */
-export type DirectoryProjectOperationsOut = {
-    /**
-     * Collectedat
-     *
-     * Time at which the operational projection was collected.
-     */
-    collectedAt: string;
-    /**
-     * Deployments
-     */
-    deployments: Array<ProjectDeploymentOut>;
-    /**
-     * Domains
-     */
-    domains: Array<DomainBindingOut>;
-    /**
-     * Environmentaliases
-     */
-    environmentAliases: Array<ProjectEnvironmentAliasOut>;
-    /**
-     * Environments
-     */
-    environments: Array<ProjectEnvironmentOut>;
-    /**
-     * Derived runtime and deployment health state.
-     */
-    health: DirectoryProjectHealthState;
-    /**
-     * Membertotal
-     */
-    memberTotal: number;
-    /**
-     * Members
-     */
-    members: Array<ProjectMemberOut>;
-    /**
-     * Releases
-     */
-    releases: Array<ReleaseOut>;
-    /**
-     * Primary project runtime identity.
-     */
-    runtime: ProjectRuntimeContextOut | null;
-    /**
-     * Availability of runtime-backed data.
-     */
-    runtimeState: DirectoryProjectRuntimeState;
-};
-
-/**
- * DirectoryProjectReleaseState
- */
-export type DirectoryProjectReleaseState = 'active' | 'scheduled' | 'published' | 'cancelled' | 'not_released';
-
-/**
- * DirectoryProjectRuntimeState
- */
-export type DirectoryProjectRuntimeState = 'ready' | 'runtime_missing' | 'site_missing';
-
-/**
- * DirectoryProjectUpdateRequest
- */
-export type DirectoryProjectUpdateRequest = {
-    /**
-     * Description
-     *
-     * Project description.
-     */
-    description?: string | null;
-    /**
-     * Iconcolor
-     *
-     * Project icon background color.
-     */
-    iconColor?: string | null;
-    /**
-     * Iconemoji
-     *
-     * Project icon emoji.
-     */
-    iconEmoji?: string | null;
-    /**
-     * Iconglyph
-     *
-     * Project icon glyph id.
-     */
-    iconGlyph?: string | null;
-    /**
-     * Project icon presentation mode.
-     */
-    iconMode?: WorkspaceIconMode | null;
-    /**
-     * Iconurl
-     *
-     * Project icon URL.
-     */
-    iconUrl?: string | null;
-    /**
-     * Name
-     *
-     * Project name.
-     */
-    name?: string | null;
-    /**
-     * Slug
-     *
-     * Project slug.
-     */
-    slug?: string | null;
-};
-
-/**
- * DirectoryProjectUsageCoverage
- */
-export type DirectoryProjectUsageCoverage = 'ai_audit_log' | 'no_observed_usage';
-
-/**
- * DirectoryProjectUsageOut
- */
-export type DirectoryProjectUsageOut = {
-    /**
-     * Completiontokens
-     */
-    completionTokens: number;
-    /**
-     * Costmicros
-     */
-    costMicros: number;
-    /**
-     * Project usage attribution coverage.
-     */
-    coverage: DirectoryProjectUsageCoverage;
-    /**
-     * Prompttokens
-     */
-    promptTokens: number;
-    /**
-     * Requests
-     */
-    requests: number;
-    /**
-     * Windowend
-     *
-     * Exclusive project usage window end.
-     */
-    windowEnd: string;
-    /**
-     * Windowstart
-     *
-     * Inclusive project usage window start.
-     */
-    windowStart: string;
-};
-
-/**
- * DirectoryUserAuditActivityOut
- */
-export type DirectoryUserAuditActivityOut = {
-    /**
-     * Eventid
-     *
-     * Audit event id.
-     */
-    eventId: string;
-    /**
-     * Eventname
-     *
-     * Stable audit event name.
-     */
-    eventName: string;
-    /**
-     * Occurredat
-     *
-     * Event occurrence time.
-     */
-    occurredAt: string;
-    /**
-     * Projectid
-     *
-     * Related project id.
-     */
-    projectId?: string | null;
-    /**
-     * Source
-     *
-     * Audit event source.
-     */
-    source?: string | null;
-    /**
-     * Workspaceid
-     *
-     * Related workspace id.
-     */
-    workspaceId?: string | null;
-};
-
-/**
- * DirectoryUserDetailOut
- */
-export type DirectoryUserDetailOut = {
-    /**
-     * Avatarurl
-     *
-     * Avatar URL.
-     */
-    avatarUrl?: string | null;
-    /**
-     * Createdat
-     *
-     * Created at.
-     */
-    createdAt: string;
-    /**
-     * Displayname
-     *
-     * Display name.
-     */
-    displayName?: string | null;
-    /**
-     * Email
-     *
-     * Email.
-     */
-    email?: string | null;
-    /**
-     * Haspassword
-     *
-     * Whether a local password is configured.
-     */
-    hasPassword?: boolean;
-    /**
-     * Issuperadmin
-     *
-     * Whether the user is a super admin.
-     */
-    isSuperAdmin?: boolean;
-    /**
-     * Lastloginat
-     *
-     * Last login time.
-     */
-    lastLoginAt?: string | null;
-    /**
-     * Linkedoauthproviders
-     *
-     * Linked OAuth providers for the account.
-     */
-    linkedOauthProviders?: Array<string>;
-    /**
-     * Ownedprojectcount
-     *
-     * Owned project count.
-     */
-    ownedProjectCount?: number;
-    /**
-     * Ownedworkspacecount
-     *
-     * Owned workspace count.
-     */
-    ownedWorkspaceCount?: number;
-    /**
-     * Projectmembershipcount
-     *
-     * Project memberships for the user.
-     */
-    projectMembershipCount?: number;
-    /**
-     * Projectmemberships
-     */
-    projectMemberships?: Array<DirectoryUserProjectMembershipOut>;
-    /**
-     * Recentauditactivity
-     */
-    recentAuditActivity?: Array<DirectoryUserAuditActivityOut>;
-    /**
-     * Recentfeedbackactivity
-     */
-    recentFeedbackActivity?: Array<DirectoryUserFeedbackActivityOut>;
-    /**
-     * Restrictionhistory
-     */
-    restrictionHistory?: Array<DirectoryUserRestrictionHistoryOut>;
-    /**
-     * Restrictions
-     *
-     * Active access restrictions visible to the system operator.
-     */
-    restrictions?: Array<AccessRestrictionAdminOut>;
-    status: UserStatus;
-    /**
-     * Twofactorenabled
-     *
-     * Whether two-factor authentication is enabled.
-     */
-    twoFactorEnabled?: boolean;
-    /**
-     * Updatedat
-     *
-     * Last update time.
-     */
-    updatedAt: string;
-    /**
-     * Userid
-     *
-     * User id.
-     */
-    userId: string;
-    /**
-     * Username
-     *
-     * Username.
-     */
-    username: string;
-    /**
-     * Workspacemembershipcount
-     *
-     * Active workspace memberships for the user.
-     */
-    workspaceMembershipCount?: number;
-    /**
-     * Workspacememberships
-     */
-    workspaceMemberships?: Array<DirectoryUserWorkspaceMembershipOut>;
-};
-
-/**
- * DirectoryUserFeedbackActivityOut
- */
-export type DirectoryUserFeedbackActivityOut = {
-    /**
-     * Feedbackid
-     *
-     * Feedback ticket id.
-     */
-    feedbackId: string;
-    /**
-     * Intent
-     *
-     * Feedback intent.
-     */
-    intent?: string | null;
-    /**
-     * Lastactivityat
-     *
-     * Latest feedback activity time.
-     */
-    lastActivityAt: string;
-    /**
-     * Message
-     *
-     * Feedback message.
-     */
-    message: string;
-    /**
-     * Source
-     *
-     * Feedback source.
-     */
-    source: string;
-    /**
-     * Status
-     *
-     * Feedback status.
-     */
-    status: string;
-};
-
-/**
- * DirectoryUserListItemOut
- */
-export type DirectoryUserListItemOut = {
-    /**
-     * Avatarurl
-     *
-     * Avatar URL.
-     */
-    avatarUrl?: string | null;
-    /**
-     * Createdat
-     *
-     * Created at.
-     */
-    createdAt: string;
-    /**
-     * Displayname
-     *
-     * Display name.
-     */
-    displayName?: string | null;
-    /**
-     * Email
-     *
-     * Email.
-     */
-    email?: string | null;
-    /**
-     * Haspassword
-     *
-     * Whether a local password is configured.
-     */
-    hasPassword?: boolean;
-    /**
-     * Issuperadmin
-     *
-     * Whether the user is a super admin.
-     */
-    isSuperAdmin?: boolean;
-    /**
-     * Lastloginat
-     *
-     * Last login time.
-     */
-    lastLoginAt?: string | null;
-    /**
-     * Linkedoauthproviders
-     *
-     * Linked OAuth providers for the account.
-     */
-    linkedOauthProviders?: Array<string>;
-    /**
-     * Projectmembershipcount
-     *
-     * Project memberships for the user.
-     */
-    projectMembershipCount?: number;
-    /**
-     * Restrictions
-     *
-     * Active access restrictions visible to the system operator.
-     */
-    restrictions?: Array<AccessRestrictionAdminOut>;
-    status: UserStatus;
-    /**
-     * Twofactorenabled
-     *
-     * Whether two-factor authentication is enabled.
-     */
-    twoFactorEnabled?: boolean;
-    /**
-     * Userid
-     *
-     * User id.
-     */
-    userId: string;
-    /**
-     * Username
-     *
-     * Username.
-     */
-    username: string;
-    /**
-     * Workspacemembershipcount
-     *
-     * Active workspace memberships for the user.
-     */
-    workspaceMembershipCount?: number;
-};
-
-/**
- * DirectoryUserProjectMembershipOut
- */
-export type DirectoryUserProjectMembershipOut = {
-    /**
-     * Joinedat
-     *
-     * Membership creation time.
-     */
-    joinedAt: string;
-    /**
-     * Projectid
-     *
-     * Project id.
-     */
-    projectId: string;
-    /**
-     * Projectname
-     *
-     * Project name.
-     */
-    projectName: string;
-    /**
-     * Project membership role.
-     */
-    role: ProjectMemberRole;
-    /**
-     * Workspaceid
-     *
-     * Parent workspace id.
-     */
-    workspaceId: string;
-    /**
-     * Workspacename
-     *
-     * Parent workspace name.
-     */
-    workspaceName: string;
-};
-
-/**
- * DirectoryUserResetPasswordRequest
- */
-export type DirectoryUserResetPasswordRequest = {
-    /**
-     * Newpassword
-     *
-     * New password.
-     */
-    newPassword: string;
-};
-
-/**
- * DirectoryUserRestrictionHistoryOut
- */
-export type DirectoryUserRestrictionHistoryOut = {
-    /**
-     * Actoruserid
-     *
-     * Operator user id.
-     */
-    actorUserId?: string | null;
-    /**
-     * Changedat
-     *
-     * Transition time.
-     */
-    changedAt: string;
-    /**
-     * Commandid
-     *
-     * Restriction transition command id.
-     */
-    commandId: string;
-    /**
-     * Operatornote
-     *
-     * Operator note captured for the transition.
-     */
-    operatorNote: string;
-    /**
-     * Reason category.
-     */
-    reasonCategory: AccessRestrictionReasonCategory;
-    /**
-     * Reasoncode
-     *
-     * Stable reason code.
-     */
-    reasonCode: string;
-    /**
-     * Restriction type.
-     */
-    restrictionType: AccessRestrictionType;
-    /**
-     * Revision
-     *
-     * Resulting revision.
-     */
-    revision: number;
-    /**
-     * Resulting restriction state.
-     */
-    state: AccessRestrictionState;
-};
-
-/**
- * DirectoryUserUpdateRequest
- */
-export type DirectoryUserUpdateRequest = {
-    /**
-     * Avatarassetid
-     *
-     * Avatar asset id.
-     */
-    avatarAssetId?: string | null;
-    /**
-     * Displayname
-     *
-     * Display name.
-     */
-    displayName?: string | null;
-    /**
-     * Email
-     *
-     * Email address.
-     */
-    email?: string | null;
-    /**
-     * Issuperadmin
-     *
-     * Whether the user has system-wide super admin access.
-     */
-    isSuperAdmin?: boolean | null;
-};
-
-/**
- * DirectoryUserWorkspaceMembershipOut
- */
-export type DirectoryUserWorkspaceMembershipOut = {
-    /**
-     * Isowner
-     *
-     * Whether the user owns the workspace.
-     */
-    isOwner?: boolean;
-    /**
-     * Joinedat
-     *
-     * Membership creation time.
-     */
-    joinedAt: string;
-    /**
-     * Rolecodes
-     *
-     * Assigned workspace role codes.
-     */
-    roleCodes?: Array<string>;
-    status: WorkspaceMembershipStatus;
-    /**
-     * Workspaceid
-     *
-     * Workspace id.
-     */
-    workspaceId: string;
-    /**
-     * Workspacename
-     *
-     * Workspace name.
-     */
-    workspaceName: string;
-};
-
-/**
- * DirectoryWorkspaceDetailOut
- */
-export type DirectoryWorkspaceDetailOut = {
-    /**
-     * Read-only commercial projection from the canonical commerce domain.
-     */
-    commerce: WorkspaceCommerceDirectoryOut;
-    /**
-     * Createdat
-     *
-     * Created at.
-     */
-    createdAt: string;
-    /**
-     * Description
-     *
-     * Workspace description.
-     */
-    description?: string | null;
-    /**
-     * Iconcolor
-     *
-     * Workspace icon color.
-     */
-    iconColor: string;
-    /**
-     * Iconemoji
-     *
-     * Workspace icon emoji.
-     */
-    iconEmoji?: string | null;
-    /**
-     * Iconglyph
-     *
-     * Workspace icon glyph.
-     */
-    iconGlyph?: string | null;
-    /**
-     * Iconmode
-     *
-     * Workspace icon mode.
-     */
-    iconMode: string;
-    /**
-     * Iconurl
-     *
-     * Workspace icon URL.
-     */
-    iconUrl?: string | null;
-    /**
-     * Isactive
-     *
-     * Whether the workspace is active.
-     */
-    isActive?: boolean;
-    /**
-     * Isarchived
-     *
-     * Whether the workspace is archived.
-     */
-    isArchived?: boolean;
-    /**
-     * Lastactivityat
-     *
-     * Latest workspace-record activity time.
-     */
-    lastActivityAt: string;
-    /**
-     * Membercount
-     *
-     * Active member count.
-     */
-    memberCount?: number;
-    /**
-     * Name
-     *
-     * Workspace name.
-     */
-    name: string;
-    /**
-     * Owner summary.
-     */
-    owner?: DirectoryActorSummaryOut | null;
-    /**
-     * Projectcount
-     *
-     * Project count.
-     */
-    projectCount?: number;
-    /**
-     * Restrictions
-     *
-     * Active access restrictions visible to the system operator.
-     */
-    restrictions?: Array<AccessRestrictionAdminOut>;
-    /**
-     * Updatedat
-     *
-     * Last update time.
-     */
-    updatedAt: string;
-    /**
-     * Workspaceid
-     *
-     * Workspace id.
-     */
-    workspaceId: string;
-};
-
-/**
- * DirectoryWorkspaceListItemOut
- */
-export type DirectoryWorkspaceListItemOut = {
-    /**
-     * Read-only commercial projection from the canonical commerce domain.
-     */
-    commerce: WorkspaceCommerceDirectoryOut;
-    /**
-     * Createdat
-     *
-     * Created at.
-     */
-    createdAt: string;
-    /**
-     * Description
-     *
-     * Workspace description.
-     */
-    description?: string | null;
-    /**
-     * Iconcolor
-     *
-     * Workspace icon color.
-     */
-    iconColor?: string | null;
-    /**
-     * Iconemoji
-     *
-     * Workspace icon emoji.
-     */
-    iconEmoji?: string | null;
-    /**
-     * Iconglyph
-     *
-     * Workspace icon glyph.
-     */
-    iconGlyph?: string | null;
-    /**
-     * Workspace icon mode.
-     */
-    iconMode?: WorkspaceIconMode | null;
-    /**
-     * Iconurl
-     *
-     * Workspace icon URL.
-     */
-    iconUrl?: string | null;
-    /**
-     * Isactive
-     *
-     * Whether the workspace is active.
-     */
-    isActive?: boolean;
-    /**
-     * Isarchived
-     *
-     * Whether the workspace is archived.
-     */
-    isArchived?: boolean;
-    /**
-     * Lastactivityat
-     *
-     * Latest workspace-record activity time.
-     */
-    lastActivityAt: string;
-    /**
-     * Membercount
-     *
-     * Active member count.
-     */
-    memberCount?: number;
-    /**
-     * Name
-     *
-     * Workspace name.
-     */
-    name: string;
-    /**
-     * Owner summary.
-     */
-    owner?: DirectoryActorSummaryOut | null;
-    /**
-     * Projectcount
-     *
-     * Project count.
-     */
-    projectCount?: number;
-    /**
-     * Restrictions
-     *
-     * Active access restrictions visible to the system operator.
-     */
-    restrictions?: Array<AccessRestrictionAdminOut>;
-    /**
-     * Workspaceid
-     *
-     * Workspace id.
-     */
-    workspaceId: string;
-};
-
-/**
- * DirectoryWorkspaceUpdateRequest
- */
-export type DirectoryWorkspaceUpdateRequest = {
-    /**
-     * Description
-     *
-     * Workspace description.
-     */
-    description?: string | null;
-    /**
-     * Iconcolor
-     *
-     * Workspace icon background color.
-     */
-    iconColor?: string | null;
-    /**
-     * Iconemoji
-     *
-     * Workspace icon emoji.
-     */
-    iconEmoji?: string | null;
-    /**
-     * Iconglyph
-     *
-     * Workspace icon glyph id.
-     */
-    iconGlyph?: string | null;
-    /**
-     * Workspace icon presentation mode.
-     */
-    iconMode?: WorkspaceIconMode | null;
-    /**
-     * Iconurl
-     *
-     * Workspace icon URL.
-     */
-    iconUrl?: string | null;
-    /**
-     * Name
-     *
-     * Workspace name.
-     */
-    name?: string | null;
-};
-
-/**
  * DomainBindingCreateIn
  */
 export type DomainBindingCreateIn = {
@@ -13057,6 +11741,185 @@ export type EmailCheckRequest = {
 };
 
 /**
+ * EntitlementAllocationMode
+ */
+export type EntitlementAllocationMode = 'workspace' | 'member_seat';
+
+/**
+ * FeatureAccessAllocationOut
+ */
+export type FeatureAccessAllocationOut = {
+    /**
+     * Assignedcount
+     */
+    assignedCount: number;
+    /**
+     * Assignedmembershipids
+     */
+    assignedMembershipIds: Array<string>;
+    /**
+     * Availablecount
+     */
+    availableCount?: number | null;
+    capacity: FeatureAccessCapacityOut;
+    /**
+     * Featurekey
+     */
+    featureKey: string;
+    /**
+     * Revision
+     */
+    revision: number;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * FeatureAccessAssignRequest
+ */
+export type FeatureAccessAssignRequest = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Membershipid
+     */
+    membershipId: string;
+};
+
+/**
+ * FeatureAccessCapabilityMetadata
+ */
+export type FeatureAccessCapabilityMetadata = {
+    /**
+     * Descriptioni18Nkey
+     */
+    descriptionI18NKey: string;
+    /**
+     * Entitlementkey
+     */
+    entitlementKey: string;
+    /**
+     * Namei18Nkey
+     */
+    nameI18NKey: string;
+};
+
+export type FeatureAccessCapabilityProjection = ({
+    projection: 'member';
+} & MemberFeatureAccessCapability) | ({
+    projection: 'manager';
+} & ManagerFeatureAccessCapability);
+
+export type FeatureAccessCapacity = ({
+    kind: 'limited';
+} & LimitedFeatureAccessCapacity) | ({
+    kind: 'unlimited';
+} & UnlimitedFeatureAccessCapacity);
+
+export type FeatureAccessCapacityOut = ({
+    kind: 'limited';
+} & LimitedFeatureAccessCapacityOut) | ({
+    kind: 'unlimited';
+} & UnlimitedFeatureAccessCapacityOut);
+
+/**
+ * FeatureAccessMoveRequest
+ */
+export type FeatureAccessMoveRequest = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Sourcemembershipid
+     */
+    sourceMembershipId: string;
+    /**
+     * Targetmembershipid
+     */
+    targetMembershipId: string;
+};
+
+/**
+ * FeatureAccessMutationOut
+ */
+export type FeatureAccessMutationOut = {
+    allocation: FeatureAccessAllocationOut;
+    /**
+     * Operation
+     */
+    operation: 'assign' | 'revoke' | 'move';
+    /**
+     * Replayed
+     */
+    replayed: boolean;
+};
+
+/**
+ * FeatureAccessReadResult
+ */
+export type FeatureAccessReadResult = {
+    /**
+     * Capabilities
+     */
+    capabilities: Array<FeatureAccessCapabilityProjection>;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * FeatureAccessScopeRevisionImpact
+ *
+ * Reviewed serialization revision for one Feature Seat allocation scope.
+ */
+export type FeatureAccessScopeRevisionImpact = {
+    /**
+     * Entitlementkey
+     */
+    entitlementKey: string;
+    /**
+     * Revision
+     */
+    revision: number;
+};
+
+/**
+ * FeatureSeatAssignmentImpact
+ */
+export type FeatureSeatAssignmentImpact = {
+    /**
+     * Assignmentid
+     */
+    assignmentId: string;
+    /**
+     * Descriptioni18Nkey
+     */
+    descriptionI18NKey: string;
+    /**
+     * Entitlementkey
+     */
+    entitlementKey: string;
+    /**
+     * Membershipid
+     */
+    membershipId: string;
+    /**
+     * Namei18Nkey
+     */
+    nameI18NKey: string;
+    /**
+     * Userid
+     */
+    userId: string;
+};
+
+/**
  * FeedbackCategory
  *
  * Legacy category retained only for historical ticket projection.
@@ -13072,17 +11935,6 @@ export type FeedbackContextType = 'global' | 'workspace' | 'project';
  * FeedbackIntent
  */
 export type FeedbackIntent = 'problem' | 'idea' | 'question' | 'praise';
-
-/**
- * FeedbackMessageCreate
- */
-export type FeedbackMessageCreate = {
-    /**
-     * Body
-     */
-    body: string;
-    kind: FeedbackMessageKind;
-};
 
 /**
  * FeedbackMessageKind
@@ -13110,11 +11962,6 @@ export type FeedbackMessageOut = {
     id: string;
     kind: FeedbackMessageKind;
 };
-
-/**
- * FeedbackOrdering
- */
-export type FeedbackOrdering = '-last_activity_at' | 'last_activity_at' | '-created_at' | 'created_at';
 
 /**
  * FeedbackPriority
@@ -13325,22 +12172,6 @@ export type FeedbackTicketListItemOut = {
 };
 
 /**
- * FeedbackTicketUpdate
- */
-export type FeedbackTicketUpdate = {
-    /**
-     * Assigneeuserid
-     */
-    assigneeUserId?: string | null;
-    /**
-     * Clearassignee
-     */
-    clearAssignee?: boolean;
-    priority?: FeedbackPriority | null;
-    status?: FeedbackStatus | null;
-};
-
-/**
  * FeedbackUserOut
  */
 export type FeedbackUserOut = {
@@ -13364,10 +12195,6 @@ export type FeedbackUserOut = {
      * Id
      */
     id: string;
-    /**
-     * Issuperadmin
-     */
-    isSuperAdmin: boolean;
     /**
      * Lastloginat
      */
@@ -13442,113 +12269,6 @@ export type HttpObservabilitySummaryOut = {
      * Requests
      */
     requests: number;
-};
-
-/**
- * HTTPRequestGroupOrdering
- */
-export type HttpRequestGroupOrdering = '-requests' | '-error_rate' | '-p95_latency_ms' | '-p99_latency_ms' | '-avg_latency_ms' | '-last_seen_at';
-
-/**
- * HTTPRequestGroupOut
- */
-export type HttpRequestGroupOut = {
-    /**
-     * Avglatencyms
-     */
-    avgLatencyMs: number;
-    /**
-     * Errorrate
-     */
-    errorRate: number;
-    /**
-     * Errorrequests
-     */
-    errorRequests: number;
-    /**
-     * Lastseenat
-     */
-    lastSeenAt: string;
-    /**
-     * Maxlatencyms
-     */
-    maxLatencyMs: number;
-    /**
-     * Method
-     */
-    method: string;
-    /**
-     * P95Latencyms
-     */
-    p95LatencyMs?: number | null;
-    /**
-     * P99Latencyms
-     */
-    p99LatencyMs?: number | null;
-    /**
-     * Requests
-     */
-    requests: number;
-    /**
-     * Routetemplate
-     */
-    routeTemplate: string;
-    /**
-     * Statusclass
-     */
-    statusClass: number;
-};
-
-/**
- * HTTPRequestRecordOrdering
- */
-export type HttpRequestRecordOrdering = '-occurred_at' | 'occurred_at' | '-duration_ms' | 'duration_ms' | '-status_code';
-
-/**
- * HTTPRequestRecordOut
- */
-export type HttpRequestRecordOut = {
-    actor?: ActivityUserSummaryOut | null;
-    /**
-     * Actoruserid
-     */
-    actorUserId?: string | null;
-    /**
-     * Durationms
-     */
-    durationMs: number;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Method
-     */
-    method: string;
-    /**
-     * Occurredat
-     */
-    occurredAt: string;
-    /**
-     * Projectid
-     */
-    projectId?: string | null;
-    /**
-     * Routetemplate
-     */
-    routeTemplate: string;
-    /**
-     * Statuscode
-     */
-    statusCode: number;
-    /**
-     * Traceid
-     */
-    traceId?: string | null;
-    /**
-     * Workspaceid
-     */
-    workspaceId?: string | null;
 };
 
 /**
@@ -13637,6 +12357,24 @@ export type InstanceSetupStateOut = {
      * Instance setup state: uninitialized, ready, repair_required.
      */
     status: string;
+};
+
+/**
+ * InvitationImpact
+ */
+export type InvitationImpact = {
+    /**
+     * Invitationid
+     */
+    invitationId: string;
+    /**
+     * Recipientlabel
+     */
+    recipientLabel: string;
+    /**
+     * Roleid
+     */
+    roleId?: string | null;
 };
 
 /**
@@ -14371,6 +13109,34 @@ export type LeaveWorkspaceResult = {
 };
 
 /**
+ * LimitedFeatureAccessCapacity
+ */
+export type LimitedFeatureAccessCapacity = {
+    /**
+     * Kind
+     */
+    kind?: 'limited';
+    /**
+     * Limit
+     */
+    limit: number;
+};
+
+/**
+ * LimitedFeatureAccessCapacityOut
+ */
+export type LimitedFeatureAccessCapacityOut = {
+    /**
+     * Kind
+     */
+    kind?: 'limited';
+    /**
+     * Limit
+     */
+    limit: number;
+};
+
+/**
  * LoginEmailCodeRequest
  *
  * Request a login code by email.
@@ -14457,553 +13223,35 @@ export type LogoutRequest = {
 };
 
 /**
- * MailProviderInfo
+ * ManagerFeatureAccessCapability
  */
-export type MailProviderInfo = {
+export type ManagerFeatureAccessCapability = {
     /**
-     * Active
-     *
-     * Whether this provider is active.
+     * Assignedcount
      */
-    active: boolean;
+    assignedCount: number;
     /**
-     * Available
-     *
-     * Whether provider validation succeeds.
+     * Assignedmembershipids
      */
-    available: boolean;
+    assignedMembershipIds: Array<string>;
     /**
-     * Configured
-     *
-     * Whether required provider configuration is present.
+     * Availablecount
      */
-    configured: boolean;
+    availableCount?: number | null;
+    capacity: FeatureAccessCapacity;
     /**
-     * Error
-     *
-     * Validation error when unavailable.
+     * Entitlementkey
      */
-    error?: string | null;
+    entitlementKey: string;
+    metadata: FeatureAccessCapabilityMetadata;
     /**
-     * Label
-     *
-     * Human-readable provider label.
+     * Projection
      */
-    label: string;
+    projection?: 'manager';
     /**
-     * Lasttestmessage
-     *
-     * Last provider send-test message.
+     * Revision
      */
-    lastTestMessage?: string | null;
-    /**
-     * Lastteststatus
-     *
-     * Last provider send-test status.
-     */
-    lastTestStatus?: 'passed' | 'failed' | null;
-    /**
-     * Lasttestedat
-     *
-     * Last provider send-test timestamp.
-     */
-    lastTestedAt?: string | null;
-    /**
-     * Providerid
-     *
-     * Provider id.
-     */
-    providerId: string;
-};
-
-/**
- * MailProviderSwitchRequest
- */
-export type MailProviderSwitchRequest = {
-    /**
-     * Provider
-     *
-     * Provider id to activate.
-     */
-    provider: string;
-};
-
-/**
- * MailTemplateCreateRequest
- */
-export type MailTemplateCreateRequest = {
-    /**
-     * Description
-     */
-    description?: string | null;
-    /**
-     * Htmltemplate
-     */
-    htmlTemplate: string;
-    /**
-     * Isenabled
-     */
-    isEnabled?: boolean;
-    /**
-     * Key
-     */
-    key: string;
-    /**
-     * Locale
-     */
-    locale: string;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Subjecttemplate
-     */
-    subjectTemplate: string;
-    /**
-     * Texttemplate
-     */
-    textTemplate: string;
-    /**
-     * Variables
-     */
-    variables?: Array<string>;
-};
-
-/**
- * MailTemplateGroupOut
- */
-export type MailTemplateGroupOut = {
-    /**
-     * Category
-     */
-    category: 'account' | 'security' | 'invitation' | 'notification' | 'operations' | 'custom';
-    /**
-     * Description
-     */
-    description: string | null;
-    /**
-     * Fallbacklocale
-     */
-    fallbackLocale: string;
-    /**
-     * Health
-     */
-    health: 'healthy' | 'partial' | 'disabled' | 'invalid';
-    /**
-     * Isrequired
-     */
-    isRequired: boolean;
-    /**
-     * Key
-     */
-    key: string;
-    /**
-     * Latestversion
-     */
-    latestVersion: number;
-    /**
-     * Locales
-     */
-    locales: Array<MailTemplateLocaleOut>;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Owner
-     */
-    owner: 'builtin' | 'plugin' | 'custom';
-    /**
-     * Updatedat
-     */
-    updatedAt: string;
-};
-
-/**
- * MailTemplateLocaleOut
- */
-export type MailTemplateLocaleOut = {
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Isenabled
-     */
-    isEnabled: boolean;
-    /**
-     * Locale
-     */
-    locale: string;
-    /**
-     * Sourcestate
-     */
-    sourceState: 'default' | 'overridden' | 'custom';
-    /**
-     * Subjectpreview
-     */
-    subjectPreview: string;
-    /**
-     * Updatedat
-     */
-    updatedAt: string;
-    /**
-     * Validationstate
-     */
-    validationState: 'valid' | 'invalid';
-    /**
-     * Version
-     */
-    version: number;
-};
-
-/**
- * MailTemplateOut
- */
-export type MailTemplateOut = {
-    /**
-     * Createdat
-     */
-    createdAt: string;
-    /**
-     * Description
-     */
-    description: string | null;
-    /**
-     * Htmltemplate
-     */
-    htmlTemplate: string;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Isenabled
-     */
-    isEnabled: boolean;
-    /**
-     * Key
-     */
-    key: string;
-    /**
-     * Locale
-     */
-    locale: string;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Subjecttemplate
-     */
-    subjectTemplate: string;
-    /**
-     * Texttemplate
-     */
-    textTemplate: string;
-    /**
-     * Updatedat
-     */
-    updatedAt: string;
-    /**
-     * Variables
-     */
-    variables: Array<string>;
-    /**
-     * Version
-     */
-    version: number;
-};
-
-/**
- * MailTemplatePatchRequest
- */
-export type MailTemplatePatchRequest = {
-    /**
-     * Description
-     */
-    description?: string | null;
-    /**
-     * Expectedversion
-     */
-    expectedVersion: number;
-    /**
-     * Htmltemplate
-     */
-    htmlTemplate?: string | null;
-    /**
-     * Isenabled
-     */
-    isEnabled?: boolean | null;
-    /**
-     * Name
-     */
-    name?: string | null;
-    /**
-     * Subjecttemplate
-     */
-    subjectTemplate?: string | null;
-    /**
-     * Texttemplate
-     */
-    textTemplate?: string | null;
-    /**
-     * Variables
-     */
-    variables?: Array<string> | null;
-};
-
-/**
- * MailTemplatePreviewOut
- */
-export type MailTemplatePreviewOut = {
-    /**
-     * Html
-     */
-    html: string;
-    /**
-     * Subject
-     */
-    subject: string;
-    /**
-     * Text
-     */
-    text: string;
-};
-
-/**
- * MailTemplatePreviewRequest
- */
-export type MailTemplatePreviewRequest = {
-    /**
-     * Htmltemplate
-     */
-    htmlTemplate: string;
-    /**
-     * Subjecttemplate
-     */
-    subjectTemplate: string;
-    /**
-     * Texttemplate
-     */
-    textTemplate: string;
-    /**
-     * Variables
-     */
-    variables?: {
-        [key: string]: JsonValueInput;
-    };
-};
-
-/**
- * MailTemplateRevisionActorOut
- */
-export type MailTemplateRevisionActorOut = {
-    /**
-     * Avatarurl
-     */
-    avatarUrl?: string | null;
-    /**
-     * Displayname
-     */
-    displayName?: string | null;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Username
-     */
-    username: string;
-};
-
-/**
- * MailTemplateRevisionDetailOut
- */
-export type MailTemplateRevisionDetailOut = {
-    /**
-     * Action
-     */
-    action: 'created' | 'updated' | 'restored' | 'deleted';
-    actor?: MailTemplateRevisionActorOut | null;
-    /**
-     * Changedfields
-     */
-    changedFields: Array<string>;
-    /**
-     * Createdat
-     */
-    createdAt: string;
-    /**
-     * Description
-     */
-    description: string | null;
-    /**
-     * Htmltemplate
-     */
-    htmlTemplate: string;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Isenabled
-     */
-    isEnabled: boolean;
-    /**
-     * Key
-     */
-    key: string;
-    /**
-     * Locale
-     */
-    locale: string;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Subjecttemplate
-     */
-    subjectTemplate: string;
-    /**
-     * Templateid
-     */
-    templateId: string;
-    /**
-     * Texttemplate
-     */
-    textTemplate: string;
-    /**
-     * Variables
-     */
-    variables: Array<string>;
-    /**
-     * Version
-     */
-    version: number;
-};
-
-/**
- * MailTemplateRevisionMutationRequest
- */
-export type MailTemplateRevisionMutationRequest = {
-    /**
-     * Expectedversion
-     */
-    expectedVersion: number;
-};
-
-/**
- * MailTemplateRevisionOut
- */
-export type MailTemplateRevisionOut = {
-    /**
-     * Action
-     */
-    action: 'created' | 'updated' | 'restored' | 'deleted';
-    actor?: MailTemplateRevisionActorOut | null;
-    /**
-     * Changedfields
-     */
-    changedFields: Array<string>;
-    /**
-     * Createdat
-     */
-    createdAt: string;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Key
-     */
-    key: string;
-    /**
-     * Locale
-     */
-    locale: string;
-    /**
-     * Templateid
-     */
-    templateId: string;
-    /**
-     * Version
-     */
-    version: number;
-};
-
-/**
- * MailTemplateTestSendOut
- */
-export type MailTemplateTestSendOut = {
-    /**
-     * Attempts
-     */
-    attempts: number;
-    /**
-     * Latencyms
-     */
-    latencyMs: number;
-    /**
-     * Messageid
-     */
-    messageId?: string | null;
-    /**
-     * Provider
-     */
-    provider: string;
-    /**
-     * State
-     */
-    state: 'accepted';
-};
-
-/**
- * MailTemplateTestSendRequest
- */
-export type MailTemplateTestSendRequest = {
-    /**
-     * Recipient
-     */
-    recipient: string;
-    /**
-     * Variables
-     */
-    variables?: {
-        [key: string]: JsonValueInput;
-    };
-};
-
-/**
- * MailTestRequest
- */
-export type MailTestRequest = {
-    /**
-     * Recipient
-     *
-     * Recipient email for test mail.
-     */
-    recipient: string;
-};
-
-/**
- * MailTestResult
- */
-export type MailTestResult = {
-    /**
-     * Ok
-     *
-     * Whether the test mail request is accepted.
-     */
-    ok: boolean;
-    /**
-     * Provider
-     *
-     * Provider that accepted the test message.
-     */
-    provider?: string | null;
+    revision: number;
 };
 
 /**
@@ -15042,6 +13290,56 @@ export type ManualKnowledgeVersionCreateRequest = {
      * Title
      */
     title?: string | null;
+};
+
+/**
+ * MemberFeatureAccessCapability
+ */
+export type MemberFeatureAccessCapability = {
+    /**
+     * Assignedcount
+     */
+    assignedCount: number;
+    /**
+     * Availablecount
+     */
+    availableCount?: number | null;
+    capacity: FeatureAccessCapacity;
+    /**
+     * Currentmembershipassigned
+     */
+    currentMembershipAssigned: boolean;
+    /**
+     * Entitlementkey
+     */
+    entitlementKey: string;
+    metadata: FeatureAccessCapabilityMetadata;
+    /**
+     * Projection
+     */
+    projection?: 'member';
+    /**
+     * Revision
+     */
+    revision: number;
+};
+
+/**
+ * MemberImpact
+ */
+export type MemberImpact = {
+    /**
+     * Displayname
+     */
+    displayName: string;
+    /**
+     * Membershipid
+     */
+    membershipId: string;
+    /**
+     * Userid
+     */
+    userId: string;
 };
 
 /**
@@ -15344,11 +13642,11 @@ export type MyWorkspaceOut = {
      */
     id: string;
     /**
-     * Iscreatoradmin
+     * Isowner
      *
-     * If true, current user is org owner and workspace creator; has implicit admin management rights.
+     * Whether the current user is the canonical Workspace Owner.
      */
-    isCreatorAdmin?: boolean;
+    isOwner?: boolean;
     /**
      * Membercount
      *
@@ -15374,38 +13672,12 @@ export type MyWorkspaceOut = {
      */
     projectId?: string | null;
     /**
-     * Visibleonly
-     *
-     * If true, workspace is visible but user cannot manage it without explicit grant.
-     */
-    visibleOnly?: boolean;
-    /**
      * Workspaceid
      *
      * Workspace id.
      */
     workspaceId: string;
 };
-
-/**
- * NotificationAction
- */
-export type NotificationAction = {
-    kind: NotificationActionKind;
-    /**
-     * Label
-     */
-    label: string;
-    /**
-     * Target
-     */
-    target: string;
-};
-
-/**
- * NotificationActionKind
- */
-export type NotificationActionKind = 'internal_route' | 'external_https';
 
 /**
  * NotificationArchiveResult
@@ -15423,649 +13695,6 @@ export type NotificationArchiveResult = {
      * Notification id.
      */
     id: string;
-};
-
-/**
- * NotificationAudienceEstimateOut
- */
-export type NotificationAudienceEstimateOut = {
-    /**
-     * Breakdown
-     */
-    breakdown?: {
-        [key: string]: number;
-    };
-    /**
-     * Campaignid
-     */
-    campaignId: string;
-    /**
-     * Estimatedrecipients
-     */
-    estimatedRecipients: number;
-    /**
-     * Revision
-     */
-    revision: number;
-    /**
-     * Sampleduserids
-     */
-    sampledUserIds?: Array<string>;
-};
-
-/**
- * NotificationAudienceKind
- */
-export type NotificationAudienceKind = 'all_active_users' | 'explicit_users' | 'workspace_members';
-
-/**
- * NotificationAudienceRule
- */
-export type NotificationAudienceRule = {
-    /**
-     * Createdfrom
-     */
-    createdFrom?: string | null;
-    /**
-     * Createdto
-     */
-    createdTo?: string | null;
-    kind: NotificationAudienceKind;
-    /**
-     * Lastactivefrom
-     */
-    lastActiveFrom?: string | null;
-    /**
-     * Lastactiveto
-     */
-    lastActiveTo?: string | null;
-    /**
-     * Userids
-     */
-    userIds?: Array<string>;
-    /**
-     * Workspaceids
-     */
-    workspaceIds?: Array<string>;
-};
-
-/**
- * NotificationBannerPayload
- */
-export type NotificationBannerPayloadInput = {
-    action?: NotificationAction | null;
-    /**
-     * Body
-     */
-    body?: string | null;
-    /**
-     * Dismissible
-     */
-    dismissible?: boolean;
-    /**
-     * Title
-     */
-    title: string;
-};
-
-/**
- * NotificationBannerPayload
- */
-export type NotificationBannerPayloadOutput = {
-    action?: NotificationAction | null;
-    /**
-     * Body
-     */
-    body?: string | null;
-    /**
-     * Dismissible
-     */
-    dismissible?: boolean;
-    /**
-     * Title
-     */
-    title: string;
-};
-
-/**
- * NotificationCampaignCancellationOut
- */
-export type NotificationCampaignCancellationOut = {
-    campaign: NotificationCampaignSummaryOut;
-    /**
-     * Cancelleddeliveries
-     */
-    cancelledDeliveries: number;
-    /**
-     * Nonrecallabledeliveries
-     */
-    nonRecallableDeliveries: number;
-};
-
-/**
- * NotificationCampaignChannel
- */
-export type NotificationCampaignChannel = 'in_app' | 'email';
-
-/**
- * NotificationCampaignConflictPolicy
- */
-export type NotificationCampaignConflictPolicy = 'queue' | 'replace_lower_priority';
-
-/**
- * NotificationCampaignCreateRequest
- */
-export type NotificationCampaignCreateRequest = {
-    audience: NotificationAudienceRule;
-    /**
-     * Channels
-     */
-    channels?: Array<NotificationCampaignChannel>;
-    conflictPolicy?: NotificationCampaignConflictPolicy;
-    /**
-     * Displayendat
-     */
-    displayEndAt?: string | null;
-    /**
-     * Displaystartat
-     */
-    displayStartAt?: string | null;
-    /**
-     * Fallbacklocale
-     */
-    fallbackLocale?: string | null;
-    /**
-     * Internaldescription
-     */
-    internalDescription?: string | null;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Presentations
-     */
-    presentations?: Array<NotificationPresentation>;
-    /**
-     * Priority
-     */
-    priority?: number;
-    /**
-     * Timezone
-     */
-    timezone?: string;
-    /**
-     * Variants
-     */
-    variants?: Array<NotificationCampaignVariantInput>;
-};
-
-/**
- * NotificationCampaignDetailOut
- */
-export type NotificationCampaignDetailOut = {
-    /**
-     * Archivedat
-     */
-    archivedAt?: string | null;
-    audience: NotificationAudienceRule;
-    /**
-     * Audienceestimate
-     */
-    audienceEstimate?: number | null;
-    /**
-     * Cancelledat
-     */
-    cancelledAt?: string | null;
-    /**
-     * Channels
-     */
-    channels: Array<NotificationCampaignChannel>;
-    /**
-     * Completedat
-     */
-    completedAt?: string | null;
-    conflictPolicy: NotificationCampaignConflictPolicy;
-    /**
-     * Createdat
-     */
-    createdAt: string;
-    /**
-     * Displayendat
-     */
-    displayEndAt?: string | null;
-    /**
-     * Displaystartat
-     */
-    displayStartAt?: string | null;
-    /**
-     * Fallbacklocale
-     */
-    fallbackLocale?: string | null;
-    /**
-     * Id
-     *
-     * ID
-     */
-    id: string;
-    /**
-     * Internaldescription
-     */
-    internalDescription?: string | null;
-    metrics: NotificationCampaignMetricsOut;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Operationjobid
-     */
-    operationJobId?: string | null;
-    owner: NotificationCampaignOwnerOut;
-    /**
-     * Presentations
-     */
-    presentations: Array<NotificationPresentation>;
-    /**
-     * Priority
-     */
-    priority: number;
-    /**
-     * Publishedat
-     */
-    publishedAt?: string | null;
-    /**
-     * Revision
-     */
-    revision: number;
-    /**
-     * Scheduleat
-     */
-    scheduleAt?: string | null;
-    state: NotificationCampaignState;
-    /**
-     * Timezone
-     */
-    timezone: string;
-    /**
-     * Updatedat
-     */
-    updatedAt: string;
-    /**
-     * Variants
-     */
-    variants: Array<NotificationCampaignVariantOut>;
-};
-
-/**
- * NotificationCampaignMetricsOut
- */
-export type NotificationCampaignMetricsOut = {
-    /**
-     * Clicked
-     */
-    clicked: number;
-    /**
-     * Delivered
-     */
-    delivered: number;
-    /**
-     * Dismissed
-     */
-    dismissed: number;
-    /**
-     * Failed
-     */
-    failed: number;
-    /**
-     * Pending
-     */
-    pending: number;
-    /**
-     * Read
-     */
-    read: number;
-    /**
-     * Recipients
-     */
-    recipients: number;
-    /**
-     * Sent
-     */
-    sent: number;
-    /**
-     * Suppressed
-     */
-    suppressed: number;
-};
-
-/**
- * NotificationCampaignOwnerOut
- */
-export type NotificationCampaignOwnerOut = {
-    /**
-     * Avatarurl
-     */
-    avatarUrl?: string | null;
-    /**
-     * Displayname
-     */
-    displayName?: string | null;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Username
-     */
-    username: string;
-};
-
-/**
- * NotificationCampaignPatchRequest
- */
-export type NotificationCampaignPatchRequest = {
-    audience?: NotificationAudienceRule | null;
-    /**
-     * Channels
-     */
-    channels?: Array<NotificationCampaignChannel> | null;
-    conflictPolicy?: NotificationCampaignConflictPolicy | null;
-    /**
-     * Displayendat
-     */
-    displayEndAt?: string | null;
-    /**
-     * Displaystartat
-     */
-    displayStartAt?: string | null;
-    /**
-     * Expectedrevision
-     */
-    expectedRevision: number;
-    /**
-     * Fallbacklocale
-     */
-    fallbackLocale?: string | null;
-    /**
-     * Internaldescription
-     */
-    internalDescription?: string | null;
-    /**
-     * Name
-     */
-    name?: string | null;
-    /**
-     * Presentations
-     */
-    presentations?: Array<NotificationPresentation> | null;
-    /**
-     * Priority
-     */
-    priority?: number | null;
-    /**
-     * Timezone
-     */
-    timezone?: string | null;
-    /**
-     * Variants
-     */
-    variants?: Array<NotificationCampaignVariantInput> | null;
-};
-
-/**
- * NotificationCampaignPreviewOut
- */
-export type NotificationCampaignPreviewOut = {
-    /**
-     * Campaignid
-     */
-    campaignId: string;
-    /**
-     * Revision
-     */
-    revision: number;
-    /**
-     * Variants
-     */
-    variants: Array<NotificationCampaignPreviewVariantOut>;
-    /**
-     * Warnings
-     */
-    warnings?: Array<string>;
-};
-
-/**
- * NotificationCampaignPreviewVariantOut
- */
-export type NotificationCampaignPreviewVariantOut = {
-    /**
-     * Locale
-     */
-    locale: string;
-    /**
-     * Presentations
-     */
-    presentations: {
-        [key in NotificationPresentation]?: {
-            [key: string]: JsonValueOutput;
-        };
-    };
-    /**
-     * Usedfallback
-     */
-    usedFallback: boolean;
-};
-
-/**
- * NotificationCampaignPublishOut
- */
-export type NotificationCampaignPublishOut = {
-    campaign: NotificationCampaignSummaryOut;
-    /**
-     * Jobid
-     */
-    jobId: string;
-    /**
-     * Scheduledat
-     */
-    scheduledAt: string;
-};
-
-/**
- * NotificationCampaignPublishRequest
- */
-export type NotificationCampaignPublishRequest = {
-    /**
-     * Expectedrevision
-     */
-    expectedRevision: number;
-    /**
-     * Scheduleat
-     */
-    scheduleAt?: string | null;
-};
-
-/**
- * NotificationCampaignRetryOut
- */
-export type NotificationCampaignRetryOut = {
-    /**
-     * Campaignid
-     */
-    campaignId: string;
-    /**
-     * Jobid
-     */
-    jobId: string;
-    /**
-     * Retryabledeliverycount
-     */
-    retryableDeliveryCount: number;
-};
-
-/**
- * NotificationCampaignRevisionRequest
- */
-export type NotificationCampaignRevisionRequest = {
-    /**
-     * Expectedrevision
-     */
-    expectedRevision: number;
-};
-
-/**
- * NotificationCampaignState
- */
-export type NotificationCampaignState = 'draft' | 'scheduled' | 'dispatching' | 'completed' | 'partially_failed' | 'cancelled' | 'archived';
-
-/**
- * NotificationCampaignSummaryOut
- */
-export type NotificationCampaignSummaryOut = {
-    /**
-     * Archivedat
-     */
-    archivedAt?: string | null;
-    audience: NotificationAudienceRule;
-    /**
-     * Audienceestimate
-     */
-    audienceEstimate?: number | null;
-    /**
-     * Cancelledat
-     */
-    cancelledAt?: string | null;
-    /**
-     * Channels
-     */
-    channels: Array<NotificationCampaignChannel>;
-    /**
-     * Completedat
-     */
-    completedAt?: string | null;
-    conflictPolicy: NotificationCampaignConflictPolicy;
-    /**
-     * Createdat
-     */
-    createdAt: string;
-    /**
-     * Displayendat
-     */
-    displayEndAt?: string | null;
-    /**
-     * Displaystartat
-     */
-    displayStartAt?: string | null;
-    /**
-     * Fallbacklocale
-     */
-    fallbackLocale?: string | null;
-    /**
-     * Id
-     *
-     * ID
-     */
-    id: string;
-    /**
-     * Internaldescription
-     */
-    internalDescription?: string | null;
-    metrics: NotificationCampaignMetricsOut;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Operationjobid
-     */
-    operationJobId?: string | null;
-    owner: NotificationCampaignOwnerOut;
-    /**
-     * Presentations
-     */
-    presentations: Array<NotificationPresentation>;
-    /**
-     * Priority
-     */
-    priority: number;
-    /**
-     * Publishedat
-     */
-    publishedAt?: string | null;
-    /**
-     * Revision
-     */
-    revision: number;
-    /**
-     * Scheduleat
-     */
-    scheduleAt?: string | null;
-    state: NotificationCampaignState;
-    /**
-     * Timezone
-     */
-    timezone: string;
-    /**
-     * Updatedat
-     */
-    updatedAt: string;
-};
-
-/**
- * NotificationCampaignVariantInput
- */
-export type NotificationCampaignVariantInput = {
-    banner?: NotificationBannerPayloadInput | null;
-    email?: NotificationEmailPayloadInput | null;
-    inbox?: NotificationInboxPayloadInput | null;
-    /**
-     * Locale
-     */
-    locale: string;
-    modal?: NotificationModalPayloadInput | null;
-    toast?: NotificationToastPayloadInput | null;
-};
-
-/**
- * NotificationCampaignVariantOut
- */
-export type NotificationCampaignVariantOut = {
-    banner?: NotificationBannerPayloadOutput | null;
-    /**
-     * Campaignid
-     */
-    campaignId: string;
-    /**
-     * Createdat
-     */
-    createdAt: string;
-    email?: NotificationEmailPayloadOutput | null;
-    /**
-     * Id
-     *
-     * ID
-     */
-    id: string;
-    inbox?: NotificationInboxPayloadOutput | null;
-    /**
-     * Isfallback
-     */
-    isFallback: boolean;
-    /**
-     * Locale
-     */
-    locale: string;
-    modal?: NotificationModalPayloadOutput | null;
-    /**
-     * Revision
-     */
-    revision: number;
-    toast?: NotificationToastPayloadOutput | null;
-    /**
-     * Updatedat
-     */
-    updatedAt: string;
 };
 
 /**
@@ -16091,94 +13720,6 @@ export type NotificationDeleteResult = {
 };
 
 /**
- * NotificationDeliveryOut
- */
-export type NotificationDeliveryOut = {
-    /**
-     * Attemptcount
-     */
-    attemptCount: number;
-    /**
-     * Campaignid
-     */
-    campaignId: string;
-    channel: NotificationCampaignChannel;
-    /**
-     * Clickedat
-     */
-    clickedAt?: string | null;
-    /**
-     * Createdat
-     */
-    createdAt: string;
-    /**
-     * Deliveredat
-     */
-    deliveredAt?: string | null;
-    /**
-     * Dismissedat
-     */
-    dismissedAt?: string | null;
-    /**
-     * Failurecode
-     */
-    failureCode?: string | null;
-    /**
-     * Failuremessage
-     */
-    failureMessage?: string | null;
-    /**
-     * Id
-     *
-     * ID
-     */
-    id: string;
-    /**
-     * Isretryable
-     */
-    isRetryable: boolean;
-    presentation: NotificationPresentation;
-    /**
-     * Providermessageid
-     */
-    providerMessageId?: string | null;
-    /**
-     * Readat
-     */
-    readAt?: string | null;
-    /**
-     * Recipientlocale
-     */
-    recipientLocale: string;
-    /**
-     * Recipientuserid
-     */
-    recipientUserId: string;
-    /**
-     * Scheduledat
-     */
-    scheduledAt?: string | null;
-    /**
-     * Sentat
-     */
-    sentAt?: string | null;
-    state: NotificationDeliveryState;
-    /**
-     * Updatedat
-     */
-    updatedAt: string;
-    /**
-     * Variantid
-     */
-    variantId: string;
-};
-
-/**
- * NotificationDeliveryState
- */
-export type NotificationDeliveryState = 'pending' | 'processing' | 'sent' | 'delivered' | 'failed' | 'suppressed' | 'cancelled';
-
-/**
  * NotificationDevSeedRequest
  */
 export type NotificationDevSeedRequest = {
@@ -16200,89 +13741,6 @@ export type NotificationDevSeedResult = {
      * Created notifications count.
      */
     createdCount: number;
-};
-
-/**
- * NotificationDismissPolicy
- */
-export type NotificationDismissPolicy = 'dismissible' | 'action_required';
-
-/**
- * NotificationEmailPayload
- */
-export type NotificationEmailPayloadInput = {
-    /**
-     * Templatekey
-     */
-    templateKey: string;
-    /**
-     * Templateversion
-     */
-    templateVersion: number;
-    /**
-     * Variables
-     */
-    variables?: {
-        [key: string]: JsonValueInput;
-    };
-};
-
-/**
- * NotificationEmailPayload
- */
-export type NotificationEmailPayloadOutput = {
-    /**
-     * Templatekey
-     */
-    templateKey: string;
-    /**
-     * Templateversion
-     */
-    templateVersion: number;
-    /**
-     * Variables
-     */
-    variables?: {
-        [key: string]: JsonValueOutput;
-    };
-};
-
-/**
- * NotificationInboxPayload
- */
-export type NotificationInboxPayloadInput = {
-    action?: NotificationAction | null;
-    /**
-     * Body
-     */
-    body?: string | null;
-    /**
-     * Severity
-     */
-    severity?: string;
-    /**
-     * Title
-     */
-    title: string;
-};
-
-/**
- * NotificationInboxPayload
- */
-export type NotificationInboxPayloadOutput = {
-    action?: NotificationAction | null;
-    /**
-     * Body
-     */
-    body?: string | null;
-    /**
-     * Severity
-     */
-    severity?: string;
-    /**
-     * Title
-     */
-    title: string;
 };
 
 /**
@@ -16313,70 +13771,6 @@ export type NotificationInteractionOut = {
  * NotificationListStatus
  */
 export type NotificationListStatus = 'unread' | 'all' | 'archived';
-
-/**
- * NotificationMedia
- */
-export type NotificationMedia = {
-    /**
-     * Alttext
-     */
-    altText: string;
-    /**
-     * Assetid
-     */
-    assetId: string;
-    /**
-     * Captionsassetid
-     */
-    captionsAssetId?: string | null;
-    kind: NotificationMediaKind;
-    /**
-     * Posterassetid
-     */
-    posterAssetId?: string | null;
-};
-
-/**
- * NotificationMediaKind
- */
-export type NotificationMediaKind = 'image' | 'video';
-
-/**
- * NotificationModalPayload
- */
-export type NotificationModalPayloadInput = {
-    /**
-     * Body
-     */
-    body: string;
-    dismissPolicy?: NotificationDismissPolicy;
-    media?: NotificationMedia | null;
-    primaryAction: NotificationAction;
-    secondaryAction?: NotificationAction | null;
-    /**
-     * Title
-     */
-    title: string;
-};
-
-/**
- * NotificationModalPayload
- */
-export type NotificationModalPayloadOutput = {
-    /**
-     * Body
-     */
-    body: string;
-    dismissPolicy?: NotificationDismissPolicy;
-    media?: NotificationMedia | null;
-    primaryAction: NotificationAction;
-    secondaryAction?: NotificationAction | null;
-    /**
-     * Title
-     */
-    title: string;
-};
 
 /**
  * NotificationOut
@@ -16571,11 +13965,6 @@ export type NotificationPreferencesOut = {
 };
 
 /**
- * NotificationPresentation
- */
-export type NotificationPresentation = 'inbox' | 'toast' | 'modal' | 'banner' | 'email';
-
-/**
  * NotificationPreviewOut
  */
 export type NotificationPreviewOut = {
@@ -16630,36 +14019,6 @@ export type NotificationReadResult = {
 };
 
 /**
- * NotificationToastPayload
- */
-export type NotificationToastPayloadInput = {
-    action?: NotificationAction | null;
-    /**
-     * Body
-     */
-    body?: string | null;
-    /**
-     * Title
-     */
-    title: string;
-};
-
-/**
- * NotificationToastPayload
- */
-export type NotificationToastPayloadOutput = {
-    action?: NotificationAction | null;
-    /**
-     * Body
-     */
-    body?: string | null;
-    /**
-     * Title
-     */
-    title: string;
-};
-
-/**
  * OAuthLinkedIdentityListOut
  */
 export type OAuthLinkedIdentityListOut = {
@@ -16694,11 +14053,6 @@ export type OAuthLinkedIdentityOut = {
      */
     provider: string;
 };
-
-/**
- * ObjectStorageProviderKind
- */
-export type ObjectStorageProviderKind = 'local' | 'aws_s3' | 'minio' | 'cloudflare_r2' | 'aliyun_oss' | 'volcengine_tos';
 
 /**
  * ObservabilityAttributionCoverageOut
@@ -17149,54 +14503,6 @@ export type OnboardingWorkspaceCreateRequest = {
 export type PackageState = 'absent' | 'installed' | 'uninstalled';
 
 /**
- * PageData[AIUsageGroupOut]
- */
-export type PageDataAiUsageGroupOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<AiUsageGroupOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
  * PageData[AdminAssetFolderOut]
  */
 export type PageDataAdminAssetFolderOut = {
@@ -17629,150 +14935,6 @@ export type PageDataCreditLedgerOut = {
 };
 
 /**
- * PageData[DirectoryProjectListItemOut]
- */
-export type PageDataDirectoryProjectListItemOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<DirectoryProjectListItemOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
- * PageData[DirectoryUserListItemOut]
- */
-export type PageDataDirectoryUserListItemOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<DirectoryUserListItemOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
- * PageData[DirectoryWorkspaceListItemOut]
- */
-export type PageDataDirectoryWorkspaceListItemOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<DirectoryWorkspaceListItemOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
  * PageData[DomainBindingOut]
  */
 export type PageDataDomainBindingOut = {
@@ -17869,198 +15031,6 @@ export type PageDataFeedbackTicketListItemOut = {
 };
 
 /**
- * PageData[HTTPRequestGroupOut]
- */
-export type PageDataHttpRequestGroupOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<HttpRequestGroupOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
- * PageData[HTTPRequestRecordOut]
- */
-export type PageDataHttpRequestRecordOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<HttpRequestRecordOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
- * PageData[MailTemplateGroupOut]
- */
-export type PageDataMailTemplateGroupOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<MailTemplateGroupOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
- * PageData[MailTemplateRevisionOut]
- */
-export type PageDataMailTemplateRevisionOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<MailTemplateRevisionOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
  * PageData[MyInvitationOut]
  */
 export type PageDataMyInvitationOut = {
@@ -18070,102 +15040,6 @@ export type PageDataMyInvitationOut = {
      * Current page items.
      */
     items?: Array<MyInvitationOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
- * PageData[NotificationCampaignSummaryOut]
- */
-export type PageDataNotificationCampaignSummaryOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<NotificationCampaignSummaryOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
- * PageData[NotificationDeliveryOut]
- */
-export type PageDataNotificationDeliveryOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<NotificationDeliveryOut>;
     /**
      * Next
      *
@@ -18253,54 +15127,6 @@ export type PageDataNotificationOut = {
 };
 
 /**
- * PageData[PermissionOut]
- */
-export type PageDataPermissionOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<PermissionOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
  * PageData[ProjectMemberOut]
  */
 export type PageDataProjectMemberOut = {
@@ -18310,198 +15136,6 @@ export type PageDataProjectMemberOut = {
      * Current page items.
      */
     items?: Array<ProjectMemberOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
- * PageData[PublishJobOut]
- */
-export type PageDataPublishJobOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<PublishJobOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
- * PageData[SettingsNamespaceSummary]
- */
-export type PageDataSettingsNamespaceSummary = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<SettingsNamespaceSummary>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
- * PageData[SystemAgentAssignmentOut]
- */
-export type PageDataSystemAgentAssignmentOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<SystemAgentAssignmentOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
- * PageData[SystemAgentDefinitionSummaryOut]
- */
-export type PageDataSystemAgentDefinitionSummaryOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<SystemAgentDefinitionSummaryOut>;
     /**
      * Next
      *
@@ -19061,48 +15695,6 @@ export type PermissionConditionTemplateOut = {
 };
 
 /**
- * PermissionOut
- */
-export type PermissionOut = {
-    /**
-     * Code
-     *
-     * Permission code.
-     */
-    code: string;
-    /**
-     * Description
-     *
-     * Localized permission description.
-     */
-    description?: string | null;
-    /**
-     * Id
-     *
-     * ID
-     */
-    id: string;
-    /**
-     * Name
-     *
-     * Localized permission name.
-     */
-    name: string;
-    /**
-     * Ownerkey
-     *
-     * Permission catalog owner key.
-     */
-    ownerKey?: string | null;
-    /**
-     * Scope
-     *
-     * Permission scope (org/workspace).
-     */
-    scope: string;
-};
-
-/**
  * PermissionRoleSetRequest
  */
 export type PermissionRoleSetRequest = {
@@ -19137,50 +15729,109 @@ export type PersonalApiKeyCreateIn = {
 };
 
 /**
- * PlanFeature
+ * PlanRevisionEntitlementOut
+ *
+ * One explicit registered Entitlement decision on a Plan Revision.
  */
-export type PlanFeature = {
+export type PlanRevisionEntitlementOut = {
+    allocationMode: EntitlementAllocationMode | null;
     /**
-     * Description
+     * Isincluded
      */
-    description?: string | null;
-    /**
-     * Included
-     */
-    included?: boolean;
+    isIncluded: boolean;
     /**
      * Key
      */
     key: string;
+    seatLimitKind: ResourceLimitKind | null;
     /**
-     * Label
+     * Seatlimitvalue
      */
-    label: string;
-    /**
-     * Value
-     */
-    value?: string | number | null;
+    seatLimitValue: number | null;
 };
 
 /**
- * PluginLifecycleState
+ * PlanRevisionPriceOut
+ *
+ * One immutable provider price on a published Plan Revision.
  */
-export type PluginLifecycleState = 'installing' | 'installed' | 'update_available' | 'upgrading' | 'disabling' | 'disabled' | 'uninstalling' | 'failed' | 'rollback_required';
+export type PlanRevisionPriceOut = {
+    /**
+     * Amountmicros
+     */
+    amountMicros: number;
+    billingCycle: BillingCycle;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Provider
+     */
+    provider: string;
+    providerMode: BillingProviderMode;
+};
 
 /**
- * PluginOperationKind
+ * PlanRevisionRef
  */
-export type PluginOperationKind = 'install' | 'upgrade' | 'rollback' | 'enable' | 'disable' | 'uninstall';
+export type PlanRevisionRef = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Isfree
+     */
+    isFree: boolean;
+    /**
+     * Memberseatlimits
+     */
+    memberSeatLimits?: {
+        [key: string]: number | null;
+    };
+    /**
+     * Planid
+     */
+    planId: string;
+    /**
+     * Rolesmanageincluded
+     */
+    rolesManageIncluded?: boolean;
+};
 
 /**
- * PluginOperationState
+ * PlanRevisionResourceAllowanceOut
+ *
+ * One typed resource allowance declared by a Plan Revision.
  */
-export type PluginOperationState = 'queued' | 'running' | 'waiting_for_restart' | 'succeeded' | 'failed' | 'cancelled';
+export type PlanRevisionResourceAllowanceOut = {
+    /**
+     * Key
+     */
+    key: string;
+    limitKind: ResourceLimitKind;
+    /**
+     * Limitvalue
+     */
+    limitValue: number | null;
+};
 
 /**
- * PluginRuntimeActivationState
+ * PlatformEntryEligibilityOut
+ *
+ * Minimal Product projection used only to discover the Platform Console entry.
  */
-export type PluginRuntimeActivationState = 'not_required' | 'pending_restart' | 'verified' | 'failed';
+export type PlatformEntryEligibilityOut = {
+    /**
+     * Eligible
+     */
+    eligible: boolean;
+};
 
 /**
  * ProcessState
@@ -19923,11 +16574,6 @@ export type ProjectDeploymentRollbackIn = {
      */
     environmentId?: string | null;
 };
-
-/**
- * ProjectDeploymentStatus
- */
-export type ProjectDeploymentStatus = 'queued' | 'building' | 'ready' | 'failed' | 'canceled' | 'promoted';
 
 /**
  * ProjectDesignSystemAssignmentOut
@@ -21047,72 +17693,6 @@ export type ProjectPermissionActionOut = {
 };
 
 /**
- * ProjectRuntimeContextOut
- */
-export type ProjectRuntimeContextOut = {
-    /**
-     * Defaultlocale
-     *
-     * Default locale.
-     */
-    defaultLocale: string;
-    /**
-     * Fallbacklocale
-     *
-     * Fallback locale.
-     */
-    fallbackLocale: string;
-    /**
-     * Isactive
-     *
-     * Whether the runtime is active.
-     */
-    isActive: boolean;
-    /**
-     * Kind
-     *
-     * Runtime kind.
-     */
-    kind: string;
-    /**
-     * Name
-     *
-     * Runtime name.
-     */
-    name: string;
-    /**
-     * Projectid
-     *
-     * Project id.
-     */
-    projectId: string;
-    /**
-     * Runtimeid
-     *
-     * Primary runtime id.
-     */
-    runtimeId: string;
-    /**
-     * Siteid
-     *
-     * Resolved site id.
-     */
-    siteId: string;
-    /**
-     * Slug
-     *
-     * Resolved runtime slug.
-     */
-    slug: string;
-    /**
-     * Workspaceid
-     *
-     * Workspace id.
-     */
-    workspaceId: string;
-};
-
-/**
  * ProjectRuntimeOut
  */
 export type ProjectRuntimeOut = {
@@ -21781,6 +18361,24 @@ export type PublishReadinessSummaryOut = {
 };
 
 /**
+ * QueuedEffectImpact
+ */
+export type QueuedEffectImpact = {
+    /**
+     * Actoruserid
+     */
+    actorUserId: string;
+    /**
+     * Effectid
+     */
+    effectId: string;
+    /**
+     * Effecttype
+     */
+    effectType: string;
+};
+
+/**
  * RefreshRequest
  *
  * Refresh token request.
@@ -22086,6 +18684,58 @@ export type ReleaseRollbackOut = {
 };
 
 /**
+ * RenewalTransitionScheduleOut
+ */
+export type RenewalTransitionScheduleOut = {
+    /**
+     * Convergenceid
+     */
+    convergenceId?: string | null;
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Effectiveat
+     */
+    effectiveAt: string;
+    /**
+     * Providerscheduleid
+     */
+    providerScheduleId: string | null;
+    /**
+     * Transitionid
+     */
+    transitionId: string;
+};
+
+/**
+ * RenewalTransitionScheduleRequest
+ */
+export type RenewalTransitionScheduleRequest = {
+    /**
+     * Convergenceid
+     */
+    convergenceId?: string | null;
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Expectedpreviewrevision
+     */
+    expectedPreviewRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Previewid
+     */
+    previewId: string;
+};
+
+/**
  * RequestMyEmailChangeOut
  *
  * Email change request response.
@@ -22218,6 +18868,11 @@ export type ResolveWarningV1 = {
      */
     refNodeId?: string | null;
 };
+
+/**
+ * ResourceLimitKind
+ */
+export type ResourceLimitKind = 'limited' | 'unlimited';
 
 /**
  * ResponseModel[AIModelCatalogResponse]
@@ -22995,31 +19650,6 @@ export type ResponseModelApiKeyOut = {
 };
 
 /**
- * ResponseModel[AuditEventOut]
- */
-export type ResponseModelAuditEventOut = {
-    data?: AuditEventOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[AuthSSOLinkStateOut]
  */
 export type ResponseModelAuthSsoLinkStateOut = {
@@ -23545,10 +20175,10 @@ export type ResponseModelBuilderRevisionOut = {
 };
 
 /**
- * ResponseModel[CommercePlanCatalogOut]
+ * ResponseModel[CommercialAccessMemberView]
  */
-export type ResponseModelCommercePlanCatalogOut = {
-    data?: CommercePlanCatalogOut | null;
+export type ResponseModelCommercialAccessMemberView = {
+    data?: CommercialAccessMemberView | null;
     /**
      * Error
      */
@@ -23570,10 +20200,10 @@ export type ResponseModelCommercePlanCatalogOut = {
 };
 
 /**
- * ResponseModel[CommercePlanOut]
+ * ResponseModel[CommercialAccessRecoveryView]
  */
-export type ResponseModelCommercePlanOut = {
-    data?: CommercePlanOut | null;
+export type ResponseModelCommercialAccessRecoveryView = {
+    data?: CommercialAccessRecoveryView | null;
     /**
      * Error
      */
@@ -24020,6 +20650,31 @@ export type ResponseModelContentVersionOut = {
 };
 
 /**
+ * ResponseModel[ConvergencePreview]
+ */
+export type ResponseModelConvergencePreview = {
+    data?: ConvergencePreview | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[DeleteMyAccountCapabilityOut]
  */
 export type ResponseModelDeleteMyAccountCapabilityOut = {
@@ -24320,106 +20975,6 @@ export type ResponseModelDesignSystemVersionDetailOut = {
 };
 
 /**
- * ResponseModel[DirectoryProjectDetailOut]
- */
-export type ResponseModelDirectoryProjectDetailOut = {
-    data?: DirectoryProjectDetailOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[DirectoryProjectOperationsOut]
- */
-export type ResponseModelDirectoryProjectOperationsOut = {
-    data?: DirectoryProjectOperationsOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[DirectoryUserDetailOut]
- */
-export type ResponseModelDirectoryUserDetailOut = {
-    data?: DirectoryUserDetailOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[DirectoryWorkspaceDetailOut]
- */
-export type ResponseModelDirectoryWorkspaceDetailOut = {
-    data?: DirectoryWorkspaceDetailOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[DomainBindingCreateOut]
  */
 export type ResponseModelDomainBindingCreateOut = {
@@ -24524,6 +21079,56 @@ export type ResponseModelDomainBindingVerifyOut = {
  */
 export type ResponseModelEmailCheckOut = {
     data?: EmailCheckOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[FeatureAccessMutationOut]
+ */
+export type ResponseModelFeatureAccessMutationOut = {
+    data?: FeatureAccessMutationOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[FeatureAccessReadResult]
+ */
+export type ResponseModelFeatureAccessReadResult = {
+    data?: FeatureAccessReadResult | null;
     /**
      * Error
      */
@@ -24845,131 +21450,6 @@ export type ResponseModelLoginEmailCodeRequestOut = {
 };
 
 /**
- * ResponseModel[MailTemplateOut]
- */
-export type ResponseModelMailTemplateOut = {
-    data?: MailTemplateOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[MailTemplatePreviewOut]
- */
-export type ResponseModelMailTemplatePreviewOut = {
-    data?: MailTemplatePreviewOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[MailTemplateRevisionDetailOut]
- */
-export type ResponseModelMailTemplateRevisionDetailOut = {
-    data?: MailTemplateRevisionDetailOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[MailTemplateTestSendOut]
- */
-export type ResponseModelMailTemplateTestSendOut = {
-    data?: MailTemplateTestSendOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[MailTestResult]
- */
-export type ResponseModelMailTestResult = {
-    data?: MailTestResult | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[MonthlyUsageSummary]
  */
 export type ResponseModelMonthlyUsageSummary = {
@@ -25077,181 +21557,6 @@ export type ResponseModelNoneType = {
  */
 export type ResponseModelNotificationArchiveResult = {
     data?: NotificationArchiveResult | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[NotificationAudienceEstimateOut]
- */
-export type ResponseModelNotificationAudienceEstimateOut = {
-    data?: NotificationAudienceEstimateOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[NotificationCampaignCancellationOut]
- */
-export type ResponseModelNotificationCampaignCancellationOut = {
-    data?: NotificationCampaignCancellationOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[NotificationCampaignDetailOut]
- */
-export type ResponseModelNotificationCampaignDetailOut = {
-    data?: NotificationCampaignDetailOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[NotificationCampaignPreviewOut]
- */
-export type ResponseModelNotificationCampaignPreviewOut = {
-    data?: NotificationCampaignPreviewOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[NotificationCampaignPublishOut]
- */
-export type ResponseModelNotificationCampaignPublishOut = {
-    data?: NotificationCampaignPublishOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[NotificationCampaignRetryOut]
- */
-export type ResponseModelNotificationCampaignRetryOut = {
-    data?: NotificationCampaignRetryOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[NotificationCampaignSummaryOut]
- */
-export type ResponseModelNotificationCampaignSummaryOut = {
-    data?: NotificationCampaignSummaryOut | null;
     /**
      * Error
      */
@@ -25598,31 +21903,6 @@ export type ResponseModelOnboardingWorkspaceCreateOut = {
 };
 
 /**
- * ResponseModel[PageData[AIUsageGroupOut]]
- */
-export type ResponseModelPageDataAiUsageGroupOut = {
-    data?: PageDataAiUsageGroupOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[PageData[AdminAssetFolderOut]]
  */
 export type ResponseModelPageDataAdminAssetFolderOut = {
@@ -25848,81 +22128,6 @@ export type ResponseModelPageDataCreditLedgerOut = {
 };
 
 /**
- * ResponseModel[PageData[DirectoryProjectListItemOut]]
- */
-export type ResponseModelPageDataDirectoryProjectListItemOut = {
-    data?: PageDataDirectoryProjectListItemOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PageData[DirectoryUserListItemOut]]
- */
-export type ResponseModelPageDataDirectoryUserListItemOut = {
-    data?: PageDataDirectoryUserListItemOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PageData[DirectoryWorkspaceListItemOut]]
- */
-export type ResponseModelPageDataDirectoryWorkspaceListItemOut = {
-    data?: PageDataDirectoryWorkspaceListItemOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[PageData[DomainBindingOut]]
  */
 export type ResponseModelPageDataDomainBindingOut = {
@@ -25973,160 +22178,10 @@ export type ResponseModelPageDataFeedbackTicketListItemOut = {
 };
 
 /**
- * ResponseModel[PageData[HTTPRequestGroupOut]]
- */
-export type ResponseModelPageDataHttpRequestGroupOut = {
-    data?: PageDataHttpRequestGroupOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PageData[HTTPRequestRecordOut]]
- */
-export type ResponseModelPageDataHttpRequestRecordOut = {
-    data?: PageDataHttpRequestRecordOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PageData[MailTemplateGroupOut]]
- */
-export type ResponseModelPageDataMailTemplateGroupOut = {
-    data?: PageDataMailTemplateGroupOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PageData[MailTemplateRevisionOut]]
- */
-export type ResponseModelPageDataMailTemplateRevisionOut = {
-    data?: PageDataMailTemplateRevisionOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[PageData[MyInvitationOut]]
  */
 export type ResponseModelPageDataMyInvitationOut = {
     data?: PageDataMyInvitationOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PageData[NotificationCampaignSummaryOut]]
- */
-export type ResponseModelPageDataNotificationCampaignSummaryOut = {
-    data?: PageDataNotificationCampaignSummaryOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PageData[NotificationDeliveryOut]]
- */
-export type ResponseModelPageDataNotificationDeliveryOut = {
-    data?: PageDataNotificationDeliveryOut | null;
     /**
      * Error
      */
@@ -26173,135 +22228,10 @@ export type ResponseModelPageDataNotificationOut = {
 };
 
 /**
- * ResponseModel[PageData[PermissionOut]]
- */
-export type ResponseModelPageDataPermissionOut = {
-    data?: PageDataPermissionOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[PageData[ProjectMemberOut]]
  */
 export type ResponseModelPageDataProjectMemberOut = {
     data?: PageDataProjectMemberOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PageData[PublishJobOut]]
- */
-export type ResponseModelPageDataPublishJobOut = {
-    data?: PageDataPublishJobOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PageData[SettingsNamespaceSummary]]
- */
-export type ResponseModelPageDataSettingsNamespaceSummary = {
-    data?: PageDataSettingsNamespaceSummary | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PageData[SystemAgentAssignmentOut]]
- */
-export type ResponseModelPageDataSystemAgentAssignmentOut = {
-    data?: PageDataSystemAgentAssignmentOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PageData[SystemAgentDefinitionSummaryOut]]
- */
-export type ResponseModelPageDataSystemAgentDefinitionSummaryOut = {
-    data?: PageDataSystemAgentDefinitionSummaryOut | null;
     /**
      * Error
      */
@@ -27323,31 +23253,6 @@ export type ResponseModelPublishExportContractOut = {
 };
 
 /**
- * ResponseModel[PublishJobOut]
- */
-export type ResponseModelPublishJobOut = {
-    data?: PublishJobOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[PublishReadinessOut]
  */
 export type ResponseModelPublishReadinessOut = {
@@ -27573,6 +23478,31 @@ export type ResponseModelReleaseRollbackOut = {
 };
 
 /**
+ * ResponseModel[RenewalTransitionScheduleOut]
+ */
+export type ResponseModelRenewalTransitionScheduleOut = {
+    data?: RenewalTransitionScheduleOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[RequestMyEmailChangeOut]
  */
 export type ResponseModelRequestMyEmailChangeOut = {
@@ -27677,31 +23607,6 @@ export type ResponseModelRolePermissionBatchSetOut = {
  */
 export type ResponseModelRouteBindingOut = {
     data?: RouteBindingOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SettingsDetail]
- */
-export type ResponseModelSettingsDetail = {
-    data?: SettingsDetail | null;
     /**
      * Error
      */
@@ -28323,410 +24228,10 @@ export type ResponseModelSkillVersionDetailOut = {
 };
 
 /**
- * ResponseModel[StorageProfileDeleteOut]
+ * ResponseModel[SupportAccessGrantOut]
  */
-export type ResponseModelStorageProfileDeleteOut = {
-    data?: StorageProfileDeleteOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[StorageProfileListOut]
- */
-export type ResponseModelStorageProfileListOut = {
-    data?: StorageProfileListOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[StorageProfileOut]
- */
-export type ResponseModelStorageProfileOut = {
-    data?: StorageProfileOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[StorageProfileTestResultOut]
- */
-export type ResponseModelStorageProfileTestResultOut = {
-    data?: StorageProfileTestResultOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SystemAIProviderListOut]
- */
-export type ResponseModelSystemAiProviderListOut = {
-    data?: SystemAiProviderListOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SystemAIProviderOut]
- */
-export type ResponseModelSystemAiProviderOut = {
-    data?: SystemAiProviderOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SystemAgentAssignmentOut]
- */
-export type ResponseModelSystemAgentAssignmentOut = {
-    data?: SystemAgentAssignmentOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SystemAgentCatalogCapabilitiesOut]
- */
-export type ResponseModelSystemAgentCatalogCapabilitiesOut = {
-    data?: SystemAgentCatalogCapabilitiesOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SystemAgentDefinitionDetailOut]
- */
-export type ResponseModelSystemAgentDefinitionDetailOut = {
-    data?: SystemAgentDefinitionDetailOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SystemAgentVersionListOut]
- */
-export type ResponseModelSystemAgentVersionListOut = {
-    data?: SystemAgentVersionListOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SystemAgentVersionOut]
- */
-export type ResponseModelSystemAgentVersionOut = {
-    data?: SystemAgentVersionOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SystemPluginArtifactReviewOut]
- */
-export type ResponseModelSystemPluginArtifactReviewOut = {
-    data?: SystemPluginArtifactReviewOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SystemPluginCatalogListOut]
- */
-export type ResponseModelSystemPluginCatalogListOut = {
-    data?: SystemPluginCatalogListOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SystemPluginConfigurationOut]
- */
-export type ResponseModelSystemPluginConfigurationOut = {
-    data?: SystemPluginConfigurationOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SystemPluginDetailOut]
- */
-export type ResponseModelSystemPluginDetailOut = {
-    data?: SystemPluginDetailOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SystemPluginListOut]
- */
-export type ResponseModelSystemPluginListOut = {
-    data?: SystemPluginListOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SystemPluginOperationOut]
- */
-export type ResponseModelSystemPluginOperationOut = {
-    data?: SystemPluginOperationOut | null;
+export type ResponseModelSupportAccessGrantOut = {
+    data?: SupportAccessGrantOut | null;
     /**
      * Error
      */
@@ -29698,6 +25203,31 @@ export type ResponseModelWorkspaceManageListItemOut = {
 };
 
 /**
+ * ResponseModel[WorkspaceOwnershipTransferOut]
+ */
+export type ResponseModelWorkspaceOwnershipTransferOut = {
+    data?: WorkspaceOwnershipTransferOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[WorkspacePermissionCatalogOut]
  */
 export type ResponseModelWorkspacePermissionCatalogOut = {
@@ -29954,34 +25484,6 @@ export type ResponseModelListHierarchyNodeOut = {
 };
 
 /**
- * ResponseModel[list[MailProviderInfo]]
- */
-export type ResponseModelListMailProviderInfo = {
-    /**
-     * Data
-     */
-    data?: Array<MailProviderInfo> | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[list[PermissionConditionTemplateOut]]
  */
 export type ResponseModelListPermissionConditionTemplateOut = {
@@ -30045,6 +25547,34 @@ export type ResponseModelListRouteBindingOut = {
      * Data
      */
     data?: Array<RouteBindingOut> | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[list[SupportAccessGrantOut]]
+ */
+export type ResponseModelListSupportAccessGrantOut = {
+    /**
+     * Data
+     */
+    data?: Array<SupportAccessGrantOut> | null;
     /**
      * Error
      */
@@ -30390,6 +25920,32 @@ export type RolePermissionSetRequest = {
 };
 
 /**
+ * RoleResponsibilityImpact
+ */
+export type RoleResponsibilityImpact = {
+    /**
+     * Assignmentid
+     */
+    assignmentId: string;
+    /**
+     * Membershipid
+     */
+    membershipId: string;
+    /**
+     * Roleid
+     */
+    roleId: string;
+    /**
+     * Rolename
+     */
+    roleName: string;
+    /**
+     * Userid
+     */
+    userId: string;
+};
+
+/**
  * RoleUpdateRequest
  */
 export type RoleUpdateRequest = {
@@ -30589,200 +26145,6 @@ export type SetMyPasswordRequest = {
      * New password.
      */
     newPassword: string;
-};
-
-/**
- * SettingsDetail
- */
-export type SettingsDetail = {
-    /**
-     * Namespace
-     *
-     * Settings namespace.
-     */
-    namespace: string;
-    /**
-     * Secrets
-     *
-     * Secret field set state by path.
-     */
-    secrets?: {
-        [key: string]: boolean;
-    };
-    /**
-     * Schema for UI and validation.
-     */
-    settingSchema: SettingsSchemaItem;
-    /**
-     * Updatedat
-     *
-     * Last update time.
-     */
-    updatedAt?: string | null;
-    /**
-     * Value
-     *
-     * Masked settings value.
-     */
-    value?: {
-        [key: string]: JsonValueOutput;
-    };
-};
-
-/**
- * SettingsFieldItem
- */
-export type SettingsFieldItem = {
-    /**
-     * Default value.
-     */
-    default?: JsonValueOutput | null;
-    /**
-     * Description
-     *
-     * Localized description.
-     */
-    description?: string | null;
-    /**
-     * Key
-     *
-     * Config key.
-     */
-    key: string;
-    /**
-     * Label
-     *
-     * Localized label.
-     */
-    label?: string | null;
-    /**
-     * Options
-     *
-     * Optional select options for UI.
-     */
-    options?: Array<SettingsOptionItem>;
-    /**
-     * Secret
-     *
-     * Whether this field is secret/sensitive.
-     */
-    secret?: boolean;
-    /**
-     * Type
-     *
-     * Config field type.
-     */
-    type: string;
-    /**
-     * Ui
-     *
-     * UI rendering hints (optional).
-     */
-    ui?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-};
-
-/**
- * SettingsNamespaceSummary
- */
-export type SettingsNamespaceSummary = {
-    /**
-     * Description
-     *
-     * Optional description.
-     */
-    description?: string | null;
-    /**
-     * Kind
-     *
-     * Namespace kind.
-     */
-    kind: 'core';
-    /**
-     * Namespace
-     *
-     * Settings namespace.
-     */
-    namespace: string;
-    /**
-     * Title
-     *
-     * Display title.
-     */
-    title: string;
-};
-
-/**
- * SettingsOptionItem
- */
-export type SettingsOptionItem = {
-    /**
-     * Description
-     *
-     * Localized description.
-     */
-    description?: string | null;
-    /**
-     * Label
-     *
-     * Localized label.
-     */
-    label?: string | null;
-    /**
-     * Option value.
-     */
-    value: JsonValueOutput;
-};
-
-/**
- * SettingsPatch
- */
-export type SettingsPatch = {
-    /**
-     * Patch
-     *
-     * Merge patch payload.
-     */
-    patch?: {
-        [key: string]: JsonValueInput;
-    };
-};
-
-/**
- * SettingsSchemaItem
- */
-export type SettingsSchemaItem = {
-    /**
-     * Sections
-     *
-     * Config schema sections.
-     */
-    sections?: Array<SettingsSectionItem>;
-};
-
-/**
- * SettingsSectionItem
- */
-export type SettingsSectionItem = {
-    /**
-     * Fields
-     *
-     * Section fields.
-     */
-    fields?: Array<SettingsFieldItem>;
-    /**
-     * Id
-     *
-     * Section identifier.
-     */
-    id: string;
-    /**
-     * Title
-     *
-     * Localized title.
-     */
-    title?: string | null;
 };
 
 /**
@@ -33052,250 +28414,6 @@ export type SkillVersionSummaryOut = {
 };
 
 /**
- * StorageProfileConfigPayload
- */
-export type StorageProfileConfigPayloadInput = {
-    /**
-     * Accesskeyid
-     */
-    accessKeyId?: string | null;
-    /**
-     * Bucket
-     */
-    bucket?: string | null;
-    /**
-     * Endpointurl
-     */
-    endpointUrl?: string | null;
-    /**
-     * Forcepathstyle
-     */
-    forcePathStyle?: boolean;
-    /**
-     * Presignexpiresseconds
-     */
-    presignExpiresSeconds?: number;
-    /**
-     * Publicbaseurl
-     */
-    publicBaseUrl?: string | null;
-    /**
-     * Publicbucket
-     */
-    publicBucket?: string | null;
-    /**
-     * Publicdeliverymode
-     */
-    publicDeliveryMode?: string;
-    /**
-     * Region
-     */
-    region?: string | null;
-    /**
-     * Secretaccesskey
-     */
-    secretAccessKey?: string | null;
-};
-
-/**
- * StorageProfileConfigPayload
- */
-export type StorageProfileConfigPayloadOutput = {
-    /**
-     * Accesskeyid
-     */
-    accessKeyId?: string | null;
-    /**
-     * Bucket
-     */
-    bucket?: string | null;
-    /**
-     * Endpointurl
-     */
-    endpointUrl?: string | null;
-    /**
-     * Forcepathstyle
-     */
-    forcePathStyle?: boolean;
-    /**
-     * Presignexpiresseconds
-     */
-    presignExpiresSeconds?: number;
-    /**
-     * Publicbaseurl
-     */
-    publicBaseUrl?: string | null;
-    /**
-     * Publicbucket
-     */
-    publicBucket?: string | null;
-    /**
-     * Publicdeliverymode
-     */
-    publicDeliveryMode?: string;
-    /**
-     * Region
-     */
-    region?: string | null;
-};
-
-/**
- * StorageProfileConfigSource
- */
-export type StorageProfileConfigSource = 'database' | 'environment';
-
-/**
- * StorageProfileCreateRequest
- */
-export type StorageProfileCreateRequest = {
-    config: StorageProfileConfigPayloadInput;
-    /**
-     * Displayname
-     */
-    displayName: string;
-    /**
-     * Isactive
-     */
-    isActive?: boolean;
-    /**
-     * Profilekey
-     */
-    profileKey: string;
-    provider: ObjectStorageProviderKind;
-};
-
-/**
- * StorageProfileDeleteOut
- */
-export type StorageProfileDeleteOut = {
-    /**
-     * Deleted
-     */
-    deleted: boolean;
-    /**
-     * Id
-     */
-    id: string;
-};
-
-/**
- * StorageProfileListOut
- */
-export type StorageProfileListOut = {
-    /**
-     * Items
-     */
-    items?: Array<StorageProfileOut>;
-};
-
-/**
- * StorageProfileOut
- */
-export type StorageProfileOut = {
-    config: StorageProfileConfigPayloadOutput;
-    configSource: StorageProfileConfigSource;
-    /**
-     * Createdat
-     *
-     * Created at.
-     */
-    createdAt: string;
-    /**
-     * Displayname
-     */
-    displayName: string;
-    /**
-     * Id
-     *
-     * ID
-     */
-    id: string;
-    /**
-     * Isactive
-     */
-    isActive: boolean;
-    /**
-     * Isdefault
-     */
-    isDefault: boolean;
-    /**
-     * Lasttestmessage
-     */
-    lastTestMessage?: string | null;
-    /**
-     * Lastteststatus
-     */
-    lastTestStatus?: 'passed' | 'failed' | null;
-    /**
-     * Lasttestedat
-     */
-    lastTestedAt?: string | null;
-    /**
-     * Profilekey
-     */
-    profileKey: string;
-    provider: ObjectStorageProviderKind;
-    /**
-     * Scopeid
-     */
-    scopeId: string;
-    /**
-     * Scopetype
-     */
-    scopeType: string;
-    secrets?: StorageProfileSecretsOut;
-    /**
-     * Updatedat
-     *
-     * Updated at.
-     */
-    updatedAt: string;
-};
-
-/**
- * StorageProfileSecretsOut
- */
-export type StorageProfileSecretsOut = {
-    /**
-     * Secretaccesskey
-     */
-    secretAccessKey?: boolean;
-};
-
-/**
- * StorageProfileTestResultOut
- */
-export type StorageProfileTestResultOut = {
-    /**
-     * Message
-     */
-    message: string;
-    /**
-     * Ok
-     */
-    ok: boolean;
-    /**
-     * Status
-     */
-    status: 'passed' | 'failed';
-};
-
-/**
- * StorageProfileUpdateRequest
- */
-export type StorageProfileUpdateRequest = {
-    config?: StorageProfileConfigPayloadInput | null;
-    /**
-     * Displayname
-     */
-    displayName?: string | null;
-    /**
-     * Isactive
-     */
-    isActive?: boolean | null;
-};
-
-/**
  * StructuredContentKnowledgeLocator
  */
 export type StructuredContentKnowledgeLocatorInput = {
@@ -33338,754 +28456,88 @@ export type StructuredContentKnowledgeLocatorOutput = {
 /**
  * SubscriptionStatus
  */
-export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled';
+export type SubscriptionStatus = 'active' | 'past_due' | 'canceled';
 
 /**
- * SystemAIProviderCreateRequest
+ * SupportAccessGrantCreate
  */
-export type SystemAiProviderCreateRequest = {
+export type SupportAccessGrantCreate = {
     /**
-     * Baseurl
+     * Caseid
      */
-    baseUrl?: string | null;
-    /**
-     * Compatibility
-     */
-    compatibility?: 'openai' | 'anthropic' | 'deepseek' | 'openai_compatible' | 'anthropic_compatible';
+    caseId: string;
     /**
      * Expiresat
      */
-    expiresAt?: string | null;
+    expiresAt: string;
     /**
-     * Label
+     * Operatoruserids
      */
-    label: string;
+    operatorUserIds: Array<string>;
     /**
-     * Provider
+     * Reason
      */
-    provider: string;
+    reason: string;
     /**
-     * Providerapikey
+     * Scopes
      */
-    providerApiKey: string;
-    /**
-     * Requestmodel
-     */
-    requestModel: string;
+    scopes: Array<SupportAccessScopeIn>;
 };
 
 /**
- * SystemAIProviderListOut
+ * SupportAccessGrantOut
  */
-export type SystemAiProviderListOut = {
+export type SupportAccessGrantOut = {
     /**
-     * Providers
+     * Caseid
      */
-    providers?: Array<SystemAiProviderOut>;
-};
-
-/**
- * SystemAIProviderOut
- */
-export type SystemAiProviderOut = {
-    /**
-     * Baseurl
-     */
-    baseUrl?: string | null;
-    /**
-     * Compatibility
-     */
-    compatibility: 'openai' | 'anthropic' | 'deepseek' | 'openai_compatible' | 'anthropic_compatible';
-    /**
-     * Createdat
-     */
-    createdAt: string;
+    caseId: string;
     /**
      * Expiresat
      */
-    expiresAt?: string | null;
-    /**
-     * Hasvirtualkey
-     */
-    hasVirtualKey: boolean;
+    expiresAt: string;
     /**
      * Id
      */
     id: string;
     /**
-     * Isactive
+     * Operatoruserids
      */
-    isActive: boolean;
+    operatorUserIds: Array<string>;
     /**
-     * Label
+     * Reason
      */
-    label: string;
+    reason: string;
     /**
-     * Lastusedat
+     * Revision
      */
-    lastUsedAt?: string | null;
+    revision: number;
     /**
-     * Litellmkeyid
+     * Scopes
      */
-    litellmKeyId?: string | null;
+    scopes: Array<SupportAccessScopeIn>;
     /**
-     * Provider
+     * State
      */
-    provider: string;
+    state: string;
     /**
-     * Requestmodel
+     * Workspaceid
      */
-    requestModel: string;
-    /**
-     * Updatedat
-     */
-    updatedAt: string;
+    workspaceId: string;
 };
 
 /**
- * SystemAIProviderUpdateRequest
+ * SupportAccessScopeIn
  */
-export type SystemAiProviderUpdateRequest = {
+export type SupportAccessScopeIn = {
     /**
-     * Baseurl
+     * Contentcategory
      */
-    baseUrl?: string | null;
-    /**
-     * Compatibility
-     */
-    compatibility?: 'openai' | 'anthropic' | 'deepseek' | 'openai_compatible' | 'anthropic_compatible' | null;
-    /**
-     * Expiresat
-     */
-    expiresAt?: string | null;
-    /**
-     * Isactive
-     */
-    isActive?: boolean | null;
-    /**
-     * Label
-     */
-    label?: string | null;
-    /**
-     * Providerapikey
-     */
-    providerApiKey?: string | null;
-    /**
-     * Requestmodel
-     */
-    requestModel?: string | null;
-};
-
-/**
- * SystemAgentAssignmentCreateRequest
- */
-export type SystemAgentAssignmentCreateRequest = {
-    /**
-     * Agentid
-     */
-    agentId: string;
-    /**
-     * Enabled
-     */
-    enabled?: boolean;
-    /**
-     * Isdefault
-     */
-    isDefault?: boolean;
-    /**
-     * Ispinned
-     */
-    isPinned?: boolean;
+    contentCategory: 'content_items';
     /**
      * Projectid
      */
     projectId?: string | null;
-    /**
-     * Sortorder
-     */
-    sortOrder?: number;
-    /**
-     * Versionid
-     */
-    versionId: string;
-    /**
-     * Workspaceid
-     */
-    workspaceId: string;
-};
-
-/**
- * SystemAgentAssignmentOut
- */
-export type SystemAgentAssignmentOut = {
-    /**
-     * Agentid
-     */
-    agentId: string;
-    /**
-     * Assignedbyuserid
-     */
-    assignedByUserId: string | null;
-    /**
-     * Createdat
-     *
-     * Created at.
-     */
-    createdAt: string;
-    /**
-     * Enabled
-     */
-    enabled: boolean;
-    /**
-     * Id
-     *
-     * ID
-     */
-    id: string;
-    /**
-     * Isdefault
-     */
-    isDefault: boolean;
-    /**
-     * Ispinned
-     */
-    isPinned: boolean;
-    /**
-     * Lastusedat
-     */
-    lastUsedAt: string | null;
-    /**
-     * Projectid
-     */
-    projectId: string | null;
-    /**
-     * Projectname
-     */
-    projectName: string | null;
-    /**
-     * Sortorder
-     */
-    sortOrder: number;
-    /**
-     * Updatedat
-     *
-     * Updated at.
-     */
-    updatedAt: string;
-    /**
-     * Versionid
-     */
-    versionId: string;
-    /**
-     * Versionnumber
-     */
-    versionNumber: number;
-    /**
-     * Workspaceid
-     */
-    workspaceId: string;
-    /**
-     * Workspacename
-     */
-    workspaceName: string;
-};
-
-/**
- * SystemAgentAssignmentUpdateRequest
- */
-export type SystemAgentAssignmentUpdateRequest = {
-    /**
-     * Enabled
-     */
-    enabled?: boolean | null;
-    /**
-     * Isdefault
-     */
-    isDefault?: boolean | null;
-    /**
-     * Ispinned
-     */
-    isPinned?: boolean | null;
-    /**
-     * Sortorder
-     */
-    sortOrder?: number | null;
-    /**
-     * Versionid
-     */
-    versionId?: string | null;
-};
-
-/**
- * SystemAgentCatalogCapabilitiesOut
- */
-export type SystemAgentCatalogCapabilitiesOut = {
-    /**
-     * Agentruntimeprotocol
-     */
-    agentRuntimeProtocol: 1;
-    /**
-     * Constraints
-     */
-    constraints?: {
-        [key: string]: JsonValueOutput;
-    };
-    /**
-     * Harddeletesupported
-     */
-    hardDeleteSupported: false;
-    /**
-     * Knowledgegrantsavailable
-     */
-    knowledgeGrantsAvailable: boolean;
-    /**
-     * Modelroutingpolicies
-     */
-    modelRoutingPolicies: Array<'workspace_default'>;
-    /**
-     * Skillgrantsavailable
-     */
-    skillGrantsAvailable: boolean;
-    /**
-     * Supportedtoolgrants
-     */
-    supportedToolGrants: Array<string>;
-};
-
-/**
- * SystemAgentDefinitionCreateRequest
- */
-export type SystemAgentDefinitionCreateRequest = {
-    /**
-     * Avatarurl
-     */
-    avatarUrl?: string | null;
-    /**
-     * Description
-     */
-    description: string;
-    /**
-     * Displayname
-     */
-    displayName: string;
-    initialVersion: AgentVersionCreateRequest;
-    /**
-     * Role
-     */
-    role: string;
-    /**
-     * Slug
-     */
-    slug: string;
-};
-
-/**
- * SystemAgentDefinitionDetailOut
- */
-export type SystemAgentDefinitionDetailOut = {
-    /**
-     * Assignmentcount
-     */
-    assignmentCount: number;
-    /**
-     * Assignments
-     */
-    assignments?: Array<SystemAgentAssignmentOut>;
-    /**
-     * Avatarurl
-     */
-    avatarUrl: string | null;
-    /**
-     * Createdat
-     *
-     * Created at.
-     */
-    createdAt: string;
-    /**
-     * Createdbyuserid
-     */
-    createdByUserId: string | null;
-    /**
-     * Description
-     */
-    description: string;
-    /**
-     * Descriptioni18Nkey
-     */
-    descriptionI18NKey: string | null;
-    /**
-     * Displayname
-     */
-    displayName: string;
-    /**
-     * Enabledassignmentcount
-     */
-    enabledAssignmentCount: number;
-    /**
-     * Id
-     *
-     * ID
-     */
-    id: string;
-    /**
-     * Isofficial
-     */
-    isOfficial: boolean;
-    latestVersion: SystemAgentVersionOut | null;
-    /**
-     * Lifecyclestate
-     */
-    lifecycleState: 'active' | 'disabled' | 'archived';
-    /**
-     * Namei18Nkey
-     */
-    nameI18NKey: string | null;
-    /**
-     * Role
-     */
-    role: string;
-    /**
-     * Rolei18Nkey
-     */
-    roleI18NKey: string | null;
-    /**
-     * Scope
-     */
-    scope: 'system' | 'workspace';
-    /**
-     * Slug
-     */
-    slug: string;
-    /**
-     * Stablekey
-     */
-    stableKey: string;
-    /**
-     * Updatedat
-     *
-     * Updated at.
-     */
-    updatedAt: string;
-    /**
-     * Versioncount
-     */
-    versionCount: number;
-    /**
-     * Versions
-     */
-    versions?: Array<SystemAgentVersionOut>;
-    /**
-     * Workspaceid
-     */
-    workspaceId: string | null;
-};
-
-/**
- * SystemAgentDefinitionSummaryOut
- */
-export type SystemAgentDefinitionSummaryOut = {
-    /**
-     * Assignmentcount
-     */
-    assignmentCount: number;
-    /**
-     * Avatarurl
-     */
-    avatarUrl: string | null;
-    /**
-     * Createdat
-     *
-     * Created at.
-     */
-    createdAt: string;
-    /**
-     * Createdbyuserid
-     */
-    createdByUserId: string | null;
-    /**
-     * Description
-     */
-    description: string;
-    /**
-     * Descriptioni18Nkey
-     */
-    descriptionI18NKey: string | null;
-    /**
-     * Displayname
-     */
-    displayName: string;
-    /**
-     * Enabledassignmentcount
-     */
-    enabledAssignmentCount: number;
-    /**
-     * Id
-     *
-     * ID
-     */
-    id: string;
-    /**
-     * Isofficial
-     */
-    isOfficial: boolean;
-    latestVersion: SystemAgentVersionOut | null;
-    /**
-     * Lifecyclestate
-     */
-    lifecycleState: 'active' | 'disabled' | 'archived';
-    /**
-     * Namei18Nkey
-     */
-    nameI18NKey: string | null;
-    /**
-     * Role
-     */
-    role: string;
-    /**
-     * Rolei18Nkey
-     */
-    roleI18NKey: string | null;
-    /**
-     * Scope
-     */
-    scope: 'system' | 'workspace';
-    /**
-     * Slug
-     */
-    slug: string;
-    /**
-     * Stablekey
-     */
-    stableKey: string;
-    /**
-     * Updatedat
-     *
-     * Updated at.
-     */
-    updatedAt: string;
-    /**
-     * Versioncount
-     */
-    versionCount: number;
-    /**
-     * Workspaceid
-     */
-    workspaceId: string | null;
-};
-
-/**
- * SystemAgentDefinitionUpdateRequest
- */
-export type SystemAgentDefinitionUpdateRequest = {
-    /**
-     * Avatarurl
-     */
-    avatarUrl?: string | null;
-    /**
-     * Description
-     */
-    description?: string | null;
-    /**
-     * Displayname
-     */
-    displayName?: string | null;
-    /**
-     * Lifecyclestate
-     */
-    lifecycleState?: 'active' | 'disabled' | 'archived' | null;
-    /**
-     * Role
-     */
-    role?: string | null;
-};
-
-/**
- * SystemAgentVersionListOut
- */
-export type SystemAgentVersionListOut = {
-    /**
-     * Items
-     */
-    items?: Array<SystemAgentVersionOut>;
-};
-
-/**
- * SystemAgentVersionOut
- */
-export type SystemAgentVersionOut = {
-    approvalProfile: AgentApprovalProfile;
-    compatibility: AgentCompatibility;
-    /**
-     * Contentchecksum
-     */
-    contentChecksum: string;
-    /**
-     * Createdat
-     *
-     * Created at.
-     */
-    createdAt: string;
-    /**
-     * Createdbyuserid
-     */
-    createdByUserId: string | null;
-    /**
-     * Definitionid
-     */
-    definitionId: string;
-    /**
-     * Delegationdefinitionids
-     */
-    delegationDefinitionIds: Array<string>;
-    /**
-     * Id
-     *
-     * ID
-     */
-    id: string;
-    /**
-     * Instructions
-     */
-    instructions: string;
-    /**
-     * Knowledgebaseids
-     */
-    knowledgeBaseIds: Array<string>;
-    modelPolicy: AgentModelPolicy;
-    provenance: AgentVersionProvenance;
-    /**
-     * Publishedat
-     */
-    publishedAt: string | null;
-    /**
-     * Skillgrantworkspaceid
-     */
-    skillGrantWorkspaceId: string | null;
-    /**
-     * Skillinstallationids
-     */
-    skillInstallationIds: Array<string>;
-    /**
-     * State
-     */
-    state: 'published' | 'retired';
-    /**
-     * Supportedexecutionmodes
-     */
-    supportedExecutionModes: Array<'plan' | 'build'>;
-    /**
-     * Toolgrants
-     */
-    toolGrants: Array<string>;
-    /**
-     * Updatedat
-     *
-     * Updated at.
-     */
-    updatedAt: string;
-    /**
-     * Versionnumber
-     */
-    versionNumber: number;
-};
-
-/**
- * SystemBootstrapRequest
- *
- * Bootstrap the instance by creating the first super-admin account.
- */
-export type SystemBootstrapRequest = {
-    /**
-     * Displayname
-     *
-     * Display name.
-     */
-    displayName: string;
-    /**
-     * Email
-     *
-     * Email address.
-     */
-    email: string;
-    /**
-     * Password
-     *
-     * Password (min 8 chars).
-     */
-    password: string;
-    /**
-     * Username
-     *
-     * Account name (3-32 chars). Allowed: lowercase letters, numbers, and hyphens.
-     */
-    username: string;
-};
-
-/**
- * SystemConnectorAdminOut
- */
-export type SystemConnectorAdminOut = {
-    /**
-     * Descriptionkey
-     */
-    descriptionKey: string;
-    /**
-     * Iconkey
-     */
-    iconKey?: string | null;
-    /**
-     * Labelkey
-     */
-    labelKey: string;
-    /**
-     * Settingssection
-     */
-    settingsSection?: string | null;
-};
-
-/**
- * SystemConnectorDefinitionOut
- */
-export type SystemConnectorDefinitionOut = {
-    admin?: SystemConnectorAdminOut | null;
-    /**
-     * Capabilities
-     */
-    capabilities?: Array<string>;
-    /**
-     * Configschema
-     */
-    configSchema?: {
-        [key: string]: JsonValueOutput;
-    };
-    /**
-     * Healthcontract
-     */
-    healthContract?: Array<string>;
-    /**
-     * Key
-     */
-    key: string;
-    kind: ConnectorKind;
-    /**
-     * Scopes
-     */
-    scopes?: Array<string>;
-    /**
-     * Secretschema
-     */
-    secretSchema?: {
-        [key: string]: JsonValueOutput;
-    };
-    trustLevel: ConnectorTrustLevel;
-    /**
-     * Version
-     */
-    version: string;
-    /**
-     * Webhookevents
-     */
-    webhookEvents?: Array<string>;
 };
 
 /**
@@ -34105,559 +28557,6 @@ export type SystemInstanceSetupOut = {
      */
     status: string;
 };
-
-/**
- * SystemPluginAdminOut
- */
-export type SystemPluginAdminOut = {
-    /**
-     * Descriptionkey
-     */
-    descriptionKey: string;
-    /**
-     * Labelkey
-     */
-    labelKey: string;
-    /**
-     * Settingspath
-     */
-    settingsPath?: string | null;
-};
-
-/**
- * SystemPluginArtifactReviewOut
- */
-export type SystemPluginArtifactReviewOut = {
-    admin?: SystemPluginAdminOut | null;
-    /**
-     * Artifactchecksum
-     */
-    artifactChecksum: string;
-    compatibility: SystemPluginCompatibilityOut;
-    /**
-     * Configschema
-     */
-    configSchema?: {
-        [key: string]: JsonValueOutput;
-    };
-    /**
-     * Createdat
-     */
-    createdAt: string;
-    /**
-     * Id
-     *
-     * ID
-     */
-    id: string;
-    /**
-     * Manifestdigest
-     */
-    manifestDigest: string;
-    /**
-     * Packagechecksum
-     */
-    packageChecksum: string;
-    /**
-     * Permissions
-     */
-    permissions?: Array<string>;
-    /**
-     * Pluginname
-     */
-    pluginName: string;
-    /**
-     * Provenancestatus
-     */
-    provenanceStatus: string;
-    provides: SystemPluginProvidesOut;
-    /**
-     * Signerfingerprint
-     */
-    signerFingerprint: string;
-    /**
-     * Sizebytes
-     */
-    sizeBytes: number;
-    /**
-     * Sourcelocator
-     */
-    sourceLocator: string;
-    sourceType: SystemPluginSourceType;
-    /**
-     * Updatedat
-     */
-    updatedAt: string;
-    /**
-     * Version
-     */
-    version: string;
-};
-
-/**
- * SystemPluginCatalogItemOut
- */
-export type SystemPluginCatalogItemOut = {
-    admin?: SystemPluginAdminOut | null;
-    /**
-     * Approvedpermissions
-     */
-    approvedPermissions?: Array<string>;
-    /**
-     * Artifactchecksum
-     */
-    artifactChecksum: string;
-    /**
-     * Artifactid
-     */
-    artifactId?: string | null;
-    /**
-     * Availableversion
-     */
-    availableVersion: string;
-    compatibility: SystemPluginCompatibilityOut;
-    /**
-     * Configschema
-     */
-    configSchema?: {
-        [key: string]: JsonValueOutput;
-    };
-    /**
-     * Connectordefinitions
-     */
-    connectorDefinitions?: Array<SystemConnectorDefinitionOut>;
-    /**
-     * Currentjobid
-     */
-    currentJobId?: string | null;
-    /**
-     * Currentoperationid
-     */
-    currentOperationId?: string | null;
-    /**
-     * Desiredenabled
-     */
-    desiredEnabled?: boolean | null;
-    /**
-     * Hasupdate
-     */
-    hasUpdate?: boolean;
-    /**
-     * Installationid
-     */
-    installationId?: string | null;
-    /**
-     * Installedversion
-     */
-    installedVersion?: string | null;
-    lifecycleState?: PluginLifecycleState | null;
-    /**
-     * Manifestdigest
-     */
-    manifestDigest: string;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Packagechecksum
-     */
-    packageChecksum: string;
-    packageState?: PackageState | null;
-    /**
-     * Permissions
-     */
-    permissions?: Array<string>;
-    processState?: ProcessState | null;
-    provenanceStatus: SystemPluginProvenanceStatus;
-    provides: SystemPluginProvidesOut;
-    runtimeActivationState?: PluginRuntimeActivationState | null;
-    /**
-     * Signerfingerprint
-     */
-    signerFingerprint?: string | null;
-    /**
-     * Sourcelocator
-     */
-    sourceLocator: string;
-    sourceType: SystemPluginSourceType;
-};
-
-/**
- * SystemPluginCatalogListOut
- */
-export type SystemPluginCatalogListOut = {
-    /**
-     * Items
-     */
-    items?: Array<SystemPluginCatalogItemOut>;
-};
-
-/**
- * SystemPluginCompatibilityOut
- */
-export type SystemPluginCompatibilityOut = {
-    /**
-     * Compatible
-     */
-    compatible: boolean;
-    /**
-     * Issues
-     */
-    issues?: Array<string>;
-    /**
-     * Platformrequirement
-     */
-    platformRequirement?: string | null;
-    /**
-     * Pythonrequirement
-     */
-    pythonRequirement?: string | null;
-};
-
-/**
- * SystemPluginConfigurationOut
- */
-export type SystemPluginConfigurationOut = {
-    /**
-     * Pluginname
-     */
-    pluginName: string;
-    /**
-     * Restartrequired
-     */
-    restartRequired: boolean;
-    /**
-     * Revision
-     */
-    revision: number;
-    /**
-     * Secretreferences
-     */
-    secretReferences?: {
-        [key: string]: string;
-    };
-    /**
-     * Updatedat
-     */
-    updatedAt: string;
-    /**
-     * Values
-     */
-    values?: {
-        [key: string]: JsonValueOutput;
-    };
-};
-
-/**
- * SystemPluginConfigurationPatch
- */
-export type SystemPluginConfigurationPatch = {
-    /**
-     * Expectedrevision
-     */
-    expectedRevision: number;
-    /**
-     * Secretreferences
-     */
-    secretReferences: {
-        [key: string]: string;
-    };
-    /**
-     * Values
-     */
-    values: {
-        [key: string]: JsonValueInput;
-    };
-};
-
-/**
- * SystemPluginDetailOut
- */
-export type SystemPluginDetailOut = {
-    admin?: SystemPluginAdminOut | null;
-    /**
-     * Approvedpermissions
-     */
-    approvedPermissions?: Array<string>;
-    /**
-     * Artifactchecksum
-     */
-    artifactChecksum: string;
-    /**
-     * Artifactid
-     */
-    artifactId?: string | null;
-    /**
-     * Availableversion
-     */
-    availableVersion: string;
-    compatibility: SystemPluginCompatibilityOut;
-    /**
-     * Configschema
-     */
-    configSchema?: {
-        [key: string]: JsonValueOutput;
-    };
-    /**
-     * Connectordefinitions
-     */
-    connectorDefinitions?: Array<SystemConnectorDefinitionOut>;
-    /**
-     * Currentjobid
-     */
-    currentJobId?: string | null;
-    /**
-     * Currentoperationid
-     */
-    currentOperationId?: string | null;
-    /**
-     * Desiredenabled
-     */
-    desiredEnabled?: boolean | null;
-    /**
-     * Hasupdate
-     */
-    hasUpdate?: boolean;
-    /**
-     * Installationid
-     */
-    installationId?: string | null;
-    /**
-     * Installedversion
-     */
-    installedVersion?: string | null;
-    lifecycleState?: PluginLifecycleState | null;
-    /**
-     * Manifestdigest
-     */
-    manifestDigest: string;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Packagechecksum
-     */
-    packageChecksum: string;
-    packageState?: PackageState | null;
-    /**
-     * Permissions
-     */
-    permissions?: Array<string>;
-    processState?: ProcessState | null;
-    provenanceStatus: SystemPluginProvenanceStatus;
-    provides: SystemPluginProvidesOut;
-    /**
-     * Recentoperations
-     */
-    recentOperations?: Array<SystemPluginOperationOut>;
-    runtimeActivationState?: PluginRuntimeActivationState | null;
-    /**
-     * Signerfingerprint
-     */
-    signerFingerprint?: string | null;
-    /**
-     * Sourcelocator
-     */
-    sourceLocator: string;
-    sourceType: SystemPluginSourceType;
-};
-
-/**
- * SystemPluginInstallationCreateRequest
- */
-export type SystemPluginInstallationCreateRequest = {
-    /**
-     * Approvedpermissions
-     */
-    approvedPermissions?: Array<string>;
-    /**
-     * Artifactid
-     */
-    artifactId?: string | null;
-    /**
-     * Pluginname
-     */
-    pluginName?: string | null;
-    sourceType: SystemPluginSourceType;
-    /**
-     * Targetversion
-     */
-    targetVersion?: string | null;
-};
-
-/**
- * SystemPluginLifecycleRequest
- */
-export type SystemPluginLifecycleRequest = {
-    /**
-     * Approvedpermissions
-     */
-    approvedPermissions?: Array<string>;
-    /**
-     * Targetversion
-     */
-    targetVersion?: string | null;
-};
-
-/**
- * SystemPluginListItemOut
- */
-export type SystemPluginListItemOut = {
-    admin?: SystemPluginAdminOut | null;
-    /**
-     * Configschema
-     */
-    configSchema?: {
-        [key: string]: JsonValueOutput;
-    };
-    /**
-     * Connectordefinitions
-     */
-    connectorDefinitions?: Array<SystemConnectorDefinitionOut>;
-    /**
-     * Name
-     */
-    name: string;
-    packageState: PackageState;
-    /**
-     * Permissions
-     */
-    permissions?: Array<string>;
-    processState: ProcessState;
-    provides: SystemPluginProvidesOut;
-    /**
-     * Version
-     */
-    version: string;
-};
-
-/**
- * SystemPluginListOut
- */
-export type SystemPluginListOut = {
-    /**
-     * Plugins
-     */
-    plugins?: Array<SystemPluginListItemOut>;
-};
-
-/**
- * SystemPluginOperationOut
- */
-export type SystemPluginOperationOut = {
-    /**
-     * Activationverified
-     */
-    activationVerified: boolean;
-    /**
-     * Completedat
-     */
-    completedAt: string | null;
-    /**
-     * Failurecode
-     */
-    failureCode: string | null;
-    /**
-     * Failuresummary
-     */
-    failureSummary: string | null;
-    /**
-     * Id
-     *
-     * ID
-     */
-    id: string;
-    /**
-     * Jobid
-     */
-    jobId: string | null;
-    kind: PluginOperationKind;
-    /**
-     * Migrationwarnings
-     */
-    migrationWarnings: Array<string>;
-    /**
-     * Permissiondiff
-     */
-    permissionDiff: {
-        [key: string]: JsonValueOutput;
-    };
-    /**
-     * Phase
-     */
-    phase: string;
-    /**
-     * Pluginname
-     */
-    pluginName: string;
-    /**
-     * Progresscompleted
-     */
-    progressCompleted: number;
-    /**
-     * Progresstotal
-     */
-    progressTotal: number | null;
-    /**
-     * Requestedbyuserid
-     */
-    requestedByUserId: string;
-    /**
-     * Requestedversion
-     */
-    requestedVersion: string | null;
-    /**
-     * Restartrequired
-     */
-    restartRequired: boolean;
-    /**
-     * Retryable
-     */
-    retryable: boolean;
-    /**
-     * Startedat
-     */
-    startedAt: string | null;
-    state: PluginOperationState;
-};
-
-/**
- * SystemPluginProvenanceStatus
- */
-export type SystemPluginProvenanceStatus = 'verified';
-
-/**
- * SystemPluginProvidesOut
- */
-export type SystemPluginProvidesOut = {
-    /**
-     * Connectors
-     */
-    connectors?: Array<string>;
-    /**
-     * Contenttypes
-     */
-    contentTypes?: Array<string>;
-    /**
-     * Middlewares
-     */
-    middlewares?: Array<string>;
-    /**
-     * Providers
-     */
-    providers?: Array<string>;
-    /**
-     * Services
-     */
-    services?: Array<string>;
-};
-
-/**
- * SystemPluginSourceType
- */
-export type SystemPluginSourceType = 'bundled' | 'catalog' | 'manual_upload';
 
 /**
  * SystemRuntimeCapabilities
@@ -34686,7 +28585,7 @@ export type SystemRuntimeOut = {
      */
     capabilities: SystemRuntimeCapabilities;
     /**
-     * Public instance setup state derived from install.lock and super-admin truth.
+     * Public instance setup state derived from install.lock and the Instance Owner singleton.
      */
     instanceSetup: SystemInstanceSetupOut;
 };
@@ -34946,6 +28845,26 @@ export type TwoFactorStatusOut = {
      * Whether 2FA is enabled.
      */
     enabled: boolean;
+};
+
+/**
+ * UnlimitedFeatureAccessCapacity
+ */
+export type UnlimitedFeatureAccessCapacity = {
+    /**
+     * Kind
+     */
+    kind?: 'unlimited';
+};
+
+/**
+ * UnlimitedFeatureAccessCapacityOut
+ */
+export type UnlimitedFeatureAccessCapacityOut = {
+    /**
+     * Kind
+     */
+    kind?: 'unlimited';
 };
 
 /**
@@ -35350,10 +29269,6 @@ export type UserProfile = {
      * ID
      */
     id: string;
-    /**
-     * Issuperadmin
-     */
-    isSuperAdmin?: boolean;
     /**
      * Username
      */
@@ -36290,126 +30205,14 @@ export type WorkspaceAssignRoleToMembersResult = {
 };
 
 /**
- * WorkspaceCommerceDirectoryDataState
- */
-export type WorkspaceCommerceDirectoryDataState = 'complete' | 'partial' | 'missing';
-
-/**
- * WorkspaceCommerceDirectoryOut
- */
-export type WorkspaceCommerceDirectoryOut = {
-    billingInterval?: BillingCycle | null;
-    /**
-     * Billingprovider
-     */
-    billingProvider?: string | null;
-    /**
-     * Cancelatperiodend
-     */
-    cancelAtPeriodEnd?: boolean | null;
-    /**
-     * Capturedat
-     */
-    capturedAt?: string | null;
-    creditRefreshInterval?: CreditRefreshInterval | null;
-    credits?: WorkspaceCreditsOut | null;
-    /**
-     * Currentperiodend
-     */
-    currentPeriodEnd?: string | null;
-    /**
-     * Currentperiodstart
-     */
-    currentPeriodStart?: string | null;
-    dataState: WorkspaceCommerceDirectoryDataState;
-    /**
-     * Plancode
-     */
-    planCode?: string | null;
-    /**
-     * Planname
-     */
-    planName?: string | null;
-    planTier?: CommercePlanTier | null;
-    /**
-     * Renewalat
-     */
-    renewalAt?: string | null;
-    risk: WorkspaceCommerceDirectoryRisk;
-    subscriptionStatus?: SubscriptionStatus | null;
-    usage?: WorkspaceCommerceDirectoryUsageOut | null;
-};
-
-/**
- * WorkspaceCommerceDirectoryRisk
- */
-export type WorkspaceCommerceDirectoryRisk = 'healthy' | 'attention_required' | 'data_missing';
-
-/**
- * WorkspaceCommerceDirectoryUsageOut
- */
-export type WorkspaceCommerceDirectoryUsageOut = {
-    /**
-     * Completiontokens
-     */
-    completionTokens: number;
-    coverage: WorkspaceCommerceUsageCoverage;
-    /**
-     * Observedfrom
-     */
-    observedFrom?: string | null;
-    /**
-     * Observedto
-     */
-    observedTo?: string | null;
-    /**
-     * Periodcostmicros
-     */
-    periodCostMicros: number;
-    /**
-     * Prompttokens
-     */
-    promptTokens: number;
-    /**
-     * Requests
-     */
-    requests: number;
-    /**
-     * Windowend
-     */
-    windowEnd: string;
-    /**
-     * Windowstart
-     */
-    windowStart: string;
-};
-
-/**
  * WorkspaceCommerceOverviewOut
  */
 export type WorkspaceCommerceOverviewOut = {
-    /**
-     * Billingmode
-     */
-    billingMode?: string;
-    /**
-     * Billingprovider
-     */
-    billingProvider: string;
-    /**
-     * Checkoutenabled
-     */
-    checkoutEnabled: boolean;
     credits: WorkspaceCreditsOut;
-    plan: CommercePlanOut;
+    planRevision: CommercePlanRevisionOut;
     subscription: WorkspaceSubscriptionOut;
     usage: WorkspaceCommerceUsageOut;
 };
-
-/**
- * WorkspaceCommerceUsageCoverage
- */
-export type WorkspaceCommerceUsageCoverage = 'daily_rollup' | 'no_observed_usage';
 
 /**
  * WorkspaceCommerceUsageOut
@@ -36446,14 +30249,6 @@ export type WorkspaceCreditsOut = {
      */
     balance: number;
     /**
-     * Lifetimegranted
-     */
-    lifetimeGranted: number;
-    /**
-     * Lifetimespent
-     */
-    lifetimeSpent: number;
-    /**
      * Nextrefreshat
      */
     nextRefreshAt: string | null;
@@ -36461,14 +30256,6 @@ export type WorkspaceCreditsOut = {
      * Periodend
      */
     periodEnd: string;
-    /**
-     * Periodgranted
-     */
-    periodGranted: number;
-    /**
-     * Periodspent
-     */
-    periodSpent: number;
     /**
      * Periodstart
      */
@@ -37512,6 +31299,48 @@ export type WorkspaceManageTemplate = 'blog' | 'website' | 'blank';
 export type WorkspaceMembershipStatus = 'active' | 'invited' | 'disabled';
 
 /**
+ * WorkspaceOwnershipTransferOut
+ */
+export type WorkspaceOwnershipTransferOut = {
+    /**
+     * Correlationid
+     *
+     * Audit correlation id for the completed transfer.
+     */
+    correlationId: string;
+    /**
+     * Nextowneruserid
+     *
+     * New Workspace Owner user id.
+     */
+    nextOwnerUserId: string;
+    /**
+     * Previousowneruserid
+     *
+     * Previous Workspace Owner user id.
+     */
+    previousOwnerUserId: string;
+    /**
+     * Workspaceid
+     *
+     * Workspace id.
+     */
+    workspaceId: string;
+};
+
+/**
+ * WorkspaceOwnershipTransferRequest
+ */
+export type WorkspaceOwnershipTransferRequest = {
+    /**
+     * Nextowneruserid
+     *
+     * Active Workspace member receiving ownership.
+     */
+    nextOwnerUserId: string;
+};
+
+/**
  * WorkspacePermissionActionOut
  */
 export type WorkspacePermissionActionOut = {
@@ -37762,10 +31591,6 @@ export type WorkspacePermissionOut = {
  */
 export type WorkspacePlanCatalogOut = {
     /**
-     * Billingmode
-     */
-    billingMode?: string;
-    /**
      * Billingprovider
      */
     billingProvider: string;
@@ -37788,10 +31613,6 @@ export type WorkspacePlanOptionOut = {
      */
     canSelect: boolean;
     /**
-     * Code
-     */
-    code: string;
-    /**
      * Createdat
      *
      * Created at.
@@ -37811,13 +31632,13 @@ export type WorkspacePlanOptionOut = {
      */
     currency: string;
     /**
-     * Description
+     * Descriptioni18Nkey
      */
-    description: string;
+    descriptionI18NKey: string;
     /**
-     * Features
+     * Entitlements
      */
-    features: Array<PlanFeature>;
+    entitlements: Array<PlanRevisionEntitlementOut>;
     /**
      * Id
      *
@@ -37825,34 +31646,37 @@ export type WorkspacePlanOptionOut = {
      */
     id: string;
     /**
-     * Isactive
-     */
-    isActive: boolean;
-    /**
      * Iscurrent
      */
     isCurrent: boolean;
     /**
-     * Isdefault
+     * Isselling
      */
-    isDefault: boolean;
+    isSelling: boolean;
     /**
-     * Name
+     * Namei18Nkey
      */
-    name: string;
+    nameI18NKey: string;
     /**
-     * Pricemonthlymicros
+     * Plancode
      */
-    priceMonthlyMicros: number;
+    planCode: string;
     /**
-     * Priceyearlymicros
+     * Planid
      */
-    priceYearlyMicros: number;
+    planId: string;
     /**
-     * Sortorder
+     * Prices
      */
-    sortOrder: number;
-    tier: CommercePlanTier;
+    prices: Array<PlanRevisionPriceOut>;
+    /**
+     * Resourceallowances
+     */
+    resourceAllowances: Array<PlanRevisionResourceAllowanceOut>;
+    /**
+     * Sequence
+     */
+    sequence: number;
     /**
      * Updatedat
      *
@@ -38067,7 +31891,7 @@ export type WorkspaceSkillsCapabilitiesOut = {
  * WorkspaceSubscriptionOut
  */
 export type WorkspaceSubscriptionOut = {
-    billingInterval: BillingCycle;
+    billingCycle: BillingCycle;
     /**
      * Cancelatperiodend
      */
@@ -38092,37 +31916,21 @@ export type WorkspaceSubscriptionOut = {
      * ID
      */
     id: string;
+    /**
+     * Planrevisionid
+     */
+    planRevisionId: string;
     status: SubscriptionStatus;
+    /**
+     * Subscriptionrevision
+     */
+    subscriptionRevision: number;
     /**
      * Updatedat
      *
      * Updated at.
      */
     updatedAt: string;
-};
-
-/**
- * WorkspaceSubscriptionSetRequest
- */
-export type WorkspaceSubscriptionSetRequest = {
-    billingInterval?: BillingCycle;
-    /**
-     * Cancelatperiodend
-     */
-    cancelAtPeriodEnd?: boolean;
-    /**
-     * Currentperiodend
-     */
-    currentPeriodEnd?: string | null;
-    /**
-     * Currentperiodstart
-     */
-    currentPeriodStart?: string | null;
-    /**
-     * Plancode
-     */
-    planCode: string;
-    status?: SubscriptionStatus;
 };
 
 /**
@@ -38153,6 +31961,12 @@ export type WorkspaceTeamMemberOut = {
      * ID
      */
     id: string;
+    /**
+     * Isowner
+     *
+     * Whether this user is the canonical workspace owner.
+     */
+    isOwner: boolean;
     /**
      * Lastloginat
      *
@@ -40756,6 +34570,22 @@ export type DomainWorkspacesMarkMyNotificationReadResponses = {
 };
 
 export type DomainWorkspacesMarkMyNotificationReadResponse = DomainWorkspacesMarkMyNotificationReadResponses[keyof DomainWorkspacesMarkMyNotificationReadResponses];
+
+export type DomainMePlatformEntryEligibilityGetPlatformEntryEligibilityData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/platform-entry-eligibility';
+};
+
+export type DomainMePlatformEntryEligibilityGetPlatformEntryEligibilityResponses = {
+    /**
+     * Successful Response
+     */
+    200: PlatformEntryEligibilityOut;
+};
+
+export type DomainMePlatformEntryEligibilityGetPlatformEntryEligibilityResponse = DomainMePlatformEntryEligibilityGetPlatformEntryEligibilityResponses[keyof DomainMePlatformEntryEligibilityGetPlatformEntryEligibilityResponses];
 
 export type DomainWorkspacesListMyWorkspacesData = {
     body?: never;
@@ -48382,4146 +42212,21 @@ export type DomainSitesUpsertSiteSettingResponses = {
 
 export type DomainSitesUpsertSiteSettingResponse = DomainSitesUpsertSiteSettingResponses[keyof DomainSitesUpsertSiteSettingResponses];
 
-export type InternalSystemListActivityData = {
-    body?: never;
-    path?: never;
-    query?: {
-        ordering?: AuditEventOrdering;
-        /**
-         * Occurredfrom
-         */
-        occurredFrom?: string | null;
-        /**
-         * Occurredto
-         */
-        occurredTo?: string | null;
-        /**
-         * Eventname
-         */
-        eventName?: string | null;
-        /**
-         * Workspaceid
-         */
-        workspaceId?: string | null;
-        /**
-         * Projectid
-         */
-        projectId?: string | null;
-        /**
-         * Actoruserid
-         */
-        actorUserId?: string | null;
-        /**
-         * Subjectuserid
-         */
-        subjectUserId?: string | null;
-        /**
-         * Entitytype
-         */
-        entityType?: string | null;
-        /**
-         * Entityid
-         */
-        entityId?: string | null;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/system/activity';
-};
-
-export type InternalSystemListActivityErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemListActivityError = InternalSystemListActivityErrors[keyof InternalSystemListActivityErrors];
-
-export type InternalSystemListActivityResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataAuditEventOut;
-};
-
-export type InternalSystemListActivityResponse = InternalSystemListActivityResponses[keyof InternalSystemListActivityResponses];
-
-export type InternalSystemGetActivityDetailData = {
-    body?: never;
-    path: {
-        /**
-         * Event Id
-         */
-        event_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/activity/{event_id}';
-};
-
-export type InternalSystemGetActivityDetailErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemGetActivityDetailError = InternalSystemGetActivityDetailErrors[keyof InternalSystemGetActivityDetailErrors];
-
-export type InternalSystemGetActivityDetailResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAuditEventOut;
-};
-
-export type InternalSystemGetActivityDetailResponse = InternalSystemGetActivityDetailResponses[keyof InternalSystemGetActivityDetailResponses];
-
-export type InternalSystemListSystemAgentAssignmentsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Workspaceid
-         */
-        workspaceId?: string | null;
-        /**
-         * Projectid
-         */
-        projectId?: string | null;
-        /**
-         * Agentid
-         */
-        agentId?: string | null;
-        /**
-         * Enabled
-         */
-        enabled?: boolean | null;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/system/agent-assignments';
-};
-
-export type InternalSystemListSystemAgentAssignmentsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemListSystemAgentAssignmentsError = InternalSystemListSystemAgentAssignmentsErrors[keyof InternalSystemListSystemAgentAssignmentsErrors];
-
-export type InternalSystemListSystemAgentAssignmentsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataSystemAgentAssignmentOut;
-};
-
-export type InternalSystemListSystemAgentAssignmentsResponse = InternalSystemListSystemAgentAssignmentsResponses[keyof InternalSystemListSystemAgentAssignmentsResponses];
-
-export type InternalSystemCreateSystemAgentAssignmentData = {
-    body: SystemAgentAssignmentCreateRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/system/agent-assignments';
-};
-
-export type InternalSystemCreateSystemAgentAssignmentErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemCreateSystemAgentAssignmentError = InternalSystemCreateSystemAgentAssignmentErrors[keyof InternalSystemCreateSystemAgentAssignmentErrors];
-
-export type InternalSystemCreateSystemAgentAssignmentResponses = {
-    /**
-     * Successful Response
-     */
-    201: ResponseModelSystemAgentAssignmentOut;
-};
-
-export type InternalSystemCreateSystemAgentAssignmentResponse = InternalSystemCreateSystemAgentAssignmentResponses[keyof InternalSystemCreateSystemAgentAssignmentResponses];
-
-export type InternalSystemUpdateSystemAgentAssignmentData = {
-    body: SystemAgentAssignmentUpdateRequest;
-    path: {
-        /**
-         * Assignment Id
-         */
-        assignment_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/agent-assignments/{assignment_id}';
-};
-
-export type InternalSystemUpdateSystemAgentAssignmentErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemUpdateSystemAgentAssignmentError = InternalSystemUpdateSystemAgentAssignmentErrors[keyof InternalSystemUpdateSystemAgentAssignmentErrors];
-
-export type InternalSystemUpdateSystemAgentAssignmentResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSystemAgentAssignmentOut;
-};
-
-export type InternalSystemUpdateSystemAgentAssignmentResponse = InternalSystemUpdateSystemAgentAssignmentResponses[keyof InternalSystemUpdateSystemAgentAssignmentResponses];
-
-export type InternalSystemListSystemAgentsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Q
-         */
-        q?: string | null;
-        /**
-         * Lifecyclestate
-         */
-        lifecycleState?: 'active' | 'disabled' | 'archived' | null;
-        /**
-         * Scope
-         */
-        scope?: 'system' | 'workspace' | null;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/system/agents';
-};
-
-export type InternalSystemListSystemAgentsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemListSystemAgentsError = InternalSystemListSystemAgentsErrors[keyof InternalSystemListSystemAgentsErrors];
-
-export type InternalSystemListSystemAgentsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataSystemAgentDefinitionSummaryOut;
-};
-
-export type InternalSystemListSystemAgentsResponse = InternalSystemListSystemAgentsResponses[keyof InternalSystemListSystemAgentsResponses];
-
-export type InternalSystemCreateSystemAgentData = {
-    body: SystemAgentDefinitionCreateRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/system/agents';
-};
-
-export type InternalSystemCreateSystemAgentErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemCreateSystemAgentError = InternalSystemCreateSystemAgentErrors[keyof InternalSystemCreateSystemAgentErrors];
-
-export type InternalSystemCreateSystemAgentResponses = {
-    /**
-     * Successful Response
-     */
-    201: ResponseModelSystemAgentDefinitionDetailOut;
-};
-
-export type InternalSystemCreateSystemAgentResponse = InternalSystemCreateSystemAgentResponses[keyof InternalSystemCreateSystemAgentResponses];
-
-export type InternalSystemGetSystemAgentCapabilitiesData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/system/agents/capabilities';
-};
-
-export type InternalSystemGetSystemAgentCapabilitiesResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSystemAgentCatalogCapabilitiesOut;
-};
-
-export type InternalSystemGetSystemAgentCapabilitiesResponse = InternalSystemGetSystemAgentCapabilitiesResponses[keyof InternalSystemGetSystemAgentCapabilitiesResponses];
-
-export type InternalSystemGetSystemAgentData = {
-    body?: never;
-    path: {
-        /**
-         * Definition Id
-         */
-        definition_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/agents/{definition_id}';
-};
-
-export type InternalSystemGetSystemAgentErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemGetSystemAgentError = InternalSystemGetSystemAgentErrors[keyof InternalSystemGetSystemAgentErrors];
-
-export type InternalSystemGetSystemAgentResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSystemAgentDefinitionDetailOut;
-};
-
-export type InternalSystemGetSystemAgentResponse = InternalSystemGetSystemAgentResponses[keyof InternalSystemGetSystemAgentResponses];
-
-export type InternalSystemUpdateSystemAgentData = {
-    body: SystemAgentDefinitionUpdateRequest;
-    path: {
-        /**
-         * Definition Id
-         */
-        definition_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/agents/{definition_id}';
-};
-
-export type InternalSystemUpdateSystemAgentErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemUpdateSystemAgentError = InternalSystemUpdateSystemAgentErrors[keyof InternalSystemUpdateSystemAgentErrors];
-
-export type InternalSystemUpdateSystemAgentResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSystemAgentDefinitionDetailOut;
-};
-
-export type InternalSystemUpdateSystemAgentResponse = InternalSystemUpdateSystemAgentResponses[keyof InternalSystemUpdateSystemAgentResponses];
-
-export type InternalSystemListSystemAgentVersionsData = {
-    body?: never;
-    path: {
-        /**
-         * Definition Id
-         */
-        definition_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/agents/{definition_id}/versions';
-};
-
-export type InternalSystemListSystemAgentVersionsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemListSystemAgentVersionsError = InternalSystemListSystemAgentVersionsErrors[keyof InternalSystemListSystemAgentVersionsErrors];
-
-export type InternalSystemListSystemAgentVersionsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSystemAgentVersionListOut;
-};
-
-export type InternalSystemListSystemAgentVersionsResponse = InternalSystemListSystemAgentVersionsResponses[keyof InternalSystemListSystemAgentVersionsResponses];
-
-export type InternalSystemCreateSystemAgentVersionData = {
-    body: AgentVersionCreateRequest;
-    path: {
-        /**
-         * Definition Id
-         */
-        definition_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/agents/{definition_id}/versions';
-};
-
-export type InternalSystemCreateSystemAgentVersionErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemCreateSystemAgentVersionError = InternalSystemCreateSystemAgentVersionErrors[keyof InternalSystemCreateSystemAgentVersionErrors];
-
-export type InternalSystemCreateSystemAgentVersionResponses = {
-    /**
-     * Successful Response
-     */
-    201: ResponseModelSystemAgentVersionOut;
-};
-
-export type InternalSystemCreateSystemAgentVersionResponse = InternalSystemCreateSystemAgentVersionResponses[keyof InternalSystemCreateSystemAgentVersionResponses];
-
-export type InternalSystemRetireSystemAgentVersionData = {
-    body: AgentVersionRetireRequest;
-    path: {
-        /**
-         * Definition Id
-         */
-        definition_id: string;
-        /**
-         * Version Id
-         */
-        version_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/agents/{definition_id}/versions/{version_id}';
-};
-
-export type InternalSystemRetireSystemAgentVersionErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemRetireSystemAgentVersionError = InternalSystemRetireSystemAgentVersionErrors[keyof InternalSystemRetireSystemAgentVersionErrors];
-
-export type InternalSystemRetireSystemAgentVersionResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSystemAgentVersionOut;
-};
-
-export type InternalSystemRetireSystemAgentVersionResponse = InternalSystemRetireSystemAgentVersionResponses[keyof InternalSystemRetireSystemAgentVersionResponses];
-
-export type InternalSystemListSystemAiProvidersData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/system/ai/providers';
-};
-
-export type InternalSystemListSystemAiProvidersResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSystemAiProviderListOut;
-};
-
-export type InternalSystemListSystemAiProvidersResponse = InternalSystemListSystemAiProvidersResponses[keyof InternalSystemListSystemAiProvidersResponses];
-
-export type InternalSystemCreateSystemAiProviderData = {
-    body: SystemAiProviderCreateRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/system/ai/providers';
-};
-
-export type InternalSystemCreateSystemAiProviderErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemCreateSystemAiProviderError = InternalSystemCreateSystemAiProviderErrors[keyof InternalSystemCreateSystemAiProviderErrors];
-
-export type InternalSystemCreateSystemAiProviderResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSystemAiProviderOut;
-};
-
-export type InternalSystemCreateSystemAiProviderResponse = InternalSystemCreateSystemAiProviderResponses[keyof InternalSystemCreateSystemAiProviderResponses];
-
-export type InternalSystemDeleteSystemAiProviderData = {
-    body?: never;
-    path: {
-        /**
-         * Provider Id
-         */
-        provider_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/ai/providers/{provider_id}';
-};
-
-export type InternalSystemDeleteSystemAiProviderErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemDeleteSystemAiProviderError = InternalSystemDeleteSystemAiProviderErrors[keyof InternalSystemDeleteSystemAiProviderErrors];
-
-export type InternalSystemDeleteSystemAiProviderResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNoneType;
-};
-
-export type InternalSystemDeleteSystemAiProviderResponse = InternalSystemDeleteSystemAiProviderResponses[keyof InternalSystemDeleteSystemAiProviderResponses];
-
-export type InternalSystemUpdateSystemAiProviderData = {
-    body: SystemAiProviderUpdateRequest;
-    path: {
-        /**
-         * Provider Id
-         */
-        provider_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/ai/providers/{provider_id}';
-};
-
-export type InternalSystemUpdateSystemAiProviderErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemUpdateSystemAiProviderError = InternalSystemUpdateSystemAiProviderErrors[keyof InternalSystemUpdateSystemAiProviderErrors];
-
-export type InternalSystemUpdateSystemAiProviderResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSystemAiProviderOut;
-};
-
-export type InternalSystemUpdateSystemAiProviderResponse = InternalSystemUpdateSystemAiProviderResponses[keyof InternalSystemUpdateSystemAiProviderResponses];
-
-export type InternalSystemListCommercePlansData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Includeinactive
-         */
-        includeInactive?: boolean;
-    };
-    url: '/api/v1/system/commerce/plans';
-};
-
-export type InternalSystemListCommercePlansErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemListCommercePlansError = InternalSystemListCommercePlansErrors[keyof InternalSystemListCommercePlansErrors];
-
-export type InternalSystemListCommercePlansResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelCommercePlanCatalogOut;
-};
-
-export type InternalSystemListCommercePlansResponse = InternalSystemListCommercePlansResponses[keyof InternalSystemListCommercePlansResponses];
-
-export type InternalSystemUpsertCommercePlanData = {
-    body: CommercePlanUpsertRequest;
-    path: {
-        /**
-         * Code
-         */
-        code: string;
-    };
-    query?: never;
-    url: '/api/v1/system/commerce/plans/{code}';
-};
-
-export type InternalSystemUpsertCommercePlanErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemUpsertCommercePlanError = InternalSystemUpsertCommercePlanErrors[keyof InternalSystemUpsertCommercePlanErrors];
-
-export type InternalSystemUpsertCommercePlanResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelCommercePlanOut;
-};
-
-export type InternalSystemUpsertCommercePlanResponse = InternalSystemUpsertCommercePlanResponses[keyof InternalSystemUpsertCommercePlanResponses];
-
-export type InternalSystemGetWorkspaceCommerceOverviewData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/commerce/workspaces/{workspace_id}/overview';
-};
-
-export type InternalSystemGetWorkspaceCommerceOverviewErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemGetWorkspaceCommerceOverviewError = InternalSystemGetWorkspaceCommerceOverviewErrors[keyof InternalSystemGetWorkspaceCommerceOverviewErrors];
-
-export type InternalSystemGetWorkspaceCommerceOverviewResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelWorkspaceCommerceOverviewOut;
-};
-
-export type InternalSystemGetWorkspaceCommerceOverviewResponse = InternalSystemGetWorkspaceCommerceOverviewResponses[keyof InternalSystemGetWorkspaceCommerceOverviewResponses];
-
-export type InternalSystemSetWorkspaceSubscriptionData = {
-    body: WorkspaceSubscriptionSetRequest;
-    path: {
-        /**
-         * Workspace Id
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/commerce/workspaces/{workspace_id}/subscription';
-};
-
-export type InternalSystemSetWorkspaceSubscriptionErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemSetWorkspaceSubscriptionError = InternalSystemSetWorkspaceSubscriptionErrors[keyof InternalSystemSetWorkspaceSubscriptionErrors];
-
-export type InternalSystemSetWorkspaceSubscriptionResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelWorkspaceCommerceOverviewOut;
-};
-
-export type InternalSystemSetWorkspaceSubscriptionResponse = InternalSystemSetWorkspaceSubscriptionResponses[keyof InternalSystemSetWorkspaceSubscriptionResponses];
-
-export type InternalSystemListProjectsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Q
-         *
-         * Search projects by name, slug, or description.
-         */
-        q?: string | null;
-        /**
-         * Ordering
-         *
-         * Ordering fields, for example -created_at or name.
-         */
-        ordering?: string | null;
-        /**
-         * Workspace Id
-         *
-         * Filter by workspace id.
-         */
-        workspace_id?: string | null;
-        /**
-         * Is Active
-         *
-         * Filter by active state.
-         */
-        is_active?: boolean | null;
-        /**
-         * Owner User Id
-         *
-         * Filter by project owner.
-         */
-        owner_user_id?: string | null;
-        /**
-         * Runtime Health
-         *
-         * Filter by derived runtime and deployment health.
-         */
-        runtime_health?: DirectoryProjectHealthState | null;
-        /**
-         * Domain State
-         *
-         * Filter by active domain readiness.
-         */
-        domain_state?: DirectoryProjectDomainState | null;
-        /**
-         * Release State
-         *
-         * Filter by latest release state.
-         */
-        release_state?: DirectoryProjectReleaseState | null;
-        /**
-         * Created From
-         *
-         * Created-at range lower bound, inclusive.
-         */
-        created_from?: string | null;
-        /**
-         * Created To
-         *
-         * Created-at range upper bound, inclusive.
-         */
-        created_to?: string | null;
-        /**
-         * Activity From
-         *
-         * Project-record activity lower bound, inclusive.
-         */
-        activity_from?: string | null;
-        /**
-         * Activity To
-         *
-         * Project-record activity upper bound, inclusive.
-         */
-        activity_to?: string | null;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/system/directory/projects';
-};
-
-export type InternalSystemListProjectsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemListProjectsError = InternalSystemListProjectsErrors[keyof InternalSystemListProjectsErrors];
-
-export type InternalSystemListProjectsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataDirectoryProjectListItemOut;
-};
-
-export type InternalSystemListProjectsResponse = InternalSystemListProjectsResponses[keyof InternalSystemListProjectsResponses];
-
-export type InternalSystemDeleteProjectData = {
-    body: DirectoryDeleteRequest;
-    path: {
-        /**
-         * Project Id
-         */
-        project_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/projects/{project_id}';
-};
-
-export type InternalSystemDeleteProjectErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemDeleteProjectError = InternalSystemDeleteProjectErrors[keyof InternalSystemDeleteProjectErrors];
-
-export type InternalSystemDeleteProjectResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNoneType;
-};
-
-export type InternalSystemDeleteProjectResponse = InternalSystemDeleteProjectResponses[keyof InternalSystemDeleteProjectResponses];
-
-export type InternalSystemGetProjectDetailData = {
-    body?: never;
-    path: {
-        /**
-         * Project Id
-         */
-        project_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/projects/{project_id}';
-};
-
-export type InternalSystemGetProjectDetailErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemGetProjectDetailError = InternalSystemGetProjectDetailErrors[keyof InternalSystemGetProjectDetailErrors];
-
-export type InternalSystemGetProjectDetailResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryProjectDetailOut;
-};
-
-export type InternalSystemGetProjectDetailResponse = InternalSystemGetProjectDetailResponses[keyof InternalSystemGetProjectDetailResponses];
-
-export type InternalSystemUpdateProjectData = {
-    body: DirectoryProjectUpdateRequest;
-    path: {
-        /**
-         * Project Id
-         */
-        project_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/projects/{project_id}';
-};
-
-export type InternalSystemUpdateProjectErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemUpdateProjectError = InternalSystemUpdateProjectErrors[keyof InternalSystemUpdateProjectErrors];
-
-export type InternalSystemUpdateProjectResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryProjectDetailOut;
-};
-
-export type InternalSystemUpdateProjectResponse = InternalSystemUpdateProjectResponses[keyof InternalSystemUpdateProjectResponses];
-
-export type InternalSystemDisableProjectData = {
-    body: AccessRestrictionEnforceRequest;
-    headers: {
-        /**
-         * Idempotency-Key
-         */
-        'Idempotency-Key': string;
-    };
-    path: {
-        /**
-         * Project Id
-         */
-        project_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/projects/{project_id}/disable';
-};
-
-export type InternalSystemDisableProjectErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemDisableProjectError = InternalSystemDisableProjectErrors[keyof InternalSystemDisableProjectErrors];
-
-export type InternalSystemDisableProjectResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryProjectDetailOut;
-};
-
-export type InternalSystemDisableProjectResponse = InternalSystemDisableProjectResponses[keyof InternalSystemDisableProjectResponses];
-
-export type InternalSystemEnableProjectData = {
-    body: AccessRestrictionLiftRequest;
-    headers: {
-        /**
-         * Idempotency-Key
-         */
-        'Idempotency-Key': string;
-    };
-    path: {
-        /**
-         * Project Id
-         */
-        project_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/projects/{project_id}/enable';
-};
-
-export type InternalSystemEnableProjectErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemEnableProjectError = InternalSystemEnableProjectErrors[keyof InternalSystemEnableProjectErrors];
-
-export type InternalSystemEnableProjectResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryProjectDetailOut;
-};
-
-export type InternalSystemEnableProjectResponse = InternalSystemEnableProjectResponses[keyof InternalSystemEnableProjectResponses];
-
-export type InternalSystemGetProjectOperationsData = {
-    body?: never;
-    path: {
-        /**
-         * Project Id
-         */
-        project_id: string;
-    };
-    query?: {
-        /**
-         * Previewsize
-         */
-        previewSize?: number;
-    };
-    url: '/api/v1/system/directory/projects/{project_id}/operations';
-};
-
-export type InternalSystemGetProjectOperationsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemGetProjectOperationsError = InternalSystemGetProjectOperationsErrors[keyof InternalSystemGetProjectOperationsErrors];
-
-export type InternalSystemGetProjectOperationsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryProjectOperationsOut;
-};
-
-export type InternalSystemGetProjectOperationsResponse = InternalSystemGetProjectOperationsResponses[keyof InternalSystemGetProjectOperationsResponses];
-
-export type InternalSystemListUsersData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Q
-         *
-         * Search users by username, email, or display name.
-         */
-        q?: string | null;
-        /**
-         * Ordering
-         *
-         * Ordering fields, for example -created_at or username.
-         */
-        ordering?: string | null;
-        /**
-         * Status
-         *
-         * Filter by account status.
-         */
-        status?: UserStatus | null;
-        /**
-         * Is Super Admin
-         *
-         * Filter by super admin permission.
-         */
-        is_super_admin?: boolean | null;
-        /**
-         * Has Password
-         *
-         * Filter by local password configuration.
-         */
-        has_password?: boolean | null;
-        /**
-         * Two Factor Enabled
-         *
-         * Filter by two-factor authentication.
-         */
-        two_factor_enabled?: boolean | null;
-        /**
-         * Oauth Provider
-         *
-         * Filter by OAuth linkage. Use any or none.
-         */
-        oauth_provider?: string | null;
-        /**
-         * Created From
-         *
-         * Created-at range lower bound, inclusive.
-         */
-        created_from?: string | null;
-        /**
-         * Created To
-         *
-         * Created-at range upper bound, inclusive.
-         */
-        created_to?: string | null;
-        /**
-         * Last Login From
-         *
-         * Last-login range lower bound, inclusive.
-         */
-        last_login_from?: string | null;
-        /**
-         * Last Login To
-         *
-         * Last-login range upper bound, inclusive.
-         */
-        last_login_to?: string | null;
-        /**
-         * Workspace Member Of Id
-         *
-         * Filter users with an active membership in this workspace.
-         */
-        workspace_member_of_id?: string | null;
-        /**
-         * Project Member Of Id
-         *
-         * Filter users with a membership in this project.
-         */
-        project_member_of_id?: string | null;
-        /**
-         * Owned Workspace Id
-         *
-         * Filter by the authoritative owner of this workspace.
-         */
-        owned_workspace_id?: string | null;
-        /**
-         * Owned Project Id
-         *
-         * Filter by the current project-owner projection.
-         */
-        owned_project_id?: string | null;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/system/directory/users';
-};
-
-export type InternalSystemListUsersErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemListUsersError = InternalSystemListUsersErrors[keyof InternalSystemListUsersErrors];
-
-export type InternalSystemListUsersResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataDirectoryUserListItemOut;
-};
-
-export type InternalSystemListUsersResponse = InternalSystemListUsersResponses[keyof InternalSystemListUsersResponses];
-
-export type InternalSystemDeleteUserAccountData = {
-    body?: never;
-    path: {
-        /**
-         * User Id
-         */
-        user_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/users/{user_id}';
-};
-
-export type InternalSystemDeleteUserAccountErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemDeleteUserAccountError = InternalSystemDeleteUserAccountErrors[keyof InternalSystemDeleteUserAccountErrors];
-
-export type InternalSystemDeleteUserAccountResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNoneType;
-};
-
-export type InternalSystemDeleteUserAccountResponse = InternalSystemDeleteUserAccountResponses[keyof InternalSystemDeleteUserAccountResponses];
-
-export type InternalSystemGetUserDetailData = {
-    body?: never;
-    path: {
-        /**
-         * User Id
-         */
-        user_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/users/{user_id}';
-};
-
-export type InternalSystemGetUserDetailErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemGetUserDetailError = InternalSystemGetUserDetailErrors[keyof InternalSystemGetUserDetailErrors];
-
-export type InternalSystemGetUserDetailResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryUserDetailOut;
-};
-
-export type InternalSystemGetUserDetailResponse = InternalSystemGetUserDetailResponses[keyof InternalSystemGetUserDetailResponses];
-
-export type InternalSystemUpdateUserData = {
-    body: DirectoryUserUpdateRequest;
-    path: {
-        /**
-         * User Id
-         */
-        user_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/users/{user_id}';
-};
-
-export type InternalSystemUpdateUserErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemUpdateUserError = InternalSystemUpdateUserErrors[keyof InternalSystemUpdateUserErrors];
-
-export type InternalSystemUpdateUserResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryUserDetailOut;
-};
-
-export type InternalSystemUpdateUserResponse = InternalSystemUpdateUserResponses[keyof InternalSystemUpdateUserResponses];
-
-export type InternalSystemInitUserAvatarUploadData = {
-    body: UploadInitRequest;
-    path: {
-        /**
-         * User Id
-         */
-        user_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/users/{user_id}/avatar/uploads/init';
-};
-
-export type InternalSystemInitUserAvatarUploadErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemInitUserAvatarUploadError = InternalSystemInitUserAvatarUploadErrors[keyof InternalSystemInitUserAvatarUploadErrors];
-
-export type InternalSystemInitUserAvatarUploadResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelUploadInitOut;
-};
-
-export type InternalSystemInitUserAvatarUploadResponse = InternalSystemInitUserAvatarUploadResponses[keyof InternalSystemInitUserAvatarUploadResponses];
-
-export type InternalSystemGetUserAvatarUploadStatusData = {
-    body?: never;
-    path: {
-        /**
-         * Upload Id
-         */
-        upload_id: string;
-        /**
-         * User Id
-         */
-        user_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/users/{user_id}/avatar/uploads/{upload_id}';
-};
-
-export type InternalSystemGetUserAvatarUploadStatusErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemGetUserAvatarUploadStatusError = InternalSystemGetUserAvatarUploadStatusErrors[keyof InternalSystemGetUserAvatarUploadStatusErrors];
-
-export type InternalSystemGetUserAvatarUploadStatusResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelUploadStatusOut;
-};
-
-export type InternalSystemGetUserAvatarUploadStatusResponse = InternalSystemGetUserAvatarUploadStatusResponses[keyof InternalSystemGetUserAvatarUploadStatusResponses];
-
-export type InternalSystemAbortUserAvatarUploadData = {
-    body?: never;
-    path: {
-        /**
-         * Upload Id
-         */
-        upload_id: string;
-        /**
-         * User Id
-         */
-        user_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/users/{user_id}/avatar/uploads/{upload_id}/abort';
-};
-
-export type InternalSystemAbortUserAvatarUploadErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemAbortUserAvatarUploadError = InternalSystemAbortUserAvatarUploadErrors[keyof InternalSystemAbortUserAvatarUploadErrors];
-
-export type InternalSystemAbortUserAvatarUploadResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelUploadAbortOut;
-};
-
-export type InternalSystemAbortUserAvatarUploadResponse = InternalSystemAbortUserAvatarUploadResponses[keyof InternalSystemAbortUserAvatarUploadResponses];
-
-export type InternalSystemCompleteUserAvatarUploadData = {
-    body?: never;
-    path: {
-        /**
-         * Upload Id
-         */
-        upload_id: string;
-        /**
-         * User Id
-         */
-        user_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/users/{user_id}/avatar/uploads/{upload_id}/complete';
-};
-
-export type InternalSystemCompleteUserAvatarUploadErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemCompleteUserAvatarUploadError = InternalSystemCompleteUserAvatarUploadErrors[keyof InternalSystemCompleteUserAvatarUploadErrors];
-
-export type InternalSystemCompleteUserAvatarUploadResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelUploadCompleteOut;
-};
-
-export type InternalSystemCompleteUserAvatarUploadResponse = InternalSystemCompleteUserAvatarUploadResponses[keyof InternalSystemCompleteUserAvatarUploadResponses];
-
-export type InternalSystemUploadUserAvatarPartData = {
-    body?: never;
-    headers?: {
-        /**
-         * Content-Length
-         */
-        'Content-Length'?: number | null;
-    };
-    path: {
-        /**
-         * Upload Id
-         */
-        upload_id: string;
-        /**
-         * Part Number
-         */
-        part_number: number;
-        /**
-         * User Id
-         */
-        user_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/users/{user_id}/avatar/uploads/{upload_id}/parts/{part_number}';
-};
-
-export type InternalSystemUploadUserAvatarPartErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemUploadUserAvatarPartError = InternalSystemUploadUserAvatarPartErrors[keyof InternalSystemUploadUserAvatarPartErrors];
-
-export type InternalSystemUploadUserAvatarPartResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNoneType;
-};
-
-export type InternalSystemUploadUserAvatarPartResponse = InternalSystemUploadUserAvatarPartResponses[keyof InternalSystemUploadUserAvatarPartResponses];
-
-export type InternalSystemCommitUserAvatarUploadPartData = {
-    body: UploadPartCommitRequest;
-    path: {
-        /**
-         * Upload Id
-         */
-        upload_id: string;
-        /**
-         * Part Number
-         */
-        part_number: number;
-        /**
-         * User Id
-         */
-        user_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/users/{user_id}/avatar/uploads/{upload_id}/parts/{part_number}/commit';
-};
-
-export type InternalSystemCommitUserAvatarUploadPartErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemCommitUserAvatarUploadPartError = InternalSystemCommitUserAvatarUploadPartErrors[keyof InternalSystemCommitUserAvatarUploadPartErrors];
-
-export type InternalSystemCommitUserAvatarUploadPartResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNoneType;
-};
-
-export type InternalSystemCommitUserAvatarUploadPartResponse = InternalSystemCommitUserAvatarUploadPartResponses[keyof InternalSystemCommitUserAvatarUploadPartResponses];
-
-export type InternalSystemPresignUserAvatarUploadPartData = {
-    body?: never;
-    path: {
-        /**
-         * Upload Id
-         */
-        upload_id: string;
-        /**
-         * Part Number
-         */
-        part_number: number;
-        /**
-         * User Id
-         */
-        user_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/users/{user_id}/avatar/uploads/{upload_id}/parts/{part_number}/presign';
-};
-
-export type InternalSystemPresignUserAvatarUploadPartErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemPresignUserAvatarUploadPartError = InternalSystemPresignUserAvatarUploadPartErrors[keyof InternalSystemPresignUserAvatarUploadPartErrors];
-
-export type InternalSystemPresignUserAvatarUploadPartResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelUploadPartPresignOut;
-};
-
-export type InternalSystemPresignUserAvatarUploadPartResponse = InternalSystemPresignUserAvatarUploadPartResponses[keyof InternalSystemPresignUserAvatarUploadPartResponses];
-
-export type InternalSystemDisableUserData = {
-    body: AccessRestrictionEnforceRequest;
-    headers: {
-        /**
-         * Idempotency-Key
-         */
-        'Idempotency-Key': string;
-    };
-    path: {
-        /**
-         * User Id
-         */
-        user_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/users/{user_id}/disable';
-};
-
-export type InternalSystemDisableUserErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemDisableUserError = InternalSystemDisableUserErrors[keyof InternalSystemDisableUserErrors];
-
-export type InternalSystemDisableUserResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryUserDetailOut;
-};
-
-export type InternalSystemDisableUserResponse = InternalSystemDisableUserResponses[keyof InternalSystemDisableUserResponses];
-
-export type InternalSystemDisableUserTwoFactorData = {
-    body?: never;
-    path: {
-        /**
-         * User Id
-         */
-        user_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/users/{user_id}/disable-two-factor';
-};
-
-export type InternalSystemDisableUserTwoFactorErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemDisableUserTwoFactorError = InternalSystemDisableUserTwoFactorErrors[keyof InternalSystemDisableUserTwoFactorErrors];
-
-export type InternalSystemDisableUserTwoFactorResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryUserDetailOut;
-};
-
-export type InternalSystemDisableUserTwoFactorResponse = InternalSystemDisableUserTwoFactorResponses[keyof InternalSystemDisableUserTwoFactorResponses];
-
-export type InternalSystemEnableUserData = {
-    body: AccessRestrictionLiftRequest;
-    headers: {
-        /**
-         * Idempotency-Key
-         */
-        'Idempotency-Key': string;
-    };
-    path: {
-        /**
-         * User Id
-         */
-        user_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/users/{user_id}/enable';
-};
-
-export type InternalSystemEnableUserErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemEnableUserError = InternalSystemEnableUserErrors[keyof InternalSystemEnableUserErrors];
-
-export type InternalSystemEnableUserResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryUserDetailOut;
-};
-
-export type InternalSystemEnableUserResponse = InternalSystemEnableUserResponses[keyof InternalSystemEnableUserResponses];
-
-export type InternalSystemUnlinkUserOauthIdentityData = {
-    body?: never;
-    path: {
-        /**
-         * User Id
-         */
-        user_id: string;
-        /**
-         * Provider
-         */
-        provider: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/users/{user_id}/oauth-identities/{provider}';
-};
-
-export type InternalSystemUnlinkUserOauthIdentityErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemUnlinkUserOauthIdentityError = InternalSystemUnlinkUserOauthIdentityErrors[keyof InternalSystemUnlinkUserOauthIdentityErrors];
-
-export type InternalSystemUnlinkUserOauthIdentityResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryUserDetailOut;
-};
-
-export type InternalSystemUnlinkUserOauthIdentityResponse = InternalSystemUnlinkUserOauthIdentityResponses[keyof InternalSystemUnlinkUserOauthIdentityResponses];
-
-export type InternalSystemResetUserPasswordData = {
-    body: DirectoryUserResetPasswordRequest;
-    path: {
-        /**
-         * User Id
-         */
-        user_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/users/{user_id}/reset-password';
-};
-
-export type InternalSystemResetUserPasswordErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemResetUserPasswordError = InternalSystemResetUserPasswordErrors[keyof InternalSystemResetUserPasswordErrors];
-
-export type InternalSystemResetUserPasswordResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryUserDetailOut;
-};
-
-export type InternalSystemResetUserPasswordResponse = InternalSystemResetUserPasswordResponses[keyof InternalSystemResetUserPasswordResponses];
-
-export type InternalSystemRevokeUserSessionsData = {
-    body?: never;
-    path: {
-        /**
-         * User Id
-         */
-        user_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/users/{user_id}/revoke-sessions';
-};
-
-export type InternalSystemRevokeUserSessionsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemRevokeUserSessionsError = InternalSystemRevokeUserSessionsErrors[keyof InternalSystemRevokeUserSessionsErrors];
-
-export type InternalSystemRevokeUserSessionsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryUserDetailOut;
-};
-
-export type InternalSystemRevokeUserSessionsResponse = InternalSystemRevokeUserSessionsResponses[keyof InternalSystemRevokeUserSessionsResponses];
-
-export type InternalSystemSendUserResetPasswordEmailData = {
-    body?: never;
-    path: {
-        /**
-         * User Id
-         */
-        user_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/users/{user_id}/send-reset-password-email';
-};
-
-export type InternalSystemSendUserResetPasswordEmailErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemSendUserResetPasswordEmailError = InternalSystemSendUserResetPasswordEmailErrors[keyof InternalSystemSendUserResetPasswordEmailErrors];
-
-export type InternalSystemSendUserResetPasswordEmailResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryUserDetailOut;
-};
-
-export type InternalSystemSendUserResetPasswordEmailResponse = InternalSystemSendUserResetPasswordEmailResponses[keyof InternalSystemSendUserResetPasswordEmailResponses];
-
-export type InternalSystemListWorkspacesData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Q
-         *
-         * Search workspaces by name or description.
-         */
-        q?: string | null;
-        /**
-         * Ordering
-         *
-         * Ordering fields, for example -created_at or name.
-         */
-        ordering?: string | null;
-        /**
-         * Is Archived
-         *
-         * Filter by archive state.
-         */
-        is_archived?: boolean | null;
-        /**
-         * Is Active
-         *
-         * Filter by active state.
-         */
-        is_active?: boolean | null;
-        /**
-         * Owner User Id
-         *
-         * Filter by workspace owner.
-         */
-        owner_user_id?: string | null;
-        /**
-         * Plan Code
-         *
-         * Filter by commerce plan code.
-         */
-        plan_code?: string | null;
-        /**
-         * Subscription Status
-         *
-         * Filter by subscription status.
-         */
-        subscription_status?: SubscriptionStatus | null;
-        /**
-         * Commerce Risk
-         *
-         * Filter by commercial attention state.
-         */
-        commerce_risk?: WorkspaceCommerceDirectoryRisk | null;
-        /**
-         * Created From
-         *
-         * Created-at range lower bound, inclusive.
-         */
-        created_from?: string | null;
-        /**
-         * Created To
-         *
-         * Created-at range upper bound, inclusive.
-         */
-        created_to?: string | null;
-        /**
-         * Activity From
-         *
-         * Workspace-record activity range lower bound, inclusive.
-         */
-        activity_from?: string | null;
-        /**
-         * Activity To
-         *
-         * Workspace-record activity range upper bound, inclusive.
-         */
-        activity_to?: string | null;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/system/directory/workspaces';
-};
-
-export type InternalSystemListWorkspacesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemListWorkspacesError = InternalSystemListWorkspacesErrors[keyof InternalSystemListWorkspacesErrors];
-
-export type InternalSystemListWorkspacesResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataDirectoryWorkspaceListItemOut;
-};
-
-export type InternalSystemListWorkspacesResponse = InternalSystemListWorkspacesResponses[keyof InternalSystemListWorkspacesResponses];
-
-export type InternalSystemDeleteWorkspaceData = {
-    body: DirectoryDeleteRequest;
-    path: {
-        /**
-         * Workspace Id
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/workspaces/{workspace_id}';
-};
-
-export type InternalSystemDeleteWorkspaceErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemDeleteWorkspaceError = InternalSystemDeleteWorkspaceErrors[keyof InternalSystemDeleteWorkspaceErrors];
-
-export type InternalSystemDeleteWorkspaceResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNoneType;
-};
-
-export type InternalSystemDeleteWorkspaceResponse = InternalSystemDeleteWorkspaceResponses[keyof InternalSystemDeleteWorkspaceResponses];
-
-export type InternalSystemGetWorkspaceDetailData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/workspaces/{workspace_id}';
-};
-
-export type InternalSystemGetWorkspaceDetailErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemGetWorkspaceDetailError = InternalSystemGetWorkspaceDetailErrors[keyof InternalSystemGetWorkspaceDetailErrors];
-
-export type InternalSystemGetWorkspaceDetailResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryWorkspaceDetailOut;
-};
-
-export type InternalSystemGetWorkspaceDetailResponse = InternalSystemGetWorkspaceDetailResponses[keyof InternalSystemGetWorkspaceDetailResponses];
-
-export type InternalSystemUpdateWorkspaceData = {
-    body: DirectoryWorkspaceUpdateRequest;
-    path: {
-        /**
-         * Workspace Id
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/workspaces/{workspace_id}';
-};
-
-export type InternalSystemUpdateWorkspaceErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemUpdateWorkspaceError = InternalSystemUpdateWorkspaceErrors[keyof InternalSystemUpdateWorkspaceErrors];
-
-export type InternalSystemUpdateWorkspaceResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryWorkspaceDetailOut;
-};
-
-export type InternalSystemUpdateWorkspaceResponse = InternalSystemUpdateWorkspaceResponses[keyof InternalSystemUpdateWorkspaceResponses];
-
-export type InternalSystemArchiveWorkspaceData = {
-    body: AccessRestrictionEnforceRequest;
-    headers: {
-        /**
-         * Idempotency-Key
-         */
-        'Idempotency-Key': string;
-    };
-    path: {
-        /**
-         * Workspace Id
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/workspaces/{workspace_id}/archive';
-};
-
-export type InternalSystemArchiveWorkspaceErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemArchiveWorkspaceError = InternalSystemArchiveWorkspaceErrors[keyof InternalSystemArchiveWorkspaceErrors];
-
-export type InternalSystemArchiveWorkspaceResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryWorkspaceDetailOut;
-};
-
-export type InternalSystemArchiveWorkspaceResponse = InternalSystemArchiveWorkspaceResponses[keyof InternalSystemArchiveWorkspaceResponses];
-
-export type InternalSystemDisableWorkspaceData = {
-    body: AccessRestrictionEnforceRequest;
-    headers: {
-        /**
-         * Idempotency-Key
-         */
-        'Idempotency-Key': string;
-    };
-    path: {
-        /**
-         * Workspace Id
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/workspaces/{workspace_id}/disable';
-};
-
-export type InternalSystemDisableWorkspaceErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemDisableWorkspaceError = InternalSystemDisableWorkspaceErrors[keyof InternalSystemDisableWorkspaceErrors];
-
-export type InternalSystemDisableWorkspaceResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryWorkspaceDetailOut;
-};
-
-export type InternalSystemDisableWorkspaceResponse = InternalSystemDisableWorkspaceResponses[keyof InternalSystemDisableWorkspaceResponses];
-
-export type InternalSystemEnableWorkspaceData = {
-    body: AccessRestrictionLiftRequest;
-    headers: {
-        /**
-         * Idempotency-Key
-         */
-        'Idempotency-Key': string;
-    };
-    path: {
-        /**
-         * Workspace Id
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/workspaces/{workspace_id}/enable';
-};
-
-export type InternalSystemEnableWorkspaceErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemEnableWorkspaceError = InternalSystemEnableWorkspaceErrors[keyof InternalSystemEnableWorkspaceErrors];
-
-export type InternalSystemEnableWorkspaceResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryWorkspaceDetailOut;
-};
-
-export type InternalSystemEnableWorkspaceResponse = InternalSystemEnableWorkspaceResponses[keyof InternalSystemEnableWorkspaceResponses];
-
-export type InternalSystemRestoreWorkspaceData = {
-    body: AccessRestrictionLiftRequest;
-    headers: {
-        /**
-         * Idempotency-Key
-         */
-        'Idempotency-Key': string;
-    };
-    path: {
-        /**
-         * Workspace Id
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/workspaces/{workspace_id}/restore';
-};
-
-export type InternalSystemRestoreWorkspaceErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemRestoreWorkspaceError = InternalSystemRestoreWorkspaceErrors[keyof InternalSystemRestoreWorkspaceErrors];
-
-export type InternalSystemRestoreWorkspaceResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryWorkspaceDetailOut;
-};
-
-export type InternalSystemRestoreWorkspaceResponse = InternalSystemRestoreWorkspaceResponses[keyof InternalSystemRestoreWorkspaceResponses];
-
-export type InternalSystemListPlatformFeedbackData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Status
-         */
-        status?: FeedbackStatus | null;
-        /**
-         * Priority
-         */
-        priority?: FeedbackPriority | null;
-        /**
-         * Source
-         */
-        source?: FeedbackSource | null;
-        /**
-         * Intent
-         */
-        intent?: FeedbackIntent | null;
-        /**
-         * Legacycategory
-         */
-        legacyCategory?: FeedbackCategory | null;
-        /**
-         * Workspaceid
-         */
-        workspaceId?: string | null;
-        /**
-         * Projectid
-         */
-        projectId?: string | null;
-        /**
-         * Assigneeuserid
-         */
-        assigneeUserId?: string | null;
-        /**
-         * Reporteruserid
-         */
-        reporterUserId?: string | null;
-        /**
-         * Createdfrom
-         */
-        createdFrom?: string | null;
-        /**
-         * Createdto
-         */
-        createdTo?: string | null;
-        /**
-         * Activityfrom
-         */
-        activityFrom?: string | null;
-        /**
-         * Activityto
-         */
-        activityTo?: string | null;
-        ordering?: FeedbackOrdering;
-        /**
-         * Search
-         */
-        search?: string | null;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/system/feedback';
-};
-
-export type InternalSystemListPlatformFeedbackErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemListPlatformFeedbackError = InternalSystemListPlatformFeedbackErrors[keyof InternalSystemListPlatformFeedbackErrors];
-
-export type InternalSystemListPlatformFeedbackResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataFeedbackTicketListItemOut;
-};
-
-export type InternalSystemListPlatformFeedbackResponse = InternalSystemListPlatformFeedbackResponses[keyof InternalSystemListPlatformFeedbackResponses];
-
-export type InternalSystemGetPlatformFeedbackDetailData = {
-    body?: never;
-    path: {
-        /**
-         * Ticket Id
-         */
-        ticket_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/feedback/{ticket_id}';
-};
-
-export type InternalSystemGetPlatformFeedbackDetailErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemGetPlatformFeedbackDetailError = InternalSystemGetPlatformFeedbackDetailErrors[keyof InternalSystemGetPlatformFeedbackDetailErrors];
-
-export type InternalSystemGetPlatformFeedbackDetailResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelFeedbackTicketDetailOut;
-};
-
-export type InternalSystemGetPlatformFeedbackDetailResponse = InternalSystemGetPlatformFeedbackDetailResponses[keyof InternalSystemGetPlatformFeedbackDetailResponses];
-
-export type InternalSystemUpdatePlatformFeedbackData = {
-    body: FeedbackTicketUpdate;
-    path: {
-        /**
-         * Ticket Id
-         */
-        ticket_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/feedback/{ticket_id}';
-};
-
-export type InternalSystemUpdatePlatformFeedbackErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemUpdatePlatformFeedbackError = InternalSystemUpdatePlatformFeedbackErrors[keyof InternalSystemUpdatePlatformFeedbackErrors];
-
-export type InternalSystemUpdatePlatformFeedbackResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelFeedbackTicketDetailOut;
-};
-
-export type InternalSystemUpdatePlatformFeedbackResponse = InternalSystemUpdatePlatformFeedbackResponses[keyof InternalSystemUpdatePlatformFeedbackResponses];
-
-export type InternalSystemAddPlatformFeedbackMessageData = {
-    body: FeedbackMessageCreate;
-    path: {
-        /**
-         * Ticket Id
-         */
-        ticket_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/feedback/{ticket_id}/messages';
-};
-
-export type InternalSystemAddPlatformFeedbackMessageErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemAddPlatformFeedbackMessageError = InternalSystemAddPlatformFeedbackMessageErrors[keyof InternalSystemAddPlatformFeedbackMessageErrors];
-
-export type InternalSystemAddPlatformFeedbackMessageResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelFeedbackTicketDetailOut;
-};
-
-export type InternalSystemAddPlatformFeedbackMessageResponse = InternalSystemAddPlatformFeedbackMessageResponses[keyof InternalSystemAddPlatformFeedbackMessageResponses];
-
-export type InternalSystemListSystemJobsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Status
-         */
-        status?: PublishJobStatus | null;
-        /**
-         * Jobtype
-         */
-        jobType?: PublishJobType | null;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/system/jobs';
-};
-
-export type InternalSystemListSystemJobsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemListSystemJobsError = InternalSystemListSystemJobsErrors[keyof InternalSystemListSystemJobsErrors];
-
-export type InternalSystemListSystemJobsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataPublishJobOut;
-};
-
-export type InternalSystemListSystemJobsResponse = InternalSystemListSystemJobsResponses[keyof InternalSystemListSystemJobsResponses];
-
-export type InternalSystemRetrySystemJobData = {
-    body?: never;
-    path: {
-        /**
-         * Job Id
-         */
-        job_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/jobs/{job_id}/retry';
-};
-
-export type InternalSystemRetrySystemJobErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemRetrySystemJobError = InternalSystemRetrySystemJobErrors[keyof InternalSystemRetrySystemJobErrors];
-
-export type InternalSystemRetrySystemJobResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPublishJobOut;
-};
-
-export type InternalSystemRetrySystemJobResponse = InternalSystemRetrySystemJobResponses[keyof InternalSystemRetrySystemJobResponses];
-
-export type InternalSystemListMailProvidersData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/system/mail/providers';
-};
-
-export type InternalSystemListMailProvidersResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelListMailProviderInfo;
-};
-
-export type InternalSystemListMailProvidersResponse = InternalSystemListMailProvidersResponses[keyof InternalSystemListMailProvidersResponses];
-
-export type InternalSystemSwitchMailProviderData = {
-    body: MailProviderSwitchRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/system/mail/providers/switch';
-};
-
-export type InternalSystemSwitchMailProviderErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemSwitchMailProviderError = InternalSystemSwitchMailProviderErrors[keyof InternalSystemSwitchMailProviderErrors];
-
-export type InternalSystemSwitchMailProviderResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelListMailProviderInfo;
-};
-
-export type InternalSystemSwitchMailProviderResponse = InternalSystemSwitchMailProviderResponses[keyof InternalSystemSwitchMailProviderResponses];
-
-export type InternalSystemListEmailTemplatesData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Q
-         *
-         * Search template name, key, description, or subject.
-         */
-        q?: string | null;
-        /**
-         * Ordering
-         *
-         * Order by key, name, category, health, version, or updated_at.
-         */
-        ordering?: string | null;
-        /**
-         * Category
-         */
-        category?: 'account' | 'security' | 'invitation' | 'notification' | 'operations' | 'custom' | null;
-        /**
-         * Owner
-         */
-        owner?: 'builtin' | 'plugin' | 'custom' | null;
-        /**
-         * Locale
-         */
-        locale?: string | null;
-        /**
-         * Enabled
-         */
-        enabled?: boolean | null;
-        /**
-         * Validation State
-         */
-        validation_state?: string | null;
-        /**
-         * Source State
-         */
-        source_state?: 'default' | 'overridden' | 'custom' | null;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/system/mail/templates';
-};
-
-export type InternalSystemListEmailTemplatesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemListEmailTemplatesError = InternalSystemListEmailTemplatesErrors[keyof InternalSystemListEmailTemplatesErrors];
-
-export type InternalSystemListEmailTemplatesResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataMailTemplateGroupOut;
-};
-
-export type InternalSystemListEmailTemplatesResponse = InternalSystemListEmailTemplatesResponses[keyof InternalSystemListEmailTemplatesResponses];
-
-export type InternalSystemCreateEmailTemplateData = {
-    body: MailTemplateCreateRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/system/mail/templates';
-};
-
-export type InternalSystemCreateEmailTemplateErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemCreateEmailTemplateError = InternalSystemCreateEmailTemplateErrors[keyof InternalSystemCreateEmailTemplateErrors];
-
-export type InternalSystemCreateEmailTemplateResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelMailTemplateOut;
-};
-
-export type InternalSystemCreateEmailTemplateResponse = InternalSystemCreateEmailTemplateResponses[keyof InternalSystemCreateEmailTemplateResponses];
-
-export type InternalSystemPreviewEmailTemplateData = {
-    body: MailTemplatePreviewRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/system/mail/templates/preview';
-};
-
-export type InternalSystemPreviewEmailTemplateErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemPreviewEmailTemplateError = InternalSystemPreviewEmailTemplateErrors[keyof InternalSystemPreviewEmailTemplateErrors];
-
-export type InternalSystemPreviewEmailTemplateResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelMailTemplatePreviewOut;
-};
-
-export type InternalSystemPreviewEmailTemplateResponse = InternalSystemPreviewEmailTemplateResponses[keyof InternalSystemPreviewEmailTemplateResponses];
-
-export type InternalSystemGetEmailTemplateRevisionData = {
-    body?: never;
-    path: {
-        /**
-         * Revision Id
-         */
-        revision_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/mail/templates/revisions/{revision_id}';
-};
-
-export type InternalSystemGetEmailTemplateRevisionErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemGetEmailTemplateRevisionError = InternalSystemGetEmailTemplateRevisionErrors[keyof InternalSystemGetEmailTemplateRevisionErrors];
-
-export type InternalSystemGetEmailTemplateRevisionResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelMailTemplateRevisionDetailOut;
-};
-
-export type InternalSystemGetEmailTemplateRevisionResponse = InternalSystemGetEmailTemplateRevisionResponses[keyof InternalSystemGetEmailTemplateRevisionResponses];
-
-export type InternalSystemDeleteEmailTemplateData = {
-    body?: never;
-    path: {
-        /**
-         * Template Id
-         */
-        template_id: string;
-    };
-    query: {
-        /**
-         * Expected Version
-         */
-        expected_version: number;
-    };
-    url: '/api/v1/system/mail/templates/{template_id}';
-};
-
-export type InternalSystemDeleteEmailTemplateErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemDeleteEmailTemplateError = InternalSystemDeleteEmailTemplateErrors[keyof InternalSystemDeleteEmailTemplateErrors];
-
-export type InternalSystemDeleteEmailTemplateResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNoneType;
-};
-
-export type InternalSystemDeleteEmailTemplateResponse = InternalSystemDeleteEmailTemplateResponses[keyof InternalSystemDeleteEmailTemplateResponses];
-
-export type InternalSystemGetEmailTemplateData = {
-    body?: never;
-    path: {
-        /**
-         * Template Id
-         */
-        template_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/mail/templates/{template_id}';
-};
-
-export type InternalSystemGetEmailTemplateErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemGetEmailTemplateError = InternalSystemGetEmailTemplateErrors[keyof InternalSystemGetEmailTemplateErrors];
-
-export type InternalSystemGetEmailTemplateResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelMailTemplateOut;
-};
-
-export type InternalSystemGetEmailTemplateResponse = InternalSystemGetEmailTemplateResponses[keyof InternalSystemGetEmailTemplateResponses];
-
-export type InternalSystemUpdateEmailTemplateData = {
-    body: MailTemplatePatchRequest;
-    path: {
-        /**
-         * Template Id
-         */
-        template_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/mail/templates/{template_id}';
-};
-
-export type InternalSystemUpdateEmailTemplateErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemUpdateEmailTemplateError = InternalSystemUpdateEmailTemplateErrors[keyof InternalSystemUpdateEmailTemplateErrors];
-
-export type InternalSystemUpdateEmailTemplateResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelMailTemplateOut;
-};
-
-export type InternalSystemUpdateEmailTemplateResponse = InternalSystemUpdateEmailTemplateResponses[keyof InternalSystemUpdateEmailTemplateResponses];
-
-export type InternalSystemRestoreDefaultEmailTemplateData = {
-    body: MailTemplateRevisionMutationRequest;
-    path: {
-        /**
-         * Template Id
-         */
-        template_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/mail/templates/{template_id}/restore-default';
-};
-
-export type InternalSystemRestoreDefaultEmailTemplateErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemRestoreDefaultEmailTemplateError = InternalSystemRestoreDefaultEmailTemplateErrors[keyof InternalSystemRestoreDefaultEmailTemplateErrors];
-
-export type InternalSystemRestoreDefaultEmailTemplateResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelMailTemplateOut;
-};
-
-export type InternalSystemRestoreDefaultEmailTemplateResponse = InternalSystemRestoreDefaultEmailTemplateResponses[keyof InternalSystemRestoreDefaultEmailTemplateResponses];
-
-export type InternalSystemTestSendEmailTemplateData = {
-    body: MailTemplateTestSendRequest;
-    path: {
-        /**
-         * Template Id
-         */
-        template_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/mail/templates/{template_id}/test-send';
-};
-
-export type InternalSystemTestSendEmailTemplateErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemTestSendEmailTemplateError = InternalSystemTestSendEmailTemplateErrors[keyof InternalSystemTestSendEmailTemplateErrors];
-
-export type InternalSystemTestSendEmailTemplateResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelMailTemplateTestSendOut;
-};
-
-export type InternalSystemTestSendEmailTemplateResponse = InternalSystemTestSendEmailTemplateResponses[keyof InternalSystemTestSendEmailTemplateResponses];
-
-export type InternalSystemListEmailTemplateHistoryData = {
-    body?: never;
-    path: {
-        /**
-         * Template Key
-         */
-        template_key: string;
-    };
-    query?: {
-        /**
-         * Locale
-         */
-        locale?: string | null;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/system/mail/templates/{template_key}/history';
-};
-
-export type InternalSystemListEmailTemplateHistoryErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemListEmailTemplateHistoryError = InternalSystemListEmailTemplateHistoryErrors[keyof InternalSystemListEmailTemplateHistoryErrors];
-
-export type InternalSystemListEmailTemplateHistoryResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataMailTemplateRevisionOut;
-};
-
-export type InternalSystemListEmailTemplateHistoryResponse = InternalSystemListEmailTemplateHistoryResponses[keyof InternalSystemListEmailTemplateHistoryResponses];
-
-export type InternalSystemSendTestEmailData = {
-    body: MailTestRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/system/mail/test';
-};
-
-export type InternalSystemSendTestEmailErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemSendTestEmailError = InternalSystemSendTestEmailErrors[keyof InternalSystemSendTestEmailErrors];
-
-export type InternalSystemSendTestEmailResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelMailTestResult;
-};
-
-export type InternalSystemSendTestEmailResponse = InternalSystemSendTestEmailResponses[keyof InternalSystemSendTestEmailResponses];
-
-export type InternalSystemListNotificationCampaignsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Q
-         */
-        q?: string | null;
-        /**
-         * Ordering
-         */
-        ordering?: string | null;
-        /**
-         * State
-         */
-        state?: Array<NotificationCampaignState>;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/system/notifications/campaigns';
-};
-
-export type InternalSystemListNotificationCampaignsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemListNotificationCampaignsError = InternalSystemListNotificationCampaignsErrors[keyof InternalSystemListNotificationCampaignsErrors];
-
-export type InternalSystemListNotificationCampaignsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataNotificationCampaignSummaryOut;
-};
-
-export type InternalSystemListNotificationCampaignsResponse = InternalSystemListNotificationCampaignsResponses[keyof InternalSystemListNotificationCampaignsResponses];
-
-export type InternalSystemCreateNotificationCampaignData = {
-    body: NotificationCampaignCreateRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/system/notifications/campaigns';
-};
-
-export type InternalSystemCreateNotificationCampaignErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemCreateNotificationCampaignError = InternalSystemCreateNotificationCampaignErrors[keyof InternalSystemCreateNotificationCampaignErrors];
-
-export type InternalSystemCreateNotificationCampaignResponses = {
-    /**
-     * Successful Response
-     */
-    201: ResponseModelNotificationCampaignDetailOut;
-};
-
-export type InternalSystemCreateNotificationCampaignResponse = InternalSystemCreateNotificationCampaignResponses[keyof InternalSystemCreateNotificationCampaignResponses];
-
-export type InternalSystemGetNotificationCampaignData = {
-    body?: never;
-    path: {
-        /**
-         * Campaign Id
-         */
-        campaign_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/notifications/campaigns/{campaign_id}';
-};
-
-export type InternalSystemGetNotificationCampaignErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemGetNotificationCampaignError = InternalSystemGetNotificationCampaignErrors[keyof InternalSystemGetNotificationCampaignErrors];
-
-export type InternalSystemGetNotificationCampaignResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNotificationCampaignDetailOut;
-};
-
-export type InternalSystemGetNotificationCampaignResponse = InternalSystemGetNotificationCampaignResponses[keyof InternalSystemGetNotificationCampaignResponses];
-
-export type InternalSystemUpdateNotificationCampaignData = {
-    body: NotificationCampaignPatchRequest;
-    path: {
-        /**
-         * Campaign Id
-         */
-        campaign_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/notifications/campaigns/{campaign_id}';
-};
-
-export type InternalSystemUpdateNotificationCampaignErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemUpdateNotificationCampaignError = InternalSystemUpdateNotificationCampaignErrors[keyof InternalSystemUpdateNotificationCampaignErrors];
-
-export type InternalSystemUpdateNotificationCampaignResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNotificationCampaignDetailOut;
-};
-
-export type InternalSystemUpdateNotificationCampaignResponse = InternalSystemUpdateNotificationCampaignResponses[keyof InternalSystemUpdateNotificationCampaignResponses];
-
-export type InternalSystemArchiveNotificationCampaignData = {
-    body: NotificationCampaignRevisionRequest;
-    path: {
-        /**
-         * Campaign Id
-         */
-        campaign_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/notifications/campaigns/{campaign_id}/archive';
-};
-
-export type InternalSystemArchiveNotificationCampaignErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemArchiveNotificationCampaignError = InternalSystemArchiveNotificationCampaignErrors[keyof InternalSystemArchiveNotificationCampaignErrors];
-
-export type InternalSystemArchiveNotificationCampaignResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNotificationCampaignSummaryOut;
-};
-
-export type InternalSystemArchiveNotificationCampaignResponse = InternalSystemArchiveNotificationCampaignResponses[keyof InternalSystemArchiveNotificationCampaignResponses];
-
-export type InternalSystemEstimateNotificationCampaignAudienceData = {
-    body?: never;
-    path: {
-        /**
-         * Campaign Id
-         */
-        campaign_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/notifications/campaigns/{campaign_id}/audience-estimate';
-};
-
-export type InternalSystemEstimateNotificationCampaignAudienceErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemEstimateNotificationCampaignAudienceError = InternalSystemEstimateNotificationCampaignAudienceErrors[keyof InternalSystemEstimateNotificationCampaignAudienceErrors];
-
-export type InternalSystemEstimateNotificationCampaignAudienceResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNotificationAudienceEstimateOut;
-};
-
-export type InternalSystemEstimateNotificationCampaignAudienceResponse = InternalSystemEstimateNotificationCampaignAudienceResponses[keyof InternalSystemEstimateNotificationCampaignAudienceResponses];
-
-export type InternalSystemCancelNotificationCampaignData = {
-    body: NotificationCampaignRevisionRequest;
-    path: {
-        /**
-         * Campaign Id
-         */
-        campaign_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/notifications/campaigns/{campaign_id}/cancel';
-};
-
-export type InternalSystemCancelNotificationCampaignErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemCancelNotificationCampaignError = InternalSystemCancelNotificationCampaignErrors[keyof InternalSystemCancelNotificationCampaignErrors];
-
-export type InternalSystemCancelNotificationCampaignResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNotificationCampaignCancellationOut;
-};
-
-export type InternalSystemCancelNotificationCampaignResponse = InternalSystemCancelNotificationCampaignResponses[keyof InternalSystemCancelNotificationCampaignResponses];
-
-export type InternalSystemListNotificationCampaignDeliveriesData = {
-    body?: never;
-    path: {
-        /**
-         * Campaign Id
-         */
-        campaign_id: string;
-    };
-    query?: {
-        /**
-         * State
-         */
-        state?: Array<NotificationDeliveryState>;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/system/notifications/campaigns/{campaign_id}/deliveries';
-};
-
-export type InternalSystemListNotificationCampaignDeliveriesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemListNotificationCampaignDeliveriesError = InternalSystemListNotificationCampaignDeliveriesErrors[keyof InternalSystemListNotificationCampaignDeliveriesErrors];
-
-export type InternalSystemListNotificationCampaignDeliveriesResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataNotificationDeliveryOut;
-};
-
-export type InternalSystemListNotificationCampaignDeliveriesResponse = InternalSystemListNotificationCampaignDeliveriesResponses[keyof InternalSystemListNotificationCampaignDeliveriesResponses];
-
-export type InternalSystemPreviewNotificationCampaignData = {
-    body?: never;
-    path: {
-        /**
-         * Campaign Id
-         */
-        campaign_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/notifications/campaigns/{campaign_id}/preview';
-};
-
-export type InternalSystemPreviewNotificationCampaignErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemPreviewNotificationCampaignError = InternalSystemPreviewNotificationCampaignErrors[keyof InternalSystemPreviewNotificationCampaignErrors];
-
-export type InternalSystemPreviewNotificationCampaignResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNotificationCampaignPreviewOut;
-};
-
-export type InternalSystemPreviewNotificationCampaignResponse = InternalSystemPreviewNotificationCampaignResponses[keyof InternalSystemPreviewNotificationCampaignResponses];
-
-export type InternalSystemPublishNotificationCampaignData = {
-    body: NotificationCampaignPublishRequest;
-    path: {
-        /**
-         * Campaign Id
-         */
-        campaign_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/notifications/campaigns/{campaign_id}/publish';
-};
-
-export type InternalSystemPublishNotificationCampaignErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemPublishNotificationCampaignError = InternalSystemPublishNotificationCampaignErrors[keyof InternalSystemPublishNotificationCampaignErrors];
-
-export type InternalSystemPublishNotificationCampaignResponses = {
-    /**
-     * Successful Response
-     */
-    202: ResponseModelNotificationCampaignPublishOut;
-};
-
-export type InternalSystemPublishNotificationCampaignResponse = InternalSystemPublishNotificationCampaignResponses[keyof InternalSystemPublishNotificationCampaignResponses];
-
-export type InternalSystemRetryNotificationCampaignFailuresData = {
-    body?: never;
-    headers: {
-        /**
-         * Idempotency-Key
-         */
-        'Idempotency-Key': string;
-    };
-    path: {
-        /**
-         * Campaign Id
-         */
-        campaign_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/notifications/campaigns/{campaign_id}/retry-failures';
-};
-
-export type InternalSystemRetryNotificationCampaignFailuresErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemRetryNotificationCampaignFailuresError = InternalSystemRetryNotificationCampaignFailuresErrors[keyof InternalSystemRetryNotificationCampaignFailuresErrors];
-
-export type InternalSystemRetryNotificationCampaignFailuresResponses = {
-    /**
-     * Successful Response
-     */
-    202: ResponseModelNotificationCampaignRetryOut;
-};
-
-export type InternalSystemRetryNotificationCampaignFailuresResponse = InternalSystemRetryNotificationCampaignFailuresResponses[keyof InternalSystemRetryNotificationCampaignFailuresResponses];
-
-export type InternalSystemListPlatformAiUsageGroupsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Days
-         */
-        days?: number;
-        /**
-         * Q
-         */
-        q?: string | null;
-        /**
-         * Provider
-         */
-        provider?: string | null;
-        /**
-         * Workspaceid
-         */
-        workspaceId?: string | null;
-        /**
-         * Projectid
-         */
-        projectId?: string | null;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/system/observability/ai-usage-groups';
-};
-
-export type InternalSystemListPlatformAiUsageGroupsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemListPlatformAiUsageGroupsError = InternalSystemListPlatformAiUsageGroupsErrors[keyof InternalSystemListPlatformAiUsageGroupsErrors];
-
-export type InternalSystemListPlatformAiUsageGroupsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataAiUsageGroupOut;
-};
-
-export type InternalSystemListPlatformAiUsageGroupsResponse = InternalSystemListPlatformAiUsageGroupsResponses[keyof InternalSystemListPlatformAiUsageGroupsResponses];
-
-export type InternalSystemGetPlatformObservabilityOverviewData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Days
-         */
-        days?: number;
-        /**
-         * Workspaceid
-         */
-        workspaceId?: string | null;
-        /**
-         * Projectid
-         */
-        projectId?: string | null;
-    };
-    url: '/api/v1/system/observability/overview';
-};
-
-export type InternalSystemGetPlatformObservabilityOverviewErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemGetPlatformObservabilityOverviewError = InternalSystemGetPlatformObservabilityOverviewErrors[keyof InternalSystemGetPlatformObservabilityOverviewErrors];
-
-export type InternalSystemGetPlatformObservabilityOverviewResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelObservabilityOverviewOut;
-};
-
-export type InternalSystemGetPlatformObservabilityOverviewResponse = InternalSystemGetPlatformObservabilityOverviewResponses[keyof InternalSystemGetPlatformObservabilityOverviewResponses];
-
-export type InternalSystemListPlatformHttpRequestGroupsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Days
-         */
-        days?: number;
-        /**
-         * Q
-         */
-        q?: string | null;
-        /**
-         * Method
-         */
-        method?: string | null;
-        /**
-         * Statusclass
-         */
-        statusClass?: number | null;
-        /**
-         * Workspaceid
-         */
-        workspaceId?: string | null;
-        /**
-         * Projectid
-         */
-        projectId?: string | null;
-        ordering?: HttpRequestGroupOrdering;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/system/observability/request-groups';
-};
-
-export type InternalSystemListPlatformHttpRequestGroupsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemListPlatformHttpRequestGroupsError = InternalSystemListPlatformHttpRequestGroupsErrors[keyof InternalSystemListPlatformHttpRequestGroupsErrors];
-
-export type InternalSystemListPlatformHttpRequestGroupsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataHttpRequestGroupOut;
-};
-
-export type InternalSystemListPlatformHttpRequestGroupsResponse = InternalSystemListPlatformHttpRequestGroupsResponses[keyof InternalSystemListPlatformHttpRequestGroupsResponses];
-
-export type InternalSystemListPlatformHttpRequestRecordsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Days
-         */
-        days?: number;
-        /**
-         * Q
-         */
-        q?: string | null;
-        /**
-         * Method
-         */
-        method?: string | null;
-        /**
-         * Statusclass
-         */
-        statusClass?: number | null;
-        /**
-         * Workspaceid
-         */
-        workspaceId?: string | null;
-        /**
-         * Projectid
-         */
-        projectId?: string | null;
-        /**
-         * Actoruserid
-         */
-        actorUserId?: string | null;
-        /**
-         * Mindurationms
-         */
-        minDurationMs?: number | null;
-        /**
-         * Maxdurationms
-         */
-        maxDurationMs?: number | null;
-        /**
-         * Haserror
-         */
-        hasError?: boolean | null;
-        ordering?: HttpRequestRecordOrdering;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/system/observability/request-records';
-};
-
-export type InternalSystemListPlatformHttpRequestRecordsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemListPlatformHttpRequestRecordsError = InternalSystemListPlatformHttpRequestRecordsErrors[keyof InternalSystemListPlatformHttpRequestRecordsErrors];
-
-export type InternalSystemListPlatformHttpRequestRecordsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataHttpRequestRecordOut;
-};
-
-export type InternalSystemListPlatformHttpRequestRecordsResponse = InternalSystemListPlatformHttpRequestRecordsResponses[keyof InternalSystemListPlatformHttpRequestRecordsResponses];
-
-export type InternalSystemGetPlatformObservabilityTrendData = {
-    body?: never;
-    path?: never;
-    query?: {
-        metric?: ObservabilityTrendMetric;
-        /**
-         * Days
-         */
-        days?: number;
-        /**
-         * Workspaceid
-         */
-        workspaceId?: string | null;
-        /**
-         * Projectid
-         */
-        projectId?: string | null;
-    };
-    url: '/api/v1/system/observability/trends';
-};
-
-export type InternalSystemGetPlatformObservabilityTrendErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemGetPlatformObservabilityTrendError = InternalSystemGetPlatformObservabilityTrendErrors[keyof InternalSystemGetPlatformObservabilityTrendErrors];
-
-export type InternalSystemGetPlatformObservabilityTrendResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelObservabilityTrendOut;
-};
-
-export type InternalSystemGetPlatformObservabilityTrendResponse = InternalSystemGetPlatformObservabilityTrendResponses[keyof InternalSystemGetPlatformObservabilityTrendResponses];
-
-export type InternalSystemGetSystemPluginOperationData = {
-    body?: never;
-    path: {
-        /**
-         * Operation Id
-         */
-        operation_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/plugin-operations/{operation_id}';
-};
-
-export type InternalSystemGetSystemPluginOperationErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemGetSystemPluginOperationError = InternalSystemGetSystemPluginOperationErrors[keyof InternalSystemGetSystemPluginOperationErrors];
-
-export type InternalSystemGetSystemPluginOperationResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSystemPluginOperationOut;
-};
-
-export type InternalSystemGetSystemPluginOperationResponse = InternalSystemGetSystemPluginOperationResponses[keyof InternalSystemGetSystemPluginOperationResponses];
-
-export type InternalSystemListSystemPluginsData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/system/plugins';
-};
-
-export type InternalSystemListSystemPluginsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSystemPluginListOut;
-};
-
-export type InternalSystemListSystemPluginsResponse = InternalSystemListSystemPluginsResponses[keyof InternalSystemListSystemPluginsResponses];
-
-export type InternalSystemReviewManualPluginArtifactData = {
-    body: BodyReviewManualPluginArtifactApiV1SystemPluginsArtifactsManualPost;
-    path?: never;
-    query?: never;
-    url: '/api/v1/system/plugins/artifacts/manual';
-};
-
-export type InternalSystemReviewManualPluginArtifactErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemReviewManualPluginArtifactError = InternalSystemReviewManualPluginArtifactErrors[keyof InternalSystemReviewManualPluginArtifactErrors];
-
-export type InternalSystemReviewManualPluginArtifactResponses = {
-    /**
-     * Successful Response
-     */
-    201: ResponseModelSystemPluginArtifactReviewOut;
-};
-
-export type InternalSystemReviewManualPluginArtifactResponse = InternalSystemReviewManualPluginArtifactResponses[keyof InternalSystemReviewManualPluginArtifactResponses];
-
-export type InternalSystemGetPluginArtifactReviewData = {
-    body?: never;
-    path: {
-        /**
-         * Artifact Id
-         */
-        artifact_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/plugins/artifacts/{artifact_id}';
-};
-
-export type InternalSystemGetPluginArtifactReviewErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemGetPluginArtifactReviewError = InternalSystemGetPluginArtifactReviewErrors[keyof InternalSystemGetPluginArtifactReviewErrors];
-
-export type InternalSystemGetPluginArtifactReviewResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSystemPluginArtifactReviewOut;
-};
-
-export type InternalSystemGetPluginArtifactReviewResponse = InternalSystemGetPluginArtifactReviewResponses[keyof InternalSystemGetPluginArtifactReviewResponses];
-
-export type InternalSystemListSystemPluginCatalogData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Search
-         */
-        search?: string | null;
-        /**
-         * Installedonly
-         */
-        installedOnly?: boolean;
-        /**
-         * Updatesonly
-         */
-        updatesOnly?: boolean;
-        /**
-         * Includeonline
-         */
-        includeOnline?: boolean;
-        /**
-         * Ordering
-         */
-        ordering?: 'name' | '-name' | 'version' | '-version';
-    };
-    url: '/api/v1/system/plugins/catalog';
-};
-
-export type InternalSystemListSystemPluginCatalogErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemListSystemPluginCatalogError = InternalSystemListSystemPluginCatalogErrors[keyof InternalSystemListSystemPluginCatalogErrors];
-
-export type InternalSystemListSystemPluginCatalogResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSystemPluginCatalogListOut;
-};
-
-export type InternalSystemListSystemPluginCatalogResponse = InternalSystemListSystemPluginCatalogResponses[keyof InternalSystemListSystemPluginCatalogResponses];
-
-export type InternalSystemInstallSystemPluginData = {
-    body: SystemPluginInstallationCreateRequest;
-    headers: {
-        /**
-         * Idempotency-Key
-         */
-        'Idempotency-Key': string;
-    };
-    path?: never;
-    query?: never;
-    url: '/api/v1/system/plugins/installations';
-};
-
-export type InternalSystemInstallSystemPluginErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemInstallSystemPluginError = InternalSystemInstallSystemPluginErrors[keyof InternalSystemInstallSystemPluginErrors];
-
-export type InternalSystemInstallSystemPluginResponses = {
-    /**
-     * Successful Response
-     */
-    202: ResponseModelSystemPluginOperationOut;
-};
-
-export type InternalSystemInstallSystemPluginResponse = InternalSystemInstallSystemPluginResponses[keyof InternalSystemInstallSystemPluginResponses];
-
-export type InternalSystemUninstallSystemPluginData = {
-    body: SystemPluginLifecycleRequest;
-    headers: {
-        /**
-         * Idempotency-Key
-         */
-        'Idempotency-Key': string;
-    };
-    path: {
-        /**
-         * Plugin Id
-         */
-        plugin_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/plugins/{plugin_id}';
-};
-
-export type InternalSystemUninstallSystemPluginErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemUninstallSystemPluginError = InternalSystemUninstallSystemPluginErrors[keyof InternalSystemUninstallSystemPluginErrors];
-
-export type InternalSystemUninstallSystemPluginResponses = {
-    /**
-     * Successful Response
-     */
-    202: ResponseModelSystemPluginOperationOut;
-};
-
-export type InternalSystemUninstallSystemPluginResponse = InternalSystemUninstallSystemPluginResponses[keyof InternalSystemUninstallSystemPluginResponses];
-
-export type InternalSystemGetSystemPluginDetailData = {
-    body?: never;
-    path: {
-        /**
-         * Plugin Id
-         */
-        plugin_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/plugins/{plugin_id}';
-};
-
-export type InternalSystemGetSystemPluginDetailErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemGetSystemPluginDetailError = InternalSystemGetSystemPluginDetailErrors[keyof InternalSystemGetSystemPluginDetailErrors];
-
-export type InternalSystemGetSystemPluginDetailResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSystemPluginDetailOut;
-};
-
-export type InternalSystemGetSystemPluginDetailResponse = InternalSystemGetSystemPluginDetailResponses[keyof InternalSystemGetSystemPluginDetailResponses];
-
-export type InternalSystemGetSystemPluginConfigurationData = {
-    body?: never;
-    path: {
-        /**
-         * Plugin Id
-         */
-        plugin_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/plugins/{plugin_id}/configuration';
-};
-
-export type InternalSystemGetSystemPluginConfigurationErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemGetSystemPluginConfigurationError = InternalSystemGetSystemPluginConfigurationErrors[keyof InternalSystemGetSystemPluginConfigurationErrors];
-
-export type InternalSystemGetSystemPluginConfigurationResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSystemPluginConfigurationOut;
-};
-
-export type InternalSystemGetSystemPluginConfigurationResponse = InternalSystemGetSystemPluginConfigurationResponses[keyof InternalSystemGetSystemPluginConfigurationResponses];
-
-export type InternalSystemUpdateSystemPluginConfigurationData = {
-    body: SystemPluginConfigurationPatch;
-    path: {
-        /**
-         * Plugin Id
-         */
-        plugin_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/plugins/{plugin_id}/configuration';
-};
-
-export type InternalSystemUpdateSystemPluginConfigurationErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemUpdateSystemPluginConfigurationError = InternalSystemUpdateSystemPluginConfigurationErrors[keyof InternalSystemUpdateSystemPluginConfigurationErrors];
-
-export type InternalSystemUpdateSystemPluginConfigurationResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSystemPluginConfigurationOut;
-};
-
-export type InternalSystemUpdateSystemPluginConfigurationResponse = InternalSystemUpdateSystemPluginConfigurationResponses[keyof InternalSystemUpdateSystemPluginConfigurationResponses];
-
-export type InternalSystemDisableSystemPluginData = {
-    body: SystemPluginLifecycleRequest;
-    headers: {
-        /**
-         * Idempotency-Key
-         */
-        'Idempotency-Key': string;
-    };
-    path: {
-        /**
-         * Plugin Id
-         */
-        plugin_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/plugins/{plugin_id}/disable';
-};
-
-export type InternalSystemDisableSystemPluginErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemDisableSystemPluginError = InternalSystemDisableSystemPluginErrors[keyof InternalSystemDisableSystemPluginErrors];
-
-export type InternalSystemDisableSystemPluginResponses = {
-    /**
-     * Successful Response
-     */
-    202: ResponseModelSystemPluginOperationOut;
-};
-
-export type InternalSystemDisableSystemPluginResponse = InternalSystemDisableSystemPluginResponses[keyof InternalSystemDisableSystemPluginResponses];
-
-export type InternalSystemEnableSystemPluginData = {
-    body: SystemPluginLifecycleRequest;
-    headers: {
-        /**
-         * Idempotency-Key
-         */
-        'Idempotency-Key': string;
-    };
-    path: {
-        /**
-         * Plugin Id
-         */
-        plugin_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/plugins/{plugin_id}/enable';
-};
-
-export type InternalSystemEnableSystemPluginErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemEnableSystemPluginError = InternalSystemEnableSystemPluginErrors[keyof InternalSystemEnableSystemPluginErrors];
-
-export type InternalSystemEnableSystemPluginResponses = {
-    /**
-     * Successful Response
-     */
-    202: ResponseModelSystemPluginOperationOut;
-};
-
-export type InternalSystemEnableSystemPluginResponse = InternalSystemEnableSystemPluginResponses[keyof InternalSystemEnableSystemPluginResponses];
-
-export type InternalSystemRollbackSystemPluginData = {
-    body: SystemPluginLifecycleRequest;
-    headers: {
-        /**
-         * Idempotency-Key
-         */
-        'Idempotency-Key': string;
-    };
-    path: {
-        /**
-         * Plugin Id
-         */
-        plugin_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/plugins/{plugin_id}/rollback';
-};
-
-export type InternalSystemRollbackSystemPluginErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemRollbackSystemPluginError = InternalSystemRollbackSystemPluginErrors[keyof InternalSystemRollbackSystemPluginErrors];
-
-export type InternalSystemRollbackSystemPluginResponses = {
-    /**
-     * Successful Response
-     */
-    202: ResponseModelSystemPluginOperationOut;
-};
-
-export type InternalSystemRollbackSystemPluginResponse = InternalSystemRollbackSystemPluginResponses[keyof InternalSystemRollbackSystemPluginResponses];
-
-export type InternalSystemUpgradeSystemPluginData = {
-    body: SystemPluginLifecycleRequest;
-    headers: {
-        /**
-         * Idempotency-Key
-         */
-        'Idempotency-Key': string;
-    };
-    path: {
-        /**
-         * Plugin Id
-         */
-        plugin_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/plugins/{plugin_id}/upgrade';
-};
-
-export type InternalSystemUpgradeSystemPluginErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemUpgradeSystemPluginError = InternalSystemUpgradeSystemPluginErrors[keyof InternalSystemUpgradeSystemPluginErrors];
-
-export type InternalSystemUpgradeSystemPluginResponses = {
-    /**
-     * Successful Response
-     */
-    202: ResponseModelSystemPluginOperationOut;
-};
-
-export type InternalSystemUpgradeSystemPluginResponse = InternalSystemUpgradeSystemPluginResponses[keyof InternalSystemUpgradeSystemPluginResponses];
-
-export type InternalSystemListPermissionsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/system/rbac/permissions';
-};
-
-export type InternalSystemListPermissionsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemListPermissionsError = InternalSystemListPermissionsErrors[keyof InternalSystemListPermissionsErrors];
-
-export type InternalSystemListPermissionsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataPermissionOut;
-};
-
-export type InternalSystemListPermissionsResponse = InternalSystemListPermissionsResponses[keyof InternalSystemListPermissionsResponses];
-
-export type InternalSystemGetSystemRuntimeData = {
+export type ProductRuntimeGetSystemRuntimeData = {
     body?: never;
     path?: never;
     query?: never;
     url: '/api/v1/system/runtime';
 };
 
-export type InternalSystemGetSystemRuntimeResponses = {
+export type ProductRuntimeGetSystemRuntimeResponses = {
     /**
      * Successful Response
      */
     200: ResponseModelSystemRuntimeOut;
 };
 
-export type InternalSystemGetSystemRuntimeResponse = InternalSystemGetSystemRuntimeResponses[keyof InternalSystemGetSystemRuntimeResponses];
-
-export type InternalSystemListNamespacesData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/system/settings';
-};
-
-export type InternalSystemListNamespacesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemListNamespacesError = InternalSystemListNamespacesErrors[keyof InternalSystemListNamespacesErrors];
-
-export type InternalSystemListNamespacesResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataSettingsNamespaceSummary;
-};
-
-export type InternalSystemListNamespacesResponse = InternalSystemListNamespacesResponses[keyof InternalSystemListNamespacesResponses];
-
-export type InternalSystemGetNamespaceData = {
-    body?: never;
-    path: {
-        /**
-         * Namespace
-         */
-        namespace: string;
-    };
-    query?: never;
-    url: '/api/v1/system/settings/{namespace}';
-};
-
-export type InternalSystemGetNamespaceErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemGetNamespaceError = InternalSystemGetNamespaceErrors[keyof InternalSystemGetNamespaceErrors];
-
-export type InternalSystemGetNamespaceResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSettingsDetail;
-};
-
-export type InternalSystemGetNamespaceResponse = InternalSystemGetNamespaceResponses[keyof InternalSystemGetNamespaceResponses];
-
-export type InternalSystemPatchNamespaceData = {
-    body: SettingsPatch;
-    path: {
-        /**
-         * Namespace
-         */
-        namespace: string;
-    };
-    query?: never;
-    url: '/api/v1/system/settings/{namespace}';
-};
-
-export type InternalSystemPatchNamespaceErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemPatchNamespaceError = InternalSystemPatchNamespaceErrors[keyof InternalSystemPatchNamespaceErrors];
-
-export type InternalSystemPatchNamespaceResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSettingsDetail;
-};
-
-export type InternalSystemPatchNamespaceResponse = InternalSystemPatchNamespaceResponses[keyof InternalSystemPatchNamespaceResponses];
-
-export type InternalSystemBootstrapInstanceData = {
-    body: SystemBootstrapRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/system/setup/bootstrap';
-};
-
-export type InternalSystemBootstrapInstanceErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemBootstrapInstanceError = InternalSystemBootstrapInstanceErrors[keyof InternalSystemBootstrapInstanceErrors];
-
-export type InternalSystemBootstrapInstanceResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelTokenPair;
-};
-
-export type InternalSystemBootstrapInstanceResponse = InternalSystemBootstrapInstanceResponses[keyof InternalSystemBootstrapInstanceResponses];
-
-export type InternalSystemListStorageProfilesData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/system/storage-profiles';
-};
-
-export type InternalSystemListStorageProfilesResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelStorageProfileListOut;
-};
-
-export type InternalSystemListStorageProfilesResponse = InternalSystemListStorageProfilesResponses[keyof InternalSystemListStorageProfilesResponses];
-
-export type InternalSystemCreateStorageProfileData = {
-    body: StorageProfileCreateRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/system/storage-profiles';
-};
-
-export type InternalSystemCreateStorageProfileErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemCreateStorageProfileError = InternalSystemCreateStorageProfileErrors[keyof InternalSystemCreateStorageProfileErrors];
-
-export type InternalSystemCreateStorageProfileResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelStorageProfileOut;
-};
-
-export type InternalSystemCreateStorageProfileResponse = InternalSystemCreateStorageProfileResponses[keyof InternalSystemCreateStorageProfileResponses];
-
-export type InternalSystemTestStorageProfileByKeyData = {
-    body?: never;
-    path: {
-        /**
-         * Profile Key
-         */
-        profile_key: string;
-    };
-    query?: never;
-    url: '/api/v1/system/storage-profiles/by-key/{profile_key}/test';
-};
-
-export type InternalSystemTestStorageProfileByKeyErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemTestStorageProfileByKeyError = InternalSystemTestStorageProfileByKeyErrors[keyof InternalSystemTestStorageProfileByKeyErrors];
-
-export type InternalSystemTestStorageProfileByKeyResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelStorageProfileTestResultOut;
-};
-
-export type InternalSystemTestStorageProfileByKeyResponse = InternalSystemTestStorageProfileByKeyResponses[keyof InternalSystemTestStorageProfileByKeyResponses];
-
-export type InternalSystemDeleteStorageProfileData = {
-    body?: never;
-    path: {
-        /**
-         * Profile Id
-         */
-        profile_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/storage-profiles/{profile_id}';
-};
-
-export type InternalSystemDeleteStorageProfileErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemDeleteStorageProfileError = InternalSystemDeleteStorageProfileErrors[keyof InternalSystemDeleteStorageProfileErrors];
-
-export type InternalSystemDeleteStorageProfileResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelStorageProfileDeleteOut;
-};
-
-export type InternalSystemDeleteStorageProfileResponse = InternalSystemDeleteStorageProfileResponses[keyof InternalSystemDeleteStorageProfileResponses];
-
-export type InternalSystemUpdateStorageProfileData = {
-    body: StorageProfileUpdateRequest;
-    path: {
-        /**
-         * Profile Id
-         */
-        profile_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/storage-profiles/{profile_id}';
-};
-
-export type InternalSystemUpdateStorageProfileErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemUpdateStorageProfileError = InternalSystemUpdateStorageProfileErrors[keyof InternalSystemUpdateStorageProfileErrors];
-
-export type InternalSystemUpdateStorageProfileResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelStorageProfileOut;
-};
-
-export type InternalSystemUpdateStorageProfileResponse = InternalSystemUpdateStorageProfileResponses[keyof InternalSystemUpdateStorageProfileResponses];
-
-export type InternalSystemTestStorageProfileData = {
-    body?: never;
-    path: {
-        /**
-         * Profile Id
-         */
-        profile_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/storage-profiles/{profile_id}/test';
-};
-
-export type InternalSystemTestStorageProfileErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemTestStorageProfileError = InternalSystemTestStorageProfileErrors[keyof InternalSystemTestStorageProfileErrors];
-
-export type InternalSystemTestStorageProfileResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelStorageProfileTestResultOut;
-};
-
-export type InternalSystemTestStorageProfileResponse = InternalSystemTestStorageProfileResponses[keyof InternalSystemTestStorageProfileResponses];
+export type ProductRuntimeGetSystemRuntimeResponse = ProductRuntimeGetSystemRuntimeResponses[keyof ProductRuntimeGetSystemRuntimeResponses];
 
 export type InternalTenancyGetWorkspaceTenantData = {
     body?: never;
@@ -53363,6 +43068,106 @@ export type DomainWorkspacesArchiveWorkspaceResponses = {
 
 export type DomainWorkspacesArchiveWorkspaceResponse = DomainWorkspacesArchiveWorkspaceResponses[keyof DomainWorkspacesArchiveWorkspaceResponses];
 
+export type DomainWorkspacesGetWorkspaceCommercialAccessData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/commerce/access';
+};
+
+export type DomainWorkspacesGetWorkspaceCommercialAccessErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceCommercialAccessError = DomainWorkspacesGetWorkspaceCommercialAccessErrors[keyof DomainWorkspacesGetWorkspaceCommercialAccessErrors];
+
+export type DomainWorkspacesGetWorkspaceCommercialAccessResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelCommercialAccessMemberView;
+};
+
+export type DomainWorkspacesGetWorkspaceCommercialAccessResponse = DomainWorkspacesGetWorkspaceCommercialAccessResponses[keyof DomainWorkspacesGetWorkspaceCommercialAccessResponses];
+
+export type DomainWorkspacesCreatePlanAccessConvergencePreviewData = {
+    body: ConvergencePreviewRequest;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/commerce/access-convergence/previews';
+};
+
+export type DomainWorkspacesCreatePlanAccessConvergencePreviewErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreatePlanAccessConvergencePreviewError = DomainWorkspacesCreatePlanAccessConvergencePreviewErrors[keyof DomainWorkspacesCreatePlanAccessConvergencePreviewErrors];
+
+export type DomainWorkspacesCreatePlanAccessConvergencePreviewResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelConvergencePreview;
+};
+
+export type DomainWorkspacesCreatePlanAccessConvergencePreviewResponse = DomainWorkspacesCreatePlanAccessConvergencePreviewResponses[keyof DomainWorkspacesCreatePlanAccessConvergencePreviewResponses];
+
+export type DomainWorkspacesSchedulePlanAccessConvergenceData = {
+    body: RenewalTransitionScheduleRequest;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+        /**
+         * Preview Id
+         */
+        preview_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/commerce/access-convergence/previews/{preview_id}/schedule';
+};
+
+export type DomainWorkspacesSchedulePlanAccessConvergenceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesSchedulePlanAccessConvergenceError = DomainWorkspacesSchedulePlanAccessConvergenceErrors[keyof DomainWorkspacesSchedulePlanAccessConvergenceErrors];
+
+export type DomainWorkspacesSchedulePlanAccessConvergenceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelRenewalTransitionScheduleOut;
+};
+
+export type DomainWorkspacesSchedulePlanAccessConvergenceResponse = DomainWorkspacesSchedulePlanAccessConvergenceResponses[keyof DomainWorkspacesSchedulePlanAccessConvergenceResponses];
+
 export type DomainWorkspacesCreateWorkspaceCheckoutSessionData = {
     body: CheckoutSessionCreate;
     path: {
@@ -53503,6 +43308,38 @@ export type DomainWorkspacesGetWorkspaceCommerceOverviewResponses = {
 };
 
 export type DomainWorkspacesGetWorkspaceCommerceOverviewResponse = DomainWorkspacesGetWorkspaceCommerceOverviewResponses[keyof DomainWorkspacesGetWorkspaceCommerceOverviewResponses];
+
+export type DomainWorkspacesGetWorkspacePaymentRecoveryData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/commerce/payment-recovery';
+};
+
+export type DomainWorkspacesGetWorkspacePaymentRecoveryErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspacePaymentRecoveryError = DomainWorkspacesGetWorkspacePaymentRecoveryErrors[keyof DomainWorkspacesGetWorkspacePaymentRecoveryErrors];
+
+export type DomainWorkspacesGetWorkspacePaymentRecoveryResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelCommercialAccessRecoveryView;
+};
+
+export type DomainWorkspacesGetWorkspacePaymentRecoveryResponse = DomainWorkspacesGetWorkspacePaymentRecoveryResponses[keyof DomainWorkspacesGetWorkspacePaymentRecoveryResponses];
 
 export type DomainWorkspacesListWorkspacePlansData = {
     body?: never;
@@ -54173,6 +44010,165 @@ export type DomainWorkspacesActivateWorkspaceExtensionResponses = {
 };
 
 export type DomainWorkspacesActivateWorkspaceExtensionResponse = DomainWorkspacesActivateWorkspaceExtensionResponses[keyof DomainWorkspacesActivateWorkspaceExtensionResponses];
+
+export type DomainWorkspacesReadFeatureAccessData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/feature-access';
+};
+
+export type DomainWorkspacesReadFeatureAccessErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesReadFeatureAccessError = DomainWorkspacesReadFeatureAccessErrors[keyof DomainWorkspacesReadFeatureAccessErrors];
+
+export type DomainWorkspacesReadFeatureAccessResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelFeatureAccessReadResult;
+};
+
+export type DomainWorkspacesReadFeatureAccessResponse = DomainWorkspacesReadFeatureAccessResponses[keyof DomainWorkspacesReadFeatureAccessResponses];
+
+export type DomainWorkspacesAssignFeatureAccessData = {
+    body: FeatureAccessAssignRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+        /**
+         * Entitlement Key
+         */
+        entitlement_key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/feature-access/{entitlement_key}/assignments';
+};
+
+export type DomainWorkspacesAssignFeatureAccessErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesAssignFeatureAccessError = DomainWorkspacesAssignFeatureAccessErrors[keyof DomainWorkspacesAssignFeatureAccessErrors];
+
+export type DomainWorkspacesAssignFeatureAccessResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelFeatureAccessMutationOut;
+};
+
+export type DomainWorkspacesAssignFeatureAccessResponse = DomainWorkspacesAssignFeatureAccessResponses[keyof DomainWorkspacesAssignFeatureAccessResponses];
+
+export type DomainWorkspacesMoveFeatureAccessData = {
+    body: FeatureAccessMoveRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+        /**
+         * Entitlement Key
+         */
+        entitlement_key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/feature-access/{entitlement_key}/assignments/move';
+};
+
+export type DomainWorkspacesMoveFeatureAccessErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesMoveFeatureAccessError = DomainWorkspacesMoveFeatureAccessErrors[keyof DomainWorkspacesMoveFeatureAccessErrors];
+
+export type DomainWorkspacesMoveFeatureAccessResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelFeatureAccessMutationOut;
+};
+
+export type DomainWorkspacesMoveFeatureAccessResponse = DomainWorkspacesMoveFeatureAccessResponses[keyof DomainWorkspacesMoveFeatureAccessResponses];
+
+export type DomainWorkspacesRevokeFeatureAccessData = {
+    body?: never;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+        /**
+         * Entitlement Key
+         */
+        entitlement_key: string;
+        /**
+         * Membership Id
+         */
+        membership_id: string;
+    };
+    query: {
+        /**
+         * Expectedrevision
+         */
+        expectedRevision: number;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/feature-access/{entitlement_key}/assignments/{membership_id}';
+};
+
+export type DomainWorkspacesRevokeFeatureAccessErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesRevokeFeatureAccessError = DomainWorkspacesRevokeFeatureAccessErrors[keyof DomainWorkspacesRevokeFeatureAccessErrors];
+
+export type DomainWorkspacesRevokeFeatureAccessResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelFeatureAccessMutationOut;
+};
+
+export type DomainWorkspacesRevokeFeatureAccessResponse = DomainWorkspacesRevokeFeatureAccessResponses[keyof DomainWorkspacesRevokeFeatureAccessResponses];
 
 export type DomainWorkspacesListWorkspaceJobsData = {
     body?: never;
@@ -55052,6 +45048,44 @@ export type DomainWorkspacesGetWorkspaceObservabilityTrendResponses = {
 };
 
 export type DomainWorkspacesGetWorkspaceObservabilityTrendResponse = DomainWorkspacesGetWorkspaceObservabilityTrendResponses[keyof DomainWorkspacesGetWorkspaceObservabilityTrendResponses];
+
+export type DomainWorkspacesTransferWorkspaceOwnershipData = {
+    body: WorkspaceOwnershipTransferRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/ownership-transfer';
+};
+
+export type DomainWorkspacesTransferWorkspaceOwnershipErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesTransferWorkspaceOwnershipError = DomainWorkspacesTransferWorkspaceOwnershipErrors[keyof DomainWorkspacesTransferWorkspaceOwnershipErrors];
+
+export type DomainWorkspacesTransferWorkspaceOwnershipResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceOwnershipTransferOut;
+};
+
+export type DomainWorkspacesTransferWorkspaceOwnershipResponse = DomainWorkspacesTransferWorkspaceOwnershipResponses[keyof DomainWorkspacesTransferWorkspaceOwnershipResponses];
 
 export type DomainWorkspacesListActionsData = {
     body?: never;
@@ -56683,6 +46717,106 @@ export type DomainWorkspacesValidateWorkspaceSkillVersionResponses = {
 };
 
 export type DomainWorkspacesValidateWorkspaceSkillVersionResponse = DomainWorkspacesValidateWorkspaceSkillVersionResponses[keyof DomainWorkspacesValidateWorkspaceSkillVersionResponses];
+
+export type DomainWorkspacesListGrantsData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/support-access/grants';
+};
+
+export type DomainWorkspacesListGrantsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListGrantsError = DomainWorkspacesListGrantsErrors[keyof DomainWorkspacesListGrantsErrors];
+
+export type DomainWorkspacesListGrantsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelListSupportAccessGrantOut;
+};
+
+export type DomainWorkspacesListGrantsResponse = DomainWorkspacesListGrantsResponses[keyof DomainWorkspacesListGrantsResponses];
+
+export type DomainWorkspacesCreateGrantData = {
+    body: SupportAccessGrantCreate;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/support-access/grants';
+};
+
+export type DomainWorkspacesCreateGrantErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateGrantError = DomainWorkspacesCreateGrantErrors[keyof DomainWorkspacesCreateGrantErrors];
+
+export type DomainWorkspacesCreateGrantResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSupportAccessGrantOut;
+};
+
+export type DomainWorkspacesCreateGrantResponse = DomainWorkspacesCreateGrantResponses[keyof DomainWorkspacesCreateGrantResponses];
+
+export type DomainWorkspacesRevokeGrantData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+        /**
+         * Grant Id
+         */
+        grant_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/support-access/grants/{grant_id}/revoke';
+};
+
+export type DomainWorkspacesRevokeGrantErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesRevokeGrantError = DomainWorkspacesRevokeGrantErrors[keyof DomainWorkspacesRevokeGrantErrors];
+
+export type DomainWorkspacesRevokeGrantResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSupportAccessGrantOut;
+};
+
+export type DomainWorkspacesRevokeGrantResponse = DomainWorkspacesRevokeGrantResponses[keyof DomainWorkspacesRevokeGrantResponses];
 
 export type DomainWorkspacesListEmailInvitesData = {
     body?: never;

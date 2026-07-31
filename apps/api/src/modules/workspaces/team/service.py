@@ -27,6 +27,17 @@ from src.modules.analytics.audit import (
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.tokens.service import hash_password
 from src.modules.system.admin.notifications.catalog import create_notification_record
+from src.modules.workspaces.authz.role_management import (
+    WorkspaceRoleManagementAvailability,
+    WorkspaceRoleManagementAvailabilityReader,
+    build_workspace_role_management_availability_reader,
+    require_workspace_role_management,
+    require_workspace_role_management_decision,
+)
+from src.modules.workspaces.membership_lifecycle import (
+    WorkspaceMembershipEndParticipant,
+    build_workspace_membership_end_participant,
+)
 from src.modules.workspaces.team.invites.service import WorkspaceTeamInviteMixin
 from src.modules.workspaces.team.repository import WorkspaceTeamRepository
 from src.modules.workspaces.team.schema import (
@@ -64,15 +75,23 @@ def _user_ref(user: User) -> WorkspaceTeamUserRefOut:
     )
 
 
+def _is_workspace_owner(membership: WorkspaceMembership) -> bool:
+    return UUID(str(cast(HasUserId, membership).user_id)) == UUID(str(membership.workspace.owner_user_id))
+
+
 class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
     def __init__(
         self,
         settings: Settings,
         *,
+        role_management_reader: WorkspaceRoleManagementAvailabilityReader,
+        feature_access_release_participant: WorkspaceMembershipEndParticipant,
         connector_registry: ConnectorRegistry | None = None,
     ) -> None:
         super().__init__(settings)
         self.repo = WorkspaceTeamRepository()
+        self.role_management_reader = role_management_reader
+        self.feature_access_release_participant = feature_access_release_participant
         self.user_repo = UserRepository()
         self.email_service = EmailService(
             settings,
@@ -285,14 +304,28 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
             dedupe_key=None,
         )
 
-    def _build_member_out(self, *, membership: WorkspaceMembership) -> WorkspaceTeamMemberOut:
+    def _build_member_out(
+        self,
+        *,
+        membership: WorkspaceMembership,
+        include_role_codes: bool = True,
+    ) -> WorkspaceTeamMemberOut:
         membership_roles = getattr(membership, "membership_roles", None) or []
-        role_codes = sorted({mr.role.code for mr in membership_roles if getattr(mr, "role", None)})
+        role_codes = (
+            sorted({
+                mr.role.code
+                for mr in membership_roles
+                if getattr(mr, "role", None) and mr.ended_at is None and mr.role.ended_at is None
+            })
+            if include_role_codes
+            else []
+        )
         user = membership.user
         return WorkspaceTeamMemberOut(
             id=membership.id,
             membership_id=membership.id,
             membership_status=membership.status,
+            is_owner=_is_workspace_owner(membership),
             user_id=user.id,
             username=user.username,
             email=user.email,
@@ -307,7 +340,31 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
         code = (role_code or "").strip()
         if not code:
             return None
-        return await SystemRole.get_or_none(workspace_id=workspace_id, code=code)
+        return await SystemRole.get_or_none(workspace_id=workspace_id, code=code, ended_at=None)
+
+    async def _require_role_management(
+        self,
+        *,
+        workspace_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> None:
+        await require_workspace_role_management(
+            workspace_id=workspace_id,
+            reader=self.role_management_reader,
+            conn=conn,
+        )
+
+    async def _get_role_management_availability(
+        self,
+        *,
+        workspace_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> WorkspaceRoleManagementAvailability:
+        return await require_workspace_role_management_decision(
+            workspace_id=workspace_id,
+            reader=self.role_management_reader,
+            conn=conn,
+        )
 
     async def _list_recent_participants(
         self, *, link_id: UUID, limit: int = 3
@@ -350,6 +407,10 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
         params: PageParams,
         filters,
     ) -> PageData[WorkspaceTeamMemberOut]:
+        availability = await require_workspace_role_management_decision(
+            workspace_id=workspace_id,
+            reader=self.role_management_reader,
+        )
         qs = self.repo.query_memberships(workspace_id=workspace_id, filters=filters)
         total = int(await qs.count())
         pages = (total + params.size - 1) // params.size if params.size else 0
@@ -357,7 +418,7 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
 
         items: list[WorkspaceTeamMemberOut] = []
         for membership in rows:
-            items.append(self._build_member_out(membership=membership))
+            items.append(self._build_member_out(membership=membership, include_role_codes=availability.included))
 
         next_page = params.page + 1 if pages and params.page < pages else None
         prev_page = min(params.page - 1, pages) if pages and params.page > 1 else None
@@ -513,6 +574,12 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
             if membership is None:
                 raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
+            if _is_workspace_owner(membership):
+                raise BadRequest(
+                    message=t("errors", "WORKSPACE_OWNER_MEMBERSHIP_IMMUTABLE"),
+                    error="WORKSPACE_OWNER_MEMBERSHIP_IMMUTABLE",
+                )
+
             membership_user_id = UUID(str(cast(HasUserId, membership).user_id))
             if membership_user_id == acting_user_id and not enabled:
                 raise BadRequest(
@@ -523,6 +590,15 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
             target = WorkspaceMembershipStatus.ACTIVE if enabled else WorkspaceMembershipStatus.DISABLED
             status_changed = membership.status != target
             if status_changed:
+                if target == WorkspaceMembershipStatus.DISABLED:
+                    await self.feature_access_release_participant.release_for_membership_end(
+                        workspace_id=workspace_id,
+                        membership_id=membership.id,
+                        lifecycle_idempotency_key=(
+                            f"workspace-membership:{membership.id}:disable:{membership.updated_at.isoformat()}"
+                        ),
+                        conn=conn,
+                    )
                 membership.status = target
                 await membership.save(update_fields=["status", "updated_at"], using_db=conn)
 
@@ -618,6 +694,7 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
         payload: WorkspaceTeamMemberRoleSetRequest,
         acting_user_id: UUID,
     ) -> None:
+        await self._require_role_management(workspace_id=workspace_id)
         subject_user_id: UUID | None = None
         before_codes: list[str] = []
         role_codes_after: list[str] = []
@@ -629,6 +706,12 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
             )
             if membership is None:
                 raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+
+            if _is_workspace_owner(membership):
+                raise BadRequest(
+                    message=t("errors", "WORKSPACE_OWNER_MEMBERSHIP_IMMUTABLE"),
+                    error="WORKSPACE_OWNER_MEMBERSHIP_IMMUTABLE",
+                )
 
             if membership.status != WorkspaceMembershipStatus.ACTIVE:
                 raise BadRequest(
@@ -653,7 +736,7 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
 
             rows = (
                 await WorkspaceMembershipRole
-                .filter(membership_id=membership.id)
+                .filter(membership_id=membership.id, ended_at=None, role__ended_at=None)
                 .using_db(conn)
                 .prefetch_related("role")
                 .all()
@@ -694,3 +777,16 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
                 actor_user_id=acting_user_id,
                 role_codes_after=role_codes_after,
             )
+
+
+def build_workspace_team_service(
+    settings: Settings,
+    *,
+    connector_registry: ConnectorRegistry | None = None,
+) -> WorkspaceTeamService:
+    return WorkspaceTeamService(
+        settings,
+        role_management_reader=build_workspace_role_management_availability_reader(),
+        feature_access_release_participant=build_workspace_membership_end_participant(settings),
+        connector_registry=connector_registry,
+    )

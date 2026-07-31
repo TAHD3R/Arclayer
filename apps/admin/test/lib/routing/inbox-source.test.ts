@@ -81,10 +81,10 @@ describe("inbox source search", () => {
   });
 
   it("resolves a menu source only for the notifications route", () => {
-    const search = "?sourceKind=global&sourcePath=%2Fsystem%2Foverview";
+    const search = "?sourceKind=global&sourcePath=%2Fprojects";
 
-    expect(resolveNotificationsSourcePath("/notifications", search)).toBe("/system/overview");
-    expect(resolveNotificationsSourcePath("/system/tenants", search)).toBeNull();
+    expect(resolveNotificationsSourcePath("/notifications", search)).toBe("/projects");
+    expect(resolveNotificationsSourcePath("/projects/project-alpha", search)).toBeNull();
     expect(
       resolveNotificationsSourcePath(
         "/notifications",

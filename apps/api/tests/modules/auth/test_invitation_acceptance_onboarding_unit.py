@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
-from typing import cast
+from typing import Any, cast
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -14,6 +14,7 @@ from src.modules.auth.invitations.acceptance import service as acceptance_module
 from src.modules.auth.invitations.acceptance.service import AuthInvitationAcceptanceService
 from src.modules.auth.onboarding.service import WorkspaceFirstOnboardingService
 from src.modules.auth.schema import AcceptExistingInvitationRequest
+from src.modules.workspaces.authz.role_management import WorkspaceRoleManagementAvailability
 
 
 class _Query:
@@ -52,6 +53,19 @@ async def test_existing_invitation_completes_pending_onboarding_in_acceptance_tr
     service = AuthInvitationAcceptanceService(
         Settings(app_env="test"),
         onboarding_service=onboarding_service,
+        role_management_reader=cast(
+            Any,
+            SimpleNamespace(
+                get_availability=AsyncMock(
+                    return_value=WorkspaceRoleManagementAvailability(
+                        workspace_id=workspace_id,
+                        plan_revision_id=uuid4(),
+                        commercial_access_state="normal",
+                        included=True,
+                    )
+                )
+            ),
+        ),
     )
 
     @asynccontextmanager

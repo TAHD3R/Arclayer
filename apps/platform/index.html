@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f7f8fa" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
+    <meta name="description" content="Arclayer Platform Console" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <title>Arclayer Platform Console</title>
+    <script>
+      (() => {
+        const theme = localStorage.getItem("arclayer:platform:theme");
+        if (theme !== null && theme !== "light" && theme !== "dark" && theme !== "system") {
+          throw new Error("Invalid stored Platform theme preference");
+        }
+        const resolvedTheme =
+          theme === "dark" || theme === "light"
+            ? theme
+            : matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+        document.documentElement.dataset.theme = resolvedTheme;
+
+        const locale = localStorage.getItem("arclayer:platform:locale");
+        if (locale !== null && locale !== "zh-CN" && locale !== "en-US") {
+          throw new Error("Invalid stored Platform locale preference");
+        }
+        document.documentElement.lang =
+          locale || (navigator.language.toLowerCase().startsWith("zh") ? "zh-CN" : "en-US");
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

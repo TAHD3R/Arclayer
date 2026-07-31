@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { getUnreadNotificationPreview } from "@/api/notifications";
 import { AIDrawerOverlay } from "@/components/ai/ai-drawer-overlay";
 import { ArclayerAssistantScope } from "@/components/ai/arclayer-assistant-scope";
+import { PaymentRestrictedNotice } from "@/components/commerce/payment-restricted-notice";
 import { NotificationToastContent } from "@/components/common/notification-toast-content";
 import {
   getGlobalNotificationMeta,
@@ -19,6 +20,7 @@ import type { SidebarBrowseProject } from "@/components/layout/project-browse-me
 import { useNotificationActions } from "@/hooks/use-notification-actions";
 import { RouteTransition } from "@/components/layout/route-transition";
 import { useAiChatStore } from "@/stores/use-ai-chat-store";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { SidebarInset, SidebarProvider } from "@arclayer/ui/sidebar";
 import { message } from "@arclayer/ui/admin-toast";
@@ -83,6 +85,9 @@ export function AdminSceneLayout({
   const setSidebarWidthPx = usePreferencesStore((s) => s.setSidebarWidthPx);
   const setAiDrawerWidthPx = usePreferencesStore((s) => s.setAiDrawerWidthPx);
   const aiDrawerOpen = useAiChatStore((s) => s.drawerOpen);
+  const workspaceId = useWorkspaceStore(
+    (state) => state.currentWorkspaceId ?? state.lastWorkspaceId,
+  );
   const sidebarOpen =
     sidebarCollapsible === "none" ? true : aiDrawerOpen ? false : storedSidebarOpen;
   const sceneContainerRef = useRef<HTMLDivElement | null>(null);
@@ -304,6 +309,7 @@ export function AdminSceneLayout({
 
               <div className="relative flex min-w-0 flex-1 flex-col">
                 {renderTopbar()}
+                <PaymentRestrictedNotice workspaceId={workspaceId} />
                 <GlobalNotificationSurfaces
                   items={notificationPreviewQuery.data?.items ?? []}
                   onRecordInteraction={recordInteraction}

@@ -54,7 +54,7 @@ class HTTPRequestRecordFact(BaseSchema):
     error_class: str | None = Field(default=None, min_length=1, max_length=128)
     error_message: str | None = Field(default=None, min_length=1, max_length=512)
     ingestion_source: str = Field(min_length=1, max_length=64)
-    schema_version: Literal[HTTP_REQUEST_RECORD_SCHEMA_VERSION] = HTTP_REQUEST_RECORD_SCHEMA_VERSION
+    schema_version: Literal[2] = HTTP_REQUEST_RECORD_SCHEMA_VERSION
 
 
 def is_observability_query_route(route: object | None) -> bool:

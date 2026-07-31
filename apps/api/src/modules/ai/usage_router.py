@@ -21,9 +21,8 @@ from src.core.exceptions import Forbidden
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import t
 from src.models.ai.ai_usage_daily import AIUsageDaily
-from src.models.organization.user import User
-from src.modules.auth.http.service import get_current_user
-from src.modules.workspaces.http.service import require_active_workspace, resolve_workspace_context_by_id
+from src.modules.auth.http.service import get_current_user_id
+from src.modules.workspaces.http.service import resolve_workspace_context_by_id
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/usage",
@@ -33,15 +32,11 @@ router = APIRouter(
 
 async def require_workspace_usage_read_access(
     workspace_id: Annotated[PublicUUID, Path(..., description="Workspace ID.")],
-    user: User = Depends(get_current_user),
+    user_id: UUID = Depends(get_current_user_id),
 ) -> UUID:
-    """Allow workspace managers and super admins to inspect workspace usage rollups."""
-    if bool(user.is_super_admin):
-        workspace = await require_active_workspace(workspace_id=workspace_id)
-        return UUID(str(workspace.id))
-
-    ctx = await resolve_workspace_context_by_id(workspace_id=workspace_id, user_id=UUID(str(user.id)))
-    if ctx.visible_only or ctx.workspace_membership_id is None:
+    """Allow Product workspace members to inspect their workspace usage rollups."""
+    ctx = await resolve_workspace_context_by_id(workspace_id=workspace_id, user_id=user_id)
+    if ctx.workspace_membership_id is None:
         raise Forbidden(message=t("errors", "PERMISSION_DENIED"), error="WORKSPACE_ACCESS_DENIED")
     return ctx.workspace_id
 

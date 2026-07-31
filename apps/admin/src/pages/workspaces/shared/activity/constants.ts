@@ -312,24 +312,7 @@ export const ACTIVITY_EVENT_CATALOG: Record<string, ActivityEventCatalogEntry> =
     level: "info",
   },
 
-  // System / Asset / Settings
-  "system.setup.completed": {
-    titleKey: "ACTIVITY_EVENT_SYSTEM_SETUP_COMPLETED_TITLE",
-    descriptionKey: "ACTIVITY_EVENT_SYSTEM_SETUP_COMPLETED_DESC",
-    level: "info",
-  },
-  "settings.updated": {
-    titleKey: "ACTIVITY_EVENT_SETTINGS_UPDATED_TITLE",
-    descriptionKey: "ACTIVITY_EVENT_SETTINGS_UPDATED_DESC",
-    level: "warning",
-  },
-  "system.mail.updated": createCatalogEntry("SYSTEM_MAIL_UPDATED", "warning"),
-  "system.storage.updated": createCatalogEntry("SYSTEM_STORAGE_UPDATED", "warning"),
-  "system.settings.feature_flags.updated": createCatalogEntry(
-    "SYSTEM_SETTINGS_FEATURE_FLAGS_UPDATED",
-    "warning",
-  ),
-  "system.settings.rbac.updated": createCatalogEntry("SYSTEM_SETTINGS_RBAC_UPDATED", "warning"),
+  // Assets
   "asset.uploaded": {
     titleKey: "ACTIVITY_EVENT_ASSET_UPLOADED_TITLE",
     descriptionKey: "ACTIVITY_EVENT_ASSET_UPLOADED_DESC",

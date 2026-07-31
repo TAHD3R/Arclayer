@@ -28,9 +28,6 @@ class NotificationRepository(TortoiseORMRepository):
             return []
         return await User.filter(id__in=list(user_ids), status=UserStatus.ACTIVE).order_by("id").all()
 
-    async def list_active_super_admins(self) -> list[User]:
-        return await User.filter(status=UserStatus.ACTIVE, is_super_admin=True).order_by("id").all()
-
     async def get_unread_count(self, *, workspace_id: UUID, recipient_user_id: UUID) -> int:
         return int(
             await NotificationRecord.filter(

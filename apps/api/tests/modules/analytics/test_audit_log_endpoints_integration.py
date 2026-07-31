@@ -1,21 +1,32 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from uuid import UUID, uuid4
 
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-from pydantic import BaseModel, ConfigDict
 
 from src.common.utils.public_ids import encode_uuid
 from src.models.analytics.audit_event import AuditEvent
+from src.modules.analytics.system.router import router as system_activity_router
 from src.modules.analytics.workspaces.router import router as workspace_activity_router
-from src.modules.auth.http.service import get_current_user, require_super_admin
-from src.modules.system.router import router as system_router
+from src.modules.platform_identity.http import get_current_platform_session
 from src.modules.workspaces.http.service import require_workspace_manage_access
 
 pytestmark = pytest.mark.integration
+
+
+def _platform_activity_app(actor_id: UUID) -> FastAPI:
+    app = FastAPI()
+    app.include_router(system_activity_router, prefix="/platform-api/v1/activity")
+
+    async def _platform_owner() -> SimpleNamespace:
+        return SimpleNamespace(actor_id=actor_id, is_instance_owner=True)
+
+    app.dependency_overrides[get_current_platform_session] = _platform_owner
+    return app
 
 
 @pytest.mark.asyncio
@@ -41,23 +52,11 @@ async def test_system_activity_list_returns_events(db_schema) -> None:
         properties={"namespace": "core"},
     )
 
-    class DummyUser(BaseModel):
-        model_config = ConfigDict(extra="forbid", frozen=True)
-
-        id: UUID
-        is_super_admin: bool = True
-
-    async def _super_admin_override() -> DummyUser:
-        return DummyUser(id=user_id)
-
-    app = FastAPI()
-    app.include_router(system_router, prefix="/api/v1/system")
-    app.dependency_overrides[require_super_admin] = _super_admin_override
-    app.dependency_overrides[get_current_user] = _super_admin_override
+    app = _platform_activity_app(user_id)
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        res = await client.get("/api/v1/system/activity?page=1&size=20")
+        res = await client.get("/platform-api/v1/activity?page=1&size=20")
     assert res.status_code == 200
 
     payload = res.json()
@@ -101,24 +100,12 @@ async def test_system_activity_supports_event_time_filters_and_pagination(db_sch
         properties={"seq": 99},
     )
 
-    class DummyUser(BaseModel):
-        model_config = ConfigDict(extra="forbid", frozen=True)
-
-        id: UUID
-        is_super_admin: bool = True
-
-    async def _super_admin_override() -> DummyUser:
-        return DummyUser(id=user_id)
-
-    app = FastAPI()
-    app.include_router(system_router, prefix="/api/v1/system")
-    app.dependency_overrides[require_super_admin] = _super_admin_override
-    app.dependency_overrides[get_current_user] = _super_admin_override
+    app = _platform_activity_app(user_id)
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         res = await client.get(
-            "/api/v1/system/activity",
+            "/platform-api/v1/activity",
             params={
                 "eventName": "workspace.member.invited",
                 "occurredFrom": (base_time - timedelta(minutes=3)).isoformat(),
@@ -137,7 +124,7 @@ async def test_system_activity_supports_event_time_filters_and_pagination(db_sch
         assert payload["items"][0]["properties"]["seq"] == 2
 
         res_next = await client.get(
-            "/api/v1/system/activity",
+            "/platform-api/v1/activity",
             params={
                 "eventName": "workspace.member.invited",
                 "occurredFrom": (base_time - timedelta(minutes=3)).isoformat(),
@@ -177,24 +164,12 @@ async def test_system_activity_empty_result_and_descending_order(db_schema) -> N
         properties={"seq": 2},
     )
 
-    class DummyUser(BaseModel):
-        model_config = ConfigDict(extra="forbid", frozen=True)
-
-        id: UUID
-        is_super_admin: bool = True
-
-    async def _super_admin_override() -> DummyUser:
-        return DummyUser(id=user_id)
-
-    app = FastAPI()
-    app.include_router(system_router, prefix="/api/v1/system")
-    app.dependency_overrides[require_super_admin] = _super_admin_override
-    app.dependency_overrides[get_current_user] = _super_admin_override
+    app = _platform_activity_app(user_id)
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         res = await client.get(
-            "/api/v1/system/activity",
+            "/platform-api/v1/activity",
             params={
                 "eventName": "system.mail.updated",
                 "occurredFrom": (base_time - timedelta(minutes=1)).isoformat(),
@@ -212,7 +187,7 @@ async def test_system_activity_empty_result_and_descending_order(db_schema) -> N
         assert payload["pages"] == 1
 
         empty = await client.get(
-            "/api/v1/system/activity",
+            "/platform-api/v1/activity",
             params={
                 "eventName": "missing.event",
                 "page": 1,
@@ -249,29 +224,12 @@ async def test_workspace_activity_route_enforces_workspace_scope(db_schema) -> N
         properties={"seq": 2},
     )
 
-    class DummyWorkspaceContext(BaseModel):
-        model_config = ConfigDict(extra="forbid", frozen=True)
-
-        organization_id: UUID
-        workspace_id: UUID
-
-    async def _workspace_access_override() -> DummyWorkspaceContext:
-        return DummyWorkspaceContext(organization_id=org_id, workspace_id=workspace_id)
-
-    class DummyUser(BaseModel):
-        model_config = ConfigDict(extra="forbid", frozen=True)
-
-        id: UUID
-        is_super_admin: bool = True
-
-    async def _super_admin_override() -> DummyUser:
-        return DummyUser(id=user_id)
+    async def _workspace_access_override() -> SimpleNamespace:
+        return SimpleNamespace(organization_id=org_id, workspace_id=workspace_id)
 
     app = FastAPI()
     app.include_router(workspace_activity_router, prefix="/api/v1")
     app.dependency_overrides[require_workspace_manage_access] = _workspace_access_override
-    app.dependency_overrides[require_super_admin] = _super_admin_override
-    app.dependency_overrides[get_current_user] = _super_admin_override
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:

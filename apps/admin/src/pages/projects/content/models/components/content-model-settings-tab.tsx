@@ -18,7 +18,7 @@ import {
   SystemSettingItem,
   SystemSettingRow,
   SystemSettingStack,
-} from "@/pages/system/components/system-setting-item";
+} from "@/components/settings/setting-item";
 
 export type ContentModelSettingsSectionKey = "settings" | "workflow";
 

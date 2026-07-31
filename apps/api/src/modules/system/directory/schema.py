@@ -108,7 +108,6 @@ class DirectoryUserListItemOut(BaseSchema):
     email: str | None = Field(default=None, description="Email.")
     avatar_url: str | None = Field(default=None, description="Avatar URL.")
     status: UserStatus = Field(..., description="User status.")
-    is_super_admin: bool = Field(default=False, description="Whether the user is a super admin.")
     has_password: bool = Field(default=False, description="Whether a local password is configured.")
     two_factor_enabled: bool = Field(default=False, description="Whether two-factor authentication is enabled.")
     linked_oauth_providers: list[str] = Field(
@@ -266,10 +265,6 @@ class DirectoryProjectDetailOut(DirectoryProjectListItemOut):
 class DirectoryUserUpdateRequest(BaseSchema):
     email: EmailStr | None = Field(default=None, description="Email address.")
     display_name: str | None = Field(default=None, max_length=64, description="Display name.")
-    is_super_admin: bool | None = Field(
-        default=None,
-        description="Whether the user has system-wide super admin access.",
-    )
     avatar_asset_id: PublicUUID | None = Field(
         default=None,
         description="Avatar asset id.",
@@ -298,7 +293,6 @@ class DirectoryUserResetPasswordRequest(BaseSchema):
 
 class DirectoryUserListFilters(BaseSchema):
     status: UserStatus | None = Field(default=None, description="Account status filter.")
-    is_super_admin: bool | None = Field(default=None, description="Super admin permission filter.")
     has_password: bool | None = Field(default=None, description="Local password filter.")
     two_factor_enabled: bool | None = Field(default=None, description="Two-factor authentication filter.")
     oauth_provider: str | None = Field(default=None, description="OAuth provider filter.")
@@ -458,20 +452,3 @@ class DirectoryProjectUpdateRequest(BaseSchema):
             return None
         normalized = value.strip()
         return normalized or None
-
-
-class DirectoryDeleteRequest(BaseSchema):
-    confirm_name: str = Field(
-        min_length=1,
-        max_length=128,
-        description="Current entity name confirmation for destructive delete.",
-        validation_alias="confirmName",
-    )
-
-    @field_validator("confirm_name")
-    @classmethod
-    def normalize_confirm_name(cls, value: str) -> str:
-        normalized = value.strip()
-        if not normalized:
-            raise ValueError("Value is required.")
-        return normalized

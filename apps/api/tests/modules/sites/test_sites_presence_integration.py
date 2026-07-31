@@ -56,6 +56,7 @@ async def test_sites_presence_heartbeat_and_list(prepared_schema) -> None:
             organization_id=org.id,
             name="Workspace",
             is_active=True,
+            owner_user_id=user.id,
             created_by_user_id=user.id,
         )
 

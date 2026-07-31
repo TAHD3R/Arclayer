@@ -298,7 +298,6 @@ class UserProfile(BaseOut):
         default=False,
         description="Whether the avatar asset was auto-aligned (purpose/visibility/indexable) in this response.",
     )
-    is_super_admin: bool = False
 
 
 class RegisterResult(BaseSchema):

@@ -35,7 +35,8 @@ from src.modules.assets.admin.assets.schema import (
 from src.modules.assets.admin.assets.service import AdminAssetsService
 from src.modules.assets.scope import AssetScope
 from src.modules.auth.http.service import get_current_user_id
-from src.modules.projects.http.router_helpers import require_project_permission
+from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
+from src.modules.projects.http.router_helpers import require_project_commercial_effect, require_project_permission
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
 from src.modules.tenancy.router_helpers import resolve_project_tenant_context
@@ -109,7 +110,10 @@ async def list_asset_tags(
     "/asset-tags",
     response_model=ResponseModel[AdminAssetTagOut],
     summary="Create project asset tag",
-    dependencies=[require_project_permission("project:assets:manage")],
+    dependencies=[
+        require_project_permission("project:assets:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def create_asset_tag(
     payload: AdminAssetTagCreateRequest,
@@ -139,7 +143,10 @@ async def get_asset_detail(
     "/assets/{asset_id}",
     response_model=ResponseModel[AdminAssetDetailOut],
     summary="Update project asset",
-    dependencies=[require_project_permission("project:assets:manage")],
+    dependencies=[
+        require_project_permission("project:assets:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def patch_asset(
     asset_id: PublicUUID,
@@ -161,7 +168,10 @@ async def patch_asset(
     "/assets/{asset_id}",
     response_model=ResponseModel[AdminAssetDeleteOut],
     summary="Delete project asset",
-    dependencies=[require_project_permission("project:assets:manage")],
+    dependencies=[
+        require_project_permission("project:assets:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def delete_asset(
     asset_id: PublicUUID,
@@ -177,7 +187,10 @@ async def delete_asset(
     "/asset-folders",
     response_model=ResponseModel[AdminAssetFolderOut],
     summary="Create project asset folder",
-    dependencies=[require_project_permission("project:assets:manage")],
+    dependencies=[
+        require_project_permission("project:assets:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def create_asset_folder(
     payload: AdminAssetFolderCreateRequest,
@@ -193,7 +206,10 @@ async def create_asset_folder(
     "/asset-folders/{folder_id}",
     response_model=ResponseModel[AdminAssetFolderOut],
     summary="Update project asset folder",
-    dependencies=[require_project_permission("project:assets:manage")],
+    dependencies=[
+        require_project_permission("project:assets:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def update_asset_folder(
     folder_id: PublicUUID,
@@ -215,7 +231,10 @@ async def update_asset_folder(
     "/asset-folders/{folder_id}",
     response_model=ResponseModel[AdminAssetFolderDeleteOut],
     summary="Delete project asset folder",
-    dependencies=[require_project_permission("project:assets:manage")],
+    dependencies=[
+        require_project_permission("project:assets:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def delete_asset_folder(
     folder_id: PublicUUID,
@@ -231,7 +250,10 @@ async def delete_asset_folder(
     "/asset-folders/{folder_id}/delete",
     response_model=ResponseModel[AdminAssetFolderDeleteOut],
     summary="Delete project asset folder with content migration",
-    dependencies=[require_project_permission("project:assets:manage")],
+    dependencies=[
+        require_project_permission("project:assets:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def delete_asset_folder_with_move(
     folder_id: PublicUUID,
@@ -253,7 +275,10 @@ async def delete_asset_folder_with_move(
     "/assets/bulk/move",
     response_model=ResponseModel[AdminAssetBulkMoveOut],
     summary="Bulk move project assets",
-    dependencies=[require_project_permission("project:assets:manage")],
+    dependencies=[
+        require_project_permission("project:assets:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def bulk_move_assets(
     payload: AdminAssetBulkMoveRequest,
@@ -268,7 +293,10 @@ async def bulk_move_assets(
     "/assets/bulk/delete",
     response_model=ResponseModel[AdminAssetBulkDeleteOut],
     summary="Bulk delete project assets",
-    dependencies=[require_project_permission("project:assets:manage")],
+    dependencies=[
+        require_project_permission("project:assets:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def bulk_delete_assets(
     payload: AdminAssetBulkDeleteRequest,
@@ -283,7 +311,10 @@ async def bulk_delete_assets(
     "/assets/bulk/update",
     response_model=ResponseModel[AdminAssetBulkUpdateOut],
     summary="Bulk update project assets",
-    dependencies=[require_project_permission("project:assets:manage")],
+    dependencies=[
+        require_project_permission("project:assets:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def bulk_update_assets(
     payload: AdminAssetBulkUpdateRequest,
@@ -298,7 +329,10 @@ async def bulk_update_assets(
     "/assets/{asset_id}/move",
     response_model=ResponseModel[AdminAssetSummaryOut],
     summary="Move project asset",
-    dependencies=[require_project_permission("project:assets:manage")],
+    dependencies=[
+        require_project_permission("project:assets:manage"),
+        require_project_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
 )
 async def move_asset(
     asset_id: PublicUUID,

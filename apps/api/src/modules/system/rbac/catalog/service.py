@@ -20,7 +20,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow accessing /admin/** routes.",
         name_i18n="rbac:RBAC_PERM_ADMIN_ACCESS_NAME",
         description_i18n="rbac:RBAC_PERM_ADMIN_ACCESS_DESC",
-        default_roles=["owner", "admin", "editor", "designer", "viewer"],
+        default_roles=["admin", "editor", "designer", "viewer"],
     ),
     # System (workspace-level) settings.
     PermissionTemplate(
@@ -30,7 +30,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow reading system settings.",
         name_i18n="rbac:RBAC_PERM_SETTINGS_READ_NAME",
         description_i18n="rbac:RBAC_PERM_SETTINGS_READ_DESC",
-        default_roles=["owner", "admin", "editor", "designer", "viewer"],
+        default_roles=["admin", "editor", "designer", "viewer"],
     ),
     PermissionTemplate(
         code="system:settings:manage",
@@ -39,7 +39,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow updating system settings.",
         name_i18n="rbac:RBAC_PERM_SETTINGS_MANAGE_NAME",
         description_i18n="rbac:RBAC_PERM_SETTINGS_MANAGE_DESC",
-        default_roles=["owner", "admin"],
+        default_roles=["admin"],
     ),
     # Site administration for the current project's runtime site.
     PermissionTemplate(
@@ -49,7 +49,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow viewing workspace site metadata.",
         name_i18n="rbac:RBAC_PERM_SITE_READ_NAME",
         description_i18n="rbac:RBAC_PERM_SITE_READ_DESC",
-        default_roles=["owner", "admin", "editor", "designer", "viewer"],
+        default_roles=["admin", "editor", "designer", "viewer"],
     ),
     PermissionTemplate(
         code="system:site:manage",
@@ -58,7 +58,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow managing workspace site operations such as issuing preview tokens.",
         name_i18n="rbac:RBAC_PERM_SITE_MANAGE_NAME",
         description_i18n="rbac:RBAC_PERM_SITE_MANAGE_DESC",
-        default_roles=["owner", "admin", "editor", "designer"],
+        default_roles=["admin", "editor", "designer"],
     ),
     # Content management.
     PermissionTemplate(
@@ -68,7 +68,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow viewing content models, entries, pages, structures, and appearance settings.",
         name_i18n="rbac:RBAC_PERM_CONTENT_READ_NAME",
         description_i18n="rbac:RBAC_PERM_CONTENT_READ_DESC",
-        default_roles=["owner", "admin", "editor", "designer", "viewer"],
+        default_roles=["admin", "editor", "designer", "viewer"],
     ),
     PermissionTemplate(
         code="system:content:manage",
@@ -77,7 +77,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow creating and editing content models, entries, pages, structures, and appearance settings.",
         name_i18n="rbac:RBAC_PERM_CONTENT_MANAGE_NAME",
         description_i18n="rbac:RBAC_PERM_CONTENT_MANAGE_DESC",
-        default_roles=["owner", "admin", "editor", "designer"],
+        default_roles=["admin", "editor", "designer"],
     ),
     PermissionTemplate(
         code="system:content:publish",
@@ -86,7 +86,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow publishing, unpublishing, and rolling back content revisions.",
         name_i18n="rbac:RBAC_PERM_CONTENT_PUBLISH_NAME",
         description_i18n="rbac:RBAC_PERM_CONTENT_PUBLISH_DESC",
-        default_roles=["owner", "admin", "editor"],
+        default_roles=["admin", "editor"],
     ),
     # API keys.
     PermissionTemplate(
@@ -96,7 +96,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow listing and reading workspace service keys and delivery keys.",
         name_i18n="rbac:RBAC_PERM_KEYS_READ_NAME",
         description_i18n="rbac:RBAC_PERM_KEYS_READ_DESC",
-        default_roles=["owner", "admin"],
+        default_roles=["admin"],
     ),
     PermissionTemplate(
         code="system:keys:manage",
@@ -105,7 +105,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow creating, revoking, and rotating workspace service keys and delivery keys.",
         name_i18n="rbac:RBAC_PERM_KEYS_MANAGE_NAME",
         description_i18n="rbac:RBAC_PERM_KEYS_MANAGE_DESC",
-        default_roles=["owner", "admin"],
+        default_roles=["admin"],
     ),
     # Asset library and uploads.
     PermissionTemplate(
@@ -115,7 +115,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow listing and viewing asset library items, folders, tags, and usages.",
         name_i18n="rbac:RBAC_PERM_ASSETS_READ_NAME",
         description_i18n="rbac:RBAC_PERM_ASSETS_READ_DESC",
-        default_roles=["owner", "admin", "editor", "designer", "viewer"],
+        default_roles=["admin", "editor", "designer", "viewer"],
     ),
     PermissionTemplate(
         code="system:assets:manage",
@@ -124,7 +124,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow uploading, updating, moving, deleting, and organizing asset library items and usages.",
         name_i18n="rbac:RBAC_PERM_ASSETS_MANAGE_NAME",
         description_i18n="rbac:RBAC_PERM_ASSETS_MANAGE_DESC",
-        default_roles=["owner", "admin", "editor", "designer"],
+        default_roles=["admin", "editor", "designer"],
     ),
     # Site domains.
     PermissionTemplate(
@@ -134,7 +134,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow viewing site custom domain bindings and verification status.",
         name_i18n="rbac:RBAC_PERM_DOMAINS_READ_NAME",
         description_i18n="rbac:RBAC_PERM_DOMAINS_READ_DESC",
-        default_roles=["owner", "admin", "editor", "designer", "viewer"],
+        default_roles=["admin", "editor", "designer", "viewer"],
     ),
     PermissionTemplate(
         code="system:domains:manage",
@@ -143,7 +143,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow binding, verifying, updating, and deleting site custom domains.",
         name_i18n="rbac:RBAC_PERM_DOMAINS_MANAGE_NAME",
         description_i18n="rbac:RBAC_PERM_DOMAINS_MANAGE_DESC",
-        default_roles=["owner", "admin"],
+        default_roles=["admin"],
     ),
     # Notifications.
     PermissionTemplate(
@@ -153,7 +153,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow listing and reading workspace notifications.",
         name_i18n="rbac:RBAC_PERM_NOTIFICATIONS_READ_NAME",
         description_i18n="rbac:RBAC_PERM_NOTIFICATIONS_READ_DESC",
-        default_roles=["owner", "admin", "editor", "designer", "viewer"],
+        default_roles=["admin", "editor", "designer", "viewer"],
     ),
     PermissionTemplate(
         code="system:notifications:manage",
@@ -162,7 +162,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow managing notification workflows such as seeding demo notifications.",
         name_i18n="rbac:RBAC_PERM_NOTIFICATIONS_MANAGE_NAME",
         description_i18n="rbac:RBAC_PERM_NOTIFICATIONS_MANAGE_DESC",
-        default_roles=["owner", "admin"],
+        default_roles=["admin"],
     ),
     # Automation flows and operations.
     PermissionTemplate(
@@ -172,7 +172,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow viewing automation flows, runs, and diagnostics.",
         name_i18n="rbac:RBAC_PERM_AUTOMATION_READ_NAME",
         description_i18n="rbac:RBAC_PERM_AUTOMATION_READ_DESC",
-        default_roles=["owner", "admin", "editor", "designer", "viewer"],
+        default_roles=["admin", "editor", "designer", "viewer"],
     ),
     PermissionTemplate(
         code="system:automation:manage",
@@ -181,7 +181,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow creating, updating, deleting, and operating automation flows.",
         name_i18n="rbac:RBAC_PERM_AUTOMATION_MANAGE_NAME",
         description_i18n="rbac:RBAC_PERM_AUTOMATION_MANAGE_DESC",
-        default_roles=["owner", "admin"],
+        default_roles=["admin"],
     ),
     # Durable background work and progress visibility.
     PermissionTemplate(
@@ -191,7 +191,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow viewing authorized workspace background jobs and their progress.",
         name_i18n="rbac:RBAC_PERM_JOBS_READ_NAME",
         description_i18n="rbac:RBAC_PERM_JOBS_READ_DESC",
-        default_roles=["owner", "admin", "editor", "designer", "viewer"],
+        default_roles=["admin", "editor", "designer", "viewer"],
     ),
     # Workspace RBAC management (custom roles + assignments).
     PermissionTemplate(
@@ -201,7 +201,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow listing roles and role details in current workspace.",
         name_i18n="rbac:RBAC_PERM_RBAC_ROLES_READ_NAME",
         description_i18n="rbac:RBAC_PERM_RBAC_ROLES_READ_DESC",
-        default_roles=["owner", "admin"],
+        default_roles=["admin"],
     ),
     PermissionTemplate(
         code="rbac:roles:write",
@@ -210,7 +210,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow creating, updating, and deleting custom roles in current workspace.",
         name_i18n="rbac:RBAC_PERM_RBAC_ROLES_WRITE_NAME",
         description_i18n="rbac:RBAC_PERM_RBAC_ROLES_WRITE_DESC",
-        default_roles=["owner", "admin"],
+        default_roles=["admin"],
     ),
     PermissionTemplate(
         code="rbac:users:assign",
@@ -219,7 +219,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow assigning and revoking user roles in current workspace.",
         name_i18n="rbac:RBAC_PERM_RBAC_USERS_ASSIGN_NAME",
         description_i18n="rbac:RBAC_PERM_RBAC_USERS_ASSIGN_DESC",
-        default_roles=["owner", "admin"],
+        default_roles=["admin"],
     ),
     PermissionTemplate(
         code="rbac:permissions:read",
@@ -228,7 +228,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow listing permissions (workspace-scoped).",
         name_i18n="rbac:RBAC_PERM_RBAC_PERMS_READ_NAME",
         description_i18n="rbac:RBAC_PERM_RBAC_PERMS_READ_DESC",
-        default_roles=["owner", "admin"],
+        default_roles=["admin"],
     ),
     # Admin user management (workspace-scoped admin console).
     PermissionTemplate(
@@ -238,7 +238,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow listing users and reading user details in admin console.",
         name_i18n="rbac:RBAC_PERM_ADMIN_USERS_READ_NAME",
         description_i18n="rbac:RBAC_PERM_ADMIN_USERS_READ_DESC",
-        default_roles=["owner", "admin"],
+        default_roles=["admin"],
     ),
     PermissionTemplate(
         code="admin:users:write",
@@ -247,7 +247,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow creating, updating, enabling and disabling users in admin console.",
         name_i18n="rbac:RBAC_PERM_ADMIN_USERS_WRITE_NAME",
         description_i18n="rbac:RBAC_PERM_ADMIN_USERS_WRITE_DESC",
-        default_roles=["owner", "admin"],
+        default_roles=["admin"],
     ),
     PermissionTemplate(
         code="admin:users:reset-password",
@@ -256,7 +256,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow resetting user password in admin console.",
         name_i18n="rbac:RBAC_PERM_ADMIN_USERS_RESET_PW_NAME",
         description_i18n="rbac:RBAC_PERM_ADMIN_USERS_RESET_PW_DESC",
-        default_roles=["owner", "admin"],
+        default_roles=["admin"],
     ),
     # Team collaboration (workspace governance boundary in v2).
     PermissionTemplate(
@@ -266,7 +266,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow listing members in current workspace.",
         name_i18n="rbac:RBAC_PERM_TEAM_MEMBERS_READ_NAME",
         description_i18n="rbac:RBAC_PERM_TEAM_MEMBERS_READ_DESC",
-        default_roles=["owner", "admin", "viewer"],
+        default_roles=["admin", "viewer"],
     ),
     PermissionTemplate(
         code="team:members:roles:manage",
@@ -275,7 +275,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow managing member role bindings in current workspace.",
         name_i18n="rbac:RBAC_PERM_TEAM_MEMBER_ROLES_MANAGE_NAME",
         description_i18n="rbac:RBAC_PERM_TEAM_MEMBER_ROLES_MANAGE_DESC",
-        default_roles=["owner", "admin"],
+        default_roles=["admin"],
     ),
     PermissionTemplate(
         code="team:members:manage",
@@ -284,7 +284,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow enabling/disabling members and updating member profiles in current workspace.",
         name_i18n="rbac:RBAC_PERM_TEAM_MEMBERS_MANAGE_NAME",
         description_i18n="rbac:RBAC_PERM_TEAM_MEMBERS_MANAGE_DESC",
-        default_roles=["owner", "admin"],
+        default_roles=["admin"],
     ),
     PermissionTemplate(
         code="team:members:reset-password",
@@ -293,7 +293,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow resetting user password for a member in current workspace.",
         name_i18n="rbac:RBAC_PERM_TEAM_MEMBERS_RESET_PW_NAME",
         description_i18n="rbac:RBAC_PERM_TEAM_MEMBERS_RESET_PW_DESC",
-        default_roles=["owner", "admin"],
+        default_roles=["admin"],
     ),
     PermissionTemplate(
         code="team:invitations:manage",
@@ -302,7 +302,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow creating, listing, renewing and revoking invites in current workspace.",
         name_i18n="rbac:RBAC_PERM_TEAM_INVITES_MANAGE_NAME",
         description_i18n="rbac:RBAC_PERM_TEAM_INVITES_MANAGE_DESC",
-        default_roles=["owner", "admin"],
+        default_roles=["admin"],
     ),
     PermissionTemplate(
         code="team:invite-links:manage",
@@ -311,6 +311,6 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow managing reusable invite links in current workspace.",
         name_i18n="rbac:RBAC_PERM_TEAM_INVITE_LINKS_MANAGE_NAME",
         description_i18n="rbac:RBAC_PERM_TEAM_INVITE_LINKS_MANAGE_DESC",
-        default_roles=["owner", "admin"],
+        default_roles=["admin"],
     ),
 ]

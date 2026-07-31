@@ -20,6 +20,7 @@ import { DataTableSearchInput } from "@/components/common/data-table-search-inpu
 import { FloatingBulkToolbar } from "@/components/common/floating-bulk-toolbar";
 import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
+import { useWorkspaceRolesAccess } from "@/hooks/use-workspace-roles-access";
 import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
@@ -100,6 +101,16 @@ export function TeamInvitationsView(
   const sessionVersion = useAuthStore((state) => state.sessionVersion);
   const workspaceIdFromStore = useWorkspaceStore((state) => state.currentWorkspaceId);
   const workspaceId = props.workspaceIdOverride ?? workspaceIdFromStore;
+  const rolesAccess = useWorkspaceRolesAccess(workspaceId ? String(workspaceId) : null);
+  const roleManagementAvailable = rolesAccess.status === "available";
+  const invitationAccessLabel =
+    rolesAccess.status === "unavailable"
+      ? t("team:TEAM_MEMBER_FIXED_ACCESS")
+      : rolesAccess.status === "loading"
+        ? t("team:TEAM_ACCESS_CHECKING")
+        : rolesAccess.status === "error"
+          ? t("team:TEAM_ACCESS_UNAVAILABLE")
+          : "";
   const dateTime = useAdminDateTimeFormatter({ workspaceId });
   const [tab, setTab] = React.useState<TabKey>("pending");
   const [pendingFilters, setPendingFilters] = React.useState<InvitationTableFilters>({});
@@ -142,7 +153,7 @@ export function TeamInvitationsView(
   }, [t, workspaceId, workspacesQuery.data?.items]);
   const rolesQuery = useQuery({
     queryKey: ["rbac", "roles", "list", workspaceId],
-    enabled: Boolean(workspaceId),
+    enabled: Boolean(workspaceId) && roleManagementAvailable,
     queryFn: () => listWorkspaceRoles(String(workspaceId), { size: 200 }),
     staleTime: 60 * 1000,
     retry: false,
@@ -240,6 +251,8 @@ export function TeamInvitationsView(
         t,
         dateTime,
         roleNameByCode,
+        roleManagementAvailable,
+        unavailableAccessLabel: invitationAccessLabel,
         mutating: revokeMutation.isPending || renewInvitationMutation.isPending,
         onRenew: (invitation) => {
           setRenewExpiresInSeconds(7 * 24 * 60 * 60);
@@ -247,7 +260,15 @@ export function TeamInvitationsView(
         },
         onRevoke: setDeleteInvitation,
       }),
-    [dateTime, renewInvitationMutation.isPending, revokeMutation.isPending, roleNameByCode, t],
+    [
+      dateTime,
+      invitationAccessLabel,
+      renewInvitationMutation.isPending,
+      revokeMutation.isPending,
+      roleManagementAvailable,
+      roleNameByCode,
+      t,
+    ],
   );
   const acceptedColumns = React.useMemo(
     () =>
@@ -255,9 +276,11 @@ export function TeamInvitationsView(
         t,
         dateTime,
         roleNameByCode,
+        roleManagementAvailable,
+        unavailableAccessLabel: invitationAccessLabel,
         onOpenMembers: () => settingsScreen.openSettings({ screen: "workspace.members" }),
       }),
-    [dateTime, roleNameByCode, settingsScreen, t],
+    [dateTime, invitationAccessLabel, roleManagementAvailable, roleNameByCode, settingsScreen, t],
   );
   const linkColumns = React.useMemo(
     () =>
@@ -265,6 +288,8 @@ export function TeamInvitationsView(
         t,
         dateTime,
         roleNameByCode,
+        roleManagementAvailable,
+        unavailableAccessLabel: invitationAccessLabel,
         workspaceId: String(workspaceId || ""),
         ephemeralInviteUrlByLinkId,
         mutating: renewLinkMutation.isPending || disableLinkMutation.isPending,
@@ -282,7 +307,9 @@ export function TeamInvitationsView(
       dateTime,
       disableLinkMutation.isPending,
       ephemeralInviteUrlByLinkId,
+      invitationAccessLabel,
       renewLinkMutation.isPending,
+      roleManagementAvailable,
       roleNameByCode,
       t,
       workspaceId,
@@ -304,7 +331,7 @@ export function TeamInvitationsView(
         q: params.q,
         ordering: pendingOrdering,
         status: "pending",
-        role_code: params.roleCode,
+        role_code: roleManagementAvailable ? params.roleCode : undefined,
       }),
     queryOptions: { enabled: Boolean(workspaceId) && tab === "pending", retry: false },
   });
@@ -322,7 +349,7 @@ export function TeamInvitationsView(
         q: params.q,
         ordering: acceptedOrdering,
         status: "accepted",
-        role_code: params.roleCode,
+        role_code: roleManagementAvailable ? params.roleCode : undefined,
       }),
     queryOptions: { enabled: Boolean(workspaceId) && tab === "accepted", retry: false },
   });
@@ -339,7 +366,7 @@ export function TeamInvitationsView(
         size: params.size,
         q: params.q,
         ordering: linkOrdering,
-        role_code: params.roleCode,
+        role_code: roleManagementAvailable ? params.roleCode : undefined,
         status: params.status,
       }),
     queryOptions: { enabled: Boolean(workspaceId) && tab === "links", retry: false },
@@ -397,6 +424,7 @@ export function TeamInvitationsView(
             onChange={setCurrentFilters}
             ordering={currentOrdering}
             onOrderingChange={setCurrentOrdering}
+            roleManagementAvailable={roleManagementAvailable}
             roles={rolesQuery.data?.items ?? []}
           />
         </>
@@ -416,10 +444,17 @@ export function TeamInvitationsView(
   );
   const inviteAction = (
     <div className="flex items-center gap-2">
-      <Button variant="outline" onClick={() => setInviteOpen(true)}>
+      <Button
+        variant="outline"
+        disabled={rolesAccess.status === "loading" || rolesAccess.status === "error"}
+        onClick={() => setInviteOpen(true)}
+      >
         {t("team:TEAM_INVITE_CREATE_LINK_ACTION")}
       </Button>
-      <Button onClick={() => setInviteEmailOpen(true)}>
+      <Button
+        disabled={rolesAccess.status === "loading" || rolesAccess.status === "error"}
+        onClick={() => setInviteEmailOpen(true)}
+      >
         <Plus size={16} />
         {t("common:ORG_MEMBERS_INVITE")}
       </Button>
@@ -497,6 +532,7 @@ export function TeamInvitationsView(
         mode="link"
         workspaceId={String(workspaceId || "")}
         workspaceName={workspaceName}
+        roleManagementAvailable={roleManagementAvailable}
         roles={rolesQuery.data?.items ?? []}
         rolesLoading={rolesQuery.isLoading}
         onInvited={() => void invalidateInvitationTables([LINKS_TABLE_ID])}
@@ -507,6 +543,7 @@ export function TeamInvitationsView(
         mode="email"
         workspaceId={String(workspaceId || "")}
         workspaceName={workspaceName}
+        roleManagementAvailable={roleManagementAvailable}
         roles={rolesQuery.data?.items ?? []}
         rolesLoading={rolesQuery.isLoading}
         onInvited={() => void invalidateInvitationTables([PENDING_TABLE_ID])}

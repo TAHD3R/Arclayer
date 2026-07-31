@@ -11,7 +11,8 @@ from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import get_current_locale
 from src.core.registries import ConnectorRegistry
-from src.modules.auth.http.service import require_super_admin
+from src.modules.platform_identity.http import require_platform_permission
+from src.modules.platform_identity.permissions import PlatformPermissionCode
 from src.modules.system.mail.schema import (
     MailProviderInfo,
     MailProviderSwitchRequest,
@@ -36,10 +37,7 @@ from src.modules.system.mail.service import AdminMailService
 from src.modules.system.mail.template_repository import EmailTemplateRepository
 from src.modules.system.mail.template_service import EmailTemplateService
 
-router = APIRouter(
-    tags=["internal.system.mail"],
-    dependencies=[Depends(require_super_admin)],
-)
+router = APIRouter(tags=["internal.system.mail"])
 
 
 def get_mail_service(
@@ -64,6 +62,7 @@ def get_email_template_service(
     "/test",
     response_model=ResponseModel[MailTestResult],
     summary="Send a test email",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_MANAGE)],
 )
 async def send_test_email(
     payload: MailTestRequest,
@@ -79,6 +78,7 @@ async def send_test_email(
     "/providers",
     response_model=ResponseModel[list[MailProviderInfo]],
     summary="List mail providers",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_READ)],
 )
 async def list_mail_providers(
     service: AdminMailService = Depends(get_mail_service),
@@ -91,6 +91,7 @@ async def list_mail_providers(
     "/providers/switch",
     response_model=ResponseModel[list[MailProviderInfo]],
     summary="Switch active mail provider",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_MANAGE)],
 )
 async def switch_mail_provider(
     payload: MailProviderSwitchRequest,
@@ -104,6 +105,7 @@ async def switch_mail_provider(
     "/templates",
     response_model=ResponseModel[PageData[MailTemplateGroupOut]],
     summary="List aggregate email template groups",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_READ)],
 )
 async def list_email_templates(
     service: EmailTemplateService = Depends(get_email_template_service),
@@ -139,6 +141,7 @@ async def list_email_templates(
     "/templates/preview",
     response_model=ResponseModel[MailTemplatePreviewOut],
     summary="Render an email template preview",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_READ)],
 )
 async def preview_email_template(
     payload: MailTemplatePreviewRequest,
@@ -151,6 +154,7 @@ async def preview_email_template(
     "/templates/revisions/{revision_id}",
     response_model=ResponseModel[MailTemplateRevisionDetailOut],
     summary="Get an immutable email template revision",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_READ)],
 )
 async def get_email_template_revision(
     revision_id: UUID,
@@ -163,6 +167,7 @@ async def get_email_template_revision(
     "/templates/{template_key}/history",
     response_model=ResponseModel[PageData[MailTemplateRevisionOut]],
     summary="List locale-aware email template revision history",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_READ)],
 )
 async def list_email_template_history(
     template_key: str,
@@ -177,6 +182,7 @@ async def list_email_template_history(
     "/templates",
     response_model=ResponseModel[MailTemplateOut],
     summary="Create a localized email template",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_MANAGE)],
 )
 async def create_email_template(
     payload: MailTemplateCreateRequest,
@@ -189,6 +195,7 @@ async def create_email_template(
     "/templates/{template_id}",
     response_model=ResponseModel[MailTemplateOut],
     summary="Update a localized email template",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_MANAGE)],
 )
 async def update_email_template(
     template_id: UUID,
@@ -202,6 +209,7 @@ async def update_email_template(
     "/templates/{template_id}",
     response_model=ResponseModel[None],
     summary="Delete a localized email template",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_MANAGE)],
 )
 async def delete_email_template(
     template_id: UUID,
@@ -216,6 +224,7 @@ async def delete_email_template(
     "/templates/{template_id}/restore-default",
     response_model=ResponseModel[MailTemplateOut],
     summary="Restore a built-in localized email template",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_MANAGE)],
 )
 async def restore_default_email_template(
     template_id: UUID,
@@ -231,6 +240,7 @@ async def restore_default_email_template(
     "/templates/{template_id}/test-send",
     response_model=ResponseModel[MailTemplateTestSendOut],
     summary="Render and send one localized email template through the active provider",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_MANAGE)],
 )
 async def test_send_email_template(
     template_id: UUID,
@@ -244,6 +254,7 @@ async def test_send_email_template(
     "/templates/{template_id}",
     response_model=ResponseModel[MailTemplateOut],
     summary="Get one localized email template",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_READ)],
 )
 async def get_email_template(
     template_id: UUID,
