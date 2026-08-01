@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  OPERATIONS_INBOX_DESTINATION,
-  PLATFORM_CAPABILITY_MODULES,
-} from "@/capabilities/module-registry";
+import { OVERVIEW_DESTINATION, PLATFORM_CAPABILITY_MODULES } from "@/capabilities/module-registry";
 import {
   readRecentDestinations,
   recordRecentDestination,
@@ -22,7 +19,7 @@ function memoryStorage(initial: string | null = null) {
 
 const tenantDestination = PLATFORM_CAPABILITY_MODULES["tenants.workspaces"].destinations[0];
 const accessDestination = PLATFORM_CAPABILITY_MODULES["access.team"].destinations[0];
-const authorized = [OPERATIONS_INBOX_DESTINATION, tenantDestination];
+const authorized = [OVERVIEW_DESTINATION, tenantDestination];
 
 describe("typed recent Platform destinations", () => {
   it("stores trusted destination ids rather than API-provided paths or labels", () => {
@@ -30,13 +27,13 @@ describe("typed recent Platform destinations", () => {
 
     const records = recordRecentDestination(storage, tenantDestination, authorized, 42);
 
-    expect(records).toEqual([{ destinationId: "tenant-workspaces", visitedAt: 42 }]);
+    expect(records).toEqual([{ destinationId: "workspace-workspaces", visitedAt: 42 }]);
     expect(resolveRecentDestinations(records, authorized)).toEqual([tenantDestination]);
   });
 
   it("round-trips the build-registered Platform team destination", () => {
     const storage = memoryStorage();
-    const accessAuthorized = [OPERATIONS_INBOX_DESTINATION, accessDestination];
+    const accessAuthorized = [OVERVIEW_DESTINATION, accessDestination];
 
     recordRecentDestination(storage, accessDestination, accessAuthorized, 42);
 
@@ -48,13 +45,13 @@ describe("typed recent Platform destinations", () => {
   it("removes destinations that are no longer authorized from reads", () => {
     const storage = memoryStorage(
       JSON.stringify([
-        { destinationId: "tenant-workspaces", visitedAt: 42 },
-        { destinationId: "operations-inbox", visitedAt: 41 },
+        { destinationId: "workspace-workspaces", visitedAt: 42 },
+        { destinationId: "overview", visitedAt: 41 },
       ]),
     );
 
-    expect(readRecentDestinations(storage, [OPERATIONS_INBOX_DESTINATION])).toEqual([
-      { destinationId: "operations-inbox", visitedAt: 41 },
+    expect(readRecentDestinations(storage, [OVERVIEW_DESTINATION])).toEqual([
+      { destinationId: "overview", visitedAt: 41 },
     ]);
   });
 

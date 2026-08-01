@@ -1,15 +1,14 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertCircle,
   ArrowRight,
   BookOpenText,
-  CircleAlert,
   Clock3,
   FileText,
   History,
   Plus,
   Search,
-  ShieldCheck,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -176,7 +175,6 @@ function VersionList(props: { versions: readonly KnowledgeSourceVersionOut[] }) 
                 <Clock3 className="size-3" aria-hidden="true" />
                 {date.format(new Date(version.createdAt))}
               </span>
-              <span className="font-mono">{version.normalizedContentHash.slice(7, 19)}</span>
             </div>
           </div>
         </div>
@@ -251,6 +249,8 @@ export function WorkspaceKnowledgeView({ workspaceId }: { workspaceId: string })
     enabled: Boolean(selectedBase && selectedSource),
   });
   const versions = versionsQuery.data?.items ?? [];
+  const manualAuthoringAvailable =
+    capabilitiesQuery.data?.manualSourcesAvailable === true && !capabilitiesQuery.isError;
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: WORKSPACE_KNOWLEDGE_QUERY_KEY });
@@ -308,36 +308,8 @@ export function WorkspaceKnowledgeView({ workspaceId }: { workspaceId: string })
     },
   });
 
-  const authorityMessageKey = capabilitiesQuery.isPending
-    ? "SETTINGS_WORKSPACE_KNOWLEDGE_AUTHORITY_LOADING"
-    : capabilitiesQuery.isError
-      ? "SETTINGS_WORKSPACE_KNOWLEDGE_AUTHORITY_ERROR"
-      : capabilitiesQuery.data.externalIngestionAvailable &&
-          capabilitiesQuery.data.retrievalAvailable
-        ? "SETTINGS_WORKSPACE_KNOWLEDGE_AUTHORITY_READY"
-        : capabilitiesQuery.data.indexingAvailable
-          ? "SETTINGS_WORKSPACE_KNOWLEDGE_AUTHORITY_INDEXING"
-          : "SETTINGS_WORKSPACE_KNOWLEDGE_AUTHORITY_MANUAL";
-
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 pb-8">
-      <Alert variant={capabilitiesQuery.isError ? "destructive" : "default"}>
-        {capabilitiesQuery.isError ? (
-          <CircleAlert aria-hidden="true" />
-        ) : (
-          <ShieldCheck aria-hidden="true" />
-        )}
-        <AlertTitle>{t("settings:SETTINGS_WORKSPACE_KNOWLEDGE_AUTHORITY_TITLE")}</AlertTitle>
-        <AlertDescription aria-live="polite">
-          <span>{t(`settings:${authorityMessageKey}`)}</span>
-          {capabilitiesQuery.isError ? (
-            <Button size="sm" variant="outline" onClick={() => void capabilitiesQuery.refetch()}>
-              {t("common:RETRY")}
-            </Button>
-          ) : null}
-        </AlertDescription>
-      </Alert>
-
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-sm">
           <Search
@@ -352,11 +324,28 @@ export function WorkspaceKnowledgeView({ workspaceId }: { workspaceId: string })
             placeholder={t("settings:SETTINGS_WORKSPACE_KNOWLEDGE_SEARCH_PLACEHOLDER")}
           />
         </div>
-        <Button onClick={() => setDialog("base")}>
-          <Plus data-icon="inline-start" />
-          {t("settings:SETTINGS_WORKSPACE_KNOWLEDGE_CREATE_ACTION")}
-        </Button>
+        {bases.length ? (
+          <Button disabled={!manualAuthoringAvailable} onClick={() => setDialog("base")}>
+            <Plus data-icon="inline-start" />
+            {t("settings:SETTINGS_WORKSPACE_KNOWLEDGE_CREATE_ACTION")}
+          </Button>
+        ) : null}
       </div>
+
+      {capabilitiesQuery.isError ? (
+        <Alert variant="destructive">
+          <AlertCircle aria-hidden="true" />
+          <AlertTitle>
+            {t("settings:SETTINGS_WORKSPACE_KNOWLEDGE_CREATE_UNAVAILABLE_TITLE")}
+          </AlertTitle>
+          <AlertDescription className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <span>{t("settings:SETTINGS_WORKSPACE_KNOWLEDGE_CREATE_UNAVAILABLE_DESC")}</span>
+            <Button size="sm" variant="outline" onClick={() => void capabilitiesQuery.refetch()}>
+              {t("common:RETRY")}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       <ContentGuard
         loading={basesQuery.isLoading}
@@ -365,7 +354,7 @@ export function WorkspaceKnowledgeView({ workspaceId }: { workspaceId: string })
         loadingVariant="form"
       >
         {!bases.length ? (
-          <Empty className="min-h-96 border border-dashed">
+          <Empty className="min-h-[14rem] border bg-card">
             <EmptyHeader>
               <EmptyMedia variant="icon">
                 <BookOpenText aria-hidden="true" />
@@ -376,7 +365,7 @@ export function WorkspaceKnowledgeView({ workspaceId }: { workspaceId: string })
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
-              <Button onClick={() => setDialog("base")}>
+              <Button disabled={!manualAuthoringAvailable} onClick={() => setDialog("base")}>
                 <Plus data-icon="inline-start" />
                 {t("settings:SETTINGS_WORKSPACE_KNOWLEDGE_CREATE_ACTION")}
               </Button>
@@ -411,7 +400,11 @@ export function WorkspaceKnowledgeView({ workspaceId }: { workspaceId: string })
                       t("settings:SETTINGS_WORKSPACE_KNOWLEDGE_NO_DESCRIPTION")}
                   </p>
                 </div>
-                <Button variant="outline" onClick={() => setDialog("source")}>
+                <Button
+                  variant="outline"
+                  disabled={!manualAuthoringAvailable}
+                  onClick={() => setDialog("source")}
+                >
                   <Plus data-icon="inline-start" />
                   {t("settings:SETTINGS_WORKSPACE_KNOWLEDGE_SOURCE_CREATE_ACTION")}
                 </Button>
@@ -484,7 +477,7 @@ export function WorkspaceKnowledgeView({ workspaceId }: { workspaceId: string })
                       <Button
                         size="sm"
                         variant="outline"
-                        disabled={!selectedSource}
+                        disabled={!selectedSource || !manualAuthoringAvailable}
                         onClick={() => setDialog("version")}
                       >
                         <Plus data-icon="inline-start" />

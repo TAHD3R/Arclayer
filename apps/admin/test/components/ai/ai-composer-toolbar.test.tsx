@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { listAIProjectAgents } from "@/api/ai";
@@ -30,6 +30,25 @@ vi.mock("@/components/ai/ai-composer-skill-menu", () => ({
     <div data-testid="ai-skill-selector" data-scope={scope} />
   ),
 }));
+
+vi.mock("@arclayer/ui/dropdown-menu", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@arclayer/ui/dropdown-menu")>();
+  const ActualDropdownMenuContent = actual.DropdownMenuContent;
+
+  return {
+    ...actual,
+    DropdownMenuContent: ({
+      collisionPadding,
+      ...props
+    }: ComponentProps<typeof ActualDropdownMenuContent>) => (
+      <ActualDropdownMenuContent
+        data-collision-padding={String(collisionPadding)}
+        collisionPadding={collisionPadding}
+        {...props}
+      />
+    ),
+  };
+});
 
 vi.mock("@assistant-ui/react", () => {
   const Passthrough = ({ children }: { children?: ReactNode }) => <>{children}</>;
@@ -129,6 +148,7 @@ describe("AIComposerContextControls", () => {
     const buildItem = await screen.findByRole("menuitem", { name: /Build/ });
     const planItem = await screen.findByRole("menuitem", { name: /Plan/ });
 
+    expect(screen.getByRole("menu")).toHaveAttribute("data-collision-padding", "16");
     expect(useAiChatStore.getState().composerMode).toBe("build");
     expect(buildItem).not.toHaveAttribute("data-disabled");
     expect(planItem).not.toHaveAttribute("data-disabled");
@@ -149,31 +169,44 @@ describe("AIComposerContextControls", () => {
     expect(useAiChatStore.getState().webSearchEnabled).toBe(true);
   });
 
-  it("keeps the requested model, Skill, and project controls on the Home toolbar", () => {
-    renderHomeToolbar();
+  it("groups add, project, and Skill left of model, mode, and send on Home", () => {
+    const { container } = renderHomeToolbar();
+    const groups = container.querySelectorAll(".aui-composer-action-wrapper > div");
+    const leftGroup = groups[0] as HTMLElement;
+    const rightGroup = groups[1] as HTMLElement;
+    const addButton = within(leftGroup).getByRole("button", { name: "Add context" });
+    const projectSelector = within(leftGroup).getByTestId("ai-project-selector");
+    const skillSelector = within(leftGroup).getByTestId("ai-skill-selector");
+    const modelSelector = within(rightGroup).getByTestId("ai-model-selector");
+    const modeButton = within(rightGroup).getByRole("button", { name: "Select work mode" });
 
-    expect(screen.getByTestId("ai-model-selector")).toBeInTheDocument();
-    expect(screen.getByTestId("ai-skill-selector")).toBeInTheDocument();
-    expect(screen.getByTestId("ai-project-selector")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add context" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Select work mode" })).toBeInTheDocument();
+    expect(leftGroup.children).toHaveLength(3);
+    expect(leftGroup.children[0]).toContainElement(addButton);
+    expect(leftGroup.children[1]).toContainElement(projectSelector);
+    expect(leftGroup.children[2]).toContainElement(skillSelector);
+    expect(skillSelector).toHaveAttribute("data-scope", "home");
+    expect(rightGroup.children[0]).toContainElement(modelSelector);
+    expect(rightGroup.children[1]).toContainElement(modeButton);
+    expect(rightGroup.lastElementChild).toHaveClass("flex", "shrink-0");
   });
 
-  it("groups mode, Skill, and project above add and model controls in the sidebar", () => {
+  it("keeps context left and model, mode, and send actions right-aligned in the sidebar", () => {
     const { container } = renderSidebarToolbar();
     const rows = container.querySelectorAll(".aui-composer-action-wrapper > div");
+    const topRow = rows[0] as HTMLElement;
+    const bottomRow = rows[1] as HTMLElement;
+    const projectSelector = within(topRow).getByTestId("ai-project-selector");
+    const modelSelector = within(topRow).getByTestId("ai-model-selector");
+    const addButton = within(bottomRow).getByRole("button", { name: "Add context" });
+    const skillSelector = within(bottomRow).getByTestId("ai-skill-selector");
+    const modeButton = within(bottomRow).getByRole("button", { name: "Select work mode" });
 
-    expect(
-      within(rows[0] as HTMLElement).getByRole("button", { name: "Select work mode" }),
-    ).toBeInTheDocument();
-    expect(within(rows[0] as HTMLElement).getByTestId("ai-skill-selector")).toHaveAttribute(
-      "data-scope",
-      "thread",
-    );
-    expect(within(rows[0] as HTMLElement).getByTestId("ai-project-selector")).toBeInTheDocument();
-    expect(
-      within(rows[1] as HTMLElement).getByRole("button", { name: "Add context" }),
-    ).toBeInTheDocument();
-    expect(within(rows[1] as HTMLElement).getByTestId("ai-model-selector")).toBeInTheDocument();
+    expect(topRow.children[0]).toContainElement(projectSelector);
+    expect(topRow.children[2]).toContainElement(modelSelector);
+    expect(bottomRow.children[0]).toContainElement(addButton);
+    expect(bottomRow.children[1]).toContainElement(skillSelector);
+    expect(skillSelector).toHaveAttribute("data-scope", "thread");
+    expect(bottomRow.children[3]).toContainElement(modeButton);
+    expect(bottomRow.lastElementChild).toHaveClass("flex", "shrink-0");
   });
 });

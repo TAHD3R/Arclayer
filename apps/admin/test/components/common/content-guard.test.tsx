@@ -43,6 +43,19 @@ describe("ContentGuard", () => {
     expect(wrapper).not.toHaveClass("py-10");
   });
 
+  it("exposes loading skeletons through a polite busy status region", () => {
+    render(<ContentGuard loading loadingVariant="card-grid" />);
+
+    expect(screen.getByRole("status", { name: "common:LOADING" })).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
+    expect(screen.getByRole("status", { name: "common:LOADING" })).toHaveAttribute(
+      "aria-live",
+      "polite",
+    );
+  });
+
   it("uses shared Empty typography in compact states", () => {
     const { container } = render(<ContentGuard loading={false} empty variant="compact" />);
 

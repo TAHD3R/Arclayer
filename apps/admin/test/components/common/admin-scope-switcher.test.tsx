@@ -431,7 +431,7 @@ describe("AdminScopeSwitcher", () => {
 
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).toBeNull();
-      expect(screen.getByTestId("settings-screen-state")).toHaveTextContent("workspace.members");
+      expect(screen.getByTestId("settings-screen-state")).toHaveTextContent("workspace.people");
     });
     expect(screen.getByTestId("settings-screen-state")).toHaveAttribute(
       "data-section",

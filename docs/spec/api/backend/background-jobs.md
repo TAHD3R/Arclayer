@@ -1552,15 +1552,18 @@ Tests may inject clocks, random sources, repositories, and failing transports
 to exercise errors. Production code must not contain mock-success, simulated
 provider results, silent exception swallowing, or inline fallback paths.
 
-#### 18.4 Required commands
+#### 18.4 Validation cadence and commands
 
-- Narrow backend test nodes run through
-  `pnpm -C apps/api uv -- pytest ...` with the required hard 60-second timeout.
+- During an isolated change, run the closest relevant static check and focused
+  backend test through `pnpm -C apps/api uv -- pytest ...`. Start with a
+  60-second diagnostic budget and extend integration, database, or inherently
+  slow tests so their actual result is visible.
 - Migration implementation uses:
   - `pnpm --filter @arclayer/api db:migrate`
   - `pnpm --filter @arclayer/api db:upgrade`
 - OpenAPI changes use the repository OpenAPI synchronization scripts.
-- Full backend gate: `pnpm api:check`.
+- At a coherent backend milestone or before handoff, run `pnpm api:check`.
+  Reserve `pnpm check` for cross-app integration or final delivery.
 - Review-sensitive implementation waves:
   `pnpm code-review-engine --scope changed --base HEAD --format json`.
 

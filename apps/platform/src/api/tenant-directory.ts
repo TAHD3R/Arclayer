@@ -1,13 +1,21 @@
 import {
+  platformArchiveWorkspace,
+  platformDisableWorkspace,
+  platformEnableWorkspace,
   platformGetProjectDetail,
   platformGetUserDetail,
   platformGetWorkspaceDetail,
   platformListProjects,
   platformListUsers,
   platformListWorkspaces,
+  platformRestoreWorkspace,
+  platformUpdateWorkspace,
+  type AccessRestrictionEnforceRequest,
+  type AccessRestrictionLiftRequest,
   type DirectoryProjectDetailOut,
   type DirectoryUserDetailOut,
   type DirectoryWorkspaceDetailOut,
+  type DirectoryWorkspaceUpdateRequest,
   type PageDataDirectoryProjectListItemOut,
   type PageDataDirectoryUserListItemOut,
   type PageDataDirectoryWorkspaceListItemOut,
@@ -103,6 +111,99 @@ export async function getTenantWorkspace(
       await platformGetWorkspaceDetail({
         client: platformApiClient,
         path: { workspace_id: workspaceId },
+      }),
+    );
+  } catch (error) {
+    throw normalizeError(error);
+  }
+}
+
+export async function updateTenantWorkspace(
+  workspaceId: string,
+  body: DirectoryWorkspaceUpdateRequest,
+): Promise<DirectoryWorkspaceDetailOut> {
+  try {
+    return unwrap(
+      await platformUpdateWorkspace({
+        client: platformApiClient,
+        path: { workspace_id: workspaceId },
+        body,
+      }),
+    );
+  } catch (error) {
+    throw normalizeError(error);
+  }
+}
+
+export async function disableTenantWorkspace(
+  workspaceId: string,
+  body: AccessRestrictionEnforceRequest,
+  idempotencyKey: string,
+): Promise<DirectoryWorkspaceDetailOut> {
+  try {
+    return unwrap(
+      await platformDisableWorkspace({
+        client: platformApiClient,
+        path: { workspace_id: workspaceId },
+        headers: { "Idempotency-Key": idempotencyKey },
+        body,
+      }),
+    );
+  } catch (error) {
+    throw normalizeError(error);
+  }
+}
+
+export async function enableTenantWorkspace(
+  workspaceId: string,
+  body: AccessRestrictionLiftRequest,
+  idempotencyKey: string,
+): Promise<DirectoryWorkspaceDetailOut> {
+  try {
+    return unwrap(
+      await platformEnableWorkspace({
+        client: platformApiClient,
+        path: { workspace_id: workspaceId },
+        headers: { "Idempotency-Key": idempotencyKey },
+        body,
+      }),
+    );
+  } catch (error) {
+    throw normalizeError(error);
+  }
+}
+
+export async function archiveTenantWorkspace(
+  workspaceId: string,
+  body: AccessRestrictionEnforceRequest,
+  idempotencyKey: string,
+): Promise<DirectoryWorkspaceDetailOut> {
+  try {
+    return unwrap(
+      await platformArchiveWorkspace({
+        client: platformApiClient,
+        path: { workspace_id: workspaceId },
+        headers: { "Idempotency-Key": idempotencyKey },
+        body,
+      }),
+    );
+  } catch (error) {
+    throw normalizeError(error);
+  }
+}
+
+export async function restoreTenantWorkspace(
+  workspaceId: string,
+  body: AccessRestrictionLiftRequest,
+  idempotencyKey: string,
+): Promise<DirectoryWorkspaceDetailOut> {
+  try {
+    return unwrap(
+      await platformRestoreWorkspace({
+        client: platformApiClient,
+        path: { workspace_id: workspaceId },
+        headers: { "Idempotency-Key": idempotencyKey },
+        body,
       }),
     );
   } catch (error) {

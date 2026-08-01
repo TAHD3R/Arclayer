@@ -13,6 +13,7 @@ from tortoise.transactions import in_transaction
 from src.core.exceptions import Conflict, Forbidden, NotFound
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.analytics.audit_event import AuditEvent
+from src.models.organization.user import User, UserStatus
 from src.models.platform_identity.identity import (
     PlatformInstanceOwnership,
     PlatformInvitationStatus,
@@ -49,6 +50,8 @@ from src.modules.platform_identity.schema import (
     PlatformOwnershipNominationCommand,
     PlatformRoleBinding,
 )
+
+INVITATION_CANDIDATE_LIMIT = 50
 
 
 class PlatformIdentityRepository(TortoiseORMRepository):
@@ -289,6 +292,27 @@ class PlatformIdentityRepository(TortoiseORMRepository):
             effective_permissions=permission_codes,
             delegable_permissions=delegable_permissions,
         )
+
+    async def list_invitation_candidates(self, *, q: str | None, at: datetime) -> list[User]:
+        ownership = await self.get_instance_ownership()
+        operator_ids = await PlatformOperator.all().values_list("user_id", flat=True)
+        pending_invitee_ids = await PlatformOperatorInvitation.filter(
+            status=PlatformInvitationStatus.PENDING,
+            expires_at__gt=at,
+        ).values_list("recipient_user_id", flat=True)
+        unavailable = {UUID(str(user_id)) for user_id in operator_ids}
+        unavailable.update(UUID(str(user_id)) for user_id in pending_invitee_ids)
+        if ownership is not None:
+            unavailable.add(UUID(str(ownership.owner_user_id)))
+        users = User.filter(status=UserStatus.ACTIVE).exclude(id__in=list(unavailable))
+        normalized_query = q.strip() if q is not None else ""
+        if normalized_query:
+            users = users.filter(
+                Q(username__icontains=normalized_query)
+                | Q(email__icontains=normalized_query)
+                | Q(display_name__icontains=normalized_query)
+            )
+        return await users.order_by("username", "id").limit(INVITATION_CANDIDATE_LIMIT)
 
     async def resolve_current_role_bindings(
         self, *, role_ids: frozenset[UUID], at: datetime

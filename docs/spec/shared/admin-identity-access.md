@@ -1,7 +1,8 @@
 # Platform Identity & Access Contract
 
-Status: Approved domain boundary; detailed workflows remain subject to product grilling
+Status: Approved domain contract; experience amended 2026-08-01
 Parent: [Platform Control Plane Productization Rollout](./admin-control-plane-rollout.md)
+Experience authority: [Product and Platform administration experience redesign](./product-admin-experience-redesign.md)
 
 ## 1. Scope
 
@@ -31,7 +32,7 @@ The domain has no decorative Overview. Configuration readiness and security prob
 ## 4. Authority boundaries
 
 - Identity & Access owns deployment authentication policy and Platform Console authority; it does not grant Workspace membership or permissions.
-- Tenant Governance retains ordinary User investigation and individual account actions, including authorized password, linked-login, 2FA, session, disable, and recovery workflows. Identity & Access does not create a second User directory.
+- Workspaces retains ordinary User investigation and individual account actions, including authorized password, linked-login, 2FA, Session, disable, and recovery workflows. Access & Security does not create a second User directory.
 - Workspace Administration retains Workspace members, invitations, roles, and permissions. A Workspace administrator never becomes a Platform Operator through tenant authority.
 - Extensibility may own installation and trust lifecycle for an identity-provider Connector, while Identity & Access exclusively owns whether and how that provider participates in sign-in.
 - The Product API may return only a minimal `Platform Entry Eligibility` projection for the current identity. It is discoverability metadata for the Product Application account menu, not evidence that a Platform Session exists and not an authorization input to any Platform API endpoint.

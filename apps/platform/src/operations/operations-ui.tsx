@@ -15,10 +15,10 @@ export function OperationsPage({
   children,
 }: Readonly<{ title: string; description: string; children: ReactNode }>) {
   return (
-    <section className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-7 px-5 py-8 md:px-8 md:py-10">
-      <header className="max-w-3xl space-y-2">
-        <h1 className="text-largetitle">{title}</h1>
-        <p className="text-body text-label-secondary">{description}</p>
+    <section className="flex w-full flex-1 flex-col gap-5 px-5 py-6 md:px-8">
+      <header className="space-y-1">
+        <h1 className="text-title1 font-semibold">{title}</h1>
+        <p className="max-w-3xl text-footnote text-label-secondary">{description}</p>
       </header>
       {children}
     </section>
@@ -41,7 +41,13 @@ export function OperationsQueryBoundary<T>({
   const { t } = useTranslation("inbox");
   if (state.status === "loading") {
     return (
-      <div aria-label={t("QUEUE_LOADING")} className="space-y-3">
+      <div
+        aria-busy="true"
+        aria-label={t("QUEUE_LOADING")}
+        aria-live="polite"
+        className="space-y-3"
+        role="status"
+      >
         <Skeleton className="h-12 w-full" />
         <Skeleton className="h-72 w-full" />
       </div>

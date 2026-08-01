@@ -634,7 +634,13 @@ The proof becomes a maintained regression suite:
 - authenticated browser tests cover refresh and network loss in running/interrupted/terminal states.
 - migration tests cover valid legacy arrays, corrupt arrays, count/hash evidence, rollback before cleanup, and absence of legacy reads after hard cut.
 
-Narrow backend test nodes must use the repository's 60-second timeout contract. Broad quality gates run to completion through repository scripts.
+During a small isolated change, run the nearest relevant static check and
+focused backend test. Start a focused backend test with a 60-second diagnostic
+budget, then extend integration, database, or inherently slow tests so their
+real result is visible; 60 seconds is not a hard pass/fail contract. At a
+coherent milestone or before handoff, run the affected package gate. Reserve
+`pnpm check` for cross-app integration or final delivery; broad gates run to
+completion through repository scripts.
 
 ## 13. Consequences
 

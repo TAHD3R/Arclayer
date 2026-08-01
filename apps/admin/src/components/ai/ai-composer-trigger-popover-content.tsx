@@ -12,6 +12,7 @@ import {
   AIComposerSkillPanelContent,
   type AIComposerSkillOption,
 } from "@/components/ai/ai-composer-skill-panel";
+import { AIComposerTriggerScrollArea } from "@/components/ai/ai-composer-trigger-scroll-area";
 import { cn } from "@arclayer/lib/utils";
 import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@arclayer/ui/chrome-tabs";
 
@@ -167,34 +168,36 @@ export function AIComposerMentionPopoverContent(props: { placement: TriggerPopov
           </ChromeTabsList>
         </ChromeTabs>
       ) : null}
-      <ComposerPrimitive.Unstable_TriggerPopoverItems className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1">
-        {(items) =>
-          items.length > 0 ? (
-            items.map((item, index) => (
-              <ComposerPrimitive.Unstable_TriggerPopoverItem
-                key={item.id}
-                item={item}
-                index={index}
-                className={triggerItemClassName(index)}
-              >
-                <MentionItemIcon type={item.type} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium">{item.label}</span>
-                  {item.description ? (
-                    <span className="mt-0.5 block truncate text-caption text-label-secondary">
-                      {item.description}
-                    </span>
-                  ) : null}
-                </span>
-              </ComposerPrimitive.Unstable_TriggerPopoverItem>
-            ))
-          ) : (
-            <div className="px-3 py-8 text-center text-footnote text-label-secondary">
-              {t("AI_CHAT_MENTION_EMPTY")}
-            </div>
-          )
-        }
-      </ComposerPrimitive.Unstable_TriggerPopoverItems>
+      <AIComposerTriggerScrollArea>
+        <ComposerPrimitive.Unstable_TriggerPopoverItems className="p-1">
+          {(items) =>
+            items.length > 0 ? (
+              items.map((item, index) => (
+                <ComposerPrimitive.Unstable_TriggerPopoverItem
+                  key={item.id}
+                  item={item}
+                  index={index}
+                  className={triggerItemClassName(index)}
+                >
+                  <MentionItemIcon type={item.type} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{item.label}</span>
+                    {item.description ? (
+                      <span className="mt-0.5 block truncate text-caption text-label-secondary">
+                        {item.description}
+                      </span>
+                    ) : null}
+                  </span>
+                </ComposerPrimitive.Unstable_TriggerPopoverItem>
+              ))
+            ) : (
+              <div className="px-3 py-8 text-center text-footnote text-label-secondary">
+                {t("AI_CHAT_MENTION_EMPTY")}
+              </div>
+            )
+          }
+        </ComposerPrimitive.Unstable_TriggerPopoverItems>
+      </AIComposerTriggerScrollArea>
     </>
   );
 }

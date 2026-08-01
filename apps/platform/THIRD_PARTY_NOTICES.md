@@ -19,7 +19,7 @@ and Light/Dark/Follow-system interaction were adopted. Arclayer does not copy
 the donor application, demo data, product models, authentication integration,
 navigation data, theme tokens, or component primitives. The implementation is
 owned by `apps/platform` and uses `@arclayer/ui`, Lucide, TanStack Router,
-i18next, Boneyard, and Arclayer semantic tokens.
+i18next, and Arclayer semantic tokens.
 
 ## MIT License
 

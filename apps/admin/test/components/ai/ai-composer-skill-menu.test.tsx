@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { listWorkspaceSkillGrantOptions } from "@/api/workspace-skills";
@@ -36,6 +36,25 @@ vi.mock("@/api/workspace-skills", () => ({
 vi.mock("@/components/layout/settings-screen-provider", () => ({
   SettingsScreenProvider: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
+
+vi.mock("@arclayer/ui/dropdown-menu", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@arclayer/ui/dropdown-menu")>();
+  const ActualDropdownMenuContent = actual.DropdownMenuContent;
+
+  return {
+    ...actual,
+    DropdownMenuContent: ({
+      collisionPadding,
+      ...props
+    }: ComponentProps<typeof ActualDropdownMenuContent>) => (
+      <ActualDropdownMenuContent
+        data-collision-padding={String(collisionPadding)}
+        collisionPadding={collisionPadding}
+        {...props}
+      />
+    ),
+  };
+});
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -140,6 +159,15 @@ describe("AIComposerSkillMenu", () => {
         instruction: "请使用已启用的电商内容技能帮我处理：",
       },
     ]);
+  });
+
+  it("keeps the Skill menu inside a padded viewport collision boundary", async () => {
+    const user = userEvent.setup();
+    renderMenu();
+
+    await user.click(screen.getByRole("button", { name: "选择技能" }));
+
+    expect(await screen.findByRole("menu")).toHaveAttribute("data-collision-padding", "16");
   });
 
   it("offers Arclayer creation and import from the add-skill submenu", async () => {

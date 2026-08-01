@@ -1,19 +1,8 @@
-import {
-  CircleAlert,
-  Copy,
-  FileCode2,
-  Github,
-  PackageCheck,
-  Plus,
-  RefreshCw,
-  ShieldCheck,
-} from "lucide-react";
+import { CircleAlert, PackageCheck, Plus, RefreshCw, ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
-import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
-import { Badge } from "@arclayer/ui/badge";
 import { Button } from "@arclayer/ui/button";
 import { Separator } from "@arclayer/ui/separator";
 import { Switch } from "@arclayer/ui/switch";
@@ -64,20 +53,19 @@ export function WorkspaceSkillDetail({ controller }: { controller: WorkspaceSkil
         <section className="min-w-0 p-4 sm:p-5" aria-labelledby="workspace-skill-detail-title">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2
-                  id="workspace-skill-detail-title"
-                  className="text-title3 font-semibold text-label-primary"
-                >
-                  {packageQuery.data.displayName}
-                </h2>
-                <Badge variant="outline">{packageQuery.data.trustLevel}</Badge>
-              </div>
+              <h2
+                id="workspace-skill-detail-title"
+                className="text-title3 font-semibold text-label-primary"
+              >
+                {packageQuery.data.displayName}
+              </h2>
               <p className="mt-1 text-footnote text-label-secondary">
                 {packageQuery.data.description}
               </p>
-              <p className="mt-2 font-mono text-caption text-label-tertiary">
-                {packageQuery.data.slug} · {packageQuery.data.publisherName}
+              <p className="mt-2 text-caption text-label-tertiary">
+                {t("SETTINGS_WORKSPACE_SKILLS_CREATED_BY", {
+                  name: packageQuery.data.publisherName,
+                })}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -119,9 +107,7 @@ export function WorkspaceSkillDetail({ controller }: { controller: WorkspaceSkil
           >
             {versionQuery.data ? (
               <div className="mt-5 flex flex-col gap-6">
-                {packageQuery.data.sourceKind === "github" ? (
-                  <GitHubSourceEvidence source={versionQuery.data.sourceProvenance} />
-                ) : null}
+                {packageQuery.data.sourceKind === "github" ? <GitHubSourceEvidence /> : null}
                 <WorkspaceSkillLifecycleRail
                   version={versionQuery.data}
                   validation={validation}
@@ -140,7 +126,6 @@ export function WorkspaceSkillDetail({ controller }: { controller: WorkspaceSkil
                   </div>
                   <div className="min-w-0">
                     <VersionHeader controller={controller} />
-                    <ChecksumCard checksum={versionQuery.data.packageChecksum} />
                     <div className="mt-4">
                       {validation ? (
                         <WorkspaceSkillValidationFindings validation={validation} />
@@ -235,53 +220,15 @@ export function WorkspaceSkillDetail({ controller }: { controller: WorkspaceSkil
   );
 }
 
-function GitHubSourceEvidence({ source }: { source: Record<string, unknown> }) {
+function GitHubSourceEvidence() {
   const { t } = useTranslation("settings");
-  const repositoryUrl = sourceValue(source, "repositoryUrl");
-  const requestedRef = sourceValue(source, "requestedRef");
-  const subpath = sourceValue(source, "subpath");
-  const resolvedCommit = sourceValue(source, "resolvedCommit");
   return (
     <Alert>
-      <Github aria-hidden="true" />
-      <AlertTitle>{t("SETTINGS_WORKSPACE_SKILLS_GITHUB_EVIDENCE_TITLE")}</AlertTitle>
-      <AlertDescription>
-        <dl className="grid gap-x-6 gap-y-3 text-caption sm:grid-cols-2">
-          <div className="min-w-0 sm:col-span-2">
-            <dt className="text-label-tertiary">
-              {t("SETTINGS_WORKSPACE_SKILLS_GITHUB_REPOSITORY_LABEL")}
-            </dt>
-            <dd className="break-all font-mono text-label-primary">{repositoryUrl}</dd>
-          </div>
-          <div className="min-w-0">
-            <dt className="text-label-tertiary">
-              {t("SETTINGS_WORKSPACE_SKILLS_GITHUB_REF_LABEL")}
-            </dt>
-            <dd className="break-all font-mono text-label-primary">{requestedRef}</dd>
-          </div>
-          <div className="min-w-0">
-            <dt className="text-label-tertiary">
-              {t("SETTINGS_WORKSPACE_SKILLS_GITHUB_SUBPATH_LABEL")}
-            </dt>
-            <dd className="break-all font-mono text-label-primary">
-              {subpath || t("SETTINGS_WORKSPACE_SKILLS_GITHUB_REPOSITORY_ROOT")}
-            </dd>
-          </div>
-          <div className="min-w-0 sm:col-span-2">
-            <dt className="text-label-tertiary">
-              {t("SETTINGS_WORKSPACE_SKILLS_GITHUB_COMMIT_LABEL")}
-            </dt>
-            <dd className="break-all font-mono text-label-primary">{resolvedCommit}</dd>
-          </div>
-        </dl>
-      </AlertDescription>
+      <RefreshCw aria-hidden="true" />
+      <AlertTitle>{t("SETTINGS_WORKSPACE_SKILLS_IMPORTED_SOURCE_TITLE")}</AlertTitle>
+      <AlertDescription>{t("SETTINGS_WORKSPACE_SKILLS_IMPORTED_SOURCE_DESC")}</AlertDescription>
     </Alert>
   );
-}
-
-function sourceValue(source: Record<string, unknown>, key: string): string {
-  const value = source[key];
-  return typeof value === "string" ? value : "";
 }
 
 function VersionHeader({ controller }: { controller: WorkspaceSkillsController }) {
@@ -292,13 +239,10 @@ function VersionHeader({ controller }: { controller: WorkspaceSkillsController }
       <div>
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-headline text-label-primary">
-            {t("SETTINGS_WORKSPACE_SKILLS_VERSION_NUMBER", { version: version.versionNumber })}
+            {t("SETTINGS_WORKSPACE_SKILLS_SELECTED_UPDATE")}
           </h3>
           <SkillStatusBadge status={version.status} />
         </div>
-        <p className="mt-1 text-caption text-label-secondary">
-          {version.semanticVersion ?? t("SETTINGS_WORKSPACE_SKILLS_SEMANTIC_VERSION_UNSET")}
-        </p>
       </div>
       <Button
         variant="outline"
@@ -316,55 +260,19 @@ function VersionHeader({ controller }: { controller: WorkspaceSkillsController }
   );
 }
 
-function ChecksumCard({ checksum }: { checksum: string }) {
-  const { t } = useTranslation("settings");
-  return (
-    <div className="mt-4 grid gap-3 rounded-lg border bg-muted/20 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-footnote font-semibold text-label-primary">
-          {t("SETTINGS_WORKSPACE_SKILLS_CHECKSUM_LABEL")}
-        </span>
-        <Button
-          size="icon"
-          variant="ghost"
-          aria-label={t("SETTINGS_WORKSPACE_SKILLS_COPY_CHECKSUM")}
-          onClick={() => {
-            void navigator.clipboard
-              .writeText(checksum)
-              .then(() => notifySuccessText(t("SETTINGS_WORKSPACE_SKILLS_CHECKSUM_COPIED")))
-              .catch(notifyError);
-          }}
-        >
-          <Copy aria-hidden="true" />
-        </Button>
-      </div>
-      <code className="break-all text-caption text-label-secondary">{checksum}</code>
-    </div>
-  );
-}
-
 function ResourceList({ controller }: { controller: WorkspaceSkillsController }) {
   const { t } = useTranslation("settings");
+  const references = controller.versionQuery.data!.resources.filter(
+    (resource) => resource.role === "reference",
+  );
+  if (!references.length) return null;
   return (
     <div className="mt-5">
       <h3 className="mb-3 text-headline text-label-primary">
         {t("SETTINGS_WORKSPACE_SKILLS_RESOURCES_TITLE")}
       </h3>
-      <div className="divide-y rounded-lg border">
-        {controller.versionQuery.data!.resources.map((resource) => (
-          <div key={resource.path} className="flex items-center gap-3 px-3 py-3">
-            <FileCode2 className="size-4 shrink-0 text-label-secondary" aria-hidden="true" />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate font-mono text-footnote text-label-primary">
-                {resource.path}
-              </span>
-              <span className="mt-0.5 block text-caption text-label-secondary">
-                {resource.mimeType} · {resource.byteSize.toLocaleString()} B
-              </span>
-            </span>
-            <Badge variant="secondary">{resource.role}</Badge>
-          </div>
-        ))}
+      <div className="rounded-lg border px-4 py-3 text-footnote text-label-secondary">
+        {t("SETTINGS_WORKSPACE_SKILLS_RESOURCES_SUMMARY", { count: references.length })}
       </div>
     </div>
   );

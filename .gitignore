@@ -61,7 +61,7 @@ node_modules/
 .pytest_cache/
 htmlcov/
 .coverage
-reports/code-review-engine/
+/output/
 
 # Upload files
 /static/upload
@@ -75,7 +75,6 @@ reports/code-review-engine/
 # Added by code-review-graph
 .code-review-graph/
 .codex-tasks/
-.superpowers/
 .playwright-mcp/
 .gitnexus
 .worktrees/

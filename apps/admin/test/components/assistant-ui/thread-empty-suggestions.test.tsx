@@ -60,6 +60,10 @@ vi.mock("@assistant-ui/react", async () => {
       ScrollToBottom: () => null,
     },
     groupPartByType: vi.fn(),
+    unstable_useTriggerPopoverTriggers: () => new Map(),
+    useAui: () => ({
+      composer: () => ({ setText: vi.fn() }),
+    }),
     useAuiState: (selector: (state: unknown) => unknown) =>
       selector({
         composer: { isEmpty: true, text: "" },

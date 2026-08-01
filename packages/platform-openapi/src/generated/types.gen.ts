@@ -5707,6 +5707,10 @@ export type PlatformCapabilityOut = {
      */
     activationAvailable: boolean;
     /**
+     * Canmanage
+     */
+    canManage: boolean;
+    /**
      * Capabilityid
      */
     capabilityId: string;
@@ -5761,7 +5765,7 @@ export type PlatformCapabilityReadinessState = 'ready' | 'not_ready';
 /**
  * PlatformCapabilityRouteTarget
  */
-export type PlatformCapabilityRouteTarget = 'access.team' | 'access.roles' | 'access.sessions' | 'access.sign-in' | 'tenants.workspaces' | 'tenants.users' | 'tenants.projects' | 'monitoring.requests' | 'monitoring.performance' | 'monitoring.ai-usage' | 'monitoring.activity' | 'monitoring.audit' | 'commerce.subscriptions' | 'commerce.plans' | 'communications.feedback' | 'communications.campaigns' | 'communications.templates' | 'communications.email' | 'extensions.installed' | 'extensions.catalog' | 'extensions.connections' | 'extensions.history' | 'ai.tasks' | 'ai.providers' | 'ai.assistants' | 'ai.runtime' | 'site-delivery.issues' | 'site-delivery.domains' | 'site-delivery.storage' | 'site-delivery.rules';
+export type PlatformCapabilityRouteTarget = 'access.team' | 'access.roles' | 'access.sessions' | 'access.sign-in' | 'tenants.workspaces' | 'tenants.users' | 'tenants.projects' | 'monitoring.requests' | 'monitoring.performance' | 'monitoring.ai-usage' | 'monitoring.activity' | 'monitoring.audit' | 'operations.signals' | 'commerce.subscriptions' | 'commerce.plans' | 'communications.feedback' | 'communications.campaigns' | 'communications.templates' | 'communications.email' | 'extensions.installed' | 'extensions.catalog' | 'extensions.connections' | 'extensions.history' | 'ai.tasks' | 'ai.providers' | 'ai.assistants' | 'ai.runtime' | 'site-delivery.issues' | 'site-delivery.domains' | 'site-delivery.storage' | 'site-delivery.rules';
 
 /**
  * PlatformCapabilityRuntimeHealth
@@ -6064,6 +6068,26 @@ export type PlatformDeliveryStorageOut = {
 };
 
 /**
+ * PlatformInvitationCandidateOut
+ *
+ * The minimum identity facts an authorized inviter needs to choose a recipient.
+ */
+export type PlatformInvitationCandidateOut = {
+    /**
+     * Displayname
+     */
+    displayName: string | null;
+    /**
+     * Userid
+     */
+    userId: string;
+    /**
+     * Username
+     */
+    username: string;
+};
+
+/**
  * PlatformInvitationCreateRequest
  */
 export type PlatformInvitationCreateRequest = {
@@ -6136,6 +6160,22 @@ export type PlatformInvitationDetailOut = {
      */
     roles: Array<PlatformInvitationRoleOut>;
     status: PlatformInvitationStatus;
+};
+
+/**
+ * PlatformInvitationOptionsOut
+ *
+ * Invite-only recipient and role projection, scoped to the current inviter.
+ */
+export type PlatformInvitationOptionsOut = {
+    /**
+     * Candidates
+     */
+    candidates: Array<PlatformInvitationCandidateOut>;
+    /**
+     * Roles
+     */
+    roles: Array<PlatformRoleCatalogItemOut>;
 };
 
 /**
@@ -9281,6 +9321,31 @@ export type ResponseModelPlatformCommerceSubscriptionListOut = {
  */
 export type ResponseModelPlatformInvitationDetailOut = {
     data?: PlatformInvitationDetailOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PlatformInvitationOptionsOut]
+ */
+export type ResponseModelPlatformInvitationOptionsOut = {
+    data?: PlatformInvitationOptionsOut | null;
     /**
      * Error
      */
@@ -12670,6 +12735,36 @@ export type PlatformListPlatformTeamResponses = {
 };
 
 export type PlatformListPlatformTeamResponse = PlatformListPlatformTeamResponses[keyof PlatformListPlatformTeamResponses];
+
+export type PlatformGetPlatformInvitationOptionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         */
+        q?: string | null;
+    };
+    url: '/platform-api/v1/access/team/invitation-options';
+};
+
+export type PlatformGetPlatformInvitationOptionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformGetPlatformInvitationOptionsError = PlatformGetPlatformInvitationOptionsErrors[keyof PlatformGetPlatformInvitationOptionsErrors];
+
+export type PlatformGetPlatformInvitationOptionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformInvitationOptionsOut;
+};
+
+export type PlatformGetPlatformInvitationOptionsResponse = PlatformGetPlatformInvitationOptionsResponses[keyof PlatformGetPlatformInvitationOptionsResponses];
 
 export type PlatformListPlatformInvitationsData = {
     body?: never;

@@ -101,7 +101,7 @@ def test_cli_writes_report_output_file(capsys, tmp_path: Path) -> None:
         "        return await AuditEvent.get_or_none(id=1)\n",
         encoding="utf-8",
     )
-    output_path = tmp_path / "reports/audit-report.json"
+    output_path = tmp_path / "output/code-review-engine/audit-report.json"
 
     exit_code = main(
         [
@@ -152,7 +152,7 @@ def test_cli_writes_default_report_artifact(capsys, tmp_path: Path) -> None:
     assert len(artifact_lines) == 1
     artifact_path = Path(artifact_lines[0].split("Report artifact: ", 1)[1].strip())
     assert artifact_path.is_file()
-    assert "/reports/code-review-engine/" in artifact_path.as_posix()
+    assert "/output/code-review-engine/" in artifact_path.as_posix()
     payload = json.loads(artifact_path.read_text(encoding="utf-8"))
     assert payload["summary"]["blockers"] == 1
     assert payload["summary"]["blocking_findings"] == 0

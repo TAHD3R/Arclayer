@@ -49,8 +49,8 @@ Default writing style:
 - Every data-driven page must define explicit loading, empty, and error behavior.
 - Use `ContentGuard` and shared page-shell patterns instead of bespoke state wrappers.
 - Skeletons should resemble the eventual layout closely enough to avoid misleading jumps.
-- Admin route transitions use the shared Boneyard boundary; feature pages must not create a second route-level skeleton system.
-- Boneyard captures complement, rather than replace, explicit domain loading/error/empty states.
+- Admin and Platform route transitions use the shared `RouteTransition` boundary built with `@arclayer/ui` `Skeleton`; feature pages must not create a second route-level skeleton system.
+- Route skeletons complement, rather than replace, explicit domain loading/error/empty states. They preserve stable Shell chrome, match the final page's macro layout, use neutral semantic loading tokens, and render without shimmer or pulse when reduced motion is preferred.
 
 ## 4. Overlay and Form Rules
 
@@ -148,7 +148,7 @@ Product copy must use i18n keys with both supported locales. Use direct, sentenc
 - [ ] Tag-like UI uses the semantic tag system.
 - [ ] New icons do not depend on the removed `lucide-animated` barrel.
 - [ ] Charts use `@arclayer/ui/chart` and expose exact values accessibly.
-- [ ] Route loading remains compatible with the shared Boneyard boundary.
+- [ ] Route loading remains compatible with the shared `RouteTransition` skeleton boundary.
 - [ ] New product copy exists in both `zh-CN` and `en-US` resources.
 - [ ] Typography and color usage follow shared semantic tokens.
 - [ ] Accessibility basics remain intact for focus, keyboard flow, labels, and destructive confirmations.

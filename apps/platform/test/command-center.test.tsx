@@ -2,15 +2,12 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  OPERATIONS_INBOX_DESTINATION,
-  PLATFORM_CAPABILITY_MODULES,
-} from "@/capabilities/module-registry";
+import { OVERVIEW_DESTINATION, PLATFORM_CAPABILITY_MODULES } from "@/capabilities/module-registry";
 import { PlatformCommandCenter } from "@/command-center/platform-command-center";
 import { initializePlatformI18n, i18n } from "@/lib/i18n";
 
 const tenantDestination = PLATFORM_CAPABILITY_MODULES["tenants.workspaces"].destinations[0];
-const destinations = [OPERATIONS_INBOX_DESTINATION, tenantDestination];
+const destinations = [OVERVIEW_DESTINATION, tenantDestination];
 
 beforeAll(async () => {
   await initializePlatformI18n("en-US");
@@ -35,29 +32,29 @@ describe("Platform Command Center", () => {
     );
 
     await user.keyboard("{Meta>}k{/Meta}");
-    const dialog = await screen.findByRole("dialog", { name: "Command Center" });
+    const dialog = await screen.findByRole("dialog", { name: "Quick navigation" });
     await waitFor(() => expect(dialog).toBeVisible());
     await user.click(screen.getByText("Workspaces"));
 
-    expect(onNavigate).toHaveBeenCalledWith("/tenants/workspaces");
+    expect(onNavigate).toHaveBeenCalledWith("/workspaces");
   });
 
   it("reports partial build coverage without inventing unavailable results", async () => {
     const user = userEvent.setup();
     render(
       <PlatformCommandCenter
-        destinations={[OPERATIONS_INBOX_DESTINATION]}
+        destinations={[OVERVIEW_DESTINATION]}
         isCatalogPartial
         onNavigate={vi.fn()}
         pathname="/"
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Open Command Center" }));
+    await user.click(screen.getByRole("button", { name: "Open quick navigation" }));
 
-    const dialog = await screen.findByRole("dialog", { name: "Command Center" });
+    const dialog = await screen.findByRole("dialog", { name: "Quick navigation" });
     await waitFor(() => expect(dialog).toBeVisible());
-    expect(screen.getByText(/Console build does not include them/)).toBeVisible();
+    expect(screen.getByText(/unavailable in this Console version/)).toBeVisible();
     expect(screen.queryByText("Workspaces")).not.toBeInTheDocument();
   });
 });

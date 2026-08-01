@@ -5,7 +5,7 @@ import type {
 
 import type { OperationalSignalListQuery } from "@/operations/operations-api";
 
-export type OperationsInboxSearch = Readonly<{
+export type NeedsAttentionSearch = Readonly<{
   sourceLifecycle?: OperationalSignalSourceLifecycle;
   coordinationState?: OperationalSignalTriageState;
   includeReminded?: boolean;
@@ -46,7 +46,7 @@ function enumValue<T extends string>(values: ReadonlySet<T>, value: unknown): T 
   return typeof value === "string" && values.has(value as T) ? (value as T) : undefined;
 }
 
-export function parseOperationsInboxSearch(search: Record<string, unknown>): OperationsInboxSearch {
+export function parseNeedsAttentionSearch(search: Record<string, unknown>): NeedsAttentionSearch {
   return {
     sourceLifecycle: enumValue(SIGNAL_LIFECYCLES, search.sourceLifecycle),
     coordinationState: enumValue(TRIAGE_STATES, search.coordinationState),
@@ -62,7 +62,7 @@ export function parsePlatformJobsSearch(search: Record<string, unknown>): Platfo
   };
 }
 
-export function operationalSignalQuery(search: OperationsInboxSearch): OperationalSignalListQuery {
+export function operationalSignalQuery(search: NeedsAttentionSearch): OperationalSignalListQuery {
   return {
     sourceLifecycle: search.sourceLifecycle ?? "unresolved",
     coordinationState: search.coordinationState,
@@ -72,7 +72,7 @@ export function operationalSignalQuery(search: OperationsInboxSearch): Operation
   };
 }
 
-export function hasInboxFilters(search: OperationsInboxSearch): boolean {
+export function hasAttentionFilters(search: NeedsAttentionSearch): boolean {
   return Boolean(
     (search.sourceLifecycle && search.sourceLifecycle !== "unresolved") ||
     search.coordinationState ||

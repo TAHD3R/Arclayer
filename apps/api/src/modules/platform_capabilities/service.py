@@ -109,6 +109,7 @@ class PlatformCapabilityCatalogService(BaseService):
         return PlatformCapabilityOut(
             **registration.model_dump(exclude={"navigation_targets"}),
             navigation_targets=navigation_targets,
+            can_manage=can_manage,
             navigation_candidate=navigation_candidate,
             activation_available=activation_available,
         )

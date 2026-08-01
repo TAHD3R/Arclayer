@@ -73,14 +73,10 @@ export function WorkspaceSkillPackageList(props: {
               <span className="mt-1 line-clamp-2 text-caption leading-5 text-label-secondary">
                 {skillPackage.description}
               </span>
-              <span className="mt-2 flex items-center gap-2 text-caption text-label-tertiary">
-                <span className="font-mono">{skillPackage.slug}</span>
-                <span aria-hidden="true">·</span>
-                <span className="tabular-nums">
-                  {t("SETTINGS_WORKSPACE_SKILLS_VERSION_COUNT", {
-                    count: skillPackage.versionCount,
-                  })}
-                </span>
+              <span className="mt-2 block text-caption tabular-nums text-label-tertiary">
+                {t("SETTINGS_WORKSPACE_SKILLS_VERSION_COUNT", {
+                  count: skillPackage.versionCount,
+                })}
               </span>
             </span>
           </button>
@@ -120,13 +116,15 @@ export function WorkspaceSkillVersionList(props: {
             aria-current={selected ? "true" : undefined}
             onClick={() => props.onSelect(version.id)}
           >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-accent font-mono text-caption font-semibold tabular-nums text-label-primary">
-              v{version.versionNumber}
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-accent text-caption font-semibold tabular-nums text-label-primary">
+              {version.versionNumber}
             </span>
             <span className="min-w-0 flex-1">
               <span className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-footnote font-semibold text-label-primary">
-                  {version.semanticVersion ?? t("SETTINGS_WORKSPACE_SKILLS_SEMANTIC_VERSION_UNSET")}
+                <span className="text-footnote font-semibold text-label-primary">
+                  {t("SETTINGS_WORKSPACE_SKILLS_VERSION_NUMBER", {
+                    version: version.versionNumber,
+                  })}
                 </span>
                 <SkillStatusBadge status={version.status} />
               </span>

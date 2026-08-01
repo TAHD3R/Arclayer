@@ -11,12 +11,13 @@ This code-spec defines command ownership for pnpm workspaces and Turborepo in Ar
 
 ### 2. Signatures
 
-- Package manager: `pnpm@10.28.2`
+- Package manager: `pnpm@11.9.0`
 - Workspace manifest: `pnpm-workspace.yaml`
 - Task runner config: `turbo.json`
 - Root checks:
   - `pnpm check`
   - `pnpm admin:check`
+  - `pnpm platform:check`
   - `pnpm api:check`
   - `pnpm cli:check`
 - Filtered command shape: `pnpm --filter <package> <script>`
@@ -39,24 +40,26 @@ This code-spec defines command ownership for pnpm workspaces and Turborepo in Ar
 
 ### 4. Validation & Error Matrix
 
-| Condition | Required behavior |
-|---|---|
-| Need Admin-only verification | Run `pnpm admin:check` |
-| Need API-only verification | Run `pnpm api:check` |
-| Change crosses Admin and API | Run `pnpm check` or affected package checks with rationale |
-| Change affects `packages/openapi` generation | Run/regenerate through `pnpm --filter @arclayer/openapi generate` |
-| Need focused package script | Use `pnpm --filter <package> <script>` or `pnpm -C <dir> <script>` |
-| Need backend ad hoc Python command | Use `pnpm -C apps/api uv -- <command>` |
-| Need migration generation/application | Use `pnpm --filter @arclayer/api db:migrate` / `db:upgrade`; do not hand-edit migration files |
-| Command would start persistent infra/dev process | Run only when runtime verification is requested and report the URL/process scope |
-| New root or package script is added | Wire it through Turborepo only when it is part of shared orchestration |
+| Condition                                        | Required behavior                                                                                                                          |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Small Admin-only iteration                       | Run the closest static check and focused test; run `pnpm admin:check` at a coherent milestone or before handoff                            |
+| Small Platform-only iteration                    | Run the closest static check and focused test; run `pnpm platform:check` at a coherent milestone or before handoff                         |
+| Small API-only iteration                         | Run the closest static check and focused test; run `pnpm api:check` at a coherent milestone or before handoff                              |
+| Change crosses Admin, Platform, or API           | Run affected package checks; run `pnpm check` for cross-app integration or final delivery                                                  |
+| Change affects `packages/openapi` generation     | Run/regenerate through `pnpm --filter @arclayer/openapi generate`                                                                          |
+| Need focused package script                      | Use `pnpm --filter <package> <script>` or `pnpm -C <dir> <script>`; pass focused test paths directly without an extra `--` before the path |
+| Need backend ad hoc Python command               | Use `pnpm -C apps/api uv -- <command>`                                                                                                     |
+| Need migration generation/application            | Use `pnpm --filter @arclayer/api db:migrate` / `db:upgrade`; do not hand-edit migration files                                              |
+| Command would start persistent infra/dev process | Run only when runtime verification is requested and report the URL/process scope                                                           |
+| New root or package script is added              | Wire it through Turborepo only when it is part of shared orchestration                                                                     |
 
 ### 5. Good/Base/Bad Cases
 
-- Good: an Admin component change runs `pnpm admin:check`.
-- Good: a backend schema/API change runs `pnpm api:check`, regenerates OpenAPI when needed, and then runs the affected frontend check.
+- Good: an Admin component change runs the closest static check and focused test while it is edited, then `pnpm admin:check` at the next coherent milestone.
+- Good: a backend schema/API change runs focused backend checks and regenerates OpenAPI while it is edited, then runs `pnpm api:check` and the affected frontend check at the appropriate milestone.
 - Good: an OpenAPI client refresh uses `pnpm --filter @arclayer/openapi generate`.
-- Base: a narrow API unit investigation uses `pnpm -C apps/api uv -- pytest <node>` with a timeout when it is a focused backend test.
+- Base: a narrow API unit investigation uses `pnpm -C apps/api uv -- pytest <node>` with a 60-second initial diagnostic budget, extending integration, database, or inherently slow runs until the actual result is visible.
+- Good: a focused Admin Vitest file uses `pnpm --filter @arclayer/admin test test/components/layout/route-progress.test.tsx`. Pass the path directly without an extra `--`; separator behavior across pnpm and Vitest can defeat the intended file filter and broaden the run.
 - Bad: running `.venv/bin/pytest` directly from `apps/api`.
 - Bad: changing `turbo.json` to make a broken task pass without fixing the failing package script.
 - Bad: hand-editing generated migration or OpenAPI output to satisfy a local test.

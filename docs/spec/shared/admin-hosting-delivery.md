@@ -1,13 +1,14 @@
 # Platform Hosting & Delivery Contract
 
-Status: Approved domain boundary; detailed workflows remain subject to product grilling
+Status: Approved domain contract; experience amended 2026-08-01
 Parent: [Platform Control Plane Productization Rollout](./admin-control-plane-rollout.md)
+Experience authority: [Product and Platform administration experience redesign](./product-admin-experience-redesign.md)
 
 ## 1. Scope
 
 This contract defines one Hosting & Delivery Platform Domain for cross-Workspace site-delivery investigation and recovery, domain and certificate readiness, file-storage operations, delivery policy, Delivery Suspended state, and restoration.
 
-“Hosting & Delivery” is the canonical architecture term. The localized product label is “站点交付” / “Site delivery”; primary navigation describes recognizable site, domain, certificate, and file-storage tasks rather than infrastructure implementation.
+“Hosting & Delivery” is the canonical architecture term. The product label is `托管与域名 / Hosting & Domains`; primary navigation describes recognizable site, domain, certificate, and file-storage tasks rather than infrastructure implementation.
 
 ## 2. Current-state evidence
 
@@ -17,23 +18,23 @@ This contract defines one Hosting & Delivery Platform Domain for cross-Workspace
 
 ## 3. Information architecture
 
-Site delivery opens the **Delivery issues** queue by default and contains these peer operational surfaces:
+Hosting & Domains opens **Delivery issues** by default and contains these peer operational surfaces:
 
 1. **Delivery issues**: platform-actionable build, deployment, release-delivery, domain, certificate, storage, suspension, and restoration failures with affected Workspace/Project/Site, last successful delivery, current visitor effect, owner, age, and authorized recovery action.
 2. **Domains & certificates**: deployment base domains, managed and custom domain readiness, DNS verification, certificate issuance/renewal, binding conflicts, reserved labels, and affected sites.
 3. **File storage**: storage services and profiles, default selection, connection/read/write readiness, capacity and upload policy, migration state, and affected assets or delivery paths.
-4. **Delivery rules**: managed subdomain assignment, Hosting Continuity policy, public unavailable responses, cache/delivery behavior, and future-transition previews.
+4. **Delivery policies**: managed subdomain assignment, Hosting Continuity policy, public unavailable responses, cache/delivery behavior, and future-transition previews.
 
 The domain has no metric-card Overview. A failed customer build caused only by invalid Project content remains a Product Application result unless it reveals a shared platform fault or requires Platform authority; the delivery queue does not turn every user mistake into an operator incident.
 
 ## 4. Authority boundaries
 
-- The Product Application owns Project content, publication intent, release selection, and authorized custom-domain choices. Site delivery may inspect their delivery projection and deep-link to the exact Product surface but cannot edit pages, content, or publication intent.
+- The Product Application owns Project content, publication intent, release selection, and authorized custom-domain choices. Hosting & Domains may inspect their delivery projection and deep-link to the exact Product surface but cannot edit pages, content, or publication intent.
 - Hosting & Delivery owns instance delivery readiness, delivery gates, public response behavior, domain/certificate infrastructure, artifact serving, and storage readiness.
 - Commerce owns Payment Grace and Payment Restricted. It publishes source facts only; Hosting & Delivery independently owns Hosting Continuity, Delivery Suspended, cache invalidation, and the restoration result.
-- Monitoring & Audit owns historical availability, latency, error, storage-growth, certificate, and delivery trends. Site delivery owns current actionable failures, readiness, and recovery.
-- Extensibility owns installation and trust lifecycle for storage or delivery Connectors; Site delivery owns their delivery-specific configuration, readiness, and operational use.
-- Tenant Governance may show an authorized delivery summary and exact deep link for a Workspace or Project, but it does not duplicate Hosting mutation forms.
+- Monitoring & Audit owns historical availability, latency, error, storage-growth, certificate, and delivery trends. Hosting & Domains owns current actionable failures, readiness, and recovery.
+- Extensibility owns installation and trust lifecycle for storage or delivery Connectors; Hosting & Domains owns their delivery-specific configuration, readiness, and operational use.
+- Workspaces may show an authorized delivery summary and exact deep link for a Workspace or Project, but it does not duplicate Hosting mutation forms.
 - Workspace lifecycle deletion remains independent. Delivery Suspended, unused storage, expired certificates, or an unavailable site never authorize data deletion.
 
 ## 5. Product copy and i18n
@@ -65,4 +66,4 @@ DNS records, certificate authority responses, Provider request ids, storage endp
 
 ## 8. Migration contract
 
-The hard cut removes `/system/settings/domains` and `/system/settings/storage` after every retained capability moves into an exact Site delivery surface with a Platform Capability, action-scoped Platform Permission, readiness state, failure behavior, and audit contract. Page registries, search items, wrappers, duplicate forms, and route aliases are removed together. Current settings that lack authoritative verification or affected-target evidence remain visibly incomplete until the domain supplies it; the UI does not infer healthy delivery from saved configuration or a successful form submission.
+The hard cut removes `/system/settings/domains` and `/system/settings/storage` after every retained capability moves to `/hosting/issues`, `/hosting/domains`, `/hosting/storage`, or `/hosting/policies` with a Platform Capability, action-scoped Platform Permission, complete lifecycle, readiness, failure, verification, and audit contract. Page registries, search items, wrappers, duplicate forms, old `/site-delivery/**` routes, and aliases are removed together. Current settings that lack authoritative verification or affected-target evidence remain visibly incomplete until the domain supplies it; the UI does not infer healthy delivery from saved configuration or a successful form submission.

@@ -53,45 +53,25 @@ function PackageIdentityFields(props: {
   const { t } = useTranslation("settings");
   return (
     <>
-      <div className="grid gap-5 sm:grid-cols-2">
-        <SettingDialogField
-          title={
-            <label htmlFor={`${props.formId}-name`}>
-              {t("SETTINGS_WORKSPACE_SKILLS_NAME_LABEL")}
-            </label>
-          }
-          error={
-            fieldError(props.form, "displayName")
-              ? t("SETTINGS_WORKSPACE_SKILLS_ACTION_REQUIRED")
-              : undefined
-          }
-        >
-          <Input
-            id={`${props.formId}-name`}
-            autoFocus
-            aria-invalid={Boolean(props.form.formState.errors.displayName)}
-            {...props.form.register("displayName")}
-          />
-        </SettingDialogField>
-        <SettingDialogField
-          title={
-            <label htmlFor={`${props.formId}-slug`}>
-              {t("SETTINGS_WORKSPACE_SKILLS_SLUG_LABEL")}
-            </label>
-          }
-          description={t("SETTINGS_WORKSPACE_SKILLS_SLUG_HELP")}
-          error={
-            fieldError(props.form, "slug") ? t("SETTINGS_WORKSPACE_SKILLS_SLUG_ERROR") : undefined
-          }
-        >
-          <Input
-            id={`${props.formId}-slug`}
-            className="font-mono"
-            aria-invalid={Boolean(props.form.formState.errors.slug)}
-            {...props.form.register("slug")}
-          />
-        </SettingDialogField>
-      </div>
+      <SettingDialogField
+        title={
+          <label htmlFor={`${props.formId}-name`}>
+            {t("SETTINGS_WORKSPACE_SKILLS_NAME_LABEL")}
+          </label>
+        }
+        error={
+          fieldError(props.form, "displayName")
+            ? t("SETTINGS_WORKSPACE_SKILLS_ACTION_REQUIRED")
+            : undefined
+        }
+      >
+        <Input
+          id={`${props.formId}-name`}
+          autoFocus
+          aria-invalid={Boolean(props.form.formState.errors.displayName)}
+          {...props.form.register("displayName")}
+        />
+      </SettingDialogField>
       <SettingDialogField
         title={
           <label htmlFor={`${props.formId}-description`}>
@@ -182,28 +162,13 @@ function SkillAuthoringDialog(props: AuthoringDialogProps) {
             <Textarea
               id={`${formId}-instructions`}
               autoFocus={!isPackage}
-              className="min-h-64 font-mono"
+              className="min-h-64"
               aria-invalid={Boolean(form.formState.errors.instructions)}
               {...form.register("instructions")}
             />
           </SettingDialogField>
-          <SettingDialogField
-            title={
-              <label htmlFor={`${formId}-semantic-version`}>
-                {t("settings:SETTINGS_WORKSPACE_SKILLS_SEMANTIC_VERSION_LABEL")}
-              </label>
-            }
-            description={t("settings:SETTINGS_WORKSPACE_SKILLS_SEMANTIC_VERSION_HELP")}
-          >
-            <Input
-              id={`${formId}-semantic-version`}
-              className="font-mono"
-              placeholder="1.0.0"
-              {...form.register("semanticVersion")}
-            />
-          </SettingDialogField>
           <WorkspaceSkillReferenceFields form={form} />
-          <WorkspaceSkillAdvancedFields form={form} />
+          <WorkspaceSkillAdvancedFields form={form} showIdentifier={isPackage} />
         </SettingDialogFields>
       </form>
     </SettingDialog>

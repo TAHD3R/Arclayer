@@ -34,7 +34,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "-o",
         "--output",
-        help="Write report artifact to this file path. Defaults to reports/code-review-engine/<timestamp>-<scope>.<ext>.",
+        help="Write report artifact to this file path. Defaults to output/code-review-engine/<timestamp>-<scope>.<ext>.",
     )
     parser.add_argument("--list-rules", action="store_true", help="Print registered rules and exit.")
     return parser
@@ -75,7 +75,7 @@ def _default_output_path(repo_root: Path, selector: ScopeSelector, output_format
     }
     timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     extension = extension_by_format[output_format]
-    return repo_root / "reports" / "code-review-engine" / f"{timestamp}-{selector.scope.value}.{extension}"
+    return repo_root / "output" / "code-review-engine" / f"{timestamp}-{selector.scope.value}.{extension}"
 
 
 def _resolve_output_path(

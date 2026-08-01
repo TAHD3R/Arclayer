@@ -131,19 +131,15 @@ export function WorkspaceSkillInstallDialog(props: {
           </AlertDescription>
         </Alert>
 
-        <div className="grid gap-3 rounded-lg border bg-muted/20 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-headline text-label-primary">
-              {t("settings:SETTINGS_WORKSPACE_SKILLS_EXACT_VERSION")}
-            </span>
-            <Badge variant="outline" className="font-mono tabular-nums">
-              v{props.version.versionNumber}
-              {props.version.semanticVersion ? ` · ${props.version.semanticVersion}` : ""}
-            </Badge>
-          </div>
-          <code className="break-all text-caption text-label-secondary">
-            {props.version.packageChecksum}
-          </code>
+        <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/20 p-4">
+          <span className="text-footnote font-semibold text-label-primary">
+            {t("settings:SETTINGS_WORKSPACE_SKILLS_SELECTED_UPDATE")}
+          </span>
+          <span className="text-footnote font-semibold tabular-nums text-label-primary">
+            {t("settings:SETTINGS_WORKSPACE_SKILLS_VERSION_NUMBER", {
+              version: props.version.versionNumber,
+            })}
+          </span>
         </div>
 
         {declarations.length ? (

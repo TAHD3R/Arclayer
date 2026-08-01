@@ -1,28 +1,48 @@
-import { useQuery } from "@tanstack/react-query";
-import { CalendarClock, Coins, CreditCard, Gauge, Sparkles } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { CalendarClock, Coins, CreditCard, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { getWorkspaceCommerceOverview } from "@/api/commerce";
+import {
+  createWorkspaceCustomerPortalSession,
+  getWorkspaceCommerceOverview,
+  type WorkspaceCommerceOverview,
+} from "@/api/commerce";
 import { CreditLedgerTable } from "@/components/commerce/credit-ledger-table";
 import { PlanSelectionDialog } from "@/components/commerce/plan-selection-dialog";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
+import { notifyError } from "@/lib/notifications";
+import { Badge } from "@arclayer/ui/badge";
 import { Button } from "@arclayer/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
 
-function UsageMetric(props: { label: string; value: string; icon: typeof Coins }) {
+function UsageMetric(props: {
+  label: string;
+  value: string;
+  supporting?: string;
+  icon: typeof Coins;
+}) {
   const Icon = props.icon;
   return (
-    <div className="min-w-0 rounded-md border border-border/70 p-4">
+    <div className="min-w-0 border-b border-border/60 py-4 last:border-b-0 sm:border-b-0 sm:border-r sm:px-5 sm:first:pl-0 sm:last:border-r-0 sm:last:pr-0">
       <div className="flex items-center justify-between gap-3 text-footnote text-label-secondary">
         <span>{props.label}</span>
         <Icon className="size-4" aria-hidden="true" />
       </div>
-      <div className="mt-2 truncate font-mono text-title2 font-semibold tabular-nums text-label-primary">
+      <div className="mt-2 truncate text-title2 font-semibold tabular-nums text-label-primary">
         {props.value}
       </div>
+      {props.supporting ? (
+        <p className="mt-1 text-caption text-label-secondary">{props.supporting}</p>
+      ) : null}
     </div>
   );
+}
+
+function subscriptionBadgeVariant(status: WorkspaceCommerceOverview["subscription"]["status"]) {
+  if (status === "active") return "default" as const;
+  if (status === "past_due") return "destructive" as const;
+  return "secondary" as const;
 }
 
 export function WorkspacePlanUsageView({ workspaceId }: { workspaceId: string }) {
@@ -38,17 +58,12 @@ export function WorkspacePlanUsageView({ workspaceId }: { workspaceId: string })
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const date = useMemo(() => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }), [locale]);
   const overview = overviewQuery.data;
-  const money = useMemo(
-    () =>
-      overview
-        ? new Intl.NumberFormat(locale, {
-            style: "currency",
-            currency: overview.planRevision.currency,
-          })
-        : null,
-    [locale, overview],
-  );
-  const totalTokens = overview ? overview.usage.promptTokens + overview.usage.completionTokens : 0;
+  const isFreePlan = overview?.planRevision.planCode === "free";
+  const billingPortalMutation = useMutation({
+    mutationFn: () => createWorkspaceCustomerPortalSession(workspaceId),
+    onSuccess: (redirect) => window.location.assign(redirect.url),
+    onError: notifyError,
+  });
 
   return (
     <ContentGuard
@@ -60,85 +75,84 @@ export function WorkspacePlanUsageView({ workspaceId }: { workspaceId: string })
       {overview ? (
         <div className="flex flex-col gap-8 pb-8">
           <Card>
-            <CardHeader className="gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <CardHeader className="gap-4 border-b sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
-                <CardTitle className="text-title2">
-                  {t(overview.planRevision.nameI18NKey)}
-                </CardTitle>
+                <div className="flex flex-wrap items-center gap-2">
+                  <CardTitle className="text-title2">
+                    {t(overview.planRevision.nameI18NKey)}
+                  </CardTitle>
+                  <Badge variant={subscriptionBadgeVariant(overview.subscription.status)}>
+                    {t(
+                      `commerce:SUBSCRIPTION_STATUS_${overview.subscription.status.toUpperCase()}`,
+                    )}
+                  </Badge>
+                </div>
                 <CardDescription className="mt-1">
                   {t(overview.planRevision.descriptionI18NKey)}
                 </CardDescription>
-                <p className="mt-2 text-footnote text-label-secondary">
-                  {t("commerce:PLAN_REVISION", { sequence: overview.planRevision.sequence })}
-                </p>
               </div>
-              <Button variant="outline" onClick={() => setPlansOpen(true)}>
-                <Sparkles data-icon="inline-start" />
-                {t("commerce:PLAN_COMPARE_ACTION")}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                {!isFreePlan ? (
+                  <Button
+                    variant="outline"
+                    loading={billingPortalMutation.isPending}
+                    onClick={() => billingPortalMutation.mutate()}
+                  >
+                    <CreditCard data-icon="inline-start" />
+                    {t("commerce:PLAN_MANAGE_SUBSCRIPTION")}
+                  </Button>
+                ) : null}
+                <Button onClick={() => setPlansOpen(true)}>
+                  <Sparkles data-icon="inline-start" />
+                  {t("commerce:PLAN_COMPARE_ACTION")}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid sm:grid-cols-2">
                 <UsageMetric
                   label={t("commerce:CREDITS_AVAILABLE_LABEL")}
                   value={number.format(overview.credits.available)}
+                  supporting={t("commerce:PLAN_CREDITS_INCLUDED", {
+                    count: number.format(overview.planRevision.creditGrantAmount),
+                  })}
                   icon={Coins}
-                />
-                <UsageMetric
-                  label={t("commerce:CREDITS_RESERVED")}
-                  value={number.format(overview.credits.reserved)}
-                  icon={Gauge}
                 />
                 <UsageMetric
                   label={t("commerce:USAGE_REQUESTS")}
                   value={number.format(overview.usage.requests)}
-                  icon={Sparkles}
-                />
-                <UsageMetric
-                  label={t("commerce:USAGE_ACTUAL_COST")}
-                  value={money?.format(overview.usage.periodCostMicros / 1_000_000) ?? "—"}
-                  icon={CreditCard}
+                  supporting={t("commerce:USAGE_REQUESTS_DESCRIPTION")}
+                  icon={CalendarClock}
                 />
               </div>
-              <div className="grid gap-3 text-footnote text-label-secondary sm:grid-cols-2">
-                <div className="flex items-center gap-2">
-                  <CalendarClock className="size-4" aria-hidden="true" />
-                  <span>
-                    {t("commerce:CREDITS_PERIOD_RANGE", {
-                      start: date.format(new Date(overview.credits.periodStart)),
-                      end: date.format(new Date(overview.credits.periodEnd)),
-                    })}
-                  </span>
-                </div>
+              <div className="grid gap-3 rounded-lg bg-muted/45 p-4 text-footnote text-label-secondary sm:grid-cols-2">
                 <div className="flex items-center gap-2">
                   <Coins className="size-4" aria-hidden="true" />
                   <span>
-                    {t("commerce:USAGE_TOKEN_TOTAL", { count: number.format(totalTokens) })}
+                    {overview.credits.nextRefreshAt
+                      ? t("commerce:CREDITS_REFRESH_DATE", {
+                          date: date.format(new Date(overview.credits.nextRefreshAt)),
+                        })
+                      : isFreePlan
+                        ? t("commerce:PLAN_FREE_NO_EXPIRATION")
+                        : t("commerce:CREDITS_NO_AUTOMATIC_REFRESH")}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <CreditCard className="size-4" aria-hidden="true" />
-                  <span>
-                    {t("commerce:SUBSCRIPTION_STATUS", {
-                      status: t(
-                        `commerce:SUBSCRIPTION_STATUS_${overview.subscription.status.toUpperCase()}`,
-                      ),
-                    })}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CalendarClock className="size-4" aria-hidden="true" />
-                  <span>
-                    {t("commerce:SUBSCRIPTION_PERIOD", {
-                      start: date.format(new Date(overview.subscription.currentPeriodStart)),
-                      end: date.format(new Date(overview.subscription.currentPeriodEnd)),
-                    })}
-                  </span>
-                </div>
+                {!isFreePlan ? (
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="size-4" aria-hidden="true" />
+                    <span>
+                      {overview.subscription.cancelAtPeriodEnd
+                        ? t("commerce:SUBSCRIPTION_CANCELS_AT", {
+                            date: date.format(new Date(overview.subscription.currentPeriodEnd)),
+                          })
+                        : t("commerce:SUBSCRIPTION_RENEWS_AT", {
+                            date: date.format(new Date(overview.subscription.currentPeriodEnd)),
+                          })}
+                    </span>
+                  </div>
+                ) : null}
               </div>
-              <p className="text-footnote text-label-secondary">
-                {t("commerce:PLAN_ALLOWANCES_NOT_PROJECTED")}
-              </p>
             </CardContent>
           </Card>
 

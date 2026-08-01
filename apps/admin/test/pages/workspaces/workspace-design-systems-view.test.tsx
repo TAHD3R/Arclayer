@@ -179,16 +179,20 @@ describe("WorkspaceDesignSystemsView", () => {
     });
   });
 
-  it("shows exact foundation evidence without exposing gated publish actions", async () => {
+  it("shows a real visual preview without exposing internal revision evidence", async () => {
     renderView();
 
     expect(await screen.findByRole("heading", { name: "Editorial Contrast" })).toBeInTheDocument();
     expect(
-      await screen.findByText("settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_PUBLISH_GATED_TITLE"),
+      await screen.findByText("SETTINGS_WORKSPACE_DESIGN_SYSTEMS_PREVIEW_HEADING"),
     ).toBeInTheDocument();
     expect(
-      await screen.findByText("Renderer compatibility has not been evaluated."),
+      await screen.findByText(
+        "settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_FINDING_DESIGN_SYSTEM_RENDERER_NOT_EVALUATED",
+      ),
     ).toBeInTheDocument();
+    expect(screen.queryByText(checksum)).not.toBeInTheDocument();
+    expect(screen.queryByText(checksum.slice(7, 19))).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /publish/i })).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "SETTINGS_WORKSPACE_DESIGN_SYSTEMS_SET_DEFAULT_ACTION" }),

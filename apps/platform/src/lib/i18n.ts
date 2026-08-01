@@ -11,6 +11,7 @@ import enErrors from "@locales/en-US/errors.json";
 import enInbox from "@locales/en-US/inbox.json";
 import enMonitoring from "@locales/en-US/monitoring.json";
 import enNavigation from "@locales/en-US/navigation.json";
+import enOverview from "@locales/en-US/overview.json";
 import enSetup from "@locales/en-US/setup.json";
 import enSavedViews from "@locales/en-US/savedViews.json";
 import enSiteDelivery from "@locales/en-US/siteDelivery.json";
@@ -25,6 +26,7 @@ import zhErrors from "@locales/zh-CN/errors.json";
 import zhInbox from "@locales/zh-CN/inbox.json";
 import zhMonitoring from "@locales/zh-CN/monitoring.json";
 import zhNavigation from "@locales/zh-CN/navigation.json";
+import zhOverview from "@locales/zh-CN/overview.json";
 import zhSetup from "@locales/zh-CN/setup.json";
 import zhSavedViews from "@locales/zh-CN/savedViews.json";
 import zhSiteDelivery from "@locales/zh-CN/siteDelivery.json";
@@ -36,6 +38,7 @@ export type PlatformLocale = (typeof PLATFORM_LOCALES)[number];
 const namespaces = [
   "common",
   "navigation",
+  "overview",
   "inbox",
   "monitoring",
   "access",
@@ -58,6 +61,7 @@ const resources = {
     ai: zhAi,
     siteDelivery: zhSiteDelivery,
     navigation: zhNavigation,
+    overview: zhOverview,
     inbox: zhInbox,
     monitoring: zhMonitoring,
     access: zhAccess,
@@ -74,6 +78,7 @@ const resources = {
     ai: enAi,
     siteDelivery: enSiteDelivery,
     navigation: enNavigation,
+    overview: enOverview,
     inbox: enInbox,
     monitoring: enMonitoring,
     access: enAccess,

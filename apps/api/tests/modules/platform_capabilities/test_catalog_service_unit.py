@@ -44,7 +44,7 @@ def _registration(
     return PlatformCapabilityRegistration(
         capability_id=capability_id,
         domain=PlatformCapabilityDomain.TENANT_GOVERNANCE,
-        name_i18n_key="navigation:TENANT_GOVERNANCE",
+        name_i18n_key="navigation:WORKSPACES",
         description_i18n_key="tenants:WORKSPACES_DESCRIPTION",
         support_state=support_state,
         enablement_state=enablement_state,
@@ -93,6 +93,7 @@ async def test_instance_owner_sees_every_registration_without_operator_permissio
 
     assert [item.capability_id for item in catalog.items] == ["tenant-governance", "unsupported-domain"]
     assert repository.calls == 0
+    assert all(item.can_manage for item in catalog.items)
     assert catalog.items[1].navigation_candidate is False
 
 
@@ -125,6 +126,7 @@ async def test_operator_catalog_is_filtered_by_current_exact_permissions_on_ever
     second = await service.list_catalog(principal)
 
     assert [item.capability_id for item in first.items] == ["visible"]
+    assert first.items[0].can_manage is False
     assert [item.capability_id for item in second.items] == ["hidden"]
     assert repository.calls == 2
 
@@ -141,24 +143,30 @@ async def test_catalog_returns_only_navigation_targets_authorized_for_the_operat
     ]
 
 
+@pytest.mark.parametrize(
+    "permission",
+    (
+        PlatformPermissionCode.ACCESS_ROLES_READ,
+        PlatformPermissionCode.ACCESS_SESSIONS_READ,
+        PlatformPermissionCode.ACCESS_SIGN_IN_SETTINGS_READ,
+        PlatformPermissionCode.TENANT_USERS_READ,
+        PlatformPermissionCode.TENANT_PROJECTS_READ,
+    ),
+)
 @pytest.mark.asyncio
-async def test_peer_only_permission_exposes_its_trusted_target_without_default_page_authority() -> None:
-    repository = _PermissionRepository(frozenset({PlatformPermissionCode.TENANT_USERS_READ.value}))
+async def test_removed_peer_route_permissions_do_not_create_navigation_candidates(
+    permission: PlatformPermissionCode,
+) -> None:
+    repository = _PermissionRepository(frozenset({permission.value}))
 
     catalog = await PlatformCapabilityCatalogService(repository).list_catalog(_principal(is_owner=False))
 
-    assert [item.capability_id for item in catalog.items] == ["tenant-governance"]
-    assert [target.route_target.value for target in catalog.items[0].navigation_targets] == ["tenants.users"]
+    assert catalog.items == ()
 
 
 @pytest.mark.parametrize(
     ("permission", "capability_id", "route_targets"),
     (
-        (
-            PlatformPermissionCode.TENANT_PROJECTS_READ,
-            "tenant-governance",
-            ["tenants.projects"],
-        ),
         (
             PlatformPermissionCode.MONITORING_REQUESTS_READ,
             "monitoring-audit",
@@ -168,6 +176,11 @@ async def test_peer_only_permission_exposes_its_trusted_target_without_default_p
             PlatformPermissionCode.MONITORING_AUDIT_READ,
             "monitoring-audit",
             ["monitoring.activity", "monitoring.audit"],
+        ),
+        (
+            PlatformPermissionCode.OPERATIONS_SIGNALS_READ,
+            "operations-signals",
+            ["operations.signals"],
         ),
     ),
 )
@@ -185,6 +198,32 @@ async def test_each_peer_route_uses_its_exact_platform_permission(
     assert [target.route_target.value for target in catalog.items[0].navigation_targets] == route_targets
 
 
+@pytest.mark.parametrize(
+    ("permission", "capability_id"),
+    (
+        (PlatformPermissionCode.COMMERCE_READ, "commerce"),
+        (PlatformPermissionCode.AI_TASKS_READ, "ai-services"),
+        (PlatformPermissionCode.MESSAGES_FEEDBACK_READ, "communications"),
+        (PlatformPermissionCode.EXTENSIONS_CATALOG_READ, "extensions"),
+        (PlatformPermissionCode.SITE_DELIVERY_READ, "site-delivery"),
+    ),
+)
+@pytest.mark.asyncio
+async def test_removed_capabilities_are_not_ready_navigation_candidates(
+    permission: PlatformPermissionCode,
+    capability_id: str,
+) -> None:
+    repository = _PermissionRepository(frozenset({permission.value}))
+
+    catalog = await PlatformCapabilityCatalogService(repository).list_catalog(_principal(is_owner=False))
+
+    assert [item.capability_id for item in catalog.items] == [capability_id]
+    capability = catalog.items[0]
+    assert capability.readiness_state is PlatformCapabilityReadinessState.NOT_READY
+    assert capability.missing_prerequisite_codes == ("PLATFORM_FRONTEND_ROUTE_UNAVAILABLE",)
+    assert capability.navigation_candidate is False
+
+
 @pytest.mark.asyncio
 async def test_disabled_capability_requires_manage_authority_for_activation() -> None:
     registration = _registration(
@@ -198,6 +237,7 @@ async def test_disabled_capability_requires_manage_authority_for_activation() ->
     )
 
     assert len(catalog.items) == 1
+    assert catalog.items[0].can_manage is True
     assert catalog.items[0].activation_available is True
     assert catalog.items[0].navigation_candidate is False
 
@@ -262,6 +302,7 @@ async def test_access_capability_is_manageable_without_read_authority_but_not_na
 
     assert [item.capability_id for item in catalog.items] == ["access"]
     access = catalog.items[0]
+    assert access.can_manage is True
     assert access.manage_permission_match is PlatformCapabilityPermissionMatch.ANY
     assert access.readiness_state is PlatformCapabilityReadinessState.READY
     assert access.missing_prerequisite_codes == ()
@@ -278,6 +319,19 @@ async def test_access_team_read_authority_exposes_the_ready_trusted_route() -> N
     access = catalog.items[0]
     assert access.navigation_candidate is True
     assert [target.route_target for target in access.navigation_targets] == [PlatformCapabilityRouteTarget.ACCESS_TEAM]
+
+
+@pytest.mark.asyncio
+async def test_operations_signal_manage_authority_does_not_create_navigation_without_read_access() -> None:
+    repository = _PermissionRepository(frozenset({PlatformPermissionCode.OPERATIONS_SIGNALS_CLAIM.value}))
+
+    catalog = await PlatformCapabilityCatalogService(repository).list_catalog(_principal(is_owner=False))
+
+    assert [item.capability_id for item in catalog.items] == ["operations-signals"]
+    signals = catalog.items[0]
+    assert signals.can_manage is True
+    assert signals.navigation_targets == ()
+    assert signals.navigation_candidate is False
 
 
 def test_registration_rejects_untrusted_route_target() -> None:

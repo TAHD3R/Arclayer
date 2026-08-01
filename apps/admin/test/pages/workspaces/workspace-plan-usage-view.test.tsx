@@ -5,7 +5,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getWorkspaceCommerceOverview } from "@/api/commerce";
 import { WorkspacePlanUsageView } from "@/pages/workspaces/settings/workspace/plan-usage/plan-usage-view";
 
-vi.mock("@/api/commerce", () => ({ getWorkspaceCommerceOverview: vi.fn() }));
+vi.mock("@/api/commerce", () => ({
+  createWorkspaceCustomerPortalSession: vi.fn(),
+  getWorkspaceCommerceOverview: vi.fn(),
+}));
 vi.mock("@/components/commerce/credit-ledger-table", () => ({
   CreditLedgerTable: ({ workspaceId }: { workspaceId: string }) => (
     <div data-testid="credit-ledger-table">{workspaceId}</div>
@@ -75,7 +78,7 @@ describe("WorkspacePlanUsageView", () => {
     vi.mocked(getWorkspaceCommerceOverview).mockResolvedValue(overview());
   });
 
-  it("presents the revision, projected usage, subscription lifecycle, and ledger", async () => {
+  it("presents the active plan, customer-facing usage, subscription lifecycle, and credit activity", async () => {
     render(
       <QueryClientProvider
         client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
@@ -88,8 +91,77 @@ describe("WorkspacePlanUsageView", () => {
     expect(screen.getByText("commerce:CREDITS_AVAILABLE_LABEL")).toBeVisible();
     expect(screen.getByText("7,750")).toHaveClass("tabular-nums");
     expect(screen.getByText("24")).toHaveClass("tabular-nums");
-    expect(screen.getByText("$2.00")).toHaveClass("tabular-nums");
-    expect(screen.getByText("commerce:PLAN_ALLOWANCES_NOT_PROJECTED")).toBeVisible();
+    expect(screen.getByRole("button", { name: "commerce:PLAN_MANAGE_SUBSCRIPTION" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "commerce:PLAN_COMPARE_ACTION" })).toBeVisible();
+    expect(screen.getByText("commerce:LEDGER_DIALOG_TITLE")).toBeVisible();
+    expect(
+      screen.queryByText(
+        /PLAN_REVISION|PLAN_ALLOWANCES_NOT_PROJECTED|USAGE_TOKEN_TOTAL|USAGE_ACTUAL_COST/,
+      ),
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId("credit-ledger-table")).toHaveTextContent("workspace-1");
+  });
+
+  it("does not render an infinite renewal date or billing management for the free plan", async () => {
+    vi.mocked(getWorkspaceCommerceOverview).mockResolvedValue({
+      ...overview(),
+      planRevision: { ...overview().planRevision, planCode: "free" },
+      subscription: {
+        ...overview().subscription,
+        currentPeriodEnd: "9999-12-31T23:59:59.999999Z",
+      },
+      credits: { ...overview().credits, nextRefreshAt: null },
+    });
+
+    render(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <WorkspacePlanUsageView workspaceId="workspace-1" />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText("commerce:PLAN_FREE_NO_EXPIRATION")).toBeVisible();
+    expect(screen.queryByText(/9999|10000/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "commerce:PLAN_MANAGE_SUBSCRIPTION" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows a Free plan daily credit refresh when the API provides one", async () => {
+    vi.mocked(getWorkspaceCommerceOverview).mockResolvedValue({
+      ...overview(),
+      planRevision: {
+        ...overview().planRevision,
+        planCode: "free",
+        creditRefreshInterval: "daily",
+      },
+    });
+
+    render(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <WorkspacePlanUsageView workspaceId="workspace-1" />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText(/commerce:CREDITS_REFRESH_DATE:/)).toBeVisible();
+    expect(screen.queryByText("commerce:PLAN_FREE_NO_EXPIRATION")).not.toBeInTheDocument();
+  });
+
+  it("does not derive used credits from the plan grant and current balance", async () => {
+    render(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <WorkspacePlanUsageView workspaceId="workspace-1" />
+      </QueryClientProvider>,
+    );
+
+    await screen.findByText("commerce:PLAN_PREMIUM_NAME");
+
+    expect(screen.queryByText("commerce:CREDITS_PERIOD_SPENT")).not.toBeInTheDocument();
+    expect(screen.queryByText("2,000")).not.toBeInTheDocument();
   });
 });

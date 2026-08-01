@@ -1,4 +1,8 @@
 {
+  "TEAM_PEOPLE_TAB_LINKS": "邀请链接",
+  "TEAM_PEOPLE_TAB_PENDING": "待处理",
+  "TEAM_PEOPLE_TAB_PEOPLE": "人员",
+  "TEAM_PEOPLE_VIEWS_LABEL": "人员视图",
   "TEAM_ACTION_COPIED": "已复制",
   "TEAM_ACTION_DELETE": "删除",
   "TEAM_ACTION_DISABLE": "禁用账户",

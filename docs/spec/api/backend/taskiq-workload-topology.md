@@ -57,8 +57,10 @@ RUN_INTEGRATION_TESTS=1 MAIL__ENABLED=1 MAIL__SUPPRESS_SEND=1 \
   tests/platform/jobs/test_taskiq_workload_topology_integration.py --no-cov
 ```
 
-The command must run with an external hard timeout of 60 seconds. The accepted
-run collected five tests and passed `5/5` in `0.60s`.
+The accepted run used an external 60-second diagnostic budget, collected five
+tests, and passed `5/5` in `0.60s`. That elapsed budget is an observation from
+the evidence run, not a hard test contract; reruns may be extended to expose
+their real result when integration infrastructure needs more time.
 
 ## 3. Proven Findings
 

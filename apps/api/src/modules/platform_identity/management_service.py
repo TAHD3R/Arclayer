@@ -32,8 +32,10 @@ from src.models.platform_identity.roles import (
 from src.modules.auth.oauth.social.providers import OAuthProviderDefinition, list_oauth_provider_connectors
 from src.modules.auth.registration.service import get_public_register_policy
 from src.modules.platform_identity.management_schema import (
+    PlatformInvitationCandidateOut,
     PlatformInvitationCreateRequest,
     PlatformInvitationDetailOut,
+    PlatformInvitationOptionsOut,
     PlatformInvitationRoleOut,
     PlatformMfaMethodReadinessOut,
     PlatformMfaReadinessOut,
@@ -166,6 +168,27 @@ class PlatformIdentityManagementService:
             )
         )
 
+    async def invitation_options(self, *, inviter_user_id: UUID, q: str | None) -> PlatformInvitationOptionsOut:
+        snapshot = await self._repository.get_identity_snapshot(user_id=inviter_user_id, at=self._now())
+        roles = await self.list_roles()
+        assignable_roles = (
+            roles
+            if snapshot.is_instance_owner
+            else tuple(role for role in roles if set(role.permission_codes).issubset(snapshot.delegable_permissions))
+        )
+        candidates = await self._repository.list_invitation_candidates(q=q, at=self._now())
+        return PlatformInvitationOptionsOut(
+            candidates=tuple(
+                PlatformInvitationCandidateOut(
+                    user_id=user.id,
+                    username=user.username,
+                    display_name=user.display_name,
+                )
+                for user in candidates
+            ),
+            roles=assignable_roles,
+        )
+
     async def offboard_operator(
         self, *, actor_user_id: UUID, target_user_id: UUID, request: PlatformOperatorOffboardingRequest
     ) -> PlatformMutationReceipt:
@@ -203,6 +226,7 @@ class PlatformIdentityManagementService:
         revisions = await PlatformRoleRevision.filter(role_id__in=role_ids, is_current=True).order_by(
             "role_id", "sequence"
         )
+
         permissions = await PlatformRoleRevisionPermission.filter(
             role_revision_id__in=[revision.id for revision in revisions]
         ).values_list("role_revision_id", "permission__code")

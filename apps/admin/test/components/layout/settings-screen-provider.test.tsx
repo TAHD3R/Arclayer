@@ -26,14 +26,14 @@ function ProviderHarness() {
       >
         Open workspace icon
       </button>
-      <button type="button" onClick={() => settings.switchSettingsScreen("workspace.members")}>
-        Switch members
+      <button type="button" onClick={() => settings.switchSettingsScreen("workspace.people")}>
+        Switch people
       </button>
       <button
         type="button"
         onClick={() =>
           settings.focusSettingsSection({
-            screen: "workspace.members",
+            screen: "workspace.people",
             section: "member-row",
             payload: { memberId: "member-1" },
           })
@@ -90,10 +90,10 @@ describe("SettingsScreenProvider", () => {
     expect(screen.getByTestId("settings-open")).toHaveTextContent("true");
     expect(screen.getByTestId("settings-screen")).toHaveTextContent("personal.profile");
 
-    await user.click(screen.getByRole("button", { name: "Switch members" }));
+    await user.click(screen.getByRole("button", { name: "Switch people" }));
 
     expect(screen.getByTestId("settings-open")).toHaveTextContent("true");
-    expect(screen.getByTestId("settings-screen")).toHaveTextContent("workspace.members");
+    expect(screen.getByTestId("settings-screen")).toHaveTextContent("workspace.people");
     expect(screen.getByTestId("settings-section")).toHaveTextContent("none");
 
     await user.click(screen.getByRole("button", { name: "Close settings" }));
@@ -131,7 +131,7 @@ describe("SettingsScreenProvider", () => {
 
     const memberOne = screen.getByTestId("member-1-anchor");
     const memberTwo = screen.getByTestId("member-2-anchor");
-    expect(screen.getByTestId("settings-screen")).toHaveTextContent("workspace.members");
+    expect(screen.getByTestId("settings-screen")).toHaveTextContent("workspace.people");
     expect(screen.getByTestId("settings-member")).toHaveTextContent("member-1");
     expect(memberOne).toHaveClass("settings-section-flash");
     expect(memberTwo).not.toHaveClass("settings-section-flash");

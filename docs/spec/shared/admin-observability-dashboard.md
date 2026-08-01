@@ -1,11 +1,12 @@
-# Platform Monitoring & Audit and Operations Inbox Contract
+# Platform Monitoring & Audit and Cross-domain Attention Contract
 
-Status: Approved canonical implementation contract (spec audit passed 2026-07-22)
+Status: Approved domain contract; experience amended 2026-08-01
 Parent: [Platform Control Plane Productization Rollout](./admin-control-plane-rollout.md)
+Experience authority: [Product and Platform administration experience redesign](./product-admin-experience-redesign.md)
 
 ## 1. Scope
 
-This contract defines one Monitoring & Audit Platform Domain for raw request/error investigation, performance and usage trends, Activity trends, and immutable administrative Audit evidence. It also defines useful chart/table drill-down, the shared chart implementation, removal of redundant overview and route families, and redesign of the current `/system/overview` implementation as the Platform Console Operations Inbox.
+This contract defines one Monitoring & Audit Platform Domain for raw request/error investigation, performance and usage trends, Activity trends, and immutable administrative Audit evidence. It also defines useful chart/table drill-down, the shared chart implementation, removal of redundant route families, and source projections consumed by Overview and Needs attention. The Platform root and cross-domain attention experience are owned by the administration experience redesign contract.
 
 It supersedes the hourly-only percentile and observability-overview UI statements in `feedback-observability.md`. Hourly aggregates remain useful for long-range trends, while persisted raw request records are the source for exact request investigation and true percentile computation inside their retention window.
 
@@ -219,7 +220,7 @@ Row detail uses the semantic request/event/AI/cost domain presenter. Generic raw
 
 ### 11.1 Ownership and projection
 
-Each platform domain owns the source state, lifecycle, authorization, and resolution action for the conditions it detects. The Operations Inbox consumes that projection and adds only lightweight Operational Signal Triage; it does not copy domain state into a second incident or task model. Resolving an item invokes the owning domain operation and the projection becomes resolved only after that domain confirms the result.
+Each platform domain owns the source state, lifecycle, authorization, and resolution action for the conditions it detects. Needs attention consumes that projection and adds only lightweight coordination; it does not copy domain state into a second incident or task model. Remediation invokes the owning domain operation and the projection becomes recovered only after that domain confirms the result.
 
 An Operational Signal contains:
 
@@ -234,7 +235,7 @@ The projection may group duplicate signals only when it preserves affected count
 
 ### 11.2 Lightweight triage
 
-Operations Inbox collaboration stores a revisioned triage record keyed to the Operational Signal without copying its source content or lifecycle. It contains only the current assignee when present, `needs_attention`, `in_progress`, or `remind_later` coordination state, an explicit reminder time and required user-authored reason for `remind_later`, and the actors and timestamps required for attribution.
+Needs attention collaboration stores a revisioned coordination record keyed to the source condition without copying its source content or lifecycle. It contains only the current assignee when present, `unclaimed`, `in_progress`, `waiting`, or `source_recovered` coordination state, an explicit return time and required user-authored reason for `waiting`, and the actors and timestamps required for attribution.
 
 - An authorized operator may claim an unassigned Signal, assign or reassign it to an eligible active operator, mark work in progress, set or end a time-bounded reminder, or return it to needs attention. Every command requires its matching action-scoped Platform Permission, expected triage revision, and canonical Audit evidence; conflicts remain visible rather than overwriting another operator's work.
 - Triage never changes severity, priority inputs, health, source lifecycle, affected scope, source authorization, or the owning domain's resolution operation. Assignment grants no new access, and an assignee who lacks the source action permission sees no hidden evidence or action.
@@ -245,21 +246,21 @@ Operations Inbox collaboration stores a revisioned triage record keyed to the Op
 
 ### 11.3 Admission rule
 
-A fact appears in the Operations Inbox only when the owning domain can state why an operator should care now and what decision or action follows. Normal request volume, plan distribution, active tenant counts, and other context-only metrics remain in Monitoring & audit or their owning domain page unless a configured rule turns them into an actionable condition. Decorative KPI cards and empty navigation summaries are non-conforming.
+A fact appears in Needs attention only when the owning domain can state why an operator should care now and what decision or action follows. Normal request volume, plan distribution, active Workspace counts, and other context-only metrics remain in Monitoring & Audit or their owning domain page unless a configured rule turns them into an actionable condition. Decorative KPI cards and empty navigation summaries are non-conforming.
 
 ### 11.4 Responsive presentation
 
-The Inbox uses a stable queue/list hierarchy rather than movable widgets. At narrow widths, prioritization, condition, impact, and primary action remain visible in reading order; secondary evidence moves into the detail surface. Focused Monitoring & audit charts and tables use responsive content containers and must not create page-level horizontal overflow.
+Needs attention uses a stable queue/list hierarchy rather than movable widgets. At narrow widths, prioritization, condition, impact, and primary action remain visible in reading order; secondary evidence moves into the detail surface. Focused Monitoring & Audit charts and tables use responsive content containers and must not create page-level horizontal overflow.
 
 ### 11.5 Domain-owned Signal policies
 
 Each owning Platform Domain defines typed, versioned policies for the Operational Signals it can emit. A policy declares its stable policy and signal types, source coverage, adjustable fields, valid values, evaluation semantics, severity mapping, admission and resolution conditions, required Platform Permissions, and customer-safe product-copy keys.
 
-- Authorized operators may change only fields exposed by the owning domain, such as a meaningful threshold, observation window, severity mapping, or optional Inbox admission. The UI does not expose SQL, arbitrary expressions, cross-domain joins, user-authored executable code, or a generic event-rule builder.
+- Authorized operators may change only fields exposed by the owning domain, such as a meaningful threshold, observation window, severity mapping, or optional attention admission. The UI does not expose SQL, arbitrary expressions, cross-domain joins, user-authored executable code, or a generic event-rule builder.
 - A policy change follows the risk-tiered configuration contract and requires a server-generated, revision-bound preview. The preview uses explicitly reported recent coverage/effective range to show representative matching scopes and counts; it is advisory, creates no Signals, changes no historical evidence, and never claims complete prediction when coverage is partial.
 - Security, Audit completeness, data-corruption, or other integrity policies may be mandatory and non-disableable when the owning domain declares the exact invariant. Product copy explains what is protected and why the control cannot be turned off rather than exposing an internal hard-coded flag.
 - Applying a revision records canonical Audit evidence and affects subsequent authoritative evaluation. Every emitted Signal references the policy revision that evaluated it. A policy edit never deletes or rewrites existing Signals directly; source-domain reconciliation opens, updates, or resolves them according to explicit new evaluation results.
-- A threshold alone does not satisfy Inbox admission. The policy must still identify why an operator should care, the affected scope, the evidence, the supported next action, and the source condition that confirms resolution.
+- A threshold alone does not satisfy attention admission. The policy must still identify why an operator should care, the affected scope, the evidence, the supported next action, and the source condition that confirms recovery.
 - Evaluation failures, stale coverage, and unavailable sources remain observable and cannot be interpreted as no matches or healthy state.
 
 ## 12. Shared Bklit chart contract
@@ -286,21 +287,23 @@ The migration is a hard cut per chart surface: implement the shared adapter, mig
 - Remove `/system/observability/overview`, the `/system/audit-log` tab shell, obsolete menu items, route skeletons, tests, localized navigation copy, and duplicate page components. The old route families are migration sources, not permanent aliases.
 - Regenerate `routeTree.gen.ts` through the repository generator; do not hand-edit it.
 
-## 14. The platform home becomes Operations Inbox
+## 14. Overview and Needs attention projections
 
-### 14.1 Header and purpose
+### 14.1 Ownership and purpose
 
-The Platform Console root `/`, navigation, and page title use `Operations Inbox` / `行动中心`. During the frontend split, the current `/system/overview` implementation is the migration source, not the permanent route contract. The description communicates a prioritized operational work surface, not a summary page.
+The Platform Console root `/` is `Overview / 总览`; `/attention` is `Needs attention / 待处理`. The current `/system/overview` implementation is only migration evidence. The complete composition, state, product-language, and route contracts are defined by the administration experience redesign.
 
-The Operations Inbox answers:
+Overview consumes source-owned projections for effective posture, evidence coverage and freshness, active changes, capacity or spend risks, ranked conditions, and verified recent changes. Missing source evidence produces an explicit unconfirmed or partial posture and never a fabricated healthy state.
 
-- What requires attention now?
+Needs attention answers:
+
+- What requires a decision or intervention now?
 - Why does it matter, which scope is affected, and how urgent is it?
-- What can this operator do next with their current Platform Permissions?
-- Who is handling it now, and which items need this operator's attention?
-- Which owning domain will confirm that the condition is resolved?
+- What can this operator do next with current Platform Permissions?
+- Who is handling it, and when does waiting work return?
+- Which owning domain will verify the outcome?
 
-### 14.2 Initial signal sources
+### 14.2 Initial condition sources
 
 The initial source domains may project signals for:
 
@@ -314,13 +317,13 @@ The initial source domains may project signals for:
 
 This list is not a license to emit a signal for every metric. Each source must satisfy the section 11 admission rule and preserve its own resolution authority.
 
-### 14.3 Queue controls
+### 14.3 Attention controls
 
-The default view shows unresolved, non-reminded signals in server-authoritative priority order and makes current assignment and coordination state visible. Operators may filter by assignee, coordination state, source domain, severity, affected scope, and source lifecycle state when supported; reminded items remain available through an explicit view and return automatically at their reviewed time. Filters are URL-addressable and use stable codes. Historical range selection and trend exploration belong to Monitoring & audit rather than controlling the default Inbox.
+The default view shows active, non-waiting conditions in server-authoritative priority order and makes assignment and coordination state visible. Operators may filter by assignee, coordination state, source domain, severity, affected scope, and source lifecycle state when supported; waiting items remain available through an explicit view and return automatically at their reviewed time. Filters are URL-addressable and use stable codes. Historical range selection and trend exploration belong to Monitoring & Audit rather than controlling the default attention view.
 
 ## 15. State, performance, and failure contract
 
-- Signal-source queries are independently observable; one source failure produces a visible source-scoped error and partial-page state, not an empty Inbox or fabricated healthy state.
+- Condition-source queries are independently observable; one source failure produces a visible source-scoped error and partial-page state, not an empty attention view or fabricated healthy state.
 - Cancelling a range/filter change cancels obsolete requests.
 - High-cardinality breakdown endpoints paginate and return top-N plus `other` only when the API contract explicitly describes aggregation and total coverage.
 - Tables use server pagination; charts use bucket counts appropriate to pixel width and never return unbounded raw points.
@@ -338,8 +341,8 @@ Audit every claim, assignment, coordination-state change, reminder change, and s
 - Contract tests for semantic actor/scope/target projections including renamed and deleted entities.
 - Component tests for URL filters, actor hover/focus card, row keyboard Drawer, useful card/chart detail, exact-value alternatives, Operational Signal admission, claim/assign/in-progress/reminder collaboration, permission-aware actions, source-owned resolution, and partial source failures.
 - Signal-policy tests for exposed-field validation, preview revision/coverage, mandatory-policy behavior, action-scoped permission, Audit evidence, policy-version attribution, non-retroactive reconciliation, and evaluation failure visibility.
-- Responsive browser tests for Inbox priority/read order, keyboard actions, narrow-width evidence disclosure, and table/chart overflow.
-- Route tests prove removal of the Observability overview and old Audit Log tab shell, Operations Inbox at `/`, and `/monitoring/requests` as the Monitoring & Audit default route.
-- Browser evidence covers Operations Inbox at desktop/narrow widths, dark theme, reduced motion, populated/empty/partial/error data, permission-constrained claim/assign/in-progress/reminder actions, reminder return, source-confirmed resolution, and focused Monitoring & Audit chart selection Drawer.
+- Responsive browser tests for Needs attention priority/read order, keyboard actions, narrow-width evidence disclosure, and table/chart overflow.
+- Route tests prove removal of the Observability overview and old Audit Log tab shell, Overview at `/`, Needs attention at `/attention`, and `/monitoring/requests` as the Monitoring & Audit default route.
+- Browser evidence covers Overview and Needs attention at desktop/narrow widths, both locales, dark theme, reduced motion, populated/empty/partial/error data, permission-constrained claim/assign/in-progress/waiting actions, reminder return, source-confirmed recovery, and focused Monitoring & Audit detail.
 
-Acceptance requires a passing real-database request-analysis query; independently complete, immutable, permissioned Audit evidence; revision-safe triage without authority transfer or manual source resolution; no actor ids in table triggers; no primary correlation-id column; no generic `Current value` detail; no draggable/persisted dashboard layout; no page-level chart-stack imports; and no `/system/observability/overview` or legacy `/system/audit-log` tab-shell route.
+Acceptance requires a passing real-database request-analysis query; independently complete, immutable, permissioned Audit evidence; revision-safe attention coordination without authority transfer or manual source resolution; no actor ids in table triggers; no primary correlation-id column; no generic `Current value` detail; no draggable/persisted dashboard layout; no page-level chart-stack imports; and no `/system/observability/overview` or legacy `/system/audit-log` tab-shell route.

@@ -1,13 +1,14 @@
 # Platform AI Operations Contract
 
-Status: Approved domain boundary; detailed workflows remain subject to product grilling
+Status: Approved domain contract; experience amended 2026-08-01
 Parent: [Platform Control Plane Productization Rollout](./admin-control-plane-rollout.md)
+Experience authority: [Product and Platform administration experience redesign](./product-admin-experience-redesign.md)
 
 ## 1. Scope
 
 This contract defines one Platform AI Operations Domain for cross-Workspace AI task investigation and recovery, model and provider readiness, official Agent availability, Platform action policy, and runtime operations.
 
-“Platform AI Operations” is the canonical architecture term. The product label is localized as “AI 服务” / “AI services”; primary navigation and copy use recognizable tasks rather than framework, policy, or state-machine terminology.
+“Platform AI Operations” is the canonical architecture term. The product label is `AI 服务 / AI Services`; primary navigation and copy use recognizable tasks rather than framework, policy, or state-machine terminology.
 
 ## 2. Current-state evidence
 
@@ -17,24 +18,23 @@ This contract defines one Platform AI Operations Domain for cross-Workspace AI t
 
 ## 3. Information architecture
 
-AI services opens the **AI tasks** queue by default and contains these peer operational surfaces:
+AI Services opens **AI tasks** by default and contains these peer operational surfaces:
 
 1. **AI tasks**: failed, stuck, retrying, Provider-blocked, and approval-waiting tasks with Workspace and Project context, age, last durable progress, a customer-safe failure summary, and authorized retry, cancel, or deep-link actions.
 2. **Models & providers**: Provider readiness and health, configured models, routing rules, defaults, safe secret rotation, connection testing, and unresolved configuration blockers.
 3. **Built-in assistants**: official Agent templates and versions, availability, assignments, default assistant selection, compatibility, and publication or disable operations.
-4. **Actions & approvals**: official Tool catalog, write/external effects, maximum Platform policy, approval requirements, data-egress disclosure, and policy conflicts.
-5. **Runtime settings**: queues, workers, recovery storage, interruption/resume, cancellation, retention, and advanced diagnostics.
+4. **Actions & policies**: official Tool catalog, write/external effects, maximum Platform policy, approval requirements, data-egress disclosure, routing/recovery policy, and policy conflicts. Queue, worker, recovery-storage, interruption, cancellation, and retention configuration appears in the relevant provider, task, or policy dossier rather than a technical Runtime settings page.
 
-The domain has no metric-card Overview. A condition appears in AI tasks or the Operations Inbox only when it identifies affected work, operational consequence, and a real resolution path.
+The domain has no metric-card Overview. A condition appears in AI tasks or Needs attention only when it identifies affected work, operational consequence, and a real resolution path.
 
 ## 4. Authority boundaries
 
 - A Platform Operator may investigate an approval-waiting task but cannot approve, reject, edit, or apply Workspace work on behalf of its authorized actor.
 - Workspace-authored Knowledge, Skills, Design Systems, Agents, Threads, and project content remain in the Product Application. Platform AI Operations may show sanitized identity and progress needed for investigation without becoming their editing authority.
-- Commerce owns commercial budgets, Credits, Entitlements, and provider-independent settlement. AI services may show an authorized operational limit or blocker and deep-link to the exact Commerce context without editing commercial state.
+- Commerce owns commercial budgets, Credits, Entitlements, and provider-independent settlement. AI Services may show an authorized operational limit or blocker and deep-link to the exact Plans & Billing context without editing commercial state.
 - Monitoring & Audit owns historical cost, volume, latency, token, and failure analysis. AI services owns the current task, readiness, and recovery action rather than a second analytics dashboard.
 - Extensibility owns Connector installation and trust lifecycle; AI services owns AI-specific enablement, routing readiness, model exposure, and operational use of an installed Connector.
-- Tenant Governance owns cross-tenant Workspace/User/Project governance and receives exact AI-task deep links only when an investigation starts from an entity directory.
+- Workspaces owns cross-tenant Workspace/User/Project investigation and receives exact AI-task deep links only when an investigation starts from an entity directory.
 
 ## 5. Product copy and i18n
 
@@ -65,4 +65,4 @@ Provider request ids, framework names, checkpoint ids, model-routing evidence, t
 
 ## 8. Migration contract
 
-The hard cut removes `/system/settings/agents` after each retained capability moves to an exact AI services surface with a Platform Capability, action-scoped Platform Permission, readiness state, failure behavior, and audit contract. Workspace-bound usage cards move to their owning Product/Commerce surface, historical summaries deep-link to Monitoring & Audit, and raw LangGraph/checkpointer controls move to advanced diagnostics or disappear when no supported operator decision requires them. The old settings page, registry/search items, duplicate forms, and compatibility route are removed together.
+The hard cut removes `/system/settings/agents` after each retained capability moves to `/ai/tasks`, `/ai/providers`, `/ai/assistants`, or `/ai/policies` with a Platform Capability, action-scoped Platform Permission, complete lifecycle, readiness, failure, verification, and audit contract. Workspace-bound usage moves to its owning Product or Plans & Billing surface, historical analysis deep-links to Monitoring & Audit, and raw framework controls move to authorized diagnostics or disappear when no supported operator decision requires them. The old settings page, registry/search items, duplicate forms, and compatibility route are removed together.

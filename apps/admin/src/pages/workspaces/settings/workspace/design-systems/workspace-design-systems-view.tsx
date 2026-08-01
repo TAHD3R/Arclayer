@@ -1,17 +1,12 @@
 import { useMemo } from "react";
-import {
-  CheckCircle2,
-  CircleAlert,
-  CircleDashed,
-  Palette,
-  Plus,
-  Search,
-  ShieldCheck,
-  Sparkles,
-} from "lucide-react";
+import { CheckCircle2, CircleAlert, CircleDashed, Palette, Plus, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import type { DesignSystemSummaryOut, DesignSystemVersionSummaryOut } from "@arclayer/openapi";
+import type {
+  DesignSystemManifestV1,
+  DesignSystemSummaryOut,
+  DesignSystemVersionSummaryOut,
+} from "@arclayer/openapi";
 import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 import { Button } from "@arclayer/ui/button";
 import {
@@ -37,24 +32,17 @@ import {
 export function WorkspaceDesignSystemsView({ workspaceId }: { workspaceId: string }) {
   const { t } = useTranslation(["settings", "common"]);
   const controller = useWorkspaceDesignSystemsController(workspaceId);
-  const capabilityKey = controller.capabilitiesQuery.isPending
-    ? "SETTINGS_WORKSPACE_DESIGN_SYSTEMS_AUTHORITY_LOADING"
-    : controller.capabilitiesQuery.isError
-      ? "SETTINGS_WORKSPACE_DESIGN_SYSTEMS_AUTHORITY_ERROR"
-      : "SETTINGS_WORKSPACE_DESIGN_SYSTEMS_AUTHORITY_FOUNDATION";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 pb-8">
-      <Alert variant={controller.capabilitiesQuery.isError ? "destructive" : "default"}>
-        {controller.capabilitiesQuery.isError ? (
+      {controller.capabilitiesQuery.isError ? (
+        <Alert variant="destructive">
           <CircleAlert aria-hidden="true" />
-        ) : (
-          <ShieldCheck aria-hidden="true" />
-        )}
-        <AlertTitle>{t("settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_AUTHORITY_TITLE")}</AlertTitle>
-        <AlertDescription className="flex flex-col gap-2" aria-live="polite">
-          <span>{t(`settings:${capabilityKey}`)}</span>
-          {controller.capabilitiesQuery.isError ? (
+          <AlertTitle>
+            {t("settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_LOAD_ERROR_TITLE")}
+          </AlertTitle>
+          <AlertDescription className="flex flex-col gap-2" aria-live="polite">
+            <span>{t("settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_LOAD_ERROR_DESC")}</span>
             <Button
               size="sm"
               variant="outline"
@@ -63,9 +51,9 @@ export function WorkspaceDesignSystemsView({ workspaceId }: { workspaceId: strin
             >
               {t("common:RETRY")}
             </Button>
-          ) : null}
-        </AlertDescription>
-      </Alert>
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-sm">
@@ -81,10 +69,12 @@ export function WorkspaceDesignSystemsView({ workspaceId }: { workspaceId: strin
             placeholder={t("settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_SEARCH_PLACEHOLDER")}
           />
         </div>
-        <Button onClick={() => controller.setDialog("system")}>
-          <Plus data-icon="inline-start" />
-          {t("settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_CREATE_ACTION")}
-        </Button>
+        {controller.systems.length ? (
+          <Button onClick={() => controller.setDialog("system")}>
+            <Plus data-icon="inline-start" />
+            {t("settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_CREATE_ACTION")}
+          </Button>
+        ) : null}
       </div>
 
       <ContentGuard
@@ -99,7 +89,7 @@ export function WorkspaceDesignSystemsView({ workspaceId }: { workspaceId: strin
         {!controller.systems.length ? (
           <DesignSystemsEmpty onCreate={() => controller.setDialog("system")} />
         ) : controller.selectedSystem ? (
-          <div className="grid min-h-[42rem] overflow-hidden rounded-xl border bg-card lg:grid-cols-[19rem_minmax(0,1fr)]">
+          <div className="grid min-h-[42rem] overflow-hidden rounded-xl border bg-card lg:grid-cols-[18rem_minmax(0,1fr)]">
             <aside
               className="border-b bg-muted/30 lg:border-b-0 lg:border-r"
               aria-label={t("settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_LIST_LABEL")}
@@ -199,7 +189,7 @@ function DesignSystemDetail({ controller }: { controller: WorkspaceDesignSystems
   const { t } = useTranslation(["settings", "common"]);
   const system = controller.selectedSystem!;
   const validation = controller.latestValidation;
-  const palette = paletteValues(controller.versionQuery.data?.manifest.primitiveTokens);
+  const manifest = controller.versionQuery.data?.manifest;
   return (
     <section className="min-w-0 p-5 sm:p-6" aria-labelledby="workspace-design-system-detail-title">
       <div className="flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-start sm:justify-between">
@@ -250,46 +240,11 @@ function DesignSystemDetail({ controller }: { controller: WorkspaceDesignSystems
             </Button>
           </div>
         ) : (
-          <div className="grid gap-8 pt-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
+          <div className="grid gap-8 pt-6 xl:grid-cols-[minmax(0,1fr)_17rem]">
             <div className="min-w-0">
-              <div className="flex items-end justify-between gap-4">
-                <div>
-                  <h3 className="text-headline text-label-primary">
-                    {t("settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_FOUNDATION_TITLE")}
-                  </h3>
-                  <p className="mt-1 text-footnote text-label-secondary">
-                    {t("settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_FOUNDATION_DESC")}
-                  </p>
-                </div>
-                <span className="font-mono text-caption text-label-secondary">
-                  {controller.versionQuery.data?.manifestChecksum.slice(7, 19)}
-                </span>
-              </div>
-              <div
-                className="mt-4 grid grid-cols-4 overflow-hidden rounded-lg border"
-                aria-label={t("settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_PALETTE_LABEL")}
-              >
-                {palette.map((color) => (
-                  <div key={color.path} className="min-w-0">
-                    <div className="h-16" style={{ backgroundColor: color.value }} />
-                    <div className="border-t px-2 py-2 font-mono text-caption text-label-secondary">
-                      {color.value}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {manifest ? <DesignSystemPreview name={system.name} manifest={manifest} /> : null}
 
-              <Alert className="mt-5">
-                <Sparkles aria-hidden="true" />
-                <AlertTitle>
-                  {t("settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_PUBLISH_GATED_TITLE")}
-                </AlertTitle>
-                <AlertDescription>
-                  {t("settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_PUBLISH_GATED_DESC")}
-                </AlertDescription>
-              </Alert>
-
-              {validation ? (
+              {validation?.findings.length ? (
                 <div className="mt-6">
                   <h3 className="text-headline text-label-primary">
                     {t("settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_FINDINGS_TITLE")}
@@ -313,13 +268,11 @@ function DesignSystemDetail({ controller }: { controller: WorkspaceDesignSystems
                         )}
                         <div className="min-w-0">
                           <p className="text-footnote font-medium text-label-primary">
-                            {finding.message}
+                            {t(
+                              `settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_FINDING_${finding.code}`,
+                              { defaultValue: finding.message },
+                            )}
                           </p>
-                          {finding.path ? (
-                            <p className="mt-1 break-all font-mono text-caption text-label-secondary">
-                              {finding.path}
-                            </p>
-                          ) : null}
                         </div>
                       </div>
                     ))}
@@ -364,15 +317,14 @@ function VersionEvidenceTrack({ controller }: { controller: WorkspaceDesignSyste
               >
                 <span className="flex items-center justify-between gap-3">
                   <span className="text-footnote font-semibold tabular-nums text-label-primary">
-                    v{version.versionNumber}
+                    {t("SETTINGS_WORKSPACE_DESIGN_SYSTEMS_UPDATE_NUMBER", {
+                      number: version.versionNumber,
+                    })}
                   </span>
                   <VersionStatus version={version} />
                 </span>
                 <span className="mt-1 block text-caption text-label-secondary">
                   {date.format(new Date(version.createdAt))}
-                </span>
-                <span className="mt-2 block font-mono text-caption text-label-secondary">
-                  {version.manifestChecksum.slice(7, 19)}
                 </span>
               </button>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -438,7 +390,7 @@ function VersionStatus({ version }: { version: DesignSystemVersionSummaryOut }) 
 function DesignSystemsEmpty({ onCreate }: { onCreate: () => void }) {
   const { t } = useTranslation("settings");
   return (
-    <Empty className="min-h-[32rem] border border-dashed">
+    <Empty className="min-h-[14rem] border bg-card">
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <Palette aria-hidden="true" />
@@ -453,15 +405,115 @@ function DesignSystemsEmpty({ onCreate }: { onCreate: () => void }) {
   );
 }
 
-function paletteValues(tokens: Record<string, { value?: unknown }> | undefined) {
-  const paths = [
-    "primitive.color.canvas",
-    "primitive.color.ink",
-    "primitive.color.action",
-    "primitive.color.border",
-  ];
-  return paths.map((path) => ({
-    path,
-    value: typeof tokens?.[path]?.value === "string" ? tokens[path].value : "transparent",
+function DesignSystemPreview(props: { name: string; manifest: DesignSystemManifestV1 }) {
+  const { t } = useTranslation("settings");
+  const colors = previewColors(props.manifest);
+  const tokens = props.manifest.primitiveTokens ?? {};
+  const font = fontFamily(tokens);
+  return (
+    <section aria-labelledby="design-system-preview-title">
+      <div>
+        <h3 id="design-system-preview-title" className="text-headline text-label-primary">
+          {t("SETTINGS_WORKSPACE_DESIGN_SYSTEMS_PREVIEW_TITLE")}
+        </h3>
+        <p className="mt-1 text-footnote text-label-secondary">
+          {t("SETTINGS_WORKSPACE_DESIGN_SYSTEMS_PREVIEW_DESC")}
+        </p>
+      </div>
+      <div
+        className="mt-4 overflow-hidden rounded-xl border"
+        style={{ backgroundColor: colors.canvas, color: colors.ink, fontFamily: font }}
+      >
+        <div
+          className="flex items-center justify-between border-b px-5 py-4"
+          style={{ borderColor: colors.border }}
+        >
+          <span className="text-sm font-semibold">{props.name}</span>
+          <span className="text-xs" style={{ color: colors.secondary }}>
+            {t("SETTINGS_WORKSPACE_DESIGN_SYSTEMS_PREVIEW_NAV")}
+          </span>
+        </div>
+        <div className="grid gap-5 px-5 py-8 sm:grid-cols-[minmax(0,1fr)_12rem] sm:items-end">
+          <div>
+            <p className="text-2xl font-semibold leading-tight">
+              {t("SETTINGS_WORKSPACE_DESIGN_SYSTEMS_PREVIEW_HEADING")}
+            </p>
+            <p className="mt-3 max-w-md text-sm leading-6" style={{ color: colors.secondary }}>
+              {t("SETTINGS_WORKSPACE_DESIGN_SYSTEMS_PREVIEW_BODY")}
+            </p>
+            <button
+              type="button"
+              className="mt-5 rounded-md px-4 py-2 text-sm font-semibold"
+              style={{ backgroundColor: colors.action, color: colors.actionText }}
+            >
+              {t("SETTINGS_WORKSPACE_DESIGN_SYSTEMS_PREVIEW_ACTION")}
+            </button>
+          </div>
+          <div className="rounded-lg border p-4" style={{ borderColor: colors.border }}>
+            <p className="text-xs font-medium" style={{ color: colors.secondary }}>
+              {t("SETTINGS_WORKSPACE_DESIGN_SYSTEMS_PREVIEW_CARD_LABEL")}
+            </p>
+            <p className="mt-2 text-xl font-semibold">24</p>
+            <div className="mt-4 h-2 rounded-full" style={{ backgroundColor: colors.border }}>
+              <div
+                className="h-full w-2/3 rounded-full"
+                style={{ backgroundColor: colors.action }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        className="mt-4 grid grid-cols-2 overflow-hidden rounded-lg border sm:grid-cols-4"
+        aria-label={t("SETTINGS_WORKSPACE_DESIGN_SYSTEMS_PALETTE_LABEL")}
+      >
+        {colors.palette.map((color) => (
+          <div key={color.labelKey} className="min-w-0 border-r last:border-r-0">
+            <div className="h-12" style={{ backgroundColor: color.value }} />
+            <div className="border-t px-2 py-2">
+              <p className="text-caption font-medium text-label-primary">{t(color.labelKey)}</p>
+              <p className="mt-0.5 font-mono text-caption text-label-secondary">{color.value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function previewColors(manifest: DesignSystemManifestV1) {
+  const tokens = manifest.primitiveTokens ?? {};
+  const palette = [
+    ["SETTINGS_WORKSPACE_DESIGN_SYSTEMS_CANVAS_COLOR_LABEL", "primitive.color.canvas", "#FFFFFF"],
+    [
+      "SETTINGS_WORKSPACE_DESIGN_SYSTEMS_PRIMARY_TEXT_COLOR_LABEL",
+      "primitive.color.ink",
+      "#111111",
+    ],
+    ["SETTINGS_WORKSPACE_DESIGN_SYSTEMS_ACTION_COLOR_LABEL", "primitive.color.action", "#155EEF"],
+    ["SETTINGS_WORKSPACE_DESIGN_SYSTEMS_BORDER_COLOR_LABEL", "primitive.color.border", "#D5D7DA"],
+  ].map(([labelKey, path, fallback]) => ({
+    labelKey,
+    value: tokenString(tokens, path, fallback),
   }));
+  return {
+    canvas: palette[0].value,
+    ink: palette[1].value,
+    action: palette[2].value,
+    border: palette[3].value,
+    secondary: tokenString(tokens, "primitive.color.muted", palette[1].value),
+    actionText: tokenString(tokens, "primitive.color.on-action", "#FFFFFF"),
+    palette,
+  };
+}
+
+function fontFamily(tokens: Record<string, { value?: unknown }>) {
+  const value = tokens["primitive.font.family.body"]?.value;
+  if (Array.isArray(value))
+    return value.filter((item): item is string => typeof item === "string").join(", ");
+  return typeof value === "string" ? value : "inherit";
+}
+
+function tokenString(tokens: Record<string, { value?: unknown }>, path: string, fallback: string) {
+  return typeof tokens[path]?.value === "string" ? tokens[path].value : fallback;
 }

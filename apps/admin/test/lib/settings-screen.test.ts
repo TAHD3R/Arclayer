@@ -18,8 +18,7 @@ describe("workspace settings screen registry", () => {
       "personal.notifications",
       "workspace.general",
       "workspace.plan-usage",
-      "workspace.members",
-      "workspace.invitations",
+      "workspace.people",
       "workspace.roles",
     ]);
     expect(

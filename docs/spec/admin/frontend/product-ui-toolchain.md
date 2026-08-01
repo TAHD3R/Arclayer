@@ -2,6 +2,8 @@
 
 This code-spec defines the canonical component, form, icon, chart, loading, motion, and product-copy stack for the Product Application in `apps/admin` and the Platform Console in `apps/platform`.
 
+Administration experience authority: [Product and Platform administration experience redesign](../../shared/product-admin-experience-redesign.md)
+
 ## Scenario: Building or changing a Product Application or Platform Console surface
 
 ### 1. Scope / Trigger
@@ -14,14 +16,15 @@ This code-spec defines the canonical component, form, icon, chart, loading, moti
 
 | Concern | Canonical implementation |
 |---|---|
-| Platform Console template source | Reviewed `satnaing/shadcn-admin` source and composition patterns, adapted into Arclayer-owned code |
+| Platform administration compositions | Arclayer-owned Platform Experience Kit composed from `@arclayer/ui` |
+| Shell source donor | Reviewed `satnaing/shadcn-admin` Sidebar/Header/mobile/theme composition only |
 | Product primitives | Existing `@arclayer/ui/*` exports |
 | New generic primitives | shadcn Registry, installed with the repository package runner and reviewed before use |
 | Application-local composition | Domain-local components under the owning app's `src/pages/**` or `src/components/**` |
 | Forms | `react-hook-form` + `zod`, composed with `@arclayer/ui/field`, `form`, `input`, `select`, and settings primitives |
 | Icons | `lucide-react` or an existing semantic icon exported by `@arclayer/ui/icons/*` |
 | Charts | `@arclayer/ui/chart` backed by reviewed, Arclayer-adapted Bklit Registry source |
-| Route skeletons | `boneyard-js` at the shared `RouteTransition` boundary |
+| Route skeletons | Arclayer-owned `RouteTransition`, composed from `@arclayer/ui` `Skeleton` at the shared route boundary |
 | Local loading states | `ContentGuard`, `PageSkeleton`, `Skeleton`, `Spinner`, or `Progress` from `@arclayer/ui` |
 | Motion | `motion/react` plus CSS transitions that use the durations in `DESIGN.md` |
 | Theme | Shared Arclayer semantic tokens with Light, Dark, and Follow system preferences |
@@ -29,14 +32,15 @@ This code-spec defines the canonical component, form, icon, chart, loading, moti
 
 Do not add a second icon, chart, form, skeleton, or animation framework when the canonical stack can express the requirement.
 
-### 3. Platform Console template contract
+### 3. Platform Experience Kit and shell source-donor contract
 
-- `satnaing/shadcn-admin` is the approved MIT-licensed source donor for the Platform Console shell and common Console compositions. It is not installed as a runtime package, copied as a second application, or treated as a product-domain model.
+- `satnaing/shadcn-admin` is the approved MIT-licensed source donor only for responsive Sidebar/Header composition, collapsed navigation, mobile shell behavior, command access, and Light/Dark/Follow-system interaction. It is not installed as a runtime package, copied as a second application, treated as a product-domain model, or used as the page-body administration foundation.
 - Each adoption records the upstream repository, commit SHA, MIT notice, and adopted files. Reviewed source is brought into the owning Arclayer module and changed to match repository aliases, tokens, accessibility, localization, and test contracts before use.
-- Prefer its proven shell, responsive Sidebar/Header composition, global command-search interaction, dense list layout, DataTable composition, and form layout where those patterns fit a real Platform Console workflow.
-- Keep Arclayer's TanStack Router/Query/Table integration, `react-hook-form` and `zod` forms, i18next resources, Boneyard route boundary, and `@arclayer/ui` primitives. Template auth, demo data, mock pages, local product models, and page-level state stores are not authorities.
+- The Arclayer-owned Platform Experience Kit supplies the complete Overview, Needs attention, domain surface, managed-object dossier, operational directory, master-detail, configuration, impact/operation, evidence, and page-state compositions. Dense list, DataTable, and form ideas from the donor may be adapted only through canonical Arclayer primitives when they improve a real workflow.
+- Keep Arclayer's TanStack Router/Query/Table integration, `react-hook-form` and `zod` forms, i18next resources, shared `RouteTransition` boundary, and `@arclayer/ui` primitives. Template auth, demo data, mock pages, local product models, and page-level state stores are not authorities.
 - Do not import the template's Clerk integration, Recharts, Radix or Tabler icon presentation, duplicate shadcn primitives, theme tokens, toasts, forms, or loading systems. Replace them with the canonical stack in section 2; if a required behavior cannot be expressed without a second stack, the adoption is blocked pending an explicit toolchain decision.
 - Template dashboard cards, charts, example detail panels, labels, and navigation are illustrative only. They do not survive unless the owning Platform Domain has a real operator question, persisted authority, permission, state model, action, and localized plain-language copy for them.
+- Before broad production implementation, Product Design generates exactly three visual directions from the confirmed brief, current screenshots, Arclayer design language, and approved references. The user selects one direction. Overview, Workspaces, AI Services, Knowledge, Design Systems, Plan & Usage, and People prove representative desktop and narrow compositions against that target before route rollout.
 - The visual migration is a dark-built atomic hard cut. `apps/platform` may be developed and verified in non-production or explicitly restricted environments, but it does not become the official operator entry until every retained Platform surface passes the cutover gate. One release enables the Platform Host and removes all Platform routes, navigation, pages, clients, stores, translations, skeletons, and build references from `apps/admin`; no route-by-route production migration, old/new theme toggle, embedded legacy page, compatibility facade, or duplicate route family remains.
 
 The Platform Console uses the Arclayer visual language rather than a template skin:
@@ -49,9 +53,9 @@ The Platform Console uses the Arclayer visual language rather than a template sk
 
 The Platform Console uses one responsive Shell:
 
-- Its frontend root route `/` is Operations Inbox. All other Platform Console routes use stable, non-localized English business segments without a `/system` or `/platform` prefix; translated navigation labels never become URL segments.
+- Its frontend root route `/` is Overview and `/attention` is Needs attention. All other Platform Console routes use the exact stable, non-localized segments in the administration experience redesign without a `/system` or `/platform` prefix; translated navigation labels never become URL segments.
 - Route definitions and all internal links use TanStack typed route builders. Cross-application links use the configured Product Application or Platform Console origin plus a typed target rather than string concatenation; they never append Product Session data, tokens, Workspace context, Platform Permissions, or other authority-bearing state.
-- A single collapsible left Sidebar is the primary navigation authority. Operations Inbox is pinned first; visible Platform Domains follow as localized product groups, and only the active domain expands its peer pages by default.
+- A single collapsible left Sidebar is the primary navigation authority. Overview is first; visible Platform Domains follow in the canonical order, and only the active domain expands its peer pages by default.
 - Expanded Sidebar labels, collapsed icon tooltips, command results, breadcrumbs, mobile navigation, and accessible names come from the same stable `zh-CN` and `en-US` i18n records. Architecture terms, permission codes, Provider enums, and state-machine names are not navigation copy.
 - Collapsed desktop navigation keeps recognizable icons, localized tooltips, visible focus, and accessible names. Narrow layouts present the same hierarchy in a Sheet rather than a separate mobile information architecture.
 - The Header shows the current breadcrumb and global utilities only: permission-filtered command search, a localized `common:RETURN_TO_PRODUCT` external link, locale, theme, and account controls. The return link is always available and does not depend on Platform Permissions. The Header does not duplicate primary navigation or add decorative status cards.
@@ -78,13 +82,13 @@ Platform Console detail follows one layered interaction contract:
 - Low-risk local changes may edit inline. Bounded forms use a Dialog, while multi-step, high-risk, or evidence-heavy mutations use the dedicated page. Investigative Drawers do not become generic form containers.
 - If no additional evidence, interpretation, or authorized action exists, omit the detail affordance and keep the row readable without a click target.
 
-Operations Inbox collaboration remains lighter than a ticket system:
+Needs attention collaboration remains lighter than a ticket system:
 
 - Each unresolved item shows its current assignee when present and plain-language coordination state. Authorized actions are “Claim” / “领取”, “Assign” / “指派”, “Mark in progress” / “标记处理中”, and “Remind me later” / “稍后提醒”; stable keys exist in both Platform locale trees.
 - Setting a reminder requires an explicit return time and a user-authored reason. The reason remains verbatim, the item remains available in a reminded-items view, and it returns to the immediate queue at that time without creating a new item.
 - Assignment and coordination changes submit expected revisions and show conflicts explicitly. They never reveal protected source detail, grant the assignee another permission, or optimistically claim success before the Platform API confirms it.
-- The Inbox has no generic “Dismiss”, “Close”, “Ignore forever”, or “Resolve” mutation. “Resolved” / “已解决” is a read-only source result shown only after the owning domain confirms the actual condition cleared or its resolution operation committed.
-- Triage history identifies who claimed, assigned, changed work state, or scheduled a reminder and when. Product copy distinguishes “work is being handled” from “the problem is resolved” and never exposes internal signal or lifecycle terminology as the primary explanation.
+- Needs attention has no generic “Close” or manual “Resolve” mutation. Suppression or a not-actionable decision requires an explicit reason, expiry where applicable, exact permission, and Audit evidence. `Source-confirmed recovered / 来源已确认恢复` appears only after the owning domain verifies the outcome.
+- Coordination history identifies who claimed, assigned, changed work state, or scheduled a reminder and when. Product copy distinguishes “work is being handled” from “the source condition has recovered” and never exposes internal signal or lifecycle terminology as the primary explanation.
 
 Platform Console configuration follows one risk-tiered contract:
 
@@ -137,15 +141,15 @@ Bulk actions are domain capabilities rather than automatic DataTable features:
 - Every chart requires a visible title, a textual summary or accessible description, localized units, a defined empty state, and a non-chart representation when exact values matter (for example a table or metric list).
 - Chart colors come from semantic CSS tokens. Do not create page-local raw palettes.
 
-### 6. Boneyard route-skeleton contracts
+### 6. Shared route-skeleton contracts
 
-- `RouteTransition` is each frontend's global Boneyard route boundary. Its skeleton name must derive from the TanStack route id so dynamic entity identifiers resolve to one stable capture.
-- Each frontend discovers its own generated registry from `apps/<app>/src/bones/registry.{ts,js}` during bootstrap. Do not hand-edit generated `*.bones.json` files or the generated registry.
-- Use `pnpm -C apps/admin skeletons:build` or `pnpm -C apps/platform skeletons:build` for a one-time capture and the matching `skeletons:watch` script while developing skeleton-sensitive routes.
-- Authenticated capture must reuse an explicitly authenticated CDP browser or environment-supplied headers/cookies. Never store credentials, tokens, or session cookies in `boneyard.config.json` or source control.
-- Captures use the canonical breakpoints `375`, `768`, and `1280` and viewport-based selection because each application Shell narrows the content container.
-- A route without generated bones must render the explicit shared `PageSkeleton` fallback. Capture failures must remain visible in Boneyard CLI output; do not silently replace them with a fake success path.
-- Page-local async regions still require explicit `ContentGuard` loading, empty, and error semantics. The route boundary does not replace domain loading states.
+- `RouteTransition` is each frontend's one shared route-level loading boundary. It composes `@arclayer/ui` `Skeleton` primitives; route-local code supplies a small, explicit macro composition when the shared default cannot faithfully represent the final page shape.
+- Skeleton anatomy matches the final page's major regions—such as title/action row, filters, summary blocks, table/card body, or editor frame—rather than copying individual text lines or controls. Dynamic entity identifiers never change the composition.
+- Keep the application Sidebar, top chrome, persistent actions, and already-mounted editor controls real and stable while only the asynchronous content region is skeletonized.
+- Use neutral semantic surface/loading tokens. Primary blue communicates actual progress or action, never ambient placeholder color.
+- Honor `prefers-reduced-motion`: render stable solid placeholders without shimmer or pulse, and never gate interaction or state comprehension on animation.
+- Delay a transient route skeleton only when doing so avoids a visible flash; once shown, retain it briefly enough to avoid a one-frame replacement. Route progress feedback remains immediate and stale content is never presented as the new route.
+- Page-local async regions still require explicit `ContentGuard` loading, empty, and error semantics. The route boundary does not replace blank, partial, conflict, offline, permission, migration, or fatal domain states.
 
 ### 7. Motion contracts
 
@@ -157,8 +161,8 @@ Bulk actions are domain capabilities rather than automatic DataTable features:
 ### 8. Product copy and i18n contracts
 
 - Every new user-visible string must use a stable translation key and ship in both supported locales in the owning application's resource tree.
-- `apps/platform` owns an independent resource tree at `apps/platform/locales/{zh-CN,en-US}`. Product-capability namespaces include `common`, `navigation`, `inbox`, `tenants`, `access`, `ai`, `delivery`, `communications`, `extensions`, `monitoring`, `commerce`, and `errors`; a namespace is added only for a real owning surface.
-- Platform keys describe stable semantic intent rather than rendered wording or component location, for example `navigation:OPERATIONS_INBOX`, `tenants:WORKSPACES_EMPTY_TITLE`, and `delivery:ISSUE_RETRY_FAILED`. Wording may improve without renaming a key whose meaning is unchanged.
+- `apps/platform` owns an independent resource tree at `apps/platform/locales/{zh-CN,en-US}`. Product-capability namespaces include `common`, `navigation`, `overview`, `attention`, `workspaces`, `access`, `ai`, `hosting`, `messages`, `extensions`, `monitoring`, `billing`, and `errors`; a namespace is added only for a real owning surface.
+- Platform keys describe stable semantic intent rather than rendered wording or component location, for example `navigation:OVERVIEW`, `attention:WAIT_UNTIL`, `workspaces:EMPTY_TITLE`, and `hosting:ISSUE_RETRY_FAILED`. Wording may improve without renaming a key whose meaning is unchanged.
 - Legacy Product Application keys such as `NAV_GLOBAL_PLATFORM_*`, `NAV_SECTION_PLATFORM`, `SYSTEM_*`, and `SETTINGS_*` are migration sources, not aliases. A changed meaning receives a new Platform key; the old Platform-only key is deleted from Product Application resources with its final consumer.
 - Copy is sentence case, direct, calm, and action-oriented. Lead with the outcome, use consistent nouns, and avoid hype, filler, or implementation jargon.
 - The domain glossary governs architecture and API contracts; it is not a label generator. Navigation, titles, descriptions, statuses, and actions use the words an operator needs to recognize the object, consequence, and next step without understanding internal domains, permission codes, Provider enums, or state-machine names.
@@ -181,7 +185,7 @@ Bulk actions are domain capabilities rather than automatic DataTable features:
 | Workspace capability rollout | All three stages, explicit selected-Workspace scope, eligibility interaction, revision-bound preview/apply drift, Product API and worker enforcement, Audit evidence, independent Entitlement/permission/readiness/health denials, no user/percentage/expression/hidden-exception controls, and plain-language bilingual copy |
 | Platform Console route change | Typed-link tests, stable search-parameter tests, non-localized path proof, and absence of `/system`, `/platform`, or legacy aliases in the frontend route tree |
 | Queue/detail interaction change | List-context restoration, deep-linked Drawer authorization, keyboard focus return, meaningful-detail review, and dedicated-route escalation coverage |
-| Operations Inbox collaboration | Claim/assign/in-progress/reminder permissions, expected-revision conflicts, active-operator assignment, reminder reason/return behavior, filtered discoverability, source-owned resolution, no manual close, Audit history, accessible keyboard flow, and bilingual plain-language copy |
+| Needs attention collaboration | Claim/assign/in-progress/waiting permissions, expected-revision conflicts, active-operator assignment, reason/return behavior, filtered discoverability, source-owned recovery, no manual resolve, Audit history, accessible keyboard flow, and bilingual plain-language copy |
 | Platform configuration change | Effective/source/readiness projection tests, explicit-save or preview/apply flow, stale-revision behavior, secret non-disclosure, Audit evidence, and server-confirmed result copy |
 | High-risk Platform direct apply | Exact current permission, impact/reason/Step-up/Audit controls, direct final apply, absence of generic approval states and endpoints, explicit domain-specific participant behavior, and plain-language bilingual consequence copy |
 | Theme or visual-token change | Light/Dark/Follow-system behavior, first-paint correctness, shared-token diff, contrast/focus evidence, and desktop/narrow screenshots in both resolved modes |
@@ -208,7 +212,7 @@ Bulk actions are domain capabilities rather than automatic DataTable features:
 | Command Center change | Capability/provider selection, direct API denial, redaction, cancellation, partial-provider failure, recent-destination privacy, keyboard navigation, typed destinations, and no-direct-mutation proof |
 | New component or form | Accessible component test and the owning app gate: `pnpm admin:check` or `pnpm platform:check` |
 | New chart | Empty/loading/error coverage, localized units, and exact-value accessibility |
-| Boneyard integration change | Route-name unit test, owning app typecheck, and one capture run when a runtime is available |
+| Route-skeleton composition change | Route-level component test, owning app typecheck, and visual review at affected responsive breakpoints |
 | New copy | Both supported locale resources, no raw product string, plain-language review, and diagnostic terminology separated from primary copy |
 | New motion | Reduced-motion behavior and no blocked interaction |
 | Shared `packages/ui` change | Package boundary review plus the cross-app gate when consumers span packages |

@@ -65,14 +65,12 @@ export function ExactVersionComparison({ preview }: { preview: SkillUpdatePrevie
               <h3 className="text-footnote font-semibold text-label-primary">
                 {t(`SETTINGS_WORKSPACE_SKILLS_UPDATE_${kind.toUpperCase()}_LABEL`)}
               </h3>
-              <Badge variant="outline" className="font-mono tabular-nums">
-                v{target.versionNumber}
-                {target.semanticVersion ? ` · ${target.semanticVersion}` : ""}
+              <Badge variant="outline" className="tabular-nums">
+                {t("SETTINGS_WORKSPACE_SKILLS_VERSION_NUMBER", {
+                  version: target.versionNumber,
+                })}
               </Badge>
             </div>
-            <code className="mt-3 block break-all text-caption text-label-secondary">
-              {target.packageChecksum}
-            </code>
             <p className="mt-2 text-caption text-label-tertiary">
               {t("SETTINGS_WORKSPACE_SKILLS_UPDATE_VALIDATION_LABEL", {
                 status: target.validationStatus,
@@ -175,7 +173,7 @@ function ChangeGroup({ title, items }: { title: string; items: string[] }) {
       {items.length ? (
         <ul className="mt-2 space-y-1 text-caption text-label-secondary">
           {items.map((item) => (
-            <li key={item} className="break-words font-mono">
+            <li key={item} className="break-words">
               {item}
             </li>
           ))}

@@ -97,14 +97,17 @@ export function WorkspaceSkillGitHubImportDialog(props: {
               placeholder="https://github.com/acme/site-skill"
               aria-invalid={Boolean(form.formState.errors.repositoryUrl)}
               {...repositoryField}
-              onBlur={(event) => {
-                void repositoryField.onBlur(event);
+              onChange={(event) => {
+                void repositoryField.onChange(event);
                 const identity = deriveGitHubSkillIdentity(event.target.value);
                 if (!identity) return;
-                if (!form.getValues("slug")) form.setValue("slug", identity.slug);
+                form.setValue("slug", identity.slug);
                 if (!form.getValues("displayName")) {
                   form.setValue("displayName", identity.displayName);
                 }
+              }}
+              onBlur={(event) => {
+                void repositoryField.onBlur(event);
               }}
             />
           </SettingDialogField>
@@ -151,46 +154,24 @@ export function WorkspaceSkillGitHubImportDialog(props: {
               />
             </SettingDialogField>
           </div>
-          <div className="grid gap-5 sm:grid-cols-2">
-            <SettingDialogField
-              title={
-                <label htmlFor={`${formId}-name`}>
-                  {t("settings:SETTINGS_WORKSPACE_SKILLS_NAME_LABEL")}
-                </label>
-              }
-              error={
-                form.formState.errors.displayName
-                  ? t("settings:SETTINGS_WORKSPACE_SKILLS_ACTION_REQUIRED")
-                  : undefined
-              }
-            >
-              <Input
-                id={`${formId}-name`}
-                aria-invalid={Boolean(form.formState.errors.displayName)}
-                {...form.register("displayName")}
-              />
-            </SettingDialogField>
-            <SettingDialogField
-              title={
-                <label htmlFor={`${formId}-slug`}>
-                  {t("settings:SETTINGS_WORKSPACE_SKILLS_SLUG_LABEL")}
-                </label>
-              }
-              description={t("settings:SETTINGS_WORKSPACE_SKILLS_SLUG_HELP")}
-              error={
-                form.formState.errors.slug
-                  ? t("settings:SETTINGS_WORKSPACE_SKILLS_SLUG_ERROR")
-                  : undefined
-              }
-            >
-              <Input
-                id={`${formId}-slug`}
-                className="font-mono"
-                aria-invalid={Boolean(form.formState.errors.slug)}
-                {...form.register("slug")}
-              />
-            </SettingDialogField>
-          </div>
+          <SettingDialogField
+            title={
+              <label htmlFor={`${formId}-name`}>
+                {t("settings:SETTINGS_WORKSPACE_SKILLS_NAME_LABEL")}
+              </label>
+            }
+            error={
+              form.formState.errors.displayName
+                ? t("settings:SETTINGS_WORKSPACE_SKILLS_ACTION_REQUIRED")
+                : undefined
+            }
+          >
+            <Input
+              id={`${formId}-name`}
+              aria-invalid={Boolean(form.formState.errors.displayName)}
+              {...form.register("displayName")}
+            />
+          </SettingDialogField>
           <SettingDialogField
             title={
               <label htmlFor={`${formId}-description`}>

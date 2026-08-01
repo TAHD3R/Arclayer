@@ -265,28 +265,10 @@ function OfficialSkillDetail(props: {
           <h3 className="text-title-3 text-label-primary">
             {t(`settings:${props.item.displayNameKey}`, { defaultValue: props.item.displayName })}
           </h3>
-          <Badge variant="outline" className="font-mono tabular-nums">
-            {props.item.semanticVersion ?? `v${props.item.versionNumber}`}
-          </Badge>
         </div>
         <p className="mt-2 text-footnote text-label-secondary">
           {t(`settings:${props.item.descriptionKey}`, { defaultValue: props.item.description })}
         </p>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {props.item.capabilityTags.map((tag) => (
-          <Badge key={tag} variant="secondary" className="font-mono text-caption">
-            {tag}
-          </Badge>
-        ))}
-      </div>
-      <div className="rounded-lg border bg-muted/20 p-3">
-        <span className="text-caption font-semibold text-label-primary">
-          {t("settings:SETTINGS_WORKSPACE_SKILLS_CHECKSUM_LABEL")}
-        </span>
-        <code className="mt-1 block break-all text-caption text-label-secondary">
-          {props.item.packageChecksum}
-        </code>
       </div>
       <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t pt-4">
         <span className="inline-flex items-center gap-2 text-footnote text-label-secondary">

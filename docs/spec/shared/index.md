@@ -22,12 +22,13 @@ Backend and frontend specs should link to these files instead of duplicating the
 | [Conditional Permissions](./conditional-permissions.md) | Permission-grant condition metadata, supported fields, operators, and validation rules | Active |
 | [Identity & Access Contracts](./identity-access-contracts.md) | Auth tokens, Content API credentials, tenant/workspace/project context, permission codes | Active |
 | [Schema & Field Contracts](./schema-field-contracts.md) | Pydantic/OpenAPI/schema field semantics shared by backend and frontend | Active |
-| [Product and Platform Separation](./product-platform-separation.md) | Canonical application boundary, authority model, integrated rollout order, and release acceptance across Product, Platform, and API | Approved target |
+| [Product and Platform Administration Experience Redesign](./product-admin-experience-redesign.md) | Canonical Product/Platform administration IA, routes, lifecycles, Experience Kit, state model, visual gate, i18n, accessibility, rollout, and acceptance | Approved target |
+| [Product and Platform Separation](./product-platform-separation.md) | Canonical application, deployment, Session, and authority boundaries across Product, Platform, and API | Approved target |
 | [Workspace Commercialization](./workspace-commercialization.md) | Plan catalog, subscriptions, AI Credits accounting, and upgrade workflows | Active |
 | [AI Website Builder Platform](./ai-website-builder-platform.md) | Unified creation editor, multi-Agent runtime, workspace context, durable jobs, connectors, and product experience | Approved target |
 | [AI Agent Runtime Protocol](./ai-agent-runtime-protocol.md) | Backend-owned Thread/Run/event truth, versioned SSE replay, Tool responses, approvals, delegation, Credits ordering, and proof gates | Proposed Wave 0 decision |
 | [Feedback & Observability](./feedback-observability.md) | Feedback lifecycle, audit views, request telemetry, and scoped observability | Active |
-| [Platform Control Plane Productization](./admin-control-plane-rollout.md) | Platform-domain rollout for Operations Inbox, monitoring, access, Commerce, tenant governance, AI, Hosting, communications, and extensions | Approved target |
+| [Platform Control Plane Productization](./admin-control-plane-rollout.md) | Domain invariants and rollout details behind Overview, Workspaces, AI Services, Hosting & Domains, Messages & Feedback, Extensions, Plans & Billing, Access & Security, and Monitoring & Audit | Approved target |
 
 ## Shared Layer Rules
 

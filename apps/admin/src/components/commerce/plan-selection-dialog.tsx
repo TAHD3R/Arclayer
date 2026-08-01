@@ -202,7 +202,7 @@ export function PlanSelectionDialog({ workspaceId, open, onOpenChange }: PlanSel
               plans.length === 0
             }
             onRetry={() => void catalogQuery.refetch()}
-            loadingVariant="masonry"
+            loadingVariant="card-grid"
             variant="compact"
           >
             {selectedPlan && overview && selectedChoice ? (

@@ -8,7 +8,15 @@
 
 Backend quality is enforced through explicit architecture boundaries, Pydantic v2 contracts, canonical service/repository foundations, visible failures, and targeted tests.
 
-The default backend quality gate is `pnpm api:check`. Narrow backend tests should run through `pnpm -C apps/api uv -- pytest ...` with a 60 second timeout for single-node or narrowly targeted test runs.
+During a small backend change, run the nearest relevant static check and
+focused test through `pnpm -C apps/api uv -- pytest ...`; do not run
+`pnpm api:check` after every edit. Run `pnpm api:check` at a coherent backend
+milestone or before handoff. Run `pnpm check` only for cross-app integration or
+final delivery when its repository-wide scope is justified.
+
+For a focused backend test, start with a 60-second diagnostic budget rather
+than a hard timeout contract. Extend integration, database, or inherently slow
+tests so their real pass/fail result is exposed.
 
 ---
 

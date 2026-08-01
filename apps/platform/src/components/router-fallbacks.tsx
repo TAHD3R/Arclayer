@@ -61,7 +61,7 @@ export function RouterNotFound() {
       </EmptyHeader>
       <EmptyContent>
         <Button asChild>
-          <Link to="/">{t("common:RETURN_TO_INBOX")}</Link>
+          <Link to="/">{t("common:RETURN_TO_OVERVIEW")}</Link>
         </Button>
       </EmptyContent>
     </Empty>

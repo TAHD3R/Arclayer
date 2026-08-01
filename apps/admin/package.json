@@ -14,9 +14,7 @@
     "typecheck": "tsc --noEmit --skipLibCheck",
     "lint": "oxlint -c ./node_modules/@arclayer/config/.oxlintrc.json .",
     "format": "oxfmt -c ./node_modules/@arclayer/config/.oxfmtrc.json .",
-    "test": "vitest run --config vitest.config.ts",
-    "skeletons:build": "boneyard-js build --out ./src/bones",
-    "skeletons:watch": "boneyard-js build --watch --out ./src/bones"
+    "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
     "@arclayer/hooks": "workspace:*",
@@ -99,7 +97,6 @@
     "@visx/responsive": "4.0.1-alpha.0",
     "@visx/scale": "4.0.1-alpha.0",
     "@visx/shape": "4.0.1-alpha.0",
-    "boneyard-js": "^1.9.0",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "cmdk": "catalog:",

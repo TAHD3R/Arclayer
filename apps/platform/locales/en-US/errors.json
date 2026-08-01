@@ -1,6 +1,6 @@
 {
   "PAGE_NOT_FOUND_TITLE": "This page was not found",
-  "PAGE_NOT_FOUND_DESCRIPTION": "This address does not belong to the Platform Console. Use the navigation to return to Operations Inbox.",
+  "PAGE_NOT_FOUND_DESCRIPTION": "This address does not belong to the Platform Console. Use the navigation to return to Overview.",
   "UNEXPECTED_TITLE": "The Platform Console could not show this page",
   "UNEXPECTED_DESCRIPTION": "The page did not finish loading. Refresh and try again; if the problem continues, keep the current address for investigation.",
   "PLATFORM_SETUP_STATE_UNAVAILABLE": "The Platform Console could not check setup state",

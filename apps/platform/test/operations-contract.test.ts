@@ -4,19 +4,19 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import {
-  hasInboxFilters,
+  hasAttentionFilters,
   jobIdFromDestination,
   operationalSignalQuery,
-  parseOperationsInboxSearch,
+  parseNeedsAttentionSearch,
   parsePlatformJobsSearch,
 } from "@/operations/operations-routing";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
-describe("Operations Inbox URL and API contracts", () => {
+describe("Needs attention URL and API contracts", () => {
   it("normalizes supported server filters and discards invalid URL values", () => {
     expect(
-      parseOperationsInboxSearch({
+      parseNeedsAttentionSearch({
         sourceLifecycle: "resolved",
         coordinationState: "remind_later",
         includeReminded: "true",
@@ -31,7 +31,7 @@ describe("Operations Inbox URL and API contracts", () => {
       signalId: "signal-1",
     });
     expect(
-      parseOperationsInboxSearch({
+      parseNeedsAttentionSearch({
         sourceLifecycle: "closed",
         coordinationState: "dismissed",
         includeReminded: "sometimes",
@@ -47,7 +47,7 @@ describe("Operations Inbox URL and API contracts", () => {
   });
 
   it("builds only the generated server-paginated query contract", () => {
-    const search = parseOperationsInboxSearch({
+    const search = parseNeedsAttentionSearch({
       sourceLifecycle: "all",
       coordinationState: "in_progress",
       includeReminded: true,
@@ -60,7 +60,7 @@ describe("Operations Inbox URL and API contracts", () => {
       page: 2,
       size: 20,
     });
-    expect(hasInboxFilters(search)).toBe(true);
+    expect(hasAttentionFilters(search)).toBe(true);
   });
 
   it("accepts only the canonical background-work investigation destination", () => {

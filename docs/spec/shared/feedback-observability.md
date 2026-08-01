@@ -1,6 +1,6 @@
 # Feedback and Observability Contracts
 
-This code-spec defines the shared feedback lifecycle and project/workspace/platform observability contracts. `admin-feedback-support.md` and `admin-observability-dashboard.md` supersede this file for the current Admin submission taxonomy, raw-request percentile capability, chart implementation, and system-page information architecture.
+This code-spec defines the shared feedback lifecycle and Project/Workspace/Platform observability contracts. `admin-feedback-support.md`, `admin-observability-dashboard.md`, and [Product and Platform administration experience redesign](./product-admin-experience-redesign.md) supersede this file for the current submission taxonomy, raw-request percentile capability, chart implementation, and Platform product IA.
 
 ## Scenario A: Product feedback lifecycle
 
@@ -66,10 +66,10 @@ Supported request metrics include `requests`, `errors`, `errorRate`, `avgLatency
 
 ### 6. Admin information architecture
 
-- Operations Inbox prioritizes unresolved Operational Signals from tenant governance, commerce, feedback, AI consumption, and platform reliability; context-only metrics remain in focused Observability or owning-domain pages.
+- Needs attention prioritizes unresolved source conditions from Workspaces, Plans & Billing, feedback, AI consumption, and platform reliability; context-only metrics remain in focused Monitoring & Audit or owning-domain pages.
 - Audit Log is a system operations analysis workbench with separate request and event views. The request view exposes persisted route/method/status aggregates, error rate, latency, and last-seen time; the event view is a filterable, paginated canonical event table with actor, action, scope, target, correlation id, timestamp, and sanitized metadata detail.
 - Feedback Center exposes queue filters, ticket detail, assignment, status/priority updates, replies, and internal notes.
-- Observability is a parent navigation group with focused child pages for requests/reliability, AI usage/cost, and aggregate activity. It has no separate overview page; the Platform Console landing surface is the Operations Inbox, migrated from the current `/system/overview` implementation during the frontend split.
+- Monitoring & Audit is a product domain with focused routes for requests/errors, performance, AI usage, activity, and Audit. The Platform Console root is the evidence-backed Overview; `/attention` owns cross-domain attention. The current `/system/overview` is migration evidence only.
 - Every chart is consumed through `@arclayer/ui/chart`, with localized units, a textual summary, an exact-value alternative, and explicit loading/error/empty states.
 
 ### 7. Tests required

@@ -1,5 +1,7 @@
 # AI Website Builder Platform Contracts
 
+Administration experience authority: [Product and Platform administration experience redesign](./product-admin-experience-redesign.md)
+
 **Status:** Approved target contract; enforcement is activated per rollout wave in section 19.
 **Decision date:** 2026-07-15
 **Applies to:** `apps/api`, `apps/admin`, `packages/ui`, generated OpenAPI clients, `plugins/*`, Taskiq workers, and site delivery/publishing.
@@ -11,7 +13,7 @@ Existing focused specs remain authoritative for their invariants. When this targ
 
 - `docs/spec/api/backend/agents.md` continues to own tenant isolation, tool validation, cancellation, approval checkpoints, and prompt-injection rejection until its runtime surface is migrated.
 - `docs/spec/shared/workspace-commercialization.md` continues to own money, Credits, subscription, ledger, and idempotency invariants.
-- `docs/spec/admin/frontend/product-ui-toolchain.md` continues to own the Admin component, form, icon, chart, i18n, motion, and Boneyard stack.
+- `docs/spec/admin/frontend/product-ui-toolchain.md` continues to own the Admin component, form, icon, chart, i18n, motion, and shared route-skeleton stack.
 - Existing content model, item, version, route, presentation, release, and publish services remain canonical storage and mutation services. The builder composes them; it does not fork them.
 
 ## 1. Product outcome and non-negotiable decisions
@@ -55,7 +57,7 @@ The target is grounded in the live repository and the authenticated Admin applic
 | Billing | Commerce already has plans, subscriptions, Credits, Stripe Checkout/Portal, signed webhooks, and provider-event idempotency; `build_billing_service` directly constructs Stripe. | Preserve commerce invariants and inject a trusted billing Connector instead of hard-coding Stripe. |
 | Plugins | Extension manifests and registries support services/providers, but there is no Connector definition/installation lifecycle and `config_schema` is not a complete product configuration path. | Add typed Connector capability and installation models. |
 | Thumbnails | Asset thumbnails exist, but project/site preview thumbnails and capture jobs do not. | Add revision-aware site preview artifacts and surface them separately from project icons. |
-| Boneyard | `RouteTransition` wraps the main route content with Boneyard, while capture output mirrors too many small real elements and the global color is primary-tinted. | Keep stable shell chrome real, narrow capture boundaries, simplify capture anatomy, and use neutral loading tokens. |
+| Route skeletons | `RouteTransition` wraps main route content, while the former generated output mirrored too many small real elements and used a primary-tinted global color. | Keep stable shell chrome real, define purpose-specific macro compositions, and use neutral loading tokens. |
 
 ## 3. Product model and source-of-truth ownership
 
@@ -472,61 +474,29 @@ The spike compares AG-UI with an Assistant Transport/custom-stream adapter again
 
 ## 7. Workspace Knowledge, Skills, and Design Systems
 
-These are first-class Workspace-scoped backend domains and Product Application **Customization** pages, not opaque system setting keys or tabs inside Workspace Administration. Technical contracts retain Workspace ownership language, while primary navigation and page titles use Knowledge, Skills, and Design systems without a redundant “Workspace” prefix.
+These are first-class Workspace-scoped backend domains and Product Application **Customization** pages, not opaque setting keys or tabs inside Workspace Administration. Their primary creation and application paths live in Agent and Project work; Customization governs team reuse, quality, adoption, change, and retirement. The administration experience redesign owns their full lifecycle and composition.
 
 ### 7.1 Workspace Knowledge
 
-Required entities:
+Every Workspace has one shared-guidance layer and every Project has one Project-guidance layer. Effective Agent context resolves the Workspace baseline plus Project additions and explicit overrides, exposing conflicts, exclusions, access limits, and freshness. The primary experience never requires creation of a named Knowledge Base.
 
-- `KnowledgeBase`: workspace-owned collection, name, description, default locale, ACL, status.
-- `KnowledgeSource`: manual document, file, URL, repository/document Connector reference, or structured content reference.
-- `KnowledgeSourceVersion`: immutable source hash, provenance, fetch metadata, parser version, and indexing status.
-- `KnowledgeChunk`: tenant-scoped retrieval unit with source/version/page/section location and embedding reference.
-
-Required behavior:
-
-- manual authoring, file/URL import, refresh, disable, delete, and scoped reindex.
-- explicit states: pending, fetching, parsing, indexing, ready, failed, stale, disabled.
-- citations to source version/location in Agent outputs.
-- ACL and tenant predicates at retrieval time, not only during ingestion.
-- prompt-injection scanning and untrusted-content separation; suspicious content remains visible as an explicit failure or quarantine state.
-- embedding/model/version metadata so reindex decisions are reproducible.
+Reusable files, URLs, maintained pages, and Connector content remain separate references. When used, internal source/version/chunk entities support import, preview, ACL, sync, processing, retrieval, citations, freshness, recovery, and reproducibility, but do not dictate navigation or primary copy. Agent outputs retain access-safe use/citation evidence where relevant.
 
 ### 7.2 Workspace Skills
 
-A Skill package manifest includes stable ID, name, description, publisher, source, compatibility, required Tool IDs, resource list, instructions entrypoint, permissions/data-egress declarations, and checksum.
+A Skill is a reusable way of completing a job inside Agent work. Team Skills begin through a guided Agent conversation or by saving a successful run, then move through review, retained realistic tests, publication, visible recommendation/application, outcome evidence, revision, disabling, and retirement. Arclayer-built and team-created Skills share the same invocation model.
 
-Supported authoring/import paths:
+Internal versioned artifacts may preserve stable identity, trust, required Tools, permissions, data egress, resources, validation, and immutable evidence. Supported imports remain secondary and never execute untrusted repository code. `SKILL.md`, package manifests, Git refs, repository paths, checksums, raw resources, and semantic versions are not primary customer concepts.
 
-- `builtin`: official Arclayer package, read-only source, installable/enabled per workspace.
-- `inline`: workspace-authored instructions/resources with version history.
-- `github`: repository/ref/subpath import, resolved to an immutable commit and checksum.
-
-The current `npx` locator is removed from the product Skill contract. Executable packages belong to the trusted plugin/Connector system. GitHub Skill import must never execute repository code during validation or runtime.
-
-GitHub imports resolve a commit before reading content, reject path traversal and escaping symlinks, apply documented repository/file-count/byte limits for resource protection, validate the manifest and resource MIME/types, record every resource digest, and expose the diff for review. Imported instructions and files remain untrusted context; required Tool permissions and external data egress are never inferred from prose.
-
-Required entities:
-
-- `SkillPackage`, `SkillVersion`, `SkillInstallation`, and `SkillValidationResult`.
-- installations pin a version and expose enabled/disabled/failed/incompatible states.
-- official built-ins render in a dedicated Arclayer catalog section with publisher verification and capabilities.
-- updates show manifest/resource diff and require explicit acceptance when permissions, Tool requirements, or data egress change.
+Automatic matching may recommend a Skill but never authorizes external writes, publication, deletion, access change, or spending. Applied Skills are visible in the Agent run and proven by real outcomes rather than declaration validity.
 
 ### 7.3 Workspace Design Systems
 
-Required entities:
+A Design System combines brand and interface foundation: logos, imagery direction, colour, typography, voice, semantic tokens, components, layout, motion, and accessibility rules. It may be created or refined through Agent conversation, a brand manual, an existing site or Project, or a supported import.
 
-- `DesignSystem`: workspace identity, ownership, default status, description, and linked asset collection.
-- `DesignSystemVersion`: immutable primitive/semantic/component/motion tokens, typography, schemes, recipes, compatibility, and provenance.
-- `ProjectDesignSystemAssignment`: pinned or tracking assignment with optional project fork.
+Internal version and assignment entities preserve immutable releases and Project-pinned adoption. One Project connects to exactly one revision at a time. Local adjustment remains local; a durable shared change becomes a proposal or fork. Release requires representative real-output preview and validation. Connected Projects receive a revision-bound update offer and impact preview; publication never silently updates them.
 
-Required behavior:
-
-- create manually, derive from an existing site, import supported token formats, compare versions, publish a version, and assign/fork for projects.
-- preview real shared components rather than styled placeholder rectangles.
-- validate contrast, missing semantic roles, theme completeness, component-token references, and reduced-motion alternatives.
-- expose the selected version to Site Architect, Visual Designer, and content/media Tools as structured context.
+Generation records applied rules, deviations, safe fixes, and unresolved adherence. Customization prioritizes representative output, connected Projects, adoption, update impact, validation, and history rather than raw token tables.
 
 ## 8. AI-native content management
 
@@ -802,7 +772,7 @@ If Arclayer later lets a workspace connect its own Stripe account, a separate co
 
 ### 11.4 Billing product surfaces
 
-The Commerce Platform Domain manages:
+Plans & Billing manages the internal Commerce domain:
 
 - stable Plan identities, immutable Revision history, Entitlement snapshots, Revision-scoped Price mappings, and active catalog lifecycle.
 - official billing Connector installation, test/live state, health, webhook state, scheduling/proration readiness, and reconciliation.
@@ -822,15 +792,14 @@ Portal-backed plan changes are enabled only for Stripe configurations the Portal
 
 ### 12.1 Platform AI Operations domain
 
-Replace the current single long settings wall with one Platform AI Operations domain whose localized product label is “AI 服务” / “AI services.” It opens an actionable cross-Workspace “AI 任务” / “AI tasks” queue rather than a metric-card overview.
+Replace the current single long settings wall with one Platform AI Operations domain whose product label is `AI 服务 / AI Services`. It opens actionable cross-Workspace `AI 任务 / AI tasks` rather than a metric-card overview.
 
 1. **AI tasks:** failed, stuck, retrying, Provider-blocked, and approval-waiting Runs with Workspace/Project context, durable progress, safe failure reason, and authorized recovery actions.
 2. **Models & providers:** provider configuration readiness, model catalog, routing policy, reasoning defaults, availability, health, and safe credential rotation.
 3. **Built-in assistants:** official templates, versions, availability, assignments, and the default assistant.
-4. **Actions & approvals:** Tool registry, external/write effects, maximum Platform policy, permission and approval requirements, and data-egress disclosure.
-5. **Runtime settings:** queue and worker readiness, interruption/recovery, retention, cancellation, and advanced framework diagnostics.
+4. **Actions & policies:** Tool registry, external/write effects, maximum Platform policy, permission and approval requirements, data-egress disclosure, routing, and recovery policy. Queue/worker/recovery/retention configuration appears in the relevant provider, task, or policy dossier rather than a technical Runtime settings page.
 
-An approval-waiting task may be diagnosed and linked to its owning Workspace surface, but a Platform Operator never approves, rejects, or applies the tenant change on behalf of the authorized Workspace actor. Workspace-authored Agents, Skills, Knowledge, and Design Systems do not live in Platform AI Operations. The domain may manage official Skill publication/trust policy and the built-in catalog only. Detailed budgets and Credits remain in Commerce; historical costs, throughput, latency, and failure trends remain in Monitoring & Audit.
+An approval-waiting task may be diagnosed and linked to its owning Workspace surface, but a Platform Operator never approves, rejects, or applies the Workspace change on behalf of the authorized actor. Workspace-authored Agents, Skills, Knowledge, and Design Systems do not live in Platform AI Operations. The domain may manage official Skill publication/trust policy and the built-in catalog only. Detailed budgets and Credits remain in Plans & Billing; historical costs, throughput, latency, and failure trends remain in Monitoring & Audit.
 
 Primary copy uses the task names above. Terms such as posture, governance, LangGraph, checkpointer, routing enum, and raw Provider error are restricted to authorized diagnostics when no plain-language explanation can preserve the required technical detail.
 
@@ -840,15 +809,14 @@ Workspace Administration remains the current-Workspace management dialog/overlay
 
 - General.
 - Plan & Usage.
-- Members.
-- Invitations.
+- People, with People, Pending, Invite links, and Requests where supported.
 - Roles & Permissions when the bound Plan makes role management available; otherwise its disabled Plan-badged entry opens the exact Plan & Usage explanation without mounting the page.
 
 Knowledge, Skills, and Design Systems move out of that dialog into one peer **Customization** navigation group in the Product Application:
 
-- **Knowledge** owns Workspace Knowledge authoring, sources, ingestion, retrieval readiness, and citations.
-- **Skills** owns installed and Workspace-authored Skills. Its catalog distinguishes “Arclayer official” from “Added by your workspace” without naming the page “Workspace Skills.”
-- **Design systems** owns Workspace Design System authoring, versions, validation, assignment, and Builder use without naming the page “Workspace Design Systems.”
+- **Knowledge** governs Workspace guidance, reusable references, effective-context inheritance, conflicts, freshness, access, use, and citations where relevant. Project guidance remains in its Project.
+- **Skills** governs Arclayer-built and team-created Skills, tests, publication, availability, adoption, update impact, disabling, and retirement; creation and application remain centred in Agent work.
+- **Design systems** governs connected creative foundations, representative previews, releases, Project adoption, update impact, adherence, proposals/forks, and retirement.
 
 These surfaces connect to Agent configuration through assignments/grants. They are not copied into Agent JSON settings.
 
@@ -857,7 +825,7 @@ Primary navigation and headings use stable bilingual product copy:
 | i18n key | `zh-CN` | `en-US` |
 |---|---|---|
 | `customization:NAV_GROUP` | 自定义 | Customization |
-| `customization:KNOWLEDGE_TITLE` | 知识库 | Knowledge |
+| `customization:KNOWLEDGE_TITLE` | 知识 | Knowledge |
 | `customization:SKILLS_TITLE` | 技能 | Skills |
 | `customization:DESIGN_SYSTEMS_TITLE` | 设计系统 | Design systems |
 | `customization:OFFICIAL_SKILLS_SECTION` | Arclayer 官方 | Arclayer official |
@@ -867,7 +835,7 @@ Internal schemas, API descriptions, audit evidence, and diagnostics may say Work
 
 Workspace Administration navigation remains functionally equivalent at every supported breakpoint. Desktop may use a sidebar; narrow layouts expose the current section through a labelled trigger and full-height navigation sheet. Hiding the navigation without an alternate entry is forbidden. Every icon-only close/menu action has a localized accessible name and returns focus correctly.
 
-Customization uses the Product Application's normal responsive navigation rather than embedding the Workspace Administration dialog as a second shell. Its three pages expose real permissions, loading, empty, error, conflict, import, and readiness states and never fall back to opaque settings JSON.
+Customization uses the Product Application's normal responsive navigation rather than embedding the Workspace Administration dialog as a second shell. Its three pages expose the complete page/evidence, edit/operation, and object-lifecycle states defined by the administration experience redesign and never fall back to opaque settings JSON, technical package forms, or read-only governance summaries.
 
 ### 12.3 Website Config versus Project General
 
@@ -914,24 +882,21 @@ Canvas performance contracts:
 - coalesce pointer updates, preserve selection during server sync, and expose sync/conflict state.
 - large Tool/asset outputs stream references and summaries, not entire binary or generated documents.
 
-## 14. Boneyard and loading experience
+## 14. Route skeleton and loading experience
 
-The installed `boneyard-js` `1.9.0` already includes `aria-busy` and `select="container" | "viewport"`. The problem is capture scope/anatomy, not the absence of a second skeleton framework.
+`RouteTransition` is the one shared route-level loading boundary for both applications. It uses Arclayer-owned compositions built from `@arclayer/ui` `Skeleton`, rather than a third-party capture, CLI, registry, or generated-bone workflow.
 
 Required contracts:
 
-- App sidebar, stable top chrome, persistent actions, and stable editor chrome that remain visible during loading live outside the `<Skeleton>` boundary.
-- Use named Boneyard boundaries only around the asynchronous work region. `excludeSelectors`, `excludeTags`, and `leafTags` simplify generated bone anatomy; exclusion alone does not keep an element visible while the boundary is loading.
+- App sidebar, stable top chrome, persistent actions, and stable editor chrome remain visible outside the route skeleton boundary.
+- Route skeletons cover only asynchronous work regions and match the final macro layout: title/action row, filters, summary blocks, table or card body, and editor frame. They never replicate every text line, control, or dense table cell.
 - For pages with independent data regions, allow progressive local boundaries or explicit `ContentGuard` states instead of withholding the whole page.
-- Dense-table capture uses an authenticated, deterministic capture route with representative data. A Boneyard `fixture` may be used only as build-time capture input, never as a runtime success or data fallback. Capture intentionally limits row anatomy instead of assuming Boneyard chooses representative rows automatically.
-- Project cards capture one fixed-aspect media block and concise text rows.
+- Dense tables use a representative table-frame composition with header, filter, and row blocks; project cards use a fixed-aspect media block and concise text rows.
 - The creation editor does not use a full-canvas shimmer while generation runs. It shows durable phase progress and progressively materialized nodes/pages.
-- Use neutral surface/loading tokens; primary blue is reserved for progress/action, not the ambient skeleton color.
-- Use `select="container"` or `select="viewport"` per boundary’s actual responsive contract, not one global assumption.
-- Honor reduced motion by rendering solid bones and disabling shimmer/pulse.
-- Authenticated capture uses explicit CDP/session or environment-injected auth. Credentials never enter config/source control.
-- CI/capture verification must prove every production skeleton name resolves. Capture errors remain visible and do not become fake success.
-- Generated `.bones.json` and registry artifacts are never hand-edited.
+- Use neutral surface/loading tokens; primary blue is reserved for actual progress/action, not ambient placeholder color.
+- Honor reduced motion by rendering solid placeholders without shimmer or pulse.
+- Page-local loading remains explicit: the route skeleton never replaces blank, partial, conflict, offline, permission, migration, error, or fatal domain states.
+- Visual verification uses the affected responsive breakpoints and either authenticated real data or test fixtures. Fixtures are test-only and never a runtime success or data fallback.
 
 Timing contract:
 
@@ -939,7 +904,7 @@ Timing contract:
 - once shown, keep a short 180ms minimum to prevent a one-frame flash.
 - keep progress feedback immediate through the route progress indicator; do not freeze stale page content under a new route identity.
 
-The shared `PageSkeleton` is redesigned around a small set of meaningful macro compositions rather than long arbitrary text-line walls and is used only by routes explicitly declared as non-captured/dynamic. A named production Boneyard boundary whose generated bones are missing is a development/CI error and is not silently replaced by `PageSkeleton`.
+The shared `PageSkeleton` is redesigned around a small set of meaningful macro compositions rather than long arbitrary text-line walls. It is selected explicitly for compatible route shapes; production code must not silently replace a declared route composition with a generic placeholder and report loading as successful.
 
 ## 15. Target API surfaces
 
@@ -1098,7 +1063,7 @@ Imports run secret detection and malware/content-safety classification before in
 - Frontend component tests for keyboard/focus, Agent launcher/mentions, thread filters, Tool/HITL states, editor commands, loading/empty/error/partial/conflict/offline states, settings forms, thumbnails, and reduced motion.
 - Generated OpenAPI/client alignment for every changed API.
 - visual regression at canonical light/dark viewports, including full-screen editor and stable-shell loading.
-- authenticated Boneyard capture at `375`, `768`, and `1280`, plus skeleton-name resolution tests.
+- shared route-skeleton visual verification at `375`, `768`, and `1280`, plus reduced-motion component tests.
 - end-to-end flows for brief-to-publish, multi-Agent delegation/approval/resume, content-model proposal, Knowledge/Skill import, thumbnail capture, and Stripe test-mode webhook lifecycle.
 - end-to-end Restricted Recovery Mode coverage for retained shell/read/export behavior, exact blocked-command errors across synchronous and background entry points, in-flight safe cancellation, absence of the access-restriction blocker, and atomic payment restoration.
 - end-to-end Commercial Lifecycle Notification coverage for milestone ownership, current Owner/Billing Manager resolution, ordinary-member sanitization, source replay, shared-ledger retry/failure evidence, Operational Signal escalation, and lifecycle-state independence.
@@ -1165,7 +1130,7 @@ Wave 0 is complete only when these migration gates have evidence:
 
 - make preview build/render/capture durable and generate site thumbnails.
 - update home/project grid/list media treatment.
-- narrow Boneyard boundaries, capture anatomy, neutral tokens, fallback compositions, and CI capture verification.
+- align shared route-skeleton boundaries, macro anatomy, neutral tokens, and responsive/reduced-motion visual verification.
 - run editor/content/settings motion, responsive, accessibility, visual, and performance convergence passes.
 
 ### Wave 6 — Commercial Connector
@@ -1195,10 +1160,10 @@ used to describe the full user goal as complete.
 | 10 | Website Config redesign and ownership | In progress | Identity, discovery, and localization workspaces have responsive live visitor previews, complete read-only behavior, generated-source invalidation, and bilingual copy. Admin, public runtime, and generated source consume the Domains-owned routable address. The backend now has typed per-facade projections, row-locked replacement, independent canonical ETags, stable conflicts, and transactional Activity evidence; public facade routes, Admin/generated-client migration, broad-patch restriction, and explicit Agent grants remain open. |
 | 11 | Project General redesign and ownership | In progress | Project identity, context/access/lifecycle boundaries, danger actions, responsive navigation, bilingual copy, and browser acceptance are complete. The backend now has a typed, row-locked identity projection with a canonical ETag, stable conflicts, changed-column persistence, and transactional Activity evidence. Public routes/generated-client/Admin migration, a specified defaults authority, broad-patch restriction, and approval-backed Agent grants remain open. |
 
-Boneyard and motion are cross-cutting rather than a twelfth capability. The
-shared route boundary, reduced-motion primitives, and editor loading states
-exist, while authenticated capture anatomy, neutral skeleton convergence, and
-the final responsive/accessibility/performance pass remain Wave 5 work.
+Route skeletons and motion are cross-cutting rather than a twelfth capability.
+The shared route boundary, reduced-motion primitives, and editor loading states
+exist, while neutral skeleton convergence and the final
+responsive/accessibility/performance pass remain Wave 5 work.
 
 Each wave removes superseded internal facades and dead UI in the same rollout. No wave may keep a silent fallback to the old behavior simply to make the new path appear successful.
 
@@ -1224,7 +1189,7 @@ This target was reviewed against product cohesion, repository boundaries, implem
 | Keep Stripe as the local entitlement authority | Normalize provider events into provider-neutral local projections | Authorization must survive provider latency/outage and support future providers. |
 | Persist a webhook event and immediately enqueue as two unrelated writes | Commit provider inbox plus dispatch outbox, then deliver at least once | Removes the database/broker loss window while retaining explicit failures. |
 | Put tenant content and cross-tenant orchestration in one schema by convenience | Use the declared public/tenant matrix and typed PublicUUID descriptors without cross-schema FKs | Preserves tenant migration and authorization boundaries. |
-| Hand-build a second skeleton DOM | Keep Boneyard, narrow capture boundaries and simplify capture anatomy | The library already captures real DOM; scope and selection create the visual noise. |
+| Hand-build a second skeleton system | Keep one shared `RouteTransition` composed from `@arclayer/ui` `Skeleton` | One owned boundary preserves visual consistency without generated captures or duplicate page-local systems. |
 | Show project avatars when no thumbnail exists | Show a neutral site-preview pending frame | Project identity and site preview are different product objects. |
 
 No unresolved product choice blocks Wave 0. The assistant transport selection is intentionally an implementation spike behind a fixed domain/event contract, so it cannot redefine Agent, Thread, Run, Tool, or approval semantics.
@@ -1255,16 +1220,6 @@ Official sources were reviewed on 2026-07-15. Product observations from the user
 - [A2A runtime](https://www.assistant-ui.com/docs/runtimes/a2a/overview)
 - [Resumable streams](https://www.assistant-ui.com/docs/guides/resumable-streams)
 - [Resumable stream deployment](https://www.assistant-ui.com/docs/guides/resumable-stream-deployment)
-
-### Boneyard
-
-- [Overview](https://boneyard.vercel.app/overview)
-- [How it works](https://boneyard.vercel.app/how-it-works)
-- [CLI](https://boneyard.vercel.app/cli)
-- [Configuration](https://boneyard.vercel.app/config)
-- [React features](https://boneyard.vercel.app/features)
-- [Changelog](https://boneyard.vercel.app/changelog)
-- [GitHub release v1.9.0](https://github.com/0xGF/boneyard/releases/tag/v1.9.0)
 
 ### Taskiq
 
@@ -1365,7 +1320,7 @@ The first creation-mode client now closes the read/command loop over the existin
 
 Validation closed with 3 new backend revision-reader unit tests, the real tenant/RBAC Builder integration, 8 focused Admin editor/scene tests, generated OpenAPI, `api:check` (2172 passed, 435 skipped, 26 warnings; 4/4 tasks), `admin:check` (317 files, 1409 tests; 4/4 tasks), and repository `check` (8/8 tasks). Changed-scope review reports `status=ok`, zero enforcement-blocking findings, and the same 45 report-only findings (43 prototype `BLOCKER` labels and 2 `MINOR` findings), with no new Wave 2D file reported. Chrome verified the full-screen scene and fatal boundary, while an environment-wide API 502 prevented a truthful successful real-data canvas screenshot; that visual evidence remains pending rather than mocked.
 
-Wave 2 is still not globally complete: server undo/redo, large-graph accessible outline/culling, responsive sheet parity, successful light/dark/reduced-motion real-data capture, and Boneyard route skeleton capture remain open. Wave 3 Wireframe/Style Guide/Design contracts and Waves 4–6 remain gated by the rollout order.
+Wave 2 is still not globally complete: server undo/redo, large-graph accessible outline/culling, responsive sheet parity, successful light/dark/reduced-motion real-data visual verification, and shared route-skeleton verification remain open. Wave 3 Wireframe/Style Guide/Design contracts and Waves 4–6 remain gated by the rollout order.
 
 ## 27. Wave 3A Wireframe contract and inspection evidence (2026-07-21)
 
@@ -1476,7 +1431,7 @@ This closes immutable history, deterministic semantic comparison, and explicit s
 
 The lifecycle slice passes the real PostgreSQL HTTP and tenant migration evidence, generated OpenAPI typecheck, full `api:check` (4/4 tasks; 2198 passed / 435 integration-disabled skips / 26 existing warnings), full `admin:check` (4/4 tasks; 318 files / 1420 tests), and cross-app `pnpm check` (8/8 tasks). Seven Admin timeouts and four worker-start failures from the first full run were isolated as resource starvation only after every affected file passed independently and the complete suite reran green without timeout or fallback changes. Changed-scope review reports `status=ok`, zero enforcement-blocking findings, and 45 report-only findings outside this lifecycle slice; `git diff --check` passes. GitNexus maps the entire long-lived dirty worktree as critical because it spans 177 indexed changed files and 27 affected processes, so that stale whole-worktree signal is retained as aggregate context rather than misrepresented as a supersession defect.
 
-Authenticated visual validation reached the exact full-screen Editor document at 3840×2160, but the Workspace, Project, Builder, authorization/actions, and Agent requests all returned 502. The stable product boundary is captured at `reports/creation-editor-style-supersession-api-502-2026-07-21.png`; no successful Style Guide interaction or visual-mode claim is made from that environment response.
+Authenticated visual validation reached the exact full-screen Editor document at 3840×2160, but the Workspace, Project, Builder, authorization/actions, and Agent requests all returned 502. The stable product boundary was captured at `output/creation-editor-style-supersession-api-502-2026-07-21.png`; no successful Style Guide interaction or visual-mode claim is made from that environment response.
 
 ## 35. Wave 3 Style Guide downstream impact preview (2026-07-21)
 
@@ -1519,7 +1474,7 @@ Changed-scope review is `status=ok`, with zero enforcement-blocking findings,
 specified Project remains source-managed and therefore exposes the explicit
 Builder-migration boundary rather than a fabricated impact-review success
 state. That state is captured at
-`reports/creation-editor-impact-migration-required-2026-07-21.png`.
+`output/creation-editor-impact-migration-required-2026-07-21.png`.
 
 ## 36. Wave 3F section-intent authority self-review (2026-07-21)
 

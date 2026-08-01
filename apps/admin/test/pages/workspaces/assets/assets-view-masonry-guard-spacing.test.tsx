@@ -16,11 +16,17 @@ vi.mock("@/pages/workspaces/assets/components/assets-view-masonry-render-cell", 
 }));
 
 vi.mock("@/layouts/page-shell/content-guard", () => ({
-  ContentGuard: (props: { wrapperSpacing?: string; empty?: boolean; children?: ReactNode }) => (
+  ContentGuard: (props: {
+    loading?: boolean;
+    wrapperSpacing?: string;
+    empty?: boolean;
+    children?: ReactNode;
+  }) => (
     <div
       data-testid="content-guard"
       data-wrapper-spacing={props.wrapperSpacing ?? ""}
       data-empty={String(props.empty)}
+      data-loading={String(props.loading)}
     >
       {props.children}
     </div>
@@ -125,5 +131,55 @@ describe("AssetsViewMasonrySection guard spacing", () => {
     );
 
     expect(screen.getByTestId("content-guard")).toHaveAttribute("data-empty", "false");
+  });
+
+  it("renders initial loading through the same virtual masonry placeholders", () => {
+    render(
+      <AssetsViewMasonrySection
+        controller={
+          {
+            t: (key: string) => key,
+            assetsQuery: {
+              isLoading: true,
+              data: undefined,
+              isError: false,
+              error: null,
+              refetch: vi.fn(),
+              hasNextPage: true,
+              isFetchingNextPage: true,
+              fetchNextPage: vi.fn(),
+              dataUpdatedAt: 0,
+            },
+            assetsListQueryKey: ["assets"],
+            items: [],
+            folderEntries: [],
+            assetLibraryHasAssets: false,
+            assetLibraryHasContent: false,
+            explicitFilterActive: false,
+            setSearchInput: vi.fn(),
+            setSearchQuery: vi.fn(),
+            setFilters: vi.fn(),
+            setMoreOpen: vi.fn(),
+            setFocusedFolderId: vi.fn(),
+            setSelection: vi.fn(),
+            selectedIds: new Set<string>(),
+            orderedAssetIds: [],
+            aspectRatioRef: { current: new Map<string, number>() },
+            forceLayoutTick: vi.fn(),
+            setActive: vi.fn(),
+            openEditAssetDialog: vi.fn(),
+            openAssetDeleteDialog: vi.fn(),
+            openAssetEditAccessDialog: vi.fn(),
+          } as never
+        }
+      />,
+    );
+
+    expect(screen.getByTestId("content-guard")).toHaveAttribute("data-loading", "false");
+    expect(screen.getByRole("status", { name: "common:LOADING" })).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
+    expect(screen.getByTestId("masonry-grid")).toBeInTheDocument();
   });
 });

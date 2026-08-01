@@ -1,9 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { RouteTransition } from "@/components/layout/route-transition";
-import { toBoneyardRouteName } from "@/lib/boneyard";
 
 const { startMock, stopMock, routerState } = vi.hoisted(() => ({
   startMock: vi.fn(),
@@ -45,32 +44,13 @@ vi.mock("@/hooks/use-prefers-reduced-motion", () => ({
   usePrefersReducedMotion: () => false,
 }));
 
-vi.mock("@/layouts/page-shell/default-page", () => ({
-  DefaultPage: ({ children }: { children?: ReactNode }) => (
-    <div data-testid="route-pending-overlay">{children}</div>
-  ),
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: () => "Loading" }),
 }));
 
-vi.mock("@arclayer/ui/skeleton", () => ({
-  Skeleton: (props: Record<string, unknown>) => <div {...props} />,
-}));
-
-vi.mock("boneyard-js/react", () => ({
-  configureBoneyard: vi.fn(),
-  Skeleton: ({
-    children,
-    fallback,
-    loading,
-    name,
-  }: {
-    children?: ReactNode;
-    fallback?: ReactNode;
-    loading: boolean;
-    name?: string;
-  }) => (
-    <div data-boneyard={name} data-testid="boneyard-route-skeleton">
-      {loading ? fallback : children}
-    </div>
+vi.mock("@arclayer/ui/page-skeleton", () => ({
+  PageSkeleton: ({ variant }: { variant: string }) => (
+    <div data-testid="route-pending-overlay" data-variant={variant} />
   ),
 }));
 
@@ -82,6 +62,7 @@ describe("RouteTransition progress contract", () => {
     routerState.matches = [];
     startMock.mockReset();
     stopMock.mockReset();
+    vi.useRealTimers();
   });
 
   it("starts and stops the shared progress bar with route loading state", () => {
@@ -104,15 +85,6 @@ describe("RouteTransition progress contract", () => {
     expect(stopMock).toHaveBeenCalledTimes(1);
   });
 
-  it("derives one stable Boneyard name from a parameterized route id", () => {
-    expect(
-      toBoneyardRouteName(
-        "/projects/$projectId/content/library/$itemId/",
-        "/projects/project-1/content/library/item-2",
-      ),
-    ).toBe("admin-route-projects-projectid-content-library-itemid");
-  });
-
   it("stops the shared progress bar when the hosting layout unmounts mid-load", () => {
     routerState.isLoading = true;
 
@@ -127,6 +99,53 @@ describe("RouteTransition progress contract", () => {
     view.unmount();
 
     expect(stopMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("waits for the default same-route pending delay before covering live content", () => {
+    vi.useFakeTimers({ now: new Date("2026-08-02T00:00:00Z") });
+    routerState.isLoading = true;
+    const view = render(
+      <RouteTransition>
+        <div data-testid="route-content" />
+      </RouteTransition>,
+    );
+
+    expect(screen.queryByTestId("route-pending-overlay")).not.toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(199));
+    expect(screen.queryByTestId("route-pending-overlay")).not.toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(1));
+    expect(screen.getByTestId("route-pending-overlay")).toBeInTheDocument();
+    expect(screen.getByTestId("route-content")).toBeInTheDocument();
+    expect(screen.getByTestId("route-content").closest('[data-slot="route-content"]')).toHaveClass(
+      "invisible",
+    );
+
+    view.unmount();
+  });
+
+  it("keeps a same-route pending view visible for the configured minimum duration", () => {
+    vi.useFakeTimers({ now: new Date("2026-08-02T00:00:00Z") });
+    routerState.isLoading = true;
+    const view = render(
+      <RouteTransition pendingMs={0}>
+        <div data-testid="route-content" />
+      </RouteTransition>,
+    );
+
+    act(() => vi.advanceTimersByTime(0));
+    expect(screen.getByTestId("route-pending-overlay")).toBeInTheDocument();
+
+    routerState.isLoading = false;
+    view.rerender(
+      <RouteTransition pendingMs={0}>
+        <div data-testid="route-content" />
+      </RouteTransition>,
+    );
+
+    act(() => vi.advanceTimersByTime(179));
+    expect(screen.getByTestId("route-pending-overlay")).toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(1));
+    expect(screen.getByTestId("route-content")).toBeInTheDocument();
   });
 
   it("covers stale route content immediately while cross-route loading is pending", () => {
@@ -147,12 +166,12 @@ describe("RouteTransition progress contract", () => {
       </RouteTransition>,
     );
 
-    expect(view.queryByTestId("old-route-content")).not.toBeInTheDocument();
+    expect(view.queryByTestId("old-route-content")).toBeInTheDocument();
+    expect(
+      view.queryByTestId("old-route-content")?.closest('[data-slot="route-content"]'),
+    ).toHaveAttribute("inert");
     expect(screen.getByTestId("route-pending-overlay")).toBeInTheDocument();
-    expect(screen.getByTestId("boneyard-route-skeleton")).toHaveAttribute(
-      "data-boneyard",
-      "admin-route-projects-projectid-settings-access",
-    );
+    expect(view.container.firstElementChild).toHaveAttribute("aria-busy", "true");
   });
 
   it("covers stale route content when pathname advances before pending state", () => {
@@ -172,7 +191,70 @@ describe("RouteTransition progress contract", () => {
       </RouteTransition>,
     );
 
-    expect(view.queryByTestId("old-route-content")).not.toBeInTheDocument();
+    expect(view.queryByTestId("old-route-content")).toBeInTheDocument();
+    expect(
+      view.queryByTestId("old-route-content")?.closest('[data-slot="route-content"]'),
+    ).toHaveAttribute("aria-hidden", "true");
     expect(screen.getByTestId("route-pending-overlay")).toBeInTheDocument();
+  });
+
+  it("preserves child state and mount identity while the pending overlay is visible", () => {
+    vi.useFakeTimers({ now: new Date("2026-08-02T00:00:00Z") });
+    const mounted = vi.fn();
+
+    function StatefulChild() {
+      const [value, setValue] = useState("");
+      useEffect(() => mounted(), []);
+      return (
+        <input
+          aria-label="local draft"
+          onChange={(event) => setValue(event.currentTarget.value)}
+          value={value}
+        />
+      );
+    }
+
+    const view = render(
+      <RouteTransition pendingMs={0}>
+        <StatefulChild />
+      </RouteTransition>,
+    );
+    fireEvent.change(screen.getByLabelText("local draft"), { target: { value: "keep me" } });
+
+    routerState.isLoading = true;
+    view.rerender(
+      <RouteTransition pendingMs={0}>
+        <StatefulChild />
+      </RouteTransition>,
+    );
+    act(() => vi.advanceTimersByTime(0));
+
+    expect(screen.getByLabelText("local draft")).toHaveValue("keep me");
+    expect(mounted).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("route-pending-overlay")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["/projects/", "/projects", "card-grid"],
+    ["/projects/$projectId/editor/", "/projects/project-1/editor", "split-detail"],
+    ["/notifications/", "/notifications", "table"],
+    ["/projects/$projectId/settings/general/", "/projects/project-1/settings/general", "form"],
+  ])("uses the route macro layout for %s", (routeId, pathname, expectedVariant) => {
+    vi.useFakeTimers();
+    routerState.isLoading = true;
+    routerState.location.pathname = pathname;
+    routerState.matches = [{ status: "pending", routeId }];
+
+    render(
+      <RouteTransition pendingMs={0}>
+        <div />
+      </RouteTransition>,
+    );
+    act(() => vi.advanceTimersByTime(0));
+
+    expect(screen.getByTestId("route-pending-overlay")).toHaveAttribute(
+      "data-variant",
+      expectedVariant,
+    );
   });
 });

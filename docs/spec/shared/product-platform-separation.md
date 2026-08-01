@@ -1,6 +1,6 @@
 # Product and Platform Separation Implementation Contract
 
-Status: Approved canonical integration contract (grill decisions closed 2026-07-30)
+Status: Approved boundary contract; administration experience amended 2026-08-01
 Owners: Product Application, Platform Console, API
 Applies to: `apps/admin`, `apps/platform`, `apps/api`, `packages/ui`, generated OpenAPI clients, deployment routing, and the retained Platform and Workspace domain modules
 
@@ -24,22 +24,24 @@ The product outcome is:
 The following precedence applies:
 
 1. `CONTEXT.md` owns canonical domain language and relationships.
-2. This file owns the cross-application boundary, rollout order, and integrated acceptance gate.
-3. The topic contracts below own their exact domain behavior, API semantics, state matrices, copy keys, and tests.
-4. `DESIGN.md` owns the shared visual language; `docs/guidelines/frontend-design.md` explains its Admin-era implementation context without becoming a contract source.
-5. ADRs under `docs/adr/` preserve why hard-to-reverse decisions were made. They do not override a newer canonical Spec.
-6. Live code is evidence of current state, not authority for retaining legacy behavior that conflicts with these contracts.
+2. [Product and Platform administration experience redesign](./product-admin-experience-redesign.md) owns administration IA, product language, complete-lifecycle delivery, page composition, state coverage, and the integrated experience gate.
+3. This file owns the cross-application, deployment, Session, and authority boundary.
+4. The topic contracts below own their exact domain behavior, API semantics, state matrices, copy keys, and tests.
+5. `DESIGN.md` owns the shared visual language; `docs/guidelines/frontend-design.md` explains its Admin-era implementation context without becoming a contract source.
+6. ADRs under `docs/adr/` preserve why hard-to-reverse decisions were made. They do not override a newer canonical Spec.
+7. Live code is evidence of current state, not authority for retaining legacy behavior that conflicts with these contracts.
 
 | Contract | Canonical responsibility |
 |---|---|
-| [Platform control-plane rollout](./admin-control-plane-rollout.md) | Platform domains, capability-driven navigation, operational interaction rules, migration details, and Platform release gate |
-| [Product and Platform UI toolchain](../admin/frontend/product-ui-toolchain.md) | shared components, shadcn Registry use, source-donor rules, charts, motion, Boneyard, and bilingual product copy |
+| [Administration experience redesign](./product-admin-experience-redesign.md) | final Product/Platform IA, route inventory, complete lifecycle, Experience Kit, state model, visual gate, language, accessibility, rollout, and acceptance |
+| [Platform control-plane rollout](./admin-control-plane-rollout.md) | Platform domain invariants, capability-driven navigation, operational interaction rules, migration details, and Platform release gate |
+| [Product and Platform UI toolchain](../admin/frontend/product-ui-toolchain.md) | shared components, shadcn Registry use, source-donor rules, charts, route skeletons, motion, and bilingual product copy |
 | [Workspace commercialization](./workspace-commercialization.md) | Plans, Plan Revisions, Subscriptions, Credits, Entitlements, Free eligibility, active Project limits, Feature Seats, dunning, and Commerce |
 | [Workspace invitations and permissions](./workspace-invitation-permission-experience.md) | invitations, Fixed Member Access, Workspace roles and permissions, and member-level feature allocation |
 | [AI Website Builder platform](./ai-website-builder-platform.md) | Product Application builder, Project and Workspace setting ownership, Customization, and Product runtime contracts |
 | [Platform Identity & Access](./admin-identity-access.md) | Instance Owner, Platform Operators, Platform Roles, MFA, Platform Sessions, transfer, and recovery |
 | [Platform Tenant Governance](./admin-tenant-governance.md) | cross-tenant Workspace, User, and Project investigation, restrictions, lifecycle and support-access boundaries |
-| [Monitoring & Audit and Operations Inbox](./admin-observability-dashboard.md) | Platform home, Operational Signals, request investigation, trends, and Audit evidence |
+| [Monitoring & Audit](./admin-observability-dashboard.md) | Needs attention source projections, request investigation, trends, and Audit evidence |
 | [Platform AI Operations](./admin-ai-operations.md) | cross-Workspace AI task operations, provider readiness, official assistants, action policy, and recovery |
 | [Platform Hosting & Delivery](./admin-hosting-delivery.md) | delivery issues, domains, certificates, storage, delivery policy, suspension, and restoration |
 | [Platform Communications](./admin-communications.md) | feedback operations, sending issues, campaigns, templates, and delivery configuration |
@@ -85,7 +87,7 @@ It does not own Platform routes, Platform Sessions, Platform Roles, cross-tenant
 
 It may consume `@arclayer/ui`, generated Platform API types, and other explicitly public shared packages. It must not import source files from `apps/admin`, mount Product Application pages, reuse a Product Session, or preserve an embedded `/system` shell.
 
-The Console root `/` is Operations Inbox. Stable frontend routes use unprefixed, non-localized business segments; a `/system` or `/platform` frontend prefix is forbidden.
+The Console root `/` is `Overview / 总览`; `/attention` is `Needs attention / 待处理`. Stable frontend routes use the exact non-localized business segments in the administration experience redesign contract; a `/system` or `/platform` frontend prefix is forbidden.
 
 ### 4.3 Shared backend — `apps/api`
 
@@ -138,13 +140,12 @@ Workspace Administration remains the current-Workspace dialog or overlay and con
 
 1. **General** — Workspace identity and ordinary tenant settings.
 2. **Plan & Usage** — current Plan, Subscription state, Credits, Usage, resource allowances, active Project usage, member-assigned capability capacity, checkout, Provider Portal, and recovery.
-3. **Members** — active members, immutable Owner presentation, Fixed Member Access or current roles, and member-level feature allocation.
-4. **Invitations** — pending, accepted, and reusable invitation-link workflows.
-5. **Roles & Permissions** — one combined role and permission experience when the bound Plan Revision includes role management.
+3. **People** — active members, Project-only external collaborators, pending named invitations, reusable invite links, join requests where supported, and member-level feature allocation.
+4. **Roles & Permissions** — one combined role and permission experience when the bound Plan Revision includes role management.
 
 Knowledge, Skills, and Design Systems are not Workspace Administration tabs.
 
-When role management is unavailable, the Product Application does not mount the Roles & Permissions data surface or issue its protected catalog queries. A disabled navigation entry remains discoverable with a localized eligible-Plan badge and opens the exact Plan & Usage explanation. Member and invitation views omit role selectors and describe the common non-Owner access in plain language.
+When role management is unavailable, the Product Application does not mount the Roles & Permissions data surface or issue its protected catalog queries. A disabled navigation entry remains discoverable with a localized eligible-Plan badge and opens the exact Plan & Usage explanation. People views omit role selectors and describe the common non-Owner access in plain language.
 
 ### 6.2 Customization
 
@@ -183,7 +184,7 @@ A Plan Revision without role management gives every non-Owner member one immutab
 A member-assigned paid capability uses Workspace-owned Feature Seats and active-membership assignments. Primary customer copy says “使用名额” in Chinese and “access” in English rather than exposing Entitlement or seat terminology.
 
 - Plan & Usage shows assigned and available capacity.
-- Members owns assignment and revocation for active people.
+- People owns assignment and revocation for active people.
 - role and permission editors contain no capacity or assignment controls.
 - the Workspace Owner always manages assignments.
 - a non-Owner requires the exact `workspace:feature-seats:manage` permission, available only when role management exists.
@@ -200,19 +201,19 @@ Ended configuration is immutable Audit history, not dormant configuration. A lat
 
 ## 7. Platform Console information architecture
 
-The Platform Console uses one collapsible domain Sidebar. Operations Inbox is pinned first, only the active domain expands by default, and the Header contains breadcrumbs and global utilities rather than a second navigation model. Configuration lives inside its owning domain; there is no global Settings, Configuration, Dashboard, or miscellaneous Platform domain.
+The Platform Console uses one collapsible domain Sidebar. Overview is first, only the active domain expands by default, and the Header contains breadcrumbs and global utilities rather than a second navigation model. Configuration lives inside its owning domain; there is no global Settings, Configuration, Dashboard, or miscellaneous Platform domain. The exact route inventory is canonical in the administration experience redesign contract.
 
 | Navigation label | Default surface | Peer pages and owned capability |
 |---|---|---|
-| **Operations Inbox** | prioritized unresolved Operational Signals | assignment, work-in-progress, time-bounded reminders, exact owning-domain destinations; no manual resolve or KPI dashboard |
-| **Access & Security** | Platform team | Roles & permissions; Sign-in & registration; Sign-in methods; Sessions & MFA |
-| **Tenant Governance** | Workspaces | Users; Projects; restrictions, lifecycle/legal-case entry, customer-safe support access, and exact cross-domain deep links |
-| **Commerce** | Subscriptions requiring attention | Plans and immutable Revisions; Subscriptions; provider events and payments; Credits and corrections; provider configuration and readiness |
-| **AI services** | AI tasks | Models & providers; Built-in assistants; Actions & approvals; Runtime settings |
-| **Site delivery** | Delivery issues | Domains & certificates; File storage; Delivery rules |
-| **Messages & feedback** | User feedback | Sending issues; Announcements & campaigns; Message templates; Email service |
+| **Overview** | global effective posture and evidence coverage | Needs attention; domain posture, active changes, capacity risk, and verified recent changes |
+| **Workspaces** | Workspaces | Users; Projects; restrictions, lifecycle/legal-case entry, customer-safe support access, and exact cross-domain deep links |
+| **AI Services** | AI tasks | Models & providers; Built-in assistants; Actions & policies; Runtime recovery |
+| **Hosting & Domains** | Delivery issues | Domains & certificates; File storage; Delivery policies |
+| **Messages & Feedback** | User feedback | Deliveries; Campaigns; Message templates; Email service |
 | **Extensions** | Installed | Extension catalog; Connections; Install & update history |
-| **Monitoring & audit** | Requests & errors | Performance trends; AI usage; Activity trends; Audit trail |
+| **Plans & Billing** | Subscriptions requiring attention | Plans and immutable Revisions; Subscriptions; provider events and payments; Credits and corrections; provider configuration and readiness |
+| **Access & Security** | Platform team | Roles & permissions; Sign-in & registration; Sign-in methods; Sessions & MFA |
+| **Monitoring & Audit** | Requests & errors | Performance trends; AI usage; Activity trends; Audit trail |
 
 Primary navigation renders only deployment-enabled capabilities visible to the current operator. Unsupported or uninstalled capabilities create no blank page. Disabled but activatable capabilities appear only in authorized capability management with exact prerequisites and a real enablement path.
 
@@ -283,7 +284,7 @@ Commercial or Hosting state never authorizes Workspace deletion. Deletion begins
 
 ### 10.5 Operational Signals and source truth
 
-Operations Inbox projects actionable conditions but does not own their resolution. Assignment, work-in-progress, and reminders coordinate work without changing severity, health, or source lifecycle. Only the owning domain confirms resolution or a committed recovery result.
+Needs attention projects actionable conditions but does not own their resolution. Assignment, work-in-progress, waiting, and reminders coordinate work without changing severity, health, or source lifecycle. Only the owning domain confirms resolution or a committed recovery result.
 
 Monitoring telemetry, Audit evidence, Communications delivery evidence, and source-domain state remain separate even when linked by correlation identity.
 
@@ -339,7 +340,7 @@ Implementation may use multiple focused changes, rehearsals, and deployable back
 
 - add `apps/platform`, package scripts, Turbo tasks, workspace registration, build output, test setup, locale parity checks, and host configuration;
 - adapt the reviewed shadcn-admin donor shell through `@arclayer/ui` and Arclayer tokens;
-- establish independent Product and Platform route trees, app bootstrap, error boundaries, and Boneyard skeleton capture;
+- establish independent Product and Platform route trees, app bootstrap, error boundaries, and shared route-skeleton composition;
 - keep Platform inaccessible as the official production entry until the final cutover gate.
 
 ### Wave 3 — API composition and Platform security foundation
@@ -352,7 +353,7 @@ Implementation may use multiple focused changes, rehearsals, and deployable back
 ### Wave 4 — Product Application navigation and Workspace administration
 
 - remove Platform navigation and route ownership from Product Application source;
-- hard-cut Workspace Administration to General, Plan & Usage, Members, Invitations, and conditional Roles & Permissions;
+- hard-cut Workspace Administration to General, Plan & Usage, People, and conditional Roles & Permissions;
 - move Knowledge, Skills, and Design Systems into the peer Customization group and remove redundant Workspace copy;
 - implement natural bilingual copy, responsive navigation, explicit states, and no protected page mount for unavailable role management.
 
@@ -365,13 +366,13 @@ Implementation may use multiple focused changes, rehearsals, and deployable back
 ### Wave 6 — Platform shell, capabilities, and first operational verticals
 
 - implement the capability-driven Sidebar, Command Center, independent locales, personal Saved views, explicit bulk-action capabilities, and domain-owned configuration;
-- ship Operations Inbox and Monitoring & Audit from real persisted sources;
-- ship Access & Security and Tenant Governance with exact permissions, redaction, support-access grants, and no duplicated Product management forms.
+- ship Overview, Needs attention, and Monitoring & Audit from real persisted sources;
+- ship Access & Security and Workspaces with exact permissions, redaction, support-access grants, and no duplicated Product management forms.
 
 ### Wave 7 — Platform commercial and runtime operations
 
-- ship Commerce with Plan/Revisions, Subscriptions, provider events, Credits, corrections, configuration readiness, and exact Workspace deep links;
-- ship AI services and Site delivery queues, readiness, configuration, durable recovery operations, and cross-domain projections;
+- ship Plans & Billing with Plan/Revisions, Subscriptions, provider events, Credits, corrections, configuration readiness, and exact Workspace deep links;
+- ship AI Services and Hosting & Domains queues, readiness, configuration, durable recovery operations, and cross-domain projections;
 - retain commercial, Hosting, AI, Monitoring, and tenant authorities separately.
 
 ### Wave 8 — Communications and Extensibility
@@ -409,7 +410,7 @@ The rollout is complete only when all of the following pass with reproducible ev
 
 ### 14.3 Product Application behavior
 
-- Workspace Administration contains the approved five destinations and Customization contains the approved three pages;
+- Workspace Administration contains the approved four destinations and Customization contains the approved three pages;
 - Free ordinary members see Fixed Member Access, no role selectors, and a distinct immutable Owner;
 - unavailable paid capabilities show exact Plan badges and explanations without masking other denial reasons;
 - active Project limits, member feature access, Plan Access Convergence, Restricted Recovery Mode, and billing recovery pass direct API and browser tests;
@@ -417,7 +418,7 @@ The rollout is complete only when all of the following pass with reproducible ev
 
 ### 14.4 Platform Console behavior
 
-- root `/` is an actionable Operations Inbox backed by real Operational Signals, not a KPI dashboard;
+- root `/` is an evidence-backed Overview, with actionable source conditions in `/attention`, not a KPI dashboard;
 - every enabled and authorized Platform Domain opens its approved default queue and exposes only useful peer pages;
 - configuration appears only in the owning domain and unsupported capabilities produce no blank navigation;
 - queues, Drawers, full pages, Saved views, bulk actions, explicit states, and accessibility satisfy the Platform control-plane and UI-toolchain contracts;
@@ -461,7 +462,7 @@ The approved decision record is grouped as follows:
 - Platform home, information architecture, interaction, visual language, and configuration: ADR 0007–0009 and 0027–0046.
 - Workspace commercialization, restrictions, Hosting interaction, tenant billing, and notifications: ADR 0010–0026.
 - Platform operator lifecycle, roles, Sessions, MFA, ownership, and recovery: ADR 0028 and 0048–0061.
-- Customer-content support access, capability rollout, change application, and Operations Inbox triage: ADR 0062–0065.
+- Customer-content support access, capability rollout, change application, and cross-domain attention triage: ADR 0062–0065.
 - Free Plan, Workspace eligibility, active Project allowance, Fixed Member Access, Feature Seats, Customization, and downgrade convergence: ADR 0066–0072.
 
 Every implementation change must be explainable through this Spec, one routed topic contract, and the applicable ADR rationale. A decision outside those boundaries requires an explicit contract update before code changes begin.

@@ -13,10 +13,6 @@ import { initializePreferences, usePreferencesStore } from "@/stores/use-prefere
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useAccessRestrictionStore } from "@/stores/use-access-restriction-store";
 import { queryClient } from "@/lib/query/query-client-instance";
-import { configureAdminBoneyard } from "@/lib/boneyard";
-
-configureAdminBoneyard();
-
 async function bootstrap() {
   initializePreferences();
   await useAuthStore.persist.rehydrate();

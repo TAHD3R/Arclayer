@@ -18,8 +18,9 @@ import {
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
 import { AIComposerToolbar } from "@/components/ai/ai-composer-toolbar";
 import { AIComposerDirectiveChips } from "@/components/ai/ai-composer-directive-chips";
-import { AIComposerTriggers } from "@/components/ai/ai-composer-triggers";
 import { AIComposerRotatingPlaceholder } from "@/components/ai/ai-composer-rotating-placeholder";
+import { AIComposerTriggerInput } from "@/components/ai/ai-composer-trigger-input";
+import { AIComposerTriggers } from "@/components/ai/ai-composer-triggers";
 import { AISuggestions } from "@/components/ai/ai-suggestions";
 import { ComposerQueue } from "@/components/assistant-ui/composer-queue";
 import { Button } from "@arclayer/ui/button";
@@ -279,7 +280,7 @@ const Composer: FC = () => {
           <AIComposerDirectiveChips scope="thread" />
           <ComposerAttachments />
           <div className="relative min-w-0 flex-1">
-            <ComposerPrimitive.Input
+            <AIComposerTriggerInput
               placeholder={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
               className={cn(
                 "aui-composer-input w-full min-w-0 resize-none bg-transparent px-2.5 py-1 text-callout text-label-primary outline-none [field-sizing:fixed] placeholder:text-transparent",

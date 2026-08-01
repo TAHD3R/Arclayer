@@ -22,7 +22,7 @@ These specs define concrete Product Application contracts for route files, page 
 | [State Management](./state-management.md) | Local, URL, server, form, and global UI state ownership | Active |
 | [Quality Guidelines](./quality-guidelines.md) | Admin quality gate, design verification, i18n, convention checks | Active |
 | [Type Safety](./type-safety.md) | Generated OpenAPI type usage, UI projections, assertion boundaries | Active |
-| [Product UI Toolchain](./product-ui-toolchain.md) | Canonical components, forms, icons, charts, Boneyard skeletons, motion, and product i18n | Active |
+| [Product UI Toolchain](./product-ui-toolchain.md) | Canonical components, forms, icons, charts, shared route skeletons, motion, and product i18n | Active |
 | [Creation Editor](./creation-editor.md) | Independent full-screen creation Shell, four Site Revision projections, canvas interaction, Agent sidecar, motion, a11y, and loading states | Approved target |
 | [AI Agent Experience](./ai-agent-experience.md) | Unified Thread/Run runtime, Agent launcher and mentions, Toolkit rendering, approvals, delegation, responsive behavior, and hard cut | Approved target |
 
@@ -36,10 +36,11 @@ These specs define concrete Product Application contracts for route files, page 
 | [Shared Error Contracts](../../shared/error-contracts.md) | Stable error-code handling in UI |
 | [Shared Identity & Access Contracts](../../shared/identity-access-contracts.md) | Auth, route guard, tenant, workspace, project, and permission semantics |
 | [Shared Schema & Field Contracts](../../shared/schema-field-contracts.md) | Schema-driven UI and field semantics |
+| [Product and Platform Administration Experience Redesign](../../shared/product-admin-experience-redesign.md) | Canonical administration IA, route inventory, complete lifecycle, Platform Experience Kit, state model, visual gate, i18n, accessibility, and browser acceptance |
 | [Workspace Commercialization](../../shared/workspace-commercialization.md) | Plan, subscription, Credits, and upgrade UX semantics |
 | [AI Website Builder Platform](../../shared/ai-website-builder-platform.md) | Full-screen creation editor, Agent/chat UX, content workbench, settings, thumbnails, motion, and loading semantics |
 | [Feedback & Observability](../../shared/feedback-observability.md) | Feedback lifecycle, audit log, and observability page semantics |
-| [Product and Platform Separation](../../shared/product-platform-separation.md) | Product Application ownership, Workspace Administration and Customization boundaries, Platform extraction, and cross-app release gates |
+| [Product and Platform Separation](../../shared/product-platform-separation.md) | Product Application ownership, Platform extraction, Session/authority boundaries, and cross-app release gates |
 
 ## Monorepo Contracts
 

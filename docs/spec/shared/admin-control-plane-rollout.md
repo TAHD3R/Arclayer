@@ -1,12 +1,13 @@
 # Platform Control Plane Productization Rollout
 
-Status: Approved canonical implementation contract (spec audit passed 2026-07-22)
+Status: Approved domain rollout contract; experience amended 2026-08-01
 Owners: Platform Console, Product Application, API
 Applies to: `apps/platform` as the target Platform Console, `apps/admin` as the Product Application and migration source, `apps/api`, `packages/ui`, plugin packages
+Experience authority: [Product and Platform administration experience redesign](./product-admin-experience-redesign.md)
 
 ## 1. Purpose
 
-This contract coordinates the productization of Arclayer's platform control plane. It covers the capability-driven information architecture, Identity & Access, Platform AI operations, Hosting & Delivery, Communications, Extensibility, Monitoring & Audit, feedback and error reporting, the Operations Inbox, commercial operations, tenant governance, access restrictions, invitations, and dynamic permissions.
+This contract coordinates the domain productization of Arclayer's platform control plane. The administration experience redesign owns the final product IA, route names, complete-lifecycle requirement, and visual acceptance.
 
 `product-platform-separation.md` is the canonical integration contract for application ownership, Workspace ownership, Product Application migration, cross-domain rollout order, and the final release gate. This file remains canonical for Platform Console domain behavior and does not create a second Product or Workspace authority.
 
@@ -16,13 +17,13 @@ The monorepo application boundary is explicit: `apps/admin` remains the Product 
 
 ## 2. Product and visual intent
 
-Arclayer's Platform Console is a dense operations surface for the Instance Owner and authorized Platform Operators. It is productized, low-noise, and action-oriented. Blue is reserved for selection and primary actions. Its landing surface is an Operations Inbox that explains what needs attention, why it matters, and where the operator can resolve it; charts, long-range trends, request investigation, and Audit evidence remain in focused Monitoring & Audit pages.
+Arclayer's Platform Console is a dense operations surface for the Instance Owner and authorized Platform Operators. Its root Overview connects configuration posture, effective state, evidence coverage, active changes, risk, and verified outcomes. Needs attention coordinates cross-domain intervention; charts, long-range trends, request investigation, and Audit evidence remain in focused Monitoring & Audit pages.
 
 The Platform Console shares Arclayer's semantic visual tokens with the Product Application. It supports Light, Dark, and Follow system preferences only; Dark uses the true-black and neutral-charcoal hierarchy in `DESIGN.md`, while operational density comes from composition rather than a second theme, template palette, accent picker, gradient Dashboard, glow, or glass treatment.
 
 All surfaces follow `DESIGN.md`, `docs/guidelines/frontend-design.md`, and `docs/spec/admin/frontend/product-ui-toolchain.md`. The preferred composition is:
 
-- one Arclayer-adapted `satnaing/shadcn-admin` Shell with a collapsible domain Sidebar, Operations Inbox pinned first, the active domain expanded, and a utility-only Header;
+- one Arclayer-owned Platform Experience Kit built from canonical `@arclayer/ui`; reviewed `satnaing/shadcn-admin` shell patterns remain source-donor evidence only;
 - `DefaultPage` for page framing and Header slots;
 - `ChromeTabs` for peer views;
 - `DataTable`, `DataTableSearchInput`, shared `Filters`, and explicit ordering controls for operational lists;
@@ -35,7 +36,7 @@ All surfaces follow `DESIGN.md`, `docs/guidelines/frontend-design.md`, and `docs
 | Contract | Scope |
 |---|---|
 | [Admin feedback and support](./admin-feedback-support.md) | Scope switcher, feedback composer and center, error reporting, ContentGuard |
-| [Platform Monitoring & Audit and Operations Inbox](./admin-observability-dashboard.md) | Request/error investigation, performance and usage trends, Audit trail, Operational Signals, Operations Inbox |
+| [Platform Monitoring & Audit and cross-domain attention](./admin-observability-dashboard.md) | Request/error investigation, performance and usage trends, Audit trail, source conditions, Needs attention projections |
 | [Platform Communications](./admin-communications.md) | Feedback triage and replies, sending issues, announcements and campaigns, templates, email-service readiness |
 | [Platform Extensibility](./admin-extensibility.md) | Extension catalog, installation and trust, compatibility, permissions, updates, rollback, connection-capability inventory |
 | [Plugin, notification, and mail capability details](./admin-plugin-notification-mail.md) | Supporting Extensibility plugin lifecycle and Communications delivery models during contract separation |
@@ -55,17 +56,17 @@ These contracts are normative together. A wave is incomplete if its frontend is 
 | 1. Scope switcher width | Admin feedback and support, section 4 |
 | 2, 2.1, 2.2. Feedback entry points, center, error reports | Admin feedback and support, sections 5-9 |
 | 2.3. ContentGuard shared Empty state | Admin feedback and support, section 10 |
-| 3, 3.1-3.4. Audit log and request analysis | Admin observability and Operations Inbox, sections 4-8 |
-| 4. Useful card/table drill-down | Admin observability and Operations Inbox, sections 9-10 |
-| 5. Prioritized Operational Signal projection | Admin observability and Operations Inbox, section 11 |
-| 6. Bklit-based shared chart capability | Admin observability and Operations Inbox, section 12 |
+| 3, 3.1-3.4. Audit log and request analysis | Admin observability and cross-domain attention, sections 4-8 |
+| 4. Useful card/table drill-down | Admin observability and cross-domain attention, sections 9-10 |
+| 5. Prioritized source-condition projection | Admin observability and cross-domain attention, section 11 |
+| 6. Bklit-based shared chart capability | Admin observability and cross-domain attention, section 12 |
 | 7. Plugin catalog, install, upgrade, detail, configuration | Admin plugins, notifications, and mail, sections 4-8 |
 | 8. Notification campaigns, transactional lifecycle delivery, and global surfaces | Admin plugins, notifications, and mail, sections 9-14 |
 | 9. Email template DataTable and locale aggregation | Admin plugins, notifications, and mail, sections 15-18 |
 | 10-13. Tenant directory interaction and commercial data | Admin tenant governance, sections 4-9 |
 | Commerce commercial operations control plane | Workspace commercialization, sections 4-10; Admin tenant governance, section 7 |
 | 14. Disabled-state enforcement and blocker | Admin tenant governance, sections 10-14 |
-| 15. Remove observability overview; redesign the platform home as Operations Inbox | Admin observability and Operations Inbox, sections 13-14 |
+| 15. Replace legacy overview with evidence-backed Overview and Needs attention | Administration experience redesign, sections 5 and 13; observability sections 13-14 |
 | 16. Invitation flow and three DataTables | Workspace invitation and permission experience, sections 4-9 |
 | 17. Dynamic localized permission page | Workspace invitation and permission experience, sections 10-14 |
 
@@ -161,12 +162,12 @@ Each Workspace-facing capability that needs controlled adoption uses one server-
 
 Every Platform Capability has exactly one owning Platform Domain. Primary navigation groups capabilities by that domain and follows the operator's work object rather than separating “operations” from “settings.”
 
-- The Platform Console uses one collapsible Sidebar navigation authority. Operations Inbox is the pinned global entry; enabled and authorized domains follow as localized product groups, and only the active domain expands its peer pages by default.
+- The Platform Console uses one collapsible Sidebar navigation authority. Overview is first; enabled and authorized domains follow in the canonical order, and only the active domain expands its peer pages by default.
 - The Header contains breadcrumbs and global utilities rather than a second navigation model. Sidebar, command search, breadcrumbs, and mobile Sheet derive from the same capability/permission projection and stable bilingual copy.
 - The Header Command Center shows authorized navigation, recent typed destinations, common workflow entry points, and federated owning-domain search results. Each build-registered provider enforces its own Platform API permission, redaction, ranking, pagination, and typed destination; disabled or unauthorized providers are not queried, and no frontend download or universal copied-data index is created.
 - Provider failures remain visible and isolated. Results expose the minimum recognizable identity and context without hidden counts or sensitive snippets, query changes cancel obsolete requests, and search text is not persisted as recent history or analytics/audit content.
 - Command Center actions open canonical workflows but never commit mutations directly. Preview, confirmation, idempotency, action-scoped permission, durable operation, and Audit rules remain unchanged.
-- The Platform Console frontend root `/` is Operations Inbox. Other frontend routes use stable, non-localized English business segments without a `/system` or `/platform` prefix; Product and Platform API route prefixes remain separate backend contracts and are not inferred from frontend URLs.
+- The Platform Console frontend root `/` is Overview and `/attention` is Needs attention. All other frontend routes use the exact stable segments in the administration experience redesign without a `/system` or `/platform` prefix; Product and Platform API route prefixes remain separate backend contracts and are not inferred from frontend URLs.
 - Domain routes render inside the one Platform Console Shell. Page-local content panes are allowed, but nested settings, directory, monitoring, or other navigation shells are not.
 - A domain owns its operational lists, configuration, health/readiness, audit projections, and Operational Signal sources.
 - Configuration appears inside the owning domain. The Platform Console has no global Settings or Configuration section that collects unrelated capabilities.
@@ -174,11 +175,11 @@ Every Platform Capability has exactly one owning Platform Domain. Primary naviga
 - A domain landing page exists only when it presents actionable work, configuration readiness, or meaningful domain health. Otherwise its navigation target is the primary useful queue, list, or configuration workflow.
 - “Platform” may remain an owning domain for genuinely cross-cutting instance foundations; it is not a replacement dumping ground for miscellaneous settings.
 
-Tenant Governance is one Platform Domain rather than a generic Tenant dashboard or three entity-shaped domains. It opens the Workspaces governance queue by default; Users and Projects are peer investigative views. It may show authorized Commerce, Hosting, and Monitoring & Audit summaries that help resolve a case, but mutations deep-link to the exact owning-domain surface and Workspace Administration is never reproduced in the Platform Console.
+The internal cross-tenant governance domain is rendered as `Workspaces / 工作空间`, not as “Tenant Governance.” It opens the Workspaces governance queue by default; Users and Projects are peer investigative views. It may show authorized Plans & Billing, Hosting & Domains, and Monitoring & Audit summaries that help resolve a case, but mutations deep-link to the exact owning-domain surface and Workspace Administration is never reproduced in the Platform Console.
 
-Tenant Governance exposes minimum operational metadata and redacted projections by default. Customer-authored Project content, Knowledge, Skills, and Design Systems require both an exact Platform support-read permission and a time-bound, revocable Support Access Grant created by an authorized Workspace Owner for one support case, named Operators, and explicit scope. The grant is read-only and customer-visible and creates no Workspace membership, Product Session, impersonation, tenant approval, mutation, secret access, or standing Instance Owner visibility.
+Workspaces exposes minimum operational metadata and redacted projections by default. Customer-authored Project content, Knowledge, Skills, and Design Systems require both an exact Platform support-read permission and a time-bound, revocable Support Access Grant created by an authorized Workspace Owner for one support case, named Operators, and explicit scope. The grant is read-only and customer-visible and creates no Workspace membership, Product Session, impersonation, tenant approval, mutation, secret access, or standing Instance Owner visibility.
 
-Identity & Access is one Platform Domain for deployment sign-in and Platform authority. Its product navigation uses the plain-language label “Access & Security” rather than exposing the architecture term as unexplained copy. It opens the Platform team queue by default and contains sign-in and registration policy, identity providers, Platform Operators, roles and permissions, Platform MFA posture, and Platform Session operations. Ordinary user investigation remains in Tenant Governance; Workspace members, invitations, roles, and permissions remain in Workspace Administration.
+Identity & Access is one Platform Domain for deployment sign-in and Platform authority. Its product navigation uses `Access & Security / 访问与安全`. It opens the Platform team queue by default and contains sign-in and registration policy, identity providers, Platform Operators, roles and permissions, Platform MFA posture, and Platform Session operations. Ordinary user investigation remains in Workspaces; Workspace People, roles, and permissions remain in Workspace Settings.
 
 Platform Operator onboarding is staged: an identity-bound invitation records intended Platform Roles but grants no Platform authority or entry eligibility. The intended identity must authenticate, explicitly accept, and complete mandatory MFA enrollment before active operator status and the role assignments become effective atomically; expiry, revocation, identity mismatch, or failed acceptance leaves no partial authority. Instance Owner transfer remains a separate non-delegable workflow.
 
@@ -208,17 +209,17 @@ The trusted action and permission catalog is the only authority for phishing-res
 
 External identity providers authenticate the human identity but never satisfy Platform MFA or action-bound verification. Provider Sessions, remembered devices, upstream prompts, and `amr`/`acr` or equivalent assurance claims cannot issue a Platform Session or replace local WebAuthn; every Owner and Operator completes an Arclayer-enrolled method challenge after provider sign-in, and the product explains consecutive verification without exposing claim terminology or offering a trust toggle.
 
-Platform AI Operations is one Platform Domain whose product label is “AI services.” It opens the cross-Workspace “AI tasks” queue by default and keeps model/provider readiness, built-in assistant availability, action and approval policy, and runtime recovery together. Workspace-authored AI context and tenant approval remain in the Product Application; Commerce owns commercial budgets and Credits, Monitoring & Audit owns historical trends, and the AI domain links to both without duplicating their authority.
+Platform AI Operations is one Platform Domain whose product label is `AI Services / AI 服务`. It opens the cross-Workspace AI tasks queue by default and keeps model/provider readiness, built-in assistant availability, action policy, and runtime recovery together. Workspace-authored AI context and tenant approval remain in the Product Application; Plans & Billing owns commercial budgets and Credits, Monitoring & Audit owns historical trends, and the AI domain links to both without duplicating their authority.
 
-Hosting & Delivery is one Platform Domain whose product label is “Site delivery.” It opens an actionable delivery-issue queue by default and keeps domains, certificates, file storage, delivery policy, suspension, and restoration together. Project publishing and site/domain choices remain Product Application tasks; Monitoring & Audit owns historical trends, and Commerce can supply lifecycle facts without mutating Hosting delivery state.
+Hosting & Delivery is one Platform Domain whose product label is `Hosting & Domains / 托管与域名`. It opens an actionable delivery-issue queue by default and keeps domains, certificates, file storage, delivery policy, suspension, and restoration together. Project publishing and site/domain choices remain Product Application tasks; Monitoring & Audit owns historical trends, and Plans & Billing can supply lifecycle facts without mutating Hosting delivery state.
 
 Communications is one Platform Domain whose product label is “Messages & feedback.” It opens the User feedback queue by default and keeps sending issues, announcements and campaigns, message templates, and email-service readiness together. Feedback replies, Campaigns, and transactional notices remain distinct source workflows but share one recipient delivery ledger; Plugin lifecycle belongs to Extensibility, and historical engagement analysis belongs to Monitoring & Audit.
 
 Extensibility is one Platform Domain whose product label is “Extensions.” It opens the Installed extensions list by default and keeps the catalog, connection-capability inventory, and durable install/update history together. It owns package trust, compatibility, requested permissions, dependencies, upgrade, rollback, and removal; the consuming Platform Domain owns capability-specific configuration and operational use.
 
-Monitoring & Audit is one Platform Domain whose default product surface is “Requests & errors,” with peer Performance trends, AI usage, Activity trends, and Audit trail pages. Shared navigation and correlation do not merge the contracts: monitoring telemetry may be sampled and aggregated, while Audit evidence remains independently immutable, permissioned, retained, and exportable. The Operations Inbox remains the global Platform Console home rather than a domain Overview.
+Monitoring & Audit is one Platform Domain whose default product surface is “Requests & errors,” with peer Performance trends, AI usage, Activity trends, and Audit trail pages. Shared navigation and correlation do not merge the contracts: monitoring telemetry may be sampled and aggregated, while Audit evidence remains independently immutable, permissioned, retained, and exportable. Overview remains the global Platform Console home.
 
-Operations Inbox adds lightweight Operational Signal Triage to the domain-owned Signal projection: authorized operators may claim or assign an item, mark work in progress, or set a time-bounded reminder with a reason. Triage is revisioned and audited but never changes Signal severity, health, authorization, source lifecycle, or resolution. Only the owning Platform Domain may confirm resolution; the Inbox has no dismiss, close, or manual-resolve authority and does not become a central incident or ticket lifecycle.
+Needs attention adds lightweight coordination to domain-owned condition projections: authorized operators may claim or assign an item, mark work in progress, or wait with a time-bounded reminder and reason. Coordination is revisioned and audited but never changes source severity, health, authorization, lifecycle, or outcome. Only the owning Platform Domain may confirm recovery; Needs attention has no manual-resolve authority and does not become a central incident or ticket lifecycle.
 
 The migration is a hard cut: static all-deployment system page arrays, the global system-settings shell, empty overview pages, and `isSuperAdmin`-only navigation filters are removed after every retained page has a capability, domain, and permission owner. No compatibility facade may continue to expose unsupported pages or duplicate configuration authority.
 
@@ -264,9 +265,9 @@ The migration is a hard cut: static all-deployment system page arrays, the globa
 ## 7. Migration rules
 
 - Schema changes require forward migrations, backfill strategy, indexes for every supported list/filter/order path, and a rollback or repair procedure.
-- Create `apps/platform` as the only Platform Console frontend package and build artifact. It owns its Vite entry point, TanStack Router tree, Platform Session bootstrap, Platform API client boundary, i18n bootstrap, Boneyard registry, tests, and deployment output.
+- Create `apps/platform` as the only Platform Console frontend package and build artifact. It owns its Vite entry point, TanStack Router tree, Platform Session bootstrap, Platform API client boundary, i18n bootstrap, shared route-skeleton composition, tests, and deployment output.
 - Keep `apps/admin` as the Product Application. Existing `/system/**` routes, Platform navigation, Platform API clients, Platform-only stores, pages, tests, translations, and route skeletons move to `apps/platform` or are deleted according to their owning domain contract; `apps/admin` retains no re-export, redirect, embedded Console, or compatibility facade.
-- The target `apps/platform` route tree does not reproduce `/system/**`, add `/platform/**`, or retain old frontend aliases and redirects. Its `/` route renders Operations Inbox, while typed domain routes use stable business segments and localized copy remains display-only.
+- The target `apps/platform` route tree uses the exact route inventory in the administration experience redesign. It does not reproduce `/system/**`, add `/platform/**`, or retain old frontend aliases and redirects.
 - Application packages do not import source from one another. Reusable visual primitives and framework-neutral contracts move to their existing shared package owner only when both applications genuinely consume them.
 - Add root `platform`, `platform:build`, and `platform:check` scripts for `@arclayer/platform`; the cross-app `check` gate includes `@arclayer/admin`, `@arclayer/platform`, and `@arclayer/api` without changing the meaning of the existing Product Application `admin:*` scripts.
 - Build and verify `apps/platform` outside the official production entry until every retained Platform route and capability satisfies the frontend cutover gate. Production never exposes a route-by-route split, nested legacy page, cross-Shell handoff, or feature flag that switches individual domains back to `apps/admin`.
@@ -278,8 +279,8 @@ The migration is a hard cut: static all-deployment system page arrays, the globa
 - Build the new Platform resource catalog independently in `apps/platform` and delete obsolete Platform-only keys from Product Application locale files with their final consumers. No compatibility namespace or key alias survives the frontend cutover.
 - Superseded dashboard layout records and page-local widget registries are removed with an explicit data-retirement migration; they are not retained behind a compatibility facade.
 - Static system-page registries and the global Settings route family are replaced by the trusted Platform Console module registry plus domain-owned routes and the Platform Capability Catalog; every existing route receives an explicit migration or removal decision.
-- The Platform Console shell is rebuilt from reviewed `satnaing/shadcn-admin` composition patterns while preserving Arclayer's canonical primitives and application stack. The legacy shell, path-selected `SystemSettingsLayout` and `SystemDirectoryShell` navigation authorities, duplicate primitives, demo dashboard content, mixed old/new styling, and temporary compatibility routes are removed in the same frontend hard cut.
-- The legacy `/system/tenants` overview/redirect contract is removed. Tenant Governance opens its Workspace queue directly, with Users and Projects as peer views and no compatibility Tenant Overview made of KPI cards.
+- The Platform Console uses the Arclayer-owned Platform Experience Kit. Reviewed `satnaing/shadcn-admin` composition remains limited to shell source-donor evidence. The legacy shell, path-selected `SystemSettingsLayout` and `SystemDirectoryShell` navigation authorities, duplicate primitives, demo dashboard content, mixed old/new styling, and temporary compatibility routes are removed in the same frontend hard cut.
+- The legacy `/system/tenants` overview/redirect contract is removed. Workspaces opens its Workspace queue directly, with Users and Projects as peer views and no compatibility generic Overview made of KPI cards.
 - The legacy `/system/settings/access` and `/system/settings/oauth` presentation categories are removed after their real capabilities move into Identity & Access. No compatibility settings route may duplicate sign-in policy or identity-provider configuration.
 - The legacy `/system/settings/agents` settings wall is removed after its retained capabilities move into Platform AI Operations. Workspace-bound usage cards, raw runtime-framework controls, and duplicated Commerce/Monitoring & Audit summaries do not survive as a compatibility page.
 - The legacy `/system/settings/domains` and `/system/settings/storage` categories are removed after retained capabilities move into Hosting & Delivery. The hard cut preserves no duplicate settings forms or route aliases, and it does not turn the Platform Console into a second Project publishing surface.
@@ -316,12 +317,12 @@ The migration is a hard cut: static all-deployment system page arrays, the globa
 ### Wave 0: contracts and foundations
 
 1. Resolve canonical spec conflicts and approve this contract set.
-2. Create the independent `apps/platform` / `@arclayer/platform` frontend and its build, test, i18n, routing, Platform Session, Platform API, Boneyard, and deployment boundaries while preserving `apps/admin` / `@arclayer/admin` as the Product Application.
+2. Create the independent `apps/platform` / `@arclayer/platform` frontend and its build, test, i18n, routing, Platform Session, Platform API, shared route-skeleton, and deployment boundaries while preserving `apps/admin` / `@arclayer/admin` as the Product Application.
 3. Add required migrations, projections, indexes, error codes, and durable-job contracts.
 4. Define the Platform Capability Catalog, Platform Domain inventory, trusted frontend module registry, capability-management surface, and permission-aware navigation contract.
 5. Define the revisioned three-stage Workspace Capability Rollout contract, migration inventory, server enforcement boundaries, impact preview, Audit evidence, and its separation from eligibility, Entitlement, permission, readiness, and health.
 6. Define the cross-domain Operational Signal projection, server-authoritative prioritization, revisioned lightweight triage, action-scoped claim/assignment/reminder permissions, and source-owned resolution contract.
-7. Record a reviewed `satnaing/shadcn-admin` upstream revision and adapt one Shell with a collapsible domain Sidebar, utility Header, permission-aware command search, mobile Sheet, dense-list, DataTable, and form composition patterns without importing its application, auth, chart, icon, or duplicate primitive stacks.
+7. Record the reviewed `satnaing/shadcn-admin` shell provenance, then build the Platform Experience Kit compositions defined by the administration experience redesign without importing its application, auth, product, chart, icon, or duplicate primitive stacks.
 8. Vendor reviewed Bklit Registry chart sources behind `@arclayer/ui/chart`; do not expose Bklit/Visx directly to application pages.
 9. Add shared identity hover-card, investigative Drawer, feedback composer, filter/order, and restriction-boundary primitives where reuse is proven.
 
@@ -329,9 +330,9 @@ The migration is a hard cut: static all-deployment system page arrays, the globa
 
 Deliver the exact scope-switcher width fix, unified feedback entry points and center, cache-coherent triage, and Lucide/shared-Empty ContentGuard.
 
-### Wave 2: Monitoring & Audit and Operations Inbox
+### Wave 2: Overview, Needs attention, and Monitoring & Audit
 
-Deliver request/error diagnostics, repaired performance analytics, semantic Audit projections, useful drill-down, reviewed charts, the unified Monitoring & Audit route family, and the Operations Inbox backed by real Operational Signals with claim, assignment, in-progress work, and time-bounded reminders. Preserve source-owned resolution and do not merge telemetry, Audit evidence, triage, or domain lifecycle contracts.
+Deliver request/error diagnostics, repaired performance analytics, semantic Audit projections, useful drill-down, reviewed charts, the unified Monitoring & Audit route family, evidence-backed Overview, and Needs attention with claim, assignment, in-progress work, and time-bounded waiting. Preserve source-owned recovery and do not merge telemetry, Audit evidence, coordination, or domain lifecycle contracts.
 
 ### Wave 3: Communications and plugin operations
 
@@ -339,11 +340,11 @@ Deliver the User feedback and sending-issue queues, announcement Campaigns, the 
 
 ### Wave 4: commerce and tenant governance
 
-Deliver the Commerce commercial operations control plane; the Workspace-first Tenant Governance domain with peer User/Project views; identity cells and hover cards; Workspace commercial projections and exact Commerce deep links; Workspace Owner-controlled Support Access Grants without impersonation; event-driven Commercial Lifecycle Notifications; project operational detail; and server-authoritative restriction blockers.
+Deliver the Plans & Billing commercial operations control plane and the Workspace-first Workspaces domain with peer User/Project views; identity cells and hover cards; commercial projections and exact billing deep links; Workspace Owner-controlled Support Access Grants without impersonation; event-driven Commercial Lifecycle Notifications; Project operational detail; and server-authoritative restriction blockers.
 
 ### Wave 5: invitation and permission experience
 
-Deliver the token regression matrix, three shared invitation DataTables, coherent acceptance/onboarding behavior, and revisioned dynamic localized permissions.
+Deliver the token regression matrix, People/Pending/Invite links/Requests views, coherent acceptance/onboarding behavior, and revisioned dynamic localized permissions.
 
 ### Wave 6: Identity & Access productization
 
@@ -364,8 +365,8 @@ Backend, migration, and domain implementation commits may land through the waves
 1. every retained Platform Capability has an enabled/unsupported state, action-scoped permissions, an owning `apps/platform` route, both locale resources, explicit loading/empty/partial/error states, and its required configuration or operational workflow;
 2. every Workspace-facing controlled-adoption capability passes all three rollout stages, selected-Workspace and eligibility interaction, revision-bound preview/apply drift, Product API and worker enforcement, Audit, and independent Entitlement/permission/readiness/health denial acceptance without user, percentage, expression, or hidden-exception paths;
 3. exact-permission direct apply, high-risk preview/reason/step-up/Audit controls, absence of a generic approver or approval queue, and explicitly domain-bound two-party workflows pass direct Platform API and cross-application browser acceptance;
-4. Operations Inbox claim, assignment, in-progress work, time-bounded reminder, concurrency, Audit, permission isolation, reminder return, source-confirmed resolution, and no-manual-close behavior pass end-to-end acceptance without creating a duplicate incident or task authority;
-5. Identity-provider/local-MFA separation, WebAuthn-preferred/TOTP-compatible Platform enrollment and challenge, server-catalog phishing-resistant critical actions, Owner and privileged-role WebAuthn readiness, multiple-method and last-method behavior, independent-device Session inventory, inactivity/absolute expiry, refresh-boundary and precise-revocation behavior, one-time-code and authorized-reset Operator MFA recovery, action-bound step-up, CSRF/CORS/cookie boundaries, direct Platform API denial, capability-filtered navigation, command search, eligibility-gated Product entry, authority-free typed cross-host links, return-to-product navigation, configured out-of-Console Ownership Recovery rehearsal, and Operations Inbox pass end-to-end acceptance;
+4. Needs attention claim, assignment, in-progress work, time-bounded waiting, concurrency, Audit, permission isolation, reminder return, source-confirmed recovery, and no-manual-resolve behavior pass end-to-end acceptance without creating a duplicate incident or task authority;
+5. Identity-provider/local-MFA separation, WebAuthn-preferred/TOTP-compatible Platform enrollment and challenge, server-catalog phishing-resistant critical actions, Owner and privileged-role WebAuthn readiness, multiple-method and last-method behavior, independent-device Session inventory, inactivity/absolute expiry, refresh-boundary and precise-revocation behavior, one-time-code and authorized-reset Operator MFA recovery, action-bound step-up, CSRF/CORS/cookie boundaries, direct Platform API denial, capability-filtered navigation, command search, eligibility-gated Product entry, authority-free typed cross-host links, return-to-product navigation, configured out-of-Console Ownership Recovery rehearsal, Overview, and Needs attention pass end-to-end acceptance;
 6. Support Access default-denial, Workspace Owner grant/revoke/history, named-Operator/case/scope/expiry binding, separate Platform permission, read-only projection, secret exclusion, revocation races, and no-impersonation behavior pass direct API and cross-application browser acceptance;
 7. the full old-to-new route/component/copy/data migration matrix contains no unresolved Platform surface, placeholder page, decorative KPI replacement, embedded legacy page, duplicate mutation authority, or undeclared retirement item;
 8. `apps/admin` and `apps/platform` builds prove there is no app-to-app source import, no Platform bundle/module in the Product Application artifact, and no Product page in the Console artifact;
@@ -381,7 +382,7 @@ Each wave may be committed separately, but no commit may mix unrelated pre-exist
 Use staged verification rather than repeatedly running the full monorepo gate:
 
 1. Targeted unit/component tests while editing a domain.
-2. Targeted API integration tests with the repository's 60-second timeout rule for narrow backend nodes.
+2. Targeted API integration tests start with a 60-second diagnostic timeout for narrow backend nodes; extend it when database, integration, or other inherently slow tests need time to expose a real result.
 3. `pnpm admin:check` for Admin-only waves, `pnpm api:check` for API-only waves, and `pnpm check` only at cross-app release boundaries.
 4. `pnpm code-review-engine --scope changed --base HEAD --format human` at wave boundaries.
 5. GitNexus impact before modifying symbols, and `detect_changes()` before every commit. If the service is unavailable, record the failure and do not claim graph verification.
@@ -394,7 +395,7 @@ A requirement is done only when:
 - the domain and API behavior in the owning spec is implemented without page-local duplicate contracts;
 - `apps/platform` is the only Platform Console frontend and `apps/admin` contains no Platform route, navigation, page, Platform API client, or compatibility export; neither application imports source from the other;
 - the official Platform Host is enabled only after the complete frontend cutover gate passes, the same release removes every Platform UI surface from `apps/admin`, and rollback uses the previous complete artifacts rather than per-route flags or embedded legacy pages;
-- the Platform Console frontend opens Operations Inbox at `/`, contains no `/system` or `/platform` route prefix, uses non-localized stable path segments, and retains no old frontend aliases or redirects;
+- the Platform Console frontend opens Overview at `/` and Needs attention at `/attention`, matches the canonical route inventory, contains no `/system` or `/platform` route prefix, and retains no old frontend aliases or redirects;
 - the Product Application exposes “Open Platform Console” only from the minimal eligibility projection, transfers no Product authority or Workspace context, and direct Platform Host/API tests prove identity, current operator status, MFA, Platform Session, and exact Platform Permission are independently enforced; the Console always retains a localized return-to-product link;
 - migrations and backfills succeed against a representative existing database;
 - the UI has all required states and interaction paths;
@@ -413,12 +414,12 @@ A requirement is done only when:
 - every configurable Operational Signal uses a typed owning-domain policy, revision-bound coverage preview, action-scoped permission, Audit evidence, and policy-version attribution; mandatory invariants explain why they cannot be disabled, while arbitrary expressions, cross-domain rules, retroactive history edits, and no-action metric alerts do not exist;
 - no template-derived surface introduces Clerk, Recharts, a second icon/form/theme/loading stack, demo data, untranslated template copy, or a parallel shell; adopted source retains provenance and uses the Arclayer visual and application contracts;
 - Light, Dark, and Follow system are the only theme preferences; both applications consume the same semantic tokens, first paint uses the resolved preference, and Platform Console code contains no template palette, accent picker, foreign font scale, raw page palette, gradient Dashboard, glow, or glass skin;
-- Sidebar, command search, breadcrumbs, and mobile navigation expose the same enabled and authorized Platform Capabilities; only the active domain expands by default, Operations Inbox remains first, and no route-specific nested navigation Shell survives;
+- Sidebar, command search, breadcrumbs, and mobile navigation expose the same enabled and authorized Platform Capabilities; only the active domain expands by default, Overview remains first, and no route-specific nested navigation Shell survives;
 - Command Center providers are build-trusted, capability-selected, server-authorized, redacted, cancellable, and independently fallible; recent history contains destinations rather than queries, no universal data index or hidden-result disclosure exists, and workflow results cannot execute mutations directly;
-- Operations Inbox triage supports permissioned claim, assignment, in-progress work, and time-bounded reminders with revision conflicts and Audit evidence, while assignment grants no source access, reminders remain discoverable, only owning-domain facts resolve Signals, and no dismiss/manual-close or duplicate incident lifecycle exists;
+- Needs attention supports permissioned claim, assignment, in-progress work, and time-bounded waiting with revision conflicts and Audit evidence, while assignment grants no source access, waiting work remains discoverable, only owning-domain facts confirm recovery, and no manual-resolve or duplicate incident lifecycle exists;
 - no configuration is duplicated in a global Settings area, and no domain Overview exists without real work, readiness, or health content;
 - no tenant directory or legacy settings route retains a commercial mutation form owned by the Commerce Platform Domain;
-- Tenant Governance opens Workspaces by default, keeps Users and Projects as peer views, and retains no Tenant Overview, entity-shaped domain split, or duplicated Workspace Administration surface;
+- Workspaces opens the Workspace queue by default, keeps Users and Projects as peer views, and retains no generic Overview, entity-shaped domain split, or duplicated Workspace Settings surface;
 - Identity & Access opens the Platform team queue, retains no legacy Access/OAuth settings duplication, and does not absorb Tenant Governance or Workspace Administration authority;
 - no Platform Operator Invitation grants entry eligibility, an effective role, permission, or session before the intended identity accepts and completes mandatory MFA; successful activation commits operator status and intended roles atomically, while stale or failed acceptance leaves no partial authority;
 - only the Instance Owner or an active operator with explicit invitation permission may invite, the combined revision-bound roles stay within server-authoritative Delegable Platform Authority at send and acceptance time, and no role composition, stale revision, direct API call, or silent narrowing can escalate authority;
@@ -436,7 +437,7 @@ A requirement is done only when:
 - external identity providers authenticate identity only; their MFA prompts, assurance claims, Sessions, and remembered-device state cannot satisfy local Platform enrollment, Session MFA, Step-up, or critical WebAuthn, and the Console exposes no trust or downgrade switch;
 - customer-authored content remains unavailable from ordinary Tenant Governance and every Platform Role, including Instance Owner; only a matching Workspace Owner Support Access Grant plus exact Platform permission authorizes a read-only support projection, with customer-visible history, immediate revocation, secret exclusion, and no Product Session, membership, impersonation, approval, or mutation path;
 - AI services opens an actionable AI task queue, retains no legacy Agent settings wall or decorative usage cards, and cannot convert Platform operation authority into a Workspace approval or content mutation;
-- Site delivery opens an actionable delivery-issue queue, retains no legacy Domains/Storage settings duplication, and cannot convert Platform operation authority into Project content or publication authority;
+- Hosting & Domains opens an actionable delivery-issue queue, retains no legacy Domains/Storage settings duplication, and cannot convert Platform operation authority into Project content or publication authority;
 - Messages & feedback opens the User feedback queue, retains no legacy Feedback/Notifications/Email route split, and uses one delivery ledger without allowing delivery retry to replay or mutate the source-domain event;
 - Extensions opens the Installed list, retains no legacy Plugins card page or duplicated Connector configuration, and never treats instance installation as automatic Workspace activation, permission grant, or consuming-domain enablement;
 - Monitoring & audit opens Requests & errors, retains no old Audit Log tabs or separate Observability route family, and never uses telemetry sampling, aggregation, retention, or permissions as Audit evidence;

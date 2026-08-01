@@ -13,48 +13,15 @@ import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
-import { Route as AuthenticatedTenantsRouteImport } from './routes/_authenticated/tenants'
-import { Route as AuthenticatedSiteDeliveryRouteImport } from './routes/_authenticated/site-delivery'
-import { Route as AuthenticatedExtensionsRouteImport } from './routes/_authenticated/extensions'
-import { Route as AuthenticatedCommunicationsRouteImport } from './routes/_authenticated/communications'
-import { Route as AuthenticatedCommerceRouteImport } from './routes/_authenticated/commerce'
-import { Route as AuthenticatedAiRouteImport } from './routes/_authenticated/ai'
-import { Route as AuthenticatedTenantsIndexRouteImport } from './routes/_authenticated/tenants/index'
-import { Route as AuthenticatedSiteDeliveryIndexRouteImport } from './routes/_authenticated/site-delivery/index'
-import { Route as AuthenticatedExtensionsIndexRouteImport } from './routes/_authenticated/extensions/index'
-import { Route as AuthenticatedCommunicationsIndexRouteImport } from './routes/_authenticated/communications/index'
-import { Route as AuthenticatedCommerceIndexRouteImport } from './routes/_authenticated/commerce/index'
-import { Route as AuthenticatedAiIndexRouteImport } from './routes/_authenticated/ai/index'
-import { Route as AuthenticatedSiteDeliveryStorageRouteImport } from './routes/_authenticated/site-delivery/storage'
-import { Route as AuthenticatedSiteDeliveryRulesRouteImport } from './routes/_authenticated/site-delivery/rules'
-import { Route as AuthenticatedSiteDeliveryIssuesRouteImport } from './routes/_authenticated/site-delivery/issues'
-import { Route as AuthenticatedSiteDeliveryDomainsRouteImport } from './routes/_authenticated/site-delivery/domains'
+import { Route as AuthenticatedAttentionRouteImport } from './routes/_authenticated/attention'
+import { Route as AuthenticatedWorkspacesIndexRouteImport } from './routes/_authenticated/workspaces/index'
 import { Route as AuthenticatedOperationsJobsRouteImport } from './routes/_authenticated/operations/jobs'
 import { Route as AuthenticatedMonitoringRequestsRouteImport } from './routes/_authenticated/monitoring/requests'
 import { Route as AuthenticatedMonitoringPerformanceRouteImport } from './routes/_authenticated/monitoring/performance'
 import { Route as AuthenticatedMonitoringAuditRouteImport } from './routes/_authenticated/monitoring/audit'
 import { Route as AuthenticatedMonitoringAiUsageRouteImport } from './routes/_authenticated/monitoring/ai-usage'
 import { Route as AuthenticatedMonitoringActivityRouteImport } from './routes/_authenticated/monitoring/activity'
-import { Route as AuthenticatedExtensionsInstalledRouteImport } from './routes/_authenticated/extensions/installed'
-import { Route as AuthenticatedExtensionsHistoryRouteImport } from './routes/_authenticated/extensions/history'
-import { Route as AuthenticatedExtensionsConnectionsRouteImport } from './routes/_authenticated/extensions/connections'
-import { Route as AuthenticatedExtensionsCatalogRouteImport } from './routes/_authenticated/extensions/catalog'
-import { Route as AuthenticatedCommunicationsTemplatesRouteImport } from './routes/_authenticated/communications/templates'
-import { Route as AuthenticatedCommunicationsFeedbackRouteImport } from './routes/_authenticated/communications/feedback'
-import { Route as AuthenticatedCommunicationsEmailRouteImport } from './routes/_authenticated/communications/email'
-import { Route as AuthenticatedCommunicationsCampaignsRouteImport } from './routes/_authenticated/communications/campaigns'
-import { Route as AuthenticatedCommerceSubscriptionsRouteImport } from './routes/_authenticated/commerce/subscriptions'
-import { Route as AuthenticatedCommercePlansRouteImport } from './routes/_authenticated/commerce/plans'
-import { Route as AuthenticatedAiTasksRouteImport } from './routes/_authenticated/ai/tasks'
-import { Route as AuthenticatedAiProvidersRouteImport } from './routes/_authenticated/ai/providers'
-import { Route as AuthenticatedAiAssistantsRouteImport } from './routes/_authenticated/ai/assistants'
 import { Route as AuthenticatedAccessTeamRouteImport } from './routes/_authenticated/access/team'
-import { Route as AuthenticatedAccessSignInRouteImport } from './routes/_authenticated/access/sign-in'
-import { Route as AuthenticatedAccessSessionsRouteImport } from './routes/_authenticated/access/sessions'
-import { Route as AuthenticatedAccessRolesRouteImport } from './routes/_authenticated/access/roles'
-import { Route as AuthenticatedTenantsWorkspacesIndexRouteImport } from './routes/_authenticated/tenants/workspaces/index'
-import { Route as AuthenticatedTenantsUsersIndexRouteImport } from './routes/_authenticated/tenants/users/index'
-import { Route as AuthenticatedTenantsProjectsIndexRouteImport } from './routes/_authenticated/tenants/projects/index'
 import { Route as AuthenticatedAccessTeamInvitationsInvitationIdRouteImport } from './routes/_authenticated/access/team/invitations/$invitationId'
 
 const SignInRoute = SignInRouteImport.update({
@@ -76,96 +43,16 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedTenantsRoute = AuthenticatedTenantsRouteImport.update({
-  id: '/tenants',
-  path: '/tenants',
+const AuthenticatedAttentionRoute = AuthenticatedAttentionRouteImport.update({
+  id: '/attention',
+  path: '/attention',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedSiteDeliveryRoute =
-  AuthenticatedSiteDeliveryRouteImport.update({
-    id: '/site-delivery',
-    path: '/site-delivery',
+const AuthenticatedWorkspacesIndexRoute =
+  AuthenticatedWorkspacesIndexRouteImport.update({
+    id: '/workspaces/',
+    path: '/workspaces/',
     getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedExtensionsRoute = AuthenticatedExtensionsRouteImport.update({
-  id: '/extensions',
-  path: '/extensions',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedCommunicationsRoute =
-  AuthenticatedCommunicationsRouteImport.update({
-    id: '/communications',
-    path: '/communications',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedCommerceRoute = AuthenticatedCommerceRouteImport.update({
-  id: '/commerce',
-  path: '/commerce',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedAiRoute = AuthenticatedAiRouteImport.update({
-  id: '/ai',
-  path: '/ai',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedTenantsIndexRoute =
-  AuthenticatedTenantsIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedTenantsRoute,
-  } as any)
-const AuthenticatedSiteDeliveryIndexRoute =
-  AuthenticatedSiteDeliveryIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedSiteDeliveryRoute,
-  } as any)
-const AuthenticatedExtensionsIndexRoute =
-  AuthenticatedExtensionsIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedExtensionsRoute,
-  } as any)
-const AuthenticatedCommunicationsIndexRoute =
-  AuthenticatedCommunicationsIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedCommunicationsRoute,
-  } as any)
-const AuthenticatedCommerceIndexRoute =
-  AuthenticatedCommerceIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedCommerceRoute,
-  } as any)
-const AuthenticatedAiIndexRoute = AuthenticatedAiIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthenticatedAiRoute,
-} as any)
-const AuthenticatedSiteDeliveryStorageRoute =
-  AuthenticatedSiteDeliveryStorageRouteImport.update({
-    id: '/storage',
-    path: '/storage',
-    getParentRoute: () => AuthenticatedSiteDeliveryRoute,
-  } as any)
-const AuthenticatedSiteDeliveryRulesRoute =
-  AuthenticatedSiteDeliveryRulesRouteImport.update({
-    id: '/rules',
-    path: '/rules',
-    getParentRoute: () => AuthenticatedSiteDeliveryRoute,
-  } as any)
-const AuthenticatedSiteDeliveryIssuesRoute =
-  AuthenticatedSiteDeliveryIssuesRouteImport.update({
-    id: '/issues',
-    path: '/issues',
-    getParentRoute: () => AuthenticatedSiteDeliveryRoute,
-  } as any)
-const AuthenticatedSiteDeliveryDomainsRoute =
-  AuthenticatedSiteDeliveryDomainsRouteImport.update({
-    id: '/domains',
-    path: '/domains',
-    getParentRoute: () => AuthenticatedSiteDeliveryRoute,
   } as any)
 const AuthenticatedOperationsJobsRoute =
   AuthenticatedOperationsJobsRouteImport.update({
@@ -203,124 +90,11 @@ const AuthenticatedMonitoringActivityRoute =
     path: '/monitoring/activity',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedExtensionsInstalledRoute =
-  AuthenticatedExtensionsInstalledRouteImport.update({
-    id: '/installed',
-    path: '/installed',
-    getParentRoute: () => AuthenticatedExtensionsRoute,
-  } as any)
-const AuthenticatedExtensionsHistoryRoute =
-  AuthenticatedExtensionsHistoryRouteImport.update({
-    id: '/history',
-    path: '/history',
-    getParentRoute: () => AuthenticatedExtensionsRoute,
-  } as any)
-const AuthenticatedExtensionsConnectionsRoute =
-  AuthenticatedExtensionsConnectionsRouteImport.update({
-    id: '/connections',
-    path: '/connections',
-    getParentRoute: () => AuthenticatedExtensionsRoute,
-  } as any)
-const AuthenticatedExtensionsCatalogRoute =
-  AuthenticatedExtensionsCatalogRouteImport.update({
-    id: '/catalog',
-    path: '/catalog',
-    getParentRoute: () => AuthenticatedExtensionsRoute,
-  } as any)
-const AuthenticatedCommunicationsTemplatesRoute =
-  AuthenticatedCommunicationsTemplatesRouteImport.update({
-    id: '/templates',
-    path: '/templates',
-    getParentRoute: () => AuthenticatedCommunicationsRoute,
-  } as any)
-const AuthenticatedCommunicationsFeedbackRoute =
-  AuthenticatedCommunicationsFeedbackRouteImport.update({
-    id: '/feedback',
-    path: '/feedback',
-    getParentRoute: () => AuthenticatedCommunicationsRoute,
-  } as any)
-const AuthenticatedCommunicationsEmailRoute =
-  AuthenticatedCommunicationsEmailRouteImport.update({
-    id: '/email',
-    path: '/email',
-    getParentRoute: () => AuthenticatedCommunicationsRoute,
-  } as any)
-const AuthenticatedCommunicationsCampaignsRoute =
-  AuthenticatedCommunicationsCampaignsRouteImport.update({
-    id: '/campaigns',
-    path: '/campaigns',
-    getParentRoute: () => AuthenticatedCommunicationsRoute,
-  } as any)
-const AuthenticatedCommerceSubscriptionsRoute =
-  AuthenticatedCommerceSubscriptionsRouteImport.update({
-    id: '/subscriptions',
-    path: '/subscriptions',
-    getParentRoute: () => AuthenticatedCommerceRoute,
-  } as any)
-const AuthenticatedCommercePlansRoute =
-  AuthenticatedCommercePlansRouteImport.update({
-    id: '/plans',
-    path: '/plans',
-    getParentRoute: () => AuthenticatedCommerceRoute,
-  } as any)
-const AuthenticatedAiTasksRoute = AuthenticatedAiTasksRouteImport.update({
-  id: '/tasks',
-  path: '/tasks',
-  getParentRoute: () => AuthenticatedAiRoute,
-} as any)
-const AuthenticatedAiProvidersRoute =
-  AuthenticatedAiProvidersRouteImport.update({
-    id: '/providers',
-    path: '/providers',
-    getParentRoute: () => AuthenticatedAiRoute,
-  } as any)
-const AuthenticatedAiAssistantsRoute =
-  AuthenticatedAiAssistantsRouteImport.update({
-    id: '/assistants',
-    path: '/assistants',
-    getParentRoute: () => AuthenticatedAiRoute,
-  } as any)
 const AuthenticatedAccessTeamRoute = AuthenticatedAccessTeamRouteImport.update({
   id: '/access/team',
   path: '/access/team',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedAccessSignInRoute =
-  AuthenticatedAccessSignInRouteImport.update({
-    id: '/access/sign-in',
-    path: '/access/sign-in',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedAccessSessionsRoute =
-  AuthenticatedAccessSessionsRouteImport.update({
-    id: '/access/sessions',
-    path: '/access/sessions',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedAccessRolesRoute =
-  AuthenticatedAccessRolesRouteImport.update({
-    id: '/access/roles',
-    path: '/access/roles',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedTenantsWorkspacesIndexRoute =
-  AuthenticatedTenantsWorkspacesIndexRouteImport.update({
-    id: '/workspaces/',
-    path: '/workspaces/',
-    getParentRoute: () => AuthenticatedTenantsRoute,
-  } as any)
-const AuthenticatedTenantsUsersIndexRoute =
-  AuthenticatedTenantsUsersIndexRouteImport.update({
-    id: '/users/',
-    path: '/users/',
-    getParentRoute: () => AuthenticatedTenantsRoute,
-  } as any)
-const AuthenticatedTenantsProjectsIndexRoute =
-  AuthenticatedTenantsProjectsIndexRouteImport.update({
-    id: '/projects/',
-    path: '/projects/',
-    getParentRoute: () => AuthenticatedTenantsRoute,
-  } as any)
 const AuthenticatedAccessTeamInvitationsInvitationIdRoute =
   AuthenticatedAccessTeamInvitationsInvitationIdRouteImport.update({
     id: '/invitations/$invitationId',
@@ -332,90 +106,30 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/setup': typeof SetupRoute
   '/sign-in': typeof SignInRoute
-  '/ai': typeof AuthenticatedAiRouteWithChildren
-  '/commerce': typeof AuthenticatedCommerceRouteWithChildren
-  '/communications': typeof AuthenticatedCommunicationsRouteWithChildren
-  '/extensions': typeof AuthenticatedExtensionsRouteWithChildren
-  '/site-delivery': typeof AuthenticatedSiteDeliveryRouteWithChildren
-  '/tenants': typeof AuthenticatedTenantsRouteWithChildren
-  '/access/roles': typeof AuthenticatedAccessRolesRoute
-  '/access/sessions': typeof AuthenticatedAccessSessionsRoute
-  '/access/sign-in': typeof AuthenticatedAccessSignInRoute
+  '/attention': typeof AuthenticatedAttentionRoute
   '/access/team': typeof AuthenticatedAccessTeamRouteWithChildren
-  '/ai/assistants': typeof AuthenticatedAiAssistantsRoute
-  '/ai/providers': typeof AuthenticatedAiProvidersRoute
-  '/ai/tasks': typeof AuthenticatedAiTasksRoute
-  '/commerce/plans': typeof AuthenticatedCommercePlansRoute
-  '/commerce/subscriptions': typeof AuthenticatedCommerceSubscriptionsRoute
-  '/communications/campaigns': typeof AuthenticatedCommunicationsCampaignsRoute
-  '/communications/email': typeof AuthenticatedCommunicationsEmailRoute
-  '/communications/feedback': typeof AuthenticatedCommunicationsFeedbackRoute
-  '/communications/templates': typeof AuthenticatedCommunicationsTemplatesRoute
-  '/extensions/catalog': typeof AuthenticatedExtensionsCatalogRoute
-  '/extensions/connections': typeof AuthenticatedExtensionsConnectionsRoute
-  '/extensions/history': typeof AuthenticatedExtensionsHistoryRoute
-  '/extensions/installed': typeof AuthenticatedExtensionsInstalledRoute
   '/monitoring/activity': typeof AuthenticatedMonitoringActivityRoute
   '/monitoring/ai-usage': typeof AuthenticatedMonitoringAiUsageRoute
   '/monitoring/audit': typeof AuthenticatedMonitoringAuditRoute
   '/monitoring/performance': typeof AuthenticatedMonitoringPerformanceRoute
   '/monitoring/requests': typeof AuthenticatedMonitoringRequestsRoute
   '/operations/jobs': typeof AuthenticatedOperationsJobsRoute
-  '/site-delivery/domains': typeof AuthenticatedSiteDeliveryDomainsRoute
-  '/site-delivery/issues': typeof AuthenticatedSiteDeliveryIssuesRoute
-  '/site-delivery/rules': typeof AuthenticatedSiteDeliveryRulesRoute
-  '/site-delivery/storage': typeof AuthenticatedSiteDeliveryStorageRoute
-  '/ai/': typeof AuthenticatedAiIndexRoute
-  '/commerce/': typeof AuthenticatedCommerceIndexRoute
-  '/communications/': typeof AuthenticatedCommunicationsIndexRoute
-  '/extensions/': typeof AuthenticatedExtensionsIndexRoute
-  '/site-delivery/': typeof AuthenticatedSiteDeliveryIndexRoute
-  '/tenants/': typeof AuthenticatedTenantsIndexRoute
-  '/tenants/projects/': typeof AuthenticatedTenantsProjectsIndexRoute
-  '/tenants/users/': typeof AuthenticatedTenantsUsersIndexRoute
-  '/tenants/workspaces/': typeof AuthenticatedTenantsWorkspacesIndexRoute
+  '/workspaces/': typeof AuthenticatedWorkspacesIndexRoute
   '/access/team/invitations/$invitationId': typeof AuthenticatedAccessTeamInvitationsInvitationIdRoute
 }
 export interface FileRoutesByTo {
   '/setup': typeof SetupRoute
   '/sign-in': typeof SignInRoute
+  '/attention': typeof AuthenticatedAttentionRoute
   '/': typeof AuthenticatedIndexRoute
-  '/access/roles': typeof AuthenticatedAccessRolesRoute
-  '/access/sessions': typeof AuthenticatedAccessSessionsRoute
-  '/access/sign-in': typeof AuthenticatedAccessSignInRoute
   '/access/team': typeof AuthenticatedAccessTeamRouteWithChildren
-  '/ai/assistants': typeof AuthenticatedAiAssistantsRoute
-  '/ai/providers': typeof AuthenticatedAiProvidersRoute
-  '/ai/tasks': typeof AuthenticatedAiTasksRoute
-  '/commerce/plans': typeof AuthenticatedCommercePlansRoute
-  '/commerce/subscriptions': typeof AuthenticatedCommerceSubscriptionsRoute
-  '/communications/campaigns': typeof AuthenticatedCommunicationsCampaignsRoute
-  '/communications/email': typeof AuthenticatedCommunicationsEmailRoute
-  '/communications/feedback': typeof AuthenticatedCommunicationsFeedbackRoute
-  '/communications/templates': typeof AuthenticatedCommunicationsTemplatesRoute
-  '/extensions/catalog': typeof AuthenticatedExtensionsCatalogRoute
-  '/extensions/connections': typeof AuthenticatedExtensionsConnectionsRoute
-  '/extensions/history': typeof AuthenticatedExtensionsHistoryRoute
-  '/extensions/installed': typeof AuthenticatedExtensionsInstalledRoute
   '/monitoring/activity': typeof AuthenticatedMonitoringActivityRoute
   '/monitoring/ai-usage': typeof AuthenticatedMonitoringAiUsageRoute
   '/monitoring/audit': typeof AuthenticatedMonitoringAuditRoute
   '/monitoring/performance': typeof AuthenticatedMonitoringPerformanceRoute
   '/monitoring/requests': typeof AuthenticatedMonitoringRequestsRoute
   '/operations/jobs': typeof AuthenticatedOperationsJobsRoute
-  '/site-delivery/domains': typeof AuthenticatedSiteDeliveryDomainsRoute
-  '/site-delivery/issues': typeof AuthenticatedSiteDeliveryIssuesRoute
-  '/site-delivery/rules': typeof AuthenticatedSiteDeliveryRulesRoute
-  '/site-delivery/storage': typeof AuthenticatedSiteDeliveryStorageRoute
-  '/ai': typeof AuthenticatedAiIndexRoute
-  '/commerce': typeof AuthenticatedCommerceIndexRoute
-  '/communications': typeof AuthenticatedCommunicationsIndexRoute
-  '/extensions': typeof AuthenticatedExtensionsIndexRoute
-  '/site-delivery': typeof AuthenticatedSiteDeliveryIndexRoute
-  '/tenants': typeof AuthenticatedTenantsIndexRoute
-  '/tenants/projects': typeof AuthenticatedTenantsProjectsIndexRoute
-  '/tenants/users': typeof AuthenticatedTenantsUsersIndexRoute
-  '/tenants/workspaces': typeof AuthenticatedTenantsWorkspacesIndexRoute
+  '/workspaces': typeof AuthenticatedWorkspacesIndexRoute
   '/access/team/invitations/$invitationId': typeof AuthenticatedAccessTeamInvitationsInvitationIdRoute
 }
 export interface FileRoutesById {
@@ -423,49 +137,16 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/setup': typeof SetupRoute
   '/sign-in': typeof SignInRoute
-  '/_authenticated/ai': typeof AuthenticatedAiRouteWithChildren
-  '/_authenticated/commerce': typeof AuthenticatedCommerceRouteWithChildren
-  '/_authenticated/communications': typeof AuthenticatedCommunicationsRouteWithChildren
-  '/_authenticated/extensions': typeof AuthenticatedExtensionsRouteWithChildren
-  '/_authenticated/site-delivery': typeof AuthenticatedSiteDeliveryRouteWithChildren
-  '/_authenticated/tenants': typeof AuthenticatedTenantsRouteWithChildren
+  '/_authenticated/attention': typeof AuthenticatedAttentionRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
-  '/_authenticated/access/roles': typeof AuthenticatedAccessRolesRoute
-  '/_authenticated/access/sessions': typeof AuthenticatedAccessSessionsRoute
-  '/_authenticated/access/sign-in': typeof AuthenticatedAccessSignInRoute
   '/_authenticated/access/team': typeof AuthenticatedAccessTeamRouteWithChildren
-  '/_authenticated/ai/assistants': typeof AuthenticatedAiAssistantsRoute
-  '/_authenticated/ai/providers': typeof AuthenticatedAiProvidersRoute
-  '/_authenticated/ai/tasks': typeof AuthenticatedAiTasksRoute
-  '/_authenticated/commerce/plans': typeof AuthenticatedCommercePlansRoute
-  '/_authenticated/commerce/subscriptions': typeof AuthenticatedCommerceSubscriptionsRoute
-  '/_authenticated/communications/campaigns': typeof AuthenticatedCommunicationsCampaignsRoute
-  '/_authenticated/communications/email': typeof AuthenticatedCommunicationsEmailRoute
-  '/_authenticated/communications/feedback': typeof AuthenticatedCommunicationsFeedbackRoute
-  '/_authenticated/communications/templates': typeof AuthenticatedCommunicationsTemplatesRoute
-  '/_authenticated/extensions/catalog': typeof AuthenticatedExtensionsCatalogRoute
-  '/_authenticated/extensions/connections': typeof AuthenticatedExtensionsConnectionsRoute
-  '/_authenticated/extensions/history': typeof AuthenticatedExtensionsHistoryRoute
-  '/_authenticated/extensions/installed': typeof AuthenticatedExtensionsInstalledRoute
   '/_authenticated/monitoring/activity': typeof AuthenticatedMonitoringActivityRoute
   '/_authenticated/monitoring/ai-usage': typeof AuthenticatedMonitoringAiUsageRoute
   '/_authenticated/monitoring/audit': typeof AuthenticatedMonitoringAuditRoute
   '/_authenticated/monitoring/performance': typeof AuthenticatedMonitoringPerformanceRoute
   '/_authenticated/monitoring/requests': typeof AuthenticatedMonitoringRequestsRoute
   '/_authenticated/operations/jobs': typeof AuthenticatedOperationsJobsRoute
-  '/_authenticated/site-delivery/domains': typeof AuthenticatedSiteDeliveryDomainsRoute
-  '/_authenticated/site-delivery/issues': typeof AuthenticatedSiteDeliveryIssuesRoute
-  '/_authenticated/site-delivery/rules': typeof AuthenticatedSiteDeliveryRulesRoute
-  '/_authenticated/site-delivery/storage': typeof AuthenticatedSiteDeliveryStorageRoute
-  '/_authenticated/ai/': typeof AuthenticatedAiIndexRoute
-  '/_authenticated/commerce/': typeof AuthenticatedCommerceIndexRoute
-  '/_authenticated/communications/': typeof AuthenticatedCommunicationsIndexRoute
-  '/_authenticated/extensions/': typeof AuthenticatedExtensionsIndexRoute
-  '/_authenticated/site-delivery/': typeof AuthenticatedSiteDeliveryIndexRoute
-  '/_authenticated/tenants/': typeof AuthenticatedTenantsIndexRoute
-  '/_authenticated/tenants/projects/': typeof AuthenticatedTenantsProjectsIndexRoute
-  '/_authenticated/tenants/users/': typeof AuthenticatedTenantsUsersIndexRoute
-  '/_authenticated/tenants/workspaces/': typeof AuthenticatedTenantsWorkspacesIndexRoute
+  '/_authenticated/workspaces/': typeof AuthenticatedWorkspacesIndexRoute
   '/_authenticated/access/team/invitations/$invitationId': typeof AuthenticatedAccessTeamInvitationsInvitationIdRoute
 }
 export interface FileRouteTypes {
@@ -474,139 +155,46 @@ export interface FileRouteTypes {
     | '/'
     | '/setup'
     | '/sign-in'
-    | '/ai'
-    | '/commerce'
-    | '/communications'
-    | '/extensions'
-    | '/site-delivery'
-    | '/tenants'
-    | '/access/roles'
-    | '/access/sessions'
-    | '/access/sign-in'
+    | '/attention'
     | '/access/team'
-    | '/ai/assistants'
-    | '/ai/providers'
-    | '/ai/tasks'
-    | '/commerce/plans'
-    | '/commerce/subscriptions'
-    | '/communications/campaigns'
-    | '/communications/email'
-    | '/communications/feedback'
-    | '/communications/templates'
-    | '/extensions/catalog'
-    | '/extensions/connections'
-    | '/extensions/history'
-    | '/extensions/installed'
     | '/monitoring/activity'
     | '/monitoring/ai-usage'
     | '/monitoring/audit'
     | '/monitoring/performance'
     | '/monitoring/requests'
     | '/operations/jobs'
-    | '/site-delivery/domains'
-    | '/site-delivery/issues'
-    | '/site-delivery/rules'
-    | '/site-delivery/storage'
-    | '/ai/'
-    | '/commerce/'
-    | '/communications/'
-    | '/extensions/'
-    | '/site-delivery/'
-    | '/tenants/'
-    | '/tenants/projects/'
-    | '/tenants/users/'
-    | '/tenants/workspaces/'
+    | '/workspaces/'
     | '/access/team/invitations/$invitationId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/setup'
     | '/sign-in'
+    | '/attention'
     | '/'
-    | '/access/roles'
-    | '/access/sessions'
-    | '/access/sign-in'
     | '/access/team'
-    | '/ai/assistants'
-    | '/ai/providers'
-    | '/ai/tasks'
-    | '/commerce/plans'
-    | '/commerce/subscriptions'
-    | '/communications/campaigns'
-    | '/communications/email'
-    | '/communications/feedback'
-    | '/communications/templates'
-    | '/extensions/catalog'
-    | '/extensions/connections'
-    | '/extensions/history'
-    | '/extensions/installed'
     | '/monitoring/activity'
     | '/monitoring/ai-usage'
     | '/monitoring/audit'
     | '/monitoring/performance'
     | '/monitoring/requests'
     | '/operations/jobs'
-    | '/site-delivery/domains'
-    | '/site-delivery/issues'
-    | '/site-delivery/rules'
-    | '/site-delivery/storage'
-    | '/ai'
-    | '/commerce'
-    | '/communications'
-    | '/extensions'
-    | '/site-delivery'
-    | '/tenants'
-    | '/tenants/projects'
-    | '/tenants/users'
-    | '/tenants/workspaces'
+    | '/workspaces'
     | '/access/team/invitations/$invitationId'
   id:
     | '__root__'
     | '/_authenticated'
     | '/setup'
     | '/sign-in'
-    | '/_authenticated/ai'
-    | '/_authenticated/commerce'
-    | '/_authenticated/communications'
-    | '/_authenticated/extensions'
-    | '/_authenticated/site-delivery'
-    | '/_authenticated/tenants'
+    | '/_authenticated/attention'
     | '/_authenticated/'
-    | '/_authenticated/access/roles'
-    | '/_authenticated/access/sessions'
-    | '/_authenticated/access/sign-in'
     | '/_authenticated/access/team'
-    | '/_authenticated/ai/assistants'
-    | '/_authenticated/ai/providers'
-    | '/_authenticated/ai/tasks'
-    | '/_authenticated/commerce/plans'
-    | '/_authenticated/commerce/subscriptions'
-    | '/_authenticated/communications/campaigns'
-    | '/_authenticated/communications/email'
-    | '/_authenticated/communications/feedback'
-    | '/_authenticated/communications/templates'
-    | '/_authenticated/extensions/catalog'
-    | '/_authenticated/extensions/connections'
-    | '/_authenticated/extensions/history'
-    | '/_authenticated/extensions/installed'
     | '/_authenticated/monitoring/activity'
     | '/_authenticated/monitoring/ai-usage'
     | '/_authenticated/monitoring/audit'
     | '/_authenticated/monitoring/performance'
     | '/_authenticated/monitoring/requests'
     | '/_authenticated/operations/jobs'
-    | '/_authenticated/site-delivery/domains'
-    | '/_authenticated/site-delivery/issues'
-    | '/_authenticated/site-delivery/rules'
-    | '/_authenticated/site-delivery/storage'
-    | '/_authenticated/ai/'
-    | '/_authenticated/commerce/'
-    | '/_authenticated/communications/'
-    | '/_authenticated/extensions/'
-    | '/_authenticated/site-delivery/'
-    | '/_authenticated/tenants/'
-    | '/_authenticated/tenants/projects/'
-    | '/_authenticated/tenants/users/'
-    | '/_authenticated/tenants/workspaces/'
+    | '/_authenticated/workspaces/'
     | '/_authenticated/access/team/invitations/$invitationId'
   fileRoutesById: FileRoutesById
 }
@@ -646,117 +234,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/tenants': {
-      id: '/_authenticated/tenants'
-      path: '/tenants'
-      fullPath: '/tenants'
-      preLoaderRoute: typeof AuthenticatedTenantsRouteImport
+    '/_authenticated/attention': {
+      id: '/_authenticated/attention'
+      path: '/attention'
+      fullPath: '/attention'
+      preLoaderRoute: typeof AuthenticatedAttentionRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/site-delivery': {
-      id: '/_authenticated/site-delivery'
-      path: '/site-delivery'
-      fullPath: '/site-delivery'
-      preLoaderRoute: typeof AuthenticatedSiteDeliveryRouteImport
+    '/_authenticated/workspaces/': {
+      id: '/_authenticated/workspaces/'
+      path: '/workspaces'
+      fullPath: '/workspaces/'
+      preLoaderRoute: typeof AuthenticatedWorkspacesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/extensions': {
-      id: '/_authenticated/extensions'
-      path: '/extensions'
-      fullPath: '/extensions'
-      preLoaderRoute: typeof AuthenticatedExtensionsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/communications': {
-      id: '/_authenticated/communications'
-      path: '/communications'
-      fullPath: '/communications'
-      preLoaderRoute: typeof AuthenticatedCommunicationsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/commerce': {
-      id: '/_authenticated/commerce'
-      path: '/commerce'
-      fullPath: '/commerce'
-      preLoaderRoute: typeof AuthenticatedCommerceRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/ai': {
-      id: '/_authenticated/ai'
-      path: '/ai'
-      fullPath: '/ai'
-      preLoaderRoute: typeof AuthenticatedAiRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/tenants/': {
-      id: '/_authenticated/tenants/'
-      path: '/'
-      fullPath: '/tenants/'
-      preLoaderRoute: typeof AuthenticatedTenantsIndexRouteImport
-      parentRoute: typeof AuthenticatedTenantsRoute
-    }
-    '/_authenticated/site-delivery/': {
-      id: '/_authenticated/site-delivery/'
-      path: '/'
-      fullPath: '/site-delivery/'
-      preLoaderRoute: typeof AuthenticatedSiteDeliveryIndexRouteImport
-      parentRoute: typeof AuthenticatedSiteDeliveryRoute
-    }
-    '/_authenticated/extensions/': {
-      id: '/_authenticated/extensions/'
-      path: '/'
-      fullPath: '/extensions/'
-      preLoaderRoute: typeof AuthenticatedExtensionsIndexRouteImport
-      parentRoute: typeof AuthenticatedExtensionsRoute
-    }
-    '/_authenticated/communications/': {
-      id: '/_authenticated/communications/'
-      path: '/'
-      fullPath: '/communications/'
-      preLoaderRoute: typeof AuthenticatedCommunicationsIndexRouteImport
-      parentRoute: typeof AuthenticatedCommunicationsRoute
-    }
-    '/_authenticated/commerce/': {
-      id: '/_authenticated/commerce/'
-      path: '/'
-      fullPath: '/commerce/'
-      preLoaderRoute: typeof AuthenticatedCommerceIndexRouteImport
-      parentRoute: typeof AuthenticatedCommerceRoute
-    }
-    '/_authenticated/ai/': {
-      id: '/_authenticated/ai/'
-      path: '/'
-      fullPath: '/ai/'
-      preLoaderRoute: typeof AuthenticatedAiIndexRouteImport
-      parentRoute: typeof AuthenticatedAiRoute
-    }
-    '/_authenticated/site-delivery/storage': {
-      id: '/_authenticated/site-delivery/storage'
-      path: '/storage'
-      fullPath: '/site-delivery/storage'
-      preLoaderRoute: typeof AuthenticatedSiteDeliveryStorageRouteImport
-      parentRoute: typeof AuthenticatedSiteDeliveryRoute
-    }
-    '/_authenticated/site-delivery/rules': {
-      id: '/_authenticated/site-delivery/rules'
-      path: '/rules'
-      fullPath: '/site-delivery/rules'
-      preLoaderRoute: typeof AuthenticatedSiteDeliveryRulesRouteImport
-      parentRoute: typeof AuthenticatedSiteDeliveryRoute
-    }
-    '/_authenticated/site-delivery/issues': {
-      id: '/_authenticated/site-delivery/issues'
-      path: '/issues'
-      fullPath: '/site-delivery/issues'
-      preLoaderRoute: typeof AuthenticatedSiteDeliveryIssuesRouteImport
-      parentRoute: typeof AuthenticatedSiteDeliveryRoute
-    }
-    '/_authenticated/site-delivery/domains': {
-      id: '/_authenticated/site-delivery/domains'
-      path: '/domains'
-      fullPath: '/site-delivery/domains'
-      preLoaderRoute: typeof AuthenticatedSiteDeliveryDomainsRouteImport
-      parentRoute: typeof AuthenticatedSiteDeliveryRoute
     }
     '/_authenticated/operations/jobs': {
       id: '/_authenticated/operations/jobs'
@@ -800,145 +290,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMonitoringActivityRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/extensions/installed': {
-      id: '/_authenticated/extensions/installed'
-      path: '/installed'
-      fullPath: '/extensions/installed'
-      preLoaderRoute: typeof AuthenticatedExtensionsInstalledRouteImport
-      parentRoute: typeof AuthenticatedExtensionsRoute
-    }
-    '/_authenticated/extensions/history': {
-      id: '/_authenticated/extensions/history'
-      path: '/history'
-      fullPath: '/extensions/history'
-      preLoaderRoute: typeof AuthenticatedExtensionsHistoryRouteImport
-      parentRoute: typeof AuthenticatedExtensionsRoute
-    }
-    '/_authenticated/extensions/connections': {
-      id: '/_authenticated/extensions/connections'
-      path: '/connections'
-      fullPath: '/extensions/connections'
-      preLoaderRoute: typeof AuthenticatedExtensionsConnectionsRouteImport
-      parentRoute: typeof AuthenticatedExtensionsRoute
-    }
-    '/_authenticated/extensions/catalog': {
-      id: '/_authenticated/extensions/catalog'
-      path: '/catalog'
-      fullPath: '/extensions/catalog'
-      preLoaderRoute: typeof AuthenticatedExtensionsCatalogRouteImport
-      parentRoute: typeof AuthenticatedExtensionsRoute
-    }
-    '/_authenticated/communications/templates': {
-      id: '/_authenticated/communications/templates'
-      path: '/templates'
-      fullPath: '/communications/templates'
-      preLoaderRoute: typeof AuthenticatedCommunicationsTemplatesRouteImport
-      parentRoute: typeof AuthenticatedCommunicationsRoute
-    }
-    '/_authenticated/communications/feedback': {
-      id: '/_authenticated/communications/feedback'
-      path: '/feedback'
-      fullPath: '/communications/feedback'
-      preLoaderRoute: typeof AuthenticatedCommunicationsFeedbackRouteImport
-      parentRoute: typeof AuthenticatedCommunicationsRoute
-    }
-    '/_authenticated/communications/email': {
-      id: '/_authenticated/communications/email'
-      path: '/email'
-      fullPath: '/communications/email'
-      preLoaderRoute: typeof AuthenticatedCommunicationsEmailRouteImport
-      parentRoute: typeof AuthenticatedCommunicationsRoute
-    }
-    '/_authenticated/communications/campaigns': {
-      id: '/_authenticated/communications/campaigns'
-      path: '/campaigns'
-      fullPath: '/communications/campaigns'
-      preLoaderRoute: typeof AuthenticatedCommunicationsCampaignsRouteImport
-      parentRoute: typeof AuthenticatedCommunicationsRoute
-    }
-    '/_authenticated/commerce/subscriptions': {
-      id: '/_authenticated/commerce/subscriptions'
-      path: '/subscriptions'
-      fullPath: '/commerce/subscriptions'
-      preLoaderRoute: typeof AuthenticatedCommerceSubscriptionsRouteImport
-      parentRoute: typeof AuthenticatedCommerceRoute
-    }
-    '/_authenticated/commerce/plans': {
-      id: '/_authenticated/commerce/plans'
-      path: '/plans'
-      fullPath: '/commerce/plans'
-      preLoaderRoute: typeof AuthenticatedCommercePlansRouteImport
-      parentRoute: typeof AuthenticatedCommerceRoute
-    }
-    '/_authenticated/ai/tasks': {
-      id: '/_authenticated/ai/tasks'
-      path: '/tasks'
-      fullPath: '/ai/tasks'
-      preLoaderRoute: typeof AuthenticatedAiTasksRouteImport
-      parentRoute: typeof AuthenticatedAiRoute
-    }
-    '/_authenticated/ai/providers': {
-      id: '/_authenticated/ai/providers'
-      path: '/providers'
-      fullPath: '/ai/providers'
-      preLoaderRoute: typeof AuthenticatedAiProvidersRouteImport
-      parentRoute: typeof AuthenticatedAiRoute
-    }
-    '/_authenticated/ai/assistants': {
-      id: '/_authenticated/ai/assistants'
-      path: '/assistants'
-      fullPath: '/ai/assistants'
-      preLoaderRoute: typeof AuthenticatedAiAssistantsRouteImport
-      parentRoute: typeof AuthenticatedAiRoute
-    }
     '/_authenticated/access/team': {
       id: '/_authenticated/access/team'
       path: '/access/team'
       fullPath: '/access/team'
       preLoaderRoute: typeof AuthenticatedAccessTeamRouteImport
       parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/access/sign-in': {
-      id: '/_authenticated/access/sign-in'
-      path: '/access/sign-in'
-      fullPath: '/access/sign-in'
-      preLoaderRoute: typeof AuthenticatedAccessSignInRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/access/sessions': {
-      id: '/_authenticated/access/sessions'
-      path: '/access/sessions'
-      fullPath: '/access/sessions'
-      preLoaderRoute: typeof AuthenticatedAccessSessionsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/access/roles': {
-      id: '/_authenticated/access/roles'
-      path: '/access/roles'
-      fullPath: '/access/roles'
-      preLoaderRoute: typeof AuthenticatedAccessRolesRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/tenants/workspaces/': {
-      id: '/_authenticated/tenants/workspaces/'
-      path: '/workspaces'
-      fullPath: '/tenants/workspaces/'
-      preLoaderRoute: typeof AuthenticatedTenantsWorkspacesIndexRouteImport
-      parentRoute: typeof AuthenticatedTenantsRoute
-    }
-    '/_authenticated/tenants/users/': {
-      id: '/_authenticated/tenants/users/'
-      path: '/users'
-      fullPath: '/tenants/users/'
-      preLoaderRoute: typeof AuthenticatedTenantsUsersIndexRouteImport
-      parentRoute: typeof AuthenticatedTenantsRoute
-    }
-    '/_authenticated/tenants/projects/': {
-      id: '/_authenticated/tenants/projects/'
-      path: '/projects'
-      fullPath: '/tenants/projects/'
-      preLoaderRoute: typeof AuthenticatedTenantsProjectsIndexRouteImport
-      parentRoute: typeof AuthenticatedTenantsRoute
     }
     '/_authenticated/access/team/invitations/$invitationId': {
       id: '/_authenticated/access/team/invitations/$invitationId'
@@ -949,136 +306,6 @@ declare module '@tanstack/react-router' {
     }
   }
 }
-
-interface AuthenticatedAiRouteChildren {
-  AuthenticatedAiAssistantsRoute: typeof AuthenticatedAiAssistantsRoute
-  AuthenticatedAiProvidersRoute: typeof AuthenticatedAiProvidersRoute
-  AuthenticatedAiTasksRoute: typeof AuthenticatedAiTasksRoute
-  AuthenticatedAiIndexRoute: typeof AuthenticatedAiIndexRoute
-}
-
-const AuthenticatedAiRouteChildren: AuthenticatedAiRouteChildren = {
-  AuthenticatedAiAssistantsRoute: AuthenticatedAiAssistantsRoute,
-  AuthenticatedAiProvidersRoute: AuthenticatedAiProvidersRoute,
-  AuthenticatedAiTasksRoute: AuthenticatedAiTasksRoute,
-  AuthenticatedAiIndexRoute: AuthenticatedAiIndexRoute,
-}
-
-const AuthenticatedAiRouteWithChildren = AuthenticatedAiRoute._addFileChildren(
-  AuthenticatedAiRouteChildren,
-)
-
-interface AuthenticatedCommerceRouteChildren {
-  AuthenticatedCommercePlansRoute: typeof AuthenticatedCommercePlansRoute
-  AuthenticatedCommerceSubscriptionsRoute: typeof AuthenticatedCommerceSubscriptionsRoute
-  AuthenticatedCommerceIndexRoute: typeof AuthenticatedCommerceIndexRoute
-}
-
-const AuthenticatedCommerceRouteChildren: AuthenticatedCommerceRouteChildren = {
-  AuthenticatedCommercePlansRoute: AuthenticatedCommercePlansRoute,
-  AuthenticatedCommerceSubscriptionsRoute:
-    AuthenticatedCommerceSubscriptionsRoute,
-  AuthenticatedCommerceIndexRoute: AuthenticatedCommerceIndexRoute,
-}
-
-const AuthenticatedCommerceRouteWithChildren =
-  AuthenticatedCommerceRoute._addFileChildren(
-    AuthenticatedCommerceRouteChildren,
-  )
-
-interface AuthenticatedCommunicationsRouteChildren {
-  AuthenticatedCommunicationsCampaignsRoute: typeof AuthenticatedCommunicationsCampaignsRoute
-  AuthenticatedCommunicationsEmailRoute: typeof AuthenticatedCommunicationsEmailRoute
-  AuthenticatedCommunicationsFeedbackRoute: typeof AuthenticatedCommunicationsFeedbackRoute
-  AuthenticatedCommunicationsTemplatesRoute: typeof AuthenticatedCommunicationsTemplatesRoute
-  AuthenticatedCommunicationsIndexRoute: typeof AuthenticatedCommunicationsIndexRoute
-}
-
-const AuthenticatedCommunicationsRouteChildren: AuthenticatedCommunicationsRouteChildren =
-  {
-    AuthenticatedCommunicationsCampaignsRoute:
-      AuthenticatedCommunicationsCampaignsRoute,
-    AuthenticatedCommunicationsEmailRoute:
-      AuthenticatedCommunicationsEmailRoute,
-    AuthenticatedCommunicationsFeedbackRoute:
-      AuthenticatedCommunicationsFeedbackRoute,
-    AuthenticatedCommunicationsTemplatesRoute:
-      AuthenticatedCommunicationsTemplatesRoute,
-    AuthenticatedCommunicationsIndexRoute:
-      AuthenticatedCommunicationsIndexRoute,
-  }
-
-const AuthenticatedCommunicationsRouteWithChildren =
-  AuthenticatedCommunicationsRoute._addFileChildren(
-    AuthenticatedCommunicationsRouteChildren,
-  )
-
-interface AuthenticatedExtensionsRouteChildren {
-  AuthenticatedExtensionsCatalogRoute: typeof AuthenticatedExtensionsCatalogRoute
-  AuthenticatedExtensionsConnectionsRoute: typeof AuthenticatedExtensionsConnectionsRoute
-  AuthenticatedExtensionsHistoryRoute: typeof AuthenticatedExtensionsHistoryRoute
-  AuthenticatedExtensionsInstalledRoute: typeof AuthenticatedExtensionsInstalledRoute
-  AuthenticatedExtensionsIndexRoute: typeof AuthenticatedExtensionsIndexRoute
-}
-
-const AuthenticatedExtensionsRouteChildren: AuthenticatedExtensionsRouteChildren =
-  {
-    AuthenticatedExtensionsCatalogRoute: AuthenticatedExtensionsCatalogRoute,
-    AuthenticatedExtensionsConnectionsRoute:
-      AuthenticatedExtensionsConnectionsRoute,
-    AuthenticatedExtensionsHistoryRoute: AuthenticatedExtensionsHistoryRoute,
-    AuthenticatedExtensionsInstalledRoute:
-      AuthenticatedExtensionsInstalledRoute,
-    AuthenticatedExtensionsIndexRoute: AuthenticatedExtensionsIndexRoute,
-  }
-
-const AuthenticatedExtensionsRouteWithChildren =
-  AuthenticatedExtensionsRoute._addFileChildren(
-    AuthenticatedExtensionsRouteChildren,
-  )
-
-interface AuthenticatedSiteDeliveryRouteChildren {
-  AuthenticatedSiteDeliveryDomainsRoute: typeof AuthenticatedSiteDeliveryDomainsRoute
-  AuthenticatedSiteDeliveryIssuesRoute: typeof AuthenticatedSiteDeliveryIssuesRoute
-  AuthenticatedSiteDeliveryRulesRoute: typeof AuthenticatedSiteDeliveryRulesRoute
-  AuthenticatedSiteDeliveryStorageRoute: typeof AuthenticatedSiteDeliveryStorageRoute
-  AuthenticatedSiteDeliveryIndexRoute: typeof AuthenticatedSiteDeliveryIndexRoute
-}
-
-const AuthenticatedSiteDeliveryRouteChildren: AuthenticatedSiteDeliveryRouteChildren =
-  {
-    AuthenticatedSiteDeliveryDomainsRoute:
-      AuthenticatedSiteDeliveryDomainsRoute,
-    AuthenticatedSiteDeliveryIssuesRoute: AuthenticatedSiteDeliveryIssuesRoute,
-    AuthenticatedSiteDeliveryRulesRoute: AuthenticatedSiteDeliveryRulesRoute,
-    AuthenticatedSiteDeliveryStorageRoute:
-      AuthenticatedSiteDeliveryStorageRoute,
-    AuthenticatedSiteDeliveryIndexRoute: AuthenticatedSiteDeliveryIndexRoute,
-  }
-
-const AuthenticatedSiteDeliveryRouteWithChildren =
-  AuthenticatedSiteDeliveryRoute._addFileChildren(
-    AuthenticatedSiteDeliveryRouteChildren,
-  )
-
-interface AuthenticatedTenantsRouteChildren {
-  AuthenticatedTenantsIndexRoute: typeof AuthenticatedTenantsIndexRoute
-  AuthenticatedTenantsProjectsIndexRoute: typeof AuthenticatedTenantsProjectsIndexRoute
-  AuthenticatedTenantsUsersIndexRoute: typeof AuthenticatedTenantsUsersIndexRoute
-  AuthenticatedTenantsWorkspacesIndexRoute: typeof AuthenticatedTenantsWorkspacesIndexRoute
-}
-
-const AuthenticatedTenantsRouteChildren: AuthenticatedTenantsRouteChildren = {
-  AuthenticatedTenantsIndexRoute: AuthenticatedTenantsIndexRoute,
-  AuthenticatedTenantsProjectsIndexRoute:
-    AuthenticatedTenantsProjectsIndexRoute,
-  AuthenticatedTenantsUsersIndexRoute: AuthenticatedTenantsUsersIndexRoute,
-  AuthenticatedTenantsWorkspacesIndexRoute:
-    AuthenticatedTenantsWorkspacesIndexRoute,
-}
-
-const AuthenticatedTenantsRouteWithChildren =
-  AuthenticatedTenantsRoute._addFileChildren(AuthenticatedTenantsRouteChildren)
 
 interface AuthenticatedAccessTeamRouteChildren {
   AuthenticatedAccessTeamInvitationsInvitationIdRoute: typeof AuthenticatedAccessTeamInvitationsInvitationIdRoute
@@ -1096,16 +323,8 @@ const AuthenticatedAccessTeamRouteWithChildren =
   )
 
 interface AuthenticatedRouteChildren {
-  AuthenticatedAiRoute: typeof AuthenticatedAiRouteWithChildren
-  AuthenticatedCommerceRoute: typeof AuthenticatedCommerceRouteWithChildren
-  AuthenticatedCommunicationsRoute: typeof AuthenticatedCommunicationsRouteWithChildren
-  AuthenticatedExtensionsRoute: typeof AuthenticatedExtensionsRouteWithChildren
-  AuthenticatedSiteDeliveryRoute: typeof AuthenticatedSiteDeliveryRouteWithChildren
-  AuthenticatedTenantsRoute: typeof AuthenticatedTenantsRouteWithChildren
+  AuthenticatedAttentionRoute: typeof AuthenticatedAttentionRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
-  AuthenticatedAccessRolesRoute: typeof AuthenticatedAccessRolesRoute
-  AuthenticatedAccessSessionsRoute: typeof AuthenticatedAccessSessionsRoute
-  AuthenticatedAccessSignInRoute: typeof AuthenticatedAccessSignInRoute
   AuthenticatedAccessTeamRoute: typeof AuthenticatedAccessTeamRouteWithChildren
   AuthenticatedMonitoringActivityRoute: typeof AuthenticatedMonitoringActivityRoute
   AuthenticatedMonitoringAiUsageRoute: typeof AuthenticatedMonitoringAiUsageRoute
@@ -1113,20 +332,12 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMonitoringPerformanceRoute: typeof AuthenticatedMonitoringPerformanceRoute
   AuthenticatedMonitoringRequestsRoute: typeof AuthenticatedMonitoringRequestsRoute
   AuthenticatedOperationsJobsRoute: typeof AuthenticatedOperationsJobsRoute
+  AuthenticatedWorkspacesIndexRoute: typeof AuthenticatedWorkspacesIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedAiRoute: AuthenticatedAiRouteWithChildren,
-  AuthenticatedCommerceRoute: AuthenticatedCommerceRouteWithChildren,
-  AuthenticatedCommunicationsRoute:
-    AuthenticatedCommunicationsRouteWithChildren,
-  AuthenticatedExtensionsRoute: AuthenticatedExtensionsRouteWithChildren,
-  AuthenticatedSiteDeliveryRoute: AuthenticatedSiteDeliveryRouteWithChildren,
-  AuthenticatedTenantsRoute: AuthenticatedTenantsRouteWithChildren,
+  AuthenticatedAttentionRoute: AuthenticatedAttentionRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
-  AuthenticatedAccessRolesRoute: AuthenticatedAccessRolesRoute,
-  AuthenticatedAccessSessionsRoute: AuthenticatedAccessSessionsRoute,
-  AuthenticatedAccessSignInRoute: AuthenticatedAccessSignInRoute,
   AuthenticatedAccessTeamRoute: AuthenticatedAccessTeamRouteWithChildren,
   AuthenticatedMonitoringActivityRoute: AuthenticatedMonitoringActivityRoute,
   AuthenticatedMonitoringAiUsageRoute: AuthenticatedMonitoringAiUsageRoute,
@@ -1135,6 +346,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedMonitoringPerformanceRoute,
   AuthenticatedMonitoringRequestsRoute: AuthenticatedMonitoringRequestsRoute,
   AuthenticatedOperationsJobsRoute: AuthenticatedOperationsJobsRoute,
+  AuthenticatedWorkspacesIndexRoute: AuthenticatedWorkspacesIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

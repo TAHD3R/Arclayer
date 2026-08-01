@@ -26,6 +26,7 @@ from src.models.commerce.billing import (
 from src.models.connectors.inbox import ConnectorEventInbox
 from src.models.organization.user import User
 from src.models.workspaces.workspace import Workspace
+from src.modules.commerce.access_state.composition import build_commercial_access_state_reader
 from src.modules.commerce.billing_connector import ProviderSubscription
 from src.modules.commerce.billing_provider_application_service import (
     BillingProviderSubscriptionApplicationService,
@@ -126,6 +127,9 @@ async def test_concurrent_workspace_billing_initialization_creates_one_account(d
     assert accounts[0].plan_revision_id == free_revision.id
     assert grants[0].plan_revision_id == free_revision.id
     assert grants[0].subscription_id == subscriptions[0].id
+    access = await build_commercial_access_state_reader().member_view(workspace_id=workspace.id)
+    assert access.state == "normal"
+    assert access.billing_contact_required is False
 
 
 async def test_workspace_billing_requires_explicit_published_revision(db_schema) -> None:

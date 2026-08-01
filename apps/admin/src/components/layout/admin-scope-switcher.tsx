@@ -1257,7 +1257,7 @@ export function AdminScopeSwitcher({
               if (!selectedWorkspaceId) return;
               setCurrentWorkspaceId(selectedWorkspaceId);
               settingsScreen.openSettings({
-                screen: "workspace.members",
+                screen: "workspace.people",
                 section: "invite-member",
               });
             }}

@@ -84,7 +84,7 @@ describe("CreditLedgerTable", () => {
     });
   });
 
-  it("renders immutable ledger rows through DataTable with tags, truncation, and aligned numbers", async () => {
+  it("renders customer-facing credit activity with reconciled balance and reservation deltas", async () => {
     renderTable();
 
     expect(await screen.findByText("commerce:LEDGER_TYPE_PERIOD_GRANT")).toBeVisible();
@@ -92,7 +92,9 @@ describe("CreditLedgerTable", () => {
     expect(screen.getByText("commerce:LEDGER_TYPE_COMMIT")).toBeVisible();
     expect(screen.getByText("commerce:LEDGER_PERIOD_GRANT")).toHaveClass("truncate");
     expect(screen.getByText("−250").closest(".tabular-nums")).not.toBeNull();
-    expect(screen.getByText("018f0000-0000-7000-8000-000000000002")).toHaveClass("truncate");
+    expect(screen.getByText("commerce:LEDGER_RESERVED_SHORT:−300")).toBeVisible();
+    expect(screen.getByText("commerce:LEDGER_REFERENCE_AI_REQUEST")).toBeVisible();
+    expect(screen.queryByText("018f0000-0000-7000-8000-000000000002")).not.toBeInTheDocument();
     expect(screen.getAllByText(/date:2026-07-12/)).toHaveLength(2);
     expect(listWorkspaceCreditLedger).toHaveBeenCalledWith("workspace-1", {
       page: 1,

@@ -101,6 +101,7 @@ vi.mock("@assistant-ui/react", async () => {
     },
     unstable_useTriggerPopoverScopeContext: () => ({
       open: mentionMocks.popoverOpen,
+      highlightedItemId: mentionMocks.popoverOpen ? "trigger-option-agent-1" : undefined,
       categories: [
         { id: "agents", label: "Agents" },
         { id: "projects", label: "Projects" },
@@ -147,10 +148,6 @@ vi.mock("@/components/ai/ai-composer-skill-menu", () => ({
       },
     ],
   }),
-}));
-
-vi.mock("@/components/ai/ai-composer-skill-panel", () => ({
-  AIComposerSkillPanelContent: () => <div>AI_CHAT_SKILL_ENABLED_TITLE</div>,
 }));
 
 const AGENT_ID = "A1b2C3d4E5f6G7h8I9j0K1";
@@ -289,6 +286,26 @@ describe("AIComposerTriggers", () => {
     expect(screen.getByRole("tab", { name: "Agents" })).toHaveClass("py-2", "text-caption!");
     expect(document.querySelector('[data-trigger-char="@"]')).toHaveClass("overflow-hidden");
     expect(document.querySelector('[data-trigger-char="@"]')).not.toHaveClass("overflow-y-auto");
+    const scrollRegions = document.querySelectorAll<HTMLElement>(
+      '[data-slot="composer-trigger-scroll-region"]',
+    );
+    expect(scrollRegions).toHaveLength(2);
+    for (const scrollRegion of scrollRegions) {
+      expect(scrollRegion).toHaveClass(
+        "min-h-0",
+        "min-w-0",
+        "flex-1",
+        "overflow-y-auto",
+        "overscroll-contain",
+      );
+    }
+    expect(document.querySelector('[data-slot="scroll-area"]')).not.toBeInTheDocument();
+    const skillFooter = screen.getByRole("button", { name: "AI_CHAT_SKILL_ADD" });
+    expect(skillFooter).toHaveClass("shrink-0");
+    expect(skillFooter.previousElementSibling).toHaveAttribute(
+      "data-slot",
+      "composer-trigger-scroll-region",
+    );
     expect(screen.getByTestId("composer-shell")).toHaveAttribute("data-trigger-open", "true");
 
     mentionMocks.popoverOpen = false;

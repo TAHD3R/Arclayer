@@ -134,7 +134,7 @@ describe("WorkspaceKnowledgeView", () => {
     mocks.listVersions.mockResolvedValue({ items: [version], nextCursor: null });
   });
 
-  it("renders the Knowledge Base to Source to immutable Version relationship", async () => {
+  it("renders the collection, selected reference, and latest update relationship", async () => {
     renderView();
 
     expect(
@@ -145,11 +145,13 @@ describe("WorkspaceKnowledgeView", () => {
     expect(screen.getByText("SETTINGS_WORKSPACE_KNOWLEDGE_RELATION_SOURCE")).toBeInTheDocument();
     expect(screen.getByText("SETTINGS_WORKSPACE_KNOWLEDGE_RELATION_VERSION")).toBeInTheDocument();
     expect(
-      screen.getByText("settings:SETTINGS_WORKSPACE_KNOWLEDGE_AUTHORITY_MANUAL"),
-    ).toBeInTheDocument();
+      screen.getByRole("button", {
+        name: "settings:SETTINGS_WORKSPACE_KNOWLEDGE_CREATE_ACTION",
+      }),
+    ).toBeEnabled();
   });
 
-  it("explains when durable indexing is available before retrieval", async () => {
+  it("does not turn backend capability details into a permanent explanation block", async () => {
     mocks.capabilities.mockResolvedValue({
       manualSourcesAvailable: true,
       externalIngestionAvailable: false,
@@ -161,9 +163,14 @@ describe("WorkspaceKnowledgeView", () => {
 
     renderView();
 
-    expect(
-      await screen.findByText("settings:SETTINGS_WORKSPACE_KNOWLEDGE_AUTHORITY_INDEXING"),
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", {
+          name: "settings:SETTINGS_WORKSPACE_KNOWLEDGE_CREATE_ACTION",
+        }),
+      ).toBeEnabled();
+    });
+    expect(screen.queryByText(/AUTHORITY_|INDEXING/)).not.toBeInTheDocument();
   });
 
   it("shows capability failures explicitly and retries in place", async () => {
@@ -172,17 +179,26 @@ describe("WorkspaceKnowledgeView", () => {
     renderView();
 
     expect(
-      await screen.findByText("settings:SETTINGS_WORKSPACE_KNOWLEDGE_AUTHORITY_ERROR"),
+      await screen.findByText("settings:SETTINGS_WORKSPACE_KNOWLEDGE_CREATE_UNAVAILABLE_TITLE"),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText("settings:SETTINGS_WORKSPACE_KNOWLEDGE_AUTHORITY_MANUAL"),
-    ).not.toBeInTheDocument();
+      screen.getByRole("button", {
+        name: "settings:SETTINGS_WORKSPACE_KNOWLEDGE_CREATE_ACTION",
+      }),
+    ).toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: "common:RETRY" }));
 
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", {
+          name: "settings:SETTINGS_WORKSPACE_KNOWLEDGE_CREATE_ACTION",
+        }),
+      ).toBeEnabled();
+    });
     expect(
-      await screen.findByText("settings:SETTINGS_WORKSPACE_KNOWLEDGE_AUTHORITY_MANUAL"),
-    ).toBeInTheDocument();
+      screen.queryByText("settings:SETTINGS_WORKSPACE_KNOWLEDGE_CREATE_UNAVAILABLE_TITLE"),
+    ).not.toBeInTheDocument();
     expect(mocks.capabilities).toHaveBeenCalledTimes(2);
   });
 

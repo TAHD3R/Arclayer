@@ -8,7 +8,13 @@ import { PlatformAuthProvider } from "@/auth/platform-auth";
 import { savePlatformSession } from "@/auth/platform-session";
 import { initializePlatformI18n, i18n } from "@/lib/i18n";
 import { PlatformPreferencesProvider } from "@/lib/preferences";
+import { loadPlatformOverview } from "@/overview/overview-api";
 import { routeTree } from "@/routeTree.gen";
+
+vi.mock("@/overview/overview-api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/overview/overview-api")>();
+  return { ...actual, loadPlatformOverview: vi.fn() };
+});
 
 beforeAll(async () => {
   await initializePlatformI18n("en-US");
@@ -19,6 +25,19 @@ beforeEach(async () => {
   document.documentElement.dataset.theme = "light";
   document.documentElement.lang = "en-US";
   await i18n.changeLanguage("en-US");
+  vi.mocked(loadPlatformOverview).mockReset();
+  vi.mocked(loadPlatformOverview).mockResolvedValue({
+    catalog: { status: "ready", data: { items: [] } },
+    attention: {
+      status: "ready",
+      data: { items: [], next: null, page: 1, pages: 1, prev: null, size: 5, total: 0 },
+    },
+    recovered: {
+      status: "ready",
+      data: { items: [], next: null, page: 1, pages: 1, prev: null, size: 5, total: 0 },
+    },
+    loadedAt: "2026-08-01T00:00:00.000Z",
+  });
   savePlatformSession({
     state: "authenticated",
     credential: {
@@ -51,17 +70,18 @@ describe("Platform shell", () => {
     );
 
     expect(await screen.findByRole("link", { name: "Workspaces" })).toBeVisible();
-    expect(screen.getByRole("link", { name: "Users" })).toBeVisible();
-    expect(screen.getByRole("link", { name: "Projects" })).toBeVisible();
+    expect(screen.queryByRole("link", { name: "Users" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Projects" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Requests & errors" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Performance trends" })).toBeVisible();
     expect(screen.getByRole("link", { name: "AI usage" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Activity trends" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Audit trail" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Platform team" })).toBeVisible();
+    expect(screen.getAllByRole("link", { name: "Platform team" })).toHaveLength(1);
   });
 
-  it("renders only the permission-constrained peer destinations returned by Catalog", async () => {
+  it("omits deferred Catalog targets without presenting an incomplete product surface", async () => {
     const catalog = await getPlatformCapabilityCatalog();
     const tenantCapability = catalog.items.find(
       ({ capabilityId }) => capabilityId === "tenant-governance",
@@ -90,30 +110,25 @@ describe("Platform shell", () => {
       </PlatformPreferencesProvider>,
     );
 
-    expect(await screen.findByRole("link", { name: "Users" })).toBeVisible();
+    expect((await screen.findAllByRole("link", { name: "Overview" })).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("link", { name: "Users" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Workspaces" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Projects" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Some available pages are not supported by this build."),
+    ).not.toBeInTheDocument();
   });
 
-  it("does not render a route Outlet for an unauthorized peer path", async () => {
+  it("does not render a route Outlet for an unauthorized Workspace path", async () => {
     const catalog = await getPlatformCapabilityCatalog();
-    const tenantCapability = catalog.items.find(
-      ({ capabilityId }) => capabilityId === "tenant-governance",
-    );
-    expect(tenantCapability).toBeDefined();
+    const accessCapability = catalog.items.find(({ capabilityId }) => capabilityId === "access");
+    expect(accessCapability).toBeDefined();
     vi.mocked(getPlatformCapabilityCatalog).mockResolvedValueOnce({
-      items: [
-        {
-          ...tenantCapability!,
-          navigationTargets: tenantCapability!.navigationTargets.filter(
-            ({ routeTarget }) => routeTarget === "tenants.workspaces",
-          ),
-        },
-      ],
+      items: [accessCapability!],
     });
     const router = createRouter({
       routeTree,
-      history: createMemoryHistory({ initialEntries: ["/tenants/users"] }),
+      history: createMemoryHistory({ initialEntries: ["/workspaces"] }),
     });
     await router.load();
     render(
@@ -125,9 +140,9 @@ describe("Platform shell", () => {
     );
 
     expect(
-      await screen.findAllByText("This destination is not available to your Platform account."),
+      await screen.findAllByText("This page is not available to your Platform account."),
     ).toHaveLength(2);
-    expect(screen.queryByRole("heading", { name: "Users" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Workspaces" })).not.toBeInTheDocument();
   });
 
   it("shows loading state without static navigation or route-content fallback", async () => {
@@ -136,7 +151,7 @@ describe("Platform shell", () => {
     );
     const router = createRouter({
       routeTree,
-      history: createMemoryHistory({ initialEntries: ["/tenants/workspaces"] }),
+      history: createMemoryHistory({ initialEntries: ["/workspaces"] }),
     });
     await router.load();
     render(
@@ -147,9 +162,7 @@ describe("Platform shell", () => {
       </PlatformPreferencesProvider>,
     );
 
-    expect((await screen.findAllByText("Loading available destinations")).length).toBeGreaterThan(
-      0,
-    );
+    expect((await screen.findAllByText("Loading available pages")).length).toBeGreaterThan(0);
     expect(screen.queryByRole("link", { name: "Workspaces" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Workspaces" })).not.toBeInTheDocument();
   });
@@ -172,16 +185,14 @@ describe("Platform shell", () => {
 
     const alerts = await screen.findAllByRole("alert");
     expect(
-      alerts.some((alert) =>
-        alert.textContent?.includes("Available destinations could not be loaded"),
-      ),
+      alerts.some((alert) => alert.textContent?.includes("Available pages could not be loaded")),
     ).toBe(true);
     expect(screen.queryByRole("link", { name: "Workspaces" })).not.toBeInTheDocument();
     await user.click(screen.getAllByRole("button", { name: "Try again" })[0]);
-    expect(await screen.findByRole("heading", { name: "Operations Inbox" })).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "Overview" })).toBeVisible();
   });
 
-  it("renders the real Operations Inbox empty state and independent Product link", async () => {
+  it("renders the real Overview healthy state and independent Product link", async () => {
     const router = createRouter({
       routeTree,
       history: createMemoryHistory({ initialEntries: ["/"] }),
@@ -196,9 +207,9 @@ describe("Platform shell", () => {
       </PlatformPreferencesProvider>,
     );
 
-    expect(await screen.findByRole("heading", { name: "Operations Inbox" })).toBeVisible();
-    expect(screen.getByText("Nothing needs attention right now")).toBeVisible();
-    expect(screen.getByText(/owning service reports a condition/)).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "Overview" })).toBeVisible();
+    expect(screen.getByText(/No current condition requires operator action/)).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Domain status" })).toBeVisible();
     const productApplicationLink = screen.getByRole("link", {
       name: /Return to product/,
     });
@@ -246,7 +257,7 @@ describe("Platform shell", () => {
     await user.click(screen.getByRole("button", { name: "Change language" }));
     await user.click(screen.getByRole("menuitemradio", { name: "简体中文" }));
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "行动中心" })).toBeVisible();
+      expect(screen.getByRole("heading", { name: "总览" })).toBeVisible();
     });
     expect(document.documentElement.lang).toBe("zh-CN");
 
@@ -278,7 +289,7 @@ describe("Platform shell", () => {
       </PlatformPreferencesProvider>,
     );
 
-    await screen.findByRole("heading", { name: "Operations Inbox" });
+    await screen.findByRole("heading", { name: "Overview" });
     const trigger = container.querySelector<HTMLButtonElement>('[data-slot="sidebar-trigger"]');
     expect(trigger).not.toBeNull();
     await user.click(trigger!);
@@ -288,6 +299,6 @@ describe("Platform shell", () => {
     expect(navigationLink).not.toBeNull();
     navigationLink!.focus();
     expect(navigationLink).toHaveFocus();
-    expect(await screen.findByRole("tooltip")).toHaveTextContent("Operations Inbox");
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Overview");
   });
 });

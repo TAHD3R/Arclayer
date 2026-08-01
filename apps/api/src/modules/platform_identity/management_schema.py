@@ -170,6 +170,25 @@ class PlatformRoleCatalogItemOut(BaseSchema):
     permission_codes: tuple[str, ...]
 
 
+class PlatformInvitationCandidateOut(BaseSchema):
+    """The minimum identity facts an authorized inviter needs to choose a recipient."""
+
+    model_config = ConfigDict(frozen=True)
+
+    user_id: UUID
+    username: str
+    display_name: str | None
+
+
+class PlatformInvitationOptionsOut(BaseSchema):
+    """Invite-only recipient and role projection, scoped to the current inviter."""
+
+    model_config = ConfigDict(frozen=True)
+
+    candidates: tuple[PlatformInvitationCandidateOut, ...]
+    roles: tuple[PlatformRoleCatalogItemOut, ...]
+
+
 class PlatformPermissionCatalogItemOut(BaseSchema):
     model_config = ConfigDict(frozen=True)
 

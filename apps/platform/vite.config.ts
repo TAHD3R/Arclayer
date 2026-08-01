@@ -2,7 +2,6 @@ import path from "node:path";
 import react from "@vitejs/plugin-react-swc";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
-import { boneyardPlugin } from "boneyard-js/vite";
 import { defineConfig, loadEnv, searchForWorkspaceRoot } from "vite";
 import { compression } from "vite-plugin-compression2";
 
@@ -24,8 +23,6 @@ export default defineConfig(({ mode, command }) => {
   const appTitle = env.VITE_APP_TITLE || DEFAULT_APP_TITLE;
   const productAppOrigin = env.VITE_PRODUCT_APP_ORIGIN || DEFAULT_PRODUCT_APP_ORIGIN;
   const isBuild = command === "build";
-  const isBoneyardCaptureEnabled =
-    command === "serve" && env.VITE_BONEYARD_CAPTURE?.trim().toLowerCase() === "true";
   const plugins = [
     injectLoadingScreen({ appName: appTitle }),
     staticAppConfig({
@@ -45,18 +42,6 @@ export default defineConfig(({ mode, command }) => {
     react(),
     tailwindcss(),
   ];
-
-  if (isBoneyardCaptureEnabled) {
-    plugins.push(
-      boneyardPlugin({
-        out: "./src/bones",
-        framework: "react",
-        breakpoints: [375, 768, 1280],
-        wait: 1200,
-        debug: env.VITE_BONEYARD_DEBUG?.trim().toLowerCase() === "true",
-      }),
-    );
-  }
 
   if (isBuild) {
     const version = process.env.npm_package_version || undefined;

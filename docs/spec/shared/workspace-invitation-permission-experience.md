@@ -1,11 +1,13 @@
 # Workspace Invitation and Permission Experience Contract
 
+Experience authority: [Product and Platform administration experience redesign](./product-admin-experience-redesign.md)
+
 Status: Approved canonical implementation contract (spec audit passed 2026-07-22)
 Parent: [Product and Platform Separation Implementation Contract](./product-platform-separation.md)
 
 ## 1. Scope
 
-This contract defines the workspace settings invitation experience, token preview/authentication/acceptance/onboarding flow, Pending/Accepted/Invitation links DataTables, Plan-governed Fixed Member access, and a server-driven localized permission and role matrix that updates when the catalog changes, including Owner-delegated Billing Manager authority.
+This contract defines the People settings relationship experience, named-invitation and reusable-link flows, Pending/Invite links views, Plan-governed Fixed Member access, and a server-driven localized permission and role matrix that updates when the catalog changes, including Owner-delegated Billing Manager authority.
 
 It extends `identity-access-contracts.md` and `conditional-permissions.md`. Server authorization remains authoritative; this document defines product projections, state transitions, and Admin behavior.
 
@@ -31,13 +33,15 @@ It extends `identity-access-contracts.md` and `conditional-permissions.md`. Serv
 
 ## 4. Invitation lifecycle and token contract
 
-Canonical invitation types remain email invitations and reusable invitation links. Each record has a target organization/workspace, Plan-valid access projection, inviter, status, created/expiry timestamps, use limit/count where applicable, revision, and audit linkage. A role/grant selection exists only when the Workspace's bound Plan Revision includes `workspace.roles.manage`; otherwise acceptance always applies Fixed Member access.
+Canonical invitation types remain named email invitations and reusable invitation links. A named email invitation pre-authorizes only its bound recipient. A reusable link directly admits a validated recipient to its configured member or guest join mode, subject to token validation, expiry, disablement, use capacity, Workspace state, and any configured email-domain restriction. Each record has a target organization/workspace, Plan-valid access projection, inviter, status, created/expiry timestamps, use limit/count where applicable, revision, and audit linkage. A role/grant selection exists only when the Workspace's bound Plan Revision includes `workspace.roles.manage`; otherwise acceptance always applies Fixed Member access.
 
 - Signed token plaintext is returned only at create or renew/rotate time and is displayed once with an explicit copy action.
 - List/detail projections return a safe code/id and token suffix/fingerprint when useful, never a reusable signed token.
 - Preview validates signature, type, expiry, revocation/disabled state, use limit, target workspace state, and email binding before presenting acceptance.
-- Acceptance is idempotent for the user/invitation pair and uses an explicit transaction around membership/grants/use count/audit state.
+- Acceptance is idempotent for the user/invitation pair and uses an explicit transaction around organization membership when the configured join mode requires it, Workspace membership, grants, link use count, and audit state.
 - Target organization membership lookup is scoped by target organization/workspace. An unrelated membership must not trigger a cross-organization denial.
+
+The experience authority reserves a request-based access workflow for a future deployed identity capability. It is not part of this current implementation contract: no invitation-link redemption creates a join request until persisted request state, authorization APIs, and a People view are implemented together.
 
 ## 5. End-to-end acceptance flow
 
@@ -50,7 +54,7 @@ Open invitation link
               → restore preview after auth
       yes → review workspace, inviter, Plan-valid access, email binding
   → Accept
-  → transactional membership/grants
+  → transactional organization membership when required, Workspace membership/grants, use count, and audit state
   → required onboarding steps
   → open accepted workspace
 ```
@@ -68,9 +72,9 @@ The exact token shape represented by the reported `il_...<dot>...` link must be 
 
 | Case | Expected result |
 |---|---|
-| Valid link, signed-out existing user | Login, restored preview, acceptance, workspace open |
-| Valid link, new user | Register, restored preview, acceptance, onboarding, workspace open |
-| Existing user with unrelated organization membership | Target-scoped acceptance succeeds when policy allows |
+| Valid link, signed-out existing user | Login, restored preview, direct acceptance, workspace open |
+| Valid link, new user | Register, restored preview, direct acceptance, onboarding, workspace open |
+| Existing user with unrelated organization membership | Target-scoped direct acceptance succeeds |
 | Already target member | Idempotent accepted/already-member result |
 | Email-bound invitation and matching account | Acceptance succeeds |
 | Email-bound invitation and different account | Explicit mismatch, no use count consumed |
@@ -82,19 +86,23 @@ The exact token shape represented by the reported `il_...<dot>...` link must be 
 | Concurrent final use | Exactly one transaction consumes the remaining use |
 | Repeated accept request | Same result, no duplicate membership/audit side effect |
 
-## 7. Invitations settings composition
+## 7. People settings composition
 
 ```text
-Invitations                                        [Invite member] [Create link]
-[ Pending ] [ Accepted ] [ Invitation links ]
+People                                               [Invite people] [Create link]
+[ People ] [ Pending ] [ Invite links ]
 ───────────────────────────────────────────────────────────────
 [Search] [Order ▼] [Filters] [Reset]                [Table tools]
 [DataTable]
 ```
 
-All three tabs use the shared DataTable, search/filter/order controls, server pagination, column preferences, explicit loading/empty/filtered/error states, and keyboard row/actions.
+Each view appears only when the deployed capability supports a real job. All retained views use the shared DataTable, search/filter/order controls, server pagination, column preferences, explicit loading/refresh/stale/partial/empty/filtered/error states, and keyboard-complete rows and actions.
 
-### 7.1 Pending
+### 7.1 People
+
+Active Workspace members and Project-only external collaborators appear in one relationship view with their scope, source, status, access, capability assignments, and state-aware actions. Accepted invitations become active people; there is no separate accepted-invitations archive or duplicate member-management destination.
+
+### 7.2 Pending
 
 Columns: selection for safe batch revoke/resend, Invitee, Role/access, Delivery state, Expires, Inviter, Created, Actions.
 
@@ -102,21 +110,15 @@ Primary ghost action opens detail/edit where supported. Menu actions: copy safe 
 
 When `workspace.roles.manage` is excluded, Role/access renders the localized Fixed Member access label and no create, edit, filter, or batch control accepts a role. “Change role” is absent rather than disabled inside a dialog that cannot succeed.
 
-### 7.2 Accepted
-
-Columns: Member identity, Accepted role/access, Inviter, Accepted at, Source/type, Actions. This is an acceptance history view, not a second member-management surface. Actions navigate to member detail/audit and do not duplicate unrelated security controls.
-
-On Fixed Member access, this column uses the same stable access label for every non-Owner acceptance and never implies that the inviter selected a role.
-
-### 7.3 Invitation links
+### 7.3 Invite links
 
 Columns: Name/label, Role/access, Status, Uses/limit, Expires, Creator, Updated, Actions. Menu actions: copy only a newly created/rotated token held in ephemeral UI state, rotate/renew, enable/disable, view acceptance history, and revoke/delete according to retention policy.
 
-Invitation links created under Fixed Member access bind no selectable role. A later request cannot add one unless the current Plan includes role management and the actor passes the normal permission and revision checks.
+Invite links directly admit a validated recipient to their configured member or guest join mode after token, expiry, disablement, use-capacity, Workspace-state, and configured email-domain checks. Links created under Fixed Member access bind no selectable role. A later acceptance cannot add one unless the current Plan includes role management and the actor passes the normal permission and revision checks.
 
 ## 8. Cache and concurrency contract
 
-Invitation mutations return updated projections and revision. On success the client updates/invalidate Pending, Accepted, Links, workspace member count/list, and invitation summary caches as applicable before success notification. Status, use count, and row eligibility change without page refresh.
+Invitation mutations return updated projections and revision. On success the client updates or invalidates People, Pending, Invite links, Workspace people counts, and invitation summaries as applicable before success notification. Status, use count, and row eligibility change without page refresh.
 
 Optimistic enable/disable/role edits retain prior rows. Failure rolls back all caches. Accept/renew/revoke use idempotency keys. Revision mismatch returns explicit conflict and latest row.
 
@@ -175,7 +177,7 @@ Fixed Member access is not an empty or inferred role. Its permission set comes f
 
 A Feature Seat Assignment allocates one Workspace-owned paid capability to one active membership without modifying that member's roles or permissions.
 
-- Plan & Usage owns the commercial capacity summary; Members owns assignment to active people. Neither surface copies Plan editing or role management.
+- Plan & Usage owns the commercial capacity summary; People owns assignment to active people. Neither surface copies Plan editing or role management.
 - Seat assignment is never offered on an invitation or reusable invitation link. Acceptance first creates an active membership; a separately authorized assignment may follow.
 - Member detail shows localized capability names, assigned/not assigned state, and a plain-language reason when the Workspace Plan does not include the capability or has no place remaining. Raw Entitlement keys and commercial authority terms remain secondary diagnostics.
 - Removing, deactivating, or accepting a member departure releases their Feature Seat Assignments transactionally. Renewing an invitation, changing a role, or rejoining never restores them implicitly.
@@ -294,7 +296,7 @@ Plugin disable/uninstall first calculates affected roles, members, policies, inv
 
 - API integration tests for the full invitation matrix, especially target-scoped organization membership lookup and concurrent final use.
 - Tests prove signed token absence from list/detail/audit/log projections and idempotent acceptance.
-- Component/browser tests for three DataTables, URL/overlay controls, token one-time display, immediate mutations, failed delivery, Login/Register resume, and onboarding.
+- Component/browser tests for People, Pending, and Invite links; URL/overlay controls; token one-time display; immediate mutations; failed delivery; Login/Register resume; and onboarding.
 - Permission contract tests ensure every public core/plugin item has both locale resources, deterministic grouping, revision, lifecycle, and valid condition metadata.
 - Role API tests for delegation, protected roles, catalog/role conflicts, atomic save, plugin lifecycle, and cache-impact projections.
 - Billing permission tests for immutable Owner authority, Owner-only delegation, multiple custom roles, deduplicated effective Billing Managers, no implicit Admin/settings/organization/Platform grant, Restricted Recovery denial of new grants, and safe impact/audit projections.

@@ -67,12 +67,14 @@ export function AIComposerToolbar({
       <div className="aui-composer-action-wrapper relative flex min-h-8 min-w-0 items-center gap-1">
         <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <AIComposerAttachmentMenu />
-          <AIModelSelector compact />
-          <AIComposerSkillMenu compact scope="home" />
           <AIProjectSelector compact />
+          <AIComposerSkillMenu compact scope="home" />
         </div>
-        <AIComposerModeSelect compact />
-        <AIComposerPrimaryAction />
+        <div className="flex shrink-0 items-center gap-1">
+          <AIModelSelector compact />
+          <AIComposerModeSelect compact />
+          <AIComposerPrimaryAction />
+        </div>
       </div>
     );
   }
@@ -80,15 +82,16 @@ export function AIComposerToolbar({
   if (surface === "sidebar") {
     return (
       <div className="aui-composer-action-wrapper relative flex min-w-0 flex-col gap-1">
-        <div className="scrollbar-none flex min-w-0 items-center gap-1 overflow-x-auto">
-          <AIComposerModeSelect compact />
-          <AIComposerSkillMenu compact scope="thread" />
+        <div className="flex min-h-8 min-w-0 items-center gap-1">
           <AIProjectSelector compact />
+          <div className="min-w-0 flex-1" />
+          <AIModelSelector compact />
         </div>
         <div className="flex min-h-8 min-w-0 items-center gap-1">
           <AIComposerAttachmentMenu />
-          <AIModelSelector compact />
+          <AIComposerSkillMenu compact scope="thread" />
           <div className="min-w-0 flex-1" />
+          <AIComposerModeSelect compact />
           <AIComposerPrimaryAction />
         </div>
       </div>
@@ -203,7 +206,7 @@ function AIComposerModeSelect({ compact = false }: AIComposerToolbarProps) {
           <ChevronDownIcon className="size-3.5 opacity-70" aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-72">
+      <DropdownMenuContent align="start" collisionPadding={16} className="w-72">
         {COMPOSER_MODES.map((mode) => {
           const Icon = mode.icon;
           const active = selectedMode === mode.value;

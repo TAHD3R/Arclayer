@@ -63,7 +63,8 @@ This code-spec defines where backend code belongs in `apps/api` and which depend
 - New backend route modules need API tests covering success and error paths.
 - New persistence behavior needs repository or integration coverage that proves the expected transaction and tenant binding.
 - Architecture-rule fixtures must be updated when a placement rule becomes enforceable.
-- Run `pnpm api:check` for broad backend foundation changes.
+- During a small backend foundation change, run the nearest static check and
+  focused test; run `pnpm api:check` at a coherent milestone or before handoff.
 
 ### 7. Wrong vs Correct
 

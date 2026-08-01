@@ -11,7 +11,6 @@ import {
   History,
   LayoutDashboard,
   LibraryBig,
-  MailPlus,
   MonitorCog,
   Paintbrush,
   PanelsTopLeft,
@@ -54,8 +53,7 @@ const SETTINGS_MENU_ICONS = new Map([
   ["settings.personal.notifications", Bell],
   ["settings.workspace.general", BadgeInfo],
   ["settings.workspace.plan-usage", ChartPie],
-  ["settings.workspace.members", UsersRound],
-  ["settings.workspace.invitations", MailPlus],
+  ["settings.workspace.people", UsersRound],
   ["settings.workspace.roles", ShieldCheck],
 ] as const);
 

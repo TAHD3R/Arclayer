@@ -10,6 +10,7 @@ import {
 import { SettingsScreenHost } from "@/components/layout/usercenter-overlay-host";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { SettingsScreen } from "@/lib/settings/settings-screen";
+import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 
 const commerceMocks = vi.hoisted(() => ({
   getWorkspaceCommerceOverview: vi.fn(),
@@ -120,10 +121,15 @@ async function renderSettingsHost(initialScreen: SettingsScreen = "personal.prof
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
-      <SettingsScreenProvider>
-        <OpenSettingsButton screen={initialScreen} />
-        <SettingsScreenHost />
-      </SettingsScreenProvider>
+      <ChromeTabsProvider
+        labels={{ scrollLeftAriaLabel: "Scroll left", scrollRightAriaLabel: "Scroll right" }}
+        userReducedMotion
+      >
+        <SettingsScreenProvider>
+          <OpenSettingsButton screen={initialScreen} />
+          <SettingsScreenHost />
+        </SettingsScreenProvider>
+      </ChromeTabsProvider>
     </QueryClientProvider>,
   );
   await user.click(screen.getByRole("button", { name: "Open settings" }));
@@ -187,6 +193,7 @@ describe("SettingsScreenHost", () => {
     expect(screen.getByText("account:SETTINGS_NAV_SECTION_PERSONAL")).toBeVisible();
     expect(screen.getByText("account:SETTINGS_NAV_SECTION_WORKSPACE")).toBeVisible();
     expect(screen.getByText("account:SETTINGS_NAV_WORKSPACE_GENERAL")).toBeVisible();
+    expect(screen.getByText("account:SETTINGS_NAV_WORKSPACE_PEOPLE")).toBeVisible();
     expect(screen.getByText("account:ME_TAB_PROFILE")).toBeVisible();
     expect(screen.getByText("account:ME_TAB_PROFILE_DESC")).toBeVisible();
     expect(screen.getByTestId("overlay-profile-view")).toBeVisible();
@@ -203,50 +210,33 @@ describe("SettingsScreenHost", () => {
       expect(screen.getByTestId("overlay-notifications-view")).toBeVisible();
     });
 
-    await user.click(
-      screen.getByRole("button", { name: "account:SETTINGS_NAV_WORKSPACE_MEMBERS" }),
-    );
+    await user.click(screen.getByRole("button", { name: "account:SETTINGS_NAV_WORKSPACE_PEOPLE" }));
 
     await waitFor(() => {
-      expect(screen.getByText("settings:SETTINGS_WORKSPACE_MEMBERS_TITLE")).toBeVisible();
+      expect(screen.getByText("settings:SETTINGS_WORKSPACE_PEOPLE_TITLE")).toBeVisible();
       expect(screen.getByTestId("overlay-workspace-members-view")).toHaveTextContent("ws-alpha");
     });
   });
 
-  it("shows the workspace members primary action in the overlay header and controls invite state", async () => {
-    const user = await renderSettingsHost("workspace.members");
+  it("keeps People, pending invitations, and invite links in one actionable surface", async () => {
+    const user = await renderSettingsHost("workspace.people");
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "TEAM_INVITE_MEMBER" })).toBeVisible();
+      expect(screen.getByRole("button", { name: "team:TEAM_INVITE_MEMBER" })).toBeVisible();
     });
     expect(screen.getByTestId("overlay-workspace-members-invite-state")).toHaveTextContent("false");
 
-    await user.click(screen.getByRole("button", { name: "TEAM_INVITE_MEMBER" }));
+    await user.click(screen.getByRole("button", { name: "team:TEAM_INVITE_MEMBER" }));
 
     expect(screen.getByTestId("overlay-workspace-members-invite-state")).toHaveTextContent("true");
-  });
-
-  it("shows the workspace invitations header actions in the overlay and controls both dialogs", async () => {
-    const user = await renderSettingsHost("workspace.invitations");
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "TEAM_INVITE_CREATE_LINK_ACTION" })).toBeVisible();
-      expect(screen.getByRole("button", { name: "common:ORG_MEMBERS_INVITE" })).toBeVisible();
-    });
-    expect(screen.getByTestId("overlay-workspace-invitations-link-state")).toHaveTextContent(
-      "false",
-    );
+    await user.click(screen.getByRole("tab", { name: "team:TEAM_PEOPLE_TAB_PENDING" }));
     expect(screen.getByTestId("overlay-workspace-invitations-email-state")).toHaveTextContent(
-      "false",
-    );
-
-    await user.click(screen.getByRole("button", { name: "TEAM_INVITE_CREATE_LINK_ACTION" }));
-    expect(screen.getByTestId("overlay-workspace-invitations-link-state")).toHaveTextContent(
       "true",
     );
 
-    await user.click(screen.getByRole("button", { name: "common:ORG_MEMBERS_INVITE" }));
-    expect(screen.getByTestId("overlay-workspace-invitations-email-state")).toHaveTextContent(
+    await user.click(screen.getByRole("tab", { name: "team:TEAM_PEOPLE_TAB_LINKS" }));
+    await user.click(screen.getByRole("button", { name: "team:TEAM_INVITE_CREATE_LINK_ACTION" }));
+    expect(screen.getByTestId("overlay-workspace-invitations-link-state")).toHaveTextContent(
       "true",
     );
   });

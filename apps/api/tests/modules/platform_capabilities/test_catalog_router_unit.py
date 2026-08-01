@@ -64,7 +64,7 @@ async def test_operator_catalog_is_camel_case_and_permission_filtered() -> None:
         {
             "capabilityId": "tenant-governance",
             "domain": "tenant_governance",
-            "nameI18nKey": "navigation:TENANT_GOVERNANCE",
+            "nameI18nKey": "navigation:WORKSPACES",
             "descriptionI18nKey": "tenants:WORKSPACES_DESCRIPTION",
             "supportState": "supported",
             "enablementState": "enabled",
@@ -83,6 +83,7 @@ async def test_operator_catalog_is_camel_case_and_permission_filtered() -> None:
             "viewPermissionMatch": "all",
             "requiredManagePermissions": ["platform:tenant-workspaces:manage"],
             "managePermissionMatch": "all",
+            "canManage": False,
             "navigationCandidate": True,
             "activationAvailable": False,
         }

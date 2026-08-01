@@ -20,10 +20,10 @@ function resolveWorkspaceSettingsTarget(targetTo: string): NotificationTarget | 
     return settingsTarget({ screen: "workspace.general" });
   }
   if (normalized === "/settings/workspace/members") {
-    return settingsTarget({ screen: "workspace.members", section: "members-table" });
+    return settingsTarget({ screen: "workspace.people", section: "members-table" });
   }
   if (normalized === "/settings/workspace/invitations") {
-    return settingsTarget({ screen: "workspace.invitations", section: "pending-invitations" });
+    return settingsTarget({ screen: "workspace.people", section: "pending-invitations" });
   }
   if (normalized === "/settings/workspace/roles") {
     return settingsTarget({ screen: "workspace.roles", section: "roles-table" });
@@ -44,10 +44,10 @@ export function resolveNotificationTarget(item: NotificationItem): NotificationT
   if (targetTo.startsWith("/w/")) {
     const projectPath = targetTo.replace(`/w/${workspaceId}`, `/projects/${workspaceId}`);
     if (projectPath === `/projects/${workspaceId}/team/members`) {
-      return settingsTarget({ screen: "workspace.members", section: "members-table" });
+      return settingsTarget({ screen: "workspace.people", section: "members-table" });
     }
     if (projectPath === `/projects/${workspaceId}/team/invitations`) {
-      return settingsTarget({ screen: "workspace.invitations", section: "pending-invitations" });
+      return settingsTarget({ screen: "workspace.people", section: "pending-invitations" });
     }
     if (projectPath === `/projects/${workspaceId}/team/roles`) {
       return settingsTarget({ screen: "workspace.roles", section: "roles-table" });

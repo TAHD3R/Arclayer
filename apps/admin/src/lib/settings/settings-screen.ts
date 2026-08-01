@@ -4,8 +4,7 @@ export const SETTINGS_SCREENS = [
   "personal.notifications",
   "workspace.general",
   "workspace.plan-usage",
-  "workspace.members",
-  "workspace.invitations",
+  "workspace.people",
   "workspace.roles",
 ] as const;
 

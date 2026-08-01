@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { HttpRequestRecordOut } from "@arclayer/platform-openapi";
 
 import { formatDateTime, formatDuration } from "@/monitoring/format";
+import { presentRequest, requestStatusKey } from "@/monitoring/monitoring-presentation";
 import type { MonitoringRequestsSearch } from "@/routes/_authenticated/monitoring/requests";
 import { SavedViewsControl } from "@/saved-views/saved-views-control";
 import { SAVED_VIEW_DEFINITIONS, type SavedViewState } from "@/saved-views/saved-view-contracts";
@@ -10,6 +11,7 @@ import { listRequestRecords } from "@/monitoring/monitoring-api";
 import {
   MonitoringPage,
   MonitoringQueryState,
+  MonitoringToolbar,
   useMonitoringQuery,
 } from "@/monitoring/monitoring-ui";
 import { Badge } from "@arclayer/ui/badge";
@@ -26,12 +28,15 @@ function RequestDetail({
   onClose,
 }: Readonly<{ item: HttpRequestRecordOut; onClose: () => void }>) {
   const { t } = useTranslation("monitoring");
+  const presentation = presentRequest(item.method, item.routeTemplate);
   return (
     <Sheet onOpenChange={(open) => !open && onClose()} open>
       <SheetContent className="w-full sm:max-w-xl">
         <SheetHeader>
           <SheetTitle>{t("REQUEST_DETAIL_TITLE")}</SheetTitle>
-          <SheetDescription>{`${item.method} ${item.routeTemplate}`}</SheetDescription>
+          <SheetDescription>
+            {t(presentation.areaKey)} · {t(presentation.actionKey)}
+          </SheetDescription>
         </SheetHeader>
         <dl className="grid gap-4 px-6 text-footnote sm:grid-cols-2">
           <div>
@@ -40,7 +45,9 @@ function RequestDetail({
           </div>
           <div>
             <dt className="text-label-secondary">{t("STATUS")}</dt>
-            <dd>{item.statusCode}</dd>
+            <dd>
+              {t(requestStatusKey(item.statusCode))} · {item.statusCode}
+            </dd>
           </div>
           <div>
             <dt className="text-label-secondary">{t("DURATION")}</dt>
@@ -50,20 +57,29 @@ function RequestDetail({
             <dt className="text-label-secondary">{t("ACTOR")}</dt>
             <dd>{item.actor?.displayName ?? item.actor?.username ?? t("UNAVAILABLE")}</dd>
           </div>
-          <div>
-            <dt className="text-label-secondary">{t("WORKSPACE")}</dt>
-            <dd>{item.workspaceId ?? t("UNAVAILABLE")}</dd>
+          <div className="border-t pt-4 sm:col-span-2">
+            <dt className="font-medium">{t("TECHNICAL_DETAILS")}</dt>
+            <dd className="mt-2 grid gap-3 text-label-secondary sm:grid-cols-2">
+              <span className="break-all font-mono text-caption">
+                {item.method} {item.routeTemplate}
+              </span>
+              {item.workspaceId ? (
+                <span className="break-all font-mono text-caption">
+                  {t("WORKSPACE")}: {item.workspaceId}
+                </span>
+              ) : null}
+              {item.projectId ? (
+                <span className="break-all font-mono text-caption">
+                  {t("PROJECT")}: {item.projectId}
+                </span>
+              ) : null}
+              {item.traceId ? (
+                <span className="break-all font-mono text-caption">
+                  {t("TRACE")}: {item.traceId}
+                </span>
+              ) : null}
+            </dd>
           </div>
-          <div>
-            <dt className="text-label-secondary">{t("PROJECT")}</dt>
-            <dd>{item.projectId ?? t("UNAVAILABLE")}</dd>
-          </div>
-          {item.traceId && (
-            <div className="sm:col-span-2">
-              <dt className="text-label-secondary">{t("TRACE")}</dt>
-              <dd className="break-all font-mono text-caption">{item.traceId}</dd>
-            </div>
-          )}
         </dl>
       </SheetContent>
     </Sheet>
@@ -128,57 +144,62 @@ export function MonitoringRequestsPage(props: {
 
   return (
     <MonitoringPage description={t("REQUESTS_DESCRIPTION")} title={t("REQUESTS_TITLE")}>
-      <div className="flex flex-wrap gap-3 rounded-lg border bg-card p-3">
-        <Input
-          aria-label={t("SEARCH")}
-          className="min-w-52 flex-1"
-          onChange={(event) => {
-            update({ q: event.target.value || undefined });
-          }}
-          placeholder={t("REQUESTS_SEARCH_PLACEHOLDER")}
-          value={search}
-        />
-        <Select
-          onValueChange={(value) => {
-            update({
-              method: value === "all" ? undefined : (value as MonitoringRequestsSearch["method"]),
-            });
-          }}
-          value={method}
-        >
-          <SelectTrigger aria-label={t("METHOD")}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("ALL_METHODS")}</SelectItem>
-            <SelectItem value="GET">GET</SelectItem>
-            <SelectItem value="POST">POST</SelectItem>
-            <SelectItem value="PATCH">PATCH</SelectItem>
-            <SelectItem value="DELETE">DELETE</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select
-          onValueChange={(value) => {
-            update({ ordering: value as MonitoringRequestsSearch["ordering"] });
-          }}
-          value={ordering}
-        >
-          <SelectTrigger aria-label={t("ORDER")}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="-occurred_at">{t("NEWEST")}</SelectItem>
-            <SelectItem value="occurred_at">{t("OLDEST")}</SelectItem>
-            <SelectItem value="-duration_ms">{t("SLOWEST")}</SelectItem>
-            <SelectItem value="duration_ms">{t("FASTEST")}</SelectItem>
-            <SelectItem value="-status_code">{t("STATUS_SEVERITY")}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <SavedViewsControl
-        definition={SAVED_VIEW_DEFINITIONS.monitoringRequests}
-        onApply={applySavedView}
-        state={savedState}
+      <MonitoringToolbar
+        filters={
+          <>
+            <Input
+              aria-label={t("SEARCH")}
+              className="min-w-52 flex-1"
+              onChange={(event) => update({ q: event.target.value || undefined })}
+              placeholder={t("REQUESTS_SEARCH_PLACEHOLDER")}
+              value={search}
+            />
+            <Select
+              onValueChange={(value) =>
+                update({
+                  method:
+                    value === "all" ? undefined : (value as MonitoringRequestsSearch["method"]),
+                })
+              }
+              value={method}
+            >
+              <SelectTrigger aria-label={t("METHOD")} className="w-full sm:w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("ALL_METHODS")}</SelectItem>
+                <SelectItem value="GET">GET</SelectItem>
+                <SelectItem value="POST">POST</SelectItem>
+                <SelectItem value="PATCH">PATCH</SelectItem>
+                <SelectItem value="DELETE">DELETE</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              onValueChange={(value) =>
+                update({ ordering: value as MonitoringRequestsSearch["ordering"] })
+              }
+              value={ordering}
+            >
+              <SelectTrigger aria-label={t("ORDER")} className="w-full sm:w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="-occurred_at">{t("NEWEST")}</SelectItem>
+                <SelectItem value="occurred_at">{t("OLDEST")}</SelectItem>
+                <SelectItem value="-duration_ms">{t("SLOWEST")}</SelectItem>
+                <SelectItem value="duration_ms">{t("FASTEST")}</SelectItem>
+                <SelectItem value="-status_code">{t("STATUS_SEVERITY")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </>
+        }
+        savedViews={
+          <SavedViewsControl
+            definition={SAVED_VIEW_DEFINITIONS.monitoringRequests}
+            onApply={applySavedView}
+            state={savedState}
+          />
+        }
       />
       <MonitoringQueryState
         filtered={filtered}
@@ -204,10 +225,18 @@ export function MonitoringRequestsPage(props: {
                   <TableRow key={item.id}>
                     <TableCell>{formatDateTime(item.occurredAt)}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">{item.method}</Badge>
-                      <span className="ml-2 font-mono text-caption">{item.routeTemplate}</span>
+                      <span className="block font-medium">
+                        {t(presentRequest(item.method, item.routeTemplate).areaKey)}
+                      </span>
+                      <span className="text-caption text-label-secondary">
+                        {t(presentRequest(item.method, item.routeTemplate).actionKey)}
+                      </span>
                     </TableCell>
-                    <TableCell>{item.statusCode}</TableCell>
+                    <TableCell>
+                      <Badge variant={item.statusCode >= 500 ? "destructive" : "outline"}>
+                        {t(requestStatusKey(item.statusCode))} · {item.statusCode}
+                      </Badge>
+                    </TableCell>
                     <TableCell>{formatDuration(item.durationMs)}</TableCell>
                     <TableCell>
                       {item.actor?.displayName ?? item.actor?.username ?? t("UNAVAILABLE")}

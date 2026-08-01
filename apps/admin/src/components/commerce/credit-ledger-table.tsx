@@ -26,32 +26,22 @@ function signedCredits(value: number, formatter: Intl.NumberFormat): string {
   return `${value > 0 ? "+" : "−"}${formatter.format(Math.abs(value))}`;
 }
 
-function ledgerReference(entry: CreditLedgerEntry): Readonly<{ labelKey: string; value: string }> {
+function ledgerReference(entry: CreditLedgerEntry): string {
   if (entry.requestId) {
-    return { labelKey: "LEDGER_REFERENCE_AI_REQUEST", value: entry.requestId };
+    return "LEDGER_REFERENCE_AI_REQUEST";
   }
   if (entry.providerPeriodIdentity) {
-    return {
-      labelKey: "LEDGER_REFERENCE_PERIOD_REFRESH",
-      value: entry.providerPeriodIdentity,
-    };
+    return "LEDGER_REFERENCE_PERIOD_REFRESH";
   }
   if (entry.actorUserId) {
-    return { labelKey: "LEDGER_REFERENCE_OPERATOR_ACTION", value: entry.actorUserId };
+    return "LEDGER_REFERENCE_OPERATOR_ACTION";
   }
-  return { labelKey: "LEDGER_REFERENCE_SUBSCRIPTION", value: entry.subscriptionId };
+  return "LEDGER_REFERENCE_SUBSCRIPTION";
 }
 
-function TruncatedValue(props: { children: string; mono?: boolean }) {
+function TruncatedValue(props: { children: string }) {
   return (
-    <span
-      className={
-        props.mono
-          ? "block max-w-full truncate font-mono text-footnote"
-          : "block max-w-full truncate"
-      }
-      title={props.children}
-    >
+    <span className="block max-w-full truncate" title={props.children}>
       {props.children}
     </span>
   );
@@ -84,14 +74,16 @@ export function CreditLedgerTable({ workspaceId }: { workspaceId: string }) {
         cell: ({ row }) => (
           <div className="text-right font-mono tabular-nums">
             <div>{signedCredits(row.original.deltaBalanceCredits, number)}</div>
-            <div className="text-caption text-label-secondary">
-              {t("commerce:LEDGER_RESERVED_SHORT", {
-                value: signedCredits(row.original.deltaReservedCredits, number),
-              })}
-            </div>
+            {row.original.deltaReservedCredits !== 0 ? (
+              <div className="text-caption text-label-secondary">
+                {t("commerce:LEDGER_RESERVED_SHORT", {
+                  value: signedCredits(row.original.deltaReservedCredits, number),
+                })}
+              </div>
+            ) : null}
           </div>
         ),
-        size: 130,
+        size: 120,
       },
       {
         id: "available",
@@ -106,18 +98,10 @@ export function CreditLedgerTable({ workspaceId }: { workspaceId: string }) {
       },
       {
         id: "reference",
-        header: t("commerce:LEDGER_COLUMN_REFERENCE"),
-        meta: { title: t("commerce:LEDGER_COLUMN_REFERENCE"), kind: "meta" },
-        cell: ({ row }) => {
-          const reference = ledgerReference(row.original);
-          return (
-            <div className="min-w-0">
-              <BaseTag>{t(`commerce:${reference.labelKey}`)}</BaseTag>
-              <TruncatedValue mono>{reference.value}</TruncatedValue>
-            </div>
-          );
-        },
-        size: 240,
+        header: t("commerce:LEDGER_COLUMN_SOURCE"),
+        meta: { title: t("commerce:LEDGER_COLUMN_SOURCE"), kind: "meta" },
+        cell: ({ row }) => <BaseTag>{t(`commerce:${ledgerReference(row.original)}`)}</BaseTag>,
+        size: 150,
       },
       {
         id: "createdAt",

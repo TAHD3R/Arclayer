@@ -1,5 +1,7 @@
 import {
   platformGetCurrentPlatformMfaReadiness,
+  platformGetPlatformInvitationOptions,
+  platformGetCurrentTeamIdentity,
   platformGetPlatformInvitation,
   platformGetPlatformSignInReadiness,
   platformListCurrentPlatformSessions,
@@ -7,12 +9,17 @@ import {
   platformListPlatformPermissions,
   platformListPlatformRoles,
   platformListPlatformTeam,
+  platformInvitePlatformOperator,
+  type PlatformInvitationCreateRequest,
   type PlatformInvitationDetailOut,
+  type PlatformInvitationOptionsOut,
   type PlatformMfaReadinessOut,
   type PlatformPermissionCatalogItemOut,
   type PlatformRoleCatalogItemOut,
   type PlatformSessionInventoryItemOut,
   type PlatformSignInReadinessOut,
+  type PlatformMutationReceipt,
+  type PlatformTeamIdentityOut,
   type PlatformTeamQueueOut,
 } from "@arclayer/platform-openapi";
 
@@ -56,6 +63,16 @@ function unwrap<T>(result: SdkResult<T>): T {
 
 export const getPlatformTeam = async (): Promise<PlatformTeamQueueOut> =>
   unwrap(await platformListPlatformTeam({ client: platformApiClient }));
+export const getCurrentPlatformTeamIdentity = async (): Promise<PlatformTeamIdentityOut> =>
+  unwrap(await platformGetCurrentTeamIdentity({ client: platformApiClient }));
+export const invitePlatformOperator = async (
+  body: PlatformInvitationCreateRequest,
+): Promise<PlatformMutationReceipt> =>
+  unwrap(await platformInvitePlatformOperator({ client: platformApiClient, body }));
+export const getPlatformInvitationOptions = async (
+  q: string | null,
+): Promise<PlatformInvitationOptionsOut> =>
+  unwrap(await platformGetPlatformInvitationOptions({ client: platformApiClient, query: { q } }));
 export const listPlatformInvitations = async (): Promise<PlatformInvitationDetailOut[]> =>
   unwrap(await platformListPlatformInvitations({ client: platformApiClient }));
 export const getPlatformInvitation = async (

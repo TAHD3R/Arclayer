@@ -88,6 +88,8 @@ export function TenantUsersPage(props: {
     <TenantDirectoryTable
       columns={columns}
       description={t("USERS_DESCRIPTION")}
+      detailDescription={t("USER_DETAIL_DESCRIPTION")}
+      detailTitle={t("USER_DETAIL_TITLE")}
       filters={
         <Filters ordering={props.search.ordering} status={props.search.status} onChange={update} />
       }

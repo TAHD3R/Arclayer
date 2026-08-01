@@ -15,6 +15,7 @@ vi.mock("@tanstack/react-query", () => ({
 vi.mock("@/layouts/page-shell/content-guard", () => ({
   ContentGuard: (props: {
     wrapperSpacing?: string;
+    loadingVariant?: string;
     className?: string;
     emptyExtra?: ReactNode;
     children?: ReactNode;
@@ -22,6 +23,7 @@ vi.mock("@/layouts/page-shell/content-guard", () => ({
     <div
       data-testid="content-guard"
       data-wrapper-spacing={props.wrapperSpacing ?? ""}
+      data-loading-variant={props.loadingVariant ?? ""}
       data-class-name={props.className ?? ""}
     >
       {props.emptyExtra ? (
@@ -80,6 +82,10 @@ describe("WorkspacesCardGrid", () => {
     );
 
     expect(screen.getByTestId("content-guard")).toHaveAttribute("data-wrapper-spacing", "flush");
+    expect(screen.getByTestId("content-guard")).toHaveAttribute(
+      "data-loading-variant",
+      "card-grid",
+    );
     expect(screen.getByTestId("content-guard-empty-extra")).toHaveTextContent("Create workspace");
   });
 

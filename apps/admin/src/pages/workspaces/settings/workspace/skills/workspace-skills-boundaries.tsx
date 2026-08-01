@@ -70,10 +70,11 @@ export function WorkspaceSkillValidationFindings({
         <ul className="flex list-disc flex-col gap-2 pl-4">
           {validation.findings.map((finding, index) => (
             <li key={`${finding.code}:${finding.resourcePath ?? "package"}:${index}`}>
-              <span>{finding.message}</span>
-              {finding.resourcePath ? (
-                <code className="ml-2 text-caption">{finding.resourcePath}</code>
-              ) : null}
+              <span>
+                {t(`SETTINGS_WORKSPACE_SKILLS_FINDING_${finding.code}`, {
+                  defaultValue: finding.message,
+                })}
+              </span>
             </li>
           ))}
         </ul>

@@ -1,6 +1,6 @@
 {
   "PAGE_NOT_FOUND_TITLE": "找不到此页面",
-  "PAGE_NOT_FOUND_DESCRIPTION": "这个地址不属于平台控制台。请从导航返回运营收件箱。",
+  "PAGE_NOT_FOUND_DESCRIPTION": "这个地址不属于平台控制台。请从导航返回总览。",
   "UNEXPECTED_TITLE": "平台控制台无法显示此页面",
   "UNEXPECTED_DESCRIPTION": "页面没有完成加载。请刷新后重试；如果问题持续，请保留当前地址以便排查。",
   "PLATFORM_SETUP_STATE_UNAVAILABLE": "平台控制台无法检查设置状态",

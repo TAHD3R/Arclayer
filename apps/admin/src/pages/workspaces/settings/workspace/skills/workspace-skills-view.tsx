@@ -1,4 +1,4 @@
-import { Blocks, CircleAlert, Github, Plus, Search, ShieldCheck } from "lucide-react";
+import { Blocks, CircleAlert, Download, Plus, Search } from "lucide-react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -26,7 +26,6 @@ import { WorkspaceSkillGitHubImportDialog } from "./workspace-skill-github-dialo
 import { WorkspaceSkillGitHubStatus } from "./workspace-skill-github-status";
 import { WorkspaceOfficialSkillsCatalog } from "./workspace-official-skills-catalog";
 import { WorkspaceSkillPackageList } from "./workspace-skills-components";
-import { WorkspaceSkillsCapabilityBoundaries } from "./workspace-skills-boundaries";
 
 export function WorkspaceSkillsView({
   workspaceId,
@@ -73,16 +72,12 @@ export function WorkspaceSkillsView({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 pb-8">
-      <Alert variant={capabilitiesQuery.isError ? "destructive" : "default"}>
-        {capabilitiesQuery.isError ? (
+      {capabilitiesQuery.isError ? (
+        <Alert variant="destructive">
           <CircleAlert aria-hidden="true" />
-        ) : (
-          <ShieldCheck aria-hidden="true" />
-        )}
-        <AlertTitle>{t("settings:SETTINGS_WORKSPACE_SKILLS_AUTHORITY_TITLE")}</AlertTitle>
-        <AlertDescription className="flex flex-col gap-2" aria-live="polite">
-          <span>{t(`settings:${capabilityMessage}`)}</span>
-          {capabilitiesQuery.isError ? (
+          <AlertTitle>{t("settings:SETTINGS_WORKSPACE_SKILLS_AUTHORITY_TITLE")}</AlertTitle>
+          <AlertDescription className="flex flex-col gap-2" aria-live="polite">
+            <span>{t(`settings:${capabilityMessage}`)}</span>
             <Button
               size="sm"
               variant="outline"
@@ -91,9 +86,9 @@ export function WorkspaceSkillsView({
             >
               {t("common:RETRY")}
             </Button>
-          ) : null}
-        </AlertDescription>
-      </Alert>
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-sm">
@@ -115,7 +110,7 @@ export function WorkspaceSkillsView({
             disabled={!capabilitiesQuery.data?.githubImportAvailable}
             onClick={() => setDialog("github")}
           >
-            <Github data-icon="inline-start" />
+            <Download data-icon="inline-start" />
             {t("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_IMPORT_ACTION")}
           </Button>
           <Button onClick={() => setDialog("package")}>
@@ -151,7 +146,7 @@ export function WorkspaceSkillsView({
           void packagesQuery.refetch();
           void installationsQuery.refetch();
         }}
-        loadingVariant="form"
+        loadingVariant="split-detail"
       >
         {!packages.length ? (
           <WorkspaceSkillsEmptyState onCreate={() => setDialog("package")} />
@@ -172,10 +167,6 @@ export function WorkspaceSkillsView({
           </div>
         ) : null}
       </ContentGuard>
-
-      {capabilitiesQuery.data ? (
-        <WorkspaceSkillsCapabilityBoundaries capabilities={capabilitiesQuery.data} />
-      ) : null}
 
       <WorkspaceSkillPackageCreateDialog
         open={dialog === "package"}
@@ -215,7 +206,7 @@ export function WorkspaceSkillsView({
 function WorkspaceSkillsEmptyState({ onCreate }: { onCreate: () => void }) {
   const { t } = useTranslation("settings");
   return (
-    <Empty className="min-h-96 border border-dashed">
+    <Empty className="min-h-[12rem] border bg-card">
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <Blocks aria-hidden="true" />

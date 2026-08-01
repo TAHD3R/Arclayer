@@ -6,8 +6,7 @@ import { UserProfileView } from "@/pages/usercenter/profile/components/user-prof
 import type { SettingsScreen, SettingsScreenPayload } from "@/lib/settings/settings-screen";
 import { WorkspaceSettingsBasicsView } from "@/pages/workspaces/settings/workspace/basics/components/workspace-settings-basics-view";
 import { WorkspacePlanUsageView } from "@/pages/workspaces/settings/workspace/plan-usage/plan-usage-view";
-import { TeamInvitationsPage } from "@/pages/workspaces/team/invitations/page";
-import { TeamMembersView } from "@/pages/workspaces/team/members/components/team-members-view";
+import { WorkspacePeopleView } from "@/pages/workspaces/settings/workspace/people/workspace-people-view";
 import { TeamRolesPage } from "@/pages/workspaces/team/roles/page";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
@@ -39,16 +38,18 @@ function WorkspaceGeneralOverlayView() {
   return <WorkspaceSettingsBasicsView workspaceId={useEffectiveWorkspaceId()} embedded />;
 }
 
-function WorkspaceMembersOverlayView() {
-  return <TeamMembersView workspaceIdOverride={useEffectiveWorkspaceId()} embedded />;
-}
-
 function WorkspacePlanUsageOverlayView() {
   return <WorkspacePlanUsageView workspaceId={useEffectiveWorkspaceId()} />;
 }
 
-function WorkspaceInvitationsOverlayView() {
-  return <TeamInvitationsPage workspaceIdOverride={useEffectiveWorkspaceId()} embedded />;
+function WorkspacePeopleOverlayView(context: SettingsScreenRenderContext) {
+  return (
+    <WorkspacePeopleView
+      workspaceId={useEffectiveWorkspaceId()}
+      targetSection={context.targetSection}
+      initialInspectMemberId={context.payload?.memberId}
+    />
+  );
 }
 
 function WorkspaceRolesOverlayView() {
@@ -95,18 +96,11 @@ export const WORKSPACE_SETTINGS_OVERLAY_ITEMS: readonly UsercenterOverlayItem[] 
     render: () => <WorkspacePlanUsageOverlayView />,
   },
   {
-    screen: "workspace.members",
-    labelKey: "account:SETTINGS_NAV_WORKSPACE_MEMBERS",
-    titleKey: "settings:SETTINGS_WORKSPACE_MEMBERS_TITLE",
-    descriptionKey: "settings:SETTINGS_WORKSPACE_MEMBERS_DESC",
-    render: () => <WorkspaceMembersOverlayView />,
-  },
-  {
-    screen: "workspace.invitations",
-    labelKey: "account:SETTINGS_NAV_WORKSPACE_INVITATIONS",
-    titleKey: "settings:SETTINGS_WORKSPACE_INVITATIONS_TITLE",
-    descriptionKey: "settings:SETTINGS_WORKSPACE_INVITATIONS_DESC",
-    render: () => <WorkspaceInvitationsOverlayView />,
+    screen: "workspace.people",
+    labelKey: "account:SETTINGS_NAV_WORKSPACE_PEOPLE",
+    titleKey: "settings:SETTINGS_WORKSPACE_PEOPLE_TITLE",
+    descriptionKey: "settings:SETTINGS_WORKSPACE_PEOPLE_DESC",
+    render: (context) => <WorkspacePeopleOverlayView {...context} />,
   },
   {
     screen: "workspace.roles",

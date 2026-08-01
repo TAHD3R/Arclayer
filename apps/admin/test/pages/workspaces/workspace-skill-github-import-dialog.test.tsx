@@ -34,9 +34,9 @@ describe("WorkspaceSkillGitHubImportDialog", () => {
     expect(screen.getByLabelText("settings:SETTINGS_WORKSPACE_SKILLS_NAME_LABEL")).toHaveValue(
       "Site Planner",
     );
-    expect(screen.getByLabelText("settings:SETTINGS_WORKSPACE_SKILLS_SLUG_LABEL")).toHaveValue(
-      "site-planner",
-    );
+    expect(
+      screen.queryByLabelText("settings:SETTINGS_WORKSPACE_SKILLS_SLUG_LABEL"),
+    ).not.toBeInTheDocument();
 
     fireEvent.change(
       screen.getByLabelText("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_SUBPATH_LABEL"),

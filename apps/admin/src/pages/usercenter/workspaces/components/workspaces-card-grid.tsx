@@ -128,6 +128,7 @@ export function WorkspacesCardGrid(props: WorkspacesCardGridProps) {
       emptyTitle={emptyTitle}
       emptyDescription={emptyDescription}
       emptyExtra={emptyExtra}
+      loadingVariant="card-grid"
       wrapperSpacing="flush"
     >
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">

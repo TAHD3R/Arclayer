@@ -1,14 +1,15 @@
 # Platform Extensibility Contract
 
-Status: Approved domain boundary; detailed workflows remain subject to product grilling
+Status: Approved domain contract; experience amended 2026-08-01
 Parent: [Platform Control Plane Productization Rollout](./admin-control-plane-rollout.md)
+Experience authority: [Product and Platform administration experience redesign](./product-admin-experience-redesign.md)
 Supporting contract: [Plugin lifecycle capability details](./admin-plugin-notification-mail.md#4-plugin-domain-model)
 
 ## 1. Scope
 
 This contract defines one Extensibility Platform Domain for instance Extension discovery, installation, integrity and trust, compatibility, requested-permission review, dependency impact, upgrade, rollback, disablement, removal, and provided connection-capability inventory.
 
-“Extensibility” is the canonical architecture term. The localized product label is “扩展功能” / “Extensions”; primary navigation describes installed software and lifecycle work rather than runtime registries or manifest structure.
+“Extensibility” is the canonical architecture term. The product label is `扩展 / Extensions`; primary navigation describes installed software and lifecycle work rather than runtime registries or manifest structure.
 
 ## 2. Current-state evidence
 
@@ -22,7 +23,7 @@ Extensions opens **Installed** by default and contains these peer operational su
 
 1. **Installed**: installed Extensions with current/available version, trust and compatibility, provided capabilities, current consumers, update or failure state, and state-aware actions.
 2. **Extension catalog**: approved available Extensions with source, publisher/provenance, compatibility, requested permissions, provided capabilities, release notes, and install readiness.
-3. **Connections**: installed Connector capabilities grouped by the operator task they support, their consuming Platform Domain, configuration/readiness summary, and exact owning-domain link; no business configuration form is duplicated here.
+3. **Connections**: installed Connector capabilities and shared connection identities grouped by the operator task they support. Extensibility owns authorize, re-authorize, disable, dependency-safe removal, trust, and shared readiness; the consuming Platform Domain owns business configuration and operational use reached through an exact link.
 4. **Install & update history**: durable install, upgrade, enable, disable, rollback, and removal operations with phase, progress, safe logs, retryability, terminal result, actor, and audit correlation.
 
 The domain has no card-based Overview. Installed is a searchable operational list, not a decorative marketplace grid; Extension cards may remain only where visual identity materially helps catalog discovery.
@@ -30,8 +31,8 @@ The domain has no card-based Overview. Installed is a searchable operational lis
 ## 4. Authority boundaries
 
 - Extensibility owns Extension package source, checksum/signature and provenance, manifest validation, compatibility, requested Platform Permissions, dependency graph, installed version, and lifecycle operation.
-- The consuming Platform Domain owns capability-specific configuration and operational use: Access & Security owns identity-provider sign-in, AI services owns AI model/provider use, Site delivery owns storage/delivery use, and Messages & feedback owns email-channel use.
-- Extensibility may show configuration readiness and an exact typed deep link but cannot render, proxy, or mutate the consuming domain's form.
+- The consuming Platform Domain owns capability-specific configuration and operational use: Access & Security owns identity-provider sign-in, AI Services owns AI model/provider use, Hosting & Domains owns storage/delivery use, and Messages & Feedback owns email-channel use.
+- Extensibility owns shared connection identity, trust, authorization/re-authorization, disablement, and dependency-safe removal. It may show consuming-domain configuration readiness and an exact typed deep link but cannot render, proxy, or mutate the consuming domain's business form.
 - Installing an Extension does not enable its capabilities, grant newly requested permissions, select it as a Provider, or expose navigation automatically. The Platform Capability Catalog changes only after trusted registration and the owning enablement contract succeed.
 - Instance installation never activates an Extension for every Workspace. Workspace activate/deactivate requires a separately approved Product Application authority and increments its own Workspace Extension revision; absence of that contract leaves Workspace activation unavailable.
 - Workspace-authored Knowledge, Skills, Design Systems, and Agents are not Extension packages and do not enter this domain.
@@ -65,4 +66,4 @@ Manifest ids, checksums, signatures, compatibility ranges, permission codes, ope
 
 ## 8. Migration contract
 
-The hard cut replaces `/system/plugins` with exact Extensions routes for Installed, Extension catalog, Connections, and Install & update history. The old card-page route, static navigation entry, duplicate configuration forms, settings anchors, and super-admin-only mutation guard are removed after action-scoped Platform Permissions and durable lifecycle operations are available. Existing installed Extensions are backfilled with explicit source, version, trust/verification, compatibility, capability, consumer, and runtime state; unknown evidence remains visibly unknown rather than trusted by default.
+The hard cut replaces `/system/plugins` with `/extensions/installed`, `/extensions/catalog`, `/extensions/connections`, `/extensions/history`, and route-backed object detail. The old card-page route, static navigation entry, duplicate configuration forms, settings anchors, and super-admin-only mutation guard are removed after action-scoped Platform Permissions and durable lifecycle operations are available. Existing installed Extensions are backfilled with explicit source, version, trust/verification, compatibility, capability, consumer, and runtime state; unknown evidence remains visibly unknown rather than trusted by default.

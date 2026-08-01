@@ -8,11 +8,10 @@ export type RecentDestination = Readonly<{
 const RECENT_DESTINATIONS_KEY = "arclayer:platform:recent-destinations";
 const RECENT_DESTINATION_LIMIT = 8;
 const TRUSTED_DESTINATION_IDS: ReadonlySet<string> = new Set<PlatformDestinationId>([
-  "operations-inbox",
+  "overview",
+  "needs-attention",
   "access-team",
-  "tenant-workspaces",
-  "tenant-users",
-  "tenant-projects",
+  "workspace-workspaces",
   "monitoring-requests",
   "monitoring-performance",
   "monitoring-ai-usage",

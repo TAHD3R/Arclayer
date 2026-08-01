@@ -33,6 +33,7 @@ def _configure_guard_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Non
     monkeypatch.setenv("SECURITY__ENABLE_IP_BANNING", "0")
     monkeypatch.setenv("SECURITY__ENABLE_REDIS", "0")
     monkeypatch.setenv("SECURITY__ENABLE_RATE_LIMITING", "0")
+    monkeypatch.setenv("SECURITY__CSRF__ENABLED", "0")
     get_settings.cache_clear()
 
 

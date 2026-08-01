@@ -16,6 +16,7 @@ Use this routing model for every change:
 - Monorepo: Turborepo + pnpm workspace
 - Backend API: `apps/api`
 - Admin frontend: `apps/admin`
+- Platform Console frontend: `apps/platform`
 - Shared packages: `packages/*`
 - Plugins: `plugins/*`
 
@@ -33,11 +34,28 @@ Do not:
 - hand-edit generated artifacts
 - run long-lived dev servers unless requested
 
-## Validation Fast Path
+## Stage Validation
 
-- API-only changes: `pnpm api:check`
-- Admin-only changes: `pnpm admin:check`
-- Cross-app changes: `pnpm check`
+Validate in proportion to the change and its milestone; do not run a package or
+repository-wide gate after every small edit.
+
+- During an isolated change, run the closest relevant static check and focused
+  test. Re-run only the checks invalidated by subsequent edits.
+- At a coherent milestone or before handoff, run the affected package gate:
+  `pnpm api:check` for API work, `pnpm admin:check` for Admin work, or
+  `pnpm platform:check` for Platform work.
+- Run `pnpm check` for cross-app integration or final delivery when its scope
+  justifies a repository-wide gate.
+- For a focused backend test, use the package script, for example
+  `pnpm -C apps/api test tests/path/to_test.py::test_name`, and start with a
+  60-second timeout as a diagnostic default, not a hard gate. Give
+  integration, database, or inherently slow tests the time needed to complete
+  and expose their result.
+- Pass focused Admin Vitest paths directly, for example
+  `pnpm --filter @arclayer/admin test test/components/layout/route-progress.test.tsx`.
+  Use the same direct-path form for Platform. Do not insert an extra `--`
+  before the path or depend on separator behavior across pnpm and Vitest; it
+  can defeat the intended file filter and trigger a broader run.
 
 ## Guidelines Directory Policy
 
@@ -49,12 +67,12 @@ Do not:
 
 ## Frontend Execution Contract
 
-- Active frontend scope: `apps/admin` and Admin-facing surfaces in `packages/ui`
+- Active frontend scope: `apps/admin`, `apps/platform`, and application-facing surfaces in `packages/ui`
 - `DESIGN.md` is the primary visual language source
 - For design-sensitive changes, align with `docs/guidelines/frontend-design.md`
 - Reuse `@arclayer/ui` first; install missing generic primitives through the configured shadcn Registry instead of hand-building substitutes
 - Use `lucide-react` for icons and `@arclayer/ui/chart` (Recharts) for charts; do not add competing icon or chart stacks
-- Use the shared Boneyard route boundary and package scripts for route skeleton capture; keep page-local loading/error/empty states explicit
+- Keep page-local loading, error, and empty states explicit
 - All new product copy must use stable i18n keys with both `zh-CN` and `en-US` resources
 - Treat `docs/spec/admin/frontend/product-ui-toolchain.md` as the canonical UI toolchain contract
 

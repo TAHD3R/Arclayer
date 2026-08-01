@@ -10,15 +10,12 @@
     "lint": "oxlint -c ./node_modules/@arclayer/config/.oxlintrc.json .",
     "format": "oxfmt -c ./node_modules/@arclayer/config/.oxfmtrc.json .",
     "test": "vitest run --config vitest.config.ts",
-    "locale:check": "node ./scripts/check-locales.mjs",
-    "skeletons:build": "boneyard-js build http://localhost:5174 --out ./src/bones --breakpoints 375,768,1280 --no-scan",
-    "skeletons:watch": "boneyard-js build http://localhost:5174 --watch --out ./src/bones --breakpoints 375,768,1280 --no-scan"
+    "locale:check": "node ./scripts/check-locales.mjs"
   },
   "dependencies": {
     "@arclayer/platform-openapi": "workspace:*",
     "@arclayer/ui": "workspace:*",
     "@tanstack/react-router": "catalog:",
-    "boneyard-js": "^1.9.0",
     "i18next": "^25.8.0",
     "lucide-react": "catalog:",
     "react": "catalog:",

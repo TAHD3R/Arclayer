@@ -394,7 +394,10 @@ Required cross-layer evidence:
 - source-managed project refusal and explicit migration-required UI.
 - refresh/cancel recovery for generation and publish Jobs.
 
-Run `pnpm api:check` for backend-only implementation and `pnpm check` for cross-app changes. Review-sensitive changes also run the canonical changed-scope code review engine.
+During isolated backend implementation, run the closest static check and focused
+test. Run `pnpm api:check` at a coherent backend milestone or before handoff;
+reserve `pnpm check` for cross-app integration or final delivery. Review-sensitive
+changes also run the canonical changed-scope code review engine.
 
 ## 17. Wave 2A implementation evidence (2026-07-20)
 

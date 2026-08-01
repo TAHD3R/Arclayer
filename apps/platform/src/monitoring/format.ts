@@ -6,6 +6,12 @@ export function formatDateTime(value: string): string {
   );
 }
 
+export function formatDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
+}
+
 export function formatDuration(milliseconds: number): string {
   return milliseconds >= 1_000
     ? `${(milliseconds / 1_000).toFixed(milliseconds >= 10_000 ? 0 : 1)} s`

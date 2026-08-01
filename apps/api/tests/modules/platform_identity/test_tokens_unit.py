@@ -20,6 +20,25 @@ def _settings() -> PlatformAuthSettings:
     )
 
 
+def test_platform_auth_defaults_keep_short_bearers_and_one_day_device_sessions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    for variable in (
+        "PLATFORM_AUTH__ACCESS_TOKEN_TTL_SECONDS",
+        "PLATFORM_AUTH__DEVICE_SESSION__INACTIVITY_TTL_SECONDS",
+        "PLATFORM_AUTH__DEVICE_SESSION__ABSOLUTE_TTL_SECONDS",
+        "PLATFORM_AUTH__DEVICE_SESSION__POLICY_REVISION",
+    ):
+        monkeypatch.delenv(variable, raising=False)
+
+    settings = PlatformAuthSettings()
+
+    assert settings.access_token_ttl_seconds == 900
+    assert settings.device_session.inactivity_ttl_seconds == 86_400
+    assert settings.device_session.absolute_ttl_seconds == 86_400
+    assert settings.device_session.policy_revision == 2
+
+
 def test_platform_auth_settings_use_a_dedicated_environment_prefix(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("AUTH__JWT_SECRET", "product-secret")
     monkeypatch.setenv("AUTH__JWT_ISSUER", "product-issuer")

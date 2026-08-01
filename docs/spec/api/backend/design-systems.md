@@ -930,7 +930,7 @@ The first Style Guide write boundary is now active for project-owned forks. It e
 - create and validation commands share the Project lock, request fingerprint, idempotency key, exact result snapshot, tenant transaction, and required `project.design_system.version.created` / `project.design_system.version.validated` Activity events;
 - a valid version advances only the project-owned system's latest-valid projection. It does not change the current project assignment, active release, or retained Site Revision. Assignment remains a separate exact command, and a retained Site Revision advances only through the explicit Design System refresh ChangeSet recorded in section 20.
 
-Capability truth now reports `projectVersionAuthoring=true`. The real PostgreSQL HTTP lifecycle verifies fork read, workspace-owned edit denial, immutable v2 creation, exact replay, conflicting-key rejection, stale-parent rejection, catalog-compatible validation, cross-Project denial, exact reassignment, Agent Run context capture, Builder initialization pinning, and Activity order. The focused integration passes within the required 60-second limit. API lint, API/OpenAPI typechecks, generated OpenAPI, and `git diff --check` pass; API typecheck retains only the three previously documented unrelated test diagnostics.
+Capability truth now reports `projectVersionAuthoring=true`. The real PostgreSQL HTTP lifecycle verifies fork read, workspace-owned edit denial, immutable v2 creation, exact replay, conflicting-key rejection, stale-parent rejection, catalog-compatible validation, cross-Project denial, exact reassignment, Agent Run context capture, Builder initialization pinning, and Activity order. The focused integration completed within the observed 60-second diagnostic budget. API lint, API/OpenAPI typechecks, generated OpenAPI, and `git diff --check` pass; API typecheck retains only the three previously documented unrelated test diagnostics.
 
 This is the backend Style Guide version authority used by the Admin flow in section 21. Project version history, semantic compare/supersede UI, Agent-generated concepts, Asset/font-rights review, section-scheme contrast editing, real component preview, compiler artifacts, and publication readiness remain gated.
 
@@ -971,7 +971,7 @@ Project-owned Design Systems now expose two read authorities over the existing i
 - manifest checksum and derived token-index hashes do not become semantic entries. The comparison hash binds the two exact version identities, manifest checksums, and canonical diff payload while the public response continues to expose encoded public IDs;
 - cross-Project access returns the same not-found boundary as exact version reads. The real PostgreSQL HTTP lifecycle covers two cursor pages, latest validation projection, a three-entry name/action/focus comparison, and cross-Project comparison denial.
 
-The pure manifest seam passes 2 deterministic/no-change tests; the real HTTP lifecycle passes within the required 60-second limit. API format/lint pass, API typecheck retains only the three documented unrelated test diagnostics, and the formal OpenAPI generator plus generated TypeScript typecheck pass.
+The pure manifest seam passes 2 deterministic/no-change tests; the real HTTP lifecycle completed within the observed 60-second diagnostic budget. API format/lint pass, API typecheck retains only the three documented unrelated test diagnostics, and the formal OpenAPI generator plus generated TypeScript typecheck pass.
 
 Full `api:check` passes all 4 tasks with 2198 tests passed, 435 integration-disabled skips, and 26 existing warnings. Full `admin:check` passes all 4 tasks with 318 files / 1420 tests, and cross-app `pnpm check` passes all 8 tasks. Changed-scope review is `status=ok`, has zero enforcement-blocking findings, and retains 45 unrelated report-only findings; no Design System or Style Guide file is reported.
 
@@ -1048,8 +1048,8 @@ breaking-change guarantee.
 Focused evidence passes three pure analyzer tests, including deterministic
 token-to-recipe-to-section propagation, removed-recipe blocking, and
 de-duplicated section counts with multiple matching recipes. The real
-PostgreSQL Workspace/Project lifecycle test passes within the required
-60-second limit and covers capability truth, exact source/target summaries,
+PostgreSQL Workspace/Project lifecycle test completed within the observed
+60-second diagnostic budget and covers capability truth, exact source/target summaries,
 assignment/current/historical counts, explicit coverage, unmapped changes, and
 cross-Project isolation.
 

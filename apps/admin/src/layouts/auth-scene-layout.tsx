@@ -23,7 +23,7 @@ export function AuthSceneLayout(
   const content = (
     <div className={cn("w-full", props.contentMaxClassName ?? "max-w-90")}>
       {props.withRouteTransition ? (
-        <RouteTransition className="w-full [&_.admin-route-boneyard]:bg-transparent" variant="fade">
+        <RouteTransition className="w-full" variant="fade">
           {props.children}
         </RouteTransition>
       ) : (

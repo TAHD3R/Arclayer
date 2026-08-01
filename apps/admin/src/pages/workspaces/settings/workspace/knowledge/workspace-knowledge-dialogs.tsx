@@ -153,12 +153,6 @@ export function KnowledgeSourceCreateDialog(props: DialogProps<SourceValues>) {
               {...form.register("displayName")}
             />
           </SettingDialogField>
-          <SettingDialogField
-            title={t("settings:SETTINGS_WORKSPACE_KNOWLEDGE_SOURCE_KEY_LABEL")}
-            description={t("settings:SETTINGS_WORKSPACE_KNOWLEDGE_SOURCE_KEY_HELP")}
-          >
-            <Input {...form.register("documentKey")} />
-          </SettingDialogField>
           <SettingDialogField title={t("settings:SETTINGS_WORKSPACE_KNOWLEDGE_LOCALE_LABEL")}>
             <Input
               aria-invalid={Boolean(form.formState.errors.locale)}
@@ -225,7 +219,7 @@ export function KnowledgeVersionCreateDialog(props: DialogProps<VersionValues>) 
             }
           >
             <Textarea
-              className="min-h-64 font-mono"
+              className="min-h-64"
               aria-invalid={Boolean(form.formState.errors.content)}
               {...form.register("content")}
             />

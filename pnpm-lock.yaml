@@ -557,9 +557,6 @@ importers:
       '@visx/shape':
         specifier: 4.0.1-alpha.0
         version: 4.0.1-alpha.0(react@19.2.3)
-      boneyard-js:
-        specifier: ^1.9.0
-        version: 1.9.0(react@19.2.3)(vite@7.3.1(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.30.2)(tsx@4.22.4))
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -785,9 +782,6 @@ importers:
       '@tanstack/react-router':
         specifier: 'catalog:'
         version: 1.170.16(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      boneyard-js:
-        specifier: ^1.9.0
-        version: 1.9.0(react@19.2.3)(vite@7.3.1(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.30.2)(tsx@4.22.4))
       i18next:
         specifier: ^25.8.0
         version: 25.10.10(typescript@5.9.3)
@@ -5039,33 +5033,6 @@ packages:
     resolution: {integrity: sha512-2cGmJupaNgg+QUwVLAucDuWuoMZ6EX9iHDRswZ5lsNYEmwPaRknMPCLZz07yTzVq/83p4o/wzbDZbBrTvGGTIw==}
     engines: {node: '>=18'}
 
-  boneyard-js@1.9.0:
-    resolution: {integrity: sha512-FlIHm7YyQ6GMBPaNY6um5ESHNyZGONoSZ0IMhayuyemBsCUhhDl4nC/gMTOi/25ojtrlnRInTWKqFKb7hGK6Cg==}
-    hasBin: true
-    peerDependencies:
-      '@angular/core': '>=14'
-      preact: '>=10'
-      react: '>=18'
-      react-native: '>=0.71'
-      svelte: '>=5.29'
-      vite: '>=5'
-      vue: '>=3'
-    peerDependenciesMeta:
-      '@angular/core':
-        optional: true
-      preact:
-        optional: true
-      react:
-        optional: true
-      react-native:
-        optional: true
-      svelte:
-        optional: true
-      vite:
-        optional: true
-      vue:
-        optional: true
-
   boolbase@1.0.0:
     resolution: {integrity: sha512-JZOSA7Mo9sNGB8+UjSgzdLtokWAky1zbztM3WRLCbZ70/3cTANmQmOdR7y2g+J0e2WXywy1yS468tY+IruqEww==}
 
@@ -7209,16 +7176,6 @@ packages:
 
   player.style@0.3.4:
     resolution: {integrity: sha512-5O9bkbq0APQIkhptyZwp0gUgheCeImGPFo4hvPF2M5xBmgsUYzsUPHCfMye2xyeRE1zvQBKtziaC3jPgnHE1tw==}
-
-  playwright-core@1.61.1:
-    resolution: {integrity: sha512-h7Qlt6m4REp25qvIdvbDtVmD4LqVXfpRxhORv9L0jzETM05p4fuPJ3dKyuSXQxDSbXnmS79HAgi9589lGSpLkg==}
-    engines: {node: '>=18'}
-    hasBin: true
-
-  playwright@1.61.1:
-    resolution: {integrity: sha512-DWnY5o3YbLWK4GovuAVwpqL+1VwGNdUGrRr++8j8PtQQzvAVZUIMjKQ90fY689sEJZJBbZVw1rXaOKSTitkzPQ==}
-    engines: {node: '>=18'}
-    hasBin: true
 
   plimit-lit@1.2.6:
     resolution: {integrity: sha512-EuVnKyDeFgr58aidKf2G7DI41r23bxphlvBKAZ8e8dT9of0Ez2g9w6JbJGUP1YBNC2yG9+ZCCbjLj4yS1P5Gzw==}
@@ -12451,14 +12408,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  boneyard-js@1.9.0(react@19.2.3)(vite@7.3.1(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.30.2)(tsx@4.22.4)):
-    dependencies:
-      playwright: 1.61.1
-    optionalDependencies:
-      '@chenglou/pretext': 0.0.5
-      react: 19.2.3
-      vite: 7.3.1(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.30.2)(tsx@4.22.4)
-
   boolbase@1.0.0: {}
 
   brace-expansion@2.1.1:
@@ -14871,14 +14820,6 @@ snapshots:
       media-chrome: 4.19.2(react@19.2.3)
     transitivePeerDependencies:
       - react
-
-  playwright-core@1.61.1: {}
-
-  playwright@1.61.1:
-    dependencies:
-      playwright-core: 1.61.1
-    optionalDependencies:
-      fsevents: 2.3.2
 
   plimit-lit@1.2.6:
     dependencies:

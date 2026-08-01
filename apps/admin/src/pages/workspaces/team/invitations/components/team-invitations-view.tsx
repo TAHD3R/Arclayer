@@ -91,6 +91,7 @@ export function TeamInvitationsView(
     onInviteLinkOpenChange?: (open: boolean) => void;
     inviteEmailOpen?: boolean;
     onInviteEmailOpenChange?: (open: boolean) => void;
+    fixedTab?: TabKey;
     embedded?: boolean;
   } = {},
 ) {
@@ -113,6 +114,7 @@ export function TeamInvitationsView(
           : "";
   const dateTime = useAdminDateTimeFormatter({ workspaceId });
   const [tab, setTab] = React.useState<TabKey>("pending");
+  const activeTab = props.fixedTab ?? tab;
   const [pendingFilters, setPendingFilters] = React.useState<InvitationTableFilters>({});
   const [acceptedFilters, setAcceptedFilters] = React.useState<InvitationTableFilters>({});
   const [linkFilters, setLinkFilters] = React.useState<InvitationTableFilters>({
@@ -278,7 +280,7 @@ export function TeamInvitationsView(
         roleNameByCode,
         roleManagementAvailable,
         unavailableAccessLabel: invitationAccessLabel,
-        onOpenMembers: () => settingsScreen.openSettings({ screen: "workspace.members" }),
+        onOpenMembers: () => settingsScreen.openSettings({ screen: "workspace.people" }),
       }),
     [dateTime, invitationAccessLabel, roleManagementAvailable, roleNameByCode, settingsScreen, t],
   );
@@ -333,7 +335,7 @@ export function TeamInvitationsView(
         status: "pending",
         role_code: roleManagementAvailable ? params.roleCode : undefined,
       }),
-    queryOptions: { enabled: Boolean(workspaceId) && tab === "pending", retry: false },
+    queryOptions: { enabled: Boolean(workspaceId) && activeTab === "pending", retry: false },
   });
   const acceptedTable = useDataTable<TeamInvitation, InvitationTableFilters>({
     tableId: ACCEPTED_TABLE_ID,
@@ -351,7 +353,7 @@ export function TeamInvitationsView(
         status: "accepted",
         role_code: roleManagementAvailable ? params.roleCode : undefined,
       }),
-    queryOptions: { enabled: Boolean(workspaceId) && tab === "accepted", retry: false },
+    queryOptions: { enabled: Boolean(workspaceId) && activeTab === "accepted", retry: false },
   });
   const linksTable = useDataTable<TeamInviteLink, InvitationTableFilters>({
     tableId: LINKS_TABLE_ID,
@@ -369,7 +371,7 @@ export function TeamInvitationsView(
         role_code: roleManagementAvailable ? params.roleCode : undefined,
         status: params.status,
       }),
-    queryOptions: { enabled: Boolean(workspaceId) && tab === "links", retry: false },
+    queryOptions: { enabled: Boolean(workspaceId) && activeTab === "links", retry: false },
   });
 
   const tabs = [
@@ -378,48 +380,58 @@ export function TeamInvitationsView(
     { value: "links" as const, label: t("team:TEAM_INVITATIONS_TAB_LINKS") },
   ];
   const currentTable =
-    tab === "pending" ? pendingTable : tab === "accepted" ? acceptedTable : linksTable;
+    activeTab === "pending" ? pendingTable : activeTab === "accepted" ? acceptedTable : linksTable;
   const currentFilters =
-    tab === "pending" ? pendingFilters : tab === "accepted" ? acceptedFilters : linkFilters;
+    activeTab === "pending"
+      ? pendingFilters
+      : activeTab === "accepted"
+        ? acceptedFilters
+        : linkFilters;
   const currentOrdering =
-    tab === "pending" ? pendingOrdering : tab === "accepted" ? acceptedOrdering : linkOrdering;
+    activeTab === "pending"
+      ? pendingOrdering
+      : activeTab === "accepted"
+        ? acceptedOrdering
+        : linkOrdering;
   const setCurrentFilters =
-    tab === "pending"
+    activeTab === "pending"
       ? setPendingFilters
-      : tab === "accepted"
+      : activeTab === "accepted"
         ? setAcceptedFilters
         : setLinkFilters;
   const setCurrentOrdering =
-    tab === "pending"
+    activeTab === "pending"
       ? setPendingOrdering
-      : tab === "accepted"
+      : activeTab === "accepted"
         ? setAcceptedOrdering
         : setLinkOrdering;
   const toolbar = (
     <PageExtraToolbar
       leading={
         <>
-          <ChromeTabsList className="w-auto">
-            {tabs.map((item) => (
-              <ChromeTabsTrigger key={item.value} value={item.value}>
-                {item.label}
-              </ChromeTabsTrigger>
-            ))}
-          </ChromeTabsList>
+          {!props.fixedTab ? (
+            <ChromeTabsList className="w-auto">
+              {tabs.map((item) => (
+                <ChromeTabsTrigger key={item.value} value={item.value}>
+                  {item.label}
+                </ChromeTabsTrigger>
+              ))}
+            </ChromeTabsList>
+          ) : null}
           <DataTableSearchInput
             value={currentTable.searchInput}
             onChange={currentTable.setSearchInput}
             placeholder={
-              tab === "pending"
+              activeTab === "pending"
                 ? t("team:TEAM_INVITATIONS_SEARCH_PENDING_PLACEHOLDER")
-                : tab === "accepted"
+                : activeTab === "accepted"
                   ? t("team:TEAM_INVITATIONS_SEARCH_ACCEPTED_PLACEHOLDER")
                   : t("team:TEAM_INVITE_LINKS_SEARCH_PLACEHOLDER")
             }
             clearLabel={t("common:CLEAR")}
           />
           <InvitationTableControls
-            mode={tab}
+            mode={activeTab}
             value={currentFilters}
             onChange={setCurrentFilters}
             ordering={currentOrdering}
@@ -471,7 +483,12 @@ export function TeamInvitationsView(
   ] satisfies Array<{ label: string; value: RenewExpiresInSeconds }>;
 
   const tableContent = (
-    <ChromeTabs value={tab} onValueChange={(value) => setTab(value as TabKey)}>
+    <ChromeTabs
+      value={activeTab}
+      onValueChange={(value) => {
+        if (!props.fixedTab) setTab(value as TabKey);
+      }}
+    >
       <div className="flex min-h-0 flex-1 flex-col">
         <ChromeTabsContent value="pending" className="min-h-0 flex-1">
           <AdminDataTableSection

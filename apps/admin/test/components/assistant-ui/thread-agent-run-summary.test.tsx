@@ -91,6 +91,7 @@ vi.mock("@assistant-ui/react", async () => {
         return <button onClick={onClick}>{children}</button>;
       },
     },
+    unstable_useTriggerPopoverTriggers: () => new Map(),
     SuggestionPrimitive: passthroughPrimitive,
     ThreadPrimitive: {
       Root: Passthrough,

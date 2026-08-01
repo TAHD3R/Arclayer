@@ -60,6 +60,7 @@ class PlatformCapabilityRouteTarget(StrEnum):
     MONITORING_AI_USAGE = "monitoring.ai-usage"
     MONITORING_ACTIVITY = "monitoring.activity"
     MONITORING_AUDIT = "monitoring.audit"
+    OPERATIONS_SIGNALS = "operations.signals"
     COMMERCE_SUBSCRIPTIONS = "commerce.subscriptions"
     COMMERCE_PLANS = "commerce.plans"
     COMMUNICATIONS_FEEDBACK = "communications.feedback"
@@ -106,6 +107,7 @@ class PlatformCapabilityOut(BaseSchema):
     view_permission_match: PlatformCapabilityPermissionMatch
     required_manage_permissions: tuple[PlatformPermissionCode, ...]
     manage_permission_match: PlatformCapabilityPermissionMatch
+    can_manage: bool
     navigation_candidate: bool
     activation_available: bool
 

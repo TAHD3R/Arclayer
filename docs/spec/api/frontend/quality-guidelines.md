@@ -26,6 +26,10 @@ This code-spec defines quality gates for frontend API contract consumption.
 - Generated contracts and app consumers should be updated in the same task for breaking shape changes.
 - Regenerated API artifacts must be reviewed as generated output. If the generated diff is wrong, fix backend schemas or generator config and regenerate instead of editing generated artifacts.
 - Query/cache behavior is part of API contract consumption. Review query keys, `enabled`, `meta.silent`, invalidation, and error propagation for each changed hook.
+- During a small isolated change, run the nearest app static check and focused
+  mapper/hook/component test. At a coherent milestone or before handoff, run
+  the affected application gate. Reserve `pnpm check` for cross-app integration
+  or final delivery.
 
 ### 4. Validation & Error Matrix
 
@@ -49,8 +53,11 @@ This code-spec defines quality gates for frontend API contract consumption.
 
 ### 6. Tests Required
 
-- Run app-specific typecheck for consumer changes.
-- Run `pnpm check` when shared packages or cross-app contracts change.
+- Run the nearest app-specific typecheck and focused consumer test during the
+  change; run the affected application gate at a coherent milestone or before
+  handoff.
+- Run `pnpm check` for cross-app integration or final delivery when shared
+  packages or cross-app contracts change.
 - Add tests around API normalization and generated type mappers.
 - Add hook tests for query keys, `enabled`, error-code propagation, and mutation invalidation when logic is non-trivial.
 

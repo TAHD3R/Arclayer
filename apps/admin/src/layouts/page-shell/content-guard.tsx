@@ -123,10 +123,26 @@ export function ContentGuard(props: ContentGuardProps) {
     const content = <PageSkeleton variant={props.loadingVariant ?? "form"} />;
 
     if (container === "admin-route") {
-      return <AdminRouteContainer>{content}</AdminRouteContainer>;
+      return (
+        <AdminRouteContainer>
+          <div aria-busy="true" aria-label={t("common:LOADING")} aria-live="polite" role="status">
+            {content}
+          </div>
+        </AdminRouteContainer>
+      );
     }
 
-    return <div className={wrapperClassName}>{content}</div>;
+    return (
+      <div
+        aria-busy="true"
+        aria-label={t("common:LOADING")}
+        aria-live="polite"
+        className={wrapperClassName}
+        role="status"
+      >
+        {content}
+      </div>
+    );
   }
 
   if (error) {

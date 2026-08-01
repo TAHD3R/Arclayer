@@ -186,7 +186,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit --project tsconfig.json",
-    "test": "vitest run src/chart/chart.test.tsx"
+    "test": "vitest run"
   },
   "dependencies": {
     "@arclayer/hooks": "workspace:*",

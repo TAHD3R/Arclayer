@@ -7,5 +7,3 @@
 # Versioned implementation specs
 !spec/
 !spec/**
-
-# Do not track superpowers and plans folders

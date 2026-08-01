@@ -40,6 +40,7 @@ interface AssetsViewMasonrySectionProps {
 }
 
 const MASONRY_ITEM_HEIGHT_ESTIMATE = 320;
+const INITIAL_MASONRY_SKELETON_COUNT = MASONRY_NEXT_PAGE_PLACEHOLDER_COUNT;
 
 export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
   const { controller } = props;
@@ -70,6 +71,7 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
   const nextPageRequestRef = useRef(false);
   const nextPageRequestBaseCountRef = useRef<number | null>(null);
   const [queuedNextPage, setQueuedNextPage] = useState(false);
+  const isInitialLoading = assetsQuery.isLoading && !assetsQuery.data;
   orderedAssetIdsRef.current = orderedAssetIds;
 
   const handleAssetSelect = useCallback(
@@ -166,6 +168,13 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
     }
   }, [assetsQuery, items.length]);
   const masonryItems = useMemo<AssetMasonryRenderItem[]>(() => {
+    if (isInitialLoading) {
+      return Array.from({ length: INITIAL_MASONRY_SKELETON_COUNT }, (_, index) => ({
+        key: `initial-loading:${index}`,
+        kind: "placeholder" as const,
+      }));
+    }
+
     const rows: AssetMasonryRenderItem[] = items.map((asset) => ({
       key: asset.id,
       kind: "asset",
@@ -207,6 +216,7 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
     handleAssetSelect,
     handleAssetToggleSelected,
     handleTileMoreAction,
+    isInitialLoading,
     items,
     openAssetDeleteDialog,
     openAssetDetails,
@@ -241,13 +251,12 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
   );
   return (
     <ContentGuard
-      loading={assetsQuery.isLoading && !assetsQuery.data}
-      loadingVariant="masonry"
+      loading={false}
       error={assetsQuery.isError ? assetsQuery.error : null}
       onRetry={() => void assetsQuery.refetch()}
       wrapperSpacing="flush"
       errorDescription={assetsQuery.isError ? t("assets:ASSET_LIST_LOAD_FAILED_DESC") : undefined}
-      empty={items.length === 0 && !hasFolderNavigation}
+      empty={items.length === 0 && !hasFolderNavigation && !isInitialLoading}
       emptyTitle={
         explicitFilterActive ? t("assets:ASSET_EMPTY_SEARCH_TITLE") : t("assets:ASSET_EMPTY")
       }
@@ -270,22 +279,29 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
         ) : null
       }
     >
-      <AdminMasonryGrid
-        items={masonryItems}
-        datasetKey={masonryDatasetKey}
-        render={AssetsViewMasonryRenderCell}
-        itemHeightEstimate={MASONRY_ITEM_HEIGHT_ESTIMATE}
-        containerClassName="min-w-0 w-full max-w-full overflow-x-hidden select-none px-1"
-        onMouseDown={(event) => {
-          if (event.button !== 0) return;
-          const target = event.target as HTMLElement | null;
-          if (!shouldClearMasonrySelectionOnMouseDown(target)) return;
-          if (selectedIds.size === 0) return;
-          setSelection((prev) => clearSelection(prev));
-          setFocusedFolderId(null);
-        }}
-        onRender={maybeLoadMore}
-      />
+      <div
+        aria-busy={isInitialLoading || undefined}
+        aria-label={isInitialLoading ? t("common:LOADING") : undefined}
+        aria-live={isInitialLoading ? "polite" : undefined}
+        role={isInitialLoading ? "status" : undefined}
+      >
+        <AdminMasonryGrid
+          items={masonryItems}
+          datasetKey={masonryDatasetKey}
+          render={AssetsViewMasonryRenderCell}
+          itemHeightEstimate={MASONRY_ITEM_HEIGHT_ESTIMATE}
+          containerClassName="min-w-0 w-full max-w-full overflow-x-hidden select-none px-1"
+          onMouseDown={(event) => {
+            if (event.button !== 0) return;
+            const target = event.target as HTMLElement | null;
+            if (!shouldClearMasonrySelectionOnMouseDown(target)) return;
+            if (selectedIds.size === 0) return;
+            setSelection((prev) => clearSelection(prev));
+            setFocusedFolderId(null);
+          }}
+          onRender={maybeLoadMore}
+        />
+      </div>
     </ContentGuard>
   );
 }

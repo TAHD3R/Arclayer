@@ -185,7 +185,7 @@ export function FeedbackComposer(props: FeedbackComposerProps) {
           </div>
         ) : null}
         <div className="min-w-0 flex-1">
-          <h2 className="text-callout font-semibold text-label-primary">
+          <h2 className="text-callout font-bold text-label-primary">
             {t("feedback:FEEDBACK_COMPOSER_TITLE")}
           </h2>
           <p className="mt-0.5 text-footnote leading-snug text-label-secondary">

@@ -228,7 +228,16 @@ class CommerceService(BaseService):
             raise NotFound(error="WORKSPACE_NOT_FOUND")
         existing = await self._repository.lock_subscription(workspace_id=workspace_id, conn=conn)
         if existing is not None:
-            return await self.ensure_workspace_billing_in_transaction(workspace_id=workspace_id, conn=conn)
+            subscription, account, revision = await self.ensure_workspace_billing_in_transaction(
+                workspace_id=workspace_id,
+                conn=conn,
+            )
+            await self._repository.ensure_commercial_access(
+                workspace_id=workspace_id,
+                subscription_id=UUID(str(subscription.id)),
+                conn=conn,
+            )
+            return subscription, account, revision
         revision = await self._repository.get_free_revision(conn=conn)
         if revision is None:
             raise Conflict(error="FREE_PLAN_REVISION_UNAVAILABLE")
@@ -252,6 +261,11 @@ class CommerceService(BaseService):
                 "provider_mode": None,
                 "revision": 1,
             },
+            conn=conn,
+        )
+        await self._repository.ensure_commercial_access(
+            workspace_id=workspace_id,
+            subscription_id=UUID(str(subscription.id)),
             conn=conn,
         )
         period_start, period_end = _credit_period(

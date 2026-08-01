@@ -2,7 +2,7 @@
 
 **Status:** Implementation paused pending product expectation recalibration
 **Recorded:** 2026-07-23
-**Scope:** AI website builder, multi-Agent workflows, content management, Workspace capabilities, Taskiq, commercialization, project settings, motion, and Boneyard
+**Scope:** AI website builder, multi-Agent workflows, content management, Workspace capabilities, Taskiq, commercialization, project settings, motion, and route skeletons
 **Document type:** Point-in-time gap and resumption evidence; not a new normative implementation contract
 
 ## 1. Purpose
@@ -153,13 +153,13 @@ These commits complete only their focused engineering boundaries. They do not co
 - “Smoothness” must also be validated against focus stability, accessibility, long-list cost, GPU/memory use, and lower-performance devices.
 - Existing local animation implementations need renewed evaluation under the recalibrated direction.
 
-### 3.13 Boneyard skeletons
+### 3.13 Route skeletons
 
-- Current real-element capture produces unacceptable density, hierarchy, and visual noise.
-- The boundary between stable Shell chrome, real elements, and simplified placeholder anatomy needs redesign.
-- Skeleton color should use neutral loading tokens instead of global primary tint and excessive small captured elements.
+- The previous route-skeleton capture produced unacceptable density, hierarchy, and visual noise.
+- The boundary between stable Shell chrome, real elements, and simplified placeholder anatomy needed redesign.
+- Skeleton color needed neutral loading tokens instead of global primary tint and excessive small placeholder elements.
 - Editors, data tables, content workbenches, settings pages, and project cards need purpose-specific skeleton compositions.
-- Authenticated capture, registry, fallback composition, CI capture verification, and reduced-motion acceptance remain incomplete.
+- Shared route composition, purpose-specific macro layouts, reduced-motion acceptance, and visual verification remained incomplete.
 
 ### 3.14 Cross-module end-to-end acceptance
 

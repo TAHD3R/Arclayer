@@ -24,7 +24,7 @@ export function PlatformJobsPage({ search }: Readonly<{ search: PlatformJobsSear
   return (
     <OperationsPage description={t("JOBS_PAGE_DESCRIPTION")} title={t("JOBS_PAGE_TITLE")}>
       <Button asChild className="w-fit" variant="ghost">
-        <Link to="/">
+        <Link to="/attention">
           <ArrowLeft aria-hidden="true" />
           {t("BACK_TO_INBOX")}
         </Link>
@@ -47,7 +47,7 @@ function NoJobSelected() {
       </EmptyHeader>
       <EmptyContent>
         <Button asChild>
-          <Link to="/">{t("OPEN_INBOX")}</Link>
+          <Link to="/attention">{t("OPEN_INBOX")}</Link>
         </Button>
       </EmptyContent>
     </Empty>

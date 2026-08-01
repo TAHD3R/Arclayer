@@ -132,7 +132,7 @@ describe("Platform sign-in and MFA", () => {
     await user.type(await screen.findByLabelText("Verification code"), "654321");
     await user.click(screen.getByRole("button", { name: "Verify and continue" }));
 
-    expect(await screen.findByRole("heading", { name: "Operations Inbox" })).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "Overview" })).toBeVisible();
     expect(window.localStorage.getItem("arclayer:platform:session")).toContain(
       "operator-platform-token",
     );

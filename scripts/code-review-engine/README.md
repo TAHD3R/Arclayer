@@ -52,8 +52,8 @@ pnpm code-review-engine --help
 pnpm code-review-engine --scope backend --format json
 pnpm code-review-engine --scope module --module analytics --format human
 pnpm code-review-engine --rules service.no-direct-orm --format json
-pnpm code-review-engine --scope full --format json --output reports/code-review-engine/full.json
-pnpm code-review-engine --scope changed --base HEAD --format json --output reports/code-review-engine/changed.json
+pnpm code-review-engine --scope full --format json --output output/code-review-engine/full.json
+pnpm code-review-engine --scope changed --base HEAD --format json --output output/code-review-engine/changed.json
 pnpm code-review-engine --list-rules
 ```
 
@@ -72,18 +72,18 @@ to a report artifact.
 Default artifact location:
 
 ```text
-reports/code-review-engine/<UTC_TIMESTAMP>-<scope>.<ext>
+output/code-review-engine/<UTC_TIMESTAMP>-<scope>.<ext>
 ```
 
 Use `-o/--output` to set an explicit artifact path:
 
 ```bash
-pnpm code-review-engine --scope full --format json --output reports/code-review-engine/full.json
-pnpm code-review-engine --scope module --module analytics --format markdown --output reports/code-review-engine/analytics.md
+pnpm code-review-engine --scope full --format json --output output/code-review-engine/full.json
+pnpm code-review-engine --scope module --module analytics --format markdown --output output/code-review-engine/analytics.md
 ```
 
 The engine creates parent directories for the output path. The repository
-standard location is `reports/code-review-engine/`.
+standard location is `output/code-review-engine/`.
 
 ## Rule Catalog
 

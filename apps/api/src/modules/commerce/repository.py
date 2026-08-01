@@ -10,6 +10,7 @@ from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.expressions import Q
 from tortoise.functions import Max, Min, Sum
 
+from src.core.exceptions import Conflict
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.ai.ai_budget_reservation import AIBudgetReservation
 from src.models.ai.ai_usage_daily import AIUsageDaily
@@ -19,7 +20,9 @@ from src.models.commerce.billing import (
     CommercePlanRevisionPrice,
     CommercePlanRevisionResourceAllowance,
     CommerceProviderEventApplication,
+    CommercialAccessState,
     PlanRevisionStatus,
+    WorkspaceCommercialAccess,
     WorkspaceCreditAccount,
     WorkspaceCreditLedger,
     WorkspaceSubscription,
@@ -88,6 +91,29 @@ class CommerceRepository(TortoiseORMRepository[WorkspaceSubscription]):
 
     async def create_subscription(self, *, values: dict[str, Any], conn: BaseDBAsyncClient) -> WorkspaceSubscription:
         return await WorkspaceSubscription.create(using_db=conn, **values)
+
+    async def ensure_commercial_access(
+        self,
+        *,
+        workspace_id: UUID,
+        subscription_id: UUID,
+        conn: BaseDBAsyncClient,
+    ) -> WorkspaceCommercialAccess:
+        access, _ = await WorkspaceCommercialAccess.get_or_create(
+            workspace_id=workspace_id,
+            defaults={
+                "subscription_id": subscription_id,
+                "state": CommercialAccessState.NORMAL,
+                "deadline_at": None,
+                "state_revision": 1,
+                "source_identity": f"local:workspace-initialization:{workspace_id}",
+            },
+            using_db=conn,
+        )
+        await access.fetch_related("subscription", using_db=conn)
+        if UUID(str(access.subscription.id)) != subscription_id:
+            raise Conflict(error="WORKSPACE_COMMERCIAL_ACCESS_INVALID")
+        return access
 
     async def save_subscription(self, *, subscription: WorkspaceSubscription, conn: BaseDBAsyncClient) -> None:
         await subscription.save(using_db=conn)

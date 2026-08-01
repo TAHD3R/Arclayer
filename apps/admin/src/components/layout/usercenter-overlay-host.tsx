@@ -11,8 +11,6 @@ import { SettingsFrame } from "@/pages/settings/settings-shell";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { Button } from "@arclayer/ui/button";
 import { ExpandableScreen, ExpandableScreenContent } from "@arclayer/ui/expandable-screen";
-import { TeamMembersView } from "@/pages/workspaces/team/members/components/team-members-view";
-import { TeamInvitationsPage } from "@/pages/workspaces/team/invitations/page";
 import { TeamRolesPage } from "@/pages/workspaces/team/roles/page";
 
 export function SettingsScreenHost() {
@@ -26,28 +24,10 @@ export function SettingsScreenHost() {
   const workspaceId = currentWorkspaceId ?? lastWorkspaceId;
   const rolesAccess = useWorkspaceRolesAccess(workspaceId ?? null);
   const settingsNavItems = resolveSettingsNavItems(rolesAccess.status);
-  const [workspaceMembersInviteOpen, setWorkspaceMembersInviteOpen] = useState(false);
-  const [workspaceInvitationLinkOpen, setWorkspaceInvitationLinkOpen] = useState(false);
-  const [workspaceInvitationEmailOpen, setWorkspaceInvitationEmailOpen] = useState(false);
   const [workspaceRoleCreateOpen, setWorkspaceRoleCreateOpen] = useState(false);
 
   useEffect(() => {
     if (!settingsScreen.state.open) return;
-    if (activeScreen === "workspace.members" && settingsScreen.state.section === "invite-member") {
-      setWorkspaceMembersInviteOpen(true);
-    }
-    if (
-      activeScreen === "workspace.invitations" &&
-      settingsScreen.state.section === "create-invitation"
-    ) {
-      setWorkspaceInvitationEmailOpen(true);
-    }
-    if (
-      activeScreen === "workspace.invitations" &&
-      settingsScreen.state.section === "invite-links"
-    ) {
-      setWorkspaceInvitationLinkOpen(true);
-    }
     if (activeScreen === "workspace.roles" && settingsScreen.state.section === "create-role") {
       setWorkspaceRoleCreateOpen(true);
     }
@@ -66,44 +46,15 @@ export function SettingsScreenHost() {
     [settingsScreen],
   );
 
-  const action = !isOpen ? undefined : activeScreen === "workspace.members" ? (
-    <Button onClick={() => setWorkspaceMembersInviteOpen(true)}>
-      <Plus size={16} />
-      {t("TEAM_INVITE_MEMBER")}
-    </Button>
-  ) : activeScreen === "workspace.invitations" ? (
-    <div className="flex items-center gap-2">
-      <Button variant="outline" onClick={() => setWorkspaceInvitationLinkOpen(true)}>
-        {t("TEAM_INVITE_CREATE_LINK_ACTION")}
-      </Button>
-      <Button onClick={() => setWorkspaceInvitationEmailOpen(true)}>
-        <Plus size={16} />
-        {t("common:ORG_MEMBERS_INVITE")}
-      </Button>
-    </div>
-  ) : activeScreen === "workspace.roles" && rolesAccess.status === "available" ? (
+  const action = !isOpen ? undefined : activeScreen === "workspace.roles" &&
+    rolesAccess.status === "available" ? (
     <Button onClick={() => setWorkspaceRoleCreateOpen(true)}>
       <Plus size={16} />
       {t("TEAM_ROLES_ADD_ROLE")}
     </Button>
   ) : undefined;
-  const renderedContent = !isOpen ? null : activeScreen === "workspace.members" ? (
-    <TeamMembersView
-      workspaceIdOverride={workspaceId ?? null}
-      inviteOpen={workspaceMembersInviteOpen}
-      onInviteOpenChange={setWorkspaceMembersInviteOpen}
-      embedded
-    />
-  ) : activeScreen === "workspace.invitations" ? (
-    <TeamInvitationsPage
-      workspaceIdOverride={workspaceId ?? null}
-      inviteLinkOpen={workspaceInvitationLinkOpen}
-      onInviteLinkOpenChange={setWorkspaceInvitationLinkOpen}
-      inviteEmailOpen={workspaceInvitationEmailOpen}
-      onInviteEmailOpenChange={setWorkspaceInvitationEmailOpen}
-      embedded
-    />
-  ) : activeScreen === "workspace.roles" && rolesAccess.status === "available" ? (
+  const renderedContent = !isOpen ? null : activeScreen === "workspace.roles" &&
+    rolesAccess.status === "available" ? (
     <TeamRolesPage
       workspaceIdOverride={workspaceId ?? null}
       createOpen={workspaceRoleCreateOpen}

@@ -1,5 +1,5 @@
-import { Link2, ShieldCheck, UsersRound } from "lucide-react";
-import { useCallback } from "react";
+import { Link2, Plus, ShieldCheck, UsersRound } from "lucide-react";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   PlatformInvitationDetailOut,
@@ -10,12 +10,16 @@ import type {
 
 import {
   getPlatformInvitation,
+  getCurrentPlatformTeamIdentity,
   getPlatformTeam,
   listPlatformInvitations,
 } from "@/access/access-api";
 import { AccessPage, AccessQueryState, useAccessQuery } from "@/access/access-ui";
+import { InviteOperatorDialog } from "@/access/platform-team-dialogs";
 import { formatDateTime } from "@/monitoring/format";
+import { Alert, AlertDescription } from "@arclayer/ui/alert";
 import { Badge } from "@arclayer/ui/badge";
+import { Button } from "@arclayer/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
 
 function person(user: PlatformTeamUserOut) {
@@ -78,18 +82,55 @@ function InvitationRow({ invitation }: Readonly<{ invitation: PlatformInvitation
 
 export function PlatformTeamPage() {
   const { t } = useTranslation("access");
-  const load = useCallback(() => getPlatformTeam(), []);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [successKey, setSuccessKey] = useState<string | null>(null);
+  const load = useCallback(
+    async () => ({
+      team: await getPlatformTeam(),
+      identity: await getCurrentPlatformTeamIdentity(),
+    }),
+    [],
+  );
   const { state, retry } = useAccessQuery(load, []);
   return (
     <AccessPage description={t("TEAM_DESCRIPTION")} title={t("TEAM_TITLE")}>
       <AccessQueryState
-        isEmpty={(team) =>
-          !team.owner && team.operators.length === 0 && team.invitations.length === 0
+        isEmpty={(data) =>
+          !data.team.owner && data.team.operators.length === 0 && data.team.invitations.length === 0
         }
         retry={retry}
         state={state}
       >
-        {(team) => <TeamContent team={team} />}
+        {(data) => {
+          const canInvite = data.identity.effectivePermissions.includes(
+            "platform:access-team:invite",
+          );
+          const completed = (messageKey: string) => {
+            setSuccessKey(messageKey);
+            retry();
+          };
+          return (
+            <>
+              <div className="flex justify-end">
+                {canInvite ? (
+                  <Button onClick={() => setInviteOpen(true)}>
+                    <Plus data-icon="inline-start" />
+                    {t("INVITE_OPERATOR")}
+                  </Button>
+                ) : null}
+              </div>
+              {successKey ? (
+                <Alert>
+                  <AlertDescription>{t(successKey)}</AlertDescription>
+                </Alert>
+              ) : null}
+              <TeamContent team={data.team} />
+              {inviteOpen ? (
+                <InviteOperatorDialog open onOpenChange={setInviteOpen} onCompleted={completed} />
+              ) : null}
+            </>
+          );
+        }}
       </AccessQueryState>
     </AccessPage>
   );

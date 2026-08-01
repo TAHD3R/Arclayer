@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { AlertCircle, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { AlertCircle, ChevronLeft, ChevronRight, RefreshCw, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { TenantDirectoryApiError } from "@/api/tenant-directory";
@@ -26,8 +26,12 @@ export type DirectoryColumn<T> = Readonly<{
 
 type DirectoryRequestState<T> =
   | Readonly<{ type: "loading" }>
-  | Readonly<{ type: "ready"; page: DirectoryPage<T> }>
-  | Readonly<{ type: "error"; error: TenantDirectoryApiError }>;
+  | Readonly<{ type: "ready"; page: DirectoryPage<T>; refreshing: boolean }>
+  | Readonly<{
+      type: "error";
+      error: TenantDirectoryApiError;
+      previous?: DirectoryPage<T>;
+    }>;
 
 export function normalizeDirectoryError(error: unknown): TenantDirectoryApiError {
   if (error instanceof TenantDirectoryApiError) return error;
@@ -41,6 +45,8 @@ export function normalizeDirectoryError(error: unknown): TenantDirectoryApiError
 export function TenantDirectoryTable<T>(props: {
   title: string;
   description: string;
+  detailTitle: string;
+  detailDescription: string;
   searchPlaceholder: string;
   searchValue?: string;
   hasFilters: boolean;
@@ -51,7 +57,7 @@ export function TenantDirectoryTable<T>(props: {
   onPageChange: (page: number) => void;
   itemKey: (item: T) => string;
   identity: (item: T) => ReactNode;
-  loadDetail: (item: T) => Promise<ReactNode>;
+  loadDetail: (item: T, onChanged: () => void) => Promise<ReactNode>;
   partial?: (items: readonly T[]) => ReactNode;
   savedViews?: Readonly<{
     definition: SavedViewDefinition;
@@ -61,6 +67,7 @@ export function TenantDirectoryTable<T>(props: {
 }) {
   const { t } = useTranslation("tenants");
   const [request, setRequest] = useState<DirectoryRequestState<T>>({ type: "loading" });
+  const [reloadRevision, setReloadRevision] = useState(0);
   const [search, setSearch] = useState(props.searchValue ?? "");
   const [selected, setSelected] = useState<T | null>(null);
   const [detail, setDetail] = useState<
@@ -72,31 +79,46 @@ export function TenantDirectoryTable<T>(props: {
   useEffect(() => setSearch(props.searchValue ?? ""), [props.searchValue]);
   useEffect(() => {
     let current = true;
-    setRequest({ type: "loading" });
+    setRequest((current) =>
+      current.type === "ready" ? { ...current, refreshing: true } : { type: "loading" },
+    );
     void props.load().then(
-      (page) => current && setRequest({ type: "ready", page }),
+      (page) => current && setRequest({ type: "ready", page, refreshing: false }),
       (error: unknown) =>
-        current && setRequest({ type: "error", error: normalizeDirectoryError(error) }),
+        current &&
+        setRequest((previous) => ({
+          type: "error",
+          error: normalizeDirectoryError(error),
+          previous: previous.type === "ready" ? previous.page : undefined,
+        })),
     );
     return () => {
       current = false;
     };
-  }, [props.load]);
+  }, [props.load, reloadRevision]);
   useEffect(() => {
     if (!selected) return;
     let current = true;
     setDetail({ type: "loading" });
-    void props.loadDetail(selected).then(
-      (content) => current && setDetail({ type: "ready", content }),
-      (error: unknown) =>
-        current && setDetail({ type: "error", error: normalizeDirectoryError(error) }),
-    );
+    void props
+      .loadDetail(selected, () => setReloadRevision((current) => current + 1))
+      .then(
+        (content) => current && setDetail({ type: "ready", content }),
+        (error: unknown) =>
+          current && setDetail({ type: "error", error: normalizeDirectoryError(error) }),
+      );
     return () => {
       current = false;
     };
   }, [props.loadDetail, selected]);
 
-  const isEmpty = request.type === "ready" && (request.page.items?.length ?? 0) === 0;
+  const displayedPage =
+    request.type === "ready"
+      ? request.page
+      : request.type === "error"
+        ? request.previous
+        : undefined;
+  const isEmpty = Boolean(displayedPage && (displayedPage.items?.length ?? 0) === 0);
   const errorKey =
     request.type !== "error"
       ? null
@@ -134,11 +156,24 @@ export function TenantDirectoryTable<T>(props: {
         </div>
         {props.filters}
         {props.savedViews ? <SavedViewsControl {...props.savedViews} /> : null}
+        <Button
+          aria-label={t("REFRESH")}
+          disabled={request.type === "ready" && request.refreshing}
+          onClick={() => setReloadRevision((current) => current + 1)}
+          size="icon"
+          type="button"
+          variant="outline"
+        >
+          <RefreshCw
+            aria-hidden="true"
+            className={request.type === "ready" && request.refreshing ? "animate-spin" : undefined}
+          />
+        </Button>
         <Button type="submit" variant="secondary">
           {t("SEARCH")}
         </Button>
       </form>
-      {request.type === "ready" && props.partial?.(request.page.items ?? [])}
+      {displayedPage && props.partial?.(displayedPage.items ?? [])}
       {request.type === "error" ? (
         <Alert variant="destructive">
           <AlertCircle aria-hidden="true" />
@@ -148,7 +183,7 @@ export function TenantDirectoryTable<T>(props: {
       ) : null}
       {request.type === "loading" ? <DirectoryLoading /> : null}
       {isEmpty ? <DirectoryEmpty filtered={props.hasFilters} /> : null}
-      {request.type === "ready" && !isEmpty ? (
+      {displayedPage && !isEmpty ? (
         <div className="overflow-hidden rounded-lg border bg-card">
           <Table>
             <TableHeader>
@@ -161,7 +196,7 @@ export function TenantDirectoryTable<T>(props: {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {request.page.items?.map((item) => (
+              {displayedPage.items?.map((item) => (
                 <TableRow key={props.itemKey(item)}>
                   <TableCell>{props.identity(item)}</TableCell>
                   {props.columns.map((column) => (
@@ -178,22 +213,22 @@ export function TenantDirectoryTable<T>(props: {
           </Table>
         </div>
       ) : null}
-      {request.type === "ready" && !isEmpty ? (
+      {displayedPage && !isEmpty ? (
         <nav
           aria-label={t("PAGINATION")}
           className="flex items-center justify-end gap-3 text-footnote text-label-secondary"
         >
           <span>
             {t("PAGE_OF", {
-              page: request.page.page,
-              pages: request.page.pages,
-              total: request.page.total,
+              page: displayedPage.page,
+              pages: displayedPage.pages,
+              total: displayedPage.total,
             })}
           </span>
           <Button
             aria-label={t("PREVIOUS_PAGE")}
-            disabled={request.page.page <= 1}
-            onClick={() => props.onPageChange(request.page.page - 1)}
+            disabled={displayedPage.page <= 1 || (request.type === "ready" && request.refreshing)}
+            onClick={() => props.onPageChange(displayedPage.page - 1)}
             size="icon-sm"
             variant="outline"
           >
@@ -201,8 +236,11 @@ export function TenantDirectoryTable<T>(props: {
           </Button>
           <Button
             aria-label={t("NEXT_PAGE")}
-            disabled={request.page.page >= request.page.pages}
-            onClick={() => props.onPageChange(request.page.page + 1)}
+            disabled={
+              displayedPage.page >= displayedPage.pages ||
+              (request.type === "ready" && request.refreshing)
+            }
+            onClick={() => props.onPageChange(displayedPage.page + 1)}
             size="icon-sm"
             variant="outline"
           >
@@ -213,8 +251,8 @@ export function TenantDirectoryTable<T>(props: {
       <Sheet onOpenChange={(open) => !open && setSelected(null)} open={selected !== null}>
         <SheetContent className="overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>{t("INVESTIGATION")}</SheetTitle>
-            <SheetDescription>{t("INVESTIGATION_DESCRIPTION")}</SheetDescription>
+            <SheetTitle>{props.detailTitle}</SheetTitle>
+            <SheetDescription>{props.detailDescription}</SheetDescription>
           </SheetHeader>
           {selected && detail.type === "loading" ? (
             <div className="mt-6" role="status">

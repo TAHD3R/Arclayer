@@ -7,9 +7,10 @@ import {
   Settings2Icon,
   WandSparklesIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
+import { AIComposerTriggerScrollArea } from "@/components/ai/ai-composer-trigger-scroll-area";
 import { Button } from "@arclayer/ui/button";
 import {
   DropdownMenuItem,
@@ -43,7 +44,7 @@ export function AIComposerSkillPanelContent(props: AIComposerSkillPanelContentPr
 
   if (showAddMenu) {
     return (
-      <div className="min-h-0 overflow-y-auto py-1">
+      <SkillPanelScrollRegion presentation={props.presentation}>
         <button
           type="button"
           className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-footnote font-semibold text-label-secondary hover:bg-muted hover:text-label-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
@@ -64,7 +65,7 @@ export function AIComposerSkillPanelContent(props: AIComposerSkillPanelContentPr
           description={t("AI_CHAT_SKILL_IMPORT_DESC")}
           onClick={props.onImport}
         />
-      </div>
+      </SkillPanelScrollRegion>
     );
   }
 
@@ -85,7 +86,7 @@ export function AIComposerSkillPanelContent(props: AIComposerSkillPanelContentPr
           {t("AI_CHAT_SKILL_MANAGE")}
         </Button>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto py-1">
+      <SkillPanelScrollRegion presentation={props.presentation}>
         {props.presentation === "trigger" ? (
           <ComposerPrimitive.Unstable_TriggerPopoverItems>
             {(items) =>
@@ -124,10 +125,24 @@ export function AIComposerSkillPanelContent(props: AIComposerSkillPanelContentPr
           isError={Boolean(props.isError)}
           isEmpty={props.presentation === "dropdown" && props.skills.length === 0}
         />
-      </div>
+      </SkillPanelScrollRegion>
       <SkillPanelFooter {...props} onShowAddMenu={() => setShowAddMenu(true)} />
     </div>
   );
+}
+
+function SkillPanelScrollRegion(props: {
+  presentation: AIComposerSkillPanelContentProps["presentation"];
+  children: ReactNode;
+}) {
+  if (props.presentation === "trigger") {
+    return (
+      <AIComposerTriggerScrollArea>
+        <div className="py-1">{props.children}</div>
+      </AIComposerTriggerScrollArea>
+    );
+  }
+  return <div className="min-h-0 flex-1 overflow-y-auto py-1">{props.children}</div>;
 }
 
 function SkillPanelFooter(

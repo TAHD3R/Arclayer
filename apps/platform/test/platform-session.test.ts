@@ -8,7 +8,7 @@ import {
 } from "@/auth/platform-session";
 import type { PlatformSessionIssuedOut } from "@arclayer/platform-openapi";
 
-const NOW = Date.parse("2026-07-31T08:00:00.000Z");
+const NOW = Date.now();
 
 function issuedSession(expiresIn = 600): PlatformSessionIssuedOut {
   return {

@@ -48,7 +48,13 @@ function AiState<T>({
   const { t } = useTranslation("ai");
   if (state.status === "loading")
     return (
-      <div className="space-y-3">
+      <div
+        aria-busy="true"
+        aria-label={t("LOADING")}
+        aria-live="polite"
+        className="space-y-3"
+        role="status"
+      >
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-72 w-full" />
       </div>

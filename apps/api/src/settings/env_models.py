@@ -9,6 +9,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _SETTINGS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SETTINGS_DIR.parents[3]
+_PLATFORM_DEVICE_SESSION_TTL_SECONDS = 24 * 60 * 60
+_PLATFORM_SESSION_POLICY_REVISION = 2
 
 
 def _normalize_runtime_fs_path(value: Path, *, default_base: Path) -> Path:
@@ -338,9 +340,9 @@ class PlatformAuthSettings(BaseSettings):
             return normalized or None
 
     class DeviceSessionSettings(BaseModel):
-        inactivity_ttl_seconds: int = Field(default=1800, ge=1)
-        absolute_ttl_seconds: int = Field(default=28800, ge=1)
-        policy_revision: int = Field(default=1, ge=1)
+        inactivity_ttl_seconds: int = Field(default=_PLATFORM_DEVICE_SESSION_TTL_SECONDS, ge=1)
+        absolute_ttl_seconds: int = Field(default=_PLATFORM_DEVICE_SESSION_TTL_SECONDS, ge=1)
+        policy_revision: int = Field(default=_PLATFORM_SESSION_POLICY_REVISION, ge=1)
 
         @model_validator(mode="after")
         def validate_lifetime_window(self) -> PlatformAuthSettings.DeviceSessionSettings:

@@ -1,5 +1,7 @@
 # Workspace Commercialization Contracts
 
+Experience authority: [Product and Platform administration experience redesign](./product-admin-experience-redesign.md)
+
 This code-spec defines the shared plan, subscription, AI Credits, provider checkout, and usage contracts for Arclayer workspaces. A Workspace is the only commercial tenant; Organization remains an account-level governance container and never becomes a second commercial authority.
 
 ## Scenario: Commercial plans and AI consumption at workspace scope
@@ -393,7 +395,7 @@ Every delivery has a stable idempotency identity containing at least Workspace, 
 
 Policy preview, correction preview, command acceptance, and queued Hosting restoration are not success milestones. Notifications fan out only from committed owning-domain facts. A Commerce correction and its later Hosting restoration outcome have distinct source transition and milestone identities, so success/failure delivery cannot overwrite the earlier “restoration pending” notice or be collapsed into one ambiguous message.
 
-Delivery failure never changes Payment Grace, Payment Restricted, Hosting Continuity, Delivery Suspended, or recovery state, and never changes their deadlines. Failures remain visible and retryable according to the durable notification-delivery policy. If every current billing contact is unreachable or a critical milestone exhausts its configured delivery attempts, Notifications emits a high-priority Operational Signal with sanitized evidence; the Operations Inbox links to delivery investigation without offering a control that replays commercial state or edits the audience.
+Delivery failure never changes Payment Grace, Payment Restricted, Hosting Continuity, Delivery Suspended, or recovery state, and never changes their deadlines. Failures remain visible and retryable according to the durable notification-delivery policy. If every current billing contact is unreachable or a critical milestone exhausts its configured delivery attempts, Notifications emits a high-priority source condition with sanitized evidence; Needs attention links to delivery investigation without offering a control that replays commercial state or edits the audience.
 
 #### 9.4 Domain Policy Exceptions
 
@@ -417,7 +419,7 @@ An accepted Domain Policy Exception or Domain State Correction emits its Commerc
 
 - The Header credit control shows available credits and the active plan for the current workspace.
 - Hover/focus reveals balance, reserved/used credits, current period, next refresh, and a clear usage-detail action.
-- Activation opens the workspace `Plan & Usage` settings screen. It combines plan status, current-period credits, AI request/token/cost usage, and an immutable ledger DataTable.
+- Activation opens the Workspace `Plan & Usage` settings screen. It combines current Plan and billing state, Credit sources and depletion, real limits, current-period usage, reporting freshness, forecast, attribution, invoices, recovery, and authorized plan/refill actions. The detailed ledger remains secondary evidence rather than the page's primary product model.
 - Plan comparison supports monthly/yearly pricing and identifies the current plan. Paid selection redirects to Provider checkout. Cancellation or downgrade uses the Provider Portal only when the Connector can preserve every required target Revision and Plan Access Convergence identity; otherwise Arclayer presents its managed preview and Provider scheduling flow rather than an unsafe Portal action.
 - Free Plan presentation states that access does not expire and shows its actual Credits, Entitlements, and resource allowances without a trial countdown, crossed-out paid value, payment-method prompt, or implied automatic charge.
 - A paid-only capability stays visible when that context helps discovery. Its localized Plan badge identifies the required offer, the unavailable action remains disabled, and activation opens the exact `Plan & Usage` capability explanation with current Plan, required Plan, retained alternatives, and one authorized upgrade action. Permission denial, rollout exclusion, readiness failure, and runtime failure keep their own reasons and are never relabelled as an upgrade prompt.
@@ -442,7 +444,7 @@ An accepted Domain Policy Exception or Domain State Correction emits its Commerc
 | `projects:ACTIVE_LIMIT_REACHED_DESCRIPTION` | 当前套餐最多可同时使用 {{limit}} 个项目。归档暂时不用的项目，或选择支持更多项目的套餐。 | Your current plan supports up to {{limit}} projects at a time. Archive a project you are not using, or choose a plan that supports more. |
 | `projects:ACTIVE_LIMIT_EXCEEDED_DESCRIPTION` | 当前有 {{used}} 个使用中的项目，套餐上限为 {{limit}} 个。现有项目不会被归档；在数量降到上限以内前，无法创建或恢复项目。 | You currently have {{used}} projects in use, above your plan limit of {{limit}}. Existing projects stay available, but you cannot create or restore projects until usage is within the limit. |
 - On a Plan without `workspace.roles.manage`, Workspace settings do not mount the Roles & Permissions page. Its disabled navigation entry carries the eligible Plan badge and opens the exact `Plan & Usage` explanation instead of exposing an unusable matrix.
-- Member lists omit editable role controls and show only the immutable Owner identity where relevant. Invitations omit role selection and acceptance applies Fixed Member access; supplied role codes fail visibly rather than being ignored.
+- People views omit editable role controls where role management is unavailable and show the immutable Owner identity where relevant. Invitations omit role selection and acceptance applies Fixed Member access; supplied role codes fail visibly rather than being ignored.
 - Role-management product copy uses stable bilingual resources and explains the current behavior without exposing Entitlement keys, RBAC terminology, or permission codes:
 
 | i18n key | `zh-CN` | `en-US` |
@@ -451,7 +453,7 @@ An accepted Domain Policy Exception or Domain State Correction emits its Commerc
 | `workspaceAccess:ROLES_PAID_FEATURE_TITLE` | 为成员分配不同职责 | Assign different responsibilities to members |
 | `workspaceAccess:ROLES_PAID_FEATURE_DESCRIPTION` | 当前套餐中，除所有者外的成员使用相同权限。选择支持角色的套餐后，可以为成员分配不同职责。 | On your current plan, everyone except the owner has the same access. Choose a plan with roles to assign different responsibilities. |
 | `workspaceAccess:OWNER_AUTHORITY_DESCRIPTION` | 所有者仍负责套餐、所有权转移和删除工作空间。 | The owner remains responsible for the plan, ownership transfer, and workspace deletion. |
-- `Plan & Usage` shows each member-assigned capability's assigned and available places. Member management exposes assignment and revocation separately from roles, while the role matrix never contains seat counts, prices, or assignment controls.
+- `Plan & Usage` shows each member-assigned capability's assigned and available places. People exposes assignment and revocation separately from roles, while the role matrix never contains seat counts, prices, or assignment controls.
 - A member without an assignment sees a member-allocation explanation rather than an upgrade prompt. Only a missing Workspace Entitlement opens the Plan upgrade explanation; Permission, rollout, readiness, Credits, allowance, and health denials keep their own product states.
 - Feature Seat product copy uses “使用名额” / “access” instead of the domain term “seat” in primary UI:
 
@@ -478,9 +480,9 @@ An accepted Domain Policy Exception or Domain State Correction emits its Commerc
 - The Header credit control, account menu, and workspace scope switcher all open the same `Plan & Usage` screen; credit details are not a standalone dialog.
 - Credit-ledger rows persist a stable `descriptionKey`; API responses resolve a localized `description` without rewriting immutable history.
 
-#### 10.2 Commerce Platform Domain
+#### 10.2 Plans & Billing Platform experience
 
-When the Commerce Platform Capability is enabled, the Platform Console exposes one **Commerce Platform Domain** as the commercial operations control plane. It owns:
+When the internal Commerce Platform Capability is enabled, the Platform Console exposes one **Plans & Billing / 套餐与计费** domain as the commercial operations control plane. It owns:
 
 - the Plan catalog and its configuration;
 - a server-paginated, filterable cross-Workspace Subscription list and investigative detail;
@@ -489,9 +491,9 @@ When the Commerce Platform Capability is enabled, the Platform Console exposes o
 - payment-provider configuration, readiness, health, and missing prerequisites;
 - audited Subscription corrections and Credit adjustments with reason, before/after state, idempotency, and resulting entitlement effects.
 
-The domain does not duplicate Workspace checkout, customer-portal access, member-facing Credits, or the `Plan & Usage` screen. It does not place revenue, conversion, cost, or usage-trend charts on a generic Commerce overview; those analyses belong to Monitoring & Audit. It emits actionable provider, event-processing, Subscription, payment, and Credit failures as Operational Signals for the Operations Inbox.
+The domain does not duplicate Workspace checkout, customer-portal access, member-facing Credits, or the `Plan & Usage` screen. It does not place revenue, conversion, cost, or usage-trend charts on a generic overview; those analyses belong to Monitoring & Audit. It emits actionable provider, event-processing, Subscription, payment, and Credit failures as source conditions for Needs attention.
 
-Commerce configuration remains inside this domain rather than a global Settings route. Tenant directories may show authorized commercial summaries and deep-link to an exact Workspace Subscription context, but cannot host a second mutation form. Before capability enablement, authorized capability managers see missing prerequisites in capability management rather than an empty Commerce page. There is no plan-change approval queue.
+Commerce configuration remains inside Plans & Billing rather than a global Settings route. Workspaces may show authorized commercial summaries and deep-link to an exact Workspace Subscription context, but cannot host a second mutation form. Before capability enablement, authorized capability managers see missing prerequisites in capability management rather than an empty business page. There is no plan-change approval queue.
 
 The Plan catalog presents stable Plan identities and their Revision histories. Editing occurs only on a Draft; publishing shows an exact before/after terms comparison, affected future selection context, provider Price mapping validation, and an immutable publication audit. Published Revisions have no edit action.
 
@@ -507,7 +509,7 @@ All members see the sanitized recovery notice. The Owner and Billing Managers se
 
 Payment Restricted copy does not show a data-deletion countdown or imply that payment is required to prevent Commerce from erasing the Workspace. Any separate Owner-requested or legally required deletion notice identifies its Workspace lifecycle source and must not be rendered as a dunning deadline.
 
-Commerce filters Subscriptions by Provider lifecycle, commercial access state, recovery deadline, and dunning risk. Missing recovery metadata, nearing exhaustion, failed restoration, and Credit-grant reconciliation produce domain-owned Operational Signals with exact investigation and recovery destinations.
+Plans & Billing filters Subscriptions by Provider lifecycle, commercial access state, recovery deadline, and dunning risk. Missing recovery metadata, nearing exhaustion, failed restoration, and Credit-grant reconciliation produce domain-owned conditions with exact investigation and recovery destinations.
 
 The legacy `WorkspaceSubscriptionChangeRequest` approval model and its `pending`, `approved`, and `rejected` workflow are removed in the Commerce hard cut. Existing terminal history is retained only through an explicit audit/data-retirement migration; unresolved rows fail migration visibly and are never silently applied, rejected, or converted into direct mutations.
 

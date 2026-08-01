@@ -49,16 +49,27 @@ export function MonitoringPage({
   children,
 }: Readonly<{ title: string; description: string; children: ReactNode }>) {
   return (
-    <section className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-7 px-5 py-8 md:px-8 md:py-10">
+    <section className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-5 py-8 md:px-8 md:py-10">
       <header className="max-w-3xl space-y-2">
-        <p className="text-caption font-semibold tracking-[0.16em] text-label-secondary uppercase">
-          Monitoring & audit
-        </p>
         <h1 className="text-largetitle">{title}</h1>
         <p className="text-body text-label-secondary">{description}</p>
       </header>
       {children}
     </section>
+  );
+}
+
+export function MonitoringToolbar({
+  filters,
+  savedViews,
+  warning,
+}: Readonly<{ filters: ReactNode; savedViews?: ReactNode; warning?: ReactNode }>) {
+  return (
+    <div className="rounded-xl border bg-card shadow-xs">
+      <div className="flex flex-wrap items-center gap-2 p-3">{filters}</div>
+      {savedViews ? <div className="border-t px-3 py-2.5">{savedViews}</div> : null}
+      {warning ? <div className="border-t p-3">{warning}</div> : null}
+    </div>
   );
 }
 
@@ -78,7 +89,13 @@ export function MonitoringQueryState<T>({
   const { t } = useTranslation("monitoring");
   if (state.status === "loading") {
     return (
-      <div aria-label={t("LOADING")} className="space-y-3">
+      <div
+        aria-busy="true"
+        aria-label={t("LOADING")}
+        aria-live="polite"
+        className="space-y-3"
+        role="status"
+      >
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-72 w-full" />
       </div>

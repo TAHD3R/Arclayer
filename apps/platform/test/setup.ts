@@ -18,6 +18,7 @@ vi.mock("@/capabilities/catalog-api", async (importOriginal) => {
       items: [
         {
           activationAvailable: false,
+          canManage: true,
           capabilityId: "access",
           descriptionI18nKey: "access:PLATFORM_TEAM_DESCRIPTION",
           domain: "access",
@@ -43,13 +44,14 @@ vi.mock("@/capabilities/catalog-api", async (importOriginal) => {
         },
         {
           activationAvailable: false,
+          canManage: true,
           capabilityId: "tenant-governance",
           descriptionI18nKey: "tenants:WORKSPACES_DESCRIPTION",
           domain: "tenant_governance",
           enablementState: "enabled",
           managePermissionMatch: "all",
           missingPrerequisiteCodes: [],
-          nameI18nKey: "navigation:TENANT_GOVERNANCE",
+          nameI18nKey: "navigation:WORKSPACES",
           navigationCandidate: true,
           navigationTargets: [
             {
@@ -78,6 +80,7 @@ vi.mock("@/capabilities/catalog-api", async (importOriginal) => {
         },
         {
           activationAvailable: false,
+          canManage: false,
           capabilityId: "monitoring-audit",
           descriptionI18nKey: "monitoring:REQUESTS_DESCRIPTION",
           domain: "monitoring_audit",

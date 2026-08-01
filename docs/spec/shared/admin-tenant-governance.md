@@ -1,11 +1,12 @@
-# Platform Tenant Governance Contract
+# Platform Workspaces Governance Contract
 
-Status: Approved canonical implementation contract (spec audit passed 2026-07-22)
+Status: Approved domain contract; experience amended 2026-08-01
 Parent: [Platform Control Plane Productization Rollout](./admin-control-plane-rollout.md)
+Experience authority: [Product and Platform administration experience redesign](./product-admin-experience-redesign.md)
 
 ## 1. Scope
 
-This contract defines the Tenant Governance Platform Domain: its Workspace-first governance queue; peer User and Project investigative views; useful identity hover cards; Workspace commercial and usage projections with exact Commerce deep links; Workspace lifecycle and deletion authority; case-bound Support Access Grants for customer content; project operational detail; identity cells; truncation-aware tooltips; and server-authoritative disabled/suspended access behavior.
+This contract defines the internal cross-tenant governance domain rendered to operators as `Workspaces / 工作空间`: its Workspace-first governance queue; peer User and Project investigative views; useful identity hover cards; Workspace commercial and usage projections with exact Plans & Billing deep links; Workspace lifecycle and deletion authority; case-bound Support Access Grants for customer content; project operational detail; identity cells; truncation-aware tooltips; and server-authoritative disabled/suspended access behavior.
 
 Commercial figures and subscription mutations remain owned by `workspace-commercialization.md`. This contract defines their control-plane projection and interaction, not a second billing calculation.
 
@@ -32,17 +33,17 @@ Commercial figures and subscription mutations remain owned by `workspace-commerc
 - Giving Platform Roles, Instance Ownership, support employment, or a case record standing access to customer-authored content.
 - Impersonating a Workspace member, minting Product Sessions, adding Operators to Workspace membership, or using Support Access to mutate content or perform tenant approvals.
 
-## 4. Domain information architecture and shared directory composition
+## 4. Workspaces information architecture and shared directory composition
 
-Tenant Governance is one Platform Domain with three peer directory views:
+The Workspaces product domain has three peer directory views:
 
 1. **Workspaces** is the default navigation target and primary governance queue because Workspace is the collaboration, lifecycle, and commercial boundary that most cross-tenant investigations converge on.
 2. **Users** is a peer identity, security, membership, and ownership investigation view; it is not a separate Platform Domain or a child of one Workspace.
 3. **Projects** is a peer operational and ownership investigation view; it is not a separate Platform Domain or a replacement for Project settings.
 
-The domain has no Tenant Overview route or card dashboard. Authorized Commerce, Hosting, and Monitoring & Audit summaries may appear in directory rows and investigative Drawers only when they help resolve the current case. Every mutation remains in its owning domain, reached through an exact typed deep link; Tenant Governance does not proxy or duplicate those forms.
+The domain has no generic overview route or card dashboard. Authorized Plans & Billing, Hosting & Domains, and Monitoring & Audit summaries may appear in directory rows and investigative Drawers only when they help resolve the current case. Every mutation remains in its owning domain, reached through an exact typed deep link; Workspaces does not proxy or duplicate those forms.
 
-Every Tenant Governance directory surface uses:
+Every Workspaces directory surface uses:
 
 ```text
 Page title and productized description                     [contextual primary action]
@@ -152,7 +153,7 @@ If a payment-recovery event arrives after lifecycle deletion has completed, Comm
 
 ### 7.5 Support Access to customer content
 
-Tenant Governance returns minimum operational metadata and authorized redacted projections by default. Project/page content, prompts and generated output, Knowledge, Skills, Design Systems, uploaded source material, and other customer-authored bodies are outside ordinary Platform visibility even for the Instance Owner. Secrets, credentials, private authentication material, payment instruments, and fields prohibited by the owning data policy are never made visible through Support Access.
+Workspaces returns minimum operational metadata and authorized redacted projections by default. Project/page content, prompts and generated output, Knowledge, Skills, Design Systems, uploaded source material, and other customer-authored bodies are outside ordinary Platform visibility even for the Instance Owner. Secrets, credentials, private authentication material, payment instruments, and fields prohibited by the owning data policy are never made visible through Support Access.
 
 A Support Access Grant is an affirmative Product Application action by an authorized Workspace Owner. It binds one support case, the Workspace, named active Platform Operators, explicit content categories and Projects, a stated reason visible to the Workspace, creation and expiry, and a revision. Absence of a response, a support ticket, a Platform Permission, instance ownership, or an operator request never creates a grant.
 
@@ -307,7 +308,7 @@ Operational metrics include directory query latency/result size, commerce freshn
 
 ## 16. Tests and acceptance criteria
 
-- Navigation tests proving Tenant Governance opens Workspaces by default, Users and Projects are peer views, and no Tenant Overview or decorative KPI route remains.
+- Route tests proving `/workspaces`, `/users`, and `/projects` are peer views; object detail is route-backed; `/tenants/**` is absent; and no generic Overview or decorative KPI route remains.
 - API tests for list filters/order/indexed pagination, identity projections, commerce authority, plan mutation delegation, and project operational projection.
 - Direct API integration tests for every restriction type across read, mutation, invitation acceptance, publish, job submission, and super-admin recovery.
 - Component tests for hover/focus identity card, icon-plus-name cells, truncation-only Tooltip, immediate cache reconciliation, exact Commerce deep links, project Drawer, and blocker recovery actions.
@@ -323,4 +324,4 @@ Operational metrics include directory query latency/result size, commerce freshn
 - Browser tests covering Workspace-side grant review/revoke/history, Platform-side approval-required/active/expired/revoked states, both locales, keyboard access, customer-safe copy, and absence of impersonation or internal permission terminology.
 - Frontend tests proving Restricted Recovery Mode preserves the product shell and read navigation, exposes one persistent recovery notice, never renders the suspension blocker, and cannot be bypassed through hidden controls or direct API calls.
 
-Acceptance requires one Tenant Governance Platform Domain with a Workspace-first queue and peer User/Project views; no Tenant Overview, duplicated cross-domain mutation, or Workspace Administration facade; no standing Platform access or impersonation path to customer-authored content; no customer-content read without a matching Workspace Owner Support Access Grant and exact Platform permission; no workspace/project identity rendered as a generic Tag; no Tooltip on fully visible ordinary text; no frontend-derived billing totals; no restriction represented only as 404; no commercial state authorizing deletion; no Payment Restricted state masquerading as Workspace Suspension; and no protected action succeeding after client-side blocker manipulation.
+Acceptance requires one Workspaces product domain with a Workspace-first queue and peer User/Project views; no generic Overview, duplicated cross-domain mutation, or Workspace Settings facade; no standing Platform access or impersonation path to customer-authored content; no customer-content read without a matching Workspace Owner Support Access Grant and exact Platform permission; no Workspace/Project identity rendered as a generic Tag; no Tooltip on fully visible ordinary text; no frontend-derived billing totals; no restriction represented only as 404; no commercial state authorizing deletion; no Payment Restricted state masquerading as Workspace Suspension; and no protected action succeeding after client-side blocker manipulation.

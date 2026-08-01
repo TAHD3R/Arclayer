@@ -32,12 +32,26 @@ export function getUserDisplayName(accessToken: string | null, fallback: string)
   );
 }
 
-export function initialsFromName(name: string): string {
+const graphemeSegmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+
+function firstGrapheme(value: string): string {
+  const first = graphemeSegmenter.segment(value)[Symbol.iterator]().next();
+  return first.done ? "" : first.value.segment;
+}
+
+function initialFromToken(token: string): string {
+  return firstGrapheme(firstGrapheme(token).toLocaleUpperCase());
+}
+
+export function initialsFromName(name: string, maxInitials: 1 | 2 = 2): string {
   const trimmed = name.trim();
   if (!trimmed) return "?";
+
   const parts = trimmed.split(/\s+/).filter(Boolean);
-  if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
-  return `${parts[0].slice(0, 1)}${parts[parts.length - 1].slice(0, 1)}`.toUpperCase();
+  const firstInitial = initialFromToken(parts[0]!);
+  if (maxInitials === 1 || parts.length === 1) return firstInitial;
+
+  return `${firstInitial}${initialFromToken(parts[parts.length - 1]!)}`;
 }
 
 function asRecord(input: unknown): Record<string, unknown> | null {

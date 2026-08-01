@@ -22,6 +22,13 @@ type EntityAvatarProps = {
 type PublicEntityAvatarProps = Omit<EntityAvatarProps, "fallbackLabel" | "shape">;
 type WorkspaceIconMode = "initials" | "glyph" | "emoji" | "image";
 
+const COMPACT_AVATAR_MAX_SIZE = 22;
+const SINGLE_INITIAL_FONT_SIZE_RATIO = 0.5;
+const DOUBLE_INITIAL_FONT_SIZE_RATIO = 0.4;
+const EMOJI_FONT_SIZE_RATIO = 0.5;
+const FONT_SIZE_DECIMAL_FACTOR = 10;
+const AVATAR_TEXT_CLASSNAME = "block max-w-full whitespace-nowrap leading-tight";
+
 export type WorkspaceAvatarIdentity = {
   iconMode?: WorkspaceIconMode | null;
   iconColor?: string | null;
@@ -127,6 +134,20 @@ function resolveWorkspaceAvatarKind(props: WorkspaceAvatarProps, src?: string): 
   return "initials";
 }
 
+function resolveWorkspaceAvatarTypography(size: number) {
+  const maxInitials: 1 | 2 = size <= COMPACT_AVATAR_MAX_SIZE ? 1 : 2;
+  const roundFontSize = (ratio: number) =>
+    Math.round(size * ratio * FONT_SIZE_DECIMAL_FACTOR) / FONT_SIZE_DECIMAL_FACTOR;
+
+  return {
+    maxInitials,
+    initialsFontSize: roundFontSize(
+      maxInitials === 1 ? SINGLE_INITIAL_FONT_SIZE_RATIO : DOUBLE_INITIAL_FONT_SIZE_RATIO,
+    ),
+    emojiFontSize: roundFontSize(EMOJI_FONT_SIZE_RATIO),
+  } as const;
+}
+
 export function UserAvatar(props: PublicEntityAvatarProps) {
   return <EntityAvatar {...props} fallbackLabel="用户" shape="circle" />;
 }
@@ -146,25 +167,32 @@ export function WorkspaceAvatar(props: WorkspaceAvatarProps) {
   const src = resolveAssetRefToPublicUrlPath(props.assetRef) ?? undefined;
   const size = props.size ?? 32;
   const kind = resolveWorkspaceAvatarKind(props, src);
+  const typography = resolveWorkspaceAvatarTypography(size);
   const backgroundColor = normalizeHexColor(props.iconColor);
   const foregroundColor = backgroundColor
     ? resolveAvatarForegroundColor(backgroundColor)
     : undefined;
   const GlyphIcon = kind === "glyph" ? getWorkspaceGlyphIcon(props.iconGlyph) : null;
   const emoji = kind === "emoji" ? props.iconEmoji?.trim() : "";
+  const contentFontSize =
+    kind === "initials"
+      ? typography.initialsFontSize
+      : kind === "emoji"
+        ? typography.emojiFontSize
+        : undefined;
   const hasCustomSurface = kind !== "image" && backgroundColor;
   const { canRenderImage, markImageFailed } = useImageFallback(src);
 
   return (
     <div
       className={cn(
-        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-sm bg-muted text-footnote font-semibold text-label-secondary ring-1 ring-border/60",
-        kind === "emoji" && "text-[0.95em]",
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-sm bg-muted font-medium text-label-secondary ring-1 ring-border/60",
         props.className,
       )}
       style={{
         width: size,
         height: size,
+        fontSize: contentFontSize,
         ...(hasCustomSurface
           ? {
               backgroundColor,
@@ -184,11 +212,13 @@ export function WorkspaceAvatar(props: WorkspaceAvatarProps) {
           onError={markImageFailed}
         />
       ) : kind === "emoji" && emoji ? (
-        <span>{emoji}</span>
+        <span className={AVATAR_TEXT_CLASSNAME}>{emoji}</span>
       ) : kind === "glyph" && GlyphIcon ? (
         <GlyphIcon className="size-[58%]" aria-hidden="true" strokeWidth={2.2} />
       ) : (
-        <span>{initialsFromName(label)}</span>
+        <span className={AVATAR_TEXT_CLASSNAME}>
+          {initialsFromName(label, typography.maxInitials)}
+        </span>
       )}
     </div>
   );

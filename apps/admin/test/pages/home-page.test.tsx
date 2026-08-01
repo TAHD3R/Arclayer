@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { AppendMessage, ExternalThreadQueueAdapter } from "@assistant-ui/react";
@@ -118,6 +118,7 @@ vi.mock("@assistant-ui/react", async () => {
     }),
     useAuiState: (selector: (state: { composer: { text: string } }) => unknown) =>
       selector({ composer: { text: assistantUiMockState.composerText } }),
+    unstable_useTriggerPopoverTriggers: () => new Map(),
     useExternalStoreRuntime: (store: unknown) => {
       assistantUiMockState.runtimeStore = store as typeof assistantUiMockState.runtimeStore;
       return store;
@@ -235,6 +236,7 @@ vi.mock("@/components/common/admin-masonry-grid", async () => {
     ),
     getAdminMasonryDatasetKey: (baseKey: string, orderedIds: readonly string[]) =>
       `${baseKey}:${orderedIds.join("|")}`,
+    resolveAdminMasonryScrollViewport: () => ({ kind: "window" as const }),
   };
 });
 
@@ -419,7 +421,7 @@ describe("HomePage", () => {
   }
 
   it("renders the Home entry surface without a legacy conversation state", () => {
-    renderHomePage();
+    const { container } = renderHomePage();
 
     expect(screen.getByRole("heading", { name: "Arclayer 让内容构建更简单" })).toBeInTheDocument();
     expect(screen.getByText("结构化内容，可视化构建。")).toBeInTheDocument();
@@ -449,6 +451,10 @@ describe("HomePage", () => {
       "focus-within:ring-1",
     );
     expect(screen.getByTestId("home-ai-prompt-starters")).toBeInTheDocument();
+    expect(screen.getByTestId("home-inspiration-section")).toBeInTheDocument();
+    expect(container.querySelector('[data-slot="home-ai-entry"]')).toHaveClass(
+      "min-h-[clamp(28rem,calc(100svh_-_18rem),72rem)]",
+    );
     expect(useAiChatStore.getState()).not.toHaveProperty("conversations");
   });
 
@@ -631,7 +637,7 @@ describe("HomePage", () => {
     expect(assistantUiMockState.runtimeStore?.queue?.items).toEqual([]);
   });
 
-  it("lets the default route frame provide bottom air when recent projects render", async () => {
+  it("moves the AI entry upward while preserving recent projects and inspiration", async () => {
     authState.accessToken = "token-1";
     authState.sessionVersion = 1;
     workspaceState.currentWorkspaceId = "workspace-1";
@@ -650,21 +656,33 @@ describe("HomePage", () => {
     expect(await screen.findByText("最近项目")).toBeInTheDocument();
     const routeFrame = container.querySelector('[data-slot="admin-route-frame"]');
     const home = container.querySelector('[data-page="ai-home"]');
-    const hero = home?.firstElementChild;
+    const hero = home?.querySelector('[data-slot="home-ai-entry"]');
     const createProjectPreview = container.querySelector(
       '[data-slot="home-create-project-preview"]',
     );
     const projectPreview = container.querySelector('[data-slot="home-project-preview"]');
 
     expect(routeFrame).toHaveClass("pb-20");
-    expect(home).not.toHaveClass("min-h-full");
-    expect(hero).toHaveClass("min-h-[clamp(34rem,70vh,44rem)]");
+    expect(home).toHaveClass("min-h-full");
+    expect(hero).toHaveClass("min-h-[clamp(28rem,52svh,36rem)]");
+    expect(screen.getByTestId("home-inspiration-section")).toBeInTheDocument();
     expect(createProjectPreview).toHaveClass("bg-card", "group-hover:bg-accent");
     expect(projectPreview).toHaveClass("bg-card");
     expect(projectPreview?.querySelector(".h-1\\.5")).not.toBeInTheDocument();
   });
 
   it("renders inspiration discovery below recent projects", async () => {
+    let intersectionCallback: IntersectionObserverCallback | undefined;
+    const OriginalIntersectionObserver = globalThis.IntersectionObserver;
+    class IntersectionObserverMock implements Pick<IntersectionObserver, "disconnect" | "observe"> {
+      constructor(callback: IntersectionObserverCallback) {
+        intersectionCallback = callback;
+      }
+      disconnect() {}
+      observe() {}
+    }
+    globalThis.IntersectionObserver =
+      IntersectionObserverMock as unknown as typeof IntersectionObserver;
     authState.accessToken = "token-1";
     authState.sessionVersion = 1;
     workspaceState.currentWorkspaceId = "workspace-1";
@@ -683,8 +701,24 @@ describe("HomePage", () => {
     expect(await screen.findByTestId("home-inspiration-section")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "全部" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "落地页" })).toBeInTheDocument();
-    expect(screen.getByTestId("home-inspiration-tabs")).not.toHaveClass("bg-background");
-    expect(screen.getByTestId("home-inspiration-tabs")).toHaveAttribute("data-stuck", "false");
+    const inspirationTabs = screen.getByTestId("home-inspiration-tabs");
+    expect(inspirationTabs).toHaveAttribute("data-stuck", "false");
+    expect(inspirationTabs).not.toHaveClass("bg-background");
+    expect(intersectionCallback).toBeTypeOf("function");
+    act(() => {
+      intersectionCallback?.(
+        [
+          {
+            boundingClientRect: { top: -1 },
+            isIntersecting: false,
+            rootBounds: null,
+          } as IntersectionObserverEntry,
+        ],
+        {} as IntersectionObserver,
+      );
+    });
+    expect(inspirationTabs).toHaveAttribute("data-stuck", "true");
+    expect(inspirationTabs).toHaveClass("bg-background");
     expect(screen.getByTestId("admin-masonry-grid")).toHaveAttribute("data-column-count", "4");
     const inspirationCard = document.querySelector('[data-slot="home-inspiration-card"]');
     const inspirationCardInfo = document.querySelector('[data-slot="home-inspiration-card-info"]');
@@ -696,6 +730,7 @@ describe("HomePage", () => {
     expect(inspirationCardInfo?.className).toContain("bg-[linear-gradient");
     expect(screen.getByText("Editorial Studio")).toBeInTheDocument();
     expect(screen.getByText("SaaS Launch Desk")).toBeInTheDocument();
+    globalThis.IntersectionObserver = OriginalIntersectionObserver;
   });
 
   it("uses two inspiration columns on mobile", async () => {

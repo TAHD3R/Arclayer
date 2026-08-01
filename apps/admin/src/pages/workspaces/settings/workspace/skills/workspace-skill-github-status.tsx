@@ -35,7 +35,6 @@ export function WorkspaceSkillGitHubStatus(props: {
         ? LoaderCircle
         : Github;
   const importId = props.operation?.id ?? props.accepted?.importId;
-  const jobId = props.operation?.jobId ?? props.accepted?.jobId;
 
   if (!importId) return null;
   return (
@@ -60,30 +59,6 @@ export function WorkspaceSkillGitHubStatus(props: {
               t(`settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_STATUS_${status.toUpperCase()}`)}
         </span>
         {!failed ? <Progress value={progressByStatus[status]} /> : null}
-        <dl className="grid gap-x-6 gap-y-2 text-caption sm:grid-cols-2">
-          <div className="min-w-0">
-            <dt className="text-label-tertiary">
-              {t("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_IMPORT_ID")}
-            </dt>
-            <dd className="break-all font-mono text-label-primary">{importId}</dd>
-          </div>
-          <div className="min-w-0">
-            <dt className="text-label-tertiary">
-              {t("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_JOB_ID")}
-            </dt>
-            <dd className="break-all font-mono text-label-primary">{jobId}</dd>
-          </div>
-          {props.operation?.resolvedCommit ? (
-            <div className="min-w-0 sm:col-span-2">
-              <dt className="text-label-tertiary">
-                {t("settings:SETTINGS_WORKSPACE_SKILLS_GITHUB_COMMIT_LABEL")}
-              </dt>
-              <dd className="break-all font-mono text-label-primary">
-                {props.operation.resolvedCommit}
-              </dd>
-            </div>
-          ) : null}
-        </dl>
         {props.error ? (
           <button type="button" className="self-start underline" onClick={props.onRetry}>
             {t("common:RETRY")}

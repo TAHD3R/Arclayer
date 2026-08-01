@@ -88,6 +88,8 @@ export function TenantProjectsPage(props: {
     <TenantDirectoryTable
       columns={columns}
       description={t("PROJECTS_DESCRIPTION")}
+      detailDescription={t("PROJECT_DETAIL_DESCRIPTION")}
+      detailTitle={t("PROJECT_DETAIL_TITLE")}
       filters={
         <Filters
           ordering={props.search.ordering}

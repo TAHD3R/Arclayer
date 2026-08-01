@@ -61,7 +61,8 @@
 - Unit test for contract fields on `ContentModelSchemaChangePlanOut.storage_sync`.
 - Unit test for field add, remove, rename, type change, index change, and rollback steps.
 - Integration test asserting impact-preview JSON includes `changePlan.storageSync`.
-- API gate: `pnpm api:check`.
+- During the change, run the closest API static check and focused test; run
+  `pnpm api:check` at a coherent backend milestone or before handoff.
 
 ### 7. Wrong vs Correct
 

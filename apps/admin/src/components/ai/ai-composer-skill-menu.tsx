@@ -114,7 +114,11 @@ export function AIComposerSkillMenu(props: {
           <span className="truncate">{t("AI_CHAT_SKILL_LABEL")}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-[min(25rem,calc(100vw-2rem))] p-1.5">
+      <DropdownMenuContent
+        align="start"
+        collisionPadding={16}
+        className="w-[min(25rem,calc(100vw-2rem))] p-1.5"
+      >
         <AIComposerSkillPanelContent
           presentation="dropdown"
           skills={skills}

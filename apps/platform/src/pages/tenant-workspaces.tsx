@@ -1,5 +1,4 @@
 import { useCallback, useMemo } from "react";
-import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import type {
   DirectoryWorkspaceListItemOut,
@@ -8,6 +7,7 @@ import type {
 
 import { getTenantWorkspace, listTenantWorkspaces } from "@/api/tenant-directory";
 import { TenantDirectoryTable, type DirectoryColumn } from "@/components/tenant-directory";
+import { TenantWorkspaceDetail } from "@/components/tenant-workspace-detail";
 import { SAVED_VIEW_DEFINITIONS, type SavedViewState } from "@/saved-views/saved-view-contracts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 
@@ -99,8 +99,11 @@ export function TenantWorkspacesPage(props: {
     { label: t("ACTIVITY"), render: (item) => new Date(item.lastActivityAt).toLocaleString() },
   ];
   const loadDetail = useCallback(
-    async (item: DirectoryWorkspaceListItemOut) => (
-      <WorkspaceDetail item={await getTenantWorkspace(item.workspaceId)} />
+    async (item: DirectoryWorkspaceListItemOut, onChanged: () => void) => (
+      <TenantWorkspaceDetail
+        item={await getTenantWorkspace(item.workspaceId)}
+        onChanged={onChanged}
+      />
     ),
     [],
   );
@@ -108,6 +111,8 @@ export function TenantWorkspacesPage(props: {
     <TenantDirectoryTable
       columns={columns}
       description={t("WORKSPACES_DESCRIPTION")}
+      detailDescription={t("WORKSPACE_DETAIL_DESCRIPTION")}
+      detailTitle={t("WORKSPACE_DETAIL_TITLE")}
       filters={
         <DirectoryFilters
           archived={props.search.isArchived}
@@ -189,24 +194,6 @@ function DirectoryFilters(props: {
   );
 }
 
-function WorkspaceDetail(props: { item: Awaited<ReturnType<typeof getTenantWorkspace>> }) {
-  const { t } = useTranslation("tenants");
-  return (
-    <dl className="grid gap-4 text-body">
-      <Detail
-        label={t("OWNER")}
-        value={props.item.owner?.displayName ?? props.item.owner?.username ?? t("UNAVAILABLE")}
-      />
-      <Detail label={t("MEMBERS")} value={String(props.item.memberCount ?? 0)} />
-      <Detail label={t("PROJECTS")} value={String(props.item.projectCount ?? 0)} />
-      <Detail label={t("COMMERCE")} value={props.item.commerce.planCode ?? t("COMMERCE_MISSING")} />
-      <Link className="text-primary underline underline-offset-4" to="/monitoring/requests">
-        {t("VIEW_REQUESTS")}
-      </Link>
-    </dl>
-  );
-}
-
 function Identity(props: { name: string; secondary?: string | null }) {
   return (
     <div className="min-w-0">
@@ -214,14 +201,6 @@ function Identity(props: { name: string; secondary?: string | null }) {
       {props.secondary ? (
         <p className="truncate text-footnote text-label-secondary">{props.secondary}</p>
       ) : null}
-    </div>
-  );
-}
-function Detail(props: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-footnote text-label-secondary">{props.label}</dt>
-      <dd>{props.value}</dd>
     </div>
   );
 }

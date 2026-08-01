@@ -81,9 +81,7 @@ describe("AuthLayout", () => {
       "#238bff,#8ba4c7,#238bff",
     );
     expect(screen.getByTestId("aurora-canvas")).toHaveAttribute("data-luminance-lift", "1");
-    expect(screen.getByTestId("route-transition")).toHaveClass(
-      "[&_.admin-route-boneyard]:bg-transparent",
-    );
+    expect(screen.getByTestId("route-transition")).toHaveClass("w-full");
     expect(screen.getByTestId("auth-preferences-bar")).toBeInTheDocument();
     expect(screen.getByText("auth-content")).toBeInTheDocument();
     expect(screen.queryByText("auth:FOOTER_COPYRIGHT")).not.toBeInTheDocument();

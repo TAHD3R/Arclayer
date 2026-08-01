@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from src.config import Settings, get_settings
 from src.core.extensions.dependencies import get_connector_registry
@@ -13,6 +13,7 @@ from src.modules.platform_identity.http import require_instance_owner, require_p
 from src.modules.platform_identity.management_schema import (
     PlatformInvitationCreateRequest,
     PlatformInvitationDetailOut,
+    PlatformInvitationOptionsOut,
     PlatformMfaReadinessOut,
     PlatformOperatorOffboardingRequest,
     PlatformOwnershipTransferNominationRequest,
@@ -98,6 +99,19 @@ async def invite_platform_operator(
     service: Annotated[PlatformIdentityManagementService, Depends(get_platform_identity_management_service)],
 ) -> ResponseModel[PlatformMutationReceipt]:
     return ApiResponse.success(data=await service.invite_operator(inviter_user_id=actor.actor_id, request=payload))
+
+
+@router.get(
+    "/team/invitation-options",
+    response_model=ResponseModel[PlatformInvitationOptionsOut],
+    summary="List eligible invite recipients and assignable role revisions",
+)
+async def get_platform_invitation_options(
+    actor: Annotated[PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.ACCESS_TEAM_INVITE)],
+    service: Annotated[PlatformIdentityManagementService, Depends(get_platform_identity_management_service)],
+    q: str | None = Query(default=None),
+) -> ResponseModel[PlatformInvitationOptionsOut]:
+    return ApiResponse.success(data=await service.invitation_options(inviter_user_id=actor.actor_id, q=q))
 
 
 @router.post(

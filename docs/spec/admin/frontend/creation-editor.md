@@ -2,13 +2,13 @@
 
 **Status:** Approved target code-spec; implementation activates only through the rollout gates in the shared platform contract.
 
-**Applies to:** `apps/admin`, Admin-facing primitives in `packages/ui`, generated Admin API clients, editor route tests, visual fixtures, and Boneyard capture fixtures.
+**Applies to:** `apps/admin`, Admin-facing primitives in `packages/ui`, generated Admin API clients, editor route tests, and visual fixtures.
 
 **Canonical sources:**
 
 - `docs/spec/shared/ai-website-builder-platform.md` owns the cross-layer aggregate, persistence, Agent, publishing, migration, and rollout contracts.
 - `DESIGN.md` owns the visual language, typography, color, elevation, motion, responsive, and accessibility principles.
-- `docs/spec/admin/frontend/product-ui-toolchain.md` owns the Admin component, form, icon, motion, i18n, and Boneyard stack.
+- `docs/spec/admin/frontend/product-ui-toolchain.md` owns the Admin component, form, icon, motion, i18n, and shared route-skeleton stack.
 
 This document specializes those sources for the full-screen creation editor. It must not redefine backend ownership. If a frontend behavior depends on a backend contract that has not passed its rollout gate, the UI exposes that capability as unavailable; it never invents data, a revision, a completed Agent result, or a successful mutation.
 
@@ -392,7 +392,7 @@ The panel supports:
 - terminal error with correlation ID and recoverable actions;
 - partial outputs that remain visibly partial and never become a completed assistant message by inference.
 
-If the backend protocol, Agent assignment, Tool renderer, reconnect contract, or required capability is unavailable, the composer/action is disabled with a localized reason and management link where appropriate. Development fixtures may simulate events only inside tests and Boneyard capture. Production code must not return templated generation, `(mock) ok`, a fake canvas node, or a fake successful Tool result.
+If the backend protocol, Agent assignment, Tool renderer, reconnect contract, or required capability is unavailable, the composer/action is disabled with a localized reason and management link where appropriate. Development fixtures may simulate events only inside tests and visual verification. Production code must not return templated generation, `(mock) ok`, a fake canvas node, or a fake successful Tool result.
 
 ### 8. Responsive and navigation contract
 
@@ -508,9 +508,9 @@ Implementation rules:
 - Performance acceptance uses a representative large-site fixture and a recorded browser trace for pan, zoom, multi-select, stage switch, inspector open, and streamed Agent output. Budgets and regression thresholds are recorded with the fixture from measured baseline evidence rather than introduced as arbitrary global caps.
 - Any optimization that changes correctness, culling, focus order, or accessibility must retain deterministic non-spatial access and explicit tests.
 
-### 13. Boneyard boundary contract
+### 13. Editor loading-boundary contract
 
-The creation editor uses a dedicated named Boneyard boundary around asynchronous work, not around the full scene.
+The creation editor uses the shared `RouteTransition` loading boundary around asynchronous work, not around the full scene. It composes `@arclayer/ui` `Skeleton` primitives rather than a generated or named skeleton system.
 
 Stable real regions outside the boundary:
 
@@ -520,7 +520,7 @@ Stable real regions outside the boundary:
 - Agent panel shell when already mounted;
 - route-level access/error state container.
 
-Captured asynchronous regions may include:
+Asynchronous regions that may use the shared skeleton composition include:
 
 - initial Sitemap macro nodes/tree rows;
 - initial Wireframe page-frame/section blocks;
@@ -530,17 +530,15 @@ Captured asynchronous regions may include:
 
 Rules:
 
-- Use one stable route/stage-derived production skeleton name per intentionally captured work boundary. Dynamic project/revision identifiers never create skeleton names.
-- Capture at `375`, `768`, and `1280`, with the boundary's actual `select="container"` or `select="viewport"` behavior.
-- Configure `excludeSelectors`, `excludeTags`, and `leafTags` to reduce the capture to meaningful macro anatomy. Exclusion does not keep a real element visible while its ancestor boundary is loading.
-- Use neutral surface/loading tokens. Action Blue may show real job progress but is not the ambient bone color.
+- Route/stage compositions are explicit and stable. Dynamic project/revision identifiers never change skeleton anatomy.
+- Verify macro anatomy at `375`, `768`, and `1280`: title/action row, stage frame, tree/canvas region, inspector, and other major final-layout regions are represented without imitating each real control.
+- Use neutral surface/loading tokens. Action Blue may show real job progress but is not the ambient placeholder color.
 - Delay transient skeleton display approximately `180-200ms`; once shown, retain it for approximately `180ms` to prevent a one-frame flash.
 - Generation does not replace the canvas with shimmer. It shows durable progress and progressively materialized real pages/nodes.
-- Reduced motion renders solid bones without shimmer/pulse.
-- Authenticated deterministic capture may use build-time fixtures or an explicit authenticated session. A fixture is never a production data fallback.
-- Generated `.bones.json` and registry artifacts are created by repository scripts and never hand-edited.
-- Missing named production bones are a development/CI error. The editor does not silently substitute `PageSkeleton` and report capture success.
-- Route-level bones do not replace blank, partial, conflict, offline, permission, migration, or fatal domain states.
+- Reduced motion renders solid placeholders without shimmer/pulse.
+- Visual verification may use test fixtures or an explicit authenticated session. A fixture is never a production data fallback.
+- The shared route composition must be available in production code; it never silently substitutes a generic `PageSkeleton` while reporting an unavailable route composition as success.
+- Route-level skeletons do not replace blank, partial, conflict, offline, permission, migration, or fatal domain states.
 
 ### 14. Product copy and i18n contract
 
@@ -634,7 +632,7 @@ When Wave 2 switches the production route:
 6. Keep other project routes in `AdminLayout` and verify that the scene predicate cannot capture `editorial`, nested management routes, empty IDs, or unsupported child paths.
 7. Do not switch an existing project until Wave 0 migration evidence supplies an explicit `ProjectAuthoringMode`, eligible baseline `ContentStructureRevision`/`SiteRevisionManifest`, tenant readiness, and permissions.
 8. Route `source_managed` and `migration_required` projects to explicit compatibility/migration states. Never backfill fictitious historical revisions or infer mode in the browser.
-9. Remove old editor copy keys, snapshots, mocks, and Boneyard names that no production route consumes. Generated artifacts are regenerated through scripts, not edited manually.
+9. Remove old editor copy keys, snapshots, mocks, and obsolete route-skeleton variants that no production route consumes.
 
 There is one production editor after the hard cut. A query flag, local-storage switch, hidden route, or permanent dual-render path must not preserve the obsolete surface.
 
@@ -657,11 +655,11 @@ The fixture set includes:
 - keyboard-only Sitemap editing, canvas alternative navigation, focus restoration, announcements, and destructive impact flow;
 - desktop, tablet, mobile, on-screen-keyboard, safe-area, and orientation-change layouts;
 - light, dark, high contrast where supported, and reduced-motion behavior;
-- named Boneyard resolution and authenticated deterministic captures at `375`, `768`, and `1280`;
+- shared route-skeleton visual verification at `375`, `768`, and `1280`;
 - `zh-CN` and `en-US` product copy, plural/count/date formatting, and no raw new product strings;
 - static hard-cut assertions that old component imports, old third Agent mode, old editor route facade, and old dashboard/source viewer do not remain.
 
-Test fixtures may return deterministic backend events only inside test/capture harnesses. They must be impossible to import into production runtime code.
+Test fixtures may return deterministic backend events only inside test/visual harnesses. They must be impossible to import into production runtime code.
 
 ### 19. Automated verification matrix
 
@@ -673,7 +671,7 @@ Test fixtures may return deterministic backend events only inside test/capture h
 | Agent runtime | Adapter contract tests for initialization-before-send, structured mentions, Plan/Build, Tool states, approval, nested messages, stop, reconnect, and terminal failure. |
 | Responsive shell | Component/visual tests at `375`, `768`, and `1280`, including sheet navigation, safe areas, focus restoration, and no accidental page overflow. |
 | Motion | Reduced-motion tests, interruptible transitions, and no interaction gated on animation. |
-| Boneyard | Skeleton-name unit test, resolution test for every production name, authenticated capture, and review of macro anatomy. |
+| Route skeleton | Shared-boundary component test, reduced-motion assertion, and visual review of macro anatomy at affected breakpoints. |
 | i18n/copy | Both locale resources, accessible announcement keys, and raw-string regression check for changed product UI. |
 | Performance-sensitive canvas | Representative large-site trace and recorded comparison for pan, zoom, selection, stage change, inspector, and streaming. |
 | Hard cut | Source/route regression tests proving the old editor and no-dedicated-layout assertions are removed. |
@@ -684,7 +682,7 @@ Implementation waves run `pnpm admin:check`. Cross-app or API-client changes run
 
 #### Good
 
-A `builder_managed` project opens directly into the dedicated Sitemap scene. The shell appears immediately, only the canvas macro region uses neutral bones, and a durable generation job progressively adds real page nodes. The user selects a page by keyboard, asks the Site Architect in Plan mode for alternatives, reviews the nested specialist evidence and candidate ChangeSet, switches to Build, accepts a typed reversible draft command, and sees the new server revision with provenance and undo. A later conflicting edit requires explicit re-preview. Refresh restores the Agent run and canvas revision without restoring a fake local graph.
+A `builder_managed` project opens directly into the dedicated Sitemap scene. The shell appears immediately, only the canvas macro region uses neutral placeholders, and a durable generation job progressively adds real page nodes. The user selects a page by keyboard, asks the Site Architect in Plan mode for alternatives, reviews the nested specialist evidence and candidate ChangeSet, switches to Build, accepts a typed reversible draft command, and sees the new server revision with provenance and undo. A later conflicting edit requires explicit re-preview. Refresh restores the Agent run and canvas revision without restoring a fake local graph.
 
 #### Base
 
@@ -692,7 +690,7 @@ A viewer opens an existing Design revision on mobile. The canvas, stage picker, 
 
 #### Bad
 
-The route renders inside `AdminLayout`, loads the old read-only dashboard, clones a page graph into Zustand, calls several Agents from the browser for one multi-mention, turns streamed Markdown into canvas nodes, displays “Saved” before the command returns, silently rebases a stale write, replays it after reconnect, and covers the entire editor with blue shimmer. This violates the route, ownership, Agent, conflict, offline, copy, and Boneyard contracts.
+The route renders inside `AdminLayout`, loads the old read-only dashboard, clones a page graph into Zustand, calls several Agents from the browser for one multi-mention, turns streamed Markdown into canvas nodes, displays “Saved” before the command returns, silently rebases a stale write, replays it after reconnect, and covers the entire editor with blue shimmer. This violates the route, ownership, Agent, conflict, offline, copy, and loading-boundary contracts.
 
 ### 21. Wrong vs correct
 
@@ -749,7 +747,7 @@ The creation editor is complete only when:
 - the assistant-ui adapter supports structured Agent identity, Plan/Build, Tool/approval/nested messages, cancellation, durable reconnect, and explicit failure without frontend orchestration;
 - desktop, tablet, and mobile preserve the complete creation workflow with keyboard and screen-reader alternatives;
 - loading, blank, generation, partial, conflict, offline, permission, migration, readiness, published-draft, and fatal states are productized and tested;
-- motion, canvas performance, and Boneyard boundaries meet this contract in both normal and reduced-motion modes;
+- motion, canvas performance, and shared loading boundaries meet this contract in both normal and reduced-motion modes;
 - every new string ships in `zh-CN` and `en-US`;
 - the old read-only editor, source-viewer primary experience, no-dedicated-scene assertions, and compatibility facades are removed in the same hard cut;
 - migration and regression fixtures prove that no project, Agent run, revision, release, or mutation success was invented to bridge an unavailable backend contract.
@@ -775,7 +773,7 @@ Automated evidence:
 - changed-scope review reports `status=ok`, zero enforcement-blocking findings, and the same 45 report-only findings (43 prototype `BLOCKER` labels and 2 `MINOR` findings); no new creation-editor or revision-reader file is reported.
 - Chrome DevTools confirmed that the route renders outside Admin chrome and that the explicit fatal boundary remains usable. The current environment returned 502 for every API request, including unrelated workspace/project endpoints, so a successful real-data canvas screenshot is not claimed.
 
-This is a truthful Wave 2 Sitemap vertical, not the section 22 final definition of done. Responsive sheet parity, keyboard outline parity for very large graphs, undo/redo, stage projections, renderer preview, Boneyard capture, and successful light/dark real-data visual regression remain required before the creation editor as a whole is complete.
+This is a truthful Wave 2 Sitemap vertical, not the section 22 final definition of done. Responsive sheet parity, keyboard outline parity for very large graphs, undo/redo, stage projections, renderer preview, route-skeleton visual verification, and successful light/dark real-data visual regression remain required before the creation editor as a whole is complete.
 
 ### 24. Wave 3A Wireframe inspection scene evidence (2026-07-21)
 
@@ -878,7 +876,7 @@ The typed API and Editor DOM seams pass 2 files / 14 focused tests. They cover c
 
 Full verification passes `admin:check` with 4/4 tasks, 318 files, and 1419 tests. `api:check` passes 4/4 tasks with 2198 tests passed, 435 integration-disabled skips, and 26 existing warnings; cross-app `pnpm check` passes all 8 tasks. Changed-scope review remains `status=ok` with zero enforcement-blocking findings and the existing 45 report-only findings (43 prototype `BLOCKER`, 2 `MINOR`); no Design System/Style Guide file is reported. `git diff --check` passes.
 
-The browser harness reached the exact Editor URL at a 3840×2160 viewport, but the local gateway again returned only `Bad Gateway` before the Admin application or login flow loaded. The captured evidence is `reports/creation-editor-style-history-bad-gateway-2026-07-21.png`. No successful real-data, light/dark, narrow-layout, or reduced-motion visual result is claimed from that gateway response.
+The browser harness reached the exact Editor URL at a 3840×2160 viewport, but the local gateway again returned only `Bad Gateway` before the Admin application or login flow loaded. The captured evidence was written to `output/creation-editor-style-history-bad-gateway-2026-07-21.png`. No successful real-data, light/dark, narrow-layout, or reduced-motion visual result is claimed from that gateway response.
 
 Still gated: true version lifecycle/supersede projection and command, semantic breaking-impact analysis, Agent-generated concepts, Asset/font rights, section-scheme contrast editing, real shared visitor rendering, catalog-backed rendered preview, Design writes, compiler artifacts, publication readiness, comments, server undo/redo, and successful real-data light/dark/reduced-motion browser capture.
 
@@ -895,7 +893,7 @@ The existing version evidence track now consumes the server lifecycle projection
 
 Focused typed API and Editor DOM tests cover the exact supersession path/header/payload, action eligibility, confirmation consequences, stable idempotency key, and the existing history/comparison/candidate/fork/refresh regressions. Admin format, TypeScript, and lint pass. Final `admin:check` passes all 4 tasks with 318 files / 1420 tests, including the 13-test Editor surface and 2-test Project Design System API contract. The first full run's seven test timeouts and four pool-worker startup failures were not reproducible: every affected file passed independently, then the complete suite passed without raising timeouts or adding fallback behavior. Cross-app `pnpm check` passes 8/8 tasks, generated OpenAPI typecheck passes, changed-scope review remains `status=ok` with zero enforcement-blocking and 45 unrelated report-only findings, and `git diff --check` passes.
 
-The exact authenticated Editor URL was then reloaded without cache at 3840×2160. The Admin document returned 200 and rendered the intended product boundary, but every required API request for Workspace, Project, Builder, Project authorization/actions, and eligible Agents returned 502, so the Style Guide stage never became available. The stable evidence is `reports/creation-editor-style-supersession-api-502-2026-07-21.png`. A development Fast Refresh session had briefly retained an older Hook signature and entered the route error boundary; a full document reload removed that console error, leaving only the reproducible API 502 responses. No successful real-data, light/dark, narrow-layout, or reduced-motion visual result is claimed.
+The exact authenticated Editor URL was then reloaded without cache at 3840×2160. The Admin document returned 200 and rendered the intended product boundary, but every required API request for Workspace, Project, Builder, Project authorization/actions, and eligible Agents returned 502, so the Style Guide stage never became available. The stable evidence was written to `output/creation-editor-style-supersession-api-502-2026-07-21.png`. A development Fast Refresh session had briefly retained an older Hook signature and entered the route error boundary; a full document reload removed that console error, leaving only the reproducible API 502 responses. No successful real-data, light/dark, narrow-layout, or reduced-motion visual result is claimed.
 
 Still gated: downstream semantic impact analysis, Agent-generated concepts, Asset/font rights, section schemes, visitor rendering, Design writes, compile artifacts, publication readiness, comments, server undo/redo, and successful real-data light/dark/narrow/reduced-motion capture.
 
@@ -944,7 +942,7 @@ all ultimately returned 200, replacing the earlier gateway-level 502 boundary.
 This specific Project is still source-managed rather than Builder-managed, so
 the live route truthfully renders the migration-required state and cannot enter
 the Style Guide review stage. The stable evidence is
-`reports/creation-editor-impact-migration-required-2026-07-21.png`. No
+`output/creation-editor-impact-migration-required-2026-07-21.png`. No
 successful impact-review, light/dark, narrow-layout, or reduced-motion capture
 is claimed.
 
@@ -1028,9 +1026,9 @@ primary control is 44px high, and no element exceeds the viewport. A local
 Radix ScrollArea inner-table width override is intentionally scoped to this
 Inspector; its regression is covered in the Editor DOM suite. Stable evidence:
 
-- `reports/wave-3g-wireframe-generation-desktop-2026-07-22.png`
-- `reports/wave-3g-wireframe-generation-narrow-2026-07-22.png`
-- `reports/wave-3g-target-project-boundary-2026-07-22.png`
+- `output/wave-3g-wireframe-generation-desktop-2026-07-22.png`
+- `output/wave-3g-wireframe-generation-narrow-2026-07-22.png`
+- `output/wave-3g-target-project-boundary-2026-07-22.png`
 
 The user-specified source-managed Project remains on the explicit
 migration-required boundary. Browser verification did not start a real

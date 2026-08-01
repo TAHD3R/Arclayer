@@ -118,7 +118,7 @@ function DirectiveChip(props: {
   );
 
   return (
-    <span className="group/tag inline-flex max-w-full items-center gap-1.5 rounded-full border border-border/70 bg-background/70 py-1 pr-1.5 pl-2 text-caption font-semibold text-label-primary">
+    <span className="group/tag relative inline-flex max-w-full items-center gap-1.5 rounded-full border border-border/70 bg-background/70 py-1 pr-2 pl-2 text-caption font-semibold text-label-primary">
       <Icon className="size-3.5 shrink-0 text-label-secondary" aria-hidden="true" />
       {canPreviewAsset ? (
         <Dialog>
@@ -152,7 +152,7 @@ function DirectiveChip(props: {
             variant="ghost"
             size="icon-sm"
             aria-label={props.label}
-            className="size-5 shrink-0 !rounded-full p-0 text-label-tertiary opacity-0 transition-opacity group-hover/tag:opacity-100 focus-visible:opacity-100 hover:bg-muted hover:text-label-primary"
+            className="pointer-events-none absolute right-1 size-5 !rounded-full bg-background/90 p-0 text-label-tertiary opacity-0 transition-opacity group-hover/tag:pointer-events-auto group-hover/tag:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 hover:bg-muted hover:text-label-primary"
             onClick={props.onRemove}
           >
             <XIcon className="size-3" aria-hidden="true" />

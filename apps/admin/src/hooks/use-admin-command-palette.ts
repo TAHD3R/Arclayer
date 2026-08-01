@@ -178,7 +178,7 @@ export function useAdminCommandPalette(props: {
           action: {
             type: "settings",
             target: {
-              screen: "workspace.members",
+              screen: "workspace.people",
               section: "member-row",
               payload: { memberId: member.userId },
             },
@@ -191,10 +191,10 @@ export function useAdminCommandPalette(props: {
               title: primary,
               subtitle: secondary,
               keywords: [primary, secondary, member.userId],
-              to: "settings:workspace.members",
+              to: "settings:workspace.people",
               search: { q: secondary, memberId: member.userId },
               settingsTarget: {
-                screen: "workspace.members",
+                screen: "workspace.people",
                 section: "member-row",
                 payload: { memberId: member.userId },
               },

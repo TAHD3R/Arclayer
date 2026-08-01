@@ -15,10 +15,11 @@ import {
 import { useNavigate, useSearch } from "@tanstack/react-router";
 
 import { listProjects } from "@/api/projects";
-import { AIComposerTriggers } from "@/components/ai/ai-composer-triggers";
 import { AIComposerDirectiveChips } from "@/components/ai/ai-composer-directive-chips";
 import { AIComposerRotatingPlaceholder } from "@/components/ai/ai-composer-rotating-placeholder";
 import { AIComposerToolbar } from "@/components/ai/ai-composer-toolbar";
+import { AIComposerTriggerInput } from "@/components/ai/ai-composer-trigger-input";
+import { AIComposerTriggers } from "@/components/ai/ai-composer-triggers";
 import { ComposerAttachments } from "@/components/assistant-ui/attachment";
 import { ComposerQueue } from "@/components/assistant-ui/composer-queue";
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
@@ -217,7 +218,7 @@ function HomeComposer({
             <AIComposerDirectiveChips scope="home" />
             <ComposerAttachments />
             <div className="relative min-h-32 flex-1">
-              <ComposerPrimitive.Input
+              <AIComposerTriggerInput
                 ref={inputRef}
                 rows={1}
                 autoFocus
@@ -282,16 +283,17 @@ export function HomePage() {
       <div
         data-page="ai-home"
         className={cn(
-          "mx-auto flex w-full max-w-[88rem] flex-col px-6 pt-8 sm:px-8 lg:px-10",
-          hasRecentProjects
-            ? "justify-start gap-12 pt-12 xl:gap-14 xl:pt-16"
-            : "min-h-full justify-center gap-8 py-8",
+          "mx-auto flex min-h-full w-full max-w-[88rem] flex-col gap-10 px-6 pb-8 sm:px-8 lg:px-10 xl:gap-12",
+          hasRecentProjects ? "pt-10 xl:pt-12" : "pt-8",
         )}
       >
         <div
+          data-slot="home-ai-entry"
           className={cn(
-            "flex w-full flex-col items-center gap-8",
-            hasRecentProjects && "min-h-[clamp(34rem,70vh,44rem)] shrink-0 justify-center pb-3",
+            "flex w-full shrink-0 flex-col items-center justify-center gap-8",
+            hasRecentProjects
+              ? "min-h-[clamp(28rem,52svh,36rem)]"
+              : "min-h-[clamp(28rem,calc(100svh_-_18rem),72rem)]",
           )}
         >
           <HomeBrandHero />
@@ -312,11 +314,9 @@ export function HomePage() {
           </div>
         </div>
         {hasRecentProjects ? (
-          <>
-            <HomeRecentProjectsSection workspaceId={workspaceId} projects={recentProjects} />
-            <HomeInspirationSection />
-          </>
+          <HomeRecentProjectsSection workspaceId={workspaceId} projects={recentProjects} />
         ) : null}
+        <HomeInspirationSection />
       </div>
     </AdminRouteContainer>
   );

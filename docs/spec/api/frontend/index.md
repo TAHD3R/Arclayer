@@ -33,6 +33,7 @@ Shared frontend/backend contracts live under `docs/spec/shared/`.
 | [Shared Error Contracts](../../shared/error-contracts.md) | Stable error-code handling across API layers |
 | [Shared Identity & Access Contracts](../../shared/identity-access-contracts.md) | Auth, tenant, workspace, project, and permission semantics |
 | [Shared Schema & Field Contracts](../../shared/schema-field-contracts.md) | Pydantic/OpenAPI/schema field semantics |
+| [Product and Platform Administration Experience Redesign](../../shared/product-admin-experience-redesign.md) | Administration route inventory, lifecycle projections and commands, state distinctions, and generated-client delivery gate |
 | [Product and Platform Separation](../../shared/product-platform-separation.md) | Separate Product and Platform OpenAPI clients, application consumers, Session boundaries, and hard-cut migration |
 
 ## Monorepo Contracts

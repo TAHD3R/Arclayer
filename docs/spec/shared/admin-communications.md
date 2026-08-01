@@ -1,14 +1,15 @@
 # Platform Communications Contract
 
-Status: Approved domain boundary; detailed workflows remain subject to product grilling
+Status: Approved domain contract; experience amended 2026-08-01
 Parent: [Platform Control Plane Productization Rollout](./admin-control-plane-rollout.md)
+Experience authority: [Product and Platform administration experience redesign](./product-admin-experience-redesign.md)
 Supporting contracts: [Feedback and Support](./admin-feedback-support.md), [Notification and Mail capability details](./admin-plugin-notification-mail.md)
 
 ## 1. Scope
 
 This contract defines one Communications Platform Domain for User feedback triage and replies, recipient sending issues, announcements and Campaigns, localized message templates, email-service readiness, and durable delivery evidence.
 
-“Communications” is the canonical architecture term. The localized product label is “消息与反馈” / “Messages & feedback”; primary navigation describes feedback and sending work rather than internal notification, event, or transport models.
+“Communications” is the canonical architecture term. The product label is `消息与反馈 / Messages & Feedback`; primary navigation describes feedback and sending work rather than internal notification, event, or transport models.
 
 ## 2. Current-state evidence
 
@@ -37,7 +38,7 @@ The domain has no send-volume or engagement-card Overview. Recipient/channel rul
 - Delivery success, failure, retry, read, click, or dismissal never creates, delays, reverses, or fabricates the source-domain transition.
 - Extensibility owns Plugin/Connector installation, upgrade, trust, permission review, rollback, and uninstall. Communications owns messaging-specific configuration and use of an installed channel capability.
 - Monitoring & Audit owns historical delivery, engagement, volume, and latency analysis. Messages & feedback owns current work, readiness, recipient evidence, and retry actions.
-- Tenant Governance may deep-link from a User or Workspace to authorized feedback or delivery records but does not duplicate reply, Campaign, or retry forms.
+- Workspaces may deep-link from a User or Workspace to authorized feedback or delivery records but does not duplicate reply, Campaign, or retry forms.
 
 ## 5. Shared delivery authority
 
@@ -74,4 +75,4 @@ Template keys, event names, delivery ids, Provider message ids, SMTP responses, 
 
 ## 9. Migration contract
 
-The hard cut moves `/system/feedback`, `/system/settings/notifications`, and `/system/settings/email` into exact Communications routes and removes their old navigation, settings registry entries, search items, wrappers, forms, and aliases. Direct event-runtime email delivery is removed after feedback replies, Campaigns, and transactional sources use the shared delivery authority. Existing records are migrated or projected with explicit source identity and status; missing source or delivery evidence remains visibly incomplete rather than being marked sent.
+The hard cut moves `/system/feedback`, `/system/settings/notifications`, and `/system/settings/email` into the exact `/messages/**` routes defined by the administration experience redesign and removes their old navigation, `/communications/**` routes, settings registry entries, search items, wrappers, forms, and aliases. Direct event-runtime email delivery is removed after feedback replies, Campaigns, and transactional sources use the shared delivery authority. Existing records are migrated or projected with explicit source identity and status; missing source or delivery evidence remains visibly incomplete rather than being marked sent.

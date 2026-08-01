@@ -24,7 +24,7 @@ pnpm code-review-engine --scope changed --base develop --format json
 pnpm code-review-engine --rules service.no-direct-orm,frontend.route-no-api-calls --format json
 pnpm code-review-engine --baseline .baseline/code-review-engine.json --format json
 pnpm code-review-engine --write-baseline .baseline/code-review-engine.json
-pnpm code-review-engine --scope full --format markdown --output reports/code-review-engine/full.md
+pnpm code-review-engine --scope full --format markdown --output output/code-review-engine/full.md
 ```
 
 CLI behavior:

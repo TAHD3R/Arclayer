@@ -2,7 +2,9 @@ import { useMemo } from "react";
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { AlertCircle, Hexagon } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import type { PlatformCapabilityCatalogOut } from "@arclayer/platform-openapi";
 
+import { CapabilityAccessProvider } from "@/capabilities/capability-access";
 import type { PlatformDestination } from "@/capabilities/module-registry";
 import {
   projectCapabilityNavigation,
@@ -53,6 +55,7 @@ type ResolvedCapabilityState =
   | Readonly<{ status: "error"; retry: () => void }>
   | Readonly<{
       status: "success";
+      capabilities: PlatformCapabilityCatalogOut["items"];
       projection: CapabilityNavigationProjection;
       retry: () => void;
     }>;
@@ -99,15 +102,19 @@ function CapabilityNavigation(props: {
   pathname: string;
 }) {
   const { t } = useTranslation("navigation");
-  const inbox = props.projection.destinations[0];
   return (
     <>
       <SidebarGroup>
         <SidebarGroupContent>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <DestinationNavigation destination={inbox} isActive={props.pathname === inbox.path} />
-            </SidebarMenuItem>
+            {props.projection.primaryDestinations.map((destination) => (
+              <SidebarMenuItem key={destination.id}>
+                <DestinationNavigation
+                  destination={destination}
+                  isActive={props.pathname === destination.path}
+                />
+              </SidebarMenuItem>
+            ))}
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
@@ -262,9 +269,11 @@ function PlatformContent(props: { state: ResolvedCapabilityState; pathname: stri
     );
   }
   return (
-    <RouteTransition>
-      <Outlet />
-    </RouteTransition>
+    <CapabilityAccessProvider capabilities={props.state.capabilities}>
+      <RouteTransition>
+        <Outlet />
+      </RouteTransition>
+    </CapabilityAccessProvider>
   );
 }
 
@@ -273,6 +282,7 @@ function resolveCapabilityState(state: PlatformCapabilityCatalogState): Resolved
   try {
     return {
       status: "success",
+      capabilities: state.catalog.items,
       projection: projectCapabilityNavigation(state.catalog.items),
       retry: state.retry,
     };

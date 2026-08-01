@@ -311,7 +311,7 @@ describe("WorkspaceSkillsView", () => {
     );
   });
 
-  it("shows durable GitHub IDs and reconciles a completed refresh into the governed projection", async () => {
+  it("keeps GitHub operation IDs internal and reconciles a completed refresh", async () => {
     const githubPackage = {
       ...packageSummary,
       sourceKind: "github",
@@ -347,9 +347,9 @@ describe("WorkspaceSkillsView", () => {
       }),
     );
 
-    expect(await screen.findByText("import-refresh-1")).toBeInTheDocument();
-    expect(screen.getByText("job-refresh-1")).toBeInTheDocument();
-    expect(await screen.findByText("e".repeat(40))).toBeInTheDocument();
+    expect(screen.queryByText("import-refresh-1")).not.toBeInTheDocument();
+    expect(screen.queryByText("job-refresh-1")).not.toBeInTheDocument();
+    expect(screen.queryByText("e".repeat(40))).not.toBeInTheDocument();
     await waitFor(() =>
       expect(mocks.notifySuccess).toHaveBeenCalledWith(
         "SETTINGS_WORKSPACE_SKILLS_GITHUB_REFRESHED",

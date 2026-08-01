@@ -62,7 +62,13 @@ export function WorkspaceSkillReferenceFields({ form }: { form: AuthoringForm })
   );
 }
 
-export function WorkspaceSkillAdvancedFields({ form }: { form: AuthoringForm }) {
+export function WorkspaceSkillAdvancedFields({
+  form,
+  showIdentifier,
+}: {
+  form: AuthoringForm;
+  showIdentifier: boolean;
+}) {
   const { t } = useTranslation(["settings", "common"]);
   const tools = useFieldArray({ control: form.control, name: "requiredTools" });
   const permissions = useFieldArray({ control: form.control, name: "permissions" });
@@ -74,6 +80,29 @@ export function WorkspaceSkillAdvancedFields({ form }: { form: AuthoringForm }) 
           {t("settings:SETTINGS_WORKSPACE_SKILLS_ADVANCED_TITLE")}
         </AccordionTrigger>
         <AccordionContent className="flex flex-col gap-5">
+          {showIdentifier ? (
+            <SettingDialogField
+              title={t("settings:SETTINGS_WORKSPACE_SKILLS_SLUG_LABEL")}
+              description={t("settings:SETTINGS_WORKSPACE_SKILLS_SLUG_HELP")}
+              error={
+                form.formState.errors.slug
+                  ? t("settings:SETTINGS_WORKSPACE_SKILLS_SLUG_ERROR")
+                  : undefined
+              }
+            >
+              <Input
+                className="font-mono"
+                aria-invalid={Boolean(form.formState.errors.slug)}
+                {...form.register("slug")}
+              />
+            </SettingDialogField>
+          ) : null}
+          <SettingDialogField
+            title={t("settings:SETTINGS_WORKSPACE_SKILLS_SEMANTIC_VERSION_LABEL")}
+            description={t("settings:SETTINGS_WORKSPACE_SKILLS_SEMANTIC_VERSION_HELP")}
+          >
+            <Input placeholder="1.0" {...form.register("semanticVersion")} />
+          </SettingDialogField>
           <SettingDialogField
             title={t("settings:SETTINGS_WORKSPACE_SKILLS_CAPABILITY_TAGS_LABEL")}
             description={t("settings:SETTINGS_WORKSPACE_SKILLS_CAPABILITY_TAGS_HELP")}

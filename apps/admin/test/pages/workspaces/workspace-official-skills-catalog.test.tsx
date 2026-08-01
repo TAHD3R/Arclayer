@@ -145,12 +145,12 @@ describe("WorkspaceOfficialSkillsCatalog", () => {
     apiMocks.update.mockReset();
   });
 
-  it("renders verified exact-version evidence and installs with system scope", async () => {
+  it("keeps verification details out of the catalog while installing the exact system version", async () => {
     renderCatalog();
 
     expect(await screen.findByText("Sitemap Planning")).toBeInTheDocument();
-    expect(await screen.findByText("site.sitemap")).toBeInTheDocument();
-    expect(screen.getByText(item.packageChecksum)).toBeInTheDocument();
+    expect(screen.queryByText("site.sitemap")).not.toBeInTheDocument();
+    expect(screen.queryByText(item.packageChecksum)).not.toBeInTheDocument();
     expect(apiMocks.list).toHaveBeenCalledWith(
       "workspace-1",
       expect.objectContaining({ q: "site", limit: 100 }),
@@ -166,7 +166,13 @@ describe("WorkspaceOfficialSkillsCatalog", () => {
     await waitFor(() =>
       expect(apiMocks.install).toHaveBeenCalledWith(
         "workspace-1",
-        expect.objectContaining({ packageScope: "system" }),
+        expect.objectContaining({
+          packageScope: "system",
+          packageId: item.packageId,
+          versionId: item.versionId,
+          expectedPackageChecksum: item.packageChecksum,
+          validationFindingHash: item.validationFindingHash,
+        }),
         expect.any(String),
       ),
     );
