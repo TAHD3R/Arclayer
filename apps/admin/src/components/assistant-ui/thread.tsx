@@ -82,6 +82,13 @@ export type ThreadProps = {
   components?: ThreadComponents | undefined;
   composerAccessory?: ReactNode;
   variant?: "default" | "sidebar";
+  welcomeAgent?:
+    | Readonly<{
+        name: string;
+        description: string;
+        supportedExecutionModes: readonly ("plan" | "build")[];
+      }>
+    | undefined;
   welcomeName?: string | undefined;
 };
 
@@ -90,6 +97,7 @@ type ThreadVariant = NonNullable<ThreadProps["variant"]>;
 const ThreadComponentsContext = createContext<ThreadComponents>(EMPTY_COMPONENTS);
 const ThreadVariantContext = createContext<ThreadVariant>("default");
 const ThreadWelcomeNameContext = createContext<string | undefined>(undefined);
+const ThreadWelcomeAgentContext = createContext<ThreadProps["welcomeAgent"]>(undefined);
 
 // Startup exposes a loading placeholder thread; treat it as a new chat so
 // the composer mounts centered. Loads after startup keep the docked layout.
@@ -100,6 +108,7 @@ export const Thread: FC<ThreadProps> = ({
   components = EMPTY_COMPONENTS,
   composerAccessory,
   variant = "default",
+  welcomeAgent,
   welcomeName,
 }) => {
   const isEmpty = useAuiState(isNewChatView);
@@ -107,9 +116,11 @@ export const Thread: FC<ThreadProps> = ({
   return (
     <ThreadComponentsContext.Provider value={components}>
       <ThreadVariantContext.Provider value={variant}>
-        <ThreadWelcomeNameContext.Provider value={welcomeName}>
-          <ThreadRoot composerAccessory={composerAccessory} isEmpty={isEmpty} variant={variant} />
-        </ThreadWelcomeNameContext.Provider>
+        <ThreadWelcomeAgentContext.Provider value={welcomeAgent}>
+          <ThreadWelcomeNameContext.Provider value={welcomeName}>
+            <ThreadRoot composerAccessory={composerAccessory} isEmpty={isEmpty} variant={variant} />
+          </ThreadWelcomeNameContext.Provider>
+        </ThreadWelcomeAgentContext.Provider>
       </ThreadVariantContext.Provider>
     </ThreadComponentsContext.Provider>
   );
@@ -219,18 +230,46 @@ const ThreadScrollToBottom: FC = () => {
 const ThreadWelcome: FC = () => {
   const { t } = useTranslation(["ai", "common"]);
   const variant = useContext(ThreadVariantContext);
+  const welcomeAgent = useContext(ThreadWelcomeAgentContext);
   const welcomeName = useContext(ThreadWelcomeNameContext);
   const isSidebar = variant === "sidebar";
+  const executionModeLabels = welcomeAgent?.supportedExecutionModes.map((mode) =>
+    t(mode === "build" ? "ai:AI_CHAT_MODE_BUILD" : "ai:AI_CHAT_MODE_PLAN"),
+  );
 
   if (isSidebar) {
     return (
-      <div className="aui-thread-welcome-root flex min-h-[22rem] flex-1 flex-col items-center justify-center gap-4 px-4 text-center">
-        <h2 className="max-w-[22rem] text-title3 font-semibold leading-tight text-label-primary">
-          {t("ai:AI_CHAT_HOME_GREETING", {
-            name: welcomeName ?? t("ai:AI_CHAT_HOME_USER_FALLBACK"),
-          })}
-        </h2>
-        <AISuggestions className="flex w-full flex-wrap items-center justify-center gap-2" />
+      <div className="aui-thread-welcome-root flex min-h-[22rem] flex-1 flex-col items-start justify-end gap-3 px-3 pb-5 text-left">
+        <div className="flex items-start gap-2">
+          <span className="text-title2 leading-tight" aria-hidden="true">
+            👋
+          </span>
+          <h2 className="max-w-[22rem] text-title3 font-semibold leading-tight text-label-primary">
+            {t("ai:AI_CHAT_HOME_GREETING", {
+              name: welcomeName ?? t("ai:AI_CHAT_HOME_USER_FALLBACK"),
+            })}
+          </h2>
+        </div>
+        <p className="text-footnote text-label-secondary">{t("ai:AI_CHAT_SIDEBAR_STARTER_HINT")}</p>
+        {welcomeAgent ? (
+          <div className="w-full max-w-[22rem] space-y-1">
+            <p className="text-footnote font-semibold text-label-primary">{welcomeAgent.name}</p>
+            {welcomeAgent.description ? (
+              <p className="line-clamp-2 text-footnote leading-relaxed text-label-secondary">
+                {welcomeAgent.description}
+              </p>
+            ) : null}
+            <p className="text-caption text-label-secondary">
+              {t("ai:AI_CHAT_SIDEBAR_AGENT_CAPABILITIES", {
+                modes: executionModeLabels?.join(" · "),
+              })}
+            </p>
+          </div>
+        ) : null}
+        <AISuggestions
+          variant="home"
+          className="flex w-full flex-wrap items-center justify-start gap-2"
+        />
       </div>
     );
   }

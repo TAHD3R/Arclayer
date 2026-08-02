@@ -74,7 +74,7 @@ describe("Commerce credits lookup", () => {
     render(<CommerceCreditsPage />);
     await user.type(screen.getByRole("textbox", { name: "Workspace" }), "workspace-1");
     await user.click(screen.getByRole("button", { name: "Look up" }));
-    await user.click(await screen.findByRole("button", { name: "Adjust Credits" }));
+    await user.click(await screen.findByRole("button", { name: "Adjust credits" }));
     await user.type(screen.getByLabelText("Credit change"), "10");
     await user.type(screen.getByLabelText("Reason"), "Support correction");
     await user.type(screen.getByLabelText("Evidence reference"), "case-42");
@@ -106,7 +106,7 @@ describe("Commerce credits lookup", () => {
     render(<CommerceCreditsPage />);
     await user.type(screen.getByRole("textbox", { name: "Workspace" }), "workspace-1");
     await user.click(screen.getByRole("button", { name: "Look up" }));
-    await user.click(await screen.findByRole("button", { name: "Adjust Credits" }));
+    await user.click(await screen.findByRole("button", { name: "Adjust credits" }));
     await user.type(screen.getByLabelText("Credit change"), "-5");
     await user.type(screen.getByLabelText("Reason"), "Expiry correction");
     await user.type(screen.getByLabelText("Evidence reference"), "reconcile-9");

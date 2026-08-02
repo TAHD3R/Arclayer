@@ -81,19 +81,13 @@ export function AIComposerToolbar({
 
   if (surface === "sidebar") {
     return (
-      <div className="aui-composer-action-wrapper relative flex min-w-0 flex-col gap-1">
-        <div className="flex min-h-8 min-w-0 items-center gap-1">
-          <AIProjectSelector compact />
-          <div className="min-w-0 flex-1" />
-          <AIModelSelector compact />
-        </div>
-        <div className="flex min-h-8 min-w-0 items-center gap-1">
-          <AIComposerAttachmentMenu />
-          <AIComposerSkillMenu compact scope="thread" />
-          <div className="min-w-0 flex-1" />
-          <AIComposerModeSelect compact />
-          <AIComposerPrimaryAction />
-        </div>
+      <div className="aui-composer-action-wrapper relative flex min-h-8 min-w-0 items-center gap-1">
+        <AIComposerAttachmentMenu />
+        <AIModelSelector compact />
+        <AIComposerSkillMenu compact scope="thread" />
+        <div className="min-w-0 flex-1" />
+        <AIComposerModeSelect compact />
+        <AIComposerPrimaryAction />
       </div>
     );
   }

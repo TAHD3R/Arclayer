@@ -17,7 +17,7 @@ import {
 } from "@/pages/inspiration/inspiration-catalog";
 import { GLOBAL_ROUTE_PATHS } from "@/lib/routing/global-routes";
 import { cn } from "@arclayer/lib/utils";
-import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@arclayer/ui/chrome-tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@arclayer/ui/tabs";
 
 import { HomeSectionHeader } from "./home-section-header";
 
@@ -75,35 +75,45 @@ export function HomeInspirationSection() {
         onAction={() => void navigate({ to: GLOBAL_ROUTE_PATHS.inspiration as never })}
       />
       <div ref={sentinelRef} className="h-px w-full" aria-hidden="true" />
-      <ChromeTabs
-        data-testid="home-inspiration-tabs"
+      <Tabs
         value={activeCategory}
         onValueChange={(value) => setActiveCategory(value as SiteBuilderCategory)}
-        data-stuck={tabsStuck ? "true" : "false"}
-        className={cn(
-          "sticky top-0 z-20 mb-4 min-w-0 transition-[background-color,box-shadow] duration-150",
-          tabsStuck &&
-            "bg-background shadow-[0_10px_24px_-20px_color-mix(in_oklab,var(--color-foreground)_32%,transparent)]",
-        )}
       >
-        <ChromeTabsList wrapperClassName="block w-full min-w-0">
-          {SITE_BUILDER_CATEGORIES.map((category) => (
-            <ChromeTabsTrigger key={category.key} value={category.key}>
-              {t(`ai:${category.labelKey}`)}
-            </ChromeTabsTrigger>
-          ))}
-        </ChromeTabsList>
-      </ChromeTabs>
-      <AdminMasonryGrid
-        items={templates}
-        datasetKey={datasetKey}
-        render={HomeInspirationTemplateCell}
-        itemHeightEstimate={INSPIRATION_TEMPLATE_ITEM_HEIGHT_ESTIMATE}
-        columnCount={
-          isMobile ? HOME_INSPIRATION_MOBILE_COLUMN_COUNT : HOME_INSPIRATION_DESKTOP_COLUMN_COUNT
-        }
-        containerClassName="min-w-0 w-full max-w-full overflow-x-hidden px-1"
-      />
+        <div
+          data-testid="home-inspiration-tabs"
+          data-stuck={tabsStuck ? "true" : "false"}
+          className={cn(
+            "sticky top-0 z-20 mb-4 min-w-0 transition-[background-color,box-shadow] duration-150",
+            tabsStuck &&
+              "-mx-6 bg-background px-6 shadow-[0_10px_24px_-20px_color-mix(in_oklab,var(--color-foreground)_32%,transparent)] sm:-mx-8 sm:px-8 lg:-mx-10 lg:px-10",
+          )}
+        >
+          <TabsList
+            aria-labelledby={INSPIRATION_TITLE_ID}
+            className="max-w-full justify-start overflow-x-auto overflow-y-hidden scrollbar-none"
+          >
+            {SITE_BUILDER_CATEGORIES.map((category) => (
+              <TabsTrigger key={category.key} value={category.key} className="shrink-0">
+                {t(`ai:${category.labelKey}`)}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
+        <TabsContent value={activeCategory} className="mt-0">
+          <AdminMasonryGrid
+            items={templates}
+            datasetKey={datasetKey}
+            render={HomeInspirationTemplateCell}
+            itemHeightEstimate={INSPIRATION_TEMPLATE_ITEM_HEIGHT_ESTIMATE}
+            columnCount={
+              isMobile
+                ? HOME_INSPIRATION_MOBILE_COLUMN_COUNT
+                : HOME_INSPIRATION_DESKTOP_COLUMN_COUNT
+            }
+            containerClassName="min-w-0 w-full max-w-full overflow-x-hidden px-1"
+          />
+        </TabsContent>
+      </Tabs>
     </section>
   );
 }

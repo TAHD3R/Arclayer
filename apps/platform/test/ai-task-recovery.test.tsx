@@ -79,11 +79,7 @@ describe("AI task recovery", () => {
 
     const retry = await screen.findByRole("button", { name: "Retry" });
     expect(retry).toBeDisabled();
-    expect(
-      screen.getByText(
-        "Retry is unavailable because no owning durable retry authority is registered.",
-      ),
-    ).toBeVisible();
+    expect(screen.getByText("Retry is not available for this task right now.")).toBeVisible();
     expect(screen.getByText("AI_PLATFORM_TASK_RETRY_PORT_UNAVAILABLE")).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));
@@ -93,11 +89,9 @@ describe("AI task recovery", () => {
         idempotencyKey: expect.any(String),
       }),
     );
-    expect(await screen.findByText("Current durable task state")).toBeVisible();
-    expect(
-      screen.getByText("Cancel returned the task's current durable state: Active."),
-    ).toBeVisible();
-    expect(screen.getByText("Latest durable event sequence: 5.")).toBeVisible();
+    expect(await screen.findByText("Current task status")).toBeVisible();
+    expect(screen.getByText("After Cancel, the task status is In progress.")).toBeVisible();
+    expect(screen.getByText("Most recent record: 5.")).toBeVisible();
   });
 
   it("reuses the same idempotency key after an unconfirmed task action", async () => {
@@ -112,11 +106,11 @@ describe("AI task recovery", () => {
     render(<AiTasksPage />);
 
     await user.click(await screen.findByRole("button", { name: "Cancel" }));
-    expect(await screen.findByText("The task action was not confirmed")).toBeVisible();
+    expect(await screen.findByText("Action result not confirmed")).toBeVisible();
     expect(screen.getByText("AI_PLATFORM_TASK_CANCEL_NOT_ELIGIBLE")).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));
-    await screen.findByText("Current durable task state");
+    await screen.findByText("Current task status");
 
     const firstKey = vi.mocked(executeAiTaskAction).mock.calls[0]?.[2].idempotencyKey;
     const secondKey = vi.mocked(executeAiTaskAction).mock.calls[1]?.[2].idempotencyKey;

@@ -24,12 +24,9 @@ export function HomeAIBackground() {
     <div
       aria-hidden="true"
       data-testid="home-ai-aurora"
-      className="pointer-events-none absolute inset-0 z-0"
+      className="pointer-events-none sticky top-0 z-0 -mb-[100dvh] h-[100dvh] w-full shrink-0"
     >
-      <div
-        data-slot="home-aurora-viewport"
-        className="sticky top-0 h-[calc(100svh-4rem)] overflow-hidden"
-      >
+      <div data-slot="home-aurora-viewport" className="relative h-full overflow-hidden">
         <div
           data-slot="home-aurora-edge-glow"
           className="absolute inset-x-0 bottom-0 h-[clamp(16rem,42svh,28rem)] opacity-35 dark:opacity-80"

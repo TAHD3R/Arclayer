@@ -110,6 +110,14 @@ vi.mock("react-i18next", () => ({
         "ai:AI_CHAT_SUGGESTION_VERIFY_AND_PUBLISH_PROMPT":
           "请检查当前项目的域名、品牌就绪、SEO 默认值、首页内容和源码发布准备。如果全部就绪，发布一个项目版本并返回版本号。",
         "ai:AI_CHAT_SUGGESTION_VERIFY_AND_PUBLISH_DESC": "让 AI 验证建站链路，并在就绪时发布版本。",
+        "ai:AI_CHAT_HOME_STARTER_WEBSITE": "网站搭建",
+        "ai:AI_CHAT_HOME_STARTER_WEBSITE_PROMPT_1": "官网改版提示词",
+        "ai:AI_CHAT_HOME_STARTER_CONTENT": "内容运营",
+        "ai:AI_CHAT_HOME_STARTER_CONTENT_PROMPT_1": "内容审计提示词",
+        "ai:AI_CHAT_HOME_STARTER_BRAND": "品牌设计",
+        "ai:AI_CHAT_HOME_STARTER_BRAND_PROMPT_1": "品牌方向提示词",
+        "ai:AI_CHAT_HOME_STARTER_COMMERCE": "电商内容",
+        "ai:AI_CHAT_HOME_STARTER_COMMERCE_PROMPT_1": "商品详情页提示词",
       };
       return labels[key] ?? key;
     },
@@ -143,6 +151,26 @@ describe("AISuggestions", () => {
     expect(screen.getByRole("button", { name: "生成发布清单" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "检查内容质量" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "优化页面体验" })).not.toBeInTheDocument();
+  });
+
+  it("renders Home prompt starters explicitly for a new sidebar Thread", () => {
+    render(<AISuggestions variant="home" />);
+
+    expect(screen.getByRole("button", { name: "网站搭建" })).toHaveClass(
+      "h-11",
+      "!rounded-md",
+      "bg-card",
+      "min-[769px]:h-9",
+    );
+    expect(screen.getByRole("button", { name: "内容运营" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "品牌设计" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "电商内容" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "网站搭建" }));
+    expect(assistantUiMock.append).toHaveBeenCalledWith({
+      content: [{ type: "text", text: "官网改版提示词" }],
+      runConfig: assistantUiMock.composerState.runConfig,
+    });
   });
 
   it("does not derive normalized thread suggestions from legacy conversation artifacts", () => {

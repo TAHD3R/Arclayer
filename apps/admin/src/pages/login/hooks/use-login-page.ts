@@ -169,10 +169,11 @@ function resolveOAuthErrorMessage(errorCode: string, t: (key: string) => string)
 function resolveTwoFactorChallengeMeta(error: ApiError): TwoFactorChallengeMeta | null {
   if (error.error !== TWO_FACTOR_REQUIRED_ERROR) return null;
   const meta = (error.meta ?? {}) as {
-    twoFactorToken?: string;
-    expiresIn?: number;
+    two_factor_token?: string;
+    expires_in?: number;
   };
-  const { twoFactorToken, expiresIn } = meta;
+  const twoFactorToken = meta.two_factor_token;
+  const expiresIn = meta.expires_in;
 
   if (!twoFactorToken || typeof expiresIn !== "number" || expiresIn <= 0) {
     return null;
@@ -195,12 +196,12 @@ function resolveEmailVerificationMeta(error: ApiError): EmailVerificationMeta | 
   if (error.error !== EMAIL_NOT_VERIFIED_ERROR) return null;
   const meta = (error.meta ?? {}) as {
     email?: string;
-    requiresEmailVerification?: boolean;
-    retryAfter?: number;
+    requires_email_verification?: boolean;
+    retry_after?: number;
   };
-  const requiresEmailVerification = meta.requiresEmailVerification;
+  const requiresEmailVerification = meta.requires_email_verification;
   const email = typeof meta.email === "string" ? meta.email.trim() : "";
-  const retryAfter = meta.retryAfter;
+  const retryAfter = meta.retry_after;
 
   if (!requiresEmailVerification || !email || typeof retryAfter !== "number" || retryAfter < 0) {
     return null;

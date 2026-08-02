@@ -275,7 +275,7 @@ export function AdminSceneLayout({
 
   return (
     <ArclayerAssistantScope>
-      {(assistantAvailable) => (
+      {(assistantState) => (
         <SidebarProvider
           defaultOpen={sidebarOpen}
           open={sidebarOpen}
@@ -307,7 +307,7 @@ export function AdminSceneLayout({
               data-floating-panel-boundary={aiDrawerOpen ? "" : undefined}
             >
               <AdminSidebarShell
-                assistantAvailable={assistantAvailable}
+                assistantAvailable={assistantState.status === "ready"}
                 showNavSkeleton={showNavSkeleton}
                 showOrgNavErrorOverlay={showOrgNavErrorOverlay}
                 mainItems={mainItems}
@@ -372,10 +372,7 @@ export function AdminSceneLayout({
                 )}
               />
             </div>
-            <AIDrawerOverlay
-              widthPx={effectiveAiDrawerWidthPx}
-              assistantAvailable={assistantAvailable}
-            />
+            <AIDrawerOverlay widthPx={effectiveAiDrawerWidthPx} assistantState={assistantState} />
           </div>
         </SidebarProvider>
       )}

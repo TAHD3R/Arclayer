@@ -32,7 +32,7 @@ describe("Platform Command Center", () => {
     );
 
     await user.keyboard("{Meta>}k{/Meta}");
-    const dialog = await screen.findByRole("dialog", { name: "Quick navigation" });
+    const dialog = await screen.findByRole("dialog", { name: "Go to a page" });
     await waitFor(() => expect(dialog).toBeVisible());
     await user.click(screen.getByText("Workspaces"));
 
@@ -50,11 +50,13 @@ describe("Platform Command Center", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Open quick navigation" }));
+    await user.click(screen.getByRole("button", { name: "Open page navigation" }));
 
-    const dialog = await screen.findByRole("dialog", { name: "Quick navigation" });
+    const dialog = await screen.findByRole("dialog", { name: "Go to a page" });
     await waitFor(() => expect(dialog).toBeVisible());
-    expect(screen.getByText(/unavailable in this Console version/)).toBeVisible();
+    expect(
+      screen.getByText("Some pages available to you aren't included in this Console version."),
+    ).toBeVisible();
     expect(screen.queryByText("Workspaces")).not.toBeInTheDocument();
   });
 });

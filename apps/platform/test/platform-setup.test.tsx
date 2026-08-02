@@ -60,10 +60,10 @@ describe("Platform first-owner setup", () => {
     expect(
       await screen.findByRole("heading", { name: "Set up the Platform Console" }),
     ).toBeVisible();
-    expect(screen.getByLabelText("Account name")).toHaveAttribute("pattern", "[a-z0-9\\-]+");
-    await user.type(screen.getByLabelText("Account name"), "instance-owner");
+    expect(screen.getByLabelText("Username")).toHaveAttribute("pattern", "[a-z0-9\\-]+");
+    await user.type(screen.getByLabelText("Username"), "instance-owner");
     await user.type(screen.getByLabelText("Display name"), "Instance Owner");
-    await user.type(screen.getByLabelText("Email"), "owner@example.com");
+    await user.type(screen.getByLabelText("Email address"), "owner@example.com");
     await user.type(screen.getByLabelText("Password"), "owner-password-1");
     await user.click(screen.getByRole("button", { name: "Create Instance Owner" }));
 
@@ -77,7 +77,7 @@ describe("Platform first-owner setup", () => {
       password: "owner-password-1",
     });
 
-    await user.click(screen.getByRole("button", { name: "Continue to secure sign-in" }));
+    await user.click(screen.getByRole("button", { name: "Continue to sign in" }));
     expect(
       await screen.findByRole("heading", { name: "Sign in to the Platform Console" }),
     ).toBeVisible();
@@ -104,8 +104,8 @@ describe("Platform first-owner setup", () => {
     await renderRoute("/setup");
 
     expect(await screen.findByText("Platform setup needs repair")).toBeVisible();
-    expect(screen.getByText("The owner and installation records do not agree")).toBeVisible();
-    expect(screen.getByText(/reconcile the Instance Owner and installation records/)).toBeVisible();
+    expect(screen.getByText("Owner and installation records don't match")).toBeVisible();
+    expect(screen.getByText(/compare the Instance Owner and installation records/)).toBeVisible();
     expect(screen.queryByRole("button", { name: "Create Instance Owner" })).toBeNull();
   });
 
@@ -117,8 +117,8 @@ describe("Platform first-owner setup", () => {
     await renderRoute("/setup");
 
     await waitFor(() => {
-      expect(screen.getByText("The Platform Console could not check setup state")).toBeVisible();
-      expect(screen.getByText(/did not assume setup was complete/)).toBeVisible();
+      expect(screen.getByText("The Platform Console couldn't check setup status")).toBeVisible();
+      expect(screen.getByText(/won't assume setup is complete/)).toBeVisible();
     });
     expect(consoleError).toHaveBeenCalled();
   });

@@ -10,7 +10,7 @@ import { HomePage } from "@/pages/home/page";
 import { useAIComposerDirectiveStore } from "@/components/ai/ai-composer-directives";
 import { DEFAULT_AI_CHAT_MODEL, useAiChatStore } from "@/stores/use-ai-chat-store";
 import { useAIEntryStore } from "@/stores/use-ai-entry-store";
-import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
+import { usePreferencesStore } from "@/stores/use-preference-store";
 
 type ProjectListItem = Awaited<ReturnType<typeof listProjects>>["items"][number];
 
@@ -387,6 +387,7 @@ describe("HomePage", () => {
     assistantUiMockState.composerText = "";
     assistantUiMockState.runtimeStore = null;
     useAIEntryStore.setState({ entries: [] });
+    usePreferencesStore.setState({ reduceMotion: false });
     useAIComposerDirectiveStore.setState({
       directivesByScope: { thread: [], home: [] },
     });
@@ -409,14 +410,7 @@ describe("HomePage", () => {
     return render(
       <main data-slot="sidebar-inset">
         <QueryClientProvider client={queryClient}>
-          <ChromeTabsProvider
-            labels={{
-              scrollLeftAriaLabel: "向左滚动",
-              scrollRightAriaLabel: "向右滚动",
-            }}
-          >
-            <HomePage />
-          </ChromeTabsProvider>
+          <HomePage />
         </QueryClientProvider>
       </main>,
     );
@@ -429,13 +423,15 @@ describe("HomePage", () => {
     expect(screen.getByText("结构化内容，可视化构建。")).toBeInTheDocument();
     const aurora = screen.getByTestId("home-ai-aurora");
     expect(aurora).toBeInTheDocument();
-    expect(aurora).toHaveClass("absolute", "z-0");
-    expect(aurora.closest('[data-slot="admin-route-frame"]')).toBeNull();
-    expect(aurora.parentElement).toHaveClass("isolate");
+    expect(aurora).toHaveClass("sticky", "top-0", "z-0", "-mb-[100dvh]", "h-[100dvh]");
+    expect(aurora).not.toHaveClass("-mb-[calc(100svh-4rem)]", "h-[calc(100svh-4rem)]");
+    expect(aurora.closest('[data-slot="admin-route-frame"]')).not.toBeNull();
     expect(aurora.querySelector('[data-slot="home-aurora-viewport"]')).toHaveClass(
-      "sticky",
-      "top-0",
+      "relative",
+      "h-full",
+      "overflow-hidden",
     );
+    expect(container.querySelector('[data-page="ai-home"]')).toHaveClass("relative", "z-10");
     expect(aurora.querySelector('[data-slot="home-aurora-edge-glow"]')).toHaveClass(
       "bottom-0",
       "h-[clamp(16rem,42svh,28rem)]",
@@ -468,9 +464,21 @@ describe("HomePage", () => {
     expect(categoryButton).toHaveClass("w-auto", "!rounded-md", "bg-card", "dark:bg-card");
     expect(categoryButton).not.toHaveClass("w-full", "backdrop-blur-sm");
     await user.click(categoryButton);
-    const promptButton = screen.getByRole("button", { name: "官网改版提示词" });
-    expect(promptButton.parentElement).toHaveClass("absolute");
+    const contentCategoryButton = screen.getByRole("button", { name: /内容运营/ });
+    await user.click(contentCategoryButton);
+    expect(document.querySelectorAll('[data-slot="home-ai-starter-options"]')).toHaveLength(1);
+    await user.click(categoryButton);
+
+    let promptButton = screen.getByRole("button", { name: "官网改版提示词" });
+    const animatedOptions = promptButton.closest('[data-slot="home-ai-starter-options"]');
+    expect(animatedOptions).toHaveClass("relative", "overflow-hidden");
+    expect(animatedOptions).not.toHaveClass("absolute");
+    expect(promptButton.parentElement).toHaveClass("pt-3");
     expect(promptButton).toHaveClass("rounded-md", "bg-popover");
+
+    act(() => usePreferencesStore.setState({ reduceMotion: true }));
+    promptButton = screen.getByRole("button", { name: "官网改版提示词" });
+    expect(promptButton.closest('[data-slot="home-ai-starter-options"]')).not.toBe(animatedOptions);
     await user.click(promptButton);
 
     expect(assistantUiMockState.composerText).toBe("官网改版提示词");
@@ -680,6 +688,7 @@ describe("HomePage", () => {
   });
 
   it("renders inspiration discovery below recent projects", async () => {
+    const user = userEvent.setup();
     let intersectionCallback: IntersectionObserverCallback | undefined;
     const OriginalIntersectionObserver = globalThis.IntersectionObserver;
     class IntersectionObserverMock implements Pick<IntersectionObserver, "disconnect" | "observe"> {
@@ -707,8 +716,15 @@ describe("HomePage", () => {
     renderHomePage();
 
     expect(await screen.findByTestId("home-inspiration-section")).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "全部" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "落地页" })).toBeInTheDocument();
+    const allTab = screen.getByRole("tab", { name: "全部" });
+    const landingTab = screen.getByRole("tab", { name: "落地页" });
+    const inspirationTabList = screen.getByRole("tablist", { name: "灵感发现" });
+    expect(allTab).toHaveAttribute("data-state", "active");
+    expect(landingTab).toBeInTheDocument();
+    let inspirationTabPanel = screen.getByRole("tabpanel");
+    expect(allTab).toHaveAttribute("aria-controls", inspirationTabPanel.id);
+    expect(inspirationTabList).toHaveClass("max-w-full", "overflow-x-auto", "overflow-y-hidden");
+    expect(allTab).toHaveClass("shrink-0");
     const inspirationTabs = screen.getByTestId("home-inspiration-tabs");
     expect(inspirationTabs).toHaveAttribute("data-stuck", "false");
     expect(inspirationTabs).not.toHaveClass("bg-background");
@@ -726,7 +742,7 @@ describe("HomePage", () => {
       );
     });
     expect(inspirationTabs).toHaveAttribute("data-stuck", "true");
-    expect(inspirationTabs).toHaveClass("bg-background");
+    expect(inspirationTabs).toHaveClass("-mx-6", "bg-background", "px-6", "sm:-mx-8", "lg:-mx-10");
     expect(screen.getByTestId("admin-masonry-grid")).toHaveAttribute("data-column-count", "4");
     const inspirationCard = document.querySelector('[data-slot="home-inspiration-card"]');
     const inspirationCardInfo = document.querySelector('[data-slot="home-inspiration-card-info"]');
@@ -738,6 +754,12 @@ describe("HomePage", () => {
     expect(inspirationCardInfo?.className).toContain("bg-[linear-gradient");
     expect(screen.getByText("Editorial Studio")).toBeInTheDocument();
     expect(screen.getByText("SaaS Launch Desk")).toBeInTheDocument();
+    allTab.focus();
+    await user.keyboard("{ArrowRight}");
+    expect(landingTab).toHaveFocus();
+    expect(landingTab).toHaveAttribute("data-state", "active");
+    inspirationTabPanel = screen.getByRole("tabpanel");
+    expect(landingTab).toHaveAttribute("aria-controls", inspirationTabPanel.id);
     globalThis.IntersectionObserver = OriginalIntersectionObserver;
   });
 

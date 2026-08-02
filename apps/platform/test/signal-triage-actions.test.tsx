@@ -120,7 +120,7 @@ describe("Operational Signal triage actions", () => {
     const user = userEvent.setup();
     renderActions({ ...detail, allowedTriageActions: ["assign"] });
 
-    await user.click(await screen.findByRole("combobox", { name: "Operator" }));
+    await user.click(await screen.findByRole("combobox", { name: "Assign to" }));
     await user.click(screen.getByRole("option", { name: "Ada Operator" }));
     await user.click(screen.getByRole("button", { name: "Assign item" }));
 
@@ -156,11 +156,11 @@ describe("Operational Signal triage actions", () => {
     renderActions({ ...detail, allowedTriageActions: ["remind_later"] });
 
     await user.click(screen.getByRole("button", { name: "Set reminder" }));
-    expect(screen.getByText("Choose a future return time.")).toBeVisible();
-    expect(screen.getByText("Explain why this item should return later.")).toBeVisible();
+    expect(screen.getByText("Choose a future reminder time.")).toBeVisible();
+    expect(screen.getByText("Explain why this issue needs another reminder later.")).toBeVisible();
     expect(remindOperationalSignalLater).not.toHaveBeenCalled();
 
-    fireEvent.change(screen.getByLabelText("Return time"), {
+    fireEvent.change(screen.getByLabelText("Remind me again at"), {
       target: { value: "2099-01-02T12:30" },
     });
     await user.type(screen.getByLabelText("Reason"), "Check whether the owning job recovered");
@@ -240,7 +240,7 @@ describe("Operational Signal triage actions", () => {
     await user.click(await screen.findByRole("button", { name: "Claim" }));
     await user.click(await screen.findByRole("button", { name: "Reload current item" }));
     expect(screen.queryByRole("button", { name: "Claim" })).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Loading operational work details")).toBeVisible();
+    expect(screen.getByLabelText("Loading issue details…")).toBeVisible();
 
     await act(async () => {
       resolveReload(
@@ -267,7 +267,7 @@ describe("Operational Signal triage actions", () => {
       />,
     );
 
-    expect(screen.getByText("The owning service confirmed resolution")).toBeVisible();
+    expect(screen.getByText("The responsible service confirmed recovery")).toBeVisible();
     expect(screen.queryByText("Forbidden coordination action")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /dismiss|close|resolve/i }),
@@ -330,7 +330,7 @@ describe("Operational Signal triage actions", () => {
       />,
     );
 
-    expect(await screen.findByText("Assigned to an operator")).toBeVisible();
+    expect(await screen.findByText("Assigned to someone")).toBeVisible();
     expect(screen.queryByText("former-operator")).not.toBeInTheDocument();
   });
 });

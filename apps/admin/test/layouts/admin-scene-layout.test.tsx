@@ -68,8 +68,8 @@ vi.mock("@/components/ai/arclayer-assistant-scope", () => ({
   ArclayerAssistantScope: ({
     children,
   }: {
-    children: (assistantAvailable: boolean) => ReactNode;
-  }) => children(true),
+    children: (assistantState: { status: "ready" }) => ReactNode;
+  }) => children({ status: "ready" }),
 }));
 
 vi.mock("@/components/layout/route-transition", () => ({
@@ -80,7 +80,7 @@ vi.mock("@/components/layout/route-transition", () => ({
 }));
 
 vi.mock("@/components/ai/ai-drawer-overlay", () => ({
-  AIDrawerOverlay: (props: { widthPx: number; assistantAvailable: boolean }) => {
+  AIDrawerOverlay: (props: { widthPx: number; assistantState: { status: string } }) => {
     aiDrawerOverlaySpy(props);
     return <div data-testid="ai-drawer-overlay" style={{ width: props.widthPx }} />;
   },
@@ -555,7 +555,7 @@ describe("AdminSceneLayout", () => {
     expect(separator).toHaveClass("hover:after:bg-sidebar-border");
     expect(separator).toHaveClass("-right-4");
     expect(aiDrawerOverlaySpy).toHaveBeenLastCalledWith(
-      expect.objectContaining({ widthPx: 380, assistantAvailable: true }),
+      expect.objectContaining({ widthPx: 380, assistantState: { status: "ready" } }),
     );
 
     fireEvent(separator, createPointerEvent("pointerdown", { button: 0, clientX: 480 }));

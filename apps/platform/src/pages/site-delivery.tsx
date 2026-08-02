@@ -1,4 +1,4 @@
-import { type FormEvent, type ReactNode, useCallback, useState } from "react";
+import { type FormEvent, type ReactNode, useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   PageDataPlatformDeliveryDomainOut,
@@ -6,18 +6,22 @@ import type {
   PageDataPlatformDeliveryRuleOut,
   PageDataPlatformDeliveryStorageOut,
   PlatformDeliveryContinuityPolicyOut,
-  PlatformDeliveryDomainActionOut,
-  PlatformDeliveryIssueActionOut,
+  PlatformDeliveryDomainOut,
   PlatformDeliveryIssueOut,
+  PlatformDeliveryOperationOut,
   PlatformDeliveryPolicyApplyOut,
   PlatformDeliveryPolicyPreviewOut,
-  PlatformDeliveryStorageTestOut,
 } from "@arclayer/platform-openapi";
 
 import {
   applyDeliveryPolicy,
+  type DeliveryIssueAction,
+  type DeliveryOperationRequest,
   executeDeliveryIssueAction,
   getDeliveryContinuityPolicy,
+  getDeliveryDomainDossier,
+  getDeliveryIssueDossier,
+  getDeliveryStorageDossier,
   listDeliveryDomains,
   listDeliveryIssues,
   listDeliveryRules,
@@ -39,16 +43,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@arclayer/ui/textarea";
 
 type QueryState<T> = { status: string; data?: T };
-type DeliveryIssueAction = PlatformDeliveryIssueActionOut["action"];
 type DeliveryRulesData = Readonly<{
   policy: PlatformDeliveryContinuityPolicyOut;
   rules: PageDataPlatformDeliveryRuleOut;
 }>;
 type ActionFailure = Readonly<{ code: string; status?: number }>;
 type ActionFeedback =
-  | Readonly<{ kind: "issue"; result: PlatformDeliveryIssueActionOut }>
-  | Readonly<{ kind: "domain"; result: PlatformDeliveryDomainActionOut }>
-  | Readonly<{ kind: "storage"; result: PlatformDeliveryStorageTestOut }>
+  | Readonly<{ kind: "issue"; result: PlatformDeliveryOperationOut }>
+  | Readonly<{ kind: "domain"; hostname: string; result: PlatformDeliveryOperationOut }>
+  | Readonly<{ kind: "storage"; result: PlatformDeliveryOperationOut }>
   | Readonly<{ kind: "policy"; result: PlatformDeliveryPolicyApplyOut }>
   | Readonly<{ kind: "error"; failure: ActionFailure }>
   | Readonly<{ kind: "validation"; messageKey: string }>;
@@ -139,6 +142,28 @@ function actionFailure(error: unknown): ActionFailure {
   return { code: "PLATFORM_SITE_DELIVERY_REQUEST_FAILED" };
 }
 
+function deliveryOperationRequest(
+  requests: Map<string, DeliveryOperationRequest>,
+  operationKey: string,
+  expectedRevision: string,
+): DeliveryOperationRequest {
+  const existing = requests.get(operationKey);
+  if (existing) return existing;
+  const request = { expectedRevision, idempotencyKey: crypto.randomUUID() };
+  requests.set(operationKey, request);
+  return request;
+}
+
+function discardStaleOperationRequest(
+  requests: Map<string, DeliveryOperationRequest>,
+  operationKey: string,
+  error: unknown,
+): void {
+  if (error instanceof PlatformSiteDeliveryApiError && error.status === 409) {
+    requests.delete(operationKey);
+  }
+}
+
 function ActionFeedbackNotice(props: Readonly<{ feedback: ActionFeedback | null }>) {
   const { t } = useTranslation("siteDelivery");
   if (!props.feedback) return null;
@@ -190,15 +215,16 @@ function ActionFeedbackNotice(props: Readonly<{ feedback: ActionFeedback | null 
 
   if (props.feedback.kind === "issue") {
     const { result } = props.feedback;
+    const partialFailure = result.state === "partial";
     return (
-      <Alert className={result.partialFailure ? "border-warning/40 bg-warning/10" : undefined}>
+      <Alert className={partialFailure ? "border-warning/40 bg-warning/10" : undefined}>
         <AlertTitle>
-          {t(result.partialFailure ? "ISSUE_ACTION_PARTIAL_TITLE" : "ISSUE_ACTION_COMPLETED_TITLE")}
+          {t(partialFailure ? "ISSUE_ACTION_PARTIAL_TITLE" : "ISSUE_ACTION_COMPLETED_TITLE")}
         </AlertTitle>
         <AlertDescription className="space-y-2">
           <p>
             {t(
-              result.partialFailure
+              partialFailure
                 ? "ISSUE_ACTION_PARTIAL_DESCRIPTION"
                 : "ISSUE_ACTION_COMPLETED_DESCRIPTION",
               { count: result.failedTargetCount },
@@ -213,24 +239,18 @@ function ActionFeedbackNotice(props: Readonly<{ feedback: ActionFeedback | null 
   }
 
   if (props.feedback.kind === "domain") {
-    const { result } = props.feedback;
+    const { hostname, result } = props.feedback;
+    const verified = result.verificationState === "confirmed";
     return (
       <Alert>
         <AlertTitle>
-          {t(
-            result.isVerified ? "DOMAIN_RECOVERY_COMPLETED_TITLE" : "DOMAIN_RECOVERY_PENDING_TITLE",
-          )}
+          {t(verified ? "DOMAIN_RECOVERY_COMPLETED_TITLE" : "DOMAIN_RECOVERY_PENDING_TITLE")}
         </AlertTitle>
         <AlertDescription className="space-y-2">
-          <p>{t("DOMAIN_RECOVERY_DESCRIPTION", { hostname: result.hostname })}</p>
+          <p>{t("DOMAIN_RECOVERY_DESCRIPTION", { hostname })}</p>
           <p className="font-mono text-caption text-label-secondary">
-            {t("DOMAIN_ACTION_DIAGNOSTIC", { certificate: result.certificateStatus })}
+            {t("DOMAIN_ACTION_DIAGNOSTIC", { certificate: result.resultingState })}
           </p>
-          {result.observedTxtValues?.length ? (
-            <p className="font-mono text-caption text-label-secondary">
-              {t("OBSERVED_DNS_VALUES")}: {result.observedTxtValues.join(", ")}
-            </p>
-          ) : null}
         </AlertDescription>
       </Alert>
     );
@@ -238,17 +258,18 @@ function ActionFeedbackNotice(props: Readonly<{ feedback: ActionFeedback | null 
 
   if (props.feedback.kind === "storage") {
     const { result } = props.feedback;
+    const passed = result.verificationState === "confirmed";
     return (
-      <Alert variant={result.ok ? undefined : "destructive"}>
+      <Alert variant={passed ? undefined : "destructive"}>
         <AlertTitle>
-          {t(result.ok ? "STORAGE_TEST_PASSED_TITLE" : "STORAGE_TEST_FAILED_TITLE")}
+          {t(passed ? "STORAGE_TEST_PASSED_TITLE" : "STORAGE_TEST_FAILED_TITLE")}
         </AlertTitle>
         <AlertDescription className="space-y-2">
           <p>
-            {t(result.ok ? "STORAGE_TEST_PASSED_DESCRIPTION" : "STORAGE_TEST_FAILED_DESCRIPTION")}
+            {t(passed ? "STORAGE_TEST_PASSED_DESCRIPTION" : "STORAGE_TEST_FAILED_DESCRIPTION")}
           </p>
           <p className="font-mono text-caption text-label-secondary">
-            {t("STORAGE_TEST_DIAGNOSTIC", { status: result.status })}: {result.message}
+            {t("STORAGE_TEST_DIAGNOSTIC", { status: result.resultingState })}
           </p>
         </AlertDescription>
       </Alert>
@@ -308,13 +329,25 @@ export function SiteDeliveryIssuesPage() {
   const { state, retry } = useMonitoringQuery(load, []);
   const [pending, setPending] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<ActionFeedback | null>(null);
+  const operationRequests = useRef<Map<string, DeliveryOperationRequest>>(new Map());
   const execute = async (issue: PlatformDeliveryIssueOut, action: DeliveryIssueAction) => {
-    setPending(`${issue.id}:${action}`);
+    const operationKey = `${issue.id}:${action}`;
+    setPending(operationKey);
     setFeedback(null);
     try {
-      setFeedback({ kind: "issue", result: await executeDeliveryIssueAction(issue.id, action) });
+      const request =
+        operationRequests.current.get(operationKey) ??
+        deliveryOperationRequest(
+          operationRequests.current,
+          operationKey,
+          (await getDeliveryIssueDossier(issue.id)).revision,
+        );
+      const result = await executeDeliveryIssueAction(issue.id, action, request);
+      operationRequests.current.delete(operationKey);
+      setFeedback({ kind: "issue", result });
       retry();
     } catch (error) {
+      discardStaleOperationRequest(operationRequests.current, operationKey, error);
       setFeedback({ kind: "error", failure: actionFailure(error) });
     } finally {
       setPending(null);
@@ -418,13 +451,25 @@ export function SiteDeliveryDomainsPage() {
   const { state, retry } = useMonitoringQuery(load, []);
   const [pending, setPending] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<ActionFeedback | null>(null);
-  const recover = async (bindingId: string) => {
-    setPending(bindingId);
+  const operationRequests = useRef<Map<string, DeliveryOperationRequest>>(new Map());
+  const recover = async (domain: PlatformDeliveryDomainOut) => {
+    const operationKey = `${domain.id}:recover`;
+    setPending(domain.id);
     setFeedback(null);
     try {
-      setFeedback({ kind: "domain", result: await recoverDeliveryDomain(bindingId) });
+      const request =
+        operationRequests.current.get(operationKey) ??
+        deliveryOperationRequest(
+          operationRequests.current,
+          operationKey,
+          (await getDeliveryDomainDossier(domain.id)).revision,
+        );
+      const result = await recoverDeliveryDomain(domain.id, request);
+      operationRequests.current.delete(operationKey);
+      setFeedback({ kind: "domain", hostname: domain.hostname, result });
       retry();
     } catch (error) {
+      discardStaleOperationRequest(operationRequests.current, operationKey, error);
       setFeedback({ kind: "error", failure: actionFailure(error) });
     } finally {
       setPending(null);
@@ -485,7 +530,7 @@ export function SiteDeliveryDomainsPage() {
                         <TableCell>
                           <Button
                             disabled={!canRecover || pending === item.id}
-                            onClick={() => void recover(item.id)}
+                            onClick={() => void recover(item)}
                             size="sm"
                             title={canRecover ? undefined : t("DOMAIN_RECOVERY_NOT_ELIGIBLE")}
                             variant="secondary"
@@ -517,13 +562,25 @@ export function SiteDeliveryStoragePage() {
   const { state, retry } = useMonitoringQuery(load, []);
   const [pending, setPending] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<ActionFeedback | null>(null);
+  const operationRequests = useRef<Map<string, DeliveryOperationRequest>>(new Map());
   const testStorage = async (profileId: string) => {
+    const operationKey = `${profileId}:test`;
     setPending(profileId);
     setFeedback(null);
     try {
-      setFeedback({ kind: "storage", result: await testDeliveryStorage(profileId) });
+      const request =
+        operationRequests.current.get(operationKey) ??
+        deliveryOperationRequest(
+          operationRequests.current,
+          operationKey,
+          (await getDeliveryStorageDossier(profileId)).revision,
+        );
+      const result = await testDeliveryStorage(profileId, request);
+      operationRequests.current.delete(operationKey);
+      setFeedback({ kind: "storage", result });
       retry();
     } catch (error) {
+      discardStaleOperationRequest(operationRequests.current, operationKey, error);
       setFeedback({ kind: "error", failure: actionFailure(error) });
     } finally {
       setPending(null);

@@ -113,9 +113,7 @@ describe("Platform team dialogs", () => {
     await user.click(screen.getByRole("checkbox", { name: /Workspace support/ }));
     await user.click(screen.getByRole("button", { name: "Send invitation" }));
 
-    expect(
-      await screen.findByText("Your current Platform authority does not allow this change."),
-    ).toBeVisible();
+    expect(await screen.findByText("You don't have permission to make this change.")).toBeVisible();
     expect(onCompleted).not.toHaveBeenCalled();
     expect(onOpenChange).not.toHaveBeenCalledWith(false);
   });

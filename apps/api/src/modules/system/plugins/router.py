@@ -250,7 +250,7 @@ async def review_manual_plugin_artifact(
     actor: Annotated[PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.EXTENSIONS_INSTALL)],
     settings: Annotated[Settings, Depends(get_settings)],
     service: Annotated[PluginArtifactService, Depends(get_plugin_artifact_service)],
-    package: Annotated[UploadFile, File()],
+    package: Annotated[UploadFile, File(json_schema_extra={"format": "binary"})],
     detached_signature: Annotated[str, Form(min_length=1, max_length=512)],
 ) -> ResponseModel[SystemPluginArtifactReviewOut]:
     filename = package.filename or ""

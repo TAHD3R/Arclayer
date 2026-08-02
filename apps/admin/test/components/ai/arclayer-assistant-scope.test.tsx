@@ -17,7 +17,7 @@ const COORDINATOR_ID = "A1b2C3d4E5f6G7h8I9j0K1";
 vi.mock("@/components/ai/arclayer-assistant-provider", () => ({
   ArclayerAssistantProvider: (props: Record<string, unknown> & { children?: ReactNode }) => {
     runtimeMocks.providerProps = props;
-    return props.children;
+    return <div data-testid="assistant-provider">{props.children}</div>;
   },
 }));
 vi.mock("@/api/ai", () => ({ listAIWorkspaceAgents: vi.fn() }));
@@ -31,13 +31,14 @@ vi.mock("@/lib/i18n", () => ({
 
 function renderScope() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
+  const result = render(
     <QueryClientProvider client={queryClient}>
       <ArclayerAssistantScope>
-        {(available) => <div data-testid="assistant-availability">{String(available)}</div>}
+        {(state) => <div data-testid="assistant-availability">{state.status}</div>}
       </ArclayerAssistantScope>
     </QueryClientProvider>,
   );
+  return { ...result, queryClient };
 }
 
 describe("ArclayerAssistantScope", () => {
@@ -80,7 +81,7 @@ describe("ArclayerAssistantScope", () => {
     renderScope();
 
     await waitFor(() => {
-      expect(screen.getByTestId("assistant-availability")).toHaveTextContent("true");
+      expect(screen.getByTestId("assistant-availability")).toHaveTextContent("ready");
       expect(runtimeMocks.providerProps).toMatchObject({
         workspaceId: "workspace-1",
         projectId: "project-1",
@@ -100,7 +101,7 @@ describe("ArclayerAssistantScope", () => {
 
     renderScope();
 
-    expect(screen.getByTestId("assistant-availability")).toHaveTextContent("false");
+    expect(screen.getByTestId("assistant-availability")).toHaveTextContent("unavailable");
     expect(runtimeMocks.providerProps).toBeNull();
   });
 
@@ -112,6 +113,37 @@ describe("ArclayerAssistantScope", () => {
     await waitFor(() => {
       expect(useAiChatStore.getState().selectedAgentId).toBe(COORDINATOR_ID);
       expect(runtimeMocks.providerProps).toMatchObject({ leadAgentId: COORDINATOR_ID });
+    });
+  });
+
+  it("uses the server default immediately when the persisted Agent is unavailable", async () => {
+    useAiChatStore.setState({ selectedAgentId: "Z1y2X3w4V5u6T7s8R9q0P1" });
+
+    renderScope();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("assistant-availability")).toHaveTextContent("ready");
+      expect(runtimeMocks.providerProps).toMatchObject({ leadAgentId: COORDINATOR_ID });
+      expect(useAiChatStore.getState().selectedAgentId).toBe(COORDINATOR_ID);
+    });
+  });
+
+  it("stops using cached Agent data when a catalog refresh fails", async () => {
+    const { queryClient } = renderScope();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("assistant-availability")).toHaveTextContent("ready");
+      expect(screen.getByTestId("assistant-provider")).toBeInTheDocument();
+    });
+
+    vi.mocked(listAIWorkspaceAgents).mockRejectedValueOnce(new Error("catalog unavailable"));
+    await queryClient.invalidateQueries({
+      queryKey: ["ai", "workspace-agents", "workspace-1", "project-1"],
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("assistant-availability")).toHaveTextContent("unavailable");
+      expect(screen.queryByTestId("assistant-provider")).not.toBeInTheDocument();
     });
   });
 });

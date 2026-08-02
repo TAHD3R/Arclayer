@@ -190,23 +190,20 @@ describe("AIComposerContextControls", () => {
     expect(rightGroup.lastElementChild).toHaveClass("flex", "shrink-0");
   });
 
-  it("keeps context left and model, mode, and send actions right-aligned in the sidebar", () => {
+  it("keeps the sidebar toolbar on one row without a project-selection prompt", () => {
     const { container } = renderSidebarToolbar();
-    const rows = container.querySelectorAll(".aui-composer-action-wrapper > div");
-    const topRow = rows[0] as HTMLElement;
-    const bottomRow = rows[1] as HTMLElement;
-    const projectSelector = within(topRow).getByTestId("ai-project-selector");
-    const modelSelector = within(topRow).getByTestId("ai-model-selector");
-    const addButton = within(bottomRow).getByRole("button", { name: "Add context" });
-    const skillSelector = within(bottomRow).getByTestId("ai-skill-selector");
-    const modeButton = within(bottomRow).getByRole("button", { name: "Select work mode" });
+    const toolbar = container.querySelector(".aui-composer-action-wrapper") as HTMLElement;
+    const addButton = within(toolbar).getByRole("button", { name: "Add context" });
+    const modelSelector = within(toolbar).getByTestId("ai-model-selector");
+    const skillSelector = within(toolbar).getByTestId("ai-skill-selector");
+    const modeButton = within(toolbar).getByRole("button", { name: "Select work mode" });
 
-    expect(topRow.children[0]).toContainElement(projectSelector);
-    expect(topRow.children[2]).toContainElement(modelSelector);
-    expect(bottomRow.children[0]).toContainElement(addButton);
-    expect(bottomRow.children[1]).toContainElement(skillSelector);
+    expect(within(toolbar).queryByTestId("ai-project-selector")).not.toBeInTheDocument();
+    expect(toolbar.children[0]).toContainElement(addButton);
+    expect(toolbar.children[1]).toContainElement(modelSelector);
+    expect(toolbar.children[2]).toContainElement(skillSelector);
     expect(skillSelector).toHaveAttribute("data-scope", "thread");
-    expect(bottomRow.children[3]).toContainElement(modeButton);
-    expect(bottomRow.lastElementChild).toHaveClass("flex", "shrink-0");
+    expect(toolbar.children[4]).toContainElement(modeButton);
+    expect(toolbar.lastElementChild).toHaveClass("flex", "shrink-0");
   });
 });

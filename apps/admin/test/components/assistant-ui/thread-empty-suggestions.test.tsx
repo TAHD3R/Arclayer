@@ -15,7 +15,9 @@ vi.mock("@/components/assistant-ui/composer-queue", () => ({
 }));
 
 vi.mock("@/components/ai/ai-suggestions", () => ({
-  AISuggestions: () => <div data-testid="ai-suggestions" />,
+  AISuggestions: ({ variant }: { variant?: string }) => (
+    <div data-testid="ai-suggestions" data-variant={variant} />
+  ),
 }));
 
 vi.mock("@/components/ai/ai-composer-triggers", () => ({
@@ -85,6 +87,11 @@ vi.mock("react-i18next", () => ({
         return `今天我能帮你做什么，${String(values?.name ?? "朋友")}？`;
       }
       if (key === "ai:AI_CHAT_HOME_USER_FALLBACK") return "朋友";
+      if (key === "ai:AI_CHAT_MODE_PLAN") return "规划";
+      if (key === "ai:AI_CHAT_MODE_BUILD") return "构建";
+      if (key === "ai:AI_CHAT_SIDEBAR_AGENT_CAPABILITIES") {
+        return `可用方式：${String(values?.modes ?? "")}`;
+      }
       return key;
     },
   }),
@@ -92,9 +99,24 @@ vi.mock("react-i18next", () => ({
 
 describe("Thread empty state suggestions", () => {
   it("shows suggestions under the sidebar greeting", () => {
-    render(<Thread variant="sidebar" welcomeName="Philip Cole" />);
+    render(
+      <Thread
+        variant="sidebar"
+        welcomeName="Philip Cole"
+        welcomeAgent={{
+          name: "Arclayer Coordinator",
+          description: "协调规划与构建工作",
+          supportedExecutionModes: ["plan", "build"],
+        }}
+      />,
+    );
 
     expect(screen.getByText("今天我能帮你做什么，Philip Cole？")).toBeInTheDocument();
+    expect(screen.getByText("ai:AI_CHAT_SIDEBAR_STARTER_HINT")).toBeInTheDocument();
+    expect(screen.getByText("Arclayer Coordinator")).toBeInTheDocument();
+    expect(screen.getByText("协调规划与构建工作")).toBeInTheDocument();
+    expect(screen.getByText("可用方式：规划 · 构建")).toBeInTheDocument();
     expect(screen.getByTestId("ai-suggestions")).toBeInTheDocument();
+    expect(screen.getByTestId("ai-suggestions")).toHaveAttribute("data-variant", "home");
   });
 });

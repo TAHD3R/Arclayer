@@ -4,9 +4,9 @@
   "UNSAVED": "Unsaved changes",
   "SAVE_AS": "Save view",
   "UPDATE": "Update view",
-  "DELETE": "Delete view",
+  "DELETE": "Delete saved view",
   "NAME": "View name",
-  "APPLYING": "Applying saved view…",
-  "OMISSIONS_TITLE": "Some saved conditions were not applied",
-  "OMISSIONS_DESCRIPTION": "Unavailable, invalid, or unauthorized saved conditions were omitted from this view."
+  "APPLYING": "Loading saved view…",
+  "OMISSIONS_TITLE": "Some saved filters weren't applied",
+  "OMISSIONS_DESCRIPTION": "Some saved filters aren't available, valid, or allowed, so they weren't applied."
 }

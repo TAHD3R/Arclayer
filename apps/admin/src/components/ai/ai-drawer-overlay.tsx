@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 
 import { AgentThreadHistory } from "@/components/ai/agent-thread-history";
 import { AIApprovalQueue } from "@/components/ai/ai-approval-queue";
+import type { ArclayerAssistantState } from "@/components/ai/arclayer-assistant-scope";
 import { Thread } from "@/components/assistant-ui/thread";
 import { FeedbackComposer } from "@/components/feedback/feedback-dialog";
 import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
@@ -21,6 +22,7 @@ import { useAuthStore } from "@/stores/use-auth-store";
 import { useAIEntryStore } from "@/stores/use-ai-entry-store";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
+import { Spinner } from "@arclayer/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 
 function DrawerIconButton(props: { label: string; onClick: () => void; children: ReactNode }) {
@@ -87,6 +89,7 @@ function useAIEntryDispatcher() {
 
 function AssistantDrawerThread(props: {
   readonly welcomeName: string;
+  readonly leadAgent: Extract<ArclayerAssistantState, { status: "ready" }>["leadAgent"];
   readonly closeDrawer: () => void;
 }) {
   const { t } = useTranslation(["ai"]);
@@ -122,6 +125,7 @@ function AssistantDrawerThread(props: {
         <Thread
           variant="sidebar"
           welcomeName={props.welcomeName}
+          welcomeAgent={props.leadAgent}
           composerAccessory={
             <div className="px-3">
               <AIApprovalQueue enabled />
@@ -144,7 +148,49 @@ function AssistantDrawerThread(props: {
   );
 }
 
-export function AIDrawerOverlay(props: { widthPx: number; assistantAvailable: boolean }) {
+function AssistantDrawerStatus(props: {
+  state: Exclude<ArclayerAssistantState, { status: "ready" }>;
+  closeDrawer: () => void;
+}) {
+  const { t } = useTranslation(["ai", "common"]);
+
+  return (
+    <div className="flex h-full w-full flex-col">
+      <div className="flex h-[61px] shrink-0 items-center gap-2">
+        <DrawerIconButton label={t("ai:AI_CHAT_HIDE")} onClick={props.closeDrawer}>
+          <PanelRightClose className="size-4" aria-hidden="true" />
+        </DrawerIconButton>
+        <div className="min-w-0 flex-1 truncate px-2 text-headline font-semibold text-label-primary">
+          {t("ai:AI_CHAT_NEW_CONVERSATION")}
+        </div>
+      </div>
+      <div className="flex min-h-0 flex-1 items-center justify-center px-6 text-center">
+        {props.state.status === "loading" ? (
+          <div className="flex items-center gap-2 text-footnote text-label-secondary" role="status">
+            <Spinner className="size-4" aria-hidden="true" />
+            <span>{t("common:LOADING")}</span>
+          </div>
+        ) : (
+          <div className="flex max-w-sm flex-col items-center gap-4">
+            <p className="text-footnote leading-relaxed text-label-secondary">
+              {t("ai:AI_CHAT_ERROR_GENERIC")}
+            </p>
+            {props.state.retry ? (
+              <Button type="button" variant="outline" onClick={props.state.retry}>
+                {t("common:RETRY")}
+              </Button>
+            ) : null}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function AIDrawerOverlay(props: {
+  widthPx: number;
+  assistantState: ArclayerAssistantState;
+}) {
   const { t } = useTranslation(["ai"]);
   const drawerOpen = useAiChatStore((state) => state.drawerOpen);
   const closeDrawer = useAiChatStore((state) => state.closeDrawer);
@@ -169,12 +215,16 @@ export function AIDrawerOverlay(props: { widthPx: number; assistantAvailable: bo
       aria-hidden={!drawerOpen}
       aria-label={t("ai:AI_CHAT_ASK")}
     >
-      {drawerOpen && props.assistantAvailable ? (
-        <AssistantDrawerThread welcomeName={welcomeName} closeDrawer={closeDrawer} />
-      ) : drawerOpen ? (
-        <div className="flex h-full items-center justify-center px-6 text-center text-callout text-label-secondary">
-          {t("ai:AI_CHAT_PROJECT_SELECT")}
-        </div>
+      {drawerOpen ? (
+        props.assistantState.status === "ready" ? (
+          <AssistantDrawerThread
+            welcomeName={welcomeName}
+            leadAgent={props.assistantState.leadAgent}
+            closeDrawer={closeDrawer}
+          />
+        ) : (
+          <AssistantDrawerStatus state={props.assistantState} closeDrawer={closeDrawer} />
+        )
       ) : null}
     </aside>
   );

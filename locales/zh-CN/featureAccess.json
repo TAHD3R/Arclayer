@@ -8,10 +8,10 @@
   "MEMBER_FALLBACK": "成员",
   "ACTION_LOADING": "正在读取功能名额…",
   "ACTION_UNAVAILABLE": "暂时无法读取功能名额",
-  "USAGE": "{{feature}}名额 {{assigned}} / {{limit}}",
-  "UNLIMITED": "{{feature}}名额不限量",
+  "USAGE": "{{feature}} 名额：{{assigned}} / {{limit}}",
+  "UNLIMITED": "{{feature}} 名额不限量",
   "AVAILABLE": "还可分配 {{count}} 个",
-  "ASSIGNED": "已分配使用名额",
+  "ASSIGNED": "功能名额已分配",
   "NOT_ASSIGNED": "尚未分配",
   "ASSIGN": "分配使用名额",
   "REVOKE": "收回使用名额",
@@ -23,7 +23,7 @@
   "LOAD_FAILED_TITLE": "暂时无法读取功能名额",
   "LOAD_FAILED_DESCRIPTION": "无法读取工作空间当前的名额分配情况。请重试后再进行更改。",
   "TRY_AGAIN": "重试",
-  "PAYMENT_RECOVERY_TITLE": "付款待处理期间暂停分配新名额",
+  "PAYMENT_RECOVERY_TITLE": "付款问题未处理前，不能分配新名额",
   "PAYMENT_RECOVERY_DESCRIPTION": "仍可收回已有名额；付款恢复前不能分配新的使用名额。",
   "PAYMENT_RECOVERY_ASSIGN_UNAVAILABLE": "付款恢复前不能分配新的使用名额。",
   "NO_CAPACITY": "当前没有可分配的使用名额。",
@@ -33,6 +33,6 @@
   "CHANGE_FAILED_DESCRIPTION": "工作空间的名额信息可能已发生变化。请先查看当前分配情况，再重试。",
   "CONFLICT_TITLE": "提交期间功能名额已发生变化",
   "CONFLICT_DESCRIPTION": "已重新读取最新分配情况，请确认后再重试。",
-  "AGENT_ACCESS_NAME": "AI 智能体工具",
-  "AGENT_ACCESS_DESCRIPTION": "使用 AI 智能体协助处理工作空间中的任务。"
+  "AGENT_ACCESS_NAME": "AI 助手工具",
+  "AGENT_ACCESS_DESCRIPTION": "使用 AI 助手协助处理工作空间中的任务。"
 }

@@ -6,6 +6,8 @@ const REQUIRED_AI_HOME_KEYS = [
   "AI_CHAT_PLACEHOLDER_CREATE_SITE",
   "AI_CHAT_PLACEHOLDER_COMMAND_OR_SKILL",
   "AI_CHAT_HOME_PRODUCT_PROMISE",
+  "AI_CHAT_SIDEBAR_STARTER_HINT",
+  "AI_CHAT_SIDEBAR_AGENT_CAPABILITIES",
   "AI_CHAT_HOME_STARTER_WEBSITE",
   "AI_CHAT_HOME_STARTER_WEBSITE_PROMPT_1",
   "AI_CHAT_MENTION_TITLE",
@@ -68,7 +70,7 @@ describe("AI Home i18n resources", () => {
 
     for (const key of AI_UNAVAILABLE_ERROR_KEYS) {
       const message = resources[key];
-      expect(message).toContain(locale === "zh-CN" ? "当前工作区" : "this workspace");
+      expect(message).toContain(locale === "zh-CN" ? "当前工作空间" : "this workspace");
       expect(message).toMatch(
         locale === "zh-CN" ? /稍后重试|联系支持/ : /Try again later|contact support/,
       );

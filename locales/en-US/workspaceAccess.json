@@ -1,9 +1,9 @@
 {
-  "FIXED_MEMBER_ACCESS": "Members use the standard access included with every workspace.",
+  "FIXED_MEMBER_ACCESS": "Members use the standard access included with this workspace.",
   "ROLES_PAID_FEATURE_TITLE": "Custom roles are available on eligible plans",
   "ROLES_PAID_FEATURE_DESCRIPTION": "Choose an eligible plan to create custom roles and fine-tune member access.",
   "OWNER_AUTHORITY_DESCRIPTION": "The workspace owner has final authority and can transfer ownership explicitly.",
   "ROLES_ELIGIBLE_PLAN_BADGE": "Eligible plans",
-  "ROLES_ACCESS_CHECKING_BADGE": "Checking",
+  "ROLES_ACCESS_CHECKING_BADGE": "Checking access",
   "ROLES_ACCESS_CHECK_FAILED_BADGE": "Check failed"
 }

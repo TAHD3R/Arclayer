@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ArclayerAssistantProvider } from "@/components/ai/arclayer-assistant-provider";
-import { listAIWorkspaceAgents } from "@/api/ai";
+import { listAIWorkspaceAgents, type AIWorkspaceAgentExecutionMode } from "@/api/ai";
 import { i18n } from "@/lib/i18n";
 import {
   DEFAULT_AI_AGENT_ID,
@@ -14,8 +14,20 @@ import {
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 export interface ArclayerAssistantScopeProps {
-  readonly children: (assistantAvailable: boolean) => ReactNode;
+  readonly children: (state: ArclayerAssistantState) => ReactNode;
 }
+
+export type ArclayerAssistantState =
+  | Readonly<{ status: "loading" }>
+  | Readonly<{ status: "unavailable"; retry?: () => void }>
+  | Readonly<{
+      status: "ready";
+      leadAgent: {
+        name: string;
+        description: string;
+        supportedExecutionModes: readonly AIWorkspaceAgentExecutionMode[];
+      };
+    }>;
 
 function localizeAgentRuntime(key: string, params?: Readonly<Record<string, unknown>>): string {
   return String(i18n.t(key, params as never));
@@ -40,23 +52,44 @@ export function ArclayerAssistantScope({ children }: ArclayerAssistantScopeProps
     staleTime: 60_000,
     retry: false,
   });
-  const leadAgent = catalog.data?.agents.find(
+  const catalogData = catalog.isError ? undefined : catalog.data;
+  const selectedAgent = catalogData?.agents.find(
     (agent) => agent.available && agent.agentId === selectedAgentId,
   );
-  const defaultAgent = catalog.data?.agents.find(
-    (agent) => agent.available && agent.agentId === catalog.data?.defaultAgentId,
+  const defaultAgent = catalogData?.agents.find(
+    (agent) => agent.available && agent.agentId === catalogData.defaultAgentId,
   );
+  const leadAgent =
+    selectedAgent?.supportedExecutionModes.includes(composerMode) === true
+      ? selectedAgent
+      : defaultAgent?.supportedExecutionModes.includes(composerMode) === true
+        ? defaultAgent
+        : undefined;
 
   useEffect(() => {
-    if (selectedAgentId === null && defaultAgent) {
-      setSelectedAgentId(defaultAgent.agentId);
+    if (leadAgent && selectedAgentId !== leadAgent.agentId) {
+      setSelectedAgentId(leadAgent.agentId);
     }
-  }, [defaultAgent, selectedAgentId, setSelectedAgentId]);
+  }, [leadAgent, selectedAgentId, setSelectedAgentId]);
 
-  if (!workspaceId) return children(false);
-  if (!leadAgent || !leadAgent.supportedExecutionModes.includes(composerMode)) {
-    return children(false);
+  if (!workspaceId) return children({ status: "unavailable" });
+  if (catalog.isPending) return children({ status: "loading" });
+  if (!leadAgent) {
+    return children({
+      status: "unavailable",
+      retry: () => {
+        void catalog.refetch();
+      },
+    });
   }
+
+  const leadAgentState = {
+    name: leadAgent.nameI18nKey ? t(`ai:${leadAgent.nameI18nKey}`) : leadAgent.name,
+    description: leadAgent.descriptionI18nKey
+      ? t(`ai:${leadAgent.descriptionI18nKey}`)
+      : leadAgent.description,
+    supportedExecutionModes: leadAgent.supportedExecutionModes,
+  };
 
   return (
     <ArclayerAssistantProvider
@@ -67,7 +100,7 @@ export function ArclayerAssistantScope({ children }: ArclayerAssistantScopeProps
       localize={localizeAgentRuntime}
       initialTitle={t("ai:AI_CHAT_NEW_CONVERSATION")}
     >
-      {children(true)}
+      {children({ status: "ready", leadAgent: leadAgentState })}
     </ArclayerAssistantProvider>
   );
 }

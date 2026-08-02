@@ -506,6 +506,19 @@ async def test_system_plugin_install_requires_idempotency_key(tmp_path: Path) ->
     assert service.started == []
 
 
+def test_manual_plugin_artifact_openapi_declares_binary_multipart_package() -> None:
+    app = _build_app(manager=None)
+    schema = app.openapi()
+    operation = schema["paths"]["/platform-api/v1/extensions/artifacts/manual"]["post"]
+    multipart_schema = operation["requestBody"]["content"]["multipart/form-data"]["schema"]
+    schema_name = multipart_schema["$ref"].rsplit("/", maxsplit=1)[-1]
+    package_schema = schema["components"]["schemas"][schema_name]["properties"]["package"]
+
+    assert package_schema["type"] == "string"
+    assert package_schema["format"] == "binary"
+    assert package_schema["contentMediaType"] == "application/octet-stream"
+
+
 async def test_manual_plugin_artifact_review_accepts_signed_zip_multipart(tmp_path: Path) -> None:
     _write_extension(tmp_path)
     artifact = _managed_artifact(tmp_path, source_type=PluginSourceType.MANUAL_UPLOAD)

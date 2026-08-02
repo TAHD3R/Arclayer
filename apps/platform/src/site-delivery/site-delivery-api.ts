@@ -1,6 +1,9 @@
 import {
   platformApplyPlatformDeliveryPolicy,
+  platformGetPlatformDeliveryDomainDossier,
   platformGetPlatformDeliveryContinuityPolicy,
+  platformGetPlatformDeliveryIssueDossier,
+  platformGetPlatformDeliveryStorageDossier,
   platformListPlatformDeliveryDomains,
   platformListPlatformDeliveryIssues,
   platformListPlatformDeliveryRules,
@@ -12,11 +15,13 @@ import {
   platformRetryPlatformDeliveryIssue,
   platformTestPlatformDeliveryStorage,
   type PlatformDeliveryContinuityPolicyOut,
-  type PlatformDeliveryDomainActionOut,
-  type PlatformDeliveryIssueActionOut,
+  type PlatformDeliveryDomainDossierOut,
+  type PlatformDeliveryIssueDossierOut,
+  type PlatformDeliveryOperationOut,
+  type PlatformDeliveryOperationRequestIn,
   type PlatformDeliveryPolicyApplyOut,
   type PlatformDeliveryPolicyPreviewOut,
-  type PlatformDeliveryStorageTestOut,
+  type PlatformDeliveryStorageDossierOut,
   type PageDataPlatformDeliveryDomainOut,
   type PageDataPlatformDeliveryIssueOut,
   type PageDataPlatformDeliveryRuleOut,
@@ -28,6 +33,12 @@ import { platformApiClient } from "@/api/client";
 
 type ApiEnvelope<T> = Readonly<{ data?: T | null; error?: string | null }>;
 type SdkResult<T> = Readonly<{ data?: ApiEnvelope<T>; error?: unknown; response?: Response }>;
+
+export type DeliveryIssueAction = Extract<
+  PlatformDeliveryOperationOut["action"],
+  "retry" | "reconcile" | "restore"
+>;
+export type DeliveryOperationRequest = PlatformDeliveryOperationRequestIn;
 
 export class PlatformSiteDeliveryApiError extends Error {
   readonly status?: number;
@@ -93,25 +104,61 @@ export function getDeliveryContinuityPolicy(): Promise<PlatformDeliveryContinuit
   return platformGetPlatformDeliveryContinuityPolicy({ client: platformApiClient }).then(unwrap);
 }
 
+export function getDeliveryIssueDossier(
+  issueId: string,
+): Promise<PlatformDeliveryIssueDossierOut> {
+  return platformGetPlatformDeliveryIssueDossier({
+    client: platformApiClient,
+    path: { issue_id: issueId },
+  }).then(unwrap);
+}
+
 export function executeDeliveryIssueAction(
   issueId: string,
-  action: PlatformDeliveryIssueActionOut["action"],
-): Promise<PlatformDeliveryIssueActionOut> {
-  const options = { client: platformApiClient, path: { issue_id: issueId } };
+  action: DeliveryIssueAction,
+  body: DeliveryOperationRequest,
+): Promise<PlatformDeliveryOperationOut> {
+  const options = { body, client: platformApiClient, path: { issue_id: issueId } };
   if (action === "retry") return platformRetryPlatformDeliveryIssue(options).then(unwrap);
   if (action === "reconcile") return platformReconcilePlatformDeliveryIssue(options).then(unwrap);
   return platformRestorePlatformDeliveryIssue(options).then(unwrap);
 }
 
-export function recoverDeliveryDomain(bindingId: string): Promise<PlatformDeliveryDomainActionOut> {
-  return platformRecoverPlatformDeliveryDomain({
+export function getDeliveryDomainDossier(
+  bindingId: string,
+): Promise<PlatformDeliveryDomainDossierOut> {
+  return platformGetPlatformDeliveryDomainDossier({
     client: platformApiClient,
     path: { binding_id: bindingId },
   }).then(unwrap);
 }
 
-export function testDeliveryStorage(profileId: string): Promise<PlatformDeliveryStorageTestOut> {
+export function recoverDeliveryDomain(
+  bindingId: string,
+  body: DeliveryOperationRequest,
+): Promise<PlatformDeliveryOperationOut> {
+  return platformRecoverPlatformDeliveryDomain({
+    body,
+    client: platformApiClient,
+    path: { binding_id: bindingId },
+  }).then(unwrap);
+}
+
+export function getDeliveryStorageDossier(
+  profileId: string,
+): Promise<PlatformDeliveryStorageDossierOut> {
+  return platformGetPlatformDeliveryStorageDossier({
+    client: platformApiClient,
+    path: { profile_id: profileId },
+  }).then(unwrap);
+}
+
+export function testDeliveryStorage(
+  profileId: string,
+  body: DeliveryOperationRequest,
+): Promise<PlatformDeliveryOperationOut> {
   return platformTestPlatformDeliveryStorage({
+    body,
     client: platformApiClient,
     path: { profile_id: profileId },
   }).then(unwrap);

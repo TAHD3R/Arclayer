@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@arclayer/ui/button";
 import { cn } from "@arclayer/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
+import { AI_PROMPT_STARTER_CATEGORIES } from "@/components/ai/ai-prompt-starters";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 type AISuggestion = {
@@ -77,6 +78,13 @@ export const AI_CHAT_SUGGESTIONS = [
   },
 ] satisfies readonly AISuggestion[];
 
+const HOME_AI_CHAT_SUGGESTIONS = AI_PROMPT_STARTER_CATEGORIES.map((category) => ({
+  id: `home-${category.id}`,
+  titleKey: category.labelKey,
+  promptKey: category.promptKeys[0],
+  descriptionKey: category.promptKeys[0],
+})) satisfies readonly AISuggestion[];
+
 const CONTENT_SUGGESTIONS = [
   "check-content-quality",
   "plan-content-model",
@@ -85,12 +93,15 @@ const CONTENT_SUGGESTIONS = [
 
 type AISuggestionsProps = {
   className?: string;
+  variant?: "contextual" | "home";
 };
 
 function selectSuggestions(input: {
   currentProjectId?: string | null;
   pathname?: string;
+  variant: NonNullable<AISuggestionsProps["variant"]>;
 }): readonly AISuggestion[] {
+  if (input.variant === "home") return HOME_AI_CHAT_SUGGESTIONS;
   if (!input.currentProjectId || !input.pathname?.startsWith("/projects/")) return [];
   if (input.pathname.includes("/content")) return bySuggestionIds(CONTENT_SUGGESTIONS);
   return bySuggestionIds(["review-current-page", "plan-content-model", "prepare-launch-checklist"]);
@@ -111,6 +122,7 @@ export function AISuggestions(props: AISuggestionsProps) {
   const suggestions = selectSuggestions({
     currentProjectId,
     pathname: typeof window === "undefined" ? "" : window.location.pathname,
+    variant: props.variant ?? "contextual",
   });
   const submitSuggestion = useCallback(
     (prompt: string) => {
@@ -150,7 +162,10 @@ export function AISuggestions(props: AISuggestionsProps) {
                   disabled={disabled}
                   onClick={() => submitSuggestion(prompt)}
                   className={cn(
-                    "h-9 max-w-full !rounded-full border border-border/60 bg-background/20 px-3.5 text-sm font-medium text-foreground shadow-none transition-colors hover:bg-muted",
+                    "h-9 max-w-full border border-border/60 bg-background/20 px-3.5 text-sm font-medium text-foreground shadow-none transition-colors hover:bg-muted",
+                    props.variant === "home"
+                      ? "h-11 !rounded-md bg-card min-[769px]:h-9"
+                      : "!rounded-full",
                     running && "text-label-secondary",
                   )}
                 >

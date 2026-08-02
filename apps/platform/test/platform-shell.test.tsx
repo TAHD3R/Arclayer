@@ -94,7 +94,7 @@ describe("Platform shell", () => {
     expect(await screen.findByRole("link", { name: "Workspaces" })).toBeVisible();
     expect(screen.queryByRole("link", { name: "Users" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Projects" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Requests & errors" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Requests and errors" })).toBeVisible();
     expect(screen.queryByRole("link", { name: "Performance trends" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Platform team" })).toBeVisible();
   });
@@ -119,12 +119,12 @@ describe("Platform shell", () => {
     expect(workspaceLinks.some((link) => !link.hasAttribute("href"))).toBe(true);
     expect(screen.getByRole("link", { name: "Users" })).toHaveAttribute("data-active", "true");
     expect(screen.getByRole("link", { name: "Projects" })).toHaveAttribute("data-active", "false");
-    expect(screen.getByRole("link", { name: "Requests & errors" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Requests and errors" })).toBeVisible();
     expect(screen.queryByRole("link", { name: "Performance trends" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Platform team" })).toBeVisible();
 
-    await user.click(screen.getByRole("button", { name: "Open quick navigation" }));
-    const dialog = await screen.findByRole("dialog", { name: "Quick navigation" });
+    await user.click(screen.getByRole("button", { name: "Open page navigation" }));
+    const dialog = await screen.findByRole("dialog", { name: "Go to a page" });
     await waitFor(() => expect(dialog).toBeVisible());
     expect(within(dialog).getByRole("option", { name: "Workspaces" })).toBeVisible();
     for (const option of within(dialog).getAllByRole("option", { name: "Users" })) {
@@ -192,9 +192,9 @@ describe("Platform shell", () => {
       </PlatformPreferencesProvider>,
     );
 
-    expect(
-      await screen.findAllByText("This page is not available to your Platform account."),
-    ).toHaveLength(2);
+    expect(await screen.findAllByText("Your Platform account can't open this page.")).toHaveLength(
+      2,
+    );
     expect(screen.queryByRole("heading", { name: "Workspaces" })).not.toBeInTheDocument();
   });
 
@@ -247,7 +247,7 @@ describe("Platform shell", () => {
 
     await waitFor(() => expect(getOperationalSignal).toHaveBeenCalled());
     expect(screen.getAllByText("Needs attention").length).toBeGreaterThan(0);
-    expect(screen.queryByText("This page is not available to your Platform account.")).toBeNull();
+    expect(screen.queryByText("Your Platform account can't open this page.")).toBeNull();
   });
 
   it("shows loading state without static navigation or route-content fallback", async () => {
@@ -267,7 +267,7 @@ describe("Platform shell", () => {
       </PlatformPreferencesProvider>,
     );
 
-    expect((await screen.findAllByText("Loading available pages")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("Loading available pages…")).length).toBeGreaterThan(0);
     expect(screen.queryByRole("link", { name: "Workspaces" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Workspaces" })).not.toBeInTheDocument();
   });
@@ -289,9 +289,9 @@ describe("Platform shell", () => {
     );
 
     const alerts = await screen.findAllByRole("alert");
-    expect(
-      alerts.some((alert) => alert.textContent?.includes("Available pages could not be loaded")),
-    ).toBe(true);
+    expect(alerts.some((alert) => alert.textContent?.includes("Can't load available pages"))).toBe(
+      true,
+    );
     expect(screen.queryByRole("link", { name: "Workspaces" })).not.toBeInTheDocument();
     await user.click(screen.getAllByRole("button", { name: "Try again" })[0]);
     expect(await screen.findByRole("heading", { name: "Overview" })).toBeVisible();
@@ -357,13 +357,13 @@ describe("Platform shell", () => {
     );
 
     expect(await screen.findByRole("heading", { name: "Overview" })).toBeVisible();
-    expect(screen.getByText(/No current condition requires operator action/)).toBeVisible();
-    expect(screen.getByRole("heading", { name: "Domain status" })).toBeVisible();
+    expect(screen.getByText(/Nothing needs attention right now/)).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Area status" })).toBeVisible();
     const productApplicationLink = screen.getByRole("link", {
-      name: /Return to product/,
+      name: /Return to product app/,
     });
     expect(productApplicationLink).toHaveAttribute("href", "https://app.arclayer.localhost/");
-    expect(productApplicationLink).toHaveAttribute("aria-label", "Return to product");
+    expect(productApplicationLink).toHaveAttribute("aria-label", "Return to product app");
   });
 
   it("revokes the current server Session before clearing the Platform credential", async () => {

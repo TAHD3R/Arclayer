@@ -47,7 +47,7 @@ async function renderSignIn() {
 }
 
 async function enterCredentials(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(screen.getByLabelText("Email or username"), "operator@example.com");
+  await user.type(screen.getByLabelText("Email address or username"), "operator@example.com");
   await user.type(screen.getByLabelText("Password"), "correct-password");
   await user.click(screen.getByRole("button", { name: "Continue" }));
 }

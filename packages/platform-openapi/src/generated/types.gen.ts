@@ -469,7 +469,7 @@ export type BodyReviewManualPluginArtifactPlatformApiV1ExtensionsArtifactsManual
     /**
      * Package
      */
-    package: string;
+    package: Blob | File;
 };
 
 /**
@@ -2232,7 +2232,7 @@ export type EntitlementAllocationMode = 'workspace' | 'member_seat';
 /**
  * ExtensionConfigurationReadiness
  */
-export type ExtensionConfigurationReadiness = 'unknown';
+export type ExtensionConfigurationReadiness = 'ready' | 'needs_configuration' | 'unavailable';
 
 /**
  * ExtensionConfigurationTarget
@@ -2806,6 +2806,26 @@ export type HttpValidationError = {
  * HostingCommercialAccessState
  */
 export type HostingCommercialAccessState = 'serving' | 'continuity_required' | 'suspended' | 'restoration_required' | 'restored' | 'partial';
+
+/**
+ * HostingDeliveryOperationAction
+ */
+export type HostingDeliveryOperationAction = 'retry' | 'reconcile' | 'restore' | 'verify_ownership' | 'test_readiness';
+
+/**
+ * HostingDeliveryOperationState
+ */
+export type HostingDeliveryOperationState = 'running' | 'source_confirmed' | 'partial' | 'outcome_unknown';
+
+/**
+ * HostingDeliveryOperationTargetType
+ */
+export type HostingDeliveryOperationTargetType = 'publish_job' | 'hosting_continuity' | 'domain_binding' | 'storage_profile';
+
+/**
+ * HostingDeliveryOperationVerificationState
+ */
+export type HostingDeliveryOperationVerificationState = 'pending' | 'confirmed' | 'not_confirmed';
 
 /**
  * InvitationImpact
@@ -6226,6 +6246,54 @@ export type PageDataPlatformDeliveryIssueOut = {
 };
 
 /**
+ * PageData[PlatformDeliveryOperationOut]
+ */
+export type PageDataPlatformDeliveryOperationOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<PlatformDeliveryOperationOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
  * PageData[PlatformDeliveryRuleOut]
  */
 export type PageDataPlatformDeliveryRuleOut = {
@@ -7433,6 +7501,21 @@ export type PlatformCustomRoleRetireRequest = {
 };
 
 /**
+ * PlatformDeliveryActionAvailabilityOut
+ */
+export type PlatformDeliveryActionAvailabilityOut = {
+    action: HostingDeliveryOperationAction;
+    /**
+     * Available
+     */
+    available: boolean;
+    /**
+     * Reasoncode
+     */
+    reasonCode?: string | null;
+};
+
+/**
  * PlatformDeliveryContinuityPolicyOut
  */
 export type PlatformDeliveryContinuityPolicyOut = {
@@ -7455,17 +7538,47 @@ export type PlatformDeliveryContinuityPolicyOut = {
 };
 
 /**
- * PlatformDeliveryDomainActionOut
+ * PlatformDeliveryDependencyOut
  */
-export type PlatformDeliveryDomainActionOut = {
+export type PlatformDeliveryDependencyOut = {
     /**
-     * Action
+     * Code
      */
-    action: 'verify_ownership';
+    code: string;
+    /**
+     * Entityid
+     */
+    entityId: string;
+    /**
+     * Entitytype
+     */
+    entityType: string;
+    /**
+     * State
+     */
+    state?: string | null;
+};
+
+/**
+ * PlatformDeliveryDomainDossierOut
+ */
+export type PlatformDeliveryDomainDossierOut = {
+    /**
+     * Actions
+     */
+    actions: Array<PlatformDeliveryActionAvailabilityOut>;
     /**
      * Certificatestatus
      */
     certificateStatus: string;
+    /**
+     * Dependencies
+     */
+    dependencies: Array<PlatformDeliveryDependencyOut>;
+    /**
+     * Evidence
+     */
+    evidence: Array<PlatformDeliveryEvidenceOut>;
     /**
      * Hostname
      */
@@ -7475,13 +7588,30 @@ export type PlatformDeliveryDomainActionOut = {
      */
     id: string;
     /**
+     * Isactive
+     */
+    isActive: boolean;
+    /**
      * Isverified
      */
     isVerified: boolean;
     /**
-     * Observedtxtvalues
+     * Operations
      */
-    observedTxtValues?: Array<string>;
+    operations: Array<PlatformDeliveryOperationOut>;
+    /**
+     * Readiness
+     */
+    readiness: string;
+    /**
+     * Revision
+     */
+    revision: string;
+    scope: PlatformDeliveryScopeOut;
+    /**
+     * Source
+     */
+    source: string;
 };
 
 /**
@@ -7535,17 +7665,49 @@ export type PlatformDeliveryDomainOut = {
 };
 
 /**
- * PlatformDeliveryIssueActionOut
+ * PlatformDeliveryEvidenceOut
  */
-export type PlatformDeliveryIssueActionOut = {
+export type PlatformDeliveryEvidenceOut = {
     /**
-     * Action
+     * Code
      */
-    action: 'retry' | 'reconcile' | 'restore';
+    code: string;
     /**
-     * Failedtargetcount
+     * Details
      */
-    failedTargetCount: number;
+    details?: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Observedat
+     */
+    observedAt?: string | null;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Subjectid
+     */
+    subjectId?: string | null;
+};
+
+/**
+ * PlatformDeliveryIssueDossierOut
+ */
+export type PlatformDeliveryIssueDossierOut = {
+    /**
+     * Actions
+     */
+    actions: Array<PlatformDeliveryActionAvailabilityOut>;
+    /**
+     * Dependencies
+     */
+    dependencies: Array<PlatformDeliveryDependencyOut>;
+    /**
+     * Evidence
+     */
+    evidence: Array<PlatformDeliveryEvidenceOut>;
     /**
      * Id
      */
@@ -7555,13 +7717,38 @@ export type PlatformDeliveryIssueActionOut = {
      */
     kind: 'publish_job' | 'hosting_continuity';
     /**
-     * Partialfailure
+     * Occurredat
      */
-    partialFailure: boolean;
+    occurredAt: string;
     /**
-     * Resultingstate
+     * Operations
      */
-    resultingState: string;
+    operations: Array<PlatformDeliveryOperationOut>;
+    /**
+     * Retryable
+     */
+    retryable: boolean;
+    /**
+     * Revision
+     */
+    revision: string;
+    scope: PlatformDeliveryScopeOut;
+    /**
+     * Sourceidentity
+     */
+    sourceIdentity?: string | null;
+    /**
+     * State
+     */
+    state: string;
+    /**
+     * Summarykey
+     */
+    summaryKey: string;
+    /**
+     * Visitoreffect
+     */
+    visitorEffect: string;
 };
 
 /**
@@ -7612,6 +7799,84 @@ export type PlatformDeliveryIssueOut = {
      * Workspaceid
      */
     workspaceId: string;
+};
+
+/**
+ * PlatformDeliveryOperationOut
+ */
+export type PlatformDeliveryOperationOut = {
+    action: HostingDeliveryOperationAction;
+    /**
+     * Beforestate
+     */
+    beforeState: string;
+    /**
+     * Completedat
+     */
+    completedAt?: string | null;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Evidence
+     */
+    evidence: {
+        [key: string]: JsonValueOutput;
+    };
+    /**
+     * Failedtargetcount
+     */
+    failedTargetCount: number;
+    /**
+     * Failurecode
+     */
+    failureCode?: string | null;
+    /**
+     * Failuremessage
+     */
+    failureMessage?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Replayed
+     */
+    replayed?: boolean;
+    /**
+     * Resultreferenceid
+     */
+    resultReferenceId?: string | null;
+    /**
+     * Resultingstate
+     */
+    resultingState?: string | null;
+    /**
+     * Sourceoperationidentity
+     */
+    sourceOperationIdentity?: string | null;
+    state: HostingDeliveryOperationState;
+    /**
+     * Targetid
+     */
+    targetId: string;
+    targetType: HostingDeliveryOperationTargetType;
+    verificationState: HostingDeliveryOperationVerificationState;
+};
+
+/**
+ * PlatformDeliveryOperationRequestIn
+ */
+export type PlatformDeliveryOperationRequestIn = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: string;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
 };
 
 /**
@@ -7711,6 +7976,10 @@ export type PlatformDeliveryRuleOut = {
      */
     id: string;
     /**
+     * Preservedreleasecount
+     */
+    preservedReleaseCount: number;
+    /**
      * Preservedreleaseid
      */
     preservedReleaseId: string | null;
@@ -7727,6 +7996,103 @@ export type PlatformDeliveryRuleOut = {
      * Workspaceid
      */
     workspaceId: string;
+};
+
+/**
+ * PlatformDeliveryScopeOut
+ */
+export type PlatformDeliveryScopeOut = {
+    /**
+     * Projectid
+     */
+    projectId?: string | null;
+    /**
+     * Releaseid
+     */
+    releaseId?: string | null;
+    /**
+     * Runtimeid
+     */
+    runtimeId?: string | null;
+    /**
+     * Siteid
+     */
+    siteId?: string | null;
+    /**
+     * Workspaceid
+     */
+    workspaceId?: string | null;
+};
+
+/**
+ * PlatformDeliveryStorageDossierOut
+ */
+export type PlatformDeliveryStorageDossierOut = {
+    /**
+     * Actions
+     */
+    actions: Array<PlatformDeliveryActionAvailabilityOut>;
+    /**
+     * Configsource
+     */
+    configSource: string;
+    /**
+     * Dependencies
+     */
+    dependencies: Array<PlatformDeliveryDependencyOut>;
+    /**
+     * Displayname
+     */
+    displayName: string;
+    /**
+     * Evidence
+     */
+    evidence: Array<PlatformDeliveryEvidenceOut>;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Isactive
+     */
+    isActive: boolean;
+    /**
+     * Isdefault
+     */
+    isDefault: boolean;
+    /**
+     * Lastteststatus
+     */
+    lastTestStatus?: string | null;
+    /**
+     * Lasttestedat
+     */
+    lastTestedAt?: string | null;
+    /**
+     * Operations
+     */
+    operations: Array<PlatformDeliveryOperationOut>;
+    /**
+     * Profilekey
+     */
+    profileKey: string;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Readiness
+     */
+    readiness: string;
+    /**
+     * Revision
+     */
+    revision: string;
+    scope: PlatformDeliveryScopeOut;
+    /**
+     * Tombstonedat
+     */
+    tombstonedAt?: string | null;
 };
 
 /**
@@ -7765,28 +8131,6 @@ export type PlatformDeliveryStorageOut = {
      * Provider
      */
     provider: string;
-};
-
-/**
- * PlatformDeliveryStorageTestOut
- */
-export type PlatformDeliveryStorageTestOut = {
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Message
-     */
-    message: string;
-    /**
-     * Ok
-     */
-    ok: boolean;
-    /**
-     * Status
-     */
-    status: 'passed' | 'failed';
 };
 
 /**
@@ -11440,6 +11784,31 @@ export type ResponseModelPageDataPlatformDeliveryIssueOut = {
 };
 
 /**
+ * ResponseModel[PageData[PlatformDeliveryOperationOut]]
+ */
+export type ResponseModelPageDataPlatformDeliveryOperationOut = {
+    data?: PageDataPlatformDeliveryOperationOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[PageData[PlatformDeliveryRuleOut]]
  */
 export type ResponseModelPageDataPlatformDeliveryRuleOut = {
@@ -11840,10 +12209,10 @@ export type ResponseModelPlatformDeliveryContinuityPolicyOut = {
 };
 
 /**
- * ResponseModel[PlatformDeliveryDomainActionOut]
+ * ResponseModel[PlatformDeliveryDomainDossierOut]
  */
-export type ResponseModelPlatformDeliveryDomainActionOut = {
-    data?: PlatformDeliveryDomainActionOut | null;
+export type ResponseModelPlatformDeliveryDomainDossierOut = {
+    data?: PlatformDeliveryDomainDossierOut | null;
     /**
      * Error
      */
@@ -11865,10 +12234,35 @@ export type ResponseModelPlatformDeliveryDomainActionOut = {
 };
 
 /**
- * ResponseModel[PlatformDeliveryIssueActionOut]
+ * ResponseModel[PlatformDeliveryIssueDossierOut]
  */
-export type ResponseModelPlatformDeliveryIssueActionOut = {
-    data?: PlatformDeliveryIssueActionOut | null;
+export type ResponseModelPlatformDeliveryIssueDossierOut = {
+    data?: PlatformDeliveryIssueDossierOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PlatformDeliveryOperationOut]
+ */
+export type ResponseModelPlatformDeliveryOperationOut = {
+    data?: PlatformDeliveryOperationOut | null;
     /**
      * Error
      */
@@ -11940,10 +12334,10 @@ export type ResponseModelPlatformDeliveryPolicyPreviewOut = {
 };
 
 /**
- * ResponseModel[PlatformDeliveryStorageTestOut]
+ * ResponseModel[PlatformDeliveryStorageDossierOut]
  */
-export type ResponseModelPlatformDeliveryStorageTestOut = {
-    data?: PlatformDeliveryStorageTestOut | null;
+export type ResponseModelPlatformDeliveryStorageDossierOut = {
+    data?: PlatformDeliveryStorageDossierOut | null;
     /**
      * Error
      */
@@ -22106,8 +22500,81 @@ export type PlatformListPlatformDeliveryDomainsResponses = {
 
 export type PlatformListPlatformDeliveryDomainsResponse = PlatformListPlatformDeliveryDomainsResponses[keyof PlatformListPlatformDeliveryDomainsResponses];
 
-export type PlatformRecoverPlatformDeliveryDomainData = {
+export type PlatformGetPlatformDeliveryDomainDossierData = {
     body?: never;
+    path: {
+        /**
+         * Binding Id
+         */
+        binding_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/site-delivery/domains/{binding_id}';
+};
+
+export type PlatformGetPlatformDeliveryDomainDossierErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformGetPlatformDeliveryDomainDossierError = PlatformGetPlatformDeliveryDomainDossierErrors[keyof PlatformGetPlatformDeliveryDomainDossierErrors];
+
+export type PlatformGetPlatformDeliveryDomainDossierResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformDeliveryDomainDossierOut;
+};
+
+export type PlatformGetPlatformDeliveryDomainDossierResponse = PlatformGetPlatformDeliveryDomainDossierResponses[keyof PlatformGetPlatformDeliveryDomainDossierResponses];
+
+export type PlatformListPlatformDeliveryDomainOperationsData = {
+    body?: never;
+    path: {
+        /**
+         * Binding Id
+         */
+        binding_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/platform-api/v1/site-delivery/domains/{binding_id}/operations';
+};
+
+export type PlatformListPlatformDeliveryDomainOperationsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformListPlatformDeliveryDomainOperationsError = PlatformListPlatformDeliveryDomainOperationsErrors[keyof PlatformListPlatformDeliveryDomainOperationsErrors];
+
+export type PlatformListPlatformDeliveryDomainOperationsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataPlatformDeliveryOperationOut;
+};
+
+export type PlatformListPlatformDeliveryDomainOperationsResponse = PlatformListPlatformDeliveryDomainOperationsResponses[keyof PlatformListPlatformDeliveryDomainOperationsResponses];
+
+export type PlatformRecoverPlatformDeliveryDomainData = {
+    body: PlatformDeliveryOperationRequestIn;
     path: {
         /**
          * Binding Id
@@ -22131,7 +22598,7 @@ export type PlatformRecoverPlatformDeliveryDomainResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelPlatformDeliveryDomainActionOut;
+    200: ResponseModelPlatformDeliveryOperationOut;
 };
 
 export type PlatformRecoverPlatformDeliveryDomainResponse = PlatformRecoverPlatformDeliveryDomainResponses[keyof PlatformRecoverPlatformDeliveryDomainResponses];
@@ -22178,8 +22645,81 @@ export type PlatformListPlatformDeliveryIssuesResponses = {
 
 export type PlatformListPlatformDeliveryIssuesResponse = PlatformListPlatformDeliveryIssuesResponses[keyof PlatformListPlatformDeliveryIssuesResponses];
 
-export type PlatformReconcilePlatformDeliveryIssueData = {
+export type PlatformGetPlatformDeliveryIssueDossierData = {
     body?: never;
+    path: {
+        /**
+         * Issue Id
+         */
+        issue_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/site-delivery/issues/{issue_id}';
+};
+
+export type PlatformGetPlatformDeliveryIssueDossierErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformGetPlatformDeliveryIssueDossierError = PlatformGetPlatformDeliveryIssueDossierErrors[keyof PlatformGetPlatformDeliveryIssueDossierErrors];
+
+export type PlatformGetPlatformDeliveryIssueDossierResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformDeliveryIssueDossierOut;
+};
+
+export type PlatformGetPlatformDeliveryIssueDossierResponse = PlatformGetPlatformDeliveryIssueDossierResponses[keyof PlatformGetPlatformDeliveryIssueDossierResponses];
+
+export type PlatformListPlatformDeliveryIssueOperationsData = {
+    body?: never;
+    path: {
+        /**
+         * Issue Id
+         */
+        issue_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/platform-api/v1/site-delivery/issues/{issue_id}/operations';
+};
+
+export type PlatformListPlatformDeliveryIssueOperationsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformListPlatformDeliveryIssueOperationsError = PlatformListPlatformDeliveryIssueOperationsErrors[keyof PlatformListPlatformDeliveryIssueOperationsErrors];
+
+export type PlatformListPlatformDeliveryIssueOperationsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataPlatformDeliveryOperationOut;
+};
+
+export type PlatformListPlatformDeliveryIssueOperationsResponse = PlatformListPlatformDeliveryIssueOperationsResponses[keyof PlatformListPlatformDeliveryIssueOperationsResponses];
+
+export type PlatformReconcilePlatformDeliveryIssueData = {
+    body: PlatformDeliveryOperationRequestIn;
     path: {
         /**
          * Issue Id
@@ -22203,13 +22743,13 @@ export type PlatformReconcilePlatformDeliveryIssueResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelPlatformDeliveryIssueActionOut;
+    200: ResponseModelPlatformDeliveryOperationOut;
 };
 
 export type PlatformReconcilePlatformDeliveryIssueResponse = PlatformReconcilePlatformDeliveryIssueResponses[keyof PlatformReconcilePlatformDeliveryIssueResponses];
 
 export type PlatformRestorePlatformDeliveryIssueData = {
-    body?: never;
+    body: PlatformDeliveryOperationRequestIn;
     path: {
         /**
          * Issue Id
@@ -22233,13 +22773,13 @@ export type PlatformRestorePlatformDeliveryIssueResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelPlatformDeliveryIssueActionOut;
+    200: ResponseModelPlatformDeliveryOperationOut;
 };
 
 export type PlatformRestorePlatformDeliveryIssueResponse = PlatformRestorePlatformDeliveryIssueResponses[keyof PlatformRestorePlatformDeliveryIssueResponses];
 
 export type PlatformRetryPlatformDeliveryIssueData = {
-    body?: never;
+    body: PlatformDeliveryOperationRequestIn;
     path: {
         /**
          * Issue Id
@@ -22263,10 +22803,40 @@ export type PlatformRetryPlatformDeliveryIssueResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelPlatformDeliveryIssueActionOut;
+    200: ResponseModelPlatformDeliveryOperationOut;
 };
 
 export type PlatformRetryPlatformDeliveryIssueResponse = PlatformRetryPlatformDeliveryIssueResponses[keyof PlatformRetryPlatformDeliveryIssueResponses];
+
+export type PlatformGetPlatformDeliveryOperationData = {
+    body?: never;
+    path: {
+        /**
+         * Operation Id
+         */
+        operation_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/site-delivery/operations/{operation_id}';
+};
+
+export type PlatformGetPlatformDeliveryOperationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformGetPlatformDeliveryOperationError = PlatformGetPlatformDeliveryOperationErrors[keyof PlatformGetPlatformDeliveryOperationErrors];
+
+export type PlatformGetPlatformDeliveryOperationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformDeliveryOperationOut;
+};
+
+export type PlatformGetPlatformDeliveryOperationResponse = PlatformGetPlatformDeliveryOperationResponses[keyof PlatformGetPlatformDeliveryOperationResponses];
 
 export type PlatformGetPlatformDeliveryContinuityPolicyData = {
     body?: never;
@@ -22415,8 +22985,81 @@ export type PlatformListPlatformDeliveryStorageResponses = {
 
 export type PlatformListPlatformDeliveryStorageResponse = PlatformListPlatformDeliveryStorageResponses[keyof PlatformListPlatformDeliveryStorageResponses];
 
-export type PlatformTestPlatformDeliveryStorageData = {
+export type PlatformGetPlatformDeliveryStorageDossierData = {
     body?: never;
+    path: {
+        /**
+         * Profile Id
+         */
+        profile_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/site-delivery/storage/{profile_id}';
+};
+
+export type PlatformGetPlatformDeliveryStorageDossierErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformGetPlatformDeliveryStorageDossierError = PlatformGetPlatformDeliveryStorageDossierErrors[keyof PlatformGetPlatformDeliveryStorageDossierErrors];
+
+export type PlatformGetPlatformDeliveryStorageDossierResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformDeliveryStorageDossierOut;
+};
+
+export type PlatformGetPlatformDeliveryStorageDossierResponse = PlatformGetPlatformDeliveryStorageDossierResponses[keyof PlatformGetPlatformDeliveryStorageDossierResponses];
+
+export type PlatformListPlatformDeliveryStorageOperationsData = {
+    body?: never;
+    path: {
+        /**
+         * Profile Id
+         */
+        profile_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/platform-api/v1/site-delivery/storage/{profile_id}/operations';
+};
+
+export type PlatformListPlatformDeliveryStorageOperationsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformListPlatformDeliveryStorageOperationsError = PlatformListPlatformDeliveryStorageOperationsErrors[keyof PlatformListPlatformDeliveryStorageOperationsErrors];
+
+export type PlatformListPlatformDeliveryStorageOperationsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataPlatformDeliveryOperationOut;
+};
+
+export type PlatformListPlatformDeliveryStorageOperationsResponse = PlatformListPlatformDeliveryStorageOperationsResponses[keyof PlatformListPlatformDeliveryStorageOperationsResponses];
+
+export type PlatformTestPlatformDeliveryStorageData = {
+    body: PlatformDeliveryOperationRequestIn;
     path: {
         /**
          * Profile Id
@@ -22440,7 +23083,7 @@ export type PlatformTestPlatformDeliveryStorageResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelPlatformDeliveryStorageTestOut;
+    200: ResponseModelPlatformDeliveryOperationOut;
 };
 
 export type PlatformTestPlatformDeliveryStorageResponse = PlatformTestPlatformDeliveryStorageResponses[keyof PlatformTestPlatformDeliveryStorageResponses];

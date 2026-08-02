@@ -30,6 +30,7 @@ const {
   applyLoginMock,
   queryClientClearMock,
   queryClientCancelQueriesMock,
+  notifyErrorMock,
   notifyErrorTextMock,
   notifyInfoTextMock,
   notifySuccessTextMock,
@@ -49,6 +50,7 @@ const {
   applyLoginMock: vi.fn(),
   queryClientClearMock: vi.fn(),
   queryClientCancelQueriesMock: vi.fn(),
+  notifyErrorMock: vi.fn(),
   notifyErrorTextMock: vi.fn(),
   notifyInfoTextMock: vi.fn(),
   notifySuccessTextMock: vi.fn(),
@@ -257,7 +259,7 @@ vi.mock("@/lib/routing/post-auth-routing", () => ({
 }));
 
 vi.mock("@/lib/notifications", () => ({
-  notifyError: vi.fn(),
+  notifyError: (...args: unknown[]) => notifyErrorMock(...args),
   notifyErrorText: (...args: unknown[]) => notifyErrorTextMock(...args),
   notifyInfoText: (...args: unknown[]) => notifyInfoTextMock(...args),
   notifySuccessText: (...args: unknown[]) => notifySuccessTextMock(...args),
@@ -391,6 +393,7 @@ describe("LoginPage two-factor challenge flow", () => {
     applyLoginMock.mockReset();
     queryClientClearMock.mockReset();
     queryClientCancelQueriesMock.mockReset();
+    notifyErrorMock.mockReset();
     notifyErrorTextMock.mockReset();
     notifyInfoTextMock.mockReset();
     notifySuccessTextMock.mockReset();
@@ -421,7 +424,7 @@ describe("LoginPage two-factor challenge flow", () => {
         status: 401,
         message: "需要进行 2FA 验证",
         error: "TWO_FACTOR_REQUIRED",
-        meta: { twoFactorToken: "challenge-1", expiresIn: 300 },
+        meta: { two_factor_token: "challenge-1", expires_in: 300 },
       }),
     );
 
@@ -447,6 +450,7 @@ describe("LoginPage two-factor challenge flow", () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("auth:TWO_FACTOR_CODE_LABEL")).toBeInTheDocument();
+    expect(notifyErrorMock).not.toHaveBeenCalled();
     expect(authState.applyLogin).not.toHaveBeenCalled();
     expect(queryClientClearMock).not.toHaveBeenCalled();
   });
@@ -463,9 +467,9 @@ describe("LoginPage two-factor challenge flow", () => {
         error: "EMAIL_NOT_VERIFIED",
         meta: {
           email: "demo@example.com",
-          requiresEmailVerification: true,
-          expiresIn: 3600,
-          retryAfter: 60,
+          requires_email_verification: true,
+          expires_in: 3600,
+          retry_after: 60,
         },
       }),
     );
@@ -508,9 +512,9 @@ describe("LoginPage two-factor challenge flow", () => {
         error: "EMAIL_NOT_VERIFIED",
         meta: {
           email: "demo@example.com",
-          requiresEmailVerification: true,
-          expiresIn: 3600,
-          retryAfter: 0,
+          requires_email_verification: true,
+          expires_in: 3600,
+          retry_after: 0,
         },
       }),
     );
@@ -643,7 +647,7 @@ describe("LoginPage two-factor challenge flow", () => {
         status: 401,
         message: "需要进行 2FA 验证",
         error: "TWO_FACTOR_REQUIRED",
-        meta: { twoFactorToken: "challenge-email-code", expiresIn: 300 },
+        meta: { two_factor_token: "challenge-email-code", expires_in: 300 },
       }),
     );
 
@@ -701,6 +705,7 @@ describe("LoginPage two-factor challenge flow", () => {
       }),
     ).toBeInTheDocument();
     expect(useAuthChallengeStore.getState().source).toBe("email-code");
+    expect(notifyErrorMock).not.toHaveBeenCalled();
     expect(authState.applyLogin).not.toHaveBeenCalled();
     expect(queryClientClearMock).not.toHaveBeenCalled();
   });

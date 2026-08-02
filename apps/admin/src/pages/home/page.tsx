@@ -279,12 +279,12 @@ export function HomePage() {
       pageFrame="full"
       className="min-h-full isolate"
       innerClassName="relative z-10 min-h-full px-0"
-      overlay={<HomeAIBackground />}
     >
+      <HomeAIBackground />
       <div
         data-page="ai-home"
         className={cn(
-          "mx-auto flex min-h-full w-full max-w-[88rem] flex-col gap-10 px-6 pb-8 sm:px-8 lg:px-10 xl:gap-12",
+          "relative z-10 mx-auto flex min-h-full w-full max-w-[88rem] flex-col gap-10 px-6 pb-8 sm:px-8 lg:px-10 xl:gap-12",
           hasRecentProjects ? "pt-10 xl:pt-12" : "pt-8",
         )}
       >
