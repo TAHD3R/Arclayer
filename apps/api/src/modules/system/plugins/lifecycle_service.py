@@ -4,6 +4,8 @@ from math import ceil
 from uuid import UUID
 
 from asgi_correlation_id import correlation_id
+from packaging.specifiers import SpecifierSet
+from packaging.version import Version
 from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.config import Settings
@@ -18,6 +20,7 @@ from src.models.system.plugin_installation import (
     PluginOperationRecord,
     PluginOperationState,
     PluginSourceType,
+    PluginTrustState,
 )
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.jobs.hashing import hash_json
@@ -43,7 +46,11 @@ _TERMINAL_OPERATION_STATES = frozenset({
     PluginOperationState.FAILED,
     PluginOperationState.CANCELLED,
 })
-_PERMISSION_REVIEW_KINDS = frozenset({PluginOperationKind.INSTALL, PluginOperationKind.UPGRADE})
+_PERMISSION_REVIEW_KINDS = frozenset({
+    PluginOperationKind.INSTALL,
+    PluginOperationKind.UPGRADE,
+    PluginOperationKind.ENABLE,
+})
 
 
 class PluginLifecycleService(BaseService):
@@ -88,9 +95,14 @@ class PluginLifecycleService(BaseService):
         artifact: PluginArtifactRecord | None = None,
     ) -> SystemPluginOperationOut:
         target_version = self._resolve_target_version(item=item, kind=kind, requested=payload.target_version)
+        self._validate_install_readiness(item=item)
         self._validate_artifact_binding(item=item, artifact=artifact, target_version=target_version)
         permission_diff = self._permission_diff(item=item, approved=payload.approved_permissions)
-        self._validate_permission_review(kind=kind, permission_diff=permission_diff)
+        self._validate_permission_review(
+            kind=kind,
+            permission_diff=permission_diff,
+            submitted_permissions=payload.approved_permissions,
+        )
         fingerprint = hash_json({
             "plugin_name": item.name,
             "kind": str(kind),
@@ -117,6 +129,9 @@ class PluginLifecycleService(BaseService):
                     conn=conn,
                 )
             await self._validate_transition(installation=installation, item=item, kind=kind, conn=conn)
+            await self._validate_dependencies(item=item, kind=kind, conn=conn)
+            desired_enabled = self._desired_enabled(installation=installation, kind=kind)
+            provided_capabilities = _provided_capabilities(item)
             operation = await self.repository.create_operation(
                 data={
                     "installation_id": installation.id,
@@ -125,12 +140,20 @@ class PluginLifecycleService(BaseService):
                     "state": PluginOperationState.QUEUED,
                     "idempotency_key_hash": key_hash,
                     "request_fingerprint": fingerprint,
+                    "audit_correlation_id": correlation_id.get(None),
+                    "recovery_of_operation_id": (
+                        installation.current_operation_id if kind == PluginOperationKind.RECOVER else None
+                    ),
                     "requested_version": target_version,
                     "previous_version": installation.installed_version,
                     "package_checksum": item.package_checksum,
                     "manifest_digest": item.manifest_digest,
                     "artifact_id": artifact.id if artifact is not None else None,
                     "permission_diff": permission_diff,
+                    "requested_permissions": sorted(item.permissions),
+                    "approved_permissions": permission_diff["approved"],
+                    "provided_capabilities": provided_capabilities,
+                    "desired_enabled": desired_enabled,
                     "requested_by_user_id": actor_user_id,
                 },
                 conn=conn,
@@ -179,6 +202,13 @@ class PluginLifecycleService(BaseService):
         return SystemPluginOperationOut.model_validate(refreshed)
 
     @staticmethod
+    def _validate_install_readiness(*, item: SystemPluginCatalogItemOut) -> None:
+        if item.trust_state != PluginTrustState.VERIFIED or not item.trust_evidence:
+            raise Conflict(error="EXTENSION_TRUST_NOT_VERIFIED")
+        if not item.compatibility.compatible:
+            raise Conflict(error="EXTENSION_COMPATIBILITY_REQUIRED")
+
+    @staticmethod
     def _validate_artifact_binding(
         *,
         item: SystemPluginCatalogItemOut,
@@ -218,6 +248,10 @@ class PluginLifecycleService(BaseService):
             )
             if current is not None and current.state not in _TERMINAL_OPERATION_STATES:
                 raise Conflict(error="PLUGIN_OPERATION_IN_PROGRESS")
+        if kind == PluginOperationKind.RECOVER:
+            if installation.lifecycle_state.value != "failed":
+                raise Conflict(error="PLUGIN_RECOVERY_NOT_AVAILABLE")
+            return
         if kind == PluginOperationKind.INSTALL and installation.installed_version is not None:
             raise Conflict(error="PLUGIN_ALREADY_INSTALLED")
         if kind != PluginOperationKind.INSTALL and installation.installed_version is None:
@@ -232,6 +266,52 @@ class PluginLifecycleService(BaseService):
             raise Conflict(error="PLUGIN_ALREADY_DISABLED")
         if kind in {PluginOperationKind.DISABLE, PluginOperationKind.UNINSTALL} and item.name == "arclayer-core":
             raise Conflict(error="PLUGIN_REQUIRED_DEPENDENCY")
+        if kind in {PluginOperationKind.DISABLE, PluginOperationKind.UNINSTALL}:
+            if item.consumers.state.value == "unknown":
+                raise Conflict(error="EXTENSION_CONSUMERS_UNVERIFIED")
+            if item.consumers.consumers:
+                raise Conflict(error="EXTENSION_CONSUMERS_ACTIVE")
+
+    @staticmethod
+    def _desired_enabled(*, installation: PluginInstallationRecord, kind: PluginOperationKind) -> bool:
+        if kind == PluginOperationKind.ENABLE:
+            return True
+        if kind in {PluginOperationKind.INSTALL, PluginOperationKind.DISABLE, PluginOperationKind.UNINSTALL}:
+            return False
+        return bool(installation.desired_enabled)
+
+    async def _validate_dependencies(
+        self,
+        *,
+        item: SystemPluginCatalogItemOut,
+        kind: PluginOperationKind,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        if kind in {PluginOperationKind.INSTALL, PluginOperationKind.ENABLE, PluginOperationKind.RECOVER}:
+            for dependency in item.dependencies:
+                installation = await self.repository.get_installation(
+                    dependency.extension_name,
+                    conn=conn,
+                    for_update=True,
+                )
+                if installation is None or installation.installed_version is None or not installation.desired_enabled:
+                    raise Conflict(error="EXTENSION_DEPENDENCY_NOT_READY")
+                if dependency.version_requirement is not None and not SpecifierSet(
+                    dependency.version_requirement
+                ).contains(
+                    Version(installation.installed_version),
+                    prereleases=True,
+                ):
+                    raise Conflict(error="EXTENSION_DEPENDENCY_VERSION_INCOMPATIBLE")
+        if kind not in {PluginOperationKind.DISABLE, PluginOperationKind.UNINSTALL}:
+            return
+        dependents = await self.repository.list_installations()
+        for dependent in dependents:
+            if dependent.installed_version is None or not dependent.desired_enabled:
+                continue
+            for dependency in dependent.declared_dependencies:
+                if isinstance(dependency, dict) and dependency.get("extension_name") == item.name:
+                    raise Conflict(error="EXTENSION_DEPENDENTS_ACTIVE")
 
     @staticmethod
     def _resolve_target_version(
@@ -251,10 +331,13 @@ class PluginLifecycleService(BaseService):
         requested = set(item.permissions)
         previously_approved = set(item.approved_permissions)
         approved_set = set(approved)
+        unexpected = approved_set - requested
+        if unexpected:
+            raise Conflict(error="PLUGIN_PERMISSION_APPROVAL_INVALID")
         return {
             "added": sorted(requested - previously_approved),
             "removed": sorted(previously_approved - requested),
-            "approved": sorted(requested & approved_set),
+            "approved": sorted((requested & previously_approved) | (requested & approved_set)),
         }
 
     @staticmethod
@@ -262,9 +345,14 @@ class PluginLifecycleService(BaseService):
         *,
         kind: PluginOperationKind,
         permission_diff: dict[str, list[str]],
+        submitted_permissions: list[str],
     ) -> None:
+        if kind not in _PERMISSION_REVIEW_KINDS:
+            if submitted_permissions:
+                raise Conflict(error="PLUGIN_PERMISSION_APPROVAL_NOT_APPLICABLE")
+            return
         unapproved = set(permission_diff["added"]) - set(permission_diff["approved"])
-        if kind in _PERMISSION_REVIEW_KINDS and unapproved:
+        if unapproved:
             raise Conflict(error="PLUGIN_PERMISSION_REVIEW_REQUIRED")
 
 
@@ -294,7 +382,10 @@ def _job_command(
         package_checksum=item.package_checksum,
         manifest_digest=item.manifest_digest,
         signer_fingerprint=artifact.signer_fingerprint if artifact is not None else None,
-        desired_enabled=kind not in {PluginOperationKind.DISABLE, PluginOperationKind.UNINSTALL},
+        requested_permissions=tuple(sorted(item.permissions)),
+        approved_permissions=tuple(operation.approved_permissions),
+        provided_capabilities=tuple(operation.provided_capabilities),
+        desired_enabled=operation.desired_enabled,
     )
     target = PluginLifecycleJobTarget(operation_id=operation.id, plugin_name=item.name)
     trace = correlation_id.get(None)
@@ -318,3 +409,13 @@ def _job_command(
         heartbeat_seconds=definition.heartbeat_seconds,
         status_key=definition.initial_status_key,
     )
+
+
+def _provided_capabilities(item: SystemPluginCatalogItemOut) -> list[str]:
+    return sorted({
+        *item.provides.services,
+        *item.provides.providers,
+        *item.provides.connectors,
+        *item.provides.middlewares,
+        *item.provides.content_types,
+    })

@@ -5,6 +5,7 @@ import re
 from enum import StrEnum
 from pathlib import Path
 
+from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from src.common.types.json_types import JsonObject
@@ -115,6 +116,25 @@ class ExtensionProvides(BaseModel):
     content_types: list[str] = Field(default_factory=list)
 
 
+class ExtensionDependency(BaseModel):
+    """A required Extension identity and optional compatible version range."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    name: str = Field(..., min_length=2, max_length=64, pattern=r"^[a-z0-9][a-z0-9._-]*[a-z0-9]$")
+    version_requirement: str | None = Field(default=None, max_length=128)
+
+    @model_validator(mode="after")
+    def _validate_version_requirement(self) -> ExtensionDependency:
+        if self.version_requirement is None:
+            return self
+        try:
+            SpecifierSet(self.version_requirement)
+        except InvalidSpecifier as exc:
+            raise ValueError("dependency version_requirement must be a valid version specifier") from exc
+        return self
+
+
 class ExtensionAdmin(BaseModel):
     """Optional Admin presentation metadata owned by the extension manifest."""
 
@@ -137,6 +157,7 @@ class ExtensionManifest(BaseModel):
     version: str = Field(..., min_length=1, max_length=64)
     entry: str = Field(default="src/plugin.py", description="Path relative to extension root")
     requires: ExtensionRequires = Field(default_factory=ExtensionRequires)
+    dependencies: list[ExtensionDependency] = Field(default_factory=list)
     provides: ExtensionProvides = Field(default_factory=ExtensionProvides)
     permissions: list[str] = Field(default_factory=list)
     config_schema: JsonObject = Field(default_factory=dict)
@@ -146,6 +167,11 @@ class ExtensionManifest(BaseModel):
     def _validate_version(self) -> ExtensionManifest:
         if not _SEMVER_RE.match(self.version):
             raise ValueError(f"version must be semver-compatible, got {self.version!r}")
+        dependency_names = [dependency.name for dependency in self.dependencies]
+        if len(set(dependency_names)) != len(dependency_names):
+            raise ValueError("dependencies must not declare the same extension more than once")
+        if self.name in dependency_names:
+            raise ValueError("an extension cannot depend on itself")
         return self
 
     @model_validator(mode="after")

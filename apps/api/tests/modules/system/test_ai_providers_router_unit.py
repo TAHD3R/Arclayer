@@ -4,11 +4,12 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
+import httpx
 import pytest
 from fastapi import FastAPI
 
 from src.config import Settings, get_settings
-from src.core.exceptions import BadRequest, init_exception_handlers
+from src.core.exceptions import BadRequest, Conflict, init_exception_handlers
 from src.modules.platform_identity.http import get_current_platform_session
 from src.modules.system.ai_providers.router import get_system_ai_provider_service
 from src.modules.system.ai_providers.router import router as ai_providers_router
@@ -93,7 +94,7 @@ async def test_system_ai_provider_service_provisions_litellm_model_and_key() -> 
 
 
 async def test_system_ai_provider_service_requires_litellm_master_key() -> None:
-    service = SystemAIProviderService(Settings())
+    service = SystemAIProviderService(Settings(), activity_writer=AsyncMock())
 
     with pytest.raises(BadRequest) as exc_info:
         await service._provision_litellm_access(
@@ -108,7 +109,7 @@ async def test_system_ai_provider_service_requires_litellm_master_key() -> None:
     assert exc_info.value.error == "AI_PROVIDER_LITELLM_MASTER_KEY_REQUIRED"
 
 
-async def test_system_ai_provider_update_requires_api_key_for_litellm_model_changes() -> None:
+async def test_system_ai_provider_update_rejects_unsafe_credential_rotation() -> None:
     service = SystemAIProviderService(Settings())
     provider_record = SimpleNamespace(
         provider="deepseek",
@@ -117,8 +118,37 @@ async def test_system_ai_provider_update_requires_api_key_for_litellm_model_chan
 
     with (
         patch.object(service, "_get_provider", new=AsyncMock(return_value=provider_record)),
-        pytest.raises(BadRequest) as exc_info,
+        pytest.raises(Conflict) as exc_info,
     ):
-        await service.update_provider(uuid4(), SystemAIProviderUpdateRequest(request_model="deepseek-reasoner"))
+        await service.update_provider(
+            uuid4(),
+            SystemAIProviderUpdateRequest(request_model="deepseek-reasoner"),
+            actor_user_id=uuid4(),
+        )
 
-    assert exc_info.value.error == "AI_PROVIDER_API_KEY_REQUIRED_FOR_LITELLM_UPDATE"
+    assert exc_info.value.error == "AI_PROVIDER_CREDENTIAL_REVOCATION_PORT_UNAVAILABLE"
+    assert "provider-secret" not in exc_info.value.message
+
+
+async def test_system_ai_provider_readiness_failure_does_not_disclose_virtual_key() -> None:
+    service = SystemAIProviderService(Settings(), activity_writer=AsyncMock())
+    provider = SimpleNamespace(
+        id=uuid4(),
+        provider="deepseek",
+        virtual_key_enc="encrypted-secret",
+        metadata_json={"request_model": "deepseek-v4-pro"},
+        save=AsyncMock(),
+    )
+    litellm_client = SimpleNamespace(chat=AsyncMock(side_effect=httpx.ConnectError("provider-secret")))
+
+    with (
+        patch.object(service, "_get_provider", new=AsyncMock(return_value=provider)),
+        patch.object(service, "_decrypt_virtual_key", return_value="sk-virtual-secret"),
+        patch("src.modules.system.ai_providers.service.LiteLLMClient", return_value=litellm_client),
+    ):
+        result = await service.test_readiness(provider_id=provider.id, actor_user_id=uuid4())
+
+    assert result.status == "unhealthy"
+    assert result.failure_code == "AI_PROVIDER_READINESS_TEST_FAILED"
+    assert "secret" not in result.model_dump_json()
+    assert provider.metadata_json["readiness"]["failure_code"] == "AI_PROVIDER_READINESS_TEST_FAILED"

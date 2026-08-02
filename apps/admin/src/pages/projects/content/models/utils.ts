@@ -1,10 +1,13 @@
 import { buildProjectSlug } from "@/lib/project-slug";
+import type { listAllContentModels } from "@/api/content";
 import type {
-  AdminContentModel,
-  AdminContentModelKind,
-  CreateAdminContentModelPayload,
+  ContentModelOut,
+  ContentModelDefinitionContract as CreateAdminContentModelPayload,
   JsonValueInput,
-} from "@arclayer/openapi/admin-types";
+} from "@arclayer/openapi";
+
+type AdminContentModel = Awaited<ReturnType<typeof listAllContentModels>>[number];
+type AdminContentModelKind = NonNullable<ContentModelOut["modelKind"]>;
 
 import type {
   ContentModelsFilters,

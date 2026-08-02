@@ -5,6 +5,8 @@ import type {
   KnowledgeCursorPageKnowledgeBaseSummaryOut,
   KnowledgeCursorPageKnowledgeSourceOut,
   KnowledgeCursorPageKnowledgeSourceVersionOut,
+  KnowledgeSourceIngestionAcceptedOut,
+  KnowledgeSourceIngestionCreateRequest,
   KnowledgeSourceCreateRequest,
   KnowledgeSourceOut,
   KnowledgeSourceUpdateRequest,
@@ -109,6 +111,20 @@ export function createKnowledgeSource(
 ): Promise<KnowledgeSourceOut> {
   return api.post<KnowledgeSourceOut>(
     `${workspacePath(workspaceId)}/${encodeURIComponent(baseId)}/sources`,
+    payload,
+    idempotencyOptions(idempotencyKey),
+  );
+}
+
+export function createKnowledgeSourceIngestion(
+  workspaceId: string,
+  baseId: string,
+  sourceId: string,
+  payload: KnowledgeSourceIngestionCreateRequest,
+  idempotencyKey: string,
+): Promise<KnowledgeSourceIngestionAcceptedOut> {
+  return api.post<KnowledgeSourceIngestionAcceptedOut>(
+    `${workspacePath(workspaceId)}/${encodeURIComponent(baseId)}/sources/${encodeURIComponent(sourceId)}/ingestions`,
     payload,
     idempotencyOptions(idempotencyKey),
   );

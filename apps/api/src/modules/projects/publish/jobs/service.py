@@ -24,6 +24,7 @@ from src.modules.projects.publish.schema import PublishArtifactsOut
 from src.modules.projects.publish.service import ProjectPublishService
 from src.modules.projects.releases.repository import ProjectReleasesRepository
 from src.modules.system.admin.notifications.catalog import create_notification_record
+from src.modules.system.admin.notifications.schema import NotificationProjectTarget
 from src.modules.tenancy.database import TenantDatabaseRouter
 from src.modules.tenancy.schema import TenantContext, TenantIdentity, TenantIsolationMode, TenantScope
 
@@ -295,7 +296,9 @@ class PublishJobService(BaseService):
             if success
             else f"Release #{release.release_number} failed: {job.error_message or 'Unknown error'}"
         )
-        target_to = "/content/releases"
+        project_id = await self._project_id_for_site(site_id=release.site_id)
+        if project_id is None:
+            raise RuntimeError("SCHEDULED_PUBLISH_NOTIFICATION_PROJECT_UNAVAILABLE")
         await create_notification_record(
             settings=self.settings,
             workspace_id=release.workspace_id,
@@ -304,8 +307,12 @@ class PublishJobService(BaseService):
             category=NotificationCategory.TASK,
             title=title,
             body=body[:512],
-            target_to=target_to,
-            target_meta={"releaseId": str(release.id), "jobId": str(job.id)},
+            target=NotificationProjectTarget(
+                project_id=project_id,
+                destination="website_releases",
+                entity_id=release.id,
+                focus="release",
+            ),
             event_name="project.release.scheduled_publish.completed"
             if success
             else "project.release.scheduled_publish.failed",

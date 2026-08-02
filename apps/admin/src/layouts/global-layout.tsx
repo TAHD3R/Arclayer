@@ -40,23 +40,21 @@ export function GlobalLayout() {
   const sessionVersion = useAuthStore((state) => state.sessionVersion);
   const sidebarWidthPx = usePreferencesStore((state) => state.sidebarWidthPx);
   const setSidebarWidthPx = usePreferencesStore((state) => state.setSidebarWidthPx);
-  const currentWorkspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
-  const lastWorkspaceId = useWorkspaceStore((state) => state.lastWorkspaceId);
+  const workspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const setCurrentProjectId = useWorkspaceStore((state) => state.setCurrentProjectId);
   const contentOnlyMode = isFavoriteOverlayContentOnly(searchStr);
   const sidebarPathname = resolveNotificationsSourcePath(pathname, searchStr) ?? pathname;
-  const effectiveWorkspaceId = currentWorkspaceId ?? lastWorkspaceId;
 
   useEffect(() => {
     setCurrentProjectId(null);
   }, [setCurrentProjectId]);
 
   const projectsQuery = useQuery({
-    queryKey: ["global-nav", "projects", effectiveWorkspaceId, sessionVersion],
-    enabled: Boolean(accessToken && effectiveWorkspaceId),
+    queryKey: ["global-nav", "projects", workspaceId, sessionVersion],
+    enabled: Boolean(accessToken && workspaceId),
     queryFn: async () => {
       const items = await listProjects({
-        workspaceId: String(effectiveWorkspaceId),
+        workspaceId: String(workspaceId),
         archived: false,
         ordering: "-updated_at",
         page: 1,

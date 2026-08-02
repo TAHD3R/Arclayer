@@ -11,10 +11,13 @@ from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.models.organization.user import UserStatus
 from src.models.platform_identity.identity import PlatformInstanceOwnership, PlatformOperatorStatus
-from src.modules.platform_identity.management_schema import PlatformRoleCatalogItemOut
+from src.modules.platform_identity.management_schema import (
+    PlatformInvitationRevokeRequest,
+    PlatformRoleCatalogItemOut,
+)
 from src.modules.platform_identity.management_service import PlatformIdentityManagementService
 from src.modules.platform_identity.repository import INVITATION_CANDIDATE_LIMIT, PlatformIdentityRepository
-from src.modules.platform_identity.schema import PlatformIdentitySnapshot
+from src.modules.platform_identity.schema import PlatformIdentitySnapshot, PlatformMutationReceipt
 
 
 class _Repository:
@@ -125,6 +128,40 @@ async def test_invitation_options_exposes_only_delegable_roles_and_invite_candid
 
 
 @pytest.mark.asyncio
+async def test_invitation_revoke_forwards_revision_and_idempotency_to_atomic_repository() -> None:
+    actor_user_id = uuid4()
+    invitation_id = uuid4()
+    request = PlatformInvitationRevokeRequest(
+        expected_invitation_revision=2,
+        idempotency_key="revoke-invitation",
+        correlation_id=uuid4(),
+    )
+    receipt = PlatformMutationReceipt(
+        entity_id=invitation_id,
+        mutation="revoke_operator_invitation",
+        correlation_id=request.correlation_id,
+    )
+    repository = SimpleNamespace(revoke_operator_invitation=AsyncMock(return_value=receipt))
+    service = object.__new__(PlatformIdentityManagementService)
+    service._repository = repository
+
+    result = await service.revoke_invitation(
+        actor_user_id=actor_user_id,
+        invitation_id=invitation_id,
+        request=request,
+    )
+
+    assert result == receipt
+    repository.revoke_operator_invitation.assert_awaited_once_with(
+        actor_user_id=actor_user_id,
+        invitation_id=invitation_id,
+        expected_invitation_revision=2,
+        idempotency_key="revoke-invitation",
+        correlation_id=request.correlation_id,
+    )
+
+
+@pytest.mark.asyncio
 async def test_invitation_candidate_query_caps_the_initial_picker_and_excludes_ineligible_users(monkeypatch) -> None:
     operator_user_id = uuid4()
     pending_invitee_user_id = uuid4()
@@ -155,3 +192,24 @@ async def test_invitation_candidate_query_caps_the_initial_picker_and_excludes_i
     }
     assert _CandidateUserModel.query.ordering == ("username", "id")
     assert _CandidateUserModel.query.limit_value == INVITATION_CANDIDATE_LIMIT
+
+
+def test_current_session_webauthn_enrollment_binding_changes_with_the_platform_session() -> None:
+    actor_user_id = uuid4()
+    correlation_id = uuid4()
+    first = PlatformIdentityManagementService._mfa_enrollment_binding(
+        actor_user_id=actor_user_id,
+        actor_session_id=uuid4(),
+        idempotency_key="enroll-key-1",
+        correlation_id=correlation_id,
+        replace_method_id=None,
+    )
+    second = PlatformIdentityManagementService._mfa_enrollment_binding(
+        actor_user_id=actor_user_id,
+        actor_session_id=uuid4(),
+        idempotency_key="enroll-key-1",
+        correlation_id=correlation_id,
+        replace_method_id=None,
+    )
+
+    assert first != second

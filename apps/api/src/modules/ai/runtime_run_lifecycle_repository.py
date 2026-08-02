@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from typing import cast
+from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.common.types.json_types import JsonObject
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
+from src.models.agents.runtime_recovery_v1 import AgentRunRecoveryAction, AgentRunRecoveryRecord
 from src.models.agents.runtime_v1 import (
     AgentApprovalStatusV1,
     AgentApprovalV1Record,
@@ -37,11 +39,13 @@ from src.modules.ai.runtime_protocol_schema import (
     RunQueuedEventV1,
     RunStartedEventV1,
 )
+from src.modules.ai.runtime_recovery_protocol_schema import RunRecoveryRequestedEventV1
 from src.modules.ai.runtime_repository_errors import AgentRuntimePersistenceError
 from src.modules.ai.runtime_tool_repository import ToolProjectionEventV1
 
 RunLifecycleEventV1 = (
     RunQueuedEventV1
+    | RunRecoveryRequestedEventV1
     | RunStartedEventV1
     | RunCancelRequestedEventV1
     | MessageProjectionEventV1
@@ -66,10 +70,17 @@ class AgentRunLifecycleRepository(TortoiseORMRepository[AgentRunV1Record]):
         conn: BaseDBAsyncClient,
     ) -> None:
         await self._validate_required_interrupt(run=run, event=event, conn=conn)
+        if isinstance(event, RunRecoveryRequestedEventV1):
+            await self._validate_recovery(run=run, event=event, conn=conn)
         if isinstance(event, RunInterruptedEventV1) and event.data.reason == "human_tool_input":
             await self._require_human_tool_part(run=run, event=event, conn=conn)
         allowed_statuses = {
             "run.queued": {AgentRunStatusV1.CREATED},
+            "run.recovery.requested": {
+                AgentRunStatusV1.COMPLETED,
+                AgentRunStatusV1.CANCELLED,
+                AgentRunStatusV1.FAILED,
+            },
             "run.started": {AgentRunStatusV1.CREATED, AgentRunStatusV1.QUEUED, AgentRunStatusV1.RUNNING},
             "run.cancel.requested": {
                 AgentRunStatusV1.CREATED,
@@ -118,6 +129,13 @@ class AgentRunLifecycleRepository(TortoiseORMRepository[AgentRunV1Record]):
         update_fields = ["last_sequence", "last_cursor", "status", "updated_at"]
         if event.type == "run.queued":
             run.status = AgentRunStatusV1.QUEUED
+        elif isinstance(event, RunRecoveryRequestedEventV1):
+            run.status = AgentRunStatusV1.QUEUED
+            run.job_id = UUID(event.data.recovery_job_id)
+            run.terminal_at = None
+            run.cancellation_requested_at = None
+            run.error = None
+            update_fields.extend(["job_id", "terminal_at", "cancellation_requested_at", "error"])
         elif event.type == "run.started":
             run.status = AgentRunStatusV1.RUNNING
         elif isinstance(event, RunCancelRequestedEventV1):
@@ -148,6 +166,39 @@ class AgentRunLifecycleRepository(TortoiseORMRepository[AgentRunV1Record]):
             run.terminal_at = event.data.failed_at
             update_fields.append("terminal_at")
         await run.save(update_fields=update_fields, using_db=conn)
+
+    @staticmethod
+    async def _validate_recovery(
+        *,
+        run: AgentRunV1Record,
+        event: RunRecoveryRequestedEventV1,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        recovery = await (
+            AgentRunRecoveryRecord
+            .filter(id=event.data.recovery_id, run_id=run.id)
+            .using_db(conn)
+            .select_for_update()
+            .first()
+        )
+        if recovery is None:
+            raise AgentRuntimePersistenceError("AGENT_RUN_RECOVERY_NOT_FOUND")
+        expected = (
+            str(recovery.action),
+            str(recovery.source_job_id),
+            str(recovery.recovery_job_id),
+            recovery.source_run_sequence,
+        )
+        observed = (
+            event.data.action,
+            event.data.source_job_id,
+            event.data.recovery_job_id,
+            run.last_sequence,
+        )
+        if expected != observed or run.job_id != recovery.source_job_id:
+            raise AgentRuntimePersistenceError("AGENT_RUN_RECOVERY_BINDING_INVALID")
+        if recovery.action == AgentRunRecoveryAction.RETRY and run.status != AgentRunStatusV1.FAILED:
+            raise AgentRuntimePersistenceError("AGENT_RUN_RECOVERY_TRANSITION_INVALID")
 
     @staticmethod
     async def _validate_required_interrupt(

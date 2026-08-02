@@ -103,7 +103,7 @@ export function ResetPasswordView({
           className="grid gap-4"
           autoComplete="on"
           onSubmit={form.handleSubmit(async (values) => {
-            await onSubmit({ reset_token: values.resetToken, new_password: values.newPassword });
+            await onSubmit({ resetToken: values.resetToken, newPassword: values.newPassword });
           })}
         >
           {showResetTokenField ? (

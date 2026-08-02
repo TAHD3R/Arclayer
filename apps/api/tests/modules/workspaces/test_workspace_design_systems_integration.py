@@ -228,7 +228,7 @@ async def test_workspace_design_system_foundation_is_exact_tenant_safe_and_audit
             assert capabilities.json()["data"]["projectVersionSupersession"] is True
             assert capabilities.json()["data"]["agentRunContext"] is True
             assert capabilities.json()["data"]["builderContext"] is True
-            assert capabilities.json()["data"]["rendererPreview"] is False
+            assert capabilities.json()["data"]["rendererPreview"] is True
             assert capabilities.json()["data"]["publication"] is False
 
             create_payload = {"name": "Editorial Contrast", "description": "Accessible editorial foundations."}

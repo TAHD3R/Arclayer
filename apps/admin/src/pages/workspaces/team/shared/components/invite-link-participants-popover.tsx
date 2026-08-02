@@ -4,7 +4,10 @@ import { Search, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { listTeamInviteLinkParticipants } from "@/api/team";
-import type { TeamInviteLinkParticipant, TeamUserRef } from "@arclayer/openapi/admin-types";
+import type {
+  WorkspaceInviteLinkParticipantOut as TeamInviteLinkParticipant,
+  WorkspaceTeamUserRefOut as TeamUserRef,
+} from "@arclayer/openapi";
 import { Button } from "@arclayer/ui/button";
 import {
   InputGroup,

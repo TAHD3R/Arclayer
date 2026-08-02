@@ -11,13 +11,16 @@ import pytest
 from src.config import Settings
 from src.core.exceptions import Conflict
 from src.models.system.plugin_installation import (
+    PluginLifecycleState,
     PluginOperationKind,
     PluginOperationState,
+    PluginTrustState,
 )
 from src.modules.jobs.service import BackgroundJobService
 from src.modules.system.plugins.lifecycle_repository import PluginLifecycleRepository
 from src.modules.system.plugins.lifecycle_service import PluginLifecycleService
 from src.modules.system.plugins.schema import (
+    ExtensionDependencyOut,
     SystemPluginCatalogItemOut,
     SystemPluginCompatibilityOut,
     SystemPluginLifecycleRequest,
@@ -43,6 +46,9 @@ class _LifecycleRepository:
         if self.installation is not None and self.installation.plugin_name == plugin_name:
             return self.installation
         return None
+
+    async def list_installations(self) -> list[Any]:
+        return [self.installation] if self.installation is not None else []
 
     async def create_installation(self, *, data: dict[str, object], conn: object) -> Any:
         installation = SimpleNamespace(
@@ -129,6 +135,8 @@ def _catalog_item(
     name: str = "catalog-test",
     installed_version: str | None = None,
     has_update: bool = False,
+    permissions: list[str] | None = None,
+    approved_permissions: list[str] | None = None,
 ) -> SystemPluginCatalogItemOut:
     return SystemPluginCatalogItemOut(
         name=name,
@@ -141,9 +149,12 @@ def _catalog_item(
         package_checksum=f"sha256:{'a' * 64}",
         manifest_digest=f"sha256:{'b' * 64}",
         provenance_status=SystemPluginProvenanceStatus.VERIFIED,
+        trust_state=PluginTrustState.VERIFIED,
+        trust_evidence=["bundle_source_policy", "package_checksum", "manifest_digest"],
         compatibility=SystemPluginCompatibilityOut(compatible=True),
         provides=SystemPluginProvidesOut(services=["catalog-service"]),
-        permissions=["catalog:read"],
+        permissions=["catalog:read"] if permissions is None else permissions,
+        approved_permissions=[] if approved_permissions is None else approved_permissions,
     )
 
 
@@ -154,6 +165,7 @@ def _installed_record(*, plugin_name: str = "catalog-test", desired_enabled: boo
         installed_version="1.2.3",
         previous_version=None,
         rollback_version=None,
+        lifecycle_state=PluginLifecycleState.INSTALLED,
         desired_enabled=desired_enabled,
         current_operation_id=None,
         current_job_id=None,
@@ -204,6 +216,9 @@ async def test_start_operation_creates_job_binding_and_audit_in_same_transaction
     assert audit_call.kwargs["conn"] is service.connection
     assert len(jobs.published) == 1
     assert jobs.published[0].job.id == repository.bindings[0][2]
+    operation_data = repository.created_operations[0][0]
+    assert operation_data["desired_enabled"] is False
+    assert operation_data["provided_capabilities"] == ["catalog-service"]
 
 
 async def test_start_operation_replays_identical_idempotent_request(monkeypatch) -> None:
@@ -260,9 +275,12 @@ async def test_start_operation_rejects_idempotency_key_with_different_fingerprin
 
     with pytest.raises(Conflict, match="PLUGIN_IDEMPOTENCY_CONFLICT"):
         await service.start_operation(
-            item=_catalog_item(),
+            item=_catalog_item().model_copy(update={"available_version": "1.2.4"}),
             kind=PluginOperationKind.INSTALL,
-            payload=SystemPluginLifecycleRequest(approved_permissions=["catalog:read", "unused:permission"]),
+            payload=SystemPluginLifecycleRequest(
+                target_version="1.2.4",
+                approved_permissions=["catalog:read"],
+            ),
             idempotency_key="same-key",
             actor_user_id=actor_user_id,
         )
@@ -294,6 +312,103 @@ async def test_install_requires_explicit_permission_approval() -> None:
             idempotency_key="missing-approval",
             actor_user_id=uuid4(),
         )
+
+
+async def test_enable_requires_explicit_approval_for_unapproved_requested_permissions() -> None:
+    installation = _installed_record(desired_enabled=False)
+    service = _TestPluginLifecycleService(repository=_LifecycleRepository(installation), jobs=_Jobs())
+
+    with pytest.raises(Conflict, match="PLUGIN_PERMISSION_REVIEW_REQUIRED"):
+        await service.start_operation(
+            item=_catalog_item(installed_version="1.2.3"),
+            kind=PluginOperationKind.ENABLE,
+            payload=SystemPluginLifecycleRequest(),
+            idempotency_key="enable-without-permission-review",
+            actor_user_id=uuid4(),
+        )
+
+
+async def test_operation_rejects_permissions_not_requested_by_the_extension() -> None:
+    service = _TestPluginLifecycleService(repository=_LifecycleRepository(), jobs=_Jobs())
+
+    with pytest.raises(Conflict, match="PLUGIN_PERMISSION_APPROVAL_INVALID"):
+        await service.start_operation(
+            item=_catalog_item(),
+            kind=PluginOperationKind.INSTALL,
+            payload=SystemPluginLifecycleRequest(
+                approved_permissions=["catalog:read", "unrelated:permission"],
+            ),
+            idempotency_key="unexpected-permission",
+            actor_user_id=uuid4(),
+        )
+
+
+async def test_non_review_operation_rejects_permission_approval_payload() -> None:
+    installation = _installed_record()
+    service = _TestPluginLifecycleService(repository=_LifecycleRepository(installation), jobs=_Jobs())
+
+    with pytest.raises(Conflict, match="PLUGIN_PERMISSION_APPROVAL_NOT_APPLICABLE"):
+        await service.start_operation(
+            item=_catalog_item(installed_version="1.2.3", approved_permissions=["catalog:read"]),
+            kind=PluginOperationKind.DISABLE,
+            payload=SystemPluginLifecycleRequest(approved_permissions=["catalog:read"]),
+            idempotency_key="disable-with-approval-payload",
+            actor_user_id=uuid4(),
+        )
+
+
+async def test_install_rejects_catalog_item_without_explicit_trust_evidence() -> None:
+    service = _TestPluginLifecycleService(repository=_LifecycleRepository(), jobs=_Jobs())
+    item = _catalog_item().model_copy(update={"trust_evidence": []})
+
+    with pytest.raises(Conflict, match="EXTENSION_TRUST_NOT_VERIFIED"):
+        await service.start_operation(
+            item=item,
+            kind=PluginOperationKind.INSTALL,
+            payload=SystemPluginLifecycleRequest(approved_permissions=["catalog:read"]),
+            idempotency_key="untrusted-install",
+            actor_user_id=uuid4(),
+        )
+
+
+async def test_install_requires_declared_extension_dependencies_to_be_enabled() -> None:
+    service = _TestPluginLifecycleService(repository=_LifecycleRepository(), jobs=_Jobs())
+    item = _catalog_item().model_copy(
+        update={"dependencies": [ExtensionDependencyOut(extension_name="required-extension")]}
+    )
+
+    with pytest.raises(Conflict, match="EXTENSION_DEPENDENCY_NOT_READY"):
+        await service.start_operation(
+            item=item,
+            kind=PluginOperationKind.INSTALL,
+            payload=SystemPluginLifecycleRequest(approved_permissions=["catalog:read"]),
+            idempotency_key="missing-dependency",
+            actor_user_id=uuid4(),
+        )
+
+
+async def test_recover_requires_failed_installation_and_preserves_disabled_intent(monkeypatch) -> None:
+    installation = _installed_record(desired_enabled=False)
+    installation.lifecycle_state = PluginLifecycleState.FAILED
+    installation.current_operation_id = uuid4()
+    failed_operation_id = installation.current_operation_id
+    repository = _LifecycleRepository(installation)
+    jobs = _Jobs()
+    service = _TestPluginLifecycleService(repository=repository, jobs=jobs)
+    monkeypatch.setattr("src.modules.system.plugins.lifecycle_service.write_required_activity_event", AsyncMock())
+
+    operation = await service.start_operation(
+        item=_catalog_item(installed_version="1.2.3"),
+        kind=PluginOperationKind.RECOVER,
+        payload=SystemPluginLifecycleRequest(),
+        idempotency_key="recover-failed-operation",
+        actor_user_id=uuid4(),
+    )
+
+    assert operation.kind == PluginOperationKind.RECOVER
+    operation_data = repository.created_operations[0][0]
+    assert operation_data["desired_enabled"] is False
+    assert operation_data["recovery_of_operation_id"] == failed_operation_id
 
 
 @pytest.mark.parametrize("kind", [PluginOperationKind.DISABLE, PluginOperationKind.UNINSTALL])

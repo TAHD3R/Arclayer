@@ -17,6 +17,7 @@ class AgentRunCreateRequestV1(BaseSchema):
     site_revision_id: PublicUUID | None = None
     lead_agent_id: PublicUUID
     mentioned_agent_ids: tuple[PublicUUID, ...] = ()
+    selected_skill_installation_ids: tuple[PublicUUID, ...] = ()
     execution_mode: Literal["plan", "build"]
     message: str = Field(min_length=1, max_length=8000)
 
@@ -32,6 +33,13 @@ class AgentRunCreateRequestV1(BaseSchema):
     def validate_mentions(cls, values: tuple[UUID, ...]) -> tuple[UUID, ...]:
         if len(values) != len(set(values)):
             raise ValueError("mentionedAgentIds must be unique")
+        return values
+
+    @field_validator("selected_skill_installation_ids")
+    @classmethod
+    def validate_selected_skill_installations(cls, values: tuple[UUID, ...]) -> tuple[UUID, ...]:
+        if len(values) != len(set(values)):
+            raise ValueError("selectedSkillInstallationIds must be unique")
         return values
 
     @model_validator(mode="after")

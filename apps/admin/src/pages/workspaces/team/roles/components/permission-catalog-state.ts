@@ -1,9 +1,9 @@
 import type {
-  Permission,
-  Role,
-  RolePermissionGrant,
-  WorkspacePermissionCatalog,
-} from "@arclayer/openapi/admin-types";
+  WorkspacePermissionOut as Permission,
+  WorkspaceRoleOut as Role,
+  RolePermissionGrantOut as RolePermissionGrant,
+  WorkspacePermissionCatalogOut as WorkspacePermissionCatalog,
+} from "@arclayer/openapi";
 
 export type PermissionGrantsByRole = Record<string, RolePermissionGrant[]>;
 

@@ -14,7 +14,7 @@ from src.config import Settings
 from src.core.extensions.manager import ExtensionManager
 from src.core.extensions.manifest import ProcessState
 from src.models.jobs.background_job import JobInternalStatus
-from src.models.system.plugin_installation import PluginOperationState
+from src.models.system.plugin_installation import PluginOperationState, PluginTrustState
 from src.modules.jobs.service import BackgroundJobService
 from src.modules.system.plugins.lifecycle_repository import PluginLifecycleRepository
 from src.modules.system.plugins.package_store import calculate_directory_checksum
@@ -140,6 +140,8 @@ def _managed_artifact(package_dir: Path, *, plugin_name: str, version: str = "1.
         package_path=package_dir.relative_to(package_dir.parents[3]).as_posix(),
         package_checksum=calculate_directory_checksum(package_dir),
         manifest_digest=f"sha256:{hashlib.sha256(manifest_bytes).hexdigest()}",
+        trust_state=PluginTrustState.VERIFIED,
+        trust_evidence=["artifact_signature", "package_checksum", "manifest_digest"],
     )
 
 
@@ -237,6 +239,21 @@ async def test_load_desired_system_plugins_rejects_tampered_managed_artifact(tmp
     repository = _RuntimeRepository(installations=[_installation("managed-plugin", active_artifact=artifact)])
 
     with pytest.raises(RuntimeError, match="failed integrity verification"):
+        await load_desired_system_plugins(
+            cast(ExtensionManager, _RuntimeManager()),
+            settings=settings,
+            repository=cast(PluginLifecycleRepository, repository),
+        )
+
+
+async def test_load_desired_system_plugins_rejects_managed_artifact_without_trust_evidence(tmp_path: Path) -> None:
+    settings = _settings_with_plugin_store(tmp_path)
+    package_dir = settings.plugin_distribution.root_dir / "packages" / "managed-plugin" / "1.2.3" / "checksum"
+    artifact = _managed_artifact(package_dir, plugin_name="managed-plugin")
+    artifact.trust_evidence = []
+    repository = _RuntimeRepository(installations=[_installation("managed-plugin", active_artifact=artifact)])
+
+    with pytest.raises(RuntimeError, match="unverified trust evidence"):
         await load_desired_system_plugins(
             cast(ExtensionManager, _RuntimeManager()),
             settings=settings,

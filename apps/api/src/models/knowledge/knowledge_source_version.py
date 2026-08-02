@@ -77,6 +77,9 @@ class KnowledgeSourceVersionStateRecord(BaseModel):
     index_job_id = fields.UUIDField(null=True, db_index=True)
     state_revision = fields.IntField(default=1)
 
+    if TYPE_CHECKING:
+        source_version_id: UUID
+
     class Meta(BaseModel.Meta):
         table = "knowledge_source_version_states"
         table_description = "Mutable operational state for immutable Knowledge source versions."

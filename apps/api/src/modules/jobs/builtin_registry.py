@@ -31,6 +31,7 @@ from src.modules.projects.builder.generation_job_contract import (
 from src.modules.projects.design_systems.concept_job_contract import (
     build_design_system_concept_generation_job_definition,
 )
+from src.modules.workspaces.design_systems.publication_contract import build_design_system_compile_job_definition
 from src.modules.system.admin.notifications.campaign_job_contract import (
     build_notification_campaign_job_definition,
 )
@@ -71,6 +72,9 @@ def build_builtin_job_type_registry(settings: Settings) -> JobTypeRegistry:
             ),
             build_design_system_concept_generation_job_definition(
                 execution_policy=settings.background_jobs.builder_generation,
+            ),
+            build_design_system_compile_job_definition(
+                execution_policy=settings.background_jobs.design_system_compile,
             ),
             build_asset_thumbnail_job_definition(
                 execution_policy=AssetThumbnailExecutionPolicy(

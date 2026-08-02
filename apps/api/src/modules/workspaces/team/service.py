@@ -27,6 +27,10 @@ from src.modules.analytics.audit import (
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.tokens.service import hash_password
 from src.modules.system.admin.notifications.catalog import create_notification_record
+from src.modules.system.admin.notifications.schema import (
+    NotificationNavigationTarget,
+    NotificationWorkspaceSettingsTarget,
+)
 from src.modules.workspaces.authz.role_management import (
     WorkspaceRoleManagementAvailability,
     WorkspaceRoleManagementAvailabilityReader,
@@ -52,7 +56,8 @@ from src.modules.workspaces.team.schema import (
     WorkspaceTeamUserUpdateRequest,
 )
 
-TEAM_MEMBERS_TARGET_TO = "/settings/team/members"
+TEAM_MEMBERS_TARGET = NotificationWorkspaceSettingsTarget(destination="people", section="members-table")
+PENDING_INVITATIONS_TARGET = NotificationWorkspaceSettingsTarget(destination="people", section="pending-invitations")
 SYSTEM_ACTOR_LABEL = "System"
 
 
@@ -143,7 +148,7 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
         category: NotificationCategory,
         title: str,
         body: str | None,
-        target_to: str,
+        target: NotificationNavigationTarget,
         event_name: str,
         dedupe_key: str | None,
     ) -> None:
@@ -154,8 +159,7 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
             category=category,
             title=title,
             body=body,
-            target_to=target_to,
-            target_meta=None,
+            target=target,
             event_name=event_name,
             dedupe_key=dedupe_key,
             actor_user_id=actor_user_id,
@@ -196,7 +200,7 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
             category=NotificationCategory.TEAM,
             title=title,
             body=body,
-            target_to=TEAM_MEMBERS_TARGET_TO,
+            target=PENDING_INVITATIONS_TARGET,
             event_name=f"workspace.invite.email.{action}",
             dedupe_key=f"workspace.invite.email.{action}:{invite_id}",
         )
@@ -231,7 +235,7 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
             category=NotificationCategory.SECURITY,
             title=title,
             body=body,
-            target_to=TEAM_MEMBERS_TARGET_TO,
+            target=TEAM_MEMBERS_TARGET,
             event_name="workspace.member.status.updated",
             dedupe_key=None,
         )
@@ -267,7 +271,7 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
             category=NotificationCategory.TEAM,
             title=title,
             body=body,
-            target_to=TEAM_MEMBERS_TARGET_TO,
+            target=TEAM_MEMBERS_TARGET,
             event_name="workspace.member.roles.updated",
             dedupe_key=None,
         )
@@ -299,7 +303,7 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
             category=NotificationCategory.SECURITY,
             title=title,
             body=body,
-            target_to=TEAM_MEMBERS_TARGET_TO,
+            target=TEAM_MEMBERS_TARGET,
             event_name="workspace.member.password.reset",
             dedupe_key=None,
         )

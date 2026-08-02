@@ -9,7 +9,73 @@ import {
   listAssetTags,
   patchAsset,
 } from "@/api/assets";
-import type { AdminAssetTag, AdminAssetSummary, PageData } from "@arclayer/openapi/admin-types";
+import type { listAssets } from "@/api/assets";
+import type {
+  AdminAssetDetailOut as AdminAssetDetail,
+  AdminAssetTagOut as AdminAssetTag,
+  AdminAssetSummaryOut as AdminAssetSummary,
+  AdminAssetUpdateRequest,
+} from "@arclayer/openapi";
+
+type AssetSummaryPage = Awaited<ReturnType<typeof listAssets>>;
+type AssetAccessPayload = {
+  visibility?: string;
+  purpose?: string;
+  indexable?: boolean;
+};
+
+const ASSET_VISIBILITIES = ["public", "private", "shared"] as const;
+const ASSET_PURPOSES = [
+  "avatar",
+  "site_logo",
+  "workspace_icon",
+  "favicon",
+  "library",
+  "attachment",
+  "article_cover",
+] as const;
+
+function requireAssetTags(detail: AdminAssetDetail): asserts detail is AdminAssetDetail & {
+  tags: AdminAssetTag[];
+} {
+  if (!Array.isArray(detail.tags)) {
+    throw new Error("Invalid asset detail response: missing tags");
+  }
+}
+
+function isAssetVisibility(
+  value: string,
+): value is NonNullable<AdminAssetUpdateRequest["visibility"]> {
+  return ASSET_VISIBILITIES.includes(value as (typeof ASSET_VISIBILITIES)[number]);
+}
+
+function isAssetPurpose(value: string): value is NonNullable<AdminAssetUpdateRequest["purpose"]> {
+  return ASSET_PURPOSES.includes(value as (typeof ASSET_PURPOSES)[number]);
+}
+
+function normalizeAssetAccessPatch(
+  payload: AssetAccessPayload,
+): Pick<AdminAssetUpdateRequest, "visibility" | "purpose" | "indexable"> {
+  const patch: Pick<AdminAssetUpdateRequest, "visibility" | "purpose" | "indexable"> = {};
+
+  if (payload.visibility !== undefined) {
+    if (!isAssetVisibility(payload.visibility)) {
+      throw new Error("Invalid asset visibility value");
+    }
+    patch.visibility = payload.visibility;
+  }
+  if (payload.purpose !== undefined) {
+    if (!isAssetPurpose(payload.purpose)) {
+      throw new Error("Invalid asset purpose value");
+    }
+    patch.purpose = payload.purpose;
+  }
+  if (payload.indexable !== undefined) {
+    patch.indexable = payload.indexable;
+  }
+
+  return patch;
+}
 import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
 import { invalidateAssetListQueries } from "@/lib/assets/invalidate-asset-list-queries";
 import { usePreferencesStore } from "@/stores/use-preference-store";
@@ -49,7 +115,9 @@ export function useAssetPreviewDialogController(props: {
     queryFn: async () => {
       if (!baseActive?.id) throw new Error("missing asset id");
       if (!props.projectId) throw new Error("PROJECT_NOT_SELECTED");
-      return getAssetDetail(String(props.projectId), baseActive.id);
+      const detail = await getAssetDetail(String(props.projectId), baseActive.id);
+      requireAssetTags(detail);
+      return detail;
     },
     enabled: Boolean(scopeKey) && Boolean(baseActive?.id),
     staleTime: 20 * 1000,
@@ -256,10 +324,10 @@ export function useAssetPreviewDialogController(props: {
   });
 
   const patchAccessMutation = useMutation({
-    mutationFn: async (payload: { visibility?: string; purpose?: string; indexable?: boolean }) => {
+    mutationFn: async (payload: AssetAccessPayload) => {
       if (!active?.id) throw new Error("missing asset id");
       if (!props.projectId) throw new Error("PROJECT_NOT_SELECTED");
-      return patchAsset(String(props.projectId), active.id, payload);
+      return patchAsset(String(props.projectId), active.id, normalizeAssetAccessPatch(payload));
     },
     onSuccess: (updated) => {
       notifySuccessText(t("assets:ASSET_EDIT_ACCESS_SUCCESS"));
@@ -268,7 +336,7 @@ export function useAssetPreviewDialogController(props: {
       queryClient.setQueriesData(
         { queryKey: scopeKey ? ["assets", "list", scopeKey] : ["assets", "list"] },
         (old: unknown): unknown => {
-          const data = old as InfiniteData<PageData<AdminAssetSummary>> | undefined;
+          const data = old as InfiniteData<AssetSummaryPage> | undefined;
           if (!data) return old;
           const updatedId = String(updated.id);
           const pages = data.pages.map((page) => {
@@ -354,13 +422,17 @@ export function useAssetPreviewDialogController(props: {
     };
   }, [active?.id, altNameDraft, filenameDraft, tagIdsDraft, patchMutation]);
 
-  const allTags = useMemo(() => tagsQuery.data?.items || [], [tagsQuery.data]);
-  const detailTags = useMemo(() => detailQuery.data?.tags || [], [detailQuery.data]);
+  const allTags = tagsQuery.data?.items;
+  const detailTags = useMemo(() => detailQuery.data?.tags, [detailQuery.data]);
 
   const selectedTags = useMemo(() => {
     const byId = new Map<string, string>();
-    for (const t of allTags) byId.set(t.id, t.name);
-    for (const t of detailTags) byId.set(t.id, t.name);
+    if (allTags) {
+      for (const t of allTags) byId.set(t.id, t.name);
+    }
+    if (detailTags) {
+      for (const t of detailTags) byId.set(t.id, t.name);
+    }
 
     return tagIdsDraft.map((id) => ({ id, name: byId.get(id) || id })).filter((x) => x.name.trim());
   }, [allTags, detailTags, tagIdsDraft]);
@@ -368,8 +440,12 @@ export function useAssetPreviewDialogController(props: {
   const ensureTagId = async (name: string): Promise<string | null> => {
     const n = name.trim();
     if (!n) return null;
+    if (!allTags) {
+      throw new Error("Asset tags are unavailable");
+    }
 
-    const existing = findTagIdByName(allTags, n) || findTagIdByName(detailTags, n);
+    const existing =
+      findTagIdByName(allTags, n) || (detailTags ? findTagIdByName(detailTags, n) : null);
     if (existing) return existing;
 
     try {

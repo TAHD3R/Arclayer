@@ -12,40 +12,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@arclayer/ui/dialog";
-import type { NotificationItem } from "@arclayer/openapi/admin-types";
+import type {
+  NotificationExternalHttpsAction,
+  NotificationInternalRouteAction,
+  NotificationOut as NotificationItem,
+} from "@arclayer/openapi";
+import type { NotificationNavigationTarget } from "@/lib/routing/notification-target";
 
-type GlobalNotificationPresentation = "inbox" | "toast" | "modal" | "banner";
-type SurfaceAction = {
-  kind: "internal_route" | "external_https";
-  label: string;
-  target: string;
-};
-type SurfaceMedia = {
-  assetId: string;
-  kind: "image" | "video";
-  altText: string;
-  posterAssetId: string | null;
-  captionsAssetId: string | null;
-};
-type SurfacePayload = {
-  title: string;
-  body: string | null;
-  action: SurfaceAction | null;
-  primaryAction: SurfaceAction | null;
-  secondaryAction: SurfaceAction | null;
-  dismissible: boolean;
-  dismissPolicy: "dismissible" | "action_required";
-  media: SurfaceMedia | null;
-};
-
-export type GlobalNotificationMeta = {
-  campaignId: string;
-  deliveryId: string;
-  presentation: GlobalNotificationPresentation;
-  priority: number;
-  displayStartAt: string | null;
-  displayEndAt: string | null;
-  payload: SurfacePayload;
+export type GlobalNotificationAction =
+  | ({ kind: "internal_route" } & NotificationInternalRouteAction)
+  | ({ kind: "external_https" } & NotificationExternalHttpsAction);
+export type GlobalNotificationMeta = NonNullable<NotificationItem["campaignSurface"]>;
+type GlobalNotificationPresentation = GlobalNotificationMeta["presentation"];
+type GlobalNotificationMetaFor<Presentation extends GlobalNotificationPresentation> = Extract<
+  GlobalNotificationMeta,
+  { presentation: Presentation }
+>;
+type GlobalNotificationCandidate<Presentation extends GlobalNotificationPresentation> = {
+  item: NotificationItem;
+  meta: GlobalNotificationMetaFor<Presentation>;
 };
 
 type GlobalNotificationSurfacesProps = {
@@ -54,112 +39,12 @@ type GlobalNotificationSurfacesProps = {
     item: NotificationItem,
     interaction: "click" | "dismiss",
   ) => Promise<boolean>;
-  onOpenTarget: (item: NotificationItem) => Promise<boolean>;
+  onOpenTarget: (item: NotificationItem, target: NotificationNavigationTarget) => Promise<boolean>;
 };
-
-const PRESENTATIONS = new Set<GlobalNotificationPresentation>([
-  "inbox",
-  "toast",
-  "modal",
-  "banner",
-]);
-
-function recordValue(value: unknown): Record<string, unknown> | null {
-  if (!value || Array.isArray(value) || typeof value !== "object") return null;
-  return value as Record<string, unknown>;
-}
-
-function actionValue(value: unknown): SurfaceAction | null {
-  if (value === null || value === undefined) return null;
-  const action = recordValue(value);
-  if (!action) return null;
-  if (action.kind !== "internal_route" && action.kind !== "external_https") return null;
-  if (typeof action.label !== "string" || typeof action.target !== "string") return null;
-  return { kind: action.kind, label: action.label, target: action.target };
-}
-
-function mediaValue(value: unknown): SurfaceMedia | null {
-  if (value === null || value === undefined) return null;
-  const media = recordValue(value);
-  if (!media || (media.kind !== "image" && media.kind !== "video")) return null;
-  if (
-    typeof media.assetId !== "string" ||
-    typeof media.altText !== "string" ||
-    (media.posterAssetId !== null &&
-      media.posterAssetId !== undefined &&
-      typeof media.posterAssetId !== "string") ||
-    (media.captionsAssetId !== null &&
-      media.captionsAssetId !== undefined &&
-      typeof media.captionsAssetId !== "string")
-  ) {
-    return null;
-  }
-  return {
-    assetId: media.assetId,
-    kind: media.kind,
-    altText: media.altText,
-    posterAssetId: (media.posterAssetId as string | null | undefined) ?? null,
-    captionsAssetId: (media.captionsAssetId as string | null | undefined) ?? null,
-  };
-}
-
-function payloadValue(
-  value: unknown,
-  presentation: GlobalNotificationPresentation,
-): SurfacePayload | null {
-  const payload = recordValue(value);
-  if (!payload || typeof payload.title !== "string") return null;
-  if (payload.body !== null && payload.body !== undefined && typeof payload.body !== "string") {
-    return null;
-  }
-  const primaryAction = actionValue(payload.primaryAction);
-  if (presentation === "modal" && !primaryAction) return null;
-  const dismissPolicy =
-    payload.dismissPolicy === "action_required" ? "action_required" : "dismissible";
-  return {
-    title: payload.title,
-    body: typeof payload.body === "string" ? payload.body : null,
-    action: actionValue(payload.action),
-    primaryAction,
-    secondaryAction: actionValue(payload.secondaryAction),
-    dismissible: payload.dismissible !== false,
-    dismissPolicy,
-    media: mediaValue(payload.media),
-  };
-}
-
-function optionalDateValue(value: unknown): string | null | undefined {
-  if (value === null) return null;
-  if (typeof value !== "string" || Number.isNaN(Date.parse(value))) return undefined;
-  return value;
-}
 
 export function getGlobalNotificationMeta(item: NotificationItem): GlobalNotificationMeta | null {
   if (item.eventName !== "system.broadcast") return null;
-  const meta = recordValue(item.targetMeta);
-  if (!meta || typeof meta.presentation !== "string") return null;
-  if (!PRESENTATIONS.has(meta.presentation as GlobalNotificationPresentation)) return null;
-  if (
-    typeof meta.campaignId !== "string" ||
-    typeof meta.deliveryId !== "string" ||
-    typeof meta.priority !== "number"
-  ) {
-    return null;
-  }
-  const presentation = meta.presentation as GlobalNotificationPresentation;
-  const payload = payloadValue(meta.payload, presentation);
-  const displayStartAt = optionalDateValue(meta.displayStartAt);
-  const displayEndAt = optionalDateValue(meta.displayEndAt);
-  if (!payload || displayStartAt === undefined || displayEndAt === undefined) return null;
-  return {
-    campaignId: meta.campaignId,
-    deliveryId: meta.deliveryId,
-    presentation,
-    priority: meta.priority,
-    displayStartAt,
-    displayEndAt,
-    payload,
-  };
+  return item.campaignSurface ?? null;
 }
 
 function isWithinDisplayWindow(meta: GlobalNotificationMeta, now: number): boolean {
@@ -191,8 +76,14 @@ export function GlobalNotificationSurfaces({
           Date.parse(left.item.createdAt) - Date.parse(right.item.createdAt),
       );
   }, [dismissedIds, items]);
-  const banner = eligibleItems.find(({ meta }) => meta.presentation === "banner");
-  const modal = eligibleItems.find(({ meta }) => meta.presentation === "modal");
+  const banner = eligibleItems.find(
+    (candidate): candidate is GlobalNotificationCandidate<"banner"> =>
+      candidate.meta.presentation === "banner",
+  );
+  const modal = eligibleItems.find(
+    (candidate): candidate is GlobalNotificationCandidate<"modal"> =>
+      candidate.meta.presentation === "modal",
+  );
 
   const hide = (item: NotificationItem) => {
     setDismissedIds((current) => new Set([...current, item.id]));
@@ -200,10 +91,10 @@ export function GlobalNotificationSurfaces({
   const dismiss = async (item: NotificationItem) => {
     if (await onRecordInteraction(item, "dismiss")) hide(item);
   };
-  const openAction = async (item: NotificationItem, action: SurfaceAction) => {
+  const openAction = async (item: NotificationItem, action: GlobalNotificationAction) => {
     const opened =
       action.kind === "internal_route"
-        ? await onOpenTarget({ ...item, targetTo: action.target })
+        ? await onOpenTarget(item, action.target)
         : window.open(action.target, "_blank", "noopener,noreferrer") !== null;
     if (!opened) return;
     if (await onRecordInteraction(item, "click")) hide(item);
@@ -235,10 +126,10 @@ export function GlobalNotificationSurfaces({
 
 function GlobalNotificationBanner(props: {
   item: NotificationItem;
-  meta: GlobalNotificationMeta;
+  meta: GlobalNotificationMetaFor<"banner">;
   dismissLabel: string;
   onDismiss: () => void;
-  onAction: (action: SurfaceAction) => void;
+  onAction: (action: GlobalNotificationAction) => void;
 }) {
   const payload = props.meta.payload;
   return (
@@ -260,7 +151,7 @@ function GlobalNotificationBanner(props: {
           {payload.action.label}
         </Button>
       ) : null}
-      {payload.dismissible ? (
+      {payload.dismissible !== false ? (
         <Button
           type="button"
           size="icon-sm"
@@ -277,13 +168,13 @@ function GlobalNotificationBanner(props: {
 
 function GlobalNotificationModal(props: {
   item: NotificationItem;
-  meta: GlobalNotificationMeta;
+  meta: GlobalNotificationMetaFor<"modal">;
   closeLabel: string;
   onDismiss: () => void;
-  onAction: (action: SurfaceAction) => void;
+  onAction: (action: GlobalNotificationAction) => void;
 }) {
   const payload = props.meta.payload;
-  const dismissible = payload.dismissPolicy === "dismissible";
+  const dismissible = payload.dismissPolicy !== "action_required";
   const mediaUrl = payload.media ? resolveAssetRefToPublicUrlPath(payload.media.assetId) : null;
   const posterUrl = payload.media?.posterAssetId
     ? resolveAssetRefToPublicUrlPath(payload.media.posterAssetId)
@@ -348,11 +239,9 @@ function GlobalNotificationModal(props: {
                 {payload.secondaryAction.label}
               </Button>
             ) : null}
-            {payload.primaryAction ? (
-              <Button type="button" onClick={() => props.onAction(payload.primaryAction!)}>
-                {payload.primaryAction.label}
-              </Button>
-            ) : null}
+            <Button type="button" onClick={() => props.onAction(payload.primaryAction)}>
+              {payload.primaryAction.label}
+            </Button>
           </DialogFooter>
         </div>
       </DialogContent>

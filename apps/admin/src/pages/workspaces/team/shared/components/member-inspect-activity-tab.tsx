@@ -1,7 +1,7 @@
 import type { RefObject } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { ActivityEvent } from "@arclayer/openapi/admin-types";
+import type { AuditEventOut as ActivityEvent } from "@arclayer/openapi";
 import { ActivityTimeline } from "@/pages/workspaces/shared/activity/components/activity-timeline";
 import { PageSkeleton } from "@arclayer/ui/page-skeleton";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";

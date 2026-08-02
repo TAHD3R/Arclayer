@@ -8,7 +8,7 @@ from pydantic import AliasChoices, ConfigDict, Field
 
 from src.common.schemas import BaseSchema
 from src.models.platform_identity.mfa import PlatformAuthFlowPurpose
-from src.modules.platform_identity.mfa_schema import PlatformMfaAssurance
+from src.modules.platform_identity.mfa_schema import PlatformMfaAssurance, PlatformRecoveryCodeSet
 
 
 class PlatformWebAuthnRelyingParty(BaseSchema):
@@ -147,6 +147,7 @@ class PlatformWebAuthnEnrollmentResult(BaseSchema):
 
     method_id: UUID
     assurance: Literal[PlatformMfaAssurance.PHISHING_RESISTANT] = PlatformMfaAssurance.PHISHING_RESISTANT
+    recovery_codes: PlatformRecoveryCodeSet | None = None
 
 
 class PlatformAuthFlowIssued(BaseSchema):
@@ -166,5 +167,8 @@ class PlatformAuthFlowRecord(BaseSchema):
     user_id: UUID
     purpose: PlatformAuthFlowPurpose
     identity_revision: int = Field(ge=0)
+    invitation_id: UUID | None = None
+    invitation_revision: int | None = Field(default=None, ge=1)
+    requires_phishing_resistant: bool = False
     expires_at: datetime
     failure_count: int = Field(ge=0)

@@ -5,10 +5,10 @@ import { PlusIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { ProjectAvatar, projectAvatarPropsFromIdentity } from "@/components/common/project-avatar";
+import type { listProjects } from "@/api/projects";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import { projectHomePath } from "@/lib/routing/workspace-routing";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import type { ProjectListItem } from "@arclayer/openapi/admin-types";
 import { cn } from "@arclayer/lib/utils";
 
 import { HomeSectionHeader } from "./home-section-header";
@@ -28,6 +28,7 @@ import type { ProjectMenuItem, UserCenterProjectsTranslateFn } from "../usercent
 const PROJECT_NAME_MAX_LENGTH = 128;
 const PROJECT_DESCRIPTION_MAX_LENGTH = 256;
 const RECENT_PROJECT_MENU_ITEM_KEYS = ["rename", "archive", "delete"] as const;
+type ProjectListItem = Awaited<ReturnType<typeof listProjects>>["items"][number];
 
 function normalizeProjectDescriptionPreview(value?: string | null) {
   return (value ?? "").replace(/\s*[\r\n]+\s*/g, " ").trim();

@@ -50,8 +50,9 @@ class PlatformCapabilityPermissionMatch(StrEnum):
 class PlatformCapabilityRouteTarget(StrEnum):
     ACCESS_TEAM = "access.team"
     ACCESS_ROLES = "access.roles"
-    ACCESS_SESSIONS = "access.sessions"
     ACCESS_SIGN_IN = "access.sign-in"
+    ACCESS_MFA = "access.mfa"
+    ACCESS_SESSIONS = "access.sessions"
     TENANT_WORKSPACES = "tenants.workspaces"
     TENANT_USERS = "tenants.users"
     TENANT_PROJECTS = "tenants.projects"
@@ -63,7 +64,11 @@ class PlatformCapabilityRouteTarget(StrEnum):
     OPERATIONS_SIGNALS = "operations.signals"
     COMMERCE_SUBSCRIPTIONS = "commerce.subscriptions"
     COMMERCE_PLANS = "commerce.plans"
+    COMMERCE_PAYMENTS = "commerce.payments"
+    COMMERCE_CREDITS = "commerce.credits"
+    COMMERCE_CONFIGURATION = "commerce.configuration"
     COMMUNICATIONS_FEEDBACK = "communications.feedback"
+    COMMUNICATIONS_DELIVERIES = "communications.deliveries"
     COMMUNICATIONS_CAMPAIGNS = "communications.campaigns"
     COMMUNICATIONS_TEMPLATES = "communications.templates"
     COMMUNICATIONS_EMAIL = "communications.email"
@@ -74,11 +79,11 @@ class PlatformCapabilityRouteTarget(StrEnum):
     AI_TASKS = "ai.tasks"
     AI_PROVIDERS = "ai.providers"
     AI_ASSISTANTS = "ai.assistants"
-    AI_RUNTIME = "ai.runtime"
+    AI_POLICIES = "ai.policies"
     SITE_DELIVERY_ISSUES = "site-delivery.issues"
     SITE_DELIVERY_DOMAINS = "site-delivery.domains"
     SITE_DELIVERY_STORAGE = "site-delivery.storage"
-    SITE_DELIVERY_RULES = "site-delivery.rules"
+    SITE_DELIVERY_POLICIES = "site-delivery.policies"
 
 
 class PlatformCapabilityNavigationTargetOut(BaseSchema):

@@ -1,5 +1,5 @@
-import type { PageData } from "@arclayer/openapi/admin-types";
-import type { WorkspaceManageListItem } from "@arclayer/openapi/admin-types";
+import type { PageDataWorkspaceManageListItemOut } from "@arclayer/openapi";
+import type { WorkspaceManageListItemOut as WorkspaceManageListItem } from "@arclayer/openapi";
 
 export type UserCenterWorkspaceListItemMemberPreview = {
   userId: string;
@@ -75,7 +75,7 @@ export function paginateWorkspaceList(
   items: readonly UserCenterWorkspaceListItem[],
   page: number,
   size: number,
-): PageData<UserCenterWorkspaceListItem> {
+): Omit<PageDataWorkspaceManageListItemOut, "items"> & { items: UserCenterWorkspaceListItem[] } {
   const safeSize = Math.max(1, size);
   const total = items.length;
   const pages = Math.max(1, Math.ceil(total / safeSize));

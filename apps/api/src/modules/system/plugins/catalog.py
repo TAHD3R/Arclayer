@@ -16,9 +16,14 @@ from src.models.system.plugin_installation import (
     PluginInstallationRecord,
     PluginLifecycleState,
     PluginRuntimeActivationState,
+    PluginTrustState,
 )
 from src.modules.system.plugins.remote_catalog import RemotePluginArtifact, RemotePluginCatalogPayload
 from src.modules.system.plugins.schema import (
+    ExtensionConsumerEvidenceOut,
+    ExtensionConsumerEvidenceState,
+    ExtensionConsumerOut,
+    ExtensionDependencyOut,
     SystemConnectorDefinitionOut,
     SystemPluginAdminOut,
     SystemPluginCatalogItemOut,
@@ -133,13 +138,17 @@ def build_artifact_catalog_item(
         package_checksum=artifact.package_checksum,
         manifest_digest=artifact.manifest_digest,
         signer_fingerprint=artifact.signer_fingerprint,
-        provenance_status=SystemPluginProvenanceStatus.VERIFIED,
+        provenance_status=_provenance_status(artifact.trust_state),
+        trust_state=artifact.trust_state,
+        trust_evidence=_trust_evidence(artifact.trust_evidence),
         compatibility=build_plugin_compatibility(manifest, settings=settings),
         package_state=instance.package.state if instance is not None else None,
         process_state=instance.process.state if instance is not None else None,
         provides=SystemPluginProvidesOut(**manifest.provides.model_dump()),
         permissions=list(manifest.permissions),
         approved_permissions=(list(installation.approved_permissions) if installation is not None else []),
+        dependencies=_dependencies(installation) or _manifest_dependencies(manifest),
+        consumers=_consumer_evidence(installation),
         config_schema=dict(manifest.config_schema),
         admin=SystemPluginAdminOut(**manifest.admin.model_dump()) if manifest.admin is not None else None,
         connector_definitions=_connector_definitions(manifest, manager=manager),
@@ -175,12 +184,16 @@ def _build_remote_catalog_item(
         manifest_digest=artifact.manifest_digest,
         signer_fingerprint=artifact.signer_fingerprint,
         provenance_status=SystemPluginProvenanceStatus.VERIFIED,
+        trust_state=PluginTrustState.VERIFIED,
+        trust_evidence=["approved_catalog_signature", "artifact_signature", "package_checksum", "manifest_digest"],
         compatibility=build_plugin_compatibility(manifest, settings=settings),
         package_state=instance.package.state if instance is not None else None,
         process_state=instance.process.state if instance is not None else None,
         provides=SystemPluginProvidesOut(**manifest.provides.model_dump()),
         permissions=list(manifest.permissions),
         approved_permissions=(list(installation.approved_permissions) if installation is not None else []),
+        dependencies=_dependencies(installation) or _manifest_dependencies(manifest),
+        consumers=_consumer_evidence(installation),
         config_schema=dict(manifest.config_schema),
         admin=SystemPluginAdminOut(**manifest.admin.model_dump()) if manifest.admin is not None else None,
         connector_definitions=_connector_definitions(manifest, manager=manager),
@@ -261,12 +274,16 @@ def _build_catalog_item(
         manifest_digest=f"{_CHECKSUM_PREFIX}{hashlib.sha256(manifest_path.read_bytes()).hexdigest()}",
         signer_fingerprint=None,
         provenance_status=SystemPluginProvenanceStatus.VERIFIED,
+        trust_state=PluginTrustState.VERIFIED,
+        trust_evidence=["bundled_source_policy", "package_checksum", "manifest_digest"],
         compatibility=compatibility,
         package_state=instance.package.state if instance is not None else None,
         process_state=instance.process.state if instance is not None else None,
         provides=SystemPluginProvidesOut(**manifest.provides.model_dump()),
         permissions=list(manifest.permissions),
         approved_permissions=(list(installation.approved_permissions) if installation is not None else []),
+        dependencies=_dependencies(installation) or _manifest_dependencies(manifest),
+        consumers=_consumer_evidence(installation),
         config_schema=dict(manifest.config_schema),
         admin=SystemPluginAdminOut(**manifest.admin.model_dump()) if manifest.admin is not None else None,
         connector_definitions=_connector_definitions(manifest, manager=manager),
@@ -285,6 +302,73 @@ def _connector_definitions(
             continue
         definitions.append(SystemConnectorDefinitionOut.model_validate(registration.definition.model_dump()))
     return definitions
+
+
+def _provenance_status(trust_state: PluginTrustState) -> SystemPluginProvenanceStatus:
+    return SystemPluginProvenanceStatus(str(trust_state))
+
+
+def _trust_evidence(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    evidence: list[str] = []
+    for item in value:
+        if not isinstance(item, str):
+            return []
+        evidence.append(item)
+    return evidence
+
+
+def _dependencies(installation: PluginInstallationRecord | None) -> list[ExtensionDependencyOut]:
+    if installation is None or not isinstance(installation.declared_dependencies, list):
+        return []
+    dependencies: list[ExtensionDependencyOut] = []
+    for raw in installation.declared_dependencies:
+        if not isinstance(raw, dict):
+            continue
+        name = raw.get("extension_name")
+        version = raw.get("version_requirement")
+        if not isinstance(name, str) or not name:
+            continue
+        dependencies.append(
+            ExtensionDependencyOut(
+                extension_name=name,
+                version_requirement=version if isinstance(version, str) else None,
+            )
+        )
+    return dependencies
+
+
+def _manifest_dependencies(manifest: ExtensionManifest) -> list[ExtensionDependencyOut]:
+    return [
+        ExtensionDependencyOut(
+            extension_name=dependency.name,
+            version_requirement=dependency.version_requirement,
+        )
+        for dependency in manifest.dependencies
+    ]
+
+
+def _consumer_evidence(installation: PluginInstallationRecord | None) -> ExtensionConsumerEvidenceOut:
+    if installation is None or not isinstance(installation.consumer_evidence, dict):
+        return ExtensionConsumerEvidenceOut(state=ExtensionConsumerEvidenceState.UNKNOWN)
+    raw_state = installation.consumer_evidence.get("state")
+    try:
+        state = ExtensionConsumerEvidenceState(raw_state)
+    except (TypeError, ValueError):
+        state = ExtensionConsumerEvidenceState.UNKNOWN
+    consumers: list[ExtensionConsumerOut] = []
+    raw_consumers = installation.consumer_evidence.get("consumers")
+    if isinstance(raw_consumers, list):
+        for raw in raw_consumers:
+            if not isinstance(raw, dict):
+                continue
+            domain = raw.get("domain")
+            label = raw.get("label")
+            deep_link = raw.get("deep_link")
+            if all(isinstance(value, str) and value for value in (domain, label, deep_link)):
+                consumers.append(ExtensionConsumerOut(domain=domain, label=label, deep_link=deep_link))
+    return ExtensionConsumerEvidenceOut(state=state, consumers=consumers)
 
 
 def build_plugin_compatibility(

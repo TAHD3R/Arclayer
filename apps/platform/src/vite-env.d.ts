@@ -2,6 +2,7 @@
 
 interface ImportMetaEnv {
   readonly VITE_PRODUCT_APP_ORIGIN: string;
+  readonly VITE_PLATFORM_CSRF_COOKIE_NAME?: string;
 }
 
 interface ImportMeta {

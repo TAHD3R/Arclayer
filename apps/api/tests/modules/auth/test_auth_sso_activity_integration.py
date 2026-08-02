@@ -177,7 +177,7 @@ async def _prepare_link_service(monkeypatch, *, base_dir: Path) -> tuple[OAuthSo
     request = _build_callback_request("google")
     payload_json = OAuthStatePayload(
         provider="google",
-        redirect="/w/account",
+        redirect="/projects/project-account",
         code_verifier="verifier",
         link_user_id=str(user.id),
     ).model_dump_json()

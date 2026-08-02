@@ -138,6 +138,7 @@ def _subscription_out(subscription: WorkspaceSubscription) -> WorkspaceSubscript
 
 def _credits_out(account: WorkspaceCreditAccount, revision: CommercePlanRevision) -> WorkspaceCreditsOut:
     return WorkspaceCreditsOut(
+        account_revision=int(account.revision),
         balance=int(account.balance_credits),
         reserved=int(account.reserved_credits),
         available=max(int(account.balance_credits) - int(account.reserved_credits), 0),

@@ -23,7 +23,7 @@ import {
   stableStringify,
 } from "@/pages/workspaces/shared/activity/utils";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import type { ActivityEvent } from "@arclayer/openapi/admin-types";
+import type { AuditEventOut as ActivityEvent } from "@arclayer/openapi";
 
 export function ActivityTimelinePage() {
   const { t } = useTranslation(["nav", "activity"]);

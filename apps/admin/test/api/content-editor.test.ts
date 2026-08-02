@@ -22,12 +22,13 @@ import {
   loadContentLibraryArticleEditorSnapshot,
 } from "@/pages/projects/content/library/article-editor/hooks/api";
 import type {
-  AdminContentItem,
-  AdminContentPresentation,
-  AdminContentVersion,
-  PatchAdminContentVersionPayload,
-  SaveAdminContentDraftVersionPayload,
-} from "@arclayer/openapi/admin-types";
+  ContentPresentationOut as AdminContentPresentation,
+  ContentVersionPatchIn as PatchAdminContentVersionPayload,
+  ContentVersionDraftSaveIn as SaveAdminContentDraftVersionPayload,
+} from "@arclayer/openapi";
+
+type AdminContentItem = Awaited<ReturnType<typeof getContentItem>>;
+type AdminContentVersion = Awaited<ReturnType<typeof getContentItemVersion>>;
 
 describe("api/content editor version wrappers", () => {
   beforeEach(() => {
@@ -65,6 +66,39 @@ describe("api/content editor version wrappers", () => {
   });
 
   it("calls the canonical version detail, draft save, patch, and publish endpoints", async () => {
+    const item: AdminContentItem = {
+      id: "item-1",
+      workspaceId: "workspace-1",
+      siteId: "site-1",
+      modelId: "model-1",
+      modelKey: "article",
+      slug: "launch-memo",
+      title: "Launch memo",
+      status: "draft",
+      visibility: "public",
+      locale: "en-US",
+      bootstrapPresetKey: "post",
+      bootstrapPresetState: "selected",
+      capabilityPackIds: ["publishable", "rich_text_editable"],
+      derivedStatus: "changed",
+      runtime: "text",
+      context: "content_library",
+      libraryGroup: "general-content",
+      editWith: "writing",
+      role: "article",
+      draftVersion: 3,
+      publishedVersion: 2,
+      updatedAt: "2026-03-28T01:00:00Z",
+    };
+    const version: AdminContentVersion = {
+      itemId: "item-1",
+      versionNumber: 3,
+      state: "draft",
+      createdAt: "2026-03-28T01:00:00Z",
+      fieldsSnapshot: {},
+      presentations: [],
+      changeSummary: null,
+    };
     const savePayload: SaveAdminContentDraftVersionPayload = {
       expectedVersion: 2,
       changeSummary: "Create article draft",
@@ -76,10 +110,13 @@ describe("api/content editor version wrappers", () => {
       fieldsSnapshot: { title: "Launch memo v2" },
     };
 
-    vi.mocked(api.get).mockResolvedValueOnce({ itemId: "item-1", versionNumber: 2 });
-    vi.mocked(api.post).mockResolvedValueOnce({ itemId: "item-1", versionNumber: 3 });
-    vi.mocked(api.patch).mockResolvedValueOnce({ itemId: "item-1", versionNumber: 3 });
-    vi.mocked(api.post).mockResolvedValueOnce({ itemId: "item-1", versionNumber: 3 });
+    vi.mocked(api.get)
+      .mockResolvedValueOnce(item)
+      .mockResolvedValueOnce(version)
+      .mockResolvedValueOnce({ items: [version], page: 2, pages: 2, size: 10, total: 11 });
+    vi.mocked(api.post).mockResolvedValueOnce(version);
+    vi.mocked(api.patch).mockResolvedValueOnce(version);
+    vi.mocked(api.post).mockResolvedValueOnce(version);
 
     await getContentItem("project-1", "item-1");
     await getContentItemVersion("project-1", "item-1", 2);
@@ -109,6 +146,15 @@ describe("api/content editor version wrappers", () => {
     expect(api.post).toHaveBeenNthCalledWith(
       2,
       "/projects/project-1/content/items/item-1/versions/3/publish",
+      undefined,
+    );
+  });
+
+  it("rejects incomplete item responses instead of hiding an API contract failure", async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({ id: "item-1" });
+
+    await expect(getContentItem("project-1", "item-1")).rejects.toThrow(
+      "Invalid content item response",
     );
   });
 

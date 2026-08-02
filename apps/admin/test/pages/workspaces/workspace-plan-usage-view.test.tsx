@@ -56,6 +56,7 @@ function overview() {
       updatedAt: "2026-07-01T00:00:00Z",
     },
     credits: {
+      accountRevision: 1,
       balance: 8_000,
       reserved: 250,
       available: 7_750,

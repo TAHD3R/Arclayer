@@ -17,7 +17,7 @@ vi.mock("@tanstack/react-router", () => ({
     select,
   }: {
     select: (state: { location: { pathname: string; searchStr: string } }) => unknown;
-  }) => select({ location: { pathname: "/w/ws-1/assets", searchStr: "" } }),
+  }) => select({ location: { pathname: "/projects/ws-1/assets", searchStr: "" } }),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -163,7 +163,7 @@ describe("DefaultPage", () => {
   });
 
   it("uses an amber favorite accent when the current page is starred", () => {
-    useFavoritesStore.setState({ paths: ["/w/ws-1/assets"] });
+    useFavoritesStore.setState({ paths: ["/projects/ws-1/assets"] });
 
     render(
       <DefaultPage title="Assets">

@@ -70,6 +70,15 @@ class CommercialAccessState(StrEnum):
     PAYMENT_RESTRICTED = "payment_restricted"
 
 
+class CommerceCatalogCommandAction(StrEnum):
+    """Catalog mutations that retain an exact idempotency result."""
+
+    CREATE_PLAN = "create_plan"
+    CREATE_DRAFT = "create_draft"
+    UPDATE_DRAFT = "update_draft"
+    PUBLISH_DRAFT = "publish_draft"
+
+
 class CommercePlan(BaseModel):
     """Stable product-offer identity; commercial terms live only on revisions."""
 
@@ -98,6 +107,7 @@ class CommercePlanRevision(BaseModel):
     content_hash = fields.CharField(max_length=64, null=True, unique=True)
     published_at = fields.DatetimeField(null=True, db_index=True)
     is_selling = fields.BooleanField(default=False, db_index=True)
+    revision = fields.BigIntField(default=1)
 
     if TYPE_CHECKING:
         plan_id: UUID
@@ -108,6 +118,44 @@ class CommercePlanRevision(BaseModel):
         abstract = False
         unique_together = (("plan_id", "sequence"),)
         indexes = (("plan_id", "status", "sequence"),)
+
+
+class CommerceCatalogCommandReceipt(BaseModel):
+    """Immutable catalog command result and its required Activity evidence."""
+
+    action = fields.CharEnumField(CommerceCatalogCommandAction, max_length=32)
+    idempotency_key_hash = fields.CharField(max_length=64)
+    request_fingerprint = fields.CharField(max_length=64)
+    actor_user_id = fields.UUIDField(null=True)
+    actor_session_id = fields.UUIDField(null=True)
+    target_plan_code = fields.CharField(max_length=48)
+    plan = fields.ForeignKeyField("models.CommercePlan", related_name="command_receipts", on_delete=fields.RESTRICT)
+    plan_revision = fields.ForeignKeyField(
+        "models.CommercePlanRevision",
+        related_name="command_receipts",
+        on_delete=fields.RESTRICT,
+        null=True,
+    )
+    result_revision = fields.BigIntField()
+    result_snapshot = fields.JSONField()
+    audit_event = fields.ForeignKeyField(
+        "models.AuditEvent",
+        source_field="audit_event_id",
+        related_name="commerce_catalog_command_receipts",
+        on_delete=fields.RESTRICT,
+    )
+
+    if TYPE_CHECKING:
+        plan_id: UUID
+        plan_revision_id: UUID | None
+        audit_event_id: UUID
+
+    class Meta(BaseModel.Meta):
+        table = "commerce_catalog_command_receipts"
+        table_description = "Immutable exact results and Activity evidence for catalog commands."
+        abstract = False
+        unique_together = (("target_plan_code", "action", "idempotency_key_hash"),)
+        indexes = (("plan_id", "created_at"), ("plan_revision_id", "created_at"))
 
 
 class CommercePlanRevisionPrice(BaseModel):
@@ -405,6 +453,7 @@ class SubscriptionRevisionTransition(BaseModel):
     status = fields.CharEnumField(
         SubscriptionTransitionStatus, default=SubscriptionTransitionStatus.SCHEDULED, db_index=True
     )
+    revision = fields.BigIntField(default=1)
     correlation_id = fields.UUIDField(unique=True, db_index=True)
 
     class Meta(BaseModel.Meta):
@@ -528,6 +577,59 @@ class CommerceDunningPolicy(BaseModel):
         table_description = "Versioned Provider-aware Commerce dunning policies."
         abstract = False
         unique_together = (("provider", "provider_mode", "revision"),)
+
+
+class CommerceDunningPolicyCommandReceipt(BaseModel):
+    """Exact idempotency result for one Provider-aware Dunning Policy write."""
+
+    provider = fields.CharField(max_length=32)
+    provider_mode = fields.CharEnumField(BillingProviderMode)
+    idempotency_key_hash = fields.CharField(max_length=64)
+    request_fingerprint = fields.CharField(max_length=64)
+    policy = fields.ForeignKeyField(
+        "models.CommerceDunningPolicy", related_name="command_receipts", on_delete=fields.RESTRICT
+    )
+    audit_event = fields.ForeignKeyField(
+        "models.AuditEvent", related_name="commerce_dunning_policy_command_receipts", on_delete=fields.RESTRICT
+    )
+
+    if TYPE_CHECKING:
+        policy_id: UUID
+        audit_event_id: UUID
+
+    class Meta(BaseModel.Meta):
+        table = "commerce_dunning_policy_command_receipts"
+        table_description = "Immutable idempotency and audit evidence for Commerce Dunning Policy writes."
+        abstract = False
+        unique_together = (("provider", "provider_mode", "idempotency_key_hash"),)
+
+
+class CommerceCreditAdjustmentReceipt(BaseModel):
+    """Exact idempotency result for an audited Platform Credit adjustment."""
+
+    workspace = fields.ForeignKeyField(
+        "models.Workspace", related_name="commerce_credit_adjustment_receipts", on_delete=fields.RESTRICT
+    )
+    idempotency_key_hash = fields.CharField(max_length=64)
+    request_fingerprint = fields.CharField(max_length=64)
+    result_snapshot = fields.JSONField()
+    ledger_entry = fields.ForeignKeyField(
+        "models.WorkspaceCreditLedger", related_name="adjustment_receipts", on_delete=fields.RESTRICT
+    )
+    audit_event = fields.ForeignKeyField(
+        "models.AuditEvent", related_name="commerce_credit_adjustment_receipts", on_delete=fields.RESTRICT
+    )
+
+    if TYPE_CHECKING:
+        workspace_id: UUID
+        ledger_entry_id: UUID
+        audit_event_id: UUID
+
+    class Meta(BaseModel.Meta):
+        table = "commerce_credit_adjustment_receipts"
+        table_description = "Immutable idempotency and audit evidence for Platform Credit adjustments."
+        abstract = False
+        unique_together = (("workspace_id", "idempotency_key_hash"),)
 
 
 class WorkspaceCommercialAccess(BaseModel):

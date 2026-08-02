@@ -1,5 +1,6 @@
 import {
   platformAssignOperationalSignal,
+  platformAddOperationalSignalNote,
   platformClaimOperationalSignal,
   platformGetOperationalSignal,
   platformListOperationalSignalEligibleAssignees,
@@ -174,6 +175,20 @@ export async function remindOperationalSignalLater(
       client: platformApiClient,
       path: { signal_id: signalId },
       body: { expectedRevision, reminderAt, reason },
+    }),
+  );
+}
+
+export async function addOperationalSignalNote(
+  signalId: string,
+  expectedRevision: number,
+  body: string,
+): Promise<OperationalSignalDetailOut> {
+  return unwrap(
+    await platformAddOperationalSignalNote({
+      client: platformApiClient,
+      path: { signal_id: signalId },
+      body: { expectedRevision, body },
     }),
   );
 }

@@ -60,7 +60,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  issueSSOLinkStateMock.mockResolvedValue({ token: "link-token", expires_in: 600 });
+  issueSSOLinkStateMock.mockResolvedValue({ token: "link-token", expiresIn: 600 });
   unlinkMyOAuthIdentityMock.mockResolvedValue(null);
 });
 

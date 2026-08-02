@@ -7,6 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from src.modules.platform_capabilities.registry import (
+    PLATFORM_CAPABILITY_REGISTRY,
     PlatformCapabilityNavigationRegistration,
     PlatformCapabilityRegistration,
 )
@@ -144,24 +145,33 @@ async def test_catalog_returns_only_navigation_targets_authorized_for_the_operat
 
 
 @pytest.mark.parametrize(
-    "permission",
+    ("permission", "capability_id", "route_targets"),
     (
-        PlatformPermissionCode.ACCESS_ROLES_READ,
-        PlatformPermissionCode.ACCESS_SESSIONS_READ,
-        PlatformPermissionCode.ACCESS_SIGN_IN_SETTINGS_READ,
-        PlatformPermissionCode.TENANT_USERS_READ,
-        PlatformPermissionCode.TENANT_PROJECTS_READ,
+        (
+            PlatformPermissionCode.ACCESS_TEAM_READ,
+            "access",
+            ["access.team", "access.mfa"],
+        ),
+        (PlatformPermissionCode.ACCESS_ROLES_READ, "access", ["access.roles"]),
+        (PlatformPermissionCode.ACCESS_SIGN_IN_SETTINGS_READ, "access", ["access.sign-in"]),
+        (PlatformPermissionCode.ACCESS_SESSIONS_READ, "access", ["access.sessions"]),
+        (PlatformPermissionCode.TENANT_USERS_READ, "tenant-governance", ["tenants.users"]),
+        (PlatformPermissionCode.TENANT_PROJECTS_READ, "tenant-governance", ["tenants.projects"]),
     ),
 )
 @pytest.mark.asyncio
-async def test_removed_peer_route_permissions_do_not_create_navigation_candidates(
+async def test_ready_peer_route_permissions_create_only_their_exact_navigation_targets(
     permission: PlatformPermissionCode,
+    capability_id: str,
+    route_targets: list[str],
 ) -> None:
     repository = _PermissionRepository(frozenset({permission.value}))
 
     catalog = await PlatformCapabilityCatalogService(repository).list_catalog(_principal(is_owner=False))
 
-    assert catalog.items == ()
+    assert [item.capability_id for item in catalog.items] == [capability_id]
+    assert catalog.items[0].navigation_candidate is True
+    assert [target.route_target.value for target in catalog.items[0].navigation_targets] == route_targets
 
 
 @pytest.mark.parametrize(
@@ -176,6 +186,16 @@ async def test_removed_peer_route_permissions_do_not_create_navigation_candidate
             PlatformPermissionCode.MONITORING_AUDIT_READ,
             "monitoring-audit",
             ["monitoring.activity", "monitoring.audit"],
+        ),
+        (
+            PlatformPermissionCode.AI_AGENTS_READ,
+            "ai-services",
+            ["ai.assistants", "ai.policies"],
+        ),
+        (
+            PlatformPermissionCode.MESSAGES_CAMPAIGNS_READ,
+            "communications",
+            ["communications.deliveries", "communications.campaigns"],
         ),
         (
             PlatformPermissionCode.OPERATIONS_SIGNALS_READ,
@@ -199,19 +219,39 @@ async def test_each_peer_route_uses_its_exact_platform_permission(
 
 
 @pytest.mark.parametrize(
-    ("permission", "capability_id"),
+    ("permission", "capability_id", "route_targets"),
     (
-        (PlatformPermissionCode.COMMERCE_READ, "commerce"),
-        (PlatformPermissionCode.AI_TASKS_READ, "ai-services"),
-        (PlatformPermissionCode.MESSAGES_FEEDBACK_READ, "communications"),
-        (PlatformPermissionCode.EXTENSIONS_CATALOG_READ, "extensions"),
-        (PlatformPermissionCode.SITE_DELIVERY_READ, "site-delivery"),
+        (
+            PlatformPermissionCode.COMMERCE_READ,
+            "commerce",
+            [
+                "commerce.subscriptions",
+                "commerce.plans",
+                "commerce.payments",
+                "commerce.credits",
+                "commerce.configuration",
+            ],
+        ),
+        (PlatformPermissionCode.AI_TASKS_READ, "ai-services", ["ai.tasks"]),
+        (PlatformPermissionCode.MESSAGES_FEEDBACK_READ, "communications", ["communications.feedback"]),
+        (
+            PlatformPermissionCode.EXTENSIONS_CATALOG_READ,
+            "extensions",
+            [
+                "extensions.installed",
+                "extensions.catalog",
+                "extensions.connections",
+                "extensions.history",
+            ],
+        ),
+        (PlatformPermissionCode.SITE_DELIVERY_READ, "site-delivery", ["site-delivery.issues", "site-delivery.domains"]),
     ),
 )
 @pytest.mark.asyncio
-async def test_removed_capabilities_are_not_ready_navigation_candidates(
+async def test_canonical_route_ready_capabilities_are_navigation_candidates(
     permission: PlatformPermissionCode,
     capability_id: str,
+    route_targets: list[str],
 ) -> None:
     repository = _PermissionRepository(frozenset({permission.value}))
 
@@ -219,9 +259,10 @@ async def test_removed_capabilities_are_not_ready_navigation_candidates(
 
     assert [item.capability_id for item in catalog.items] == [capability_id]
     capability = catalog.items[0]
-    assert capability.readiness_state is PlatformCapabilityReadinessState.NOT_READY
-    assert capability.missing_prerequisite_codes == ("PLATFORM_FRONTEND_ROUTE_UNAVAILABLE",)
-    assert capability.navigation_candidate is False
+    assert capability.readiness_state is PlatformCapabilityReadinessState.READY
+    assert capability.missing_prerequisite_codes == ()
+    assert capability.navigation_candidate is True
+    assert [target.route_target.value for target in capability.navigation_targets] == route_targets
 
 
 @pytest.mark.asyncio
@@ -318,7 +359,63 @@ async def test_access_team_read_authority_exposes_the_ready_trusted_route() -> N
     assert [item.capability_id for item in catalog.items] == ["access"]
     access = catalog.items[0]
     assert access.navigation_candidate is True
-    assert [target.route_target for target in access.navigation_targets] == [PlatformCapabilityRouteTarget.ACCESS_TEAM]
+    assert [target.route_target for target in access.navigation_targets] == [
+        PlatformCapabilityRouteTarget.ACCESS_TEAM,
+        PlatformCapabilityRouteTarget.ACCESS_MFA,
+    ]
+
+
+def test_registry_contains_every_canonical_platform_navigation_target() -> None:
+    target_values = {
+        target.route_target.value
+        for registration in PLATFORM_CAPABILITY_REGISTRY
+        for target in registration.navigation_targets
+    }
+
+    assert target_values == {
+        "access.team",
+        "access.roles",
+        "access.sign-in",
+        "access.mfa",
+        "access.sessions",
+        "tenants.workspaces",
+        "tenants.users",
+        "tenants.projects",
+        "ai.tasks",
+        "ai.providers",
+        "ai.assistants",
+        "ai.policies",
+        "site-delivery.issues",
+        "site-delivery.domains",
+        "site-delivery.storage",
+        "site-delivery.policies",
+        "communications.feedback",
+        "communications.deliveries",
+        "communications.campaigns",
+        "communications.templates",
+        "communications.email",
+        "extensions.installed",
+        "extensions.catalog",
+        "extensions.connections",
+        "extensions.history",
+        "commerce.subscriptions",
+        "commerce.plans",
+        "commerce.payments",
+        "commerce.credits",
+        "commerce.configuration",
+        "monitoring.requests",
+        "monitoring.performance",
+        "monitoring.ai-usage",
+        "monitoring.activity",
+        "monitoring.audit",
+        "operations.signals",
+    }
+    assert all(
+        registration.readiness_state is PlatformCapabilityReadinessState.READY
+        and registration.missing_prerequisite_codes == ()
+        and registration.runtime_health is PlatformCapabilityRuntimeHealth.NOT_REPORTED
+        for registration in PLATFORM_CAPABILITY_REGISTRY
+    )
 
 
 @pytest.mark.asyncio

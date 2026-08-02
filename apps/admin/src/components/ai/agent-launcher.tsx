@@ -223,9 +223,7 @@ function AllAgentsPopover({
 export function AgentLauncher() {
   const { t } = useTranslation(["ai"]);
   const api = useAui();
-  const workspaceId = useWorkspaceStore(
-    (state) => state.currentWorkspaceId ?? state.lastWorkspaceId,
-  );
+  const workspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const projectId = useWorkspaceStore((state) => state.currentProjectId);
   const selectedAgentId = useAiChatStore((state) => state.selectedAgentId);
   const setSelectedAgentId = useAiChatStore((state) => state.setSelectedAgentId);

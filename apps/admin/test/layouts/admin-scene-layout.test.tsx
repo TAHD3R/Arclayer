@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { NotificationOut as NotificationItem } from "@arclayer/openapi";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AdminSceneLayout } from "@/layouts/admin-scene-layout";
@@ -39,10 +40,16 @@ vi.mock("@/api/notifications", () => ({
   getUnreadNotificationPreview: (...args: unknown[]) => getUnreadNotificationPreviewMock(...args),
 }));
 
+vi.mock("@/hooks/use-admin-date-time-formatter", () => ({
+  useAdminDateTimeFormatter: () => ({
+    formatDateTime: () => "2026-04-22 10:05",
+  }),
+}));
+
 vi.mock("@/components/common/global-notification-surfaces", () => ({
-  getGlobalNotificationMeta: (item: { eventName?: string | null; targetMeta?: unknown }) => {
+  getGlobalNotificationMeta: (item: { eventName?: string | null; campaignSurface?: unknown }) => {
     if (item.eventName !== "system.broadcast") return null;
-    return item.targetMeta;
+    return item.campaignSurface ?? null;
   },
   GlobalNotificationSurfaces: (props: Record<string, unknown>) => {
     globalNotificationSurfacesSpy(props);
@@ -147,7 +154,7 @@ vi.mock("@/stores/use-preference-store", () => ({
     selector(preferencesState),
 }));
 
-function createNotification(overrides?: Partial<Record<string, unknown>>) {
+function createNotification(overrides: Partial<NotificationItem> = {}): NotificationItem {
   return {
     id: "notif-1",
     workspaceId: "ws-1",
@@ -155,8 +162,12 @@ function createNotification(overrides?: Partial<Record<string, unknown>>) {
     category: "team",
     title: "Review ready",
     body: "The latest changes are ready to review.",
-    targetTo: "/projects/project-1",
-    targetMeta: null,
+    target: {
+      kind: "project",
+      projectId: "project-1",
+      destination: "overview",
+    },
+    campaignSurface: null,
     eventName: null,
     dedupeKey: null,
     readAt: null,
@@ -407,7 +418,18 @@ describe("AdminSceneLayout", () => {
             id: "broadcast-banner",
             eventName: "system.broadcast",
             workspaceId: "00000000-0000-0000-0000-000000000000",
-            targetMeta: { presentation: "banner", severity: "warning" },
+            campaignSurface: {
+              campaignId: "campaign-banner",
+              deliveryId: "delivery-banner",
+              presentation: "banner",
+              priority: 20,
+              payload: {
+                title: "Banner notice",
+                body: "Banner body",
+                action: null,
+                dismissible: true,
+              },
+            },
           }),
         ],
       });
@@ -434,12 +456,30 @@ describe("AdminSceneLayout", () => {
     });
     renderSceneLayout(queryClient);
 
+    const campaignActionTarget = {
+      kind: "project",
+      projectId: "project-1",
+      destination: "website_releases",
+    } satisfies NotificationItem["target"];
     const campaignToast = createNotification({
       id: "broadcast-toast",
-      title: "Release ready",
       eventName: "system.broadcast",
       workspaceId: "00000000-0000-0000-0000-000000000000",
-      targetMeta: { presentation: "toast" },
+      campaignSurface: {
+        campaignId: "campaign-toast",
+        deliveryId: "delivery-toast",
+        presentation: "toast",
+        priority: 20,
+        payload: {
+          title: "Release ready",
+          body: "Open the release notes for details.",
+          action: {
+            kind: "internal_route",
+            label: "Review release",
+            target: campaignActionTarget,
+          },
+        },
+      },
     });
     act(() => {
       queryClient.setQueryData(["notifications", "preview", authState.sessionVersion], {
@@ -449,12 +489,25 @@ describe("AdminSceneLayout", () => {
     });
 
     await waitFor(() => expect(toastInfoMock).toHaveBeenCalledTimes(1));
-    const toastContent = toastInfoMock.mock.calls[0]?.[0] as { title: ReactNode };
-    render(<>{toastContent.title}</>);
-    await user.click(screen.getByRole("button", { name: "Release ready" }));
+    const toastContent = toastInfoMock.mock.calls[0]?.[0] as {
+      title: ReactNode;
+      description: ReactNode;
+    };
+    render(
+      <>
+        {toastContent.title}
+        {toastContent.description}
+      </>,
+    );
+    expect(screen.getByText("Release ready")).toBeInTheDocument();
+    expect(screen.getByText("Open the release notes for details.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Review release" }));
 
     await waitFor(() =>
-      expect(openTargetMock).toHaveBeenCalledWith(campaignToast, { markRead: false }),
+      expect(openTargetMock).toHaveBeenCalledWith(campaignToast, {
+        markRead: false,
+        target: campaignActionTarget,
+      }),
     );
     await waitFor(() => expect(recordInteractionMock).toHaveBeenCalledWith(campaignToast, "click"));
     expect(markReadMock).not.toHaveBeenCalledWith(campaignToast);

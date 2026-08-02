@@ -14,7 +14,7 @@ vi.mock("@tanstack/react-router", () => ({
     select,
   }: {
     select: (state: { location: { pathname: string } }) => unknown;
-  }) => select({ location: { pathname: "/w/ws-1/" } }),
+  }) => select({ location: { pathname: "/projects/ws-1/" } }),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -29,13 +29,13 @@ const items: AdminNavItem[] = [
     key: "dashboard",
     label: "Overview",
     icon: Home,
-    to: "/w/ws-1/",
+    to: "/projects/ws-1/",
   },
   {
     key: "team",
     label: "Team",
     icon: Users,
-    to: "/w/ws-1/team",
+    to: "/projects/ws-1/team",
   },
 ];
 
@@ -44,7 +44,7 @@ const treeItems: AdminNavItem[] = [
     key: "home",
     label: "Home",
     icon: Home,
-    to: "/w/ws-1/",
+    to: "/projects/ws-1/",
   },
   {
     key: "content",
@@ -60,13 +60,13 @@ const dividerItems: AdminNavItem[] = [
     key: "home",
     label: "Home",
     icon: Home,
-    to: "/w/ws-1/",
+    to: "/projects/ws-1/",
   },
   {
     key: "team",
     label: "Team",
     icon: Users,
-    to: "/w/ws-1/team",
+    to: "/projects/ws-1/team",
     dividerBefore: true,
   },
 ];
@@ -140,7 +140,7 @@ describe("AdminSiderNav spacing", () => {
     renderWithQueryClient(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
-          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/w/ws-1" />
+          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/projects/ws-1" />
         </Sidebar>
       </SidebarProvider>,
     );
@@ -174,7 +174,7 @@ describe("AdminSiderNav spacing", () => {
     renderWithQueryClient(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
-          <AdminSiderNav items={dividerItems} favoriteWorkspaceBase="/w/ws-1" />
+          <AdminSiderNav items={dividerItems} favoriteWorkspaceBase="/projects/ws-1" />
         </Sidebar>
       </SidebarProvider>,
     );
@@ -193,7 +193,7 @@ describe("AdminSiderNav spacing", () => {
     const { container } = renderWithQueryClient(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
-          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/w/ws-1" />
+          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/projects/ws-1" />
         </Sidebar>
       </SidebarProvider>,
     );
@@ -251,7 +251,7 @@ describe("AdminSiderNav spacing", () => {
     renderWithQueryClient(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
-          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/w/ws-1" />
+          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/projects/ws-1" />
         </Sidebar>
       </SidebarProvider>,
     );
@@ -278,7 +278,7 @@ describe("AdminSiderNav spacing", () => {
 
   it("uses the layout-driven hide contract for the favorites header during desktop collapse motion", () => {
     useFavoritesStore.setState({
-      paths: ["/w/ws-1/team"],
+      paths: ["/projects/ws-1/team"],
       items: [],
       sectionExpanded: true,
     });
@@ -286,7 +286,7 @@ describe("AdminSiderNav spacing", () => {
     renderWithQueryClient(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
-          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/w/ws-1" showFavorites />
+          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/projects/ws-1" showFavorites />
         </Sidebar>
       </SidebarProvider>,
     );
@@ -329,7 +329,7 @@ describe("AdminSiderNav spacing", () => {
     renderWithQueryClient(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
-          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/w/ws-1" />
+          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/projects/ws-1" />
         </Sidebar>
       </SidebarProvider>,
     );

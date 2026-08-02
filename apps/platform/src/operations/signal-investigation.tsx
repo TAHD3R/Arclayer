@@ -1,4 +1,4 @@
-import { ExternalLink, History, Info, Wrench } from "lucide-react";
+import { AlertTriangle, ExternalLink, History, Info, Wrench } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import type {
@@ -6,8 +6,9 @@ import type {
   OperationalSignalTriageHistoryOut,
 } from "@arclayer/platform-openapi";
 
-import { jobIdFromDestination } from "@/operations/operations-routing";
+import { getTrustedSupportingRouteDestination } from "@/capabilities/module-registry";
 import { formatDateTime } from "@/operations/operations-ui";
+import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 import { Badge } from "@arclayer/ui/badge";
 import { Button } from "@arclayer/ui/button";
 import { Separator } from "@arclayer/ui/separator";
@@ -19,6 +20,35 @@ function DetailField({ label, value }: Readonly<{ label: string; value: string }
       <dd className="break-words text-footnote text-label-primary">{value}</dd>
     </div>
   );
+}
+
+type JobEvidence = Readonly<{
+  attemptCount: number;
+  errorCode?: string;
+  jobType: string;
+  statusKey?: string;
+}>;
+
+function optionalString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+function readJobEvidence(detail: OperationalSignalDetailOut): JobEvidence | null {
+  if (detail.sourceDomain !== "jobs") return null;
+  const summary = detail.evidence.summary;
+  const jobType = optionalString(summary.jobType);
+  const attemptCount = summary.attemptCount;
+  if (!jobType || typeof attemptCount !== "number" || !Number.isInteger(attemptCount)) return null;
+  return {
+    attemptCount,
+    errorCode: optionalString(summary.errorCode),
+    jobType,
+    statusKey: optionalString(summary.statusKey),
+  };
+}
+
+function affectedScopeId(detail: OperationalSignalDetailOut, key: string): string | undefined {
+  return optionalString(detail.affectedScope[key]);
 }
 
 function HistoryItem({ item }: Readonly<{ item: OperationalSignalTriageHistoryOut }>) {
@@ -52,13 +82,20 @@ export function SignalInvestigation({
   showDestination?: boolean;
 }>) {
   const { t } = useTranslation(["inbox"]);
-  const destinationJobId = jobIdFromDestination(detail.destination.path);
+  const destination = getTrustedSupportingRouteDestination(detail.destination.routeTarget);
   const stateKey = `inbox:TRIAGE_${detail.triage.state.toUpperCase()}`;
+  const severityKey = `inbox:SEVERITY_${detail.severity.toUpperCase()}`;
+  const evidence = readJobEvidence(detail);
+  const workspaceId = affectedScopeId(detail, "workspaceId");
+  const projectId = affectedScopeId(detail, "projectId");
+  const siteId = affectedScopeId(detail, "siteId");
   return (
     <div className="space-y-6">
       <section aria-labelledby="signal-impact-heading" className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="destructive">{t("inbox:SEVERITY_HIGH")}</Badge>
+          <Badge variant={detail.severity === "critical" ? "destructive" : "outline"}>
+            {t(severityKey)}
+          </Badge>
           <Badge variant={detail.sourceLifecycle === "resolved" ? "secondary" : "outline"}>
             {detail.sourceLifecycle === "resolved" ? t("inbox:SOURCE_RESOLVED") : t(stateKey)}
           </Badge>
@@ -97,19 +134,28 @@ export function SignalInvestigation({
           <Wrench aria-hidden="true" className="size-5" />
           {t("inbox:EVIDENCE_TITLE")}
         </h2>
+        {!evidence && (
+          <Alert variant="destructive">
+            <AlertTriangle aria-hidden="true" />
+            <AlertTitle>{t("inbox:EVIDENCE_CONTRACT_ERROR_TITLE")}</AlertTitle>
+            <AlertDescription>{t("inbox:EVIDENCE_CONTRACT_ERROR_DESCRIPTION")}</AlertDescription>
+          </Alert>
+        )}
         <dl className="grid gap-4 sm:grid-cols-2">
-          <DetailField label={t("inbox:JOB_KIND")} value={detail.evidence.jobType} />
-          <DetailField
-            label={t("inbox:ATTEMPTS")}
-            value={new Intl.NumberFormat().format(detail.evidence.attemptCount)}
-          />
+          {evidence && <DetailField label={t("inbox:JOB_KIND")} value={evidence.jobType} />}
+          {evidence && (
+            <DetailField
+              label={t("inbox:ATTEMPTS")}
+              value={new Intl.NumberFormat().format(evidence.attemptCount)}
+            />
+          )}
           <DetailField label={t("inbox:DETECTED_AT")} value={formatDateTime(detail.detectedAt)} />
           <DetailField
             label={t("inbox:SOURCE_UPDATED_AT")}
             value={formatDateTime(detail.freshness.sourceUpdatedAt)}
           />
-          {detail.evidence.errorCode && (
-            <DetailField label={t("inbox:ERROR_CODE")} value={detail.evidence.errorCode} />
+          {evidence?.errorCode && (
+            <DetailField label={t("inbox:ERROR_CODE")} value={evidence.errorCode} />
           )}
         </dl>
         <div className="rounded-lg border p-4">
@@ -118,13 +164,21 @@ export function SignalInvestigation({
           </p>
           <p className="mt-1 text-footnote">{t(detail.resolutionConditionKey)}</p>
         </div>
-        {showDestination && destinationJobId && (
+        {showDestination && destination && detail.destination.authorized && (
           <Button asChild variant="outline">
-            <Link search={{ jobId: destinationJobId }} to="/operations/jobs">
-              {t(detail.destination.labelKey)}
+            <Link params={{ signalId: detail.id }} to={destination.path}>
+              {t(destination.labelKey)}
               <ExternalLink aria-hidden="true" />
             </Link>
           </Button>
+        )}
+        {showDestination && !destination && (
+          <p className="text-footnote text-destructive">{t("REMEDIATION_ROUTE_UNAVAILABLE")}</p>
+        )}
+        {showDestination && destination && !detail.destination.authorized && (
+          <p className="text-footnote text-label-secondary">
+            {t("REMEDIATION_PERMISSION_REQUIRED")}
+          </p>
         )}
       </section>
 
@@ -149,22 +203,39 @@ export function SignalInvestigation({
         )}
       </section>
 
+      <section aria-labelledby="signal-notes-heading" className="space-y-4">
+        <h2 className="text-title3 font-semibold" id="signal-notes-heading">
+          {t("NOTES_TITLE")}
+        </h2>
+        {detail.notes.length ? (
+          <ol className="space-y-3">
+            {detail.notes.map((note) => (
+              <li className="rounded-lg border p-3" key={note.revision}>
+                <p className="whitespace-pre-wrap text-footnote">{note.body}</p>
+                <p className="mt-2 text-caption text-label-secondary">
+                  {t("NOTE_RECORDED", {
+                    date: formatDateTime(note.createdAt),
+                    revision: note.revision,
+                  })}
+                </p>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="text-footnote text-label-secondary">{t("NOTES_EMPTY")}</p>
+        )}
+      </section>
+
       <details className="rounded-lg border p-4 text-footnote">
         <summary className="cursor-pointer font-medium">{t("inbox:DIAGNOSTICS_TITLE")}</summary>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2">
           <DetailField label={t("inbox:SIGNAL_ID")} value={detail.id} />
           <DetailField label={t("inbox:SOURCE_REFERENCE")} value={detail.sourceReference.id} />
-          {detail.evidence.workspaceId && (
-            <DetailField label={t("inbox:WORKSPACE_ID")} value={detail.evidence.workspaceId} />
-          )}
-          {detail.evidence.projectId && (
-            <DetailField label={t("inbox:PROJECT_ID")} value={detail.evidence.projectId} />
-          )}
-          {detail.evidence.siteId && (
-            <DetailField label={t("inbox:SITE_ID")} value={detail.evidence.siteId} />
-          )}
-          {detail.evidence.statusKey && (
-            <DetailField label={t("inbox:SOURCE_STATUS")} value={detail.evidence.statusKey} />
+          {workspaceId && <DetailField label={t("inbox:WORKSPACE_ID")} value={workspaceId} />}
+          {projectId && <DetailField label={t("inbox:PROJECT_ID")} value={projectId} />}
+          {siteId && <DetailField label={t("inbox:SITE_ID")} value={siteId} />}
+          {evidence?.statusKey && (
+            <DetailField label={t("inbox:SOURCE_STATUS")} value={evidence.statusKey} />
           )}
         </dl>
       </details>

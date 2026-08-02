@@ -85,12 +85,12 @@ export function UserChangeEmailDialog(props: UserChangeEmailDialogProps) {
 
   const requestCodeMutation = useMutation({
     mutationFn: async (payload: { newEmail: string }) => {
-      return authApi.requestMyEmailChange({ new_email: payload.newEmail });
+      return authApi.requestMyEmailChange({ newEmail: payload.newEmail });
     },
     onSuccess: (result) => {
       setVerifyError(null);
       setStep("verify");
-      setRetryAfter(result.retryAfter ?? result.retry_after);
+      setRetryAfter(result.retryAfter);
       form.clearErrors("code");
       form.setValue("code", "");
       notifySuccessText(t("auth:LOGIN_CODE_SENT"));
@@ -100,7 +100,7 @@ export function UserChangeEmailDialog(props: UserChangeEmailDialogProps) {
   const confirmMutation = useMutation({
     mutationFn: async (payload: ChangeEmailFormValues) => {
       return authApi.confirmMyEmailChange({
-        new_email: payload.newEmail,
+        newEmail: payload.newEmail,
         code: payload.code,
       });
     },

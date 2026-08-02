@@ -12,6 +12,7 @@ import type { AdminNavItem } from "@/types/admin-nav";
 import { Sidebar, SidebarProvider } from "@arclayer/ui/sidebar";
 
 const translations: Record<string, string> = {
+  "nav:NAV_ASSETS": "Assets",
   "nav:NAV_FAVORITES": "Favorites",
   NAV_FAVORITES_EMPTY_TITLE: "No favorites yet",
   NAV_FAVORITES_EMPTY_DESCRIPTION: "Add your boards, docs, or dashboards for quick access.",
@@ -65,7 +66,7 @@ const workspaceItems: AdminNavItem[] = [
     key: "dashboard",
     label: "Overview",
     icon: Home,
-    to: "/w/ws-1/",
+    to: "/projects/ws-1/",
   },
   {
     key: "content",
@@ -76,7 +77,7 @@ const workspaceItems: AdminNavItem[] = [
         key: "assets",
         label: "Assets",
         icon: FileText,
-        to: "/w/ws-1/assets",
+        to: "/projects/ws-1/assets",
       },
     ],
   },
@@ -89,7 +90,7 @@ const workspaceItems: AdminNavItem[] = [
         key: "team.members",
         label: "Members",
         icon: Users,
-        to: "/w/ws-1/team/members",
+        to: "/projects/ws-1/team/members",
       },
     ],
   },
@@ -239,14 +240,16 @@ describe("AdminSiderNav capability nodes", () => {
 
   it("renders folder rows and toggles nested favorites inline", async () => {
     useFavoritesStore.setState({
-      paths: ["/w/ws-1/assets"],
+      paths: ["/projects/ws-1/assets"],
       items: [
         {
           id: "folder:launches",
           type: "folder",
           name: "Launches",
           expanded: true,
-          children: [{ id: "item:/w/ws-1/assets", type: "item", path: "/w/ws-1/assets" }],
+          children: [
+            { id: "item:/projects/ws-1/assets", type: "item", path: "/projects/ws-1/assets" },
+          ],
         },
       ],
       sectionExpanded: true,
@@ -255,7 +258,11 @@ describe("AdminSiderNav capability nodes", () => {
     renderSidebar(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
-          <AdminSiderNav items={workspaceItems} favoriteWorkspaceBase="/w/ws-1" showFavorites />
+          <AdminSiderNav
+            items={workspaceItems}
+            favoriteWorkspaceBase="/projects/ws-1"
+            showFavorites
+          />
         </Sidebar>
       </SidebarProvider>,
     );
@@ -281,15 +288,19 @@ describe("AdminSiderNav capability nodes", () => {
     const windowOpenSpy = vi.spyOn(window, "open").mockImplementation(() => null);
 
     useFavoritesStore.setState({
-      paths: ["/w/ws-1/assets"],
-      items: [{ id: "item:/w/ws-1/assets", type: "item", path: "/w/ws-1/assets" }],
+      paths: ["/projects/ws-1/assets"],
+      items: [{ id: "item:/projects/ws-1/assets", type: "item", path: "/projects/ws-1/assets" }],
       sectionExpanded: true,
     });
 
     renderSidebar(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
-          <AdminSiderNav items={workspaceItems} favoriteWorkspaceBase="/w/ws-1" showFavorites />
+          <AdminSiderNav
+            items={workspaceItems}
+            favoriteWorkspaceBase="/projects/ws-1"
+            showFavorites
+          />
         </Sidebar>
       </SidebarProvider>,
     );
@@ -298,7 +309,10 @@ describe("AdminSiderNav capability nodes", () => {
     await user.click(screen.getByRole("menuitem", { name: "Open in overlay" }));
 
     const iframe = await screen.findByTitle("Assets");
-    expect(iframe).toHaveAttribute("src", "/w/ws-1/assets?arclayer_favorite_overlay=content-only");
+    expect(iframe).toHaveAttribute(
+      "src",
+      "/projects/ws-1/assets?arclayer_favorite_overlay=content-only",
+    );
     await waitFor(() => {
       expect(screen.getByLabelText("breadcrumb")).toHaveTextContent("Workspace One");
     });
@@ -315,21 +329,29 @@ describe("AdminSiderNav capability nodes", () => {
 
     await user.click(openInNewTabButton);
 
-    expect(windowOpenSpy).toHaveBeenCalledWith("/w/ws-1/assets", "_blank", "noopener,noreferrer");
+    expect(windowOpenSpy).toHaveBeenCalledWith(
+      "/projects/ws-1/assets",
+      "_blank",
+      "noopener,noreferrer",
+    );
   });
 
   it("keeps the active favorite section collapsed until the user expands it", async () => {
     const user = userEvent.setup();
-    mockPathname = "/w/ws-1/assets";
+    mockPathname = "/projects/ws-1/assets";
     useFavoritesStore.setState({
-      paths: ["/w/ws-1/assets"],
+      paths: ["/projects/ws-1/assets"],
       sectionExpanded: false,
     });
 
     renderSidebar(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
-          <AdminSiderNav items={workspaceItems} favoriteWorkspaceBase="/w/ws-1" showFavorites />
+          <AdminSiderNav
+            items={workspaceItems}
+            favoriteWorkspaceBase="/projects/ws-1"
+            showFavorites
+          />
         </Sidebar>
       </SidebarProvider>,
     );
@@ -353,16 +375,20 @@ describe("AdminSiderNav capability nodes", () => {
 
   it("keeps favorites accessible in collapsed mode through the capability popover", async () => {
     vi.useFakeTimers();
-    mockPathname = "/w/ws-1/";
+    mockPathname = "/projects/ws-1/";
     useFavoritesStore.setState({
-      paths: ["/w/ws-1/assets"],
+      paths: ["/projects/ws-1/assets"],
       sectionExpanded: false,
     });
 
     renderSidebar(
       <SidebarProvider defaultOpen={false} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
-          <AdminSiderNav items={workspaceItems} favoriteWorkspaceBase="/w/ws-1" showFavorites />
+          <AdminSiderNav
+            items={workspaceItems}
+            favoriteWorkspaceBase="/projects/ws-1"
+            showFavorites
+          />
         </Sidebar>
       </SidebarProvider>,
     );

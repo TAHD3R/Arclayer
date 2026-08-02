@@ -20,7 +20,7 @@ from src.modules.auth.tokens.service import hash_password
 from src.modules.organization.repository import OrganizationRepository
 from src.modules.organization.workspaces import service as org_workspaces_service_module
 from src.modules.organization.workspaces.schema import OrganizationWorkspaceCreateRequest
-from src.modules.organization.workspaces.service import OrganizationWorkspaceService
+from src.modules.organization.workspaces.service import build_organization_workspace_service
 from src.modules.system.rbac.constants.service import ROLE_EDITOR, ROLE_VIEWER
 from src.modules.workspaces import service as workspace_service_module
 from src.modules.workspaces.authz.role_management import WorkspaceRoleManagementAvailability
@@ -35,7 +35,7 @@ pytestmark = pytest.mark.integration
 async def test_workspace_create_activity_readback_and_rollback(db_schema, monkeypatch) -> None:
     _ = db_schema
     settings = get_settings()
-    service = OrganizationWorkspaceService(settings)
+    service = build_organization_workspace_service(settings)
     org_repo = OrganizationRepository()
     user_repo = UserRepository()
 
@@ -191,7 +191,7 @@ async def test_workspace_update_activity_readback_and_rollback(db_schema, monkey
 async def test_workspace_archive_delete_activity_readback_and_rollback(db_schema, monkeypatch) -> None:
     _ = db_schema
     settings = get_settings()
-    service = OrganizationWorkspaceService(settings)
+    service = build_organization_workspace_service(settings)
     org_repo = OrganizationRepository()
     user_repo = UserRepository()
 
@@ -343,7 +343,7 @@ async def test_workspace_archive_delete_activity_readback_and_rollback(db_schema
 async def test_workspace_role_policy_activity_readback_and_rollback(db_schema, monkeypatch) -> None:
     _ = db_schema
     settings = get_settings()
-    workspace_lifecycle_service = OrganizationWorkspaceService(settings)
+    workspace_lifecycle_service = build_organization_workspace_service(settings)
     settings_service = WorkspaceSettingsService(
         settings,
         role_management_reader=cast(

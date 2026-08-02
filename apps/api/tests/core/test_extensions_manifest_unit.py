@@ -158,6 +158,31 @@ class TestParseManifest:
         with pytest.raises(ManifestParseError, match="Invalid manifest"):
             parse_manifest(path)
 
+    def test_dependencies_capture_extension_identity_and_version_requirement(self):
+        path = _write_manifest({
+            "name": "my-ext",
+            "version": "1.0.0",
+            "dependencies": [{"name": "required-ext", "version_requirement": ">=2.0.0"}],
+        })
+
+        manifest = parse_manifest(path)
+
+        assert manifest.dependencies[0].name == "required-ext"
+        assert manifest.dependencies[0].version_requirement == ">=2.0.0"
+
+    @pytest.mark.parametrize(
+        "dependencies",
+        [
+            [{"name": "required-ext"}, {"name": "required-ext"}],
+            [{"name": "my-ext"}],
+        ],
+    )
+    def test_dependencies_reject_duplicates_and_self_reference(self, dependencies):
+        path = _write_manifest({"name": "my-ext", "version": "1.0.0", "dependencies": dependencies})
+
+        with pytest.raises(ManifestParseError, match="Invalid manifest"):
+            parse_manifest(path)
+
 
 # ——— Package state machine —————————————————————————————————————————————
 

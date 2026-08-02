@@ -11,6 +11,7 @@ vi.mock("@/lib/http", () => ({
 import {
   createKnowledgeBase,
   createKnowledgeSource,
+  createKnowledgeSourceIngestion,
   createManualKnowledgeSourceVersion,
   listKnowledgeBases,
 } from "@/api/workspace-knowledge";
@@ -47,6 +48,13 @@ describe("api/workspace knowledge contracts", () => {
       { content: "Approved source content." },
       "version-command",
     );
+    await createKnowledgeSourceIngestion(
+      workspaceId,
+      baseId,
+      sourceId,
+      { ingestionMode: "refresh" },
+      "ingestion-command",
+    );
 
     expect(api.post).toHaveBeenNthCalledWith(
       1,
@@ -68,6 +76,12 @@ describe("api/workspace knowledge contracts", () => {
       "/workspaces/workspace%2Falpha/knowledge-bases/base%2Fone/sources/source%2Fone/versions",
       { content: "Approved source content." },
       { headers: { "Idempotency-Key": "version-command" } },
+    );
+    expect(api.post).toHaveBeenNthCalledWith(
+      4,
+      "/workspaces/workspace%2Falpha/knowledge-bases/base%2Fone/sources/source%2Fone/ingestions",
+      { ingestionMode: "refresh" },
+      { headers: { "Idempotency-Key": "ingestion-command" } },
     );
   });
 

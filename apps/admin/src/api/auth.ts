@@ -1,33 +1,72 @@
 import { api } from "@/lib/http";
 import type {
-  AuthSessionList,
-  AuthSessionRevokeOthersResult,
-  ConfirmMyEmailChangePayload,
-  DeleteMyAccountCapability,
-  DeleteMyAccountPayload,
+  AuthSessionListOut,
+  AuthSessionOut,
+  AuthSessionRevokeOthersOut,
+  ChangePasswordRequest,
+  ConfirmMyEmailChangeRequest as ConfirmMyEmailChangePayload,
+  DeleteMyAccountCapabilityOut as DeleteMyAccountCapability,
+  DeleteMyAccountRequest as DeleteMyAccountPayload,
   EmailCheckOut,
-  ConfirmRemoveMyPasswordPayload,
+  ConfirmRemoveMyPasswordRequest as ConfirmRemoveMyPasswordPayload,
+  LoginEmailCodeRequest,
   LoginEmailCodeRequestOut,
-  MySecurityCapability,
-  OnboardingProfile,
-  PatchOnboardingProfilePayload,
-  RequestRemoveMyPasswordPayload,
-  RegisterPayload,
+  LoginEmailCodeVerifyRequest,
+  LoginRequest,
+  LogoutRequest,
+  MySecurityCapabilityOut as MySecurityCapability,
+  OnboardingProfileOut as OnboardingProfile,
+  OnboardingProfilePatchRequest as PatchOnboardingProfilePayload,
+  RefreshRequest,
+  RegisterEmailResendRequest,
+  RequestRemoveMyPasswordRequest as RequestRemoveMyPasswordPayload,
+  RequestRemoveMyPasswordOut,
+  RegisterRequest as RegisterPayload,
   RegisterResult,
   RegisterEmailVerificationOut,
   RequestMyEmailChangeOut,
-  RequestMyEmailChangePayload,
+  RequestMyEmailChangeRequest as RequestMyEmailChangePayload,
+  ResetPasswordRequest,
   ResetTokenPayload,
-  SetMyPasswordPayload,
+  SetMyPasswordRequest as SetMyPasswordPayload,
   TokenPair,
-  TwoFactorBackupCodesResult,
-  TwoFactorCapabilities,
-  TwoFactorSetupResult,
-  TwoFactorStatus,
-  UpdateMyProfilePayload,
+  TwoFactorConfirmOut as TwoFactorBackupCodesResult,
+  TwoFactorConfirmRequest,
+  TwoFactorCapabilitiesOut as TwoFactorCapabilities,
+  TwoFactorDisableRequest,
+  TwoFactorLoginRequest,
+  TwoFactorRegenerateBackupCodesRequest,
+  TwoFactorSetupOut as TwoFactorSetupResult,
+  TwoFactorSetupRequest,
+  TwoFactorStatusOut as TwoFactorStatus,
+  UpdateMyProfileRequest as UpdateMyProfilePayload,
   UsernameCheckOut,
   UserProfile,
-} from "@arclayer/openapi/admin-types";
+} from "@arclayer/openapi";
+
+type AuthSessionList = Omit<AuthSessionListOut, "items" | "total"> & {
+  items: AuthSessionOut[];
+  total: number;
+};
+type AuthSessionRevokeOthersResult = Omit<AuthSessionRevokeOthersOut, "revokedCount"> & {
+  revokedCount: number;
+};
+
+function requireAuthSessionList(response: AuthSessionListOut): AuthSessionList {
+  if (!Array.isArray(response.items) || typeof response.total !== "number") {
+    throw new Error("Invalid auth session list response");
+  }
+  return { ...response, items: response.items, total: response.total };
+}
+
+function requireAuthSessionRevokeResult(
+  response: AuthSessionRevokeOthersOut,
+): AuthSessionRevokeOthersResult {
+  if (typeof response.revokedCount !== "number") {
+    throw new Error("Invalid auth session revoke response");
+  }
+  return { ...response, revokedCount: response.revokedCount };
+}
 
 export async function emailCheck(payload: { email: string }): Promise<EmailCheckOut> {
   return api.post<EmailCheckOut>("/auth/email-check", payload, { auth: { skipRefresh: true } });
@@ -39,50 +78,37 @@ export async function usernameCheck(payload: { username: string }): Promise<User
   });
 }
 
-export async function login(payload: { email: string; password: string }): Promise<TokenPair> {
+export async function login(payload: LoginRequest): Promise<TokenPair> {
   return api.post<TokenPair>("/auth/login", payload, { auth: { skipRefresh: true } });
 }
 
-export async function requestLoginEmailCode(payload: {
-  email: string;
-}): Promise<LoginEmailCodeRequestOut> {
+export async function requestLoginEmailCode(
+  payload: LoginEmailCodeRequest,
+): Promise<LoginEmailCodeRequestOut> {
   return api.post<LoginEmailCodeRequestOut>("/auth/login/email-code/request", payload, {
     auth: { skipRefresh: true },
   });
 }
 
-export async function verifyLoginEmailCode(payload: {
-  email: string;
-  code: string;
-}): Promise<TokenPair> {
+export async function verifyLoginEmailCode(
+  payload: LoginEmailCodeVerifyRequest,
+): Promise<TokenPair> {
   return api.post<TokenPair>("/auth/login/email-code/verify", payload, {
     auth: { skipRefresh: true },
   });
 }
 
-export async function loginTwoFactor(payload: {
-  twoFactorToken: string;
-  code?: string;
-  backupCode?: string;
-}): Promise<TokenPair> {
-  return api.post<TokenPair>(
-    "/auth/login/2fa",
-    {
-      two_factor_token: payload.twoFactorToken,
-      ...(payload.code ? { code: payload.code } : {}),
-      ...(payload.backupCode ? { backup_code: payload.backupCode } : {}),
-    },
-    { auth: { skipRefresh: true } },
-  );
+export async function loginTwoFactor(payload: TwoFactorLoginRequest): Promise<TokenPair> {
+  return api.post<TokenPair>("/auth/login/2fa", payload, { auth: { skipRefresh: true } });
 }
 
 export async function register(payload: RegisterPayload): Promise<RegisterResult> {
   return api.post<RegisterResult>("/auth/register", payload, { auth: { skipRefresh: true } });
 }
 
-export async function resendRegistrationEmailVerification(payload: {
-  email: string;
-}): Promise<RegisterResult> {
+export async function resendRegistrationEmailVerification(
+  payload: RegisterEmailResendRequest,
+): Promise<RegisterResult> {
   return api.post<RegisterResult>("/auth/register/email/resend", payload, {
     auth: { skipRefresh: true },
   });
@@ -96,7 +122,7 @@ export async function confirmRegistrationEmailVerification(payload: {
   });
 }
 
-export async function refresh(payload: { refresh_token: string }): Promise<TokenPair> {
+export async function refresh(payload: RefreshRequest): Promise<TokenPair> {
   return api.post<TokenPair>("/auth/refresh", payload, { auth: { skipRefresh: true } });
 }
 
@@ -105,10 +131,8 @@ export async function refreshCookie(): Promise<TokenPair> {
 }
 
 export async function logout(payload?: { refreshToken?: string | null }): Promise<null> {
-  return api.post<null>(
-    "/auth/logout",
-    payload?.refreshToken ? { refresh_token: payload.refreshToken } : {},
-  );
+  const body: LogoutRequest = { refreshToken: payload?.refreshToken };
+  return api.post<null>("/auth/logout", body);
 }
 
 export async function me(): Promise<UserProfile> {
@@ -149,13 +173,10 @@ export async function setMyPassword(payload: SetMyPasswordPayload): Promise<null
   return api.post<null>("/auth/me/set-password", payload);
 }
 
-export async function requestRemoveMyPassword(payload: RequestRemoveMyPasswordPayload): Promise<{
-  expiresIn?: number;
-  retryAfter?: number;
-  expires_in?: number;
-  retry_after?: number;
-}> {
-  return api.post("/auth/me/remove-password/request", payload);
+export async function requestRemoveMyPassword(
+  payload: RequestRemoveMyPasswordPayload,
+): Promise<RequestRemoveMyPasswordOut> {
+  return api.post<RequestRemoveMyPasswordOut>("/auth/me/remove-password/request", payload);
 }
 
 export async function confirmRemoveMyPassword(
@@ -172,10 +193,7 @@ export async function deleteMyAccount(payload: DeleteMyAccountPayload): Promise<
   return api.post<null>("/auth/me/delete", payload);
 }
 
-export async function changePassword(payload: {
-  old_password: string;
-  new_password: string;
-}): Promise<null> {
+export async function changePassword(payload: ChangePasswordRequest): Promise<null> {
   return api.post<null>("/auth/change-password", payload);
 }
 
@@ -187,10 +205,7 @@ export async function forgotPassword(payload: {
   });
 }
 
-export async function resetPassword(payload: {
-  reset_token: string;
-  new_password: string;
-}): Promise<null> {
+export async function resetPassword(payload: ResetPasswordRequest): Promise<null> {
   return api.post<null>("/auth/reset-password", payload, { auth: { skipRefresh: true } });
 }
 
@@ -202,40 +217,31 @@ export async function getTwoFactorCapabilities(): Promise<TwoFactorCapabilities>
   return api.get<TwoFactorCapabilities>("/auth/2fa/capabilities");
 }
 
-export async function beginTwoFactorSetup(payload?: {
-  password?: string;
-}): Promise<TwoFactorSetupResult> {
+export async function beginTwoFactorSetup(
+  payload?: TwoFactorSetupRequest,
+): Promise<TwoFactorSetupResult> {
   return api.post<TwoFactorSetupResult>("/auth/2fa/setup", payload ?? {});
 }
 
-export async function confirmTwoFactorSetup(payload: {
-  code: string;
-}): Promise<TwoFactorBackupCodesResult> {
+export async function confirmTwoFactorSetup(
+  payload: TwoFactorConfirmRequest,
+): Promise<TwoFactorBackupCodesResult> {
   return api.post<TwoFactorBackupCodesResult>("/auth/2fa/confirm", payload);
 }
 
-export async function disableTwoFactor(payload: {
-  code?: string;
-  backupCode?: string;
-}): Promise<null> {
-  return api.post<null>("/auth/2fa/disable", {
-    ...(payload.code ? { code: payload.code } : {}),
-    ...(payload.backupCode ? { backup_code: payload.backupCode } : {}),
-  });
+export async function disableTwoFactor(payload: TwoFactorDisableRequest): Promise<null> {
+  return api.post<null>("/auth/2fa/disable", payload);
 }
 
-export async function regenerateTwoFactorBackupCodes(payload: {
-  code?: string;
-  backupCode?: string;
-}): Promise<TwoFactorBackupCodesResult> {
-  return api.post<TwoFactorBackupCodesResult>("/auth/2fa/backup-codes/regenerate", {
-    ...(payload.code ? { code: payload.code } : {}),
-    ...(payload.backupCode ? { backup_code: payload.backupCode } : {}),
-  });
+export async function regenerateTwoFactorBackupCodes(
+  payload: TwoFactorRegenerateBackupCodesRequest,
+): Promise<TwoFactorBackupCodesResult> {
+  return api.post<TwoFactorBackupCodesResult>("/auth/2fa/backup-codes/regenerate", payload);
 }
 
 export async function listMySessions(): Promise<AuthSessionList> {
-  return api.get<AuthSessionList>("/auth/sessions");
+  const sessions = await api.get<AuthSessionListOut>("/auth/sessions");
+  return requireAuthSessionList(sessions);
 }
 
 export async function revokeMySession(sessionId: string): Promise<null> {
@@ -243,5 +249,6 @@ export async function revokeMySession(sessionId: string): Promise<null> {
 }
 
 export async function revokeOtherSessions(): Promise<AuthSessionRevokeOthersResult> {
-  return api.post<AuthSessionRevokeOthersResult>("/auth/sessions/revoke-others");
+  const result = await api.post<AuthSessionRevokeOthersOut>("/auth/sessions/revoke-others");
+  return requireAuthSessionRevokeResult(result);
 }

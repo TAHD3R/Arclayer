@@ -26,9 +26,7 @@ export function ArclayerAssistantScope({ children }: ArclayerAssistantScopeProps
   const composerMode = useAiChatStore((state) => state.composerMode || DEFAULT_AI_COMPOSER_MODE);
   const selectedAgentId = useAiChatStore((state) => state.selectedAgentId ?? DEFAULT_AI_AGENT_ID);
   const setSelectedAgentId = useAiChatStore((state) => state.setSelectedAgentId);
-  const workspaceId = useWorkspaceStore(
-    (state) => state.currentWorkspaceId ?? state.lastWorkspaceId,
-  );
+  const workspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const projectId = useWorkspaceStore((state) => state.currentProjectId);
   const catalog = useQuery({
     queryKey: ["ai", "workspace-agents", workspaceId, projectId],

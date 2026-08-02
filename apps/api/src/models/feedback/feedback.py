@@ -82,6 +82,7 @@ class FeedbackTicket(BaseModel):
     rating = fields.SmallIntField(null=True)
     status = fields.CharEnumField(FeedbackStatus, default=FeedbackStatus.NEW, db_index=True)
     priority = fields.CharEnumField(FeedbackPriority, default=FeedbackPriority.NORMAL, db_index=True)
+    revision = fields.IntField(default=1)
     assigned_to_user_id = fields.UUIDField(null=True, db_index=True)
     context_url = fields.CharField(max_length=2048, null=True)
     context = fields.JSONField(default=dict)
@@ -112,10 +113,13 @@ class FeedbackMessage(BaseModel):
     author_display_name = fields.CharField(max_length=64, null=True)
     author_avatar_url = fields.CharField(max_length=512, null=True)
     kind = fields.CharEnumField(FeedbackMessageKind, db_index=True)
+    client_request_id = fields.CharField(max_length=128)
+    request_fingerprint = fields.CharField(max_length=64)
     body = fields.TextField()
 
     class Meta(BaseModel.Meta):
         table = "product_feedback_messages"
         table_description = "Replies and internal notes for product feedback tickets."
         abstract = False
+        unique_together = (("ticket_id", "client_request_id"),)
         indexes = (("ticket_id", "created_at"),)

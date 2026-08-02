@@ -55,8 +55,8 @@ PLATFORM_CAPABILITY_REGISTRY: tuple[PlatformCapabilityRegistration, ...] = (
         description_i18n_key="commerce:SUBSCRIPTIONS_DESCRIPTION",
         support_state=PlatformCapabilitySupportState.SUPPORTED,
         enablement_state=PlatformCapabilityEnablementState.ENABLED,
-        readiness_state=PlatformCapabilityReadinessState.NOT_READY,
-        missing_prerequisite_codes=("PLATFORM_FRONTEND_ROUTE_UNAVAILABLE",),
+        readiness_state=PlatformCapabilityReadinessState.READY,
+        missing_prerequisite_codes=(),
         runtime_health=PlatformCapabilityRuntimeHealth.NOT_REPORTED,
         route_target=PlatformCapabilityRouteTarget.COMMERCE_SUBSCRIPTIONS,
         navigation_targets=(
@@ -67,6 +67,21 @@ PLATFORM_CAPABILITY_REGISTRY: tuple[PlatformCapabilityRegistration, ...] = (
             ),
             PlatformCapabilityNavigationRegistration(
                 route_target=PlatformCapabilityRouteTarget.COMMERCE_PLANS,
+                required_view_permissions=(PlatformPermissionCode.COMMERCE_READ,),
+                view_permission_match=PlatformCapabilityPermissionMatch.ALL,
+            ),
+            PlatformCapabilityNavigationRegistration(
+                route_target=PlatformCapabilityRouteTarget.COMMERCE_PAYMENTS,
+                required_view_permissions=(PlatformPermissionCode.COMMERCE_READ,),
+                view_permission_match=PlatformCapabilityPermissionMatch.ALL,
+            ),
+            PlatformCapabilityNavigationRegistration(
+                route_target=PlatformCapabilityRouteTarget.COMMERCE_CREDITS,
+                required_view_permissions=(PlatformPermissionCode.COMMERCE_READ,),
+                view_permission_match=PlatformCapabilityPermissionMatch.ALL,
+            ),
+            PlatformCapabilityNavigationRegistration(
+                route_target=PlatformCapabilityRouteTarget.COMMERCE_CONFIGURATION,
                 required_view_permissions=(PlatformPermissionCode.COMMERCE_READ,),
                 view_permission_match=PlatformCapabilityPermissionMatch.ALL,
             ),
@@ -89,8 +104,8 @@ PLATFORM_CAPABILITY_REGISTRY: tuple[PlatformCapabilityRegistration, ...] = (
         description_i18n_key="ai:PLATFORM_TASKS_DESCRIPTION",
         support_state=PlatformCapabilitySupportState.SUPPORTED,
         enablement_state=PlatformCapabilityEnablementState.ENABLED,
-        readiness_state=PlatformCapabilityReadinessState.NOT_READY,
-        missing_prerequisite_codes=("PLATFORM_FRONTEND_ROUTE_UNAVAILABLE",),
+        readiness_state=PlatformCapabilityReadinessState.READY,
+        missing_prerequisite_codes=(),
         runtime_health=PlatformCapabilityRuntimeHealth.NOT_REPORTED,
         route_target=PlatformCapabilityRouteTarget.AI_TASKS,
         navigation_targets=(
@@ -109,6 +124,11 @@ PLATFORM_CAPABILITY_REGISTRY: tuple[PlatformCapabilityRegistration, ...] = (
                 required_view_permissions=(PlatformPermissionCode.AI_AGENTS_READ,),
                 view_permission_match=PlatformCapabilityPermissionMatch.ALL,
             ),
+            PlatformCapabilityNavigationRegistration(
+                route_target=PlatformCapabilityRouteTarget.AI_POLICIES,
+                required_view_permissions=(PlatformPermissionCode.AI_AGENTS_READ,),
+                view_permission_match=PlatformCapabilityPermissionMatch.ALL,
+            ),
         ),
         required_view_permissions=(PlatformPermissionCode.AI_TASKS_READ,),
         view_permission_match=PlatformCapabilityPermissionMatch.ALL,
@@ -122,14 +142,19 @@ PLATFORM_CAPABILITY_REGISTRY: tuple[PlatformCapabilityRegistration, ...] = (
         description_i18n_key="communications:FEEDBACK_DESCRIPTION",
         support_state=PlatformCapabilitySupportState.SUPPORTED,
         enablement_state=PlatformCapabilityEnablementState.ENABLED,
-        readiness_state=PlatformCapabilityReadinessState.NOT_READY,
-        missing_prerequisite_codes=("PLATFORM_FRONTEND_ROUTE_UNAVAILABLE",),
+        readiness_state=PlatformCapabilityReadinessState.READY,
+        missing_prerequisite_codes=(),
         runtime_health=PlatformCapabilityRuntimeHealth.NOT_REPORTED,
         route_target=PlatformCapabilityRouteTarget.COMMUNICATIONS_FEEDBACK,
         navigation_targets=(
             PlatformCapabilityNavigationRegistration(
                 route_target=PlatformCapabilityRouteTarget.COMMUNICATIONS_FEEDBACK,
                 required_view_permissions=(PlatformPermissionCode.MESSAGES_FEEDBACK_READ,),
+                view_permission_match=PlatformCapabilityPermissionMatch.ALL,
+            ),
+            PlatformCapabilityNavigationRegistration(
+                route_target=PlatformCapabilityRouteTarget.COMMUNICATIONS_DELIVERIES,
+                required_view_permissions=(PlatformPermissionCode.MESSAGES_CAMPAIGNS_READ,),
                 view_permission_match=PlatformCapabilityPermissionMatch.ALL,
             ),
             PlatformCapabilityNavigationRegistration(
@@ -164,8 +189,8 @@ PLATFORM_CAPABILITY_REGISTRY: tuple[PlatformCapabilityRegistration, ...] = (
         description_i18n_key="extensions:INSTALLED_DESCRIPTION",
         support_state=PlatformCapabilitySupportState.SUPPORTED,
         enablement_state=PlatformCapabilityEnablementState.ENABLED,
-        readiness_state=PlatformCapabilityReadinessState.NOT_READY,
-        missing_prerequisite_codes=("PLATFORM_FRONTEND_ROUTE_UNAVAILABLE",),
+        readiness_state=PlatformCapabilityReadinessState.READY,
+        missing_prerequisite_codes=(),
         runtime_health=PlatformCapabilityRuntimeHealth.NOT_REPORTED,
         route_target=PlatformCapabilityRouteTarget.EXTENSIONS_INSTALLED,
         navigation_targets=(
@@ -202,8 +227,8 @@ PLATFORM_CAPABILITY_REGISTRY: tuple[PlatformCapabilityRegistration, ...] = (
         description_i18n_key="siteDelivery:ISSUES_DESCRIPTION",
         support_state=PlatformCapabilitySupportState.SUPPORTED,
         enablement_state=PlatformCapabilityEnablementState.ENABLED,
-        readiness_state=PlatformCapabilityReadinessState.NOT_READY,
-        missing_prerequisite_codes=("PLATFORM_FRONTEND_ROUTE_UNAVAILABLE",),
+        readiness_state=PlatformCapabilityReadinessState.READY,
+        missing_prerequisite_codes=(),
         runtime_health=PlatformCapabilityRuntimeHealth.NOT_REPORTED,
         route_target=PlatformCapabilityRouteTarget.SITE_DELIVERY_ISSUES,
         navigation_targets=(
@@ -223,7 +248,7 @@ PLATFORM_CAPABILITY_REGISTRY: tuple[PlatformCapabilityRegistration, ...] = (
                 view_permission_match=PlatformCapabilityPermissionMatch.ALL,
             ),
             PlatformCapabilityNavigationRegistration(
-                route_target=PlatformCapabilityRouteTarget.SITE_DELIVERY_RULES,
+                route_target=PlatformCapabilityRouteTarget.SITE_DELIVERY_POLICIES,
                 required_view_permissions=(PlatformPermissionCode.SITE_DELIVERY_SETTINGS_READ,),
                 view_permission_match=PlatformCapabilityPermissionMatch.ALL,
             ),
@@ -248,6 +273,26 @@ PLATFORM_CAPABILITY_REGISTRY: tuple[PlatformCapabilityRegistration, ...] = (
             PlatformCapabilityNavigationRegistration(
                 route_target=PlatformCapabilityRouteTarget.ACCESS_TEAM,
                 required_view_permissions=(PlatformPermissionCode.ACCESS_TEAM_READ,),
+                view_permission_match=PlatformCapabilityPermissionMatch.ALL,
+            ),
+            PlatformCapabilityNavigationRegistration(
+                route_target=PlatformCapabilityRouteTarget.ACCESS_ROLES,
+                required_view_permissions=(PlatformPermissionCode.ACCESS_ROLES_READ,),
+                view_permission_match=PlatformCapabilityPermissionMatch.ALL,
+            ),
+            PlatformCapabilityNavigationRegistration(
+                route_target=PlatformCapabilityRouteTarget.ACCESS_SIGN_IN,
+                required_view_permissions=(PlatformPermissionCode.ACCESS_SIGN_IN_SETTINGS_READ,),
+                view_permission_match=PlatformCapabilityPermissionMatch.ALL,
+            ),
+            PlatformCapabilityNavigationRegistration(
+                route_target=PlatformCapabilityRouteTarget.ACCESS_MFA,
+                required_view_permissions=(PlatformPermissionCode.ACCESS_TEAM_READ,),
+                view_permission_match=PlatformCapabilityPermissionMatch.ALL,
+            ),
+            PlatformCapabilityNavigationRegistration(
+                route_target=PlatformCapabilityRouteTarget.ACCESS_SESSIONS,
+                required_view_permissions=(PlatformPermissionCode.ACCESS_SESSIONS_READ,),
                 view_permission_match=PlatformCapabilityPermissionMatch.ALL,
             ),
         ),
@@ -278,6 +323,16 @@ PLATFORM_CAPABILITY_REGISTRY: tuple[PlatformCapabilityRegistration, ...] = (
             PlatformCapabilityNavigationRegistration(
                 route_target=PlatformCapabilityRouteTarget.TENANT_WORKSPACES,
                 required_view_permissions=(PlatformPermissionCode.TENANT_WORKSPACES_READ,),
+                view_permission_match=PlatformCapabilityPermissionMatch.ALL,
+            ),
+            PlatformCapabilityNavigationRegistration(
+                route_target=PlatformCapabilityRouteTarget.TENANT_USERS,
+                required_view_permissions=(PlatformPermissionCode.TENANT_USERS_READ,),
+                view_permission_match=PlatformCapabilityPermissionMatch.ALL,
+            ),
+            PlatformCapabilityNavigationRegistration(
+                route_target=PlatformCapabilityRouteTarget.TENANT_PROJECTS,
+                required_view_permissions=(PlatformPermissionCode.TENANT_PROJECTS_READ,),
                 view_permission_match=PlatformCapabilityPermissionMatch.ALL,
             ),
         ),

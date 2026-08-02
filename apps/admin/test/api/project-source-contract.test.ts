@@ -16,10 +16,10 @@ import {
 } from "@/api/project-source";
 import { api } from "@/lib/http";
 import type {
-  ProjectSourceFile,
-  ProjectSourceFileDelete,
-  ProjectSourceManifest,
-} from "@arclayer/openapi/admin-types";
+  ProjectSourceFileOut as ProjectSourceFile,
+  ProjectSourceFileDeleteOut as ProjectSourceFileDelete,
+  ProjectSourceManifestOut as ProjectSourceManifest,
+} from "@arclayer/openapi";
 
 describe("api/project source contracts", () => {
   beforeEach(() => {

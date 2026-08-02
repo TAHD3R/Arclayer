@@ -1,10 +1,18 @@
-import { Fragment, type ReactNode } from "react";
+import { Fragment, type ReactNode, useState } from "react";
 
-import { X } from "lucide-react";
+import { ChevronRight, PanelLeft, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@arclayer/ui/button";
 import { Badge } from "@arclayer/ui/badge";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@arclayer/ui/sheet";
 import { cn } from "@arclayer/lib/utils";
 
 import { iconSlot } from "@/components/layout/admin-side-nav/nav-icon-slot";
@@ -124,9 +132,71 @@ function SettingsNavList(props: {
   );
 }
 
+function SettingsMobileNav(props: {
+  items: readonly SettingsNavItem[];
+  activeScreen: SettingsScreen;
+  onSelectItem: (item: SettingsNavItem) => void;
+}) {
+  const { t } = useTranslation("account");
+  const [open, setOpen] = useState(false);
+  const activeItem = props.items.find((item) => item.screen === props.activeScreen);
+  const activeLabel = activeItem
+    ? activeItem.labelKey
+      ? t(activeItem.labelKey)
+      : activeItem.label
+    : t("SETTINGS_SHELL_TITLE");
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-auto w-full !justify-between gap-3 px-3 py-2.5 text-left"
+          aria-label={t("SETTINGS_SHELL_NAVIGATION_ACTION")}
+        >
+          <span className="flex min-w-0 items-center gap-3">
+            <PanelLeft aria-hidden="true" className="size-4 shrink-0" />
+            <span className="min-w-0">
+              <span className="block truncate text-headline font-medium text-label-primary">
+                {activeLabel}
+              </span>
+              <span className="block text-footnote font-normal text-label-secondary">
+                {t("SETTINGS_SHELL_NAVIGATION_HINT")}
+              </span>
+            </span>
+          </span>
+          <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-label-tertiary" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent
+        side="left"
+        className="w-[min(22rem,calc(100vw-1rem))] gap-0"
+        closeButtonLabel={t("common:CLOSE")}
+      >
+        <SheetHeader>
+          <SheetTitle>{t("SETTINGS_SHELL_TITLE")}</SheetTitle>
+          <SheetDescription>{t("SETTINGS_SHELL_NAVIGATION_DESC")}</SheetDescription>
+        </SheetHeader>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4">
+          <SettingsNavList
+            items={props.items}
+            activeScreen={props.activeScreen}
+            onSelectItem={(item) => {
+              setOpen(false);
+              props.onSelectItem(item);
+            }}
+          />
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 export function SettingsFrame(props: SettingsFrameProps) {
   const { t } = useTranslation("account");
   const activeItem = getUsercenterOverlayItem(props.activeScreen);
+  const navItems = props.items ?? SETTINGS_NAV_ITEMS;
 
   return (
     <div
@@ -140,7 +210,7 @@ export function SettingsFrame(props: SettingsFrameProps) {
         <div className="flex min-h-0 w-full flex-col px-3">
           <div className="min-h-0 w-full flex-1 overflow-y-auto overflow-x-hidden scrollbar-none">
             <SettingsNavList
-              items={props.items ?? SETTINGS_NAV_ITEMS}
+              items={navItems}
               activeScreen={props.activeScreen}
               onSelectItem={(item) => props.onSelectItem?.(item)}
             />
@@ -149,6 +219,14 @@ export function SettingsFrame(props: SettingsFrameProps) {
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
+        <div className="shrink-0 border-b border-border/70 bg-background px-4 py-3 lg:hidden">
+          <SettingsMobileNav
+            items={navItems}
+            activeScreen={props.activeScreen}
+            onSelectItem={(item) => props.onSelectItem?.(item)}
+          />
+        </div>
+
         {props.onClose ? (
           <div className="pointer-events-none absolute right-4 top-4 z-30">
             <Button

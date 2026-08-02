@@ -10,6 +10,7 @@ from src.models.content.seo_profile import SEOProfileRecord
 from src.modules.projects.builder.render_document_design import (
     RENDERER_PROFILE,
     RENDERER_VERSION,
+    BuilderRenderDesignPins,
     resolve_renderer_design,
 )
 from src.modules.projects.builder.render_document_errors import (
@@ -40,15 +41,17 @@ def build_page_render_document(
     seo_profile: SEOProfileRecord | None,
     design_manifest: DesignSystemManifestV1,
     catalog: ComponentCatalogV1,
+    design_pins: BuilderRenderDesignPins | None = None,
 ) -> BuilderPageRenderDocumentOut:
     page = next((item for item in revision.pages if UUID(str(item.item_id)) == page_item_id), None)
     if page is None:
         raise_render_not_found("BUILDER_RENDER_PAGE_NOT_FOUND")
     route_path = _route_path(page=page, locale=locale)
+    resolved_design_pins = design_pins or _revision_design_pins(revision=revision)
     theme, token_values, recipes = resolve_renderer_design(
-        revision=revision,
         design_manifest=design_manifest,
         catalog=catalog,
+        expected_manifest_checksum=resolved_design_pins.design_system_manifest_checksum,
         theme_key=theme_key,
     )
     sections = build_render_sections(
@@ -62,7 +65,12 @@ def build_page_render_document(
     document = BuilderPageRenderDocumentOut(
         renderer=BuilderRendererIdentityOut(profile=RENDERER_PROFILE, version=RENDERER_VERSION),
         render_source=("visual_blueprint" if page.visual_blueprint is not None else "wireframe_preview"),
-        pins=_render_pins(revision=revision, page=page, catalog=catalog),
+        pins=_render_pins(
+            revision=revision,
+            page=page,
+            catalog=catalog,
+            design_pins=resolved_design_pins,
+        ),
         locale=locale,
         route_path=route_path,
         theme=theme,
@@ -90,6 +98,7 @@ def _render_pins(
     revision: BuilderRevisionOut,
     page: BuilderRevisionPageOut,
     catalog: ComponentCatalogV1,
+    design_pins: BuilderRenderDesignPins,
 ) -> BuilderRenderPinsOut:
     manifest = revision.site_revision
     return BuilderRenderPinsOut(
@@ -100,9 +109,9 @@ def _render_pins(
         page_item_id=page.item_id,
         page_content_version_id=page.content_version_id,
         page_version_number=page.version_number,
-        design_system_id=manifest.design_system_id,
-        design_system_version_id=manifest.design_system_version_id,
-        design_system_manifest_checksum=manifest.design_system_manifest_checksum,
+        design_system_id=design_pins.design_system_id,
+        design_system_version_id=design_pins.design_system_version_id,
+        design_system_manifest_checksum=design_pins.design_system_manifest_checksum,
         component_catalog_version=catalog.catalog_version,
         component_catalog_checksum=catalog.checksum,
         visual_blueprint_checksum=(
@@ -110,6 +119,15 @@ def _render_pins(
             if page.visual_blueprint is not None
             else None
         ),
+    )
+
+
+def _revision_design_pins(*, revision: BuilderRevisionOut) -> BuilderRenderDesignPins:
+    manifest = revision.site_revision
+    return BuilderRenderDesignPins(
+        design_system_id=UUID(str(manifest.design_system_id)),
+        design_system_version_id=UUID(str(manifest.design_system_version_id)),
+        design_system_manifest_checksum=manifest.design_system_manifest_checksum,
     )
 
 

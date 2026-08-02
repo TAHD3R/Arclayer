@@ -73,10 +73,8 @@ function useFeedbackSubmission(options: FeedbackSubmissionOptions) {
   const { t } = useTranslation(["feedback"]);
   const queryClient = useQueryClient();
   const clientRequestIdRef = useRef<string | null>(null);
-  const workspaceId = useWorkspaceStore(
-    (state) => state.currentWorkspaceId ?? state.lastWorkspaceId,
-  );
-  const projectId = useWorkspaceStore((state) => state.currentProjectId ?? state.lastProjectId);
+  const workspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
+  const projectId = useWorkspaceStore((state) => state.currentProjectId);
   const contextUrl = useRouterState({
     select: (state) => `${state.location.pathname}${state.location.searchStr}`,
   });

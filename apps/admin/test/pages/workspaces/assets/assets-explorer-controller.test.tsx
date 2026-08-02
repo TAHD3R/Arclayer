@@ -4,7 +4,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type React from "react";
 
 import { useAssetsExplorerController } from "@/pages/workspaces/assets/components/explorer/use-assets-explorer-controller";
-import type { AdminAssetFolder, AdminAssetSummary, PageData } from "@arclayer/openapi/admin-types";
+import type {
+  AdminAssetFolderOut as AdminAssetFolder,
+  AdminAssetSummaryOut as AdminAssetSummary,
+  PageDataAdminAssetSummaryOut,
+} from "@arclayer/openapi";
 
 const mocked = vi.hoisted(() => ({
   listAssets: vi.fn(),
@@ -18,7 +22,10 @@ vi.mock("@/api/assets", () => ({
   listAssetTags: (...args: unknown[]) => mocked.listAssetTags(...args),
 }));
 
-function page<T>(items: T[], total = items.length): PageData<T> {
+function page<T>(
+  items: T[],
+  total = items.length,
+): Omit<PageDataAdminAssetSummaryOut, "items"> & { items: T[] } {
   return {
     items,
     total,
@@ -96,6 +103,31 @@ describe("useAssetsExplorerController", () => {
           includeChildren: true,
         }),
       ),
+    );
+  });
+
+  it("keeps selected tags local and excludes them from asset requests and cache keys", async () => {
+    const { result } = renderHook(
+      () =>
+        useAssetsExplorerController({
+          scope: { type: "project", id: "project-1" },
+          pagination: "infinite",
+          purpose: "library",
+          defaultVisibility: "public",
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => expect(mocked.listAssets).toHaveBeenCalled());
+    act(() => {
+      result.current.setFilters({ tagIds: ["tag-1"] });
+    });
+
+    const queryParams = result.current.assetsListQueryKey.at(-1) as Record<string, unknown>;
+    expect(queryParams).not.toHaveProperty("tagIds");
+    expect(mocked.listAssets).not.toHaveBeenLastCalledWith(
+      "project-1",
+      expect.objectContaining({ tagIds: ["tag-1"] }),
     );
   });
 

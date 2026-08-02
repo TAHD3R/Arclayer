@@ -74,8 +74,11 @@ describe("admin API CSRF transport", () => {
       }
       return jsonResponse({
         data: {
-          access_token: "access-token",
-          refresh_token: null,
+          accessToken: "access-token",
+          refreshToken: "refresh-token",
+          expiresIn: 3600,
+          refreshExpiresIn: 86400,
+          tokenType: "bearer",
         },
       });
     });

@@ -28,7 +28,7 @@ _CSRF_ORIGIN = "http://testserver"
 
 
 async def _csrf_headers(client: AsyncClient) -> dict[str, str]:
-    await client.get("/api/v1/system/runtime")
+    await client.get("/api/v1/runtime")
     token = client.cookies.get("csrf_token")
     assert token is not None
     return {"Origin": _CSRF_ORIGIN, "X-CSRF-Token": token}

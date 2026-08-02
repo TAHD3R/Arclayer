@@ -94,8 +94,11 @@ async def test_me_notifications_global_endpoints(
             category=NotificationCategory.TEAM,
             title="Current workspace",
             body=None,
-            target_to="/settings/team/members",
-            target_meta=None,
+            target={
+                "kind": "workspace_settings",
+                "destination": "people",
+                "section": "members-table",
+            },
             actor_user_id=None,
             event_name="demo.current",
             dedupe_key=None,
@@ -107,8 +110,7 @@ async def test_me_notifications_global_endpoints(
             category=NotificationCategory.SECURITY,
             title="Historical workspace",
             body=None,
-            target_to="/settings/maintenance/status",
-            target_meta=None,
+            target={"kind": "inbox"},
             actor_user_id=None,
             event_name="demo.historical",
             dedupe_key=None,
@@ -124,6 +126,13 @@ async def test_me_notifications_global_endpoints(
             preview = resp.json()["data"]
             assert preview["unreadCount"] == 2
             assert {item["id"] for item in preview["items"]} == {current_pid, historical_pid}
+            preview_targets = {item["id"]: item["target"] for item in preview["items"]}
+            assert preview_targets[current_pid] == {
+                "kind": "workspace_settings",
+                "destination": "people",
+                "section": "members-table",
+            }
+            assert preview_targets[historical_pid] == {"kind": "inbox"}
 
             resp = await client.get("/api/v1/me/notifications?status=all&page=1&size=20")
             assert resp.status_code == 200
@@ -292,7 +301,7 @@ async def test_me_notification_campaign_interactions_are_durable_and_recipient_s
                 "primaryAction": {
                     "kind": "internal_route",
                     "label": "Open",
-                    "target": "/system/overview",
+                    "target": {"kind": "inbox"},
                 },
                 "dismissPolicy": "dismissible",
             },
@@ -301,20 +310,39 @@ async def test_me_notification_campaign_interactions_are_durable_and_recipient_s
         async def create_delivery(
             recipient_user_id: UUID,
         ) -> tuple[NotificationRecord, NotificationDeliveryRecord]:
+            delivery_id = uuid4()
             notification = await NotificationRecord.create(
                 workspace_id=workspace_id,
                 recipient_user_id=recipient_user_id,
                 category=NotificationCategory.SYSTEM,
                 title="Release available",
                 body="Review the release notes.",
-                target_to="/system/overview",
-                target_meta={"presentation": "modal"},
+                target={"kind": "inbox"},
+                campaign_surface={
+                    "campaignId": str(campaign.id),
+                    "deliveryId": str(delivery_id),
+                    "presentation": "modal",
+                    "priority": 0,
+                    "displayStartAt": None,
+                    "displayEndAt": None,
+                    "payload": {
+                        "title": "Release available",
+                        "body": "Review the release notes.",
+                        "primaryAction": {
+                            "kind": "internal_route",
+                            "label": "Open",
+                            "target": {"kind": "inbox"},
+                        },
+                        "dismissPolicy": "dismissible",
+                    },
+                },
                 actor_user_id=None,
                 event_name="system.broadcast",
                 dedupe_key=f"campaign-interaction:{recipient_user_id}",
                 read_at=None,
             )
             delivery = await NotificationDeliveryRecord.create(
+                id=delivery_id,
                 campaign=campaign,
                 variant=variant,
                 recipient_user_id=recipient_user_id,
@@ -335,8 +363,7 @@ async def test_me_notification_campaign_interactions_are_durable_and_recipient_s
             category=NotificationCategory.TEAM,
             title="Ordinary notification",
             body=None,
-            target_to="/system/overview",
-            target_meta=None,
+            target={"kind": "inbox"},
             actor_user_id=None,
             event_name="workspace.member.updated",
             dedupe_key=f"ordinary:{uuid4()}",

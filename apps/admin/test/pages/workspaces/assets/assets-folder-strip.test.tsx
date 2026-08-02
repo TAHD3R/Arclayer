@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ComponentProps } from "react";
 
 import { AssetsFolderStrip } from "@/pages/workspaces/assets/components/assets-folder-strip";
-import type { AdminAssetFolder } from "@arclayer/openapi/admin-types";
+import type { AdminAssetFolderOut as AdminAssetFolder } from "@arclayer/openapi";
 
 const ROOT_FOLDER: AdminAssetFolder = {
   id: "folder-1",

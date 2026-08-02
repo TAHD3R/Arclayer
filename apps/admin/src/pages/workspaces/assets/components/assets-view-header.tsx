@@ -1,7 +1,7 @@
 import type React from "react";
 import type { Table as ReactTable } from "@tanstack/react-table";
 
-import type { AdminAssetTag } from "@arclayer/openapi/admin-types";
+import type { AdminAssetTagOut as AdminAssetTag } from "@arclayer/openapi";
 import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import {

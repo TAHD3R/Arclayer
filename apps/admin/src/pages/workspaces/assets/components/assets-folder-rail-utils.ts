@@ -1,4 +1,4 @@
-import type { AdminAssetFolder } from "@arclayer/openapi/admin-types";
+import type { AdminAssetFolderOut as AdminAssetFolder } from "@arclayer/openapi";
 
 function toTimestamp(value: string | undefined): number {
   if (!value) return 0;

@@ -13,15 +13,44 @@ import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
+import { Route as AuthenticatedProjectsRouteImport } from './routes/_authenticated/projects'
 import { Route as AuthenticatedAttentionRouteImport } from './routes/_authenticated/attention'
 import { Route as AuthenticatedWorkspacesIndexRouteImport } from './routes/_authenticated/workspaces/index'
-import { Route as AuthenticatedOperationsJobsRouteImport } from './routes/_authenticated/operations/jobs'
 import { Route as AuthenticatedMonitoringRequestsRouteImport } from './routes/_authenticated/monitoring/requests'
 import { Route as AuthenticatedMonitoringPerformanceRouteImport } from './routes/_authenticated/monitoring/performance'
 import { Route as AuthenticatedMonitoringAuditRouteImport } from './routes/_authenticated/monitoring/audit'
 import { Route as AuthenticatedMonitoringAiUsageRouteImport } from './routes/_authenticated/monitoring/ai-usage'
 import { Route as AuthenticatedMonitoringActivityRouteImport } from './routes/_authenticated/monitoring/activity'
+import { Route as AuthenticatedMessagesTemplatesRouteImport } from './routes/_authenticated/messages/templates'
+import { Route as AuthenticatedMessagesFeedbackRouteImport } from './routes/_authenticated/messages/feedback'
+import { Route as AuthenticatedMessagesEmailRouteImport } from './routes/_authenticated/messages/email'
+import { Route as AuthenticatedMessagesDeliveriesRouteImport } from './routes/_authenticated/messages/deliveries'
+import { Route as AuthenticatedMessagesCampaignsRouteImport } from './routes/_authenticated/messages/campaigns'
+import { Route as AuthenticatedHostingStorageRouteImport } from './routes/_authenticated/hosting/storage'
+import { Route as AuthenticatedHostingPoliciesRouteImport } from './routes/_authenticated/hosting/policies'
+import { Route as AuthenticatedHostingIssuesRouteImport } from './routes/_authenticated/hosting/issues'
+import { Route as AuthenticatedHostingDomainsRouteImport } from './routes/_authenticated/hosting/domains'
+import { Route as AuthenticatedExtensionsInstalledRouteImport } from './routes/_authenticated/extensions/installed'
+import { Route as AuthenticatedExtensionsHistoryRouteImport } from './routes/_authenticated/extensions/history'
+import { Route as AuthenticatedExtensionsConnectionsRouteImport } from './routes/_authenticated/extensions/connections'
+import { Route as AuthenticatedExtensionsCatalogRouteImport } from './routes/_authenticated/extensions/catalog'
+import { Route as AuthenticatedExtensionsPluginIdRouteImport } from './routes/_authenticated/extensions/$pluginId'
+import { Route as AuthenticatedBillingSubscriptionsRouteImport } from './routes/_authenticated/billing/subscriptions'
+import { Route as AuthenticatedBillingPlansRouteImport } from './routes/_authenticated/billing/plans'
+import { Route as AuthenticatedBillingPaymentsRouteImport } from './routes/_authenticated/billing/payments'
+import { Route as AuthenticatedBillingCreditsRouteImport } from './routes/_authenticated/billing/credits'
+import { Route as AuthenticatedBillingConfigurationRouteImport } from './routes/_authenticated/billing/configuration'
+import { Route as AuthenticatedAttentionSignalIdRouteImport } from './routes/_authenticated/attention/$signalId'
+import { Route as AuthenticatedAiTasksRouteImport } from './routes/_authenticated/ai/tasks'
+import { Route as AuthenticatedAiProvidersRouteImport } from './routes/_authenticated/ai/providers'
+import { Route as AuthenticatedAiPoliciesRouteImport } from './routes/_authenticated/ai/policies'
+import { Route as AuthenticatedAiAssistantsRouteImport } from './routes/_authenticated/ai/assistants'
 import { Route as AuthenticatedAccessTeamRouteImport } from './routes/_authenticated/access/team'
+import { Route as AuthenticatedAccessSignInRouteImport } from './routes/_authenticated/access/sign-in'
+import { Route as AuthenticatedAccessSessionsRouteImport } from './routes/_authenticated/access/sessions'
+import { Route as AuthenticatedAccessRolesRouteImport } from './routes/_authenticated/access/roles'
+import { Route as AuthenticatedAccessMfaRouteImport } from './routes/_authenticated/access/mfa'
 import { Route as AuthenticatedAccessTeamInvitationsInvitationIdRouteImport } from './routes/_authenticated/access/team/invitations/$invitationId'
 
 const SignInRoute = SignInRouteImport.update({
@@ -43,6 +72,16 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedUsersRoute = AuthenticatedUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedProjectsRoute = AuthenticatedProjectsRouteImport.update({
+  id: '/projects',
+  path: '/projects',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAttentionRoute = AuthenticatedAttentionRouteImport.update({
   id: '/attention',
   path: '/attention',
@@ -52,12 +91,6 @@ const AuthenticatedWorkspacesIndexRoute =
   AuthenticatedWorkspacesIndexRouteImport.update({
     id: '/workspaces/',
     path: '/workspaces/',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedOperationsJobsRoute =
-  AuthenticatedOperationsJobsRouteImport.update({
-    id: '/operations/jobs',
-    path: '/operations/jobs',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedMonitoringRequestsRoute =
@@ -90,9 +123,174 @@ const AuthenticatedMonitoringActivityRoute =
     path: '/monitoring/activity',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedMessagesTemplatesRoute =
+  AuthenticatedMessagesTemplatesRouteImport.update({
+    id: '/messages/templates',
+    path: '/messages/templates',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedMessagesFeedbackRoute =
+  AuthenticatedMessagesFeedbackRouteImport.update({
+    id: '/messages/feedback',
+    path: '/messages/feedback',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedMessagesEmailRoute =
+  AuthenticatedMessagesEmailRouteImport.update({
+    id: '/messages/email',
+    path: '/messages/email',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedMessagesDeliveriesRoute =
+  AuthenticatedMessagesDeliveriesRouteImport.update({
+    id: '/messages/deliveries',
+    path: '/messages/deliveries',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedMessagesCampaignsRoute =
+  AuthenticatedMessagesCampaignsRouteImport.update({
+    id: '/messages/campaigns',
+    path: '/messages/campaigns',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedHostingStorageRoute =
+  AuthenticatedHostingStorageRouteImport.update({
+    id: '/hosting/storage',
+    path: '/hosting/storage',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedHostingPoliciesRoute =
+  AuthenticatedHostingPoliciesRouteImport.update({
+    id: '/hosting/policies',
+    path: '/hosting/policies',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedHostingIssuesRoute =
+  AuthenticatedHostingIssuesRouteImport.update({
+    id: '/hosting/issues',
+    path: '/hosting/issues',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedHostingDomainsRoute =
+  AuthenticatedHostingDomainsRouteImport.update({
+    id: '/hosting/domains',
+    path: '/hosting/domains',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedExtensionsInstalledRoute =
+  AuthenticatedExtensionsInstalledRouteImport.update({
+    id: '/extensions/installed',
+    path: '/extensions/installed',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedExtensionsHistoryRoute =
+  AuthenticatedExtensionsHistoryRouteImport.update({
+    id: '/extensions/history',
+    path: '/extensions/history',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedExtensionsConnectionsRoute =
+  AuthenticatedExtensionsConnectionsRouteImport.update({
+    id: '/extensions/connections',
+    path: '/extensions/connections',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedExtensionsCatalogRoute =
+  AuthenticatedExtensionsCatalogRouteImport.update({
+    id: '/extensions/catalog',
+    path: '/extensions/catalog',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedExtensionsPluginIdRoute =
+  AuthenticatedExtensionsPluginIdRouteImport.update({
+    id: '/extensions/$pluginId',
+    path: '/extensions/$pluginId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedBillingSubscriptionsRoute =
+  AuthenticatedBillingSubscriptionsRouteImport.update({
+    id: '/billing/subscriptions',
+    path: '/billing/subscriptions',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedBillingPlansRoute =
+  AuthenticatedBillingPlansRouteImport.update({
+    id: '/billing/plans',
+    path: '/billing/plans',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedBillingPaymentsRoute =
+  AuthenticatedBillingPaymentsRouteImport.update({
+    id: '/billing/payments',
+    path: '/billing/payments',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedBillingCreditsRoute =
+  AuthenticatedBillingCreditsRouteImport.update({
+    id: '/billing/credits',
+    path: '/billing/credits',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedBillingConfigurationRoute =
+  AuthenticatedBillingConfigurationRouteImport.update({
+    id: '/billing/configuration',
+    path: '/billing/configuration',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAttentionSignalIdRoute =
+  AuthenticatedAttentionSignalIdRouteImport.update({
+    id: '/$signalId',
+    path: '/$signalId',
+    getParentRoute: () => AuthenticatedAttentionRoute,
+  } as any)
+const AuthenticatedAiTasksRoute = AuthenticatedAiTasksRouteImport.update({
+  id: '/ai/tasks',
+  path: '/ai/tasks',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAiProvidersRoute =
+  AuthenticatedAiProvidersRouteImport.update({
+    id: '/ai/providers',
+    path: '/ai/providers',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAiPoliciesRoute = AuthenticatedAiPoliciesRouteImport.update({
+  id: '/ai/policies',
+  path: '/ai/policies',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAiAssistantsRoute =
+  AuthenticatedAiAssistantsRouteImport.update({
+    id: '/ai/assistants',
+    path: '/ai/assistants',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAccessTeamRoute = AuthenticatedAccessTeamRouteImport.update({
   id: '/access/team',
   path: '/access/team',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAccessSignInRoute =
+  AuthenticatedAccessSignInRouteImport.update({
+    id: '/access/sign-in',
+    path: '/access/sign-in',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAccessSessionsRoute =
+  AuthenticatedAccessSessionsRouteImport.update({
+    id: '/access/sessions',
+    path: '/access/sessions',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAccessRolesRoute =
+  AuthenticatedAccessRolesRouteImport.update({
+    id: '/access/roles',
+    path: '/access/roles',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAccessMfaRoute = AuthenticatedAccessMfaRouteImport.update({
+  id: '/access/mfa',
+  path: '/access/mfa',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedAccessTeamInvitationsInvitationIdRoute =
@@ -106,29 +304,87 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/setup': typeof SetupRoute
   '/sign-in': typeof SignInRoute
-  '/attention': typeof AuthenticatedAttentionRoute
+  '/attention': typeof AuthenticatedAttentionRouteWithChildren
+  '/projects': typeof AuthenticatedProjectsRoute
+  '/users': typeof AuthenticatedUsersRoute
+  '/access/mfa': typeof AuthenticatedAccessMfaRoute
+  '/access/roles': typeof AuthenticatedAccessRolesRoute
+  '/access/sessions': typeof AuthenticatedAccessSessionsRoute
+  '/access/sign-in': typeof AuthenticatedAccessSignInRoute
   '/access/team': typeof AuthenticatedAccessTeamRouteWithChildren
+  '/ai/assistants': typeof AuthenticatedAiAssistantsRoute
+  '/ai/policies': typeof AuthenticatedAiPoliciesRoute
+  '/ai/providers': typeof AuthenticatedAiProvidersRoute
+  '/ai/tasks': typeof AuthenticatedAiTasksRoute
+  '/attention/$signalId': typeof AuthenticatedAttentionSignalIdRoute
+  '/billing/configuration': typeof AuthenticatedBillingConfigurationRoute
+  '/billing/credits': typeof AuthenticatedBillingCreditsRoute
+  '/billing/payments': typeof AuthenticatedBillingPaymentsRoute
+  '/billing/plans': typeof AuthenticatedBillingPlansRoute
+  '/billing/subscriptions': typeof AuthenticatedBillingSubscriptionsRoute
+  '/extensions/$pluginId': typeof AuthenticatedExtensionsPluginIdRoute
+  '/extensions/catalog': typeof AuthenticatedExtensionsCatalogRoute
+  '/extensions/connections': typeof AuthenticatedExtensionsConnectionsRoute
+  '/extensions/history': typeof AuthenticatedExtensionsHistoryRoute
+  '/extensions/installed': typeof AuthenticatedExtensionsInstalledRoute
+  '/hosting/domains': typeof AuthenticatedHostingDomainsRoute
+  '/hosting/issues': typeof AuthenticatedHostingIssuesRoute
+  '/hosting/policies': typeof AuthenticatedHostingPoliciesRoute
+  '/hosting/storage': typeof AuthenticatedHostingStorageRoute
+  '/messages/campaigns': typeof AuthenticatedMessagesCampaignsRoute
+  '/messages/deliveries': typeof AuthenticatedMessagesDeliveriesRoute
+  '/messages/email': typeof AuthenticatedMessagesEmailRoute
+  '/messages/feedback': typeof AuthenticatedMessagesFeedbackRoute
+  '/messages/templates': typeof AuthenticatedMessagesTemplatesRoute
   '/monitoring/activity': typeof AuthenticatedMonitoringActivityRoute
   '/monitoring/ai-usage': typeof AuthenticatedMonitoringAiUsageRoute
   '/monitoring/audit': typeof AuthenticatedMonitoringAuditRoute
   '/monitoring/performance': typeof AuthenticatedMonitoringPerformanceRoute
   '/monitoring/requests': typeof AuthenticatedMonitoringRequestsRoute
-  '/operations/jobs': typeof AuthenticatedOperationsJobsRoute
   '/workspaces/': typeof AuthenticatedWorkspacesIndexRoute
   '/access/team/invitations/$invitationId': typeof AuthenticatedAccessTeamInvitationsInvitationIdRoute
 }
 export interface FileRoutesByTo {
   '/setup': typeof SetupRoute
   '/sign-in': typeof SignInRoute
-  '/attention': typeof AuthenticatedAttentionRoute
+  '/attention': typeof AuthenticatedAttentionRouteWithChildren
+  '/projects': typeof AuthenticatedProjectsRoute
+  '/users': typeof AuthenticatedUsersRoute
   '/': typeof AuthenticatedIndexRoute
+  '/access/mfa': typeof AuthenticatedAccessMfaRoute
+  '/access/roles': typeof AuthenticatedAccessRolesRoute
+  '/access/sessions': typeof AuthenticatedAccessSessionsRoute
+  '/access/sign-in': typeof AuthenticatedAccessSignInRoute
   '/access/team': typeof AuthenticatedAccessTeamRouteWithChildren
+  '/ai/assistants': typeof AuthenticatedAiAssistantsRoute
+  '/ai/policies': typeof AuthenticatedAiPoliciesRoute
+  '/ai/providers': typeof AuthenticatedAiProvidersRoute
+  '/ai/tasks': typeof AuthenticatedAiTasksRoute
+  '/attention/$signalId': typeof AuthenticatedAttentionSignalIdRoute
+  '/billing/configuration': typeof AuthenticatedBillingConfigurationRoute
+  '/billing/credits': typeof AuthenticatedBillingCreditsRoute
+  '/billing/payments': typeof AuthenticatedBillingPaymentsRoute
+  '/billing/plans': typeof AuthenticatedBillingPlansRoute
+  '/billing/subscriptions': typeof AuthenticatedBillingSubscriptionsRoute
+  '/extensions/$pluginId': typeof AuthenticatedExtensionsPluginIdRoute
+  '/extensions/catalog': typeof AuthenticatedExtensionsCatalogRoute
+  '/extensions/connections': typeof AuthenticatedExtensionsConnectionsRoute
+  '/extensions/history': typeof AuthenticatedExtensionsHistoryRoute
+  '/extensions/installed': typeof AuthenticatedExtensionsInstalledRoute
+  '/hosting/domains': typeof AuthenticatedHostingDomainsRoute
+  '/hosting/issues': typeof AuthenticatedHostingIssuesRoute
+  '/hosting/policies': typeof AuthenticatedHostingPoliciesRoute
+  '/hosting/storage': typeof AuthenticatedHostingStorageRoute
+  '/messages/campaigns': typeof AuthenticatedMessagesCampaignsRoute
+  '/messages/deliveries': typeof AuthenticatedMessagesDeliveriesRoute
+  '/messages/email': typeof AuthenticatedMessagesEmailRoute
+  '/messages/feedback': typeof AuthenticatedMessagesFeedbackRoute
+  '/messages/templates': typeof AuthenticatedMessagesTemplatesRoute
   '/monitoring/activity': typeof AuthenticatedMonitoringActivityRoute
   '/monitoring/ai-usage': typeof AuthenticatedMonitoringAiUsageRoute
   '/monitoring/audit': typeof AuthenticatedMonitoringAuditRoute
   '/monitoring/performance': typeof AuthenticatedMonitoringPerformanceRoute
   '/monitoring/requests': typeof AuthenticatedMonitoringRequestsRoute
-  '/operations/jobs': typeof AuthenticatedOperationsJobsRoute
   '/workspaces': typeof AuthenticatedWorkspacesIndexRoute
   '/access/team/invitations/$invitationId': typeof AuthenticatedAccessTeamInvitationsInvitationIdRoute
 }
@@ -137,15 +393,44 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/setup': typeof SetupRoute
   '/sign-in': typeof SignInRoute
-  '/_authenticated/attention': typeof AuthenticatedAttentionRoute
+  '/_authenticated/attention': typeof AuthenticatedAttentionRouteWithChildren
+  '/_authenticated/projects': typeof AuthenticatedProjectsRoute
+  '/_authenticated/users': typeof AuthenticatedUsersRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/access/mfa': typeof AuthenticatedAccessMfaRoute
+  '/_authenticated/access/roles': typeof AuthenticatedAccessRolesRoute
+  '/_authenticated/access/sessions': typeof AuthenticatedAccessSessionsRoute
+  '/_authenticated/access/sign-in': typeof AuthenticatedAccessSignInRoute
   '/_authenticated/access/team': typeof AuthenticatedAccessTeamRouteWithChildren
+  '/_authenticated/ai/assistants': typeof AuthenticatedAiAssistantsRoute
+  '/_authenticated/ai/policies': typeof AuthenticatedAiPoliciesRoute
+  '/_authenticated/ai/providers': typeof AuthenticatedAiProvidersRoute
+  '/_authenticated/ai/tasks': typeof AuthenticatedAiTasksRoute
+  '/_authenticated/attention/$signalId': typeof AuthenticatedAttentionSignalIdRoute
+  '/_authenticated/billing/configuration': typeof AuthenticatedBillingConfigurationRoute
+  '/_authenticated/billing/credits': typeof AuthenticatedBillingCreditsRoute
+  '/_authenticated/billing/payments': typeof AuthenticatedBillingPaymentsRoute
+  '/_authenticated/billing/plans': typeof AuthenticatedBillingPlansRoute
+  '/_authenticated/billing/subscriptions': typeof AuthenticatedBillingSubscriptionsRoute
+  '/_authenticated/extensions/$pluginId': typeof AuthenticatedExtensionsPluginIdRoute
+  '/_authenticated/extensions/catalog': typeof AuthenticatedExtensionsCatalogRoute
+  '/_authenticated/extensions/connections': typeof AuthenticatedExtensionsConnectionsRoute
+  '/_authenticated/extensions/history': typeof AuthenticatedExtensionsHistoryRoute
+  '/_authenticated/extensions/installed': typeof AuthenticatedExtensionsInstalledRoute
+  '/_authenticated/hosting/domains': typeof AuthenticatedHostingDomainsRoute
+  '/_authenticated/hosting/issues': typeof AuthenticatedHostingIssuesRoute
+  '/_authenticated/hosting/policies': typeof AuthenticatedHostingPoliciesRoute
+  '/_authenticated/hosting/storage': typeof AuthenticatedHostingStorageRoute
+  '/_authenticated/messages/campaigns': typeof AuthenticatedMessagesCampaignsRoute
+  '/_authenticated/messages/deliveries': typeof AuthenticatedMessagesDeliveriesRoute
+  '/_authenticated/messages/email': typeof AuthenticatedMessagesEmailRoute
+  '/_authenticated/messages/feedback': typeof AuthenticatedMessagesFeedbackRoute
+  '/_authenticated/messages/templates': typeof AuthenticatedMessagesTemplatesRoute
   '/_authenticated/monitoring/activity': typeof AuthenticatedMonitoringActivityRoute
   '/_authenticated/monitoring/ai-usage': typeof AuthenticatedMonitoringAiUsageRoute
   '/_authenticated/monitoring/audit': typeof AuthenticatedMonitoringAuditRoute
   '/_authenticated/monitoring/performance': typeof AuthenticatedMonitoringPerformanceRoute
   '/_authenticated/monitoring/requests': typeof AuthenticatedMonitoringRequestsRoute
-  '/_authenticated/operations/jobs': typeof AuthenticatedOperationsJobsRoute
   '/_authenticated/workspaces/': typeof AuthenticatedWorkspacesIndexRoute
   '/_authenticated/access/team/invitations/$invitationId': typeof AuthenticatedAccessTeamInvitationsInvitationIdRoute
 }
@@ -156,13 +441,42 @@ export interface FileRouteTypes {
     | '/setup'
     | '/sign-in'
     | '/attention'
+    | '/projects'
+    | '/users'
+    | '/access/mfa'
+    | '/access/roles'
+    | '/access/sessions'
+    | '/access/sign-in'
     | '/access/team'
+    | '/ai/assistants'
+    | '/ai/policies'
+    | '/ai/providers'
+    | '/ai/tasks'
+    | '/attention/$signalId'
+    | '/billing/configuration'
+    | '/billing/credits'
+    | '/billing/payments'
+    | '/billing/plans'
+    | '/billing/subscriptions'
+    | '/extensions/$pluginId'
+    | '/extensions/catalog'
+    | '/extensions/connections'
+    | '/extensions/history'
+    | '/extensions/installed'
+    | '/hosting/domains'
+    | '/hosting/issues'
+    | '/hosting/policies'
+    | '/hosting/storage'
+    | '/messages/campaigns'
+    | '/messages/deliveries'
+    | '/messages/email'
+    | '/messages/feedback'
+    | '/messages/templates'
     | '/monitoring/activity'
     | '/monitoring/ai-usage'
     | '/monitoring/audit'
     | '/monitoring/performance'
     | '/monitoring/requests'
-    | '/operations/jobs'
     | '/workspaces/'
     | '/access/team/invitations/$invitationId'
   fileRoutesByTo: FileRoutesByTo
@@ -170,14 +484,43 @@ export interface FileRouteTypes {
     | '/setup'
     | '/sign-in'
     | '/attention'
+    | '/projects'
+    | '/users'
     | '/'
+    | '/access/mfa'
+    | '/access/roles'
+    | '/access/sessions'
+    | '/access/sign-in'
     | '/access/team'
+    | '/ai/assistants'
+    | '/ai/policies'
+    | '/ai/providers'
+    | '/ai/tasks'
+    | '/attention/$signalId'
+    | '/billing/configuration'
+    | '/billing/credits'
+    | '/billing/payments'
+    | '/billing/plans'
+    | '/billing/subscriptions'
+    | '/extensions/$pluginId'
+    | '/extensions/catalog'
+    | '/extensions/connections'
+    | '/extensions/history'
+    | '/extensions/installed'
+    | '/hosting/domains'
+    | '/hosting/issues'
+    | '/hosting/policies'
+    | '/hosting/storage'
+    | '/messages/campaigns'
+    | '/messages/deliveries'
+    | '/messages/email'
+    | '/messages/feedback'
+    | '/messages/templates'
     | '/monitoring/activity'
     | '/monitoring/ai-usage'
     | '/monitoring/audit'
     | '/monitoring/performance'
     | '/monitoring/requests'
-    | '/operations/jobs'
     | '/workspaces'
     | '/access/team/invitations/$invitationId'
   id:
@@ -186,14 +529,43 @@ export interface FileRouteTypes {
     | '/setup'
     | '/sign-in'
     | '/_authenticated/attention'
+    | '/_authenticated/projects'
+    | '/_authenticated/users'
     | '/_authenticated/'
+    | '/_authenticated/access/mfa'
+    | '/_authenticated/access/roles'
+    | '/_authenticated/access/sessions'
+    | '/_authenticated/access/sign-in'
     | '/_authenticated/access/team'
+    | '/_authenticated/ai/assistants'
+    | '/_authenticated/ai/policies'
+    | '/_authenticated/ai/providers'
+    | '/_authenticated/ai/tasks'
+    | '/_authenticated/attention/$signalId'
+    | '/_authenticated/billing/configuration'
+    | '/_authenticated/billing/credits'
+    | '/_authenticated/billing/payments'
+    | '/_authenticated/billing/plans'
+    | '/_authenticated/billing/subscriptions'
+    | '/_authenticated/extensions/$pluginId'
+    | '/_authenticated/extensions/catalog'
+    | '/_authenticated/extensions/connections'
+    | '/_authenticated/extensions/history'
+    | '/_authenticated/extensions/installed'
+    | '/_authenticated/hosting/domains'
+    | '/_authenticated/hosting/issues'
+    | '/_authenticated/hosting/policies'
+    | '/_authenticated/hosting/storage'
+    | '/_authenticated/messages/campaigns'
+    | '/_authenticated/messages/deliveries'
+    | '/_authenticated/messages/email'
+    | '/_authenticated/messages/feedback'
+    | '/_authenticated/messages/templates'
     | '/_authenticated/monitoring/activity'
     | '/_authenticated/monitoring/ai-usage'
     | '/_authenticated/monitoring/audit'
     | '/_authenticated/monitoring/performance'
     | '/_authenticated/monitoring/requests'
-    | '/_authenticated/operations/jobs'
     | '/_authenticated/workspaces/'
     | '/_authenticated/access/team/invitations/$invitationId'
   fileRoutesById: FileRoutesById
@@ -234,6 +606,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/users': {
+      id: '/_authenticated/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof AuthenticatedUsersRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/projects': {
+      id: '/_authenticated/projects'
+      path: '/projects'
+      fullPath: '/projects'
+      preLoaderRoute: typeof AuthenticatedProjectsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/attention': {
       id: '/_authenticated/attention'
       path: '/attention'
@@ -246,13 +632,6 @@ declare module '@tanstack/react-router' {
       path: '/workspaces'
       fullPath: '/workspaces/'
       preLoaderRoute: typeof AuthenticatedWorkspacesIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/operations/jobs': {
-      id: '/_authenticated/operations/jobs'
-      path: '/operations/jobs'
-      fullPath: '/operations/jobs'
-      preLoaderRoute: typeof AuthenticatedOperationsJobsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/monitoring/requests': {
@@ -290,11 +669,207 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMonitoringActivityRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/messages/templates': {
+      id: '/_authenticated/messages/templates'
+      path: '/messages/templates'
+      fullPath: '/messages/templates'
+      preLoaderRoute: typeof AuthenticatedMessagesTemplatesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/messages/feedback': {
+      id: '/_authenticated/messages/feedback'
+      path: '/messages/feedback'
+      fullPath: '/messages/feedback'
+      preLoaderRoute: typeof AuthenticatedMessagesFeedbackRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/messages/email': {
+      id: '/_authenticated/messages/email'
+      path: '/messages/email'
+      fullPath: '/messages/email'
+      preLoaderRoute: typeof AuthenticatedMessagesEmailRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/messages/deliveries': {
+      id: '/_authenticated/messages/deliveries'
+      path: '/messages/deliveries'
+      fullPath: '/messages/deliveries'
+      preLoaderRoute: typeof AuthenticatedMessagesDeliveriesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/messages/campaigns': {
+      id: '/_authenticated/messages/campaigns'
+      path: '/messages/campaigns'
+      fullPath: '/messages/campaigns'
+      preLoaderRoute: typeof AuthenticatedMessagesCampaignsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/hosting/storage': {
+      id: '/_authenticated/hosting/storage'
+      path: '/hosting/storage'
+      fullPath: '/hosting/storage'
+      preLoaderRoute: typeof AuthenticatedHostingStorageRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/hosting/policies': {
+      id: '/_authenticated/hosting/policies'
+      path: '/hosting/policies'
+      fullPath: '/hosting/policies'
+      preLoaderRoute: typeof AuthenticatedHostingPoliciesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/hosting/issues': {
+      id: '/_authenticated/hosting/issues'
+      path: '/hosting/issues'
+      fullPath: '/hosting/issues'
+      preLoaderRoute: typeof AuthenticatedHostingIssuesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/hosting/domains': {
+      id: '/_authenticated/hosting/domains'
+      path: '/hosting/domains'
+      fullPath: '/hosting/domains'
+      preLoaderRoute: typeof AuthenticatedHostingDomainsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/extensions/installed': {
+      id: '/_authenticated/extensions/installed'
+      path: '/extensions/installed'
+      fullPath: '/extensions/installed'
+      preLoaderRoute: typeof AuthenticatedExtensionsInstalledRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/extensions/history': {
+      id: '/_authenticated/extensions/history'
+      path: '/extensions/history'
+      fullPath: '/extensions/history'
+      preLoaderRoute: typeof AuthenticatedExtensionsHistoryRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/extensions/connections': {
+      id: '/_authenticated/extensions/connections'
+      path: '/extensions/connections'
+      fullPath: '/extensions/connections'
+      preLoaderRoute: typeof AuthenticatedExtensionsConnectionsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/extensions/catalog': {
+      id: '/_authenticated/extensions/catalog'
+      path: '/extensions/catalog'
+      fullPath: '/extensions/catalog'
+      preLoaderRoute: typeof AuthenticatedExtensionsCatalogRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/extensions/$pluginId': {
+      id: '/_authenticated/extensions/$pluginId'
+      path: '/extensions/$pluginId'
+      fullPath: '/extensions/$pluginId'
+      preLoaderRoute: typeof AuthenticatedExtensionsPluginIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/billing/subscriptions': {
+      id: '/_authenticated/billing/subscriptions'
+      path: '/billing/subscriptions'
+      fullPath: '/billing/subscriptions'
+      preLoaderRoute: typeof AuthenticatedBillingSubscriptionsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/billing/plans': {
+      id: '/_authenticated/billing/plans'
+      path: '/billing/plans'
+      fullPath: '/billing/plans'
+      preLoaderRoute: typeof AuthenticatedBillingPlansRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/billing/payments': {
+      id: '/_authenticated/billing/payments'
+      path: '/billing/payments'
+      fullPath: '/billing/payments'
+      preLoaderRoute: typeof AuthenticatedBillingPaymentsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/billing/credits': {
+      id: '/_authenticated/billing/credits'
+      path: '/billing/credits'
+      fullPath: '/billing/credits'
+      preLoaderRoute: typeof AuthenticatedBillingCreditsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/billing/configuration': {
+      id: '/_authenticated/billing/configuration'
+      path: '/billing/configuration'
+      fullPath: '/billing/configuration'
+      preLoaderRoute: typeof AuthenticatedBillingConfigurationRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/attention/$signalId': {
+      id: '/_authenticated/attention/$signalId'
+      path: '/$signalId'
+      fullPath: '/attention/$signalId'
+      preLoaderRoute: typeof AuthenticatedAttentionSignalIdRouteImport
+      parentRoute: typeof AuthenticatedAttentionRoute
+    }
+    '/_authenticated/ai/tasks': {
+      id: '/_authenticated/ai/tasks'
+      path: '/ai/tasks'
+      fullPath: '/ai/tasks'
+      preLoaderRoute: typeof AuthenticatedAiTasksRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/ai/providers': {
+      id: '/_authenticated/ai/providers'
+      path: '/ai/providers'
+      fullPath: '/ai/providers'
+      preLoaderRoute: typeof AuthenticatedAiProvidersRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/ai/policies': {
+      id: '/_authenticated/ai/policies'
+      path: '/ai/policies'
+      fullPath: '/ai/policies'
+      preLoaderRoute: typeof AuthenticatedAiPoliciesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/ai/assistants': {
+      id: '/_authenticated/ai/assistants'
+      path: '/ai/assistants'
+      fullPath: '/ai/assistants'
+      preLoaderRoute: typeof AuthenticatedAiAssistantsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/access/team': {
       id: '/_authenticated/access/team'
       path: '/access/team'
       fullPath: '/access/team'
       preLoaderRoute: typeof AuthenticatedAccessTeamRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/access/sign-in': {
+      id: '/_authenticated/access/sign-in'
+      path: '/access/sign-in'
+      fullPath: '/access/sign-in'
+      preLoaderRoute: typeof AuthenticatedAccessSignInRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/access/sessions': {
+      id: '/_authenticated/access/sessions'
+      path: '/access/sessions'
+      fullPath: '/access/sessions'
+      preLoaderRoute: typeof AuthenticatedAccessSessionsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/access/roles': {
+      id: '/_authenticated/access/roles'
+      path: '/access/roles'
+      fullPath: '/access/roles'
+      preLoaderRoute: typeof AuthenticatedAccessRolesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/access/mfa': {
+      id: '/_authenticated/access/mfa'
+      path: '/access/mfa'
+      fullPath: '/access/mfa'
+      preLoaderRoute: typeof AuthenticatedAccessMfaRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/access/team/invitations/$invitationId': {
@@ -306,6 +881,20 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AuthenticatedAttentionRouteChildren {
+  AuthenticatedAttentionSignalIdRoute: typeof AuthenticatedAttentionSignalIdRoute
+}
+
+const AuthenticatedAttentionRouteChildren: AuthenticatedAttentionRouteChildren =
+  {
+    AuthenticatedAttentionSignalIdRoute: AuthenticatedAttentionSignalIdRoute,
+  }
+
+const AuthenticatedAttentionRouteWithChildren =
+  AuthenticatedAttentionRoute._addFileChildren(
+    AuthenticatedAttentionRouteChildren,
+  )
 
 interface AuthenticatedAccessTeamRouteChildren {
   AuthenticatedAccessTeamInvitationsInvitationIdRoute: typeof AuthenticatedAccessTeamInvitationsInvitationIdRoute
@@ -323,29 +912,88 @@ const AuthenticatedAccessTeamRouteWithChildren =
   )
 
 interface AuthenticatedRouteChildren {
-  AuthenticatedAttentionRoute: typeof AuthenticatedAttentionRoute
+  AuthenticatedAttentionRoute: typeof AuthenticatedAttentionRouteWithChildren
+  AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRoute
+  AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAccessMfaRoute: typeof AuthenticatedAccessMfaRoute
+  AuthenticatedAccessRolesRoute: typeof AuthenticatedAccessRolesRoute
+  AuthenticatedAccessSessionsRoute: typeof AuthenticatedAccessSessionsRoute
+  AuthenticatedAccessSignInRoute: typeof AuthenticatedAccessSignInRoute
   AuthenticatedAccessTeamRoute: typeof AuthenticatedAccessTeamRouteWithChildren
+  AuthenticatedAiAssistantsRoute: typeof AuthenticatedAiAssistantsRoute
+  AuthenticatedAiPoliciesRoute: typeof AuthenticatedAiPoliciesRoute
+  AuthenticatedAiProvidersRoute: typeof AuthenticatedAiProvidersRoute
+  AuthenticatedAiTasksRoute: typeof AuthenticatedAiTasksRoute
+  AuthenticatedBillingConfigurationRoute: typeof AuthenticatedBillingConfigurationRoute
+  AuthenticatedBillingCreditsRoute: typeof AuthenticatedBillingCreditsRoute
+  AuthenticatedBillingPaymentsRoute: typeof AuthenticatedBillingPaymentsRoute
+  AuthenticatedBillingPlansRoute: typeof AuthenticatedBillingPlansRoute
+  AuthenticatedBillingSubscriptionsRoute: typeof AuthenticatedBillingSubscriptionsRoute
+  AuthenticatedExtensionsPluginIdRoute: typeof AuthenticatedExtensionsPluginIdRoute
+  AuthenticatedExtensionsCatalogRoute: typeof AuthenticatedExtensionsCatalogRoute
+  AuthenticatedExtensionsConnectionsRoute: typeof AuthenticatedExtensionsConnectionsRoute
+  AuthenticatedExtensionsHistoryRoute: typeof AuthenticatedExtensionsHistoryRoute
+  AuthenticatedExtensionsInstalledRoute: typeof AuthenticatedExtensionsInstalledRoute
+  AuthenticatedHostingDomainsRoute: typeof AuthenticatedHostingDomainsRoute
+  AuthenticatedHostingIssuesRoute: typeof AuthenticatedHostingIssuesRoute
+  AuthenticatedHostingPoliciesRoute: typeof AuthenticatedHostingPoliciesRoute
+  AuthenticatedHostingStorageRoute: typeof AuthenticatedHostingStorageRoute
+  AuthenticatedMessagesCampaignsRoute: typeof AuthenticatedMessagesCampaignsRoute
+  AuthenticatedMessagesDeliveriesRoute: typeof AuthenticatedMessagesDeliveriesRoute
+  AuthenticatedMessagesEmailRoute: typeof AuthenticatedMessagesEmailRoute
+  AuthenticatedMessagesFeedbackRoute: typeof AuthenticatedMessagesFeedbackRoute
+  AuthenticatedMessagesTemplatesRoute: typeof AuthenticatedMessagesTemplatesRoute
   AuthenticatedMonitoringActivityRoute: typeof AuthenticatedMonitoringActivityRoute
   AuthenticatedMonitoringAiUsageRoute: typeof AuthenticatedMonitoringAiUsageRoute
   AuthenticatedMonitoringAuditRoute: typeof AuthenticatedMonitoringAuditRoute
   AuthenticatedMonitoringPerformanceRoute: typeof AuthenticatedMonitoringPerformanceRoute
   AuthenticatedMonitoringRequestsRoute: typeof AuthenticatedMonitoringRequestsRoute
-  AuthenticatedOperationsJobsRoute: typeof AuthenticatedOperationsJobsRoute
   AuthenticatedWorkspacesIndexRoute: typeof AuthenticatedWorkspacesIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedAttentionRoute: AuthenticatedAttentionRoute,
+  AuthenticatedAttentionRoute: AuthenticatedAttentionRouteWithChildren,
+  AuthenticatedProjectsRoute: AuthenticatedProjectsRoute,
+  AuthenticatedUsersRoute: AuthenticatedUsersRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAccessMfaRoute: AuthenticatedAccessMfaRoute,
+  AuthenticatedAccessRolesRoute: AuthenticatedAccessRolesRoute,
+  AuthenticatedAccessSessionsRoute: AuthenticatedAccessSessionsRoute,
+  AuthenticatedAccessSignInRoute: AuthenticatedAccessSignInRoute,
   AuthenticatedAccessTeamRoute: AuthenticatedAccessTeamRouteWithChildren,
+  AuthenticatedAiAssistantsRoute: AuthenticatedAiAssistantsRoute,
+  AuthenticatedAiPoliciesRoute: AuthenticatedAiPoliciesRoute,
+  AuthenticatedAiProvidersRoute: AuthenticatedAiProvidersRoute,
+  AuthenticatedAiTasksRoute: AuthenticatedAiTasksRoute,
+  AuthenticatedBillingConfigurationRoute:
+    AuthenticatedBillingConfigurationRoute,
+  AuthenticatedBillingCreditsRoute: AuthenticatedBillingCreditsRoute,
+  AuthenticatedBillingPaymentsRoute: AuthenticatedBillingPaymentsRoute,
+  AuthenticatedBillingPlansRoute: AuthenticatedBillingPlansRoute,
+  AuthenticatedBillingSubscriptionsRoute:
+    AuthenticatedBillingSubscriptionsRoute,
+  AuthenticatedExtensionsPluginIdRoute: AuthenticatedExtensionsPluginIdRoute,
+  AuthenticatedExtensionsCatalogRoute: AuthenticatedExtensionsCatalogRoute,
+  AuthenticatedExtensionsConnectionsRoute:
+    AuthenticatedExtensionsConnectionsRoute,
+  AuthenticatedExtensionsHistoryRoute: AuthenticatedExtensionsHistoryRoute,
+  AuthenticatedExtensionsInstalledRoute: AuthenticatedExtensionsInstalledRoute,
+  AuthenticatedHostingDomainsRoute: AuthenticatedHostingDomainsRoute,
+  AuthenticatedHostingIssuesRoute: AuthenticatedHostingIssuesRoute,
+  AuthenticatedHostingPoliciesRoute: AuthenticatedHostingPoliciesRoute,
+  AuthenticatedHostingStorageRoute: AuthenticatedHostingStorageRoute,
+  AuthenticatedMessagesCampaignsRoute: AuthenticatedMessagesCampaignsRoute,
+  AuthenticatedMessagesDeliveriesRoute: AuthenticatedMessagesDeliveriesRoute,
+  AuthenticatedMessagesEmailRoute: AuthenticatedMessagesEmailRoute,
+  AuthenticatedMessagesFeedbackRoute: AuthenticatedMessagesFeedbackRoute,
+  AuthenticatedMessagesTemplatesRoute: AuthenticatedMessagesTemplatesRoute,
   AuthenticatedMonitoringActivityRoute: AuthenticatedMonitoringActivityRoute,
   AuthenticatedMonitoringAiUsageRoute: AuthenticatedMonitoringAiUsageRoute,
   AuthenticatedMonitoringAuditRoute: AuthenticatedMonitoringAuditRoute,
   AuthenticatedMonitoringPerformanceRoute:
     AuthenticatedMonitoringPerformanceRoute,
   AuthenticatedMonitoringRequestsRoute: AuthenticatedMonitoringRequestsRoute,
-  AuthenticatedOperationsJobsRoute: AuthenticatedOperationsJobsRoute,
   AuthenticatedWorkspacesIndexRoute: AuthenticatedWorkspacesIndexRoute,
 }
 

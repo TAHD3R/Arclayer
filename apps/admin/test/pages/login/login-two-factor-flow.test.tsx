@@ -240,8 +240,8 @@ vi.mock("@arclayer/ui/input-otp", async () => {
   };
 });
 
-vi.mock("@/hooks/use-system-runtime", () => ({
-  useSystemRuntime: () => runtimeState,
+vi.mock("@/hooks/use-product-runtime", () => ({
+  useProductRuntime: () => runtimeState,
 }));
 
 vi.mock("@/hooks/use-prefers-reduced-motion", () => ({
@@ -421,7 +421,7 @@ describe("LoginPage two-factor challenge flow", () => {
         status: 401,
         message: "需要进行 2FA 验证",
         error: "TWO_FACTOR_REQUIRED",
-        meta: { two_factor_token: "challenge-1", expires_in: 300 },
+        meta: { twoFactorToken: "challenge-1", expiresIn: 300 },
       }),
     );
 
@@ -463,9 +463,9 @@ describe("LoginPage two-factor challenge flow", () => {
         error: "EMAIL_NOT_VERIFIED",
         meta: {
           email: "demo@example.com",
-          requires_email_verification: true,
-          expires_in: 3600,
-          retry_after: 60,
+          requiresEmailVerification: true,
+          expiresIn: 3600,
+          retryAfter: 60,
         },
       }),
     );
@@ -508,15 +508,15 @@ describe("LoginPage two-factor challenge flow", () => {
         error: "EMAIL_NOT_VERIFIED",
         meta: {
           email: "demo@example.com",
-          requires_email_verification: true,
-          expires_in: 3600,
-          retry_after: 0,
+          requiresEmailVerification: true,
+          expiresIn: 3600,
+          retryAfter: 0,
         },
       }),
     );
     resendRegistrationEmailVerificationMock.mockResolvedValueOnce({
-      requires_email_verification: true,
-      retry_after: 60,
+      requiresEmailVerification: true,
+      retryAfter: 60,
     });
 
     renderPage();
@@ -606,8 +606,8 @@ describe("LoginPage two-factor challenge flow", () => {
       passwordLoginAvailable: true,
     });
     requestLoginEmailCodeMock.mockResolvedValueOnce({
-      expires_in: 600,
-      retry_after: 0,
+      expiresIn: 600,
+      retryAfter: 0,
     });
 
     renderPage({ strictMode: true });
@@ -635,15 +635,15 @@ describe("LoginPage two-factor challenge flow", () => {
       passwordLoginAvailable: true,
     });
     requestLoginEmailCodeMock.mockResolvedValueOnce({
-      expires_in: 600,
-      retry_after: 60,
+      expiresIn: 600,
+      retryAfter: 60,
     });
     verifyLoginEmailCodeMock.mockRejectedValueOnce(
       new ApiError({
         status: 401,
         message: "需要进行 2FA 验证",
         error: "TWO_FACTOR_REQUIRED",
-        meta: { two_factor_token: "challenge-email-code", expires_in: 300 },
+        meta: { twoFactorToken: "challenge-email-code", expiresIn: 300 },
       }),
     );
 

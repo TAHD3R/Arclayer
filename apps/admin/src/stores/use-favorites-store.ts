@@ -10,6 +10,7 @@ import type {
 } from "@/types/stores";
 
 const MAX_FAVORITES = 10;
+const FAVORITES_HARD_CUT_VERSION = 5;
 
 function normalizeFavoritePath(path: string): string {
   return path.trim();
@@ -332,8 +333,11 @@ export const useFavoritesStore = create<FavoritesState>()(
     {
       name: STORAGE_KEYS.favorites,
       storage: createJSONStorage(() => localStorage),
-      version: 4,
-      migrate: (persistedState) => {
+      version: FAVORITES_HARD_CUT_VERSION,
+      migrate: (persistedState, persistedVersion) => {
+        if (persistedVersion < FAVORITES_HARD_CUT_VERSION) {
+          return buildFavoriteState([], true);
+        }
         const state =
           persistedState && typeof persistedState === "object"
             ? (persistedState as Partial<FavoritesState>)

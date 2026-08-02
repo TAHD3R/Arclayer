@@ -2,7 +2,7 @@ import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { Activity, AlertTriangle, Circle, ShieldAlert } from "lucide-react";
 
-import type { ActivityEvent } from "@arclayer/openapi/admin-types";
+import type { AuditEventOut as ActivityEvent } from "@arclayer/openapi";
 import type { ActivityEventLevel } from "@/pages/workspaces/shared/activity/constants";
 import { resolveCatalogEntry } from "@/pages/workspaces/shared/activity/constants";
 import { ActivityUserPill } from "@/pages/workspaces/shared/activity/components/activity-user-pill";
@@ -242,9 +242,9 @@ function ActivityTimelineEntry({
   const actor = event.actor
     ? {
         id: event.actor.id,
-        username: event.actor.username,
-        displayName: event.actor.displayName,
-        avatarUrl: event.actor.avatarUrl,
+        username: event.actor.username ?? null,
+        displayName: event.actor.displayName ?? null,
+        avatarUrl: event.actor.avatarUrl ?? null,
       }
     : event.actorUserId
       ? { id: event.actorUserId, username: null, displayName: null, avatarUrl: null }

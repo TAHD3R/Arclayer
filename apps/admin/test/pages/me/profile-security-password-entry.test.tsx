@@ -111,7 +111,7 @@ beforeEach(() => {
   });
   changePasswordMock.mockResolvedValue(null);
   setMyPasswordMock.mockResolvedValue(null);
-  requestRemoveMyPasswordMock.mockResolvedValue({ expires_in: 600, retry_after: 60 });
+  requestRemoveMyPasswordMock.mockResolvedValue({ expiresIn: 600, retryAfter: 60 });
   confirmRemoveMyPasswordMock.mockResolvedValue(null);
 });
 
@@ -209,7 +209,7 @@ describe("Profile password entry migration", () => {
     await user.click(screen.getByRole("button", { name: i18n.t("settings:SETTINGS_SAVE") }));
 
     await waitFor(() => {
-      expect(setMyPasswordMock).toHaveBeenCalledWith({ new_password: "Newpass1", code: "123456" });
+      expect(setMyPasswordMock).toHaveBeenCalledWith({ newPassword: "Newpass1", code: "123456" });
     });
     expect(changePasswordMock).not.toHaveBeenCalled();
     await waitFor(() => {
@@ -241,7 +241,7 @@ describe("Profile password entry migration", () => {
     );
 
     await waitFor(() => {
-      expect(requestRemoveMyPasswordMock).toHaveBeenCalledWith({ current_password: "oldpass1" });
+      expect(requestRemoveMyPasswordMock).toHaveBeenCalledWith({ currentPassword: "oldpass1" });
     });
 
     await user.type(

@@ -14,5 +14,5 @@ def test_extract_workspace_id_from_path_returns_workspace_id() -> None:
 
 
 def test_extract_workspace_id_from_path_rejects_invalid_paths() -> None:
-    assert extract_workspace_id_from_path("/api/v1/system/runtime") is None
+    assert extract_workspace_id_from_path("/api/v1/runtime") is None
     assert extract_workspace_id_from_path("/api/v1/workspaces/not-a-uuid/team/members") is None

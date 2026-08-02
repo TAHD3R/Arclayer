@@ -36,6 +36,11 @@ from src.modules.system.admin.notifications.campaign_job_handler import (
     NotificationCampaignJobHandler,
 )
 from src.modules.system.admin.notifications.campaign_repository import NotificationCampaignRepository
+from src.modules.system.admin.notifications.catalog import (
+    NotificationRecordCreateDisposition,
+    NotificationRecordCreateResult,
+)
+from src.modules.system.admin.notifications.schema import NotificationInboxTarget
 
 pytestmark = pytest.mark.unit
 
@@ -334,27 +339,17 @@ async def test_execute_delivers_in_app_notification_and_persists_delivery_identi
     variant = _variant(campaign)
     user = _user("inbox@example.com")
     notification_id = uuid4()
-    captured_target_meta: dict[str, Any] = {}
+    captured_campaign_surface: Any | None = None
     _install_preferences(monkeypatch, enabled=True)
 
     async def create_notification(**values: Any):  # type: ignore[no-untyped-def]
-        target_meta = values["target_meta"]
-        captured_target_meta.update(target_meta)
-        assert {key: value for key, value in target_meta.items() if key != "deliveryId"} == {
-            "campaignId": str(campaign.id),
-            "presentation": "inbox",
-            "priority": 42,
-            "displayStartAt": "2026-07-23T09:00:00+00:00",
-            "displayEndAt": "2026-07-30T09:00:00+00:00",
-            "scheduleAt": "2026-07-23T08:00:00+00:00",
-            "payload": {
-                "title": "Release ready",
-                "body": "Review the new capabilities.",
-                "severity": "info",
-                "action": None,
-            },
-        }
-        return SimpleNamespace(id=notification_id)
+        nonlocal captured_campaign_surface
+        assert values["target"] == NotificationInboxTarget()
+        captured_campaign_surface = values["campaign_surface"]
+        return NotificationRecordCreateResult(
+            disposition=NotificationRecordCreateDisposition.CREATED,
+            record=SimpleNamespace(id=notification_id),
+        )
 
     monkeypatch.setattr(handler_module, "create_notification_record", create_notification)
     handler, deliveries, _ = _handler(campaign=campaign, variant=variant, users=[user])
@@ -364,7 +359,19 @@ async def test_execute_delivers_in_app_notification_and_persists_delivery_identi
     row = next(iter(deliveries.rows.values()))
     assert row.state is NotificationDeliveryState.DELIVERED
     assert row.notification_id == notification_id
-    assert captured_target_meta["deliveryId"] == str(row.id)
+    assert captured_campaign_surface is not None
+    assert captured_campaign_surface.campaign_id == campaign.id
+    assert captured_campaign_surface.delivery_id == row.id
+    assert captured_campaign_surface.presentation == "inbox"
+    assert captured_campaign_surface.priority == 42
+    assert captured_campaign_surface.display_start_at == campaign.display_start_at
+    assert captured_campaign_surface.display_end_at == campaign.display_end_at
+    assert captured_campaign_surface.payload.model_dump(mode="json", by_alias=True) == {
+        "title": "Release ready",
+        "body": "Review the new capabilities.",
+        "severity": "info",
+        "action": None,
+    }
     assert result == NotificationCampaignJobResult(
         campaign_id=campaign.id,
         campaign_revision=1,
@@ -499,3 +506,86 @@ async def test_cancelled_campaign_cannot_resume_dispatch() -> None:
         await handler.execute(context=_job_context(_Context(campaign.id)))
 
     assert rejected.value.code == CAMPAIGN_STATE_INVALID_CODE
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("disposition", "reason"),
+    [
+        (NotificationRecordCreateDisposition.GROUP_SUPPRESSED, "NOTIFICATION_SYSTEM_POLICY_DISABLED"),
+        (NotificationRecordCreateDisposition.PREFERENCE_SUPPRESSED, "NOTIFICATION_IN_APP_PREFERENCE_DISABLED"),
+    ],
+)
+async def test_in_app_delivery_persists_shared_entrypoint_suppression(
+    monkeypatch: pytest.MonkeyPatch,
+    disposition: NotificationRecordCreateDisposition,
+    reason: str,
+) -> None:
+    campaign = _campaign(presentations=(NotificationPresentation.INBOX,))
+    variant = _variant(campaign)
+    user = _user("suppressed-in-app@example.com")
+    _install_preferences(monkeypatch, enabled=True)
+
+    async def create_notification(**_values: Any) -> NotificationRecordCreateResult:
+        return NotificationRecordCreateResult(disposition=disposition, record=None)
+
+    monkeypatch.setattr(handler_module, "create_notification_record", create_notification)
+    handler, deliveries, _ = _handler(campaign=campaign, variant=variant, users=[user])
+
+    await handler.execute(context=_job_context(_Context(campaign.id)))
+
+    row = next(iter(deliveries.rows.values()))
+    assert row.state is NotificationDeliveryState.SUPPRESSED
+    assert row.failure_code == reason
+
+
+@pytest.mark.asyncio
+async def test_in_app_delivery_marks_existing_notification_after_deduplication(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    campaign = _campaign(presentations=(NotificationPresentation.INBOX,))
+    variant = _variant(campaign)
+    user = _user("deduplicated@example.com")
+    notification_id = uuid4()
+    _install_preferences(monkeypatch, enabled=True)
+
+    async def create_notification(**_values: Any) -> NotificationRecordCreateResult:
+        return NotificationRecordCreateResult(
+            disposition=NotificationRecordCreateDisposition.DEDUPLICATED,
+            record=None,
+        )
+
+    monkeypatch.setattr(handler_module, "create_notification_record", create_notification)
+    handler, deliveries, _ = _handler(campaign=campaign, variant=variant, users=[user])
+
+    async def find_existing_notification(**_values: Any) -> object:
+        return SimpleNamespace(id=notification_id)
+
+    monkeypatch.setattr(deliveries, "find_notification", find_existing_notification)
+    await handler.execute(context=_job_context(_Context(campaign.id)))
+
+    row = next(iter(deliveries.rows.values()))
+    assert row.state is NotificationDeliveryState.DELIVERED
+    assert row.notification_id == notification_id
+
+
+@pytest.mark.asyncio
+async def test_in_app_delivery_surfaces_missing_deduplicated_notification(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    campaign = _campaign(presentations=(NotificationPresentation.INBOX,))
+    variant = _variant(campaign)
+    user = _user("missing-deduplicated@example.com")
+    _install_preferences(monkeypatch, enabled=True)
+
+    async def create_notification(**_values: Any) -> NotificationRecordCreateResult:
+        return NotificationRecordCreateResult(
+            disposition=NotificationRecordCreateDisposition.DEDUPLICATED,
+            record=None,
+        )
+
+    monkeypatch.setattr(handler_module, "create_notification_record", create_notification)
+    handler, _, _ = _handler(campaign=campaign, variant=variant, users=[user])
+
+    with pytest.raises(RuntimeError, match="NOTIFICATION_CAMPAIGN_DEDUPLICATED_RECORD_UNAVAILABLE"):
+        await handler.execute(context=_job_context(_Context(campaign.id)))

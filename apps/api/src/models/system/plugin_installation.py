@@ -25,6 +25,7 @@ class PluginLifecycleState(StrEnum):
     UNINSTALLING = "uninstalling"
     FAILED = "failed"
     ROLLBACK_REQUIRED = "rollback_required"
+    RECOVERING = "recovering"
 
 
 class PluginRuntimeActivationState(StrEnum):
@@ -41,6 +42,13 @@ class PluginOperationKind(StrEnum):
     ENABLE = "enable"
     DISABLE = "disable"
     UNINSTALL = "uninstall"
+    RECOVER = "recover"
+
+
+class PluginTrustState(StrEnum):
+    UNKNOWN = "unknown"
+    VERIFIED = "verified"
+    REJECTED = "rejected"
 
 
 class PluginOperationState(StrEnum):
@@ -81,6 +89,13 @@ class PluginArtifactRecord(BaseModel):
     detached_signature = fields.TextField()
     signer_fingerprint = fields.CharField(max_length=64, db_index=True)
     provenance_status = fields.CharField(max_length=32)
+    trust_state = fields.CharEnumField(
+        PluginTrustState,
+        default=PluginTrustState.UNKNOWN,
+        max_length=16,
+        db_index=True,
+    )
+    trust_evidence = fields.JSONField(default=list)
     size_bytes = fields.BigIntField()
     compatibility = fields.JSONField(default=dict)
     review_projection = fields.JSONField(default=dict)
@@ -112,7 +127,16 @@ class PluginInstallationRecord(BaseModel):
     package_checksum = fields.CharField(max_length=80, null=True)
     manifest_digest = fields.CharField(max_length=80, null=True)
     provenance_status = fields.CharField(max_length=32, null=True)
+    trust_state = fields.CharEnumField(
+        PluginTrustState,
+        default=PluginTrustState.UNKNOWN,
+        max_length=16,
+        db_index=True,
+    )
+    trust_evidence = fields.JSONField(default=list)
     compatibility = fields.JSONField(default=dict)
+    declared_dependencies = fields.JSONField(default=list)
+    consumer_evidence = fields.JSONField(default=dict)
     lifecycle_state = fields.CharEnumField(
         PluginLifecycleState,
         default=PluginLifecycleState.INSTALLED,
@@ -190,13 +214,20 @@ class PluginOperationRecord(BaseModel):
     job_id = fields.UUIDField(null=True, unique=True)
     idempotency_key_hash = fields.CharField(max_length=64, unique=True)
     request_fingerprint = fields.CharField(max_length=64)
+    audit_correlation_id = fields.CharField(max_length=128, null=True, db_index=True)
+    recovery_of_operation_id = fields.UUIDField(null=True, db_index=True)
     requested_version = fields.CharField(max_length=64, null=True)
     previous_version = fields.CharField(max_length=64, null=True)
     package_checksum = fields.CharField(max_length=80, null=True)
     manifest_digest = fields.CharField(max_length=80, null=True)
     permission_diff = fields.JSONField(default=dict)
+    requested_permissions = fields.JSONField(default=list)
+    approved_permissions = fields.JSONField(default=list)
+    provided_capabilities = fields.JSONField(default=list)
     migration_warnings = fields.JSONField(default=list)
+    step_evidence = fields.JSONField(default=list)
     restart_required = fields.BooleanField(default=False)
+    desired_enabled = fields.BooleanField(default=False)
     activation_verified = fields.BooleanField(default=False)
     retryable = fields.BooleanField(default=False)
     failure_code = fields.CharField(max_length=128, null=True)

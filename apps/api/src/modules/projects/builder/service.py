@@ -6,6 +6,7 @@ from uuid import UUID
 
 from asgi_correlation_id import correlation_id
 from pydantic import ValidationError
+from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.common.types.json_types import JsonValue
 from src.config import Settings
@@ -27,7 +28,7 @@ from src.modules.projects.builder.initialization import (
 from src.modules.projects.builder.manifest import parse_site_revision_manifest
 from src.modules.projects.builder.projection import get_project_builder_projection, get_project_builder_revision
 from src.modules.projects.builder.render_document import build_page_render_document
-from src.modules.projects.builder.render_document_design import resolve_design_token_values
+from src.modules.projects.builder.render_document_design import BuilderRenderDesignPins, resolve_design_token_values
 from src.modules.projects.builder.render_document_schema import BuilderPageRenderDocumentOut
 from src.modules.projects.builder.repository import SiteBuilderRepository
 from src.modules.projects.builder.schema import (
@@ -109,7 +110,6 @@ class SiteBuilderService(BaseService):
                 revision_id=revision_id,
                 conn=conn,
             )
-            version_ids = [UUID(str(item.content_version_id)) for item in (*revision.pages, *revision.global_sections)]
             versions = await self._repository.list_content_versions(
                 item_ids=[UUID(str(item.item_id)) for item in (*revision.pages, *revision.global_sections)],
                 conn=conn,
@@ -125,31 +125,99 @@ class SiteBuilderService(BaseService):
                 revision=revision,
                 design_version=design_version,
             )
-            seo_profiles = await self._repository.list_seo_profiles(version_ids=version_ids, conn=conn)
-            page_version_id = next(
-                (
-                    UUID(str(item.content_version_id))
-                    for item in revision.pages
-                    if UUID(str(item.item_id)) == page_item_id
-                ),
-                None,
-            )
-            if page_version_id is None:
-                _raise_not_found("BUILDER_RENDER_PAGE_NOT_FOUND")
-            seo_profile = next(
-                (profile for profile in seo_profiles if UUID(str(profile.version_id)) == page_version_id),
-                None,
-            )
-            return build_page_render_document(
+            return await self._build_page_render_document(
                 revision=revision,
                 page_item_id=page_item_id,
                 locale=locale,
                 theme_key=theme_key,
                 version_by_item=version_by_item,
-                seo_profile=seo_profile,
                 design_manifest=design_manifest,
                 catalog=catalog,
+                design_pins=None,
+                conn=conn,
             )
+
+    async def get_page_render_document_for_design_system(
+        self,
+        *,
+        workspace_id: UUID,
+        project_id: UUID,
+        revision_id: UUID,
+        page_item_id: UUID,
+        locale: str,
+        theme_key: str | None,
+        design_pins: BuilderRenderDesignPins,
+        design_manifest: DesignSystemManifestV1,
+    ) -> BuilderPageRenderDocumentOut:
+        async with self.tx() as conn:
+            revision = await get_project_builder_revision(
+                repository=self._repository,
+                workspace_id=workspace_id,
+                project_id=project_id,
+                revision_id=revision_id,
+                conn=conn,
+            )
+            catalog_version = design_manifest.component_catalog_version
+            if catalog_version is None:
+                _raise_conflict("DESIGN_SYSTEM_COMPONENT_INCOMPATIBLE")
+            catalog = self._component_catalog_resolver.resolve(catalog_version)
+            if catalog is None:
+                _raise_conflict("DESIGN_SYSTEM_COMPONENT_INCOMPATIBLE")
+            versions = await self._repository.list_content_versions(
+                item_ids=[UUID(str(item.item_id)) for item in (*revision.pages, *revision.global_sections)],
+                conn=conn,
+            )
+            version_by_item = _select_render_versions(revision=revision, versions=versions)
+            return await self._build_page_render_document(
+                revision=revision,
+                page_item_id=page_item_id,
+                locale=locale,
+                theme_key=theme_key,
+                version_by_item=version_by_item,
+                design_manifest=design_manifest,
+                catalog=catalog,
+                design_pins=design_pins,
+                conn=conn,
+            )
+
+    async def _build_page_render_document(
+        self,
+        *,
+        revision: BuilderRevisionOut,
+        page_item_id: UUID,
+        locale: str,
+        theme_key: str | None,
+        version_by_item: dict[UUID, ContentVersionRecord],
+        design_manifest: DesignSystemManifestV1,
+        catalog: ComponentCatalogV1,
+        design_pins: BuilderRenderDesignPins | None,
+        conn: BaseDBAsyncClient,
+    ) -> BuilderPageRenderDocumentOut:
+        seo_profiles = await self._repository.list_seo_profiles(
+            version_ids=[UUID(str(item.content_version_id)) for item in (*revision.pages, *revision.global_sections)],
+            conn=conn,
+        )
+        page_version_id = next(
+            (UUID(str(item.content_version_id)) for item in revision.pages if UUID(str(item.item_id)) == page_item_id),
+            None,
+        )
+        if page_version_id is None:
+            _raise_not_found("BUILDER_RENDER_PAGE_NOT_FOUND")
+        seo_profile = next(
+            (profile for profile in seo_profiles if UUID(str(profile.version_id)) == page_version_id),
+            None,
+        )
+        return build_page_render_document(
+            revision=revision,
+            page_item_id=page_item_id,
+            locale=locale,
+            theme_key=theme_key,
+            version_by_item=version_by_item,
+            seo_profile=seo_profile,
+            design_manifest=design_manifest,
+            catalog=catalog,
+            design_pins=design_pins,
+        )
 
     def _resolve_render_design(
         self,

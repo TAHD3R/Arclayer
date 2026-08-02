@@ -130,6 +130,10 @@ export const Route = createRootRoute({
       const decision = await resolvePostAuthRoute({
         lastWorkspaceId: workspaceState.lastWorkspaceId,
       });
+      workspaceState.setCurrentContext({
+        workspaceId: decision.workspaceId,
+        projectId: decision.projectId,
+      });
       if (decision.onboardingRequired) {
         if (!isWelcome) {
           throw redirect({ to: "/welcome" });
@@ -137,12 +141,6 @@ export const Route = createRootRoute({
         return;
       }
       if (isWelcome && !dryRunWelcome) {
-        if (decision.workspaceId || decision.projectId) {
-          workspaceState.setCurrentContext({
-            workspaceId: decision.workspaceId,
-            projectId: decision.projectId,
-          });
-        }
         const redirectTo = welcomeSearch.get("redirect");
         if (
           typeof redirectTo === "string" &&
@@ -161,12 +159,10 @@ export const Route = createRootRoute({
       const decision = await resolvePostAuthRoute({
         lastWorkspaceId: workspaceState.lastWorkspaceId,
       });
-      if (decision.workspaceId || decision.projectId) {
-        workspaceState.setCurrentContext({
-          workspaceId: decision.workspaceId,
-          projectId: decision.projectId,
-        });
-      }
+      workspaceState.setCurrentContext({
+        workspaceId: decision.workspaceId,
+        projectId: decision.projectId,
+      });
       if (decision.onboardingRequired) {
         const safeRedirect =
           typeof redirectTo === "string" &&

@@ -38,16 +38,27 @@ from src.modules.projects.schema import (
     ProjectSlugAvailabilityOut,
     ProjectUpdateRequest,
 )
+from src.modules.tenancy.guidance_provisioner import (
+    KnowledgeGuidanceLayerProvisioner,
+    build_knowledge_guidance_layer_provisioner,
+)
 from src.settings.runtime import get_core_settings_value_cached
 
 
 class ProjectService(BaseService):
-    def __init__(self, settings: Settings, *, active_project_allowance: ActiveProjectAllowanceAuthority) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        active_project_allowance: ActiveProjectAllowanceAuthority,
+        guidance_layer_provisioner: KnowledgeGuidanceLayerProvisioner,
+    ) -> None:
         super().__init__(settings)
         self.repo = ProjectRepository()
         self.workspace_repo = OrganizationWorkspaceRepository()
         self.runtime_site_service = ProjectRuntimeSiteService(settings)
         self._active_project_allowance = active_project_allowance
+        self.guidance_layer_provisioner = guidance_layer_provisioner
 
     async def _write_project_activity_event(
         self,
@@ -150,7 +161,7 @@ class ProjectService(BaseService):
         payload: ProjectCreateRequest,
         actor_user_id: UUID,
     ) -> ProjectListItemOut:
-        await self._require_workspace(workspace_id=workspace_id)
+        workspace = await self._require_workspace(workspace_id=workspace_id)
         reserved_slugs = await self._reserved_project_slugs()
         authoring_mode = ProjectAuthoringMode(payload.authoring_mode)
         async with self.tx() as conn:
@@ -166,6 +177,13 @@ class ProjectService(BaseService):
                 conn=conn,
             )
             project_id = UUID(str(project.id))
+            await self.guidance_layer_provisioner.provision_project_layer(
+                organization_id=UUID(str(workspace.organization_id)),
+                workspace_id=workspace_id,
+                project_id=project_id,
+                actor_user_id=actor_user_id,
+                conn=conn,
+            )
             await self.repo.bootstrap_project_memberships(
                 project_id=project_id,
                 workspace_id=workspace_id,
@@ -386,10 +404,11 @@ class ProjectService(BaseService):
             reason=reason,
         )
 
-    async def _require_workspace(self, *, workspace_id: UUID) -> None:
+    async def _require_workspace(self, *, workspace_id: UUID) -> Workspace:
         workspace = await self.workspace_repo.get_active_workspace_by_id(workspace_id=workspace_id)
         if workspace is None or not bool(workspace.is_active):
             raise BadRequest("Workspace not found", error="WORKSPACE_NOT_FOUND")
+        return workspace
 
     async def _get_active_workspace(self, *, workspace_id: UUID) -> Workspace:
         workspace = await self.workspace_repo.get_active_workspace_by_id(workspace_id=workspace_id)
@@ -461,4 +480,5 @@ def build_project_service(settings: Settings) -> ProjectService:
     return ProjectService(
         settings,
         active_project_allowance=build_project_active_allowance_authority(),
+        guidance_layer_provisioner=build_knowledge_guidance_layer_provisioner(),
     )

@@ -23,6 +23,7 @@ import {
   listOfficialSkillCatalog,
   updateWorkspaceSkillInstallation,
 } from "@/api/workspace-skills";
+import { requiredTranslation } from "@/lib/i18n/required-translation";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 
 import { WorkspaceSkillInstallDialog } from "./workspace-skill-install-dialog";
@@ -203,7 +204,7 @@ function OfficialSkillRow(props: {
   selected: boolean;
   onSelect: () => void;
 }) {
-  const { t } = useTranslation("settings");
+  const { t, i18n } = useTranslation("settings");
   return (
     <button
       type="button"
@@ -213,14 +214,22 @@ function OfficialSkillRow(props: {
     >
       <span className="flex items-center justify-between gap-3">
         <span className="text-footnote font-semibold text-label-primary">
-          {t(props.item.displayNameKey, { defaultValue: props.item.displayName })}
+          {requiredTranslation(
+            i18n,
+            `settings:${props.item.displayNameKey}`,
+            "official Skill name",
+          )}
         </span>
         {props.item.installed ? (
           <Badge variant="secondary">{t("SETTINGS_WORKSPACE_SKILLS_INSTALLED_BADGE")}</Badge>
         ) : null}
       </span>
       <span className="mt-1 line-clamp-2 block text-caption text-label-secondary">
-        {t(props.item.descriptionKey, { defaultValue: props.item.description })}
+        {requiredTranslation(
+          i18n,
+          `settings:${props.item.descriptionKey}`,
+          "official Skill description",
+        )}
       </span>
     </button>
   );
@@ -240,7 +249,7 @@ function OfficialSkillDetail(props: {
   onInstall: () => void;
   onEnabledChange: (enabled: boolean) => void;
 }) {
-  const { t } = useTranslation(["settings", "common"]);
+  const { t, i18n } = useTranslation(["settings", "common"]);
   if (props.pending) return <OfficialDetailLoading />;
   if (props.error || !props.detail) {
     return (
@@ -263,11 +272,19 @@ function OfficialSkillDetail(props: {
       <div>
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-title-3 text-label-primary">
-            {t(`settings:${props.item.displayNameKey}`, { defaultValue: props.item.displayName })}
+            {requiredTranslation(
+              i18n,
+              `settings:${props.item.displayNameKey}`,
+              "official Skill name",
+            )}
           </h3>
         </div>
         <p className="mt-2 text-footnote text-label-secondary">
-          {t(`settings:${props.item.descriptionKey}`, { defaultValue: props.item.description })}
+          {requiredTranslation(
+            i18n,
+            `settings:${props.item.descriptionKey}`,
+            "official Skill description",
+          )}
         </p>
       </div>
       <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t pt-4">

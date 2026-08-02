@@ -2,10 +2,7 @@ import * as React from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
-import type {
-  AdminContentModel,
-  PatchAdminContentModelPayload,
-} from "@arclayer/openapi/admin-types";
+import type { ContentModelDefinitionPatchContract as PatchAdminContentModelPayload } from "@arclayer/openapi";
 import { getContentModelImpactPreview, patchContentModel } from "@/api/content";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { Checkbox } from "@arclayer/ui/checkbox";
@@ -19,16 +16,17 @@ import {
   SystemSettingRow,
   SystemSettingStack,
 } from "@/components/settings/setting-item";
+import type { ContentModelsTableRow } from "../types";
 
 export type ContentModelSettingsSectionKey = "settings" | "workflow";
 
 type ContentModelSettingsTabProps = {
   projectId: string;
-  model: AdminContentModel;
+  model: ContentModelsTableRow;
   canManageModels: boolean;
   pending: boolean;
   section: ContentModelSettingsSectionKey;
-  onModelChange: (model: AdminContentModel) => void;
+  onModelChange: (model: ContentModelsTableRow) => void;
 };
 
 const CAPABILITIES = [
@@ -130,7 +128,7 @@ function createEmptyUserIdState(): Record<WorkflowStage, string[]> {
   };
 }
 
-function readRoutingSchema(model: AdminContentModel) {
+function readRoutingSchema(model: ContentModelsTableRow) {
   const routingSchema = model.routingSchema as Record<string, unknown> | null;
   const mode =
     routingSchema?.mode === "single" || routingSchema?.mode === "localized"
@@ -161,7 +159,7 @@ function readWorkflowActorRules(value: unknown): {
   return { roleState, userIdState };
 }
 
-function readWorkflowSettings(model: AdminContentModel): WorkflowSettingsState {
+function readWorkflowSettings(model: ContentModelsTableRow): WorkflowSettingsState {
   const workflowPolicy = asRecord(model.workflowPolicy) ?? {};
   const initialStageCandidate = workflowPolicy.initialStage ?? workflowPolicy.initial_stage;
   const publishStageCandidate = workflowPolicy.publishStage ?? workflowPolicy.publish_stage;
@@ -265,9 +263,7 @@ function SettingCheckboxRow(props: {
 export function ContentModelSettingsTab(props: ContentModelSettingsTabProps) {
   const { t } = useTranslation("content");
 
-  const [capabilities, setCapabilities] = React.useState<string[]>(
-    () => props.model.capabilities ?? [],
-  );
+  const [capabilities, setCapabilities] = React.useState<string[]>(() => props.model.capabilities);
   const [routingMode, setRoutingMode] = React.useState<string>(
     () => readRoutingSchema(props.model).mode,
   );
@@ -280,7 +276,7 @@ export function ContentModelSettingsTab(props: ContentModelSettingsTabProps) {
 
   React.useEffect(() => {
     const routingSchema = readRoutingSchema(props.model);
-    setCapabilities(props.model.capabilities ?? []);
+    setCapabilities(props.model.capabilities);
     setRoutingMode(routingSchema.mode);
     setSlugField(routingSchema.slugField);
     setWorkflowSettings(readWorkflowSettings(props.model));
@@ -289,7 +285,7 @@ export function ContentModelSettingsTab(props: ContentModelSettingsTabProps) {
   const canEdit = props.canManageModels && !props.pending;
 
   const coreDirty = React.useMemo(() => {
-    const current = [...(props.model.capabilities ?? [])].sort();
+    const current = [...props.model.capabilities].sort();
     const next = [...capabilities].sort();
     return toComparable(current) !== toComparable(next);
   }, [capabilities, props.model.capabilities]);
@@ -373,7 +369,7 @@ export function ContentModelSettingsTab(props: ContentModelSettingsTabProps) {
 
   const resetSettings = React.useCallback(() => {
     const routingSchema = readRoutingSchema(props.model);
-    setCapabilities(props.model.capabilities ?? []);
+    setCapabilities(props.model.capabilities);
     setRoutingMode(routingSchema.mode);
     setSlugField(routingSchema.slugField);
   }, [props.model]);

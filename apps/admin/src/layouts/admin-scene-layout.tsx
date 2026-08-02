@@ -85,9 +85,7 @@ export function AdminSceneLayout({
   const setSidebarWidthPx = usePreferencesStore((s) => s.setSidebarWidthPx);
   const setAiDrawerWidthPx = usePreferencesStore((s) => s.setAiDrawerWidthPx);
   const aiDrawerOpen = useAiChatStore((s) => s.drawerOpen);
-  const workspaceId = useWorkspaceStore(
-    (state) => state.currentWorkspaceId ?? state.lastWorkspaceId,
-  );
+  const workspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const sidebarOpen =
     sidebarCollapsible === "none" ? true : aiDrawerOpen ? false : storedSidebarOpen;
   const sceneContainerRef = useRef<HTMLDivElement | null>(null);
@@ -149,7 +147,15 @@ export function AdminSceneLayout({
   const notificationPreviewQuery = useQuery({
     queryKey: ["notifications", "preview", sessionVersion],
     enabled: Boolean(accessToken),
-    queryFn: () => getUnreadNotificationPreview({ limit: NOTIFICATION_TOAST_PREVIEW_LIMIT }),
+    queryFn: async () => {
+      const preview = await getUnreadNotificationPreview({
+        limit: NOTIFICATION_TOAST_PREVIEW_LIMIT,
+      });
+      if (!Array.isArray(preview.items)) {
+        throw new Error("Invalid notification preview response");
+      }
+      return { ...preview, items: preview.items };
+    },
     staleTime: 30 * 1000,
     refetchInterval: 30 * 1000,
     meta: { silent: true },
@@ -179,23 +185,32 @@ export function AdminSceneLayout({
 
     for (const item of nextUnreadItems.reverse()) {
       const globalMeta = getGlobalNotificationMeta(item);
+      const campaignToast = globalMeta?.presentation === "toast" ? globalMeta : null;
+      const campaignAction = campaignToast?.payload.action ?? null;
       let toastId: string | number | undefined;
       const dismissToast = () => {
         if (toastId === undefined) return;
         toast.dismiss(toastId);
       };
       const openToastTarget = async () => {
-        const isCampaignToast = globalMeta?.presentation === "toast";
-        if (!(await openTarget(item, { markRead: !isCampaignToast }))) return;
-        if (isCampaignToast) {
+        if (campaignAction) {
+          const opened =
+            campaignAction.kind === "internal_route"
+              ? await openTarget(item, { markRead: false, target: campaignAction.target })
+              : window.open(campaignAction.target, "_blank", "noopener,noreferrer") !== null;
+          if (!opened) return;
           await recordInteraction(item, "click");
+        } else {
+          if (campaignToast || !(await openTarget(item))) return;
         }
         dismissToast();
       };
 
       toastId = message.info(
         {
-          title: (
+          title: campaignToast ? (
+            campaignToast.payload.title
+          ) : (
             <button
               type="button"
               className="block min-w-0 max-w-full truncate text-left text-headline font-semibold text-label-primary transition-colors hover:text-primary"
@@ -210,7 +225,9 @@ export function AdminSceneLayout({
             <NotificationToastContent
               item={item}
               showTitle={false}
-              onOpenTarget={openToastTarget}
+              body={campaignToast ? (campaignToast.payload.body ?? null) : undefined}
+              actionLabel={campaignAction?.label}
+              onOpenTarget={campaignAction ? openToastTarget : undefined}
               onMarkRead={
                 item.readAt
                   ? undefined
@@ -313,7 +330,7 @@ export function AdminSceneLayout({
                 <GlobalNotificationSurfaces
                   items={notificationPreviewQuery.data?.items ?? []}
                   onRecordInteraction={recordInteraction}
-                  onOpenTarget={(item) => openTarget(item, { markRead: false })}
+                  onOpenTarget={(item, target) => openTarget(item, { markRead: false, target })}
                 />
 
                 <div className="relative flex min-h-0 flex-1">

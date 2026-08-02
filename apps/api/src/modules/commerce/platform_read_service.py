@@ -40,6 +40,7 @@ class PlatformCommerceReadService(BaseService):
                         PlatformCommerceRevisionSummaryOut(
                             id=revision.id,
                             sequence=revision.sequence,
+                            revision=revision.revision,
                             status=revision.status,
                             is_selling=revision.is_selling,
                             name_i18n_key=revision.name_i18n_key,
@@ -63,6 +64,7 @@ class PlatformCommerceReadService(BaseService):
             PlatformCommerceRevisionSummaryOut(
                 id=revision.id,
                 sequence=revision.sequence,
+                revision=revision.revision,
                 status=revision.status,
                 is_selling=revision.is_selling,
                 name_i18n_key=revision.name_i18n_key,

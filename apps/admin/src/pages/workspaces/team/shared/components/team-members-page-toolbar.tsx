@@ -22,7 +22,7 @@ import { DataTableSearchInput } from "@/components/common/data-table-search-inpu
 import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
 import { buildReuiFilterI18n } from "@/components/common/reui-filter-i18n";
 import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
-import type { Role } from "@arclayer/openapi/admin-types";
+import type { WorkspaceRoleOut as Role } from "@arclayer/openapi";
 import type {
   MembershipStatus,
   TeamMemberSort,

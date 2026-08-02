@@ -19,6 +19,7 @@ import { listContentItems } from "@/api/content";
 import { toMasonryItem } from "@/lib/assets/to-masonry-item";
 import {
   agentIdsForComposerScope,
+  skillInstallationIdsForComposerScope,
   useAIComposerDirectiveStore,
   type AIComposerDirectiveScope,
 } from "@/components/ai/ai-composer-directives";
@@ -53,10 +54,8 @@ export function AIComposerTriggers({ placement = "top", scope }: AIComposerTrigg
   const aui = useAui();
   const accessToken = useAuthStore((s) => s.accessToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
-  const currentWorkspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
-  const lastWorkspaceId = useWorkspaceStore((s) => s.lastWorkspaceId);
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const currentProjectId = useWorkspaceStore((s) => s.currentProjectId);
-  const workspaceId = currentWorkspaceId ?? lastWorkspaceId;
 
   const { data: projectsData, isFetching: isFetchingProjects } = useQuery({
     queryKey: ["ai", "composer", "project-mentions", workspaceId, sessionVersion],
@@ -247,12 +246,20 @@ export function AIComposerTriggers({ placement = "top", scope }: AIComposerTrigg
               type: "skill",
               id: skill.id,
               label: skill.label,
-              instruction: t("ai:AI_CHAT_SKILL_PROMPT", { skill: skill.label }),
             },
           ]);
+          const composer = aui.composer();
+          const current = composer.getState().runConfig;
+          composer.setRunConfig({
+            ...current,
+            custom: {
+              ...current.custom,
+              selectedSkillInstallationIds: [...skillInstallationIdsForComposerScope(scope)],
+            },
+          });
         },
       })),
-    [aui, scope, skills, t],
+    [aui, scope, skills],
   );
 
   const slash = unstable_useSlashCommandAdapter({

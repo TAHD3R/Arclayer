@@ -1,3 +1,5 @@
+import type { UserProfile } from "@arclayer/openapi";
+
 type JwtClaims = Record<string, unknown>;
 
 function decodeJwtClaims(token: string): JwtClaims | null {
@@ -54,20 +56,7 @@ export function initialsFromName(name: string, maxInitials: 1 | 2 = 2): string {
   return `${firstInitial}${initialFromToken(parts[parts.length - 1]!)}`;
 }
 
-function asRecord(input: unknown): Record<string, unknown> | null {
-  if (!input || typeof input !== "object") return null;
-  return input as Record<string, unknown>;
-}
-
-function getStringValue(record: Record<string, unknown>, keys: readonly string[]): string | null {
-  for (const k of keys) {
-    const v = record[k];
-    if (typeof v === "string") return v;
-  }
-  return null;
-}
-
-export function normalizeUserProfile(raw: unknown): {
+export function normalizeUserProfile(raw: UserProfile | null | undefined): {
   id: string | null;
   username: string | null;
   email: string | null;
@@ -75,8 +64,7 @@ export function normalizeUserProfile(raw: unknown): {
   avatarUrl: string | null;
   avatarAssetId: string | null;
 } {
-  const data = asRecord(raw);
-  if (!data) {
+  if (!raw) {
     return {
       id: null,
       username: null,
@@ -87,11 +75,11 @@ export function normalizeUserProfile(raw: unknown): {
     };
   }
   return {
-    id: getStringValue(data, ["userId", "id"]),
-    username: getStringValue(data, ["username"]),
-    email: getStringValue(data, ["email"]),
-    displayName: getStringValue(data, ["display_name", "displayName"]),
-    avatarUrl: getStringValue(data, ["avatar_url", "avatarUrl"]),
-    avatarAssetId: getStringValue(data, ["avatar_asset_id", "avatarAssetId"]),
+    id: raw.id,
+    username: raw.username,
+    email: raw.email ?? null,
+    displayName: raw.displayName ?? null,
+    avatarUrl: raw.avatarUrl ?? null,
+    avatarAssetId: raw.avatarAssetId ?? null,
   };
 }

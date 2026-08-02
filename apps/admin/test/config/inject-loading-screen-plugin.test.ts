@@ -6,6 +6,7 @@ type InjectedHtmlTag = {
   tag: string;
   attrs?: Record<string, string>;
   children?: string;
+  injectTo?: "head" | "body" | "body-prepend";
 };
 
 function callIndexHtmlHook(plugin: { transformIndexHtml?: unknown }): InjectedHtmlTag[] {
@@ -23,8 +24,11 @@ describe("injectLoadingScreen", () => {
   it("injects the reference-style Arc Weave particle runtime", () => {
     const tags = callIndexHtmlHook(injectLoadingScreen({ appName: "Arclayer" }));
     const loadingScreen = tags.find((tag) => tag.attrs?.id === "app-loading");
-    const runtime = tags.find((tag) => tag.tag === "script")?.children;
+    const runtimeTag = tags.find((tag) => tag.tag === "script");
+    const runtime = runtimeTag?.children;
 
+    expect(loadingScreen?.injectTo).toBe("body-prepend");
+    expect(runtimeTag?.injectTo).toBe("body");
     expect(loadingScreen?.children).toContain('class="arc-weave-loader"');
     expect(loadingScreen?.children).not.toContain('class="spinner"');
     expect(loadingScreen?.children?.match(/data-arc-weave-particle/g)).toHaveLength(64);

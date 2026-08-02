@@ -12,7 +12,10 @@ from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.core.exceptions import Conflict
 from src.modules.projects.builder import service as builder_service_module
-from src.modules.projects.builder.render_document_design import resolve_design_token_values
+from src.modules.projects.builder.render_document_design import (
+    BuilderRenderDesignPins,
+    resolve_design_token_values,
+)
 from src.modules.projects.builder.repository import SiteBuilderRepository
 from src.modules.projects.builder.service import SiteBuilderService
 from src.modules.projects.design_systems.repository import ProjectDesignSystemsRepository
@@ -153,3 +156,52 @@ def test_design_token_resolution_requires_one_default_light_theme() -> None:
         resolve_design_token_values(design_manifest=manifest)
 
     assert exc_info.value.error == "BUILDER_RENDER_THEME_NOT_FOUND"
+
+
+@pytest.mark.asyncio
+async def test_candidate_render_document_rejects_missing_catalog_without_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace_id, project_id, revision_id, page_item_id = (uuid4() for _ in range(4))
+    design_system_id, design_version_id = uuid4(), uuid4()
+    manifest = build_design_system_manifest(
+        DesignSystemManifestInputV1.model_validate({
+            "manifestVersion": 1,
+            "name": "Missing candidate catalog",
+            "themes": [{"key": "light", "name": "Light", "mode": "light", "overrides": {}}],
+        })
+    )
+    repository = SimpleNamespace(list_content_versions=AsyncMock())
+    service = SiteBuilderService(
+        repository=cast(SiteBuilderRepository, repository),
+        design_system_repository=cast(ProjectDesignSystemsRepository, SimpleNamespace()),
+        component_catalog_resolver=get_official_component_catalog_registry(),
+    )
+
+    @asynccontextmanager
+    async def transaction() -> AsyncIterator[BaseDBAsyncClient]:
+        yield cast(BaseDBAsyncClient, SimpleNamespace())
+
+    get_revision = AsyncMock(return_value=SimpleNamespace())
+    monkeypatch.setattr(service, "tx", transaction)
+    monkeypatch.setattr(builder_service_module, "get_project_builder_revision", get_revision)
+
+    with pytest.raises(Conflict) as exc_info:
+        await service.get_page_render_document_for_design_system(
+            workspace_id=workspace_id,
+            project_id=project_id,
+            revision_id=revision_id,
+            page_item_id=page_item_id,
+            locale="en-US",
+            theme_key="light",
+            design_pins=BuilderRenderDesignPins(
+                design_system_id=design_system_id,
+                design_system_version_id=design_version_id,
+                design_system_manifest_checksum=manifest.checksum,
+            ),
+            design_manifest=manifest,
+        )
+
+    assert exc_info.value.error == "DESIGN_SYSTEM_COMPONENT_INCOMPATIBLE"
+    assert get_revision.await_count == 1
+    repository.list_content_versions.assert_not_awaited()

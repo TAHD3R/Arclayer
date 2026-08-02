@@ -11,7 +11,10 @@ import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-acc
 import { invalidateAssetListQueries } from "@/lib/assets/invalidate-asset-list-queries";
 import { Button } from "@arclayer/ui/button";
 import { readStorageItem, writeStorageItem } from "@/lib/storage";
-import type { AdminAssetFolder, AdminAssetTag } from "@arclayer/openapi/admin-types";
+import type {
+  AdminAssetFolderOut as AdminAssetFolder,
+  AdminAssetTagOut as AdminAssetTag,
+} from "@arclayer/openapi";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 
 import { clearSelection } from "@/lib/assets/asset-selection";

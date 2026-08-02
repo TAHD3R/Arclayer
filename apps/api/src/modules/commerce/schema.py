@@ -92,6 +92,7 @@ class WorkspaceSubscriptionOut(BaseOut, TimestampMixin):
 
 
 class WorkspaceCreditsOut(BaseSchema):
+    account_revision: int
     balance: int
     reserved: int
     available: int

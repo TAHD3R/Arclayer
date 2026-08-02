@@ -13,7 +13,7 @@ import {
   type ProjectIconDialogProject,
 } from "@/pages/usercenter/projects/components/project-icon-dialog";
 import type { ProjectIconDialogValues } from "@/pages/usercenter/projects/hooks/use-project-menu-actions";
-import type { ProjectUpdateInput } from "@arclayer/openapi/admin-types";
+import type { ProjectUpdateRequest as ProjectUpdateInput } from "@arclayer/openapi";
 import { Alert, AlertDescription } from "@arclayer/ui/alert";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
 

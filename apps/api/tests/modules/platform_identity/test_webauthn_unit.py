@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from types import SimpleNamespace
 from typing import Any, cast
@@ -290,6 +290,116 @@ async def test_challenge_rejects_changed_binding_and_relying_party_configuration
     assert binding_changed.value.error == "PLATFORM_WEBAUTHN_BINDING_CHANGED"
 
 
+@pytest.mark.asyncio
+async def test_management_registration_replaces_only_after_new_webauthn_credential_verifies_and_replays_idempotently() -> (
+    None
+):
+    repo = _MemoryWebAuthnPersistence()
+    user_id = uuid4()
+    old_method = _Method(id=uuid4(), user_id=user_id, credential_id="previous-credential")
+    repo.methods.append(old_method)
+    service = _service(repo=repo, verifier=_ContractVerifier())
+    binding = "current-session:actor:replacement"
+    correlation_id = uuid4()
+    options = await service.begin_registration(
+        user_id=user_id,
+        user_name="operator@example.com",
+        display_name="Operator",
+        binding=binding,
+    )
+
+    result = await service.complete_management_registration(
+        user_id=user_id,
+        challenge_id=options.challenge_id,
+        binding=binding,
+        credential=_registration_credential(),
+        replace_method_id=old_method.id,
+        idempotency_key="replace-method-1",
+        correlation_id=correlation_id,
+    )
+
+    assert result.method_id != old_method.id
+    assert old_method.revoked_at == _NOW
+    assert len([method for method in repo.methods if method.revoked_at is None]) == 1
+
+    replay = await service.complete_management_registration(
+        user_id=user_id,
+        challenge_id=options.challenge_id,
+        binding=binding,
+        credential=_registration_credential(),
+        replace_method_id=old_method.id,
+        idempotency_key="replace-method-1",
+        correlation_id=correlation_id,
+    )
+    assert replay.method_id == result.method_id
+
+
+@pytest.mark.asyncio
+async def test_management_registration_binding_failure_leaves_old_method_unchanged() -> None:
+    repo = _MemoryWebAuthnPersistence()
+    user_id = uuid4()
+    old_method = _Method(id=uuid4(), user_id=user_id, credential_id="previous-credential")
+    repo.methods.append(old_method)
+    service = _service(repo=repo, verifier=_ContractVerifier())
+    options = await service.begin_registration(
+        user_id=user_id,
+        user_name="operator@example.com",
+        display_name="Operator",
+        binding="bound-session",
+    )
+
+    with pytest.raises(Conflict) as exc:
+        await service.complete_management_registration(
+            user_id=user_id,
+            challenge_id=options.challenge_id,
+            binding="different-session",
+            credential=_registration_credential(),
+            replace_method_id=old_method.id,
+            idempotency_key="replace-method-2",
+            correlation_id=uuid4(),
+        )
+
+    assert exc.value.error == "PLATFORM_WEBAUTHN_BINDING_CHANGED"
+    assert old_method.revoked_at is None
+
+
+@pytest.mark.asyncio
+async def test_management_registration_expiry_leaves_old_method_unchanged() -> None:
+    repo = _MemoryWebAuthnPersistence()
+    user_id = uuid4()
+    old_method = _Method(id=uuid4(), user_id=user_id, credential_id="previous-credential")
+    repo.methods.append(old_method)
+    clock = [_NOW]
+    service = PlatformWebAuthnService(
+        repository=cast(PlatformWebAuthnPersistence, repo),
+        verifier=cast(PlatformWebAuthnVerifier, _ContractVerifier()),
+        settings=_settings(),
+        now=lambda: clock[0],
+        challenge_factory=lambda: b"Z" * 32,
+    )
+    options = await service.begin_registration(
+        user_id=user_id,
+        user_name="operator@example.com",
+        display_name="Operator",
+        binding="current-session:expired",
+    )
+    clock[0] = _NOW + timedelta(seconds=301)
+
+    with pytest.raises(Conflict) as exc:
+        await service.complete_management_registration(
+            user_id=user_id,
+            challenge_id=options.challenge_id,
+            binding="current-session:expired",
+            credential=_registration_credential(),
+            replace_method_id=old_method.id,
+            idempotency_key="replace-method-expired",
+            correlation_id=uuid4(),
+        )
+
+    assert exc.value.error == "PLATFORM_WEBAUTHN_CHALLENGE_EXPIRED"
+    assert old_method.revoked_at is None
+
+
 def test_webauthn_settings_reject_insecure_non_local_origin_and_unrelated_rp() -> None:
     with pytest.raises(ValueError, match="HTTPS outside localhost"):
         PlatformAuthSettings.WebAuthnSettings(rp_id="example.com", origin="http://platform.example.com")
@@ -330,6 +440,7 @@ class _MemoryWebAuthnPersistence:
         self.challenges: dict[UUID, _Challenge] = {}
         self.methods: list[_Method] = []
         self.fail_counter_cas = fail_counter_cas
+        self.management_receipts: dict[tuple[UUID, str, str], tuple[UUID, UUID, str]] = {}
 
     @asynccontextmanager
     async def transaction(self):
@@ -382,6 +493,57 @@ class _MemoryWebAuthnPersistence:
             return False
         method.last_used_at = used_at
         return True
+
+    async def get_management_enrollment_replay(
+        self, *, user_id, action, idempotency_key, correlation_id, request_fingerprint
+    ):
+        receipt = self.management_receipts.get((user_id, action, idempotency_key))
+        if receipt is None:
+            return None
+        method_id, stored_correlation_id, stored_fingerprint = receipt
+        if stored_correlation_id != correlation_id or stored_fingerprint != request_fingerprint:
+            raise Conflict(error="PLATFORM_IDEMPOTENCY_CONFLICT")
+        return method_id
+
+    async def commit_management_registration(
+        self,
+        *,
+        values,
+        user_id,
+        replaced_method_id,
+        action,
+        idempotency_key,
+        correlation_id,
+        request_fingerprint,
+        occurred_at,
+    ):
+        existing = await self.get_management_enrollment_replay(
+            user_id=user_id,
+            action=action,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+            request_fingerprint=request_fingerprint,
+        )
+        if existing is not None:
+            return next(method for method in self.methods if method.id == existing)
+        replaced = None
+        if replaced_method_id is not None:
+            replaced = next(
+                (method for method in self.methods if method.id == replaced_method_id and method.user_id == user_id),
+                None,
+            )
+            if replaced is None:
+                raise Conflict(error="PLATFORM_MFA_REPLACEMENT_INVALID")
+        method = await self.create_verified_method(values=values, conn=object())
+        if replaced is not None:
+            replaced.revoked_at = occurred_at
+            replaced.status = "revoked"
+        self.management_receipts[(user_id, action, idempotency_key)] = (
+            method.id,
+            correlation_id,
+            request_fingerprint,
+        )
+        return method
 
 
 class _ContractVerifier:

@@ -7,6 +7,10 @@ from pydantic import AnyHttpUrl, BaseModel, ConfigDict, TypeAdapter, ValidationE
 from src.core.exceptions import BadRequest
 from src.core.i18n import t
 from src.models.automation.flow import AutomationOperationKind, AutomationTriggerKind
+from src.modules.system.admin.notifications.schema import (
+    notification_navigation_target_json,
+    validate_notification_navigation_target,
+)
 
 
 class AutomationTriggerDefinition(BaseModel):
@@ -99,7 +103,7 @@ OPERATION_DEFINITIONS: tuple[AutomationOperationDefinition, ...] = (
         kind=AutomationOperationKind.NOTIFICATION,
         label="Notification",
         description="Create an in-app notification for one recipient.",
-        required_fields=("recipientUserId", "title"),
+        required_fields=("recipientUserId", "title", "target"),
     ),
 )
 
@@ -186,4 +190,25 @@ def validate_operation_config(kind: AutomationOperationKind, config: dict[str, A
                 error="AUTOMATION_OPERATION_URL_INVALID",
                 meta={"operationKind": normalized_kind.value},
             ) from exc
+    if normalized_kind == AutomationOperationKind.NOTIFICATION:
+        _validate_notification_config(normalized)
     return normalized
+
+
+def _validate_notification_config(config: dict[str, Any]) -> None:
+    legacy_keys = {"targetTo", "targetMeta", "target_to", "target_meta"}
+    present_legacy_keys = sorted(legacy_keys.intersection(config))
+    if present_legacy_keys:
+        raise BadRequest(
+            message=t("errors", "AUTOMATION_OPERATION_CONFIG_INVALID"),
+            error="AUTOMATION_NOTIFICATION_LEGACY_TARGET_FORBIDDEN",
+            meta={"legacyFields": present_legacy_keys},
+        )
+    try:
+        target = validate_notification_navigation_target(config.get("target"))
+    except ValueError as exc:
+        raise BadRequest(
+            message=t("errors", "AUTOMATION_OPERATION_CONFIG_INVALID"),
+            error="AUTOMATION_NOTIFICATION_TARGET_INVALID",
+        ) from exc
+    config["target"] = notification_navigation_target_json(target)

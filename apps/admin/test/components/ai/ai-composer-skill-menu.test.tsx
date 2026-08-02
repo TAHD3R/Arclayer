@@ -11,6 +11,8 @@ import { SettingsScreenProvider } from "@/components/layout/settings-screen-prov
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 const composerMocks = vi.hoisted(() => ({
+  runConfig: { custom: { existing: "value" } } as { custom?: Record<string, unknown> },
+  setRunConfig: vi.fn(),
   setText: vi.fn(),
   navigate: vi.fn(),
 }));
@@ -22,7 +24,8 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("@assistant-ui/react", () => ({
   useAui: () => ({
     composer: () => ({
-      getState: () => ({ text: "现有问题" }),
+      getState: () => ({ text: "现有问题", runConfig: composerMocks.runConfig }),
+      setRunConfig: composerMocks.setRunConfig,
       setText: composerMocks.setText,
     }),
   }),
@@ -91,6 +94,10 @@ function renderMenu(children: ReactNode = <AIComposerSkillMenu />) {
 describe("AIComposerSkillMenu", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    composerMocks.runConfig = { custom: { existing: "value" } };
+    composerMocks.setRunConfig.mockImplementation((runConfig) => {
+      composerMocks.runConfig = runConfig as { custom?: Record<string, unknown> };
+    });
     useAIComposerDirectiveStore.getState().clearDirectives("thread");
     useWorkspaceStore.setState({
       currentWorkspaceId: "workspace-1",
@@ -143,7 +150,7 @@ describe("AIComposerSkillMenu", () => {
     });
   });
 
-  it("loads enabled workspace Skills and stores the selected Skill as composer context", async () => {
+  it("stores a selected Skill as an installation ID without modifying the prompt", async () => {
     const user = userEvent.setup();
     renderMenu();
 
@@ -151,12 +158,14 @@ describe("AIComposerSkillMenu", () => {
     await user.click(await screen.findByRole("menuitem", { name: /电商内容/ }));
 
     expect(composerMocks.setText).not.toHaveBeenCalled();
+    expect(composerMocks.setRunConfig).toHaveBeenCalledWith({
+      custom: { existing: "value", selectedSkillInstallationIds: ["installation-1"] },
+    });
     expect(useAIComposerDirectiveStore.getState().directivesByScope.thread).toEqual([
       {
         type: "skill",
         id: "installation-1",
         label: "电商内容",
-        instruction: "请使用已启用的电商内容技能帮我处理：",
       },
     ]);
   });

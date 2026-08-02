@@ -24,7 +24,7 @@ import {
   toggleSelect,
 } from "@/lib/assets/asset-selection";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
-import type { AdminAssetFolder } from "@arclayer/openapi/admin-types";
+import type { AdminAssetFolderOut as AdminAssetFolder } from "@arclayer/openapi";
 import { Button } from "@arclayer/ui/button";
 import { Checkbox } from "@arclayer/ui/checkbox";
 import {

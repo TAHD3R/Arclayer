@@ -1,25 +1,20 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CAPABILITY_NAVIGATION_CONTRACT_ERROR_CODE,
+  CapabilityNavigationContractError,
   projectCapabilityNavigation,
   resolveCapabilityBreadcrumbKey,
   type CapabilityProjectionRecord,
 } from "@/capabilities/navigation-projection";
-import type {
-  PlatformCapabilityNavigationTargetOut,
-  PlatformPermissionCode,
-  PlatformCapabilityRouteTarget,
-} from "@arclayer/platform-openapi";
 
-function navigationTarget(
-  routeTarget: PlatformCapabilityRouteTarget,
-): PlatformCapabilityNavigationTargetOut {
+function navigationTarget(routeTarget: string) {
   return { routeTarget, requiredViewPermissions: [], viewPermissionMatch: "all" };
 }
 
 function capabilityRecord(
-  routeTarget: PlatformCapabilityRouteTarget,
-  navigationTargets: readonly PlatformCapabilityRouteTarget[],
+  routeTarget: string,
+  navigationTargets: readonly string[],
   navigationCandidate = true,
 ): CapabilityProjectionRecord {
   return {
@@ -31,9 +26,7 @@ function capabilityRecord(
 }
 
 function operationsSignalsRecord(
-  requiredViewPermissions: PlatformCapabilityNavigationTargetOut["requiredViewPermissions"] = [
-    "platform:operations-signals:read",
-  ],
+  requiredViewPermissions: readonly string[] = ["platform:operations-signals:read"],
 ): CapabilityProjectionRecord {
   return {
     capabilityId: "operations-signals",
@@ -50,96 +43,159 @@ function operationsSignalsRecord(
 }
 
 describe("trusted Platform capability projection", () => {
-  it("projects only server-authorized build-registered destinations", () => {
-    const projection = projectCapabilityNavigation([
-      capabilityRecord("tenants.workspaces", ["tenants.workspaces"]),
-      capabilityRecord("monitoring.requests", ["monitoring.requests"], false),
-      {
-        capabilityId: "future-module",
-        routeTarget: "https://attacker.invalid/component.js",
-        navigationCandidate: true,
-        navigationTargets: [],
-      } as never,
-    ]);
-
-    expect(projection.destinations.map(({ id }) => id)).toEqual([
-      "overview",
-      "workspace-workspaces",
-    ]);
-    expect(projection.omittedRouteTargets).toEqual(["https://attacker.invalid/component.js"]);
-    expect(projection.isPartial).toBe(true);
+  it("rejects a server candidate without a build-registered target", () => {
+    expect(() =>
+      projectCapabilityNavigation([
+        capabilityRecord("tenants.workspaces", ["tenants.workspaces"]),
+        capabilityRecord("https://attacker.invalid/component.js", []),
+      ]),
+    ).toThrow(CapabilityNavigationContractError);
+    expect(() =>
+      projectCapabilityNavigation([capabilityRecord("https://attacker.invalid/component.js", [])]),
+    ).toThrow(
+      `Unregistered Platform capability route target: https://attacker.invalid/component.js`,
+    );
+    try {
+      projectCapabilityNavigation([capabilityRecord("https://attacker.invalid/component.js", [])]);
+    } catch (error) {
+      expect(error).toMatchObject({ code: CAPABILITY_NAVIGATION_CONTRACT_ERROR_CODE });
+    }
   });
 
   it("keeps the Workspace directory authority exact", () => {
     const projection = projectCapabilityNavigation([
-      capabilityRecord("tenants.workspaces", ["tenants.workspaces"]),
+      capabilityRecord("tenants.workspaces", [
+        "tenants.workspaces",
+        "tenants.users",
+        "tenants.projects",
+      ]),
     ]);
 
     expect(projection.capabilityItems[0]?.destinations.map(({ id }) => id)).toEqual([
       "workspace-workspaces",
+      "workspace-users",
+      "workspace-projects",
     ]);
   });
 
   it.each([
     [
+      "access.team",
+      ["access.team", "access.roles", "access.sign-in", "access.mfa", "access.sessions"],
+      ["access-team", "access-roles", "access-sign-in", "access-mfa", "access-sessions"],
+    ],
+    [
+      "ai.tasks",
+      ["ai.tasks", "ai.providers", "ai.assistants", "ai.policies"],
+      ["ai-tasks", "ai-providers", "ai-assistants", "ai-policies"],
+    ],
+    [
+      "site-delivery.issues",
+      [
+        "site-delivery.issues",
+        "site-delivery.domains",
+        "site-delivery.storage",
+        "site-delivery.policies",
+      ],
+      ["hosting-issues", "hosting-domains", "hosting-storage", "hosting-policies"],
+    ],
+    [
+      "communications.feedback",
+      [
+        "communications.feedback",
+        "communications.deliveries",
+        "communications.campaigns",
+        "communications.templates",
+        "communications.email",
+      ],
+      [
+        "messages-feedback",
+        "messages-deliveries",
+        "messages-campaigns",
+        "messages-templates",
+        "messages-email",
+      ],
+    ],
+    [
+      "extensions.installed",
+      [
+        "extensions.installed",
+        "extensions.catalog",
+        "extensions.connections",
+        "extensions.history",
+      ],
+      [
+        "extensions-installed",
+        "extensions-catalog",
+        "extensions-connections",
+        "extensions-history",
+      ],
+    ],
+    [
+      "commerce.subscriptions",
+      [
+        "commerce.subscriptions",
+        "commerce.plans",
+        "commerce.payments",
+        "commerce.credits",
+        "commerce.configuration",
+      ],
+      [
+        "billing-subscriptions",
+        "billing-plans",
+        "billing-payments",
+        "billing-credits",
+        "billing-configuration",
+      ],
+    ],
+    [
+      "monitoring.requests",
       ["monitoring.requests", "monitoring.performance", "monitoring.ai-usage"],
       ["monitoring-requests", "monitoring-performance", "monitoring-ai-usage"],
     ],
     [
+      "monitoring.requests",
       ["monitoring.activity", "monitoring.audit"],
       ["monitoring-activity", "monitoring-audit"],
     ],
-  ] as const)("keeps Monitoring & Audit peer authority exact for %j", (targets, expected) => {
-    const projection = projectCapabilityNavigation([
-      capabilityRecord("monitoring.requests", targets),
-    ]);
+  ] as const)(
+    "keeps canonical destination authority exact for %s",
+    (routeTarget, targets, expected) => {
+      const projection = projectCapabilityNavigation([capabilityRecord(routeTarget, targets)]);
 
-    expect(projection.capabilityItems[0]?.destinations.map(({ id }) => id)).toEqual(expected);
-  });
-
-  it("projects the build-registered Platform team destination", () => {
-    const projection = projectCapabilityNavigation([
-      capabilityRecord("access.team", ["access.team"]),
-    ]);
-
-    expect(projection.destinations.map(({ id }) => id)).toEqual(["overview", "access-team"]);
-    expect(projection.isPartial).toBe(false);
-  });
+      expect(projection.capabilityItems[0]?.destinations.map(({ id }) => id)).toEqual(expected);
+    },
+  );
 
   it("derives breadcrumb and route authority from the same authorized destinations", () => {
     const projection = projectCapabilityNavigation([
-      capabilityRecord("tenants.workspaces", ["tenants.workspaces"]),
+      capabilityRecord("tenants.workspaces", [
+        "tenants.workspaces",
+        "tenants.users",
+        "tenants.projects",
+      ]),
       capabilityRecord("monitoring.requests", ["monitoring.audit"]),
     ]);
 
+    expect(resolveCapabilityBreadcrumbKey("/users", projection)).toBe("navigation:WORKSPACES");
+    expect(resolveCapabilityBreadcrumbKey("/projects", projection)).toBe("navigation:WORKSPACES");
     expect(resolveCapabilityBreadcrumbKey("/monitoring/audit", projection)).toBe(
       "navigation:MONITORING_AUDIT",
     );
     expect(resolveCapabilityBreadcrumbKey("/monitoring/audit/events/evt-1", projection)).toBe(
       "navigation:MONITORING_AUDIT",
     );
+    expect(resolveCapabilityBreadcrumbKey("/attention/signal-1", projection)).toBeNull();
     expect(resolveCapabilityBreadcrumbKey("/monitoring/requests", projection)).toBeNull();
-    expect(resolveCapabilityBreadcrumbKey("/users", projection)).toBeNull();
+    expect(resolveCapabilityBreadcrumbKey("/operations/jobs", projection)).toBeNull();
   });
 
-  it("marks ready backend candidates without a registered module as partial", () => {
-    const projection = projectCapabilityNavigation([
-      capabilityRecord("commerce.subscriptions", ["commerce.subscriptions"]),
-    ]);
-
-    expect(projection.destinations.map(({ id }) => id)).toEqual(["overview"]);
-    expect(projection.omittedRouteTargets).toEqual(["commerce.subscriptions"]);
-    expect(projection.isPartial).toBe(true);
-  });
-
-  it("does not project non-ready backend capabilities whose routes are absent", () => {
-    const projection = projectCapabilityNavigation([
-      capabilityRecord("commerce.subscriptions", ["commerce.subscriptions"], false),
-    ]);
-
-    expect(projection.destinations.map(({ id }) => id)).toEqual(["overview"]);
-    expect(projection.omittedRouteTargets).toEqual([]);
-    expect(projection.isPartial).toBe(false);
+  it("rejects a missing trusted peer target instead of returning partial navigation", () => {
+    expect(() =>
+      projectCapabilityNavigation([
+        capabilityRecord("commerce.subscriptions", ["commerce.unknown"]),
+      ]),
+    ).toThrow("Unregistered Platform capability navigation target: commerce.unknown");
   });
 
   it("does not expose Needs attention without the operations-signals capability", () => {
@@ -162,22 +218,21 @@ describe("trusted Platform capability projection", () => {
     expect(resolveCapabilityBreadcrumbKey("/attention", projection)).toBe(
       "navigation:NEEDS_ATTENTION",
     );
+    expect(resolveCapabilityBreadcrumbKey("/attention/signal-1", projection)).toBe(
+      "navigation:NEEDS_ATTENTION",
+    );
     expect(projection.primaryDestinations.map(({ id }) => id)).toEqual([
       "overview",
       "needs-attention",
     ]);
   });
 
-  it("marks an incomplete operations-signals candidate as partial", () => {
-    const projection = projectCapabilityNavigation([
-      operationsSignalsRecord([
-        "platform:operations-signals:claim",
-      ] satisfies PlatformPermissionCode[]),
-    ]);
-
-    expect(projection.destinations.map(({ id }) => id)).toEqual(["overview"]);
-    expect(projection.omittedRouteTargets).toEqual(["operations.signals"]);
-    expect(projection.isPartial).toBe(true);
+  it("rejects an operations-signals candidate without its read authority", () => {
+    expect(() =>
+      projectCapabilityNavigation([operationsSignalsRecord(["platform:operations-signals:claim"])]),
+    ).toThrow(
+      "Platform capability operations-signals is missing its required trusted target permission",
+    );
   });
 
   it("rejects duplicate navigation targets instead of silently merging authority", () => {

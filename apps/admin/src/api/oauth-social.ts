@@ -1,5 +1,5 @@
 import { api } from "@/lib/http";
-import type { OAuthLinkedIdentityListOut } from "@arclayer/openapi/admin-types";
+import type { OAuthLinkedIdentityListOut } from "@arclayer/openapi";
 
 export async function listMyOAuthIdentities(): Promise<OAuthLinkedIdentityListOut> {
   return api.get<OAuthLinkedIdentityListOut>("/auth/sso/me/identities");

@@ -2,14 +2,15 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   agentIdsForComposerScope,
-  applyAIComposerSkillInstructions,
   consumeAIComposerDirectives,
   filterTrustedAIComposerDirectives,
   parseAIComposerDirectives,
+  skillInstallationIdsForComposerScope,
   useAIComposerDirectiveStore,
 } from "@/components/ai/ai-composer-directives";
 
 const AGENT_ID = "A1b2C3d4E5f6G7h8I9j0K1";
+const SKILL_INSTALLATION_ID = "installation-1";
 const RAW_AGENT_DIRECTIVE = `:agent[Data Analyst]{name=${AGENT_ID}}`;
 
 describe("AI composer directive trust boundary", () => {
@@ -43,40 +44,33 @@ describe("AI composer directive trust boundary", () => {
     ]);
   });
 
-  it("consumes only the Agent IDs captured by the accepted Run", () => {
-    const nextAgentId = "B1b2C3d4E5f6G7h8I9j0K2";
-    useAIComposerDirectiveStore.getState().addDirectives("thread", [
-      { type: "agent", id: AGENT_ID, label: "Data Analyst" },
-      { type: "agent", id: nextAgentId, label: "Site Architect" },
-      { type: "action", id: "audit", label: "Audit" },
-    ]);
+  it("keeps selected Skills as installation IDs without a client-side prompt instruction", () => {
+    useAIComposerDirectiveStore
+      .getState()
+      .addDirectives("thread", [{ type: "skill", id: SKILL_INSTALLATION_ID, label: "内容建模" }]);
 
-    consumeAIComposerDirectives("thread", [AGENT_ID]);
-
+    expect(skillInstallationIdsForComposerScope("thread")).toEqual([SKILL_INSTALLATION_ID]);
     expect(useAIComposerDirectiveStore.getState().directivesByScope.thread).toEqual([
-      { type: "agent", id: nextAgentId, label: "Site Architect" },
+      { type: "skill", id: SKILL_INSTALLATION_ID, label: "内容建模" },
     ]);
   });
 
-  it("injects selected Skill instructions only when the message is sent", () => {
+  it("consumes only Agent and Skill IDs captured by the accepted Run", () => {
+    const nextAgentId = "B1b2C3d4E5f6G7h8I9j0K2";
+    const nextSkillInstallationId = "installation-2";
     useAIComposerDirectiveStore.getState().addDirectives("thread", [
-      {
-        type: "skill",
-        id: "skill-1",
-        label: "内容建模",
-        instruction: "请使用已启用的内容建模技能帮我处理：",
-      },
+      { type: "agent", id: AGENT_ID, label: "Data Analyst" },
+      { type: "agent", id: nextAgentId, label: "Site Architect" },
+      { type: "skill", id: SKILL_INSTALLATION_ID, label: "内容建模" },
+      { type: "skill", id: nextSkillInstallationId, label: "电商内容" },
+      { type: "action", id: "audit", label: "Audit" },
     ]);
 
-    expect(applyAIComposerSkillInstructions("thread", "检查当前模型")).toBe(
-      "请使用已启用的内容建模技能帮我处理：\n\n检查当前模型",
-    );
+    consumeAIComposerDirectives("thread", [AGENT_ID], [SKILL_INSTALLATION_ID]);
 
-    useAIComposerDirectiveStore.getState().removeDirective("thread", {
-      type: "skill",
-      id: "skill-1",
-      label: "内容建模",
-    });
-    expect(applyAIComposerSkillInstructions("thread", "检查当前模型")).toBe("检查当前模型");
+    expect(useAIComposerDirectiveStore.getState().directivesByScope.thread).toEqual([
+      { type: "agent", id: nextAgentId, label: "Site Architect" },
+      { type: "skill", id: nextSkillInstallationId, label: "电商内容" },
+    ]);
   });
 });

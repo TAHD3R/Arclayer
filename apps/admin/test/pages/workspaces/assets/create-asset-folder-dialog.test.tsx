@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { CreateAssetFolderDialog } from "@/pages/workspaces/assets/components/create-asset-folder-dialog";
 import { DEFAULT_LOCALE, initI18n, i18n } from "@/lib/i18n";
-import type { AdminAssetFolder } from "@arclayer/openapi/admin-types";
+import type { AdminAssetFolderOut as AdminAssetFolder } from "@arclayer/openapi";
 
 const FOLDERS: AdminAssetFolder[] = [
   {

@@ -19,6 +19,7 @@ import {
   filterTrustedAIComposerDirectives,
   parseAIComposerDirectives,
   removeAIComposerDirectives,
+  skillInstallationIdsForComposerScope,
   useAIComposerDirectiveStore,
   type AIComposerDirectiveChip,
   type AIComposerDirectiveScope,
@@ -56,17 +57,18 @@ export function AIComposerDirectiveChips({ scope, className }: AIComposerDirecti
     const composer = aui.composer();
     const current = composer.getState().runConfig;
     const mentionedAgentIds = [...agentIdsForComposerScope(scope)];
-    const previous = current.custom?.mentionedAgentIds;
+    const selectedSkillInstallationIds = [...skillInstallationIdsForComposerScope(scope)];
+    const previousAgentIds = current.custom?.mentionedAgentIds;
+    const previousSkillInstallationIds = current.custom?.selectedSkillInstallationIds;
     if (
-      Array.isArray(previous) &&
-      previous.length === mentionedAgentIds.length &&
-      previous.every((agentId, index) => agentId === mentionedAgentIds[index])
+      equalStringArrays(previousAgentIds, mentionedAgentIds) &&
+      equalStringArrays(previousSkillInstallationIds, selectedSkillInstallationIds)
     ) {
       return;
     }
     composer.setRunConfig({
       ...current,
-      custom: { ...current.custom, mentionedAgentIds },
+      custom: { ...current.custom, mentionedAgentIds, selectedSkillInstallationIds },
     });
   }, [aui, directives, scope]);
 
@@ -92,6 +94,14 @@ export function AIComposerDirectiveChips({ scope, className }: AIComposerDirecti
         />
       ))}
     </div>
+  );
+}
+
+function equalStringArrays(value: unknown, expected: readonly string[]): boolean {
+  return (
+    Array.isArray(value) &&
+    value.length === expected.length &&
+    value.every((item, index) => item === expected[index])
   );
 }
 

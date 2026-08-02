@@ -11,9 +11,7 @@ export const Route = createFileRoute("/projects/$projectId")({
     const cachedWorkspaceId =
       workspaceState.currentProjectId === params.projectId
         ? workspaceState.currentWorkspaceId
-        : workspaceState.lastProjectId === params.projectId
-          ? workspaceState.lastWorkspaceId
-          : null;
+        : null;
 
     if (cachedWorkspaceId) {
       workspaceState.setCurrentContext({

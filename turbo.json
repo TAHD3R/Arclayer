@@ -23,7 +23,13 @@
     "lint": {
       "outputs": []
     },
+    "lint:check": {
+      "outputs": []
+    },
     "format": {
+      "outputs": []
+    },
+    "format:check": {
       "outputs": []
     },
     "test": {
@@ -34,6 +40,10 @@
     },
     "test:integration": {
       "cache": false
+    },
+    "browser:acceptance": {
+      "cache": false,
+      "outputs": []
     },
     "db:migrate": {
       "cache": false,

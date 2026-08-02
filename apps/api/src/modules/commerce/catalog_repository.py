@@ -3,13 +3,20 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from datetime import datetime
+from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
+from tortoise.exceptions import IntegrityError
 
+from src.common.types.json_types import JsonObject
+from src.config import Settings
+from src.core.exceptions import Conflict
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.commerce.billing import (
+    CommerceCatalogCommandAction,
+    CommerceCatalogCommandReceipt,
     CommerceEntitlementDefinition,
     CommercePlan,
     CommercePlanRevision,
@@ -19,7 +26,15 @@ from src.models.commerce.billing import (
     CommerceResourceDefinition,
     PlanRevisionStatus,
 )
-from src.modules.commerce.catalog_schema import PlanRevisionTermsInput
+from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
+from src.modules.commerce.catalog_schema import (
+    PlanRevisionEntitlementInput,
+    PlanRevisionPriceInput,
+    PlanRevisionResourceAllowanceInput,
+    PlanRevisionTermsInput,
+)
+
+_COMMAND_SCOPE_LOCK_NAMESPACE = "commerce-catalog-command"
 
 
 class CommerceCatalogRepository(TortoiseORMRepository[CommercePlan]):
@@ -31,11 +46,117 @@ class CommerceCatalogRepository(TortoiseORMRepository[CommercePlan]):
     async def get_plan_by_code(self, *, code: str, conn: BaseDBAsyncClient) -> CommercePlan | None:
         return await CommercePlan.filter(code=code).using_db(conn).first()
 
+    async def lock_plan_by_code(self, *, code: str, conn: BaseDBAsyncClient) -> CommercePlan | None:
+        return await CommercePlan.filter(code=code).using_db(conn).select_for_update().first()
+
     async def lock_plan(self, *, plan_id: UUID, conn: BaseDBAsyncClient) -> CommercePlan | None:
         return await CommercePlan.filter(id=plan_id).using_db(conn).select_for_update().first()
 
     async def create_plan(self, *, code: str, sort_order: int, conn: BaseDBAsyncClient) -> CommercePlan:
-        return await CommercePlan.create(code=code, sort_order=sort_order, using_db=conn)
+        try:
+            return await CommercePlan.create(code=code, sort_order=sort_order, using_db=conn)
+        except IntegrityError as exc:
+            raise Conflict(error="COMMERCE_CATALOG_PLAN_CODE_EXISTS") from exc
+
+    async def lock_command_scope(
+        self,
+        *,
+        target_plan_code: str,
+        action: CommerceCatalogCommandAction | str,
+        idempotency_key_hash: str,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        await conn.execute_query(
+            "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
+            [f"{_COMMAND_SCOPE_LOCK_NAMESPACE}:{target_plan_code}:{action}:{idempotency_key_hash}"],
+        )
+
+    async def require_command_replay(
+        self,
+        *,
+        target_plan_code: str,
+        action: CommerceCatalogCommandAction | str,
+        idempotency_key_hash: str,
+        request_fingerprint: str,
+        conn: BaseDBAsyncClient,
+    ) -> CommerceCatalogCommandReceipt | None:
+        receipt = await self.load_command_receipt(
+            target_plan_code=target_plan_code,
+            action=action,
+            idempotency_key_hash=idempotency_key_hash,
+            conn=conn,
+        )
+        if receipt is None:
+            return None
+        if receipt.request_fingerprint != request_fingerprint:
+            raise Conflict(error="COMMERCE_CATALOG_IDEMPOTENCY_CONFLICT")
+        return receipt
+
+    async def load_command_receipt(
+        self,
+        *,
+        target_plan_code: str,
+        action: CommerceCatalogCommandAction | str,
+        idempotency_key_hash: str,
+        conn: BaseDBAsyncClient,
+    ) -> CommerceCatalogCommandReceipt | None:
+        return await (
+            CommerceCatalogCommandReceipt
+            .filter(
+                target_plan_code=target_plan_code,
+                action=action,
+                idempotency_key_hash=idempotency_key_hash,
+            )
+            .using_db(conn)
+            .select_for_update()
+            .first()
+        )
+
+    async def record_command_outcome(
+        self,
+        *,
+        settings: Settings,
+        action: CommerceCatalogCommandAction | str,
+        target_plan: CommercePlan,
+        target_revision: CommercePlanRevision | None,
+        idempotency_key_hash: str,
+        request_fingerprint: str,
+        actor_user_id: UUID,
+        actor_session_id: UUID | None,
+        result_snapshot: dict[str, Any],
+        event_name: str,
+        event_properties: JsonObject,
+        conn: BaseDBAsyncClient,
+    ) -> CommerceCatalogCommandReceipt:
+        activity_properties = dict(event_properties)
+        if actor_session_id is not None:
+            activity_properties["actor_session_id"] = str(actor_session_id)
+        event = await write_required_activity_event(
+            settings=settings,
+            payload=ActivityAuditPayload(
+                event_name=event_name,
+                actor_user_id=actor_user_id,
+                entity_type="commerce_plan_revision" if target_revision is not None else "commerce_plan",
+                entity_id=target_revision.id if target_revision is not None else target_plan.id,
+                source="api",
+                properties=activity_properties,
+            ),
+            conn=conn,
+        )
+        return await CommerceCatalogCommandReceipt.create(
+            using_db=conn,
+            action=action,
+            idempotency_key_hash=idempotency_key_hash,
+            request_fingerprint=request_fingerprint,
+            actor_user_id=actor_user_id,
+            actor_session_id=actor_session_id,
+            target_plan_code=target_plan.code,
+            plan_id=target_plan.id,
+            plan_revision_id=None if target_revision is None else target_revision.id,
+            result_revision=0 if target_revision is None else target_revision.revision,
+            result_snapshot=result_snapshot,
+            audit_event_id=event.id,
+        )
 
     async def next_revision_sequence(self, *, plan_id: UUID, conn: BaseDBAsyncClient) -> int:
         latest = await CommercePlanRevision.filter(plan_id=plan_id).using_db(conn).order_by("-sequence").first()
@@ -61,12 +182,8 @@ class CommerceCatalogRepository(TortoiseORMRepository[CommercePlan]):
             using_db=conn,
             **_revision_fields(terms),
         )
-        await self.replace_draft_terms(
-            draft=draft,
-            terms=terms,
-            resources=resources,
-            entitlements=entitlements,
-            conn=conn,
+        await self._replace_draft_declarations(
+            draft=draft, terms=terms, resources=resources, entitlements=entitlements, conn=conn
         )
         return draft
 
@@ -81,14 +198,49 @@ class CommerceCatalogRepository(TortoiseORMRepository[CommercePlan]):
         self,
         *,
         draft: CommercePlanRevision,
+        expected_revision: int,
+        terms: PlanRevisionTermsInput,
+        resources: Mapping[str, CommerceResourceDefinition],
+        entitlements: Mapping[str, CommerceEntitlementDefinition],
+        conn: BaseDBAsyncClient,
+    ) -> CommercePlanRevision:
+        self._require_mutable_draft(draft=draft, expected_revision=expected_revision)
+        revision_fields = _revision_fields(terms)
+        updated_at = datetime.now(UTC)
+        updated = await (
+            CommercePlanRevision
+            .filter(
+                id=draft.id,
+                status=PlanRevisionStatus.DRAFT,
+                revision=expected_revision,
+            )
+            .using_db(conn)
+            .update(**revision_fields, revision=expected_revision + 1, updated_at=updated_at)
+        )
+        if updated != 1:
+            await self._raise_draft_mutation_conflict(
+                revision_id=draft.id,
+                expected_revision=expected_revision,
+                conn=conn,
+            )
+        for field, value in revision_fields.items():
+            setattr(draft, field, value)
+        draft.revision = expected_revision + 1
+        draft.updated_at = updated_at
+        await self._replace_draft_declarations(
+            draft=draft, terms=terms, resources=resources, entitlements=entitlements, conn=conn
+        )
+        return draft
+
+    async def _replace_draft_declarations(
+        self,
+        *,
+        draft: CommercePlanRevision,
         terms: PlanRevisionTermsInput,
         resources: Mapping[str, CommerceResourceDefinition],
         entitlements: Mapping[str, CommerceEntitlementDefinition],
         conn: BaseDBAsyncClient,
     ) -> None:
-        for field, value in _revision_fields(terms).items():
-            setattr(draft, field, value)
-        await draft.save(update_fields=list(_revision_fields(terms)), using_db=conn)
         await CommercePlanRevisionPrice.filter(plan_revision_id=draft.id).using_db(conn).delete()
         await CommercePlanRevisionResourceAllowance.filter(plan_revision_id=draft.id).using_db(conn).delete()
         await CommercePlanRevisionEntitlement.filter(plan_revision_id=draft.id).using_db(conn).delete()
@@ -159,32 +311,32 @@ class CommerceCatalogRepository(TortoiseORMRepository[CommercePlan]):
             credit_value_micros=revision.credit_value_micros,
             currency=revision.currency,
             prices=tuple(
-                {
-                    "provider": price.provider,
-                    "provider_mode": price.provider_mode,
-                    "billing_cycle": price.billing_cycle,
-                    "currency": price.currency,
-                    "amount_micros": price.amount_micros,
-                    "external_price_id": price.external_price_id,
-                }
+                PlanRevisionPriceInput(
+                    provider=price.provider,
+                    provider_mode=price.provider_mode,
+                    billing_cycle=price.billing_cycle,
+                    currency=price.currency,
+                    amount_micros=price.amount_micros,
+                    external_price_id=price.external_price_id,
+                )
                 for price in prices
             ),
             resource_allowances=tuple(
-                {
-                    "key": allowance.resource.key,
-                    "limit_kind": allowance.limit_kind,
-                    "limit_value": allowance.limit_value,
-                }
+                PlanRevisionResourceAllowanceInput(
+                    key=allowance.resource.key,
+                    limit_kind=allowance.limit_kind,
+                    limit_value=allowance.limit_value,
+                )
                 for allowance in allowances
             ),
             entitlements=tuple(
-                {
-                    "key": entitlement.entitlement.key,
-                    "is_included": entitlement.is_included,
-                    "allocation_mode": entitlement.allocation_mode,
-                    "seat_limit_kind": entitlement.seat_limit_kind,
-                    "seat_limit_value": entitlement.seat_limit_value,
-                }
+                PlanRevisionEntitlementInput(
+                    key=entitlement.entitlement.key,
+                    is_included=entitlement.is_included,
+                    allocation_mode=entitlement.allocation_mode,
+                    seat_limit_kind=entitlement.seat_limit_kind,
+                    seat_limit_value=entitlement.seat_limit_value,
+                )
                 for entitlement in entitlements
             ),
         )
@@ -226,26 +378,53 @@ class CommerceCatalogRepository(TortoiseORMRepository[CommercePlan]):
         draft: CommercePlanRevision,
         content_hash: str,
         published_at: datetime,
+        expected_revision: int,
         conn: BaseDBAsyncClient,
     ) -> CommercePlanRevision:
+        locked_plan = await self.lock_plan(plan_id=plan.id, conn=conn)
+        if locked_plan is None:
+            raise Conflict(error="COMMERCE_CATALOG_PLAN_NOT_FOUND")
+        self._require_mutable_draft(draft=draft, expected_revision=expected_revision)
         await (
             CommercePlanRevision
             .filter(
-                plan_id=plan.id,
+                plan_id=locked_plan.id,
                 status=PlanRevisionStatus.PUBLISHED,
                 is_selling=True,
             )
             .using_db(conn)
             .update(is_selling=False)
         )
+        updated_at = datetime.now(UTC)
+        updated = await (
+            CommercePlanRevision
+            .filter(
+                id=draft.id,
+                status=PlanRevisionStatus.DRAFT,
+                revision=expected_revision,
+            )
+            .using_db(conn)
+            .update(
+                status=PlanRevisionStatus.PUBLISHED,
+                is_selling=True,
+                content_hash=content_hash,
+                published_at=published_at,
+                revision=expected_revision + 1,
+                updated_at=updated_at,
+            )
+        )
+        if updated != 1:
+            await self._raise_draft_mutation_conflict(
+                revision_id=draft.id,
+                expected_revision=expected_revision,
+                conn=conn,
+            )
         draft.status = PlanRevisionStatus.PUBLISHED
         draft.is_selling = True
         draft.content_hash = content_hash
         draft.published_at = published_at
-        await draft.save(
-            update_fields=["status", "is_selling", "content_hash", "published_at"],
-            using_db=conn,
-        )
+        draft.revision = expected_revision + 1
+        draft.updated_at = updated_at
         return draft
 
     async def set_plan_active(self, *, plan: CommercePlan, is_active: bool, conn: BaseDBAsyncClient) -> CommercePlan:
@@ -264,6 +443,30 @@ class CommerceCatalogRepository(TortoiseORMRepository[CommercePlan]):
         if not include_inactive:
             query = query.filter(is_active=True)
         return await query.first()
+
+    @staticmethod
+    def _require_mutable_draft(*, draft: CommercePlanRevision, expected_revision: int) -> None:
+        if draft.status != PlanRevisionStatus.DRAFT:
+            raise Conflict(error="COMMERCE_CATALOG_REVISION_IMMUTABLE")
+        if draft.revision != expected_revision:
+            raise Conflict(
+                error="COMMERCE_CATALOG_REVISION_CONFLICT",
+                meta={"expectedRevision": expected_revision, "currentRevision": draft.revision},
+            )
+
+    @staticmethod
+    async def _raise_draft_mutation_conflict(
+        *, revision_id: UUID, expected_revision: int, conn: BaseDBAsyncClient
+    ) -> None:
+        current = await CommercePlanRevision.filter(id=revision_id).using_db(conn).first()
+        if current is None:
+            raise Conflict(error="COMMERCE_CATALOG_DRAFT_NOT_FOUND")
+        if current.status != PlanRevisionStatus.DRAFT:
+            raise Conflict(error="COMMERCE_CATALOG_REVISION_IMMUTABLE")
+        raise Conflict(
+            error="COMMERCE_CATALOG_REVISION_CONFLICT",
+            meta={"expectedRevision": expected_revision, "currentRevision": current.revision},
+        )
 
 
 def _revision_fields(terms: PlanRevisionTermsInput) -> dict[str, object]:

@@ -1,7 +1,11 @@
 import * as React from "react";
 import { LockKeyhole, MoreHorizontal, Pencil, SlidersHorizontal, Trash2 } from "lucide-react";
 
-import type { Permission, Role, RolePermissionGrant } from "@arclayer/openapi/admin-types";
+import type {
+  WorkspacePermissionOut as Permission,
+  WorkspaceRoleOut as Role,
+  RolePermissionGrantOut as RolePermissionGrant,
+} from "@arclayer/openapi";
 import { Button } from "@arclayer/ui/button";
 import { Checkbox } from "@arclayer/ui/checkbox";
 import {

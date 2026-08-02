@@ -21,30 +21,30 @@ function makeItem(key: string, to?: string, children?: AdminNavItem[]): AdminNav
 describe("findPreferredGroupTarget", () => {
   it("prefers active descendant route when current path is inside the group", () => {
     const item = makeItem("team", undefined, [
-      makeItem("team.members", "/w/ws-1/team/members"),
-      makeItem("team.invitations", "/w/ws-1/team/invitations"),
-      makeItem("team.roles", "/w/ws-1/team/roles"),
+      makeItem("team.members", "/projects/ws-1/team/members"),
+      makeItem("team.invitations", "/projects/ws-1/team/invitations"),
+      makeItem("team.roles", "/projects/ws-1/team/roles"),
     ]);
 
     expect(findPreferredGroupTarget(item, new Set(["team", "team.invitations"]))).toBe(
-      "/w/ws-1/team/invitations",
+      "/projects/ws-1/team/invitations",
     );
   });
 
   it("falls back to the first enabled descendant when no child is active", () => {
     const item = makeItem("settings", undefined, [
       {
-        ...makeItem("settings.workspace", "/w/ws-1/settings/workspace"),
+        ...makeItem("settings.project", "/projects/ws-1/settings/general"),
         disabled: true,
         icon: Folder,
       },
       {
-        ...makeItem("settings.activity", "/w/ws-1/activity"),
+        ...makeItem("settings.activity", "/projects/ws-1/activity"),
         icon: Settings,
       },
     ]);
 
-    expect(findPreferredGroupTarget(item, new Set(["settings"]))).toBe("/w/ws-1/activity");
+    expect(findPreferredGroupTarget(item, new Set(["settings"]))).toBe("/projects/ws-1/activity");
   });
 
   it("returns null when the group has no routable descendants", () => {
@@ -71,17 +71,17 @@ describe("findActiveTrail", () => {
 describe("collectDefaultExpandedGroupKeys", () => {
   it("collects every group unless it is explicitly collapsed by default", () => {
     const navItems = [
-      makeItem("overview", "/w/ws-1/overview"),
+      makeItem("overview", "/projects/ws-1/overview"),
       {
-        ...makeItem("content", undefined, [makeItem("content.assets", "/w/ws-1/assets")]),
+        ...makeItem("content", undefined, [makeItem("content.assets", "/projects/ws-1/assets")]),
         defaultExpanded: true,
       },
       {
         ...makeItem("team", undefined, [
-          makeItem("team.members", "/w/ws-1/team/members"),
+          makeItem("team.members", "/projects/ws-1/team/members"),
           {
             ...makeItem("team.roles", undefined, [
-              makeItem("team.roles.admins", "/w/ws-1/team/roles/admins"),
+              makeItem("team.roles.admins", "/projects/ws-1/team/roles/admins"),
             ]),
             defaultExpanded: true,
           },
@@ -89,12 +89,12 @@ describe("collectDefaultExpandedGroupKeys", () => {
       },
       {
         ...makeItem("disabled-by-default", undefined, [
-          makeItem("disabled-by-default.child", "/w/ws-1/disabled"),
+          makeItem("disabled-by-default.child", "/projects/ws-1/disabled"),
         ]),
         defaultExpanded: false,
       },
       {
-        ...makeItem("leaf-config", "/w/ws-1/leaf-config"),
+        ...makeItem("leaf-config", "/projects/ws-1/leaf-config"),
         defaultExpanded: true,
       },
     ] satisfies AdminNavItem[];

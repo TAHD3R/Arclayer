@@ -49,7 +49,10 @@ class CommercialAccessFactJobHandler:
             if target.kind == CommercialAccessFactKind.HOSTING_HANDOFF:
                 await self._hosting.consume(source_identity=target.source_identity)
             elif target.kind == CommercialAccessFactKind.LIFECYCLE_NOTIFICATION:
-                await self._notifications.consume(source_identity=target.source_identity)
+                await self._notifications.consume(
+                    source_identity=target.source_identity,
+                    lease=context.lease,
+                )
             else:
                 raise PermanentJobExecutionError(
                     code=COMMERCE_ACCESS_FACT_INVALID_CODE,

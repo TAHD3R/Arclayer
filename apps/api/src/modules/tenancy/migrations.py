@@ -64,31 +64,27 @@ DO UPDATE SET checksum = EXCLUDED.checksum, applied_at = EXCLUDED.applied_at, st
 class TenantMigrationRunner(BaseModel):
     migrations: tuple[TenantMigration, ...] = TENANT_CONTROL_MIGRATIONS
 
-    async def apply_all(self, schema_name: str) -> int:
+    async def apply_all(self, schema_name: str, *, conn: BaseDBAsyncClient | None = None) -> int:
         validated = validate_tenant_schema_name(schema_name)
+        if conn is not None:
+            return await self._apply_all(validated, conn=conn)
         async with in_transaction() as conn:
-            await acquire_tenant_schema_lock(validated, conn)
-            await create_tenant_schema(validated, conn=conn)
-            await ensure_tenant_migration_table(validated, conn)
-            applied = await _load_applied_versions(validated, conn)
-            for migration in self.migrations:
-                if applied.get(migration.version) == "applied":
-                    continue
-                try:
-                    for statement in migration.sql:
-                        await conn.execute_query(statement.format(schema=quote_schema_name(validated)))
-                except BaseException:
-                    await _record_status(
-                        schema_name=validated,
-                        conn=conn,
-                        migration=migration,
-                        status="failed",
-                    )
-                    raise
-                await _record_status(
-                    schema_name=validated,
-                    conn=conn,
-                    migration=migration,
-                    status="applied",
-                )
-            return max((migration.version for migration in self.migrations), default=0)
+            return await self._apply_all(validated, conn=conn)
+
+    async def _apply_all(self, schema_name: str, *, conn: BaseDBAsyncClient) -> int:
+        await acquire_tenant_schema_lock(schema_name, conn)
+        await create_tenant_schema(schema_name, conn=conn)
+        await ensure_tenant_migration_table(schema_name, conn)
+        applied = await _load_applied_versions(schema_name, conn)
+        for migration in self.migrations:
+            if applied.get(migration.version) == "applied":
+                continue
+            for statement in migration.sql:
+                await conn.execute_query(statement.format(schema=quote_schema_name(schema_name)))
+            await _record_status(
+                schema_name=schema_name,
+                conn=conn,
+                migration=migration,
+                status="applied",
+            )
+        return max((migration.version for migration in self.migrations), default=0)

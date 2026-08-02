@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import datetime
 from enum import StrEnum
 from typing import Any, Self
-from urllib.parse import urlsplit
 
 from pydantic import ConfigDict, Field, field_validator, model_validator
 
@@ -15,29 +14,46 @@ from src.models.system.notification_campaign import (
     NotificationCampaignConflictPolicy,
     NotificationPresentation,
 )
+from src.modules.system.admin.notifications.schema import (
+    NotificationAction,
+    NotificationActionKind,
+    NotificationBannerPayload,
+    NotificationDismissPolicy,
+    NotificationInboxPayload,
+    NotificationMedia,
+    NotificationMediaKind,
+    NotificationModalPayload,
+    NotificationToastPayload,
+)
 
 _LOCALE_PATTERN = r"^[a-z]{2}(?:-[A-Z]{2})?$"
+
+__all__ = (
+    "NotificationAction",
+    "NotificationActionKind",
+    "NotificationAudienceKind",
+    "NotificationAudienceRule",
+    "NotificationBannerPayload",
+    "NotificationCampaignCreateRequest",
+    "NotificationCampaignEditableFields",
+    "NotificationCampaignPatchRequest",
+    "NotificationCampaignPublishRequest",
+    "NotificationCampaignRevisionRequest",
+    "NotificationCampaignVariantInput",
+    "NotificationDismissPolicy",
+    "NotificationEmailPayload",
+    "NotificationInboxPayload",
+    "NotificationMedia",
+    "NotificationMediaKind",
+    "NotificationModalPayload",
+    "NotificationToastPayload",
+)
 
 
 class NotificationAudienceKind(StrEnum):
     ALL_ACTIVE_USERS = "all_active_users"
     EXPLICIT_USERS = "explicit_users"
     WORKSPACE_MEMBERS = "workspace_members"
-
-
-class NotificationActionKind(StrEnum):
-    INTERNAL_ROUTE = "internal_route"
-    EXTERNAL_HTTPS = "external_https"
-
-
-class NotificationMediaKind(StrEnum):
-    IMAGE = "image"
-    VIDEO = "video"
-
-
-class NotificationDismissPolicy(StrEnum):
-    DISMISSIBLE = "dismissible"
-    ACTION_REQUIRED = "action_required"
 
 
 class NotificationAudienceRule(BaseSchema):
@@ -68,78 +84,12 @@ class NotificationAudienceRule(BaseSchema):
         return self
 
 
-class NotificationAction(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
-
-    kind: NotificationActionKind
-    label: str = Field(..., min_length=1, max_length=80)
-    target: str = Field(..., min_length=1, max_length=1024)
-
-    @model_validator(mode="after")
-    def validate_target_shape(self) -> Self:
-        if self.kind == NotificationActionKind.INTERNAL_ROUTE:
-            if not self.target.startswith("/") or self.target.startswith("//"):
-                raise ValueError("NOTIFICATION_INTERNAL_ROUTE_INVALID")
-            return self
-        parsed = urlsplit(self.target)
-        if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
-            raise ValueError("NOTIFICATION_EXTERNAL_ACTION_INVALID")
-        return self
-
-
-class NotificationMedia(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
-
-    asset_id: PublicUUID
-    kind: NotificationMediaKind
-    alt_text: str = Field(..., min_length=1, max_length=256)
-    poster_asset_id: PublicUUID | None = None
-    captions_asset_id: PublicUUID | None = None
-
-
-class NotificationInboxPayload(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
-
-    title: str = Field(..., min_length=1, max_length=256)
-    body: str | None = Field(default=None, max_length=512)
-    severity: str = Field(default="info", pattern=r"^(info|success|warning|error)$")
-    action: NotificationAction | None = None
-
-
 class NotificationEmailPayload(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
 
     template_key: str = Field(..., min_length=1, max_length=128)
     template_version: int = Field(..., ge=1)
     variables: JsonObject = Field(default_factory=dict)
-
-
-class NotificationModalPayload(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
-
-    title: str = Field(..., min_length=1, max_length=256)
-    body: str = Field(..., min_length=1, max_length=4000)
-    media: NotificationMedia | None = None
-    primary_action: NotificationAction
-    secondary_action: NotificationAction | None = None
-    dismiss_policy: NotificationDismissPolicy = NotificationDismissPolicy.DISMISSIBLE
-
-
-class NotificationBannerPayload(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
-
-    title: str = Field(..., min_length=1, max_length=160)
-    body: str | None = Field(default=None, max_length=320)
-    action: NotificationAction | None = None
-    dismissible: bool = True
-
-
-class NotificationToastPayload(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
-
-    title: str = Field(..., min_length=1, max_length=160)
-    body: str | None = Field(default=None, max_length=320)
-    action: NotificationAction | None = None
 
 
 class NotificationCampaignVariantInput(BaseSchema):

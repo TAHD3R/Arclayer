@@ -47,15 +47,10 @@ const EMPTY_VALUES: PasswordFormValues = {
   backupCode: "",
 };
 
-function normalizeRequestResult(result: {
-  expiresIn?: number;
-  expires_in?: number;
-  retryAfter?: number;
-  retry_after?: number;
-}) {
+function normalizeRequestResult(result: { expiresIn: number; retryAfter: number }) {
   return {
-    expiresIn: result.expiresIn ?? result.expires_in ?? 0,
-    retryAfter: result.retryAfter ?? result.retry_after ?? 0,
+    expiresIn: result.expiresIn,
+    retryAfter: result.retryAfter,
   };
 }
 
@@ -235,15 +230,15 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
     mutationFn: async (values: PasswordFormValues) => {
       if (hasPassword) {
         return authApi.changePassword({
-          old_password: values.oldPassword.trim(),
-          new_password: values.newPassword,
+          oldPassword: values.oldPassword.trim(),
+          newPassword: values.newPassword,
         });
       }
       return authApi.setMyPassword({
-        new_password: values.newPassword,
+        newPassword: values.newPassword,
         ...(requiresSetPasswordTwoFactor && values.code.trim() ? { code: values.code.trim() } : {}),
         ...(requiresSetPasswordTwoFactor && values.backupCode.trim()
-          ? { backup_code: values.backupCode.trim() }
+          ? { backupCode: values.backupCode.trim() }
           : {}),
       });
     },
@@ -260,7 +255,7 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
 
   const requestRemovePasswordMutation = useMutation({
     mutationFn: async (currentPassword: string) => {
-      return authApi.requestRemoveMyPassword({ current_password: currentPassword });
+      return authApi.requestRemoveMyPassword({ currentPassword });
     },
     onSuccess: (result) => {
       const normalized = normalizeRequestResult(result);

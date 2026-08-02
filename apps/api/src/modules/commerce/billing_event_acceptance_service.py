@@ -20,14 +20,8 @@ from src.modules.commerce.billing_event_crypto import (
     billing_event_aad,
     encrypt_billing_event_payload,
 )
-from src.modules.commerce.billing_event_job_contract import (
-    BILLING_CONNECTOR_EVENT_JOB_TYPE,
-    BILLING_CONNECTOR_EVENT_JOB_TYPE_VERSION,
-    BillingConnectorEventJobInput,
-    BillingConnectorEventJobTarget,
-)
+from src.modules.commerce.billing_event_job_command import build_billing_event_job_command
 from src.modules.commerce.billing_event_repository import BillingEventInboxRepository
-from src.modules.jobs.schema import BackgroundJobCreate
 from src.modules.jobs.service import BackgroundJobService
 
 
@@ -119,7 +113,7 @@ class BillingEventAcceptanceService(BaseService):
                 return _replay_result(existing=raced, payload_sha256=payload_sha256)
 
             job_result = await self._jobs.create_job_in_transaction(
-                command=self._build_job_command(inbox=inbox),
+                command=build_billing_event_job_command(jobs=self._jobs, inbox=inbox),
                 conn=conn,
             )
             await self._repository.attach_job(inbox=inbox, job_id=job_result.job.id, conn=conn)
@@ -157,40 +151,6 @@ class BillingEventAcceptanceService(BaseService):
                 error="BILLING_WEBHOOK_STORAGE_UNAVAILABLE",
                 message=t("errors", "BILLING_WEBHOOK_STORAGE_UNAVAILABLE"),
             ) from exc
-
-    def _build_job_command(self, *, inbox: ConnectorEventInbox) -> BackgroundJobCreate:
-        definition = self._jobs.registry.require(
-            job_type=BILLING_CONNECTOR_EVENT_JOB_TYPE,
-            job_type_version=BILLING_CONNECTOR_EVENT_JOB_TYPE_VERSION,
-        )
-        target = BillingConnectorEventJobTarget(inbox_id=inbox.id)
-        input_reference = BillingConnectorEventJobInput(
-            inbox_id=inbox.id,
-            connector_key=inbox.connector_key,
-            connector_version=inbox.connector_version,
-            payload_sha256=inbox.payload_sha256,
-        )
-        identity_hash = sha256(
-            f"{inbox.provider}:{inbox.provider_mode}:{inbox.provider_account_id}:{inbox.provider_event_id}".encode()
-        ).hexdigest()
-        return BackgroundJobCreate(
-            job_type=definition.job_type,
-            job_type_version=definition.job_type_version,
-            task_name=definition.task_name,
-            workload_class=definition.workload_class,
-            authority_mode=definition.authority_mode,
-            target_descriptor=target.model_dump(mode="json", by_alias=True),
-            input_reference=input_reference.model_dump(mode="json", by_alias=True),
-            idempotency_key=f"billing-event:{identity_hash}",
-            source_revision=inbox.connector_version,
-            correlation_id=f"billing-event:{identity_hash[:32]}",
-            retry_class=definition.retry_class,
-            max_attempts=definition.max_attempts,
-            timeout_seconds=definition.timeout_seconds,
-            lease_seconds=definition.lease_seconds,
-            heartbeat_seconds=definition.heartbeat_seconds,
-            status_key=definition.initial_status_key,
-        )
 
 
 def build_billing_event_acceptance_service(

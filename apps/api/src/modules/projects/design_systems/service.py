@@ -370,16 +370,19 @@ class ProjectDesignSystemsService(BaseService):
         )
         if lifecycle_state is None:
             raise RuntimeError(f"Design System version {version.id} is missing lifecycle state")
-        if str(lifecycle_state.status) == DesignSystemVersionStatus.SUPERSEDED.value:
+        lifecycle_status = str(lifecycle_state.status)
+        if lifecycle_status == DesignSystemVersionStatus.SUPERSEDED.value:
             raise Conflict(
                 error="DESIGN_SYSTEM_VERSION_SUPERSEDED",
                 message=t("errors", "DESIGN_SYSTEM_VERSION_SUPERSEDED"),
             )
-        if str(lifecycle_state.status) != DesignSystemVersionStatus.VALID.value:
-            raise Conflict(
-                error="DESIGN_SYSTEM_VALIDATION_REQUIRED",
-                message=t("errors", "DESIGN_SYSTEM_VALIDATION_REQUIRED"),
-            )
+        if str(system.owner_kind) == DesignSystemOwnerKind.WORKSPACE.value:
+            if lifecycle_status == DesignSystemVersionStatus.VALID.value:
+                _raise_release_required()
+            if lifecycle_status != DesignSystemVersionStatus.PUBLISHED.value:
+                _raise_validation_required()
+        elif lifecycle_status != DesignSystemVersionStatus.VALID.value:
+            _raise_validation_required()
         validation = await self._repository.latest_validation(
             workspace_id=workspace_id, version_id=version.id, conn=conn
         )
@@ -388,10 +391,7 @@ class ProjectDesignSystemsService(BaseService):
             or str(validation.status) != DesignSystemValidationStatus.VALID.value
             or validation.finding_hash != finding_hash
         ):
-            raise Conflict(
-                error="DESIGN_SYSTEM_VALIDATION_REQUIRED",
-                message=t("errors", "DESIGN_SYSTEM_VALIDATION_REQUIRED"),
-            )
+            _raise_validation_required()
         return system, version, validation
 
     async def _record_command(
@@ -496,3 +496,17 @@ def _raise_not_found() -> NoReturn:
 
 def _raise_revision_conflict() -> NoReturn:
     raise Conflict(error="DESIGN_SYSTEM_REVISION_CONFLICT", message=t("errors", "DESIGN_SYSTEM_REVISION_CONFLICT"))
+
+
+def _raise_validation_required() -> NoReturn:
+    raise Conflict(
+        error="DESIGN_SYSTEM_VALIDATION_REQUIRED",
+        message=t("errors", "DESIGN_SYSTEM_VALIDATION_REQUIRED"),
+    )
+
+
+def _raise_release_required() -> NoReturn:
+    raise Conflict(
+        error="DESIGN_SYSTEM_RELEASE_REQUIRED",
+        message=t("errors", "DESIGN_SYSTEM_RELEASE_REQUIRED"),
+    )

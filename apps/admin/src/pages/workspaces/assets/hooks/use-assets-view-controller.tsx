@@ -28,8 +28,28 @@ import {
   patchAsset,
   updateAssetFolder,
 } from "@/api/assets";
+import type { listAssetFolders, listAssets } from "@/api/assets";
 import { type ViewMode as AssetsViewMode } from "@/components/common/view-mode-toggle";
-import type { PageData, AdminAssetFolder, AdminAssetSummary } from "@arclayer/openapi/admin-types";
+import type { AdminAssetFolderOut as AdminAssetFolder } from "@arclayer/openapi";
+
+type AssetSummaryPage = Awaited<ReturnType<typeof listAssets>>;
+type AssetFolderPage = Awaited<ReturnType<typeof listAssetFolders>>;
+type AssetAccessInput = {
+  visibility?: string;
+  purpose?: string;
+  indexable?: boolean;
+};
+
+const ASSET_PURPOSES = [
+  "avatar",
+  "site_logo",
+  "workspace_icon",
+  "favicon",
+  "library",
+  "attachment",
+  "article_cover",
+] as const;
+const ASSET_VISIBILITIES = ["public", "private", "shared"] as const;
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { clearSelection, type AssetSelectionState } from "@/lib/assets/asset-selection";
 import { invalidateAssetListQueries } from "@/lib/assets/invalidate-asset-list-queries";
@@ -81,6 +101,23 @@ function triggerDropPulse(
   }, 300);
 }
 
+function requireAssetAccessPatch(input: AssetAccessInput) {
+  if (input.purpose && !ASSET_PURPOSES.includes(input.purpose as (typeof ASSET_PURPOSES)[number])) {
+    throw new Error("Invalid asset purpose");
+  }
+  if (
+    input.visibility &&
+    !ASSET_VISIBILITIES.includes(input.visibility as (typeof ASSET_VISIBILITIES)[number])
+  ) {
+    throw new Error("Invalid asset visibility");
+  }
+  return {
+    indexable: input.indexable,
+    purpose: input.purpose as Parameters<typeof patchAsset>[2]["purpose"],
+    visibility: input.visibility as Parameters<typeof patchAsset>[2]["visibility"],
+  };
+}
+
 export function useAssetsViewController(projectId: string, _viewMode: AssetsViewMode = "card") {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -112,11 +149,7 @@ export function useAssetsViewController(projectId: string, _viewMode: AssetsView
   const [deleteFolderTarget, setDeleteFolderTarget] = useState<AdminAssetFolder | null>(null);
   const [editAccessOpen, setEditAccessOpen] = useState(false);
   const [editAccessMode, setEditAccessMode] = useState<"single" | "bulk">("bulk");
-  const [editAccessCurrent, setEditAccessCurrent] = useState<{
-    visibility?: string;
-    purpose?: string;
-    indexable?: boolean;
-  }>({});
+  const [editAccessCurrent, setEditAccessCurrent] = useState<AssetAccessInput>({});
   const [editAssetOpen, setEditAssetOpen] = useState(false);
   const [editAssetTarget, setEditAssetTarget] = useState<AssetMasonryItem | null>(null);
   const [assetDeleteOpen, setAssetDeleteOpen] = useState(false);
@@ -249,9 +282,10 @@ export function useAssetsViewController(projectId: string, _viewMode: AssetsView
     },
   });
   const bulkUpdateMutation = useMutation({
-    mutationFn: (payload: Parameters<typeof bulkUpdateAssets>[1]) => {
+    mutationFn: (payload: AssetAccessInput & { assetIds: string[] }) => {
       if (!projectId) throw new Error("PROJECT_NOT_SELECTED");
-      return bulkUpdateAssets(String(projectId), payload);
+      const { assetIds, ...access } = payload;
+      return bulkUpdateAssets(String(projectId), { assetIds, ...requireAssetAccessPatch(access) });
     },
     onSuccess: (out) => {
       notifySuccessText(t("assets:ASSET_BULK_EDIT_ACCESS_SUCCESS", { count: out.updatedCount }));
@@ -270,7 +304,7 @@ export function useAssetsViewController(projectId: string, _viewMode: AssetsView
         Boolean(out.visibility || out.purpose) || typeof out.indexable !== "undefined";
       if (updatedIds.size > 0 && hasAccessFieldChange) {
         queryClient.setQueryData(assetsListQueryKey, (old: unknown): unknown => {
-          const data = old as InfiniteData<PageData<AdminAssetSummary>> | undefined;
+          const data = old as InfiniteData<AssetSummaryPage> | undefined;
           if (!data) return old;
           const pages = data.pages.map((page) => {
             const items = page.items
@@ -337,15 +371,10 @@ export function useAssetsViewController(projectId: string, _viewMode: AssetsView
     },
   });
   const singleAssetAccessMutation = useMutation({
-    mutationFn: async (payload: {
-      assetId: string;
-      visibility?: string;
-      purpose?: string;
-      indexable?: boolean;
-    }) => {
+    mutationFn: async (payload: AssetAccessInput & { assetId: string }) => {
       if (!projectId) throw new Error("PROJECT_NOT_SELECTED");
       const { assetId, ...rest } = payload;
-      return patchAsset(String(projectId), assetId, rest);
+      return patchAsset(String(projectId), assetId, requireAssetAccessPatch(rest));
     },
     onSuccess: () => {
       notifySuccessText(t("assets:ASSET_EDIT_ACCESS_SUCCESS"));
@@ -402,7 +431,7 @@ export function useAssetsViewController(projectId: string, _viewMode: AssetsView
     onSuccess: (nextFolders) => {
       if (scopeKey) {
         queryClient.setQueryData(["assets", "folders", scopeKey], (old: unknown) => {
-          const data = old as PageData<AdminAssetFolder> | undefined;
+          const data = old as AssetFolderPage | undefined;
           if (!data) return old;
           const nextById = new Map(nextFolders.map((folder) => [String(folder.id), folder]));
           const items = data.items.map((folder) => nextById.get(String(folder.id)) ?? folder);

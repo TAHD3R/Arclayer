@@ -68,6 +68,9 @@ class PluginLifecycleJobInput(BaseSchema):
     package_checksum: str = Field(..., min_length=71, max_length=80)
     manifest_digest: str = Field(..., min_length=71, max_length=80)
     signer_fingerprint: str | None = Field(default=None, min_length=64, max_length=64)
+    requested_permissions: tuple[str, ...] = Field(default_factory=tuple)
+    approved_permissions: tuple[str, ...] = Field(default_factory=tuple)
+    provided_capabilities: tuple[str, ...] = Field(default_factory=tuple)
     desired_enabled: bool
 
 

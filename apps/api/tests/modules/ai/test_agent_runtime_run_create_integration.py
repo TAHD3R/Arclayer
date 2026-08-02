@@ -18,11 +18,13 @@ from src.models.projects.project import ProjectRecord
 from src.models.workspaces.workspace import Workspace
 from src.modules.ai.agent_catalog_manifest import official_agent_id
 from src.modules.ai.runtime_job_schema import AgentRunJobInput
+from src.modules.ai.runtime_knowledge_context import TenantAgentKnowledgeContextResolver
 from src.modules.ai.runtime_run_schema import AgentRunCreateRequestV1
 from src.modules.ai.runtime_run_service import AgentRunService
 from src.modules.ai.runtime_thread_schema import AgentThreadCreateRequestV1
 from src.modules.ai.runtime_thread_service import AgentThreadService
 from src.modules.jobs.service import BackgroundJobService
+from src.modules.tenancy.router_helpers import ensure_workspace_tenant_context
 from tests.modules.ai.runtime_design_system_test_context import fixed_design_system_context_resolver
 
 pytestmark = pytest.mark.integration
@@ -79,9 +81,14 @@ async def test_run_create_atomically_persists_job_message_and_queued_event(prepa
         ),
     )
     publisher = _RecordingEventPublisher()
+    tenant_context = await ensure_workspace_tenant_context(
+        workspace_id=workspace.id,
+        organization_id=workspace.organization_id,
+    )
     service = AgentRunService(
         job_service=BackgroundJobService(event_publisher=publisher),
         event_publisher=publisher,
+        knowledge_context_resolver=TenantAgentKnowledgeContextResolver(tenant_context),
         design_system_context_resolver=fixed_design_system_context_resolver(project.id),
     )
     payload = AgentRunCreateRequestV1(
@@ -145,9 +152,14 @@ async def test_run_create_atomically_persists_job_message_and_queued_event(prepa
 async def test_run_create_rolls_back_job_when_thread_scope_is_invalid(prepared_db) -> None:
     _ = prepared_db
     workspace, project, owner_user_id = await _scope()
+    tenant_context = await ensure_workspace_tenant_context(
+        workspace_id=workspace.id,
+        organization_id=workspace.organization_id,
+    )
     service = AgentRunService(
         job_service=BackgroundJobService(event_publisher=_RecordingEventPublisher()),
         event_publisher=_RecordingEventPublisher(),
+        knowledge_context_resolver=TenantAgentKnowledgeContextResolver(tenant_context),
     )
     before_jobs = await BackgroundJobRecord.all().count()
 

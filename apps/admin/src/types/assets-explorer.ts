@@ -1,4 +1,4 @@
-import type { AdminAssetFolder } from "@arclayer/openapi/admin-types";
+import type { AdminAssetFolderOut as AdminAssetFolder } from "@arclayer/openapi";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 
 export type AssetsExplorerPagination = "infinite" | "paged";

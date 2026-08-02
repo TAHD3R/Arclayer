@@ -1,6 +1,6 @@
 import { File, LayoutTemplate, UserRound } from "lucide-react";
 
-import type { AdminAssetSummary } from "@arclayer/openapi/admin-types";
+import type { AdminAssetSummaryOut as AdminAssetSummary } from "@arclayer/openapi";
 import type { CommandEntry, RecentCommandRecord } from "@/lib/command/command-types";
 
 const WHITESPACE = /\s+/g;

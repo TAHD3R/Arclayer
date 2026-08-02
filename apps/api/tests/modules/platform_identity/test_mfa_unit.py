@@ -105,6 +105,37 @@ async def test_recovery_code_consumption_blocks_platform_access_until_new_enroll
     assert repo.operator_mfa_setup_required_for == [operator_id]
 
 
+@pytest.mark.asyncio
+async def test_confirming_a_replacement_totp_method_retires_the_old_method_in_the_same_service_transaction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.modules.auth.two_factor.totp import TotpVerifyResult
+    from src.modules.platform_identity.mfa import PlatformMfaService
+
+    repo = _FakePlatformMfaRepository()
+    user_id = uuid4()
+    pending_method = _PendingMethod(id=uuid4(), user_id=user_id, totp_secret_enc="encrypted")
+    replaced_method_id = uuid4()
+    repo.pending.append(pending_method)
+    service = PlatformMfaService(repo=repo)
+    _patch_transaction(monkeypatch, service)
+    monkeypatch.setattr(service, "_ensure_master_key", lambda: b"0123456789abcdef0123456789abcdef")
+    monkeypatch.setattr(service, "_decrypt_totp_secret", lambda **_kwargs: "SECRET")
+    monkeypatch.setattr(
+        "src.modules.platform_identity.mfa.verify_totp_code",
+        lambda *_args, **_kwargs: TotpVerifyResult(ok=True, used_counter=12),
+    )
+
+    await service.confirm_totp_setup(
+        user_id=user_id,
+        method_id=pending_method.id,
+        code="123456",
+        replace_method_id=replaced_method_id,
+    )
+
+    assert repo.retired_replacements == [(user_id, replaced_method_id, pending_method.id)]
+
+
 @dataclass
 class _PendingMethod:
     id: UUID
@@ -131,6 +162,7 @@ class _FakePlatformMfaRepository:
         self.mfa_methods_revoked_for: list[UUID] = []
         self.sessions_and_proofs_revoked_for: list[UUID] = []
         self.operator_mfa_setup_required_for: list[UUID] = []
+        self.retired_replacements: list[tuple[UUID, UUID, UUID]] = []
 
     async def create_pending_totp_method(
         self, *, user_id: UUID, totp_secret_enc: str, conn: object | None = None
@@ -142,6 +174,16 @@ class _FakePlatformMfaRepository:
     async def get_verified_totp_method(self, *, user_id: UUID, method_id: UUID, conn: object | None = None):
         method = self.verified.get(method_id)
         return method if method and method.user_id == user_id else None
+
+    async def get_pending_totp_method(self, *, user_id: UUID, method_id: UUID, conn: object | None = None):
+        return next((method for method in self.pending if method.id == method_id and method.user_id == user_id), None)
+
+    async def verify_pending_totp_method(self, *, method_id: UUID, counter: int, verified_at, conn: object) -> bool:
+        method = next((item for item in self.pending if item.id == method_id), None)
+        if method is None:
+            return False
+        self.verified[method_id] = method
+        return True
 
     async def try_advance_totp_counter(self, *, method_id: UUID, counter: int, used_at, conn: object) -> bool:
         key = (method_id, counter)
@@ -187,6 +229,17 @@ class _FakePlatformMfaRepository:
 
     async def revoke_user_mfa_methods(self, *, user_id: UUID, revoked_at, conn: object) -> None:
         self.mfa_methods_revoked_for.append(user_id)
+
+    async def retire_verified_method_after_replacement(
+        self,
+        *,
+        user_id: UUID,
+        replaced_method_id: UUID,
+        replacement_method_id: UUID,
+        revoked_at,
+        conn: object,
+    ) -> None:
+        self.retired_replacements.append((user_id, replaced_method_id, replacement_method_id))
 
     async def revoke_user_sessions_and_proofs(self, *, user_id: UUID, revoked_at, conn: object) -> None:
         self.sessions_and_proofs_revoked_for.append(user_id)

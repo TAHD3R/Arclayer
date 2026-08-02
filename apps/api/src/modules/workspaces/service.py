@@ -37,7 +37,10 @@ from src.modules.auth.onboarding.service import WorkspaceFirstOnboardingService
 from src.modules.organization.repository import OrganizationRepository
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.organization.workspaces.schema import OrganizationWorkspaceCreateRequest, OrganizationWorkspaceTemplate
-from src.modules.organization.workspaces.service import OrganizationWorkspaceService
+from src.modules.organization.workspaces.service import (
+    OrganizationWorkspaceService,
+    build_organization_workspace_service,
+)
 from src.modules.projects.repository import ProjectRepository
 from src.modules.projects.schema import WorkspacePrimaryProjectOut
 from src.modules.system.setup.service import InstanceSetupService
@@ -208,7 +211,9 @@ class WorkspaceService(BaseService):
         self.project_repo = project_repo or ProjectRepository()
         self.instance_setup_service = instance_setup_service or InstanceSetupService(settings)
         self.onboarding_service = onboarding_service or WorkspaceFirstOnboardingService(settings)
-        self.organization_workspace_service = organization_workspace_service or OrganizationWorkspaceService(settings)
+        self.organization_workspace_service = (
+            organization_workspace_service or build_organization_workspace_service(settings)
+        )
         self.restriction_authority = restriction_authority or AccessRestrictionAuthority(AccessRestrictionRepository())
         self.membership_end_participant = membership_end_participant
 

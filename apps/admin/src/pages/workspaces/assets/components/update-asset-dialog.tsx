@@ -7,7 +7,10 @@ import { getAssetDetail, moveAsset, patchAsset } from "@/api/assets";
 import { assetScopeKey } from "@/lib/assets/asset-scope";
 import { invalidateAssetListQueries } from "@/lib/assets/invalidate-asset-list-queries";
 import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
-import type { AdminAssetFolder, PatchAdminAssetPayload } from "@arclayer/openapi/admin-types";
+import type {
+  AdminAssetFolderOut as AdminAssetFolder,
+  AdminAssetUpdateRequest as PatchAdminAssetPayload,
+} from "@arclayer/openapi";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";

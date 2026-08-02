@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { ProjectAvatar, projectAvatarPropsFromIdentity } from "@/components/common/project-avatar";
 import { zodResolver } from "@/lib/forms/zod-resolver";
-import type { Project } from "@arclayer/openapi/admin-types";
+import type { ProjectOut as Project } from "@arclayer/openapi";
 import { Button } from "@arclayer/ui/button";
 import { FieldError } from "@arclayer/ui/field";
 import { Input } from "@arclayer/ui/input";

@@ -223,7 +223,12 @@ async def test_oauth_social_start_supports_microsoft_and_discord(
 
     monkeypatch.setattr(service, "_load_core_oauth_config", _fake_load_config)
 
-    microsoft_response = await service.start(request, provider="microsoft", redirect="/w/team", link_state=None)
+    microsoft_response = await service.start(
+        request,
+        provider="microsoft",
+        redirect="/projects/project-1/team/members",
+        link_state=None,
+    )
     microsoft_url = urlparse(microsoft_response.headers["location"])
     microsoft_query = parse_qs(microsoft_url.query)
     assert microsoft_url.netloc == "login.microsoftonline.com"
@@ -231,7 +236,12 @@ async def test_oauth_social_start_supports_microsoft_and_discord(
     assert microsoft_query["scope"] == ["openid email profile offline_access User.Read"]
     assert microsoft_query["redirect_uri"] == ["http://testserver/auth/sso/callback/microsoft"]
 
-    discord_response = await service.start(request, provider="discord", redirect="/w/team", link_state=None)
+    discord_response = await service.start(
+        request,
+        provider="discord",
+        redirect="/projects/project-1/team/members",
+        link_state=None,
+    )
     discord_url = urlparse(discord_response.headers["location"])
     discord_query = parse_qs(discord_url.query)
     assert discord_url.netloc == "discord.com"
@@ -257,7 +267,7 @@ async def test_oauth_social_blocks_new_user_auto_provision_when_public_register_
 
     payload_json = OAuthStatePayload(
         provider="google",
-        redirect="/w/new",
+        redirect="/projects/project-new",
         code_verifier="verifier",
     ).model_dump_json()
 
@@ -328,7 +338,7 @@ async def test_oauth_social_allows_existing_user_signin_when_public_register_dis
 
     payload_json = OAuthStatePayload(
         provider="google",
-        redirect="/w/existing",
+        redirect="/projects/project-existing",
         code_verifier="verifier",
     ).model_dump_json()
 
@@ -404,7 +414,7 @@ async def test_oauth_social_blocks_new_user_when_auto_provision_disabled_even_if
 
     payload_json = OAuthStatePayload(
         provider="google",
-        redirect="/w/new",
+        redirect="/projects/project-new",
         code_verifier="verifier",
     ).model_dump_json()
 
@@ -475,7 +485,7 @@ async def test_oauth_social_auto_provisions_new_user_when_all_gates_enabled(
 
     payload_json = OAuthStatePayload(
         provider="google",
-        redirect="/w/new",
+        redirect="/projects/project-new",
         code_verifier="verifier",
     ).model_dump_json()
 
@@ -577,7 +587,7 @@ async def test_oauth_social_callback_supports_additional_builtin_providers(
 
     payload_json = OAuthStatePayload(
         provider=provider,
-        redirect="/w/new",
+        redirect="/projects/project-new",
         code_verifier="verifier",
     ).model_dump_json()
 

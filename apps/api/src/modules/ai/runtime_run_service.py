@@ -30,8 +30,13 @@ from src.modules.ai.agent_design_system_context_service import (
     AgentDesignSystemContextError,
     AgentDesignSystemContextResolver,
 )
+from src.modules.ai.agent_knowledge_context_schema import AgentRunKnowledgeContextInputV1
 from src.modules.ai.agent_skill_grant_schema import AgentRunSkillGrantSnapshotInput
-from src.modules.ai.agent_skill_grant_service import AgentSkillGrantError, AgentSkillGrantResolver
+from src.modules.ai.agent_skill_grant_service import (
+    AgentSkillGrantError,
+    AgentSkillGrantResolver,
+    with_selected_lead_skill_installations,
+)
 from src.modules.ai.runtime_approval_protocol_schema import (
     ApprovalResolvedDataV1,
     ApprovalResolvedEventV1,
@@ -47,6 +52,10 @@ from src.modules.ai.runtime_job_schema import (
     AGENT_RUN_JOB_TYPE_VERSION,
     AgentRunJobInput,
     AgentRunJobTarget,
+)
+from src.modules.ai.runtime_knowledge_context import (
+    AgentKnowledgeContextError,
+    AgentKnowledgeContextResolver,
 )
 from src.modules.ai.runtime_output_protocol_schema import RunCancelledDataV1, RunCancelledEventV1
 from src.modules.ai.runtime_protocol_schema import (
@@ -92,6 +101,7 @@ class AgentRunService(BaseService):
         job_service: BackgroundJobService | None = None,
         catalog_service: AgentCatalogService | None = None,
         skill_grant_resolver: AgentSkillGrantResolver | None = None,
+        knowledge_context_resolver: AgentKnowledgeContextResolver | None = None,
         design_system_context_resolver: AgentDesignSystemContextResolver | None = None,
         builder_context_resolver: AgentBuilderContextResolver | None = None,
         event_publisher: DomainEventPublisher | None = events,
@@ -104,6 +114,7 @@ class AgentRunService(BaseService):
         self._job_service = job_service or BackgroundJobService(self.settings)
         self._catalog_service = catalog_service or AgentCatalogService(self.settings)
         self._skill_grant_resolver = skill_grant_resolver
+        self._knowledge_context_resolver = knowledge_context_resolver
         self._design_system_context_resolver = design_system_context_resolver
         self._builder_context_resolver = builder_context_resolver
 
@@ -148,9 +159,21 @@ class AgentRunService(BaseService):
                         conn=conn,
                         ensure_catalog=False,
                     )
+                    lead_agent = with_selected_lead_skill_installations(
+                        workspace_id=workspace_id,
+                        lead_agent=lead_agent,
+                        selected_skill_installation_ids=payload.selected_skill_installation_ids,
+                    )
                     skill_grants = await self._resolve_skill_grants(
                         workspace_id=workspace_id,
                         agents=(lead_agent, *mentioned_agents),
+                        conn=conn,
+                    )
+                    knowledge_context = await self._resolve_knowledge_context(
+                        workspace_id=workspace_id,
+                        project_id=payload.project_id,
+                        owner_user_id=owner_user_id,
+                        agent_definition_id=lead_agent.agent_id,
                         conn=conn,
                     )
                     design_system_context = await self._resolve_design_system_context(
@@ -175,6 +198,7 @@ class AgentRunService(BaseService):
                         lead_agent=lead_agent,
                         mentioned_agents=mentioned_agents,
                         skill_grants=skill_grants,
+                        knowledge_context=knowledge_context,
                         design_system_context=design_system_context,
                         builder_context=builder_context,
                         conn=conn,
@@ -182,6 +206,7 @@ class AgentRunService(BaseService):
         except (
             AgentRuntimePersistenceError,
             AgentSkillGrantError,
+            AgentKnowledgeContextError,
             AgentDesignSystemContextError,
             AgentBuilderContextError,
         ) as error:
@@ -202,6 +227,7 @@ class AgentRunService(BaseService):
         lead_agent: ResolvedAgentAssignment,
         mentioned_agents: tuple[ResolvedAgentAssignment, ...],
         skill_grants: tuple[AgentRunSkillGrantSnapshotInput, ...],
+        knowledge_context: AgentRunKnowledgeContextInputV1 | None,
         design_system_context: AgentRunDesignSystemContextInputV1 | None,
         builder_context: AgentRunBuilderContextInputV1 | None,
         conn: BaseDBAsyncClient,
@@ -237,6 +263,7 @@ class AgentRunService(BaseService):
                 mentioned_agent_version_ids=tuple(item.version_id for item in mentioned_agents),
                 mentioned_agent_assignment_ids=tuple(item.assignment_id for item in mentioned_agents),
                 skill_grants=skill_grants,
+                knowledge_context=knowledge_context,
                 design_system_context=design_system_context,
                 builder_context=builder_context,
                 execution_mode=payload.execution_mode,
@@ -308,6 +335,25 @@ class AgentRunService(BaseService):
         return await self._design_system_context_resolver.resolve_run_context(
             workspace_id=workspace_id,
             project_id=project_id,
+            conn=conn,
+        )
+
+    async def _resolve_knowledge_context(
+        self,
+        *,
+        workspace_id: UUID,
+        project_id: UUID | None,
+        owner_user_id: UUID,
+        agent_definition_id: UUID,
+        conn: BaseDBAsyncClient,
+    ) -> AgentRunKnowledgeContextInputV1 | None:
+        if self._knowledge_context_resolver is None:
+            raise AgentKnowledgeContextError("AGENT_KNOWLEDGE_RESOLVER_UNAVAILABLE")
+        return await self._knowledge_context_resolver.resolve_run_context(
+            workspace_id=workspace_id,
+            project_id=project_id,
+            actor_user_id=owner_user_id,
+            agent_definition_id=agent_definition_id,
             conn=conn,
         )
 
@@ -561,6 +607,7 @@ class AgentRunService(BaseService):
         error: (
             AgentRuntimePersistenceError
             | AgentSkillGrantError
+            | AgentKnowledgeContextError
             | AgentDesignSystemContextError
             | AgentBuilderContextError
         ),
@@ -569,7 +616,15 @@ class AgentRunService(BaseService):
             raise NotFound(error=error.code, message=t("errors", error.code)) from error
         if error.code == "AGENT_RUN_IDEMPOTENCY_CONFLICT":
             raise Conflict(error=error.code, message=t("errors", error.code)) from error
-        if isinstance(error, (AgentSkillGrantError, AgentDesignSystemContextError, AgentBuilderContextError)):
+        if isinstance(
+            error,
+            (
+                AgentSkillGrantError,
+                AgentKnowledgeContextError,
+                AgentDesignSystemContextError,
+                AgentBuilderContextError,
+            ),
+        ):
             raise Conflict(error=error.code, message=t("errors", error.code)) from error
         raise error
 

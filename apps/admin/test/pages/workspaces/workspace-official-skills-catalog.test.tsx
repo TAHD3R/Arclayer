@@ -17,9 +17,20 @@ const apiMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("react-i18next", () => ({
-  useTranslation: () => ({
-    t: (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key,
-  }),
+  useTranslation: () => {
+    const translations: Record<string, string> = {
+      "settings:SETTINGS_WORKSPACE_SKILLS_OFFICIAL_SITEMAP_NAME": "Sitemap Planning",
+      "settings:SETTINGS_WORKSPACE_SKILLS_OFFICIAL_SITEMAP_DESC": "Plan a site hierarchy.",
+    };
+    const translate = (key: string) => translations[key] ?? key;
+    return {
+      t: translate,
+      i18n: {
+        exists: (key: string) => key in translations,
+        t: translate,
+      },
+    };
+  },
 }));
 
 vi.mock("@/api/workspace-skills", () => ({

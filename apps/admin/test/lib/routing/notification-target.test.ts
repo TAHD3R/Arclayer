@@ -1,19 +1,24 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveNotificationTarget } from "@/lib/routing/notification-target";
-import type { NotificationItem } from "@arclayer/openapi/admin-types";
+import {
+  canAccessNotificationNavigationTarget,
+  resolveNotificationTarget,
+} from "@/lib/routing/notification-target";
+import type { NotificationOut as NotificationItem } from "@arclayer/openapi";
 
-function makeNotification(targetTo: string): NotificationItem {
+const GLOBAL_WORKSPACE_ID = "00000000-0000-0000-0000-000000000000";
+
+function makeNotification(target: NotificationItem["target"]): NotificationItem {
   return {
     id: "notification-1",
-    workspaceId: "project-1",
+    workspaceId: "workspace-1",
     recipientUserId: "user-1",
     actorUserId: null,
     category: "team",
     title: "Title",
     body: "Message",
-    targetTo,
-    targetMeta: null,
+    target,
+    campaignSurface: null,
     eventName: null,
     dedupeKey: null,
     createdAt: "2026-04-21T00:00:00.000Z",
@@ -24,43 +29,164 @@ function makeNotification(targetTo: string): NotificationItem {
 }
 
 describe("resolveNotificationTarget", () => {
-  it("does not resolve removed legacy scope targets", () => {
-    expect(resolveNotificationTarget(makeNotification("/o/org-1/team/members"))).toBeNull();
-    expect(resolveNotificationTarget(makeNotification("/o/org-1/extensions"))).toBeNull();
-  });
-
-  it("normalizes legacy workspace site settings to website config settings", () => {
-    expect(
-      resolveNotificationTarget(makeNotification("/w/project-1/settings/site/basics")),
-    ).toEqual({
+  it("resolves inbox and typed workspace settings targets", () => {
+    expect(resolveNotificationTarget(makeNotification({ kind: "inbox" }))).toEqual({
       type: "navigate",
-      to: "/projects/project-1/website/config",
-    });
-  });
-
-  it("normalizes legacy project domain targets to project and releases", () => {
-    expect(resolveNotificationTarget(makeNotification("/w/project-1/settings/domain"))).toEqual({
-      type: "navigate",
-      to: "/projects/project-1/website/project-releases",
+      to: "/notifications",
     });
     expect(
-      resolveNotificationTarget(makeNotification("/projects/project-1/content/domain")),
+      resolveNotificationTarget(
+        makeNotification({ kind: "workspace_settings", destination: "general" }),
+      ),
+    ).toEqual({ type: "settings", target: { screen: "workspace.general" } });
+    expect(
+      resolveNotificationTarget(
+        makeNotification({ kind: "workspace_settings", destination: "plan_usage" }),
+      ),
+    ).toEqual({ type: "settings", target: { screen: "workspace.plan-usage" } });
+    expect(
+      resolveNotificationTarget(
+        makeNotification({
+          kind: "workspace_settings",
+          destination: "people",
+          section: "pending-invitations",
+        }),
+      ),
     ).toEqual({
-      type: "navigate",
-      to: "/projects/project-1/website/project-releases",
+      type: "settings",
+      target: { screen: "workspace.people", section: "pending-invitations" },
+    });
+    expect(
+      resolveNotificationTarget(
+        makeNotification({
+          kind: "workspace_settings",
+          destination: "roles",
+          section: "roles-table",
+        }),
+      ),
+    ).toEqual({
+      type: "settings",
+      target: { screen: "workspace.roles", section: "roles-table" },
     });
   });
 
-  it("normalizes legacy project deployment targets to project and releases", () => {
+  it("resolves typed project destinations", () => {
     expect(
-      resolveNotificationTarget(makeNotification("/projects/project-1/settings/deployments")),
-    ).toEqual({
-      type: "navigate",
-      to: "/projects/project-1/website/project-releases",
-    });
-    expect(resolveNotificationTarget(makeNotification("/w/project-1/deployments"))).toEqual({
-      type: "navigate",
-      to: "/projects/project-1/website/project-releases",
-    });
+      resolveNotificationTarget(
+        makeNotification({ kind: "project", projectId: "project-1", destination: "overview" }),
+      ),
+    ).toEqual({ type: "navigate", to: "/projects/project-1/" });
+    expect(
+      resolveNotificationTarget(
+        makeNotification({
+          kind: "project",
+          projectId: "project-1",
+          destination: "settings_api",
+        }),
+      ),
+    ).toEqual({ type: "navigate", to: "/projects/project-1/settings/api" });
+    expect(
+      resolveNotificationTarget(
+        makeNotification({
+          kind: "project",
+          projectId: "project-1",
+          destination: "content_library",
+          entityId: "entry/1",
+        }),
+      ),
+    ).toEqual({ type: "navigate", to: "/projects/project-1/content/library/entry%2F1" });
+    expect(
+      resolveNotificationTarget(
+        makeNotification({
+          kind: "project",
+          projectId: "project-1",
+          destination: "website_releases",
+        }),
+      ),
+    ).toEqual({ type: "navigate", to: "/projects/project-1/website/project-releases" });
+  });
+
+  it("resolves typed feedback tickets", () => {
+    expect(
+      resolveNotificationTarget(
+        makeNotification({ kind: "feedback_ticket", ticketId: "ticket-1" }),
+      ),
+    ).toEqual({ type: "feedback", ticketId: "ticket-1" });
+  });
+
+  it("authorizes global, current-workspace, and project targets by accessible scope", () => {
+    const workspaceTarget = { kind: "workspace_settings", destination: "general" } as const;
+    const projectTarget = {
+      kind: "project",
+      projectId: "project-1",
+      destination: "overview",
+    } as const;
+
+    expect(
+      canAccessNotificationNavigationTarget({
+        notificationWorkspaceId: GLOBAL_WORKSPACE_ID,
+        currentWorkspaceId: "workspace-current",
+        target: workspaceTarget,
+        accessibleWorkspaceIds: new Set(["workspace-current"]),
+        accessibleProjectIds: new Set(),
+      }),
+    ).toBe(true);
+    expect(
+      canAccessNotificationNavigationTarget({
+        notificationWorkspaceId: "workspace-current",
+        currentWorkspaceId: "workspace-current",
+        target: workspaceTarget,
+        accessibleWorkspaceIds: new Set(["workspace-current"]),
+        accessibleProjectIds: new Set(),
+      }),
+    ).toBe(true);
+    expect(
+      canAccessNotificationNavigationTarget({
+        notificationWorkspaceId: "workspace-current",
+        currentWorkspaceId: "workspace-current",
+        target: workspaceTarget,
+        accessibleWorkspaceIds: new Set(["workspace-other"]),
+        accessibleProjectIds: new Set(),
+      }),
+    ).toBe(false);
+    expect(
+      canAccessNotificationNavigationTarget({
+        notificationWorkspaceId: "workspace-current",
+        currentWorkspaceId: "workspace-current",
+        target: projectTarget,
+        accessibleWorkspaceIds: new Set(),
+        accessibleProjectIds: new Set(["project-1"]),
+      }),
+    ).toBe(true);
+    expect(
+      canAccessNotificationNavigationTarget({
+        notificationWorkspaceId: "workspace-current",
+        currentWorkspaceId: "workspace-current",
+        target: projectTarget,
+        accessibleWorkspaceIds: new Set(),
+        accessibleProjectIds: new Set(),
+      }),
+    ).toBe(false);
+  });
+
+  it("throws explicit errors for invalid workspace setting sections", () => {
+    expect(() =>
+      resolveNotificationTarget(
+        makeNotification({
+          kind: "workspace_settings",
+          destination: "people",
+          section: "roles-table",
+        }),
+      ),
+    ).toThrow("NOTIFICATION_WORKSPACE_PEOPLE_SECTION_INVALID");
+    expect(() =>
+      resolveNotificationTarget(
+        makeNotification({
+          kind: "workspace_settings",
+          destination: "roles",
+          section: "members-table",
+        }),
+      ),
+    ).toThrow("NOTIFICATION_WORKSPACE_ROLES_SECTION_INVALID");
   });
 });

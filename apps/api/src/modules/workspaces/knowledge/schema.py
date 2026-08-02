@@ -241,6 +241,139 @@ class WorkspaceKnowledgeCapabilitiesOut(BaseSchema):
     manual_sources_available: Literal[True]
     external_ingestion_available: bool
     indexing_available: bool
-    retrieval_available: Literal[True]
+    retrieval_available: bool
     immutable_source_versions: Literal[True]
     supported_source_kinds: tuple[str, ...]
+
+
+class KnowledgeGuidanceRevisionOut(BaseSchema):
+    id: PublicUUID
+    guidance_layer_id: PublicUUID
+    workspace_id: PublicUUID
+    revision_number: int = Field(ge=1)
+    content: str
+    content_hash: str
+    status: Literal["draft", "published", "superseded"]
+    restored_from_revision_id: PublicUUID | None
+    published_at: datetime | None
+    published_by_user_id: PublicUUID | None
+    created_by_user_id: PublicUUID | None
+    created_at: datetime
+
+
+class KnowledgeGuidanceReferenceOut(BaseSchema):
+    id: PublicUUID
+    knowledge_base_id: PublicUUID
+    created_by_user_id: PublicUUID | None
+    created_at: datetime
+
+
+class KnowledgeGuidanceLayerOut(BaseSchema):
+    id: PublicUUID
+    workspace_id: PublicUUID
+    scope: Literal["workspace", "project"]
+    project_id: PublicUUID | None
+    project_mode: Literal["supplement", "override"] | None
+    metadata_revision: int = Field(ge=1)
+    draft_revision_id: PublicUUID | None
+    published_revision_id: PublicUUID | None
+    removed_at: datetime | None
+    removed_by_user_id: PublicUUID | None
+    current_draft: KnowledgeGuidanceRevisionOut | None
+    current_published: KnowledgeGuidanceRevisionOut | None
+    references: tuple[KnowledgeGuidanceReferenceOut, ...] = Field(default_factory=tuple)
+    created_at: datetime
+    updated_at: datetime
+
+
+class KnowledgeGuidanceDraftSaveRequest(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    expected_revision: int = Field(ge=1)
+    content: str = Field(min_length=1)
+    project_mode: Literal["supplement", "override"] | None = None
+
+
+class KnowledgeGuidancePublishRequest(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    expected_revision: int = Field(ge=1)
+    revision_id: PublicUUID | None = None
+
+
+class KnowledgeGuidanceReferenceAttachRequest(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    expected_revision: int = Field(ge=1)
+    knowledge_base_id: PublicUUID
+
+
+class KnowledgeGuidanceReferenceDetachRequest(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    expected_revision: int = Field(ge=1)
+
+
+class KnowledgeGuidanceConflictOut(BaseSchema):
+    code: Literal["project_override_hides_workspace"]
+    message_key: str
+    workspace_revision_id: PublicUUID
+    project_revision_id: PublicUUID
+
+
+class KnowledgeGuidanceUnavailableOut(BaseSchema):
+    code: Literal[
+        "workspace_guidance_unpublished",
+        "project_guidance_unpublished",
+        "workspace_guidance_removed",
+        "project_guidance_removed",
+    ]
+    message_key: str
+
+
+class KnowledgeGuidanceEffectivePreviewOut(BaseSchema):
+    workspace: KnowledgeGuidanceLayerOut
+    project: KnowledgeGuidanceLayerOut | None
+    precedence: tuple[Literal["workspace", "project"], ...]
+    effective_content: str | None
+    conflicts: tuple[KnowledgeGuidanceConflictOut, ...] = Field(default_factory=tuple)
+    unavailable: tuple[KnowledgeGuidanceUnavailableOut, ...] = Field(default_factory=tuple)
+
+
+class KnowledgeGuidanceRestorePreviewRequest(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    expected_revision: int = Field(ge=1)
+    source_revision_id: PublicUUID
+
+
+class KnowledgeGuidanceRemovePreviewRequest(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    expected_revision: int = Field(ge=1)
+
+
+class KnowledgeGuidanceImpactOut(BaseSchema):
+    reference_count: int = Field(ge=0)
+    source_count: int = Field(ge=0)
+    ready_source_count: int = Field(ge=0)
+    project_guidance_count: int = Field(ge=0)
+
+
+class KnowledgeGuidancePreviewOut(BaseSchema):
+    id: PublicUUID
+    kind: Literal["restore", "remove"]
+    guidance_layer_id: PublicUUID
+    expected_guidance_revision: int = Field(ge=1)
+    preview_revision: int = Field(ge=1)
+    source_revision_id: PublicUUID | None
+    can_apply: bool
+    impact: KnowledgeGuidanceImpactOut
+    created_at: datetime
+
+
+class KnowledgeGuidancePreviewApplyRequest(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    expected_guidance_revision: int = Field(ge=1)
+    expected_preview_revision: int = Field(ge=1)

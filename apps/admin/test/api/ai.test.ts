@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { apiDeleteMock, apiGetMock, apiPatchMock, apiPostMock } = vi.hoisted(() => ({
   apiDeleteMock: vi.fn(),
@@ -32,11 +32,17 @@ import {
   modifyAIAgentApproval,
   rejectAIAgentApproval,
 } from "@/api/ai";
+import { DEFAULT_LOCALE, i18n, initI18n } from "@/lib/i18n";
 import { useAiChatStore } from "@/stores/use-ai-chat-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 describe("AI agent API", () => {
-  beforeEach(() => {
+  beforeAll(async () => {
+    await initI18n(DEFAULT_LOCALE);
+  });
+
+  beforeEach(async () => {
+    await i18n.changeLanguage(DEFAULT_LOCALE);
     vi.clearAllMocks();
     apiPostMock.mockResolvedValue({});
     apiPatchMock.mockResolvedValue({});
@@ -85,6 +91,18 @@ describe("AI agent API", () => {
       },
       { signal: undefined },
     );
+  });
+
+  it("rejects workspace AI actions without a current workspace instead of falling back", async () => {
+    useWorkspaceStore.setState({
+      currentWorkspaceId: null,
+      lastWorkspaceId: "workspace-last",
+    });
+
+    await expect(executeAIWorkspaceAction("create a project")).rejects.toThrow(
+      "AI workspace actions require an active workspace context",
+    );
+    expect(apiPostMock).not.toHaveBeenCalled();
   });
 
   it("loads selectable chat models from the backend catalog", async () => {
@@ -160,7 +178,7 @@ describe("AI agent API", () => {
     expect(catalog.agents[0]?.skillId).toBe("content.analysis");
   });
 
-  it("formats workspace and key configuration errors from backend detail envelopes", () => {
+  it("formats known workspace AI errors through the current locale", () => {
     expect(
       formatAIChatError(
         JSON.stringify({
@@ -170,7 +188,11 @@ describe("AI agent API", () => {
           },
         }),
       ),
-    ).toContain("还没有可用的 AI 模型密钥");
+    ).toBe(i18n.t("ai:AI_CHAT_ERROR_AUTH_NO_KEY"));
+
+    expect(formatAIChatError("AGENT_SKILL_SELECTION_INVALID")).toBe(
+      i18n.t("ai:AI_CHAT_ERROR_SKILL_SELECTION_INVALID"),
+    );
   });
 
   it("formats model catalog errors from backend codes instead of raw messages", () => {
@@ -183,14 +205,48 @@ describe("AI agent API", () => {
           },
         }),
       ),
-    ).toContain("当前没有可用于对话的模型");
+    ).toBe(i18n.t("ai:AI_CHAT_ERROR_MODEL_CATALOG_EMPTY"));
 
     expect(
       formatAIChatError({
         message: "No selectable AI models are configured for this workspace",
         error: "AI_MODEL_CATALOG_EMPTY",
       }),
-    ).toContain("当前没有可用于对话的模型");
+    ).toBe(i18n.t("ai:AI_CHAT_ERROR_MODEL_CATALOG_EMPTY"));
+  });
+
+  it("uses a stable localized message for blank AI errors", () => {
+    expect(formatAIChatError("")).toBe(i18n.t("ai:AI_CHAT_ERROR_GENERIC"));
+    expect(formatAIChatError(null)).toBe(i18n.t("ai:AI_CHAT_ERROR_GENERIC"));
+  });
+
+  it("keeps unknown backend error messages visible", () => {
+    const backendMessage = "The AI provider returned an unrecognized capacity state.";
+
+    expect(
+      formatAIChatError({ error: "UNRECOGNIZED_CAPACITY_STATE", message: backendMessage }),
+    ).toBe(backendMessage);
+  });
+
+  it("surfaces i18n initialization and missing-key invariants", () => {
+    const wasInitialized = i18n.isInitialized;
+    i18n.isInitialized = false;
+    try {
+      expect(() => formatAIChatError("AUTH_NO_KEY")).toThrow(
+        "AI error i18n invariant violated: i18n is not initialized",
+      );
+    } finally {
+      i18n.isInitialized = wasInitialized;
+    }
+
+    const getResourceSpy = vi.spyOn(i18n, "getResource").mockReturnValue(undefined);
+    try {
+      expect(() => formatAIChatError("AUTH_NO_KEY")).toThrow(
+        "AI error i18n invariant violated: missing ai.AI_CHAT_ERROR_AUTH_NO_KEY copy",
+      );
+    } finally {
+      getResourceSpy.mockRestore();
+    }
   });
 
   it("loads pending agent approvals from the backend", async () => {

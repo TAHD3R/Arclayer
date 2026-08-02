@@ -10,10 +10,26 @@ from src.modules.organization.workspaces.schema import OrganizationWorkspaceCrea
 from src.modules.organization.workspaces.service import OrganizationWorkspaceService
 
 
+class _GuidanceLayerProvisioner:
+    def __init__(self) -> None:
+        self.workspace_calls: list[dict[str, object]] = []
+        self.project_calls: list[dict[str, object]] = []
+
+    async def provision_workspace_layer(self, **kwargs: object) -> None:
+        self.workspace_calls.append(kwargs)
+
+    async def provision_project_layer(self, **kwargs: object) -> None:
+        self.project_calls.append(kwargs)
+
+
 async def test_create_workspace_rejects_name_too_long(monkeypatch) -> None:
     monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
-    service = OrganizationWorkspaceService(settings)
+    provisioner = _GuidanceLayerProvisioner()
+    service = OrganizationWorkspaceService(
+        settings,
+        guidance_layer_provisioner=provisioner,
+    )
 
     payload = OrganizationWorkspaceCreateRequest.model_construct(name="x" * 129, description=None, template="blank")
     with pytest.raises(BadRequest) as exc:
@@ -24,3 +40,4 @@ async def test_create_workspace_rejects_name_too_long(monkeypatch) -> None:
         )
 
     assert exc.value.error == "WORKSPACE_NAME_TOO_LONG"
+    assert provisioner.workspace_calls == []

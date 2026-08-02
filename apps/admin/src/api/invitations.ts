@@ -1,12 +1,18 @@
 import { api } from "@/lib/http";
 import { toQueryString } from "@/lib/api";
-import type { TokenPair } from "@arclayer/openapi/admin-types";
-import type {
-  InvitationPreviewResult,
-  AcceptExistingInvitationResult,
-  MyInvitation,
-  PageData,
-} from "@arclayer/openapi/admin-types";
+import type { TokenPair, PageDataMyInvitationOut } from "@arclayer/openapi";
+import type { InvitationPreviewResult, AcceptExistingInvitationResult } from "@arclayer/openapi";
+
+type MyInvitationPage = Omit<PageDataMyInvitationOut, "items"> & {
+  items: NonNullable<PageDataMyInvitationOut["items"]>;
+};
+
+function requireMyInvitationPage(page: PageDataMyInvitationOut): MyInvitationPage {
+  if (!Array.isArray(page.items)) {
+    throw new Error("Invalid invitation pagination response");
+  }
+  return { ...page, items: page.items };
+}
 
 export async function previewInvitation(token: string): Promise<InvitationPreviewResult> {
   const query = toQueryString({ token });
@@ -27,14 +33,15 @@ export async function listMyInvitations(params: {
   size?: number;
   q?: string;
   status: "pending" | "accepted";
-}): Promise<PageData<MyInvitation>> {
+}): Promise<MyInvitationPage> {
   const query = toQueryString({
     page: params.page ?? 1,
     size: params.size ?? 10,
     status: params.status,
     q: params.q,
   });
-  return api.get<PageData<MyInvitation>>(`/auth/me/invitations${query}`);
+  const page = await api.get<PageDataMyInvitationOut>(`/auth/me/invitations${query}`);
+  return requireMyInvitationPage(page);
 }
 
 export async function acceptInvitation(payload: {

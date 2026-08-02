@@ -21,6 +21,7 @@ class AgentLifecycleState(StrEnum):
 
 
 class AgentVersionState(StrEnum):
+    DRAFT = "draft"
     PUBLISHED = "published"
     RETIRED = "retired"
 

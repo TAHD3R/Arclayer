@@ -72,7 +72,7 @@ type AIProjectOption = {
 export function AIProjectSelector({ className, compact = false }: AIAgentSelectorProps) {
   const { t } = useTranslation(["ai"]);
   const [open, setOpen] = useState(false);
-  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId ?? s.lastWorkspaceId);
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const projectId = useWorkspaceStore((s) => s.currentProjectId);
   const setCurrentProjectId = useWorkspaceStore((s) => s.setCurrentProjectId);
   const { data: projectsData, isLoading: projectsLoading } = useQuery({
@@ -220,7 +220,7 @@ export function AIProjectSelector({ className, compact = false }: AIAgentSelecto
 export function AIAgentSelector({ className, compact = false }: AIAgentSelectorProps) {
   const { t } = useTranslation(["ai"]);
   const [open, setOpen] = useState(false);
-  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId ?? s.lastWorkspaceId);
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const projectId = useWorkspaceStore((s) => s.currentProjectId);
   const selectedAgentId = useAiChatStore((s) => s.selectedAgentId ?? DEFAULT_AI_AGENT_ID);
   const setSelectedAgentId = useAiChatStore((s) => s.setSelectedAgentId);

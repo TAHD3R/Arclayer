@@ -8,6 +8,11 @@ import pytest
 from src.config import Settings
 from src.models.system.notification import NotificationCategory
 from src.modules.system.admin.notifications import catalog
+from src.modules.system.admin.notifications.catalog import NotificationRecordCreateDisposition
+from src.modules.system.admin.notifications.schema import (
+    NotificationInboxTarget,
+    NotificationWorkspaceSettingsTarget,
+)
 from src.settings.core_schema import CORE_SETTINGS_SCHEMA
 
 
@@ -46,10 +51,10 @@ def test_notification_catalog_includes_first_slice_sources() -> None:
     assert automation_definition.group == "automation"
 
 
-def test_notification_catalog_has_no_retired_platform_routes_or_feature_flag_event() -> None:
+def test_notification_catalog_has_no_retired_platform_targets_or_feature_flag_event() -> None:
     definitions = {definition.event_name: definition for definition in catalog.NOTIFICATION_DEFINITIONS}
 
-    assert all(not definition.target_to.startswith("/system") for definition in definitions.values())
+    assert all(not isinstance(definition.target, str) for definition in definitions.values())
     assert definitions.keys().isdisjoint({
         "system.mail.updated",
         "system.storage.updated",
@@ -105,18 +110,19 @@ async def test_create_notification_record_stops_before_user_preferences_when_gro
     monkeypatch.setattr(catalog, "is_notification_channel_enabled_for_event", fail_user_preference_check)
     monkeypatch.setattr(catalog.NotificationRecord, "create", fail_create)
 
-    record = await catalog.create_notification_record(
+    result = await catalog.create_notification_record(
         settings=Settings(),
         workspace_id=uuid4(),
         recipient_user_id=uuid4(),
         category=NotificationCategory.TEAM,
         title="Invite accepted",
         body=None,
-        target_to="/settings/team/members",
+        target=NotificationWorkspaceSettingsTarget(destination="people", section="members-table"),
         event_name="workspace.invitation.accepted",
     )
 
-    assert record is None
+    assert result.disposition is NotificationRecordCreateDisposition.GROUP_SUPPRESSED
+    assert result.record is None
 
 
 @pytest.mark.asyncio
@@ -145,17 +151,18 @@ async def test_create_notification_record_creates_after_system_and_user_gates_pa
     monkeypatch.setattr(catalog, "is_notification_channel_enabled_for_event", allow_user_preference)
     monkeypatch.setattr(catalog.NotificationRecord, "create", fake_create)
 
-    record = await catalog.create_notification_record(
+    result = await catalog.create_notification_record(
         settings=Settings(),
         workspace_id=uuid4(),
         recipient_user_id=uuid4(),
         category=NotificationCategory.TASK,
         title="Automation notification",
         body="Automation ran",
-        target_to=None,
+        target=NotificationInboxTarget(),
         event_name="automation.notification",
     )
 
-    assert record is not None
+    assert result.disposition is NotificationRecordCreateDisposition.CREATED
+    assert result.record is not None
     assert created_kwargs["event_name"] == "automation.notification"
-    assert created_kwargs["target_to"] == "/notifications"
+    assert created_kwargs["target"] == {"kind": "inbox"}

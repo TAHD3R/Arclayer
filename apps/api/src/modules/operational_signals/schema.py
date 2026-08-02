@@ -6,6 +6,7 @@ from enum import StrEnum
 from pydantic import ConfigDict, Field, field_validator
 
 from src.common.schemas import BaseSchema
+from src.common.types.json_types import JsonObject
 from src.common.types.public_uuid import PublicUUID
 from src.models.operations_signals import OperationalSignalTriageAction, OperationalSignalTriageState
 from src.modules.platform_identity.permissions import PlatformPermissionCode
@@ -18,7 +19,15 @@ class OperationalSignalSourceLifecycle(StrEnum):
 
 
 class OperationalSignalSeverity(StrEnum):
+    LOW = "low"
+    MEDIUM = "medium"
     HIGH = "high"
+    CRITICAL = "critical"
+
+
+class OperationalSignalOrder(StrEnum):
+    PRIORITY = "priority"
+    DETECTED_AT = "detected_at"
 
 
 class OperationalSignalSourceReferenceOut(BaseSchema):
@@ -44,19 +53,13 @@ class OperationalSignalCopyOut(BaseSchema):
 
 
 class OperationalSignalEvidenceOut(BaseSchema):
-    job_type: str
-    workload_class: str
-    attempt_count: int = Field(..., ge=0)
-    error_code: str | None = None
-    status_key: str | None = None
-    workspace_id: PublicUUID | None = None
-    project_id: PublicUUID | None = None
-    site_id: PublicUUID | None = None
+    summary: JsonObject
 
 
 class OperationalSignalDestinationOut(BaseSchema):
-    path: str
-    label_key: str
+    route_target: str
+    required_permission: PlatformPermissionCode
+    authorized: bool
 
 
 class OperationalSignalTriageOut(BaseSchema):
@@ -88,6 +91,13 @@ class OperationalSignalTriageHistoryOut(BaseSchema):
     created_at: datetime
 
 
+class OperationalSignalTriageNoteOut(BaseSchema):
+    revision: int = Field(..., ge=1)
+    actor_user_id: PublicUUID
+    body: str
+    created_at: datetime
+
+
 class OperationalSignalOut(BaseSchema):
     id: PublicUUID
     source_domain: str
@@ -99,29 +109,37 @@ class OperationalSignalOut(BaseSchema):
     priority: OperationalSignalPriorityOut
     copy_keys: OperationalSignalCopyOut = Field(..., serialization_alias="copy")
     evidence: OperationalSignalEvidenceOut
+    affected_scope: JsonObject
     required_permission: PlatformPermissionCode
     destination: OperationalSignalDestinationOut
     source_lifecycle: OperationalSignalSourceLifecycle
     resolution_condition_key: str
     resolved_at: datetime | None = None
+    policy_id: str
+    policy_revision: int = Field(..., ge=1)
     triage: OperationalSignalTriageOut
     allowed_triage_actions: tuple[OperationalSignalTriageAction, ...]
 
 
 class OperationalSignalDetailOut(OperationalSignalOut):
     triage_history: tuple[OperationalSignalTriageHistoryOut, ...]
+    notes: tuple[OperationalSignalTriageNoteOut, ...]
 
 
 class OperationalSignalListQuery(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid", use_enum_values=False)
 
     source_lifecycle: OperationalSignalSourceLifecycle = OperationalSignalSourceLifecycle.UNRESOLVED
     coordination_state: OperationalSignalTriageState | None = None
+    source_domain: str | None = Field(default=None, min_length=1, max_length=64)
+    severity: OperationalSignalSeverity | None = None
     assignee_user_id: PublicUUID | None = None
     workspace_id: PublicUUID | None = None
     project_id: PublicUUID | None = None
     site_id: PublicUUID | None = None
     include_reminded: bool = False
+    order: OperationalSignalOrder = OperationalSignalOrder.PRIORITY
+    order_direction: str = Field(default="asc", pattern="^(asc|desc)$")
 
 
 class OperationalSignalRevisionCommand(BaseSchema):
@@ -151,6 +169,18 @@ class OperationalSignalReminderCommand(OperationalSignalRevisionCommand):
         normalized = value.strip()
         if not normalized:
             raise ValueError("reason must contain non-whitespace text")
+        return normalized
+
+
+class OperationalSignalNoteCommand(OperationalSignalRevisionCommand):
+    body: str = Field(..., min_length=1, max_length=4_000)
+
+    @field_validator("body")
+    @classmethod
+    def normalize_body(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("body must contain non-whitespace text")
         return normalized
 
 

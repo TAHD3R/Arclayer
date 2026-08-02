@@ -146,6 +146,9 @@ class ProjectContentCanonicalItemsService(BaseService):
     ) -> None:
         super().__init__()
         self.repo = repo
+        if repo.tenant_context.project_id is None:
+            raise ValueError("PROJECT_CONTENT_CONTEXT_REQUIRED")
+        self.project_id = repo.tenant_context.project_id
         self.entity_manager: EntityManager = entity_manager
         self.organization_id = organization_id
         self.reads = ProjectContentCanonicalItemReadService(repo)
@@ -400,7 +403,15 @@ class ProjectContentCanonicalItemsService(BaseService):
             group_id=group.id,
             primary_item_id=group.primary_item_id,
             primary_locale=group.primary_locale,
-            items=[to_item_out(item, item.model_definition, translation_status=status) for item in items],
+            items=[
+                to_item_out(
+                    item,
+                    item.model_definition,
+                    project_id=self.project_id,
+                    translation_status=status,
+                )
+                for item in items
+            ],
         )
 
     async def create_item(
@@ -546,7 +557,7 @@ class ProjectContentCanonicalItemsService(BaseService):
             )
         else:
             status = None
-        data = to_item_out(item, model, translation_status=status)
+        data = to_item_out(item, model, project_id=self.project_id, translation_status=status)
         await self._publish_content_runtime_event(
             actor_user_id=actor_user_id,
             workspace_id=workspace_id,
@@ -616,7 +627,7 @@ class ProjectContentCanonicalItemsService(BaseService):
                 },
                 conn=conn,
             )
-            data = to_item_out(item, item.model_definition)
+            data = to_item_out(item, item.model_definition, project_id=self.project_id)
         await self._publish_content_runtime_event(
             actor_user_id=actor_user_id,
             workspace_id=workspace_id,
@@ -670,9 +681,9 @@ class ProjectContentCanonicalItemsService(BaseService):
                 actor_user_id=actor_user_id,
             )
             if not fields:
-                return to_item_out(item, item.model_definition)
+                return to_item_out(item, item.model_definition, project_id=self.project_id)
             item = await self.repo.update_item_fields(item, fields=fields, conn=conn)
-            data = to_item_out(item, item.model_definition)
+            data = to_item_out(item, item.model_definition, project_id=self.project_id)
         await self._publish_content_runtime_event(
             actor_user_id=actor_user_id,
             workspace_id=workspace_id,
@@ -792,7 +803,11 @@ class ProjectContentCanonicalItemsService(BaseService):
                     conn=conn,
                 )
 
-            data = to_item_out(duplicated_item, source_item.model_definition)
+            data = to_item_out(
+                duplicated_item,
+                source_item.model_definition,
+                project_id=self.project_id,
+            )
         await self._publish_content_runtime_event(
             actor_user_id=actor_user_id,
             workspace_id=workspace_id,
@@ -955,7 +970,12 @@ class ProjectContentCanonicalItemsService(BaseService):
                 primary_locale=group.primary_locale,
                 items=translations,
             )
-            data = to_item_out(translated_item, source_item.model_definition, translation_status=status)
+            data = to_item_out(
+                translated_item,
+                source_item.model_definition,
+                project_id=self.project_id,
+                translation_status=status,
+            )
         await self._publish_content_runtime_event(
             actor_user_id=actor_user_id,
             workspace_id=workspace_id,
@@ -1092,7 +1112,7 @@ class ProjectContentCanonicalItemsService(BaseService):
                     ),
                     conn=conn,
                 )
-                data = to_item_out(item, item.model_definition)
+                data = to_item_out(item, item.model_definition, project_id=self.project_id)
             else:
                 item = await self.repo.update_item_fields(
                     item,
@@ -1102,7 +1122,7 @@ class ProjectContentCanonicalItemsService(BaseService):
                     },
                     conn=conn,
                 )
-                data = to_item_out(item, item.model_definition)
+                data = to_item_out(item, item.model_definition, project_id=self.project_id)
             await self._set_route_bindings_active(
                 workspace_id=workspace_id,
                 site_id=site_id,
@@ -1627,7 +1647,7 @@ class ProjectContentCanonicalItemsService(BaseService):
                     fields_snapshot=version.fields_snapshot if isinstance(version.fields_snapshot, dict) else {},
                     conn=conn,
                 )
-            data = to_item_out(item, item.model_definition)
+            data = to_item_out(item, item.model_definition, project_id=self.project_id)
         await self._publish_content_runtime_event(
             actor_user_id=actor_user_id,
             workspace_id=workspace_id,

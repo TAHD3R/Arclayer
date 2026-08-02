@@ -1,5 +1,5 @@
-import { WorkspaceKnowledgeView } from "./workspace-knowledge-view";
+import { WorkspaceGuidanceView } from "./workspace-guidance-view";
 
 export function WorkspaceKnowledgePage({ workspaceId }: { workspaceId: string }) {
-  return <WorkspaceKnowledgeView workspaceId={workspaceId} />;
+  return <WorkspaceGuidanceView workspaceId={workspaceId} />;
 }

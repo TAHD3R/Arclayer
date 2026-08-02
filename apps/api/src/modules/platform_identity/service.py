@@ -13,6 +13,8 @@ from src.modules.platform_identity.schema import (
     PlatformAuditEvent,
     PlatformEntryEligibility,
     PlatformIdentitySnapshot,
+    PlatformInvitationAcceptanceCommand,
+    PlatformInvitationSetupContext,
     PlatformMutationReceipt,
     PlatformOffboardingCommand,
     PlatformOperatorInvitationCommand,
@@ -46,13 +48,9 @@ class PlatformIdentityAuthorityPersistence(Protocol):
         self, *, command: PlatformOperatorInvitationCommand, audit: PlatformAuditEvent
     ) -> PlatformMutationReceipt: ...
 
-    async def accept_operator_invitation(
-        self,
-        *,
-        command: PlatformOperatorInvitationCommand,
-        accepter_user_id: UUID,
-        audit: PlatformAuditEvent,
-    ) -> PlatformMutationReceipt: ...
+    async def begin_operator_invitation_acceptance(
+        self, *, command: PlatformInvitationAcceptanceCommand, audit: PlatformAuditEvent
+    ) -> PlatformInvitationSetupContext: ...
 
     async def offboard_operator(
         self, *, command: PlatformOffboardingCommand, audit: PlatformAuditEvent
@@ -131,20 +129,16 @@ class PlatformIdentityAuthorityService(BaseService):
             ),
         )
 
-    async def accept_operator_invitation(
-        self, *, command: PlatformOperatorInvitationCommand, accepter_user_id: UUID
-    ) -> PlatformMutationReceipt:
-        if accepter_user_id != command.recipient_user_id:
-            raise Forbidden(error="PLATFORM_INVITATION_RECIPIENT_REQUIRED")
-        await self._require_mfa(user_id=accepter_user_id)
-        return await self._repository.accept_operator_invitation(
+    async def begin_operator_invitation_acceptance(
+        self, *, command: PlatformInvitationAcceptanceCommand
+    ) -> PlatformInvitationSetupContext:
+        return await self._repository.begin_operator_invitation_acceptance(
             command=command,
-            accepter_user_id=accepter_user_id,
             audit=self._audit(
                 command=command,
-                event_name="platform.operator_invitation.accepted",
-                actor_user_id=accepter_user_id,
-                subject_user_id=accepter_user_id,
+                event_name="platform.operator_invitation.acceptance_started",
+                actor_user_id=command.accepter_user_id,
+                subject_user_id=command.accepter_user_id,
             ),
         )
 
@@ -242,6 +236,7 @@ class PlatformIdentityAuthorityService(BaseService):
         *,
         command: PlatformOwnerBootstrapCommand
         | PlatformOperatorInvitationCommand
+        | PlatformInvitationAcceptanceCommand
         | PlatformOffboardingCommand
         | PlatformOwnershipNominationCommand
         | PlatformOwnershipAcceptanceCommand,
@@ -262,6 +257,7 @@ class PlatformIdentityAuthorityService(BaseService):
 def _command_actor_id(
     command: PlatformOwnerBootstrapCommand
     | PlatformOperatorInvitationCommand
+    | PlatformInvitationAcceptanceCommand
     | PlatformOffboardingCommand
     | PlatformOwnershipNominationCommand
     | PlatformOwnershipAcceptanceCommand,
@@ -270,6 +266,8 @@ def _command_actor_id(
         return command.owner_user_id
     if isinstance(command, PlatformOperatorInvitationCommand):
         return command.inviter_user_id
+    if isinstance(command, PlatformInvitationAcceptanceCommand):
+        return command.accepter_user_id
     if isinstance(command, PlatformOffboardingCommand):
         return command.actor_user_id
     if isinstance(command, PlatformOwnershipNominationCommand):

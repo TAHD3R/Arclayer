@@ -2,18 +2,16 @@ import { beforeEach, describe, expect, test } from "vitest";
 
 import {
   buildProjectContentEditorUrl,
-  projectContentCreatePath,
   projectContentLibraryPath,
 } from "@/lib/routing/project-content-routing";
 
 describe("project-content-routing", () => {
   beforeEach(() => {
-    window.history.replaceState({}, "", "/projects/project-1/content/create?step=2#shape");
+    window.history.replaceState({}, "", "/projects/project-1/content/library?view=draft#shape");
   });
 
-  test("builds project content library and create paths", () => {
+  test("builds the canonical project content library path", () => {
     expect(projectContentLibraryPath("project 1")).toBe("/projects/project%201/content/library");
-    expect(projectContentCreatePath("project 1")).toBe("/projects/project%201/content/create");
   });
 
   test("builds editor handoff url with explicit safe returnTo", () => {
@@ -36,7 +34,9 @@ describe("project-content-routing", () => {
       token: "preview-token",
     });
 
-    expect(url).toContain("returnTo=%2Fprojects%2Fproject-1%2Fcontent%2Fcreate%3Fstep%3D2%23shape");
+    expect(url).toContain(
+      "returnTo=%2Fprojects%2Fproject-1%2Fcontent%2Flibrary%3Fview%3Ddraft%23shape",
+    );
   });
 
   test("drops unsafe returnTo values", () => {
@@ -48,6 +48,8 @@ describe("project-content-routing", () => {
     });
 
     expect(url).not.toContain("evil.example");
-    expect(url).toContain("returnTo=%2Fprojects%2Fproject-1%2Fcontent%2Fcreate%3Fstep%3D2%23shape");
+    expect(url).toContain(
+      "returnTo=%2Fprojects%2Fproject-1%2Fcontent%2Flibrary%3Fview%3Ddraft%23shape",
+    );
   });
 });

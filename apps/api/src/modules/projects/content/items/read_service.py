@@ -35,6 +35,9 @@ class ProjectContentCanonicalItemReadService(BaseService):
     ) -> None:
         super().__init__()
         self.repo = repo
+        if repo.tenant_context.project_id is None:
+            raise ValueError("PROJECT_CONTENT_CONTEXT_REQUIRED")
+        self.project_id = repo.tenant_context.project_id
         self.runtime_boundary = runtime_boundary or DocumentRuntimeBoundary.for_items_repo(repo)
         self.history = ContentHistoryService(repo=repo)
 
@@ -77,6 +80,7 @@ class ProjectContentCanonicalItemReadService(BaseService):
             to_item_out(
                 item,
                 item.model_definition,
+                project_id=self.project_id,
                 **self._active_field_kwargs(active_fields.get(item.id)),
                 translation_status=translation_status.get(item.id),
             )
@@ -110,6 +114,7 @@ class ProjectContentCanonicalItemReadService(BaseService):
         return to_item_out(
             item,
             item.model_definition,
+            project_id=self.project_id,
             **self._active_field_kwargs(active_fields.get(item.id)),
             translation_status=translation_status.get(item.id),
         )

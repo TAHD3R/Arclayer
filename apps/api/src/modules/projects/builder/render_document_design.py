@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import cast
+from uuid import UUID
 
+from pydantic import ConfigDict
+
+from src.common.schemas import BaseSchema
 from src.common.types.json_types import JsonValue
 from src.modules.projects.builder.render_document_errors import raise_render_conflict, raise_render_invalid
 from src.modules.projects.builder.render_document_schema import (
@@ -14,7 +18,6 @@ from src.modules.projects.builder.render_document_schema import (
     BuilderResolvedTokenOut,
     BuilderResolvedTypographyOut,
 )
-from src.modules.projects.builder.schema import BuilderRevisionOut
 from src.modules.projects.builder.visual_blueprint_schema import VisualBlueprintSectionV1
 from src.modules.sites.component_catalogs.schema import (
     ComponentCatalogInputV1,
@@ -37,6 +40,14 @@ RENDERER_PROFILE = "arclayer-site-v1"
 RENDERER_VERSION = "1.0.0"
 
 
+class BuilderRenderDesignPins(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
+
+    design_system_id: UUID
+    design_system_version_id: UUID
+    design_system_manifest_checksum: str
+
+
 def resolve_design_token_values(
     *,
     design_manifest: DesignSystemManifestV1,
@@ -48,16 +59,20 @@ def resolve_design_token_values(
 
 def resolve_renderer_design(
     *,
-    revision: BuilderRevisionOut,
     design_manifest: DesignSystemManifestV1,
     catalog: ComponentCatalogV1,
+    expected_manifest_checksum: str,
     theme_key: str | None,
 ) -> tuple[
     BuilderRenderThemeOut,
     dict[str, TokenValue],
     dict[tuple[str, str], DesignComponentRecipeV1],
 ]:
-    _validate_design_contract(revision=revision, design_manifest=design_manifest, catalog=catalog)
+    _validate_design_contract(
+        design_manifest=design_manifest,
+        catalog=catalog,
+        expected_manifest_checksum=expected_manifest_checksum,
+    )
     theme, token_values = resolve_design_token_values(
         design_manifest=design_manifest,
         theme_key=theme_key,
@@ -158,16 +173,15 @@ def _resolve_blueprint_tokens(
 
 def _validate_design_contract(
     *,
-    revision: BuilderRevisionOut,
     design_manifest: DesignSystemManifestV1,
     catalog: ComponentCatalogV1,
+    expected_manifest_checksum: str,
 ) -> None:
-    manifest = revision.site_revision
     catalog_input = ComponentCatalogInputV1.model_validate(catalog.model_dump(mode="json", exclude={"checksum"}))
     catalog_checksum = build_component_catalog(catalog_input).checksum
     if (
         compute_design_system_manifest_checksum(design_manifest) != design_manifest.checksum
-        or design_manifest.checksum != manifest.design_system_manifest_checksum
+        or design_manifest.checksum != expected_manifest_checksum
         or catalog_checksum != catalog.checksum
         or design_manifest.component_catalog_version != catalog.catalog_version
         or catalog.renderer_profile != RENDERER_PROFILE
@@ -304,6 +318,7 @@ class _SingleCatalogResolver:
 
 
 __all__ = [
+    "BuilderRenderDesignPins",
     "RENDERER_PROFILE",
     "RENDERER_VERSION",
     "render_component_recipe",

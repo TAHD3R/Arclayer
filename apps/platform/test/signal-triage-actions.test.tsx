@@ -4,6 +4,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OperationalSignalDetailOut } from "@arclayer/platform-openapi";
 
 import {
+  addOperationalSignalNote,
   assignOperationalSignal,
   claimOperationalSignal,
   getOperationalSignal,
@@ -25,15 +26,23 @@ const detail: OperationalSignalDetailOut = {
     titleKey: "inbox:BACKGROUND_JOB_FAILED_TITLE",
   },
   destination: {
-    labelKey: "inbox:BACKGROUND_JOB_DESTINATION",
-    path: "/operations/jobs?jobId=signal-1",
+    authorized: true,
+    requiredPermission: "platform:jobs:manage",
+    routeTarget: "operations.jobs",
   },
   detectedAt: "2026-07-31T02:00:00Z",
   evidence: {
-    attemptCount: 3,
-    errorCode: "SOURCE_FAILED",
-    jobType: "site_publish",
-    workloadClass: "background",
+    summary: {
+      attemptCount: 3,
+      errorCode: "SOURCE_FAILED",
+      jobType: "site_publish",
+      workloadClass: "background",
+    },
+  },
+  affectedScope: {
+    projectId: "project-1",
+    siteId: "site-1",
+    workspaceId: "workspace-1",
   },
   freshness: {
     ageSeconds: 60,
@@ -42,6 +51,8 @@ const detail: OperationalSignalDetailOut = {
   },
   id: "signal-1",
   priority: { rank: 1, reasonKeys: ["inbox:BACKGROUND_JOB_FAILED_PRIORITY"] },
+  policyId: "jobs.background_job_failed",
+  policyRevision: 1,
   requiredPermission: "platform:jobs:manage",
   resolutionConditionKey: "inbox:BACKGROUND_JOB_RESOLUTION_CONDITION",
   severity: "high",
@@ -49,8 +60,9 @@ const detail: OperationalSignalDetailOut = {
   sourceDomain: "jobs",
   sourceLifecycle: "unresolved",
   sourceReference: { id: "source-1", type: "background_job" },
-  triage: { revision: 7, state: "needs_attention" },
+  triage: { revision: 7, state: "unclaimed" },
   triageHistory: [],
+  notes: [],
 };
 
 function updatedDetail(next: Partial<OperationalSignalDetailOut> = {}) {
@@ -117,6 +129,27 @@ describe("Operational Signal triage actions", () => {
     );
   });
 
+  it("uses the same assignment command but renders transfer semantics when a current assignee exists", async () => {
+    vi.mocked(listOperationalSignalEligibleAssignees).mockResolvedValueOnce([
+      { displayName: "Ada Operator", userId: "operator-1", username: "ada" },
+    ]);
+    vi.mocked(assignOperationalSignal).mockResolvedValueOnce(updatedDetail());
+    const user = userEvent.setup();
+    renderActions({
+      ...detail,
+      allowedTriageActions: ["transfer"],
+      triage: { ...detail.triage, assigneeUserId: "operator-0" },
+    });
+
+    await user.click(await screen.findByRole("combobox", { name: "Transfer to" }));
+    await user.click(screen.getByRole("option", { name: "Ada Operator" }));
+    await user.click(screen.getByRole("button", { name: "Transfer item" }));
+
+    await waitFor(() =>
+      expect(assignOperationalSignal).toHaveBeenCalledWith("signal-1", "operator-1", 7),
+    );
+  });
+
   it("requires a future reminder time and a reason before mutation", async () => {
     vi.mocked(remindOperationalSignalLater).mockResolvedValueOnce(updatedDetail());
     const user = userEvent.setup();
@@ -143,6 +176,35 @@ describe("Operational Signal triage actions", () => {
     );
   });
 
+  it("adds a revision-bound note and clears the editor only after the API returns", async () => {
+    vi.mocked(addOperationalSignalNote).mockResolvedValueOnce(
+      updatedDetail({
+        notes: [
+          {
+            actorUserId: "operator-1",
+            body: "Verify the source after the provider window.",
+            createdAt: "2026-08-02T01:00:00Z",
+            revision: 8,
+          },
+        ],
+      }),
+    );
+    const user = userEvent.setup();
+    renderActions({ ...detail, allowedTriageActions: ["note_added"] });
+
+    await user.type(screen.getByLabelText("Note"), "Verify the source after the provider window.");
+    await user.click(screen.getByRole("button", { name: "Add note" }));
+
+    await waitFor(() =>
+      expect(addOperationalSignalNote).toHaveBeenCalledWith(
+        "signal-1",
+        7,
+        "Verify the source after the provider window.",
+      ),
+    );
+    expect(screen.getByLabelText("Note")).toHaveValue("");
+  });
+
   it("surfaces revision conflicts and reloads instead of retrying the stale mutation", async () => {
     vi.mocked(claimOperationalSignal).mockRejectedValueOnce(
       new PlatformOperationsApiError("OPERATIONAL_SIGNAL_REVISION_CONFLICT", 409),
@@ -164,7 +226,10 @@ describe("Operational Signal triage actions", () => {
       resolveReload = resolve;
     });
     vi.mocked(getOperationalSignal)
-      .mockResolvedValueOnce({ ...detail, destination: { ...detail.destination, path: "/other" } })
+      .mockResolvedValueOnce({
+        ...detail,
+        destination: { ...detail.destination, authorized: false },
+      })
       .mockReturnValueOnce(reloaded);
     vi.mocked(claimOperationalSignal).mockRejectedValueOnce(
       new PlatformOperationsApiError("OPERATIONAL_SIGNAL_REVISION_CONFLICT", 409),
@@ -181,7 +246,7 @@ describe("Operational Signal triage actions", () => {
       resolveReload(
         updatedDetail({
           allowedTriageActions: ["in_progress"],
-          destination: { ...detail.destination, path: "/other" },
+          destination: { ...detail.destination, authorized: false },
         }),
       );
     });
@@ -192,7 +257,12 @@ describe("Operational Signal triage actions", () => {
     render(
       <SignalInvestigation
         actions={<button type="button">Forbidden coordination action</button>}
-        detail={{ ...detail, allowedTriageActions: [], sourceLifecycle: "resolved" }}
+        detail={{
+          ...detail,
+          allowedTriageActions: [],
+          sourceLifecycle: "resolved",
+          triage: { ...detail.triage, state: "source_recovered" },
+        }}
         showDestination={false}
       />,
     );

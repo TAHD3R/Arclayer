@@ -94,6 +94,14 @@ class PlatformAuthFlowChallenge(BaseModel):
     purpose = fields.CharEnumField(PlatformAuthFlowPurpose, db_index=True)
     token_hash = fields.CharField(max_length=64, unique=True)
     identity_revision = fields.BigIntField()
+    invitation = fields.ForeignKeyField(
+        "models.PlatformOperatorInvitation",
+        related_name="auth_flow_challenges",
+        on_delete=fields.CASCADE,
+        null=True,
+    )
+    invitation_revision = fields.BigIntField(null=True)
+    requires_phishing_resistant = fields.BooleanField(default=False)
     expires_at = fields.DatetimeField(db_index=True)
     consumed_at = fields.DatetimeField(null=True, db_index=True)
     failure_count = fields.BigIntField(default=0)
@@ -101,6 +109,7 @@ class PlatformAuthFlowChallenge(BaseModel):
 
     if TYPE_CHECKING:
         user_id: UUID
+        invitation_id: UUID | None
 
     class Meta(BaseModel.Meta):
         table = "platform_auth_flow_challenges"

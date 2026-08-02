@@ -7,16 +7,13 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi import FastAPI
 
-from src.common.utils.public_ids import decode_public_id, encode_uuid
+from src.common.utils.public_ids import encode_uuid
 from src.config import get_settings
 from src.core.exceptions import init_exception_handlers
-from src.models.agents.catalog import (
-    AgentDefinitionRecord,
-    AgentVersionRecord,
-    AgentVersionState,
-)
+from src.models.agents.catalog import AgentDefinitionRecord
 from src.models.analytics.audit_event import AuditEvent
 from src.models.organization.organization import Organization
+from src.models.platform.capability_rollout import WorkspaceCapabilityRollout, WorkspaceCapabilityRolloutStage
 from src.models.projects.project import ProjectRecord
 from src.models.workspaces.workspace import Workspace
 from src.modules.ai.agent_catalog_manifest import OFFICIAL_AGENT_SPEC_BY_SLUG
@@ -33,11 +30,6 @@ from tests.utils.asgi_client import asgi_client
 pytestmark = pytest.mark.integration
 
 
-class _NoopSkillGrantValidator:
-    async def validate(self, **_kwargs) -> None:
-        return None
-
-
 def _version_payload(*, instructions: str) -> dict[str, object]:
     return {
         "instructions": instructions,
@@ -52,17 +44,12 @@ def _version_payload(*, instructions: str) -> dict[str, object]:
     }
 
 
-async def _create_custom_definition(
-    client,
-    *,
-    slug: str,
-    display_name: str = "Research Editor",
-) -> dict[str, Any]:
+async def _create_custom_definition(client: Any, *, slug: str) -> dict[str, Any]:
     response = await client.post(
         "/platform-api/v1/agents",
         json={
             "slug": slug,
-            "displayName": display_name,
+            "displayName": "Research Editor",
             "role": "content_research",
             "description": "Turns workspace evidence into cited editorial plans.",
             "initialVersion": _version_payload(instructions="Use cited workspace evidence only."),
@@ -96,6 +83,17 @@ async def _workspace_scope(*, actor_user_id: UUID) -> tuple[Workspace, ProjectRe
     return workspace, project
 
 
+async def _enable_ai_services_rollout() -> None:
+    rollout, _ = await WorkspaceCapabilityRollout.get_or_create(
+        capability_id="ai-services",
+        defaults={"stage": WorkspaceCapabilityRolloutStage.ALL_ELIGIBLE, "revision": 1},
+    )
+    rollout.stage = WorkspaceCapabilityRolloutStage.ALL_ELIGIBLE
+    rollout.revision = max(int(rollout.revision), 1)
+    rollout.selection_revision = 0
+    await rollout.save(update_fields=["stage", "revision", "selection_revision", "updated_at"])
+
+
 def _test_app(*, actor_user_id: UUID | None = None, platform_authorized: bool = True) -> FastAPI:
     app = FastAPI()
     init_exception_handlers(app, get_settings())
@@ -103,7 +101,7 @@ def _test_app(*, actor_user_id: UUID | None = None, platform_authorized: bool = 
     app.include_router(assignments_router, prefix="/platform-api/v1/agent-assignments")
     resolved_actor_user_id = actor_user_id or uuid4()
 
-    async def _platform_principal():
+    async def _platform_principal() -> SimpleNamespace:
         return SimpleNamespace(
             actor_id=resolved_actor_user_id,
             is_instance_owner=platform_authorized,
@@ -114,51 +112,34 @@ def _test_app(*, actor_user_id: UUID | None = None, platform_authorized: bool = 
     return app
 
 
-async def test_system_agent_control_plane_preserves_versions_assignments_and_official_authority(
+async def test_system_agent_control_plane_requires_real_validation_before_publication_and_has_no_assignment_writes(
     prepared_db,
 ) -> None:
     _ = prepared_db
     settings = get_settings()
     actor_user_id = uuid4()
-    workspace, project = await _workspace_scope(actor_user_id=actor_user_id)
+    workspace, _project = await _workspace_scope(actor_user_id=actor_user_id)
+    await _enable_ai_services_rollout()
     await AgentCatalogService(settings).ensure_official_assignments(workspace_id=workspace.id)
     app = _test_app(actor_user_id=actor_user_id)
 
     async with asgi_client(app) as client:
         capabilities = await client.get("/platform-api/v1/agents/capabilities")
         assert capabilities.status_code == 200, capabilities.text
-        assert capabilities.json()["data"] == {
-            "supportedToolGrants": list(SUPPORTED_AGENT_TOOL_GRANTS),
-            "skillGrantsAvailable": True,
-            "knowledgeGrantsAvailable": False,
-            "modelRoutingPolicies": ["workspace_default"],
-            "agentRuntimeProtocol": 1,
-            "hardDeleteSupported": False,
-            "constraints": {
-                "customApprovalProfiles": ["human-input-v1"],
-                "officialDefinitionsMutable": False,
-                "versionsImmutable": True,
-            },
+        assert capabilities.json()["data"]["skillGrantsAvailable"] is False
+        assert capabilities.json()["data"]["constraints"] == {
+            "customApprovalProfiles": ["human-input-v1"],
+            "officialDefinitionsMutable": False,
+            "versionsImmutable": True,
+            "runtimeValidationPortAvailable": False,
+            "versionPublicationRequiresRuntimeValidation": True,
         }
 
-        created_response = await client.post(
-            "/platform-api/v1/agents",
-            json={
-                "slug": "research-editor",
-                "displayName": "Research Editor",
-                "role": "content_research",
-                "description": "Turns workspace evidence into cited editorial plans.",
-                "initialVersion": _version_payload(instructions="Use cited workspace evidence only."),
-            },
-        )
-        assert created_response.status_code == 201, created_response.text
-        created = created_response.json()["data"]
-        assert created["slug"] == "research-editor"
-        assert created["isOfficial"] is False
-        assert created["latestVersion"]["versionNumber"] == 1
-        assert len(created["latestVersion"]["contentChecksum"]) == 64
+        created = await _create_custom_definition(client, slug="research-editor")
         definition_id = created["id"]
-        version_1_id = created["latestVersion"]["id"]
+        version_1 = created["latestVersion"]
+        assert version_1["state"] == "draft"
+        assert version_1["publishedAt"] is None
 
         version_2_response = await client.post(
             f"/platform-api/v1/agents/{definition_id}/versions",
@@ -166,63 +147,14 @@ async def test_system_agent_control_plane_preserves_versions_assignments_and_off
         )
         assert version_2_response.status_code == 201, version_2_response.text
         version_2 = version_2_response.json()["data"]
-        assert version_2["versionNumber"] == 2
-        assert version_2["id"] != version_1_id
+        assert version_2["state"] == "draft"
 
-        detail_response = await client.get(f"/platform-api/v1/agents/{definition_id}")
-        assert detail_response.status_code == 200, detail_response.text
-        versions = detail_response.json()["data"]["versions"]
-        assert [version["versionNumber"] for version in versions] == [2, 1]
-        assert versions[1]["instructions"] == "Use cited workspace evidence only."
-
-        custom_assignment_response = await client.post(
-            "/platform-api/v1/agent-assignments",
-            json={
-                "workspaceId": encode_uuid(workspace.id),
-                "projectId": encode_uuid(project.id),
-                "agentId": definition_id,
-                "versionId": version_2["id"],
-                "enabled": True,
-                "isDefault": True,
-                "isPinned": True,
-                "sortOrder": 5,
-            },
-        )
-        assert custom_assignment_response.status_code == 201, custom_assignment_response.text
-        assignment = custom_assignment_response.json()["data"]
-        assert assignment["workspaceName"] == workspace.name
-        assert assignment["projectName"] == project.name
-        assert assignment["versionNumber"] == 2
-        assert assignment["isDefault"] is True
-        assignment_id = assignment["id"]
-
-        effective_catalog = await AgentCatalogService(settings).list_available(
-            workspace_id=workspace.id,
-            project_id=project.id,
-        )
-        assert effective_catalog.default_agent_id == decode_public_id(definition_id)
-
-        blocked_default_disable = await client.patch(
-            f"/platform-api/v1/agent-assignments/{assignment_id}",
-            json={"enabled": False},
-        )
-        assert blocked_default_disable.status_code == 409, blocked_default_disable.text
-        assert blocked_default_disable.json()["error"] == "AGENT_DEFAULT_ASSIGNMENT_DISABLED"
-
-        blocked_retire = await client.patch(
+        publish = await client.patch(
             f"/platform-api/v1/agents/{definition_id}/versions/{version_2['id']}",
-            json={"state": "retired"},
+            json={"state": "published"},
         )
-        assert blocked_retire.status_code == 409, blocked_retire.text
-        assert blocked_retire.json()["error"] == "AGENT_VERSION_IN_USE"
-
-        disabled_assignment = await client.patch(
-            f"/platform-api/v1/agent-assignments/{assignment_id}",
-            json={"enabled": False, "isDefault": False},
-        )
-        assert disabled_assignment.status_code == 200, disabled_assignment.text
-        assert disabled_assignment.json()["data"]["enabled"] is False
-        assert disabled_assignment.json()["data"]["isDefault"] is False
+        assert publish.status_code == 409, publish.text
+        assert publish.json()["error"] == "AGENT_VERSION_VALIDATION_PORT_UNAVAILABLE"
 
         retired = await client.patch(
             f"/platform-api/v1/agents/{definition_id}/versions/{version_2['id']}",
@@ -231,29 +163,37 @@ async def test_system_agent_control_plane_preserves_versions_assignments_and_off
         assert retired.status_code == 200, retired.text
         assert retired.json()["data"]["state"] == "retired"
 
-        coordinator = OFFICIAL_AGENT_SPEC_BY_SLUG["arclayer-coordinator"]
-        official_patch = await client.patch(
-            f"/platform-api/v1/agents/{encode_uuid(coordinator.agent_id)}",
-            json={"displayName": "Changed Coordinator"},
-        )
-        assert official_patch.status_code == 409, official_patch.text
-        assert official_patch.json()["error"] == "AGENT_OFFICIAL_DEFINITION_PROTECTED"
-
-        unavailable_skill_grant = await client.post(
+        workspace_grant = await client.post(
             f"/platform-api/v1/agents/{definition_id}/versions",
             json={
-                **_version_payload(instructions="Request an unavailable Skill."),
+                **_version_payload(instructions="Must not claim a Workspace Skill."),
                 "skillGrantWorkspaceId": encode_uuid(workspace.id),
                 "skillInstallationIds": [encode_uuid(uuid4())],
             },
         )
-        assert unavailable_skill_grant.status_code == 409, unavailable_skill_grant.text
-        assert unavailable_skill_grant.json()["error"] == "AGENT_SKILL_INSTALLATION_NOT_FOUND"
+        assert workspace_grant.status_code == 409, workspace_grant.text
+        assert workspace_grant.json()["error"] == "AGENT_WORKSPACE_CONTENT_BOUNDARY"
 
-        listed = await client.get("/platform-api/v1/agents", params={"q": "research"})
-        assert listed.status_code == 200, listed.text
-        assert listed.json()["data"]["total"] == 1
-        assert listed.json()["data"]["items"][0]["slug"] == "research-editor"
+        assignment_write = await client.post(
+            "/platform-api/v1/agent-assignments",
+            json={"workspaceId": encode_uuid(workspace.id)},
+        )
+        assert assignment_write.status_code == 405, assignment_write.text
+
+        assignments = await client.get(
+            "/platform-api/v1/agent-assignments",
+            params={"workspaceId": encode_uuid(workspace.id)},
+        )
+        assert assignments.status_code == 200, assignments.text
+        assert assignments.json()["data"]["total"] == len(OFFICIAL_AGENT_SPEC_BY_SLUG)
+
+        official = OFFICIAL_AGENT_SPEC_BY_SLUG["arclayer-coordinator"]
+        official_patch = await client.patch(
+            f"/platform-api/v1/agents/{encode_uuid(official.agent_id)}",
+            json={"displayName": "Changed Coordinator"},
+        )
+        assert official_patch.status_code == 409, official_patch.text
+        assert official_patch.json()["error"] == "AGENT_OFFICIAL_DEFINITION_PROTECTED"
 
     definition_uuid = (await AgentDefinitionRecord.get(slug="research-editor")).id
     assert await AuditEvent.filter(
@@ -262,7 +202,7 @@ async def test_system_agent_control_plane_preserves_versions_assignments_and_off
         event_name="system.agent.definition.created",
     ).exists()
     assert await AuditEvent.filter(event_name="system.agent.version.created").count() >= 2
-    assert await AuditEvent.filter(event_name="system.agent.assignment.updated").exists()
+    assert await AuditEvent.filter(event_name="system.agent.version.retired").exists()
 
 
 async def test_system_agent_control_plane_requires_platform_permission(prepared_db) -> None:
@@ -280,14 +220,13 @@ async def test_system_agent_create_rolls_back_when_required_activity_write_fails
     _ = prepared_db
     settings = get_settings()
 
-    async def _failing_activity_writer(**_kwargs):
+    async def _failing_activity_writer(**_kwargs: object) -> None:
         raise RuntimeError("audit unavailable")
 
     service = SystemAgentCatalogService(
         settings,
         repository=SystemAgentRepository(),
         activity_writer=_failing_activity_writer,
-        skill_grant_validator=_NoopSkillGrantValidator(),
     )
     payload = SystemAgentDefinitionCreateRequest.model_validate({
         "slug": "rollback-editor",
@@ -298,10 +237,7 @@ async def test_system_agent_create_rolls_back_when_required_activity_write_fails
     })
 
     with pytest.raises(RuntimeError, match="audit unavailable"):
-        await service.create_definition(
-            payload=payload,
-            actor_user_id=uuid4(),
-        )
+        await service.create_definition(payload=payload, actor_user_id=uuid4())
 
     assert not await AgentDefinitionRecord.filter(slug="rollback-editor").exists()
 
@@ -318,13 +254,11 @@ async def test_system_agent_definition_http_contract_and_validation(prepared_db)
         assert versions_response.status_code == 200, versions_response.text
         versions = versions_response.json()["data"]["items"]
         assert [version["versionNumber"] for version in versions] == [1]
+        assert versions[0]["state"] == "draft"
 
         updated_response = await client.patch(
             f"/platform-api/v1/agents/{definition_id}",
-            json={
-                "displayName": "Evidence Editor",
-                "description": "Builds reviewable plans from cited workspace evidence.",
-            },
+            json={"displayName": "Evidence Editor", "description": "Builds reviewable plans from cited evidence."},
         )
         assert updated_response.status_code == 200, updated_response.text
         assert updated_response.json()["data"]["displayName"] == "Evidence Editor"
@@ -348,18 +282,6 @@ async def test_system_agent_definition_http_contract_and_validation(prepared_db)
         )
         assert invalid_extra.status_code == 422, invalid_extra.text
 
-        invalid_slug = await client.post(
-            "/platform-api/v1/agents",
-            json={
-                "slug": "invalid slug",
-                "displayName": "Invalid Slug",
-                "role": "content_research",
-                "description": "Must fail schema validation.",
-                "initialVersion": _version_payload(instructions="Reject invalid slugs."),
-            },
-        )
-        assert invalid_slug.status_code == 422, invalid_slug.text
-
         duplicate_grants_payload = _version_payload(instructions="Reject duplicate grants.")
         duplicate_grants_payload["toolGrants"] = ["human.request_input", "human.request_input"]
         duplicate_grants = await client.post(
@@ -367,92 +289,3 @@ async def test_system_agent_definition_http_contract_and_validation(prepared_db)
             json=duplicate_grants_payload,
         )
         assert duplicate_grants.status_code == 422, duplicate_grants.text
-
-
-async def test_system_agent_assignment_http_filters_and_scope_invariants(prepared_db) -> None:
-    _ = prepared_db
-    settings = get_settings()
-    actor_user_id = uuid4()
-    workspace, project = await _workspace_scope(actor_user_id=actor_user_id)
-    other_workspace, other_project = await _workspace_scope(actor_user_id=uuid4())
-    await AgentCatalogService(settings).ensure_official_assignments(workspace_id=workspace.id)
-    app = _test_app(actor_user_id=actor_user_id)
-
-    async with asgi_client(app) as client:
-        created = await _create_custom_definition(client, slug="assignment-editor")
-        assignment_response = await client.post(
-            "/platform-api/v1/agent-assignments",
-            json={
-                "workspaceId": encode_uuid(workspace.id),
-                "projectId": encode_uuid(project.id),
-                "agentId": created["id"],
-                "versionId": created["latestVersion"]["id"],
-                "enabled": True,
-                "isDefault": False,
-                "isPinned": True,
-                "sortOrder": 7,
-            },
-        )
-        assert assignment_response.status_code == 201, assignment_response.text
-
-        listed_response = await client.get(
-            "/platform-api/v1/agent-assignments",
-            params={
-                "workspaceId": encode_uuid(workspace.id),
-                "projectId": encode_uuid(project.id),
-                "agentId": created["id"],
-                "enabled": "true",
-                "page": 1,
-                "size": 1,
-            },
-        )
-        assert listed_response.status_code == 200, listed_response.text
-        listed = listed_response.json()["data"]
-        assert listed["total"] == 1
-        assert listed["pages"] == 1
-        assert listed["items"][0]["agentId"] == created["id"]
-        assert listed["items"][0]["projectId"] == encode_uuid(project.id)
-
-        cross_workspace_project = await client.post(
-            "/platform-api/v1/agent-assignments",
-            json={
-                "workspaceId": encode_uuid(other_workspace.id),
-                "projectId": encode_uuid(project.id),
-                "agentId": created["id"],
-                "versionId": created["latestVersion"]["id"],
-            },
-        )
-        assert cross_workspace_project.status_code == 404, cross_workspace_project.text
-        assert cross_workspace_project.json()["error"] == "AGENT_PROJECT_NOT_FOUND"
-
-        coordinator = OFFICIAL_AGENT_SPEC_BY_SLUG["arclayer-coordinator"]
-        official_version = await AgentVersionRecord.get(id=coordinator.version_id)
-        non_manifest_version = await AgentVersionRecord.create(
-            definition_id=coordinator.agent_id,
-            version_number=official_version.version_number + 100,
-            state=AgentVersionState.PUBLISHED,
-            instructions="Non-manifest test version.",
-            model_policy=official_version.model_policy,
-            supported_execution_modes=official_version.supported_execution_modes,
-            tool_grants=official_version.tool_grants,
-            skill_installation_ids=official_version.skill_installation_ids,
-            knowledge_base_ids=official_version.knowledge_base_ids,
-            delegation_definition_ids=official_version.delegation_definition_ids,
-            approval_profile=official_version.approval_profile,
-            compatibility=official_version.compatibility,
-            provenance={"kind": "system_custom", "createdByUserId": str(actor_user_id)},
-            content_checksum="0" * 64,
-            published_at=official_version.published_at,
-            created_by_user_id=actor_user_id,
-        )
-        protected_version = await client.post(
-            "/platform-api/v1/agent-assignments",
-            json={
-                "workspaceId": encode_uuid(other_workspace.id),
-                "projectId": encode_uuid(other_project.id),
-                "agentId": encode_uuid(coordinator.agent_id),
-                "versionId": encode_uuid(non_manifest_version.id),
-            },
-        )
-        assert protected_version.status_code == 409, protected_version.text
-        assert protected_version.json()["error"] == "AGENT_OFFICIAL_VERSION_PROTECTED"

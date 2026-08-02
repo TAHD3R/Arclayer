@@ -145,3 +145,53 @@ class PlatformOperatorInvitationRole(BaseModel):
         table_description = "Revision-bound intended roles for a pending Platform invitation."
         abstract = False
         unique_together = (("invitation_id", "role_id"),)
+
+
+class PlatformRoleChangePreview(BaseModel):
+    """Server-authored Custom Role review state bound to current authority facts."""
+
+    role = fields.ForeignKeyField("models.PlatformRole", related_name="change_previews", on_delete=fields.CASCADE)
+    actor_user = fields.ForeignKeyField(
+        "models.User", related_name="platform_role_change_previews", on_delete=fields.RESTRICT
+    )
+    expected_role_revision = fields.ForeignKeyField(
+        "models.PlatformRoleRevision", related_name="change_previews", on_delete=fields.RESTRICT
+    )
+    proposed_name = fields.CharField(max_length=128)
+    proposed_description = fields.TextField(null=True)
+    proposed_permission_codes = fields.JSONField()
+    assignment_fingerprint = fields.CharField(max_length=64)
+    catalog_fingerprint = fields.CharField(max_length=64)
+
+    if TYPE_CHECKING:
+        role_id: UUID
+        actor_user_id: UUID
+        expected_role_revision_id: UUID
+
+    class Meta(BaseModel.Meta):
+        table = "platform_role_change_previews"
+        table_description = "Revision-bound server previews for Custom Platform Role changes."
+        abstract = False
+        indexes = (("role_id", "created_at"), ("actor_user_id", "created_at"))
+
+
+class PlatformIdentityMutationReceipt(BaseModel):
+    """Durable idempotency receipt for Platform Access and Security mutations."""
+
+    actor_user = fields.ForeignKeyField(
+        "models.User", related_name="platform_identity_mutation_receipts", on_delete=fields.RESTRICT
+    )
+    action = fields.CharField(max_length=64)
+    idempotency_key = fields.CharField(max_length=128)
+    request_fingerprint = fields.CharField(max_length=64)
+    entity_id = fields.UUIDField()
+    correlation_id = fields.UUIDField(unique=True, db_index=True)
+
+    if TYPE_CHECKING:
+        actor_user_id: UUID
+
+    class Meta(BaseModel.Meta):
+        table = "platform_identity_mutation_receipts"
+        table_description = "Idempotency receipts for Platform Access and Security commands."
+        abstract = False
+        unique_together = (("actor_user_id", "action", "idempotency_key"),)

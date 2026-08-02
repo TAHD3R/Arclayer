@@ -44,7 +44,6 @@ import {
 } from "@/pages/usercenter/projects/project-list-items";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import type { MyWorkspace, Project } from "@arclayer/openapi/admin-types";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import {
@@ -58,6 +57,9 @@ import { Empty, EmptyDescription, EmptyHeader } from "@arclayer/ui/empty";
 import { Input } from "@arclayer/ui/input";
 import { Popover, PopoverAnchor, PopoverContent } from "@arclayer/ui/popover";
 import { useSidebar } from "@arclayer/ui/sidebar";
+
+type MyWorkspace = NonNullable<Awaited<ReturnType<typeof listMyWorkspaces>>["items"]>[number];
+type Project = Awaited<ReturnType<typeof getProjectDetail>>["project"];
 
 const SIDEBAR_TRIGGER_HEIGHT_CLASSNAME = "!h-9";
 const HEADER_TRIGGER_HEIGHT_CLASSNAME = "!h-9";
@@ -1037,7 +1039,6 @@ export function AdminScopeSwitcher({
   const currentWorkspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const currentProjectId = useWorkspaceStore((state) => state.currentProjectId);
   const lastWorkspaceId = useWorkspaceStore((state) => state.lastWorkspaceId);
-  const lastProjectId = useWorkspaceStore((state) => state.lastProjectId);
   const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
   const setCurrentProjectId = useWorkspaceStore((state) => state.setCurrentProjectId);
   const setCurrentContext = useWorkspaceStore((state) => state.setCurrentContext);
@@ -1119,7 +1120,7 @@ export function AdminScopeSwitcher({
     meta: { silent: true },
   });
 
-  const selectedProjectId = routeProjectId ?? currentProjectId ?? lastProjectId ?? null;
+  const selectedProjectId = routeProjectId ?? currentProjectId ?? null;
   const selectedProject = useMemo(() => {
     if (!selectedProjectId) return null;
     return (

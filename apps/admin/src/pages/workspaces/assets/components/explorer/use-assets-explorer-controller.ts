@@ -2,7 +2,10 @@ import { keepPreviousData, useInfiniteQuery, useQueries, useQuery } from "@tanst
 import { useEffect, useMemo, useState } from "react";
 
 import { listAssetFolders, listAssetTags, listAssets } from "@/api/assets";
-import type { AdminAssetFolder, AdminAssetSummary } from "@arclayer/openapi/admin-types";
+import type {
+  AdminAssetFolderOut as AdminAssetFolder,
+  AdminAssetSummaryOut as AdminAssetSummary,
+} from "@arclayer/openapi";
 import { filterFoldersByContentCheck } from "@/lib/assets/folder-visibility";
 import { isExplicitAssetsFilterActive } from "@/lib/assets/assets-filtering";
 import { toMasonryItem } from "@/lib/assets/to-masonry-item";
@@ -99,16 +102,8 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
         visibility: filters.visibility,
         createdFrom: filters.createdFrom,
         createdTo: filters.createdTo,
-        tagIds: filters.tagIds,
       }),
-    [
-      filters.createdFrom,
-      filters.createdTo,
-      filters.mimePrefix,
-      filters.tagIds,
-      filters.visibility,
-      searchQuery,
-    ],
+    [filters.createdFrom, filters.createdTo, filters.mimePrefix, filters.visibility, searchQuery],
   );
 
   const foldersQuery = useQuery({
@@ -171,7 +166,6 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
         visibility: effectiveVisibility,
         createdFrom: filters.createdFrom,
         createdTo: filters.createdTo,
-        tagIds: filters.tagIds,
         ordering,
       },
     ],
@@ -180,7 +174,6 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
       filters.createdFrom,
       filters.createdTo,
       filters.mimePrefix,
-      filters.tagIds,
       effectiveVisibility,
       ordering,
       opts.purpose,
@@ -203,7 +196,6 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
             visibility: effectiveVisibility,
             createdFrom: filters.createdFrom,
             createdTo: filters.createdTo,
-            tagIds: filters.tagIds,
             ordering,
           })
         : Promise.reject(
@@ -236,7 +228,6 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
     filters.createdFrom,
     filters.createdTo,
     filters.mimePrefix,
-    filters.tagIds,
     effectiveVisibility,
     ordering,
     opts.pagination,
@@ -256,7 +247,6 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
         visibility: effectiveVisibility,
         createdFrom: filters.createdFrom,
         createdTo: filters.createdTo,
-        tagIds: filters.tagIds,
         ordering,
         page,
         size: pageSize,
@@ -275,7 +265,6 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
             visibility: effectiveVisibility,
             createdFrom: filters.createdFrom,
             createdTo: filters.createdTo,
-            tagIds: filters.tagIds,
             ordering,
           })
         : Promise.reject(
@@ -342,7 +331,6 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
           visibility: effectiveVisibility,
           createdFrom: filters.createdFrom,
           createdTo: filters.createdTo,
-          tagIds: filters.tagIds,
         },
       ],
       enabled:
@@ -361,7 +349,6 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
           visibility: effectiveVisibility,
           createdFrom: filters.createdFrom,
           createdTo: filters.createdTo,
-          tagIds: filters.tagIds,
           folderId: String(folder.id),
           includeChildren: true,
         });

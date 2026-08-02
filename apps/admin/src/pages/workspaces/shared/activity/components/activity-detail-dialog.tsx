@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
-import type { ActivityEvent } from "@arclayer/openapi/admin-types";
+import type { AuditEventOut as ActivityEvent } from "@arclayer/openapi";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { formatDateTimeWithPattern } from "@/lib/time/date-time";
 import { resolveCatalogEntry } from "@/pages/workspaces/shared/activity/constants";
@@ -154,9 +154,9 @@ export function ActivityDetailDialog(props: {
                     event.actor
                       ? {
                           id: event.actor.id,
-                          username: event.actor.username,
-                          displayName: event.actor.displayName,
-                          avatarUrl: event.actor.avatarUrl,
+                          username: event.actor.username ?? null,
+                          displayName: event.actor.displayName ?? null,
+                          avatarUrl: event.actor.avatarUrl ?? null,
                         }
                       : event.actorUserId
                         ? {
@@ -182,9 +182,9 @@ export function ActivityDetailDialog(props: {
                     event.subject
                       ? {
                           id: event.subject.id,
-                          username: event.subject.username,
-                          displayName: event.subject.displayName,
-                          avatarUrl: event.subject.avatarUrl,
+                          username: event.subject.username ?? null,
+                          displayName: event.subject.displayName ?? null,
+                          avatarUrl: event.subject.avatarUrl ?? null,
                         }
                       : event.subjectUserId
                         ? {

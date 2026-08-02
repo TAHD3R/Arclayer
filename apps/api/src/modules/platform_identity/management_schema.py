@@ -8,6 +8,13 @@ from pydantic import ConfigDict, Field
 from src.common.schemas import BaseSchema
 from src.models.platform_identity.identity import PlatformInvitationStatus, PlatformOperatorStatus
 from src.modules.platform_identity.schema import PlatformRoleBinding
+from src.modules.platform_identity.step_up_schema import PlatformStepUpProofIssueRequest, PlatformStepUpProofIssueResult
+from src.modules.platform_identity.webauthn_schema import (
+    PlatformWebAuthnAuthenticationCredential,
+    PlatformWebAuthnAuthenticationOptions,
+    PlatformWebAuthnRegistrationCredential,
+    PlatformWebAuthnRegistrationOptions,
+)
 
 
 class PlatformRoleBindingInput(BaseSchema):
@@ -32,6 +39,14 @@ class PlatformInvitationCreateRequest(BaseSchema):
     recipient_user_id: UUID
     intended_roles: tuple[PlatformRoleBindingInput, ...] = Field(min_length=1)
     expires_at: datetime
+    idempotency_key: str = Field(min_length=1, max_length=128)
+    correlation_id: UUID
+
+
+class PlatformInvitationRevokeRequest(BaseSchema):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    expected_invitation_revision: int = Field(ge=1)
     idempotency_key: str = Field(min_length=1, max_length=128)
     correlation_id: UUID
 
@@ -141,6 +156,7 @@ class PlatformInvitationDetailOut(BaseSchema):
     status: PlatformInvitationStatus
     is_effective: bool
     expires_at: datetime
+    recipient_accepted_at: datetime | None
     accepted_at: datetime | None
     revoked_at: datetime | None
     invalidated_at: datetime | None
@@ -168,6 +184,75 @@ class PlatformRoleCatalogItemOut(BaseSchema):
     revision_id: UUID
     revision_sequence: int
     permission_codes: tuple[str, ...]
+
+
+class PlatformCustomRoleCreateRequest(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
+    role_id: UUID
+    code: str = Field(min_length=1, max_length=128, pattern=r"^[a-z][a-z0-9_-]*$")
+    name: str = Field(min_length=1, max_length=128)
+    description: str | None = Field(default=None, max_length=10_000)
+    permission_codes: frozenset[str] = Field(min_length=1)
+    idempotency_key: str = Field(min_length=1, max_length=128)
+    correlation_id: UUID
+    step_up_proof: str = Field(min_length=1)
+
+
+class PlatformCustomRoleCopyRequest(PlatformCustomRoleCreateRequest):
+    source_role_id: UUID
+    expected_source_revision_id: UUID
+
+
+class PlatformCustomRolePreviewRequest(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
+    expected_role_revision_id: UUID
+    name: str = Field(min_length=1, max_length=128)
+    description: str | None = Field(default=None, max_length=10_000)
+    permission_codes: frozenset[str] = Field(min_length=1)
+
+
+class PlatformCustomRolePreviewOut(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
+    preview_id: UUID
+    role_id: UUID
+    expected_role_revision_id: UUID
+    added_permission_codes: tuple[str, ...]
+    removed_permission_codes: tuple[str, ...]
+    affected_operator_ids: tuple[UUID, ...]
+    actor_loses_permissions: tuple[str, ...]
+    invalidated_invitation_count: int = Field(ge=0)
+
+
+class PlatformCustomRoleApplyRequest(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
+    preview_id: UUID
+    expected_role_revision_id: UUID
+    idempotency_key: str = Field(min_length=1, max_length=128)
+    correlation_id: UUID
+    step_up_proof: str = Field(min_length=1)
+
+
+class PlatformRoleAssignmentRequest(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
+    expected_operator_revision: int = Field(ge=1)
+    role_ids: frozenset[UUID] = Field(min_length=1)
+    idempotency_key: str = Field(min_length=1, max_length=128)
+    correlation_id: UUID
+    step_up_proof: str = Field(min_length=1)
+
+
+class PlatformCustomRoleRetireRequest(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
+    expected_role_revision_id: UUID
+    idempotency_key: str = Field(min_length=1, max_length=128)
+    correlation_id: UUID
+    step_up_proof: str = Field(min_length=1)
 
 
 class PlatformInvitationCandidateOut(BaseSchema):
@@ -212,6 +297,76 @@ class PlatformSessionInventoryItemOut(BaseSchema):
     policy_revision: int
     assurance: str
     is_current: bool
+
+
+class PlatformSessionRevokeRequest(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
+    idempotency_key: str = Field(min_length=1, max_length=128)
+    correlation_id: UUID
+
+
+class PlatformMfaMethodRemoveRequest(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
+    idempotency_key: str = Field(min_length=1, max_length=128)
+    correlation_id: UUID
+    step_up_proof: str = Field(min_length=1)
+
+
+class PlatformMfaTotpBeginRequest(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
+    issuer: str = Field(min_length=1, max_length=128)
+    account_label: str = Field(min_length=1, max_length=256)
+    idempotency_key: str = Field(min_length=1, max_length=128)
+    correlation_id: UUID
+    step_up_proof: str = Field(min_length=1)
+
+
+class PlatformMfaTotpConfirmRequest(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
+    method_id: UUID
+    code: str = Field(min_length=6, max_length=12)
+    replace_method_id: UUID | None = None
+    idempotency_key: str = Field(min_length=1, max_length=128)
+    correlation_id: UUID
+    step_up_proof: str = Field(min_length=1)
+
+
+class PlatformMfaWebAuthnBeginRequest(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
+    replace_method_id: UUID | None = None
+    idempotency_key: str = Field(min_length=1, max_length=128)
+    correlation_id: UUID
+    step_up_proof: str = Field(min_length=1)
+
+
+class PlatformMfaWebAuthnRegistrationOut(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
+    options: PlatformWebAuthnRegistrationOptions
+
+
+class PlatformMfaWebAuthnCompleteRequest(PlatformMfaWebAuthnBeginRequest):
+    challenge_id: UUID
+    credential: PlatformWebAuthnRegistrationCredential
+
+
+class PlatformStepUpWebAuthnOptionsOut(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
+    options: PlatformWebAuthnAuthenticationOptions
+
+
+class PlatformStepUpWebAuthnCompleteRequest(PlatformStepUpProofIssueRequest):
+    challenge_id: UUID
+    credential: PlatformWebAuthnAuthenticationCredential
+
+
+PlatformStepUpProofOut = PlatformStepUpProofIssueResult
 
 
 class PlatformMfaMethodReadinessOut(BaseSchema):

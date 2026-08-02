@@ -19,6 +19,7 @@ import { SettingCard, SettingCardHeader } from "@arclayer/ui/setting-card";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
+import type { TwoFactorCapabilitiesOut, TwoFactorConfirmOut } from "@arclayer/openapi";
 
 const OTP_LENGTH = 6;
 
@@ -36,10 +37,8 @@ type SetupDialogProps = {
   pending: boolean;
   onOpenChange: (open: boolean) => void;
   onAcknowledgeBackupCodes: () => void;
-  onStart: (
-    password?: string,
-  ) => Promise<{ secret: string; otpauthUri?: string; otpauth_uri?: string }>;
-  onConfirm: (code: string) => Promise<{ backupCodes?: string[]; backup_codes?: string[] }>;
+  onStart: (password?: string) => Promise<{ secret: string; otpauthUri: string }>;
+  onConfirm: (code: string) => Promise<TwoFactorConfirmOut>;
 };
 
 type ReauthDialogProps = {
@@ -54,16 +53,13 @@ type ReauthDialogProps = {
   onSubmit: (payload: {
     code?: string;
     backupCode?: string;
-  }) => Promise<{ backupCodes?: string[]; backup_codes?: string[] } | null>;
+  }) => Promise<TwoFactorConfirmOut | null>;
 };
 
 type ReauthMethod = "totp" | "backup_code";
 
-function normalizeBackupCodes(
-  result: { backupCodes?: string[]; backup_codes?: string[] } | null,
-): string[] {
-  if (!result) return [];
-  return result.backupCodes ?? result.backup_codes ?? [];
+function normalizeBackupCodes(result: TwoFactorConfirmOut | null): string[] {
+  return result?.backupCodes ?? [];
 }
 
 function BackupCodesDialog(props: BackupCodesDialogProps) {
@@ -88,13 +84,8 @@ function BackupCodesDialog(props: BackupCodesDialogProps) {
   );
 }
 
-function resolveHasPassword(data: unknown): boolean {
-  if (!data || typeof data !== "object") return true;
-  const camel = (data as { hasPassword?: boolean }).hasPassword;
-  if (typeof camel === "boolean") return camel;
-  const snake = (data as { has_password?: boolean }).has_password;
-  if (typeof snake === "boolean") return snake;
-  return true;
+function resolveHasPassword(data: TwoFactorCapabilitiesOut | undefined): boolean {
+  return data?.hasPassword ?? true;
 }
 
 function SetupDialog(props: SetupDialogProps) {
@@ -126,7 +117,7 @@ function SetupDialog(props: SetupDialogProps) {
     setPasswordError(null);
     setSetupData({
       secret: result.secret,
-      otpauthUri: result.otpauthUri ?? result.otpauth_uri ?? "",
+      otpauthUri: result.otpauthUri,
     });
   };
 
@@ -460,19 +451,11 @@ export function UserTwoFactorSection(props: UserTwoFactorSectionProps) {
   });
 
   const enabled = Boolean(statusQuery.data?.enabled ?? capabilitiesQuery.data?.enabled);
-  const setupRequiredMethods =
-    capabilitiesQuery.data?.setupRequiredReauthMethods ??
-    capabilitiesQuery.data?.setup_required_reauth_methods ??
-    [];
-  const disableRequiredMethods =
-    capabilitiesQuery.data?.disableRequiredReauthMethods ??
-    capabilitiesQuery.data?.disable_required_reauth_methods ??
-    [];
+  const setupRequiredMethods = capabilitiesQuery.data?.setupRequiredReauthMethods ?? [];
+  const disableRequiredMethods = capabilitiesQuery.data?.disableRequiredReauthMethods ?? [];
   const regenerateRequiredMethods =
-    capabilitiesQuery.data?.regenerateBackupCodesRequiredReauthMethods ??
-    capabilitiesQuery.data?.regenerate_backup_codes_required_reauth_methods ??
-    [];
-  const canSetup = Boolean(capabilitiesQuery.data?.canSetup ?? capabilitiesQuery.data?.can_setup);
+    capabilitiesQuery.data?.regenerateBackupCodesRequiredReauthMethods ?? [];
+  const canSetup = Boolean(capabilitiesQuery.data?.canSetup);
   const hasPassword = resolveHasPassword(capabilitiesQuery.data);
   const actionLoading = statusQuery.isLoading || capabilitiesQuery.isLoading;
   const setupDisabled = actionLoading || !canSetup || !hasPassword;

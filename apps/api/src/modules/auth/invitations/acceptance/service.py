@@ -49,6 +49,7 @@ from src.modules.auth.tokens.service import hash_password
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.projects.repository import ProjectRepository
 from src.modules.system.admin.notifications.catalog import create_notification_record
+from src.modules.system.admin.notifications.schema import NotificationWorkspaceSettingsTarget
 from src.modules.workspaces.authz.role_management import (
     WorkspaceRoleManagementAvailabilityReader,
     build_workspace_role_management_availability_reader,
@@ -376,8 +377,7 @@ class AuthInvitationAcceptanceService(BaseService):
                     "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_BODY",
                     default="The user accepted the workspace invitation.",
                 ),
-                target_to="/settings/team/members",
-                target_meta=None,
+                target=NotificationWorkspaceSettingsTarget(destination="people", section="members-table"),
                 event_name="workspace.invitation.accepted",
                 dedupe_key=f"workspace.invitation.accepted:{code}",
             )
@@ -644,8 +644,7 @@ class AuthInvitationAcceptanceService(BaseService):
                     "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_BODY",
                     default="The user accepted the workspace invitation.",
                 ),
-                target_to="/settings/team/members",
-                target_meta=None,
+                target=NotificationWorkspaceSettingsTarget(destination="people", section="members-table"),
                 event_name="workspace.invitation.accepted",
                 dedupe_key=f"workspace.invitation.accepted:{code}",
             )

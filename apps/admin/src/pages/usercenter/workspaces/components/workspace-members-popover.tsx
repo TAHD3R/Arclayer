@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 
 import { listWorkspaceMembers } from "@/api/workspace-management";
 import { UserAvatar } from "@/components/common/entity-avatar";
-import type { TeamMember } from "@arclayer/openapi/admin-types";
+import type { WorkspaceTeamMemberOut as TeamMember } from "@arclayer/openapi";
 import { Button } from "@arclayer/ui/button";
 import {
   InputGroup,

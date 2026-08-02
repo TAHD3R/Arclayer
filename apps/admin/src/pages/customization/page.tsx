@@ -33,9 +33,7 @@ export function CustomizationPage(props: {
   requestedAction?: "import";
 }) {
   const { t } = useTranslation("settings");
-  const workspaceId = useWorkspaceStore(
-    (state) => state.currentWorkspaceId ?? state.lastWorkspaceId,
-  );
+  const workspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const copy = SECTION_COPY[props.section];
 
   return (

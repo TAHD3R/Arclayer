@@ -13,6 +13,7 @@ from src.models.commerce.billing import BillingCycle, PlanRevisionStatus, Subscr
 class PlatformCommerceRevisionSummaryOut(BaseSchema):
     id: PublicUUID
     sequence: int
+    revision: int
     status: PlanRevisionStatus
     is_selling: bool
     name_i18n_key: str
@@ -30,6 +31,19 @@ class PlatformCommercePlanOut(BaseSchema):
 
 class PlatformCommercePlanCatalogOut(BaseSchema):
     items: tuple[PlatformCommercePlanOut, ...]
+
+
+class PlatformCommercePlanIdentityOut(BaseSchema):
+    id: PublicUUID
+    code: str
+
+
+class PlatformCommercePlanRevisionMutationOut(BaseSchema):
+    id: PublicUUID
+    plan_id: PublicUUID
+    sequence: int
+    revision: int
+    status: PlanRevisionStatus
 
 
 class PlatformCommerceSubscriptionOut(BaseSchema):

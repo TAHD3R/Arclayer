@@ -8,7 +8,7 @@ from pydantic import ValidationError
 from src.models.agents.catalog import AgentAssignmentRecord, AgentDefinitionRecord, AgentVersionRecord
 from src.models.projects.project import ProjectRecord
 from src.models.workspaces.workspace import Workspace
-from src.modules.system.agents.repository_protocol import AgentDefinitionBundle
+from src.modules.system.agents.repository_protocol import AgentDefinitionBundle, AgentVersionUsage
 from src.modules.system.agents.schema import (
     AgentApprovalProfile,
     AgentCompatibility,
@@ -28,7 +28,11 @@ class SystemAgentProjectionError(RuntimeError):
     pass
 
 
-def project_version(version: AgentVersionRecord) -> SystemAgentVersionOut:
+def project_version(
+    version: AgentVersionRecord,
+    *,
+    usage: AgentVersionUsage | None = None,
+) -> SystemAgentVersionOut:
     try:
         return SystemAgentVersionOut(
             id=version.id,
@@ -54,6 +58,8 @@ def project_version(version: AgentVersionRecord) -> SystemAgentVersionOut:
             content_checksum=version.content_checksum,
             published_at=version.published_at,
             created_by_user_id=version.created_by_user_id,
+            adoption_count=usage.adoption_count if usage is not None else 0,
+            failure_count=usage.failure_count if usage is not None else 0,
         )
     except (TypeError, ValueError, ValidationError) as error:
         raise SystemAgentProjectionError("AGENT_VERSION_INVALID") from error
@@ -87,7 +93,9 @@ def project_assignment(assignment: AgentAssignmentRecord) -> SystemAgentAssignme
 
 
 def project_definition_summary(bundle: AgentDefinitionBundle) -> SystemAgentDefinitionSummaryOut:
-    versions = tuple(project_version(version) for version in bundle.versions)
+    versions = tuple(
+        project_version(version, usage=bundle.version_usage.get(version.id)) for version in bundle.versions
+    )
     return _definition_out(
         definition=bundle.definition,
         versions=versions,
@@ -96,7 +104,9 @@ def project_definition_summary(bundle: AgentDefinitionBundle) -> SystemAgentDefi
 
 
 def project_definition_detail(bundle: AgentDefinitionBundle) -> SystemAgentDefinitionDetailOut:
-    versions = tuple(project_version(version) for version in bundle.versions)
+    versions = tuple(
+        project_version(version, usage=bundle.version_usage.get(version.id)) for version in bundle.versions
+    )
     assignments = tuple(project_assignment(assignment) for assignment in bundle.assignments)
     summary = _definition_out(
         definition=bundle.definition,

@@ -2,7 +2,7 @@ import { memo, useEffect, useId, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "@arclayer/lib/utils";
-import type { AdminAssetTag } from "@arclayer/openapi/admin-types";
+import type { AdminAssetTagOut as AdminAssetTag } from "@arclayer/openapi";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 import { Checkbox } from "@arclayer/ui/checkbox";
 import { Button } from "@arclayer/ui/button";

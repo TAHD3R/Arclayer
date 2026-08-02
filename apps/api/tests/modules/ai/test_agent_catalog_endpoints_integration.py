@@ -12,6 +12,7 @@ from src.core.registry import create_app
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.organization import Organization
 from src.models.organization.user import User
+from src.models.platform.capability_rollout import WorkspaceCapabilityRollout, WorkspaceCapabilityRolloutStage
 from src.models.projects.project import ProjectRecord
 from src.models.workspaces.workspace import (
     Workspace,
@@ -71,6 +72,14 @@ async def test_workspace_agent_catalog_http_contract_scope_and_rbac(
             owner_user_id=owner.id,
             created_by_user_id=owner.id,
         )
+        rollout, _ = await WorkspaceCapabilityRollout.get_or_create(
+            capability_id="ai-services",
+            defaults={"stage": WorkspaceCapabilityRolloutStage.ALL_ELIGIBLE, "revision": 1},
+        )
+        rollout.stage = WorkspaceCapabilityRolloutStage.ALL_ELIGIBLE
+        rollout.revision = max(int(rollout.revision), 1)
+        rollout.selection_revision = 0
+        await rollout.save(update_fields=["stage", "revision", "selection_revision", "updated_at"])
         project = await ProjectRecord.create(
             workspace_id=workspace.id,
             slug=f"agent-catalog-http-project-{uuid4().hex[:8]}",

@@ -6,7 +6,7 @@ import zhAccount from "@locales/zh-CN/account.json";
 import zhNotifications from "@locales/zh-CN/notifications.json";
 import zhCommand from "@locales/zh-CN/command.json";
 import zhAssets from "@locales/zh-CN/assets.json";
-import zhErrors from "@locales/zh-CN/errors.json";
+import zhErrors from "../../../locales/zh-CN/errors.json";
 import zhAuth from "@locales/zh-CN/auth.json";
 import zhInvite from "@locales/zh-CN/invite.json";
 import zhOnboarding from "@locales/zh-CN/onboarding.json";
@@ -21,6 +21,7 @@ import zhCommerce from "@locales/zh-CN/commerce.json";
 import zhWorkspaceAccess from "@locales/zh-CN/workspaceAccess.json";
 import zhPlanChange from "@locales/zh-CN/planChange.json";
 import zhFeatureAccess from "@locales/zh-CN/featureAccess.json";
+import zhKnowledge from "@locales/zh-CN/knowledge.json";
 
 import enCommon from "@locales/en-US/common.json";
 import enNav from "@locales/en-US/nav.json";
@@ -30,7 +31,7 @@ import enAccount from "@locales/en-US/account.json";
 import enNotifications from "@locales/en-US/notifications.json";
 import enCommand from "@locales/en-US/command.json";
 import enAssets from "@locales/en-US/assets.json";
-import enErrors from "@locales/en-US/errors.json";
+import enErrors from "../../../locales/en-US/errors.json";
 import enAuth from "@locales/en-US/auth.json";
 import enInvite from "@locales/en-US/invite.json";
 import enOnboarding from "@locales/en-US/onboarding.json";
@@ -45,6 +46,7 @@ import enCommerce from "@locales/en-US/commerce.json";
 import enWorkspaceAccess from "@locales/en-US/workspaceAccess.json";
 import enPlanChange from "@locales/en-US/planChange.json";
 import enFeatureAccess from "@locales/en-US/featureAccess.json";
+import enKnowledge from "@locales/en-US/knowledge.json";
 
 import type { AppLocale } from "@arclayer/web/i18n";
 
@@ -72,6 +74,7 @@ export const I18N_NAMESPACES = [
   "workspaceAccess",
   "planChange",
   "featureAccess",
+  "knowledge",
 ] as const;
 
 export const i18nResources = {
@@ -99,6 +102,7 @@ export const i18nResources = {
     workspaceAccess: zhWorkspaceAccess,
     planChange: zhPlanChange,
     featureAccess: zhFeatureAccess,
+    knowledge: zhKnowledge,
   },
   "en-US": {
     common: enCommon,
@@ -124,6 +128,7 @@ export const i18nResources = {
     workspaceAccess: enWorkspaceAccess,
     planChange: enPlanChange,
     featureAccess: enFeatureAccess,
+    knowledge: enKnowledge,
   },
 } as const;
 

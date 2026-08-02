@@ -1,4 +1,9 @@
 import type { AppLocale } from "@/lib/i18n";
+import type { OnboardingProfilePatchRequest } from "@arclayer/openapi";
+
+export type WelcomeJobRole = Exclude<OnboardingProfilePatchRequest["jobRole"], undefined>;
+export type WelcomeCompanySize = Exclude<OnboardingProfilePatchRequest["companySize"], undefined>;
+export type WelcomeHeardAboutUs = Exclude<OnboardingProfilePatchRequest["heardAboutUs"], undefined>;
 
 export type WelcomeOnboardingStepId =
   | "profile"
@@ -27,8 +32,8 @@ export type UserProfileDraft = {
   displayName: string;
   avatarUrl: string | null;
   avatarAssetId: string | null;
-  jobRole: string | null;
-  companySize: string | null;
+  jobRole: WelcomeJobRole;
+  companySize: WelcomeCompanySize;
   subscribedProductUpdates: boolean;
 };
 

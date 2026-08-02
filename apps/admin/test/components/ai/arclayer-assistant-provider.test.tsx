@@ -65,6 +65,8 @@ const runSnapshot = {
 const COORDINATOR_AGENT_ID = "tLTD4kqITA2PGQobLD1OAQ";
 const SITE_ARCHITECT_AGENT_ID = "tLTD4kqITA2PGQobLD1OAg";
 const DATA_ANALYST_AGENT_ID = "tLTD4kqITA2PGQobLD1OBg";
+const CONTENT_SKILL_INSTALLATION_ID = "installation-content";
+const SEO_SKILL_INSTALLATION_ID = "installation-seo";
 
 describe("ArclayerAssistantProvider", () => {
   beforeEach(() => {
@@ -98,10 +100,12 @@ describe("ArclayerAssistantProvider", () => {
     );
   });
 
-  it("loads backend Thread history and starts a server-owned Run from composer text", async () => {
+  it("starts a server-owned Run with selected Skill IDs while preserving literal composer text", async () => {
     useAIComposerDirectiveStore.getState().addDirectives("thread", [
       { type: "agent", id: DATA_ANALYST_AGENT_ID, label: "Data Analyst" },
       { type: "agent", id: SITE_ARCHITECT_AGENT_ID, label: "Site Architect" },
+      { type: "skill", id: CONTENT_SKILL_INSTALLATION_ID, label: "Content modeling" },
+      { type: "skill", id: SEO_SKILL_INSTALLATION_ID, label: "SEO" },
     ]);
     render(
       <ArclayerAssistantProvider
@@ -135,7 +139,12 @@ describe("ArclayerAssistantProvider", () => {
     await act(async () => {
       await onNew?.({
         content: [{ type: "text", text: "Build the homepage" }],
-        runConfig: { custom: { mentionedAgentIds: [DATA_ANALYST_AGENT_ID] } },
+        runConfig: {
+          custom: {
+            mentionedAgentIds: [DATA_ANALYST_AGENT_ID],
+            selectedSkillInstallationIds: [CONTENT_SKILL_INSTALLATION_ID],
+          },
+        },
         metadata: { custom: { mentionedAgentIds: [SITE_ARCHITECT_AGENT_ID] } },
       });
     });
@@ -147,6 +156,7 @@ describe("ArclayerAssistantProvider", () => {
         threadId: "thread-1",
         leadAgentId: COORDINATOR_AGENT_ID,
         mentionedAgentIds: [DATA_ANALYST_AGENT_ID],
+        selectedSkillInstallationIds: [CONTENT_SKILL_INSTALLATION_ID],
         executionMode: "build",
         message: "Build the homepage",
         idempotencyKey: expect.any(String),
@@ -163,6 +173,51 @@ describe("ArclayerAssistantProvider", () => {
     );
     expect(useAIComposerDirectiveStore.getState().directivesByScope.thread).toEqual([
       { type: "agent", id: SITE_ARCHITECT_AGENT_ID, label: "Site Architect" },
+      { type: "skill", id: SEO_SKILL_INSTALLATION_ID, label: "SEO" },
+    ]);
+  });
+
+  it("retains selected Skills when the server does not accept a Run", async () => {
+    useAIComposerDirectiveStore
+      .getState()
+      .addDirectives("thread", [
+        { type: "skill", id: CONTENT_SKILL_INSTALLATION_ID, label: "Content modeling" },
+      ]);
+    apiMocks.createAgentRun.mockRejectedValueOnce(new Error("Run rejected"));
+    render(
+      <ArclayerAssistantProvider
+        workspaceId="workspace-1"
+        projectId="project-1"
+        leadAgentId={COORDINATOR_AGENT_ID}
+        executionMode="build"
+        localize={(key) => key}
+        initialTitle="New collaboration"
+      >
+        <div>Thread</div>
+      </ArclayerAssistantProvider>,
+    );
+
+    const onNew = runtimeCapture.external?.onNew as
+      | ((message: {
+          content: readonly { type: "text"; text: string }[];
+          runConfig?: { custom?: Record<string, unknown> };
+        }) => Promise<void>)
+      | undefined;
+    if (onNew === undefined) throw new Error("Expected the thread runtime to accept a message");
+
+    await act(async () => {
+      await expect(
+        onNew({
+          content: [{ type: "text", text: "Build the homepage" }],
+          runConfig: {
+            custom: { selectedSkillInstallationIds: [CONTENT_SKILL_INSTALLATION_ID] },
+          },
+        }),
+      ).rejects.toThrow("Run rejected");
+    });
+
+    expect(useAIComposerDirectiveStore.getState().directivesByScope.thread).toEqual([
+      { type: "skill", id: CONTENT_SKILL_INSTALLATION_ID, label: "Content modeling" },
     ]);
   });
 
@@ -194,7 +249,7 @@ describe("ArclayerAssistantProvider", () => {
     await act(async () => {
       await onNew?.({
         content: [{ type: "text", text: "First prompt" }],
-        runConfig: { custom: { mentionedAgentIds: [] } },
+        runConfig: { custom: { mentionedAgentIds: [], selectedSkillInstallationIds: [] } },
       });
     });
 
@@ -269,7 +324,12 @@ describe("ArclayerAssistantProvider", () => {
         {
           role: "user",
           content: [{ type: "text", text: "First prompt" }],
-          runConfig: { custom: { mentionedAgentIds: [DATA_ANALYST_AGENT_ID] } },
+          runConfig: {
+            custom: {
+              mentionedAgentIds: [DATA_ANALYST_AGENT_ID],
+              selectedSkillInstallationIds: [CONTENT_SKILL_INSTALLATION_ID],
+            },
+          },
         },
         { steer: false },
       );
@@ -277,7 +337,12 @@ describe("ArclayerAssistantProvider", () => {
         {
           role: "user",
           content: [{ type: "text", text: "Second prompt" }],
-          runConfig: { custom: { mentionedAgentIds: [SITE_ARCHITECT_AGENT_ID] } },
+          runConfig: {
+            custom: {
+              mentionedAgentIds: [SITE_ARCHITECT_AGENT_ID],
+              selectedSkillInstallationIds: [SEO_SKILL_INSTALLATION_ID],
+            },
+          },
         },
         { steer: false },
       );
@@ -286,7 +351,10 @@ describe("ArclayerAssistantProvider", () => {
     await waitFor(() => expect(apiMocks.createAgentRun).toHaveBeenCalledTimes(1));
     expect(apiMocks.createAgentRun).toHaveBeenNthCalledWith(
       1,
-      expect.objectContaining({ mentionedAgentIds: [DATA_ANALYST_AGENT_ID] }),
+      expect.objectContaining({
+        mentionedAgentIds: [DATA_ANALYST_AGENT_ID],
+        selectedSkillInstallationIds: [CONTENT_SKILL_INSTALLATION_ID],
+      }),
       expect.any(Object),
     );
     expect(queue?.items).toHaveLength(1);
@@ -301,6 +369,7 @@ describe("ArclayerAssistantProvider", () => {
       expect.objectContaining({
         message: "Second prompt",
         mentionedAgentIds: [SITE_ARCHITECT_AGENT_ID],
+        selectedSkillInstallationIds: [SEO_SKILL_INSTALLATION_ID],
         threadId: "thread-1",
       }),
       expect.any(Object),

@@ -3,17 +3,20 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import { patchContentItemVersion, saveContentItemDraftVersion } from "@/api/content";
+import type { getContentItemVersion } from "@/api/content";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import {
   buildContentLibraryItemQueryKey,
   buildContentLibraryItemsQueryKey,
 } from "@/pages/projects/content/library/runtime";
 import type {
-  AdminContentItemVisibility,
-  AdminContentPresentation,
-  AdminContentVersion,
+  ContentItemOut,
+  ContentPresentationOut as AdminContentPresentation,
   JsonValueOutput,
-} from "@arclayer/openapi/admin-types";
+} from "@arclayer/openapi";
+
+type AdminContentItemVisibility = ContentItemOut["visibility"];
+type AdminContentVersion = Awaited<ReturnType<typeof getContentItemVersion>>;
 import { Input } from "@arclayer/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";

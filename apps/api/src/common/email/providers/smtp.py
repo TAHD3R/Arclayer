@@ -9,6 +9,7 @@ from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
 from fastapi_mail.schemas import MultipartSubtypeEnum
 from pydantic import EmailStr, SecretStr, TypeAdapter, ValidationError
 
+from src.common.email.credentials import decrypt_mail_credential
 from src.common.email.helpers import pick_bool, pick_int, pick_str, to_name_email
 from src.common.email.provider import EmailMessage, EmailProvider, SendResult
 from src.common.types.json_types import JsonObject
@@ -75,15 +76,21 @@ class SmtpEmailProvider(EmailProvider):
         mail = config or self.config
         provider_config = mail.get("providers")
         smtp_config: JsonObject = {}
+        has_smtp_provider_config = False
         if isinstance(provider_config, dict):
             providers = cast(JsonObject, provider_config)
             provider_value = providers.get("smtp")
             if isinstance(provider_value, dict):
                 smtp_config = cast(JsonObject, provider_value)
+                has_smtp_provider_config = True
 
         merged: JsonObject = {**mail, **smtp_config}
         server = pick_str(merged.get("server"), base.server)
+        if has_smtp_provider_config and "port" not in smtp_config:
+            raise ValueError("MAIL_SMTP_PORT_REQUIRED")
         port = pick_int(merged.get("port"), base.port)
+        if port < 1 or port > 65535:
+            raise ValueError("MAIL_SMTP_PORT_INVALID")
         username = pick_str(merged.get("username"), base.username or "")
         mail_from_raw = pick_str(merged.get("mail_from"), base.mail_from)
         mail_from_name = pick_str(merged.get("mail_from_name"), base.mail_from_name)
@@ -98,7 +105,15 @@ class SmtpEmailProvider(EmailProvider):
         except ValidationError as exc:
             raise ValueError("invalid mail_from") from exc
 
-        password_secret = _secret_from_value(merged.get("password"), base.password)
+        password = merged.get("password")
+        if isinstance(password, str) and password.strip():
+            password = decrypt_mail_credential(
+                settings=self.settings,
+                provider_id=self.provider_id,
+                field="password",
+                value=password,
+            )
+        password_secret = _secret_from_value(password, base.password)
 
         return ConnectionConfig(
             MAIL_USERNAME=username if use_credentials else "",

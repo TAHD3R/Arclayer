@@ -10,6 +10,7 @@ from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from src.common.schemas import BaseSchema
 from src.common.types.json_types import JsonValue
+from src.common.types.public_uuid import PublicUUID
 
 CHECKSUM_PATTERN = r"^sha256:[0-9a-f]{64}$"
 TOKEN_PATH_PATTERN = re.compile(r"^(primitive|semantic|component)\.[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$")
@@ -226,6 +227,25 @@ class DesignComponentRecipeV1(BaseSchema):
         return self
 
 
+class DesignAssetReferenceV1(BaseSchema):
+    """An immutable Workspace Asset pin consumed by the publication compiler."""
+
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
+
+    asset_id: PublicUUID
+    checksum_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    kind: Literal["font", "image", "icon", "logo"]
+    font_family: str | None = Field(default=None, min_length=1, max_length=256)
+
+    @model_validator(mode="after")
+    def _validate_font_metadata(self) -> Self:
+        if self.kind == "font" and self.font_family is None:
+            raise ValueError("Font Asset references require fontFamily")
+        if self.kind != "font" and self.font_family is not None:
+            raise ValueError("Only font Asset references may declare fontFamily")
+        return self
+
+
 class DesignSystemManifestInputV1(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
 
@@ -239,7 +259,7 @@ class DesignSystemManifestInputV1(BaseSchema):
     component_recipes: tuple[DesignComponentRecipeV1, ...] = Field(default_factory=tuple, max_length=128)
     motion_tokens: tuple[DesignMotionRoleV1, ...] = Field(default_factory=tuple, max_length=64)
     breakpoints: dict[str, str] = Field(default_factory=dict, max_length=16)
-    asset_references: tuple[dict[str, JsonValue], ...] = Field(default_factory=tuple, max_length=128)
+    asset_references: tuple[DesignAssetReferenceV1, ...] = Field(default_factory=tuple, max_length=128)
     component_catalog_version: str | None = Field(default=None, min_length=1, max_length=128)
     extensions: dict[str, JsonValue] = Field(default_factory=dict, max_length=64)
 
@@ -278,6 +298,7 @@ class DesignSystemManifestInputV1(BaseSchema):
         _require_unique((theme.key for theme in self.themes), "Theme keys")
         _require_unique((role.key for role in self.typography_roles), "Typography role keys")
         _require_unique((role.key for role in self.motion_tokens), "Motion role keys")
+        _require_unique((str(reference.asset_id) for reference in self.asset_references), "Asset reference ids")
         _require_unique((recipe.key for recipe in self.component_recipes), "Component recipe keys")
         return self
 

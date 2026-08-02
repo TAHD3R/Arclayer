@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import Counter
 from datetime import UTC, datetime
 from hashlib import sha256
+from typing import TypedDict
 from uuid import UUID
 
 import orjson
@@ -26,6 +27,14 @@ from src.models.feedback.feedback import (
 )
 from src.models.organization.user import User
 from src.models.projects.project import ProjectRecord
+from src.models.system.notification import NotificationCategory, NotificationRecord
+from src.models.system.notification_campaign import (
+    NotificationCampaignChannel,
+    NotificationDeliveryRecord,
+    NotificationDeliverySourceKind,
+    NotificationDeliveryState,
+    NotificationPresentation,
+)
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.analytics.ingest.service import sanitize_properties
 from src.modules.auth.repository import UserRepository
@@ -41,7 +50,21 @@ from src.modules.feedback.schema import (
     project_feedback_context_type,
 )
 from src.modules.platform_identity.repository import PlatformIdentityRepository
+from src.modules.system.admin.notifications.catalog import (
+    NotificationRecordCreateDisposition,
+    create_notification_record,
+)
+from src.modules.system.admin.notifications.schema import NotificationFeedbackTicketTarget
 from src.modules.workspaces.http.service import resolve_workspace_context_by_id
+
+_GLOBAL_NOTIFICATION_WORKSPACE_ID = UUID(int=0)
+_FEEDBACK_REPLY_EVENT_NAME = "feedback.ticket.reply"
+
+
+class _FeedbackReplyDelivery(TypedDict):
+    state: NotificationDeliveryState
+    failure_code: str | None
+    is_retryable: bool
 
 
 def _user_out(user: User) -> FeedbackUserOut:
@@ -83,6 +106,23 @@ def _message_author_out(message: FeedbackMessage, user: User | None) -> Feedback
         avatar_url=message.author_avatar_url,
         status="unknown",
         last_login_at=None,
+        created_at=message.created_at,
+    )
+
+
+def _message_out(
+    message: FeedbackMessage,
+    user: User | None,
+    delivery: _FeedbackReplyDelivery | None,
+) -> FeedbackMessageOut:
+    return FeedbackMessageOut(
+        id=message.id,
+        kind=message.kind,
+        body=message.body,
+        author=_message_author_out(message, user),
+        delivery_state=delivery["state"] if delivery is not None else None,
+        delivery_failure_code=delivery["failure_code"] if delivery is not None else None,
+        delivery_is_retryable=delivery["is_retryable"] if delivery is not None else None,
         created_at=message.created_at,
     )
 
@@ -236,6 +276,7 @@ class FeedbackService(BaseService):
                 rating=row.rating,
                 status=row.status,
                 priority=row.priority,
+                revision=row.revision,
                 workspace_id=row.workspace_id,
                 project_id=row.project_id,
                 reporter=_ticket_reporter_out(row, users.get(UUID(str(row.reporter_user_id)))),
@@ -343,6 +384,7 @@ class FeedbackService(BaseService):
         if not include_internal_notes:
             messages_query = messages_query.filter(kind=FeedbackMessageKind.REPLY)
         messages = await messages_query.order_by("created_at")
+        delivery_map = await self._feedback_reply_delivery_map(messages)
         user_ids = {UUID(str(ticket.reporter_user_id))}
         if ticket.assigned_to_user_id is not None:
             user_ids.add(UUID(str(ticket.assigned_to_user_id)))
@@ -359,6 +401,7 @@ class FeedbackService(BaseService):
             rating=ticket.rating,
             status=ticket.status,
             priority=ticket.priority,
+            revision=ticket.revision,
             workspace_id=ticket.workspace_id,
             project_id=ticket.project_id,
             context_url=ticket.context_url,
@@ -370,12 +413,10 @@ class FeedbackService(BaseService):
                 else None
             ),
             messages=[
-                FeedbackMessageOut(
-                    id=message.id,
-                    kind=message.kind,
-                    body=message.body,
-                    author=_message_author_out(message, users.get(UUID(str(message.author_user_id)))),
-                    created_at=message.created_at,
+                _message_out(
+                    message,
+                    users.get(UUID(str(message.author_user_id))),
+                    delivery_map.get(UUID(str(message.id))),
                 )
                 for message in messages
             ],
@@ -386,6 +427,25 @@ class FeedbackService(BaseService):
             created_at=ticket.created_at,
             updated_at=ticket.updated_at,
         )
+
+    @staticmethod
+    async def _feedback_reply_delivery_map(messages: list[FeedbackMessage]) -> dict[UUID, _FeedbackReplyDelivery]:
+        reply_ids = [UUID(str(message.id)) for message in messages if message.kind == FeedbackMessageKind.REPLY]
+        if not reply_ids:
+            return {}
+        identities = [f"feedback-reply:{message_id}" for message_id in reply_ids]
+        rows = await NotificationDeliveryRecord.filter(
+            source_kind=NotificationDeliverySourceKind.FEEDBACK_REPLY,
+            source_identity__in=identities,
+        ).all()
+        return {
+            UUID(row.source_identity.removeprefix("feedback-reply:")): {
+                "state": row.state,
+                "failure_code": row.failure_code,
+                "is_retryable": row.is_retryable,
+            }
+            for row in rows
+        }
 
     async def update_ticket(
         self,
@@ -398,6 +458,8 @@ class FeedbackService(BaseService):
             ticket = await FeedbackTicket.filter(id=ticket_id).using_db(conn).select_for_update().first()
             if ticket is None:
                 raise NotFound(message=t("errors", "FEEDBACK_NOT_FOUND"), error="FEEDBACK_NOT_FOUND")
+            if int(ticket.revision) != payload.expected_revision:
+                raise Conflict(error="FEEDBACK_REVISION_CONFLICT")
             if payload.assignee_user_id is not None:
                 if not await _is_platform_assignee_eligible(
                     user_id=payload.assignee_user_id,
@@ -419,6 +481,7 @@ class FeedbackService(BaseService):
             if payload.priority is not None:
                 ticket.priority = payload.priority
             ticket.last_activity_at = now
+            ticket.revision = int(ticket.revision) + 1
             await ticket.save(using_db=conn)
             await write_required_activity_event(
                 settings=self._settings,
@@ -429,7 +492,11 @@ class FeedbackService(BaseService):
                     workspace_id=ticket.workspace_id,
                     entity_type="feedback_ticket",
                     entity_id=ticket.id,
-                    properties={"status": str(ticket.status), "priority": str(ticket.priority)},
+                    properties={
+                        "status": str(ticket.status),
+                        "priority": str(ticket.priority),
+                        "revision": ticket.revision,
+                    },
                 ),
             )
         return await self.get_detail(ticket_id=ticket_id, include_internal_notes=True)
@@ -441,10 +508,29 @@ class FeedbackService(BaseService):
         payload: FeedbackMessageCreate,
         author: User,
     ) -> FeedbackTicketDetailOut:
+        delivery_id: UUID | None = None
         async with self.tx() as conn:
             ticket = await FeedbackTicket.filter(id=ticket_id).using_db(conn).select_for_update().first()
             if ticket is None:
                 raise NotFound(message=t("errors", "FEEDBACK_NOT_FOUND"), error="FEEDBACK_NOT_FOUND")
+            fingerprint = sha256(
+                orjson.dumps({"kind": str(payload.kind), "body": payload.body}, option=orjson.OPT_SORT_KEYS)
+            ).hexdigest()
+            existing = (
+                await FeedbackMessage
+                .filter(
+                    ticket_id=ticket.id,
+                    client_request_id=payload.client_request_id,
+                )
+                .using_db(conn)
+                .first()
+            )
+            if existing is not None:
+                if existing.request_fingerprint != fingerprint:
+                    raise Conflict(error="FEEDBACK_MESSAGE_IDEMPOTENCY_CONFLICT")
+                return await self.get_detail(ticket_id=ticket_id, include_internal_notes=True)
+            if int(ticket.revision) != payload.expected_revision:
+                raise Conflict(error="FEEDBACK_REVISION_CONFLICT")
             message = await FeedbackMessage.create(
                 ticket_id=ticket.id,
                 author_user_id=author.id,
@@ -453,13 +539,29 @@ class FeedbackService(BaseService):
                 author_display_name=author.display_name,
                 author_avatar_url=author.avatar_url,
                 kind=payload.kind,
+                client_request_id=payload.client_request_id,
+                request_fingerprint=fingerprint,
                 body=payload.body,
                 using_db=conn,
             )
+            if payload.kind == FeedbackMessageKind.REPLY:
+                delivery = await NotificationDeliveryRecord.create(
+                    source_kind=NotificationDeliverySourceKind.FEEDBACK_REPLY,
+                    source_identity=f"feedback-reply:{message.id}",
+                    recipient_user_id=ticket.reporter_user_id,
+                    recipient_locale="und",
+                    channel=NotificationCampaignChannel.IN_APP,
+                    presentation=NotificationPresentation.INBOX,
+                    idempotency_key=f"feedback-reply:{message.id}:user:{ticket.reporter_user_id}:inbox",
+                    state=NotificationDeliveryState.PENDING,
+                    using_db=conn,
+                )
+                delivery_id = UUID(str(delivery.id))
             now = datetime.now(UTC)
             ticket.last_activity_at = now
             if payload.kind == FeedbackMessageKind.REPLY and ticket.first_response_at is None:
                 ticket.first_response_at = now
+            ticket.revision = int(ticket.revision) + 1
             await ticket.save(using_db=conn)
             await write_required_activity_event(
                 settings=self._settings,
@@ -470,7 +572,162 @@ class FeedbackService(BaseService):
                     workspace_id=ticket.workspace_id,
                     entity_type="feedback_ticket",
                     entity_id=ticket.id,
-                    properties={"messageId": str(message.id), "kind": str(payload.kind)},
+                    properties={
+                        "messageId": str(message.id),
+                        "kind": str(payload.kind),
+                        "revision": ticket.revision,
+                    },
                 ),
             )
+        if delivery_id is not None:
+            await self._dispatch_feedback_reply(
+                delivery_id=delivery_id,
+                ticket_id=UUID(str(ticket.id)),
+                message_id=UUID(str(message.id)),
+                actor_user_id=author.id,
+            )
         return await self.get_detail(ticket_id=ticket_id, include_internal_notes=True)
+
+    async def retry_reply_delivery(
+        self,
+        *,
+        ticket_id: UUID,
+        message_id: UUID,
+        actor_user_id: UUID,
+        idempotency_key: str,
+    ) -> FeedbackTicketDetailOut:
+        async with self.tx() as conn:
+            ticket = await FeedbackTicket.filter(id=ticket_id).using_db(conn).select_for_update().first()
+            if ticket is None:
+                raise NotFound(error="FEEDBACK_NOT_FOUND")
+            delivery = (
+                await NotificationDeliveryRecord
+                .filter(
+                    source_kind=NotificationDeliverySourceKind.FEEDBACK_REPLY,
+                    source_identity=f"feedback-reply:{message_id}",
+                )
+                .using_db(conn)
+                .select_for_update()
+                .first()
+            )
+            if delivery is None:
+                raise NotFound(error="FEEDBACK_REPLY_DELIVERY_NOT_FOUND")
+            if delivery.last_operator_retry_key == idempotency_key:
+                return await self.get_detail(ticket_id=ticket_id, include_internal_notes=True)
+            if delivery.state != NotificationDeliveryState.FAILED or not delivery.is_retryable:
+                raise Conflict(error="FEEDBACK_REPLY_DELIVERY_NOT_RETRYABLE")
+            message = (
+                await FeedbackMessage
+                .filter(
+                    id=message_id,
+                    ticket_id=ticket_id,
+                    kind=FeedbackMessageKind.REPLY,
+                )
+                .using_db(conn)
+                .first()
+            )
+            if message is None:
+                raise NotFound(error="FEEDBACK_MESSAGE_NOT_FOUND")
+            delivery.last_operator_retry_key = idempotency_key
+            await delivery.save(using_db=conn, update_fields=["last_operator_retry_key", "updated_at"])
+            await write_required_activity_event(
+                settings=self._settings,
+                conn=conn,
+                payload=ActivityAuditPayload(
+                    event_name="feedback.reply.delivery.retry_requested",
+                    actor_user_id=actor_user_id,
+                    workspace_id=ticket.workspace_id,
+                    entity_type="notification_delivery",
+                    entity_id=delivery.id,
+                    properties={"source": delivery.source_identity, "messageId": str(message.id)},
+                ),
+            )
+        await self._dispatch_feedback_reply(
+            delivery_id=UUID(str(delivery.id)),
+            ticket_id=ticket_id,
+            message_id=message_id,
+            actor_user_id=actor_user_id,
+        )
+        return await self.get_detail(ticket_id=ticket_id, include_internal_notes=True)
+
+    async def _dispatch_feedback_reply(
+        self,
+        *,
+        delivery_id: UUID,
+        ticket_id: UUID,
+        message_id: UUID,
+        actor_user_id: UUID,
+    ) -> None:
+        delivery = await NotificationDeliveryRecord.get(id=delivery_id)
+        message = await FeedbackMessage.get(id=message_id, ticket_id=ticket_id)
+        ticket = await FeedbackTicket.get(id=ticket_id)
+        delivery.state = NotificationDeliveryState.PROCESSING
+        delivery.attempt_count = int(delivery.attempt_count) + 1
+        delivery.failure_code = None
+        delivery.failure_message = None
+        delivery.is_retryable = False
+        await delivery.save(
+            update_fields=["state", "attempt_count", "failure_code", "failure_message", "is_retryable", "updated_at"]
+        )
+        try:
+            result = await create_notification_record(
+                settings=self._settings,
+                workspace_id=ticket.workspace_id or _GLOBAL_NOTIFICATION_WORKSPACE_ID,
+                recipient_user_id=ticket.reporter_user_id,
+                actor_user_id=actor_user_id,
+                category=NotificationCategory.SYSTEM,
+                title=t("feedback", "FEEDBACK_REPLY_NOTIFICATION_TITLE"),
+                body=message.body,
+                target=NotificationFeedbackTicketTarget(ticket_id=ticket.id),
+                event_name=_FEEDBACK_REPLY_EVENT_NAME,
+                dedupe_key=delivery.idempotency_key,
+            )
+            if result.disposition == NotificationRecordCreateDisposition.GROUP_SUPPRESSED:
+                await self._mark_feedback_reply_suppressed(
+                    delivery,
+                    reason="NOTIFICATION_SYSTEM_POLICY_DISABLED",
+                )
+                return
+            if result.disposition == NotificationRecordCreateDisposition.PREFERENCE_SUPPRESSED:
+                await self._mark_feedback_reply_suppressed(
+                    delivery,
+                    reason="NOTIFICATION_IN_APP_PREFERENCE_DISABLED",
+                )
+                return
+            notification = result.record
+            if result.disposition == NotificationRecordCreateDisposition.DEDUPLICATED:
+                notification = await NotificationRecord.filter(
+                    workspace_id=ticket.workspace_id or _GLOBAL_NOTIFICATION_WORKSPACE_ID,
+                    recipient_user_id=ticket.reporter_user_id,
+                    dedupe_key=delivery.idempotency_key,
+                ).first()
+            if notification is None:
+                raise RuntimeError("FEEDBACK_REPLY_DEDUPLICATED_NOTIFICATION_UNAVAILABLE")
+        except Exception as exc:
+            delivery.state = NotificationDeliveryState.FAILED
+            delivery.failure_code = "FEEDBACK_REPLY_DELIVERY_FAILED"
+            delivery.failure_message = str(exc)[:512]
+            delivery.is_retryable = True
+            await delivery.save(
+                update_fields=["state", "failure_code", "failure_message", "is_retryable", "updated_at"]
+            )
+            return
+        delivery.state = NotificationDeliveryState.DELIVERED
+        delivery.sent_at = datetime.now(UTC)
+        delivery.delivered_at = delivery.sent_at
+        delivery.notification_id = notification.id
+        await delivery.save(update_fields=["state", "sent_at", "delivered_at", "notification_id", "updated_at"])
+
+    @staticmethod
+    async def _mark_feedback_reply_suppressed(
+        delivery: NotificationDeliveryRecord,
+        *,
+        reason: str,
+    ) -> None:
+        delivery.state = NotificationDeliveryState.SUPPRESSED
+        delivery.failure_code = reason
+        delivery.failure_message = None
+        delivery.is_retryable = False
+        await delivery.save(
+            update_fields=["state", "failure_code", "failure_message", "is_retryable", "updated_at"]
+        )

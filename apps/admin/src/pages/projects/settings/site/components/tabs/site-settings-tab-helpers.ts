@@ -1,5 +1,5 @@
 import type { TitlePolicy } from "@/types/site-seo";
-import type { JsonValueInput } from "@arclayer/openapi/admin-types";
+import type { JsonValueInput } from "@arclayer/openapi";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 

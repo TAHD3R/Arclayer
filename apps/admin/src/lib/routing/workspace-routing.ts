@@ -41,10 +41,7 @@ export function projectsHomePath(): string {
   return "/projects";
 }
 
-/**
- * 用于工作区切换器：尽量保持用户当前页面不变，仅替换 /w/:workspaceId 前缀。
- * 若当前路径不是 workspace-scoped，则回退到 workspace home。
- */
+/** Preserve the current canonical Project subpath when switching Project context. */
 export function switchWorkspacePath(params: {
   pathname: string;
   currentProjectId: string | null | undefined;

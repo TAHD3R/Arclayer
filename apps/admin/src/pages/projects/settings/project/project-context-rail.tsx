@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import type { Project, ProjectRuntime } from "@arclayer/openapi/admin-types";
+import type { ProjectOut as Project, ProjectRuntimeOut as ProjectRuntime } from "@arclayer/openapi";
 import { cn } from "@arclayer/lib/utils";
 
 export type ProjectAccessState = "loading" | "manage" | "read-only" | "error";

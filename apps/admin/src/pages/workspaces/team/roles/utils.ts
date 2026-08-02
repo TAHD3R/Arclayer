@@ -1,4 +1,4 @@
-import type { Role } from "@arclayer/openapi/admin-types";
+import type { WorkspaceRoleOut as Role } from "@arclayer/openapi";
 
 export type CreateRoleFormValues = {
   templateRoleCode: string;

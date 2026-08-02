@@ -12,10 +12,9 @@ import {
   loadContentLibraryItemRuntime,
 } from "@/pages/projects/content/library/runtime";
 import type {
-  AdminContentItem,
-  AdminContentOpenIntent,
-  AdminContentRecoveryAction,
-} from "@arclayer/openapi/admin-types";
+  ContentOpenIntentOut as AdminContentOpenIntent,
+  ContentRecoveryActionOut as AdminContentRecoveryAction,
+} from "@arclayer/openapi";
 import { Button } from "@arclayer/ui/button";
 import {
   Card,
@@ -31,6 +30,8 @@ import { ContentLibraryArticleEditorPage } from "../article-editor/page";
 import { ContentSiteBuilderPage } from "../../site-builder/page";
 import { ContentStructuredSurfacePage } from "../../structured/page";
 import { isContentLibraryReusableSectionRow } from "../utils";
+
+type AdminContentItem = Awaited<ReturnType<typeof loadContentLibraryItemRuntime>>;
 
 function getContinuationSurfaceLabel(
   item: Pick<AdminContentItem, "resolvedSurface">,

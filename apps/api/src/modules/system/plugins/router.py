@@ -14,10 +14,13 @@ from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import t
 from src.models.system.plugin_installation import PluginOperationKind
+from src.modules.commerce.platform_operations import build_platform_commerce_operations_service
 from src.modules.jobs.service import BackgroundJobService
 from src.modules.platform_identity.http import require_platform_permission
+from src.modules.platform_identity.management_service import PlatformIdentityManagementService
 from src.modules.platform_identity.permissions import PlatformPermissionCode
 from src.modules.platform_identity.session_schema import PlatformSessionPrincipal
+from src.modules.system.mail.profile_service import MailServiceProfileService
 from src.modules.system.plugins.artifact_service import PluginArtifactService
 from src.modules.system.plugins.catalog import (
     build_active_artifact_catalog_item,
@@ -27,7 +30,7 @@ from src.modules.system.plugins.catalog import (
     filter_plugin_catalog,
     merge_plugin_catalogs,
 )
-from src.modules.system.plugins.configuration_service import PluginConfigurationService
+from src.modules.system.plugins.connection_readiness import ExtensionConnectionReadinessService
 from src.modules.system.plugins.lifecycle_repository import PluginLifecycleRepository
 from src.modules.system.plugins.lifecycle_service import PluginLifecycleService
 from src.modules.system.plugins.remote_catalog import (
@@ -35,24 +38,16 @@ from src.modules.system.plugins.remote_catalog import (
     RemotePluginCatalogClient,
 )
 from src.modules.system.plugins.schema import (
-    ExtensionConfigurationReadiness,
     ExtensionConfigurationTarget,
     ExtensionConnectionListOut,
     ExtensionConnectionOut,
-    SystemConnectorDefinitionOut,
-    SystemPluginAdminOut,
     SystemPluginArtifactReviewOut,
     SystemPluginCatalogItemOut,
     SystemPluginCatalogListOut,
-    SystemPluginConfigurationOut,
-    SystemPluginConfigurationPatch,
     SystemPluginDetailOut,
     SystemPluginInstallationCreateRequest,
     SystemPluginLifecycleRequest,
-    SystemPluginListItemOut,
-    SystemPluginListOut,
     SystemPluginOperationOut,
-    SystemPluginProvidesOut,
 )
 
 IdempotencyKey = Annotated[
@@ -69,6 +64,12 @@ _CONFIGURATION_TARGET_BY_CONNECTOR_KIND: dict[ConnectorKind, ExtensionConfigurat
     ConnectorKind.OAUTH: ExtensionConfigurationTarget.ACCESS_SIGN_IN,
     ConnectorKind.ANALYTICS: ExtensionConfigurationTarget.MONITORING_PERFORMANCE,
     ConnectorKind.EMAIL: ExtensionConfigurationTarget.COMMUNICATIONS_EMAIL,
+}
+_CONFIGURATION_DEEP_LINK_BY_CONNECTOR_KIND: dict[ConnectorKind, str] = {
+    ConnectorKind.BILLING: "/billing/subscriptions",
+    ConnectorKind.OAUTH: "/access/sign-in",
+    ConnectorKind.ANALYTICS: "/monitoring/performance",
+    ConnectorKind.EMAIL: "/messages/email",
 }
 operations_router = APIRouter(
     tags=["internal.system.plugins"],
@@ -100,6 +101,24 @@ def get_plugin_lifecycle_service(
     )
 
 
+def get_extension_connection_readiness_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+    manager: Annotated[ExtensionManager, Depends(get_extension_manager)],
+) -> ExtensionConnectionReadinessService:
+    connectors = manager.registry.connectors
+    return ExtensionConnectionReadinessService(
+        platform_sign_in=PlatformIdentityManagementService(
+            settings=settings,
+            connector_registry=connectors,
+        ),
+        commerce=build_platform_commerce_operations_service(
+            settings=settings,
+            connectors=connectors,
+        ),
+        mail=MailServiceProfileService(settings, connector_registry=connectors),
+    )
+
+
 @operations_router.get(
     "",
     response_model=ResponseModel[PageData[SystemPluginOperationOut]],
@@ -111,13 +130,6 @@ async def list_system_plugin_operations(
     service: Annotated[PluginLifecycleService, Depends(get_plugin_lifecycle_service)],
 ) -> ResponseModel[PageData[SystemPluginOperationOut]]:
     return ApiResponse.success(data=await service.list_operations(params=params))
-
-
-def get_plugin_configuration_service(
-    settings: Annotated[Settings, Depends(get_settings)],
-    repository: Annotated[PluginLifecycleRepository, Depends(get_plugin_lifecycle_repository)],
-) -> PluginConfigurationService:
-    return PluginConfigurationService(repository, settings=settings)
 
 
 def get_plugin_artifact_service(
@@ -137,39 +149,18 @@ def get_remote_plugin_catalog_client(
 
 
 @router.get(
-    "",
-    response_model=ResponseModel[SystemPluginListOut],
-    summary="List installed system plugins",
+    "/installed",
+    response_model=ResponseModel[SystemPluginCatalogListOut],
+    summary="List installed Extensions with lifecycle state",
     dependencies=[require_platform_permission(PlatformPermissionCode.EXTENSIONS_CATALOG_READ)],
 )
-async def list_system_plugins(
-    manager: ExtensionManager = Depends(get_extension_manager),
-) -> ResponseModel[SystemPluginListOut]:
-    plugins = []
-    for instance in manager.list_instances():
-        manifest = instance.manifest
-        admin = manifest.admin
-        connector_definitions = []
-        for connector_key in manifest.provides.connectors:
-            registration = manager.registry.connectors.resolve(connector_key)
-            if registration is not None and registration.extension == instance.name:
-                connector_definitions.append(
-                    SystemConnectorDefinitionOut.model_validate(registration.definition.model_dump())
-                )
-        plugins.append(
-            SystemPluginListItemOut(
-                name=manifest.name,
-                version=manifest.version,
-                package_state=instance.package.state,
-                process_state=instance.process.state,
-                provides=SystemPluginProvidesOut(**manifest.provides.model_dump()),
-                permissions=list(manifest.permissions),
-                config_schema=dict(manifest.config_schema),
-                admin=SystemPluginAdminOut(**admin.model_dump()) if admin is not None else None,
-                connector_definitions=connector_definitions,
-            )
-        )
-    return ApiResponse.success(data=SystemPluginListOut(plugins=plugins))
+async def list_installed_extensions(
+    manager: Annotated[ExtensionManager, Depends(get_extension_manager)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    repository: Annotated[PluginLifecycleRepository, Depends(get_plugin_lifecycle_repository)],
+) -> ResponseModel[SystemPluginCatalogListOut]:
+    items = await _installed_extension_items(manager=manager, settings=settings, repository=repository)
+    return ApiResponse.success(data=SystemPluginCatalogListOut(items=items))
 
 
 @router.get(
@@ -181,6 +172,9 @@ async def list_system_plugins(
 )
 async def list_extension_connections(
     manager: ExtensionManager = Depends(get_extension_manager),
+    readiness_service: ExtensionConnectionReadinessService = Depends(
+        get_extension_connection_readiness_service
+    ),
 ) -> ResponseModel[ExtensionConnectionListOut]:
     items: list[ExtensionConnectionOut] = []
     for instance in manager.list_instances():
@@ -197,8 +191,9 @@ async def list_extension_connections(
                     connector_kind=definition.kind,
                     trust_level=definition.trust_level,
                     runtime_ready=instance.process.state == ProcessState.READY,
-                    configuration_readiness=ExtensionConfigurationReadiness.UNKNOWN,
+                    configuration_readiness=await readiness_service.resolve(definition),
                     configuration_target=_CONFIGURATION_TARGET_BY_CONNECTOR_KIND[definition.kind],
+                    configuration_deep_link=_CONFIGURATION_DEEP_LINK_BY_CONNECTOR_KIND[definition.kind],
                 )
             )
     items.sort(key=lambda item: (item.connector_kind, item.extension_name, item.connector_key))
@@ -222,15 +217,11 @@ async def list_system_plugin_catalog(
     include_online: Annotated[bool, Query(alias="includeOnline")] = False,
     ordering: Annotated[Literal["name", "-name", "version", "-version"], Query()] = "name",
 ) -> ResponseModel[SystemPluginCatalogListOut]:
-    installation_records = await repository.list_installations()
-    installations = {item.plugin_name: item for item in installation_records}
-    items = build_plugin_catalog(manager, settings, installations=installations)
-    for installation in installation_records:
-        active = build_active_artifact_catalog_item(installation, manager, settings)
-        if active is not None:
-            items = [item for item in items if item.name != active.name]
-            items.append(active)
+    items = await _installed_extension_items(manager=manager, settings=settings, repository=repository)
     if include_online:
+        installations = {
+            installation.plugin_name: installation for installation in await repository.list_installations()
+        }
         try:
             online = await catalog_client.fetch()
         except PluginCatalogError as exc:
@@ -389,76 +380,19 @@ async def get_system_plugin_detail(
     manager: Annotated[ExtensionManager, Depends(get_extension_manager)],
     settings: Annotated[Settings, Depends(get_settings)],
     repository: Annotated[PluginLifecycleRepository, Depends(get_plugin_lifecycle_repository)],
-    catalog_client: Annotated[RemotePluginCatalogClient, Depends(get_remote_plugin_catalog_client)],
 ) -> ResponseModel[SystemPluginDetailOut]:
     item = await _require_catalog_item(
         plugin_id,
         manager=manager,
         settings=settings,
         repository=repository,
-        catalog_client=catalog_client,
-        include_online=True,
+        include_online=False,
     )
     operations = await repository.list_recent_operations(plugin_id)
     return ApiResponse.success(
         data=SystemPluginDetailOut(
             **item.model_dump(),
             recent_operations=[SystemPluginOperationOut.model_validate(operation) for operation in operations],
-        )
-    )
-
-
-@router.get(
-    "/{plugin_id}/configuration",
-    response_model=ResponseModel[SystemPluginConfigurationOut],
-    summary="Get schema-driven system plugin configuration",
-)
-async def get_system_plugin_configuration(
-    plugin_id: str,
-    actor: Annotated[
-        PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.EXTENSIONS_CATALOG_READ)
-    ],
-    manager: Annotated[ExtensionManager, Depends(get_extension_manager)],
-    settings: Annotated[Settings, Depends(get_settings)],
-    repository: Annotated[PluginLifecycleRepository, Depends(get_plugin_lifecycle_repository)],
-    service: Annotated[PluginConfigurationService, Depends(get_plugin_configuration_service)],
-) -> ResponseModel[SystemPluginConfigurationOut]:
-    item = await _require_catalog_item(
-        plugin_id,
-        manager=manager,
-        settings=settings,
-        repository=repository,
-    )
-    return ApiResponse.success(data=await service.get_configuration(item=item, actor_user_id=actor.actor_id))
-
-
-@router.patch(
-    "/{plugin_id}/configuration",
-    response_model=ResponseModel[SystemPluginConfigurationOut],
-    summary="Revision-update schema-driven system plugin configuration",
-)
-async def update_system_plugin_configuration(
-    plugin_id: str,
-    payload: SystemPluginConfigurationPatch,
-    actor: Annotated[
-        PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.EXTENSIONS_CONFIGURE)
-    ],
-    manager: Annotated[ExtensionManager, Depends(get_extension_manager)],
-    settings: Annotated[Settings, Depends(get_settings)],
-    repository: Annotated[PluginLifecycleRepository, Depends(get_plugin_lifecycle_repository)],
-    service: Annotated[PluginConfigurationService, Depends(get_plugin_configuration_service)],
-) -> ResponseModel[SystemPluginConfigurationOut]:
-    item = await _require_catalog_item(
-        plugin_id,
-        manager=manager,
-        settings=settings,
-        repository=repository,
-    )
-    return ApiResponse.success(
-        data=await service.update_configuration(
-            item=item,
-            payload=payload,
-            actor_user_id=actor.actor_id,
         )
     )
 
@@ -517,6 +451,39 @@ async def rollback_system_plugin(
     return await _start_plugin_operation(
         plugin_id=plugin_id,
         kind=PluginOperationKind.ROLLBACK,
+        payload=payload,
+        idempotency_key=idempotency_key,
+        actor=actor,
+        manager=manager,
+        settings=settings,
+        repository=repository,
+        service=service,
+        artifact_service=artifact_service,
+        catalog_client=catalog_client,
+    )
+
+
+@router.post(
+    "/{plugin_id}/recover",
+    response_model=ResponseModel[SystemPluginOperationOut],
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Recover a failed extension lifecycle operation",
+)
+async def recover_system_plugin(
+    plugin_id: str,
+    payload: SystemPluginLifecycleRequest,
+    idempotency_key: IdempotencyKey,
+    actor: Annotated[PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.EXTENSIONS_INSTALL)],
+    manager: Annotated[ExtensionManager, Depends(get_extension_manager)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    repository: Annotated[PluginLifecycleRepository, Depends(get_plugin_lifecycle_repository)],
+    service: Annotated[PluginLifecycleService, Depends(get_plugin_lifecycle_service)],
+    artifact_service: Annotated[PluginArtifactService, Depends(get_plugin_artifact_service)],
+    catalog_client: Annotated[RemotePluginCatalogClient, Depends(get_remote_plugin_catalog_client)],
+) -> ResponseModel[SystemPluginOperationOut]:
+    return await _start_plugin_operation(
+        plugin_id=plugin_id,
+        kind=PluginOperationKind.RECOVER,
         payload=payload,
         idempotency_key=idempotency_key,
         actor=actor,
@@ -729,14 +696,14 @@ async def _require_catalog_item(
         active = build_active_artifact_catalog_item(installation, manager, settings)
         if active is not None:
             bundled = active
-    if bundled is not None and not include_online:
+    if not include_online:
+        if bundled is None:
+            raise NotFound(message=t("errors", "PLUGIN_NOT_FOUND"), error="PLUGIN_NOT_FOUND")
         return bundled
     if catalog_client is not None:
         try:
             catalog = await catalog_client.fetch()
         except PluginCatalogError as exc:
-            if bundled is not None:
-                return bundled
             raise ServiceUnavailable(error=exc.code, message=exc.safe_message) from exc
         remote = next(
             (
@@ -756,3 +723,23 @@ async def _require_catalog_item(
     if bundled is None:
         raise NotFound(message=t("errors", "PLUGIN_NOT_FOUND"), error="PLUGIN_NOT_FOUND")
     return bundled
+
+
+async def _installed_extension_items(
+    *,
+    manager: ExtensionManager,
+    settings: Settings,
+    repository: PluginLifecycleRepository,
+) -> list[SystemPluginCatalogItemOut]:
+    installation_records = await repository.list_installations()
+    installations = {item.plugin_name: item for item in installation_records}
+    items = build_plugin_catalog(manager, settings, installations=installations)
+    for installation in installation_records:
+        active = build_active_artifact_catalog_item(installation, manager, settings)
+        if active is not None:
+            items = [item for item in items if item.name != active.name]
+            items.append(active)
+    return sorted(
+        (item for item in items if item.installed_version is not None),
+        key=lambda item: item.name.casefold(),
+    )

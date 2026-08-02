@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import * as authApi from "@/api/auth";
 import * as authSsoApi from "@/api/auth-sso";
 import * as invitationApi from "@/api/invitations";
-import { useSystemRuntime } from "@/hooks/use-system-runtime";
+import { useProductRuntime } from "@/hooks/use-product-runtime";
 import { resolveLoginMode } from "@/lib/auth/auth-mode";
 import type { LoginMode } from "@/lib/auth/auth-mode";
 import { ApiError } from "@/lib/http";
@@ -171,11 +171,8 @@ function resolveTwoFactorChallengeMeta(error: ApiError): TwoFactorChallengeMeta 
   const meta = (error.meta ?? {}) as {
     twoFactorToken?: string;
     expiresIn?: number;
-    two_factor_token?: string;
-    expires_in?: number;
   };
-  const twoFactorToken = meta.twoFactorToken ?? meta.two_factor_token;
-  const expiresIn = meta.expiresIn ?? meta.expires_in;
+  const { twoFactorToken, expiresIn } = meta;
 
   if (!twoFactorToken || typeof expiresIn !== "number" || expiresIn <= 0) {
     return null;
@@ -199,20 +196,19 @@ function resolveEmailVerificationMeta(error: ApiError): EmailVerificationMeta | 
   const meta = (error.meta ?? {}) as {
     email?: string;
     requiresEmailVerification?: boolean;
-    requires_email_verification?: boolean;
     retryAfter?: number;
-    retry_after?: number;
   };
-  const requiresEmailVerification =
-    meta.requiresEmailVerification ?? meta.requires_email_verification;
+  const requiresEmailVerification = meta.requiresEmailVerification;
   const email = typeof meta.email === "string" ? meta.email.trim() : "";
-  const retryAfter = meta.retryAfter ?? meta.retry_after ?? 60;
+  const retryAfter = meta.retryAfter;
 
-  if (!requiresEmailVerification || !email) return null;
+  if (!requiresEmailVerification || !email || typeof retryAfter !== "number" || retryAfter < 0) {
+    return null;
+  }
 
   return {
     email,
-    retryAfter: typeof retryAfter === "number" && retryAfter >= 0 ? retryAfter : 60,
+    retryAfter,
   };
 }
 
@@ -263,7 +259,7 @@ export function useLoginPage(): LoginPageState {
   const [authTransitionLoading, setAuthTransitionLoading] = useState(false);
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const runtime = useSystemRuntime();
+  const runtime = useProductRuntime();
   const runtimeReady = Boolean(runtime.runtime);
 
   const {
@@ -897,9 +893,7 @@ export function useLoginPage(): LoginPageState {
     const result = await emailCheckMutation.mutateAsync(email);
     return {
       exists: result.exists,
-      passwordLoginAvailable: Boolean(
-        result.passwordLoginAvailable ?? result.password_login_available,
-      ),
+      passwordLoginAvailable: result.passwordLoginAvailable,
     };
   };
 
@@ -1032,11 +1026,14 @@ export function useLoginPage(): LoginPageState {
         return;
       }
       const result = await registerMutation.mutateAsync(values);
-      if (result.requiresEmailVerification ?? result.requires_email_verification) {
-        const retryAfter = result.retryAfter ?? result.retry_after ?? 60;
+      if (result.requiresEmailVerification) {
+        const retryAfter = result.retryAfter;
+        if (typeof retryAfter !== "number" || retryAfter <= 0) {
+          throw new Error("Registration verification response is missing retryAfter");
+        }
         setRegisterVerification({
           email: values.email,
-          retryAfter: typeof retryAfter === "number" && retryAfter > 0 ? retryAfter : 60,
+          retryAfter,
         });
         notifyInfoText(t("auth:REGISTER_VERIFY_EMAIL_SENT"));
         return;
@@ -1067,28 +1064,33 @@ export function useLoginPage(): LoginPageState {
 
   const onRegisterVerificationResend = async (email: string) => {
     const result = await registerVerificationResendMutation.mutateAsync(email);
-    const retryAfter = result.retryAfter ?? result.retry_after ?? 60;
+    const retryAfter = result.retryAfter;
+    if (typeof retryAfter !== "number" || retryAfter <= 0) {
+      throw new Error("Registration resend response is missing retryAfter");
+    }
     setRegisterVerification({
       email,
-      retryAfter: typeof retryAfter === "number" && retryAfter > 0 ? retryAfter : 60,
+      retryAfter,
     });
     notifyInfoText(t("auth:REGISTER_VERIFY_EMAIL_SENT"));
     return {
-      retryAfter: typeof retryAfter === "number" && retryAfter > 0 ? retryAfter : 60,
+      retryAfter,
     };
   };
 
   const onLoginVerificationResend = async (email: string) => {
     const result = await registerVerificationResendMutation.mutateAsync(email);
-    const retryAfter = result.retryAfter ?? result.retry_after ?? 60;
-    const nextRetryAfter = typeof retryAfter === "number" && retryAfter > 0 ? retryAfter : 60;
+    const retryAfter = result.retryAfter;
+    if (typeof retryAfter !== "number" || retryAfter <= 0) {
+      throw new Error("Login verification response is missing retryAfter");
+    }
     setLoginVerification({
       email,
-      retryAfter: nextRetryAfter,
+      retryAfter,
     });
     notifyInfoText(t("auth:REGISTER_VERIFY_EMAIL_SENT"));
     return {
-      retryAfter: nextRetryAfter,
+      retryAfter,
     };
   };
 

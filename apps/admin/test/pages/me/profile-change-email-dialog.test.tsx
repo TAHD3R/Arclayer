@@ -73,7 +73,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  requestMyEmailChangeMock.mockResolvedValue({ expires_in: 600, retryAfter: 60 });
+  requestMyEmailChangeMock.mockResolvedValue({ expiresIn: 600, retryAfter: 60 });
   confirmMyEmailChangeMock.mockResolvedValue({
     id: "u-1",
     username: "demo",
@@ -107,7 +107,7 @@ describe("UserChangeEmailDialog", () => {
     );
 
     await waitFor(() => {
-      expect(requestMyEmailChangeMock).toHaveBeenCalledWith({ new_email: "new@example.com" });
+      expect(requestMyEmailChangeMock).toHaveBeenCalledWith({ newEmail: "new@example.com" });
     });
 
     expect(
@@ -134,7 +134,7 @@ describe("UserChangeEmailDialog", () => {
 
     await waitFor(() => {
       expect(confirmMyEmailChangeMock).toHaveBeenCalledWith({
-        new_email: "new@example.com",
+        newEmail: "new@example.com",
         code: "654321",
       });
     });

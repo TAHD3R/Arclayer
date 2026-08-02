@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -55,6 +55,34 @@ describe("PaymentRestrictedNotice", () => {
     expect(
       screen.queryByRole("button", { name: "commerce:PAYMENT_RESTRICTED_RECOVERY_ACTION" }),
     ).toBeNull();
+    expect(await screen.findByText("commerce:PAYMENT_RECOVERY_STATUS_ERROR")).toBeVisible();
+  });
+
+  it("shows an explicit access failure and retries the source projection", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getWorkspaceCommercialAccess)
+      .mockRejectedValueOnce(new Error("access unavailable"))
+      .mockResolvedValueOnce({
+        workspaceId: "workspace-1",
+        state: "normal",
+        explanationKey: "commerce:COMMERCIAL_ACCESS_NORMAL",
+        billingContactRequired: false,
+      });
+
+    renderNotice();
+
+    expect(
+      await screen.findByText("commerce:PAYMENT_RESTRICTION_STATUS_ERROR_TITLE"),
+    ).toBeVisible();
+    await user.click(
+      screen.getByRole("button", { name: "commerce:PAYMENT_RESTRICTION_STATUS_RETRY" }),
+    );
+    await waitFor(() => expect(getWorkspaceCommercialAccess).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(
+        screen.queryByText("commerce:PAYMENT_RESTRICTION_STATUS_ERROR_TITLE"),
+      ).not.toBeInTheDocument(),
+    );
   });
 
   it("opens the portal only after the typed recovery response permits it", async () => {

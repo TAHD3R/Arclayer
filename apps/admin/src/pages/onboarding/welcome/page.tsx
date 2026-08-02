@@ -54,6 +54,7 @@ import type {
   OnboardingFlowMode,
   RoleOption,
   UserProfileDraft,
+  WelcomeHeardAboutUs,
   WelcomeMode,
   WelcomeOnboardingStepId,
   WorkspaceDraft,
@@ -182,7 +183,7 @@ export function WelcomeOnboardingPage() {
   const [workspaceErrors, setWorkspaceErrors] = useState<Record<string, string | null>>({});
   const [inviteRows, setInviteRows] = useState<InviteDraftRow[]>(() => buildInviteRows("editor"));
   const [selectedTeamType, setSelectedTeamType] = useState<string | null>(null);
-  const [selectedHeardAboutUs, setSelectedHeardAboutUs] = useState<string | null>(null);
+  const [selectedHeardAboutUs, setSelectedHeardAboutUs] = useState<WelcomeHeardAboutUs>(null);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
   const [avatarCompletionCheckpoint, setAvatarCompletionCheckpoint] =
     useState<AssetUploadCompletionCheckpoint | null>(null);
@@ -343,21 +344,12 @@ export function WelcomeOnboardingPage() {
 
   useEffect(() => {
     if (isDryRun || !profileQuery.data) return;
-    const displayName =
-      profileQuery.data.displayName ??
-      profileQuery.data.display_name ??
-      profileQuery.data.username ??
-      "";
+    const displayName = profileQuery.data.displayName ?? profileQuery.data.username ?? "";
     setProfileDraft((current) => ({
       ...current,
       displayName,
-      avatarUrl:
-        profileQuery.data.avatarUrl ?? profileQuery.data.avatar_url ?? current.avatarUrl ?? null,
-      avatarAssetId:
-        profileQuery.data.avatarAssetId ??
-        profileQuery.data.avatar_asset_id ??
-        current.avatarAssetId ??
-        null,
+      avatarUrl: profileQuery.data.avatarUrl ?? current.avatarUrl ?? null,
+      avatarAssetId: profileQuery.data.avatarAssetId ?? current.avatarAssetId ?? null,
     }));
   }, [isDryRun, profileQuery.data]);
 
@@ -365,24 +357,12 @@ export function WelcomeOnboardingPage() {
     if (isDryRun || !onboardingProfileQuery.data) return;
     setProfileDraft((current) => ({
       ...current,
-      jobRole:
-        onboardingProfileQuery.data.jobRole ??
-        onboardingProfileQuery.data.job_role ??
-        current.jobRole,
-      companySize:
-        onboardingProfileQuery.data.companySize ??
-        onboardingProfileQuery.data.company_size ??
-        current.companySize,
+      jobRole: onboardingProfileQuery.data.jobRole ?? current.jobRole,
+      companySize: onboardingProfileQuery.data.companySize ?? current.companySize,
       subscribedProductUpdates:
-        onboardingProfileQuery.data.subscribedProductUpdates ??
-        onboardingProfileQuery.data.subscribed_product_updates ??
-        current.subscribedProductUpdates,
+        onboardingProfileQuery.data.subscribedProductUpdates ?? current.subscribedProductUpdates,
     }));
-    setSelectedHeardAboutUs(
-      onboardingProfileQuery.data.heardAboutUs ??
-        onboardingProfileQuery.data.heard_about_us ??
-        null,
-    );
+    setSelectedHeardAboutUs(onboardingProfileQuery.data.heardAboutUs ?? null);
   }, [isDryRun, onboardingProfileQuery.data]);
 
   useEffect(() => {
@@ -433,11 +413,11 @@ export function WelcomeOnboardingPage() {
   });
 
   async function persistCompletedAvatar(assetId: string) {
-    const updated = await authApi.updateMyProfile({ avatarAssetId: assetId });
+    const updated = await authApi.updateMyProfile({ avatar_asset_id: assetId });
     setProfileDraft((current) => ({
       ...current,
-      avatarUrl: updated.avatarUrl ?? updated.avatar_url ?? current.avatarUrl,
-      avatarAssetId: updated.avatarAssetId ?? updated.avatar_asset_id ?? assetId,
+      avatarUrl: updated.avatarUrl ?? current.avatarUrl,
+      avatarAssetId: updated.avatarAssetId ?? assetId,
     }));
     setAvatarCompletionCheckpoint(null);
   }
@@ -491,11 +471,11 @@ export function WelcomeOnboardingPage() {
     }
 
     if (!isDryRun) {
-      await authApi.updateMyProfile({ display_name: normalizedDisplayName });
+      await authApi.updateMyProfile({ displayName: normalizedDisplayName });
       await authApi.patchMyOnboardingProfile({
-        job_role: profileDraft.jobRole,
-        company_size: profileDraft.companySize,
-        subscribed_product_updates: profileDraft.subscribedProductUpdates,
+        jobRole: profileDraft.jobRole,
+        companySize: profileDraft.companySize,
+        subscribedProductUpdates: profileDraft.subscribedProductUpdates,
       });
     }
 
@@ -667,7 +647,7 @@ export function WelcomeOnboardingPage() {
       throw new Error(t("onboarding:WELCOME_WORKSPACE_REQUIRED_FOR_INVITES"));
     }
     await authApi.patchMyOnboardingProfile({
-      heard_about_us: selectedHeardAboutUs,
+      heardAboutUs: selectedHeardAboutUs,
     });
     await invalidateWorkspaceQueries();
     setCurrentContext({ workspaceId: createdWorkspaceId, projectId: null });
@@ -681,7 +661,7 @@ export function WelcomeOnboardingPage() {
 
   async function completeInvitationFlow() {
     await authApi.patchMyOnboardingProfile({
-      heard_about_us: selectedHeardAboutUs,
+      heardAboutUs: selectedHeardAboutUs,
     });
     await invalidateWorkspaceQueries();
     await navigate({
@@ -713,7 +693,7 @@ export function WelcomeOnboardingPage() {
     }
 
     await authApi.patchMyOnboardingProfile({
-      heard_about_us: selectedHeardAboutUs,
+      heardAboutUs: selectedHeardAboutUs,
     });
 
     const refreshed = await workspacesQuery.refetch();
@@ -914,12 +894,24 @@ export function WelcomeOnboardingPage() {
                 onDisplayNameChange={(displayName) =>
                   setProfileDraft((current) => ({ ...current, displayName }))
                 }
-                onJobRoleChange={(jobRole) =>
-                  setProfileDraft((current) => ({ ...current, jobRole }))
-                }
-                onCompanySizeChange={(companySize) =>
-                  setProfileDraft((current) => ({ ...current, companySize }))
-                }
+                onJobRoleChange={(jobRole) => {
+                  if (!jobRoleOptions.some((option) => option.value === jobRole)) {
+                    throw new Error("Invalid onboarding job role");
+                  }
+                  setProfileDraft((current) => ({
+                    ...current,
+                    jobRole: jobRole as UserProfileDraft["jobRole"],
+                  }));
+                }}
+                onCompanySizeChange={(companySize) => {
+                  if (!companySizeOptions.some((option) => option.value === companySize)) {
+                    throw new Error("Invalid onboarding company size");
+                  }
+                  setProfileDraft((current) => ({
+                    ...current,
+                    companySize: companySize as UserProfileDraft["companySize"],
+                  }));
+                }}
                 onSubscribedProductUpdatesChange={(subscribedProductUpdates) =>
                   setProfileDraft((current) => ({ ...current, subscribedProductUpdates }))
                 }
@@ -930,7 +922,7 @@ export function WelcomeOnboardingPage() {
                     setProfileDraft((current) => ({ ...current, avatarUrl: null }));
                     return;
                   }
-                  void authApi.updateMyProfile({ avatarAssetId: null }).then(() => {
+                  void authApi.updateMyProfile({ avatar_asset_id: null }).then(() => {
                     setProfileDraft((current) => ({
                       ...current,
                       avatarUrl: null,
@@ -994,7 +986,16 @@ export function WelcomeOnboardingPage() {
                 selected={step === "teamType" ? selectedTeamType : selectedHeardAboutUs}
                 options={step === "teamType" ? teamTypeOptions : heardAboutUsOptions}
                 variant={step === "teamType" ? "teamType" : "heardAboutUs"}
-                onChange={step === "teamType" ? setSelectedTeamType : setSelectedHeardAboutUs}
+                onChange={(value) => {
+                  if (step === "teamType") {
+                    setSelectedTeamType(value);
+                    return;
+                  }
+                  if (!heardAboutUsOptions.some((option) => option.value === value)) {
+                    throw new Error("Invalid onboarding discovery source");
+                  }
+                  setSelectedHeardAboutUs(value as WelcomeHeardAboutUs);
+                }}
               />
             </OnboardingMotionItem>
           ) : null}

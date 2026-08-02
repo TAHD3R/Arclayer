@@ -1,11 +1,11 @@
 import { projectPath } from "@/lib/api";
 import { api } from "@/lib/http";
 import type {
-  ProjectSourceFile,
-  ProjectSourceFileDelete,
-  ProjectSourceFileUpsertInput,
-  ProjectSourceManifest,
-} from "@arclayer/openapi/admin-types";
+  ProjectSourceFileOut as ProjectSourceFile,
+  ProjectSourceFileDeleteOut as ProjectSourceFileDelete,
+  ProjectSourceFileUpsertIn as ProjectSourceFileUpsertInput,
+  ProjectSourceManifestOut as ProjectSourceManifest,
+} from "@arclayer/openapi";
 
 function sourceFilePath(filePath: string): string {
   return filePath

@@ -45,14 +45,6 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
     label: "Domains",
     labelKey: "nav:NAV_WEBSITE_DOMAINS",
     to: "/website/project-releases",
-    activeMatchPaths: [
-      "/website/domain",
-      "/website/releases",
-      "/content/domain",
-      "/settings/domain",
-      "/deployments",
-      "/settings/deployments",
-    ],
     icon: Globe2,
   },
   {
@@ -67,7 +59,6 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
         label: "Content Library",
         labelKey: "nav:NAV_CONTENT_LIBRARY",
         to: "/content/library",
-        activeMatchPaths: ["/content/create"],
         icon: LibraryBig,
       },
       {
@@ -107,13 +98,6 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
     label: "Website Config",
     labelKey: "nav:NAV_WEBSITE_CONFIG",
     to: "/website/config",
-    activeMatchPaths: [
-      "/seo/site",
-      "/seo/site/localization",
-      "/content/general",
-      "/content/localization",
-      "/settings/localization",
-    ],
     icon: MonitorCog,
   },
   {
@@ -129,12 +113,7 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
     label: "Project Settings",
     labelKey: "nav:NAV_SETTINGS_PROJECT",
     to: "/settings/general",
-    activeMatchPaths: [
-      "/settings/api",
-      "/settings/api-keys",
-      "/settings/environments",
-      "/settings/databases",
-    ],
+    activeMatchPaths: ["/settings/api", "/settings/environments", "/settings/databases"],
     icon: Settings2,
   },
 ] as const;

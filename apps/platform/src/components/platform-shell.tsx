@@ -7,6 +7,8 @@ import type { PlatformCapabilityCatalogOut } from "@arclayer/platform-openapi";
 import { CapabilityAccessProvider } from "@/capabilities/capability-access";
 import type { PlatformDestination } from "@/capabilities/module-registry";
 import {
+  CAPABILITY_NAVIGATION_CONTRACT_ERROR_CODE,
+  CapabilityNavigationContractError,
   projectCapabilityNavigation,
   resolveCapabilityBreadcrumbKey,
   type CapabilityNavigationProjection,
@@ -52,7 +54,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 
 type ResolvedCapabilityState =
   | Readonly<{ status: "loading"; retry: () => void }>
-  | Readonly<{ status: "error"; retry: () => void }>
+  | Readonly<{
+      status: "error";
+      errorCode: string;
+      errorMessage: string;
+      retry: () => void;
+    }>
   | Readonly<{
       status: "success";
       capabilities: PlatformCapabilityCatalogOut["items"];
@@ -97,6 +104,10 @@ function DestinationNavigation(props: { destination: PlatformDestination; isActi
   );
 }
 
+function isDestinationActive(pathname: string, destination: PlatformDestination): boolean {
+  return pathname === destination.path || pathname.startsWith(`${destination.path}/`);
+}
+
 function CapabilityNavigation(props: {
   projection: CapabilityNavigationProjection;
   pathname: string;
@@ -118,33 +129,47 @@ function CapabilityNavigation(props: {
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
-      {props.projection.capabilityItems.map((item) => (
-        <SidebarGroup key={item.capabilityId}>
-          <SidebarGroupContent>
-            <p className="px-2 pb-1 text-caption font-semibold text-label-secondary">
-              {t(item.module.domainLabelKey)}
-            </p>
-            <SidebarMenu>
-              {item.destinations.map((destination) => (
-                <SidebarMenuItem key={destination.id}>
-                  <DestinationNavigation
-                    destination={destination}
-                    isActive={props.pathname === destination.path}
-                  />
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      ))}
-      {props.projection.isPartial ? (
-        <p
-          className="px-4 py-3 text-footnote text-label-secondary group-data-[collapsible=icon]:hidden"
-          role="status"
-        >
-          {t("CAPABILITY_PARTIAL")}
-        </p>
-      ) : null}
+      {props.projection.capabilityItems.map((item) => {
+        const activeDestination = item.destinations.some((destination) =>
+          isDestinationActive(props.pathname, destination),
+        );
+        const defaultDestination = item.destinations[0];
+
+        return (
+          <SidebarGroup key={item.capabilityId}>
+            <SidebarGroupContent>
+              {activeDestination ? (
+                <>
+                  <p className="px-2 pb-1 text-caption font-semibold text-label-secondary">
+                    {t(item.module.domainLabelKey)}
+                  </p>
+                  <SidebarMenu>
+                    {item.destinations.map((destination) => (
+                      <SidebarMenuItem key={destination.id}>
+                        <DestinationNavigation
+                          destination={destination}
+                          isActive={isDestinationActive(props.pathname, destination)}
+                        />
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </>
+              ) : (
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip={undefined}>
+                      <Link to={defaultDestination.path}>
+                        <defaultDestination.icon aria-hidden="true" />
+                        <span>{t(defaultDestination.labelKey)}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              )}
+            </SidebarGroupContent>
+          </SidebarGroup>
+        );
+      })}
     </>
   );
 }
@@ -166,6 +191,12 @@ function CapabilityNavigationState(props: {
     <div className="space-y-3 px-4 py-3 group-data-[collapsible=icon]:hidden" role="alert">
       <p className="text-footnote font-medium">{t("CAPABILITY_ERROR_TITLE")}</p>
       <p className="text-footnote text-label-secondary">{t("CAPABILITY_ERROR_DESCRIPTION")}</p>
+      <p className="text-footnote text-label-secondary" data-testid="capability-error-code">
+        {t("CAPABILITY_ERROR_CODE", { code: props.state.errorCode })}
+      </p>
+      <p className="text-footnote text-label-secondary" data-testid="capability-error-message">
+        {props.state.errorMessage}
+      </p>
       <Button onClick={props.state.retry} size="sm" variant="outline">
         {t("CAPABILITY_RETRY")}
       </Button>
@@ -250,6 +281,15 @@ function PlatformContent(props: { state: ResolvedCapabilityState; pathname: stri
           <AlertTitle>{t("CAPABILITY_ERROR_TITLE")}</AlertTitle>
           <AlertDescription className="space-y-3">
             <p>{t("CAPABILITY_ERROR_DESCRIPTION")}</p>
+            <p className="text-footnote text-label-secondary" data-testid="capability-error-code">
+              {t("CAPABILITY_ERROR_CODE", { code: props.state.errorCode })}
+            </p>
+            <p
+              className="text-footnote text-label-secondary"
+              data-testid="capability-error-message"
+            >
+              {props.state.errorMessage}
+            </p>
             <Button onClick={props.state.retry} size="sm" variant="outline">
               {t("CAPABILITY_RETRY")}
             </Button>
@@ -277,8 +317,18 @@ function PlatformContent(props: { state: ResolvedCapabilityState; pathname: stri
   );
 }
 
-function resolveCapabilityState(state: PlatformCapabilityCatalogState): ResolvedCapabilityState {
-  if (state.status !== "success") return state;
+export function resolveCapabilityState(
+  state: PlatformCapabilityCatalogState,
+): ResolvedCapabilityState {
+  if (state.status === "loading") return state;
+  if (state.status === "error") {
+    return {
+      status: "error",
+      errorCode: "PLATFORM_CAPABILITY_CATALOG_UNAVAILABLE",
+      errorMessage: "The Platform Capability Catalog could not be loaded.",
+      retry: state.retry,
+    };
+  }
   try {
     return {
       status: "success",
@@ -286,8 +336,24 @@ function resolveCapabilityState(state: PlatformCapabilityCatalogState): Resolved
       projection: projectCapabilityNavigation(state.catalog.items),
       retry: state.retry,
     };
-  } catch {
-    return { status: "error", retry: state.retry };
+  } catch (error) {
+    if (error instanceof CapabilityNavigationContractError) {
+      return {
+        status: "error",
+        errorCode: error.code,
+        errorMessage: error.message,
+        retry: state.retry,
+      };
+    }
+    return {
+      status: "error",
+      errorCode: CAPABILITY_NAVIGATION_CONTRACT_ERROR_CODE,
+      errorMessage:
+        error instanceof Error
+          ? error.message
+          : "Platform capability navigation projection failed without an Error message.",
+      retry: state.retry,
+    };
   }
 }
 

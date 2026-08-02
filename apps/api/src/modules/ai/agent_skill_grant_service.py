@@ -133,30 +133,10 @@ class AgentSkillGrantResolver:
         records = tuple(
             await AgentRunSkillSnapshotV1Record.filter(run_id=run_id).order_by("agent_order", "skill_order", "id")
         )
-        expected = tuple(
-            (agent_order, skill_order, agent.assignment_id, agent.version_id, installation_id)
-            for agent_order, agent in enumerate(agents)
-            for skill_order, installation_id in enumerate(agent.skill_installation_ids)
-        )
-        actual = tuple(
-            (
-                record.agent_order,
-                record.skill_order,
-                record.agent_assignment_id,
-                record.agent_version_id,
-                record.installation_id,
-            )
-            for record in records
-        )
-        if actual != expected:
-            self._raise("AGENT_SKILL_SNAPSHOT_INVALID")
-
-        agent_by_assignment = {agent.assignment_id: agent for agent in agents}
+        _validate_run_snapshot_layout(records=records, agents=agents)
         lead_context: list[AgentSkillContextPackage] = []
         for record in records:
-            agent = agent_by_assignment.get(record.agent_assignment_id)
-            if agent is None:
-                self._raise("AGENT_SKILL_SNAPSHOT_INVALID")
+            agent = agents[record.agent_order]
             self._validate_agent_scope(workspace_id=workspace_id, agent=agent)
             target = await self._resolve_snapshot_target(
                 workspace_id=workspace_id,
@@ -285,6 +265,134 @@ class AgentSkillGrantResolver:
     @staticmethod
     def _raise(code: str) -> NoReturn:
         raise AgentSkillGrantError(code)
+
+
+def with_selected_lead_skill_installations(
+    *,
+    workspace_id: UUID,
+    lead_agent: ResolvedAgentAssignment,
+    selected_skill_installation_ids: tuple[UUID, ...],
+) -> ResolvedAgentAssignment:
+    installation_ids = _ordered_installation_union(
+        lead_agent.skill_installation_ids,
+        selected_skill_installation_ids,
+    )
+    skill_grant_workspace_id = (
+        lead_agent.skill_grant_workspace_id
+        if lead_agent.skill_installation_ids or lead_agent.skill_grant_workspace_id is not None
+        else workspace_id if installation_ids else None
+    )
+    return lead_agent.model_copy(
+        update={
+            "skill_installation_ids": installation_ids,
+            "skill_grant_workspace_id": skill_grant_workspace_id,
+        }
+    )
+
+
+def _ordered_installation_union(
+    fixed_installation_ids: tuple[UUID, ...],
+    selected_installation_ids: tuple[UUID, ...],
+) -> tuple[UUID, ...]:
+    merged: list[UUID] = []
+    seen: set[UUID] = set()
+    for installation_id in (*fixed_installation_ids, *selected_installation_ids):
+        if installation_id in seen:
+            continue
+        seen.add(installation_id)
+        merged.append(installation_id)
+    return tuple(merged)
+
+
+def _validate_run_snapshot_layout(
+    *,
+    records: tuple[AgentRunSkillSnapshotV1Record, ...],
+    agents: tuple[ResolvedAgentAssignment, ...],
+) -> None:
+    records_by_agent_order = _records_by_agent_order(records=records, agent_count=len(agents))
+    for agent_order, agent in enumerate(agents):
+        agent_records = records_by_agent_order[agent_order]
+        fixed_count = len(agent.skill_installation_ids)
+        _require_fixed_snapshot_prefix(
+            records=agent_records[:fixed_count],
+            agent_order=agent_order,
+            agent=agent,
+        )
+        extra_records = agent_records[fixed_count:]
+        if agent_order != 0:
+            if extra_records:
+                _raise_invalid_snapshot()
+            continue
+        _require_selected_snapshot_suffix(
+            records=extra_records,
+            fixed_installation_ids=agent.skill_installation_ids,
+            lead_agent=agent,
+            fixed_count=fixed_count,
+        )
+
+
+def _records_by_agent_order(
+    *,
+    records: tuple[AgentRunSkillSnapshotV1Record, ...],
+    agent_count: int,
+) -> tuple[tuple[AgentRunSkillSnapshotV1Record, ...], ...]:
+    grouped: list[list[AgentRunSkillSnapshotV1Record]] = [[] for _ in range(agent_count)]
+    for record in records:
+        if record.agent_order < 0 or record.agent_order >= agent_count:
+            _raise_invalid_snapshot()
+        grouped[record.agent_order].append(record)
+    return tuple(tuple(group) for group in grouped)
+
+
+def _require_fixed_snapshot_prefix(
+    *,
+    records: tuple[AgentRunSkillSnapshotV1Record, ...],
+    agent_order: int,
+    agent: ResolvedAgentAssignment,
+) -> None:
+    expected = tuple(
+        (agent_order, skill_order, agent.assignment_id, agent.version_id, installation_id)
+        for skill_order, installation_id in enumerate(agent.skill_installation_ids)
+    )
+    actual = tuple(_snapshot_identity(record) for record in records)
+    if actual != expected:
+        _raise_invalid_snapshot()
+
+
+def _require_selected_snapshot_suffix(
+    *,
+    records: tuple[AgentRunSkillSnapshotV1Record, ...],
+    fixed_installation_ids: tuple[UUID, ...],
+    lead_agent: ResolvedAgentAssignment,
+    fixed_count: int,
+) -> None:
+    installation_ids = tuple(record.installation_id for record in records)
+    if (
+        len(installation_ids) != len(set(installation_ids))
+        or any(installation_id in fixed_installation_ids for installation_id in installation_ids)
+        or any(
+            record.agent_order != 0
+            or record.skill_order != fixed_count + skill_offset
+            or record.agent_assignment_id != lead_agent.assignment_id
+            or record.agent_version_id != lead_agent.version_id
+            for skill_offset, record in enumerate(records)
+        )
+    ):
+        _raise_invalid_snapshot()
+
+
+def _snapshot_identity(record: AgentRunSkillSnapshotV1Record) -> tuple[int, int, UUID, UUID, UUID]:
+    return (
+        record.agent_order,
+        record.skill_order,
+        record.agent_assignment_id,
+        record.agent_version_id,
+        record.installation_id,
+    )
+
+
+def _raise_invalid_snapshot() -> NoReturn:
+    raise AgentSkillGrantError("AGENT_SKILL_SNAPSHOT_INVALID")
 
 
 def _validated_target(

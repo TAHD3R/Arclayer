@@ -62,6 +62,31 @@ describe("inbox source search", () => {
     ).toEqual({});
   });
 
+  it("accepts only public feedback ticket ids and preserves them independently of source context", () => {
+    const ticketId = "AbCdEfGhIjKlMnOpQrStUv";
+
+    expect(validateNotificationsSourceSearch({ ticketId })).toEqual({ ticketId });
+    expect(
+      validateNotificationsSourceSearch({
+        sourceKind: "workspace",
+        sourcePath: "/projects/project-alpha",
+        ticketId,
+      }),
+    ).toEqual({
+      sourceKind: "workspace",
+      sourcePath: "/projects/project-alpha",
+      ticketId,
+    });
+    expect(
+      validateNotificationsSourceSearch({
+        sourceKind: "workspace",
+        sourcePath: "https://evil.example/steal",
+        ticketId,
+      }),
+    ).toEqual({ ticketId });
+    expect(validateNotificationsSourceSearch({ ticketId: "not-a-public-id" })).toEqual({});
+  });
+
   it("derives source context from supported paths and settings screen only", () => {
     expect(buildNotificationsSourceSearch("/projects/ws-1/assets/")).toEqual({
       sourceKind: "workspace",

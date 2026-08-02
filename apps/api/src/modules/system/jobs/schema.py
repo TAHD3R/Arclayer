@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pydantic import ConfigDict, Field
 
-from src.common.schemas import BaseOut, BaseSchema
+from src.common.schemas import BaseOut
 from src.common.types.public_uuid import PublicUUID
 from src.models.content._enums import PublishJobStatus, PublishJobType
 
@@ -25,10 +25,3 @@ class PublishJobOut(BaseOut):
     created_by_user_id: PublicUUID | None = Field(default=None, description="Actor user id.")
     created_at: datetime = Field(..., description="Created at.")
     updated_at: datetime = Field(..., description="Updated at.")
-
-
-class PublishJobListQuery(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    status: PublishJobStatus | None = Field(default=None, description="Filter by job status.")
-    job_type: PublishJobType | None = Field(default=None, description="Filter by job type.")

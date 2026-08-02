@@ -6,6 +6,7 @@ import type {
 } from "@arclayer/platform-openapi";
 
 import {
+  addOperationalSignalNote,
   assignOperationalSignal,
   claimOperationalSignal,
   listOperationalSignalEligibleAssignees,
@@ -25,9 +26,11 @@ import { Textarea } from "@arclayer/ui/textarea";
 type TriageRequest =
   | Readonly<{ action: "claim" }>
   | Readonly<{ action: "assign"; assigneeUserId: string }>
+  | Readonly<{ action: "transfer"; assigneeUserId: string }>
   | Readonly<{ action: "in_progress" }>
   | Readonly<{ action: "needs_attention" }>
-  | Readonly<{ action: "remind_later"; reminderAt: string; reason: string }>;
+  | Readonly<{ action: "remind_later"; reminderAt: string; reason: string }>
+  | Readonly<{ action: "note"; body: string }>;
 
 function operatorLabel(operator: OperationalSignalAssigneeOut): string {
   return operator.displayName?.trim() || operator.username;
@@ -42,6 +45,7 @@ async function applyTriageRequest(
     case "claim":
       return claimOperationalSignal(id, triage.revision);
     case "assign":
+    case "transfer":
       return assignOperationalSignal(id, request.assigneeUserId, triage.revision);
     case "in_progress":
       return markOperationalSignalInProgress(id, triage.revision);
@@ -49,6 +53,8 @@ async function applyTriageRequest(
       return markOperationalSignalNeedsAttention(id, triage.revision);
     case "remind_later":
       return remindOperationalSignalLater(id, triage.revision, request.reminderAt, request.reason);
+    case "note":
+      return addOperationalSignalNote(id, triage.revision, request.body);
   }
 }
 
@@ -59,9 +65,11 @@ function loadEligibleAssignees(signal: AbortSignal) {
 function AssignControl({
   disabled,
   execute,
+  mode,
 }: Readonly<{
   disabled: boolean;
   execute: (request: TriageRequest) => Promise<OperationalSignalDetailOut | undefined>;
+  mode: "assign" | "transfer";
 }>) {
   const { t } = useTranslation("inbox");
   const [assigneeUserId, setAssigneeUserId] = useState("");
@@ -86,7 +94,9 @@ function AssignControl({
   return (
     <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
       <div className="space-y-2">
-        <Label htmlFor="signal-assignee">{t("ASSIGN_TO")}</Label>
+        <Label htmlFor="signal-assignee">
+          {t(mode === "transfer" ? "TRANSFER_TO" : "ASSIGN_TO")}
+        </Label>
         <Select onValueChange={setAssigneeUserId} value={assigneeUserId}>
           <SelectTrigger id="signal-assignee">
             <SelectValue placeholder={t("ASSIGN_PLACEHOLDER")} />
@@ -102,12 +112,50 @@ function AssignControl({
       </div>
       <Button
         disabled={disabled || !assigneeUserId}
-        onClick={() => execute({ action: "assign", assigneeUserId })}
+        onClick={() => execute({ action: mode, assigneeUserId })}
         variant="outline"
       >
-        {t("ASSIGN_SUBMIT")}
+        {t(mode === "transfer" ? "TRANSFER_SUBMIT" : "ASSIGN_SUBMIT")}
       </Button>
     </div>
+  );
+}
+
+function NoteControl({
+  disabled,
+  execute,
+}: Readonly<{
+  disabled: boolean;
+  execute: (request: TriageRequest) => Promise<OperationalSignalDetailOut | undefined>;
+}>) {
+  const { t } = useTranslation("inbox");
+  const [body, setBody] = useState("");
+  const [invalid, setInvalid] = useState(false);
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const nextBody = body.trim();
+    setInvalid(!nextBody);
+    if (!nextBody) return;
+    void execute({ action: "note", body: nextBody }).then((result) => {
+      if (result) setBody("");
+    });
+  };
+
+  return (
+    <form className="grid gap-2" onSubmit={submit}>
+      <Label htmlFor="signal-note">{t("NOTE")}</Label>
+      <Textarea
+        aria-invalid={invalid}
+        id="signal-note"
+        onChange={(event) => setBody(event.target.value)}
+        placeholder={t("NOTE_PLACEHOLDER")}
+        value={body}
+      />
+      {invalid && <p className="text-caption text-destructive">{t("NOTE_REQUIRED")}</p>}
+      <Button className="justify-self-start" disabled={disabled} type="submit" variant="outline">
+        {t("ADD_NOTE")}
+      </Button>
+    </form>
   );
 }
 
@@ -261,8 +309,15 @@ export function SignalTriageActions({
           </Button>
         )}
       </div>
-      {allowed.has("assign") && <AssignControl disabled={disabled} execute={execute} />}
+      {(allowed.has("assign") || allowed.has("transfer")) && (
+        <AssignControl
+          disabled={disabled}
+          execute={execute}
+          mode={allowed.has("transfer") ? "transfer" : "assign"}
+        />
+      )}
       {allowed.has("remind_later") && <ReminderControl disabled={disabled} execute={execute} />}
+      {allowed.has("note_added") && <NoteControl disabled={disabled} execute={execute} />}
     </section>
   );
 }

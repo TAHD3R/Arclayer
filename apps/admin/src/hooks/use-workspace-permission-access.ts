@@ -6,9 +6,9 @@ import { getMyProjectAuthz, getMyWorkspaceAuthz } from "@/api/workspaces";
 import type {
   AuthzSnapshot,
   ProjectAuthzSnapshot,
-  ProjectPermissionAction,
-} from "@arclayer/openapi/admin-types";
-import type { WorkspacePermissionAction } from "@arclayer/openapi/admin-types";
+  ProjectPermissionActionOut as ProjectPermissionAction,
+} from "@arclayer/openapi";
+import type { WorkspacePermissionActionOut as WorkspacePermissionAction } from "@arclayer/openapi";
 
 type PermissionActionLike = {
   code: string;

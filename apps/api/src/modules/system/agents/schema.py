@@ -12,7 +12,7 @@ from src.common.types.public_uuid import PublicUUID
 
 ExecutionMode = Literal["plan", "build"]
 AgentLifecycle = Literal["active", "disabled", "archived"]
-AgentVersionStateValue = Literal["published", "retired"]
+AgentVersionStateValue = Literal["draft", "published", "retired"]
 
 _SLUG_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _GRANT_PATTERN = re.compile(r"^[a-z0-9]+(?:[._:-][a-z0-9]+)*$")
@@ -121,39 +121,10 @@ class SystemAgentDefinitionUpdateRequest(BaseSchema):
         return self
 
 
-class AgentVersionRetireRequest(BaseSchema):
+class AgentVersionLifecycleRequest(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
-    state: Literal["retired"]
-
-
-class SystemAgentAssignmentCreateRequest(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    workspace_id: PublicUUID
-    project_id: PublicUUID | None = None
-    agent_id: PublicUUID
-    version_id: PublicUUID
-    enabled: bool = True
-    is_default: bool = False
-    is_pinned: bool = False
-    sort_order: int = Field(default=0, ge=-10_000, le=10_000)
-
-
-class SystemAgentAssignmentUpdateRequest(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    version_id: PublicUUID | None = None
-    enabled: bool | None = None
-    is_default: bool | None = None
-    is_pinned: bool | None = None
-    sort_order: int | None = Field(default=None, ge=-10_000, le=10_000)
-
-    @model_validator(mode="after")
-    def _require_change(self) -> Self:
-        if not self.model_fields_set:
-            raise ValueError("At least one Assignment field is required")
-        return self
+    state: Literal["published", "retired"]
 
 
 class SystemAgentVersionOut(BaseOut, TimestampMixin):
@@ -174,6 +145,8 @@ class SystemAgentVersionOut(BaseOut, TimestampMixin):
     content_checksum: str
     published_at: datetime | None
     created_by_user_id: PublicUUID | None
+    adoption_count: int = Field(default=0, ge=0)
+    failure_count: int = Field(default=0, ge=0)
 
 
 class SystemAgentAssignmentOut(BaseOut, TimestampMixin):

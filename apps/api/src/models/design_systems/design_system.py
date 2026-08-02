@@ -36,6 +36,7 @@ class DesignSystemRecord(BaseModel):
     )
     linked_asset_collection_id = fields.UUIDField(null=True, db_index=True)
     latest_valid_version_id = fields.UUIDField(null=True, db_index=True)
+    latest_published_version_id = fields.UUIDField(null=True, db_index=True)
     metadata_revision = fields.IntField(default=1)
     created_by_user_id = fields.UUIDField(null=True, db_index=True)
     updated_by_user_id = fields.UUIDField(null=True, db_index=True)

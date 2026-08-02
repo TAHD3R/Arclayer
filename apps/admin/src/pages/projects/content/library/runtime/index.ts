@@ -8,23 +8,31 @@ import {
   listContentItemVersions,
 } from "@/api/content";
 import type {
-  AdminContentBootstrapPresetState,
-  AdminContentItem,
-  AdminContentItemStatus,
-  AdminContentItemVisibility,
-  AdminContentLibraryViewsState,
-  AdminContentModel,
-  AdminContentPresentation,
-  AdminContentPresentationKind,
-  AdminContentItemPublishReadiness,
-  AdminContentShapeState,
-  AdminContentVersion,
-  AdminContentVersionState,
-  AdminContentWorkflowStage,
-  ListAdminContentVersionsParams,
-  PageData,
-} from "@arclayer/openapi/admin-types";
+  ContentItemBootstrapShapeIn,
+  ContentItemOut,
+  ContentPresentationOut as AdminContentPresentation,
+  ContentPresentationOut,
+  ContentItemPublishReadinessOut as AdminContentItemPublishReadiness,
+  ContentVersionOut,
+  DomainProjectsListProjectContentItemVersionsData,
+} from "@arclayer/openapi";
 import type { ContentLibraryTableRow } from "../types";
+
+type AdminContentBootstrapPresetState = NonNullable<ContentItemBootstrapShapeIn["presetState"]>;
+type AdminContentItem = Awaited<ReturnType<typeof getContentItem>>;
+type AdminContentModel = Awaited<ReturnType<typeof listAllContentModels>>[number];
+type AdminContentVersion = Awaited<ReturnType<typeof getContentItemVersion>>;
+type AdminContentItemStatus = ContentItemOut["status"];
+type AdminContentItemVisibility = ContentItemOut["visibility"];
+type AdminContentPresentationKind = ContentPresentationOut["kind"];
+type AdminContentShapeState = NonNullable<ContentItemOut["shapeState"]>;
+type AdminContentVersionState = ContentVersionOut["state"];
+type AdminContentWorkflowStage = NonNullable<ContentItemOut["workflowStage"]>;
+
+type ListAdminContentVersionsParams = NonNullable<
+  DomainProjectsListProjectContentItemVersionsData["query"]
+>;
+type AdminContentLibraryViewsState = Awaited<ReturnType<typeof getContentLibraryViews>>;
 
 export const CONTENT_LIBRARY_VERSION_HISTORY_PAGE_SIZE = 30;
 
@@ -201,7 +209,7 @@ export function loadContentLibraryVersionHistory(
   projectId: string,
   itemId: string,
   params: ListAdminContentVersionsParams = {},
-): Promise<PageData<AdminContentVersion>> {
+): ReturnType<typeof listContentItemVersions> {
   return listContentItemVersions(projectId, itemId, {
     page: params.page ?? 1,
     size: params.size ?? CONTENT_LIBRARY_VERSION_HISTORY_PAGE_SIZE,

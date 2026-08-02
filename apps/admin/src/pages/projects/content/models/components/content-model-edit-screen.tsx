@@ -114,7 +114,7 @@ import {
 import { SidebarProvider } from "@arclayer/ui/sidebar";
 import { Textarea } from "@arclayer/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
-import type { JsonValueInput } from "@arclayer/openapi/admin-types";
+import type { JsonValueInput } from "@arclayer/openapi";
 import type { AdminNavItem } from "@/types/admin-nav";
 import {
   useDataTableCore,

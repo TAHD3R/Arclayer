@@ -1,4 +1,7 @@
-import type { AdminContentItem, AdminContentOpenIntent } from "@arclayer/openapi/admin-types";
+import type {
+  ContentItemOut as AdminContentItem,
+  ContentOpenIntentOut as AdminContentOpenIntent,
+} from "@arclayer/openapi";
 
 function safeReturnTo(value: string | null | undefined): string | null {
   const raw = (value || "").trim();
@@ -32,10 +35,6 @@ export function projectContentModelsEditPath(projectId: string, modelId: string)
 
 export function projectContentAutomationPath(projectId: string): string {
   return `/projects/${encodeURIComponent(projectId)}/content/automation`;
-}
-
-export function projectContentCreatePath(projectId: string): string {
-  return `/projects/${encodeURIComponent(projectId)}/content/create`;
 }
 
 export function buildProjectContentLibraryFocusSearch(itemId: string): {

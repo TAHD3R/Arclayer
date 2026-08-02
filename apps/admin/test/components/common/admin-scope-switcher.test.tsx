@@ -3,12 +3,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type {
-  MyWorkspace,
-  MyWorkspaceListResult,
-  PageData,
-  ProjectListItem,
-} from "@arclayer/openapi/admin-types";
+import type { MyWorkspaceOut as MyWorkspace, MyWorkspaceListResult } from "@arclayer/openapi";
 import { getProjectDetail, listProjects } from "@/api/projects";
 import { getWorkspaceDetail, listMyWorkspaces } from "@/api/workspaces";
 import { AdminScopeSwitcher } from "@/components/layout/admin-scope-switcher";
@@ -20,6 +15,9 @@ import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 import { SidebarProvider } from "@arclayer/ui/sidebar";
+
+type ProjectListItem = Awaited<ReturnType<typeof listProjects>>["items"][number];
+type ProjectPage = Awaited<ReturnType<typeof listProjects>>;
 
 const navigateMock = vi.fn();
 let mockPathname = "/projects/project-alpha/assets";
@@ -79,6 +77,7 @@ vi.mock("@/api/workspaces", () => ({
 
 const workspaceFixtures: MyWorkspace[] = [
   {
+    id: "workspace-alpha",
     workspaceId: "ws-alpha",
     projectId: "project-alpha",
     name: "Workspace Alpha",
@@ -92,6 +91,7 @@ const workspaceFixtures: MyWorkspace[] = [
     isOwner: true,
   },
   {
+    id: "workspace-beta",
     workspaceId: "ws-beta",
     projectId: "project-gamma",
     name: "Workspace Beta",
@@ -164,10 +164,14 @@ function createWorkspaceListResult(): MyWorkspaceListResult {
       status: "ready",
       repairReason: null,
     },
+    onboarding: {
+      status: "completed",
+      workspaceId: "ws-alpha",
+    },
   };
 }
 
-function createProjectPage(items: readonly ProjectListItem[]): PageData<ProjectListItem> {
+function createProjectPage(items: readonly ProjectListItem[]): ProjectPage {
   return {
     items: [...items],
     total: items.length,

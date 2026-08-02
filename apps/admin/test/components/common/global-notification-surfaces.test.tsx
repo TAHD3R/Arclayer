@@ -3,18 +3,25 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { GlobalNotificationSurfaces } from "@/components/common/global-notification-surfaces";
-import type { NotificationItem } from "@arclayer/openapi/admin-types";
+import type { NotificationOut as NotificationItem } from "@arclayer/openapi";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
 type Presentation = "inbox" | "toast" | "modal" | "banner";
-type Action = {
-  kind: "internal_route" | "external_https";
+type NotificationTarget = NotificationItem["target"];
+type InternalAction = {
+  kind: "internal_route";
+  label: string;
+  target: NotificationTarget;
+};
+type ExternalAction = {
+  kind: "external_https";
   label: string;
   target: string;
 };
+type Action = InternalAction | ExternalAction;
 type Media = {
   assetId: string;
   kind: "image" | "video";
@@ -36,10 +43,17 @@ type BroadcastOptions = {
   media?: Media | null;
 };
 
-const DEFAULT_ACTION: Action = {
+type CampaignSurface = NonNullable<NotificationItem["campaignSurface"]>;
+
+const DEFAULT_TARGET = {
+  kind: "project",
+  projectId: "project-1",
+  destination: "overview",
+} satisfies NotificationTarget;
+const DEFAULT_ACTION: InternalAction = {
   kind: "internal_route",
   label: "View status",
-  target: "/projects",
+  target: DEFAULT_TARGET,
 };
 
 function presentationPayload(presentation: Presentation, options: BroadcastOptions) {
@@ -74,6 +88,16 @@ function createBroadcast(
   options: BroadcastOptions = {},
 ): NotificationItem {
   const id = options.id ?? `broadcast-${presentation}`;
+  const campaignSurface = {
+    campaignId: `campaign-${id}`,
+    deliveryId: `delivery-${id}`,
+    presentation,
+    priority: options.priority ?? 20,
+    displayStartAt: options.displayStartAt ?? null,
+    displayEndAt: options.displayEndAt ?? null,
+    payload: presentationPayload(presentation, options),
+  } as CampaignSurface;
+
   return {
     id,
     workspaceId: "00000000-0000-0000-0000-000000000000",
@@ -81,16 +105,8 @@ function createBroadcast(
     category: "system",
     title: options.title ?? "Scheduled maintenance",
     body: "Restart at 02:00 UTC.",
-    targetTo: "/projects",
-    targetMeta: {
-      campaignId: `campaign-${id}`,
-      deliveryId: `delivery-${id}`,
-      presentation,
-      priority: options.priority ?? 20,
-      displayStartAt: options.displayStartAt ?? null,
-      displayEndAt: options.displayEndAt ?? null,
-      payload: presentationPayload(presentation, options),
-    },
+    target: DEFAULT_TARGET,
+    campaignSurface,
     eventName: "system.broadcast",
     dedupeKey: `system.broadcast:${id}`,
     readAt: null,
@@ -151,9 +167,17 @@ describe("GlobalNotificationSurfaces", () => {
     expect(screen.queryByText("Expired")).not.toBeInTheDocument();
   });
 
-  it("records a banner click only after its typed target opens", async () => {
+  it("passes an internal banner action target through unchanged before recording the click", async () => {
     const user = userEvent.setup();
-    const item = createBroadcast("banner");
+    const actionTarget = {
+      kind: "project",
+      projectId: "project-42",
+      destination: "content_library",
+      entityId: "entry-7",
+    } satisfies NotificationTarget;
+    const item = createBroadcast("banner", {
+      action: { kind: "internal_route", label: "View status", target: actionTarget },
+    });
     const openTarget = vi.fn().mockResolvedValue(true);
     const recordInteraction = vi.fn().mockResolvedValue(true);
 
@@ -167,11 +191,8 @@ describe("GlobalNotificationSurfaces", () => {
 
     await user.click(screen.getByRole("button", { name: "View status" }));
 
-    await waitFor(() =>
-      expect(openTarget).toHaveBeenCalledWith(
-        expect.objectContaining({ id: item.id, targetTo: "/projects" }),
-      ),
-    );
+    await waitFor(() => expect(openTarget).toHaveBeenCalledWith(item, actionTarget));
+    expect(openTarget.mock.calls[0]?.[1]).toBe(actionTarget);
     await waitFor(() => expect(recordInteraction).toHaveBeenCalledWith(item, "click"));
     await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
   });
@@ -226,10 +247,14 @@ describe("GlobalNotificationSurfaces", () => {
 
   it("renders modal media and both typed actions", async () => {
     const user = userEvent.setup();
+    const secondaryActionTarget = {
+      kind: "feedback_ticket",
+      ticketId: "ticket-1",
+    } satisfies NotificationTarget;
     const secondaryAction: Action = {
       kind: "internal_route",
       label: "Release notes",
-      target: "/projects",
+      target: secondaryActionTarget,
     };
     const item = createBroadcast("modal", {
       secondaryAction,
@@ -259,11 +284,8 @@ describe("GlobalNotificationSurfaces", () => {
     expect(screen.getByRole("button", { name: "View status" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Release notes" }));
 
-    await waitFor(() =>
-      expect(openTarget).toHaveBeenCalledWith(
-        expect.objectContaining({ id: item.id, targetTo: "/projects" }),
-      ),
-    );
+    await waitFor(() => expect(openTarget).toHaveBeenCalledWith(item, secondaryActionTarget));
+    expect(openTarget.mock.calls[0]?.[1]).toBe(secondaryActionTarget);
     await waitFor(() => expect(recordInteraction).toHaveBeenCalledWith(item, "click"));
   });
 

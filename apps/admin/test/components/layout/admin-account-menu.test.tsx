@@ -19,7 +19,7 @@ import { SidebarProvider } from "@arclayer/ui/sidebar";
 const navigateMock = vi.fn().mockResolvedValue(undefined);
 const openMock = vi.fn();
 const routerState = {
-  pathname: "/w/ws-1/",
+  pathname: "/projects/ws-1/",
   hash: "",
 };
 
@@ -143,7 +143,7 @@ describe("AdminAccountMenu", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     openMock.mockClear();
-    routerState.pathname = "/w/ws-1/";
+    routerState.pathname = "/projects/ws-1/";
     routerState.hash = "";
     vi.stubEnv("VITE_PLATFORM_ORIGIN", "https://platform.arclayer.localhost");
 

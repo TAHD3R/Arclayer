@@ -15,8 +15,14 @@ class PlatformOperatorStatus(StrEnum):
     DEACTIVATED = "deactivated"
 
 
+class PlatformOperatorSetupReason(StrEnum):
+    INVITATION = "invitation"
+    RECOVERY = "recovery"
+
+
 class PlatformInvitationStatus(StrEnum):
     PENDING = "pending"
+    MFA_SETUP_REQUIRED = "mfa_setup_required"
     ACCEPTED = "accepted"
     REVOKED = "revoked"
     EXPIRED = "expired"
@@ -61,6 +67,7 @@ class PlatformOperator(BaseModel):
     activated_at = fields.DatetimeField(null=True)
     deactivated_at = fields.DatetimeField(null=True)
     deactivated_by_user_id = fields.UUIDField(null=True, db_index=True)
+    setup_reason = fields.CharEnumField(PlatformOperatorSetupReason, null=True)
     revision = fields.BigIntField(default=1)
 
     if TYPE_CHECKING:
@@ -88,7 +95,10 @@ class PlatformOperatorInvitation(BaseModel):
     )
     status = fields.CharEnumField(PlatformInvitationStatus, default=PlatformInvitationStatus.PENDING, db_index=True)
     expires_at = fields.DatetimeField(db_index=True)
+    recipient_accepted_at = fields.DatetimeField(null=True)
     accepted_at = fields.DatetimeField(null=True)
+    acceptance_idempotency_key = fields.CharField(max_length=128, null=True)
+    acceptance_correlation_id = fields.UUIDField(null=True, unique=True, db_index=True)
     revoked_at = fields.DatetimeField(null=True)
     invalidated_at = fields.DatetimeField(null=True)
     revision = fields.BigIntField(default=1)

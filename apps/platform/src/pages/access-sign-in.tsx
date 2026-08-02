@@ -3,7 +3,7 @@ import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
 import { getSignInReadiness } from "@/access/access-api";
-import { AccessPage, AccessQueryState, ReadOnlyNotice, useAccessQuery } from "@/access/access-ui";
+import { AccessPage, AccessQueryState, useAccessQuery } from "@/access/access-ui";
 import { Badge } from "@arclayer/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
 
@@ -16,7 +16,6 @@ export function PlatformSignInReadinessPage() {
       description={t("SIGN_IN_READINESS_DESCRIPTION")}
       title={t("SIGN_IN_READINESS_TITLE")}
     >
-      <ReadOnlyNotice />
       <AccessQueryState isEmpty={() => false} retry={retry} state={state}>
         {(readiness) => (
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">

@@ -1,0 +1,97 @@
+import {
+  platformCommerceCreatePlanRevision,
+  platformCommerceListCommerceProviderEvents,
+  platformCommerceReconcileCommerceProviderEvent,
+} from "@arclayer/platform-openapi";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import {
+  createPlanRevision,
+  listCommerceProviderEvents,
+  reconcileCommerceProviderEvent,
+} from "@/commerce/commerce-api";
+import { platformApiClient } from "@/api/client";
+
+vi.mock("@arclayer/platform-openapi", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@arclayer/platform-openapi")>();
+  return {
+    ...actual,
+    platformCommerceCreatePlanRevision: vi.fn(),
+    platformCommerceListCommerceProviderEvents: vi.fn(),
+    platformCommerceReconcileCommerceProviderEvent: vi.fn(),
+  };
+});
+vi.unmock("@/commerce/commerce-api");
+
+const response = <T>(data: T) => ({
+  data: { data, message: "OK", timestamp: 1 },
+  request: new Request("https://platform.test/platform-api/v1/commerce"),
+  response: new Response(null, { status: 200 }),
+});
+
+describe("Platform commerce API", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("creates a revision through the generated SDK with an idempotency header", async () => {
+    const terms = {
+      creditGrantAmount: 0,
+      creditRefreshInterval: "none" as const,
+      creditValueMicros: 0,
+      currency: "USD",
+      descriptionI18NKey: "plan.description",
+      nameI18NKey: "plan.name",
+    };
+    vi.mocked(platformCommerceCreatePlanRevision).mockResolvedValue(
+      response({ id: "revision-1", planId: "plan-1", revision: 1, sequence: 1, status: "draft" }),
+    );
+
+    await expect(createPlanRevision("starter", { terms }, "idem-1")).resolves.toMatchObject({
+      id: "revision-1",
+    });
+    expect(platformCommerceCreatePlanRevision).toHaveBeenCalledWith({
+      body: { terms },
+      client: platformApiClient,
+      headers: { "Idempotency-Key": "idem-1" },
+      path: { code: "starter" },
+    });
+  });
+
+  it("loads provider evidence and reconciles a failed event through the generated SDK", async () => {
+    vi.mocked(platformCommerceListCommerceProviderEvents).mockResolvedValue(
+      response({ items: [], total: 0 }),
+    );
+    vi.mocked(platformCommerceReconcileCommerceProviderEvent).mockResolvedValue(
+      response({
+        id: "event-1",
+        eventType: "invoice.failed",
+        payloadSha256: "sha",
+        processingAttempts: 2,
+        provider: "stripe",
+        providerAccountId: "acct",
+        providerEventId: "evt",
+        providerMode: "live",
+        signatureTimestamp: "2026-08-02T00:00:00Z",
+        status: "processed",
+      }),
+    );
+
+    await expect(listCommerceProviderEvents({ page: 1, pageSize: 50 })).resolves.toEqual({
+      items: [],
+      total: 0,
+    });
+    await reconcileCommerceProviderEvent("event-1", {
+      expectedProcessingAttempts: 2,
+      idempotencyKey: "idem-2",
+    });
+
+    expect(platformCommerceListCommerceProviderEvents).toHaveBeenCalledWith({
+      client: platformApiClient,
+      query: { page: 1, pageSize: 50 },
+    });
+    expect(platformCommerceReconcileCommerceProviderEvent).toHaveBeenCalledWith({
+      body: { expectedProcessingAttempts: 2, idempotencyKey: "idem-2" },
+      client: platformApiClient,
+      path: { event_id: "event-1" },
+    });
+  });
+});

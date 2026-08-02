@@ -34,7 +34,7 @@ vi.mock("@tanstack/react-router", () => ({
     select,
   }: {
     select: (state: { location: { pathname: string } }) => unknown;
-  }) => select({ location: { pathname: "/w/ws-1/assets" } }),
+  }) => select({ location: { pathname: "/projects/ws-1/assets" } }),
 }));
 
 vi.mock("react-i18next", () => ({

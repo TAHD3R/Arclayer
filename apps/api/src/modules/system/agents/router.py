@@ -8,6 +8,7 @@ from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
+from src.models.agents.catalog import AgentVersionState
 from src.modules.analytics.audit import write_required_activity_event
 from src.modules.platform_identity.http import require_platform_permission
 from src.modules.platform_identity.permissions import PlatformPermissionCode
@@ -15,10 +16,8 @@ from src.modules.platform_identity.session_schema import PlatformSessionPrincipa
 from src.modules.system.agents.repository import SystemAgentRepository
 from src.modules.system.agents.schema import (
     AgentVersionCreateRequest,
-    AgentVersionRetireRequest,
-    SystemAgentAssignmentCreateRequest,
+    AgentVersionLifecycleRequest,
     SystemAgentAssignmentOut,
-    SystemAgentAssignmentUpdateRequest,
     SystemAgentCatalogCapabilitiesOut,
     SystemAgentDefinitionCreateRequest,
     SystemAgentDefinitionDetailOut,
@@ -28,7 +27,6 @@ from src.modules.system.agents.schema import (
     SystemAgentVersionOut,
 )
 from src.modules.system.agents.service import SystemAgentCatalogService
-from src.modules.system.agents.skill_grant_validator import TenantAgentVersionSkillGrantValidator
 
 router = APIRouter(tags=["internal.system.agents"])
 
@@ -42,7 +40,6 @@ def get_system_agent_catalog_service(
         settings,
         repository=SystemAgentRepository(),
         activity_writer=write_required_activity_event,
-        skill_grant_validator=TenantAgentVersionSkillGrantValidator(),
     )
 
 
@@ -152,7 +149,7 @@ async def list_system_agent_versions(
     "/{definition_id}/versions",
     response_model=ResponseModel[SystemAgentVersionOut],
     status_code=status.HTTP_201_CREATED,
-    summary="Publish an immutable System Agent version",
+    summary="Create an immutable System Agent draft version",
 )
 async def create_system_agent_version(
     definition_id: PublicUUID,
@@ -172,19 +169,20 @@ async def create_system_agent_version(
 @router.patch(
     "/{definition_id}/versions/{version_id}",
     response_model=ResponseModel[SystemAgentVersionOut],
-    summary="Retire an immutable System Agent version",
+    summary="Transition an immutable System Agent version",
 )
 async def retire_system_agent_version(
     definition_id: PublicUUID,
     version_id: PublicUUID,
-    _payload: AgentVersionRetireRequest,
+    payload: AgentVersionLifecycleRequest,
     principal: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.AI_AGENTS_MANAGE),
     service: SystemAgentCatalogService = Depends(get_system_agent_catalog_service),
 ) -> ResponseModel[SystemAgentVersionOut]:
     return ApiResponse.success(
-        data=await service.retire_version(
+        data=await service.transition_version(
             definition_id=definition_id,
             version_id=version_id,
+            desired_state=AgentVersionState(payload.state),
             actor_user_id=principal.actor_id,
         )
     )
@@ -211,44 +209,5 @@ async def list_system_agent_assignments(
             project_id=project_id,
             definition_id=definition_id,
             enabled=enabled,
-        )
-    )
-
-
-@assignments_router.post(
-    "",
-    response_model=ResponseModel[SystemAgentAssignmentOut],
-    status_code=status.HTTP_201_CREATED,
-    summary="Create a System Agent assignment",
-)
-async def create_system_agent_assignment(
-    payload: SystemAgentAssignmentCreateRequest,
-    principal: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.AI_ASSIGNMENTS_MANAGE),
-    service: SystemAgentCatalogService = Depends(get_system_agent_catalog_service),
-) -> ResponseModel[SystemAgentAssignmentOut]:
-    return ApiResponse.success(
-        data=await service.create_assignment(
-            payload=payload,
-            actor_user_id=principal.actor_id,
-        )
-    )
-
-
-@assignments_router.patch(
-    "/{assignment_id}",
-    response_model=ResponseModel[SystemAgentAssignmentOut],
-    summary="Update a System Agent assignment",
-)
-async def update_system_agent_assignment(
-    assignment_id: PublicUUID,
-    payload: SystemAgentAssignmentUpdateRequest,
-    principal: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.AI_ASSIGNMENTS_MANAGE),
-    service: SystemAgentCatalogService = Depends(get_system_agent_catalog_service),
-) -> ResponseModel[SystemAgentAssignmentOut]:
-    return ApiResponse.success(
-        data=await service.update_assignment(
-            assignment_id=assignment_id,
-            payload=payload,
-            actor_user_id=principal.actor_id,
         )
     )

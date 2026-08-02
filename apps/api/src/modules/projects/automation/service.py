@@ -68,7 +68,11 @@ from src.modules.projects.content.items.repository import ProjectContentItemsRep
 from src.modules.projects.content.models.canonical_service import ProjectContentCanonicalModelsService
 from src.modules.projects.content.models.repository import ProjectContentModelsRepository
 from src.modules.projects.releases.service import ProjectReleasesService
-from src.modules.system.admin.notifications.catalog import create_notification_record
+from src.modules.system.admin.notifications.catalog import (
+    NotificationRecordCreateDisposition,
+    create_notification_record,
+)
+from src.modules.system.admin.notifications.schema import validate_notification_navigation_target
 from src.modules.tenancy.router_helpers import bind_tenant_context, require_tenant_context_from_payload
 from src.modules.tenancy.schema import TenantContext
 
@@ -734,22 +738,28 @@ class ProjectAutomationService(BaseService):
             raise BadRequest(
                 "Notification requires recipientUserId and title.", error="AUTOMATION_NOTIFICATION_INVALID"
             )
-        record = await create_notification_record(
+        try:
+            target = validate_notification_navigation_target(config.get("target"))
+        except ValueError as exc:
+            raise BadRequest(
+                "Notification requires a valid typed target.",
+                error="AUTOMATION_NOTIFICATION_TARGET_INVALID",
+            ) from exc
+        result = await create_notification_record(
             settings=self.settings,
             workspace_id=workspace_id,
             recipient_user_id=recipient_user_id,
             category=NotificationCategory.TASK,
             title=title,
             body=str(config.get("body") or f"Automation ran for {event.name}"),
-            target_to=str(config.get("targetTo") or "/notifications"),
-            target_meta={"event": event.name, "payload": event.payload},
+            target=target,
             actor_user_id=self._uuid_or_none(event.actor_user_id),
             event_name="automation.notification",
             dedupe_key=None,
         )
-        if record is None:
+        if result.disposition != NotificationRecordCreateDisposition.CREATED or result.record is None:
             return {"notificationId": None, "delivered": False}
-        return {"notificationId": str(record.id), "delivered": True}
+        return {"notificationId": str(result.record.id), "delivered": True}
 
     @staticmethod
     def _workspace_id_from_payload(payload: dict[str, Any]) -> UUID | None:

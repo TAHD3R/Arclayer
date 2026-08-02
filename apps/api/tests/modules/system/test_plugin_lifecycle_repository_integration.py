@@ -42,6 +42,7 @@ async def _create_verified_operation(
     installation: PluginInstallationRecord,
     *,
     kind: PluginOperationKind,
+    previous_artifact: PluginArtifactRecord | None = None,
 ) -> PluginOperationRecord:
     return await PluginOperationRecord.create(
         installation=installation,
@@ -52,6 +53,7 @@ async def _create_verified_operation(
         request_fingerprint=uuid4().hex,
         requested_version=None if kind == PluginOperationKind.UNINSTALL else installation.installed_version,
         previous_version=installation.installed_version,
+        previous_artifact=previous_artifact,
         activation_verified=True,
         requested_by_user_id=uuid4(),
     )
@@ -113,3 +115,47 @@ async def test_finalize_disable_preserves_active_artifact(prepared_db) -> None:
     assert installation.active_artifact_id == active.id
     assert installation.lifecycle_state == PluginLifecycleState.DISABLED
     assert active.state == PluginArtifactState.ACTIVE
+
+
+async def test_partial_upgrade_failure_restores_previous_artifact_and_retains_step_evidence(prepared_db) -> None:
+    _ = prepared_db
+    active = await _create_artifact(version="2.0.0", digest_character="d")
+    previous = await _create_artifact(version="1.0.0", digest_character="e")
+    installation = await PluginInstallationRecord.create(
+        plugin_name="managed-test",
+        source_type=PluginSourceType.MANUAL_UPLOAD,
+        source_locator="manual://managed-test/2.0.0",
+        installed_version="1.0.0",
+        lifecycle_state=PluginLifecycleState.UPGRADING,
+        desired_enabled=True,
+        runtime_activation_state=PluginRuntimeActivationState.PENDING_RESTART,
+        active_artifact=active,
+        previous_artifact=previous,
+    )
+    operation = await _create_verified_operation(
+        installation,
+        kind=PluginOperationKind.UPGRADE,
+        previous_artifact=previous,
+    )
+    operation.phase = "staging"
+    operation.progress_completed = 2
+    operation.progress_total = 5
+    await operation.save(update_fields=("phase", "progress_completed", "progress_total", "updated_at"))
+
+    await PluginLifecycleRepository().project_failure(
+        operation.id,
+        code="PLUGIN_PACKAGE_INVALID",
+        summary="Reviewed package failed verification",
+    )
+
+    await installation.refresh_from_db()
+    await operation.refresh_from_db()
+    await active.refresh_from_db()
+    await previous.refresh_from_db()
+    assert installation.active_artifact_id == previous.id
+    assert installation.previous_artifact_id is None
+    assert active.state == PluginArtifactState.RETAINED
+    assert previous.state == PluginArtifactState.ACTIVE
+    assert operation.retryable is True
+    assert operation.step_evidence[-1]["phase"] == "staging"
+    assert operation.step_evidence[-1]["outcome"] == "failed"

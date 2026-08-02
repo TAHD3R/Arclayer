@@ -5,7 +5,6 @@ from typing import Any
 
 from fastapi import FastAPI
 
-from src.common.email.service import EmailService
 from src.config import Settings
 from src.core.events import EventBus
 from src.core.lifecycles.dispatcher import LifecycleDispatcher
@@ -74,12 +73,9 @@ async def init_domain_runtime(app: FastAPI, settings: Settings, *, event_bus: Ev
             name="http-request-metric-writer",
         )
 
-    extension_manager = getattr(app.state, "extension_manager", None)
-    connector_registry = extension_manager.registry.connectors if extension_manager is not None else None
     notification_event_runtime = NotificationEventRuntime(
         settings,
         audience_reader=NotificationRepository(),
-        email_sender=EmailService(settings, connector_registry=connector_registry),
     )
     app.state.notification_event_runtime = notification_event_runtime
     await notification_event_runtime.start(event_bus=event_bus)

@@ -4,13 +4,14 @@ import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { projectContentLibraryPath } from "@/lib/routing/project-content-routing";
-import type { AdminContentItem } from "@arclayer/openapi/admin-types";
+import type { getContentItem } from "@/api/content";
 import { Button } from "@arclayer/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
 
 import { SurfaceBoundaryCard } from "../surfaces/surface-boundary-card";
 
 const CANVAS_REQUIRED_CAPABILITIES = ["visual_editable"] as const;
+type AdminContentItem = Awaited<ReturnType<typeof getContentItem>>;
 
 function hasCanvasCapabilities(item: AdminContentItem) {
   return CANVAS_REQUIRED_CAPABILITIES.every((capability) =>

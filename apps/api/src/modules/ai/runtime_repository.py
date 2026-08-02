@@ -8,6 +8,10 @@ from tortoise.transactions import in_transaction
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.agents.runtime_builder_v1 import AgentRunBuilderSnapshotV1Record
 from src.models.agents.runtime_design_system_v1 import AgentRunDesignSystemSnapshotV1Record
+from src.models.agents.runtime_knowledge_v1 import (
+    AgentRunKnowledgeSnapshotV1Record,
+    AgentRunKnowledgeSourceSnapshotV1Record,
+)
 from src.models.agents.runtime_skill_v1 import AgentRunSkillSnapshotV1Record
 from src.models.agents.runtime_v1 import (
     AgentMessagePartV1Record,
@@ -85,6 +89,11 @@ class AgentRuntimeRepository(TortoiseORMRepository[AgentRunV1Record]):
         if existing is not None:
             self._validate_idempotent_run(existing, command)
             await self._validate_idempotent_skill_snapshots(
+                run_id=existing.id,
+                command=command,
+                conn=conn,
+            )
+            await self._validate_idempotent_knowledge_snapshot(
                 run_id=existing.id,
                 command=command,
                 conn=conn,
@@ -242,6 +251,13 @@ class AgentRuntimeRepository(TortoiseORMRepository[AgentRunV1Record]):
                 command.design_system_context is not None
                 and command.design_system_context.context.project_id != command.project_id
             )
+            or (
+                command.knowledge_context is not None
+                and (
+                    command.knowledge_context.context.workspace_id != command.workspace_id
+                    or command.knowledge_context.context.project_id != command.project_id
+                )
+            )
         ):
             raise AgentRuntimePersistenceError("AGENT_RUN_CREATE_CONTRACT_MISMATCH")
         assignments = (command.lead_agent_assignment_id, *command.mentioned_agent_assignment_ids)
@@ -259,6 +275,11 @@ class AgentRuntimeRepository(TortoiseORMRepository[AgentRunV1Record]):
             for item in command.skill_grants
         ):
             raise AgentRuntimePersistenceError("AGENT_SKILL_SNAPSHOT_INVALID")
+        knowledge = command.knowledge_context
+        if knowledge is not None and tuple(item.source_order for item in knowledge.sources) != tuple(
+            range(len(knowledge.sources))
+        ):
+            raise AgentRuntimePersistenceError("AGENT_KNOWLEDGE_SNAPSHOT_INVALID")
 
     @staticmethod
     async def _get_locked_thread(
@@ -392,6 +413,58 @@ class AgentRuntimeRepository(TortoiseORMRepository[AgentRunV1Record]):
             raise AgentRuntimePersistenceError("AGENT_RUN_IDEMPOTENCY_CONFLICT")
 
     @staticmethod
+    async def _validate_idempotent_knowledge_snapshot(
+        *,
+        run_id: UUID,
+        command: AgentRunCreatePersistenceCommand,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        record = await AgentRunKnowledgeSnapshotV1Record.filter(run_id=run_id).using_db(conn).first()
+        sources = tuple(
+            await AgentRunKnowledgeSourceSnapshotV1Record
+            .filter(run_id=run_id)
+            .using_db(conn)
+            .order_by("source_order", "id")
+        )
+        expected = command.knowledge_context
+        if expected is None:
+            if record is not None or sources:
+                raise AgentRuntimePersistenceError("AGENT_RUN_IDEMPOTENCY_CONFLICT")
+            return
+        actual_sources = tuple(
+            (
+                item.source_order,
+                item.knowledge_base_id,
+                item.policy_revision,
+                item.source_id,
+                item.source_version_id,
+                item.source_name,
+                item.source_version_content_hash,
+            )
+            for item in sources
+        )
+        expected_sources = tuple(
+            (
+                item.source_order,
+                item.knowledge_base_id,
+                item.policy_revision,
+                item.source_id,
+                item.source_version_id,
+                item.source_name,
+                item.source_version_content_hash,
+            )
+            for item in expected.sources
+        )
+        if (
+            record is None
+            or record.context_hash != expected.context.context_hash
+            or record.context_byte_size != expected.context_byte_size
+            or record.source_snapshot_count != len(expected.sources)
+            or actual_sources != expected_sources
+        ):
+            raise AgentRuntimePersistenceError("AGENT_RUN_IDEMPOTENCY_CONFLICT")
+
+    @staticmethod
     async def _validate_idempotent_builder_snapshot(
         *,
         run_id: UUID,
@@ -442,6 +515,7 @@ class AgentRuntimeRepository(TortoiseORMRepository[AgentRunV1Record]):
             last_sequence=0,
         )
         await self._create_skill_snapshots(run_id=run.id, command=command, conn=conn)
+        await self._create_knowledge_snapshot(run_id=run.id, command=command, conn=conn)
         await self._create_design_system_snapshot(run_id=run.id, command=command, conn=conn)
         await self._create_builder_snapshot(run_id=run.id, command=command, conn=conn)
         await self._create_user_message(run=run, command=command, event=event, conn=conn)
@@ -493,6 +567,41 @@ class AgentRuntimeRepository(TortoiseORMRepository[AgentRunV1Record]):
             context_snapshot=context.model_dump(mode="json", by_alias=True),
             context_byte_size=resolved.context_byte_size,
         )
+
+    @staticmethod
+    async def _create_knowledge_snapshot(
+        *,
+        run_id: UUID,
+        command: AgentRunCreatePersistenceCommand,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        resolved = command.knowledge_context
+        if resolved is None:
+            return
+        context = resolved.context
+        await AgentRunKnowledgeSnapshotV1Record.create(
+            using_db=conn,
+            run_id=run_id,
+            workspace_id=context.workspace_id,
+            project_id=context.project_id,
+            workspace_revision_id=context.workspace_revision_id,
+            project_revision_id=context.project_revision_id,
+            context_hash=context.context_hash,
+            context_snapshot=context.model_dump(mode="json", by_alias=True),
+            context_byte_size=resolved.context_byte_size,
+            source_snapshot_count=len(resolved.sources),
+        )
+        if resolved.sources:
+            await AgentRunKnowledgeSourceSnapshotV1Record.bulk_create(
+                [
+                    AgentRunKnowledgeSourceSnapshotV1Record(
+                        run_id=run_id,
+                        **item.model_dump(),
+                    )
+                    for item in resolved.sources
+                ],
+                using_db=conn,
+            )
 
     @staticmethod
     async def _create_builder_snapshot(

@@ -5,7 +5,7 @@ import {
   SystemSettingFooterActions,
   SystemSettingItem,
 } from "@/components/settings/setting-item";
-import type { JsonValueInput } from "@arclayer/openapi/admin-types";
+import type { JsonValueInput } from "@arclayer/openapi";
 import { Input } from "@arclayer/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 

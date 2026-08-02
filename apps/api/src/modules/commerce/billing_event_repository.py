@@ -85,6 +85,30 @@ class BillingEventInboxRepository(TortoiseORMRepository[ConnectorEventInbox]):
     ) -> ConnectorEventInbox | None:
         return await self.get_record_by_id(ConnectorEventInbox, inbox_id, conn=conn)
 
+    async def get_by_id_for_update(
+        self,
+        *,
+        inbox_id: UUID,
+        conn: BaseDBAsyncClient,
+    ) -> ConnectorEventInbox | None:
+        return await ConnectorEventInbox.filter(id=inbox_id).using_db(conn).select_for_update().first()
+
+    async def prepare_reconciliation(
+        self,
+        *,
+        inbox: ConnectorEventInbox,
+        conn: BaseDBAsyncClient,
+    ) -> ConnectorEventInbox:
+        return await self.update_fields(
+            inbox,
+            fields={
+                "status": ConnectorEventInboxStatus.RECEIVED,
+                "last_error_code": None,
+                "last_error_message": None,
+            },
+            conn=conn,
+        )
+
     async def begin_processing(self, *, inbox_id: UUID) -> ConnectorEventInbox | None:
         from tortoise.transactions import in_transaction
 

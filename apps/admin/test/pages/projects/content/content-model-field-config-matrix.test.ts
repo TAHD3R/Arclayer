@@ -6,7 +6,7 @@ import {
   type ContentModelBuiltInFieldTypeId,
 } from "@/pages/projects/content/models/fields";
 
-import type { CreateAdminContentModelFieldPayload } from "@arclayer/openapi/admin-types";
+import type { ContentModelFieldContract as CreateAdminContentModelFieldPayload } from "@arclayer/openapi";
 
 type FieldConfigMatrixCase = {
   typeId: ContentModelBuiltInFieldTypeId;

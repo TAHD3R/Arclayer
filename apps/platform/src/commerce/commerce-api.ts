@@ -1,10 +1,41 @@
 import {
-  platformListCommercePlans,
-  platformListPlatformCommerceSubscriptions,
+  platformCommerceAdjustWorkspaceCredits,
+  platformCommerceCancelSubscriptionRevisionTransition,
+  platformCommerceCreateCommercePlan,
+  platformCommerceCreatePlanRevision,
+  platformCommerceGetCommerceDunningPolicy,
+  platformCommerceGetCommerceProvider,
+  platformCommerceGetPlatformCommerceSubscription,
+  platformCommerceGetWorkspaceCommerceOverview,
+  platformCommerceListCommercePlans,
+  platformCommerceListCommercePlanRevisions,
+  platformCommerceListCommerceProviderEvents,
+  platformCommerceListPlatformCommerceSubscriptions,
+  platformCommercePreviewSubscriptionRevisionTransition,
+  platformCommercePublishPlanRevision,
+  platformCommercePutCommerceDunningPolicy,
+  platformCommercePutCommerceProvider,
+  platformCommerceReconcileCommerceProviderEvent,
+  platformCommerceScheduleSubscriptionRevisionTransition,
+  platformCommerceUpdatePlanRevision,
+  type CommercialCorrectionApplyPayload,
+  type CommercialCorrectionPreviewRequest,
+  type ConvergencePreviewRequest,
+  type CreditAdjustmentRequest,
+  type DunningPolicyWrite,
+  type PlatformCommerceListCommercePlansData,
+  type PlatformCommerceListCommerceProviderEventsData,
+  type PlatformCommerceListPlatformCommerceSubscriptionsData,
+  type PlanIdentityCreate,
+  type PlanRevisionDraftCreate,
+  type PlanRevisionDraftUpdate,
+  type PlanRevisionPublish,
+  type ProviderConfigurationWriteWritable,
+  type ProviderEventReconcileRequest,
   type PlatformCommercePlanCatalogOut,
   type PlatformCommerceSubscriptionListOut,
-  type PlatformListCommercePlansData,
-  type PlatformListPlatformCommerceSubscriptionsData,
+  type RenewalTransitionScheduleRequest,
+  type SubscriptionTransitionCancelRequest,
 } from "@arclayer/platform-openapi";
 
 import { platformApiClient } from "@/api/client";
@@ -46,15 +77,190 @@ function unwrap<T>(result: SdkResult<T>): T {
 }
 
 export async function listCommercePlans(
-  query?: NonNullable<PlatformListCommercePlansData["query"]>,
+  query?: NonNullable<PlatformCommerceListCommercePlansData["query"]>,
 ): Promise<PlatformCommercePlanCatalogOut> {
-  return unwrap(await platformListCommercePlans({ client: platformApiClient, query }));
+  return unwrap(await platformCommerceListCommercePlans({ client: platformApiClient, query }));
 }
 
 export async function listCommerceSubscriptions(
-  query?: NonNullable<PlatformListPlatformCommerceSubscriptionsData["query"]>,
+  query?: NonNullable<PlatformCommerceListPlatformCommerceSubscriptionsData["query"]>,
 ): Promise<PlatformCommerceSubscriptionListOut> {
   return unwrap(
-    await platformListPlatformCommerceSubscriptions({ client: platformApiClient, query }),
+    await platformCommerceListPlatformCommerceSubscriptions({
+      client: platformApiClient,
+      query,
+    }),
   );
 }
+
+export async function createCommercePlan(body: PlanIdentityCreate, idempotencyKey: string) {
+  return unwrap(
+    await platformCommerceCreateCommercePlan({
+      body,
+      client: platformApiClient,
+      headers: { "Idempotency-Key": idempotencyKey },
+    }),
+  );
+}
+
+export async function listCommercePlanRevisions(code: string, includeInactive = true) {
+  return unwrap(
+    await platformCommerceListCommercePlanRevisions({
+      client: platformApiClient,
+      path: { code },
+      query: { includeInactive },
+    }),
+  );
+}
+
+export async function createPlanRevision(
+  code: string,
+  body: PlanRevisionDraftCreate,
+  idempotencyKey: string,
+) {
+  return unwrap(
+    await platformCommerceCreatePlanRevision({
+      body,
+      client: platformApiClient,
+      headers: { "Idempotency-Key": idempotencyKey },
+      path: { code },
+    }),
+  );
+}
+
+export async function updatePlanRevision(
+  code: string,
+  revisionId: string,
+  body: PlanRevisionDraftUpdate,
+  idempotencyKey: string,
+) {
+  return unwrap(
+    await platformCommerceUpdatePlanRevision({
+      body,
+      client: platformApiClient,
+      headers: { "Idempotency-Key": idempotencyKey },
+      path: { code, revision_id: revisionId },
+    }),
+  );
+}
+
+export async function publishPlanRevision(
+  code: string,
+  revisionId: string,
+  body: PlanRevisionPublish,
+  idempotencyKey: string,
+) {
+  return unwrap(
+    await platformCommercePublishPlanRevision({
+      body,
+      client: platformApiClient,
+      headers: { "Idempotency-Key": idempotencyKey },
+      path: { code, revision_id: revisionId },
+    }),
+  );
+}
+
+export async function getCommerceProvider() {
+  return unwrap(await platformCommerceGetCommerceProvider({ client: platformApiClient }));
+}
+
+export async function putCommerceProvider(body: ProviderConfigurationWriteWritable) {
+  return unwrap(await platformCommercePutCommerceProvider({ body, client: platformApiClient }));
+}
+
+export async function getCommerceDunningPolicy() {
+  return unwrap(await platformCommerceGetCommerceDunningPolicy({ client: platformApiClient }));
+}
+
+export async function putCommerceDunningPolicy(body: DunningPolicyWrite) {
+  return unwrap(
+    await platformCommercePutCommerceDunningPolicy({ body, client: platformApiClient }),
+  );
+}
+
+export async function listCommerceProviderEvents(
+  query?: NonNullable<PlatformCommerceListCommerceProviderEventsData["query"]>,
+) {
+  return unwrap(
+    await platformCommerceListCommerceProviderEvents({ client: platformApiClient, query }),
+  );
+}
+
+export async function reconcileCommerceProviderEvent(
+  eventId: string,
+  body: ProviderEventReconcileRequest,
+) {
+  return unwrap(
+    await platformCommerceReconcileCommerceProviderEvent({
+      body,
+      client: platformApiClient,
+      path: { event_id: eventId },
+    }),
+  );
+}
+
+export async function getCommerceSubscription(subscriptionId: string) {
+  return unwrap(
+    await platformCommerceGetPlatformCommerceSubscription({
+      client: platformApiClient,
+      path: { subscription_id: subscriptionId },
+    }),
+  );
+}
+
+export async function getWorkspaceCommerceOverview(workspaceId: string) {
+  return unwrap(
+    await platformCommerceGetWorkspaceCommerceOverview({
+      client: platformApiClient,
+      path: { workspace_id: workspaceId },
+    }),
+  );
+}
+
+export async function adjustWorkspaceCredits(workspaceId: string, body: CreditAdjustmentRequest) {
+  return unwrap(
+    await platformCommerceAdjustWorkspaceCredits({
+      body,
+      client: platformApiClient,
+      path: { workspace_id: workspaceId },
+    }),
+  );
+}
+
+export async function previewSubscriptionRevisionTransition(body: ConvergencePreviewRequest) {
+  return unwrap(
+    await platformCommercePreviewSubscriptionRevisionTransition({
+      body,
+      client: platformApiClient,
+    }),
+  );
+}
+
+export async function scheduleSubscriptionRevisionTransition(
+  body: RenewalTransitionScheduleRequest,
+) {
+  return unwrap(
+    await platformCommerceScheduleSubscriptionRevisionTransition({
+      body,
+      client: platformApiClient,
+    }),
+  );
+}
+
+export async function cancelSubscriptionRevisionTransition(
+  transitionId: string,
+  body: SubscriptionTransitionCancelRequest,
+) {
+  return unwrap(
+    await platformCommerceCancelSubscriptionRevisionTransition({
+      body,
+      client: platformApiClient,
+      path: { transition_id: transitionId },
+    }),
+  );
+}
+
+// These request types are deliberately exported for form boundaries only. The server currently
+// returns COMMERCIAL_CORRECTION_PROVIDER_PORT_UNAVAILABLE for both correction operations.
+export type CommerceCorrectionPreviewRequest = CommercialCorrectionPreviewRequest;
+export type CommerceCorrectionApplyPayload = CommercialCorrectionApplyPayload;

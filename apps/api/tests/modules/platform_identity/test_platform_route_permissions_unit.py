@@ -12,9 +12,10 @@ from fastapi.routing import APIRoute
 from src.config import get_settings
 from src.core.exceptions import init_exception_handlers
 from src.modules.analytics.system import router as analytics_router
-from src.modules.commerce import system_router as commerce_router
+from src.modules.commerce import platform_router as commerce_router
 from src.modules.feedback import system_router as feedback_router
 from src.modules.observability import system_router as observability_router
+from src.modules.platform_capabilities import router as platform_capabilities_router
 from src.modules.platform_identity.http import (
     get_current_platform_session,
     get_platform_identity_repository,
@@ -23,7 +24,6 @@ from src.modules.platform_identity.permissions import PlatformPermissionCode
 from src.modules.platform_identity.session_schema import PlatformSessionPrincipal
 from src.modules.system.agents import router as agents_router
 from src.modules.system.ai_providers import router as ai_providers_router
-from src.modules.system.jobs import router as jobs_router
 from src.modules.system.mail import router as mail_router
 from src.modules.system.storage_profiles import router as storage_router
 from tests.utils.asgi_client import asgi_client
@@ -76,6 +76,20 @@ def _route_permissions(routes: Iterable[APIRoute]) -> dict[str, PlatformPermissi
                 "update_plan_revision": PlatformPermissionCode.COMMERCE_CATALOG_MANAGE,
                 "publish_plan_revision": PlatformPermissionCode.COMMERCE_CATALOG_MANAGE,
                 "get_workspace_commerce_overview": PlatformPermissionCode.COMMERCE_READ,
+                "get_platform_commerce_subscription": PlatformPermissionCode.COMMERCE_READ,
+                "preview_subscription_revision_transition": PlatformPermissionCode.COMMERCE_SUBSCRIPTIONS_MANAGE,
+                "schedule_subscription_revision_transition": PlatformPermissionCode.COMMERCE_SUBSCRIPTIONS_MANAGE,
+                "get_subscription_revision_transition": PlatformPermissionCode.COMMERCE_READ,
+                "cancel_subscription_revision_transition": PlatformPermissionCode.COMMERCE_SUBSCRIPTIONS_MANAGE,
+                "preview_workspace_subscription_correction": PlatformPermissionCode.COMMERCE_SUBSCRIPTIONS_MANAGE,
+                "apply_workspace_subscription_correction": PlatformPermissionCode.COMMERCE_SUBSCRIPTIONS_MANAGE,
+                "get_commerce_provider": PlatformPermissionCode.COMMERCE_READ,
+                "put_commerce_provider": PlatformPermissionCode.COMMERCE_PROVIDER_MANAGE,
+                "get_commerce_dunning_policy": PlatformPermissionCode.COMMERCE_READ,
+                "put_commerce_dunning_policy": PlatformPermissionCode.COMMERCE_PROVIDER_MANAGE,
+                "list_commerce_provider_events": PlatformPermissionCode.COMMERCE_READ,
+                "reconcile_commerce_provider_event": PlatformPermissionCode.COMMERCE_EVENTS_RECONCILE,
+                "adjust_workspace_credits": PlatformPermissionCode.COMMERCE_CREDITS_ADJUST,
             },
         ),
         (
@@ -85,6 +99,7 @@ def _route_permissions(routes: Iterable[APIRoute]) -> dict[str, PlatformPermissi
                 "get_platform_feedback_detail": PlatformPermissionCode.MESSAGES_FEEDBACK_READ,
                 "update_platform_feedback": PlatformPermissionCode.MESSAGES_FEEDBACK_MANAGE,
                 "add_platform_feedback_message": PlatformPermissionCode.MESSAGES_FEEDBACK_MANAGE,
+                "retry_platform_feedback_reply_delivery": PlatformPermissionCode.MESSAGES_DELIVERY_RETRY,
             },
         ),
         (
@@ -94,6 +109,9 @@ def _route_permissions(routes: Iterable[APIRoute]) -> dict[str, PlatformPermissi
                 "create_system_ai_provider": PlatformPermissionCode.AI_PROVIDERS_MANAGE,
                 "update_system_ai_provider": PlatformPermissionCode.AI_PROVIDERS_MANAGE,
                 "delete_system_ai_provider": PlatformPermissionCode.AI_PROVIDERS_MANAGE,
+                "preview_system_ai_provider_availability": PlatformPermissionCode.AI_PROVIDERS_MANAGE,
+                "apply_system_ai_provider_availability": PlatformPermissionCode.AI_PROVIDERS_MANAGE,
+                "test_system_ai_provider_readiness": PlatformPermissionCode.AI_PROVIDERS_MANAGE,
             },
         ),
         (
@@ -113,15 +131,6 @@ def _route_permissions(routes: Iterable[APIRoute]) -> dict[str, PlatformPermissi
             agents_router.assignments_router.routes,
             {
                 "list_system_agent_assignments": PlatformPermissionCode.AI_ASSIGNMENTS_READ,
-                "create_system_agent_assignment": PlatformPermissionCode.AI_ASSIGNMENTS_MANAGE,
-                "update_system_agent_assignment": PlatformPermissionCode.AI_ASSIGNMENTS_MANAGE,
-            },
-        ),
-        (
-            jobs_router.router.routes,
-            {
-                "list_system_jobs": PlatformPermissionCode.JOBS_READ,
-                "retry_system_job": PlatformPermissionCode.JOBS_MANAGE,
             },
         ),
         (
@@ -138,6 +147,13 @@ def _route_permissions(routes: Iterable[APIRoute]) -> dict[str, PlatformPermissi
         (
             mail_router.router.routes,
             {
+                "get_mail_service_profile": PlatformPermissionCode.MESSAGES_MAIL_READ,
+                "update_mail_service_profile": PlatformPermissionCode.MESSAGES_MAIL_MANAGE,
+                "write_mail_service_credentials": PlatformPermissionCode.MESSAGES_MAIL_MANAGE,
+                "rotate_mail_service_credentials": PlatformPermissionCode.MESSAGES_MAIL_MANAGE,
+                "test_mail_service_profile": PlatformPermissionCode.MESSAGES_MAIL_MANAGE,
+                "disable_mail_service_profile": PlatformPermissionCode.MESSAGES_MAIL_MANAGE,
+                "recover_mail_service_profile": PlatformPermissionCode.MESSAGES_MAIL_MANAGE,
                 "send_test_email": PlatformPermissionCode.MESSAGES_MAIL_MANAGE,
                 "list_mail_providers": PlatformPermissionCode.MESSAGES_MAIL_READ,
                 "switch_mail_provider": PlatformPermissionCode.MESSAGES_MAIL_MANAGE,
@@ -151,6 +167,13 @@ def _route_permissions(routes: Iterable[APIRoute]) -> dict[str, PlatformPermissi
                 "restore_default_email_template": PlatformPermissionCode.MESSAGES_MAIL_MANAGE,
                 "test_send_email_template": PlatformPermissionCode.MESSAGES_MAIL_MANAGE,
                 "get_email_template": PlatformPermissionCode.MESSAGES_MAIL_READ,
+            },
+        ),
+        (
+            platform_capabilities_router.router.routes,
+            {
+                "preview_workspace_capability_rollout": PlatformPermissionCode.WORKSPACE_CAPABILITY_ROLLOUT_APPLY,
+                "apply_workspace_capability_rollout": PlatformPermissionCode.WORKSPACE_CAPABILITY_ROLLOUT_APPLY,
             },
         ),
     ],
@@ -198,3 +221,44 @@ async def test_platform_route_denies_operator_without_its_exact_permission() -> 
     assert response.status_code == 403
     assert response.json()["error"] == "PLATFORM_PERMISSION_DENIED"
     assert repository.requested_permissions == [PlatformPermissionCode.MONITORING_AUDIT_READ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("path", "payload"),
+    [
+        ("/capabilities/tenant-governance/rollout/previews", {"proposedStage": "all_eligible"}),
+        (
+            "/capabilities/rollout/applies",
+            {"previewId": str(uuid4()), "idempotencyKey": "rollout-apply", "reason": "Controlled adoption"},
+        ),
+    ],
+)
+async def test_workspace_capability_rollout_routes_deny_operator_without_apply_permission(
+    path: str, payload: dict[str, str]
+) -> None:
+    repository = _DeniedRepository()
+    principal = PlatformSessionPrincipal(
+        actor_id=uuid4(),
+        session_id=uuid4(),
+        operator_id=uuid4(),
+        is_instance_owner=False,
+        policy_revision=1,
+        absolute_expires_at=datetime.now(UTC),
+    )
+
+    async def _platform_principal() -> PlatformSessionPrincipal:
+        return principal
+
+    app = FastAPI()
+    init_exception_handlers(app, get_settings())
+    app.include_router(platform_capabilities_router.router)
+    app.dependency_overrides[get_current_platform_session] = _platform_principal
+    app.dependency_overrides[get_platform_identity_repository] = lambda: repository
+
+    async with asgi_client(app) as client:
+        response = await client.post(path, json=payload)
+
+    assert response.status_code == 403
+    assert response.json()["error"] == "PLATFORM_PERMISSION_DENIED"
+    assert repository.requested_permissions == [PlatformPermissionCode.WORKSPACE_CAPABILITY_ROLLOUT_APPLY]

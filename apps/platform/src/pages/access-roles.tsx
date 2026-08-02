@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
 import { listPlatformPermissions, listPlatformRoles } from "@/access/access-api";
-import { AccessPage, AccessQueryState, ReadOnlyNotice, useAccessQuery } from "@/access/access-ui";
+import { AccessPage, AccessQueryState, useAccessQuery } from "@/access/access-ui";
 import { Badge } from "@arclayer/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
 
@@ -18,7 +18,6 @@ export function PlatformRolesPage() {
   const { state, retry } = useAccessQuery(load, []);
   return (
     <AccessPage description={t("ROLES_DESCRIPTION")} title={t("ROLES_TITLE")}>
-      <ReadOnlyNotice />
       <AccessQueryState isEmpty={(data) => data.roles.length === 0} retry={retry} state={state}>
         {({ roles, permissions }) => (
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">

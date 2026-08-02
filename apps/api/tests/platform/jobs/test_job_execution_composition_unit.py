@@ -10,6 +10,7 @@ from src.agents.checkpointing import memory_agent_checkpointer
 from src.common.schemas import BaseSchema
 from src.common.types.json_types import JsonObject
 from src.config import Settings
+from src.core.registries import ConnectorRegistry
 from src.models.jobs.background_job import JobAuthorityMode, JobWorkloadClass
 from src.modules.ai.runtime_job_handler import AgentRunJobHandler
 from src.modules.ai.runtime_langgraph_gateway import LangGraphAgentRunExecutionGateway
@@ -62,6 +63,7 @@ from src.modules.projects.builder.generation_provider import (
 )
 from src.modules.projects.design_systems.concept_handler import DesignSystemConceptGenerationJobHandler
 from src.modules.projects.design_systems.concept_provider import LLMDesignSystemConceptGenerator
+from src.modules.sites.delivery.hosting import SitesHostingDeliveryAdapter
 from src.modules.system.admin.notifications.campaign_job_contract import (
     NOTIFICATION_CAMPAIGN_DISPATCH_JOB_TYPE,
     NOTIFICATION_CAMPAIGN_DISPATCH_JOB_TYPE_VERSION,
@@ -78,6 +80,7 @@ from src.modules.workspaces.knowledge.ingestion_handler import KnowledgeSourceIn
 from src.modules.workspaces.skills.github_import_handler import SkillGitHubImportJobHandler
 from src.platform.jobs.composition.execution import (
     ProductionJobHandlerFactoryRegistry,
+    _build_commercial_access_fact_handler,
     build_job_execution_runtime,
 )
 
@@ -259,13 +262,12 @@ def test_maintenance_runtime_binds_exact_thumbnail_provider_effect_recovery(tmp_
     assert isinstance(handler._storage, ExactAssetThumbnailProviderStorageResolver)
     assert handler._pipeline._storage_resolver is handler._storage
     assert handler._storage._route_operations is handler._effects._operations
-    assert isinstance(
-        runtime.handlers.create_handler(
-            job_type=COMMERCE_ACCESS_FACT_CONSUME_JOB_TYPE,
-            job_type_version=COMMERCE_ACCESS_FACT_CONSUME_JOB_TYPE_VERSION,
-        ),
-        CommercialAccessFactJobHandler,
+    commerce_handler = runtime.handlers.create_handler(
+        job_type=COMMERCE_ACCESS_FACT_CONSUME_JOB_TYPE,
+        job_type_version=COMMERCE_ACCESS_FACT_CONSUME_JOB_TYPE_VERSION,
     )
+    assert isinstance(commerce_handler, CommercialAccessFactJobHandler)
+    assert isinstance(commerce_handler._hosting._delivery, SitesHostingDeliveryAdapter)
     campaign_handler = runtime.handlers.create_handler(
         job_type=NOTIFICATION_CAMPAIGN_DISPATCH_JOB_TYPE,
         job_type_version=NOTIFICATION_CAMPAIGN_DISPATCH_JOB_TYPE_VERSION,
@@ -276,6 +278,30 @@ def test_maintenance_runtime_binds_exact_thumbnail_provider_effect_recovery(tmp_
         job_type_version=PLUGIN_LIFECYCLE_JOB_TYPE_VERSION,
     )
     assert isinstance(plugin_handler, PluginLifecycleJobHandler)
+
+
+def test_commercial_access_fact_composition_injects_settings_into_notification_persistence(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    settings = _settings(tmp_path)
+    captured_settings: list[Settings] = []
+
+    class _Persistence:
+        def __init__(self, *, settings: Settings) -> None:
+            captured_settings.append(settings)
+
+    monkeypatch.setattr(
+        "src.platform.jobs.composition.execution.TortoiseCommercialLifecycleNotificationPersistence",
+        _Persistence,
+    )
+
+    _build_commercial_access_fact_handler(
+        settings=settings,
+        connector_registry=ConnectorRegistry(),
+    )
+
+    assert captured_settings == [settings]
+    assert captured_settings[0] is settings
 
 
 def test_connector_execution_runtime_binds_billing_knowledge_and_github_skill_handlers(tmp_path) -> None:

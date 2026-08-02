@@ -1,12 +1,12 @@
 import { projectPath } from "@/lib/api";
 import { api } from "@/lib/http";
 import type {
-  AdminRelease,
-  AdminReleaseDryRun,
-  AdminReleaseList,
-  AdminReleasePublishResult,
-  AdminReleaseRollbackResult,
-} from "@arclayer/openapi/admin-types";
+  ReleaseOut as AdminRelease,
+  ReleaseDryRunOut as AdminReleaseDryRun,
+  ReleaseListOut as AdminReleaseList,
+  ReleasePublishOut as AdminReleasePublishResult,
+  ReleaseRollbackOut as AdminReleaseRollbackResult,
+} from "@arclayer/openapi";
 import type { ReleasePublishIn } from "@arclayer/openapi";
 
 export function buildProjectReleasesQueryKey(projectId: string) {

@@ -34,6 +34,7 @@ from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, NotFound, ServiceUnavailable, Unauthorized
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.core.services import BaseService
+from src.models.analytics.audit_event import AuditEvent
 from src.models.platform_identity.mfa import (
     PlatformAuthFlowChallenge,
     PlatformAuthFlowPurpose,
@@ -43,7 +44,14 @@ from src.models.platform_identity.mfa import (
     PlatformWebAuthnChallenge,
     PlatformWebAuthnChallengePurpose,
 )
-from src.modules.platform_identity.mfa_schema import PlatformMfaAssurance, PlatformMfaVerification
+from src.models.platform_identity.roles import PlatformIdentityMutationReceipt
+from src.modules.platform_identity.mfa import PlatformMfaRepository
+from src.modules.platform_identity.mfa_schema import (
+    PlatformMfaAssurance,
+    PlatformMfaVerification,
+    PlatformRecoveryCodeSet,
+)
+from src.modules.platform_identity.schema import PlatformInvitationSetupContext
 from src.modules.platform_identity.webauthn_schema import (
     PlatformAuthFlowIssued,
     PlatformAuthFlowRecord,
@@ -201,6 +209,43 @@ class PlatformWebAuthnPersistence(Protocol):
         self, *, method_id: UUID, used_at: datetime, conn: BaseDBAsyncClient
     ) -> bool: ...
 
+    async def get_management_enrollment_replay(
+        self,
+        *,
+        user_id: UUID,
+        action: str,
+        idempotency_key: str,
+        correlation_id: UUID,
+        request_fingerprint: str,
+    ) -> UUID | None: ...
+
+    async def commit_management_registration(
+        self,
+        *,
+        values: dict[str, object],
+        user_id: UUID,
+        replaced_method_id: UUID | None,
+        action: str,
+        idempotency_key: str,
+        correlation_id: UUID,
+        request_fingerprint: str,
+        occurred_at: datetime,
+    ) -> PlatformMfaMethod: ...
+
+
+class PlatformOperatorSetupCompletion(Protocol):
+    async def complete_operator_setup(
+        self,
+        *,
+        user_id: UUID,
+        operator_id: UUID,
+        invitation_id: UUID | None,
+        expected_invitation_revision: int | None,
+        activation_correlation_id: UUID | None,
+        activation_idempotency_key: str | None,
+        conn: BaseDBAsyncClient,
+    ) -> PlatformRecoveryCodeSet: ...
+
 
 class TortoisePlatformWebAuthnPersistence:
     @asynccontextmanager
@@ -291,6 +336,84 @@ class TortoisePlatformWebAuthnPersistence:
         )
         return updated == 1
 
+    async def get_management_enrollment_replay(
+        self,
+        *,
+        user_id: UUID,
+        action: str,
+        idempotency_key: str,
+        correlation_id: UUID,
+        request_fingerprint: str,
+    ) -> UUID | None:
+        receipt = await PlatformIdentityMutationReceipt.filter(
+            actor_user_id=user_id, action=action, idempotency_key=idempotency_key
+        ).first()
+        if receipt is None:
+            return None
+        if receipt.request_fingerprint != request_fingerprint or UUID(str(receipt.correlation_id)) != correlation_id:
+            raise Conflict(error="PLATFORM_IDEMPOTENCY_CONFLICT")
+        return UUID(str(receipt.entity_id))
+
+    async def commit_management_registration(
+        self,
+        *,
+        values: dict[str, object],
+        user_id: UUID,
+        replaced_method_id: UUID | None,
+        action: str,
+        idempotency_key: str,
+        correlation_id: UUID,
+        request_fingerprint: str,
+        occurred_at: datetime,
+    ) -> PlatformMfaMethod:
+        async with self.transaction() as conn:
+            existing = (
+                await PlatformIdentityMutationReceipt
+                .filter(actor_user_id=user_id, action=action, idempotency_key=idempotency_key)
+                .using_db(conn)
+                .select_for_update()
+                .first()
+            )
+            if existing is not None:
+                if (
+                    existing.request_fingerprint != request_fingerprint
+                    or UUID(str(existing.correlation_id)) != correlation_id
+                ):
+                    raise Conflict(error="PLATFORM_IDEMPOTENCY_CONFLICT")
+                method = await PlatformMfaMethod.filter(id=existing.entity_id).using_db(conn).first()
+                if method is None:
+                    raise Conflict(error="PLATFORM_IDEMPOTENCY_RESULT_MISSING")
+                return method
+            method = await self.create_verified_method(values=values, conn=conn)
+            if replaced_method_id is not None:
+                await PlatformMfaRepository().retire_verified_method_after_replacement(
+                    user_id=user_id,
+                    replaced_method_id=replaced_method_id,
+                    replacement_method_id=UUID(str(method.id)),
+                    revoked_at=occurred_at,
+                    conn=conn,
+                )
+            await AuditEvent.create(
+                using_db=conn,
+                occurred_at=occurred_at,
+                event_name="platform.mfa.method_replaced" if replaced_method_id else "platform.mfa.method_enrolled",
+                actor_user_id=user_id,
+                entity_type="platform_mfa_method",
+                entity_id=method.id,
+                source="platform",
+                properties={"correlation_id": str(correlation_id), "idempotency_key": idempotency_key},
+            )
+            await PlatformIdentityMutationReceipt.create(
+                using_db=conn,
+                actor_user_id=user_id,
+                action=action,
+                idempotency_key=idempotency_key,
+                request_fingerprint=request_fingerprint,
+                entity_id=method.id,
+                correlation_id=correlation_id,
+            )
+            return method
+
 
 class PlatformWebAuthnService(BaseService):
     def __init__(
@@ -298,6 +421,7 @@ class PlatformWebAuthnService(BaseService):
         *,
         repository: PlatformWebAuthnPersistence | None = None,
         verifier: PlatformWebAuthnVerifier | None = None,
+        operator_setup_completion: PlatformOperatorSetupCompletion | None = None,
         settings: Settings | None = None,
         now: Callable[[], datetime] | None = None,
         challenge_factory: Callable[[], bytes] = lambda: token_bytes(32),
@@ -305,6 +429,7 @@ class PlatformWebAuthnService(BaseService):
         super().__init__(settings)
         self._repository = repository or TortoisePlatformWebAuthnPersistence()
         self._verifier = verifier or PyWebAuthnVerifier()
+        self._operator_setup_completion = operator_setup_completion
         self._settings = self.settings
         self._now = now or (lambda: datetime.now(UTC))
         self._challenge_factory = challenge_factory
@@ -356,6 +481,11 @@ class PlatformWebAuthnService(BaseService):
         challenge_id: UUID,
         binding: str,
         credential: PlatformWebAuthnRegistrationCredential,
+        operator_id: UUID | None = None,
+        invitation_id: UUID | None = None,
+        expected_invitation_revision: int | None = None,
+        activation_correlation_id: UUID | None = None,
+        activation_idempotency_key: str | None = None,
     ) -> PlatformWebAuthnEnrollmentResult:
         config = self._require_config()
         challenge = await self._consume_and_validate_challenge(
@@ -390,6 +520,93 @@ class PlatformWebAuthnService(BaseService):
                     },
                     conn=conn,
                 )
+                recovery_codes = None
+                if operator_id is not None:
+                    if self._operator_setup_completion is None:
+                        raise ServiceUnavailable(error="PLATFORM_OPERATOR_SETUP_COMPLETION_UNAVAILABLE")
+                    recovery_codes = await self._operator_setup_completion.complete_operator_setup(
+                        user_id=user_id,
+                        operator_id=operator_id,
+                        invitation_id=invitation_id,
+                        expected_invitation_revision=expected_invitation_revision,
+                        activation_correlation_id=activation_correlation_id,
+                        activation_idempotency_key=activation_idempotency_key,
+                        conn=conn,
+                    )
+        except IntegrityError as exc:
+            raise Conflict(error="PLATFORM_WEBAUTHN_CREDENTIAL_ALREADY_REGISTERED") from exc
+        return PlatformWebAuthnEnrollmentResult(method_id=method.id, recovery_codes=recovery_codes)
+
+    async def complete_management_registration(
+        self,
+        *,
+        user_id: UUID,
+        challenge_id: UUID,
+        binding: str,
+        credential: PlatformWebAuthnRegistrationCredential,
+        replace_method_id: UUID | None,
+        idempotency_key: str,
+        correlation_id: UUID,
+    ) -> PlatformWebAuthnEnrollmentResult:
+        action = "replace_platform_webauthn_method" if replace_method_id else "add_platform_webauthn_method"
+        fingerprint = _digest(
+            json.dumps(
+                {
+                    "challenge_id": str(challenge_id),
+                    "credential_id": credential.raw_id,
+                    "replace_method_id": None if replace_method_id is None else str(replace_method_id),
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+        )
+        replay = await self._repository.get_management_enrollment_replay(
+            user_id=user_id,
+            action=action,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+            request_fingerprint=fingerprint,
+        )
+        if replay is not None:
+            return PlatformWebAuthnEnrollmentResult(method_id=replay)
+        config = self._require_config()
+        challenge = await self._consume_and_validate_challenge(
+            challenge_id=challenge_id,
+            user_id=user_id,
+            purpose=PlatformWebAuthnChallengePurpose.REGISTRATION,
+            binding=binding,
+        )
+        verified = self._verifier.verify_registration(
+            credential=credential,
+            expected_challenge_hash=challenge.challenge_hash,
+            expected_origin=config.origin,
+            expected_rp_id=config.rp_id,
+            allowed_cose_algorithms=config.allowed_cose_algorithms,
+            require_user_verification=True,
+        )
+        self._require_verified_registration(verified=verified, credential=credential)
+        now = self._now()
+        try:
+            method = await self._repository.commit_management_registration(
+                values={
+                    "user_id": user_id,
+                    "kind": PlatformMfaMethodKind.WEBAUTHN,
+                    "status": PlatformMfaMethodStatus.VERIFIED,
+                    "credential_id": verified.credential_id,
+                    "credential_public_key": verified.credential_public_key,
+                    "sign_count": verified.sign_count,
+                    "relying_party_id": config.rp_id,
+                    "verified_at": now,
+                    "last_used_at": now,
+                },
+                user_id=user_id,
+                replaced_method_id=replace_method_id,
+                action=action,
+                idempotency_key=idempotency_key,
+                correlation_id=correlation_id,
+                request_fingerprint=fingerprint,
+                occurred_at=now,
+            )
         except IntegrityError as exc:
             raise Conflict(error="PLATFORM_WEBAUTHN_CREDENTIAL_ALREADY_REGISTERED") from exc
         return PlatformWebAuthnEnrollmentResult(method_id=method.id)
@@ -583,7 +800,12 @@ class PlatformAuthFlowChallengeRepository(TortoiseORMRepository):
         self._token_factory = token_factory
 
     async def issue(
-        self, *, user_id: UUID, purpose: PlatformAuthFlowPurpose, identity_revision: int
+        self,
+        *,
+        user_id: UUID,
+        purpose: PlatformAuthFlowPurpose,
+        identity_revision: int,
+        setup_context: PlatformInvitationSetupContext | None = None,
     ) -> PlatformAuthFlowIssued:
         if identity_revision < 0:
             raise ValueError("identity_revision must not be negative")
@@ -596,6 +818,11 @@ class PlatformAuthFlowChallengeRepository(TortoiseORMRepository):
             purpose=purpose,
             token_hash=_digest(token),
             identity_revision=identity_revision,
+            invitation_id=None if setup_context is None else setup_context.invitation_id,
+            invitation_revision=None if setup_context is None else setup_context.invitation_revision,
+            requires_phishing_resistant=(
+                False if setup_context is None else setup_context.requires_phishing_resistant
+            ),
             expires_at=expires_at,
         )
         return PlatformAuthFlowIssued(flow_id=record.id, token=token, expires_at=expires_at)
@@ -646,6 +873,9 @@ class PlatformAuthFlowChallengeRepository(TortoiseORMRepository):
             user_id=UUID(str(record.user_id)),
             purpose=record.purpose,
             identity_revision=record.identity_revision,
+            invitation_id=None if record.invitation_id is None else UUID(str(record.invitation_id)),
+            invitation_revision=record.invitation_revision,
+            requires_phishing_resistant=record.requires_phishing_resistant,
             expires_at=record.expires_at,
             failure_count=record.failure_count,
         )

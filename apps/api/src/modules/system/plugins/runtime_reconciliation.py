@@ -16,6 +16,7 @@ from src.models.system.plugin_installation import (
     PluginInstallationRecord,
     PluginOperationRecord,
     PluginOperationState,
+    PluginTrustState,
 )
 from src.modules.jobs.service import BackgroundJobService
 from src.modules.system.plugins.lifecycle_repository import PluginLifecycleRepository
@@ -78,6 +79,8 @@ async def _verify_active_artifact(
     artifact = installation.active_artifact
     if artifact is None:
         raise RuntimeError(f"Plugin {installation.plugin_name} has no active managed artifact")
+    if artifact.trust_state != PluginTrustState.VERIFIED or not artifact.trust_evidence:
+        raise RuntimeError(f"Plugin {installation.plugin_name} active artifact has unverified trust evidence")
     if artifact.package_path is None:
         raise RuntimeError(f"Plugin {installation.plugin_name} active artifact has no materialized package")
     package_path = package_store.resolve_package_path(artifact.package_path)

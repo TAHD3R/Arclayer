@@ -122,7 +122,7 @@ function resolveAttachmentUploadScope(scope: AIComposerDirectiveScope): AssetSco
   if (workspaceState.currentProjectId) {
     return { type: "project", id: workspaceState.currentProjectId };
   }
-  const workspaceId = workspaceState.currentWorkspaceId ?? workspaceState.lastWorkspaceId;
+  const workspaceId = workspaceState.currentWorkspaceId;
   if (workspaceId) return { type: "workspace", id: workspaceId };
   throw new Error("AI_ATTACHMENT_SCOPE_REQUIRED");
 }

@@ -16,6 +16,7 @@ from src.models.system.plugin_installation import (
     PluginOperationKind,
     PluginOperationState,
     PluginRuntimeActivationState,
+    PluginTrustState,
 )
 
 
@@ -61,7 +62,31 @@ class ExtensionConfigurationTarget(StrEnum):
 
 
 class ExtensionConfigurationReadiness(StrEnum):
+    READY = "ready"
+    NEEDS_CONFIGURATION = "needs_configuration"
+    UNAVAILABLE = "unavailable"
+
+
+class ExtensionConsumerEvidenceState(StrEnum):
     UNKNOWN = "unknown"
+    READY = "ready"
+    BLOCKED = "blocked"
+
+
+class ExtensionDependencyOut(BaseSchema):
+    extension_name: str
+    version_requirement: str | None = None
+
+
+class ExtensionConsumerOut(BaseSchema):
+    domain: str
+    label: str
+    deep_link: str
+
+
+class ExtensionConsumerEvidenceOut(BaseSchema):
+    state: ExtensionConsumerEvidenceState
+    consumers: list[ExtensionConsumerOut] = Field(default_factory=list)
 
 
 class ExtensionConnectionOut(BaseSchema):
@@ -73,26 +98,11 @@ class ExtensionConnectionOut(BaseSchema):
     runtime_ready: bool
     configuration_readiness: ExtensionConfigurationReadiness
     configuration_target: ExtensionConfigurationTarget
+    configuration_deep_link: str
 
 
 class ExtensionConnectionListOut(BaseSchema):
     items: list[ExtensionConnectionOut] = Field(default_factory=list)
-
-
-class SystemPluginListItemOut(BaseSchema):
-    name: str
-    version: str
-    package_state: PackageState
-    process_state: ProcessState
-    provides: SystemPluginProvidesOut
-    permissions: list[str] = Field(default_factory=list)
-    config_schema: JsonObject = Field(default_factory=dict)
-    admin: SystemPluginAdminOut | None = None
-    connector_definitions: list[SystemConnectorDefinitionOut] = Field(default_factory=list)
-
-
-class SystemPluginListOut(BaseSchema):
-    plugins: list[SystemPluginListItemOut] = Field(default_factory=list)
 
 
 class SystemPluginSourceType(StrEnum):
@@ -102,7 +112,9 @@ class SystemPluginSourceType(StrEnum):
 
 
 class SystemPluginProvenanceStatus(StrEnum):
+    UNKNOWN = "unknown"
     VERIFIED = "verified"
+    REJECTED = "rejected"
 
 
 class SystemPluginCompatibilityOut(BaseSchema):
@@ -131,12 +143,18 @@ class SystemPluginCatalogItemOut(BaseSchema):
     manifest_digest: str
     signer_fingerprint: str | None = None
     provenance_status: SystemPluginProvenanceStatus
+    trust_state: PluginTrustState = PluginTrustState.UNKNOWN
+    trust_evidence: list[str] = Field(default_factory=list)
     compatibility: SystemPluginCompatibilityOut
     package_state: PackageState | None = None
     process_state: ProcessState | None = None
     provides: SystemPluginProvidesOut
     permissions: list[str] = Field(default_factory=list)
     approved_permissions: list[str] = Field(default_factory=list)
+    dependencies: list[ExtensionDependencyOut] = Field(default_factory=list)
+    consumers: ExtensionConsumerEvidenceOut = Field(
+        default_factory=lambda: ExtensionConsumerEvidenceOut(state=ExtensionConsumerEvidenceState.UNKNOWN)
+    )
     config_schema: JsonObject = Field(default_factory=dict)
     admin: SystemPluginAdminOut | None = None
     connector_definitions: list[SystemConnectorDefinitionOut] = Field(default_factory=list)
@@ -158,6 +176,8 @@ class SystemPluginArtifactReviewOut(BaseOut):
     manifest_digest: str
     signer_fingerprint: str
     provenance_status: str
+    trust_state: PluginTrustState = PluginTrustState.UNKNOWN
+    trust_evidence: list[str] = Field(default_factory=list)
     size_bytes: int
     compatibility: SystemPluginCompatibilityOut
     provides: SystemPluginProvidesOut
@@ -216,12 +236,19 @@ class SystemPluginOperationOut(BaseOut):
     job_id: PublicUUID | None
     requested_version: str | None
     permission_diff: JsonObject
+    requested_permissions: list[str] = Field(default_factory=list)
+    approved_permissions: list[str] = Field(default_factory=list)
+    provided_capabilities: list[str] = Field(default_factory=list)
     migration_warnings: list[str]
+    step_evidence: list[JsonObject] = Field(default_factory=list)
     restart_required: bool
+    desired_enabled: bool = False
     activation_verified: bool
     retryable: bool
     failure_code: str | None
     failure_summary: str | None
+    audit_correlation_id: str | None = None
+    recovery_of_operation_id: UUID | None = None
     requested_by_user_id: UUID
     started_at: datetime | None
     completed_at: datetime | None

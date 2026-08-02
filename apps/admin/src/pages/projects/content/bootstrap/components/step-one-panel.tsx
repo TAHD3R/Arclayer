@@ -9,8 +9,11 @@ import { Textarea } from "@arclayer/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@arclayer/ui/toggle-group";
 import { cn } from "@arclayer/lib/utils";
 
-import type { AdminContentItemVisibility } from "@arclayer/openapi/admin-types";
-import type { AdminContentModel } from "@arclayer/openapi/admin-types";
+import type { listAllContentModels } from "@/api/content";
+import type { ContentItemOut } from "@arclayer/openapi";
+
+type AdminContentItemVisibility = ContentItemOut["visibility"];
+type AdminContentModel = Awaited<ReturnType<typeof listAllContentModels>>[number];
 
 import {
   getOfficialContentTypePresentation,

@@ -10,7 +10,7 @@ from src.core.exceptions import BadRequest, NotFound
 from src.core.extensions.manifest import ExtensionManifest
 from src.core.i18n import t
 from src.core.services import BaseService
-from src.models.system.plugin_installation import PluginArtifactRecord, PluginSourceType
+from src.models.system.plugin_installation import PluginArtifactRecord, PluginSourceType, PluginTrustState
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.system.plugins.catalog import build_plugin_compatibility
 from src.modules.system.plugins.lifecycle_repository import PluginLifecycleRepository
@@ -83,6 +83,13 @@ class PluginArtifactService(BaseService):
             "detached_signature": item.detached_signature,
             "signer_fingerprint": item.signer_fingerprint,
             "provenance_status": "signed_catalog",
+            "trust_state": PluginTrustState.VERIFIED,
+            "trust_evidence": [
+                "approved_catalog_signature",
+                "artifact_signature",
+                "package_checksum",
+                "manifest_digest",
+            ],
             "size_bytes": item.size_bytes,
             "compatibility": compatibility.model_dump(mode="json", by_alias=True),
             "review_projection": {
@@ -122,6 +129,8 @@ class PluginArtifactService(BaseService):
             "detached_signature": verified.detached_signature,
             "signer_fingerprint": verified.signer_fingerprint,
             "provenance_status": "signed_manual",
+            "trust_state": PluginTrustState.VERIFIED,
+            "trust_evidence": ["artifact_signature", "package_checksum", "manifest_digest"],
             "size_bytes": verified.size_bytes,
             "compatibility": compatibility.model_dump(mode="json", by_alias=True),
             "review_projection": {"manifest": verified.manifest.model_dump(mode="json")},
@@ -182,6 +191,8 @@ def _artifact_review_out(record: PluginArtifactRecord) -> SystemPluginArtifactRe
         manifest_digest=record.manifest_digest,
         signer_fingerprint=record.signer_fingerprint,
         provenance_status=record.provenance_status,
+        trust_state=record.trust_state,
+        trust_evidence=[item for item in record.trust_evidence if isinstance(item, str)],
         size_bytes=record.size_bytes,
         compatibility=SystemPluginCompatibilityOut.model_validate(record.compatibility),
         provides=SystemPluginProvidesOut(**manifest.provides.model_dump()),

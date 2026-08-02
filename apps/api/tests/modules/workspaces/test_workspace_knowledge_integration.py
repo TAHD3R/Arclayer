@@ -223,13 +223,7 @@ async def test_workspace_knowledge_manual_authority_is_versioned_tenant_safe_and
                     "indexingAvailable": False,
                     "retrievalAvailable": False,
                     "immutableSourceVersions": True,
-                    "supportedSourceKinds": [
-                        "manual",
-                        "file",
-                        "url",
-                        "connector",
-                        "structured_content",
-                    ],
+                    "supportedSourceKinds": ["manual"],
                 }
 
                 create_headers = {"Idempotency-Key": "knowledge-base-primary"}

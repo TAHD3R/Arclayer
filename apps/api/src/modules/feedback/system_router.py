@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Header, Query
 
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
@@ -135,3 +135,24 @@ async def add_platform_feedback_message(
         "API_FEEDBACK_REPLY_ADDED" if str(payload.kind) == "reply" else "API_FEEDBACK_NOTE_ADDED",
     )
     return ApiResponse.success(message=message, data=ticket)
+
+
+@router.post(
+    "/{ticket_id}/messages/{message_id}/retry-delivery",
+    response_model=ResponseModel[FeedbackTicketDetailOut],
+    summary="Retry one failed feedback reply delivery",
+)
+async def retry_platform_feedback_reply_delivery(
+    ticket_id: PublicUUID,
+    message_id: PublicUUID,
+    principal: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.MESSAGES_DELIVERY_RETRY),
+    settings: Settings = Depends(get_settings),
+    idempotency_key: str = Header(alias="Idempotency-Key", min_length=1, max_length=128),
+) -> ResponseModel[FeedbackTicketDetailOut]:
+    ticket = await FeedbackService(settings).retry_reply_delivery(
+        ticket_id=ticket_id,
+        message_id=message_id,
+        actor_user_id=principal.actor_id,
+        idempotency_key=idempotency_key,
+    )
+    return ApiResponse.success(data=ticket)

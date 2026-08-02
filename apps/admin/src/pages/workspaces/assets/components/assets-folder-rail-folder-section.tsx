@@ -1,7 +1,7 @@
 import { EllipsisVertical, FolderClosed, FolderPlus } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import type { AdminAssetFolder } from "@arclayer/openapi/admin-types";
+import type { AdminAssetFolderOut as AdminAssetFolder } from "@arclayer/openapi";
 import { cn } from "@arclayer/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 import { Button } from "@arclayer/ui/button";

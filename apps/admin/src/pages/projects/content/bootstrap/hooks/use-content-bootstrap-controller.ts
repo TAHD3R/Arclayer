@@ -16,12 +16,11 @@ import {
   projectContentModelsPath,
 } from "@/lib/routing/project-content-routing";
 import { usePreferencesStore } from "@/stores/use-preference-store";
-import type {
-  AdminContentItem,
-  AdminContentItemVisibility,
-  AdminContentModel,
-  JsonValueInput,
-} from "@arclayer/openapi/admin-types";
+import type { ContentItemOut, JsonValueInput } from "@arclayer/openapi";
+
+type AdminContentItemVisibility = ContentItemOut["visibility"];
+type AdminContentItem = Awaited<ReturnType<typeof createContentItem>>;
+type AdminContentModel = Awaited<ReturnType<typeof listAllContentModels>>[number];
 
 import { buildContentItemsQueryKey, buildContentModelsQueryKey } from "../../library/utils";
 import { resolveContentBootstrapVariant } from "../../content-type-presentation";
@@ -59,7 +58,7 @@ function buildInitialDraftPayload(params: {
   if (variant === "page" && metaDescription) seoPayload.metaDescription = metaDescription;
 
   return {
-    expectedVersion: params.item.draftVersion ?? 0,
+    expectedVersion: params.item.draftVersion,
     changeSummary: "Seed content draft settings",
     fieldsSnapshot: {
       title: params.title.trim(),

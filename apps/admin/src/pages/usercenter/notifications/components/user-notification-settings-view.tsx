@@ -9,10 +9,9 @@ import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { notifyError } from "@/lib/notifications";
 import { UserCenterSettingsSectionStack } from "@/pages/usercenter/shared/usercenter-settings-section-stack";
 import type {
-  NotificationPreferenceChannel,
-  NotificationPreferences,
-  NotificationPreferenceTopic,
-} from "@arclayer/openapi/admin-types";
+  NotificationPreferencePatchIn,
+  NotificationPreferenceTopicOut as NotificationPreferenceTopic,
+} from "@arclayer/openapi";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import {
@@ -27,6 +26,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
 
 type UserNotificationSettingsViewMode = "page" | "dialog";
+type NotificationPreferenceChannel = NotificationPreferencePatchIn["channel"];
+type NotificationPreferences = Awaited<ReturnType<typeof getMyNotificationPreferences>>;
 
 type UserNotificationSettingsPageProps = {
   mode?: UserNotificationSettingsViewMode;
@@ -133,9 +134,8 @@ function resolveTopicCopy(
   t: (key: string) => string,
 ): { title: string; description: string } {
   const fallback = TOPIC_I18N_FALLBACK[topic.key];
-  const titleKey = topic.titleI18n ?? topic.title_i18n ?? fallback?.title ?? "";
-  const descriptionKey =
-    topic.descriptionI18n ?? topic.description_i18n ?? fallback?.description ?? "";
+  const titleKey = topic.titleI18N || fallback?.title || "";
+  const descriptionKey = topic.descriptionI18N || fallback?.description || "";
   const resolvedTitle = titleKey ? t(titleKey) : "";
   const resolvedDescription = descriptionKey ? t(descriptionKey) : "";
 
@@ -173,7 +173,7 @@ function applyPreferenceUpdates(
   return {
     ...preferences,
     topics: preferences.topics.map((topic) => {
-      const nextChannelState: Partial<NotificationPreferenceTopic["channels"]> = {};
+      const nextChannelState: Record<string, NotificationPreferenceTopic["channels"][string]> = {};
       let changed = false;
 
       for (const channel of NOTIFICATION_CHANNELS) {

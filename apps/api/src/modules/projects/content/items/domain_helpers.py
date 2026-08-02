@@ -372,13 +372,14 @@ def to_item_out(
     item: ContentItemRecord,
     model: ContentModelDefinitionRecord | None,
     *,
+    project_id: UUID,
     title: str | None = None,
     slug: str | None = None,
     summary: str | None = None,
     visibility: str | None = None,
     translation_status: ContentTranslationStatusOut | None = None,
 ) -> ContentItemOut:
-    route = f"/w/{encode_uuid(item.workspace_id)}/content/library/{encode_uuid(item.id)}"
+    route = f"/projects/{encode_uuid(project_id)}/content/library/{encode_uuid(item.id)}"
     shape_reason_code = item.shape_reason_code or None
     shape_reason_meta = item.shape_reason_meta if isinstance(item.shape_reason_meta, dict) else None
     blocked = str(item.shape_state or "unshaped") != "ready"

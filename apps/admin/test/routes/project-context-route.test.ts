@@ -51,17 +51,23 @@ describe("project route context preload", () => {
     });
   });
 
-  it("reuses the persisted last workspace context for the same project id", async () => {
+  it("revalidates a persisted project instead of trusting the last workspace pair", async () => {
     workspaceState.lastWorkspaceId = "workspace-last";
     workspaceState.lastProjectId = "project-last";
+    getProjectDetailMock.mockResolvedValue({
+      project: {
+        id: "project-last",
+        workspaceId: "workspace-verified",
+      },
+    });
 
     await Route.options.beforeLoad?.({
       params: { projectId: "project-last" },
     } as never);
 
-    expect(getProjectDetailMock).not.toHaveBeenCalled();
+    expect(getProjectDetailMock).toHaveBeenCalledWith("project-last");
     expect(setCurrentContextMock).toHaveBeenCalledWith({
-      workspaceId: "workspace-last",
+      workspaceId: "workspace-verified",
       projectId: "project-last",
     });
   });

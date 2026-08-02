@@ -5,14 +5,17 @@ import {
   type PlatformCapabilityModule,
   type PlatformDestination,
 } from "@/capabilities/module-registry";
-import type { PlatformCapabilityOut } from "@arclayer/platform-openapi";
 
-export type CapabilityProjectionRecord = Readonly<
-  Pick<
-    PlatformCapabilityOut,
-    "capabilityId" | "routeTarget" | "navigationCandidate" | "navigationTargets"
-  >
->;
+export type CapabilityProjectionRecord = Readonly<{
+  capabilityId: string;
+  routeTarget: string;
+  navigationCandidate: boolean;
+  navigationTargets: readonly Readonly<{
+    routeTarget: string;
+    requiredViewPermissions: readonly string[];
+    viewPermissionMatch: string;
+  }>[];
+}>;
 
 export type CapabilityNavigationItem = Readonly<{
   capabilityId: string;
@@ -29,11 +32,32 @@ export type CapabilityNavigationProjection = Readonly<{
 }>;
 
 const OPERATIONS_SIGNALS_CAPABILITY_ID = "operations-signals";
+const OPERATIONS_SIGNALS_ROUTE_TARGET = "operations.signals";
 const OPERATIONS_SIGNALS_READ_PERMISSION = "platform:operations-signals:read";
+export const CAPABILITY_NAVIGATION_CONTRACT_ERROR_CODE =
+  "PLATFORM_CAPABILITY_NAVIGATION_CONTRACT_ERROR";
+
+export class CapabilityNavigationContractError extends Error {
+  readonly code = CAPABILITY_NAVIGATION_CONTRACT_ERROR_CODE;
+
+  constructor(message: string) {
+    super(message);
+    this.name = "CapabilityNavigationContractError";
+  }
+}
+
+function contractError(message: string): CapabilityNavigationContractError {
+  return new CapabilityNavigationContractError(message);
+}
 
 function hasNeedsAttentionAccess(record: CapabilityProjectionRecord): boolean {
-  return record.navigationTargets.some((target) =>
-    target.requiredViewPermissions.includes(OPERATIONS_SIGNALS_READ_PERMISSION),
+  return (
+    record.routeTarget === OPERATIONS_SIGNALS_ROUTE_TARGET &&
+    record.navigationTargets.some(
+      (target) =>
+        target.routeTarget === OPERATIONS_SIGNALS_ROUTE_TARGET &&
+        target.requiredViewPermissions.includes(OPERATIONS_SIGNALS_READ_PERMISSION),
+    )
   );
 }
 
@@ -41,7 +65,6 @@ export function projectCapabilityNavigation(
   records: readonly CapabilityProjectionRecord[],
 ): CapabilityNavigationProjection {
   const capabilityItems: CapabilityNavigationItem[] = [];
-  const omittedRouteTargets: string[] = [];
   const seenTargets = new Set<string>();
   let hasNeedsAttentionDestination = false;
 
@@ -49,11 +72,12 @@ export function projectCapabilityNavigation(
     if (!record.navigationCandidate) continue;
     if (record.capabilityId === OPERATIONS_SIGNALS_CAPABILITY_ID) {
       if (!hasNeedsAttentionAccess(record)) {
-        omittedRouteTargets.push(record.routeTarget);
-        continue;
+        throw contractError(
+          `Platform capability ${record.capabilityId} is missing its required trusted target permission`,
+        );
       }
       if (hasNeedsAttentionDestination) {
-        throw new Error(
+        throw contractError(
           `Duplicate Platform navigation target: ${NEEDS_ATTENTION_DESTINATION.path}`,
         );
       }
@@ -62,22 +86,26 @@ export function projectCapabilityNavigation(
     }
     const module = getTrustedCapabilityModule(record.routeTarget);
     if (!module) {
-      omittedRouteTargets.push(record.routeTarget);
-      continue;
+      throw contractError(`Unregistered Platform capability route target: ${record.routeTarget}`);
     }
-    const destinations = record.navigationTargets.flatMap((target) => {
+    const destinations = record.navigationTargets.map((target) => {
       if (seenTargets.has(target.routeTarget)) {
-        throw new Error(`Duplicate Platform navigation target: ${target.routeTarget}`);
+        throw contractError(`Duplicate Platform navigation target: ${target.routeTarget}`);
       }
       seenTargets.add(target.routeTarget);
       const destination = module.destinations.find(
         (candidate) => candidate.routeTarget === target.routeTarget,
       );
-      if (destination) return [destination];
-      omittedRouteTargets.push(target.routeTarget);
-      return [];
+      if (destination) return destination;
+      throw contractError(
+        `Unregistered Platform capability navigation target: ${target.routeTarget}`,
+      );
     });
-    if (destinations.length === 0) continue;
+    if (destinations.length === 0) {
+      throw contractError(
+        `Platform capability ${record.capabilityId} has no trusted navigation target`,
+      );
+    }
     capabilityItems.push({
       capabilityId: record.capabilityId,
       module,
@@ -94,8 +122,8 @@ export function projectCapabilityNavigation(
     primaryDestinations,
     destinations: [...primaryDestinations, ...capabilityItems.flatMap((item) => item.destinations)],
     capabilityItems,
-    omittedRouteTargets,
-    isPartial: omittedRouteTargets.length > 0,
+    omittedRouteTargets: [],
+    isPartial: false,
   };
 }
 
@@ -105,7 +133,8 @@ export function resolveCapabilityBreadcrumbKey(
 ): string | null {
   if (pathname === "/") return OVERVIEW_DESTINATION.labelKey;
   if (
-    pathname === NEEDS_ATTENTION_DESTINATION.path &&
+    (pathname === NEEDS_ATTENTION_DESTINATION.path ||
+      pathname.startsWith(`${NEEDS_ATTENTION_DESTINATION.path}/`)) &&
     projection.destinations.includes(NEEDS_ATTENTION_DESTINATION)
   ) {
     return NEEDS_ATTENTION_DESTINATION.labelKey;

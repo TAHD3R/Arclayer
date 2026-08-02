@@ -191,6 +191,26 @@ async def test_plugin_configuration_update_rejects_invalid_values(values: dict[s
     assert raised.value.error == "PLUGIN_CONFIGURATION_INVALID"
 
 
+async def test_plugin_configuration_rejects_raw_secret_values() -> None:
+    service = _Service(
+        cast(PluginLifecycleRepository, _Repository(_installation())),
+        settings=Settings(app_env="test"),
+    )
+
+    with pytest.raises(BadRequest) as raised:
+        await service.update_configuration(
+            item=_catalog_item(),
+            payload=SystemPluginConfigurationPatch(
+                expected_revision=1,
+                values={},
+                secret_references={"projectApiKey": "raw-secret-value"},
+            ),
+            actor_user_id=uuid4(),
+        )
+
+    assert raised.value.error == "PLUGIN_CONFIGURATION_INVALID"
+
+
 async def test_plugin_configuration_rejects_schema_constraints_the_host_cannot_enforce() -> None:
     service = _Service(
         cast(PluginLifecycleRepository, _Repository(_installation())),

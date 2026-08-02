@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CircleAlert, ExternalLink } from "lucide-react";
+import { CircleAlert, ExternalLink, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -12,6 +12,29 @@ import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 import { Button } from "@arclayer/ui/button";
 
 const OPEN_PAYMENT_RECOVERY = "open_payment_recovery";
+
+function PaymentRestrictionStatusNotice({
+  description,
+  onRetry,
+  retryLabel,
+  title,
+}: Readonly<{ description: string; onRetry?: () => void; retryLabel?: string; title: string }>) {
+  return (
+    <Alert className="rounded-none border-x-0 border-t-0" role={onRetry ? "alert" : "status"}>
+      <CircleAlert />
+      <AlertTitle>{title}</AlertTitle>
+      <AlertDescription className="flex flex-wrap items-center gap-3">
+        <span>{description}</span>
+        {onRetry && retryLabel ? (
+          <Button onClick={onRetry} size="sm" type="button" variant="outline">
+            <RefreshCw aria-hidden="true" />
+            {retryLabel}
+          </Button>
+        ) : null}
+      </AlertDescription>
+    </Alert>
+  );
+}
 
 export function PaymentRestrictedNotice({ workspaceId }: { workspaceId: string | null }) {
   const { t } = useTranslation("commerce");
@@ -35,6 +58,25 @@ export function PaymentRestrictedNotice({ workspaceId }: { workspaceId: string |
     onSuccess: (redirect) => window.location.assign(redirect.url),
   });
 
+  if (!workspaceId) return null;
+  if (accessQuery.isPending) {
+    return (
+      <PaymentRestrictionStatusNotice
+        description={t("commerce:PAYMENT_RESTRICTION_STATUS_LOADING_DESCRIPTION")}
+        title={t("commerce:PAYMENT_RESTRICTION_STATUS_LOADING_TITLE")}
+      />
+    );
+  }
+  if (accessQuery.isError) {
+    return (
+      <PaymentRestrictionStatusNotice
+        description={t("commerce:PAYMENT_RESTRICTION_STATUS_ERROR_DESCRIPTION")}
+        onRetry={() => void accessQuery.refetch()}
+        retryLabel={t("commerce:PAYMENT_RESTRICTION_STATUS_RETRY")}
+        title={t("commerce:PAYMENT_RESTRICTION_STATUS_ERROR_TITLE")}
+      />
+    );
+  }
   if (!paymentRestricted) return null;
 
   const canRecover = recoveryQuery.data?.permittedRecoveryAction === OPEN_PAYMENT_RECOVERY;
@@ -64,6 +106,12 @@ export function PaymentRestrictedNotice({ workspaceId }: { workspaceId: string |
             {t("commerce:PAYMENT_RESTRICTED_RECOVERY_ACTION")}
             <ExternalLink data-icon="inline-end" aria-hidden="true" />
           </Button>
+        ) : null}
+        {recoveryQuery.isPending ? (
+          <span>{t("commerce:PAYMENT_RECOVERY_STATUS_LOADING")}</span>
+        ) : null}
+        {recoveryQuery.isError ? (
+          <span role="alert">{t("commerce:PAYMENT_RECOVERY_STATUS_ERROR")}</span>
         ) : null}
         {portalMutation.error ? (
           <span role="alert">{getErrorMessage(portalMutation.error)}</span>

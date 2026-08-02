@@ -3,16 +3,28 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, Query, status
+from fastapi import APIRouter, Depends, Header, Query, Response, status
 
 from src.common.types.public_uuid import PublicUUID
 from src.core.http.response import ApiResponse, ResponseModel
+from src.modules.assets.admin.assets.repository import AdminAssetsRepository
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.commerce.dunning.schema import RestrictedRecoveryEffect
+from src.modules.jobs.service import BackgroundJobService
+from src.modules.projects.builder.repository import SiteBuilderRepository
+from src.modules.projects.builder.service import SiteBuilderService
+from src.modules.projects.design_systems.repository import ProjectDesignSystemsRepository
 from src.modules.sites.component_catalogs.official import get_official_component_catalog_registry
 from src.modules.sites.component_catalogs.schema import ComponentCatalogV1
 from src.modules.tenancy.context import require_current_tenant_context
 from src.modules.workspaces.authz.http.service import require_workspace_commercial_effect, require_workspace_permission
+from src.modules.workspaces.design_systems.publication_assets import DesignSystemAssetPinResolver
+from src.modules.workspaces.design_systems.publication_repository import DesignSystemPublicationRepository
+from src.modules.workspaces.design_systems.publication_schema import (
+    WorkspaceDesignSystemPublicationCreateRequest,
+    WorkspaceDesignSystemPublicationOut,
+)
+from src.modules.workspaces.design_systems.publication_service import DesignSystemPublicationService
 from src.modules.workspaces.design_systems.repository import WorkspaceDesignSystemsRepository
 from src.modules.workspaces.design_systems.schema import (
     DesignSystemCreateRequest,
@@ -26,6 +38,8 @@ from src.modules.workspaces.design_systems.schema import (
     DesignSystemVersionSummaryOut,
     WorkspaceDesignSystemDefaultOut,
     WorkspaceDesignSystemDefaultSetRequest,
+    WorkspaceDesignSystemRepresentativePreviewOut,
+    WorkspaceDesignSystemRepresentativePreviewRequest,
     WorkspaceDesignSystemsCapabilitiesOut,
 )
 from src.modules.workspaces.design_systems.service import (
@@ -46,15 +60,38 @@ IdempotencyKey = Annotated[str, Header(alias="Idempotency-Key", min_length=1, ma
 
 
 def get_workspace_design_systems_service(_ctx: ReadContext) -> WorkspaceDesignSystemsService:
+    tenant_context = require_current_tenant_context()
+    component_catalog_resolver = get_official_component_catalog_registry()
     return WorkspaceDesignSystemsService(
-        repository=WorkspaceDesignSystemsRepository(require_current_tenant_context()),
-        component_catalog_resolver=get_official_component_catalog_registry(),
+        repository=WorkspaceDesignSystemsRepository(tenant_context),
+        component_catalog_resolver=component_catalog_resolver,
+        representative_preview_renderer=SiteBuilderService(
+            repository=SiteBuilderRepository(tenant_context),
+            design_system_repository=ProjectDesignSystemsRepository(tenant_context),
+            component_catalog_resolver=component_catalog_resolver,
+        ),
     )
 
 
 DesignSystemsService = Annotated[
     WorkspaceDesignSystemsService,
     Depends(get_workspace_design_systems_service),
+]
+
+
+def get_workspace_design_system_publication_service(_ctx: ReadContext) -> DesignSystemPublicationService:
+    tenant_context = require_current_tenant_context()
+    return DesignSystemPublicationService(
+        repository=WorkspaceDesignSystemsRepository(tenant_context),
+        publications=DesignSystemPublicationRepository(tenant_context),
+        assets=DesignSystemAssetPinResolver(repository=AdminAssetsRepository(tenant_context)),
+        jobs=BackgroundJobService(),
+    )
+
+
+DesignSystemPublicationServiceDependency = Annotated[
+    DesignSystemPublicationService,
+    Depends(get_workspace_design_system_publication_service),
 ]
 
 
@@ -303,5 +340,60 @@ async def list_workspace_design_system_validations(
         workspace_id=ctx.workspace_id,
         system_id=system_id,
         version_id=version_id,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.post(
+    "/{system_id}/versions/{version_id}/previews",
+    response_model=ResponseModel[WorkspaceDesignSystemRepresentativePreviewOut],
+    dependencies=[require_workspace_permission("system:settings:read")],
+    summary="Render an exact representative Builder page for a Workspace Design System version",
+)
+async def preview_workspace_design_system_version(
+    system_id: PublicUUID,
+    version_id: PublicUUID,
+    payload: WorkspaceDesignSystemRepresentativePreviewRequest,
+    response: Response,
+    ctx: ReadContext,
+    service: DesignSystemsService,
+) -> ResponseModel[WorkspaceDesignSystemRepresentativePreviewOut]:
+    response.headers["Cache-Control"] = "private, no-store"
+    data = await service.preview_representative(
+        workspace_id=ctx.workspace_id,
+        system_id=system_id,
+        version_id=version_id,
+        payload=payload,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.post(
+    "/{system_id}/versions/{version_id}/publications",
+    response_model=ResponseModel[WorkspaceDesignSystemPublicationOut],
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[
+        require_workspace_permission("system:site:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.METERED_EXTERNAL_EFFECT),
+    ],
+    summary="Queue durable compilation and publication for one exact Workspace Design System version",
+)
+async def request_workspace_design_system_publication(
+    system_id: PublicUUID,
+    version_id: PublicUUID,
+    payload: WorkspaceDesignSystemPublicationCreateRequest,
+    ctx: ReadContext,
+    actor_user_id: ActorUserId,
+    idempotency_key: IdempotencyKey,
+    service: DesignSystemPublicationServiceDependency,
+) -> ResponseModel[WorkspaceDesignSystemPublicationOut]:
+    data = await service.request_publication(
+        workspace_id=ctx.workspace_id,
+        organization_id=ctx.organization_id,
+        system_id=system_id,
+        version_id=version_id,
+        actor_user_id=actor_user_id,
+        idempotency_key=idempotency_key,
+        payload=payload,
     )
     return ApiResponse.success(data=data)

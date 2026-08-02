@@ -13,8 +13,11 @@
     "build": "vite build --mode production",
     "typecheck": "tsc --noEmit --skipLibCheck",
     "lint": "oxlint -c ./node_modules/@arclayer/config/.oxlintrc.json .",
+    "lint:check": "oxlint -c ./node_modules/@arclayer/config/.oxlintrc.json .",
     "format": "oxfmt -c ./node_modules/@arclayer/config/.oxfmtrc.json .",
-    "test": "vitest run --config vitest.config.ts"
+    "format:check": "oxfmt --check -c ./node_modules/@arclayer/config/.oxfmtrc.json .",
+    "test": "vitest run --config vitest.config.ts",
+    "locale:check": "node ./scripts/check-locales.mjs"
   },
   "dependencies": {
     "@arclayer/hooks": "workspace:*",

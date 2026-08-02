@@ -33,7 +33,8 @@ import {
   loadContentLibraryVersionHistory,
   loadContentLibraryViewsState,
 } from "@/pages/projects/content/library/runtime";
-import type { AdminContentItem, AdminContentVersion } from "@arclayer/openapi/admin-types";
+type AdminContentItem = Awaited<ReturnType<typeof getContentItem>>;
+type AdminContentVersion = Awaited<ReturnType<typeof getContentItemVersion>>;
 
 describe("content-library runtime", () => {
   beforeEach(() => {

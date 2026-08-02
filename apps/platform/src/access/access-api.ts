@@ -10,6 +10,8 @@ import {
   platformListPlatformRoles,
   platformListPlatformTeam,
   platformInvitePlatformOperator,
+  platformRevokeCurrentPlatformSession,
+  platformRevokeOtherCurrentPlatformSessions,
   type PlatformInvitationCreateRequest,
   type PlatformInvitationDetailOut,
   type PlatformInvitationOptionsOut,
@@ -17,6 +19,7 @@ import {
   type PlatformPermissionCatalogItemOut,
   type PlatformRoleCatalogItemOut,
   type PlatformSessionInventoryItemOut,
+  type PlatformSessionRevokeRequest,
   type PlatformSignInReadinessOut,
   type PlatformMutationReceipt,
   type PlatformTeamIdentityOut,
@@ -92,5 +95,20 @@ export const getSignInReadiness = async (): Promise<PlatformSignInReadinessOut> 
   unwrap(await platformGetPlatformSignInReadiness({ client: platformApiClient }));
 export const getCurrentSessions = async (): Promise<PlatformSessionInventoryItemOut[]> =>
   unwrap(await platformListCurrentPlatformSessions({ client: platformApiClient }));
+export const revokeCurrentPlatformSession = async (
+  sessionId: string,
+  body: PlatformSessionRevokeRequest,
+): Promise<PlatformMutationReceipt> =>
+  unwrap(
+    await platformRevokeCurrentPlatformSession({
+      body,
+      client: platformApiClient,
+      path: { session_id: sessionId },
+    }),
+  );
+export const revokeOtherCurrentPlatformSessions = async (
+  body: PlatformSessionRevokeRequest,
+): Promise<PlatformMutationReceipt> =>
+  unwrap(await platformRevokeOtherCurrentPlatformSessions({ body, client: platformApiClient }));
 export const getCurrentMfaReadiness = async (): Promise<PlatformMfaReadinessOut> =>
   unwrap(await platformGetCurrentPlatformMfaReadiness({ client: platformApiClient }));

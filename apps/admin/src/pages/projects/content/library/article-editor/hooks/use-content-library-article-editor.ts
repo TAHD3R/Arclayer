@@ -6,21 +6,26 @@ import {
   publishContentItemVersion,
   saveContentItemDraftVersion,
 } from "@/api/content";
+import type { getContentItemVersion } from "@/api/content";
 import { getProjectCoreSettings } from "@/api/settings";
 import { readProjectContentStrategy } from "@/lib/settings/project-content-strategy";
 import type {
-  AdminContentBootstrapPresetState,
-  AdminContentItemStatus,
-  AdminContentItemVisibility,
-  AdminContentItemPublishReadiness,
-  AdminContentPresentation,
-  AdminContentShapeState,
-  AdminContentWorkflowStage,
-  AdminContentWorkbenchDerivedStatus,
-  AdminContentVersion,
-  AdminContentVersionState,
+  ContentItemBootstrapShapeIn,
+  ContentItemOut,
+  ContentItemPublishReadinessOut as AdminContentItemPublishReadiness,
+  ContentPresentationOut as AdminContentPresentation,
+  ContentVersionOut,
   JsonValueOutput,
-} from "@arclayer/openapi/admin-types";
+} from "@arclayer/openapi";
+
+type AdminContentBootstrapPresetState = NonNullable<ContentItemBootstrapShapeIn["presetState"]>;
+type AdminContentItemStatus = ContentItemOut["status"];
+type AdminContentItemVisibility = ContentItemOut["visibility"];
+type AdminContentShapeState = NonNullable<ContentItemOut["shapeState"]>;
+type AdminContentWorkflowStage = NonNullable<ContentItemOut["workflowStage"]>;
+type AdminContentWorkbenchDerivedStatus = NonNullable<ContentItemOut["derivedStatus"]>;
+type AdminContentVersionState = ContentVersionOut["state"];
+type AdminContentVersion = Awaited<ReturnType<typeof getContentItemVersion>>;
 import {
   buildContentLibraryArticleEditorRuntimeState,
   type ContentLibraryArticleEditorSaveState,
@@ -381,8 +386,8 @@ export function useContentLibraryArticleEditor(params: {
       nextDraft: ContentLibraryArticleEditorDraft,
       nextPublishedVersionNumber: number | null,
     ) => {
-      otherFieldsSnapshotRef.current = omitManagedFields(version.fieldsSnapshot ?? {});
-      otherPresentationsRef.current = omitManagedPresentations(version.presentations ?? []);
+      otherFieldsSnapshotRef.current = omitManagedFields(version.fieldsSnapshot);
+      otherPresentationsRef.current = omitManagedPresentations(version.presentations);
       lastSavedDraftRef.current = cloneDraft(nextDraft);
       liveBodyDocumentRef.current = normalizeDocument(nextDraft.bodyDocument);
       setDraft(cloneDraft(nextDraft));
@@ -537,12 +542,13 @@ export function useContentLibraryArticleEditor(params: {
           initialSummary: params.initialSummary,
         });
 
-        otherFieldsSnapshotRef.current = omitManagedFields(
-          snapshot.draftVersion?.fieldsSnapshot ?? {},
-        );
-        otherPresentationsRef.current = omitManagedPresentations(
-          snapshot.draftVersion?.presentations ?? [],
-        );
+        const persistedDraftVersion = snapshot.draftVersion;
+        otherFieldsSnapshotRef.current = persistedDraftVersion
+          ? omitManagedFields(persistedDraftVersion.fieldsSnapshot)
+          : {};
+        otherPresentationsRef.current = persistedDraftVersion
+          ? omitManagedPresentations(persistedDraftVersion.presentations)
+          : [];
         lastSavedDraftRef.current = cloneDraft(nextDraft);
         liveBodyDocumentRef.current = normalizeDocument(nextDraft.bodyDocument);
         setDraft(nextDraft);

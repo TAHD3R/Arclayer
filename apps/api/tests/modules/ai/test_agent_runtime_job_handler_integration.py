@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from uuid import UUID, uuid4
 
 import pytest
@@ -9,6 +10,8 @@ from src.common.types.json_types import JsonObject
 from src.config import get_settings
 from src.core.events import Event
 from src.llm.runtime import LLMRequestContext, LLMRuntimeError
+from src.models.agents.runtime_recovery_v1 import AgentRunExecutionEffectDisposition
+from src.models.agents.runtime_skill_v1 import AgentRunSkillSnapshotV1Record
 from src.models.agents.runtime_v1 import (
     AgentApprovalStatusV1,
     AgentApprovalV1Record,
@@ -21,6 +24,7 @@ from src.models.organization.organization import Organization
 from src.models.projects.project import ProjectRecord
 from src.models.workspaces.workspace import Workspace
 from src.modules.ai.agent_catalog_manifest import official_agent_id
+from src.modules.ai.agent_catalog_schema import ResolvedAgentAssignment
 from src.modules.ai.agent_skill_grant_schema import (
     AgentSkillContextPackage,
     AgentSkillContextResource,
@@ -39,6 +43,7 @@ from src.modules.ai.runtime_execution_gateway import (
 )
 from src.modules.ai.runtime_job_handler import AgentRunJobHandler
 from src.modules.ai.runtime_job_schema import AgentRunJobInput, AgentRunJobResult, AgentRunJobTarget
+from src.modules.ai.runtime_knowledge_context import TenantAgentKnowledgeContextResolver
 from src.modules.ai.runtime_run_schema import AgentRunCreateRequestV1
 from src.modules.ai.runtime_run_service import AgentRunService
 from src.modules.ai.runtime_thread_schema import AgentThreadCreateRequestV1
@@ -55,9 +60,32 @@ from src.modules.jobs.execution_schema import (
     JobProgressUpdate,
 )
 from src.modules.jobs.service import BackgroundJobService
+from src.modules.tenancy.router_helpers import ensure_workspace_tenant_context
 from tests.modules.ai.runtime_design_system_test_context import fixed_design_system_context_resolver
 
 pytestmark = pytest.mark.integration
+
+
+class _ExecutionEffects:
+    async def register(self, **kwargs) -> SimpleNamespace:  # type: ignore[no-untyped-def]
+        _ = kwargs
+        return SimpleNamespace(id=uuid4(), disposition=AgentRunExecutionEffectDisposition.ACTIVE)
+
+    async def commit(self, **kwargs) -> SimpleNamespace:  # type: ignore[no-untyped-def]
+        _ = kwargs
+        return SimpleNamespace(id=uuid4(), disposition=AgentRunExecutionEffectDisposition.COMMITTED)
+
+    async def mark_unknown(self, **kwargs) -> SimpleNamespace:  # type: ignore[no-untyped-def]
+        _ = kwargs
+        return SimpleNamespace(id=uuid4(), disposition=AgentRunExecutionEffectDisposition.UNKNOWN)
+
+
+@pytest.fixture(autouse=True)
+def _use_attempt_fenced_effect_stub(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "src.modules.ai.runtime_job_handler.AgentRunExecutionEffectService",
+        lambda settings: _ExecutionEffects(),
+    )
 
 
 class _EventPublisher:
@@ -114,9 +142,15 @@ class _SkillGrantResolver(AgentSkillGrantResolver):
     ) -> None:
         self.packages = packages
         self.error_code = error_code
-        self.calls: list[tuple[UUID, UUID, tuple[object, ...]]] = []
+        self.calls: list[tuple[UUID, UUID, tuple[ResolvedAgentAssignment, ...]]] = []
 
-    async def load_run_context(self, *, workspace_id, run_id, agents):  # type: ignore[no-untyped-def]
+    async def load_run_context(
+        self,
+        *,
+        workspace_id: UUID,
+        run_id: UUID,
+        agents: tuple[ResolvedAgentAssignment, ...],
+    ) -> tuple[AgentSkillContextPackage, ...]:
         self.calls.append((workspace_id, run_id, agents))
         if self.error_code is not None:
             raise AgentSkillGrantError(self.error_code)
@@ -149,6 +183,27 @@ def _skill_context_package() -> AgentSkillContextPackage:
                 byte_size=49,
             ),
         ),
+    )
+
+
+async def _persist_lead_skill_snapshot(run: AgentRunV1Record) -> None:
+    package = _skill_context_package()
+    assert run.lead_agent_assignment_id is not None
+    assert run.lead_agent_version_id is not None
+    await AgentRunSkillSnapshotV1Record.create(
+        run_id=run.id,
+        agent_assignment_id=run.lead_agent_assignment_id,
+        agent_version_id=run.lead_agent_version_id,
+        agent_order=0,
+        skill_order=0,
+        installation_id=package.installation_id,
+        package_scope="workspace",
+        package_id=package.package_id,
+        skill_version_id=package.skill_version_id,
+        package_checksum=package.package_checksum,
+        validation_policy_version=1,
+        validation_finding_hash="sha256:" + ("d" * 64),
+        context_byte_size=sum(resource.byte_size for resource in package.resources),
     )
 
 
@@ -251,9 +306,14 @@ async def _create_queued_run() -> tuple[AgentRunV1Record, BackgroundJobRecord, U
             title="Homepage build",
         ),
     )
+    tenant_context = await ensure_workspace_tenant_context(
+        workspace_id=workspace.id,
+        organization_id=organization.id,
+    )
     response = await AgentRunService(
         job_service=BackgroundJobService(event_publisher=_EventPublisher()),
         event_publisher=_EventPublisher(),
+        knowledge_context_resolver=TenantAgentKnowledgeContextResolver(tenant_context),
         design_system_context_resolver=fixed_design_system_context_resolver(project.id),
     ).create(
         workspace_id=workspace.id,
@@ -348,6 +408,7 @@ async def test_agent_job_handler_injects_exact_lead_skill_context_into_provider_
 ) -> None:
     _ = prepared_db
     run, job, owner_user_id = await _create_queued_run()
+    await _persist_lead_skill_snapshot(run)
     chat = _ChatService()
     resolver = _SkillGrantResolver(packages=(_skill_context_package(),))
     handler = AgentRunJobHandler(
@@ -362,6 +423,9 @@ async def test_agent_job_handler_injects_exact_lead_skill_context_into_provider_
     assert len(resolver.calls) == 1
     assert resolver.calls[0][0:2] == (run.workspace_id, run.id)
     assert len(resolver.calls[0][2]) == 1
+    persisted_lead = resolver.calls[0][2][0]
+    assert persisted_lead.skill_installation_ids == ()
+    assert persisted_lead.skill_grant_workspace_id is None
     system_prompt = chat.calls[0][0][0]["content"]
     assert "Untrusted Skill context policy" in system_prompt
     assert "11111111-1111-4111-8111-111111111111" in system_prompt
@@ -371,6 +435,23 @@ async def test_agent_job_handler_injects_exact_lead_skill_context_into_provider_
     assert "Use the approved launch sequence and cite every assumption." in system_prompt
     assert '"path":"references/checklist.md"' in system_prompt
     assert "Confirm audience, structure, and launch evidence." in system_prompt
+
+
+@pytest.mark.asyncio
+async def test_agent_job_handler_rejects_persisted_skill_snapshot_without_resolver(prepared_db) -> None:
+    _ = prepared_db
+    run, job, owner_user_id = await _create_queued_run()
+    await _persist_lead_skill_snapshot(run)
+    handler = AgentRunJobHandler(
+        settings=get_settings(),
+        execution_gateway=SingleTurnAgentRunExecutionGateway(chat_service=_ChatService()),
+    )
+
+    with pytest.raises(PermanentJobExecutionError) as rejected:
+        await handler.execute(context=_context(run=run, job=job, owner_user_id=owner_user_id))
+
+    assert rejected.value.code == "AGENT_RUN_EXECUTION_FAILED"
+    assert rejected.value.metadata == {"publicErrorCode": "AGENT_SKILL_RESOLVER_UNAVAILABLE"}
 
 
 @pytest.mark.asyncio

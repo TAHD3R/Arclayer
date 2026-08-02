@@ -69,7 +69,7 @@ describe("ContentLibraryItemResolverPage", () => {
       updatedAt: "2026-03-19T00:00:00Z",
       continuationTarget: {
         surface: "writing",
-        route: "/w/ws-1/content/library/item-1",
+        route: "/projects/ws-1/content/library/item-1",
         blocked: false,
         reasonCode: null,
         reasonMeta: null,
@@ -105,11 +105,17 @@ describe("ContentLibraryItemResolverPage", () => {
       updatedAt: "2026-03-19T00:00:00Z",
       continuationTarget: {
         surface: null,
-        route: "/w/ws-1/content/library/item-2",
+        route: "/projects/project-1/content/library/item-2",
         blocked: true,
         reasonCode: "UNSHAPED_ITEM",
         reasonMeta: { source: "bootstrap" },
-        recoveryActions: [{ kind: "reshape", label: "Reshape", route: "/w/ws-1/content/create" }],
+        recoveryActions: [
+          {
+            kind: "open-recovery",
+            label: "Open recovery surface",
+            route: "/projects/project-1/content/library/item-2",
+          },
+        ],
       },
     });
 
@@ -122,9 +128,9 @@ describe("ContentLibraryItemResolverPage", () => {
     });
     expect(screen.getByTestId("content-library-detail-summary-strip")).toBeInTheDocument();
     expect(screen.getByText("UNSHAPED_ITEM")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Reshape" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Open recovery surface" })).toHaveAttribute(
       "href",
-      "/w/ws-1/content/create",
+      "/projects/project-1/content/library/item-2",
     );
     expect(screen.queryByTestId("content-library-article-editor-page")).not.toBeInTheDocument();
   });
@@ -149,7 +155,7 @@ describe("ContentLibraryItemResolverPage", () => {
       updatedAt: "2026-03-19T00:00:00Z",
       continuationTarget: {
         surface: "canvas",
-        route: "/w/ws-1/content/library/item-3",
+        route: "/projects/ws-1/content/library/item-3",
         blocked: false,
         reasonCode: null,
         reasonMeta: null,

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { CheckCircle2, CircleAlert, CircleDashed, Palette, Plus, Search } from "lucide-react";
+import type { i18n as I18nInstance } from "i18next";
 import { useTranslation } from "react-i18next";
 
 import type {
@@ -185,8 +186,21 @@ function SystemRow(props: {
   );
 }
 
+function localizedFindingMessage(i18n: I18nInstance, messageKey: string): string {
+  const normalizedKey = messageKey.trim();
+  const resourceKey = `errors:${normalizedKey}`;
+  if (!normalizedKey || !i18n.exists(resourceKey)) {
+    throw new Error(`Missing Design System finding translation: ${messageKey}`);
+  }
+  const translated = i18n.t(resourceKey);
+  if (typeof translated !== "string" || !translated.trim() || translated === resourceKey) {
+    throw new Error(`Invalid Design System finding translation: ${messageKey}`);
+  }
+  return translated;
+}
+
 function DesignSystemDetail({ controller }: { controller: WorkspaceDesignSystemsController }) {
-  const { t } = useTranslation(["settings", "common"]);
+  const { t, i18n } = useTranslation(["settings", "common"]);
   const system = controller.selectedSystem!;
   const validation = controller.latestValidation;
   const manifest = controller.versionQuery.data?.manifest;
@@ -268,10 +282,7 @@ function DesignSystemDetail({ controller }: { controller: WorkspaceDesignSystems
                         )}
                         <div className="min-w-0">
                           <p className="text-footnote font-medium text-label-primary">
-                            {t(
-                              `settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_FINDING_${finding.code}`,
-                              { defaultValue: finding.message },
-                            )}
+                            {localizedFindingMessage(i18n, finding.messageKey)}
                           </p>
                         </div>
                       </div>

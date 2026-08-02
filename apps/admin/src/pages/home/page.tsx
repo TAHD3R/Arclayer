@@ -31,10 +31,10 @@ import {
 } from "@/components/ai/ai-composer-entry";
 import {
   agentIdsForComposerScope,
-  applyAIComposerSkillInstructions,
   buildTextWithAIComposerDirectives,
   cleanAIComposerDirectiveText,
   clearAIComposerDirectives,
+  skillInstallationIdsForComposerScope,
 } from "@/components/ai/ai-composer-directives";
 import { formatAIChatError } from "@/api/ai";
 import { HomeAIBackground } from "@/pages/home/home-ai-background";
@@ -135,10 +135,7 @@ function HomeComposer({
         "home",
         applyWebSearchDirective(text.trim()),
       );
-      const trimmed = applyAIComposerSkillInstructions(
-        "home",
-        cleanAIComposerDirectiveText(textWithDirectives),
-      );
+      const trimmed = cleanAIComposerDirectiveText(textWithDirectives);
       if (!trimmed) return;
 
       onSubmitStart();
@@ -146,7 +143,13 @@ function HomeComposer({
         const directiveProjectId = projectIdFromComposerDirective(textWithDirectives);
         const workspaceState = useWorkspaceStore.getState();
         if (directiveProjectId) workspaceState.setCurrentProjectId(directiveProjectId);
-        useAIEntryStore.getState().submit(trimmed, agentIdsForComposerScope("home"));
+        useAIEntryStore
+          .getState()
+          .submit(
+            trimmed,
+            agentIdsForComposerScope("home"),
+            skillInstallationIdsForComposerScope("home"),
+          );
         openDrawer();
       } catch (err) {
         onSubmitError(formatAIChatError(err));
@@ -247,11 +250,9 @@ export function HomePage() {
   const navigate = useNavigate();
   const accessToken = useAuthStore((s) => s.accessToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
-  const currentWorkspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
-  const lastWorkspaceId = useWorkspaceStore((s) => s.lastWorkspaceId);
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const [localError, setLocalError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const workspaceId = currentWorkspaceId ?? lastWorkspaceId;
   const { data: recentProjectsData } = useQuery({
     queryKey: ["home", "recent-projects", workspaceId, sessionVersion],
     enabled: Boolean(accessToken && workspaceId),

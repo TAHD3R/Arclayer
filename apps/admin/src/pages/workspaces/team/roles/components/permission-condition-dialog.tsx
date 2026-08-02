@@ -2,13 +2,13 @@ import * as React from "react";
 import { Plus, Trash2 } from "lucide-react";
 
 import type {
-  Permission,
+  WorkspacePermissionOut as Permission,
   PermissionCondition,
   PermissionConditionOperator,
-  PermissionConditionSet,
-  Role,
-  WorkspacePermissionConditionTemplate,
-} from "@arclayer/openapi/admin-types";
+  PermissionConditionSetInput as PermissionConditionSet,
+  WorkspaceRoleOut as Role,
+  WorkspacePermissionConditionTemplateOut as WorkspacePermissionConditionTemplate,
+} from "@arclayer/openapi";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";

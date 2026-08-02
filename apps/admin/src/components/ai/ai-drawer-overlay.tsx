@@ -66,7 +66,10 @@ function useAIEntryDispatcher() {
           role: "user",
           content: [{ type: "text", text: pendingEntry.prompt }],
           runConfig: {
-            custom: { mentionedAgentIds: pendingEntry.mentionedAgentIds },
+            custom: {
+              mentionedAgentIds: pendingEntry.mentionedAgentIds,
+              selectedSkillInstallationIds: pendingEntry.selectedSkillInstallationIds,
+            },
           },
         });
         dispatchingRef.current = false;

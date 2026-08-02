@@ -24,6 +24,7 @@ _STAGING_STATES = {
     PluginOperationKind.INSTALL: PluginLifecycleState.INSTALLING,
     PluginOperationKind.UPGRADE: PluginLifecycleState.UPGRADING,
     PluginOperationKind.ROLLBACK: PluginLifecycleState.UPGRADING,
+    PluginOperationKind.RECOVER: PluginLifecycleState.RECOVERING,
     PluginOperationKind.ENABLE: PluginLifecycleState.INSTALLING,
     PluginOperationKind.DISABLE: PluginLifecycleState.DISABLING,
     PluginOperationKind.UNINSTALL: PluginLifecycleState.UNINSTALLING,
@@ -217,6 +218,13 @@ class PluginLifecycleRepository(TortoiseORMRepository):
                 "phase": "verifying_activation",
                 "progress_completed": 4,
                 "progress_total": 5,
+                "step_evidence": _append_step_evidence(
+                    operation.step_evidence,
+                    phase="verifying_activation",
+                    completed=4,
+                    total=5,
+                    outcome="verified",
+                ),
             },
             conn=conn,
         )
@@ -237,6 +245,13 @@ class PluginLifecycleRepository(TortoiseORMRepository):
         operation.progress_completed = completed
         operation.progress_total = total
         operation.started_at = operation.started_at or datetime.now(UTC)
+        operation.step_evidence = _append_step_evidence(
+            operation.step_evidence,
+            phase=phase,
+            completed=completed,
+            total=total,
+            outcome="completed",
+        )
         await operation.save(
             update_fields=(
                 "state",
@@ -244,6 +259,7 @@ class PluginLifecycleRepository(TortoiseORMRepository):
                 "progress_completed",
                 "progress_total",
                 "started_at",
+                "step_evidence",
                 "updated_at",
             )
         )
@@ -280,6 +296,13 @@ class PluginLifecycleRepository(TortoiseORMRepository):
             operation.progress_total = 5
             operation.restart_required = True
             operation.started_at = operation.started_at or datetime.now(UTC)
+            operation.step_evidence = _append_step_evidence(
+                operation.step_evidence,
+                phase="waiting_for_restart",
+                completed=3,
+                total=5,
+                outcome="restart_required",
+            )
             await operation.save(
                 using_db=conn,
                 update_fields=(
@@ -289,6 +312,7 @@ class PluginLifecycleRepository(TortoiseORMRepository):
                     "progress_total",
                     "restart_required",
                     "started_at",
+                    "step_evidence",
                     "updated_at",
                 ),
             )
@@ -315,6 +339,8 @@ class PluginLifecycleRepository(TortoiseORMRepository):
                 installation.package_checksum = artifact.package_checksum
                 installation.manifest_digest = artifact.manifest_digest
                 installation.provenance_status = artifact.provenance_status
+                installation.trust_state = artifact.trust_state
+                installation.trust_evidence = list(artifact.trust_evidence)
                 artifact.state = PluginArtifactState.ACTIVE
                 await artifact.save(using_db=conn, update_fields=("state", "updated_at"))
                 if installation.previous_artifact_id is not None:
@@ -345,6 +371,8 @@ class PluginLifecycleRepository(TortoiseORMRepository):
                     "package_checksum",
                     "manifest_digest",
                     "provenance_status",
+                    "trust_state",
+                    "trust_evidence",
                     "updated_at",
                 ),
             )
@@ -368,6 +396,13 @@ class PluginLifecycleRepository(TortoiseORMRepository):
             operation.progress_completed = 5
             operation.progress_total = 5
             operation.completed_at = now
+            operation.step_evidence = _append_step_evidence(
+                operation.step_evidence,
+                phase="finalizing",
+                completed=5,
+                total=5,
+                outcome="succeeded",
+            )
             await operation.save(
                 using_db=conn,
                 update_fields=(
@@ -376,6 +411,7 @@ class PluginLifecycleRepository(TortoiseORMRepository):
                     "progress_completed",
                     "progress_total",
                     "completed_at",
+                    "step_evidence",
                     "updated_at",
                 ),
             )
@@ -384,6 +420,7 @@ class PluginLifecycleRepository(TortoiseORMRepository):
                 PluginOperationKind.INSTALL,
                 PluginOperationKind.UPGRADE,
                 PluginOperationKind.ROLLBACK,
+                PluginOperationKind.RECOVER,
             }:
                 installation.installed_version = operation.requested_version
                 installation.rollback_version = installation.previous_version
@@ -413,6 +450,11 @@ class PluginLifecycleRepository(TortoiseORMRepository):
             installation.lifecycle_state = (
                 PluginLifecycleState.INSTALLED if installation.desired_enabled else PluginLifecycleState.DISABLED
             )
+            installation.requested_permissions = list(operation.requested_permissions)
+            installation.approved_permissions = list(operation.approved_permissions)
+            installation.enabled_capabilities = (
+                list(operation.provided_capabilities) if installation.desired_enabled else []
+            )
             installation.runtime_activation_state = PluginRuntimeActivationState.VERIFIED
             installation.runtime_verified_at = now
             installation.current_operation_id = None
@@ -428,9 +470,19 @@ class PluginLifecycleRepository(TortoiseORMRepository):
                     "rollback_version",
                     "active_artifact_id",
                     "previous_artifact_id",
+                    "source_type",
+                    "source_locator",
+                    "package_checksum",
+                    "manifest_digest",
+                    "provenance_status",
+                    "trust_state",
+                    "trust_evidence",
                     "lifecycle_state",
                     "runtime_activation_state",
                     "runtime_verified_at",
+                    "requested_permissions",
+                    "approved_permissions",
+                    "enabled_capabilities",
                     "current_operation_id",
                     "current_job_id",
                     "last_success_summary",
@@ -460,10 +512,29 @@ class PluginLifecycleRepository(TortoiseORMRepository):
             operation.failure_code = code
             operation.failure_summary = summary
             operation.completed_at = datetime.now(UTC)
+            operation.retryable = True
+            operation.step_evidence = _append_step_evidence(
+                operation.step_evidence,
+                phase=operation.phase,
+                completed=operation.progress_completed,
+                total=operation.progress_total,
+                outcome="failed",
+                code=code,
+            )
             await operation.save(
                 using_db=conn,
-                update_fields=("state", "failure_code", "failure_summary", "completed_at", "updated_at"),
+                update_fields=(
+                    "state",
+                    "failure_code",
+                    "failure_summary",
+                    "retryable",
+                    "step_evidence",
+                    "completed_at",
+                    "updated_at",
+                ),
             )
+            if operation.kind in {PluginOperationKind.UPGRADE, PluginOperationKind.ROLLBACK}:
+                await _restore_previous_artifact(installation=installation, operation=operation, conn=conn)
             installation.lifecycle_state = PluginLifecycleState.FAILED
             installation.runtime_activation_state = PluginRuntimeActivationState.FAILED
             installation.last_failure_code = code
@@ -475,6 +546,83 @@ class PluginLifecycleRepository(TortoiseORMRepository):
                     "runtime_activation_state",
                     "last_failure_code",
                     "last_failure_summary",
+                    "active_artifact_id",
+                    "previous_artifact_id",
+                    "source_type",
+                    "source_locator",
+                    "package_checksum",
+                    "manifest_digest",
+                    "provenance_status",
+                    "trust_state",
+                    "trust_evidence",
                     "updated_at",
                 ),
             )
+
+
+def _append_step_evidence(
+    current: object,
+    *,
+    phase: str,
+    completed: int,
+    total: int | None,
+    outcome: str,
+    code: str | None = None,
+) -> list[dict[str, object]]:
+    if not isinstance(current, list):
+        raise ValueError("plugin operation step evidence must be a list")
+    evidence: list[dict[str, object]] = []
+    for item in current:
+        if not isinstance(item, dict):
+            raise ValueError("plugin operation step evidence entries must be objects")
+        evidence_entry: dict[str, object] = {}
+        for key, value in item.items():
+            if not isinstance(key, str):
+                raise ValueError("plugin operation step evidence entry keys must be strings")
+            evidence_entry[key] = value
+        evidence.append(evidence_entry)
+    entry: dict[str, object] = {
+        "phase": phase,
+        "completed": completed,
+        "total": total,
+        "outcome": outcome,
+        "recorded_at": datetime.now(UTC).isoformat(),
+    }
+    if code is not None:
+        entry["code"] = code
+    evidence.append(entry)
+    return evidence
+
+
+async def _restore_previous_artifact(
+    *,
+    installation: PluginInstallationRecord,
+    operation: PluginOperationRecord,
+    conn: BaseDBAsyncClient,
+) -> None:
+    failed_artifact_id = installation.active_artifact_id
+    previous_artifact_id = operation.previous_artifact_id
+    if previous_artifact_id is None:
+        return
+    previous_artifact = await PluginArtifactRecord.filter(id=previous_artifact_id).using_db(conn).get()
+    installation.active_artifact_id = previous_artifact_id
+    installation.previous_artifact_id = failed_artifact_id if operation.kind == PluginOperationKind.ROLLBACK else None
+    installation.source_type = previous_artifact.source_type
+    installation.source_locator = previous_artifact.source_locator
+    installation.package_checksum = previous_artifact.package_checksum
+    installation.manifest_digest = previous_artifact.manifest_digest
+    installation.provenance_status = previous_artifact.provenance_status
+    installation.trust_state = previous_artifact.trust_state
+    installation.trust_evidence = list(previous_artifact.trust_evidence)
+    previous_artifact.state = PluginArtifactState.ACTIVE
+    await previous_artifact.save(using_db=conn, update_fields=("state", "updated_at"))
+    if failed_artifact_id is not None and failed_artifact_id != previous_artifact_id:
+        await (
+            PluginArtifactRecord
+            .filter(id=failed_artifact_id)
+            .using_db(conn)
+            .update(
+                state=PluginArtifactState.RETAINED,
+                updated_at=datetime.now(UTC),
+            )
+        )

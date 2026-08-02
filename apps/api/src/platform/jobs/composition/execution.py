@@ -30,6 +30,7 @@ from src.modules.ai.runtime_skill_creator_tool import WorkspaceSkillAuthoringAge
 from src.modules.ai.runtime_style_guide_tool import DesignSystemConceptAgentToolExecutor
 from src.modules.ai.runtime_wireframe_tool import BuilderWireframeAgentToolExecutor
 from src.modules.ai.service import AIChatService
+from src.modules.assets.admin.assets.repository import AdminAssetsRepository
 from src.modules.assets.jobs import (
     ASSET_THUMBNAIL_JOB_TYPE,
     ASSET_THUMBNAIL_JOB_TYPE_VERSION,
@@ -117,6 +118,7 @@ from src.modules.projects.design_systems.repository import ProjectDesignSystemsR
 from src.modules.projects.design_systems.version_service import ProjectDesignSystemVersionService
 from src.modules.projects.repository import ProjectRepository
 from src.modules.sites.component_catalogs.official import get_official_component_catalog_registry
+from src.modules.sites.delivery.hosting import SitesHostingDeliveryAdapter
 from src.modules.system.admin.notifications.campaign_job_contract import (
     NOTIFICATION_CAMPAIGN_DISPATCH_JOB_TYPE,
     NOTIFICATION_CAMPAIGN_DISPATCH_JOB_TYPE_VERSION,
@@ -156,6 +158,14 @@ from src.modules.workspaces.knowledge.source_fetch import (
     KnowledgeSourceFetchPolicy,
     UntrustedHttpKnowledgeFetcher,
 )
+from src.modules.workspaces.design_systems.publication_assets import DesignSystemAssetPinResolver
+from src.modules.workspaces.design_systems.publication_contract import (
+    DESIGN_SYSTEM_COMPILE_JOB_TYPE,
+    DESIGN_SYSTEM_COMPILE_JOB_TYPE_VERSION,
+)
+from src.modules.workspaces.design_systems.publication_handler import DesignSystemPublicationJobHandler
+from src.modules.workspaces.design_systems.publication_repository import DesignSystemPublicationRepository
+from src.modules.workspaces.design_systems.repository import WorkspaceDesignSystemsRepository
 from src.modules.workspaces.skills.github_fetcher import PublicGitHubSkillFetcher
 from src.modules.workspaces.skills.github_import_contract import (
     SKILL_GITHUB_IMPORT_JOB_TYPE,
@@ -363,6 +373,13 @@ def _build_production_handler_factories(
         ),
         (
             JobTypeKey(
+                job_type=DESIGN_SYSTEM_COMPILE_JOB_TYPE,
+                job_type_version=DESIGN_SYSTEM_COMPILE_JOB_TYPE_VERSION,
+            ),
+            partial(_build_design_system_publication_handler, settings=settings),
+        ),
+        (
+            JobTypeKey(
                 job_type=ASSET_THUMBNAIL_JOB_TYPE,
                 job_type_version=ASSET_THUMBNAIL_JOB_TYPE_VERSION,
             ),
@@ -475,9 +492,9 @@ def _build_commercial_access_fact_handler(
     connector_registry: ConnectorRegistry,
 ) -> CommercialAccessFactJobHandler:
     return CommercialAccessFactJobHandler(
-        hosting=HostingCommercialAccessConsumer(),
+        hosting=HostingCommercialAccessConsumer(delivery=SitesHostingDeliveryAdapter(settings=settings)),
         notifications=CommercialLifecycleNotificationConsumer(
-            persistence=TortoiseCommercialLifecycleNotificationPersistence(),
+            persistence=TortoiseCommercialLifecycleNotificationPersistence(settings=settings),
             email_sender=EmailService(settings, connector_registry=connector_registry),
         ),
     )
@@ -601,6 +618,17 @@ def _build_design_system_concept_generation_handler(
             settings=settings,
         ),
         generator=LLMDesignSystemConceptGenerator(chat_service=AIChatService(settings)),
+    )
+
+
+def _build_design_system_publication_handler(*, settings: Settings) -> DesignSystemPublicationJobHandler:
+    _ = settings
+    return DesignSystemPublicationJobHandler(
+        design_systems_factory=lambda: WorkspaceDesignSystemsRepository(require_current_tenant_context()),
+        publications_factory=lambda: DesignSystemPublicationRepository(require_current_tenant_context()),
+        asset_resolver_factory=lambda: DesignSystemAssetPinResolver(
+            repository=AdminAssetsRepository(require_current_tenant_context())
+        ),
     )
 
 

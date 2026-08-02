@@ -44,6 +44,7 @@ function SignalRow({
 }>) {
   const { t } = useTranslation(["inbox"]);
   const stateKey = `inbox:TRIAGE_${signal.triage.state.toUpperCase()}`;
+  const severityKey = `inbox:SEVERITY_${signal.severity.toUpperCase()}`;
   return (
     <TableRow
       aria-label={t(signal.copy.titleKey)}
@@ -54,7 +55,9 @@ function SignalRow({
     >
       <TableCell className="align-top">
         <div className="flex items-center gap-2">
-          <Badge variant="destructive">{t("inbox:SEVERITY_HIGH")}</Badge>
+          <Badge variant={signal.severity === "critical" ? "destructive" : "outline"}>
+            {t(severityKey)}
+          </Badge>
           <span className="font-mono text-caption tabular-nums">#{signal.priority.rank}</span>
         </div>
         <p className="mt-1 text-caption text-label-secondary">
@@ -165,7 +168,11 @@ function assigneeNameMap(assignees: readonly OperationalSignalAssigneeOut[]) {
 export function SignalQueueWithAssignees(props: SignalQueueProps) {
   const { t } = useTranslation("inbox");
   const assignmentAllowed = Boolean(
-    props.data.items?.some((signal) => signal.allowedTriageActions.includes("assign")),
+    props.data.items?.some(
+      (signal) =>
+        signal.allowedTriageActions.includes("assign") ||
+        signal.allowedTriageActions.includes("transfer"),
+    ),
   );
   const { state, retry } = useOperationsQuery(
     assignmentAllowed ? loadEligibleAssignees : skipEligibleAssignees,

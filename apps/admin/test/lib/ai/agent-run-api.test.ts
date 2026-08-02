@@ -28,6 +28,7 @@ describe("Agent Run v1 canonical Admin API", () => {
       threadId: "thread-1",
       leadAgentId: "agent-lead",
       mentionedAgentIds: ["agent-writer", "agent-analyst"],
+      selectedSkillInstallationIds: ["installation-content", "installation-seo"],
       executionMode: "build" as const,
       workspaceId: "workspace-1",
       projectId: "project-1",
@@ -61,6 +62,7 @@ describe("Agent Run v1 canonical Admin API", () => {
       {
         leadAgentId: "agent-lead",
         mentionedAgentIds: ["agent-writer", "agent-analyst"],
+        selectedSkillInstallationIds: ["installation-content", "installation-seo"],
         executionMode: "build",
         projectId: "project-1",
         siteRevisionId: "revision-4",

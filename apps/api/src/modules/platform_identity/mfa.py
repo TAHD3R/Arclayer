@@ -18,14 +18,25 @@ from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, NotFound, ServiceUnavailable
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.core.services import BaseService
-from src.models.platform_identity.identity import PlatformOperator, PlatformOperatorStatus
+from src.models.analytics.audit_event import AuditEvent
+from src.models.platform_identity.identity import PlatformOperator, PlatformOperatorSetupReason, PlatformOperatorStatus
 from src.models.platform_identity.mfa import (
     PlatformMfaMethod,
     PlatformMfaMethodKind,
     PlatformMfaMethodStatus,
     PlatformMfaRecoveryCode,
 )
-from src.models.platform_identity.operations import PlatformSession, PlatformStepUpProof, PlatformStepUpProofStatus
+from src.models.platform_identity.operations import (
+    PlatformActionPolicy,
+    PlatformSession,
+    PlatformStepUpProof,
+    PlatformStepUpProofStatus,
+)
+from src.models.platform_identity.roles import (
+    PlatformOperatorRoleAssignment,
+    PlatformRoleRevision,
+    PlatformRoleRevisionPermission,
+)
 from src.modules.auth.two_factor.totp import generate_totp_secret, verify_totp_code
 from src.modules.platform_identity.mfa_schema import (
     PlatformMfaAssurance,
@@ -155,8 +166,32 @@ class PlatformMfaRepositoryLike(Protocol):
         self, *, user_id: UUID, revoked_at: datetime, conn: BaseDBAsyncClient
     ) -> None: ...
 
+    async def retire_verified_method_after_replacement(
+        self,
+        *,
+        user_id: UUID,
+        replaced_method_id: UUID,
+        replacement_method_id: UUID,
+        revoked_at: datetime,
+        conn: BaseDBAsyncClient,
+    ) -> None: ...
+
     async def revoke_user_sessions_and_proofs(
         self, *, user_id: UUID, revoked_at: datetime, conn: BaseDBAsyncClient
+    ) -> None: ...
+
+
+class PlatformInvitationActivationPort(Protocol):
+    async def activate_operator_invitation(
+        self,
+        *,
+        user_id: UUID,
+        operator_id: UUID,
+        invitation_id: UUID,
+        expected_invitation_revision: int,
+        correlation_id: UUID,
+        idempotency_key: str,
+        conn: BaseDBAsyncClient,
     ) -> None: ...
 
 
@@ -278,7 +313,10 @@ class PlatformMfaRepository(TortoiseORMRepository, PlatformMfaRepositoryLike):
             PlatformOperator
             .filter(id=operator_id)
             .using_db(conn)
-            .update(status=PlatformOperatorStatus.MFA_SETUP_REQUIRED)
+            .update(
+                status=PlatformOperatorStatus.MFA_SETUP_REQUIRED,
+                setup_reason=PlatformOperatorSetupReason.RECOVERY,
+            )
         )
 
     async def set_operator_active(self, *, operator_id: UUID, changed_at: datetime, conn: BaseDBAsyncClient) -> None:
@@ -286,7 +324,7 @@ class PlatformMfaRepository(TortoiseORMRepository, PlatformMfaRepositoryLike):
             PlatformOperator
             .filter(id=operator_id, status=PlatformOperatorStatus.MFA_SETUP_REQUIRED)
             .using_db(conn)
-            .update(status=PlatformOperatorStatus.ACTIVE)
+            .update(status=PlatformOperatorStatus.ACTIVE, setup_reason=None)
         )
 
     async def revoke_user_mfa_methods(self, *, user_id: UUID, revoked_at: datetime, conn: BaseDBAsyncClient) -> None:
@@ -295,6 +333,76 @@ class PlatformMfaRepository(TortoiseORMRepository, PlatformMfaRepositoryLike):
             .filter(user_id=user_id, revoked_at=None)
             .using_db(conn)
             .update(status=PlatformMfaMethodStatus.REVOKED, revoked_at=revoked_at)
+        )
+
+    async def retire_verified_method_after_replacement(
+        self,
+        *,
+        user_id: UUID,
+        replaced_method_id: UUID,
+        replacement_method_id: UUID,
+        revoked_at: datetime,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        methods = (
+            await PlatformMfaMethod
+            .filter(
+                user_id=user_id,
+                status=PlatformMfaMethodStatus.VERIFIED,
+                revoked_at=None,
+            )
+            .using_db(conn)
+            .select_for_update()
+            .order_by("id")
+        )
+        replacement = next((method for method in methods if UUID(str(method.id)) == replacement_method_id), None)
+        replaced = next((method for method in methods if UUID(str(method.id)) == replaced_method_id), None)
+        if replacement is None or replaced is None or replacement.id == replaced.id:
+            raise Conflict(error="PLATFORM_MFA_REPLACEMENT_INVALID")
+        if await self._requires_verified_webauthn(user_id=user_id, conn=conn):
+            remaining_webauthn = sum(
+                method.kind == PlatformMfaMethodKind.WEBAUTHN and method.id != replaced.id for method in methods
+            )
+            if replaced.kind == PlatformMfaMethodKind.WEBAUTHN and remaining_webauthn == 0:
+                raise Conflict(error="PLATFORM_SECURITY_KEY_REQUIRED")
+        replaced.status = PlatformMfaMethodStatus.REVOKED
+        replaced.revoked_at = revoked_at
+        await replaced.save(update_fields=["status", "revoked_at"], using_db=conn)
+
+    async def _requires_verified_webauthn(self, *, user_id: UUID, conn: BaseDBAsyncClient) -> bool:
+        if await self.is_instance_owner(user_id=user_id, conn=conn):
+            return True
+        operator = await PlatformOperator.filter(user_id=user_id).using_db(conn).first()
+        if operator is None or operator.status != PlatformOperatorStatus.ACTIVE:
+            return False
+        role_ids = (
+            await PlatformOperatorRoleAssignment
+            .filter(operator_id=operator.id, ended_at=None)
+            .using_db(conn)
+            .values_list("role_id", flat=True)
+        )
+        revision_ids = (
+            await PlatformRoleRevision
+            .filter(role_id__in=list(role_ids), is_current=True, role__is_active=True)
+            .using_db(conn)
+            .values_list("id", flat=True)
+        )
+        permission_codes = (
+            await PlatformRoleRevisionPermission
+            .filter(role_revision_id__in=list(revision_ids))
+            .using_db(conn)
+            .values_list("permission__code", flat=True)
+        )
+        return (
+            await PlatformActionPolicy
+            .filter(
+                permission__code__in=list(permission_codes),
+                is_active=True,
+                requires_step_up=True,
+                required_assurance="phishing_resistant",
+            )
+            .using_db(conn)
+            .exists()
         )
 
     async def revoke_user_sessions_and_proofs(
@@ -312,9 +420,16 @@ class PlatformMfaRepository(TortoiseORMRepository, PlatformMfaRepositoryLike):
 
 
 class PlatformMfaService(BaseService):
-    def __init__(self, settings: Settings | None = None, *, repo: PlatformMfaRepositoryLike | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings | None = None,
+        *,
+        repo: PlatformMfaRepositoryLike | None = None,
+        invitation_activation: PlatformInvitationActivationPort | None = None,
+    ) -> None:
         super().__init__(settings)
         self.repo = repo or PlatformMfaRepository()
+        self._invitation_activation = invitation_activation
 
     def _ensure_master_key(self) -> bytes:
         path = self.settings.security.master_key_path
@@ -332,7 +447,15 @@ class PlatformMfaService(BaseService):
         except (InvalidTag, ValueError, UnicodeDecodeError, binascii.Error) as exc:
             raise ServiceUnavailable(error="PLATFORM_MFA_MASTER_KEY_INVALID") from exc
 
-    async def begin_totp_setup(self, *, user_id: UUID, issuer: str, account_label: str) -> PlatformTotpSetup:
+    async def begin_totp_setup(
+        self,
+        *,
+        user_id: UUID,
+        issuer: str,
+        account_label: str,
+        audit_correlation_id: UUID | None = None,
+        audit_idempotency_key: str | None = None,
+    ) -> PlatformTotpSetup:
         normalized_issuer = issuer.strip()
         normalized_label = account_label.strip()
         if not normalized_issuer or not normalized_label:
@@ -345,6 +468,14 @@ class PlatformMfaService(BaseService):
                 totp_secret_enc=encrypt_secret(secret, key=master_key, aad=_aad(user_id)),
                 conn=conn,
             )
+            await self._write_audit_if_requested(
+                event_name="platform.mfa.method_enrollment_started",
+                actor_user_id=user_id,
+                entity_id=UUID(str(method.id)),
+                correlation_id=audit_correlation_id,
+                idempotency_key=audit_idempotency_key,
+                conn=conn,
+            )
         return PlatformTotpSetup(
             method_id=UUID(str(method.id)),
             state=PlatformMfaSetupState.PENDING_VERIFICATION,
@@ -354,7 +485,19 @@ class PlatformMfaService(BaseService):
         )
 
     async def confirm_totp_setup(
-        self, *, user_id: UUID, method_id: UUID, code: str, operator_id: UUID | None = None
+        self,
+        *,
+        user_id: UUID,
+        method_id: UUID,
+        code: str,
+        operator_id: UUID | None = None,
+        replace_method_id: UUID | None = None,
+        audit_correlation_id: UUID | None = None,
+        audit_idempotency_key: str | None = None,
+        invitation_id: UUID | None = None,
+        expected_invitation_revision: int | None = None,
+        activation_correlation_id: UUID | None = None,
+        activation_idempotency_key: str | None = None,
     ) -> PlatformRecoveryCodeSet | None:
         now = datetime.now(UTC)
         master_key = self._ensure_master_key()
@@ -369,16 +512,78 @@ class PlatformMfaService(BaseService):
                 method_id=method_id, counter=result.used_counter, verified_at=now, conn=conn
             ):
                 raise Conflict(error="PLATFORM_TOTP_CODE_REPLAY")
+            if replace_method_id is not None:
+                await self.repo.retire_verified_method_after_replacement(
+                    user_id=user_id,
+                    replaced_method_id=replace_method_id,
+                    replacement_method_id=method_id,
+                    revoked_at=now,
+                    conn=conn,
+                )
+            await self._write_audit_if_requested(
+                event_name="platform.mfa.method_replaced" if replace_method_id else "platform.mfa.method_enrolled",
+                actor_user_id=user_id,
+                entity_id=method_id,
+                correlation_id=audit_correlation_id,
+                idempotency_key=audit_idempotency_key,
+                conn=conn,
+            )
             if operator_id is None:
                 return None
-            await self._require_non_owner_operator(user_id=user_id, operator_id=operator_id, conn=conn)
-            codes = self._new_recovery_codes()
-            await self.repo.invalidate_unused_recovery_codes(operator_id=operator_id, invalidated_at=now, conn=conn)
-            await self.repo.create_recovery_codes(
-                operator_id=operator_id, items=self._hash_recovery_codes(codes=codes, master_key=master_key), conn=conn
+            return await self.complete_operator_setup(
+                user_id=user_id,
+                operator_id=operator_id,
+                invitation_id=invitation_id,
+                expected_invitation_revision=expected_invitation_revision,
+                activation_correlation_id=activation_correlation_id,
+                activation_idempotency_key=activation_idempotency_key,
+                conn=conn,
             )
+
+    async def complete_operator_setup(
+        self,
+        *,
+        user_id: UUID,
+        operator_id: UUID,
+        invitation_id: UUID | None,
+        expected_invitation_revision: int | None,
+        activation_correlation_id: UUID | None,
+        activation_idempotency_key: str | None,
+        conn: BaseDBAsyncClient,
+    ) -> PlatformRecoveryCodeSet:
+        now = datetime.now(UTC)
+        master_key = self._ensure_master_key()
+        await self._require_non_owner_operator(user_id=user_id, operator_id=operator_id, conn=conn)
+        codes = self._new_recovery_codes()
+        await self.repo.invalidate_unused_recovery_codes(operator_id=operator_id, invalidated_at=now, conn=conn)
+        await self.repo.create_recovery_codes(
+            operator_id=operator_id,
+            items=self._hash_recovery_codes(codes=codes, master_key=master_key),
+            conn=conn,
+        )
+        activation = (
+            invitation_id,
+            expected_invitation_revision,
+            activation_correlation_id,
+            activation_idempotency_key,
+        )
+        if any(value is not None for value in activation):
+            if any(value is None for value in activation):
+                raise ValueError("Platform invitation activation binding must be complete")
+            if self._invitation_activation is None:
+                raise ServiceUnavailable(error="PLATFORM_INVITATION_ACTIVATION_UNAVAILABLE")
+            await self._invitation_activation.activate_operator_invitation(
+                user_id=user_id,
+                operator_id=operator_id,
+                invitation_id=cast(UUID, invitation_id),
+                expected_invitation_revision=cast(int, expected_invitation_revision),
+                correlation_id=cast(UUID, activation_correlation_id),
+                idempotency_key=cast(str, activation_idempotency_key),
+                conn=conn,
+            )
+        else:
             await self.repo.set_operator_active(operator_id=operator_id, changed_at=now, conn=conn)
-            return PlatformRecoveryCodeSet(state=PlatformMfaSetupState.VERIFIED, codes=tuple(codes))
+        return PlatformRecoveryCodeSet(state=PlatformMfaSetupState.VERIFIED, codes=tuple(codes))
 
     async def verify_totp_for_baseline(self, *, user_id: UUID, method_id: UUID, code: str) -> PlatformMfaVerification:
         now = datetime.now(UTC)
@@ -468,3 +673,28 @@ class PlatformMfaService(BaseService):
             if hmac.compare_digest(expected, cast(str, item.code_hash)):
                 return await self.repo.try_consume_recovery_code(code_id=UUID(str(item.id)), used_at=now, conn=conn)
         return False
+
+    @staticmethod
+    async def _write_audit_if_requested(
+        *,
+        event_name: str,
+        actor_user_id: UUID,
+        entity_id: UUID,
+        correlation_id: UUID | None,
+        idempotency_key: str | None,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        if correlation_id is None and idempotency_key is None:
+            return
+        if correlation_id is None or idempotency_key is None:
+            raise ValueError("Platform MFA audit correlation and idempotency must be supplied together")
+        await AuditEvent.create(
+            using_db=conn,
+            occurred_at=datetime.now(UTC),
+            event_name=event_name,
+            actor_user_id=actor_user_id,
+            entity_type="platform_mfa_method",
+            entity_id=entity_id,
+            source="platform",
+            properties={"correlation_id": str(correlation_id), "idempotency_key": idempotency_key},
+        )

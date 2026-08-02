@@ -29,7 +29,11 @@ import { TeamInvitationsDialogs } from "@/pages/workspaces/team/invitations/comp
 import { InviteMembersDialog } from "@/pages/workspaces/team/shared/components/invite-members-dialog";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import type { PageData, TeamInvitation, TeamInviteLink } from "@arclayer/openapi/admin-types";
+import type {
+  PageDataWorkspaceEmailInviteOut,
+  WorkspaceEmailInviteOut as TeamInvitation,
+  WorkspaceInviteLinkOut as TeamInviteLink,
+} from "@arclayer/openapi";
 import { Button } from "@arclayer/ui/button";
 import {
   ChromeTabs,
@@ -58,20 +62,27 @@ const LINKS_TABLE_ID = "workspace-team-invitations-links";
 const DEFAULT_PAGE_SIZE = 20;
 const DEFAULT_ORDERING: InvitationSort = "-created_at";
 
+type InvitationTablePage<T> = Omit<PageDataWorkspaceEmailInviteOut, "items"> & {
+  items: T[];
+};
+
 function patchTableRows<T extends { id: string }>(
   queryClient: QueryClient,
   tableId: string,
   update: (rows: readonly T[]) => readonly T[],
 ) {
-  queryClient.setQueriesData<PageData<T>>({ queryKey: ["dataTable", tableId] }, (current) => {
-    if (!current) return current;
-    const items = [...update(current.items)];
-    return {
-      ...current,
-      items,
-      total: Math.max(0, current.total - (current.items.length - items.length)),
-    };
-  });
+  queryClient.setQueriesData<InvitationTablePage<T>>(
+    { queryKey: ["dataTable", tableId] },
+    (current) => {
+      if (!current) return current;
+      const items = [...update(current.items)];
+      return {
+        ...current,
+        items,
+        total: Math.max(0, current.total - (current.items.length - items.length)),
+      };
+    },
+  );
 }
 
 function replaceTableRow<T extends { id: string }>(

@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 
-import type { TeamMember } from "@arclayer/openapi/admin-types";
+import type { WorkspaceTeamMemberOut as TeamMember } from "@arclayer/openapi";
 import { resetTeamMemberPassword } from "@/api/team";
 import { Button } from "@arclayer/ui/button";
 import { PasswordInput } from "@arclayer/ui/password-input";

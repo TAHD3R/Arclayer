@@ -1,19 +1,22 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { redirectMock, resolvePostAuthRouteMock, routeState } = vi.hoisted(() => ({
-  redirectMock: vi.fn((payload: unknown) => payload),
-  resolvePostAuthRouteMock: vi.fn(async () => ({
-    path: "/welcome",
-    workspaceId: null,
-    projectId: null,
-    onboardingRequired: true,
-  })),
-  routeState: {
-    pathname: "/projects",
-    isPagePending: false,
-  },
-}));
+const { redirectMock, resolvePostAuthRouteMock, routeState, setCurrentContextMock } = vi.hoisted(
+  () => ({
+    redirectMock: vi.fn((payload: unknown) => payload),
+    resolvePostAuthRouteMock: vi.fn(async () => ({
+      path: "/welcome",
+      workspaceId: null as string | null,
+      projectId: null as string | null,
+      onboardingRequired: true,
+    })),
+    routeState: {
+      pathname: "/projects",
+      isPagePending: false,
+    },
+    setCurrentContextMock: vi.fn(),
+  }),
+);
 
 vi.mock("@tanstack/react-router", () => ({
   createRootRoute: (config: unknown) => config,
@@ -55,7 +58,7 @@ vi.mock("@/stores/use-workspace-store", () => ({
   useWorkspaceStore: {
     getState: () => ({
       lastWorkspaceId: null,
-      setCurrentContext: vi.fn(),
+      setCurrentContext: setCurrentContextMock,
     }),
   },
 }));
@@ -79,6 +82,15 @@ describe("welcome onboarding route guard", () => {
   beforeEach(() => {
     routeState.pathname = "/projects";
     routeState.isPagePending = false;
+    redirectMock.mockClear();
+    resolvePostAuthRouteMock.mockReset();
+    resolvePostAuthRouteMock.mockResolvedValue({
+      path: "/welcome",
+      workspaceId: null,
+      projectId: null,
+      onboardingRequired: true,
+    });
+    setCurrentContextMock.mockReset();
   });
 
   it("renders /welcome without the Admin scene layout", () => {
@@ -133,6 +145,34 @@ describe("welcome onboarding route guard", () => {
     ).rejects.toEqual({ to: "/welcome" });
 
     expect(redirectMock).toHaveBeenCalledWith({ to: "/welcome" });
+    expect(setCurrentContextMock).toHaveBeenCalledWith({
+      workspaceId: null,
+      projectId: null,
+    });
+  });
+
+  it("hydrates the current context from the server-validated post-auth decision", async () => {
+    resolvePostAuthRouteMock.mockResolvedValueOnce({
+      path: "/",
+      workspaceId: "workspace-current",
+      projectId: "project-current",
+      onboardingRequired: false,
+    });
+
+    await expect(
+      rootRouteConfig.beforeLoad({
+        location: {
+          pathname: "/",
+          searchStr: "",
+          search: {},
+        },
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(setCurrentContextMock).toHaveBeenCalledWith({
+      workspaceId: "workspace-current",
+      projectId: "project-current",
+    });
   });
 
   it("keeps dev dry-run welcome local after auth without post-auth routing", async () => {

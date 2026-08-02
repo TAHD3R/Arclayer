@@ -1,82 +1,124 @@
-import { type ReactNode, useCallback } from "react";
+import { type FormEvent, type ReactNode, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   PageDataPlatformDeliveryDomainOut,
   PageDataPlatformDeliveryIssueOut,
   PageDataPlatformDeliveryRuleOut,
   PageDataPlatformDeliveryStorageOut,
+  PlatformDeliveryContinuityPolicyOut,
+  PlatformDeliveryDomainActionOut,
+  PlatformDeliveryIssueActionOut,
+  PlatformDeliveryIssueOut,
+  PlatformDeliveryPolicyApplyOut,
+  PlatformDeliveryPolicyPreviewOut,
+  PlatformDeliveryStorageTestOut,
 } from "@arclayer/platform-openapi";
 
 import {
+  applyDeliveryPolicy,
+  executeDeliveryIssueAction,
+  getDeliveryContinuityPolicy,
   listDeliveryDomains,
   listDeliveryIssues,
   listDeliveryRules,
   listDeliveryStorage,
+  PlatformSiteDeliveryApiError,
+  previewDeliveryPolicy,
+  recoverDeliveryDomain,
+  testDeliveryStorage,
 } from "@/site-delivery/site-delivery-api";
 import { useMonitoringQuery } from "@/monitoring/monitoring-ui";
+import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 import { Badge } from "@arclayer/ui/badge";
+import { Button } from "@arclayer/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@arclayer/ui/empty";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@arclayer/ui/empty";
+import { Input } from "@arclayer/ui/input";
 import { Skeleton } from "@arclayer/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
+import { Textarea } from "@arclayer/ui/textarea";
 
-function SiteDeliveryPage({
-  title,
-  description,
-  children,
-}: Readonly<{ title: string; description: string; children: ReactNode }>) {
+type QueryState<T> = { status: string; data?: T };
+type DeliveryIssueAction = PlatformDeliveryIssueActionOut["action"];
+type DeliveryRulesData = Readonly<{
+  policy: PlatformDeliveryContinuityPolicyOut;
+  rules: PageDataPlatformDeliveryRuleOut;
+}>;
+type ActionFailure = Readonly<{ code: string; status?: number }>;
+type ActionFeedback =
+  | Readonly<{ kind: "issue"; result: PlatformDeliveryIssueActionOut }>
+  | Readonly<{ kind: "domain"; result: PlatformDeliveryDomainActionOut }>
+  | Readonly<{ kind: "storage"; result: PlatformDeliveryStorageTestOut }>
+  | Readonly<{ kind: "policy"; result: PlatformDeliveryPolicyApplyOut }>
+  | Readonly<{ kind: "error"; failure: ActionFailure }>
+  | Readonly<{ kind: "validation"; messageKey: string }>;
+
+const ISSUE_ACTIONS: readonly DeliveryIssueAction[] = ["retry", "reconcile", "restore"];
+const DELIVERY_STATE_KEYS: Readonly<Record<string, string>> = {
+  continuity_required: "RULE_STATE_CONTINUITY_REQUIRED",
+  failed: "RULE_STATE_FAILED",
+  partial: "RULE_STATE_PARTIAL",
+  restoration_required: "RULE_STATE_RESTORATION_REQUIRED",
+  restored: "RULE_STATE_RESTORED",
+  serving: "RULE_STATE_SERVING",
+  suspended: "RULE_STATE_SUSPENDED",
+};
+const VISITOR_EFFECT_KEYS: Readonly<Record<string, string>> = {
+  delivery_recovery_pending: "VISITOR_EFFECT_DELIVERY_RECOVERY_PENDING",
+  site_unavailable: "VISITOR_EFFECT_SITE_UNAVAILABLE",
+};
+
+function SiteDeliveryPage(
+  props: Readonly<{ title: string; description: string; children: ReactNode }>,
+) {
+  const { t } = useTranslation("siteDelivery");
   return (
     <section className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-7 px-5 py-8 md:px-8 md:py-10">
       <header className="max-w-3xl space-y-2">
         <p className="text-caption font-semibold tracking-[0.16em] text-label-secondary uppercase">
-          Site delivery
+          {t("EYEBROW")}
         </p>
-        <h1 className="text-largetitle">{title}</h1>
-        <p className="text-body text-label-secondary">{description}</p>
+        <h1 className="text-largetitle">{props.title}</h1>
+        <p className="text-body text-label-secondary">{props.description}</p>
       </header>
-      {children}
+      {props.children}
     </section>
   );
 }
 
-function SiteDeliveryState<T>({
-  state,
-  retry,
-  empty,
-  children,
-}: Readonly<{
-  state: { status: string; data?: T };
-  retry: () => void;
-  empty: (data: T) => boolean;
-  children: (data: T) => ReactNode;
-}>) {
+function SiteDeliveryState<T>(
+  props: Readonly<{
+    state: QueryState<T>;
+    retry: () => void;
+    empty: (data: T) => boolean;
+    children: (data: T) => ReactNode;
+  }>,
+) {
   const { t } = useTranslation("siteDelivery");
-  if (state.status === "loading")
+  if (props.state.status === "loading") {
     return (
-      <div
-        aria-busy="true"
-        aria-label={t("LOADING")}
-        aria-live="polite"
-        className="space-y-3"
-        role="status"
-      >
+      <div aria-busy="true" className="space-y-3" role="status">
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-72 w-full" />
       </div>
     );
-  if (state.status === "error")
+  }
+  if (props.state.status === "error") {
     return (
       <Empty className="min-h-72 border bg-card">
         <EmptyHeader>
           <EmptyTitle>{t("ERROR_TITLE")}</EmptyTitle>
           <EmptyDescription>{t("ERROR_DESCRIPTION")}</EmptyDescription>
         </EmptyHeader>
-        <button className="rounded border px-3 py-2" onClick={retry} type="button">
-          {t("RETRY")}
-        </button>
+        <EmptyContent>
+          <Button onClick={props.retry} variant="outline">
+            {t("RETRY")}
+          </Button>
+        </EmptyContent>
       </Empty>
     );
-  if (!state.data || empty(state.data))
+  }
+  if (!props.state.data || props.empty(props.state.data)) {
     return (
       <Empty className="min-h-72 border bg-card">
         <EmptyHeader>
@@ -85,15 +127,203 @@ function SiteDeliveryState<T>({
         </EmptyHeader>
       </Empty>
     );
-  return children(state.data);
+  }
+  return props.children(props.state.data);
+}
+
+function actionFailure(error: unknown): ActionFailure {
+  if (error instanceof PlatformSiteDeliveryApiError) {
+    return { code: error.message, status: error.status };
+  }
+  if (error instanceof Error && error.message) return { code: error.message };
+  return { code: "PLATFORM_SITE_DELIVERY_REQUEST_FAILED" };
+}
+
+function ActionFeedbackNotice(props: Readonly<{ feedback: ActionFeedback | null }>) {
+  const { t } = useTranslation("siteDelivery");
+  if (!props.feedback) return null;
+
+  if (props.feedback.kind === "validation") {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>{t("VALIDATION_TITLE")}</AlertTitle>
+        <AlertDescription>{t(props.feedback.messageKey)}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (props.feedback.kind === "error") {
+    const conflict = props.feedback.failure.status === 409;
+    const permissionDenied =
+      props.feedback.failure.status === 401 || props.feedback.failure.status === 403;
+    return (
+      <Alert
+        className={conflict ? "border-warning/40 bg-warning/10" : undefined}
+        variant={conflict ? undefined : "destructive"}
+      >
+        <AlertTitle>
+          {t(
+            permissionDenied
+              ? "ACTION_PERMISSION_TITLE"
+              : conflict
+                ? "ACTION_CONFLICT_TITLE"
+                : "ACTION_FAILED_TITLE",
+          )}
+        </AlertTitle>
+        <AlertDescription className="space-y-2">
+          <p>
+            {t(
+              permissionDenied
+                ? "ACTION_PERMISSION_DESCRIPTION"
+                : conflict
+                  ? "ACTION_CONFLICT_DESCRIPTION"
+                  : "ACTION_FAILED_DESCRIPTION",
+            )}
+          </p>
+          <p className="font-mono text-caption" data-testid="site-delivery-action-error-code">
+            {props.feedback.failure.code}
+          </p>
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (props.feedback.kind === "issue") {
+    const { result } = props.feedback;
+    return (
+      <Alert className={result.partialFailure ? "border-warning/40 bg-warning/10" : undefined}>
+        <AlertTitle>
+          {t(result.partialFailure ? "ISSUE_ACTION_PARTIAL_TITLE" : "ISSUE_ACTION_COMPLETED_TITLE")}
+        </AlertTitle>
+        <AlertDescription className="space-y-2">
+          <p>
+            {t(
+              result.partialFailure
+                ? "ISSUE_ACTION_PARTIAL_DESCRIPTION"
+                : "ISSUE_ACTION_COMPLETED_DESCRIPTION",
+              { count: result.failedTargetCount },
+            )}
+          </p>
+          <p className="font-mono text-caption text-label-secondary">
+            {t("ACTION_DIAGNOSTIC", { action: result.action, state: result.resultingState })}
+          </p>
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (props.feedback.kind === "domain") {
+    const { result } = props.feedback;
+    return (
+      <Alert>
+        <AlertTitle>
+          {t(
+            result.isVerified ? "DOMAIN_RECOVERY_COMPLETED_TITLE" : "DOMAIN_RECOVERY_PENDING_TITLE",
+          )}
+        </AlertTitle>
+        <AlertDescription className="space-y-2">
+          <p>{t("DOMAIN_RECOVERY_DESCRIPTION", { hostname: result.hostname })}</p>
+          <p className="font-mono text-caption text-label-secondary">
+            {t("DOMAIN_ACTION_DIAGNOSTIC", { certificate: result.certificateStatus })}
+          </p>
+          {result.observedTxtValues?.length ? (
+            <p className="font-mono text-caption text-label-secondary">
+              {t("OBSERVED_DNS_VALUES")}: {result.observedTxtValues.join(", ")}
+            </p>
+          ) : null}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (props.feedback.kind === "storage") {
+    const { result } = props.feedback;
+    return (
+      <Alert variant={result.ok ? undefined : "destructive"}>
+        <AlertTitle>
+          {t(result.ok ? "STORAGE_TEST_PASSED_TITLE" : "STORAGE_TEST_FAILED_TITLE")}
+        </AlertTitle>
+        <AlertDescription className="space-y-2">
+          <p>
+            {t(result.ok ? "STORAGE_TEST_PASSED_DESCRIPTION" : "STORAGE_TEST_FAILED_DESCRIPTION")}
+          </p>
+          <p className="font-mono text-caption text-label-secondary">
+            {t("STORAGE_TEST_DIAGNOSTIC", { status: result.status })}: {result.message}
+          </p>
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  const { result } = props.feedback;
+  return (
+    <Alert className={result.partialFailure ? "border-warning/40 bg-warning/10" : undefined}>
+      <AlertTitle>
+        {t(result.replayed ? "POLICY_APPLY_REPLAYED_TITLE" : "POLICY_APPLIED_TITLE")}
+      </AlertTitle>
+      <AlertDescription className="space-y-2">
+        <p>
+          {t("POLICY_APPLIED_DESCRIPTION", {
+            count: result.affectedActiveTransitionCount,
+            revision: result.policyRevision,
+            seconds: result.continuityWindowSeconds,
+          })}
+        </p>
+        {result.partialFailure ? <p>{t("POLICY_APPLY_PARTIAL_DESCRIPTION")}</p> : null}
+      </AlertDescription>
+    </Alert>
+  );
+}
+
+function deliveryStateLabel(t: (key: string) => string, state: string): string {
+  return t(DELIVERY_STATE_KEYS[state] ?? "RULE_STATE_UNKNOWN");
+}
+
+function visitorEffectLabel(t: (key: string) => string, visitorEffect: string): string {
+  return t(VISITOR_EFFECT_KEYS[visitorEffect] ?? "VISITOR_EFFECT_UNKNOWN");
+}
+
+function issueActionAvailable(
+  issue: PlatformDeliveryIssueOut,
+  action: DeliveryIssueAction,
+): boolean {
+  if (action === "retry") return issue.retryable;
+  if (issue.kind !== "hosting_continuity") return false;
+  return action !== "restore" || issue.state === "restoration_required";
+}
+
+function issueActionUnavailableReason(
+  t: (key: string) => string,
+  issue: PlatformDeliveryIssueOut,
+  action: DeliveryIssueAction,
+): string {
+  if (action === "retry") return t("ISSUE_RETRY_NOT_ELIGIBLE");
+  if (issue.kind !== "hosting_continuity") return t("ISSUE_HOSTING_ACTION_REQUIRED");
+  return t("ISSUE_RESTORE_NOT_ELIGIBLE");
 }
 
 export function SiteDeliveryIssuesPage() {
   const { t } = useTranslation("siteDelivery");
   const load = useCallback(() => listDeliveryIssues({ page: 1, size: 50 }), []);
   const { state, retry } = useMonitoringQuery(load, []);
+  const [pending, setPending] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<ActionFeedback | null>(null);
+  const execute = async (issue: PlatformDeliveryIssueOut, action: DeliveryIssueAction) => {
+    setPending(`${issue.id}:${action}`);
+    setFeedback(null);
+    try {
+      setFeedback({ kind: "issue", result: await executeDeliveryIssueAction(issue.id, action) });
+      retry();
+    } catch (error) {
+      setFeedback({ kind: "error", failure: actionFailure(error) });
+    } finally {
+      setPending(null);
+    }
+  };
+
   return (
-    <SiteDeliveryPage title={t("ISSUES_TITLE")} description={t("ISSUES_DESCRIPTION")}>
+    <SiteDeliveryPage description={t("ISSUES_DESCRIPTION")} title={t("ISSUES_TITLE")}>
+      <ActionFeedbackNotice feedback={feedback} />
       <SiteDeliveryState
         empty={(data: PageDataPlatformDeliveryIssueOut) => !data.items?.length}
         retry={retry}
@@ -109,21 +339,67 @@ export function SiteDeliveryIssuesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t("WORKSPACE")}</TableHead>
+                    <TableHead>{t("AFFECTED_SCOPE")}</TableHead>
                     <TableHead>{t("STATE")}</TableHead>
                     <TableHead>{t("VISITOR_EFFECT")}</TableHead>
-                    <TableHead>{t("RETRYABLE")}</TableHead>
+                    <TableHead>{t("ACTIONS")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {data.items?.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="font-mono text-caption">{item.workspaceId}</TableCell>
                       <TableCell>
-                        <Badge variant="destructive">{t("FAILED")}</Badge>
+                        <p className="font-mono text-caption">{item.workspaceId}</p>
+                        <p className="text-caption text-label-secondary">
+                          {item.projectId ? `${t("PROJECT")}: ${item.projectId}` : t("NO_PROJECT")}
+                        </p>
+                        <p className="text-caption text-label-secondary">
+                          {item.siteId ? `${t("SITE")}: ${item.siteId}` : t("NO_SITE")}
+                        </p>
                       </TableCell>
-                      <TableCell>{t("SITE_UNAVAILABLE")}</TableCell>
-                      <TableCell>{item.retryable ? t("YES") : t("NO")}</TableCell>
+                      <TableCell>
+                        <Badge variant="destructive">{t("ISSUE_REQUIRES_ACTION")}</Badge>
+                        <p className="mt-1 font-mono text-caption text-label-secondary">
+                          {t("SOURCE_STATE")}: {item.state}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        <p>{visitorEffectLabel(t, item.visitorEffect)}</p>
+                        <p className="mt-1 font-mono text-caption text-label-secondary">
+                          {item.visitorEffect}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-2">
+                          {ISSUE_ACTIONS.map((action) => {
+                            const available = issueActionAvailable(item, action);
+                            const actionKey = `${item.id}:${action}`;
+                            return (
+                              <Button
+                                disabled={!available || pending === actionKey}
+                                key={action}
+                                onClick={() => void execute(item, action)}
+                                size="sm"
+                                title={
+                                  available
+                                    ? undefined
+                                    : issueActionUnavailableReason(t, item, action)
+                                }
+                                variant={action === "restore" ? "outline" : "secondary"}
+                              >
+                                {pending === actionKey
+                                  ? t("WORKING")
+                                  : t(`ISSUE_ACTION_${action.toUpperCase()}`)}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                        {!item.retryable ? (
+                          <p className="mt-1 text-caption text-label-secondary">
+                            {t("ISSUE_RETRY_NOT_ELIGIBLE")}
+                          </p>
+                        ) : null}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -140,8 +416,24 @@ export function SiteDeliveryDomainsPage() {
   const { t } = useTranslation("siteDelivery");
   const load = useCallback(() => listDeliveryDomains(), []);
   const { state, retry } = useMonitoringQuery(load, []);
+  const [pending, setPending] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<ActionFeedback | null>(null);
+  const recover = async (bindingId: string) => {
+    setPending(bindingId);
+    setFeedback(null);
+    try {
+      setFeedback({ kind: "domain", result: await recoverDeliveryDomain(bindingId) });
+      retry();
+    } catch (error) {
+      setFeedback({ kind: "error", failure: actionFailure(error) });
+    } finally {
+      setPending(null);
+    }
+  };
+
   return (
-    <SiteDeliveryPage title={t("DOMAINS_TITLE")} description={t("DOMAINS_DESCRIPTION")}>
+    <SiteDeliveryPage description={t("DOMAINS_DESCRIPTION")} title={t("DOMAINS_TITLE")}>
+      <ActionFeedbackNotice feedback={feedback} />
       <SiteDeliveryState
         empty={(data: PageDataPlatformDeliveryDomainOut) => !data.items?.length}
         retry={retry}
@@ -156,16 +448,59 @@ export function SiteDeliveryDomainsPage() {
                     <TableHead>{t("HOSTNAME")}</TableHead>
                     <TableHead>{t("READINESS")}</TableHead>
                     <TableHead>{t("CERTIFICATE")}</TableHead>
+                    <TableHead>{t("ACTIONS")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.items?.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>{item.hostname}</TableCell>
-                      <TableCell>{item.readiness}</TableCell>
-                      <TableCell>{item.certificateStatus}</TableCell>
-                    </TableRow>
-                  ))}
+                  {data.items?.map((item) => {
+                    const canRecover = item.source === "custom" && !item.isVerified;
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell>
+                          <p>{item.hostname}</p>
+                          <p className="font-mono text-caption text-label-secondary">
+                            {item.workspaceId}
+                          </p>
+                        </TableCell>
+                        <TableCell>
+                          <p>
+                            {t(
+                              item.readiness === "verification_required"
+                                ? "DOMAIN_VERIFICATION_REQUIRED"
+                                : item.readiness === "certificate_error"
+                                  ? "DOMAIN_CERTIFICATE_ERROR"
+                                  : "DOMAIN_READINESS_UNKNOWN",
+                            )}
+                          </p>
+                          <p className="mt-1 font-mono text-caption text-label-secondary">
+                            {t("SOURCE_STATE")}: {item.readiness}
+                          </p>
+                        </TableCell>
+                        <TableCell>
+                          <p>{t("CERTIFICATE_NEEDS_ATTENTION")}</p>
+                          <p className="mt-1 font-mono text-caption text-label-secondary">
+                            {item.certificateStatus}
+                          </p>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            disabled={!canRecover || pending === item.id}
+                            onClick={() => void recover(item.id)}
+                            size="sm"
+                            title={canRecover ? undefined : t("DOMAIN_RECOVERY_NOT_ELIGIBLE")}
+                            variant="secondary"
+                          >
+                            {pending === item.id ? t("WORKING") : t("RECOVER_DOMAIN")}
+                          </Button>
+                          {!canRecover ? (
+                            <p className="mt-1 text-caption text-label-secondary">
+                              {t("DOMAIN_RECOVERY_NOT_ELIGIBLE")}
+                            </p>
+                          ) : null}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
@@ -180,8 +515,24 @@ export function SiteDeliveryStoragePage() {
   const { t } = useTranslation("siteDelivery");
   const load = useCallback(() => listDeliveryStorage(), []);
   const { state, retry } = useMonitoringQuery(load, []);
+  const [pending, setPending] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<ActionFeedback | null>(null);
+  const testStorage = async (profileId: string) => {
+    setPending(profileId);
+    setFeedback(null);
+    try {
+      setFeedback({ kind: "storage", result: await testDeliveryStorage(profileId) });
+      retry();
+    } catch (error) {
+      setFeedback({ kind: "error", failure: actionFailure(error) });
+    } finally {
+      setPending(null);
+    }
+  };
+
   return (
-    <SiteDeliveryPage title={t("STORAGE_TITLE")} description={t("STORAGE_DESCRIPTION")}>
+    <SiteDeliveryPage description={t("STORAGE_DESCRIPTION")} title={t("STORAGE_TITLE")}>
+      <ActionFeedbackNotice feedback={feedback} />
       <SiteDeliveryState
         empty={(data: PageDataPlatformDeliveryStorageOut) => !data.items?.length}
         retry={retry}
@@ -196,14 +547,45 @@ export function SiteDeliveryStoragePage() {
                     <TableHead>{t("PROFILE")}</TableHead>
                     <TableHead>{t("PROVIDER")}</TableHead>
                     <TableHead>{t("STATUS")}</TableHead>
+                    <TableHead>{t("ACTIONS")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {data.items?.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell>{item.displayName}</TableCell>
+                      <TableCell>
+                        <p>{item.displayName}</p>
+                        <p className="font-mono text-caption text-label-secondary">
+                          {item.profileKey}
+                        </p>
+                      </TableCell>
                       <TableCell>{item.provider}</TableCell>
-                      <TableCell>{item.lastTestStatus ?? t("NOT_TESTED")}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={item.lastTestStatus === "failed" ? "destructive" : "outline"}
+                        >
+                          {t(
+                            item.lastTestStatus === "passed"
+                              ? "STORAGE_STATUS_PASSED"
+                              : item.lastTestStatus === "failed"
+                                ? "STORAGE_STATUS_FAILED"
+                                : "NOT_TESTED",
+                          )}
+                        </Badge>
+                        <p className="mt-1 text-caption text-label-secondary">
+                          {item.isDefault ? t("DEFAULT_STORAGE") : t("NON_DEFAULT_STORAGE")}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          disabled={pending === item.id}
+                          onClick={() => void testStorage(item.id)}
+                          size="sm"
+                          variant="secondary"
+                        >
+                          {pending === item.id ? t("WORKING") : t("TEST_STORAGE")}
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -216,60 +598,243 @@ export function SiteDeliveryStoragePage() {
   );
 }
 
+function PolicyConsole(
+  props: Readonly<{
+    data: DeliveryRulesData;
+    onFeedback: (feedback: ActionFeedback | null) => void;
+    onRefresh: () => void;
+  }>,
+) {
+  const { t } = useTranslation("siteDelivery");
+  const [continuityWindowSeconds, setContinuityWindowSeconds] = useState(
+    String(props.data.policy.continuityWindowSeconds ?? ""),
+  );
+  const [reason, setReason] = useState("");
+  const [preview, setPreview] = useState<PlatformDeliveryPolicyPreviewOut | null>(null);
+  const [pending, setPending] = useState<"preview" | "apply" | null>(null);
+
+  const createPreview = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const proposedWindow = Number(continuityWindowSeconds);
+    if (!Number.isInteger(proposedWindow) || proposedWindow < 1) {
+      props.onFeedback({ kind: "validation", messageKey: "POLICY_WINDOW_REQUIRED" });
+      return;
+    }
+    setPending("preview");
+    props.onFeedback(null);
+    try {
+      setPreview(await previewDeliveryPolicy(props.data.policy.revision, proposedWindow));
+    } catch (error) {
+      props.onFeedback({ kind: "error", failure: actionFailure(error) });
+    } finally {
+      setPending(null);
+    }
+  };
+
+  const applyPreview = async () => {
+    if (!preview) return;
+    const normalizedReason = reason.trim();
+    if (!normalizedReason) {
+      props.onFeedback({ kind: "validation", messageKey: "POLICY_REASON_REQUIRED" });
+      return;
+    }
+    setPending("apply");
+    try {
+      props.onFeedback({
+        kind: "policy",
+        result: await applyDeliveryPolicy(preview.id, normalizedReason, crypto.randomUUID()),
+      });
+      setPreview(null);
+      props.onRefresh();
+    } catch (error) {
+      props.onFeedback({ kind: "error", failure: actionFailure(error) });
+    } finally {
+      setPending(null);
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("POLICY_CURRENT_TITLE")}</CardTitle>
+          <CardDescription>{t("POLICY_CURRENT_DESCRIPTION")}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="flex flex-wrap gap-2">
+            <Badge variant={props.data.policy.isActive ? "secondary" : "outline"}>
+              {t(props.data.policy.isActive ? "POLICY_ACTIVE" : "POLICY_INACTIVE")}
+            </Badge>
+            <Badge variant="outline">
+              {t("POLICY_REVISION", { revision: props.data.policy.revision })}
+            </Badge>
+            <Badge variant="outline">
+              {t("POLICY_AFFECTED_TRANSITIONS", {
+                count: props.data.policy.affectedActiveTransitionCount,
+              })}
+            </Badge>
+          </div>
+          <p className="text-footnote text-label-secondary">
+            {props.data.policy.continuityWindowSeconds == null
+              ? t("POLICY_WINDOW_NOT_CONFIGURED")
+              : t("POLICY_WINDOW_VALUE", { seconds: props.data.policy.continuityWindowSeconds })}
+          </p>
+          <form className="grid gap-3 md:grid-cols-[minmax(0,18rem)_auto]" onSubmit={createPreview}>
+            <div className="space-y-1.5">
+              <label className="text-footnote font-medium" htmlFor="continuity-window-seconds">
+                {t("POLICY_WINDOW_LABEL")}
+              </label>
+              <Input
+                id="continuity-window-seconds"
+                min="1"
+                onChange={(event) => setContinuityWindowSeconds(event.target.value)}
+                required
+                type="number"
+                value={continuityWindowSeconds}
+              />
+              <p className="text-caption text-label-secondary">{t("POLICY_WINDOW_HELP")}</p>
+            </div>
+            <div className="self-end">
+              <Button disabled={pending !== null} type="submit">
+                {pending === "preview" ? t("WORKING") : t("PREVIEW_POLICY")}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {preview ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("POLICY_PREVIEW_TITLE")}</CardTitle>
+            <CardDescription>{t("POLICY_PREVIEW_DESCRIPTION")}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline">
+                {t("POLICY_REVISION", { revision: preview.expectedRevision })}
+              </Badge>
+              <Badge variant="secondary">
+                {t("POLICY_PROPOSED_REVISION", { revision: preview.proposedRevision })}
+              </Badge>
+              <Badge variant="outline">
+                {t("POLICY_AFFECTED_TRANSITIONS", {
+                  count: preview.affectedActiveTransitionCount,
+                })}
+              </Badge>
+            </div>
+            <p className="text-footnote text-label-secondary">
+              {t("POLICY_WINDOW_VALUE", { seconds: preview.continuityWindowSeconds })}
+            </p>
+            {preview.partialFailure ? (
+              <Alert className="border-warning/40 bg-warning/10">
+                <AlertTitle>{t("POLICY_PREVIEW_PARTIAL_TITLE")}</AlertTitle>
+                <AlertDescription>{t("POLICY_PREVIEW_PARTIAL_DESCRIPTION")}</AlertDescription>
+              </Alert>
+            ) : null}
+            <div className="space-y-1.5">
+              <label className="text-footnote font-medium" htmlFor="policy-apply-reason">
+                {t("POLICY_REASON_LABEL")}
+              </label>
+              <Textarea
+                id="policy-apply-reason"
+                onChange={(event) => setReason(event.target.value)}
+                required
+                rows={3}
+                value={reason}
+              />
+              <p className="text-caption text-label-secondary">{t("POLICY_REASON_HELP")}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                disabled={pending !== null || !reason.trim()}
+                onClick={() => void applyPreview()}
+              >
+                {pending === "apply" ? t("WORKING") : t("APPLY_POLICY")}
+              </Button>
+              <Button
+                disabled={pending !== null}
+                onClick={() => setPreview(null)}
+                variant="outline"
+              >
+                {t("CANCEL")}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("RULES_READINESS_TITLE")}</CardTitle>
+          <CardDescription>{t("RULES_READINESS_DESCRIPTION")}</CardDescription>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          {props.data.rules.items?.length ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("WORKSPACE")}</TableHead>
+                  <TableHead>{t("DELIVERY_STATE")}</TableHead>
+                  <TableHead>{t("PRESERVED_RELEASE")}</TableHead>
+                  <TableHead>{t("SOURCE")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {props.data.rules.items.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-mono text-caption">{item.workspaceId}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          item.state === "serving" || item.state === "restored"
+                            ? "secondary"
+                            : "destructive"
+                        }
+                      >
+                        {deliveryStateLabel(t, item.state)}
+                      </Badge>
+                      <p className="mt-1 font-mono text-caption text-label-secondary">
+                        {item.state}
+                      </p>
+                    </TableCell>
+                    <TableCell className="font-mono text-caption">
+                      {item.preservedReleaseId ?? t("NO_PRESERVED_RELEASE")}
+                    </TableCell>
+                    <TableCell className="font-mono text-caption">{item.sourceIdentity}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-footnote text-label-secondary">{t("RULES_EMPTY")}</p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export function SiteDeliveryRulesPage() {
   const { t } = useTranslation("siteDelivery");
-  const load = useCallback(() => listDeliveryRules(), []);
+  const load = useCallback(async (): Promise<DeliveryRulesData> => {
+    const [policy, rules] = await Promise.all([getDeliveryContinuityPolicy(), listDeliveryRules()]);
+    return { policy, rules };
+  }, []);
   const { state, retry } = useMonitoringQuery(load, []);
+  const [feedback, setFeedback] = useState<ActionFeedback | null>(null);
+
   return (
-    <SiteDeliveryPage title={t("RULES_TITLE")} description={t("RULES_DESCRIPTION")}>
-      <SiteDeliveryState
-        empty={(data: PageDataPlatformDeliveryRuleOut) => !data.items?.length}
-        retry={retry}
-        state={state}
-      >
+    <SiteDeliveryPage description={t("RULES_DESCRIPTION")} title={t("RULES_TITLE")}>
+      <ActionFeedbackNotice feedback={feedback} />
+      <SiteDeliveryState empty={() => false} retry={retry} state={state}>
         {(data) => (
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("RULES_READINESS_TITLE")}</CardTitle>
-              <CardDescription>{t("RULES_READINESS_DESCRIPTION")}</CardDescription>
-            </CardHeader>
-            <CardContent className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("WORKSPACE")}</TableHead>
-                    <TableHead>{t("DELIVERY_STATE")}</TableHead>
-                    <TableHead>{t("PRESERVED_RELEASE")}</TableHead>
-                    <TableHead>{t("SOURCE")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.items?.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-mono text-caption">{item.workspaceId}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            item.state === "serving" || item.state === "restored"
-                              ? "secondary"
-                              : "destructive"
-                          }
-                        >
-                          {t(`RULE_STATE_${item.state.toUpperCase()}`)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-mono text-caption">
-                        {item.preservedReleaseId ?? t("NO_PRESERVED_RELEASE")}
-                      </TableCell>
-                      <TableCell className="font-mono text-caption">
-                        {item.sourceIdentity}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <PolicyConsole
+            data={data}
+            key={data.policy.revision}
+            onFeedback={setFeedback}
+            onRefresh={retry}
+          />
         )}
       </SiteDeliveryState>
     </SiteDeliveryPage>

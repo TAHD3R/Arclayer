@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Unstable_Mention } from "@assistant-ui/react";
 import {
   agentIdsForComposerScope,
+  skillInstallationIdsForComposerScope,
   useAIComposerDirectiveStore,
 } from "@/components/ai/ai-composer-directives";
 import { AIComposerTriggers } from "@/components/ai/ai-composer-triggers";
@@ -178,6 +179,9 @@ describe("AIComposerTriggers", () => {
     mentionMocks.popoverOpen = false;
     mentionMocks.slashCommands = [];
     mentionMocks.runConfig = { custom: { existing: "value" } };
+    mentionMocks.setRunConfig.mockImplementation((runConfig) => {
+      mentionMocks.runConfig = runConfig as { custom?: Record<string, unknown> };
+    });
     mentionMocks.selectCategory.mockReset();
     useAIComposerDirectiveStore.getState().clearDirectives("thread");
     useAIComposerDirectiveStore.getState().clearDirectives("home");
@@ -221,7 +225,7 @@ describe("AIComposerTriggers", () => {
     expect(agentIdsForComposerScope("thread")).toEqual([]);
   });
 
-  it("adds enabled workspace Skills to the slash command adapter", () => {
+  it("adds enabled workspace Skills to the slash adapter as installation IDs without prompt injection", () => {
     renderTriggers({ scope: "home" });
 
     expect(mentionMocks.slashCommands.map((command) => command.id)).toContain(
@@ -234,10 +238,33 @@ describe("AIComposerTriggers", () => {
         type: "skill",
         id: "installation-1",
         label: "Commerce Skill",
-        instruction: "ai:AI_CHAT_SKILL_PROMPT",
       },
     ]);
+    expect(skillInstallationIdsForComposerScope("home")).toEqual(["installation-1"]);
+    expect(mentionMocks.setRunConfig).toHaveBeenCalledWith({
+      custom: { existing: "value", selectedSkillInstallationIds: ["installation-1"] },
+    });
     expect(mentionMocks.setText).not.toHaveBeenCalled();
+  });
+
+  it("keeps Agent and selected Skill IDs together in the composer Run config", () => {
+    renderTriggers({ scope: "thread" });
+    const agent: Unstable_Mention = {
+      id: AGENT_ID,
+      type: "agent",
+      label: "Data Analyst",
+    };
+
+    act(() => mentionMocks.options?.onInserted?.(agent));
+    act(() => mentionMocks.slashCommands[0]?.execute());
+
+    expect(mentionMocks.setRunConfig).toHaveBeenLastCalledWith({
+      custom: {
+        existing: "value",
+        mentionedAgentIds: [AGENT_ID],
+        selectedSkillInstallationIds: ["installation-1"],
+      },
+    });
   });
 
   it("adds asset and content mention tabs only when a project is active", () => {

@@ -6,15 +6,15 @@ from uuid import UUID
 
 from src.config import Settings
 from src.core.events import Event, EventBus
-from src.core.i18n import t
 from src.modules.system.admin.notifications.catalog import (
     NotificationDefinition,
+    NotificationProjectTargetTemplate,
     create_notification_record,
     get_notification_definition,
-    is_notification_group_enabled_for_event,
 )
-from src.modules.system.admin.notifications.preferences import (
-    is_notification_channel_enabled_for_event,
+from src.modules.system.admin.notifications.schema import (
+    NotificationNavigationTarget,
+    NotificationProjectTarget,
 )
 
 SUBSCRIBER_ID = "system.notifications.events"
@@ -28,24 +28,10 @@ NOTIFICATION_EVENT_NAMES: tuple[str, ...] = (
 
 class NotificationRecipient(Protocol):
     id: UUID
-    email: str | None
 
 
 class NotificationAudienceReader(Protocol):
     async def get_active_users(self, user_ids: Sequence[UUID]) -> Sequence[NotificationRecipient]: ...
-
-
-class NotificationEmailSender(Protocol):
-    async def send_notification(
-        self,
-        *,
-        recipient: str,
-        title: str,
-        body: str | None,
-        action_to: str | None,
-        action_label: str | None,
-        locale: str | None = None,
-    ) -> object: ...
 
 
 class NotificationEventRuntime:
@@ -54,11 +40,9 @@ class NotificationEventRuntime:
         settings: Settings,
         *,
         audience_reader: NotificationAudienceReader,
-        email_sender: NotificationEmailSender,
     ) -> None:
         self.settings = settings
         self.audience_reader = audience_reader
-        self.email_sender = email_sender
 
     async def start(self, *, event_bus: EventBus) -> None:
         for event_name in NOTIFICATION_EVENT_NAMES:
@@ -77,10 +61,9 @@ class NotificationEventRuntime:
         definition = get_notification_definition(event.name)
         if definition is None:
             raise ValueError(f"Unknown notification event: {event.name}")
-        if not await is_notification_group_enabled_for_event(settings=self.settings, event_name=event.name):
-            return
 
         workspace_id = self._workspace_id(event)
+        target = self._target(definition=definition, event=event)
         recipients = await self._recipients(event)
         if not recipients:
             raise ValueError(f"Notification event has no active recipients: {event.name}")
@@ -88,7 +71,6 @@ class NotificationEventRuntime:
         title = self._translate(definition.title_i18n)
         body = self._translate(definition.description_i18n)
         actor_user_id = self._uuid_or_none(event.actor_user_id)
-        target_meta = self._target_meta(event)
         dedupe_key = self._dedupe_key(event)
         for recipient in recipients:
             await self._deliver_to_recipient(
@@ -98,7 +80,7 @@ class NotificationEventRuntime:
                 actor_user_id=actor_user_id,
                 title=title,
                 body=body,
-                target_meta=target_meta,
+                target=target,
                 dedupe_key=dedupe_key,
             )
 
@@ -111,7 +93,7 @@ class NotificationEventRuntime:
         actor_user_id: UUID | None,
         title: str,
         body: str,
-        target_meta: dict[str, object],
+        target: NotificationNavigationTarget,
         dedupe_key: str,
     ) -> None:
         await create_notification_record(
@@ -122,25 +104,35 @@ class NotificationEventRuntime:
             category=definition.category,
             title=title,
             body=body,
-            target_to=definition.target_to,
-            target_meta=target_meta,
+            target=target,
             event_name=definition.event_name,
             dedupe_key=f"{dedupe_key}:{recipient.id}",
         )
-        if recipient.email is None:
-            return
-        if not await is_notification_channel_enabled_for_event(
-            user_id=recipient.id,
-            event_name=definition.event_name,
-            channel="email",
-        ):
-            return
-        await self.email_sender.send_notification(
-            recipient=recipient.email,
-            title=title,
-            body=body,
-            action_to=definition.target_to,
-            action_label=t("notifications", "NOTIFICATIONS_EMAIL_ACTION"),
+
+    @staticmethod
+    def _target(*, definition: NotificationDefinition, event: Event) -> NotificationNavigationTarget:
+        template = definition.target
+        if not isinstance(template, NotificationProjectTargetTemplate):
+            return template
+        project_id = NotificationEventRuntime._required_uuid(
+            event.payload.get("project_id"),
+            field_name="project_id",
+            event_name=event.name,
+        )
+        entity_id = (
+            NotificationEventRuntime._required_uuid(
+                event.payload.get("entity_id"),
+                field_name="entity_id",
+                event_name=event.name,
+            )
+            if template.focus is not None
+            else None
+        )
+        return NotificationProjectTarget(
+            project_id=project_id,
+            destination=template.destination,
+            entity_id=entity_id,
+            focus=template.focus,
         )
 
     async def _recipients(self, event: Event) -> Sequence[NotificationRecipient]:
@@ -163,19 +155,9 @@ class NotificationEventRuntime:
         namespace, separator, key = resource_key.partition(":")
         if not separator or not namespace or not key:
             raise ValueError(f"Invalid notification i18n key: {resource_key}")
-        return t(namespace, key)
+        from src.core.i18n import t
 
-    @staticmethod
-    def _target_meta(event: Event) -> dict[str, object]:
-        payload = event.payload
-        return {
-            "eventName": event.name,
-            "entityId": payload.get("entity_id"),
-            "entityType": payload.get("entity_type"),
-            "projectId": payload.get("project_id"),
-            "siteId": payload.get("site_id"),
-            "traceId": event.trace_id,
-        }
+        return t(namespace, key)
 
     @staticmethod
     def _dedupe_key(event: Event) -> str:
@@ -191,3 +173,10 @@ class NotificationEventRuntime:
             return UUID(str(value))
         except (TypeError, ValueError) as exc:
             raise ValueError(f"Invalid notification UUID: {value}") from exc
+
+    @staticmethod
+    def _required_uuid(value: object, *, field_name: str, event_name: str) -> UUID:
+        parsed = NotificationEventRuntime._uuid_or_none(value)
+        if parsed is None:
+            raise ValueError(f"Notification event is missing {field_name}: {event_name}")
+        return parsed

@@ -16,6 +16,15 @@ from src.modules.sites.runtime.schema import SiteIdentityOut, SiteResolveOut, Si
 from src.modules.tenancy.schema import TenantContext, TenantIdentity, TenantIsolationMode, TenantScope
 
 
+@pytest.fixture(autouse=True)
+def active_hosting_delivery(monkeypatch):
+    async def is_not_suspended(*, workspace_id, site_id, runtime_id):  # type: ignore[no-untyped-def]
+        _ = workspace_id, site_id, runtime_id
+        return False
+
+    monkeypatch.setattr(public_host_router, "is_target_delivery_suspended", is_not_suspended)
+
+
 def _tenant_context() -> TenantContext:
     return TenantContext(
         identity=TenantIdentity(
@@ -168,6 +177,37 @@ def test_project_host_renders_resolved_published_page(monkeypatch) -> None:
     assert delivery_calls[0].endswith(":/about:published:None")
     assert "Launch Site" in response.text
     assert "Published through Arclayer." in response.text
+
+
+def test_project_host_returns_unavailable_before_release_resolution_when_delivery_is_suspended(monkeypatch) -> None:
+    class FakeSiteService:
+        def __init__(self, settings, *, valkey=None):  # type: ignore[no-untyped-def]
+            self.settings = settings
+            self.valkey = valkey
+
+        async def resolve_site(self, *, host: str):  # type: ignore[no-untyped-def]
+            return _resolved_site(host)
+
+    class UnexpectedDeliveryKernel:
+        def __init__(self, _site_service):  # type: ignore[no-untyped-def]
+            raise AssertionError("suspended delivery must not resolve the active release")
+
+    async def suspended(*, workspace_id, site_id, runtime_id):  # type: ignore[no-untyped-def]
+        _ = workspace_id, site_id, runtime_id
+        return True
+
+    monkeypatch.setattr(public_host_router, "SiteService", FakeSiteService)
+    monkeypatch.setattr(public_host_router, "SiteRuntimeDeliveryKernel", UnexpectedDeliveryKernel)
+    monkeypatch.setattr(public_host_router, "is_target_delivery_suspended", suspended)
+
+    app = FastAPI()
+    app.middleware("http")(project_host_routing_middleware)
+    response = TestClient(app).get("/about", headers={"host": "launch.arclayer.localhost"})
+
+    assert response.status_code == 503
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["x-robots-tag"] == "noindex, nofollow, noarchive"
+    assert "temporarily unavailable" in response.text
 
 
 def test_project_host_router_keeps_reserved_api_paths_404(monkeypatch) -> None:

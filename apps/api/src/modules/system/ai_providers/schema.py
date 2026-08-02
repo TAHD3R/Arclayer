@@ -25,6 +25,9 @@ class SystemAIProviderOut(BaseSchema):
     updated_at: datetime
     last_used_at: datetime | None = None
     expires_at: datetime | None = None
+    readiness_status: Literal["unknown", "healthy", "unhealthy"] = "unknown"
+    readiness_checked_at: datetime | None = None
+    readiness_failure_code: str | None = None
 
 
 class SystemAIProviderListOut(BaseSchema):
@@ -49,3 +52,27 @@ class SystemAIProviderUpdateRequest(BaseSchema):
     request_model: str | None = Field(default=None, min_length=1, max_length=255)
     is_active: bool | None = None
     expires_at: datetime | None = None
+
+
+class SystemAIProviderReadinessTestOut(BaseSchema):
+    id: UUID
+    status: Literal["healthy", "unhealthy"]
+    checked_at: datetime
+    failure_code: str | None = None
+
+
+class SystemAIProviderAvailabilityPreviewRequest(BaseSchema):
+    is_active: bool
+
+
+class SystemAIProviderAvailabilityPreviewOut(BaseSchema):
+    id: UUID
+    desired_is_active: bool
+    routable_provider_count_before: int
+    routable_provider_count_after: int
+    would_leave_no_routable_provider: bool
+    revision: str
+
+
+class SystemAIProviderAvailabilityApplyRequest(SystemAIProviderAvailabilityPreviewRequest):
+    preview_revision: str = Field(..., min_length=64, max_length=64)

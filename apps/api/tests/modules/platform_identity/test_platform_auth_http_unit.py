@@ -8,7 +8,7 @@ import pytest
 from fastapi.routing import APIRoute
 
 from src.core.exceptions import Conflict, Forbidden, Unauthorized
-from src.models.platform_identity.identity import PlatformOperatorStatus
+from src.models.platform_identity.identity import PlatformOperatorSetupReason, PlatformOperatorStatus
 from src.models.platform_identity.mfa import PlatformAuthFlowPurpose, PlatformMfaMethodKind
 from src.models.platform_identity.operations import PlatformVerificationAssurance
 from src.modules.platform_identity.auth_schema import PlatformAuthState
@@ -20,6 +20,7 @@ from src.modules.platform_identity.mfa_schema import (
     PlatformRecoveryCodeSet,
     PlatformTotpSetup,
 )
+from src.modules.platform_identity.schema import PlatformInvitationSetupContext
 from src.modules.platform_identity.session_schema import PlatformSessionCredential, PlatformSessionPrincipal
 from src.modules.platform_identity.webauthn_schema import (
     PlatformAuthFlowIssued,
@@ -39,6 +40,7 @@ def test_platform_auth_http_routes_exist_only_in_the_platform_composition() -> N
     platform_paths = {route.path for route in create_platform_app().routes if isinstance(route, APIRoute)}
 
     assert "/platform-api/v1/auth/sign-in" in platform_paths
+    assert "/platform-api/v1/auth/invitations/{invitation_id}/accept" in platform_paths
     assert "/platform-api/v1/auth/mfa/authenticator-app/challenge" in platform_paths
     assert "/platform-api/v1/auth/mfa/security-key/challenge/complete" in platform_paths
     assert all(not path.startswith("/platform-api/v1/auth/") for path in product_paths)
@@ -81,6 +83,71 @@ async def test_product_identity_without_platform_authority_is_denied_before_a_fl
         await harness.service.sign_in(identifier=product_user.username, password="correct-password")
 
     assert harness.flows.records == {}
+
+
+@pytest.mark.asyncio
+async def test_invitation_acceptance_creates_only_mfa_setup_authority_until_verification() -> None:
+    invited_user = _user()
+    harness = _Harness(user=invited_user)
+    invitation_id = uuid4()
+    harness.invitation_acceptance.invitation_id = invitation_id
+
+    accepted = await harness.service.accept_invitation(
+        invitation_id=invitation_id,
+        expected_invitation_revision=1,
+        identifier=invited_user.username,
+        password="correct-password",
+        idempotency_key="accept-invitation",
+        correlation_id=uuid4(),
+    )
+
+    assert accepted.state == PlatformAuthState.MFA_SETUP_REQUIRED
+    assert harness.identity.operator.status == PlatformOperatorStatus.MFA_SETUP_REQUIRED
+    assert harness.sessions == []
+
+    setup = await harness.service.begin_totp_setup(flow_token=accepted.flow_token)
+    await harness.service.confirm_totp_setup(
+        flow_token=accepted.flow_token,
+        method_id=setup.setup.method_id,
+        code="123456",
+        device_label="Test Browser on Test Device",
+    )
+
+    assert harness.identity.operator.status == PlatformOperatorStatus.ACTIVE
+    assert harness.sessions == [PlatformVerificationAssurance.LOCAL_MFA]
+
+
+@pytest.mark.asyncio
+async def test_privileged_invitation_requires_security_key_before_atomic_activation() -> None:
+    invited_user = _user()
+    harness = _Harness(user=invited_user)
+    invitation_id = uuid4()
+    harness.invitation_acceptance.invitation_id = invitation_id
+    harness.invitation_acceptance.requires_phishing_resistant = True
+
+    accepted = await harness.service.accept_invitation(
+        invitation_id=invitation_id,
+        expected_invitation_revision=1,
+        identifier=invited_user.username,
+        password="correct-password",
+        idempotency_key="accept-privileged-invitation",
+        correlation_id=uuid4(),
+    )
+
+    assert accepted.state == PlatformAuthState.PHISHING_RESISTANT_SETUP_REQUIRED
+    with pytest.raises(Forbidden, match="PLATFORM_SECURITY_KEY_REQUIRED"):
+        await harness.service.begin_totp_setup(flow_token=accepted.flow_token)
+
+    result = await harness.service.complete_webauthn_registration(
+        flow_token=accepted.flow_token,
+        challenge_id=uuid4(),
+        credential=_registration_credential(),
+        device_label="Test Browser on Test Device",
+    )
+
+    assert result.recovery_codes is not None
+    assert harness.identity.operator.status == PlatformOperatorStatus.ACTIVE
+    assert harness.sessions == [PlatformVerificationAssurance.PHISHING_RESISTANT]
 
 
 @pytest.mark.asyncio
@@ -207,15 +274,32 @@ class _Identity:
     def __init__(self, *, owner_id: UUID | None, user_id: UUID, operator_status: PlatformOperatorStatus | None) -> None:
         self.owner_id = owner_id
         self.operator = (
-            None if operator_status is None else SimpleNamespace(id=uuid4(), user_id=user_id, status=operator_status)
+            None
+            if operator_status is None
+            else SimpleNamespace(
+                id=uuid4(),
+                user_id=user_id,
+                status=operator_status,
+                setup_reason=(
+                    PlatformOperatorSetupReason.RECOVERY
+                    if operator_status == PlatformOperatorStatus.MFA_SETUP_REQUIRED
+                    else None
+                ),
+            )
         )
         self.methods: dict[UUID, list[SimpleNamespace]] = {}
+        self.setup_context: PlatformInvitationSetupContext | None = None
 
     async def is_instance_owner(self, *, user_id: UUID) -> bool:
         return user_id == self.owner_id
 
     async def get_operator_by_user_id(self, *, user_id: UUID):
         return self.operator if self.operator is not None and self.operator.user_id == user_id else None
+
+    async def get_operator_setup_context(self, *, user_id: UUID):
+        if self.operator is None or self.operator.user_id != user_id:
+            return None
+        return self.setup_context
 
     async def list_verified_mfa_methods(self, *, user_id: UUID):
         return self.methods.get(user_id, [])
@@ -227,7 +311,14 @@ class _Flows:
         self.consumed: set[UUID] = set()
         self.last_purpose: PlatformAuthFlowPurpose | None = None
 
-    async def issue(self, *, user_id: UUID, purpose: PlatformAuthFlowPurpose, identity_revision: int):
+    async def issue(
+        self,
+        *,
+        user_id: UUID,
+        purpose: PlatformAuthFlowPurpose,
+        identity_revision: int,
+        setup_context: PlatformInvitationSetupContext | None = None,
+    ):
         token = f"flow-{uuid4().hex}-{uuid4().hex}"
         flow_id = uuid4()
         expires_at = datetime.now(UTC) + timedelta(seconds=_FLOW_TTL_SECONDS)
@@ -236,6 +327,11 @@ class _Flows:
             user_id=user_id,
             purpose=purpose,
             identity_revision=identity_revision,
+            invitation_id=None if setup_context is None else setup_context.invitation_id,
+            invitation_revision=None if setup_context is None else setup_context.invitation_revision,
+            requires_phishing_resistant=(
+                False if setup_context is None else setup_context.requires_phishing_resistant
+            ),
             expires_at=expires_at,
             failure_count=0,
         )
@@ -268,7 +364,8 @@ class _Flows:
 
 
 class _Mfa:
-    def __init__(self) -> None:
+    def __init__(self, identity: _Identity) -> None:
+        self.identity = identity
         self.pending_method_id = uuid4()
 
     async def begin_totp_setup(self, *, user_id: UUID, issuer: str, account_label: str):
@@ -280,10 +377,22 @@ class _Mfa:
             account_label=account_label,
         )
 
-    async def confirm_totp_setup(self, *, user_id: UUID, method_id: UUID, code: str, operator_id: UUID | None = None):
+    async def confirm_totp_setup(
+        self,
+        *,
+        user_id: UUID,
+        method_id: UUID,
+        code: str,
+        operator_id: UUID | None = None,
+        **_activation,
+    ):
         assert method_id == self.pending_method_id
         assert code == "123456"
         assert operator_id is not None
+        assert self.identity.operator is not None
+        self.identity.operator.status = PlatformOperatorStatus.ACTIVE
+        self.identity.operator.setup_reason = None
+        self.identity.setup_context = None
         return PlatformRecoveryCodeSet(state=PlatformMfaSetupState.VERIFIED, codes=("ABCD-EFGH-JK",))
 
     async def verify_totp_for_baseline(self, *, user_id: UUID, method_id: UUID, code: str):
@@ -291,12 +400,56 @@ class _Mfa:
 
 
 class _WebAuthn:
-    def __init__(self) -> None:
+    def __init__(self, identity: _Identity) -> None:
+        self.identity = identity
         self.registration_completed_for: list[UUID] = []
 
-    async def complete_registration(self, *, user_id: UUID, challenge_id: UUID, binding: str, credential):
+    async def complete_registration(
+        self,
+        *,
+        user_id: UUID,
+        challenge_id: UUID,
+        binding: str,
+        credential,
+        operator_id: UUID | None = None,
+        **_activation,
+    ):
         self.registration_completed_for.append(user_id)
-        return PlatformWebAuthnEnrollmentResult(method_id=uuid4())
+        recovery_codes = None
+        if operator_id is not None:
+            assert self.identity.operator is not None
+            self.identity.operator.status = PlatformOperatorStatus.ACTIVE
+            self.identity.operator.setup_reason = None
+            self.identity.setup_context = None
+            recovery_codes = PlatformRecoveryCodeSet(
+                state=PlatformMfaSetupState.VERIFIED,
+                codes=("ABCD-EFGH-JK",),
+            )
+        return PlatformWebAuthnEnrollmentResult(method_id=uuid4(), recovery_codes=recovery_codes)
+
+
+class _InvitationAcceptance:
+    def __init__(self, *, identity: _Identity, user_id: UUID) -> None:
+        self.identity = identity
+        self.user_id = user_id
+        self.invitation_id = uuid4()
+        self.requires_phishing_resistant = False
+
+    async def begin_operator_invitation_acceptance(self, *, command):
+        assert command.invitation_id == self.invitation_id
+        assert command.accepter_user_id == self.user_id
+        operator = self.identity.operator or SimpleNamespace(id=uuid4(), user_id=self.user_id)
+        operator.status = PlatformOperatorStatus.MFA_SETUP_REQUIRED
+        operator.setup_reason = PlatformOperatorSetupReason.INVITATION
+        self.identity.operator = operator
+        context = PlatformInvitationSetupContext(
+            invitation_id=command.invitation_id,
+            invitation_revision=command.expected_invitation_revision + 1,
+            operator_id=operator.id,
+            requires_phishing_resistant=self.requires_phishing_resistant,
+        )
+        self.identity.setup_context = context
+        return context
 
 
 class _Harness:
@@ -315,8 +468,9 @@ class _Harness:
             operator_status=operator_status,
         )
         self.flows = _Flows()
-        self.mfa = _Mfa()
-        self.webauthn = _WebAuthn()
+        self.mfa = _Mfa(self.identity)
+        self.webauthn = _WebAuthn(self.identity)
+        self.invitation_acceptance = _InvitationAcceptance(identity=self.identity, user_id=resolved_user.id)
         self.sessions: list[PlatformVerificationAssurance] = []
         operator = self.identity.operator
         operator_id = None if operator is None else operator.id
@@ -339,6 +493,7 @@ class _Harness:
         self.service = PlatformAuthService(
             users=_Users(resolved_user),
             identity=self.identity,
+            invitation_acceptance=self.invitation_acceptance,
             flows=self.flows,
             mfa=self.mfa,
             webauthn=self.webauthn,

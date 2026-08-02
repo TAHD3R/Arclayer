@@ -1,10 +1,32 @@
-import type { NotificationItem } from "@arclayer/openapi/admin-types";
+import type { NotificationOut as NotificationItem } from "@arclayer/openapi";
 import type { SettingsSectionTarget } from "@/lib/settings/settings-screen";
-import { normalizeLegacyProjectSettingsPath } from "@/lib/routing/legacy-project-settings-paths";
 
 export type NotificationTarget =
   | Readonly<{ type: "navigate"; to: string }>
-  | Readonly<{ type: "settings"; target: SettingsSectionTarget }>;
+  | Readonly<{ type: "settings"; target: SettingsSectionTarget }>
+  | Readonly<{ type: "feedback"; ticketId: string }>;
+
+export type NotificationNavigationTarget = NotificationItem["target"];
+
+const GLOBAL_NOTIFICATION_WORKSPACE_ID = "00000000-0000-0000-0000-000000000000";
+
+export function canAccessNotificationNavigationTarget(input: {
+  notificationWorkspaceId: string;
+  currentWorkspaceId: string | null;
+  target: NotificationNavigationTarget;
+  accessibleWorkspaceIds: ReadonlySet<string>;
+  accessibleProjectIds: ReadonlySet<string>;
+}): boolean {
+  if (input.target.kind === "project") {
+    return input.accessibleProjectIds.has(input.target.projectId);
+  }
+  if (input.target.kind !== "workspace_settings") return true;
+  const workspaceId =
+    input.notificationWorkspaceId === GLOBAL_NOTIFICATION_WORKSPACE_ID
+      ? input.currentWorkspaceId
+      : input.notificationWorkspaceId;
+  return workspaceId !== null && input.accessibleWorkspaceIds.has(workspaceId);
+}
 
 function navigateTarget(to: string): NotificationTarget {
   return { type: "navigate", to };
@@ -14,52 +36,55 @@ function settingsTarget(target: SettingsSectionTarget): NotificationTarget {
   return { type: "settings", target };
 }
 
-function resolveWorkspaceSettingsTarget(targetTo: string): NotificationTarget | null {
-  const normalized = targetTo.replace(/\/+$/, "");
-  if (normalized === "/settings/workspace/general") {
+function resolveWorkspaceSettingsTarget(
+  target: Extract<NotificationNavigationTarget, { kind: "workspace_settings" }>,
+): NotificationTarget {
+  if (target.destination === "general") {
     return settingsTarget({ screen: "workspace.general" });
   }
-  if (normalized === "/settings/workspace/members") {
-    return settingsTarget({ screen: "workspace.people", section: "members-table" });
+  if (target.destination === "plan_usage") {
+    return settingsTarget({ screen: "workspace.plan-usage" });
   }
-  if (normalized === "/settings/workspace/invitations") {
-    return settingsTarget({ screen: "workspace.people", section: "pending-invitations" });
+  if (target.destination === "people") {
+    if (target.section !== "members-table" && target.section !== "pending-invitations") {
+      throw new Error("NOTIFICATION_WORKSPACE_PEOPLE_SECTION_INVALID");
+    }
+    return settingsTarget({ screen: "workspace.people", section: target.section });
   }
-  if (normalized === "/settings/workspace/roles") {
-    return settingsTarget({ screen: "workspace.roles", section: "roles-table" });
+  if (target.section !== "roles-table") {
+    throw new Error("NOTIFICATION_WORKSPACE_ROLES_SECTION_INVALID");
   }
-  return null;
+  return settingsTarget({ screen: "workspace.roles", section: target.section });
 }
 
-export function resolveNotificationTarget(item: NotificationItem): NotificationTarget | null {
-  const workspaceId = String(item.workspaceId || "").trim();
-  const targetTo = String(item.targetTo || "").trim();
-  if (!workspaceId || !targetTo) return null;
-
-  if (targetTo === "/") return navigateTarget(`/projects/${workspaceId}/`);
-  if (targetTo.startsWith("/projects/")) {
-    return navigateTarget(normalizeLegacyProjectSettingsPath(targetTo));
+function resolveProjectTarget(
+  target: Extract<NotificationNavigationTarget, { kind: "project" }>,
+): NotificationTarget {
+  const projectPath = `/projects/${encodeURIComponent(target.projectId)}`;
+  if (target.destination === "overview") {
+    return navigateTarget(`${projectPath}/`);
   }
-  if (targetTo.startsWith("/settings/workspace/")) return resolveWorkspaceSettingsTarget(targetTo);
-  if (targetTo.startsWith("/w/")) {
-    const projectPath = targetTo.replace(`/w/${workspaceId}`, `/projects/${workspaceId}`);
-    if (projectPath === `/projects/${workspaceId}/team/members`) {
-      return settingsTarget({ screen: "workspace.people", section: "members-table" });
-    }
-    if (projectPath === `/projects/${workspaceId}/team/invitations`) {
-      return settingsTarget({ screen: "workspace.people", section: "pending-invitations" });
-    }
-    if (projectPath === `/projects/${workspaceId}/team/roles`) {
-      return settingsTarget({ screen: "workspace.roles", section: "roles-table" });
-    }
-    if (projectPath === `/projects/${workspaceId}/settings/workspace`) {
-      return settingsTarget({ screen: "workspace.general" });
-    }
-    return navigateTarget(normalizeLegacyProjectSettingsPath(projectPath));
+  if (target.destination === "settings_api") {
+    return navigateTarget(`${projectPath}/settings/api`);
   }
-  if (targetTo.startsWith("/o/")) return null;
-
+  if (target.destination === "website_releases") {
+    return navigateTarget(`${projectPath}/website/project-releases`);
+  }
+  const libraryPath = `${projectPath}/content/library`;
   return navigateTarget(
-    `/projects/${workspaceId}${targetTo.startsWith("/") ? targetTo : `/${targetTo}`}`,
+    target.entityId ? `${libraryPath}/${encodeURIComponent(target.entityId)}` : libraryPath,
   );
+}
+
+export function resolveNotificationNavigationTarget(
+  target: NotificationNavigationTarget,
+): NotificationTarget {
+  if (target.kind === "inbox") return navigateTarget("/notifications");
+  if (target.kind === "workspace_settings") return resolveWorkspaceSettingsTarget(target);
+  if (target.kind === "project") return resolveProjectTarget(target);
+  return { type: "feedback", ticketId: target.ticketId };
+}
+
+export function resolveNotificationTarget(item: NotificationItem): NotificationTarget {
+  return resolveNotificationNavigationTarget(item.target);
 }

@@ -34,5 +34,34 @@ describe("buildGeneralSettingsInitialValues", () => {
 
     expect(values.seoIndexingEnabled).toBe(true);
     expect(values.seoSitemapEnabled).toBe(true);
+    expect(Object.keys(values).sort()).toEqual(
+      [
+        "dateFormat",
+        "defaultLocale",
+        "fallbackLocale",
+        "seoIndexingEnabled",
+        "seoOgImageAssetId",
+        "seoOgImageUrl",
+        "seoSitemapEnabled",
+        "seoTitlePolicy",
+        "siteContactEmail",
+        "siteDescription",
+        "siteDescriptionI18n",
+        "siteDescriptionI18nEnabled",
+        "siteFaviconAssetId",
+        "siteFaviconUrl",
+        "siteLogoAssetId",
+        "siteLogoUrl",
+        "siteName",
+        "siteNameI18n",
+        "siteNameI18nEnabled",
+        "siteSubtitle",
+        "siteUrl",
+        "supportedLocales",
+        "timezone",
+        "useBrowserTimeZone",
+        "useRelativeDateTime",
+      ].sort(),
+    );
   });
 });

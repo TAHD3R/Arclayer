@@ -1,10 +1,10 @@
 import { projectPath } from "@/lib/api";
 import { api } from "@/lib/http";
 import type {
-  AdminSitePreviewToken,
-  AdminWorkspaceSite,
-  CreateAdminSitePreviewTokenPayload,
-} from "@arclayer/openapi/admin-types";
+  SitePreviewTokenOut as AdminSitePreviewToken,
+  ProjectRuntimeSiteOut as AdminWorkspaceSite,
+  SitePreviewTokenCreateIn as CreateAdminSitePreviewTokenPayload,
+} from "@arclayer/openapi";
 
 export async function getProjectSite(projectId: string): Promise<AdminWorkspaceSite> {
   return api.get<AdminWorkspaceSite>(projectPath(projectId, "/site"));

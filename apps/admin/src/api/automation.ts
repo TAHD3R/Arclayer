@@ -1,14 +1,41 @@
 import { projectPath, toQueryString } from "@/lib/api";
 import { api } from "@/lib/http";
 import type {
-  AdminAutomationCatalog,
-  AdminAutomationFlow,
-  AdminAutomationFlowList,
-  AdminAutomationRun,
-  AdminAutomationRunList,
-  CreateAdminAutomationFlowPayload,
-  PatchAdminAutomationFlowPayload,
-} from "@arclayer/openapi/admin-types";
+  AutomationCatalogOut as AdminAutomationCatalog,
+  AutomationFlowOut,
+  AutomationFlowListOut,
+  AutomationRunOut,
+  AutomationRunListOut,
+  AutomationFlowCreateIn as CreateAdminAutomationFlowPayload,
+  AutomationFlowPatchIn as PatchAdminAutomationFlowPayload,
+} from "@arclayer/openapi";
+
+type AdminAutomationFlow = Omit<AutomationFlowOut, "operations"> & {
+  operations: NonNullable<AutomationFlowOut["operations"]>;
+};
+type AdminAutomationFlowList = Omit<AutomationFlowListOut, "items"> & {
+  items: AdminAutomationFlow[];
+};
+type AdminAutomationRun = Omit<AutomationRunOut, "logs"> & {
+  logs: NonNullable<AutomationRunOut["logs"]>;
+};
+type AdminAutomationRunList = Omit<AutomationRunListOut, "items"> & {
+  items: AdminAutomationRun[];
+};
+
+function requireAutomationFlow(flow: AutomationFlowOut): AdminAutomationFlow {
+  if (!Array.isArray(flow.operations)) {
+    throw new Error("Invalid automation flow response");
+  }
+  return { ...flow, operations: flow.operations };
+}
+
+function requireAutomationRun(run: AutomationRunOut): AdminAutomationRun {
+  if (!Array.isArray(run.logs)) {
+    throw new Error("Invalid automation run response");
+  }
+  return { ...run, logs: run.logs };
+}
 
 const AUTOMATION_QUERY_KEY_PREFIX = ["content", "automation"] as const;
 
@@ -33,14 +60,22 @@ export async function getProjectAutomationCatalog(
 export async function listProjectAutomationFlows(
   projectId: string,
 ): Promise<AdminAutomationFlowList> {
-  return api.get<AdminAutomationFlowList>(projectPath(projectId, "/automation/flows"));
+  const response = await api.get<AutomationFlowListOut>(
+    projectPath(projectId, "/automation/flows"),
+  );
+  if (!Array.isArray(response.items)) {
+    throw new Error("Invalid automation flow list response");
+  }
+  return { ...response, items: response.items.map(requireAutomationFlow) };
 }
 
 export async function createProjectAutomationFlow(
   projectId: string,
   payload: CreateAdminAutomationFlowPayload,
 ): Promise<AdminAutomationFlow> {
-  return api.post<AdminAutomationFlow>(projectPath(projectId, "/automation/flows"), payload);
+  return requireAutomationFlow(
+    await api.post<AutomationFlowOut>(projectPath(projectId, "/automation/flows"), payload),
+  );
 }
 
 export async function updateProjectAutomationFlow(
@@ -48,9 +83,11 @@ export async function updateProjectAutomationFlow(
   flowId: string,
   payload: PatchAdminAutomationFlowPayload,
 ): Promise<AdminAutomationFlow> {
-  return api.patch<AdminAutomationFlow>(
-    projectPath(projectId, `/automation/flows/${encodeURIComponent(flowId)}`),
-    payload,
+  return requireAutomationFlow(
+    await api.patch<AutomationFlowOut>(
+      projectPath(projectId, `/automation/flows/${encodeURIComponent(flowId)}`),
+      payload,
+    ),
   );
 }
 
@@ -66,14 +103,22 @@ export async function listProjectAutomationRuns(
   params: { limit?: number } = {},
 ): Promise<AdminAutomationRunList> {
   const query = toQueryString({ limit: params.limit });
-  return api.get<AdminAutomationRunList>(projectPath(projectId, `/automation/runs${query}`));
+  const response = await api.get<AutomationRunListOut>(
+    projectPath(projectId, `/automation/runs${query}`),
+  );
+  if (!Array.isArray(response.items)) {
+    throw new Error("Invalid automation run list response");
+  }
+  return { ...response, items: response.items.map(requireAutomationRun) };
 }
 
 export async function getProjectAutomationRun(
   projectId: string,
   runId: string,
 ): Promise<AdminAutomationRun> {
-  return api.get<AdminAutomationRun>(
-    projectPath(projectId, `/automation/runs/${encodeURIComponent(runId)}`),
+  return requireAutomationRun(
+    await api.get<AutomationRunOut>(
+      projectPath(projectId, `/automation/runs/${encodeURIComponent(runId)}`),
+    ),
   );
 }

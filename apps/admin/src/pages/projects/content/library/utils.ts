@@ -1,7 +1,6 @@
 import type { PageData } from "@arclayer/ui/data-table";
 
-import type { AdminContentItem } from "@arclayer/openapi/admin-types";
-import type { AdminContentModel } from "@arclayer/openapi/admin-types";
+import type { listAllContentItems, listAllContentModels } from "@/api/content";
 import type {
   ContentLibraryDerivedStatus,
   ContentLibraryEditWith,
@@ -16,6 +15,9 @@ import type {
   ContentLibraryViewDefinition,
   ContentLibraryViewState,
 } from "./types";
+
+type AdminContentItem = Awaited<ReturnType<typeof listAllContentItems>>[number];
+type AdminContentModel = Awaited<ReturnType<typeof listAllContentModels>>[number];
 
 const RECENT_WINDOW_DAYS = 7;
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;

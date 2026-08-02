@@ -7,7 +7,7 @@ import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { PencilLine, Trash2, UploadCloud } from "lucide-react";
 
-import type { TeamMember } from "@arclayer/openapi/admin-types";
+import type { WorkspaceTeamMemberOut as TeamMember } from "@arclayer/openapi";
 import { patchTeamMemberUser } from "@/api/team";
 import { AssetPickerDialog } from "@/pages/workspaces/assets/components/asset-picker-dialog";
 import { Button } from "@arclayer/ui/button";

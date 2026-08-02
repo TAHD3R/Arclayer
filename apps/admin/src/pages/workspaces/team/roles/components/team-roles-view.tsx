@@ -8,12 +8,12 @@ import { ListFilter, Plus, RefreshCw, RotateCcw, Save } from "lucide-react";
 import { z } from "zod";
 
 import type {
-  Permission,
-  PermissionConditionSet,
-  Role,
-  RolePermissionGrant,
-  WorkspacePermissionCatalog,
-} from "@arclayer/openapi/admin-types";
+  WorkspacePermissionOut as Permission,
+  PermissionConditionSetInput as PermissionConditionSet,
+  WorkspaceRoleOut as Role,
+  RolePermissionGrantOut as RolePermissionGrant,
+  WorkspacePermissionCatalogOut as WorkspacePermissionCatalog,
+} from "@arclayer/openapi";
 import { ApiError } from "@arclayer/web/http";
 import { Button } from "@arclayer/ui/button";
 import { Filters, createFilter, type Filter, type FilterFieldConfig } from "@arclayer/ui/filters";

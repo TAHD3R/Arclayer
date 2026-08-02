@@ -25,7 +25,7 @@ import {
 import type { TeamMemberSort } from "@/pages/workspaces/team/shared/types";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import type { PageData, TeamMember } from "@arclayer/openapi/admin-types";
+import type { WorkspaceTeamMemberOut as TeamMember } from "@arclayer/openapi";
 import { TeamMembershipStatusTag, TeamRoleTag, TeamUserStatusTag } from "@/components/ui/tags";
 import {
   disableTeamMember,
@@ -33,6 +33,17 @@ import {
   listTeamMembers,
   setTeamMemberRoles,
 } from "@/api/team";
+
+type TeamMemberWithRoleCodes = TeamMember & { roleCodes: string[] };
+type TeamMemberPage = Omit<Awaited<ReturnType<typeof listTeamMembers>>, "items"> & {
+  items: TeamMemberWithRoleCodes[];
+};
+
+function requireTeamMemberRoleCodes(member: TeamMember): asserts member is TeamMemberWithRoleCodes {
+  if (!Array.isArray(member.roleCodes)) {
+    throw new Error("Invalid team member response: missing role codes");
+  }
+}
 import { listMyWorkspaces } from "@/api/workspaces";
 import { Button } from "@arclayer/ui/button";
 import {
@@ -182,18 +193,23 @@ export function TeamMembersView(props: {
   });
 
   const dateTime = useAdminDateTimeFormatter();
-  const membersQuery = useInfiniteQuery<PageData<TeamMember>>({
+  const membersQuery = useInfiniteQuery<TeamMemberPage>({
     queryKey: [...membersSettingsQueryKeyPrefix, searchInput, sort],
     initialPageParam: 1,
     getNextPageParam: (lastPage) => lastPage.next ?? undefined,
     queryFn: async ({ pageParam }) => {
       if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      return listTeamMembers(String(workspaceId), {
+      const page = await listTeamMembers(String(workspaceId), {
         page: typeof pageParam === "number" ? pageParam : 1,
         size: DEFAULT_TEAM_MEMBER_PAGE_SIZE,
         q: searchInput.trim() || undefined,
         ordering: sort,
       });
+      const items = page.items.map((member) => {
+        requireTeamMemberRoleCodes(member);
+        return member;
+      });
+      return { ...page, items };
     },
     enabled: Boolean(workspaceId),
     staleTime: 30 * 1000,

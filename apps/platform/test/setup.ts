@@ -133,6 +133,7 @@ vi.mock("@/operations/operations-api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/operations/operations-api")>();
   return {
     ...actual,
+    addOperationalSignalNote: vi.fn(),
     assignOperationalSignal: vi.fn(),
     claimOperationalSignal: vi.fn(),
     getOperationalSignal: vi.fn(),

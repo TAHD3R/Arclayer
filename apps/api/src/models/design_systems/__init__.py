@@ -11,12 +11,15 @@ from src.models.design_systems.design_system_version import (
     DesignSystemVersionRecord,
     DesignSystemVersionStateRecord,
 )
+from src.models.design_systems.publication import DesignSystemArtifactRecord, DesignSystemPublicationRecord
 
 __all__ = [
     "DesignSystemRecord",
     "DesignSystemConceptGenerationRecord",
     "ProjectDesignSystemAssignmentRecord",
     "ProjectDesignSystemCommandRecord",
+    "DesignSystemArtifactRecord",
+    "DesignSystemPublicationRecord",
     "DesignSystemValidationResultRecord",
     "DesignSystemVersionRecord",
     "DesignSystemVersionStateRecord",

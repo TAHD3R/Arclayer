@@ -1,17 +1,74 @@
 import { useCallback, useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { CircleAlert, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { resolveSettingsNavItems } from "@/constants/menu/settings";
 import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
-import { useWorkspaceRolesAccess } from "@/hooks/use-workspace-roles-access";
+import {
+  useWorkspaceRolesAccess,
+  type WorkspaceRolesAccessStatus,
+} from "@/hooks/use-workspace-roles-access";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { getUsercenterOverlayItem } from "@/pages/usercenter/shared/usercenter-overlay-registry";
 import { SettingsFrame } from "@/pages/settings/settings-shell";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 import { Button } from "@arclayer/ui/button";
 import { ExpandableScreen, ExpandableScreenContent } from "@arclayer/ui/expandable-screen";
 import { TeamRolesPage } from "@/pages/workspaces/team/roles/page";
+
+function WorkspaceRolesGate(props: {
+  workspaceId: string | null;
+  status: WorkspaceRolesAccessStatus;
+  error: unknown;
+  onRetry: () => void;
+  onOpenPlanUsage: () => void;
+}) {
+  const { t } = useTranslation(["account", "errors", "settings", "workspaceAccess"]);
+
+  if (props.status === "unavailable") {
+    if (!props.workspaceId) {
+      return (
+        <ContentGuard
+          loading={false}
+          empty
+          emptyTitle={t("settings:SETTINGS_WORKSPACE_NOT_SELECTED_TITLE")}
+          emptyDescription={t("settings:SETTINGS_WORKSPACE_NOT_SELECTED_DESC")}
+          container="raw"
+          loadingVariant="form"
+        />
+      );
+    }
+
+    return (
+      <section className="py-6" data-testid="workspace-roles-plan-gate">
+        <Alert>
+          <CircleAlert aria-hidden="true" />
+          <AlertTitle>{t("workspaceAccess:ROLES_PAID_FEATURE_TITLE")}</AlertTitle>
+          <AlertDescription className="flex flex-col items-start gap-3">
+            <span>{t("errors:WORKSPACE_ROLE_MANAGEMENT_PLAN_REQUIRED")}</span>
+            <span>{t("workspaceAccess:ROLES_PAID_FEATURE_DESCRIPTION")}</span>
+            <Button type="button" onClick={props.onOpenPlanUsage}>
+              {t("account:SETTINGS_NAV_WORKSPACE_PLAN_USAGE")}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </section>
+    );
+  }
+
+  return (
+    <ContentGuard
+      loading={props.status === "loading"}
+      error={props.status === "error" ? props.error : null}
+      onRetry={props.onRetry}
+      container="raw"
+      loadingVariant="form"
+    >
+      <div />
+    </ContentGuard>
+  );
+}
 
 export function SettingsScreenHost() {
   const { t } = useTranslation("team");
@@ -20,8 +77,7 @@ export function SettingsScreenHost() {
   const activeScreen = settingsScreen.state.screen;
   const activeItem = getUsercenterOverlayItem(activeScreen);
   const currentWorkspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
-  const lastWorkspaceId = useWorkspaceStore((state) => state.lastWorkspaceId);
-  const workspaceId = currentWorkspaceId ?? lastWorkspaceId;
+  const workspaceId = currentWorkspaceId;
   const rolesAccess = useWorkspaceRolesAccess(workspaceId ?? null);
   const settingsNavItems = resolveSettingsNavItems(rolesAccess.status);
   const [workspaceRoleCreateOpen, setWorkspaceRoleCreateOpen] = useState(false);
@@ -32,12 +88,6 @@ export function SettingsScreenHost() {
       setWorkspaceRoleCreateOpen(true);
     }
   }, [activeScreen, settingsScreen.state.open, settingsScreen.state.section]);
-
-  useEffect(() => {
-    if (!isOpen || activeScreen !== "workspace.roles") return;
-    if (rolesAccess.status !== "unavailable") return;
-    settingsScreen.switchSettingsScreen("workspace.plan-usage");
-  }, [activeScreen, isOpen, rolesAccess.status, settingsScreen]);
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
@@ -53,24 +103,23 @@ export function SettingsScreenHost() {
       {t("TEAM_ROLES_ADD_ROLE")}
     </Button>
   ) : undefined;
-  const renderedContent = !isOpen ? null : activeScreen === "workspace.roles" &&
+  const renderedContent = !isOpen ? null : activeScreen === "workspace.roles" ? (
     rolesAccess.status === "available" ? (
-    <TeamRolesPage
-      workspaceIdOverride={workspaceId ?? null}
-      createOpen={workspaceRoleCreateOpen}
-      onCreateOpenChange={setWorkspaceRoleCreateOpen}
-      embedded
-    />
-  ) : activeScreen === "workspace.roles" ? (
-    <ContentGuard
-      loading={rolesAccess.status === "loading"}
-      error={rolesAccess.status === "error" ? rolesAccess.error : null}
-      onRetry={() => void rolesAccess.refetch()}
-      container="raw"
-      loadingVariant="form"
-    >
-      <div />
-    </ContentGuard>
+      <TeamRolesPage
+        workspaceIdOverride={workspaceId ?? null}
+        createOpen={workspaceRoleCreateOpen}
+        onCreateOpenChange={setWorkspaceRoleCreateOpen}
+        embedded
+      />
+    ) : (
+      <WorkspaceRolesGate
+        workspaceId={workspaceId ?? null}
+        status={rolesAccess.status}
+        error={rolesAccess.error}
+        onRetry={() => void rolesAccess.refetch()}
+        onOpenPlanUsage={() => settingsScreen.switchSettingsScreen("workspace.plan-usage")}
+      />
+    )
   ) : (
     activeItem.render({
       targetSection: settingsScreen.state.section,
@@ -94,13 +143,7 @@ export function SettingsScreenHost() {
           items={settingsNavItems}
           action={action}
           onClose={() => handleOpenChange(false)}
-          onSelectItem={(item) =>
-            settingsScreen.switchSettingsScreen(
-              item.screen === "workspace.roles" && rolesAccess.status === "unavailable"
-                ? "workspace.plan-usage"
-                : item.screen,
-            )
-          }
+          onSelectItem={(item) => settingsScreen.switchSettingsScreen(item.screen)}
           className="h-full w-full max-w-none rounded-none border-0 shadow-none"
         >
           {renderedContent}

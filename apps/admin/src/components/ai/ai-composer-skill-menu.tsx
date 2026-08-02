@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 
 import { WORKSPACE_SKILLS_QUERY_KEY, listWorkspaceSkillGrantOptions } from "@/api/workspace-skills";
 import {
+  skillInstallationIdsForComposerScope,
   useAIComposerDirectiveStore,
   type AIComposerDirectiveScope,
 } from "@/components/ai/ai-composer-directives";
@@ -14,6 +15,7 @@ import {
   AIComposerSkillPanelContent,
   type AIComposerSkillOption,
 } from "@/components/ai/ai-composer-skill-panel";
+import { requiredTranslation } from "@/lib/i18n/required-translation";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
@@ -22,10 +24,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@arclaye
 export type { AIComposerSkillOption } from "@/components/ai/ai-composer-skill-panel";
 
 export function useEnabledAIComposerSkills(options: { enabled?: boolean } = {}) {
-  const { t } = useTranslation(["ai", "settings"]);
-  const workspaceId = useWorkspaceStore(
-    (state) => state.currentWorkspaceId ?? state.lastWorkspaceId,
-  );
+  const { i18n } = useTranslation(["ai", "settings"]);
+  const workspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const query = useQuery({
     queryKey: [...WORKSPACE_SKILLS_QUERY_KEY, "composer", workspaceId],
     enabled: Boolean(workspaceId && (options.enabled ?? true)),
@@ -53,16 +53,24 @@ export function useEnabledAIComposerSkills(options: { enabled?: boolean } = {}) 
           label:
             workspacePackage?.displayName ??
             (officialPackage
-              ? t(officialPackage.displayNameKey, { defaultValue: officialPackage.displayName })
+              ? requiredTranslation(
+                  i18n,
+                  `settings:${officialPackage.displayNameKey}`,
+                  "official Skill name",
+                )
               : installation.packageId),
           description:
             workspacePackage?.description ??
             (officialPackage
-              ? t(officialPackage.descriptionKey, { defaultValue: officialPackage.description })
+              ? requiredTranslation(
+                  i18n,
+                  `settings:${officialPackage.descriptionKey}`,
+                  "official Skill description",
+                )
               : installation.packageId),
         };
       });
-  }, [query.data, t]);
+  }, [i18n, query.data]);
 
   return { ...query, skills, workspaceId };
 }
@@ -78,15 +86,23 @@ export function AIComposerSkillMenu(props: {
   const { isError, isLoading, skills, workspaceId } = useEnabledAIComposerSkills({ enabled: open });
 
   const selectSkill = (skill: AIComposerSkillOption) => {
-    const skillPrompt = t("AI_CHAT_SKILL_PROMPT", { skill: skill.label });
-    useAIComposerDirectiveStore.getState().addDirectives(props.scope ?? "thread", [
+    const scope = props.scope ?? "thread";
+    useAIComposerDirectiveStore.getState().addDirectives(scope, [
       {
         type: "skill",
         id: skill.id,
         label: skill.label,
-        instruction: skillPrompt,
       },
     ]);
+    const composer = aui.composer();
+    const current = composer.getState().runConfig;
+    composer.setRunConfig({
+      ...current,
+      custom: {
+        ...current.custom,
+        selectedSkillInstallationIds: [...skillInstallationIdsForComposerScope(scope)],
+      },
+    });
     setOpen(false);
   };
 

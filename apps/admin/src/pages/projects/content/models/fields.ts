@@ -1,8 +1,8 @@
 import type {
-  AdminContentModel,
-  CreateAdminContentModelFieldPayload,
+  ContentModelOut as AdminContentModel,
+  ContentModelFieldContract as CreateAdminContentModelFieldPayload,
   JsonValueInput,
-} from "@arclayer/openapi/admin-types";
+} from "@arclayer/openapi";
 
 import type { ContentTypeIdentifierState } from "./types";
 import {

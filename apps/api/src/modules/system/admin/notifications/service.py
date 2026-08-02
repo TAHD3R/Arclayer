@@ -279,25 +279,21 @@ class NotificationService(BaseService):
                 "category": NotificationCategory.TASK,
                 "title_key": "NOTIFICATIONS_DEMO_1_TITLE",
                 "body_key": "NOTIFICATIONS_DEMO_1_SUBTITLE",
-                "target_to": "/settings/maintenance/snapshots",
             },
             {
                 "category": NotificationCategory.SECURITY,
                 "title_key": "NOTIFICATIONS_DEMO_2_TITLE",
                 "body_key": "NOTIFICATIONS_DEMO_2_SUBTITLE",
-                "target_to": "/settings/maintenance/activity",
             },
             {
                 "category": NotificationCategory.TEAM,
                 "title_key": "NOTIFICATIONS_DEMO_3_TITLE",
                 "body_key": "NOTIFICATIONS_DEMO_3_SUBTITLE",
-                "target_to": "/settings/team/members",
             },
             {
                 "category": NotificationCategory.TEAM,
                 "title_key": "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_TITLE",
                 "body_key": "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_BODY",
-                "target_to": "/settings/team/members",
             },
         ]
 
@@ -326,8 +322,7 @@ class NotificationService(BaseService):
                 category=tpl["category"],  # type: ignore[arg-type]
                 title=title,
                 body=body,
-                target_to=str(tpl["target_to"]),
-                target_meta={"demo": True},
+                target={"kind": "inbox"},
                 event_name="dev.seed",
                 dedupe_key=dedupe_key,
             )

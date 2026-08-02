@@ -7,13 +7,13 @@ from pydantic import BaseModel, ConfigDict
 from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.common.types.json_types import JsonObject
-from src.common.utils.public_ids import encode_uuid
 from src.config import Settings
 from src.core.exceptions import Conflict, NotFound
 from src.core.http.pagination import PageData, PageParams
 from src.core.services import BaseService
-from src.models.jobs.background_job import BackgroundJobRecord, JobInternalStatus
 from src.models.operations_signals import (
+    OperationalSignalProjection,
+    OperationalSignalProjectionLifecycle,
     OperationalSignalTriage,
     OperationalSignalTriageAction,
     OperationalSignalTriageState,
@@ -34,21 +34,20 @@ from src.modules.operational_signals.schema import (
     OperationalSignalSourceLifecycle,
     OperationalSignalSourceReferenceOut,
     OperationalSignalTriageHistoryOut,
+    OperationalSignalTriageNoteOut,
     OperationalSignalTriageOut,
 )
 from src.modules.platform_identity.permissions import PlatformPermissionCode
 
-_SIGNAL_SOURCE_DOMAIN = "jobs"
-_SIGNAL_TYPE = "background_job_failed"
-_PRIORITY_RANK = 300
-
 _AUDIT_EVENTS = {
     OperationalSignalTriageAction.CLAIM: "platform.operational_signal.claimed",
     OperationalSignalTriageAction.ASSIGN: "platform.operational_signal.assigned",
+    OperationalSignalTriageAction.TRANSFER: "platform.operational_signal.transferred",
     OperationalSignalTriageAction.IN_PROGRESS: "platform.operational_signal.in_progress",
     OperationalSignalTriageAction.REMIND_LATER: "platform.operational_signal.reminded_later",
     OperationalSignalTriageAction.NEEDS_ATTENTION: "platform.operational_signal.needs_attention",
     OperationalSignalTriageAction.REMINDER_RETURNED: "platform.operational_signal.reminder_returned",
+    OperationalSignalTriageAction.NOTE_ADDED: "platform.operational_signal.note_added",
 }
 
 
@@ -60,6 +59,7 @@ class _TriageChange(BaseModel):
     assignee_user_id: UUID | None
     reminder_at: datetime | None = None
     reminder_reason: str | None = None
+    note_body: str | None = None
 
 
 class OperationalSignalService(BaseService):
@@ -81,17 +81,17 @@ class OperationalSignalService(BaseService):
     ) -> PageData[OperationalSignalOut]:
         now = datetime.now(UTC)
         await self._return_due_reminders(now=now)
-        jobs, total, pages = await self.repository.list_source_jobs(filters=filters, params=params, now=now)
-        signal_ids = [UUID(str(job.id)) for job in jobs]
+        projections, total, pages = await self.repository.list_projections(filters=filters, params=params, now=now)
+        signal_ids = [projection.id for projection in projections]
         triage_by_signal = await self.repository.list_triage(signal_ids=signal_ids)
         items = [
             self._project_signal(
-                job=job,
-                triage=triage_by_signal.get(UUID(str(job.id))),
+                projection=projection,
+                triage=triage_by_signal.get(projection.id),
                 observed_at=now,
                 permission_codes=permission_codes,
             )
-            for job in jobs
+            for projection in projections
         ]
         return PageData[OperationalSignalOut](
             items=items,
@@ -111,13 +111,14 @@ class OperationalSignalService(BaseService):
     ) -> OperationalSignalDetailOut:
         now = datetime.now(UTC)
         await self._return_due_reminders(now=now)
-        job = await self.repository.get_source_job(signal_id=signal_id)
-        if job is None:
+        projection = await self.repository.get_projection(signal_id=signal_id)
+        if projection is None:
             raise NotFound(error="OPERATIONAL_SIGNAL_NOT_FOUND")
         triage = await self.repository.get_triage(signal_id=signal_id)
         history = await self.repository.list_history(triage_id=UUID(str(triage.id))) if triage else []
+        notes = await self.repository.list_notes(triage_id=UUID(str(triage.id))) if triage else []
         projected = self._project_signal(
-            job=job,
+            projection=projection,
             triage=triage,
             observed_at=now,
             permission_codes=permission_codes,
@@ -127,6 +128,7 @@ class OperationalSignalService(BaseService):
             triage_history=tuple(
                 OperationalSignalTriageHistoryOut.model_validate(row, from_attributes=True) for row in history
             ),
+            notes=tuple(OperationalSignalTriageNoteOut.model_validate(row, from_attributes=True) for row in notes),
         )
 
     async def list_eligible_assignees(self) -> tuple[OperationalSignalAssigneeOut, ...]:
@@ -149,18 +151,18 @@ class OperationalSignalService(BaseService):
         permission_codes: frozenset[str],
     ) -> OperationalSignalDetailOut:
         async with self.tx() as conn:
-            job, triage = await self._lock_mutable_signal(signal_id=signal_id, conn=conn)
+            projection, triage = await self._lock_mutable_signal(signal_id=signal_id, conn=conn)
             self._require_revision(triage=triage, expected_revision=expected_revision)
             if triage is not None and triage.assignee_user_id is not None:
                 raise Conflict(error="OPERATIONAL_SIGNAL_ALREADY_CLAIMED")
             await self._require_eligible_assignee(user_id=actor_user_id, conn=conn)
             await self._apply_change(
-                job=job,
+                projection=projection,
                 triage=triage,
                 actor_user_id=actor_user_id,
                 change=_TriageChange(
                     action=OperationalSignalTriageAction.CLAIM,
-                    state=triage.state if triage else OperationalSignalTriageState.NEEDS_ATTENTION,
+                    state=triage.state if triage else OperationalSignalTriageState.UNCLAIMED,
                     assignee_user_id=actor_user_id,
                     reminder_at=triage.reminder_at if triage else None,
                     reminder_reason=triage.reminder_reason if triage else None,
@@ -179,16 +181,22 @@ class OperationalSignalService(BaseService):
         permission_codes: frozenset[str],
     ) -> OperationalSignalDetailOut:
         async with self.tx() as conn:
-            job, triage = await self._lock_mutable_signal(signal_id=signal_id, conn=conn)
+            projection, triage = await self._lock_mutable_signal(signal_id=signal_id, conn=conn)
             self._require_revision(triage=triage, expected_revision=expected_revision)
             await self._require_eligible_assignee(user_id=assignee_user_id, conn=conn)
             await self._apply_change(
-                job=job,
+                projection=projection,
                 triage=triage,
                 actor_user_id=actor_user_id,
                 change=_TriageChange(
-                    action=OperationalSignalTriageAction.ASSIGN,
-                    state=triage.state if triage else OperationalSignalTriageState.NEEDS_ATTENTION,
+                    action=(
+                        OperationalSignalTriageAction.TRANSFER
+                        if triage is not None
+                        and triage.assignee_user_id is not None
+                        and UUID(str(triage.assignee_user_id)) != assignee_user_id
+                        else OperationalSignalTriageAction.ASSIGN
+                    ),
+                    state=triage.state if triage else OperationalSignalTriageState.UNCLAIMED,
                     assignee_user_id=assignee_user_id,
                     reminder_at=triage.reminder_at if triage else None,
                     reminder_reason=triage.reminder_reason if triage else None,
@@ -206,12 +214,12 @@ class OperationalSignalService(BaseService):
         permission_codes: frozenset[str],
     ) -> OperationalSignalDetailOut:
         async with self.tx() as conn:
-            job, triage = await self._lock_mutable_signal(signal_id=signal_id, conn=conn)
+            projection, triage = await self._lock_mutable_signal(signal_id=signal_id, conn=conn)
             self._require_revision(triage=triage, expected_revision=expected_revision)
             if triage is None or triage.assignee_user_id is None:
                 raise Conflict(error="OPERATIONAL_SIGNAL_ASSIGNEE_REQUIRED")
             await self._apply_change(
-                job=job,
+                projection=projection,
                 triage=triage,
                 actor_user_id=actor_user_id,
                 change=_TriageChange(
@@ -237,15 +245,15 @@ class OperationalSignalService(BaseService):
         if reminder_at <= now:
             raise Conflict(error="OPERATIONAL_SIGNAL_REMINDER_INVALID")
         async with self.tx() as conn:
-            job, triage = await self._lock_mutable_signal(signal_id=signal_id, conn=conn)
+            projection, triage = await self._lock_mutable_signal(signal_id=signal_id, conn=conn)
             self._require_revision(triage=triage, expected_revision=expected_revision)
             await self._apply_change(
-                job=job,
+                projection=projection,
                 triage=triage,
                 actor_user_id=actor_user_id,
                 change=_TriageChange(
                     action=OperationalSignalTriageAction.REMIND_LATER,
-                    state=OperationalSignalTriageState.REMIND_LATER,
+                    state=OperationalSignalTriageState.WAITING,
                     assignee_user_id=UUID(str(triage.assignee_user_id)) if triage and triage.assignee_user_id else None,
                     reminder_at=reminder_at,
                     reminder_reason=reason,
@@ -263,16 +271,44 @@ class OperationalSignalService(BaseService):
         permission_codes: frozenset[str],
     ) -> OperationalSignalDetailOut:
         async with self.tx() as conn:
-            job, triage = await self._lock_mutable_signal(signal_id=signal_id, conn=conn)
+            projection, triage = await self._lock_mutable_signal(signal_id=signal_id, conn=conn)
             self._require_revision(triage=triage, expected_revision=expected_revision)
             await self._apply_change(
-                job=job,
+                projection=projection,
                 triage=triage,
                 actor_user_id=actor_user_id,
                 change=_TriageChange(
                     action=OperationalSignalTriageAction.NEEDS_ATTENTION,
-                    state=OperationalSignalTriageState.NEEDS_ATTENTION,
+                    state=OperationalSignalTriageState.UNCLAIMED,
                     assignee_user_id=UUID(str(triage.assignee_user_id)) if triage and triage.assignee_user_id else None,
+                ),
+                conn=conn,
+            )
+        return await self.get_signal(signal_id=signal_id, permission_codes=permission_codes)
+
+    async def add_note(
+        self,
+        *,
+        signal_id: UUID,
+        actor_user_id: UUID,
+        expected_revision: int,
+        body: str,
+        permission_codes: frozenset[str],
+    ) -> OperationalSignalDetailOut:
+        async with self.tx() as conn:
+            projection, triage = await self._lock_mutable_signal(signal_id=signal_id, conn=conn)
+            self._require_revision(triage=triage, expected_revision=expected_revision)
+            await self._apply_change(
+                projection=projection,
+                triage=triage,
+                actor_user_id=actor_user_id,
+                change=_TriageChange(
+                    action=OperationalSignalTriageAction.NOTE_ADDED,
+                    state=triage.state if triage else OperationalSignalTriageState.UNCLAIMED,
+                    assignee_user_id=UUID(str(triage.assignee_user_id)) if triage and triage.assignee_user_id else None,
+                    reminder_at=triage.reminder_at if triage else None,
+                    reminder_reason=triage.reminder_reason if triage else None,
+                    note_body=body,
                 ),
                 conn=conn,
             )
@@ -283,14 +319,14 @@ class OperationalSignalService(BaseService):
         *,
         signal_id: UUID,
         conn: BaseDBAsyncClient,
-    ) -> tuple[BackgroundJobRecord, OperationalSignalTriage | None]:
-        job = await self.repository.get_source_job(signal_id=signal_id, conn=conn, for_update=True)
-        if job is None:
+    ) -> tuple[OperationalSignalProjection, OperationalSignalTriage | None]:
+        projection = await self.repository.get_projection(signal_id=signal_id, conn=conn, for_update=True)
+        if projection is None:
             raise NotFound(error="OPERATIONAL_SIGNAL_NOT_FOUND")
         triage = await self.repository.get_triage(signal_id=signal_id, conn=conn, for_update=True)
-        if job.internal_status != JobInternalStatus.FAILED:
+        if projection.source_lifecycle != OperationalSignalProjectionLifecycle.UNRESOLVED:
             raise Conflict(error="OPERATIONAL_SIGNAL_SOURCE_RESOLVED")
-        return job, triage
+        return projection, triage
 
     @staticmethod
     def _require_revision(*, triage: OperationalSignalTriage | None, expected_revision: int) -> None:
@@ -308,7 +344,7 @@ class OperationalSignalService(BaseService):
     async def _apply_change(
         self,
         *,
-        job: BackgroundJobRecord,
+        projection: OperationalSignalProjection,
         triage: OperationalSignalTriage | None,
         actor_user_id: UUID | None,
         change: _TriageChange,
@@ -319,7 +355,7 @@ class OperationalSignalService(BaseService):
         previous_reminder_at = triage.reminder_at if triage else None
         previous_reminder_reason = triage.reminder_reason if triage else None
         if triage is None:
-            triage = await self.repository.create_triage(signal_id=UUID(str(job.id)), conn=conn)
+            triage = await self.repository.create_triage(projection_id=projection.id, conn=conn)
             revision = 1
         else:
             revision = int(triage.revision) + 1
@@ -352,8 +388,18 @@ class OperationalSignalService(BaseService):
             if change.action == OperationalSignalTriageAction.REMINDER_RETURNED
             else change.reminder_reason,
         )
+        if change.note_body is not None:
+            if actor_user_id is None:
+                raise Conflict(error="OPERATIONAL_SIGNAL_NOTE_ACTOR_REQUIRED")
+            await self.repository.append_note(
+                conn=conn,
+                triage_id=triage.id,
+                revision=revision,
+                actor_user_id=actor_user_id,
+                body=change.note_body,
+            )
         await self._write_audit(
-            signal_id=UUID(str(job.id)),
+            signal_id=projection.id,
             actor_user_id=actor_user_id,
             change=change,
             revision=revision,
@@ -365,12 +411,12 @@ class OperationalSignalService(BaseService):
         signal_ids = await self.repository.list_due_reminder_signal_ids(now=now)
         for signal_id in signal_ids:
             async with self.tx() as conn:
-                job = await self.repository.get_source_job(
+                projection = await self.repository.get_projection(
                     signal_id=signal_id,
                     conn=conn,
                     for_update=True,
                 )
-                if job is None or job.internal_status != JobInternalStatus.FAILED:
+                if projection is None or projection.source_lifecycle != OperationalSignalProjectionLifecycle.UNRESOLVED:
                     continue
                 triage = await self.repository.get_triage(
                     signal_id=signal_id,
@@ -379,18 +425,18 @@ class OperationalSignalService(BaseService):
                 )
                 if (
                     triage is None
-                    or triage.state != OperationalSignalTriageState.REMIND_LATER
+                    or triage.state != OperationalSignalTriageState.WAITING
                     or triage.reminder_at is None
                     or triage.reminder_at > now
                 ):
                     continue
                 await self._apply_change(
-                    job=job,
+                    projection=projection,
                     triage=triage,
                     actor_user_id=None,
                     change=_TriageChange(
                         action=OperationalSignalTriageAction.REMINDER_RETURNED,
-                        state=OperationalSignalTriageState.NEEDS_ATTENTION,
+                        state=OperationalSignalTriageState.UNCLAIMED,
                         assignee_user_id=UUID(str(triage.assignee_user_id)) if triage.assignee_user_id else None,
                     ),
                     conn=conn,
@@ -408,7 +454,7 @@ class OperationalSignalService(BaseService):
         properties: JsonObject = {
             "action": change.action.value,
             "resultRevision": revision,
-            "sourceJobId": str(signal_id),
+            "signalId": str(signal_id),
         }
         if change.assignee_user_id is not None:
             properties["assigneeUserId"] = str(change.assignee_user_id)
@@ -429,59 +475,51 @@ class OperationalSignalService(BaseService):
     def _project_signal(
         self,
         *,
-        job: BackgroundJobRecord,
+        projection: OperationalSignalProjection,
         triage: OperationalSignalTriage | None,
         observed_at: datetime,
         permission_codes: frozenset[str],
     ) -> OperationalSignalOut:
-        signal_id = UUID(str(job.id))
-        detected_at = job.completed_at or job.updated_at
-        source_updated_at = job.updated_at
-        lifecycle = (
-            OperationalSignalSourceLifecycle.UNRESOLVED
-            if job.internal_status == JobInternalStatus.FAILED
-            else OperationalSignalSourceLifecycle.RESOLVED
-        )
+        lifecycle = OperationalSignalSourceLifecycle(projection.source_lifecycle)
+        required_permission = PlatformPermissionCode(projection.required_permission)
         return OperationalSignalOut(
-            id=signal_id,
-            source_domain=_SIGNAL_SOURCE_DOMAIN,
-            signal_type=_SIGNAL_TYPE,
-            source_reference=OperationalSignalSourceReferenceOut(type="background_job", id=signal_id),
-            severity=OperationalSignalSeverity.HIGH,
-            detected_at=detected_at,
+            id=projection.id,
+            source_domain=projection.source_domain,
+            signal_type=projection.signal_type,
+            source_reference=OperationalSignalSourceReferenceOut(
+                type=projection.source_reference_type,
+                id=projection.source_reference_id,
+            ),
+            severity=OperationalSignalSeverity(projection.severity),
+            detected_at=projection.detected_at,
             freshness=OperationalSignalFreshnessOut(
                 observed_at=observed_at,
-                source_updated_at=source_updated_at,
-                age_seconds=max(0, int((observed_at - source_updated_at).total_seconds())),
+                source_updated_at=projection.source_observed_at,
+                age_seconds=max(0, int((observed_at - projection.source_observed_at).total_seconds())),
             ),
             priority=OperationalSignalPriorityOut(
-                rank=_PRIORITY_RANK,
-                reason_keys=("inbox:BACKGROUND_JOB_FAILED_PRIORITY",),
+                rank=projection.priority_rank,
+                reason_keys=tuple(projection.priority_reason_keys),
             ),
             copy_keys=OperationalSignalCopyOut(
-                title_key="inbox:BACKGROUND_JOB_FAILED_TITLE",
-                explanation_key="inbox:BACKGROUND_JOB_FAILED_EXPLANATION",
-                impact_key="inbox:BACKGROUND_JOB_FAILED_IMPACT",
+                title_key=projection.title_key,
+                explanation_key=projection.explanation_key,
+                impact_key=projection.impact_key,
             ),
-            evidence=OperationalSignalEvidenceOut(
-                job_type=job.job_type,
-                workload_class=str(job.workload_class),
-                attempt_count=job.attempt_count,
-                error_code=job.error_code,
-                status_key=job.status_key,
-                workspace_id=job.workspace_id,
-                project_id=job.project_id,
-                site_id=job.site_id,
-            ),
-            required_permission=PlatformPermissionCode.JOBS_MANAGE,
+            evidence=OperationalSignalEvidenceOut(summary=projection.sanitized_evidence),
+            affected_scope=projection.affected_scope,
+            required_permission=required_permission,
             destination=OperationalSignalDestinationOut(
-                path=f"/operations/jobs?jobId={encode_uuid(signal_id)}",
-                label_key="inbox:BACKGROUND_JOB_DESTINATION",
+                route_target=projection.destination_target,
+                required_permission=required_permission,
+                authorized=required_permission in permission_codes,
             ),
             source_lifecycle=lifecycle,
-            resolution_condition_key="inbox:BACKGROUND_JOB_RESOLUTION_CONDITION",
-            resolved_at=job.updated_at if lifecycle == OperationalSignalSourceLifecycle.RESOLVED else None,
-            triage=self._project_triage(triage),
+            resolution_condition_key=projection.resolution_condition_key,
+            resolved_at=projection.resolved_at,
+            policy_id=projection.policy_id,
+            policy_revision=projection.policy_revision,
+            triage=self._project_triage(triage, lifecycle=lifecycle),
             allowed_triage_actions=self._allowed_triage_actions(
                 lifecycle=lifecycle,
                 triage=triage,
@@ -498,28 +536,45 @@ class OperationalSignalService(BaseService):
     ) -> tuple[OperationalSignalTriageAction, ...]:
         if lifecycle is OperationalSignalSourceLifecycle.RESOLVED:
             return ()
-        state = triage.state if triage else OperationalSignalTriageState.NEEDS_ATTENTION
+        state = triage.state if triage else OperationalSignalTriageState.UNCLAIMED
         has_assignee = triage is not None and triage.assignee_user_id is not None
         actions: list[OperationalSignalTriageAction] = []
         if PlatformPermissionCode.OPERATIONS_SIGNALS_CLAIM in permission_codes and not has_assignee:
             actions.append(OperationalSignalTriageAction.CLAIM)
         if PlatformPermissionCode.OPERATIONS_SIGNALS_ASSIGN in permission_codes:
-            actions.append(OperationalSignalTriageAction.ASSIGN)
+            actions.append(
+                OperationalSignalTriageAction.TRANSFER if has_assignee else OperationalSignalTriageAction.ASSIGN
+            )
         if PlatformPermissionCode.OPERATIONS_SIGNALS_TRIAGE in permission_codes:
             if has_assignee and state is not OperationalSignalTriageState.IN_PROGRESS:
                 actions.append(OperationalSignalTriageAction.IN_PROGRESS)
-            if state is not OperationalSignalTriageState.REMIND_LATER:
+            if state is not OperationalSignalTriageState.WAITING:
                 actions.append(OperationalSignalTriageAction.REMIND_LATER)
-            if state is not OperationalSignalTriageState.NEEDS_ATTENTION:
+            if state is not OperationalSignalTriageState.UNCLAIMED:
                 actions.append(OperationalSignalTriageAction.NEEDS_ATTENTION)
+            actions.append(OperationalSignalTriageAction.NOTE_ADDED)
         return tuple(actions)
 
     @staticmethod
-    def _project_triage(triage: OperationalSignalTriage | None) -> OperationalSignalTriageOut:
+    def _project_triage(
+        triage: OperationalSignalTriage | None,
+        *,
+        lifecycle: OperationalSignalSourceLifecycle,
+    ) -> OperationalSignalTriageOut:
+        if lifecycle is OperationalSignalSourceLifecycle.RESOLVED:
+            return OperationalSignalTriageOut(
+                revision=int(triage.revision) if triage else 0,
+                state=OperationalSignalTriageState.SOURCE_RECOVERED,
+                assignee_user_id=triage.assignee_user_id if triage else None,
+                reminder_at=triage.reminder_at if triage else None,
+                reminder_reason=triage.reminder_reason if triage else None,
+                last_actor_user_id=triage.last_actor_user_id if triage else None,
+                updated_at=triage.updated_at if triage else None,
+            )
         if triage is None:
             return OperationalSignalTriageOut(
                 revision=0,
-                state=OperationalSignalTriageState.NEEDS_ATTENTION,
+                state=OperationalSignalTriageState.UNCLAIMED,
             )
         return OperationalSignalTriageOut(
             revision=int(triage.revision),

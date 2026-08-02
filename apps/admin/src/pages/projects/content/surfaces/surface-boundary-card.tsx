@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 
 import { projectContentLibraryItemPath } from "@/lib/routing/project-content-routing";
-import type { AdminContentItem } from "@arclayer/openapi/admin-types";
+import type { getContentItem } from "@/api/content";
 import { Button } from "@arclayer/ui/button";
 import {
   Card,
@@ -11,6 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@arclayer/ui/card";
+
+type AdminContentItem = Awaited<ReturnType<typeof getContentItem>>;
 
 function formatCapabilities(value: AdminContentItem["capabilityPackIds"]) {
   return value.length > 0 ? value.join(", ") : "none";

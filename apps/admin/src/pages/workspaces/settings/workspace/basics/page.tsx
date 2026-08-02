@@ -2,8 +2,7 @@ import { WorkspaceSettingsBasicsView } from "./components/workspace-settings-bas
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 export function WorkspaceSettingsBasicsPage() {
-  const workspaceId =
-    useWorkspaceStore.getState().currentWorkspaceId ?? useWorkspaceStore.getState().lastWorkspaceId;
+  const workspaceId = useWorkspaceStore.getState().currentWorkspaceId;
   if (!workspaceId) {
     throw new Error("WORKSPACE_NOT_SELECTED");
   }

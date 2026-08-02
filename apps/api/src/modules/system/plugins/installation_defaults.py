@@ -34,7 +34,11 @@ def build_plugin_installation_data(
         "package_checksum": item.package_checksum,
         "manifest_digest": item.manifest_digest,
         "provenance_status": str(item.provenance_status),
+        "trust_state": item.trust_state,
+        "trust_evidence": list(item.trust_evidence),
         "compatibility": item.compatibility.model_dump(mode="json", by_alias=False),
+        "declared_dependencies": [dependency.model_dump(mode="json") for dependency in item.dependencies],
+        "consumer_evidence": item.consumers.model_dump(mode="json"),
         "lifecycle_state": PluginLifecycleState.INSTALLED if is_installed else PluginLifecycleState.DISABLED,
         "desired_enabled": is_installed,
         "runtime_activation_state": (

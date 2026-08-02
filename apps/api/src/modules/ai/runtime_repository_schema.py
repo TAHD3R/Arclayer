@@ -9,6 +9,7 @@ from src.common.schemas import BaseSchema
 from src.common.types.json_types import JsonObject
 from src.modules.ai.agent_builder_context_schema import AgentRunBuilderContextInputV1
 from src.modules.ai.agent_design_system_context_schema import AgentRunDesignSystemContextInputV1
+from src.modules.ai.agent_knowledge_context_schema import AgentRunKnowledgeContextInputV1
 from src.modules.ai.agent_skill_grant_schema import AgentRunSkillGrantSnapshotInput
 
 
@@ -28,6 +29,7 @@ class AgentRunCreatePersistenceCommand(BaseSchema):
     mentioned_agent_version_ids: tuple[UUID, ...] = ()
     mentioned_agent_assignment_ids: tuple[UUID, ...] = ()
     skill_grants: tuple[AgentRunSkillGrantSnapshotInput, ...] = ()
+    knowledge_context: AgentRunKnowledgeContextInputV1 | None = None
     design_system_context: AgentRunDesignSystemContextInputV1 | None = None
     builder_context: AgentRunBuilderContextInputV1 | None = None
     execution_mode: Literal["plan", "build"]

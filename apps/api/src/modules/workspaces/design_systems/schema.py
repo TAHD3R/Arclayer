@@ -8,6 +8,7 @@ from pydantic import ConfigDict, Field
 from src.common.schemas import BaseSchema
 from src.common.types.json_types import JsonValue
 from src.common.types.public_uuid import PublicUUID
+from src.modules.projects.builder.render_document_schema import BuilderPageRenderDocumentOut
 from src.modules.workspaces.design_systems.manifest import DesignSystemManifestInputV1, DesignSystemManifestV1
 from src.modules.workspaces.design_systems.validator import DesignSystemValidationFinding
 
@@ -80,7 +81,7 @@ class WorkspaceDesignSystemsCapabilitiesOut(BaseSchema):
     agent_run_context: Literal[True] = True
     builder_context: Literal[True] = True
     component_catalog_validation: Literal[True] = True
-    renderer_preview: Literal[False] = False
+    renderer_preview: Literal[True] = True
     compilation: Literal[False] = False
     publication: Literal[False] = False
     import_available: Literal[False] = False
@@ -108,6 +109,28 @@ class DesignSystemValidationCreateRequest(BaseSchema):
 
     profile: Literal["foundation"] = "foundation"
     validator_version: Literal[2] = 2
+
+
+class WorkspaceDesignSystemRepresentativePreviewRequest(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid", frozen=True)
+
+    project_id: PublicUUID
+    site_revision_id: PublicUUID
+    page_item_id: PublicUUID
+    locale: str = Field(min_length=1, max_length=16)
+    theme_key: str | None = Field(default=None, min_length=1, max_length=64)
+
+
+class WorkspaceDesignSystemRepresentativePreviewOut(BaseSchema):
+    design_system_id: PublicUUID
+    version_id: PublicUUID
+    manifest_checksum: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    project_id: PublicUUID
+    site_revision_id: PublicUUID
+    page_item_id: PublicUUID
+    locale: str = Field(min_length=1, max_length=16)
+    theme_key: str = Field(min_length=1, max_length=64)
+    document: BuilderPageRenderDocumentOut
 
 
 class WorkspaceDesignSystemDefaultSetRequest(BaseSchema):

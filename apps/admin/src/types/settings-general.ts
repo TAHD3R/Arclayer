@@ -1,8 +1,6 @@
 import type { UseFormReturn } from "react-hook-form";
-import type { JsonValueInput } from "@arclayer/openapi/admin-types";
+import type { JsonValueInput } from "@arclayer/openapi";
 import type { TitlePolicy } from "@/types/site-seo";
-
-export type StorageProvider = "local" | "s3";
 
 export type GeneralSettingsTabKey = "basics" | "localization";
 
@@ -32,37 +30,6 @@ export type GeneralSettingsFormValues = {
   dateFormat: string;
   useRelativeDateTime: boolean;
   seoTitlePolicy: TitlePolicy;
-
-  storageProvider: StorageProvider;
-  storagePublicBaseUrl: string;
-
-  uploadChunkSizeMb: number;
-  uploadMaxFileSizeMb: number;
-  uploadMaxAvatarSizeMb: number;
-  uploadMaxSiteLogoSizeMb: number;
-  uploadMaxFaviconSizeMb: number;
-
-  s3EndpointUrl: string;
-  s3Region: string;
-  s3Bucket: string;
-  s3AccessKeyId: string;
-  s3SecretAccessKey: string;
-  s3ForcePathStyle: boolean;
-  s3PresignExpiresSeconds: number;
-
-  mailEnabled: boolean;
-  mailServer: string;
-  mailPort: number;
-  mailUsername: string;
-  mailPassword: string;
-  mailFrom: string;
-  mailFromName: string;
-  mailStarttls: boolean;
-  mailSslTls: boolean;
-
-  mailEnabledTemplates: string[];
-
-  notificationGroups: Record<string, { enabled: boolean }>;
 };
 
 export type GeneralSettingsFormController = UseFormReturn<GeneralSettingsFormValues>;

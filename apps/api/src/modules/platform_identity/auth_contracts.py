@@ -11,6 +11,10 @@ from src.modules.platform_identity.mfa_schema import (
     PlatformRecoveryCodeSet,
     PlatformTotpSetup,
 )
+from src.modules.platform_identity.schema import (
+    PlatformInvitationAcceptanceCommand,
+    PlatformInvitationSetupContext,
+)
 from src.modules.platform_identity.session_schema import PlatformSessionCredential
 from src.modules.platform_identity.webauthn_schema import (
     PlatformAuthFlowIssued,
@@ -40,6 +44,7 @@ class PlatformAuthUserLike(Protocol):
 class PlatformAuthOperatorLike(Protocol):
     id: object
     status: object
+    setup_reason: object
 
 
 class PlatformAuthMethodLike(Protocol):
@@ -59,12 +64,25 @@ class PlatformAuthIdentityPort(Protocol):
 
     async def get_operator_by_user_id(self, *, user_id: UUID) -> PlatformAuthOperatorLike | None: ...
 
+    async def get_operator_setup_context(self, *, user_id: UUID) -> PlatformInvitationSetupContext | None: ...
+
     async def list_verified_mfa_methods(self, *, user_id: UUID) -> Sequence[PlatformAuthMethodLike]: ...
+
+
+class PlatformInvitationAcceptancePort(Protocol):
+    async def begin_operator_invitation_acceptance(
+        self, *, command: PlatformInvitationAcceptanceCommand
+    ) -> PlatformInvitationSetupContext: ...
 
 
 class PlatformAuthFlowPort(Protocol):
     async def issue(
-        self, *, user_id: UUID, purpose: PlatformAuthFlowPurpose, identity_revision: int
+        self,
+        *,
+        user_id: UUID,
+        purpose: PlatformAuthFlowPurpose,
+        identity_revision: int,
+        setup_context: PlatformInvitationSetupContext | None = None,
     ) -> PlatformAuthFlowIssued: ...
 
     async def require(self, *, token: str, purpose: PlatformAuthFlowPurpose) -> PlatformAuthFlowRecord: ...
@@ -78,7 +96,16 @@ class PlatformAuthMfaPort(Protocol):
     async def begin_totp_setup(self, *, user_id: UUID, issuer: str, account_label: str) -> PlatformTotpSetup: ...
 
     async def confirm_totp_setup(
-        self, *, user_id: UUID, method_id: UUID, code: str, operator_id: UUID | None = None
+        self,
+        *,
+        user_id: UUID,
+        method_id: UUID,
+        code: str,
+        operator_id: UUID | None = None,
+        invitation_id: UUID | None = None,
+        expected_invitation_revision: int | None = None,
+        activation_correlation_id: UUID | None = None,
+        activation_idempotency_key: str | None = None,
     ) -> PlatformRecoveryCodeSet | None: ...
 
     async def verify_totp_for_baseline(
@@ -98,6 +125,11 @@ class PlatformAuthWebAuthnPort(Protocol):
         challenge_id: UUID,
         binding: str,
         credential: PlatformWebAuthnRegistrationCredential,
+        operator_id: UUID | None = None,
+        invitation_id: UUID | None = None,
+        expected_invitation_revision: int | None = None,
+        activation_correlation_id: UUID | None = None,
+        activation_idempotency_key: str | None = None,
     ) -> PlatformWebAuthnEnrollmentResult: ...
 
     async def begin_authentication(self, *, user_id: UUID, binding: str) -> PlatformWebAuthnAuthenticationOptions: ...

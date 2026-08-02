@@ -11,6 +11,18 @@ from src.common.types.json_types import JsonObject
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.agents.runtime_builder_v1 import AgentRunBuilderSnapshotV1Record
 from src.models.agents.runtime_design_system_v1 import AgentRunDesignSystemSnapshotV1Record
+from src.models.agents.runtime_knowledge_v1 import (
+    AgentRunKnowledgeSnapshotV1Record,
+    AgentRunKnowledgeSourceSnapshotV1Record,
+)
+from src.models.agents.runtime_recovery_v1 import (
+    AgentRunExecutionEffectDisposition,
+    AgentRunExecutionEffectRecord,
+    AgentRunRecoveryAction,
+    AgentRunRecoveryRecord,
+    AgentRunRecoveryStatus,
+)
+from src.models.agents.runtime_skill_v1 import AgentRunSkillSnapshotV1Record
 from src.models.agents.runtime_v1 import (
     AgentExecutionModeV1,
     AgentMessagePartV1Record,
@@ -23,13 +35,19 @@ from src.models.agents.runtime_v1 import (
 from src.models.ai.ai_budget_reservation import AIBudgetReservation, ReservationStatus
 from src.modules.ai.agent_builder_context_schema import AgentRunBuilderContextV1
 from src.modules.ai.agent_design_system_context_schema import AgentRunDesignSystemContextV1
+from src.modules.ai.agent_knowledge_context_schema import AgentRunKnowledgeContextV1
 from src.modules.ai.runtime_approval_protocol_schema import RunResumedEventV1
 from src.modules.ai.runtime_job_schema import AgentRunJobInput, AgentRunJobTarget
+from src.modules.ai.runtime_recovery_schema import (
+    AgentRunExecutionEffectSnapshot,
+    AgentRunRecoveryExecutionSnapshot,
+)
 from src.modules.ai.runtime_repository_errors import AgentRuntimePersistenceError
 from src.modules.ai.runtime_tool_response_schema import (
     ApprovalToolResponseCommandV1,
     HumanToolResultResponseCommandV1,
 )
+from src.modules.jobs.hashing import hash_json
 
 
 class AgentRunJobResumeInput(BaseSchema):
@@ -66,6 +84,9 @@ class AgentRunJobState(BaseSchema):
     mentioned_agent_ids: tuple[UUID, ...]
     mentioned_agent_version_ids: tuple[UUID, ...]
     mentioned_agent_assignment_ids: tuple[UUID, ...]
+    skill_snapshot_count: int
+    knowledge_context: AgentRunKnowledgeContextV1 | None = None
+    knowledge_source_snapshot_count: int = 0
     design_system_context: AgentRunDesignSystemContextV1 | None
     builder_context: AgentRunBuilderContextV1 | None
     correlation_id: str
@@ -81,6 +102,8 @@ class AgentRunJobState(BaseSchema):
     interrupt_approval_id: str | None
     interrupt_tool_call_id: str | None
     resume_input: AgentRunJobResumeInput | None
+    execution_effect: AgentRunExecutionEffectSnapshot | None = None
+    recovery: AgentRunRecoveryExecutionSnapshot | None = None
 
     @property
     def terminal(self) -> bool:
@@ -144,8 +167,15 @@ class AgentRunJobRepository(TortoiseORMRepository[AgentRunV1Record]):
             AIBudgetReservation.filter(agent_run_id=run.id).using_db(conn).order_by("created_at", "id").all()
         )
         resume_input = await self._get_resume_input(run=run, conn=conn)
+        knowledge_context, knowledge_source_snapshot_count = await self._knowledge_context(
+            run=run,
+            conn=conn,
+        )
         design_system_context = await self._design_system_context(run=run, conn=conn)
         builder_context = await self._builder_context(run=run, conn=conn)
+        skill_snapshot_count = await AgentRunSkillSnapshotV1Record.filter(run_id=run.id).using_db(conn).count()
+        effect_record = await self._latest_execution_effect(job_id=job_id, conn=conn)
+        recovery = await self._recovery_execution(run=run, job_id=job_id, conn=conn)
         return AgentRunJobState(
             run_id=run.id,
             job_id=cast(UUID, run.job_id),
@@ -161,6 +191,9 @@ class AgentRunJobRepository(TortoiseORMRepository[AgentRunV1Record]):
             mentioned_agent_ids=_uuid_values(run.mentioned_agent_ids),
             mentioned_agent_version_ids=_uuid_values(run.mentioned_agent_version_ids),
             mentioned_agent_assignment_ids=_uuid_values(run.mentioned_agent_assignment_ids),
+            skill_snapshot_count=skill_snapshot_count,
+            knowledge_context=knowledge_context,
+            knowledge_source_snapshot_count=knowledge_source_snapshot_count,
             design_system_context=design_system_context,
             builder_context=builder_context,
             correlation_id=run.correlation_id,
@@ -176,7 +209,75 @@ class AgentRunJobRepository(TortoiseORMRepository[AgentRunV1Record]):
             interrupt_approval_id=run.interrupt_approval_id,
             interrupt_tool_call_id=run.interrupt_tool_call_id,
             resume_input=resume_input,
+            execution_effect=(_execution_effect_snapshot(effect_record) if effect_record is not None else None),
+            recovery=recovery,
         )
+
+    @staticmethod
+    async def _latest_execution_effect(
+        *,
+        job_id: UUID,
+        conn: BaseDBAsyncClient | None,
+    ) -> AgentRunExecutionEffectRecord | None:
+        return await (
+            AgentRunExecutionEffectRecord
+            .filter(job_id=job_id)
+            .using_db(conn)
+            .order_by("-registered_at", "-id")
+            .first()
+        )
+
+    @staticmethod
+    async def _recovery_execution(
+        *,
+        run: AgentRunV1Record,
+        job_id: UUID,
+        conn: BaseDBAsyncClient | None,
+    ) -> AgentRunRecoveryExecutionSnapshot | None:
+        recovery = await (
+            AgentRunRecoveryRecord
+            .filter(run_id=run.id, recovery_job_id=job_id)
+            .using_db(conn)
+            .first()
+        )
+        if recovery is None:
+            return None
+        effect_record = await AgentRunJobRepository._latest_execution_effect(
+            job_id=recovery.source_job_id,
+            conn=conn,
+        )
+        source_effect = _execution_effect_snapshot(effect_record) if effect_record is not None else None
+        return AgentRunRecoveryExecutionSnapshot(
+            recovery_id=recovery.id,
+            action=AgentRunRecoveryAction(recovery.action),
+            status=AgentRunRecoveryStatus(recovery.status),
+            source_job_id=recovery.source_job_id,
+            source_effect=source_effect,
+        )
+
+    @staticmethod
+    async def _knowledge_context(
+        *,
+        run: AgentRunV1Record,
+        conn: BaseDBAsyncClient | None,
+    ) -> tuple[AgentRunKnowledgeContextV1 | None, int]:
+        record = await AgentRunKnowledgeSnapshotV1Record.filter(run_id=run.id).using_db(conn).first()
+        source_count = await AgentRunKnowledgeSourceSnapshotV1Record.filter(run_id=run.id).using_db(conn).count()
+        if record is None:
+            if source_count:
+                raise AgentRuntimePersistenceError("AGENT_KNOWLEDGE_SNAPSHOT_INVALID")
+            return None, 0
+        context = AgentRunKnowledgeContextV1.model_validate(record.context_snapshot)
+        if (
+            context.context_hash != record.context_hash
+            or context.workspace_id != run.workspace_id
+            or context.project_id != run.project_id
+            or context.workspace_revision_id != record.workspace_revision_id
+            or context.project_revision_id != record.project_revision_id
+            or record.source_snapshot_count != source_count
+        ):
+            raise AgentRuntimePersistenceError("AGENT_KNOWLEDGE_SNAPSHOT_INVALID")
+        return context, source_count
 
     @staticmethod
     async def _design_system_context(
@@ -365,3 +466,23 @@ def _uuid_values(values: object) -> tuple[UUID, ...]:
         return tuple(UUID(cast(str, value)) for value in values)
     except ValueError as error:
         raise AgentRuntimePersistenceError("AGENT_RUN_AGENT_SNAPSHOT_INVALID") from error
+
+
+def _execution_effect_snapshot(record: AgentRunExecutionEffectRecord) -> AgentRunExecutionEffectSnapshot:
+    outcome = record.outcome if isinstance(record.outcome, dict) else None
+    if outcome is not None and hash_json(outcome) != record.outcome_hash:
+        raise AgentRuntimePersistenceError("AGENT_RUN_EXECUTION_EFFECT_RECEIPT_INVALID")
+    return AgentRunExecutionEffectSnapshot(
+        id=record.id,
+        run_id=record.run_id,
+        job_id=record.job_id,
+        owner_attempt_id=record.owner_attempt_id,
+        effect_key=record.effect_key,
+        request_hash=record.request_hash,
+        disposition=AgentRunExecutionEffectDisposition(record.disposition),
+        outcome=outcome,
+        outcome_hash=record.outcome_hash,
+        error_code=record.error_code,
+        registered_at=record.registered_at,
+        settled_at=record.settled_at,
+    )

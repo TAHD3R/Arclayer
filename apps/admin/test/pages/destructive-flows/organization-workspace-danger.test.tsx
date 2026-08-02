@@ -102,8 +102,7 @@ beforeEach(() => {
 describe("workspace destructive flows", () => {
   it("uses workspace capability instead of org-owner status for delete", async () => {
     const user = userEvent.setup();
-    mockPathname = "/w/ws-1/settings/workspace/danger";
-    mockPathname = "/w/ws-1/settings/workspace/danger";
+    mockPathname = "/projects/project-1/settings/general";
     getWorkspaceDangerCapabilitiesMock.mockResolvedValue({
       workspaceId: "ws-1",
       confirmLeaveText: "LEAVE",

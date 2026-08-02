@@ -1,5 +1,15 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
+import { revokeCurrentPlatformSession } from "@/access/access-api";
 import {
   clearPlatformSession,
   getPlatformSessionDeadline,
@@ -13,13 +23,17 @@ import type { PlatformSessionIssuedOut } from "@arclayer/platform-openapi";
 type PlatformAuthContextValue = Readonly<{
   session: StoredPlatformSession | null;
   establishSession: (issued: PlatformSessionIssuedOut) => void;
-  signOut: () => void;
+  signOut: () => Promise<void>;
 }>;
 
 const PlatformAuthContext = createContext<PlatformAuthContextValue | null>(null);
 
 export function PlatformAuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<StoredPlatformSession | null>(() => readPlatformSession());
+  const signOutRequestRef = useRef<{
+    sessionId: string;
+    request: { correlationId: string; idempotencyKey: string };
+  } | null>(null);
 
   useEffect(() => subscribeToPlatformSession(() => setSession(readPlatformSession())), []);
 
@@ -34,13 +48,29 @@ export function PlatformAuthProvider({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(timeout);
   }, [session]);
 
+  const signOut = useCallback(async () => {
+    if (!session) return;
+    if (signOutRequestRef.current?.sessionId !== session.principal.sessionId) {
+      signOutRequestRef.current = {
+        sessionId: session.principal.sessionId,
+        request: { correlationId: crypto.randomUUID(), idempotencyKey: crypto.randomUUID() },
+      };
+    }
+    await revokeCurrentPlatformSession(
+      session.principal.sessionId,
+      signOutRequestRef.current.request,
+    );
+    signOutRequestRef.current = null;
+    clearPlatformSession();
+  }, [session]);
+
   const value = useMemo<PlatformAuthContextValue>(
     () => ({
       session,
       establishSession: (issued) => setSession(savePlatformSession(issued)),
-      signOut: () => clearPlatformSession(),
+      signOut,
     }),
-    [session],
+    [session, signOut],
   );
 
   return <PlatformAuthContext.Provider value={value}>{children}</PlatformAuthContext.Provider>;

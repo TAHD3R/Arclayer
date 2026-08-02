@@ -23,37 +23,25 @@ import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects/$p
 import { Route as CustomizationSkillsIndexRouteImport } from './routes/customization/skills/index'
 import { Route as CustomizationKnowledgeIndexRouteImport } from './routes/customization/knowledge/index'
 import { Route as CustomizationDesignSystemsIndexRouteImport } from './routes/customization/design-systems/index'
-import { Route as ProjectsProjectIdSettingsIndexRouteImport } from './routes/projects/$projectId/settings/index'
 import { Route as ProjectsProjectIdEditorIndexRouteImport } from './routes/projects/$projectId/editor/index'
-import { Route as ProjectsProjectIdDeploymentsIndexRouteImport } from './routes/projects/$projectId/deployments/index'
 import { Route as ProjectsProjectIdAssetsIndexRouteImport } from './routes/projects/$projectId/assets/index'
 import { Route as ProjectsProjectIdActivityIndexRouteImport } from './routes/projects/$projectId/activity/index'
-import { Route as ProjectsProjectIdWebsiteReleasesIndexRouteImport } from './routes/projects/$projectId/website/releases/index'
+import { Route as CustomizationKnowledgeReferencesIndexRouteImport } from './routes/customization/knowledge/references/index'
 import { Route as ProjectsProjectIdWebsiteProjectReleasesIndexRouteImport } from './routes/projects/$projectId/website/project-releases/index'
-import { Route as ProjectsProjectIdWebsiteDomainIndexRouteImport } from './routes/projects/$projectId/website/domain/index'
 import { Route as ProjectsProjectIdWebsiteConfigIndexRouteImport } from './routes/projects/$projectId/website/config/index'
 import { Route as ProjectsProjectIdSettingsSeoIndexRouteImport } from './routes/projects/$projectId/settings/seo/index'
 import { Route as ProjectsProjectIdSettingsRuntimeIndexRouteImport } from './routes/projects/$projectId/settings/runtime/index'
-import { Route as ProjectsProjectIdSettingsLocalizationIndexRouteImport } from './routes/projects/$projectId/settings/localization/index'
+import { Route as ProjectsProjectIdSettingsGuidanceIndexRouteImport } from './routes/projects/$projectId/settings/guidance/index'
 import { Route as ProjectsProjectIdSettingsGeneralIndexRouteImport } from './routes/projects/$projectId/settings/general/index'
 import { Route as ProjectsProjectIdSettingsEnvironmentsIndexRouteImport } from './routes/projects/$projectId/settings/environments/index'
-import { Route as ProjectsProjectIdSettingsDomainIndexRouteImport } from './routes/projects/$projectId/settings/domain/index'
-import { Route as ProjectsProjectIdSettingsDeploymentsIndexRouteImport } from './routes/projects/$projectId/settings/deployments/index'
 import { Route as ProjectsProjectIdSettingsDatabasesIndexRouteImport } from './routes/projects/$projectId/settings/databases/index'
 import { Route as ProjectsProjectIdSettingsApiIndexRouteImport } from './routes/projects/$projectId/settings/api/index'
-import { Route as ProjectsProjectIdSettingsApiKeysIndexRouteImport } from './routes/projects/$projectId/settings/api-keys/index'
-import { Route as ProjectsProjectIdSeoSiteIndexRouteImport } from './routes/projects/$projectId/seo/site/index'
 import { Route as ProjectsProjectIdSeoGoogleAnalyticsIndexRouteImport } from './routes/projects/$projectId/seo/google-analytics/index'
 import { Route as ProjectsProjectIdSeoAuditIndexRouteImport } from './routes/projects/$projectId/seo/audit/index'
 import { Route as ProjectsProjectIdContentSiteBuilderIndexRouteImport } from './routes/projects/$projectId/content/site-builder/index'
 import { Route as ProjectsProjectIdContentModelsIndexRouteImport } from './routes/projects/$projectId/content/models/index'
-import { Route as ProjectsProjectIdContentLocalizationIndexRouteImport } from './routes/projects/$projectId/content/localization/index'
 import { Route as ProjectsProjectIdContentLibraryIndexRouteImport } from './routes/projects/$projectId/content/library/index'
-import { Route as ProjectsProjectIdContentGeneralIndexRouteImport } from './routes/projects/$projectId/content/general/index'
-import { Route as ProjectsProjectIdContentDomainIndexRouteImport } from './routes/projects/$projectId/content/domain/index'
-import { Route as ProjectsProjectIdContentCreateIndexRouteImport } from './routes/projects/$projectId/content/create/index'
 import { Route as ProjectsProjectIdContentAutomationIndexRouteImport } from './routes/projects/$projectId/content/automation/index'
-import { Route as ProjectsProjectIdSeoSiteLocalizationIndexRouteImport } from './routes/projects/$projectId/seo/site/localization/index'
 import { Route as ProjectsProjectIdContentModelsEditIndexRouteImport } from './routes/projects/$projectId/content/models/edit/index'
 import { Route as ProjectsProjectIdContentLibraryItemIdIndexRouteImport } from './routes/projects/$projectId/content/library/$itemId/index'
 
@@ -140,12 +128,6 @@ const CustomizationDesignSystemsIndexRoute =
     path: '/customization/design-systems/',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ProjectsProjectIdSettingsIndexRoute =
-  ProjectsProjectIdSettingsIndexRouteImport.update({
-    id: '/settings/',
-    path: '/settings/',
-    getParentRoute: () => ProjectsProjectIdRoute,
-  } as any)
 const ProjectsProjectIdEditorIndexRoute =
   ProjectsProjectIdEditorIndexRouteImport.update({
     id: '/editor/',
@@ -156,12 +138,6 @@ const ProjectsProjectIdEditorIndexRoute =
       (d) => d.Route,
     ),
   )
-const ProjectsProjectIdDeploymentsIndexRoute =
-  ProjectsProjectIdDeploymentsIndexRouteImport.update({
-    id: '/deployments/',
-    path: '/deployments/',
-    getParentRoute: () => ProjectsProjectIdRoute,
-  } as any)
 const ProjectsProjectIdAssetsIndexRoute =
   ProjectsProjectIdAssetsIndexRouteImport.update({
     id: '/assets/',
@@ -182,11 +158,11 @@ const ProjectsProjectIdActivityIndexRoute =
       (d) => d.Route,
     ),
   )
-const ProjectsProjectIdWebsiteReleasesIndexRoute =
-  ProjectsProjectIdWebsiteReleasesIndexRouteImport.update({
-    id: '/website/releases/',
-    path: '/website/releases/',
-    getParentRoute: () => ProjectsProjectIdRoute,
+const CustomizationKnowledgeReferencesIndexRoute =
+  CustomizationKnowledgeReferencesIndexRouteImport.update({
+    id: '/customization/knowledge/references/',
+    path: '/customization/knowledge/references/',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const ProjectsProjectIdWebsiteProjectReleasesIndexRoute =
   ProjectsProjectIdWebsiteProjectReleasesIndexRouteImport.update({
@@ -198,12 +174,6 @@ const ProjectsProjectIdWebsiteProjectReleasesIndexRoute =
       (d) => d.Route,
     ),
   )
-const ProjectsProjectIdWebsiteDomainIndexRoute =
-  ProjectsProjectIdWebsiteDomainIndexRouteImport.update({
-    id: '/website/domain/',
-    path: '/website/domain/',
-    getParentRoute: () => ProjectsProjectIdRoute,
-  } as any)
 const ProjectsProjectIdWebsiteConfigIndexRoute =
   ProjectsProjectIdWebsiteConfigIndexRouteImport.update({
     id: '/website/config/',
@@ -226,10 +196,10 @@ const ProjectsProjectIdSettingsRuntimeIndexRoute =
     path: '/settings/runtime/',
     getParentRoute: () => ProjectsProjectIdRoute,
   } as any)
-const ProjectsProjectIdSettingsLocalizationIndexRoute =
-  ProjectsProjectIdSettingsLocalizationIndexRouteImport.update({
-    id: '/settings/localization/',
-    path: '/settings/localization/',
+const ProjectsProjectIdSettingsGuidanceIndexRoute =
+  ProjectsProjectIdSettingsGuidanceIndexRouteImport.update({
+    id: '/settings/guidance/',
+    path: '/settings/guidance/',
     getParentRoute: () => ProjectsProjectIdRoute,
   } as any)
 const ProjectsProjectIdSettingsGeneralIndexRoute =
@@ -248,18 +218,6 @@ const ProjectsProjectIdSettingsEnvironmentsIndexRoute =
       (d) => d.Route,
     ),
   )
-const ProjectsProjectIdSettingsDomainIndexRoute =
-  ProjectsProjectIdSettingsDomainIndexRouteImport.update({
-    id: '/settings/domain/',
-    path: '/settings/domain/',
-    getParentRoute: () => ProjectsProjectIdRoute,
-  } as any)
-const ProjectsProjectIdSettingsDeploymentsIndexRoute =
-  ProjectsProjectIdSettingsDeploymentsIndexRouteImport.update({
-    id: '/settings/deployments/',
-    path: '/settings/deployments/',
-    getParentRoute: () => ProjectsProjectIdRoute,
-  } as any)
 const ProjectsProjectIdSettingsDatabasesIndexRoute =
   ProjectsProjectIdSettingsDatabasesIndexRouteImport.update({
     id: '/settings/databases/',
@@ -276,22 +234,6 @@ const ProjectsProjectIdSettingsApiIndexRoute =
     path: '/settings/api/',
     getParentRoute: () => ProjectsProjectIdRoute,
   } as any)
-const ProjectsProjectIdSettingsApiKeysIndexRoute =
-  ProjectsProjectIdSettingsApiKeysIndexRouteImport.update({
-    id: '/settings/api-keys/',
-    path: '/settings/api-keys/',
-    getParentRoute: () => ProjectsProjectIdRoute,
-  } as any)
-const ProjectsProjectIdSeoSiteIndexRoute =
-  ProjectsProjectIdSeoSiteIndexRouteImport.update({
-    id: '/seo/site/',
-    path: '/seo/site/',
-    getParentRoute: () => ProjectsProjectIdRoute,
-  } as any).lazy(() =>
-    import('./routes/projects/$projectId/seo/site/index.lazy').then(
-      (d) => d.Route,
-    ),
-  )
 const ProjectsProjectIdSeoGoogleAnalyticsIndexRoute =
   ProjectsProjectIdSeoGoogleAnalyticsIndexRouteImport.update({
     id: '/seo/google-analytics/',
@@ -324,12 +266,6 @@ const ProjectsProjectIdContentModelsIndexRoute =
       (d) => d.Route,
     ),
   )
-const ProjectsProjectIdContentLocalizationIndexRoute =
-  ProjectsProjectIdContentLocalizationIndexRouteImport.update({
-    id: '/content/localization/',
-    path: '/content/localization/',
-    getParentRoute: () => ProjectsProjectIdRoute,
-  } as any)
 const ProjectsProjectIdContentLibraryIndexRoute =
   ProjectsProjectIdContentLibraryIndexRouteImport.update({
     id: '/content/library/',
@@ -340,28 +276,6 @@ const ProjectsProjectIdContentLibraryIndexRoute =
       (d) => d.Route,
     ),
   )
-const ProjectsProjectIdContentGeneralIndexRoute =
-  ProjectsProjectIdContentGeneralIndexRouteImport.update({
-    id: '/content/general/',
-    path: '/content/general/',
-    getParentRoute: () => ProjectsProjectIdRoute,
-  } as any)
-const ProjectsProjectIdContentDomainIndexRoute =
-  ProjectsProjectIdContentDomainIndexRouteImport.update({
-    id: '/content/domain/',
-    path: '/content/domain/',
-    getParentRoute: () => ProjectsProjectIdRoute,
-  } as any)
-const ProjectsProjectIdContentCreateIndexRoute =
-  ProjectsProjectIdContentCreateIndexRouteImport.update({
-    id: '/content/create/',
-    path: '/content/create/',
-    getParentRoute: () => ProjectsProjectIdRoute,
-  } as any).lazy(() =>
-    import('./routes/projects/$projectId/content/create/index.lazy').then(
-      (d) => d.Route,
-    ),
-  )
 const ProjectsProjectIdContentAutomationIndexRoute =
   ProjectsProjectIdContentAutomationIndexRouteImport.update({
     id: '/content/automation/',
@@ -369,16 +283,6 @@ const ProjectsProjectIdContentAutomationIndexRoute =
     getParentRoute: () => ProjectsProjectIdRoute,
   } as any).lazy(() =>
     import('./routes/projects/$projectId/content/automation/index.lazy').then(
-      (d) => d.Route,
-    ),
-  )
-const ProjectsProjectIdSeoSiteLocalizationIndexRoute =
-  ProjectsProjectIdSeoSiteLocalizationIndexRouteImport.update({
-    id: '/seo/site/localization/',
-    path: '/seo/site/localization/',
-    getParentRoute: () => ProjectsProjectIdRoute,
-  } as any).lazy(() =>
-    import('./routes/projects/$projectId/seo/site/localization/index.lazy').then(
       (d) => d.Route,
     ),
   )
@@ -418,39 +322,27 @@ export interface FileRoutesByFullPath {
   '/customization/knowledge/': typeof CustomizationKnowledgeIndexRoute
   '/customization/skills/': typeof CustomizationSkillsIndexRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
+  '/customization/knowledge/references/': typeof CustomizationKnowledgeReferencesIndexRoute
   '/projects/$projectId/activity/': typeof ProjectsProjectIdActivityIndexRoute
   '/projects/$projectId/assets/': typeof ProjectsProjectIdAssetsIndexRoute
-  '/projects/$projectId/deployments/': typeof ProjectsProjectIdDeploymentsIndexRoute
   '/projects/$projectId/editor/': typeof ProjectsProjectIdEditorIndexRoute
-  '/projects/$projectId/settings/': typeof ProjectsProjectIdSettingsIndexRoute
   '/projects/$projectId/content/automation/': typeof ProjectsProjectIdContentAutomationIndexRoute
-  '/projects/$projectId/content/create/': typeof ProjectsProjectIdContentCreateIndexRoute
-  '/projects/$projectId/content/domain/': typeof ProjectsProjectIdContentDomainIndexRoute
-  '/projects/$projectId/content/general/': typeof ProjectsProjectIdContentGeneralIndexRoute
   '/projects/$projectId/content/library/': typeof ProjectsProjectIdContentLibraryIndexRoute
-  '/projects/$projectId/content/localization/': typeof ProjectsProjectIdContentLocalizationIndexRoute
   '/projects/$projectId/content/models/': typeof ProjectsProjectIdContentModelsIndexRoute
   '/projects/$projectId/content/site-builder/': typeof ProjectsProjectIdContentSiteBuilderIndexRoute
   '/projects/$projectId/seo/audit/': typeof ProjectsProjectIdSeoAuditIndexRoute
   '/projects/$projectId/seo/google-analytics/': typeof ProjectsProjectIdSeoGoogleAnalyticsIndexRoute
-  '/projects/$projectId/seo/site/': typeof ProjectsProjectIdSeoSiteIndexRoute
-  '/projects/$projectId/settings/api-keys/': typeof ProjectsProjectIdSettingsApiKeysIndexRoute
   '/projects/$projectId/settings/api/': typeof ProjectsProjectIdSettingsApiIndexRoute
   '/projects/$projectId/settings/databases/': typeof ProjectsProjectIdSettingsDatabasesIndexRoute
-  '/projects/$projectId/settings/deployments/': typeof ProjectsProjectIdSettingsDeploymentsIndexRoute
-  '/projects/$projectId/settings/domain/': typeof ProjectsProjectIdSettingsDomainIndexRoute
   '/projects/$projectId/settings/environments/': typeof ProjectsProjectIdSettingsEnvironmentsIndexRoute
   '/projects/$projectId/settings/general/': typeof ProjectsProjectIdSettingsGeneralIndexRoute
-  '/projects/$projectId/settings/localization/': typeof ProjectsProjectIdSettingsLocalizationIndexRoute
+  '/projects/$projectId/settings/guidance/': typeof ProjectsProjectIdSettingsGuidanceIndexRoute
   '/projects/$projectId/settings/runtime/': typeof ProjectsProjectIdSettingsRuntimeIndexRoute
   '/projects/$projectId/settings/seo/': typeof ProjectsProjectIdSettingsSeoIndexRoute
   '/projects/$projectId/website/config/': typeof ProjectsProjectIdWebsiteConfigIndexRoute
-  '/projects/$projectId/website/domain/': typeof ProjectsProjectIdWebsiteDomainIndexRoute
   '/projects/$projectId/website/project-releases/': typeof ProjectsProjectIdWebsiteProjectReleasesIndexRoute
-  '/projects/$projectId/website/releases/': typeof ProjectsProjectIdWebsiteReleasesIndexRoute
   '/projects/$projectId/content/library/$itemId/': typeof ProjectsProjectIdContentLibraryItemIdIndexRoute
   '/projects/$projectId/content/models/edit/': typeof ProjectsProjectIdContentModelsEditIndexRoute
-  '/projects/$projectId/seo/site/localization/': typeof ProjectsProjectIdSeoSiteLocalizationIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -466,39 +358,27 @@ export interface FileRoutesByTo {
   '/customization/knowledge': typeof CustomizationKnowledgeIndexRoute
   '/customization/skills': typeof CustomizationSkillsIndexRoute
   '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
+  '/customization/knowledge/references': typeof CustomizationKnowledgeReferencesIndexRoute
   '/projects/$projectId/activity': typeof ProjectsProjectIdActivityIndexRoute
   '/projects/$projectId/assets': typeof ProjectsProjectIdAssetsIndexRoute
-  '/projects/$projectId/deployments': typeof ProjectsProjectIdDeploymentsIndexRoute
   '/projects/$projectId/editor': typeof ProjectsProjectIdEditorIndexRoute
-  '/projects/$projectId/settings': typeof ProjectsProjectIdSettingsIndexRoute
   '/projects/$projectId/content/automation': typeof ProjectsProjectIdContentAutomationIndexRoute
-  '/projects/$projectId/content/create': typeof ProjectsProjectIdContentCreateIndexRoute
-  '/projects/$projectId/content/domain': typeof ProjectsProjectIdContentDomainIndexRoute
-  '/projects/$projectId/content/general': typeof ProjectsProjectIdContentGeneralIndexRoute
   '/projects/$projectId/content/library': typeof ProjectsProjectIdContentLibraryIndexRoute
-  '/projects/$projectId/content/localization': typeof ProjectsProjectIdContentLocalizationIndexRoute
   '/projects/$projectId/content/models': typeof ProjectsProjectIdContentModelsIndexRoute
   '/projects/$projectId/content/site-builder': typeof ProjectsProjectIdContentSiteBuilderIndexRoute
   '/projects/$projectId/seo/audit': typeof ProjectsProjectIdSeoAuditIndexRoute
   '/projects/$projectId/seo/google-analytics': typeof ProjectsProjectIdSeoGoogleAnalyticsIndexRoute
-  '/projects/$projectId/seo/site': typeof ProjectsProjectIdSeoSiteIndexRoute
-  '/projects/$projectId/settings/api-keys': typeof ProjectsProjectIdSettingsApiKeysIndexRoute
   '/projects/$projectId/settings/api': typeof ProjectsProjectIdSettingsApiIndexRoute
   '/projects/$projectId/settings/databases': typeof ProjectsProjectIdSettingsDatabasesIndexRoute
-  '/projects/$projectId/settings/deployments': typeof ProjectsProjectIdSettingsDeploymentsIndexRoute
-  '/projects/$projectId/settings/domain': typeof ProjectsProjectIdSettingsDomainIndexRoute
   '/projects/$projectId/settings/environments': typeof ProjectsProjectIdSettingsEnvironmentsIndexRoute
   '/projects/$projectId/settings/general': typeof ProjectsProjectIdSettingsGeneralIndexRoute
-  '/projects/$projectId/settings/localization': typeof ProjectsProjectIdSettingsLocalizationIndexRoute
+  '/projects/$projectId/settings/guidance': typeof ProjectsProjectIdSettingsGuidanceIndexRoute
   '/projects/$projectId/settings/runtime': typeof ProjectsProjectIdSettingsRuntimeIndexRoute
   '/projects/$projectId/settings/seo': typeof ProjectsProjectIdSettingsSeoIndexRoute
   '/projects/$projectId/website/config': typeof ProjectsProjectIdWebsiteConfigIndexRoute
-  '/projects/$projectId/website/domain': typeof ProjectsProjectIdWebsiteDomainIndexRoute
   '/projects/$projectId/website/project-releases': typeof ProjectsProjectIdWebsiteProjectReleasesIndexRoute
-  '/projects/$projectId/website/releases': typeof ProjectsProjectIdWebsiteReleasesIndexRoute
   '/projects/$projectId/content/library/$itemId': typeof ProjectsProjectIdContentLibraryItemIdIndexRoute
   '/projects/$projectId/content/models/edit': typeof ProjectsProjectIdContentModelsEditIndexRoute
-  '/projects/$projectId/seo/site/localization': typeof ProjectsProjectIdSeoSiteLocalizationIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -516,39 +396,27 @@ export interface FileRoutesById {
   '/customization/knowledge/': typeof CustomizationKnowledgeIndexRoute
   '/customization/skills/': typeof CustomizationSkillsIndexRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
+  '/customization/knowledge/references/': typeof CustomizationKnowledgeReferencesIndexRoute
   '/projects/$projectId/activity/': typeof ProjectsProjectIdActivityIndexRoute
   '/projects/$projectId/assets/': typeof ProjectsProjectIdAssetsIndexRoute
-  '/projects/$projectId/deployments/': typeof ProjectsProjectIdDeploymentsIndexRoute
   '/projects/$projectId/editor/': typeof ProjectsProjectIdEditorIndexRoute
-  '/projects/$projectId/settings/': typeof ProjectsProjectIdSettingsIndexRoute
   '/projects/$projectId/content/automation/': typeof ProjectsProjectIdContentAutomationIndexRoute
-  '/projects/$projectId/content/create/': typeof ProjectsProjectIdContentCreateIndexRoute
-  '/projects/$projectId/content/domain/': typeof ProjectsProjectIdContentDomainIndexRoute
-  '/projects/$projectId/content/general/': typeof ProjectsProjectIdContentGeneralIndexRoute
   '/projects/$projectId/content/library/': typeof ProjectsProjectIdContentLibraryIndexRoute
-  '/projects/$projectId/content/localization/': typeof ProjectsProjectIdContentLocalizationIndexRoute
   '/projects/$projectId/content/models/': typeof ProjectsProjectIdContentModelsIndexRoute
   '/projects/$projectId/content/site-builder/': typeof ProjectsProjectIdContentSiteBuilderIndexRoute
   '/projects/$projectId/seo/audit/': typeof ProjectsProjectIdSeoAuditIndexRoute
   '/projects/$projectId/seo/google-analytics/': typeof ProjectsProjectIdSeoGoogleAnalyticsIndexRoute
-  '/projects/$projectId/seo/site/': typeof ProjectsProjectIdSeoSiteIndexRoute
-  '/projects/$projectId/settings/api-keys/': typeof ProjectsProjectIdSettingsApiKeysIndexRoute
   '/projects/$projectId/settings/api/': typeof ProjectsProjectIdSettingsApiIndexRoute
   '/projects/$projectId/settings/databases/': typeof ProjectsProjectIdSettingsDatabasesIndexRoute
-  '/projects/$projectId/settings/deployments/': typeof ProjectsProjectIdSettingsDeploymentsIndexRoute
-  '/projects/$projectId/settings/domain/': typeof ProjectsProjectIdSettingsDomainIndexRoute
   '/projects/$projectId/settings/environments/': typeof ProjectsProjectIdSettingsEnvironmentsIndexRoute
   '/projects/$projectId/settings/general/': typeof ProjectsProjectIdSettingsGeneralIndexRoute
-  '/projects/$projectId/settings/localization/': typeof ProjectsProjectIdSettingsLocalizationIndexRoute
+  '/projects/$projectId/settings/guidance/': typeof ProjectsProjectIdSettingsGuidanceIndexRoute
   '/projects/$projectId/settings/runtime/': typeof ProjectsProjectIdSettingsRuntimeIndexRoute
   '/projects/$projectId/settings/seo/': typeof ProjectsProjectIdSettingsSeoIndexRoute
   '/projects/$projectId/website/config/': typeof ProjectsProjectIdWebsiteConfigIndexRoute
-  '/projects/$projectId/website/domain/': typeof ProjectsProjectIdWebsiteDomainIndexRoute
   '/projects/$projectId/website/project-releases/': typeof ProjectsProjectIdWebsiteProjectReleasesIndexRoute
-  '/projects/$projectId/website/releases/': typeof ProjectsProjectIdWebsiteReleasesIndexRoute
   '/projects/$projectId/content/library/$itemId/': typeof ProjectsProjectIdContentLibraryItemIdIndexRoute
   '/projects/$projectId/content/models/edit/': typeof ProjectsProjectIdContentModelsEditIndexRoute
-  '/projects/$projectId/seo/site/localization/': typeof ProjectsProjectIdSeoSiteLocalizationIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -567,39 +435,27 @@ export interface FileRouteTypes {
     | '/customization/knowledge/'
     | '/customization/skills/'
     | '/projects/$projectId/'
+    | '/customization/knowledge/references/'
     | '/projects/$projectId/activity/'
     | '/projects/$projectId/assets/'
-    | '/projects/$projectId/deployments/'
     | '/projects/$projectId/editor/'
-    | '/projects/$projectId/settings/'
     | '/projects/$projectId/content/automation/'
-    | '/projects/$projectId/content/create/'
-    | '/projects/$projectId/content/domain/'
-    | '/projects/$projectId/content/general/'
     | '/projects/$projectId/content/library/'
-    | '/projects/$projectId/content/localization/'
     | '/projects/$projectId/content/models/'
     | '/projects/$projectId/content/site-builder/'
     | '/projects/$projectId/seo/audit/'
     | '/projects/$projectId/seo/google-analytics/'
-    | '/projects/$projectId/seo/site/'
-    | '/projects/$projectId/settings/api-keys/'
     | '/projects/$projectId/settings/api/'
     | '/projects/$projectId/settings/databases/'
-    | '/projects/$projectId/settings/deployments/'
-    | '/projects/$projectId/settings/domain/'
     | '/projects/$projectId/settings/environments/'
     | '/projects/$projectId/settings/general/'
-    | '/projects/$projectId/settings/localization/'
+    | '/projects/$projectId/settings/guidance/'
     | '/projects/$projectId/settings/runtime/'
     | '/projects/$projectId/settings/seo/'
     | '/projects/$projectId/website/config/'
-    | '/projects/$projectId/website/domain/'
     | '/projects/$projectId/website/project-releases/'
-    | '/projects/$projectId/website/releases/'
     | '/projects/$projectId/content/library/$itemId/'
     | '/projects/$projectId/content/models/edit/'
-    | '/projects/$projectId/seo/site/localization/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -615,39 +471,27 @@ export interface FileRouteTypes {
     | '/customization/knowledge'
     | '/customization/skills'
     | '/projects/$projectId'
+    | '/customization/knowledge/references'
     | '/projects/$projectId/activity'
     | '/projects/$projectId/assets'
-    | '/projects/$projectId/deployments'
     | '/projects/$projectId/editor'
-    | '/projects/$projectId/settings'
     | '/projects/$projectId/content/automation'
-    | '/projects/$projectId/content/create'
-    | '/projects/$projectId/content/domain'
-    | '/projects/$projectId/content/general'
     | '/projects/$projectId/content/library'
-    | '/projects/$projectId/content/localization'
     | '/projects/$projectId/content/models'
     | '/projects/$projectId/content/site-builder'
     | '/projects/$projectId/seo/audit'
     | '/projects/$projectId/seo/google-analytics'
-    | '/projects/$projectId/seo/site'
-    | '/projects/$projectId/settings/api-keys'
     | '/projects/$projectId/settings/api'
     | '/projects/$projectId/settings/databases'
-    | '/projects/$projectId/settings/deployments'
-    | '/projects/$projectId/settings/domain'
     | '/projects/$projectId/settings/environments'
     | '/projects/$projectId/settings/general'
-    | '/projects/$projectId/settings/localization'
+    | '/projects/$projectId/settings/guidance'
     | '/projects/$projectId/settings/runtime'
     | '/projects/$projectId/settings/seo'
     | '/projects/$projectId/website/config'
-    | '/projects/$projectId/website/domain'
     | '/projects/$projectId/website/project-releases'
-    | '/projects/$projectId/website/releases'
     | '/projects/$projectId/content/library/$itemId'
     | '/projects/$projectId/content/models/edit'
-    | '/projects/$projectId/seo/site/localization'
   id:
     | '__root__'
     | '/'
@@ -664,39 +508,27 @@ export interface FileRouteTypes {
     | '/customization/knowledge/'
     | '/customization/skills/'
     | '/projects/$projectId/'
+    | '/customization/knowledge/references/'
     | '/projects/$projectId/activity/'
     | '/projects/$projectId/assets/'
-    | '/projects/$projectId/deployments/'
     | '/projects/$projectId/editor/'
-    | '/projects/$projectId/settings/'
     | '/projects/$projectId/content/automation/'
-    | '/projects/$projectId/content/create/'
-    | '/projects/$projectId/content/domain/'
-    | '/projects/$projectId/content/general/'
     | '/projects/$projectId/content/library/'
-    | '/projects/$projectId/content/localization/'
     | '/projects/$projectId/content/models/'
     | '/projects/$projectId/content/site-builder/'
     | '/projects/$projectId/seo/audit/'
     | '/projects/$projectId/seo/google-analytics/'
-    | '/projects/$projectId/seo/site/'
-    | '/projects/$projectId/settings/api-keys/'
     | '/projects/$projectId/settings/api/'
     | '/projects/$projectId/settings/databases/'
-    | '/projects/$projectId/settings/deployments/'
-    | '/projects/$projectId/settings/domain/'
     | '/projects/$projectId/settings/environments/'
     | '/projects/$projectId/settings/general/'
-    | '/projects/$projectId/settings/localization/'
+    | '/projects/$projectId/settings/guidance/'
     | '/projects/$projectId/settings/runtime/'
     | '/projects/$projectId/settings/seo/'
     | '/projects/$projectId/website/config/'
-    | '/projects/$projectId/website/domain/'
     | '/projects/$projectId/website/project-releases/'
-    | '/projects/$projectId/website/releases/'
     | '/projects/$projectId/content/library/$itemId/'
     | '/projects/$projectId/content/models/edit/'
-    | '/projects/$projectId/seo/site/localization/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -713,6 +545,7 @@ export interface RootRouteChildren {
   CustomizationDesignSystemsIndexRoute: typeof CustomizationDesignSystemsIndexRoute
   CustomizationKnowledgeIndexRoute: typeof CustomizationKnowledgeIndexRoute
   CustomizationSkillsIndexRoute: typeof CustomizationSkillsIndexRoute
+  CustomizationKnowledgeReferencesIndexRoute: typeof CustomizationKnowledgeReferencesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -815,25 +648,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CustomizationDesignSystemsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/projects/$projectId/settings/': {
-      id: '/projects/$projectId/settings/'
-      path: '/settings'
-      fullPath: '/projects/$projectId/settings/'
-      preLoaderRoute: typeof ProjectsProjectIdSettingsIndexRouteImport
-      parentRoute: typeof ProjectsProjectIdRoute
-    }
     '/projects/$projectId/editor/': {
       id: '/projects/$projectId/editor/'
       path: '/editor'
       fullPath: '/projects/$projectId/editor/'
       preLoaderRoute: typeof ProjectsProjectIdEditorIndexRouteImport
-      parentRoute: typeof ProjectsProjectIdRoute
-    }
-    '/projects/$projectId/deployments/': {
-      id: '/projects/$projectId/deployments/'
-      path: '/deployments'
-      fullPath: '/projects/$projectId/deployments/'
-      preLoaderRoute: typeof ProjectsProjectIdDeploymentsIndexRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
     '/projects/$projectId/assets/': {
@@ -850,25 +669,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdActivityIndexRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
-    '/projects/$projectId/website/releases/': {
-      id: '/projects/$projectId/website/releases/'
-      path: '/website/releases'
-      fullPath: '/projects/$projectId/website/releases/'
-      preLoaderRoute: typeof ProjectsProjectIdWebsiteReleasesIndexRouteImport
-      parentRoute: typeof ProjectsProjectIdRoute
+    '/customization/knowledge/references/': {
+      id: '/customization/knowledge/references/'
+      path: '/customization/knowledge/references'
+      fullPath: '/customization/knowledge/references/'
+      preLoaderRoute: typeof CustomizationKnowledgeReferencesIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/projects/$projectId/website/project-releases/': {
       id: '/projects/$projectId/website/project-releases/'
       path: '/website/project-releases'
       fullPath: '/projects/$projectId/website/project-releases/'
       preLoaderRoute: typeof ProjectsProjectIdWebsiteProjectReleasesIndexRouteImport
-      parentRoute: typeof ProjectsProjectIdRoute
-    }
-    '/projects/$projectId/website/domain/': {
-      id: '/projects/$projectId/website/domain/'
-      path: '/website/domain'
-      fullPath: '/projects/$projectId/website/domain/'
-      preLoaderRoute: typeof ProjectsProjectIdWebsiteDomainIndexRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
     '/projects/$projectId/website/config/': {
@@ -892,11 +704,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdSettingsRuntimeIndexRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
-    '/projects/$projectId/settings/localization/': {
-      id: '/projects/$projectId/settings/localization/'
-      path: '/settings/localization'
-      fullPath: '/projects/$projectId/settings/localization/'
-      preLoaderRoute: typeof ProjectsProjectIdSettingsLocalizationIndexRouteImport
+    '/projects/$projectId/settings/guidance/': {
+      id: '/projects/$projectId/settings/guidance/'
+      path: '/settings/guidance'
+      fullPath: '/projects/$projectId/settings/guidance/'
+      preLoaderRoute: typeof ProjectsProjectIdSettingsGuidanceIndexRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
     '/projects/$projectId/settings/general/': {
@@ -913,20 +725,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdSettingsEnvironmentsIndexRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
-    '/projects/$projectId/settings/domain/': {
-      id: '/projects/$projectId/settings/domain/'
-      path: '/settings/domain'
-      fullPath: '/projects/$projectId/settings/domain/'
-      preLoaderRoute: typeof ProjectsProjectIdSettingsDomainIndexRouteImport
-      parentRoute: typeof ProjectsProjectIdRoute
-    }
-    '/projects/$projectId/settings/deployments/': {
-      id: '/projects/$projectId/settings/deployments/'
-      path: '/settings/deployments'
-      fullPath: '/projects/$projectId/settings/deployments/'
-      preLoaderRoute: typeof ProjectsProjectIdSettingsDeploymentsIndexRouteImport
-      parentRoute: typeof ProjectsProjectIdRoute
-    }
     '/projects/$projectId/settings/databases/': {
       id: '/projects/$projectId/settings/databases/'
       path: '/settings/databases'
@@ -939,20 +737,6 @@ declare module '@tanstack/react-router' {
       path: '/settings/api'
       fullPath: '/projects/$projectId/settings/api/'
       preLoaderRoute: typeof ProjectsProjectIdSettingsApiIndexRouteImport
-      parentRoute: typeof ProjectsProjectIdRoute
-    }
-    '/projects/$projectId/settings/api-keys/': {
-      id: '/projects/$projectId/settings/api-keys/'
-      path: '/settings/api-keys'
-      fullPath: '/projects/$projectId/settings/api-keys/'
-      preLoaderRoute: typeof ProjectsProjectIdSettingsApiKeysIndexRouteImport
-      parentRoute: typeof ProjectsProjectIdRoute
-    }
-    '/projects/$projectId/seo/site/': {
-      id: '/projects/$projectId/seo/site/'
-      path: '/seo/site'
-      fullPath: '/projects/$projectId/seo/site/'
-      preLoaderRoute: typeof ProjectsProjectIdSeoSiteIndexRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
     '/projects/$projectId/seo/google-analytics/': {
@@ -983,13 +767,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdContentModelsIndexRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
-    '/projects/$projectId/content/localization/': {
-      id: '/projects/$projectId/content/localization/'
-      path: '/content/localization'
-      fullPath: '/projects/$projectId/content/localization/'
-      preLoaderRoute: typeof ProjectsProjectIdContentLocalizationIndexRouteImport
-      parentRoute: typeof ProjectsProjectIdRoute
-    }
     '/projects/$projectId/content/library/': {
       id: '/projects/$projectId/content/library/'
       path: '/content/library'
@@ -997,39 +774,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdContentLibraryIndexRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
-    '/projects/$projectId/content/general/': {
-      id: '/projects/$projectId/content/general/'
-      path: '/content/general'
-      fullPath: '/projects/$projectId/content/general/'
-      preLoaderRoute: typeof ProjectsProjectIdContentGeneralIndexRouteImport
-      parentRoute: typeof ProjectsProjectIdRoute
-    }
-    '/projects/$projectId/content/domain/': {
-      id: '/projects/$projectId/content/domain/'
-      path: '/content/domain'
-      fullPath: '/projects/$projectId/content/domain/'
-      preLoaderRoute: typeof ProjectsProjectIdContentDomainIndexRouteImport
-      parentRoute: typeof ProjectsProjectIdRoute
-    }
-    '/projects/$projectId/content/create/': {
-      id: '/projects/$projectId/content/create/'
-      path: '/content/create'
-      fullPath: '/projects/$projectId/content/create/'
-      preLoaderRoute: typeof ProjectsProjectIdContentCreateIndexRouteImport
-      parentRoute: typeof ProjectsProjectIdRoute
-    }
     '/projects/$projectId/content/automation/': {
       id: '/projects/$projectId/content/automation/'
       path: '/content/automation'
       fullPath: '/projects/$projectId/content/automation/'
       preLoaderRoute: typeof ProjectsProjectIdContentAutomationIndexRouteImport
-      parentRoute: typeof ProjectsProjectIdRoute
-    }
-    '/projects/$projectId/seo/site/localization/': {
-      id: '/projects/$projectId/seo/site/localization/'
-      path: '/seo/site/localization'
-      fullPath: '/projects/$projectId/seo/site/localization/'
-      preLoaderRoute: typeof ProjectsProjectIdSeoSiteLocalizationIndexRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
     '/projects/$projectId/content/models/edit/': {
@@ -1053,59 +802,35 @@ interface ProjectsProjectIdRouteChildren {
   ProjectsProjectIdIndexRoute: typeof ProjectsProjectIdIndexRoute
   ProjectsProjectIdActivityIndexRoute: typeof ProjectsProjectIdActivityIndexRoute
   ProjectsProjectIdAssetsIndexRoute: typeof ProjectsProjectIdAssetsIndexRoute
-  ProjectsProjectIdDeploymentsIndexRoute: typeof ProjectsProjectIdDeploymentsIndexRoute
   ProjectsProjectIdEditorIndexRoute: typeof ProjectsProjectIdEditorIndexRoute
-  ProjectsProjectIdSettingsIndexRoute: typeof ProjectsProjectIdSettingsIndexRoute
   ProjectsProjectIdContentAutomationIndexRoute: typeof ProjectsProjectIdContentAutomationIndexRoute
-  ProjectsProjectIdContentCreateIndexRoute: typeof ProjectsProjectIdContentCreateIndexRoute
-  ProjectsProjectIdContentDomainIndexRoute: typeof ProjectsProjectIdContentDomainIndexRoute
-  ProjectsProjectIdContentGeneralIndexRoute: typeof ProjectsProjectIdContentGeneralIndexRoute
   ProjectsProjectIdContentLibraryIndexRoute: typeof ProjectsProjectIdContentLibraryIndexRoute
-  ProjectsProjectIdContentLocalizationIndexRoute: typeof ProjectsProjectIdContentLocalizationIndexRoute
   ProjectsProjectIdContentModelsIndexRoute: typeof ProjectsProjectIdContentModelsIndexRoute
   ProjectsProjectIdContentSiteBuilderIndexRoute: typeof ProjectsProjectIdContentSiteBuilderIndexRoute
   ProjectsProjectIdSeoAuditIndexRoute: typeof ProjectsProjectIdSeoAuditIndexRoute
   ProjectsProjectIdSeoGoogleAnalyticsIndexRoute: typeof ProjectsProjectIdSeoGoogleAnalyticsIndexRoute
-  ProjectsProjectIdSeoSiteIndexRoute: typeof ProjectsProjectIdSeoSiteIndexRoute
-  ProjectsProjectIdSettingsApiKeysIndexRoute: typeof ProjectsProjectIdSettingsApiKeysIndexRoute
   ProjectsProjectIdSettingsApiIndexRoute: typeof ProjectsProjectIdSettingsApiIndexRoute
   ProjectsProjectIdSettingsDatabasesIndexRoute: typeof ProjectsProjectIdSettingsDatabasesIndexRoute
-  ProjectsProjectIdSettingsDeploymentsIndexRoute: typeof ProjectsProjectIdSettingsDeploymentsIndexRoute
-  ProjectsProjectIdSettingsDomainIndexRoute: typeof ProjectsProjectIdSettingsDomainIndexRoute
   ProjectsProjectIdSettingsEnvironmentsIndexRoute: typeof ProjectsProjectIdSettingsEnvironmentsIndexRoute
   ProjectsProjectIdSettingsGeneralIndexRoute: typeof ProjectsProjectIdSettingsGeneralIndexRoute
-  ProjectsProjectIdSettingsLocalizationIndexRoute: typeof ProjectsProjectIdSettingsLocalizationIndexRoute
+  ProjectsProjectIdSettingsGuidanceIndexRoute: typeof ProjectsProjectIdSettingsGuidanceIndexRoute
   ProjectsProjectIdSettingsRuntimeIndexRoute: typeof ProjectsProjectIdSettingsRuntimeIndexRoute
   ProjectsProjectIdSettingsSeoIndexRoute: typeof ProjectsProjectIdSettingsSeoIndexRoute
   ProjectsProjectIdWebsiteConfigIndexRoute: typeof ProjectsProjectIdWebsiteConfigIndexRoute
-  ProjectsProjectIdWebsiteDomainIndexRoute: typeof ProjectsProjectIdWebsiteDomainIndexRoute
   ProjectsProjectIdWebsiteProjectReleasesIndexRoute: typeof ProjectsProjectIdWebsiteProjectReleasesIndexRoute
-  ProjectsProjectIdWebsiteReleasesIndexRoute: typeof ProjectsProjectIdWebsiteReleasesIndexRoute
   ProjectsProjectIdContentLibraryItemIdIndexRoute: typeof ProjectsProjectIdContentLibraryItemIdIndexRoute
   ProjectsProjectIdContentModelsEditIndexRoute: typeof ProjectsProjectIdContentModelsEditIndexRoute
-  ProjectsProjectIdSeoSiteLocalizationIndexRoute: typeof ProjectsProjectIdSeoSiteLocalizationIndexRoute
 }
 
 const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
   ProjectsProjectIdIndexRoute: ProjectsProjectIdIndexRoute,
   ProjectsProjectIdActivityIndexRoute: ProjectsProjectIdActivityIndexRoute,
   ProjectsProjectIdAssetsIndexRoute: ProjectsProjectIdAssetsIndexRoute,
-  ProjectsProjectIdDeploymentsIndexRoute:
-    ProjectsProjectIdDeploymentsIndexRoute,
   ProjectsProjectIdEditorIndexRoute: ProjectsProjectIdEditorIndexRoute,
-  ProjectsProjectIdSettingsIndexRoute: ProjectsProjectIdSettingsIndexRoute,
   ProjectsProjectIdContentAutomationIndexRoute:
     ProjectsProjectIdContentAutomationIndexRoute,
-  ProjectsProjectIdContentCreateIndexRoute:
-    ProjectsProjectIdContentCreateIndexRoute,
-  ProjectsProjectIdContentDomainIndexRoute:
-    ProjectsProjectIdContentDomainIndexRoute,
-  ProjectsProjectIdContentGeneralIndexRoute:
-    ProjectsProjectIdContentGeneralIndexRoute,
   ProjectsProjectIdContentLibraryIndexRoute:
     ProjectsProjectIdContentLibraryIndexRoute,
-  ProjectsProjectIdContentLocalizationIndexRoute:
-    ProjectsProjectIdContentLocalizationIndexRoute,
   ProjectsProjectIdContentModelsIndexRoute:
     ProjectsProjectIdContentModelsIndexRoute,
   ProjectsProjectIdContentSiteBuilderIndexRoute:
@@ -1113,41 +838,28 @@ const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
   ProjectsProjectIdSeoAuditIndexRoute: ProjectsProjectIdSeoAuditIndexRoute,
   ProjectsProjectIdSeoGoogleAnalyticsIndexRoute:
     ProjectsProjectIdSeoGoogleAnalyticsIndexRoute,
-  ProjectsProjectIdSeoSiteIndexRoute: ProjectsProjectIdSeoSiteIndexRoute,
-  ProjectsProjectIdSettingsApiKeysIndexRoute:
-    ProjectsProjectIdSettingsApiKeysIndexRoute,
   ProjectsProjectIdSettingsApiIndexRoute:
     ProjectsProjectIdSettingsApiIndexRoute,
   ProjectsProjectIdSettingsDatabasesIndexRoute:
     ProjectsProjectIdSettingsDatabasesIndexRoute,
-  ProjectsProjectIdSettingsDeploymentsIndexRoute:
-    ProjectsProjectIdSettingsDeploymentsIndexRoute,
-  ProjectsProjectIdSettingsDomainIndexRoute:
-    ProjectsProjectIdSettingsDomainIndexRoute,
   ProjectsProjectIdSettingsEnvironmentsIndexRoute:
     ProjectsProjectIdSettingsEnvironmentsIndexRoute,
   ProjectsProjectIdSettingsGeneralIndexRoute:
     ProjectsProjectIdSettingsGeneralIndexRoute,
-  ProjectsProjectIdSettingsLocalizationIndexRoute:
-    ProjectsProjectIdSettingsLocalizationIndexRoute,
+  ProjectsProjectIdSettingsGuidanceIndexRoute:
+    ProjectsProjectIdSettingsGuidanceIndexRoute,
   ProjectsProjectIdSettingsRuntimeIndexRoute:
     ProjectsProjectIdSettingsRuntimeIndexRoute,
   ProjectsProjectIdSettingsSeoIndexRoute:
     ProjectsProjectIdSettingsSeoIndexRoute,
   ProjectsProjectIdWebsiteConfigIndexRoute:
     ProjectsProjectIdWebsiteConfigIndexRoute,
-  ProjectsProjectIdWebsiteDomainIndexRoute:
-    ProjectsProjectIdWebsiteDomainIndexRoute,
   ProjectsProjectIdWebsiteProjectReleasesIndexRoute:
     ProjectsProjectIdWebsiteProjectReleasesIndexRoute,
-  ProjectsProjectIdWebsiteReleasesIndexRoute:
-    ProjectsProjectIdWebsiteReleasesIndexRoute,
   ProjectsProjectIdContentLibraryItemIdIndexRoute:
     ProjectsProjectIdContentLibraryItemIdIndexRoute,
   ProjectsProjectIdContentModelsEditIndexRoute:
     ProjectsProjectIdContentModelsEditIndexRoute,
-  ProjectsProjectIdSeoSiteLocalizationIndexRoute:
-    ProjectsProjectIdSeoSiteLocalizationIndexRoute,
 }
 
 const ProjectsProjectIdRouteWithChildren =
@@ -1167,6 +879,8 @@ const rootRouteChildren: RootRouteChildren = {
   CustomizationDesignSystemsIndexRoute: CustomizationDesignSystemsIndexRoute,
   CustomizationKnowledgeIndexRoute: CustomizationKnowledgeIndexRoute,
   CustomizationSkillsIndexRoute: CustomizationSkillsIndexRoute,
+  CustomizationKnowledgeReferencesIndexRoute:
+    CustomizationKnowledgeReferencesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

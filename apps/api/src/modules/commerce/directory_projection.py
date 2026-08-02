@@ -143,6 +143,7 @@ class WorkspaceCommerceDirectoryService(BaseService):
         if account is None:
             return None
         return WorkspaceCreditsOut(
+            account_revision=int(account.revision),
             balance=int(account.balance_credits),
             reserved=int(account.reserved_credits),
             available=max(int(account.balance_credits) - int(account.reserved_credits), 0),

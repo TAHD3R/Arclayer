@@ -20,10 +20,12 @@ from src.models.system.plugin_installation import (
     PluginOperationState,
     PluginRuntimeActivationState,
     PluginSourceType,
+    PluginTrustState,
 )
 from src.modules.platform_identity.http import get_current_platform_session, get_platform_identity_repository
 from src.modules.platform_identity.session_schema import PlatformSessionPrincipal
 from src.modules.system.plugins.router import (
+    get_extension_connection_readiness_service,
     get_plugin_artifact_service,
     get_plugin_lifecycle_repository,
     get_plugin_lifecycle_service,
@@ -107,8 +109,10 @@ class _RemoteCatalogClientStub:
         self.remote = remote
         self.payload = object()
         self.selections: list[dict[str, object]] = []
+        self.fetch_calls = 0
 
     async def fetch(self) -> object:
+        self.fetch_calls += 1
         return self.payload
 
     def select_item(self, _catalog: object, **kwargs: object) -> object:
@@ -206,6 +210,8 @@ def _managed_artifact(project_root: Path, *, source_type: PluginSourceType) -> S
         package_checksum=f"sha256:{'b' * 64}",
         manifest_digest=f"sha256:{'c' * 64}",
         signer_fingerprint="d" * 64,
+        trust_state=PluginTrustState.VERIFIED,
+        trust_evidence=["artifact_signature", "package_checksum", "manifest_digest"],
         review_projection={"manifest": manifest.model_dump(mode="json")},
     )
 
@@ -240,6 +246,7 @@ def _build_app(
     catalog_repository: _CatalogRepositoryStub | None = None,
     artifact_service: _PluginArtifactServiceStub | None = None,
     catalog_client: _RemoteCatalogClientStub | None = None,
+    connection_readiness: object | None = None,
 ) -> FastAPI:
     app = FastAPI()
     init_exception_handlers(app, Settings(app_env="test"))
@@ -273,6 +280,8 @@ def _build_app(
         app.dependency_overrides[get_plugin_artifact_service] = lambda: artifact_service
     if catalog_client is not None:
         app.dependency_overrides[get_remote_plugin_catalog_client] = lambda: catalog_client
+    if connection_readiness is not None:
+        app.dependency_overrides[get_extension_connection_readiness_service] = lambda: connection_readiness
     return app
 
 
@@ -280,7 +289,7 @@ async def test_system_plugins_require_platform_permission() -> None:
     app = _build_app(manager=None, is_instance_owner=False)
 
     async with asgi_client(app) as client:
-        response = await client.get("/platform-api/v1/extensions")
+        response = await client.get("/platform-api/v1/extensions/installed")
 
     assert response.status_code == 403
     assert response.json()["error"] == "PLATFORM_PERMISSION_DENIED"
@@ -290,10 +299,20 @@ async def test_system_plugins_report_unavailable_runtime() -> None:
     app = _build_app(manager=None)
 
     async with asgi_client(app) as client:
-        response = await client.get("/platform-api/v1/extensions")
+        response = await client.get("/platform-api/v1/extensions/installed")
 
     assert response.status_code == 503
     assert response.json()["error"] == "EXTENSION_RUNTIME_UNAVAILABLE"
+
+
+async def test_legacy_extension_root_list_is_not_retained_as_a_card_api(tmp_path: Path) -> None:
+    _write_extension(tmp_path)
+    app = _build_app(manager=ExtensionManager(tmp_path))
+
+    async with asgi_client(app) as client:
+        response = await client.get("/platform-api/v1/extensions")
+
+    assert response.status_code == 404
 
 
 async def test_system_plugins_map_runtime_manifest(tmp_path: Path) -> None:
@@ -305,47 +324,15 @@ async def test_system_plugins_map_runtime_manifest(tmp_path: Path) -> None:
     app = _build_app(manager=manager)
 
     async with asgi_client(app) as client:
-        response = await client.get("/platform-api/v1/extensions")
+        response = await client.get("/platform-api/v1/extensions/installed")
 
     assert response.status_code == 200, response.text
-    assert response.json()["data"] == {
-        "plugins": [
-            {
-                "name": "catalog-test",
-                "version": "1.2.3",
-                "packageState": "installed",
-                "processState": "ready",
-                "provides": {
-                    "services": ["catalog-service"],
-                    "middlewares": ["catalog-middleware"],
-                    "providers": ["catalog-provider"],
-                    "connectors": ["catalog.test"],
-                    "contentTypes": ["catalog-entry"],
-                },
-                "permissions": ["catalog:read"],
-                "configSchema": {"enabled": {"type": "boolean"}},
-                "admin": {
-                    "labelKey": "settings:SETTINGS_SYSTEM_PLUGIN_CATALOG_TEST_NAME",
-                    "descriptionKey": "settings:SETTINGS_SYSTEM_PLUGIN_CATALOG_TEST_DESC",
-                },
-                "connectorDefinitions": [
-                    {
-                        "key": "catalog.test",
-                        "kind": "analytics",
-                        "version": "1.0.0",
-                        "trustLevel": "third_party",
-                        "capabilities": [],
-                        "configSchema": {},
-                        "secretSchema": {},
-                        "scopes": [],
-                        "webhookEvents": [],
-                        "healthContract": [],
-                        "admin": None,
-                    }
-                ],
-            }
-        ]
-    }
+    item = response.json()["data"]["items"][0]
+    assert item["name"] == "catalog-test"
+    assert item["availableVersion"] == "1.2.3"
+    assert item["processState"] == "ready"
+    assert item["trustState"] == "verified"
+    assert item["provides"]["connectors"] == ["catalog.test"]
 
 
 async def test_extension_connections_expose_typed_consuming_domain_target(tmp_path: Path) -> None:
@@ -369,8 +356,9 @@ async def test_extension_connections_expose_typed_consuming_domain_target(tmp_pa
                 "connectorKind": "analytics",
                 "trustLevel": "third_party",
                 "runtimeReady": True,
-                "configurationReadiness": "unknown",
+                "configurationReadiness": "unavailable",
                 "configurationTarget": "monitoring.performance",
+                "configurationDeepLink": "/monitoring/performance",
             }
         ]
     }
@@ -385,10 +373,10 @@ async def test_system_plugins_expose_official_posthog_connector() -> None:
     app = _build_app(manager=manager)
 
     async with asgi_client(app) as client:
-        response = await client.get("/platform-api/v1/extensions")
+        response = await client.get("/platform-api/v1/extensions/installed")
 
     assert response.status_code == 200, response.text
-    plugin = response.json()["data"]["plugins"][0]
+    plugin = response.json()["data"]["items"][0]
     assert plugin["name"] == "arclayer-posthog"
     assert plugin["processState"] == "ready"
     assert plugin["provides"]["connectors"] == ["analytics.posthog"]
@@ -440,8 +428,24 @@ async def test_system_plugin_catalog_exposes_integrity_compatibility_and_detail(
     detail = detail_response.json()["data"]
     assert detail.pop("recentOperations") == []
     assert detail == item
-    assert missing_response.status_code == 503
-    assert missing_response.json()["error"] == "PLUGIN_CATALOG_NOT_CONFIGURED"
+    assert missing_response.status_code == 404
+    assert missing_response.json()["error"] == "PLUGIN_NOT_FOUND"
+
+
+async def test_system_plugin_detail_does_not_silently_depend_on_online_catalog(tmp_path: Path) -> None:
+    _write_extension(tmp_path)
+    manager = ExtensionManager(tmp_path)
+    await manager.load_all()
+    await manager.register_all(app=None)
+    await manager.bootstrap_all(app=None)
+    catalog_client = _RemoteCatalogClientStub(remote=object())
+    app = _build_app(manager=manager, catalog_client=catalog_client)
+
+    async with asgi_client(app) as client:
+        response = await client.get("/platform-api/v1/extensions/catalog-test")
+
+    assert response.status_code == 200, response.text
+    assert catalog_client.fetch_calls == 0
 
 
 async def test_system_plugin_catalog_uses_persisted_disabled_installation_state(tmp_path: Path) -> None:
@@ -457,6 +461,8 @@ async def test_system_plugin_catalog_uses_persisted_disabled_installation_state(
         current_operation_id=None,
         current_job_id=None,
         approved_permissions=["catalog:read"],
+        declared_dependencies=[],
+        consumer_evidence={"state": "ready", "consumers": []},
         active_artifact=None,
     )
     app = _build_app(

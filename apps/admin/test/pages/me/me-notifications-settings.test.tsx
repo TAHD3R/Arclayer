@@ -6,10 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getMyNotificationPreferences, patchMyNotificationPreference } from "@/api/notifications";
 import { SettingsScreenProvider } from "@/components/layout/settings-screen-provider";
 import { UserNotificationSettingsView } from "@/pages/usercenter/notifications/components/user-notification-settings-view";
-import type {
-  NotificationPreferences,
-  NotificationPreferenceTopic,
-} from "@arclayer/openapi/admin-types";
+import type { NotificationPreferenceTopicOut as NotificationPreferenceTopic } from "@arclayer/openapi";
 
 vi.mock("@/api/notifications", () => ({
   getMyNotificationPreferences: vi.fn(),
@@ -59,6 +56,8 @@ vi.mock("react-i18next", () => ({
 const getMyNotificationPreferencesMock = vi.mocked(getMyNotificationPreferences);
 const patchMyNotificationPreferenceMock = vi.mocked(patchMyNotificationPreference);
 
+type NotificationPreferences = Awaited<ReturnType<typeof getMyNotificationPreferences>>;
+
 let currentPreferences: NotificationPreferences;
 
 function clonePreferences(value: NotificationPreferences): NotificationPreferences {
@@ -67,17 +66,17 @@ function clonePreferences(value: NotificationPreferences): NotificationPreferenc
 
 function makeTopic(params: {
   key: string;
-  titleI18n?: string;
-  descriptionI18n?: string;
+  titleI18N?: string;
+  descriptionI18N?: string;
   inApp?: Partial<NotificationPreferenceTopic["channels"]["in_app"]>;
   email?: Partial<NotificationPreferenceTopic["channels"]["email"]>;
 }): NotificationPreferenceTopic {
   return {
     key: params.key,
     category: "team",
-    titleI18n: params.titleI18n ?? `account:${params.key.replaceAll(".", "_").toUpperCase()}_TITLE`,
-    descriptionI18n:
-      params.descriptionI18n ?? `account:${params.key.replaceAll(".", "_").toUpperCase()}_DESC`,
+    titleI18N: params.titleI18N ?? `account:${params.key.replaceAll(".", "_").toUpperCase()}_TITLE`,
+    descriptionI18N:
+      params.descriptionI18N ?? `account:${params.key.replaceAll(".", "_").toUpperCase()}_DESC`,
     channels: {
       in_app: {
         enabled: false,
@@ -119,8 +118,8 @@ describe("UserNotificationSettingsView", () => {
       topics: [
         makeTopic({
           key: "workspace.invitation.accepted",
-          titleI18n: "account:ME_NOTIFY_TOPIC_WORKSPACE_INVITATION_ACCEPTED_TITLE",
-          descriptionI18n: "account:ME_NOTIFY_TOPIC_WORKSPACE_INVITATION_ACCEPTED_DESC",
+          titleI18N: "account:ME_NOTIFY_TOPIC_WORKSPACE_INVITATION_ACCEPTED_TITLE",
+          descriptionI18N: "account:ME_NOTIFY_TOPIC_WORKSPACE_INVITATION_ACCEPTED_DESC",
           inApp: { enabled: true },
           email: { enabled: false, supported: false, mutable: false },
         }),
@@ -188,14 +187,14 @@ describe("UserNotificationSettingsView", () => {
       topics: [
         makeTopic({
           key: "workspace.invitation.accepted",
-          titleI18n: "account:ME_NOTIFY_TOPIC_WORKSPACE_INVITATION_ACCEPTED_TITLE",
-          descriptionI18n: "account:ME_NOTIFY_TOPIC_WORKSPACE_INVITATION_ACCEPTED_DESC",
+          titleI18N: "account:ME_NOTIFY_TOPIC_WORKSPACE_INVITATION_ACCEPTED_TITLE",
+          descriptionI18N: "account:ME_NOTIFY_TOPIC_WORKSPACE_INVITATION_ACCEPTED_DESC",
           inApp: { enabled: false },
         }),
         makeTopic({
           key: "workspace.member.roles.updated",
-          titleI18n: "account:ME_NOTIFY_TOPIC_WORKSPACE_MEMBER_ROLES_UPDATED_TITLE",
-          descriptionI18n: "account:ME_NOTIFY_TOPIC_WORKSPACE_MEMBER_ROLES_UPDATED_DESC",
+          titleI18N: "account:ME_NOTIFY_TOPIC_WORKSPACE_MEMBER_ROLES_UPDATED_TITLE",
+          descriptionI18N: "account:ME_NOTIFY_TOPIC_WORKSPACE_MEMBER_ROLES_UPDATED_DESC",
           inApp: { enabled: false },
         }),
       ],
@@ -226,8 +225,8 @@ describe("UserNotificationSettingsView", () => {
       topics: [
         makeTopic({
           key: "workspace.member.roles.updated",
-          titleI18n: undefined,
-          descriptionI18n: undefined,
+          titleI18N: "",
+          descriptionI18N: "",
         }),
       ],
     };

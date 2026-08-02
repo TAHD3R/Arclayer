@@ -16,16 +16,15 @@ import {
   getContentTypeDescription,
   getContentTypeLabel,
 } from "@/pages/projects/content/content-type-presentation";
-import type {
-  AdminContentItem,
-  AdminContentVersion,
-  JsonValueInput,
-} from "@arclayer/openapi/admin-types";
+import type { JsonValueInput } from "@arclayer/openapi";
+import type { getContentItem, getContentItemVersion } from "@/api/content";
 import { Button } from "@arclayer/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
 import { Textarea } from "@arclayer/ui/textarea";
 
 const STRUCTURED_REQUIRED_CAPABILITIES = ["queryable"] as const;
+type AdminContentItem = Awaited<ReturnType<typeof getContentItem>>;
+type AdminContentVersion = Awaited<ReturnType<typeof getContentItemVersion>>;
 
 function hasStructuredCapabilities(item: AdminContentItem) {
   return STRUCTURED_REQUIRED_CAPABILITIES.every((capability) =>

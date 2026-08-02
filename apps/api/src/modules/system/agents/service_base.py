@@ -16,7 +16,6 @@ from src.core.services import BaseService
 from src.models.agents.catalog import AgentDefinitionRecord
 from src.modules.analytics.audit import ActivityAuditPayload
 from src.modules.system.agents.repository_protocol import SystemAgentRepositoryProtocol
-from src.modules.system.agents.skill_grant_validator import AgentVersionSkillGrantValidator
 
 ActivityWriter = Callable[..., Awaitable[object]]
 
@@ -28,7 +27,6 @@ class SystemAgentServiceBase(BaseService):
         *,
         repository: SystemAgentRepositoryProtocol,
         activity_writer: ActivityWriter,
-        skill_grant_validator: AgentVersionSkillGrantValidator,
     ) -> None:
         super().__init__(
             settings,
@@ -37,7 +35,6 @@ class SystemAgentServiceBase(BaseService):
         )
         self._repository = repository
         self._activity_writer = activity_writer
-        self._skill_grant_validator = skill_grant_validator
 
     async def _require_definition_for_update(
         self,

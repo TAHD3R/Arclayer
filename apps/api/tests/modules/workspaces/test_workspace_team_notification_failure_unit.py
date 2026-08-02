@@ -13,6 +13,7 @@ from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.config import Settings
 from src.models.system.notification import NotificationCategory
+from src.modules.system.admin.notifications.schema import NotificationWorkspaceSettingsTarget
 from src.models.workspaces.workspace import WorkspaceMembershipStatus
 from src.modules.workspaces.team import service as module
 from src.modules.workspaces.team.service import WorkspaceTeamService
@@ -40,7 +41,7 @@ async def test_workspace_team_notification_write_failure_is_not_swallowed(
             category=NotificationCategory.TEAM,
             title="Role updated",
             body="Your role changed.",
-            target_to="/settings/team/members",
+            target=NotificationWorkspaceSettingsTarget(destination="people", section="members-table"),
             event_name="workspace.member.roles.updated",
             dedupe_key="workspace.member.roles.updated:test",
         )

@@ -37,7 +37,7 @@ export function AIModelSelector({ className, compact = false }: AIModelSelectorP
   const selectedReasoningEffort = useAiChatStore((s) => s.selectedReasoningEffort);
   const setSelectedModel = useAiChatStore((s) => s.setSelectedModel);
   const applyRuntimeDefaults = useAiChatStore((s) => s.applyRuntimeDefaults);
-  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId ?? s.lastWorkspaceId);
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const {
     data: modelCatalog,
     isError: isModelCatalogError,

@@ -21,8 +21,6 @@ export interface LoginEmailCodeFormValues {
 export interface LoginEmailCodeRequestResult {
   expiresIn: number;
   retryAfter: number;
-  expires_in?: number;
-  retry_after?: number;
 }
 
 export interface LoginEmailLookupResult {

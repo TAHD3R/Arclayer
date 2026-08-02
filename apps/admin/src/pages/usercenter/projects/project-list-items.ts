@@ -1,5 +1,7 @@
-import type { ProjectListItem } from "@arclayer/openapi/admin-types";
-import type { PageData } from "@arclayer/openapi/admin-types";
+import type { listProjects } from "@/api/projects";
+import type { ProjectListOut } from "@arclayer/openapi";
+
+type ProjectListItem = Awaited<ReturnType<typeof listProjects>>["items"][number];
 
 export type UserCenterProjectListItemMemberPreview = {
   userId: string;
@@ -82,7 +84,7 @@ export function paginateProjectList(
   items: readonly UserCenterProjectListItem[],
   page: number,
   size: number,
-): PageData<UserCenterProjectListItem> {
+): Omit<ProjectListOut, "items"> & { items: UserCenterProjectListItem[] } {
   const safeSize = Math.max(1, size);
   const total = items.length;
   const pages = Math.max(1, Math.ceil(total / safeSize));

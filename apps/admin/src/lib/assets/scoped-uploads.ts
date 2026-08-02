@@ -2,7 +2,7 @@ import type {
   UploadInitRequest,
   UploadPartCommitRequest,
   UploadPolicyOut,
-} from "@arclayer/openapi/admin-types";
+} from "@arclayer/openapi";
 import type { AssetScopeRef } from "@/lib/assets/asset-scope";
 import {
   abortWorkspaceUpload,

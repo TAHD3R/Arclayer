@@ -29,6 +29,7 @@ const REQUIRED_COPY = {
     "ROLES_ELIGIBLE_PLAN_BADGE",
   ],
 } as const;
+const FORBIDDEN_PRODUCT_ERROR_KEY = /^(?:PLATFORM_|SYS_)/;
 
 describe("Product and Platform separation copy", () => {
   it.each(["zh-CN", "en-US"] as const)("contains stable visible copy for %s", (locale) => {
@@ -42,4 +43,15 @@ describe("Product and Platform separation copy", () => {
       }
     }
   });
+
+  it.each(["zh-CN", "en-US"] as const)(
+    "does not bundle Platform or System error copy for %s",
+    (locale) => {
+      const forbiddenKeys = Object.keys(i18nResources[locale].errors).filter((key) =>
+        FORBIDDEN_PRODUCT_ERROR_KEY.test(key),
+      );
+
+      expect(forbiddenKeys).toEqual([]);
+    },
+  );
 });

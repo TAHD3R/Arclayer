@@ -159,6 +159,7 @@ export function useProjectEditorController(
         threadId: thread.threadId,
         leadAgentId: agentId,
         mentionedAgentIds: [],
+        selectedSkillInstallationIds: [],
         executionMode: "build",
         siteRevisionId: revision.siteRevision.id,
         message: normalizedObjective,

@@ -100,7 +100,7 @@ describe("useContentBootstrapController", () => {
       shapeReasonCode: null,
       openIntent: {
         surface: "writing",
-        route: "/w/ws-1/content/library/item-1",
+        route: "/projects/ws-1/content/library/item-1",
         blocked: false,
         reasonCode: null,
         reasonMeta: null,
@@ -108,7 +108,7 @@ describe("useContentBootstrapController", () => {
       },
       continuationTarget: {
         surface: "writing",
-        route: "/w/ws-1/content/library/item-1",
+        route: "/projects/ws-1/content/library/item-1",
         blocked: false,
         reasonCode: null,
         reasonMeta: null,

@@ -5,6 +5,7 @@ import { SAVED_VIEW_DEFINITIONS, toSavedViewCommand } from "@/saved-views/saved-
 describe("Platform Saved Views contracts", () => {
   it("defines versioned defaults only for Platform API capabilities", () => {
     expect(Object.values(SAVED_VIEW_DEFINITIONS).map((view) => view.capabilityId)).toEqual([
+      "operations.signals",
       "tenant.workspaces",
       "tenant.users",
       "tenant.projects",
@@ -25,5 +26,13 @@ describe("Platform Saved Views contracts", () => {
     expect(command).not.toHaveProperty("selection");
     expect(command).not.toHaveProperty("drawer");
     expect(command).not.toHaveProperty("results");
+  });
+
+  it("pins Needs attention to its server-authoritative priority order", () => {
+    const definition = SAVED_VIEW_DEFINITIONS.operationsSignals;
+
+    expect(definition.filterSchemaRevision).toBe("2");
+    expect(definition.columnSchemaRevision).toBe("2");
+    expect(definition.defaultState.ordering).toEqual({ code: "priority", direction: "asc" });
   });
 });

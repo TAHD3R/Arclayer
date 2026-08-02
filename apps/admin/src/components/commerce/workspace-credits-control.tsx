@@ -16,9 +16,7 @@ export function WorkspaceCreditsControl(
 ) {
   const { t, i18n } = useTranslation(["commerce"]);
   const settingsScreen = useSettingsScreen();
-  const workspaceId = useWorkspaceStore(
-    (state) => state.currentWorkspaceId ?? state.lastWorkspaceId,
-  );
+  const workspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const overviewQuery = useQuery({
     queryKey: ["commerce", "workspace", workspaceId, "overview"],
     queryFn: ({ signal }) => getWorkspaceCommerceOverview(String(workspaceId), signal),

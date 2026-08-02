@@ -94,7 +94,7 @@ describe("UserProfileBasicsSection avatar completion recovery", () => {
 
     await waitFor(() => {
       expect(complete).toHaveBeenCalledTimes(1);
-      expect(updateMyProfile).toHaveBeenCalledWith({ avatarAssetId: "asset-completed" });
+      expect(updateMyProfile).toHaveBeenCalledWith({ avatar_asset_id: "asset-completed" });
       expect(screen.queryByRole("status")).not.toBeInTheDocument();
     });
     expect(uploadAvatarFile).toHaveBeenCalledTimes(1);

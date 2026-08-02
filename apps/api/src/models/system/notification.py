@@ -40,10 +40,10 @@ class NotificationRecord(BaseModel):
     title = fields.CharField(max_length=256)
     body = fields.TextField(null=True)
 
-    # UI navigation target: frontend route path (e.g. "/team/members").
-    target_to = fields.CharField(max_length=512)
-    # Extra routing hints (e.g. entity ids). Keep it minimal and non-sensitive.
-    target_meta = fields.JSONField(null=True)
+    # Typed UI navigation target. This is the only persisted notification navigation contract.
+    target = fields.JSONField()
+    # Immutable Campaign display snapshot. Only system broadcast records carry this companion contract.
+    campaign_surface = fields.JSONField(null=True)
 
     # Actor who triggered the notification (best-effort; may be null for system events).
     actor_user_id = fields.UUIDField(null=True, db_index=True)

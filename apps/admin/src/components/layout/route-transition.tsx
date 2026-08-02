@@ -91,8 +91,6 @@ function resolveAdminSkeletonVariant(routeId: string | undefined, pathname: stri
     routeKey.includes("/activity") ||
     routeKey.includes("/content/library") ||
     routeKey.includes("/content/models") ||
-    routeKey.includes("/deployments") ||
-    routeKey.includes("/website/releases") ||
     routeKey.includes("/website/project-releases")
   ) {
     return "table" satisfies PageSkeletonVariant;

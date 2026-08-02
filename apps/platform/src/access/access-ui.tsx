@@ -3,7 +3,6 @@ import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { PlatformAccessApiError } from "@/access/access-api";
-import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 import { Button } from "@arclayer/ui/button";
 import {
   Empty,
@@ -116,14 +115,4 @@ export function AccessQueryState<T>({
       </Empty>
     );
   return children(state.data);
-}
-
-export function ReadOnlyNotice() {
-  const { t } = useTranslation("access");
-  return (
-    <Alert className="border-ui-border bg-card">
-      <AlertTitle>{t("READ_ONLY_TITLE")}</AlertTitle>
-      <AlertDescription>{t("READ_ONLY_DESCRIPTION")}</AlertDescription>
-    </Alert>
-  );
 }

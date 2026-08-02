@@ -41,6 +41,20 @@ class DesignSystemValidationSeverity(StrEnum):
     BLOCKER = "blocker"
 
 
+class DesignSystemArtifactStatus(StrEnum):
+    PENDING = "pending"
+    BUILDING = "building"
+    READY = "ready"
+    FAILED = "failed"
+
+
+class DesignSystemPublicationStatus(StrEnum):
+    PENDING = "pending"
+    BUILDING = "building"
+    PUBLISHED = "published"
+    FAILED = "failed"
+
+
 class DesignSystemConceptGenerationStatus(StrEnum):
     QUEUED = "queued"
     RUNNING = "running"

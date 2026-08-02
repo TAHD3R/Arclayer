@@ -5,6 +5,7 @@ from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.expressions import Q
+from tortoise.functions import Count
 
 from src.core.http.pagination import PageParams
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
@@ -14,9 +15,10 @@ from src.models.agents.catalog import (
     AgentVersionRecord,
     AgentVersionState,
 )
+from src.models.agents.runtime_v1 import AgentRunStatusV1, AgentRunV1Record
 from src.models.projects.project import ProjectRecord
 from src.models.workspaces.workspace import Workspace
-from src.modules.system.agents.repository_protocol import AgentDefinitionBundle
+from src.modules.system.agents.repository_protocol import AgentDefinitionBundle, AgentVersionUsage
 
 
 class SystemAgentRepository(TortoiseORMRepository[AgentDefinitionRecord]):
@@ -276,6 +278,7 @@ class SystemAgentRepository(TortoiseORMRepository[AgentDefinitionRecord]):
         versions = await AgentVersionRecord.filter(definition_id__in=definition_ids).order_by(
             "definition_id", "-version_number"
         )
+        version_usage = await SystemAgentRepository._version_usage(versions=versions)
         assignments = (
             await AgentAssignmentRecord
             .filter(definition_id__in=definition_ids)
@@ -293,6 +296,39 @@ class SystemAgentRepository(TortoiseORMRepository[AgentDefinitionRecord]):
                 definition=definition,
                 versions=tuple(versions_by_definition.get(definition.id, ())),
                 assignments=tuple(assignments_by_definition.get(definition.id, ())),
+                version_usage=version_usage,
             )
             for definition in definitions
         )
+
+    @staticmethod
+    async def _version_usage(*, versions: Sequence[AgentVersionRecord]) -> dict[UUID, AgentVersionUsage]:
+        version_ids = tuple(version.id for version in versions)
+        if not version_ids:
+            return {}
+        adoptions = await (
+            AgentRunV1Record
+            .filter(lead_agent_version_id__in=version_ids)
+            .group_by("lead_agent_version_id")
+            .annotate(count=Count("id"))
+            .values("lead_agent_version_id", "count")
+        )
+        failures = await (
+            AgentRunV1Record
+            .filter(
+                lead_agent_version_id__in=version_ids,
+                status=AgentRunStatusV1.FAILED,
+            )
+            .group_by("lead_agent_version_id")
+            .annotate(count=Count("id"))
+            .values("lead_agent_version_id", "count")
+        )
+        adoption_counts = {UUID(str(row["lead_agent_version_id"])): int(row["count"]) for row in adoptions}
+        failure_counts = {UUID(str(row["lead_agent_version_id"])): int(row["count"]) for row in failures}
+        return {
+            version_id: AgentVersionUsage(
+                adoption_count=adoption_counts.get(version_id, 0),
+                failure_count=failure_counts.get(version_id, 0),
+            )
+            for version_id in version_ids
+        }

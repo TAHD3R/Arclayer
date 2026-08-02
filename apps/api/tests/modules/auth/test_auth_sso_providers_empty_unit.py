@@ -89,10 +89,14 @@ async def test_auth_sso_list_providers_returns_configured_builtin_providers(
     )
 
     request = _build_request("/api/v1/auth/sso/providers")
-    items = await service.list_providers(request, redirect="/w/project")
+    items = await service.list_providers(request, redirect="/projects/project-1")
 
     assert [item["provider"] for item in items] == ["google", "github", "microsoft", "discord"]
     assert [item["icon_key"] for item in items] == ["google", "github", "microsoft", "discord"]
     assert items[2]["label"] == "Continue with Microsoft"
-    assert items[2]["start_url"] == ("http://testserver/api/v1/auth/sso/start/microsoft?redirect=%2Fw%2Fproject")
-    assert items[3]["start_url"] == ("http://testserver/api/v1/auth/sso/start/discord?redirect=%2Fw%2Fproject")
+    assert items[2]["start_url"] == (
+        "http://testserver/api/v1/auth/sso/start/microsoft?redirect=%2Fprojects%2Fproject-1"
+    )
+    assert items[3]["start_url"] == (
+        "http://testserver/api/v1/auth/sso/start/discord?redirect=%2Fprojects%2Fproject-1"
+    )

@@ -13,7 +13,7 @@ import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { pickBool, pickString } from "@/lib/settings/general/utils";
-import type { JsonValueInput } from "@arclayer/openapi/admin-types";
+import type { JsonValueInput } from "@arclayer/openapi";
 import { Button } from "@arclayer/ui/button";
 import {
   Empty,

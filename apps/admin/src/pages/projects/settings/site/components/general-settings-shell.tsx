@@ -8,7 +8,7 @@ import { listProjectDomains, projectDomainsQueryKey } from "@/api/project-settin
 import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
 import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
-import type { JsonValueInput } from "@arclayer/openapi/admin-types";
+import type { JsonValueInput } from "@arclayer/openapi";
 import { Form } from "@arclayer/ui/form";
 import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@arclayer/ui/chrome-tabs";
 import { notifyError, notifySuccessText } from "@/lib/notifications";

@@ -10,7 +10,16 @@ from fastapi.routing import APIRoute
 from src.config import get_settings
 from src.core.exceptions import init_exception_handlers
 from src.core.registry import create_app, create_platform_app
-from src.modules.platform_capabilities.router import router
+from src.modules.platform_capabilities.rollout_schema import (
+    WorkspaceCapabilityRolloutApplyReceipt,
+    WorkspaceCapabilityRolloutApplyRequest,
+    WorkspaceCapabilityRolloutImpactSummary,
+    WorkspaceCapabilityRolloutPolicy,
+    WorkspaceCapabilityRolloutPreview,
+    WorkspaceCapabilityRolloutPreviewRequest,
+    WorkspaceCapabilityRolloutStage,
+)
+from src.modules.platform_capabilities.router import get_workspace_capability_rollout_service, router
 from src.modules.platform_identity.http import (
     get_current_platform_session,
     get_platform_identity_repository,
@@ -34,6 +43,68 @@ def _operator_principal() -> PlatformSessionPrincipal:
         policy_revision=1,
         absolute_expires_at=datetime.now(UTC),
     )
+
+
+def _owner_principal() -> PlatformSessionPrincipal:
+    return PlatformSessionPrincipal(
+        actor_id=uuid4(),
+        session_id=uuid4(),
+        operator_id=None,
+        is_instance_owner=True,
+        policy_revision=1,
+        absolute_expires_at=datetime.now(UTC),
+    )
+
+
+class _RolloutService:
+    def __init__(self) -> None:
+        self.preview_request: WorkspaceCapabilityRolloutPreviewRequest | None = None
+        self.apply_request: WorkspaceCapabilityRolloutApplyRequest | None = None
+
+    async def create_preview(
+        self, *, capability_id: str, request: WorkspaceCapabilityRolloutPreviewRequest
+    ) -> WorkspaceCapabilityRolloutPreview:
+        self.preview_request = request
+        return WorkspaceCapabilityRolloutPreview(
+            id=uuid4(),
+            capability_id=capability_id,
+            source_policy=WorkspaceCapabilityRolloutPolicy(
+                capability_id=capability_id,
+                stage=WorkspaceCapabilityRolloutStage.NOT_AVAILABLE,
+                revision=0,
+                selection_revision=0,
+                selected_workspace_ids=(),
+            ),
+            proposed_stage=request.proposed_stage,
+            proposed_selected_workspace_ids=request.selected_workspace_ids,
+            capability_revision=1,
+            eligibility_revision=1,
+            eligibility_snapshot_hash="test",
+            operational_consequences=(),
+            workspaces=(),
+            expires_at=datetime.now(UTC),
+            summary=WorkspaceCapabilityRolloutImpactSummary(
+                affected_workspace_count=0,
+                eligible_workspace_count=0,
+                ineligible_workspace_count=0,
+                selected_workspace_count=0,
+                newly_available_workspace_ids=(),
+                no_longer_available_workspace_ids=(),
+                blocked_workspace_count=0,
+            ),
+        )
+
+    async def apply(
+        self, *, principal: PlatformSessionPrincipal, request: WorkspaceCapabilityRolloutApplyRequest
+    ) -> WorkspaceCapabilityRolloutApplyReceipt:
+        _ = principal
+        self.apply_request = request
+        return WorkspaceCapabilityRolloutApplyReceipt(
+            capability_id="tenant-governance",
+            rollout_revision=1,
+            selection_revision=0,
+            applied_at=datetime.now(UTC),
+        )
 
 
 @pytest.mark.asyncio
@@ -96,3 +167,33 @@ def test_catalog_route_is_mounted_only_in_platform_composition() -> None:
 
     assert "/platform-api/v1/capabilities" in platform_paths
     assert "/platform-api/v1/capabilities" not in product_paths
+
+
+@pytest.mark.asyncio
+async def test_workspace_capability_rollout_routes_use_platform_authority_and_typed_contracts() -> None:
+    app = FastAPI()
+    app.include_router(router)
+    rollout_service = _RolloutService()
+    app.dependency_overrides[get_current_platform_session] = _owner_principal
+    app.dependency_overrides[get_workspace_capability_rollout_service] = lambda: rollout_service
+
+    async with asgi_client(app) as client:
+        preview = await client.post(
+            "/capabilities/tenant-governance/rollout/previews",
+            json={"proposedStage": "all_eligible", "selectedWorkspaceIds": []},
+        )
+        apply = await client.post(
+            "/capabilities/rollout/applies",
+            json={
+                "previewId": preview.json()["data"]["id"],
+                "idempotencyKey": "rollout-apply-1",
+                "reason": "Controlled adoption",
+            },
+        )
+
+    assert preview.status_code == 200
+    assert apply.status_code == 200
+    assert rollout_service.preview_request is not None
+    assert rollout_service.preview_request.proposed_stage is WorkspaceCapabilityRolloutStage.ALL_ELIGIBLE
+    assert rollout_service.apply_request is not None
+    assert rollout_service.apply_request.idempotency_key == "rollout-apply-1"

@@ -20,6 +20,7 @@ from src.models.feedback.feedback import (
 from src.models.feedback.feedback import (
     FeedbackContextType as StoredFeedbackContextType,
 )
+from src.models.system.notification_campaign import NotificationDeliveryState
 
 
 class FeedbackContextType(StrEnum):
@@ -98,6 +99,8 @@ class FeedbackUserOut(BaseSchema):
 
 
 class FeedbackMessageCreate(BaseSchema):
+    client_request_id: str = Field(min_length=8, max_length=128, pattern=r"^[A-Za-z0-9._:-]+$")
+    expected_revision: int = Field(ge=1)
     kind: FeedbackMessageKind
     body: str = Field(min_length=1, max_length=10_000)
 
@@ -106,10 +109,14 @@ class FeedbackMessageOut(BaseOut):
     kind: FeedbackMessageKind
     body: str
     author: FeedbackUserOut
+    delivery_state: NotificationDeliveryState | None = None
+    delivery_failure_code: str | None = None
+    delivery_is_retryable: bool | None = None
     created_at: datetime
 
 
 class FeedbackTicketUpdate(BaseSchema):
+    expected_revision: int = Field(ge=1)
     status: FeedbackStatus | None = None
     priority: FeedbackPriority | None = None
     assignee_user_id: PublicUUID | None = None
@@ -134,6 +141,7 @@ class FeedbackTicketListItemOut(BaseOut, TimestampMixin):
     rating: int | None
     status: FeedbackStatus
     priority: FeedbackPriority
+    revision: int
     workspace_id: PublicUUID | None
     project_id: PublicUUID | None
     reporter: FeedbackUserOut
@@ -155,6 +163,7 @@ class FeedbackTicketDetailOut(BaseOut, TimestampMixin):
     rating: int | None
     status: FeedbackStatus
     priority: FeedbackPriority
+    revision: int
     workspace_id: PublicUUID | None
     project_id: PublicUUID | None
     context_url: str | None

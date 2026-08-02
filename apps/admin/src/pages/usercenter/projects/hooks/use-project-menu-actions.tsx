@@ -4,7 +4,7 @@ import { Archive, LogIn, Palette, Pencil, Settings2, Trash2, Undo2 } from "lucid
 
 import { getProjectDangerCapabilities } from "@/api/projects";
 import { notifyError, notifyErrorText } from "@/lib/notifications";
-import type { ProjectDangerCapabilities } from "@arclayer/openapi/admin-types";
+import type { ProjectDangerCapabilitiesOut as ProjectDangerCapabilities } from "@arclayer/openapi";
 
 import type {
   ProjectMenuItem,

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, Request
 
 from src.config import Settings, get_settings
@@ -9,6 +11,7 @@ from src.modules.auth.limits.service import LOGIN_RATE_LIMIT, TWO_FACTOR_LOGIN_R
 from src.modules.auth.sessions.device_label import build_device_label
 from src.modules.platform_identity.auth_factory import build_platform_auth_service
 from src.modules.platform_identity.auth_schema import (
+    PlatformInvitationAcceptRequest,
     PlatformSessionIssuedOut,
     PlatformSignInOut,
     PlatformSignInRequest,
@@ -42,6 +45,29 @@ async def sign_in(
     service: PlatformAuthService = Depends(get_platform_auth_service),
 ) -> ResponseModel[PlatformSignInOut]:
     return ApiResponse.success(data=await service.sign_in(identifier=payload.identifier, password=payload.password))
+
+
+@guard_rate_limit(*LOGIN_RATE_LIMIT)
+@router.post(
+    "/invitations/{invitation_id}/accept",
+    response_model=ResponseModel[PlatformSignInOut],
+    summary="Accept a Platform Operator invitation and begin mandatory Platform MFA",
+)
+async def accept_operator_invitation(
+    invitation_id: UUID,
+    payload: PlatformInvitationAcceptRequest,
+    service: PlatformAuthService = Depends(get_platform_auth_service),
+) -> ResponseModel[PlatformSignInOut]:
+    return ApiResponse.success(
+        data=await service.accept_invitation(
+            invitation_id=invitation_id,
+            expected_invitation_revision=payload.expected_invitation_revision,
+            identifier=payload.identifier,
+            password=payload.password,
+            idempotency_key=payload.idempotency_key,
+            correlation_id=payload.correlation_id,
+        )
+    )
 
 
 @guard_rate_limit(*TWO_FACTOR_SETUP_RATE_LIMIT)

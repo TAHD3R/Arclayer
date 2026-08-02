@@ -104,6 +104,41 @@ class AgentRunCancellationRepository(TortoiseORMRepository[AgentRunV1Record]):
         )
         if thread is None:
             raise AgentRuntimePersistenceError("AGENT_RUN_NOT_FOUND")
+        return await self._state_for_locked_run(run=run, conn=conn)
+
+    async def get_platform_state_for_update(
+        self,
+        *,
+        run_id: UUID,
+        conn: BaseDBAsyncClient,
+    ) -> AgentRunCancellationState:
+        """Load one Run under its durable Workspace ownership without actor impersonation."""
+
+        run = await AgentRunV1Record.filter(id=run_id).using_db(conn).select_for_update().first()
+        if run is None:
+            raise AgentRuntimePersistenceError("AGENT_RUN_NOT_FOUND")
+        thread = await (
+            AgentThreadV1Record
+            .filter(
+                id=run.thread_id,
+                workspace_id=run.workspace_id,
+                owner_user_id=run.owner_user_id,
+                deleted_at=None,
+            )
+            .using_db(conn)
+            .select_for_update()
+            .first()
+        )
+        if thread is None:
+            raise AgentRuntimePersistenceError("AGENT_RUN_NOT_FOUND")
+        return await self._state_for_locked_run(run=run, conn=conn)
+
+    async def _state_for_locked_run(
+        self,
+        *,
+        run: AgentRunV1Record,
+        conn: BaseDBAsyncClient,
+    ) -> AgentRunCancellationState:
         if run.last_sequence < 1 or run.last_cursor is None:
             raise AgentRuntimePersistenceError("AGENT_RUN_HEAD_INCOMPLETE")
         message_ids = await AgentMessageV1Record.filter(run_id=run.id).using_db(conn).values_list("id", flat=True)

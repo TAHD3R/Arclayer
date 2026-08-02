@@ -12,10 +12,10 @@ import { buildGeneralSettingsInitialValues } from "@/lib/settings/general/adapte
 import { pickBool, pickString } from "@/lib/settings/general/utils";
 import { cn } from "@arclayer/lib/utils";
 import type {
-  AdminRelease,
-  AdminReleaseDryRun,
+  ReleaseOut as AdminRelease,
+  ReleaseDryRunOut as AdminReleaseDryRun,
   ProjectSettingsDetail,
-} from "@arclayer/openapi/admin-types";
+} from "@arclayer/openapi";
 
 type SeoAnalysisStatus = "ready" | "warning" | "missing";
 

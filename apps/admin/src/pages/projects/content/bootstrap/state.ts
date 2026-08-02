@@ -1,7 +1,9 @@
-import type {
-  AdminContentBootstrapPresetState,
-  AdminContentCapabilityPackId,
-} from "@arclayer/openapi/admin-types";
+import type { ContentItemBootstrapShapeIn } from "@arclayer/openapi";
+
+type AdminContentBootstrapPresetState = NonNullable<ContentItemBootstrapShapeIn["presetState"]>;
+type AdminContentCapabilityPackId = NonNullable<
+  ContentItemBootstrapShapeIn["capabilityPackIds"]
+>[number];
 
 import { CONTENT_BOOTSTRAP_PRESET_MAP } from "./definitions";
 import type { ContentBootstrapPresetKey, ContentBootstrapShapeSelection } from "./types";

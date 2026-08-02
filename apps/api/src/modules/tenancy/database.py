@@ -37,6 +37,10 @@ async def set_tenant_search_path(conn: BaseDBAsyncClient, schema_name: str) -> N
     await conn.execute_query(f"SET LOCAL search_path TO {quote_schema_name(schema_name)}, public")
 
 
+async def set_public_search_path(conn: BaseDBAsyncClient) -> None:
+    await conn.execute_query("SET LOCAL search_path TO public")
+
+
 class TenantDatabaseRouter:
     def __init__(self, tenant_context: TenantContext) -> None:
         self.tenant_context = tenant_context

@@ -14,6 +14,7 @@ from src.modules.operational_signals.schema import (
     OperationalSignalAssigneeOut,
     OperationalSignalDetailOut,
     OperationalSignalListQuery,
+    OperationalSignalNoteCommand,
     OperationalSignalOut,
     OperationalSignalReminderCommand,
     OperationalSignalRevisionCommand,
@@ -77,7 +78,7 @@ async def list_operational_signals(
 async def list_operational_signal_eligible_assignees(
     _actor: Annotated[
         PlatformSessionPrincipal,
-        require_platform_permission(PlatformPermissionCode.OPERATIONS_SIGNALS_ASSIGN),
+        require_platform_permission(PlatformPermissionCode.OPERATIONS_SIGNALS_READ),
     ],
     service: Annotated[OperationalSignalService, Depends(get_operational_signal_service)],
 ) -> ResponseModel[tuple[OperationalSignalAssigneeOut, ...]]:
@@ -214,6 +215,34 @@ async def remind_operational_signal_later(
             expected_revision=payload.expected_revision,
             reminder_at=payload.reminder_at,
             reason=payload.reason,
+            permission_codes=permission_codes,
+        )
+    )
+
+
+@router.post(
+    "/{signal_id}/notes",
+    response_model=ResponseModel[OperationalSignalDetailOut],
+    response_model_exclude_none=True,
+    summary="Add an immutable Operational Signal coordination note",
+)
+async def add_operational_signal_note(
+    signal_id: PublicUUID,
+    payload: OperationalSignalNoteCommand,
+    actor: Annotated[
+        PlatformSessionPrincipal,
+        require_platform_permission(PlatformPermissionCode.OPERATIONS_SIGNALS_TRIAGE),
+    ],
+    repository: Annotated[PlatformIdentityRepository, Depends(get_platform_identity_repository)],
+    service: Annotated[OperationalSignalService, Depends(get_operational_signal_service)],
+) -> ResponseModel[OperationalSignalDetailOut]:
+    permission_codes = await _current_permission_codes(actor=actor, repository=repository)
+    return ApiResponse.success(
+        data=await service.add_note(
+            signal_id=signal_id,
+            actor_user_id=actor.actor_id,
+            expected_revision=payload.expected_revision,
+            body=payload.body,
             permission_codes=permission_codes,
         )
     )

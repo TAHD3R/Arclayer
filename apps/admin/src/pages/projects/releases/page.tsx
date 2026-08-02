@@ -30,7 +30,10 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@a
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
-import type { AdminRelease, AdminReleaseDryRun } from "@arclayer/openapi/admin-types";
+import type {
+  ReleaseOut as AdminRelease,
+  ReleaseDryRunOut as AdminReleaseDryRun,
+} from "@arclayer/openapi";
 
 function releaseStatusLabelKey(status: string) {
   return `SETTINGS_PROJECT_RELEASES_STATUS_${status.toUpperCase()}`;

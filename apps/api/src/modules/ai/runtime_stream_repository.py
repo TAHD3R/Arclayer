@@ -21,6 +21,11 @@ _TERMINAL_STATUSES = {
 _UUID_FIELD_PATHS_BY_EVENT: dict[str, tuple[tuple[str, ...], ...]] = {
     "run.created": (),
     "run.queued": (),
+    "run.recovery.requested": (
+        ("data", "recoveryId"),
+        ("data", "sourceJobId"),
+        ("data", "recoveryJobId"),
+    ),
     "run.started": (),
     "run.cancel.requested": (("data", "requestedByActorId"),),
     "message.part.started": (

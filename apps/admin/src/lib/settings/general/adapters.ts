@@ -1,22 +1,19 @@
-import type { ProjectSettingsDetail, WorkspaceSettingsDetail } from "@arclayer/openapi/admin-types";
+import type { ProjectSettingsDetail } from "@arclayer/openapi";
 
-import type { GeneralSettingsFormValues, StorageProvider } from "@/types/settings-general";
+import type { GeneralSettingsFormValues } from "@/types/settings-general";
 import type { TitlePolicy, TitlePolicyPart } from "@/types/site-seo";
-import { pickBool, pickNumber, pickString, pickStringArray } from "./utils";
+import { pickBool, pickString, pickStringArray } from "./utils";
 
 /**
- * buildGeneralSettingsInitialValues：把后端 core settings 的 value 适配为前端表单值。
+ * buildGeneralSettingsInitialValues：把 Project core settings 的 value 适配为网站设置表单值。
  *
  * 注意点：
  * - 这里做的是“读模型”适配；写回后端的 patch 仍由各 Tab 自己构造，避免过度耦合。
- * - Secret 字段（如 s3_secret_access_key）由 API 掩码；UI 只允许“设置新值”，因此初始值固定为空串。
  */
 export function buildGeneralSettingsInitialValues(params: {
   project?: ProjectSettingsDetail;
-  system?: WorkspaceSettingsDetail;
 }): GeneralSettingsFormValues {
   const projectValue = params.project?.value;
-  const systemValue = params.system?.value;
 
   const siteName = pickString(projectValue, ["site", "name"]) ?? "Arclayer";
   const siteSubtitle = pickString(projectValue, ["site", "subtitle"]) ?? "";
@@ -86,46 +83,6 @@ export function buildGeneralSettingsInitialValues(params: {
     {};
   const siteDescriptionI18nEnabled = Object.keys(siteDescriptionI18n).length > 0;
 
-  const storageProvider =
-    (pickString(systemValue, ["storage", "provider"]) as StorageProvider | undefined) ?? "local";
-  const storagePublicBaseUrl = pickString(systemValue, ["storage", "public_base_url"]) ?? "";
-
-  const uploadChunkSizeMb = pickNumber(systemValue, ["storage", "upload_chunk_size_mb"]) ?? 8;
-  const uploadMaxFileSizeMb =
-    pickNumber(systemValue, ["storage", "upload_max_file_size_mb"]) ?? 2048;
-  const uploadMaxAvatarSizeMb =
-    pickNumber(systemValue, ["storage", "upload_max_avatar_size_mb"]) ?? 10;
-  const uploadMaxSiteLogoSizeMb =
-    pickNumber(systemValue, ["storage", "upload_max_site_logo_size_mb"]) ?? 20;
-  const uploadMaxFaviconSizeMb =
-    pickNumber(systemValue, ["storage", "upload_max_favicon_size_mb"]) ?? 2;
-
-  const s3EndpointUrl = pickString(systemValue, ["storage", "s3_endpoint_url"]) ?? "";
-  const s3Region = pickString(systemValue, ["storage", "s3_region"]) ?? "";
-  const s3Bucket = pickString(systemValue, ["storage", "s3_bucket"]) ?? "";
-  const s3AccessKeyId = pickString(systemValue, ["storage", "s3_access_key_id"]) ?? "";
-  const s3ForcePathStyle = pickBool(systemValue, ["storage", "s3_force_path_style"]) ?? false;
-  const s3PresignExpiresSeconds =
-    pickNumber(systemValue, ["storage", "s3_presign_expires_seconds"]) ?? 900;
-
-  const mailEnabled = pickBool(systemValue, ["mail", "enabled"]) ?? false;
-  const mailServer = pickString(systemValue, ["mail", "server"]) ?? "localhost";
-  const mailPort = pickNumber(systemValue, ["mail", "port"]) ?? 587;
-  const mailUsername = pickString(systemValue, ["mail", "username"]) ?? "";
-  const mailFrom = pickString(systemValue, ["mail", "mail_from"]) ?? "noreply@example.com";
-  const mailFromName = pickString(systemValue, ["mail", "mail_from_name"]) ?? "Arclayer";
-  const mailStarttls = pickBool(systemValue, ["mail", "starttls"]) ?? true;
-  const mailSslTls = pickBool(systemValue, ["mail", "ssl_tls"]) ?? false;
-  const mailEnabledTemplates = pickStringArray(systemValue, [
-    "mail",
-    "preferences",
-    "enabled_templates",
-  ]) ?? ["registration_prompt", "welcome_email"];
-
-  const notificationGroups = parseNotificationGroups(
-    pickUnknown(systemValue, ["notifications", "groups"]),
-  );
-
   return {
     siteName,
     siteNameI18nEnabled,
@@ -152,57 +109,7 @@ export function buildGeneralSettingsInitialValues(params: {
     dateFormat,
     useRelativeDateTime,
     seoTitlePolicy,
-
-    storageProvider,
-    storagePublicBaseUrl,
-    uploadChunkSizeMb,
-    uploadMaxFileSizeMb,
-    uploadMaxAvatarSizeMb,
-    uploadMaxSiteLogoSizeMb,
-    uploadMaxFaviconSizeMb,
-
-    s3EndpointUrl,
-    s3Region,
-    s3Bucket,
-    s3AccessKeyId,
-    s3SecretAccessKey: "",
-    s3ForcePathStyle,
-    s3PresignExpiresSeconds,
-
-    mailEnabled,
-    mailServer,
-    mailPort,
-    mailUsername,
-    mailPassword: "",
-    mailFrom,
-    mailFromName,
-    mailStarttls,
-    mailSslTls,
-
-    mailEnabledTemplates,
-
-    notificationGroups,
   };
-}
-
-function parseNotificationGroups(input: unknown): Record<string, { enabled: boolean }> {
-  const fallback: Record<string, { enabled: boolean }> = {
-    team: { enabled: true },
-    security: { enabled: true },
-    content: { enabled: true },
-    automation: { enabled: true },
-    system: { enabled: false },
-  };
-  if (!input || typeof input !== "object" || Array.isArray(input)) return fallback;
-
-  const record = input as Record<string, unknown>;
-  const next: Record<string, { enabled: boolean }> = { ...fallback };
-  for (const [group, value] of Object.entries(record)) {
-    if (!value || typeof value !== "object" || Array.isArray(value)) continue;
-    const enabled = pickBool(value, ["enabled"]);
-    next[group] = { enabled: enabled ?? next[group]?.enabled ?? false };
-  }
-  return next;
 }
 
 function pickUnknown(obj: unknown, path: readonly string[]): unknown {

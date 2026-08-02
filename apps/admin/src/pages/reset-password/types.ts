@@ -7,6 +7,6 @@ export interface ResetPasswordFormValues {
 export interface ResetPasswordViewProps {
   initialToken?: string;
   loading?: boolean;
-  onSubmit: (values: { reset_token: string; new_password: string }) => Promise<void>;
+  onSubmit: (values: { resetToken: string; newPassword: string }) => Promise<void>;
   onBackToLogin: () => void;
 }

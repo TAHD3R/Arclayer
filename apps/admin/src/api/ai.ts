@@ -6,7 +6,7 @@ import {
   type AIReasoningEffort,
 } from "@/stores/use-ai-chat-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import type { AdminContentModelImpactPreview } from "@arclayer/openapi/admin-types";
+import type { ContentModelImpactPreviewOut as AdminContentModelImpactPreview } from "@arclayer/openapi";
 
 export interface AIModelCatalogItem {
   id: string;
@@ -390,52 +390,22 @@ export interface AgentContentModelDraftProposalResponse {
   impactPreview: AdminContentModelImpactPreview;
 }
 
-const AI_ERROR_MESSAGE_KEYS: Record<string, { key: string; fallback: string }> = {
-  AUTH_NO_KEY: {
-    key: "AI_CHAT_ERROR_AUTH_NO_KEY",
-    fallback:
-      "当前工作区还没有可用的 AI 模型密钥。请先配置 LiteLLM virtual key，或在本地开发环境启用 AI mock 模式。",
-  },
-  AUTH_NOT_WORKSPACE_MEMBER: {
-    key: "AI_CHAT_ERROR_AUTH_NOT_WORKSPACE_MEMBER",
-    fallback: "AI 请求缺少有效的工作区上下文，请重新进入一个工作区后再试。",
-  },
-  AI_AGENT_PROJECT_CONTEXT_REQUIRED: {
-    key: "AI_CHAT_ERROR_AGENT_PROJECT_CONTEXT_REQUIRED",
-    fallback: "Agent 模式需要先进入一个项目。",
-  },
-  AI_AGENT_APPROVAL_PROJECT_CONTEXT_REQUIRED: {
-    key: "AI_CHAT_ERROR_AGENT_APPROVAL_PROJECT_CONTEXT_REQUIRED",
-    fallback: "处理 Agent 审批需要先进入对应项目。",
-  },
-  AI_WORKSPACE_ACTION_PLAN_MODE_READ_ONLY: {
-    key: "AI_CHAT_ERROR_WORKSPACE_ACTION_PLAN_MODE_READ_ONLY",
-    fallback: "规划模式不会直接执行创建或修改操作。请切换到构建模式后再执行。",
-  },
-  AI_WORKSPACE_ACTION_PROJECT_REQUIRED: {
-    key: "AI_CHAT_ERROR_WORKSPACE_ACTION_PROJECT_REQUIRED",
-    fallback: "执行该操作需要先选择一个项目。请输入 @ 选择目标项目后再试。",
-  },
-  AI_MODEL_CATALOG_UNAVAILABLE: {
-    key: "AI_CHAT_ERROR_MODEL_CATALOG_UNAVAILABLE",
-    fallback: "暂时无法读取模型目录。请检查模型供应商配置后重试。",
-  },
-  AI_MODEL_CATALOG_MASTER_KEY_REQUIRED: {
-    key: "AI_CHAT_ERROR_MODEL_CATALOG_MASTER_KEY_REQUIRED",
-    fallback: "模型目录服务尚未完成配置。请先配置 LiteLLM 管理密钥。",
-  },
-  AI_MODEL_CATALOG_EMPTY: {
-    key: "AI_CHAT_ERROR_MODEL_CATALOG_EMPTY",
-    fallback: "当前没有可用于对话的模型。请在系统设置中新增并启用模型供应商。",
-  },
-  AI_MODEL_CATALOG_LITELLM_UNREACHABLE: {
-    key: "AI_CHAT_ERROR_MODEL_CATALOG_LITELLM_UNREACHABLE",
-    fallback: "暂时无法连接模型目录服务。请检查 LiteLLM 服务状态后重试。",
-  },
-  AI_MODEL_CATALOG_RESPONSE_INVALID: {
-    key: "AI_CHAT_ERROR_MODEL_CATALOG_RESPONSE_INVALID",
-    fallback: "模型目录返回的数据不符合预期。请检查 LiteLLM 模型配置。",
-  },
+const AI_GENERIC_ERROR_MESSAGE_KEY = "AI_CHAT_ERROR_GENERIC";
+
+const AI_ERROR_MESSAGE_KEYS: Record<string, string> = {
+  AUTH_NO_KEY: "AI_CHAT_ERROR_AUTH_NO_KEY",
+  AUTH_NOT_WORKSPACE_MEMBER: "AI_CHAT_ERROR_AUTH_NOT_WORKSPACE_MEMBER",
+  AI_AGENT_PROJECT_CONTEXT_REQUIRED: "AI_CHAT_ERROR_AGENT_PROJECT_CONTEXT_REQUIRED",
+  AI_AGENT_APPROVAL_PROJECT_CONTEXT_REQUIRED:
+    "AI_CHAT_ERROR_AGENT_APPROVAL_PROJECT_CONTEXT_REQUIRED",
+  AGENT_SKILL_SELECTION_INVALID: "AI_CHAT_ERROR_SKILL_SELECTION_INVALID",
+  AI_WORKSPACE_ACTION_PLAN_MODE_READ_ONLY: "AI_CHAT_ERROR_WORKSPACE_ACTION_PLAN_MODE_READ_ONLY",
+  AI_WORKSPACE_ACTION_PROJECT_REQUIRED: "AI_CHAT_ERROR_WORKSPACE_ACTION_PROJECT_REQUIRED",
+  AI_MODEL_CATALOG_UNAVAILABLE: "AI_CHAT_ERROR_MODEL_CATALOG_UNAVAILABLE",
+  AI_MODEL_CATALOG_MASTER_KEY_REQUIRED: "AI_CHAT_ERROR_MODEL_CATALOG_MASTER_KEY_REQUIRED",
+  AI_MODEL_CATALOG_EMPTY: "AI_CHAT_ERROR_MODEL_CATALOG_EMPTY",
+  AI_MODEL_CATALOG_LITELLM_UNREACHABLE: "AI_CHAT_ERROR_MODEL_CATALOG_LITELLM_UNREACHABLE",
+  AI_MODEL_CATALOG_RESPONSE_INVALID: "AI_CHAT_ERROR_MODEL_CATALOG_RESPONSE_INVALID",
 };
 
 export const AI_AGENT_PROJECT_CONTEXT_REQUIRED = "AI_AGENT_PROJECT_CONTEXT_REQUIRED";
@@ -510,7 +480,7 @@ export function formatAIChatError(error: unknown): string {
   const raw = error instanceof Error ? error.message : String(error || "");
   const trimmed = raw.trim();
 
-  if (!trimmed) return "AI 请求失败";
+  if (!trimmed) return readAIErrorMessage(AI_GENERIC_ERROR_MESSAGE_KEY);
   const codeMessage = translateAIErrorCode(trimmed);
   if (codeMessage) return codeMessage;
 
@@ -523,11 +493,24 @@ export function formatAIChatError(error: unknown): string {
 }
 
 function translateAIErrorCode(code: string): string | null {
-  const entry = AI_ERROR_MESSAGE_KEYS[code];
-  if (!entry) return null;
-  if (!i18n.isInitialized) return entry.fallback;
-  const translated = i18n.t(entry.key, { ns: "ai", defaultValue: entry.fallback });
-  return translated && translated !== entry.key ? translated : entry.fallback;
+  const key = AI_ERROR_MESSAGE_KEYS[code];
+  return key ? readAIErrorMessage(key) : null;
+}
+
+function readAIErrorMessage(key: string): string {
+  if (!i18n.isInitialized) {
+    throw new Error("AI error i18n invariant violated: i18n is not initialized");
+  }
+
+  const language = i18n.language;
+  const message = i18n.getResource(language, "ai", key);
+  if (typeof message !== "string" || !message.trim()) {
+    throw new Error(
+      `AI error i18n invariant violated: missing ai.${key} copy for locale ${language}`,
+    );
+  }
+
+  return message;
 }
 
 export async function listAIModels(options: {
@@ -718,7 +701,7 @@ export async function executeAIWorkspaceAction(
 
 function readCurrentWorkspaceId(): string | null {
   const state = useWorkspaceStore.getState();
-  return state.currentWorkspaceId ?? state.lastWorkspaceId ?? null;
+  return state.currentWorkspaceId;
 }
 
 function requireCurrentWorkspaceId(): string {

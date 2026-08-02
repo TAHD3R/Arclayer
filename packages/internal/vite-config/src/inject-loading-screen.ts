@@ -235,6 +235,7 @@ export function injectLoadingScreen(options: InjectLoadingScreenOptions = {}): P
       requestAnimationFrame(markVisible);
     });
     requestAnimationFrame(function (now) {
+      if (hiding) return;
       startedAt = now;
       renderFrame(0);
       animationFrame = window.requestAnimationFrame(tick);
@@ -285,7 +286,7 @@ export function injectLoadingScreen(options: InjectLoadingScreenOptions = {}): P
           tag: "script",
           attrs: {},
           children: script,
-          injectTo: "head",
+          injectTo: "body",
         },
         {
           tag: "div",

@@ -1,8 +1,22 @@
 import {
+  platformApplyPlatformDeliveryPolicy,
+  platformGetPlatformDeliveryContinuityPolicy,
   platformListPlatformDeliveryDomains,
   platformListPlatformDeliveryIssues,
   platformListPlatformDeliveryRules,
   platformListPlatformDeliveryStorage,
+  platformPreviewPlatformDeliveryPolicy,
+  platformReconcilePlatformDeliveryIssue,
+  platformRecoverPlatformDeliveryDomain,
+  platformRestorePlatformDeliveryIssue,
+  platformRetryPlatformDeliveryIssue,
+  platformTestPlatformDeliveryStorage,
+  type PlatformDeliveryContinuityPolicyOut,
+  type PlatformDeliveryDomainActionOut,
+  type PlatformDeliveryIssueActionOut,
+  type PlatformDeliveryPolicyApplyOut,
+  type PlatformDeliveryPolicyPreviewOut,
+  type PlatformDeliveryStorageTestOut,
   type PageDataPlatformDeliveryDomainOut,
   type PageDataPlatformDeliveryIssueOut,
   type PageDataPlatformDeliveryRuleOut,
@@ -25,14 +39,21 @@ export class PlatformSiteDeliveryApiError extends Error {
   }
 }
 
+function errorCode(value: unknown): string | null {
+  if (typeof value === "string" && value.trim()) return value;
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as { error?: unknown; code?: unknown; message?: unknown };
+  return errorCode(candidate.error) ?? errorCode(candidate.code) ?? errorCode(candidate.message);
+}
+
 function unwrap<T>(result: SdkResult<T>): T {
   if (result.error !== undefined) {
     throw new PlatformSiteDeliveryApiError(
-      "PLATFORM_SITE_DELIVERY_REQUEST_FAILED",
+      errorCode(result.error) ?? "PLATFORM_SITE_DELIVERY_REQUEST_FAILED",
       result.response?.status,
     );
   }
-  if (!result.data || result.data.error || !result.data.data) {
+  if (!result.data || result.data.error || result.data.data == null) {
     throw new PlatformSiteDeliveryApiError(
       result.data?.error ?? "PLATFORM_SITE_DELIVERY_RESPONSE_INVALID",
       result.response?.status,
@@ -65,5 +86,55 @@ export function listDeliveryRules(): Promise<PageDataPlatformDeliveryRuleOut> {
   return platformListPlatformDeliveryRules({
     client: platformApiClient,
     query: { page: 1, size: 100 },
+  }).then(unwrap);
+}
+
+export function getDeliveryContinuityPolicy(): Promise<PlatformDeliveryContinuityPolicyOut> {
+  return platformGetPlatformDeliveryContinuityPolicy({ client: platformApiClient }).then(unwrap);
+}
+
+export function executeDeliveryIssueAction(
+  issueId: string,
+  action: PlatformDeliveryIssueActionOut["action"],
+): Promise<PlatformDeliveryIssueActionOut> {
+  const options = { client: platformApiClient, path: { issue_id: issueId } };
+  if (action === "retry") return platformRetryPlatformDeliveryIssue(options).then(unwrap);
+  if (action === "reconcile") return platformReconcilePlatformDeliveryIssue(options).then(unwrap);
+  return platformRestorePlatformDeliveryIssue(options).then(unwrap);
+}
+
+export function recoverDeliveryDomain(bindingId: string): Promise<PlatformDeliveryDomainActionOut> {
+  return platformRecoverPlatformDeliveryDomain({
+    client: platformApiClient,
+    path: { binding_id: bindingId },
+  }).then(unwrap);
+}
+
+export function testDeliveryStorage(profileId: string): Promise<PlatformDeliveryStorageTestOut> {
+  return platformTestPlatformDeliveryStorage({
+    client: platformApiClient,
+    path: { profile_id: profileId },
+  }).then(unwrap);
+}
+
+export function previewDeliveryPolicy(
+  expectedRevision: number,
+  continuityWindowSeconds: number,
+): Promise<PlatformDeliveryPolicyPreviewOut> {
+  return platformPreviewPlatformDeliveryPolicy({
+    client: platformApiClient,
+    body: { expectedRevision, continuityWindowSeconds },
+  }).then(unwrap);
+}
+
+export function applyDeliveryPolicy(
+  previewId: string,
+  reason: string,
+  idempotencyKey: string,
+): Promise<PlatformDeliveryPolicyApplyOut> {
+  return platformApplyPlatformDeliveryPolicy({
+    client: platformApiClient,
+    path: { preview_id: previewId },
+    body: { idempotencyKey, reason },
   }).then(unwrap);
 }

@@ -9,8 +9,12 @@ vi.mock("@/lib/http", () => ({
 import { api } from "@/lib/http";
 import * as rbacApi from "@/api/rbac";
 import { getMyWorkspaceAuthz } from "@/api/workspaces";
-import type { AuthzSnapshot, PageData, Permission, Role } from "@arclayer/openapi/admin-types";
-import type { WorkspacePermissionAction } from "@arclayer/openapi/admin-types";
+import type {
+  AuthzSnapshot,
+  PageDataWorkspaceRoleOut,
+  PageDataWorkspacePermissionOut,
+} from "@arclayer/openapi";
+import type { WorkspacePermissionActionOut as WorkspacePermissionAction } from "@arclayer/openapi";
 
 describe("api/workspace governance contracts", () => {
   beforeEach(() => {
@@ -32,7 +36,7 @@ describe("api/workspace governance contracts", () => {
   });
 
   it("accepts direct workspace role and action contracts without a matrix residue", () => {
-    const roles: PageData<Role> = {
+    const roles: PageDataWorkspaceRoleOut = {
       items: [
         {
           id: "role-1",
@@ -55,7 +59,7 @@ describe("api/workspace governance contracts", () => {
       next: null,
       prev: null,
     };
-    const permissions: PageData<Permission> = {
+    const permissions: PageDataWorkspacePermissionOut = {
       items: [
         {
           id: "permission-1",
@@ -85,6 +89,9 @@ describe("api/workspace governance contracts", () => {
       permissionCodes: ["system:content:manage"],
     };
 
+    if (!roles.items || !permissions.items) {
+      throw new Error("Generated workspace governance fixture is incomplete");
+    }
     expect(roles.items[0]?.permissionCodes).toEqual([
       "system:content:read",
       "system:content:manage",

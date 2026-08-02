@@ -279,7 +279,7 @@ function buildFavoriteOverlayBreadcrumbSegments(
     const trail = findActiveTrailNodes(navItems, normalizedPath);
     const workspaceSegment: FavoriteOverlayBreadcrumbSegment = {
       key: `workspace:${workspaceBase}`,
-      label: workspace?.name?.trim() || workspaceBase.replace("/w/", ""),
+      label: workspace?.name?.trim() || workspaceBase.slice("/projects/".length),
       kind: "workspace",
       workspaceIdentity: workspace ?? undefined,
     };
@@ -1179,7 +1179,7 @@ export function FavoritesNode(props: FavoritesNodeProps) {
     [overlayEntry],
   );
   const overlayWorkspaceId = useMemo(
-    () => overlayWorkspaceBase?.replace("/w/", "") ?? null,
+    () => overlayWorkspaceBase?.slice("/projects/".length) ?? null,
     [overlayWorkspaceBase],
   );
 

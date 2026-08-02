@@ -10,7 +10,10 @@ import type { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-form
 import { buildInvitationUserDetails } from "@/pages/workspaces/team/shared/components/invitation-user-details";
 import { InvitationUserLabel } from "@/pages/workspaces/team/shared/components/invitation-user-label";
 import { InviteLinkParticipantsPopover } from "@/pages/workspaces/team/shared/components/invite-link-participants-popover";
-import type { TeamInvitation, TeamInviteLink } from "@arclayer/openapi/admin-types";
+import type {
+  WorkspaceEmailInviteOut as TeamInvitation,
+  WorkspaceInviteLinkOut as TeamInviteLink,
+} from "@arclayer/openapi";
 import { Button } from "@arclayer/ui/button";
 import { Checkbox } from "@arclayer/ui/checkbox";
 import {
@@ -114,7 +117,7 @@ export function createPendingInvitationColumns(
       meta: { title: options.t("team:TEAM_INVITE_LINKS_COL_CREATOR"), kind: "meta" },
       cell: ({ row }) => (
         <InvitationUserLabel
-          user={row.original.createdBy}
+          user={row.original.createdBy ?? null}
           roleLabel={invitationAccessLabel(row.original.roleCode, options)}
           status={row.original.status}
           statusLabel={invitationStatusLabel(options.t, row.original.status)}
@@ -212,7 +215,7 @@ export function createAcceptedInvitationColumns(
       meta: { title: options.t("common:ORG_MEMBERS_TABLE_MEMBER"), kind: "primary" },
       cell: ({ row }) => (
         <InvitationUserLabel
-          user={row.original.acceptedBy}
+          user={row.original.acceptedBy ?? null}
           roleLabel={invitationAccessLabel(row.original.roleCode, options)}
           status={row.original.status}
           statusLabel={invitationStatusLabel(options.t, row.original.status)}
@@ -241,7 +244,7 @@ export function createAcceptedInvitationColumns(
       id: "inviter",
       header: options.t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
       meta: { title: options.t("team:TEAM_INVITE_LINKS_COL_CREATOR"), kind: "meta" },
-      cell: ({ row }) => <InvitationUserLabel user={row.original.createdBy} />,
+      cell: ({ row }) => <InvitationUserLabel user={row.original.createdBy ?? null} />,
       size: 220,
     },
     {
@@ -339,7 +342,9 @@ export function createInviteLinkColumns(
               workspaceId={options.workspaceId}
               linkId={row.original.id}
               usesCount={Number(row.original.usesCount ?? 0)}
-              primaryUser={row.original.recentParticipants?.[0]?.user ?? row.original.lastUsedBy}
+              primaryUser={
+                row.original.recentParticipants?.[0]?.user ?? row.original.lastUsedBy ?? null
+              }
               lastUsedAt={row.original.lastUsedAt}
             />
           ) : null}
@@ -351,7 +356,7 @@ export function createInviteLinkColumns(
       id: "creator",
       header: options.t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
       meta: { title: options.t("team:TEAM_INVITE_LINKS_COL_CREATOR"), kind: "meta" },
-      cell: ({ row }) => <InvitationUserLabel user={row.original.createdBy} />,
+      cell: ({ row }) => <InvitationUserLabel user={row.original.createdBy ?? null} />,
       size: 220,
     },
     {

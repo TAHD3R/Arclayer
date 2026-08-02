@@ -9,7 +9,7 @@ from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound, Unauthorized
 from src.core.services import BaseService
 from src.models.organization.user import UserStatus
-from src.models.platform_identity.identity import PlatformOperatorStatus
+from src.models.platform_identity.identity import PlatformOperatorSetupReason, PlatformOperatorStatus
 from src.models.platform_identity.mfa import PlatformAuthFlowPurpose, PlatformMfaMethodKind
 from src.models.platform_identity.operations import PlatformVerificationAssurance
 from src.modules.platform_identity.auth_contracts import (
@@ -22,6 +22,7 @@ from src.modules.platform_identity.auth_contracts import (
     PlatformAuthUserLike,
     PlatformAuthUserPort,
     PlatformAuthWebAuthnPort,
+    PlatformInvitationAcceptancePort,
     PlatformSessionIssuer,
 )
 from src.modules.platform_identity.auth_schema import (
@@ -35,6 +36,10 @@ from src.modules.platform_identity.auth_schema import (
     PlatformWebAuthnRegistrationBeginOut,
 )
 from src.modules.platform_identity.mfa_schema import PlatformMfaAssurance, PlatformRecoveryCodeSet
+from src.modules.platform_identity.schema import (
+    PlatformInvitationAcceptanceCommand,
+    PlatformInvitationSetupContext,
+)
 from src.modules.platform_identity.webauthn_schema import (
     PlatformAuthFlowRecord,
     PlatformWebAuthnAuthenticationCredential,
@@ -49,6 +54,7 @@ class _AccessState(NamedTuple):
     is_owner: bool
     operator: PlatformAuthOperatorLike | None
     methods: tuple[PlatformAuthMethodLike, ...]
+    setup_context: PlatformInvitationSetupContext | None
 
 
 class PlatformAuthService(BaseService):
@@ -59,6 +65,7 @@ class PlatformAuthService(BaseService):
         *,
         users: PlatformAuthUserPort,
         identity: PlatformAuthIdentityPort,
+        invitation_acceptance: PlatformInvitationAcceptancePort,
         flows: PlatformAuthFlowPort,
         mfa: PlatformAuthMfaPort,
         webauthn: PlatformAuthWebAuthnPort,
@@ -71,6 +78,7 @@ class PlatformAuthService(BaseService):
         super().__init__(settings)
         self._users = users
         self._identity = identity
+        self._invitation_acceptance = invitation_acceptance
         self._flows = flows
         self._mfa = mfa
         self._webauthn = webauthn
@@ -80,14 +88,7 @@ class PlatformAuthService(BaseService):
         self._now = now or (lambda: datetime.now(UTC))
 
     async def sign_in(self, *, identifier: str, password: str) -> PlatformSignInOut:
-        user = await self._users.get_by_identifier(identifier)
-        credential = None if user is None else cast(PlatformAuthCredentialLike | None, user.credential)
-        password_hash = "" if credential is None else credential.password_hash
-        if user is None or not isinstance(password_hash, str) or not password_hash:
-            raise Unauthorized(error="PLATFORM_INVALID_CREDENTIALS")
-        if not self._verify_password(password, password_hash):
-            raise Unauthorized(error="PLATFORM_INVALID_CREDENTIALS")
-
+        user = await self._authenticate_primary_identity(identifier=identifier, password=password)
         access = await self._resolve_access(user)
         if access.is_owner and not self._has_method(access.methods, PlatformMfaMethodKind.WEBAUTHN):
             return await self._issue_flow(
@@ -99,7 +100,11 @@ class PlatformAuthService(BaseService):
             return await self._issue_flow(
                 access=access,
                 purpose=PlatformAuthFlowPurpose.SETUP,
-                state=PlatformAuthState.MFA_SETUP_REQUIRED,
+                state=(
+                    PlatformAuthState.PHISHING_RESISTANT_SETUP_REQUIRED
+                    if access.setup_context is not None and access.setup_context.requires_phishing_resistant
+                    else PlatformAuthState.MFA_SETUP_REQUIRED
+                ),
             )
         return await self._issue_flow(
             access=access,
@@ -107,10 +112,46 @@ class PlatformAuthService(BaseService):
             state=PlatformAuthState.MFA_CHALLENGE_REQUIRED,
         )
 
+    async def accept_invitation(
+        self,
+        *,
+        invitation_id: UUID,
+        expected_invitation_revision: int,
+        identifier: str,
+        password: str,
+        idempotency_key: str,
+        correlation_id: UUID,
+    ) -> PlatformSignInOut:
+        user = await self._authenticate_primary_identity(identifier=identifier, password=password)
+        user_id = UUID(str(user.id))
+        setup_context = await self._invitation_acceptance.begin_operator_invitation_acceptance(
+            command=PlatformInvitationAcceptanceCommand(
+                invitation_id=invitation_id,
+                accepter_user_id=user_id,
+                expected_invitation_revision=expected_invitation_revision,
+                idempotency_key=idempotency_key,
+                correlation_id=correlation_id,
+            )
+        )
+        access = await self._resolve_access(user)
+        if access.setup_context != setup_context:
+            raise Conflict(error="PLATFORM_INVITATION_SETUP_STATE_CHANGED")
+        return await self._issue_flow(
+            access=access,
+            purpose=PlatformAuthFlowPurpose.SETUP,
+            state=(
+                PlatformAuthState.PHISHING_RESISTANT_SETUP_REQUIRED
+                if setup_context.requires_phishing_resistant
+                else PlatformAuthState.MFA_SETUP_REQUIRED
+            ),
+        )
+
     async def begin_totp_setup(self, *, flow_token: str) -> PlatformTotpSetupOut:
         flow, access = await self._require_flow(token=flow_token, purpose=PlatformAuthFlowPurpose.SETUP)
         self._require_operator_setup(access)
         self._require_no_verified_methods(access)
+        if flow.requires_phishing_resistant:
+            raise Forbidden(error="PLATFORM_SECURITY_KEY_REQUIRED")
         setup = await self._mfa.begin_totp_setup(
             user_id=flow.user_id,
             issuer=self._issuer_name,
@@ -130,6 +171,12 @@ class PlatformAuthService(BaseService):
                 method_id=method_id,
                 code=code,
                 operator_id=UUID(str(operator.id)),
+                invitation_id=flow.invitation_id,
+                expected_invitation_revision=flow.invitation_revision,
+                activation_correlation_id=flow.flow_id if flow.invitation_id is not None else None,
+                activation_idempotency_key=(
+                    f"platform-invitation-activation:{flow.flow_id}" if flow.invitation_id is not None else None
+                ),
             )
         except (BadRequest, Conflict, NotFound):
             await self._flows.record_failure(flow_id=flow.flow_id)
@@ -169,7 +216,8 @@ class PlatformAuthService(BaseService):
     async def begin_webauthn_registration(self, *, flow_token: str) -> PlatformWebAuthnRegistrationBeginOut:
         _flow, access = await self._require_flow(token=flow_token, purpose=PlatformAuthFlowPurpose.SETUP)
         if not access.is_owner:
-            raise Forbidden(error="PLATFORM_OWNER_WEBAUTHN_SETUP_REQUIRED")
+            self._require_operator_setup(access)
+            self._require_no_verified_methods(access)
         if self._has_method(access.methods, PlatformMfaMethodKind.WEBAUTHN):
             raise Conflict(error="PLATFORM_MFA_SETUP_STATE_CHANGED")
         options = await self._webauthn.begin_registration(
@@ -189,8 +237,9 @@ class PlatformAuthService(BaseService):
         device_label: str | None,
     ) -> PlatformSessionIssuedOut:
         flow, access = await self._require_flow(token=flow_token, purpose=PlatformAuthFlowPurpose.SETUP)
-        if not access.is_owner:
-            raise Forbidden(error="PLATFORM_OWNER_WEBAUTHN_SETUP_REQUIRED")
+        operator = None if access.is_owner else self._require_operator_setup(access)
+        if operator is not None:
+            self._require_no_verified_methods(access)
         if self._has_method(access.methods, PlatformMfaMethodKind.WEBAUTHN):
             raise Conflict(error="PLATFORM_MFA_SETUP_STATE_CHANGED")
         enrollment = await self._webauthn.complete_registration(
@@ -198,6 +247,13 @@ class PlatformAuthService(BaseService):
             challenge_id=challenge_id,
             binding=flow_token,
             credential=credential,
+            operator_id=None if operator is None else UUID(str(operator.id)),
+            invitation_id=flow.invitation_id,
+            expected_invitation_revision=flow.invitation_revision,
+            activation_correlation_id=flow.flow_id if flow.invitation_id is not None else None,
+            activation_idempotency_key=(
+                f"platform-invitation-activation:{flow.flow_id}" if flow.invitation_id is not None else None
+            ),
         )
         if enrollment.assurance != PlatformMfaAssurance.PHISHING_RESISTANT:
             raise Forbidden(error="PLATFORM_MFA_ASSURANCE_INVALID")
@@ -206,6 +262,7 @@ class PlatformAuthService(BaseService):
             user_id=flow.user_id,
             assurance=PlatformVerificationAssurance.PHISHING_RESISTANT,
             device_label=device_label,
+            recovery_codes=enrollment.recovery_codes,
         )
 
     async def begin_webauthn_authentication(self, *, flow_token: str) -> PlatformWebAuthnAuthenticationBeginOut:
@@ -245,6 +302,17 @@ class PlatformAuthService(BaseService):
         operator = await self._identity.get_operator_by_user_id(user_id=user_id)
         if not is_owner and not self._operator_can_authenticate(operator):
             raise Forbidden(error="PLATFORM_ACCESS_REQUIRED")
+        setup_context = None
+        if self._operator_requires_setup(operator):
+            if operator is None:
+                raise Forbidden(error="PLATFORM_MFA_SETUP_STATE_CHANGED")
+            setup_reason = str(operator.setup_reason)
+            if setup_reason == PlatformOperatorSetupReason.INVITATION.value:
+                setup_context = await self._identity.get_operator_setup_context(user_id=user_id)
+                if setup_context is None:
+                    raise Forbidden(error="PLATFORM_INVITATION_SETUP_STATE_CHANGED")
+            elif setup_reason != PlatformOperatorSetupReason.RECOVERY.value:
+                raise Forbidden(error="PLATFORM_MFA_SETUP_STATE_CHANGED")
         revision = user.token_version
         if not isinstance(revision, int) or isinstance(revision, bool) or revision < 0:
             raise RuntimeError("Platform auth identity has an invalid revision")
@@ -256,6 +324,7 @@ class PlatformAuthService(BaseService):
             is_owner=is_owner,
             operator=operator,
             methods=methods,
+            setup_context=setup_context,
         )
 
     async def _issue_flow(
@@ -269,6 +338,7 @@ class PlatformAuthService(BaseService):
             user_id=access.user_id,
             purpose=purpose,
             identity_revision=access.identity_revision,
+            setup_context=access.setup_context,
         )
         expires_in = max(int((issued.expires_at - self._now()).total_seconds()), 1)
         return PlatformSignInOut(
@@ -288,7 +358,30 @@ class PlatformAuthService(BaseService):
         access = await self._resolve_access(user)
         if access.identity_revision != flow.identity_revision:
             raise Unauthorized(error="PLATFORM_IDENTITY_CHANGED")
+        current_setup = access.setup_context
+        if (
+            flow.invitation_id != (None if current_setup is None else current_setup.invitation_id)
+            or flow.invitation_revision != (None if current_setup is None else current_setup.invitation_revision)
+            or flow.requires_phishing_resistant
+            != (False if current_setup is None else current_setup.requires_phishing_resistant)
+        ):
+            raise Unauthorized(error="PLATFORM_IDENTITY_CHANGED")
         return flow, access
+
+    async def _authenticate_primary_identity(
+        self, *, identifier: str, password: str
+    ) -> PlatformAuthUserLike:
+        user = await self._users.get_by_identifier(identifier)
+        credential = None if user is None else cast(PlatformAuthCredentialLike | None, user.credential)
+        password_hash = "" if credential is None else credential.password_hash
+        if (
+            user is None
+            or not isinstance(password_hash, str)
+            or not password_hash
+            or not self._verify_password(password, password_hash)
+        ):
+            raise Unauthorized(error="PLATFORM_INVALID_CREDENTIALS")
+        return user
 
     async def _session_out(
         self,

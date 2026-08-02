@@ -14,6 +14,7 @@ from src.config import Settings, get_settings
 from src.core.exceptions import Conflict, NotFound
 from src.core.logging import get_logger
 from src.models.workspaces.workspace import Workspace
+from src.modules.sites.delivery.hosting import is_target_delivery_suspended
 from src.modules.sites.prelaunch import PrelaunchPageContext, render_prelaunch_page
 from src.modules.sites.runtime.delivery_kernel import RuntimeDeliveryTarget, SiteRuntimeDeliveryKernel
 from src.modules.sites.service import SiteService
@@ -200,6 +201,18 @@ async def _serve_project_host(
     resolved = await site_service.resolve_site(host=host)
     if resolved.runtime_id is None:
         raise NotFound("Site runtime not found", error="SITE_RUNTIME_NOT_FOUND")
+    if await is_target_delivery_suspended(
+        workspace_id=UUID(str(resolved.workspace_id)),
+        site_id=UUID(str(resolved.site_id)),
+        runtime_id=UUID(str(resolved.runtime_id)),
+    ):
+        response = _public_error_response(
+            status_code=503,
+            title="Site temporarily unavailable",
+            description="This site is temporarily unavailable. Please try again later.",
+        )
+        response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
+        return response
     tenant_context = await _resolve_public_tenant_context(resolved=resolved)
 
     target = RuntimeDeliveryTarget(

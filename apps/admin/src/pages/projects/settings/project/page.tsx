@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
+  BookOpenText,
   ChevronRight,
   Code2,
   Database,
@@ -15,6 +16,7 @@ import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { ProjectApiKeysSettingsPage } from "@/pages/projects/settings/api-keys/page";
 import { ProjectDatabasesPage } from "@/pages/projects/settings/databases/page";
 import { ProjectEnvironmentsPage } from "@/pages/projects/settings/environments/page";
+import { ProjectGuidanceSettingsPage } from "@/pages/projects/settings/guidance/page";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import {
@@ -29,7 +31,7 @@ import { cn } from "@arclayer/lib/utils";
 
 import { ProjectGeneralSettingsTab } from "./project-general-settings-tab";
 
-type ProjectSettingsTabKey = "general" | "api" | "environments" | "databases";
+type ProjectSettingsTabKey = "general" | "guidance" | "api" | "environments" | "databases";
 
 type ProjectSettingsPageProps = {
   activeTab: ProjectSettingsTabKey;
@@ -39,6 +41,8 @@ type ProjectSettingsPageProps = {
 function resolveProjectSettingsTabNavigation(projectId: string, tab: ProjectSettingsTabKey) {
   const params = { projectId };
   switch (tab) {
+    case "guidance":
+      return { to: "/projects/$projectId/settings/guidance" as const, params };
     case "api":
       return { to: "/projects/$projectId/settings/api" as const, params };
     case "environments":
@@ -60,6 +64,14 @@ function buildProjectSettingsNavItems(): Array<{
   icon: typeof Settings2;
 }> {
   return [
+    {
+      key: "project.guidance",
+      tab: "guidance",
+      labelKey: "knowledge:PROJECT_SETTINGS_TITLE",
+      descriptionKey: "knowledge:PROJECT_SETTINGS_DESCRIPTION",
+      keywords: ["guidance", "instructions", "agent", "context", "override"],
+      icon: BookOpenText,
+    },
     {
       key: "project.general",
       tab: "general",
@@ -102,7 +114,7 @@ function normalizeSettingsSearchTerm(value: string): string {
 }
 
 function useProjectSettingsNavSearch(items: ProjectSettingsNavItem[], query: string) {
-  const { t, i18n } = useTranslation(["account"]);
+  const { t, i18n } = useTranslation(["account", "knowledge"]);
 
   return useMemo(() => {
     const term = normalizeSettingsSearchTerm(query);
@@ -121,7 +133,7 @@ function ProjectSettingsSearch(props: {
   query: string;
   onQueryChange: (query: string) => void;
 }) {
-  const { t } = useTranslation(["account"]);
+  const { t } = useTranslation(["account", "knowledge"]);
   return (
     <div className="relative">
       <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-label-tertiary" />
@@ -188,7 +200,7 @@ function ProjectSettingsMobileNav(props: {
   onQueryChange: (query: string) => void;
   onSelect: (tab: ProjectSettingsTabKey) => void;
 }) {
-  const { t } = useTranslation(["account", "common"]);
+  const { t } = useTranslation(["account", "common", "knowledge"]);
   const [open, setOpen] = useState(false);
   const activeItem = props.items.find((item) => item.tab === props.activeTab) ?? props.items[0];
 
@@ -248,7 +260,7 @@ function ProjectSettingsMobileNav(props: {
 
 export function ProjectSettingsPage(props: ProjectSettingsPageProps) {
   const { activeTab, projectId } = props;
-  const { t } = useTranslation(["account"]);
+  const { t } = useTranslation(["account", "knowledge"]);
   const navigate = useNavigate();
   const navItems = useMemo(() => buildProjectSettingsNavItems(), []);
   const [query, setQuery] = useState("");
@@ -260,6 +272,8 @@ export function ProjectSettingsPage(props: ProjectSettingsPageProps) {
 
   const content = (() => {
     switch (activeTab) {
+      case "guidance":
+        return <ProjectGuidanceSettingsPage projectId={projectId} />;
       case "api":
         return <ProjectApiKeysSettingsPage projectId={projectId} embedded />;
       case "environments":

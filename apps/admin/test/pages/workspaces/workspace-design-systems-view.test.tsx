@@ -5,6 +5,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { WorkspaceDesignSystemsView } from "@/pages/workspaces/settings/workspace/design-systems/workspace-design-systems-view";
 
+const findingTranslation =
+  "Renderer, asset rights, compilation, and publication compatibility have not been evaluated.";
+
 const mocks = vi.hoisted(() => ({
   capabilities: vi.fn(),
   listSystems: vi.fn(),
@@ -20,11 +23,21 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("react-i18next", () => ({
-  useTranslation: () => ({
-    t: (key: string, values?: { count?: number }) =>
-      values?.count === undefined ? key : `${key}:${values.count}`,
-    i18n: { language: "en-US", resolvedLanguage: "en-US" },
-  }),
+  useTranslation: () => {
+    const translate = (key: string, values?: { count?: number }) => {
+      if (key === "errors:DESIGN_SYSTEM_RENDERER_NOT_EVALUATED") return findingTranslation;
+      return values?.count === undefined ? key : `${key}:${values.count}`;
+    };
+    return {
+      t: translate,
+      i18n: {
+        language: "en-US",
+        resolvedLanguage: "en-US",
+        exists: (key: string) => key === "errors:DESIGN_SYSTEM_RENDERER_NOT_EVALUATED",
+        t: translate,
+      },
+    };
+  },
 }));
 
 vi.mock("@/api/workspace-design-systems", () => ({
@@ -186,11 +199,8 @@ describe("WorkspaceDesignSystemsView", () => {
     expect(
       await screen.findByText("SETTINGS_WORKSPACE_DESIGN_SYSTEMS_PREVIEW_HEADING"),
     ).toBeInTheDocument();
-    expect(
-      await screen.findByText(
-        "settings:SETTINGS_WORKSPACE_DESIGN_SYSTEMS_FINDING_DESIGN_SYSTEM_RENDERER_NOT_EVALUATED",
-      ),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(findingTranslation)).toBeInTheDocument();
+    expect(screen.queryByText(validation.findings[0].message)).not.toBeInTheDocument();
     expect(screen.queryByText(checksum)).not.toBeInTheDocument();
     expect(screen.queryByText(checksum.slice(7, 19))).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /publish/i })).not.toBeInTheDocument();

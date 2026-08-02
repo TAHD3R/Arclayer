@@ -313,6 +313,7 @@ describe("ProjectSettingsPage permission consumption", () => {
 
     expect(within(nav).getByText("account:SETTINGS_NAV_PROJECT_GENERAL")).toBeInTheDocument();
     expect(within(nav).getByText("account:SETTINGS_NAV_PROJECT_API")).toBeInTheDocument();
+    expect(within(nav).getByText("knowledge:PROJECT_SETTINGS_TITLE")).toBeInTheDocument();
     expect(within(nav).queryByText("account:SETTINGS_NAV_PROJECT_DOMAIN")).not.toBeInTheDocument();
     expect(
       within(nav).queryByText("account:SETTINGS_PROJECT_DEPLOYMENTS_TITLE"),

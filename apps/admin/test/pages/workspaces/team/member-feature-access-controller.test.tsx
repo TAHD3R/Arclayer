@@ -11,7 +11,7 @@ import {
 import { getWorkspaceCommercialAccess } from "@/api/commerce";
 import { ApiError } from "@/lib/http";
 import { useMemberFeatureAccess } from "@/pages/workspaces/team/members/use-member-feature-access";
-import type { TeamMember } from "@arclayer/openapi/admin-types";
+import type { WorkspaceTeamMemberOut as TeamMember } from "@arclayer/openapi";
 
 vi.mock("@/api/feature-access", () => ({
   assignWorkspaceFeatureAccess: vi.fn(),

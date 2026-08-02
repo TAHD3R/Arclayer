@@ -4,8 +4,10 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { ContentModelEditScreen } from "@/pages/projects/content/models/components/content-model-edit-screen";
-import type { AdminContentModel } from "@arclayer/openapi/admin-types";
+import type { listAllContentModels } from "@/api/content";
 import { TooltipProvider } from "@arclayer/ui/tooltip";
+
+type AdminContentModel = Awaited<ReturnType<typeof listAllContentModels>>[number];
 
 const addContentModelFieldMock = vi.fn();
 const buildContentModelFieldTypesQueryKeyMock = vi.fn((projectId: string) => [

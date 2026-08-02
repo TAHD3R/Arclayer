@@ -2,25 +2,48 @@ import { api } from "@/lib/http";
 import { workspacePath, toQueryString } from "@/lib/api";
 
 import type {
-  PageData,
-  MembershipStatus,
-  TeamMember,
-  TeamUserOption,
-  ListTeamMembersParams,
-  TeamInvitation,
-  TeamInvitationCreateResult,
-  ListTeamInvitationsParams,
-  TeamInviteLink,
-  TeamInviteLinkCreateResult,
-  ListTeamInviteLinksParams,
-  TeamInviteLinkParticipant,
-  ListTeamInviteLinkParticipantsParams,
-} from "@arclayer/openapi/admin-types";
+  WorkspaceMembershipStatus as MembershipStatus,
+  WorkspaceTeamMemberOut as TeamMember,
+  DomainWorkspacesListMembersData,
+  WorkspaceEmailInviteCreateResult as TeamInvitationCreateResult,
+  DomainWorkspacesListEmailInvitesData,
+  WorkspaceInviteLinkCreateResult as TeamInviteLinkCreateResult,
+  DomainWorkspacesListInviteLinksData,
+  DomainWorkspacesListInviteLinkParticipantsData,
+  PageDataWorkspaceTeamMemberOut,
+  PageDataWorkspaceTeamUserOptionOut,
+  PageDataWorkspaceEmailInviteOut,
+  PageDataWorkspaceInviteLinkOut,
+  PageDataWorkspaceInviteLinkParticipantOut,
+} from "@arclayer/openapi";
+
+type ListTeamMembersParams = NonNullable<DomainWorkspacesListMembersData["query"]>;
+type ListTeamInvitationsParams = NonNullable<DomainWorkspacesListEmailInvitesData["query"]>;
+type ListTeamInviteLinksParams = NonNullable<DomainWorkspacesListInviteLinksData["query"]>;
+type ListTeamInviteLinkParticipantsParams = NonNullable<
+  DomainWorkspacesListInviteLinkParticipantsData["query"]
+>;
+type TeamPage =
+  | PageDataWorkspaceTeamMemberOut
+  | PageDataWorkspaceTeamUserOptionOut
+  | PageDataWorkspaceEmailInviteOut
+  | PageDataWorkspaceInviteLinkOut
+  | PageDataWorkspaceInviteLinkParticipantOut;
+type RequiredTeamPage<TPage extends TeamPage> = Omit<TPage, "items"> & {
+  items: NonNullable<TPage["items"]>;
+};
+
+function requireTeamPage<TPage extends TeamPage>(page: TPage): RequiredTeamPage<TPage> {
+  if (!Array.isArray(page.items)) {
+    throw new Error("Invalid team pagination response");
+  }
+  return { ...page, items: page.items };
+}
 
 export async function listTeamMembers(
   workspaceId: string,
   params: ListTeamMembersParams = {},
-): Promise<PageData<TeamMember>> {
+): Promise<RequiredTeamPage<PageDataWorkspaceTeamMemberOut>> {
   const query = toQueryString({
     page: params.page ?? 1,
     size: params.size ?? 10,
@@ -30,21 +53,25 @@ export async function listTeamMembers(
     userStatus: params.userStatus,
     ordering: params.ordering,
   });
-  return api.get<PageData<TeamMember>>(workspacePath(workspaceId, `/team/members${query}`));
+  const page = await api.get<PageDataWorkspaceTeamMemberOut>(
+    workspacePath(workspaceId, `/team/members${query}`),
+  );
+  return requireTeamPage(page);
 }
 
 export async function listTeamUserOptions(
   workspaceId: string,
   params: { page?: number; size?: number; q?: string } = {},
-): Promise<PageData<TeamUserOption>> {
+): Promise<RequiredTeamPage<PageDataWorkspaceTeamUserOptionOut>> {
   const query = toQueryString({
     page: params.page ?? 1,
     size: params.size ?? 20,
     q: params.q,
   });
-  return api.get<PageData<TeamUserOption>>(
+  const page = await api.get<PageDataWorkspaceTeamUserOptionOut>(
     workspacePath(workspaceId, `/team/users/options${query}`),
   );
+  return requireTeamPage(page);
 }
 
 export async function setTeamMemberRoles(
@@ -102,7 +129,7 @@ export async function resetTeamMemberPassword(
 export async function listTeamInvitations(
   workspaceId: string,
   params: ListTeamInvitationsParams = {},
-): Promise<PageData<TeamInvitation>> {
+): Promise<RequiredTeamPage<PageDataWorkspaceEmailInviteOut>> {
   const query = toQueryString({
     page: params.page ?? 1,
     size: params.size ?? 10,
@@ -110,11 +137,12 @@ export async function listTeamInvitations(
     ordering: params.ordering,
     status: params.status,
     role_code: params.role_code,
-    mine: params.mine ? "true" : undefined,
+    mine: params.mine,
   });
-  return api.get<PageData<TeamInvitation>>(
+  const page = await api.get<PageDataWorkspaceEmailInviteOut>(
     workspacePath(workspaceId, `/team/email-invites${query}`),
   );
+  return requireTeamPage(page);
 }
 
 export async function createTeamInvitation(
@@ -160,7 +188,7 @@ export async function deleteTeamInvitation(
 export async function listTeamInviteLinks(
   workspaceId: string,
   params: ListTeamInviteLinksParams = {},
-): Promise<PageData<TeamInviteLink>> {
+): Promise<RequiredTeamPage<PageDataWorkspaceInviteLinkOut>> {
   const query = toQueryString({
     page: params.page ?? 1,
     size: params.size ?? 10,
@@ -168,11 +196,12 @@ export async function listTeamInviteLinks(
     ordering: params.ordering,
     role_code: params.role_code,
     status: params.status,
-    mine: params.mine ? "true" : undefined,
+    mine: params.mine,
   });
-  return api.get<PageData<TeamInviteLink>>(
+  const page = await api.get<PageDataWorkspaceInviteLinkOut>(
     workspacePath(workspaceId, `/team/invite-links${query}`),
   );
+  return requireTeamPage(page);
 }
 
 export async function createTeamInviteLink(
@@ -217,13 +246,14 @@ export async function listTeamInviteLinkParticipants(
   workspaceId: string,
   linkId: string,
   params: ListTeamInviteLinkParticipantsParams = {},
-): Promise<PageData<TeamInviteLinkParticipant>> {
+): Promise<RequiredTeamPage<PageDataWorkspaceInviteLinkParticipantOut>> {
   const query = toQueryString({
     page: params.page ?? 1,
     size: params.size ?? 10,
     q: params.q,
   });
-  return api.get<PageData<TeamInviteLinkParticipant>>(
+  const page = await api.get<PageDataWorkspaceInviteLinkParticipantOut>(
     workspacePath(workspaceId, `/team/invite-links/${linkId}/participants${query}`),
   );
+  return requireTeamPage(page);
 }

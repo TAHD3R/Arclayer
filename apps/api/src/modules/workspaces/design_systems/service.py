@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
-from typing import Any, NoReturn
+from typing import Any, NoReturn, Protocol
 from uuid import UUID
 
 import orjson
@@ -25,6 +25,8 @@ from src.models.design_systems.design_system_version import (
     DesignSystemVersionStateRecord,
 )
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
+from src.modules.projects.builder.render_document_design import BuilderRenderDesignPins
+from src.modules.projects.builder.render_document_schema import BuilderPageRenderDocumentOut
 from src.modules.sites.component_catalogs.registry import ComponentCatalogResolver
 from src.modules.sites.component_catalogs.schema import ComponentCatalogV1
 from src.modules.workspaces.design_systems.manifest import (
@@ -54,20 +56,53 @@ from src.modules.workspaces.design_systems.schema import (
     DesignSystemVersionSummaryOut,
     WorkspaceDesignSystemDefaultOut,
     WorkspaceDesignSystemDefaultSetRequest,
+    WorkspaceDesignSystemRepresentativePreviewOut,
+    WorkspaceDesignSystemRepresentativePreviewRequest,
     WorkspaceDesignSystemsCapabilitiesOut,
 )
 from src.modules.workspaces.design_systems.validator import validate_design_system_foundation
 
 ActivityWriter = Callable[..., Awaitable[object]]
 
+
+class RepresentativePreviewRenderer(Protocol):
+    async def get_page_render_document_for_design_system(
+        self,
+        *,
+        workspace_id: UUID,
+        project_id: UUID,
+        revision_id: UUID,
+        page_item_id: UUID,
+        locale: str,
+        theme_key: str | None,
+        design_pins: BuilderRenderDesignPins,
+        design_manifest: DesignSystemManifestV1,
+    ) -> BuilderPageRenderDocumentOut: ...
+
+
 DESIGN_SYSTEM_CREATED = "workspace.design_system.created"
 DESIGN_SYSTEM_VERSION_CREATED = "workspace.design_system.version.created"
 DESIGN_SYSTEM_VALIDATED = "workspace.design_system.version.validated"
 DESIGN_SYSTEM_DEFAULT_ASSIGNED = "workspace.design_system.default.assigned"
+_REPRESENTATIVE_RENDER_EVIDENCE_CONCERNS = frozenset({
+    "manifest",
+    "content_structure",
+    "content_versions",
+    "presentations_and_bindings",
+    "wireframe_and_catalog",
+    "global_sections",
+    "design_system",
+    "visual_blueprint",
+    "document_hash",
+    "assets_and_font_rights",
+    "compiler",
+    "smoke",
+    "publication",
+})
 
 
 def workspace_design_system_capabilities() -> WorkspaceDesignSystemsCapabilitiesOut:
-    return WorkspaceDesignSystemsCapabilitiesOut()
+    return WorkspaceDesignSystemsCapabilitiesOut(renderer_preview=True, publication=False)
 
 
 class WorkspaceDesignSystemsService(BaseService):
@@ -76,12 +111,14 @@ class WorkspaceDesignSystemsService(BaseService):
         *,
         repository: WorkspaceDesignSystemsRepository,
         component_catalog_resolver: ComponentCatalogResolver,
+        representative_preview_renderer: RepresentativePreviewRenderer,
         settings: Settings | None = None,
         activity_writer: ActivityWriter = write_required_activity_event,
     ) -> None:
         super().__init__(settings)
         self._repository = repository
         self._component_catalog_resolver = component_catalog_resolver
+        self._representative_preview_renderer = representative_preview_renderer
         self._activity_writer = activity_writer
 
     async def list_systems(
@@ -479,6 +516,33 @@ class WorkspaceDesignSystemsService(BaseService):
         records = await self._repository.list_validations(workspace_id=workspace_id, version_id=version_id)
         return tuple(project_validation(record) for record in records)
 
+    async def preview_representative(
+        self,
+        *,
+        workspace_id: UUID,
+        system_id: UUID,
+        version_id: UUID,
+        payload: WorkspaceDesignSystemRepresentativePreviewRequest,
+    ) -> WorkspaceDesignSystemRepresentativePreviewOut:
+        await self._require_system(workspace_id=workspace_id, system_id=system_id)
+        version = await self._require_version(
+            workspace_id=workspace_id,
+            system_id=system_id,
+            version_id=version_id,
+        )
+        document = await self._render_representative_document(
+            workspace_id=workspace_id,
+            system_id=system_id,
+            version=version,
+            payload=payload,
+        )
+        return _project_representative_preview(
+            system_id=system_id,
+            version=version,
+            payload=payload,
+            document=document,
+        )
+
     async def get_default(self, *, workspace_id: UUID) -> WorkspaceDesignSystemDefaultOut | None:
         record = await self._repository.get_default(workspace_id=workspace_id)
         return project_default(record) if record is not None else None
@@ -631,6 +695,38 @@ class WorkspaceDesignSystemsService(BaseService):
             conn=conn,
         )
 
+    async def _render_representative_document(
+        self,
+        *,
+        workspace_id: UUID,
+        system_id: UUID,
+        version: DesignSystemVersionRecord,
+        payload: WorkspaceDesignSystemRepresentativePreviewRequest,
+    ) -> BuilderPageRenderDocumentOut:
+        design_manifest = DesignSystemManifestV1.model_validate(version.manifest)
+        document = await self._representative_preview_renderer.get_page_render_document_for_design_system(
+            workspace_id=workspace_id,
+            project_id=payload.project_id,
+            revision_id=payload.site_revision_id,
+            page_item_id=payload.page_item_id,
+            locale=payload.locale,
+            theme_key=payload.theme_key,
+            design_pins=BuilderRenderDesignPins(
+                design_system_id=system_id,
+                design_system_version_id=version.id,
+                design_system_manifest_checksum=version.manifest_checksum,
+            ),
+            design_manifest=design_manifest,
+        )
+        _require_document_target_matches(
+            document=document,
+            system_id=system_id,
+            version=version,
+            payload=payload,
+        )
+        _require_complete_representative_evidence(document=document)
+        return document
+
     async def _require_system(self, *, workspace_id: UUID, system_id: UUID) -> DesignSystemRecord:
         record = await self._repository.get_system(workspace_id=workspace_id, system_id=system_id)
         if record is None:
@@ -741,6 +837,54 @@ def _optional_text(value: str | None) -> str | None:
     return normalized or None
 
 
+def _project_representative_preview(
+    *,
+    system_id: UUID,
+    version: DesignSystemVersionRecord,
+    payload: WorkspaceDesignSystemRepresentativePreviewRequest,
+    document: BuilderPageRenderDocumentOut,
+) -> WorkspaceDesignSystemRepresentativePreviewOut:
+    return WorkspaceDesignSystemRepresentativePreviewOut(
+        design_system_id=system_id,
+        version_id=version.id,
+        manifest_checksum=version.manifest_checksum,
+        project_id=payload.project_id,
+        site_revision_id=payload.site_revision_id,
+        page_item_id=payload.page_item_id,
+        locale=payload.locale,
+        theme_key=document.theme.key,
+        document=document,
+    )
+
+
+def _require_document_target_matches(
+    *,
+    document: BuilderPageRenderDocumentOut,
+    system_id: UUID,
+    version: DesignSystemVersionRecord,
+    payload: WorkspaceDesignSystemRepresentativePreviewRequest,
+) -> None:
+    if (
+        str(document.pins.design_system_id) != str(system_id)
+        or str(document.pins.design_system_version_id) != str(version.id)
+        or document.pins.design_system_manifest_checksum != version.manifest_checksum
+        or str(document.pins.site_revision_id) != str(payload.site_revision_id)
+        or str(document.pins.page_item_id) != str(payload.page_item_id)
+        or document.locale != payload.locale
+        or (payload.theme_key is not None and document.theme.key != payload.theme_key)
+    ):
+        _raise_revision_conflict()
+
+
+def _require_complete_representative_evidence(*, document: BuilderPageRenderDocumentOut) -> None:
+    concerns = tuple(item.concern for item in document.evidence)
+    if (
+        len(concerns) != len(_REPRESENTATIVE_RENDER_EVIDENCE_CONCERNS)
+        or set(concerns) != _REPRESENTATIVE_RENDER_EVIDENCE_CONCERNS
+    ):
+        _raise_revision_conflict()
+
+
 def _raise_not_found() -> NoReturn:
     raise NotFound(t("errors", "DESIGN_SYSTEM_NOT_FOUND"), error="DESIGN_SYSTEM_NOT_FOUND")
 
@@ -757,6 +901,13 @@ def _raise_validation_required() -> NoReturn:
     raise Conflict(
         t("errors", "DESIGN_SYSTEM_VALIDATION_REQUIRED"),
         error="DESIGN_SYSTEM_VALIDATION_REQUIRED",
+    )
+
+
+def _raise_release_required() -> NoReturn:
+    raise Conflict(
+        t("errors", "DESIGN_SYSTEM_RELEASE_REQUIRED"),
+        error="DESIGN_SYSTEM_RELEASE_REQUIRED",
     )
 
 
@@ -795,5 +946,7 @@ def _require_assignable_state(state: DesignSystemVersionStateRecord) -> None:
             t("errors", "DESIGN_SYSTEM_VERSION_SUPERSEDED"),
             error="DESIGN_SYSTEM_VERSION_SUPERSEDED",
         )
-    if str(state.status) != DesignSystemVersionStatus.VALID.value:
+    if str(state.status) == DesignSystemVersionStatus.VALID.value:
+        _raise_release_required()
+    if str(state.status) != DesignSystemVersionStatus.PUBLISHED.value:
         _raise_validation_required()

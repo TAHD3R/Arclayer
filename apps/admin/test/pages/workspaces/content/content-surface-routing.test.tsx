@@ -73,7 +73,7 @@ describe("content surface routing", () => {
       updatedAt: "2026-04-04T00:00:00Z",
       continuationTarget: {
         surface: "structured",
-        route: "/w/ws-1/content/library/item-structured",
+        route: "/projects/ws-1/content/library/item-structured",
         blocked: false,
         reasonCode: null,
         reasonMeta: null,
@@ -111,7 +111,7 @@ describe("content surface routing", () => {
       updatedAt: "2026-04-04T00:00:00Z",
       continuationTarget: {
         surface: "canvas",
-        route: "/w/ws-1/content/library/item-canvas",
+        route: "/projects/ws-1/content/library/item-canvas",
         blocked: false,
         reasonCode: null,
         reasonMeta: null,
@@ -155,7 +155,7 @@ describe("content surface routing", () => {
       role: "reusable-section",
       continuationTarget: {
         surface: "canvas",
-        route: "/w/ws-1/content/library/item-reusable",
+        route: "/projects/ws-1/content/library/item-reusable",
         blocked: false,
         reasonCode: null,
         reasonMeta: null,
@@ -195,11 +195,17 @@ describe("content surface routing", () => {
       updatedAt: "2026-04-04T00:00:00Z",
       continuationTarget: {
         surface: "structured",
-        route: "/w/ws-1/content/library/item-blocked",
+        route: "/projects/project-1/content/library/item-blocked",
         blocked: true,
         reasonCode: "UNSHAPED_ITEM",
         reasonMeta: { source: "bootstrap" },
-        recoveryActions: [{ kind: "reshape", label: "Reshape", route: "/w/ws-1/content/create" }],
+        recoveryActions: [
+          {
+            kind: "open-recovery",
+            label: "Open recovery surface",
+            route: "/projects/project-1/content/library/item-blocked",
+          },
+        ],
       },
     });
 

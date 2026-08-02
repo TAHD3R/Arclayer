@@ -24,7 +24,7 @@ export function mapWorkspaceNavItems(
 }
 
 export function extractWorkspaceBaseFromPath(pathname: string): string | null {
-  const match = pathname.match(/^\/(?:w|projects)\/([^/]+)/);
+  const match = pathname.match(/^\/projects\/([^/]+)/);
   if (!match?.[1]) return null;
   return `/projects/${match[1]}`;
 }

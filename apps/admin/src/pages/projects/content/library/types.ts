@@ -1,19 +1,28 @@
 import type {
-  AdminContentContinuationRole,
-  AdminContentContinuationSurface,
-  AdminContentItem,
-  AdminContentLibraryView,
-  AdminContentModel,
-  AdminContentModelCapability,
-  AdminContentModelCategory,
-  AdminContentSeoProfile,
-  AdminContentVersion,
-  AdminPublishImpact,
-  AdminContentWorkbenchContext,
-  AdminContentWorkbenchDerivedStatus,
-  AdminContentWorkbenchLibraryGroup,
-  AdminContentWorkbenchRuntime,
-} from "@arclayer/openapi/admin-types";
+  ContentModelOut,
+  ContentItemOut,
+  ContentSeoProfileOut as AdminContentSeoProfile,
+  PublishReadinessOut as AdminPublishImpact,
+} from "@arclayer/openapi";
+import type {
+  getContentLibraryViews,
+  getContentItemVersion,
+  listAllContentItems,
+  listAllContentModels,
+} from "@/api/content";
+
+type AdminContentItem = Awaited<ReturnType<typeof listAllContentItems>>[number];
+type AdminContentModel = Awaited<ReturnType<typeof listAllContentModels>>[number];
+type AdminContentVersion = Awaited<ReturnType<typeof getContentItemVersion>>;
+
+type AdminContentContinuationRole = NonNullable<ContentModelOut["defaultRole"]>;
+type AdminContentContinuationSurface = NonNullable<ContentModelOut["defaultSurface"]>;
+type AdminContentModelCapability = NonNullable<ContentModelOut["capabilities"]>[number];
+type AdminContentModelCategory = ContentModelOut["category"];
+type AdminContentWorkbenchContext = NonNullable<ContentItemOut["context"]>;
+type AdminContentWorkbenchDerivedStatus = NonNullable<ContentItemOut["derivedStatus"]>;
+type AdminContentWorkbenchLibraryGroup = NonNullable<ContentItemOut["libraryGroup"]>;
+type AdminContentWorkbenchRuntime = NonNullable<ContentItemOut["runtime"]>;
 
 export type ContentLibraryDerivedStatus = AdminContentWorkbenchDerivedStatus;
 export type ContentLibraryRuntime = AdminContentWorkbenchRuntime;
@@ -55,7 +64,9 @@ export type ContentLibraryViewDefinition = {
   labelKey: string;
 };
 
-export type ContentLibrarySavedView = AdminContentLibraryView;
+export type ContentLibrarySavedView = Awaited<
+  ReturnType<typeof getContentLibraryViews>
+>["items"][number];
 
 export type ContentLibraryFacetOption<TValue extends string> = {
   id: TValue;

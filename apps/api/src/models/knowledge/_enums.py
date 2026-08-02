@@ -55,3 +55,37 @@ class KnowledgeIngestionMode(StrEnum):
 class KnowledgeServingFreshness(StrEnum):
     CURRENT = "current"
     STALE = "stale"
+
+
+class KnowledgeGuidanceScope(StrEnum):
+    WORKSPACE = "workspace"
+    PROJECT = "project"
+
+
+class KnowledgeProjectGuidanceMode(StrEnum):
+    SUPPLEMENT = "supplement"
+    OVERRIDE = "override"
+
+
+class KnowledgeGuidanceRevisionStatus(StrEnum):
+    DRAFT = "draft"
+    PUBLISHED = "published"
+    SUPERSEDED = "superseded"
+
+
+class KnowledgeGuidancePreviewKind(StrEnum):
+    RESTORE = "restore"
+    REMOVE = "remove"
+
+
+class KnowledgeGuidancePreviewStatus(StrEnum):
+    ACTIVE = "active"
+    APPLIED = "applied"
+
+
+class KnowledgeGuidanceCommandKind(StrEnum):
+    PUBLISH = "publish"
+    RESTORE = "restore"
+    REMOVE = "remove"
+    REFERENCE_ATTACH = "reference_attach"
+    REFERENCE_DETACH = "reference_detach"

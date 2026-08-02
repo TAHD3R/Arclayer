@@ -15,8 +15,8 @@ export type SavedViewState = Readonly<{
 
 export type SavedViewDefinition = Readonly<{
   capabilityId: string;
-  filterSchemaRevision: "1";
-  columnSchemaRevision: "1";
+  filterSchemaRevision: string;
+  columnSchemaRevision: string;
   defaultState: SavedViewState;
 }>;
 
@@ -40,6 +40,18 @@ function definition(
 }
 
 export const SAVED_VIEW_DEFINITIONS = {
+  operationsSignals: {
+    capabilityId: "operations.signals",
+    filterSchemaRevision: "2",
+    columnSchemaRevision: "2",
+    defaultState: {
+      filters: [],
+      ordering: { code: "priority", direction: "asc" },
+      visibleColumns: ["priority", "condition", "source_lifecycle", "coordination_state"],
+      columnOrder: ["priority", "condition", "source_lifecycle", "coordination_state"],
+      density: "comfortable",
+    },
+  },
   tenantWorkspaces: definition("tenant.workspaces", { code: "created_at", direction: "desc" }, [
     "name",
     "owner",

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from typing import cast
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
@@ -11,6 +13,7 @@ from src.models.projects._enums import ProjectAuthoringMode, ProjectAuthoringSta
 from src.modules.projects.repository import ProjectRepository
 from src.modules.projects.schema import ProjectCreateRequest
 from src.modules.projects.service import ProjectService
+from src.modules.tenancy.guidance_provisioner import KnowledgeGuidanceLayerProvisioner
 
 
 async def _async_value(value):
@@ -91,6 +94,24 @@ class _FakeActiveProjectAllowance:
         self.locked_workspace_ids.append(workspace_id)
 
 
+class _GuidanceLayerProvisioner:
+    def __init__(self) -> None:
+        self.workspace_calls: list[dict[str, object]] = []
+        self.project_calls: list[dict[str, object]] = []
+
+    async def provision_workspace_layer(self, **kwargs: object) -> None:
+        self.workspace_calls.append(kwargs)
+
+    async def provision_project_layer(self, **kwargs: object) -> None:
+        self.project_calls.append(kwargs)
+
+
+class _FailingProjectGuidanceLayerProvisioner(_GuidanceLayerProvisioner):
+    async def provision_project_layer(self, **kwargs: object) -> None:
+        await super().provision_project_layer(**kwargs)
+        raise RuntimeError("guidance layer provision failed")
+
+
 class _FakeMembership:
     def __init__(self) -> None:
         self.project_id = uuid4()
@@ -114,7 +135,12 @@ async def test_create_project_bootstraps_memberships_provisions_runtime_site_and
     monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
     allowance = _FakeActiveProjectAllowance()
-    service = ProjectService(settings, active_project_allowance=allowance)
+    guidance_layer_provisioner = _GuidanceLayerProvisioner()
+    service = ProjectService(
+        settings,
+        active_project_allowance=allowance,
+        guidance_layer_provisioner=cast(KnowledgeGuidanceLayerProvisioner, guidance_layer_provisioner),
+    )
 
     workspace_id = uuid4()
     actor_user_id = uuid4()
@@ -139,7 +165,8 @@ async def test_create_project_bootstraps_memberships_provisions_runtime_site_and
     )()
 
     async def fake_require_workspace(*, workspace_id):
-        return None
+        assert workspace_id == workspace.id
+        return workspace
 
     async def fake_create_project(**kwargs):
         assert kwargs["conn"] is tx_conn
@@ -206,6 +233,16 @@ async def test_create_project_bootstraps_memberships_provisions_runtime_site_and
     )
 
     assert bootstrap_calls == [(project.id, workspace_id, actor_user_id, tx_conn)]
+    assert guidance_layer_provisioner.workspace_calls == []
+    assert guidance_layer_provisioner.project_calls == [
+        {
+            "organization_id": workspace.organization_id,
+            "workspace_id": workspace_id,
+            "project_id": project.id,
+            "actor_user_id": actor_user_id,
+            "conn": tx_conn,
+        }
+    ]
     assert provision_calls == [
         {
             "workspace_id": workspace_id,
@@ -239,10 +276,86 @@ async def test_create_project_bootstraps_memberships_provisions_runtime_site_and
 
 
 @pytest.mark.asyncio
+async def test_create_project_rolls_back_when_canonical_layer_provisioning_fails(monkeypatch) -> None:
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
+    settings = get_settings()
+    allowance = _FakeActiveProjectAllowance()
+    guidance_layer_provisioner = _FailingProjectGuidanceLayerProvisioner()
+    service = ProjectService(
+        settings,
+        active_project_allowance=allowance,
+        guidance_layer_provisioner=cast(KnowledgeGuidanceLayerProvisioner, guidance_layer_provisioner),
+    )
+    workspace_id = uuid4()
+    actor_user_id = uuid4()
+    project = _FakeProject(workspace_id=workspace_id)
+    workspace = _FakeWorkspace(workspace_id=workspace_id)
+    tx_conn = object()
+    lifecycle: list[str] = []
+    bootstrap_project_memberships = AsyncMock()
+
+    async def fake_create_project(**kwargs: object) -> _FakeProject:
+        assert kwargs["conn"] is tx_conn
+        return project
+
+    async def fake_require_workspace(*, workspace_id: object) -> _FakeWorkspace:
+        assert workspace_id == project.workspace_id
+        return workspace
+
+    @asynccontextmanager
+    async def fake_tx(*, conn: object | None = None):
+        assert conn is None
+        lifecycle.append("transaction_started")
+        try:
+            yield tx_conn
+        except BaseException:
+            lifecycle.append("transaction_rolled_back")
+            raise
+        else:
+            lifecycle.append("transaction_committed")
+
+    monkeypatch.setattr(service, "tx", fake_tx)
+    monkeypatch.setattr(service, "_require_workspace", fake_require_workspace)
+    monkeypatch.setattr(service, "_reserved_project_slugs", lambda: _async_value(frozenset()))
+    monkeypatch.setattr(service.repo, "create_project", fake_create_project)
+    monkeypatch.setattr(service.repo, "bootstrap_project_memberships", bootstrap_project_memberships)
+
+    with pytest.raises(RuntimeError, match="guidance layer provision failed"):
+        await service.create_project(
+            workspace_id=workspace_id,
+            payload=ProjectCreateRequest.model_construct(
+                workspace_id=workspace_id,
+                authoring_mode=ProjectAuthoringMode.BUILDER_MANAGED,
+                name="Rollback Project",
+                slug="rollback-project",
+                description=None,
+            ),
+            actor_user_id=actor_user_id,
+        )
+
+    assert lifecycle == ["transaction_started", "transaction_rolled_back"]
+    assert guidance_layer_provisioner.project_calls == [
+        {
+            "organization_id": workspace.organization_id,
+            "workspace_id": workspace_id,
+            "project_id": project.id,
+            "actor_user_id": actor_user_id,
+            "conn": tx_conn,
+        }
+    ]
+    assert allowance.claimed_workspace_ids == [workspace_id]
+    bootstrap_project_memberships.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 async def test_reserved_project_slugs_include_system_domain_labels(monkeypatch) -> None:
     monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
-    service = ProjectService(settings, active_project_allowance=_FakeActiveProjectAllowance())
+    service = ProjectService(
+        settings,
+        active_project_allowance=_FakeActiveProjectAllowance(),
+        guidance_layer_provisioner=cast(KnowledgeGuidanceLayerProvisioner, _GuidanceLayerProvisioner()),
+    )
 
     async def fake_core_settings(_settings):
         return {"domains": {"reserved_labels": ["app", "Launch"]}}
@@ -292,7 +405,11 @@ async def test_next_available_project_slug_skips_reserved_labels(monkeypatch) ->
 async def test_project_danger_capabilities_allow_last_active_project(monkeypatch) -> None:
     monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
-    service = ProjectService(settings, active_project_allowance=_FakeActiveProjectAllowance())
+    service = ProjectService(
+        settings,
+        active_project_allowance=_FakeActiveProjectAllowance(),
+        guidance_layer_provisioner=cast(KnowledgeGuidanceLayerProvisioner, _GuidanceLayerProvisioner()),
+    )
 
     workspace_id = uuid4()
     project = _FakeProject(workspace_id=workspace_id)
@@ -326,7 +443,11 @@ async def test_project_archive_and_delete_allow_last_active_project(monkeypatch)
         yield conn
 
     archive_allowance = _FakeActiveProjectAllowance()
-    archive_service = ProjectService(settings, active_project_allowance=archive_allowance)
+    archive_service = ProjectService(
+        settings,
+        active_project_allowance=archive_allowance,
+        guidance_layer_provisioner=cast(KnowledgeGuidanceLayerProvisioner, _GuidanceLayerProvisioner()),
+    )
     archive_project = _FakeProject(workspace_id=workspace_id)
     archive_repo = _FakeProjectRepository(project=archive_project, workspace=workspace)
     archive_service.repo = archive_repo
@@ -342,7 +463,11 @@ async def test_project_archive_and_delete_allow_last_active_project(monkeypatch)
     assert events == ["project.archived"]
 
     delete_allowance = _FakeActiveProjectAllowance()
-    delete_service = ProjectService(settings, active_project_allowance=delete_allowance)
+    delete_service = ProjectService(
+        settings,
+        active_project_allowance=delete_allowance,
+        guidance_layer_provisioner=cast(KnowledgeGuidanceLayerProvisioner, _GuidanceLayerProvisioner()),
+    )
     delete_project = _FakeProject(workspace_id=workspace_id)
     delete_repo = _FakeProjectRepository(project=delete_project, workspace=workspace)
     delete_service.repo = delete_repo
@@ -366,7 +491,11 @@ async def test_project_unarchive_claims_active_project_capacity(monkeypatch) -> 
     project = _FakeProject(workspace_id=workspace_id)
     project.is_active = False
     allowance = _FakeActiveProjectAllowance()
-    service = ProjectService(settings, active_project_allowance=allowance)
+    service = ProjectService(
+        settings,
+        active_project_allowance=allowance,
+        guidance_layer_provisioner=cast(KnowledgeGuidanceLayerProvisioner, _GuidanceLayerProvisioner()),
+    )
     service.repo = _FakeProjectRepository(project=project, workspace=_FakeWorkspace(workspace_id=workspace_id))
 
     @asynccontextmanager

@@ -1,7 +1,7 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   SettingsScreenProvider,
@@ -138,6 +138,7 @@ async function renderSettingsHost(initialScreen: SettingsScreen = "personal.prof
 
 describe("SettingsScreenHost", () => {
   beforeEach(() => {
+    vi.stubGlobal("PointerEvent", MouseEvent);
     vi.clearAllMocks();
     commerceMocks.getWorkspaceCommerceOverview.mockResolvedValue({
       planRevision: {
@@ -150,6 +151,10 @@ describe("SettingsScreenHost", () => {
       lastWorkspaceId: "ws-alpha",
       lastProjectId: "project-alpha",
     });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it("renders the shared settings frame inside the overlay chrome", async () => {
@@ -218,6 +223,73 @@ describe("SettingsScreenHost", () => {
     });
   });
 
+  it("keeps workspace settings reachable from the narrow navigation sheet by keyboard", async () => {
+    const user = await renderSettingsHost();
+    const navigationAction = screen.getByRole("button", {
+      name: "SETTINGS_SHELL_NAVIGATION_ACTION",
+    });
+
+    expect(navigationAction.parentElement).toHaveClass("lg:hidden");
+    navigationAction.focus();
+    await user.keyboard("{Enter}");
+
+    const dialog = screen.getByRole("dialog", { name: "SETTINGS_SHELL_TITLE" });
+    await waitFor(() => {
+      expect(
+        within(dialog).getByRole("button", { name: "account:SETTINGS_NAV_WORKSPACE_GENERAL" }),
+      ).toBeVisible();
+      expect(
+        within(dialog).getByRole("button", { name: "account:SETTINGS_NAV_WORKSPACE_PLAN_USAGE" }),
+      ).toBeVisible();
+      expect(
+        within(dialog).getByRole("button", { name: "account:SETTINGS_NAV_WORKSPACE_PEOPLE" }),
+      ).toBeVisible();
+      expect(
+        within(dialog).getByRole("button", { name: "account:SETTINGS_NAV_WORKSPACE_ROLES" }),
+      ).toBeVisible();
+    });
+    await user.click(
+      within(dialog).getByRole("button", { name: "account:SETTINGS_NAV_WORKSPACE_PLAN_USAGE" }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("overlay-workspace-plan-usage-view")).toHaveTextContent("ws-alpha");
+    });
+    await waitFor(() => {
+      expect(dialog).toHaveAttribute("data-state", "closed");
+    });
+  });
+
+  it("keeps the roles plan gate in the narrow navigation sheet", async () => {
+    commerceMocks.getWorkspaceCommerceOverview.mockResolvedValue({
+      planRevision: { entitlements: [] },
+    });
+    const user = await renderSettingsHost();
+    const navigationAction = screen.getByRole("button", {
+      name: "SETTINGS_SHELL_NAVIGATION_ACTION",
+    });
+
+    navigationAction.focus();
+    await user.keyboard("{Enter}");
+    const dialog = screen.getByRole("dialog", { name: "SETTINGS_SHELL_TITLE" });
+    await user.click(
+      within(dialog).getByRole("button", { name: /account:SETTINGS_NAV_WORKSPACE_ROLES/ }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("workspace-roles-plan-gate")).toBeVisible();
+    });
+    expect(screen.getByText("workspaceAccess:ROLES_PAID_FEATURE_TITLE")).toBeVisible();
+    expect(screen.getByText("workspaceAccess:ROLES_PAID_FEATURE_DESCRIPTION")).toBeVisible();
+    expect(screen.getByText("errors:WORKSPACE_ROLE_MANAGEMENT_PLAN_REQUIRED")).toBeVisible();
+    expect(
+      within(screen.getByTestId("workspace-roles-plan-gate")).getByText(
+        "account:SETTINGS_NAV_WORKSPACE_PLAN_USAGE",
+      ),
+    ).toBeVisible();
+    expect(screen.queryByTestId("overlay-workspace-roles-view")).toBeNull();
+  });
+
   it("keeps People, pending invitations, and invite links in one actionable surface", async () => {
     const user = await renderSettingsHost("workspace.people");
 
@@ -258,13 +330,25 @@ describe("SettingsScreenHost", () => {
     commerceMocks.getWorkspaceCommerceOverview.mockResolvedValue({
       planRevision: { entitlements: [] },
     });
-    await renderSettingsHost("workspace.roles");
+    const user = await renderSettingsHost("workspace.roles");
 
     await waitFor(() => {
-      expect(screen.getByTestId("overlay-workspace-plan-usage-view")).toHaveTextContent("ws-alpha");
+      expect(screen.getByTestId("workspace-roles-plan-gate")).toBeVisible();
     });
     expect(screen.queryByTestId("overlay-workspace-roles-view")).toBeNull();
     expect(screen.getByText("workspaceAccess:ROLES_ELIGIBLE_PLAN_BADGE")).toBeInTheDocument();
+    expect(screen.getByText("workspaceAccess:ROLES_PAID_FEATURE_TITLE")).toBeVisible();
+    expect(screen.getByText("workspaceAccess:ROLES_PAID_FEATURE_DESCRIPTION")).toBeVisible();
+    expect(screen.getByText("errors:WORKSPACE_ROLE_MANAGEMENT_PLAN_REQUIRED")).toBeVisible();
+
+    await user.click(
+      within(screen.getByTestId("workspace-roles-plan-gate")).getByRole("button", {
+        name: "account:SETTINGS_NAV_WORKSPACE_PLAN_USAGE",
+      }),
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("overlay-workspace-plan-usage-view")).toHaveTextContent("ws-alpha");
+    });
   });
 
   it("surfaces a capability lookup error without mounting Roles", async () => {
@@ -274,6 +358,24 @@ describe("SettingsScreenHost", () => {
     await waitFor(() => {
       expect(screen.getByText("workspaceAccess:ROLES_ACCESS_CHECK_FAILED_BADGE")).toBeVisible();
     });
+    expect(screen.queryByTestId("overlay-workspace-roles-view")).toBeNull();
+    expect(screen.queryByTestId("workspace-roles-plan-gate")).toBeNull();
+  });
+
+  it("does not frame missing workspace selection as a Plan upgrade", async () => {
+    useWorkspaceStore.setState({
+      currentWorkspaceId: null,
+      currentProjectId: null,
+      lastWorkspaceId: "ws-previous",
+      lastProjectId: null,
+    });
+    await renderSettingsHost("workspace.roles");
+
+    await waitFor(() => {
+      expect(screen.getByText("settings:SETTINGS_WORKSPACE_NOT_SELECTED_TITLE")).toBeVisible();
+    });
+    expect(screen.getByText("settings:SETTINGS_WORKSPACE_NOT_SELECTED_DESC")).toBeVisible();
+    expect(screen.queryByTestId("workspace-roles-plan-gate")).toBeNull();
     expect(screen.queryByTestId("overlay-workspace-roles-view")).toBeNull();
   });
 

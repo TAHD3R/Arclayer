@@ -16,15 +16,20 @@ type PersonalNotificationsSource = {
   sourcePath?: never;
 };
 
+type NotificationsDetailSearch = {
+  ticketId?: string;
+};
+
 export type NotificationsSourceSearch =
-  | WorkspaceOrGlobalNotificationsSource
-  | PersonalNotificationsSource;
+  | (WorkspaceOrGlobalNotificationsSource & NotificationsDetailSearch)
+  | (PersonalNotificationsSource & NotificationsDetailSearch);
 
 const PERSONAL_NOTIFICATIONS_SCREENS = new Set<SettingsScreen>([
   "personal.profile",
   "personal.preferences",
   "personal.notifications",
 ]);
+const PUBLIC_ID_PATTERN = /^[A-Za-z0-9_-]{22}$/u;
 
 function isValidRelativePath(value: string): boolean {
   return value.startsWith("/") && !value.startsWith("//");
@@ -43,6 +48,10 @@ function isPersonalNotificationsScreen(value: unknown): value is SettingsScreen 
 export function validateNotificationsSourceSearch(
   search: Record<string, unknown>,
 ): NotificationsSourceSearch {
+  const ticketId =
+    typeof search.ticketId === "string" && PUBLIC_ID_PATTERN.test(search.ticketId.trim())
+      ? search.ticketId.trim()
+      : undefined;
   const sourceKind =
     search.sourceKind === "workspace" ||
     search.sourceKind === "global" ||
@@ -50,12 +59,14 @@ export function validateNotificationsSourceSearch(
       ? search.sourceKind
       : undefined;
 
-  if (!sourceKind) return {};
+  if (!sourceKind) return ticketId ? { ticketId } : {};
 
   if (sourceKind === "personal") {
     return isPersonalNotificationsScreen(search.sourceScreen)
-      ? { sourceKind, sourceScreen: search.sourceScreen }
-      : {};
+      ? { sourceKind, sourceScreen: search.sourceScreen, ticketId }
+      : ticketId
+        ? { ticketId }
+        : {};
   }
 
   const rawPath =
@@ -63,12 +74,12 @@ export function validateNotificationsSourceSearch(
       ? search.sourcePath.trim()
       : undefined;
 
-  if (!rawPath || !isValidRelativePath(rawPath)) return {};
+  if (!rawPath || !isValidRelativePath(rawPath)) return ticketId ? { ticketId } : {};
 
   const sourcePath = normalizePath(rawPath);
-  if (!isAllowedSourcePath(sourceKind, sourcePath)) return {};
+  if (!isAllowedSourcePath(sourceKind, sourcePath)) return ticketId ? { ticketId } : {};
 
-  return { sourceKind, sourcePath };
+  return { sourceKind, sourcePath, ticketId };
 }
 
 export function parseNotificationsSourceSearch(searchStr: string): NotificationsSourceSearch {
@@ -79,6 +90,7 @@ export function parseNotificationsSourceSearch(searchStr: string): Notifications
     sourceKind: params.get("sourceKind") ?? undefined,
     sourcePath: params.get("sourcePath") ?? undefined,
     sourceScreen: params.get("sourceScreen") ?? undefined,
+    ticketId: params.get("ticketId") ?? undefined,
   });
 }
 

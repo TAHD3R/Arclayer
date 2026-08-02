@@ -316,6 +316,16 @@ export type AgentVersionCreateRequest = {
 };
 
 /**
+ * AgentVersionLifecycleRequest
+ */
+export type AgentVersionLifecycleRequest = {
+    /**
+     * State
+     */
+    state: 'published' | 'retired';
+};
+
+/**
  * AgentVersionProvenance
  */
 export type AgentVersionProvenance = {
@@ -331,16 +341,6 @@ export type AgentVersionProvenance = {
      * Manifestversion
      */
     manifestVersion?: number | null;
-};
-
-/**
- * AgentVersionRetireRequest
- */
-export type AgentVersionRetireRequest = {
-    /**
-     * State
-     */
-    state: 'retired';
 };
 
 /**
@@ -546,6 +546,75 @@ export type CommercePlanRevisionOut = {
 };
 
 /**
+ * CommercialCorrectionApplyPayload
+ */
+export type CommercialCorrectionApplyPayload = {
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Expectedpreviewrevision
+     */
+    expectedPreviewRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Previewid
+     */
+    previewId: string;
+    /**
+     * Reason
+     */
+    reason: string;
+    /**
+     * Sourceevidence
+     */
+    sourceEvidence: Array<string>;
+};
+
+/**
+ * CommercialCorrectionPreviewRequest
+ */
+export type CommercialCorrectionPreviewRequest = {
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Expectedsubscriptionrevision
+     */
+    expectedSubscriptionRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Reason
+     */
+    reason: string;
+    /**
+     * Sourceevidence
+     */
+    sourceEvidence: Array<string>;
+    /**
+     * Sourcerevisionid
+     */
+    sourceRevisionId: string;
+    /**
+     * Targetrevisionid
+     */
+    targetRevisionId: string;
+};
+
+/**
+ * ConnectorEventInboxStatus
+ */
+export type ConnectorEventInboxStatus = 'received' | 'processing' | 'processed' | 'failed';
+
+/**
  * ConnectorKind
  */
 export type ConnectorKind = 'billing' | 'oauth' | 'analytics' | 'email';
@@ -561,9 +630,226 @@ export type ConnectorTrustLevel = 'official' | 'third_party';
 export type ContentReleaseStatus = 'active' | 'scheduled' | 'published' | 'cancelled';
 
 /**
+ * ConvergenceImpactSnapshot
+ *
+ * Named authority and allocation consequences for one exact revision pair.
+ */
+export type ConvergenceImpactSnapshot = {
+    /**
+     * Activemembers
+     */
+    activeMembers: Array<MemberImpact>;
+    /**
+     * Billingmanagers
+     */
+    billingManagers: Array<MemberImpact>;
+    /**
+     * Customroles
+     */
+    customRoles: Array<CustomRoleImpact>;
+    /**
+     * Emailinvitations
+     */
+    emailInvitations: Array<InvitationImpact>;
+    /**
+     * Featureallocationscoperevisions
+     */
+    featureAllocationScopeRevisions: Array<FeatureAccessScopeRevisionImpact>;
+    /**
+     * Featureassignments
+     */
+    featureAssignments: Array<FeatureSeatAssignmentImpact>;
+    /**
+     * Featureseatmanagers
+     */
+    featureSeatManagers: Array<MemberImpact>;
+    /**
+     * Owneruserid
+     */
+    ownerUserId: string;
+    /**
+     * Queuedeffects
+     */
+    queuedEffects: Array<QueuedEffectImpact>;
+    /**
+     * Requiresconvergence
+     */
+    requiresConvergence: boolean;
+    /**
+     * Reusableinvitationlinks
+     */
+    reusableInvitationLinks: Array<InvitationImpact>;
+    /**
+     * Roleresponsibilities
+     */
+    roleResponsibilities: Array<RoleResponsibilityImpact>;
+    sourceRevision: PlanRevisionRef;
+    /**
+     * Subscriptionrevision
+     */
+    subscriptionRevision: number;
+    targetRevision: PlanRevisionRef;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * ConvergencePreview
+ */
+export type ConvergencePreview = {
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Effectiveat
+     */
+    effectiveAt: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Isapplied
+     */
+    isApplied?: boolean;
+    /**
+     * Previewrevision
+     */
+    previewRevision: number;
+    /**
+     * Retainedassignmentids
+     */
+    retainedAssignmentIds: Array<string>;
+    snapshot: ConvergenceImpactSnapshot;
+    /**
+     * Snapshothash
+     */
+    snapshotHash: string;
+};
+
+/**
+ * ConvergencePreviewRequest
+ */
+export type ConvergencePreviewRequest = {
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Effectiveat
+     */
+    effectiveAt: string;
+    /**
+     * Expectedsubscriptionrevision
+     */
+    expectedSubscriptionRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Retainedassignmentids
+     */
+    retainedAssignmentIds: Array<string>;
+    /**
+     * Sourcerevisionid
+     */
+    sourceRevisionId: string;
+    /**
+     * Targetrevisionid
+     */
+    targetRevisionId: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * CreditAdjustmentOut
+ */
+export type CreditAdjustmentOut = {
+    /**
+     * Accountrevision
+     */
+    accountRevision: number;
+    /**
+     * Auditeventid
+     */
+    auditEventId: string;
+    /**
+     * Available
+     */
+    available: number;
+    /**
+     * Balance
+     */
+    balance: number;
+    /**
+     * Ledgerentryid
+     */
+    ledgerEntryId: string;
+    /**
+     * Reserved
+     */
+    reserved: number;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * CreditAdjustmentRequest
+ */
+export type CreditAdjustmentRequest = {
+    /**
+     * Deltacredits
+     */
+    deltaCredits: number;
+    /**
+     * Evidencereference
+     */
+    evidenceReference: string;
+    /**
+     * Expectedaccountrevision
+     */
+    expectedAccountRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Reason
+     */
+    reason: string;
+};
+
+/**
  * CreditRefreshInterval
  */
 export type CreditRefreshInterval = 'daily' | 'monthly' | 'yearly' | 'none';
+
+/**
+ * CustomRoleImpact
+ */
+export type CustomRoleImpact = {
+    /**
+     * Roleid
+     */
+    roleId: string;
+    /**
+     * Rolename
+     */
+    roleName: string;
+};
 
 /**
  * DirectoryActorSummaryOut
@@ -1889,6 +2175,56 @@ export type DomainBindingOut = {
 };
 
 /**
+ * DunningPolicyOut
+ */
+export type DunningPolicyOut = {
+    /**
+     * Isactive
+     */
+    isActive: boolean;
+    /**
+     * Policy
+     */
+    policy: {
+        [key: string]: unknown;
+    };
+    /**
+     * Provider
+     */
+    provider: string;
+    providerMode: BillingProviderMode;
+    /**
+     * Revision
+     */
+    revision: number;
+};
+
+/**
+ * DunningPolicyWrite
+ */
+export type DunningPolicyWrite = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Policy
+     */
+    policy: {
+        [key: string]: unknown;
+    };
+    /**
+     * Provider
+     */
+    provider: string;
+    providerMode: BillingProviderMode;
+};
+
+/**
  * EntitlementAllocationMode
  */
 export type EntitlementAllocationMode = 'workspace' | 'member_seat';
@@ -1917,6 +2253,10 @@ export type ExtensionConnectionListOut = {
  * ExtensionConnectionOut
  */
 export type ExtensionConnectionOut = {
+    /**
+     * Configurationdeeplink
+     */
+    configurationDeepLink: string;
     configurationReadiness: ExtensionConfigurationReadiness;
     configurationTarget: ExtensionConfigurationTarget;
     /**
@@ -1937,6 +2277,100 @@ export type ExtensionConnectionOut = {
      */
     runtimeReady: boolean;
     trustLevel: ConnectorTrustLevel;
+};
+
+/**
+ * ExtensionConsumerEvidenceOut
+ */
+export type ExtensionConsumerEvidenceOut = {
+    /**
+     * Consumers
+     */
+    consumers?: Array<ExtensionConsumerOut>;
+    state: ExtensionConsumerEvidenceState;
+};
+
+/**
+ * ExtensionConsumerEvidenceState
+ */
+export type ExtensionConsumerEvidenceState = 'unknown' | 'ready' | 'blocked';
+
+/**
+ * ExtensionConsumerOut
+ */
+export type ExtensionConsumerOut = {
+    /**
+     * Deeplink
+     */
+    deepLink: string;
+    /**
+     * Domain
+     */
+    domain: string;
+    /**
+     * Label
+     */
+    label: string;
+};
+
+/**
+ * ExtensionDependencyOut
+ */
+export type ExtensionDependencyOut = {
+    /**
+     * Extensionname
+     */
+    extensionName: string;
+    /**
+     * Versionrequirement
+     */
+    versionRequirement?: string | null;
+};
+
+/**
+ * FeatureAccessScopeRevisionImpact
+ *
+ * Reviewed serialization revision for one Feature Seat allocation scope.
+ */
+export type FeatureAccessScopeRevisionImpact = {
+    /**
+     * Entitlementkey
+     */
+    entitlementKey: string;
+    /**
+     * Revision
+     */
+    revision: number;
+};
+
+/**
+ * FeatureSeatAssignmentImpact
+ */
+export type FeatureSeatAssignmentImpact = {
+    /**
+     * Assignmentid
+     */
+    assignmentId: string;
+    /**
+     * Descriptioni18Nkey
+     */
+    descriptionI18NKey: string;
+    /**
+     * Entitlementkey
+     */
+    entitlementKey: string;
+    /**
+     * Membershipid
+     */
+    membershipId: string;
+    /**
+     * Namei18Nkey
+     */
+    nameI18NKey: string;
+    /**
+     * Userid
+     */
+    userId: string;
 };
 
 /**
@@ -1964,6 +2398,14 @@ export type FeedbackMessageCreate = {
      * Body
      */
     body: string;
+    /**
+     * Clientrequestid
+     */
+    clientRequestId: string;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
     kind: FeedbackMessageKind;
 };
 
@@ -1985,6 +2427,15 @@ export type FeedbackMessageOut = {
      * Createdat
      */
     createdAt: string;
+    /**
+     * Deliveryfailurecode
+     */
+    deliveryFailureCode?: string | null;
+    /**
+     * Deliveryisretryable
+     */
+    deliveryIsRetryable?: boolean | null;
+    deliveryState?: NotificationDeliveryState | null;
     /**
      * Id
      *
@@ -2082,6 +2533,10 @@ export type FeedbackTicketDetailOut = {
      * Resolvedat
      */
     resolvedAt: string | null;
+    /**
+     * Revision
+     */
+    revision: number;
     source: FeedbackSource;
     status: FeedbackStatus;
     /**
@@ -2154,6 +2609,10 @@ export type FeedbackTicketListItemOut = {
      * Resolvedat
      */
     resolvedAt: string | null;
+    /**
+     * Revision
+     */
+    revision: number;
     source: FeedbackSource;
     status: FeedbackStatus;
     /**
@@ -2180,6 +2639,10 @@ export type FeedbackTicketUpdate = {
      * Clearassignee
      */
     clearAssignee?: boolean;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
     priority?: FeedbackPriority | null;
     status?: FeedbackStatus | null;
 };
@@ -2342,7 +2805,30 @@ export type HttpValidationError = {
 /**
  * HostingCommercialAccessState
  */
-export type HostingCommercialAccessState = 'serving' | 'continuity_required' | 'suspended' | 'restoration_required' | 'restored';
+export type HostingCommercialAccessState = 'serving' | 'continuity_required' | 'suspended' | 'restoration_required' | 'restored' | 'partial';
+
+/**
+ * InvitationImpact
+ */
+export type InvitationImpact = {
+    /**
+     * Invitationid
+     */
+    invitationId: string;
+    /**
+     * Recipientlabel
+     */
+    recipientLabel: string;
+    /**
+     * Roleid
+     */
+    roleId?: string | null;
+};
+
+/**
+ * JobInternalStatus
+ */
+export type JobInternalStatus = 'pending_dispatch' | 'queued' | 'running' | 'retry_scheduled' | 'waiting_for_user' | 'succeeded' | 'failed' | 'dead_lettered' | 'cancelled';
 
 export type JsonValueInput = string | number | number | boolean | Array<JsonValueInput> | {
     [key: string]: JsonValueInput;
@@ -2351,6 +2837,46 @@ export type JsonValueInput = string | number | number | boolean | Array<JsonValu
 export type JsonValueOutput = string | number | number | boolean | Array<JsonValueOutput> | {
     [key: string]: JsonValueOutput;
 } | null;
+
+/**
+ * MailCredentialWriteOut
+ */
+export type MailCredentialWriteOut = {
+    /**
+     * Configured
+     */
+    configured: boolean;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Revision
+     */
+    revision: number;
+    /**
+     * Rotated
+     */
+    rotated: boolean;
+};
+
+/**
+ * MailCredentialWriteRequest
+ */
+export type MailCredentialWriteRequest = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Username
+     */
+    username?: string | null;
+};
 
 /**
  * MailProviderInfo
@@ -2422,6 +2948,237 @@ export type MailProviderSwitchRequest = {
      * Provider id to activate.
      */
     provider: string;
+};
+
+/**
+ * MailServiceActionOut
+ */
+export type MailServiceActionOut = {
+    /**
+     * Action
+     */
+    action: 'configure' | 'configure_credentials' | 'test' | 'rotate_credentials' | 'disable' | 'recover';
+    /**
+     * Available
+     */
+    available: boolean;
+    /**
+     * Reasoncode
+     */
+    reasonCode?: string | null;
+};
+
+/**
+ * MailServiceMutationRequest
+ */
+export type MailServiceMutationRequest = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+};
+
+/**
+ * MailServiceOut
+ */
+export type MailServiceOut = {
+    /**
+     * Active
+     */
+    active: boolean;
+    /**
+     * Configured
+     */
+    configured: boolean;
+    /**
+     * Credentialconfigured
+     */
+    credentialConfigured: boolean;
+    /**
+     * Degraded
+     */
+    degraded: boolean;
+    /**
+     * Desiredactive
+     */
+    desiredActive: boolean;
+    /**
+     * Installed
+     */
+    installed: boolean;
+    /**
+     * Lastteststatus
+     */
+    lastTestStatus?: 'passed' | 'failed' | null;
+    /**
+     * Lasttestedat
+     */
+    lastTestedAt?: string | null;
+    /**
+     * Permittedactions
+     */
+    permittedActions?: Array<MailServiceActionOut>;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Reachable
+     */
+    reachable: boolean;
+    /**
+     * Readiness
+     */
+    readiness: 'installed' | 'configured' | 'sender_verified' | 'reachable' | 'active' | 'degraded' | 'unavailable';
+    /**
+     * Revision
+     */
+    revision: number;
+    sender: MailServiceSenderOut;
+    /**
+     * Senderverified
+     */
+    senderVerified: boolean;
+    /**
+     * Transportrevision
+     */
+    transportRevision: number;
+    /**
+     * Unavailable
+     */
+    unavailable: boolean;
+};
+
+/**
+ * MailServiceSenderOut
+ */
+export type MailServiceSenderOut = {
+    /**
+     * Address
+     */
+    address?: string | null;
+    /**
+     * Domain
+     */
+    domain?: string | null;
+    /**
+     * Name
+     */
+    name?: string | null;
+};
+
+/**
+ * MailServiceTestOut
+ */
+export type MailServiceTestOut = {
+    /**
+     * Attempts
+     */
+    attempts: number;
+    /**
+     * Latencyms
+     */
+    latencyMs: number;
+    /**
+     * Messageid
+     */
+    messageId?: string | null;
+    /**
+     * Provider
+     */
+    provider: string;
+    service: MailServiceOut;
+    /**
+     * State
+     */
+    state: 'accepted';
+};
+
+/**
+ * MailServiceTestRequest
+ */
+export type MailServiceTestRequest = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Recipient
+     */
+    recipient: string;
+};
+
+/**
+ * MailServiceUpdateRequest
+ */
+export type MailServiceUpdateRequest = {
+    /**
+     * Active
+     */
+    active?: boolean | null;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Provider
+     */
+    provider?: string | null;
+    /**
+     * Senderaddress
+     */
+    senderAddress?: string | null;
+    /**
+     * Senderdomain
+     */
+    senderDomain?: string | null;
+    /**
+     * Sendername
+     */
+    senderName?: string | null;
+    smtp?: MailSmtpRoutePatch | null;
+};
+
+/**
+ * MailSmtpRoutePatch
+ */
+export type MailSmtpRoutePatch = {
+    /**
+     * Port
+     */
+    port?: number | null;
+    /**
+     * Server
+     */
+    server?: string | null;
+    /**
+     * Ssltls
+     */
+    sslTls?: boolean | null;
+    /**
+     * Starttls
+     */
+    starttls?: boolean | null;
+    /**
+     * Usecredentials
+     */
+    useCredentials?: boolean | null;
+    /**
+     * Username
+     */
+    username?: string | null;
 };
 
 /**
@@ -2903,24 +3660,22 @@ export type MailTestResult = {
 };
 
 /**
- * NotificationAction
+ * MemberImpact
  */
-export type NotificationAction = {
-    kind: NotificationActionKind;
+export type MemberImpact = {
     /**
-     * Label
+     * Displayname
      */
-    label: string;
+    displayName: string;
     /**
-     * Target
+     * Membershipid
      */
-    target: string;
+    membershipId: string;
+    /**
+     * Userid
+     */
+    userId: string;
 };
-
-/**
- * NotificationActionKind
- */
-export type NotificationActionKind = 'internal_route' | 'external_https';
 
 /**
  * NotificationAudienceEstimateOut
@@ -2990,7 +3745,14 @@ export type NotificationAudienceRule = {
  * NotificationBannerPayload
  */
 export type NotificationBannerPayloadInput = {
-    action?: NotificationAction | null;
+    /**
+     * Action
+     */
+    action?: ({
+        kind: 'internal_route';
+    } & NotificationInternalRouteAction) | ({
+        kind: 'external_https';
+    } & NotificationExternalHttpsAction) | null;
     /**
      * Body
      */
@@ -3009,7 +3771,14 @@ export type NotificationBannerPayloadInput = {
  * NotificationBannerPayload
  */
 export type NotificationBannerPayloadOutput = {
-    action?: NotificationAction | null;
+    /**
+     * Action
+     */
+    action?: ({
+        kind: 'internal_route';
+    } & NotificationInternalRouteAction) | ({
+        kind: 'external_https';
+    } & NotificationExternalHttpsAction) | null;
     /**
      * Body
      */
@@ -3566,6 +4335,164 @@ export type NotificationCampaignVariantOut = {
 };
 
 /**
+ * NotificationDeliveryDirectoryCampaignOut
+ *
+ * Campaign context retained with a delivery for Platform drill-down links.
+ */
+export type NotificationDeliveryDirectoryCampaignOut = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Revision
+     */
+    revision: number;
+    state: NotificationCampaignState;
+};
+
+/**
+ * NotificationDeliveryDirectoryOut
+ *
+ * One persisted Campaign delivery row for the cross-Campaign directory.
+ */
+export type NotificationDeliveryDirectoryOut = {
+    /**
+     * Attemptcount
+     */
+    attemptCount: number;
+    campaign: NotificationDeliveryDirectoryCampaignOut;
+    channel: NotificationCampaignChannel;
+    /**
+     * Clickedat
+     */
+    clickedAt?: string | null;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Deliveredat
+     */
+    deliveredAt?: string | null;
+    /**
+     * Dismissedat
+     */
+    dismissedAt?: string | null;
+    /**
+     * Failurecode
+     */
+    failureCode?: string | null;
+    /**
+     * Failuremessage
+     */
+    failureMessage?: string | null;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Isretryable
+     */
+    isRetryable: boolean;
+    /**
+     * Notificationid
+     */
+    notificationId?: string | null;
+    presentation: NotificationPresentation;
+    /**
+     * Processingat
+     */
+    processingAt?: string | null;
+    /**
+     * Providermessageid
+     */
+    providerMessageId?: string | null;
+    /**
+     * Readat
+     */
+    readAt?: string | null;
+    recipient: NotificationDeliveryDirectoryRecipientOut;
+    /**
+     * Scheduledat
+     */
+    scheduledAt?: string | null;
+    /**
+     * Sentat
+     */
+    sentAt?: string | null;
+    /**
+     * Sourceidentity
+     */
+    sourceIdentity: string;
+    sourceKind: NotificationDeliverySourceKind;
+    state: NotificationDeliveryState;
+    template?: NotificationDeliveryDirectoryTemplateOut | null;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+};
+
+/**
+ * NotificationDeliveryDirectoryRecipientOut
+ *
+ * Safe recipient identity projection; missing user evidence stays explicit.
+ */
+export type NotificationDeliveryDirectoryRecipientOut = {
+    /**
+     * Displayname
+     */
+    displayName?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Status
+     */
+    status?: string | null;
+    /**
+     * Username
+     */
+    username?: string | null;
+};
+
+/**
+ * NotificationDeliveryDirectoryTemplateOut
+ *
+ * Committed variant and email-template evidence without exposing variables.
+ */
+export type NotificationDeliveryDirectoryTemplateOut = {
+    /**
+     * Contentrevision
+     */
+    contentRevision: number;
+    /**
+     * Locale
+     */
+    locale: string;
+    /**
+     * Templatekey
+     */
+    templateKey?: string | null;
+    /**
+     * Templateversion
+     */
+    templateVersion?: number | null;
+    /**
+     * Variantid
+     */
+    variantId: string;
+};
+
+/**
  * NotificationDeliveryOut
  */
 export type NotificationDeliveryOut = {
@@ -3649,6 +4576,11 @@ export type NotificationDeliveryOut = {
 };
 
 /**
+ * NotificationDeliverySourceKind
+ */
+export type NotificationDeliverySourceKind = 'campaign' | 'transactional' | 'feedback_reply';
+
+/**
  * NotificationDeliveryState
  */
 export type NotificationDeliveryState = 'pending' | 'processing' | 'sent' | 'delivered' | 'failed' | 'suppressed' | 'cancelled';
@@ -3699,10 +4631,49 @@ export type NotificationEmailPayloadOutput = {
 };
 
 /**
+ * NotificationExternalHttpsAction
+ */
+export type NotificationExternalHttpsAction = {
+    /**
+     * Kind
+     */
+    kind?: 'external_https';
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Target
+     */
+    target: string;
+};
+
+/**
+ * NotificationFeedbackTicketTarget
+ */
+export type NotificationFeedbackTicketTarget = {
+    /**
+     * Kind
+     */
+    kind?: 'feedback_ticket';
+    /**
+     * Ticketid
+     */
+    ticketId: string;
+};
+
+/**
  * NotificationInboxPayload
  */
 export type NotificationInboxPayloadInput = {
-    action?: NotificationAction | null;
+    /**
+     * Action
+     */
+    action?: ({
+        kind: 'internal_route';
+    } & NotificationInternalRouteAction) | ({
+        kind: 'external_https';
+    } & NotificationExternalHttpsAction) | null;
     /**
      * Body
      */
@@ -3721,7 +4692,14 @@ export type NotificationInboxPayloadInput = {
  * NotificationInboxPayload
  */
 export type NotificationInboxPayloadOutput = {
-    action?: NotificationAction | null;
+    /**
+     * Action
+     */
+    action?: ({
+        kind: 'internal_route';
+    } & NotificationInternalRouteAction) | ({
+        kind: 'external_https';
+    } & NotificationExternalHttpsAction) | null;
     /**
      * Body
      */
@@ -3734,6 +4712,42 @@ export type NotificationInboxPayloadOutput = {
      * Title
      */
     title: string;
+};
+
+/**
+ * NotificationInboxTarget
+ */
+export type NotificationInboxTarget = {
+    /**
+     * Kind
+     */
+    kind?: 'inbox';
+};
+
+/**
+ * NotificationInternalRouteAction
+ */
+export type NotificationInternalRouteAction = {
+    /**
+     * Kind
+     */
+    kind?: 'internal_route';
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Target
+     */
+    target: ({
+        kind: 'inbox';
+    } & NotificationInboxTarget) | ({
+        kind: 'workspace_settings';
+    } & NotificationWorkspaceSettingsTarget) | ({
+        kind: 'project';
+    } & NotificationProjectTarget) | ({
+        kind: 'feedback_ticket';
+    } & NotificationFeedbackTicketTarget);
 };
 
 /**
@@ -3774,8 +4788,22 @@ export type NotificationModalPayloadInput = {
     body: string;
     dismissPolicy?: NotificationDismissPolicy;
     media?: NotificationMedia | null;
-    primaryAction: NotificationAction;
-    secondaryAction?: NotificationAction | null;
+    /**
+     * Primaryaction
+     */
+    primaryAction: ({
+        kind: 'internal_route';
+    } & NotificationInternalRouteAction) | ({
+        kind: 'external_https';
+    } & NotificationExternalHttpsAction);
+    /**
+     * Secondaryaction
+     */
+    secondaryAction?: ({
+        kind: 'internal_route';
+    } & NotificationInternalRouteAction) | ({
+        kind: 'external_https';
+    } & NotificationExternalHttpsAction) | null;
     /**
      * Title
      */
@@ -3792,8 +4820,22 @@ export type NotificationModalPayloadOutput = {
     body: string;
     dismissPolicy?: NotificationDismissPolicy;
     media?: NotificationMedia | null;
-    primaryAction: NotificationAction;
-    secondaryAction?: NotificationAction | null;
+    /**
+     * Primaryaction
+     */
+    primaryAction: ({
+        kind: 'internal_route';
+    } & NotificationInternalRouteAction) | ({
+        kind: 'external_https';
+    } & NotificationExternalHttpsAction);
+    /**
+     * Secondaryaction
+     */
+    secondaryAction?: ({
+        kind: 'internal_route';
+    } & NotificationInternalRouteAction) | ({
+        kind: 'external_https';
+    } & NotificationExternalHttpsAction) | null;
     /**
      * Title
      */
@@ -3806,10 +4848,43 @@ export type NotificationModalPayloadOutput = {
 export type NotificationPresentation = 'inbox' | 'toast' | 'modal' | 'banner' | 'email';
 
 /**
+ * NotificationProjectTarget
+ */
+export type NotificationProjectTarget = {
+    /**
+     * Destination
+     */
+    destination: 'overview' | 'settings_api' | 'content_library' | 'website_releases';
+    /**
+     * Entityid
+     */
+    entityId?: string | null;
+    /**
+     * Focus
+     */
+    focus?: 'api_key' | 'preview_token' | 'content_item' | 'release' | null;
+    /**
+     * Kind
+     */
+    kind?: 'project';
+    /**
+     * Projectid
+     */
+    projectId: string;
+};
+
+/**
  * NotificationToastPayload
  */
 export type NotificationToastPayloadInput = {
-    action?: NotificationAction | null;
+    /**
+     * Action
+     */
+    action?: ({
+        kind: 'internal_route';
+    } & NotificationInternalRouteAction) | ({
+        kind: 'external_https';
+    } & NotificationExternalHttpsAction) | null;
     /**
      * Body
      */
@@ -3824,7 +4899,14 @@ export type NotificationToastPayloadInput = {
  * NotificationToastPayload
  */
 export type NotificationToastPayloadOutput = {
-    action?: NotificationAction | null;
+    /**
+     * Action
+     */
+    action?: ({
+        kind: 'internal_route';
+    } & NotificationInternalRouteAction) | ({
+        kind: 'external_https';
+    } & NotificationExternalHttpsAction) | null;
     /**
      * Body
      */
@@ -3833,6 +4915,24 @@ export type NotificationToastPayloadOutput = {
      * Title
      */
     title: string;
+};
+
+/**
+ * NotificationWorkspaceSettingsTarget
+ */
+export type NotificationWorkspaceSettingsTarget = {
+    /**
+     * Destination
+     */
+    destination: 'general' | 'plan_usage' | 'people' | 'roles';
+    /**
+     * Kind
+     */
+    kind?: 'workspace_settings';
+    /**
+     * Section
+     */
+    section?: 'members-table' | 'pending-invitations' | 'roles-table' | null;
 };
 
 /**
@@ -3948,19 +5048,26 @@ export type OperationalSignalCopyOut = {
  */
 export type OperationalSignalDestinationOut = {
     /**
-     * Labelkey
+     * Authorized
      */
-    labelKey: string;
+    authorized: boolean;
+    requiredPermission: PlatformPermissionCode;
     /**
-     * Path
+     * Routetarget
      */
-    path: string;
+    routeTarget: string;
 };
 
 /**
  * OperationalSignalDetailOut
  */
 export type OperationalSignalDetailOut = {
+    /**
+     * Affectedscope
+     */
+    affectedScope: {
+        [key: string]: JsonValueOutput;
+    };
     /**
      * Allowedtriageactions
      */
@@ -3977,6 +5084,18 @@ export type OperationalSignalDetailOut = {
      * Id
      */
     id: string;
+    /**
+     * Notes
+     */
+    notes: Array<OperationalSignalTriageNoteOut>;
+    /**
+     * Policyid
+     */
+    policyId: string;
+    /**
+     * Policyrevision
+     */
+    policyRevision: number;
     priority: OperationalSignalPriorityOut;
     requiredPermission: PlatformPermissionCode;
     /**
@@ -4010,37 +5129,11 @@ export type OperationalSignalDetailOut = {
  */
 export type OperationalSignalEvidenceOut = {
     /**
-     * Attemptcount
+     * Summary
      */
-    attemptCount: number;
-    /**
-     * Errorcode
-     */
-    errorCode?: string | null;
-    /**
-     * Jobtype
-     */
-    jobType: string;
-    /**
-     * Projectid
-     */
-    projectId?: string | null;
-    /**
-     * Siteid
-     */
-    siteId?: string | null;
-    /**
-     * Statuskey
-     */
-    statusKey?: string | null;
-    /**
-     * Workloadclass
-     */
-    workloadClass: string;
-    /**
-     * Workspaceid
-     */
-    workspaceId?: string | null;
+    summary: {
+        [key: string]: JsonValueOutput;
+    };
 };
 
 /**
@@ -4062,9 +5155,34 @@ export type OperationalSignalFreshnessOut = {
 };
 
 /**
+ * OperationalSignalNoteCommand
+ */
+export type OperationalSignalNoteCommand = {
+    /**
+     * Body
+     */
+    body: string;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+};
+
+/**
+ * OperationalSignalOrder
+ */
+export type OperationalSignalOrder = 'priority' | 'detected_at';
+
+/**
  * OperationalSignalOut
  */
 export type OperationalSignalOut = {
+    /**
+     * Affectedscope
+     */
+    affectedScope: {
+        [key: string]: JsonValueOutput;
+    };
     /**
      * Allowedtriageactions
      */
@@ -4081,6 +5199,14 @@ export type OperationalSignalOut = {
      * Id
      */
     id: string;
+    /**
+     * Policyid
+     */
+    policyId: string;
+    /**
+     * Policyrevision
+     */
+    policyRevision: number;
     priority: OperationalSignalPriorityOut;
     requiredPermission: PlatformPermissionCode;
     /**
@@ -4150,7 +5276,7 @@ export type OperationalSignalRevisionCommand = {
 /**
  * OperationalSignalSeverity
  */
-export type OperationalSignalSeverity = 'high';
+export type OperationalSignalSeverity = 'low' | 'medium' | 'high' | 'critical';
 
 /**
  * OperationalSignalSourceLifecycle
@@ -4174,7 +5300,7 @@ export type OperationalSignalSourceReferenceOut = {
 /**
  * OperationalSignalTriageAction
  */
-export type OperationalSignalTriageAction = 'claim' | 'assign' | 'in_progress' | 'remind_later' | 'needs_attention' | 'reminder_returned';
+export type OperationalSignalTriageAction = 'claim' | 'assign' | 'transfer' | 'in_progress' | 'remind_later' | 'needs_attention' | 'reminder_returned' | 'note_added';
 
 /**
  * OperationalSignalTriageHistoryOut
@@ -4214,6 +5340,28 @@ export type OperationalSignalTriageHistoryOut = {
 };
 
 /**
+ * OperationalSignalTriageNoteOut
+ */
+export type OperationalSignalTriageNoteOut = {
+    /**
+     * Actoruserid
+     */
+    actorUserId: string;
+    /**
+     * Body
+     */
+    body: string;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Revision
+     */
+    revision: number;
+};
+
+/**
  * OperationalSignalTriageOut
  */
 export type OperationalSignalTriageOut = {
@@ -4247,7 +5395,7 @@ export type OperationalSignalTriageOut = {
 /**
  * OperationalSignalTriageState
  */
-export type OperationalSignalTriageState = 'needs_attention' | 'in_progress' | 'remind_later';
+export type OperationalSignalTriageState = 'unclaimed' | 'in_progress' | 'waiting' | 'source_recovered';
 
 /**
  * PackageState
@@ -4790,6 +5938,54 @@ export type PageDataNotificationCampaignSummaryOut = {
 };
 
 /**
+ * PageData[NotificationDeliveryDirectoryOut]
+ */
+export type PageDataNotificationDeliveryDirectoryOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<NotificationDeliveryDirectoryOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
  * PageData[NotificationDeliveryOut]
  */
 export type PageDataNotificationDeliveryOut = {
@@ -5126,54 +6322,6 @@ export type PageDataPlatformDeliveryStorageOut = {
 };
 
 /**
- * PageData[PublishJobOut]
- */
-export type PageDataPublishJobOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<PublishJobOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
  * PageData[SystemAgentAssignmentOut]
  */
 export type PageDataSystemAgentAssignmentOut = {
@@ -5335,10 +6483,6 @@ export type PlanIdentityCreate = {
  * PlanRevisionDraftCreate
  */
 export type PlanRevisionDraftCreate = {
-    /**
-     * Planid
-     */
-    planId: string;
     terms: PlanRevisionTermsInput;
 };
 
@@ -5346,6 +6490,10 @@ export type PlanRevisionDraftCreate = {
  * PlanRevisionDraftUpdate
  */
 export type PlanRevisionDraftUpdate = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
     terms: PlanRevisionTermsInput;
 };
 
@@ -5438,6 +6586,48 @@ export type PlanRevisionPriceOut = {
 };
 
 /**
+ * PlanRevisionPublish
+ */
+export type PlanRevisionPublish = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+};
+
+/**
+ * PlanRevisionRef
+ */
+export type PlanRevisionRef = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Isfree
+     */
+    isFree: boolean;
+    /**
+     * Memberseatlimits
+     */
+    memberSeatLimits?: {
+        [key: string]: number | null;
+    };
+    /**
+     * Planid
+     */
+    planId: string;
+    /**
+     * Rolesmanageincluded
+     */
+    rolesManageIncluded?: boolean;
+};
+
+/**
  * PlanRevisionResourceAllowanceInput
  */
 export type PlanRevisionResourceAllowanceInput = {
@@ -5514,25 +6704,59 @@ export type PlanRevisionTermsInput = {
 };
 
 /**
+ * PlatformAIProviderActionAvailabilityOut
+ */
+export type PlatformAiProviderActionAvailabilityOut = {
+    /**
+     * Action
+     */
+    action: 'test_readiness' | 'enable' | 'disable' | 'rotate_credentials' | 'remove_credentials';
+    /**
+     * Available
+     */
+    available: boolean;
+    /**
+     * Reasoncode
+     */
+    reasonCode?: string | null;
+};
+
+/**
  * PlatformAIProviderOut
  */
 export type PlatformAiProviderOut = {
+    /**
+     * Actions
+     */
+    actions: Array<PlatformAiProviderActionAvailabilityOut>;
     /**
      * Configured
      */
     configured: boolean;
     /**
+     * Desiredisactive
+     */
+    desiredIsActive: boolean;
+    /**
      * Expiresat
      */
     expiresAt: string | null;
     /**
+     * Freshnessat
+     */
+    freshnessAt: string | null;
+    /**
+     * Health
+     */
+    health: 'unknown' | 'healthy' | 'unhealthy';
+    /**
+     * Healthfailurecode
+     */
+    healthFailureCode: string | null;
+    /**
      * Id
      */
     id: string;
-    /**
-     * Isactive
-     */
-    isActive: boolean;
     /**
      * Label
      */
@@ -5542,13 +6766,25 @@ export type PlatformAiProviderOut = {
      */
     lastUsedAt: string | null;
     /**
+     * Permitted
+     */
+    permitted: boolean;
+    /**
      * Provider
      */
     provider: string;
     /**
+     * Reachable
+     */
+    reachable: boolean | null;
+    /**
      * Requestmodel
      */
     requestModel: string;
+    /**
+     * Routable
+     */
+    routable: boolean;
 };
 
 /**
@@ -5566,17 +6802,66 @@ export type PlatformAiProviderReadinessOut = {
 };
 
 /**
+ * PlatformAITaskActionAvailabilityOut
+ */
+export type PlatformAiTaskActionAvailabilityOut = {
+    /**
+     * Action
+     */
+    action: 'retry' | 'cancel' | 'reconcile';
+    /**
+     * Available
+     */
+    available: boolean;
+    /**
+     * Idempotencyrequired
+     */
+    idempotencyRequired?: boolean;
+    /**
+     * Reasoncode
+     */
+    reasonCode?: string | null;
+    /**
+     * Stateeligible
+     */
+    stateEligible: boolean;
+};
+
+/**
+ * PlatformAITaskActionRequest
+ */
+export type PlatformAiTaskActionRequest = {
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Reason
+     */
+    reason?: string | null;
+};
+
+/**
  * PlatformAITaskOut
  */
 export type PlatformAiTaskOut = {
     /**
+     * Actions
+     */
+    actions: Array<PlatformAiTaskActionAvailabilityOut>;
+    /**
      * Createdat
      */
     createdAt: string;
+    durableJobStatus: JobInternalStatus | null;
     /**
      * Errorcode
      */
     errorCode: string | null;
+    /**
+     * Evidenceupdatedat
+     */
+    evidenceUpdatedAt: string;
     executionMode: AgentExecutionModeV1;
     /**
      * Id
@@ -5587,9 +6872,17 @@ export type PlatformAiTaskOut = {
      */
     interruptReason: string | null;
     /**
+     * Jobid
+     */
+    jobId: string | null;
+    /**
      * Lastsequence
      */
     lastSequence: number;
+    /**
+     * Outcome
+     */
+    outcome: 'active' | 'waiting_workspace_approval' | 'succeeded' | 'failed' | 'partial' | 'unknown' | 'cancelled';
     /**
      * Progresscompleted
      */
@@ -5615,6 +6908,10 @@ export type PlatformAiTaskOut = {
      * Updatedat
      */
     updatedAt: string;
+    /**
+     * Waitingforworkspaceapproval
+     */
+    waitingForWorkspaceApproval: boolean;
     /**
      * Workspaceid
      */
@@ -5765,7 +7062,7 @@ export type PlatformCapabilityReadinessState = 'ready' | 'not_ready';
 /**
  * PlatformCapabilityRouteTarget
  */
-export type PlatformCapabilityRouteTarget = 'access.team' | 'access.roles' | 'access.sessions' | 'access.sign-in' | 'tenants.workspaces' | 'tenants.users' | 'tenants.projects' | 'monitoring.requests' | 'monitoring.performance' | 'monitoring.ai-usage' | 'monitoring.activity' | 'monitoring.audit' | 'operations.signals' | 'commerce.subscriptions' | 'commerce.plans' | 'communications.feedback' | 'communications.campaigns' | 'communications.templates' | 'communications.email' | 'extensions.installed' | 'extensions.catalog' | 'extensions.connections' | 'extensions.history' | 'ai.tasks' | 'ai.providers' | 'ai.assistants' | 'ai.runtime' | 'site-delivery.issues' | 'site-delivery.domains' | 'site-delivery.storage' | 'site-delivery.rules';
+export type PlatformCapabilityRouteTarget = 'access.team' | 'access.roles' | 'access.sign-in' | 'access.mfa' | 'access.sessions' | 'tenants.workspaces' | 'tenants.users' | 'tenants.projects' | 'monitoring.requests' | 'monitoring.performance' | 'monitoring.ai-usage' | 'monitoring.activity' | 'monitoring.audit' | 'operations.signals' | 'commerce.subscriptions' | 'commerce.plans' | 'commerce.payments' | 'commerce.credits' | 'commerce.configuration' | 'communications.feedback' | 'communications.deliveries' | 'communications.campaigns' | 'communications.templates' | 'communications.email' | 'extensions.installed' | 'extensions.catalog' | 'extensions.connections' | 'extensions.history' | 'ai.tasks' | 'ai.providers' | 'ai.assistants' | 'ai.policies' | 'site-delivery.issues' | 'site-delivery.domains' | 'site-delivery.storage' | 'site-delivery.policies';
 
 /**
  * PlatformCapabilityRuntimeHealth
@@ -5785,6 +7082,20 @@ export type PlatformCommercePlanCatalogOut = {
      * Items
      */
     items: Array<PlatformCommercePlanOut>;
+};
+
+/**
+ * PlatformCommercePlanIdentityOut
+ */
+export type PlatformCommercePlanIdentityOut = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Id
+     */
+    id: string;
 };
 
 /**
@@ -5814,6 +7125,29 @@ export type PlatformCommercePlanOut = {
 };
 
 /**
+ * PlatformCommercePlanRevisionMutationOut
+ */
+export type PlatformCommercePlanRevisionMutationOut = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Planid
+     */
+    planId: string;
+    /**
+     * Revision
+     */
+    revision: number;
+    /**
+     * Sequence
+     */
+    sequence: number;
+    status: PlanRevisionStatus;
+};
+
+/**
  * PlatformCommerceRevisionSummaryOut
  */
 export type PlatformCommerceRevisionSummaryOut = {
@@ -5837,6 +7171,10 @@ export type PlatformCommerceRevisionSummaryOut = {
      * Publishedat
      */
     publishedAt: string | null;
+    /**
+     * Revision
+     */
+    revision: number;
     /**
      * Sequence
      */
@@ -5903,6 +7241,250 @@ export type PlatformCommerceSubscriptionOut = {
 };
 
 /**
+ * PlatformCustomRoleApplyRequest
+ */
+export type PlatformCustomRoleApplyRequest = {
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Expectedrolerevisionid
+     */
+    expectedRoleRevisionId: string;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Previewid
+     */
+    previewId: string;
+    /**
+     * Stepupproof
+     */
+    stepUpProof: string;
+};
+
+/**
+ * PlatformCustomRoleCopyRequest
+ */
+export type PlatformCustomRoleCopyRequest = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Expectedsourcerevisionid
+     */
+    expectedSourceRevisionId: string;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Permissioncodes
+     */
+    permissionCodes: Array<string>;
+    /**
+     * Roleid
+     */
+    roleId: string;
+    /**
+     * Sourceroleid
+     */
+    sourceRoleId: string;
+    /**
+     * Stepupproof
+     */
+    stepUpProof: string;
+};
+
+/**
+ * PlatformCustomRoleCreateRequest
+ */
+export type PlatformCustomRoleCreateRequest = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Permissioncodes
+     */
+    permissionCodes: Array<string>;
+    /**
+     * Roleid
+     */
+    roleId: string;
+    /**
+     * Stepupproof
+     */
+    stepUpProof: string;
+};
+
+/**
+ * PlatformCustomRolePreviewOut
+ */
+export type PlatformCustomRolePreviewOut = {
+    /**
+     * Actorlosespermissions
+     */
+    actorLosesPermissions: Array<string>;
+    /**
+     * Addedpermissioncodes
+     */
+    addedPermissionCodes: Array<string>;
+    /**
+     * Affectedoperatorids
+     */
+    affectedOperatorIds: Array<string>;
+    /**
+     * Expectedrolerevisionid
+     */
+    expectedRoleRevisionId: string;
+    /**
+     * Invalidatedinvitationcount
+     */
+    invalidatedInvitationCount: number;
+    /**
+     * Previewid
+     */
+    previewId: string;
+    /**
+     * Removedpermissioncodes
+     */
+    removedPermissionCodes: Array<string>;
+    /**
+     * Roleid
+     */
+    roleId: string;
+};
+
+/**
+ * PlatformCustomRolePreviewRequest
+ */
+export type PlatformCustomRolePreviewRequest = {
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Expectedrolerevisionid
+     */
+    expectedRoleRevisionId: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Permissioncodes
+     */
+    permissionCodes: Array<string>;
+};
+
+/**
+ * PlatformCustomRoleRetireRequest
+ */
+export type PlatformCustomRoleRetireRequest = {
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Expectedrolerevisionid
+     */
+    expectedRoleRevisionId: string;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Stepupproof
+     */
+    stepUpProof: string;
+};
+
+/**
+ * PlatformDeliveryContinuityPolicyOut
+ */
+export type PlatformDeliveryContinuityPolicyOut = {
+    /**
+     * Affectedactivetransitioncount
+     */
+    affectedActiveTransitionCount: number;
+    /**
+     * Continuitywindowseconds
+     */
+    continuityWindowSeconds?: number | null;
+    /**
+     * Isactive
+     */
+    isActive: boolean;
+    /**
+     * Revision
+     */
+    revision: number;
+};
+
+/**
+ * PlatformDeliveryDomainActionOut
+ */
+export type PlatformDeliveryDomainActionOut = {
+    /**
+     * Action
+     */
+    action: 'verify_ownership';
+    /**
+     * Certificatestatus
+     */
+    certificateStatus: string;
+    /**
+     * Hostname
+     */
+    hostname: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Isverified
+     */
+    isVerified: boolean;
+    /**
+     * Observedtxtvalues
+     */
+    observedTxtValues?: Array<string>;
+};
+
+/**
  * PlatformDeliveryDomainOut
  */
 export type PlatformDeliveryDomainOut = {
@@ -5953,6 +7535,36 @@ export type PlatformDeliveryDomainOut = {
 };
 
 /**
+ * PlatformDeliveryIssueActionOut
+ */
+export type PlatformDeliveryIssueActionOut = {
+    /**
+     * Action
+     */
+    action: 'retry' | 'reconcile' | 'restore';
+    /**
+     * Failedtargetcount
+     */
+    failedTargetCount: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Kind
+     */
+    kind: 'publish_job' | 'hosting_continuity';
+    /**
+     * Partialfailure
+     */
+    partialFailure: boolean;
+    /**
+     * Resultingstate
+     */
+    resultingState: string;
+};
+
+/**
  * PlatformDeliveryIssueOut
  */
 export type PlatformDeliveryIssueOut = {
@@ -6000,6 +7612,94 @@ export type PlatformDeliveryIssueOut = {
      * Workspaceid
      */
     workspaceId: string;
+};
+
+/**
+ * PlatformDeliveryPolicyApplyIn
+ */
+export type PlatformDeliveryPolicyApplyIn = {
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Reason
+     */
+    reason: string;
+};
+
+/**
+ * PlatformDeliveryPolicyApplyOut
+ */
+export type PlatformDeliveryPolicyApplyOut = {
+    /**
+     * Affectedactivetransitioncount
+     */
+    affectedActiveTransitionCount: number;
+    /**
+     * Appliedat
+     */
+    appliedAt: string;
+    /**
+     * Continuitywindowseconds
+     */
+    continuityWindowSeconds: number;
+    /**
+     * Partialfailure
+     */
+    partialFailure?: boolean;
+    /**
+     * Policyrevision
+     */
+    policyRevision: number;
+    /**
+     * Replayed
+     */
+    replayed?: boolean;
+};
+
+/**
+ * PlatformDeliveryPolicyPreviewIn
+ */
+export type PlatformDeliveryPolicyPreviewIn = {
+    /**
+     * Continuitywindowseconds
+     */
+    continuityWindowSeconds: number;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+};
+
+/**
+ * PlatformDeliveryPolicyPreviewOut
+ */
+export type PlatformDeliveryPolicyPreviewOut = {
+    /**
+     * Affectedactivetransitioncount
+     */
+    affectedActiveTransitionCount: number;
+    /**
+     * Continuitywindowseconds
+     */
+    continuityWindowSeconds: number;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Partialfailure
+     */
+    partialFailure?: boolean;
+    /**
+     * Proposedrevision
+     */
+    proposedRevision: number;
 };
 
 /**
@@ -6065,6 +7765,54 @@ export type PlatformDeliveryStorageOut = {
      * Provider
      */
     provider: string;
+};
+
+/**
+ * PlatformDeliveryStorageTestOut
+ */
+export type PlatformDeliveryStorageTestOut = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Ok
+     */
+    ok: boolean;
+    /**
+     * Status
+     */
+    status: 'passed' | 'failed';
+};
+
+/**
+ * PlatformInvitationAcceptRequest
+ */
+export type PlatformInvitationAcceptRequest = {
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Expectedinvitationrevision
+     */
+    expectedInvitationRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Identifier
+     */
+    identifier: string;
+    /**
+     * Password
+     */
+    password: string;
 };
 
 /**
@@ -6148,6 +7896,10 @@ export type PlatformInvitationDetailOut = {
     isEffective: boolean;
     recipient: PlatformTeamUserOut;
     /**
+     * Recipientacceptedat
+     */
+    recipientAcceptedAt: string | null;
+    /**
      * Revision
      */
     revision: number;
@@ -6179,6 +7931,24 @@ export type PlatformInvitationOptionsOut = {
 };
 
 /**
+ * PlatformInvitationRevokeRequest
+ */
+export type PlatformInvitationRevokeRequest = {
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Expectedinvitationrevision
+     */
+    expectedInvitationRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+};
+
+/**
  * PlatformInvitationRoleOut
  */
 export type PlatformInvitationRoleOut = {
@@ -6203,7 +7973,7 @@ export type PlatformInvitationRoleOut = {
 /**
  * PlatformInvitationStatus
  */
-export type PlatformInvitationStatus = 'pending' | 'accepted' | 'revoked' | 'expired' | 'invalidated';
+export type PlatformInvitationStatus = 'pending' | 'mfa_setup_required' | 'accepted' | 'revoked' | 'expired' | 'invalidated';
 
 /**
  * PlatformMfaMethodReadinessOut
@@ -6229,6 +7999,24 @@ export type PlatformMfaMethodReadinessOut = {
      * Verifiedat
      */
     verifiedAt: string | null;
+};
+
+/**
+ * PlatformMfaMethodRemoveRequest
+ */
+export type PlatformMfaMethodRemoveRequest = {
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Stepupproof
+     */
+    stepUpProof: string;
 };
 
 /**
@@ -6273,6 +8061,118 @@ export type PlatformMfaSummaryOut = {
 };
 
 /**
+ * PlatformMfaTotpBeginRequest
+ */
+export type PlatformMfaTotpBeginRequest = {
+    /**
+     * Accountlabel
+     */
+    accountLabel: string;
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Issuer
+     */
+    issuer: string;
+    /**
+     * Stepupproof
+     */
+    stepUpProof: string;
+};
+
+/**
+ * PlatformMfaTotpConfirmRequest
+ */
+export type PlatformMfaTotpConfirmRequest = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Methodid
+     */
+    methodId: string;
+    /**
+     * Replacemethodid
+     */
+    replaceMethodId?: string | null;
+    /**
+     * Stepupproof
+     */
+    stepUpProof: string;
+};
+
+/**
+ * PlatformMfaWebAuthnBeginRequest
+ */
+export type PlatformMfaWebAuthnBeginRequest = {
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Replacemethodid
+     */
+    replaceMethodId?: string | null;
+    /**
+     * Stepupproof
+     */
+    stepUpProof: string;
+};
+
+/**
+ * PlatformMfaWebAuthnCompleteRequest
+ */
+export type PlatformMfaWebAuthnCompleteRequest = {
+    /**
+     * Challengeid
+     */
+    challengeId: string;
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    credential: PlatformWebAuthnRegistrationCredential;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Replacemethodid
+     */
+    replaceMethodId?: string | null;
+    /**
+     * Stepupproof
+     */
+    stepUpProof: string;
+};
+
+/**
+ * PlatformMfaWebAuthnRegistrationOut
+ */
+export type PlatformMfaWebAuthnRegistrationOut = {
+    options: PlatformWebAuthnRegistrationOptions;
+};
+
+/**
  * PlatformMutationReceipt
  */
 export type PlatformMutationReceipt = {
@@ -6287,7 +8187,7 @@ export type PlatformMutationReceipt = {
     /**
      * Mutation
      */
-    mutation: 'bootstrap_owner' | 'invite_operator' | 'accept_operator_invitation' | 'offboard_operator' | 'nominate_ownership_transfer' | 'accept_ownership_transfer';
+    mutation: 'bootstrap_owner' | 'invite_operator' | 'revoke_operator_invitation' | 'accept_operator_invitation' | 'offboard_operator' | 'nominate_ownership_transfer' | 'accept_ownership_transfer' | 'create_custom_role' | 'copy_custom_role' | 'apply_custom_role_revision' | 'assign_platform_roles' | 'retire_custom_role' | 'revoke_platform_session' | 'revoke_other_platform_sessions' | 'remove_platform_mfa_method';
     /**
      * Replayed
      */
@@ -6394,7 +8294,7 @@ export type PlatformPermissionCatalogItemOut = {
  *
  * Stable exact permission identifiers for Platform API authorization.
  */
-export type PlatformPermissionCode = 'platform:access-team:read' | 'platform:access-team:invite' | 'platform:access-team:remove' | 'platform:access-roles:read' | 'platform:access-roles:manage' | 'platform:access-mfa:reset' | 'platform:access-sessions:read' | 'platform:access-sessions:revoke' | 'platform:monitoring-requests:read' | 'platform:monitoring-audit:read' | 'platform:operations-signals:read' | 'platform:operations-signals:claim' | 'platform:operations-signals:assign' | 'platform:operations-signals:triage' | 'platform:tenant-users:read' | 'platform:tenant-users:manage' | 'platform:tenant-workspaces:read' | 'platform:tenant-workspaces:manage' | 'platform:tenant-projects:read' | 'platform:tenant-projects:manage' | 'platform:tenant-support:read' | 'platform:commerce:read' | 'platform:commerce:catalog-manage' | 'platform:commerce:subscriptions-manage' | 'platform:commerce:credits-adjust' | 'platform:commerce:provider-manage' | 'platform:commerce:events-reconcile' | 'platform:ai-providers:read' | 'platform:ai-providers:manage' | 'platform:ai-agents:read' | 'platform:ai-agents:manage' | 'platform:ai-assignments:read' | 'platform:ai-assignments:manage' | 'platform:ai-runtime-settings:read' | 'platform:ai-runtime-settings:manage' | 'platform:ai-tasks:read' | 'platform:ai-tasks:recover' | 'platform:site-delivery:read' | 'platform:site-delivery:manage' | 'platform:site-storage:read' | 'platform:site-storage:manage' | 'platform:site-delivery-settings:read' | 'platform:site-delivery-settings:manage' | 'platform:messages-feedback:read' | 'platform:messages-feedback:manage' | 'platform:messages-mail:read' | 'platform:messages-mail:manage' | 'platform:messages-campaigns:read' | 'platform:messages-campaigns:manage' | 'platform:messages-campaigns:send' | 'platform:messages-delivery:retry' | 'platform:messages-delivery-settings:read' | 'platform:messages-delivery-settings:manage' | 'platform:extensions-catalog:read' | 'platform:extensions:install' | 'platform:extensions:configure' | 'platform:jobs:read' | 'platform:jobs:manage' | 'platform:access-sign-in-settings:read' | 'platform:access-sign-in-settings:manage' | 'platform:commerce-settings:read' | 'platform:commerce-settings:manage';
+export type PlatformPermissionCode = 'platform:access-team:read' | 'platform:access-team:invite' | 'platform:access-team:remove' | 'platform:access-roles:read' | 'platform:access-roles:manage' | 'platform:access-mfa:reset' | 'platform:access-sessions:read' | 'platform:access-sessions:revoke' | 'platform:monitoring-requests:read' | 'platform:monitoring-audit:read' | 'platform:operations-signals:read' | 'platform:operations-signals:claim' | 'platform:operations-signals:assign' | 'platform:operations-signals:triage' | 'platform:tenant-users:read' | 'platform:tenant-users:manage' | 'platform:tenant-workspaces:read' | 'platform:tenant-workspaces:manage' | 'platform:tenant-projects:read' | 'platform:tenant-projects:manage' | 'platform:tenant-support:read' | 'platform:commerce:read' | 'platform:commerce:catalog-manage' | 'platform:commerce:subscriptions-manage' | 'platform:commerce:credits-adjust' | 'platform:commerce:provider-manage' | 'platform:commerce:events-reconcile' | 'platform:ai-providers:read' | 'platform:ai-providers:manage' | 'platform:ai-agents:read' | 'platform:ai-agents:manage' | 'platform:ai-assignments:read' | 'platform:ai-assignments:manage' | 'platform:ai-runtime-settings:read' | 'platform:ai-runtime-settings:manage' | 'platform:ai-tasks:read' | 'platform:ai-tasks:recover' | 'platform:site-delivery:read' | 'platform:site-delivery:manage' | 'platform:site-storage:read' | 'platform:site-storage:manage' | 'platform:site-delivery-settings:read' | 'platform:site-delivery-settings:manage' | 'platform:messages-feedback:read' | 'platform:messages-feedback:manage' | 'platform:messages-mail:read' | 'platform:messages-mail:manage' | 'platform:messages-campaigns:read' | 'platform:messages-campaigns:manage' | 'platform:messages-campaigns:send' | 'platform:messages-delivery:retry' | 'platform:messages-delivery-settings:read' | 'platform:messages-delivery-settings:manage' | 'platform:extensions-catalog:read' | 'platform:extensions:install' | 'platform:extensions:configure' | 'platform:jobs:read' | 'platform:jobs:manage' | 'platform:access-sign-in-settings:read' | 'platform:access-sign-in-settings:manage' | 'platform:commerce-settings:read' | 'platform:commerce-settings:manage' | 'platform:workspace-capability-rollout:apply';
 
 /**
  * PlatformRecoveryCodeSet
@@ -6429,6 +8329,32 @@ export type PlatformRegistrationReadinessOut = {
      * Requireemailverification
      */
     requireEmailVerification: boolean;
+};
+
+/**
+ * PlatformRoleAssignmentRequest
+ */
+export type PlatformRoleAssignmentRequest = {
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Expectedoperatorrevision
+     */
+    expectedOperatorRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Roleids
+     */
+    roleIds: Array<string>;
+    /**
+     * Stepupproof
+     */
+    stepUpProof: string;
 };
 
 /**
@@ -6885,6 +8811,20 @@ export type PlatformSessionPrincipal = {
 };
 
 /**
+ * PlatformSessionRevokeRequest
+ */
+export type PlatformSessionRevokeRequest = {
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+};
+
+/**
  * PlatformSessionSummaryOut
  */
 export type PlatformSessionSummaryOut = {
@@ -6986,6 +8926,133 @@ export type PlatformSignInRequest = {
      * Password
      */
     password: string;
+};
+
+/**
+ * PlatformStepUpProofIssueRequest
+ *
+ * Reviewed action context that one fresh Platform verification may bind.
+ */
+export type PlatformStepUpProofIssueRequest = {
+    /**
+     * Actioncode
+     */
+    actionCode: string;
+    /**
+     * Actoruserid
+     */
+    actorUserId: string;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision?: number | null;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Previewrevision
+     */
+    previewRevision?: number | null;
+    /**
+     * Scope
+     */
+    scope: {
+        [key: string]: JsonValueInput;
+    };
+    /**
+     * Sessionid
+     */
+    sessionId: string;
+    /**
+     * Targetid
+     */
+    targetId?: string | null;
+    /**
+     * Targettype
+     */
+    targetType: string;
+};
+
+/**
+ * PlatformStepUpProofIssueResult
+ *
+ * The opaque proof is intentionally returned only at issue time.
+ */
+export type PlatformStepUpProofIssueResult = {
+    assurance: PlatformVerificationAssurance;
+    /**
+     * Expiresat
+     */
+    expiresAt: string;
+    /**
+     * Policyrevision
+     */
+    policyRevision: number;
+    /**
+     * Proof
+     */
+    proof: string;
+    /**
+     * Proofid
+     */
+    proofId: string;
+};
+
+/**
+ * PlatformStepUpWebAuthnCompleteRequest
+ */
+export type PlatformStepUpWebAuthnCompleteRequest = {
+    /**
+     * Actioncode
+     */
+    actionCode: string;
+    /**
+     * Actoruserid
+     */
+    actorUserId: string;
+    /**
+     * Challengeid
+     */
+    challengeId: string;
+    credential: PlatformWebAuthnAuthenticationCredential;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision?: number | null;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Previewrevision
+     */
+    previewRevision?: number | null;
+    /**
+     * Scope
+     */
+    scope: {
+        [key: string]: JsonValueInput;
+    };
+    /**
+     * Sessionid
+     */
+    sessionId: string;
+    /**
+     * Targetid
+     */
+    targetId?: string | null;
+    /**
+     * Targettype
+     */
+    targetType: string;
+};
+
+/**
+ * PlatformStepUpWebAuthnOptionsOut
+ */
+export type PlatformStepUpWebAuthnOptionsOut = {
+    options: PlatformWebAuthnAuthenticationOptions;
 };
 
 /**
@@ -7179,6 +9246,11 @@ export type PlatformTotpSetupRequest = {
      */
     flowToken: string;
 };
+
+/**
+ * PlatformVerificationAssurance
+ */
+export type PlatformVerificationAssurance = 'local_mfa' | 'phishing_resistant';
 
 /**
  * PlatformWebAuthnAssertionResponse
@@ -7472,12 +9544,12 @@ export type PlatformWebAuthnUser = {
 /**
  * PluginLifecycleState
  */
-export type PluginLifecycleState = 'installing' | 'installed' | 'update_available' | 'upgrading' | 'disabling' | 'disabled' | 'uninstalling' | 'failed' | 'rollback_required';
+export type PluginLifecycleState = 'installing' | 'installed' | 'update_available' | 'upgrading' | 'disabling' | 'disabled' | 'uninstalling' | 'failed' | 'rollback_required' | 'recovering';
 
 /**
  * PluginOperationKind
  */
-export type PluginOperationKind = 'install' | 'upgrade' | 'rollback' | 'enable' | 'disable' | 'uninstall';
+export type PluginOperationKind = 'install' | 'upgrade' | 'rollback' | 'enable' | 'disable' | 'uninstall' | 'recover';
 
 /**
  * PluginOperationState
@@ -7488,6 +9560,11 @@ export type PluginOperationState = 'queued' | 'running' | 'waiting_for_restart' 
  * PluginRuntimeActivationState
  */
 export type PluginRuntimeActivationState = 'not_required' | 'pending_restart' | 'verified' | 'failed';
+
+/**
+ * PluginTrustState
+ */
+export type PluginTrustState = 'unknown' | 'verified' | 'rejected';
 
 /**
  * ProcessState
@@ -7890,100 +9967,194 @@ export type ProjectRuntimeContextOut = {
 };
 
 /**
- * PublishJobOut
+ * ProviderConfigurationWrite
  */
-export type PublishJobOut = {
+export type ProviderConfigurationWrite = {
     /**
-     * Completedat
-     *
-     * Completed at.
+     * Expectedrevision
      */
-    completedAt?: string | null;
+    expectedRevision: number;
     /**
-     * Createdat
-     *
-     * Created at.
+     * Idempotencykey
      */
-    createdAt: string;
+    idempotencyKey: string;
+    mode: BillingProviderMode;
     /**
-     * Createdbyuserid
-     *
-     * Actor user id.
+     * Provider
      */
-    createdByUserId?: string | null;
+    provider: string;
     /**
-     * Errormessage
-     *
-     * Failure details.
+     * Secret
      */
-    errorMessage?: string | null;
+    secret?: null;
     /**
-     * Id
-     *
-     * ID
+     * Webhooksecret
      */
-    id: string;
-    /**
-     * Publish job type.
-     */
-    jobType: PublishJobType;
-    /**
-     * Projectid
-     *
-     * Project id.
-     */
-    projectId?: string | null;
-    /**
-     * Releaseid
-     *
-     * Release id.
-     */
-    releaseId?: string | null;
-    /**
-     * Scheduledat
-     *
-     * Scheduled execution time.
-     */
-    scheduledAt?: string | null;
-    /**
-     * Siteid
-     *
-     * Site id.
-     */
-    siteId: string;
-    /**
-     * Startedat
-     *
-     * Started at.
-     */
-    startedAt?: string | null;
-    /**
-     * Publish job status.
-     */
-    status: PublishJobStatus;
-    /**
-     * Updatedat
-     *
-     * Updated at.
-     */
-    updatedAt: string;
-    /**
-     * Workspaceid
-     *
-     * Workspace id.
-     */
-    workspaceId: string;
+    webhookSecret?: null;
 };
 
 /**
- * PublishJobStatus
+ * ProviderConfigurationWriteOut
  */
-export type PublishJobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+export type ProviderConfigurationWriteOut = {
+    /**
+     * Configured
+     */
+    configured: boolean;
+    mode: BillingProviderMode;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Revision
+     */
+    revision: number;
+};
 
 /**
- * PublishJobType
+ * ProviderEventListOut
  */
-export type PublishJobType = 'scheduled_publish' | 'manual_publish' | 'retry';
+export type ProviderEventListOut = {
+    /**
+     * Items
+     */
+    items: Array<ProviderEventOut>;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * ProviderEventOut
+ */
+export type ProviderEventOut = {
+    /**
+     * Eventtype
+     */
+    eventType: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Jobid
+     */
+    jobId?: string | null;
+    /**
+     * Lasterrorcode
+     */
+    lastErrorCode?: string | null;
+    /**
+     * Lasterrormessage
+     */
+    lastErrorMessage?: string | null;
+    /**
+     * Payloadsha256
+     */
+    payloadSha256: string;
+    /**
+     * Processedat
+     */
+    processedAt?: string | null;
+    /**
+     * Processingattempts
+     */
+    processingAttempts: number;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Provideraccountid
+     */
+    providerAccountId: string;
+    /**
+     * Providereventid
+     */
+    providerEventId: string;
+    /**
+     * Providermode
+     */
+    providerMode: string;
+    /**
+     * Resultreference
+     */
+    resultReference?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Signaturetimestamp
+     */
+    signatureTimestamp: string;
+    /**
+     * Status
+     */
+    status: string;
+};
+
+/**
+ * ProviderEventReconcileRequest
+ */
+export type ProviderEventReconcileRequest = {
+    /**
+     * Expectedprocessingattempts
+     */
+    expectedProcessingAttempts: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+};
+
+/**
+ * ProviderReadinessOut
+ */
+export type ProviderReadinessOut = {
+    /**
+     * Configured
+     */
+    configured: boolean;
+    /**
+     * Connectorregistered
+     */
+    connectorRegistered: boolean;
+    /**
+     * Missingprerequisites
+     */
+    missingPrerequisites: Array<string>;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Supportedcapabilities
+     */
+    supportedCapabilities: Array<string>;
+    /**
+     * Webhookready
+     */
+    webhookReady: boolean;
+};
+
+/**
+ * QueuedEffectImpact
+ */
+export type QueuedEffectImpact = {
+    /**
+     * Actoruserid
+     */
+    actorUserId: string;
+    /**
+     * Effectid
+     */
+    effectId: string;
+    /**
+     * Effecttype
+     */
+    effectType: string;
+};
 
 /**
  * ReleaseLineageOut
@@ -8084,6 +10255,58 @@ export type ReleaseOut = {
 };
 
 /**
+ * RenewalTransitionScheduleOut
+ */
+export type RenewalTransitionScheduleOut = {
+    /**
+     * Convergenceid
+     */
+    convergenceId?: string | null;
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Effectiveat
+     */
+    effectiveAt: string;
+    /**
+     * Providerscheduleid
+     */
+    providerScheduleId: string | null;
+    /**
+     * Transitionid
+     */
+    transitionId: string;
+};
+
+/**
+ * RenewalTransitionScheduleRequest
+ */
+export type RenewalTransitionScheduleRequest = {
+    /**
+     * Convergenceid
+     */
+    convergenceId?: string | null;
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Expectedpreviewrevision
+     */
+    expectedPreviewRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Previewid
+     */
+    previewId: string;
+};
+
+/**
  * ResourceLimitKind
  */
 export type ResourceLimitKind = 'limited' | 'unlimited';
@@ -8093,6 +10316,56 @@ export type ResourceLimitKind = 'limited' | 'unlimited';
  */
 export type ResponseModelAuditEventOut = {
     data?: AuditEventOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ConvergencePreview]
+ */
+export type ResponseModelConvergencePreview = {
+    data?: ConvergencePreview | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[CreditAdjustmentOut]
+ */
+export type ResponseModelCreditAdjustmentOut = {
+    data?: CreditAdjustmentOut | null;
     /**
      * Error
      */
@@ -8214,6 +10487,31 @@ export type ResponseModelDirectoryWorkspaceDetailOut = {
 };
 
 /**
+ * ResponseModel[DunningPolicyOut]
+ */
+export type ResponseModelDunningPolicyOut = {
+    data?: DunningPolicyOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[ExtensionConnectionListOut]
  */
 export type ResponseModelExtensionConnectionListOut = {
@@ -8243,6 +10541,81 @@ export type ResponseModelExtensionConnectionListOut = {
  */
 export type ResponseModelFeedbackTicketDetailOut = {
     data?: FeedbackTicketDetailOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[MailCredentialWriteOut]
+ */
+export type ResponseModelMailCredentialWriteOut = {
+    data?: MailCredentialWriteOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[MailServiceOut]
+ */
+export type ResponseModelMailServiceOut = {
+    data?: MailServiceOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[MailServiceTestOut]
+ */
+export type ResponseModelMailServiceTestOut = {
+    data?: MailServiceTestOut | null;
     /**
      * Error
      */
@@ -8917,6 +11290,31 @@ export type ResponseModelPageDataNotificationCampaignSummaryOut = {
 };
 
 /**
+ * ResponseModel[PageData[NotificationDeliveryDirectoryOut]]
+ */
+export type ResponseModelPageDataNotificationDeliveryDirectoryOut = {
+    data?: PageDataNotificationDeliveryDirectoryOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[PageData[NotificationDeliveryOut]]
  */
 export type ResponseModelPageDataNotificationDeliveryOut = {
@@ -9092,31 +11490,6 @@ export type ResponseModelPageDataPlatformDeliveryStorageOut = {
 };
 
 /**
- * ResponseModel[PageData[PublishJobOut]]
- */
-export type ResponseModelPageDataPublishJobOut = {
-    data?: PageDataPublishJobOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[PageData[SystemAgentAssignmentOut]]
  */
 export type ResponseModelPageDataSystemAgentAssignmentOut = {
@@ -9217,6 +11590,31 @@ export type ResponseModelPlatformAiProviderReadinessOut = {
 };
 
 /**
+ * ResponseModel[PlatformAITaskOut]
+ */
+export type ResponseModelPlatformAiTaskOut = {
+    data?: PlatformAiTaskOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[PlatformBootstrapOut]
  */
 export type ResponseModelPlatformBootstrapOut = {
@@ -9292,10 +11690,260 @@ export type ResponseModelPlatformCommercePlanCatalogOut = {
 };
 
 /**
+ * ResponseModel[PlatformCommercePlanIdentityOut]
+ */
+export type ResponseModelPlatformCommercePlanIdentityOut = {
+    data?: PlatformCommercePlanIdentityOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PlatformCommercePlanRevisionMutationOut]
+ */
+export type ResponseModelPlatformCommercePlanRevisionMutationOut = {
+    data?: PlatformCommercePlanRevisionMutationOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[PlatformCommerceSubscriptionListOut]
  */
 export type ResponseModelPlatformCommerceSubscriptionListOut = {
     data?: PlatformCommerceSubscriptionListOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PlatformCommerceSubscriptionOut]
+ */
+export type ResponseModelPlatformCommerceSubscriptionOut = {
+    data?: PlatformCommerceSubscriptionOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PlatformCustomRolePreviewOut]
+ */
+export type ResponseModelPlatformCustomRolePreviewOut = {
+    data?: PlatformCustomRolePreviewOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PlatformDeliveryContinuityPolicyOut]
+ */
+export type ResponseModelPlatformDeliveryContinuityPolicyOut = {
+    data?: PlatformDeliveryContinuityPolicyOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PlatformDeliveryDomainActionOut]
+ */
+export type ResponseModelPlatformDeliveryDomainActionOut = {
+    data?: PlatformDeliveryDomainActionOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PlatformDeliveryIssueActionOut]
+ */
+export type ResponseModelPlatformDeliveryIssueActionOut = {
+    data?: PlatformDeliveryIssueActionOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PlatformDeliveryPolicyApplyOut]
+ */
+export type ResponseModelPlatformDeliveryPolicyApplyOut = {
+    data?: PlatformDeliveryPolicyApplyOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PlatformDeliveryPolicyPreviewOut]
+ */
+export type ResponseModelPlatformDeliveryPolicyPreviewOut = {
+    data?: PlatformDeliveryPolicyPreviewOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PlatformDeliveryStorageTestOut]
+ */
+export type ResponseModelPlatformDeliveryStorageTestOut = {
+    data?: PlatformDeliveryStorageTestOut | null;
     /**
      * Error
      */
@@ -9371,6 +12019,31 @@ export type ResponseModelPlatformInvitationOptionsOut = {
  */
 export type ResponseModelPlatformMfaReadinessOut = {
     data?: PlatformMfaReadinessOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PlatformMfaWebAuthnRegistrationOut]
+ */
+export type ResponseModelPlatformMfaWebAuthnRegistrationOut = {
+    data?: PlatformMfaWebAuthnRegistrationOut | null;
     /**
      * Error
      */
@@ -9567,6 +12240,56 @@ export type ResponseModelPlatformSignInReadinessOut = {
 };
 
 /**
+ * ResponseModel[PlatformStepUpProofIssueResult]
+ */
+export type ResponseModelPlatformStepUpProofIssueResult = {
+    data?: PlatformStepUpProofIssueResult | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PlatformStepUpWebAuthnOptionsOut]
+ */
+export type ResponseModelPlatformStepUpWebAuthnOptionsOut = {
+    data?: PlatformStepUpWebAuthnOptionsOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[PlatformTeamIdentityOut]
  */
 export type ResponseModelPlatformTeamIdentityOut = {
@@ -9642,6 +12365,31 @@ export type ResponseModelPlatformTotpSetupOut = {
 };
 
 /**
+ * ResponseModel[PlatformTotpSetup]
+ */
+export type ResponseModelPlatformTotpSetup = {
+    data?: PlatformTotpSetup | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[PlatformWebAuthnAuthenticationBeginOut]
  */
 export type ResponseModelPlatformWebAuthnAuthenticationBeginOut = {
@@ -9692,10 +12440,110 @@ export type ResponseModelPlatformWebAuthnRegistrationBeginOut = {
 };
 
 /**
- * ResponseModel[PublishJobOut]
+ * ResponseModel[ProviderConfigurationWriteOut]
  */
-export type ResponseModelPublishJobOut = {
-    data?: PublishJobOut | null;
+export type ResponseModelProviderConfigurationWriteOut = {
+    data?: ProviderConfigurationWriteOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProviderEventListOut]
+ */
+export type ResponseModelProviderEventListOut = {
+    data?: ProviderEventListOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProviderEventOut]
+ */
+export type ResponseModelProviderEventOut = {
+    data?: ProviderEventOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProviderReadinessOut]
+ */
+export type ResponseModelProviderReadinessOut = {
+    data?: ProviderReadinessOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[RenewalTransitionScheduleOut]
+ */
+export type ResponseModelRenewalTransitionScheduleOut = {
+    data?: RenewalTransitionScheduleOut | null;
     /**
      * Error
      */
@@ -9817,10 +12665,60 @@ export type ResponseModelStorageProfileTestResultOut = {
 };
 
 /**
+ * ResponseModel[SubscriptionTransitionDetailOut]
+ */
+export type ResponseModelSubscriptionTransitionDetailOut = {
+    data?: SubscriptionTransitionDetailOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[SupportAccessProjectionPageOut]
  */
 export type ResponseModelSupportAccessProjectionPageOut = {
     data?: SupportAccessProjectionPageOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SystemAIProviderAvailabilityPreviewOut]
+ */
+export type ResponseModelSystemAiProviderAvailabilityPreviewOut = {
+    data?: SystemAiProviderAvailabilityPreviewOut | null;
     /**
      * Error
      */
@@ -9892,10 +12790,10 @@ export type ResponseModelSystemAiProviderOut = {
 };
 
 /**
- * ResponseModel[SystemAgentAssignmentOut]
+ * ResponseModel[SystemAIProviderReadinessTestOut]
  */
-export type ResponseModelSystemAgentAssignmentOut = {
-    data?: SystemAgentAssignmentOut | null;
+export type ResponseModelSystemAiProviderReadinessTestOut = {
+    data?: SystemAiProviderReadinessTestOut | null;
     /**
      * Error
      */
@@ -10067,31 +12965,6 @@ export type ResponseModelSystemPluginCatalogListOut = {
 };
 
 /**
- * ResponseModel[SystemPluginConfigurationOut]
- */
-export type ResponseModelSystemPluginConfigurationOut = {
-    data?: SystemPluginConfigurationOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[SystemPluginDetailOut]
  */
 export type ResponseModelSystemPluginDetailOut = {
@@ -10117,10 +12990,10 @@ export type ResponseModelSystemPluginDetailOut = {
 };
 
 /**
- * ResponseModel[SystemPluginListOut]
+ * ResponseModel[SystemPluginOperationOut]
  */
-export type ResponseModelSystemPluginListOut = {
-    data?: SystemPluginListOut | null;
+export type ResponseModelSystemPluginOperationOut = {
+    data?: SystemPluginOperationOut | null;
     /**
      * Error
      */
@@ -10142,10 +13015,10 @@ export type ResponseModelSystemPluginListOut = {
 };
 
 /**
- * ResponseModel[SystemPluginOperationOut]
+ * ResponseModel[Union[DunningPolicyOut, NoneType]]
  */
-export type ResponseModelSystemPluginOperationOut = {
-    data?: SystemPluginOperationOut | null;
+export type ResponseModelUnionDunningPolicyOutNoneType = {
+    data?: DunningPolicyOut | null;
     /**
      * Error
      */
@@ -10292,10 +13165,10 @@ export type ResponseModelUploadStatusOut = {
 };
 
 /**
- * ResponseModel[WorkspaceCommerceOverviewOut]
+ * ResponseModel[WorkspaceCapabilityRolloutApplyReceipt]
  */
-export type ResponseModelWorkspaceCommerceOverviewOut = {
-    data?: WorkspaceCommerceOverviewOut | null;
+export type ResponseModelWorkspaceCapabilityRolloutApplyReceipt = {
+    data?: WorkspaceCapabilityRolloutApplyReceipt | null;
     /**
      * Error
      */
@@ -10317,15 +13190,35 @@ export type ResponseModelWorkspaceCommerceOverviewOut = {
 };
 
 /**
- * ResponseModel[dict[str, str]]
+ * ResponseModel[WorkspaceCapabilityRolloutPreview]
  */
-export type ResponseModelDictStrStr = {
+export type ResponseModelWorkspaceCapabilityRolloutPreview = {
+    data?: WorkspaceCapabilityRolloutPreview | null;
     /**
-     * Data
+     * Error
      */
-    data?: {
-        [key: string]: string;
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
     } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[WorkspaceCommerceOverviewOut]
+ */
+export type ResponseModelWorkspaceCommerceOverviewOut = {
+    data?: WorkspaceCommerceOverviewOut | null;
     /**
      * Error
      */
@@ -10568,6 +13461,32 @@ export type ResponseModelTuplePlatformSessionInventoryItemOut = {
      * Timestamp
      */
     timestamp?: number;
+};
+
+/**
+ * RoleResponsibilityImpact
+ */
+export type RoleResponsibilityImpact = {
+    /**
+     * Assignmentid
+     */
+    assignmentId: string;
+    /**
+     * Membershipid
+     */
+    membershipId: string;
+    /**
+     * Roleid
+     */
+    roleId: string;
+    /**
+     * Rolename
+     */
+    roleName: string;
+    /**
+     * Userid
+     */
+    userId: string;
 };
 
 /**
@@ -10820,6 +13739,95 @@ export type StorageProfileUpdateRequest = {
 export type SubscriptionStatus = 'active' | 'past_due' | 'canceled';
 
 /**
+ * SubscriptionTransitionCancelRequest
+ */
+export type SubscriptionTransitionCancelRequest = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+};
+
+/**
+ * SubscriptionTransitionDetailOut
+ */
+export type SubscriptionTransitionDetailOut = {
+    /**
+     * Actoruserid
+     */
+    actorUserId?: string | null;
+    /**
+     * Correlationid
+     */
+    correlationId: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Items
+     */
+    items: Array<SubscriptionTransitionItemOut>;
+    /**
+     * Reason
+     */
+    reason: string;
+    /**
+     * Requestedat
+     */
+    requestedAt: string;
+    /**
+     * Revision
+     */
+    revision: number;
+    /**
+     * Sourceplanrevisionid
+     */
+    sourcePlanRevisionId: string;
+    status: SubscriptionTransitionStatus;
+    /**
+     * Targetplanrevisionid
+     */
+    targetPlanRevisionId: string;
+};
+
+/**
+ * SubscriptionTransitionItemOut
+ */
+export type SubscriptionTransitionItemOut = {
+    /**
+     * Convergenceid
+     */
+    convergenceId?: string | null;
+    /**
+     * Effectiveat
+     */
+    effectiveAt: string;
+    /**
+     * Providerscheduleid
+     */
+    providerScheduleId?: string | null;
+    /**
+     * Resultcode
+     */
+    resultCode?: string | null;
+    status: SubscriptionTransitionStatus;
+    /**
+     * Subscriptionid
+     */
+    subscriptionId: string;
+};
+
+/**
+ * SubscriptionTransitionStatus
+ */
+export type SubscriptionTransitionStatus = 'scheduled' | 'applied' | 'canceled' | 'failed';
+
+/**
  * SupportAccessProjectionItemOut
  */
 export type SupportAccessProjectionItemOut = {
@@ -10867,6 +13875,60 @@ export type SupportAccessProjectionPageOut = {
      * Page
      */
     page: number;
+};
+
+/**
+ * SystemAIProviderAvailabilityApplyRequest
+ */
+export type SystemAiProviderAvailabilityApplyRequest = {
+    /**
+     * Isactive
+     */
+    isActive: boolean;
+    /**
+     * Previewrevision
+     */
+    previewRevision: string;
+};
+
+/**
+ * SystemAIProviderAvailabilityPreviewOut
+ */
+export type SystemAiProviderAvailabilityPreviewOut = {
+    /**
+     * Desiredisactive
+     */
+    desiredIsActive: boolean;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Revision
+     */
+    revision: string;
+    /**
+     * Routableprovidercountafter
+     */
+    routableProviderCountAfter: number;
+    /**
+     * Routableprovidercountbefore
+     */
+    routableProviderCountBefore: number;
+    /**
+     * Wouldleavenoroutableprovider
+     */
+    wouldLeaveNoRoutableProvider: boolean;
+};
+
+/**
+ * SystemAIProviderAvailabilityPreviewRequest
+ */
+export type SystemAiProviderAvailabilityPreviewRequest = {
+    /**
+     * Isactive
+     */
+    isActive: boolean;
 };
 
 /**
@@ -10962,6 +14024,18 @@ export type SystemAiProviderOut = {
      */
     provider: string;
     /**
+     * Readinesscheckedat
+     */
+    readinessCheckedAt?: string | null;
+    /**
+     * Readinessfailurecode
+     */
+    readinessFailureCode?: string | null;
+    /**
+     * Readinessstatus
+     */
+    readinessStatus?: 'unknown' | 'healthy' | 'unhealthy';
+    /**
      * Requestmodel
      */
     requestModel: string;
@@ -10969,6 +14043,28 @@ export type SystemAiProviderOut = {
      * Updatedat
      */
     updatedAt: string;
+};
+
+/**
+ * SystemAIProviderReadinessTestOut
+ */
+export type SystemAiProviderReadinessTestOut = {
+    /**
+     * Checkedat
+     */
+    checkedAt: string;
+    /**
+     * Failurecode
+     */
+    failureCode?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Status
+     */
+    status: 'healthy' | 'unhealthy';
 };
 
 /**
@@ -11003,44 +14099,6 @@ export type SystemAiProviderUpdateRequest = {
      * Requestmodel
      */
     requestModel?: string | null;
-};
-
-/**
- * SystemAgentAssignmentCreateRequest
- */
-export type SystemAgentAssignmentCreateRequest = {
-    /**
-     * Agentid
-     */
-    agentId: string;
-    /**
-     * Enabled
-     */
-    enabled?: boolean;
-    /**
-     * Isdefault
-     */
-    isDefault?: boolean;
-    /**
-     * Ispinned
-     */
-    isPinned?: boolean;
-    /**
-     * Projectid
-     */
-    projectId?: string | null;
-    /**
-     * Sortorder
-     */
-    sortOrder?: number;
-    /**
-     * Versionid
-     */
-    versionId: string;
-    /**
-     * Workspaceid
-     */
-    workspaceId: string;
 };
 
 /**
@@ -11117,32 +14175,6 @@ export type SystemAgentAssignmentOut = {
      * Workspacename
      */
     workspaceName: string;
-};
-
-/**
- * SystemAgentAssignmentUpdateRequest
- */
-export type SystemAgentAssignmentUpdateRequest = {
-    /**
-     * Enabled
-     */
-    enabled?: boolean | null;
-    /**
-     * Isdefault
-     */
-    isDefault?: boolean | null;
-    /**
-     * Ispinned
-     */
-    isPinned?: boolean | null;
-    /**
-     * Sortorder
-     */
-    sortOrder?: number | null;
-    /**
-     * Versionid
-     */
-    versionId?: string | null;
 };
 
 /**
@@ -11442,6 +14474,10 @@ export type SystemAgentVersionListOut = {
  * SystemAgentVersionOut
  */
 export type SystemAgentVersionOut = {
+    /**
+     * Adoptioncount
+     */
+    adoptionCount?: number;
     approvalProfile: AgentApprovalProfile;
     compatibility: AgentCompatibility;
     /**
@@ -11466,6 +14502,10 @@ export type SystemAgentVersionOut = {
      * Delegationdefinitionids
      */
     delegationDefinitionIds: Array<string>;
+    /**
+     * Failurecount
+     */
+    failureCount?: number;
     /**
      * Id
      *
@@ -11497,7 +14537,7 @@ export type SystemAgentVersionOut = {
     /**
      * State
      */
-    state: 'published' | 'retired';
+    state: 'draft' | 'published' | 'retired';
     /**
      * Supportedexecutionmodes
      */
@@ -11692,6 +14732,11 @@ export type SystemPluginArtifactReviewOut = {
     sourceLocator: string;
     sourceType: SystemPluginSourceType;
     /**
+     * Trustevidence
+     */
+    trustEvidence?: Array<string>;
+    trustState?: PluginTrustState;
+    /**
      * Updatedat
      */
     updatedAt: string;
@@ -11733,6 +14778,7 @@ export type SystemPluginCatalogItemOut = {
      * Connectordefinitions
      */
     connectorDefinitions?: Array<SystemConnectorDefinitionOut>;
+    consumers?: ExtensionConsumerEvidenceOut;
     /**
      * Currentjobid
      */
@@ -11741,6 +14787,10 @@ export type SystemPluginCatalogItemOut = {
      * Currentoperationid
      */
     currentOperationId?: string | null;
+    /**
+     * Dependencies
+     */
+    dependencies?: Array<ExtensionDependencyOut>;
     /**
      * Desiredenabled
      */
@@ -11788,6 +14838,11 @@ export type SystemPluginCatalogItemOut = {
      */
     sourceLocator: string;
     sourceType: SystemPluginSourceType;
+    /**
+     * Trustevidence
+     */
+    trustEvidence?: Array<string>;
+    trustState?: PluginTrustState;
 };
 
 /**
@@ -11823,62 +14878,6 @@ export type SystemPluginCompatibilityOut = {
 };
 
 /**
- * SystemPluginConfigurationOut
- */
-export type SystemPluginConfigurationOut = {
-    /**
-     * Pluginname
-     */
-    pluginName: string;
-    /**
-     * Restartrequired
-     */
-    restartRequired: boolean;
-    /**
-     * Revision
-     */
-    revision: number;
-    /**
-     * Secretreferences
-     */
-    secretReferences?: {
-        [key: string]: string;
-    };
-    /**
-     * Updatedat
-     */
-    updatedAt: string;
-    /**
-     * Values
-     */
-    values?: {
-        [key: string]: JsonValueOutput;
-    };
-};
-
-/**
- * SystemPluginConfigurationPatch
- */
-export type SystemPluginConfigurationPatch = {
-    /**
-     * Expectedrevision
-     */
-    expectedRevision: number;
-    /**
-     * Secretreferences
-     */
-    secretReferences: {
-        [key: string]: string;
-    };
-    /**
-     * Values
-     */
-    values: {
-        [key: string]: JsonValueInput;
-    };
-};
-
-/**
  * SystemPluginDetailOut
  */
 export type SystemPluginDetailOut = {
@@ -11910,6 +14909,7 @@ export type SystemPluginDetailOut = {
      * Connectordefinitions
      */
     connectorDefinitions?: Array<SystemConnectorDefinitionOut>;
+    consumers?: ExtensionConsumerEvidenceOut;
     /**
      * Currentjobid
      */
@@ -11918,6 +14918,10 @@ export type SystemPluginDetailOut = {
      * Currentoperationid
      */
     currentOperationId?: string | null;
+    /**
+     * Dependencies
+     */
+    dependencies?: Array<ExtensionDependencyOut>;
     /**
      * Desiredenabled
      */
@@ -11969,6 +14973,11 @@ export type SystemPluginDetailOut = {
      */
     sourceLocator: string;
     sourceType: SystemPluginSourceType;
+    /**
+     * Trustevidence
+     */
+    trustEvidence?: Array<string>;
+    trustState?: PluginTrustState;
 };
 
 /**
@@ -12009,48 +15018,6 @@ export type SystemPluginLifecycleRequest = {
 };
 
 /**
- * SystemPluginListItemOut
- */
-export type SystemPluginListItemOut = {
-    admin?: SystemPluginAdminOut | null;
-    /**
-     * Configschema
-     */
-    configSchema?: {
-        [key: string]: JsonValueOutput;
-    };
-    /**
-     * Connectordefinitions
-     */
-    connectorDefinitions?: Array<SystemConnectorDefinitionOut>;
-    /**
-     * Name
-     */
-    name: string;
-    packageState: PackageState;
-    /**
-     * Permissions
-     */
-    permissions?: Array<string>;
-    processState: ProcessState;
-    provides: SystemPluginProvidesOut;
-    /**
-     * Version
-     */
-    version: string;
-};
-
-/**
- * SystemPluginListOut
- */
-export type SystemPluginListOut = {
-    /**
-     * Plugins
-     */
-    plugins?: Array<SystemPluginListItemOut>;
-};
-
-/**
  * SystemPluginOperationOut
  */
 export type SystemPluginOperationOut = {
@@ -12059,9 +15026,21 @@ export type SystemPluginOperationOut = {
      */
     activationVerified: boolean;
     /**
+     * Approvedpermissions
+     */
+    approvedPermissions?: Array<string>;
+    /**
+     * Auditcorrelationid
+     */
+    auditCorrelationId?: string | null;
+    /**
      * Completedat
      */
     completedAt: string | null;
+    /**
+     * Desiredenabled
+     */
+    desiredEnabled?: boolean;
     /**
      * Failurecode
      */
@@ -12108,9 +15087,21 @@ export type SystemPluginOperationOut = {
      */
     progressTotal: number | null;
     /**
+     * Providedcapabilities
+     */
+    providedCapabilities?: Array<string>;
+    /**
+     * Recoveryofoperationid
+     */
+    recoveryOfOperationId?: string | null;
+    /**
      * Requestedbyuserid
      */
     requestedByUserId: string;
+    /**
+     * Requestedpermissions
+     */
+    requestedPermissions?: Array<string>;
     /**
      * Requestedversion
      */
@@ -12128,12 +15119,18 @@ export type SystemPluginOperationOut = {
      */
     startedAt: string | null;
     state: PluginOperationState;
+    /**
+     * Stepevidence
+     */
+    stepEvidence?: Array<{
+        [key: string]: JsonValueOutput;
+    }>;
 };
 
 /**
  * SystemPluginProvenanceStatus
  */
-export type SystemPluginProvenanceStatus = 'verified';
+export type SystemPluginProvenanceStatus = 'unknown' | 'verified' | 'rejected';
 
 /**
  * SystemPluginProvidesOut
@@ -12420,6 +15417,224 @@ export type ValidationError = {
 };
 
 /**
+ * WorkspaceCapabilityOperationalConsequence
+ *
+ * Owning-domain localized consequence input; rollout never invents domain copy.
+ */
+export type WorkspaceCapabilityOperationalConsequence = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Params
+     */
+    params?: {
+        [key: string]: string | number | boolean;
+    };
+};
+
+/**
+ * WorkspaceCapabilityRolloutApplyReceipt
+ */
+export type WorkspaceCapabilityRolloutApplyReceipt = {
+    /**
+     * Appliedat
+     */
+    appliedAt: string;
+    /**
+     * Capabilityid
+     */
+    capabilityId: string;
+    /**
+     * Replayed
+     */
+    replayed?: boolean;
+    /**
+     * Rolloutrevision
+     */
+    rolloutRevision: number;
+    /**
+     * Selectionrevision
+     */
+    selectionRevision: number;
+};
+
+/**
+ * WorkspaceCapabilityRolloutApplyRequest
+ */
+export type WorkspaceCapabilityRolloutApplyRequest = {
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Previewid
+     */
+    previewId: string;
+    /**
+     * Reason
+     */
+    reason: string;
+};
+
+/**
+ * WorkspaceCapabilityRolloutImpactSummary
+ */
+export type WorkspaceCapabilityRolloutImpactSummary = {
+    /**
+     * Affectedworkspacecount
+     */
+    affectedWorkspaceCount: number;
+    /**
+     * Blockedworkspacecount
+     */
+    blockedWorkspaceCount: number;
+    /**
+     * Eligibleworkspacecount
+     */
+    eligibleWorkspaceCount: number;
+    /**
+     * Ineligibleworkspacecount
+     */
+    ineligibleWorkspaceCount: number;
+    /**
+     * Newlyavailableworkspaceids
+     */
+    newlyAvailableWorkspaceIds: Array<string>;
+    /**
+     * Nolongeravailableworkspaceids
+     */
+    noLongerAvailableWorkspaceIds: Array<string>;
+    /**
+     * Selectedworkspacecount
+     */
+    selectedWorkspaceCount: number;
+};
+
+/**
+ * WorkspaceCapabilityRolloutPolicy
+ */
+export type WorkspaceCapabilityRolloutPolicy = {
+    /**
+     * Capabilityid
+     */
+    capabilityId: string;
+    /**
+     * Revision
+     */
+    revision: number;
+    /**
+     * Selectedworkspaceids
+     */
+    selectedWorkspaceIds: Array<string>;
+    /**
+     * Selectionrevision
+     */
+    selectionRevision: number;
+    stage: WorkspaceCapabilityRolloutStage;
+};
+
+/**
+ * WorkspaceCapabilityRolloutPreview
+ */
+export type WorkspaceCapabilityRolloutPreview = {
+    /**
+     * Appliedrolloutrevision
+     */
+    appliedRolloutRevision?: number | null;
+    /**
+     * Capabilityid
+     */
+    capabilityId: string;
+    /**
+     * Capabilityrevision
+     */
+    capabilityRevision: number;
+    /**
+     * Createdat
+     */
+    createdAt?: string | null;
+    /**
+     * Eligibilityrevision
+     */
+    eligibilityRevision: number;
+    /**
+     * Eligibilitysnapshothash
+     */
+    eligibilitySnapshotHash: string;
+    /**
+     * Expiresat
+     */
+    expiresAt: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Operationalconsequences
+     */
+    operationalConsequences: Array<WorkspaceCapabilityOperationalConsequence>;
+    /**
+     * Proposedselectedworkspaceids
+     */
+    proposedSelectedWorkspaceIds: Array<string>;
+    proposedStage: WorkspaceCapabilityRolloutStage;
+    sourcePolicy: WorkspaceCapabilityRolloutPolicy;
+    summary: WorkspaceCapabilityRolloutImpactSummary;
+    /**
+     * Workspaces
+     */
+    workspaces: Array<WorkspaceCapabilityRolloutWorkspaceImpact>;
+};
+
+/**
+ * WorkspaceCapabilityRolloutPreviewRequest
+ */
+export type WorkspaceCapabilityRolloutPreviewRequest = {
+    proposedStage: WorkspaceCapabilityRolloutStage;
+    /**
+     * Selectedworkspaceids
+     */
+    selectedWorkspaceIds?: Array<string>;
+};
+
+/**
+ * WorkspaceCapabilityRolloutStage
+ */
+export type WorkspaceCapabilityRolloutStage = 'not_available' | 'selected_workspaces' | 'all_eligible';
+
+/**
+ * WorkspaceCapabilityRolloutWorkspaceImpact
+ */
+export type WorkspaceCapabilityRolloutWorkspaceImpact = {
+    /**
+     * Currentlyavailable
+     */
+    currentlyAvailable: boolean;
+    /**
+     * Ineligibilityreasons
+     */
+    ineligibilityReasons: Array<string>;
+    /**
+     * Iseligible
+     */
+    isEligible: boolean;
+    /**
+     * Proposedavailable
+     */
+    proposedAvailable: boolean;
+    /**
+     * Selected
+     */
+    selected: boolean;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
  * WorkspaceCommerceDirectoryDataState
  */
 export type WorkspaceCommerceDirectoryDataState = 'complete' | 'partial' | 'missing';
@@ -12555,6 +15770,10 @@ export type WorkspaceCommerceUsageOut = {
  */
 export type WorkspaceCreditsOut = {
     /**
+     * Accountrevision
+     */
+    accountRevision: number;
+    /**
      * Available
      */
     available: number;
@@ -12640,6 +15859,143 @@ export type WorkspaceSubscriptionOut = {
     updatedAt: string;
 };
 
+export type JsonValueInputWritable = string | number | number | boolean | Array<JsonValueInputWritable> | {
+    [key: string]: JsonValueInputWritable;
+} | null;
+
+export type JsonValueOutputWritable = string | number | number | boolean | Array<JsonValueOutputWritable> | {
+    [key: string]: JsonValueOutputWritable;
+} | null;
+
+/**
+ * MailCredentialWriteRequest
+ */
+export type MailCredentialWriteRequestWritable = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    /**
+     * Secret
+     */
+    secret: string;
+    /**
+     * Username
+     */
+    username?: string | null;
+};
+
+/**
+ * ProviderConfigurationWrite
+ */
+export type ProviderConfigurationWriteWritable = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Idempotencykey
+     */
+    idempotencyKey: string;
+    mode: BillingProviderMode;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Secret
+     */
+    secret?: string | null;
+    /**
+     * Webhooksecret
+     */
+    webhookSecret?: string | null;
+};
+
+export type PlatformBeginCurrentPlatformTotpMethodData = {
+    body: PlatformMfaTotpBeginRequest;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/access/mfa/authenticator-app/setup';
+};
+
+export type PlatformBeginCurrentPlatformTotpMethodErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformBeginCurrentPlatformTotpMethodError = PlatformBeginCurrentPlatformTotpMethodErrors[keyof PlatformBeginCurrentPlatformTotpMethodErrors];
+
+export type PlatformBeginCurrentPlatformTotpMethodResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformTotpSetup;
+};
+
+export type PlatformBeginCurrentPlatformTotpMethodResponse = PlatformBeginCurrentPlatformTotpMethodResponses[keyof PlatformBeginCurrentPlatformTotpMethodResponses];
+
+export type PlatformConfirmCurrentPlatformTotpMethodData = {
+    body: PlatformMfaTotpConfirmRequest;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/access/mfa/authenticator-app/setup/confirm';
+};
+
+export type PlatformConfirmCurrentPlatformTotpMethodErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformConfirmCurrentPlatformTotpMethodError = PlatformConfirmCurrentPlatformTotpMethodErrors[keyof PlatformConfirmCurrentPlatformTotpMethodErrors];
+
+export type PlatformConfirmCurrentPlatformTotpMethodResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformMfaReadinessOut;
+};
+
+export type PlatformConfirmCurrentPlatformTotpMethodResponse = PlatformConfirmCurrentPlatformTotpMethodResponses[keyof PlatformConfirmCurrentPlatformTotpMethodResponses];
+
+export type PlatformRemoveCurrentPlatformMfaMethodData = {
+    body: PlatformMfaMethodRemoveRequest;
+    path: {
+        /**
+         * Method Id
+         */
+        method_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/access/mfa/methods/{method_id}/remove';
+};
+
+export type PlatformRemoveCurrentPlatformMfaMethodErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformRemoveCurrentPlatformMfaMethodError = PlatformRemoveCurrentPlatformMfaMethodErrors[keyof PlatformRemoveCurrentPlatformMfaMethodErrors];
+
+export type PlatformRemoveCurrentPlatformMfaMethodResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformMutationReceipt;
+};
+
+export type PlatformRemoveCurrentPlatformMfaMethodResponse = PlatformRemoveCurrentPlatformMfaMethodResponses[keyof PlatformRemoveCurrentPlatformMfaMethodResponses];
+
 export type PlatformGetCurrentPlatformMfaReadinessData = {
     body?: never;
     path?: never;
@@ -12655,6 +16011,56 @@ export type PlatformGetCurrentPlatformMfaReadinessResponses = {
 };
 
 export type PlatformGetCurrentPlatformMfaReadinessResponse = PlatformGetCurrentPlatformMfaReadinessResponses[keyof PlatformGetCurrentPlatformMfaReadinessResponses];
+
+export type PlatformCompleteCurrentPlatformWebauthnMethodData = {
+    body: PlatformMfaWebAuthnCompleteRequest;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/access/mfa/security-key/setup/complete';
+};
+
+export type PlatformCompleteCurrentPlatformWebauthnMethodErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCompleteCurrentPlatformWebauthnMethodError = PlatformCompleteCurrentPlatformWebauthnMethodErrors[keyof PlatformCompleteCurrentPlatformWebauthnMethodErrors];
+
+export type PlatformCompleteCurrentPlatformWebauthnMethodResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformMfaReadinessOut;
+};
+
+export type PlatformCompleteCurrentPlatformWebauthnMethodResponse = PlatformCompleteCurrentPlatformWebauthnMethodResponses[keyof PlatformCompleteCurrentPlatformWebauthnMethodResponses];
+
+export type PlatformBeginCurrentPlatformWebauthnMethodData = {
+    body: PlatformMfaWebAuthnBeginRequest;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/access/mfa/security-key/setup/options';
+};
+
+export type PlatformBeginCurrentPlatformWebauthnMethodErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformBeginCurrentPlatformWebauthnMethodError = PlatformBeginCurrentPlatformWebauthnMethodErrors[keyof PlatformBeginCurrentPlatformWebauthnMethodErrors];
+
+export type PlatformBeginCurrentPlatformWebauthnMethodResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformMfaWebAuthnRegistrationOut;
+};
+
+export type PlatformBeginCurrentPlatformWebauthnMethodResponse = PlatformBeginCurrentPlatformWebauthnMethodResponses[keyof PlatformBeginCurrentPlatformWebauthnMethodResponses];
 
 export type PlatformListPlatformPermissionsData = {
     body?: never;
@@ -12688,6 +16094,141 @@ export type PlatformListPlatformRolesResponses = {
 
 export type PlatformListPlatformRolesResponse = PlatformListPlatformRolesResponses[keyof PlatformListPlatformRolesResponses];
 
+export type PlatformCreatePlatformCustomRoleData = {
+    body: PlatformCustomRoleCreateRequest;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/access/roles/custom';
+};
+
+export type PlatformCreatePlatformCustomRoleErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCreatePlatformCustomRoleError = PlatformCreatePlatformCustomRoleErrors[keyof PlatformCreatePlatformCustomRoleErrors];
+
+export type PlatformCreatePlatformCustomRoleResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformMutationReceipt;
+};
+
+export type PlatformCreatePlatformCustomRoleResponse = PlatformCreatePlatformCustomRoleResponses[keyof PlatformCreatePlatformCustomRoleResponses];
+
+export type PlatformApplyPlatformCustomRoleRevisionData = {
+    body: PlatformCustomRoleApplyRequest;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/access/roles/custom/apply';
+};
+
+export type PlatformApplyPlatformCustomRoleRevisionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformApplyPlatformCustomRoleRevisionError = PlatformApplyPlatformCustomRoleRevisionErrors[keyof PlatformApplyPlatformCustomRoleRevisionErrors];
+
+export type PlatformApplyPlatformCustomRoleRevisionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformMutationReceipt;
+};
+
+export type PlatformApplyPlatformCustomRoleRevisionResponse = PlatformApplyPlatformCustomRoleRevisionResponses[keyof PlatformApplyPlatformCustomRoleRevisionResponses];
+
+export type PlatformCopyPlatformCustomRoleData = {
+    body: PlatformCustomRoleCopyRequest;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/access/roles/custom/copy';
+};
+
+export type PlatformCopyPlatformCustomRoleErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCopyPlatformCustomRoleError = PlatformCopyPlatformCustomRoleErrors[keyof PlatformCopyPlatformCustomRoleErrors];
+
+export type PlatformCopyPlatformCustomRoleResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformMutationReceipt;
+};
+
+export type PlatformCopyPlatformCustomRoleResponse = PlatformCopyPlatformCustomRoleResponses[keyof PlatformCopyPlatformCustomRoleResponses];
+
+export type PlatformPreviewPlatformCustomRoleRevisionData = {
+    body: PlatformCustomRolePreviewRequest;
+    path: {
+        /**
+         * Role Id
+         */
+        role_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/access/roles/{role_id}/preview';
+};
+
+export type PlatformPreviewPlatformCustomRoleRevisionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformPreviewPlatformCustomRoleRevisionError = PlatformPreviewPlatformCustomRoleRevisionErrors[keyof PlatformPreviewPlatformCustomRoleRevisionErrors];
+
+export type PlatformPreviewPlatformCustomRoleRevisionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformCustomRolePreviewOut;
+};
+
+export type PlatformPreviewPlatformCustomRoleRevisionResponse = PlatformPreviewPlatformCustomRoleRevisionResponses[keyof PlatformPreviewPlatformCustomRoleRevisionResponses];
+
+export type PlatformRetirePlatformCustomRoleData = {
+    body: PlatformCustomRoleRetireRequest;
+    path: {
+        /**
+         * Role Id
+         */
+        role_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/access/roles/{role_id}/retire';
+};
+
+export type PlatformRetirePlatformCustomRoleErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformRetirePlatformCustomRoleError = PlatformRetirePlatformCustomRoleErrors[keyof PlatformRetirePlatformCustomRoleErrors];
+
+export type PlatformRetirePlatformCustomRoleResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformMutationReceipt;
+};
+
+export type PlatformRetirePlatformCustomRoleResponse = PlatformRetirePlatformCustomRoleResponses[keyof PlatformRetirePlatformCustomRoleResponses];
+
 export type PlatformListCurrentPlatformSessionsData = {
     body?: never;
     path?: never;
@@ -12704,6 +16245,61 @@ export type PlatformListCurrentPlatformSessionsResponses = {
 
 export type PlatformListCurrentPlatformSessionsResponse = PlatformListCurrentPlatformSessionsResponses[keyof PlatformListCurrentPlatformSessionsResponses];
 
+export type PlatformRevokeOtherCurrentPlatformSessionsData = {
+    body: PlatformSessionRevokeRequest;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/access/sessions/me/revoke-others';
+};
+
+export type PlatformRevokeOtherCurrentPlatformSessionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformRevokeOtherCurrentPlatformSessionsError = PlatformRevokeOtherCurrentPlatformSessionsErrors[keyof PlatformRevokeOtherCurrentPlatformSessionsErrors];
+
+export type PlatformRevokeOtherCurrentPlatformSessionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformMutationReceipt;
+};
+
+export type PlatformRevokeOtherCurrentPlatformSessionsResponse = PlatformRevokeOtherCurrentPlatformSessionsResponses[keyof PlatformRevokeOtherCurrentPlatformSessionsResponses];
+
+export type PlatformRevokeCurrentPlatformSessionData = {
+    body: PlatformSessionRevokeRequest;
+    path: {
+        /**
+         * Session Id
+         */
+        session_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/access/sessions/me/{session_id}/revoke';
+};
+
+export type PlatformRevokeCurrentPlatformSessionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformRevokeCurrentPlatformSessionError = PlatformRevokeCurrentPlatformSessionErrors[keyof PlatformRevokeCurrentPlatformSessionErrors];
+
+export type PlatformRevokeCurrentPlatformSessionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformMutationReceipt;
+};
+
+export type PlatformRevokeCurrentPlatformSessionResponse = PlatformRevokeCurrentPlatformSessionResponses[keyof PlatformRevokeCurrentPlatformSessionResponses];
+
 export type PlatformGetPlatformSignInReadinessData = {
     body?: never;
     path?: never;
@@ -12719,6 +16315,56 @@ export type PlatformGetPlatformSignInReadinessResponses = {
 };
 
 export type PlatformGetPlatformSignInReadinessResponse = PlatformGetPlatformSignInReadinessResponses[keyof PlatformGetPlatformSignInReadinessResponses];
+
+export type PlatformCompletePlatformStepUpWebauthnData = {
+    body: PlatformStepUpWebAuthnCompleteRequest;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/access/step-up/security-key/complete';
+};
+
+export type PlatformCompletePlatformStepUpWebauthnErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCompletePlatformStepUpWebauthnError = PlatformCompletePlatformStepUpWebauthnErrors[keyof PlatformCompletePlatformStepUpWebauthnErrors];
+
+export type PlatformCompletePlatformStepUpWebauthnResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformStepUpProofIssueResult;
+};
+
+export type PlatformCompletePlatformStepUpWebauthnResponse = PlatformCompletePlatformStepUpWebauthnResponses[keyof PlatformCompletePlatformStepUpWebauthnResponses];
+
+export type PlatformBeginPlatformStepUpWebauthnData = {
+    body: PlatformStepUpProofIssueRequest;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/access/step-up/security-key/options';
+};
+
+export type PlatformBeginPlatformStepUpWebauthnErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformBeginPlatformStepUpWebauthnError = PlatformBeginPlatformStepUpWebauthnErrors[keyof PlatformBeginPlatformStepUpWebauthnErrors];
+
+export type PlatformBeginPlatformStepUpWebauthnResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformStepUpWebAuthnOptionsOut;
+};
+
+export type PlatformBeginPlatformStepUpWebauthnResponse = PlatformBeginPlatformStepUpWebauthnResponses[keyof PlatformBeginPlatformStepUpWebauthnResponses];
 
 export type PlatformListPlatformTeamData = {
     body?: never;
@@ -12837,6 +16483,36 @@ export type PlatformGetPlatformInvitationResponses = {
 
 export type PlatformGetPlatformInvitationResponse = PlatformGetPlatformInvitationResponses[keyof PlatformGetPlatformInvitationResponses];
 
+export type PlatformRevokePlatformOperatorInvitationData = {
+    body: PlatformInvitationRevokeRequest;
+    path: {
+        /**
+         * Invitation Id
+         */
+        invitation_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/access/team/invitations/{invitation_id}/revoke';
+};
+
+export type PlatformRevokePlatformOperatorInvitationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformRevokePlatformOperatorInvitationError = PlatformRevokePlatformOperatorInvitationErrors[keyof PlatformRevokePlatformOperatorInvitationErrors];
+
+export type PlatformRevokePlatformOperatorInvitationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformMutationReceipt;
+};
+
+export type PlatformRevokePlatformOperatorInvitationResponse = PlatformRevokePlatformOperatorInvitationResponses[keyof PlatformRevokePlatformOperatorInvitationResponses];
+
 export type PlatformGetCurrentTeamIdentityData = {
     body?: never;
     path?: never;
@@ -12882,6 +16558,36 @@ export type PlatformOffboardPlatformOperatorResponses = {
 };
 
 export type PlatformOffboardPlatformOperatorResponse = PlatformOffboardPlatformOperatorResponses[keyof PlatformOffboardPlatformOperatorResponses];
+
+export type PlatformAssignPlatformOperatorRolesData = {
+    body: PlatformRoleAssignmentRequest;
+    path: {
+        /**
+         * Target User Id
+         */
+        target_user_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/access/team/operators/{target_user_id}/roles';
+};
+
+export type PlatformAssignPlatformOperatorRolesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformAssignPlatformOperatorRolesError = PlatformAssignPlatformOperatorRolesErrors[keyof PlatformAssignPlatformOperatorRolesErrors];
+
+export type PlatformAssignPlatformOperatorRolesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformMutationReceipt;
+};
+
+export type PlatformAssignPlatformOperatorRolesResponse = PlatformAssignPlatformOperatorRolesResponses[keyof PlatformAssignPlatformOperatorRolesResponses];
 
 export type PlatformNominatePlatformOwnershipTransferData = {
     body: PlatformOwnershipTransferNominationRequest;
@@ -13066,61 +16772,6 @@ export type PlatformListSystemAgentAssignmentsResponses = {
 };
 
 export type PlatformListSystemAgentAssignmentsResponse = PlatformListSystemAgentAssignmentsResponses[keyof PlatformListSystemAgentAssignmentsResponses];
-
-export type PlatformCreateSystemAgentAssignmentData = {
-    body: SystemAgentAssignmentCreateRequest;
-    path?: never;
-    query?: never;
-    url: '/platform-api/v1/agent-assignments';
-};
-
-export type PlatformCreateSystemAgentAssignmentErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type PlatformCreateSystemAgentAssignmentError = PlatformCreateSystemAgentAssignmentErrors[keyof PlatformCreateSystemAgentAssignmentErrors];
-
-export type PlatformCreateSystemAgentAssignmentResponses = {
-    /**
-     * Successful Response
-     */
-    201: ResponseModelSystemAgentAssignmentOut;
-};
-
-export type PlatformCreateSystemAgentAssignmentResponse = PlatformCreateSystemAgentAssignmentResponses[keyof PlatformCreateSystemAgentAssignmentResponses];
-
-export type PlatformUpdateSystemAgentAssignmentData = {
-    body: SystemAgentAssignmentUpdateRequest;
-    path: {
-        /**
-         * Assignment Id
-         */
-        assignment_id: string;
-    };
-    query?: never;
-    url: '/platform-api/v1/agent-assignments/{assignment_id}';
-};
-
-export type PlatformUpdateSystemAgentAssignmentErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type PlatformUpdateSystemAgentAssignmentError = PlatformUpdateSystemAgentAssignmentErrors[keyof PlatformUpdateSystemAgentAssignmentErrors];
-
-export type PlatformUpdateSystemAgentAssignmentResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSystemAgentAssignmentOut;
-};
-
-export type PlatformUpdateSystemAgentAssignmentResponse = PlatformUpdateSystemAgentAssignmentResponses[keyof PlatformUpdateSystemAgentAssignmentResponses];
 
 export type PlatformListSystemAgentsData = {
     body?: never;
@@ -13334,7 +16985,7 @@ export type PlatformCreateSystemAgentVersionResponses = {
 export type PlatformCreateSystemAgentVersionResponse = PlatformCreateSystemAgentVersionResponses[keyof PlatformCreateSystemAgentVersionResponses];
 
 export type PlatformRetireSystemAgentVersionData = {
-    body: AgentVersionRetireRequest;
+    body: AgentVersionLifecycleRequest;
     path: {
         /**
          * Definition Id
@@ -13424,6 +17075,96 @@ export type PlatformListPlatformAiTasksResponses = {
 };
 
 export type PlatformListPlatformAiTasksResponse = PlatformListPlatformAiTasksResponses[keyof PlatformListPlatformAiTasksResponses];
+
+export type PlatformCancelPlatformAiTaskData = {
+    body: PlatformAiTaskActionRequest;
+    path: {
+        /**
+         * Task Id
+         */
+        task_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/ai-services/tasks/{task_id}/cancel';
+};
+
+export type PlatformCancelPlatformAiTaskErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCancelPlatformAiTaskError = PlatformCancelPlatformAiTaskErrors[keyof PlatformCancelPlatformAiTaskErrors];
+
+export type PlatformCancelPlatformAiTaskResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformAiTaskOut;
+};
+
+export type PlatformCancelPlatformAiTaskResponse = PlatformCancelPlatformAiTaskResponses[keyof PlatformCancelPlatformAiTaskResponses];
+
+export type PlatformReconcilePlatformAiTaskData = {
+    body: PlatformAiTaskActionRequest;
+    path: {
+        /**
+         * Task Id
+         */
+        task_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/ai-services/tasks/{task_id}/reconcile';
+};
+
+export type PlatformReconcilePlatformAiTaskErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformReconcilePlatformAiTaskError = PlatformReconcilePlatformAiTaskErrors[keyof PlatformReconcilePlatformAiTaskErrors];
+
+export type PlatformReconcilePlatformAiTaskResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformAiTaskOut;
+};
+
+export type PlatformReconcilePlatformAiTaskResponse = PlatformReconcilePlatformAiTaskResponses[keyof PlatformReconcilePlatformAiTaskResponses];
+
+export type PlatformRetryPlatformAiTaskData = {
+    body: PlatformAiTaskActionRequest;
+    path: {
+        /**
+         * Task Id
+         */
+        task_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/ai-services/tasks/{task_id}/retry';
+};
+
+export type PlatformRetryPlatformAiTaskErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformRetryPlatformAiTaskError = PlatformRetryPlatformAiTaskErrors[keyof PlatformRetryPlatformAiTaskErrors];
+
+export type PlatformRetryPlatformAiTaskResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformAiTaskOut;
+};
+
+export type PlatformRetryPlatformAiTaskResponse = PlatformRetryPlatformAiTaskResponses[keyof PlatformRetryPlatformAiTaskResponses];
 
 export type PlatformListSystemAiProvidersData = {
     body?: never;
@@ -13525,6 +17266,126 @@ export type PlatformUpdateSystemAiProviderResponses = {
 };
 
 export type PlatformUpdateSystemAiProviderResponse = PlatformUpdateSystemAiProviderResponses[keyof PlatformUpdateSystemAiProviderResponses];
+
+export type PlatformApplySystemAiProviderAvailabilityData = {
+    body: SystemAiProviderAvailabilityApplyRequest;
+    path: {
+        /**
+         * Provider Id
+         */
+        provider_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/ai/providers/{provider_id}/availability';
+};
+
+export type PlatformApplySystemAiProviderAvailabilityErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformApplySystemAiProviderAvailabilityError = PlatformApplySystemAiProviderAvailabilityErrors[keyof PlatformApplySystemAiProviderAvailabilityErrors];
+
+export type PlatformApplySystemAiProviderAvailabilityResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSystemAiProviderOut;
+};
+
+export type PlatformApplySystemAiProviderAvailabilityResponse = PlatformApplySystemAiProviderAvailabilityResponses[keyof PlatformApplySystemAiProviderAvailabilityResponses];
+
+export type PlatformPreviewSystemAiProviderAvailabilityData = {
+    body: SystemAiProviderAvailabilityPreviewRequest;
+    path: {
+        /**
+         * Provider Id
+         */
+        provider_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/ai/providers/{provider_id}/availability-preview';
+};
+
+export type PlatformPreviewSystemAiProviderAvailabilityErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformPreviewSystemAiProviderAvailabilityError = PlatformPreviewSystemAiProviderAvailabilityErrors[keyof PlatformPreviewSystemAiProviderAvailabilityErrors];
+
+export type PlatformPreviewSystemAiProviderAvailabilityResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSystemAiProviderAvailabilityPreviewOut;
+};
+
+export type PlatformPreviewSystemAiProviderAvailabilityResponse = PlatformPreviewSystemAiProviderAvailabilityResponses[keyof PlatformPreviewSystemAiProviderAvailabilityResponses];
+
+export type PlatformTestSystemAiProviderReadinessData = {
+    body?: never;
+    path: {
+        /**
+         * Provider Id
+         */
+        provider_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/ai/providers/{provider_id}/readiness-test';
+};
+
+export type PlatformTestSystemAiProviderReadinessErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformTestSystemAiProviderReadinessError = PlatformTestSystemAiProviderReadinessErrors[keyof PlatformTestSystemAiProviderReadinessErrors];
+
+export type PlatformTestSystemAiProviderReadinessResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSystemAiProviderReadinessTestOut;
+};
+
+export type PlatformTestSystemAiProviderReadinessResponse = PlatformTestSystemAiProviderReadinessResponses[keyof PlatformTestSystemAiProviderReadinessResponses];
+
+export type PlatformAcceptOperatorInvitationData = {
+    body: PlatformInvitationAcceptRequest;
+    path: {
+        /**
+         * Invitation Id
+         */
+        invitation_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/auth/invitations/{invitation_id}/accept';
+};
+
+export type PlatformAcceptOperatorInvitationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformAcceptOperatorInvitationError = PlatformAcceptOperatorInvitationErrors[keyof PlatformAcceptOperatorInvitationErrors];
+
+export type PlatformAcceptOperatorInvitationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformSignInOut;
+};
+
+export type PlatformAcceptOperatorInvitationResponse = PlatformAcceptOperatorInvitationResponses[keyof PlatformAcceptOperatorInvitationResponses];
 
 export type PlatformCompleteTotpChallengeData = {
     body: PlatformTotpChallengeRequest;
@@ -13742,102 +17603,103 @@ export type PlatformListPlatformCapabilitiesResponses = {
 
 export type PlatformListPlatformCapabilitiesResponse = PlatformListPlatformCapabilitiesResponses[keyof PlatformListPlatformCapabilitiesResponses];
 
-export type PlatformCreatePlanRevisionData = {
-    body: PlanRevisionDraftCreate;
+export type PlatformApplyWorkspaceCapabilityRolloutData = {
+    body: WorkspaceCapabilityRolloutApplyRequest;
     path?: never;
     query?: never;
-    url: '/platform-api/v1/commerce/plan-revisions';
+    url: '/platform-api/v1/capabilities/rollout/applies';
 };
 
-export type PlatformCreatePlanRevisionErrors = {
+export type PlatformApplyWorkspaceCapabilityRolloutErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type PlatformCreatePlanRevisionError = PlatformCreatePlanRevisionErrors[keyof PlatformCreatePlanRevisionErrors];
+export type PlatformApplyWorkspaceCapabilityRolloutError = PlatformApplyWorkspaceCapabilityRolloutErrors[keyof PlatformApplyWorkspaceCapabilityRolloutErrors];
 
-export type PlatformCreatePlanRevisionResponses = {
+export type PlatformApplyWorkspaceCapabilityRolloutResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelDictStrStr;
+    200: ResponseModelWorkspaceCapabilityRolloutApplyReceipt;
 };
 
-export type PlatformCreatePlanRevisionResponse = PlatformCreatePlanRevisionResponses[keyof PlatformCreatePlanRevisionResponses];
+export type PlatformApplyWorkspaceCapabilityRolloutResponse = PlatformApplyWorkspaceCapabilityRolloutResponses[keyof PlatformApplyWorkspaceCapabilityRolloutResponses];
 
-export type PlatformUpdatePlanRevisionData = {
-    body: PlanRevisionDraftUpdate;
+export type PlatformPreviewWorkspaceCapabilityRolloutData = {
+    body: WorkspaceCapabilityRolloutPreviewRequest;
     path: {
         /**
-         * Revision Id
+         * Capability Id
          */
-        revision_id: string;
+        capability_id: string;
     };
-    query: {
-        /**
-         * Plan Id
-         */
-        plan_id: string;
-    };
-    url: '/platform-api/v1/commerce/plan-revisions/{revision_id}';
+    query?: never;
+    url: '/platform-api/v1/capabilities/{capability_id}/rollout/previews';
 };
 
-export type PlatformUpdatePlanRevisionErrors = {
+export type PlatformPreviewWorkspaceCapabilityRolloutErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type PlatformUpdatePlanRevisionError = PlatformUpdatePlanRevisionErrors[keyof PlatformUpdatePlanRevisionErrors];
+export type PlatformPreviewWorkspaceCapabilityRolloutError = PlatformPreviewWorkspaceCapabilityRolloutErrors[keyof PlatformPreviewWorkspaceCapabilityRolloutErrors];
 
-export type PlatformUpdatePlanRevisionResponses = {
+export type PlatformPreviewWorkspaceCapabilityRolloutResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelDictStrStr;
+    200: ResponseModelWorkspaceCapabilityRolloutPreview;
 };
 
-export type PlatformUpdatePlanRevisionResponse = PlatformUpdatePlanRevisionResponses[keyof PlatformUpdatePlanRevisionResponses];
+export type PlatformPreviewWorkspaceCapabilityRolloutResponse = PlatformPreviewWorkspaceCapabilityRolloutResponses[keyof PlatformPreviewWorkspaceCapabilityRolloutResponses];
 
-export type PlatformPublishPlanRevisionData = {
+export type PlatformCommerceGetCommerceDunningPolicyData = {
     body?: never;
-    path: {
-        /**
-         * Revision Id
-         */
-        revision_id: string;
-    };
-    query: {
-        /**
-         * Plan Id
-         */
-        plan_id: string;
-    };
-    url: '/platform-api/v1/commerce/plan-revisions/{revision_id}/publish';
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/commerce/dunning-policy';
 };
 
-export type PlatformPublishPlanRevisionErrors = {
+export type PlatformCommerceGetCommerceDunningPolicyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUnionDunningPolicyOutNoneType;
+};
+
+export type PlatformCommerceGetCommerceDunningPolicyResponse = PlatformCommerceGetCommerceDunningPolicyResponses[keyof PlatformCommerceGetCommerceDunningPolicyResponses];
+
+export type PlatformCommercePutCommerceDunningPolicyData = {
+    body: DunningPolicyWrite;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/commerce/dunning-policy';
+};
+
+export type PlatformCommercePutCommerceDunningPolicyErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type PlatformPublishPlanRevisionError = PlatformPublishPlanRevisionErrors[keyof PlatformPublishPlanRevisionErrors];
+export type PlatformCommercePutCommerceDunningPolicyError = PlatformCommercePutCommerceDunningPolicyErrors[keyof PlatformCommercePutCommerceDunningPolicyErrors];
 
-export type PlatformPublishPlanRevisionResponses = {
+export type PlatformCommercePutCommerceDunningPolicyResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelDictStrStr;
+    200: ResponseModelDunningPolicyOut;
 };
 
-export type PlatformPublishPlanRevisionResponse = PlatformPublishPlanRevisionResponses[keyof PlatformPublishPlanRevisionResponses];
+export type PlatformCommercePutCommerceDunningPolicyResponse = PlatformCommercePutCommerceDunningPolicyResponses[keyof PlatformCommercePutCommerceDunningPolicyResponses];
 
-export type PlatformListCommercePlansData = {
+export type PlatformCommerceListCommercePlansData = {
     body?: never;
     path?: never;
     query?: {
@@ -13849,50 +17711,56 @@ export type PlatformListCommercePlansData = {
     url: '/platform-api/v1/commerce/plans';
 };
 
-export type PlatformListCommercePlansErrors = {
+export type PlatformCommerceListCommercePlansErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type PlatformListCommercePlansError = PlatformListCommercePlansErrors[keyof PlatformListCommercePlansErrors];
+export type PlatformCommerceListCommercePlansError = PlatformCommerceListCommercePlansErrors[keyof PlatformCommerceListCommercePlansErrors];
 
-export type PlatformListCommercePlansResponses = {
+export type PlatformCommerceListCommercePlansResponses = {
     /**
      * Successful Response
      */
     200: ResponseModelPlatformCommercePlanCatalogOut;
 };
 
-export type PlatformListCommercePlansResponse = PlatformListCommercePlansResponses[keyof PlatformListCommercePlansResponses];
+export type PlatformCommerceListCommercePlansResponse = PlatformCommerceListCommercePlansResponses[keyof PlatformCommerceListCommercePlansResponses];
 
-export type PlatformCreateCommercePlanData = {
+export type PlatformCommerceCreateCommercePlanData = {
     body: PlanIdentityCreate;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
     path?: never;
     query?: never;
     url: '/platform-api/v1/commerce/plans';
 };
 
-export type PlatformCreateCommercePlanErrors = {
+export type PlatformCommerceCreateCommercePlanErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type PlatformCreateCommercePlanError = PlatformCreateCommercePlanErrors[keyof PlatformCreateCommercePlanErrors];
+export type PlatformCommerceCreateCommercePlanError = PlatformCommerceCreateCommercePlanErrors[keyof PlatformCommerceCreateCommercePlanErrors];
 
-export type PlatformCreateCommercePlanResponses = {
+export type PlatformCommerceCreateCommercePlanResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelDictStrStr;
+    200: ResponseModelPlatformCommercePlanIdentityOut;
 };
 
-export type PlatformCreateCommercePlanResponse = PlatformCreateCommercePlanResponses[keyof PlatformCreateCommercePlanResponses];
+export type PlatformCommerceCreateCommercePlanResponse = PlatformCommerceCreateCommercePlanResponses[keyof PlatformCommerceCreateCommercePlanResponses];
 
-export type PlatformListCommercePlanRevisionsData = {
+export type PlatformCommerceListCommercePlanRevisionsData = {
     body?: never;
     path: {
         /**
@@ -13909,25 +17777,364 @@ export type PlatformListCommercePlanRevisionsData = {
     url: '/platform-api/v1/commerce/plans/{code}/revisions';
 };
 
-export type PlatformListCommercePlanRevisionsErrors = {
+export type PlatformCommerceListCommercePlanRevisionsErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type PlatformListCommercePlanRevisionsError = PlatformListCommercePlanRevisionsErrors[keyof PlatformListCommercePlanRevisionsErrors];
+export type PlatformCommerceListCommercePlanRevisionsError = PlatformCommerceListCommercePlanRevisionsErrors[keyof PlatformCommerceListCommercePlanRevisionsErrors];
 
-export type PlatformListCommercePlanRevisionsResponses = {
+export type PlatformCommerceListCommercePlanRevisionsResponses = {
     /**
      * Successful Response
      */
     200: ResponseModelTuplePlatformCommerceRevisionSummaryOut;
 };
 
-export type PlatformListCommercePlanRevisionsResponse = PlatformListCommercePlanRevisionsResponses[keyof PlatformListCommercePlanRevisionsResponses];
+export type PlatformCommerceListCommercePlanRevisionsResponse = PlatformCommerceListCommercePlanRevisionsResponses[keyof PlatformCommerceListCommercePlanRevisionsResponses];
 
-export type PlatformListPlatformCommerceSubscriptionsData = {
+export type PlatformCommerceCreatePlanRevisionData = {
+    body: PlanRevisionDraftCreate;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Code
+         */
+        code: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/commerce/plans/{code}/revisions';
+};
+
+export type PlatformCommerceCreatePlanRevisionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCommerceCreatePlanRevisionError = PlatformCommerceCreatePlanRevisionErrors[keyof PlatformCommerceCreatePlanRevisionErrors];
+
+export type PlatformCommerceCreatePlanRevisionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformCommercePlanRevisionMutationOut;
+};
+
+export type PlatformCommerceCreatePlanRevisionResponse = PlatformCommerceCreatePlanRevisionResponses[keyof PlatformCommerceCreatePlanRevisionResponses];
+
+export type PlatformCommerceUpdatePlanRevisionData = {
+    body: PlanRevisionDraftUpdate;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Code
+         */
+        code: string;
+        /**
+         * Revision Id
+         */
+        revision_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/commerce/plans/{code}/revisions/{revision_id}';
+};
+
+export type PlatformCommerceUpdatePlanRevisionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCommerceUpdatePlanRevisionError = PlatformCommerceUpdatePlanRevisionErrors[keyof PlatformCommerceUpdatePlanRevisionErrors];
+
+export type PlatformCommerceUpdatePlanRevisionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformCommercePlanRevisionMutationOut;
+};
+
+export type PlatformCommerceUpdatePlanRevisionResponse = PlatformCommerceUpdatePlanRevisionResponses[keyof PlatformCommerceUpdatePlanRevisionResponses];
+
+export type PlatformCommercePublishPlanRevisionData = {
+    body: PlanRevisionPublish;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Code
+         */
+        code: string;
+        /**
+         * Revision Id
+         */
+        revision_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/commerce/plans/{code}/revisions/{revision_id}/publish';
+};
+
+export type PlatformCommercePublishPlanRevisionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCommercePublishPlanRevisionError = PlatformCommercePublishPlanRevisionErrors[keyof PlatformCommercePublishPlanRevisionErrors];
+
+export type PlatformCommercePublishPlanRevisionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformCommercePlanRevisionMutationOut;
+};
+
+export type PlatformCommercePublishPlanRevisionResponse = PlatformCommercePublishPlanRevisionResponses[keyof PlatformCommercePublishPlanRevisionResponses];
+
+export type PlatformCommerceGetCommerceProviderData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/commerce/provider';
+};
+
+export type PlatformCommerceGetCommerceProviderResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProviderReadinessOut;
+};
+
+export type PlatformCommerceGetCommerceProviderResponse = PlatformCommerceGetCommerceProviderResponses[keyof PlatformCommerceGetCommerceProviderResponses];
+
+export type PlatformCommercePutCommerceProviderData = {
+    body: ProviderConfigurationWriteWritable;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/commerce/provider';
+};
+
+export type PlatformCommercePutCommerceProviderErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCommercePutCommerceProviderError = PlatformCommercePutCommerceProviderErrors[keyof PlatformCommercePutCommerceProviderErrors];
+
+export type PlatformCommercePutCommerceProviderResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProviderConfigurationWriteOut;
+};
+
+export type PlatformCommercePutCommerceProviderResponse = PlatformCommercePutCommerceProviderResponses[keyof PlatformCommercePutCommerceProviderResponses];
+
+export type PlatformCommerceListCommerceProviderEventsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Pagesize
+         */
+        pageSize?: number;
+        /**
+         * Provider
+         */
+        provider?: string | null;
+        /**
+         * Status
+         */
+        status?: ConnectorEventInboxStatus | null;
+    };
+    url: '/platform-api/v1/commerce/provider/events';
+};
+
+export type PlatformCommerceListCommerceProviderEventsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCommerceListCommerceProviderEventsError = PlatformCommerceListCommerceProviderEventsErrors[keyof PlatformCommerceListCommerceProviderEventsErrors];
+
+export type PlatformCommerceListCommerceProviderEventsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProviderEventListOut;
+};
+
+export type PlatformCommerceListCommerceProviderEventsResponse = PlatformCommerceListCommerceProviderEventsResponses[keyof PlatformCommerceListCommerceProviderEventsResponses];
+
+export type PlatformCommerceReconcileCommerceProviderEventData = {
+    body: ProviderEventReconcileRequest;
+    path: {
+        /**
+         * Event Id
+         */
+        event_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/commerce/provider/events/{event_id}/reconcile';
+};
+
+export type PlatformCommerceReconcileCommerceProviderEventErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCommerceReconcileCommerceProviderEventError = PlatformCommerceReconcileCommerceProviderEventErrors[keyof PlatformCommerceReconcileCommerceProviderEventErrors];
+
+export type PlatformCommerceReconcileCommerceProviderEventResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProviderEventOut;
+};
+
+export type PlatformCommerceReconcileCommerceProviderEventResponse = PlatformCommerceReconcileCommerceProviderEventResponses[keyof PlatformCommerceReconcileCommerceProviderEventResponses];
+
+export type PlatformCommerceScheduleSubscriptionRevisionTransitionData = {
+    body: RenewalTransitionScheduleRequest;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/commerce/subscription-revision-transitions';
+};
+
+export type PlatformCommerceScheduleSubscriptionRevisionTransitionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCommerceScheduleSubscriptionRevisionTransitionError = PlatformCommerceScheduleSubscriptionRevisionTransitionErrors[keyof PlatformCommerceScheduleSubscriptionRevisionTransitionErrors];
+
+export type PlatformCommerceScheduleSubscriptionRevisionTransitionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelRenewalTransitionScheduleOut;
+};
+
+export type PlatformCommerceScheduleSubscriptionRevisionTransitionResponse = PlatformCommerceScheduleSubscriptionRevisionTransitionResponses[keyof PlatformCommerceScheduleSubscriptionRevisionTransitionResponses];
+
+export type PlatformCommercePreviewSubscriptionRevisionTransitionData = {
+    body: ConvergencePreviewRequest;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/commerce/subscription-revision-transitions/preview';
+};
+
+export type PlatformCommercePreviewSubscriptionRevisionTransitionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCommercePreviewSubscriptionRevisionTransitionError = PlatformCommercePreviewSubscriptionRevisionTransitionErrors[keyof PlatformCommercePreviewSubscriptionRevisionTransitionErrors];
+
+export type PlatformCommercePreviewSubscriptionRevisionTransitionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelConvergencePreview;
+};
+
+export type PlatformCommercePreviewSubscriptionRevisionTransitionResponse = PlatformCommercePreviewSubscriptionRevisionTransitionResponses[keyof PlatformCommercePreviewSubscriptionRevisionTransitionResponses];
+
+export type PlatformCommerceCancelSubscriptionRevisionTransitionData = {
+    body: SubscriptionTransitionCancelRequest;
+    path: {
+        /**
+         * Transition Id
+         */
+        transition_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/commerce/subscription-revision-transitions/{transition_id}';
+};
+
+export type PlatformCommerceCancelSubscriptionRevisionTransitionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCommerceCancelSubscriptionRevisionTransitionError = PlatformCommerceCancelSubscriptionRevisionTransitionErrors[keyof PlatformCommerceCancelSubscriptionRevisionTransitionErrors];
+
+export type PlatformCommerceCancelSubscriptionRevisionTransitionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSubscriptionTransitionDetailOut;
+};
+
+export type PlatformCommerceCancelSubscriptionRevisionTransitionResponse = PlatformCommerceCancelSubscriptionRevisionTransitionResponses[keyof PlatformCommerceCancelSubscriptionRevisionTransitionResponses];
+
+export type PlatformCommerceGetSubscriptionRevisionTransitionData = {
+    body?: never;
+    path: {
+        /**
+         * Transition Id
+         */
+        transition_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/commerce/subscription-revision-transitions/{transition_id}';
+};
+
+export type PlatformCommerceGetSubscriptionRevisionTransitionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCommerceGetSubscriptionRevisionTransitionError = PlatformCommerceGetSubscriptionRevisionTransitionErrors[keyof PlatformCommerceGetSubscriptionRevisionTransitionErrors];
+
+export type PlatformCommerceGetSubscriptionRevisionTransitionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSubscriptionTransitionDetailOut;
+};
+
+export type PlatformCommerceGetSubscriptionRevisionTransitionResponse = PlatformCommerceGetSubscriptionRevisionTransitionResponses[keyof PlatformCommerceGetSubscriptionRevisionTransitionResponses];
+
+export type PlatformCommerceListPlatformCommerceSubscriptionsData = {
     body?: never;
     path?: never;
     query?: {
@@ -13955,25 +18162,85 @@ export type PlatformListPlatformCommerceSubscriptionsData = {
     url: '/platform-api/v1/commerce/subscriptions';
 };
 
-export type PlatformListPlatformCommerceSubscriptionsErrors = {
+export type PlatformCommerceListPlatformCommerceSubscriptionsErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type PlatformListPlatformCommerceSubscriptionsError = PlatformListPlatformCommerceSubscriptionsErrors[keyof PlatformListPlatformCommerceSubscriptionsErrors];
+export type PlatformCommerceListPlatformCommerceSubscriptionsError = PlatformCommerceListPlatformCommerceSubscriptionsErrors[keyof PlatformCommerceListPlatformCommerceSubscriptionsErrors];
 
-export type PlatformListPlatformCommerceSubscriptionsResponses = {
+export type PlatformCommerceListPlatformCommerceSubscriptionsResponses = {
     /**
      * Successful Response
      */
     200: ResponseModelPlatformCommerceSubscriptionListOut;
 };
 
-export type PlatformListPlatformCommerceSubscriptionsResponse = PlatformListPlatformCommerceSubscriptionsResponses[keyof PlatformListPlatformCommerceSubscriptionsResponses];
+export type PlatformCommerceListPlatformCommerceSubscriptionsResponse = PlatformCommerceListPlatformCommerceSubscriptionsResponses[keyof PlatformCommerceListPlatformCommerceSubscriptionsResponses];
 
-export type PlatformGetWorkspaceCommerceOverviewData = {
+export type PlatformCommerceGetPlatformCommerceSubscriptionData = {
+    body?: never;
+    path: {
+        /**
+         * Subscription Id
+         */
+        subscription_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/commerce/subscriptions/{subscription_id}';
+};
+
+export type PlatformCommerceGetPlatformCommerceSubscriptionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCommerceGetPlatformCommerceSubscriptionError = PlatformCommerceGetPlatformCommerceSubscriptionErrors[keyof PlatformCommerceGetPlatformCommerceSubscriptionErrors];
+
+export type PlatformCommerceGetPlatformCommerceSubscriptionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformCommerceSubscriptionOut;
+};
+
+export type PlatformCommerceGetPlatformCommerceSubscriptionResponse = PlatformCommerceGetPlatformCommerceSubscriptionResponses[keyof PlatformCommerceGetPlatformCommerceSubscriptionResponses];
+
+export type PlatformCommerceAdjustWorkspaceCreditsData = {
+    body: CreditAdjustmentRequest;
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/commerce/workspaces/{workspace_id}/credits/adjustments';
+};
+
+export type PlatformCommerceAdjustWorkspaceCreditsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCommerceAdjustWorkspaceCreditsError = PlatformCommerceAdjustWorkspaceCreditsErrors[keyof PlatformCommerceAdjustWorkspaceCreditsErrors];
+
+export type PlatformCommerceAdjustWorkspaceCreditsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelCreditAdjustmentOut;
+};
+
+export type PlatformCommerceAdjustWorkspaceCreditsResponse = PlatformCommerceAdjustWorkspaceCreditsResponses[keyof PlatformCommerceAdjustWorkspaceCreditsResponses];
+
+export type PlatformCommerceGetWorkspaceCommerceOverviewData = {
     body?: never;
     path: {
         /**
@@ -13985,23 +18252,83 @@ export type PlatformGetWorkspaceCommerceOverviewData = {
     url: '/platform-api/v1/commerce/workspaces/{workspace_id}/overview';
 };
 
-export type PlatformGetWorkspaceCommerceOverviewErrors = {
+export type PlatformCommerceGetWorkspaceCommerceOverviewErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type PlatformGetWorkspaceCommerceOverviewError = PlatformGetWorkspaceCommerceOverviewErrors[keyof PlatformGetWorkspaceCommerceOverviewErrors];
+export type PlatformCommerceGetWorkspaceCommerceOverviewError = PlatformCommerceGetWorkspaceCommerceOverviewErrors[keyof PlatformCommerceGetWorkspaceCommerceOverviewErrors];
 
-export type PlatformGetWorkspaceCommerceOverviewResponses = {
+export type PlatformCommerceGetWorkspaceCommerceOverviewResponses = {
     /**
      * Successful Response
      */
     200: ResponseModelWorkspaceCommerceOverviewOut;
 };
 
-export type PlatformGetWorkspaceCommerceOverviewResponse = PlatformGetWorkspaceCommerceOverviewResponses[keyof PlatformGetWorkspaceCommerceOverviewResponses];
+export type PlatformCommerceGetWorkspaceCommerceOverviewResponse = PlatformCommerceGetWorkspaceCommerceOverviewResponses[keyof PlatformCommerceGetWorkspaceCommerceOverviewResponses];
+
+export type PlatformCommerceApplyWorkspaceSubscriptionCorrectionData = {
+    body: CommercialCorrectionApplyPayload;
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/commerce/workspaces/{workspace_id}/subscription-corrections';
+};
+
+export type PlatformCommerceApplyWorkspaceSubscriptionCorrectionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCommerceApplyWorkspaceSubscriptionCorrectionError = PlatformCommerceApplyWorkspaceSubscriptionCorrectionErrors[keyof PlatformCommerceApplyWorkspaceSubscriptionCorrectionErrors];
+
+export type PlatformCommerceApplyWorkspaceSubscriptionCorrectionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNoneType;
+};
+
+export type PlatformCommerceApplyWorkspaceSubscriptionCorrectionResponse = PlatformCommerceApplyWorkspaceSubscriptionCorrectionResponses[keyof PlatformCommerceApplyWorkspaceSubscriptionCorrectionResponses];
+
+export type PlatformCommercePreviewWorkspaceSubscriptionCorrectionData = {
+    body: CommercialCorrectionPreviewRequest;
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/commerce/workspaces/{workspace_id}/subscription-corrections/preview';
+};
+
+export type PlatformCommercePreviewWorkspaceSubscriptionCorrectionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformCommercePreviewWorkspaceSubscriptionCorrectionError = PlatformCommercePreviewWorkspaceSubscriptionCorrectionErrors[keyof PlatformCommercePreviewWorkspaceSubscriptionCorrectionErrors];
+
+export type PlatformCommercePreviewWorkspaceSubscriptionCorrectionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNoneType;
+};
+
+export type PlatformCommercePreviewWorkspaceSubscriptionCorrectionResponse = PlatformCommercePreviewWorkspaceSubscriptionCorrectionResponses[keyof PlatformCommercePreviewWorkspaceSubscriptionCorrectionResponses];
 
 export type PlatformListNotificationCampaignsData = {
     body?: never;
@@ -14371,6 +18698,72 @@ export type PlatformRetryNotificationCampaignFailuresResponses = {
 
 export type PlatformRetryNotificationCampaignFailuresResponse = PlatformRetryNotificationCampaignFailuresResponses[keyof PlatformRetryNotificationCampaignFailuresResponses];
 
+export type PlatformListNotificationDeliveryDirectoryData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Campaign Id
+         */
+        campaign_id?: Array<string>;
+        /**
+         * State
+         */
+        state?: Array<NotificationDeliveryState>;
+        /**
+         * Channel
+         */
+        channel?: Array<NotificationCampaignChannel>;
+        /**
+         * Presentation
+         */
+        presentation?: Array<NotificationPresentation>;
+        /**
+         * Retryable
+         */
+        retryable?: boolean | null;
+        /**
+         * Ordering
+         */
+        ordering?: string | null;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/platform-api/v1/communications/deliveries';
+};
+
+export type PlatformListNotificationDeliveryDirectoryErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformListNotificationDeliveryDirectoryError = PlatformListNotificationDeliveryDirectoryErrors[keyof PlatformListNotificationDeliveryDirectoryErrors];
+
+export type PlatformListNotificationDeliveryDirectoryResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataNotificationDeliveryDirectoryOut;
+};
+
+export type PlatformListNotificationDeliveryDirectoryResponse = PlatformListNotificationDeliveryDirectoryResponses[keyof PlatformListNotificationDeliveryDirectoryResponses];
+
 export type PlatformListMailProvidersData = {
     body?: never;
     path?: never;
@@ -14411,6 +18804,172 @@ export type PlatformSwitchMailProviderResponses = {
 };
 
 export type PlatformSwitchMailProviderResponse = PlatformSwitchMailProviderResponses[keyof PlatformSwitchMailProviderResponses];
+
+export type PlatformGetMailServiceProfileData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/communications/email/service';
+};
+
+export type PlatformGetMailServiceProfileResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelMailServiceOut;
+};
+
+export type PlatformGetMailServiceProfileResponse = PlatformGetMailServiceProfileResponses[keyof PlatformGetMailServiceProfileResponses];
+
+export type PlatformUpdateMailServiceProfileData = {
+    body: MailServiceUpdateRequest;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/communications/email/service';
+};
+
+export type PlatformUpdateMailServiceProfileErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformUpdateMailServiceProfileError = PlatformUpdateMailServiceProfileErrors[keyof PlatformUpdateMailServiceProfileErrors];
+
+export type PlatformUpdateMailServiceProfileResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelMailServiceOut;
+};
+
+export type PlatformUpdateMailServiceProfileResponse = PlatformUpdateMailServiceProfileResponses[keyof PlatformUpdateMailServiceProfileResponses];
+
+export type PlatformWriteMailServiceCredentialsData = {
+    body: MailCredentialWriteRequestWritable;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/communications/email/service/credentials';
+};
+
+export type PlatformWriteMailServiceCredentialsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformWriteMailServiceCredentialsError = PlatformWriteMailServiceCredentialsErrors[keyof PlatformWriteMailServiceCredentialsErrors];
+
+export type PlatformWriteMailServiceCredentialsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelMailCredentialWriteOut;
+};
+
+export type PlatformWriteMailServiceCredentialsResponse = PlatformWriteMailServiceCredentialsResponses[keyof PlatformWriteMailServiceCredentialsResponses];
+
+export type PlatformRotateMailServiceCredentialsData = {
+    body: MailCredentialWriteRequestWritable;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/communications/email/service/credentials/rotate';
+};
+
+export type PlatformRotateMailServiceCredentialsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformRotateMailServiceCredentialsError = PlatformRotateMailServiceCredentialsErrors[keyof PlatformRotateMailServiceCredentialsErrors];
+
+export type PlatformRotateMailServiceCredentialsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelMailCredentialWriteOut;
+};
+
+export type PlatformRotateMailServiceCredentialsResponse = PlatformRotateMailServiceCredentialsResponses[keyof PlatformRotateMailServiceCredentialsResponses];
+
+export type PlatformDisableMailServiceProfileData = {
+    body: MailServiceMutationRequest;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/communications/email/service/disable';
+};
+
+export type PlatformDisableMailServiceProfileErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformDisableMailServiceProfileError = PlatformDisableMailServiceProfileErrors[keyof PlatformDisableMailServiceProfileErrors];
+
+export type PlatformDisableMailServiceProfileResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelMailServiceOut;
+};
+
+export type PlatformDisableMailServiceProfileResponse = PlatformDisableMailServiceProfileResponses[keyof PlatformDisableMailServiceProfileResponses];
+
+export type PlatformRecoverMailServiceProfileData = {
+    body: MailServiceMutationRequest;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/communications/email/service/recover';
+};
+
+export type PlatformRecoverMailServiceProfileErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformRecoverMailServiceProfileError = PlatformRecoverMailServiceProfileErrors[keyof PlatformRecoverMailServiceProfileErrors];
+
+export type PlatformRecoverMailServiceProfileResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelMailServiceOut;
+};
+
+export type PlatformRecoverMailServiceProfileResponse = PlatformRecoverMailServiceProfileResponses[keyof PlatformRecoverMailServiceProfileResponses];
+
+export type PlatformTestMailServiceProfileData = {
+    body: MailServiceTestRequest;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/communications/email/service/test';
+};
+
+export type PlatformTestMailServiceProfileErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformTestMailServiceProfileError = PlatformTestMailServiceProfileErrors[keyof PlatformTestMailServiceProfileErrors];
+
+export type PlatformTestMailServiceProfileResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelMailServiceTestOut;
+};
+
+export type PlatformTestMailServiceProfileResponse = PlatformTestMailServiceProfileResponses[keyof PlatformTestMailServiceProfileResponses];
 
 export type PlatformListEmailTemplatesData = {
     body?: never;
@@ -14977,6 +19536,46 @@ export type PlatformAddPlatformFeedbackMessageResponses = {
 };
 
 export type PlatformAddPlatformFeedbackMessageResponse = PlatformAddPlatformFeedbackMessageResponses[keyof PlatformAddPlatformFeedbackMessageResponses];
+
+export type PlatformRetryPlatformFeedbackReplyDeliveryData = {
+    body?: never;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Ticket Id
+         */
+        ticket_id: string;
+        /**
+         * Message Id
+         */
+        message_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/communications/feedback/{ticket_id}/messages/{message_id}/retry-delivery';
+};
+
+export type PlatformRetryPlatformFeedbackReplyDeliveryErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformRetryPlatformFeedbackReplyDeliveryError = PlatformRetryPlatformFeedbackReplyDeliveryErrors[keyof PlatformRetryPlatformFeedbackReplyDeliveryErrors];
+
+export type PlatformRetryPlatformFeedbackReplyDeliveryResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelFeedbackTicketDetailOut;
+};
+
+export type PlatformRetryPlatformFeedbackReplyDeliveryResponse = PlatformRetryPlatformFeedbackReplyDeliveryResponses[keyof PlatformRetryPlatformFeedbackReplyDeliveryResponses];
 
 export type PlatformListProjectsData = {
     body?: never;
@@ -16259,22 +20858,6 @@ export type PlatformRestoreWorkspaceResponses = {
 
 export type PlatformRestoreWorkspaceResponse = PlatformRestoreWorkspaceResponses[keyof PlatformRestoreWorkspaceResponses];
 
-export type PlatformListSystemPluginsData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/platform-api/v1/extensions';
-};
-
-export type PlatformListSystemPluginsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSystemPluginListOut;
-};
-
-export type PlatformListSystemPluginsResponse = PlatformListSystemPluginsResponses[keyof PlatformListSystemPluginsResponses];
-
 export type PlatformReviewManualPluginArtifactData = {
     body: BodyReviewManualPluginArtifactPlatformApiV1ExtensionsArtifactsManualPost;
     path?: never;
@@ -16423,6 +21006,22 @@ export type PlatformInstallSystemPluginResponses = {
 
 export type PlatformInstallSystemPluginResponse = PlatformInstallSystemPluginResponses[keyof PlatformInstallSystemPluginResponses];
 
+export type PlatformListInstalledExtensionsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/extensions/installed';
+};
+
+export type PlatformListInstalledExtensionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSystemPluginCatalogListOut;
+};
+
+export type PlatformListInstalledExtensionsResponse = PlatformListInstalledExtensionsResponses[keyof PlatformListInstalledExtensionsResponses];
+
 export type PlatformListSystemPluginOperationsData = {
     body?: never;
     path?: never;
@@ -16557,66 +21156,6 @@ export type PlatformGetSystemPluginDetailResponses = {
 
 export type PlatformGetSystemPluginDetailResponse = PlatformGetSystemPluginDetailResponses[keyof PlatformGetSystemPluginDetailResponses];
 
-export type PlatformGetSystemPluginConfigurationData = {
-    body?: never;
-    path: {
-        /**
-         * Plugin Id
-         */
-        plugin_id: string;
-    };
-    query?: never;
-    url: '/platform-api/v1/extensions/{plugin_id}/configuration';
-};
-
-export type PlatformGetSystemPluginConfigurationErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type PlatformGetSystemPluginConfigurationError = PlatformGetSystemPluginConfigurationErrors[keyof PlatformGetSystemPluginConfigurationErrors];
-
-export type PlatformGetSystemPluginConfigurationResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSystemPluginConfigurationOut;
-};
-
-export type PlatformGetSystemPluginConfigurationResponse = PlatformGetSystemPluginConfigurationResponses[keyof PlatformGetSystemPluginConfigurationResponses];
-
-export type PlatformUpdateSystemPluginConfigurationData = {
-    body: SystemPluginConfigurationPatch;
-    path: {
-        /**
-         * Plugin Id
-         */
-        plugin_id: string;
-    };
-    query?: never;
-    url: '/platform-api/v1/extensions/{plugin_id}/configuration';
-};
-
-export type PlatformUpdateSystemPluginConfigurationErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type PlatformUpdateSystemPluginConfigurationError = PlatformUpdateSystemPluginConfigurationErrors[keyof PlatformUpdateSystemPluginConfigurationErrors];
-
-export type PlatformUpdateSystemPluginConfigurationResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSystemPluginConfigurationOut;
-};
-
-export type PlatformUpdateSystemPluginConfigurationResponse = PlatformUpdateSystemPluginConfigurationResponses[keyof PlatformUpdateSystemPluginConfigurationResponses];
-
 export type PlatformDisableSystemPluginData = {
     body: SystemPluginLifecycleRequest;
     headers: {
@@ -16689,6 +21228,42 @@ export type PlatformEnableSystemPluginResponses = {
 
 export type PlatformEnableSystemPluginResponse = PlatformEnableSystemPluginResponses[keyof PlatformEnableSystemPluginResponses];
 
+export type PlatformRecoverSystemPluginData = {
+    body: SystemPluginLifecycleRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Plugin Id
+         */
+        plugin_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/extensions/{plugin_id}/recover';
+};
+
+export type PlatformRecoverSystemPluginErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformRecoverSystemPluginError = PlatformRecoverSystemPluginErrors[keyof PlatformRecoverSystemPluginErrors];
+
+export type PlatformRecoverSystemPluginResponses = {
+    /**
+     * Successful Response
+     */
+    202: ResponseModelSystemPluginOperationOut;
+};
+
+export type PlatformRecoverSystemPluginResponse = PlatformRecoverSystemPluginResponses[keyof PlatformRecoverSystemPluginResponses];
+
 export type PlatformRollbackSystemPluginData = {
     body: SystemPluginLifecycleRequest;
     headers: {
@@ -16760,82 +21335,6 @@ export type PlatformUpgradeSystemPluginResponses = {
 };
 
 export type PlatformUpgradeSystemPluginResponse = PlatformUpgradeSystemPluginResponses[keyof PlatformUpgradeSystemPluginResponses];
-
-export type PlatformListSystemJobsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Status
-         */
-        status?: PublishJobStatus | null;
-        /**
-         * Jobtype
-         */
-        jobType?: PublishJobType | null;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/platform-api/v1/jobs';
-};
-
-export type PlatformListSystemJobsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type PlatformListSystemJobsError = PlatformListSystemJobsErrors[keyof PlatformListSystemJobsErrors];
-
-export type PlatformListSystemJobsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataPublishJobOut;
-};
-
-export type PlatformListSystemJobsResponse = PlatformListSystemJobsResponses[keyof PlatformListSystemJobsResponses];
-
-export type PlatformRetrySystemJobData = {
-    body?: never;
-    path: {
-        /**
-         * Job Id
-         */
-        job_id: string;
-    };
-    query?: never;
-    url: '/platform-api/v1/jobs/{job_id}/retry';
-};
-
-export type PlatformRetrySystemJobErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type PlatformRetrySystemJobError = PlatformRetrySystemJobErrors[keyof PlatformRetrySystemJobErrors];
-
-export type PlatformRetrySystemJobResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPublishJobOut;
-};
-
-export type PlatformRetrySystemJobResponse = PlatformRetrySystemJobResponses[keyof PlatformRetrySystemJobResponses];
 
 export type PlatformListPlatformAiUsageGroupsData = {
     body?: never;
@@ -17086,6 +21585,14 @@ export type PlatformListOperationalSignalsData = {
          */
         coordinationState?: OperationalSignalTriageState | null;
         /**
+         * Sourcedomain
+         */
+        sourceDomain?: string | null;
+        /**
+         * Severity
+         */
+        severity?: OperationalSignalSeverity | null;
+        /**
          * Assigneeuserid
          */
         assigneeUserId?: string | null;
@@ -17105,6 +21612,11 @@ export type PlatformListOperationalSignalsData = {
          * Includereminded
          */
         includeReminded?: boolean;
+        order?: OperationalSignalOrder;
+        /**
+         * Orderdirection
+         */
+        orderDirection?: string;
         /**
          * Page
          *
@@ -17304,6 +21816,36 @@ export type PlatformMarkOperationalSignalNeedsAttentionResponses = {
 };
 
 export type PlatformMarkOperationalSignalNeedsAttentionResponse = PlatformMarkOperationalSignalNeedsAttentionResponses[keyof PlatformMarkOperationalSignalNeedsAttentionResponses];
+
+export type PlatformAddOperationalSignalNoteData = {
+    body: OperationalSignalNoteCommand;
+    path: {
+        /**
+         * Signal Id
+         */
+        signal_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/operational-signals/{signal_id}/notes';
+};
+
+export type PlatformAddOperationalSignalNoteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformAddOperationalSignalNoteError = PlatformAddOperationalSignalNoteErrors[keyof PlatformAddOperationalSignalNoteErrors];
+
+export type PlatformAddOperationalSignalNoteResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelOperationalSignalDetailOut;
+};
+
+export type PlatformAddOperationalSignalNoteResponse = PlatformAddOperationalSignalNoteResponses[keyof PlatformAddOperationalSignalNoteResponses];
 
 export type PlatformRemindOperationalSignalLaterData = {
     body: OperationalSignalReminderCommand;
@@ -17564,6 +22106,36 @@ export type PlatformListPlatformDeliveryDomainsResponses = {
 
 export type PlatformListPlatformDeliveryDomainsResponse = PlatformListPlatformDeliveryDomainsResponses[keyof PlatformListPlatformDeliveryDomainsResponses];
 
+export type PlatformRecoverPlatformDeliveryDomainData = {
+    body?: never;
+    path: {
+        /**
+         * Binding Id
+         */
+        binding_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/site-delivery/domains/{binding_id}/recover';
+};
+
+export type PlatformRecoverPlatformDeliveryDomainErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformRecoverPlatformDeliveryDomainError = PlatformRecoverPlatformDeliveryDomainErrors[keyof PlatformRecoverPlatformDeliveryDomainErrors];
+
+export type PlatformRecoverPlatformDeliveryDomainResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformDeliveryDomainActionOut;
+};
+
+export type PlatformRecoverPlatformDeliveryDomainResponse = PlatformRecoverPlatformDeliveryDomainResponses[keyof PlatformRecoverPlatformDeliveryDomainResponses];
+
 export type PlatformListPlatformDeliveryIssuesData = {
     body?: never;
     path?: never;
@@ -17605,6 +22177,167 @@ export type PlatformListPlatformDeliveryIssuesResponses = {
 };
 
 export type PlatformListPlatformDeliveryIssuesResponse = PlatformListPlatformDeliveryIssuesResponses[keyof PlatformListPlatformDeliveryIssuesResponses];
+
+export type PlatformReconcilePlatformDeliveryIssueData = {
+    body?: never;
+    path: {
+        /**
+         * Issue Id
+         */
+        issue_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/site-delivery/issues/{issue_id}/reconcile';
+};
+
+export type PlatformReconcilePlatformDeliveryIssueErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformReconcilePlatformDeliveryIssueError = PlatformReconcilePlatformDeliveryIssueErrors[keyof PlatformReconcilePlatformDeliveryIssueErrors];
+
+export type PlatformReconcilePlatformDeliveryIssueResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformDeliveryIssueActionOut;
+};
+
+export type PlatformReconcilePlatformDeliveryIssueResponse = PlatformReconcilePlatformDeliveryIssueResponses[keyof PlatformReconcilePlatformDeliveryIssueResponses];
+
+export type PlatformRestorePlatformDeliveryIssueData = {
+    body?: never;
+    path: {
+        /**
+         * Issue Id
+         */
+        issue_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/site-delivery/issues/{issue_id}/restore';
+};
+
+export type PlatformRestorePlatformDeliveryIssueErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformRestorePlatformDeliveryIssueError = PlatformRestorePlatformDeliveryIssueErrors[keyof PlatformRestorePlatformDeliveryIssueErrors];
+
+export type PlatformRestorePlatformDeliveryIssueResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformDeliveryIssueActionOut;
+};
+
+export type PlatformRestorePlatformDeliveryIssueResponse = PlatformRestorePlatformDeliveryIssueResponses[keyof PlatformRestorePlatformDeliveryIssueResponses];
+
+export type PlatformRetryPlatformDeliveryIssueData = {
+    body?: never;
+    path: {
+        /**
+         * Issue Id
+         */
+        issue_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/site-delivery/issues/{issue_id}/retry';
+};
+
+export type PlatformRetryPlatformDeliveryIssueErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformRetryPlatformDeliveryIssueError = PlatformRetryPlatformDeliveryIssueErrors[keyof PlatformRetryPlatformDeliveryIssueErrors];
+
+export type PlatformRetryPlatformDeliveryIssueResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformDeliveryIssueActionOut;
+};
+
+export type PlatformRetryPlatformDeliveryIssueResponse = PlatformRetryPlatformDeliveryIssueResponses[keyof PlatformRetryPlatformDeliveryIssueResponses];
+
+export type PlatformGetPlatformDeliveryContinuityPolicyData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/site-delivery/policies/continuity';
+};
+
+export type PlatformGetPlatformDeliveryContinuityPolicyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformDeliveryContinuityPolicyOut;
+};
+
+export type PlatformGetPlatformDeliveryContinuityPolicyResponse = PlatformGetPlatformDeliveryContinuityPolicyResponses[keyof PlatformGetPlatformDeliveryContinuityPolicyResponses];
+
+export type PlatformPreviewPlatformDeliveryPolicyData = {
+    body: PlatformDeliveryPolicyPreviewIn;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/site-delivery/policies/continuity/preview';
+};
+
+export type PlatformPreviewPlatformDeliveryPolicyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformPreviewPlatformDeliveryPolicyError = PlatformPreviewPlatformDeliveryPolicyErrors[keyof PlatformPreviewPlatformDeliveryPolicyErrors];
+
+export type PlatformPreviewPlatformDeliveryPolicyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformDeliveryPolicyPreviewOut;
+};
+
+export type PlatformPreviewPlatformDeliveryPolicyResponse = PlatformPreviewPlatformDeliveryPolicyResponses[keyof PlatformPreviewPlatformDeliveryPolicyResponses];
+
+export type PlatformApplyPlatformDeliveryPolicyData = {
+    body: PlatformDeliveryPolicyApplyIn;
+    path: {
+        /**
+         * Preview Id
+         */
+        preview_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/site-delivery/policies/continuity/previews/{preview_id}/apply';
+};
+
+export type PlatformApplyPlatformDeliveryPolicyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformApplyPlatformDeliveryPolicyError = PlatformApplyPlatformDeliveryPolicyErrors[keyof PlatformApplyPlatformDeliveryPolicyErrors];
+
+export type PlatformApplyPlatformDeliveryPolicyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformDeliveryPolicyApplyOut;
+};
+
+export type PlatformApplyPlatformDeliveryPolicyResponse = PlatformApplyPlatformDeliveryPolicyResponses[keyof PlatformApplyPlatformDeliveryPolicyResponses];
 
 export type PlatformListPlatformDeliveryRulesData = {
     body?: never;
@@ -17681,6 +22414,36 @@ export type PlatformListPlatformDeliveryStorageResponses = {
 };
 
 export type PlatformListPlatformDeliveryStorageResponse = PlatformListPlatformDeliveryStorageResponses[keyof PlatformListPlatformDeliveryStorageResponses];
+
+export type PlatformTestPlatformDeliveryStorageData = {
+    body?: never;
+    path: {
+        /**
+         * Profile Id
+         */
+        profile_id: string;
+    };
+    query?: never;
+    url: '/platform-api/v1/site-delivery/storage/{profile_id}/test';
+};
+
+export type PlatformTestPlatformDeliveryStorageErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PlatformTestPlatformDeliveryStorageError = PlatformTestPlatformDeliveryStorageErrors[keyof PlatformTestPlatformDeliveryStorageErrors];
+
+export type PlatformTestPlatformDeliveryStorageResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformDeliveryStorageTestOut;
+};
+
+export type PlatformTestPlatformDeliveryStorageResponse = PlatformTestPlatformDeliveryStorageResponses[keyof PlatformTestPlatformDeliveryStorageResponses];
 
 export type PlatformListStorageProfilesData = {
     body?: never;

@@ -5,11 +5,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   hasAttentionFilters,
-  jobIdFromDestination,
   operationalSignalQuery,
   parseNeedsAttentionSearch,
-  parsePlatformJobsSearch,
 } from "@/operations/operations-routing";
+import { getTrustedSupportingRouteDestination } from "@/capabilities/module-registry";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -18,15 +17,31 @@ describe("Needs attention URL and API contracts", () => {
     expect(
       parseNeedsAttentionSearch({
         sourceLifecycle: "resolved",
-        coordinationState: "remind_later",
+        coordinationState: "waiting",
+        sourceDomain: "jobs",
+        severity: "high",
+        assigneeUserId: " operator-1 ",
+        workspaceId: " workspace-1 ",
+        scopeType: "workspace",
         includeReminded: "true",
+        order: "detected_at",
+        orderDirection: "desc",
         page: "3",
         signalId: " signal-1 ",
       }),
     ).toEqual({
       sourceLifecycle: "resolved",
-      coordinationState: "remind_later",
+      coordinationState: "waiting",
+      sourceDomain: "jobs",
+      severity: "high",
+      assigneeUserId: "operator-1",
+      workspaceId: "workspace-1",
+      projectId: undefined,
+      siteId: undefined,
+      scopeType: "workspace",
       includeReminded: true,
+      order: "detected_at",
+      orderDirection: "desc",
       page: 3,
       signalId: "signal-1",
     });
@@ -40,7 +55,16 @@ describe("Needs attention URL and API contracts", () => {
     ).toEqual({
       sourceLifecycle: undefined,
       coordinationState: undefined,
+      sourceDomain: undefined,
+      severity: undefined,
+      assigneeUserId: undefined,
+      workspaceId: undefined,
+      projectId: undefined,
+      siteId: undefined,
+      scopeType: undefined,
       includeReminded: undefined,
+      order: undefined,
+      orderDirection: undefined,
       page: undefined,
       signalId: undefined,
     });
@@ -50,26 +74,42 @@ describe("Needs attention URL and API contracts", () => {
     const search = parseNeedsAttentionSearch({
       sourceLifecycle: "all",
       coordinationState: "in_progress",
+      sourceDomain: "jobs",
+      severity: "high",
+      assigneeUserId: "operator-1",
+      projectId: "project-1",
       includeReminded: true,
+      order: "detected_at",
+      orderDirection: "desc",
       page: 2,
     });
     expect(operationalSignalQuery(search)).toEqual({
       sourceLifecycle: "all",
       coordinationState: "in_progress",
+      sourceDomain: "jobs",
+      severity: "high",
+      assigneeUserId: "operator-1",
+      workspaceId: undefined,
+      projectId: "project-1",
+      siteId: undefined,
       includeReminded: true,
+      order: "detected_at",
+      orderDirection: "desc",
       page: 2,
       size: 20,
     });
     expect(hasAttentionFilters(search)).toBe(true);
   });
 
-  it("accepts only the canonical background-work investigation destination", () => {
-    expect(jobIdFromDestination("/operations/jobs?jobId=job-1")).toBe("job-1");
-    expect(jobIdFromDestination("https://attacker.invalid/operations/jobs?jobId=job-1")).toBeNull();
-    expect(jobIdFromDestination("/system/jobs?jobId=job-1")).toBeNull();
-    expect(parsePlatformJobsSearch({ jobId: " job-1 ", status: "failed" })).toEqual({
-      jobId: "job-1",
+  it("resolves source-owned investigation through the canonical Needs attention detail route", () => {
+    expect(getTrustedSupportingRouteDestination("operations.jobs")).toMatchObject({
+      path: "/attention/$signalId",
+      routeTarget: "operations.jobs",
     });
+    expect(
+      getTrustedSupportingRouteDestination("https://attacker.invalid/operations/jobs"),
+    ).toBeNull();
+    expect(getTrustedSupportingRouteDestination("system.jobs")).toBeNull();
   });
 
   it("uses generated Operational Signal operations without legacy PublishJob or raw fetch", async () => {
@@ -84,18 +124,18 @@ describe("Needs attention URL and API contracts", () => {
     expect(source).toContain("platformClaimOperationalSignal");
     expect(source).toContain("platformAssignOperationalSignal");
     expect(source).toContain("platformRemindOperationalSignalLater");
+    expect(source).toContain("platformAddOperationalSignalNote");
     expect(source).not.toContain("platformListSystemJobs");
     expect(source).not.toContain("platformRetrySystemJob");
     expect(source).not.toContain("platformGetCurrentTeamIdentity");
     expect(source).not.toContain("fetch(");
 
-    const jobsPage = await readFile(
-      path.join(repositoryRoot, "apps/platform/src/pages/platform-jobs.tsx"),
+    const detailRoute = await readFile(
+      path.join(repositoryRoot, "apps/platform/src/routes/_authenticated/attention/$signalId.tsx"),
       "utf8",
     );
-    expect(jobsPage).toContain("getOperationalSignal");
-    expect(jobsPage).not.toContain("platformListSystemJobs");
-    expect(jobsPage).not.toContain("platformRetrySystemJob");
-    expect(jobsPage).not.toContain("Retry job");
+    expect(detailRoute).toContain('createFileRoute("/_authenticated/attention/$signalId")');
+    expect(detailRoute).toContain("SignalDetailSheet");
+    expect(detailRoute).not.toContain("/operations/jobs");
   });
 });

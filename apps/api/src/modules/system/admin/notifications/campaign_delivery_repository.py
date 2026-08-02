@@ -14,6 +14,7 @@ from src.models.system.notification_campaign import (
     NotificationCampaignState,
     NotificationCampaignVariantRecord,
     NotificationDeliveryRecord,
+    NotificationDeliverySourceKind,
     NotificationDeliveryState,
 )
 
@@ -48,9 +49,16 @@ class NotificationCampaignDeliveryRepository(TortoiseORMRepository[NotificationD
         *,
         data: dict[str, Any],
     ) -> tuple[NotificationDeliveryRecord, bool]:
+        campaign_id = data["campaign_id"]
+        variant_id = data["variant_id"]
+        normalized = {
+            **data,
+            "source_kind": NotificationDeliverySourceKind.CAMPAIGN,
+            "source_identity": f"campaign:{campaign_id}:variant:{variant_id}",
+        }
         return await NotificationDeliveryRecord.get_or_create(
-            idempotency_key=str(data["idempotency_key"]),
-            defaults={key: value for key, value in data.items() if key != "idempotency_key"},
+            idempotency_key=str(normalized["idempotency_key"]),
+            defaults={key: value for key, value in normalized.items() if key != "idempotency_key"},
         )
 
     async def list_actionable_deliveries(

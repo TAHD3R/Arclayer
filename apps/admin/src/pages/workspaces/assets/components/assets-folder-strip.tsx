@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 import { Button } from "@arclayer/ui/button";
 
-import type { AdminAssetFolder } from "@arclayer/openapi/admin-types";
+import type { AdminAssetFolderOut as AdminAssetFolder } from "@arclayer/openapi";
 import type { AssetsExplorerEntry } from "@/types/assets-explorer";
 
 import { buildFolderById } from "./assets-folder-rail-utils";

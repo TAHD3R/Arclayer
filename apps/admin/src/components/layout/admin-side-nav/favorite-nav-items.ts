@@ -2,7 +2,6 @@ import type { TFunction } from "i18next";
 import { ChevronRight } from "lucide-react";
 
 import { PROJECT_NAV_ITEMS } from "@/constants/menu/project";
-import { normalizeLegacyProjectSettingsPath } from "@/lib/routing/legacy-project-settings-paths";
 import type { FavoriteNode } from "@/types/stores/favorites";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { normalizePath } from "./nav-utils";
@@ -66,7 +65,7 @@ function findNearestAncestorTemplate(
 
 function parseWorkspaceSuffix(path: string): string | null {
   const normalizedPath = normalizePath(toPathname(path));
-  const match = /^\/(?:w|projects)\/[^/]+(?:\/(.*))?$/.exec(normalizedPath);
+  const match = /^\/projects\/[^/]+(?:\/(.*))?$/.exec(normalizedPath);
   if (!match) return null;
   const suffix = match[1] ? `/${match[1]}` : "/";
   return normalizePath(suffix);
@@ -74,7 +73,7 @@ function parseWorkspaceSuffix(path: string): string | null {
 
 function parseWorkspaceBase(path: string): string | null {
   const normalizedPath = normalizePath(toPathname(path));
-  const match = /^\/(?:w|projects)\/([^/]+)/.exec(normalizedPath);
+  const match = /^\/projects\/([^/]+)/.exec(normalizedPath);
   return match?.[1] ? `/projects/${match[1]}` : null;
 }
 
@@ -145,8 +144,8 @@ function resolveFavoriteItem(
   workspaceBase: string | null,
   dynamicLabels?: FavoriteDynamicLabelIndex,
 ): FavoriteNavLeaf | null {
-  const normalizedPath = normalizeLegacyProjectSettingsPath(path);
-  const normalizedPathname = normalizeLegacyProjectSettingsPath(toPathname(path));
+  const normalizedPath = normalizeComparablePath(path);
+  const normalizedPathname = normalizePath(toPathname(path));
   const globalExactTemplate = templates.exactByPath.get(normalizedPathname);
   const globalAncestorTemplate = findNearestAncestorTemplate(
     normalizedPathname,
@@ -164,8 +163,7 @@ function resolveFavoriteItem(
   const preferWorkspaceTemplate =
     Boolean(workspaceTemplate) &&
     Boolean(workspaceBasePath) &&
-    globalAncestorWorkspaceBase === workspaceBasePath &&
-    normalizedPathname !== workspaceBasePath;
+    (globalAncestorWorkspaceBase === null || globalAncestorWorkspaceBase === workspaceBasePath);
   const template =
     globalExactTemplate ??
     (preferWorkspaceTemplate ? workspaceTemplate : undefined) ??
@@ -252,7 +250,7 @@ function favoriteNodeMatchesPath(node: FavoriteNavNode, currentPath: string): bo
       : normalizePath(toPathname(node.path));
     const actual = nodeHasQuery
       ? normalizeComparablePath(currentPath)
-      : normalizeLegacyProjectSettingsPath(toPathname(currentPath));
+      : normalizePath(toPathname(currentPath));
     return expected === actual;
   }
   return node.children.some((child) => favoriteNodeMatchesPath(child, currentPath));

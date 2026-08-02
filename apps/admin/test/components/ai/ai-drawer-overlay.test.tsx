@@ -13,6 +13,8 @@ const runtimeMocks = vi.hoisted(() => ({
 
 const COORDINATOR_AGENT_ID = "tLTD4kqITA2PGQobLD1OAQ";
 const DATA_ANALYST_AGENT_ID = "tLTD4kqITA2PGQobLD1OBg";
+const CONTENT_SKILL_INSTALLATION_ID = "installation-content";
+const SEO_SKILL_INSTALLATION_ID = "installation-seo";
 
 vi.mock("@assistant-ui/react", () => ({
   useAui: () => ({
@@ -124,9 +126,11 @@ describe("AIDrawerOverlay", () => {
     expect(composer).toHaveAttribute("data-thread-id", "thread-1");
   });
 
-  it("opens one Thread and drains repeated entry prompts through its runtime queue", async () => {
-    useAIEntryStore.getState().submit("先生成内容结构", [DATA_ANALYST_AGENT_ID]);
-    useAIEntryStore.getState().submit("继续生成字段说明");
+  it("opens one Thread and forwards each entry's Skill selection through its runtime queue", async () => {
+    useAIEntryStore
+      .getState()
+      .submit("先生成内容结构", [DATA_ANALYST_AGENT_ID], [CONTENT_SKILL_INSTALLATION_ID]);
+    useAIEntryStore.getState().submit("继续生成字段说明", [], [SEO_SKILL_INSTALLATION_ID]);
 
     render(<AIDrawerOverlay widthPx={360} assistantAvailable />);
 
@@ -137,12 +141,22 @@ describe("AIDrawerOverlay", () => {
     expect(runtimeMocks.append).toHaveBeenNthCalledWith(1, {
       role: "user",
       content: [{ type: "text", text: "先生成内容结构" }],
-      runConfig: { custom: { mentionedAgentIds: [DATA_ANALYST_AGENT_ID] } },
+      runConfig: {
+        custom: {
+          mentionedAgentIds: [DATA_ANALYST_AGENT_ID],
+          selectedSkillInstallationIds: [CONTENT_SKILL_INSTALLATION_ID],
+        },
+      },
     });
     expect(runtimeMocks.append).toHaveBeenNthCalledWith(2, {
       role: "user",
       content: [{ type: "text", text: "继续生成字段说明" }],
-      runConfig: { custom: { mentionedAgentIds: [] } },
+      runConfig: {
+        custom: {
+          mentionedAgentIds: [],
+          selectedSkillInstallationIds: [SEO_SKILL_INSTALLATION_ID],
+        },
+      },
     });
     expect(useAIEntryStore.getState().entries).toEqual([]);
   });

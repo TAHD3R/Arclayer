@@ -10,8 +10,9 @@ import { HomePage } from "@/pages/home/page";
 import { useAIComposerDirectiveStore } from "@/components/ai/ai-composer-directives";
 import { DEFAULT_AI_CHAT_MODEL, useAiChatStore } from "@/stores/use-ai-chat-store";
 import { useAIEntryStore } from "@/stores/use-ai-entry-store";
-import type { ProjectListItem } from "@arclayer/openapi/admin-types";
 import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
+
+type ProjectListItem = Awaited<ReturnType<typeof listProjects>>["items"][number];
 
 const { navigateMock, searchMock } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
@@ -31,6 +32,7 @@ const viewportMockState = vi.hoisted(() => ({ isMobile: false }));
 
 const COORDINATOR_AGENT_ID = "tLTD4kqITA2PGQobLD1OAQ";
 const DATA_ANALYST_AGENT_ID = "tLTD4kqITA2PGQobLD1OBg";
+const CONTENT_SKILL_INSTALLATION_ID = "installation-content";
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigateMock,
@@ -597,14 +599,19 @@ describe("HomePage", () => {
     expect(screen.queryByText(/Agent 模式需要先进入一个项目/)).not.toBeInTheDocument();
   });
 
-  it("keeps Home @Agent mentions as structured IDs for the normalized Run", async () => {
+  it("forwards Home Agent and Skill selections as structured Run IDs without changing user text", async () => {
     workspaceState.currentWorkspaceId = "workspace-1";
     workspaceState.lastWorkspaceId = "workspace-1";
     workspaceState.currentProjectId = "project-1";
     useAiChatStore.setState({ composerMode: "plan", selectedAgentId: COORDINATOR_AGENT_ID });
-    useAIComposerDirectiveStore
-      .getState()
-      .addDirectives("home", [{ type: "agent", id: DATA_ANALYST_AGENT_ID, label: "Data Analyst" }]);
+    useAIComposerDirectiveStore.getState().addDirectives("home", [
+      { type: "agent", id: DATA_ANALYST_AGENT_ID, label: "Data Analyst" },
+      {
+        type: "skill",
+        id: CONTENT_SKILL_INSTALLATION_ID,
+        label: "Content modeling",
+      },
+    ]);
     renderHomePage();
 
     fireEvent.change(screen.getByRole("textbox", { name: "询问 AI…" }), {
@@ -616,6 +623,7 @@ describe("HomePage", () => {
       expect(useAIEntryStore.getState().entries[0]).toMatchObject({
         prompt: "帮我检查页面内容",
         mentionedAgentIds: [DATA_ANALYST_AGENT_ID],
+        selectedSkillInstallationIds: [CONTENT_SKILL_INSTALLATION_ID],
       });
     });
   });

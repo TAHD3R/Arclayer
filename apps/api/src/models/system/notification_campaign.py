@@ -47,6 +47,12 @@ class NotificationDeliveryState(StrEnum):
     CANCELLED = "cancelled"
 
 
+class NotificationDeliverySourceKind(StrEnum):
+    CAMPAIGN = "campaign"
+    TRANSACTIONAL = "transactional"
+    FEEDBACK_REPLY = "feedback_reply"
+
+
 class NotificationCampaignRecord(BaseModel):
     """One operator-authored, revision-controlled notification campaign."""
 
@@ -132,14 +138,23 @@ class NotificationDeliveryRecord(BaseModel):
     campaign = fields.ForeignKeyField(
         "models.NotificationCampaignRecord",
         related_name="deliveries",
-        on_delete=fields.CASCADE,
+        on_delete=fields.RESTRICT,
+        null=True,
     )
     variant = fields.ForeignKeyField(
         "models.NotificationCampaignVariantRecord",
         related_name="deliveries",
         on_delete=fields.RESTRICT,
+        null=True,
     )
     recipient_user_id = fields.UUIDField(db_index=True)
+    source_kind = fields.CharEnumField(
+        NotificationDeliverySourceKind,
+        default=NotificationDeliverySourceKind.CAMPAIGN,
+        max_length=32,
+        db_index=True,
+    )
+    source_identity = fields.CharField(max_length=256, db_index=True)
     recipient_locale = fields.CharField(max_length=16)
     channel = fields.CharEnumField(NotificationCampaignChannel, max_length=16, db_index=True)
     presentation = fields.CharEnumField(NotificationPresentation, max_length=16, db_index=True)
@@ -163,6 +178,7 @@ class NotificationDeliveryRecord(BaseModel):
     failure_code = fields.CharField(max_length=128, null=True)
     failure_message = fields.CharField(max_length=512, null=True)
     is_retryable = fields.BooleanField(default=False, db_index=True)
+    last_operator_retry_key = fields.CharField(max_length=128, null=True)
 
     if TYPE_CHECKING:
         campaign_id: UUID
@@ -176,4 +192,5 @@ class NotificationDeliveryRecord(BaseModel):
             ("campaign_id", "state"),
             ("recipient_user_id", "presentation", "state"),
             ("campaign_id", "recipient_user_id"),
+            ("source_kind", "source_identity"),
         )

@@ -99,6 +99,7 @@ function overview(): WorkspaceCommerceOverview {
       updatedAt: "2026-07-01T00:00:00Z",
     },
     credits: {
+      accountRevision: 1,
       available: 1_000,
       balance: 1_000,
       reserved: 0,

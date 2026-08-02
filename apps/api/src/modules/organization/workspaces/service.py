@@ -39,6 +39,10 @@ from src.modules.organization.workspaces.schema import (
 )
 from src.modules.projects.repository import ProjectRepository
 from src.modules.projects.schema import WorkspacePrimaryProjectOut
+from src.modules.tenancy.guidance_provisioner import (
+    KnowledgeGuidanceLayerProvisioner,
+    build_knowledge_guidance_layer_provisioner,
+)
 from src.modules.workspaces.settings.service import WorkspaceSettingsService, build_workspace_settings_service
 from src.modules.workspaces.skills.default_provisioner import (
     DefaultWorkspaceOfficialSkillProvisioner,
@@ -74,6 +78,7 @@ class OrganizationWorkspaceService(BaseService):
         restriction_service: AccessRestrictionService | None = None,
         official_skill_provisioner: WorkspaceOfficialSkillProvisioner | None = None,
         commerce_service: CommerceService | None = None,
+        guidance_layer_provisioner: KnowledgeGuidanceLayerProvisioner,
     ) -> None:
         super().__init__(settings)
         self.repo = repo or OrganizationWorkspaceRepository()
@@ -87,6 +92,7 @@ class OrganizationWorkspaceService(BaseService):
             settings
         )
         self.commerce_service = commerce_service or build_commerce_service(settings)
+        self.guidance_layer_provisioner = guidance_layer_provisioner
 
     async def _write_workspace_activity_event(
         self,
@@ -314,6 +320,12 @@ class OrganizationWorkspaceService(BaseService):
                 conn=conn,
             )
             workspace_id = UUID(str(ws.id))
+            await self.guidance_layer_provisioner.provision_workspace_layer(
+                organization_id=organization_id,
+                workspace_id=workspace_id,
+                actor_user_id=user_id,
+                conn=conn,
+            )
             await self.repo.ensure_active_membership(
                 workspace_id=workspace_id,
                 user_id=user_id,
@@ -610,3 +622,10 @@ class OrganizationWorkspaceService(BaseService):
         if isinstance(value, str):
             return (0, value.lower())
         return (0, value)
+
+
+def build_organization_workspace_service(settings: Settings) -> OrganizationWorkspaceService:
+    return OrganizationWorkspaceService(
+        settings,
+        guidance_layer_provisioner=build_knowledge_guidance_layer_provisioner(),
+    )

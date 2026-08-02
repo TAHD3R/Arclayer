@@ -1,31 +1,121 @@
 import { api } from "@/lib/http";
 import { projectPath, toQueryString } from "@/lib/api";
 import type {
-  PageData,
-  AdminAssetSummary,
-  AdminAssetFolder,
-  AdminAssetTag,
-  AdminAssetDetail,
-  PatchAdminAssetPayload,
-  ListAdminAssetsParams,
+  AdminAssetSummaryOut as AdminAssetSummary,
+  AdminAssetFolderOut as AdminAssetFolder,
+  AdminAssetTagOut as AdminAssetTag,
+  AdminAssetDetailOut as AdminAssetDetail,
+  AdminAssetUpdateRequest as PatchAdminAssetPayload,
+  DomainProjectsListAssetsData,
   AdminAssetFolderCreateRequest,
   AdminAssetFolderDeleteRequest,
   AdminAssetFolderUpdateRequest,
   AdminAssetFolderDeleteOut,
   AdminAssetDeleteOut,
   AdminAssetMoveRequest,
-  AdminAssetsBulkMoveRequest,
-  AdminAssetsBulkMoveOut,
-  AdminAssetsBulkDeleteRequest,
-  AdminAssetsBulkDeleteOut,
-  AdminAssetsBulkUpdateRequest,
+  AdminAssetBulkMoveRequest as AdminAssetsBulkMoveRequest,
+  AdminAssetBulkMoveOut as AdminAssetsBulkMoveOut,
+  AdminAssetBulkDeleteRequest as AdminAssetsBulkDeleteRequest,
+  AdminAssetBulkDeleteOut as AdminAssetsBulkDeleteOut,
+  AdminAssetBulkUpdateRequest as AdminAssetsBulkUpdateRequest,
+  AdminAssetBulkUpdateOut as AdminAssetsBulkUpdateOut,
+  AssetPurpose,
+  AssetVisibility,
+  PageDataAdminAssetSummaryOut,
+  PageDataAdminAssetFolderOut,
+  PageDataAdminAssetTagOut,
+} from "@arclayer/openapi";
+
+type ListAdminAssetsParams = NonNullable<DomainProjectsListAssetsData["query"]>;
+
+type AssetSummaryPage = Omit<PageDataAdminAssetSummaryOut, "items"> & {
+  items: NonNullable<PageDataAdminAssetSummaryOut["items"]>;
+};
+type AssetFolderPage = Omit<PageDataAdminAssetFolderOut, "items"> & {
+  items: NonNullable<PageDataAdminAssetFolderOut["items"]>;
+};
+type AssetTagPage = Omit<PageDataAdminAssetTagOut, "items"> & {
+  items: NonNullable<PageDataAdminAssetTagOut["items"]>;
+};
+type AssetBulkDeleteResult = Omit<AdminAssetsBulkDeleteOut, "deletedAssetIds"> & {
+  deletedAssetIds: string[];
+};
+type AssetBulkUpdateResult = Omit<
   AdminAssetsBulkUpdateOut,
-} from "@arclayer/openapi/admin-types";
+  "indexable" | "purpose" | "updatedAssetIds" | "visibility"
+> & {
+  indexable?: boolean;
+  purpose?: AssetPurpose;
+  updatedAssetIds: string[];
+  visibility?: AssetVisibility;
+};
+
+function hasRequiredAssetPageMetadata(page: {
+  items?: unknown[];
+  page?: number;
+  pages?: number;
+  size?: number;
+  total?: number;
+}): boolean {
+  return (
+    Array.isArray(page.items) &&
+    typeof page.page === "number" &&
+    typeof page.pages === "number" &&
+    typeof page.size === "number" &&
+    typeof page.total === "number"
+  );
+}
+
+function requireAssetSummaryPage(page: PageDataAdminAssetSummaryOut): AssetSummaryPage {
+  if (!hasRequiredAssetPageMetadata(page) || !page.items) {
+    throw new Error("Invalid asset pagination response");
+  }
+  return { ...page, items: page.items };
+}
+
+function requireAssetFolderPage(page: PageDataAdminAssetFolderOut): AssetFolderPage {
+  if (!hasRequiredAssetPageMetadata(page) || !page.items) {
+    throw new Error("Invalid asset pagination response");
+  }
+  return { ...page, items: page.items };
+}
+
+function requireAssetTagPage(page: PageDataAdminAssetTagOut): AssetTagPage {
+  if (!hasRequiredAssetPageMetadata(page) || !page.items) {
+    throw new Error("Invalid asset pagination response");
+  }
+  return { ...page, items: page.items };
+}
+
+function requireAssetBulkDeleteResult(out: AdminAssetsBulkDeleteOut): AssetBulkDeleteResult {
+  if (!Array.isArray(out.deletedAssetIds)) {
+    throw new Error("Invalid bulk asset delete response");
+  }
+  return { ...out, deletedAssetIds: out.deletedAssetIds };
+}
+
+function requireAssetBulkUpdateResult(out: AdminAssetsBulkUpdateOut): AssetBulkUpdateResult {
+  if (
+    !Array.isArray(out.updatedAssetIds) ||
+    out.indexable === null ||
+    out.purpose === null ||
+    out.visibility === null
+  ) {
+    throw new Error("Invalid bulk asset update response");
+  }
+  return {
+    ...out,
+    indexable: out.indexable,
+    purpose: out.purpose,
+    updatedAssetIds: out.updatedAssetIds,
+    visibility: out.visibility,
+  };
+}
 
 export async function listAssets(
   projectId: string,
   params: ListAdminAssetsParams = {},
-): Promise<PageData<AdminAssetSummary>> {
+): Promise<AssetSummaryPage> {
   const query = toQueryString({
     page: params.page ?? 1,
     size: params.size ?? 24,
@@ -39,21 +129,26 @@ export async function listAssets(
     mimePrefix: params.mimePrefix,
     createdFrom: params.createdFrom,
     createdTo: params.createdTo,
-    tagIds: params.tagIds,
     ordering: params.ordering,
   });
-  return api.get<PageData<AdminAssetSummary>>(projectPath(projectId, `/assets${query}`));
+  const page = await api.get<PageDataAdminAssetSummaryOut>(
+    projectPath(projectId, `/assets${query}`),
+  );
+  return requireAssetSummaryPage(page);
 }
 
 export async function listAssetFolders(
   projectId: string,
   params: { page?: number; size?: number } = {},
-): Promise<PageData<AdminAssetFolder>> {
+): Promise<AssetFolderPage> {
   const query = toQueryString({
     page: params.page ?? 1,
     size: params.size ?? 200,
   });
-  return api.get<PageData<AdminAssetFolder>>(projectPath(projectId, `/asset-folders${query}`));
+  const page = await api.get<PageDataAdminAssetFolderOut>(
+    projectPath(projectId, `/asset-folders${query}`),
+  );
+  return requireAssetFolderPage(page);
 }
 
 export async function createAssetFolder(
@@ -105,13 +200,16 @@ export async function listAssetTags(
     page?: number;
     size?: number;
   } = {},
-): Promise<PageData<AdminAssetTag>> {
+): Promise<AssetTagPage> {
   const query = toQueryString({
     q: params.q,
     page: params.page ?? 1,
     size: params.size ?? 200,
   });
-  return api.get<PageData<AdminAssetTag>>(projectPath(projectId, `/asset-tags${query}`));
+  const page = await api.get<PageDataAdminAssetTagOut>(
+    projectPath(projectId, `/asset-tags${query}`),
+  );
+  return requireAssetTagPage(page);
 }
 
 export async function createAssetTag(
@@ -161,13 +259,20 @@ export async function bulkMoveAssets(
 export async function bulkDeleteAssets(
   projectId: string,
   payload: AdminAssetsBulkDeleteRequest,
-): Promise<AdminAssetsBulkDeleteOut> {
-  return api.post<AdminAssetsBulkDeleteOut>(projectPath(projectId, `/assets/bulk/delete`), payload);
+): Promise<AssetBulkDeleteResult> {
+  return requireAssetBulkDeleteResult(
+    await api.post<AdminAssetsBulkDeleteOut>(
+      projectPath(projectId, `/assets/bulk/delete`),
+      payload,
+    ),
+  );
 }
 
 export async function bulkUpdateAssets(
   projectId: string,
   payload: AdminAssetsBulkUpdateRequest,
-): Promise<AdminAssetsBulkUpdateOut> {
-  return api.put<AdminAssetsBulkUpdateOut>(projectPath(projectId, `/assets/bulk/update`), payload);
+): Promise<AssetBulkUpdateResult> {
+  return requireAssetBulkUpdateResult(
+    await api.put<AdminAssetsBulkUpdateOut>(projectPath(projectId, `/assets/bulk/update`), payload),
+  );
 }

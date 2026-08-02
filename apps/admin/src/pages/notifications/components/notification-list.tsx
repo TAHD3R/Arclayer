@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 
-import type { NotificationItem } from "@arclayer/openapi/admin-types";
+import type { NotificationOut as NotificationItem } from "@arclayer/openapi";
 import { NotificationCard } from "@/components/common/notification-card";
 import { ItemSeparator } from "@arclayer/ui/item";
 

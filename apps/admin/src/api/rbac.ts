@@ -3,25 +3,41 @@ import { projectPath, toQueryString, workspacePath } from "@/lib/api";
 import { ApiError } from "@arclayer/web/http";
 
 import type {
-  PageData,
-  Permission,
-  ProjectPermissionAction,
-  Role,
+  WorkspacePermissionOut as Permission,
+  ProjectPermissionActionOut as ProjectPermissionAction,
+  WorkspaceRoleOut as Role,
   RolePermissionBatchSetOut,
   RolePermissionBatchSetRequest,
-  WorkspacePermissionCatalog,
-} from "@arclayer/openapi/admin-types";
-import type { RolePermissionGrant, WorkspacePermissionAction } from "@arclayer/openapi/admin-types";
+  WorkspacePermissionCatalogOut as WorkspacePermissionCatalog,
+  PageDataWorkspaceRoleOut,
+  PageDataWorkspacePermissionOut,
+} from "@arclayer/openapi";
+import type {
+  RolePermissionGrantOut as RolePermissionGrant,
+  WorkspacePermissionActionOut as WorkspacePermissionAction,
+} from "@arclayer/openapi";
 
 const RBAC_PAGE_SIZE = 200;
 
+type RbacPage = PageDataWorkspaceRoleOut | PageDataWorkspacePermissionOut;
+type RequiredRbacPage<TPage extends RbacPage> = Omit<TPage, "items"> & {
+  items: NonNullable<TPage["items"]>;
+};
+
+function requireRbacPage<TPage extends RbacPage>(page: TPage): RequiredRbacPage<TPage> {
+  if (!Array.isArray(page.items)) {
+    throw new Error("Invalid RBAC pagination response");
+  }
+  return { ...page, items: page.items };
+}
+
 async function listAllPages<T>(
-  loader: (params: { page: number; size: number }) => Promise<PageData<T>>,
+  loader: (params: { page: number; size: number }) => Promise<{ items: T[]; pages: number }>,
 ): Promise<T[]> {
   const loadPage = async (page: number, items: T[]): Promise<T[]> => {
     const result = await loader({ page, size: RBAC_PAGE_SIZE });
-    const mergedItems = [...items, ...(result.items ?? [])];
-    if (page >= (result.pages ?? page)) {
+    const mergedItems = [...items, ...result.items];
+    if (page >= result.pages) {
       return mergedItems;
     }
     return loadPage(page + 1, mergedItems);
@@ -33,12 +49,15 @@ async function listAllPages<T>(
 export async function listWorkspaceRoles(
   workspaceId: string,
   params: { page?: number; size?: number } = {},
-): Promise<PageData<Role>> {
+): Promise<RequiredRbacPage<PageDataWorkspaceRoleOut>> {
   const query = toQueryString({
     page: params.page ?? 1,
     size: params.size ?? RBAC_PAGE_SIZE,
   });
-  return api.get<PageData<Role>>(workspacePath(workspaceId, `/rbac/roles${query}`));
+  const page = await api.get<PageDataWorkspaceRoleOut>(
+    workspacePath(workspaceId, `/rbac/roles${query}`),
+  );
+  return requireRbacPage(page);
 }
 
 export async function listAllWorkspaceRoles(workspaceId: string): Promise<Role[]> {
@@ -48,12 +67,15 @@ export async function listAllWorkspaceRoles(workspaceId: string): Promise<Role[]
 export async function listWorkspacePermissions(
   workspaceId: string,
   params: { page?: number; size?: number } = {},
-): Promise<PageData<Permission>> {
+): Promise<RequiredRbacPage<PageDataWorkspacePermissionOut>> {
   const query = toQueryString({
     page: params.page ?? 1,
     size: params.size ?? RBAC_PAGE_SIZE,
   });
-  return api.get<PageData<Permission>>(workspacePath(workspaceId, `/rbac/permissions${query}`));
+  const page = await api.get<PageDataWorkspacePermissionOut>(
+    workspacePath(workspaceId, `/rbac/permissions${query}`),
+  );
+  return requireRbacPage(page);
 }
 
 export async function listAllWorkspacePermissions(workspaceId: string): Promise<Permission[]> {

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from uuid import uuid4
+from typing import cast
+from uuid import UUID, uuid4
 
 import pytest
+from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.core.exceptions import Forbidden
 from src.models.system.rbac import PermissionScope, SystemRolePermission
@@ -26,12 +28,38 @@ def _context(*, owner: bool = False) -> WorkspaceContext:
     )
 
 
+class _Entitlements:
+    def __init__(self, *, granted: bool) -> None:
+        self.granted = granted
+        self.calls: list[dict[str, object]] = []
+
+    async def check(
+        self,
+        *,
+        workspace_id: UUID,
+        entitlement: str,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> EntitlementDecision:
+        self.calls.append({
+            "workspace_id": workspace_id,
+            "entitlement": entitlement,
+            "conn": conn,
+        })
+        return EntitlementDecision(
+            workspace_id=workspace_id,
+            entitlement=entitlement,
+            granted=self.granted,
+            reason="granted" if self.granted else "feature_excluded",
+        )
+
+
 @pytest.mark.asyncio
 async def test_workspace_owner_can_manage_commerce_without_rbac_lookup(monkeypatch: pytest.MonkeyPatch) -> None:
     async def unexpected(**_kwargs: object) -> bool:
         raise AssertionError("owner should not need RBAC permission lookup")
 
     monkeypatch.setattr(authorization, "_has_exact_workspace_permission", unexpected)
+    entitlements = _Entitlements(granted=False)
     ctx = _context(owner=True)
 
     result = await authorization._require_workspace_owner_or_permission(
@@ -39,9 +67,11 @@ async def test_workspace_owner_can_manage_commerce_without_rbac_lookup(monkeypat
         user_id=uuid4(),
         ctx=ctx,
         error_code=WORKSPACE_COMMERCE_MANAGE_REQUIRED,
+        entitlements=entitlements,
     )
 
     assert result is ctx
+    assert entitlements.calls == []
 
 
 @pytest.mark.asyncio
@@ -53,15 +83,18 @@ async def test_non_owner_requires_exact_commerce_permission(monkeypatch: pytest.
         return True
 
     monkeypatch.setattr(authorization, "_has_exact_workspace_permission", exact_permission)
+    entitlements = _Entitlements(granted=True)
 
     await authorization._require_workspace_owner_or_permission(
         permission="workspace:commerce:manage",
         user_id=uuid4(),
         ctx=_context(),
         error_code=WORKSPACE_COMMERCE_MANAGE_REQUIRED,
+        entitlements=entitlements,
     )
 
     assert calls == [("workspace:commerce:manage", WORKSPACE_COMMERCE_MANAGE_REQUIRED)]
+    assert entitlements.calls[0]["entitlement"] == WORKSPACE_ROLES_MANAGE_ENTITLEMENT
 
 
 @pytest.mark.asyncio
@@ -111,6 +144,7 @@ async def test_non_owner_generic_or_platform_permissions_do_not_authorize_commer
         return False
 
     monkeypatch.setattr(authorization, "_has_exact_workspace_permission", denied)
+    entitlements = _Entitlements(granted=True)
 
     with pytest.raises(Forbidden) as exc_info:
         await authorization._require_workspace_owner_or_permission(
@@ -118,6 +152,7 @@ async def test_non_owner_generic_or_platform_permissions_do_not_authorize_commer
             user_id=uuid4(),
             ctx=_context(),
             error_code=WORKSPACE_COMMERCE_MANAGE_REQUIRED,
+            entitlements=entitlements,
         )
 
     assert unrelated_permission != "workspace:commerce:manage"
@@ -125,9 +160,28 @@ async def test_non_owner_generic_or_platform_permissions_do_not_authorize_commer
 
 
 @pytest.mark.asyncio
+async def test_fixed_member_access_rejects_legacy_commerce_role_binding(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def unexpected_permission(**_kwargs: object) -> bool:
+        raise AssertionError("Fixed Member Access must not evaluate legacy role bindings")
+
+    monkeypatch.setattr(authorization, "_has_exact_workspace_permission", unexpected_permission)
+
+    with pytest.raises(Forbidden) as exc_info:
+        await authorization._require_workspace_owner_or_permission(
+            permission="workspace:commerce:manage",
+            user_id=uuid4(),
+            ctx=_context(),
+            error_code=WORKSPACE_COMMERCE_MANAGE_REQUIRED,
+            entitlements=_Entitlements(granted=False),
+        )
+
+    assert exc_info.value.error == WORKSPACE_COMMERCE_MANAGE_REQUIRED
+
+
+@pytest.mark.asyncio
 async def test_roles_manage_availability_uses_registered_entitlement_and_connection() -> None:
     workspace_id = uuid4()
-    conn = object()
+    conn = cast(BaseDBAsyncClient, object())
     decision = EntitlementDecision(
         workspace_id=workspace_id,
         entitlement=WORKSPACE_ROLES_MANAGE_ENTITLEMENT,
@@ -146,7 +200,7 @@ async def test_roles_manage_availability_uses_registered_entitlement_and_connect
     result = await get_workspace_roles_manage_availability(
         workspace_id=workspace_id,
         entitlements=entitlements,
-        conn=conn,  # type: ignore[arg-type]
+        conn=conn,
     )
 
     assert result is decision

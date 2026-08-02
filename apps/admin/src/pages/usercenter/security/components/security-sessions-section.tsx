@@ -73,7 +73,7 @@ function useSessionRevocationMutations(t: TranslateFn, onRefresh: () => Promise<
   const revokeOthersMutation = useMutation({
     mutationFn: async () => authApi.revokeOtherSessions(),
     onSuccess: async (result) => {
-      const revokedCount = result.revokedCount ?? result.revoked_count ?? 0;
+      const revokedCount = result.revokedCount;
       notifySuccessText(
         t("account:ME_SECURITY_SESSIONS_KICK_ALL_SUCCESS", { count: revokedCount }),
       );

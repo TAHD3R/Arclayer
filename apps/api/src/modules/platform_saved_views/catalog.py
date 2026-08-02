@@ -38,19 +38,26 @@ class CapabilityDefinition:
 
 _OPERATIONS_SIGNALS_CAPABILITY = CapabilityDefinition(
     capability_id="operations.signals",
-    filter_schema_revision="1",
-    column_schema_revision="1",
+    filter_schema_revision="2",
+    column_schema_revision="2",
     required_permissions=(PlatformPermissionCode.OPERATIONS_SIGNALS_READ,),
     filters={
         "source_lifecycle": FilterDefinition("enum", frozenset({"unresolved", "resolved", "all"})),
-        "coordination_state": FilterDefinition("enum", frozenset({"needs_attention", "in_progress", "remind_later"})),
+        "coordination_state": FilterDefinition(
+            "enum", frozenset({"unclaimed", "in_progress", "waiting", "source_recovered"})
+        ),
+        "source_domain": FilterDefinition("enum", frozenset({"jobs"})),
+        "severity": FilterDefinition("enum", frozenset({"high"})),
         "assignee_user_id": FilterDefinition("uuid"),
         "workspace_id": FilterDefinition("uuid"),
         "project_id": FilterDefinition("uuid"),
         "site_id": FilterDefinition("uuid"),
         "include_reminded": FilterDefinition("boolean"),
     },
-    ordering={"completed_at": frozenset({"asc"})},
+    ordering={
+        "priority": frozenset({"asc"}),
+        "detected_at": frozenset({"asc", "desc"}),
+    },
     columns=frozenset({
         "severity",
         "priority",
@@ -62,6 +69,8 @@ _OPERATIONS_SIGNALS_CAPABILITY = CapabilityDefinition(
         "coordination_state",
         "assignee_user_id",
         "reminder_at",
+        "source_domain",
+        "condition",
     }),
     densities=frozenset({"compact", "comfortable", "spacious"}),
 )

@@ -1,7 +1,7 @@
 import { useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
-import type { JsonValueInput } from "@arclayer/openapi/admin-types";
+import type { JsonValueInput } from "@arclayer/openapi";
 
 import { isValidEmail } from "@/lib/settings/general/utils";
 import type {

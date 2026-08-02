@@ -19,6 +19,7 @@ from src.modules.ai.runtime_command_schema import (
     ResumeAgentRunRequestV1,
 )
 from src.modules.ai.runtime_command_service import AgentRuntimeCommandService
+from src.modules.ai.runtime_knowledge_context import TenantAgentKnowledgeContextResolver
 from src.modules.ai.runtime_run_schema import AgentRunCreateRequestV1, AgentRunCreateResponseV1
 from src.modules.ai.runtime_run_service import AgentRunService
 from src.modules.ai.runtime_snapshot_schema import AgentRunSnapshotV1
@@ -241,6 +242,7 @@ async def create_agent_run(
     result = await AgentRunService(
         settings,
         skill_grant_resolver=build_agent_skill_grant_resolver(require_current_tenant_context()),
+        knowledge_context_resolver=TenantAgentKnowledgeContextResolver(require_current_tenant_context()),
         design_system_context_resolver=AgentDesignSystemContextResolver(
             repository=ProjectDesignSystemsRepository(require_current_tenant_context()),
         ),

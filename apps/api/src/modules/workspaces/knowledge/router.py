@@ -20,13 +20,27 @@ from src.modules.tenancy.context import require_current_tenant_context
 from src.modules.workspaces.authz.http.service import require_workspace_commercial_effect, require_workspace_permission
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_manage_access
-from src.modules.workspaces.knowledge.repository import WorkspaceKnowledgeRepository
+from src.modules.workspaces.knowledge.repository import (
+    WorkspaceGuidanceRepository,
+    WorkspaceKnowledgeRepository,
+)
 from src.modules.workspaces.knowledge.schema import (
     KnowledgeBaseCreateRequest,
     KnowledgeBaseDetailOut,
     KnowledgeBaseSummaryOut,
     KnowledgeBaseUpdateRequest,
     KnowledgeCursorPage,
+    KnowledgeGuidanceDraftSaveRequest,
+    KnowledgeGuidanceEffectivePreviewOut,
+    KnowledgeGuidanceLayerOut,
+    KnowledgeGuidancePreviewApplyRequest,
+    KnowledgeGuidancePreviewOut,
+    KnowledgeGuidancePublishRequest,
+    KnowledgeGuidanceReferenceAttachRequest,
+    KnowledgeGuidanceReferenceDetachRequest,
+    KnowledgeGuidanceRemovePreviewRequest,
+    KnowledgeGuidanceRestorePreviewRequest,
+    KnowledgeGuidanceRevisionOut,
     KnowledgeSourceCreateRequest,
     KnowledgeSourceIngestionAcceptedOut,
     KnowledgeSourceIngestionCreateRequest,
@@ -37,12 +51,13 @@ from src.modules.workspaces.knowledge.schema import (
     WorkspaceKnowledgeCapabilitiesOut,
 )
 from src.modules.workspaces.knowledge.service import (
+    WorkspaceGuidanceService,
     WorkspaceKnowledgeService,
     workspace_knowledge_capabilities,
 )
 
 router = APIRouter(
-    prefix="/workspaces/{workspace_id}/knowledge-bases",
+    prefix="/workspaces/{workspace_id}",
     tags=["domain.workspaces.knowledge"],
 )
 
@@ -63,8 +78,19 @@ def get_workspace_knowledge_service(
 KnowledgeService = Annotated[WorkspaceKnowledgeService, Depends(get_workspace_knowledge_service)]
 
 
+def get_workspace_guidance_service(
+    _ctx: ReadContext,
+) -> WorkspaceGuidanceService:
+    return WorkspaceGuidanceService(
+        repository=WorkspaceGuidanceRepository(require_current_tenant_context()),
+    )
+
+
+GuidanceService = Annotated[WorkspaceGuidanceService, Depends(get_workspace_guidance_service)]
+
+
 @router.get(
-    "/capabilities",
+    "/knowledge-bases/capabilities",
     response_model=ResponseModel[WorkspaceKnowledgeCapabilitiesOut],
     dependencies=[require_workspace_permission("system:content:read")],
     summary="Get Workspace Knowledge rollout capabilities",
@@ -77,7 +103,555 @@ async def get_workspace_knowledge_capabilities(
 
 
 @router.get(
-    "",
+    "/guidance",
+    response_model=ResponseModel[KnowledgeGuidanceLayerOut],
+    dependencies=[require_workspace_permission("system:content:read")],
+    summary="Get shared Workspace guidance",
+)
+async def get_workspace_guidance(
+    ctx: ReadContext,
+    service: GuidanceService,
+) -> ResponseModel[KnowledgeGuidanceLayerOut]:
+    return ApiResponse.success(data=await service.get_workspace_layer(workspace_id=ctx.workspace_id))
+
+
+@router.get(
+    "/guidance/history",
+    response_model=ResponseModel[KnowledgeCursorPage[KnowledgeGuidanceRevisionOut]],
+    dependencies=[require_workspace_permission("system:content:read")],
+    summary="List immutable shared Workspace guidance history",
+)
+async def list_workspace_guidance_history(
+    ctx: ReadContext,
+    service: GuidanceService,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    cursor: Annotated[PublicUUID | None, Query()] = None,
+) -> ResponseModel[KnowledgeCursorPage[KnowledgeGuidanceRevisionOut]]:
+    return ApiResponse.success(
+        data=await service.list_revision_history(
+            workspace_id=ctx.workspace_id,
+            project_id=None,
+            limit=limit,
+            cursor=cursor,
+        )
+    )
+
+
+@router.put(
+    "/guidance/draft",
+    response_model=ResponseModel[KnowledgeGuidanceLayerOut],
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
+    summary="Save an immutable shared guidance draft",
+)
+async def save_workspace_guidance_draft(
+    payload: KnowledgeGuidanceDraftSaveRequest,
+    ctx: ReadContext,
+    actor_user_id: ActorUserId,
+    idempotency_key: IdempotencyKey,
+    service: GuidanceService,
+) -> ResponseModel[KnowledgeGuidanceLayerOut]:
+    data = await service.save_draft(
+        workspace_id=ctx.workspace_id,
+        organization_id=ctx.organization_id,
+        project_id=None,
+        actor_user_id=actor_user_id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.post(
+    "/guidance/publish",
+    response_model=ResponseModel[KnowledgeGuidanceLayerOut],
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
+    summary="Publish shared Workspace guidance",
+)
+async def publish_workspace_guidance(
+    payload: KnowledgeGuidancePublishRequest,
+    ctx: ReadContext,
+    actor_user_id: ActorUserId,
+    idempotency_key: IdempotencyKey,
+    service: GuidanceService,
+) -> ResponseModel[KnowledgeGuidanceLayerOut]:
+    data = await service.publish(
+        workspace_id=ctx.workspace_id,
+        organization_id=ctx.organization_id,
+        project_id=None,
+        actor_user_id=actor_user_id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.get(
+    "/guidance/effective",
+    response_model=ResponseModel[KnowledgeGuidanceEffectivePreviewOut],
+    dependencies=[require_workspace_permission("system:content:read")],
+    summary="Preview effective Workspace and Project guidance",
+)
+async def get_effective_guidance(
+    ctx: ReadContext,
+    service: GuidanceService,
+    project_id: Annotated[PublicUUID | None, Query(alias="projectId")] = None,
+) -> ResponseModel[KnowledgeGuidanceEffectivePreviewOut]:
+    return ApiResponse.success(
+        data=await service.get_effective_preview(workspace_id=ctx.workspace_id, project_id=project_id)
+    )
+
+
+@router.get(
+    "/guidance/projects/{project_id}",
+    response_model=ResponseModel[KnowledgeGuidanceLayerOut],
+    dependencies=[require_workspace_permission("system:content:read")],
+    summary="Get Project guidance",
+)
+async def get_project_guidance(
+    project_id: PublicUUID,
+    ctx: ReadContext,
+    service: GuidanceService,
+) -> ResponseModel[KnowledgeGuidanceLayerOut]:
+    return ApiResponse.success(
+        data=await service.get_project_layer(workspace_id=ctx.workspace_id, project_id=project_id)
+    )
+
+
+@router.get(
+    "/guidance/projects/{project_id}/history",
+    response_model=ResponseModel[KnowledgeCursorPage[KnowledgeGuidanceRevisionOut]],
+    dependencies=[require_workspace_permission("system:content:read")],
+    summary="List immutable Project guidance history",
+)
+async def list_project_guidance_history(
+    project_id: PublicUUID,
+    ctx: ReadContext,
+    service: GuidanceService,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    cursor: Annotated[PublicUUID | None, Query()] = None,
+) -> ResponseModel[KnowledgeCursorPage[KnowledgeGuidanceRevisionOut]]:
+    return ApiResponse.success(
+        data=await service.list_revision_history(
+            workspace_id=ctx.workspace_id,
+            project_id=project_id,
+            limit=limit,
+            cursor=cursor,
+        )
+    )
+
+
+@router.put(
+    "/guidance/projects/{project_id}",
+    response_model=ResponseModel[KnowledgeGuidanceLayerOut],
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
+    summary="Save an immutable Project guidance draft",
+)
+async def save_project_guidance_draft(
+    project_id: PublicUUID,
+    payload: KnowledgeGuidanceDraftSaveRequest,
+    ctx: ReadContext,
+    actor_user_id: ActorUserId,
+    idempotency_key: IdempotencyKey,
+    service: GuidanceService,
+) -> ResponseModel[KnowledgeGuidanceLayerOut]:
+    data = await service.save_draft(
+        workspace_id=ctx.workspace_id,
+        organization_id=ctx.organization_id,
+        project_id=project_id,
+        actor_user_id=actor_user_id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.post(
+    "/guidance/projects/{project_id}/publish",
+    response_model=ResponseModel[KnowledgeGuidanceLayerOut],
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
+    summary="Publish Project guidance",
+)
+async def publish_project_guidance(
+    project_id: PublicUUID,
+    payload: KnowledgeGuidancePublishRequest,
+    ctx: ReadContext,
+    actor_user_id: ActorUserId,
+    idempotency_key: IdempotencyKey,
+    service: GuidanceService,
+) -> ResponseModel[KnowledgeGuidanceLayerOut]:
+    data = await service.publish(
+        workspace_id=ctx.workspace_id,
+        organization_id=ctx.organization_id,
+        project_id=project_id,
+        actor_user_id=actor_user_id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.post(
+    "/guidance/restore-previews",
+    response_model=ResponseModel[KnowledgeGuidancePreviewOut],
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
+    summary="Preview shared guidance restoration",
+)
+async def create_workspace_guidance_restore_preview(
+    payload: KnowledgeGuidanceRestorePreviewRequest,
+    ctx: ReadContext,
+    actor_user_id: ActorUserId,
+    idempotency_key: IdempotencyKey,
+    service: GuidanceService,
+) -> ResponseModel[KnowledgeGuidancePreviewOut]:
+    data = await service.create_restore_preview(
+        workspace_id=ctx.workspace_id,
+        organization_id=ctx.organization_id,
+        project_id=None,
+        actor_user_id=actor_user_id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.post(
+    "/guidance/restore-previews/{preview_id}/apply",
+    response_model=ResponseModel[KnowledgeGuidanceLayerOut],
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
+    summary="Apply shared guidance restoration",
+)
+async def apply_workspace_guidance_restore_preview(
+    preview_id: PublicUUID,
+    payload: KnowledgeGuidancePreviewApplyRequest,
+    ctx: ReadContext,
+    actor_user_id: ActorUserId,
+    idempotency_key: IdempotencyKey,
+    service: GuidanceService,
+) -> ResponseModel[KnowledgeGuidanceLayerOut]:
+    data = await service.apply_restore_preview(
+        workspace_id=ctx.workspace_id,
+        organization_id=ctx.organization_id,
+        project_id=None,
+        preview_id=preview_id,
+        actor_user_id=actor_user_id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.post(
+    "/guidance/remove-previews",
+    response_model=ResponseModel[KnowledgeGuidancePreviewOut],
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
+    summary="Preview shared guidance removal",
+)
+async def create_workspace_guidance_remove_preview(
+    payload: KnowledgeGuidanceRemovePreviewRequest,
+    ctx: ReadContext,
+    actor_user_id: ActorUserId,
+    idempotency_key: IdempotencyKey,
+    service: GuidanceService,
+) -> ResponseModel[KnowledgeGuidancePreviewOut]:
+    data = await service.create_remove_preview(
+        workspace_id=ctx.workspace_id,
+        organization_id=ctx.organization_id,
+        project_id=None,
+        actor_user_id=actor_user_id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.post(
+    "/guidance/remove-previews/{preview_id}/apply",
+    response_model=ResponseModel[KnowledgeGuidanceLayerOut],
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
+    summary="Apply shared guidance removal",
+)
+async def apply_workspace_guidance_remove_preview(
+    preview_id: PublicUUID,
+    payload: KnowledgeGuidancePreviewApplyRequest,
+    ctx: ReadContext,
+    actor_user_id: ActorUserId,
+    idempotency_key: IdempotencyKey,
+    service: GuidanceService,
+) -> ResponseModel[KnowledgeGuidanceLayerOut]:
+    data = await service.apply_remove_preview(
+        workspace_id=ctx.workspace_id,
+        organization_id=ctx.organization_id,
+        project_id=None,
+        preview_id=preview_id,
+        actor_user_id=actor_user_id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.post(
+    "/guidance/references",
+    response_model=ResponseModel[KnowledgeGuidanceLayerOut],
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
+    summary="Attach an optional reusable Knowledge reference to shared guidance",
+)
+async def attach_workspace_guidance_reference(
+    payload: KnowledgeGuidanceReferenceAttachRequest,
+    ctx: ReadContext,
+    actor_user_id: ActorUserId,
+    idempotency_key: IdempotencyKey,
+    service: GuidanceService,
+) -> ResponseModel[KnowledgeGuidanceLayerOut]:
+    data = await service.attach_reference(
+        workspace_id=ctx.workspace_id,
+        organization_id=ctx.organization_id,
+        project_id=None,
+        actor_user_id=actor_user_id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.post(
+    "/guidance/references/{knowledge_base_id}/detach",
+    response_model=ResponseModel[KnowledgeGuidanceLayerOut],
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
+    summary="Detach an optional reusable Knowledge reference from shared guidance",
+)
+async def detach_workspace_guidance_reference(
+    knowledge_base_id: PublicUUID,
+    payload: KnowledgeGuidanceReferenceDetachRequest,
+    ctx: ReadContext,
+    actor_user_id: ActorUserId,
+    idempotency_key: IdempotencyKey,
+    service: GuidanceService,
+) -> ResponseModel[KnowledgeGuidanceLayerOut]:
+    data = await service.detach_reference(
+        workspace_id=ctx.workspace_id,
+        organization_id=ctx.organization_id,
+        project_id=None,
+        knowledge_base_id=knowledge_base_id,
+        actor_user_id=actor_user_id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.post(
+    "/guidance/projects/{project_id}/restore-previews",
+    response_model=ResponseModel[KnowledgeGuidancePreviewOut],
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
+    summary="Preview Project guidance restoration",
+)
+async def create_project_guidance_restore_preview(
+    project_id: PublicUUID,
+    payload: KnowledgeGuidanceRestorePreviewRequest,
+    ctx: ReadContext,
+    actor_user_id: ActorUserId,
+    idempotency_key: IdempotencyKey,
+    service: GuidanceService,
+) -> ResponseModel[KnowledgeGuidancePreviewOut]:
+    data = await service.create_restore_preview(
+        workspace_id=ctx.workspace_id,
+        organization_id=ctx.organization_id,
+        project_id=project_id,
+        actor_user_id=actor_user_id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.post(
+    "/guidance/projects/{project_id}/restore-previews/{preview_id}/apply",
+    response_model=ResponseModel[KnowledgeGuidanceLayerOut],
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
+    summary="Apply Project guidance restoration",
+)
+async def apply_project_guidance_restore_preview(
+    project_id: PublicUUID,
+    preview_id: PublicUUID,
+    payload: KnowledgeGuidancePreviewApplyRequest,
+    ctx: ReadContext,
+    actor_user_id: ActorUserId,
+    idempotency_key: IdempotencyKey,
+    service: GuidanceService,
+) -> ResponseModel[KnowledgeGuidanceLayerOut]:
+    data = await service.apply_restore_preview(
+        workspace_id=ctx.workspace_id,
+        organization_id=ctx.organization_id,
+        project_id=project_id,
+        preview_id=preview_id,
+        actor_user_id=actor_user_id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.post(
+    "/guidance/projects/{project_id}/remove-previews",
+    response_model=ResponseModel[KnowledgeGuidancePreviewOut],
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
+    summary="Preview Project guidance removal",
+)
+async def create_project_guidance_remove_preview(
+    project_id: PublicUUID,
+    payload: KnowledgeGuidanceRemovePreviewRequest,
+    ctx: ReadContext,
+    actor_user_id: ActorUserId,
+    idempotency_key: IdempotencyKey,
+    service: GuidanceService,
+) -> ResponseModel[KnowledgeGuidancePreviewOut]:
+    data = await service.create_remove_preview(
+        workspace_id=ctx.workspace_id,
+        organization_id=ctx.organization_id,
+        project_id=project_id,
+        actor_user_id=actor_user_id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.post(
+    "/guidance/projects/{project_id}/remove-previews/{preview_id}/apply",
+    response_model=ResponseModel[KnowledgeGuidanceLayerOut],
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
+    summary="Apply Project guidance removal",
+)
+async def apply_project_guidance_remove_preview(
+    project_id: PublicUUID,
+    preview_id: PublicUUID,
+    payload: KnowledgeGuidancePreviewApplyRequest,
+    ctx: ReadContext,
+    actor_user_id: ActorUserId,
+    idempotency_key: IdempotencyKey,
+    service: GuidanceService,
+) -> ResponseModel[KnowledgeGuidanceLayerOut]:
+    data = await service.apply_remove_preview(
+        workspace_id=ctx.workspace_id,
+        organization_id=ctx.organization_id,
+        project_id=project_id,
+        preview_id=preview_id,
+        actor_user_id=actor_user_id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.post(
+    "/guidance/projects/{project_id}/references",
+    response_model=ResponseModel[KnowledgeGuidanceLayerOut],
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
+    summary="Attach an optional reusable Knowledge reference to Project guidance",
+)
+async def attach_project_guidance_reference(
+    project_id: PublicUUID,
+    payload: KnowledgeGuidanceReferenceAttachRequest,
+    ctx: ReadContext,
+    actor_user_id: ActorUserId,
+    idempotency_key: IdempotencyKey,
+    service: GuidanceService,
+) -> ResponseModel[KnowledgeGuidanceLayerOut]:
+    data = await service.attach_reference(
+        workspace_id=ctx.workspace_id,
+        organization_id=ctx.organization_id,
+        project_id=project_id,
+        actor_user_id=actor_user_id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.post(
+    "/guidance/projects/{project_id}/references/{knowledge_base_id}/detach",
+    response_model=ResponseModel[KnowledgeGuidanceLayerOut],
+    dependencies=[
+        require_workspace_permission("system:content:manage"),
+        require_workspace_commercial_effect(RestrictedRecoveryEffect.CONTENT_MUTATION),
+    ],
+    summary="Detach an optional reusable Knowledge reference from Project guidance",
+)
+async def detach_project_guidance_reference(
+    project_id: PublicUUID,
+    knowledge_base_id: PublicUUID,
+    payload: KnowledgeGuidanceReferenceDetachRequest,
+    ctx: ReadContext,
+    actor_user_id: ActorUserId,
+    idempotency_key: IdempotencyKey,
+    service: GuidanceService,
+) -> ResponseModel[KnowledgeGuidanceLayerOut]:
+    data = await service.detach_reference(
+        workspace_id=ctx.workspace_id,
+        organization_id=ctx.organization_id,
+        project_id=project_id,
+        knowledge_base_id=knowledge_base_id,
+        actor_user_id=actor_user_id,
+        idempotency_key=idempotency_key,
+        payload=payload,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.get(
+    "/knowledge-bases",
     response_model=ResponseModel[KnowledgeCursorPage[KnowledgeBaseSummaryOut]],
     dependencies=[require_workspace_permission("system:content:read")],
     summary="List Workspace Knowledge bases",
@@ -103,7 +677,7 @@ async def list_knowledge_bases(
 
 
 @router.post(
-    "",
+    "/knowledge-bases",
     response_model=ResponseModel[KnowledgeBaseDetailOut],
     status_code=status.HTTP_201_CREATED,
     dependencies=[
@@ -130,7 +704,7 @@ async def create_knowledge_base(
 
 
 @router.get(
-    "/{base_id}",
+    "/knowledge-bases/{base_id}",
     response_model=ResponseModel[KnowledgeBaseDetailOut],
     dependencies=[require_workspace_permission("system:content:read")],
     summary="Get a Workspace Knowledge base",
@@ -145,7 +719,7 @@ async def get_knowledge_base(
 
 
 @router.patch(
-    "/{base_id}",
+    "/knowledge-bases/{base_id}",
     response_model=ResponseModel[KnowledgeBaseDetailOut],
     dependencies=[
         require_workspace_permission("system:content:manage"),
@@ -171,7 +745,7 @@ async def update_knowledge_base(
 
 
 @router.get(
-    "/{base_id}/sources",
+    "/knowledge-bases/{base_id}/sources",
     response_model=ResponseModel[KnowledgeCursorPage[KnowledgeSourceOut]],
     dependencies=[require_workspace_permission("system:content:read")],
     summary="List Knowledge sources",
@@ -199,7 +773,7 @@ async def list_knowledge_sources(
 
 
 @router.post(
-    "/{base_id}/sources",
+    "/knowledge-bases/{base_id}/sources",
     response_model=ResponseModel[KnowledgeSourceOut],
     status_code=status.HTTP_201_CREATED,
     dependencies=[
@@ -228,7 +802,7 @@ async def create_knowledge_source(
 
 
 @router.get(
-    "/{base_id}/sources/{source_id}",
+    "/knowledge-bases/{base_id}/sources/{source_id}",
     response_model=ResponseModel[KnowledgeSourceOut],
     dependencies=[require_workspace_permission("system:content:read")],
     summary="Get a Knowledge source",
@@ -248,7 +822,7 @@ async def get_knowledge_source(
 
 
 @router.patch(
-    "/{base_id}/sources/{source_id}",
+    "/knowledge-bases/{base_id}/sources/{source_id}",
     response_model=ResponseModel[KnowledgeSourceOut],
     dependencies=[
         require_workspace_permission("system:content:manage"),
@@ -276,7 +850,7 @@ async def update_knowledge_source(
 
 
 @router.post(
-    "/{base_id}/sources/{source_id}/ingestions",
+    "/knowledge-bases/{base_id}/sources/{source_id}/ingestions",
     response_model=ResponseModel[KnowledgeSourceIngestionAcceptedOut],
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[
@@ -307,7 +881,7 @@ async def create_knowledge_source_ingestion(
 
 
 @router.get(
-    "/{base_id}/sources/{source_id}/versions",
+    "/knowledge-bases/{base_id}/sources/{source_id}/versions",
     response_model=ResponseModel[KnowledgeCursorPage[KnowledgeSourceVersionOut]],
     dependencies=[require_workspace_permission("system:content:read")],
     summary="List immutable Knowledge source versions",
@@ -331,7 +905,7 @@ async def list_knowledge_source_versions(
 
 
 @router.post(
-    "/{base_id}/sources/{source_id}/versions",
+    "/knowledge-bases/{base_id}/sources/{source_id}/versions",
     response_model=ResponseModel[KnowledgeSourceVersionOut],
     status_code=status.HTTP_201_CREATED,
     dependencies=[
@@ -362,7 +936,7 @@ async def create_manual_knowledge_source_version(
 
 
 @router.get(
-    "/{base_id}/sources/{source_id}/versions/{version_id}",
+    "/knowledge-bases/{base_id}/sources/{source_id}/versions/{version_id}",
     response_model=ResponseModel[KnowledgeSourceVersionOut],
     dependencies=[require_workspace_permission("system:content:read")],
     summary="Get an immutable Knowledge source version",

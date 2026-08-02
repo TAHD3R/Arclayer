@@ -2,12 +2,29 @@ import { api } from "@/lib/http";
 import { toQueryString, workspacePath } from "@/lib/api";
 
 import type {
-  PageData,
   WorkspaceManageArchiveResult,
-  WorkspaceManageCreateInput,
-  WorkspaceManageListItem,
-  WorkspaceManageMember,
-} from "@arclayer/openapi/admin-types";
+  WorkspaceManageCreateRequest as WorkspaceManageCreateInput,
+  WorkspaceManageListItemOut as WorkspaceManageListItem,
+  PageDataWorkspaceManageListItemOut,
+  PageDataWorkspaceTeamMemberOut,
+  DomainWorkspacesListWorkspacesData,
+} from "@arclayer/openapi";
+
+type ListWorkspacesParams = NonNullable<DomainWorkspacesListWorkspacesData["query"]>;
+
+type WorkspacePage = PageDataWorkspaceManageListItemOut | PageDataWorkspaceTeamMemberOut;
+type RequiredWorkspacePage<TPage extends WorkspacePage> = Omit<TPage, "items"> & {
+  items: NonNullable<TPage["items"]>;
+};
+
+function requireWorkspacePage<TPage extends WorkspacePage>(
+  page: TPage,
+): RequiredWorkspacePage<TPage> {
+  if (!Array.isArray(page.items)) {
+    throw new Error("Invalid workspace pagination response");
+  }
+  return { ...page, items: page.items };
+}
 
 type AccessRestrictionReasonCategory =
   | "policy_violation"
@@ -32,23 +49,19 @@ type AccessRestrictionLiftPayload = {
   operatorNote: string;
 };
 
-export async function listWorkspaces(params: {
-  page?: number;
-  size?: number;
-  q?: string;
-  ordering?: string;
-  archived?: boolean;
-  enterableOnly?: boolean;
-}): Promise<PageData<WorkspaceManageListItem>> {
+export async function listWorkspaces(
+  params: ListWorkspacesParams,
+): Promise<RequiredWorkspacePage<PageDataWorkspaceManageListItemOut>> {
   const query = toQueryString({
     page: params.page ?? 1,
     size: params.size ?? 20,
     q: params.q,
     ordering: params.ordering,
     archived: params.archived,
-    enterable_only: params.enterableOnly,
+    enterable_only: params.enterable_only,
   });
-  return api.get<PageData<WorkspaceManageListItem>>(`/workspaces${query}`);
+  const page = await api.get<PageDataWorkspaceManageListItemOut>(`/workspaces${query}`);
+  return requireWorkspacePage(page);
 }
 
 export async function listAllWorkspaces(
@@ -81,7 +94,7 @@ async function collectWorkspacesPage(
     q: params.q,
     ordering: params.ordering,
     archived: params.archived,
-    enterableOnly: params.enterableOnly,
+    enterable_only: params.enterableOnly,
   });
 
   items.push(...result.items);
@@ -100,15 +113,16 @@ export async function listWorkspaceMembers(
     size?: number;
     q?: string;
   },
-): Promise<PageData<WorkspaceManageMember>> {
+): Promise<RequiredWorkspacePage<PageDataWorkspaceTeamMemberOut>> {
   const query = toQueryString({
     page: params.page ?? 1,
     size: params.size ?? 10,
     q: params.q,
   });
-  return api.get<PageData<WorkspaceManageMember>>(
+  const page = await api.get<PageDataWorkspaceTeamMemberOut>(
     `${workspacePath(workspaceId, "/team/members")}${query}`,
   );
+  return requireWorkspacePage(page);
 }
 
 export async function createWorkspace(

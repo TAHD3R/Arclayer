@@ -1,12 +1,27 @@
 import { api } from "@/lib/http";
 import { toQueryString, workspacePath } from "@/lib/api";
 
-import type { ActivityEvent, ListActivityParams, PageData } from "@arclayer/openapi/admin-types";
+import type {
+  DomainWorkspacesListWorkspaceActivityData,
+  PageDataAuditEventOut,
+} from "@arclayer/openapi";
+
+type ListActivityParams = NonNullable<DomainWorkspacesListWorkspaceActivityData["query"]>;
+type ActivityPage = Omit<PageDataAuditEventOut, "items"> & {
+  items: NonNullable<PageDataAuditEventOut["items"]>;
+};
+
+function requireActivityPage(page: PageDataAuditEventOut): ActivityPage {
+  if (!Array.isArray(page.items)) {
+    throw new Error("Invalid activity pagination response");
+  }
+  return { ...page, items: page.items };
+}
 
 export async function listWorkspaceActivity(
   workspaceId: string,
   params: ListActivityParams = {},
-): Promise<PageData<ActivityEvent>> {
+): Promise<ActivityPage> {
   const query = toQueryString({
     page: params.page ?? 1,
     size: params.size ?? 20,
@@ -18,5 +33,8 @@ export async function listWorkspaceActivity(
     entityType: params.entityType,
     entityId: params.entityId,
   });
-  return api.get<PageData<ActivityEvent>>(workspacePath(workspaceId, `/activity${query}`));
+  const page = await api.get<PageDataAuditEventOut>(
+    workspacePath(workspaceId, `/activity${query}`),
+  );
+  return requireActivityPage(page);
 }

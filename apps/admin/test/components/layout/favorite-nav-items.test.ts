@@ -14,7 +14,7 @@ const items: AdminNavItem[] = [
     key: "dashboard",
     label: "Overview",
     icon: Home,
-    to: "/w/ws-1/",
+    to: "/projects/ws-1/",
   },
   {
     key: "activity-group",
@@ -25,7 +25,7 @@ const items: AdminNavItem[] = [
         key: "activity",
         label: "Activity",
         icon: Activity,
-        to: "/w/ws-1/activity",
+        to: "/projects/ws-1/activity",
       },
     ],
   },
@@ -43,7 +43,7 @@ const items: AdminNavItem[] = [
             key: "team.invitations",
             label: "Invitations",
             icon: UserPlus,
-            to: "/w/ws-1/team/invitations",
+            to: "/projects/ws-1/team/invitations",
           },
         ],
       },
@@ -58,7 +58,7 @@ const items: AdminNavItem[] = [
         key: "settings.site",
         label: "Site Settings",
         icon: Globe,
-        to: "/w/ws-1/settings/site",
+        to: "/projects/ws-1/website/config",
       },
     ],
   },
@@ -71,7 +71,7 @@ const items: AdminNavItem[] = [
         key: "settings.workspace",
         label: "Workspace Settings",
         icon: Settings,
-        to: "/w/ws-1/settings/workspace",
+        to: "/projects/ws-1/settings/general",
       },
     ],
   },
@@ -109,11 +109,19 @@ describe("resolveFavoriteNavItems", () => {
           type: "item",
           path: "/projects/ws-2/settings/general",
         },
-        { id: "item:/w/ws-1/activity", type: "item", path: "/w/ws-1/activity" },
-        { id: "item:/w/ws-3/unknown", type: "item", path: "/w/ws-3/unknown" },
+        {
+          id: "item:/projects/ws-1/activity",
+          type: "item",
+          path: "/projects/ws-1/activity",
+        },
+        {
+          id: "item:/projects/ws-3/unknown",
+          type: "item",
+          path: "/projects/ws-3/unknown",
+        },
       ],
       items,
-      workspaceBase: "/w/ws-1",
+      workspaceBase: "/projects/ws-1",
       t: ((key: string) => key) as TFunction,
     });
 
@@ -124,7 +132,7 @@ describe("resolveFavoriteNavItems", () => {
         isCurrentWorkspace: false,
       }),
       expect.objectContaining({
-        path: "/w/ws-1/activity",
+        path: "/projects/ws-1/activity",
         label: "Activity",
         isCurrentWorkspace: true,
       }),
@@ -208,11 +216,11 @@ describe("resolveFavoriteNavItems", () => {
   it("prefers workspace page labels over workspace ancestor labels in the global view", () => {
     const favorites = resolveFavoriteNavItems({
       favorites: [
-        { id: "item:/w/ws-9", type: "item", path: "/w/ws-9" },
+        { id: "item:/projects/ws-9", type: "item", path: "/projects/ws-9" },
         {
-          id: "item:/w/ws-9/content/library/article-1",
+          id: "item:/projects/ws-9/content/library/article-1",
           type: "item",
-          path: "/w/ws-9/content/library/article-1",
+          path: "/projects/ws-9/content/library/article-1",
         },
       ],
       items: globalItemsWithWorkspaceChildren,
@@ -221,52 +229,52 @@ describe("resolveFavoriteNavItems", () => {
 
     expect(flattenFavoriteNavItems(favorites)).toEqual([
       expect.objectContaining({
-        path: "/w/ws-9",
+        path: "/projects/ws-9",
         label: "nav:NAV_DASHBOARD",
         isCurrentWorkspace: false,
       }),
       expect.objectContaining({
-        path: "/w/ws-9/content/library/article-1",
+        path: "/projects/ws-9/content/library/article-1",
         label: "nav:NAV_CONTENT_LIBRARY",
         isCurrentWorkspace: false,
       }),
     ]);
   });
 
-  it("resolves favorited settings child routes back to their nearest nav entry", () => {
+  it("resolves canonical child routes back to their nearest nav entry", () => {
     const favorites = resolveFavoriteNavItems({
       favorites: [
         {
-          id: "item:/w/ws-1/settings/site/basics",
+          id: "item:/projects/ws-1/website/config/advanced",
           type: "item",
-          path: "/w/ws-1/settings/site/basics",
+          path: "/projects/ws-1/website/config/advanced",
         },
         {
-          id: "item:/w/ws-1/settings/workspace/basics",
+          id: "item:/projects/ws-1/settings/general/advanced",
           type: "item",
-          path: "/w/ws-1/settings/workspace/basics",
+          path: "/projects/ws-1/settings/general/advanced",
         },
       ],
       items,
-      workspaceBase: "/w/ws-1",
+      workspaceBase: "/projects/ws-1",
       t: ((key: string) => key) as TFunction,
     });
 
     expect(flattenFavoriteNavItems(favorites)).toEqual([
       expect.objectContaining({
-        path: "/projects/ws-1/website/config",
+        path: "/projects/ws-1/website/config/advanced",
         label: "nav:NAV_WEBSITE_CONFIG",
         isCurrentWorkspace: true,
       }),
       expect.objectContaining({
-        path: "/w/ws-1/settings/workspace/basics",
-        label: "Workspace Settings",
+        path: "/projects/ws-1/settings/general/advanced",
+        label: "nav:NAV_SETTINGS_PROJECT",
         isCurrentWorkspace: true,
       }),
     ]);
   });
 
-  it("canonicalizes migrated project site settings favorites onto the current website routes", () => {
+  it("does not rewrite removed project route aliases", () => {
     const favorites = resolveFavoriteNavItems({
       favorites: [
         {
@@ -289,16 +297,7 @@ describe("resolveFavoriteNavItems", () => {
       t: ((key: string) => key) as TFunction,
     });
 
-    expect(flattenFavoriteNavItems(favorites)).toEqual([
-      expect.objectContaining({
-        path: "/projects/ws-9/website/config",
-        label: "nav:NAV_WEBSITE_CONFIG",
-      }),
-      expect.objectContaining({
-        path: "/projects/ws-9/website/project-releases",
-        label: "nav:NAV_WEBSITE_DOMAINS",
-      }),
-    ]);
+    expect(flattenFavoriteNavItems(favorites)).toEqual([]);
   });
 
   it("preserves folder structure while resolving leaf items", () => {
@@ -309,11 +308,17 @@ describe("resolveFavoriteNavItems", () => {
           type: "folder",
           name: "Launches",
           expanded: true,
-          children: [{ id: "item:/w/ws-1/activity", type: "item", path: "/w/ws-1/activity" }],
+          children: [
+            {
+              id: "item:/projects/ws-1/activity",
+              type: "item",
+              path: "/projects/ws-1/activity",
+            },
+          ],
         },
       ],
       items,
-      workspaceBase: "/w/ws-1",
+      workspaceBase: "/projects/ws-1",
       t: ((key: string) => key) as TFunction,
     });
 
@@ -325,7 +330,7 @@ describe("resolveFavoriteNavItems", () => {
         children: [
           expect.objectContaining({
             type: "item",
-            path: "/w/ws-1/activity",
+            path: "/projects/ws-1/activity",
             label: "Activity",
           }),
         ],

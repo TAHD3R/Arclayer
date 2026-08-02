@@ -27,10 +27,10 @@ import {
   setMyPassword,
 } from "@/api/auth";
 import type {
-  AuthSessionRow,
-  TwoFactorCapabilities,
-  TwoFactorStatus,
-} from "@arclayer/openapi/admin-types";
+  AuthSessionOut as AuthSessionRow,
+  TwoFactorCapabilitiesOut as TwoFactorCapabilities,
+  TwoFactorStatusOut as TwoFactorStatus,
+} from "@arclayer/openapi";
 
 describe("api/auth security wrappers", () => {
   beforeEach(() => {
@@ -66,14 +66,14 @@ describe("api/auth security wrappers", () => {
     expect(row.authMethod).toBe("password+2fa");
   });
 
-  it("posts loginTwoFactor with snake_case payload", async () => {
-    vi.mocked(api.post).mockResolvedValueOnce({ access_token: "a" });
+  it("posts loginTwoFactor with the generated payload", async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({ accessToken: "a" });
 
     await loginTwoFactor({ twoFactorToken: "challenge-1", code: "123456" });
 
     expect(api.post).toHaveBeenCalledWith(
       "/auth/login/2fa",
-      { two_factor_token: "challenge-1", code: "123456" },
+      { twoFactorToken: "challenge-1", code: "123456" },
       { auth: { skipRefresh: true } },
     );
   });
@@ -89,7 +89,14 @@ describe("api/auth security wrappers", () => {
   });
 
   it("posts 2fa management endpoints", async () => {
-    vi.mocked(api.post).mockResolvedValue({ ok: true });
+    vi.mocked(api.post)
+      .mockResolvedValue({ ok: true })
+      .mockResolvedValueOnce({ secret: "secret", otpauthUri: "otpauth://totp/example" })
+      .mockResolvedValueOnce({ backupCodes: [] })
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ backupCodes: [] })
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ revokedCount: 1 });
 
     await beginTwoFactorSetup({ password: "secret" });
     await confirmTwoFactorSetup({ code: "123456" });
@@ -100,7 +107,7 @@ describe("api/auth security wrappers", () => {
 
     expect(api.post).toHaveBeenNthCalledWith(1, "/auth/2fa/setup", { password: "secret" });
     expect(api.post).toHaveBeenNthCalledWith(2, "/auth/2fa/confirm", { code: "123456" });
-    expect(api.post).toHaveBeenNthCalledWith(3, "/auth/2fa/disable", { backup_code: "ABCD-1234" });
+    expect(api.post).toHaveBeenNthCalledWith(3, "/auth/2fa/disable", { backupCode: "ABCD-1234" });
     expect(api.post).toHaveBeenNthCalledWith(4, "/auth/2fa/backup-codes/regenerate", {
       code: "654321",
     });
@@ -114,8 +121,8 @@ describe("api/auth security wrappers", () => {
     await logout({ refreshToken: "refresh-1" });
     await logout();
 
-    expect(api.post).toHaveBeenNthCalledWith(1, "/auth/logout", { refresh_token: "refresh-1" });
-    expect(api.post).toHaveBeenNthCalledWith(2, "/auth/logout", {});
+    expect(api.post).toHaveBeenNthCalledWith(1, "/auth/logout", { refreshToken: "refresh-1" });
+    expect(api.post).toHaveBeenNthCalledWith(2, "/auth/logout", { refreshToken: undefined });
   });
 
   it("gets session list", async () => {
@@ -137,22 +144,22 @@ describe("api/auth security wrappers", () => {
     vi.mocked(api.post).mockResolvedValue(null);
 
     await getMySecurityCapabilities();
-    await setMyPassword({ new_password: "newpass1", code: "123456" });
-    await confirmMyEmailChange({ new_email: "next@example.com", code: "654321" });
-    await requestRemoveMyPassword({ current_password: "oldpass1" });
+    await setMyPassword({ newPassword: "newpass1", code: "123456" });
+    await confirmMyEmailChange({ newEmail: "next@example.com", code: "654321" });
+    await requestRemoveMyPassword({ currentPassword: "oldpass1" });
     await confirmRemoveMyPassword({ code: "123456" });
 
     expect(api.get).toHaveBeenCalledWith("/auth/me/security-capabilities");
     expect(api.post).toHaveBeenNthCalledWith(1, "/auth/me/set-password", {
-      new_password: "newpass1",
+      newPassword: "newpass1",
       code: "123456",
     });
     expect(api.post).toHaveBeenNthCalledWith(2, "/auth/me/email/confirm", {
-      new_email: "next@example.com",
+      newEmail: "next@example.com",
       code: "654321",
     });
     expect(api.post).toHaveBeenNthCalledWith(3, "/auth/me/remove-password/request", {
-      current_password: "oldpass1",
+      currentPassword: "oldpass1",
     });
     expect(api.post).toHaveBeenNthCalledWith(4, "/auth/me/remove-password/confirm", {
       code: "123456",

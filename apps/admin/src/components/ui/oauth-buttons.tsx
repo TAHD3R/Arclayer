@@ -6,7 +6,6 @@ import { listSSOProviders } from "@/api/auth-sso";
 import { resolveOAuthProviderMeta } from "@/lib/auth/oauth-provider-meta";
 import { notifyErrorText } from "@/lib/notifications";
 import { usePreferencesStore } from "@/stores/use-preference-store";
-import type { AuthSSOProvider } from "@arclayer/openapi/admin-types";
 import { Button } from "@arclayer/ui/button";
 import { Separator } from "@arclayer/ui/separator";
 import { cn } from "@arclayer/lib/utils";
@@ -53,7 +52,7 @@ export function AuthOauthButtons({
 
   const providers = showProviders
     ? (providersQuery.data?.providers ?? []).map((provider) =>
-        resolveOAuthProviderMeta({ provider: provider as AuthSSOProvider, t, isDark }),
+        resolveOAuthProviderMeta({ provider, t, isDark }),
       )
     : [];
   const fullWidthLeadingActions = leadingActions

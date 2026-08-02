@@ -64,8 +64,8 @@ function formatCountdown(totalSeconds: number): string {
 
 function normalizeRequestResult(result: LoginEmailCodeRequestResult) {
   return {
-    expiresIn: result.expiresIn ?? result.expires_in ?? 0,
-    retryAfter: result.retryAfter ?? result.retry_after ?? 0,
+    expiresIn: result.expiresIn,
+    retryAfter: result.retryAfter,
   };
 }
 

@@ -11,8 +11,20 @@ from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import get_current_locale
 from src.core.registries import ConnectorRegistry
+from src.modules.analytics.audit import write_required_activity_event
 from src.modules.platform_identity.http import require_platform_permission
 from src.modules.platform_identity.permissions import PlatformPermissionCode
+from src.modules.platform_identity.session_schema import PlatformSessionPrincipal
+from src.modules.system.mail.profile_schema import (
+    MailCredentialWriteOut,
+    MailCredentialWriteRequest,
+    MailServiceMutationRequest,
+    MailServiceOut,
+    MailServiceTestOut,
+    MailServiceTestRequest,
+    MailServiceUpdateRequest,
+)
+from src.modules.system.mail.profile_service import MailServiceProfileService
 from src.modules.system.mail.schema import (
     MailProviderInfo,
     MailProviderSwitchRequest,
@@ -47,6 +59,17 @@ def get_mail_service(
     return AdminMailService(settings, connector_registry=connector_registry)
 
 
+def get_mail_service_profile_service(
+    settings: Settings = Depends(get_settings),
+    connector_registry: ConnectorRegistry = Depends(get_connector_registry),
+) -> MailServiceProfileService:
+    return MailServiceProfileService(
+        settings,
+        connector_registry=connector_registry,
+        activity_writer=write_required_activity_event,
+    )
+
+
 def get_email_template_service(
     settings: Settings = Depends(get_settings),
     connector_registry: ConnectorRegistry = Depends(get_connector_registry),
@@ -56,6 +79,106 @@ def get_email_template_service(
         settings=settings,
         email_sender=EmailService(settings, connector_registry=connector_registry),
     )
+
+
+@router.get(
+    "/service",
+    response_model=ResponseModel[MailServiceOut],
+    summary="Read the canonical email service profile",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_READ)],
+)
+async def get_mail_service_profile(
+    service: MailServiceProfileService = Depends(get_mail_service_profile_service),
+) -> ResponseModel[MailServiceOut]:
+    return ApiResponse.success(data=await service.get_service())
+
+
+@router.put(
+    "/service",
+    response_model=ResponseModel[MailServiceOut],
+    summary="Revision-update non-secret email service configuration",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_MANAGE)],
+)
+async def update_mail_service_profile(
+    payload: MailServiceUpdateRequest,
+    principal: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_MANAGE),
+    service: MailServiceProfileService = Depends(get_mail_service_profile_service),
+) -> ResponseModel[MailServiceOut]:
+    return ApiResponse.success(data=await service.update_service(payload=payload, actor_user_id=principal.actor_id))
+
+
+@router.put(
+    "/service/credentials",
+    response_model=ResponseModel[MailCredentialWriteOut],
+    summary="Write email service credentials without disclosing them",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_MANAGE)],
+)
+async def write_mail_service_credentials(
+    payload: MailCredentialWriteRequest,
+    principal: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_MANAGE),
+    service: MailServiceProfileService = Depends(get_mail_service_profile_service),
+) -> ResponseModel[MailCredentialWriteOut]:
+    return ApiResponse.success(
+        data=await service.write_credentials(payload=payload, actor_user_id=principal.actor_id, rotate=False)
+    )
+
+
+@router.post(
+    "/service/credentials/rotate",
+    response_model=ResponseModel[MailCredentialWriteOut],
+    summary="Rotate email service credentials without disclosing them",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_MANAGE)],
+)
+async def rotate_mail_service_credentials(
+    payload: MailCredentialWriteRequest,
+    principal: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_MANAGE),
+    service: MailServiceProfileService = Depends(get_mail_service_profile_service),
+) -> ResponseModel[MailCredentialWriteOut]:
+    return ApiResponse.success(
+        data=await service.write_credentials(payload=payload, actor_user_id=principal.actor_id, rotate=True)
+    )
+
+
+@router.post(
+    "/service/test",
+    response_model=ResponseModel[MailServiceTestOut],
+    summary="Send a real email service readiness test",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_MANAGE)],
+)
+async def test_mail_service_profile(
+    payload: MailServiceTestRequest,
+    principal: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_MANAGE),
+    service: MailServiceProfileService = Depends(get_mail_service_profile_service),
+) -> ResponseModel[MailServiceTestOut]:
+    return ApiResponse.success(data=await service.test(payload=payload, actor_user_id=principal.actor_id))
+
+
+@router.post(
+    "/service/disable",
+    response_model=ResponseModel[MailServiceOut],
+    summary="Safely disable the email service",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_MANAGE)],
+)
+async def disable_mail_service_profile(
+    payload: MailServiceMutationRequest,
+    principal: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_MANAGE),
+    service: MailServiceProfileService = Depends(get_mail_service_profile_service),
+) -> ResponseModel[MailServiceOut]:
+    return ApiResponse.success(data=await service.disable(payload=payload, actor_user_id=principal.actor_id))
+
+
+@router.post(
+    "/service/recover",
+    response_model=ResponseModel[MailServiceOut],
+    summary="Recover a previously tested email service",
+    dependencies=[require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_MANAGE)],
+)
+async def recover_mail_service_profile(
+    payload: MailServiceMutationRequest,
+    principal: PlatformSessionPrincipal = require_platform_permission(PlatformPermissionCode.MESSAGES_MAIL_MANAGE),
+    service: MailServiceProfileService = Depends(get_mail_service_profile_service),
+) -> ResponseModel[MailServiceOut]:
+    return ApiResponse.success(data=await service.recover(payload=payload, actor_user_id=principal.actor_id))
 
 
 @router.post(

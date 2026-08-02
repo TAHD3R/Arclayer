@@ -10,7 +10,7 @@ import type {
   UploadPartCommitRequest,
   AvatarUploadInitRequest,
   UploadPolicyOut,
-} from "@arclayer/openapi/admin-types";
+} from "@arclayer/openapi";
 
 export async function initUpload(
   projectId: string,

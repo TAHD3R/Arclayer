@@ -1,9 +1,25 @@
 import {
+  platformApplySystemAiProviderAvailability,
+  platformCancelPlatformAiTask,
+  platformCreateSystemAiProvider,
   platformGetPlatformAiProviderReadiness,
   platformListPlatformAiTasks,
+  platformListSystemAiProviders,
+  platformPreviewSystemAiProviderAvailability,
+  platformReconcilePlatformAiTask,
+  platformRetryPlatformAiTask,
+  platformTestSystemAiProviderReadiness,
+  platformUpdateSystemAiProvider,
   type PlatformAiProviderReadinessOut,
   type PlatformAiTaskOut,
   type PageDataPlatformAiTaskOut,
+  type PlatformAiTaskActionRequest,
+  type SystemAiProviderCreateRequest,
+  type SystemAiProviderAvailabilityPreviewOut,
+  type SystemAiProviderListOut,
+  type SystemAiProviderOut,
+  type SystemAiProviderReadinessTestOut,
+  type SystemAiProviderUpdateRequest,
   type PlatformListPlatformAiTasksData,
 } from "@arclayer/platform-openapi";
 
@@ -53,6 +69,70 @@ export function listAiTasks(
 
 export function getAiProviderReadiness(): Promise<PlatformAiProviderReadinessOut> {
   return platformGetPlatformAiProviderReadiness({ client: platformApiClient }).then(unwrap);
+}
+
+export function listAiProviders(): Promise<SystemAiProviderListOut> {
+  return platformListSystemAiProviders({ client: platformApiClient }).then(unwrap);
+}
+
+export function createAiProvider(
+  body: SystemAiProviderCreateRequest,
+): Promise<SystemAiProviderOut> {
+  return platformCreateSystemAiProvider({ client: platformApiClient, body }).then(unwrap);
+}
+
+export function updateAiProvider(
+  providerId: string,
+  body: SystemAiProviderUpdateRequest,
+): Promise<SystemAiProviderOut> {
+  return platformUpdateSystemAiProvider({
+    client: platformApiClient,
+    path: { provider_id: providerId },
+    body,
+  }).then(unwrap);
+}
+
+export function testAiProviderReadiness(
+  providerId: string,
+): Promise<SystemAiProviderReadinessTestOut> {
+  return platformTestSystemAiProviderReadiness({
+    client: platformApiClient,
+    path: { provider_id: providerId },
+  }).then(unwrap);
+}
+
+export function previewAiProviderAvailability(
+  providerId: string,
+  isActive: boolean,
+): Promise<SystemAiProviderAvailabilityPreviewOut> {
+  return platformPreviewSystemAiProviderAvailability({
+    client: platformApiClient,
+    path: { provider_id: providerId },
+    body: { isActive },
+  }).then(unwrap);
+}
+
+export function applyAiProviderAvailability(
+  providerId: string,
+  isActive: boolean,
+  previewRevision: string,
+): Promise<SystemAiProviderOut> {
+  return platformApplySystemAiProviderAvailability({
+    client: platformApiClient,
+    path: { provider_id: providerId },
+    body: { isActive, previewRevision },
+  }).then(unwrap);
+}
+
+export function executeAiTaskAction(
+  taskId: string,
+  action: "retry" | "cancel" | "reconcile",
+  body: PlatformAiTaskActionRequest,
+): Promise<PlatformAiTaskOut> {
+  const options = { client: platformApiClient, path: { task_id: taskId }, body };
+  if (action === "retry") return platformRetryPlatformAiTask(options).then(unwrap);
+  if (action === "cancel") return platformCancelPlatformAiTask(options).then(unwrap);
+  return platformReconcilePlatformAiTask(options).then(unwrap);
 }
 
 export type { PlatformAiTaskOut };

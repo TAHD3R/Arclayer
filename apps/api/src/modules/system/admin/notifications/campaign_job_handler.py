@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Protocol
 from uuid import UUID
 
 from src.common.email.provider import SendResult
@@ -20,7 +20,6 @@ from src.modules.jobs.execution_errors import PermanentJobExecutionError
 from src.modules.jobs.execution_registry import JobExecutionContext, JobHandlerTerminalError
 from src.modules.jobs.execution_schema import JobProgressUpdate
 from src.modules.system.admin.notifications.campaign_contracts import (
-    NotificationActionKind,
     NotificationAudienceRule,
     NotificationBannerPayload,
     NotificationEmailPayload,
@@ -42,8 +41,21 @@ from src.modules.system.admin.notifications.campaign_job_contract import (
     NotificationCampaignJobTarget,
 )
 from src.modules.system.admin.notifications.campaign_repository import NotificationCampaignRepository
-from src.modules.system.admin.notifications.catalog import create_notification_record
+from src.modules.system.admin.notifications.catalog import (
+    NotificationRecordCreateDisposition,
+    create_notification_record,
+)
 from src.modules.system.admin.notifications.preferences import is_notification_channel_enabled_for_event
+from src.modules.system.admin.notifications.schema import (
+    NotificationBannerCampaignSurface,
+    NotificationCampaignSurface,
+    NotificationInboxCampaignSurface,
+    NotificationInboxTarget,
+    NotificationInternalRouteAction,
+    NotificationModalCampaignSurface,
+    NotificationNavigationTarget,
+    NotificationToastCampaignSurface,
+)
 
 if TYPE_CHECKING:
     from src.models.organization.user import User
@@ -322,7 +334,7 @@ class NotificationCampaignJobHandler:
             await self.deliveries.mark_suppressed(delivery, reason="NOTIFICATION_IN_APP_PREFERENCE_DISABLED")
             return
         dedupe_key = f"campaign:{delivery.id}"
-        record = await create_notification_record(
+        result = await create_notification_record(
             settings=self.settings,
             workspace_id=_GLOBAL_NOTIFICATION_WORKSPACE_ID,
             recipient_user_id=delivery.recipient_user_id,
@@ -330,28 +342,29 @@ class NotificationCampaignJobHandler:
             category=NotificationCategory.SYSTEM,
             title=payload.title,
             body=payload.body,
-            target_to=_target_to(payload),
-            target_meta={
-                "campaignId": str(delivery.campaign_id),
-                "deliveryId": str(delivery.id),
-                "presentation": str(delivery.presentation),
-                "priority": int(campaign.priority),
-                "displayStartAt": _isoformat(campaign.display_start_at),
-                "displayEndAt": _isoformat(campaign.display_end_at),
-                "scheduleAt": _isoformat(campaign.schedule_at),
-                "payload": payload.model_dump(mode="json", by_alias=True),
-            },
+            target=_target_from_payload(payload),
             event_name=_GLOBAL_NOTIFICATION_EVENT,
             dedupe_key=dedupe_key,
+            campaign_surface=_campaign_surface(
+                campaign=campaign,
+                delivery=delivery,
+                payload=payload,
+            ),
         )
-        if record is None:
+        if result.disposition == NotificationRecordCreateDisposition.GROUP_SUPPRESSED:
+            await self.deliveries.mark_suppressed(delivery, reason="NOTIFICATION_SYSTEM_POLICY_DISABLED")
+            return
+        if result.disposition == NotificationRecordCreateDisposition.PREFERENCE_SUPPRESSED:
+            await self.deliveries.mark_suppressed(delivery, reason="NOTIFICATION_IN_APP_PREFERENCE_DISABLED")
+            return
+        record = result.record
+        if result.disposition == NotificationRecordCreateDisposition.DEDUPLICATED:
             record = await self.deliveries.find_notification(
                 recipient_user_id=delivery.recipient_user_id,
                 dedupe_key=dedupe_key,
             )
         if record is None:
-            await self.deliveries.mark_suppressed(delivery, reason="NOTIFICATION_SYSTEM_POLICY_DISABLED")
-            return
+            raise RuntimeError("NOTIFICATION_CAMPAIGN_DEDUPLICATED_RECORD_UNAVAILABLE")
         await self.deliveries.mark_delivered(delivery, notification_id=UUID(str(record.id)))
 
 
@@ -372,15 +385,39 @@ def _presentation_payload(
     return schema.model_validate(value)
 
 
-def _target_to(payload: Any) -> str:
+def _target_from_payload(
+    payload: NotificationInboxPayload | NotificationModalPayload | NotificationBannerPayload | NotificationToastPayload,
+) -> NotificationNavigationTarget:
     action = getattr(payload, "action", None) or getattr(payload, "primary_action", None)
-    if action and action.kind == NotificationActionKind.INTERNAL_ROUTE:
-        return str(action.target)
-    return "/notifications"
+    if isinstance(action, NotificationInternalRouteAction):
+        return action.target
+    return NotificationInboxTarget()
 
 
-def _isoformat(value: Any) -> str | None:
-    return value.isoformat() if value is not None else None
+def _campaign_surface(
+    *,
+    campaign: NotificationCampaignRecord,
+    delivery: NotificationDeliveryRecord,
+    payload: NotificationInboxPayload | NotificationModalPayload | NotificationBannerPayload | NotificationToastPayload,
+) -> NotificationCampaignSurface:
+    fields = {
+        "campaign_id": delivery.campaign_id,
+        "delivery_id": delivery.id,
+        "priority": int(campaign.priority),
+        "display_start_at": campaign.display_start_at,
+        "display_end_at": campaign.display_end_at,
+        "payload": payload,
+    }
+    presentation = NotificationPresentation(delivery.presentation)
+    if presentation == NotificationPresentation.INBOX and isinstance(payload, NotificationInboxPayload):
+        return NotificationInboxCampaignSurface(presentation="inbox", **fields)
+    if presentation == NotificationPresentation.MODAL and isinstance(payload, NotificationModalPayload):
+        return NotificationModalCampaignSurface(presentation="modal", **fields)
+    if presentation == NotificationPresentation.BANNER and isinstance(payload, NotificationBannerPayload):
+        return NotificationBannerCampaignSurface(presentation="banner", **fields)
+    if presentation == NotificationPresentation.TOAST and isinstance(payload, NotificationToastPayload):
+        return NotificationToastCampaignSurface(presentation="toast", **fields)
+    raise ValueError("NOTIFICATION_CAMPAIGN_PRESENTATION_PAYLOAD_MISMATCH")
 
 
 def _progress(phase: str, completed: int, total: int | None) -> JobProgressUpdate:

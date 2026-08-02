@@ -14,6 +14,7 @@ from src.modules.system.admin.notifications.event_runtime import (
     SUBSCRIBER_ID,
     NotificationEventRuntime,
 )
+from src.modules.system.admin.notifications.schema import NotificationProjectTarget
 
 
 @dataclass(frozen=True)
@@ -33,21 +34,11 @@ class _AudienceReader:
         return [user for user in self.users if user.id in requested]
 
 
-class _EmailSender:
-    def __init__(self) -> None:
-        self.messages: list[dict[str, object]] = []
-
-    async def send_notification(self, **kwargs: object) -> object:
-        self.messages.append(kwargs)
-        return object()
-
-
 @pytest.mark.asyncio
 async def test_notification_runtime_subscribes_and_unsubscribes_all_events() -> None:
     runtime = NotificationEventRuntime(
         Settings(),
         audience_reader=_AudienceReader(users=[]),
-        email_sender=_EmailSender(),
     )
     bus = EventBus()
 
@@ -62,34 +53,25 @@ async def test_notification_runtime_subscribes_and_unsubscribes_all_events() -> 
 
 
 @pytest.mark.asyncio
-async def test_workflow_event_prefers_assignee_and_delivers_opted_in_email(
+async def test_workflow_event_prefers_assignee_and_creates_in_app_delivery(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     actor_id = uuid4()
     assignee = _Recipient(uuid4(), "assignee@example.com")
     workspace_id = uuid4()
+    project_id = uuid4()
+    entity_id = uuid4()
     audience = _AudienceReader(users=[assignee])
-    email_sender = _EmailSender()
     created: list[dict[str, object]] = []
-
-    async def enabled_policy(**_kwargs: object) -> bool:
-        return True
-
-    async def enabled_channel(*, channel: str, **_kwargs: object) -> bool:
-        return channel in {"in_app", "email"}
 
     async def create_record(**kwargs: object) -> object:
         created.append(kwargs)
         return object()
 
-    monkeypatch.setattr(module, "is_notification_group_enabled_for_event", enabled_policy)
-    monkeypatch.setattr(module, "is_notification_channel_enabled_for_event", enabled_channel)
     monkeypatch.setattr(module, "create_notification_record", create_record)
-    monkeypatch.setattr(module, "t", lambda _namespace, key, **_kwargs: key)
     runtime = NotificationEventRuntime(
         Settings(),
         audience_reader=audience,
-        email_sender=email_sender,
     )
 
     await runtime.handle_event(
@@ -99,7 +81,8 @@ async def test_workflow_event_prefers_assignee_and_delivers_opted_in_email(
             trace_id="trace-1",
             payload={
                 "workspace_id": str(workspace_id),
-                "entity_id": str(uuid4()),
+                "project_id": str(project_id),
+                "entity_id": str(entity_id),
                 "entity_type": "content_item",
                 "workflow_assignee_user_id": str(assignee.id),
             },
@@ -112,28 +95,30 @@ async def test_workflow_event_prefers_assignee_and_delivers_opted_in_email(
     assert created[0]["recipient_user_id"] == assignee.id
     assert created[0]["actor_user_id"] == actor_id
     assert created[0]["event_name"] == "project.content.item.workflow.updated"
-    assert email_sender.messages[0]["recipient"] == "assignee@example.com"
-    assert email_sender.messages[0]["action_to"] == "/settings/content"
+    target = created[0]["target"]
+    assert isinstance(target, NotificationProjectTarget)
+    assert target.project_id == project_id
+    assert target.entity_id == entity_id
+    assert target.destination == "content_library"
+    assert target.focus == "content_item"
 
 
 @pytest.mark.asyncio
 async def test_project_event_without_recipient_surfaces_contract_error(
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    async def enabled_policy(**_kwargs: object) -> bool:
-        return True
-
-    monkeypatch.setattr(module, "is_notification_group_enabled_for_event", enabled_policy)
     runtime = NotificationEventRuntime(
         Settings(),
         audience_reader=_AudienceReader(users=[]),
-        email_sender=_EmailSender(),
     )
 
     with pytest.raises(ValueError, match="no active recipients"):
         await runtime.handle_event(
             Event(
                 name="project.api_key.revoked",
-                payload={"workspace_id": str(uuid4()), "entity_id": str(uuid4())},
+                payload={
+                    "workspace_id": str(uuid4()),
+                    "project_id": str(uuid4()),
+                    "entity_id": str(uuid4()),
+                },
             )
         )

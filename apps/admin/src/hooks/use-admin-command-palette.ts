@@ -16,7 +16,7 @@ import {
   resolveRecentCommandEntries,
 } from "@/lib/command/entry-utils";
 import { buildAdminNavCommandEntries } from "@/lib/command/nav-command-items";
-import { normalizeLegacyProjectSettingsPath } from "@/lib/routing/legacy-project-settings-paths";
+import { normalizePath } from "@/lib/admin-nav-utils";
 import { resolveCommandSections, type CommandSource } from "@/lib/command/source-registry";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
 import { useCommandRecentStore } from "@/stores/use-command-recent-store";
@@ -103,7 +103,7 @@ export function useAdminCommandPalette(props: {
   const recordRecent = useCommandRecentStore((state) => state.record);
 
   const normalizedFavoritePaths = useMemo(
-    () => new Set(favoritePaths.map((path) => normalizeLegacyProjectSettingsPath(path))),
+    () => new Set(favoritePaths.map(normalizePath)),
     [favoritePaths],
   );
 

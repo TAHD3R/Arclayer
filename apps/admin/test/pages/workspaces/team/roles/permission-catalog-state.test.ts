@@ -1,4 +1,8 @@
-import type { Permission, Role, WorkspacePermissionCatalog } from "@arclayer/openapi/admin-types";
+import type {
+  WorkspacePermissionOut as Permission,
+  WorkspaceRoleOut as Role,
+  WorkspacePermissionCatalogOut as WorkspacePermissionCatalog,
+} from "@arclayer/openapi";
 import { describe, expect, it } from "vitest";
 
 import {

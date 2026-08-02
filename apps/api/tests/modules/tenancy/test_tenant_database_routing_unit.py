@@ -11,6 +11,7 @@ from src.modules.tenancy.database import (
     create_tenant_schema,
     drop_tenant_schema,
     quote_schema_name,
+    set_public_search_path,
     set_tenant_search_path,
 )
 from src.modules.tenancy.schema import TenantContext, TenantIdentity, TenantIsolationMode
@@ -49,10 +50,12 @@ async def test_create_drop_and_search_path_sql_use_validated_names() -> None:
     db = cast(BaseDBAsyncClient, conn)
     await create_tenant_schema("workspace_1234567890abcdefghij", conn=db)
     await set_tenant_search_path(db, "workspace_1234567890abcdefghij")
+    await set_public_search_path(db)
     await drop_tenant_schema("workspace_1234567890abcdefghij", conn=db)
     assert conn.queries == [
         'CREATE SCHEMA IF NOT EXISTS "workspace_1234567890abcdefghij"',
         'SET LOCAL search_path TO "workspace_1234567890abcdefghij", public',
+        "SET LOCAL search_path TO public",
         'DROP SCHEMA IF EXISTS "workspace_1234567890abcdefghij" CASCADE',
     ]
 

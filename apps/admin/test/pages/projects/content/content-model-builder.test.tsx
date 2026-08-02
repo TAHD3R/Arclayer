@@ -14,9 +14,11 @@ import {
   getContentModelPurposeLabelKey,
   toContentModelsTableQuery,
 } from "@/pages/projects/content/models/utils";
-import type { AdminContentModel } from "@arclayer/openapi/admin-types";
+import type { listAllContentModels } from "@/api/content";
 import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 import { TooltipProvider } from "@arclayer/ui/tooltip";
+
+type AdminContentModel = Awaited<ReturnType<typeof listAllContentModels>>[number];
 
 const createContentModelMock = vi.fn();
 const deleteContentModelMock = vi.fn();

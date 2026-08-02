@@ -82,8 +82,7 @@ export function UserProfileBasicsSection(props: UserProfileBasicsSectionProps) {
   const canSaveDisplayName = hasDisplayNameChanged && isDisplayNameValid;
 
   const updateProfileMutation = useMutation({
-    mutationFn: async (payload: { display_name: string | null }) =>
-      authApi.updateMyProfile(payload),
+    mutationFn: async (payload: { displayName: string | null }) => authApi.updateMyProfile(payload),
     onSuccess: async () => {
       notifySuccessText(t("settings:SETTINGS_SAVED"));
       setConfirmDisplayNameOpen(false);
@@ -94,7 +93,8 @@ export function UserProfileBasicsSection(props: UserProfileBasicsSectionProps) {
   });
 
   const updateAvatarMutation = useMutation({
-    mutationFn: async (avatarAssetId: string | null) => authApi.updateMyProfile({ avatarAssetId }),
+    mutationFn: async (avatarAssetId: string | null) =>
+      authApi.updateMyProfile({ avatar_asset_id: avatarAssetId }),
     onSuccess: async (data, avatarAssetId) => {
       const aligned = Boolean(data?.avatarAssetAligned);
       notifySuccessText(
@@ -281,7 +281,7 @@ export function UserProfileBasicsSection(props: UserProfileBasicsSectionProps) {
               disabled={!canSaveDisplayName}
               loading={updateProfileMutation.isPending}
               onClick={() => {
-                void updateProfileMutation.mutateAsync({ display_name: nextDisplayNameNormalized });
+                void updateProfileMutation.mutateAsync({ displayName: nextDisplayNameNormalized });
               }}
             >
               {t("settings:SETTINGS_SAVE")}

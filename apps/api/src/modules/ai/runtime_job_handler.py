@@ -3,26 +3,36 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import cast
+from typing import Protocol, cast
 from uuid import UUID, uuid4
+
+from pydantic import TypeAdapter
 
 from src.common.types.json_types import JsonObject
 from src.config import Settings
 from src.core.i18n import t
 from src.llm.runtime import LLMRequestContext, LLMRuntimeError
 from src.models.agents.catalog import AgentVersionRecord
+from src.models.agents.runtime_recovery_v1 import (
+    AgentRunExecutionEffectDisposition,
+    AgentRunRecoveryAction,
+    AgentRunRecoveryStatus,
+)
 from src.models.agents.runtime_v1 import AgentRunStatusV1
 from src.modules.ai.agent_builder_context_schema import AgentRunBuilderContextV1
 from src.modules.ai.agent_catalog_schema import ResolvedAgentAssignment
 from src.modules.ai.agent_catalog_service import AgentCatalogService, ExecutionMode
 from src.modules.ai.agent_design_system_context_schema import AgentRunDesignSystemContextV1
+from src.modules.ai.agent_knowledge_context_schema import AgentRunKnowledgeContextV1
 from src.modules.ai.agent_skill_grant_schema import AgentSkillContextPackage
 from src.modules.ai.agent_skill_grant_service import AgentSkillGrantError, AgentSkillGrantResolver
 from src.modules.ai.runtime_event_repository import AppendableAgentRunEventV1
+from src.modules.ai.runtime_execution_effect_service import AgentRunExecutionEffectService
 from src.modules.ai.runtime_execution_gateway import (
     AgentRunExecutionCompleted,
     AgentRunExecutionGateway,
     AgentRunExecutionInterrupted,
+    AgentRunExecutionOutcome,
     AgentRunExecutionRejected,
     AgentRunExecutionRequest,
     AgentRunResumeExecutionRequest,
@@ -46,9 +56,15 @@ from src.modules.ai.runtime_job_schema import (
     AgentRunJobTarget,
 )
 from src.modules.ai.runtime_knowledge_context import (
+    AgentKnowledgeContextError,
     AgentKnowledgeContextResolver,
     AgentKnowledgeEvidence,
 )
+from src.modules.ai.runtime_recovery_schema import (
+    AgentRunExecutionEffectRegistration,
+    AgentRunExecutionEffectSnapshot,
+)
+from src.modules.ai.runtime_recovery_service import AgentRunRecoveryLifecycleService
 from src.modules.ai.runtime_repository import AgentRuntimeRepository
 from src.modules.ai.runtime_repository_errors import AgentRuntimePersistenceError
 from src.modules.ai.runtime_settlement_repository import AgentRunSettlementRepository
@@ -62,12 +78,52 @@ from src.modules.jobs.execution_registry import (
     JobHandledInterruption,
     JobHandlerTerminalError,
 )
-from src.modules.jobs.execution_schema import JobProgressUpdate
+from src.modules.jobs.execution_schema import JobExecutionLease, JobProgressUpdate
+from src.modules.jobs.hashing import hash_json
 from src.settings.runtime import get_core_settings_value_cached
 
 _RUN_PROGRESS_TOTAL = 3
 AgentSkillGrantResolverFactory = Callable[[], AgentSkillGrantResolver]
 AgentKnowledgeContextResolverFactory = Callable[[], AgentKnowledgeContextResolver]
+_OUTCOME_ADAPTER = TypeAdapter(AgentRunExecutionOutcome)
+
+
+class AgentRunExecutionEffectPort(Protocol):
+    async def register(
+        self,
+        *,
+        lease: JobExecutionLease,
+        registration: AgentRunExecutionEffectRegistration,
+    ) -> AgentRunExecutionEffectSnapshot: ...
+
+    async def commit(
+        self,
+        *,
+        lease: JobExecutionLease,
+        effect_id: UUID,
+        outcome: JsonObject,
+    ) -> AgentRunExecutionEffectSnapshot: ...
+
+    async def mark_unknown(
+        self,
+        *,
+        lease: JobExecutionLease,
+        effect_id: UUID,
+        error_code: str,
+    ) -> AgentRunExecutionEffectSnapshot: ...
+
+
+class AgentRunRecoveryLifecyclePort(Protocol):
+    async def mark_running(self, *, recovery_id: UUID, recovery_job_id: UUID) -> None: ...
+
+    async def complete(
+        self,
+        *,
+        recovery_id: UUID,
+        recovery_job_id: UUID,
+        status: AgentRunRecoveryStatus,
+        evidence: JsonObject,
+    ) -> None: ...
 
 
 class AgentRunJobHandler:
@@ -82,6 +138,8 @@ class AgentRunJobHandler:
         settlement_repository: AgentRunSettlementRepository | None = None,
         execution_gateway: AgentRunExecutionGateway,
         catalog_service: AgentCatalogService | None = None,
+        execution_effects: AgentRunExecutionEffectPort | None = None,
+        recovery_lifecycle: AgentRunRecoveryLifecyclePort | None = None,
         skill_grant_resolver_factory: AgentSkillGrantResolverFactory | None = None,
         knowledge_context_resolver_factory: AgentKnowledgeContextResolverFactory | None = None,
     ) -> None:
@@ -91,6 +149,8 @@ class AgentRunJobHandler:
         self._settlement_repository = settlement_repository or AgentRunSettlementRepository()
         self._execution_gateway = execution_gateway
         self._catalog_service = catalog_service or AgentCatalogService(settings)
+        self._execution_effects = execution_effects or AgentRunExecutionEffectService(settings)
+        self._recovery_lifecycle = recovery_lifecycle or AgentRunRecoveryLifecycleService(settings)
         self._skill_grant_resolver_factory = skill_grant_resolver_factory
         self._knowledge_context_resolver_factory = knowledge_context_resolver_factory
 
@@ -101,13 +161,44 @@ class AgentRunJobHandler:
     ) -> AgentRunJobResult | JobHandledFailure | JobHandledInterruption | None:
         state = await self._state(context)
         if state.status == AgentRunStatusV1.COMPLETED:
+            await self._complete_recovery(state=state, status=AgentRunRecoveryStatus.SUCCEEDED)
             return self._result(state)
         if state.status == AgentRunStatusV1.FAILED:
+            await self._complete_recovery(state=state, status=AgentRunRecoveryStatus.FAILED)
             return self._handled_failure(state.error_code or "AGENT_RUN_FAILED")
         if state.status == AgentRunStatusV1.CANCELLED:
+            await self._complete_recovery(state=state, status=AgentRunRecoveryStatus.CANCELLED)
             return None
         if state.status == AgentRunStatusV1.INTERRUPTED:
             return self._interruption(state)
+        if state.recovery is not None and state.recovery.action == AgentRunRecoveryAction.RECONCILE:
+            await self._mark_recovery_running(state)
+            effect = state.recovery.source_effect
+            if effect is None or effect.disposition != AgentRunExecutionEffectDisposition.COMMITTED:
+                raise PermanentJobExecutionError(
+                    code=AGENT_RUN_JOB_FAILURE_CODE,
+                    safe_message=t("errors", "AGENT_RUN_EXECUTION_FAILED"),
+                    metadata=self._failure_metadata("AGENT_RUN_RECONCILIATION_RECEIPT_MISSING"),
+                )
+            return await self._project_execution_outcome(
+                context=context,
+                state=state,
+                outcome=_effect_outcome(effect),
+            )
+        effect = state.execution_effect
+        if effect is not None and effect.disposition == AgentRunExecutionEffectDisposition.COMMITTED:
+            return await self._project_execution_outcome(
+                context=context,
+                state=state,
+                outcome=_effect_outcome(effect),
+            )
+        if effect is not None:
+            return await self._project_failure(
+                state=state,
+                error_code="AGENT_PROVIDER_RESULT_UNAVAILABLE",
+                message=t("errors", "AGENT_PROVIDER_RESULT_UNAVAILABLE"),
+                retryable=False,
+            )
         if state.settlement_pending:
             raise self._settlement_pending()
         if state.has_settled_provider_effect or (state.running_part_ids and state.resume_input is None):
@@ -132,6 +223,7 @@ class AgentRunJobHandler:
             )
         await context.report_progress(self._progress(phase="executing", completed=0))
         state = await self._state(context)
+        await self._mark_recovery_running(state)
         lead_agent, mentioned_agents = await self._catalog_service.validate_run_snapshot(
             workspace_id=state.workspace_id,
             project_id=state.project_id,
@@ -163,57 +255,101 @@ class AgentRunJobHandler:
         await context.report_progress(self._progress(phase="executing", completed=1))
         await context.checkpoint()
 
-        try:
-            request = AgentRunExecutionRequest(
-                messages=tuple(
-                    await self._messages(
-                        state,
-                        skill_context=skill_context,
-                        knowledge_context=knowledge_context,
-                    )
-                ),
-                context=LLMRequestContext(
-                    workspace_id=state.workspace_id,
-                    project_id=state.project_id,
-                    agent_run_id=state.run_id,
-                    user_id=actor_user_id,
-                    correlation_id=state.correlation_id,
-                    source="agent",
-                ),
-                execution_mode=cast(ExecutionMode, str(state.execution_mode)),
-                tool_grants=lead_agent.tool_grants,
-                design_system_context=state.design_system_context,
-                builder_context=state.builder_context,
-                model=await self._model(),
-            )
-            if state.resume_input is None:
-                outcome = await self._execution_gateway.execute(request=request)
-            else:
-                outcome = await self._execution_gateway.resume(
-                    request=AgentRunResumeExecutionRequest(
-                        **request.model_dump(),
-                        checkpoint_id=state.resume_input.checkpoint_id,
-                        response_kind=state.resume_input.response_kind,
-                        resume=state.resume_input.resume,
-                    )
+        request = AgentRunExecutionRequest(
+            messages=tuple(
+                await self._messages(
+                    state,
+                    skill_context=skill_context,
+                    knowledge_context=knowledge_context,
                 )
-        except LLMRuntimeError as error:
-            refreshed = await self._state(context)
-            return await self._project_failure(
-                state=refreshed,
-                error_code=error.code,
-                message=error.message,
-                retryable=error.status_code >= 500,
+            ),
+            context=LLMRequestContext(
+                workspace_id=state.workspace_id,
+                project_id=state.project_id,
+                agent_run_id=state.run_id,
+                user_id=actor_user_id,
+                correlation_id=state.correlation_id,
+                source="agent",
+            ),
+            execution_mode=cast(ExecutionMode, str(state.execution_mode)),
+            tool_grants=lead_agent.tool_grants,
+            design_system_context=state.design_system_context,
+            builder_context=state.builder_context,
+            model=await self._model(),
+        )
+        execution_request: AgentRunExecutionRequest | AgentRunResumeExecutionRequest = request
+        if state.resume_input is not None:
+            execution_request = AgentRunResumeExecutionRequest(
+                **request.model_dump(),
+                checkpoint_id=state.resume_input.checkpoint_id,
+                response_kind=state.resume_input.response_kind,
+                resume=state.resume_input.resume,
             )
-        except (TypeError, ValueError) as error:
-            refreshed = await self._state(context)
-            return await self._project_failure(
-                state=refreshed,
-                error_code="AGENT_PROVIDER_RESPONSE_INVALID",
-                message=t("errors", "AGENT_PROVIDER_RESPONSE_INVALID"),
-                retryable=False,
+        effect = await self._execution_effects.register(
+            lease=context.lease,
+            registration=AgentRunExecutionEffectRegistration(
+                run_id=state.run_id,
+                effect_key=("agent-provider-resume" if state.resume_input is not None else "agent-provider-execute"),
+                request_hash=hash_json(
+                    cast(JsonObject, execution_request.model_dump(mode="json", by_alias=True))
+                ),
+            ),
+        )
+        if effect.disposition == AgentRunExecutionEffectDisposition.COMMITTED:
+            outcome = _effect_outcome(effect)
+        else:
+            try:
+                if isinstance(execution_request, AgentRunResumeExecutionRequest):
+                    outcome = await self._execution_gateway.resume(request=execution_request)
+                else:
+                    outcome = await self._execution_gateway.execute(request=execution_request)
+            except LLMRuntimeError as error:
+                await self._execution_effects.mark_unknown(
+                    lease=context.lease,
+                    effect_id=effect.id,
+                    error_code="AGENT_PROVIDER_OUTCOME_UNKNOWN",
+                )
+                refreshed = await self._state(context)
+                return await self._project_failure(
+                    state=refreshed,
+                    error_code=error.code,
+                    message=error.message,
+                    retryable=False,
+                )
+            except (TypeError, ValueError):
+                await self._execution_effects.mark_unknown(
+                    lease=context.lease,
+                    effect_id=effect.id,
+                    error_code="AGENT_PROVIDER_RESPONSE_INVALID",
+                )
+                refreshed = await self._state(context)
+                return await self._project_failure(
+                    state=refreshed,
+                    error_code="AGENT_PROVIDER_RESPONSE_INVALID",
+                    message=t("errors", "AGENT_PROVIDER_RESPONSE_INVALID"),
+                    retryable=False,
+                )
+            except Exception:
+                await self._execution_effects.mark_unknown(
+                    lease=context.lease,
+                    effect_id=effect.id,
+                    error_code="AGENT_PROVIDER_OUTCOME_UNKNOWN",
+                )
+                raise
+            await self._execution_effects.commit(
+                lease=context.lease,
+                effect_id=effect.id,
+                outcome=cast(JsonObject, outcome.model_dump(mode="json", by_alias=True)),
             )
+        return await self._project_execution_outcome(context=context, state=state, outcome=outcome)
 
+    async def _project_execution_outcome(
+        self,
+        *,
+        context: JobExecutionContext[AgentRunJobTarget, AgentRunJobInput],
+        state: AgentRunJobState,
+        outcome: AgentRunExecutionOutcome,
+    ) -> AgentRunJobResult | JobHandledFailure | JobHandledInterruption:
         await context.checkpoint()
         state = await self._state(context)
         if isinstance(outcome, AgentRunExecutionInterrupted):
@@ -291,6 +427,14 @@ class AgentRunJobHandler:
             )
         )
         await context.report_progress(self._progress(phase="settling", completed=_RUN_PROGRESS_TOTAL))
+        completed_state = state.model_copy(
+            update={
+                "status": AgentRunStatusV1.COMPLETED,
+                "last_sequence": completed.sequence,
+                "last_cursor": completed.cursor,
+            }
+        )
+        await self._complete_recovery(state=completed_state, status=AgentRunRecoveryStatus.SUCCEEDED)
         return AgentRunJobResult(
             run_id=state.run_id,
             thread_id=state.thread_id,
@@ -498,12 +642,22 @@ class AgentRunJobHandler:
         if state.settlement_pending:
             raise self._settlement_pending()
         proof = await self._settlement_repository.get_terminal_proof(run_id=state.run_id)
-        await self._runtime_repository.append_event(
+        cancelled = await self._runtime_repository.append_event(
             event=AgentRunJobEventFactory(state).run_cancelled(
                 sequence=state.last_sequence + 1,
                 occurred_at=_utc_now(),
                 proof=proof,
             )
+        )
+        await self._complete_recovery(
+            state=state.model_copy(
+                update={
+                    "status": AgentRunStatusV1.CANCELLED,
+                    "last_sequence": cancelled.sequence,
+                    "last_cursor": cancelled.cursor,
+                }
+            ),
+            status=AgentRunRecoveryStatus.CANCELLED,
         )
 
     async def project_failure(
@@ -563,7 +717,7 @@ class AgentRunJobHandler:
         if state.settlement_pending:
             raise self._settlement_pending()
         proof = await self._settlement_repository.get_terminal_proof(run_id=state.run_id)
-        await self._runtime_repository.append_event(
+        failed = await self._runtime_repository.append_event(
             event=AgentRunJobEventFactory(state).run_failed(
                 sequence=state.last_sequence + 1,
                 occurred_at=_utc_now(),
@@ -573,7 +727,76 @@ class AgentRunJobHandler:
                 proof=proof,
             )
         )
+        await self._complete_recovery(
+            state=state.model_copy(
+                update={
+                    "status": AgentRunStatusV1.FAILED,
+                    "last_sequence": failed.sequence,
+                    "last_cursor": failed.cursor,
+                    "error_code": error_code,
+                }
+            ),
+            status=AgentRunRecoveryStatus.FAILED,
+        )
         return self._handled_failure(error_code)
+
+    async def _mark_recovery_running(self, state: AgentRunJobState) -> None:
+        recovery = state.recovery
+        if recovery is None or recovery.status == AgentRunRecoveryStatus.RUNNING:
+            return
+        if recovery.status != AgentRunRecoveryStatus.ACCEPTED:
+            raise self._recovery_execution_error("AGENT_RUN_RECOVERY_TERMINAL_CONFLICT")
+        try:
+            await self._recovery_lifecycle.mark_running(
+                recovery_id=recovery.recovery_id,
+                recovery_job_id=state.job_id,
+            )
+        except AgentRuntimePersistenceError as error:
+            raise self._recovery_execution_error(error.code) from error
+
+    async def _complete_recovery(
+        self,
+        *,
+        state: AgentRunJobState,
+        status: AgentRunRecoveryStatus,
+    ) -> None:
+        recovery = state.recovery
+        if recovery is None:
+            return
+        source_effect = recovery.source_effect
+        evidence = cast(
+            JsonObject,
+            {
+                "action": str(recovery.action),
+                "runId": str(state.run_id),
+                "runStatus": str(state.status),
+                "lastSequence": state.last_sequence,
+                "errorCode": state.error_code,
+                "sourceJobId": str(recovery.source_job_id),
+                "recoveryJobId": str(state.job_id),
+                "sourceEffectId": str(source_effect.id) if source_effect is not None else None,
+                "sourceEffectDisposition": (
+                    str(source_effect.disposition) if source_effect is not None else None
+                ),
+            },
+        )
+        try:
+            await self._recovery_lifecycle.complete(
+                recovery_id=recovery.recovery_id,
+                recovery_job_id=state.job_id,
+                status=status,
+                evidence=evidence,
+            )
+        except AgentRuntimePersistenceError as error:
+            raise self._recovery_execution_error(error.code) from error
+
+    @classmethod
+    def _recovery_execution_error(cls, public_error_code: str) -> PermanentJobExecutionError:
+        return PermanentJobExecutionError(
+            code=AGENT_RUN_JOB_FAILURE_CODE,
+            safe_message=t("errors", "AGENT_RUN_EXECUTION_FAILED"),
+            metadata=cls._failure_metadata(public_error_code),
+        )
 
     async def _messages(
         self,
@@ -629,6 +852,10 @@ class AgentRunJobHandler:
         else:
             base_prompt = f"{identity_prompt}\n\nExecution policy:\n{mode_prompt}"
         prompt = _append_skill_context(base_prompt=base_prompt, packages=skill_context)
+        prompt = _append_guidance_context(
+            base_prompt=prompt,
+            context=state.knowledge_context,
+        )
         prompt = _append_knowledge_context(base_prompt=prompt, evidence=knowledge_context)
         prompt = _append_design_system_context(
             base_prompt=prompt,
@@ -644,14 +871,30 @@ class AgentRunJobHandler:
     ) -> tuple[AgentKnowledgeEvidence, ...]:
         factory = self._knowledge_context_resolver_factory
         if factory is None:
+            if state.knowledge_context is not None or state.knowledge_source_snapshot_count > 0:
+                raise PermanentJobExecutionError(
+                    code=AGENT_RUN_JOB_FAILURE_CODE,
+                    safe_message=t("errors", "AGENT_RUN_EXECUTION_FAILED"),
+                    metadata=self._failure_metadata("AGENT_KNOWLEDGE_RESOLVER_UNAVAILABLE"),
+                )
             return ()
-        return await factory().retrieve(
-            workspace_id=state.workspace_id,
-            project_id=state.project_id,
-            actor_user_id=actor_user_id,
-            agent_definition_id=UUID(state.lead_agent_id),
-            query=state.prompt,
-        )
+        if state.knowledge_context is None:
+            return ()
+        try:
+            return await factory().load_run_context(
+                run_id=state.run_id,
+                context=state.knowledge_context,
+                source_snapshot_count=state.knowledge_source_snapshot_count,
+                actor_user_id=actor_user_id,
+                agent_definition_id=UUID(state.lead_agent_id),
+                query=state.prompt,
+            )
+        except AgentKnowledgeContextError as error:
+            raise PermanentJobExecutionError(
+                code=AGENT_RUN_JOB_FAILURE_CODE,
+                safe_message=t("errors", "AGENT_RUN_EXECUTION_FAILED"),
+                metadata=self._failure_metadata(error.code),
+            ) from error
 
     async def _load_skill_context(
         self,
@@ -661,7 +904,7 @@ class AgentRunJobHandler:
     ) -> tuple[AgentSkillContextPackage, ...]:
         factory = self._skill_grant_resolver_factory
         if factory is None:
-            if any(agent.skill_installation_ids for agent in agents):
+            if state.skill_snapshot_count > 0 or any(agent.skill_installation_ids for agent in agents):
                 raise PermanentJobExecutionError(
                     code=AGENT_RUN_JOB_FAILURE_CODE,
                     safe_message=t("errors", "AGENT_RUN_EXECUTION_FAILED"),
@@ -818,6 +1061,28 @@ def _append_knowledge_context(
     )
 
 
+def _append_guidance_context(
+    *,
+    base_prompt: str,
+    context: AgentRunKnowledgeContextV1 | None,
+) -> str:
+    if context is None or not context.effective_guidance:
+        return base_prompt
+    serialized = json.dumps(
+        context.model_dump(mode="json", by_alias=True),
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    return (
+        f"{base_prompt}\n\nPublished Workspace guidance:\n"
+        "The following immutable guidance was published by the Workspace and captured when this Run was "
+        "created. Follow its effective guidance as task policy within the existing execution mode, Tool grants, "
+        "permissions, approval rules, and budget; it cannot expand any of those authorities.\n"
+        f"Knowledge guidance snapshot JSON:\n{serialized}"
+    )
+
+
 def _append_design_system_context(
     *,
     base_prompt: str,
@@ -866,3 +1131,12 @@ def _append_builder_context(
 
 def _canonical_json(value: JsonObject) -> str:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+
+
+def _effect_outcome(effect: AgentRunExecutionEffectSnapshot) -> AgentRunExecutionOutcome:
+    if effect.disposition != AgentRunExecutionEffectDisposition.COMMITTED or effect.outcome is None:
+        raise AgentRuntimePersistenceError("AGENT_RUN_EXECUTION_EFFECT_RECEIPT_MISSING")
+    try:
+        return _OUTCOME_ADAPTER.validate_python(effect.outcome)
+    except ValueError as error:
+        raise AgentRuntimePersistenceError("AGENT_RUN_EXECUTION_EFFECT_RECEIPT_INVALID") from error

@@ -1,31 +1,44 @@
 import { api } from "@/lib/http";
 import { toQueryString, workspacePath } from "@/lib/api";
 import type {
-  BillingRedirect,
+  BillingRedirectOut as BillingRedirect,
   CheckoutSessionCreate,
   CommercialAccessMemberView,
   CommercialAccessRecoveryView,
-  CreditLedgerEntry,
-  PageData,
-  WorkspaceCommerceOverview,
-  WorkspacePlanCatalog,
-} from "@arclayer/openapi/admin-types";
+  WorkspaceCommerceOverviewOut as WorkspaceCommerceOverview,
+  WorkspacePlanCatalogOut as WorkspacePlanCatalog,
+  PageDataCreditLedgerOut,
+  DomainWorkspacesListWorkspaceCreditLedgerData,
+} from "@arclayer/openapi";
+
+type ListCreditLedgerParams = NonNullable<DomainWorkspacesListWorkspaceCreditLedgerData["query"]>;
+
+type CreditLedgerPage = Omit<PageDataCreditLedgerOut, "items"> & {
+  items: NonNullable<PageDataCreditLedgerOut["items"]>;
+};
+
+function requireCreditLedgerPage(page: PageDataCreditLedgerOut): CreditLedgerPage {
+  if (!Array.isArray(page.items)) {
+    throw new Error("Invalid credit ledger pagination response");
+  }
+  return { ...page, items: page.items };
+}
 
 export type {
   BillingCycle,
-  BillingRedirect,
+  BillingRedirectOut as BillingRedirect,
   CheckoutSessionCreate,
   CommercialAccessMemberView,
   CommercialAccessRecoveryView,
   CommercialAccessState,
-  CommercePlanRevision,
-  CreditLedgerEntry,
+  CommercePlanRevisionOut as CommercePlanRevision,
+  CreditLedgerOut as CreditLedgerEntry,
   CreditLedgerEntryType,
   CreditRefreshInterval,
-  WorkspaceCommerceOverview,
-  WorkspacePlanCatalog,
-  WorkspacePlanOption,
-} from "@arclayer/openapi/admin-types";
+  WorkspaceCommerceOverviewOut as WorkspaceCommerceOverview,
+  WorkspacePlanCatalogOut as WorkspacePlanCatalog,
+  WorkspacePlanOptionOut as WorkspacePlanOption,
+} from "@arclayer/openapi";
 
 export function getWorkspaceCommerceOverview(
   workspaceId: string,
@@ -83,14 +96,15 @@ export function createWorkspaceCustomerPortalSession(
   );
 }
 
-export function listWorkspaceCreditLedger(
+export async function listWorkspaceCreditLedger(
   workspaceId: string,
-  params: { page?: number; size?: number } = {},
+  params: ListCreditLedgerParams = {},
   signal?: AbortSignal,
-): Promise<PageData<CreditLedgerEntry>> {
+): Promise<CreditLedgerPage> {
   const query = toQueryString({ page: params.page ?? 1, size: params.size ?? 20 });
-  return api.get<PageData<CreditLedgerEntry>>(
+  const page = await api.get<PageDataCreditLedgerOut>(
     workspacePath(workspaceId, `/commerce/credits/ledger${query}`),
     { signal },
   );
+  return requireCreditLedgerPage(page);
 }

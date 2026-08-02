@@ -7,17 +7,18 @@ from src.modules.ai.router import router as ai_router
 from src.modules.assets.router import router as public_assets_router
 from src.modules.auth.router import router as auth_router
 from src.modules.commerce.billing_router import router as commerce_billing_router
+from src.modules.commerce.platform_router import router as platform_commerce_router
 from src.modules.feedback.router import router as feedback_router
 from src.modules.library.router import router as public_library_router
 from src.modules.permissions.router import router as permissions_router
 from src.modules.platform_identity.eligibility_router import router as platform_entry_eligibility_router
+from src.modules.product_runtime.router import router as product_runtime_router
 from src.modules.projects.router import router as projects_router
 from src.modules.projects.runtime.router import router as content_runtime_router
 from src.modules.sites.content_api.router import router as content_sites_router
 from src.modules.sites.public_host_router import project_host_routing_middleware
 from src.modules.sites.router import router as sites_router
 from src.modules.system.router import platform_router
-from src.modules.system.router import public_router as product_runtime_router
 from src.modules.tenancy.router import router as tenancy_router
 from src.modules.workspaces.router import router as workspaces_router
 
@@ -134,7 +135,7 @@ def register_product_routes(app: FastAPI, settings: Settings) -> None:
     include_auth_router_with_prefix(app, settings=settings)
     include_router_with_global_prefix_prepended(app, ai_router, settings=settings, prefix="/chat")
     include_router_with_global_prefix_prepended(app, sites_router, settings=settings)
-    include_router_with_global_prefix_prepended(app, product_runtime_router, settings=settings, prefix="/system")
+    include_router_with_global_prefix_prepended(app, product_runtime_router, settings=settings)
     include_router_with_global_prefix_prepended(app, permissions_router, settings=settings, prefix="/permissions")
     include_router_with_global_prefix_prepended(app, tenancy_router, settings=settings, prefix="/tenancy")
     include_router_with_global_prefix_prepended(app, workspaces_router, settings=settings)
@@ -157,3 +158,4 @@ def register_platform_routes(app: FastAPI, settings: Settings) -> None:
     """Register the explicit Platform API router allowlist."""
 
     app.include_router(platform_router, prefix=_build_platform_api_prefix(settings))
+    app.include_router(platform_commerce_router, prefix=f"{_build_platform_api_prefix(settings)}/commerce")

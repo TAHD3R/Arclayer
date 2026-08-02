@@ -1,13 +1,15 @@
 import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/react-router";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { revokeCurrentPlatformSession } from "@/access/access-api";
 import { getPlatformCapabilityCatalog } from "@/capabilities/catalog-api";
 import { PlatformAuthProvider } from "@/auth/platform-auth";
 import { savePlatformSession } from "@/auth/platform-session";
 import { initializePlatformI18n, i18n } from "@/lib/i18n";
 import { PlatformPreferencesProvider } from "@/lib/preferences";
+import { getOperationalSignal } from "@/operations/operations-api";
 import { loadPlatformOverview } from "@/overview/overview-api";
 import { routeTree } from "@/routeTree.gen";
 
@@ -15,6 +17,19 @@ vi.mock("@/overview/overview-api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/overview/overview-api")>();
   return { ...actual, loadPlatformOverview: vi.fn() };
 });
+
+vi.mock("@/access/access-api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/access/access-api")>();
+  return { ...actual, revokeCurrentPlatformSession: vi.fn() };
+});
+
+vi.mock("@/pages/tenant-users", () => ({
+  TenantUsersPage: () => <h1>Users</h1>,
+}));
+
+vi.mock("@/saved-views/saved-views-control", () => ({
+  SavedViewsControl: () => null,
+}));
 
 beforeAll(async () => {
   await initializePlatformI18n("en-US");
@@ -26,6 +41,13 @@ beforeEach(async () => {
   document.documentElement.lang = "en-US";
   await i18n.changeLanguage("en-US");
   vi.mocked(loadPlatformOverview).mockReset();
+  vi.mocked(revokeCurrentPlatformSession).mockReset();
+  vi.mocked(revokeCurrentPlatformSession).mockResolvedValue({
+    correlationId: "sign-out-correlation",
+    entityId: "session-shell-test",
+    mutation: "revoke_platform_session",
+    replayed: false,
+  });
   vi.mocked(loadPlatformOverview).mockResolvedValue({
     catalog: { status: "ready", data: { items: [] } },
     attention: {
@@ -55,7 +77,7 @@ beforeEach(async () => {
 });
 
 describe("Platform shell", () => {
-  it("derives peer navigation from authorized trusted capability modules", async () => {
+  it("keeps inactive capability domains at their primary destinations", async () => {
     const router = createRouter({
       routeTree,
       history: createMemoryHistory({ initialEntries: ["/"] }),
@@ -73,15 +95,46 @@ describe("Platform shell", () => {
     expect(screen.queryByRole("link", { name: "Users" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Projects" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Requests & errors" })).toBeVisible();
-    expect(screen.getByRole("link", { name: "Performance trends" })).toBeVisible();
-    expect(screen.getByRole("link", { name: "AI usage" })).toBeVisible();
-    expect(screen.getByRole("link", { name: "Activity trends" })).toBeVisible();
-    expect(screen.getByRole("link", { name: "Audit trail" })).toBeVisible();
+    expect(screen.queryByRole("link", { name: "Performance trends" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Platform team" })).toBeVisible();
-    expect(screen.getAllByRole("link", { name: "Platform team" })).toHaveLength(1);
   });
 
-  it("omits deferred Catalog targets without presenting an incomplete product surface", async () => {
+  it("uses one projection for the active Workspace sidebar, breadcrumb, and command search", async () => {
+    const user = userEvent.setup();
+    const router = createRouter({
+      routeTree,
+      history: createMemoryHistory({ initialEntries: ["/users"] }),
+    });
+    await router.load();
+    render(
+      <PlatformPreferencesProvider>
+        <PlatformAuthProvider>
+          <RouterProvider router={router} />
+        </PlatformAuthProvider>
+      </PlatformPreferencesProvider>,
+    );
+
+    const workspaceLinks = await screen.findAllByRole("link", { name: "Workspaces" });
+    expect(workspaceLinks.some((link) => link.getAttribute("href") === "/workspaces")).toBe(true);
+    expect(workspaceLinks.some((link) => !link.hasAttribute("href"))).toBe(true);
+    expect(screen.getByRole("link", { name: "Users" })).toHaveAttribute("data-active", "true");
+    expect(screen.getByRole("link", { name: "Projects" })).toHaveAttribute("data-active", "false");
+    expect(screen.getByRole("link", { name: "Requests & errors" })).toBeVisible();
+    expect(screen.queryByRole("link", { name: "Performance trends" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Platform team" })).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Open quick navigation" }));
+    const dialog = await screen.findByRole("dialog", { name: "Quick navigation" });
+    await waitFor(() => expect(dialog).toBeVisible());
+    expect(within(dialog).getByRole("option", { name: "Workspaces" })).toBeVisible();
+    for (const option of within(dialog).getAllByRole("option", { name: "Users" })) {
+      expect(option).toBeVisible();
+    }
+    expect(within(dialog).getByRole("option", { name: "Projects" })).toBeVisible();
+    expect(within(dialog).queryByText("Background jobs")).not.toBeInTheDocument();
+  });
+
+  it("projects only the authorized backed Workspace peer", async () => {
     const catalog = await getPlatformCapabilityCatalog();
     const tenantCapability = catalog.items.find(
       ({ capabilityId }) => capabilityId === "tenant-governance",
@@ -111,7 +164,7 @@ describe("Platform shell", () => {
     );
 
     expect((await screen.findAllByRole("link", { name: "Overview" })).length).toBeGreaterThan(0);
-    expect(screen.queryByRole("link", { name: "Users" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Users" })).toBeVisible();
     expect(screen.queryByRole("link", { name: "Workspaces" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Projects" })).not.toBeInTheDocument();
     expect(
@@ -143,6 +196,58 @@ describe("Platform shell", () => {
       await screen.findAllByText("This page is not available to your Platform account."),
     ).toHaveLength(2);
     expect(screen.queryByRole("heading", { name: "Workspaces" })).not.toBeInTheDocument();
+  });
+
+  it("keeps an authorized source investigation detail inside Needs attention", async () => {
+    const catalog = await getPlatformCapabilityCatalog();
+    vi.mocked(getPlatformCapabilityCatalog).mockResolvedValueOnce({
+      items: [
+        ...catalog.items,
+        {
+          activationAvailable: false,
+          canManage: true,
+          capabilityId: "operations-signals",
+          descriptionI18nKey: "inbox:PAGE_DESCRIPTION",
+          domain: "operations",
+          enablementState: "enabled",
+          managePermissionMatch: "all",
+          missingPrerequisiteCodes: [],
+          nameI18nKey: "navigation:NEEDS_ATTENTION",
+          navigationCandidate: true,
+          navigationTargets: [
+            {
+              requiredViewPermissions: ["platform:operations-signals:read"],
+              routeTarget: "operations.signals",
+              viewPermissionMatch: "all",
+            },
+          ],
+          readinessState: "ready",
+          requiredManagePermissions: [],
+          requiredViewPermissions: ["platform:operations-signals:read"],
+          routeTarget: "operations.signals",
+          runtimeHealth: "not_reported",
+          supportState: "supported",
+          viewPermissionMatch: "all",
+        },
+      ],
+    } as never);
+    vi.mocked(getOperationalSignal).mockRejectedValueOnce(new Error("source unavailable"));
+    const router = createRouter({
+      routeTree,
+      history: createMemoryHistory({ initialEntries: ["/attention/signal-1"] }),
+    });
+    await router.load();
+    render(
+      <PlatformPreferencesProvider>
+        <PlatformAuthProvider>
+          <RouterProvider router={router} />
+        </PlatformAuthProvider>
+      </PlatformPreferencesProvider>,
+    );
+
+    await waitFor(() => expect(getOperationalSignal).toHaveBeenCalled());
+    expect(screen.getAllByText("Needs attention").length).toBeGreaterThan(0);
+    expect(screen.queryByText("This page is not available to your Platform account.")).toBeNull();
   });
 
   it("shows loading state without static navigation or route-content fallback", async () => {
@@ -192,6 +297,50 @@ describe("Platform shell", () => {
     expect(await screen.findByRole("heading", { name: "Overview" })).toBeVisible();
   });
 
+  it("keeps a capability navigation contract error visible instead of rendering a partial shell", async () => {
+    const catalog = await getPlatformCapabilityCatalog();
+    const accessCapability = catalog.items.find(({ capabilityId }) => capabilityId === "access");
+    expect(accessCapability).toBeDefined();
+    vi.mocked(getPlatformCapabilityCatalog).mockResolvedValueOnce({
+      items: [
+        {
+          ...accessCapability!,
+          navigationTargets: [
+            {
+              requiredViewPermissions: ["platform:access-team:read"],
+              routeTarget: "access.unknown",
+              viewPermissionMatch: "all",
+            },
+          ],
+        },
+      ],
+    } as never);
+    const router = createRouter({
+      routeTree,
+      history: createMemoryHistory({ initialEntries: ["/"] }),
+    });
+    await router.load();
+    render(
+      <PlatformPreferencesProvider>
+        <PlatformAuthProvider>
+          <RouterProvider router={router} />
+        </PlatformAuthProvider>
+      </PlatformPreferencesProvider>,
+    );
+
+    expect(await screen.findAllByTestId("capability-error-code")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          textContent: expect.stringContaining("PLATFORM_CAPABILITY_NAVIGATION_CONTRACT_ERROR"),
+        }),
+      ]),
+    );
+    expect(screen.getAllByTestId("capability-error-message")[0]).toHaveTextContent(
+      "Unregistered Platform capability navigation target: access.unknown",
+    );
+    expect(screen.queryByText(/Some available pages/)).not.toBeInTheDocument();
+  });
+
   it("renders the real Overview healthy state and independent Product link", async () => {
     const router = createRouter({
       routeTree,
@@ -217,7 +366,7 @@ describe("Platform shell", () => {
     expect(productApplicationLink).toHaveAttribute("aria-label", "Return to product");
   });
 
-  it("clears the Platform credential when signing out", async () => {
+  it("revokes the current server Session before clearing the Platform credential", async () => {
     const user = userEvent.setup();
     const router = createRouter({
       routeTree,
@@ -233,10 +382,49 @@ describe("Platform shell", () => {
     );
 
     await user.click(await screen.findByRole("button", { name: "Sign out" }));
+    expect(window.localStorage.getItem("arclayer:platform:session")).not.toBeNull();
+    await user.click(screen.getByRole("button", { name: "Revoke and sign out" }));
+    await waitFor(() =>
+      expect(revokeCurrentPlatformSession).toHaveBeenCalledWith("session-shell-test", {
+        correlationId: expect.any(String),
+        idempotencyKey: expect.any(String),
+      }),
+    );
     expect(window.localStorage.getItem("arclayer:platform:session")).toBeNull();
     expect(
       await screen.findByRole("heading", { name: "Sign in to the Platform Console" }),
     ).toBeVisible();
+  });
+
+  it("keeps the local credential and reuses revocation identity when sign out is unconfirmed", async () => {
+    vi.mocked(revokeCurrentPlatformSession)
+      .mockRejectedValueOnce(new Error("network unavailable"))
+      .mockRejectedValueOnce(new Error("network unavailable"));
+    const user = userEvent.setup();
+    const router = createRouter({
+      routeTree,
+      history: createMemoryHistory({ initialEntries: ["/"] }),
+    });
+    await router.load();
+    render(
+      <PlatformPreferencesProvider>
+        <PlatformAuthProvider>
+          <RouterProvider router={router} />
+        </PlatformAuthProvider>
+      </PlatformPreferencesProvider>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Sign out" }));
+    await user.click(screen.getByRole("button", { name: "Revoke and sign out" }));
+    expect(await screen.findByText("This device was not signed out")).toBeVisible();
+    expect(window.localStorage.getItem("arclayer:platform:session")).not.toBeNull();
+    await user.click(screen.getByRole("button", { name: "Revoke and sign out" }));
+
+    await waitFor(() => expect(revokeCurrentPlatformSession).toHaveBeenCalledTimes(2));
+    const firstRequest = vi.mocked(revokeCurrentPlatformSession).mock.calls[0]?.[1];
+    const secondRequest = vi.mocked(revokeCurrentPlatformSession).mock.calls[1]?.[1];
+    expect(secondRequest).toEqual(firstRequest);
+    expect(window.localStorage.getItem("arclayer:platform:session")).not.toBeNull();
   });
 
   it("switches locale and all three theme preferences through Header utilities", async () => {

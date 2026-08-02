@@ -1,7 +1,11 @@
 import type { LucideIcon } from "lucide-react";
 
-import type { AdminContentBootstrapPresetState } from "@arclayer/openapi/admin-types";
-import type { AdminContentCapabilityPackId } from "@arclayer/openapi/admin-types";
+import type { ContentItemBootstrapShapeIn } from "@arclayer/openapi";
+
+type AdminContentBootstrapPresetState = NonNullable<ContentItemBootstrapShapeIn["presetState"]>;
+type AdminContentCapabilityPackId = NonNullable<
+  ContentItemBootstrapShapeIn["capabilityPackIds"]
+>[number];
 
 export type ContentBootstrapPresetKey =
   | "page"

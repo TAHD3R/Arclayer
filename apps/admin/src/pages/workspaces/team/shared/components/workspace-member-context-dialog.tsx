@@ -11,7 +11,10 @@ import { resolveCatalogEntry } from "@/pages/workspaces/shared/activity/constant
 import { WorkspaceMemberActivityTab } from "@/pages/workspaces/team/shared/components/member-inspect-activity-tab";
 import { MemberContextDialog } from "@/pages/workspaces/team/shared/components/member-context-dialog";
 import { TeamMembershipStatusTag, TeamRoleTag, TeamUserStatusTag } from "@/components/ui/tags";
-import type { ActivityEvent, TeamMember } from "@arclayer/openapi/admin-types";
+import type {
+  AuditEventOut as ActivityEvent,
+  WorkspaceTeamMemberOut as TeamMember,
+} from "@arclayer/openapi";
 import {
   SummaryCard,
   workspaceMembershipLabel,
@@ -29,6 +32,14 @@ type WorkspaceMemberContextDialogProps = {
   onDisable: (membershipId: string) => void;
   rolesUpdateDisabled?: boolean;
 };
+
+type TeamMemberWithRoleCodes = TeamMember & { roleCodes: string[] };
+
+function requireTeamMemberRoleCodes(member: TeamMember): asserts member is TeamMemberWithRoleCodes {
+  if (!Array.isArray(member.roleCodes)) {
+    throw new Error("Invalid team member response: missing role codes");
+  }
+}
 
 function getActivityTitle(
   t: (key: string, options?: Record<string, unknown>) => string,
@@ -80,7 +91,9 @@ export function WorkspaceMemberContextDialog(props: WorkspaceMemberContextDialog
     enabled: props.open && Boolean(props.workspaceId && activeMember?.userId),
     queryFn: async () => {
       const userId = activeMember?.userId;
-      if (!props.workspaceId || !userId) return [] as ActivityEvent[];
+      if (!props.workspaceId || !userId) {
+        throw new Error("WORKSPACE_MEMBER_CONTEXT_UNAVAILABLE");
+      }
       const [actorPage, subjectPage] = await Promise.all([
         listWorkspaceActivity(props.workspaceId, { size: 20, actorUserId: userId }),
         listWorkspaceActivity(props.workspaceId, { size: 20, subjectUserId: userId }),
@@ -99,18 +112,20 @@ export function WorkspaceMemberContextDialog(props: WorkspaceMemberContextDialog
   const roleNameByCode = useMemo(() => {
     const map = new Map<string, { name: string; description: string | null }>();
     for (const role of rolesQuery.data ?? []) {
-      map.set(role.code, { name: role.name || role.code, description: role.description });
+      map.set(role.code, { name: role.name || role.code, description: role.description ?? null });
     }
     return map;
   }, [rolesQuery.data]);
 
   const roleLabels = useMemo(() => {
     if (!activeMember) return [];
+    requireTeamMemberRoleCodes(activeMember);
     return activeMember.roleCodes.map((code) => roleNameByCode.get(code)?.name || code);
   }, [activeMember, roleNameByCode]);
 
   const grantedPermissions = useMemo(() => {
     if (!activeMember) return [];
+    requireTeamMemberRoleCodes(activeMember);
     const rolePermissionCodes = new Set(
       activeMember.roleCodes.flatMap(
         (code) => rolesQuery.data?.find((role) => role.code === code)?.permissionCodes ?? [],
@@ -124,6 +139,9 @@ export function WorkspaceMemberContextDialog(props: WorkspaceMemberContextDialog
   if (!activeMember) {
     return null;
   }
+
+  requireTeamMemberRoleCodes(activeMember);
+  const activeMemberRoleCodes = activeMember.roleCodes;
 
   const canEnable = activeMember.membershipStatus === "disabled";
   const canDisable = activeMember.membershipStatus === "active";
@@ -272,7 +290,7 @@ export function WorkspaceMemberContextDialog(props: WorkspaceMemberContextDialog
                       {t("team:TEAM_TABLE_COL_ROLES")}
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {activeMember.roleCodes.map((code) => (
+                      {activeMemberRoleCodes.map((code) => (
                         <TeamRoleTag
                           key={code}
                           className="!mr-0"

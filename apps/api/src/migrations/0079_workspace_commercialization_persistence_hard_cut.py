@@ -10,27 +10,142 @@ class Migration(migrations.Migration):
     operations = [
         ops.RunSQL(
             """
-            -- The old commerce model is deliberately retired without data mapping.
-            DELETE FROM connector_event_inbox WHERE connector_key LIKE 'billing.%';
-            DELETE FROM commerce_subscription_change_requests;
-            DELETE FROM commerce_workspace_credit_ledger;
-            DELETE FROM commerce_workspace_credit_accounts;
-            DELETE FROM commerce_billing_provider_event_receipts;
-            DELETE FROM commerce_workspace_subscriptions;
-            DELETE FROM commerce_plans;
+            -- Aerich applies this operation in one transaction. Validate the complete
+            -- predecessor contract before any DDL so failed cutovers leave it intact.
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1
+                    FROM commerce_subscription_change_requests
+                    WHERE status NOT IN ('approved', 'rejected', 'canceled')
+                ) THEN
+                    RAISE EXCEPTION '0079 commercialization hard cut blocked: unresolved subscription change requests exist';
+                END IF;
 
-            DROP TABLE commerce_subscription_change_requests;
-            DROP TABLE commerce_workspace_credit_ledger;
-            DROP TABLE commerce_workspace_credit_accounts;
-            DROP TABLE commerce_billing_provider_event_receipts;
-            DROP TABLE commerce_workspace_subscriptions;
-            DROP TABLE commerce_plans;
+                IF EXISTS (
+                    SELECT 1
+                    FROM commerce_workspace_subscriptions
+                    WHERE status NOT IN ('active', 'past_due', 'canceled')
+                ) THEN
+                    RAISE EXCEPTION '0079 commercialization hard cut blocked: trialing or illegal subscription status exists';
+                END IF;
+
+                IF EXISTS (
+                    SELECT 1
+                    FROM commerce_workspace_subscriptions
+                    WHERE billing_provider <> 'manual'
+                ) THEN
+                    RAISE EXCEPTION '0079 commercialization hard cut blocked: external subscription lacks provider_mode and exact price identity';
+                END IF;
+
+                IF EXISTS (
+                    SELECT 1
+                    FROM commerce_plans
+                    WHERE credit_grant_amount < 0 OR credit_value_micros <= 0
+                ) THEN
+                    RAISE EXCEPTION '0079 commercialization hard cut blocked: plan credit grant or credit value invariant is invalid';
+                END IF;
+
+                IF EXISTS (
+                    SELECT 1
+                    FROM commerce_plans
+                    WHERE price_monthly_micros <> 0 OR price_yearly_micros <> 0
+                ) THEN
+                    RAISE EXCEPTION '0079 commercialization hard cut blocked: nonzero legacy price has no exact revision-scoped provider mapping';
+                END IF;
+
+                IF EXISTS (
+                    SELECT 1
+                    FROM commerce_plans
+                    WHERE code NOT IN ('free', 'premium')
+                      AND (NULLIF(BTRIM(name_i18n_key), '') IS NULL OR NULLIF(BTRIM(description_i18n_key), '') IS NULL)
+                ) THEN
+                    RAISE EXCEPTION '0079 commercialization hard cut blocked: unknown plan lacks required i18n keys';
+                END IF;
+
+                IF EXISTS (
+                    SELECT 1
+                    FROM commerce_plans
+                    WHERE (code = 'free' AND tier <> 'free')
+                       OR (code <> 'free' AND tier = 'free')
+                ) THEN
+                    RAISE EXCEPTION '0079 commercialization hard cut blocked: legacy Free Plan identity is ambiguous';
+                END IF;
+
+                IF EXISTS (
+                    SELECT 1
+                    FROM commerce_plans
+                    WHERE jsonb_typeof(features) <> 'array'
+                ) OR EXISTS (
+                    SELECT 1
+                    FROM commerce_plans AS plan
+                    CROSS JOIN LATERAL jsonb_array_elements(plan.features) AS feature(value)
+                    WHERE jsonb_typeof(plan.features) = 'array'
+                      AND (
+                          jsonb_typeof(feature.value) <> 'string'
+                          OR feature.value #>> '{}' NOT IN ('sites.generate', 'workspace.roles.manage')
+                      )
+                ) THEN
+                    RAISE EXCEPTION '0079 commercialization hard cut blocked: legacy plan features are not an explicit supported entitlement array';
+                END IF;
+
+                IF EXISTS (
+                    SELECT 1
+                    FROM commerce_workspace_subscriptions
+                    WHERE billing_cycle NOT IN ('monthly', 'yearly')
+                       OR current_period_end <= current_period_start
+                ) THEN
+                    RAISE EXCEPTION '0079 commercialization hard cut blocked: subscription billing cycle or period invariant is invalid';
+                END IF;
+
+                IF EXISTS (
+                    SELECT 1
+                    FROM commerce_workspace_credit_accounts AS account
+                    LEFT JOIN commerce_workspace_subscriptions AS subscription ON subscription.id = account.subscription_id
+                    WHERE subscription.id IS NULL
+                       OR subscription.workspace_id <> account.workspace_id
+                       OR account.balance_credits < 0
+                       OR account.reserved_credits < 0
+                       OR account.balance_credits < account.reserved_credits
+                       OR account.lifetime_granted_credits < 0
+                       OR account.lifetime_spent_credits < 0
+                       OR account.period_granted_credits < 0
+                       OR account.period_spent_credits < 0
+                       OR account.lifetime_spent_credits > account.lifetime_granted_credits
+                       OR account.period_spent_credits > account.period_granted_credits
+                       OR account.period_end <= account.period_start
+                ) THEN
+                    RAISE EXCEPTION '0079 commercialization hard cut blocked: credit account balance or period invariant is invalid';
+                END IF;
+
+                IF EXISTS (
+                    SELECT 1
+                    FROM commerce_workspace_credit_ledger AS ledger
+                    LEFT JOIN commerce_workspace_credit_accounts AS account ON account.id = ledger.account_id
+                    WHERE account.id IS NULL
+                       OR account.workspace_id <> ledger.workspace_id
+                       OR ledger.balance_after_credits < 0
+                       OR ledger.reserved_after_credits < 0
+                       OR ledger.balance_after_credits < ledger.reserved_after_credits
+                       OR NULLIF(BTRIM(ledger.idempotency_key), '') IS NULL
+                       OR ledger.entry_type NOT IN ('period_grant', 'reservation', 'commit', 'release', 'adjustment', 'expiration')
+                ) THEN
+                    RAISE EXCEPTION '0079 commercialization hard cut blocked: credit ledger balance or idempotency invariant is invalid';
+                END IF;
+            END $$;
+
+            ALTER TABLE commerce_subscription_change_requests RENAME TO commerce_subscription_change_requests_legacy_0079;
+            ALTER TABLE commerce_workspace_credit_ledger RENAME TO commerce_workspace_credit_ledger_legacy_0079;
+            ALTER TABLE commerce_workspace_credit_accounts RENAME TO commerce_workspace_credit_accounts_legacy_0079;
+            ALTER TABLE commerce_billing_provider_event_receipts RENAME TO commerce_billing_provider_event_receipts_legacy_0079;
+            ALTER TABLE commerce_workspace_subscriptions RENAME TO commerce_workspace_subscriptions_legacy_0079;
+            ALTER TABLE commerce_plans RENAME TO commerce_plans_legacy_0079;
 
             CREATE TABLE commerce_plans (
-                id UUID PRIMARY KEY,
+                id UUID CONSTRAINT commerce_plans_0079_pkey PRIMARY KEY,
                 created_at TIMESTAMPTZ NOT NULL,
                 updated_at TIMESTAMPTZ NOT NULL,
-                code VARCHAR(48) NOT NULL UNIQUE,
+                code VARCHAR(48) NOT NULL CONSTRAINT commerce_plans_0079_code_unique UNIQUE,
                 is_active BOOLEAN NOT NULL DEFAULT TRUE,
                 sort_order INTEGER NOT NULL DEFAULT 100
             );
@@ -143,10 +258,10 @@ class Migration(migrations.Migration):
             );
 
             CREATE TABLE commerce_workspace_subscriptions (
-                id UUID PRIMARY KEY,
+                id UUID CONSTRAINT commerce_workspace_subscriptions_0079_pkey PRIMARY KEY,
                 created_at TIMESTAMPTZ NOT NULL,
                 updated_at TIMESTAMPTZ NOT NULL,
-                workspace_id UUID NOT NULL UNIQUE REFERENCES workspaces(id) ON DELETE CASCADE,
+                workspace_id UUID NOT NULL CONSTRAINT commerce_workspace_subscriptions_0079_workspace_unique UNIQUE REFERENCES workspaces(id) ON DELETE CASCADE,
                 plan_revision_id UUID NOT NULL REFERENCES commerce_plan_revisions(id) ON DELETE RESTRICT,
                 status VARCHAR(16) NOT NULL DEFAULT 'active',
                 billing_cycle VARCHAR(16) NOT NULL,
@@ -156,7 +271,7 @@ class Migration(migrations.Migration):
                 billing_provider VARCHAR(32) NOT NULL,
                 provider_mode VARCHAR(8),
                 external_customer_id VARCHAR(128),
-                external_subscription_id VARCHAR(128) UNIQUE,
+                external_subscription_id VARCHAR(128) CONSTRAINT commerce_workspace_subscriptions_0079_external_subscription_unique UNIQUE,
                 revision BIGINT NOT NULL DEFAULT 1,
                 CONSTRAINT commerce_workspace_subscriptions_status_check CHECK (status IN ('active', 'past_due', 'canceled')),
                 CONSTRAINT commerce_workspace_subscriptions_cycle_check CHECK (billing_cycle IN ('monthly', 'yearly')),
@@ -169,17 +284,17 @@ class Migration(migrations.Migration):
                 ON commerce_workspace_subscriptions (external_customer_id);
 
             CREATE TABLE commerce_workspace_credit_accounts (
-                id UUID PRIMARY KEY,
+                id UUID CONSTRAINT commerce_workspace_credit_accounts_0079_pkey PRIMARY KEY,
                 created_at TIMESTAMPTZ NOT NULL,
                 updated_at TIMESTAMPTZ NOT NULL,
-                workspace_id UUID NOT NULL UNIQUE REFERENCES workspaces(id) ON DELETE CASCADE,
-                subscription_id UUID NOT NULL UNIQUE REFERENCES commerce_workspace_subscriptions(id) ON DELETE CASCADE,
+                workspace_id UUID NOT NULL CONSTRAINT commerce_workspace_credit_accounts_0079_workspace_unique UNIQUE REFERENCES workspaces(id) ON DELETE CASCADE,
+                subscription_id UUID NOT NULL CONSTRAINT commerce_workspace_credit_accounts_0079_subscription_unique UNIQUE REFERENCES commerce_workspace_subscriptions(id) ON DELETE CASCADE,
                 plan_revision_id UUID NOT NULL REFERENCES commerce_plan_revisions(id) ON DELETE RESTRICT,
                 balance_credits BIGINT NOT NULL DEFAULT 0,
                 reserved_credits BIGINT NOT NULL DEFAULT 0,
                 period_start TIMESTAMPTZ NOT NULL,
                 period_end TIMESTAMPTZ NOT NULL,
-                period_identity VARCHAR(255) NOT NULL UNIQUE,
+                period_identity VARCHAR(255) NOT NULL CONSTRAINT commerce_workspace_credit_accounts_0079_period_identity_unique UNIQUE,
                 revision BIGINT NOT NULL DEFAULT 1,
                 CONSTRAINT commerce_workspace_credit_accounts_balance_check CHECK (
                     balance_credits >= 0 AND reserved_credits >= 0 AND balance_credits >= reserved_credits
@@ -188,7 +303,7 @@ class Migration(migrations.Migration):
             );
 
             CREATE TABLE commerce_workspace_credit_ledger (
-                id UUID PRIMARY KEY,
+                id UUID CONSTRAINT commerce_workspace_credit_ledger_0079_pkey PRIMARY KEY,
                 created_at TIMESTAMPTZ NOT NULL,
                 updated_at TIMESTAMPTZ NOT NULL,
                 workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE RESTRICT,
@@ -429,17 +544,27 @@ class Migration(migrations.Migration):
                 CONSTRAINT commerce_state_corrections_to_check CHECK (to_state IN ('normal', 'payment_grace', 'payment_restricted'))
             );
 
-            INSERT INTO commerce_plans (id, created_at, updated_at, code, is_active, sort_order) VALUES
-                (md5('arclayer:commerce-plan:free')::uuid, NOW(), NOW(), 'free', TRUE, 10),
-                (md5('arclayer:commerce-plan:premium')::uuid, NOW(), NOW(), 'premium', TRUE, 20);
-
-            INSERT INTO commerce_plan_revisions (
-                id, created_at, updated_at, plan_id, sequence, status, name_i18n_key,
-                description_i18n_key, credit_grant_amount, credit_refresh_interval,
-                credit_value_micros, currency, content_hash, published_at, is_selling
-            ) VALUES
-                (md5('arclayer:commerce-plan-revision:free:1')::uuid, NOW(), NOW(), md5('arclayer:commerce-plan:free')::uuid, 1, 'published', 'PLAN_DEFAULT_FREE_NAME', 'PLAN_DEFAULT_FREE_DESCRIPTION', 70, 'daily', 1000, 'USD', md5('arclayer:commerce-plan-revision:free:1'), NOW(), TRUE),
-                (md5('arclayer:commerce-plan-revision:premium:1')::uuid, NOW(), NOW(), md5('arclayer:commerce-plan:premium')::uuid, 1, 'published', 'PLAN_DEFAULT_PREMIUM_NAME', 'PLAN_DEFAULT_PREMIUM_DESCRIPTION', 10000, 'monthly', 1000, 'USD', md5('arclayer:commerce-plan-revision:premium:1'), NOW(), TRUE);
+            CREATE TABLE commerce_legacy_data_retirements (
+                id UUID PRIMARY KEY,
+                created_at TIMESTAMPTZ NOT NULL,
+                retired_table VARCHAR(96) NOT NULL,
+                legacy_id UUID NOT NULL,
+                evidence_kind VARCHAR(64) NOT NULL,
+                payload JSONB NOT NULL,
+                evidence_hash VARCHAR(64) NOT NULL UNIQUE,
+                CONSTRAINT commerce_legacy_data_retirements_identity_unique
+                    UNIQUE (retired_table, legacy_id, evidence_kind)
+            );
+            CREATE FUNCTION commerce_reject_legacy_retirement_mutation()
+            RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN
+                RAISE EXCEPTION 'commerce legacy retirement evidence is immutable';
+                RETURN NULL;
+            END;
+            $$;
+            CREATE TRIGGER commerce_legacy_data_retirements_immutable
+                BEFORE UPDATE OR DELETE ON commerce_legacy_data_retirements
+                FOR EACH ROW EXECUTE FUNCTION commerce_reject_legacy_retirement_mutation();
 
             INSERT INTO commerce_resource_definitions (id, created_at, updated_at, key, is_active)
             VALUES (md5('arclayer:commerce-resource:projects.active')::uuid, NOW(), NOW(), 'projects.active', TRUE);
@@ -450,20 +575,242 @@ class Migration(migrations.Migration):
                 (md5('arclayer:commerce-entitlement:sites.generate')::uuid, NOW(), NOW(), 'sites.generate', TRUE, FALSE, TRUE),
                 (md5('arclayer:commerce-entitlement:workspace.roles.manage')::uuid, NOW(), NOW(), 'workspace.roles.manage', TRUE, FALSE, TRUE);
 
+            INSERT INTO commerce_plans (id, created_at, updated_at, code, is_active, sort_order)
+            SELECT id, created_at, updated_at, code, is_active, sort_order
+            FROM commerce_plans_legacy_0079;
+
+            INSERT INTO commerce_plan_revisions (
+                id, created_at, updated_at, plan_id, sequence, status, name_i18n_key,
+                description_i18n_key, credit_grant_amount, credit_refresh_interval,
+                credit_value_micros, currency, content_hash, published_at, is_selling
+            )
+            SELECT
+                md5('arclayer:commerce-plan-revision:' || legacy.id::text || ':1')::uuid,
+                legacy.created_at, legacy.updated_at, legacy.id, 1, 'published',
+                COALESCE(NULLIF(BTRIM(legacy.name_i18n_key), ''), CASE legacy.code
+                    WHEN 'free' THEN 'PLAN_DEFAULT_FREE_NAME' WHEN 'premium' THEN 'PLAN_DEFAULT_PREMIUM_NAME' END),
+                COALESCE(NULLIF(BTRIM(legacy.description_i18n_key), ''), CASE legacy.code
+                    WHEN 'free' THEN 'PLAN_DEFAULT_FREE_DESCRIPTION' WHEN 'premium' THEN 'PLAN_DEFAULT_PREMIUM_DESCRIPTION' END),
+                legacy.credit_grant_amount, legacy.credit_refresh_interval, legacy.credit_value_micros,
+                legacy.currency,
+                md5(concat_ws('|', legacy.id::text, legacy.code, legacy.name_i18n_key,
+                    legacy.description_i18n_key, legacy.credit_grant_amount::text,
+                    legacy.credit_refresh_interval, legacy.credit_value_micros::text,
+                    legacy.currency, legacy.features::text))
+                    || md5('arclayer:commerce-plan-revision:' || legacy.id::text || ':1:content'),
+                legacy.updated_at, legacy.is_active
+            FROM commerce_plans_legacy_0079 AS legacy;
+
             INSERT INTO commerce_plan_revision_resource_allowances (
                 id, created_at, updated_at, plan_revision_id, resource_id, limit_kind, limit_value
-            ) VALUES
-                (md5('arclayer:commerce-allowance:free:projects.active')::uuid, NOW(), NOW(), md5('arclayer:commerce-plan-revision:free:1')::uuid, md5('arclayer:commerce-resource:projects.active')::uuid, 'unlimited', NULL),
-                (md5('arclayer:commerce-allowance:premium:projects.active')::uuid, NOW(), NOW(), md5('arclayer:commerce-plan-revision:premium:1')::uuid, md5('arclayer:commerce-resource:projects.active')::uuid, 'unlimited', NULL);
+            )
+            SELECT
+                md5('arclayer:commerce-allowance:' || revision.id::text || ':projects.active')::uuid,
+                revision.created_at, revision.updated_at, revision.id, resource.id, 'unlimited', NULL
+            FROM commerce_plan_revisions AS revision
+            CROSS JOIN commerce_resource_definitions AS resource
+            WHERE resource.key = 'projects.active';
 
             INSERT INTO commerce_plan_revision_entitlements (
                 id, created_at, updated_at, plan_revision_id, entitlement_id, is_included,
                 allocation_mode, seat_limit_kind, seat_limit_value
-            ) VALUES
-                (md5('arclayer:commerce-entitlement:free:sites.generate')::uuid, NOW(), NOW(), md5('arclayer:commerce-plan-revision:free:1')::uuid, md5('arclayer:commerce-entitlement:sites.generate')::uuid, TRUE, 'workspace', NULL, NULL),
-                (md5('arclayer:commerce-entitlement:free:workspace.roles.manage')::uuid, NOW(), NOW(), md5('arclayer:commerce-plan-revision:free:1')::uuid, md5('arclayer:commerce-entitlement:workspace.roles.manage')::uuid, FALSE, NULL, NULL, NULL),
-                (md5('arclayer:commerce-entitlement:premium:sites.generate')::uuid, NOW(), NOW(), md5('arclayer:commerce-plan-revision:premium:1')::uuid, md5('arclayer:commerce-entitlement:sites.generate')::uuid, TRUE, 'workspace', NULL, NULL),
-                (md5('arclayer:commerce-entitlement:premium:workspace.roles.manage')::uuid, NOW(), NOW(), md5('arclayer:commerce-plan-revision:premium:1')::uuid, md5('arclayer:commerce-entitlement:workspace.roles.manage')::uuid, TRUE, 'workspace', NULL, NULL);
+            )
+            SELECT
+                md5('arclayer:commerce-entitlement:' || revision.id::text || ':' || entitlement.id::text)::uuid,
+                revision.created_at, revision.updated_at, revision.id, entitlement.id,
+                legacy.features ? entitlement.key,
+                CASE WHEN legacy.features ? entitlement.key THEN 'workspace' ELSE NULL END,
+                NULL, NULL
+            FROM commerce_plans_legacy_0079 AS legacy
+            JOIN commerce_plan_revisions AS revision ON revision.plan_id = legacy.id
+            CROSS JOIN commerce_entitlement_definitions AS entitlement;
+
+            INSERT INTO commerce_workspace_subscriptions (
+                id, created_at, updated_at, workspace_id, plan_revision_id, status,
+                billing_cycle, current_period_start, current_period_end,
+                cancel_at_period_end, billing_provider, provider_mode,
+                external_customer_id, external_subscription_id, revision
+            )
+            SELECT
+                legacy.id, legacy.created_at, legacy.updated_at, legacy.workspace_id,
+                revision.id, legacy.status, legacy.billing_cycle,
+                legacy.current_period_start,
+                CASE WHEN legacy_plan.code = 'free' THEN 'infinity'::TIMESTAMPTZ ELSE legacy.current_period_end END,
+                legacy.cancel_at_period_end, legacy.billing_provider, NULL,
+                legacy.external_customer_id, legacy.external_subscription_id, 1
+            FROM commerce_workspace_subscriptions_legacy_0079 AS legacy
+            JOIN commerce_plan_revisions AS revision
+                ON revision.plan_id = legacy.plan_id AND revision.sequence = 1
+            JOIN commerce_plans_legacy_0079 AS legacy_plan ON legacy_plan.id = legacy.plan_id;
+
+            INSERT INTO commerce_workspace_credit_accounts (
+                id, created_at, updated_at, workspace_id, subscription_id, plan_revision_id,
+                balance_credits, reserved_credits, period_start, period_end, period_identity, revision
+            )
+            SELECT
+                legacy.id, legacy.created_at, legacy.updated_at, legacy.workspace_id,
+                legacy.subscription_id, subscription.plan_revision_id,
+                legacy.balance_credits, legacy.reserved_credits,
+                legacy.period_start, legacy.period_end,
+                'legacy:0079:credit-account:' || legacy.id::text, 1
+            FROM commerce_workspace_credit_accounts_legacy_0079 AS legacy
+            JOIN commerce_workspace_subscriptions AS subscription ON subscription.id = legacy.subscription_id;
+
+            INSERT INTO commerce_workspace_credit_ledger (
+                id, created_at, updated_at, workspace_id, account_id, subscription_id,
+                plan_revision_id, entry_type, request_id, provider_period_identity,
+                estimated_cost_micros, actual_cost_micros, applied_credit_value_micros,
+                reserved_credits, committed_credits, delta_balance_credits,
+                delta_reserved_credits, balance_after_credits, reserved_after_credits,
+                idempotency_key, actor_user_id, description_key
+            )
+            SELECT
+                legacy.id, legacy.created_at, legacy.updated_at, legacy.workspace_id,
+                legacy.account_id, account.subscription_id, account.plan_revision_id,
+                legacy.entry_type, legacy.reference_id, NULL, NULL, NULL,
+                revision.credit_value_micros,
+                CASE WHEN legacy.entry_type = 'reservation' THEN GREATEST(legacy.delta_reserved_credits, 0) ELSE 0 END,
+                CASE WHEN legacy.entry_type = 'commit' THEN GREATEST(-legacy.delta_balance_credits, 0) ELSE 0 END,
+                legacy.delta_balance_credits, legacy.delta_reserved_credits,
+                legacy.balance_after_credits, legacy.reserved_after_credits,
+                legacy.idempotency_key, legacy.actor_user_id, legacy.description_key
+            FROM commerce_workspace_credit_ledger_legacy_0079 AS legacy
+            JOIN commerce_workspace_credit_accounts AS account ON account.id = legacy.account_id
+            JOIN commerce_plan_revisions AS revision ON revision.id = account.plan_revision_id;
+
+            INSERT INTO commerce_legacy_data_retirements (
+                id, created_at, retired_table, legacy_id, evidence_kind, payload, evidence_hash
+            )
+            SELECT
+                md5('arclayer:commerce-retirement:raw-plan:' || legacy.id::text)::uuid,
+                NOW(), 'commerce_plans', legacy.id, 'raw_plan', to_jsonb(legacy),
+                md5('commerce_plans:raw_plan:' || legacy.id::text)
+                    || md5('commerce_plans:raw_plan:' || legacy.id::text || ':0079')
+            FROM commerce_plans_legacy_0079 AS legacy;
+
+            INSERT INTO commerce_legacy_data_retirements (
+                id, created_at, retired_table, legacy_id, evidence_kind, payload, evidence_hash
+            )
+            SELECT
+                md5('arclayer:commerce-retirement:credit-account-counters:' || legacy.id::text)::uuid,
+                NOW(), 'commerce_workspace_credit_accounts', legacy.id,
+                'legacy_credit_account_counters',
+                jsonb_build_object(
+                    'lifetime_granted_credits', legacy.lifetime_granted_credits,
+                    'lifetime_spent_credits', legacy.lifetime_spent_credits,
+                    'period_granted_credits', legacy.period_granted_credits,
+                    'period_spent_credits', legacy.period_spent_credits
+                ),
+                md5('commerce_workspace_credit_accounts:legacy_credit_account_counters:' || legacy.id::text)
+                    || md5('commerce_workspace_credit_accounts:legacy_credit_account_counters:' || legacy.id::text || ':0079')
+            FROM commerce_workspace_credit_accounts_legacy_0079 AS legacy;
+
+            INSERT INTO commerce_legacy_data_retirements (
+                id, created_at, retired_table, legacy_id, evidence_kind, payload, evidence_hash
+            )
+            SELECT
+                md5('arclayer:commerce-retirement:ledger-details:' || legacy.id::text)::uuid,
+                NOW(), 'commerce_workspace_credit_ledger', legacy.id, 'legacy_ledger_details',
+                jsonb_build_object('reference_type', legacy.reference_type, 'reference_id', legacy.reference_id,
+                    'details', legacy.details),
+                md5('commerce_workspace_credit_ledger:legacy_ledger_details:' || legacy.id::text)
+                    || md5('commerce_workspace_credit_ledger:legacy_ledger_details:' || legacy.id::text || ':0079')
+            FROM commerce_workspace_credit_ledger_legacy_0079 AS legacy;
+
+            INSERT INTO commerce_legacy_data_retirements (
+                id, created_at, retired_table, legacy_id, evidence_kind, payload, evidence_hash
+            )
+            SELECT
+                md5('arclayer:commerce-retirement:change-request:' || legacy.id::text)::uuid,
+                NOW(), 'commerce_subscription_change_requests', legacy.id,
+                'terminal_change_request', to_jsonb(legacy),
+                md5('commerce_subscription_change_requests:terminal_change_request:' || legacy.id::text)
+                    || md5('commerce_subscription_change_requests:terminal_change_request:' || legacy.id::text || ':0079')
+            FROM commerce_subscription_change_requests_legacy_0079 AS legacy;
+
+            INSERT INTO commerce_legacy_data_retirements (
+                id, created_at, retired_table, legacy_id, evidence_kind, payload, evidence_hash
+            )
+            SELECT
+                md5('arclayer:commerce-retirement:provider-receipt:' || legacy.id::text)::uuid,
+                NOW(), 'commerce_billing_provider_event_receipts', legacy.id,
+                'provider_event_receipt', to_jsonb(legacy),
+                md5('commerce_billing_provider_event_receipts:provider_event_receipt:' || legacy.id::text)
+                    || md5('commerce_billing_provider_event_receipts:provider_event_receipt:' || legacy.id::text || ':0079')
+            FROM commerce_billing_provider_event_receipts_legacy_0079 AS legacy;
+
+            INSERT INTO commerce_plans (id, created_at, updated_at, code, is_active, sort_order)
+            SELECT md5('arclayer:commerce-plan:free')::uuid, NOW(), NOW(), 'free', TRUE, 10
+            WHERE NOT EXISTS (SELECT 1 FROM commerce_plans WHERE code = 'free');
+            INSERT INTO commerce_plans (id, created_at, updated_at, code, is_active, sort_order)
+            SELECT md5('arclayer:commerce-plan:premium')::uuid, NOW(), NOW(), 'premium', TRUE, 20
+            WHERE NOT EXISTS (SELECT 1 FROM commerce_plans WHERE code = 'premium');
+
+            INSERT INTO commerce_plan_revisions (
+                id, created_at, updated_at, plan_id, sequence, status, name_i18n_key,
+                description_i18n_key, credit_grant_amount, credit_refresh_interval,
+                credit_value_micros, currency, content_hash, published_at, is_selling
+            )
+            SELECT
+                md5('arclayer:commerce-plan-revision:' || plan.code || ':1')::uuid,
+                NOW(), NOW(), plan.id, 1, 'published',
+                CASE plan.code WHEN 'free' THEN 'PLAN_DEFAULT_FREE_NAME' ELSE 'PLAN_DEFAULT_PREMIUM_NAME' END,
+                CASE plan.code WHEN 'free' THEN 'PLAN_DEFAULT_FREE_DESCRIPTION' ELSE 'PLAN_DEFAULT_PREMIUM_DESCRIPTION' END,
+                CASE plan.code WHEN 'free' THEN 70 ELSE 10000 END,
+                CASE plan.code WHEN 'free' THEN 'daily' ELSE 'monthly' END,
+                1000, 'USD',
+                md5('arclayer:commerce-plan-revision:' || plan.code || ':1')
+                    || md5('arclayer:commerce-plan-revision:' || plan.code || ':1:content'),
+                NOW(), TRUE
+            FROM commerce_plans AS plan
+            WHERE plan.code IN ('free', 'premium')
+              AND NOT EXISTS (
+                  SELECT 1 FROM commerce_plan_revisions AS revision WHERE revision.plan_id = plan.id
+              );
+
+            INSERT INTO commerce_plan_revision_resource_allowances (
+                id, created_at, updated_at, plan_revision_id, resource_id, limit_kind, limit_value
+            )
+            SELECT
+                md5('arclayer:commerce-allowance:' || revision.id::text || ':projects.active')::uuid,
+                NOW(), NOW(), revision.id, resource.id, 'unlimited', NULL
+            FROM commerce_plan_revisions AS revision
+            CROSS JOIN commerce_resource_definitions AS resource
+            LEFT JOIN commerce_plan_revision_resource_allowances AS allowance
+                ON allowance.plan_revision_id = revision.id AND allowance.resource_id = resource.id
+            WHERE resource.key = 'projects.active' AND allowance.id IS NULL;
+
+            INSERT INTO commerce_plan_revision_entitlements (
+                id, created_at, updated_at, plan_revision_id, entitlement_id, is_included,
+                allocation_mode, seat_limit_kind, seat_limit_value
+            )
+            SELECT
+                md5('arclayer:commerce-entitlement:' || revision.id::text || ':' || entitlement.id::text)::uuid,
+                NOW(), NOW(), revision.id, entitlement.id,
+                CASE
+                    WHEN plan.code = 'free' AND entitlement.key = 'sites.generate' THEN TRUE
+                    WHEN plan.code = 'premium' THEN TRUE
+                    ELSE FALSE
+                END,
+                CASE
+                    WHEN plan.code = 'free' AND entitlement.key = 'sites.generate' THEN 'workspace'
+                    WHEN plan.code = 'premium' THEN 'workspace'
+                    ELSE NULL
+                END,
+                NULL, NULL
+            FROM commerce_plan_revisions AS revision
+            JOIN commerce_plans AS plan ON plan.id = revision.plan_id
+            CROSS JOIN commerce_entitlement_definitions AS entitlement
+            LEFT JOIN commerce_plan_revision_entitlements AS existing
+                ON existing.plan_revision_id = revision.id AND existing.entitlement_id = entitlement.id
+            WHERE plan.code IN ('free', 'premium') AND existing.id IS NULL;
+
+            DROP TABLE commerce_workspace_credit_ledger_legacy_0079;
+            DROP TABLE commerce_workspace_credit_accounts_legacy_0079;
+            DROP TABLE commerce_subscription_change_requests_legacy_0079;
+            DROP TABLE commerce_billing_provider_event_receipts_legacy_0079;
+            DROP TABLE commerce_workspace_subscriptions_legacy_0079;
+            DROP TABLE commerce_plans_legacy_0079;
             """
         )
     ]

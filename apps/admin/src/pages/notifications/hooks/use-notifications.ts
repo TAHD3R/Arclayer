@@ -12,11 +12,14 @@ import {
   seedDemoNotifications,
 } from "@/api/notifications";
 import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
-import type { NotificationItem } from "@arclayer/openapi/admin-types";
+import type { NotificationOut as NotificationItem } from "@arclayer/openapi";
 import { listMyWorkspaces } from "@/api/workspaces";
 import { useNowTick } from "@arclayer/hooks/use-now-tick";
 import { notifyErrorText } from "@/lib/notifications";
-import { resolveNotificationTarget } from "@/lib/routing/notification-target";
+import {
+  canAccessNotificationNavigationTarget,
+  resolveNotificationTarget,
+} from "@/lib/routing/notification-target";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 import type { ListStatus } from "../types";
@@ -47,6 +50,15 @@ export function useNotifications() {
 
   const accessibleWorkspaceIds = useMemo(
     () => new Set((workspacesQuery.data?.items ?? []).map((item) => String(item.workspaceId))),
+    [workspacesQuery.data?.items],
+  );
+  const accessibleProjectIds = useMemo(
+    () =>
+      new Set(
+        (workspacesQuery.data?.items ?? [])
+          .map((item) => item.projectId)
+          .filter((projectId): projectId is string => typeof projectId === "string"),
+      ),
     [workspacesQuery.data?.items],
   );
 
@@ -194,8 +206,13 @@ export function useNotifications() {
 
   const navigateToTarget = async (n: NotificationItem) => {
     const target = resolveNotificationTarget(n);
-    if (!target) return;
-    const isAccessible = accessibleWorkspaceIds.has(String(n.workspaceId));
+    const isAccessible = canAccessNotificationNavigationTarget({
+      notificationWorkspaceId: n.workspaceId,
+      currentWorkspaceId: workspaceId,
+      target: n.target,
+      accessibleWorkspaceIds,
+      accessibleProjectIds,
+    });
     if (workspacesQuery.data && !isAccessible) {
       notifyErrorText(t("NOTIFICATIONS_TARGET_FORBIDDEN"));
       return;
@@ -205,19 +222,32 @@ export function useNotifications() {
       settingsScreen.openSettings(target.target);
       return;
     }
+    if (target.type === "feedback") {
+      void navigate({ to: "/notifications", search: { ticketId: target.ticketId } });
+      return;
+    }
     void navigate({ to: target.to as never });
   };
 
   const navigateToReadTarget = (n: NotificationItem) => {
     const target = resolveNotificationTarget(n);
-    if (!target) return;
-    const isAccessible = accessibleWorkspaceIds.has(String(n.workspaceId));
+    const isAccessible = canAccessNotificationNavigationTarget({
+      notificationWorkspaceId: n.workspaceId,
+      currentWorkspaceId: workspaceId,
+      target: n.target,
+      accessibleWorkspaceIds,
+      accessibleProjectIds,
+    });
     if (workspacesQuery.data && !isAccessible) {
       notifyErrorText(t("NOTIFICATIONS_TARGET_FORBIDDEN"));
       return;
     }
     if (target.type === "settings") {
       settingsScreen.openSettings(target.target);
+      return;
+    }
+    if (target.type === "feedback") {
+      void navigate({ to: "/notifications", search: { ticketId: target.ticketId } });
       return;
     }
     void navigate({ to: target.to as never });

@@ -12,7 +12,7 @@ import {
 } from "@/api/feature-access";
 import { getWorkspaceCommercialAccess } from "@/api/commerce";
 import { ApiError } from "@/lib/http";
-import type { TeamMember } from "@arclayer/openapi/admin-types";
+import type { WorkspaceTeamMemberOut as TeamMember } from "@arclayer/openapi";
 import type { MemberFeatureAccessView } from "./components/member-feature-access-dialog";
 
 type FeatureAccessActionState = "hidden" | "loading" | "error" | "view" | "manage";

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import UTC, datetime
 from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
@@ -21,7 +20,6 @@ from src.models.agents.catalog import (
     AgentVersionRecord,
     AgentVersionState,
 )
-from src.modules.ai.agent_skill_grant_service import AgentSkillGrantError
 from src.modules.ai.agent_tool_grants import SUPPORTED_AGENT_TOOL_GRANTS
 from src.modules.system.agents.projection import (
     SystemAgentProjectionError,
@@ -47,7 +45,7 @@ SUPPORTED_APPROVAL_PROFILES = frozenset({"human-input-v1"})
 def agent_catalog_capabilities() -> SystemAgentCatalogCapabilitiesOut:
     return SystemAgentCatalogCapabilitiesOut(
         supported_tool_grants=SUPPORTED_TOOL_GRANTS,
-        skill_grants_available=True,
+        skill_grants_available=False,
         knowledge_grants_available=False,
         model_routing_policies=("workspace_default",),
         agent_runtime_protocol=1,
@@ -56,6 +54,8 @@ def agent_catalog_capabilities() -> SystemAgentCatalogCapabilitiesOut:
             "customApprovalProfiles": sorted(SUPPORTED_APPROVAL_PROFILES),
             "officialDefinitionsMutable": False,
             "versionsImmutable": True,
+            "runtimeValidationPortAvailable": False,
+            "versionPublicationRequiresRuntimeValidation": True,
         },
     )
 
@@ -96,7 +96,6 @@ class SystemAgentDefinitionService(SystemAgentServiceBase):
         payload: SystemAgentDefinitionCreateRequest,
         actor_user_id: UUID,
     ) -> SystemAgentDefinitionDetailOut:
-        await self._validate_skill_grants(payload.initial_version)
         async with self.tx() as conn:
             if await self._repository.definition_slug_exists(slug=payload.slug, conn=conn):
                 self._raise_conflict("AGENT_DEFINITION_SLUG_EXISTS")
@@ -169,7 +168,6 @@ class SystemAgentDefinitionService(SystemAgentServiceBase):
         payload: AgentVersionCreateRequest,
         actor_user_id: UUID,
     ) -> SystemAgentVersionOut:
-        await self._validate_skill_grants(payload)
         async with self.tx() as conn:
             definition = await self._require_definition_for_update(
                 definition_id=definition_id,
@@ -193,11 +191,12 @@ class SystemAgentDefinitionService(SystemAgentServiceBase):
             )
         return self._project_version(version)
 
-    async def retire_version(
+    async def transition_version(
         self,
         *,
         definition_id: UUID,
         version_id: UUID,
+        desired_state: AgentVersionState,
         actor_user_id: UUID,
     ) -> SystemAgentVersionOut:
         async with self.tx() as conn:
@@ -213,6 +212,12 @@ class SystemAgentDefinitionService(SystemAgentServiceBase):
             )
             if version is None:
                 self._raise_not_found("AGENT_VERSION_NOT_FOUND")
+            if desired_state == AgentVersionState.PUBLISHED:
+                if version.state == AgentVersionState.PUBLISHED:
+                    return self._project_version(version)
+                if version.state == AgentVersionState.RETIRED:
+                    self._raise_conflict("AGENT_VERSION_RETIRED")
+                self._raise_conflict("AGENT_VERSION_VALIDATION_PORT_UNAVAILABLE")
             if version.state == AgentVersionState.RETIRED:
                 return self._project_version(version)
             if await self._repository.has_enabled_assignment_for_version(
@@ -269,6 +274,8 @@ class SystemAgentDefinitionService(SystemAgentServiceBase):
         payload: AgentVersionCreateRequest,
         conn: BaseDBAsyncClient,
     ) -> None:
+        if payload.skill_grant_workspace_id is not None or payload.skill_installation_ids:
+            self._raise_conflict("AGENT_WORKSPACE_CONTENT_BOUNDARY")
         if payload.knowledge_base_ids:
             self._raise_conflict("AGENT_KNOWLEDGE_GRANTS_UNAVAILABLE")
         if tuple(payload.tool_grants) != SUPPORTED_TOOL_GRANTS:
@@ -289,27 +296,6 @@ class SystemAgentDefinitionService(SystemAgentServiceBase):
         ):
             self._raise_conflict("AGENT_DELEGATION_TARGET_UNAVAILABLE")
 
-    async def _validate_skill_grants(self, payload: AgentVersionCreateRequest) -> None:
-        workspace_id = payload.skill_grant_workspace_id
-        if workspace_id is None:
-            return
-        async with self.tx() as conn:
-            workspace = await self._repository.get_workspace(
-                workspace_id=workspace_id,
-                conn=conn,
-            )
-        if workspace is None:
-            self._raise_not_found("AGENT_SKILL_WORKSPACE_NOT_FOUND")
-        try:
-            await self._skill_grant_validator.validate(
-                workspace_id=workspace.id,
-                organization_id=workspace.organization_id,
-                installation_ids=tuple(payload.skill_installation_ids),
-                tool_grants=tuple(payload.tool_grants),
-            )
-        except AgentSkillGrantError as error:
-            self._raise_conflict(error.code)
-
     async def _write_version_activity(
         self,
         *,
@@ -328,6 +314,7 @@ class SystemAgentDefinitionService(SystemAgentServiceBase):
                 "definitionId": str(definition.id),
                 "versionNumber": version.version_number,
                 "contentChecksum": version.content_checksum,
+                "state": str(version.state),
             },
             conn=conn,
         )
@@ -378,7 +365,7 @@ def _version_values(
     return {
         "definition_id": definition_id,
         "version_number": version_number,
-        "state": AgentVersionState.PUBLISHED,
+        "state": AgentVersionState.DRAFT,
         "instructions": payload.instructions,
         "model_policy": payload.model_policy.model_dump(by_alias=True),
         "supported_execution_modes": list(payload.supported_execution_modes),
@@ -395,7 +382,7 @@ def _version_values(
             version_number=version_number,
             payload=payload,
         ),
-        "published_at": datetime.now(UTC),
+        "published_at": None,
         "created_by_user_id": actor_user_id,
     }
 

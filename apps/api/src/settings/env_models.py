@@ -222,6 +222,7 @@ class BackgroundJobsSettings(BaseSettings):
     asset_thumbnail: BackgroundJobExecutionSettings = Field(default_factory=BackgroundJobExecutionSettings)
     agent_run: AgentRunJobExecutionSettings = Field(default_factory=AgentRunJobExecutionSettings)
     builder_generation: BackgroundJobExecutionSettings = Field(default_factory=BackgroundJobExecutionSettings)
+    design_system_compile: BackgroundJobExecutionSettings = Field(default_factory=BackgroundJobExecutionSettings)
     knowledge_source_ingest: BackgroundJobExecutionSettings = Field(default_factory=BackgroundJobExecutionSettings)
     knowledge_source_index: BackgroundJobExecutionSettings = Field(default_factory=BackgroundJobExecutionSettings)
     skill_github_import: BackgroundJobExecutionSettings = Field(default_factory=BackgroundJobExecutionSettings)
@@ -789,6 +790,11 @@ class SecuritySettings(BaseSettings):
 class PlatformSecuritySettings(SecuritySettings):
     """Security policy owned by the independently hosted Platform API."""
 
+    class CSRFSettings(SecuritySettings.CSRFSettings):
+        cookie_name: str = Field(default="platform_csrf_token", min_length=1)
+        protected_path_prefixes: list[str] = Field(default_factory=lambda: ["/platform-api"])
+        exempt_path_prefixes: list[str] = Field(default_factory=list)
+
     model_config = SettingsConfigDict(
         env_prefix="PLATFORM_SECURITY__",
         env_file_encoding="utf-8",
@@ -799,10 +805,4 @@ class PlatformSecuritySettings(SecuritySettings):
         validate_default=True,
     )
 
-    csrf: SecuritySettings.CSRFSettings = Field(
-        default_factory=lambda: SecuritySettings.CSRFSettings(
-            cookie_name="platform_csrf_token",
-            protected_path_prefixes=["/platform-api"],
-            exempt_path_prefixes=[],
-        )
-    )
+    csrf: CSRFSettings = Field(default_factory=CSRFSettings)

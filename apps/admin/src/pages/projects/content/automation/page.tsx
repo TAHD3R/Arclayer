@@ -19,14 +19,14 @@ import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-acc
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import type {
-  AdminAutomationCatalog,
-  AdminAutomationFlow,
-  AdminAutomationFlowStatus,
-  AdminAutomationOperationKindValue,
-  AdminAutomationRun,
-  AdminAutomationTriggerKind,
+  AutomationCatalogOut as AdminAutomationCatalog,
+  AutomationFlowOut as AdminAutomationFlow,
+  AutomationFlowStatus as AdminAutomationFlowStatus,
+  AutomationOperationKind as AdminAutomationOperationKindValue,
+  AutomationRunOut as AdminAutomationRun,
+  AutomationTriggerKind as AdminAutomationTriggerKind,
   JsonValueInput,
-} from "@arclayer/openapi/admin-types";
+} from "@arclayer/openapi";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { Textarea } from "@arclayer/ui/textarea";
@@ -59,6 +59,9 @@ function createEmptyDraft(catalog?: AdminAutomationCatalog): FlowDraft {
 }
 
 function draftFromFlow(flow: AdminAutomationFlow, catalog?: AdminAutomationCatalog): FlowDraft {
+  if (!Array.isArray(flow.operations)) {
+    throw new Error("Invalid automation flow response");
+  }
   const operation = flow.operations[0] ?? null;
   return {
     description: flow.description ?? "",
@@ -144,6 +147,9 @@ function FlowList(props: {
   return (
     <div className="grid gap-3" data-testid="content-automation-flow-list">
       {props.flows.map((flow) => {
+        if (!Array.isArray(flow.operations)) {
+          throw new Error("Invalid automation flow response");
+        }
         const operation = flow.operations[0] ?? null;
         const selected = props.selectedFlowId === flow.id;
         return (

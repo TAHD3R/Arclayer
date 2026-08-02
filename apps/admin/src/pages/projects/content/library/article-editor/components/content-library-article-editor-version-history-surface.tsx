@@ -15,7 +15,7 @@ import {
   buildContentLibraryVersionHistoryQueryKey,
   loadContentLibraryVersionHistory,
 } from "@/pages/projects/content/library/runtime";
-import type { AdminContentVersion } from "@arclayer/openapi/admin-types";
+import type { ContentVersionOut as AdminContentVersion } from "@arclayer/openapi";
 import { Button } from "@arclayer/ui/button";
 import {
   Drawer,

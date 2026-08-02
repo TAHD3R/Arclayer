@@ -37,8 +37,8 @@ import {
 } from "@/components/ai/arclayer-agent-toolkit";
 import {
   agentIdsForComposerScope,
-  applyAIComposerSkillInstructions,
   consumeAIComposerDirectives,
+  skillInstallationIdsForComposerScope,
 } from "@/components/ai/ai-composer-directives";
 
 interface ArclayerThreadRuntimeOptions {
@@ -64,7 +64,7 @@ function readComposerText(message: AppendMessage): string {
     .join("")
     .trim();
   if (!text) throw new AgentRuntimeProtocolError("AGENT_MESSAGE_EMPTY");
-  return applyAIComposerSkillInstructions("thread", text);
+  return text;
 }
 
 function readMentionedAgentIds(message: AppendMessage): readonly string[] {
@@ -81,6 +81,24 @@ function readMentionedAgentIds(message: AppendMessage): readonly string[] {
     new Set(values).size !== values.length
   ) {
     throw new AgentRuntimeProtocolError("AGENT_MENTIONS_INVALID");
+  }
+  return values as string[];
+}
+
+function readSelectedSkillInstallationIds(message: AppendMessage): readonly string[] {
+  const custom = message.runConfig?.custom;
+  if (custom === undefined) return skillInstallationIdsForComposerScope("thread");
+  if (custom === null || typeof custom !== "object" || Array.isArray(custom)) {
+    throw new AgentRuntimeProtocolError("AGENT_SKILL_SELECTION_INVALID");
+  }
+  const values = (custom as Record<string, unknown>).selectedSkillInstallationIds;
+  if (values === undefined) return skillInstallationIdsForComposerScope("thread");
+  if (
+    !Array.isArray(values) ||
+    values.some((value) => typeof value !== "string" || !value.trim()) ||
+    new Set(values).size !== values.length
+  ) {
+    throw new AgentRuntimeProtocolError("AGENT_SKILL_SELECTION_INVALID");
   }
   return values as string[];
 }
@@ -266,6 +284,7 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
         }
         if (!threadId) throw new AgentRuntimeProtocolError("AGENT_THREAD_NOT_INITIALIZED");
         const mentionedAgentIds = readMentionedAgentIds(message);
+        const selectedSkillInstallationIds = readSelectedSkillInstallationIds(message);
         const controller = new AbortController();
         streamControllerRef.current?.abort();
         streamControllerRef.current = controller;
@@ -276,6 +295,7 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
             threadId,
             leadAgentId: options.leadAgentId,
             mentionedAgentIds,
+            selectedSkillInstallationIds,
             executionMode: options.executionMode,
             siteRevisionId: null,
             message: readComposerText(message),
@@ -283,7 +303,7 @@ function useArclayerThreadRuntime(options: ArclayerThreadRuntimeOptions) {
           },
           { signal: controller.signal },
         );
-        consumeAIComposerDirectives("thread", mentionedAgentIds);
+        consumeAIComposerDirectives("thread", mentionedAgentIds, selectedSkillInstallationIds);
         activeRunIdRef.current = created.runId;
         const snapshot = await getAgentRunSnapshot(options.workspaceId, created.runId, {
           signal: controller.signal,

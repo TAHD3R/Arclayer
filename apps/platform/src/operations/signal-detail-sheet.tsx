@@ -15,11 +15,13 @@ export function SignalDetailSheet({
   summaryTitle,
   onClose,
   onQueueRefresh,
+  showDestination = true,
 }: Readonly<{
   signalId: string;
   summaryTitle?: string;
   onClose: () => void;
   onQueueRefresh: () => void;
+  showDestination?: boolean;
 }>) {
   const { t } = useTranslation("inbox");
   const load = useCallback(
@@ -76,6 +78,7 @@ export function SignalDetailSheet({
                 <SignalTriageActions detail={detail} onReload={reload} onUpdated={handleUpdated} />
               }
               detail={detail}
+              showDestination={showDestination}
             />
           )}
         </div>

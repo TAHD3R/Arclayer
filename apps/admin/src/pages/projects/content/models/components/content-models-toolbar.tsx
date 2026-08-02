@@ -74,7 +74,7 @@ function buildFilterFields(t: TranslateFn): FilterFieldConfig<FilterValue>[] {
         { value: "custom", label: t("content:CONTENT_MODELS_CATEGORY_CUSTOM") },
         { value: "content_library", label: t("content:CONTENT_MODELS_CATEGORY_CONTENT_LIBRARY") },
         { value: "site_builder", label: t("content:CONTENT_MODELS_CATEGORY_SITE_BUILDER") },
-        { value: "system", label: t("content:CONTENT_MODELS_CATEGORY_SYSTEM") },
+        { value: "system", label: t("content:CONTENT_MODELS_CATEGORY_BUILT_IN") },
       ],
     },
     {
@@ -92,14 +92,14 @@ function buildFilterFields(t: TranslateFn): FilterFieldConfig<FilterValue>[] {
     },
     {
       key: "systemManaged",
-      label: t("content:CONTENT_MODELS_FILTER_FIELD_MANAGEMENT"),
+      label: t("content:CONTENT_MODELS_FILTER_FIELD_ORIGIN"),
       type: "select",
       icon: <ShieldCheckIcon className="size-4" />,
       searchable: false,
       operators: operatorLabels,
       options: [
-        { value: "yes", label: t("content:CONTENT_MODELS_FILTER_MANAGED_PLATFORM") },
-        { value: "no", label: t("content:CONTENT_MODELS_FILTER_MANAGED_CUSTOM") },
+        { value: "yes", label: t("content:CONTENT_MODELS_FILTER_ORIGIN_BUILT_IN") },
+        { value: "no", label: t("content:CONTENT_MODELS_FILTER_ORIGIN_CUSTOM") },
       ],
     },
   ];

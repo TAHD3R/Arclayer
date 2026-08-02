@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { NotificationOut as NotificationItem } from "@arclayer/openapi";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AdminSidebarInbox } from "@/components/layout/admin-sidebar-inbox";
@@ -86,7 +87,7 @@ function createNotification(
     archivedAt: string | null;
     createdAt: string;
   }> = {},
-) {
+): NotificationItem {
   return {
     id: overrides.id ?? "notification-id",
     workspaceId: "ws-1",
@@ -95,8 +96,12 @@ function createNotification(
     category: "team" as const,
     title: overrides.title ?? "Notification title",
     body: overrides.body ?? "Notification body",
-    targetTo: "/projects/project-alpha/assets",
-    targetMeta: null,
+    target: {
+      kind: "project",
+      projectId: "project-alpha",
+      destination: "content_library",
+    },
+    campaignSurface: null,
     eventName: null,
     dedupeKey: null,
     readAt: overrides.readAt ?? null,

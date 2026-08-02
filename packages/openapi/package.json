@@ -4,8 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./admin-types": "./src/admin-types.ts"
+    ".": "./src/index.ts"
   },
   "scripts": {
     "generate:openapi": "pnpm -C ../../apps/api openapi:export --composition product --out ../../packages/openapi/openapi.json",

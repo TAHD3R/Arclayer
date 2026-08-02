@@ -53,11 +53,10 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/hooks/use-system-runtime", () => ({
-  useSystemRuntime: () => ({
+vi.mock("@/hooks/use-product-runtime", () => ({
+  useProductRuntime: () => ({
     runtime: {
       capabilities: {
-        deploymentSettingsEnabled: true,
         publicRegisterEnabled: false,
       },
     },

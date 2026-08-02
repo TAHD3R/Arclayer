@@ -9,7 +9,10 @@ vi.mock("@/lib/http", () => ({
 import { api } from "@/lib/http";
 import { listProjectPermissionActions } from "@/api/rbac";
 import { getMyProjectAuthz } from "@/api/workspaces";
-import type { ProjectAuthzSnapshot, ProjectPermissionAction } from "@arclayer/openapi/admin-types";
+import type {
+  ProjectAuthzSnapshot,
+  ProjectPermissionActionOut as ProjectPermissionAction,
+} from "@arclayer/openapi";
 
 describe("api/project governance contracts", () => {
   beforeEach(() => {

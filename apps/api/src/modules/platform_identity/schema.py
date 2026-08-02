@@ -58,6 +58,25 @@ class PlatformOperatorInvitationCommand(BaseSchema):
     correlation_id: UUID
 
 
+class PlatformInvitationAcceptanceCommand(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(frozen=True)
+
+    invitation_id: UUID
+    accepter_user_id: UUID
+    expected_invitation_revision: int = Field(ge=1)
+    idempotency_key: str = Field(min_length=1, max_length=128)
+    correlation_id: UUID
+
+
+class PlatformInvitationSetupContext(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(frozen=True)
+
+    invitation_id: UUID
+    invitation_revision: int = Field(ge=1)
+    operator_id: UUID
+    requires_phishing_resistant: bool
+
+
 class PlatformOwnerBootstrapCommand(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(frozen=True)
 
@@ -101,18 +120,30 @@ class PlatformOwnershipAcceptanceCommand(BaseSchema):
     correlation_id: UUID
 
 
+PlatformMutationName = Literal[
+    "bootstrap_owner",
+    "invite_operator",
+    "revoke_operator_invitation",
+    "accept_operator_invitation",
+    "offboard_operator",
+    "nominate_ownership_transfer",
+    "accept_ownership_transfer",
+    "create_custom_role",
+    "copy_custom_role",
+    "apply_custom_role_revision",
+    "assign_platform_roles",
+    "retire_custom_role",
+    "revoke_platform_session",
+    "revoke_other_platform_sessions",
+    "remove_platform_mfa_method",
+]
+
+
 class PlatformMutationReceipt(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(frozen=True)
 
     entity_id: UUID
-    mutation: Literal[
-        "bootstrap_owner",
-        "invite_operator",
-        "accept_operator_invitation",
-        "offboard_operator",
-        "nominate_ownership_transfer",
-        "accept_ownership_transfer",
-    ]
+    mutation: PlatformMutationName
     replayed: bool = False
     correlation_id: UUID
 

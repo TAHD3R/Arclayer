@@ -20,6 +20,7 @@ from src.modules.projects.builder.global_section_schema import (
 )
 from src.modules.projects.builder.manifest import RootSiteRevisionManifestInput, build_root_site_revision_manifest
 from src.modules.projects.builder.render_document import build_page_render_document
+from src.modules.projects.builder.render_document_design import BuilderRenderDesignPins
 from src.modules.projects.builder.schema import (
     BuilderGlobalSectionVersionPinV1,
     BuilderPageVersionPinV1,
@@ -549,6 +550,66 @@ def test_render_document_rejects_unknown_locale_theme_and_tampered_design_checks
             catalog=fixture.catalog,
         )
     assert _invalid_code(checksum_exc.value) == "BUILDER_RENDER_DESIGN_CONTRACT_INVALID"
+
+
+def test_render_document_uses_an_explicit_candidate_design_pin_without_mutating_the_revision() -> None:
+    fixture = _render_fixture()
+    baseline = _build(fixture)
+    candidate_payload = deepcopy(fixture.design_manifest.model_dump(mode="json", by_alias=True, exclude={"checksum"}))
+    candidate_payload["name"] = "Candidate renderer contract"
+    candidate_payload["primitiveTokens"]["primitive.color.action"]["value"] = "#B42318"
+    candidate_manifest = build_design_system_manifest(DesignSystemManifestInputV1.model_validate(candidate_payload))
+    candidate_pins = BuilderRenderDesignPins(
+        design_system_id=uuid4(),
+        design_system_version_id=uuid4(),
+        design_system_manifest_checksum=candidate_manifest.checksum,
+    )
+
+    document = build_page_render_document(
+        revision=fixture.revision,
+        page_item_id=fixture.page_item_id,
+        locale="en-US",
+        theme_key=None,
+        version_by_item=fixture.versions,
+        seo_profile=fixture.seo_profile,
+        design_manifest=candidate_manifest,
+        catalog=fixture.catalog,
+        design_pins=candidate_pins,
+    )
+
+    assert document.pins.site_revision_id == fixture.revision.site_revision.id
+    assert document.pins.site_revision_hash == fixture.revision.site_revision.manifest_hash
+    assert document.pins.page_content_version_id == fixture.revision.pages[0].content_version_id
+    assert document.pins.design_system_id == candidate_pins.design_system_id
+    assert document.pins.design_system_version_id == candidate_pins.design_system_version_id
+    assert document.pins.design_system_manifest_checksum == candidate_manifest.checksum
+    assert fixture.revision.site_revision.design_system_id != candidate_pins.design_system_id
+    assert fixture.revision.site_revision.design_system_version_id != candidate_pins.design_system_version_id
+    assert fixture.revision.site_revision.design_system_manifest_checksum != candidate_manifest.checksum
+    assert document.document_hash != baseline.document_hash
+    assert document.sections[0].component_recipe is not None
+    default_recipe = next(
+        state for state in document.sections[0].component_recipe.states if state.state_key == "default"
+    )
+    assert default_recipe.style_values["action.background"] == "#B42318"
+
+    mismatched_pins = candidate_pins.model_copy(
+        update={"design_system_manifest_checksum": fixture.design_manifest.checksum},
+    )
+    with pytest.raises(Conflict) as exc_info:
+        build_page_render_document(
+            revision=fixture.revision,
+            page_item_id=fixture.page_item_id,
+            locale="en-US",
+            theme_key=None,
+            version_by_item=fixture.versions,
+            seo_profile=fixture.seo_profile,
+            design_manifest=candidate_manifest,
+            catalog=fixture.catalog,
+            design_pins=mismatched_pins,
+        )
+
+    assert _invalid_code(exc_info.value) == "BUILDER_RENDER_DESIGN_CONTRACT_INVALID"
 
 
 def test_render_document_hash_changes_with_pinned_content() -> None:

@@ -1,7 +1,20 @@
 import { projectPath, toQueryString } from "@/lib/api";
 import { api } from "@/lib/http";
-import type { ProjectMember } from "@arclayer/openapi/admin-types";
-import type { PageData } from "@arclayer/openapi/admin-types";
+import type {
+  ProjectMemberOut as ProjectMember,
+  PageDataProjectMemberOut,
+} from "@arclayer/openapi";
+
+type ProjectMemberPage = Omit<PageDataProjectMemberOut, "items"> & {
+  items: NonNullable<PageDataProjectMemberOut["items"]>;
+};
+
+function requireProjectMemberPage(page: PageDataProjectMemberOut): ProjectMemberPage {
+  if (!Array.isArray(page.items)) {
+    throw new Error("Invalid project member pagination response");
+  }
+  return { ...page, items: page.items };
+}
 
 export async function listProjectMembers(
   projectId: string,
@@ -10,13 +23,14 @@ export async function listProjectMembers(
     size?: number;
     q?: string;
   } = {},
-): Promise<PageData<ProjectMember>> {
+): Promise<ProjectMemberPage> {
   const query = toQueryString({
     page: params.page ?? 1,
     size: params.size ?? 10,
     q: params.q,
   });
-  return api.get<PageData<ProjectMember>>(projectPath(projectId, `/members${query}`));
+  const page = await api.get<PageDataProjectMemberOut>(projectPath(projectId, `/members${query}`));
+  return requireProjectMemberPage(page);
 }
 
 export async function updateProjectMemberRole(

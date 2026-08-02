@@ -1,9 +1,12 @@
 import type {
-  AdminContentModel,
-  AdminContentModelCategory,
-  AdminContentModelKind,
-  CreateAdminContentModelPayload,
-} from "@arclayer/openapi/admin-types";
+  ContentModelOut,
+  ContentModelDefinitionContract as CreateAdminContentModelPayload,
+} from "@arclayer/openapi";
+import type { listAllContentModels } from "@/api/content";
+
+type AdminContentModel = Awaited<ReturnType<typeof listAllContentModels>>[number];
+type AdminContentModelCategory = ContentModelOut["category"];
+type AdminContentModelKind = NonNullable<ContentModelOut["modelKind"]>;
 
 export type ContentModelsTableRow = AdminContentModel;
 

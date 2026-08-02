@@ -4,6 +4,7 @@ import hashlib
 import json
 import unicodedata
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
 from typing import Any, Literal, NoReturn, Protocol
 from uuid import UUID
 
@@ -14,10 +15,22 @@ from src.core.exceptions import Conflict, NotFound
 from src.core.services import BaseService
 from src.models.knowledge._enums import (
     KnowledgeBaseStatus,
+    KnowledgeGuidanceCommandKind,
+    KnowledgeGuidancePreviewKind,
+    KnowledgeGuidancePreviewStatus,
+    KnowledgeGuidanceRevisionStatus,
+    KnowledgeGuidanceScope,
     KnowledgeIngestionMode,
+    KnowledgeProjectGuidanceMode,
     KnowledgeSourceKind,
     KnowledgeSourceStatus,
     KnowledgeVersionStatus,
+)
+from src.models.knowledge.guidance import (
+    KnowledgeGuidanceCommandRecord,
+    KnowledgeGuidanceLayerRecord,
+    KnowledgeGuidancePreviewRecord,
+    KnowledgeGuidanceRevisionRecord,
 )
 from src.models.knowledge.knowledge_base import KnowledgeAccessPolicyRecord, KnowledgeBaseRecord
 from src.models.knowledge.knowledge_source import KnowledgeSourceRecord
@@ -35,10 +48,16 @@ from src.modules.workspaces.knowledge.ingestion_contract import (
 from src.modules.workspaces.knowledge.projection import (
     project_base_detail,
     project_base_summary,
+    project_effective_guidance_preview,
+    project_guidance_layer,
+    project_guidance_revision,
     project_source,
     project_version,
 )
-from src.modules.workspaces.knowledge.repository import WorkspaceKnowledgeRepository
+from src.modules.workspaces.knowledge.repository import (
+    WorkspaceGuidanceRepository,
+    WorkspaceKnowledgeRepository,
+)
 from src.modules.workspaces.knowledge.schema import (
     KnowledgeAccessPolicy,
     KnowledgeBaseCreateRequest,
@@ -46,6 +65,18 @@ from src.modules.workspaces.knowledge.schema import (
     KnowledgeBaseSummaryOut,
     KnowledgeBaseUpdateRequest,
     KnowledgeCursorPage,
+    KnowledgeGuidanceDraftSaveRequest,
+    KnowledgeGuidanceEffectivePreviewOut,
+    KnowledgeGuidanceImpactOut,
+    KnowledgeGuidanceLayerOut,
+    KnowledgeGuidancePreviewApplyRequest,
+    KnowledgeGuidancePreviewOut,
+    KnowledgeGuidancePublishRequest,
+    KnowledgeGuidanceReferenceAttachRequest,
+    KnowledgeGuidanceReferenceDetachRequest,
+    KnowledgeGuidanceRemovePreviewRequest,
+    KnowledgeGuidanceRestorePreviewRequest,
+    KnowledgeGuidanceRevisionOut,
     KnowledgeSourceCreateRequest,
     KnowledgeSourceIngestionAcceptedOut,
     KnowledgeSourceIngestionCreateRequest,
@@ -89,15 +120,18 @@ def workspace_knowledge_capabilities(
     settings: Settings | None = None,
 ) -> WorkspaceKnowledgeCapabilitiesOut:
     resolved_settings = settings or get_settings()
+    external_ingestion_available = (
+        resolved_settings.knowledge_source_fetch.enabled and resolved_settings.knowledge_index.enabled
+    )
     return WorkspaceKnowledgeCapabilitiesOut(
         manual_sources_available=True,
-        external_ingestion_available=(
-            resolved_settings.knowledge_source_fetch.enabled and resolved_settings.knowledge_index.enabled
-        ),
+        external_ingestion_available=external_ingestion_available,
         indexing_available=resolved_settings.knowledge_index.enabled,
-        retrieval_available=True,
+        # This rollout cannot advertise retrieval before its ACL, citation, and
+        # Agent Run pinning acceptance gate has been verified.
+        retrieval_available=False,
         immutable_source_versions=True,
-        supported_source_kinds=("manual", "file", "url", "connector", "structured_content"),
+        supported_source_kinds=("manual", "url") if external_ingestion_available else ("manual",),
     )
 
 
@@ -959,6 +993,1104 @@ class WorkspaceKnowledgeService(BaseService):
             ),
             conn=conn,
         )
+
+
+KNOWLEDGE_GUIDANCE_DRAFT_SAVED = "workspace.knowledge.guidance.draft_saved"
+KNOWLEDGE_GUIDANCE_PUBLISHED = "workspace.knowledge.guidance.published"
+KNOWLEDGE_GUIDANCE_RESTORE_PREVIEWED = "workspace.knowledge.guidance.restore_previewed"
+KNOWLEDGE_GUIDANCE_REMOVE_PREVIEWED = "workspace.knowledge.guidance.remove_previewed"
+KNOWLEDGE_GUIDANCE_RESTORE_APPLIED = "workspace.knowledge.guidance.restore_applied"
+KNOWLEDGE_GUIDANCE_REMOVE_APPLIED = "workspace.knowledge.guidance.remove_applied"
+KNOWLEDGE_GUIDANCE_REFERENCE_ATTACHED = "workspace.knowledge.guidance.reference_attached"
+KNOWLEDGE_GUIDANCE_REFERENCE_DETACHED = "workspace.knowledge.guidance.reference_detached"
+KNOWLEDGE_GUIDANCE_LAYER_MISSING = "KNOWLEDGE_GUIDANCE_LAYER_MISSING"
+
+
+class WorkspaceGuidanceService(BaseService):
+    """Own the canonical shared and Project guidance lifecycle.
+
+    Source collections remain optional references. Authored guidance stays in
+    immutable revisions and does not reuse a Knowledge Base as a facade.
+    """
+
+    def __init__(
+        self,
+        *,
+        repository: WorkspaceGuidanceRepository,
+        settings: Settings | None = None,
+        activity_writer: ActivityWriter = write_required_activity_event,
+    ) -> None:
+        super().__init__(settings)
+        self._repository = repository
+        self._activity_writer = activity_writer
+
+    async def get_workspace_layer(self, *, workspace_id: UUID) -> KnowledgeGuidanceLayerOut:
+        async with self.tx() as conn:
+            layer = await self._require_existing_layer(
+                workspace_id=workspace_id,
+                project_id=None,
+                for_update=False,
+                conn=conn,
+            )
+            return await self._project_layer(layer=layer, conn=conn)
+
+    async def get_project_layer(
+        self,
+        *,
+        workspace_id: UUID,
+        project_id: UUID,
+    ) -> KnowledgeGuidanceLayerOut:
+        async with self.tx() as conn:
+            layer = await self._require_existing_layer(
+                workspace_id=workspace_id,
+                project_id=project_id,
+                for_update=False,
+                conn=conn,
+            )
+            return await self._project_layer(layer=layer, conn=conn)
+
+    async def list_revision_history(
+        self,
+        *,
+        workspace_id: UUID,
+        project_id: UUID | None,
+        limit: int,
+        cursor: UUID | None,
+    ) -> KnowledgeCursorPage[KnowledgeGuidanceRevisionOut]:
+        async with self.tx() as conn:
+            layer = await self._require_existing_layer(
+                workspace_id=workspace_id,
+                project_id=project_id,
+                for_update=False,
+                conn=conn,
+            )
+            revisions, next_cursor = await self._repository.list_revisions(
+                workspace_id=workspace_id,
+                guidance_layer_id=layer.id,
+                limit=limit,
+                cursor=cursor,
+                conn=conn,
+            )
+            return KnowledgeCursorPage(
+                items=tuple(project_guidance_revision(revision) for revision in revisions),
+                next_cursor=next_cursor,
+            )
+
+    async def get_effective_preview(
+        self,
+        *,
+        workspace_id: UUID,
+        project_id: UUID | None,
+    ) -> KnowledgeGuidanceEffectivePreviewOut:
+        async with self.tx() as conn:
+            workspace_layer = await self._require_existing_layer(
+                workspace_id=workspace_id,
+                project_id=None,
+                for_update=False,
+                conn=conn,
+            )
+            project_layer = (
+                await self._require_existing_layer(
+                    workspace_id=workspace_id,
+                    project_id=project_id,
+                    for_update=False,
+                    conn=conn,
+                )
+                if project_id is not None
+                else None
+            )
+            return project_effective_guidance_preview(
+                workspace=await self._project_layer(layer=workspace_layer, conn=conn),
+                project=(
+                    await self._project_layer(layer=project_layer, conn=conn)
+                    if project_layer is not None
+                    else None
+                ),
+            )
+
+    async def save_draft(
+        self,
+        *,
+        workspace_id: UUID,
+        organization_id: UUID,
+        project_id: UUID | None,
+        actor_user_id: UUID,
+        idempotency_key: str,
+        payload: KnowledgeGuidanceDraftSaveRequest,
+    ) -> KnowledgeGuidanceLayerOut:
+        key = _require_idempotency_key(idempotency_key)
+        content = _normalize_guidance_content(payload.content)
+        fingerprint = _fingerprint({
+            "workspaceId": str(workspace_id),
+            "projectId": str(project_id) if project_id is not None else None,
+            "contentHash": _content_hash(content),
+            "projectMode": payload.project_mode,
+            "expectedRevision": payload.expected_revision,
+        })
+        async with self.tx() as conn:
+            layer = await self._require_existing_layer(
+                workspace_id=workspace_id,
+                project_id=project_id,
+                for_update=True,
+                conn=conn,
+            )
+            revision_key = _guidance_revision_key("draft", key)
+            existing = await self._repository.get_revision_by_idempotency_key(
+                guidance_layer_id=layer.id,
+                idempotency_key=revision_key,
+                conn=conn,
+            )
+            if existing is None:
+                _require_revision(layer.metadata_revision, payload.expected_revision)
+                project_mode = _resolve_guidance_project_mode(
+                    layer=layer,
+                    project_id=project_id,
+                    requested=payload.project_mode,
+                )
+                revision = await self._repository.create_revision(
+                    values={
+                        "guidance_layer_id": layer.id,
+                        "workspace_id": workspace_id,
+                        "revision_number": await self._repository.next_revision_number(
+                            guidance_layer_id=layer.id,
+                            conn=conn,
+                        ),
+                        "content": content,
+                        "content_hash": _content_hash(content),
+                        "status": KnowledgeGuidanceRevisionStatus.DRAFT,
+                        "created_by_user_id": actor_user_id,
+                        "request_idempotency_key": revision_key,
+                        "request_fingerprint": fingerprint,
+                    },
+                    conn=conn,
+                )
+                layer.draft_revision_id = revision.id
+                layer.project_mode = project_mode
+                layer.metadata_revision += 1
+                layer.updated_by_user_id = actor_user_id
+                await self._repository.save_layer(
+                    record=layer,
+                    update_fields=(
+                        "draft_revision_id",
+                        "project_mode",
+                        "metadata_revision",
+                        "updated_by_user_id",
+                    ),
+                    conn=conn,
+                )
+                await self._write_activity(
+                    event_name=KNOWLEDGE_GUIDANCE_DRAFT_SAVED,
+                    organization_id=organization_id,
+                    workspace_id=workspace_id,
+                    actor_user_id=actor_user_id,
+                    entity_type="knowledge_guidance_layer",
+                    entity_id=layer.id,
+                    properties={
+                        "scope": _guidance_scope_name(project_id),
+                        "revisionId": str(revision.id),
+                        "revisionNumber": revision.revision_number,
+                        "metadataRevision": layer.metadata_revision,
+                    },
+                    conn=conn,
+                )
+            else:
+                _require_matching_fingerprint(existing.request_fingerprint, fingerprint)
+            return await self._project_layer(layer=layer, conn=conn)
+
+    async def publish(
+        self,
+        *,
+        workspace_id: UUID,
+        organization_id: UUID,
+        project_id: UUID | None,
+        actor_user_id: UUID,
+        idempotency_key: str,
+        payload: KnowledgeGuidancePublishRequest,
+    ) -> KnowledgeGuidanceLayerOut:
+        key = _require_idempotency_key(idempotency_key)
+        fingerprint = _fingerprint({
+            "workspaceId": str(workspace_id),
+            "projectId": str(project_id) if project_id is not None else None,
+            "revisionId": str(payload.revision_id) if payload.revision_id is not None else None,
+            "expectedRevision": payload.expected_revision,
+        })
+        async with self.tx() as conn:
+            layer = await self._require_existing_layer(
+                workspace_id=workspace_id,
+                project_id=project_id,
+                for_update=True,
+                conn=conn,
+            )
+            command = await self._repository.get_command(
+                guidance_layer_id=layer.id,
+                kind=KnowledgeGuidanceCommandKind.PUBLISH,
+                idempotency_key=key,
+                conn=conn,
+            )
+            if command is not None:
+                _require_matching_fingerprint(command.request_fingerprint, fingerprint)
+                return _guidance_command_result(command)
+            _require_revision(layer.metadata_revision, payload.expected_revision)
+            revision_id = payload.revision_id or layer.draft_revision_id
+            if revision_id is None:
+                raise Conflict("A draft guidance revision is required", error="KNOWLEDGE_GUIDANCE_DRAFT_REQUIRED")
+            revision = await self._repository.get_revision_for_update(
+                workspace_id=workspace_id,
+                guidance_layer_id=layer.id,
+                revision_id=revision_id,
+                conn=conn,
+            )
+            if revision is None:
+                _raise_not_found()
+            if revision.status != KnowledgeGuidanceRevisionStatus.DRAFT:
+                raise Conflict("Guidance revision is not publishable", error="KNOWLEDGE_GUIDANCE_REVISION_NOT_DRAFT")
+            previous = await self._published_revision_for_update(layer=layer, conn=conn)
+            now = datetime.now(UTC)
+            revision.status = KnowledgeGuidanceRevisionStatus.PUBLISHED
+            revision.published_at = now
+            revision.published_by_user_id = actor_user_id
+            await self._repository.save_revision(
+                record=revision,
+                update_fields=("status", "published_at", "published_by_user_id"),
+                conn=conn,
+            )
+            if previous is not None and previous.id != revision.id:
+                previous.status = KnowledgeGuidanceRevisionStatus.SUPERSEDED
+                await self._repository.save_revision(
+                    record=previous,
+                    update_fields=("status",),
+                    conn=conn,
+                )
+            layer.published_revision_id = revision.id
+            layer.draft_revision_id = None
+            layer.removed_at = None
+            layer.removed_by_user_id = None
+            layer.metadata_revision += 1
+            layer.updated_by_user_id = actor_user_id
+            await self._repository.save_layer(
+                record=layer,
+                update_fields=(
+                    "published_revision_id",
+                    "draft_revision_id",
+                    "removed_at",
+                    "removed_by_user_id",
+                    "metadata_revision",
+                    "updated_by_user_id",
+                ),
+                conn=conn,
+            )
+            result = await self._project_layer(layer=layer, conn=conn)
+            await self._repository.create_command(
+                values={
+                    "guidance_layer_id": layer.id,
+                    "workspace_id": workspace_id,
+                    "kind": KnowledgeGuidanceCommandKind.PUBLISH,
+                    "request_idempotency_key": key,
+                    "request_fingerprint": fingerprint,
+                    "result_snapshot": result.model_dump(mode="json", by_alias=True),
+                    "actor_user_id": actor_user_id,
+                },
+                conn=conn,
+            )
+            await self._write_activity(
+                event_name=KNOWLEDGE_GUIDANCE_PUBLISHED,
+                organization_id=organization_id,
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                entity_type="knowledge_guidance_layer",
+                entity_id=layer.id,
+                properties={
+                    "scope": _guidance_scope_name(project_id),
+                    "revisionId": str(revision.id),
+                    "metadataRevision": layer.metadata_revision,
+                },
+                conn=conn,
+            )
+            return result
+
+    async def create_restore_preview(
+        self,
+        *,
+        workspace_id: UUID,
+        organization_id: UUID,
+        project_id: UUID | None,
+        actor_user_id: UUID,
+        idempotency_key: str,
+        payload: KnowledgeGuidanceRestorePreviewRequest,
+    ) -> KnowledgeGuidancePreviewOut:
+        return await self._create_preview(
+            workspace_id=workspace_id,
+            organization_id=organization_id,
+            project_id=project_id,
+            actor_user_id=actor_user_id,
+            idempotency_key=idempotency_key,
+            kind=KnowledgeGuidancePreviewKind.RESTORE,
+            expected_revision=payload.expected_revision,
+            source_revision_id=payload.source_revision_id,
+        )
+
+    async def create_remove_preview(
+        self,
+        *,
+        workspace_id: UUID,
+        organization_id: UUID,
+        project_id: UUID | None,
+        actor_user_id: UUID,
+        idempotency_key: str,
+        payload: KnowledgeGuidanceRemovePreviewRequest,
+    ) -> KnowledgeGuidancePreviewOut:
+        return await self._create_preview(
+            workspace_id=workspace_id,
+            organization_id=organization_id,
+            project_id=project_id,
+            actor_user_id=actor_user_id,
+            idempotency_key=idempotency_key,
+            kind=KnowledgeGuidancePreviewKind.REMOVE,
+            expected_revision=payload.expected_revision,
+            source_revision_id=None,
+        )
+
+    async def apply_restore_preview(
+        self,
+        *,
+        workspace_id: UUID,
+        organization_id: UUID,
+        project_id: UUID | None,
+        preview_id: UUID,
+        actor_user_id: UUID,
+        idempotency_key: str,
+        payload: KnowledgeGuidancePreviewApplyRequest,
+    ) -> KnowledgeGuidanceLayerOut:
+        return await self._apply_preview(
+            workspace_id=workspace_id,
+            organization_id=organization_id,
+            project_id=project_id,
+            preview_id=preview_id,
+            actor_user_id=actor_user_id,
+            idempotency_key=idempotency_key,
+            payload=payload,
+            kind=KnowledgeGuidancePreviewKind.RESTORE,
+        )
+
+    async def apply_remove_preview(
+        self,
+        *,
+        workspace_id: UUID,
+        organization_id: UUID,
+        project_id: UUID | None,
+        preview_id: UUID,
+        actor_user_id: UUID,
+        idempotency_key: str,
+        payload: KnowledgeGuidancePreviewApplyRequest,
+    ) -> KnowledgeGuidanceLayerOut:
+        return await self._apply_preview(
+            workspace_id=workspace_id,
+            organization_id=organization_id,
+            project_id=project_id,
+            preview_id=preview_id,
+            actor_user_id=actor_user_id,
+            idempotency_key=idempotency_key,
+            payload=payload,
+            kind=KnowledgeGuidancePreviewKind.REMOVE,
+        )
+
+    async def attach_reference(
+        self,
+        *,
+        workspace_id: UUID,
+        organization_id: UUID,
+        project_id: UUID | None,
+        actor_user_id: UUID,
+        idempotency_key: str,
+        payload: KnowledgeGuidanceReferenceAttachRequest,
+    ) -> KnowledgeGuidanceLayerOut:
+        key = _require_idempotency_key(idempotency_key)
+        fingerprint = _fingerprint({
+            "workspaceId": str(workspace_id),
+            "projectId": str(project_id) if project_id is not None else None,
+            "knowledgeBaseId": str(payload.knowledge_base_id),
+            "expectedRevision": payload.expected_revision,
+        })
+        async with self.tx() as conn:
+            layer = await self._require_existing_layer(
+                workspace_id=workspace_id,
+                project_id=project_id,
+                for_update=True,
+                conn=conn,
+            )
+            command = await self._repository.get_command(
+                guidance_layer_id=layer.id,
+                kind=KnowledgeGuidanceCommandKind.REFERENCE_ATTACH,
+                idempotency_key=key,
+                conn=conn,
+            )
+            if command is not None:
+                _require_matching_fingerprint(command.request_fingerprint, fingerprint)
+                return _guidance_command_result(command)
+            _require_revision(layer.metadata_revision, payload.expected_revision)
+            base = await self._repository.get_knowledge_base(
+                workspace_id=workspace_id,
+                knowledge_base_id=payload.knowledge_base_id,
+                conn=conn,
+            )
+            if base is None:
+                _raise_not_found()
+            if base.status != KnowledgeBaseStatus.ACTIVE:
+                raise Conflict("Knowledge reference is not active", error="KNOWLEDGE_GUIDANCE_REFERENCE_UNAVAILABLE")
+            if await self._repository.get_reference(
+                workspace_id=workspace_id,
+                guidance_layer_id=layer.id,
+                knowledge_base_id=base.id,
+                conn=conn,
+            ):
+                raise Conflict("Knowledge reference is already attached", error="KNOWLEDGE_GUIDANCE_REFERENCE_EXISTS")
+            await self._repository.create_reference(
+                values={
+                    "guidance_layer_id": layer.id,
+                    "workspace_id": workspace_id,
+                    "knowledge_base_id": base.id,
+                    "created_by_user_id": actor_user_id,
+                },
+                conn=conn,
+            )
+            return await self._finish_reference_command(
+                layer=layer,
+                workspace_id=workspace_id,
+                organization_id=organization_id,
+                project_id=project_id,
+                actor_user_id=actor_user_id,
+                idempotency_key=key,
+                fingerprint=fingerprint,
+                kind=KnowledgeGuidanceCommandKind.REFERENCE_ATTACH,
+                event_name=KNOWLEDGE_GUIDANCE_REFERENCE_ATTACHED,
+                knowledge_base_id=base.id,
+                conn=conn,
+            )
+
+    async def detach_reference(
+        self,
+        *,
+        workspace_id: UUID,
+        organization_id: UUID,
+        project_id: UUID | None,
+        knowledge_base_id: UUID,
+        actor_user_id: UUID,
+        idempotency_key: str,
+        payload: KnowledgeGuidanceReferenceDetachRequest,
+    ) -> KnowledgeGuidanceLayerOut:
+        key = _require_idempotency_key(idempotency_key)
+        fingerprint = _fingerprint({
+            "workspaceId": str(workspace_id),
+            "projectId": str(project_id) if project_id is not None else None,
+            "knowledgeBaseId": str(knowledge_base_id),
+            "expectedRevision": payload.expected_revision,
+        })
+        async with self.tx() as conn:
+            layer = await self._require_existing_layer(
+                workspace_id=workspace_id,
+                project_id=project_id,
+                for_update=True,
+                conn=conn,
+            )
+            command = await self._repository.get_command(
+                guidance_layer_id=layer.id,
+                kind=KnowledgeGuidanceCommandKind.REFERENCE_DETACH,
+                idempotency_key=key,
+                conn=conn,
+            )
+            if command is not None:
+                _require_matching_fingerprint(command.request_fingerprint, fingerprint)
+                return _guidance_command_result(command)
+            _require_revision(layer.metadata_revision, payload.expected_revision)
+            reference = await self._repository.get_reference(
+                workspace_id=workspace_id,
+                guidance_layer_id=layer.id,
+                knowledge_base_id=knowledge_base_id,
+                conn=conn,
+            )
+            if reference is None:
+                _raise_not_found()
+            await self._repository.delete_reference(record=reference, conn=conn)
+            return await self._finish_reference_command(
+                layer=layer,
+                workspace_id=workspace_id,
+                organization_id=organization_id,
+                project_id=project_id,
+                actor_user_id=actor_user_id,
+                idempotency_key=key,
+                fingerprint=fingerprint,
+                kind=KnowledgeGuidanceCommandKind.REFERENCE_DETACH,
+                event_name=KNOWLEDGE_GUIDANCE_REFERENCE_DETACHED,
+                knowledge_base_id=knowledge_base_id,
+                conn=conn,
+            )
+
+    async def _create_preview(
+        self,
+        *,
+        workspace_id: UUID,
+        organization_id: UUID,
+        project_id: UUID | None,
+        actor_user_id: UUID,
+        idempotency_key: str,
+        kind: KnowledgeGuidancePreviewKind,
+        expected_revision: int,
+        source_revision_id: UUID | None,
+    ) -> KnowledgeGuidancePreviewOut:
+        key = _require_idempotency_key(idempotency_key)
+        fingerprint = _fingerprint({
+            "workspaceId": str(workspace_id),
+            "projectId": str(project_id) if project_id is not None else None,
+            "kind": str(kind),
+            "expectedRevision": expected_revision,
+            "sourceRevisionId": str(source_revision_id) if source_revision_id is not None else None,
+        })
+        async with self.tx() as conn:
+            layer = await self._require_existing_layer(
+                workspace_id=workspace_id,
+                project_id=project_id,
+                for_update=True,
+                conn=conn,
+            )
+            preview = await self._repository.get_preview_by_idempotency_key(
+                guidance_layer_id=layer.id,
+                kind=kind,
+                idempotency_key=key,
+                conn=conn,
+            )
+            if preview is None:
+                _require_revision(layer.metadata_revision, expected_revision)
+                source_revision = None
+                if kind == KnowledgeGuidancePreviewKind.RESTORE:
+                    if source_revision_id is None:
+                        raise RuntimeError("Guidance restore preview requires a source revision")
+                    source_revision = await self._repository.get_revision(
+                        workspace_id=workspace_id,
+                        guidance_layer_id=layer.id,
+                        revision_id=source_revision_id,
+                        conn=conn,
+                    )
+                    if source_revision is None:
+                        _raise_not_found()
+                    if source_revision.status == KnowledgeGuidanceRevisionStatus.DRAFT:
+                        raise Conflict(
+                            "Only published guidance history can be restored",
+                            error="KNOWLEDGE_GUIDANCE_RESTORE_SOURCE_INVALID",
+                        )
+                reference_count, source_count, ready_source_count = await self._repository.source_counts_for_references(
+                    workspace_id=workspace_id,
+                    guidance_layer_id=layer.id,
+                    conn=conn,
+                )
+                project_guidance_count = (
+                    await self._repository.count_project_layers(workspace_id=workspace_id, conn=conn)
+                    if project_id is None
+                    else 0
+                )
+                preview = await self._repository.create_preview(
+                    values={
+                        "guidance_layer_id": layer.id,
+                        "workspace_id": workspace_id,
+                        "kind": kind,
+                        "status": KnowledgeGuidancePreviewStatus.ACTIVE,
+                        "expected_layer_revision": layer.metadata_revision,
+                        "preview_revision": 1,
+                        "source_revision_id": source_revision.id if source_revision is not None else None,
+                        "snapshot": {
+                            "referenceCount": reference_count,
+                            "sourceCount": source_count,
+                            "readySourceCount": ready_source_count,
+                            "projectGuidanceCount": project_guidance_count,
+                            "sourceContentHash": source_revision.content_hash if source_revision is not None else None,
+                        },
+                        "request_idempotency_key": key,
+                        "request_fingerprint": fingerprint,
+                        "actor_user_id": actor_user_id,
+                    },
+                    conn=conn,
+                )
+                await self._write_activity(
+                    event_name=(
+                        KNOWLEDGE_GUIDANCE_RESTORE_PREVIEWED
+                        if kind == KnowledgeGuidancePreviewKind.RESTORE
+                        else KNOWLEDGE_GUIDANCE_REMOVE_PREVIEWED
+                    ),
+                    organization_id=organization_id,
+                    workspace_id=workspace_id,
+                    actor_user_id=actor_user_id,
+                    entity_type="knowledge_guidance_preview",
+                    entity_id=preview.id,
+                    properties={
+                        "scope": _guidance_scope_name(project_id),
+                        "guidanceLayerId": str(layer.id),
+                        "kind": str(kind),
+                        "metadataRevision": layer.metadata_revision,
+                    },
+                    conn=conn,
+                )
+            else:
+                _require_matching_fingerprint(preview.request_fingerprint, fingerprint)
+            return _project_guidance_preview(preview=preview, layer=layer)
+
+    async def _apply_preview(
+        self,
+        *,
+        workspace_id: UUID,
+        organization_id: UUID,
+        project_id: UUID | None,
+        preview_id: UUID,
+        actor_user_id: UUID,
+        idempotency_key: str,
+        payload: KnowledgeGuidancePreviewApplyRequest,
+        kind: KnowledgeGuidancePreviewKind,
+    ) -> KnowledgeGuidanceLayerOut:
+        key = _require_idempotency_key(idempotency_key)
+        fingerprint = _fingerprint({
+            "workspaceId": str(workspace_id),
+            "projectId": str(project_id) if project_id is not None else None,
+            "previewId": str(preview_id),
+            "kind": str(kind),
+            "expectedGuidanceRevision": payload.expected_guidance_revision,
+            "expectedPreviewRevision": payload.expected_preview_revision,
+        })
+        command_kind = (
+            KnowledgeGuidanceCommandKind.RESTORE
+            if kind == KnowledgeGuidancePreviewKind.RESTORE
+            else KnowledgeGuidanceCommandKind.REMOVE
+        )
+        async with self.tx() as conn:
+            layer = await self._require_existing_layer(
+                workspace_id=workspace_id,
+                project_id=project_id,
+                for_update=True,
+                conn=conn,
+            )
+            command = await self._repository.get_command(
+                guidance_layer_id=layer.id,
+                kind=command_kind,
+                idempotency_key=key,
+                conn=conn,
+            )
+            if command is not None:
+                _require_matching_fingerprint(command.request_fingerprint, fingerprint)
+                return _guidance_command_result(command)
+            _require_revision(layer.metadata_revision, payload.expected_guidance_revision)
+            preview = await self._repository.get_preview_for_update(
+                workspace_id=workspace_id,
+                guidance_layer_id=layer.id,
+                preview_id=preview_id,
+                conn=conn,
+            )
+            if preview is None:
+                _raise_not_found()
+            if preview.kind != kind:
+                raise Conflict("Guidance preview kind does not match", error="KNOWLEDGE_GUIDANCE_PREVIEW_INVALID")
+            if preview.status != KnowledgeGuidancePreviewStatus.ACTIVE:
+                raise Conflict("Guidance preview has already been applied", error="KNOWLEDGE_GUIDANCE_PREVIEW_APPLIED")
+            if (
+                preview.expected_layer_revision != layer.metadata_revision
+                or preview.preview_revision != payload.expected_preview_revision
+            ):
+                raise Conflict("Guidance preview is stale", error="KNOWLEDGE_GUIDANCE_PREVIEW_STALE")
+            await self._apply_preview_effect(
+                layer=layer,
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                idempotency_key=key,
+                fingerprint=fingerprint,
+                kind=kind,
+                preview=preview,
+                conn=conn,
+            )
+            now = datetime.now(UTC)
+            preview.status = KnowledgeGuidancePreviewStatus.APPLIED
+            preview.applied_at = now
+            preview.applied_by_user_id = actor_user_id
+            await self._repository.save_preview(
+                record=preview,
+                update_fields=("status", "applied_at", "applied_by_user_id"),
+                conn=conn,
+            )
+            result = await self._project_layer(layer=layer, conn=conn)
+            await self._repository.create_command(
+                values={
+                    "guidance_layer_id": layer.id,
+                    "workspace_id": workspace_id,
+                    "kind": command_kind,
+                    "request_idempotency_key": key,
+                    "request_fingerprint": fingerprint,
+                    "result_snapshot": result.model_dump(mode="json", by_alias=True),
+                    "actor_user_id": actor_user_id,
+                },
+                conn=conn,
+            )
+            await self._write_activity(
+                event_name=(
+                    KNOWLEDGE_GUIDANCE_RESTORE_APPLIED
+                    if kind == KnowledgeGuidancePreviewKind.RESTORE
+                    else KNOWLEDGE_GUIDANCE_REMOVE_APPLIED
+                ),
+                organization_id=organization_id,
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                entity_type="knowledge_guidance_layer",
+                entity_id=layer.id,
+                properties={
+                    "scope": _guidance_scope_name(project_id),
+                    "previewId": str(preview.id),
+                    "metadataRevision": layer.metadata_revision,
+                },
+                conn=conn,
+            )
+            return result
+
+    async def _apply_preview_effect(
+        self,
+        *,
+        layer: KnowledgeGuidanceLayerRecord,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        idempotency_key: str,
+        fingerprint: str,
+        kind: KnowledgeGuidancePreviewKind,
+        preview: KnowledgeGuidancePreviewRecord,
+        conn: BaseDBAsyncClient,
+    ) -> UUID | None:
+        update_fields = ["metadata_revision", "updated_by_user_id"]
+        restored_revision_id: UUID | None = None
+        if kind == KnowledgeGuidancePreviewKind.RESTORE:
+            if preview.source_revision_id is None:
+                raise RuntimeError("KNOWLEDGE_GUIDANCE_RESTORE_PREVIEW_INVARIANT_VIOLATION")
+            source = await self._repository.get_revision_for_update(
+                workspace_id=workspace_id,
+                guidance_layer_id=layer.id,
+                revision_id=preview.source_revision_id,
+                conn=conn,
+            )
+            if source is None or source.status == KnowledgeGuidanceRevisionStatus.DRAFT:
+                raise RuntimeError("KNOWLEDGE_GUIDANCE_RESTORE_SOURCE_INVARIANT_VIOLATION")
+            restored = await self._repository.create_revision(
+                values={
+                    "guidance_layer_id": layer.id,
+                    "workspace_id": workspace_id,
+                    "revision_number": await self._repository.next_revision_number(
+                        guidance_layer_id=layer.id,
+                        conn=conn,
+                    ),
+                    "content": source.content,
+                    "content_hash": source.content_hash,
+                    "status": KnowledgeGuidanceRevisionStatus.DRAFT,
+                    "restored_from_revision_id": source.id,
+                    "created_by_user_id": actor_user_id,
+                    "request_idempotency_key": _guidance_revision_key("restore", idempotency_key),
+                    "request_fingerprint": fingerprint,
+                },
+                conn=conn,
+            )
+            layer.draft_revision_id = restored.id
+            restored_revision_id = restored.id
+            update_fields.append("draft_revision_id")
+        else:
+            previous = await self._published_revision_for_update(layer=layer, conn=conn)
+            if previous is not None:
+                previous.status = KnowledgeGuidanceRevisionStatus.SUPERSEDED
+                await self._repository.save_revision(
+                    record=previous,
+                    update_fields=("status",),
+                    conn=conn,
+                )
+            layer.draft_revision_id = None
+            layer.published_revision_id = None
+            layer.removed_at = datetime.now(UTC)
+            layer.removed_by_user_id = actor_user_id
+            update_fields.extend(("draft_revision_id", "published_revision_id", "removed_at", "removed_by_user_id"))
+        layer.metadata_revision += 1
+        layer.updated_by_user_id = actor_user_id
+        await self._repository.save_layer(
+            record=layer,
+            update_fields=tuple(update_fields),
+            conn=conn,
+        )
+        return restored_revision_id
+
+    async def _finish_reference_command(
+        self,
+        *,
+        layer: KnowledgeGuidanceLayerRecord,
+        workspace_id: UUID,
+        organization_id: UUID,
+        project_id: UUID | None,
+        actor_user_id: UUID,
+        idempotency_key: str,
+        fingerprint: str,
+        kind: KnowledgeGuidanceCommandKind,
+        event_name: str,
+        knowledge_base_id: UUID,
+        conn: BaseDBAsyncClient,
+    ) -> KnowledgeGuidanceLayerOut:
+        layer.metadata_revision += 1
+        layer.updated_by_user_id = actor_user_id
+        await self._repository.save_layer(
+            record=layer,
+            update_fields=("metadata_revision", "updated_by_user_id"),
+            conn=conn,
+        )
+        result = await self._project_layer(layer=layer, conn=conn)
+        await self._repository.create_command(
+            values={
+                "guidance_layer_id": layer.id,
+                "workspace_id": workspace_id,
+                "kind": kind,
+                "request_idempotency_key": idempotency_key,
+                "request_fingerprint": fingerprint,
+                "result_snapshot": result.model_dump(mode="json", by_alias=True),
+                "actor_user_id": actor_user_id,
+            },
+            conn=conn,
+        )
+        await self._write_activity(
+            event_name=event_name,
+            organization_id=organization_id,
+            workspace_id=workspace_id,
+            actor_user_id=actor_user_id,
+            entity_type="knowledge_guidance_layer",
+            entity_id=layer.id,
+            properties={
+                "scope": _guidance_scope_name(project_id),
+                "knowledgeBaseId": str(knowledge_base_id),
+                "metadataRevision": layer.metadata_revision,
+            },
+            conn=conn,
+        )
+        return result
+
+    async def _require_existing_layer(
+        self,
+        *,
+        workspace_id: UUID,
+        project_id: UUID | None,
+        for_update: bool,
+        conn: BaseDBAsyncClient,
+    ) -> KnowledgeGuidanceLayerRecord:
+        scope_kind = KnowledgeGuidanceScope.PROJECT if project_id is not None else KnowledgeGuidanceScope.WORKSPACE
+        scope_id = project_id or workspace_id
+        if project_id is not None and not await self._repository.project_exists(
+            workspace_id=workspace_id,
+            project_id=project_id,
+            conn=conn,
+        ):
+            _raise_not_found()
+        if for_update:
+            layer = await self._repository.get_layer_for_update(
+                workspace_id=workspace_id,
+                scope_kind=scope_kind,
+                scope_id=scope_id,
+                conn=conn,
+            )
+        else:
+            layer = await self._repository.get_layer(
+                workspace_id=workspace_id,
+                scope_kind=scope_kind,
+                scope_id=scope_id,
+                conn=conn,
+            )
+        if layer is None:
+            raise RuntimeError(KNOWLEDGE_GUIDANCE_LAYER_MISSING)
+        _validate_guidance_layer_scope(layer=layer, workspace_id=workspace_id, project_id=project_id)
+        return layer
+
+    async def _project_layer(
+        self,
+        *,
+        layer: KnowledgeGuidanceLayerRecord,
+        conn: BaseDBAsyncClient,
+    ) -> KnowledgeGuidanceLayerOut:
+        draft = await self._layer_revision(
+            layer=layer,
+            revision_id=layer.draft_revision_id,
+            expected_status=KnowledgeGuidanceRevisionStatus.DRAFT,
+            conn=conn,
+        )
+        published = await self._layer_revision(
+            layer=layer,
+            revision_id=layer.published_revision_id,
+            expected_status=KnowledgeGuidanceRevisionStatus.PUBLISHED,
+            conn=conn,
+        )
+        return project_guidance_layer(
+            layer,
+            draft=draft,
+            published=published,
+            references=await self._repository.list_references(
+                workspace_id=layer.workspace_id,
+                guidance_layer_id=layer.id,
+                conn=conn,
+            ),
+        )
+
+    async def _layer_revision(
+        self,
+        *,
+        layer: KnowledgeGuidanceLayerRecord,
+        revision_id: UUID | None,
+        expected_status: KnowledgeGuidanceRevisionStatus,
+        conn: BaseDBAsyncClient,
+    ) -> KnowledgeGuidanceRevisionRecord | None:
+        if revision_id is None:
+            return None
+        revision = await self._repository.get_revision(
+            workspace_id=layer.workspace_id,
+            guidance_layer_id=layer.id,
+            revision_id=revision_id,
+            conn=conn,
+        )
+        if revision is None or revision.status != expected_status:
+            raise RuntimeError("KNOWLEDGE_GUIDANCE_LAYER_POINTER_INVARIANT_VIOLATION")
+        return revision
+
+    async def _published_revision_for_update(
+        self,
+        *,
+        layer: KnowledgeGuidanceLayerRecord,
+        conn: BaseDBAsyncClient,
+    ) -> KnowledgeGuidanceRevisionRecord | None:
+        if layer.published_revision_id is None:
+            return None
+        revision = await self._repository.get_revision_for_update(
+            workspace_id=layer.workspace_id,
+            guidance_layer_id=layer.id,
+            revision_id=layer.published_revision_id,
+            conn=conn,
+        )
+        if revision is None or revision.status != KnowledgeGuidanceRevisionStatus.PUBLISHED:
+            raise RuntimeError("KNOWLEDGE_GUIDANCE_PUBLISHED_POINTER_INVARIANT_VIOLATION")
+        return revision
+
+    async def _write_activity(
+        self,
+        *,
+        event_name: str,
+        organization_id: UUID,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        entity_type: str,
+        entity_id: UUID,
+        properties: dict[str, Any],
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        await self._activity_writer(
+            settings=self.settings,
+            payload=ActivityAuditPayload(
+                event_name=event_name,
+                organization_id=organization_id,
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                properties=properties,
+            ),
+            conn=conn,
+        )
+
+
+def _normalize_guidance_content(value: str) -> str:
+    normalized = unicodedata.normalize("NFKC", value).replace("\r\n", "\n").replace("\r", "\n").strip()
+    if not normalized:
+        raise Conflict("Guidance content is required", error="KNOWLEDGE_GUIDANCE_CONTENT_REQUIRED")
+    return normalized
+
+
+def _guidance_revision_key(operation: str, idempotency_key: str) -> str:
+    digest = hashlib.sha256(f"{operation}:{idempotency_key}".encode()).hexdigest()
+    return f"guidance:{operation}:{digest}"
+
+
+def _guidance_scope_name(project_id: UUID | None) -> Literal["workspace", "project"]:
+    return "project" if project_id is not None else "workspace"
+
+
+def _resolve_guidance_project_mode(
+    *,
+    layer: KnowledgeGuidanceLayerRecord,
+    project_id: UUID | None,
+    requested: Literal["supplement", "override"] | None,
+) -> KnowledgeProjectGuidanceMode | None:
+    if project_id is None:
+        if requested is not None:
+            raise Conflict("Workspace guidance cannot define a Project mode", error="KNOWLEDGE_GUIDANCE_SCOPE_INVALID")
+        if layer.project_mode is not None:
+            raise RuntimeError("KNOWLEDGE_GUIDANCE_WORKSPACE_MODE_INVARIANT_VIOLATION")
+        return None
+    if requested is not None:
+        return KnowledgeProjectGuidanceMode(requested)
+    if layer.project_mode is None:
+        raise RuntimeError("KNOWLEDGE_GUIDANCE_PROJECT_MODE_INVARIANT_VIOLATION")
+    return KnowledgeProjectGuidanceMode(str(layer.project_mode))
+
+
+def _validate_guidance_layer_scope(
+    *,
+    layer: KnowledgeGuidanceLayerRecord,
+    workspace_id: UUID,
+    project_id: UUID | None,
+) -> None:
+    if project_id is None:
+        if (
+            layer.workspace_id != workspace_id
+            or str(layer.scope_kind) != KnowledgeGuidanceScope.WORKSPACE
+            or layer.scope_id != workspace_id
+            or layer.project_mode is not None
+        ):
+            raise RuntimeError("KNOWLEDGE_GUIDANCE_WORKSPACE_LAYER_INVARIANT_VIOLATION")
+        return
+    if (
+        layer.workspace_id != workspace_id
+        or str(layer.scope_kind) != KnowledgeGuidanceScope.PROJECT
+        or layer.scope_id != project_id
+        or layer.project_mode is None
+    ):
+        raise RuntimeError("KNOWLEDGE_GUIDANCE_PROJECT_LAYER_INVARIANT_VIOLATION")
+
+
+def _project_guidance_preview(
+    *,
+    preview: KnowledgeGuidancePreviewRecord,
+    layer: KnowledgeGuidanceLayerRecord,
+) -> KnowledgeGuidancePreviewOut:
+    snapshot = preview.snapshot
+    try:
+        impact = KnowledgeGuidanceImpactOut(
+            reference_count=int(snapshot["referenceCount"]),
+            source_count=int(snapshot["sourceCount"]),
+            ready_source_count=int(snapshot["readySourceCount"]),
+            project_guidance_count=int(snapshot["projectGuidanceCount"]),
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        raise RuntimeError("KNOWLEDGE_GUIDANCE_PREVIEW_SNAPSHOT_INVARIANT_VIOLATION") from exc
+    if preview.kind == KnowledgeGuidancePreviewKind.RESTORE:
+        kind: Literal["restore", "remove"] = "restore"
+    elif preview.kind == KnowledgeGuidancePreviewKind.REMOVE:
+        kind = "remove"
+    else:
+        raise RuntimeError("KNOWLEDGE_GUIDANCE_PREVIEW_KIND_INVARIANT_VIOLATION")
+    return KnowledgeGuidancePreviewOut(
+        id=preview.id,
+        kind=kind,
+        guidance_layer_id=preview.guidance_layer_id,
+        expected_guidance_revision=preview.expected_layer_revision,
+        preview_revision=preview.preview_revision,
+        source_revision_id=preview.source_revision_id,
+        can_apply=(
+            preview.status == KnowledgeGuidancePreviewStatus.ACTIVE
+            and preview.expected_layer_revision == layer.metadata_revision
+        ),
+        impact=impact,
+        created_at=preview.created_at,
+    )
+
+
+def _guidance_command_result(command: KnowledgeGuidanceCommandRecord) -> KnowledgeGuidanceLayerOut:
+    return KnowledgeGuidanceLayerOut.model_validate(command.result_snapshot)
 
 
 def _apply_source_update(

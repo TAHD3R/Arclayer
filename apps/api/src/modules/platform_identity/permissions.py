@@ -77,6 +77,7 @@ class PlatformPermissionCode(StrEnum):
     ACCESS_SIGN_IN_SETTINGS_MANAGE = "platform:access-sign-in-settings:manage"
     COMMERCE_SETTINGS_READ = "platform:commerce-settings:read"
     COMMERCE_SETTINGS_MANAGE = "platform:commerce-settings:manage"
+    WORKSPACE_CAPABILITY_ROLLOUT_APPLY = "platform:workspace-capability-rollout:apply"
 
 
 class PlatformActionCode(StrEnum):

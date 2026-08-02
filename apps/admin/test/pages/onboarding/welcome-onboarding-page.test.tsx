@@ -483,9 +483,9 @@ describe("WelcomeOnboardingPage", () => {
 
     await waitFor(() => {
       expect(patchMyOnboardingProfileMock).toHaveBeenCalledWith({
-        job_role: "content_manager",
-        company_size: "11_50",
-        subscribed_product_updates: false,
+        jobRole: "content_manager",
+        companySize: "11_50",
+        subscribedProductUpdates: false,
       });
     });
     expect(preferenceState.setLocale).not.toHaveBeenCalled();
@@ -555,7 +555,7 @@ describe("WelcomeOnboardingPage", () => {
 
     await waitFor(() => {
       expect(complete).toHaveBeenCalledTimes(1);
-      expect(updateMyProfileMock).toHaveBeenCalledWith({ avatarAssetId: "avatar-asset" });
+      expect(updateMyProfileMock).toHaveBeenCalledWith({ avatar_asset_id: "avatar-asset" });
       expect(
         screen.queryByText("The avatar file is uploaded and waiting to be added to your account."),
       ).not.toBeInTheDocument();
@@ -611,9 +611,9 @@ describe("WelcomeOnboardingPage", () => {
 
     await waitFor(() => {
       expect(patchMyOnboardingProfileMock).toHaveBeenCalledWith({
-        job_role: "content_manager",
-        company_size: "11_50",
-        subscribed_product_updates: true,
+        jobRole: "content_manager",
+        companySize: "11_50",
+        subscribedProductUpdates: true,
       });
     });
   });
@@ -709,7 +709,7 @@ describe("WelcomeOnboardingPage", () => {
       expect(navigateMock).toHaveBeenCalledWith({ to: "/projects", replace: true });
     });
     expect(createWorkspaceMock).toHaveBeenCalledTimes(1);
-    expect(patchMyOnboardingProfileMock).toHaveBeenCalledWith({ heard_about_us: "referral" });
+    expect(patchMyOnboardingProfileMock).toHaveBeenCalledWith({ heardAboutUs: "referral" });
   });
 
   it("runs the invitation profile and survey flow before entering the invited project", async () => {
@@ -789,7 +789,7 @@ describe("WelcomeOnboardingPage", () => {
     expect(createMyOnboardingWorkspaceMock).not.toHaveBeenCalled();
     expect(createTeamInvitationMock).not.toHaveBeenCalled();
     expect(patchMyOnboardingProfileMock).toHaveBeenLastCalledWith({
-      heard_about_us: "referral",
+      heardAboutUs: "referral",
     });
   });
 

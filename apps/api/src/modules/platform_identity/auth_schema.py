@@ -36,6 +36,12 @@ class PlatformSignInRequest(BaseSchema):
     password: str = Field(min_length=1, max_length=128)
 
 
+class PlatformInvitationAcceptRequest(PlatformSignInRequest):
+    expected_invitation_revision: int = Field(ge=1)
+    idempotency_key: str = Field(min_length=1, max_length=128)
+    correlation_id: UUID
+
+
 class PlatformAuthMethodOut(BaseSchema):
     model_config = ConfigDict(frozen=True)
 

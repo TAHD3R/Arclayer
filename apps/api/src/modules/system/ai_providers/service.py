@@ -1,25 +1,30 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Any, cast
+from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
+from typing import Any, Literal, cast
 from uuid import UUID
 
 import httpx
+from cryptography.fernet import InvalidToken
 from pydantic import BaseModel, ConfigDict
 
 from src.common.types.json_types import JsonObject
 from src.config import Settings
-from src.core.exceptions import BadRequest, NotFound
+from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.i18n import t
-from src.core.services import BaseService
+from src.core.services import BaseService, ServiceContractError
 from src.llm.keys import encrypt_virtual_key
 from src.llm.litellm_client import LiteLLMClient
-from src.llm.runtime import _resolve_key_path
+from src.llm.runtime import LLMRuntimeError, _resolve_key_path
 from src.models.ai.ai_api_key import AIAPIKey, KeyOwnerType, KeyType
 from src.modules.system.ai_providers.schema import (
     AIProviderKind,
+    SystemAIProviderAvailabilityPreviewOut,
     SystemAIProviderCreateRequest,
     SystemAIProviderOut,
+    SystemAIProviderReadinessTestOut,
     SystemAIProviderUpdateRequest,
 )
 
@@ -42,15 +47,26 @@ def _te(key: str) -> str:
 
 
 class SystemAIProviderService(BaseService):
-    def __init__(self, settings: Settings) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        activity_writer: Callable[..., Awaitable[object]] | None = None,
+    ) -> None:
         super().__init__(settings)
         self.settings = settings
+        self._activity_writer = activity_writer
 
     async def list_providers(self) -> list[SystemAIProviderOut]:
         records = await self._base_query().order_by("provider", "created_at")
         return [self._to_out(record) for record in records]
 
-    async def create_provider(self, payload: SystemAIProviderCreateRequest) -> SystemAIProviderOut:
+    async def create_provider(
+        self,
+        payload: SystemAIProviderCreateRequest,
+        *,
+        actor_user_id: UUID,
+    ) -> SystemAIProviderOut:
         provisioned = await self._provision_litellm_access(
             provider=payload.provider,
             label=payload.label,
@@ -76,62 +92,168 @@ class SystemAIProviderService(BaseService):
                 request_model=payload.request_model,
             ),
         )
+        await self._write_audit(
+            event_name="platform.ai_provider.connected",
+            actor_user_id=actor_user_id,
+            provider=record,
+            properties={"provider": record.provider, "request_model": payload.request_model.strip()},
+        )
         return self._to_out(record)
 
     async def update_provider(
         self,
         provider_id: UUID,
         payload: SystemAIProviderUpdateRequest,
+        *,
+        actor_user_id: UUID,
     ) -> SystemAIProviderOut:
         record = await self._get_provider(provider_id)
         metadata = self._record_metadata(record)
-        current_base_url = _clean_optional(metadata.get("base_url"))
-        current_request_model = _clean_required(metadata.get("request_model")) or record.provider
+
+        if payload.provider_api_key is not None:
+            self._raise_credential_revocation_port_unavailable()
+        if payload.is_active is not None:
+            raise Conflict(
+                message=_te("AI_PROVIDER_AVAILABILITY_PREVIEW_REQUIRED"),
+                error="AI_PROVIDER_AVAILABILITY_PREVIEW_REQUIRED",
+            )
+        if (
+            payload.compatibility is not None
+            or "request_model" in payload.model_fields_set
+            or "base_url" in payload.model_fields_set
+        ):
+            self._raise_credential_revocation_port_unavailable()
 
         if payload.label is not None:
             metadata["label"] = payload.label.strip()
-        if payload.compatibility is not None:
-            metadata["compatibility"] = payload.compatibility
-        if "request_model" in payload.model_fields_set:
-            metadata["request_model"] = _clean_required(payload.request_model)
-        if "base_url" in payload.model_fields_set:
-            metadata["base_url"] = _clean_optional(payload.base_url)
-        if payload.provider_api_key is not None:
-            label = _clean_required(metadata.get("label")) or record.provider
-            compatibility = _clean_required(metadata.get("compatibility")) or "openai_compatible"
-            request_model = _clean_required(metadata.get("request_model")) or record.provider
-            provisioned = await self._provision_litellm_access(
-                provider=record.provider,
-                label=label,
-                compatibility=compatibility,
-                provider_api_key=payload.provider_api_key,
-                base_url=_clean_optional(metadata.get("base_url")),
-                request_model=request_model,
-            )
-            record.virtual_key_enc = self._encrypt_virtual_key(provisioned.virtual_key)
-            record.key_hash = _hash_key(provisioned.virtual_key)
-            record.litellm_key_id = provisioned.litellm_key_id
-        elif (
-            _clean_required(metadata.get("request_model")) != current_request_model
-            or _clean_optional(metadata.get("base_url")) != current_base_url
-        ):
-            raise BadRequest(
-                message=_te("AI_PROVIDER_API_KEY_REQUIRED_FOR_LITELLM_UPDATE"),
-                error="AI_PROVIDER_API_KEY_REQUIRED_FOR_LITELLM_UPDATE",
-            )
-        if payload.is_active is not None:
-            record.is_active = payload.is_active
         if "expires_at" in payload.model_fields_set:
             record.expires_at = payload.expires_at
 
         record.metadata_json = metadata
         await record.save()
+        await self._write_audit(
+            event_name="platform.ai_provider.updated",
+            actor_user_id=actor_user_id,
+            provider=record,
+            properties={
+                "label_changed": payload.label is not None,
+                "expires_at_changed": "expires_at" in payload.model_fields_set,
+            },
+        )
         return self._to_out(record)
 
-    async def delete_provider(self, provider_id: UUID) -> None:
+    async def delete_provider(self, provider_id: UUID, *, actor_user_id: UUID) -> None:
         record = await self._get_provider(provider_id)
         record.is_active = False
         await record.save(update_fields=["is_active", "updated_at"])
+        await self._write_audit(
+            event_name="platform.ai_provider.disabled",
+            actor_user_id=actor_user_id,
+            provider=record,
+            properties={"desired_is_active": False},
+        )
+
+    async def preview_availability(
+        self,
+        *,
+        provider_id: UUID,
+        is_active: bool,
+    ) -> SystemAIProviderAvailabilityPreviewOut:
+        provider = await self._get_provider(provider_id)
+        providers = await self._base_query().all()
+        now = datetime.now(UTC)
+        before = sum(self._is_routable(item, now=now) for item in providers)
+        after = (
+            before
+            - int(self._is_routable(provider, now=now))
+            + int(self._is_routable(provider, now=now, desired_is_active=is_active))
+        )
+        return SystemAIProviderAvailabilityPreviewOut(
+            id=provider.id,
+            desired_is_active=is_active,
+            routable_provider_count_before=before,
+            routable_provider_count_after=after,
+            would_leave_no_routable_provider=after == 0,
+            revision=self._availability_revision(provider=provider, desired_is_active=is_active),
+        )
+
+    async def apply_availability(
+        self,
+        *,
+        provider_id: UUID,
+        is_active: bool,
+        preview_revision: str,
+        actor_user_id: UUID,
+    ) -> SystemAIProviderOut:
+        preview = await self.preview_availability(provider_id=provider_id, is_active=is_active)
+        if preview.revision != preview_revision:
+            raise Conflict(
+                message=_te("AI_PROVIDER_AVAILABILITY_PREVIEW_STALE"),
+                error="AI_PROVIDER_AVAILABILITY_PREVIEW_STALE",
+            )
+        provider = await self._get_provider(provider_id)
+        provider.is_active = is_active
+        await provider.save(update_fields=["is_active", "updated_at"])
+        await self._write_audit(
+            event_name="platform.ai_provider.availability_changed",
+            actor_user_id=actor_user_id,
+            provider=provider,
+            properties={
+                "desired_is_active": is_active,
+                "routable_provider_count_after": preview.routable_provider_count_after,
+                "would_leave_no_routable_provider": preview.would_leave_no_routable_provider,
+            },
+        )
+        return self._to_out(provider)
+
+    async def test_readiness(
+        self,
+        *,
+        provider_id: UUID,
+        actor_user_id: UUID,
+    ) -> SystemAIProviderReadinessTestOut:
+        provider = await self._get_provider(provider_id)
+        checked_at = datetime.now(UTC)
+        failure_code: str | None = None
+        status: Literal["healthy", "unhealthy"] = "healthy"
+        try:
+            virtual_key = self._decrypt_virtual_key(provider)
+            model = _clean_required(self._record_metadata(provider).get("request_model")) or provider.provider
+            client = LiteLLMClient(
+                base_url=self.settings.ai.litellm_base_url,
+                timeout_seconds=self.settings.ai.litellm_timeout_seconds,
+            )
+            await client.chat(
+                [{"role": "user", "content": "Respond with OK."}],
+                model=model,
+                temperature=0,
+                max_tokens=1,
+                virtual_key=virtual_key,
+            )
+        except (httpx.HTTPError, InvalidToken, LLMRuntimeError, ValueError):
+            status = "unhealthy"
+            failure_code = "AI_PROVIDER_READINESS_TEST_FAILED"
+
+        metadata = self._record_metadata(provider)
+        metadata["readiness"] = {
+            "status": status,
+            "checked_at": checked_at.isoformat(),
+            "failure_code": failure_code,
+        }
+        provider.metadata_json = metadata
+        await provider.save(update_fields=["metadata_json", "updated_at"])
+        await self._write_audit(
+            event_name="platform.ai_provider.readiness_tested",
+            actor_user_id=actor_user_id,
+            provider=provider,
+            properties={"status": status, "failure_code": failure_code},
+        )
+        return SystemAIProviderReadinessTestOut(
+            id=provider.id,
+            status=status,
+            checked_at=checked_at,
+            failure_code=failure_code,
+        )
 
     async def _get_provider(self, provider_id: UUID) -> AIAPIKey:
         record = await self._base_query().filter(id=provider_id).first()
@@ -191,6 +313,22 @@ class SystemAIProviderService(BaseService):
             if compatibility in {"openai", "anthropic", "deepseek", "openai_compatible", "anthropic_compatible"}
             else "openai_compatible"
         )
+        readiness = metadata.get("readiness")
+        readiness_status: Literal["unknown", "healthy", "unhealthy"] = "unknown"
+        readiness_checked_at: datetime | None = None
+        readiness_failure_code: str | None = None
+        if isinstance(readiness, dict):
+            raw_status = readiness.get("status")
+            if raw_status in {"healthy", "unhealthy"}:
+                readiness_status = cast(Literal["healthy", "unhealthy"], raw_status)
+            raw_checked_at = readiness.get("checked_at")
+            if isinstance(raw_checked_at, str):
+                try:
+                    readiness_checked_at = datetime.fromisoformat(raw_checked_at)
+                except ValueError:
+                    readiness_status = "unknown"
+            raw_failure_code = readiness.get("failure_code")
+            readiness_failure_code = raw_failure_code if isinstance(raw_failure_code, str) else None
         return SystemAIProviderOut(
             id=record.id,
             provider=record.provider,
@@ -205,6 +343,71 @@ class SystemAIProviderService(BaseService):
             updated_at=record.updated_at,
             last_used_at=record.last_used_at,
             expires_at=record.expires_at,
+            readiness_status=readiness_status,
+            readiness_checked_at=readiness_checked_at,
+            readiness_failure_code=readiness_failure_code,
+        )
+
+    def _decrypt_virtual_key(self, record: AIAPIKey) -> str:
+        if not record.virtual_key_enc:
+            raise ValueError("AI provider has no configured virtual key")
+        from src.llm.keys import decrypt_virtual_key
+
+        if self.settings.ai.master_key_path is None:
+            raise ValueError("AI provider master key path is not configured")
+        return decrypt_virtual_key(record.virtual_key_enc, _resolve_key_path(self.settings.ai.master_key_path))
+
+    def _is_routable(
+        self,
+        provider: AIAPIKey,
+        *,
+        now: datetime,
+        desired_is_active: bool | None = None,
+    ) -> bool:
+        active = provider.is_active if desired_is_active is None else desired_is_active
+        readiness = self._record_metadata(provider).get("readiness")
+        return (
+            active
+            and bool(provider.virtual_key_enc)
+            and (provider.expires_at is None or provider.expires_at > now)
+            and isinstance(readiness, dict)
+            and readiness.get("status") == "healthy"
+        )
+
+    @staticmethod
+    def _availability_revision(*, provider: AIAPIKey, desired_is_active: bool) -> str:
+        material = f"{provider.id}:{provider.updated_at.isoformat()}:{desired_is_active}"
+        return hashlib.sha256(material.encode("utf-8")).hexdigest()
+
+    async def _write_audit(
+        self,
+        *,
+        event_name: str,
+        actor_user_id: UUID,
+        provider: AIAPIKey,
+        properties: JsonObject,
+    ) -> None:
+        if self._activity_writer is None:
+            raise ServiceContractError("AI provider mutations require an activity audit writer")
+        from src.modules.analytics.audit import ActivityAuditPayload
+
+        await self._activity_writer(
+            settings=self.settings,
+            payload=ActivityAuditPayload(
+                event_name=event_name,
+                actor_user_id=actor_user_id,
+                entity_type="ai_provider",
+                entity_id=provider.id,
+                source="api",
+                properties=properties,
+            ),
+        )
+
+    @staticmethod
+    def _raise_credential_revocation_port_unavailable() -> None:
+        raise Conflict(
+            message=_te("AI_PROVIDER_CREDENTIAL_REVOCATION_PORT_UNAVAILABLE"),
+            error="AI_PROVIDER_CREDENTIAL_REVOCATION_PORT_UNAVAILABLE",
         )
 
     async def _provision_litellm_access(

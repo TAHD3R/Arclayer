@@ -92,8 +92,8 @@ vi.mock("@/components/ui/oauth-buttons", () => ({
   AuthOauthButtons: () => null,
 }));
 
-vi.mock("@/hooks/use-system-runtime", () => ({
-  useSystemRuntime: () => runtimeState,
+vi.mock("@/hooks/use-product-runtime", () => ({
+  useProductRuntime: () => runtimeState,
 }));
 
 vi.mock("@/layouts/auth-layout", () => ({
@@ -204,11 +204,11 @@ describe("LoginPage invitation auth flow", () => {
     userExists: false,
   };
   const issuedTokens = {
-    access_token: "access-token",
-    refresh_token: "refresh-token",
-    token_type: "bearer",
-    expires_in: 3600,
-    refresh_expires_in: 86400,
+    accessToken: "access-token",
+    refreshToken: "refresh-token",
+    tokenType: "bearer",
+    expiresIn: 3600,
+    refreshExpiresIn: 86400,
   };
 
   beforeEach(() => {

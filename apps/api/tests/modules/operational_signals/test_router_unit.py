@@ -60,7 +60,7 @@ def _app() -> tuple[FastAPI, _DeniedPermissionRepository]:
             "get",
             "/eligible-assignees",
             None,
-            PlatformPermissionCode.OPERATIONS_SIGNALS_ASSIGN,
+            PlatformPermissionCode.OPERATIONS_SIGNALS_READ,
         ),
         ("get", f"/{encode_uuid(uuid4())}", None, PlatformPermissionCode.OPERATIONS_SIGNALS_READ),
         (
@@ -89,6 +89,12 @@ def _app() -> tuple[FastAPI, _DeniedPermissionRepository]:
                 "reminderAt": (datetime.now(UTC) + timedelta(hours=1)).isoformat(),
                 "reason": "Wait for the owning domain recovery window",
             },
+            PlatformPermissionCode.OPERATIONS_SIGNALS_TRIAGE,
+        ),
+        (
+            "post",
+            f"/{encode_uuid(uuid4())}/notes",
+            {"expectedRevision": 1, "body": "Verify the owning service after handoff"},
             PlatformPermissionCode.OPERATIONS_SIGNALS_TRIAGE,
         ),
         (
@@ -125,6 +131,7 @@ def test_router_exposes_only_the_canonical_triage_commands() -> None:
         "/operational-signals/{signal_id}/assign",
         "/operational-signals/{signal_id}/in-progress",
         "/operational-signals/{signal_id}/remind-later",
+        "/operational-signals/{signal_id}/notes",
         "/operational-signals/{signal_id}/needs-attention",
     }
     assert not any(command in path for path in paths for command in ("dismiss", "close", "resolve"))
@@ -145,5 +152,6 @@ def test_compositions_mount_operational_signals_only_on_platform_api() -> None:
         "/platform-api/v1/operational-signals/{signal_id}/assign",
         "/platform-api/v1/operational-signals/{signal_id}/in-progress",
         "/platform-api/v1/operational-signals/{signal_id}/remind-later",
+        "/platform-api/v1/operational-signals/{signal_id}/notes",
         "/platform-api/v1/operational-signals/{signal_id}/needs-attention",
     }

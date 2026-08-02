@@ -9,7 +9,8 @@ from src.core.exceptions import Forbidden, ServiceUnavailable
 from src.models.platform_identity.identity import PlatformOperatorStatus
 from src.modules.platform_identity.schema import (
     PlatformIdentitySnapshot,
-    PlatformMutationReceipt,
+    PlatformInvitationAcceptanceCommand,
+    PlatformInvitationSetupContext,
     PlatformOperatorInvitationCommand,
     PlatformRoleBinding,
 )
@@ -49,12 +50,13 @@ class _AcceptanceRepository:
     def __init__(self) -> None:
         self.accepted = False
 
-    async def accept_operator_invitation(self, *, command, accepter_user_id, audit):  # type: ignore[no-untyped-def]
+    async def begin_operator_invitation_acceptance(self, *, command, audit):  # type: ignore[no-untyped-def]
         self.accepted = True
-        return PlatformMutationReceipt(
-            entity_id=command.invitation_id,
-            mutation="accept_operator_invitation",
-            correlation_id=command.correlation_id,
+        return PlatformInvitationSetupContext(
+            invitation_id=command.invitation_id,
+            invitation_revision=command.expected_invitation_revision + 1,
+            operator_id=uuid4(),
+            requires_phishing_resistant=False,
         )
 
 
@@ -133,27 +135,23 @@ async def test_invitation_rejects_combined_roles_outside_delegable_authority() -
     assert repository.created is False
 
 
-async def test_invitation_acceptance_fails_visibly_when_mfa_authority_is_unavailable() -> None:
+async def test_invitation_acceptance_begins_without_premature_mfa_authority() -> None:
     recipient_user_id = uuid4()
     repository = _AcceptanceRepository()
     service = PlatformIdentityAuthorityService(repository=repository)
-    command = PlatformOperatorInvitationCommand(
+    command = PlatformInvitationAcceptanceCommand(
         invitation_id=uuid4(),
-        inviter_user_id=uuid4(),
-        recipient_user_id=recipient_user_id,
-        intended_roles=(
-            PlatformRoleBinding(role_id=uuid4(), role_revision_id=uuid4(), permission_codes=frozenset({"p"})),
-        ),
-        expires_at=datetime(2026, 8, 1, tzinfo=UTC),
+        accepter_user_id=recipient_user_id,
+        expected_invitation_revision=1,
         idempotency_key="invite-accept",
         correlation_id=uuid4(),
     )
 
-    with pytest.raises(ServiceUnavailable) as exc:
-        await service.accept_operator_invitation(command=command, accepter_user_id=recipient_user_id)
+    result = await service.begin_operator_invitation_acceptance(command=command)
 
-    assert exc.value.error == "PLATFORM_MFA_READINESS_AUTHORITY_UNAVAILABLE"
-    assert repository.accepted is False
+    assert result.invitation_id == command.invitation_id
+    assert result.invitation_revision == 2
+    assert repository.accepted is True
 
 
 def test_ownership_recovery_is_explicitly_unavailable_without_a_deployment_adapter() -> None:

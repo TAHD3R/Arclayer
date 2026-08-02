@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from typing import Annotated
-from uuid import UUID
 
 from pydantic import ConfigDict, Field, model_validator
 
@@ -116,9 +115,13 @@ class PlanRevisionTermsInput(CatalogSchema):
 
 
 class PlanRevisionDraftCreate(CatalogSchema):
-    plan_id: UUID
     terms: PlanRevisionTermsInput
 
 
 class PlanRevisionDraftUpdate(CatalogSchema):
+    expected_revision: int = Field(ge=1)
     terms: PlanRevisionTermsInput
+
+
+class PlanRevisionPublish(CatalogSchema):
+    expected_revision: int = Field(ge=1)

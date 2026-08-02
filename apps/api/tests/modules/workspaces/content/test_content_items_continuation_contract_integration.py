@@ -74,7 +74,7 @@ async def test_content_item_shape_persists_resolved_truth_and_open_intent(
         assert item["editWith"] == "writing"
         assert item["role"] == "article"
         assert item["openIntent"]["blocked"] is False
-        assert item["openIntent"]["route"] == f"/w/{workspace_id}/content/library/{item_id}"
+        assert item["openIntent"]["route"] == f"/projects/{project_id}/content/library/{item_id}"
         assert item["continuationTarget"]["route"] == item["openIntent"]["route"]
 
         shape_res = await client.patch(
@@ -96,7 +96,7 @@ async def test_content_item_shape_persists_resolved_truth_and_open_intent(
         assert shaped["role"] == "article"
         assert shaped["openIntent"]["blocked"] is False
         assert shaped["openIntent"]["surface"] == "writing"
-        assert shaped["openIntent"]["route"] == f"/w/{workspace_id}/content/library/{item_id}"
+        assert shaped["openIntent"]["route"] == f"/projects/{project_id}/content/library/{item_id}"
 
         row = await ContentItemRecord.get(id=decode_public_id(item_id))
         assert str(row.resolved_role) == "article"

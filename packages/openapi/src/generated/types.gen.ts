@@ -1867,6 +1867,10 @@ export type AgentRunCreateRequestV1 = {
      */
     projectId?: string | null;
     /**
+     * Selectedskillinstallationids
+     */
+    selectedSkillInstallationIds?: Array<string>;
+    /**
      * Siterevisionid
      */
     siteRevisionId?: string | null;
@@ -10445,6 +10449,30 @@ export type DeliveryStyleOut = {
 };
 
 /**
+ * DesignAssetReferenceV1
+ *
+ * An immutable Workspace Asset pin consumed by the publication compiler.
+ */
+export type DesignAssetReferenceV1 = {
+    /**
+     * Assetid
+     */
+    assetId: string;
+    /**
+     * Checksumsha256
+     */
+    checksumSha256: string;
+    /**
+     * Fontfamily
+     */
+    fontFamily?: string | null;
+    /**
+     * Kind
+     */
+    kind: 'font' | 'image' | 'icon' | 'logo';
+};
+
+/**
  * DesignComponentRecipeV1
  */
 export type DesignComponentRecipeV1Input = {
@@ -10907,9 +10935,7 @@ export type DesignSystemManifestInputV1 = {
     /**
      * Assetreferences
      */
-    assetReferences?: Array<{
-        [key: string]: JsonValueInput;
-    }>;
+    assetReferences?: Array<DesignAssetReferenceV1>;
     /**
      * Breakpoints
      */
@@ -10977,9 +11003,7 @@ export type DesignSystemManifestV1 = {
     /**
      * Assetreferences
      */
-    assetReferences?: Array<{
-        [key: string]: JsonValueOutput;
-    }>;
+    assetReferences?: Array<DesignAssetReferenceV1>;
     /**
      * Breakpoints
      */
@@ -11955,6 +11979,15 @@ export type FeedbackMessageOut = {
      */
     createdAt: string;
     /**
+     * Deliveryfailurecode
+     */
+    deliveryFailureCode?: string | null;
+    /**
+     * Deliveryisretryable
+     */
+    deliveryIsRetryable?: boolean | null;
+    deliveryState?: NotificationDeliveryState | null;
+    /**
      * Id
      *
      * ID
@@ -12085,6 +12118,10 @@ export type FeedbackTicketDetailOut = {
      * Resolvedat
      */
     resolvedAt: string | null;
+    /**
+     * Revision
+     */
+    revision: number;
     source: FeedbackSource;
     status: FeedbackStatus;
     /**
@@ -12157,6 +12194,10 @@ export type FeedbackTicketListItemOut = {
      * Resolvedat
      */
     resolvedAt: string | null;
+    /**
+     * Revision
+     */
+    revision: number;
     source: FeedbackSource;
     status: FeedbackStatus;
     /**
@@ -12760,6 +12801,20 @@ export type KnowledgeCursorPageKnowledgeBaseSummaryOut = {
 };
 
 /**
+ * KnowledgeCursorPage[KnowledgeGuidanceRevisionOut]
+ */
+export type KnowledgeCursorPageKnowledgeGuidanceRevisionOut = {
+    /**
+     * Items
+     */
+    items?: Array<KnowledgeGuidanceRevisionOut>;
+    /**
+     * Nextcursor
+     */
+    nextCursor?: string | null;
+};
+
+/**
  * KnowledgeCursorPage[KnowledgeSourceOut]
  */
 export type KnowledgeCursorPageKnowledgeSourceOut = {
@@ -12785,6 +12840,357 @@ export type KnowledgeCursorPageKnowledgeSourceVersionOut = {
      * Nextcursor
      */
     nextCursor?: string | null;
+};
+
+/**
+ * KnowledgeGuidanceConflictOut
+ */
+export type KnowledgeGuidanceConflictOut = {
+    /**
+     * Code
+     */
+    code: 'project_override_hides_workspace';
+    /**
+     * Messagekey
+     */
+    messageKey: string;
+    /**
+     * Projectrevisionid
+     */
+    projectRevisionId: string;
+    /**
+     * Workspacerevisionid
+     */
+    workspaceRevisionId: string;
+};
+
+/**
+ * KnowledgeGuidanceDraftSaveRequest
+ */
+export type KnowledgeGuidanceDraftSaveRequest = {
+    /**
+     * Content
+     */
+    content: string;
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Projectmode
+     */
+    projectMode?: 'supplement' | 'override' | null;
+};
+
+/**
+ * KnowledgeGuidanceEffectivePreviewOut
+ */
+export type KnowledgeGuidanceEffectivePreviewOut = {
+    /**
+     * Conflicts
+     */
+    conflicts?: Array<KnowledgeGuidanceConflictOut>;
+    /**
+     * Effectivecontent
+     */
+    effectiveContent: string | null;
+    /**
+     * Precedence
+     */
+    precedence: Array<'workspace' | 'project'>;
+    project: KnowledgeGuidanceLayerOut | null;
+    /**
+     * Unavailable
+     */
+    unavailable?: Array<KnowledgeGuidanceUnavailableOut>;
+    workspace: KnowledgeGuidanceLayerOut;
+};
+
+/**
+ * KnowledgeGuidanceImpactOut
+ */
+export type KnowledgeGuidanceImpactOut = {
+    /**
+     * Projectguidancecount
+     */
+    projectGuidanceCount: number;
+    /**
+     * Readysourcecount
+     */
+    readySourceCount: number;
+    /**
+     * Referencecount
+     */
+    referenceCount: number;
+    /**
+     * Sourcecount
+     */
+    sourceCount: number;
+};
+
+/**
+ * KnowledgeGuidanceLayerOut
+ */
+export type KnowledgeGuidanceLayerOut = {
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    currentDraft: KnowledgeGuidanceRevisionOut | null;
+    currentPublished: KnowledgeGuidanceRevisionOut | null;
+    /**
+     * Draftrevisionid
+     */
+    draftRevisionId: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Metadatarevision
+     */
+    metadataRevision: number;
+    /**
+     * Projectid
+     */
+    projectId: string | null;
+    /**
+     * Projectmode
+     */
+    projectMode: 'supplement' | 'override' | null;
+    /**
+     * Publishedrevisionid
+     */
+    publishedRevisionId: string | null;
+    /**
+     * References
+     */
+    references?: Array<KnowledgeGuidanceReferenceOut>;
+    /**
+     * Removedat
+     */
+    removedAt: string | null;
+    /**
+     * Removedbyuserid
+     */
+    removedByUserId: string | null;
+    /**
+     * Scope
+     */
+    scope: 'workspace' | 'project';
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * KnowledgeGuidancePreviewApplyRequest
+ */
+export type KnowledgeGuidancePreviewApplyRequest = {
+    /**
+     * Expectedguidancerevision
+     */
+    expectedGuidanceRevision: number;
+    /**
+     * Expectedpreviewrevision
+     */
+    expectedPreviewRevision: number;
+};
+
+/**
+ * KnowledgeGuidancePreviewOut
+ */
+export type KnowledgeGuidancePreviewOut = {
+    /**
+     * Canapply
+     */
+    canApply: boolean;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Expectedguidancerevision
+     */
+    expectedGuidanceRevision: number;
+    /**
+     * Guidancelayerid
+     */
+    guidanceLayerId: string;
+    /**
+     * Id
+     */
+    id: string;
+    impact: KnowledgeGuidanceImpactOut;
+    /**
+     * Kind
+     */
+    kind: 'restore' | 'remove';
+    /**
+     * Previewrevision
+     */
+    previewRevision: number;
+    /**
+     * Sourcerevisionid
+     */
+    sourceRevisionId: string | null;
+};
+
+/**
+ * KnowledgeGuidancePublishRequest
+ */
+export type KnowledgeGuidancePublishRequest = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Revisionid
+     */
+    revisionId?: string | null;
+};
+
+/**
+ * KnowledgeGuidanceReferenceAttachRequest
+ */
+export type KnowledgeGuidanceReferenceAttachRequest = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Knowledgebaseid
+     */
+    knowledgeBaseId: string;
+};
+
+/**
+ * KnowledgeGuidanceReferenceDetachRequest
+ */
+export type KnowledgeGuidanceReferenceDetachRequest = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+};
+
+/**
+ * KnowledgeGuidanceReferenceOut
+ */
+export type KnowledgeGuidanceReferenceOut = {
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     */
+    createdByUserId: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Knowledgebaseid
+     */
+    knowledgeBaseId: string;
+};
+
+/**
+ * KnowledgeGuidanceRemovePreviewRequest
+ */
+export type KnowledgeGuidanceRemovePreviewRequest = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+};
+
+/**
+ * KnowledgeGuidanceRestorePreviewRequest
+ */
+export type KnowledgeGuidanceRestorePreviewRequest = {
+    /**
+     * Expectedrevision
+     */
+    expectedRevision: number;
+    /**
+     * Sourcerevisionid
+     */
+    sourceRevisionId: string;
+};
+
+/**
+ * KnowledgeGuidanceRevisionOut
+ */
+export type KnowledgeGuidanceRevisionOut = {
+    /**
+     * Content
+     */
+    content: string;
+    /**
+     * Contenthash
+     */
+    contentHash: string;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     */
+    createdByUserId: string | null;
+    /**
+     * Guidancelayerid
+     */
+    guidanceLayerId: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Publishedat
+     */
+    publishedAt: string | null;
+    /**
+     * Publishedbyuserid
+     */
+    publishedByUserId: string | null;
+    /**
+     * Restoredfromrevisionid
+     */
+    restoredFromRevisionId: string | null;
+    /**
+     * Revisionnumber
+     */
+    revisionNumber: number;
+    /**
+     * Status
+     */
+    status: 'draft' | 'published' | 'superseded';
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * KnowledgeGuidanceUnavailableOut
+ */
+export type KnowledgeGuidanceUnavailableOut = {
+    /**
+     * Code
+     */
+    code: 'workspace_guidance_unpublished' | 'project_guidance_unpublished' | 'workspace_guidance_removed' | 'project_guidance_removed';
+    /**
+     * Messagekey
+     */
+    messageKey: string;
 };
 
 /**
@@ -13698,6 +14104,63 @@ export type NotificationArchiveResult = {
 };
 
 /**
+ * NotificationBannerCampaignSurface
+ */
+export type NotificationBannerCampaignSurface = {
+    /**
+     * Campaignid
+     */
+    campaignId: string;
+    /**
+     * Deliveryid
+     */
+    deliveryId: string;
+    /**
+     * Displayendat
+     */
+    displayEndAt?: string | null;
+    /**
+     * Displaystartat
+     */
+    displayStartAt?: string | null;
+    payload: NotificationBannerPayload;
+    /**
+     * Presentation
+     */
+    presentation?: 'banner';
+    /**
+     * Priority
+     */
+    priority: number;
+};
+
+/**
+ * NotificationBannerPayload
+ */
+export type NotificationBannerPayload = {
+    /**
+     * Action
+     */
+    action?: ({
+        kind: 'internal_route';
+    } & NotificationInternalRouteAction) | ({
+        kind: 'external_https';
+    } & NotificationExternalHttpsAction) | null;
+    /**
+     * Body
+     */
+    body?: string | null;
+    /**
+     * Dismissible
+     */
+    dismissible?: boolean;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
  * NotificationCategory
  *
  * Notification category for basic grouping and UI styling.
@@ -13718,6 +14181,11 @@ export type NotificationDeleteResult = {
      */
     id: string;
 };
+
+/**
+ * NotificationDeliveryState
+ */
+export type NotificationDeliveryState = 'pending' | 'processing' | 'sent' | 'delivered' | 'failed' | 'suppressed' | 'cancelled';
 
 /**
  * NotificationDevSeedRequest
@@ -13741,6 +14209,110 @@ export type NotificationDevSeedResult = {
      * Created notifications count.
      */
     createdCount: number;
+};
+
+/**
+ * NotificationDismissPolicy
+ */
+export type NotificationDismissPolicy = 'dismissible' | 'action_required';
+
+/**
+ * NotificationExternalHttpsAction
+ */
+export type NotificationExternalHttpsAction = {
+    /**
+     * Kind
+     */
+    kind?: 'external_https';
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Target
+     */
+    target: string;
+};
+
+/**
+ * NotificationFeedbackTicketTarget
+ */
+export type NotificationFeedbackTicketTarget = {
+    /**
+     * Kind
+     */
+    kind?: 'feedback_ticket';
+    /**
+     * Ticketid
+     */
+    ticketId: string;
+};
+
+/**
+ * NotificationInboxCampaignSurface
+ */
+export type NotificationInboxCampaignSurface = {
+    /**
+     * Campaignid
+     */
+    campaignId: string;
+    /**
+     * Deliveryid
+     */
+    deliveryId: string;
+    /**
+     * Displayendat
+     */
+    displayEndAt?: string | null;
+    /**
+     * Displaystartat
+     */
+    displayStartAt?: string | null;
+    payload: NotificationInboxPayload;
+    /**
+     * Presentation
+     */
+    presentation?: 'inbox';
+    /**
+     * Priority
+     */
+    priority: number;
+};
+
+/**
+ * NotificationInboxPayload
+ */
+export type NotificationInboxPayload = {
+    /**
+     * Action
+     */
+    action?: ({
+        kind: 'internal_route';
+    } & NotificationInternalRouteAction) | ({
+        kind: 'external_https';
+    } & NotificationExternalHttpsAction) | null;
+    /**
+     * Body
+     */
+    body?: string | null;
+    /**
+     * Severity
+     */
+    severity?: string;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * NotificationInboxTarget
+ */
+export type NotificationInboxTarget = {
+    /**
+     * Kind
+     */
+    kind?: 'inbox';
 };
 
 /**
@@ -13768,9 +14340,126 @@ export type NotificationInteractionOut = {
 };
 
 /**
+ * NotificationInternalRouteAction
+ */
+export type NotificationInternalRouteAction = {
+    /**
+     * Kind
+     */
+    kind?: 'internal_route';
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Target
+     */
+    target: ({
+        kind: 'inbox';
+    } & NotificationInboxTarget) | ({
+        kind: 'workspace_settings';
+    } & NotificationWorkspaceSettingsTarget) | ({
+        kind: 'project';
+    } & NotificationProjectTarget) | ({
+        kind: 'feedback_ticket';
+    } & NotificationFeedbackTicketTarget);
+};
+
+/**
  * NotificationListStatus
  */
 export type NotificationListStatus = 'unread' | 'all' | 'archived';
+
+/**
+ * NotificationMedia
+ */
+export type NotificationMedia = {
+    /**
+     * Alttext
+     */
+    altText: string;
+    /**
+     * Assetid
+     */
+    assetId: string;
+    /**
+     * Captionsassetid
+     */
+    captionsAssetId?: string | null;
+    kind: NotificationMediaKind;
+    /**
+     * Posterassetid
+     */
+    posterAssetId?: string | null;
+};
+
+/**
+ * NotificationMediaKind
+ */
+export type NotificationMediaKind = 'image' | 'video';
+
+/**
+ * NotificationModalCampaignSurface
+ */
+export type NotificationModalCampaignSurface = {
+    /**
+     * Campaignid
+     */
+    campaignId: string;
+    /**
+     * Deliveryid
+     */
+    deliveryId: string;
+    /**
+     * Displayendat
+     */
+    displayEndAt?: string | null;
+    /**
+     * Displaystartat
+     */
+    displayStartAt?: string | null;
+    payload: NotificationModalPayload;
+    /**
+     * Presentation
+     */
+    presentation?: 'modal';
+    /**
+     * Priority
+     */
+    priority: number;
+};
+
+/**
+ * NotificationModalPayload
+ */
+export type NotificationModalPayload = {
+    /**
+     * Body
+     */
+    body: string;
+    dismissPolicy?: NotificationDismissPolicy;
+    media?: NotificationMedia | null;
+    /**
+     * Primaryaction
+     */
+    primaryAction: ({
+        kind: 'internal_route';
+    } & NotificationInternalRouteAction) | ({
+        kind: 'external_https';
+    } & NotificationExternalHttpsAction);
+    /**
+     * Secondaryaction
+     */
+    secondaryAction?: ({
+        kind: 'internal_route';
+    } & NotificationInternalRouteAction) | ({
+        kind: 'external_https';
+    } & NotificationExternalHttpsAction) | null;
+    /**
+     * Title
+     */
+    title: string;
+};
 
 /**
  * NotificationOut
@@ -13794,6 +14483,20 @@ export type NotificationOut = {
      * Notification body; presentation controls its UI treatment.
      */
     body?: string | null;
+    /**
+     * Campaignsurface
+     *
+     * Immutable typed Campaign presentation snapshot; only system broadcasts carry one.
+     */
+    campaignSurface?: ({
+        presentation: 'inbox';
+    } & NotificationInboxCampaignSurface) | ({
+        presentation: 'modal';
+    } & NotificationModalCampaignSurface) | ({
+        presentation: 'banner';
+    } & NotificationBannerCampaignSurface) | ({
+        presentation: 'toast';
+    } & NotificationToastCampaignSurface) | null;
     /**
      * Notification category.
      */
@@ -13835,19 +14538,19 @@ export type NotificationOut = {
      */
     recipientUserId: string;
     /**
-     * Targetmeta
+     * Target
      *
-     * Frontend routing metadata (non-sensitive).
+     * Typed Product Application navigation target.
      */
-    targetMeta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Targetto
-     *
-     * Frontend route path (e.g. /team/members).
-     */
-    targetTo: string;
+    target: ({
+        kind: 'inbox';
+    } & NotificationInboxTarget) | ({
+        kind: 'workspace_settings';
+    } & NotificationWorkspaceSettingsTarget) | ({
+        kind: 'project';
+    } & NotificationProjectTarget) | ({
+        kind: 'feedback_ticket';
+    } & NotificationFeedbackTicketTarget);
     /**
      * Title
      *
@@ -13983,6 +14686,32 @@ export type NotificationPreviewOut = {
 };
 
 /**
+ * NotificationProjectTarget
+ */
+export type NotificationProjectTarget = {
+    /**
+     * Destination
+     */
+    destination: 'overview' | 'settings_api' | 'content_library' | 'website_releases';
+    /**
+     * Entityid
+     */
+    entityId?: string | null;
+    /**
+     * Focus
+     */
+    focus?: 'api_key' | 'preview_token' | 'content_item' | 'release' | null;
+    /**
+     * Kind
+     */
+    kind?: 'project';
+    /**
+     * Projectid
+     */
+    projectId: string;
+};
+
+/**
  * NotificationReadAllResult
  */
 export type NotificationReadAllResult = {
@@ -14016,6 +14745,77 @@ export type NotificationReadResult = {
      * Read datetime (UTC).
      */
     readAt?: string | null;
+};
+
+/**
+ * NotificationToastCampaignSurface
+ */
+export type NotificationToastCampaignSurface = {
+    /**
+     * Campaignid
+     */
+    campaignId: string;
+    /**
+     * Deliveryid
+     */
+    deliveryId: string;
+    /**
+     * Displayendat
+     */
+    displayEndAt?: string | null;
+    /**
+     * Displaystartat
+     */
+    displayStartAt?: string | null;
+    payload: NotificationToastPayload;
+    /**
+     * Presentation
+     */
+    presentation?: 'toast';
+    /**
+     * Priority
+     */
+    priority: number;
+};
+
+/**
+ * NotificationToastPayload
+ */
+export type NotificationToastPayload = {
+    /**
+     * Action
+     */
+    action?: ({
+        kind: 'internal_route';
+    } & NotificationInternalRouteAction) | ({
+        kind: 'external_https';
+    } & NotificationExternalHttpsAction) | null;
+    /**
+     * Body
+     */
+    body?: string | null;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * NotificationWorkspaceSettingsTarget
+ */
+export type NotificationWorkspaceSettingsTarget = {
+    /**
+     * Destination
+     */
+    destination: 'general' | 'plan_usage' | 'people' | 'roles';
+    /**
+     * Kind
+     */
+    kind?: 'workspace_settings';
+    /**
+     * Section
+     */
+    section?: 'members-table' | 'pending-invitations' | 'roles-table' | null;
 };
 
 /**
@@ -15845,6 +16645,50 @@ export type PlatformEntryEligibilityOut = {
  * DESTROYED  — shutdown hook complete, resources released.
  */
 export type ProcessState = 'unloaded' | 'loaded' | 'registered' | 'ready' | 'destroyed';
+
+/**
+ * ProductInstanceSetupOut
+ */
+export type ProductInstanceSetupOut = {
+    /**
+     * Repairreason
+     *
+     * Explicit repair reason code when setup is invalid.
+     */
+    repairReason?: string | null;
+    /**
+     * Status
+     *
+     * Instance setup status: uninitialized, ready, repair_required.
+     */
+    status: string;
+};
+
+/**
+ * ProductRuntimeCapabilities
+ */
+export type ProductRuntimeCapabilities = {
+    /**
+     * Publicregisterenabled
+     *
+     * Whether public account registration is enabled for the Product Application.
+     */
+    publicRegisterEnabled: boolean;
+};
+
+/**
+ * ProductRuntimeOut
+ */
+export type ProductRuntimeOut = {
+    /**
+     * Public Product capabilities derived from concrete backend configuration.
+     */
+    capabilities: ProductRuntimeCapabilities;
+    /**
+     * Public setup state derived from install.lock and the Instance Owner singleton.
+     */
+    instanceSetup: ProductInstanceSetupOut;
+};
 
 /**
  * ProjectApiKeyCreateIn
@@ -21275,6 +22119,31 @@ export type ResponseModelKnowledgeCursorPageKnowledgeBaseSummaryOut = {
 };
 
 /**
+ * ResponseModel[KnowledgeCursorPage[KnowledgeGuidanceRevisionOut]]
+ */
+export type ResponseModelKnowledgeCursorPageKnowledgeGuidanceRevisionOut = {
+    data?: KnowledgeCursorPageKnowledgeGuidanceRevisionOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[KnowledgeCursorPage[KnowledgeSourceOut]]
  */
 export type ResponseModelKnowledgeCursorPageKnowledgeSourceOut = {
@@ -21304,6 +22173,81 @@ export type ResponseModelKnowledgeCursorPageKnowledgeSourceOut = {
  */
 export type ResponseModelKnowledgeCursorPageKnowledgeSourceVersionOut = {
     data?: KnowledgeCursorPageKnowledgeSourceVersionOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[KnowledgeGuidanceEffectivePreviewOut]
+ */
+export type ResponseModelKnowledgeGuidanceEffectivePreviewOut = {
+    data?: KnowledgeGuidanceEffectivePreviewOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[KnowledgeGuidanceLayerOut]
+ */
+export type ResponseModelKnowledgeGuidanceLayerOut = {
+    data?: KnowledgeGuidanceLayerOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[KnowledgeGuidancePreviewOut]
+ */
+export type ResponseModelKnowledgeGuidancePreviewOut = {
+    data?: KnowledgeGuidancePreviewOut | null;
     /**
      * Error
      */
@@ -22457,6 +23401,31 @@ export type ResponseModelPageDataWorkspaceTeamMemberOut = {
  */
 export type ResponseModelPageDataWorkspaceTeamUserOptionOut = {
     data?: PageDataWorkspaceTeamUserOptionOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProductRuntimeOut]
+ */
+export type ResponseModelProductRuntimeOut = {
+    data?: ProductRuntimeOut | null;
     /**
      * Error
      */
@@ -24253,31 +25222,6 @@ export type ResponseModelSupportAccessGrantOut = {
 };
 
 /**
- * ResponseModel[SystemRuntimeOut]
- */
-export type ResponseModelSystemRuntimeOut = {
-    data?: SystemRuntimeOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[TenantIdentityOut]
  */
 export type ResponseModelTenantIdentityOut = {
@@ -24932,6 +25876,56 @@ export type ResponseModelWorkspaceDeleteResult = {
  */
 export type ResponseModelWorkspaceDesignSystemDefaultOut = {
     data?: WorkspaceDesignSystemDefaultOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[WorkspaceDesignSystemPublicationOut]
+ */
+export type ResponseModelWorkspaceDesignSystemPublicationOut = {
+    data?: WorkspaceDesignSystemPublicationOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[WorkspaceDesignSystemRepresentativePreviewOut]
+ */
+export type ResponseModelWorkspaceDesignSystemRepresentativePreviewOut = {
+    data?: WorkspaceDesignSystemRepresentativePreviewOut | null;
     /**
      * Error
      */
@@ -28541,56 +29535,6 @@ export type SupportAccessScopeIn = {
 };
 
 /**
- * SystemInstanceSetupOut
- */
-export type SystemInstanceSetupOut = {
-    /**
-     * Repairreason
-     *
-     * Explicit repair reason code when setup is invalid.
-     */
-    repairReason?: string | null;
-    /**
-     * Status
-     *
-     * Instance setup status: uninitialized, ready, repair_required.
-     */
-    status: string;
-};
-
-/**
- * SystemRuntimeCapabilities
- */
-export type SystemRuntimeCapabilities = {
-    /**
-     * Deploymentsettingsenabled
-     *
-     * Whether instance-level deployment settings (e.g. storage/mail) are exposed to the admin UI.
-     */
-    deploymentSettingsEnabled: boolean;
-    /**
-     * Publicregisterenabled
-     *
-     * Whether public account registration is enabled for this runtime.
-     */
-    publicRegisterEnabled: boolean;
-};
-
-/**
- * SystemRuntimeOut
- */
-export type SystemRuntimeOut = {
-    /**
-     * Public runtime capabilities derived from concrete backend configuration.
-     */
-    capabilities: SystemRuntimeCapabilities;
-    /**
-     * Public instance setup state derived from install.lock and the Instance Owner singleton.
-     */
-    instanceSetup: SystemInstanceSetupOut;
-};
-
-/**
  * TenantIdentityOut
  */
 export type TenantIdentityOut = {
@@ -30241,6 +31185,10 @@ export type WorkspaceCommerceUsageOut = {
  */
 export type WorkspaceCreditsOut = {
     /**
+     * Accountrevision
+     */
+    accountRevision: number;
+    /**
      * Available
      */
     available: number;
@@ -30335,6 +31283,60 @@ export type WorkspaceDeleteResult = {
 };
 
 /**
+ * WorkspaceDesignSystemArtifactOut
+ */
+export type WorkspaceDesignSystemArtifactOut = {
+    /**
+     * Artifacthash
+     */
+    artifactHash?: string | null;
+    /**
+     * Artifactinputhash
+     */
+    artifactInputHash: string;
+    /**
+     * Assetpinshash
+     */
+    assetPinsHash: string;
+    /**
+     * Builtat
+     */
+    builtAt: string | null;
+    /**
+     * Compilerversion
+     */
+    compilerVersion: string;
+    /**
+     * Componentcatalogversion
+     */
+    componentCatalogVersion: string | null;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Failurecode
+     */
+    failureCode: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Rendererprofile
+     */
+    rendererProfile: string;
+    /**
+     * Rendererversion
+     */
+    rendererVersion: string;
+    /**
+     * Status
+     */
+    status: 'pending' | 'building' | 'ready' | 'failed';
+};
+
+/**
  * WorkspaceDesignSystemDefaultOut
  */
 export type WorkspaceDesignSystemDefaultOut = {
@@ -30396,6 +31398,148 @@ export type WorkspaceDesignSystemDefaultSetRequest = {
      * Versionid
      */
     versionId: string;
+};
+
+/**
+ * WorkspaceDesignSystemPublicationCreateRequest
+ */
+export type WorkspaceDesignSystemPublicationCreateRequest = {
+    /**
+     * Expectedmanifestchecksum
+     */
+    expectedManifestChecksum: string;
+    /**
+     * Expectedstatusrevision
+     */
+    expectedStatusRevision: number;
+    /**
+     * Expectedvalidationfindinghash
+     */
+    expectedValidationFindingHash: string;
+};
+
+/**
+ * WorkspaceDesignSystemPublicationOut
+ */
+export type WorkspaceDesignSystemPublicationOut = {
+    /**
+     * Actoruserid
+     */
+    actorUserId: string;
+    artifact: WorkspaceDesignSystemArtifactOut;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Designsystemid
+     */
+    designSystemId: string;
+    /**
+     * Failurecode
+     */
+    failureCode: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Jobid
+     */
+    jobId: string;
+    /**
+     * Manifestchecksum
+     */
+    manifestChecksum: string;
+    /**
+     * Publishedat
+     */
+    publishedAt: string | null;
+    /**
+     * Status
+     */
+    status: 'pending' | 'building' | 'published' | 'failed';
+    /**
+     * Validationfindinghash
+     */
+    validationFindingHash: string;
+    /**
+     * Validatorversion
+     */
+    validatorVersion: number;
+    /**
+     * Versionid
+     */
+    versionId: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * WorkspaceDesignSystemRepresentativePreviewOut
+ */
+export type WorkspaceDesignSystemRepresentativePreviewOut = {
+    /**
+     * Designsystemid
+     */
+    designSystemId: string;
+    document: BuilderPageRenderDocumentOut;
+    /**
+     * Locale
+     */
+    locale: string;
+    /**
+     * Manifestchecksum
+     */
+    manifestChecksum: string;
+    /**
+     * Pageitemid
+     */
+    pageItemId: string;
+    /**
+     * Projectid
+     */
+    projectId: string;
+    /**
+     * Siterevisionid
+     */
+    siteRevisionId: string;
+    /**
+     * Themekey
+     */
+    themeKey: string;
+    /**
+     * Versionid
+     */
+    versionId: string;
+};
+
+/**
+ * WorkspaceDesignSystemRepresentativePreviewRequest
+ */
+export type WorkspaceDesignSystemRepresentativePreviewRequest = {
+    /**
+     * Locale
+     */
+    locale: string;
+    /**
+     * Pageitemid
+     */
+    pageItemId: string;
+    /**
+     * Projectid
+     */
+    projectId: string;
+    /**
+     * Siterevisionid
+     */
+    siteRevisionId: string;
+    /**
+     * Themekey
+     */
+    themeKey?: string | null;
 };
 
 /**
@@ -30473,7 +31617,7 @@ export type WorkspaceDesignSystemsCapabilitiesOut = {
     /**
      * Rendererpreview
      */
-    rendererPreview?: false;
+    rendererPreview?: true;
     /**
      * Workspacefoundation
      */
@@ -31066,7 +32210,7 @@ export type WorkspaceKnowledgeCapabilitiesOut = {
     /**
      * Retrievalavailable
      */
-    retrievalAvailable: true;
+    retrievalAvailable: boolean;
     /**
      * Supportedsourcekinds
      */
@@ -42007,6 +43151,22 @@ export type DomainProjectsPresignUploadPartResponses = {
 
 export type DomainProjectsPresignUploadPartResponse = DomainProjectsPresignUploadPartResponses[keyof DomainProjectsPresignUploadPartResponses];
 
+export type ProductRuntimeGetProductRuntimeData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/runtime';
+};
+
+export type ProductRuntimeGetProductRuntimeResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProductRuntimeOut;
+};
+
+export type ProductRuntimeGetProductRuntimeResponse = ProductRuntimeGetProductRuntimeResponses[keyof ProductRuntimeGetProductRuntimeResponses];
+
 export type DomainSitesListPresenceData = {
     body?: never;
     path: {
@@ -42211,22 +43371,6 @@ export type DomainSitesUpsertSiteSettingResponses = {
 };
 
 export type DomainSitesUpsertSiteSettingResponse = DomainSitesUpsertSiteSettingResponses[keyof DomainSitesUpsertSiteSettingResponses];
-
-export type ProductRuntimeGetSystemRuntimeData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/system/runtime';
-};
-
-export type ProductRuntimeGetSystemRuntimeResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSystemRuntimeOut;
-};
-
-export type ProductRuntimeGetSystemRuntimeResponse = ProductRuntimeGetSystemRuntimeResponses[keyof ProductRuntimeGetSystemRuntimeResponses];
 
 export type InternalTenancyGetWorkspaceTenantData = {
     body?: never;
@@ -43785,6 +44929,92 @@ export type DomainWorkspacesGetWorkspaceDesignSystemVersionResponses = {
 
 export type DomainWorkspacesGetWorkspaceDesignSystemVersionResponse = DomainWorkspacesGetWorkspaceDesignSystemVersionResponses[keyof DomainWorkspacesGetWorkspaceDesignSystemVersionResponses];
 
+export type DomainWorkspacesPreviewWorkspaceDesignSystemVersionData = {
+    body: WorkspaceDesignSystemRepresentativePreviewRequest;
+    path: {
+        /**
+         * System Id
+         */
+        system_id: string;
+        /**
+         * Version Id
+         */
+        version_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/design-systems/{system_id}/versions/{version_id}/previews';
+};
+
+export type DomainWorkspacesPreviewWorkspaceDesignSystemVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesPreviewWorkspaceDesignSystemVersionError = DomainWorkspacesPreviewWorkspaceDesignSystemVersionErrors[keyof DomainWorkspacesPreviewWorkspaceDesignSystemVersionErrors];
+
+export type DomainWorkspacesPreviewWorkspaceDesignSystemVersionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceDesignSystemRepresentativePreviewOut;
+};
+
+export type DomainWorkspacesPreviewWorkspaceDesignSystemVersionResponse = DomainWorkspacesPreviewWorkspaceDesignSystemVersionResponses[keyof DomainWorkspacesPreviewWorkspaceDesignSystemVersionResponses];
+
+export type DomainWorkspacesRequestWorkspaceDesignSystemPublicationData = {
+    body: WorkspaceDesignSystemPublicationCreateRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * System Id
+         */
+        system_id: string;
+        /**
+         * Version Id
+         */
+        version_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/design-systems/{system_id}/versions/{version_id}/publications';
+};
+
+export type DomainWorkspacesRequestWorkspaceDesignSystemPublicationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesRequestWorkspaceDesignSystemPublicationError = DomainWorkspacesRequestWorkspaceDesignSystemPublicationErrors[keyof DomainWorkspacesRequestWorkspaceDesignSystemPublicationErrors];
+
+export type DomainWorkspacesRequestWorkspaceDesignSystemPublicationResponses = {
+    /**
+     * Successful Response
+     */
+    202: ResponseModelWorkspaceDesignSystemPublicationOut;
+};
+
+export type DomainWorkspacesRequestWorkspaceDesignSystemPublicationResponse = DomainWorkspacesRequestWorkspaceDesignSystemPublicationResponses[keyof DomainWorkspacesRequestWorkspaceDesignSystemPublicationResponses];
+
 export type DomainWorkspacesListWorkspaceDesignSystemValidationsData = {
     body?: never;
     path: {
@@ -44169,6 +45399,861 @@ export type DomainWorkspacesRevokeFeatureAccessResponses = {
 };
 
 export type DomainWorkspacesRevokeFeatureAccessResponse = DomainWorkspacesRevokeFeatureAccessResponses[keyof DomainWorkspacesRevokeFeatureAccessResponses];
+
+export type DomainWorkspacesGetWorkspaceGuidanceData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/guidance';
+};
+
+export type DomainWorkspacesGetWorkspaceGuidanceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceGuidanceError = DomainWorkspacesGetWorkspaceGuidanceErrors[keyof DomainWorkspacesGetWorkspaceGuidanceErrors];
+
+export type DomainWorkspacesGetWorkspaceGuidanceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelKnowledgeGuidanceLayerOut;
+};
+
+export type DomainWorkspacesGetWorkspaceGuidanceResponse = DomainWorkspacesGetWorkspaceGuidanceResponses[keyof DomainWorkspacesGetWorkspaceGuidanceResponses];
+
+export type DomainWorkspacesSaveWorkspaceGuidanceDraftData = {
+    body: KnowledgeGuidanceDraftSaveRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/guidance/draft';
+};
+
+export type DomainWorkspacesSaveWorkspaceGuidanceDraftErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesSaveWorkspaceGuidanceDraftError = DomainWorkspacesSaveWorkspaceGuidanceDraftErrors[keyof DomainWorkspacesSaveWorkspaceGuidanceDraftErrors];
+
+export type DomainWorkspacesSaveWorkspaceGuidanceDraftResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelKnowledgeGuidanceLayerOut;
+};
+
+export type DomainWorkspacesSaveWorkspaceGuidanceDraftResponse = DomainWorkspacesSaveWorkspaceGuidanceDraftResponses[keyof DomainWorkspacesSaveWorkspaceGuidanceDraftResponses];
+
+export type DomainWorkspacesGetEffectiveGuidanceData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Projectid
+         */
+        projectId?: string | null;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/guidance/effective';
+};
+
+export type DomainWorkspacesGetEffectiveGuidanceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetEffectiveGuidanceError = DomainWorkspacesGetEffectiveGuidanceErrors[keyof DomainWorkspacesGetEffectiveGuidanceErrors];
+
+export type DomainWorkspacesGetEffectiveGuidanceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelKnowledgeGuidanceEffectivePreviewOut;
+};
+
+export type DomainWorkspacesGetEffectiveGuidanceResponse = DomainWorkspacesGetEffectiveGuidanceResponses[keyof DomainWorkspacesGetEffectiveGuidanceResponses];
+
+export type DomainWorkspacesListWorkspaceGuidanceHistoryData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Cursor
+         */
+        cursor?: string | null;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/guidance/history';
+};
+
+export type DomainWorkspacesListWorkspaceGuidanceHistoryErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListWorkspaceGuidanceHistoryError = DomainWorkspacesListWorkspaceGuidanceHistoryErrors[keyof DomainWorkspacesListWorkspaceGuidanceHistoryErrors];
+
+export type DomainWorkspacesListWorkspaceGuidanceHistoryResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelKnowledgeCursorPageKnowledgeGuidanceRevisionOut;
+};
+
+export type DomainWorkspacesListWorkspaceGuidanceHistoryResponse = DomainWorkspacesListWorkspaceGuidanceHistoryResponses[keyof DomainWorkspacesListWorkspaceGuidanceHistoryResponses];
+
+export type DomainWorkspacesGetProjectGuidanceData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/guidance/projects/{project_id}';
+};
+
+export type DomainWorkspacesGetProjectGuidanceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetProjectGuidanceError = DomainWorkspacesGetProjectGuidanceErrors[keyof DomainWorkspacesGetProjectGuidanceErrors];
+
+export type DomainWorkspacesGetProjectGuidanceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelKnowledgeGuidanceLayerOut;
+};
+
+export type DomainWorkspacesGetProjectGuidanceResponse = DomainWorkspacesGetProjectGuidanceResponses[keyof DomainWorkspacesGetProjectGuidanceResponses];
+
+export type DomainWorkspacesSaveProjectGuidanceDraftData = {
+    body: KnowledgeGuidanceDraftSaveRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/guidance/projects/{project_id}';
+};
+
+export type DomainWorkspacesSaveProjectGuidanceDraftErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesSaveProjectGuidanceDraftError = DomainWorkspacesSaveProjectGuidanceDraftErrors[keyof DomainWorkspacesSaveProjectGuidanceDraftErrors];
+
+export type DomainWorkspacesSaveProjectGuidanceDraftResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelKnowledgeGuidanceLayerOut;
+};
+
+export type DomainWorkspacesSaveProjectGuidanceDraftResponse = DomainWorkspacesSaveProjectGuidanceDraftResponses[keyof DomainWorkspacesSaveProjectGuidanceDraftResponses];
+
+export type DomainWorkspacesListProjectGuidanceHistoryData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Cursor
+         */
+        cursor?: string | null;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/guidance/projects/{project_id}/history';
+};
+
+export type DomainWorkspacesListProjectGuidanceHistoryErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListProjectGuidanceHistoryError = DomainWorkspacesListProjectGuidanceHistoryErrors[keyof DomainWorkspacesListProjectGuidanceHistoryErrors];
+
+export type DomainWorkspacesListProjectGuidanceHistoryResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelKnowledgeCursorPageKnowledgeGuidanceRevisionOut;
+};
+
+export type DomainWorkspacesListProjectGuidanceHistoryResponse = DomainWorkspacesListProjectGuidanceHistoryResponses[keyof DomainWorkspacesListProjectGuidanceHistoryResponses];
+
+export type DomainWorkspacesPublishProjectGuidanceData = {
+    body: KnowledgeGuidancePublishRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/guidance/projects/{project_id}/publish';
+};
+
+export type DomainWorkspacesPublishProjectGuidanceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesPublishProjectGuidanceError = DomainWorkspacesPublishProjectGuidanceErrors[keyof DomainWorkspacesPublishProjectGuidanceErrors];
+
+export type DomainWorkspacesPublishProjectGuidanceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelKnowledgeGuidanceLayerOut;
+};
+
+export type DomainWorkspacesPublishProjectGuidanceResponse = DomainWorkspacesPublishProjectGuidanceResponses[keyof DomainWorkspacesPublishProjectGuidanceResponses];
+
+export type DomainWorkspacesAttachProjectGuidanceReferenceData = {
+    body: KnowledgeGuidanceReferenceAttachRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/guidance/projects/{project_id}/references';
+};
+
+export type DomainWorkspacesAttachProjectGuidanceReferenceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesAttachProjectGuidanceReferenceError = DomainWorkspacesAttachProjectGuidanceReferenceErrors[keyof DomainWorkspacesAttachProjectGuidanceReferenceErrors];
+
+export type DomainWorkspacesAttachProjectGuidanceReferenceResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelKnowledgeGuidanceLayerOut;
+};
+
+export type DomainWorkspacesAttachProjectGuidanceReferenceResponse = DomainWorkspacesAttachProjectGuidanceReferenceResponses[keyof DomainWorkspacesAttachProjectGuidanceReferenceResponses];
+
+export type DomainWorkspacesDetachProjectGuidanceReferenceData = {
+    body: KnowledgeGuidanceReferenceDetachRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+        /**
+         * Knowledge Base Id
+         */
+        knowledge_base_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/guidance/projects/{project_id}/references/{knowledge_base_id}/detach';
+};
+
+export type DomainWorkspacesDetachProjectGuidanceReferenceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesDetachProjectGuidanceReferenceError = DomainWorkspacesDetachProjectGuidanceReferenceErrors[keyof DomainWorkspacesDetachProjectGuidanceReferenceErrors];
+
+export type DomainWorkspacesDetachProjectGuidanceReferenceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelKnowledgeGuidanceLayerOut;
+};
+
+export type DomainWorkspacesDetachProjectGuidanceReferenceResponse = DomainWorkspacesDetachProjectGuidanceReferenceResponses[keyof DomainWorkspacesDetachProjectGuidanceReferenceResponses];
+
+export type DomainWorkspacesCreateProjectGuidanceRemovePreviewData = {
+    body: KnowledgeGuidanceRemovePreviewRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/guidance/projects/{project_id}/remove-previews';
+};
+
+export type DomainWorkspacesCreateProjectGuidanceRemovePreviewErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateProjectGuidanceRemovePreviewError = DomainWorkspacesCreateProjectGuidanceRemovePreviewErrors[keyof DomainWorkspacesCreateProjectGuidanceRemovePreviewErrors];
+
+export type DomainWorkspacesCreateProjectGuidanceRemovePreviewResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelKnowledgeGuidancePreviewOut;
+};
+
+export type DomainWorkspacesCreateProjectGuidanceRemovePreviewResponse = DomainWorkspacesCreateProjectGuidanceRemovePreviewResponses[keyof DomainWorkspacesCreateProjectGuidanceRemovePreviewResponses];
+
+export type DomainWorkspacesApplyProjectGuidanceRemovePreviewData = {
+    body: KnowledgeGuidancePreviewApplyRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+        /**
+         * Preview Id
+         */
+        preview_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/guidance/projects/{project_id}/remove-previews/{preview_id}/apply';
+};
+
+export type DomainWorkspacesApplyProjectGuidanceRemovePreviewErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesApplyProjectGuidanceRemovePreviewError = DomainWorkspacesApplyProjectGuidanceRemovePreviewErrors[keyof DomainWorkspacesApplyProjectGuidanceRemovePreviewErrors];
+
+export type DomainWorkspacesApplyProjectGuidanceRemovePreviewResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelKnowledgeGuidanceLayerOut;
+};
+
+export type DomainWorkspacesApplyProjectGuidanceRemovePreviewResponse = DomainWorkspacesApplyProjectGuidanceRemovePreviewResponses[keyof DomainWorkspacesApplyProjectGuidanceRemovePreviewResponses];
+
+export type DomainWorkspacesCreateProjectGuidanceRestorePreviewData = {
+    body: KnowledgeGuidanceRestorePreviewRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/guidance/projects/{project_id}/restore-previews';
+};
+
+export type DomainWorkspacesCreateProjectGuidanceRestorePreviewErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateProjectGuidanceRestorePreviewError = DomainWorkspacesCreateProjectGuidanceRestorePreviewErrors[keyof DomainWorkspacesCreateProjectGuidanceRestorePreviewErrors];
+
+export type DomainWorkspacesCreateProjectGuidanceRestorePreviewResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelKnowledgeGuidancePreviewOut;
+};
+
+export type DomainWorkspacesCreateProjectGuidanceRestorePreviewResponse = DomainWorkspacesCreateProjectGuidanceRestorePreviewResponses[keyof DomainWorkspacesCreateProjectGuidanceRestorePreviewResponses];
+
+export type DomainWorkspacesApplyProjectGuidanceRestorePreviewData = {
+    body: KnowledgeGuidancePreviewApplyRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+        /**
+         * Preview Id
+         */
+        preview_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/guidance/projects/{project_id}/restore-previews/{preview_id}/apply';
+};
+
+export type DomainWorkspacesApplyProjectGuidanceRestorePreviewErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesApplyProjectGuidanceRestorePreviewError = DomainWorkspacesApplyProjectGuidanceRestorePreviewErrors[keyof DomainWorkspacesApplyProjectGuidanceRestorePreviewErrors];
+
+export type DomainWorkspacesApplyProjectGuidanceRestorePreviewResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelKnowledgeGuidanceLayerOut;
+};
+
+export type DomainWorkspacesApplyProjectGuidanceRestorePreviewResponse = DomainWorkspacesApplyProjectGuidanceRestorePreviewResponses[keyof DomainWorkspacesApplyProjectGuidanceRestorePreviewResponses];
+
+export type DomainWorkspacesPublishWorkspaceGuidanceData = {
+    body: KnowledgeGuidancePublishRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/guidance/publish';
+};
+
+export type DomainWorkspacesPublishWorkspaceGuidanceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesPublishWorkspaceGuidanceError = DomainWorkspacesPublishWorkspaceGuidanceErrors[keyof DomainWorkspacesPublishWorkspaceGuidanceErrors];
+
+export type DomainWorkspacesPublishWorkspaceGuidanceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelKnowledgeGuidanceLayerOut;
+};
+
+export type DomainWorkspacesPublishWorkspaceGuidanceResponse = DomainWorkspacesPublishWorkspaceGuidanceResponses[keyof DomainWorkspacesPublishWorkspaceGuidanceResponses];
+
+export type DomainWorkspacesAttachWorkspaceGuidanceReferenceData = {
+    body: KnowledgeGuidanceReferenceAttachRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/guidance/references';
+};
+
+export type DomainWorkspacesAttachWorkspaceGuidanceReferenceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesAttachWorkspaceGuidanceReferenceError = DomainWorkspacesAttachWorkspaceGuidanceReferenceErrors[keyof DomainWorkspacesAttachWorkspaceGuidanceReferenceErrors];
+
+export type DomainWorkspacesAttachWorkspaceGuidanceReferenceResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelKnowledgeGuidanceLayerOut;
+};
+
+export type DomainWorkspacesAttachWorkspaceGuidanceReferenceResponse = DomainWorkspacesAttachWorkspaceGuidanceReferenceResponses[keyof DomainWorkspacesAttachWorkspaceGuidanceReferenceResponses];
+
+export type DomainWorkspacesDetachWorkspaceGuidanceReferenceData = {
+    body: KnowledgeGuidanceReferenceDetachRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Knowledge Base Id
+         */
+        knowledge_base_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/guidance/references/{knowledge_base_id}/detach';
+};
+
+export type DomainWorkspacesDetachWorkspaceGuidanceReferenceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesDetachWorkspaceGuidanceReferenceError = DomainWorkspacesDetachWorkspaceGuidanceReferenceErrors[keyof DomainWorkspacesDetachWorkspaceGuidanceReferenceErrors];
+
+export type DomainWorkspacesDetachWorkspaceGuidanceReferenceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelKnowledgeGuidanceLayerOut;
+};
+
+export type DomainWorkspacesDetachWorkspaceGuidanceReferenceResponse = DomainWorkspacesDetachWorkspaceGuidanceReferenceResponses[keyof DomainWorkspacesDetachWorkspaceGuidanceReferenceResponses];
+
+export type DomainWorkspacesCreateWorkspaceGuidanceRemovePreviewData = {
+    body: KnowledgeGuidanceRemovePreviewRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/guidance/remove-previews';
+};
+
+export type DomainWorkspacesCreateWorkspaceGuidanceRemovePreviewErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateWorkspaceGuidanceRemovePreviewError = DomainWorkspacesCreateWorkspaceGuidanceRemovePreviewErrors[keyof DomainWorkspacesCreateWorkspaceGuidanceRemovePreviewErrors];
+
+export type DomainWorkspacesCreateWorkspaceGuidanceRemovePreviewResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelKnowledgeGuidancePreviewOut;
+};
+
+export type DomainWorkspacesCreateWorkspaceGuidanceRemovePreviewResponse = DomainWorkspacesCreateWorkspaceGuidanceRemovePreviewResponses[keyof DomainWorkspacesCreateWorkspaceGuidanceRemovePreviewResponses];
+
+export type DomainWorkspacesApplyWorkspaceGuidanceRemovePreviewData = {
+    body: KnowledgeGuidancePreviewApplyRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Preview Id
+         */
+        preview_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/guidance/remove-previews/{preview_id}/apply';
+};
+
+export type DomainWorkspacesApplyWorkspaceGuidanceRemovePreviewErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesApplyWorkspaceGuidanceRemovePreviewError = DomainWorkspacesApplyWorkspaceGuidanceRemovePreviewErrors[keyof DomainWorkspacesApplyWorkspaceGuidanceRemovePreviewErrors];
+
+export type DomainWorkspacesApplyWorkspaceGuidanceRemovePreviewResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelKnowledgeGuidanceLayerOut;
+};
+
+export type DomainWorkspacesApplyWorkspaceGuidanceRemovePreviewResponse = DomainWorkspacesApplyWorkspaceGuidanceRemovePreviewResponses[keyof DomainWorkspacesApplyWorkspaceGuidanceRemovePreviewResponses];
+
+export type DomainWorkspacesCreateWorkspaceGuidanceRestorePreviewData = {
+    body: KnowledgeGuidanceRestorePreviewRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/guidance/restore-previews';
+};
+
+export type DomainWorkspacesCreateWorkspaceGuidanceRestorePreviewErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateWorkspaceGuidanceRestorePreviewError = DomainWorkspacesCreateWorkspaceGuidanceRestorePreviewErrors[keyof DomainWorkspacesCreateWorkspaceGuidanceRestorePreviewErrors];
+
+export type DomainWorkspacesCreateWorkspaceGuidanceRestorePreviewResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelKnowledgeGuidancePreviewOut;
+};
+
+export type DomainWorkspacesCreateWorkspaceGuidanceRestorePreviewResponse = DomainWorkspacesCreateWorkspaceGuidanceRestorePreviewResponses[keyof DomainWorkspacesCreateWorkspaceGuidanceRestorePreviewResponses];
+
+export type DomainWorkspacesApplyWorkspaceGuidanceRestorePreviewData = {
+    body: KnowledgeGuidancePreviewApplyRequest;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Preview Id
+         */
+        preview_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/guidance/restore-previews/{preview_id}/apply';
+};
+
+export type DomainWorkspacesApplyWorkspaceGuidanceRestorePreviewErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesApplyWorkspaceGuidanceRestorePreviewError = DomainWorkspacesApplyWorkspaceGuidanceRestorePreviewErrors[keyof DomainWorkspacesApplyWorkspaceGuidanceRestorePreviewErrors];
+
+export type DomainWorkspacesApplyWorkspaceGuidanceRestorePreviewResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelKnowledgeGuidanceLayerOut;
+};
+
+export type DomainWorkspacesApplyWorkspaceGuidanceRestorePreviewResponse = DomainWorkspacesApplyWorkspaceGuidanceRestorePreviewResponses[keyof DomainWorkspacesApplyWorkspaceGuidanceRestorePreviewResponses];
 
 export type DomainWorkspacesListWorkspaceJobsData = {
     body?: never;

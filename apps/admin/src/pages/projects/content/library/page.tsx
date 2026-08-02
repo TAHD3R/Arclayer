@@ -18,6 +18,7 @@ import {
   updateContentLibraryView,
   unarchiveContentItem,
 } from "@/api/content";
+import type { getContentLibraryViews, listAllContentModels } from "@/api/content";
 import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
@@ -28,12 +29,14 @@ import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter
 import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type {
-  AdminContentLibraryViewColumns,
-  AdminContentLibraryViewSorting,
-  AdminContentLibraryViewsState,
-  AdminContentModel,
-  CreateAdminContentLibraryViewPayload,
-} from "@arclayer/openapi/admin-types";
+  ContentLibraryViewColumnsSchema as AdminContentLibraryViewColumns,
+  ContentLibraryViewCreateIn as CreateAdminContentLibraryViewPayload,
+} from "@arclayer/openapi";
+
+type AdminContentLibraryViewsState = Awaited<ReturnType<typeof getContentLibraryViews>>;
+type AdminContentLibraryViewSorting =
+  AdminContentLibraryViewsState["items"][number]["sorting"][number];
+type AdminContentModel = Awaited<ReturnType<typeof listAllContentModels>>[number];
 import {
   AlertDialog,
   AlertDialogAction,
@@ -299,8 +302,8 @@ function doesSavedViewMatchWorkbench(
   savedView: ContentLibrarySavedView,
   currentWorkbench: ContentLibraryViewWorkbenchState,
 ) {
-  const savedFilters = savedView.filters ?? {};
-  const savedSorting = savedView.sorting ?? [];
+  const savedFilters = savedView.filters;
+  const savedSorting = savedView.sorting;
   const savedColumns = savedView.columns ?? undefined;
 
   return (
@@ -421,7 +424,7 @@ function buildViewDiffItems(
       ? {
           id: "filters",
           label: t("content:CONTENT_LIBRARY_UPDATE_VIEW_DIFF_FILTERS"),
-          savedValue: summarizeViewFilters(savedView.filters ?? {}, t),
+          savedValue: summarizeViewFilters(savedView.filters, t),
           nextValue: summarizeViewFilters(currentWorkbench.filters, t),
         }
       : null,
@@ -429,7 +432,7 @@ function buildViewDiffItems(
       ? {
           id: "sorting",
           label: t("content:CONTENT_LIBRARY_UPDATE_VIEW_DIFF_SORTING"),
-          savedValue: summarizeViewSorting(savedView.sorting ?? [], t),
+          savedValue: summarizeViewSorting(savedView.sorting, t),
           nextValue: summarizeViewSorting(currentWorkbench.sorting, t),
         }
       : null,
@@ -1149,9 +1152,9 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
   );
   const applySavedViewWorkbench = React.useCallback(
     (savedView: ContentLibrarySavedView) => {
-      setToolbarFilters(savedView.filters ?? {});
+      setToolbarFilters(savedView.filters);
       tableHook.setSearchInput(savedView.query ?? "");
-      tableHook.setSorting(savedView.sorting ?? []);
+      tableHook.setSorting(savedView.sorting);
       if (savedView.columns) {
         if (savedView.columns.visibility) {
           tableHook.table.setColumnVisibility?.(savedView.columns.visibility);

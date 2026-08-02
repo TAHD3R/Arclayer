@@ -16,6 +16,12 @@ class AgentDefinitionBundle(NamedTuple):
     definition: AgentDefinitionRecord
     versions: tuple[AgentVersionRecord, ...]
     assignments: tuple[AgentAssignmentRecord, ...]
+    version_usage: dict[UUID, AgentVersionUsage]
+
+
+class AgentVersionUsage(NamedTuple):
+    adoption_count: int
+    failure_count: int
 
 
 class SystemAgentRepositoryProtocol(Protocol):

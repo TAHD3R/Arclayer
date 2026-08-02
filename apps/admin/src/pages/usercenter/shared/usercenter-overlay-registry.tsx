@@ -24,28 +24,26 @@ export type SettingsScreenRenderContext = {
   focusRequestId: number;
 };
 
-function useEffectiveWorkspaceId(): string {
+function useCurrentWorkspaceId(): string {
   const currentWorkspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
-  const lastWorkspaceId = useWorkspaceStore((state) => state.lastWorkspaceId);
-  const workspaceId = currentWorkspaceId ?? lastWorkspaceId;
-  if (!workspaceId) {
+  if (!currentWorkspaceId) {
     throw new Error("WORKSPACE_NOT_SELECTED");
   }
-  return workspaceId;
+  return currentWorkspaceId;
 }
 
 function WorkspaceGeneralOverlayView() {
-  return <WorkspaceSettingsBasicsView workspaceId={useEffectiveWorkspaceId()} embedded />;
+  return <WorkspaceSettingsBasicsView workspaceId={useCurrentWorkspaceId()} embedded />;
 }
 
 function WorkspacePlanUsageOverlayView() {
-  return <WorkspacePlanUsageView workspaceId={useEffectiveWorkspaceId()} />;
+  return <WorkspacePlanUsageView workspaceId={useCurrentWorkspaceId()} />;
 }
 
 function WorkspacePeopleOverlayView(context: SettingsScreenRenderContext) {
   return (
     <WorkspacePeopleView
-      workspaceId={useEffectiveWorkspaceId()}
+      workspaceId={useCurrentWorkspaceId()}
       targetSection={context.targetSection}
       initialInspectMemberId={context.payload?.memberId}
     />
@@ -53,7 +51,7 @@ function WorkspacePeopleOverlayView(context: SettingsScreenRenderContext) {
 }
 
 function WorkspaceRolesOverlayView() {
-  return <TeamRolesPage workspaceIdOverride={useEffectiveWorkspaceId()} embedded />;
+  return <TeamRolesPage workspaceIdOverride={useCurrentWorkspaceId()} embedded />;
 }
 
 export const USERCENTER_OVERLAY_ITEMS: readonly UsercenterOverlayItem[] = [

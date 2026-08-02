@@ -9,6 +9,7 @@ export interface StartAgentRunEnvelopeV1 {
   readonly threadId: string;
   readonly leadAgentId: string;
   readonly mentionedAgentIds: readonly string[];
+  readonly selectedSkillInstallationIds: readonly string[];
   readonly executionMode: AgentExecutionModeV1;
   readonly workspaceId: string;
   readonly projectId: string | null;

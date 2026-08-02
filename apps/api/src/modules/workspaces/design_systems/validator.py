@@ -275,7 +275,7 @@ def _validate_gated_inputs(
     findings: list[DesignSystemValidationFinding],
 ) -> None:
     if manifest.asset_references:
-        findings.append(_finding("DESIGN_SYSTEM_ASSET_REFERENCE_GATED"))
+        findings.append(_finding("DESIGN_SYSTEM_ASSET_REFERENCE_GATED", severity="warning"))
 
 
 def _validate_contrast(

@@ -3,7 +3,7 @@ import type { UseFormReturn } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "@arclayer/lib/utils";
-import type { JsonValueInput } from "@arclayer/openapi/admin-types";
+import type { JsonValueInput } from "@arclayer/openapi";
 import { Button } from "@arclayer/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@arclayer/ui/field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";

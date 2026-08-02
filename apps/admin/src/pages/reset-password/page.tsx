@@ -14,7 +14,7 @@ export function ResetPasswordPage() {
   const { token } = resetPasswordRouteApi.useSearch();
 
   const resetMutation = useMutation({
-    mutationFn: async (values: { reset_token: string; new_password: string }) =>
+    mutationFn: async (values: { resetToken: string; newPassword: string }) =>
       authApi.resetPassword(values),
   });
 
