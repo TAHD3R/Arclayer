@@ -13,6 +13,7 @@ export type AuthChallengeSnapshot = {
   keepSession: boolean;
   redirect: string | null;
   source: AuthChallengeSource;
+  methods?: string[];
 };
 
 type AuthChallengeState = {
@@ -21,6 +22,7 @@ type AuthChallengeState = {
   keepSession: boolean;
   redirect: string | null;
   source: AuthChallengeSource | null;
+  methods: string[];
   setChallenge: (challenge: AuthChallengeSnapshot) => void;
   clear: () => void;
 };
@@ -32,6 +34,7 @@ function createEmptyChallengeState() {
     keepSession: true,
     redirect: null,
     source: null,
+    methods: [],
   } satisfies Omit<AuthChallengeState, "setChallenge" | "clear">;
 }
 
@@ -43,10 +46,10 @@ export function isAuthChallengeExpired(expiresAt: number | null, now = Date.now(
 export function getActiveAuthChallenge(
   state: Pick<
     AuthChallengeState,
-    "twoFactorToken" | "expiresAt" | "keepSession" | "redirect" | "source"
+    "twoFactorToken" | "expiresAt" | "keepSession" | "redirect" | "source" | "methods"
   >,
 ): AuthChallengeSnapshot | null {
-  const { twoFactorToken, expiresAt, keepSession, redirect, source } = state;
+  const { twoFactorToken, expiresAt, keepSession, redirect, source, methods } = state;
   if (!twoFactorToken || !source || expiresAt === null || isAuthChallengeExpired(expiresAt)) {
     return null;
   }
@@ -57,6 +60,7 @@ export function getActiveAuthChallenge(
     keepSession,
     redirect,
     source,
+    methods: methods ?? [],
   };
 }
 
@@ -77,6 +81,7 @@ export const useAuthChallengeStore = create<AuthChallengeState>()(
         keepSession: state.keepSession,
         redirect: state.redirect,
         source: state.source,
+        methods: state.methods,
       }),
     },
   ),

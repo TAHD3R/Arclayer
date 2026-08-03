@@ -8,7 +8,7 @@ import {
   recordRecentDestination,
   resolveRecentDestinations,
 } from "@/command-center/recent-destinations";
-import { Button } from "@arclayer/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -16,7 +16,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@arclayer/ui/command";
+} from "@/components/ui/command";
 import {
   Dialog,
   DialogContent,
@@ -24,8 +24,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@arclayer/ui/dialog";
-import { Kbd } from "@arclayer/ui/kbd";
+} from "@/components/ui/dialog";
+import { Kbd } from "@/components/ui/kbd";
 
 type RecentState = Readonly<{
   destinations: readonly PlatformDestination[];
@@ -109,12 +109,12 @@ export function PlatformCommandCenter(props: PlatformCommandCenterProps) {
           <DialogDescription>{t("COMMAND_DESCRIPTION")}</DialogDescription>
         </DialogHeader>
         {props.isCatalogPartial ? (
-          <p className="border-b px-4 py-3 text-footnote text-label-secondary" role="status">
+          <p className="border-b px-4 py-3 text-sm text-muted-foreground" role="status">
             {t("COMMAND_PARTIAL")}
           </p>
         ) : null}
         {recent.error ? (
-          <p className="border-b px-4 py-3 text-footnote text-label-secondary" role="status">
+          <p className="border-b px-4 py-3 text-sm text-muted-foreground" role="status">
             {t("COMMAND_RECENT_UNAVAILABLE")}
           </p>
         ) : null}

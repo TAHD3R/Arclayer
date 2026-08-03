@@ -1,9 +1,14 @@
-import { useCallback, useState, type ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
+import { useCallback, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   FeedbackTicketDetailOut,
   MailProviderInfo,
   MailServiceOut,
+  MailTemplateOut,
+  NotificationCampaignDetailOut,
+  NotificationCampaignSummaryOut,
+  PageDataNotificationDeliveryDirectoryOut,
   PageDataFeedbackTicketListItemOut,
   PageDataMailTemplateGroupOut,
   PageDataNotificationCampaignSummaryOut,
@@ -14,37 +19,58 @@ import {
   addFeedbackMessage,
   archiveCampaign,
   cancelCampaign,
-  createCampaign,
-  disableMailService,
-  estimateCampaignAudience,
+  getCampaign,
   getFeedback,
   getMailService,
+  getTemplate,
   listCampaignDeliveries,
   listCampaigns,
+  listDeliveryDirectory,
   listFeedback,
   listMailProviders,
-  listTemplateHistory,
   listTemplates,
-  previewCampaign,
-  publishCampaign,
-  recoverMailService,
-  restoreTemplate,
   retryCampaignFailures,
   retryFeedbackReplyDelivery,
-  switchMailProvider,
-  testMailService,
-  testSendTemplate,
   updateFeedback,
 } from "@/communications/communications-api";
+import { CampaignDraftDialog } from "@/communications/campaign-draft-dialog";
+import { CampaignPublishDialog } from "@/communications/campaign-publish-dialog";
+import {
+  DeleteEmailTemplateDialog,
+  EmailTemplateHistoryDialog,
+  EmailTemplateTestDialog,
+  RestoreEmailTemplateDialog,
+} from "@/communications/email-template-action-dialogs";
+import { EmailTemplateEditorDialog } from "@/communications/email-template-editor-dialog";
+import {
+  MailCredentialDialog,
+  MailServiceActionDialog,
+  MailServiceProfileDialog,
+  MailServiceTestDialog,
+} from "@/communications/mail-service-dialogs";
+import { PlatformPage } from "@/components/platform-page";
 import { useMonitoringQuery } from "@/monitoring/monitoring-ui";
-import { Badge } from "@arclayer/ui/badge";
-import { Button } from "@arclayer/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@arclayer/ui/empty";
-import { Input } from "@arclayer/ui/input";
-import { Skeleton } from "@arclayer/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
-import { Textarea } from "@arclayer/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 
 type LoadState<T> = Readonly<{ status: string; data?: T }>;
 type FeedbackStatus =
@@ -55,6 +81,7 @@ type FeedbackStatus =
   | "resolved"
   | "closed";
 type FeedbackPriority = "low" | "normal" | "high" | "urgent";
+type IdempotencyAttempt = Readonly<{ fingerprint: string; key: string }>;
 
 function MessagesPage({
   title,
@@ -62,13 +89,9 @@ function MessagesPage({
   children,
 }: Readonly<{ title: string; description: string; children: ReactNode }>) {
   return (
-    <section className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-7 px-5 py-8 md:px-8 md:py-10">
-      <header className="max-w-3xl space-y-2">
-        <h1 className="text-largetitle">{title}</h1>
-        <p className="text-body text-label-secondary">{description}</p>
-      </header>
+    <PlatformPage description={description} title={title}>
       {children}
-    </section>
+    </PlatformPage>
   );
 }
 
@@ -150,6 +173,7 @@ function FeedbackDetailContent({
   const [kind, setKind] = useState<"reply" | "internal_note">("reply");
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const replyRetryAttempts = useRef<Map<string, IdempotencyAttempt>>(new Map());
   const mutate = async (work: () => Promise<unknown>) => {
     setPending(true);
     setNotice(null);
@@ -163,6 +187,17 @@ function FeedbackDetailContent({
       setPending(false);
     }
   };
+  const retryReply = async (messageId: string, messageBody: string) => {
+    const fingerprint = JSON.stringify([ticket.id, messageId, messageBody]);
+    const attempt = replyRetryAttempts.current.get(fingerprint) ?? {
+      fingerprint,
+      key: crypto.randomUUID(),
+    };
+    replyRetryAttempts.current.set(fingerprint, attempt);
+    await retryFeedbackReplyDelivery(ticket.id, messageId, attempt.key);
+    if (replyRetryAttempts.current.get(fingerprint) === attempt)
+      replyRetryAttempts.current.delete(fingerprint);
+  };
   return (
     <Card>
       <CardHeader>
@@ -171,7 +206,7 @@ function FeedbackDetailContent({
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="grid gap-3 md:grid-cols-3">
-          <label className="space-y-1 text-footnote">
+          <label className="space-y-1 text-sm">
             <span>{t("STATUS")}</span>
             <select
               className="h-9 w-full rounded-md border bg-card px-2"
@@ -194,7 +229,7 @@ function FeedbackDetailContent({
               ))}
             </select>
           </label>
-          <label className="space-y-1 text-footnote">
+          <label className="space-y-1 text-sm">
             <span>{t("PRIORITY")}</span>
             <select
               className="h-9 w-full rounded-md border bg-card px-2"
@@ -208,7 +243,7 @@ function FeedbackDetailContent({
               ))}
             </select>
           </label>
-          <label className="space-y-1 text-footnote">
+          <label className="space-y-1 text-sm">
             <span>{t("ASSIGNEE_ID")}</span>
             <Input onChange={(event) => setAssignee(event.target.value)} value={assignee} />
           </label>
@@ -239,7 +274,7 @@ function FeedbackDetailContent({
               <option value="reply">{t("PUBLIC_REPLY")}</option>
               <option value="internal_note">{t("INTERNAL_NOTE")}</option>
             </select>
-            <span className="text-footnote text-label-secondary">
+            <span className="text-sm text-muted-foreground">
               {kind === "reply" ? t("REPLY_DELIVERY_EVIDENCE") : t("INTERNAL_NOTE_PRIVATE")}
             </span>
           </div>
@@ -270,7 +305,7 @@ function FeedbackDetailContent({
           {ticket.messages.map((message) => (
             <div className="rounded-md border p-3" key={message.id}>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-footnote text-label-secondary">
+                <p className="text-sm text-muted-foreground">
                   {t(`MESSAGE_KIND_${message.kind.toUpperCase()}`)} ·{" "}
                   {new Date(message.createdAt).toLocaleString()}
                 </p>
@@ -280,15 +315,11 @@ function FeedbackDetailContent({
                   </Badge>
                 ) : null}
               </div>
-              <p className="mt-2 text-body">{message.body}</p>
+              <p className="mt-2 text-base">{message.body}</p>
               {message.deliveryIsRetryable ? (
                 <Button
                   loading={pending}
-                  onClick={() =>
-                    void mutate(() =>
-                      retryFeedbackReplyDelivery(ticket.id, message.id, crypto.randomUUID()),
-                    )
-                  }
+                  onClick={() => void mutate(() => retryReply(message.id, message.body))}
                   size="sm"
                   variant="outline"
                 >
@@ -299,7 +330,7 @@ function FeedbackDetailContent({
           ))}
         </div>
         {notice ? (
-          <p aria-live="polite" className="text-footnote text-label-secondary">
+          <p aria-live="polite" className="text-sm text-muted-foreground">
             {notice}
           </p>
         ) : null}
@@ -368,10 +399,13 @@ export function CommunicationsCampaignsPage() {
   const { t } = useTranslation("communications");
   const load = useCallback(() => listCampaigns({ page: 1, size: 50 }), []);
   const { state, retry } = useMonitoringQuery(load, []);
-  const [name, setName] = useState("");
-  const [scheduleAt, setScheduleAt] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState<string | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorCampaign, setEditorCampaign] = useState<NotificationCampaignDetailOut>();
+  const [publishTarget, setPublishTarget] = useState<NotificationCampaignSummaryOut>();
+  const editorRequest = useRef(0);
+  const campaignRetryAttempts = useRef<Map<string, IdempotencyAttempt>>(new Map());
   const run = async (id: string, work: () => Promise<unknown>) => {
     setPending(id);
     setNotice(null);
@@ -385,34 +419,42 @@ export function CommunicationsCampaignsPage() {
       setPending(null);
     }
   };
+  const retryFailedCampaign = async (campaignId: string) => {
+    const attempt = campaignRetryAttempts.current.get(campaignId) ?? {
+      fingerprint: campaignId,
+      key: crypto.randomUUID(),
+    };
+    campaignRetryAttempts.current.set(campaignId, attempt);
+    await retryCampaignFailures(campaignId, attempt.key);
+    if (campaignRetryAttempts.current.get(campaignId) === attempt)
+      campaignRetryAttempts.current.delete(campaignId);
+  };
+  const openEditor = async (campaignId?: string) => {
+    const requestId = ++editorRequest.current;
+    setNotice(null);
+    if (!campaignId) {
+      setPending((current) => (current?.endsWith(":edit") ? null : current));
+      setEditorCampaign(undefined);
+      setEditorOpen(true);
+      return;
+    }
+    setPending(`${campaignId}:edit`);
+    try {
+      const campaign = await getCampaign(campaignId);
+      if (editorRequest.current !== requestId) return;
+      setEditorCampaign(campaign);
+      setEditorOpen(true);
+    } catch {
+      if (editorRequest.current === requestId) setNotice(t("OPERATION_FAILED"));
+    } finally {
+      if (editorRequest.current === requestId) setPending(null);
+    }
+  };
   return (
     <MessagesPage title={t("CAMPAIGNS_TITLE")} description={t("CAMPAIGNS_DESCRIPTION")}>
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("CREATE_CAMPAIGN")}</CardTitle>
-          <CardDescription>{t("CREATE_CAMPAIGN_DESCRIPTION")}</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          <Input
-            aria-label={t("CAMPAIGN_NAME")}
-            onChange={(event) => setName(event.target.value)}
-            placeholder={t("CAMPAIGN_NAME")}
-            value={name}
-          />
-          <Button
-            disabled={!name.trim()}
-            loading={pending === "create"}
-            onClick={() =>
-              void run("create", async () => {
-                await createCampaign({ name, audience: { kind: "all_active_users" } });
-                setName("");
-              })
-            }
-          >
-            {t("CREATE_DRAFT")}
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="flex justify-end">
+        <Button onClick={() => void openEditor()}>{t("CREATE_DRAFT")}</Button>
+      </div>
       <MessagesState
         empty={(data: PageDataNotificationCampaignSummaryOut) => !data.items?.length}
         retry={retry}
@@ -449,44 +491,19 @@ export function CommunicationsCampaignsPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-2">
-                          <Button
-                            loading={pending === `${item.id}:estimate`}
-                            onClick={() =>
-                              void run(`${item.id}:estimate`, () =>
-                                estimateCampaignAudience(item.id),
-                              )
-                            }
-                            size="sm"
-                            variant="outline"
-                          >
-                            {t("VALIDATE")}
-                          </Button>
-                          <Button
-                            loading={pending === `${item.id}:preview`}
-                            onClick={() =>
-                              void run(`${item.id}:preview`, () => previewCampaign(item.id))
-                            }
-                            size="sm"
-                            variant="outline"
-                          >
-                            {t("PREVIEW")}
-                          </Button>
-                          {item.state === "draft" || item.state === "scheduled" ? (
+                          {item.state === "draft" ? (
                             <Button
-                              loading={pending === `${item.id}:publish`}
-                              onClick={() =>
-                                void run(`${item.id}:publish`, () =>
-                                  publishCampaign(item.id, {
-                                    expectedRevision: item.revision,
-                                    scheduleAt: scheduleAt
-                                      ? new Date(scheduleAt).toISOString()
-                                      : null,
-                                  }),
-                                )
-                              }
+                              loading={pending === `${item.id}:edit`}
+                              onClick={() => void openEditor(item.id)}
                               size="sm"
+                              variant="outline"
                             >
-                              {scheduleAt ? t("SCHEDULE") : t("SEND_NOW")}
+                              {t("EDIT")}
+                            </Button>
+                          ) : null}
+                          {item.state === "draft" ? (
+                            <Button onClick={() => setPublishTarget(item)} size="sm">
+                              {t("REVIEW_AND_SEND")}
                             </Button>
                           ) : null}
                           {item.state === "scheduled" || item.state === "dispatching" ? (
@@ -507,9 +524,7 @@ export function CommunicationsCampaignsPage() {
                             <Button
                               loading={pending === `${item.id}:retry`}
                               onClick={() =>
-                                void run(`${item.id}:retry`, () =>
-                                  retryCampaignFailures(item.id, crypto.randomUUID()),
-                                )
+                                void run(`${item.id}:retry`, () => retryFailedCampaign(item.id))
                               }
                               size="sm"
                               variant="outline"
@@ -531,12 +546,13 @@ export function CommunicationsCampaignsPage() {
                               {t("ARCHIVE")}
                             </Button>
                           ) : null}
-                          <a
-                            className="text-footnote underline"
-                            href={`/messages/deliveries?campaignId=${encodeURIComponent(item.id)}`}
+                          <Link
+                            className="text-sm underline"
+                            search={{ campaignId: item.id }}
+                            to="/messages/deliveries"
                           >
                             {t("VIEW_DELIVERIES")}
-                          </a>
+                          </Link>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -547,37 +563,103 @@ export function CommunicationsCampaignsPage() {
           </Card>
         )}
       </MessagesState>
-      <label className="max-w-sm space-y-1 text-footnote">
-        <span>{t("SCHEDULE_AT")}</span>
-        <Input
-          onChange={(event) => setScheduleAt(event.target.value)}
-          type="datetime-local"
-          value={scheduleAt}
-        />
-      </label>
       {notice ? (
-        <p aria-live="polite" className="text-footnote text-label-secondary">
+        <p aria-live="polite" className="text-sm text-muted-foreground">
           {notice}
         </p>
+      ) : null}
+      {editorOpen ? (
+        <CampaignDraftDialog
+          campaign={editorCampaign}
+          key={editorCampaign?.id ?? "new-campaign"}
+          onCompleted={(messageKey) => {
+            setNotice(t(messageKey));
+            retry();
+          }}
+          onOpenChange={setEditorOpen}
+          open={editorOpen}
+        />
+      ) : null}
+      {publishTarget ? (
+        <CampaignPublishDialog
+          campaign={publishTarget}
+          onCompleted={(messageKey) => {
+            setNotice(t(messageKey));
+            retry();
+          }}
+          onOpenChange={(open) => !open && setPublishTarget(undefined)}
+          open
+        />
       ) : null}
     </MessagesPage>
   );
 }
 
 export function CommunicationsDeliveriesPage({ campaignId }: Readonly<{ campaignId?: string }>) {
+  return campaignId ? <CampaignDeliveries campaignId={campaignId} /> : <DeliveryDirectory />;
+}
+
+function DeliveryDirectory() {
   const { t } = useTranslation("communications");
-  if (!campaignId)
-    return (
-      <MessagesPage title={t("DELIVERIES_TITLE")} description={t("DELIVERIES_DESCRIPTION")}>
-        <Empty className="min-h-72 border bg-card">
-          <EmptyHeader>
-            <EmptyTitle>{t("DELIVERY_SCOPE_REQUIRED_TITLE")}</EmptyTitle>
-            <EmptyDescription>{t("DELIVERY_SCOPE_REQUIRED_DESCRIPTION")}</EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      </MessagesPage>
-    );
-  return <CampaignDeliveries campaignId={campaignId} />;
+  const load = useCallback(
+    () => listDeliveryDirectory({ ordering: "-updated_at", page: 1, size: 50 }),
+    [],
+  );
+  const { state, retry } = useMonitoringQuery(load, []);
+  return (
+    <MessagesPage title={t("DELIVERIES_TITLE")} description={t("DELIVERIES_DESCRIPTION")}>
+      <MessagesState
+        empty={(data: PageDataNotificationDeliveryDirectoryOut) => !data.items?.length}
+        retry={retry}
+        state={state}
+      >
+        {(data) => (
+          <Card>
+            <CardContent className="overflow-x-auto pt-6">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("NAME")}</TableHead>
+                    <TableHead>{t("RECIPIENT")}</TableHead>
+                    <TableHead>{t("CHANNEL")}</TableHead>
+                    <TableHead>{t("STATE")}</TableHead>
+                    <TableHead>{t("ATTEMPTS")}</TableHead>
+                    <TableHead>{t("FAILURE")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.items?.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <Link
+                          className="font-medium underline-offset-4 hover:underline"
+                          search={{ campaignId: item.campaign.id }}
+                          to="/messages/deliveries"
+                        >
+                          {item.campaign.name}
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        {item.recipient.displayName ?? item.recipient.username ?? item.recipient.id}
+                      </TableCell>
+                      <TableCell>{item.channel}</TableCell>
+                      <TableCell>
+                        <Badge variant={item.state === "failed" ? "destructive" : "outline"}>
+                          {t(`DELIVERY_STATE_${item.state.toUpperCase()}`)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{item.attemptCount}</TableCell>
+                      <TableCell>{item.failureMessage ?? t("NONE")}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+      </MessagesState>
+    </MessagesPage>
+  );
 }
 
 function CampaignDeliveries({ campaignId }: Readonly<{ campaignId: string }>) {
@@ -589,11 +671,19 @@ function CampaignDeliveries({ campaignId }: Readonly<{ campaignId: string }>) {
   const { state, retry } = useMonitoringQuery(load, [campaignId]);
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const campaignDeliveryRetryAttempts = useRef<Map<string, IdempotencyAttempt>>(new Map());
   const retryFailed = async () => {
+    const attempt = campaignDeliveryRetryAttempts.current.get(campaignId) ?? {
+      fingerprint: campaignId,
+      key: crypto.randomUUID(),
+    };
+    campaignDeliveryRetryAttempts.current.set(campaignId, attempt);
     setPending(true);
     setNotice(null);
     try {
-      await retryCampaignFailures(campaignId, crypto.randomUUID());
+      await retryCampaignFailures(campaignId, attempt.key);
+      if (campaignDeliveryRetryAttempts.current.get(campaignId) === attempt)
+        campaignDeliveryRetryAttempts.current.delete(campaignId);
       setNotice(t("OPERATION_ACCEPTED"));
       retry();
     } catch {
@@ -650,7 +740,7 @@ function CampaignDeliveries({ campaignId }: Readonly<{ campaignId: string }>) {
         )}
       </MessagesState>
       {notice ? (
-        <p aria-live="polite" className="text-footnote text-label-secondary">
+        <p aria-live="polite" className="text-sm text-muted-foreground">
           {notice}
         </p>
       ) : null}
@@ -658,27 +748,54 @@ function CampaignDeliveries({ campaignId }: Readonly<{ campaignId: string }>) {
   );
 }
 
+type TemplateDialogState =
+  | Readonly<{ kind: "create" }>
+  | Readonly<{
+      kind: "delete" | "edit" | "restore" | "test";
+      template: MailTemplateOut;
+    }>
+  | Readonly<{ kind: "history"; templateKey: string; templateName: string }>;
+
 export function CommunicationsTemplatesPage() {
   const { t } = useTranslation("communications");
   const load = useCallback(() => listTemplates({ page: 1, size: 50 }), []);
   const { state, retry } = useMonitoringQuery(load, []);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState<string | null>(null);
-  const run = async (id: string, work: () => Promise<unknown>) => {
-    setPending(id);
+  const [dialog, setDialog] = useState<TemplateDialogState | null>(null);
+  const templateRequest = useRef(0);
+  const openDialog = (nextDialog: TemplateDialogState) => {
+    templateRequest.current += 1;
+    setPending(null);
+    setDialog(nextDialog);
+  };
+  const openTemplateDialog = async (
+    templateId: string,
+    kind: "delete" | "edit" | "restore" | "test",
+  ) => {
+    const requestId = ++templateRequest.current;
+    const operationId = `${templateId}:${kind}`;
+    setPending(operationId);
     setNotice(null);
     try {
-      await work();
-      setNotice(t("OPERATION_ACCEPTED"));
-      retry();
+      const template = await getTemplate(templateId);
+      if (templateRequest.current !== requestId) return;
+      setDialog({ kind, template });
     } catch {
-      setNotice(t("OPERATION_FAILED"));
+      if (templateRequest.current === requestId) setNotice(t("OPERATION_FAILED"));
     } finally {
-      setPending(null);
+      if (templateRequest.current === requestId) setPending(null);
     }
+  };
+  const completed = (messageKey: string) => {
+    setNotice(t(messageKey));
+    retry();
   };
   return (
     <MessagesPage title={t("TEMPLATES_TITLE")} description={t("TEMPLATES_DESCRIPTION")}>
+      <div className="flex justify-end">
+        <Button onClick={() => openDialog({ kind: "create" })}>{t("CREATE_TEMPLATE")}</Button>
+      </div>
       <MessagesState
         empty={(data: PageDataMailTemplateGroupOut) => !data.items?.length}
         retry={retry}
@@ -702,7 +819,7 @@ export function CommunicationsTemplatesPage() {
                     <TableRow key={item.key}>
                       <TableCell>
                         <p>{item.name}</p>
-                        <p className="text-footnote text-label-secondary">{item.key}</p>
+                        <p className="text-sm text-muted-foreground">{item.key}</p>
                       </TableCell>
                       <TableCell>{t(`CATEGORY_${item.category.toUpperCase()}`)}</TableCell>
                       <TableCell>{t(`TEMPLATE_HEALTH_${item.health.toUpperCase()}`)}</TableCell>
@@ -716,33 +833,41 @@ export function CommunicationsTemplatesPage() {
                             >
                               {locale.locale} · v{locale.version}
                             </Badge>
-                            <span className="text-footnote">{locale.subjectPreview}</span>
+                            <span className="text-sm">{locale.subjectPreview}</span>
+                            <Button
+                              loading={pending === `${locale.id}:edit`}
+                              onClick={() => void openTemplateDialog(locale.id, "edit")}
+                              size="sm"
+                              variant="ghost"
+                            >
+                              {t("EDIT")}
+                            </Button>
                             <Button
                               loading={pending === `${locale.id}:test`}
-                              onClick={() => {
-                                const recipient = window.prompt(t("TEST_RECIPIENT_PROMPT"));
-                                if (recipient)
-                                  void run(`${locale.id}:test`, () =>
-                                    testSendTemplate(locale.id, { recipient }),
-                                  );
-                              }}
+                              onClick={() => void openTemplateDialog(locale.id, "test")}
                               size="sm"
                               variant="ghost"
                             >
                               {t("TEST_SEND")}
                             </Button>
-                            {locale.sourceState !== "custom" ? (
+                            {locale.sourceState === "overridden" ? (
                               <Button
                                 loading={pending === `${locale.id}:restore`}
-                                onClick={() =>
-                                  void run(`${locale.id}:restore`, () =>
-                                    restoreTemplate(locale.id, { expectedVersion: locale.version }),
-                                  )
-                                }
+                                onClick={() => void openTemplateDialog(locale.id, "restore")}
                                 size="sm"
                                 variant="ghost"
                               >
                                 {t("RESTORE_DEFAULT")}
+                              </Button>
+                            ) : null}
+                            {locale.sourceState === "custom" ? (
+                              <Button
+                                loading={pending === `${locale.id}:delete`}
+                                onClick={() => void openTemplateDialog(locale.id, "delete")}
+                                size="sm"
+                                variant="ghost"
+                              >
+                                {t("DELETE")}
                               </Button>
                             ) : null}
                           </div>
@@ -750,11 +875,12 @@ export function CommunicationsTemplatesPage() {
                       </TableCell>
                       <TableCell>
                         <Button
-                          loading={pending === `${item.key}:history`}
                           onClick={() =>
-                            void run(`${item.key}:history`, () =>
-                              listTemplateHistory(item.key, { page: 1, size: 20 }),
-                            )
+                            openDialog({
+                              kind: "history",
+                              templateKey: item.key,
+                              templateName: item.name,
+                            })
                           }
                           size="sm"
                           variant="outline"
@@ -771,11 +897,79 @@ export function CommunicationsTemplatesPage() {
         )}
       </MessagesState>
       {notice ? (
-        <p aria-live="polite" className="text-footnote text-label-secondary">
+        <p aria-live="polite" className="text-sm text-muted-foreground">
           {notice}
         </p>
       ) : null}
+      {dialog?.kind === "create" ? (
+        <EmailTemplateEditorDialog
+          onCompleted={completed}
+          onOpenChange={(open) => !open && setDialog(null)}
+          open
+        />
+      ) : null}
+      {dialog?.kind === "edit" ? (
+        <EmailTemplateEditorDialog
+          key={dialog.template.id}
+          onCompleted={completed}
+          onOpenChange={(open) => !open && setDialog(null)}
+          open
+          template={dialog.template}
+        />
+      ) : null}
+      {dialog?.kind === "test" ? (
+        <EmailTemplateTestDialog
+          key={dialog.template.id}
+          onCompleted={completed}
+          onOpenChange={(open) => !open && setDialog(null)}
+          open
+          template={dialog.template}
+        />
+      ) : null}
+      {dialog?.kind === "delete" ? (
+        <DeleteEmailTemplateDialog
+          key={dialog.template.id}
+          onCompleted={completed}
+          onOpenChange={(open) => !open && setDialog(null)}
+          open
+          template={dialog.template}
+        />
+      ) : null}
+      {dialog?.kind === "restore" ? (
+        <RestoreEmailTemplateDialog
+          key={dialog.template.id}
+          onCompleted={completed}
+          onOpenChange={(open) => !open && setDialog(null)}
+          open
+          template={dialog.template}
+        />
+      ) : null}
+      {dialog?.kind === "history" ? (
+        <EmailTemplateHistoryDialog
+          onCompleted={completed}
+          onOpenChange={(open) => !open && setDialog(null)}
+          open
+          templateKey={dialog.templateKey}
+          templateName={dialog.templateName}
+        />
+      ) : null}
     </MessagesPage>
+  );
+}
+
+type MailDialogState =
+  | Readonly<{
+      kind: "credentials" | "disable" | "profile" | "recover" | "rotate" | "test";
+      service: MailServiceOut;
+    }>
+  | Readonly<{ kind: "switch"; provider: MailProviderInfo; service: MailServiceOut }>;
+
+function mailActionAvailable(
+  service: MailServiceOut,
+  action: NonNullable<MailServiceOut["permittedActions"]>[number]["action"],
+): boolean {
+  return (
+    service.permittedActions?.some((item) => item.action === action && item.available) ?? false
   );
 }
 
@@ -785,23 +979,14 @@ export function CommunicationsEmailPage() {
   const profileLoad = useCallback(() => getMailService(), []);
   const providers = useMonitoringQuery(providersLoad, []);
   const profile = useMonitoringQuery(profileLoad, []);
-  const [recipient, setRecipient] = useState("");
-  const [pending, setPending] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const run = async (name: string, work: () => Promise<unknown>) => {
-    setPending(name);
-    setNotice(null);
-    try {
-      await work();
-      setNotice(t("OPERATION_ACCEPTED"));
-      providers.retry();
-      profile.retry();
-    } catch {
-      setNotice(t("OPERATION_FAILED"));
-    } finally {
-      setPending(null);
-    }
+  const [dialog, setDialog] = useState<MailDialogState | null>(null);
+  const completed = (messageKey: string) => {
+    setNotice(t(messageKey));
+    providers.retry();
+    profile.retry();
   };
+  const service = profile.state.status === "ready" ? profile.state.data : undefined;
   return (
     <MessagesPage title={t("EMAIL_TITLE")} description={t("EMAIL_DESCRIPTION")}>
       <MessagesState empty={() => false} retry={profile.retry} state={profile.state}>
@@ -825,42 +1010,76 @@ export function CommunicationsEmailPage() {
                   {service.reachable ? t("REACHABLE") : t("UNREACHABLE")}
                 </Badge>
               </div>
-              <p className="text-footnote text-label-secondary">
+              <p className="text-sm text-muted-foreground">
                 {service.sender.address ?? t("SENDER_NOT_CONFIGURED")}
               </p>
+              <p className="text-sm text-muted-foreground">
+                {service.credentialConfigured
+                  ? t("CREDENTIALS_CONFIGURED")
+                  : t("CREDENTIALS_NOT_CONFIGURED")}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {t("LAST_TEST")}:{" "}
+                {service.lastTestStatus
+                  ? `${t(`TEST_STATUS_${service.lastTestStatus.toUpperCase()}`)} · ${
+                      service.lastTestedAt
+                        ? new Date(service.lastTestedAt).toLocaleString()
+                        : t("LAST_TEST_NOT_RUN")
+                    }`
+                  : t("LAST_TEST_NOT_RUN")}
+              </p>
               <div className="flex flex-wrap gap-2">
-                <Input
-                  onChange={(event) => setRecipient(event.target.value)}
-                  placeholder={t("TEST_RECIPIENT")}
-                  type="email"
-                  value={recipient}
-                />
                 <Button
-                  disabled={!recipient}
-                  loading={pending === "test"}
-                  onClick={() =>
-                    void run("test", () =>
-                      testMailService({
-                        expectedRevision: service.revision,
-                        idempotencyKey: crypto.randomUUID(),
-                        recipient,
-                      }),
-                    )
+                  disabled={!mailActionAvailable(service, "configure")}
+                  onClick={() => setDialog({ kind: "profile", service })}
+                  title={
+                    mailActionAvailable(service, "configure") ? undefined : t("ACTION_UNAVAILABLE")
                   }
+                  variant="outline"
+                >
+                  {t("CONFIGURE_SERVICE")}
+                </Button>
+                {service.credentialConfigured ? (
+                  <Button
+                    disabled={!mailActionAvailable(service, "rotate_credentials")}
+                    onClick={() => setDialog({ kind: "rotate", service })}
+                    title={
+                      mailActionAvailable(service, "rotate_credentials")
+                        ? undefined
+                        : t("ACTION_UNAVAILABLE")
+                    }
+                    variant="outline"
+                  >
+                    {t("ROTATE_CREDENTIALS")}
+                  </Button>
+                ) : (
+                  <Button
+                    disabled={!mailActionAvailable(service, "configure_credentials")}
+                    onClick={() => setDialog({ kind: "credentials", service })}
+                    title={
+                      mailActionAvailable(service, "configure_credentials")
+                        ? undefined
+                        : t("ACTION_UNAVAILABLE")
+                    }
+                    variant="outline"
+                  >
+                    {t("CONFIGURE_CREDENTIALS")}
+                  </Button>
+                )}
+                <Button
+                  disabled={!mailActionAvailable(service, "test")}
+                  onClick={() => setDialog({ kind: "test", service })}
+                  title={mailActionAvailable(service, "test") ? undefined : t("ACTION_UNAVAILABLE")}
                   variant="outline"
                 >
                   {t("TEST_SERVICE")}
                 </Button>
                 {service.active ? (
                   <Button
-                    loading={pending === "disable"}
-                    onClick={() =>
-                      void run("disable", () =>
-                        disableMailService({
-                          expectedRevision: service.revision,
-                          idempotencyKey: crypto.randomUUID(),
-                        }),
-                      )
+                    disabled={!mailActionAvailable(service, "disable")}
+                    onClick={() => setDialog({ kind: "disable", service })}
+                    title={
+                      mailActionAvailable(service, "disable") ? undefined : t("ACTION_UNAVAILABLE")
                     }
                     variant="outline"
                   >
@@ -868,14 +1087,10 @@ export function CommunicationsEmailPage() {
                   </Button>
                 ) : (
                   <Button
-                    loading={pending === "recover"}
-                    onClick={() =>
-                      void run("recover", () =>
-                        recoverMailService({
-                          expectedRevision: service.revision,
-                          idempotencyKey: crypto.randomUUID(),
-                        }),
-                      )
+                    disabled={!mailActionAvailable(service, "recover")}
+                    onClick={() => setDialog({ kind: "recover", service })}
+                    title={
+                      mailActionAvailable(service, "recover") ? undefined : t("ACTION_UNAVAILABLE")
                     }
                   >
                     {t("RECOVER")}
@@ -899,18 +1114,17 @@ export function CommunicationsEmailPage() {
                   <Badge variant={provider.active && provider.available ? "secondary" : "outline"}>
                     {provider.active && provider.available ? t("READY") : t("NOT_READY")}
                   </Badge>
-                  <p className="text-footnote text-label-secondary">
-                    {provider.error ??
-                      (provider.configured
+                  <p className="text-sm text-muted-foreground">
+                    {!provider.available
+                      ? t("PROVIDER_UNAVAILABLE")
+                      : provider.configured
                         ? t("PROVIDER_CONFIGURED")
-                        : t("PROVIDER_NOT_CONFIGURED"))}
+                        : t("PROVIDER_NOT_CONFIGURED")}
                   </p>
                   <Button
-                    disabled={!provider.available || provider.active}
-                    loading={pending === provider.providerId}
-                    onClick={() =>
-                      void run(provider.providerId, () => switchMailProvider(provider.providerId))
-                    }
+                    disabled={!service || !provider.available || provider.active}
+                    onClick={() => service && setDialog({ kind: "switch", provider, service })}
+                    title={!service || !provider.available ? t("ACTION_UNAVAILABLE") : undefined}
                     variant="outline"
                   >
                     {t("ACTIVATE_PROVIDER")}
@@ -922,9 +1136,58 @@ export function CommunicationsEmailPage() {
         )}
       </MessagesState>
       {notice ? (
-        <p aria-live="polite" className="text-footnote text-label-secondary">
+        <p aria-live="polite" className="text-sm text-muted-foreground">
           {notice}
         </p>
+      ) : null}
+      {dialog?.kind === "profile" ? (
+        <MailServiceProfileDialog
+          key={dialog.service.revision}
+          onCompleted={completed}
+          onOpenChange={(open) => !open && setDialog(null)}
+          open
+          service={dialog.service}
+        />
+      ) : null}
+      {dialog?.kind === "credentials" || dialog?.kind === "rotate" ? (
+        <MailCredentialDialog
+          key={`${dialog.kind}:${dialog.service.revision}`}
+          onCompleted={completed}
+          onOpenChange={(open) => !open && setDialog(null)}
+          open
+          rotate={dialog.kind === "rotate"}
+          service={dialog.service}
+        />
+      ) : null}
+      {dialog?.kind === "test" ? (
+        <MailServiceTestDialog
+          key={dialog.service.revision}
+          onCompleted={completed}
+          onOpenChange={(open) => !open && setDialog(null)}
+          open
+          service={dialog.service}
+        />
+      ) : null}
+      {dialog?.kind === "disable" || dialog?.kind === "recover" ? (
+        <MailServiceActionDialog
+          key={`${dialog.kind}:${dialog.service.revision}`}
+          kind={dialog.kind}
+          onCompleted={completed}
+          onOpenChange={(open) => !open && setDialog(null)}
+          open
+          service={dialog.service}
+        />
+      ) : null}
+      {dialog?.kind === "switch" ? (
+        <MailServiceActionDialog
+          key={`${dialog.provider.providerId}:${dialog.service.revision}`}
+          kind="switch"
+          onCompleted={completed}
+          onOpenChange={(open) => !open && setDialog(null)}
+          open
+          provider={dialog.provider}
+          service={dialog.service}
+        />
       ) : null}
     </MessagesPage>
   );

@@ -28,6 +28,11 @@ import type {
   RequestMyEmailChangeRequest as RequestMyEmailChangePayload,
   ResetPasswordRequest,
   ResetTokenPayload,
+  SecurityVerificationProofOut,
+  SecurityVerificationTotpRequest,
+  SecurityVerificationWebAuthnBeginOut,
+  SecurityVerificationWebAuthnBeginRequest,
+  SecurityVerificationWebAuthnCompleteRequest,
   SetMyPasswordRequest as SetMyPasswordPayload,
   TokenPair,
   TwoFactorConfirmOut as TwoFactorBackupCodesResult,
@@ -42,7 +47,18 @@ import type {
   UpdateMyProfileRequest as UpdateMyProfilePayload,
   UsernameCheckOut,
   UserProfile,
+  WebAuthnAuthenticationBeginOut,
+  WebAuthnCredentialDeleteRequest,
+  WebAuthnCredentialListOut,
+  WebAuthnCredentialOut,
+  WebAuthnLoginBeginRequest,
+  WebAuthnLoginCompleteRequest,
+  WebAuthnRegistrationBeginOut,
+  WebAuthnRegistrationBeginRequest,
+  WebAuthnRegistrationCompleteRequest,
 } from "@arclayer/openapi";
+
+export type SecurityAction = SecurityVerificationTotpRequest["action"];
 
 type AuthSessionList = Omit<AuthSessionListOut, "items" | "total"> & {
   items: AuthSessionOut[];
@@ -100,6 +116,22 @@ export async function verifyLoginEmailCode(
 
 export async function loginTwoFactor(payload: TwoFactorLoginRequest): Promise<TokenPair> {
   return api.post<TokenPair>("/auth/login/2fa", payload, { auth: { skipRefresh: true } });
+}
+
+export async function beginLoginTwoFactorWebAuthn(
+  payload: WebAuthnLoginBeginRequest,
+): Promise<WebAuthnAuthenticationBeginOut> {
+  return api.post<WebAuthnAuthenticationBeginOut>("/auth/login/2fa/webauthn/options", payload, {
+    auth: { skipRefresh: true },
+  });
+}
+
+export async function completeLoginTwoFactorWebAuthn(
+  payload: WebAuthnLoginCompleteRequest,
+): Promise<TokenPair> {
+  return api.post<TokenPair>("/auth/login/2fa/webauthn/complete", payload, {
+    auth: { skipRefresh: true },
+  });
 }
 
 export async function register(payload: RegisterPayload): Promise<RegisterResult> {
@@ -211,6 +243,53 @@ export async function resetPassword(payload: ResetPasswordRequest): Promise<null
 
 export async function getTwoFactorStatus(): Promise<TwoFactorStatus> {
   return api.get<TwoFactorStatus>("/auth/2fa");
+}
+
+export async function listTwoFactorWebAuthnCredentials(): Promise<WebAuthnCredentialListOut> {
+  return api.get<WebAuthnCredentialListOut>("/auth/2fa/webauthn");
+}
+
+export async function beginTwoFactorWebAuthnRegistration(
+  payload: WebAuthnRegistrationBeginRequest,
+): Promise<WebAuthnRegistrationBeginOut> {
+  return api.post<WebAuthnRegistrationBeginOut>("/auth/2fa/webauthn/registration/options", payload);
+}
+
+export async function completeTwoFactorWebAuthnRegistration(
+  payload: WebAuthnRegistrationCompleteRequest,
+): Promise<WebAuthnCredentialOut> {
+  return api.post<WebAuthnCredentialOut>("/auth/2fa/webauthn/registration/complete", payload);
+}
+
+export async function removeTwoFactorWebAuthnCredential(
+  credentialId: string,
+  payload: WebAuthnCredentialDeleteRequest,
+): Promise<null> {
+  return api.post<null>(`/auth/2fa/webauthn/${encodeURIComponent(credentialId)}/remove`, payload);
+}
+
+export async function verifySecurityActionTotp(
+  payload: SecurityVerificationTotpRequest,
+): Promise<SecurityVerificationProofOut> {
+  return api.post<SecurityVerificationProofOut>("/auth/me/security-verification/totp", payload);
+}
+
+export async function beginSecurityActionWebAuthn(
+  payload: SecurityVerificationWebAuthnBeginRequest,
+): Promise<SecurityVerificationWebAuthnBeginOut> {
+  return api.post<SecurityVerificationWebAuthnBeginOut>(
+    "/auth/me/security-verification/webauthn/options",
+    payload,
+  );
+}
+
+export async function completeSecurityActionWebAuthn(
+  payload: SecurityVerificationWebAuthnCompleteRequest,
+): Promise<SecurityVerificationProofOut> {
+  return api.post<SecurityVerificationProofOut>(
+    "/auth/me/security-verification/webauthn/complete",
+    payload,
+  );
 }
 
 export async function getTwoFactorCapabilities(): Promise<TwoFactorCapabilities> {

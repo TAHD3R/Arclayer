@@ -57,6 +57,7 @@ from src.modules.auth.schema import (
     UpdateMyProfileRequest,
     UserProfile,
 )
+from src.modules.auth.security_verification.schema import SecurityAction
 from src.modules.auth.sessions.device_label import build_device_label
 from src.modules.auth.sessions.location_lookup import AuthSessionLocationLookup
 from src.modules.auth.sessions.request_context import AuthRequestContext
@@ -99,6 +100,20 @@ class _TwoFactorReauthLike(Protocol):
     async def verify_for_login(self, *, user_id: UUID, code: str | None, backup_code: str | None) -> None: ...
 
 
+class _ActionVerificationLike(Protocol):
+    async def enabled_methods(self, *, user_id: UUID) -> list[str]: ...
+
+    async def require(
+        self,
+        *,
+        user_id: UUID,
+        session_id: str,
+        token_version: int,
+        action: SecurityAction,
+        proof: str | None,
+    ) -> None: ...
+
+
 class AuthService(BaseService):
     def __init__(
         self,
@@ -108,6 +123,7 @@ class AuthService(BaseService):
         connector_registry: ConnectorRegistry | None = None,
         user_repo: UserRepositoryLike | None = None,
         two_factor: _TwoFactorReauthLike | None = None,
+        action_verification: _ActionVerificationLike | None = None,
         onboarding_service: WorkspaceFirstOnboardingService | None = None,
     ) -> None:
         super().__init__(settings)
@@ -115,6 +131,15 @@ class AuthService(BaseService):
         from src.modules.auth.two_factor.service import AuthTwoFactorService
 
         self.two_factor: _TwoFactorReauthLike = two_factor or AuthTwoFactorService(settings)
+        if action_verification is None:
+            from src.modules.auth.security_verification.service import AuthActionVerificationService
+
+            action_verification = AuthActionVerificationService(
+                settings,
+                valkey=valkey,
+                two_factor=self.two_factor,
+            )
+        self.action_verification = action_verification
         self.valkey = valkey
         self.refresh_store = RefreshTokenStore(valkey, settings.auth) if valkey else None
         self.reset_store = PasswordResetStore(valkey, settings.auth) if valkey else None
@@ -442,12 +467,38 @@ class AuthService(BaseService):
     async def _has_linked_oauth_identities(self, *, user_id: UUID) -> bool:
         return await self.oauth_repo.has_identity_for_user(user_id=user_id)
 
+    async def _require_mfa_action(
+        self,
+        *,
+        user_id: UUID,
+        action: SecurityAction,
+        mfa_proof: str | None,
+        session_id: str | None,
+        token_version: int | None,
+    ) -> bool:
+        if session_id is None or token_version is None:
+            if await self.action_verification.enabled_methods(user_id=user_id):
+                raise Unauthorized(error="MFA_VERIFICATION_CONTEXT_REQUIRED")
+            return False
+        enabled = bool(await self.action_verification.enabled_methods(user_id=user_id))
+        await self.action_verification.require(
+            user_id=user_id,
+            session_id=session_id,
+            token_version=token_version,
+            action=action,
+            proof=mfa_proof,
+        )
+        return enabled
+
     async def confirm_email_change(
         self,
         *,
         user: User,
         new_email: str,
         code: str,
+        mfa_proof: str | None = None,
+        session_id: str | None = None,
+        token_version: int | None = None,
     ) -> UserProfile:
         new_email = new_email.strip().lower()
         code = code.strip()
@@ -456,6 +507,13 @@ class AuthService(BaseService):
         if user_with_cred is None:
             raise Unauthorized(message=self._ta("USER_NOT_FOUND", "用户不存在"), error="USER_NOT_FOUND")
         user_id = cast(UUID, user.id)
+        await self._require_mfa_action(
+            user_id=user_id,
+            action="confirm_email_change",
+            mfa_proof=mfa_proof,
+            session_id=session_id,
+            token_version=token_version,
+        )
 
         store = self._require_email_change_store()
         record = await store.get(user_id=user_id)
@@ -546,7 +604,7 @@ class AuthService(BaseService):
         if user_with_cred is None:
             raise Unauthorized(message=self._ta("USER_NOT_FOUND", "用户不存在"), error="USER_NOT_FOUND")
         has_password = cast(CredentialLike | None, getattr(user_with_cred, "credential", None)) is not None
-        two_factor_enabled = await self.two_factor.is_enabled(user_id=user_id)
+        two_factor_enabled = bool(await self.action_verification.enabled_methods(user_id=user_id))
         has_linked_oauth_identities = await self._has_linked_oauth_identities(user_id=user_id)
         return MySecurityCapabilityOut(
             has_password=has_password,
@@ -615,7 +673,22 @@ class AuthService(BaseService):
 
         return expires_in, retry_after
 
-    async def confirm_remove_password(self, *, user_id: UUID, code: str) -> None:
+    async def confirm_remove_password(
+        self,
+        *,
+        user_id: UUID,
+        code: str,
+        mfa_proof: str | None = None,
+        session_id: str | None = None,
+        token_version: int | None = None,
+    ) -> None:
+        await self._require_mfa_action(
+            user_id=user_id,
+            action="confirm_remove_password",
+            mfa_proof=mfa_proof,
+            session_id=session_id,
+            token_version=token_version,
+        )
         user = await self.user_repo.get_by_id_with_credential(user_id)
         credential = cast(CredentialLike | None, getattr(user, "credential", None) if user is not None else None)
         if user is None or credential is None:
@@ -665,8 +738,9 @@ class AuthService(BaseService):
         *,
         user_id: UUID,
         new_password: str,
-        code: str | None,
-        backup_code: str | None,
+        mfa_proof: str | None = None,
+        session_id: str | None = None,
+        token_version: int | None = None,
     ) -> None:
         user_with_cred = cast(User | None, await self.user_repo.get_by_id_with_credential(user_id))
         if user_with_cred is None:
@@ -676,10 +750,16 @@ class AuthService(BaseService):
         if cast(CredentialLike | None, getattr(user_with_cred, "credential", None)) is not None:
             raise Conflict(message=self._ta("PASSWORD_ALREADY_SET", "当前账号已设置密码"), error="PASSWORD_ALREADY_SET")
 
+        mfa_enabled = await self._require_mfa_action(
+            user_id=user_id,
+            action="set_password",
+            mfa_proof=mfa_proof,
+            session_id=session_id,
+            token_version=token_version,
+        )
+
         self._ensure_password_strength(new_password)
-        if await self.two_factor.is_enabled(user_id=user_id):
-            await self._reauth_by_two_factor_or_raise(user_id=user_id, code=code, backup_code=backup_code)
-        else:
+        if not mfa_enabled:
             self._reauth_by_recent_login_or_raise(user=user_with_cred)
 
         if isinstance(self.user_repo, UserRepository):
@@ -715,8 +795,9 @@ class AuthService(BaseService):
         user: UserLike,
         email: str,
         password: str | None,
-        code: str | None,
-        backup_code: str | None,
+        mfa_proof: str | None = None,
+        session_id: str | None = None,
+        token_version: int | None = None,
     ) -> None:
         """
         Delete/anonymize the current account.
@@ -737,15 +818,19 @@ class AuthService(BaseService):
             raise BadRequest(message=self._ta("EMAIL_MISMATCH", "邮箱与当前账号不匹配"), error="EMAIL_MISMATCH")
 
         user_id = cast(UUID, user.id)
+        mfa_enabled = await self._require_mfa_action(
+            user_id=user_id,
+            action="delete_my_account",
+            mfa_proof=mfa_proof,
+            session_id=session_id,
+            token_version=token_version,
+        )
 
-        # Explicit re-auth: password users must confirm password; SSO-only users use 2FA if enabled,
-        # otherwise require recent login (SSO re-login) as a fallback.
+        # Password users still confirm their password. SSO-only users either completed the
+        # action-bound MFA proof above or must have a recent login when MFA is disabled.
         authed_by_password = self._reauth_by_password_or_raise_if_present(user=user_with_cred, password=password)
-        if not authed_by_password:
-            if await self.two_factor.is_enabled(user_id=user_id):
-                await self._reauth_by_two_factor_or_raise(user_id=user_id, code=code, backup_code=backup_code)
-            else:
-                self._reauth_by_recent_login_or_raise(user=user_with_cred)
+        if not authed_by_password and not mfa_enabled:
+            self._reauth_by_recent_login_or_raise(user=user_with_cred)
 
         # Guard: prevent deleting the last owner in any org/workspace.
         from src.modules.auth.account_deletion.guard import AccountDeletionGuard
@@ -754,6 +839,7 @@ class AuthService(BaseService):
 
         if isinstance(self.user_repo, UserRepository):
             from src.models.auth.user_two_factor import UserTwoFactor, UserTwoFactorBackupCode
+            from src.models.auth.user_webauthn import UserWebAuthnChallenge, UserWebAuthnCredential
             from src.models.organization.org_membership import OrgMembership
             from src.models.organization.user import UserCredential
             from src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipStatus
@@ -763,6 +849,8 @@ class AuthService(BaseService):
                 await self.oauth_repo.delete_identities_for_user(user_id=user_id, conn=conn)
                 await UserTwoFactorBackupCode.filter(user_id=user_id).using_db(conn).delete()
                 await UserTwoFactor.filter(user_id=user_id).using_db(conn).delete()
+                await UserWebAuthnChallenge.filter(user_id=user_id).using_db(conn).delete()
+                await UserWebAuthnCredential.filter(user_id=user_id).using_db(conn).delete()
                 await self._write_auth_activity_event(
                     name="auth.account.deleted",
                     user_id=user_id,
@@ -1207,7 +1295,23 @@ class AuthService(BaseService):
             )
         await store.revoke_all(self._coerce_user_id(user))
 
-    async def change_password(self, *, user_id: UUID, old_password: str, new_password: str) -> None:
+    async def change_password(
+        self,
+        *,
+        user_id: UUID,
+        old_password: str,
+        new_password: str,
+        mfa_proof: str | None = None,
+        session_id: str | None = None,
+        token_version: int | None = None,
+    ) -> None:
+        await self._require_mfa_action(
+            user_id=user_id,
+            action="change_password",
+            mfa_proof=mfa_proof,
+            session_id=session_id,
+            token_version=token_version,
+        )
         user = await self.user_repo.get_by_id_with_credential(user_id)
         credential = cast(CredentialLike | None, getattr(user, "credential", None) if user is not None else None)
         if user is None or credential is None:

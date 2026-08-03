@@ -1,12 +1,12 @@
 {
   "LABEL": "Saved views",
   "DEFAULT_VIEW": "Default view",
-  "UNSAVED": "Unsaved changes",
+  "UNSAVED": "Changes not saved",
   "SAVE_AS": "Save view",
   "UPDATE": "Update view",
   "DELETE": "Delete saved view",
   "NAME": "View name",
   "APPLYING": "Loading saved view…",
-  "OMISSIONS_TITLE": "Some saved filters weren't applied",
-  "OMISSIONS_DESCRIPTION": "Some saved filters aren't available, valid, or allowed, so they weren't applied."
+  "OMISSIONS_TITLE": "Some parts of this saved view could not be used",
+  "OMISSIONS_DESCRIPTION": "Filters that are no longer available, valid, or allowed were left out. The remaining view was applied."
 }

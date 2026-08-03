@@ -4,10 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { getUnreadNotificationPreview } from "@/api/notifications";
+import {
+  getMyNotificationPreferences,
+  getUnreadNotificationPreview,
+  NOTIFICATION_PREFERENCES_QUERY_KEY,
+} from "@/api/notifications";
 import { AIDrawerOverlay } from "@/components/ai/ai-drawer-overlay";
 import { ArclayerAssistantScope } from "@/components/ai/arclayer-assistant-scope";
-import { PaymentRestrictedNotice } from "@/components/commerce/payment-restricted-notice";
 import { NotificationToastContent } from "@/components/common/notification-toast-content";
 import {
   getGlobalNotificationMeta,
@@ -26,6 +29,8 @@ import { SidebarInset, SidebarProvider } from "@arclayer/ui/sidebar";
 import { message } from "@arclayer/ui/admin-toast";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
+import { notifyError } from "@/lib/notifications";
+import { playNotificationSound } from "@/lib/notifications/notification-sound";
 import type { CommandScope } from "@/lib/command/command-types";
 import { cn } from "@arclayer/lib/utils";
 
@@ -74,7 +79,7 @@ export function AdminSceneLayout({
   routeTransitionClassName = "w-full",
   children,
 }: AdminSceneLayoutProps) {
-  const { t } = useTranslation(["ai", "common"]);
+  const { t } = useTranslation(["ai", "common", "account"]);
   const accessToken = useAuthStore((s) => s.accessToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const showNotificationsBadge = usePreferencesStore((s) => s.showNotificationsBadge);
@@ -91,6 +96,7 @@ export function AdminSceneLayout({
   const sceneContainerRef = useRef<HTMLDivElement | null>(null);
   const hasHydratedNotificationPreviewRef = useRef(false);
   const seenNotificationPreviewIdsRef = useRef<Set<string>>(new Set());
+  const hasReportedNotificationSoundErrorRef = useRef(false);
   const { archiveItem, deleteItem, markRead, openTarget, recordInteraction } =
     useNotificationActions();
 
@@ -160,10 +166,18 @@ export function AdminSceneLayout({
     refetchInterval: 30 * 1000,
     meta: { silent: true },
   });
+  const notificationPreferencesQuery = useQuery({
+    queryKey: NOTIFICATION_PREFERENCES_QUERY_KEY,
+    enabled: Boolean(accessToken),
+    queryFn: getMyNotificationPreferences,
+    staleTime: 30 * 1000,
+    meta: { silent: true },
+  });
 
   useEffect(() => {
     hasHydratedNotificationPreviewRef.current = false;
     seenNotificationPreviewIdsRef.current = new Set();
+    hasReportedNotificationSoundErrorRef.current = false;
   }, [accessToken, sessionVersion]);
 
   useEffect(() => {
@@ -182,6 +196,19 @@ export function AdminSceneLayout({
       const globalMeta = getGlobalNotificationMeta(item);
       return globalMeta === null || globalMeta.presentation === "toast";
     });
+
+    const sound = notificationPreferencesQuery.data?.sound;
+    if (nextUnreadItems.length > 0 && sound?.enabled) {
+      void playNotificationSound(sound.tone).catch((error) => {
+        if (hasReportedNotificationSoundErrorRef.current) return;
+        hasReportedNotificationSoundErrorRef.current = true;
+        notifyError(
+          new Error(t("account:ME_NOTIFY_SOUND_PLAYBACK_FAILED"), {
+            cause: error,
+          }),
+        );
+      });
+    }
 
     for (const item of nextUnreadItems.reverse()) {
       const globalMeta = getGlobalNotificationMeta(item);
@@ -269,8 +296,10 @@ export function AdminSceneLayout({
     deleteItem,
     markRead,
     notificationPreviewQuery.data,
+    notificationPreferencesQuery.data?.sound,
     openTarget,
     recordInteraction,
+    t,
   ]);
 
   return (
@@ -326,7 +355,6 @@ export function AdminSceneLayout({
 
               <div className="relative flex min-w-0 flex-1 flex-col">
                 {renderTopbar()}
-                <PaymentRestrictedNotice workspaceId={workspaceId} />
                 <GlobalNotificationSurfaces
                   items={notificationPreviewQuery.data?.items ?? []}
                   onRecordInteraction={recordInteraction}

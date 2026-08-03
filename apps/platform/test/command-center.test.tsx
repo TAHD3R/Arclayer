@@ -50,12 +50,12 @@ describe("Platform Command Center", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Open page navigation" }));
+    await user.click(screen.getByRole("button", { name: "Open navigation" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Go to a page" });
     await waitFor(() => expect(dialog).toBeVisible());
     expect(
-      screen.getByText("Some pages available to you aren't included in this Console version."),
+      screen.getByText("Some pages you can use are not available in this Console release."),
     ).toBeVisible();
     expect(screen.queryByText("Workspaces")).not.toBeInTheDocument();
   });

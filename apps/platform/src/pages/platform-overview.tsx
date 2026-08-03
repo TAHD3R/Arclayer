@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import type { OperationalSignalOut, PlatformCapabilityOut } from "@arclayer/platform-openapi";
 
 import { getTrustedCapabilityModule } from "@/capabilities/module-registry";
+import { PlatformPage, PlatformSection } from "@/components/platform-page";
 import { useOperationsQuery } from "@/operations/operations-state";
 import { formatAge, formatDateTime } from "@/operations/operations-ui";
 import {
@@ -12,20 +13,26 @@ import {
   type OverviewSource,
   type PlatformOverview,
 } from "@/overview/overview-api";
-import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
-import { Badge } from "@arclayer/ui/badge";
-import { Button } from "@arclayer/ui/button";
-import { Skeleton } from "@arclayer/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 function SourceUnavailable({ label }: Readonly<{ label: string }>) {
   const { t } = useTranslation("overview");
   return (
-    <div className="flex min-h-24 items-center gap-3 rounded-lg border border-warning/40 bg-warning/5 p-4">
-      <AlertCircle aria-hidden="true" className="size-4 text-warning" />
-      <p className="text-footnote text-label-secondary">
-        {t("SOURCE_UNAVAILABLE", { source: label })}
-      </p>
+    <div className="flex min-h-24 items-center gap-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4">
+      <AlertCircle aria-hidden="true" className="size-4 text-amber-600 dark:text-amber-400" />
+      <p className="text-sm text-muted-foreground">{t("SOURCE_UNAVAILABLE", { source: label })}</p>
     </div>
   );
 }
@@ -71,7 +78,7 @@ function CapabilityRows({ source }: Readonly<{ source: PlatformOverview["catalog
 
   if (capabilities.length === 0) {
     return (
-      <p className="rounded-lg border p-4 text-footnote text-label-secondary">
+      <p className="rounded-lg border p-4 text-sm text-muted-foreground">
         {t("overview:NO_DOMAINS")}
       </p>
     );
@@ -96,7 +103,7 @@ function CapabilityRows({ source }: Readonly<{ source: PlatformOverview["catalog
                 <TableCell>
                   <p className="font-medium">{t(capability.nameI18nKey)}</p>
                   {capability.missingPrerequisiteCodes.length > 0 ? (
-                    <p className="mt-1 text-caption text-label-secondary">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       {t("overview:MISSING_PREREQUISITES", {
                         count: capability.missingPrerequisiteCodes.length,
                       })}
@@ -118,7 +125,7 @@ function CapabilityRows({ source }: Readonly<{ source: PlatformOverview["catalog
                       </Link>
                     </Button>
                   ) : (
-                    <span className="text-caption text-label-secondary">
+                    <span className="text-xs text-muted-foreground">
                       {t("overview:NO_DESTINATION")}
                     </span>
                   )}
@@ -152,7 +159,7 @@ function SignalList({
     return (
       <div className="flex min-h-24 items-center gap-3 rounded-lg border bg-card p-4">
         <CheckCircle2 aria-hidden="true" className="size-4 text-success" />
-        <p className="text-footnote text-label-secondary">
+        <p className="text-sm text-muted-foreground">
           {t(recovered ? "overview:NO_RECENT_RECOVERIES" : "overview:NO_ATTENTION")}
         </p>
       </div>
@@ -171,12 +178,12 @@ function SignalList({
               )}
               <p className="truncate font-medium">{t(signal.copy.titleKey)}</p>
             </div>
-            <p className="mt-1 line-clamp-2 text-footnote text-label-secondary">
+            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
               {t(signal.copy.impactKey)}
             </p>
           </div>
           <div className="flex items-center justify-between gap-3 sm:justify-end">
-            <span className="inline-flex items-center gap-1 text-caption text-label-secondary">
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
               <Clock3 aria-hidden="true" className="size-3.5" />
               {formatAge(signal.freshness.ageSeconds)}
             </span>
@@ -198,64 +205,107 @@ function OverviewContent({ data, retry }: Readonly<{ data: PlatformOverview; ret
   const partial = [data.catalog, data.attention, data.recovered].some(
     (source) => source.status === "error",
   );
+  const capabilities = data.catalog.status === "ready" ? data.catalog.data.items : [];
+  const availableCapabilities = capabilities.filter((item) => item.navigationCandidate);
+  const readyCapabilities = availableCapabilities.filter(
+    (item) => item.enablementState === "enabled" && item.readinessState === "ready",
+  );
+  const attentionCount = data.attention.status === "ready" ? data.attention.data.total : null;
+  const recoveryCount = data.recovered.status === "ready" ? data.recovered.data.total : null;
   return (
-    <section className="flex w-full flex-1 flex-col gap-6 px-5 py-6 md:px-8">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-title1 font-semibold">{t("PAGE_TITLE")}</h1>
-          <p className="mt-1 text-footnote text-label-secondary">
-            {t("STATUS_CHECKED", { date: formatDateTime(data.loadedAt) })}
-          </p>
-        </div>
+    <PlatformPage
+      actions={
         <Button onClick={retry} size="sm" variant="outline">
           <RefreshCw aria-hidden="true" />
           {t("REFRESH")}
         </Button>
-      </header>
-
+      }
+      description={t("PAGE_DESCRIPTION", { date: formatDateTime(data.loadedAt) })}
+      title={t("PAGE_TITLE")}
+    >
       {partial ? (
-        <Alert className="border-warning/40 bg-warning/5">
+        <Alert className="border-amber-500/40 bg-amber-500/5">
           <AlertCircle aria-hidden="true" />
           <AlertTitle>{t("PARTIAL_TITLE")}</AlertTitle>
           <AlertDescription>{t("PARTIAL_DESCRIPTION")}</AlertDescription>
         </Alert>
       ) : null}
 
-      <section className="space-y-3" aria-labelledby="overview-attention">
-        <div className="flex items-end justify-between gap-3">
-          <div>
-            <h2 className="text-title3 font-semibold" id="overview-attention">
-              {t("NEEDS_ATTENTION")}
-            </h2>
-            <p className="text-footnote text-label-secondary">{t("NEEDS_ATTENTION_DESCRIPTION")}</p>
-          </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <OverviewSummary
+          description={t("NEEDS_ATTENTION_DESCRIPTION")}
+          href="/attention"
+          title={t("NEEDS_ATTENTION")}
+          value={attentionCount === null ? t("UNAVAILABLE") : String(attentionCount)}
+        />
+        <OverviewSummary
+          description={t("READY_AREAS_DESCRIPTION", {
+            ready: readyCapabilities.length,
+            total: availableCapabilities.length,
+          })}
+          title={t("READY_AREAS")}
+          value={`${readyCapabilities.length}/${availableCapabilities.length}`}
+        />
+        <OverviewSummary
+          description={t("RECENT_RECOVERIES_DESCRIPTION")}
+          title={t("RECENT_RECOVERIES")}
+          value={recoveryCount === null ? t("UNAVAILABLE") : String(recoveryCount)}
+        />
+      </div>
+
+      <PlatformSection
+        actions={
           <Button asChild size="sm" variant="ghost">
             <Link to="/attention">{t("VIEW_ALL")}</Link>
           </Button>
-        </div>
+        }
+        description={t("NEEDS_ATTENTION_DESCRIPTION")}
+        title={t("NEEDS_ATTENTION")}
+      >
         <SignalList source={data.attention} />
-      </section>
+      </PlatformSection>
 
-      <section className="space-y-3" aria-labelledby="overview-domains">
-        <div>
-          <h2 className="text-title3 font-semibold" id="overview-domains">
-            {t("DOMAIN_POSTURE")}
-          </h2>
-          <p className="text-footnote text-label-secondary">{t("DOMAIN_POSTURE_DESCRIPTION")}</p>
-        </div>
+      <PlatformSection description={t("DOMAIN_POSTURE_DESCRIPTION")} title={t("DOMAIN_POSTURE")}>
         <CapabilityRows source={data.catalog} />
-      </section>
+      </PlatformSection>
 
-      <section className="space-y-3" aria-labelledby="overview-recovered">
-        <div>
-          <h2 className="text-title3 font-semibold" id="overview-recovered">
-            {t("RECENT_RECOVERIES")}
-          </h2>
-          <p className="text-footnote text-label-secondary">{t("RECENT_RECOVERIES_DESCRIPTION")}</p>
-        </div>
+      <PlatformSection
+        description={t("RECENT_RECOVERIES_DESCRIPTION")}
+        title={t("RECENT_RECOVERIES")}
+      >
         <SignalList recovered source={data.recovered} />
-      </section>
-    </section>
+      </PlatformSection>
+    </PlatformPage>
+  );
+}
+
+function OverviewSummary({
+  title,
+  description,
+  value,
+  href,
+}: Readonly<{ title: string; description: string; value: string; href?: "/attention" }>) {
+  const content = (
+    <Card className="h-full shadow-xs transition-colors hover:bg-muted/40">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <p className="text-3xl font-semibold tracking-tight">{value}</p>
+        <p className="text-sm leading-5 text-muted-foreground">{description}</p>
+      </CardContent>
+    </Card>
+  );
+  return href ? (
+    <Link
+      aria-label={title}
+      className="rounded-lg focus-visible:outline-2 focus-visible:outline-ring"
+      to={href}
+    >
+      {content}
+    </Link>
+  ) : (
+    content
   );
 }
 

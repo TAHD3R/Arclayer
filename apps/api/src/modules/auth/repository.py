@@ -700,6 +700,25 @@ class RefreshTokenStore:
     async def list_active(self, user_id: UUID) -> list[str]:
         return sorted(await self._client.smembers(self._user_set_key(user_id)))
 
+    async def has_active_session(
+        self,
+        *,
+        user_id: UUID,
+        session_id: str,
+        token_version: int,
+    ) -> bool:
+        now = int(datetime.now(UTC).timestamp())
+        for jti in await self.list_active(user_id):
+            record = await self.get(jti)
+            if not record or record.get("status") != REFRESH_STATUS_ACTIVE:
+                continue
+            if record.get("sid") != session_id or record.get("token_version") != token_version:
+                continue
+            expires_at = _coerce_int(record.get("expires_at"))
+            if expires_at is not None and expires_at > now:
+                return True
+        return False
+
     async def revoke_all(self, user_id: UUID) -> None:
         jtis = await self.list_active(user_id)
         for jti in jtis:

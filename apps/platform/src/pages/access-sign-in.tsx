@@ -4,8 +4,8 @@ import { useTranslation } from "react-i18next";
 
 import { getSignInReadiness } from "@/access/access-api";
 import { AccessPage, AccessQueryState, useAccessQuery } from "@/access/access-ui";
-import { Badge } from "@arclayer/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function PlatformSignInReadinessPage() {
   const { t } = useTranslation("access");
@@ -35,7 +35,7 @@ export function PlatformSignInReadinessPage() {
                   value={readiness.registration.requireEmailVerification}
                 />
                 <div>
-                  <p className="text-footnote text-label-secondary">{t("ALLOWED_DOMAINS")}</p>
+                  <p className="text-sm text-muted-foreground">{t("ALLOWED_DOMAINS")}</p>
                   <p>
                     {readiness.registration.emailDomainsAllowlist.length
                       ? readiness.registration.emailDomainsAllowlist.join(", ")
@@ -69,7 +69,7 @@ export function PlatformSignInReadinessPage() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-body text-label-secondary">{t("PROVIDERS_EMPTY")}</p>
+                  <p className="text-base text-muted-foreground">{t("PROVIDERS_EMPTY")}</p>
                 )}
               </CardContent>
             </Card>
@@ -86,7 +86,7 @@ function Fact({ label, value }: Readonly<{ label: string; value: boolean }>) {
   return (
     <div className="flex items-center justify-between gap-3">
       <span>{label}</span>
-      <span className="flex items-center gap-2 text-footnote text-label-secondary">
+      <span className="flex items-center gap-2 text-sm text-muted-foreground">
         <Icon aria-hidden="true" className="size-4" />
         {t(value ? "ENABLED" : "DISABLED")}
       </span>

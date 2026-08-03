@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
+import { verifyProductPasskey } from "@/lib/auth/webauthn";
 import * as authSsoApi from "@/api/auth-sso";
 import * as invitationApi from "@/api/invitations";
 import { useProductRuntime } from "@/hooks/use-product-runtime";
@@ -59,6 +60,7 @@ const CHALLENGE_INVALID_ERRORS = new Set([
 type TwoFactorChallengeMeta = {
   twoFactorToken: string;
   expiresIn: number;
+  methods: string[];
 };
 
 type EmailVerificationMeta = {
@@ -171,6 +173,7 @@ function resolveTwoFactorChallengeMeta(error: ApiError): TwoFactorChallengeMeta 
   const meta = (error.meta ?? {}) as {
     two_factor_token?: string;
     expires_in?: number;
+    methods?: unknown;
   };
   const twoFactorToken = meta.two_factor_token;
   const expiresIn = meta.expires_in;
@@ -179,7 +182,10 @@ function resolveTwoFactorChallengeMeta(error: ApiError): TwoFactorChallengeMeta 
     return null;
   }
 
-  return { twoFactorToken, expiresIn };
+  const methods = Array.isArray(meta.methods)
+    ? meta.methods.filter((method): method is string => typeof method === "string")
+    : ["totp", "backup_code"];
+  return { twoFactorToken, expiresIn, methods };
 }
 
 function isChallengeInvalidationError(error: unknown): boolean {
@@ -232,12 +238,14 @@ export function useLoginPage(): LoginPageState {
   const challengeKeepSession = useAuthChallengeStore((s) => s.keepSession);
   const challengeRedirect = useAuthChallengeStore((s) => s.redirect);
   const challengeSource = useAuthChallengeStore((s) => s.source);
+  const challengeMethods = useAuthChallengeStore((s) => s.methods);
   const storedActiveChallenge = getActiveAuthChallenge({
     twoFactorToken: challengeTwoFactorToken,
     expiresAt: challengeExpiresAt,
     keepSession: challengeKeepSession,
     redirect: challengeRedirect,
     source: challengeSource,
+    methods: challengeMethods,
   });
   const [pendingChallenge, setPendingChallenge] = useState<AuthChallengeSnapshot | null>(null);
   const activeChallenge =
@@ -311,6 +319,17 @@ export function useLoginPage(): LoginPageState {
   const loginTwoFactorMutation = useMutation({
     mutationFn: async (values: { twoFactorToken: string; code?: string; backupCode?: string }) =>
       authApi.loginTwoFactor(values),
+  });
+  const loginTwoFactorWebAuthnMutation = useMutation({
+    mutationFn: async (twoFactorToken: string) => {
+      const begin = await authApi.beginLoginTwoFactorWebAuthn({ twoFactorToken });
+      const credential = await verifyProductPasskey(begin.options);
+      return authApi.completeLoginTwoFactorWebAuthn({
+        twoFactorToken,
+        challengeId: begin.options.challengeId,
+        credential,
+      });
+    },
   });
   const registerMutation = useMutation({
     mutationFn: async (values: RegisterFormValues) =>
@@ -480,6 +499,7 @@ export function useLoginPage(): LoginPageState {
           keepSession: result.challenge.keepSession,
           redirect: result.challenge.redirect,
           source: "sso",
+          methods: result.challenge.methods ?? ["totp", "backup_code"],
         });
         return;
       }
@@ -570,6 +590,7 @@ export function useLoginPage(): LoginPageState {
         keepSession: options.keepSession,
         redirect: options.redirect ?? null,
         source: options.source,
+        methods: challengeMeta.methods,
       } satisfies AuthChallengeSnapshot;
       setChallenge(challenge);
       setPendingChallenge(challenge);
@@ -987,7 +1008,34 @@ export function useLoginPage(): LoginPageState {
     } catch (error) {
       if (isChallengeInvalidationError(error)) {
         clearActiveChallenge();
+        return;
       }
+      notifyError(error);
+    }
+  };
+
+  const onLoginTwoFactorPasskey = async () => {
+    if (!activeChallenge) {
+      clearActiveChallenge();
+      notifyErrorText(t("auth:TWO_FACTOR_CHALLENGE_EXPIRED"));
+      return;
+    }
+    try {
+      const tokens = await loginTwoFactorWebAuthnMutation.mutateAsync(
+        activeChallenge.twoFactorToken,
+      );
+      clearActiveChallenge();
+      applyLogin(tokens, { keepSession: activeChallenge.keepSession });
+      void queryClient.cancelQueries();
+      queryClient.clear();
+      notifySuccessText(t("auth:LOGIN_SUCCESS"));
+      await navigateAfterAuth(activeChallenge.redirect);
+    } catch (error) {
+      if (isChallengeInvalidationError(error)) {
+        clearActiveChallenge();
+        return;
+      }
+      notifyError(error);
     }
   };
 
@@ -1145,8 +1193,10 @@ export function useLoginPage(): LoginPageState {
       invitationEmail,
       challenge: activeChallenge,
       onLoginTwoFactorSubmit: onLoginTwoFactorFinish,
+      onLoginTwoFactorPasskey,
       onCancelTwoFactorChallenge,
-      twoFactorLoading: loginTwoFactorMutation.isPending,
+      twoFactorLoading:
+        loginTwoFactorMutation.isPending || loginTwoFactorWebAuthnMutation.isPending,
     },
   };
 }

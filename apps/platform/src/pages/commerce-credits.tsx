@@ -10,13 +10,13 @@ import {
 } from "@/commerce/commerce-api";
 import { CommercePage, CommerceQueryState } from "@/commerce/commerce-ui";
 import { useMonitoringQuery } from "@/monitoring/monitoring-ui";
-import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
-import { Button } from "@arclayer/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
-import { Input } from "@arclayer/ui/input";
-import { SettingDialog } from "@arclayer/ui/setting-dialog";
-import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
-import { Textarea } from "@arclayer/ui/textarea";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { SettingDialog } from "@/components/setting-dialog";
+import { SettingDialogField, SettingDialogFields } from "@/components/setting-dialog-field";
+import { Textarea } from "@/components/ui/textarea";
 
 type AdjustmentEvidence = Readonly<{
   beforeBalance: number;
@@ -244,21 +244,21 @@ function CreditAdjustmentCurrentState({ credits }: Readonly<{ credits: Workspace
   return (
     <div className="rounded-lg border bg-muted/30 p-4">
       <p className="font-medium">{t("CURRENT_CREDIT_STATE")}</p>
-      <dl className="mt-3 grid gap-2 text-footnote sm:grid-cols-3">
+      <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
         <div>
-          <dt className="text-label-secondary">{t("BALANCE")}</dt>
+          <dt className="text-muted-foreground">{t("BALANCE")}</dt>
           <dd>{credits.balance}</dd>
         </div>
         <div>
-          <dt className="text-label-secondary">{t("RESERVED")}</dt>
+          <dt className="text-muted-foreground">{t("RESERVED")}</dt>
           <dd>{credits.reserved}</dd>
         </div>
         <div>
-          <dt className="text-label-secondary">{t("AVAILABLE")}</dt>
+          <dt className="text-muted-foreground">{t("AVAILABLE")}</dt>
           <dd>{credits.available}</dd>
         </div>
       </dl>
-      <p className="mt-3 font-mono text-caption text-label-secondary">
+      <p className="mt-3 font-mono text-xs text-muted-foreground">
         {t("ACCOUNT_REVISION", { revision: credits.accountRevision })}
       </p>
     </div>
@@ -287,7 +287,7 @@ function CreditAdjustmentError({ error }: Readonly<{ error: unknown }>) {
       <AlertTitle>{t(title)}</AlertTitle>
       <AlertDescription>
         <p>{t("CREDIT_ADJUSTMENT_UNCHANGED")}</p>
-        <p className="font-mono text-caption">{code}</p>
+        <p className="font-mono text-xs">{code}</p>
       </AlertDescription>
     </Alert>
   );
@@ -307,10 +307,10 @@ function AdjustmentApplied({ evidence }: Readonly<{ evidence: AdjustmentEvidence
             revision: evidence.result.accountRevision,
           })}
         </p>
-        <p className="font-mono text-caption">
+        <p className="font-mono text-xs">
           {t("LEDGER_ENTRY_ID", { id: evidence.result.ledgerEntryId })}
         </p>
-        <p className="font-mono text-caption">
+        <p className="font-mono text-xs">
           {t("AUDIT_EVENT_ID", { id: evidence.result.auditEventId })}
         </p>
       </AlertDescription>
@@ -321,8 +321,8 @@ function AdjustmentApplied({ evidence }: Readonly<{ evidence: AdjustmentEvidence
 function CreditFact(props: Readonly<{ label: string; value: number }>) {
   return (
     <div className="rounded-lg border p-4">
-      <p className="text-footnote text-label-secondary">{props.label}</p>
-      <p className="text-title2 font-semibold">{props.value}</p>
+      <p className="text-sm text-muted-foreground">{props.label}</p>
+      <p className="text-lg font-semibold">{props.value}</p>
     </div>
   );
 }

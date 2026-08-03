@@ -3,14 +3,34 @@ import { AlertCircle, ChevronLeft, ChevronRight, RefreshCw, Search } from "lucid
 import { useTranslation } from "react-i18next";
 
 import { TenantDirectoryApiError } from "@/api/tenant-directory";
+import { PlatformPage, PlatformSurface, PlatformToolbar } from "@/components/platform-page";
 import { SavedViewsControl } from "@/saved-views/saved-views-control";
 import type { SavedViewDefinition, SavedViewState } from "@/saved-views/saved-view-contracts";
-import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
-import { Button } from "@arclayer/ui/button";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
-import { Input } from "@arclayer/ui/input";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@arclayer/ui/sheet";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Input } from "@/components/ui/input";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export type DirectoryPage<T> = Readonly<{
   items?: T[];
@@ -129,49 +149,46 @@ export function TenantDirectoryTable<T>(props: {
           : "SERVER_ERROR";
 
   return (
-    <section className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-5 py-8 md:px-8 md:py-10">
-      <header className="max-w-3xl space-y-2">
-        <h1 className="text-largetitle">{props.title}</h1>
-        <p className="text-body text-label-secondary">{props.description}</p>
-      </header>
+    <PlatformPage description={props.description} title={props.title}>
       <form
-        className="flex flex-col gap-3 border-y py-4 sm:flex-row sm:items-center"
         onSubmit={(event) => {
           event.preventDefault();
           props.onSearchChange(search.trim() || undefined);
         }}
       >
-        <div className="relative min-w-0 flex-1">
-          <Search
-            aria-hidden="true"
-            className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-label-secondary"
-          />
-          <Input
-            aria-label={t("SEARCH")}
-            className="pl-9"
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder={props.searchPlaceholder}
-            value={search}
-          />
-        </div>
-        {props.filters}
-        {props.savedViews ? <SavedViewsControl {...props.savedViews} /> : null}
-        <Button
-          aria-label={t("REFRESH")}
-          disabled={request.type === "ready" && request.refreshing}
-          onClick={() => setReloadRevision((current) => current + 1)}
-          size="icon"
-          type="button"
-          variant="outline"
-        >
-          <RefreshCw
-            aria-hidden="true"
-            className={request.type === "ready" && request.refreshing ? "animate-spin" : undefined}
-          />
-        </Button>
-        <Button type="submit" variant="secondary">
-          {t("SEARCH")}
-        </Button>
+        <PlatformToolbar>
+          <div className="relative min-w-0 flex-1">
+            <Search
+              aria-hidden="true"
+              className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              aria-label={t("SEARCH")}
+              className="pl-9"
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={props.searchPlaceholder}
+              value={search}
+            />
+          </div>
+          {props.filters}
+          {props.savedViews ? <SavedViewsControl {...props.savedViews} /> : null}
+          <Button
+            aria-label={t("REFRESH")}
+            disabled={request.type === "ready" && request.refreshing}
+            onClick={() => setReloadRevision((current) => current + 1)}
+            size="icon"
+            type="button"
+            variant="outline"
+          >
+            <RefreshCw
+              aria-hidden="true"
+              className={
+                request.type === "ready" && request.refreshing ? "animate-spin" : undefined
+              }
+            />
+          </Button>
+          <Button type="submit">{t("SEARCH")}</Button>
+        </PlatformToolbar>
       </form>
       {displayedPage && props.partial?.(displayedPage.items ?? [])}
       {request.type === "error" ? (
@@ -184,7 +201,7 @@ export function TenantDirectoryTable<T>(props: {
       {request.type === "loading" ? <DirectoryLoading /> : null}
       {isEmpty ? <DirectoryEmpty filtered={props.hasFilters} /> : null}
       {displayedPage && !isEmpty ? (
-        <div className="overflow-hidden rounded-lg border bg-card">
+        <PlatformSurface>
           <Table>
             <TableHeader>
               <TableRow>
@@ -211,12 +228,12 @@ export function TenantDirectoryTable<T>(props: {
               ))}
             </TableBody>
           </Table>
-        </div>
+        </PlatformSurface>
       ) : null}
       {displayedPage && !isEmpty ? (
         <nav
           aria-label={t("PAGINATION")}
-          className="flex items-center justify-end gap-3 text-footnote text-label-secondary"
+          className="flex items-center justify-end gap-3 text-sm text-muted-foreground"
         >
           <span>
             {t("PAGE_OF", {
@@ -277,14 +294,14 @@ export function TenantDirectoryTable<T>(props: {
           ) : null}
         </SheetContent>
       </Sheet>
-    </section>
+    </PlatformPage>
   );
 }
 
 function DirectoryLoading() {
   const { t } = useTranslation("tenants");
   return (
-    <div className="rounded-lg border bg-card p-8 text-body text-label-secondary" role="status">
+    <div className="rounded-lg border bg-card p-8 text-base text-muted-foreground" role="status">
       {t("LOADING")}
     </div>
   );

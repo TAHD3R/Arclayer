@@ -96,6 +96,14 @@ from src.modules.auth.schema import (
     UsernameCheckRequest,
     UserProfile,
 )
+from src.modules.auth.security_verification.schema import (
+    SecurityVerificationProofOut,
+    SecurityVerificationTotpRequest,
+    SecurityVerificationWebAuthnBeginOut,
+    SecurityVerificationWebAuthnBeginRequest,
+    SecurityVerificationWebAuthnCompleteRequest,
+)
+from src.modules.auth.security_verification.service import AuthActionVerificationService
 from src.modules.auth.service import AuthService
 from src.modules.auth.sessions.request_context import build_auth_request_context
 from src.modules.auth.sessions.schema import AuthSessionListOut, AuthSessionRevokeOthersOut
@@ -115,6 +123,18 @@ from src.modules.auth.two_factor.schema import (
     TwoFactorStatusOut,
 )
 from src.modules.auth.two_factor.service import AuthTwoFactorService
+from src.modules.auth.webauthn.schema import (
+    WebAuthnAuthenticationBeginOut,
+    WebAuthnCredentialDeleteRequest,
+    WebAuthnCredentialListOut,
+    WebAuthnCredentialOut,
+    WebAuthnLoginBeginRequest,
+    WebAuthnLoginCompleteRequest,
+    WebAuthnRegistrationBeginOut,
+    WebAuthnRegistrationBeginRequest,
+    WebAuthnRegistrationCompleteRequest,
+)
+from src.modules.auth.webauthn.service import AuthWebAuthnService
 from src.platform.cache.valkey import get_valkey
 
 router = APIRouter(tags=["global.auth"])
@@ -159,6 +179,42 @@ def _get_auth_two_factor_capability_service(
     return TwoFactorCapabilityService(settings)
 
 
+def _get_auth_webauthn_service(
+    settings: Settings = Depends(get_settings),
+) -> AuthWebAuthnService:
+    return AuthWebAuthnService(settings)
+
+
+def _get_auth_action_verification_service(
+    request: Request,
+    settings: Settings = Depends(get_settings),
+) -> AuthActionVerificationService:
+    try:
+        valkey = get_valkey(request)
+    except RuntimeError:
+        valkey = None
+    return AuthActionVerificationService(
+        settings,
+        valkey=valkey,
+        two_factor=AuthTwoFactorService(settings),
+    )
+
+
+def _session_binding(access_payload: dict[str, object], *, purpose: str) -> str:
+    sid = access_payload.get("sid")
+    if not isinstance(sid, str) or not sid.strip():
+        raise BadRequest(message=t("errors", "BAD_REQUEST"), error="CURRENT_SESSION_MISSING")
+    return f"{purpose}:{sid.strip()}"
+
+
+def _security_access_context(access_payload: dict[str, object]) -> tuple[str, int]:
+    sid = access_payload.get("sid")
+    version = access_payload.get("ver")
+    if not isinstance(sid, str) or not sid.strip() or not isinstance(version, int):
+        raise BadRequest(message=t("errors", "BAD_REQUEST"), error="CURRENT_SESSION_MISSING")
+    return sid.strip(), version
+
+
 def _get_auth_login_service(
     request: Request,
     settings: Settings = Depends(get_settings),
@@ -174,7 +230,13 @@ def _get_auth_login_service(
         connector_registry=connector_registry,
     )
     two_factor_service = AuthTwoFactorService(settings)
-    return AuthLoginService(settings, valkey=valkey, auth_service=auth_service, two_factor=two_factor_service)
+    return AuthLoginService(
+        settings,
+        valkey=valkey,
+        auth_service=auth_service,
+        two_factor=two_factor_service,
+        webauthn=AuthWebAuthnService(settings),
+    )
 
 
 def _get_onboarding_profile_service(
@@ -436,6 +498,47 @@ async def login_two_factor(
     return ApiResponse.success(message=t("auth", "LOGIN_SUCCESS"), data=tokens)
 
 
+@guard_rate_limit(*TWO_FACTOR_LOGIN_RATE_LIMIT)
+@router.post(
+    "/login/2fa/webauthn/options",
+    response_model=ResponseModel[WebAuthnAuthenticationBeginOut],
+    summary="Start passkey or security-key login verification",
+)
+async def begin_login_two_factor_webauthn(
+    payload: WebAuthnLoginBeginRequest,
+    service: AuthLoginService = Depends(_get_auth_login_service),
+) -> ResponseModel[WebAuthnAuthenticationBeginOut]:
+    options = await service.begin_two_factor_webauthn(two_factor_token=payload.two_factor_token)
+    return ApiResponse.success(data=WebAuthnAuthenticationBeginOut(options=options))
+
+
+@guard_rate_limit(*TWO_FACTOR_LOGIN_RATE_LIMIT)
+@router.post(
+    "/login/2fa/webauthn/complete",
+    response_model=ResponseModel[TokenPair],
+    summary="Complete passkey or security-key login verification",
+)
+async def complete_login_two_factor_webauthn(
+    payload: WebAuthnLoginCompleteRequest,
+    request: Request,
+    fastapi_response: FastAPIResponse,
+    service: AuthLoginService = Depends(_get_auth_login_service),
+) -> ResponseModel[TokenPair]:
+    tokens = await service.complete_two_factor_webauthn(
+        two_factor_token=payload.two_factor_token,
+        challenge_id=payload.challenge_id,
+        credential=payload.credential,
+        request_context=build_auth_request_context(request),
+    )
+    _set_refresh_cookie(
+        fastapi_response,
+        settings=service.settings,
+        refresh_token=tokens.refresh_token,
+        refresh_ttl_seconds=tokens.refresh_expires_in,
+    )
+    return ApiResponse.success(message=t("auth", "LOGIN_SUCCESS"), data=tokens)
+
+
 @guard_rate_limit(*REGISTER_RATE_LIMIT)
 @router.post(
     "/register",
@@ -616,13 +719,18 @@ async def reset_password(
 async def change_password(
     payload: ChangePasswordRequest,
     user: User = Depends(get_current_user),
+    access_payload: dict[str, object] = Depends(get_current_access_payload),
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[None]:
     """Change current password."""
+    session_id, token_version = _security_access_context(access_payload)
     await service.change_password(
         user_id=user.id,
         old_password=payload.old_password,
         new_password=payload.new_password,
+        mfa_proof=payload.mfa_proof,
+        session_id=session_id,
+        token_version=token_version,
     )
     return ApiResponse.success(message=t("auth", "PASSWORD_CHANGED"))
 
@@ -636,14 +744,17 @@ async def change_password(
 async def set_my_password(
     payload: SetMyPasswordRequest,
     user: User = Depends(get_current_user),
+    access_payload: dict[str, object] = Depends(get_current_access_payload),
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[None]:
     """Set password for current user (OAuth-only accounts)."""
+    session_id, token_version = _security_access_context(access_payload)
     await service.set_password_for_current_user(
         user_id=user.id,
         new_password=payload.new_password,
-        code=payload.code,
-        backup_code=payload.backup_code,
+        mfa_proof=payload.mfa_proof,
+        session_id=session_id,
+        token_version=token_version,
     )
     return ApiResponse.success(message=t("auth", "PASSWORD_SET"))
 
@@ -680,10 +791,18 @@ async def request_remove_my_password(
 async def confirm_remove_my_password(
     payload: ConfirmRemoveMyPasswordRequest,
     user: User = Depends(get_current_user),
+    access_payload: dict[str, object] = Depends(get_current_access_payload),
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[None]:
     """Confirm current-password removal."""
-    await service.confirm_remove_password(user_id=user.id, code=payload.code)
+    session_id, token_version = _security_access_context(access_payload)
+    await service.confirm_remove_password(
+        user_id=user.id,
+        code=payload.code,
+        mfa_proof=payload.mfa_proof,
+        session_id=session_id,
+        token_version=token_version,
+    )
     return ApiResponse.success(message=t("auth", "PASSWORD_CHANGED"))
 
 
@@ -783,10 +902,178 @@ async def revoke_other_sessions(
 async def get_two_factor_status(
     user: User = Depends(get_current_user),
     service: AuthTwoFactorService = Depends(_get_auth_two_factor_service),
+    webauthn_service: AuthWebAuthnService = Depends(_get_auth_webauthn_service),
 ) -> ResponseModel[TwoFactorStatusOut]:
     """Get 2FA status for current user."""
-    enabled, backup_codes_remaining = await service.get_status(user_id=user.id)
-    return ApiResponse.success(data=TwoFactorStatusOut(enabled=enabled, backup_codes_remaining=backup_codes_remaining))
+    totp_enabled, backup_codes_remaining = await service.get_status(user_id=user.id)
+    webauthn_enabled = await webauthn_service.is_enabled(user_id=user.id)
+    methods = [
+        *(("totp", "backup_code") if totp_enabled else ()),
+        *(("webauthn",) if webauthn_enabled else ()),
+    ]
+    return ApiResponse.success(
+        data=TwoFactorStatusOut(
+            enabled=totp_enabled or webauthn_enabled,
+            totp_enabled=totp_enabled,
+            webauthn_enabled=webauthn_enabled,
+            methods=list(methods),
+            backup_codes_remaining=backup_codes_remaining,
+        )
+    )
+
+
+@router.get(
+    "/2fa/webauthn",
+    response_model=ResponseModel[WebAuthnCredentialListOut],
+    summary="List current Product Account passkeys and security keys",
+)
+async def list_two_factor_webauthn_credentials(
+    user: User = Depends(get_current_user),
+    service: AuthWebAuthnService = Depends(_get_auth_webauthn_service),
+) -> ResponseModel[WebAuthnCredentialListOut]:
+    return ApiResponse.success(data=await service.list_credentials(user_id=user.id))
+
+
+@guard_rate_limit(*TWO_FACTOR_DISABLE_RATE_LIMIT)
+@router.post(
+    "/2fa/webauthn/{credential_id}/remove",
+    response_model=ResponseModel[None],
+    summary="Remove a Product Account passkey or security key",
+)
+async def remove_two_factor_webauthn_credential(
+    credential_id: PublicUUID,
+    payload: WebAuthnCredentialDeleteRequest,
+    user: User = Depends(get_current_user),
+    access_payload: dict[str, object] = Depends(get_current_access_payload),
+    verification_service: AuthActionVerificationService = Depends(_get_auth_action_verification_service),
+    webauthn_service: AuthWebAuthnService = Depends(_get_auth_webauthn_service),
+) -> ResponseModel[None]:
+    session_id, token_version = _security_access_context(access_payload)
+    await verification_service.require(
+        user_id=user.id,
+        session_id=session_id,
+        token_version=token_version,
+        action="remove_webauthn_credential",
+        proof=payload.mfa_proof,
+    )
+    await webauthn_service.delete_credential(user_id=user.id, credential_id=credential_id)
+    return ApiResponse.success(message=t("auth", "TWO_FACTOR_DISABLED"))
+
+
+@guard_rate_limit(*TWO_FACTOR_LOGIN_RATE_LIMIT)
+@router.post(
+    "/me/security-verification/totp",
+    response_model=ResponseModel[SecurityVerificationProofOut],
+    summary="Verify a high-risk Product Account action with TOTP or backup code",
+)
+async def verify_security_action_totp(
+    payload: SecurityVerificationTotpRequest,
+    user: User = Depends(get_current_user),
+    access_payload: dict[str, object] = Depends(get_current_access_payload),
+    service: AuthActionVerificationService = Depends(_get_auth_action_verification_service),
+) -> ResponseModel[SecurityVerificationProofOut]:
+    session_id, token_version = _security_access_context(access_payload)
+    proof, expires_in = await service.verify_totp_and_issue(
+        user_id=user.id,
+        session_id=session_id,
+        token_version=token_version,
+        action=payload.action,
+        code=payload.code,
+        backup_code=payload.backup_code,
+    )
+    return ApiResponse.success(data=SecurityVerificationProofOut(proof=proof, expires_in=expires_in))
+
+
+@guard_rate_limit(*TWO_FACTOR_LOGIN_RATE_LIMIT)
+@router.post(
+    "/me/security-verification/webauthn/options",
+    response_model=ResponseModel[SecurityVerificationWebAuthnBeginOut],
+    summary="Start passkey verification for a high-risk Product Account action",
+)
+async def begin_security_action_webauthn(
+    payload: SecurityVerificationWebAuthnBeginRequest,
+    user: User = Depends(get_current_user),
+    access_payload: dict[str, object] = Depends(get_current_access_payload),
+    service: AuthActionVerificationService = Depends(_get_auth_action_verification_service),
+) -> ResponseModel[SecurityVerificationWebAuthnBeginOut]:
+    session_id, token_version = _security_access_context(access_payload)
+    options = await service.begin_webauthn(
+        user_id=user.id,
+        session_id=session_id,
+        token_version=token_version,
+        action=payload.action,
+    )
+    return ApiResponse.success(data=SecurityVerificationWebAuthnBeginOut(options=options))
+
+
+@guard_rate_limit(*TWO_FACTOR_LOGIN_RATE_LIMIT)
+@router.post(
+    "/me/security-verification/webauthn/complete",
+    response_model=ResponseModel[SecurityVerificationProofOut],
+    summary="Complete passkey verification for a high-risk Product Account action",
+)
+async def complete_security_action_webauthn(
+    payload: SecurityVerificationWebAuthnCompleteRequest,
+    user: User = Depends(get_current_user),
+    access_payload: dict[str, object] = Depends(get_current_access_payload),
+    service: AuthActionVerificationService = Depends(_get_auth_action_verification_service),
+) -> ResponseModel[SecurityVerificationProofOut]:
+    session_id, token_version = _security_access_context(access_payload)
+    proof, expires_in = await service.complete_webauthn_and_issue(
+        user_id=user.id,
+        session_id=session_id,
+        token_version=token_version,
+        action=payload.action,
+        challenge_id=payload.challenge_id,
+        credential=payload.credential,
+    )
+    return ApiResponse.success(data=SecurityVerificationProofOut(proof=proof, expires_in=expires_in))
+
+
+@guard_rate_limit(*TWO_FACTOR_SETUP_RATE_LIMIT)
+@router.post(
+    "/2fa/webauthn/registration/options",
+    response_model=ResponseModel[WebAuthnRegistrationBeginOut],
+    summary="Start Product Account passkey or security-key registration",
+)
+async def begin_two_factor_webauthn_registration(
+    payload: WebAuthnRegistrationBeginRequest,
+    user: User = Depends(get_current_user),
+    access_payload: dict[str, object] = Depends(get_current_access_payload),
+    service: AuthWebAuthnService = Depends(_get_auth_webauthn_service),
+) -> ResponseModel[WebAuthnRegistrationBeginOut]:
+    await service.ensure_registration_reauth(user_id=user.id, password=payload.password)
+    options = await service.begin_registration(
+        user_id=user.id,
+        user_name=user.email or user.username,
+        display_name=user.display_name or user.username,
+        binding=_session_binding(access_payload, purpose="settings-webauthn-registration"),
+    )
+    return ApiResponse.success(data=WebAuthnRegistrationBeginOut(options=options))
+
+
+@guard_rate_limit(*TWO_FACTOR_CONFIRM_RATE_LIMIT)
+@router.post(
+    "/2fa/webauthn/registration/complete",
+    response_model=ResponseModel[WebAuthnCredentialOut],
+    summary="Complete Product Account passkey or security-key registration",
+)
+async def complete_two_factor_webauthn_registration(
+    payload: WebAuthnRegistrationCompleteRequest,
+    user: User = Depends(get_current_user),
+    access_payload: dict[str, object] = Depends(get_current_access_payload),
+    service: AuthWebAuthnService = Depends(_get_auth_webauthn_service),
+    auth_service: AuthService = Depends(_get_auth_service),
+) -> ResponseModel[WebAuthnCredentialOut]:
+    credential = await service.complete_registration(
+        user_id=user.id,
+        challenge_id=payload.challenge_id,
+        binding=_session_binding(access_payload, purpose="settings-webauthn-registration"),
+        credential=payload.credential,
+        label=payload.label,
+    )
+    await auth_service.invalidate_user_sessions(user=user)
+    return ApiResponse.success(data=credential)
 
 
 @router.get(
@@ -1144,13 +1431,18 @@ async def request_email_change(
 async def confirm_email_change(
     payload: ConfirmMyEmailChangeRequest,
     user: User = Depends(get_current_user),
+    access_payload: dict[str, object] = Depends(get_current_access_payload),
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[UserProfile]:
     """Confirm email change."""
+    session_id, token_version = _security_access_context(access_payload)
     profile = await service.confirm_email_change(
         user=user,
         new_email=str(payload.new_email),
         code=payload.code,
+        mfa_proof=payload.mfa_proof,
+        session_id=session_id,
+        token_version=token_version,
     )
     return ApiResponse.success(message=t("auth", "EMAIL_CHANGED"), data=profile)
 
@@ -1162,14 +1454,14 @@ async def confirm_email_change(
 )
 async def get_delete_my_account_capabilities(
     user: User = Depends(get_current_user),
-    two_factor_service: AuthTwoFactorService = Depends(_get_auth_two_factor_service),
+    verification_service: AuthActionVerificationService = Depends(_get_auth_action_verification_service),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[DeleteMyAccountCapabilityOut]:
     """Get delete-account capabilities for current user."""
     service = AccountDeletionCapabilityService(settings)
     out = await service.get_capabilities(
         user=user,
-        two_factor_enabled=await two_factor_service.is_enabled(user_id=user.id),
+        two_factor_enabled=bool(await verification_service.enabled_methods(user_id=user.id)),
     )
     return ApiResponse.success(data=out)
 
@@ -1183,15 +1475,18 @@ async def get_delete_my_account_capabilities(
 async def delete_my_account(
     payload: DeleteMyAccountRequest,
     user: User = Depends(get_current_user),
+    access_payload: dict[str, object] = Depends(get_current_access_payload),
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[None]:
     """Delete current account."""
+    session_id, token_version = _security_access_context(access_payload)
     await service.delete_my_account(
         user=user,
         email=str(payload.email),
         password=payload.password,
-        code=payload.code,
-        backup_code=payload.backup_code,
+        mfa_proof=payload.mfa_proof,
+        session_id=session_id,
+        token_version=token_version,
     )
     return ApiResponse.success(message=t("auth", "ACCOUNT_DELETED"))
 

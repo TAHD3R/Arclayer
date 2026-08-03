@@ -23,6 +23,10 @@ vi.mock("@/access/access-api", async (importOriginal) => {
   return { ...actual, revokeCurrentPlatformSession: vi.fn() };
 });
 
+vi.mock("@/components/platform-aurora", () => ({
+  PlatformAurora: () => <div data-testid="platform-aurora" />,
+}));
+
 vi.mock("@/pages/tenant-users", () => ({
   TenantUsersPage: () => <h1>Users</h1>,
 }));
@@ -44,7 +48,7 @@ beforeEach(async () => {
   vi.mocked(revokeCurrentPlatformSession).mockReset();
   vi.mocked(revokeCurrentPlatformSession).mockResolvedValue({
     correlationId: "sign-out-correlation",
-    entityId: "session-shell-test",
+    entityId: "LqVpBuzAEzGFbgyzVOS4rA",
     mutation: "revoke_platform_session",
     replayed: false,
   });
@@ -67,10 +71,10 @@ beforeEach(async () => {
       expiresIn: 600,
       session: {
         absoluteExpiresAt: new Date(Date.now() + 3_600_000).toISOString(),
-        actorId: "actor-shell-test",
+        actorId: "1jz6k6rWQdK2nZk3fD3d1Q",
         isInstanceOwner: true,
         policyRevision: 1,
-        sessionId: "session-shell-test",
+        sessionId: "LqVpBuzAEzGFbgyzVOS4rA",
       },
     },
   });
@@ -123,7 +127,7 @@ describe("Platform shell", () => {
     expect(screen.queryByRole("link", { name: "Performance trends" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Platform team" })).toBeVisible();
 
-    await user.click(screen.getByRole("button", { name: "Open page navigation" }));
+    await user.click(screen.getByRole("button", { name: "Open navigation" }));
     const dialog = await screen.findByRole("dialog", { name: "Go to a page" });
     await waitFor(() => expect(dialog).toBeVisible());
     expect(within(dialog).getByRole("option", { name: "Workspaces" })).toBeVisible();
@@ -341,7 +345,7 @@ describe("Platform shell", () => {
     expect(screen.queryByText(/Some available pages/)).not.toBeInTheDocument();
   });
 
-  it("renders the real Overview healthy state and independent Product link", async () => {
+  it("renders the real Overview healthy state without a Product link in the account menu", async () => {
     const router = createRouter({
       routeTree,
       history: createMemoryHistory({ initialEntries: ["/"] }),
@@ -359,11 +363,7 @@ describe("Platform shell", () => {
     expect(await screen.findByRole("heading", { name: "Overview" })).toBeVisible();
     expect(screen.getByText(/Nothing needs attention right now/)).toBeVisible();
     expect(screen.getByRole("heading", { name: "Area status" })).toBeVisible();
-    const productApplicationLink = screen.getByRole("link", {
-      name: /Return to product app/,
-    });
-    expect(productApplicationLink).toHaveAttribute("href", "https://app.arclayer.localhost/");
-    expect(productApplicationLink).toHaveAttribute("aria-label", "Return to product app");
+    expect(screen.queryByRole("link", { name: "Back to product" })).not.toBeInTheDocument();
   });
 
   it("revokes the current server Session before clearing the Platform credential", async () => {
@@ -385,15 +385,13 @@ describe("Platform shell", () => {
     expect(window.localStorage.getItem("arclayer:platform:session")).not.toBeNull();
     await user.click(screen.getByRole("button", { name: "Revoke and sign out" }));
     await waitFor(() =>
-      expect(revokeCurrentPlatformSession).toHaveBeenCalledWith("session-shell-test", {
+      expect(revokeCurrentPlatformSession).toHaveBeenCalledWith("LqVpBuzAEzGFbgyzVOS4rA", {
         correlationId: expect.any(String),
         idempotencyKey: expect.any(String),
       }),
     );
     expect(window.localStorage.getItem("arclayer:platform:session")).toBeNull();
-    expect(
-      await screen.findByRole("heading", { name: "Sign in to the Platform Console" }),
-    ).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "Welcome back" })).toBeVisible();
   });
 
   it("keeps the local credential and reuses revocation identity when sign out is unconfirmed", async () => {
@@ -442,23 +440,27 @@ describe("Platform shell", () => {
       </PlatformPreferencesProvider>,
     );
 
-    await user.click(screen.getByRole("button", { name: "Change language" }));
+    await user.click(screen.getByRole("button", { name: "Open administrator menu" }));
+    await user.click(screen.getByRole("menuitem", { name: "Change language" }));
     await user.click(screen.getByRole("menuitemradio", { name: "简体中文" }));
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: "总览" })).toBeVisible();
     });
     expect(document.documentElement.lang).toBe("zh-CN");
 
-    await user.click(screen.getByRole("button", { name: "外观" }));
+    await user.click(screen.getByRole("button", { name: "打开管理员菜单" }));
+    await user.click(screen.getByRole("menuitem", { name: "主题" }));
     await user.click(screen.getByRole("menuitemradio", { name: "浅色" }));
-    expect(document.documentElement.dataset.theme).toBe("light");
+    expect(document.documentElement).not.toHaveClass("dark");
 
-    await user.click(screen.getByRole("button", { name: "外观" }));
+    await user.click(screen.getByRole("button", { name: "打开管理员菜单" }));
+    await user.click(screen.getByRole("menuitem", { name: "主题" }));
     await user.click(screen.getByRole("menuitemradio", { name: "深色" }));
-    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(document.documentElement).toHaveClass("dark");
 
-    await user.click(screen.getByRole("button", { name: "外观" }));
-    await user.click(screen.getByRole("menuitemradio", { name: "跟随系统" }));
+    await user.click(screen.getByRole("button", { name: "打开管理员菜单" }));
+    await user.click(screen.getByRole("menuitem", { name: "主题" }));
+    await user.click(screen.getByRole("menuitemradio", { name: "使用系统设置" }));
     expect(window.localStorage.getItem("arclayer:platform:theme")).toBe("system");
   });
 

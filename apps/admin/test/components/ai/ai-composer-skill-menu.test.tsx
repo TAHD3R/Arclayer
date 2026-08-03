@@ -14,6 +14,7 @@ const composerMocks = vi.hoisted(() => ({
   runConfig: { custom: { existing: "value" } } as { custom?: Record<string, unknown> },
   setRunConfig: vi.fn(),
   setText: vi.fn(),
+  insertDirective: vi.fn(),
   navigate: vi.fn(),
 }));
 
@@ -29,6 +30,10 @@ vi.mock("@assistant-ui/react", () => ({
       setText: composerMocks.setText,
     }),
   }),
+}));
+
+vi.mock("@/components/ai/ai-composer-rich-input", () => ({
+  useAIComposerDirectiveInsertion: () => ({ insertDirective: composerMocks.insertDirective }),
 }));
 
 vi.mock("@/api/workspace-skills", () => ({
@@ -150,7 +155,7 @@ describe("AIComposerSkillMenu", () => {
     });
   });
 
-  it("stores a selected Skill as an installation ID without modifying the prompt", async () => {
+  it("inserts a selected Skill as an inline directive at the active cursor", async () => {
     const user = userEvent.setup();
     renderMenu();
 
@@ -158,6 +163,11 @@ describe("AIComposerSkillMenu", () => {
     await user.click(await screen.findByRole("menuitem", { name: /电商内容/ }));
 
     expect(composerMocks.setText).not.toHaveBeenCalled();
+    expect(composerMocks.insertDirective).toHaveBeenCalledWith({
+      type: "skill",
+      id: "installation-1",
+      label: "电商内容",
+    });
     expect(composerMocks.setRunConfig).toHaveBeenCalledWith({
       custom: { existing: "value", selectedSkillInstallationIds: ["installation-1"] },
     });

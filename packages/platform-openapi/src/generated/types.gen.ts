@@ -7309,6 +7309,24 @@ export type PlatformCommerceSubscriptionOut = {
 };
 
 /**
+ * PlatformCurrentActorProfileOut
+ */
+export type PlatformCurrentActorProfileOut = {
+    /**
+     * Avatarurl
+     */
+    avatarUrl?: string | null;
+    /**
+     * Email
+     */
+    email?: string | null;
+    /**
+     * Username
+     */
+    username: string;
+};
+
+/**
  * PlatformCustomRoleApplyRequest
  */
 export type PlatformCustomRoleApplyRequest = {
@@ -12159,6 +12177,31 @@ export type ResponseModelPlatformCommerceSubscriptionOut = {
 };
 
 /**
+ * ResponseModel[PlatformCurrentActorProfileOut]
+ */
+export type ResponseModelPlatformCurrentActorProfileOut = {
+    data?: PlatformCurrentActorProfileOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[PlatformCustomRolePreviewOut]
  */
 export type ResponseModelPlatformCustomRolePreviewOut = {
@@ -16309,6 +16352,22 @@ export type ProviderConfigurationWriteWritable = {
      */
     webhookSecret?: string | null;
 };
+
+export type PlatformGetCurrentPlatformActorProfileData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/platform-api/v1/access/me';
+};
+
+export type PlatformGetCurrentPlatformActorProfileResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPlatformCurrentActorProfileOut;
+};
+
+export type PlatformGetCurrentPlatformActorProfileResponse = PlatformGetCurrentPlatformActorProfileResponses[keyof PlatformGetCurrentPlatformActorProfileResponses];
 
 export type PlatformBeginCurrentPlatformTotpMethodData = {
     body: PlatformMfaTotpBeginRequest;

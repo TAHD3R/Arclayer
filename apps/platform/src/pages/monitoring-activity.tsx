@@ -2,7 +2,14 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
 
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
 import { formatDate, formatNumber } from "@/monitoring/format";
 import { getActivityTrend } from "@/monitoring/monitoring-api";
 import {
@@ -10,9 +17,15 @@ import {
   MonitoringQueryState,
   useMonitoringQuery,
 } from "@/monitoring/monitoring-ui";
-import { Button } from "@arclayer/ui/button";
-import { ChartTooltip, Grid, Line, LineChart, XAxis } from "@arclayer/ui/chart";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export function MonitoringActivityPage() {
   const { t } = useTranslation("monitoring");
@@ -33,6 +46,12 @@ export function MonitoringActivityPage() {
             date: point.date,
             value: Number(point.value),
           }));
+          const chartConfig = {
+            value: {
+              label: t("ACTIVITY_EVENTS"),
+              color: "var(--chart-1)",
+            },
+          } satisfies ChartConfig;
           return (
             <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-3">
@@ -47,8 +66,8 @@ export function MonitoringActivityPage() {
                 <section className="rounded-xl border bg-card p-4 shadow-xs">
                   <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <h2 className="text-headline">{t("ACTIVITY_CHART_TITLE")}</h2>
-                      <p className="mt-1 text-footnote text-label-secondary">
+                      <h2 className="text-base">{t("ACTIVITY_CHART_TITLE")}</h2>
+                      <p className="mt-1 text-sm text-muted-foreground">
                         {t("ACTIVITY_CHART_DESCRIPTION")}
                       </p>
                     </div>
@@ -60,24 +79,32 @@ export function MonitoringActivityPage() {
                     </Button>
                   </div>
                   <div aria-label={t("ACTIVITY_CHART_ACCESSIBLE_LABEL")} role="img">
-                    <LineChart
-                      aspectRatio="3 / 1"
-                      data={chartData}
-                      margin={{ top: 16, right: 16, bottom: 36, left: 16 }}
-                    >
-                      <Grid horizontal vertical={false} />
-                      <XAxis numTicks={5} />
-                      <Line dataKey="value" showMarkers stroke="var(--chart-line-primary)" />
-                      <ChartTooltip
-                        rows={(point) => [
-                          {
-                            color: "var(--chart-line-primary)",
-                            label: t("ACTIVITY_EVENTS"),
-                            value: formatNumber(Number(point.value)),
-                          },
-                        ]}
-                      />
-                    </LineChart>
+                    <ChartContainer className="h-72 w-full" config={chartConfig}>
+                      <LineChart data={chartData} margin={{ left: 12, right: 12 }}>
+                        <CartesianGrid vertical={false} />
+                        <XAxis
+                          axisLine={false}
+                          dataKey="date"
+                          minTickGap={32}
+                          tickFormatter={formatDate}
+                          tickLine={false}
+                        />
+                        <ChartTooltip
+                          content={
+                            <ChartTooltipContent
+                              formatter={(value) => formatNumber(Number(value))}
+                            />
+                          }
+                        />
+                        <Line
+                          dataKey="value"
+                          dot={{ fill: "var(--color-value)" }}
+                          stroke="var(--color-value)"
+                          strokeWidth={2}
+                          type="monotone"
+                        />
+                      </LineChart>
+                    </ChartContainer>
                   </div>
                 </section>
                 <section className="rounded-xl border bg-card shadow-xs">
@@ -115,8 +142,8 @@ export function MonitoringActivityPage() {
 function ActivityMetric({ label, value }: Readonly<{ label: string; value: string }>) {
   return (
     <div className="rounded-xl border bg-card px-4 py-3 shadow-xs">
-      <p className="text-footnote text-label-secondary">{label}</p>
-      <p className="mt-1 text-title font-semibold tabular-nums">{value}</p>
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
     </div>
   );
 }

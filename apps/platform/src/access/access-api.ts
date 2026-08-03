@@ -1,5 +1,16 @@
 import {
+  platformApplyPlatformCustomRoleRevision,
+  platformAssignPlatformOperatorRoles,
+  platformBeginCurrentPlatformTotpMethod,
+  platformBeginCurrentPlatformWebauthnMethod,
+  platformBeginPlatformStepUpWebauthn,
+  platformCompleteCurrentPlatformWebauthnMethod,
+  platformCompletePlatformStepUpWebauthn,
+  platformConfirmCurrentPlatformTotpMethod,
+  platformCopyPlatformCustomRole,
+  platformCreatePlatformCustomRole,
   platformGetCurrentPlatformMfaReadiness,
+  platformGetCurrentPlatformActorProfile,
   platformGetPlatformInvitationOptions,
   platformGetCurrentTeamIdentity,
   platformGetPlatformInvitation,
@@ -10,20 +21,44 @@ import {
   platformListPlatformRoles,
   platformListPlatformTeam,
   platformInvitePlatformOperator,
+  platformPreviewPlatformCustomRoleRevision,
+  platformRemoveCurrentPlatformMfaMethod,
+  platformRetirePlatformCustomRole,
   platformRevokeCurrentPlatformSession,
   platformRevokeOtherCurrentPlatformSessions,
+  platformRevokePlatformOperatorInvitation,
+  type PlatformCustomRoleApplyRequest,
+  type PlatformCustomRoleCopyRequest,
+  type PlatformCustomRoleCreateRequest,
+  type PlatformCustomRolePreviewOut,
+  type PlatformCustomRolePreviewRequest,
+  type PlatformCustomRoleRetireRequest,
+  type PlatformCurrentActorProfileOut,
   type PlatformInvitationCreateRequest,
   type PlatformInvitationDetailOut,
   type PlatformInvitationOptionsOut,
+  type PlatformInvitationRevokeRequest,
+  type PlatformMfaMethodRemoveRequest,
   type PlatformMfaReadinessOut,
+  type PlatformMfaTotpBeginRequest,
+  type PlatformMfaTotpConfirmRequest,
+  type PlatformMfaWebAuthnBeginRequest,
+  type PlatformMfaWebAuthnCompleteRequest,
+  type PlatformMfaWebAuthnRegistrationOut,
   type PlatformPermissionCatalogItemOut,
+  type PlatformRoleAssignmentRequest,
   type PlatformRoleCatalogItemOut,
   type PlatformSessionInventoryItemOut,
   type PlatformSessionRevokeRequest,
   type PlatformSignInReadinessOut,
+  type PlatformStepUpProofIssueRequest,
+  type PlatformStepUpProofIssueResult,
+  type PlatformStepUpWebAuthnCompleteRequest,
+  type PlatformStepUpWebAuthnOptionsOut,
   type PlatformMutationReceipt,
   type PlatformTeamIdentityOut,
   type PlatformTeamQueueOut,
+  type PlatformTotpSetup,
 } from "@arclayer/platform-openapi";
 
 import { platformApiClient } from "@/api/client";
@@ -66,6 +101,8 @@ function unwrap<T>(result: SdkResult<T>): T {
 
 export const getPlatformTeam = async (): Promise<PlatformTeamQueueOut> =>
   unwrap(await platformListPlatformTeam({ client: platformApiClient }));
+export const getCurrentPlatformActorProfile = async (): Promise<PlatformCurrentActorProfileOut> =>
+  unwrap(await platformGetCurrentPlatformActorProfile({ client: platformApiClient }));
 export const getCurrentPlatformTeamIdentity = async (): Promise<PlatformTeamIdentityOut> =>
   unwrap(await platformGetCurrentTeamIdentity({ client: platformApiClient }));
 export const invitePlatformOperator = async (
@@ -112,3 +149,108 @@ export const revokeOtherCurrentPlatformSessions = async (
   unwrap(await platformRevokeOtherCurrentPlatformSessions({ body, client: platformApiClient }));
 export const getCurrentMfaReadiness = async (): Promise<PlatformMfaReadinessOut> =>
   unwrap(await platformGetCurrentPlatformMfaReadiness({ client: platformApiClient }));
+
+export const revokePlatformInvitation = async (
+  invitationId: string,
+  body: PlatformInvitationRevokeRequest,
+): Promise<PlatformMutationReceipt> =>
+  unwrap(
+    await platformRevokePlatformOperatorInvitation({
+      body,
+      client: platformApiClient,
+      path: { invitation_id: invitationId },
+    }),
+  );
+
+export const assignPlatformOperatorRoles = async (
+  targetUserId: string,
+  body: PlatformRoleAssignmentRequest,
+): Promise<PlatformMutationReceipt> =>
+  unwrap(
+    await platformAssignPlatformOperatorRoles({
+      body,
+      client: platformApiClient,
+      path: { target_user_id: targetUserId },
+    }),
+  );
+
+export const createPlatformCustomRole = async (
+  body: PlatformCustomRoleCreateRequest,
+): Promise<PlatformMutationReceipt> =>
+  unwrap(await platformCreatePlatformCustomRole({ body, client: platformApiClient }));
+
+export const copyPlatformCustomRole = async (
+  body: PlatformCustomRoleCopyRequest,
+): Promise<PlatformMutationReceipt> =>
+  unwrap(await platformCopyPlatformCustomRole({ body, client: platformApiClient }));
+
+export const previewPlatformCustomRoleRevision = async (
+  roleId: string,
+  body: PlatformCustomRolePreviewRequest,
+): Promise<PlatformCustomRolePreviewOut> =>
+  unwrap(
+    await platformPreviewPlatformCustomRoleRevision({
+      body,
+      client: platformApiClient,
+      path: { role_id: roleId },
+    }),
+  );
+
+export const applyPlatformCustomRoleRevision = async (
+  body: PlatformCustomRoleApplyRequest,
+): Promise<PlatformMutationReceipt> =>
+  unwrap(await platformApplyPlatformCustomRoleRevision({ body, client: platformApiClient }));
+
+export const retirePlatformCustomRole = async (
+  roleId: string,
+  body: PlatformCustomRoleRetireRequest,
+): Promise<PlatformMutationReceipt> =>
+  unwrap(
+    await platformRetirePlatformCustomRole({
+      body,
+      client: platformApiClient,
+      path: { role_id: roleId },
+    }),
+  );
+
+export const beginPlatformStepUp = async (
+  body: PlatformStepUpProofIssueRequest,
+): Promise<PlatformStepUpWebAuthnOptionsOut> =>
+  unwrap(await platformBeginPlatformStepUpWebauthn({ body, client: platformApiClient }));
+
+export const completePlatformStepUp = async (
+  body: PlatformStepUpWebAuthnCompleteRequest,
+): Promise<PlatformStepUpProofIssueResult> =>
+  unwrap(await platformCompletePlatformStepUpWebauthn({ body, client: platformApiClient }));
+
+export const removeCurrentPlatformMfaMethod = async (
+  methodId: string,
+  body: PlatformMfaMethodRemoveRequest,
+): Promise<PlatformMutationReceipt> =>
+  unwrap(
+    await platformRemoveCurrentPlatformMfaMethod({
+      body,
+      client: platformApiClient,
+      path: { method_id: methodId },
+    }),
+  );
+
+export const beginCurrentPlatformTotpMethod = async (
+  body: PlatformMfaTotpBeginRequest,
+): Promise<PlatformTotpSetup> =>
+  unwrap(await platformBeginCurrentPlatformTotpMethod({ body, client: platformApiClient }));
+
+export const confirmCurrentPlatformTotpMethod = async (
+  body: PlatformMfaTotpConfirmRequest,
+): Promise<PlatformMfaReadinessOut> =>
+  unwrap(await platformConfirmCurrentPlatformTotpMethod({ body, client: platformApiClient }));
+
+export const beginCurrentPlatformWebauthnMethod = async (
+  body: PlatformMfaWebAuthnBeginRequest,
+): Promise<PlatformMfaWebAuthnRegistrationOut> =>
+  unwrap(await platformBeginCurrentPlatformWebauthnMethod({ body, client: platformApiClient }));
+
+export const completeCurrentPlatformWebauthnMethod = async (
+  body: PlatformMfaWebAuthnCompleteRequest,
+): Promise<PlatformMfaReadinessOut> =>
+  unwrap(await platformCompleteCurrentPlatformWebauthnMethod({ body, client: platformApiClient }));

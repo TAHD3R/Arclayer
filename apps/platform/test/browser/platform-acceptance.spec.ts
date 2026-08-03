@@ -50,15 +50,21 @@ test("Platform Console enforces independent MFA Sessions, canonical routes, and 
   await currentPage.goto(platformUrl("/"));
   await currentPage.getByLabel("Theme").click();
   await currentPage.getByRole("menuitemradio", { name: "Dark", exact: true }).click();
-  await expect.poll(() => currentPage.locator("html").getAttribute("data-theme")).toBe("dark");
+  await expect
+    .poll(() => currentPage.locator("html").evaluate((html) => html.classList.contains("dark")))
+    .toBe(true);
   await currentPage.emulateMedia({ colorScheme: "light" });
   await currentPage.getByLabel("Theme").click();
   await currentPage.getByRole("menuitemradio", { name: "Light", exact: true }).click();
-  await expect.poll(() => currentPage.locator("html").getAttribute("data-theme")).toBe("light");
+  await expect
+    .poll(() => currentPage.locator("html").evaluate((html) => html.classList.contains("dark")))
+    .toBe(false);
   await currentPage.emulateMedia({ colorScheme: "dark" });
   await currentPage.getByLabel("Theme").click();
-  await currentPage.getByRole("menuitemradio", { name: "Follow system", exact: true }).click();
-  await expect.poll(() => currentPage.locator("html").getAttribute("data-theme")).toBe("dark");
+  await currentPage.getByRole("menuitemradio", { name: "Use system setting", exact: true }).click();
+  await expect
+    .poll(() => currentPage.locator("html").evaluate((html) => html.classList.contains("dark")))
+    .toBe(true);
 
   await currentPage.getByLabel("Change language").click();
   await currentPage.getByRole("menuitemradio", { name: "简体中文", exact: true }).click();

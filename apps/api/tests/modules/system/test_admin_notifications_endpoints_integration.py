@@ -187,6 +187,7 @@ async def test_me_notification_preferences_get_and_patch(
             preferences = resp.json()["data"]
             topics = preferences["topics"]
             assert topics
+            assert preferences["sound"] == {"enabled": False, "tone": "chime"}
 
             role_topic = next(
                 (item for item in topics if item["key"] == "workspace.member.roles.updated"),
@@ -203,6 +204,16 @@ async def test_me_notification_preferences_get_and_patch(
             assert email_channel["enabled"] is False
             assert email_channel["supported"] is False
             assert email_channel["mutable"] is False
+
+            sound_resp = await client.patch(
+                "/api/v1/me/notifications/preferences/sound",
+                json={"enabled": True, "tone": "pulse"},
+            )
+            assert sound_resp.status_code == 200
+            assert sound_resp.json()["data"]["sound"] == {
+                "enabled": True,
+                "tone": "pulse",
+            }
 
             patch_resp = await client.patch(
                 "/api/v1/me/notifications/preferences",
@@ -225,6 +236,10 @@ async def test_me_notification_preferences_get_and_patch(
             patched_in_app_channel = patched_topic["channels"].get("inApp") or patched_topic["channels"].get("in_app")
             assert patched_in_app_channel is not None
             assert patched_in_app_channel["enabled"] is False
+            assert patch_resp.json()["data"]["sound"] == {
+                "enabled": True,
+                "tone": "pulse",
+            }
 
             verify_resp = await client.get("/api/v1/me/notifications/preferences")
             assert verify_resp.status_code == 200
@@ -240,6 +255,10 @@ async def test_me_notification_preferences_get_and_patch(
             verify_in_app_channel = verify_topic["channels"].get("inApp") or verify_topic["channels"].get("in_app")
             assert verify_in_app_channel is not None
             assert verify_in_app_channel["enabled"] is False
+            assert verify_resp.json()["data"]["sound"] == {
+                "enabled": True,
+                "tone": "pulse",
+            }
 
         stored = await SettingRecord.get_or_none(
             scope_type=SCOPE_TYPE_USER,
@@ -253,6 +272,7 @@ async def test_me_notification_preferences_get_and_patch(
         role_state = topics_value.get("workspace.member.roles.updated")
         assert isinstance(role_state, dict)
         assert role_state.get("in_app") is False
+        assert stored.value.get("sound") == {"enabled": True, "tone": "pulse"}
 
 
 async def test_me_notification_campaign_interactions_are_durable_and_recipient_scoped(

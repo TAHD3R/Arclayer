@@ -24,7 +24,7 @@ describe("Platform Messages & Feedback and Extensions routes", () => {
     expect(routes.join("\n")).toContain('"/_authenticated/messages/email"');
   });
 
-  it("keeps delivery evidence tied to its available durable campaign ledger", async () => {
+  it("provides a global delivery directory with optional campaign context", async () => {
     const [route, page, api] = await Promise.all([
       source("apps/platform/src/routes/_authenticated/messages/deliveries.tsx"),
       source("apps/platform/src/communications/communications-ui.tsx"),
@@ -32,9 +32,13 @@ describe("Platform Messages & Feedback and Extensions routes", () => {
     ]);
 
     expect(route).toContain("campaignId");
-    expect(page).toContain("DELIVERY_SCOPE_REQUIRED_TITLE");
+    expect(page).toContain("listDeliveryDirectory");
+    expect(page).toContain('to="/messages/deliveries"');
     expect(api).toContain("platformListNotificationCampaignDeliveries");
+    expect(api).toContain("platformListNotificationDeliveryDirectory");
+    expect(api).toContain("listDeliveryDirectory");
     expect(api).toContain("platformRetryPlatformFeedbackReplyDelivery");
+    expect(page).not.toContain('href="/messages/deliveries"');
     expect(api).not.toContain("fetch(");
   });
 

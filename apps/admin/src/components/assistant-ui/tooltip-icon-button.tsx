@@ -10,14 +10,15 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arcla
 export type TooltipIconButtonProps = ComponentPropsWithRef<typeof Button> & {
   tooltip: string;
   side?: "top" | "bottom" | "left" | "right";
+  focusTrigger?: boolean;
 };
 
 export const TooltipIconButton = forwardRef<HTMLButtonElement, TooltipIconButtonProps>(
-  ({ children, tooltip, side = "bottom", className, ...rest }, ref) => {
+  ({ children, tooltip, side = "bottom", focusTrigger = true, className, ...rest }, ref) => {
     return (
       <TooltipProvider openDelay={0}>
         <Tooltip side={side}>
-          <TooltipTrigger asChild>
+          <TooltipTrigger asChild focusTrigger={focusTrigger}>
             <Button
               variant="ghost"
               size="icon"

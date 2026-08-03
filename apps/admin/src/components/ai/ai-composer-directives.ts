@@ -5,6 +5,7 @@ export type AIComposerDirectiveType =
   | "project"
   | "agent"
   | "skill"
+  | "attachment"
   | "asset"
   | "content"
   | "action";
@@ -20,6 +21,7 @@ export interface AIComposerDirectiveChip {
 type AIComposerDirectiveState = {
   directivesByScope: Record<AIComposerDirectiveScope, AIComposerDirectiveChip[]>;
   addDirectives: (scope: AIComposerDirectiveScope, directives: AIComposerDirectiveChip[]) => void;
+  setDirectives: (scope: AIComposerDirectiveScope, directives: AIComposerDirectiveChip[]) => void;
   removeDirective: (scope: AIComposerDirectiveScope, directive: AIComposerDirectiveChip) => void;
   clearDirectives: (scope: AIComposerDirectiveScope) => void;
 };
@@ -48,6 +50,16 @@ export const useAIComposerDirectiveStore = create<AIComposerDirectiveState>()((s
         directivesByScope: {
           ...state.directivesByScope,
           [scope]: merged,
+        },
+      };
+    }),
+  setDirectives: (scope, directives) =>
+    set((state) => {
+      if (equalDirectives(state.directivesByScope[scope], directives)) return state;
+      return {
+        directivesByScope: {
+          ...state.directivesByScope,
+          [scope]: directives,
         },
       };
     }),
@@ -106,32 +118,15 @@ export function cleanAIComposerDirectiveText(text: string): string {
     .trim();
 }
 
-export function removeAIComposerDirectives(
+export function removeAIComposerDirectiveByIdentity(
   text: string,
-  directives: readonly AIComposerDirectiveChip[],
+  type: string,
+  id: string,
 ): string {
-  const cleaned = directives.reduce(
-    (current, directive) => current.split(serializeAIComposerDirective(directive)).join(" "),
-    text,
-  );
-  return cleaned
-    .replace(/[ \t]+\n/g, "\n")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-export function serializeAIComposerDirective(directive: AIComposerDirectiveChip): string {
-  return `:${directive.type}[${directive.label}]{name=${directive.id}}`;
-}
-
-export function buildTextWithAIComposerDirectives(
-  scope: AIComposerDirectiveScope,
-  text: string,
-): string {
-  const state = useAIComposerDirectiveStore.getState();
-  const directives = state.directivesByScope[scope];
-  if (directives.length === 0) return text;
-  return [directives.map(serializeAIComposerDirective).join(" "), text].filter(Boolean).join(" ");
+  return text.replace(DIRECTIVE_PATTERN, (match, rawType: string, label: string, rawId: string) => {
+    const normalizedId = rawId?.trim() || label.trim();
+    return rawType === type && normalizedId === id ? "" : match;
+  });
 }
 
 export function clearAIComposerDirectives(scope: AIComposerDirectiveScope): void {
@@ -180,6 +175,7 @@ function normalizeDirectiveType(value: string | undefined): AIComposerDirectiveT
     value === "project" ||
     value === "agent" ||
     value === "skill" ||
+    value === "attachment" ||
     value === "asset" ||
     value === "content" ||
     value === "action"
@@ -187,4 +183,23 @@ function normalizeDirectiveType(value: string | undefined): AIComposerDirectiveT
     return value;
   }
   return null;
+}
+
+function equalDirectives(
+  current: readonly AIComposerDirectiveChip[],
+  next: readonly AIComposerDirectiveChip[],
+): boolean {
+  return (
+    current.length === next.length &&
+    current.every((directive, index) => {
+      const candidate = next[index];
+      return (
+        candidate?.type === directive.type &&
+        candidate.id === directive.id &&
+        candidate.label === directive.label &&
+        candidate.previewUrl === directive.previewUrl &&
+        candidate.mime === directive.mime
+      );
+    })
+  );
 }

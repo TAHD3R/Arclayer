@@ -21,6 +21,7 @@ from src.modules.system.admin.notifications.schema import (
     NotificationPreviewOut,
     NotificationReadAllResult,
     NotificationReadResult,
+    NotificationSoundPreferencePatchIn,
 )
 from src.modules.system.admin.notifications.service import NotificationService
 
@@ -91,6 +92,21 @@ async def patch_my_notification_preference(
 ) -> ResponseModel[NotificationPreferencesOut]:
     """Update one notification delivery preference."""
     out = await service.patch_notification_preference_for_user(user_id=user_id, payload=payload)
+    return ApiResponse.success(data=out)
+
+
+@router.patch(
+    "/preferences/sound",
+    response_model=ResponseModel[NotificationPreferencesOut],
+    summary="Update my notification sound preference",
+)
+async def patch_my_notification_sound(
+    payload: NotificationSoundPreferencePatchIn,
+    user_id: UUID = Depends(get_current_user_id),
+    service: NotificationService = Depends(get_notification_service),
+) -> ResponseModel[NotificationPreferencesOut]:
+    """Update browser notification sound preference."""
+    out = await service.patch_notification_sound_for_user(user_id=user_id, payload=payload)
     return ApiResponse.success(data=out)
 
 

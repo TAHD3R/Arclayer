@@ -8,7 +8,7 @@ import pytest
 from pydantic import BaseModel, ConfigDict
 
 from src.config import get_settings
-from src.core.exceptions import BadRequest
+from src.core.exceptions import BadRequest, Unauthorized
 from src.models.organization.user import UserStatus
 from src.modules.auth.contracts.schema import UserRepositoryLike
 from src.modules.auth.service import AuthService
@@ -146,6 +146,20 @@ class _FakeTwoFactor:
         raise BadRequest(message="invalid", error="TWO_FACTOR_CODE_INVALID")
 
 
+class _FakeActionVerification:
+    def __init__(self, *, enabled: bool) -> None:
+        self.enabled = enabled
+
+    async def enabled_methods(self, *, user_id: UUID) -> list[str]:
+        _ = user_id
+        return ["totp", "backup_code"] if self.enabled else []
+
+    async def require(self, *, proof: str | None, **kwargs: object) -> None:
+        _ = kwargs
+        if self.enabled and proof != "valid-action-proof":
+            raise Unauthorized(error="MFA_VERIFICATION_REQUIRED")
+
+
 def _build_service(*, user: _FakeUser, two_factor_enabled: bool) -> AuthService:
     settings = get_settings()
     refresh_store = _FakeRefreshStore()
@@ -154,6 +168,7 @@ def _build_service(*, user: _FakeUser, two_factor_enabled: bool) -> AuthService:
         valkey=None,
         user_repo=cast(UserRepositoryLike, _FakeUserRepo(user)),
         two_factor=_FakeTwoFactor(enabled=two_factor_enabled),
+        action_verification=_FakeActionVerification(enabled=two_factor_enabled),
     )
     service.email_change_store = cast(
         Any,
@@ -168,7 +183,7 @@ def _get_fake_refresh_store(service: AuthService) -> _FakeRefreshStore:
 
 
 @pytest.mark.asyncio
-async def test_confirm_email_change_password_account_uses_email_code_only() -> None:
+async def test_confirm_email_change_password_account_uses_action_proof_and_email_code() -> None:
     settings = get_settings()
     user = _FakeUser(
         id=uuid4(),
@@ -181,6 +196,9 @@ async def test_confirm_email_change_password_account_uses_email_code_only() -> N
         user=cast(Any, user),
         new_email="new@example.com",
         code="654321",
+        mfa_proof="valid-action-proof",
+        session_id="session-id",
+        token_version=0,
     )
 
     assert profile.email == "new@example.com"
@@ -189,7 +207,7 @@ async def test_confirm_email_change_password_account_uses_email_code_only() -> N
 
 
 @pytest.mark.asyncio
-async def test_confirm_email_change_sso_with_2fa_uses_email_code_only() -> None:
+async def test_confirm_email_change_sso_with_2fa_uses_action_proof_and_email_code() -> None:
     user = _FakeUser(id=uuid4(), credential=None, last_login_at=datetime(2020, 1, 1, tzinfo=UTC))
     service = _build_service(user=user, two_factor_enabled=True)
 
@@ -197,11 +215,31 @@ async def test_confirm_email_change_sso_with_2fa_uses_email_code_only() -> None:
         user=cast(Any, user),
         new_email="new@example.com",
         code="654321",
+        mfa_proof="valid-action-proof",
+        session_id="session-id",
+        token_version=0,
     )
 
     assert profile.email == "new@example.com"
     assert user.token_version == 1
     assert _get_fake_refresh_store(service).revoked_user_ids == [user.id]
+
+
+@pytest.mark.asyncio
+async def test_confirm_email_change_with_mfa_rejects_missing_action_proof() -> None:
+    user = _FakeUser(id=uuid4(), credential=None, last_login_at=datetime.now(tz=UTC))
+    service = _build_service(user=user, two_factor_enabled=True)
+
+    with pytest.raises(Unauthorized) as exc:
+        await service.confirm_email_change(
+            user=cast(Any, user),
+            new_email="new@example.com",
+            code="654321",
+            session_id="session-id",
+            token_version=0,
+        )
+
+    assert exc.value.error == "MFA_VERIFICATION_REQUIRED"
 
 
 @pytest.mark.asyncio

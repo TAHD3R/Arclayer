@@ -1,12 +1,18 @@
 import { useCallback, useMemo } from "react";
-import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import type { DirectoryUserListItemOut, PlatformListUsersData } from "@arclayer/platform-openapi";
 
 import { getTenantUser, listTenantUsers } from "@/api/tenant-directory";
 import { TenantDirectoryTable, type DirectoryColumn } from "@/components/tenant-directory";
+import { TenantUserDossier } from "@/components/tenant-user-management";
 import { SAVED_VIEW_DEFINITIONS, type SavedViewState } from "@/saved-views/saved-view-contracts";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export type TenantUsersSearch = Readonly<{
   q?: string;
@@ -35,8 +41,8 @@ export function TenantUsersPage(props: {
   );
   const load = useCallback(() => listTenantUsers(query), [query]);
   const loadDetail = useCallback(
-    async (item: DirectoryUserListItemOut) => (
-      <UserDetail item={await getTenantUser(item.userId)} />
+    async (item: DirectoryUserListItemOut, onChanged: () => void) => (
+      <TenantUserDossier item={await getTenantUser(item.userId)} onChanged={onChanged} />
     ),
     [],
   );
@@ -164,42 +170,11 @@ function Filters(props: {
   );
 }
 
-function UserDetail(props: { item: Awaited<ReturnType<typeof getTenantUser>> }) {
-  const { t } = useTranslation("tenants");
-  return (
-    <dl className="grid gap-4 text-body">
-      <Detail label={t("EMAIL")} value={props.item.email ?? t("UNAVAILABLE")} />
-      <Detail
-        label={t("SECURITY")}
-        value={props.item.twoFactorEnabled ? t("TWO_FACTOR_ENABLED") : t("TWO_FACTOR_DISABLED")}
-      />
-      <Detail
-        label={t("MEMBERSHIPS")}
-        value={t("MEMBERSHIP_COUNTS", {
-          workspaces: props.item.workspaceMembershipCount ?? 0,
-          projects: props.item.projectMembershipCount ?? 0,
-        })}
-      />
-      <Link className="text-primary underline underline-offset-4" to="/monitoring/requests">
-        {t("VIEW_REQUESTS")}
-      </Link>
-    </dl>
-  );
-}
-
 function Identity(props: { name: string; secondary: string }) {
   return (
     <div className="min-w-0">
       <p className="truncate font-medium">{props.name}</p>
-      <p className="truncate text-footnote text-label-secondary">{props.secondary}</p>
-    </div>
-  );
-}
-function Detail(props: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-footnote text-label-secondary">{props.label}</dt>
-      <dd>{props.value}</dd>
+      <p className="truncate text-sm text-muted-foreground">{props.secondary}</p>
     </div>
   );
 }

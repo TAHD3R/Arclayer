@@ -1,14 +1,9 @@
-import { useNavigate } from "@tanstack/react-router";
-import { AlertTriangle, ExternalLink, Languages, LogOut, Monitor, Moon, Sun } from "lucide-react";
-import { useState } from "react";
+import { ExternalLink, Languages, Monitor, Moon, Sun } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { PlatformAccessApiError } from "@/access/access-api";
-import { usePlatformAuth } from "@/auth/platform-auth";
 import { getProductApplicationUrl } from "@/lib/origins";
 import { usePlatformPreferences, type ThemePreference } from "@/lib/preferences";
-import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
-import { Button } from "@arclayer/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,8 +11,7 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
-} from "@arclayer/ui/dropdown-menu";
-import { SettingDialog } from "@arclayer/ui/setting-dialog";
+} from "@/components/ui/dropdown-menu";
 
 const THEME_OPTIONS: ReadonlyArray<{ value: ThemePreference; icon: typeof Sun }> = [
   { value: "light", icon: Sun },
@@ -100,74 +94,5 @@ export function ThemeMenu() {
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
-}
-
-export function SignOutButton() {
-  const { t } = useTranslation("access");
-  const { signOut } = usePlatformAuth();
-  const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<unknown>(null);
-  const confirmSignOut = async () => {
-    setPending(true);
-    setError(null);
-    try {
-      await signOut();
-      setOpen(false);
-      void navigate({ to: "/sign-in", replace: true });
-    } catch (caught) {
-      setError(caught);
-    } finally {
-      setPending(false);
-    }
-  };
-  return (
-    <>
-      <Button
-        aria-label={t("SIGN_OUT")}
-        onClick={() => setOpen(true)}
-        size="icon-sm"
-        variant="ghost"
-      >
-        <LogOut aria-hidden="true" />
-      </Button>
-      <SettingDialog
-        description={t("SIGN_OUT_DESCRIPTION")}
-        footer={
-          <>
-            <Button disabled={pending} onClick={() => setOpen(false)} variant="outline">
-              {t("CANCEL")}
-            </Button>
-            <Button loading={pending} onClick={() => void confirmSignOut()} variant="destructive">
-              {t("CONFIRM_SIGN_OUT")}
-            </Button>
-          </>
-        }
-        onOpenChange={(nextOpen) => !pending && setOpen(nextOpen)}
-        open={open}
-        title={t("SIGN_OUT_TITLE")}
-      >
-        <p className="text-body text-label-secondary">{t("SIGN_OUT_CONSEQUENCE")}</p>
-        {error ? <SignOutError error={error} /> : null}
-      </SettingDialog>
-    </>
-  );
-}
-
-function SignOutError({ error }: Readonly<{ error: unknown }>) {
-  const { t } = useTranslation("access");
-  const code =
-    error instanceof PlatformAccessApiError ? error.message : "PLATFORM_SESSION_SIGN_OUT_FAILED";
-  return (
-    <Alert className="mt-4" variant="destructive">
-      <AlertTriangle aria-hidden="true" />
-      <AlertTitle>{t("SIGN_OUT_ERROR")}</AlertTitle>
-      <AlertDescription>
-        <p>{t("SIGN_OUT_UNCHANGED")}</p>
-        <p className="font-mono text-caption">{code}</p>
-      </AlertDescription>
-    </Alert>
   );
 }

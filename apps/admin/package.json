@@ -28,6 +28,7 @@
     "@arclayer/web": "workspace:*",
     "@ariakit/react": "catalog:",
     "@assistant-ui/react": "^0.14.23",
+    "@assistant-ui/react-lexical": "0.2.0",
     "@assistant-ui/react-markdown": "^0.14.4",
     "@bprogress/react": "^1.2.7",
     "@dnd-kit/core": "catalog:",

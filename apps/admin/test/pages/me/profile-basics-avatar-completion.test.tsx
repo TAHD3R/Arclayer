@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -59,8 +59,8 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("UserProfileBasicsSection avatar completion recovery", () => {
-  it("keeps the checkpoint visible and finishes the same upload from the recovery action", async () => {
+describe("UserProfileBasicsSection avatar completion failure", () => {
+  it("surfaces the failure immediately and allows another file selection", async () => {
     const complete = vi.fn().mockResolvedValue("asset-completed");
     const checkpoint = createAssetUploadCompletionCheckpoint({
       uploadId: "upload-profile",
@@ -79,24 +79,13 @@ describe("UserProfileBasicsSection avatar completion recovery", () => {
 
     await user.upload(fileInput, new File(["avatar"], "avatar.png", { type: "image/png" }));
 
-    const completionStatus = await screen.findByRole("status");
-    expect(completionStatus).toHaveTextContent(
-      i18n.t("account:ME_PROFILE_AVATAR_COMPLETION_PENDING"),
-    );
-    expect(fileInput).toBeDisabled();
-    expect(notifyError).not.toHaveBeenCalled();
-
-    await user.click(
-      within(completionStatus).getByRole("button", {
-        name: i18n.t("account:ME_PROFILE_AVATAR_COMPLETION_ACTION"),
-      }),
-    );
-
     await waitFor(() => {
-      expect(complete).toHaveBeenCalledTimes(1);
-      expect(updateMyProfile).toHaveBeenCalledWith({ avatar_asset_id: "asset-completed" });
+      expect(notifyError).toHaveBeenCalledTimes(1);
       expect(screen.queryByRole("status")).not.toBeInTheDocument();
+      expect(fileInput).not.toBeDisabled();
     });
+    expect(complete).not.toHaveBeenCalled();
+    expect(updateMyProfile).not.toHaveBeenCalled();
     expect(uploadAvatarFile).toHaveBeenCalledTimes(1);
   });
 });

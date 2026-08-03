@@ -1,12 +1,23 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Play } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { getMyNotificationPreferences, patchMyNotificationPreference } from "@/api/notifications";
+import {
+  getMyNotificationPreferences,
+  NOTIFICATION_PREFERENCES_QUERY_KEY,
+  patchMyNotificationPreference,
+  patchMyNotificationSound,
+} from "@/api/notifications";
 import { SettingsSectionAnchor } from "@/components/layout/settings-screen-provider";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
-import { notifyError } from "@/lib/notifications";
+import { notifyError, notifySuccessText } from "@/lib/notifications";
+import {
+  playNotificationSound,
+  type NotificationSoundTone,
+} from "@/lib/notifications/notification-sound";
+import { PreferenceSettingRow } from "@/pages/usercenter/appearance/components/preference-setting-row";
+import { UserCenterSettingPanel } from "@/pages/usercenter/shared/usercenter-setting-panel";
 import { UserCenterSettingsSectionStack } from "@/pages/usercenter/shared/usercenter-settings-section-stack";
 import type {
   NotificationPreferencePatchIn,
@@ -22,6 +33,8 @@ import {
 } from "@arclayer/ui/dropdown-menu";
 import { Spinner } from "@arclayer/ui/spinner";
 import { Checkbox } from "@arclayer/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { Switch } from "@arclayer/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
 
@@ -45,11 +58,11 @@ type PreferenceUpdate = {
   enabled: boolean;
 };
 
-const NOTIFICATION_PREFERENCES_QUERY_KEY = ["me", "notification-preferences"] as const;
 const NOTIFICATION_CHANNELS: readonly NotificationPreferenceChannel[] = [
   "in_app",
   "email",
 ] as const;
+const NOTIFICATION_SOUND_TONES: readonly NotificationSoundTone[] = ["chime", "pulse", "pop"];
 
 const TOPIC_I18N_FALLBACK: Record<string, { title: string; description: string }> = {
   "workspace.invitation.accepted": {
@@ -268,6 +281,8 @@ export function UserNotificationSettingsView(props: UserNotificationSettingsPage
   const [pendingChannels, setPendingChannels] = useState<Set<NotificationPreferenceChannel>>(
     () => new Set(),
   );
+  const [soundPending, setSoundPending] = useState(false);
+  const [previewPending, setPreviewPending] = useState(false);
 
   const preferencesQuery = useQuery({
     queryKey: NOTIFICATION_PREFERENCES_QUERY_KEY,
@@ -313,10 +328,10 @@ export function UserNotificationSettingsView(props: UserNotificationSettingsPage
     );
 
     try {
-      const results = await Promise.all(
-        updates.map((update) => patchMyNotificationPreference(update)),
-      );
-      const nextPreferences = results.at(-1) ?? previousPreferences;
+      let nextPreferences = previousPreferences;
+      for (const update of updates) {
+        nextPreferences = await patchMyNotificationPreference(update);
+      }
       queryClient.setQueryData(NOTIFICATION_PREFERENCES_QUERY_KEY, nextPreferences);
     } catch (error) {
       queryClient.setQueryData(NOTIFICATION_PREFERENCES_QUERY_KEY, previousPreferences);
@@ -337,143 +352,250 @@ export function UserNotificationSettingsView(props: UserNotificationSettingsPage
     }
   }
 
+  async function updateSound(next: { enabled: boolean; tone: NotificationSoundTone }) {
+    const previousPreferences = preferencesQuery.data;
+    if (!previousPreferences || soundPending) return;
+
+    setSoundPending(true);
+    queryClient.setQueryData(NOTIFICATION_PREFERENCES_QUERY_KEY, {
+      ...previousPreferences,
+      sound: next,
+    });
+    try {
+      const updated = await patchMyNotificationSound(next);
+      queryClient.setQueryData(NOTIFICATION_PREFERENCES_QUERY_KEY, updated);
+      notifySuccessText(t("account:ME_NOTIFY_SOUND_SAVED"));
+    } catch (error) {
+      queryClient.setQueryData(NOTIFICATION_PREFERENCES_QUERY_KEY, previousPreferences);
+      notifyError(error);
+    } finally {
+      setSoundPending(false);
+    }
+  }
+
+  async function previewSound(tone: NotificationSoundTone) {
+    if (previewPending) return;
+    setPreviewPending(true);
+    try {
+      await playNotificationSound(tone);
+    } catch (error) {
+      notifyError(new Error(t("account:ME_NOTIFY_SOUND_PLAYBACK_FAILED"), { cause: error }));
+    } finally {
+      setPreviewPending(false);
+    }
+  }
+
+  const sound = preferencesQuery.data?.sound ?? { enabled: false, tone: "chime" as const };
+
+  const panelVariant = mode === "dialog" ? "dialog" : "page";
+
   return (
-    <UserCenterSettingsSectionStack mode={mode}>
-      <ContentGuard
-        loading={preferencesQuery.isLoading && !preferencesQuery.data}
-        error={preferencesQuery.error}
-        onRetry={() => void preferencesQuery.refetch()}
-        empty={!preferencesQuery.isLoading && !preferencesQuery.error && topics.length <= 0}
-        emptyTitle={t("common:EMPTY_TITLE")}
-        emptyDescription={t("common:EMPTY_DESC")}
-      >
-        <TooltipProvider>
-          <SettingsSectionAnchor section="notification-channel-in-app">
-            <SettingsSectionAnchor section="notification-channel-email">
-              <div className="pt-1">
-                <div className="overflow-hidden rounded-xl border border-border/70 bg-background">
-                  <Table className="table-fixed border-collapse text-callout">
-                    <colgroup>
-                      <col style={{ width: "52%" }} />
-                      <col style={{ width: "24%" }} />
-                      <col style={{ width: "24%" }} />
-                    </colgroup>
-                    <TableHeader className="border-b border-border/60 bg-background">
-                      <TableRow className="border-border/40 bg-background hover:bg-transparent">
-                        <TableHead className="bg-background align-middle">
-                          <div className="flex items-center px-4 py-2">
-                            <span className="text-callout font-semibold text-label-secondary">
-                              {t("account:ME_NOTIFY_COL_TYPE")}
-                            </span>
-                          </div>
-                        </TableHead>
-                        {columns.map((column) => {
-                          const actionableTopics = topics.filter((topic) => {
-                            const channelState = topic.channels[column.key];
-                            return channelState.supported && channelState.mutable;
-                          });
-                          const bulkUpdates = actionableTopics
-                            .filter((topic) => !topic.channels[column.key].enabled)
-                            .map((topic) => ({
-                              topicKey: topic.key,
-                              channel: column.key,
-                              enabled: true,
-                            }));
-                          const bulkResets = actionableTopics
-                            .filter((topic) => topic.channels[column.key].enabled)
-                            .map((topic) => ({
-                              topicKey: topic.key,
-                              channel: column.key,
-                              enabled: false,
-                            }));
+    <ContentGuard
+      loading={preferencesQuery.isLoading && !preferencesQuery.data}
+      error={preferencesQuery.error}
+      onRetry={() => void preferencesQuery.refetch()}
+      empty={!preferencesQuery.isLoading && !preferencesQuery.error && topics.length <= 0}
+      emptyTitle={t("common:EMPTY_TITLE")}
+      emptyDescription={t("common:EMPTY_DESC")}
+    >
+      <TooltipProvider>
+        <UserCenterSettingsSectionStack mode={mode}>
+          <UserCenterSettingPanel
+            title={t("account:ME_NOTIFY_SOUND_TITLE")}
+            variant={panelVariant}
+            showDivider
+          >
+            <SettingsSectionAnchor section="notification-sound">
+              <div className="flex flex-col gap-6">
+                <PreferenceSettingRow
+                  title={t("account:ME_NOTIFY_SOUND_ENABLED_TITLE")}
+                  description={t("account:ME_NOTIFY_SOUND_DESC")}
+                  action={
+                    <Switch
+                      checked={sound.enabled}
+                      disabled={soundPending}
+                      aria-label={t("account:ME_NOTIFY_SOUND_TOGGLE_ARIA")}
+                      onCheckedChange={(enabled) => void updateSound({ ...sound, enabled })}
+                    />
+                  }
+                />
 
-                          return (
-                            <NotificationChannelHead
-                              key={column.key}
-                              column={column}
-                              pending={pendingChannels.has(column.key)}
-                              disabled={
-                                actionableTopics.length <= 0 || pendingChannels.has(column.key)
-                              }
-                              t={t}
-                              onBulkSelect={(enabled) => {
-                                const updates = enabled ? bulkUpdates : bulkResets;
-                                void runPreferenceUpdates(updates, { bulkChannel: column.key });
-                              }}
-                            />
-                          );
-                        })}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {topics.map((topic) => {
-                        const copy = resolveTopicCopy(topic, t);
-
-                        return (
-                          <TableRow
-                            key={topic.key}
-                            className="border-border/50 bg-background transition-colors hover:bg-muted/20"
+                {sound.enabled ? (
+                  <PreferenceSettingRow
+                    title={t("account:ME_NOTIFY_SOUND_TONE_TITLE")}
+                    description={t("account:ME_NOTIFY_SOUND_TONE_DESC")}
+                    action={
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        <Select
+                          value={sound.tone}
+                          disabled={soundPending}
+                          onValueChange={(tone) =>
+                            void updateSound({ enabled: true, tone: tone as NotificationSoundTone })
+                          }
+                        >
+                          <SelectTrigger
+                            className="w-52"
+                            aria-label={t("account:ME_NOTIFY_SOUND_SELECT_ARIA")}
                           >
-                            <TableCell className="border-r border-border/40 px-4 py-3">
-                              <div className="min-w-0">
-                                <div className="break-words font-semibold text-label-primary">
-                                  {copy.title}
-                                </div>
-                                <div className="mt-0.5 line-clamp-3 text-label-secondary">
-                                  {copy.description}
-                                </div>
-                              </div>
-                            </TableCell>
-                            {columns.map((column) => {
-                              const channelState = topic.channels[column.key];
-                              const rowKey = buildRowKey(topic.key, column.key);
-                              const loading =
-                                pendingKeys.has(rowKey) || pendingChannels.has(column.key);
-                              const disabled =
-                                loading || !channelState.mutable || !channelState.supported;
-
-                              return (
-                                <TableCell key={rowKey} className="px-3 py-3 text-center">
-                                  <div className="flex justify-center">
-                                    {loading ? (
-                                      <Spinner className="size-4 text-label-secondary" />
-                                    ) : (
-                                      <Checkbox
-                                        checked={channelState.enabled}
-                                        disabled={disabled}
-                                        aria-label={t("account:ME_NOTIFY_CELL_TOGGLE_ARIA", {
-                                          topic: copy.title,
-                                          channel: column.title,
-                                        })}
-                                        onCheckedChange={(checked) => {
-                                          if (!channelState.mutable || !channelState.supported) {
-                                            return;
-                                          }
-                                          void runPreferenceUpdates([
-                                            {
-                                              topicKey: topic.key,
-                                              channel: column.key,
-                                              enabled: Boolean(checked),
-                                            },
-                                          ]);
-                                        }}
-                                      />
-                                    )}
-                                  </div>
-                                </TableCell>
-                              );
-                            })}
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent position="popper" align="end">
+                            {NOTIFICATION_SOUND_TONES.map((tone) => (
+                              <SelectItem key={tone} value={tone}>
+                                {t(`account:ME_NOTIFY_SOUND_TONE_${tone.toUpperCase()}`)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          variant="primary"
+                          loading={previewPending}
+                          disabled={soundPending || previewPending}
+                          onClick={() => void previewSound(sound.tone)}
+                        >
+                          <Play className="size-4" aria-hidden="true" />
+                          {t("account:ME_NOTIFY_SOUND_PREVIEW")}
+                        </Button>
+                      </div>
+                    }
+                  />
+                ) : null}
               </div>
             </SettingsSectionAnchor>
-          </SettingsSectionAnchor>
-        </TooltipProvider>
-      </ContentGuard>
-    </UserCenterSettingsSectionStack>
+          </UserCenterSettingPanel>
+
+          <UserCenterSettingPanel
+            title={t("account:ME_NOTIFY_PANEL_TITLE")}
+            variant={panelVariant}
+            showDivider
+          >
+            <SettingsSectionAnchor section="notification-channel-in-app">
+              <SettingsSectionAnchor section="notification-channel-email">
+                <div className="pt-1">
+                  <div className="overflow-hidden rounded-xl border border-border/70 bg-background">
+                    <Table className="table-fixed border-collapse text-callout">
+                      <colgroup>
+                        <col style={{ width: "52%" }} />
+                        <col style={{ width: "24%" }} />
+                        <col style={{ width: "24%" }} />
+                      </colgroup>
+                      <TableHeader className="border-b border-border/60 bg-background">
+                        <TableRow className="border-border/40 bg-background hover:bg-transparent">
+                          <TableHead className="bg-background align-middle">
+                            <div className="flex items-center px-4 py-2">
+                              <span className="text-callout font-semibold text-label-secondary">
+                                {t("account:ME_NOTIFY_COL_TYPE")}
+                              </span>
+                            </div>
+                          </TableHead>
+                          {columns.map((column) => {
+                            const actionableTopics = topics.filter((topic) => {
+                              const channelState = topic.channels[column.key];
+                              return channelState.supported && channelState.mutable;
+                            });
+                            const bulkUpdates = actionableTopics
+                              .filter((topic) => !topic.channels[column.key].enabled)
+                              .map((topic) => ({
+                                topicKey: topic.key,
+                                channel: column.key,
+                                enabled: true,
+                              }));
+                            const bulkResets = actionableTopics
+                              .filter((topic) => topic.channels[column.key].enabled)
+                              .map((topic) => ({
+                                topicKey: topic.key,
+                                channel: column.key,
+                                enabled: false,
+                              }));
+
+                            return (
+                              <NotificationChannelHead
+                                key={column.key}
+                                column={column}
+                                pending={pendingChannels.has(column.key)}
+                                disabled={
+                                  actionableTopics.length <= 0 || pendingChannels.has(column.key)
+                                }
+                                t={t}
+                                onBulkSelect={(enabled) => {
+                                  const updates = enabled ? bulkUpdates : bulkResets;
+                                  void runPreferenceUpdates(updates, { bulkChannel: column.key });
+                                }}
+                              />
+                            );
+                          })}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {topics.map((topic) => {
+                          const copy = resolveTopicCopy(topic, t);
+
+                          return (
+                            <TableRow
+                              key={topic.key}
+                              className="border-border/50 bg-background transition-colors hover:bg-muted/20"
+                            >
+                              <TableCell className="border-r border-border/40 px-4 py-3">
+                                <div className="min-w-0">
+                                  <div className="break-words font-semibold text-label-primary">
+                                    {copy.title}
+                                  </div>
+                                  <div className="mt-0.5 line-clamp-3 text-label-secondary">
+                                    {copy.description}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              {columns.map((column) => {
+                                const channelState = topic.channels[column.key];
+                                const rowKey = buildRowKey(topic.key, column.key);
+                                const loading =
+                                  pendingKeys.has(rowKey) || pendingChannels.has(column.key);
+                                const disabled =
+                                  loading || !channelState.mutable || !channelState.supported;
+
+                                return (
+                                  <TableCell key={rowKey} className="px-3 py-3 text-center">
+                                    <div className="flex justify-center">
+                                      {loading ? (
+                                        <Spinner className="size-4 text-label-secondary" />
+                                      ) : (
+                                        <Checkbox
+                                          checked={channelState.enabled}
+                                          disabled={disabled}
+                                          aria-label={t("account:ME_NOTIFY_CELL_TOGGLE_ARIA", {
+                                            topic: copy.title,
+                                            channel: column.title,
+                                          })}
+                                          onCheckedChange={(checked) => {
+                                            if (!channelState.mutable || !channelState.supported) {
+                                              return;
+                                            }
+                                            void runPreferenceUpdates([
+                                              {
+                                                topicKey: topic.key,
+                                                channel: column.key,
+                                                enabled: Boolean(checked),
+                                              },
+                                            ]);
+                                          }}
+                                        />
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                );
+                              })}
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              </SettingsSectionAnchor>
+            </SettingsSectionAnchor>
+          </UserCenterSettingPanel>
+        </UserCenterSettingsSectionStack>
+      </TooltipProvider>
+    </ContentGuard>
   );
 }

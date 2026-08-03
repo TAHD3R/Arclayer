@@ -118,6 +118,20 @@ class _FakeTwoFactor:
         raise Unauthorized(message="invalid", error="TWO_FACTOR_CODE_INVALID")
 
 
+class _FakeActionVerification:
+    def __init__(self, *, enabled: bool) -> None:
+        self.enabled = enabled
+
+    async def enabled_methods(self, *, user_id: UUID) -> list[str]:
+        _ = user_id
+        return ["totp", "backup_code"] if self.enabled else []
+
+    async def require(self, *, proof: str | None, **kwargs: object) -> None:
+        _ = kwargs
+        if self.enabled and proof != "valid-action-proof":
+            raise Unauthorized(error="MFA_VERIFICATION_REQUIRED")
+
+
 def _build_service(monkeypatch, *, has_password: bool, two_factor_enabled: bool) -> tuple[AuthService, _FakeUser]:
     settings = get_settings()
     user = _FakeUser(
@@ -133,6 +147,7 @@ def _build_service(monkeypatch, *, has_password: bool, two_factor_enabled: bool)
         valkey=None,
         user_repo=cast(UserRepositoryLike, repo),
         two_factor=_FakeTwoFactor(enabled=two_factor_enabled),
+        action_verification=_FakeActionVerification(enabled=two_factor_enabled),
     )
 
     async def _fake_write_auth_activity_event(**kwargs: object) -> None:
@@ -163,7 +178,7 @@ def test_security_capabilities_schema_fields_are_frozen() -> None:
 @pytest.mark.asyncio
 async def test_set_password_for_oauth_only_user_with_recent_login_success(monkeypatch) -> None:
     service, user = _build_service(monkeypatch, has_password=False, two_factor_enabled=False)
-    await service.set_password_for_current_user(user_id=user.id, new_password="newpass1", code=None, backup_code=None)
+    await service.set_password_for_current_user(user_id=user.id, new_password="newpass1")
     assert user.credential is not None
     assert verify_password("newpass1", user.credential.password_hash, service.settings.auth) is True
 
@@ -175,6 +190,20 @@ async def test_set_password_conflicts_when_password_already_exists(monkeypatch) 
         await service.set_password_for_current_user(
             user_id=user.id,
             new_password="newpass1",
-            code=None,
-            backup_code=None,
         )
+
+
+@pytest.mark.asyncio
+async def test_set_password_with_mfa_consumes_action_proof_without_second_totp(monkeypatch) -> None:
+    service, user = _build_service(monkeypatch, has_password=False, two_factor_enabled=True)
+
+    await service.set_password_for_current_user(
+        user_id=user.id,
+        new_password="newpass1",
+        mfa_proof="valid-action-proof",
+        session_id="session-id",
+        token_version=0,
+    )
+
+    assert user.credential is not None
+    assert verify_password("newpass1", user.credential.password_hash, service.settings.auth) is True

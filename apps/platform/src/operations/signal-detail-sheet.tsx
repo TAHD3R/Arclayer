@@ -7,8 +7,14 @@ import { SignalInvestigation } from "@/operations/signal-investigation";
 import { SignalTriageActions } from "@/operations/signal-triage-actions";
 import { useOperationsQuery } from "@/operations/operations-state";
 import { OperationsFailure } from "@/operations/operations-ui";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@arclayer/ui/sheet";
-import { Skeleton } from "@arclayer/ui/skeleton";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function SignalDetailSheet({
   signalId,

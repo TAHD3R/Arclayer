@@ -1,227 +1,29 @@
 import { useMemo } from "react";
-import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { AlertCircle, Hexagon } from "lucide-react";
+import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { AlertCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { PlatformCapabilityCatalogOut } from "@arclayer/platform-openapi";
 
 import { CapabilityAccessProvider } from "@/capabilities/capability-access";
-import type { PlatformDestination } from "@/capabilities/module-registry";
-import {
-  CAPABILITY_NAVIGATION_CONTRACT_ERROR_CODE,
-  CapabilityNavigationContractError,
-  projectCapabilityNavigation,
-  resolveCapabilityBreadcrumbKey,
-  type CapabilityNavigationProjection,
-} from "@/capabilities/navigation-projection";
-import {
-  usePlatformCapabilityCatalog,
-  type PlatformCapabilityCatalogState,
-} from "@/capabilities/use-capability-catalog";
-import {
-  LocaleMenu,
-  ProductApplicationLink,
-  SignOutButton,
-  ThemeMenu,
-} from "@/components/platform-utilities";
-import { RouteTransition } from "@/components/route-transition";
+import { resolveCapabilityBreadcrumbKey } from "@/capabilities/navigation-projection";
+import { usePlatformCapabilityCatalog } from "@/capabilities/use-capability-catalog";
 import { PlatformCommandCenter } from "@/command-center/platform-command-center";
-import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
+import { PlatformSidebar } from "@/components/platform-sidebar";
+import {
+  resolveCapabilityState,
+  type ResolvedCapabilityState,
+} from "@/components/platform-shell-state";
+import { RouteTransition } from "@/components/route-transition";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbList,
   BreadcrumbPage,
-} from "@arclayer/ui/breadcrumb";
-import { Button } from "@arclayer/ui/button";
-import { Separator } from "@arclayer/ui/separator";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarHeader,
-  SidebarInset,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarRail,
-  SidebarTrigger,
-  useSidebar,
-} from "@arclayer/ui/sidebar";
-import { Skeleton } from "@arclayer/ui/skeleton";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
-
-type ResolvedCapabilityState =
-  | Readonly<{ status: "loading"; retry: () => void }>
-  | Readonly<{
-      status: "error";
-      errorCode: string;
-      errorMessage: string;
-      retry: () => void;
-    }>
-  | Readonly<{
-      status: "success";
-      capabilities: PlatformCapabilityCatalogOut["items"];
-      projection: CapabilityNavigationProjection;
-      retry: () => void;
-    }>;
-
-function Brand() {
-  const { t } = useTranslation("common");
-  return (
-    <div className="flex h-12 items-center gap-3 px-2 group-data-[collapsible=icon]:justify-center">
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-        <Hexagon aria-hidden="true" className="size-4" />
-      </span>
-      <span className="min-w-0 text-callout font-semibold group-data-[collapsible=icon]:hidden">
-        {t("APP_NAME")}
-      </span>
-    </div>
-  );
-}
-
-function DestinationNavigation(props: { destination: PlatformDestination; isActive: boolean }) {
-  const { t } = useTranslation("navigation");
-  const { isMobile, setOpenMobile, state } = useSidebar();
-  const label = t(props.destination.labelKey);
-  const Icon = props.destination.icon;
-  const item = (
-    <SidebarMenuButton asChild isActive={props.isActive} tooltip={undefined}>
-      <Link to={props.destination.path} onClick={() => setOpenMobile(false)}>
-        <Icon aria-hidden="true" />
-        <span>{label}</span>
-      </Link>
-    </SidebarMenuButton>
-  );
-
-  if (isMobile || state !== "collapsed") return item;
-  return (
-    <Tooltip side="right">
-      <TooltipTrigger asChild>{item}</TooltipTrigger>
-      <TooltipContent role="tooltip">{label}</TooltipContent>
-    </Tooltip>
-  );
-}
-
-function isDestinationActive(pathname: string, destination: PlatformDestination): boolean {
-  return pathname === destination.path || pathname.startsWith(`${destination.path}/`);
-}
-
-function CapabilityNavigation(props: {
-  projection: CapabilityNavigationProjection;
-  pathname: string;
-}) {
-  const { t } = useTranslation("navigation");
-  return (
-    <>
-      <SidebarGroup>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            {props.projection.primaryDestinations.map((destination) => (
-              <SidebarMenuItem key={destination.id}>
-                <DestinationNavigation
-                  destination={destination}
-                  isActive={props.pathname === destination.path}
-                />
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-      {props.projection.capabilityItems.map((item) => {
-        const activeDestination = item.destinations.some((destination) =>
-          isDestinationActive(props.pathname, destination),
-        );
-        const defaultDestination = item.destinations[0];
-
-        return (
-          <SidebarGroup key={item.capabilityId}>
-            <SidebarGroupContent>
-              {activeDestination ? (
-                <>
-                  <p className="px-2 pb-1 text-caption font-semibold text-label-secondary">
-                    {t(item.module.domainLabelKey)}
-                  </p>
-                  <SidebarMenu>
-                    {item.destinations.map((destination) => (
-                      <SidebarMenuItem key={destination.id}>
-                        <DestinationNavigation
-                          destination={destination}
-                          isActive={isDestinationActive(props.pathname, destination)}
-                        />
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </>
-              ) : (
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip={undefined}>
-                      <Link to={defaultDestination.path}>
-                        <defaultDestination.icon aria-hidden="true" />
-                        <span>{t(defaultDestination.labelKey)}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              )}
-            </SidebarGroupContent>
-          </SidebarGroup>
-        );
-      })}
-    </>
-  );
-}
-
-function CapabilityNavigationState(props: {
-  state: Exclude<ResolvedCapabilityState, { status: "success" }>;
-}) {
-  const { t } = useTranslation("navigation");
-  if (props.state.status === "loading") {
-    return (
-      <div className="space-y-3 px-4 py-3" role="status">
-        <span className="text-footnote text-label-secondary">{t("CAPABILITY_LOADING")}</span>
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-8 w-4/5" />
-      </div>
-    );
-  }
-  return (
-    <div className="space-y-3 px-4 py-3 group-data-[collapsible=icon]:hidden" role="alert">
-      <p className="text-footnote font-medium">{t("CAPABILITY_ERROR_TITLE")}</p>
-      <p className="text-footnote text-label-secondary">{t("CAPABILITY_ERROR_DESCRIPTION")}</p>
-      <p className="text-footnote text-label-secondary" data-testid="capability-error-code">
-        {t("CAPABILITY_ERROR_CODE", { code: props.state.errorCode })}
-      </p>
-      <p className="text-footnote text-label-secondary" data-testid="capability-error-message">
-        {props.state.errorMessage}
-      </p>
-      <Button onClick={props.state.retry} size="sm" variant="outline">
-        {t("CAPABILITY_RETRY")}
-      </Button>
-    </div>
-  );
-}
-
-function PlatformNavigation(props: { state: ResolvedCapabilityState; pathname: string }) {
-  const { t } = useTranslation("common");
-  return (
-    <Sidebar collapsible="icon" animateOnHover={false}>
-      <SidebarHeader>
-        <Brand />
-      </SidebarHeader>
-      <SidebarContent>
-        {props.state.status === "success" ? (
-          <CapabilityNavigation pathname={props.pathname} projection={props.state.projection} />
-        ) : (
-          <CapabilityNavigationState state={props.state} />
-        )}
-      </SidebarContent>
-      <SidebarRail aria-label={t("SIDEBAR_TOGGLE")} />
-    </Sidebar>
-  );
-}
+} from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function PlatformHeader(props: { state: ResolvedCapabilityState; pathname: string }) {
   const { t } = useTranslation(["common", "navigation"]);
@@ -232,62 +34,59 @@ function PlatformHeader(props: { state: ResolvedCapabilityState; pathname: strin
       : props.state.status === "loading"
         ? "navigation:CAPABILITY_LOADING"
         : "navigation:CAPABILITY_ERROR_TITLE";
+
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b bg-header px-4 text-header-foreground">
-      <SidebarTrigger aria-label={t("common:SIDEBAR_TOGGLE")} />
-      <Separator className="h-5" orientation="vertical" />
-      <Breadcrumb className="min-w-0 flex-1">
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbPage>
-              {titleKey ? t(titleKey) : t("navigation:CAPABILITY_UNAUTHORIZED")}
-            </BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-      <div className="flex items-center gap-1">
-        {props.state.status === "success" ? (
+    <header className="flex h-16 shrink-0 items-center gap-2 border-b">
+      <div className="flex min-w-0 flex-1 items-center gap-2 px-4">
+        <SidebarTrigger aria-label={t("common:SIDEBAR_TOGGLE")} className="-ml-1" />
+        <Separator className="mr-2 data-[orientation=vertical]:h-4" orientation="vertical" />
+        <Breadcrumb className="min-w-0">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbPage>
+                {titleKey ? t(titleKey) : t("navigation:CAPABILITY_UNAUTHORIZED")}
+              </BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </div>
+      {props.state.status === "success" ? (
+        <div className="flex items-center pr-4">
           <PlatformCommandCenter
             destinations={props.state.projection.destinations}
             isCatalogPartial={props.state.projection.isPartial}
             onNavigate={(path) => void navigate({ to: path })}
             pathname={props.pathname}
           />
-        ) : null}
-        <ProductApplicationLink />
-        <LocaleMenu />
-        <ThemeMenu />
-        <SignOutButton />
-      </div>
+        </div>
+      ) : null}
     </header>
   );
 }
 
 function PlatformContent(props: { state: ResolvedCapabilityState; pathname: string }) {
   const { t } = useTranslation("navigation");
+
   if (props.state.status === "loading") {
     return (
-      <main className="space-y-4 p-6" role="status">
-        <p className="text-footnote text-label-secondary">{t("CAPABILITY_LOADING")}</p>
-        <Skeleton className="h-24 w-full max-w-2xl" />
-      </main>
+      <div className="flex flex-1 flex-col gap-4 p-4 pt-0" role="status">
+        <p className="text-sm text-muted-foreground">{t("CAPABILITY_LOADING")}</p>
+        <Skeleton className="h-24 w-full max-w-2xl rounded-xl" />
+      </div>
     );
   }
   if (props.state.status === "error") {
     return (
-      <main className="p-6">
+      <div className="flex flex-1 flex-col p-4 pt-0">
         <Alert className="max-w-2xl" variant="destructive">
           <AlertCircle aria-hidden="true" />
           <AlertTitle>{t("CAPABILITY_ERROR_TITLE")}</AlertTitle>
           <AlertDescription className="space-y-3">
             <p>{t("CAPABILITY_ERROR_DESCRIPTION")}</p>
-            <p className="text-footnote text-label-secondary" data-testid="capability-error-code">
+            <p className="text-sm text-muted-foreground" data-testid="capability-error-code">
               {t("CAPABILITY_ERROR_CODE", { code: props.state.errorCode })}
             </p>
-            <p
-              className="text-footnote text-label-secondary"
-              data-testid="capability-error-message"
-            >
+            <p className="text-sm text-muted-foreground" data-testid="capability-error-message">
               {props.state.errorMessage}
             </p>
             <Button onClick={props.state.retry} size="sm" variant="outline">
@@ -295,19 +94,20 @@ function PlatformContent(props: { state: ResolvedCapabilityState; pathname: stri
             </Button>
           </AlertDescription>
         </Alert>
-      </main>
+      </div>
     );
   }
   if (!resolveCapabilityBreadcrumbKey(props.pathname, props.state.projection)) {
     return (
-      <main className="p-6">
+      <div className="flex flex-1 flex-col p-4 pt-0">
         <Alert className="max-w-2xl" variant="destructive">
           <AlertCircle aria-hidden="true" />
           <AlertTitle>{t("CAPABILITY_UNAUTHORIZED")}</AlertTitle>
         </Alert>
-      </main>
+      </div>
     );
   }
+
   return (
     <CapabilityAccessProvider capabilities={props.state.capabilities}>
       <RouteTransition>
@@ -317,54 +117,15 @@ function PlatformContent(props: { state: ResolvedCapabilityState; pathname: stri
   );
 }
 
-export function resolveCapabilityState(
-  state: PlatformCapabilityCatalogState,
-): ResolvedCapabilityState {
-  if (state.status === "loading") return state;
-  if (state.status === "error") {
-    return {
-      status: "error",
-      errorCode: "PLATFORM_CAPABILITY_CATALOG_UNAVAILABLE",
-      errorMessage: "The Platform Capability Catalog could not be loaded.",
-      retry: state.retry,
-    };
-  }
-  try {
-    return {
-      status: "success",
-      capabilities: state.catalog.items,
-      projection: projectCapabilityNavigation(state.catalog.items),
-      retry: state.retry,
-    };
-  } catch (error) {
-    if (error instanceof CapabilityNavigationContractError) {
-      return {
-        status: "error",
-        errorCode: error.code,
-        errorMessage: error.message,
-        retry: state.retry,
-      };
-    }
-    return {
-      status: "error",
-      errorCode: CAPABILITY_NAVIGATION_CONTRACT_ERROR_CODE,
-      errorMessage:
-        error instanceof Error
-          ? error.message
-          : "Platform capability navigation projection failed without an Error message.",
-      retry: state.retry,
-    };
-  }
-}
-
 export function PlatformShell() {
   const catalogState = usePlatformCapabilityCatalog();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const state = useMemo(() => resolveCapabilityState(catalogState), [catalogState]);
+
   return (
     <SidebarProvider defaultOpen>
-      <PlatformNavigation pathname={pathname} state={state} />
-      <SidebarInset className="min-h-svh bg-background">
+      <PlatformSidebar pathname={pathname} state={state} />
+      <SidebarInset className="min-h-svh w-auto min-w-0 flex-1 overflow-hidden">
         <PlatformHeader pathname={pathname} state={state} />
         <PlatformContent pathname={pathname} state={state} />
       </SidebarInset>

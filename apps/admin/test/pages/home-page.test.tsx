@@ -137,8 +137,32 @@ vi.mock("@/components/ai/ai-composer-triggers", () => ({
 }));
 
 vi.mock("@/components/ai/ai-composer-directive-chips", () => ({
-  AIComposerDirectiveChips: () => null,
+  AIComposerDirectiveSync: () => null,
+  AIComposerDirectiveChips: () => <span data-testid="composer-chip-group-web-search" />,
 }));
+
+vi.mock("@/components/ai/ai-composer-rich-input", async () => {
+  const React = await import("react");
+  return {
+    AIComposerDirectiveInsertionProvider: ({ children }: { children?: ReactNode }) => (
+      <>{children}</>
+    ),
+    AIComposerRichInput: React.forwardRef<
+      HTMLTextAreaElement,
+      React.TextareaHTMLAttributes<HTMLTextAreaElement>
+    >((props, ref) => (
+      <textarea
+        {...props}
+        ref={ref}
+        value={assistantUiMockState.composerText}
+        onChange={(event) => {
+          assistantUiMockState.composerText = event.target.value;
+          props.onChange?.(event);
+        }}
+      />
+    )),
+  };
+});
 
 vi.mock("@/components/ai/ai-suggestions", () => ({
   AI_CHAT_SUGGESTIONS: [],
@@ -448,6 +472,10 @@ describe("HomePage", () => {
       "hover:border-border",
       "focus-within:ring-1",
     );
+    expect(container.querySelector("[data-ai-composer-input-row]")).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "询问 AI…" })).toBeInTheDocument();
+    expect(screen.getByTestId("composer-chip-group-web-search")).toBeInTheDocument();
+    expect(container.querySelector(".aui-composer-attachments")).not.toBeInTheDocument();
     expect(screen.getByTestId("home-ai-prompt-starters")).toBeInTheDocument();
     expect(screen.getByTestId("home-inspiration-section")).toBeInTheDocument();
     expect(container.querySelector('[data-slot="home-ai-entry"]')).toHaveClass(
@@ -689,17 +717,6 @@ describe("HomePage", () => {
 
   it("renders inspiration discovery below recent projects", async () => {
     const user = userEvent.setup();
-    let intersectionCallback: IntersectionObserverCallback | undefined;
-    const OriginalIntersectionObserver = globalThis.IntersectionObserver;
-    class IntersectionObserverMock implements Pick<IntersectionObserver, "disconnect" | "observe"> {
-      constructor(callback: IntersectionObserverCallback) {
-        intersectionCallback = callback;
-      }
-      disconnect() {}
-      observe() {}
-    }
-    globalThis.IntersectionObserver =
-      IntersectionObserverMock as unknown as typeof IntersectionObserver;
     authState.accessToken = "token-1";
     authState.sessionVersion = 1;
     workspaceState.currentWorkspaceId = "workspace-1";
@@ -726,23 +743,9 @@ describe("HomePage", () => {
     expect(inspirationTabList).toHaveClass("max-w-full", "overflow-x-auto", "overflow-y-hidden");
     expect(allTab).toHaveClass("shrink-0");
     const inspirationTabs = screen.getByTestId("home-inspiration-tabs");
-    expect(inspirationTabs).toHaveAttribute("data-stuck", "false");
-    expect(inspirationTabs).not.toHaveClass("bg-background");
-    expect(intersectionCallback).toBeTypeOf("function");
-    act(() => {
-      intersectionCallback?.(
-        [
-          {
-            boundingClientRect: { top: -1 },
-            isIntersecting: false,
-            rootBounds: null,
-          } as IntersectionObserverEntry,
-        ],
-        {} as IntersectionObserver,
-      );
-    });
-    expect(inspirationTabs).toHaveAttribute("data-stuck", "true");
-    expect(inspirationTabs).toHaveClass("-mx-6", "bg-background", "px-6", "sm:-mx-8", "lg:-mx-10");
+    expect(inspirationTabs).toHaveClass("mb-4", "min-w-0");
+    expect(inspirationTabs).not.toHaveClass("sticky", "top-0");
+    expect(inspirationTabs).not.toHaveAttribute("data-stuck");
     expect(screen.getByTestId("admin-masonry-grid")).toHaveAttribute("data-column-count", "4");
     const inspirationCard = document.querySelector('[data-slot="home-inspiration-card"]');
     const inspirationCardInfo = document.querySelector('[data-slot="home-inspiration-card-info"]');
@@ -760,7 +763,6 @@ describe("HomePage", () => {
     expect(landingTab).toHaveAttribute("data-state", "active");
     inspirationTabPanel = screen.getByRole("tabpanel");
     expect(landingTab).toHaveAttribute("aria-controls", inspirationTabPanel.id);
-    globalThis.IntersectionObserver = OriginalIntersectionObserver;
   });
 
   it("uses two inspiration columns on mobile", async () => {

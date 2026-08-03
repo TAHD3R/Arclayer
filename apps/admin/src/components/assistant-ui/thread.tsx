@@ -1,6 +1,6 @@
 "use client";
 
-import { ComposerAttachments, UserMessageAttachments } from "@/components/assistant-ui/attachment";
+import { UserMessageAttachments } from "@/components/assistant-ui/attachment";
 import { MarkdownText } from "@/components/assistant-ui/markdown-text";
 import {
   Reasoning,
@@ -17,9 +17,15 @@ import {
 } from "@/components/assistant-ui/tool-group";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
 import { AIComposerToolbar } from "@/components/ai/ai-composer-toolbar";
-import { AIComposerDirectiveChips } from "@/components/ai/ai-composer-directive-chips";
+import {
+  AIComposerDirectiveChips,
+  AIComposerDirectiveSync,
+} from "@/components/ai/ai-composer-directive-chips";
+import {
+  AIComposerDirectiveInsertionProvider,
+  AIComposerRichInput,
+} from "@/components/ai/ai-composer-rich-input";
 import { AIComposerRotatingPlaceholder } from "@/components/ai/ai-composer-rotating-placeholder";
-import { AIComposerTriggerInput } from "@/components/ai/ai-composer-trigger-input";
 import { AIComposerTriggers } from "@/components/ai/ai-composer-triggers";
 import { AISuggestions } from "@/components/ai/ai-suggestions";
 import { ComposerQueue } from "@/components/assistant-ui/composer-queue";
@@ -299,42 +305,42 @@ const Composer: FC = () => {
 
   return (
     <ComposerPrimitive.Unstable_TriggerPopoverRoot>
-      <ComposerPrimitive.Root
-        className={cn(
-          "aui-composer-root relative flex w-full min-w-0 flex-col",
-          isSidebar && "gap-0",
-        )}
-      >
-        <ComposerQueue />
-        <div
-          data-slot="aui_composer-shell"
-          data-ai-composer-shell
+      <AIComposerDirectiveInsertionProvider>
+        <ComposerPrimitive.Root
           className={cn(
-            "relative flex w-full min-w-0 flex-col gap-2 rounded-(--composer-radius) bg-(--composer-bg) p-(--composer-padding) transition-colors hover:border-border focus-within:border-border data-[trigger-open=true]:z-40 dark:shadow-none",
-            isSidebar
-              ? "min-h-[10rem] border border-border/60 bg-muted"
-              : "h-[6.5rem] min-h-[6.5rem] border border-border/60 dark:border-muted-foreground/15",
+            "aui-composer-root relative flex w-full min-w-0 flex-col",
+            isSidebar && "gap-0",
           )}
         >
-          <AIComposerDirectiveChips scope="thread" />
-          <ComposerAttachments />
-          <div className="relative min-w-0 flex-1">
-            <AIComposerTriggerInput
-              placeholder={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
-              className={cn(
-                "aui-composer-input w-full min-w-0 resize-none bg-transparent px-2.5 py-1 text-callout text-label-primary outline-none [field-sizing:fixed] placeholder:text-transparent",
-                isSidebar ? "h-20 min-h-20 max-h-20" : "h-12 min-h-12 max-h-12",
-              )}
-              rows={1}
-              autoFocus
-              aria-label={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
-            />
-            <AIComposerRotatingPlaceholder className="top-1 px-0" multiline={isSidebar} />
+          <ComposerQueue />
+          <div
+            data-slot="aui_composer-shell"
+            data-ai-composer-shell
+            className={cn(
+              "relative flex w-full min-w-0 flex-col gap-2 rounded-(--composer-radius) bg-(--composer-bg) p-(--composer-padding) transition-colors hover:border-border focus-within:border-border data-[trigger-open=true]:z-40 dark:shadow-none",
+              isSidebar
+                ? "min-h-[10rem] border border-border/60 bg-muted"
+                : "min-h-[6.5rem] border border-border/60 dark:border-muted-foreground/15",
+            )}
+          >
+            <AIComposerDirectiveSync scope="thread" />
+            <AIComposerDirectiveChips scope="thread" />
+            <div className="relative min-w-0 flex-1">
+              <AIComposerRichInput
+                className={cn(
+                  "aui-composer-input px-2 py-1",
+                  isSidebar ? "h-20 min-h-20 max-h-20" : "h-12 min-h-12 max-h-12",
+                )}
+                autoFocus
+                aria-label={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
+              />
+              <AIComposerRotatingPlaceholder className="top-1 px-0" multiline={isSidebar} />
+            </div>
+            <AIComposerTriggers scope="thread" />
+            <AIComposerToolbar surface={isSidebar ? "sidebar" : "default"} />
           </div>
-          <AIComposerTriggers scope="thread" />
-          <AIComposerToolbar surface={isSidebar ? "sidebar" : "default"} />
-        </div>
-      </ComposerPrimitive.Root>
+        </ComposerPrimitive.Root>
+      </AIComposerDirectiveInsertionProvider>
     </ComposerPrimitive.Unstable_TriggerPopoverRoot>
   );
 };

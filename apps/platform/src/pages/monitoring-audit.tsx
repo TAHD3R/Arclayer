@@ -19,13 +19,32 @@ import {
   MonitoringToolbar,
   useMonitoringQuery,
 } from "@/monitoring/monitoring-ui";
-import { Badge } from "@arclayer/ui/badge";
-import { Button } from "@arclayer/ui/button";
-import { Input } from "@arclayer/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@arclayer/ui/sheet";
-import { Skeleton } from "@arclayer/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 function AuditDetail({ eventId, onClose }: Readonly<{ eventId: string; onClose: () => void }>) {
   const { t } = useTranslation("monitoring");
@@ -57,17 +76,17 @@ function AuditDetailBody({ event }: Readonly<{ event: AuditEventOut }>) {
   const outcomeKey = auditOutcomeKey(event);
   const target = event.subject?.displayName ?? event.subject?.username;
   return (
-    <dl className="grid gap-4 px-6 text-footnote sm:grid-cols-2">
+    <dl className="grid gap-4 px-6 text-sm sm:grid-cols-2">
       <div className="sm:col-span-2">
-        <dt className="text-label-secondary">{t("ACTION")}</dt>
+        <dt className="text-muted-foreground">{t("ACTION")}</dt>
         <dd className="font-medium">{t(auditEventKey(event.eventName))}</dd>
       </div>
       <div>
-        <dt className="text-label-secondary">{t("TIME")}</dt>
+        <dt className="text-muted-foreground">{t("TIME")}</dt>
         <dd>{formatDateTime(event.occurredAt)}</dd>
       </div>
       <div>
-        <dt className="text-label-secondary">{t("RESULT")}</dt>
+        <dt className="text-muted-foreground">{t("RESULT")}</dt>
         <dd>
           <Badge variant={outcomeKey === "AUDIT_OUTCOME_FAILED" ? "destructive" : "outline"}>
             {t(outcomeKey)}
@@ -75,11 +94,11 @@ function AuditDetailBody({ event }: Readonly<{ event: AuditEventOut }>) {
         </dd>
       </div>
       <div>
-        <dt className="text-label-secondary">{t("ACTOR")}</dt>
+        <dt className="text-muted-foreground">{t("ACTOR")}</dt>
         <dd>{event.actor?.displayName ?? event.actor?.username ?? t("UNAVAILABLE")}</dd>
       </div>
       <div>
-        <dt className="text-label-secondary">{t("TARGET")}</dt>
+        <dt className="text-muted-foreground">{t("TARGET")}</dt>
         <dd>{target ?? t(auditTargetKey(event.entityType))}</dd>
       </div>
       <div className="border-t pt-4 sm:col-span-2">
@@ -87,33 +106,31 @@ function AuditDetailBody({ event }: Readonly<{ event: AuditEventOut }>) {
         <dd>
           <details>
             <summary className="cursor-pointer font-medium">{t("TECHNICAL_DETAILS")}</summary>
-            <dl className="mt-3 grid gap-3 text-label-secondary sm:grid-cols-2">
+            <dl className="mt-3 grid gap-3 text-muted-foreground sm:grid-cols-2">
               <div>
                 <dt>{t("EVENT_CODE")}</dt>
-                <dd className="break-all font-mono text-caption">{event.eventName}</dd>
+                <dd className="break-all font-mono text-xs">{event.eventName}</dd>
               </div>
               <div>
                 <dt>{t("SOURCE")}</dt>
-                <dd className="break-all font-mono text-caption">
-                  {event.source ?? t("UNAVAILABLE")}
-                </dd>
+                <dd className="break-all font-mono text-xs">{event.source ?? t("UNAVAILABLE")}</dd>
               </div>
               {event.entityType ? (
                 <div>
                   <dt>{t("TARGET_TYPE")}</dt>
-                  <dd className="break-all font-mono text-caption">{event.entityType}</dd>
+                  <dd className="break-all font-mono text-xs">{event.entityType}</dd>
                 </div>
               ) : null}
               {event.entityId ? (
                 <div>
                   <dt>{t("TARGET_ID")}</dt>
-                  <dd className="break-all font-mono text-caption">{event.entityId}</dd>
+                  <dd className="break-all font-mono text-xs">{event.entityId}</dd>
                 </div>
               ) : null}
               {event.traceId ? (
                 <div className="sm:col-span-2">
                   <dt>{t("TRACE")}</dt>
-                  <dd className="break-all font-mono text-caption">{event.traceId}</dd>
+                  <dd className="break-all font-mono text-xs">{event.traceId}</dd>
                 </div>
               ) : null}
             </dl>
@@ -285,7 +302,7 @@ export function MonitoringAuditPage(props: {
                     <TableCell>{formatDateTime(event.occurredAt)}</TableCell>
                     <TableCell>
                       <span className="block font-medium">{t(auditEventKey(event.eventName))}</span>
-                      <span className="text-caption text-label-secondary">
+                      <span className="text-xs text-muted-foreground">
                         {t(auditSourceKey(event.source))}
                       </span>
                     </TableCell>
@@ -317,7 +334,7 @@ export function MonitoringAuditPage(props: {
                 ))}
               </TableBody>
             </Table>
-            <div className="flex items-center justify-between text-footnote text-label-secondary">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>{t("PAGE_OF", { page: data.page, pages: data.pages, total: data.total })}</span>
               <div className="flex gap-2">
                 <Button

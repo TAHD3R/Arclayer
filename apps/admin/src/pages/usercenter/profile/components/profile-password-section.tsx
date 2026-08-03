@@ -12,12 +12,12 @@ import { zodResolver } from "@/lib/forms/zod-resolver";
 import { ApiError } from "@/lib/http";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { AuthOtpInput } from "@/pages/login/components/auth-pane-primitives";
+import { useSecurityActionVerification } from "@/pages/usercenter/shared/security-action-verification";
 import { useSecurityRelogin } from "@/pages/usercenter/shared/use-security-relogin";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { SettingCard, SettingCardHeader } from "@arclayer/ui/setting-card";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { Button } from "@arclayer/ui/button";
-import { Input } from "@arclayer/ui/input";
 import { PasswordInput } from "@arclayer/ui/password-input";
 import { SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { DialogField } from "./dialog-field";
@@ -35,7 +35,6 @@ type PasswordFormValues = {
   newPassword: string;
   confirmPassword: string;
   code: string;
-  backupCode: string;
 };
 
 const OTP_LENGTH = 6;
@@ -44,7 +43,6 @@ const EMPTY_VALUES: PasswordFormValues = {
   newPassword: "",
   confirmPassword: "",
   code: "",
-  backupCode: "",
 };
 
 function normalizeRequestResult(result: { expiresIn: number; retryAfter: number }) {
@@ -54,10 +52,7 @@ function normalizeRequestResult(result: { expiresIn: number; retryAfter: number 
   };
 }
 
-function buildPasswordSchema(
-  t: (key: string) => string,
-  options: { hasPassword: boolean; requiresTwoFactor: boolean },
-) {
+function buildPasswordSchema(t: (key: string) => string, options: { hasPassword: boolean }) {
   return z
     .object({
       oldPassword: z.string(),
@@ -67,7 +62,6 @@ function buildPasswordSchema(
         .regex(PASSWORD_PATTERN, t("auth:PASSWORD_INVALID")),
       confirmPassword: z.string().min(1, t("auth:VALIDATION_CONFIRM_PASSWORD_REQUIRED")),
       code: z.string(),
-      backupCode: z.string(),
     })
     .superRefine((value, ctx) => {
       if (options.hasPassword && !value.oldPassword.trim()) {
@@ -84,34 +78,6 @@ function buildPasswordSchema(
           message: t("auth:VALIDATION_PASSWORD_MISMATCH"),
         });
       }
-      if (!options.requiresTwoFactor) return;
-
-      const code = value.code.trim();
-      const backupCode = value.backupCode.trim();
-      if (!code && !backupCode) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["code"],
-          message: t("account:ME_PROFILE_PASSWORD_2FA_ONE_OF_REQUIRED"),
-        });
-        ctx.addIssue({
-          code: "custom",
-          path: ["backupCode"],
-          message: t("account:ME_PROFILE_PASSWORD_2FA_ONE_OF_REQUIRED"),
-        });
-      }
-      if (code && backupCode) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["code"],
-          message: t("account:ME_PROFILE_PASSWORD_2FA_MUTUALLY_EXCLUSIVE"),
-        });
-        ctx.addIssue({
-          code: "custom",
-          path: ["backupCode"],
-          message: t("account:ME_PROFILE_PASSWORD_2FA_MUTUALLY_EXCLUSIVE"),
-        });
-      }
     });
 }
 
@@ -120,6 +86,7 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
   const navigate = useNavigate();
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const forceRelogin = useSecurityRelogin(props.redirect);
+  const securityVerification = useSecurityActionVerification();
   const [open, setOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<PasswordDialogMode>("change");
   const [removePasswordStep, setRemovePasswordStep] = useState<RemovePasswordStep>("request");
@@ -144,9 +111,8 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
     () =>
       buildPasswordSchema(t, {
         hasPassword,
-        requiresTwoFactor: requiresSetPasswordTwoFactor,
       }),
-    [hasPassword, requiresSetPasswordTwoFactor, t],
+    [hasPassword, t],
   );
 
   const form = useForm<PasswordFormValues>({
@@ -227,19 +193,18 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
   }, [removePasswordRetryAfter]);
 
   const changePasswordMutation = useMutation({
-    mutationFn: async (values: PasswordFormValues) => {
+    mutationFn: async (payload: { values: PasswordFormValues; mfaProof?: string }) => {
+      const values = payload.values;
       if (hasPassword) {
         return authApi.changePassword({
           oldPassword: values.oldPassword.trim(),
           newPassword: values.newPassword,
+          mfaProof: payload.mfaProof,
         });
       }
       return authApi.setMyPassword({
         newPassword: values.newPassword,
-        ...(requiresSetPasswordTwoFactor && values.code.trim() ? { code: values.code.trim() } : {}),
-        ...(requiresSetPasswordTwoFactor && values.backupCode.trim()
-          ? { backupCode: values.backupCode.trim() }
-          : {}),
+        mfaProof: payload.mfaProof,
       });
     },
     onSuccess: async () => {
@@ -270,7 +235,8 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
   });
 
   const confirmRemovePasswordMutation = useMutation({
-    mutationFn: async (code: string) => authApi.confirmRemoveMyPassword({ code }),
+    mutationFn: async (payload: { code: string; mfaProof?: string }) =>
+      authApi.confirmRemoveMyPassword(payload),
     onSuccess: async () => {
       notifySuccessText(t("account:ME_PROFILE_REMOVE_PASSWORD_SUCCESS"));
       await forceRelogin();
@@ -309,7 +275,9 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
     }
     try {
       setRemovePasswordVerifyError(null);
-      await confirmRemovePasswordMutation.mutateAsync(code);
+      const verification = await securityVerification.requestProof("confirm_remove_password");
+      if (verification.cancelled) return;
+      await confirmRemovePasswordMutation.mutateAsync({ code, mfaProof: verification.proof });
     } catch (error) {
       setRemovePasswordVerifyError(
         error instanceof ApiError ? error.message : t("auth:LOGIN_EMAIL_CODE_INVALID"),
@@ -336,7 +304,7 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
             {t("account:ME_PROFILE_REMOVE_PASSWORD_BACK")}
           </Button>
           <Button
-            variant="outline"
+            variant="primary"
             loading={
               removePasswordStep === "request"
                 ? requestRemovePasswordMutation.isPending
@@ -382,7 +350,7 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
         )}
         {requiresSetPasswordRelogin ? (
           <Button
-            variant="outline"
+            variant="primary"
             onClick={() => {
               setOpen(false);
               void navigate({
@@ -396,11 +364,20 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
           </Button>
         ) : null}
         <Button
-          variant="outline"
+          variant="primary"
           loading={changePasswordMutation.isPending}
           disabled={saveDisabled}
           onClick={() =>
-            void form.handleSubmit((values) => changePasswordMutation.mutateAsync(values))()
+            void form.handleSubmit(async (values) => {
+              const verification = await securityVerification.requestProof(
+                hasPassword ? "change_password" : "set_password",
+              );
+              if (verification.cancelled) return;
+              await changePasswordMutation.mutateAsync({
+                values,
+                mfaProof: verification.proof,
+              });
+            })()
           }
         >
           {t("settings:SETTINGS_SAVE")}
@@ -462,6 +439,7 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
                     id={oldPasswordFieldId}
                     {...form.register("oldPassword")}
                     autoComplete="current-password"
+                    placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
                   />
                 </DialogField>
                 {removePasswordRequestError ? (
@@ -524,6 +502,7 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
                     id={oldPasswordFieldId}
                     {...form.register("oldPassword")}
                     autoComplete="current-password"
+                    placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
                   />
                 </DialogField>
               ) : null}
@@ -538,6 +517,7 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
                     id={newPasswordFieldId}
                     {...form.register("newPassword")}
                     autoComplete="new-password"
+                    placeholder={t("auth:FIELD_NEW_PASSWORD_PLACEHOLDER")}
                   />
                   <PasswordRequirementChecklist
                     password={newPasswordValue}
@@ -558,34 +538,9 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
                   id={confirmPasswordFieldId}
                   {...form.register("confirmPassword")}
                   autoComplete="new-password"
+                  placeholder={t("auth:FIELD_CONFIRM_PASSWORD_PLACEHOLDER")}
                 />
               </DialogField>
-
-              {requiresSetPasswordTwoFactor ? (
-                <>
-                  <DialogField
-                    label={t("account:ME_PROFILE_PASSWORD_2FA_CODE")}
-                    description={t("account:ME_PROFILE_PASSWORD_2FA_CODE_PLACEHOLDER")}
-                    error={form.formState.errors.code?.message}
-                  >
-                    <Input
-                      {...form.register("code")}
-                      placeholder={t("account:ME_PROFILE_PASSWORD_2FA_CODE_PLACEHOLDER")}
-                    />
-                  </DialogField>
-
-                  <DialogField
-                    label={t("account:ME_PROFILE_PASSWORD_2FA_BACKUP_CODE")}
-                    description={t("account:ME_PROFILE_PASSWORD_2FA_BACKUP_CODE_PLACEHOLDER")}
-                    error={form.formState.errors.backupCode?.message}
-                  >
-                    <Input
-                      {...form.register("backupCode")}
-                      placeholder={t("account:ME_PROFILE_PASSWORD_2FA_BACKUP_CODE_PLACEHOLDER")}
-                    />
-                  </DialogField>
-                </>
-              ) : null}
 
               {requiresSetPasswordRelogin ? (
                 <div className="text-callout text-label-secondary">
@@ -596,6 +551,7 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
           )}
         </SettingDialogFields>
       </SettingDialog>
+      {securityVerification.verificationDialog}
     </>
   );
 }

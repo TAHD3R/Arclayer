@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 import inspect
+from datetime import UTC, datetime
+from uuid import uuid4
 
 from fastapi.routing import APIRoute
 
+from src.common.utils.public_ids import encode_uuid
 from src.core.registry import create_app, create_platform_app
 from src.modules.platform_identity.http import require_instance_owner
 from src.modules.platform_identity.management_router import router
+from src.modules.platform_identity.management_schema import PlatformSessionInventoryItemOut
 from src.modules.platform_identity.permissions import PlatformPermissionCode
+from src.modules.platform_identity.step_up_schema import PlatformStepUpProofIssueRequest
 
 
 def _route_permissions(routes: list[APIRoute]) -> dict[str, PlatformPermissionCode]:
@@ -32,6 +37,7 @@ def test_platform_identity_management_routes_are_platform_only_and_exactly_guard
     platform_paths = {route.path for route in create_platform_app().routes if isinstance(route, APIRoute)}
 
     expected_paths = {
+        "/platform-api/v1/access/me",
         "/platform-api/v1/access/team",
         "/platform-api/v1/access/team/me",
         "/platform-api/v1/access/team/invitations",
@@ -99,3 +105,54 @@ def test_platform_identity_management_routes_are_platform_only_and_exactly_guard
         "complete_current_platform_webauthn_method": PlatformPermissionCode.ACCESS_MFA_RESET,
         "get_platform_sign_in_readiness": PlatformPermissionCode.ACCESS_SIGN_IN_SETTINGS_READ,
     }
+
+
+def test_platform_session_revoke_path_accepts_public_session_ids() -> None:
+    schema = create_platform_app().openapi()
+    operation = schema["paths"]["/platform-api/v1/access/sessions/me/{session_id}/revoke"]["post"]
+    session_parameter = next(parameter for parameter in operation["parameters"] if parameter["name"] == "session_id")
+
+    assert session_parameter["schema"]["pattern"] == "^[A-Za-z0-9_-]{22}$"
+
+
+def test_platform_session_and_step_up_contracts_use_public_principal_ids() -> None:
+    components = create_platform_app().openapi()["components"]["schemas"]
+
+    inventory_properties = components["PlatformSessionInventoryItemOut"]["properties"]
+    assert inventory_properties["sessionId"]["pattern"] == "^[A-Za-z0-9_-]{22}$"
+    assert inventory_properties["actorUserId"]["pattern"] == "^[A-Za-z0-9_-]{22}$"
+
+    step_up_properties = components["PlatformStepUpProofIssueRequest"]["properties"]
+    assert step_up_properties["sessionId"]["pattern"] == "^[A-Za-z0-9_-]{22}$"
+    assert step_up_properties["actorUserId"]["pattern"] == "^[A-Za-z0-9_-]{22}$"
+
+
+def test_platform_public_principal_ids_round_trip_through_boundary_models() -> None:
+    actor_user_id = uuid4()
+    session_id = uuid4()
+
+    step_up = PlatformStepUpProofIssueRequest.model_validate({
+        "actorUserId": encode_uuid(actor_user_id),
+        "sessionId": encode_uuid(session_id),
+        "actionCode": "platform.access.remove_operator",
+        "targetType": "platform_operator",
+        "scope": {},
+        "idempotencyKey": "step-up-public-id-contract",
+    })
+    assert step_up.actor_user_id == actor_user_id
+    assert step_up.session_id == session_id
+
+    now = datetime.now(UTC)
+    inventory = PlatformSessionInventoryItemOut(
+        session_id=session_id,
+        actor_user_id=actor_user_id,
+        device_label="Current browser",
+        recent_activity_at=now,
+        inactivity_expires_at=now,
+        absolute_expires_at=now,
+        policy_revision=1,
+        assurance="local_mfa",
+        is_current=True,
+    ).model_dump(mode="json", by_alias=True)
+    assert inventory["sessionId"] == encode_uuid(session_id)
+    assert inventory["actorUserId"] == encode_uuid(actor_user_id)

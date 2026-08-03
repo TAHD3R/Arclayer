@@ -8,16 +8,16 @@ import type {
 
 import { getTrustedSupportingRouteDestination } from "@/capabilities/module-registry";
 import { formatDateTime } from "@/operations/operations-ui";
-import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
-import { Badge } from "@arclayer/ui/badge";
-import { Button } from "@arclayer/ui/button";
-import { Separator } from "@arclayer/ui/separator";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 function DetailField({ label, value }: Readonly<{ label: string; value: string }>) {
   return (
     <div className="space-y-1">
-      <dt className="text-caption font-medium text-label-secondary">{label}</dt>
-      <dd className="break-words text-footnote text-label-primary">{value}</dd>
+      <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+      <dd className="break-words text-sm text-foreground">{value}</dd>
     </div>
   );
 }
@@ -56,15 +56,15 @@ function HistoryItem({ item }: Readonly<{ item: OperationalSignalTriageHistoryOu
   return (
     <li className="relative grid gap-1 border-l pl-5 pb-5 last:pb-0">
       <span className="absolute top-1 -left-1.5 size-3 rounded-full border bg-card" />
-      <p className="text-footnote font-medium">{t(`HISTORY_${item.action.toUpperCase()}`)}</p>
-      <p className="text-caption text-label-secondary">{formatDateTime(item.createdAt)}</p>
+      <p className="text-sm font-medium">{t(`HISTORY_${item.action.toUpperCase()}`)}</p>
+      <p className="text-xs text-muted-foreground">{formatDateTime(item.createdAt)}</p>
       {item.reminderAt && (
-        <p className="text-footnote">
+        <p className="text-sm">
           {t("REMINDER_RETURNS", { date: formatDateTime(item.reminderAt) })}
         </p>
       )}
       {item.reminderReason && (
-        <blockquote className="rounded-md border-l-2 bg-muted px-3 py-2 text-footnote">
+        <blockquote className="rounded-md border-l-2 bg-muted px-3 py-2 text-sm">
           {item.reminderReason}
         </blockquote>
       )}
@@ -100,22 +100,22 @@ export function SignalInvestigation({
             {detail.sourceLifecycle === "resolved" ? t("inbox:SOURCE_RESOLVED") : t(stateKey)}
           </Badge>
         </div>
-        <h2 className="text-title3 font-semibold" id="signal-impact-heading">
+        <h2 className="text-2xl3 font-semibold" id="signal-impact-heading">
           {t(detail.copy.titleKey)}
         </h2>
-        <p className="text-body text-label-secondary">{t(detail.copy.explanationKey)}</p>
+        <p className="text-base text-muted-foreground">{t(detail.copy.explanationKey)}</p>
         <div className="rounded-lg border bg-muted/50 p-4">
-          <p className="text-caption font-semibold text-label-secondary">{t("inbox:IMPACT")}</p>
-          <p className="mt-1 text-body">{t(detail.copy.impactKey)}</p>
+          <p className="text-xs font-semibold text-muted-foreground">{t("inbox:IMPACT")}</p>
+          <p className="mt-1 text-base">{t(detail.copy.impactKey)}</p>
         </div>
       </section>
 
       {detail.sourceLifecycle === "resolved" ? (
         <div className="flex gap-3 rounded-lg border bg-muted/50 p-4">
-          <Info aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-label-secondary" />
+          <Info aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
           <div>
             <p className="font-medium">{t("inbox:RESOLVED_READ_ONLY_TITLE")}</p>
-            <p className="text-footnote text-label-secondary">
+            <p className="text-sm text-muted-foreground">
               {t("inbox:RESOLVED_READ_ONLY_DESCRIPTION")}
             </p>
           </div>
@@ -128,7 +128,7 @@ export function SignalInvestigation({
 
       <section aria-labelledby="signal-evidence-heading" className="space-y-4">
         <h2
-          className="flex items-center gap-2 text-title3 font-semibold"
+          className="flex items-center gap-2 text-2xl3 font-semibold"
           id="signal-evidence-heading"
         >
           <Wrench aria-hidden="true" className="size-5" />
@@ -159,10 +159,10 @@ export function SignalInvestigation({
           )}
         </dl>
         <div className="rounded-lg border p-4">
-          <p className="text-caption font-semibold text-label-secondary">
+          <p className="text-xs font-semibold text-muted-foreground">
             {t("inbox:RESOLUTION_CONFIRMED_WHEN")}
           </p>
-          <p className="mt-1 text-footnote">{t(detail.resolutionConditionKey)}</p>
+          <p className="mt-1 text-sm">{t(detail.resolutionConditionKey)}</p>
         </div>
         {showDestination && destination && detail.destination.authorized && (
           <Button asChild variant="outline">
@@ -173,22 +173,17 @@ export function SignalInvestigation({
           </Button>
         )}
         {showDestination && !destination && (
-          <p className="text-footnote text-destructive">{t("REMEDIATION_ROUTE_UNAVAILABLE")}</p>
+          <p className="text-sm text-destructive">{t("REMEDIATION_ROUTE_UNAVAILABLE")}</p>
         )}
         {showDestination && destination && !detail.destination.authorized && (
-          <p className="text-footnote text-label-secondary">
-            {t("REMEDIATION_PERMISSION_REQUIRED")}
-          </p>
+          <p className="text-sm text-muted-foreground">{t("REMEDIATION_PERMISSION_REQUIRED")}</p>
         )}
       </section>
 
       <Separator />
 
       <section aria-labelledby="signal-history-heading" className="space-y-4">
-        <h2
-          className="flex items-center gap-2 text-title3 font-semibold"
-          id="signal-history-heading"
-        >
+        <h2 className="flex items-center gap-2 text-2xl3 font-semibold" id="signal-history-heading">
           <History aria-hidden="true" className="size-5" />
           {t("inbox:HISTORY_TITLE")}
         </h2>
@@ -199,20 +194,20 @@ export function SignalInvestigation({
             ))}
           </ol>
         ) : (
-          <p className="text-footnote text-label-secondary">{t("inbox:HISTORY_EMPTY")}</p>
+          <p className="text-sm text-muted-foreground">{t("inbox:HISTORY_EMPTY")}</p>
         )}
       </section>
 
       <section aria-labelledby="signal-notes-heading" className="space-y-4">
-        <h2 className="text-title3 font-semibold" id="signal-notes-heading">
+        <h2 className="text-2xl3 font-semibold" id="signal-notes-heading">
           {t("NOTES_TITLE")}
         </h2>
         {detail.notes.length ? (
           <ol className="space-y-3">
             {detail.notes.map((note) => (
               <li className="rounded-lg border p-3" key={note.revision}>
-                <p className="whitespace-pre-wrap text-footnote">{note.body}</p>
-                <p className="mt-2 text-caption text-label-secondary">
+                <p className="whitespace-pre-wrap text-sm">{note.body}</p>
+                <p className="mt-2 text-xs text-muted-foreground">
                   {t("NOTE_RECORDED", {
                     date: formatDateTime(note.createdAt),
                     revision: note.revision,
@@ -222,11 +217,11 @@ export function SignalInvestigation({
             ))}
           </ol>
         ) : (
-          <p className="text-footnote text-label-secondary">{t("NOTES_EMPTY")}</p>
+          <p className="text-sm text-muted-foreground">{t("NOTES_EMPTY")}</p>
         )}
       </section>
 
-      <details className="rounded-lg border p-4 text-footnote">
+      <details className="rounded-lg border p-4 text-sm">
         <summary className="cursor-pointer font-medium">{t("inbox:DIAGNOSTICS_TITLE")}</summary>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2">
           <DetailField label={t("inbox:SIGNAL_ID")} value={detail.id} />

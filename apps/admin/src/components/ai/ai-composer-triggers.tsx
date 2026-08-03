@@ -5,10 +5,8 @@ import {
   ComposerPrimitive,
   unstable_defaultDirectiveFormatter,
   unstable_useMentionAdapter,
-  unstable_useSlashCommandAdapter,
   useAui,
   type Unstable_Mention,
-  type Unstable_SlashCommand,
 } from "@assistant-ui/react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -32,6 +30,7 @@ import { listProjects } from "@/api/projects";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { cn } from "@arclayer/lib/utils";
+import { OVERLAY_LAYER_SHADOW_CLASSNAME } from "@arclayer/ui/layer-shadow";
 
 type AIComposerTriggersProps = {
   placement?: "top" | "bottom";
@@ -42,7 +41,8 @@ function composerTriggerPopoverClassName(
   placement: NonNullable<AIComposerTriggersProps["placement"]>,
 ) {
   return cn(
-    "fade-in zoom-in-95 absolute left-3 z-[2500] flex max-h-[24rem] max-w-[calc(100vw-2rem)] w-[min(36rem,calc(100%-1.5rem))] flex-col animate-in overflow-hidden rounded-xl border border-border/70 bg-popover p-1.5 text-popover-foreground shadow-lg duration-150 motion-reduce:animate-none",
+    "fade-in zoom-in-95 absolute left-3 z-[2500] flex max-h-[24rem] max-w-[calc(100vw-2rem)] w-[min(36rem,calc(100%-1.5rem))] flex-col animate-in overflow-hidden rounded-xl border border-border/70 bg-popover p-1.5 text-popover-foreground duration-150 motion-reduce:animate-none",
+    OVERLAY_LAYER_SHADOW_CLASSNAME,
     placement === "bottom"
       ? "slide-in-from-top-2 top-full mt-2 origin-top"
       : "slide-in-from-bottom-2 bottom-full mb-2 origin-bottom",
@@ -233,38 +233,41 @@ export function AIComposerTriggers({ placement = "top", scope }: AIComposerTrigg
     skills,
   } = useEnabledAIComposerSkills();
 
-  const slashCommands = useMemo<Unstable_SlashCommand[]>(
+  const skillMentions = useMemo<Unstable_Mention[]>(
     () =>
-      skills.map<Unstable_SlashCommand>((skill) => ({
-        id: `skill-${skill.id}`,
+      skills.map<Unstable_Mention>((skill) => ({
+        id: skill.id,
+        type: "skill",
         label: skill.label,
         description: skill.description,
         icon: "skill",
-        execute: () => {
-          useAIComposerDirectiveStore.getState().addDirectives(scope, [
-            {
-              type: "skill",
-              id: skill.id,
-              label: skill.label,
-            },
-          ]);
-          const composer = aui.composer();
-          const current = composer.getState().runConfig;
-          composer.setRunConfig({
-            ...current,
-            custom: {
-              ...current.custom,
-              selectedSkillInstallationIds: [...skillInstallationIdsForComposerScope(scope)],
-            },
-          });
-        },
       })),
-    [aui, scope, skills],
+    [skills],
   );
 
-  const slash = unstable_useSlashCommandAdapter({
-    commands: slashCommands,
-    removeOnExecute: true,
+  const slash = unstable_useMentionAdapter({
+    items: skillMentions,
+    includeModelContextTools: false,
+    formatter: unstable_defaultDirectiveFormatter,
+    onInserted: (item) => {
+      if (item.type !== "skill") return;
+      useAIComposerDirectiveStore.getState().addDirectives(scope, [
+        {
+          type: "skill",
+          id: item.id,
+          label: item.label,
+        },
+      ]);
+      const composer = aui.composer();
+      const current = composer.getState().runConfig;
+      composer.setRunConfig({
+        ...current,
+        custom: {
+          ...current.custom,
+          selectedSkillInstallationIds: [...skillInstallationIdsForComposerScope(scope)],
+        },
+      });
+    },
   });
 
   return (
@@ -286,7 +289,7 @@ export function AIComposerTriggers({ placement = "top", scope }: AIComposerTrigg
         aria-label={t("ai:AI_CHAT_COMMAND_MENU_LABEL")}
         className={composerTriggerPopoverClassName(placement)}
       >
-        <ComposerPrimitive.Unstable_TriggerPopover.Action {...slash.action} />
+        <ComposerPrimitive.Unstable_TriggerPopover.Directive {...slash.directive} />
         <AIComposerSlashPopoverContent
           isErrorSkills={isErrorSkills}
           isLoadingSkills={isLoadingSkills}

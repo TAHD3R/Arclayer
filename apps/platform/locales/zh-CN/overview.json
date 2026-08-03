@@ -1,5 +1,6 @@
 {
   "PAGE_TITLE": "总览",
+  "PAGE_DESCRIPTION": "查看需要处理的事项、已就绪的功能和最近恢复的问题。最后检查于 {{date}}。",
   "LOADING": "正在加载总览…",
   "STATUS_CHECKED": "状态检查于 {{date}}",
   "REFRESH": "刷新",
@@ -35,5 +36,8 @@
   "RECENT_RECOVERIES": "最近已恢复的问题",
   "RECENT_RECOVERIES_DESCRIPTION": "负责的服务已确认恢复的问题。",
   "NO_RECENT_RECOVERIES": "当前结果中没有已确认恢复的问题。",
-  "REVIEW": "查看"
+  "REVIEW": "查看",
+  "READY_AREAS": "已就绪功能",
+  "READY_AREAS_DESCRIPTION": "当前可用的 {{total}} 个功能中，已有 {{ready}} 个完成设置并可正常使用。",
+  "UNAVAILABLE": "—"
 }

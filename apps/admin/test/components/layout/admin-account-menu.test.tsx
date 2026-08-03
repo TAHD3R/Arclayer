@@ -391,9 +391,9 @@ describe("AdminAccountMenu", () => {
     renderWithProviders(<AdminAccountMenu />);
 
     await openAccountMenu(user);
-    await waitFor(() => {
-      expect(screen.queryByText("ACCOUNT_MENU_PLATFORM_CHECKING")).toBeNull();
-    });
+    await waitFor(() =>
+      expect(platformEntryApi.getPlatformEntryEligibility).toHaveBeenCalledTimes(1),
+    );
     expect(screen.queryByRole("button", { name: "ACCOUNT_MENU_PLATFORM_OPEN" })).toBeNull();
   });
 
@@ -429,7 +429,7 @@ describe("AdminAccountMenu", () => {
     expect(screen.queryByRole("button", { name: "ACCOUNT_MENU_PLATFORM_OPEN" })).toBeNull();
   });
 
-  it("eligibility 查询未完成时显示明确检查状态", async () => {
+  it("eligibility 查询未完成时隐藏 Platform Console 入口", async () => {
     vi.mocked(platformEntryApi.getPlatformEntryEligibility).mockImplementation(
       () => new Promise(() => undefined),
     );
@@ -438,7 +438,7 @@ describe("AdminAccountMenu", () => {
 
     await openAccountMenu(user);
 
-    expect(screen.getByText("ACCOUNT_MENU_PLATFORM_CHECKING")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "ACCOUNT_MENU_PLATFORM_OPEN" })).toBeNull();
   });
 
   it("在 /workspaces 打开个人设置时复用同一套 provider contract", async () => {

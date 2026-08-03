@@ -15,12 +15,17 @@ import {
 import { useNavigate, useSearch } from "@tanstack/react-router";
 
 import { listProjects } from "@/api/projects";
-import { AIComposerDirectiveChips } from "@/components/ai/ai-composer-directive-chips";
+import {
+  AIComposerDirectiveChips,
+  AIComposerDirectiveSync,
+} from "@/components/ai/ai-composer-directive-chips";
+import {
+  AIComposerDirectiveInsertionProvider,
+  AIComposerRichInput,
+} from "@/components/ai/ai-composer-rich-input";
 import { AIComposerRotatingPlaceholder } from "@/components/ai/ai-composer-rotating-placeholder";
 import { AIComposerToolbar } from "@/components/ai/ai-composer-toolbar";
-import { AIComposerTriggerInput } from "@/components/ai/ai-composer-trigger-input";
 import { AIComposerTriggers } from "@/components/ai/ai-composer-triggers";
-import { ComposerAttachments } from "@/components/assistant-ui/attachment";
 import { ComposerQueue } from "@/components/assistant-ui/composer-queue";
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 import {
@@ -31,7 +36,6 @@ import {
 } from "@/components/ai/ai-composer-entry";
 import {
   agentIdsForComposerScope,
-  buildTextWithAIComposerDirectives,
   cleanAIComposerDirectiveText,
   clearAIComposerDirectives,
   skillInstallationIdsForComposerScope,
@@ -59,7 +63,7 @@ function createDictationAdapter() {
 }
 
 type HomeComposerProps = {
-  inputRef: RefObject<HTMLTextAreaElement | null>;
+  inputRef: RefObject<HTMLDivElement | null>;
   initialPrompt?: string;
   onInitialPromptApplied?: () => void;
   onSubmitStart: () => void;
@@ -67,7 +71,7 @@ type HomeComposerProps = {
 };
 
 function HomeComposerInitialPrompt(props: {
-  inputRef: RefObject<HTMLTextAreaElement | null>;
+  inputRef: RefObject<HTMLDivElement | null>;
   prompt?: string;
   onApplied?: () => void;
 }) {
@@ -131,10 +135,7 @@ function HomeComposer({
 
   const sendHomePrompt = useCallback(
     async (text: string) => {
-      const textWithDirectives = buildTextWithAIComposerDirectives(
-        "home",
-        applyWebSearchDirective(text.trim()),
-      );
+      const textWithDirectives = applyWebSearchDirective(text.trim());
       const trimmed = cleanAIComposerDirectiveText(textWithDirectives);
       if (!trimmed) return;
 
@@ -212,30 +213,30 @@ function HomeComposer({
         onApplied={onInitialPromptApplied}
       />
       <ComposerPrimitive.Unstable_TriggerPopoverRoot>
-        <ComposerPrimitive.Root className="aui-home-composer-root relative flex w-full min-w-0 flex-col">
-          <ComposerQueue />
-          <div
-            data-ai-composer-shell
-            className="relative flex min-h-[13rem] w-full min-w-0 flex-col gap-3 rounded-[1.75rem] border border-border/60 bg-[color-mix(in_oklab,var(--color-muted)_30%,var(--color-background))] p-3 shadow-none ring-inset transition-[border-color,box-shadow] duration-150 hover:border-border focus-within:z-40 focus-within:border-border focus-within:ring-1 focus-within:ring-border data-[trigger-open=true]:z-40 motion-reduce:transition-none"
-          >
-            <AIComposerDirectiveChips scope="home" />
-            <ComposerAttachments />
-            <div className="relative min-h-32 flex-1">
-              <AIComposerTriggerInput
-                ref={inputRef}
-                rows={1}
-                autoFocus
-                placeholder={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
-                aria-label={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
-                className="h-32 min-h-32 max-h-32 w-full min-w-0 resize-none bg-transparent px-3 py-2 text-callout leading-relaxed text-label-primary outline-none [field-sizing:fixed] placeholder:text-transparent"
-              />
-              <AIComposerRotatingPlaceholder />
+        <AIComposerDirectiveInsertionProvider>
+          <ComposerPrimitive.Root className="aui-home-composer-root relative flex w-full min-w-0 flex-col">
+            <ComposerQueue />
+            <div
+              data-ai-composer-shell
+              className="relative flex min-h-[13rem] w-full min-w-0 flex-col gap-3 rounded-[1.75rem] border border-border/60 bg-[color-mix(in_oklab,var(--color-muted)_30%,var(--color-background))] p-3 shadow-none ring-inset transition-[border-color,box-shadow] duration-150 hover:border-border focus-within:z-40 focus-within:border-border focus-within:ring-1 focus-within:ring-border data-[trigger-open=true]:z-40 motion-reduce:transition-none"
+            >
+              <AIComposerDirectiveSync scope="home" />
+              <AIComposerDirectiveChips scope="home" />
+              <div className="relative min-h-32 min-w-0 flex-1">
+                <AIComposerRichInput
+                  ref={inputRef}
+                  autoFocus
+                  aria-label={t("ai:AI_CHAT_INPUT_PLACEHOLDER")}
+                  className="h-32 min-h-32 max-h-32 px-2 py-2"
+                />
+                <AIComposerRotatingPlaceholder />
+              </div>
+              <AIComposerTriggers placement="bottom" scope="home" />
+              <AIComposerToolbar surface="home" />
             </div>
-            <AIComposerTriggers placement="bottom" scope="home" />
-            <AIComposerToolbar surface="home" />
-          </div>
-          <HomeAIPromptStarters inputRef={inputRef} />
-        </ComposerPrimitive.Root>
+            <HomeAIPromptStarters inputRef={inputRef} />
+          </ComposerPrimitive.Root>
+        </AIComposerDirectiveInsertionProvider>
       </ComposerPrimitive.Unstable_TriggerPopoverRoot>
     </AssistantRuntimeProvider>
   );
@@ -252,7 +253,7 @@ export function HomePage() {
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const [localError, setLocalError] = useState<string | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const composerInputRef = useRef<HTMLDivElement | null>(null);
   const { data: recentProjectsData } = useQuery({
     queryKey: ["home", "recent-projects", workspaceId, sessionVersion],
     enabled: Boolean(accessToken && workspaceId),
@@ -301,7 +302,7 @@ export function HomePage() {
 
           <div className="mx-auto w-full max-w-[64rem]">
             <HomeComposer
-              inputRef={textareaRef}
+              inputRef={composerInputRef}
               initialPrompt={initialPrompt}
               onInitialPromptApplied={clearInitialPrompt}
               onSubmitStart={() => setLocalError(null)}

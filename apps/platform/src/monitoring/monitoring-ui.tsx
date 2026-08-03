@@ -3,8 +3,9 @@ import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { PlatformMonitoringApiError } from "@/monitoring/monitoring-api";
-import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
-import { Button } from "@arclayer/ui/button";
+import { PlatformPage, PlatformToolbar } from "@/components/platform-page";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import {
   Empty,
   EmptyContent,
@@ -12,8 +13,8 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from "@arclayer/ui/empty";
-import { Skeleton } from "@arclayer/ui/skeleton";
+} from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type AsyncState<T> =
   | Readonly<{ status: "loading" }>
@@ -49,13 +50,9 @@ export function MonitoringPage({
   children,
 }: Readonly<{ title: string; description: string; children: ReactNode }>) {
   return (
-    <section className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-5 py-8 md:px-8 md:py-10">
-      <header className="max-w-3xl space-y-2">
-        <h1 className="text-largetitle">{title}</h1>
-        <p className="text-body text-label-secondary">{description}</p>
-      </header>
+    <PlatformPage description={description} title={title}>
       {children}
-    </section>
+    </PlatformPage>
   );
 }
 
@@ -65,11 +62,11 @@ export function MonitoringToolbar({
   warning,
 }: Readonly<{ filters: ReactNode; savedViews?: ReactNode; warning?: ReactNode }>) {
   return (
-    <div className="rounded-xl border bg-card shadow-xs">
+    <PlatformToolbar className="block p-0">
       <div className="flex flex-wrap items-center gap-2 p-3">{filters}</div>
       {savedViews ? <div className="border-t px-3 py-2.5">{savedViews}</div> : null}
       {warning ? <div className="border-t p-3">{warning}</div> : null}
-    </div>
+    </PlatformToolbar>
   );
 }
 
@@ -147,7 +144,7 @@ export function MonitoringQueryState<T>({
 export function MonitoringPartialWarning({ retry }: Readonly<{ retry: () => void }>) {
   const { t } = useTranslation("monitoring");
   return (
-    <Alert className="border-warning/40 bg-warning/10">
+    <Alert className="border-amber-500/40 bg-amber-500/10">
       <AlertTriangle aria-hidden="true" />
       <AlertTitle>{t("PARTIAL_TITLE")}</AlertTitle>
       <AlertDescription className="flex flex-wrap items-center justify-between gap-3">

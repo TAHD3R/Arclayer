@@ -1,4 +1,4 @@
-import { useCallback, useState, type FormEvent } from "react";
+import { useCallback, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   PlanRevisionTermsInput,
@@ -13,14 +13,14 @@ import {
 } from "@/commerce/commerce-api";
 import { CommercePage, CommerceQueryState } from "@/commerce/commerce-ui";
 import { useMonitoringQuery } from "@/monitoring/monitoring-ui";
-import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
-import { Badge } from "@arclayer/ui/badge";
-import { Button } from "@arclayer/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
-import { Input } from "@arclayer/ui/input";
-import { SettingDialog } from "@arclayer/ui/setting-dialog";
-import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
-import { Textarea } from "@arclayer/ui/textarea";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { SettingDialog } from "@/components/setting-dialog";
+import { SettingDialogField, SettingDialogFields } from "@/components/setting-dialog-field";
+import { Textarea } from "@/components/ui/textarea";
 
 const DEFAULT_TERMS = JSON.stringify(
   {
@@ -34,6 +34,15 @@ const DEFAULT_TERMS = JSON.stringify(
   null,
   2,
 );
+
+type IdempotencyAttempt = Readonly<{ fingerprint: string; key: string }>;
+
+function idempotencyAttemptFor(
+  current: IdempotencyAttempt | null,
+  fingerprint: string,
+): IdempotencyAttempt {
+  return current?.fingerprint === fingerprint ? current : { fingerprint, key: crypto.randomUUID() };
+}
 
 export function CommercePlansPage() {
   const { t } = useTranslation("commerce");
@@ -88,7 +97,7 @@ function PlanCards(
               {t("CREATE_DRAFT")}
             </Button>
             {plan.revisions.length === 0 ? (
-              <p className="text-body text-label-secondary">{t("NO_REVISIONS")}</p>
+              <p className="text-base text-muted-foreground">{t("NO_REVISIONS")}</p>
             ) : (
               plan.revisions.map((revision) => (
                 <PlanRevisionRow
@@ -116,7 +125,15 @@ function PlanRevisionRow(
   const { t } = useTranslation("commerce");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const publishAttempt = useRef<IdempotencyAttempt | null>(null);
   const publish = async () => {
+    const fingerprint = JSON.stringify([
+      props.planCode,
+      props.revision.id,
+      props.revision.revision,
+    ]);
+    const attempt = idempotencyAttemptFor(publishAttempt.current, fingerprint);
+    publishAttempt.current = attempt;
     setPending(true);
     setError(null);
     try {
@@ -124,8 +141,9 @@ function PlanRevisionRow(
         props.planCode,
         props.revision.id,
         { expectedRevision: props.revision.revision },
-        crypto.randomUUID(),
+        attempt.key,
       );
+      if (publishAttempt.current === attempt) publishAttempt.current = null;
       props.onPublished();
     } catch {
       setError(t("ACTION_ERROR"));
@@ -138,13 +156,13 @@ function PlanRevisionRow(
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="font-medium">{t("SEQUENCE", { sequence: props.revision.sequence })}</p>
-          <p className="text-footnote text-label-secondary">
+          <p className="text-sm text-muted-foreground">
             {t(`REVISION_STATUS_${props.revision.status.toUpperCase()}`)}
             {props.revision.isSelling ? ` · ${t("SELLING")}` : ""}
           </p>
         </div>
         {props.revision.publishedAt && (
-          <time className="text-footnote text-label-secondary">
+          <time className="text-sm text-muted-foreground">
             {new Date(props.revision.publishedAt).toLocaleDateString()}
           </time>
         )}
@@ -170,13 +188,19 @@ function CreatePlanDialog(
   const [code, setCode] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const createAttempt = useRef<IdempotencyAttempt | null>(null);
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!code.trim()) return setError(t("PLAN_CODE_REQUIRED"));
+    const planCode = code.trim();
+    const fingerprint = JSON.stringify([planCode]);
+    const attempt = idempotencyAttemptFor(createAttempt.current, fingerprint);
+    createAttempt.current = attempt;
     setPending(true);
     setError(null);
     try {
-      await createCommercePlan({ code: code.trim() }, crypto.randomUUID());
+      await createCommercePlan({ code: planCode }, attempt.key);
+      if (createAttempt.current === attempt) createAttempt.current = null;
       props.onCompleted();
       props.onOpenChange(false);
       setCode("");
@@ -232,6 +256,7 @@ function CreateDraftDialog(
   const [terms, setTerms] = useState(DEFAULT_TERMS);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const createAttempt = useRef<IdempotencyAttempt | null>(null);
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!props.planCode) return;
@@ -242,10 +267,14 @@ function CreateDraftDialog(
       setError(t("TERMS_JSON_INVALID"));
       return;
     }
+    const fingerprint = JSON.stringify([props.planCode, parsed]);
+    const attempt = idempotencyAttemptFor(createAttempt.current, fingerprint);
+    createAttempt.current = attempt;
     setPending(true);
     setError(null);
     try {
-      await createPlanRevision(props.planCode, { terms: parsed }, crypto.randomUUID());
+      await createPlanRevision(props.planCode, { terms: parsed }, attempt.key);
+      if (createAttempt.current === attempt) createAttempt.current = null;
       props.onCompleted();
       props.onOpenChange(false);
     } catch {

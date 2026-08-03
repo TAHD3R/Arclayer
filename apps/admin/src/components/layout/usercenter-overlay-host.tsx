@@ -1,16 +1,24 @@
 import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { CircleAlert, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { resolveSettingsNavItems } from "@/constants/menu/settings";
+import { listMyWorkspaces } from "@/api/workspaces";
+import {
+  UserAvatar,
+  WorkspaceAvatar,
+  workspaceAvatarPropsFromIdentity,
+} from "@/components/common/entity-avatar";
 import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
+import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
 import {
   useWorkspaceRolesAccess,
   type WorkspaceRolesAccessStatus,
 } from "@/hooks/use-workspace-roles-access";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { getUsercenterOverlayItem } from "@/pages/usercenter/shared/usercenter-overlay-registry";
-import { SettingsFrame } from "@/pages/settings/settings-shell";
+import { SettingsFrame, type SettingsNavIdentityOverrides } from "@/pages/settings/settings-shell";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 import { Button } from "@arclayer/ui/button";
@@ -78,9 +86,54 @@ export function SettingsScreenHost() {
   const activeItem = getUsercenterOverlayItem(activeScreen);
   const currentWorkspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const workspaceId = currentWorkspaceId;
+  const { profile } = useCurrentUserProfile();
+  const workspacesQuery = useQuery({
+    queryKey: ["me", "workspaces", "settings-nav"],
+    queryFn: listMyWorkspaces,
+    enabled: isOpen,
+    staleTime: 30 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
   const rolesAccess = useWorkspaceRolesAccess(workspaceId ?? null);
   const settingsNavItems = resolveSettingsNavItems(rolesAccess.status);
   const [workspaceRoleCreateOpen, setWorkspaceRoleCreateOpen] = useState(false);
+  const currentWorkspace = workspacesQuery.data?.items?.find(
+    (workspace) => workspace.workspaceId === workspaceId || workspace.id === workspaceId,
+  );
+  const profileLabel = profile?.displayName ?? profile?.username ?? profile?.email;
+  const identityOverrides: SettingsNavIdentityOverrides = {
+    ...(profileLabel
+      ? {
+          "personal.profile": {
+            label: profileLabel,
+            icon: (
+              <UserAvatar
+                name={profileLabel}
+                assetRef={profile?.avatarUrl ?? profile?.avatarAssetId}
+                size={20}
+                decorative
+              />
+            ),
+          },
+        }
+      : {}),
+    ...(currentWorkspace
+      ? {
+          "workspace.general": {
+            label: currentWorkspace.name,
+            icon: (
+              <WorkspaceAvatar
+                name={currentWorkspace.name}
+                size={20}
+                decorative
+                {...workspaceAvatarPropsFromIdentity(currentWorkspace)}
+              />
+            ),
+          },
+        }
+      : {}),
+  };
 
   useEffect(() => {
     if (!settingsScreen.state.open) return;
@@ -141,6 +194,7 @@ export function SettingsScreenHost() {
         <SettingsFrame
           activeScreen={activeScreen}
           items={settingsNavItems}
+          identityOverrides={identityOverrides}
           action={action}
           onClose={() => handleOpenChange(false)}
           onSelectItem={(item) => settingsScreen.switchSettingsScreen(item.screen)}

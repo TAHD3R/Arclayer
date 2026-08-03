@@ -210,6 +210,15 @@ class FakeUserRepository:
         raise RuntimeError("not used")
 
 
+class FakeActionVerification:
+    async def enabled_methods(self, *, user_id: UUID) -> list[str]:
+        _ = user_id
+        return []
+
+    async def require(self, **kwargs: object) -> None:
+        _ = kwargs
+
+
 def _build_service(monkeypatch) -> tuple[AuthService, FakeUser]:
     monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
@@ -219,7 +228,12 @@ def _build_service(monkeypatch) -> tuple[AuthService, FakeUser]:
 
     valkey = FakeValkeyClient()
     repo = FakeUserRepository(user)
-    service = AuthService(settings, valkey=valkey, user_repo=cast(UserRepositoryLike, repo))
+    service = AuthService(
+        settings,
+        valkey=valkey,
+        user_repo=cast(UserRepositoryLike, repo),
+        action_verification=FakeActionVerification(),
+    )
 
     @asynccontextmanager
     async def _fake_tx(*, conn: object | None = None):

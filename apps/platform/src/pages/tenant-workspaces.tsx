@@ -9,7 +9,13 @@ import { getTenantWorkspace, listTenantWorkspaces } from "@/api/tenant-directory
 import { TenantDirectoryTable, type DirectoryColumn } from "@/components/tenant-directory";
 import { TenantWorkspaceDetail } from "@/components/tenant-workspace-detail";
 import { SAVED_VIEW_DEFINITIONS, type SavedViewState } from "@/saved-views/saved-view-contracts";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export type TenantWorkspacesSearch = Readonly<{
   q?: string;
@@ -136,7 +142,7 @@ export function TenantWorkspacesPage(props: {
       onSearchChange={(q) => update({ q })}
       partial={(items) =>
         items.some((item) => item.commerce.dataState === "partial") ? (
-          <p className="text-footnote text-label-secondary">{t("PARTIAL_COMMERCE")}</p>
+          <p className="text-sm text-muted-foreground">{t("PARTIAL_COMMERCE")}</p>
         ) : null
       }
       searchPlaceholder={t("WORKSPACES_SEARCH")}
@@ -199,7 +205,7 @@ function Identity(props: { name: string; secondary?: string | null }) {
     <div className="min-w-0">
       <p className="truncate font-medium">{props.name}</p>
       {props.secondary ? (
-        <p className="truncate text-footnote text-label-secondary">{props.secondary}</p>
+        <p className="truncate text-sm text-muted-foreground">{props.secondary}</p>
       ) : null}
     </div>
   );

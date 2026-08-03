@@ -1,7 +1,9 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   AccessRestrictionAdminOut,
+  AccessRestrictionEnforceRequest,
+  AccessRestrictionLiftRequest,
   AccessRestrictionReasonCategory,
   DirectoryWorkspaceDetailOut,
 } from "@arclayer/platform-openapi";
@@ -14,15 +16,22 @@ import {
   TenantDirectoryApiError,
   updateTenantWorkspace,
 } from "@/api/tenant-directory";
-import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
-import { Button } from "@arclayer/ui/button";
-import { Input } from "@arclayer/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
-import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
-import { SettingDialog } from "@arclayer/ui/setting-dialog";
-import { Textarea } from "@arclayer/ui/textarea";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { SettingDialogField, SettingDialogFields } from "@/components/setting-dialog-field";
+import { SettingDialog } from "@/components/setting-dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 export type WorkspaceAccessAction = "disable" | "enable" | "archive" | "restore";
+type IdempotencyAttempt = Readonly<{ fingerprint: string; key: string }>;
 
 type DialogProps = Readonly<{
   workspace: DirectoryWorkspaceDetailOut;
@@ -149,9 +158,9 @@ export function WorkspaceAccessDialog(props: DialogProps & { action: WorkspaceAc
   const [operatorNote, setOperatorNote] = useState("");
   const [reviewAt, setReviewAt] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
-  const [idempotencyKey] = useState(() => globalThis.crypto.randomUUID());
   const [pending, setPending] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
+  const accessAttempt = useRef<IdempotencyAttempt | null>(null);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -163,6 +172,25 @@ export function WorkspaceAccessDialog(props: DialogProps & { action: WorkspaceAc
       setErrorKey("RESTRICTION_CHANGED");
       return;
     }
+    const request: AccessRestrictionEnforceRequest | AccessRestrictionLiftRequest = lifting
+      ? {
+          expectedRevision: restriction!.revision,
+          operatorNote: operatorNote.trim(),
+        }
+      : {
+          expectedRevision: restriction?.revision ?? 0,
+          reasonCategory,
+          reasonCode: reasonCode.trim(),
+          operatorNote: operatorNote.trim(),
+          reviewAt: reviewAt ? new Date(reviewAt).toISOString() : null,
+          expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+        };
+    const fingerprint = JSON.stringify([props.workspace.workspaceId, props.action, request]);
+    const attempt =
+      accessAttempt.current?.fingerprint === fingerprint
+        ? accessAttempt.current
+        : { fingerprint, key: globalThis.crypto.randomUUID() };
+    accessAttempt.current = attempt;
     setPending(true);
     setErrorKey(null);
     try {
@@ -170,25 +198,16 @@ export function WorkspaceAccessDialog(props: DialogProps & { action: WorkspaceAc
         ? await runLift(
             props.action,
             props.workspace.workspaceId,
-            {
-              expectedRevision: restriction!.revision,
-              operatorNote: operatorNote.trim(),
-            },
-            idempotencyKey,
+            request as AccessRestrictionLiftRequest,
+            attempt.key,
           )
         : await runEnforcement(
             props.action,
             props.workspace.workspaceId,
-            {
-              expectedRevision: restriction?.revision ?? 0,
-              reasonCategory,
-              reasonCode: reasonCode.trim(),
-              operatorNote: operatorNote.trim(),
-              reviewAt: reviewAt ? new Date(reviewAt).toISOString() : null,
-              expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
-            },
-            idempotencyKey,
+            request as AccessRestrictionEnforceRequest,
+            attempt.key,
           );
+      if (accessAttempt.current === attempt) accessAttempt.current = null;
       props.onSaved(workspace, `WORKSPACE_${props.action.toUpperCase()}D`);
       props.onOpenChange(false);
     } catch (error) {

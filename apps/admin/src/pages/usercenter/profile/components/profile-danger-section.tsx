@@ -8,6 +8,7 @@ import { z } from "zod";
 import * as authApi from "@/api/auth";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { useSecurityActionVerification } from "@/pages/usercenter/shared/security-action-verification";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { SettingCard, SettingCardHeader } from "@arclayer/ui/setting-card";
@@ -30,15 +31,11 @@ export type UserDangerSectionProps = {
 type DeleteAccountFormValues = {
   email: string;
   password: string;
-  code: string;
-  backupCode: string;
 };
 
 const EMPTY_VALUES: DeleteAccountFormValues = {
   email: "",
   password: "",
-  code: "",
-  backupCode: "",
 };
 
 function getBlockedReasonText(
@@ -53,7 +50,7 @@ function getBlockedReasonText(
 
 function buildDeleteAccountSchema(
   t: (key: string) => string,
-  options: { requiresPassword: boolean; requiresTwoFactor: boolean },
+  options: { requiresPassword: boolean },
 ) {
   return z
     .object({
@@ -62,8 +59,6 @@ function buildDeleteAccountSchema(
         .min(1, t("account:ME_DELETE_ACCOUNT_CONFIRM_EMAIL_REQUIRED"))
         .email(t("account:ME_DELETE_ACCOUNT_CONFIRM_EMAIL_INVALID")),
       password: z.string(),
-      code: z.string(),
-      backupCode: z.string(),
     })
     .superRefine((value, ctx) => {
       if (options.requiresPassword && !value.password.trim()) {
@@ -71,34 +66,6 @@ function buildDeleteAccountSchema(
           code: "custom",
           path: ["password"],
           message: t("auth:VALIDATION_PASSWORD_REQUIRED"),
-        });
-      }
-      if (!options.requiresTwoFactor) return;
-
-      const code = value.code.trim();
-      const backupCode = value.backupCode.trim();
-      if (!code && !backupCode) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["code"],
-          message: t("account:ME_DELETE_ACCOUNT_2FA_ONE_OF_REQUIRED"),
-        });
-        ctx.addIssue({
-          code: "custom",
-          path: ["backupCode"],
-          message: t("account:ME_DELETE_ACCOUNT_2FA_ONE_OF_REQUIRED"),
-        });
-      }
-      if (code && backupCode) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["code"],
-          message: t("account:ME_DELETE_ACCOUNT_2FA_MUTUALLY_EXCLUSIVE"),
-        });
-        ctx.addIssue({
-          code: "custom",
-          path: ["backupCode"],
-          message: t("account:ME_DELETE_ACCOUNT_2FA_MUTUALLY_EXCLUSIVE"),
         });
       }
     });
@@ -110,6 +77,7 @@ export function UserDangerSection(props: UserDangerSectionProps) {
   const clearAuth = useAuthStore((s) => s.clear);
   const clearWorkspace = useWorkspaceStore((s) => s.clearWorkspace);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
+  const securityVerification = useSecurityActionVerification();
   const [open, setOpen] = useState(false);
 
   const capabilityQuery = useQuery({
@@ -138,8 +106,8 @@ export function UserDangerSection(props: UserDangerSectionProps) {
   const canDelete = Boolean(capabilityQuery.data?.canDelete);
 
   const schema = useMemo(
-    () => buildDeleteAccountSchema(t, { requiresPassword, requiresTwoFactor }),
-    [requiresPassword, requiresTwoFactor, t],
+    () => buildDeleteAccountSchema(t, { requiresPassword }),
+    [requiresPassword, t],
   );
 
   const form = useForm<DeleteAccountFormValues>({
@@ -149,8 +117,6 @@ export function UserDangerSection(props: UserDangerSectionProps) {
   });
   const emailFieldId = useId();
   const passwordFieldId = useId();
-  const codeFieldId = useId();
-  const backupCodeFieldId = useId();
 
   useEffect(() => {
     if (!open) return;
@@ -158,12 +124,11 @@ export function UserDangerSection(props: UserDangerSectionProps) {
   }, [form, open]);
 
   const deleteMutation = useMutation({
-    mutationFn: async (values: DeleteAccountFormValues) => {
+    mutationFn: async (input: { values: DeleteAccountFormValues; mfaProof?: string }) => {
+      const values = input.values;
       const payload: DeleteMyAccountPayload = { email: values.email };
       if (requiresPassword && values.password.trim()) payload.password = values.password.trim();
-      if (requiresTwoFactor && values.code.trim()) payload.code = values.code.trim();
-      if (requiresTwoFactor && values.backupCode.trim())
-        payload.backupCode = values.backupCode.trim();
+      payload.mfaProof = input.mfaProof;
       return authApi.deleteMyAccount(payload);
     },
     onSuccess: async () => {
@@ -248,6 +213,7 @@ export function UserDangerSection(props: UserDangerSectionProps) {
             </Button>
             {requiresRelogin ? (
               <Button
+                variant="primary"
                 onClick={() => {
                   void navigate({
                     to: "/login",
@@ -260,11 +226,15 @@ export function UserDangerSection(props: UserDangerSectionProps) {
               </Button>
             ) : null}
             <Button
-              variant="destructive"
+              variant="primary"
               disabled={deleteButtonDisabled}
               loading={deleteMutation.isPending}
               onClick={() => {
-                void form.handleSubmit((values) => deleteMutation.mutateAsync(values))();
+                void form.handleSubmit(async (values) => {
+                  const verification = await securityVerification.requestProof("delete_my_account");
+                  if (verification.cancelled) return;
+                  await deleteMutation.mutateAsync({ values, mfaProof: verification.proof });
+                })();
               }}
             >
               {t("account:ME_DELETE_ACCOUNT_ACTION")}
@@ -315,36 +285,6 @@ export function UserDangerSection(props: UserDangerSectionProps) {
             </DialogField>
           ) : null}
 
-          {requiresTwoFactor ? (
-            <>
-              <DialogField
-                label={t("account:ME_DELETE_ACCOUNT_2FA_CODE")}
-                description={t("account:ME_DELETE_ACCOUNT_2FA_CODE_PLACEHOLDER")}
-                htmlFor={codeFieldId}
-                error={form.formState.errors.code?.message}
-              >
-                <Input
-                  id={codeFieldId}
-                  {...form.register("code")}
-                  placeholder={t("account:ME_DELETE_ACCOUNT_2FA_CODE_PLACEHOLDER")}
-                />
-              </DialogField>
-
-              <DialogField
-                label={t("account:ME_DELETE_ACCOUNT_2FA_BACKUP_CODE")}
-                description={t("account:ME_DELETE_ACCOUNT_2FA_BACKUP_CODE_PLACEHOLDER")}
-                htmlFor={backupCodeFieldId}
-                error={form.formState.errors.backupCode?.message}
-              >
-                <Input
-                  id={backupCodeFieldId}
-                  {...form.register("backupCode")}
-                  placeholder={t("account:ME_DELETE_ACCOUNT_2FA_BACKUP_CODE_PLACEHOLDER")}
-                />
-              </DialogField>
-            </>
-          ) : null}
-
           {requiresRelogin ? (
             <div className="text-callout text-label-secondary">
               {t("account:ME_DELETE_ACCOUNT_RELOGIN_REQUIRED")}
@@ -352,6 +292,7 @@ export function UserDangerSection(props: UserDangerSectionProps) {
           ) : null}
         </SettingDialogFields>
       </SettingDialog>
+      {securityVerification.verificationDialog}
     </>
   );
 }

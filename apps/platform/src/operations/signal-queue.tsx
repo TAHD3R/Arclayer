@@ -10,10 +10,17 @@ import type {
 import { listOperationalSignalEligibleAssignees } from "@/operations/operations-api";
 import { useOperationsQuery } from "@/operations/operations-state";
 import { formatAge } from "@/operations/operations-ui";
-import { Alert, AlertDescription } from "@arclayer/ui/alert";
-import { Badge } from "@arclayer/ui/badge";
-import { Button } from "@arclayer/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type SignalQueueProps = Readonly<{
   data: PageDataOperationalSignalOut;
@@ -58,28 +65,28 @@ function SignalRow({
           <Badge variant={signal.severity === "critical" ? "destructive" : "outline"}>
             {t(severityKey)}
           </Badge>
-          <span className="font-mono text-caption tabular-nums">#{signal.priority.rank}</span>
+          <span className="font-mono text-xs tabular-nums">#{signal.priority.rank}</span>
         </div>
-        <p className="mt-1 text-caption text-label-secondary">
+        <p className="mt-1 text-xs text-muted-foreground">
           {signal.priority.reasonKeys.map((key) => t(key)).join(" · ")}
         </p>
       </TableCell>
       <TableCell className="max-w-xl align-top">
-        <p className="font-medium text-label-primary">{t(signal.copy.titleKey)}</p>
-        <p className="mt-1 text-footnote text-label-secondary">{t(signal.copy.explanationKey)}</p>
+        <p className="font-medium text-foreground">{t(signal.copy.titleKey)}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t(signal.copy.explanationKey)}</p>
       </TableCell>
       <TableCell className="align-top">
         <Badge variant={signal.sourceLifecycle === "resolved" ? "secondary" : "outline"}>
           {signal.sourceLifecycle === "resolved" ? t("inbox:SOURCE_RESOLVED") : t(stateKey)}
         </Badge>
-        <p className="mt-1 text-caption text-label-secondary">
+        <p className="mt-1 text-xs text-muted-foreground">
           {signal.triage.assigneeUserId
             ? (assigneeNames?.get(signal.triage.assigneeUserId) ??
               t("inbox:ASSIGNED_OPERATOR_PRESENT"))
             : t("inbox:UNASSIGNED")}
         </p>
       </TableCell>
-      <TableCell className="align-top text-footnote text-label-secondary">
+      <TableCell className="align-top text-sm text-muted-foreground">
         {formatAge(signal.freshness.ageSeconds)}
       </TableCell>
       <TableCell className="align-top text-right">
@@ -123,7 +130,7 @@ export function SignalQueue({ data, assigneeNames, onOpen, onPageChange }: Signa
           </TableBody>
         </Table>
       </div>
-      <div className="flex flex-col gap-3 border-t px-4 py-3 text-footnote text-label-secondary sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 border-t px-4 py-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <span>{t("PAGE_OF", { page: data.page, pages: data.pages, total: data.total })}</span>
         <div className="flex gap-2">
           <Button

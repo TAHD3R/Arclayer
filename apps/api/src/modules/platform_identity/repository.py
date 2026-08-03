@@ -98,6 +98,9 @@ class PlatformIdentityRepository(TortoiseORMRepository):
             query = query.using_db(conn)
         return await query.exists()
 
+    async def get_user_by_id(self, *, user_id: UUID) -> User | None:
+        return await User.get_or_none(id=user_id)
+
     async def get_operator_by_user_id(
         self, *, user_id: UUID, conn: BaseDBAsyncClient | None = None, for_update: bool = False
     ) -> PlatformOperator | None:
@@ -867,9 +870,7 @@ class PlatformIdentityRepository(TortoiseORMRepository):
                 raise Conflict(error="PLATFORM_INVITATION_INEFFECTIVE")
             if invitation.revision != command.expected_invitation_revision:
                 raise Conflict(error="PLATFORM_INVITATION_REVISION_STALE")
-            operator = await self.get_operator_by_user_id(
-                user_id=command.accepter_user_id, conn=conn, for_update=True
-            )
+            operator = await self.get_operator_by_user_id(user_id=command.accepter_user_id, conn=conn, for_update=True)
             if operator is not None and operator.status == PlatformOperatorStatus.ACTIVE:
                 raise Conflict(error="PLATFORM_OPERATOR_ALREADY_ACTIVE")
             stored_bindings = await self.list_invitation_role_bindings(invitation_id=invitation.id, conn=conn)
@@ -895,14 +896,22 @@ class PlatformIdentityRepository(TortoiseORMRepository):
                     revision=1,
                 )
             else:
-                await PlatformMfaMethod.filter(user_id=command.accepter_user_id, revoked_at__isnull=True).using_db(
-                    conn
-                ).update(status=PlatformMfaMethodStatus.REVOKED, revoked_at=now)
-                await PlatformMfaRecoveryCode.filter(
-                    operator_id=operator.id,
-                    used_at__isnull=True,
-                    invalidated_at__isnull=True,
-                ).using_db(conn).update(invalidated_at=now)
+                await (
+                    PlatformMfaMethod
+                    .filter(user_id=command.accepter_user_id, revoked_at__isnull=True)
+                    .using_db(conn)
+                    .update(status=PlatformMfaMethodStatus.REVOKED, revoked_at=now)
+                )
+                await (
+                    PlatformMfaRecoveryCode
+                    .filter(
+                        operator_id=operator.id,
+                        used_at__isnull=True,
+                        invalidated_at__isnull=True,
+                    )
+                    .using_db(conn)
+                    .update(invalidated_at=now)
+                )
                 await self._revoke_actor_sessions_and_proofs(
                     user_id=command.accepter_user_id,
                     revoked_by_user_id=command.accepter_user_id,
@@ -944,9 +953,7 @@ class PlatformIdentityRepository(TortoiseORMRepository):
                 invitation_revision=invitation.revision,
                 operator_id=operator.id,
                 requires_phishing_resistant=await self._permissions_require_phishing_resistant_method(
-                    permission_codes=frozenset().union(
-                        *(binding.permission_codes for binding in current_bindings)
-                    ),
+                    permission_codes=frozenset().union(*(binding.permission_codes for binding in current_bindings)),
                     conn=conn,
                 ),
             )
@@ -1020,10 +1027,15 @@ class PlatformIdentityRepository(TortoiseORMRepository):
                     changed_at=now,
                     conn=conn,
                 )
-            await PlatformAuthFlowChallenge.filter(
-                invitation_id=invitation.id,
-                consumed_at__isnull=True,
-            ).using_db(conn).update(consumed_at=now)
+            await (
+                PlatformAuthFlowChallenge
+                .filter(
+                    invitation_id=invitation.id,
+                    consumed_at__isnull=True,
+                )
+                .using_db(conn)
+                .update(consumed_at=now)
+            )
             invitation.status = PlatformInvitationStatus.REVOKED
             invitation.revoked_at = now
             invitation.revision += 1
@@ -1097,16 +1109,24 @@ class PlatformIdentityRepository(TortoiseORMRepository):
         )
         permission_codes = frozenset().union(*(binding.permission_codes for binding in current_bindings))
         if await self._permissions_require_phishing_resistant_method(permission_codes=permission_codes, conn=conn):
-            if not await PlatformMfaMethod.filter(
-                user_id=user_id,
-                kind=PlatformMfaMethodKind.WEBAUTHN,
-                status=PlatformMfaMethodStatus.VERIFIED,
-                revoked_at__isnull=True,
-            ).using_db(conn).exists():
+            if (
+                not await PlatformMfaMethod
+                .filter(
+                    user_id=user_id,
+                    kind=PlatformMfaMethodKind.WEBAUTHN,
+                    status=PlatformMfaMethodStatus.VERIFIED,
+                    revoked_at__isnull=True,
+                )
+                .using_db(conn)
+                .exists()
+            ):
                 raise Conflict(error="PLATFORM_ROLE_SECURITY_KEY_REQUIRED")
-        await PlatformOperatorRoleAssignment.filter(
-            operator_id=operator.id, ended_at__isnull=True
-        ).using_db(conn).update(ended_at=now)
+        await (
+            PlatformOperatorRoleAssignment
+            .filter(operator_id=operator.id, ended_at__isnull=True)
+            .using_db(conn)
+            .update(ended_at=now)
+        )
         await self._create_role_assignments(
             operator_id=operator.id,
             bindings=current_bindings,
@@ -1634,9 +1654,7 @@ class PlatformIdentityRepository(TortoiseORMRepository):
             invitation_revision=invitation.revision,
             operator_id=operator.id,
             requires_phishing_resistant=await self._permissions_require_phishing_resistant_method(
-                permission_codes=frozenset().union(
-                    *(binding.permission_codes for binding in current_bindings)
-                ),
+                permission_codes=frozenset().union(*(binding.permission_codes for binding in current_bindings)),
                 conn=conn,
             ),
         )
@@ -1662,15 +1680,25 @@ class PlatformIdentityRepository(TortoiseORMRepository):
             or operator.setup_reason != PlatformOperatorSetupReason.INVITATION
         ):
             raise Conflict(error="PLATFORM_INVITATION_SETUP_STATE_CHANGED")
-        await PlatformMfaMethod.filter(user_id=recipient_user_id, revoked_at__isnull=True).using_db(conn).update(
-            status=PlatformMfaMethodStatus.REVOKED,
-            revoked_at=changed_at,
+        await (
+            PlatformMfaMethod
+            .filter(user_id=recipient_user_id, revoked_at__isnull=True)
+            .using_db(conn)
+            .update(
+                status=PlatformMfaMethodStatus.REVOKED,
+                revoked_at=changed_at,
+            )
         )
-        await PlatformMfaRecoveryCode.filter(
-            operator_id=operator.id,
-            used_at__isnull=True,
-            invalidated_at__isnull=True,
-        ).using_db(conn).update(invalidated_at=changed_at)
+        await (
+            PlatformMfaRecoveryCode
+            .filter(
+                operator_id=operator.id,
+                used_at__isnull=True,
+                invalidated_at__isnull=True,
+            )
+            .using_db(conn)
+            .update(invalidated_at=changed_at)
+        )
         await self._revoke_actor_sessions_and_proofs(
             user_id=recipient_user_id,
             revoked_by_user_id=actor_user_id,

@@ -56,7 +56,7 @@ const STARTER_OPTION_VARIANTS: Variants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] } },
 };
 
-export function HomeAIPromptStarters(props: { inputRef: RefObject<HTMLTextAreaElement | null> }) {
+export function HomeAIPromptStarters(props: { inputRef: RefObject<HTMLDivElement | null> }) {
   const { t } = useTranslation("ai");
   const aui = useAui();
   const reducedMotion = usePrefersReducedMotion();

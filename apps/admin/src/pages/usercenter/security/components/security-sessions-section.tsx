@@ -185,12 +185,13 @@ export function UserSessionsSection() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancelPrimitive asChild>
-              <Button variant="outline" disabled={revokeSessionMutation.isPending}>
+              <Button variant="ghost" disabled={revokeSessionMutation.isPending}>
                 {t("common:CANCEL")}
               </Button>
             </AlertDialogCancelPrimitive>
             <AlertDialogActionPrimitive asChild>
               <Button
+                variant="primary"
                 loading={revokeSessionMutation.isPending}
                 onClick={async () => {
                   if (!pendingRevokeSession) return;
@@ -224,12 +225,13 @@ export function UserSessionsSection() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancelPrimitive asChild>
-              <Button variant="outline" disabled={revokeOthersMutation.isPending}>
+              <Button variant="ghost" disabled={revokeOthersMutation.isPending}>
                 {t("common:CANCEL")}
               </Button>
             </AlertDialogCancelPrimitive>
             <AlertDialogActionPrimitive asChild>
               <Button
+                variant="primary"
                 loading={revokeOthersMutation.isPending}
                 onClick={async () => {
                   await revokeOthersMutation.mutateAsync();

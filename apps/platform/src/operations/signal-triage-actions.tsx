@@ -16,12 +16,18 @@ import {
 } from "@/operations/operations-api";
 import { useOperationsMutation, useOperationsQuery } from "@/operations/operations-state";
 import { OperationsFailure } from "@/operations/operations-ui";
-import { Alert, AlertDescription } from "@arclayer/ui/alert";
-import { Button } from "@arclayer/ui/button";
-import { Input } from "@arclayer/ui/input";
-import { Label } from "@arclayer/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
-import { Textarea } from "@arclayer/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 type TriageRequest =
   | Readonly<{ action: "claim" }>
@@ -76,12 +82,12 @@ function AssignControl({
   const { state, retry } = useOperationsQuery(loadEligibleAssignees, []);
 
   if (state.status === "loading") {
-    return <p className="text-footnote text-label-secondary">{t("ASSIGNEES_LOADING")}</p>;
+    return <p className="text-sm text-muted-foreground">{t("ASSIGNEES_LOADING")}</p>;
   }
   if (state.status === "error") {
     return (
       <div className="space-y-2">
-        <p role="alert" className="text-footnote text-destructive">
+        <p role="alert" className="text-sm text-destructive">
           {t("ASSIGNEES_ERROR")}
         </p>
         <Button onClick={retry} size="sm" variant="outline">
@@ -151,7 +157,7 @@ function NoteControl({
         placeholder={t("NOTE_PLACEHOLDER")}
         value={body}
       />
-      {invalid && <p className="text-caption text-destructive">{t("NOTE_REQUIRED")}</p>}
+      {invalid && <p className="text-xs text-destructive">{t("NOTE_REQUIRED")}</p>}
       <Button className="justify-self-start" disabled={disabled} type="submit" variant="outline">
         {t("ADD_NOTE")}
       </Button>
@@ -200,9 +206,7 @@ function ReminderControl({
             type="datetime-local"
             value={reminderAt}
           />
-          {timeInvalid && (
-            <p className="text-caption text-destructive">{t("REMINDER_TIME_REQUIRED")}</p>
-          )}
+          {timeInvalid && <p className="text-xs text-destructive">{t("REMINDER_TIME_REQUIRED")}</p>}
         </div>
         <div className="space-y-2">
           <Label htmlFor="signal-reminder-reason">{t("REMINDER_REASON")}</Label>
@@ -214,7 +218,7 @@ function ReminderControl({
             value={reason}
           />
           {reasonInvalid && (
-            <p className="text-caption text-destructive">{t("REMINDER_REASON_REQUIRED")}</p>
+            <p className="text-xs text-destructive">{t("REMINDER_REASON_REQUIRED")}</p>
           )}
         </div>
       </div>
@@ -269,7 +273,7 @@ export function SignalTriageActions({
         <h2 className="font-semibold" id="signal-actions-heading">
           {t("ACTIONS_TITLE")}
         </h2>
-        <p className="text-footnote text-label-secondary">{t("ACTIONS_DESCRIPTION")}</p>
+        <p className="text-sm text-muted-foreground">{t("ACTIONS_DESCRIPTION")}</p>
       </div>
 
       {mutation.state.status === "error" && (
@@ -281,9 +285,7 @@ export function SignalTriageActions({
         </Alert>
       )}
 
-      {!allowed.size && (
-        <p className="text-footnote text-label-secondary">{t("NO_ALLOWED_ACTIONS")}</p>
-      )}
+      {!allowed.size && <p className="text-sm text-muted-foreground">{t("NO_ALLOWED_ACTIONS")}</p>}
       <div className="flex flex-wrap gap-2">
         {allowed.has("claim") && (
           <Button disabled={disabled} onClick={() => execute({ action: "claim" })}>

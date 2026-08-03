@@ -10,11 +10,17 @@ import type {
 import { ExtensionLifecycleActions } from "@/extensions/extension-lifecycle-dialogs";
 import { getExtension, listExtensionConnections } from "@/extensions/extensions-api";
 import { useMonitoringQuery } from "@/monitoring/monitoring-ui";
-import { Badge } from "@arclayer/ui/badge";
-import { Button } from "@arclayer/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@arclayer/ui/empty";
-import { Skeleton } from "@arclayer/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function DossierPage({
   title,
@@ -24,8 +30,8 @@ function DossierPage({
   return (
     <section className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-7 px-5 py-8 md:px-8 md:py-10">
       <header className="max-w-3xl space-y-2">
-        <h1 className="text-largetitle">{title}</h1>
-        <p className="text-body text-label-secondary">{description}</p>
+        <h1 className="text-3xl">{title}</h1>
+        <p className="text-base text-muted-foreground">{description}</p>
       </header>
       {children}
     </section>
@@ -102,6 +108,7 @@ function ExtensionDossier({
   const { t } = useTranslation("extensions");
   const requestedPermissions = item.permissions ?? [];
   const approvedPermissions = item.approvedPermissions ?? [];
+  const compatibilityIssues = item.compatibility.issues ?? [];
   const operations = useMemo(
     () => mergeOperations(recentOperations, item.recentOperations ?? []),
     [item.recentOperations, recentOperations],
@@ -127,7 +134,7 @@ function ExtensionDossier({
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
-          <dl className="grid gap-x-5 gap-y-4 text-body sm:grid-cols-2 lg:grid-cols-3">
+          <dl className="grid gap-x-5 gap-y-4 text-base sm:grid-cols-2 lg:grid-cols-3">
             <DossierField
               label={t("DETAIL_INSTALLED_VERSION")}
               value={item.installedVersion ?? t("NOT_INSTALLED")}
@@ -159,14 +166,14 @@ function ExtensionDossier({
               value={item.compatibility.compatible ? t("COMPATIBLE") : t("INCOMPATIBLE")}
             />
           </dl>
-          {!item.compatibility.compatible && item.compatibility.issues.length > 0 ? (
+          {!item.compatibility.compatible && compatibilityIssues.length > 0 ? (
             <div
               className="space-y-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3"
               role="alert"
             >
-              <p className="text-footnote font-medium">{t("DETAIL_COMPATIBILITY_ISSUES")}</p>
-              <ul className="list-disc space-y-1 pl-5 text-footnote text-label-secondary">
-                {item.compatibility.issues.map((issue) => (
+              <p className="text-sm font-medium">{t("DETAIL_COMPATIBILITY_ISSUES")}</p>
+              <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                {compatibilityIssues.map((issue) => (
                   <li key={issue}>{issue}</li>
                 ))}
               </ul>
@@ -205,7 +212,7 @@ function ExtensionDossier({
 function DossierField({ label, value }: Readonly<{ label: string; value: string }>) {
   return (
     <div>
-      <dt className="text-footnote text-label-secondary">{label}</dt>
+      <dt className="text-sm text-muted-foreground">{label}</dt>
       <dd className="mt-1 break-words">{value}</dd>
     </div>
   );
@@ -218,11 +225,11 @@ function PermissionList({
   const { t } = useTranslation("extensions");
   return (
     <section aria-label={label} className="space-y-2">
-      <h2 className="text-footnote font-medium">{label}</h2>
+      <h2 className="text-sm font-medium">{label}</h2>
       {permissions.length === 0 ? (
-        <p className="text-body text-label-secondary">{t("NONE")}</p>
+        <p className="text-base text-muted-foreground">{t("NONE")}</p>
       ) : (
-        <ul className="space-y-1 rounded-lg border p-3 text-footnote">
+        <ul className="space-y-1 rounded-lg border p-3 text-sm">
           {permissions.map((permission) => (
             <li key={permission}>
               <code>{permission}</code>
@@ -251,15 +258,13 @@ function CapabilityEvidence({ item }: Readonly<{ item: SystemPluginDetailOut }>)
       </CardHeader>
       <CardContent>
         {groups.length === 0 ? (
-          <p className="text-body text-label-secondary">{t("NONE")}</p>
+          <p className="text-base text-muted-foreground">{t("NONE")}</p>
         ) : (
           <dl className="space-y-3">
             {groups.map((group) => (
               <div key={group.key}>
-                <dt className="text-footnote text-label-secondary">
-                  {t(`CAPABILITY_${group.key}`)}
-                </dt>
-                <dd className="mt-1 break-words text-footnote">{group.values.join(", ")}</dd>
+                <dt className="text-sm text-muted-foreground">{t(`CAPABILITY_${group.key}`)}</dt>
+                <dd className="mt-1 break-words text-sm">{group.values.join(", ")}</dd>
               </div>
             ))}
           </dl>
@@ -280,16 +285,14 @@ function DependencyEvidence({ item }: Readonly<{ item: SystemPluginDetailOut }>)
       </CardHeader>
       <CardContent>
         {dependencies.length === 0 ? (
-          <p className="text-body text-label-secondary">{t("NONE")}</p>
+          <p className="text-base text-muted-foreground">{t("NONE")}</p>
         ) : (
           <ul className="space-y-2">
             {dependencies.map((dependency) => (
               <li className="rounded-lg border p-3" key={dependency.extensionName}>
                 <p className="font-medium">{dependency.extensionName}</p>
                 {dependency.versionRequirement ? (
-                  <p className="text-footnote text-label-secondary">
-                    {dependency.versionRequirement}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{dependency.versionRequirement}</p>
                 ) : null}
               </li>
             ))}
@@ -314,13 +317,13 @@ function ConsumerEvidence({ item }: Readonly<{ item: SystemPluginDetailOut }>) {
       </CardHeader>
       <CardContent>
         {consumers.length === 0 ? (
-          <p className="text-body text-label-secondary">{t("NONE")}</p>
+          <p className="text-base text-muted-foreground">{t("NONE")}</p>
         ) : (
           <ul className="space-y-2">
             {consumers.map((consumer) => (
               <li className="rounded-lg border p-3" key={`${consumer.domain}:${consumer.deepLink}`}>
                 <p className="font-medium">{consumer.label}</p>
-                <a className="text-footnote text-primary underline" href={consumer.deepLink}>
+                <a className="text-sm text-primary underline" href={consumer.deepLink}>
                   {t("OPEN_CONSUMER")}
                 </a>
               </li>
@@ -350,14 +353,14 @@ function ConnectionEvidence({ extensionName }: Readonly<{ extensionName: string 
         {state.status === "loading" ? <Skeleton className="h-20 w-full" /> : null}
         {state.status === "error" ? (
           <div className="flex flex-wrap items-center gap-3">
-            <p className="text-body text-destructive">{t("DETAIL_CONNECTIONS_ERROR")}</p>
+            <p className="text-base text-destructive">{t("DETAIL_CONNECTIONS_ERROR")}</p>
             <Button onClick={retry} size="sm" variant="outline">
               {t("RETRY")}
             </Button>
           </div>
         ) : null}
         {state.status === "ready" && connections.length === 0 ? (
-          <p className="text-body text-label-secondary">{t("DETAIL_CONNECTIONS_EMPTY")}</p>
+          <p className="text-base text-muted-foreground">{t("DETAIL_CONNECTIONS_EMPTY")}</p>
         ) : null}
         {state.status === "ready" && connections.length > 0 ? (
           <ul className="space-y-2">
@@ -368,9 +371,7 @@ function ConnectionEvidence({ extensionName }: Readonly<{ extensionName: string 
               >
                 <div>
                   <p className="font-medium">{connection.connectorKey}</p>
-                  <p className="text-footnote text-label-secondary">
-                    {connection.configurationTarget}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{connection.configurationTarget}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant={connection.runtimeReady ? "secondary" : "destructive"}>
@@ -382,7 +383,7 @@ function ConnectionEvidence({ extensionName }: Readonly<{ extensionName: string 
                     {t(`CONFIGURATION_${String(connection.configurationReadiness).toUpperCase()}`)}
                   </Badge>
                   <a
-                    className="text-footnote text-primary underline"
+                    className="text-sm text-primary underline"
                     href={connection.configurationDeepLink}
                   >
                     {t("OWNING_DOMAIN")}
@@ -407,7 +408,7 @@ function OperationHistory({ operations }: Readonly<{ operations: SystemPluginOpe
       </CardHeader>
       <CardContent>
         {operations.length === 0 ? (
-          <p className="text-body text-label-secondary">{t("NONE")}</p>
+          <p className="text-base text-muted-foreground">{t("NONE")}</p>
         ) : (
           <ul className="space-y-2">
             {operations.map((operation) => (
@@ -417,7 +418,7 @@ function OperationHistory({ operations }: Readonly<{ operations: SystemPluginOpe
               >
                 <div>
                   <p className="font-medium">{t(`HISTORY_KIND_${operation.kind.toUpperCase()}`)}</p>
-                  <p className="text-footnote text-label-secondary">
+                  <p className="text-sm text-muted-foreground">
                     {t(
                       operation.state === "succeeded" && !operation.activationVerified
                         ? "HISTORY_STATE_SUCCEEDED_PENDING_VERIFICATION"
@@ -426,7 +427,7 @@ function OperationHistory({ operations }: Readonly<{ operations: SystemPluginOpe
                   </p>
                 </div>
                 <Link
-                  className="text-footnote font-medium text-primary underline"
+                  className="text-sm font-medium text-primary underline"
                   search={{ operationId: operation.id }}
                   to="/extensions/history"
                 >

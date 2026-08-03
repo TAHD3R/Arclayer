@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from hashlib import sha256
 from uuid import UUID
 
+from src.common.utils.public_ids import encode_uuid
 from src.config import Settings
 from src.core.exceptions import NotFound
 from src.core.registries import ConnectorRegistry
@@ -34,6 +35,7 @@ from src.models.platform_identity.roles import (
 from src.modules.auth.oauth.social.providers import OAuthProviderDefinition, list_oauth_provider_connectors
 from src.modules.auth.registration.service import get_public_register_policy
 from src.modules.platform_identity.management_schema import (
+    PlatformCurrentActorProfileOut,
     PlatformCustomRoleApplyRequest,
     PlatformCustomRoleCopyRequest,
     PlatformCustomRoleCreateRequest,
@@ -131,6 +133,21 @@ class PlatformIdentityManagementService:
         self._step_up = PlatformStepUpService(repository=self._repository, settings=settings)
         self._webauthn = PlatformWebAuthnService(settings=settings)
         self._mfa = PlatformMfaService(settings=settings)
+
+    async def current_actor_profile(self, *, user_id: UUID) -> PlatformCurrentActorProfileOut:
+        user = await self._repository.get_user_by_id(user_id=user_id)
+        if user is None:
+            raise NotFound(error="PLATFORM_ACTOR_NOT_FOUND")
+
+        avatar_asset_id = user.avatar_asset_id
+        avatar_url = user.avatar_url
+        if avatar_asset_id is not None:
+            avatar_url = f"/assets/{encode_uuid(UUID(str(avatar_asset_id)))}"
+        return PlatformCurrentActorProfileOut(
+            username=user.username,
+            email=user.email,
+            avatar_url=avatar_url,
+        )
 
     async def team_identity(self, *, user_id: UUID) -> PlatformTeamIdentityOut:
         snapshot = await self._repository.get_identity_snapshot(user_id=user_id, at=self._now())
@@ -872,8 +889,7 @@ class PlatformIdentityManagementService:
                 inviter=self._user_out(user=users[UUID(str(invitation.invited_by_user_id))]),
                 status=invitation.status,
                 is_effective=(
-                    invitation.status
-                    in {PlatformInvitationStatus.PENDING, PlatformInvitationStatus.MFA_SETUP_REQUIRED}
+                    invitation.status in {PlatformInvitationStatus.PENDING, PlatformInvitationStatus.MFA_SETUP_REQUIRED}
                     and invitation.expires_at > now
                 ),
                 expires_at=invitation.expires_at,

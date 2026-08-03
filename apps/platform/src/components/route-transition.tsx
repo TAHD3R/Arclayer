@@ -1,63 +1,64 @@
+import { useProgress } from "@bprogress/react";
 import { useRouterState } from "@tanstack/react-router";
-import type { ReactNode } from "react";
-import { useTranslation } from "react-i18next";
+import { AnimatePresence, MotionConfig, motion } from "motion/react";
+import { useEffect, useRef, type ReactNode } from "react";
 
-import { PageSkeleton, type PageSkeletonVariant } from "@arclayer/ui/page-skeleton";
+function useRouteLoadingProgress(isRouteLoading: boolean) {
+  const { start, stop } = useProgress();
+  const startedRef = useRef(false);
 
-function resolvePlatformSkeletonVariant(routeId: string | undefined, pathname: string) {
-  const routeKey = routeId ?? pathname;
+  useEffect(() => {
+    if (isRouteLoading && !startedRef.current) {
+      startedRef.current = true;
+      start();
+      return;
+    }
 
-  if (routeKey.includes("/sign-in") || routeKey.includes("/setup")) {
-    return "form" satisfies PageSkeletonVariant;
-  }
-  if (routeKey.includes("/invitations/$invitationId")) {
-    return "split-detail" satisfies PageSkeletonVariant;
-  }
-  if (routeKey === "/" || routeKey === "/_authenticated/" || routeKey.includes("/attention")) {
-    return "card-grid" satisfies PageSkeletonVariant;
-  }
-  return "table" satisfies PageSkeletonVariant;
+    if (!isRouteLoading && startedRef.current) {
+      startedRef.current = false;
+      stop();
+    }
+  }, [isRouteLoading, start, stop]);
+
+  useEffect(
+    () => () => {
+      if (!startedRef.current) return;
+      startedRef.current = false;
+      stop();
+    },
+    [stop],
+  );
 }
 
 export function RouteTransition({ children }: { children: ReactNode }) {
-  const { t } = useTranslation("common");
-  const { isLoading, pathname, routeId } = useRouterState({
+  const { isRouteLoading, resolvedPathname } = useRouterState({
     select: (state) => ({
-      isLoading: state.isLoading || state.matches.some((match) => match.status === "pending"),
-      pathname: state.location.pathname,
-      routeId: [...state.matches].reverse().find((match) => match.routeId)?.routeId,
+      isRouteLoading: state.isLoading,
+      resolvedPathname: state.resolvedLocation?.pathname ?? state.location.pathname,
     }),
     structuralSharing: true,
   });
-  const skeletonVariant = resolvePlatformSkeletonVariant(routeId, pathname);
+  useRouteLoadingProgress(isRouteLoading);
 
   return (
-    <div
-      aria-busy={isLoading}
-      className="relative flex min-h-0 min-w-0 w-full flex-1 flex-col bg-background"
-    >
+    <MotionConfig reducedMotion="user" transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}>
       <div
-        aria-hidden={isLoading || undefined}
-        className={
-          isLoading
-            ? "invisible flex min-h-0 min-w-0 w-full flex-1 flex-col pointer-events-none"
-            : "flex min-h-0 min-w-0 w-full flex-1 flex-col"
-        }
-        data-slot="route-content"
-        inert={isLoading || undefined}
+        aria-busy={isRouteLoading}
+        className="relative flex min-h-0 min-w-0 w-full flex-1 flex-col bg-background"
       >
-        {children}
+        <AnimatePresence initial={false} mode="popLayout">
+          <motion.div
+            key={resolvedPathname}
+            animate={{ y: 0 }}
+            className="flex min-h-0 min-w-0 w-full flex-1 flex-col"
+            data-slot="route-content"
+            exit={{ y: -2 }}
+            initial={{ y: 4 }}
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
       </div>
-      {isLoading ? (
-        <div
-          aria-label={t("LOADING")}
-          aria-live="polite"
-          className="absolute inset-0 z-10 min-h-full overflow-hidden bg-background"
-          role="status"
-        >
-          <PageSkeleton className="p-4 sm:p-6" variant={skeletonVariant} />
-        </div>
-      ) : null}
-    </div>
+    </MotionConfig>
   );
 }

@@ -5,7 +5,6 @@ import { i18nResources } from "@/lib/i18n/resources";
 const REQUIRED_COPY = {
   account: [
     "ACCOUNT_MENU_PLATFORM_OPEN",
-    "ACCOUNT_MENU_PLATFORM_CHECKING",
     "ACCOUNT_MENU_PLATFORM_LOAD_ERROR",
     "ACCOUNT_MENU_PLATFORM_CONFIGURATION_ERROR",
   ],

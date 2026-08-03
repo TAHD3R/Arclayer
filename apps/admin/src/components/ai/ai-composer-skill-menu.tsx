@@ -11,6 +11,7 @@ import {
   useAIComposerDirectiveStore,
   type AIComposerDirectiveScope,
 } from "@/components/ai/ai-composer-directives";
+import { useAIComposerDirectiveInsertion } from "@/components/ai/ai-composer-rich-input";
 import {
   AIComposerSkillPanelContent,
   type AIComposerSkillOption,
@@ -81,6 +82,7 @@ export function AIComposerSkillMenu(props: {
 }) {
   const { t } = useTranslation("ai");
   const aui = useAui();
+  const { insertDirective } = useAIComposerDirectiveInsertion();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const { isError, isLoading, skills, workspaceId } = useEnabledAIComposerSkills({ enabled: open });
@@ -94,6 +96,11 @@ export function AIComposerSkillMenu(props: {
         label: skill.label,
       },
     ]);
+    insertDirective({
+      type: "skill",
+      id: skill.id,
+      label: skill.label,
+    });
     const composer = aui.composer();
     const current = composer.getState().runConfig;
     composer.setRunConfig({

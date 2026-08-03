@@ -75,11 +75,22 @@ def test_builder_composition_saga_contract() -> None:
     assert "idx_builder_generations_composition_saga_id" in sql
 
 
-def test_builder_design_generation_context_is_the_latest_contract() -> None:
-    migration = TENANT_CONTROL_MIGRATIONS[-1]
+def test_builder_design_generation_context_contract() -> None:
+    migration = _migration(28)
     sql = "\n".join(migration.sql)
 
     assert migration.version == 28
     assert migration.name == "builder_design_generation_context"
     assert "ALTER TABLE {schema}.builder_generations" in sql
     assert "ADD COLUMN IF NOT EXISTS design_context JSONB NULL" in sql
+
+
+def test_upload_session_status_capacity_is_the_latest_contract() -> None:
+    migration = TENANT_CONTROL_MIGRATIONS[-1]
+    sql = "\n".join(migration.sql)
+
+    assert migration.version == 29
+    assert migration.name == "upload_session_status_capacity"
+    assert "ALTER TABLE {schema}.upload_sessions" in sql
+    assert "ALTER COLUMN status TYPE VARCHAR(32)" in sql
+    assert "USING status::VARCHAR(32)" in sql

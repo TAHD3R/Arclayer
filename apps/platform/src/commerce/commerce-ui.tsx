@@ -3,7 +3,8 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { PlatformCommerceApiError } from "@/commerce/commerce-api";
-import { Button } from "@arclayer/ui/button";
+import { PlatformPage } from "@/components/platform-page";
+import { Button } from "@/components/ui/button";
 import {
   Empty,
   EmptyContent,
@@ -11,23 +12,16 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from "@arclayer/ui/empty";
-import { Skeleton } from "@arclayer/ui/skeleton";
+} from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function CommercePage(
   props: Readonly<{ title: string; description: string; children: ReactNode }>,
 ) {
   return (
-    <section className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-7 px-5 py-8 md:px-8 md:py-10">
-      <header className="max-w-3xl space-y-2">
-        <p className="text-caption font-semibold tracking-[0.16em] text-label-secondary uppercase">
-          Commerce
-        </p>
-        <h1 className="text-largetitle">{props.title}</h1>
-        <p className="text-body text-label-secondary">{props.description}</p>
-      </header>
+    <PlatformPage description={props.description} title={props.title}>
       {props.children}
-    </section>
+    </PlatformPage>
   );
 }
 

@@ -1,7 +1,12 @@
 import {
+  platformDisableProject,
+  platformDisableUser,
   platformArchiveWorkspace,
   platformDisableWorkspace,
+  platformEnableProject,
+  platformEnableUser,
   platformEnableWorkspace,
+  platformGetProjectOperations,
   platformGetProjectDetail,
   platformGetUserDetail,
   platformGetWorkspaceDetail,
@@ -13,6 +18,7 @@ import {
   type AccessRestrictionEnforceRequest,
   type AccessRestrictionLiftRequest,
   type DirectoryProjectDetailOut,
+  type DirectoryProjectOperationsOut,
   type DirectoryUserDetailOut,
   type DirectoryWorkspaceDetailOut,
   type DirectoryWorkspaceUpdateRequest,
@@ -221,10 +227,101 @@ export async function getTenantUser(userId: string): Promise<DirectoryUserDetail
   }
 }
 
+export async function disableTenantUser(
+  userId: string,
+  body: AccessRestrictionEnforceRequest,
+  idempotencyKey: string,
+): Promise<DirectoryUserDetailOut> {
+  try {
+    return unwrap(
+      await platformDisableUser({
+        client: platformApiClient,
+        path: { user_id: userId },
+        headers: { "Idempotency-Key": idempotencyKey },
+        body,
+      }),
+    );
+  } catch (error) {
+    throw normalizeError(error);
+  }
+}
+
+export async function enableTenantUser(
+  userId: string,
+  body: AccessRestrictionLiftRequest,
+  idempotencyKey: string,
+): Promise<DirectoryUserDetailOut> {
+  try {
+    return unwrap(
+      await platformEnableUser({
+        client: platformApiClient,
+        path: { user_id: userId },
+        headers: { "Idempotency-Key": idempotencyKey },
+        body,
+      }),
+    );
+  } catch (error) {
+    throw normalizeError(error);
+  }
+}
+
 export async function getTenantProject(projectId: string): Promise<DirectoryProjectDetailOut> {
   try {
     return unwrap(
       await platformGetProjectDetail({
+        client: platformApiClient,
+        path: { project_id: projectId },
+      }),
+    );
+  } catch (error) {
+    throw normalizeError(error);
+  }
+}
+
+export async function disableTenantProject(
+  projectId: string,
+  body: AccessRestrictionEnforceRequest,
+  idempotencyKey: string,
+): Promise<DirectoryProjectDetailOut> {
+  try {
+    return unwrap(
+      await platformDisableProject({
+        client: platformApiClient,
+        path: { project_id: projectId },
+        headers: { "Idempotency-Key": idempotencyKey },
+        body,
+      }),
+    );
+  } catch (error) {
+    throw normalizeError(error);
+  }
+}
+
+export async function enableTenantProject(
+  projectId: string,
+  body: AccessRestrictionLiftRequest,
+  idempotencyKey: string,
+): Promise<DirectoryProjectDetailOut> {
+  try {
+    return unwrap(
+      await platformEnableProject({
+        client: platformApiClient,
+        path: { project_id: projectId },
+        headers: { "Idempotency-Key": idempotencyKey },
+        body,
+      }),
+    );
+  } catch (error) {
+    throw normalizeError(error);
+  }
+}
+
+export async function getTenantProjectOperations(
+  projectId: string,
+): Promise<DirectoryProjectOperationsOut> {
+  try {
+    return unwrap(
+      await platformGetProjectOperations({
         client: platformApiClient,
         path: { project_id: projectId },
       }),

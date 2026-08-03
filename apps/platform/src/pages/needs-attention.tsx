@@ -18,11 +18,17 @@ import { useOperationsQuery } from "@/operations/operations-state";
 import { OperationsPage, OperationsQueryBoundary, RefreshStatus } from "@/operations/operations-ui";
 import { SavedViewsControl } from "@/saved-views/saved-views-control";
 import { SAVED_VIEW_DEFINITIONS, type SavedViewState } from "@/saved-views/saved-view-contracts";
-import { Alert, AlertDescription } from "@arclayer/ui/alert";
-import { Button } from "@arclayer/ui/button";
-import { Input } from "@arclayer/ui/input";
-import { Label } from "@arclayer/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type NeedsAttentionPageProps = Readonly<{
   search: NeedsAttentionSearch;
@@ -225,7 +231,7 @@ function AttentionFilters({
           <AlertDescription>{t("ASSIGNEES_ERROR")}</AlertDescription>
         </Alert>
       ) : (
-        <div className="text-footnote text-label-secondary">{t("ASSIGNEES_LOADING")}</div>
+        <div className="text-sm text-muted-foreground">{t("ASSIGNEES_LOADING")}</div>
       )}
       <Select
         onValueChange={(value) => selectScope(value === "all" ? undefined : (value as ScopeType))}

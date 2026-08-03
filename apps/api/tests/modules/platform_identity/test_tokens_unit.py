@@ -33,9 +33,10 @@ def test_platform_auth_defaults_keep_short_bearers_and_one_day_device_sessions(
 
     settings = PlatformAuthSettings()
 
-    assert settings.access_token_ttl_seconds == 900
-    assert settings.device_session.inactivity_ttl_seconds == 86_400
-    assert settings.device_session.absolute_ttl_seconds == 86_400
+    assert settings.access_token_ttl_seconds == 28_800
+    assert settings.device_session.inactivity_ttl_seconds == 28_800
+    assert settings.device_session.absolute_ttl_seconds == 28_800
+    assert settings.device_session.policy_revision == 3
     assert settings.device_session.policy_revision == 2
 
 

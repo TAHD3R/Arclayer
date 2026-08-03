@@ -1,4 +1,5 @@
-import { Link2, Plus, ShieldCheck, UsersRound } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Link2, Plus, ShieldCheck, UserRoundCog, UsersRound } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
@@ -13,26 +14,39 @@ import {
   getCurrentPlatformTeamIdentity,
   getPlatformTeam,
   listPlatformInvitations,
+  listPlatformRoles,
 } from "@/access/access-api";
 import { AccessPage, AccessQueryState, useAccessQuery } from "@/access/access-ui";
-import { InviteOperatorDialog } from "@/access/platform-team-dialogs";
+import {
+  AssignOperatorRolesDialog,
+  InviteOperatorDialog,
+  RevokeInvitationDialog,
+} from "@/access/platform-team-dialogs";
 import { formatDateTime } from "@/monitoring/format";
-import { Alert, AlertDescription } from "@arclayer/ui/alert";
-import { Badge } from "@arclayer/ui/badge";
-import { Button } from "@arclayer/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 function person(user: PlatformTeamUserOut) {
   return user.displayName ?? user.username;
 }
 
-function OperatorRow({ operator }: Readonly<{ operator: PlatformTeamOperatorOut }>) {
+function OperatorRow({
+  canManageRoles,
+  onAssignRoles,
+  operator,
+}: Readonly<{
+  canManageRoles: boolean;
+  onAssignRoles: () => void;
+  operator: PlatformTeamOperatorOut;
+}>) {
   const { t } = useTranslation("access");
   return (
     <li className="grid gap-3 border-t px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
       <div>
         <p className="font-medium">{person(operator.user)}</p>
-        <p className="text-footnote text-label-secondary">{operator.user.username}</p>
+        <p className="text-sm text-muted-foreground">{operator.user.username}</p>
       </div>
       <div className="flex flex-wrap gap-2">
         {operator.roles.length ? (
@@ -42,25 +56,41 @@ function OperatorRow({ operator }: Readonly<{ operator: PlatformTeamOperatorOut 
             </Badge>
           ))
         ) : (
-          <span className="text-footnote text-label-secondary">{t("NO_ROLES")}</span>
+          <span className="text-sm text-muted-foreground">{t("NO_ROLES")}</span>
         )}
       </div>
-      <div className="space-y-1 text-footnote text-label-secondary">
+      <div className="space-y-2 text-sm text-muted-foreground">
         <p>{t(`OPERATOR_${operator.status.toUpperCase()}`)}</p>
         <p>{t("MFA_SUMMARY", { count: operator.mfa.verifiedMethodCount })}</p>
         <p>{t("SESSION_SUMMARY", { count: operator.sessions.activeSessionCount })}</p>
+        {operator.status !== "deactivated" && canManageRoles ? (
+          <div className="flex flex-wrap justify-end gap-2 pt-1">
+            <Button size="sm" variant="outline" onClick={onAssignRoles}>
+              <UserRoundCog aria-hidden="true" />
+              {t("ADD_ROLES")}
+            </Button>
+          </div>
+        ) : null}
       </div>
     </li>
   );
 }
 
-function InvitationRow({ invitation }: Readonly<{ invitation: PlatformInvitationDetailOut }>) {
+function InvitationRow({
+  canRevoke = false,
+  invitation,
+  onRevoke,
+}: Readonly<{
+  canRevoke?: boolean;
+  invitation: PlatformInvitationDetailOut;
+  onRevoke?: () => void;
+}>) {
   const { t } = useTranslation("access");
   return (
     <li className="flex flex-col gap-3 border-t px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <p className="font-medium">{person(invitation.recipient)}</p>
-        <p className="text-footnote text-label-secondary">
+        <p className="text-sm text-muted-foreground">
           {t("INVITED_BY", { name: person(invitation.inviter) })} ·{" "}
           {t("EXPIRES", { date: formatDateTime(invitation.expiresAt) })}
         </p>
@@ -69,12 +99,18 @@ function InvitationRow({ invitation }: Readonly<{ invitation: PlatformInvitation
         <Badge variant={invitation.isEffective ? "secondary" : "outline"}>
           {t(`INVITATION_${invitation.status.toUpperCase()}`)}
         </Badge>
-        <a
-          className="text-footnote font-medium text-primary underline underline-offset-4"
-          href={`/access/team/invitations/${invitation.invitationId}`}
+        <Link
+          className="text-sm font-medium text-primary underline underline-offset-4"
+          params={{ invitationId: invitation.invitationId }}
+          to="/access/team/invitations/$invitationId"
         >
           {t("VIEW_DETAILS")}
-        </a>
+        </Link>
+        {canRevoke && invitation.isEffective ? (
+          <Button size="sm" variant="outline" onClick={onRevoke}>
+            {t("REVOKE_INVITATION")}
+          </Button>
+        ) : null}
       </div>
     </li>
   );
@@ -83,14 +119,20 @@ function InvitationRow({ invitation }: Readonly<{ invitation: PlatformInvitation
 export function PlatformTeamPage() {
   const { t } = useTranslation("access");
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [successKey, setSuccessKey] = useState<string | null>(null);
-  const load = useCallback(
-    async () => ({
-      team: await getPlatformTeam(),
-      identity: await getCurrentPlatformTeamIdentity(),
-    }),
-    [],
+  const [operatorAction, setOperatorAction] = useState<PlatformTeamOperatorOut | null>(null);
+  const [revokeInvitation, setRevokeInvitation] = useState<PlatformInvitationDetailOut | null>(
+    null,
   );
+  const [successKey, setSuccessKey] = useState<string | null>(null);
+  const load = useCallback(async () => {
+    const identity = await getCurrentPlatformTeamIdentity();
+    const canManageRoles = identity.effectivePermissions.includes("platform:access-roles:manage");
+    const [team, roles] = await Promise.all([
+      getPlatformTeam(),
+      canManageRoles ? listPlatformRoles() : Promise.resolve([]),
+    ]);
+    return { identity, roles, team };
+  }, []);
   const { state, retry } = useAccessQuery(load, []);
   return (
     <AccessPage description={t("TEAM_DESCRIPTION")} title={t("TEAM_TITLE")}>
@@ -104,6 +146,9 @@ export function PlatformTeamPage() {
         {(data) => {
           const canInvite = data.identity.effectivePermissions.includes(
             "platform:access-team:invite",
+          );
+          const canManageRoles = data.identity.effectivePermissions.includes(
+            "platform:access-roles:manage",
           );
           const completed = (messageKey: string) => {
             setSuccessKey(messageKey);
@@ -124,9 +169,32 @@ export function PlatformTeamPage() {
                   <AlertDescription>{t(successKey)}</AlertDescription>
                 </Alert>
               ) : null}
-              <TeamContent team={data.team} />
+              <TeamContent
+                canInvite={canInvite}
+                canManageRoles={canManageRoles}
+                onAssignRoles={setOperatorAction}
+                onRevokeInvitation={setRevokeInvitation}
+                team={data.team}
+              />
               {inviteOpen ? (
                 <InviteOperatorDialog open onOpenChange={setInviteOpen} onCompleted={completed} />
+              ) : null}
+              {operatorAction ? (
+                <AssignOperatorRolesDialog
+                  open
+                  onOpenChange={(open) => !open && setOperatorAction(null)}
+                  onCompleted={completed}
+                  operator={operatorAction}
+                  roles={data.roles}
+                />
+              ) : null}
+              {revokeInvitation ? (
+                <RevokeInvitationDialog
+                  invitation={revokeInvitation}
+                  open
+                  onOpenChange={(open) => !open && setRevokeInvitation(null)}
+                  onCompleted={completed}
+                />
               ) : null}
             </>
           );
@@ -136,7 +204,19 @@ export function PlatformTeamPage() {
   );
 }
 
-function TeamContent({ team }: Readonly<{ team: PlatformTeamQueueOut }>) {
+function TeamContent({
+  canInvite,
+  canManageRoles,
+  onAssignRoles,
+  onRevokeInvitation,
+  team,
+}: Readonly<{
+  canInvite: boolean;
+  canManageRoles: boolean;
+  onAssignRoles: (operator: PlatformTeamOperatorOut) => void;
+  onRevokeInvitation: (invitation: PlatformInvitationDetailOut) => void;
+  team: PlatformTeamQueueOut;
+}>) {
   const { t } = useTranslation("access");
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
@@ -152,14 +232,16 @@ function TeamContent({ team }: Readonly<{ team: PlatformTeamQueueOut }>) {
           <CardContent>
             {team.owner ? (
               <div>
-                <p className="font-medium">{person(team.owner.user)}</p>
-                <p className="text-footnote text-label-secondary">
-                  {t("MFA_SUMMARY", { count: team.owner.mfa.verifiedMethodCount })} ·{" "}
-                  {t("SESSION_SUMMARY", { count: team.owner.sessions.activeSessionCount })}
-                </p>
+                <div>
+                  <p className="font-medium">{person(team.owner.user)}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("MFA_SUMMARY", { count: team.owner.mfa.verifiedMethodCount })} ·{" "}
+                    {t("SESSION_SUMMARY", { count: team.owner.sessions.activeSessionCount })}
+                  </p>
+                </div>
               </div>
             ) : (
-              <p className="text-body text-label-secondary">{t("OWNER_EMPTY")}</p>
+              <p className="text-base text-muted-foreground">{t("OWNER_EMPTY")}</p>
             )}
           </CardContent>
         </Card>
@@ -175,23 +257,40 @@ function TeamContent({ team }: Readonly<{ team: PlatformTeamQueueOut }>) {
             <ul>
               {team.operators.length ? (
                 team.operators.map((operator) => (
-                  <OperatorRow key={operator.operatorId} operator={operator} />
+                  <OperatorRow
+                    canManageRoles={canManageRoles}
+                    key={operator.operatorId}
+                    onAssignRoles={() => onAssignRoles(operator)}
+                    operator={operator}
+                  />
                 ))
               ) : (
-                <li className="px-5 py-4 text-body text-label-secondary">{t("OPERATORS_EMPTY")}</li>
+                <li className="px-5 py-4 text-base text-muted-foreground">
+                  {t("OPERATORS_EMPTY")}
+                </li>
               )}
             </ul>
           </CardContent>
         </Card>
       </div>
-      <InvitationQueue invitations={team.invitations} />
+      <InvitationQueue
+        canRevoke={canInvite}
+        invitations={team.invitations}
+        onRevoke={onRevokeInvitation}
+      />
     </div>
   );
 }
 
 function InvitationQueue({
+  canRevoke,
   invitations,
-}: Readonly<{ invitations: PlatformInvitationDetailOut[] }>) {
+  onRevoke,
+}: Readonly<{
+  canRevoke: boolean;
+  invitations: PlatformInvitationDetailOut[];
+  onRevoke: (invitation: PlatformInvitationDetailOut) => void;
+}>) {
   const { t } = useTranslation("access");
   return (
     <Card className="h-fit">
@@ -206,10 +305,15 @@ function InvitationQueue({
         <ul>
           {invitations.length ? (
             invitations.map((invitation) => (
-              <InvitationRow invitation={invitation} key={invitation.invitationId} />
+              <InvitationRow
+                canRevoke={canRevoke}
+                invitation={invitation}
+                key={invitation.invitationId}
+                onRevoke={() => onRevoke(invitation)}
+              />
             ))
           ) : (
-            <li className="px-5 py-4 text-body text-label-secondary">{t("INVITATIONS_EMPTY")}</li>
+            <li className="px-5 py-4 text-base text-muted-foreground">{t("INVITATIONS_EMPTY")}</li>
           )}
         </ul>
       </CardContent>
@@ -233,17 +337,17 @@ export function PlatformInvitationPage({ invitationId }: Readonly<{ invitationId
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <dl className="grid gap-4 text-body sm:grid-cols-2">
+              <dl className="grid gap-4 text-base sm:grid-cols-2">
                 <div>
-                  <dt className="text-footnote text-label-secondary">{t("STATUS")}</dt>
+                  <dt className="text-sm text-muted-foreground">{t("STATUS")}</dt>
                   <dd>{t(`INVITATION_${invitation.status.toUpperCase()}`)}</dd>
                 </div>
                 <div>
-                  <dt className="text-footnote text-label-secondary">{t("EXPIRES_LABEL")}</dt>
+                  <dt className="text-sm text-muted-foreground">{t("EXPIRES_LABEL")}</dt>
                   <dd>{formatDateTime(invitation.expiresAt)}</dd>
                 </div>
                 <div className="sm:col-span-2">
-                  <dt className="text-footnote text-label-secondary">{t("ROLES")}</dt>
+                  <dt className="text-sm text-muted-foreground">{t("ROLES")}</dt>
                   <dd className="mt-2 flex flex-wrap gap-2">
                     {invitation.roles.map((role) => (
                       <Badge key={role.roleId} variant="secondary">

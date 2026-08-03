@@ -4,12 +4,27 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f7f8fa" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
-    <meta name="description" content="Arclayer Platform Console" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#171717" />
+    <meta name="description" content="Arclayer Admin" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
-    <title>Arclayer Platform Console</title>
+    <title>Arclayer Admin</title>
+    <style>
+      html #app-loading {
+        background: #ffffff;
+        color: #171717;
+      }
+
+      html.dark #app-loading {
+        background: #171717;
+        color: #fafafa;
+      }
+
+      html #app-loading .arc-weave-loader {
+        color: currentColor;
+      }
+    </style>
     <script>
       (() => {
         const theme = localStorage.getItem("arclayer:platform:theme");
@@ -22,7 +37,7 @@
             : matchMedia("(prefers-color-scheme: dark)").matches
               ? "dark"
               : "light";
-        document.documentElement.dataset.theme = resolvedTheme;
+        document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
 
         const locale = localStorage.getItem("arclayer:platform:locale");
         if (locale !== null && locale !== "zh-CN" && locale !== "en-US") {

@@ -9,6 +9,10 @@ import { PlatformPreferencesProvider } from "@/lib/preferences";
 import { routeTree } from "@/routeTree.gen";
 import * as setupApi from "@/setup/setup-api";
 
+vi.mock("@/components/platform-aurora", () => ({
+  PlatformAurora: () => <div data-testid="platform-aurora" />,
+}));
+
 async function renderRoute(initialEntry: string) {
   const router = createRouter({
     routeTree,
@@ -78,9 +82,7 @@ describe("Platform first-owner setup", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "Continue to sign in" }));
-    expect(
-      await screen.findByRole("heading", { name: "Sign in to the Platform Console" }),
-    ).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "Welcome back" })).toBeVisible();
   });
 
   it("redirects a ready setup route to Platform sign-in", async () => {
@@ -90,9 +92,7 @@ describe("Platform first-owner setup", () => {
     });
     await renderRoute("/setup");
 
-    expect(
-      await screen.findByRole("heading", { name: "Sign in to the Platform Console" }),
-    ).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "Welcome back" })).toBeVisible();
     expect(screen.queryByRole("button", { name: "Create Instance Owner" })).toBeNull();
   });
 
@@ -117,7 +117,7 @@ describe("Platform first-owner setup", () => {
     await renderRoute("/setup");
 
     await waitFor(() => {
-      expect(screen.getByText("The Platform Console couldn't check setup status")).toBeVisible();
+      expect(screen.getByText("Platform setup status could not be checked")).toBeVisible();
       expect(screen.getByText(/won't assume setup is complete/)).toBeVisible();
     });
     expect(consoleError).toHaveBeenCalled();

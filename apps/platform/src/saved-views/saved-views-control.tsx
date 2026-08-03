@@ -14,10 +14,16 @@ import {
   type SavedViewState,
   toSavedViewCommand,
 } from "@/saved-views/saved-view-contracts";
-import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
-import { Button } from "@arclayer/ui/button";
-import { Input } from "@arclayer/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type SavedViewControlProps = Readonly<{
   definition: SavedViewDefinition;
@@ -135,7 +141,9 @@ export function SavedViewsControl({ definition, state, onApply }: SavedViewContr
           ))}
         </SelectContent>
       </Select>
-      {unsaved ? <span className="text-footnote text-warning">{t("UNSAVED")}</span> : null}
+      {unsaved ? (
+        <span className="text-sm text-amber-600 dark:text-amber-400">{t("UNSAVED")}</span>
+      ) : null}
       <Input
         aria-label={t("NAME")}
         className="w-full sm:w-40"
@@ -180,7 +188,7 @@ export function SavedViewsControl({ definition, state, onApply }: SavedViewContr
         </>
       ) : null}
       {omissions.length ? (
-        <Alert className="basis-full border-warning/40 bg-warning/10">
+        <Alert className="basis-full border-amber-500/40 bg-amber-500/10">
           <AlertTriangle aria-hidden="true" />
           <AlertTitle>{t("OMISSIONS_TITLE")}</AlertTitle>
           <AlertDescription>{t("OMISSIONS_DESCRIPTION")}</AlertDescription>

@@ -36,6 +36,7 @@ from src.modules.auth.sso.schema import (
 )
 from src.modules.auth.sso.service import AuthSSOService
 from src.modules.auth.two_factor.service import AuthTwoFactorService
+from src.modules.auth.webauthn.service import AuthWebAuthnService
 from src.platform.cache.valkey import get_valkey
 
 router = APIRouter(prefix="/sso", tags=["global.auth.sso"])
@@ -75,7 +76,13 @@ def get_login_service(
         connector_registry=connector_registry,
     )
     two_factor = AuthTwoFactorService(settings)
-    return AuthLoginService(settings, valkey=valkey, auth_service=auth_service, two_factor=two_factor)
+    return AuthLoginService(
+        settings,
+        valkey=valkey,
+        auth_service=auth_service,
+        two_factor=two_factor,
+        webauthn=AuthWebAuthnService(settings),
+    )
 
 
 def get_sso_service(

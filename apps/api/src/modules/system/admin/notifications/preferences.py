@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal, cast
+from typing import Literal, TypedDict, cast
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -10,7 +10,18 @@ from src.models.system.setting import SettingRecord
 from src.settings.scopes import SCOPE_TYPE_USER
 
 NotificationPreferenceChannel = Literal["in_app", "email"]
+NotificationSoundTone = Literal["chime", "pulse", "pop"]
 NOTIFICATION_PREFERENCES_NAMESPACE = "notifications.me.preferences"
+
+
+class NotificationSoundState(TypedDict):
+    enabled: bool
+    tone: NotificationSoundTone
+
+
+class NotificationPreferencesState(TypedDict):
+    topics: dict[str, dict[str, bool]]
+    sound: NotificationSoundState
 
 
 class NotificationTopicDefinition(BaseModel):
@@ -177,20 +188,63 @@ def _normalize_topics(raw: object) -> dict[str, dict[str, bool]]:
     return out
 
 
+def _normalize_sound(raw: object) -> NotificationSoundState:
+    value = raw if isinstance(raw, dict) else {}
+    tone = value.get("tone")
+    normalized_tone: NotificationSoundTone = tone if tone in {"chime", "pulse", "pop"} else "chime"
+    return {
+        "enabled": bool(value.get("enabled")),
+        "tone": normalized_tone,
+    }
+
+
+def _normalize_preferences_value(raw: object) -> NotificationPreferencesState:
+    value = raw if isinstance(raw, dict) else {}
+    return {
+        "topics": _normalize_topics(value.get("topics")),
+        "sound": _normalize_sound(value.get("sound")),
+    }
+
+
 def is_topic_channel_mutable(topic: NotificationTopicDefinition, channel: NotificationPreferenceChannel) -> bool:
     if channel == "in_app":
         return topic.in_app_supported
     return topic.email_supported
 
 
-async def load_user_notification_preferences(*, user_id: UUID) -> dict[str, dict[str, bool]]:
+async def load_user_notification_preferences(*, user_id: UUID) -> NotificationPreferencesState:
     record = await SettingRecord.get_or_none(
         scope_type=SCOPE_TYPE_USER,
         scope_id=user_id,
         namespace=NOTIFICATION_PREFERENCES_NAMESPACE,
     )
-    value = record.value if record and isinstance(record.value, dict) else {}
-    return _normalize_topics(value.get("topics"))
+    return _normalize_preferences_value(record.value if record else None)
+
+
+async def _save_preferences_state(
+    *,
+    user_id: UUID,
+    state: NotificationPreferencesState,
+) -> None:
+    record = await SettingRecord.get_or_none(
+        scope_type=SCOPE_TYPE_USER,
+        scope_id=user_id,
+        namespace=NOTIFICATION_PREFERENCES_NAMESPACE,
+    )
+    next_value = {"topics": state["topics"], "sound": state["sound"]}
+    if record is None:
+        await SettingRecord.create(
+            scope_type=SCOPE_TYPE_USER,
+            scope_id=user_id,
+            namespace=NOTIFICATION_PREFERENCES_NAMESPACE,
+            value=next_value,
+            updated_by=user_id,
+        )
+        return
+
+    record.value = next_value
+    record.updated_by = user_id
+    await record.save(update_fields=["value", "updated_by", "updated_at"])
 
 
 async def save_user_notification_preference(
@@ -199,7 +253,7 @@ async def save_user_notification_preference(
     topic_key: str,
     channel: NotificationPreferenceChannel,
     enabled: bool,
-) -> dict[str, dict[str, bool]]:
+) -> NotificationPreferencesState:
     topic = TOPIC_BY_KEY.get(topic_key)
     if topic is None:
         raise ValueError("UNKNOWN_TOPIC")
@@ -209,30 +263,29 @@ async def save_user_notification_preference(
         raise ValueError("CHANNEL_NOT_SUPPORTED")
 
     current = await load_user_notification_preferences(user_id=user_id)
-    topic_state = current.get(topic_key, _default_topic_state(topic))
+    topic_state = current["topics"].get(topic_key, _default_topic_state(topic))
     next_state = {**topic_state, channel: bool(enabled)}
-    next_topics = {**current, topic_key: next_state}
+    next_preferences: NotificationPreferencesState = {
+        "topics": {**current["topics"], topic_key: next_state},
+        "sound": current["sound"],
+    }
+    await _save_preferences_state(user_id=user_id, state=next_preferences)
+    return next_preferences
 
-    record = await SettingRecord.get_or_none(
-        scope_type=SCOPE_TYPE_USER,
-        scope_id=user_id,
-        namespace=NOTIFICATION_PREFERENCES_NAMESPACE,
-    )
-    next_value = {"topics": next_topics}
-    if record is None:
-        await SettingRecord.create(
-            scope_type=SCOPE_TYPE_USER,
-            scope_id=user_id,
-            namespace=NOTIFICATION_PREFERENCES_NAMESPACE,
-            value=next_value,
-            updated_by=user_id,
-        )
-        return next_topics
 
-    record.value = next_value
-    record.updated_by = user_id
-    await record.save(update_fields=["value", "updated_by", "updated_at"])
-    return next_topics
+async def save_user_notification_sound(
+    *,
+    user_id: UUID,
+    enabled: bool,
+    tone: NotificationSoundTone,
+) -> NotificationPreferencesState:
+    current = await load_user_notification_preferences(user_id=user_id)
+    next_preferences: NotificationPreferencesState = {
+        "topics": current["topics"],
+        "sound": {"enabled": bool(enabled), "tone": tone},
+    }
+    await _save_preferences_state(user_id=user_id, state=next_preferences)
+    return next_preferences
 
 
 async def is_notification_channel_enabled_for_event(
@@ -257,5 +310,5 @@ async def is_notification_channel_enabled_for_event(
         return False
 
     state = await load_user_notification_preferences(user_id=user_id)
-    topic_state = state.get(topic_key, _default_topic_state(topic))
+    topic_state = state["topics"].get(topic_key, _default_topic_state(topic))
     return bool(topic_state.get(channel))

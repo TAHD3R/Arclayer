@@ -7,14 +7,15 @@ from pydantic import Field
 
 from src.common.schemas.base import BaseSchema
 from src.common.types.json_types import JsonObject
+from src.common.types.public_uuid import PublicUUID
 from src.models.platform_identity.operations import PlatformVerificationAssurance
 
 
 class PlatformStepUpProofIssueRequest(BaseSchema):
     """Reviewed action context that one fresh Platform verification may bind."""
 
-    actor_user_id: UUID
-    session_id: UUID
+    actor_user_id: PublicUUID
+    session_id: PublicUUID
     action_code: str = Field(min_length=1, max_length=128)
     target_type: str = Field(min_length=1, max_length=64)
     target_id: UUID | None = None

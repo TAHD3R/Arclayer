@@ -109,7 +109,9 @@ describe("Operational Signal triage actions", () => {
 
     await waitFor(() => expect(claimOperationalSignal).toHaveBeenCalledWith("signal-1", 7));
     expect(onUpdated).toHaveBeenCalledWith(next);
-    expect(await screen.findByText("Work coordination was updated.")).toBeVisible();
+    expect(
+      await screen.findByText("Work status updated. The original issue is unchanged."),
+    ).toBeVisible();
   });
 
   it("assigns only to an operator returned by the eligible-assignees projection", async () => {
@@ -330,7 +332,7 @@ describe("Operational Signal triage actions", () => {
       />,
     );
 
-    expect(await screen.findByText("Assigned to someone")).toBeVisible();
+    expect(await screen.findByText("Someone is handling this")).toBeVisible();
     expect(screen.queryByText("former-operator")).not.toBeInTheDocument();
   });
 });

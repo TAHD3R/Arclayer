@@ -4,7 +4,7 @@ import re
 from datetime import datetime
 from typing import Literal
 
-from pydantic import AliasChoices, ConfigDict, EmailStr, Field, field_validator, model_validator
+from pydantic import AliasChoices, ConfigDict, EmailStr, Field, field_validator
 
 from src.common.constants.auth import PASSWORD_REGEX, RESET_TOKEN_REGEX
 from src.common.schemas import BaseOut, BaseSchema
@@ -210,6 +210,7 @@ class ChangePasswordRequest(BaseSchema):
 
     old_password: str = Field(min_length=1, max_length=128, description="Current password.")
     new_password: str = Field(min_length=8, max_length=128, description="New password.")
+    mfa_proof: str | None = Field(default=None, min_length=32, max_length=512)
 
     @field_validator("new_password")
     @classmethod
@@ -223,8 +224,7 @@ class SetMyPasswordRequest(BaseSchema):
     """Set password for current user (OAuth-only accounts)."""
 
     new_password: str = Field(min_length=8, max_length=128, description="New password.")
-    code: str | None = Field(default=None, min_length=4, max_length=16, description="2FA TOTP code.")
-    backup_code: str | None = Field(default=None, min_length=4, max_length=64, description="2FA backup code.")
+    mfa_proof: str | None = Field(default=None, min_length=32, max_length=512)
 
     @field_validator("new_password")
     @classmethod
@@ -232,14 +232,6 @@ class SetMyPasswordRequest(BaseSchema):
         if not re.match(PASSWORD_REGEX, value):
             raise ValueError("New password must contain letters and numbers, and be 8-128 characters long.")
         return value
-
-    @model_validator(mode="after")
-    def validate_reauth_shape(self):
-        has_totp = bool(self.code and self.code.strip())
-        has_backup = bool(self.backup_code and self.backup_code.strip())
-        if has_totp and has_backup:
-            raise ValueError("Provide exactly one of code or backup_code.")
-        return self
 
 
 class ForgotPasswordRequest(BaseSchema):
@@ -422,6 +414,7 @@ class ConfirmMyEmailChangeRequest(BaseSchema):
 
     new_email: EmailStr = Field(..., description="New email address.")
     code: str = Field(min_length=4, max_length=16, description="Email verification code.")
+    mfa_proof: str | None = Field(default=None, min_length=32, max_length=512)
 
 
 class RequestRemoveMyPasswordRequest(BaseSchema):
@@ -441,6 +434,7 @@ class ConfirmRemoveMyPasswordRequest(BaseSchema):
     """Confirm password removal."""
 
     code: str = Field(min_length=4, max_length=16, description="Email verification code.")
+    mfa_proof: str | None = Field(default=None, min_length=32, max_length=512)
 
 
 class DeleteMyAccountRequest(BaseSchema):
@@ -448,21 +442,7 @@ class DeleteMyAccountRequest(BaseSchema):
 
     email: EmailStr = Field(..., description="Current account email for confirmation.")
     password: str | None = Field(default=None, min_length=1, max_length=128, description="Current password.")
-    code: str | None = Field(default=None, min_length=4, max_length=16, description="2FA TOTP code (SSO-only).")
-    backup_code: str | None = Field(
-        default=None, min_length=4, max_length=64, description="2FA backup code (SSO-only)."
-    )
-
-    @model_validator(mode="after")
-    def _validate_reauth_shape(self):
-        has_password = bool(self.password and self.password.strip())
-        has_totp = bool(self.code and self.code.strip())
-        has_backup = bool(self.backup_code and self.backup_code.strip())
-        if has_totp and has_backup:
-            raise ValueError("Provide exactly one of code or backup_code.")
-        if has_password and (has_totp or has_backup):
-            raise ValueError("Provide either password or 2FA code, not both.")
-        return self
+    mfa_proof: str | None = Field(default=None, min_length=32, max_length=512)
 
 
 class DeleteMyAccountCapabilityOut(BaseSchema):

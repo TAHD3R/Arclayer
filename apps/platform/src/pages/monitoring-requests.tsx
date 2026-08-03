@@ -14,12 +14,31 @@ import {
   MonitoringToolbar,
   useMonitoringQuery,
 } from "@/monitoring/monitoring-ui";
-import { Badge } from "@arclayer/ui/badge";
-import { Button } from "@arclayer/ui/button";
-import { Input } from "@arclayer/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@arclayer/ui/sheet";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const PAGE_SIZE = 20;
 
@@ -38,43 +57,43 @@ function RequestDetail({
             {t(presentation.areaKey)} · {t(presentation.actionKey)}
           </SheetDescription>
         </SheetHeader>
-        <dl className="grid gap-4 px-6 text-footnote sm:grid-cols-2">
+        <dl className="grid gap-4 px-6 text-sm sm:grid-cols-2">
           <div>
-            <dt className="text-label-secondary">{t("TIME")}</dt>
+            <dt className="text-muted-foreground">{t("TIME")}</dt>
             <dd>{formatDateTime(item.occurredAt)}</dd>
           </div>
           <div>
-            <dt className="text-label-secondary">{t("STATUS")}</dt>
+            <dt className="text-muted-foreground">{t("STATUS")}</dt>
             <dd>
               {t(requestStatusKey(item.statusCode))} · {item.statusCode}
             </dd>
           </div>
           <div>
-            <dt className="text-label-secondary">{t("DURATION")}</dt>
+            <dt className="text-muted-foreground">{t("DURATION")}</dt>
             <dd>{formatDuration(item.durationMs)}</dd>
           </div>
           <div>
-            <dt className="text-label-secondary">{t("ACTOR")}</dt>
+            <dt className="text-muted-foreground">{t("ACTOR")}</dt>
             <dd>{item.actor?.displayName ?? item.actor?.username ?? t("UNAVAILABLE")}</dd>
           </div>
           <div className="border-t pt-4 sm:col-span-2">
             <dt className="font-medium">{t("TECHNICAL_DETAILS")}</dt>
-            <dd className="mt-2 grid gap-3 text-label-secondary sm:grid-cols-2">
-              <span className="break-all font-mono text-caption">
+            <dd className="mt-2 grid gap-3 text-muted-foreground sm:grid-cols-2">
+              <span className="break-all font-mono text-xs">
                 {item.method} {item.routeTemplate}
               </span>
               {item.workspaceId ? (
-                <span className="break-all font-mono text-caption">
+                <span className="break-all font-mono text-xs">
                   {t("WORKSPACE")}: {item.workspaceId}
                 </span>
               ) : null}
               {item.projectId ? (
-                <span className="break-all font-mono text-caption">
+                <span className="break-all font-mono text-xs">
                   {t("PROJECT")}: {item.projectId}
                 </span>
               ) : null}
               {item.traceId ? (
-                <span className="break-all font-mono text-caption">
+                <span className="break-all font-mono text-xs">
                   {t("TRACE")}: {item.traceId}
                 </span>
               ) : null}
@@ -228,7 +247,7 @@ export function MonitoringRequestsPage(props: {
                       <span className="block font-medium">
                         {t(presentRequest(item.method, item.routeTemplate).areaKey)}
                       </span>
-                      <span className="text-caption text-label-secondary">
+                      <span className="text-xs text-muted-foreground">
                         {t(presentRequest(item.method, item.routeTemplate).actionKey)}
                       </span>
                     </TableCell>
@@ -250,7 +269,7 @@ export function MonitoringRequestsPage(props: {
                 ))}
               </TableBody>
             </Table>
-            <div className="flex items-center justify-between text-footnote text-label-secondary">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>{t("PAGE_OF", { page: data.page, pages: data.pages, total: data.total })}</span>
               <div className="flex gap-2">
                 <Button

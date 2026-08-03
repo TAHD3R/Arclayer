@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 
+from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.extensions.dependencies import get_connector_registry
 from src.core.http.response import ApiResponse, ResponseModel
@@ -15,6 +16,7 @@ from src.modules.platform_identity.http import (
     require_platform_permission,
 )
 from src.modules.platform_identity.management_schema import (
+    PlatformCurrentActorProfileOut,
     PlatformCustomRoleApplyRequest,
     PlatformCustomRoleCopyRequest,
     PlatformCustomRoleCreateRequest,
@@ -61,6 +63,18 @@ def get_platform_identity_management_service(
     connector_registry: Annotated[ConnectorRegistry, Depends(get_connector_registry)],
 ) -> PlatformIdentityManagementService:
     return PlatformIdentityManagementService(settings=settings, connector_registry=connector_registry)
+
+
+@router.get(
+    "/me",
+    response_model=ResponseModel[PlatformCurrentActorProfileOut],
+    summary="Read the current Platform administrator profile",
+)
+async def get_current_platform_actor_profile(
+    actor: Annotated[PlatformSessionPrincipal, Depends(get_current_platform_session)],
+    service: Annotated[PlatformIdentityManagementService, Depends(get_platform_identity_management_service)],
+) -> ResponseModel[PlatformCurrentActorProfileOut]:
+    return ApiResponse.success(data=await service.current_actor_profile(user_id=actor.actor_id))
 
 
 @router.get(
@@ -343,7 +357,7 @@ async def list_current_platform_sessions(
     summary="Revoke one current actor Platform device session",
 )
 async def revoke_current_platform_session(
-    session_id: UUID,
+    session_id: PublicUUID,
     payload: PlatformSessionRevokeRequest,
     actor: Annotated[
         PlatformSessionPrincipal, require_platform_permission(PlatformPermissionCode.ACCESS_SESSIONS_REVOKE)

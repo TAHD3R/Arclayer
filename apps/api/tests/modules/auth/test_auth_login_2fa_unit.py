@@ -17,6 +17,10 @@ from src.modules.auth.contracts.schema import UserRepositoryLike
 from src.modules.auth.login.service import AuthLoginService
 from src.modules.auth.service import AuthService
 from src.modules.auth.tokens.service import decode_token, hash_password
+from src.modules.auth.webauthn.schema import (
+    WebAuthnAuthenticationCredential,
+    WebAuthnAuthenticationOptions,
+)
 
 
 class _FakeRaw:
@@ -230,6 +234,27 @@ class FakeTwoFactor:
         raise BadRequest(message="验证码错误", error="TWO_FACTOR_CODE_INVALID")
 
 
+class FakeWebAuthn:
+    async def is_enabled(self, *, user_id: UUID) -> bool:
+        _ = user_id
+        return False
+
+    async def begin_authentication(self, *, user_id: UUID, binding: str) -> WebAuthnAuthenticationOptions:
+        _ = user_id, binding
+        raise AssertionError("WebAuthn is disabled in this test")
+
+    async def complete_authentication(
+        self,
+        *,
+        user_id: UUID,
+        challenge_id: UUID,
+        binding: str,
+        credential: WebAuthnAuthenticationCredential,
+    ) -> UUID:
+        _ = user_id, challenge_id, binding, credential
+        raise AssertionError("WebAuthn is disabled in this test")
+
+
 def _build_login_service(
     monkeypatch, *, two_factor_enabled: bool
 ) -> tuple[AuthLoginService, FakeValkeyClient, FakeUser]:
@@ -249,7 +274,13 @@ def _build_login_service(
     monkeypatch.setattr(auth, "_write_auth_activity_event", _fake_write_auth_activity_event)
 
     two_factor = FakeTwoFactor(enabled=two_factor_enabled)
-    login = AuthLoginService(settings, valkey=valkey, auth_service=auth, two_factor=two_factor)
+    login = AuthLoginService(
+        settings,
+        valkey=valkey,
+        auth_service=auth,
+        two_factor=two_factor,
+        webauthn=FakeWebAuthn(),
+    )
     return login, valkey, user
 
 

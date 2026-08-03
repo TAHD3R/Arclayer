@@ -13,10 +13,23 @@ import {
   MonitoringToolbar,
   useMonitoringQuery,
 } from "@/monitoring/monitoring-ui";
-import { Badge } from "@arclayer/ui/badge";
-import { Input } from "@arclayer/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export function MonitoringPerformancePage(props: {
   search: MonitoringPerformanceSearch;
@@ -122,7 +135,7 @@ export function MonitoringPerformancePage(props: {
                         {t(presentRequest(item.method, item.routeTemplate).areaKey)}
                       </span>
                     </span>
-                    <span className="mt-1 block truncate text-caption text-label-secondary">
+                    <span className="mt-1 block truncate text-xs text-muted-foreground">
                       {t(presentRequest(item.method, item.routeTemplate).actionKey)}
                     </span>
                   </TableCell>
@@ -130,7 +143,7 @@ export function MonitoringPerformancePage(props: {
                   <TableCell>{formatPercent(item.errorRate)}</TableCell>
                   <TableCell>
                     <span className="block font-medium">{formatDuration(item.avgLatencyMs)}</span>
-                    <span className="text-caption text-label-secondary">
+                    <span className="text-xs text-muted-foreground">
                       {t("LATENCY_PERCENTILES", {
                         p95:
                           item.p95LatencyMs == null

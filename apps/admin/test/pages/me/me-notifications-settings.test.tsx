@@ -3,18 +3,31 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getMyNotificationPreferences, patchMyNotificationPreference } from "@/api/notifications";
+import {
+  getMyNotificationPreferences,
+  patchMyNotificationPreference,
+  patchMyNotificationSound,
+} from "@/api/notifications";
 import { SettingsScreenProvider } from "@/components/layout/settings-screen-provider";
+import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { playNotificationSound } from "@/lib/notifications/notification-sound";
 import { UserNotificationSettingsView } from "@/pages/usercenter/notifications/components/user-notification-settings-view";
 import type { NotificationPreferenceTopicOut as NotificationPreferenceTopic } from "@arclayer/openapi";
 
 vi.mock("@/api/notifications", () => ({
+  NOTIFICATION_PREFERENCES_QUERY_KEY: ["me", "notification-preferences"],
   getMyNotificationPreferences: vi.fn(),
   patchMyNotificationPreference: vi.fn(),
+  patchMyNotificationSound: vi.fn(),
+}));
+
+vi.mock("@/lib/notifications/notification-sound", () => ({
+  playNotificationSound: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/lib/notifications", () => ({
   notifyError: vi.fn(),
+  notifySuccessText: vi.fn(),
 }));
 
 const tDict: Record<string, string> = {
@@ -35,6 +48,18 @@ const tDict: Record<string, string> = {
   "account:ME_NOTIFY_BULK_ACTIONS": "Bulk",
   "account:ME_NOTIFY_BULK_TRIGGER_ARIA": "Bulk actions for {{channel}}",
   "account:ME_NOTIFY_CELL_TOGGLE_ARIA": "{{topic}} · {{channel}}",
+  "account:ME_NOTIFY_SOUND_DESC": "Play a short tone for new notifications.",
+  "account:ME_NOTIFY_SOUND_ENABLED_TITLE": "Enable notification sound",
+  "account:ME_NOTIFY_SOUND_PREVIEW": "Preview",
+  "account:ME_NOTIFY_SOUND_SAVED": "Sound saved",
+  "account:ME_NOTIFY_SOUND_SELECT_ARIA": "Notification sound",
+  "account:ME_NOTIFY_SOUND_TITLE": "Notification sound",
+  "account:ME_NOTIFY_SOUND_TONE_DESC": "Choose and preview the notification sound.",
+  "account:ME_NOTIFY_SOUND_TONE_TITLE": "Sound",
+  "account:ME_NOTIFY_SOUND_TOGGLE_ARIA": "Enable notification sound",
+  "account:ME_NOTIFY_SOUND_TONE_CHIME": "Chime",
+  "account:ME_NOTIFY_SOUND_TONE_POP": "Pop",
+  "account:ME_NOTIFY_SOUND_TONE_PULSE": "Pulse",
   "common:EMPTY_TITLE": "No data",
   "common:EMPTY_DESC": "No data found",
   "common:SELECT_ALL": "Select all",
@@ -55,6 +80,10 @@ vi.mock("react-i18next", () => ({
 
 const getMyNotificationPreferencesMock = vi.mocked(getMyNotificationPreferences);
 const patchMyNotificationPreferenceMock = vi.mocked(patchMyNotificationPreference);
+const patchMyNotificationSoundMock = vi.mocked(patchMyNotificationSound);
+const notifyErrorMock = vi.mocked(notifyError);
+const notifySuccessTextMock = vi.mocked(notifySuccessText);
+const playNotificationSoundMock = vi.mocked(playNotificationSound);
 
 type NotificationPreferences = Awaited<ReturnType<typeof getMyNotificationPreferences>>;
 
@@ -115,6 +144,7 @@ describe("UserNotificationSettingsView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     currentPreferences = {
+      sound: { enabled: false, tone: "chime" },
       topics: [
         makeTopic({
           key: "workspace.invitation.accepted",
@@ -131,6 +161,7 @@ describe("UserNotificationSettingsView", () => {
     );
     patchMyNotificationPreferenceMock.mockImplementation(async ({ topicKey, channel, enabled }) => {
       currentPreferences = {
+        ...currentPreferences,
         topics: currentPreferences.topics.map((topic) =>
           topic.key === topicKey
             ? {
@@ -146,6 +177,10 @@ describe("UserNotificationSettingsView", () => {
             : topic,
         ),
       };
+      return clonePreferences(currentPreferences);
+    });
+    patchMyNotificationSoundMock.mockImplementation(async (sound) => {
+      currentPreferences = { ...currentPreferences, sound };
       return clonePreferences(currentPreferences);
     });
   });
@@ -181,9 +216,62 @@ describe("UserNotificationSettingsView", () => {
     });
   });
 
+  it("enables notification sound", async () => {
+    const user = userEvent.setup();
+    renderSettings();
+
+    await user.click(await screen.findByRole("switch", { name: "Enable notification sound" }));
+
+    await waitFor(() => {
+      expect(patchMyNotificationSoundMock).toHaveBeenCalledWith({
+        enabled: true,
+        tone: "chime",
+      });
+      expect(notifySuccessTextMock).toHaveBeenCalledWith("Sound saved");
+    });
+  });
+
+  it("reveals tone controls when notification sound is enabled", async () => {
+    currentPreferences = {
+      ...currentPreferences,
+      sound: { enabled: true, tone: "chime" },
+    };
+
+    renderSettings();
+
+    expect(await screen.findByRole("combobox", { name: "Notification sound" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Preview" })).toBeInTheDocument();
+    expect(document.querySelector('[data-settings-section="notification-sound"]')).not.toBeNull();
+    expect(screen.getByText("Enable notification sound")).toBeInTheDocument();
+    expect(screen.getByText("Sound")).toBeInTheDocument();
+  });
+
+  it("changes and previews the selected notification sound", async () => {
+    const user = userEvent.setup();
+    currentPreferences = {
+      ...currentPreferences,
+      sound: { enabled: true, tone: "chime" },
+    };
+    renderSettings();
+
+    await user.click(await screen.findByRole("combobox", { name: "Notification sound" }));
+    await user.click(await screen.findByRole("option", { name: "Pop" }));
+
+    await waitFor(() => {
+      expect(patchMyNotificationSoundMock).toHaveBeenCalledWith({ enabled: true, tone: "pop" });
+    });
+
+    await user.click(screen.getByRole("button", { name: "Preview" }));
+    await waitFor(() => {
+      expect(playNotificationSoundMock).toHaveBeenCalledWith("pop");
+    });
+    expect(notifyErrorMock).not.toHaveBeenCalled();
+  });
+
   it("bulk selects an entire channel from the column trigger", async () => {
     const user = userEvent.setup();
     currentPreferences = {
+      sound: { enabled: false, tone: "chime" },
       topics: [
         makeTopic({
           key: "workspace.invitation.accepted",
@@ -222,6 +310,7 @@ describe("UserNotificationSettingsView", () => {
 
   it("uses semantic i18n fallback when backend omits topic i18n keys", async () => {
     currentPreferences = {
+      sound: { enabled: false, tone: "chime" },
       topics: [
         makeTopic({
           key: "workspace.member.roles.updated",

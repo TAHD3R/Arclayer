@@ -25,7 +25,6 @@ import {
   History,
   Languages,
   LifeBuoy,
-  LoaderCircle,
   LogOut,
   Monitor,
   Moon,
@@ -114,7 +113,6 @@ type AdminAccountMenuModel = {
 };
 
 type PlatformEntryState =
-  | { status: "checking" }
   | { status: "hidden" }
   | { status: "load-error"; retry: () => void }
   | { status: "configuration-error" }
@@ -197,14 +195,6 @@ function MenuStatus(props: { icon: ReactNode; label: string }) {
 function PlatformEntryMenuItem(props: { entry: PlatformEntryState }) {
   const { t } = useTranslation("account");
   if (props.entry.status === "hidden") return null;
-  if (props.entry.status === "checking") {
-    return (
-      <MenuStatus
-        icon={<LoaderCircle className="animate-spin" />}
-        label={t("ACCOUNT_MENU_PLATFORM_CHECKING")}
-      />
-    );
-  }
   if (props.entry.status === "load-error") {
     return (
       <MenuAction
@@ -709,7 +699,7 @@ function useAdminAccountMenuModel(): AdminAccountMenuModel {
   };
 
   const platformEntry: PlatformEntryState = (() => {
-    if (platformEntryQuery.isPending) return { status: "checking" };
+    if (platformEntryQuery.isPending) return { status: "hidden" };
     if (platformEntryQuery.isError) {
       return { status: "load-error", retry: () => void platformEntryQuery.refetch() };
     }

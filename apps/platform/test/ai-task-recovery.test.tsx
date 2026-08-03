@@ -79,7 +79,7 @@ describe("AI task recovery", () => {
 
     const retry = await screen.findByRole("button", { name: "Retry" });
     expect(retry).toBeDisabled();
-    expect(screen.getByText("Retry is not available for this task right now.")).toBeVisible();
+    expect(screen.getByText("Retry is not currently offered for this task.")).toBeVisible();
     expect(screen.getByText("AI_PLATFORM_TASK_RETRY_PORT_UNAVAILABLE")).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));
@@ -91,7 +91,7 @@ describe("AI task recovery", () => {
     );
     expect(await screen.findByText("Current task status")).toBeVisible();
     expect(screen.getByText("After Cancel, the task status is In progress.")).toBeVisible();
-    expect(screen.getByText("Most recent record: 5.")).toBeVisible();
+    expect(screen.getByText("Latest recorded update: 5.")).toBeVisible();
   });
 
   it("reuses the same idempotency key after an unconfirmed task action", async () => {

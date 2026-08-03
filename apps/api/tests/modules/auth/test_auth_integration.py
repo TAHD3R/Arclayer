@@ -484,8 +484,6 @@ async def test_auth_account_deletion_activity_readback_and_rollback(
                 user=rollback_user,
                 email=str(rollback_user.email),
                 password=password,
-                code=None,
-                backup_code=None,
             )
         monkeypatch.setattr(
             "src.modules.auth.service.write_required_activity_event",
@@ -635,8 +633,6 @@ async def test_auth_password_set_activity_readback_and_rollback(
         await service.set_password_for_current_user(
             user_id=user.id,
             new_password="newpass1",
-            code=None,
-            backup_code=None,
         )
         event = await AuditEvent.filter(
             event_name="auth.password.updated",

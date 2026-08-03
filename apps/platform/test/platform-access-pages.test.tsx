@@ -7,6 +7,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 
 import {
   getCurrentMfaReadiness,
+  getCurrentPlatformTeamIdentity,
   getCurrentSessions,
   getSignInReadiness,
   listPlatformPermissions,
@@ -26,6 +27,7 @@ vi.mock("@/access/access-api", async (importOriginal) => {
   return {
     ...actual,
     getCurrentMfaReadiness: vi.fn(),
+    getCurrentPlatformTeamIdentity: vi.fn(),
     getCurrentSessions: vi.fn(),
     getSignInReadiness: vi.fn(),
     listPlatformPermissions: vi.fn(),
@@ -58,6 +60,19 @@ beforeAll(async () => {
 beforeEach(async () => {
   vi.clearAllMocks();
   await i18n.changeLanguage("en-US");
+  vi.mocked(getCurrentPlatformTeamIdentity).mockResolvedValue({
+    delegablePermissions: [],
+    effectivePermissions: [
+      "platform:access-team:read",
+      "platform:access-roles:read",
+      "platform:access-mfa:reset",
+    ],
+    isInstanceOwner: false,
+    operatorId: "operator-1",
+    operatorRevision: 1,
+    operatorStatus: "active",
+    userId: "user-1",
+  });
 });
 
 afterEach(() => {

@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import { PlatformSetupApiError } from "@/setup/setup-api";
-import { Button } from "@arclayer/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Empty,
   EmptyContent,
@@ -12,7 +12,7 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from "@arclayer/ui/empty";
+} from "@/components/ui/empty";
 
 export function RouterError({ error, reset }: ErrorComponentProps) {
   const { t } = useTranslation(["common", "errors"]);

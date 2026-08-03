@@ -6,6 +6,7 @@ from uuid import UUID
 from pydantic import ConfigDict, Field
 
 from src.common.schemas import BaseSchema
+from src.common.types.public_uuid import PublicUUID
 from src.models.platform_identity.identity import PlatformInvitationStatus, PlatformOperatorStatus
 from src.modules.platform_identity.schema import PlatformRoleBinding
 from src.modules.platform_identity.step_up_schema import PlatformStepUpProofIssueRequest, PlatformStepUpProofIssueResult
@@ -83,6 +84,14 @@ class PlatformTeamIdentityOut(BaseSchema):
     operator_revision: int | None
     effective_permissions: tuple[str, ...]
     delegable_permissions: tuple[str, ...]
+
+
+class PlatformCurrentActorProfileOut(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
+    username: str
+    email: str | None = None
+    avatar_url: str | None = None
 
 
 class PlatformTeamUserOut(BaseSchema):
@@ -288,8 +297,8 @@ class PlatformPermissionCatalogItemOut(BaseSchema):
 class PlatformSessionInventoryItemOut(BaseSchema):
     model_config = ConfigDict(frozen=True)
 
-    session_id: UUID
-    actor_user_id: UUID
+    session_id: PublicUUID
+    actor_user_id: PublicUUID
     device_label: str | None
     recent_activity_at: datetime
     inactivity_expires_at: datetime

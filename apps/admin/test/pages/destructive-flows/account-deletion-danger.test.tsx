@@ -12,6 +12,8 @@ import { TooltipProvider } from "@arclayer/ui/tooltip";
 
 const navigateMock = vi.fn().mockResolvedValue(undefined);
 const getDeleteMyAccountCapabilitiesMock = vi.fn();
+const getTwoFactorStatusMock = vi.fn();
+const verifySecurityActionTotpMock = vi.fn();
 const deleteMyAccountMock = vi.fn();
 
 vi.mock("@tanstack/react-router", async (importOriginal) => {
@@ -25,6 +27,8 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
 vi.mock("@/api/auth", () => ({
   getDeleteMyAccountCapabilities: (...args: unknown[]) =>
     getDeleteMyAccountCapabilitiesMock(...args),
+  getTwoFactorStatus: (...args: unknown[]) => getTwoFactorStatusMock(...args),
+  verifySecurityActionTotp: (...args: unknown[]) => verifySecurityActionTotpMock(...args),
   deleteMyAccount: (...args: unknown[]) => deleteMyAccountMock(...args),
 }));
 
@@ -70,6 +74,12 @@ beforeEach(() => {
     refreshExpiresIn: 86400,
   });
   useWorkspaceStore.setState({ currentWorkspaceId: "ws-current", lastWorkspaceId: "ws-current" });
+  getTwoFactorStatusMock.mockResolvedValue({
+    enabled: false,
+    methods: [],
+    backupCodesRemaining: 0,
+  });
+  verifySecurityActionTotpMock.mockResolvedValue({ proof: "action-proof", expiresIn: 300 });
 });
 
 describe("account deletion danger flow", () => {
@@ -109,7 +119,7 @@ describe("account deletion danger flow", () => {
     });
   });
 
-  it("renders 2FA fields and submits backup code without password", async () => {
+  it("verifies a 2FA action proof before deleting a passwordless account", async () => {
     const user = userEvent.setup();
     getDeleteMyAccountCapabilitiesMock.mockResolvedValue({
       email: "demo@example.com",
@@ -121,6 +131,11 @@ describe("account deletion danger flow", () => {
       hasLinkedOauthIdentities: true,
     });
     deleteMyAccountMock.mockResolvedValue(null);
+    getTwoFactorStatusMock.mockResolvedValue({
+      enabled: true,
+      methods: ["backup_code"],
+      backupCodesRemaining: 8,
+    });
 
     renderWithQuery(
       <UserDangerSection email="demo@example.com" redirect="/settings/personal/profile" />,
@@ -138,18 +153,31 @@ describe("account deletion danger flow", () => {
       dialogScope.getByLabelText(i18n.t("account:ME_DELETE_ACCOUNT_CONFIRM_EMAIL")),
       "demo@example.com",
     );
-    await user.type(
-      dialogScope.getByLabelText(i18n.t("account:ME_DELETE_ACCOUNT_2FA_BACKUP_CODE")),
-      "ABCD-EFGH",
-    );
     await user.click(
       dialogScope.getByRole("button", { name: i18n.t("account:ME_DELETE_ACCOUNT_ACTION") }),
     );
 
+    const verifyDialog = await screen.findByRole("dialog", {
+      name: i18n.t("account:ME_SECURITY_ACTION_VERIFY_TITLE"),
+    });
+    await user.type(
+      within(verifyDialog).getByPlaceholderText(i18n.t("auth:TWO_FACTOR_BACKUP_CODE_PLACEHOLDER")),
+      "ABCD-EFGH",
+    );
+    await user.click(
+      within(verifyDialog).getByRole("button", {
+        name: i18n.t("account:ME_SECURITY_ACTION_VERIFY_SUBMIT"),
+      }),
+    );
+
     await waitFor(() => {
+      expect(verifySecurityActionTotpMock).toHaveBeenCalledWith({
+        action: "delete_my_account",
+        backupCode: "ABCD-EFGH",
+      });
       expect(deleteMyAccountMock).toHaveBeenCalledWith({
         email: "demo@example.com",
-        backupCode: "ABCD-EFGH",
+        mfaProof: "action-proof",
       });
     });
   });
@@ -232,6 +260,7 @@ describe("account deletion danger flow", () => {
       expect(deleteMyAccountMock).toHaveBeenCalledWith({
         email: "demo@example.com",
         password: "secret-pass",
+        mfaProof: undefined,
       });
       expect(navigateMock).toHaveBeenCalledWith({ to: "/login", replace: true });
     });

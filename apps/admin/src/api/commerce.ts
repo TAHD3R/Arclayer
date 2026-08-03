@@ -4,7 +4,6 @@ import type {
   BillingRedirectOut as BillingRedirect,
   CheckoutSessionCreate,
   CommercialAccessMemberView,
-  CommercialAccessRecoveryView,
   WorkspaceCommerceOverviewOut as WorkspaceCommerceOverview,
   WorkspacePlanCatalogOut as WorkspacePlanCatalog,
   PageDataCreditLedgerOut,
@@ -65,16 +64,6 @@ export function getWorkspaceCommercialAccess(
   return api.get<CommercialAccessMemberView>(workspacePath(workspaceId, "/commerce/access"), {
     signal,
   });
-}
-
-export function getWorkspacePaymentRecovery(
-  workspaceId: string,
-  signal?: AbortSignal,
-): Promise<CommercialAccessRecoveryView> {
-  return api.get<CommercialAccessRecoveryView>(
-    workspacePath(workspaceId, "/commerce/payment-recovery"),
-    { signal },
-  );
 }
 
 export function createWorkspaceCheckoutSession(

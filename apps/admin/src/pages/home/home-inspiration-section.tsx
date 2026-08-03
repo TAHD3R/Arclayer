@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useIsMobile } from "@arclayer/hooks/use-is-mobile";
 import { useTranslation } from "react-i18next";
@@ -6,7 +6,6 @@ import { useTranslation } from "react-i18next";
 import {
   AdminMasonryGrid,
   getAdminMasonryDatasetKey,
-  resolveAdminMasonryScrollViewport,
 } from "@/components/common/admin-masonry-grid";
 import {
   filterInspirationTemplates,
@@ -25,36 +24,11 @@ const INSPIRATION_TITLE_ID = "home-inspiration-title";
 const HOME_INSPIRATION_DESKTOP_COLUMN_COUNT = 4;
 const HOME_INSPIRATION_MOBILE_COLUMN_COUNT = 2;
 
-function useStickyTabsState() {
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  const [stuck, setStuck] = useState(false);
-
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel || typeof IntersectionObserver === "undefined") return undefined;
-    const viewport = resolveAdminMasonryScrollViewport(sentinel);
-    const root = viewport.kind === "element" ? viewport.node : null;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry) return;
-        const rootTop = entry.rootBounds?.top ?? 0;
-        setStuck(!entry.isIntersecting && entry.boundingClientRect.top <= rootTop);
-      },
-      { root, threshold: 0 },
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, []);
-
-  return { sentinelRef, stuck };
-}
-
 export function HomeInspirationSection() {
   const { t } = useTranslation(["ai"]);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [activeCategory, setActiveCategory] = useState<SiteBuilderCategory>("all");
-  const { sentinelRef, stuck: tabsStuck } = useStickyTabsState();
   const templates = useMemo(() => filterInspirationTemplates(activeCategory), [activeCategory]);
   const datasetKey = useMemo(
     () =>
@@ -74,20 +48,11 @@ export function HomeInspirationSection() {
         testId="home-inspiration-section"
         onAction={() => void navigate({ to: GLOBAL_ROUTE_PATHS.inspiration as never })}
       />
-      <div ref={sentinelRef} className="h-px w-full" aria-hidden="true" />
       <Tabs
         value={activeCategory}
         onValueChange={(value) => setActiveCategory(value as SiteBuilderCategory)}
       >
-        <div
-          data-testid="home-inspiration-tabs"
-          data-stuck={tabsStuck ? "true" : "false"}
-          className={cn(
-            "sticky top-0 z-20 mb-4 min-w-0 transition-[background-color,box-shadow] duration-150",
-            tabsStuck &&
-              "-mx-6 bg-background px-6 shadow-[0_10px_24px_-20px_color-mix(in_oklab,var(--color-foreground)_32%,transparent)] sm:-mx-8 sm:px-8 lg:-mx-10 lg:px-10",
-          )}
-        >
+        <div data-testid="home-inspiration-tabs" className="mb-4 min-w-0">
           <TabsList
             aria-labelledby={INSPIRATION_TITLE_ID}
             className="max-w-full justify-start overflow-x-auto overflow-y-hidden scrollbar-none"

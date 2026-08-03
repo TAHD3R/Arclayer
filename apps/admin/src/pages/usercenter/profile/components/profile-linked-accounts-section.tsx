@@ -255,7 +255,7 @@ export function UserLinkedAccountsSection(props: UserLinkedAccountsSectionProps)
               {t("common:CANCEL")}
             </Button>
             <Button
-              variant="destructive"
+              variant="primary"
               disabled={!selectedDisconnectRow}
               loading={unlinkIdentityMutation.isPending}
               onClick={() => {

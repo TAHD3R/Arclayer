@@ -1,3 +1,4 @@
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { type FormEvent, type ReactNode, useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
@@ -11,6 +12,7 @@ import type {
   PlatformDeliveryOperationOut,
   PlatformDeliveryPolicyApplyOut,
   PlatformDeliveryPolicyPreviewOut,
+  StorageProfileOut,
 } from "@arclayer/platform-openapi";
 
 import {
@@ -26,26 +28,49 @@ import {
   listDeliveryIssues,
   listDeliveryRules,
   listDeliveryStorage,
+  listStorageProfiles,
   PlatformSiteDeliveryApiError,
   previewDeliveryPolicy,
   recoverDeliveryDomain,
   testDeliveryStorage,
 } from "@/site-delivery/site-delivery-api";
+import {
+  DeleteStorageProfileDialog,
+  StorageProfileEditorDialog,
+} from "@/site-delivery/storage-profile-dialogs";
+import { PlatformPage } from "@/components/platform-page";
 import { useMonitoringQuery } from "@/monitoring/monitoring-ui";
-import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
-import { Badge } from "@arclayer/ui/badge";
-import { Button } from "@arclayer/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@arclayer/ui/empty";
-import { Input } from "@arclayer/ui/input";
-import { Skeleton } from "@arclayer/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
-import { Textarea } from "@arclayer/ui/textarea";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 
 type QueryState<T> = { status: string; data?: T };
 type DeliveryRulesData = Readonly<{
   policy: PlatformDeliveryContinuityPolicyOut;
   rules: PageDataPlatformDeliveryRuleOut;
+}>;
+type StoragePageData = Readonly<{
+  delivery: PageDataPlatformDeliveryStorageOut;
+  profiles: readonly StorageProfileOut[];
 }>;
 type ActionFailure = Readonly<{ code: string; status?: number }>;
 type ActionFeedback =
@@ -74,18 +99,10 @@ const VISITOR_EFFECT_KEYS: Readonly<Record<string, string>> = {
 function SiteDeliveryPage(
   props: Readonly<{ title: string; description: string; children: ReactNode }>,
 ) {
-  const { t } = useTranslation("siteDelivery");
   return (
-    <section className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-7 px-5 py-8 md:px-8 md:py-10">
-      <header className="max-w-3xl space-y-2">
-        <p className="text-caption font-semibold tracking-[0.16em] text-label-secondary uppercase">
-          {t("EYEBROW")}
-        </p>
-        <h1 className="text-largetitle">{props.title}</h1>
-        <p className="text-body text-label-secondary">{props.description}</p>
-      </header>
+    <PlatformPage description={props.description} title={props.title}>
       {props.children}
-    </section>
+    </PlatformPage>
   );
 }
 
@@ -183,7 +200,7 @@ function ActionFeedbackNotice(props: Readonly<{ feedback: ActionFeedback | null 
       props.feedback.failure.status === 401 || props.feedback.failure.status === 403;
     return (
       <Alert
-        className={conflict ? "border-warning/40 bg-warning/10" : undefined}
+        className={conflict ? "border-amber-500/40 bg-amber-500/10" : undefined}
         variant={conflict ? undefined : "destructive"}
       >
         <AlertTitle>
@@ -205,7 +222,7 @@ function ActionFeedbackNotice(props: Readonly<{ feedback: ActionFeedback | null 
                   : "ACTION_FAILED_DESCRIPTION",
             )}
           </p>
-          <p className="font-mono text-caption" data-testid="site-delivery-action-error-code">
+          <p className="font-mono text-xs" data-testid="site-delivery-action-error-code">
             {props.feedback.failure.code}
           </p>
         </AlertDescription>
@@ -217,7 +234,7 @@ function ActionFeedbackNotice(props: Readonly<{ feedback: ActionFeedback | null 
     const { result } = props.feedback;
     const partialFailure = result.state === "partial";
     return (
-      <Alert className={partialFailure ? "border-warning/40 bg-warning/10" : undefined}>
+      <Alert className={partialFailure ? "border-amber-500/40 bg-amber-500/10" : undefined}>
         <AlertTitle>
           {t(partialFailure ? "ISSUE_ACTION_PARTIAL_TITLE" : "ISSUE_ACTION_COMPLETED_TITLE")}
         </AlertTitle>
@@ -230,7 +247,7 @@ function ActionFeedbackNotice(props: Readonly<{ feedback: ActionFeedback | null 
               { count: result.failedTargetCount },
             )}
           </p>
-          <p className="font-mono text-caption text-label-secondary">
+          <p className="font-mono text-xs text-muted-foreground">
             {t("ACTION_DIAGNOSTIC", { action: result.action, state: result.resultingState })}
           </p>
         </AlertDescription>
@@ -248,7 +265,7 @@ function ActionFeedbackNotice(props: Readonly<{ feedback: ActionFeedback | null 
         </AlertTitle>
         <AlertDescription className="space-y-2">
           <p>{t("DOMAIN_RECOVERY_DESCRIPTION", { hostname })}</p>
-          <p className="font-mono text-caption text-label-secondary">
+          <p className="font-mono text-xs text-muted-foreground">
             {t("DOMAIN_ACTION_DIAGNOSTIC", { certificate: result.resultingState })}
           </p>
         </AlertDescription>
@@ -265,10 +282,8 @@ function ActionFeedbackNotice(props: Readonly<{ feedback: ActionFeedback | null 
           {t(passed ? "STORAGE_TEST_PASSED_TITLE" : "STORAGE_TEST_FAILED_TITLE")}
         </AlertTitle>
         <AlertDescription className="space-y-2">
-          <p>
-            {t(passed ? "STORAGE_TEST_PASSED_DESCRIPTION" : "STORAGE_TEST_FAILED_DESCRIPTION")}
-          </p>
-          <p className="font-mono text-caption text-label-secondary">
+          <p>{t(passed ? "STORAGE_TEST_PASSED_DESCRIPTION" : "STORAGE_TEST_FAILED_DESCRIPTION")}</p>
+          <p className="font-mono text-xs text-muted-foreground">
             {t("STORAGE_TEST_DIAGNOSTIC", { status: result.resultingState })}
           </p>
         </AlertDescription>
@@ -278,7 +293,7 @@ function ActionFeedbackNotice(props: Readonly<{ feedback: ActionFeedback | null 
 
   const { result } = props.feedback;
   return (
-    <Alert className={result.partialFailure ? "border-warning/40 bg-warning/10" : undefined}>
+    <Alert className={result.partialFailure ? "border-amber-500/40 bg-amber-500/10" : undefined}>
       <AlertTitle>
         {t(result.replayed ? "POLICY_APPLY_REPLAYED_TITLE" : "POLICY_APPLIED_TITLE")}
       </AlertTitle>
@@ -382,23 +397,23 @@ export function SiteDeliveryIssuesPage() {
                   {data.items?.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell>
-                        <p className="font-mono text-caption">{item.workspaceId}</p>
-                        <p className="text-caption text-label-secondary">
+                        <p className="font-mono text-xs">{item.workspaceId}</p>
+                        <p className="text-xs text-muted-foreground">
                           {item.projectId ? `${t("PROJECT")}: ${item.projectId}` : t("NO_PROJECT")}
                         </p>
-                        <p className="text-caption text-label-secondary">
+                        <p className="text-xs text-muted-foreground">
                           {item.siteId ? `${t("SITE")}: ${item.siteId}` : t("NO_SITE")}
                         </p>
                       </TableCell>
                       <TableCell>
                         <Badge variant="destructive">{t("ISSUE_REQUIRES_ACTION")}</Badge>
-                        <p className="mt-1 font-mono text-caption text-label-secondary">
+                        <p className="mt-1 font-mono text-xs text-muted-foreground">
                           {t("SOURCE_STATE")}: {item.state}
                         </p>
                       </TableCell>
                       <TableCell>
                         <p>{visitorEffectLabel(t, item.visitorEffect)}</p>
-                        <p className="mt-1 font-mono text-caption text-label-secondary">
+                        <p className="mt-1 font-mono text-xs text-muted-foreground">
                           {item.visitorEffect}
                         </p>
                       </TableCell>
@@ -428,7 +443,7 @@ export function SiteDeliveryIssuesPage() {
                           })}
                         </div>
                         {!item.retryable ? (
-                          <p className="mt-1 text-caption text-label-secondary">
+                          <p className="mt-1 text-xs text-muted-foreground">
                             {t("ISSUE_RETRY_NOT_ELIGIBLE")}
                           </p>
                         ) : null}
@@ -503,7 +518,7 @@ export function SiteDeliveryDomainsPage() {
                       <TableRow key={item.id}>
                         <TableCell>
                           <p>{item.hostname}</p>
-                          <p className="font-mono text-caption text-label-secondary">
+                          <p className="font-mono text-xs text-muted-foreground">
                             {item.workspaceId}
                           </p>
                         </TableCell>
@@ -517,13 +532,13 @@ export function SiteDeliveryDomainsPage() {
                                   : "DOMAIN_READINESS_UNKNOWN",
                             )}
                           </p>
-                          <p className="mt-1 font-mono text-caption text-label-secondary">
+                          <p className="mt-1 font-mono text-xs text-muted-foreground">
                             {t("SOURCE_STATE")}: {item.readiness}
                           </p>
                         </TableCell>
                         <TableCell>
                           <p>{t("CERTIFICATE_NEEDS_ATTENTION")}</p>
-                          <p className="mt-1 font-mono text-caption text-label-secondary">
+                          <p className="mt-1 font-mono text-xs text-muted-foreground">
                             {item.certificateStatus}
                           </p>
                         </TableCell>
@@ -538,7 +553,7 @@ export function SiteDeliveryDomainsPage() {
                             {pending === item.id ? t("WORKING") : t("RECOVER_DOMAIN")}
                           </Button>
                           {!canRecover ? (
-                            <p className="mt-1 text-caption text-label-secondary">
+                            <p className="mt-1 text-xs text-muted-foreground">
                               {t("DOMAIN_RECOVERY_NOT_ELIGIBLE")}
                             </p>
                           ) : null}
@@ -558,10 +573,17 @@ export function SiteDeliveryDomainsPage() {
 
 export function SiteDeliveryStoragePage() {
   const { t } = useTranslation("siteDelivery");
-  const load = useCallback(() => listDeliveryStorage(), []);
+  const load = useCallback(async (): Promise<StoragePageData> => {
+    const [delivery, profiles] = await Promise.all([listDeliveryStorage(), listStorageProfiles()]);
+    return { delivery, profiles: profiles.items ?? [] };
+  }, []);
   const { state, retry } = useMonitoringQuery(load, []);
   const [pending, setPending] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<ActionFeedback | null>(null);
+  const [successKey, setSuccessKey] = useState<string | null>(null);
+  const [profileAction, setProfileAction] = useState<
+    "create" | Readonly<{ kind: "edit" | "delete"; profile: StorageProfileOut }> | null
+  >(null);
   const operationRequests = useRef<Map<string, DeliveryOperationRequest>>(new Map());
   const testStorage = async (profileId: string) => {
     const operationKey = `${profileId}:test`;
@@ -589,9 +611,20 @@ export function SiteDeliveryStoragePage() {
 
   return (
     <SiteDeliveryPage description={t("STORAGE_DESCRIPTION")} title={t("STORAGE_TITLE")}>
+      <div className="flex justify-end">
+        <Button onClick={() => setProfileAction("create")}>
+          <Plus aria-hidden="true" />
+          {t("CREATE_STORAGE_PROFILE")}
+        </Button>
+      </div>
+      {successKey ? (
+        <Alert>
+          <AlertDescription>{t(successKey)}</AlertDescription>
+        </Alert>
+      ) : null}
       <ActionFeedbackNotice feedback={feedback} />
       <SiteDeliveryState
-        empty={(data: PageDataPlatformDeliveryStorageOut) => !data.items?.length}
+        empty={(data: StoragePageData) => !data.profiles.length}
         retry={retry}
         state={state}
       >
@@ -608,49 +641,116 @@ export function SiteDeliveryStoragePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.items?.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        <p>{item.displayName}</p>
-                        <p className="font-mono text-caption text-label-secondary">
-                          {item.profileKey}
-                        </p>
-                      </TableCell>
-                      <TableCell>{item.provider}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={item.lastTestStatus === "failed" ? "destructive" : "outline"}
-                        >
-                          {t(
-                            item.lastTestStatus === "passed"
-                              ? "STORAGE_STATUS_PASSED"
-                              : item.lastTestStatus === "failed"
-                                ? "STORAGE_STATUS_FAILED"
-                                : "NOT_TESTED",
-                          )}
-                        </Badge>
-                        <p className="mt-1 text-caption text-label-secondary">
-                          {item.isDefault ? t("DEFAULT_STORAGE") : t("NON_DEFAULT_STORAGE")}
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          disabled={pending === item.id}
-                          onClick={() => void testStorage(item.id)}
-                          size="sm"
-                          variant="secondary"
-                        >
-                          {pending === item.id ? t("WORKING") : t("TEST_STORAGE")}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {data.profiles.map((profile) => {
+                    const delivery = data.delivery.items?.find((item) => item.id === profile.id);
+                    const editable = profile.configSource === "database";
+                    return (
+                      <TableRow key={profile.id}>
+                        <TableCell>
+                          <p>{profile.displayName}</p>
+                          <p className="font-mono text-xs text-muted-foreground">
+                            {profile.profileKey}
+                          </p>
+                        </TableCell>
+                        <TableCell>
+                          {t(`STORAGE_PROVIDER_${profile.provider.toUpperCase()}`)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              (delivery?.lastTestStatus ?? profile.lastTestStatus) === "failed"
+                                ? "destructive"
+                                : "outline"
+                            }
+                          >
+                            {t(
+                              (delivery?.lastTestStatus ?? profile.lastTestStatus) === "passed"
+                                ? "STORAGE_STATUS_PASSED"
+                                : (delivery?.lastTestStatus ?? profile.lastTestStatus) === "failed"
+                                  ? "STORAGE_STATUS_FAILED"
+                                  : "NOT_TESTED",
+                            )}
+                          </Badge>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {profile.isDefault ? t("DEFAULT_STORAGE") : t("NON_DEFAULT_STORAGE")}
+                          </p>
+                          {!editable ? (
+                            <p className="text-xs text-muted-foreground">
+                              {t("STORAGE_ENVIRONMENT_MANAGED")}
+                            </p>
+                          ) : null}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              disabled={pending === profile.id}
+                              onClick={() => void testStorage(profile.id)}
+                              size="sm"
+                              variant="secondary"
+                            >
+                              {pending === profile.id ? t("WORKING") : t("TEST_STORAGE")}
+                            </Button>
+                            <Button
+                              disabled={!editable}
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setProfileAction({ kind: "edit", profile })}
+                            >
+                              <Pencil aria-hidden="true" />
+                              {t("EDIT")}
+                            </Button>
+                            <Button
+                              disabled={!editable || profile.isDefault}
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setProfileAction({ kind: "delete", profile })}
+                            >
+                              <Trash2 aria-hidden="true" />
+                              {t("DELETE")}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
         )}
       </SiteDeliveryState>
+      {profileAction === "create" ? (
+        <StorageProfileEditorDialog
+          open
+          onCompleted={(messageKey) => {
+            setSuccessKey(messageKey);
+            retry();
+          }}
+          onOpenChange={(open) => !open && setProfileAction(null)}
+        />
+      ) : null}
+      {profileAction && typeof profileAction === "object" && profileAction.kind === "edit" ? (
+        <StorageProfileEditorDialog
+          open
+          onCompleted={(messageKey) => {
+            setSuccessKey(messageKey);
+            retry();
+          }}
+          onOpenChange={(open) => !open && setProfileAction(null)}
+          profile={profileAction.profile}
+        />
+      ) : null}
+      {profileAction && typeof profileAction === "object" && profileAction.kind === "delete" ? (
+        <DeleteStorageProfileDialog
+          open
+          onCompleted={(messageKey) => {
+            setSuccessKey(messageKey);
+            retry();
+          }}
+          onOpenChange={(open) => !open && setProfileAction(null)}
+          profile={profileAction.profile}
+        />
+      ) : null}
     </SiteDeliveryPage>
   );
 }
@@ -669,6 +769,7 @@ function PolicyConsole(
   const [reason, setReason] = useState("");
   const [preview, setPreview] = useState<PlatformDeliveryPolicyPreviewOut | null>(null);
   const [pending, setPending] = useState<"preview" | "apply" | null>(null);
+  const applyRequest = useRef<{ fingerprint: string; idempotencyKey: string } | null>(null);
 
   const createPreview = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -695,12 +796,28 @@ function PolicyConsole(
       props.onFeedback({ kind: "validation", messageKey: "POLICY_REASON_REQUIRED" });
       return;
     }
+    const fingerprint = JSON.stringify({
+      continuityWindowSeconds: preview.continuityWindowSeconds,
+      expectedRevision: preview.expectedRevision,
+      previewId: preview.id,
+      proposedRevision: preview.proposedRevision,
+      provider: "hosting_continuity",
+      reason: normalizedReason,
+    });
+    if (applyRequest.current?.fingerprint !== fingerprint) {
+      applyRequest.current = { fingerprint, idempotencyKey: crypto.randomUUID() };
+    }
     setPending("apply");
     try {
       props.onFeedback({
         kind: "policy",
-        result: await applyDeliveryPolicy(preview.id, normalizedReason, crypto.randomUUID()),
+        result: await applyDeliveryPolicy(
+          preview.id,
+          normalizedReason,
+          applyRequest.current.idempotencyKey,
+        ),
       });
+      applyRequest.current = null;
       setPreview(null);
       props.onRefresh();
     } catch (error) {
@@ -731,14 +848,14 @@ function PolicyConsole(
               })}
             </Badge>
           </div>
-          <p className="text-footnote text-label-secondary">
+          <p className="text-sm text-muted-foreground">
             {props.data.policy.continuityWindowSeconds == null
               ? t("POLICY_WINDOW_NOT_CONFIGURED")
               : t("POLICY_WINDOW_VALUE", { seconds: props.data.policy.continuityWindowSeconds })}
           </p>
           <form className="grid gap-3 md:grid-cols-[minmax(0,18rem)_auto]" onSubmit={createPreview}>
             <div className="space-y-1.5">
-              <label className="text-footnote font-medium" htmlFor="continuity-window-seconds">
+              <label className="text-sm font-medium" htmlFor="continuity-window-seconds">
                 {t("POLICY_WINDOW_LABEL")}
               </label>
               <Input
@@ -749,7 +866,7 @@ function PolicyConsole(
                 type="number"
                 value={continuityWindowSeconds}
               />
-              <p className="text-caption text-label-secondary">{t("POLICY_WINDOW_HELP")}</p>
+              <p className="text-xs text-muted-foreground">{t("POLICY_WINDOW_HELP")}</p>
             </div>
             <div className="self-end">
               <Button disabled={pending !== null} type="submit">
@@ -780,17 +897,17 @@ function PolicyConsole(
                 })}
               </Badge>
             </div>
-            <p className="text-footnote text-label-secondary">
+            <p className="text-sm text-muted-foreground">
               {t("POLICY_WINDOW_VALUE", { seconds: preview.continuityWindowSeconds })}
             </p>
             {preview.partialFailure ? (
-              <Alert className="border-warning/40 bg-warning/10">
+              <Alert className="border-amber-500/40 bg-amber-500/10">
                 <AlertTitle>{t("POLICY_PREVIEW_PARTIAL_TITLE")}</AlertTitle>
                 <AlertDescription>{t("POLICY_PREVIEW_PARTIAL_DESCRIPTION")}</AlertDescription>
               </Alert>
             ) : null}
             <div className="space-y-1.5">
-              <label className="text-footnote font-medium" htmlFor="policy-apply-reason">
+              <label className="text-sm font-medium" htmlFor="policy-apply-reason">
                 {t("POLICY_REASON_LABEL")}
               </label>
               <Textarea
@@ -800,7 +917,7 @@ function PolicyConsole(
                 rows={3}
                 value={reason}
               />
-              <p className="text-caption text-label-secondary">{t("POLICY_REASON_HELP")}</p>
+              <p className="text-xs text-muted-foreground">{t("POLICY_REASON_HELP")}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
@@ -840,7 +957,7 @@ function PolicyConsole(
               <TableBody>
                 {props.data.rules.items.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-mono text-caption">{item.workspaceId}</TableCell>
+                    <TableCell className="font-mono text-xs">{item.workspaceId}</TableCell>
                     <TableCell>
                       <Badge
                         variant={
@@ -851,20 +968,18 @@ function PolicyConsole(
                       >
                         {deliveryStateLabel(t, item.state)}
                       </Badge>
-                      <p className="mt-1 font-mono text-caption text-label-secondary">
-                        {item.state}
-                      </p>
+                      <p className="mt-1 font-mono text-xs text-muted-foreground">{item.state}</p>
                     </TableCell>
-                    <TableCell className="font-mono text-caption">
+                    <TableCell className="font-mono text-xs">
                       {item.preservedReleaseId ?? t("NO_PRESERVED_RELEASE")}
                     </TableCell>
-                    <TableCell className="font-mono text-caption">{item.sourceIdentity}</TableCell>
+                    <TableCell className="font-mono text-xs">{item.sourceIdentity}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           ) : (
-            <p className="text-footnote text-label-secondary">{t("RULES_EMPTY")}</p>
+            <p className="text-sm text-muted-foreground">{t("RULES_EMPTY")}</p>
           )}
         </CardContent>
       </Card>

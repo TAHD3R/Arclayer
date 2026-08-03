@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactElement } from "react";
 
-import { confirmMyEmailChange, requestMyEmailChange } from "@/api/auth";
+import { confirmMyEmailChange, getTwoFactorStatus, requestMyEmailChange } from "@/api/auth";
 import { DEFAULT_LOCALE, i18n, initI18n } from "@/lib/i18n";
 import { UserChangeEmailDialog } from "@/pages/usercenter/profile/components/profile-change-email-dialog";
 
@@ -23,6 +23,7 @@ vi.mock("@tanstack/react-router", async () => {
 vi.mock("@/api/auth", () => ({
   requestMyEmailChange: vi.fn(),
   confirmMyEmailChange: vi.fn(),
+  getTwoFactorStatus: vi.fn(),
 }));
 
 vi.mock("@/stores/use-auth-store", () => ({
@@ -42,6 +43,7 @@ vi.mock("@/lib/notifications", () => ({
 
 const requestMyEmailChangeMock = vi.mocked(requestMyEmailChange);
 const confirmMyEmailChangeMock = vi.mocked(confirmMyEmailChange);
+const getTwoFactorStatusMock = vi.mocked(getTwoFactorStatus);
 
 function renderWithQuery(node: ReactElement) {
   const queryClient = new QueryClient({
@@ -81,6 +83,11 @@ beforeEach(() => {
     displayName: "Demo",
     avatarUrl: null,
     avatarAssetId: null,
+  });
+  getTwoFactorStatusMock.mockResolvedValue({
+    enabled: false,
+    methods: [],
+    backupCodesRemaining: 0,
   });
   navigateMock.mockResolvedValue(undefined);
 });
@@ -136,6 +143,7 @@ describe("UserChangeEmailDialog", () => {
       expect(confirmMyEmailChangeMock).toHaveBeenCalledWith({
         newEmail: "new@example.com",
         code: "654321",
+        mfaProof: undefined,
       });
     });
     await waitFor(() => {

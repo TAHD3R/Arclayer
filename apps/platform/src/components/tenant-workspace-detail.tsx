@@ -10,10 +10,10 @@ import {
   WorkspaceAccessDialog,
   type WorkspaceAccessAction,
 } from "@/components/tenant-workspace-dialogs";
-import { Alert, AlertDescription } from "@arclayer/ui/alert";
-import { Badge } from "@arclayer/ui/badge";
-import { Button } from "@arclayer/ui/button";
-import { Separator } from "@arclayer/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 type Dialog = "edit" | WorkspaceAccessAction | null;
 
@@ -42,9 +42,9 @@ export function TenantWorkspaceDetail(props: {
     <div className="grid gap-6">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="truncate text-title3 font-semibold">{workspace.name}</h2>
+          <h2 className="truncate text-2xl3 font-semibold">{workspace.name}</h2>
           {workspace.description ? (
-            <p className="mt-1 text-body text-label-secondary">{workspace.description}</p>
+            <p className="mt-1 text-base text-muted-foreground">{workspace.description}</p>
           ) : null}
         </div>
         <WorkspaceState
@@ -75,14 +75,17 @@ export function TenantWorkspaceDetail(props: {
       <Separator />
       <section className="grid gap-3" aria-labelledby="workspace-access-heading">
         <div>
-          <h3 className="text-headline" id="workspace-access-heading">
+          <h3 className="text-base" id="workspace-access-heading">
             {t("ACCESS_STATE")}
           </h3>
-          <p className="text-body text-label-secondary">{t("ACCESS_STATE_DESCRIPTION")}</p>
+          <p className="text-base text-muted-foreground">{t("ACCESS_STATE_DESCRIPTION")}</p>
         </div>
         {!suspended && !archived ? (
-          <div className="flex items-center gap-2 rounded-lg border bg-card p-3 text-body">
-            <ShieldCheck aria-hidden="true" className="size-4 text-positive" />
+          <div className="flex items-center gap-2 rounded-lg border bg-card p-3 text-base">
+            <ShieldCheck
+              aria-hidden="true"
+              className="size-4 text-emerald-600 dark:text-emerald-400"
+            />
             {t("NO_ACTIVE_RESTRICTIONS")}
           </div>
         ) : (
@@ -95,8 +98,8 @@ export function TenantWorkspaceDetail(props: {
                   </p>
                   <Badge variant="secondary">{t("IN_EFFECT")}</Badge>
                 </div>
-                <p className="mt-2 text-body">{restriction!.operatorNote}</p>
-                <p className="mt-2 text-footnote text-label-secondary">
+                <p className="mt-2 text-base">{restriction!.operatorNote}</p>
+                <p className="mt-2 text-sm text-muted-foreground">
                   {t("EFFECTIVE_SINCE", { date: formatDate(restriction!.effectiveAt) })}
                 </p>
               </div>
@@ -130,12 +133,12 @@ export function TenantWorkspaceDetail(props: {
           )}
         </div>
       ) : (
-        <p className="rounded-lg border bg-muted p-3 text-body text-label-secondary">
+        <p className="rounded-lg border bg-muted p-3 text-base text-muted-foreground">
           {t("MANAGE_PERMISSION_REQUIRED")}
         </p>
       )}
 
-      <Link className="text-link underline underline-offset-4" to="/monitoring/requests">
+      <Link className="text-primary underline underline-offset-4" to="/monitoring/requests">
         {t("VIEW_RELATED_ACTIVITY")}
       </Link>
 
@@ -182,8 +185,8 @@ function WorkspaceState(props: { archived: boolean; active: boolean }) {
 function Detail(props: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-footnote text-label-secondary">{props.label}</dt>
-      <dd className="mt-1 text-body">{props.value}</dd>
+      <dt className="text-sm text-muted-foreground">{props.label}</dt>
+      <dd className="mt-1 text-base">{props.value}</dd>
     </div>
   );
 }

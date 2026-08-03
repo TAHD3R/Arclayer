@@ -1,5 +1,6 @@
 {
   "PAGE_TITLE": "Overview",
+  "PAGE_DESCRIPTION": "See what needs action, which areas are ready, and what recovered. Last checked {{date}}.",
   "LOADING": "Loading overview…",
   "STATUS_CHECKED": "Status checked {{date}}",
   "REFRESH": "Refresh",
@@ -35,5 +36,8 @@
   "RECENT_RECOVERIES": "Recently recovered issues",
   "RECENT_RECOVERIES_DESCRIPTION": "Issues confirmed as recovered by the responsible service.",
   "NO_RECENT_RECOVERIES": "No confirmed recoveries appear in these results.",
-  "REVIEW": "Review"
+  "REVIEW": "Review",
+  "READY_AREAS": "Ready areas",
+  "READY_AREAS_DESCRIPTION": "{{ready}} of {{total}} available areas are set up and ready to use.",
+  "UNAVAILABLE": "—"
 }

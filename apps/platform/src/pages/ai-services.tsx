@@ -1,41 +1,56 @@
+import { Pencil, Plus } from "lucide-react";
 import { type ReactNode, useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   PageDataPlatformAiTaskOut,
-  PageDataSystemAgentDefinitionSummaryOut,
   PlatformAiProviderReadinessOut,
   PlatformAiTaskOut,
+  SystemAgentCatalogCapabilitiesOut,
   SystemAgentDefinitionSummaryOut,
-  SystemAgentVersionOut,
   SystemAiProviderAvailabilityPreviewOut,
   SystemAiProviderListOut,
+  SystemAiProviderOut,
 } from "@arclayer/platform-openapi";
 
 import {
   applyAiProviderAvailability,
-  createAiProvider,
   executeAiTaskAction,
   getAiProviderReadiness,
   listAiProviders,
   listAiTasks,
   previewAiProviderAvailability,
   testAiProviderReadiness,
-  updateAiProvider,
 } from "@/ai/ai-services-api";
+import { AiProviderEditorDialog } from "@/ai/ai-provider-dialogs";
+import { AiAssistantEditorDialog, AiAssistantVersionDialog } from "@/ai/ai-assistant-dialogs";
 import {
+  getAiAssistantCapabilities,
   listAiAssistants,
   retireAiAssistantVersion,
   updateAiAssistant,
 } from "@/ai/ai-assistants-api";
+import { PlatformPage } from "@/components/platform-page";
 import { useMonitoringQuery } from "@/monitoring/monitoring-ui";
-import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
-import { Badge } from "@arclayer/ui/badge";
-import { Button } from "@arclayer/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@arclayer/ui/empty";
-import { Input } from "@arclayer/ui/input";
-import { Skeleton } from "@arclayer/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type QueryState<T> = { status: string; data?: T };
 type TaskAction = "retry" | "cancel" | "reconcile";
@@ -53,18 +68,10 @@ const taskActionReasonCopyKeys: Readonly<Record<string, string>> = {
 };
 
 function AiPage(props: Readonly<{ title: string; description: string; children: ReactNode }>) {
-  const { t } = useTranslation("ai");
   return (
-    <section className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-7 px-5 py-8 md:px-8 md:py-10">
-      <header className="max-w-3xl space-y-2">
-        <p className="text-caption font-semibold tracking-[0.16em] text-label-secondary uppercase">
-          {t("EYEBROW")}
-        </p>
-        <h1 className="text-largetitle">{props.title}</h1>
-        <p className="text-body text-label-secondary">{props.description}</p>
-      </header>
+    <PlatformPage description={props.description} title={props.title}>
       {props.children}
-    </section>
+    </PlatformPage>
   );
 }
 
@@ -218,7 +225,7 @@ export function AiTasksPage() {
                 <TableBody>
                   {data.items?.map((task) => (
                     <TableRow key={task.id}>
-                      <TableCell className="font-mono text-caption">{task.workspaceId}</TableCell>
+                      <TableCell className="font-mono text-xs">{task.workspaceId}</TableCell>
                       <TableCell>
                         <Badge variant={task.outcome === "failed" ? "destructive" : "outline"}>
                           {t(`OUTCOME_${task.outcome.toUpperCase()}`)}
@@ -227,7 +234,7 @@ export function AiTasksPage() {
                       <TableCell>{task.executionMode}</TableCell>
                       <TableCell className="space-y-1">
                         <p>{task.statusKey ?? task.durableJobStatus ?? t("NO_PROGRESS")}</p>
-                        <p className="text-caption text-label-secondary">
+                        <p className="text-xs text-muted-foreground">
                           {t("EVIDENCE_SEQUENCE", { sequence: task.lastSequence })}
                         </p>
                         {task.errorCode ? <code>{task.errorCode}</code> : null}
@@ -257,7 +264,7 @@ export function AiTasksPage() {
                                 </Button>
                                 {reason ? (
                                   <p
-                                    className="mt-1 max-w-48 text-caption text-label-secondary"
+                                    className="mt-1 max-w-48 text-xs text-muted-foreground"
                                     id={reasonId}
                                   >
                                     {t(reason.copyKey)}
@@ -312,6 +319,8 @@ function ProviderConsole(props: Readonly<{ data: ProviderData; onRefresh: () => 
   const [preview, setPreview] = useState<SystemAiProviderAvailabilityPreviewOut | null>(null);
   const [pending, setPending] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [successKey, setSuccessKey] = useState<string | null>(null);
+  const [providerEditor, setProviderEditor] = useState<"create" | SystemAiProviderOut | null>(null);
   const readinessById = new Map(props.data.readiness.items.map((item) => [item.id, item]));
   const doAction = async (key: string, operation: () => Promise<unknown>) => {
     setPending(key);
@@ -327,6 +336,17 @@ function ProviderConsole(props: Readonly<{ data: ProviderData; onRefresh: () => 
   };
   return (
     <div className="space-y-5">
+      <div className="flex justify-end">
+        <Button onClick={() => setProviderEditor("create")}>
+          <Plus aria-hidden="true" />
+          {t("ADD_PROVIDER")}
+        </Button>
+      </div>
+      {successKey ? (
+        <Alert>
+          <AlertDescription>{t(successKey)}</AlertDescription>
+        </Alert>
+      ) : null}
       {message ? (
         <Alert variant="destructive">
           <AlertTitle>{t("ACTION_FAILED")}</AlertTitle>
@@ -355,7 +375,7 @@ function ProviderConsole(props: Readonly<{ data: ProviderData; onRefresh: () => 
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="font-medium">{provider.label}</p>
-                    <p className="text-footnote text-label-secondary">
+                    <p className="text-sm text-muted-foreground">
                       {provider.provider} · {provider.requestModel}
                     </p>
                   </div>
@@ -391,18 +411,13 @@ function ProviderConsole(props: Readonly<{ data: ProviderData; onRefresh: () => 
                     {provider.isActive ? t("DISABLE") : t("ENABLE")}
                   </Button>
                   <Button
-                    disabled={pending === `label:${provider.id}`}
-                    onClick={() => {
-                      const label = window.prompt(t("PROVIDER_LABEL_PROMPT"), provider.label);
-                      if (label?.trim())
-                        void doAction(`label:${provider.id}`, () =>
-                          updateAiProvider(provider.id, { label: label.trim() }),
-                        );
-                    }}
+                    disabled={pending === `edit:${provider.id}`}
+                    onClick={() => setProviderEditor(provider)}
                     size="sm"
                     variant="ghost"
                   >
-                    {t("EDIT_LABEL")}
+                    <Pencil aria-hidden="true" />
+                    {t("EDIT_PROVIDER")}
                   </Button>
                   {readiness?.actions
                     .filter(
@@ -412,7 +427,7 @@ function ProviderConsole(props: Readonly<{ data: ProviderData; onRefresh: () => 
                     )
                     .map((action) => (
                       <span
-                        className="self-center text-caption text-label-secondary"
+                        className="self-center text-xs text-muted-foreground"
                         key={action.action}
                       >
                         {t(`UNAVAILABLE_${action.action.toUpperCase()}`)}: {action.reasonCode}
@@ -456,217 +471,285 @@ function ProviderConsole(props: Readonly<{ data: ProviderData; onRefresh: () => 
           </AlertDescription>
         </Alert>
       ) : null}
-      <ProviderCreateForm onCreated={props.onRefresh} />
-    </div>
-  );
-}
-
-function ProviderCreateForm(props: Readonly<{ onCreated: () => void }>) {
-  const { t } = useTranslation("ai");
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t("ADD_PROVIDER")}</CardTitle>
-        <CardDescription>{t("ADD_PROVIDER_DESCRIPTION")}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form
-          className="grid gap-3 md:grid-cols-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const values = new FormData(event.currentTarget);
-            setPending(true);
-            setError(null);
-            void createAiProvider({
-              label: String(values.get("label") ?? ""),
-              provider: String(values.get("provider") ?? ""),
-              compatibility: "openai_compatible",
-              providerApiKey: String(values.get("apiKey") ?? ""),
-              requestModel: String(values.get("model") ?? ""),
-              baseUrl: String(values.get("baseUrl") ?? "") || null,
-            })
-              .then(
-                () => {
-                  event.currentTarget.reset();
-                  props.onCreated();
-                },
-                (reason: unknown) =>
-                  setError(reason instanceof Error ? reason.message : t("ACTION_FAILED")),
-              )
-              .finally(() => setPending(false));
+      {providerEditor ? (
+        <AiProviderEditorDialog
+          open
+          onCompleted={(key) => {
+            setSuccessKey(key);
+            props.onRefresh();
           }}
-        >
-          <Input aria-label={t("LABEL")} name="label" placeholder={t("LABEL")} required />
-          <Input aria-label={t("PROVIDER")} name="provider" placeholder={t("PROVIDER")} required />
-          <Input aria-label={t("MODEL")} name="model" placeholder={t("MODEL")} required />
-          <Input aria-label={t("BASE_URL")} name="baseUrl" placeholder={t("BASE_URL")} />
-          <Input
-            aria-label={t("API_KEY")}
-            name="apiKey"
-            placeholder={t("API_KEY")}
-            required
-            type="password"
-          />
-          <div className="flex items-center gap-3">
-            <Button disabled={pending} type="submit">
-              {pending ? t("WORKING") : t("ADD_PROVIDER")}
-            </Button>
-            {error ? <span className="text-footnote text-destructive">{error}</span> : null}
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+          onOpenChange={(open) => !open && setProviderEditor(null)}
+          provider={providerEditor === "create" ? undefined : providerEditor}
+        />
+      ) : null}
+    </div>
   );
 }
 
 export function AiAssistantsPage() {
   const { t } = useTranslation("ai");
-  const load = useCallback(() => listAiAssistants({ scope: "system", page: 1, size: 100 }), []);
+  const load = useCallback(
+    async () => ({
+      capabilities: await getAiAssistantCapabilities(),
+      catalog: await listAiAssistants({ scope: "system", page: 1, size: 100 }),
+    }),
+    [],
+  );
   const { state, retry } = useMonitoringQuery(load, []);
   const [pending, setPending] = useState<string | null>(null);
+  const [editor, setEditor] = useState<"create" | SystemAgentDefinitionSummaryOut | null>(null);
+  const [versionEditor, setVersionEditor] = useState<SystemAgentDefinitionSummaryOut | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const changeLifecycle = async (
     assistant: SystemAgentDefinitionSummaryOut,
     lifecycleState: "active" | "disabled" | "archived",
   ) => {
-    setPending(assistant.id);
+    setPending(`assistant:${assistant.id}`);
+    setError(null);
     try {
       await updateAiAssistant(assistant.id, { lifecycleState });
+      setMessage(t("ASSISTANT_UPDATED"));
       retry();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : t("ACTION_FAILED"));
+    } finally {
+      setPending(null);
+    }
+  };
+  const changeVersionState = async (
+    assistant: SystemAgentDefinitionSummaryOut,
+    state: "published" | "retired",
+  ) => {
+    const version = assistant.latestVersion;
+    if (!version) return;
+    setPending(`version:${version.id}`);
+    setError(null);
+    try {
+      await retireAiAssistantVersion(assistant.id, version.id, { state });
+      setMessage(
+        t(state === "published" ? "ASSISTANT_VERSION_PUBLISHED" : "ASSISTANT_VERSION_RETIRED"),
+      );
+      retry();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : t("ACTION_FAILED"));
     } finally {
       setPending(null);
     }
   };
   return (
     <AiPage description={t("ASSISTANTS_DESCRIPTION")} title={t("ASSISTANTS_TITLE")}>
-      <AiState
-        empty={(data: PageDataSystemAgentDefinitionSummaryOut) => !data.items?.length}
-        retry={retry}
-        state={state}
-      >
-        {(data) => (
-          <Card>
-            <CardContent className="px-0">
-              <ul>
-                {data.items?.map((assistant) => (
-                  <li
-                    className="flex flex-wrap items-center justify-between gap-3 border-t px-5 py-4"
-                    key={assistant.id}
-                  >
-                    <div>
-                      <p className="font-medium">{assistant.displayName}</p>
-                      <p className="text-footnote text-label-secondary">{assistant.description}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={assistant.isOfficial ? "secondary" : "outline"}>
-                        {assistant.lifecycleState}
-                      </Badge>
-                      <Button
-                        disabled={pending === assistant.id || assistant.lifecycleState === "active"}
-                        onClick={() => void changeLifecycle(assistant, "active")}
-                        size="sm"
-                        variant="outline"
-                      >
-                        {t("ENABLE")}
-                      </Button>
-                      <Button
-                        disabled={
-                          pending === assistant.id || assistant.lifecycleState === "disabled"
-                        }
-                        onClick={() => void changeLifecycle(assistant, "disabled")}
-                        size="sm"
-                        variant="outline"
-                      >
-                        {t("DISABLE")}
-                      </Button>
-                      <Button
-                        disabled={
-                          pending === assistant.id || assistant.lifecycleState === "archived"
-                        }
-                        onClick={() => void changeLifecycle(assistant, "archived")}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        {t("ARCHIVE")}
-                      </Button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
+      {message ? (
+        <Alert>
+          <AlertDescription>{message}</AlertDescription>
+        </Alert>
+      ) : null}
+      {error ? (
+        <Alert variant="destructive">
+          <AlertTitle>{t("ACTION_FAILED")}</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+      <AiState empty={() => false} retry={retry} state={state}>
+        {(data) => {
+          const approvalProfiles = assistantApprovalProfiles(data.capabilities);
+          const publicationAvailable = assistantCapabilityFlag(
+            data.capabilities,
+            "runtimeValidationPortAvailable",
+          );
+          return (
+            <>
+              <div className="flex justify-end">
+                <Button disabled={!approvalProfiles.length} onClick={() => setEditor("create")}>
+                  <Plus aria-hidden="true" />
+                  {t("CREATE_ASSISTANT")}
+                </Button>
+              </div>
+              {!publicationAvailable ? (
+                <Alert>
+                  <AlertTitle>{t("ASSISTANT_PUBLICATION_UNAVAILABLE_TITLE")}</AlertTitle>
+                  <AlertDescription>
+                    {t("ASSISTANT_PUBLICATION_UNAVAILABLE_DESCRIPTION")}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+              {data.catalog.items?.length ? (
+                <Card>
+                  <CardContent className="px-0">
+                    <ul>
+                      {data.catalog.items.map((assistant) => (
+                        <li
+                          className="flex flex-wrap items-center justify-between gap-3 border-t px-5 py-4"
+                          key={assistant.id}
+                        >
+                          <div>
+                            <p className="font-medium">{assistant.displayName}</p>
+                            <p className="text-sm text-muted-foreground">{assistant.description}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {assistant.latestVersion
+                                ? t("ASSISTANT_LATEST_VERSION", {
+                                    number: assistant.latestVersion.versionNumber,
+                                    state: t(
+                                      `VERSION_STATE_${assistant.latestVersion.state.toUpperCase()}`,
+                                    ),
+                                  })
+                                : t("ASSISTANT_NO_VERSION")}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap items-center justify-end gap-2">
+                            <Badge variant={assistant.isOfficial ? "secondary" : "outline"}>
+                              {t(`ASSISTANT_STATE_${assistant.lifecycleState.toUpperCase()}`)}
+                            </Badge>
+                            {assistant.isOfficial ? (
+                              <span className="text-xs text-muted-foreground">
+                                {t("OFFICIAL_ASSISTANT_MANAGED")}
+                              </span>
+                            ) : assistant.lifecycleState === "archived" ? (
+                              <span className="text-xs text-muted-foreground">
+                                {t("ARCHIVED_ASSISTANT_READ_ONLY")}
+                              </span>
+                            ) : (
+                              <>
+                                <Button
+                                  onClick={() => setEditor(assistant)}
+                                  size="sm"
+                                  variant="ghost"
+                                >
+                                  <Pencil aria-hidden="true" />
+                                  {t("EDIT_ASSISTANT")}
+                                </Button>
+                                <Button
+                                  disabled={!approvalProfiles.length}
+                                  onClick={() => setVersionEditor(assistant)}
+                                  size="sm"
+                                  variant="outline"
+                                >
+                                  {t("CREATE_VERSION")}
+                                </Button>
+                                {publicationAvailable &&
+                                assistant.latestVersion?.state === "draft" ? (
+                                  <Button
+                                    disabled={pending === `version:${assistant.latestVersion.id}`}
+                                    onClick={() => void changeVersionState(assistant, "published")}
+                                    size="sm"
+                                  >
+                                    {t("PUBLISH")}
+                                  </Button>
+                                ) : null}
+                                {assistant.latestVersion?.state === "published" ? (
+                                  <Button
+                                    disabled={pending === `version:${assistant.latestVersion.id}`}
+                                    onClick={() => void changeVersionState(assistant, "retired")}
+                                    size="sm"
+                                    variant="outline"
+                                  >
+                                    {t("RETIRE")}
+                                  </Button>
+                                ) : null}
+                                <Button
+                                  disabled={
+                                    pending === `assistant:${assistant.id}` ||
+                                    assistant.lifecycleState === "active"
+                                  }
+                                  onClick={() => void changeLifecycle(assistant, "active")}
+                                  size="sm"
+                                  variant="outline"
+                                >
+                                  {t("ENABLE")}
+                                </Button>
+                                <Button
+                                  disabled={
+                                    pending === `assistant:${assistant.id}` ||
+                                    assistant.lifecycleState === "disabled"
+                                  }
+                                  onClick={() => void changeLifecycle(assistant, "disabled")}
+                                  size="sm"
+                                  variant="outline"
+                                >
+                                  {t("DISABLE")}
+                                </Button>
+                                <Button
+                                  disabled={pending === `assistant:${assistant.id}`}
+                                  onClick={() => void changeLifecycle(assistant, "archived")}
+                                  size="sm"
+                                  variant="ghost"
+                                >
+                                  {t("ARCHIVE")}
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Empty className="min-h-72 border bg-card">
+                  <EmptyHeader>
+                    <EmptyTitle>{t("ASSISTANT_CATALOG_EMPTY_TITLE")}</EmptyTitle>
+                    <EmptyDescription>{t("ASSISTANT_CATALOG_EMPTY_DESCRIPTION")}</EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
+              )}
+              {editor ? (
+                <AiAssistantEditorDialog
+                  approvalProfiles={approvalProfiles}
+                  assistant={editor === "create" ? undefined : editor}
+                  onCompleted={() => {
+                    setMessage(t(editor === "create" ? "ASSISTANT_CREATED" : "ASSISTANT_UPDATED"));
+                    retry();
+                  }}
+                  onOpenChange={(open) => !open && setEditor(null)}
+                  open
+                  supportedToolGrants={data.capabilities.supportedToolGrants}
+                />
+              ) : null}
+              {versionEditor ? (
+                <AiAssistantVersionDialog
+                  approvalProfiles={approvalProfiles}
+                  assistant={versionEditor}
+                  onCompleted={() => {
+                    setMessage(t("ASSISTANT_VERSION_CREATED"));
+                    retry();
+                  }}
+                  onOpenChange={(open) => !open && setVersionEditor(null)}
+                  open
+                  supportedToolGrants={data.capabilities.supportedToolGrants}
+                />
+              ) : null}
+            </>
+          );
+        }}
       </AiState>
     </AiPage>
   );
 }
 
+function assistantApprovalProfiles(capabilities: SystemAgentCatalogCapabilitiesOut): string[] {
+  const value = capabilities.constraints?.customApprovalProfiles;
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
+function assistantCapabilityFlag(
+  capabilities: SystemAgentCatalogCapabilitiesOut,
+  key: string,
+): boolean {
+  return capabilities.constraints?.[key] === true;
+}
+
 export function AiPoliciesPage() {
   const { t } = useTranslation("ai");
-  const load = useCallback(() => listAiAssistants({ scope: "system", page: 1, size: 100 }), []);
-  const { state, retry } = useMonitoringQuery(load, []);
-  const [pending, setPending] = useState<string | null>(null);
-  const transition = async (assistantId: string, version: SystemAgentVersionOut) => {
-    setPending(version.id);
-    try {
-      await retireAiAssistantVersion(assistantId, version.id, {
-        state: version.state === "draft" ? "published" : "retired",
-      });
-      retry();
-    } finally {
-      setPending(null);
-    }
-  };
   return (
     <AiPage description={t("POLICIES_DESCRIPTION")} title={t("POLICIES_TITLE")}>
-      <AiState
-        empty={(data: PageDataSystemAgentDefinitionSummaryOut) => !data.items?.length}
-        retry={retry}
-        state={state}
-      >
-        {(data) => (
-          <div className="grid gap-4">
-            {data.items?.map((assistant) => {
-              const version = assistant.latestVersion;
-              return (
-                <Card key={assistant.id}>
-                  <CardHeader>
-                    <CardTitle>{assistant.displayName}</CardTitle>
-                    <CardDescription>
-                      {version
-                        ? t("POLICY_SUMMARY", { modes: version.supportedExecutionModes.join(", ") })
-                        : t("NO_POLICY_VERSION")}
-                    </CardDescription>
-                  </CardHeader>
-                  {version ? (
-                    <CardContent className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="text-footnote text-label-secondary">
-                        <p>
-                          {t("POLICY_APPROVAL", { profile: version.approvalProfile.profileId })}
-                        </p>
-                        <p>
-                          {t("POLICY_ROUTING", {
-                            routing: version.modelPolicy.routingPolicy ?? "workspace_default",
-                          })}
-                        </p>
-                      </div>
-                      <Button
-                        disabled={pending === version.id || version.state === "retired"}
-                        onClick={() => void transition(assistant.id, version)}
-                        size="sm"
-                        variant="outline"
-                      >
-                        {version.state === "draft" ? t("PUBLISH") : t("RETIRE")}
-                      </Button>
-                    </CardContent>
-                  ) : null}
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </AiState>
+      <Empty className="min-h-72 border bg-card">
+        <EmptyHeader>
+          <EmptyTitle>{t("POLICIES_UNAVAILABLE_TITLE")}</EmptyTitle>
+          <EmptyDescription>{t("POLICIES_UNAVAILABLE_DESCRIPTION")}</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     </AiPage>
   );
 }

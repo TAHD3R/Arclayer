@@ -25,7 +25,15 @@ vi.mock("@/components/ai/ai-composer-triggers", () => ({
 }));
 
 vi.mock("@/components/ai/ai-composer-directive-chips", () => ({
+  AIComposerDirectiveSync: () => null,
   AIComposerDirectiveChips: () => null,
+}));
+
+vi.mock("@/components/ai/ai-composer-rich-input", () => ({
+  AIComposerDirectiveInsertionProvider: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  AIComposerRichInput: (props: TextareaHTMLAttributes<HTMLTextAreaElement>) => (
+    <textarea {...props} />
+  ),
 }));
 
 vi.mock("@assistant-ui/react", async () => {

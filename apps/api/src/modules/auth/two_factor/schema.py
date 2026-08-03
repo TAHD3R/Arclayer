@@ -42,6 +42,9 @@ class TwoFactorCapabilitiesOut(BaseSchema):
 
 class TwoFactorStatusOut(BaseSchema):
     enabled: bool = Field(..., description="Whether 2FA is enabled.")
+    totp_enabled: bool = Field(default=False, description="Whether authenticator-app TOTP is enabled.")
+    webauthn_enabled: bool = Field(default=False, description="Whether a passkey or security key is enabled.")
+    methods: list[str] = Field(default_factory=list, description="Enabled MFA methods.")
     backup_codes_remaining: int = Field(..., ge=0, description="Number of unused backup codes.")
 
 

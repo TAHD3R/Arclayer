@@ -115,7 +115,7 @@ describe("Commerce credits lookup", () => {
 
     await user.click(screen.getByRole("button", { name: "Apply adjustment" }));
     expect(
-      await screen.findByText("The Credit account changed before this adjustment was applied"),
+      await screen.findByText("The Credit balance changed after you opened this adjustment"),
     ).toBeVisible();
     const firstKey = vi.mocked(adjustWorkspaceCredits).mock.calls[0]?.[1].idempotencyKey;
     const secondKey = vi.mocked(adjustWorkspaceCredits).mock.calls[1]?.[1].idempotencyKey;

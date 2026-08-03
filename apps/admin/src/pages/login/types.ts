@@ -110,6 +110,7 @@ export interface LoginViewProps {
   invitationEmail?: string | null;
   challenge: AuthChallengeSnapshot | null;
   onLoginTwoFactorSubmit: (values: LoginTwoFactorFormValues) => Promise<void>;
+  onLoginTwoFactorPasskey?: () => Promise<void>;
   onCancelTwoFactorChallenge: () => void;
   twoFactorLoading?: boolean;
 }

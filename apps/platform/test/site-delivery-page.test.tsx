@@ -10,6 +10,7 @@ import type {
   PlatformDeliveryOperationOut,
   PlatformDeliveryStorageDossierOut,
   PlatformDeliveryStorageOut,
+  StorageProfileOut,
 } from "@arclayer/platform-openapi";
 
 import {
@@ -23,6 +24,7 @@ import {
   listDeliveryIssues,
   listDeliveryRules,
   listDeliveryStorage,
+  listStorageProfiles,
   PlatformSiteDeliveryApiError,
   previewDeliveryPolicy,
   recoverDeliveryDomain,
@@ -50,6 +52,7 @@ vi.mock("@/site-delivery/site-delivery-api", async (importOriginal) => {
     listDeliveryIssues: vi.fn(),
     listDeliveryRules: vi.fn(),
     listDeliveryStorage: vi.fn(),
+    listStorageProfiles: vi.fn(),
     previewDeliveryPolicy: vi.fn(),
     recoverDeliveryDomain: vi.fn(),
     testDeliveryStorage: vi.fn(),
@@ -212,6 +215,38 @@ function storageDossier(): PlatformDeliveryStorageDossierOut {
   };
 }
 
+function storageProfile(overrides: Partial<StorageProfileOut> = {}): StorageProfileOut {
+  return {
+    config: {
+      accessKeyId: "access-key",
+      bucket: "assets",
+      endpointUrl: "https://storage.example.com",
+      forcePathStyle: false,
+      presignExpiresSeconds: 3600,
+      publicBaseUrl: null,
+      publicBucket: null,
+      publicDeliveryMode: "proxy",
+      region: "us-east-1",
+    },
+    configSource: "database",
+    createdAt: DELIVERY_REVISION,
+    displayName: "Primary storage",
+    id: "storage-1",
+    isActive: true,
+    isDefault: true,
+    lastTestMessage: null,
+    lastTestStatus: null,
+    lastTestedAt: null,
+    profileKey: "primary",
+    provider: "aws_s3",
+    scopeId: "system",
+    scopeType: "system",
+    secrets: { secretAccessKey: true },
+    updatedAt: DELIVERY_REVISION,
+    ...overrides,
+  };
+}
+
 beforeAll(async () => {
   await initializePlatformI18n("en-US");
 });
@@ -219,11 +254,10 @@ beforeAll(async () => {
 beforeEach(async () => {
   vi.clearAllMocks();
   await i18n.changeLanguage("en-US");
-  vi.mocked(listDeliveryIssues).mockResolvedValue(
-    page([deliveryIssue()]),
-  );
+  vi.mocked(listDeliveryIssues).mockResolvedValue(page([deliveryIssue()]));
   vi.mocked(listDeliveryDomains).mockResolvedValue(page([]));
   vi.mocked(listDeliveryStorage).mockResolvedValue(page([]));
+  vi.mocked(listStorageProfiles).mockResolvedValue({ items: [] });
   vi.mocked(listDeliveryRules).mockResolvedValue(page([]));
   vi.mocked(getDeliveryIssueDossier).mockResolvedValue(issueDossier());
   vi.mocked(getDeliveryDomainDossier).mockResolvedValue(domainDossier());
@@ -346,6 +380,7 @@ describe("Hosting and delivery pages", () => {
 
   it("uses the storage dossier revision before testing storage", async () => {
     vi.mocked(listDeliveryStorage).mockResolvedValue(page([deliveryStorage()]));
+    vi.mocked(listStorageProfiles).mockResolvedValue({ items: [storageProfile()] });
     vi.mocked(testDeliveryStorage).mockResolvedValue(
       deliveryOperation("test_readiness", {
         targetId: "storage-1",
@@ -415,6 +450,75 @@ describe("Hosting and delivery pages", () => {
     );
     expect(await screen.findByText("Policy change applied")).toBeVisible();
     expect(screen.getByText(/Version 8 now keeps sites available for 300 seconds/)).toBeVisible();
+  });
+
+  it("reuses a policy apply key until the desired intent or preview changes", async () => {
+    vi.mocked(previewDeliveryPolicy)
+      .mockResolvedValueOnce({
+        affectedActiveTransitionCount: 2,
+        continuityWindowSeconds: 300,
+        expectedRevision: 7,
+        id: "preview-1",
+        partialFailure: false,
+        proposedRevision: 8,
+      })
+      .mockResolvedValueOnce({
+        affectedActiveTransitionCount: 2,
+        continuityWindowSeconds: 300,
+        expectedRevision: 7,
+        id: "preview-2",
+        partialFailure: false,
+        proposedRevision: 8,
+      });
+    vi.mocked(applyDeliveryPolicy)
+      .mockRejectedValueOnce(new Error("network"))
+      .mockRejectedValueOnce(new Error("network"))
+      .mockRejectedValueOnce(new Error("network"))
+      .mockResolvedValueOnce({
+        affectedActiveTransitionCount: 2,
+        appliedAt: "2026-08-02T04:30:00.000Z",
+        continuityWindowSeconds: 300,
+        partialFailure: false,
+        policyRevision: 8,
+        replayed: true,
+      });
+    const user = userEvent.setup();
+
+    render(<SiteDeliveryRulesPage />);
+
+    const windowInput = await screen.findByRole("spinbutton", {
+      name: "Site availability window in seconds",
+    });
+    await user.clear(windowInput);
+    await user.type(windowInput, "300");
+    await user.click(screen.getByRole("button", { name: "Preview impact" }));
+    await user.type(await screen.findByLabelText("Reason for this change"), "Continuity update");
+
+    await user.click(screen.getByRole("button", { name: "Apply policy change" }));
+    expect(await screen.findByTestId("site-delivery-action-error-code")).toHaveTextContent(
+      "network",
+    );
+    await user.click(screen.getByRole("button", { name: "Apply policy change" }));
+    await waitFor(() => expect(applyDeliveryPolicy).toHaveBeenCalledTimes(2));
+
+    const reasonInput = screen.getByLabelText("Reason for this change");
+    await user.clear(reasonInput);
+    await user.type(reasonInput, "Revised continuity update");
+    await user.click(screen.getByRole("button", { name: "Apply policy change" }));
+    await waitFor(() => expect(applyDeliveryPolicy).toHaveBeenCalledTimes(3));
+
+    const keys = vi.mocked(applyDeliveryPolicy).mock.calls.map((call) => call[2]);
+    expect(keys[0]).toBeTruthy();
+    expect(keys[1]).toBe(keys[0]);
+    expect(keys[2]).not.toBe(keys[1]);
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await user.click(screen.getByRole("button", { name: "Preview impact" }));
+    await user.click(await screen.findByRole("button", { name: "Apply policy change" }));
+    await waitFor(() => expect(applyDeliveryPolicy).toHaveBeenCalledTimes(4));
+
+    expect(vi.mocked(applyDeliveryPolicy).mock.calls[3]?.[2]).not.toBe(keys[2]);
+    expect(await screen.findByText("Policy change confirmed")).toBeVisible();
   });
 
   it("surfaces a stale policy preview as a conflict instead of applying it", async () => {

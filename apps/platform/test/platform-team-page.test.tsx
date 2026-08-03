@@ -64,13 +64,13 @@ describe("Platform team page", () => {
     expect(listPlatformRoles).not.toHaveBeenCalled();
   });
 
-  it("does not expose high-risk team mutations before their reviewed lifecycle is available", async () => {
+  it("exposes the available safe team-management actions when the current operator is authorized", async () => {
     vi.mocked(getCurrentPlatformTeamIdentity).mockResolvedValue({
       delegablePermissions: [],
       effectivePermissions: [
         "platform:access-team:read",
         "platform:access-team:invite",
-        "platform:access-team:remove",
+        "platform:access-roles:manage",
       ],
       isInstanceOwner: true,
       operatorId: null,
@@ -104,8 +104,12 @@ describe("Platform team page", () => {
     render(<PlatformTeamPage />);
 
     expect(await screen.findByText("Owner")).toBeVisible();
-    expect(screen.getAllByRole("button").map((button) => button.textContent)).toEqual([
-      "Invite operator",
-    ]);
+    expect(screen.getByRole("button", { name: "Invite operator" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Add roles" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Remove operator" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Transfer instance ownership" }),
+    ).not.toBeInTheDocument();
+    expect(listPlatformRoles).toHaveBeenCalledOnce();
   });
 });

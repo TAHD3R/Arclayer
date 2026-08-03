@@ -59,7 +59,7 @@ class NotificationWorkspaceSettingsTarget(BaseSchema):
     section: Literal["members-table", "pending-invitations", "roles-table"] | None = None
 
     @model_validator(mode="after")
-    def validate_section(self) -> "NotificationWorkspaceSettingsTarget":
+    def validate_section(self) -> NotificationWorkspaceSettingsTarget:
         if self.destination in {"general", "plan_usage"} and self.section is not None:
             raise ValueError("NOTIFICATION_WORKSPACE_SETTINGS_SECTION_NOT_ALLOWED")
         if self.destination == "people" and self.section not in {"members-table", "pending-invitations"}:
@@ -79,7 +79,7 @@ class NotificationProjectTarget(BaseSchema):
     focus: Literal["api_key", "preview_token", "content_item", "release"] | None = None
 
     @model_validator(mode="after")
-    def validate_focus(self) -> "NotificationProjectTarget":
+    def validate_focus(self) -> NotificationProjectTarget:
         allowed_focus = {
             "overview": {None},
             "settings_api": {None, "api_key", "preview_token"},
@@ -128,7 +128,7 @@ def notification_navigation_target_json(target: NotificationNavigationTarget) ->
     return _json_storage_value(target.model_dump(mode="python", by_alias=True))
 
 
-def notification_presentation_json(presentation: "NotificationCampaignSurface") -> dict[str, object]:
+def notification_presentation_json(presentation: NotificationCampaignSurface) -> dict[str, object]:
     """Return a JSON-safe immutable campaign presentation snapshot."""
 
     return _json_storage_value(presentation.model_dump(mode="python", by_alias=True))
@@ -388,10 +388,19 @@ class NotificationPreferenceTopicOut(BaseSchema):
     )
 
 
+class NotificationSoundPreferencesOut(BaseSchema):
+    enabled: bool = Field(..., description="Whether new in-app notifications play a sound.")
+    tone: Literal["chime", "pulse", "pop"] = Field(..., description="Selected notification tone.")
+
+
 class NotificationPreferencesOut(BaseSchema):
     topics: list[NotificationPreferenceTopicOut] = Field(
         default_factory=list,
         description="All supported notification preference topics.",
+    )
+    sound: NotificationSoundPreferencesOut = Field(
+        default_factory=lambda: NotificationSoundPreferencesOut(enabled=False, tone="chime"),
+        description="Browser notification sound preference.",
     )
 
 
@@ -399,3 +408,8 @@ class NotificationPreferencePatchIn(BaseSchema):
     topic_key: str = Field(..., description="Topic key to update.")
     channel: Literal["in_app", "email"] = Field(..., description="Channel to update.")
     enabled: bool = Field(..., description="Target enabled value.")
+
+
+class NotificationSoundPreferencePatchIn(BaseSchema):
+    enabled: bool = Field(..., description="Whether notification sounds are enabled.")
+    tone: Literal["chime", "pulse", "pop"] = Field(..., description="Selected notification tone.")

@@ -9,7 +9,13 @@ vi.mock("@/lib/http", () => ({
 
 import { api } from "@/lib/http";
 import {
+  beginLoginTwoFactorWebAuthn,
+  beginSecurityActionWebAuthn,
   beginTwoFactorSetup,
+  beginTwoFactorWebAuthnRegistration,
+  completeLoginTwoFactorWebAuthn,
+  completeSecurityActionWebAuthn,
+  completeTwoFactorWebAuthnRegistration,
   confirmMyEmailChange,
   confirmRemoveMyPassword,
   confirmTwoFactorSetup,
@@ -17,14 +23,17 @@ import {
   getMySecurityCapabilities,
   getTwoFactorCapabilities,
   getTwoFactorStatus,
+  listTwoFactorWebAuthnCredentials,
   listMySessions,
   logout,
   loginTwoFactor,
   requestRemoveMyPassword,
   regenerateTwoFactorBackupCodes,
+  removeTwoFactorWebAuthnCredential,
   revokeMySession,
   revokeOtherSessions,
   setMyPassword,
+  verifySecurityActionTotp,
 } from "@/api/auth";
 import type {
   AuthSessionOut as AuthSessionRow,
@@ -78,6 +87,45 @@ describe("api/auth security wrappers", () => {
     );
   });
 
+  it("posts WebAuthn login begin and complete without refresh interception", async () => {
+    const credential = {
+      id: "credential-1",
+      rawId: "raw-1",
+      type: "public-key" as const,
+      response: {
+        authenticatorData: "authenticator-data",
+        clientDataJSON: "client-data",
+        signature: "signature",
+        userHandle: null,
+      },
+    };
+    vi.mocked(api.post).mockResolvedValue({});
+
+    await beginLoginTwoFactorWebAuthn({ twoFactorToken: "challenge-1" });
+    await completeLoginTwoFactorWebAuthn({
+      twoFactorToken: "challenge-1",
+      challengeId: "webauthn-challenge-1",
+      credential,
+    });
+
+    expect(api.post).toHaveBeenNthCalledWith(
+      1,
+      "/auth/login/2fa/webauthn/options",
+      { twoFactorToken: "challenge-1" },
+      { auth: { skipRefresh: true } },
+    );
+    expect(api.post).toHaveBeenNthCalledWith(
+      2,
+      "/auth/login/2fa/webauthn/complete",
+      {
+        twoFactorToken: "challenge-1",
+        challengeId: "webauthn-challenge-1",
+        credential,
+      },
+      { auth: { skipRefresh: true } },
+    );
+  });
+
   it("gets 2fa status and capabilities", async () => {
     vi.mocked(api.get).mockResolvedValue({ enabled: true });
 
@@ -115,6 +163,77 @@ describe("api/auth security wrappers", () => {
     expect(api.post).toHaveBeenNthCalledWith(6, "/auth/sessions/revoke-others");
   });
 
+  it("wraps passkey registration, removal, and action verification endpoints", async () => {
+    const authenticationCredential = {
+      id: "credential-1",
+      rawId: "raw-1",
+      type: "public-key" as const,
+      response: {
+        authenticatorData: "authenticator-data",
+        clientDataJSON: "client-data",
+        signature: "signature",
+        userHandle: null,
+      },
+    };
+    const registrationCredential = {
+      id: "credential-2",
+      rawId: "raw-2",
+      type: "public-key" as const,
+      response: {
+        attestationObject: "attestation-object",
+        clientDataJSON: "client-data",
+        transports: ["internal"],
+      },
+    };
+    vi.mocked(api.get).mockResolvedValue({ items: [] });
+    vi.mocked(api.post).mockResolvedValue({});
+
+    await listTwoFactorWebAuthnCredentials();
+    await beginTwoFactorWebAuthnRegistration({ password: "secret" });
+    await completeTwoFactorWebAuthnRegistration({
+      challengeId: "registration-challenge",
+      credential: registrationCredential,
+      label: "MacBook",
+    });
+    await removeTwoFactorWebAuthnCredential("credential/1", { mfaProof: "proof-1" });
+    await verifySecurityActionTotp({ action: "change_password", code: "123456" });
+    await beginSecurityActionWebAuthn({ action: "delete_my_account" });
+    await completeSecurityActionWebAuthn({
+      action: "delete_my_account",
+      challengeId: "action-challenge",
+      credential: authenticationCredential,
+    });
+
+    expect(api.get).toHaveBeenCalledWith("/auth/2fa/webauthn");
+    expect(api.post).toHaveBeenNthCalledWith(1, "/auth/2fa/webauthn/registration/options", {
+      password: "secret",
+    });
+    expect(api.post).toHaveBeenNthCalledWith(2, "/auth/2fa/webauthn/registration/complete", {
+      challengeId: "registration-challenge",
+      credential: registrationCredential,
+      label: "MacBook",
+    });
+    expect(api.post).toHaveBeenNthCalledWith(3, "/auth/2fa/webauthn/credential%2F1/remove", {
+      mfaProof: "proof-1",
+    });
+    expect(api.post).toHaveBeenNthCalledWith(4, "/auth/me/security-verification/totp", {
+      action: "change_password",
+      code: "123456",
+    });
+    expect(api.post).toHaveBeenNthCalledWith(5, "/auth/me/security-verification/webauthn/options", {
+      action: "delete_my_account",
+    });
+    expect(api.post).toHaveBeenNthCalledWith(
+      6,
+      "/auth/me/security-verification/webauthn/complete",
+      {
+        action: "delete_my_account",
+        challengeId: "action-challenge",
+        credential: authenticationCredential,
+      },
+    );
+  });
+
   it("posts logout with optional refresh token payload", async () => {
     vi.mocked(api.post).mockResolvedValue(null);
 
@@ -144,7 +263,7 @@ describe("api/auth security wrappers", () => {
     vi.mocked(api.post).mockResolvedValue(null);
 
     await getMySecurityCapabilities();
-    await setMyPassword({ newPassword: "newpass1", code: "123456" });
+    await setMyPassword({ newPassword: "newpass1", mfaProof: "proof" });
     await confirmMyEmailChange({ newEmail: "next@example.com", code: "654321" });
     await requestRemoveMyPassword({ currentPassword: "oldpass1" });
     await confirmRemoveMyPassword({ code: "123456" });
@@ -152,7 +271,7 @@ describe("api/auth security wrappers", () => {
     expect(api.get).toHaveBeenCalledWith("/auth/me/security-capabilities");
     expect(api.post).toHaveBeenNthCalledWith(1, "/auth/me/set-password", {
       newPassword: "newpass1",
-      code: "123456",
+      mfaProof: "proof",
     });
     expect(api.post).toHaveBeenNthCalledWith(2, "/auth/me/email/confirm", {
       newEmail: "next@example.com",

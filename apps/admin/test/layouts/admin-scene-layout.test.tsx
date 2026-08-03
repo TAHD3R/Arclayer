@@ -11,6 +11,8 @@ import { useAiChatStore } from "@/stores/use-ai-chat-store";
 const {
   adminSidebarShellSpy,
   getUnreadNotificationPreviewMock,
+  getMyNotificationPreferencesMock,
+  playNotificationSoundMock,
   archiveItemMock,
   deleteItemMock,
   markReadMock,
@@ -24,6 +26,8 @@ const {
 } = vi.hoisted(() => ({
   adminSidebarShellSpy: vi.fn(),
   getUnreadNotificationPreviewMock: vi.fn(),
+  getMyNotificationPreferencesMock: vi.fn(),
+  playNotificationSoundMock: vi.fn(),
   archiveItemMock: vi.fn(),
   deleteItemMock: vi.fn(),
   markReadMock: vi.fn(),
@@ -37,7 +41,17 @@ const {
 }));
 
 vi.mock("@/api/notifications", () => ({
+  NOTIFICATION_PREFERENCES_QUERY_KEY: ["me", "notification-preferences"],
+  getMyNotificationPreferences: (...args: unknown[]) => getMyNotificationPreferencesMock(...args),
   getUnreadNotificationPreview: (...args: unknown[]) => getUnreadNotificationPreviewMock(...args),
+}));
+
+vi.mock("@/lib/notifications/notification-sound", () => ({
+  playNotificationSound: (...args: unknown[]) => playNotificationSoundMock(...args),
+}));
+
+vi.mock("@/lib/notifications", () => ({
+  notifyError: vi.fn(),
 }));
 
 vi.mock("@/hooks/use-admin-date-time-formatter", () => ({
@@ -216,6 +230,11 @@ describe("AdminSceneLayout", () => {
       unreadCount: 0,
       items: [],
     });
+    getMyNotificationPreferencesMock.mockResolvedValue({
+      sound: { enabled: false, tone: "chime" },
+      topics: [],
+    });
+    playNotificationSoundMock.mockResolvedValue(undefined);
     archiveItemMock.mockResolvedValue(true);
     deleteItemMock.mockResolvedValue(true);
     markReadMock.mockResolvedValue(true);
@@ -396,6 +415,36 @@ describe("AdminSceneLayout", () => {
       expect(toastInfoMock).toHaveBeenCalledTimes(2);
     });
     expect(toastInfoMock.mock.calls[0]?.[1]).toMatchObject({ duration: 12000 });
+  });
+
+  it("plays the selected sound once for a batch of newly arrived notifications", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+      },
+    });
+    queryClient.setQueryData(["me", "notification-preferences"], {
+      sound: { enabled: true, tone: "pulse" },
+      topics: [],
+    });
+    queryClient.setQueryData(["notifications", "preview", authState.sessionVersion], {
+      unreadCount: 1,
+      items: [createNotification()],
+    });
+
+    renderSceneLayout(queryClient);
+
+    act(() => {
+      queryClient.setQueryData(["notifications", "preview", authState.sessionVersion], {
+        unreadCount: 3,
+        items: [createNotification({ id: "notif-2" }), createNotification({ id: "notif-3" })],
+      });
+    });
+
+    await waitFor(() => {
+      expect(playNotificationSoundMock).toHaveBeenCalledTimes(1);
+    });
+    expect(playNotificationSoundMock).toHaveBeenCalledWith("pulse");
   });
 
   it("routes banner broadcasts to the global surface without creating a toast", async () => {

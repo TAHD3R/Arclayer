@@ -4,7 +4,7 @@ from typing import Protocol
 from uuid import UUID
 
 from src.config import Settings
-from src.core.exceptions import BadRequest, Forbidden, ServiceUnavailable, Unauthorized
+from src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable, Unauthorized
 from src.core.i18n import t
 from src.core.services import BaseService
 from src.modules.auth.registration.service import get_public_register_policy
@@ -14,6 +14,10 @@ from src.modules.auth.service import AuthService
 from src.modules.auth.sessions.request_context import AuthRequestContext
 from src.modules.auth.tokens.service import verify_password
 from src.modules.auth.two_factor.challenge_store import TwoFactorChallengeStore
+from src.modules.auth.webauthn.schema import (
+    WebAuthnAuthenticationCredential,
+    WebAuthnAuthenticationOptions,
+)
 from src.platform.cache.valkey import ValkeyClientLike
 
 
@@ -21,6 +25,26 @@ class TwoFactorLoginLike(Protocol):
     async def is_enabled(self, *, user_id: UUID) -> bool: ...
 
     async def verify_for_login(self, *, user_id: UUID, code: str | None, backup_code: str | None) -> None: ...
+
+
+class WebAuthnLoginLike(Protocol):
+    async def is_enabled(self, *, user_id: UUID) -> bool: ...
+
+    async def begin_authentication(
+        self,
+        *,
+        user_id: UUID,
+        binding: str,
+    ) -> WebAuthnAuthenticationOptions: ...
+
+    async def complete_authentication(
+        self,
+        *,
+        user_id: UUID,
+        challenge_id: UUID,
+        binding: str,
+        credential: WebAuthnAuthenticationCredential,
+    ) -> UUID: ...
 
 
 class AuthLoginService(BaseService):
@@ -31,10 +55,12 @@ class AuthLoginService(BaseService):
         valkey: ValkeyClientLike | None,
         auth_service: AuthService,
         two_factor: TwoFactorLoginLike,
+        webauthn: WebAuthnLoginLike,
     ) -> None:
         super().__init__(settings)
         self.auth_service = auth_service
         self.two_factor = two_factor
+        self.webauthn = webauthn
         self.challenge_store = TwoFactorChallengeStore(valkey) if valkey is not None else None
         self.email_login_code_store = EmailLoginCodeStore(valkey) if valkey is not None else None
 
@@ -56,6 +82,14 @@ class AuthLoginService(BaseService):
                 error="LOGIN_CODE_STORE_UNAVAILABLE",
             )
         return self.email_login_code_store
+
+    async def _available_mfa_methods(self, *, user_id: UUID) -> list[str]:
+        methods: list[str] = []
+        if await self.two_factor.is_enabled(user_id=user_id):
+            methods.extend(["totp", "backup_code"])
+        if await self.webauthn.is_enabled(user_id=user_id):
+            methods.append("webauthn")
+        return methods
 
     async def _raise_email_not_verified(self, user: object, *, locale: str | None = None) -> None:
         email = self.auth_service._normalize_email(str(getattr(user, "email", "") or ""))
@@ -123,7 +157,8 @@ class AuthLoginService(BaseService):
         await self._ensure_email_verified_for_login(user, locale=locale)
 
         user_id = UUID(str(user.id))
-        if await self.two_factor.is_enabled(user_id=user_id):
+        methods = await self._available_mfa_methods(user_id=user_id)
+        if methods:
             token, ttl = await self._require_challenge_store().issue(
                 user_id=user_id,
                 request_context=request_context,
@@ -132,7 +167,7 @@ class AuthLoginService(BaseService):
             raise Unauthorized(
                 message=self._ta("TWO_FACTOR_REQUIRED", "需要进行 2FA 验证"),
                 error="TWO_FACTOR_REQUIRED",
-                meta={"two_factor_token": token, "expires_in": ttl},
+                meta={"two_factor_token": token, "expires_in": ttl, "methods": methods},
             )
 
         tokens = await self.auth_service.issue_token_pair_for_user(
@@ -154,7 +189,8 @@ class AuthLoginService(BaseService):
         request_context: AuthRequestContext | None = None,
         auth_method: str = "sso",
     ) -> TokenPair:
-        if await self.two_factor.is_enabled(user_id=user_id):
+        methods = await self._available_mfa_methods(user_id=user_id)
+        if methods:
             token, ttl = await self._require_challenge_store().issue(
                 user_id=user_id,
                 request_context=request_context,
@@ -163,7 +199,7 @@ class AuthLoginService(BaseService):
             raise Unauthorized(
                 message=self._ta("TWO_FACTOR_REQUIRED", "需要进行 2FA 验证"),
                 error="TWO_FACTOR_REQUIRED",
-                meta={"two_factor_token": token, "expires_in": ttl},
+                meta={"two_factor_token": token, "expires_in": ttl, "methods": methods},
             )
         tokens = await self.auth_service.issue_token_pair_for_user(
             user_id,
@@ -241,6 +277,75 @@ class AuthLoginService(BaseService):
             request_context=request_context,
             auth_method=auth_method,
         )
+
+    async def begin_two_factor_webauthn(
+        self,
+        *,
+        two_factor_token: str,
+    ) -> WebAuthnAuthenticationOptions:
+        token, record, user_id = await self._load_two_factor_challenge(two_factor_token)
+        if not await self.webauthn.is_enabled(user_id=user_id):
+            raise Unauthorized(error="WEBAUTHN_CREDENTIAL_REQUIRED")
+        return await self.webauthn.begin_authentication(user_id=user_id, binding=token)
+
+    async def complete_two_factor_webauthn(
+        self,
+        *,
+        two_factor_token: str,
+        challenge_id: UUID,
+        credential: WebAuthnAuthenticationCredential,
+        request_context: AuthRequestContext | None = None,
+    ) -> TokenPair:
+        token, record, user_id = await self._load_two_factor_challenge(two_factor_token)
+        store = self._require_challenge_store()
+        try:
+            await self.webauthn.complete_authentication(
+                user_id=user_id,
+                challenge_id=challenge_id,
+                binding=token,
+                credential=credential,
+            )
+        except (BadRequest, Conflict, NotFound) as exc:
+            tries = await store.bump_attempts(token=token)
+            if tries >= store.max_attempts:
+                await store.delete(token=token)
+            raise Unauthorized(message=exc.message, error=exc.error) from exc
+
+        consumed = await store.try_mark_consumed(token=token)
+        if not consumed:
+            raise Unauthorized(error="TWO_FACTOR_CHALLENGE_INVALID")
+        await store.delete(token=token)
+        raw_auth_method = record.get("auth_method")
+        auth_method = (
+            raw_auth_method.strip() if isinstance(raw_auth_method, str) and raw_auth_method.strip() else "password"
+        )
+        return await self.auth_service.issue_token_pair_for_user(
+            user_id,
+            request_context=request_context,
+            auth_method=auth_method,
+        )
+
+    async def _load_two_factor_challenge(
+        self,
+        two_factor_token: str,
+    ) -> tuple[str, dict[str, object], UUID]:
+        store = self._require_challenge_store()
+        token = (two_factor_token or "").strip()
+        if not token:
+            raise Unauthorized(error="TWO_FACTOR_REQUIRED")
+        record = await store.get(token=token)
+        if record is None:
+            raise Unauthorized(error="TWO_FACTOR_CHALLENGE_INVALID")
+        attempts = int(record.get("attempts") or 0)
+        if attempts >= store.max_attempts:
+            await store.delete(token=token)
+            raise Unauthorized(error="TWO_FACTOR_CHALLENGE_EXPIRED")
+        try:
+            user_id = UUID(str(record.get("user_id") or "").strip())
+        except ValueError as exc:
+            await store.delete(token=token)
+            raise Unauthorized(error="TWO_FACTOR_CHALLENGE_INVALID") from exc
+        return token, record, user_id
 
     async def request_login_email_code(
         self,

@@ -393,4 +393,26 @@ describe("LoginView auth pane hierarchy", () => {
     expect(submitButton).toBeInTheDocument();
     expect(screen.queryByText("auth:LEGAL_CONTINUE")).not.toBeInTheDocument();
   });
+
+  test("offers passkey verification when the challenge supports WebAuthn", async () => {
+    const user = userEvent.setup();
+    const onLoginTwoFactorPasskey = vi.fn(async () => undefined);
+    renderLoginView({
+      challenge: {
+        twoFactorToken: "challenge-token",
+        expiresAt: Date.now() + 60_000,
+        keepSession: true,
+        redirect: null,
+        source: "password",
+        methods: ["totp", "backup_code", "webauthn"],
+      },
+      onLoginTwoFactorPasskey,
+    });
+
+    await user.click(
+      screen.getByRole("button", { name: "account:ME_SECURITY_ACTION_USE_PASSKEY" }),
+    );
+
+    expect(onLoginTwoFactorPasskey).toHaveBeenCalledTimes(1);
+  });
 });

@@ -5,6 +5,7 @@ import {
   consumeAIComposerDirectives,
   filterTrustedAIComposerDirectives,
   parseAIComposerDirectives,
+  removeAIComposerDirectiveByIdentity,
   skillInstallationIdsForComposerScope,
   useAIComposerDirectiveStore,
 } from "@/components/ai/ai-composer-directives";
@@ -42,6 +43,19 @@ describe("AI composer directive trust boundary", () => {
       { type: "project", id: "project-1", label: "Marketing" },
       { type: "action", id: "audit", label: "Audit" },
     ]);
+  });
+
+  it("parses attachment nodes and removes only the matching runtime attachment identity", () => {
+    const text =
+      ":attachment[brief.pdf]{name=attachment-1} review :attachment[cover.png]{name=attachment-2}";
+
+    expect(parseAIComposerDirectives(text)).toEqual([
+      { type: "attachment", id: "attachment-1", label: "brief.pdf" },
+      { type: "attachment", id: "attachment-2", label: "cover.png" },
+    ]);
+    expect(removeAIComposerDirectiveByIdentity(text, "attachment", "attachment-1")).toBe(
+      " review :attachment[cover.png]{name=attachment-2}",
+    );
   });
 
   it("keeps selected Skills as installation IDs without a client-side prompt instruction", () => {

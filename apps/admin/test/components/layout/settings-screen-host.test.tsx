@@ -15,9 +15,47 @@ import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 const commerceMocks = vi.hoisted(() => ({
   getWorkspaceCommerceOverview: vi.fn(),
 }));
+const identityMocks = vi.hoisted(() => ({
+  profile: null as null | {
+    displayName?: string | null;
+    username?: string | null;
+    email: string;
+    avatarUrl?: string | null;
+    avatarAssetId?: string | null;
+  },
+  listMyWorkspaces: vi.fn(),
+}));
 
 vi.mock("@/api/commerce", () => ({
   getWorkspaceCommerceOverview: commerceMocks.getWorkspaceCommerceOverview,
+}));
+
+vi.mock("@/api/workspaces", () => ({
+  listMyWorkspaces: identityMocks.listMyWorkspaces,
+}));
+
+vi.mock("@/hooks/use-current-user-profile", () => ({
+  useCurrentUserProfile: () => ({ profile: identityMocks.profile }),
+}));
+
+vi.mock("@/components/common/entity-avatar", () => ({
+  UserAvatar: (props: { name: string; assetRef?: string | null }) => (
+    <span
+      data-testid="settings-profile-avatar"
+      data-name={props.name}
+      data-asset-ref={props.assetRef}
+    />
+  ),
+  WorkspaceAvatar: (props: { name: string; assetRef?: string | null }) => (
+    <span
+      data-testid="settings-workspace-avatar"
+      data-name={props.name}
+      data-asset-ref={props.assetRef}
+    />
+  ),
+  workspaceAvatarPropsFromIdentity: (workspace: { iconUrl?: string | null }) => ({
+    assetRef: workspace.iconUrl,
+  }),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -145,6 +183,8 @@ describe("SettingsScreenHost", () => {
         entitlements: [{ key: "workspace.roles.manage", isIncluded: true }],
       },
     });
+    identityMocks.profile = null;
+    identityMocks.listMyWorkspaces.mockResolvedValue({ items: [] });
     useWorkspaceStore.setState({
       currentWorkspaceId: "ws-alpha",
       currentProjectId: "project-alpha",
@@ -203,6 +243,38 @@ describe("SettingsScreenHost", () => {
     expect(screen.getByText("account:ME_TAB_PROFILE_DESC")).toBeVisible();
     expect(screen.getByTestId("overlay-profile-view")).toBeVisible();
     expect(screen.getByRole("button", { name: "Close" })).toHaveClass("bg-background/80");
+  });
+
+  it("uses the current user and workspace identities for the primary navigation items", async () => {
+    identityMocks.profile = {
+      displayName: "Philip Cole",
+      username: "philip",
+      email: "philip@example.com",
+      avatarAssetId: "asset-user-1",
+    };
+    identityMocks.listMyWorkspaces.mockResolvedValue({
+      items: [
+        {
+          id: "ws-alpha",
+          workspaceId: "ws-alpha",
+          name: "Arclayer Studio",
+          iconUrl: "https://assets.example.com/workspace.png",
+        },
+      ],
+    });
+
+    await renderSettingsHost();
+
+    const profileItem = await screen.findByRole("button", { name: "Philip Cole" });
+    const workspaceItem = await screen.findByRole("button", { name: "Arclayer Studio" });
+    expect(within(profileItem).getByTestId("settings-profile-avatar")).toHaveAttribute(
+      "data-asset-ref",
+      "asset-user-1",
+    );
+    expect(within(workspaceItem).getByTestId("settings-workspace-avatar")).toHaveAttribute(
+      "data-asset-ref",
+      "https://assets.example.com/workspace.png",
+    );
   });
 
   it("switches screens inside the same provider-driven overlay", async () => {

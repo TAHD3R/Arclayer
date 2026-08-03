@@ -54,5 +54,7 @@ describe("Workspaces Platform routes", () => {
     expect(sources).not.toMatch(/apps\/admin|@arclayer\/admin/);
     expect(workspaces).toContain("TenantWorkspaceDetail");
     expect(detail).toContain("WorkspaceAccessDialog");
+    expect(dialogs).toContain("accessAttempt.current?.fingerprint === fingerprint");
+    expect(dialogs).toContain("accessAttempt.current = null");
   });
 });

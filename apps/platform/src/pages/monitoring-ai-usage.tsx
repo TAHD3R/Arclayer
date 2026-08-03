@@ -19,11 +19,24 @@ import {
 import type { MonitoringAiUsageSearch } from "@/routes/_authenticated/monitoring/ai-usage";
 import { SavedViewsControl } from "@/saved-views/saved-views-control";
 import { SAVED_VIEW_DEFINITIONS, type SavedViewState } from "@/saved-views/saved-view-contracts";
-import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
-import { Button } from "@arclayer/ui/button";
-import { Input } from "@arclayer/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const PAGE_SIZE = 50;
 const DIRECTORY_PAGE_SIZE = 100;
@@ -275,7 +288,7 @@ export function MonitoringAiUsagePage(props: {
                   <TableRow key={`${item.provider}:${item.model}`}>
                     <TableCell>
                       <span className="font-medium">{item.model}</span>
-                      <span className="ml-2 text-label-secondary">{item.provider}</span>
+                      <span className="ml-2 text-muted-foreground">{item.provider}</span>
                     </TableCell>
                     <TableCell>{formatNumber(item.requests)}</TableCell>
                     <TableCell>{formatPercent(item.errorRate)}</TableCell>
@@ -283,13 +296,13 @@ export function MonitoringAiUsagePage(props: {
                       <span className="block">
                         {formatNumber(item.totalTokens)} {t("TOKENS")}
                       </span>
-                      <span className="text-caption text-label-secondary">
+                      <span className="text-xs text-muted-foreground">
                         {formatCostMicros(item.costMicros)}
                       </span>
                     </TableCell>
                     <TableCell>
                       <span className="block">{formatDuration(item.avgLatencyMs)}</span>
-                      <span className="text-caption text-label-secondary">
+                      <span className="text-xs text-muted-foreground">
                         {t("LAST_SEEN_SHORT", { value: formatDateTime(item.lastSeenAt) })}
                       </span>
                     </TableCell>
@@ -297,7 +310,7 @@ export function MonitoringAiUsagePage(props: {
                 ))}
               </TableBody>
             </Table>
-            <div className="flex items-center justify-between text-footnote text-label-secondary">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>{t("PAGE_OF", { page: data.page, pages: data.pages, total: data.total })}</span>
               <div className="flex gap-2">
                 <Button

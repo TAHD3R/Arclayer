@@ -9,8 +9,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _SETTINGS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SETTINGS_DIR.parents[3]
-_PLATFORM_DEVICE_SESSION_TTL_SECONDS = 24 * 60 * 60
-_PLATFORM_SESSION_POLICY_REVISION = 2
+_PLATFORM_DEVICE_SESSION_TTL_SECONDS = 8 * 60 * 60
+_PLATFORM_SESSION_POLICY_REVISION = 3
 
 
 def _normalize_runtime_fs_path(value: Path, *, default_base: Path) -> Path:
@@ -257,6 +257,73 @@ class TestingSettings(BaseSettings):
     valkey_default_ttl: int | None = Field(default=5)
 
 
+class ProductWebAuthnSettings(BaseModel):
+    """Relying-party boundary for Product Account passkeys and security keys."""
+
+    rp_id: str | None = Field(default=None, max_length=255)
+    origin: str | None = Field(default=None, max_length=2048)
+    rp_name: str = Field(default="Arclayer", min_length=1, max_length=128)
+    challenge_ttl_seconds: int = Field(default=300, ge=1)
+    allowed_cose_algorithms: tuple[int, ...] = Field(default=(-7, -257), min_length=1)
+
+    @field_validator("rp_id", mode="after")
+    @classmethod
+    def _normalize_rp_id(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip().lower().rstrip(".")
+        if not normalized:
+            return None
+        if "://" in normalized or any(character in normalized for character in "/:@"):
+            raise ValueError("WebAuthn rp_id must be a hostname without scheme, port, credentials, or path")
+        try:
+            normalized.encode("idna")
+        except UnicodeError as exc:
+            raise ValueError("WebAuthn rp_id must be a valid hostname") from exc
+        return normalized
+
+    @field_validator("origin", mode="after")
+    @classmethod
+    def _normalize_origin(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        parsed = urlsplit(value.strip())
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not parsed.hostname
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.query
+            or parsed.fragment
+            or parsed.path not in {"", "/"}
+        ):
+            raise ValueError("WebAuthn origin must contain only scheme, host, and optional port")
+        if parsed.scheme == "http" and parsed.hostname != "localhost" and not parsed.hostname.endswith(".localhost"):
+            raise ValueError("WebAuthn origin requires HTTPS outside localhost development")
+        return f"{parsed.scheme}://{parsed.netloc.lower()}"
+
+    @field_validator("allowed_cose_algorithms", mode="after")
+    @classmethod
+    def _validate_algorithms(cls, value: tuple[int, ...]) -> tuple[int, ...]:
+        supported = {-7, -8, -257}
+        if len(set(value)) != len(value) or not set(value).issubset(supported):
+            raise ValueError("WebAuthn algorithms must be unique supported COSE algorithm identifiers")
+        return value
+
+    @model_validator(mode="after")
+    def _validate_relying_party_boundary(self) -> ProductWebAuthnSettings:
+        if (self.rp_id is None) != (self.origin is None):
+            raise ValueError("WebAuthn rp_id and origin must be configured together")
+        if self.rp_id is None or self.origin is None:
+            return self
+        origin_host = urlsplit(self.origin).hostname
+        if origin_host is None:
+            raise ValueError("WebAuthn origin must contain a hostname")
+        if origin_host != self.rp_id and not origin_host.endswith(f".{self.rp_id}"):
+            raise ValueError("WebAuthn origin host must equal or be a subdomain of rp_id")
+        return self
+
+
 class AuthSettings(BaseSettings):
     """
     Auth/JWT settings for the API application.
@@ -319,6 +386,7 @@ class AuthSettings(BaseSettings):
     password_hash_salt_bytes: int = Field(default=16)
 
     cookie: CookieSettings = Field(default_factory=CookieSettings)
+    webauthn: ProductWebAuthnSettings = Field(default_factory=ProductWebAuthnSettings)
 
 
 class PlatformAuthSettings(BaseSettings):
@@ -437,7 +505,7 @@ class PlatformAuthSettings(BaseSettings):
     jwt_algorithm: str = Field(default="HS256", min_length=1)
     jwt_issuer: str = Field(default="arclayer-platform", min_length=1)
     jwt_audience: str = Field(default="arclayer-platform", min_length=1)
-    access_token_ttl_seconds: int = Field(default=900, ge=1)
+    access_token_ttl_seconds: int = Field(default=_PLATFORM_DEVICE_SESSION_TTL_SECONDS, ge=1)
     cookie: CookieSettings = Field(default_factory=CookieSettings)
     device_session: DeviceSessionSettings = Field(default_factory=DeviceSessionSettings)
     webauthn: WebAuthnSettings = Field(default_factory=WebAuthnSettings)

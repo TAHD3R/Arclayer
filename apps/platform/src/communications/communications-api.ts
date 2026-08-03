@@ -2,15 +2,20 @@ import {
   platformAddPlatformFeedbackMessage,
   platformArchiveNotificationCampaign,
   platformCancelNotificationCampaign,
+  platformCreateEmailTemplate,
   platformCreateNotificationCampaign,
+  platformDeleteEmailTemplate,
   platformDisableMailServiceProfile,
   platformEstimateNotificationCampaignAudience,
+  platformGetEmailTemplate,
+  platformGetEmailTemplateRevision,
   platformGetMailServiceProfile,
   platformGetNotificationCampaign,
   platformGetPlatformFeedbackDetail,
   platformListEmailTemplates,
   platformListEmailTemplateHistory,
   platformListMailProviders,
+  platformListNotificationDeliveryDirectory,
   platformListNotificationCampaigns,
   platformListNotificationCampaignDeliveries,
   platformListPlatformFeedback,
@@ -19,22 +24,31 @@ import {
   platformPublishNotificationCampaign,
   platformRecoverMailServiceProfile,
   platformRestoreDefaultEmailTemplate,
+  platformRotateMailServiceCredentials,
   platformRetryNotificationCampaignFailures,
   platformRetryPlatformFeedbackReplyDelivery,
   platformSwitchMailProvider,
   platformTestMailServiceProfile,
   platformTestSendEmailTemplate,
+  platformUpdateEmailTemplate,
   platformUpdateMailServiceProfile,
   platformUpdateNotificationCampaign,
   platformUpdatePlatformFeedback,
+  platformWriteMailServiceCredentials,
   type FeedbackMessageCreate,
   type FeedbackTicketDetailOut,
   type FeedbackTicketUpdate,
+  type MailCredentialWriteOut,
+  type MailCredentialWriteRequestWritable,
   type MailProviderInfo,
   type MailServiceMutationRequest,
   type MailServiceOut,
   type MailServiceTestRequest,
   type MailTemplatePreviewRequest,
+  type MailTemplateCreateRequest,
+  type MailTemplateOut,
+  type MailTemplatePatchRequest,
+  type MailTemplateRevisionDetailOut,
   type MailTemplateRevisionMutationRequest,
   type MailTemplateTestSendRequest,
   type NotificationCampaignCreateRequest,
@@ -46,10 +60,12 @@ import {
   type PageDataMailTemplateGroupOut,
   type PageDataMailTemplateRevisionOut,
   type PageDataNotificationCampaignSummaryOut,
+  type PageDataNotificationDeliveryDirectoryOut,
   type PageDataNotificationDeliveryOut,
   type PlatformListEmailTemplateHistoryData,
   type PlatformListEmailTemplatesData,
   type PlatformListNotificationCampaignDeliveriesData,
+  type PlatformListNotificationDeliveryDirectoryData,
   type PlatformListNotificationCampaignsData,
   type PlatformListPlatformFeedbackData,
 } from "@arclayer/platform-openapi";
@@ -65,6 +81,13 @@ function unwrap<T>(result: SdkResult<T>): T {
     throw new Error(result.data?.error ?? "PLATFORM_COMMUNICATIONS_RESPONSE_INVALID");
   }
   return result.data.data;
+}
+
+function unwrapVoid(result: SdkResult<null>): void {
+  if (result.error !== undefined) throw new Error("PLATFORM_COMMUNICATIONS_REQUEST_FAILED");
+  if (!result.data || result.data.error) {
+    throw new Error(result.data?.error ?? "PLATFORM_COMMUNICATIONS_RESPONSE_INVALID");
+  }
 }
 
 export function listFeedback(
@@ -203,6 +226,14 @@ export function listCampaignDeliveries(
   }).then(unwrap);
 }
 
+export function listDeliveryDirectory(
+  query?: NonNullable<PlatformListNotificationDeliveryDirectoryData["query"]>,
+): Promise<PageDataNotificationDeliveryDirectoryOut> {
+  return platformListNotificationDeliveryDirectory({ client: platformApiClient, query }).then(
+    unwrap,
+  );
+}
+
 export function retryCampaignFailures(campaignId: string, idempotencyKey: string) {
   return platformRetryNotificationCampaignFailures({
     client: platformApiClient,
@@ -241,6 +272,43 @@ export function previewTemplate(body: MailTemplatePreviewRequest) {
   return platformPreviewEmailTemplate({ client: platformApiClient, body }).then(unwrap);
 }
 
+export function createTemplate(body: MailTemplateCreateRequest): Promise<MailTemplateOut> {
+  return platformCreateEmailTemplate({ client: platformApiClient, body }).then(unwrap);
+}
+
+export function getTemplate(templateId: string): Promise<MailTemplateOut> {
+  return platformGetEmailTemplate({
+    client: platformApiClient,
+    path: { template_id: templateId },
+  }).then(unwrap);
+}
+
+export function updateTemplate(
+  templateId: string,
+  body: MailTemplatePatchRequest,
+): Promise<MailTemplateOut> {
+  return platformUpdateEmailTemplate({
+    client: platformApiClient,
+    path: { template_id: templateId },
+    body,
+  }).then(unwrap);
+}
+
+export function deleteTemplate(templateId: string, expectedVersion: number): Promise<void> {
+  return platformDeleteEmailTemplate({
+    client: platformApiClient,
+    path: { template_id: templateId },
+    query: { expected_version: expectedVersion },
+  }).then(unwrapVoid);
+}
+
+export function getTemplateRevision(revisionId: string): Promise<MailTemplateRevisionDetailOut> {
+  return platformGetEmailTemplateRevision({
+    client: platformApiClient,
+    path: { revision_id: revisionId },
+  }).then(unwrap);
+}
+
 export function restoreTemplate(templateId: string, body: MailTemplateRevisionMutationRequest) {
   return platformRestoreDefaultEmailTemplate({
     client: platformApiClient,
@@ -266,6 +334,18 @@ export function listTemplateHistory(
     path: { template_key: templateKey },
     query,
   }).then(unwrap);
+}
+
+export function writeMailServiceCredentials(
+  body: MailCredentialWriteRequestWritable,
+): Promise<MailCredentialWriteOut> {
+  return platformWriteMailServiceCredentials({ client: platformApiClient, body }).then(unwrap);
+}
+
+export function rotateMailServiceCredentials(
+  body: MailCredentialWriteRequestWritable,
+): Promise<MailCredentialWriteOut> {
+  return platformRotateMailServiceCredentials({ client: platformApiClient, body }).then(unwrap);
 }
 
 export type { MailProviderInfo };

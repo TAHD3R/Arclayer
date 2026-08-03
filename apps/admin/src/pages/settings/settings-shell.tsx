@@ -39,8 +39,13 @@ type SettingsFrameProps = {
   onClose?: () => void;
   onSelectItem?: (item: SettingsNavItem) => void;
   items?: readonly SettingsNavItem[];
+  identityOverrides?: SettingsNavIdentityOverrides;
   className?: string;
 };
+
+export type SettingsNavIdentityOverrides = Partial<
+  Record<"personal.profile" | "workspace.general", { label: string; icon: ReactNode }>
+>;
 
 function resolveLeadingLabel(item: SettingsNavItem, t: (key: string) => string): string | null {
   if (item.groupLabelBeforeKey) return t(item.groupLabelBeforeKey);
@@ -51,6 +56,7 @@ function SettingsNavList(props: {
   items: readonly SettingsNavItem[];
   activeScreen: SettingsScreen;
   onSelectItem: (item: SettingsNavItem) => void;
+  identityOverrides?: SettingsNavIdentityOverrides;
 }) {
   const { t } = useTranslation();
   let previousLabel: string | null = null;
@@ -60,7 +66,9 @@ function SettingsNavList(props: {
       <ul className="space-y-1.5">
         {props.items.map((item) => {
           const isActive = item.screen === props.activeScreen;
-          const label = item.labelKey ? t(item.labelKey) : item.label;
+          const identityOverride =
+            props.identityOverrides?.[item.screen as keyof SettingsNavIdentityOverrides];
+          const label = identityOverride?.label ?? (item.labelKey ? t(item.labelKey) : item.label);
           const leadingLabel = resolveLeadingLabel(item, t);
           const showLeadingLabel = Boolean(leadingLabel && leadingLabel !== previousLabel);
           previousLabel = leadingLabel ?? previousLabel;
@@ -95,7 +103,10 @@ function SettingsNavList(props: {
                       )}
                       onClick={() => props.onSelectItem(item)}
                     >
-                      {iconSlot(0, item.icon, { isActive })}
+                      {iconSlot(0, item.icon, {
+                        isActive,
+                        iconNode: identityOverride?.icon,
+                      })}
                       <span className="min-w-0 flex-1 truncate text-left">{label}</span>
                       {item.badgeLabelKey ? (
                         <Badge variant="secondary" className="max-w-24 truncate px-1.5">
@@ -118,7 +129,10 @@ function SettingsNavList(props: {
                         DISABLED_ITEM_CLASSNAME,
                       )}
                     >
-                      {iconSlot(0, item.icon, { isActive })}
+                      {iconSlot(0, item.icon, {
+                        isActive,
+                        iconNode: identityOverride?.icon,
+                      })}
                       <span className="min-w-0 flex-1 truncate">{label}</span>
                     </div>
                   )}
@@ -136,15 +150,21 @@ function SettingsMobileNav(props: {
   items: readonly SettingsNavItem[];
   activeScreen: SettingsScreen;
   onSelectItem: (item: SettingsNavItem) => void;
+  identityOverrides?: SettingsNavIdentityOverrides;
 }) {
   const { t } = useTranslation("account");
   const [open, setOpen] = useState(false);
   const activeItem = props.items.find((item) => item.screen === props.activeScreen);
-  const activeLabel = activeItem
-    ? activeItem.labelKey
-      ? t(activeItem.labelKey)
-      : activeItem.label
-    : t("SETTINGS_SHELL_TITLE");
+  const activeIdentity = activeItem
+    ? props.identityOverrides?.[activeItem.screen as keyof SettingsNavIdentityOverrides]
+    : undefined;
+  const activeLabel =
+    activeIdentity?.label ??
+    (activeItem
+      ? activeItem.labelKey
+        ? t(activeItem.labelKey)
+        : activeItem.label
+      : t("SETTINGS_SHELL_TITLE"));
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -182,6 +202,7 @@ function SettingsMobileNav(props: {
           <SettingsNavList
             items={props.items}
             activeScreen={props.activeScreen}
+            identityOverrides={props.identityOverrides}
             onSelectItem={(item) => {
               setOpen(false);
               props.onSelectItem(item);
@@ -212,6 +233,7 @@ export function SettingsFrame(props: SettingsFrameProps) {
             <SettingsNavList
               items={navItems}
               activeScreen={props.activeScreen}
+              identityOverrides={props.identityOverrides}
               onSelectItem={(item) => props.onSelectItem?.(item)}
             />
           </div>
@@ -223,6 +245,7 @@ export function SettingsFrame(props: SettingsFrameProps) {
           <SettingsMobileNav
             items={navItems}
             activeScreen={props.activeScreen}
+            identityOverrides={props.identityOverrides}
             onSelectItem={(item) => props.onSelectItem?.(item)}
           />
         </div>

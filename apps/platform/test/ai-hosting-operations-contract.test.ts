@@ -29,11 +29,22 @@ describe("AI and Hosting Platform operation contracts", () => {
   });
 
   it("uses generated SDK actions and preserves Hosting operation semantics", async () => {
-    const [aiApi, hostingApi, aiPage, hostingPage] = await Promise.all([
+    const [
+      aiApi,
+      assistantsApi,
+      hostingApi,
+      aiPage,
+      hostingPage,
+      providerDialogs,
+      assistantDialogs,
+    ] = await Promise.all([
       readSource("apps/platform/src/ai/ai-services-api.ts"),
+      readSource("apps/platform/src/ai/ai-assistants-api.ts"),
       readSource("apps/platform/src/site-delivery/site-delivery-api.ts"),
       readSource("apps/platform/src/pages/ai-services.tsx"),
       readSource("apps/platform/src/pages/site-delivery.tsx"),
+      readSource("apps/platform/src/ai/ai-provider-dialogs.tsx"),
+      readSource("apps/platform/src/ai/ai-assistant-dialogs.tsx"),
     ]);
 
     expect(aiApi).toContain("platformRetryPlatformAiTask");
@@ -52,11 +63,31 @@ describe("AI and Hosting Platform operation contracts", () => {
     expect(hostingApi).toContain("platformGetPlatformDeliveryContinuityPolicy");
     expect(hostingApi).toContain("platformPreviewPlatformDeliveryPolicy");
     expect(hostingApi).toContain("platformApplyPlatformDeliveryPolicy");
+    expect(hostingApi).toContain("platformCreateStorageProfile");
+    expect(hostingApi).toContain("platformUpdateStorageProfile");
+    expect(hostingApi).toContain("platformDeleteStorageProfile");
     expect(hostingApi).toContain("PlatformDeliveryOperationOut");
     expect(hostingApi).toContain("PlatformDeliveryOperationRequestIn");
     expect(aiPage).toContain("idempotencyKeys.current.get(operationKey)");
     expect(aiPage).toContain("TASK_ACTION_RESULT_TITLE");
     expect(aiPage).toContain("TASK_ACTION_UNCONFIRMED");
+    expect(aiPage).toContain("AiProviderEditorDialog");
+    expect(aiPage).toContain("AiAssistantEditorDialog");
+    expect(aiPage).toContain("AiAssistantVersionDialog");
+    expect(aiPage).toContain("retireAiAssistantVersion");
+    expect(aiPage).toContain("POLICIES_UNAVAILABLE_TITLE");
+    expect(aiPage).not.toContain("window.prompt");
+    expect(providerDialogs).toContain("createAiProvider");
+    expect(providerDialogs).toContain("updateAiProvider");
+    expect(providerDialogs).toContain("await updateAiProvider(props.provider.id, { label })");
+    expect(providerDialogs).not.toContain("providerApiKey: apiKey || null");
+    expect(providerDialogs).toContain('type="password"');
+    expect(assistantsApi).toContain("platformCreateSystemAgent");
+    expect(assistantsApi).toContain("platformUpdateSystemAgent");
+    expect(assistantsApi).toContain("platformCreateSystemAgentVersion");
+    expect(assistantsApi).toContain("platformRetireSystemAgentVersion");
+    expect(assistantDialogs).toContain("createAiAssistant");
+    expect(assistantDialogs).toContain("createAiAssistantVersion");
     expect(hostingPage).toContain("executeDeliveryIssueAction");
     expect(hostingPage).toContain("recoverDeliveryDomain");
     expect(hostingPage).toContain("testDeliveryStorage");
@@ -65,6 +96,8 @@ describe("AI and Hosting Platform operation contracts", () => {
     expect(hostingPage).toContain("getDeliveryStorageDossier");
     expect(hostingPage).toContain("previewDeliveryPolicy");
     expect(hostingPage).toContain("applyDeliveryPolicy");
+    expect(hostingPage).toContain("StorageProfileEditorDialog");
+    expect(hostingPage).toContain("DeleteStorageProfileDialog");
     expect(hostingPage).toContain("crypto.randomUUID()");
     expect(hostingPage).toContain("failedTargetCount");
     expect(hostingPage).toContain('result.state === "partial"');

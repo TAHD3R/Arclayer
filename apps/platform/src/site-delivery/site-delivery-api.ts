@@ -1,5 +1,7 @@
 import {
   platformApplyPlatformDeliveryPolicy,
+  platformCreateStorageProfile,
+  platformDeleteStorageProfile,
   platformGetPlatformDeliveryDomainDossier,
   platformGetPlatformDeliveryContinuityPolicy,
   platformGetPlatformDeliveryIssueDossier,
@@ -8,12 +10,14 @@ import {
   platformListPlatformDeliveryIssues,
   platformListPlatformDeliveryRules,
   platformListPlatformDeliveryStorage,
+  platformListStorageProfiles,
   platformPreviewPlatformDeliveryPolicy,
   platformReconcilePlatformDeliveryIssue,
   platformRecoverPlatformDeliveryDomain,
   platformRestorePlatformDeliveryIssue,
   platformRetryPlatformDeliveryIssue,
   platformTestPlatformDeliveryStorage,
+  platformUpdateStorageProfile,
   type PlatformDeliveryContinuityPolicyOut,
   type PlatformDeliveryDomainDossierOut,
   type PlatformDeliveryIssueDossierOut,
@@ -27,6 +31,11 @@ import {
   type PageDataPlatformDeliveryRuleOut,
   type PageDataPlatformDeliveryStorageOut,
   type PlatformListPlatformDeliveryIssuesData,
+  type StorageProfileCreateRequest,
+  type StorageProfileDeleteOut,
+  type StorageProfileListOut,
+  type StorageProfileOut,
+  type StorageProfileUpdateRequest,
 } from "@arclayer/platform-openapi";
 
 import { platformApiClient } from "@/api/client";
@@ -93,6 +102,34 @@ export function listDeliveryStorage(): Promise<PageDataPlatformDeliveryStorageOu
   }).then(unwrap);
 }
 
+export function listStorageProfiles(): Promise<StorageProfileListOut> {
+  return platformListStorageProfiles({ client: platformApiClient }).then(unwrap);
+}
+
+export function createStorageProfile(
+  body: StorageProfileCreateRequest,
+): Promise<StorageProfileOut> {
+  return platformCreateStorageProfile({ body, client: platformApiClient }).then(unwrap);
+}
+
+export function updateStorageProfile(
+  profileId: string,
+  body: StorageProfileUpdateRequest,
+): Promise<StorageProfileOut> {
+  return platformUpdateStorageProfile({
+    body,
+    client: platformApiClient,
+    path: { profile_id: profileId },
+  }).then(unwrap);
+}
+
+export function deleteStorageProfile(profileId: string): Promise<StorageProfileDeleteOut> {
+  return platformDeleteStorageProfile({
+    client: platformApiClient,
+    path: { profile_id: profileId },
+  }).then(unwrap);
+}
+
 export function listDeliveryRules(): Promise<PageDataPlatformDeliveryRuleOut> {
   return platformListPlatformDeliveryRules({
     client: platformApiClient,
@@ -104,9 +141,7 @@ export function getDeliveryContinuityPolicy(): Promise<PlatformDeliveryContinuit
   return platformGetPlatformDeliveryContinuityPolicy({ client: platformApiClient }).then(unwrap);
 }
 
-export function getDeliveryIssueDossier(
-  issueId: string,
-): Promise<PlatformDeliveryIssueDossierOut> {
+export function getDeliveryIssueDossier(issueId: string): Promise<PlatformDeliveryIssueDossierOut> {
   return platformGetPlatformDeliveryIssueDossier({
     client: platformApiClient,
     path: { issue_id: issueId },

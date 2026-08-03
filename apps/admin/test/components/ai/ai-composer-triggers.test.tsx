@@ -15,6 +15,7 @@ import { SettingsScreenProvider } from "@/components/layout/settings-screen-prov
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
+import { OVERLAY_LAYER_SHADOW_CLASSNAME } from "@arclayer/ui/layer-shadow";
 
 type MentionAdapterOptions = {
   readonly items?: readonly Unstable_Mention[];
@@ -27,9 +28,9 @@ type MentionAdapterOptions = {
 };
 
 const mentionMocks = vi.hoisted(() => ({
-  options: null as MentionAdapterOptions | null,
+  mentionOptions: null as MentionAdapterOptions | null,
+  skillOptions: null as MentionAdapterOptions | null,
   popoverOpen: false,
-  slashCommands: [] as Array<{ id: string; execute: () => void }>,
   runConfig: { custom: { existing: "value" } } as { custom?: Record<string, unknown> },
   setRunConfig: vi.fn(),
   setText: vi.fn(),
@@ -97,7 +98,8 @@ vi.mock("@assistant-ui/react", async () => {
       parse: vi.fn(),
     },
     unstable_useMentionAdapter: (options: MentionAdapterOptions) => {
-      mentionMocks.options = options;
+      if (options.categories) mentionMocks.mentionOptions = options;
+      else mentionMocks.skillOptions = options;
       return { adapter: {}, directive: {} };
     },
     unstable_useTriggerPopoverScopeContext: () => ({
@@ -117,12 +119,6 @@ vi.mock("@assistant-ui/react", async () => {
         },
       ],
     }),
-    unstable_useSlashCommandAdapter: (options: {
-      commands: Array<{ id: string; execute: () => void }>;
-    }) => {
-      mentionMocks.slashCommands = options.commands;
-      return { adapter: {}, action: {} };
-    },
     useAui: () => ({
       composer: () => ({
         getState: () => ({ runConfig: mentionMocks.runConfig }),
@@ -175,9 +171,9 @@ function renderTriggers(props: ComponentProps<typeof AIComposerTriggers>) {
 describe("AIComposerTriggers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mentionMocks.options = null;
+    mentionMocks.mentionOptions = null;
+    mentionMocks.skillOptions = null;
     mentionMocks.popoverOpen = false;
-    mentionMocks.slashCommands = [];
     mentionMocks.runConfig = { custom: { existing: "value" } };
     mentionMocks.setRunConfig.mockImplementation((runConfig) => {
       mentionMocks.runConfig = runConfig as { custom?: Record<string, unknown> };
@@ -203,7 +199,7 @@ describe("AIComposerTriggers", () => {
     };
 
     expect(agentIdsForComposerScope("thread")).toEqual([]);
-    act(() => mentionMocks.options?.onInserted?.(agent));
+    act(() => mentionMocks.mentionOptions?.onInserted?.(agent));
 
     expect(agentIdsForComposerScope("thread")).toEqual([AGENT_ID]);
     expect(mentionMocks.setRunConfig).toHaveBeenCalledWith({
@@ -219,20 +215,30 @@ describe("AIComposerTriggers", () => {
       label: "Data Analyst",
     };
 
-    act(() => mentionMocks.options?.onInserted?.(agent));
+    act(() => mentionMocks.mentionOptions?.onInserted?.(agent));
 
     expect(agentIdsForComposerScope("home")).toEqual([AGENT_ID]);
     expect(agentIdsForComposerScope("thread")).toEqual([]);
   });
 
-  it("adds enabled workspace Skills to the slash adapter as installation IDs without prompt injection", () => {
+  it("adds enabled workspace Skills to the slash directive adapter as installation IDs", () => {
     renderTriggers({ scope: "home" });
 
-    expect(mentionMocks.slashCommands.map((command) => command.id)).toContain(
-      "skill-installation-1",
-    );
+    expect(mentionMocks.skillOptions?.items).toContainEqual({
+      id: "installation-1",
+      type: "skill",
+      label: "Commerce Skill",
+      description: "Create commerce content",
+      icon: "skill",
+    });
 
-    act(() => mentionMocks.slashCommands[0]?.execute());
+    act(() =>
+      mentionMocks.skillOptions?.onInserted?.({
+        id: "installation-1",
+        type: "skill",
+        label: "Commerce Skill",
+      }),
+    );
     expect(useAIComposerDirectiveStore.getState().directivesByScope.home).toEqual([
       {
         type: "skill",
@@ -255,8 +261,14 @@ describe("AIComposerTriggers", () => {
       label: "Data Analyst",
     };
 
-    act(() => mentionMocks.options?.onInserted?.(agent));
-    act(() => mentionMocks.slashCommands[0]?.execute());
+    act(() => mentionMocks.mentionOptions?.onInserted?.(agent));
+    act(() =>
+      mentionMocks.skillOptions?.onInserted?.({
+        id: "installation-1",
+        type: "skill",
+        label: "Commerce Skill",
+      }),
+    );
 
     expect(mentionMocks.setRunConfig).toHaveBeenLastCalledWith({
       custom: {
@@ -270,7 +282,7 @@ describe("AIComposerTriggers", () => {
   it("adds asset and content mention tabs only when a project is active", () => {
     renderTriggers({ scope: "home" });
 
-    expect(mentionMocks.options?.categories?.map((category) => category.id)).toEqual([
+    expect(mentionMocks.mentionOptions?.categories?.map((category) => category.id)).toEqual([
       "agents",
       "projects",
     ]);
@@ -278,7 +290,7 @@ describe("AIComposerTriggers", () => {
     useWorkspaceStore.setState({ currentProjectId: "project-1" });
     renderTriggers({ scope: "thread" });
 
-    expect(mentionMocks.options?.categories?.map((category) => category.id)).toEqual([
+    expect(mentionMocks.mentionOptions?.categories?.map((category) => category.id)).toEqual([
       "agents",
       "projects",
       "assets",
@@ -312,6 +324,13 @@ describe("AIComposerTriggers", () => {
     expect(screen.getByText("AI_CHAT_SKILL_ENABLED_TITLE")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Agents" })).toHaveClass("py-2", "text-caption!");
     expect(document.querySelector('[data-trigger-char="@"]')).toHaveClass("overflow-hidden");
+    expect(document.querySelector('[data-trigger-char="@"]')).toHaveClass(
+      ...OVERLAY_LAYER_SHADOW_CLASSNAME.split(" "),
+    );
+    expect(document.querySelector('[data-trigger-char="/"]')).toHaveClass(
+      ...OVERLAY_LAYER_SHADOW_CLASSNAME.split(" "),
+    );
+    expect(document.querySelector('[data-trigger-char="@"]')).not.toHaveClass("shadow-lg");
     expect(document.querySelector('[data-trigger-char="@"]')).not.toHaveClass("overflow-y-auto");
     const scrollRegions = document.querySelectorAll<HTMLElement>(
       '[data-slot="composer-trigger-scroll-region"]',

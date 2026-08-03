@@ -8,12 +8,13 @@ import {
   PlatformSetupApiError,
   type PlatformSetupState,
 } from "@/setup/setup-api";
+import { PlatformAuthLayout } from "@/components/platform-auth-layout";
 import { LocaleMenu, ProductApplicationLink, ThemeMenu } from "@/components/platform-utilities";
-import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
-import { Button } from "@arclayer/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "@arclayer/ui/field";
-import { Input } from "@arclayer/ui/input";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 
 const SETUP_ERROR_KEYS: Readonly<Record<string, string>> = {
   EMAIL_EXISTS: "EMAIL_EXISTS",
@@ -64,111 +65,104 @@ export function PlatformSetupPage({ setupState }: { setupState: PlatformSetupSta
   };
 
   return (
-    <main className="flex min-h-svh flex-col bg-background">
-      <header className="flex h-14 items-center justify-end gap-1 px-4 md:px-6">
-        <ProductApplicationLink />
-        <LocaleMenu />
-        <ThemeMenu />
-      </header>
-      <section className="mx-auto flex w-full max-w-lg flex-1 items-center px-5 py-10 md:px-0">
-        <div className="w-full space-y-6">
-          <div className="space-y-4 text-center">
-            <img alt="" aria-hidden="true" className="mx-auto size-11" src="/logo.svg" />
-            <div className="space-y-2">
-              <h1 className="text-largetitle">{t("setup:TITLE")}</h1>
-              <p className="text-body text-label-secondary">{t("setup:DESCRIPTION")}</p>
-            </div>
-          </div>
-          {setupState.status === "repair_required" ? (
-            <RepairRequired
-              reason={setupState.repairReason}
-              retry={() => void router.invalidate()}
-            />
-          ) : createdOwner ? (
-            <SetupComplete owner={createdOwner} signIn={() => void navigate({ to: "/sign-in" })} />
-          ) : (
-            <Card className="shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-title3">{t("setup:CREATE_OWNER_TITLE")}</CardTitle>
-                <CardDescription>{t("setup:CREATE_OWNER_DESCRIPTION")}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                {error ? (
-                  <Alert aria-live="polite" variant="destructive">
-                    <LockKeyhole aria-hidden="true" />
-                    <AlertTitle>{t(`errors:${setupErrorKey(error)}`)}</AlertTitle>
-                    <AlertDescription>
-                      {t(`errors:${setupErrorKey(error)}_RECOVERY`)}
-                    </AlertDescription>
-                  </Alert>
-                ) : null}
-                <form onSubmit={submit}>
-                  <FieldGroup>
-                    <Field>
-                      <FieldLabel htmlFor="platform-owner-username">
-                        {t("setup:ACCOUNT_NAME")}
-                      </FieldLabel>
-                      <Input
-                        autoCapitalize="none"
-                        autoComplete="username"
-                        id="platform-owner-username"
-                        maxLength={32}
-                        minLength={3}
-                        name="username"
-                        pattern={"[a-z0-9\\-]+"}
-                        required
-                        spellCheck={false}
-                      />
-                      <FieldDescription>{t("setup:ACCOUNT_NAME_DESCRIPTION")}</FieldDescription>
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="platform-owner-display-name">
-                        {t("setup:DISPLAY_NAME")}
-                      </FieldLabel>
-                      <Input
-                        autoComplete="name"
-                        id="platform-owner-display-name"
-                        maxLength={64}
-                        name="displayName"
-                        required
-                      />
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="platform-owner-email">{t("setup:EMAIL")}</FieldLabel>
-                      <Input
-                        autoComplete="email"
-                        id="platform-owner-email"
-                        name="email"
-                        required
-                        type="email"
-                      />
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="platform-owner-password">
-                        {t("setup:PASSWORD")}
-                      </FieldLabel>
-                      <Input
-                        autoComplete="new-password"
-                        id="platform-owner-password"
-                        maxLength={128}
-                        minLength={8}
-                        name="password"
-                        required
-                        type="password"
-                      />
-                      <FieldDescription>{t("setup:PASSWORD_DESCRIPTION")}</FieldDescription>
-                    </Field>
-                    <Button className="w-full" loading={pending} type="submit">
-                      {t("setup:CREATE_OWNER")}
-                    </Button>
-                  </FieldGroup>
-                </form>
-              </CardContent>
-            </Card>
-          )}
+    <PlatformAuthLayout
+      utilities={
+        <>
+          <ProductApplicationLink />
+          <LocaleMenu />
+          <ThemeMenu />
+        </>
+      }
+    >
+      <div className="w-full space-y-7">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-semibold tracking-tight">{t("setup:TITLE")}</h1>
+          <p className="text-base leading-7 text-muted-foreground">{t("setup:DESCRIPTION")}</p>
         </div>
-      </section>
-    </main>
+        {setupState.status === "repair_required" ? (
+          <RepairRequired reason={setupState.repairReason} retry={() => void router.invalidate()} />
+        ) : createdOwner ? (
+          <SetupComplete owner={createdOwner} signIn={() => void navigate({ to: "/sign-in" })} />
+        ) : (
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-2xl3">{t("setup:CREATE_OWNER_TITLE")}</CardTitle>
+              <CardDescription>{t("setup:CREATE_OWNER_DESCRIPTION")}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {error ? (
+                <Alert aria-live="polite" variant="destructive">
+                  <LockKeyhole aria-hidden="true" />
+                  <AlertTitle>{t(`errors:${setupErrorKey(error)}`)}</AlertTitle>
+                  <AlertDescription>
+                    {t(`errors:${setupErrorKey(error)}_RECOVERY`)}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+              <form onSubmit={submit}>
+                <FieldGroup>
+                  <Field>
+                    <FieldLabel htmlFor="platform-owner-username">
+                      {t("setup:ACCOUNT_NAME")}
+                    </FieldLabel>
+                    <Input
+                      autoCapitalize="none"
+                      autoComplete="username"
+                      id="platform-owner-username"
+                      maxLength={32}
+                      minLength={3}
+                      name="username"
+                      pattern={"[a-z0-9\\-]+"}
+                      required
+                      spellCheck={false}
+                    />
+                    <FieldDescription>{t("setup:ACCOUNT_NAME_DESCRIPTION")}</FieldDescription>
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="platform-owner-display-name">
+                      {t("setup:DISPLAY_NAME")}
+                    </FieldLabel>
+                    <Input
+                      autoComplete="name"
+                      id="platform-owner-display-name"
+                      maxLength={64}
+                      name="displayName"
+                      required
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="platform-owner-email">{t("setup:EMAIL")}</FieldLabel>
+                    <Input
+                      autoComplete="email"
+                      id="platform-owner-email"
+                      name="email"
+                      required
+                      type="email"
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="platform-owner-password">{t("setup:PASSWORD")}</FieldLabel>
+                    <Input
+                      autoComplete="new-password"
+                      id="platform-owner-password"
+                      maxLength={128}
+                      minLength={8}
+                      name="password"
+                      required
+                      type="password"
+                    />
+                    <FieldDescription>{t("setup:PASSWORD_DESCRIPTION")}</FieldDescription>
+                  </Field>
+                  <Button className="w-full" loading={pending} type="submit">
+                    {t("setup:CREATE_OWNER")}
+                  </Button>
+                </FieldGroup>
+              </form>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </PlatformAuthLayout>
   );
 }
 
@@ -177,10 +171,10 @@ function SetupComplete({ owner, signIn }: { owner: string; signIn: () => void })
   return (
     <Card className="shadow-sm">
       <CardHeader>
-        <div className="mb-2 flex size-10 items-center justify-center rounded-full bg-positive/10 text-positive">
+        <div className="mb-2 flex size-10 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
           <ShieldCheck aria-hidden="true" />
         </div>
-        <CardTitle className="text-title3">{t("COMPLETE_TITLE")}</CardTitle>
+        <CardTitle className="text-2xl3">{t("COMPLETE_TITLE")}</CardTitle>
         <CardDescription>{t("COMPLETE_DESCRIPTION", { owner })}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -206,7 +200,7 @@ function RepairRequired({ reason, retry }: { reason: string | null; retry: () =>
         <div className="mb-2 flex size-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
           <CircleAlert aria-hidden="true" />
         </div>
-        <CardTitle className="text-title3">{t("REPAIR_TITLE")}</CardTitle>
+        <CardTitle className="text-2xl3">{t("REPAIR_TITLE")}</CardTitle>
         <CardDescription>{t("REPAIR_DESCRIPTION")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

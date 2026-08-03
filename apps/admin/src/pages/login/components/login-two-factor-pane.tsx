@@ -1,4 +1,4 @@
-import { Lock, Mail } from "lucide-react";
+import { KeyRound, Lock, Mail } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion, type Variants } from "motion/react";
 import { useTranslation } from "react-i18next";
@@ -29,6 +29,7 @@ type LoginTwoFactorPaneProps = {
   challenge: AuthChallengeSnapshot;
   loading: boolean;
   onSubmit: (values: LoginTwoFactorFormValues) => void;
+  onPasskeySubmit?: () => void;
   onBackToLogin: () => void;
   reducedMotion: boolean;
   itemVariants: Variants;
@@ -50,6 +51,12 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
   const [method, setMethod] = useState<VerificationMethod>("totp");
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const methods = props.challenge.methods?.length
+    ? props.challenge.methods
+    : ["totp", "backup_code"];
+  const allowTotp = methods.includes("totp");
+  const allowBackupCode = methods.includes("backup_code");
+  const allowWebAuthn = methods.includes("webauthn");
 
   useEffect(() => {
     setValue("");
@@ -112,15 +119,17 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
               <AuthPaneTitleRow
                 title={primaryLabel}
                 action={
-                  <AuthLinkButton
-                    className="shrink-0"
-                    onClick={() =>
-                      setMethod((current) => (current === "totp" ? "backup_code" : "totp"))
-                    }
-                    type="button"
-                  >
-                    {methodSwitchLabel}
-                  </AuthLinkButton>
+                  allowTotp && allowBackupCode ? (
+                    <AuthLinkButton
+                      className="shrink-0"
+                      onClick={() =>
+                        setMethod((current) => (current === "totp" ? "backup_code" : "totp"))
+                      }
+                      type="button"
+                    >
+                      {methodSwitchLabel}
+                    </AuthLinkButton>
+                  ) : null
                 }
               />
               {method === "backup_code" ? (
@@ -154,6 +163,18 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
           <Button type="submit" size="lg" loading={props.loading}>
             {t("auth:LOGIN_TWO_FACTOR_VERIFY_BUTTON")}
           </Button>
+          {allowWebAuthn ? (
+            <Button
+              type="button"
+              size="lg"
+              variant="outline"
+              disabled={props.loading}
+              onClick={() => props.onPasskeySubmit?.()}
+            >
+              <KeyRound className="size-4" />
+              {t("account:ME_SECURITY_ACTION_USE_PASSKEY")}
+            </Button>
+          ) : null}
           <div className="grid gap-2.5 pt-1.5">
             <div className="flex items-center gap-3 py-1 text-footnote text-label-secondary">
               <Separator className="flex-1" />

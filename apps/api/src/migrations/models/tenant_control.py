@@ -815,4 +815,15 @@ ALTER TABLE {schema}.builder_generations
             """.strip(),
         ),
     ),
+    TenantMigration.create(
+        version=29,
+        name="upload_session_status_capacity",
+        sql=(
+            """
+ALTER TABLE {schema}.upload_sessions
+    ALTER COLUMN status TYPE VARCHAR(32)
+    USING status::VARCHAR(32)
+            """.strip(),
+        ),
+    ),
 )

@@ -16,11 +16,11 @@ import {
 import { AccessPage, AccessQueryState, useAccessQuery } from "@/access/access-ui";
 import { clearPlatformSession } from "@/auth/platform-session";
 import { formatDateTime } from "@/monitoring/format";
-import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
-import { Badge } from "@arclayer/ui/badge";
-import { Button } from "@arclayer/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
-import { SettingDialog } from "@arclayer/ui/setting-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingDialog } from "@/components/setting-dialog";
 
 type SessionRevokeTarget = PlatformSessionInventoryItemOut | "others";
 
@@ -81,7 +81,7 @@ function MfaCard({ methods }: Readonly<{ methods: PlatformMfaMethodReadinessOut[
               <p className="font-medium">
                 {method.label ?? t(`MFA_KIND_${method.kind.toUpperCase()}`)}
               </p>
-              <p className="text-footnote text-label-secondary">
+              <p className="text-sm text-muted-foreground">
                 {t("VERIFIED_AT", {
                   date: method.verifiedAt ? formatDateTime(method.verifiedAt) : t("UNAVAILABLE"),
                 })}
@@ -89,7 +89,7 @@ function MfaCard({ methods }: Readonly<{ methods: PlatformMfaMethodReadinessOut[
             </div>
           ))
         ) : (
-          <p className="text-body text-label-secondary">{t("MFA_EMPTY")}</p>
+          <p className="text-base text-muted-foreground">{t("MFA_EMPTY")}</p>
         )}
       </CardContent>
     </Card>
@@ -135,7 +135,7 @@ function SessionCard({
             />
           ))
         ) : (
-          <p className="text-body text-label-secondary">{t("SESSIONS_EMPTY")}</p>
+          <p className="text-base text-muted-foreground">{t("SESSIONS_EMPTY")}</p>
         )}
       </CardContent>
       <SessionRevokeDialog
@@ -157,10 +157,10 @@ function SessionRow({
     <article className="flex flex-wrap items-start justify-between gap-3 border-t pt-3">
       <div>
         <p className="font-medium">{session.deviceLabel ?? t("UNRECOGNIZED_DEVICE")}</p>
-        <p className="text-footnote text-label-secondary">
+        <p className="text-sm text-muted-foreground">
           {t("LAST_ACTIVE", { date: formatDateTime(session.recentActivityAt) })}
         </p>
-        <p className="text-footnote text-label-secondary">
+        <p className="text-sm text-muted-foreground">
           {t("EXPIRES", { date: formatDateTime(session.absoluteExpiresAt) })}
         </p>
       </div>
@@ -259,7 +259,7 @@ function SessionRevokeDialog({
       open={target !== null}
       title={t(titleKey)}
     >
-      <p className="text-body text-label-secondary">{t("SESSION_REVOKE_CONSEQUENCE")}</p>
+      <p className="text-base text-muted-foreground">{t("SESSION_REVOKE_CONSEQUENCE")}</p>
       {error ? <SessionMutationError error={error} /> : null}
     </SettingDialog>
   );
@@ -278,7 +278,7 @@ function SessionMutationError({ error }: Readonly<{ error: unknown }>) {
       </AlertTitle>
       <AlertDescription>
         <p>{t("SESSION_REVOKE_UNCHANGED")}</p>
-        <p className="font-mono text-caption">{code}</p>
+        <p className="font-mono text-xs">{code}</p>
       </AlertDescription>
     </Alert>
   );

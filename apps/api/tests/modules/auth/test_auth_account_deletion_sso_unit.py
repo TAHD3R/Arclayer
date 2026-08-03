@@ -103,6 +103,20 @@ class FakeTwoFactor:
         raise BadRequest(message="验证码错误", error="TWO_FACTOR_CODE_INVALID")
 
 
+class FakeActionVerification:
+    def __init__(self, *, enabled: bool) -> None:
+        self.enabled = enabled
+
+    async def enabled_methods(self, *, user_id: UUID) -> list[str]:
+        _ = user_id
+        return ["totp", "backup_code"] if self.enabled else []
+
+    async def require(self, *, proof: str | None, **kwargs: object) -> None:
+        _ = kwargs
+        if self.enabled and proof != "valid-action-proof":
+            raise Unauthorized(error="MFA_VERIFICATION_REQUIRED")
+
+
 def _build_service(monkeypatch, *, user: FakeUser, two_factor_enabled: bool) -> AuthService:
     monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
@@ -120,10 +134,11 @@ def _build_service(monkeypatch, *, user: FakeUser, two_factor_enabled: bool) -> 
         valkey=None,
         user_repo=cast(UserRepositoryLike, FakeUserRepo(user)),
         two_factor=FakeTwoFactor(enabled=two_factor_enabled),
+        action_verification=FakeActionVerification(enabled=two_factor_enabled),
     )
 
 
-async def test_sso_only_account_deletion_accepts_2fa_reauth(monkeypatch) -> None:
+async def test_sso_only_account_deletion_accepts_action_bound_mfa_proof(monkeypatch) -> None:
     user = FakeUser(id=uuid4(), email="demo@example.com", last_login_at=datetime(2020, 1, 1, tzinfo=UTC))
     service = _build_service(monkeypatch, user=user, two_factor_enabled=True)
 
@@ -132,12 +147,13 @@ async def test_sso_only_account_deletion_accepts_2fa_reauth(monkeypatch) -> None
             user=user,
             email="demo@example.com",
             password=None,
-            code="123456",
-            backup_code=None,
+            mfa_proof="valid-action-proof",
+            session_id="session-id",
+            token_version=0,
         )
 
 
-async def test_sso_only_account_deletion_requires_2fa_code_when_2fa_enabled(monkeypatch) -> None:
+async def test_sso_only_account_deletion_requires_action_proof_when_mfa_enabled(monkeypatch) -> None:
     user = FakeUser(id=uuid4(), email="demo@example.com", last_login_at=datetime(2020, 1, 1, tzinfo=UTC))
     service = _build_service(monkeypatch, user=user, two_factor_enabled=True)
 
@@ -146,13 +162,11 @@ async def test_sso_only_account_deletion_requires_2fa_code_when_2fa_enabled(monk
             user=user,
             email="demo@example.com",
             password=None,
-            code=None,
-            backup_code=None,
+            session_id="session-id",
+            token_version=0,
         )
 
-    assert exc.value.error == "REAUTH_REQUIRED"
-    assert isinstance(exc.value.meta, dict)
-    assert exc.value.meta.get("methods") == ["2fa"]
+    assert exc.value.error == "MFA_VERIFICATION_REQUIRED"
 
 
 async def test_sso_only_account_deletion_accepts_recent_login_when_2fa_disabled(monkeypatch) -> None:
@@ -164,8 +178,6 @@ async def test_sso_only_account_deletion_accepts_recent_login_when_2fa_disabled(
             user=user,
             email="demo@example.com",
             password=None,
-            code=None,
-            backup_code=None,
         )
 
 
@@ -178,8 +190,6 @@ async def test_sso_only_account_deletion_requires_relogin_when_2fa_disabled_and_
             user=user,
             email="demo@example.com",
             password=None,
-            code=None,
-            backup_code=None,
         )
 
     assert exc.value.error == "REAUTH_REQUIRED"

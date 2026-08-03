@@ -11,9 +11,11 @@ from src.core.i18n import t
 from src.core.services import BaseService
 from src.modules.system.admin.notifications.preferences import (
     TOPIC_DEFINITIONS,
+    NotificationPreferencesState,
     is_topic_channel_mutable,
     load_user_notification_preferences,
     save_user_notification_preference,
+    save_user_notification_sound,
 )
 from src.modules.system.admin.notifications.repository import NotificationRepository
 from src.modules.system.admin.notifications.schema import (
@@ -32,6 +34,8 @@ from src.modules.system.admin.notifications.schema import (
     NotificationPreviewOut,
     NotificationReadAllResult,
     NotificationReadResult,
+    NotificationSoundPreferencePatchIn,
+    NotificationSoundPreferencesOut,
 )
 
 
@@ -57,11 +61,13 @@ class NotificationService(BaseService):
     @staticmethod
     def _build_preferences_out(
         *,
-        state: dict[str, dict[str, bool]],
+        state: NotificationPreferencesState,
     ) -> NotificationPreferencesOut:
+        topic_states = state["topics"]
+        sound_state = state["sound"]
         topics: list[NotificationPreferenceTopicOut] = []
         for topic in TOPIC_DEFINITIONS:
-            topic_state = state.get(topic.key, {"in_app": False, "email": False})
+            topic_state = topic_states.get(topic.key, {"in_app": False, "email": False})
             topics.append(
                 NotificationPreferenceTopicOut(
                     key=topic.key,
@@ -82,7 +88,13 @@ class NotificationService(BaseService):
                     },
                 )
             )
-        return NotificationPreferencesOut(topics=topics)
+        return NotificationPreferencesOut(
+            topics=topics,
+            sound=NotificationSoundPreferencesOut(
+                enabled=bool(sound_state.get("enabled")),
+                tone=sound_state.get("tone", "chime"),
+            ),
+        )
 
     async def get_notification_preferences_for_user(
         self,
@@ -90,6 +102,19 @@ class NotificationService(BaseService):
         user_id: UUID,
     ) -> NotificationPreferencesOut:
         state = await load_user_notification_preferences(user_id=user_id)
+        return self._build_preferences_out(state=state)
+
+    async def patch_notification_sound_for_user(
+        self,
+        *,
+        user_id: UUID,
+        payload: NotificationSoundPreferencePatchIn,
+    ) -> NotificationPreferencesOut:
+        state = await save_user_notification_sound(
+            user_id=user_id,
+            enabled=payload.enabled,
+            tone=payload.tone,
+        )
         return self._build_preferences_out(state=state)
 
     async def patch_notification_preference_for_user(

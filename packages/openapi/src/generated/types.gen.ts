@@ -6503,6 +6503,10 @@ export type BuilderWireframeTraceabilityOut = {
  */
 export type ChangePasswordRequest = {
     /**
+     * Mfaproof
+     */
+    mfaProof?: string | null;
+    /**
      * Newpassword
      *
      * New password.
@@ -6892,6 +6896,10 @@ export type ConfirmMyEmailChangeRequest = {
      */
     code: string;
     /**
+     * Mfaproof
+     */
+    mfaProof?: string | null;
+    /**
      * Newemail
      *
      * New email address.
@@ -6911,6 +6919,10 @@ export type ConfirmRemoveMyPasswordRequest = {
      * Email verification code.
      */
     code: string;
+    /**
+     * Mfaproof
+     */
+    mfaProof?: string | null;
 };
 
 /**
@@ -10244,23 +10256,15 @@ export type DeleteMyAccountCapabilityOut = {
  */
 export type DeleteMyAccountRequest = {
     /**
-     * Backupcode
-     *
-     * 2FA backup code (SSO-only).
-     */
-    backupCode?: string | null;
-    /**
-     * Code
-     *
-     * 2FA TOTP code (SSO-only).
-     */
-    code?: string | null;
-    /**
      * Email
      *
      * Current account email for confirmation.
      */
     email: string;
+    /**
+     * Mfaproof
+     */
+    mfaProof?: string | null;
     /**
      * Password
      *
@@ -14660,6 +14664,10 @@ export type NotificationPreferenceTopicOut = {
  */
 export type NotificationPreferencesOut = {
     /**
+     * Browser notification sound preference.
+     */
+    sound?: NotificationSoundPreferencesOut;
+    /**
      * Topics
      *
      * All supported notification preference topics.
@@ -14745,6 +14753,42 @@ export type NotificationReadResult = {
      * Read datetime (UTC).
      */
     readAt?: string | null;
+};
+
+/**
+ * NotificationSoundPreferencePatchIn
+ */
+export type NotificationSoundPreferencePatchIn = {
+    /**
+     * Enabled
+     *
+     * Whether notification sounds are enabled.
+     */
+    enabled: boolean;
+    /**
+     * Tone
+     *
+     * Selected notification tone.
+     */
+    tone: 'chime' | 'pulse' | 'pop';
+};
+
+/**
+ * NotificationSoundPreferencesOut
+ */
+export type NotificationSoundPreferencesOut = {
+    /**
+     * Enabled
+     *
+     * Whether new in-app notifications play a sound.
+     */
+    enabled: boolean;
+    /**
+     * Tone
+     *
+     * Selected notification tone.
+     */
+    tone: 'chime' | 'pulse' | 'pop';
 };
 
 /**
@@ -24597,6 +24641,56 @@ export type ResponseModelRouteBindingOut = {
 };
 
 /**
+ * ResponseModel[SecurityVerificationProofOut]
+ */
+export type ResponseModelSecurityVerificationProofOut = {
+    data?: SecurityVerificationProofOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SecurityVerificationWebAuthnBeginOut]
+ */
+export type ResponseModelSecurityVerificationWebAuthnBeginOut = {
+    data?: SecurityVerificationWebAuthnBeginOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[SitePresenceHeartbeatOut]
  */
 export type ResponseModelSitePresenceHeartbeatOut = {
@@ -25626,6 +25720,106 @@ export type ResponseModelUserProfile = {
  */
 export type ResponseModelUsernameCheckOut = {
     data?: UsernameCheckOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[WebAuthnAuthenticationBeginOut]
+ */
+export type ResponseModelWebAuthnAuthenticationBeginOut = {
+    data?: WebAuthnAuthenticationBeginOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[WebAuthnCredentialListOut]
+ */
+export type ResponseModelWebAuthnCredentialListOut = {
+    data?: WebAuthnCredentialListOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[WebAuthnCredentialOut]
+ */
+export type ResponseModelWebAuthnCredentialOut = {
+    data?: WebAuthnCredentialOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[WebAuthnRegistrationBeginOut]
+ */
+export type ResponseModelWebAuthnRegistrationBeginOut = {
+    data?: WebAuthnRegistrationBeginOut | null;
     /**
      * Error
      */
@@ -27116,23 +27310,79 @@ export type RoutePrimarySourceOut = {
 };
 
 /**
+ * SecurityVerificationProofOut
+ */
+export type SecurityVerificationProofOut = {
+    /**
+     * Expiresin
+     */
+    expiresIn: number;
+    /**
+     * Proof
+     */
+    proof: string;
+};
+
+/**
+ * SecurityVerificationTotpRequest
+ */
+export type SecurityVerificationTotpRequest = {
+    /**
+     * Action
+     */
+    action: 'change_password' | 'set_password' | 'confirm_email_change' | 'confirm_remove_password' | 'delete_my_account' | 'remove_webauthn_credential';
+    /**
+     * Backupcode
+     */
+    backupCode?: string | null;
+    /**
+     * Code
+     */
+    code?: string | null;
+};
+
+/**
+ * SecurityVerificationWebAuthnBeginOut
+ */
+export type SecurityVerificationWebAuthnBeginOut = {
+    options: WebAuthnAuthenticationOptions;
+};
+
+/**
+ * SecurityVerificationWebAuthnBeginRequest
+ */
+export type SecurityVerificationWebAuthnBeginRequest = {
+    /**
+     * Action
+     */
+    action: 'change_password' | 'set_password' | 'confirm_email_change' | 'confirm_remove_password' | 'delete_my_account' | 'remove_webauthn_credential';
+};
+
+/**
+ * SecurityVerificationWebAuthnCompleteRequest
+ */
+export type SecurityVerificationWebAuthnCompleteRequest = {
+    /**
+     * Action
+     */
+    action: 'change_password' | 'set_password' | 'confirm_email_change' | 'confirm_remove_password' | 'delete_my_account' | 'remove_webauthn_credential';
+    /**
+     * Challengeid
+     */
+    challengeId: string;
+    credential: WebAuthnAuthenticationCredential;
+};
+
+/**
  * SetMyPasswordRequest
  *
  * Set password for current user (OAuth-only accounts).
  */
 export type SetMyPasswordRequest = {
     /**
-     * Backupcode
-     *
-     * 2FA backup code.
+     * Mfaproof
      */
-    backupCode?: string | null;
-    /**
-     * Code
-     *
-     * 2FA TOTP code.
-     */
-    code?: string | null;
+    mfaProof?: string | null;
     /**
      * Newpassword
      *
@@ -29789,6 +30039,24 @@ export type TwoFactorStatusOut = {
      * Whether 2FA is enabled.
      */
     enabled: boolean;
+    /**
+     * Methods
+     *
+     * Enabled MFA methods.
+     */
+    methods?: Array<string>;
+    /**
+     * Totpenabled
+     *
+     * Whether authenticator-app TOTP is enabled.
+     */
+    totpEnabled?: boolean;
+    /**
+     * Webauthnenabled
+     *
+     * Whether a passkey or security key is enabled.
+     */
+    webauthnEnabled?: boolean;
 };
 
 /**
@@ -30374,6 +30642,335 @@ export type VisualBlueprintStateV1 = {
     styleTokens?: {
         [key: string]: string;
     };
+};
+
+/**
+ * WebAuthnAssertionResponse
+ */
+export type WebAuthnAssertionResponse = {
+    /**
+     * Authenticatordata
+     */
+    authenticatorData: string;
+    /**
+     * Clientdatajson
+     */
+    clientDataJSON: string;
+    /**
+     * Signature
+     */
+    signature: string;
+    /**
+     * Userhandle
+     */
+    userHandle?: string | null;
+};
+
+/**
+ * WebAuthnAttestationResponse
+ */
+export type WebAuthnAttestationResponse = {
+    /**
+     * Attestationobject
+     */
+    attestationObject: string;
+    /**
+     * Clientdatajson
+     */
+    clientDataJSON: string;
+    /**
+     * Transports
+     */
+    transports?: Array<string>;
+};
+
+/**
+ * WebAuthnAuthenticationBeginOut
+ */
+export type WebAuthnAuthenticationBeginOut = {
+    options: WebAuthnAuthenticationOptions;
+};
+
+/**
+ * WebAuthnAuthenticationCredential
+ */
+export type WebAuthnAuthenticationCredential = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Rawid
+     */
+    rawId: string;
+    response: WebAuthnAssertionResponse;
+    /**
+     * Type
+     */
+    type?: 'public-key';
+};
+
+/**
+ * WebAuthnAuthenticationOptions
+ */
+export type WebAuthnAuthenticationOptions = {
+    /**
+     * Allowcredentials
+     */
+    allowCredentials: Array<WebAuthnCredentialDescriptor>;
+    /**
+     * Challenge
+     */
+    challenge: string;
+    /**
+     * Challengeid
+     */
+    challengeId: string;
+    /**
+     * Rpid
+     */
+    rpId: string;
+    /**
+     * Timeout
+     */
+    timeout: number;
+    /**
+     * Userverification
+     */
+    userVerification?: 'required';
+};
+
+/**
+ * WebAuthnAuthenticatorSelection
+ */
+export type WebAuthnAuthenticatorSelection = {
+    /**
+     * Requireresidentkey
+     */
+    requireResidentKey?: false;
+    /**
+     * Residentkey
+     */
+    residentKey?: 'preferred';
+    /**
+     * Userverification
+     */
+    userVerification?: 'required';
+};
+
+/**
+ * WebAuthnCredentialDeleteRequest
+ */
+export type WebAuthnCredentialDeleteRequest = {
+    /**
+     * Mfaproof
+     */
+    mfaProof?: string | null;
+};
+
+/**
+ * WebAuthnCredentialDescriptor
+ */
+export type WebAuthnCredentialDescriptor = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Transports
+     */
+    transports?: Array<string>;
+    /**
+     * Type
+     */
+    type?: 'public-key';
+};
+
+/**
+ * WebAuthnCredentialListOut
+ */
+export type WebAuthnCredentialListOut = {
+    /**
+     * Items
+     */
+    items?: Array<WebAuthnCredentialOut>;
+};
+
+/**
+ * WebAuthnCredentialOut
+ */
+export type WebAuthnCredentialOut = {
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label?: string | null;
+    /**
+     * Lastusedat
+     */
+    lastUsedAt?: string | null;
+};
+
+/**
+ * WebAuthnCredentialParameter
+ */
+export type WebAuthnCredentialParameter = {
+    /**
+     * Alg
+     */
+    alg: number;
+    /**
+     * Type
+     */
+    type?: 'public-key';
+};
+
+/**
+ * WebAuthnLoginBeginRequest
+ */
+export type WebAuthnLoginBeginRequest = {
+    /**
+     * Twofactortoken
+     */
+    twoFactorToken: string;
+};
+
+/**
+ * WebAuthnLoginCompleteRequest
+ */
+export type WebAuthnLoginCompleteRequest = {
+    /**
+     * Challengeid
+     */
+    challengeId: string;
+    credential: WebAuthnAuthenticationCredential;
+    /**
+     * Twofactortoken
+     */
+    twoFactorToken: string;
+};
+
+/**
+ * WebAuthnRegistrationBeginOut
+ */
+export type WebAuthnRegistrationBeginOut = {
+    options: WebAuthnRegistrationOptions;
+};
+
+/**
+ * WebAuthnRegistrationBeginRequest
+ */
+export type WebAuthnRegistrationBeginRequest = {
+    /**
+     * Password
+     */
+    password?: string | null;
+};
+
+/**
+ * WebAuthnRegistrationCompleteRequest
+ */
+export type WebAuthnRegistrationCompleteRequest = {
+    /**
+     * Challengeid
+     */
+    challengeId: string;
+    credential: WebAuthnRegistrationCredential;
+    /**
+     * Label
+     */
+    label?: string | null;
+};
+
+/**
+ * WebAuthnRegistrationCredential
+ */
+export type WebAuthnRegistrationCredential = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Rawid
+     */
+    rawId: string;
+    response: WebAuthnAttestationResponse;
+    /**
+     * Type
+     */
+    type?: 'public-key';
+};
+
+/**
+ * WebAuthnRegistrationOptions
+ */
+export type WebAuthnRegistrationOptions = {
+    /**
+     * Attestation
+     */
+    attestation?: 'none';
+    authenticatorSelection?: WebAuthnAuthenticatorSelection;
+    /**
+     * Challenge
+     */
+    challenge: string;
+    /**
+     * Challengeid
+     */
+    challengeId: string;
+    /**
+     * Excludecredentials
+     */
+    excludeCredentials?: Array<WebAuthnCredentialDescriptor>;
+    /**
+     * Pubkeycredparams
+     */
+    pubKeyCredParams: Array<WebAuthnCredentialParameter>;
+    rp: WebAuthnRelyingParty;
+    /**
+     * Timeout
+     */
+    timeout: number;
+    user: WebAuthnUser;
+};
+
+/**
+ * WebAuthnRelyingParty
+ */
+export type WebAuthnRelyingParty = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
+ * WebAuthnUser
+ */
+export type WebAuthnUser = {
+    /**
+     * Displayname
+     */
+    displayName: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
 };
 
 /**
@@ -33874,6 +34471,102 @@ export type GlobalAuthBeginTwoFactorSetupResponses = {
 
 export type GlobalAuthBeginTwoFactorSetupResponse = GlobalAuthBeginTwoFactorSetupResponses[keyof GlobalAuthBeginTwoFactorSetupResponses];
 
+export type GlobalAuthListTwoFactorWebauthnCredentialsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/2fa/webauthn';
+};
+
+export type GlobalAuthListTwoFactorWebauthnCredentialsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWebAuthnCredentialListOut;
+};
+
+export type GlobalAuthListTwoFactorWebauthnCredentialsResponse = GlobalAuthListTwoFactorWebauthnCredentialsResponses[keyof GlobalAuthListTwoFactorWebauthnCredentialsResponses];
+
+export type GlobalAuthCompleteTwoFactorWebauthnRegistrationData = {
+    body: WebAuthnRegistrationCompleteRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/2fa/webauthn/registration/complete';
+};
+
+export type GlobalAuthCompleteTwoFactorWebauthnRegistrationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GlobalAuthCompleteTwoFactorWebauthnRegistrationError = GlobalAuthCompleteTwoFactorWebauthnRegistrationErrors[keyof GlobalAuthCompleteTwoFactorWebauthnRegistrationErrors];
+
+export type GlobalAuthCompleteTwoFactorWebauthnRegistrationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWebAuthnCredentialOut;
+};
+
+export type GlobalAuthCompleteTwoFactorWebauthnRegistrationResponse = GlobalAuthCompleteTwoFactorWebauthnRegistrationResponses[keyof GlobalAuthCompleteTwoFactorWebauthnRegistrationResponses];
+
+export type GlobalAuthBeginTwoFactorWebauthnRegistrationData = {
+    body: WebAuthnRegistrationBeginRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/2fa/webauthn/registration/options';
+};
+
+export type GlobalAuthBeginTwoFactorWebauthnRegistrationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GlobalAuthBeginTwoFactorWebauthnRegistrationError = GlobalAuthBeginTwoFactorWebauthnRegistrationErrors[keyof GlobalAuthBeginTwoFactorWebauthnRegistrationErrors];
+
+export type GlobalAuthBeginTwoFactorWebauthnRegistrationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWebAuthnRegistrationBeginOut;
+};
+
+export type GlobalAuthBeginTwoFactorWebauthnRegistrationResponse = GlobalAuthBeginTwoFactorWebauthnRegistrationResponses[keyof GlobalAuthBeginTwoFactorWebauthnRegistrationResponses];
+
+export type GlobalAuthRemoveTwoFactorWebauthnCredentialData = {
+    body: WebAuthnCredentialDeleteRequest;
+    path: {
+        /**
+         * Credential Id
+         */
+        credential_id: string;
+    };
+    query?: never;
+    url: '/api/v1/auth/2fa/webauthn/{credential_id}/remove';
+};
+
+export type GlobalAuthRemoveTwoFactorWebauthnCredentialErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GlobalAuthRemoveTwoFactorWebauthnCredentialError = GlobalAuthRemoveTwoFactorWebauthnCredentialErrors[keyof GlobalAuthRemoveTwoFactorWebauthnCredentialErrors];
+
+export type GlobalAuthRemoveTwoFactorWebauthnCredentialResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNoneType;
+};
+
+export type GlobalAuthRemoveTwoFactorWebauthnCredentialResponse = GlobalAuthRemoveTwoFactorWebauthnCredentialResponses[keyof GlobalAuthRemoveTwoFactorWebauthnCredentialResponses];
+
 export type GlobalAuthChangePasswordData = {
     body: ChangePasswordRequest;
     path?: never;
@@ -34080,6 +34773,56 @@ export type GlobalAuthLoginTwoFactorResponses = {
 };
 
 export type GlobalAuthLoginTwoFactorResponse = GlobalAuthLoginTwoFactorResponses[keyof GlobalAuthLoginTwoFactorResponses];
+
+export type GlobalAuthCompleteLoginTwoFactorWebauthnData = {
+    body: WebAuthnLoginCompleteRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/login/2fa/webauthn/complete';
+};
+
+export type GlobalAuthCompleteLoginTwoFactorWebauthnErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GlobalAuthCompleteLoginTwoFactorWebauthnError = GlobalAuthCompleteLoginTwoFactorWebauthnErrors[keyof GlobalAuthCompleteLoginTwoFactorWebauthnErrors];
+
+export type GlobalAuthCompleteLoginTwoFactorWebauthnResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelTokenPair;
+};
+
+export type GlobalAuthCompleteLoginTwoFactorWebauthnResponse = GlobalAuthCompleteLoginTwoFactorWebauthnResponses[keyof GlobalAuthCompleteLoginTwoFactorWebauthnResponses];
+
+export type GlobalAuthBeginLoginTwoFactorWebauthnData = {
+    body: WebAuthnLoginBeginRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/login/2fa/webauthn/options';
+};
+
+export type GlobalAuthBeginLoginTwoFactorWebauthnErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GlobalAuthBeginLoginTwoFactorWebauthnError = GlobalAuthBeginLoginTwoFactorWebauthnErrors[keyof GlobalAuthBeginLoginTwoFactorWebauthnErrors];
+
+export type GlobalAuthBeginLoginTwoFactorWebauthnResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWebAuthnAuthenticationBeginOut;
+};
+
+export type GlobalAuthBeginLoginTwoFactorWebauthnResponse = GlobalAuthBeginLoginTwoFactorWebauthnResponses[keyof GlobalAuthBeginLoginTwoFactorWebauthnResponses];
 
 export type GlobalAuthLoginEmailCodeRequestData = {
     body: LoginEmailCodeRequest;
@@ -34695,6 +35438,81 @@ export type GlobalAuthGetMySecurityCapabilitiesResponses = {
 };
 
 export type GlobalAuthGetMySecurityCapabilitiesResponse = GlobalAuthGetMySecurityCapabilitiesResponses[keyof GlobalAuthGetMySecurityCapabilitiesResponses];
+
+export type GlobalAuthVerifySecurityActionTotpData = {
+    body: SecurityVerificationTotpRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/me/security-verification/totp';
+};
+
+export type GlobalAuthVerifySecurityActionTotpErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GlobalAuthVerifySecurityActionTotpError = GlobalAuthVerifySecurityActionTotpErrors[keyof GlobalAuthVerifySecurityActionTotpErrors];
+
+export type GlobalAuthVerifySecurityActionTotpResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSecurityVerificationProofOut;
+};
+
+export type GlobalAuthVerifySecurityActionTotpResponse = GlobalAuthVerifySecurityActionTotpResponses[keyof GlobalAuthVerifySecurityActionTotpResponses];
+
+export type GlobalAuthCompleteSecurityActionWebauthnData = {
+    body: SecurityVerificationWebAuthnCompleteRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/me/security-verification/webauthn/complete';
+};
+
+export type GlobalAuthCompleteSecurityActionWebauthnErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GlobalAuthCompleteSecurityActionWebauthnError = GlobalAuthCompleteSecurityActionWebauthnErrors[keyof GlobalAuthCompleteSecurityActionWebauthnErrors];
+
+export type GlobalAuthCompleteSecurityActionWebauthnResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSecurityVerificationProofOut;
+};
+
+export type GlobalAuthCompleteSecurityActionWebauthnResponse = GlobalAuthCompleteSecurityActionWebauthnResponses[keyof GlobalAuthCompleteSecurityActionWebauthnResponses];
+
+export type GlobalAuthBeginSecurityActionWebauthnData = {
+    body: SecurityVerificationWebAuthnBeginRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/me/security-verification/webauthn/options';
+};
+
+export type GlobalAuthBeginSecurityActionWebauthnErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GlobalAuthBeginSecurityActionWebauthnError = GlobalAuthBeginSecurityActionWebauthnErrors[keyof GlobalAuthBeginSecurityActionWebauthnErrors];
+
+export type GlobalAuthBeginSecurityActionWebauthnResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSecurityVerificationWebAuthnBeginOut;
+};
+
+export type GlobalAuthBeginSecurityActionWebauthnResponse = GlobalAuthBeginSecurityActionWebauthnResponses[keyof GlobalAuthBeginSecurityActionWebauthnResponses];
 
 export type GlobalAuthSetMyPasswordData = {
     body: SetMyPasswordRequest;
@@ -35545,6 +36363,31 @@ export type DomainWorkspacesPatchMyNotificationPreferenceResponses = {
 };
 
 export type DomainWorkspacesPatchMyNotificationPreferenceResponse = DomainWorkspacesPatchMyNotificationPreferenceResponses[keyof DomainWorkspacesPatchMyNotificationPreferenceResponses];
+
+export type DomainWorkspacesPatchMyNotificationSoundData = {
+    body: NotificationSoundPreferencePatchIn;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/notifications/preferences/sound';
+};
+
+export type DomainWorkspacesPatchMyNotificationSoundErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesPatchMyNotificationSoundError = DomainWorkspacesPatchMyNotificationSoundErrors[keyof DomainWorkspacesPatchMyNotificationSoundErrors];
+
+export type DomainWorkspacesPatchMyNotificationSoundResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNotificationPreferencesOut;
+};
+
+export type DomainWorkspacesPatchMyNotificationSoundResponse = DomainWorkspacesPatchMyNotificationSoundResponses[keyof DomainWorkspacesPatchMyNotificationSoundResponses];
 
 export type DomainWorkspacesMarkAllMyNotificationsReadData = {
     body?: never;

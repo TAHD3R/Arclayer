@@ -5,6 +5,7 @@ import type {
   DomainWorkspacesListMyNotificationsData,
   NotificationPreferencePatchIn,
   NotificationPreferencesOut,
+  NotificationSoundPreferencePatchIn,
   NotificationPreferenceTopicOut,
   NotificationPreviewOut as NotificationPreview,
   PageDataNotificationOut,
@@ -12,9 +13,10 @@ import type {
 
 type ListNotificationsParams = NonNullable<DomainWorkspacesListMyNotificationsData["query"]>;
 type NotificationPreferenceChannel = NotificationPreferencePatchIn["channel"];
-type NotificationPreferences = Omit<NotificationPreferencesOut, "topics"> & {
+export type NotificationPreferences = Omit<NotificationPreferencesOut, "topics"> & {
   topics: NotificationPreferenceTopicOut[];
 };
+export const NOTIFICATION_PREFERENCES_QUERY_KEY = ["me", "notification-preferences"] as const;
 type NotificationPage = Omit<PageDataNotificationOut, "items"> & {
   items: NonNullable<PageDataNotificationOut["items"]>;
 };
@@ -126,6 +128,16 @@ export async function patchMyNotificationPreference(payload: {
   const preferences = await api.patch<NotificationPreferencesOut>(
     "/me/notifications/preferences",
     body,
+  );
+  return requireNotificationPreferences(preferences);
+}
+
+export async function patchMyNotificationSound(
+  payload: NotificationSoundPreferencePatchIn,
+): Promise<NotificationPreferences> {
+  const preferences = await api.patch<NotificationPreferencesOut>(
+    "/me/notifications/preferences/sound",
+    payload,
   );
   return requireNotificationPreferences(preferences);
 }

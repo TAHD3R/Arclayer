@@ -62,6 +62,7 @@ export function LoginView({
   invitationEmail = null,
   challenge,
   onLoginTwoFactorSubmit,
+  onLoginTwoFactorPasskey,
   onCancelTwoFactorChallenge,
   twoFactorLoading = false,
 }: LoginViewProps) {
@@ -146,6 +147,7 @@ export function LoginView({
                   challenge={challenge}
                   loading={twoFactorLoading}
                   onSubmit={onLoginTwoFactorSubmit}
+                  onPasskeySubmit={() => void onLoginTwoFactorPasskey?.()}
                   onBackToLogin={onCancelTwoFactorChallenge}
                   reducedMotion={reducedMotion}
                   itemVariants={itemVariants}

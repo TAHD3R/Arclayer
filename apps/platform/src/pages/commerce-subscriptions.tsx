@@ -5,9 +5,16 @@ import type { PlatformCommerceSubscriptionListOut } from "@arclayer/platform-ope
 import { listCommerceSubscriptions } from "@/commerce/commerce-api";
 import { CommercePage, CommerceQueryState } from "@/commerce/commerce-ui";
 import { useMonitoringQuery } from "@/monitoring/monitoring-ui";
-import { Badge } from "@arclayer/ui/badge";
-import { Card, CardContent } from "@arclayer/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export function CommerceSubscriptionsPage() {
   const { t } = useTranslation("commerce");
@@ -40,7 +47,7 @@ function SubscriptionTable(props: Readonly<{ data: PlatformCommerceSubscriptionL
           <TableBody>
             {props.data.items.map((subscription) => (
               <TableRow key={subscription.subscriptionId}>
-                <TableCell className="font-mono text-caption">{subscription.workspaceId}</TableCell>
+                <TableCell className="font-mono text-xs">{subscription.workspaceId}</TableCell>
                 <TableCell>
                   {subscription.planCode} · {t("SEQUENCE", { sequence: subscription.planRevision })}
                 </TableCell>

@@ -10,6 +10,7 @@ import { ApiError } from "@/lib/http";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { AuthOtpInput, AuthPaneTitleRow } from "@/pages/login/components/auth-pane-primitives";
 import { useSecurityRelogin } from "@/pages/usercenter/shared/use-security-relogin";
+import { useSecurityActionVerification } from "@/pages/usercenter/shared/security-action-verification";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
@@ -56,6 +57,7 @@ export function UserChangeEmailDialog(props: UserChangeEmailDialogProps) {
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [retryAfter, setRetryAfter] = useState(0);
   const forceRelogin = useSecurityRelogin(props.redirect);
+  const securityVerification = useSecurityActionVerification();
 
   const normalizedEmail = useMemo(() => String(props.nextEmail || "").trim(), [props.nextEmail]);
   const schema = useMemo(() => buildSchema(t), [t]);
@@ -98,10 +100,11 @@ export function UserChangeEmailDialog(props: UserChangeEmailDialogProps) {
   });
 
   const confirmMutation = useMutation({
-    mutationFn: async (payload: ChangeEmailFormValues) => {
+    mutationFn: async (payload: ChangeEmailFormValues & { mfaProof?: string }) => {
       return authApi.confirmMyEmailChange({
         newEmail: payload.newEmail,
         code: payload.code,
+        mfaProof: payload.mfaProof,
       });
     },
     onSuccess: async () => {
@@ -141,7 +144,9 @@ export function UserChangeEmailDialog(props: UserChangeEmailDialogProps) {
   const submitVerification = form.handleSubmit(async (values) => {
     try {
       setVerifyError(null);
-      await confirmMutation.mutateAsync(values);
+      const verification = await securityVerification.requestProof("confirm_email_change");
+      if (verification.cancelled) return;
+      await confirmMutation.mutateAsync({ ...values, mfaProof: verification.proof });
     } catch (error) {
       setVerifyError(
         error instanceof ApiError ? error.message : t("auth:LOGIN_EMAIL_CODE_INVALID"),
@@ -150,94 +155,99 @@ export function UserChangeEmailDialog(props: UserChangeEmailDialogProps) {
   });
 
   return (
-    <SettingDialog
-      open={props.open}
-      onOpenChange={closeIfIdle}
-      title={t("account:ME_PROFILE_EMAIL_DIALOG_TITLE")}
-      description={t("account:ME_PROFILE_EMAIL_DIALOG_DESC")}
-      footer={
-        <>
-          <Button variant="ghost" disabled={isBusy} onClick={() => closeIfIdle(false)}>
-            {t("common:CANCEL")}
-          </Button>
-          <Button
-            variant="outline"
-            loading={step === "request" ? requestCodeMutation.isPending : confirmMutation.isPending}
-            disabled={isBusy}
-            onClick={() => {
-              if (step === "request") {
-                void requestEmailCode();
-                return;
+    <>
+      <SettingDialog
+        open={props.open}
+        onOpenChange={closeIfIdle}
+        title={t("account:ME_PROFILE_EMAIL_DIALOG_TITLE")}
+        description={t("account:ME_PROFILE_EMAIL_DIALOG_DESC")}
+        footer={
+          <>
+            <Button variant="ghost" disabled={isBusy} onClick={() => closeIfIdle(false)}>
+              {t("common:CANCEL")}
+            </Button>
+            <Button
+              variant="primary"
+              loading={
+                step === "request" ? requestCodeMutation.isPending : confirmMutation.isPending
               }
-              void submitVerification();
-            }}
-          >
-            {step === "request"
-              ? t("account:ME_PROFILE_EMAIL_SEND_CODE")
-              : t("settings:SETTINGS_SAVE")}
-          </Button>
-        </>
-      }
-    >
-      <SettingDialogFields>
-        {step === "request" ? (
-          <DialogField
-            label={t("account:ME_PROFILE_EMAIL_NEW_EMAIL")}
-            htmlFor={newEmailFieldId}
-            error={form.formState.errors.newEmail?.message}
-          >
-            <Input
-              id={newEmailFieldId}
-              autoComplete="email"
-              placeholder={t("account:ME_PROFILE_EMAIL_NEW_EMAIL_PLACEHOLDER")}
               disabled={isBusy}
-              {...form.register("newEmail")}
-            />
-          </DialogField>
-        ) : null}
-
-        {step === "verify" ? (
-          <SettingDialogField
-            title={
-              <AuthPaneTitleRow
-                title={t("account:ME_PROFILE_EMAIL_CODE")}
-                action={
-                  <div className="flex items-center gap-1 text-footnote text-label-secondary">
-                    <span>{t("auth:LOGIN_EMAIL_CODE_RESEND_PREFIX")}</span>
-                    <Button
-                      variant="link"
-                      size="inline"
-                      className="h-auto p-0 text-footnote"
-                      disabled={requestCodeMutation.isPending || retryAfter > 0}
-                      onClick={() => void requestEmailCode()}
-                    >
-                      {retryAfter > 0
-                        ? t("auth:LOGIN_EMAIL_CODE_RESEND_WAIT", { countdown: `${retryAfter}s` })
-                        : t("auth:LOGIN_EMAIL_CODE_RESEND_ACTION")}
-                    </Button>
-                  </div>
+              onClick={() => {
+                if (step === "request") {
+                  void requestEmailCode();
+                  return;
                 }
+                void submitVerification();
+              }}
+            >
+              {step === "request"
+                ? t("account:ME_PROFILE_EMAIL_SEND_CODE")
+                : t("settings:SETTINGS_SAVE")}
+            </Button>
+          </>
+        }
+      >
+        <SettingDialogFields>
+          {step === "request" ? (
+            <DialogField
+              label={t("account:ME_PROFILE_EMAIL_NEW_EMAIL")}
+              htmlFor={newEmailFieldId}
+              error={form.formState.errors.newEmail?.message}
+            >
+              <Input
+                id={newEmailFieldId}
+                autoComplete="email"
+                placeholder={t("account:ME_PROFILE_EMAIL_NEW_EMAIL_PLACEHOLDER")}
+                disabled={isBusy}
+                {...form.register("newEmail")}
               />
-            }
-            error={form.formState.errors.code?.message ?? verifyError ?? undefined}
-          >
-            <div className="grid gap-3">
-              <AuthOtpInput
-                value={form.watch("code")}
-                onChange={(value) => {
-                  form.setValue("code", value, { shouldValidate: false });
-                  if (form.formState.errors.code) form.clearErrors("code");
-                  if (verifyError) setVerifyError(null);
-                }}
-                aria-label={t("account:ME_PROFILE_EMAIL_CODE")}
-                invalid={Boolean(verifyError)}
-                disabled={confirmMutation.isPending}
-                maxLength={OTP_LENGTH}
-              />
-            </div>
-          </SettingDialogField>
-        ) : null}
-      </SettingDialogFields>
-    </SettingDialog>
+            </DialogField>
+          ) : null}
+
+          {step === "verify" ? (
+            <SettingDialogField
+              title={
+                <AuthPaneTitleRow
+                  title={t("account:ME_PROFILE_EMAIL_CODE")}
+                  action={
+                    <div className="flex items-center gap-1 text-footnote text-label-secondary">
+                      <span>{t("auth:LOGIN_EMAIL_CODE_RESEND_PREFIX")}</span>
+                      <Button
+                        variant="link"
+                        size="inline"
+                        className="h-auto p-0 text-footnote"
+                        disabled={requestCodeMutation.isPending || retryAfter > 0}
+                        onClick={() => void requestEmailCode()}
+                      >
+                        {retryAfter > 0
+                          ? t("auth:LOGIN_EMAIL_CODE_RESEND_WAIT", { countdown: `${retryAfter}s` })
+                          : t("auth:LOGIN_EMAIL_CODE_RESEND_ACTION")}
+                      </Button>
+                    </div>
+                  }
+                />
+              }
+              error={form.formState.errors.code?.message ?? verifyError ?? undefined}
+            >
+              <div className="grid gap-3">
+                <AuthOtpInput
+                  value={form.watch("code")}
+                  onChange={(value) => {
+                    form.setValue("code", value, { shouldValidate: false });
+                    if (form.formState.errors.code) form.clearErrors("code");
+                    if (verifyError) setVerifyError(null);
+                  }}
+                  aria-label={t("account:ME_PROFILE_EMAIL_CODE")}
+                  invalid={Boolean(verifyError)}
+                  disabled={confirmMutation.isPending}
+                  maxLength={OTP_LENGTH}
+                />
+              </div>
+            </SettingDialogField>
+          ) : null}
+        </SettingDialogFields>
+      </SettingDialog>
+      {securityVerification.verificationDialog}
+    </>
   );
 }

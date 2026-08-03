@@ -1,11 +1,17 @@
 import {
+  platformCreateSystemAgent,
+  platformCreateSystemAgentVersion,
+  platformGetSystemAgentCapabilities,
   platformListSystemAgents,
   platformRetireSystemAgentVersion,
   platformUpdateSystemAgent,
+  type AgentVersionCreateRequest,
   type AgentVersionLifecycleRequest,
   type PageDataSystemAgentDefinitionSummaryOut,
+  type SystemAgentDefinitionCreateRequest,
   type SystemAgentDefinitionDetailOut,
   type SystemAgentDefinitionUpdateRequest,
+  type SystemAgentCatalogCapabilitiesOut,
   type SystemAgentVersionOut,
   type PlatformListSystemAgentsData,
 } from "@arclayer/platform-openapi";
@@ -41,6 +47,30 @@ export function updateAiAssistant(
     client: platformApiClient,
     path: { definition_id: assistantId },
     body,
+  }).then(unwrap);
+}
+
+export function createAiAssistant(
+  body: SystemAgentDefinitionCreateRequest,
+): Promise<SystemAgentDefinitionDetailOut> {
+  return platformCreateSystemAgent({
+    body,
+    client: platformApiClient,
+  }).then(unwrap);
+}
+
+export function getAiAssistantCapabilities(): Promise<SystemAgentCatalogCapabilitiesOut> {
+  return platformGetSystemAgentCapabilities({ client: platformApiClient }).then(unwrap);
+}
+
+export function createAiAssistantVersion(
+  assistantId: string,
+  body: AgentVersionCreateRequest,
+): Promise<SystemAgentVersionOut> {
+  return platformCreateSystemAgentVersion({
+    body,
+    client: platformApiClient,
+    path: { definition_id: assistantId },
   }).then(unwrap);
 }
 

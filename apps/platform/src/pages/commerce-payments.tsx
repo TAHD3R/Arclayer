@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ProviderEventListOut } from "@arclayer/platform-openapi";
 
@@ -8,10 +8,19 @@ import {
 } from "@/commerce/commerce-api";
 import { CommercePage, CommerceQueryState } from "@/commerce/commerce-ui";
 import { useMonitoringQuery } from "@/monitoring/monitoring-ui";
-import { Badge } from "@arclayer/ui/badge";
-import { Button } from "@arclayer/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+type IdempotencyAttempt = Readonly<{ fingerprint: string; key: string }>;
 
 export function CommercePaymentsPage() {
   const { t } = useTranslation("commerce");
@@ -61,14 +70,26 @@ function PaymentEventRow(
 ) {
   const { t } = useTranslation("commerce");
   const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const reconcileAttempt = useRef<IdempotencyAttempt | null>(null);
   const reconcile = async () => {
+    const fingerprint = JSON.stringify([props.event.id, props.event.processingAttempts]);
+    const attempt =
+      reconcileAttempt.current?.fingerprint === fingerprint
+        ? reconcileAttempt.current
+        : { fingerprint, key: crypto.randomUUID() };
+    reconcileAttempt.current = attempt;
     setPending(true);
+    setError(null);
     try {
       await reconcileCommerceProviderEvent(props.event.id, {
         expectedProcessingAttempts: props.event.processingAttempts,
-        idempotencyKey: crypto.randomUUID(),
+        idempotencyKey: attempt.key,
       });
+      if (reconcileAttempt.current === attempt) reconcileAttempt.current = null;
       props.onReconciled();
+    } catch {
+      setError(t("ACTION_ERROR"));
     } finally {
       setPending(false);
     }
@@ -78,7 +99,7 @@ function PaymentEventRow(
       <TableCell>{props.event.provider}</TableCell>
       <TableCell>
         <p>{props.event.eventType}</p>
-        <p className="font-mono text-caption text-label-secondary">{props.event.providerEventId}</p>
+        <p className="font-mono text-xs text-muted-foreground">{props.event.providerEventId}</p>
       </TableCell>
       <TableCell>
         <Badge variant={props.event.status === "failed" ? "destructive" : "outline"}>
@@ -86,7 +107,7 @@ function PaymentEventRow(
         </Badge>
       </TableCell>
       <TableCell>{props.event.processingAttempts}</TableCell>
-      <TableCell>
+      <TableCell className="space-y-2">
         {props.event.status === "failed" ? (
           <Button disabled={pending} onClick={() => void reconcile()} size="sm" variant="outline">
             {pending ? t("RECONCILING") : t("RECONCILE")}
@@ -94,6 +115,7 @@ function PaymentEventRow(
         ) : (
           t("NOT_APPLICABLE")
         )}
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
       </TableCell>
     </TableRow>
   );

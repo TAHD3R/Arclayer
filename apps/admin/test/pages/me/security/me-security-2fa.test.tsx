@@ -10,6 +10,7 @@ import {
   disableTwoFactor,
   getTwoFactorCapabilities,
   getTwoFactorStatus,
+  listTwoFactorWebAuthnCredentials,
   regenerateTwoFactorBackupCodes,
 } from "@/api/auth";
 import { DEFAULT_LOCALE, i18n, initI18n } from "@/lib/i18n";
@@ -29,6 +30,7 @@ vi.mock("@tanstack/react-router", async () => {
 
 vi.mock("@/api/auth", () => ({
   getTwoFactorStatus: vi.fn(),
+  listTwoFactorWebAuthnCredentials: vi.fn(),
   getTwoFactorCapabilities: vi.fn(),
   beginTwoFactorSetup: vi.fn(),
   confirmTwoFactorSetup: vi.fn(),
@@ -64,6 +66,7 @@ const beginTwoFactorSetupMock = vi.mocked(beginTwoFactorSetup);
 const confirmTwoFactorSetupMock = vi.mocked(confirmTwoFactorSetup);
 const disableTwoFactorMock = vi.mocked(disableTwoFactor);
 const regenerateTwoFactorBackupCodesMock = vi.mocked(regenerateTwoFactorBackupCodes);
+const listTwoFactorWebAuthnCredentialsMock = vi.mocked(listTwoFactorWebAuthnCredentials);
 
 function renderWithQuery(node: ReactElement) {
   const queryClient = new QueryClient({
@@ -125,9 +128,42 @@ beforeAll(async () => {
 beforeEach(() => {
   vi.clearAllMocks();
   navigateMock.mockResolvedValue(undefined);
+  listTwoFactorWebAuthnCredentialsMock.mockResolvedValue({ items: [] });
 });
 
 describe("UserTwoFactorSection", () => {
+  it("renders authenticator and passkey methods with compact configured badges", async () => {
+    getTwoFactorStatusMock.mockResolvedValue({
+      enabled: true,
+      methods: ["totp", "backup_code", "webauthn"],
+      backupCodesRemaining: 8,
+      totpEnabled: true,
+      webauthnEnabled: true,
+    });
+    getTwoFactorCapabilitiesMock.mockResolvedValue({
+      enabled: true,
+      canSetup: false,
+      setupRequiredReauthMethods: [],
+      disableRequiredReauthMethods: ["2fa"],
+      regenerateBackupCodesRequiredReauthMethods: ["2fa"],
+      hasPassword: true,
+    });
+
+    renderWithQuery(<UserTwoFactorSection />);
+
+    expect(
+      await screen.findByText(i18n.t("account:ME_SECURITY_2FA_AUTH_APP_TITLE")),
+    ).toBeInTheDocument();
+    expect(screen.getByText(i18n.t("account:ME_SECURITY_2FA_PASSKEY_TITLE"))).toBeInTheDocument();
+    const configuredBadges = await screen.findAllByText(
+      i18n.t("account:ME_SECURITY_2FA_AUTH_APP_CONFIGURED"),
+    );
+    expect(configuredBadges).toHaveLength(2);
+    configuredBadges.forEach((badge) => {
+      expect(badge).toHaveClass("px-1.5", "py-0", "text-[10px]", "leading-4");
+    });
+  });
+
   it("shows not configured tag and starts setup flow", async () => {
     const user = userEvent.setup();
     getTwoFactorStatusMock.mockResolvedValue({ enabled: false, backupCodesRemaining: 0 });
@@ -156,6 +192,9 @@ describe("UserTwoFactorSection", () => {
 
     const dialog = await screen.findByRole("dialog");
     const dialogScope = within(dialog);
+    expect(
+      dialogScope.getByLabelText(i18n.t("account:ME_SECURITY_2FA_SETUP_PASSWORD")),
+    ).toHaveAttribute("placeholder", i18n.t("auth:FIELD_PASSWORD_PLACEHOLDER"));
     await user.type(
       dialogScope.getByLabelText(i18n.t("account:ME_SECURITY_2FA_SETUP_PASSWORD")),
       "secret-pass",

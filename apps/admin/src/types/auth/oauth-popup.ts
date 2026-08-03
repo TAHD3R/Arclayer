@@ -14,6 +14,7 @@ export type OAuthPopupTwoFactorChallenge = {
   expiresAt: number;
   keepSession: boolean;
   redirect: string | null;
+  methods?: string[];
 };
 
 export type OAuthPopupResult = {

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactElement } from "react";
@@ -8,8 +8,10 @@ import {
   changePassword,
   confirmRemoveMyPassword,
   getMySecurityCapabilities,
+  getTwoFactorStatus,
   requestRemoveMyPassword,
   setMyPassword,
+  verifySecurityActionTotp,
 } from "@/api/auth";
 import { DEFAULT_LOCALE, i18n, initI18n } from "@/lib/i18n";
 import { UserProfileAccountSecuritySection } from "@/pages/usercenter/profile/components/profile-account-security-section";
@@ -29,10 +31,12 @@ vi.mock("@tanstack/react-router", async () => {
 
 vi.mock("@/api/auth", () => ({
   getMySecurityCapabilities: vi.fn(),
+  getTwoFactorStatus: vi.fn(),
   changePassword: vi.fn(),
   setMyPassword: vi.fn(),
   requestRemoveMyPassword: vi.fn(),
   confirmRemoveMyPassword: vi.fn(),
+  verifySecurityActionTotp: vi.fn(),
 }));
 
 vi.mock("@/stores/use-auth-store", () => ({
@@ -70,6 +74,8 @@ const changePasswordMock = vi.mocked(changePassword);
 const setMyPasswordMock = vi.mocked(setMyPassword);
 const requestRemoveMyPasswordMock = vi.mocked(requestRemoveMyPassword);
 const confirmRemoveMyPasswordMock = vi.mocked(confirmRemoveMyPassword);
+const getTwoFactorStatusMock = vi.mocked(getTwoFactorStatus);
+const verifySecurityActionTotpMock = vi.mocked(verifySecurityActionTotp);
 
 function renderWithQuery(node: ReactElement) {
   const queryClient = new QueryClient({
@@ -113,6 +119,12 @@ beforeEach(() => {
   setMyPasswordMock.mockResolvedValue(null);
   requestRemoveMyPasswordMock.mockResolvedValue({ expiresIn: 600, retryAfter: 60 });
   confirmRemoveMyPasswordMock.mockResolvedValue(null);
+  getTwoFactorStatusMock.mockResolvedValue({
+    enabled: false,
+    methods: [],
+    backupCodesRemaining: 0,
+  });
+  verifySecurityActionTotpMock.mockResolvedValue({ proof: "action-proof", expiresIn: 300 });
 });
 
 describe("Profile password entry migration", () => {
@@ -154,6 +166,11 @@ describe("Profile password entry migration", () => {
       setPasswordRequiredReauthMethods: ["relogin"],
       emailChangeRequiredReauthMethods: ["relogin"],
     });
+    getTwoFactorStatusMock.mockResolvedValue({
+      enabled: true,
+      methods: ["totp", "backup_code"],
+      backupCodesRemaining: 8,
+    });
 
     renderWithQuery(
       <UserProfileAccountSecuritySection
@@ -181,6 +198,11 @@ describe("Profile password entry migration", () => {
 
   it("profile password card submits set-password for oauth-only account with 2fa", async () => {
     const user = userEvent.setup();
+    getTwoFactorStatusMock.mockResolvedValue({
+      enabled: true,
+      methods: ["totp", "backup_code"],
+      backupCodesRemaining: 8,
+    });
     getMySecurityCapabilitiesMock.mockResolvedValue({
       hasPassword: false,
       twoFactorEnabled: true,
@@ -202,14 +224,30 @@ describe("Profile password entry migration", () => {
       screen.getByLabelText(i18n.t("account:ME_SECURITY_CONFIRM_PASSWORD")),
       "Newpass1",
     );
-    await user.type(
-      screen.getByPlaceholderText(i18n.t("account:ME_PROFILE_PASSWORD_2FA_CODE_PLACEHOLDER")),
-      "123456",
-    );
     await user.click(screen.getByRole("button", { name: i18n.t("settings:SETTINGS_SAVE") }));
 
+    const verifyDialog = await screen.findByRole("dialog", {
+      name: i18n.t("account:ME_SECURITY_ACTION_VERIFY_TITLE"),
+    });
+    await user.type(
+      within(verifyDialog).getByLabelText(i18n.t("auth:TWO_FACTOR_CODE_LABEL")),
+      "123456",
+    );
+    await user.click(
+      within(verifyDialog).getByRole("button", {
+        name: i18n.t("account:ME_SECURITY_ACTION_VERIFY_SUBMIT"),
+      }),
+    );
+
     await waitFor(() => {
-      expect(setMyPasswordMock).toHaveBeenCalledWith({ newPassword: "Newpass1", code: "123456" });
+      expect(verifySecurityActionTotpMock).toHaveBeenCalledWith({
+        action: "set_password",
+        code: "123456",
+      });
+      expect(setMyPasswordMock).toHaveBeenCalledWith({
+        newPassword: "Newpass1",
+        mfaProof: "action-proof",
+      });
     });
     expect(changePasswordMock).not.toHaveBeenCalled();
     await waitFor(() => {
@@ -253,7 +291,10 @@ describe("Profile password entry migration", () => {
     );
 
     await waitFor(() => {
-      expect(confirmRemoveMyPasswordMock).toHaveBeenCalledWith({ code: "123456" });
+      expect(confirmRemoveMyPasswordMock).toHaveBeenCalledWith({
+        code: "123456",
+        mfaProof: undefined,
+      });
     });
     await waitFor(() => {
       expect(clearAuthMock).toHaveBeenCalled();

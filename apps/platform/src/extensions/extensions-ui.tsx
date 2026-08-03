@@ -17,13 +17,27 @@ import {
   listInstalledExtensions,
 } from "@/extensions/extensions-api";
 import { ExtensionInstallDialog } from "@/extensions/extension-lifecycle-dialogs";
+import { PlatformPage } from "@/components/platform-page";
 import { useMonitoringQuery } from "@/monitoring/monitoring-ui";
-import { Badge } from "@arclayer/ui/badge";
-import { Button } from "@arclayer/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@arclayer/ui/empty";
-import { Skeleton } from "@arclayer/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type LoadState<T> = Readonly<{ status: string; data?: T }>;
 
@@ -35,13 +49,9 @@ function ExtensionPage({
   children,
 }: Readonly<{ title: string; description: string; children: ReactNode }>) {
   return (
-    <section className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-7 px-5 py-8 md:px-8 md:py-10">
-      <header className="max-w-3xl space-y-2">
-        <h1 className="text-largetitle">{title}</h1>
-        <p className="text-body text-label-secondary">{description}</p>
-      </header>
+    <PlatformPage description={description} title={title}>
       {children}
-    </section>
+    </PlatformPage>
   );
 }
 
@@ -99,7 +109,7 @@ function ExtensionIdentity({ item }: Readonly<{ item: SystemPluginCatalogItemOut
   return (
     <div className="space-y-1">
       <p className="font-medium">{item.name}</p>
-      <p className="text-footnote text-label-secondary">
+      <p className="text-sm text-muted-foreground">
         {sourceLabel(t, item.sourceType)} · {item.sourceLocator}
       </p>
     </div>
@@ -154,7 +164,7 @@ function OperationProgress({ operation }: Readonly<{ operation: SystemPluginOper
   const { t } = useTranslation("extensions");
   return (
     <div className="space-y-1">
-      <p className="text-footnote text-label-secondary">
+      <p className="text-sm text-muted-foreground">
         {operation.progressTotal === null
           ? t("OPERATION_PROGRESS_NOT_REPORTED")
           : t("OPERATION_PROGRESS_VALUE", {
@@ -185,14 +195,14 @@ function ExtensionOperationReceipt({
       data-operation-id={operation.id}
       role="status"
     >
-      <p className="text-footnote text-label-secondary">{t("OPERATION_TRACKING")}</p>
+      <p className="text-sm text-muted-foreground">{t("OPERATION_TRACKING")}</p>
       <div className="flex flex-wrap items-center gap-2">
         <OperationStateBadge operation={operation} />
-        <span className="text-footnote text-label-secondary">
+        <span className="text-sm text-muted-foreground">
           {operation.activationVerified ? t("ACTIVATION_VERIFIED") : t("ACTIVATION_PENDING")}
         </span>
         <Link
-          className="text-footnote font-medium text-primary underline"
+          className="text-sm font-medium text-primary underline"
           search={{ operationId: operation.id }}
           to="/extensions/history"
         >
@@ -223,7 +233,7 @@ function OperationEvidenceFailure({
 }: Readonly<{ error: unknown; hasCurrentRecord: boolean }>) {
   const { t } = useTranslation("extensions");
   return (
-    <p className="text-footnote text-destructive" role="alert">
+    <p className="text-sm text-destructive" role="alert">
       {t(hasCurrentRecord ? "OPERATION_EVIDENCE_STALE" : "OPERATION_EVIDENCE_UNAVAILABLE")}{" "}
       {t("OPERATION_ERROR_DETAILS")}: {diagnosticMessage(error)}
     </p>
@@ -318,19 +328,19 @@ function ExtensionOperationDetails({
       </CardHeader>
       <CardContent className="space-y-5">
         <OperationProgress operation={operation} />
-        <dl className="grid gap-4 text-body sm:grid-cols-2">
+        <dl className="grid gap-4 text-base sm:grid-cols-2">
           <div className="space-y-1">
-            <dt className="text-footnote text-label-secondary">{t("HISTORY_KIND")}</dt>
+            <dt className="text-sm text-muted-foreground">{t("HISTORY_KIND")}</dt>
             <dd>{t(`HISTORY_KIND_${operation.kind.toUpperCase()}`)}</dd>
           </div>
           <div className="space-y-1">
-            <dt className="text-footnote text-label-secondary">{t("ACTIVATION")}</dt>
+            <dt className="text-sm text-muted-foreground">{t("ACTIVATION")}</dt>
             <dd>
               {operation.activationVerified ? t("ACTIVATION_VERIFIED") : t("ACTIVATION_PENDING")}
             </dd>
           </div>
           <div className="space-y-1">
-            <dt className="text-footnote text-label-secondary">{t("HISTORY_COMPLETED")}</dt>
+            <dt className="text-sm text-muted-foreground">{t("HISTORY_COMPLETED")}</dt>
             <dd>
               {operation.completedAt
                 ? new Date(operation.completedAt).toLocaleString()
@@ -338,17 +348,15 @@ function ExtensionOperationDetails({
             </dd>
           </div>
           <div className="space-y-1">
-            <dt className="text-footnote text-label-secondary">
-              {t("OPERATION_REQUESTED_VERSION")}
-            </dt>
+            <dt className="text-sm text-muted-foreground">{t("OPERATION_REQUESTED_VERSION")}</dt>
             <dd>{operation.requestedVersion ?? t("NOT_SPECIFIED")}</dd>
           </div>
           <div className="space-y-1">
-            <dt className="text-footnote text-label-secondary">{t("OPERATION_RETRY")}</dt>
+            <dt className="text-sm text-muted-foreground">{t("OPERATION_RETRY")}</dt>
             <dd>{operation.retryable ? t("OPERATION_RETRYABLE") : t("OPERATION_NOT_RETRYABLE")}</dd>
           </div>
           <div className="space-y-1">
-            <dt className="text-footnote text-label-secondary">{t("OPERATION_RESTART")}</dt>
+            <dt className="text-sm text-muted-foreground">{t("OPERATION_RESTART")}</dt>
             <dd>
               {operation.restartRequired
                 ? t("OPERATION_RESTART_REQUIRED")
@@ -358,27 +366,27 @@ function ExtensionOperationDetails({
         </dl>
         {operation.failureSummary ? (
           <div className="space-y-1 rounded-lg border border-destructive/30 bg-destructive/10 p-3">
-            <p className="text-footnote font-medium">{t("OPERATION_FAILURE")}</p>
-            <p className="text-footnote text-label-secondary">{operation.failureSummary}</p>
+            <p className="text-sm font-medium">{t("OPERATION_FAILURE")}</p>
+            <p className="text-sm text-muted-foreground">{operation.failureSummary}</p>
           </div>
         ) : null}
         {operation.migrationWarnings.length ? (
           <div className="space-y-2">
-            <p className="text-footnote font-medium">{t("OPERATION_WARNINGS")}</p>
-            <ul className="list-disc space-y-1 pl-5 text-footnote text-label-secondary">
+            <p className="text-sm font-medium">{t("OPERATION_WARNINGS")}</p>
+            <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
               {operation.migrationWarnings.map((warning) => (
                 <li key={warning}>{warning}</li>
               ))}
             </ul>
           </div>
         ) : null}
-        <dl className="grid gap-4 border-t pt-4 text-footnote sm:grid-cols-2">
+        <dl className="grid gap-4 border-t pt-4 text-sm sm:grid-cols-2">
           <div className="space-y-1">
-            <dt className="text-label-secondary">{t("OPERATION_REFERENCE")}</dt>
+            <dt className="text-muted-foreground">{t("OPERATION_REFERENCE")}</dt>
             <dd className="break-all font-mono">{operation.id}</dd>
           </div>
           <div className="space-y-1">
-            <dt className="text-label-secondary">{t("OPERATION_PHASE")}</dt>
+            <dt className="text-muted-foreground">{t("OPERATION_PHASE")}</dt>
             <dd className="break-all font-mono">{operation.phase}</dd>
           </div>
         </dl>
@@ -466,7 +474,7 @@ function ExtensionsTable({ items }: Readonly<{ items: SystemPluginCatalogItemOut
                 </TableCell>
                 <TableCell>
                   <Link
-                    className="text-footnote font-medium text-primary underline"
+                    className="text-sm font-medium text-primary underline"
                     params={{ pluginId: item.name }}
                     to="/extensions/$pluginId"
                   >
@@ -543,12 +551,12 @@ export function ExtensionsCatalogPage() {
                       {item.compatibility.compatible ? t("COMPATIBLE") : t("INCOMPATIBLE")}
                     </Badge>
                   </div>
-                  <p className="text-footnote text-label-secondary">
+                  <p className="text-sm text-muted-foreground">
                     {t("PERMISSIONS")}: {item.permissions?.join(", ") || t("NONE")}
                   </p>
                   {item.installedVersion ? (
                     <Link
-                      className="text-footnote font-medium text-primary underline"
+                      className="text-sm font-medium text-primary underline"
                       params={{ pluginId: item.name }}
                       to="/extensions/$pluginId"
                     >
@@ -632,7 +640,7 @@ export function ExtensionsConnectionsPage() {
                             {t(configurationReadinessKey(item.configurationReadiness))}
                           </Badge>
                           <a
-                            className="text-footnote font-medium text-primary underline"
+                            className="text-sm font-medium text-primary underline"
                             href={item.configurationDeepLink}
                           >
                             {t("OPEN_CONFIGURATION")}
@@ -703,7 +711,7 @@ export function ExtensionsHistoryPage({ operationId }: Readonly<{ operationId?: 
                       </TableCell>
                       <TableCell>
                         <Link
-                          className="text-footnote font-medium text-primary underline"
+                          className="text-sm font-medium text-primary underline"
                           search={{ operationId: item.id }}
                           to="/extensions/history"
                         >

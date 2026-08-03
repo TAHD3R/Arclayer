@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   SystemPluginCatalogItemOut,
@@ -16,15 +16,20 @@ import {
   rollbackExtension,
   upgradeExtension,
 } from "@/extensions/extensions-api";
-import { Button } from "@arclayer/ui/button";
-import { Checkbox } from "@arclayer/ui/checkbox";
-import { SettingDialog } from "@arclayer/ui/setting-dialog";
-import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { SettingDialog } from "@/components/setting-dialog";
+import { SettingDialogField, SettingDialogFields } from "@/components/setting-dialog-field";
 
 type ReviewAction = "install" | "upgrade" | "enable";
 type LifecycleAction = ReviewAction | "disable" | "recover" | "rollback" | "remove";
 
 type OperationCreated = (operation: SystemPluginOperationOut) => void;
+type OperationRequest = Readonly<{
+  approvedPermissions: string[];
+  fingerprint: string;
+  idempotencyKey: string;
+}>;
 
 function outstandingPermissions(item: SystemPluginCatalogItemOut): string[] {
   const approved = new Set(item.approvedPermissions ?? []);
@@ -33,6 +38,29 @@ function outstandingPermissions(item: SystemPluginCatalogItemOut): string[] {
 
 function errorDetails(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function operationRequest(
+  idempotencyKeys: Map<string, string>,
+  item: SystemPluginCatalogItemOut,
+  action: LifecycleAction,
+  approvedPermissions: readonly string[],
+): OperationRequest {
+  const normalizedPermissions = [...new Set(approvedPermissions)].sort();
+  const fingerprint = JSON.stringify({
+    action,
+    approvedPermissions: normalizedPermissions,
+    extension: item.name,
+    sourceType: action === "install" ? item.sourceType : undefined,
+    targetVersion: action === "install" || action === "upgrade" ? item.availableVersion : undefined,
+  });
+  const existingKey = idempotencyKeys.get(fingerprint);
+  if (existingKey) {
+    return { approvedPermissions: normalizedPermissions, fingerprint, idempotencyKey: existingKey };
+  }
+  const idempotencyKey = crypto.randomUUID();
+  idempotencyKeys.set(fingerprint, idempotencyKey);
+  return { approvedPermissions: normalizedPermissions, fingerprint, idempotencyKey };
 }
 
 function PermissionReviewDialog({
@@ -92,7 +120,7 @@ function PermissionReviewDialog({
           title={t("PERMISSION_REVIEW_REQUIRED")}
         >
           {outstanding.length === 0 ? (
-            <p className="text-body text-label-secondary">{t("PERMISSION_REVIEW_NONE")}</p>
+            <p className="text-base text-muted-foreground">{t("PERMISSION_REVIEW_NONE")}</p>
           ) : (
             <div className="space-y-2 rounded-lg border p-3">
               {outstanding.map((permission) => (
@@ -108,7 +136,7 @@ function PermissionReviewDialog({
                       })
                     }
                   />
-                  <code className="pt-0.5 text-footnote">{permission}</code>
+                  <code className="pt-0.5 text-sm">{permission}</code>
                 </label>
               ))}
             </div>
@@ -158,7 +186,7 @@ function RemoveExtensionDialog({
             {t("OPERATION_ERROR_DETAILS")}: {errorDetails(error)}
           </p>
         ) : null}
-        <p className="text-body text-label-secondary">{t("REMOVE_REVIEW_HELP")}</p>
+        <p className="text-base text-muted-foreground">{t("REMOVE_REVIEW_HELP")}</p>
       </SettingDialogFields>
     </SettingDialog>
   );
@@ -177,7 +205,9 @@ export function ExtensionInstallDialog({
 }>) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<unknown>();
+  const idempotencyKeys = useRef(new Map<string, string>());
   const submit = async (approvedPermissions: string[]) => {
+    const request = operationRequest(idempotencyKeys.current, item, "install", approvedPermissions);
     setPending(true);
     setError(undefined);
     try {
@@ -186,10 +216,11 @@ export function ExtensionInstallDialog({
           pluginName: item.name,
           sourceType: item.sourceType,
           targetVersion: item.availableVersion,
-          approvedPermissions,
+          approvedPermissions: request.approvedPermissions,
         },
-        crypto.randomUUID(),
+        request.idempotencyKey,
       );
+      idempotencyKeys.current.delete(request.fingerprint);
       onOperationCreated(operation);
       onOpenChange(false);
     } catch (caught) {
@@ -221,13 +252,20 @@ export function ExtensionLifecycleActions({
   const [pending, setPending] = useState<LifecycleAction | null>(null);
   const [error, setError] = useState<unknown>();
   const [latestOperation, setLatestOperation] = useState<SystemPluginOperationOut>();
+  const idempotencyKeys = useRef(new Map<string, string>());
 
   const run = async (action: LifecycleAction, approvedPermissions: string[] = []) => {
+    const request = operationRequest(idempotencyKeys.current, item, action, approvedPermissions);
     setPending(action);
     setError(undefined);
-    const idempotencyKey = crypto.randomUUID();
     try {
-      const operation = await lifecycleOperation(item, action, approvedPermissions, idempotencyKey);
+      const operation = await lifecycleOperation(
+        item,
+        action,
+        request.approvedPermissions,
+        request.idempotencyKey,
+      );
+      idempotencyKeys.current.delete(request.fingerprint);
       setLatestOperation(operation);
       onOperationCreated(operation);
       setReviewAction(null);
@@ -309,7 +347,7 @@ export function ExtensionLifecycleActions({
         ) : null}
       </div>
       {error !== undefined && reviewAction === null && !removeOpen ? (
-        <p className="text-footnote text-destructive" role="alert">
+        <p className="text-sm text-destructive" role="alert">
           {t("OPERATION_REQUEST_UNCONFIRMED")} {t("OPERATION_ERROR_DETAILS")}: {errorDetails(error)}
         </p>
       ) : null}
@@ -318,9 +356,9 @@ export function ExtensionLifecycleActions({
           className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3"
           role="status"
         >
-          <span className="text-footnote text-label-secondary">{t("OPERATION_TRACKING")}</span>
+          <span className="text-sm text-muted-foreground">{t("OPERATION_TRACKING")}</span>
           <Link
-            className="text-footnote font-medium text-primary underline"
+            className="text-sm font-medium text-primary underline"
             search={{ operationId: latestOperation.id }}
             to="/extensions/history"
           >

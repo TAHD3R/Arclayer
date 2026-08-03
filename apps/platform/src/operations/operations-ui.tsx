@@ -4,10 +4,17 @@ import { useTranslation } from "react-i18next";
 
 import { PlatformOperationsApiError } from "@/operations/operations-api";
 import type { OperationsQueryState } from "@/operations/operations-state";
-import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
-import { Button } from "@arclayer/ui/button";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
-import { Skeleton } from "@arclayer/ui/skeleton";
+import { PlatformPage } from "@/components/platform-page";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function OperationsPage({
   title,
@@ -15,13 +22,9 @@ export function OperationsPage({
   children,
 }: Readonly<{ title: string; description: string; children: ReactNode }>) {
   return (
-    <section className="flex w-full flex-1 flex-col gap-5 px-5 py-6 md:px-8">
-      <header className="space-y-1">
-        <h1 className="text-title1 font-semibold">{title}</h1>
-        <p className="max-w-3xl text-footnote text-label-secondary">{description}</p>
-      </header>
+    <PlatformPage description={description} title={title}>
       {children}
-    </section>
+    </PlatformPage>
   );
 }
 
@@ -100,13 +103,13 @@ export function OperationsFailure({
       );
 
   return (
-    <Alert className={conflict ? "border-warning/40 bg-warning/10" : undefined}>
+    <Alert className={conflict ? "border-amber-500/40 bg-amber-500/10" : undefined}>
       <AlertTriangle aria-hidden="true" />
       <AlertTitle>{title}</AlertTitle>
       <AlertDescription>
         <p>{description}</p>
         {apiError && (
-          <p className="font-mono text-caption" data-testid="operations-error-code">
+          <p className="font-mono text-xs" data-testid="operations-error-code">
             {apiError.message}
           </p>
         )}
@@ -125,7 +128,7 @@ export function RefreshStatus({ refreshing }: Readonly<{ refreshing: boolean }>)
   const { t } = useTranslation("inbox");
   if (!refreshing) return null;
   return (
-    <p aria-live="polite" className="text-footnote text-label-secondary">
+    <p aria-live="polite" className="text-sm text-muted-foreground">
       {t("QUEUE_REFRESHING")}
     </p>
   );

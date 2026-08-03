@@ -1,17 +1,20 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, TriangleAlert } from "lucide-react";
+import { Copy, KeyRound, ShieldCheck, TriangleAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
 import { copyToClipboard } from "@/lib/clipboard";
+import { createProductPasskey } from "@/lib/auth/webauthn";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { AuthOtpInput, AuthPaneTitleRow } from "@/pages/login/components/auth-pane-primitives";
 import { useSecurityRelogin } from "@/pages/usercenter/shared/use-security-relogin";
+import { useSecurityActionVerification } from "@/pages/usercenter/shared/security-action-verification";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 import { AuthLinkButton } from "@arclayer/ui/auth-controls";
 import { Button } from "@arclayer/ui/button";
+import { Badge } from "@arclayer/ui/badge";
 import { Input } from "@arclayer/ui/input";
 import { PasswordInput } from "@arclayer/ui/password-input";
 import { QRCode } from "@arclayer/ui/qr-code";
@@ -77,7 +80,7 @@ function BackupCodesDialog(props: BackupCodesDialogProps) {
           </code>
         ))}
       </div>
-      <Button variant="outline" onClick={props.onAcknowledge}>
+      <Button variant="primary" onClick={props.onAcknowledge}>
         {props.acknowledgeLabel}
       </Button>
     </div>
@@ -148,7 +151,7 @@ function SetupDialog(props: SetupDialogProps) {
         {t("common:CANCEL")}
       </Button>
       <Button
-        variant="outline"
+        variant="primary"
         loading={props.pending}
         onClick={() => void (setupData ? handleConfirm() : handleStart())}
       >
@@ -226,6 +229,7 @@ function SetupDialog(props: SetupDialogProps) {
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             aria-label={t("account:ME_SECURITY_2FA_SETUP_PASSWORD")}
+            placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
             autoComplete="current-password"
           />
         </SettingDialogField>
@@ -300,7 +304,7 @@ function ReauthDialog(props: ReauthDialogProps) {
             >
               {t("common:CANCEL")}
             </Button>
-            <Button variant="outline" loading={props.pending} onClick={() => void handleSubmit()}>
+            <Button variant="primary" loading={props.pending} onClick={() => void handleSubmit()}>
               {props.submitLabel}
             </Button>
           </>
@@ -392,14 +396,119 @@ export type UserTwoFactorSectionProps = {
   redirect?: string;
 };
 
+type PasskeyDialogProps = {
+  open: boolean;
+  hasPassword: boolean;
+  pending: boolean;
+  credentials: Array<{ id: string; label?: string | null; createdAt: string }>;
+  onOpenChange: (open: boolean) => void;
+  onAdd: (payload: { label?: string; password?: string }) => Promise<void>;
+  onRemove: (credentialId: string) => Promise<void>;
+};
+
+function PasskeyDialog(props: PasskeyDialogProps) {
+  const { t } = useTranslation(["account", "auth", "common"]);
+  const [label, setLabel] = useState("");
+  const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    if (props.open) return;
+    setLabel("");
+    setPassword("");
+  }, [props.open]);
+
+  return (
+    <SettingDialog
+      open={props.open}
+      onOpenChange={(open) => {
+        if (!open && props.pending) return;
+        props.onOpenChange(open);
+      }}
+      title={t("account:ME_SECURITY_2FA_PASSKEY_DIALOG_TITLE")}
+      description={t("account:ME_SECURITY_2FA_PASSKEY_DIALOG_DESC")}
+      footer={
+        <>
+          <Button
+            variant="ghost"
+            disabled={props.pending}
+            onClick={() => props.onOpenChange(false)}
+          >
+            {t("common:CANCEL")}
+          </Button>
+          <Button
+            variant="primary"
+            loading={props.pending}
+            onClick={() =>
+              void props.onAdd({
+                ...(label.trim() ? { label: label.trim() } : {}),
+                ...(password.trim() ? { password: password.trim() } : {}),
+              })
+            }
+          >
+            {t("account:ME_SECURITY_2FA_PASSKEY_ADD")}
+          </Button>
+        </>
+      }
+    >
+      <SettingDialogFields>
+        <SettingDialogField title={t("account:ME_SECURITY_2FA_PASSKEY_LABEL")}>
+          <Input
+            value={label}
+            onChange={(event) => setLabel(event.target.value)}
+            placeholder={t("account:ME_SECURITY_2FA_PASSKEY_LABEL_PLACEHOLDER")}
+          />
+        </SettingDialogField>
+        {props.hasPassword ? (
+          <SettingDialogField title={t("account:ME_SECURITY_2FA_SETUP_PASSWORD")}>
+            <PasswordInput
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete="current-password"
+              placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
+            />
+          </SettingDialogField>
+        ) : null}
+        {props.credentials.length ? (
+          <div className="grid gap-2">
+            {props.credentials.map((credential) => (
+              <div
+                key={credential.id}
+                className="flex items-center justify-between gap-3 rounded-lg border border-border/70 p-3"
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-body font-medium text-label-primary">
+                    {credential.label || t("account:ME_SECURITY_2FA_PASSKEY_UNNAMED")}
+                  </div>
+                  <div className="text-footnote text-label-secondary">
+                    {new Date(credential.createdAt).toLocaleDateString()}
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  disabled={props.pending}
+                  onClick={() => void props.onRemove(credential.id)}
+                >
+                  {t("account:ME_SECURITY_2FA_DISABLE")}
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </SettingDialogFields>
+    </SettingDialog>
+  );
+}
+
 export function UserTwoFactorSection(props: UserTwoFactorSectionProps) {
   const { t } = useTranslation(["account"]);
   const queryClient = useQueryClient();
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const forceRelogin = useSecurityRelogin(props.redirect);
+  const securityVerification = useSecurityActionVerification();
   const [setupOpen, setSetupOpen] = useState(false);
   const [disableOpen, setDisableOpen] = useState(false);
   const [regenerateOpen, setRegenerateOpen] = useState(false);
+  const [passkeyOpen, setPasskeyOpen] = useState(false);
 
   const statusQuery = useQuery({
     queryKey: ["auth", "2fa", "status", sessionVersion],
@@ -411,11 +520,17 @@ export function UserTwoFactorSection(props: UserTwoFactorSectionProps) {
     queryFn: async () => authApi.getTwoFactorCapabilities(),
     retry: false,
   });
+  const credentialsQuery = useQuery({
+    queryKey: ["auth", "2fa", "webauthn", sessionVersion],
+    queryFn: async () => authApi.listTwoFactorWebAuthnCredentials(),
+    retry: false,
+  });
 
   const refreshSecurityState = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["auth", "2fa", "status", sessionVersion] }),
       queryClient.invalidateQueries({ queryKey: ["auth", "2fa", "capabilities", sessionVersion] }),
+      queryClient.invalidateQueries({ queryKey: ["auth", "2fa", "webauthn", sessionVersion] }),
     ]);
   };
 
@@ -450,7 +565,45 @@ export function UserTwoFactorSection(props: UserTwoFactorSectionProps) {
     onError: (error) => notifyError(error),
   });
 
-  const enabled = Boolean(statusQuery.data?.enabled ?? capabilitiesQuery.data?.enabled);
+  const addPasskeyMutation = useMutation({
+    mutationFn: async (payload: { label?: string; password?: string }) => {
+      const begin = await authApi.beginTwoFactorWebAuthnRegistration({
+        password: payload.password,
+      });
+      const credential = await createProductPasskey(begin.options);
+      await authApi.completeTwoFactorWebAuthnRegistration({
+        challengeId: begin.options.challengeId,
+        credential,
+        label: payload.label,
+      });
+    },
+    onSuccess: async () => {
+      notifySuccessText(t("account:ME_SECURITY_2FA_PASSKEY_ADD_SUCCESS"));
+      await forceRelogin();
+    },
+    onError: notifyError,
+  });
+
+  const removePasskeyMutation = useMutation({
+    mutationFn: async (credentialId: string) => {
+      const verification = await securityVerification.requestProof("remove_webauthn_credential");
+      if (verification.cancelled) return false;
+      await authApi.removeTwoFactorWebAuthnCredential(credentialId, {
+        mfaProof: verification.proof,
+      });
+      return true;
+    },
+    onSuccess: async (removed) => {
+      if (!removed) return;
+      notifySuccessText(t("account:ME_SECURITY_2FA_PASSKEY_REMOVE_SUCCESS"));
+      await refreshSecurityState();
+    },
+    onError: notifyError,
+  });
+
+  const totpEnabled = Boolean(statusQuery.data?.totpEnabled ?? capabilitiesQuery.data?.enabled);
+  const webauthnEnabled = Boolean(statusQuery.data?.webauthnEnabled);
+  const enabled = totpEnabled || webauthnEnabled;
   const setupRequiredMethods = capabilitiesQuery.data?.setupRequiredReauthMethods ?? [];
   const disableRequiredMethods = capabilitiesQuery.data?.disableRequiredReauthMethods ?? [];
   const regenerateRequiredMethods =
@@ -459,11 +612,6 @@ export function UserTwoFactorSection(props: UserTwoFactorSectionProps) {
   const hasPassword = resolveHasPassword(capabilitiesQuery.data);
   const actionLoading = statusQuery.isLoading || capabilitiesQuery.isLoading;
   const setupDisabled = actionLoading || !canSetup || !hasPassword;
-  const setupAction = (
-    <Button variant="outline" disabled={setupDisabled} onClick={() => setSetupOpen(true)}>
-      {t("account:ME_SECURITY_2FA_ENABLE")}
-    </Button>
-  );
 
   return (
     <>
@@ -475,32 +623,83 @@ export function UserTwoFactorSection(props: UserTwoFactorSectionProps) {
               ? t("account:ME_SECURITY_2FA_ENABLED_DESC")
               : t("account:ME_SECURITY_2FA_DISABLED_DESC")
           }
-          action={
-            enabled ? (
-              <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => setRegenerateOpen(true)}>
-                  {t("account:ME_SECURITY_2FA_REGENERATE")}
-                </Button>
-                <Button variant="outline" onClick={() => setDisableOpen(true)}>
-                  {t("account:ME_SECURITY_2FA_DISABLE")}
-                </Button>
-              </div>
-            ) : (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild focusTrigger={false}>
-                    <span>{setupAction}</span>
-                  </TooltipTrigger>
-                  {!hasPassword ? (
-                    <TooltipContent>
-                      {t("account:ME_SECURITY_2FA_ENABLE_DISABLED_NO_PASSWORD")}
-                    </TooltipContent>
-                  ) : null}
-                </Tooltip>
-              </TooltipProvider>
-            )
-          }
         />
+        <div className="divide-y divide-border/70 border-t border-border/70">
+          <div className="flex items-center gap-4 py-4">
+            <div className="rounded-lg bg-muted p-2 text-label-primary">
+              <ShieldCheck className="size-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 text-body font-medium text-label-primary">
+                {t("account:ME_SECURITY_2FA_AUTH_APP_TITLE")}
+                {totpEnabled ? (
+                  <Badge variant="secondary" className="px-1.5 py-0 text-[10px] leading-4">
+                    {t("account:ME_SECURITY_2FA_AUTH_APP_CONFIGURED")}
+                  </Badge>
+                ) : null}
+              </div>
+              <p className="text-callout text-label-secondary">
+                {t("account:ME_SECURITY_2FA_AUTH_APP_DESC")}
+              </p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              {totpEnabled ? (
+                <>
+                  <Button variant="ghost" onClick={() => setRegenerateOpen(true)}>
+                    {t("account:ME_SECURITY_2FA_REGENERATE")}
+                  </Button>
+                  <Button variant="outline" onClick={() => setDisableOpen(true)}>
+                    {t("account:ME_SECURITY_2FA_DISABLE")}
+                  </Button>
+                </>
+              ) : (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild focusTrigger={false}>
+                      <span>
+                        <Button
+                          variant="outline"
+                          disabled={setupDisabled}
+                          onClick={() => setSetupOpen(true)}
+                        >
+                          {t("account:ME_SECURITY_2FA_ENABLE")}
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {!hasPassword ? (
+                      <TooltipContent>
+                        {t("account:ME_SECURITY_2FA_ENABLE_DISABLED_NO_PASSWORD")}
+                      </TooltipContent>
+                    ) : null}
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-4 py-4">
+            <div className="rounded-lg bg-muted p-2 text-label-primary">
+              <KeyRound className="size-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 text-body font-medium text-label-primary">
+                {t("account:ME_SECURITY_2FA_PASSKEY_TITLE")}
+                {webauthnEnabled ? (
+                  <Badge variant="secondary" className="px-1.5 py-0 text-[10px] leading-4">
+                    {t("account:ME_SECURITY_2FA_AUTH_APP_CONFIGURED")}
+                  </Badge>
+                ) : null}
+              </div>
+              <p className="text-callout text-label-secondary">
+                {t("account:ME_SECURITY_2FA_PASSKEY_DESC")}
+              </p>
+            </div>
+            <Button variant="outline" onClick={() => setPasskeyOpen(true)}>
+              {webauthnEnabled
+                ? t("account:ME_SECURITY_2FA_PASSKEY_MANAGE")
+                : t("account:ME_SECURITY_2FA_PASSKEY_ADD")}
+            </Button>
+          </div>
+        </div>
       </SettingCard>
 
       <SetupDialog
@@ -539,6 +738,18 @@ export function UserTwoFactorSection(props: UserTwoFactorSectionProps) {
           return null;
         }}
       />
+      <PasskeyDialog
+        open={passkeyOpen}
+        hasPassword={hasPassword}
+        pending={addPasskeyMutation.isPending || removePasskeyMutation.isPending}
+        credentials={credentialsQuery.data?.items ?? []}
+        onOpenChange={setPasskeyOpen}
+        onAdd={async (payload) => addPasskeyMutation.mutateAsync(payload)}
+        onRemove={async (credentialId) => {
+          await removePasskeyMutation.mutateAsync(credentialId);
+        }}
+      />
+      {securityVerification.verificationDialog}
     </>
   );
 }
